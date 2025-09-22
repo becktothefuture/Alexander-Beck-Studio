@@ -1,0 +1,21 @@
+{
+  "name": "alexander-beck-studio-website",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Build scripts for bouncy-balls embed",
+  "scripts": {
+    "build": "node bouncy-balls/build.js",
+    "watch": "chokidar 'bouncy-balls/balls-source.html' 'bouncy-balls/current-config*.json' -c \"npm run build\"",
+    "serve": "cd public && python3 -m http.server 8000",
+    "dev:source": "open 'bouncy-balls/balls-source.html'",
+    "dev": "npm run build && npm run serve"
+  },
+  "devDependencies": {
+    "chokidar-cli": "^3.0.0",
+    "terser": "^5.31.0"
+  }
+}
+
+
+
+
