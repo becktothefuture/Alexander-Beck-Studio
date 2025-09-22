@@ -4942,6 +4942,7 @@ body {
   position: fixed;
   inset: 0%;
   overflow: visible;
+  z-index: 5;
 }
 
 .legend-wrapper {
