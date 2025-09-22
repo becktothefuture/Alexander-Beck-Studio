@@ -11,4 +11,6 @@ coverage/
 logs
 *.log
 
+.playwright-mcp/
+
 
