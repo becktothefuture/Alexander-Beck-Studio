@@ -90,10 +90,34 @@ if (config) {
   if (typeof config.repelRadius === 'number') replaceVar('repelRadius', String(config.repelRadius));
   if (typeof config.repelPower === 'number') replaceVar('repelPower', String(config.repelPower));
   if (typeof config.repelSoftness === 'number') replaceVar('repelSoft', String(config.repelSoftness));
+  if (typeof config.repelResponsive === 'boolean') replaceVar('repelResponsive', String(config.repelResponsive));
+  if (typeof config.repelMinSize === 'number') replaceVar('repelMinSize', String(config.repelMinSize));
+  if (typeof config.repelMaxSize === 'number') replaceVar('repelMaxSize', String(config.repelMaxSize));
 
   // Scene
   if (typeof config.trailFade === 'number') replaceVar('trailFade', String(config.trailFade));
   if (typeof config.trailSubtlety === 'number') replaceVar('trailSubtlety', String(config.trailSubtlety));
+  // Behavior
+  if (typeof config.behaviorMode === 'string') {
+    const re = /(let\s+behaviorMode\s*=\s*)[^;]+(;)/;
+    jsCode = jsCode.replace(re, `$1'${config.behaviorMode}'$2`);
+  }
+  if (typeof config.fliesMaxSpeed === 'number') replaceVar('fliesMaxSpeed', String(config.fliesMaxSpeed));
+  // Seek gain & wander kept but default UI simplified; still overridable by config
+  if (typeof config.fliesSeekGain === 'number') replaceVar('fliesSeekGain', String(config.fliesSeekGain));
+  if (typeof config.fliesWanderStrength === 'number') replaceVar('fliesWanderStrength', String(config.fliesWanderStrength));
+  if (typeof config.fliesJitter === 'number') replaceVar('fliesJitter', String(config.fliesJitter));
+  if (typeof config.fliesSpeedMul === 'number') replaceVar('fliesSpeedMul', String(config.fliesSpeedMul));
+  if (typeof config.fliesScatterRadius === 'number') replaceVar('fliesScatterRadius', String(config.fliesScatterRadius));
+  if (typeof config.fliesScatterVarPct === 'number') replaceVar('fliesScatterVarPct', String(config.fliesScatterVarPct));
+  if (typeof config.snakeSegments === 'number') replaceVar('snakeSegments', String(config.snakeSegments));
+  if (typeof config.snakeSpacing === 'number') replaceVar('snakeSpacing', String(config.snakeSpacing));
+  if (typeof config.snakeHeadFollowGain === 'number') replaceVar('snakeHeadFollowGain', String(config.snakeHeadFollowGain));
+  if (typeof config.snakeMaxSpeed === 'number') replaceVar('snakeMaxSpeed', String(config.snakeMaxSpeed));
+  if (typeof config.snakeSpeedMul === 'number') replaceVar('snakeSpeedMul', String(config.snakeSpeedMul));
+  if (typeof config.snakeSwayAmp === 'number') replaceVar('snakeSwayAmp', String(config.snakeSwayAmp));
+  if (typeof config.snakeSwayFreq === 'number') replaceVar('snakeSwayFreq', String(config.snakeSwayFreq));
+  if (typeof config.snakeIdleWanderPct === 'number') replaceVar('snakeIdleWanderPct', String(config.snakeIdleWanderPct));
 
   // Colors & template
   if (typeof config.cursorColorIndex === 'number') {

@@ -4,22 +4,32 @@
 
 ```
 Alexander Beck Studio Website/
-├── public/                    # Static site root (served & deployed)
-│   ├── index.html             # Modular version (MAIN)
-│   ├── css/
+├── public/                    # 🌐 Static site root (served & deployed)
+│   ├── index.html             # Main website page
+│   ├── css/                   # Stylesheets
 │   │   ├── normalize.css
 │   │   ├── webflow.css
 │   │   ├── alexander-beck-studio-staging.webflow.css
 │   │   └── bouncy-balls.css
-│   ├── js/
+│   ├── js/                    # JavaScript files
 │   │   ├── webflow.js
-│   │   └── bouncy-balls-embed.js
-│   └── images/
-└── bouncy-balls/             # Animation development
-    ├── balls-source.html     # Full-featured dev version (source)
-    ├── build.js              # Animation build script
-    └── current-config-2.json # Animation configuration
+│   │   └── bouncy-balls-embed.js  # 📦 GENERATED (minified)
+│   └── images/                # Static assets
+├── bouncy-balls/              # 🔧 Animation development
+│   ├── balls-source.html      # 📝 SOURCE (full-featured dev version)
+│   ├── build.js               # 🛠️ Build script (extraction + minification)
+│   ├── save-config.js         # 💾 Configuration save utility
+│   └── current-config.json    # ⚙️ Configuration settings
+├── package.json               # Dependencies & scripts
+└── README.md                  # This file
 ```
+
+### **Key Files**
+- **Source**: `bouncy-balls/balls-source.html` - Edit this for animation changes
+- **Config**: `bouncy-balls/current-config.json` - Animation settings (auto-updated via sidepanel)
+- **Generated**: `public/js/bouncy-balls-embed.js` - Never edit directly (auto-generated)
+- **Build**: `bouncy-balls/build.js` - Handles the minification process
+- **Save Utility**: `bouncy-balls/save-config.js` - Updates config files from sidepanel
 
 ## ✨ Features
 
@@ -29,6 +39,7 @@ Alexander Beck Studio Website/
 - **Performance Optimized**: requestAnimationFrame, spatial grid collision detection
 - **Color Palette**: 8 CSS variables with utility classes (`.text-ball-1`, `.bg-ball-2`, etc.)
 - **Configuration**: Tuned with `current-config-2.json` settings
+- **Responsive Repeller**: Repel radius scales with viewport width (375px → 60px, 1128px+ → 200px), clamped and fluid
 
 ### **Website Integration**
 - **Modular Architecture**: Separate CSS/JS files, no code duplication
@@ -38,23 +49,64 @@ Alexander Beck Studio Website/
 
 ## 🛠️ Development
 
-### **Build Animation**
+### **Build System**
+The project uses a custom build system that extracts and minifies JavaScript from the source HTML file:
+
+**Source Files:**
+- `bouncy-balls/balls-source.html` - Full-featured development version with UI controls
+- `bouncy-balls/current-config-2.json` - Animation configuration settings
+- `bouncy-balls/build.js` - Build script that handles extraction and minification
+
+**Generated Files:**
+- `public/js/bouncy-balls-embed.js` - Minified production version (~34KB)
+
+### **Build Process**
 ```bash
 npm run build
-# Builds public/js/bouncy-balls-embed.js from bouncy-balls/balls-source.html
+# 1. Extracts JavaScript from balls-source.html (last inline <script> block)
+# 2. Applies configuration values from current-config-2.json
+# 3. Minifies using Terser with 2-pass compression
+# 4. Outputs to public/js/bouncy-balls-embed.js
 ```
 
-### **Serve Website Locally**
+**Minification Details:**
+- **Tool**: Terser with 2-pass compression
+- **Options**: Mangle enabled, comments removed
+- **Size**: ~34KB minified (from ~107KB source)
+- **Config Integration**: Values from `current-config-2.json` are injected during build
+- **UI Removal**: Development controls and panels are stripped from production build
+
+### **Development Commands**
 ```bash
-npm run serve
-# Serves public/ directory on http://localhost:8000
+npm run build        # Build minified embed
+npm run watch        # Auto-rebuild on source changes
+npm run serve        # Serve public/ on http://localhost:8000
+npm run dev          # Build + serve in one command
+npm run dev:source   # Open source file for testing
+npm run save-config  # Save configuration from stdin/args
 ```
 
 ### **Development Workflow**
-1. Edit animation: `bouncy-balls/balls-source.html`
-2. Test changes: Open `balls-source.html` in browser (or use the panel)
-3. Build production: `npm run build`
-4. Modular page uses `public/js/bouncy-balls-embed.js` automatically
+1. **Edit**: Modify `bouncy-balls/balls-source.html` for animation logic
+2. **Configure**: Adjust settings using the debugging sidepanel
+3. **Save**: Use the "💾 Save Config" button to export configuration
+4. **Apply**: Run the provided terminal command to update `current-config.json`
+5. **Test**: Open source file directly or use `npm run dev:source`
+6. **Build**: Run `npm run build` to generate production version
+7. **Deploy**: The `public/` directory contains the complete website
+
+### **Configuration Management**
+The debugging sidepanel provides two ways to save your configuration changes:
+
+**Option 1: Auto-save via Terminal** ⚡
+1. Click "💾 Save Config" in the sidepanel
+2. Copy the generated terminal command
+3. Paste and run in your terminal to update `current-config.json`
+
+**Option 2: Manual Download** 📥
+1. Click "💾 Save Config" in the sidepanel  
+2. Click "📥 Download JSON" to download the config file
+3. Manually replace `bouncy-balls/current-config.json` with the downloaded file
 
 ## 📱 Usage
 
@@ -79,13 +131,19 @@ Use the ball colors in your design:
 - Mobile (≤768px): 40% ball size for better performance
 - Auto-updates on viewport resize
 
+### **Interaction (Pointer/Touch)**
+- Mouse/pen: Repeller follows the cursor while over the canvas; stops when leaving.
+- Touch: Repeller activates on touchstart and follows your finger while moving; deactivates on touchend/cancel. The visual cursor ball is hidden during touch for clarity.
+  - Repeller size auto-scales by viewport width. Use the panel to toggle responsive sizing and adjust min/max.
+
 ## 🎯 Configuration
 
 The animation uses settings from `bouncy-balls/current-config-2.json`:
-- **Physics**: REST 0.88, FRICTION 0.003, MAX_BALLS 400
+- **Physics (Default)**: Rubber – Heavy preset (higher size, heavier feel)
 - **Appearance**: sizeScale 2.1, ballMass 11.2
 - **Colors**: industrialTeal palette (8 colors)
 - **Behavior**: Mouse repeller, text collision, mobile scaling
+  - Responsive repeller fields: `repelResponsive`, `repelMinSize`, `repelMaxSize`
 
 ## 🚀 Deployment
 
@@ -96,7 +154,7 @@ The animation uses settings from `bouncy-balls/current-config-2.json`:
 
 ## 📊 Performance
 
-- **Animation**: ~25.6KB minified
+- **Animation**: ~34KB minified
 - **Total CSS**: Combined and optimized
 - **Loading**: Async, non-blocking
 - **Frame Rate**: 60fps with requestAnimationFrame

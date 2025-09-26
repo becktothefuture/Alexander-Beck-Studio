@@ -17,6 +17,8 @@
   "repelSoftness": 4.4,
   "trailFade": 0.025,
   "trailSubtlety": 1.8,
+  "printInterval": 400,
+  "printMaxBalls": 40,
   "colors": [
     "#b7bcb7",
     "#e4e9e4",

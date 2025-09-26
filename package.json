@@ -8,7 +8,8 @@
     "watch": "chokidar 'bouncy-balls/balls-source.html' 'bouncy-balls/current-config*.json' -c \"npm run build\"",
     "serve": "cd public && python3 -m http.server 8000",
     "dev:source": "open 'bouncy-balls/balls-source.html'",
-    "dev": "npm run build && npm run serve"
+    "dev": "npm run build && npm run serve",
+    "save-config": "node bouncy-balls/save-config.js"
   },
   "devDependencies": {
     "chokidar-cli": "^3.0.0",
