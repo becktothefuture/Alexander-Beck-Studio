@@ -1,4 +1,3 @@
-// Simplified Ball Simulation for Production - Working Version
 // Version: 2024-09-20 - Removed 3D rendering, simplified shadows
 (() => {
   // Constants for magic numbers

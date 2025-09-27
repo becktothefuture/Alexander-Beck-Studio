@@ -1,4 +1,4 @@
-// Simplified Ball Simulation for Production - Working Version
+<script>
 // Version: 2024-09-20 - Removed 3D rendering, simplified shadows
 (() => {
   // Constants for magic numbers
@@ -1457,4 +1457,988 @@
             
             const nx = deltaX / dist;
             const ny = deltaY / dist;
+            
+            fx += nx * strength;
+            fy += ny * strength;
+            neighborCount++;
+          }
+        }
+      }
+    }
+    
+    if (neighborCount > 0) {
+      ball.vx += (fx * dt) / massScale;
+      ball.vy += (fy * dt) / massScale;
+    }
+  }
+
+  // Apply temperature-based buoyancy (lava lamp effect)
+  function applyLiquidBuoyancy(ball, dt) {
+    const massScale = Math.max(0.25, ball.m / MASS_BASELINE_KG);
+    
+    // Get temperature at ball position (higher near mouse/touch)
+    const temp = getLiquidTemperature(ball.x, ball.y);
+    
+    // Hot liquid rises, cool liquid sinks
+    const buoyancyForce = (temp - 0.5) * liquidBuoyancy * liquidTempSensitivity;
+    ball.vy -= (buoyancyForce * dt) / massScale;
+    
+    // Add slight thermal convection (horizontal movement)
+    const convectionForce = Math.sin(ball.x * 0.01 + performance.now() * 0.001) * buoyancyForce * 0.3;
+    ball.vx += (convectionForce * dt) / massScale;
+  }
+
+  // Get temperature at a position (0 = cold, 1 = hot)
+  function getLiquidTemperature(x, y) {
+    // Update temperature map periodically for performance
+    liquidTempUpdateTimer += 16; // Assume ~60fps
+    if (liquidTempUpdateTimer > 100) { // Update every ~6 frames
+      updateLiquidTemperatureMap();
+      liquidTempUpdateTimer = 0;
+    }
+    
+    // Base temperature (cooler at bottom, warmer at top for lava lamp effect)
+    let temp = 0.3 + (canvas.height - y) / canvas.height * 0.2;
+    
+    // Add heat from mouse/touch interaction
+    if (mouseX !== CONSTANTS.OFFSCREEN_MOUSE && mouseY !== CONSTANTS.OFFSCREEN_MOUSE) {
+      const dx = x - mouseX;
+      const dy = y - mouseY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const heatRadius = 150 * DPR;
+      
+      if (dist < heatRadius) {
+        const heatStrength = (1 - dist / heatRadius) * 0.6;
+        temp += heatStrength;
+      }
+    }
+    
+    return Math.max(0, Math.min(1, temp));
+  }
+
+  // Update temperature map for spatial caching (performance optimization)
+  function updateLiquidTemperatureMap() {
+    liquidTemperatureMap.clear();
+    // Temperature map is computed on-demand in getLiquidTemperature for simplicity
+    // This function exists for future spatial caching optimizations
+  }
+
+  // Metaball rendering for liquid behavior
+  function drawLiquidMetaballs(ctx) {
+    if (balls.length === 0) return;
+    
+    // Performance optimization: use composite operation for metaball effect
+    ctx.save();
+    
+    // First pass: draw all balls with additive blending
+    ctx.globalCompositeOperation = 'lighter';
+    
+    for (let i = 0; i < balls.length; i++) {
+      const ball = balls[i];
+      
+      // Get temperature for color variation
+      const temp = getLiquidTemperature(ball.x, ball.y);
+      
+      // Create gradient based on temperature
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, ball.r);
+      
+      // Hot areas are brighter/more orange, cool areas are darker
+      const baseColor = ball.color;
+      const rgb = hexToRgb(baseColor);
+      if (rgb) {
+        const intensity = 0.3 + temp * 0.7;
+        const warmth = temp * 0.3;
+        
+        gradient.addColorStop(0, `rgba(${Math.min(255, rgb.r + warmth * 100)}, ${Math.min(255, rgb.g + warmth * 50)}, ${rgb.b}, ${intensity})`);
+        gradient.addColorStop(0.7, `rgba(${Math.min(255, rgb.r + warmth * 50)}, ${Math.min(255, rgb.g + warmth * 25)}, ${rgb.b}, ${intensity * 0.6})`);
+        gradient.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
+      } else {
+        // Fallback if color parsing fails
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${0.3 + temp * 0.7})`);
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      }
+      
+      ctx.save();
+      ctx.translate(ball.x, ball.y);
+      
+      // Draw metaball with gradient
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(0, 0, ball.r * liquidMergeThreshold, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+    }
+    
+    ctx.restore();
+  }
+
+  // Helper function to convert hex color to RGB
+  function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+
+  // Magnetic behavior: balls act as magnetic particles with polarity and field interactions
+  function stepMagnetic(ball, dt) {
+    // Initialize magnetic properties if not set
+    if (ball.magneticPolarity === undefined) {
+      ball.magneticPolarity = Math.random() < 0.5 ? 1 : -1; // North or South
+      ball.magneticCharge = Math.random() * 0.5 + 0.5; // 0.5 to 1.0 charge strength
+    }
+    
+    // Apply standard gravity (reduced)
+    ball.vy += (G * gravityScale * 0.3) * dt;
+    
+    // Apply magnetic forces
+    applyMagneticFieldForces(ball, dt);
+    applyMagneticInteractions(ball, dt);
+    
+    // Random polarity flips based on chaos setting
+    if (Math.random() < (magnetPolarityChaos / 100) * dt) {
+      ball.magneticPolarity *= -1;
+      // Chance to switch color on polarity flip
+      if (Math.random() < (magnetColorSwitch / 100)) {
+        ball.color = pickRandomColor();
+      }
+    }
+    
+    // Integrate motion
+    ball.x += ball.vx * dt;
+    ball.y += ball.vy * dt;
+    
+    // Maintain circular shape
+    const decay = Math.min(1, CONSTANTS.SQUASH_DECAY_PER_S * dt);
+    ball.squashAmount += (0 - ball.squashAmount) * decay;
+    ball.squash = 1 - ball.squashAmount;
+  }
+
+  // Apply magnetic field forces (invisible field lines across the canvas)
+  function applyMagneticFieldForces(ball, dt) {
+    // Update field directions periodically
+    magnetFieldTimer += dt;
+    if (magnetFieldTimer > 2.0 || magnetFieldDirections.length === 0) {
+      magnetFieldDirections = [];
+      for (let i = 0; i < magnetFieldLines; i++) {
+        magnetFieldDirections.push({
+          angle: (i / magnetFieldLines) * Math.PI * 2,
+          strength: 0.5 + Math.random() * 0.5,
+          centerX: Math.random() * canvas.width,
+          centerY: Math.random() * canvas.height
+        });
+      }
+      magnetFieldTimer = 0;
+    }
+    
+    // Apply forces from each field line
+    for (let i = 0; i < magnetFieldDirections.length; i++) {
+      const field = magnetFieldDirections[i];
+      const dx = ball.x - field.centerX;
+      const dy = ball.y - field.centerY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist > magnetRange) continue;
+      
+      // Field strength decreases with distance
+      const fieldInfluence = (1 - dist / magnetRange) * field.strength;
+      const force = magnetFieldStrength * ball.magneticCharge * ball.magneticPolarity * fieldInfluence;
+      
+      // Force perpendicular to field line (like magnetic field)
+      const fieldDx = Math.cos(field.angle);
+      const fieldDy = Math.sin(field.angle);
+      
+      // Cross product for perpendicular force
+      const perpX = -fieldDy;
+      const perpY = fieldDx;
+      
+      ball.vx += perpX * force * dt;
+      ball.vy += perpY * force * dt;
+      
+      // Add spinning motion around field lines
+      if (magnetSpinForce > 0) {
+        const spinForce = magnetSpinForce * fieldInfluence * ball.magneticPolarity;
+        const spinX = -dy / Math.max(dist, 1);
+        const spinY = dx / Math.max(dist, 1);
+        
+        ball.vx += spinX * spinForce * dt;
+        ball.vy += spinY * spinForce * dt;
+      }
+    }
+  }
+
+  // Apply magnetic interactions between balls
+  function applyMagneticInteractions(ball, dt) {
+    for (let i = 0; i < balls.length; i++) {
+      const other = balls[i];
+      if (other === ball) continue;
+      if (other.magneticPolarity === undefined) continue;
+      
+      const dx = other.x - ball.x;
+      const dy = other.y - ball.y;
+      const distSq = dx * dx + dy * dy;
+      const maxInteractionDist = magnetRange * 0.8;
+      
+      if (distSq > maxInteractionDist * maxInteractionDist) continue;
+      if (distSq < 1) continue; // Avoid singularity
+      
+      const dist = Math.sqrt(distSq);
+      const nx = dx / dist;
+      const ny = dy / dist;
+      
+      // Magnetic force: opposite polarities attract, same polarities repel
+      const polarityProduct = ball.magneticPolarity * other.magneticPolarity;
+      const chargeProduct = ball.magneticCharge * other.magneticCharge;
+      const force = -polarityProduct * chargeProduct * magnetFieldStrength * 0.5 / distSq;
+      
+      ball.vx += nx * force * dt;
+      ball.vy += ny * force * dt;
+    }
+  }
+
+  // Initialize magnetic behavior
+  function initMagnetic() {
+    balls.length = 0; // Clear existing balls
+    magnetFieldDirections = []; // Reset field directions
+    magnetFieldTimer = 0;
+    
+    // Create magnetic particles
+    const numParticles = Math.min(80, MAX_BALLS);
+    for (let i = 0; i < numParticles; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const r = (R_MIN + R_MAX) / 2;
+      const color = pickRandomColor();
+      
+      const ball = new Ball(x, y, r, color);
+      ball.magneticPolarity = Math.random() < 0.5 ? 1 : -1;
+      ball.magneticCharge = Math.random() * 0.5 + 0.5;
+      
+      // Small initial velocities
+      ball.vx = (Math.random() - 0.5) * 100;
+      ball.vy = (Math.random() - 0.5) * 100;
+      
+      balls.push(ball);
+    }
+  }
+
+  // UI elements
+  const restitutionSlider = document.getElementById('restitutionSlider');
+  const frictionSlider = document.getElementById('frictionSlider');
+  const emitterSlider = document.getElementById('emitterSlider');
+  const sizeSlider = document.getElementById('sizeSlider');
+  const maxBallsSlider = document.getElementById('maxBallsSlider');
+  const sizeVariationSlider = document.getElementById('sizeVariationSlider');
+  const weightSlider = document.getElementById('weightSlider');
+  const spawnYSlider = document.getElementById('spawnYSlider');
+  const spawnWidthSlider = document.getElementById('spawnWidthSlider');
+  const spawnCenterSlider = document.getElementById('spawnCenterSlider');
+  const spawnHeightSlider = document.getElementById('spawnHeightSlider');
+  const repelSizeSlider = document.getElementById('repelSizeSlider');
+  const repelPowerSlider = document.getElementById('repelPowerSlider');
+  const repelSoftSlider = document.getElementById('repelSoftSlider');
+  // Color controls
+  const colorSelect = document.getElementById('colorSelect');
+  const color1 = document.getElementById('color1');
+  const color2 = document.getElementById('color2');
+  const color3 = document.getElementById('color3');
+  const color4 = document.getElementById('color4');
+  const color5 = document.getElementById('color5');
+  const color6 = document.getElementById('color6');
+  const color7 = document.getElementById('color7');
+  const color8 = document.getElementById('color8');
+  const cursorColorSelect = document.getElementById('cursorColorSelect');
+  // Hex spans
+  const color1Val = document.getElementById('color1Val');
+  const color2Val = document.getElementById('color2Val');
+  const color3Val = document.getElementById('color3Val');
+  const color4Val = document.getElementById('color4Val');
+  const color5Val = document.getElementById('color5Val');
+  const color6Val = document.getElementById('color6Val');
+  const color7Val = document.getElementById('color7Val');
+  const color8Val = document.getElementById('color8Val');
+  // Tooltip hint for copy action
+  [color1Val, color2Val, color3Val, color4Val, color5Val, color6Val, color7Val, color8Val].forEach(el => {
+    if (el) el.setAttribute('title', 'Click to copy');
+  });
+  // Scene controls
+  const cornerRadiusSlider = document.getElementById('cornerRadiusSlider');
+  const cornerRadiusVal = document.getElementById('cornerRadiusVal');
+  const trailFadeSlider = document.getElementById('trailFadeSlider');
+  const trailFadeVal = document.getElementById('trailFadeVal');
+  const trailSubtletySlider = document.getElementById('trailSubtletySlider');
+  const trailSubtletyVal = document.getElementById('trailSubtletyVal');
+  
+  // Behavior sliders/controls
+  const behaviorSelect = document.getElementById('behaviorSelect');
+  const fliesMaxSpeedSlider = document.getElementById('fliesMaxSpeedSlider');
+  const fliesSeekGainSlider = document.getElementById('fliesSeekGainSlider');
+  const fliesWanderSlider = document.getElementById('fliesWanderSlider');
+  const fliesJitterSlider = document.getElementById('fliesJitterSlider');
+  const fliesSpeedMulSlider = document.getElementById('fliesSpeedMulSlider');
+  const fliesScatterRadiusSlider = document.getElementById('fliesScatterRadiusSlider');
+  const fliesScatterVarSlider = document.getElementById('fliesScatterVarSlider');
+  const fliesMaxSpeedVal = document.getElementById('fliesMaxSpeedVal');
+  const fliesSeekGainVal = document.getElementById('fliesSeekGainVal');
+  const fliesWanderVal = document.getElementById('fliesWanderVal');
+  const fliesJitterVal = document.getElementById('fliesJitterVal');
+  const fliesSpeedMulVal = document.getElementById('fliesSpeedMulVal');
+  const fliesScatterRadiusVal = document.getElementById('fliesScatterRadiusVal');
+  const fliesScatterVarVal = document.getElementById('fliesScatterVarVal');
+  const snakeSegmentsSlider = document.getElementById('snakeSegmentsSlider');
+  const snakeSpacingSlider = document.getElementById('snakeSpacingSlider');
+  // Removed explicit head gain and max speed sliders to simplify UI
+  const snakeSpeedMulSlider = document.getElementById('snakeSpeedMulSlider');
+  const snakeSegmentsVal = document.getElementById('snakeSegmentsVal');
+  const snakeSpacingVal = document.getElementById('snakeSpacingVal');
+  // Values are derived from speed multiplier and defaults now
+  const snakeSpeedMulVal = document.getElementById('snakeSpeedMulVal');
+  const snakeSwayAmpSlider = document.getElementById('snakeSwayAmpSlider');
+  const snakeSwayFreqSlider = document.getElementById('snakeSwayFreqSlider');
+  const snakeIdleWanderSlider = document.getElementById('snakeIdleWanderSlider');
+  const snakeSwayAmpVal = document.getElementById('snakeSwayAmpVal');
+  const snakeSwayFreqVal = document.getElementById('snakeSwayFreqVal');
+  const snakeIdleWanderVal = document.getElementById('snakeIdleWanderVal');
+
+  const restitutionVal = document.getElementById('restitutionVal');
+  const frictionVal = document.getElementById('frictionVal');
+  const emitterVal = document.getElementById('emitterVal');
+  const sizeVal = document.getElementById('sizeVal');
+  const maxBallsVal = document.getElementById('maxBallsVal');
+  const sizeVariationVal = document.getElementById('sizeVariationVal');
+  const weightVal = document.getElementById('weightVal');
+  const spawnYVal = document.getElementById('spawnYVal');
+  const spawnWidthVal = document.getElementById('spawnWidthVal');
+  const spawnCenterVal = document.getElementById('spawnCenterVal');
+  const spawnHeightVal = document.getElementById('spawnHeightVal');
+  const repelSizeVal = document.getElementById('repelSizeVal');
+  const repelPowerVal = document.getElementById('repelPowerVal');
+  const repelSoftVal = document.getElementById('repelSoftVal');
+  // Scene controls vals (shadows removed)
+
+  // Config capture and build functionality (restored)
+  function captureCurrentConfig() {
+    return {
+      gravityMultiplier,
+      restitution: REST,
+      friction: FRICTION,
+      ballMass: ballMassKg,
+      emitRate: EMIT_INTERVAL,
+      maxBalls: MAX_BALLS,
+      ballScale: sizeScale,
+      ballVariation: sizeVariation,
+      spawnX: SPAWN_X_CENTER_VW,
+      spawnY: SPAWN_Y_VH,
+      spawnWidth: SPAWN_W_VW,
+      spawnHeight: SPAWN_H_VH,
+      sweepEnabled: EMITTER_SWEEP_ENABLED,
+      repelRadius,
+      repelPower,
+      repelSoftness: repelSoft,
+      repelResponsive,
+      repelMinSize,
+      repelMaxSize,
+      trailFade,
+      trailSubtlety,
+      behaviorMode,
+      // Flies
+      fliesSpeedMul,
+      fliesMaxSpeed,
+      fliesSeekGain,
+      fliesWanderStrength,
+      fliesJitter,
+      fliesScatterRadius,
+      fliesScatterVarPct,
+      // Trail (formerly Print)
+      trailSmoothing,
+      generalSmoothing,
+      trailLength,
+      trailSpawnRate,
+      colors: currentColors.slice(),
+      colorWeights: COLOR_WEIGHTS.slice(),
+      currentTemplate,
+      cursorColorIndex: cursorBallIndex
+    };
+  }
+  function generateConfigCode(config) {
+    return `// Generated configuration from frontend\nconst CONFIG = ${JSON.stringify(config, null, 2)};`;
+  }
+  const saveConfigBtn = document.getElementById('saveConfigBtn');
+  const buildBtn = document.getElementById('buildBtn');
+  const configOutput = document.getElementById('configOutput');
+  if (saveConfigBtn && buildBtn && configOutput) {
+    saveConfigBtn.addEventListener('click', () => {
+      const config = captureCurrentConfig();
+      const configJson = JSON.stringify(config, null, 2);
+      
+      // Show the config and instructions
+      configOutput.style.display = 'block';
+      configOutput.innerHTML = `
+<strong>💾 Configuration Export</strong><br><br>
+<strong>Option 1: Auto-save to file</strong><br>
+Copy this command and run in terminal:<br>
+<code style="background: #f0f0f0; padding: 2px 4px; border-radius: 2px; font-size: 9px; display: block; margin: 4px 0; word-break: break-all;">echo '${configJson.replace(/'/g, "\\'")}' | npm run save-config</code><br>
+<strong>Option 2: Manual download</strong><br>
+<button id="downloadConfigBtn" style="background: #FF9800; color: white; border: none; padding: 4px 8px; border-radius: 2px; cursor: pointer; font-size: 10px; margin: 4px 0;">📥 Download JSON</button><br><br>
+<strong>Current Configuration:</strong><br>
+<pre style="background: #f8f8f8; padding: 6px; border-radius: 3px; font-size: 8px; max-height: 100px; overflow-y: auto; margin: 4px 0;">${configJson}</pre>`;
+      
+      // Add download functionality
+      const downloadBtn = document.getElementById('downloadConfigBtn');
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+          const blob = new Blob([configJson], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'current-config.json';
+          a.click();
+          URL.revokeObjectURL(url);
+          
+          downloadBtn.textContent = '✅ Downloaded!';
+          setTimeout(() => { downloadBtn.textContent = '📥 Download JSON'; }, 1200);
+        });
+      }
+      
+      // Copy the terminal command to clipboard
+      const command = `echo '${configJson.replace(/'/g, "\\'")}' | npm run save-config`;
+      navigator.clipboard.writeText(command).then(() => {
+        const old = saveConfigBtn.textContent;
+        saveConfigBtn.textContent = '✅ Command Copied!';
+        setTimeout(() => { saveConfigBtn.textContent = old; }, 2000);
+      }).catch(() => {
+        console.warn('Clipboard copy failed');
+        const old = saveConfigBtn.textContent;
+        saveConfigBtn.textContent = '⚠️ Copy failed';
+        setTimeout(() => { saveConfigBtn.textContent = old; }, 1200);
+      });
+    });
+    buildBtn.addEventListener('click', () => {
+      const config = captureCurrentConfig();
+      configOutput.style.display = 'block';
+      configOutput.innerHTML = `
+<strong>🚀 Build Instructions:</strong><br>
+1. Run: <code>npm run build</code><br>
+2. Your current config will be baked into <code>public/js/bouncy-balls-embed.js</code>`;
+      const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'current-config.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  // Click-to-copy helper
+  function bindCopyOnClick(el, getText) {
+    if (!el) return;
+    el.addEventListener('click', async () => {
+      const text = typeof getText === 'function' ? getText() : String(getText || '').trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        const old = el.textContent;
+        el.textContent = 'COPIED';
+        el.style.color = '#3ddc84';
+        setTimeout(() => { el.textContent = old; el.style.color = '#888'; }, 900);
+      } catch (e) {
+        console.warn('Clipboard unavailable');
+      }
+    });
+  }
+
+  // Sliders
+  restitutionSlider && restitutionSlider.addEventListener('input', () => { REST = parseFloat(restitutionSlider.value); restitutionVal && (restitutionVal.textContent = REST.toFixed(2)); });
+  frictionSlider && frictionSlider.addEventListener('input', () => { FRICTION = parseFloat(frictionSlider.value); frictionVal && (frictionVal.textContent = FRICTION.toFixed(4)); });
+  emitterSlider && emitterSlider.addEventListener('input', () => { EMIT_INTERVAL = parseFloat(emitterSlider.value); emitterVal && (emitterVal.textContent = EMIT_INTERVAL.toFixed(3)); });
+  sizeSlider && sizeSlider.addEventListener('input', () => {
+    const newScale = parseFloat(sizeSlider.value);
+    sizeVal && (sizeVal.textContent = newScale.toFixed(1));
+    sizeScale = newScale;
+    // Recompute effective scale and proportionally resize existing balls
+    updateEffectiveScaleAndBallSizes();
+    // Keep shared mass
+    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+  });
+  maxBallsSlider && maxBallsSlider.addEventListener('input', () => {
+    MAX_BALLS = parseInt(maxBallsSlider.value, 10);
+    maxBallsVal && (maxBallsVal.textContent = MAX_BALLS.toString());
+    // Remove excess balls if current count exceeds new limit (remove from end for better performance)
+    if (balls.length > MAX_BALLS) {
+      balls.length = MAX_BALLS; // Truncate array efficiently
+    }
+  });
+  sizeVariationSlider && sizeVariationSlider.addEventListener('input', () => {
+    sizeVariation = parseFloat(sizeVariationSlider.value);
+    sizeVariationVal && (sizeVariationVal.textContent = sizeVariation.toFixed(1));
+    
+    // Update existing ball sizes to reflect new variation
+    updateExistingBallSizes();
+  });
+  weightSlider && weightSlider.addEventListener('input', () => {
+    ballMassKg = parseFloat(weightSlider.value);
+    weightVal && (weightVal.textContent = ballMassKg.toFixed(2));
+    // Apply shared mass to all balls
+    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+    // Recompute derived scaling so gravity visibly changes with weight
+    recomputeMassDerivedScales();
+  });
+  
+  // Function to update existing ball sizes based on current sizeVariation
+  function updateExistingBallSizes() {
+    const baseSize = (R_MIN + R_MAX) / 2;
+    
+    for (let i = 0; i < balls.length; i++) {
+      const ball = balls[i];
+      
+      if (sizeVariation === 0) {
+        // No variation: all balls exactly the same size
+        ball.r = baseSize;
+      } else {
+        // Apply variation
+        const range = (R_MAX - R_MIN) / 2;
+        const variedRange = range * sizeVariation;
+        const minR = Math.max(1, baseSize - variedRange);
+        const maxR = baseSize + variedRange;
+        ball.r = randBetween(minR, maxR);
+      }
+      
+      // Keep shared mass model (no per-ball recompute)
+      ball.m = ballMassKg;
+    }
+  }
+  spawnYSlider && spawnYSlider.addEventListener('input', () => {
+    SPAWN_Y_VH = parseFloat(spawnYSlider.value);
+    spawnYVal && (spawnYVal.textContent = SPAWN_Y_VH.toFixed(0));
+    setCSSSize(); resize();
+  });
+  spawnWidthSlider && spawnWidthSlider.addEventListener('input', () => { SPAWN_W_VW = parseFloat(spawnWidthSlider.value); spawnWidthVal && (spawnWidthVal.textContent = SPAWN_W_VW.toFixed(0)); });
+  spawnCenterSlider && spawnCenterSlider.addEventListener('input', () => { SPAWN_X_CENTER_VW = parseFloat(spawnCenterSlider.value); spawnCenterVal && (spawnCenterVal.textContent = SPAWN_X_CENTER_VW.toFixed(0)); });
+  spawnHeightSlider && spawnHeightSlider.addEventListener('input', () => { SPAWN_H_VH = parseFloat(spawnHeightSlider.value); spawnHeightVal && (spawnHeightVal.textContent = SPAWN_H_VH.toFixed(0)); });
+  repelSizeSlider && repelSizeSlider.addEventListener('input', () => {
+    const v = parseFloat(repelSizeSlider.value);
+    // When user adjusts explicit size, temporarily disable responsive sizing
+    repelResponsive = false;
+    repelRadius = v;
+    repelSizeVal && (repelSizeVal.textContent = repelRadius.toFixed(0));
+    repellerEnabled = repellerEnabled || (repelPower > 0 && repelRadius > 0); 
+  });
+
+  // Responsive repel UI controls
+  const repelResponsiveToggle = document.getElementById('repelResponsiveToggle');
+  const repelMinSizeSlider = document.getElementById('repelMinSizeSlider');
+  const repelMaxSizeSlider = document.getElementById('repelMaxSizeSlider');
+  const repelMinSizeVal = document.getElementById('repelMinSizeVal');
+  const repelMaxSizeVal = document.getElementById('repelMaxSizeVal');
+  repelResponsiveToggle && repelResponsiveToggle.addEventListener('change', () => {
+    repelResponsive = !!repelResponsiveToggle.checked;
+    if (repelResponsive) {
+      updateRepelRadius();
+    }
+  });
+  repelMinSizeSlider && repelMinSizeSlider.addEventListener('input', () => {
+    repelMinSize = parseFloat(repelMinSizeSlider.value);
+    if (repelMinSizeVal) repelMinSizeVal.textContent = Math.round(repelMinSize).toString();
+    if (repelResponsive) updateRepelRadius();
+  });
+  repelMaxSizeSlider && repelMaxSizeSlider.addEventListener('input', () => {
+    repelMaxSize = parseFloat(repelMaxSizeSlider.value);
+    if (repelMaxSizeVal) repelMaxSizeVal.textContent = Math.round(repelMaxSize).toString();
+    if (repelResponsive) updateRepelRadius();
+  });
+  repelPowerSlider && repelPowerSlider.addEventListener('input', () => {
+    repelPower = repelSliderToPower(repelPowerSlider.value);
+    if (repelPowerVal) repelPowerVal.textContent = Math.round(repelPower).toString();
+    // Do not auto-enable when template is Off; only enable via template or size/power explicit >0 with mouse over
+    if (repellerSelect && repellerSelect.value !== 'off') {
+      repellerEnabled = repelPower > 0 && repelRadius > 0; 
+    }
+  });
+  repelSoftSlider && repelSoftSlider.addEventListener('input', () => {
+    repelSoft = parseFloat(repelSoftSlider.value);
+    repelSoftVal && (repelSoftVal.textContent = repelSoft.toFixed(1));
+  });
+  // Shadow event listeners removed
+  
+  // Color controls
+  colorSelect && colorSelect.addEventListener('change', () => {
+    const template = COLOR_TEMPLATES[colorSelect.value];
+    if (!template) return;
+    currentTemplate = colorSelect.value;
+    currentColors = template.colors.slice();
+    // Keep cursor index and update color
+    cursorBallColor = currentColors[cursorBallIndex] || cursorBallColor;
+    // Update color pickers + hex spans
+    if (color1 && color1Val) { color1.value = currentColors[0]; color1Val.textContent = currentColors[0].toUpperCase(); }
+    if (color2 && color2Val) { color2.value = currentColors[1]; color2Val.textContent = currentColors[1].toUpperCase(); }
+    if (color3 && color3Val) { color3.value = currentColors[2]; color3Val.textContent = currentColors[2].toUpperCase(); }
+    if (color4 && color4Val) { color4.value = currentColors[3]; color4Val.textContent = currentColors[3].toUpperCase(); }
+    if (color5 && color5Val) { color5.value = currentColors[4]; color5Val.textContent = currentColors[4].toUpperCase(); }
+    if (color6 && color6Val) { color6.value = currentColors[5]; color6Val.textContent = currentColors[5].toUpperCase(); }
+    if (color7 && color7Val) { color7.value = currentColors[6]; color7Val.textContent = currentColors[6].toUpperCase(); }
+    if (color8 && color8Val) { color8.value = currentColors[7]; color8Val.textContent = currentColors[7].toUpperCase(); }
+    // Update existing ball colors
+    updateExistingBallColors();
+    // Sync CSS variables
+    syncPaletteVars();
+  });
+
+  // Individual color picker listeners (with existing ball color update)
+  function updateExistingBallColors() {
+    // Update colors of existing balls to use new color palette
+    for (let i = 0; i < balls.length; i++) {
+      balls[i].color = pickRandomColor();
+    }
+  }
+  
+  color1 && color1.addEventListener('input', () => { currentColors[0] = color1.value; color1Val && (color1Val.textContent = color1.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
+  color2 && color2.addEventListener('input', () => { currentColors[1] = color2.value; color2Val && (color2Val.textContent = color2.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
+  color3 && color3.addEventListener('input', () => { currentColors[2] = color3.value; color3Val && (color3Val.textContent = color3.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
+  color4 && color4.addEventListener('input', () => { currentColors[3] = color4.value; color4Val && (color4Val.textContent = color4.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
+  color5 && color5.addEventListener('input', () => { currentColors[4] = color5.value; color5Val && (color5Val.textContent = color5.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
+  color6 && color6.addEventListener('input', () => { currentColors[5] = color6.value; color6Val && (color6Val.textContent = color6.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
+  color7 && color7.addEventListener('input', () => { currentColors[6] = color7.value; color7Val && (color7Val.textContent = color7.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
+  color8 && color8.addEventListener('input', () => { currentColors[7] = color8.value; color8Val && (color8Val.textContent = color8.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
+  cursorColorSelect && cursorColorSelect.addEventListener('change', () => { const idx = Math.max(1, Math.min(8, parseInt(cursorColorSelect.value, 10))) - 1; cursorBallIndex = idx; cursorBallColor = currentColors[cursorBallIndex] || cursorBallColor; });
+
+  // Bind click-to-copy on hex badges
+  bindCopyOnClick(color1Val, () => color1.value.toUpperCase());
+  bindCopyOnClick(color2Val, () => color2.value.toUpperCase());
+  bindCopyOnClick(color3Val, () => color3.value.toUpperCase());
+  bindCopyOnClick(color4Val, () => color4.value.toUpperCase());
+  bindCopyOnClick(color5Val, () => color5.value.toUpperCase());
+  bindCopyOnClick(color6Val, () => color6.value.toUpperCase());
+  bindCopyOnClick(color7Val, () => color7.value.toUpperCase());
+  bindCopyOnClick(color8Val, () => color8.value.toUpperCase());
+  // If the user changes any color, keep the cursor color stable unless it was the one changed
+  // To keep behavior simple, we do not auto-switch the cursor color here.
+  
+  // Scene control event listeners
+  cornerRadiusSlider && cornerRadiusSlider.addEventListener('input', () => { 
+    cornerRadius = parseFloat(cornerRadiusSlider.value); 
+    cornerRadiusVal && (cornerRadiusVal.textContent = cornerRadius.toFixed(0)); 
+  });
+  trailFadeSlider && trailFadeSlider.addEventListener('input', () => { 
+    trailFade = parseFloat(trailFadeSlider.value); 
+    trailFadeVal && (trailFadeVal.textContent = trailFade.toFixed(3)); 
+  });
+  trailSubtletySlider && trailSubtletySlider.addEventListener('input', () => {
+    trailSubtlety = parseFloat(trailSubtletySlider.value);
+    trailSubtletyVal && (trailSubtletyVal.textContent = trailSubtlety.toFixed(2) + '×');
+  });
+
+  // Segmented behavior control listeners
+  const segmentButtons = document.querySelectorAll('.segment-button');
+  segmentButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      // Remove active class from all buttons
+      segmentButtons.forEach(btn => btn.classList.remove('active'));
+      // Add active class to clicked button
+      button.classList.add('active');
+      
+      // Update behavior mode
+      const mode = button.getAttribute('data-behavior');
+      behaviorMode = (BEHAVIOR_MODES[mode] || BEHAVIOR_MODES.pit);
+      
+      // Update panel to show relevant controls
+      updatePanelForMode(behaviorMode);
+      
+      if (behaviorMode === BEHAVIOR_MODES.print) {
+        initTrail();
+      }
+    });
+  });
+  fliesSpeedMulSlider && fliesSpeedMulSlider.addEventListener('input', () => { fliesSpeedMul = parseFloat(fliesSpeedMulSlider.value) / 100; fliesSpeedMulVal && (fliesSpeedMulVal.textContent = Math.round(parseFloat(fliesSpeedMulSlider.value)) + '%'); });
+  fliesMaxSpeedSlider && fliesMaxSpeedSlider.addEventListener('input', () => { fliesMaxSpeed = parseFloat(fliesMaxSpeedSlider.value); fliesMaxSpeedVal && (fliesMaxSpeedVal.textContent = Math.round(fliesMaxSpeed).toString()); });
+  fliesSeekGainSlider && fliesSeekGainSlider.addEventListener('input', () => { fliesSeekGain = parseFloat(fliesSeekGainSlider.value); fliesSeekGainVal && (fliesSeekGainVal.textContent = Math.round(fliesSeekGain).toString()); });
+  fliesWanderSlider && fliesWanderSlider.addEventListener('input', () => { fliesWanderStrength = parseFloat(fliesWanderSlider.value); fliesWanderVal && (fliesWanderVal.textContent = Math.round(fliesWanderStrength).toString()); });
+  fliesJitterSlider && fliesJitterSlider.addEventListener('input', () => { fliesJitter = parseFloat(fliesJitterSlider.value); fliesJitterVal && (fliesJitterVal.textContent = fliesJitter.toFixed(1)); });
+  fliesScatterRadiusSlider && fliesScatterRadiusSlider.addEventListener('input', () => { fliesScatterRadius = parseFloat(fliesScatterRadiusSlider.value); fliesScatterRadiusVal && (fliesScatterRadiusVal.textContent = Math.round(fliesScatterRadius).toString()); });
+  fliesScatterVarSlider && fliesScatterVarSlider.addEventListener('input', () => { fliesScatterVarPct = parseFloat(fliesScatterVarSlider.value) / 100; fliesScatterVarVal && (fliesScatterVarVal.textContent = Math.round(parseFloat(fliesScatterVarSlider.value)) + '%'); });
+  // Trail behavior event listeners
+  const trailSmoothingSlider = document.getElementById('trailSmoothingSlider');
+  const trailSmoothingVal = document.getElementById('trailSmoothingVal');
+  const generalSmoothingSlider = document.getElementById('generalSmoothingSlider');
+  const generalSmoothingVal = document.getElementById('generalSmoothingVal');
+  const trailLengthSlider = document.getElementById('trailLengthSlider');
+  const trailLengthVal = document.getElementById('trailLengthVal');
+  const trailSpawnRateSlider = document.getElementById('trailSpawnRateSlider');
+  const trailSpawnRateVal = document.getElementById('trailSpawnRateVal');
+  
+  trailSmoothingSlider && trailSmoothingSlider.addEventListener('input', () => { 
+    trailSmoothing = parseInt(trailSmoothingSlider.value, 10); 
+    trailSmoothingVal && (trailSmoothingVal.textContent = trailSmoothing + '%'); 
+  });
+  generalSmoothingSlider && generalSmoothingSlider.addEventListener('input', () => { 
+    generalSmoothing = parseInt(generalSmoothingSlider.value, 10); 
+    generalSmoothingVal && (generalSmoothingVal.textContent = generalSmoothing + '%'); 
+  });
+  trailLengthSlider && trailLengthSlider.addEventListener('input', () => { 
+    trailLength = parseInt(trailLengthSlider.value, 10); 
+    trailLengthVal && (trailLengthVal.textContent = trailLength.toString()); 
+  });
+  trailSpawnRateSlider && trailSpawnRateSlider.addEventListener('input', () => { 
+    trailSpawnRate = parseInt(trailSpawnRateSlider.value, 10); 
+    trailSpawnRateVal && (trailSpawnRateVal.textContent = trailSpawnRate.toString()); 
+  });
+
+  // Liquid behavior event listeners
+  const liquidViscositySlider = document.getElementById('liquidViscositySlider');
+  const liquidViscosityVal = document.getElementById('liquidViscosityVal');
+  const liquidCohesionSlider = document.getElementById('liquidCohesionSlider');
+  const liquidCohesionVal = document.getElementById('liquidCohesionVal');
+  const liquidSurfaceTensionSlider = document.getElementById('liquidSurfaceTensionSlider');
+  const liquidSurfaceTensionVal = document.getElementById('liquidSurfaceTensionVal');
+  const liquidTempSensitivitySlider = document.getElementById('liquidTempSensitivitySlider');
+  const liquidTempSensitivityVal = document.getElementById('liquidTempSensitivityVal');
+  const liquidMergeThresholdSlider = document.getElementById('liquidMergeThresholdSlider');
+  const liquidMergeThresholdVal = document.getElementById('liquidMergeThresholdVal');
+  const liquidBuoyancySlider = document.getElementById('liquidBuoyancySlider');
+  const liquidBuoyancyVal = document.getElementById('liquidBuoyancyVal');
+
+  liquidViscositySlider && liquidViscositySlider.addEventListener('input', () => { 
+    liquidViscosity = parseFloat(liquidViscositySlider.value); 
+    liquidViscosityVal && (liquidViscosityVal.textContent = liquidViscosity.toFixed(2)); 
+  });
+  liquidCohesionSlider && liquidCohesionSlider.addEventListener('input', () => { 
+    liquidCohesion = parseFloat(liquidCohesionSlider.value); 
+    liquidCohesionVal && (liquidCohesionVal.textContent = Math.round(liquidCohesion).toString()); 
+  });
+  liquidSurfaceTensionSlider && liquidSurfaceTensionSlider.addEventListener('input', () => { 
+    liquidSurfaceTension = parseFloat(liquidSurfaceTensionSlider.value); 
+    liquidSurfaceTensionVal && (liquidSurfaceTensionVal.textContent = liquidSurfaceTension.toFixed(2)); 
+  });
+  liquidTempSensitivitySlider && liquidTempSensitivitySlider.addEventListener('input', () => { 
+    liquidTempSensitivity = parseFloat(liquidTempSensitivitySlider.value); 
+    liquidTempSensitivityVal && (liquidTempSensitivityVal.textContent = liquidTempSensitivity.toFixed(1)); 
+  });
+  liquidMergeThresholdSlider && liquidMergeThresholdSlider.addEventListener('input', () => { 
+    liquidMergeThreshold = parseFloat(liquidMergeThresholdSlider.value); 
+    liquidMergeThresholdVal && (liquidMergeThresholdVal.textContent = liquidMergeThreshold.toFixed(1)); 
+  });
+  liquidBuoyancySlider && liquidBuoyancySlider.addEventListener('input', () => { 
+    liquidBuoyancy = parseFloat(liquidBuoyancySlider.value); 
+    liquidBuoyancyVal && (liquidBuoyancyVal.textContent = Math.round(liquidBuoyancy).toString()); 
+  });
+
+  // Magnetic behavior event listeners
+  const magnetFieldStrengthSlider = document.getElementById('magnetFieldStrengthSlider');
+  const magnetFieldStrengthVal = document.getElementById('magnetFieldStrengthVal');
+  const magnetPolarityChaosSlider = document.getElementById('magnetPolarityChaosSlider');
+  const magnetPolarityChaosVal = document.getElementById('magnetPolarityChaosVal');
+  const magnetFieldLinesSlider = document.getElementById('magnetFieldLinesSlider');
+  const magnetFieldLinesVal = document.getElementById('magnetFieldLinesVal');
+  const magnetSpinForceSlider = document.getElementById('magnetSpinForceSlider');
+  const magnetSpinForceVal = document.getElementById('magnetSpinForceVal');
+  const magnetRangeSlider = document.getElementById('magnetRangeSlider');
+  const magnetRangeVal = document.getElementById('magnetRangeVal');
+  const magnetColorSwitchSlider = document.getElementById('magnetColorSwitchSlider');
+  const magnetColorSwitchVal = document.getElementById('magnetColorSwitchVal');
+
+  magnetFieldStrengthSlider && magnetFieldStrengthSlider.addEventListener('input', () => { 
+    magnetFieldStrength = parseFloat(magnetFieldStrengthSlider.value); 
+    magnetFieldStrengthVal && (magnetFieldStrengthVal.textContent = Math.round(magnetFieldStrength).toString()); 
+  });
+  magnetPolarityChaosSlider && magnetPolarityChaosSlider.addEventListener('input', () => { 
+    magnetPolarityChaos = parseFloat(magnetPolarityChaosSlider.value); 
+    magnetPolarityChaosVal && (magnetPolarityChaosVal.textContent = Math.round(magnetPolarityChaos) + '%'); 
+  });
+  magnetFieldLinesSlider && magnetFieldLinesSlider.addEventListener('input', () => { 
+    magnetFieldLines = parseInt(magnetFieldLinesSlider.value, 10); 
+    magnetFieldLinesVal && (magnetFieldLinesVal.textContent = magnetFieldLines.toString()); 
+    magnetFieldDirections = []; // Reset field directions when count changes
+  });
+  magnetSpinForceSlider && magnetSpinForceSlider.addEventListener('input', () => { 
+    magnetSpinForce = parseFloat(magnetSpinForceSlider.value); 
+    magnetSpinForceVal && (magnetSpinForceVal.textContent = Math.round(magnetSpinForce).toString()); 
+  });
+  magnetRangeSlider && magnetRangeSlider.addEventListener('input', () => { 
+    magnetRange = parseFloat(magnetRangeSlider.value); 
+    magnetRangeVal && (magnetRangeVal.textContent = Math.round(magnetRange).toString()); 
+  });
+  magnetColorSwitchSlider && magnetColorSwitchSlider.addEventListener('input', () => { 
+    magnetColorSwitch = parseFloat(magnetColorSwitchSlider.value); 
+    magnetColorSwitchVal && (magnetColorSwitchVal.textContent = Math.round(magnetColorSwitch) + '%'); 
+  });
+
+  // Presets (10 each)
+  // Rubber-focused physics presets under Earth gravity (≈1960 px/s²)
+  const PHYSICS_PRESETS = {
+    rubberPlayground: { label: 'Rubber – Playground', G: 1960, REST: 0.90, FRICTION: 0.0025, sizeScale: 1.8, maxBalls: 450, sizeVariation: 0.20 },
+    rubberRacquet:    { label: 'Rubber – Racquetball', G: 3320, REST: 0.97, FRICTION: 0.0035, sizeScale: 2.1, maxBalls: 350, sizeVariation: 0.30 },
+    rubberSuperball:  { label: 'Rubber – Superball', G: 1960, REST: 0.95, FRICTION: 0.0015, sizeScale: 1.2, maxBalls: 450, sizeVariation: 0.05 },
+    rubberSoft:       { label: 'Rubber – Soft', G: 1960, REST: 0.86, FRICTION: 0.0035, sizeScale: 2.2, maxBalls: 350, sizeVariation: 0.25 },
+    rubberHeavy:      { label: 'Rubber – Heavy', G: 1960, REST: 0.88, FRICTION: 0.0030, sizeScale: 2.0, maxBalls: 400, sizeVariation: 0.15 }
+  };
+
+  const SPAWN_PRESETS = {
+    fullRain:       { label: 'Full Rain (top-half)', EMIT_INTERVAL: 0.030, xCenter: 50, y: -50, w: 100, h: 50 },
+    narrowStrip:    { label: 'Narrow Strip Top', EMIT_INTERVAL: 0.050, xCenter: 50, y: -40, w: 20,  h: 10 },
+    leftGutter:     { label: 'Left Gutter', EMIT_INTERVAL: 0.045, xCenter: 10, y: -60, w: 18,  h: 20 },
+    rightGutter:    { label: 'Right Gutter', EMIT_INTERVAL: 0.045, xCenter: 90, y: -60, w: 18,  h: 20 },
+    centerFountain: { label: 'Center Fountain', EMIT_INTERVAL: 0.020, xCenter: 50, y: -30, w: 30,  h: 20 },
+    stormBurst:     { label: 'Storm Burst', EMIT_INTERVAL: 0.005, xCenter: 50, y: -80, w: 100, h: 30 },
+    slowSnow:       { label: 'Slow Snow', EMIT_INTERVAL: 0.200, xCenter: 50, y: -30, w: 100, h: 20 },
+    edgeDrizzle:    { label: 'Edge Drizzle', EMIT_INTERVAL: 0.080, xCenter: 15, y: -40, w: 30,  h: 15 },
+    twinColumns:    { label: 'Twin Columns', EMIT_INTERVAL: 0.030, xCenter: 30, y: -50, w: 10,  h: 40 },
+    focusedBeam:    { label: 'Focused Beam', EMIT_INTERVAL: 0.015, xCenter: 50, y: -70, w: 6,   h: 12 }
+  };
+
+  const REPELLER_PRESETS = {
+    off:         { label: 'Off', r: 710,   p: 27400 * 10, s: 4.4 },
+    gentle:      { label: 'Gentle Breeze', r: 120, p: 2500, s: 2.5 },
+    pushField:   { label: 'Push Field', r: 240, p: 8000 * 10, s: 2.0 },
+    tractor:     { label: 'Tractor Push', r: 320, p: 14000 * 10, s: 1.6 },
+    magnet:      { label: 'Magnet Repel', r: 200, p: 18000 * 10, s: 3.0 },
+    pulse:       { label: 'Pulse Strong', r: 280, p: 22000 * 10, s: 1.2 },
+    wideSoft:    { label: 'Wide Soft', r: 500, p: 8000 * 10, s: 4.5 },
+    needle:      { label: 'Needle Point', r: 80,  p: 26000 * 10, s: 0.8 },
+    wall:        { label: 'Invisible Wall', r: 700, p: 16000 * 10, s: 5.0 },
+    singularity: { label: 'Singularity', r: 600, p: 30000 * 10, s: 0.5 }
+  };
+
+  // Shadow presets removed for better performance
+
+
+  // Populate selects
+  function fillSelect(select, dict, selectedKey) {
+    select.innerHTML = '';
+    for (const [key, val] of Object.entries(dict)) {
+      const opt = document.createElement('option');
+      opt.value = key; opt.textContent = val.label || key; if (key === selectedKey) opt.selected = true;
+      select.appendChild(opt);
+    }
+  }
+
+  const physicsSelect = document.getElementById('physicsSelect');
+  const spawnSelect = document.getElementById('spawnSelect');
+  const repellerSelect = document.getElementById('repellerSelect');
+
+  if (physicsSelect) fillSelect(physicsSelect, PHYSICS_PRESETS, 'rubberHeavy');
+  if (spawnSelect) fillSelect(spawnSelect, SPAWN_PRESETS, 'fullRain');
+  if (repellerSelect) fillSelect(repellerSelect, REPELLER_PRESETS, 'off');
+  // Populate color template dropdown
+  if (colorSelect) fillSelect(colorSelect, COLOR_TEMPLATES, 'industrialTeal');
+
+  // Helper function for UI updates
+  function updateSliderAndValue(slider, valueElement, value, decimals = 0) {
+    if (slider) slider.value = String(value);
+    if (valueElement) valueElement.textContent = decimals > 0 ? value.toFixed(decimals) : value.toString();
+  }
+
+  // Update panel to show controls relevant to the current mode
+  function updatePanelForMode(mode) {
+    const modeControlsTitle = document.getElementById('modeControlsTitle');
+    const pitControls = document.getElementById('pitControls');
+    const fliesControls = document.getElementById('fliesControls');
+    const trailControls = document.getElementById('trailControls');
+    
+    // Hide all mode-specific controls
+    if (pitControls) pitControls.style.display = 'none';
+    if (fliesControls) fliesControls.style.display = 'none';
+    if (trailControls) trailControls.style.display = 'none';
+    
+    // Show relevant controls and update title
+    switch (mode) {
+      case BEHAVIOR_MODES.pit:
+        if (modeControlsTitle) modeControlsTitle.textContent = '🎯 Ball Pit Controls';
+        if (pitControls) pitControls.style.display = 'block';
+        break;
+      case BEHAVIOR_MODES.flies:
+        if (modeControlsTitle) modeControlsTitle.textContent = '🕊️ Flies to Light Controls';
+        if (fliesControls) fliesControls.style.display = 'block';
+        break;
+      case BEHAVIOR_MODES.print:
+        if (modeControlsTitle) modeControlsTitle.textContent = '🖱️ Mouse Trail Controls';
+        if (trailControls) trailControls.style.display = 'block';
+        break;
+      default:
+        if (modeControlsTitle) modeControlsTitle.textContent = '🎯 Ball Pit Controls';
+        if (pitControls) pitControls.style.display = 'block';
+        break;
+    }
+  }
+
+  // Reusable event listener factory for sliders
+  // Removed unused slider listener factory
+
+  // Apply preset helpers
+  function applyPhysicsPreset(key) {
+    const p = PHYSICS_PRESETS[key]; if (!p) return;
+    // Keep gravity constant (1.1x Earth). Only apply REST and FRICTION from preset.
+    REST = p.REST; FRICTION = p.FRICTION;
+    MAX_BALLS = p.maxBalls; sizeVariation = p.sizeVariation;
+    const newScale = p.sizeScale;
+    sizeScale = newScale;
+    // Recompute effective scale and proportionally resize existing balls
+    updateEffectiveScaleAndBallSizes();
+    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+    
+    // Remove excess balls if new limit is lower (truncate efficiently)
+    if (balls.length > MAX_BALLS) { balls.length = MAX_BALLS; }
+    
+    // Update UI efficiently (gravity is fixed; no slider to update)
+    updateSliderAndValue(restitutionSlider, restitutionVal, REST, 2);
+    updateSliderAndValue(frictionSlider, frictionVal, FRICTION, 4);
+    updateSliderAndValue(sizeSlider, sizeVal, sizeScale, 1);
+    updateSliderAndValue(maxBallsSlider, maxBallsVal, MAX_BALLS, 0);
+    updateSliderAndValue(sizeVariationSlider, sizeVariationVal, sizeVariation, 1);
+    
+    // Apply the new size variation to existing balls
+    updateExistingBallSizes();
+  }
+  function applySpawnPreset(key) {
+    const s = SPAWN_PRESETS[key]; if (!s) return;
+    EMIT_INTERVAL = s.EMIT_INTERVAL; SPAWN_X_CENTER_VW = s.xCenter; SPAWN_Y_VH = s.y; SPAWN_W_VW = s.w; SPAWN_H_VH = s.h;
+    updateSliderAndValue(emitterSlider, emitterVal, EMIT_INTERVAL, 3);
+    updateSliderAndValue(spawnCenterSlider, spawnCenterVal, SPAWN_X_CENTER_VW, 0);
+    updateSliderAndValue(spawnYSlider, spawnYVal, SPAWN_Y_VH, 0);
+    updateSliderAndValue(spawnWidthSlider, spawnWidthVal, SPAWN_W_VW, 0);
+    updateSliderAndValue(spawnHeightSlider, spawnHeightVal, SPAWN_H_VH, 0);
+  }
+  function applyRepellerPreset(key) {
+    const r = REPELLER_PRESETS[key]; if (!r) return;
+    repelRadius = r.r; repelPower = r.p * (REPELLER_GLOBAL_MULTIPLIER / 20.0); // keep perceived strength consistent after global doubling
+    repellerEnabled = (key !== 'off');
+    updateSliderAndValue(repelSizeSlider, repelSizeVal, repelRadius, 0);
+    // Sync slider to mapped power and label
+    const sliderPos = powerToRepelSlider(repelPower);
+    if (repelPowerSlider) repelPowerSlider.value = String(sliderPos);
+    if (repelPowerVal) repelPowerVal.textContent = Math.round(repelPower).toString();
+    updateSliderAndValue(repelSoftSlider, repelSoftVal, repelSoft, 1);
+    if (repelResponsive) updateRepelRadius();
+  }
+  // Shadow preset function removed
+
+  // Apply sane defaults FIRST (before event listeners to avoid triggering them)
+  applyPhysicsPreset('rubberHeavy');
+  applySpawnPreset('fullRain');
+  applyRepellerPreset('off');
+  // Initialize responsive repel radius on load
+  updateRepelRadius();
+  
+  // Initialize color system
+  const defaultTemplate = COLOR_TEMPLATES[currentTemplate];
+  if (color1 && color1Val) { color1.value = defaultTemplate.colors[0]; color1Val.textContent = defaultTemplate.colors[0].toUpperCase(); }
+  if (color2 && color2Val) { color2.value = defaultTemplate.colors[1]; color2Val.textContent = defaultTemplate.colors[1].toUpperCase(); }
+  if (color3 && color3Val) { color3.value = defaultTemplate.colors[2]; color3Val.textContent = defaultTemplate.colors[2].toUpperCase(); }
+  if (color4 && color4Val) { color4.value = defaultTemplate.colors[3]; color4Val.textContent = defaultTemplate.colors[3].toUpperCase(); }
+  if (color5 && color5Val) { color5.value = defaultTemplate.colors[4]; color5Val.textContent = defaultTemplate.colors[4].toUpperCase(); }
+  if (color6 && color6Val) { color6.value = defaultTemplate.colors[5]; color6Val.textContent = defaultTemplate.colors[5].toUpperCase(); }
+  if (color7 && color7Val) { color7.value = defaultTemplate.colors[6]; color7Val.textContent = defaultTemplate.colors[6].toUpperCase(); }
+  if (color8 && color8Val) { color8.value = defaultTemplate.colors[7]; color8Val.textContent = defaultTemplate.colors[7].toUpperCase(); }
+  // Sync CSS variables on init
+  syncPaletteVars(defaultTemplate.colors);
+
+  // Hook presets to selects AFTER applying defaults
+  physicsSelect && physicsSelect.addEventListener('change', () => applyPhysicsPreset(physicsSelect.value));
+  spawnSelect && spawnSelect.addEventListener('change', () => applySpawnPreset(spawnSelect.value));
+  repellerSelect && repellerSelect.addEventListener('change', () => applyRepellerPreset(repellerSelect.value));
+
+  // Now that sizeScale is set by presets, compute responsive scale once
+  updateEffectiveScaleAndBallSizes();
+  
+  // Initialize text colliders
+  updateTextColliders();
 })();
+</script>
