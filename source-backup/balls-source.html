@@ -7,7 +7,7 @@
 <style>
   html, body { height: 100%; margin: 0; background: #cecece; overflow:hidden; }
   /* Scoped wrapper for embed friendliness and interaction hygiene */
-  #ball-simulation {
+  #bravia-balls {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -17,7 +17,7 @@
     -webkit-tap-highlight-color: transparent;
     user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   }
-  #ball-simulation canvas { 
+  #bravia-balls canvas { 
     display: block; 
     width: 100%; 
     height: 150vh;
@@ -31,9 +31,9 @@
     cursor: none;
   }
   @media (prefers-reduced-motion: reduce) { 
-    #ball-simulation canvas { filter: none; } 
+    #bravia-balls canvas { filter: none; } 
   }
-  #ball-simulation .panel {
+  #bravia-balls .panel {
     position: fixed;
     top: 5vh;
     right: 5vh;
@@ -51,23 +51,23 @@
     overflow: auto;
     backdrop-filter: blur(6px);
   }
-  #ball-simulation .panel.hidden { display: none; }
-  #ball-simulation .panel label {
+  #bravia-balls .panel.hidden { display: none; }
+  #bravia-balls .panel label {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 6px;
     width: 260px;
   }
-  #ball-simulation .panel input[type="range"] {
+  #bravia-balls .panel input[type="range"] {
     flex: 1;
   }
-  #ball-simulation .panel span.val {
+  #bravia-balls .panel span.val {
     width: 56px;
     text-align: right;
     font-family: monospace;
   }
-  #ball-simulation .panel span.hex-val {
+  #bravia-balls .panel span.hex-val {
     font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
     font-size: 10px;
     color: #888;
@@ -78,38 +78,17 @@
     text-transform: uppercase;
     cursor: pointer;
   }
-  #ball-simulation .panel code {
+  #bravia-balls .panel code {
     font-family: monospace;
     background: rgba(255,255,255,0.1);
     padding: 2px 4px;
     border-radius: 4px;
   }
-  #ball-simulation .panel details { background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px; }
-  #ball-simulation .panel summary { cursor: pointer; list-style: none; outline: none; }
-  #ball-simulation .panel summary::-webkit-details-marker { display: none; }
-  #ball-simulation .panel summary { display:flex; align-items:center; justify-content:space-between; color:#b8c2c7; }
-  #ball-simulation .panel .group { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
-  
-  /* Centered text collider for testing */
-  #ball-simulation #hero-text {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 5;
-    color: #ffffff;
-    text-align: center;
-    pointer-events: none;
-    font-weight: 700;
-    line-height: 1.1;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    font-size: clamp(12px, 4vw, 40px);
-    display: inline-block;
-    width: auto;
-    max-width: min(45vw, 500px);
-    text-wrap: balance;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.35);
-  }
+  #bravia-balls .panel details { background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px; }
+  #bravia-balls .panel summary { cursor: pointer; list-style: none; outline: none; }
+  #bravia-balls .panel summary::-webkit-details-marker { display: none; }
+  #bravia-balls .panel summary { display:flex; align-items:center; justify-content:space-between; color:#b8c2c7; }
+  #bravia-balls .panel .group { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
   
   /* Palette variables (defaults match 'industrialTeal') */
   :root {
@@ -147,114 +126,19 @@
   .border-ball-6 { border-color: var(--ball-6); }
   .border-ball-7 { border-color: var(--ball-7); }
   .border-ball-8 { border-color: var(--ball-8); }
-  
-  /* Segmented Control Styles */
-  .segment-control {
-    display: flex;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 2px;
-    margin: 8px 0;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  .segment-button {
-    flex: 1;
-    padding: 8px 12px;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 11px;
-    font-weight: 500;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: center;
-  }
-  
-  .segment-button:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
-  }
-  
-  .segment-button.active {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  }
-  
-  .behavior-header {
-    text-align: center;
-    margin: 8px 0 4px 0;
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-  }
 </style>
 </head>
 <body>
-<div id="ball-simulation">
+<div id="bravia-balls">
   <canvas id="c" aria-label="Bouncy balls simulation" role="img" draggable="false"></canvas>
-  <p id="hero-text">Alexander Beck Studio.</p>
   <div class="panel" id="controlPanel">
-  <!-- Behavior Selection at Top -->
-  <div class="behavior-header">🧠 Behavior Mode</div>
-  <div class="segment-control">
-    <button class="segment-button active" data-behavior="pit">Ball Pit</button>
-    <button class="segment-button" data-behavior="flies">Flies to Light</button>
-    <button class="segment-button" data-behavior="print">Mouse Trail</button>
+  <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
+    <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 8px;">💾 Save Config</button>
+    <button id="buildBtn" style="background: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">🚀 Build Embed</button>
+    <div id="configOutput" style="margin-top: 8px; font-family: monospace; font-size: 10px; color: #333; max-height: 120px; overflow-y: auto; display: none; text-align: left; background: rgba(255,255,255,0.8); padding: 6px; border-radius: 3px;"></div>
   </div>
-  
-  <!-- Actions (Compact) -->
-  <div style="margin: 8px 0; padding: 6px; background: rgba(0,255,0,0.08); border-radius: 4px; text-align: center;">
-    <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-weight: bold; margin-right: 6px; font-size: 11px;">💾 Save</button>
-    <button id="buildBtn" style="background: #2196F3; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 11px;">🚀 Build</button>
-    <div id="configOutput" style="margin-top: 8px; font-family: monospace; font-size: 10px; color: #333; max-height: 200px; overflow-y: auto; display: none; text-align: left; background: rgba(255,255,255,0.9); padding: 8px; border-radius: 4px; border: 1px solid #ddd;"></div>
-  </div>
-
-  <!-- Mode-Specific Controls (Dynamic) -->
-  <details open id="modeControls">
-    <summary id="modeControlsTitle">🎯 Ball Pit Controls</summary>
-    <div class="group">
-      <!-- Ball Pit Mode Controls -->
-      <div id="pitControls" class="mode-controls">
-        <div style="font-size: 10px; opacity: 0.8; margin-bottom: 8px; font-style: italic;">Continuous ball spawning with physics simulation</div>
-        <label>Spawn template: <select id="spawnSelect"></select></label>
-        <label>Emit interval (s): <span class="val" id="emitterVal">0.04</span><input type="range" id="emitterSlider" min="0.000" max="1.000" step="0.005" value="0.04"></label>
-        <label>Spawn Y (vh): <span class="val" id="spawnYVal">-50</span><input type="range" id="spawnYSlider" min="-100" max="100" step="10" value="-50"></label>
-        <label>Spawn Width (vw): <span class="val" id="spawnWidthVal">100</span><input type="range" id="spawnWidthSlider" min="0" max="100" step="10" value="100"></label>
-        <label>Spawn X Center (vw): <span class="val" id="spawnCenterVal">50</span><input type="range" id="spawnCenterSlider" min="0" max="100" step="10" value="50"></label>
-        <label>Spawn Height (vh): <span class="val" id="spawnHeightVal">50</span><input type="range" id="spawnHeightSlider" min="0" max="100" step="10" value="50"></label>
-      </div>
-      
-      <!-- Flies Mode Controls -->
-      <div id="fliesControls" class="mode-controls" style="display: none;">
-        <div style="font-size: 10px; opacity: 0.8; margin-bottom: 8px; font-style: italic;">Particles attracted to mouse/touch with swarming behavior</div>
-        <label>Speed (%): <span class="val" id="fliesSpeedMulVal">340%</span><input type="range" id="fliesSpeedMulSlider" min="25" max="400" step="5" value="340"></label>
-        <label>Max speed (px/s): <span class="val" id="fliesMaxSpeedVal">1910</span><input type="range" id="fliesMaxSpeedSlider" min="100" max="3000" step="10" value="1910"></label>
-        <label>Jitter: <span class="val" id="fliesJitterVal">3.0</span><input type="range" id="fliesJitterSlider" min="0" max="10" step="0.1" value="3.0"></label>
-        <label>Scatter range (px): <span class="val" id="fliesScatterRadiusVal">490</span><input type="range" id="fliesScatterRadiusSlider" min="0" max="1000" step="5" value="490"></label>
-        <label>Scatter variance (%): <span class="val" id="fliesScatterVarVal">100%</span><input type="range" id="fliesScatterVarSlider" min="0" max="100" step="5" value="100"></label>
-      </div>
-      
-      <!-- Trail Mode Controls -->
-      <div id="trailControls" class="mode-controls" style="display: none;">
-        <div style="font-size: 10px; opacity: 0.8; margin-bottom: 8px; font-style: italic;">Smooth particle trail following mouse movement</div>
-        <label>Trail smoothing (%): <span class="val" id="trailSmoothingVal">0%</span><input type="range" id="trailSmoothingSlider" min="-500" max="400" step="10" value="0"></label>
-        <label>General smoothing (%): <span class="val" id="generalSmoothingVal">0%</span><input type="range" id="generalSmoothingSlider" min="-500" max="400" step="10" value="0"></label>
-        <label>Trail length: <span class="val" id="trailLengthVal">75</span><input type="range" id="trailLengthSlider" min="5" max="200" step="5" value="75"></label>
-        <label>Spawn rate (ms): <span class="val" id="trailSpawnRateVal">50</span><input type="range" id="trailSpawnRateSlider" min="10" max="200" step="10" value="50"></label>
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-          <label>Motion blur: <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="1.500" step="0.001" value="0.000"></label>
-          <label>Blur subtlety: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.00" max="3.00" step="0.05" value="1.00"></label>
-        </div>
-      </div>
-    </div>
-  </details>
-
-  <!-- Global Physics -->
-  <details>
-    <summary>⚙️ Global Physics</summary>
+  <details open>
+    <summary>⚙️ Physics</summary>
     <div class="group">
         <label>Physics template: <select id="physicsSelect"></select></label>
         <label>Bounciness: <span class="val" id="restitutionVal">0.78</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.001" value="0.78"></label>
@@ -265,30 +149,34 @@
         <label>Ball weight (kg): <span class="val" id="weightVal">11.20</span><input type="range" id="weightSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
     </div>
   </details>
-
-  <!-- Mouse Interaction -->
+  <details open>
+    <summary>🎯 Spawn</summary>
+    <div class="group">
+        <label>Spawn template: <select id="spawnSelect"></select></label>
+        <label>Emit interval (s): <span class="val" id="emitterVal">0.04</span><input type="range" id="emitterSlider" min="0.000" max="1.000" step="0.005" value="0.04"></label>
+        <label>Spawn Y (vh): <span class="val" id="spawnYVal">-50</span><input type="range" id="spawnYSlider" min="-100" max="100" step="10" value="-50"></label>
+        <label>Spawn Width (vw): <span class="val" id="spawnWidthVal">100</span><input type="range" id="spawnWidthSlider" min="0" max="100" step="10" value="100"></label>
+        <label>Spawn X Center (vw): <span class="val" id="spawnCenterVal">50</span><input type="range" id="spawnCenterSlider" min="0" max="100" step="10" value="50"></label>
+        <label>Spawn Height (vh): <span class="val" id="spawnHeightVal">50</span><input type="range" id="spawnHeightSlider" min="0" max="100" step="10" value="50"></label>
+    </div>
+  </details>
   <details>
-    <summary>🧲 Mouse Interaction</summary>
+    <summary>🧲 Repeller</summary>
     <div class="group">
         <label>Repeller template: <select id="repellerSelect"></select></label>
         <label>Repel size (px): <span class="val" id="repelSizeVal">200</span><input type="range" id="repelSizeSlider" min="0" max="1000" step="5" value="200"></label>
-        <label>Responsive repel size: <input type="checkbox" id="repelResponsiveToggle" checked></label>
-        <label>Min repel size (px): <span class="val" id="repelMinSizeVal">60</span><input type="range" id="repelMinSizeSlider" min="10" max="400" step="1" value="60"></label>
-        <label>Max repel size (px): <span class="val" id="repelMaxSizeVal">200</span><input type="range" id="repelMaxSizeSlider" min="60" max="800" step="1" value="200"></label>
         <label>Repel power: <span class="val" id="repelPowerVal">24000</span><input type="range" id="repelPowerSlider" min="0" max="1000" step="1" value="500"></label>
         <label>Repel softness: <span class="val" id="repelSoftVal">2.0</span><input type="range" id="repelSoftSlider" min="0.1" max="8" step="0.1" value="2.0"></label>
     </div>
   </details>
-
-  <!-- Visual Effects -->
   <details>
-    <summary>🖼️ Visual Effects</summary>
+    <summary>🖼️ Scene</summary>
     <div class="group">
         <label>Corner radius (px): <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="200" step="5" value="0"></label>
+        <label>Motion blur (trail): <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="1.500" step="0.001" value="0.000"></label>
+        <label>Trail subtlety: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.00" max="3.00" step="0.05" value="1.00"></label>
     </div>
   </details>
-
-  <!-- Colors -->
   <details>
     <summary>🎨 Colors</summary>
     <div class="group">
@@ -374,7 +262,7 @@
     // CSS size is handled by CSS (150vh, bottom-aligned)
   };
   setCSSSize(); resize();
-  window.addEventListener('resize', () => { setCSSSize(); resize(); updateEffectiveScaleAndBallSizes(); updateTextColliders(); updateRepelRadius(); });
+  window.addEventListener('resize', () => { setCSSSize(); resize(); updateEffectiveScaleAndBallSizes(); updateTextColliders(); });
 
   // Physics parameters (initial)
   const GE = 1960;        // Earth gravity in px/s^2 at our scale
@@ -572,31 +460,6 @@
   let mouseX = CONSTANTS.OFFSCREEN_MOUSE, mouseY = CONSTANTS.OFFSCREEN_MOUSE; // offscreen until moved
   let repellerEnabled = false; // disabled by default; enabled by preset or sliders
   const REPELLER_GLOBAL_MULTIPLIER = 20.0; // doubled overall repeller strength
-  // Responsive repeller sizing
-  let repelResponsive = true;
-  let repelMinSize = 60;   // CSS px at 375px viewport
-  let repelMaxSize = 200;  // CSS px at 1128px+ viewport
-  // Unified input handling state (pointer vs mouse)
-  const HAS_POINTER_EVENTS = 'PointerEvent' in window;
-  let isTouchActive = false;
-  let activePointerId = null;
-  let lastPointerType = 'mouse';
-  // Hide visual cursor ball on mobile-like inputs
-  let hideCursorOnMobile = true;
-  function isMobileLikeInput() {
-    try {
-      const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-      const noHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
-      return coarse || noHover || (responsiveScale < 1.0);
-    } catch (_) {
-      return (responsiveScale < 1.0);
-    }
-  }
-  function updateRepellerFromClient(clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
-    mouseX = (clientX - rect.left) * DPR;
-    mouseY = (clientY - rect.top) * DPR;
-  }
 
   // Repeller slider mapping (wide dynamic range; midpoint equals 2× previous default)
   const REPEL_BASE_POWER = 12000; // previous default baseline
@@ -607,25 +470,6 @@
     const s = Math.max(0, Math.min(REPEL_SLIDER_MAX, Number(sliderValue))) / REPEL_SLIDER_MAX;
     const mult = REPEL_CENTER_MULTIPLIER * Math.pow(2, (s - 0.5) * REPEL_N_OCTAVES);
     return REPEL_BASE_POWER * mult;
-  }
-
-  // Compute responsive repel radius based on viewport width, clamped between min/max
-  function computeResponsiveRepelRadius() {
-    const minW = 375;
-    const maxW = 1128;
-    const w = canvas.clientWidth || window.innerWidth;
-    const t = clamp((w - minW) / (maxW - minW), 0, 1);
-    const minR = Math.min(repelMinSize, repelMaxSize);
-    const maxR = Math.max(repelMinSize, repelMaxSize);
-    return minR + (maxR - minR) * t;
-  }
-  function updateRepelRadius() {
-    if (repelResponsive) {
-      repelRadius = computeResponsiveRepelRadius();
-    }
-    // sync UI label if present
-    const lbl = document.getElementById('repelSizeVal');
-    if (lbl) lbl.textContent = Math.round(repelRadius).toString();
   }
   function powerToRepelSlider(power) {
     const safe = Math.max(1, Number(power));
@@ -645,29 +489,6 @@
   // Text collision system
   const TEXT_SELECTOR = '#hero-text'; // ID selector for the main text element
   let textColliders = []; // Array of text collision rectangles
-  
-  // Behavior modes
-  const BEHAVIOR_MODES = { pit: 'pit', flies: 'flies', print: 'print' };
-  let behaviorMode = BEHAVIOR_MODES.pit;
-  // Flies tuning
-  let fliesSpeedMul = 3.4;       // percentage 0.25..4.0
-  let fliesMaxSpeed = 1910;      // px/s cap (base)
-  let fliesSeekGain = 360;       // acceleration towards light (base)
-  let fliesWanderStrength = 120; // idle wander force (base)
-  let fliesJitter = 3.0;         // randomness around light target
-  let fliesScatterRadius = 490;  // desired orbit radius around light
-  let fliesScatterVarPct = 1.00; // 0..1 radius variance per fly
-  let lightActive = false;       // whether the light (pointer/touch) is present
-  // Trail tuning (formerly print)
-  let trailSmoothing = 0;        // -500% to 400% trail smoothing
-  let generalSmoothing = 0;      // -500% to 400% general smoothing
-  let trailLength = 75;          // maximum trail particles (3x longer)
-  let trailSpawnRate = 50;       // ms between trail particles
-  let trailLastTime = 0;         // timestamp of last trail particle
-  let trailColorIndex = 0;       // current color index for alternation
-  let trailPositions = [];       // array of smoothed trail positions
-  let targetMouseX = 0;          // smoothed mouse X position
-  let targetMouseY = 0;          // smoothed mouse Y position
   // Temporal trail for simple motion blur (0 = off, up to ~0.25)
   let trailFade = 0.025; // from screenshot
   let trailSubtlety = 1.80; // from screenshot
@@ -708,24 +529,12 @@
       this.theta = 0;               // integrated angular position (rad)
       this.squashAmount = 0.0;      // 0 = no squash, up to SQUASH_MAX
       this.squashNormalAngle = 0.0; // world-space normal direction for squash
-      // Flies/wander state
-      this.wanderAngle = Math.random() * Math.PI * 2;
-      this.wanderTimer = 0;
-      // Snake chain helpers
-      this.prevX = x; this.prevY = y;
     }
     // Integrate motion with simple Euler step
     step(dt) {
       // Advance timers
         this.t += dt;
       this.age += dt;
-
-      // Flies mode uses custom integrator (no gravity/standard drag). Early return.
-      if (behaviorMode === BEHAVIOR_MODES.flies) {
-        stepFlies(this, dt);
-        return;
-      }
-      
 
       // Gravity scaled by mass to make weight perceptible without changing G globally
       this.vy += (G * gravityScale) * dt;
@@ -740,11 +549,7 @@
       } else if (this.driftAx !== 0) {
         this.driftAx = 0; // Clear drift when expired to skip future checks
       }
-      if (behaviorMode === BEHAVIOR_MODES.pit) {
-        applyRepeller(this, dt);
-      } else if (behaviorMode === BEHAVIOR_MODES.print) {
-        // Print mode uses normal physics with gravity
-      }
+      applyRepeller(this, dt);
       this.x += this.vx * dt;
       this.y += this.vy * dt;
       // Angular damping
@@ -759,11 +564,7 @@
       this.squash = 1 - this.squashAmount;
     }
     // Resolve collision with walls (with rounded corners)
-    // Skip wall collisions for flies behavior
     walls(w, h, dt) {
-      if (behaviorMode === BEHAVIOR_MODES.flies) {
-        return; // Flies can move beyond boundaries
-      }
       if (cornerRadius === 0) {
         // Standard rectangular collision
       if (this.y + this.r > h) { 
@@ -1049,79 +850,6 @@
   }
 
   const balls = [];
-  // For snake mode, we treat the balls array as an ordered chain
-  function initTrail() {
-    balls.length = 0; // Clear existing balls
-    trailColorIndex = 0; // Reset color alternation
-    trailLastTime = 0; // Reset timer
-    trailPositions = []; // Clear trail positions
-    targetMouseX = mouseX !== CONSTANTS.OFFSCREEN_MOUSE ? mouseX : canvas.width / 2;
-    targetMouseY = mouseY !== CONSTANTS.OFFSCREEN_MOUSE ? mouseY : canvas.height / 2;
-  }
-
-  function updateTrail(dt, currentTime) {
-    // Update smoothed mouse position with general smoothing
-    if (mouseX !== CONSTANTS.OFFSCREEN_MOUSE && mouseY !== CONSTANTS.OFFSCREEN_MOUSE) {
-      const generalSmoothFactor = getSmoothingFactor(generalSmoothing);
-      const smoothRate = generalSmoothFactor * dt * 60; // 60fps normalized
-      targetMouseX += (mouseX - targetMouseX) * smoothRate;
-      targetMouseY += (mouseY - targetMouseY) * smoothRate;
-    }
-    
-    // Check if it's time to spawn a new trail particle
-    if (currentTime - trailLastTime >= trailSpawnRate) {
-      if (mouseX !== CONSTANTS.OFFSCREEN_MOUSE && mouseY !== CONSTANTS.OFFSCREEN_MOUSE) {
-        // Remove oldest ball if we've reached the trail length limit
-        if (balls.length >= trailLength) {
-          balls.shift(); // Remove first (oldest) ball
-        }
-        
-        // Create new ball with alternating color
-        const r = (R_MIN + R_MAX) / 2; // consistent size
-        const color = currentColors[trailColorIndex % currentColors.length];
-        trailColorIndex = (trailColorIndex + 1) % currentColors.length;
-        
-        const ball = new Ball(targetMouseX, targetMouseY, r, color);
-        ball.vx = 0; // No initial velocity for trail mode
-        ball.vy = 0;
-        balls.push(ball);
-        
-        trailLastTime = currentTime;
-      }
-    }
-    
-    // Update existing trail particles to follow with degrading smoothing
-    const trailSmoothFactor = getSmoothingFactor(trailSmoothing);
-    for (let i = 0; i < balls.length; i++) {
-      const ball = balls[i];
-      const distanceFromHead = balls.length - 1 - i; // 0 for newest, higher for older
-      const smoothingDegradation = Math.pow(0.85, distanceFromHead); // Each segment is 15% less smooth
-      const followFactor = trailSmoothFactor * smoothingDegradation * dt * 60;
-      
-      if (i === balls.length - 1) {
-        // Newest ball follows the smoothed mouse position
-        ball.x += (targetMouseX - ball.x) * followFactor;
-        ball.y += (targetMouseY - ball.y) * followFactor;
-      } else {
-        // Older balls follow the ball ahead of them in the chain
-        const nextBall = balls[i + 1];
-        ball.x += (nextBall.x - ball.x) * followFactor;
-        ball.y += (nextBall.y - ball.y) * followFactor;
-      }
-    }
-  }
-
-  // Convert smoothing percentage (-500% to 400%) to usable factor
-  function getSmoothingFactor(smoothingPercent) {
-    if (smoothingPercent === 0) return 1.0; // Default: immediate response
-    if (smoothingPercent > 0) {
-      // Positive values: slower response (more smoothing)
-      return 1.0 / (1.0 + smoothingPercent / 100.0);
-    } else {
-      // Negative values: faster response (less smoothing, more jittery)
-      return Math.min(10.0, 1.0 + Math.abs(smoothingPercent) / 100.0);
-    }
-  }
 
   // Helpers
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -1329,10 +1057,7 @@
         const dy = B.y - A.y;
         const rSum = A.r + B.r;
         const dist2 = dx * dx + dy * dy;
-        // Performance optimization: early exits
         if (dist2 === 0 || dist2 > rSum * rSum) continue;
-        // Skip very small overlaps for performance (< 5% overlap)
-        if (dist2 > rSum * rSum * 0.95) continue;
         const dist = Math.sqrt(dist2);
         const nx = dx / dist;
         const ny = dy / dist;
@@ -1408,8 +1133,7 @@
       lastFPSTime = now;
     }
 
-    // Emit only for pit/flies (other modes manage their own balls)
-    if (behaviorMode !== BEHAVIOR_MODES.print) emit(dt);
+    emit(dt);
     
     // Update text colliders periodically (every ~60 frames for performance)
     if (renderFrameCount % 60 === 0) {
@@ -1419,13 +1143,9 @@
     // Physics iterations optimized for realistic, stable simulation
     let physicsSteps = 0;
     while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
-      if (behaviorMode === BEHAVIOR_MODES.print) {
-        updateTrail(DT, now * 1000); // Convert to milliseconds
-      } else {
-        for (let i=0; i<balls.length; i++) balls[i].step(DT);
-        resolveCollisions(3); // Balanced quality vs performance
-        for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT);
-      }
+      for (let i=0; i<balls.length; i++) balls[i].step(DT);
+      resolveCollisions(3); // Balanced quality vs performance
+      for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT);
       acc -= DT;
       physicsSteps++;
       physicsStepCount++; // Count physics steps for FPS measurement
@@ -1521,87 +1241,22 @@
   }
   seedArea(CONSTANTS.INITIAL_SEED_BALLS);
 
-  // Initialize panel to show correct controls for default mode
-  updatePanelForMode(behaviorMode);
-
   // Shadow system removed for better performance
 
 
 
-  // Pointer-first input for repeller (covers mouse, pen, touch)
-  if (HAS_POINTER_EVENTS) {
-    canvas.addEventListener('pointerdown', (e) => {
-      lastPointerType = e.pointerType || 'mouse';
-      if (e.pointerType === 'touch') {
-        isTouchActive = true;
-        activePointerId = e.pointerId;
-        updateRepellerFromClient(e.clientX, e.clientY);
-        if (repelPower > 0 && repelRadius > 0) repellerEnabled = true;
-        lightActive = true;
-        try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
-      } else {
-        updateRepellerFromClient(e.clientX, e.clientY);
-        if (repelPower > 0 && repelRadius > 0) repellerEnabled = true;
-        lightActive = true;
-      }
-    }, { passive: true });
-
-    canvas.addEventListener('pointermove', (e) => {
-      lastPointerType = e.pointerType || lastPointerType;
-      if (e.pointerType === 'touch') {
-        if (isTouchActive && e.pointerId === activePointerId) {
-          updateRepellerFromClient(e.clientX, e.clientY);
-        }
-      } else if (e.pointerType === 'mouse' || e.pointerType === 'pen') {
-        updateRepellerFromClient(e.clientX, e.clientY);
-        if (repelPower > 0 && repelRadius > 0) repellerEnabled = true;
-        lightActive = true;
-      }
-    }, { passive: true });
-
-    const clearTouch = () => { isTouchActive = false; activePointerId = null; mouseX = CONSTANTS.OFFSCREEN_MOUSE; mouseY = CONSTANTS.OFFSCREEN_MOUSE; };
-    canvas.addEventListener('pointerup', (e) => { if (e.pointerType === 'touch') { clearTouch(); lightActive = false; } }, { passive: true });
-    canvas.addEventListener('pointercancel', (e) => { if (e.pointerType === 'touch') { clearTouch(); lightActive = false; } }, { passive: true });
-    canvas.addEventListener('pointerleave', (e) => {
-      if (e.pointerType === 'mouse' || e.pointerType === 'pen') { mouseX = CONSTANTS.OFFSCREEN_MOUSE; mouseY = CONSTANTS.OFFSCREEN_MOUSE; lightActive = false; }
-    }, { passive: true });
-  } else {
-    // Fallback: mouse + touch events
-    canvas.addEventListener('mousemove', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      mouseX = (e.clientX - rect.left) * DPR;
-      mouseY = (e.clientY - rect.top) * DPR;
-      if (repelPower > 0 && repelRadius > 0) repellerEnabled = true;
-      lightActive = true;
-    });
-    canvas.addEventListener('mouseleave', () => { mouseX = CONSTANTS.OFFSCREEN_MOUSE; mouseY = CONSTANTS.OFFSCREEN_MOUSE; lightActive = false; });
-
-    canvas.addEventListener('touchstart', (e) => {
-      if (!e.touches || e.touches.length === 0) return;
-      isTouchActive = true;
-      const t = e.touches[0];
-      updateRepellerFromClient(t.clientX, t.clientY);
-      if (repelPower > 0 && repelRadius > 0) repellerEnabled = true;
-      lightActive = true;
-    }, { passive: true });
-    canvas.addEventListener('touchmove', (e) => {
-      if (!isTouchActive || !e.touches || e.touches.length === 0) return;
-      const t = e.touches[0];
-      updateRepellerFromClient(t.clientX, t.clientY);
-      // prevent page scroll while interacting with the canvas
-      if (typeof e.preventDefault === 'function') e.preventDefault();
-    }, { passive: false });
-    const endTouch = () => { isTouchActive = false; mouseX = CONSTANTS.OFFSCREEN_MOUSE; mouseY = CONSTANTS.OFFSCREEN_MOUSE; lightActive = false; };
-    canvas.addEventListener('touchend', endTouch, { passive: true });
-    canvas.addEventListener('touchcancel', endTouch, { passive: true });
-  }
+  // Mouse input for repeller
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = (e.clientX - rect.left) * DPR;
+    mouseY = (e.clientY - rect.top) * DPR;
+    // If mouse enters the canvas, enable repeller when power and radius are set
+    if (repelPower > 0 && repelRadius > 0) repellerEnabled = true;
+  });
+  canvas.addEventListener('mouseleave', () => { mouseX = CONSTANTS.OFFSCREEN_MOUSE; mouseY = CONSTANTS.OFFSCREEN_MOUSE; });
 
   // Draw a cursor as a ball matching the simulation style
   function drawCursorBall(ctx) {
-    // Hide cursor ball entirely on mobile-like inputs
-    if (hideCursorOnMobile && isMobileLikeInput()) return;
-    // Hide cursor ball while actively touching (finger occludes)
-    if (isTouchActive && lastPointerType === 'touch') return;
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     const x = mouseX, y = mouseY;
     const baseSize = (R_MIN + R_MAX) / 2;
@@ -1632,424 +1287,6 @@
     const massScale = Math.max(0.25, b.m / MASS_BASELINE_KG);
     b.vx += (nx * strength * dt) / massScale;
     b.vy += (ny * strength * dt) / massScale;
-  }
-
-  // Flies behavior: boids-like wander + seek with drift; custom integrator
-  function stepFlies(b, dt) {
-    const massScale = Math.max(0.25, b.m / MASS_BASELINE_KG);
-    // Slight air drag only
-    const drag = Math.max(0, 1 - (FRICTION * 0.2 / massScale));
-    b.vx *= drag; b.vy *= drag;
-
-    // Wander: slowly rotate a unit vector and add as acceleration
-    b.wanderTimer += dt;
-    if (b.wanderTimer > 0.08) {
-      b.wanderTimer = 0;
-      b.wanderAngle += (Math.random() - 0.5) * 0.9;
-    }
-    let ax = Math.cos(b.wanderAngle) * (fliesWanderStrength * fliesSpeedMul);
-    let ay = Math.sin(b.wanderAngle) * (fliesWanderStrength * fliesSpeedMul);
-
-    // Seek the light when active: spring-damper towards a moving orbit target with jitter
-    if (lightActive && mouseX !== CONSTANTS.OFFSCREEN_MOUSE && mouseY !== CONSTANTS.OFFSCREEN_MOUSE) {
-      // Each fly gets a pseudo-stable orbit radius using its inherent random seed
-      if (b._scatterPhase === undefined) { b._scatterPhase = Math.random() * Math.PI * 2; }
-      if (b._scatterFactor === undefined) { b._scatterFactor = 1 + (Math.random() * 2 - 1) * fliesScatterVarPct; }
-      const radius = Math.max(0, fliesScatterRadius * b._scatterFactor) * DPR;
-      b._scatterPhase += dt * (0.6 + Math.random() * 0.8) * fliesSpeedMul; // slow orbiting
-      // Orbit center around mouse
-      let tx = mouseX + Math.cos(b._scatterPhase) * radius;
-      let ty = mouseY + Math.sin(b._scatterPhase) * radius;
-      // Jitter to avoid lock-step
-      tx += (Math.random() - 0.5) * fliesJitter * 20 * DPR;
-      ty += (Math.random() - 0.5) * fliesJitter * 20 * DPR;
-      const dx = tx - b.x; const dy = ty - b.y;
-      // Critical damping approx: a = k*dx - c*v
-      const k = (fliesSeekGain * 0.8) * fliesSpeedMul; // slightly lower to keep orbit-y feel
-      const c = Math.sqrt(k) * 1.8; // damping term to prevent overshoot
-      ax += k * dx - c * b.vx;
-      ay += k * dy - c * b.vy;
-    }
-
-    // Apply acceleration (mass-aware), integrate
-    b.vx += (ax * dt) / massScale;
-    b.vy += (ay * dt) / massScale;
-
-    // Clamp speed for lively motion, not slow-mo
-    const maxS = Math.max(200, fliesMaxSpeed * fliesSpeedMul);
-    const sp = Math.hypot(b.vx, b.vy);
-    if (sp > maxS) { const k = maxS / sp; b.vx *= k; b.vy *= k; }
-
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-    
-    // Ensure balls remain circular by resetting squash in flies mode
-    const decay = Math.min(1, CONSTANTS.SQUASH_DECAY_PER_S * dt);
-    b.squashAmount += (0 - b.squashAmount) * decay;
-    b.squash = 1 - b.squashAmount;
-  }
-
-  // UI elements
-  const frictionSlider = document.getElementById('frictionSlider');
-  const emitterSlider = document.getElementById('emitterSlider');
-    
-    // Apply liquid forces
-    applyLiquidCohesion(b, dt);
-    applyLiquidSurfaceTension(b, dt);
-    applyLiquidBuoyancy(b, dt);
-    
-    // Integrate motion
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-    
-    // Maintain circular shape (liquid particles stay round)
-    const decay = Math.min(1, CONSTANTS.SQUASH_DECAY_PER_S * dt);
-    b.squashAmount += (0 - b.squashAmount) * decay;
-    b.squash = 1 - b.squashAmount;
-  }
-
-  // UI elements
-  const frictionSlider = document.getElementById('frictionSlider');
-  const emitterSlider = document.getElementById('emitterSlider');
-  const sizeSlider = document.getElementById('sizeSlider');
-  const maxBallsSlider = document.getElementById('maxBallsSlider');
-  const sizeVariationSlider = document.getElementById('sizeVariationSlider');
-  const weightSlider = document.getElementById('weightSlider');
-  const spawnYSlider = document.getElementById('spawnYSlider');
-  const spawnWidthSlider = document.getElementById('spawnWidthSlider');
-  const spawnCenterSlider = document.getElementById('spawnCenterSlider');
-  const spawnHeightSlider = document.getElementById('spawnHeightSlider');
-  const repelSizeSlider = document.getElementById('repelSizeSlider');
-  const repelPowerSlider = document.getElementById('repelPowerSlider');
-  const repelSoftSlider = document.getElementById('repelSoftSlider');
-  // Color controls
-  const colorSelect = document.getElementById('colorSelect');
-  const color1 = document.getElementById('color1');
-  const color2 = document.getElementById('color2');
-  const color3 = document.getElementById('color3');
-            const dist = Math.sqrt(distSq);
-            const strength = liquidCohesion * (1 - dist / cohesionRadius);
-            const nx = deltaX / dist;
-            const ny = deltaY / dist;
-            
-            fx += nx * strength;
-            fy += ny * strength;
-            neighborCount++;
-          }
-        }
-      }
-    }
-    
-    if (neighborCount > 0) {
-      ball.vx += (fx * dt) / massScale;
-      ball.vy += (fy * dt) / massScale;
-    }
-  }
-
-  // Apply surface tension: smooth out blob surfaces (optimized with spatial grid)
-  function applyLiquidSurfaceTension(ball, dt) {
-    const tensionRadius = ball.r * 1.8;
-    const massScale = Math.max(0.25, ball.m / MASS_BASELINE_KG);
-    let fx = 0, fy = 0;
-    let neighborCount = 0;
-    
-    // Use spatial grid for performance - only check nearby cells
-    const cellSize = Math.max(1, R_MAX * 2);
-    const gridWidth = Math.ceil(canvas.width / cellSize) + 1;
-    const cx = (ball.x / cellSize) | 0;
-    const cy = (ball.y / cellSize) | 0;
-    
-    // Check 3x3 grid around ball
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        const key = (cy + dy) * gridWidth + (cx + dx);
-        const cellBalls = spatialGrid.get(key);
-        if (!cellBalls) continue;
-        
-        for (let i = 0; i < cellBalls.length; i++) {
-          const otherIndex = cellBalls[i];
-          const other = balls[otherIndex];
-          if (other === ball) continue;
-          
-          const deltaX = other.x - ball.x;
-          const deltaY = other.y - ball.y;
-          const distSq = deltaX * deltaX + deltaY * deltaY;
-          const tensionRadiusSq = tensionRadius * tensionRadius;
-          
-          if (distSq < tensionRadiusSq && distSq > 0.01) {
-            const dist = Math.sqrt(distSq);
-            const desiredDist = (ball.r + other.r) * 1.1;
-            const diff = desiredDist - dist;
-            const strength = liquidSurfaceTension * diff * 0.5;
-            
-            const nx = deltaX / dist;
-            const ny = deltaY / dist;
-            
-            fx += nx * strength;
-            fy += ny * strength;
-            neighborCount++;
-          }
-        }
-      }
-    }
-    
-    if (neighborCount > 0) {
-      ball.vx += (fx * dt) / massScale;
-      ball.vy += (fy * dt) / massScale;
-    }
-  }
-
-  // Apply temperature-based buoyancy (lava lamp effect)
-  function applyLiquidBuoyancy(ball, dt) {
-    const massScale = Math.max(0.25, ball.m / MASS_BASELINE_KG);
-    
-    // Get temperature at ball position (higher near mouse/touch)
-    const temp = getLiquidTemperature(ball.x, ball.y);
-    
-    // Hot liquid rises, cool liquid sinks
-    const buoyancyForce = (temp - 0.5) * liquidBuoyancy * liquidTempSensitivity;
-    ball.vy -= (buoyancyForce * dt) / massScale;
-    
-    // Add slight thermal convection (horizontal movement)
-    const convectionForce = Math.sin(ball.x * 0.01 + performance.now() * 0.001) * buoyancyForce * 0.3;
-    ball.vx += (convectionForce * dt) / massScale;
-  }
-
-  // Get temperature at a position (0 = cold, 1 = hot)
-  function getLiquidTemperature(x, y) {
-    // Update temperature map periodically for performance
-    liquidTempUpdateTimer += 16; // Assume ~60fps
-    if (liquidTempUpdateTimer > 100) { // Update every ~6 frames
-      updateLiquidTemperatureMap();
-      liquidTempUpdateTimer = 0;
-    }
-    
-    // Base temperature (cooler at bottom, warmer at top for lava lamp effect)
-    let temp = 0.3 + (canvas.height - y) / canvas.height * 0.2;
-    
-    // Add heat from mouse/touch interaction
-    if (mouseX !== CONSTANTS.OFFSCREEN_MOUSE && mouseY !== CONSTANTS.OFFSCREEN_MOUSE) {
-      const dx = x - mouseX;
-      const dy = y - mouseY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const heatRadius = 150 * DPR;
-      
-      if (dist < heatRadius) {
-        const heatStrength = (1 - dist / heatRadius) * 0.6;
-        temp += heatStrength;
-      }
-    }
-    
-    return Math.max(0, Math.min(1, temp));
-  }
-
-  // Update temperature map for spatial caching (performance optimization)
-  function updateLiquidTemperatureMap() {
-    liquidTemperatureMap.clear();
-    // Temperature map is computed on-demand in getLiquidTemperature for simplicity
-    // This function exists for future spatial caching optimizations
-  }
-
-  // Metaball rendering for liquid behavior
-  function drawLiquidMetaballs(ctx) {
-    if (balls.length === 0) return;
-    
-    // Performance optimization: use composite operation for metaball effect
-    ctx.save();
-    
-    // First pass: draw all balls with additive blending
-    ctx.globalCompositeOperation = 'lighter';
-    
-    for (let i = 0; i < balls.length; i++) {
-      const ball = balls[i];
-      
-      // Get temperature for color variation
-      const temp = getLiquidTemperature(ball.x, ball.y);
-      
-      // Create gradient based on temperature
-      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, ball.r);
-      
-      // Hot areas are brighter/more orange, cool areas are darker
-      const baseColor = ball.color;
-      const rgb = hexToRgb(baseColor);
-      if (rgb) {
-        const intensity = 0.3 + temp * 0.7;
-        const warmth = temp * 0.3;
-        
-        gradient.addColorStop(0, `rgba(${Math.min(255, rgb.r + warmth * 100)}, ${Math.min(255, rgb.g + warmth * 50)}, ${rgb.b}, ${intensity})`);
-        gradient.addColorStop(0.7, `rgba(${Math.min(255, rgb.r + warmth * 50)}, ${Math.min(255, rgb.g + warmth * 25)}, ${rgb.b}, ${intensity * 0.6})`);
-        gradient.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
-      } else {
-        // Fallback if color parsing fails
-        gradient.addColorStop(0, `rgba(255, 255, 255, ${0.3 + temp * 0.7})`);
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      }
-      
-      ctx.save();
-      ctx.translate(ball.x, ball.y);
-      
-      // Draw metaball with gradient
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(0, 0, ball.r * liquidMergeThreshold, 0, Math.PI * 2);
-      ctx.fill();
-      
-      ctx.restore();
-    }
-    
-    ctx.restore();
-  }
-
-  // Helper function to convert hex color to RGB
-  function hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
-  }
-
-  // Magnetic behavior: balls act as magnetic particles with polarity and field interactions
-  function stepMagnetic(ball, dt) {
-    // Initialize magnetic properties if not set
-    if (ball.magneticPolarity === undefined) {
-      ball.magneticPolarity = Math.random() < 0.5 ? 1 : -1; // North or South
-      ball.magneticCharge = Math.random() * 0.5 + 0.5; // 0.5 to 1.0 charge strength
-    }
-    
-    // Apply standard gravity (reduced)
-    ball.vy += (G * gravityScale * 0.3) * dt;
-    
-    // Apply magnetic forces
-    applyMagneticFieldForces(ball, dt);
-    applyMagneticInteractions(ball, dt);
-    
-    // Random polarity flips based on chaos setting
-    if (Math.random() < (magnetPolarityChaos / 100) * dt) {
-      ball.magneticPolarity *= -1;
-      // Chance to switch color on polarity flip
-      if (Math.random() < (magnetColorSwitch / 100)) {
-        ball.color = pickRandomColor();
-      }
-    }
-    
-    // Integrate motion
-    ball.x += ball.vx * dt;
-    ball.y += ball.vy * dt;
-    
-    // Maintain circular shape
-    const decay = Math.min(1, CONSTANTS.SQUASH_DECAY_PER_S * dt);
-    ball.squashAmount += (0 - ball.squashAmount) * decay;
-    ball.squash = 1 - ball.squashAmount;
-  }
-
-  // Apply magnetic field forces (invisible field lines across the canvas)
-  function applyMagneticFieldForces(ball, dt) {
-    // Update field directions periodically
-    magnetFieldTimer += dt;
-    if (magnetFieldTimer > 2.0 || magnetFieldDirections.length === 0) {
-      magnetFieldDirections = [];
-      for (let i = 0; i < magnetFieldLines; i++) {
-        magnetFieldDirections.push({
-          angle: (i / magnetFieldLines) * Math.PI * 2,
-          strength: 0.5 + Math.random() * 0.5,
-          centerX: Math.random() * canvas.width,
-          centerY: Math.random() * canvas.height
-        });
-      }
-      magnetFieldTimer = 0;
-    }
-    
-    // Apply forces from each field line
-    for (let i = 0; i < magnetFieldDirections.length; i++) {
-      const field = magnetFieldDirections[i];
-      const dx = ball.x - field.centerX;
-      const dy = ball.y - field.centerY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      if (dist > magnetRange) continue;
-      
-      // Field strength decreases with distance
-      const fieldInfluence = (1 - dist / magnetRange) * field.strength;
-      const force = magnetFieldStrength * ball.magneticCharge * ball.magneticPolarity * fieldInfluence;
-      
-      // Force perpendicular to field line (like magnetic field)
-      const fieldDx = Math.cos(field.angle);
-      const fieldDy = Math.sin(field.angle);
-      
-      // Cross product for perpendicular force
-      const perpX = -fieldDy;
-      const perpY = fieldDx;
-      
-      ball.vx += perpX * force * dt;
-      ball.vy += perpY * force * dt;
-      
-      // Add spinning motion around field lines
-      if (magnetSpinForce > 0) {
-        const spinForce = magnetSpinForce * fieldInfluence * ball.magneticPolarity;
-        const spinX = -dy / Math.max(dist, 1);
-        const spinY = dx / Math.max(dist, 1);
-        
-        ball.vx += spinX * spinForce * dt;
-        ball.vy += spinY * spinForce * dt;
-      }
-    }
-  }
-
-  // Apply magnetic interactions between balls
-  function applyMagneticInteractions(ball, dt) {
-    for (let i = 0; i < balls.length; i++) {
-      const other = balls[i];
-      if (other === ball) continue;
-      if (other.magneticPolarity === undefined) continue;
-      
-      const dx = other.x - ball.x;
-      const dy = other.y - ball.y;
-      const distSq = dx * dx + dy * dy;
-      const maxInteractionDist = magnetRange * 0.8;
-      
-      if (distSq > maxInteractionDist * maxInteractionDist) continue;
-      if (distSq < 1) continue; // Avoid singularity
-      
-      const dist = Math.sqrt(distSq);
-      const nx = dx / dist;
-      const ny = dy / dist;
-      
-      // Magnetic force: opposite polarities attract, same polarities repel
-      const polarityProduct = ball.magneticPolarity * other.magneticPolarity;
-      const chargeProduct = ball.magneticCharge * other.magneticCharge;
-      const force = -polarityProduct * chargeProduct * magnetFieldStrength * 0.5 / distSq;
-      
-      ball.vx += nx * force * dt;
-      ball.vy += ny * force * dt;
-    }
-  }
-
-  // Initialize magnetic behavior
-  function initMagnetic() {
-    balls.length = 0; // Clear existing balls
-    magnetFieldDirections = []; // Reset field directions
-    magnetFieldTimer = 0;
-    
-    // Create magnetic particles
-    const numParticles = Math.min(80, MAX_BALLS);
-    for (let i = 0; i < numParticles; i++) {
-      const x = Math.random() * canvas.width;
-      const y = Math.random() * canvas.height;
-      const r = (R_MIN + R_MAX) / 2;
-      const color = pickRandomColor();
-      
-      const ball = new Ball(x, y, r, color);
-      ball.magneticPolarity = Math.random() < 0.5 ? 1 : -1;
-      ball.magneticCharge = Math.random() * 0.5 + 0.5;
-      
-      // Small initial velocities
-      ball.vx = (Math.random() - 0.5) * 100;
-      ball.vy = (Math.random() - 0.5) * 100;
-      
-      balls.push(ball);
-    }
   }
 
   // UI elements
@@ -2098,37 +1335,6 @@
   const trailFadeVal = document.getElementById('trailFadeVal');
   const trailSubtletySlider = document.getElementById('trailSubtletySlider');
   const trailSubtletyVal = document.getElementById('trailSubtletyVal');
-  
-  // Behavior sliders/controls
-  const behaviorSelect = document.getElementById('behaviorSelect');
-  const fliesMaxSpeedSlider = document.getElementById('fliesMaxSpeedSlider');
-  const fliesSeekGainSlider = document.getElementById('fliesSeekGainSlider');
-  const fliesWanderSlider = document.getElementById('fliesWanderSlider');
-  const fliesJitterSlider = document.getElementById('fliesJitterSlider');
-  const fliesSpeedMulSlider = document.getElementById('fliesSpeedMulSlider');
-  const fliesScatterRadiusSlider = document.getElementById('fliesScatterRadiusSlider');
-  const fliesScatterVarSlider = document.getElementById('fliesScatterVarSlider');
-  const fliesMaxSpeedVal = document.getElementById('fliesMaxSpeedVal');
-  const fliesSeekGainVal = document.getElementById('fliesSeekGainVal');
-  const fliesWanderVal = document.getElementById('fliesWanderVal');
-  const fliesJitterVal = document.getElementById('fliesJitterVal');
-  const fliesSpeedMulVal = document.getElementById('fliesSpeedMulVal');
-  const fliesScatterRadiusVal = document.getElementById('fliesScatterRadiusVal');
-  const fliesScatterVarVal = document.getElementById('fliesScatterVarVal');
-  const snakeSegmentsSlider = document.getElementById('snakeSegmentsSlider');
-  const snakeSpacingSlider = document.getElementById('snakeSpacingSlider');
-  // Removed explicit head gain and max speed sliders to simplify UI
-  const snakeSpeedMulSlider = document.getElementById('snakeSpeedMulSlider');
-  const snakeSegmentsVal = document.getElementById('snakeSegmentsVal');
-  const snakeSpacingVal = document.getElementById('snakeSpacingVal');
-  // Values are derived from speed multiplier and defaults now
-  const snakeSpeedMulVal = document.getElementById('snakeSpeedMulVal');
-  const snakeSwayAmpSlider = document.getElementById('snakeSwayAmpSlider');
-  const snakeSwayFreqSlider = document.getElementById('snakeSwayFreqSlider');
-  const snakeIdleWanderSlider = document.getElementById('snakeIdleWanderSlider');
-  const snakeSwayAmpVal = document.getElementById('snakeSwayAmpVal');
-  const snakeSwayFreqVal = document.getElementById('snakeSwayFreqVal');
-  const snakeIdleWanderVal = document.getElementById('snakeIdleWanderVal');
 
   const restitutionVal = document.getElementById('restitutionVal');
   const frictionVal = document.getElementById('frictionVal');
@@ -2165,25 +1371,8 @@
       repelRadius,
       repelPower,
       repelSoftness: repelSoft,
-      repelResponsive,
-      repelMinSize,
-      repelMaxSize,
       trailFade,
       trailSubtlety,
-      behaviorMode,
-      // Flies
-      fliesSpeedMul,
-      fliesMaxSpeed,
-      fliesSeekGain,
-      fliesWanderStrength,
-      fliesJitter,
-      fliesScatterRadius,
-      fliesScatterVarPct,
-      // Trail (formerly Print)
-      trailSmoothing,
-      generalSmoothing,
-      trailLength,
-      trailSpawnRate,
       colors: currentColors.slice(),
       colorWeights: COLOR_WEIGHTS.slice(),
       currentTemplate,
@@ -2199,47 +1388,15 @@
   if (saveConfigBtn && buildBtn && configOutput) {
     saveConfigBtn.addEventListener('click', () => {
       const config = captureCurrentConfig();
-      const configJson = JSON.stringify(config, null, 2);
-      
-      // Show the config and instructions
+      const code = generateConfigCode(config);
       configOutput.style.display = 'block';
-      configOutput.innerHTML = `
-<strong>💾 Configuration Export</strong><br><br>
-<strong>Option 1: Auto-save to file</strong><br>
-Copy this command and run in terminal:<br>
-<code style="background: #f0f0f0; padding: 2px 4px; border-radius: 2px; font-size: 9px; display: block; margin: 4px 0; word-break: break-all;">echo '${configJson.replace(/'/g, "\\'")}' | npm run save-config</code><br>
-<strong>Option 2: Manual download</strong><br>
-<button id="downloadConfigBtn" style="background: #FF9800; color: white; border: none; padding: 4px 8px; border-radius: 2px; cursor: pointer; font-size: 10px; margin: 4px 0;">📥 Download JSON</button><br><br>
-<strong>Current Configuration:</strong><br>
-<pre style="background: #f8f8f8; padding: 6px; border-radius: 3px; font-size: 8px; max-height: 100px; overflow-y: auto; margin: 4px 0;">${configJson}</pre>`;
-      
-      // Add download functionality
-      const downloadBtn = document.getElementById('downloadConfigBtn');
-      if (downloadBtn) {
-        downloadBtn.addEventListener('click', () => {
-          const blob = new Blob([configJson], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'current-config.json';
-          a.click();
-          URL.revokeObjectURL(url);
-          
-          downloadBtn.textContent = '✅ Downloaded!';
-          setTimeout(() => { downloadBtn.textContent = '📥 Download JSON'; }, 1200);
-        });
-      }
-      
-      // Copy the terminal command to clipboard
-      const command = `echo '${configJson.replace(/'/g, "\\'")}' | npm run save-config`;
-      navigator.clipboard.writeText(command).then(() => {
-        const old = saveConfigBtn.textContent;
-        saveConfigBtn.textContent = '✅ Command Copied!';
-        setTimeout(() => { saveConfigBtn.textContent = old; }, 2000);
+      configOutput.textContent = code;
+      navigator.clipboard.writeText(code).then(() => {
+        const old = saveConfigBtn.textContent; saveConfigBtn.textContent = '✅ Copied!';
+        setTimeout(() => { saveConfigBtn.textContent = old; }, 1200);
       }).catch(() => {
         console.warn('Clipboard copy failed');
-        const old = saveConfigBtn.textContent;
-        saveConfigBtn.textContent = '⚠️ Copy failed';
+        const old = saveConfigBtn.textContent; saveConfigBtn.textContent = '⚠️ Copy failed';
         setTimeout(() => { saveConfigBtn.textContent = old; }, 1200);
       });
     });
@@ -2343,35 +1500,9 @@ Copy this command and run in terminal:<br>
   spawnCenterSlider && spawnCenterSlider.addEventListener('input', () => { SPAWN_X_CENTER_VW = parseFloat(spawnCenterSlider.value); spawnCenterVal && (spawnCenterVal.textContent = SPAWN_X_CENTER_VW.toFixed(0)); });
   spawnHeightSlider && spawnHeightSlider.addEventListener('input', () => { SPAWN_H_VH = parseFloat(spawnHeightSlider.value); spawnHeightVal && (spawnHeightVal.textContent = SPAWN_H_VH.toFixed(0)); });
   repelSizeSlider && repelSizeSlider.addEventListener('input', () => {
-    const v = parseFloat(repelSizeSlider.value);
-    // When user adjusts explicit size, temporarily disable responsive sizing
-    repelResponsive = false;
-    repelRadius = v;
+    repelRadius = parseFloat(repelSizeSlider.value);
     repelSizeVal && (repelSizeVal.textContent = repelRadius.toFixed(0));
     repellerEnabled = repellerEnabled || (repelPower > 0 && repelRadius > 0); 
-  });
-
-  // Responsive repel UI controls
-  const repelResponsiveToggle = document.getElementById('repelResponsiveToggle');
-  const repelMinSizeSlider = document.getElementById('repelMinSizeSlider');
-  const repelMaxSizeSlider = document.getElementById('repelMaxSizeSlider');
-  const repelMinSizeVal = document.getElementById('repelMinSizeVal');
-  const repelMaxSizeVal = document.getElementById('repelMaxSizeVal');
-  repelResponsiveToggle && repelResponsiveToggle.addEventListener('change', () => {
-    repelResponsive = !!repelResponsiveToggle.checked;
-    if (repelResponsive) {
-      updateRepelRadius();
-    }
-  });
-  repelMinSizeSlider && repelMinSizeSlider.addEventListener('input', () => {
-    repelMinSize = parseFloat(repelMinSizeSlider.value);
-    if (repelMinSizeVal) repelMinSizeVal.textContent = Math.round(repelMinSize).toString();
-    if (repelResponsive) updateRepelRadius();
-  });
-  repelMaxSizeSlider && repelMaxSizeSlider.addEventListener('input', () => {
-    repelMaxSize = parseFloat(repelMaxSizeSlider.value);
-    if (repelMaxSizeVal) repelMaxSizeVal.textContent = Math.round(repelMaxSize).toString();
-    if (repelResponsive) updateRepelRadius();
   });
   repelPowerSlider && repelPowerSlider.addEventListener('input', () => {
     repelPower = repelSliderToPower(repelPowerSlider.value);
@@ -2454,140 +1585,6 @@ Copy this command and run in terminal:<br>
     trailSubtletyVal && (trailSubtletyVal.textContent = trailSubtlety.toFixed(2) + '×');
   });
 
-  // Segmented behavior control listeners
-  const segmentButtons = document.querySelectorAll('.segment-button');
-  segmentButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      // Remove active class from all buttons
-      segmentButtons.forEach(btn => btn.classList.remove('active'));
-      // Add active class to clicked button
-      button.classList.add('active');
-      
-      // Update behavior mode
-      const mode = button.getAttribute('data-behavior');
-      behaviorMode = (BEHAVIOR_MODES[mode] || BEHAVIOR_MODES.pit);
-      
-      // Update panel to show relevant controls
-      updatePanelForMode(behaviorMode);
-      
-      if (behaviorMode === BEHAVIOR_MODES.print) {
-        initTrail();
-      }
-    });
-  });
-  fliesSpeedMulSlider && fliesSpeedMulSlider.addEventListener('input', () => { fliesSpeedMul = parseFloat(fliesSpeedMulSlider.value) / 100; fliesSpeedMulVal && (fliesSpeedMulVal.textContent = Math.round(parseFloat(fliesSpeedMulSlider.value)) + '%'); });
-  fliesMaxSpeedSlider && fliesMaxSpeedSlider.addEventListener('input', () => { fliesMaxSpeed = parseFloat(fliesMaxSpeedSlider.value); fliesMaxSpeedVal && (fliesMaxSpeedVal.textContent = Math.round(fliesMaxSpeed).toString()); });
-  fliesSeekGainSlider && fliesSeekGainSlider.addEventListener('input', () => { fliesSeekGain = parseFloat(fliesSeekGainSlider.value); fliesSeekGainVal && (fliesSeekGainVal.textContent = Math.round(fliesSeekGain).toString()); });
-  fliesWanderSlider && fliesWanderSlider.addEventListener('input', () => { fliesWanderStrength = parseFloat(fliesWanderSlider.value); fliesWanderVal && (fliesWanderVal.textContent = Math.round(fliesWanderStrength).toString()); });
-  fliesJitterSlider && fliesJitterSlider.addEventListener('input', () => { fliesJitter = parseFloat(fliesJitterSlider.value); fliesJitterVal && (fliesJitterVal.textContent = fliesJitter.toFixed(1)); });
-  fliesScatterRadiusSlider && fliesScatterRadiusSlider.addEventListener('input', () => { fliesScatterRadius = parseFloat(fliesScatterRadiusSlider.value); fliesScatterRadiusVal && (fliesScatterRadiusVal.textContent = Math.round(fliesScatterRadius).toString()); });
-  fliesScatterVarSlider && fliesScatterVarSlider.addEventListener('input', () => { fliesScatterVarPct = parseFloat(fliesScatterVarSlider.value) / 100; fliesScatterVarVal && (fliesScatterVarVal.textContent = Math.round(parseFloat(fliesScatterVarSlider.value)) + '%'); });
-  // Trail behavior event listeners
-  const trailSmoothingSlider = document.getElementById('trailSmoothingSlider');
-  const trailSmoothingVal = document.getElementById('trailSmoothingVal');
-  const generalSmoothingSlider = document.getElementById('generalSmoothingSlider');
-  const generalSmoothingVal = document.getElementById('generalSmoothingVal');
-  const trailLengthSlider = document.getElementById('trailLengthSlider');
-  const trailLengthVal = document.getElementById('trailLengthVal');
-  const trailSpawnRateSlider = document.getElementById('trailSpawnRateSlider');
-  const trailSpawnRateVal = document.getElementById('trailSpawnRateVal');
-  
-  trailSmoothingSlider && trailSmoothingSlider.addEventListener('input', () => { 
-    trailSmoothing = parseInt(trailSmoothingSlider.value, 10); 
-    trailSmoothingVal && (trailSmoothingVal.textContent = trailSmoothing + '%'); 
-  });
-  generalSmoothingSlider && generalSmoothingSlider.addEventListener('input', () => { 
-    generalSmoothing = parseInt(generalSmoothingSlider.value, 10); 
-    generalSmoothingVal && (generalSmoothingVal.textContent = generalSmoothing + '%'); 
-  });
-  trailLengthSlider && trailLengthSlider.addEventListener('input', () => { 
-    trailLength = parseInt(trailLengthSlider.value, 10); 
-    trailLengthVal && (trailLengthVal.textContent = trailLength.toString()); 
-  });
-  trailSpawnRateSlider && trailSpawnRateSlider.addEventListener('input', () => { 
-    trailSpawnRate = parseInt(trailSpawnRateSlider.value, 10); 
-    trailSpawnRateVal && (trailSpawnRateVal.textContent = trailSpawnRate.toString()); 
-  });
-
-  // Liquid behavior event listeners
-  const liquidViscositySlider = document.getElementById('liquidViscositySlider');
-  const liquidViscosityVal = document.getElementById('liquidViscosityVal');
-  const liquidCohesionSlider = document.getElementById('liquidCohesionSlider');
-  const liquidCohesionVal = document.getElementById('liquidCohesionVal');
-  const liquidSurfaceTensionSlider = document.getElementById('liquidSurfaceTensionSlider');
-  const liquidSurfaceTensionVal = document.getElementById('liquidSurfaceTensionVal');
-  const liquidTempSensitivitySlider = document.getElementById('liquidTempSensitivitySlider');
-  const liquidTempSensitivityVal = document.getElementById('liquidTempSensitivityVal');
-  const liquidMergeThresholdSlider = document.getElementById('liquidMergeThresholdSlider');
-  const liquidMergeThresholdVal = document.getElementById('liquidMergeThresholdVal');
-  const liquidBuoyancySlider = document.getElementById('liquidBuoyancySlider');
-  const liquidBuoyancyVal = document.getElementById('liquidBuoyancyVal');
-
-  liquidViscositySlider && liquidViscositySlider.addEventListener('input', () => { 
-    liquidViscosity = parseFloat(liquidViscositySlider.value); 
-    liquidViscosityVal && (liquidViscosityVal.textContent = liquidViscosity.toFixed(2)); 
-  });
-  liquidCohesionSlider && liquidCohesionSlider.addEventListener('input', () => { 
-    liquidCohesion = parseFloat(liquidCohesionSlider.value); 
-    liquidCohesionVal && (liquidCohesionVal.textContent = Math.round(liquidCohesion).toString()); 
-  });
-  liquidSurfaceTensionSlider && liquidSurfaceTensionSlider.addEventListener('input', () => { 
-    liquidSurfaceTension = parseFloat(liquidSurfaceTensionSlider.value); 
-    liquidSurfaceTensionVal && (liquidSurfaceTensionVal.textContent = liquidSurfaceTension.toFixed(2)); 
-  });
-  liquidTempSensitivitySlider && liquidTempSensitivitySlider.addEventListener('input', () => { 
-    liquidTempSensitivity = parseFloat(liquidTempSensitivitySlider.value); 
-    liquidTempSensitivityVal && (liquidTempSensitivityVal.textContent = liquidTempSensitivity.toFixed(1)); 
-  });
-  liquidMergeThresholdSlider && liquidMergeThresholdSlider.addEventListener('input', () => { 
-    liquidMergeThreshold = parseFloat(liquidMergeThresholdSlider.value); 
-    liquidMergeThresholdVal && (liquidMergeThresholdVal.textContent = liquidMergeThreshold.toFixed(1)); 
-  });
-  liquidBuoyancySlider && liquidBuoyancySlider.addEventListener('input', () => { 
-    liquidBuoyancy = parseFloat(liquidBuoyancySlider.value); 
-    liquidBuoyancyVal && (liquidBuoyancyVal.textContent = Math.round(liquidBuoyancy).toString()); 
-  });
-
-  // Magnetic behavior event listeners
-  const magnetFieldStrengthSlider = document.getElementById('magnetFieldStrengthSlider');
-  const magnetFieldStrengthVal = document.getElementById('magnetFieldStrengthVal');
-  const magnetPolarityChaosSlider = document.getElementById('magnetPolarityChaosSlider');
-  const magnetPolarityChaosVal = document.getElementById('magnetPolarityChaosVal');
-  const magnetFieldLinesSlider = document.getElementById('magnetFieldLinesSlider');
-  const magnetFieldLinesVal = document.getElementById('magnetFieldLinesVal');
-  const magnetSpinForceSlider = document.getElementById('magnetSpinForceSlider');
-  const magnetSpinForceVal = document.getElementById('magnetSpinForceVal');
-  const magnetRangeSlider = document.getElementById('magnetRangeSlider');
-  const magnetRangeVal = document.getElementById('magnetRangeVal');
-  const magnetColorSwitchSlider = document.getElementById('magnetColorSwitchSlider');
-  const magnetColorSwitchVal = document.getElementById('magnetColorSwitchVal');
-
-  magnetFieldStrengthSlider && magnetFieldStrengthSlider.addEventListener('input', () => { 
-    magnetFieldStrength = parseFloat(magnetFieldStrengthSlider.value); 
-    magnetFieldStrengthVal && (magnetFieldStrengthVal.textContent = Math.round(magnetFieldStrength).toString()); 
-  });
-  magnetPolarityChaosSlider && magnetPolarityChaosSlider.addEventListener('input', () => { 
-    magnetPolarityChaos = parseFloat(magnetPolarityChaosSlider.value); 
-    magnetPolarityChaosVal && (magnetPolarityChaosVal.textContent = Math.round(magnetPolarityChaos) + '%'); 
-  });
-  magnetFieldLinesSlider && magnetFieldLinesSlider.addEventListener('input', () => { 
-    magnetFieldLines = parseInt(magnetFieldLinesSlider.value, 10); 
-    magnetFieldLinesVal && (magnetFieldLinesVal.textContent = magnetFieldLines.toString()); 
-    magnetFieldDirections = []; // Reset field directions when count changes
-  });
-  magnetSpinForceSlider && magnetSpinForceSlider.addEventListener('input', () => { 
-    magnetSpinForce = parseFloat(magnetSpinForceSlider.value); 
-    magnetSpinForceVal && (magnetSpinForceVal.textContent = Math.round(magnetSpinForce).toString()); 
-  });
-  magnetRangeSlider && magnetRangeSlider.addEventListener('input', () => { 
-    magnetRange = parseFloat(magnetRangeSlider.value); 
-    magnetRangeVal && (magnetRangeVal.textContent = Math.round(magnetRange).toString()); 
-  });
-  magnetColorSwitchSlider && magnetColorSwitchSlider.addEventListener('input', () => { 
-    magnetColorSwitch = parseFloat(magnetColorSwitchSlider.value); 
-    magnetColorSwitchVal && (magnetColorSwitchVal.textContent = Math.round(magnetColorSwitch) + '%'); 
-  });
-
   // Presets (10 each)
   // Rubber-focused physics presets under Earth gravity (≈1960 px/s²)
   const PHYSICS_PRESETS = {
@@ -2641,7 +1638,7 @@ Copy this command and run in terminal:<br>
   const spawnSelect = document.getElementById('spawnSelect');
   const repellerSelect = document.getElementById('repellerSelect');
 
-  if (physicsSelect) fillSelect(physicsSelect, PHYSICS_PRESETS, 'rubberHeavy');
+  if (physicsSelect) fillSelect(physicsSelect, PHYSICS_PRESETS, 'rubberRacquet');
   if (spawnSelect) fillSelect(spawnSelect, SPAWN_PRESETS, 'fullRain');
   if (repellerSelect) fillSelect(repellerSelect, REPELLER_PRESETS, 'off');
   // Populate color template dropdown
@@ -2651,39 +1648,6 @@ Copy this command and run in terminal:<br>
   function updateSliderAndValue(slider, valueElement, value, decimals = 0) {
     if (slider) slider.value = String(value);
     if (valueElement) valueElement.textContent = decimals > 0 ? value.toFixed(decimals) : value.toString();
-  }
-
-  // Update panel to show controls relevant to the current mode
-  function updatePanelForMode(mode) {
-    const modeControlsTitle = document.getElementById('modeControlsTitle');
-    const pitControls = document.getElementById('pitControls');
-    const fliesControls = document.getElementById('fliesControls');
-    const trailControls = document.getElementById('trailControls');
-    
-    // Hide all mode-specific controls
-    if (pitControls) pitControls.style.display = 'none';
-    if (fliesControls) fliesControls.style.display = 'none';
-    if (trailControls) trailControls.style.display = 'none';
-    
-    // Show relevant controls and update title
-    switch (mode) {
-      case BEHAVIOR_MODES.pit:
-        if (modeControlsTitle) modeControlsTitle.textContent = '🎯 Ball Pit Controls';
-        if (pitControls) pitControls.style.display = 'block';
-        break;
-      case BEHAVIOR_MODES.flies:
-        if (modeControlsTitle) modeControlsTitle.textContent = '🕊️ Flies to Light Controls';
-        if (fliesControls) fliesControls.style.display = 'block';
-        break;
-      case BEHAVIOR_MODES.print:
-        if (modeControlsTitle) modeControlsTitle.textContent = '🖱️ Mouse Trail Controls';
-        if (trailControls) trailControls.style.display = 'block';
-        break;
-      default:
-        if (modeControlsTitle) modeControlsTitle.textContent = '🎯 Ball Pit Controls';
-        if (pitControls) pitControls.style.display = 'block';
-        break;
-    }
   }
 
   // Reusable event listener factory for sliders
@@ -2733,16 +1697,13 @@ Copy this command and run in terminal:<br>
     if (repelPowerSlider) repelPowerSlider.value = String(sliderPos);
     if (repelPowerVal) repelPowerVal.textContent = Math.round(repelPower).toString();
     updateSliderAndValue(repelSoftSlider, repelSoftVal, repelSoft, 1);
-    if (repelResponsive) updateRepelRadius();
   }
   // Shadow preset function removed
 
   // Apply sane defaults FIRST (before event listeners to avoid triggering them)
-  applyPhysicsPreset('rubberHeavy');
+  applyPhysicsPreset('rubberRacquet');
   applySpawnPreset('fullRain');
   applyRepellerPreset('off');
-  // Initialize responsive repel radius on load
-  updateRepelRadius();
   
   // Initialize color system
   const defaultTemplate = COLOR_TEMPLATES[currentTemplate];

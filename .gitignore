@@ -1,16 +1,16 @@
+# Dependencies
 node_modules/
+
+# Build outputs
+test-results/
+playwright-report/
+
+# Temporary files
+*.bak
+*.old
+*.corrupted
+/tmp/
+integrate-webflow-old.js
+
+# OS files
 .DS_Store
-npm-debug.log*
-.env
-.idea/
-.vscode/
-coverage/
-# macOS
-*.swp
-# Logs
-logs
-*.log
-
-.playwright-mcp/
-
-
