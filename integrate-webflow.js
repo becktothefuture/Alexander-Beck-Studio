@@ -12,7 +12,7 @@ const path = require('path');
 
 // File paths
 const WEBFLOW_EXPORT = path.join(__dirname, 'webflow export/alexander-beck-studio-staging.webflow/index.html');
-const CLEAN_BACKUP = path.join(__dirname, 'source-backup/balls-source.html'); // Has full control panel
+const CLEAN_BACKUP = path.join(__dirname, 'source/balls-source.html'); // Current source with full control panel
 const OUTPUT_FILE = path.join(__dirname, 'source/balls-source.html');
 
 console.log('🔄 CLEAN INTEGRATION: Webflow + Ball Simulation\n');
@@ -38,8 +38,8 @@ const webflowLines = webflowHtml.split('\n');
 // Parse clean backup to extract components
 const backupLines = cleanBackup.split('\n');
 
-// Hardcoded line numbers based on source-backup/balls-source.html structure
-// These are stable for the source-backup file
+// Hardcoded line numbers based on source/balls-source.html structure
+// These are stable for the current source file
 const cssStart = 5;   // Line 6 in file (0-indexed = 5)
 const cssEnd = 127;   // Line 128 in file
 const panelStart = 131; // Line 132 in file (<div id="bravia-balls">)
