@@ -9,7 +9,9 @@ test.describe('Customization Panel - Development Source', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/source/balls-source.html');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
+    // Wait for control panel to be visible
+    await page.waitForSelector('#controlPanel', { state: 'visible', timeout: 10000 });
+    await page.waitForTimeout(500);
   });
 
   test('control panel is visible and accessible', async ({ page }) => {

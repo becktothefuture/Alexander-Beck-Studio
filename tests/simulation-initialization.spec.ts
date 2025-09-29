@@ -158,7 +158,10 @@ test.describe('Simulation Initialization - Development', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/source/balls-source.html');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1500);
+    // Wait for control panel and canvas to be ready
+    await page.waitForSelector('#controlPanel', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('canvas#c', { state: 'visible', timeout: 10000 });
+    await page.waitForTimeout(500);
   });
 
   test('simulation starts with control panel visible', async ({ page }) => {
@@ -258,6 +261,9 @@ test.describe('Simulation Initialization - Development', () => {
     // Panel should be visible initially
     await expect(panel).toBeVisible();
     
+    // Focus body to ensure keyboard events are captured
+    await page.evaluate(() => document.body.focus());
+    
     // Press '/' to toggle panel
     await page.keyboard.press('/');
     await page.waitForTimeout(300);
@@ -282,6 +288,9 @@ test.describe('Simulation Initialization - Development', () => {
       const canvas = document.querySelector('#c') as HTMLCanvasElement;
       return canvas ? canvas.toDataURL() : '';
     });
+    
+    // Focus body to ensure keyboard events are captured
+    await page.evaluate(() => document.body.focus());
     
     // Press 'r' to reset
     await page.keyboard.press('r');

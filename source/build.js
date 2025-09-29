@@ -143,6 +143,7 @@ if (config) {
 console.log('🧹 Removing UI controls and panel...');
 
 // Do not strip UI via regex; keep source intact for robustness.
+// FPS counter HTML is already removed from public/index.html
 
 // Minify JS only (self-invoking bundle suitable for <script src>)
 console.log('🗜️  Minifying JS...');
