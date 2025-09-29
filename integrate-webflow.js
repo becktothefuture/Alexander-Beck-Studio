@@ -12,7 +12,7 @@ const path = require('path');
 
 // File paths
 const WEBFLOW_EXPORT = path.join(__dirname, 'webflow export/alexander-beck-studio-staging.webflow/index.html');
-const CLEAN_BACKUP = '/tmp/clean-balls-source.html'; // From git 69f98c1
+const CLEAN_BACKUP = path.join(__dirname, 'source-backup/balls-source.html'); // Has full control panel
 const OUTPUT_FILE = path.join(__dirname, 'source/balls-source.html');
 
 console.log('🔄 CLEAN INTEGRATION: Webflow + Ball Simulation\n');
@@ -24,10 +24,8 @@ if (!fs.existsSync(WEBFLOW_EXPORT)) {
 }
 
 if (!fs.existsSync(CLEAN_BACKUP)) {
-  console.error('❌ Clean backup not found - extracting from git...');
-  const { execSync } = require('child_process');
-  execSync(`git show 69f98c1:bouncy-balls/balls-source.html > "${CLEAN_BACKUP}"`);
-  console.log('✅ Extracted clean backup from git commit 69f98c1');
+  console.error('❌ Clean backup not found at:', CLEAN_BACKUP);
+  process.exit(1);
 }
 
 // Read files
@@ -40,26 +38,14 @@ const webflowLines = webflowHtml.split('\n');
 // Parse clean backup to extract components
 const backupLines = cleanBackup.split('\n');
 
-// Find exact boundaries in backup
-let cssStart = -1, cssEnd = -1;
-let panelStart = -1, panelEnd = -1;
-let scriptStart = -1, scriptEnd = -1;
-
-for (let i = 0; i < backupLines.length; i++) {
-  const line = backupLines[i].trim();
-  
-  // CSS: starts after <head>, ends before </head>
-  if (cssStart === -1 && line === '<style>') cssStart = i;
-  if (cssStart !== -1 && cssEnd === -1 && line === '</style>') cssEnd = i;
-  
-  // Panel: starts with <div id="bravia-balls">, ends before closing div
-  if (panelStart === -1 && line.includes('<div id="bravia-balls">')) panelStart = i;
-  if (panelStart !== -1 && panelEnd === -1 && line === '</div>') panelEnd = i;
-  
-  // Script: starts with <script> (no src), ends with </script>
-  if (scriptStart === -1 && line === '<script>') scriptStart = i;
-  if (scriptStart !== -1 && scriptEnd === -1 && line === '</script>') scriptEnd = i;
-}
+// Hardcoded line numbers based on source-backup/balls-source.html structure
+// These are stable for the source-backup file
+const cssStart = 5;   // Line 6 in file (0-indexed = 5)
+const cssEnd = 127;   // Line 128 in file
+const panelStart = 131; // Line 132 in file (<div id="bravia-balls">)
+const panelEnd = 214;   // Line 215 in file (closing </div> for bravia-balls)
+const scriptStart = 215; // Line 216 in file (<script>)
+const scriptEnd = 1731;  // Line 1732 in file (</script>)
 
 console.log(`📊 Backup structure:
    CSS: lines ${cssStart}-${cssEnd} (${cssEnd - cssStart + 1} lines)
@@ -104,7 +90,7 @@ integrated.push('  <script src="js/webflow.js" type="text/javascript"></script>'
 integrated.push('');
 integrated.push('  <!-- Complete Ball Simulation JavaScript Engine -->');
 
-// 7. Insert ball simulation script
+// 7. Insert ball simulation script (scriptBlock includes <script> and </script>)
 integrated.push(scriptBlock);
 
 // 8. Close body and html

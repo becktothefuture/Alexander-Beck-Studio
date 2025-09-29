@@ -56,7 +56,7 @@ async function getBallCount(page: Page): Promise<number> {
 
 test.describe('Ball Simulation - Production', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/public/');
     await page.waitForLoadState('networkidle');
     // Give simulation time to initialize
     await page.waitForTimeout(1000);

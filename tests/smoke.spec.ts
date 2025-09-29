@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Smoke Tests - Production Build', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to production build
-    await page.goto('/');
+    await page.goto('/public/');
     // Wait for page to be fully loaded
     await page.waitForLoadState('networkidle');
   });
@@ -58,16 +58,16 @@ test.describe('Smoke Tests - Production Build', () => {
   });
 
   test('JavaScript files load successfully', async ({ page }) => {
-    const response = await page.request.get('/js/bouncy-balls-embed.js');
+    const response = await page.request.get('/public/js/bouncy-balls-embed.js');
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('javascript');
   });
 
   test('CSS files load successfully', async ({ page }) => {
     const cssFiles = [
-      '/css/normalize.css',
-      '/css/webflow.css',
-      '/css/alexander-beck-studio-staging.webflow.css'
+      '/public/css/normalize.css',
+      '/public/css/webflow.css',
+      '/public/css/alexander-beck-studio-staging.webflow.css'
     ];
     
     for (const cssFile of cssFiles) {
