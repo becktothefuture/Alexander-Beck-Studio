@@ -1258,79 +1258,135 @@
     return ball;
   }
   
-  // Rainbow mode: spawn one ball of each color with size distribution
-  let rainbowLastDropTime = 0;
-  let rainbowColorIndex = 0;
-  let rainbowDropped = false;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROFESSIONAL RAINBOW DROP SYSTEM
+  // ═══════════════════════════════════════════════════════════════════════════
   
-  function spawnRainbowBalls() {
-    // Clear existing balls
-    balls.length = 0;
-    rainbowColorIndex = 0;
-    rainbowDropped = false;
-    rainbowLastDropTime = performance.now() / 1000;
+  class RainbowDropSystem {
+    constructor() {
+      this.dropQueue = [];
+      this.currentIndex = 0;
+      this.lastDropTime = 0;
+      this.isActive = false;
+      this.dropPositions = [];
+      this.preCalculatedSizes = [];
+    }
     
-    // Calculate size distribution from 30vh to 20px
-    const maxSize = Math.min(canvas.height * 0.3, canvas.width * 0.3); // 30vh max
-    const minSize = 20 * DPR; // 20px min
-    const colorCount = currentColors.length;
+    // Initialize the drop system with pre-calculated properties
+    initialize() {
+      this.clear();
+      this.preCalculateDropProperties();
+      this.generateDropPositions();
+      this.isActive = true;
+      this.lastDropTime = performance.now() / 1000;
+    }
     
-    // Create size array based on randomness factor
-    const sizes = [];
-    for (let i = 0; i < colorCount; i++) {
-      if (rainbowRandomness === 0) {
-        // Equal steps
-        const t = i / (colorCount - 1);
-        sizes.push(maxSize - t * (maxSize - minSize));
-      } else {
-        // Random distribution with bias towards larger sizes for first colors
-        const baseT = i / (colorCount - 1);
-        const randomT = baseT + (Math.random() - 0.5) * rainbowRandomness * 0.3;
-        const t = Math.max(0, Math.min(1, randomT));
-        sizes.push(maxSize - t * (maxSize - minSize));
+    // Pre-calculate all ball properties for optimal performance
+    preCalculateDropProperties() {
+      const maxSize = Math.min(canvas.height * 0.3, canvas.width * 0.3);
+      const minSize = 20 * DPR;
+      const colorCount = currentColors.length;
+      
+      this.preCalculatedSizes = [];
+      
+      for (let i = 0; i < colorCount; i++) {
+        let size;
+        if (rainbowRandomness === 0) {
+          // Equal steps
+          const t = i / (colorCount - 1);
+          size = maxSize - t * (maxSize - minSize);
+        } else {
+          // Random distribution with bias towards larger sizes for first colors
+          const baseT = i / (colorCount - 1);
+          const randomT = baseT + (Math.random() - 0.5) * rainbowRandomness * 0.3;
+          const t = Math.max(0, Math.min(1, randomT));
+          size = maxSize - t * (maxSize - minSize);
+        }
+        this.preCalculatedSizes.push(size);
+      }
+      
+      // Sort sizes in descending order for visual appeal
+      this.preCalculatedSizes.sort((a, b) => b - a);
+    }
+    
+    // Generate smart drop positions to avoid clustering
+    generateDropPositions() {
+      const colorCount = currentColors.length;
+      this.dropPositions = [];
+      
+      for (let i = 0; i < colorCount; i++) {
+        // Smart positioning: avoid clustering, spread across canvas
+        const x = (canvas.width / colorCount) * i + (canvas.width / colorCount) * 0.5;
+        const jitter = (Math.random() - 0.5) * (canvas.width / colorCount) * 0.6;
+        this.dropPositions.push(Math.max(20, Math.min(canvas.width - 20, x + jitter)));
       }
     }
     
-    // Sort sizes in descending order
-    sizes.sort((a, b) => b - a);
+    // Drop the next ball in sequence
+    dropNext() {
+      if (this.currentIndex >= currentColors.length || !this.isActive) return false;
+      
+      const size = this.preCalculatedSizes[this.currentIndex];
+      const radius = size / 2;
+      const x = this.dropPositions[this.currentIndex];
+      const y = -radius - 50; // Spawn above viewport
+      
+      // Create ball with optimized properties
+      const ball = new Ball(x, y, radius, currentColors[this.currentIndex]);
+      
+      // Add subtle random horizontal velocity for natural movement
+      ball.vx = (Math.random() - 0.5) * 80;
+      ball.vy = 0;
+      
+      // Add to balls array
+      balls.push(ball);
+      
+      this.currentIndex++;
+      this.lastDropTime = performance.now() / 1000;
+      
+      return true;
+    }
+    
+    // Check if ready to drop next ball
+    shouldDrop() {
+      if (!this.isActive || this.currentIndex >= currentColors.length) return false;
+      const now = performance.now() / 1000;
+      return (now - this.lastDropTime) >= rainbowDropDelay;
+    }
+    
+    // Reset the system
+    clear() {
+      balls.length = 0;
+      this.currentIndex = 0;
+      this.isActive = false;
+      this.lastDropTime = 0;
+      this.dropQueue = [];
+      this.dropPositions = [];
+      this.preCalculatedSizes = [];
+    }
+    
+    // Get system status
+    getStatus() {
+      return {
+        isActive: this.isActive,
+        currentIndex: this.currentIndex,
+        totalColors: currentColors.length,
+        progress: this.currentIndex / currentColors.length,
+        remaining: currentColors.length - this.currentIndex
+      };
+    }
+  }
+  
+  // Global rainbow drop system instance
+  const rainbowDropSystem = new RainbowDropSystem();
+  
+  // Legacy function wrappers for compatibility
+  function spawnRainbowBalls() {
+    rainbowDropSystem.initialize();
   }
   
   function dropNextRainbowBall() {
-    if (rainbowColorIndex >= currentColors.length) return;
-    
-    // Calculate spawn position (random x, above viewport)
-    const x = Math.random() * canvas.width;
-    const sizes = [];
-    const maxSize = Math.min(canvas.height * 0.3, canvas.width * 0.3);
-    const minSize = 20 * DPR;
-    const colorCount = currentColors.length;
-    
-    // Recreate size distribution
-    for (let i = 0; i < colorCount; i++) {
-      if (rainbowRandomness === 0) {
-        const t = i / (colorCount - 1);
-        sizes.push(maxSize - t * (maxSize - minSize));
-      } else {
-        const baseT = i / (colorCount - 1);
-        const randomT = baseT + (Math.random() - 0.5) * rainbowRandomness * 0.3;
-        const t = Math.max(0, Math.min(1, randomT));
-        sizes.push(maxSize - t * (maxSize - minSize));
-      }
-    }
-    sizes.sort((a, b) => b - a);
-    
-    const r = sizes[rainbowColorIndex] / 2; // radius is half the diameter
-    const y = -r - 50; // spawn above viewport
-    
-    // Create ball with specific color
-    const ball = new Ball(x, y, r, currentColors[rainbowColorIndex]);
-    
-    // Small random horizontal velocity
-    ball.vx = (Math.random() - 0.5) * 100;
-    ball.vy = 0;
-    
-    balls.push(ball);
-    rainbowColorIndex++;
+    rainbowDropSystem.dropNext();
   }
 
   // Continuous emitter within a vw/vh-defined rectangle
@@ -1414,12 +1470,10 @@
       return;
     }
     
-    // Rainbow mode: drop balls one by one
+    // Rainbow mode: professional drop system
     if (currentMode === MODES.RAINBOW) {
-      const now = performance.now() / 1000;
-      if (rainbowColorIndex < currentColors.length && now - rainbowLastDropTime >= rainbowDropDelay) {
-        dropNextRainbowBall();
-        rainbowLastDropTime = now;
+      if (rainbowDropSystem.shouldDrop()) {
+        rainbowDropSystem.dropNext();
       }
       return;
     }
@@ -1692,8 +1746,8 @@
   // Reset balls to spawn positions (preserves all settings)
   function resetBallsToSpawn() {
     if (currentMode === MODES.RAINBOW) {
-      // For rainbow mode, respawn all balls
-      spawnRainbowBalls();
+      // For rainbow mode, reinitialize the drop system
+      rainbowDropSystem.initialize();
     } else {
       for (let i = 0; i < balls.length; i++) {
         const ball = balls[i];
@@ -2367,8 +2421,8 @@
       G = GE * gravityMultiplier;
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
-      // Initialize rainbow scene
-      spawnRainbowBalls();
+      // Initialize professional rainbow drop system
+      rainbowDropSystem.initialize();
     }
     updateModeControlsUI();
   }
