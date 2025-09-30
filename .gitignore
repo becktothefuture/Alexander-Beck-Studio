@@ -1,16 +1,44 @@
+# Dependencies
 node_modules/
-.DS_Store
 npm-debug.log*
-.env
-.idea/
-.vscode/
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+*.min.js
+*.min.css
+
+# Test results
+test-results/
 coverage/
-# macOS
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
 *.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
 # Logs
-logs
+logs/
 *.log
 
-.playwright-mcp/
+# Temporary files
+tmp/
+temp/
+.cache/
 
-
+# Config overrides
+source/current-config*.json

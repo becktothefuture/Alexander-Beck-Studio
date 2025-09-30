@@ -173,6 +173,7 @@
     <button class="mode-button" data-mode="flies">🕊️ Flies</button>
     <button class="mode-button" data-mode="trail" id="trailModeButton">🖱️ Trail</button>
     <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
+    <button class="mode-button" data-mode="rainbow">🌈 Rainbow</button>
   </div>
   
   <!-- Build Controls -->
@@ -190,16 +191,7 @@
   <!-- GLOBAL SETTINGS (apply to ALL modes)                                   -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   
-  <details open>
-    <summary>⚙️ Ball Properties</summary>
-    <div class="group">
-        <label>Size: <span class="val" id="sizeVal">0.75</span><input type="range" id="sizeSlider" min="0.1" max="6.0" step="0.05" value="0.75"></label>
-        <label>Size variation: <span class="val" id="sizeVariationVal">1.0</span><input type="range" id="sizeVariationSlider" min="0.0" max="3.0" step="0.1" value="1.0"></label>
-        <label>Weight (kg): <span class="val" id="weightVal">11.20</span><input type="range" id="weightSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
-        <label>Softness: <span class="val" id="ballSoftnessVal">40</span><input type="range" id="ballSoftnessSlider" min="0" max="100" step="1" value="40"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard (no squash), 40 = normal, 100 = very squishy</div>
-    </div>
-  </details>
+  <!-- Ball Properties are mode-specific; see each mode section below -->
   
   <details open>
     <summary>🎨 Colors</summary>
@@ -247,6 +239,12 @@
     <details open>
       <summary>🎯 Ball Pit Mode</summary>
       <div class="group">
+        <!-- Mode-specific Ball Properties (apply only in Ball Pit) -->
+        <label>Size: <span class="val" id="sizeValPit">0.75</span><input type="range" id="sizeSliderPit" min="0.1" max="6.0" step="0.05" value="0.75"></label>
+        <label>Size variation: <span class="val" id="sizeVariationValPit">1.0</span><input type="range" id="sizeVariationSliderPit" min="0.0" max="3.0" step="0.1" value="1.0"></label>
+        <label>Weight (kg): <span class="val" id="weightValPit">11.20</span><input type="range" id="weightSliderPit" min="0.10" max="200.00" step="0.10" value="11.20"></label>
+        <label>Softness: <span class="val" id="ballSoftnessValPit">40</span><input type="range" id="ballSoftnessSliderPit" min="0" max="100" step="1" value="40"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard, 40 = normal, 100 = very squishy</div>
         <label>Physics template: <select id="physicsSelect"></select></label>
         <label>Gravity: <span class="val" id="gravityPitVal">1.1</span><input type="range" id="gravityPitSlider" min="0.0" max="3.0" step="0.1" value="1.1"></label>
         <label>Bounciness: <span class="val" id="restitutionVal">0.78</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.001" value="0.78"></label>
@@ -280,6 +278,12 @@
     <details open>
       <summary>🕊️ Flies to Light Mode</summary>
       <div class="group">
+        <!-- Mode-specific Ball Properties (apply only in Flies) -->
+        <label>Size: <span class="val" id="sizeValFlies">0.75</span><input type="range" id="sizeSliderFlies" min="0.1" max="6.0" step="0.05" value="0.75"></label>
+        <label>Size variation: <span class="val" id="sizeVariationValFlies">1.0</span><input type="range" id="sizeVariationSliderFlies" min="0.0" max="3.0" step="0.1" value="1.0"></label>
+        <label>Weight (kg): <span class="val" id="weightValFlies">11.20</span><input type="range" id="weightSliderFlies" min="0.10" max="200.00" step="0.10" value="11.20"></label>
+        <label>Softness: <span class="val" id="ballSoftnessValFlies">40</span><input type="range" id="ballSoftnessSliderFlies" min="0" max="100" step="1" value="40"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard, 40 = normal, 100 = very squishy</div>
         <label>Attraction power: <span class="val" id="attractPowerVal">1000</span><input type="range" id="attractPowerSlider" min="1" max="3000" step="1" value="1000"></label>
         <label>Orbit radius (px): <span class="val" id="orbitRadiusVal">150</span><input type="range" id="orbitRadiusSlider" min="50" max="500" step="10" value="150"></label>
         <label>Swarm speed: <span class="val" id="swarmSpeedVal">1.0</span><input type="range" id="swarmSpeedSlider" min="0.1" max="3.0" step="0.1" value="1.0"></label>
@@ -304,6 +308,12 @@
     <details open>
       <summary>🌌 Weightless (Zero-G) Mode</summary>
       <div class="group">
+        <!-- Mode-specific Ball Properties (apply only in Weightless) -->
+        <label>Size: <span class="val" id="sizeValZeroG">0.75</span><input type="range" id="sizeSliderZeroG" min="0.1" max="6.0" step="0.05" value="0.75"></label>
+        <label>Size variation: <span class="val" id="sizeVariationValZeroG">1.0</span><input type="range" id="sizeVariationSliderZeroG" min="0.0" max="3.0" step="0.1" value="1.0"></label>
+        <label>Weight (kg): <span class="val" id="weightValZeroG">11.20</span><input type="range" id="weightSliderZeroG" min="0.10" max="200.00" step="0.10" value="11.20"></label>
+        <label>Softness: <span class="val" id="ballSoftnessValZeroG">40</span><input type="range" id="ballSoftnessSliderZeroG" min="0" max="100" step="1" value="40"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard, 40 = normal, 100 = very squishy</div>
         <label>Initial speed: <span class="val" id="weightlessSpeedVal">400</span><input type="range" id="weightlessSpeedSlider" min="50" max="1000" step="50" value="400"></label>
         <label>Wall bounce: <span class="val" id="weightlessBounceVal">0.98</span><input type="range" id="weightlessBounceSlider" min="0.50" max="1.00" step="0.01" value="0.98"></label>
         <label>Ball count: <span class="val" id="weightlessMaxBallsVal">300</span><input type="range" id="weightlessMaxBallsSlider" min="50" max="600" step="25" value="300"></label>
@@ -313,7 +323,20 @@
     </details>
   </div>
   
-    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-4</code> switch modes</div>
+  <div id="rainbowControls" class="mode-controls">
+    <details open>
+      <summary>🌈 Rainbow Drop Mode</summary>
+      <div class="group">
+        <label>Randomness: <span class="val" id="rainbowRandomnessVal">1.0</span><input type="range" id="rainbowRandomnessSlider" min="0.0" max="1.0" step="0.1" value="1.0"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">0 = equal size steps, 1 = random distribution</div>
+        <label>Drop delay (s): <span class="val" id="rainbowDropDelayVal">0.15</span><input type="range" id="rainbowDropDelaySlider" min="0.05" max="0.5" step="0.05" value="0.15"></label>
+        <label>Gravity: <span class="val" id="rainbowGravityVal">1.2</span><input type="range" id="rainbowGravitySlider" min="0.5" max="3.0" step="0.1" value="1.2"></label>
+        <label>Bounce: <span class="val" id="rainbowBounceVal">0.60</span><input type="range" id="rainbowBounceSlider" min="0.00" max="1.00" step="0.05" value="0.60"></label>
+      </div>
+    </details>
+  </div>
+  
+    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-5</code> switch modes</div>
   </div>
   
   <!-- FPS Counter -->
@@ -330,7 +353,8 @@
     PIT: 'pit',          // Ball Pit: gravity + repeller
     FLIES: 'flies',      // Flies to Light: attraction to mouse, no gravity
     TRAIL: 'trail',      // Mouse Trail: static paint drops (DESKTOP ONLY)
-    WEIGHTLESS: 'weightless'  // Weightless Bounce: zero-G bouncing balls
+    WEIGHTLESS: 'weightless',  // Weightless Bounce: zero-G bouncing balls
+    RAINBOW: 'rainbow'   // Rainbow Drop: one ball per color falling with size distribution
   };
   
   // Mode availability by device type
@@ -338,7 +362,8 @@
     [MODES.PIT]: { desktop: true, mobile: true },
     [MODES.FLIES]: { desktop: true, mobile: true },
     [MODES.TRAIL]: { desktop: true, mobile: false }, // Trail only on desktop (needs precise cursor)
-    [MODES.WEIGHTLESS]: { desktop: true, mobile: true }
+    [MODES.WEIGHTLESS]: { desktop: true, mobile: true },
+    [MODES.RAINBOW]: { desktop: true, mobile: true }
   };
   
   let currentMode = MODES.PIT;
@@ -373,6 +398,12 @@
   let weightlessMaxBalls = 300; // number of balls in scene
   let weightlessRepellerPower = 800; // subtle mouse repeller strength
   let weightlessRepellerRadius = 120; // small repeller radius (px)
+  
+  // Rainbow mode parameters
+  let rainbowRandomness = 1.0; // randomness factor for size distribution (0 = equal steps, 1 = random)
+  let rainbowDropDelay = 0.15; // delay between each color drop (seconds)
+  let rainbowGravity = 1.2; // gravity multiplier for rainbow mode
+  let rainbowBounce = 0.6; // bounce restitution for rainbow mode
   
   // Constants for magic numbers
   const CONSTANTS = {
@@ -1232,6 +1263,81 @@
     balls.push(ball);
     return ball;
   }
+  
+  // Rainbow mode: spawn one ball of each color with size distribution
+  let rainbowLastDropTime = 0;
+  let rainbowColorIndex = 0;
+  let rainbowDropped = false;
+  
+  function spawnRainbowBalls() {
+    // Clear existing balls
+    balls.length = 0;
+    rainbowColorIndex = 0;
+    rainbowDropped = false;
+    rainbowLastDropTime = performance.now() / 1000;
+    
+    // Calculate size distribution from 30vh to 20px
+    const maxSize = Math.min(canvas.height * 0.3, canvas.width * 0.3); // 30vh max
+    const minSize = 20 * DPR; // 20px min
+    const colorCount = currentColors.length;
+    
+    // Create size array based on randomness factor
+    const sizes = [];
+    for (let i = 0; i < colorCount; i++) {
+      if (rainbowRandomness === 0) {
+        // Equal steps
+        const t = i / (colorCount - 1);
+        sizes.push(maxSize - t * (maxSize - minSize));
+      } else {
+        // Random distribution with bias towards larger sizes for first colors
+        const baseT = i / (colorCount - 1);
+        const randomT = baseT + (Math.random() - 0.5) * rainbowRandomness * 0.3;
+        const t = Math.max(0, Math.min(1, randomT));
+        sizes.push(maxSize - t * (maxSize - minSize));
+      }
+    }
+    
+    // Sort sizes in descending order
+    sizes.sort((a, b) => b - a);
+  }
+  
+  function dropNextRainbowBall() {
+    if (rainbowColorIndex >= currentColors.length) return;
+    
+    // Calculate spawn position (random x, above viewport)
+    const x = Math.random() * canvas.width;
+    const sizes = [];
+    const maxSize = Math.min(canvas.height * 0.3, canvas.width * 0.3);
+    const minSize = 20 * DPR;
+    const colorCount = currentColors.length;
+    
+    // Recreate size distribution
+    for (let i = 0; i < colorCount; i++) {
+      if (rainbowRandomness === 0) {
+        const t = i / (colorCount - 1);
+        sizes.push(maxSize - t * (maxSize - minSize));
+      } else {
+        const baseT = i / (colorCount - 1);
+        const randomT = baseT + (Math.random() - 0.5) * rainbowRandomness * 0.3;
+        const t = Math.max(0, Math.min(1, randomT));
+        sizes.push(maxSize - t * (maxSize - minSize));
+      }
+    }
+    sizes.sort((a, b) => b - a);
+    
+    const r = sizes[rainbowColorIndex] / 2; // radius is half the diameter
+    const y = -r - 50; // spawn above viewport
+    
+    // Create ball with specific color
+    const ball = new Ball(x, y, r, currentColors[rainbowColorIndex]);
+    
+    // Small random horizontal velocity
+    ball.vx = (Math.random() - 0.5) * 100;
+    ball.vy = 0;
+    
+    balls.push(ball);
+    rainbowColorIndex++;
+  }
 
   // Continuous emitter within a vw/vh-defined rectangle
   let emitterTimer = 0;
@@ -1312,6 +1418,16 @@
     // Trail (Sparkle) mode: emit sparkles from cursor
     if (currentMode === MODES.TRAIL) {
       emitSparkles(dt);
+      return;
+    }
+    
+    // Rainbow mode: drop balls one by one
+    if (currentMode === MODES.RAINBOW) {
+      const now = performance.now() / 1000;
+      if (rainbowColorIndex < currentColors.length && now - rainbowLastDropTime >= rainbowDropDelay) {
+        dropNextRainbowBall();
+        rainbowLastDropTime = now;
+      }
       return;
     }
     
@@ -1503,7 +1619,8 @@
       
       // Wall collisions (disabled for Trail mode - particles drift off-screen)
       if (currentMode !== MODES.TRAIL) {
-        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
+        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : 
+                                (currentMode === MODES.RAINBOW) ? rainbowBounce : REST;
         for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
       }
       
@@ -1569,23 +1686,28 @@
 
   // Reset balls to spawn positions (preserves all settings)
   function resetBallsToSpawn() {
-    for (let i = 0; i < balls.length; i++) {
-      const ball = balls[i];
-      const p = pickSpawnPoint();
-      ball.x = p.x;
-      ball.y = p.y;
-      // Re-apply natural entry throw on reset (sweep-aware, size-aware)
-      const centerX = canvas.width * 0.5;
-      const dir = EMITTER_SWEEP_ENABLED ? (emitterSweepDir >= 0 ? 1 : -1) : ((ball.x < centerX) ? 1 : -1);
-      const sizeInfluence = clamp((ball.r / ((R_MIN + R_MAX) * 0.5)), 0.6, 1.4);
-      const baseKick = 140 * sizeInfluence;
-      const randKick = 180 * sizeInfluence;
-      const upwardKick = 120;
-      ball.vx = dir * (baseKick + Math.random() * randKick);
-      ball.vy = -Math.random() * upwardKick;
-      ball.age = 0;
-      ball.driftAx = dir * (360 + Math.random() * 420) * sizeInfluence;
-      ball.driftTime = 0.22 + Math.random() * 0.28;
+    if (currentMode === MODES.RAINBOW) {
+      // For rainbow mode, respawn all balls
+      spawnRainbowBalls();
+    } else {
+      for (let i = 0; i < balls.length; i++) {
+        const ball = balls[i];
+        const p = pickSpawnPoint();
+        ball.x = p.x;
+        ball.y = p.y;
+        // Re-apply natural entry throw on reset (sweep-aware, size-aware)
+        const centerX = canvas.width * 0.5;
+        const dir = EMITTER_SWEEP_ENABLED ? (emitterSweepDir >= 0 ? 1 : -1) : ((ball.x < centerX) ? 1 : -1);
+        const sizeInfluence = clamp((ball.r / ((R_MIN + R_MAX) * 0.5)), 0.6, 1.4);
+        const baseKick = 140 * sizeInfluence;
+        const randKick = 180 * sizeInfluence;
+        const upwardKick = 120;
+        ball.vx = dir * (baseKick + Math.random() * randKick);
+        ball.vy = -Math.random() * upwardKick;
+        ball.age = 0;
+        ball.driftAx = dir * (360 + Math.random() * 420) * sizeInfluence;
+        ball.driftTime = 0.22 + Math.random() * 0.28;
+      }
     }
   }
 
@@ -1601,11 +1723,12 @@
       e.preventDefault();
       panel.classList.toggle('hidden');
     }
-    // Quick mode switches 1..4
+    // Quick mode switches 1..5
     if (k === '1') setMode(MODES.PIT);
     if (k === '2') setMode(MODES.FLIES);
     if (k === '3') setMode(MODES.TRAIL);
     if (k === '4') setMode(MODES.WEIGHTLESS);
+    if (k === '5') setMode(MODES.RAINBOW);
   });
 
   // Seed initial balls across the spawn area for quicker fill
@@ -1841,12 +1964,35 @@
   const restitutionSlider = document.getElementById('restitutionSlider');
   const frictionSlider = document.getElementById('frictionSlider');
   const emitterSlider = document.getElementById('emitterSlider');
-  const sizeSlider = document.getElementById('sizeSlider');
+  // Mode-specific ball properties controls
+  const sizeSliderPit = document.getElementById('sizeSliderPit');
+  const sizeVariationSliderPit = document.getElementById('sizeVariationSliderPit');
+  const weightSliderPit = document.getElementById('weightSliderPit');
+  const ballSoftnessSliderPit = document.getElementById('ballSoftnessSliderPit');
+  const sizeValPit = document.getElementById('sizeValPit');
+  const sizeVariationValPit = document.getElementById('sizeVariationValPit');
+  const weightValPit = document.getElementById('weightValPit');
+  const ballSoftnessValPit = document.getElementById('ballSoftnessValPit');
+
+  const sizeSliderFlies = document.getElementById('sizeSliderFlies');
+  const sizeVariationSliderFlies = document.getElementById('sizeVariationSliderFlies');
+  const weightSliderFlies = document.getElementById('weightSliderFlies');
+  const ballSoftnessSliderFlies = document.getElementById('ballSoftnessSliderFlies');
+  const sizeValFlies = document.getElementById('sizeValFlies');
+  const sizeVariationValFlies = document.getElementById('sizeVariationValFlies');
+  const weightValFlies = document.getElementById('weightValFlies');
+  const ballSoftnessValFlies = document.getElementById('ballSoftnessValFlies');
+
+  const sizeSliderZeroG = document.getElementById('sizeSliderZeroG');
+  const sizeVariationSliderZeroG = document.getElementById('sizeVariationSliderZeroG');
+  const weightSliderZeroG = document.getElementById('weightSliderZeroG');
+  const ballSoftnessSliderZeroG = document.getElementById('ballSoftnessSliderZeroG');
+  const sizeValZeroG = document.getElementById('sizeValZeroG');
+  const sizeVariationValZeroG = document.getElementById('sizeVariationValZeroG');
+  const weightValZeroG = document.getElementById('weightValZeroG');
+  const ballSoftnessValZeroG = document.getElementById('ballSoftnessValZeroG');
+
   const maxBallsSlider = document.getElementById('maxBallsSlider');
-  const sizeVariationSlider = document.getElementById('sizeVariationSlider');
-  const weightSlider = document.getElementById('weightSlider');
-  const ballSoftnessSlider = document.getElementById('ballSoftnessSlider');
-  const ballSoftnessVal = document.getElementById('ballSoftnessVal');
   const spawnYSlider = document.getElementById('spawnYSlider');
   const spawnWidthSlider = document.getElementById('spawnWidthSlider');
   const spawnCenterSlider = document.getElementById('spawnCenterSlider');
@@ -1984,20 +2130,58 @@
   // Sliders (with auto-save)
   restitutionSlider && restitutionSlider.addEventListener('input', () => { REST = parseFloat(restitutionSlider.value); restitutionVal && (restitutionVal.textContent = REST.toFixed(2)); autoSaveSettings(); });
   frictionSlider && frictionSlider.addEventListener('input', () => { FRICTION = parseFloat(frictionSlider.value); frictionVal && (frictionVal.textContent = FRICTION.toFixed(4)); autoSaveSettings(); });
-  ballSoftnessSlider && ballSoftnessSlider.addEventListener('input', () => { 
-    ballSoftness = parseInt(ballSoftnessSlider.value, 10); 
-    ballSoftnessVal && (ballSoftnessVal.textContent = ballSoftness.toString()); 
-    autoSaveSettings(); 
-  });
   emitterSlider && emitterSlider.addEventListener('input', () => { EMIT_INTERVAL = parseFloat(emitterSlider.value); emitterVal && (emitterVal.textContent = EMIT_INTERVAL.toFixed(3)); autoSaveSettings(); });
-  sizeSlider && sizeSlider.addEventListener('input', () => {
-    const newScale = parseFloat(sizeSlider.value);
-    sizeVal && (sizeVal.textContent = newScale.toFixed(1));
-    sizeScale = newScale;
-    // Recompute effective scale and proportionally resize existing balls
-    updateEffectiveScaleAndBallSizes();
-    // Keep shared mass
-    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+
+  // Mode-specific ball properties listeners (apply values globally but source UI is per-mode)
+  function bindBallProps(sliders) {
+    if (!sliders) return;
+    const { size, sizeVal, sizeVar, sizeVarVal, weight, weightVal, soft, softVal } = sliders;
+    size && size.addEventListener('input', () => {
+      const newScale = parseFloat(size.value);
+      sizeVal && (sizeVal.textContent = newScale.toFixed(1));
+      sizeScale = newScale;
+      updateEffectiveScaleAndBallSizes();
+      for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+      autoSaveSettings();
+    });
+    sizeVar && sizeVar.addEventListener('input', () => {
+      const v = parseFloat(sizeVar.value);
+      sizeVarVal && (sizeVarVal.textContent = v.toFixed(1));
+      sizeVariation = v;
+      autoSaveSettings();
+    });
+    weight && weight.addEventListener('input', () => {
+      const w = parseFloat(weight.value);
+      weightVal && (weightVal.textContent = w.toFixed(2));
+      ballMassKg = w;
+      for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+      autoSaveSettings();
+    });
+    soft && soft.addEventListener('input', () => {
+      const s = parseInt(soft.value, 10);
+      softVal && (softVal.textContent = String(s));
+      ballSoftness = s;
+      autoSaveSettings();
+    });
+  }
+
+  bindBallProps({
+    size: sizeSliderPit, sizeVal: sizeValPit,
+    sizeVar: sizeVariationSliderPit, sizeVarVal: sizeVariationValPit,
+    weight: weightSliderPit, weightVal: weightValPit,
+    soft: ballSoftnessSliderPit, softVal: ballSoftnessValPit
+  });
+  bindBallProps({
+    size: sizeSliderFlies, sizeVal: sizeValFlies,
+    sizeVar: sizeVariationSliderFlies, sizeVarVal: sizeVariationValFlies,
+    weight: weightSliderFlies, weightVal: weightValFlies,
+    soft: ballSoftnessSliderFlies, softVal: ballSoftnessValFlies
+  });
+  bindBallProps({
+    size: sizeSliderZeroG, sizeVal: sizeValZeroG,
+    sizeVar: sizeVariationSliderZeroG, sizeVarVal: sizeVariationValZeroG,
+    weight: weightSliderZeroG, weightVal: weightValZeroG,
+    soft: ballSoftnessSliderZeroG, softVal: ballSoftnessValZeroG
   });
   maxBallsSlider && maxBallsSlider.addEventListener('input', () => {
     MAX_BALLS = parseInt(maxBallsSlider.value, 10);
@@ -2102,6 +2286,7 @@
   const fliesControls = document.getElementById('fliesControls');
   const trailControls = document.getElementById('trailControls');
   const weightlessControls = document.getElementById('weightlessControls');
+  const rainbowControls = document.getElementById('rainbowControls');
   const gravityPitSlider = document.getElementById('gravityPitSlider');
   const gravityPitVal = document.getElementById('gravityPitVal');
   const repellerEnabledPitEl = document.getElementById('repellerEnabledPit');
@@ -2128,6 +2313,7 @@
     if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
     if (trailControls) trailControls.classList.toggle('active', currentMode === MODES.TRAIL);
     if (weightlessControls) weightlessControls.classList.toggle('active', currentMode === MODES.WEIGHTLESS);
+    if (rainbowControls) rainbowControls.classList.toggle('active', currentMode === MODES.RAINBOW);
     modeButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-mode') === currentMode));
   }
 
@@ -2171,6 +2357,13 @@
         ball.driftAx = 0;
         ball.driftTime = 0;
       }
+    } else if (currentMode === MODES.RAINBOW) {
+      gravityMultiplier = rainbowGravity;
+      G = GE * gravityMultiplier;
+      repellerEnabled = false;
+      EMITTER_SWEEP_ENABLED = false;
+      // Initialize rainbow scene
+      spawnRainbowBalls();
     }
     updateModeControlsUI();
   }
@@ -2273,6 +2466,37 @@
   weightlessRepelRadiusSlider && weightlessRepelRadiusSlider.addEventListener('input', () => {
     weightlessRepellerRadius = parseFloat(weightlessRepelRadiusSlider.value);
     weightlessRepelRadiusVal && (weightlessRepelRadiusVal.textContent = Math.round(weightlessRepellerRadius).toString());
+  });
+  
+  // Rainbow mode sliders
+  const rainbowRandomnessSlider = document.getElementById('rainbowRandomnessSlider');
+  const rainbowRandomnessVal = document.getElementById('rainbowRandomnessVal');
+  const rainbowDropDelaySlider = document.getElementById('rainbowDropDelaySlider');
+  const rainbowDropDelayVal = document.getElementById('rainbowDropDelayVal');
+  const rainbowGravitySlider = document.getElementById('rainbowGravitySlider');
+  const rainbowGravityVal = document.getElementById('rainbowGravityVal');
+  const rainbowBounceSlider = document.getElementById('rainbowBounceSlider');
+  const rainbowBounceVal = document.getElementById('rainbowBounceVal');
+  
+  rainbowRandomnessSlider && rainbowRandomnessSlider.addEventListener('input', () => {
+    rainbowRandomness = parseFloat(rainbowRandomnessSlider.value);
+    rainbowRandomnessVal && (rainbowRandomnessVal.textContent = rainbowRandomness.toFixed(1));
+  });
+  rainbowDropDelaySlider && rainbowDropDelaySlider.addEventListener('input', () => {
+    rainbowDropDelay = parseFloat(rainbowDropDelaySlider.value);
+    rainbowDropDelayVal && (rainbowDropDelayVal.textContent = rainbowDropDelay.toFixed(2));
+  });
+  rainbowGravitySlider && rainbowGravitySlider.addEventListener('input', () => {
+    rainbowGravity = parseFloat(rainbowGravitySlider.value);
+    rainbowGravityVal && (rainbowGravityVal.textContent = rainbowGravity.toFixed(1));
+    if (currentMode === MODES.RAINBOW) {
+      gravityMultiplier = rainbowGravity;
+      G = GE * gravityMultiplier;
+    }
+  });
+  rainbowBounceSlider && rainbowBounceSlider.addEventListener('input', () => {
+    rainbowBounce = parseFloat(rainbowBounceSlider.value);
+    rainbowBounceVal && (rainbowBounceVal.textContent = rainbowBounce.toFixed(2));
   });
 
   // Individual color picker listeners (with existing ball color update)

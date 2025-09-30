@@ -1,107 +1,96 @@
 # Alexander Beck Studio Website
 
-## 🚀 Project Structure
+An interactive portfolio website featuring a physics-based particle simulation as the hero element.
 
-```
-Alexander Beck Studio Website/
-├── public/                    # Static site root (served & deployed)
-│   ├── index.html             # Modular version (MAIN)
-│   ├── css/
-│   │   ├── normalize.css
-│   │   ├── webflow.css
-│   │   ├── alexander-beck-studio-staging.webflow.css
-│   │   └── bouncy-balls.css
-│   ├── js/
-│   │   ├── webflow.js
-│   │   └── bouncy-balls-embed.js
-│   └── images/
-└── bouncy-balls/             # Animation development
-    ├── balls-source.html     # Full-featured dev version (source)
-    ├── build.js              # Animation build script
-    └── current-config-2.json # Animation configuration
-```
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)
 
 ## ✨ Features
 
-### **Bouncy Balls Animation**
-- **Text Collision Detection**: Balls bounce off `#hero-text` element using cap height measurement
-- **Mobile Responsive**: 60% ball size reduction on screens ≤768px
-- **Performance Optimized**: requestAnimationFrame, spatial grid collision detection
-- **Color Palette**: 8 CSS variables with utility classes (`.text-ball-1`, `.bg-ball-2`, etc.)
-- **Configuration**: Tuned with `current-config-2.json` settings
+- **Interactive Physics Simulation** - Thousands of particles with realistic physics
+- **Three Unique Modes**:
+  - 🎱 Ball Pit - Classic bouncing balls with gravity
+  - 🦟 Flies to Light - Particles swarm around your cursor
+  - ✨ Mouse Trail - Sparkles emit from cursor movement
+- **High Performance** - 60 FPS with efficient collision detection
+- **Fully Responsive** - Works beautifully on all devices
+- **Zero Dependencies** - Pure vanilla JavaScript
 
-### **Website Integration**
-- **Modular Architecture**: Separate CSS/JS files, no code duplication
-- **Clean HTML**: Removed Webflow badges and inline code
-- **Professional Branding**: Alexander Beck Studio generator tag
-- **Optimized Loading**: Proper asset organization and loading order
+## 🚀 Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/alexander-beck-studio-website
+cd alexander-beck-studio-website
+
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+# Open http://localhost:8000/source/balls-source.html
+```
 
 ## 🛠️ Development
 
-### **Build Animation**
+### Available Scripts
+
 ```bash
-npm run build
-# Builds public/js/bouncy-balls-embed.js from bouncy-balls/balls-source.html
+npm start      # Start development server on port 8000
+npm run build  # Build minified production bundle
+npm run watch  # Auto-rebuild on file changes
+npm run clean  # Remove generated config files
 ```
 
-### **Serve Website Locally**
-```bash
-npm run serve
-# Serves public/ directory on http://localhost:8000
+### Project Structure
+
+```
+├── source/              # Development files
+│   └── balls-source.html   # Main simulation (with controls)
+├── public/              # Production website
+│   ├── index.html         # Main website
+│   └── js/               
+│       └── bouncy-balls-embed.js  # Minified simulation
+├── docs/                # Documentation
+│   ├── ARCHITECTURE.md    # System design
+│   ├── DEVELOPMENT.md     # Dev guide
+│   └── MODES.md          # Mode specifications
+└── package.json         # Project config
 ```
 
-### **Development Workflow**
-1. Edit animation: `bouncy-balls/balls-source.html`
-2. Test changes: Open `balls-source.html` in browser (or use the panel)
-3. Build production: `npm run build`
-4. Modular page uses `public/js/bouncy-balls-embed.js` automatically
+## 🎮 Controls
 
-## 📱 Usage
+- **Number Keys (1-3)** - Switch between modes
+- **R** - Reset simulation
+- **/** - Toggle control panel
+- **Mouse** - Interact with particles
 
-### **Text Collision**
-The animation automatically detects and collides with any element with `id="hero-text"`:
+## 📦 Building for Production
 
-```html
-<p id="hero-text" class="heading_h2">Alexander Beck Studio.</p>
-```
+1. Configure your settings in the development environment
+2. Click "Save Config" in the control panel
+3. Run `npm run build` to create optimized bundle
+4. Deploy the `public/` folder to your web host
 
-### **Color Utilities**
-Use the ball colors in your design:
+## 🌐 Browser Support
 
-```html
-<div class="text-ball-1">Product Design</div>     <!-- Teal text -->
-<div class="bg-ball-6">Future Design</div>       <!-- Red background -->
-<div class="border-ball-7">Brand Experience</div> <!-- Blue border -->
-```
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+- Mobile browsers with touch support
 
-### **Responsive Behavior**
-- Desktop: Full-size balls with precise text collision
-- Mobile (≤768px): 40% ball size for better performance
-- Auto-updates on viewport resize
+## 📄 License
 
-## 🎯 Configuration
+MIT License - see [LICENSE](LICENSE) file for details
 
-The animation uses settings from `bouncy-balls/current-config-2.json`:
-- **Physics**: REST 0.88, FRICTION 0.003, MAX_BALLS 400
-- **Appearance**: sizeScale 2.1, ballMass 11.2
-- **Colors**: industrialTeal palette (8 colors)
-- **Behavior**: Mouse repeller, text collision, mobile scaling
+## 🤝 Contributing
 
-## 🚀 Deployment
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. **Development**: Use `bouncy-balls/balls-source.html` for testing/config
-2. **Production**: Serve from `public/` directory (Pages or any static host)
-3. **GitHub Pages**: This repo includes a workflow that builds and deploys `public/` from `main`.
-4. **Updates**: Modify config → rebuild → commit → push → auto-deploy
+## 📧 Contact
 
-## 📊 Performance
-
-- **Animation**: ~25.6KB minified
-- **Total CSS**: Combined and optimized
-- **Loading**: Async, non-blocking
-- **Frame Rate**: 60fps with requestAnimationFrame
-- **Collision Detection**: Optimized spatial grid O(n log n)
+Alexander Beck - [alexander@beck.fyi](mailto:alexander@beck.fyi)
 
 ---
 
-**Built with performance, maintainability, and visual excellence in mind.** ✨
+Built with ❤️ and physics

@@ -2,17 +2,31 @@
   "name": "alexander-beck-studio-website",
   "private": true,
   "version": "1.0.0",
-  "description": "Build scripts for bouncy-balls embed",
+  "description": "Alexander Beck Studio website with interactive particle physics",
+  "author": "Alexander Beck",
+  "license": "MIT",
   "scripts": {
-    "build": "node bouncy-balls/build.js",
-    "watch": "chokidar 'bouncy-balls/balls-source.html' 'bouncy-balls/current-config*.json' -c \"npm run build\"",
-    "serve": "cd public && python3 -m http.server 8000",
-    "dev:source": "open 'bouncy-balls/balls-source.html'",
-    "dev": "npm run build && npm run serve"
+    "start": "python3 -m http.server 8000",
+    "build": "node source/build.js",
+    "watch": "chokidar 'source/balls-source.html' 'source/current-config*.json' -c \"npm run build\"",
+    "dev": "npm run build && npm start",
+    "clean": "rm -f source/current-config*.json"
   },
   "devDependencies": {
     "chokidar-cli": "^3.0.0",
     "terser": "^5.31.0"
+  },
+  "keywords": [
+    "creative",
+    "portfolio",
+    "physics",
+    "canvas",
+    "animation",
+    "interactive"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/alexander-beck-studio-website"
   }
 }
 
