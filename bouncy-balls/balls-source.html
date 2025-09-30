@@ -173,7 +173,6 @@
     <button class="mode-button" data-mode="flies">🕊️ Flies</button>
     <button class="mode-button" data-mode="trail" id="trailModeButton">🖱️ Trail</button>
     <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
-    <button class="mode-button" data-mode="rainbow">🌈 Rainbow</button>
   </div>
   
   <!-- Build Controls -->
@@ -323,20 +322,7 @@
     </details>
   </div>
   
-  <div id="rainbowControls" class="mode-controls">
-    <details open>
-      <summary>🌈 Rainbow Drop Mode</summary>
-      <div class="group">
-        <label>Randomness: <span class="val" id="rainbowRandomnessVal">1.0</span><input type="range" id="rainbowRandomnessSlider" min="0.0" max="1.0" step="0.1" value="1.0"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">0 = equal size steps, 1 = random distribution</div>
-        <label>Drop delay (s): <span class="val" id="rainbowDropDelayVal">0.15</span><input type="range" id="rainbowDropDelaySlider" min="0.05" max="0.5" step="0.05" value="0.15"></label>
-        <label>Gravity: <span class="val" id="rainbowGravityVal">1.2</span><input type="range" id="rainbowGravitySlider" min="0.5" max="3.0" step="0.1" value="1.2"></label>
-        <label>Bounce: <span class="val" id="rainbowBounceVal">0.60</span><input type="range" id="rainbowBounceSlider" min="0.00" max="1.00" step="0.05" value="0.60"></label>
-      </div>
-    </details>
-  </div>
-  
-    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-5</code> switch modes</div>
+    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-4</code> switch modes</div>
   </div>
   
   <!-- FPS Counter -->
@@ -353,8 +339,7 @@
     PIT: 'pit',          // Ball Pit: gravity + repeller
     FLIES: 'flies',      // Flies to Light: attraction to mouse, no gravity
     TRAIL: 'trail',      // Mouse Trail: static paint drops (DESKTOP ONLY)
-    WEIGHTLESS: 'weightless',  // Weightless Bounce: zero-G bouncing balls
-    RAINBOW: 'rainbow'   // Rainbow Drop: one ball per color falling with size distribution
+    WEIGHTLESS: 'weightless'  // Weightless Bounce: zero-G bouncing balls
   };
   
   // Mode availability by device type
@@ -362,8 +347,7 @@
     [MODES.PIT]: { desktop: true, mobile: true },
     [MODES.FLIES]: { desktop: true, mobile: true },
     [MODES.TRAIL]: { desktop: true, mobile: false }, // Trail only on desktop (needs precise cursor)
-    [MODES.WEIGHTLESS]: { desktop: true, mobile: true },
-    [MODES.RAINBOW]: { desktop: true, mobile: true }
+    [MODES.WEIGHTLESS]: { desktop: true, mobile: true }
   };
   
   let currentMode = MODES.PIT;
@@ -398,12 +382,6 @@
   let weightlessMaxBalls = 300; // number of balls in scene
   let weightlessRepellerPower = 800; // subtle mouse repeller strength
   let weightlessRepellerRadius = 120; // small repeller radius (px)
-  
-  // Rainbow mode parameters
-  let rainbowRandomness = 1.0; // randomness factor for size distribution (0 = equal steps, 1 = random)
-  let rainbowDropDelay = 0.15; // delay between each color drop (seconds)
-  let rainbowGravity = 1.2; // gravity multiplier for rainbow mode
-  let rainbowBounce = 0.6; // bounce restitution for rainbow mode
   
   // Constants for magic numbers
   const CONSTANTS = {
@@ -916,7 +894,7 @@
         const rollTarget = this.vx / this.r;
         this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
       }
-      if (this.y - this.r < 0) { 
+      if (this.vy > 0 && this.y - this.r < 0) { 
         this.y = this.r; 
         const preVy = this.vy;
         this.vy = -this.vy * rest; 
@@ -1263,81 +1241,6 @@
     balls.push(ball);
     return ball;
   }
-  
-  // Rainbow mode: spawn one ball of each color with size distribution
-  let rainbowLastDropTime = 0;
-  let rainbowColorIndex = 0;
-  let rainbowDropped = false;
-  
-  function spawnRainbowBalls() {
-    // Clear existing balls
-    balls.length = 0;
-    rainbowColorIndex = 0;
-    rainbowDropped = false;
-    rainbowLastDropTime = performance.now() / 1000;
-    
-    // Calculate size distribution from 30vh to 20px
-    const maxSize = Math.min(canvas.height * 0.3, canvas.width * 0.3); // 30vh max
-    const minSize = 20 * DPR; // 20px min
-    const colorCount = currentColors.length;
-    
-    // Create size array based on randomness factor
-    const sizes = [];
-    for (let i = 0; i < colorCount; i++) {
-      if (rainbowRandomness === 0) {
-        // Equal steps
-        const t = i / (colorCount - 1);
-        sizes.push(maxSize - t * (maxSize - minSize));
-      } else {
-        // Random distribution with bias towards larger sizes for first colors
-        const baseT = i / (colorCount - 1);
-        const randomT = baseT + (Math.random() - 0.5) * rainbowRandomness * 0.3;
-        const t = Math.max(0, Math.min(1, randomT));
-        sizes.push(maxSize - t * (maxSize - minSize));
-      }
-    }
-    
-    // Sort sizes in descending order
-    sizes.sort((a, b) => b - a);
-  }
-  
-  function dropNextRainbowBall() {
-    if (rainbowColorIndex >= currentColors.length) return;
-    
-    // Calculate spawn position (random x, above viewport)
-    const x = Math.random() * canvas.width;
-    const sizes = [];
-    const maxSize = Math.min(canvas.height * 0.3, canvas.width * 0.3);
-    const minSize = 20 * DPR;
-    const colorCount = currentColors.length;
-    
-    // Recreate size distribution
-    for (let i = 0; i < colorCount; i++) {
-      if (rainbowRandomness === 0) {
-        const t = i / (colorCount - 1);
-        sizes.push(maxSize - t * (maxSize - minSize));
-      } else {
-        const baseT = i / (colorCount - 1);
-        const randomT = baseT + (Math.random() - 0.5) * rainbowRandomness * 0.3;
-        const t = Math.max(0, Math.min(1, randomT));
-        sizes.push(maxSize - t * (maxSize - minSize));
-      }
-    }
-    sizes.sort((a, b) => b - a);
-    
-    const r = sizes[rainbowColorIndex] / 2; // radius is half the diameter
-    const y = -r - 50; // spawn above viewport
-    
-    // Create ball with specific color
-    const ball = new Ball(x, y, r, currentColors[rainbowColorIndex]);
-    
-    // Small random horizontal velocity
-    ball.vx = (Math.random() - 0.5) * 100;
-    ball.vy = 0;
-    
-    balls.push(ball);
-    rainbowColorIndex++;
-  }
 
   // Continuous emitter within a vw/vh-defined rectangle
   let emitterTimer = 0;
@@ -1418,16 +1321,6 @@
     // Trail (Sparkle) mode: emit sparkles from cursor
     if (currentMode === MODES.TRAIL) {
       emitSparkles(dt);
-      return;
-    }
-    
-    // Rainbow mode: drop balls one by one
-    if (currentMode === MODES.RAINBOW) {
-      const now = performance.now() / 1000;
-      if (rainbowColorIndex < currentColors.length && now - rainbowLastDropTime >= rainbowDropDelay) {
-        dropNextRainbowBall();
-        rainbowLastDropTime = now;
-      }
       return;
     }
     
@@ -1619,8 +1512,7 @@
       
       // Wall collisions (disabled for Trail mode - particles drift off-screen)
       if (currentMode !== MODES.TRAIL) {
-        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : 
-                                (currentMode === MODES.RAINBOW) ? rainbowBounce : REST;
+        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
         for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
       }
       
@@ -1686,28 +1578,23 @@
 
   // Reset balls to spawn positions (preserves all settings)
   function resetBallsToSpawn() {
-    if (currentMode === MODES.RAINBOW) {
-      // For rainbow mode, respawn all balls
-      spawnRainbowBalls();
-    } else {
-      for (let i = 0; i < balls.length; i++) {
-        const ball = balls[i];
-        const p = pickSpawnPoint();
-        ball.x = p.x;
-        ball.y = p.y;
-        // Re-apply natural entry throw on reset (sweep-aware, size-aware)
-        const centerX = canvas.width * 0.5;
-        const dir = EMITTER_SWEEP_ENABLED ? (emitterSweepDir >= 0 ? 1 : -1) : ((ball.x < centerX) ? 1 : -1);
-        const sizeInfluence = clamp((ball.r / ((R_MIN + R_MAX) * 0.5)), 0.6, 1.4);
-        const baseKick = 140 * sizeInfluence;
-        const randKick = 180 * sizeInfluence;
-        const upwardKick = 120;
-        ball.vx = dir * (baseKick + Math.random() * randKick);
-        ball.vy = -Math.random() * upwardKick;
-        ball.age = 0;
-        ball.driftAx = dir * (360 + Math.random() * 420) * sizeInfluence;
-        ball.driftTime = 0.22 + Math.random() * 0.28;
-      }
+    for (let i = 0; i < balls.length; i++) {
+      const ball = balls[i];
+      const p = pickSpawnPoint();
+      ball.x = p.x;
+      ball.y = p.y;
+      // Re-apply natural entry throw on reset (sweep-aware, size-aware)
+      const centerX = canvas.width * 0.5;
+      const dir = EMITTER_SWEEP_ENABLED ? (emitterSweepDir >= 0 ? 1 : -1) : ((ball.x < centerX) ? 1 : -1);
+      const sizeInfluence = clamp((ball.r / ((R_MIN + R_MAX) * 0.5)), 0.6, 1.4);
+      const baseKick = 140 * sizeInfluence;
+      const randKick = 180 * sizeInfluence;
+      const upwardKick = 120;
+      ball.vx = dir * (baseKick + Math.random() * randKick);
+      ball.vy = -Math.random() * upwardKick;
+      ball.age = 0;
+      ball.driftAx = dir * (360 + Math.random() * 420) * sizeInfluence;
+      ball.driftTime = 0.22 + Math.random() * 0.28;
     }
   }
 
@@ -1723,12 +1610,11 @@
       e.preventDefault();
       panel.classList.toggle('hidden');
     }
-    // Quick mode switches 1..5
+    // Quick mode switches 1..4
     if (k === '1') setMode(MODES.PIT);
     if (k === '2') setMode(MODES.FLIES);
     if (k === '3') setMode(MODES.TRAIL);
     if (k === '4') setMode(MODES.WEIGHTLESS);
-    if (k === '5') setMode(MODES.RAINBOW);
   });
 
   // Seed initial balls across the spawn area for quicker fill
@@ -2286,7 +2172,6 @@
   const fliesControls = document.getElementById('fliesControls');
   const trailControls = document.getElementById('trailControls');
   const weightlessControls = document.getElementById('weightlessControls');
-  const rainbowControls = document.getElementById('rainbowControls');
   const gravityPitSlider = document.getElementById('gravityPitSlider');
   const gravityPitVal = document.getElementById('gravityPitVal');
   const repellerEnabledPitEl = document.getElementById('repellerEnabledPit');
@@ -2313,7 +2198,6 @@
     if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
     if (trailControls) trailControls.classList.toggle('active', currentMode === MODES.TRAIL);
     if (weightlessControls) weightlessControls.classList.toggle('active', currentMode === MODES.WEIGHTLESS);
-    if (rainbowControls) rainbowControls.classList.toggle('active', currentMode === MODES.RAINBOW);
     modeButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-mode') === currentMode));
   }
 
@@ -2357,13 +2241,6 @@
         ball.driftAx = 0;
         ball.driftTime = 0;
       }
-    } else if (currentMode === MODES.RAINBOW) {
-      gravityMultiplier = rainbowGravity;
-      G = GE * gravityMultiplier;
-      repellerEnabled = false;
-      EMITTER_SWEEP_ENABLED = false;
-      // Initialize rainbow scene
-      spawnRainbowBalls();
     }
     updateModeControlsUI();
   }
@@ -2466,37 +2343,6 @@
   weightlessRepelRadiusSlider && weightlessRepelRadiusSlider.addEventListener('input', () => {
     weightlessRepellerRadius = parseFloat(weightlessRepelRadiusSlider.value);
     weightlessRepelRadiusVal && (weightlessRepelRadiusVal.textContent = Math.round(weightlessRepellerRadius).toString());
-  });
-  
-  // Rainbow mode sliders
-  const rainbowRandomnessSlider = document.getElementById('rainbowRandomnessSlider');
-  const rainbowRandomnessVal = document.getElementById('rainbowRandomnessVal');
-  const rainbowDropDelaySlider = document.getElementById('rainbowDropDelaySlider');
-  const rainbowDropDelayVal = document.getElementById('rainbowDropDelayVal');
-  const rainbowGravitySlider = document.getElementById('rainbowGravitySlider');
-  const rainbowGravityVal = document.getElementById('rainbowGravityVal');
-  const rainbowBounceSlider = document.getElementById('rainbowBounceSlider');
-  const rainbowBounceVal = document.getElementById('rainbowBounceVal');
-  
-  rainbowRandomnessSlider && rainbowRandomnessSlider.addEventListener('input', () => {
-    rainbowRandomness = parseFloat(rainbowRandomnessSlider.value);
-    rainbowRandomnessVal && (rainbowRandomnessVal.textContent = rainbowRandomness.toFixed(1));
-  });
-  rainbowDropDelaySlider && rainbowDropDelaySlider.addEventListener('input', () => {
-    rainbowDropDelay = parseFloat(rainbowDropDelaySlider.value);
-    rainbowDropDelayVal && (rainbowDropDelayVal.textContent = rainbowDropDelay.toFixed(2));
-  });
-  rainbowGravitySlider && rainbowGravitySlider.addEventListener('input', () => {
-    rainbowGravity = parseFloat(rainbowGravitySlider.value);
-    rainbowGravityVal && (rainbowGravityVal.textContent = rainbowGravity.toFixed(1));
-    if (currentMode === MODES.RAINBOW) {
-      gravityMultiplier = rainbowGravity;
-      G = GE * gravityMultiplier;
-    }
-  });
-  rainbowBounceSlider && rainbowBounceSlider.addEventListener('input', () => {
-    rainbowBounce = parseFloat(rainbowBounceSlider.value);
-    rainbowBounceVal && (rainbowBounceVal.textContent = rainbowBounce.toFixed(2));
   });
 
   // Individual color picker listeners (with existing ball color update)
