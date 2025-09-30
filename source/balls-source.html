@@ -1283,26 +1283,26 @@
     
     // Pre-calculate all ball properties for optimal performance
     preCalculateDropProperties() {
-      const maxSize = Math.min(canvas.height * 0.3, canvas.width * 0.3);
-      const minSize = 20 * DPR;
+      const maxRadius = Math.min(canvas.height * 0.15, canvas.width * 0.15); // radius, not diameter
+      const minRadius = 10 * DPR; // radius, not diameter
       const colorCount = currentColors.length;
       
       this.preCalculatedSizes = [];
       
       for (let i = 0; i < colorCount; i++) {
-        let size;
+        let radius;
         if (rainbowRandomness === 0) {
           // Equal steps
           const t = i / (colorCount - 1);
-          size = maxSize - t * (maxSize - minSize);
+          radius = maxRadius - t * (maxRadius - minRadius);
         } else {
           // Random distribution with bias towards larger sizes for first colors
           const baseT = i / (colorCount - 1);
           const randomT = baseT + (Math.random() - 0.5) * rainbowRandomness * 0.3;
           const t = Math.max(0, Math.min(1, randomT));
-          size = maxSize - t * (maxSize - minSize);
+          radius = maxRadius - t * (maxRadius - minRadius);
         }
-        this.preCalculatedSizes.push(size);
+        this.preCalculatedSizes.push(radius);
       }
       
       // Sort sizes in descending order for visual appeal
@@ -1326,8 +1326,7 @@
     dropNext() {
       if (this.currentIndex >= currentColors.length || !this.isActive) return false;
       
-      const size = this.preCalculatedSizes[this.currentIndex];
-      const radius = size / 2;
+      const radius = this.preCalculatedSizes[this.currentIndex]; // Already a radius
       const x = this.dropPositions[this.currentIndex];
       const y = -radius - 50; // Spawn above viewport
       
