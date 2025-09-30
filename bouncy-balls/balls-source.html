@@ -265,7 +265,7 @@
     <details open>
       <summary>🕊️ Flies to Light Mode</summary>
       <div class="group">
-        <label>Attraction power: <span class="val" id="attractPowerVal">15000</span><input type="range" id="attractPowerSlider" min="1000" max="50000" step="1000" value="15000"></label>
+        <label>Attraction power: <span class="val" id="attractPowerVal">15000</span><input type="range" id="attractPowerSlider" min="1000" max="200000" step="1000" value="15000"></label>
         <label>Orbit radius (px): <span class="val" id="orbitRadiusVal">150</span><input type="range" id="orbitRadiusSlider" min="50" max="500" step="10" value="150"></label>
         <label>Swarm speed: <span class="val" id="swarmSpeedVal">1.0</span><input type="range" id="swarmSpeedSlider" min="0.1" max="3.0" step="0.1" value="1.0"></label>
       </div>
@@ -628,6 +628,8 @@
       this.theta = 0;               // integrated angular position (rad)
       this.squashAmount = 0.0;      // 0 = no squash, up to SQUASH_MAX
       this.squashNormalAngle = 0.0; // world-space normal direction for squash
+      // Trail mode alpha transparency
+      this.alpha = 1.0;       // 1 = opaque, 0 = transparent
     }
     // Integrate motion with simple Euler step
     step(dt) {
@@ -938,6 +940,10 @@
         ctx.scale(s, inv);
         ctx.rotate(-this.squashNormalAngle);
       }
+      // Apply alpha transparency (for Trail mode fade effect)
+      if (this.alpha < 1.0) {
+        ctx.globalAlpha = this.alpha;
+      }
       // Body
       ctx.beginPath();
       ctx.arc(0, 0, this.r, 0, Math.PI*2);
@@ -1064,6 +1070,29 @@
     return { x, y };
   }
   function emit(dt) {
+    // Trail mode: spawn balls at cursor instead of from top emitter
+    if (currentMode === MODES.TRAIL) {
+      emitterTimer += dt;
+      // Faster emission in trail mode for continuous stream
+      const trailEmitInterval = EMIT_INTERVAL * 0.3; // 3x faster
+      while (emitterTimer >= trailEmitInterval) {
+        emitterTimer -= trailEmitInterval;
+        if (balls.length < MAX_BALLS && mouseX !== CONSTANTS.OFFSCREEN_MOUSE && mouseY !== CONSTANTS.OFFSCREEN_MOUSE) {
+          // Spawn at cursor with shifting colors
+          const hue = (performance.now() * 0.1) % 360; // color shifts over time
+          const color = `hsl(${hue}, 80%, 60%)`;
+          const ball = spawnBall(mouseX, mouseY, color);
+          // Override initial velocity for trail emission (spawn with no initial velocity)
+          ball.vx = 0;
+          ball.vy = 0;
+          ball.driftAx = 0;
+          ball.driftTime = 0;
+        }
+      }
+      return;
+    }
+    
+    // Ball Pit & Flies modes: standard top emitter
     emitterTimer += dt;
     while (emitterTimer >= EMIT_INTERVAL) {
       // Jitter emissions slightly for organic timing
@@ -1243,7 +1272,10 @@
     let physicsSteps = 0;
     while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
       for (let i=0; i<balls.length; i++) balls[i].step(DT);
-      resolveCollisions(3); // Balanced quality vs performance
+      // Disable ball-to-ball collisions in Flies mode for realistic swarming
+      if (currentMode !== MODES.FLIES) {
+        resolveCollisions(3); // Balanced quality vs performance
+      }
       for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT);
       acc -= DT;
       physicsSteps++;
@@ -1431,6 +1463,10 @@
     const massScale = Math.max(0.25, b.m / MASS_BASELINE_KG);
     b.vx += (nx * strength * dt) / massScale;
     b.vy += (ny * strength * dt) / massScale;
+    // Add subtle air turbulence for realism (micro perturbations)
+    const turbulence = 10; // subtle random force
+    b.vx += (Math.random() - 0.5) * turbulence * dt;
+    b.vy += (Math.random() - 0.5) * turbulence * dt;
   }
 
   // Behavior-mode external forces dispatcher
@@ -1456,42 +1492,46 @@
     const dy = mouseY - b.y;
     const d2 = dx*dx + dy*dy + 1; // avoid div-by-zero
     const d = Math.sqrt(d2);
-    // Radial attraction (scaled ~1/d)
+    // MUCH stronger radial attraction - 10x increase, inverse square law for realism
     const dirX = dx / (d || 1);
     const dirY = dy / (d || 1);
-    const radial = (attractionPower / Math.max(120, d)) * dt; // tuned for stability
+    const radial = (attractionPower * 10 / Math.max(1, d * d * 0.01)) * dt; // inverse square, much stronger
     b.vx += radial * dirX;
     b.vy += radial * dirY;
-    // Tangential component to encourage orbit near target radius
+    // Strong tangential component for dramatic swarm orbit
     const tX = -dirY;
     const tY =  dirX;
     const orbitError = Math.max(0, 1 - Math.min(1, Math.abs(d - orbitRadius) / Math.max(orbitRadius, 1)));
-    const tangential = swarmSpeed * orbitError * dt * 60; // scale to frame rate
+    const tangential = swarmSpeed * orbitError * dt * 120; // 2x stronger orbit
     b.vx += tangential * tX;
     b.vy += tangential * tY;
+    // Heavy damping to prevent wild oscillation
+    b.vx *= 0.92;
+    b.vy *= 0.92;
   }
 
-  // Trail attraction: pull balls towards nearest point on recent mouse path
+  // Trail mode: balls spawn from cursor and inherit reverse velocity
   function applyTrailAttraction(b, dt) {
-    if (!mouseTrail.length) return;
-    let bestIdx = -1;
-    let bestD2 = Infinity;
-    for (let i = 0; i < mouseTrail.length; i++) {
-      const p = mouseTrail[i];
-      const dx = p.x - b.x;
-      const dy = p.y - b.y;
-      const d2 = dx*dx + dy*dy;
-      if (d2 < bestD2) { bestD2 = d2; bestIdx = i; }
+    // Apply reverse momentum based on cursor velocity (emission effect)
+    if (mouseTrail.length >= 2) {
+      const latest = mouseTrail[mouseTrail.length - 1];
+      const prev = mouseTrail[mouseTrail.length - 2];
+      // Cursor velocity (direction of mouse movement)
+      const cursorVx = (latest.x - prev.x) * 0.8;
+      const cursorVy = (latest.y - prev.y) * 0.8;
+      // Apply REVERSE acceleration (emission pushes balls opposite to mouse direction)
+      b.vx -= cursorVx * dt * 2;
+      b.vy -= cursorVy * dt * 2;
     }
-    if (bestIdx === -1) return;
-    const p = mouseTrail[bestIdx];
-    const d = Math.sqrt(bestD2) || 1;
-    const dirX = (p.x - b.x) / d;
-    const dirY = (p.y - b.y) / d;
-    // Use a softer pull than flies mode
-    const pull = (attractionPower * 0.5) / Math.max(160, d);
-    b.vx += pull * dirX * dt;
-    b.vy += pull * dirY * dt;
+    // Strong drag to create trailing effect
+    b.vx *= 0.88;
+    b.vy *= 0.88;
+    // Age-based fade (older balls become more transparent)
+    if (b.age > 1.0) {
+      b.alpha = Math.max(0, 1 - (b.age - 1.0) * trailFadeSpeed);
+    } else {
+      b.alpha = 1.0;
+    }
   }
 
   // UI elements
