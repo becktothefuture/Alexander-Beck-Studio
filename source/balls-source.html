@@ -312,16 +312,18 @@
     </details>
   </div>
   
-  <div id="rainbowControls" class="mode-controls">
+  <div id="boulderControls" class="mode-controls">
     <details open>
-      <summary>🌈 Rainbow Drop Mode</summary>
+      <summary>🪨 Falling Boulders</summary>
       <div class="group">
-        <label>Randomness: <span class="val" id="rainbowRandomnessVal">1.0</span><input type="range" id="rainbowRandomnessSlider" min="0.0" max="1.0" step="0.1" value="1.0"></label>
+        <label>Randomness: <span class="val" id="boulderRandomnessVal">1.0</span><input type="range" id="boulderRandomnessSlider" min="0.0" max="1.0" step="0.1" value="1.0"></label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">0 = equal size steps, 1 = random distribution</div>
-        <label>Weight (kg): <span class="val" id="weightRainbowVal">11.20</span><input type="range" id="weightRainbowSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
-        <label>Drop delay (s): <span class="val" id="rainbowDropDelayVal">0.30</span><input type="range" id="rainbowDropDelaySlider" min="0.10" max="1.0" step="0.05" value="0.30"></label>
-        <label>Gravity: <span class="val" id="rainbowGravityVal">1.2</span><input type="range" id="rainbowGravitySlider" min="0.5" max="3.0" step="0.1" value="1.2"></label>
-        <label>Bounce: <span class="val" id="rainbowBounceVal">0.30</span><input type="range" id="rainbowBounceSlider" min="0.00" max="1.00" step="0.05" value="0.30"></label>
+        <label>Weight (kg): <span class="val" id="weightBoulderVal">11.20</span><input type="range" id="weightBoulderSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
+        <label>Drop delay (s): <span class="val" id="boulderDropDelayVal">0.30</span><input type="range" id="boulderDropDelaySlider" min="0.10" max="1.0" step="0.05" value="0.30"></label>
+        <label>Drag resistance: <span class="val" id="boulderDragVal">0.95</span><input type="range" id="boulderDragSlider" min="0.80" max="0.99" step="0.01" value="0.95"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Higher = more resistance when dragging boulders</div>
+        <label>Gravity: <span class="val" id="boulderGravityVal">1.2</span><input type="range" id="boulderGravitySlider" min="0.5" max="3.0" step="0.1" value="1.2"></label>
+        <label>Bounce: <span class="val" id="boulderBounceVal">0.30</span><input type="range" id="boulderBounceSlider" min="0.00" max="1.00" step="0.05" value="0.30"></label>
       </div>
     </details>
   </div>
@@ -344,7 +346,7 @@
     FLIES: 'flies',      // Flies to Light: attraction to mouse, no gravity
     TRAIL: 'trail',      // Mouse Trail: static paint drops (DESKTOP ONLY)
     WEIGHTLESS: 'weightless',  // Weightless Bounce: zero-G bouncing balls
-    RAINBOW: 'rainbow'   // Rainbow Drop: one ball per color falling with size distribution
+    BOULDERS: 'boulders' // Falling Boulders: draggable heavy boulders (renamed from rainbow)
   };
   
   // Mode availability by device type
@@ -353,7 +355,7 @@
     [MODES.FLIES]: { desktop: true, mobile: true },
     [MODES.TRAIL]: { desktop: true, mobile: false }, // Trail only on desktop (needs precise cursor)
     [MODES.WEIGHTLESS]: { desktop: true, mobile: true },
-    [MODES.RAINBOW]: { desktop: true, mobile: true }
+    [MODES.BOULDERS]: { desktop: true, mobile: true }
   };
   
   let currentMode = MODES.PIT;
@@ -389,11 +391,12 @@
   let weightlessRepellerPower = 800; // subtle mouse repeller strength
   let weightlessRepellerRadius = 120; // small repeller radius (px)
   
-  // Rainbow mode parameters
-  let rainbowRandomness = 1.0; // randomness factor for size distribution (0 = equal steps, 1 = random)
-  let rainbowDropDelay = 0.30; // delay between each color drop (seconds) - minimum 0.3s enforced
-  let rainbowGravity = 1.2; // gravity multiplier for rainbow mode
-  let rainbowBounce = 0.3; // bounce restitution for rainbow mode (lower for rock-like settling)
+  // Boulder mode parameters
+  let boulderRandomness = 1.0; // randomness factor for size distribution (0 = equal steps, 1 = random)
+  let boulderDropDelay = 0.30; // delay between each boulder drop (seconds) - minimum 0.3s enforced
+  let boulderGravity = 1.2; // gravity multiplier for boulder mode
+  let boulderBounce = 0.3; // bounce restitution for boulder mode (lower for rock-like settling)
+  let boulderDragResistance = 0.95; // drag resistance when dragging boulders (0.8-0.99)
   
   // Mass constants (needed before CONSTANTS object)
   const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
@@ -514,7 +517,7 @@
     if (ratio !== 1) {
       for (let i = 0; i < balls.length; i++) {
         // Don't scale Rainbow mode balls - they have fixed sizes
-        if (currentMode !== MODES.RAINBOW) {
+        if (currentMode !== MODES.BOULDERS) {
           balls[i].r *= ratio;
         }
       }
@@ -1232,11 +1235,10 @@
       // No variation: all balls exactly the same size
       r = baseSize;
     } else {
-      // Apply variation
-      const range = (R_MAX - R_MIN) / 2;
-      const variedRange = range * sizeVariation;
-      const minR = Math.max(1, baseSize - variedRange);
-      const maxR = baseSize + variedRange;
+      // Apply limited variation (max 10% from global ball size)
+      const maxVariation = baseSize * 0.1; // 10% of global ball size
+      const minR = Math.max(1, baseSize - maxVariation);
+      const maxR = baseSize + maxVariation;
       r = randBetween(minR, maxR);
     }
     
@@ -1262,24 +1264,24 @@
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // SIMPLE RAINBOW DROP SYSTEM (using Ball Pit collision code)
+  // FALLING BOULDERS SYSTEM (using Ball Pit collision code)
   // ═══════════════════════════════════════════════════════════════════════════
   
-  let rainbowDropIndex = 0;
-  let rainbowLastDropTime = 0;
-  let rainbowIsActive = false;
+  let boulderDropIndex = 0;
+  let boulderLastDropTime = 0;
+  let boulderIsActive = false;
   
-  // Simple Rainbow initialization
-  function initializeRainbowMode() {
+  // Simple Boulder initialization
+  function initializeBoulderMode() {
     balls.length = 0;
-    rainbowDropIndex = 0;
-    rainbowLastDropTime = 0;
-    rainbowIsActive = true;
+    boulderDropIndex = 0;
+    boulderLastDropTime = 0;
+    boulderIsActive = true;
   }
   
-  // Drop next Rainbow ball
-  function dropNextRainbowBall() {
-    if (rainbowDropIndex >= currentColors.length || !rainbowIsActive) return false;
+  // Drop next Boulder
+  function dropNextBoulder() {
+    if (boulderDropIndex >= currentColors.length || !boulderIsActive) return false;
 
     // Calculate section width for positioning
     const sectionWidth = canvas.width / currentColors.length;
@@ -1289,20 +1291,20 @@
     const minSize = 15 * DPR;
     let size;
 
-    if (rainbowRandomness === 0) {
+    if (boulderRandomness === 0) {
       // Equal steps
-      const t = rainbowDropIndex / (currentColors.length - 1);
+      const t = boulderDropIndex / (currentColors.length - 1);
       size = maxSize - t * (maxSize - minSize);
     } else {
       // Random distribution
-      const baseT = rainbowDropIndex / (currentColors.length - 1);
-      const randomT = baseT + (Math.random() - 0.5) * rainbowRandomness * 0.3;
+      const baseT = boulderDropIndex / (currentColors.length - 1);
+      const randomT = baseT + (Math.random() - 0.5) * boulderRandomness * 0.3;
       const t = Math.max(0, Math.min(1, randomT));
       size = maxSize - t * (maxSize - minSize);
     }
 
     // Check if any existing balls are too close to the drop position (prevent overlapping)
-    const centerX = sectionWidth * rainbowDropIndex + sectionWidth * 0.5;
+    const centerX = sectionWidth * boulderDropIndex + sectionWidth * 0.5;
 
     for (let i = 0; i < balls.length; i++) {
       const existingBall = balls[i];
@@ -1341,20 +1343,20 @@
     // Add to balls array
     balls.push(ball);
 
-    rainbowDropIndex++;
-    rainbowLastDropTime = performance.now() / 1000;
+    boulderDropIndex++;
+    boulderLastDropTime = performance.now() / 1000;
 
     return true;
   }
   
-  // Check if ready to drop next ball
-  function shouldDropRainbowBall() {
-    if (!rainbowIsActive || rainbowDropIndex >= currentColors.length) return false;
+  // Check if ready to drop next boulder
+  function shouldDropBoulder() {
+    if (!boulderIsActive || boulderDropIndex >= currentColors.length) return false;
 
     // Ensure minimum delay between drops to prevent overlapping
     const now = performance.now() / 1000;
-    const minDelay = Math.max(rainbowDropDelay, 0.3); // Minimum 0.3 seconds between drops
-    return (now - rainbowLastDropTime) >= minDelay;
+    const minDelay = Math.max(boulderDropDelay, 0.3); // Minimum 0.3 seconds between drops
+    return (now - boulderLastDropTime) >= minDelay;
   }
   
 
@@ -1478,9 +1480,9 @@
     }
     
     // Rainbow mode: simple drop system
-    if (currentMode === MODES.RAINBOW) {
-      if (shouldDropRainbowBall()) {
-        dropNextRainbowBall();
+    if (currentMode === MODES.BOULDERS) {
+      if (shouldDropBoulder()) {
+        dropNextBoulder();
       }
       return;
     }
@@ -1678,8 +1680,8 @@
       
       // Wall collisions (disabled for Trail mode - particles drift off-screen)
       if (currentMode !== MODES.TRAIL) {
-        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : 
-                                (currentMode === MODES.RAINBOW) ? rainbowBounce : REST;
+        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce :
+                                (currentMode === MODES.BOULDERS) ? boulderBounce : REST;
         for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
       }
       
@@ -1757,11 +1759,25 @@
   console.log('High refresh mode enabled - using requestAnimationFrame');
   requestAnimationFrame(frame);
 
+  // Reset ball sizes to global setting when switching modes
+  function resetBallSizeToGlobal() {
+    // Get current global ball size
+    const globalSize = parseFloat(sizeSliderGlobal.value);
+
+    // Update all existing balls to use global size (maintain Rainbow boulder sizes)
+    for (let i = 0; i < balls.length; i++) {
+      if (currentMode !== MODES.BOULDERS) {
+        balls[i].r = globalSize;
+        balls[i].rBase = globalSize;
+      }
+    }
+  }
+
   // Reset balls to spawn positions (preserves all settings)
   function resetBallsToSpawn() {
-    if (currentMode === MODES.RAINBOW) {
-      // For rainbow mode, reinitialize the drop system
-      initializeRainbowMode();
+    if (currentMode === MODES.BOULDERS) {
+      // For boulder mode, reinitialize the drop system
+      initializeBoulderMode();
     } else if (currentMode === MODES.WEIGHTLESS) {
       // For weightless mode, reinitialize with even distribution
       initializeWeightlessScene();
@@ -1804,7 +1820,7 @@
     if (k === '2') setMode(MODES.FLIES);
     if (k === '3') setMode(MODES.TRAIL);
     if (k === '4') setMode(MODES.WEIGHTLESS);
-    if (k === '5') setMode(MODES.RAINBOW);
+    if (k === '5') setMode(MODES.BOULDERS);
   });
 
   // Seed initial balls across the spawn area for quicker fill
@@ -1820,10 +1836,12 @@
 
 
 
-  // Mouse input (unified handler for repeller + trail recording)
+  // Mouse input (unified handler for repeller + trail recording + boulder dragging)
   let lastTrailRecordTime = 0;
   let lastMousePosition = { x: 0, y: 0 };
   let mouseStoppedTime = 0;
+  let draggedBoulder = null; // Currently dragged boulder
+  let dragOffset = { x: 0, y: 0 }; // Offset from mouse to boulder center
   
   canvas.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -1834,16 +1852,83 @@
     if (currentMode === MODES.PIT && repelPower > 0 && repelRadius > 0) {
       repellerEnabled = true;
     }
-    
+
+    // Boulder mode: handle dragging
+    if (currentMode === MODES.BOULDERS) {
+      if (draggedBoulder) {
+        // Apply drag resistance and move boulder
+        const resistance = boulderDragResistance;
+        const dx = mouseX - draggedBoulder.x;
+        const dy = mouseY - draggedBoulder.y;
+
+        // Apply resistance (damping effect)
+        draggedBoulder.vx = dx * (1 - resistance);
+        draggedBoulder.vy = dy * (1 - resistance);
+
+        // Move boulder to mouse position with resistance
+        draggedBoulder.x = mouseX - dragOffset.x;
+        draggedBoulder.y = mouseY - dragOffset.y;
+
+        // Check for collisions with other boulders while dragging
+        for (let i = 0; i < balls.length; i++) {
+          if (balls[i] === draggedBoulder) continue;
+
+          const otherBall = balls[i];
+          const dx = draggedBoulder.x - otherBall.x;
+          const dy = draggedBoulder.y - otherBall.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const minDistance = draggedBoulder.r + otherBall.r;
+
+          if (distance < minDistance) {
+            // Collision detected - push boulders apart
+            const overlap = (minDistance - distance) * 0.5;
+            const nx = dx / distance;
+            const ny = dy / distance;
+
+            draggedBoulder.x += nx * overlap;
+            draggedBoulder.y += ny * overlap;
+            otherBall.x -= nx * overlap;
+            otherBall.y -= ny * overlap;
+
+            // Apply collision response (bounce)
+            const relativeVx = draggedBoulder.vx - otherBall.vx;
+            const relativeVy = draggedBoulder.vy - otherBall.vy;
+            const speed = relativeVx * nx + relativeVy * ny;
+
+            if (speed < 0) continue; // Objects separating
+
+            const impulse = 2 * speed / (draggedBoulder.m + otherBall.m);
+            draggedBoulder.vx -= impulse * otherBall.m * nx;
+            draggedBoulder.vy -= impulse * otherBall.m * ny;
+            otherBall.vx += impulse * draggedBoulder.m * nx;
+            otherBall.vy += impulse * draggedBoulder.m * ny;
+          }
+        }
+      } else {
+        // Check if mouse is over a boulder for potential dragging
+        for (let i = 0; i < balls.length; i++) {
+          const ball = balls[i];
+          const dx = mouseX - ball.x;
+          const dy = mouseY - ball.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance <= ball.r) {
+            // Mouse is over a boulder - start dragging on next click
+            break;
+          }
+        }
+      }
+    }
+
     // Trail mode: record mouse path with movement detection
     if (currentMode === MODES.TRAIL) {
       const now = performance.now() / 1000; // seconds
-      
+
       // Check if mouse has actually moved (not just jitter)
       const dx = mouseX - lastMousePosition.x;
       const dy = mouseY - lastMousePosition.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      
+
       // Only record if mouse has moved significantly
       if (distance > 2) { // 2 pixel threshold to filter out jitter
         mouseTrail.push({ x: mouseX, y: mouseY, time: now });
@@ -1856,8 +1941,8 @@
       }
     }
   });
-  canvas.addEventListener('mouseleave', () => { 
-    mouseX = CONSTANTS.OFFSCREEN_MOUSE; 
+  canvas.addEventListener('mouseleave', () => {
+    mouseX = CONSTANTS.OFFSCREEN_MOUSE;
     mouseY = CONSTANTS.OFFSCREEN_MOUSE;
     if (currentMode === MODES.TRAIL) {
       mouseTrail = [];
@@ -1865,6 +1950,37 @@
       // Reset particle pool when mouse leaves
       resetTrailParticlePool();
     }
+    // Stop dragging when mouse leaves
+    draggedBoulder = null;
+  });
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (currentMode === MODES.BOULDERS) {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = (e.clientX - rect.left) * DPR;
+      const clickY = (e.clientY - rect.top) * DPR;
+
+      // Check if clicking on a boulder
+      for (let i = 0; i < balls.length; i++) {
+        const ball = balls[i];
+        const dx = clickX - ball.x;
+        const dy = clickY - ball.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance <= ball.r) {
+          // Start dragging this boulder
+          draggedBoulder = ball;
+          dragOffset.x = clickX - ball.x;
+          dragOffset.y = clickY - ball.y;
+          break;
+        }
+      }
+    }
+  });
+
+  canvas.addEventListener('mouseup', () => {
+    // Stop dragging
+    draggedBoulder = null;
   });
 
   // Draw a cursor as a ball matching the simulation style
@@ -2251,7 +2367,7 @@
       updateEffectiveScaleAndBallSizes();
       // Apply mass (Rainbow balls maintain 5x multiplier)
       for (let i=0; i<balls.length; i++) {
-        if (currentMode === MODES.RAINBOW) {
+        if (currentMode === MODES.BOULDERS) {
           balls[i].m = ballMassKg * 5;
         } else {
           balls[i].m = ballMassKg;
@@ -2313,11 +2429,10 @@
         // No variation: all balls exactly the same size
         ball.r = baseSize;
       } else {
-        // Apply variation
-        const range = (R_MAX - R_MIN) / 2;
-        const variedRange = range * sizeVariation;
-        const minR = Math.max(1, baseSize - variedRange);
-        const maxR = baseSize + variedRange;
+        // Apply limited variation (max 10% from global ball size)
+        const maxVariation = baseSize * 0.1; // 10% of global ball size
+        const minR = Math.max(1, baseSize - maxVariation);
+        const maxR = baseSize + maxVariation;
         ball.r = randBetween(minR, maxR);
       }
       
@@ -2381,7 +2496,7 @@
   const fliesControls = document.getElementById('fliesControls');
   const trailControls = document.getElementById('trailControls');
   const weightlessControls = document.getElementById('weightlessControls');
-  const rainbowControls = document.getElementById('rainbowControls');
+  const boulderControls = document.getElementById('boulderControls');
   const gravityPitSlider = document.getElementById('gravityPitSlider');
   const gravityPitVal = document.getElementById('gravityPitVal');
   const repellerEnabledPitEl = document.getElementById('repellerEnabledPit');
@@ -2472,7 +2587,7 @@
     if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
     if (trailControls) trailControls.classList.toggle('active', currentMode === MODES.TRAIL);
     if (weightlessControls) weightlessControls.classList.toggle('active', currentMode === MODES.WEIGHTLESS);
-    if (rainbowControls) rainbowControls.classList.toggle('active', currentMode === MODES.RAINBOW);
+    if (boulderControls) boulderControls.classList.toggle('active', currentMode === MODES.BOULDERS);
     modeButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-mode') === currentMode));
   }
 
@@ -2506,19 +2621,24 @@
       EMITTER_SWEEP_ENABLED = false;
       // Initialize professional weightless scene with even distribution
       initializeWeightlessScene();
-    } else if (currentMode === MODES.RAINBOW) {
-      gravityMultiplier = rainbowGravity;
+    } else if (currentMode === MODES.BOULDERS) {
+      gravityMultiplier = boulderGravity;
       G = GE * gravityMultiplier;
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
-      // Initialize simple rainbow drop system
-      initializeRainbowMode();
+      // Initialize simple boulder drop system
+      initializeBoulderMode();
     }
     updateModeControlsUI();
   }
 
   // Hook up UI listeners (with auto-save on changes)
-  modeButtons.forEach(btn => btn.addEventListener('click', () => { setMode(btn.getAttribute('data-mode')); autoSaveSettings(); }));
+  modeButtons.forEach(btn => btn.addEventListener('click', () => {
+    setMode(btn.getAttribute('data-mode'));
+    // Reset size to global ball size when switching modes
+    resetBallSizeToGlobal();
+    autoSaveSettings();
+  }));
   gravityPitSlider && gravityPitSlider.addEventListener('input', () => {
     gravityMultiplierPit = parseFloat(gravityPitSlider.value);
     gravityPitVal && (gravityPitVal.textContent = gravityMultiplierPit.toFixed(1));
@@ -2532,7 +2652,7 @@
     weightPitVal && (weightPitVal.textContent = ballMassKg.toFixed(2));
     // Apply shared mass to all balls (Rainbow balls maintain 5x multiplier)
     for (let i=0; i<balls.length; i++) {
-      if (currentMode === MODES.RAINBOW) {
+      if (currentMode === MODES.BOULDERS) {
         balls[i].m = ballMassKg * 5; // Rainbow balls stay 5x heavier
       } else {
         balls[i].m = ballMassKg; // Normal mass for other modes
@@ -2607,7 +2727,7 @@
     weightWeightlessVal && (weightWeightlessVal.textContent = ballMassKg.toFixed(2));
     // Apply shared mass to all balls (Rainbow balls maintain 5x multiplier)
     for (let i=0; i<balls.length; i++) {
-      if (currentMode === MODES.RAINBOW) {
+      if (currentMode === MODES.BOULDERS) {
         balls[i].m = ballMassKg * 5; // Rainbow balls stay 5x heavier
       } else {
         balls[i].m = ballMassKg; // Normal mass for other modes
@@ -2639,46 +2759,52 @@
   });
   
   // Rainbow mode sliders
-  const rainbowRandomnessSlider = document.getElementById('rainbowRandomnessSlider');
-  const rainbowRandomnessVal = document.getElementById('rainbowRandomnessVal');
-  const rainbowDropDelaySlider = document.getElementById('rainbowDropDelaySlider');
-  const rainbowDropDelayVal = document.getElementById('rainbowDropDelayVal');
-  const rainbowGravitySlider = document.getElementById('rainbowGravitySlider');
-  const rainbowGravityVal = document.getElementById('rainbowGravityVal');
-  const rainbowBounceSlider = document.getElementById('rainbowBounceSlider');
-  const rainbowBounceVal = document.getElementById('rainbowBounceVal');
+  const boulderRandomnessSlider = document.getElementById('boulderRandomnessSlider');
+  const boulderRandomnessVal = document.getElementById('boulderRandomnessVal');
+  const boulderDropDelaySlider = document.getElementById('boulderDropDelaySlider');
+  const boulderDropDelayVal = document.getElementById('boulderDropDelayVal');
+  const boulderGravitySlider = document.getElementById('boulderGravitySlider');
+  const boulderGravityVal = document.getElementById('boulderGravityVal');
+  const boulderBounceSlider = document.getElementById('boulderBounceSlider');
+  const boulderBounceVal = document.getElementById('boulderBounceVal');
+  const boulderDragSlider = document.getElementById('boulderDragSlider');
+  const boulderDragVal = document.getElementById('boulderDragVal');
   
-  rainbowRandomnessSlider && rainbowRandomnessSlider.addEventListener('input', () => {
-    rainbowRandomness = parseFloat(rainbowRandomnessSlider.value);
-    rainbowRandomnessVal && (rainbowRandomnessVal.textContent = rainbowRandomness.toFixed(1));
+  boulderRandomnessSlider && boulderRandomnessSlider.addEventListener('input', () => {
+    boulderRandomness = parseFloat(boulderRandomnessSlider.value);
+    boulderRandomnessVal && (boulderRandomnessVal.textContent = boulderRandomness.toFixed(1));
   });
   
-  weightRainbowSlider && weightRainbowSlider.addEventListener('input', () => {
-    ballMassKg = parseFloat(weightRainbowSlider.value);
-    weightRainbowVal && (weightRainbowVal.textContent = ballMassKg.toFixed(2));
-    // Apply shared mass to Rainbow balls (maintaining 5x multiplier)
+  weightBoulderSlider && weightBoulderSlider.addEventListener('input', () => {
+    ballMassKg = parseFloat(weightBoulderSlider.value);
+    weightBoulderVal && (weightBoulderVal.textContent = ballMassKg.toFixed(2));
+    // Apply shared mass to Boulder balls (maintaining 5x multiplier)
     for (let i=0; i<balls.length; i++) {
-      balls[i].m = ballMassKg * 5; // Rainbow balls are 5x heavier
+      balls[i].m = ballMassKg * 5; // Boulder balls are 5x heavier
     }
     // Recompute derived scaling so gravity visibly changes with weight
     recomputeMassDerivedScales();
     autoSaveSettings();
   });
-  rainbowDropDelaySlider && rainbowDropDelaySlider.addEventListener('input', () => {
-    rainbowDropDelay = parseFloat(rainbowDropDelaySlider.value);
-    rainbowDropDelayVal && (rainbowDropDelayVal.textContent = rainbowDropDelay.toFixed(2));
+  boulderDropDelaySlider && boulderDropDelaySlider.addEventListener('input', () => {
+    boulderDropDelay = parseFloat(boulderDropDelaySlider.value);
+    boulderDropDelayVal && (boulderDropDelayVal.textContent = boulderDropDelay.toFixed(2));
   });
-  rainbowGravitySlider && rainbowGravitySlider.addEventListener('input', () => {
-    rainbowGravity = parseFloat(rainbowGravitySlider.value);
-    rainbowGravityVal && (rainbowGravityVal.textContent = rainbowGravity.toFixed(1));
-    if (currentMode === MODES.RAINBOW) {
-      gravityMultiplier = rainbowGravity;
+  boulderGravitySlider && boulderGravitySlider.addEventListener('input', () => {
+    boulderGravity = parseFloat(boulderGravitySlider.value);
+    boulderGravityVal && (boulderGravityVal.textContent = boulderGravity.toFixed(1));
+    if (currentMode === MODES.BOULDERS) {
+      gravityMultiplier = boulderGravity;
       G = GE * gravityMultiplier;
     }
   });
-  rainbowBounceSlider && rainbowBounceSlider.addEventListener('input', () => {
-    rainbowBounce = parseFloat(rainbowBounceSlider.value);
-    rainbowBounceVal && (rainbowBounceVal.textContent = rainbowBounce.toFixed(2));
+  boulderBounceSlider && boulderBounceSlider.addEventListener('input', () => {
+    boulderBounce = parseFloat(boulderBounceSlider.value);
+    boulderBounceVal && (boulderBounceVal.textContent = boulderBounce.toFixed(2));
+  });
+  boulderDragSlider && boulderDragSlider.addEventListener('input', () => {
+    boulderDragResistance = parseFloat(boulderDragSlider.value);
+    boulderDragVal && (boulderDragVal.textContent = boulderDragResistance.toFixed(2));
   });
 
   // Individual color picker listeners (with existing ball color update)
@@ -2805,7 +2931,7 @@
     updateEffectiveScaleAndBallSizes();
     // Apply mass (Rainbow balls maintain 5x multiplier)
     for (let i=0; i<balls.length; i++) {
-      if (currentMode === MODES.RAINBOW) {
+      if (currentMode === MODES.BOULDERS) {
         balls[i].m = ballMassKg * 5;
       } else {
         balls[i].m = ballMassKg;
