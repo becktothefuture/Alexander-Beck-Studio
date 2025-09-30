@@ -1748,6 +1748,9 @@
     if (currentMode === MODES.RAINBOW) {
       // For rainbow mode, reinitialize the drop system
       rainbowDropSystem.initialize();
+    } else if (currentMode === MODES.WEIGHTLESS) {
+      // For weightless mode, reinitialize with even distribution
+      initializeWeightlessScene();
     } else {
       for (let i = 0; i < balls.length; i++) {
         const ball = balls[i];
@@ -2367,6 +2370,70 @@
   const sparkleScaleSlider = document.getElementById('sparkleScaleSlider');
   const sparkleScaleVal = document.getElementById('sparkleScaleVal');
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROFESSIONAL WEIGHTLESS SCENE INITIALIZATION
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function initializeWeightlessScene() {
+    // Clear existing balls
+    balls.length = 0;
+    
+    // Calculate optimal grid distribution
+    const targetBalls = weightlessMaxBalls;
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    
+    // Calculate grid dimensions for even distribution
+    const aspectRatio = canvasWidth / canvasHeight;
+    const cols = Math.ceil(Math.sqrt(targetBalls * aspectRatio));
+    const rows = Math.ceil(targetBalls / cols);
+    
+    // Calculate spacing and margins
+    const marginX = 40; // Margin from edges
+    const marginY = 40;
+    const availableWidth = canvasWidth - (2 * marginX);
+    const availableHeight = canvasHeight - (2 * marginY);
+    const spacingX = availableWidth / (cols - 1);
+    const spacingY = availableHeight / (rows - 1);
+    
+    // Generate evenly distributed positions
+    const positions = [];
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (positions.length >= targetBalls) break;
+        
+        const x = marginX + (col * spacingX);
+        const y = marginY + (row * spacingY);
+        
+        // Add subtle jitter to avoid perfect grid alignment
+        const jitterX = (Math.random() - 0.5) * spacingX * 0.3;
+        const jitterY = (Math.random() - 0.5) * spacingY * 0.3;
+        
+        positions.push({
+          x: Math.max(20, Math.min(canvasWidth - 20, x + jitterX)),
+          y: Math.max(20, Math.min(canvasHeight - 20, y + jitterY))
+        });
+      }
+    }
+    
+    // Create balls with controlled initial velocities
+    for (let i = 0; i < positions.length; i++) {
+      const pos = positions[i];
+      const ball = spawnBall(pos.x, pos.y);
+      
+      // Generate controlled initial velocity
+      const angle = Math.random() * Math.PI * 2;
+      const speed = weightlessInitialSpeed * (0.5 + Math.random() * 0.5); // 50-100% of max speed
+      
+      ball.vx = Math.cos(angle) * speed;
+      ball.vy = Math.sin(angle) * speed;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+    }
+    
+    console.log(`Weightless scene initialized: ${balls.length} balls distributed evenly across viewport`);
+  }
+
   function updateModeControlsUI() {
     if (pitControls) pitControls.classList.toggle('active', currentMode === MODES.PIT);
     if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
@@ -2402,20 +2469,8 @@
       G = GE * gravityMultiplier;
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
-      // Initialize weightless scene: clear all balls and spawn new ones with random velocities
-      balls.length = 0;
-      for (let i = 0; i < weightlessMaxBalls; i++) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        const ball = spawnBall(x, y);
-        // Give random velocity in any direction
-        const angle = Math.random() * Math.PI * 2;
-        const speed = weightlessInitialSpeed;
-        ball.vx = Math.cos(angle) * speed;
-        ball.vy = Math.sin(angle) * speed;
-        ball.driftAx = 0;
-        ball.driftTime = 0;
-      }
+      // Initialize professional weightless scene with even distribution
+      initializeWeightlessScene();
     } else if (currentMode === MODES.RAINBOW) {
       gravityMultiplier = rainbowGravity;
       G = GE * gravityMultiplier;
@@ -2501,21 +2556,9 @@
   weightlessMaxBallsSlider && weightlessMaxBallsSlider.addEventListener('input', () => {
     weightlessMaxBalls = parseInt(weightlessMaxBallsSlider.value, 10);
     weightlessMaxBallsVal && (weightlessMaxBallsVal.textContent = weightlessMaxBalls.toString());
-    // If in weightless mode, adjust ball count immediately
+    // If in weightless mode, reinitialize with new ball count
     if (currentMode === MODES.WEIGHTLESS) {
-      while (balls.length < weightlessMaxBalls) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        const ball = spawnBall(x, y);
-        const angle = Math.random() * Math.PI * 2;
-        ball.vx = Math.cos(angle) * weightlessInitialSpeed;
-        ball.vy = Math.sin(angle) * weightlessInitialSpeed;
-        ball.driftAx = 0;
-        ball.driftTime = 0;
-      }
-      if (balls.length > weightlessMaxBalls) {
-        balls.length = weightlessMaxBalls;
-      }
+      initializeWeightlessScene();
     }
   });
   weightlessRepelPowerSlider && weightlessRepelPowerSlider.addEventListener('input', () => {
