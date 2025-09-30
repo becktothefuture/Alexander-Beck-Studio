@@ -405,7 +405,7 @@
     if (ballSoftness === 0) return 0; // Completely hard - no squash
     // Linear interpolation: softness 40 = base value (0.20)
     // softness 100 = 2.5× base (0.50)
-    return getSquashMax()_BASE * (ballSoftness / 40.0);
+    return CONSTANTS.SQUASH_MAX_BASE * (ballSoftness / 40.0);
   }
 
   const canvas = document.getElementById('c');
