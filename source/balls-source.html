@@ -1431,12 +1431,10 @@
       // Reuse existing particle
       return trailParticlePool[trailParticlePoolIndex++];
     } else {
-      // Create new particle and add to pool
-      const particle = {
-        x: 0, y: 0, vx: 0, vy: 0, r: 0, rBase: 0,
-        isSparkle: true, spawnTime: 0, lifetime: 0,
-        active: false
-      };
+      // Create new Ball instance and add to pool
+      const particle = new Ball(0, 0, 0, '#ffffff');
+      particle.isSparkle = true;
+      particle.active = false;
       trailParticlePool.push(particle);
       return particle;
     }
@@ -1482,6 +1480,7 @@
       ball.spawnTime = performance.now() / 1000;
       ball.lifetime = sparkleLifetime;
       ball.active = true;
+      ball.color = pickRandomColor(); // Set random color
       
       // Random initial velocity (spread in all directions)
       const spreadAngle = Math.random() * Math.PI * 2;
