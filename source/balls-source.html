@@ -180,22 +180,22 @@
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = rigid, 40 = normal, 100 = very squishy</div>
     </div>
   </details>
-  
+
   <!-- Mode Switcher -->
   <div class="mode-switcher">
     <button class="mode-button active" data-mode="pit">🎯 Pit</button>
     <button class="mode-button" data-mode="flies">🕊️ Flies</button>
-    <button class="mode-button" data-mode="trail" id="trailModeButton">🖱️ Trail</button>
+    <button class="mode-button" data-mode="trail" id="trailModeButton">🎨 Trail</button>
     <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
-    <button class="mode-button" data-mode="rainbow">🌈 Rainbow</button>
-  </div>
+    <button class="mode-button" data-mode="boulders">🪨 Boulders</button>
+    </div>
   
   <!-- Build Controls -->
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
     <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 8px;">💾 Save Config</button>
     <button id="buildBtn" style="background: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">🚀 Build Embed</button>
     <div id="configOutput" style="margin-top: 8px; font-family: monospace; font-size: 10px; color: #333; max-height: 120px; overflow-y: auto; display: none; text-align: left; background: rgba(255,255,255,0.8); padding: 6px; border-radius: 3px;"></div>
-  </div>
+    </div>
   
   <details open>
     <summary>🎨 Colors</summary>
@@ -225,16 +225,7 @@
     </div>
   </details>
   
-  <details open>
-    <summary>🖼️ Scene & Effects</summary>
-    <div class="group">
-        <label title="Maximum number of balls in simulation (50-800). Higher = more crowded, lower = cleaner">Max balls: <span class="val" id="maxBallsVal">800</span><input type="range" id="maxBallsSlider" min="50" max="800" step="25" value="800"></label>
-        <label title="Rounded corner radius for viewport (0-50px). 0 = sharp corners, 50 = very rounded">Corner radius: <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="50" step="2" value="0"></label>
-        <label title="Motion blur trail length (0.0-0.5). 0 = no blur, 0.5 = long trails">Motion blur: <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="0.500" step="0.005" value="0.000"></label>
-        <label title="Motion blur intensity (0.5-2.0x). 0.5 = subtle, 2.0 = very pronounced">Blur intensity: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.50" max="2.00" step="0.05" value="1.00"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Motion blur works in all modes for smooth movement trails</div>
-    </div>
-  </details>
+  
   
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <!-- MODE-SPECIFIC SETTINGS (only apply to active mode)                     -->
@@ -249,6 +240,16 @@
         <label title="Ball mass/weight (0.1-50kg). Heavier = slower acceleration, lighter = more responsive">Weight (kg): <span class="val" id="weightPitVal">11.20</span><input type="range" id="weightPitSlider" min="0.10" max="50.00" step="0.10" value="11.20"></label>
         <label title="Bounce restitution (0.0-1.0). 0 = no bounce, 1.0 = perfect elastic">Bounciness: <span class="val" id="restitutionVal">0.78</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.78"></label>
         <label title="Air resistance (0.000-0.050). 0 = no drag, 0.050 = high drag">Friction: <span class="val" id="frictionVal">0.0025</span><input type="range" id="frictionSlider" min="0.000" max="0.050" step="0.001" value="0.0025"></label>
+      </div>
+    </details>
+    <details open>
+      <summary>🖼️ Scene & Effects</summary>
+      <div class="group">
+        <label title="Maximum number of balls in simulation (50-800). Higher = more crowded, lower = cleaner">Max balls: <span class="val" id="maxBallsVal">800</span><input type="range" id="maxBallsSlider" min="50" max="800" step="25" value="800"></label>
+        <label title="Rounded corner radius for viewport (0-50px). 0 = sharp corners, 50 = very rounded">Corner radius: <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="50" step="2" value="0"></label>
+        <label title="Motion blur trail length (0.0-0.5). 0 = no blur, 0.5 = long trails">Motion blur: <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="0.500" step="0.005" value="0.000"></label>
+        <label title="Motion blur intensity (0.5-2.0x). 0.5 = subtle, 2.0 = very pronounced">Blur intensity: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.50" max="2.00" step="0.05" value="1.00"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Motion blur works in all modes for smooth movement trails</div>
       </div>
     </details>
     <details open>
@@ -285,47 +286,40 @@
     </details>
   </div>
   
-  <div id="trailControls" class="mode-controls">
+  <!-- Trail Mode Controls -->
+  <div id="trailControls" class="modeControls" style="display:none;">
     <details open>
-      <summary>🎨 Interactive Paint Mode</summary>
+      <summary>🎨 Mouse Trail (Print)</summary>
       <div class="group">
-        <label title="Particles emitted per frame when moving (1-20). Higher = denser trails">Emission rate: <span class="val" id="sparkleEmissionVal">8</span><input type="range" id="sparkleEmissionSlider" min="1" max="20" step="1" value="8"></label>
-        <label title="How long particles live (0.5-5.0s). Longer = trails persist, shorter = quick fade">Particle lifetime: <span class="val" id="sparkleLifetimeVal">2.0</span><input type="range" id="sparkleLifetimeSlider" min="0.5" max="5.0" step="0.1" value="2.0"></label>
-        <label title="Initial particle velocity range (20-300px/s). Higher = more spread out trails">Velocity spread: <span class="val" id="sparkleSpreadVal">150</span><input type="range" id="sparkleSpreadSlider" min="20" max="300" step="5" value="150"></label>
-        <label title="Random floating motion strength (0-100). Higher = more erratic movement">Drift strength: <span class="val" id="sparkleDriftVal">30</span><input type="range" id="sparkleDriftSlider" min="0" max="100" step="5" value="30"></label>
-        <label title="Particle size scale (0.2-2.0x). Larger = bigger particles, smaller = finer trails">Particle scale: <span class="val" id="sparkleScaleVal">0.8</span><input type="range" id="sparkleScaleSlider" min="0.2" max="2.0" step="0.05" value="0.8"></label>
-        <label title="Trail glow intensity (0.0-1.0). 0 = subtle, 1.0 = very bright and vibrant">Trail intensity: <span class="val" id="trailIntensityVal">0.3</span><input type="range" id="trailIntensitySlider" min="0.0" max="1.0" step="0.05" value="0.3"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Higher intensity = more vibrant, glowing trails</div>
+        <label title="Number of path points to track (10-200). Higher = longer trail">Trail length: <span class="val" id="trailLengthVal">120</span><input type="range" id="trailLengthSlider" min="10" max="200" step="5" value="120"></label>
+        <label title="Minimum spacing between path points (5-30px). Lower = smoother curves">Point spacing: <span class="val" id="trailSpacingVal">12</span><input type="range" id="trailSpacingSlider" min="5" max="30" step="1" value="12"></label>
+        <label title="Canvas fade speed (0.0-1.0). Higher = shorter visible trails">Fade speed: <span class="val" id="trailModeFadeVal">0.5</span><input type="range" id="trailModeFadeSlider" min="0.0" max="1.0" step="0.05" value="0.5"></label>
       </div>
     </details>
   </div>
   
-  <div id="weightlessControls" class="mode-controls">
+  <!-- Weightless Mode Controls -->
+  <div id="weightlessControls" class="modeControls" style="display:none;">
     <details open>
-      <summary>🌌 Weightless (Zero-G) Mode</summary>
+      <summary>🌌 Weightless Bounce</summary>
       <div class="group">
-        <label title="Initial ball velocity when scene loads (100-800px/s). Higher = more energetic start">Initial speed: <span class="val" id="weightlessSpeedVal">400</span><input type="range" id="weightlessSpeedSlider" min="100" max="800" step="25" value="400"></label>
-        <label title="Ball mass/weight in zero gravity (0.1-50kg). Affects collision response">Weight (kg): <span class="val" id="weightWeightlessVal">11.20</span><input type="range" id="weightWeightlessSlider" min="0.10" max="50.00" step="0.10" value="11.20"></label>
-        <label title="Wall bounce restitution (0.7-1.0). 0.7 = some energy loss, 1.0 = perfect bounce">Wall bounce: <span class="val" id="weightlessBounceVal">0.98</span><input type="range" id="weightlessBounceSlider" min="0.70" max="1.00" step="0.01" value="0.98"></label>
-        <label title="Number of balls in zero-G scene (50-400). More = crowded space">Ball count: <span class="val" id="weightlessMaxBallsVal">300</span><input type="range" id="weightlessMaxBallsSlider" min="50" max="400" step="25" value="300"></label>
-        <label title="Mouse repeller strength (0-1500). 0 = no effect, 1500 = strong repulsion">Repeller power: <span class="val" id="weightlessRepelPowerVal">800</span><input type="range" id="weightlessRepelPowerSlider" min="0" max="1500" step="50" value="800"></label>
-        <label title="Mouse repeller radius (50-250px). Larger = affects more balls">Repeller radius: <span class="val" id="weightlessRepelRadiusVal">120</span><input type="range" id="weightlessRepelRadiusSlider" min="50" max="250" step="10" value="120"></label>
+        <label title="Number of balls in scene (20-200). Fixed count, no spawning">Ball count: <span class="val" id="weightlessCountVal">80</span><input type="range" id="weightlessCountSlider" min="20" max="200" step="10" value="80"></label>
+        <label title="Initial velocity magnitude (50-500px/s). Higher = faster motion">Initial speed: <span class="val" id="weightlessSpeedVal">200</span><input type="range" id="weightlessSpeedSlider" min="50" max="500" step="25" value="200"></label>
+        <label title="Wall bounce elasticity (0.7-1.0). 1.0 = perfect bounce">Bounce elasticity: <span class="val" id="weightlessBounceVal">0.98</span><input type="range" id="weightlessBounceSlider" min="0.7" max="1.0" step="0.02" value="0.98"></label>
+        <label title="Repeller strength (0-800). 0 = disabled">Repeller power: <span class="val" id="weightlessRepelVal">300</span><input type="range" id="weightlessRepelSlider" min="0" max="800" step="50" value="300"></label>
+        <label title="Repeller radius (50-300px). Larger = wider push area">Repeller radius: <span class="val" id="weightlessRepelRadiusVal">150</span><input type="range" id="weightlessRepelRadiusSlider" min="50" max="300" step="10" value="150"></label>
       </div>
     </details>
   </div>
   
-  <div id="boulderControls" class="mode-controls">
+  <!-- Boulders Mode Controls -->
+  <div id="bouldersControls" class="modeControls" style="display:none;">
     <details open>
-      <summary>🪨 Falling Boulders</summary>
+      <summary>🌈 Rainbow Drop</summary>
       <div class="group">
-        <label title="Size distribution randomness (0.0-1.0). 0 = equal sizes, 1.0 = fully random">Randomness: <span class="val" id="boulderRandomnessVal">1.0</span><input type="range" id="boulderRandomnessSlider" min="0.0" max="1.0" step="0.1" value="1.0"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">0 = equal size steps, 1 = random distribution</div>
-        <label title="Boulder mass/weight (0.1-50kg). Heavier = more realistic boulder physics">Weight (kg): <span class="val" id="weightBoulderVal">11.20</span><input type="range" id="weightBoulderSlider" min="0.10" max="50.00" step="0.10" value="11.20"></label>
-        <label title="Time between boulder drops (0.1-2.0s). Longer = more spaced out drops">Drop delay: <span class="val" id="boulderDropDelayVal">0.30</span><input type="range" id="boulderDropDelaySlider" min="0.10" max="2.0" step="0.05" value="0.30"></label>
-        <label title="Drag resistance when dragging (0.8-0.99). Higher = more weight/inertia feel">Drag resistance: <span class="val" id="boulderDragVal">0.95</span><input type="range" id="boulderDragSlider" min="0.80" max="0.99" step="0.01" value="0.95"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Higher = more resistance when dragging boulders</div>
-        <label title="Gravity strength for boulders (0.5-3.0x Earth). Higher = faster falling">Gravity: <span class="val" id="boulderGravityVal">1.2</span><input type="range" id="boulderGravitySlider" min="0.5" max="3.0" step="0.05" value="1.2"></label>
-        <label title="Boulder bounce restitution (0.0-0.8). 0 = no bounce, 0.8 = very bouncy">Bounce: <span class="val" id="boulderBounceVal">0.30</span><input type="range" id="boulderBounceSlider" min="0.00" max="0.80" step="0.05" value="0.30"></label>
+        <label title="Time delay between drops (0.2-3.0s). Slower = more dramatic">Drop delay: <span class="val" id="bouldersDelayVal">0.8</span><input type="range" id="bouldersDelaySlider" min="0.2" max="3.0" step="0.1" value="0.8"></label>
+        <label title="Gravity strength (0.5-3.0x). Higher = faster fall">Gravity: <span class="val" id="bouldersGravityVal">1.5</span><input type="range" id="bouldersGravitySlider" min="0.5" max="3.0" step="0.1" value="1.5"></label>
+        <label title="Size variation (0.0-1.0). Higher = more variety in ball sizes">Size variety: <span class="val" id="bouldersSizeVarietyVal">0.4</span><input type="range" id="bouldersSizeVarietySlider" min="0.0" max="1.0" step="0.1" value="0.4"></label>
       </div>
     </details>
   </div>
@@ -377,29 +371,23 @@
   let orbitRadius = 150;
   let swarmSpeed = 1.0;
   
-  // Interactive Paint mode parameters
-  let sparkleEmissionRate = 8; // particles per frame when moving
-  let sparkleLifetime = 2.0; // seconds before fade complete
-  let sparkleVelocitySpread = 150; // initial random velocity magnitude
-  let sparkleDriftStrength = 30; // gentle floating motion
-  let sparkleParticleScale = 0.8; // smaller than normal balls
-  let trailIntensity = 0.3; // trail vibrancy (0-1)
-  // Track only recent mouse samples to estimate velocity for sparkle emission
-  let mouseTrail = []; // Array<{x:number,y:number,time:number}>
-  const MAX_MOUSE_TRAIL_LENGTH = 6; // small buffer keeps calc cheap and responsive
-  // Weightless mode parameters
-  let weightlessInitialSpeed = 400; // initial velocity magnitude (px/s)
-  let weightlessBounce = 0.98; // wall bounce restitution (very elastic)
-  let weightlessMaxBalls = 300; // number of balls in scene
-  let weightlessRepellerPower = 800; // subtle mouse repeller strength
-  let weightlessRepellerRadius = 120; // small repeller radius (px)
+  // Trail mode parameters (Mouse Trail / Print)
+  let trailPath = []; // Array<{x:number,y:number}>
+  let TRAIL_MAX_POINTS = 120; // number of path points to track
+  let trailMinSpacing = 12; // px between recorded points
+  let trailFade = 0.5; // fade speed (0-1)
   
-  // Boulder mode parameters
-  let boulderRandomness = 1.0; // randomness factor for size distribution (0 = equal steps, 1 = random)
-  let boulderDropDelay = 0.30; // delay between each boulder drop (seconds) - minimum 0.3s enforced
-  let boulderGravity = 1.2; // gravity multiplier for boulder mode
-  let boulderBounce = 0.3; // bounce restitution for boulder mode (lower for rock-like settling)
-  let boulderDragResistance = 0.95; // drag resistance when dragging boulders (0.8-0.99)
+  // Weightless mode parameters
+  let weightlessCount = 80; // fixed number of balls
+  let weightlessInitialSpeed = 200; // initial velocity magnitude (px/s)
+  let weightlessBounce = 0.98; // wall bounce restitution (very elastic)
+  let weightlessRepellerPower = 300; // subtle mouse repeller strength
+  let weightlessRepellerRadius = 150; // repeller radius (px)
+  
+  // Boulders (Rainbow Drop) mode parameters
+  let bouldersDropDelay = 0.8; // delay between each drop (seconds)
+  let bouldersGravity = 1.5; // gravity multiplier
+  let bouldersSizeVariety = 0.4; // size variation (0-1)
   
   // Mass constants (needed before CONSTANTS object)
   const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
@@ -521,7 +509,7 @@
       for (let i = 0; i < balls.length; i++) {
         // Don't scale Rainbow mode balls - they have fixed sizes
         if (currentMode !== MODES.BOULDERS) {
-          balls[i].r *= ratio;
+        balls[i].r *= ratio;
         }
       }
       lastEffectiveScale = effectiveScale;
@@ -814,8 +802,8 @@
   // Text collision system
   const TEXT_SELECTOR = '#hero-text'; // ID selector for the main text element
   let textColliders = []; // Array of text collision rectangles
-  // Temporal trail for simple motion blur (0 = off, up to ~0.25)
-  let trailFade = 0.025; // from screenshot
+  // Motion blur parameters
+  let motionBlurFade = 0.025; // from screenshot (was trailFade)
   let trailSubtlety = 1.80; // from screenshot
   
   // Performance optimizations and FPS tracking
@@ -920,9 +908,9 @@
         const rollTarget = this.vx / this.r;
         this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
       }
-      // Top wall collision at visible viewport top (not canvas top)
-      // Canvas is 150vh, visible viewport is bottom 100vh, so top is at 1/3 of canvas height
-      const viewportTop = h / 3; // 50vh offset from 150vh canvas
+      // Top wall collision aligned to the visible viewport top, regardless of canvas strategy
+      // Compute the viewport top in canvas pixels using the current clientHeight and DPR
+      const viewportTop = Math.max(0, h - (canvas.clientHeight * DPR));
       if (this.y - this.r < viewportTop) { 
         this.y = viewportTop + this.r; 
         const preVy = this.vy;
@@ -1206,21 +1194,21 @@
         }
       } else {
         // Regular ball rendering
-        // World-aligned squash/stretch only if significant
+      // World-aligned squash/stretch only if significant
         const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
-        if (amt > 0.001) {
-          // Area-preserving squash: s * (1/s) maintains roundness perception
-          const s = 1 + amt;
-          const inv = 1 / s;
-          ctx.rotate(this.squashNormalAngle);
-          ctx.scale(s, inv);
-          ctx.rotate(-this.squashNormalAngle);
-        }
-        // Body
-        ctx.beginPath();
-        ctx.arc(0, 0, this.r, 0, Math.PI*2);
-        ctx.fillStyle = this.color;
-        ctx.fill();
+      if (amt > 0.001) {
+        // Area-preserving squash: s * (1/s) maintains roundness perception
+        const s = 1 + amt;
+        const inv = 1 / s;
+        ctx.rotate(this.squashNormalAngle);
+        ctx.scale(s, inv);
+        ctx.rotate(-this.squashNormalAngle);
+      }
+      // Body
+      ctx.beginPath();
+      ctx.arc(0, 0, this.r, 0, Math.PI*2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
       }
 
       // Spin indicator removed for cleaner visuals and performance
@@ -1313,99 +1301,59 @@
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // FALLING BOULDERS SYSTEM (using Ball Pit collision code)
+  // RAINBOW DROP SYSTEM (Mode 5)
+  // Sequential drop, one ball per color, auto-reset when complete
   // ═══════════════════════════════════════════════════════════════════════════
   
-  let boulderDropIndex = 0;
-  let boulderLastDropTime = 0;
-  let boulderIsActive = false;
+  let rainbowDropIndex = 0;
+  let rainbowLastDropTime = 0;
+  let rainbowIsActive = false;
   
-  // Simple Boulder initialization
-  function initializeBoulderMode() {
+  function initializeRainbowMode() {
     balls.length = 0;
-    boulderDropIndex = 0;
-    boulderLastDropTime = 0;
-    boulderIsActive = true;
+    rainbowDropIndex = 0;
+    rainbowLastDropTime = 0;
+    rainbowIsActive = true;
   }
   
-  // Drop next Boulder
-  function dropNextBoulder() {
-    if (boulderDropIndex >= currentColors.length || !boulderIsActive) return false;
-
-    // Calculate section width for positioning
-    const sectionWidth = canvas.width / currentColors.length;
-
-    // Calculate size based on randomness setting first
-    const maxSize = Math.min(canvas.height * 0.2, canvas.width * 0.2);
-    const minSize = 15 * DPR;
-    let size;
-
-    if (boulderRandomness === 0) {
-      // Equal steps
-      const t = boulderDropIndex / (currentColors.length - 1);
-      size = maxSize - t * (maxSize - minSize);
-    } else {
-      // Random distribution
-      const baseT = boulderDropIndex / (currentColors.length - 1);
-      const randomT = baseT + (Math.random() - 0.5) * boulderRandomness * 0.3;
-      const t = Math.max(0, Math.min(1, randomT));
-      size = maxSize - t * (maxSize - minSize);
+  function dropNextRainbowBall() {
+    if (!rainbowIsActive) return false;
+    
+    // Auto-reset: if all colors dropped, restart sequence
+    if (rainbowDropIndex >= currentColors.length) {
+      rainbowDropIndex = 0;
+      balls.length = 0; // clear scene for fresh cycle
+      rainbowLastDropTime = performance.now() / 1000;
+      return false; // wait for next cycle
     }
 
-    // Check if any existing balls are too close to the drop position (prevent overlapping)
-    const centerX = sectionWidth * boulderDropIndex + sectionWidth * 0.5;
+    // Calculate size with variety
+    const baseSize = sizeScale * DPR * 30;
+    const variety = bouldersSizeVariety;
+    const t = rainbowDropIndex / Math.max(1, currentColors.length - 1);
+    const sizeMultiplier = 1.0 + (Math.random() - 0.5) * variety;
+    const size = baseSize * sizeMultiplier;
 
-    for (let i = 0; i < balls.length; i++) {
-      const existingBall = balls[i];
-      const distance = Math.sqrt(Math.pow(existingBall.x - centerX, 2) + Math.pow(existingBall.y - (-100), 2));
-      const minDistance = (existingBall.r + size) * 1.5; // 1.5x radius for safety margin
+    // Sequential horizontal spacing across viewport
+    const spacing = canvas.width / (currentColors.length + 1);
+    const dropX = spacing * (rainbowDropIndex + 1);
+    const dropY = -size - 100; // spawn above viewport
 
-      if (distance < minDistance) {
-        // Too close to existing ball, delay drop
-        return false;
-      }
-    }
-
-    // Drop position - ensure balls drop individually from far outside viewport
-    // (centerX already calculated above for overlap check)
-
-    // Add jitter but ensure minimum spacing from edges and other balls
-    const maxJitter = Math.min(sectionWidth * 0.3, 100); // Limit jitter to 30% of section or 100px
-    const jitter = (Math.random() - 0.5) * maxJitter * 2;
-    const dropX = Math.max(size + 20, Math.min(canvas.width - size - 20, centerX + jitter));
-
-    // Drop from far outside viewport to ensure clean entry
-    const dropY = -size - 150; // Much higher up for clean individual drops
-
-    // Create ball directly with proper constructor for Rainbow mode
+    // Create ball
     const ball = new Ball(dropX, dropY, size, currentColors[rainbowDropIndex]);
-
-    // Set heavy mass for rock-like behavior
-    ball.m = ballMassKg * 5; // 5x heavier than normal balls
-
-    // Override initial velocities for clean individual drops
-    ball.vx = (Math.random() - 0.5) * 40; // very subtle random horizontal velocity
-    ball.vy = 0; // start with no vertical velocity, let gravity do the work
-    ball.driftAx = 0; // no drift acceleration
-    ball.driftTime = 0; // no drift time
-
-    // Add to balls array
+    ball.vx = 0;
+    ball.vy = 0;
     balls.push(ball);
 
-    boulderDropIndex++;
-    boulderLastDropTime = performance.now() / 1000;
-
+    rainbowDropIndex++;
+    rainbowLastDropTime = performance.now() / 1000;
     return true;
   }
   
-  // Check if ready to drop next boulder
-  function shouldDropBoulder() {
-    if (!boulderIsActive || boulderDropIndex >= currentColors.length) return false;
-
-    // Ensure minimum delay between drops to prevent overlapping
+  function shouldDropRainbowBall() {
+    if (!rainbowIsActive) return false;
     const now = performance.now() / 1000;
-    const minDelay = Math.max(boulderDropDelay, 0.3); // Minimum 0.3 seconds between drops
-    return (now - boulderLastDropTime) >= minDelay;
+    return (now - rainbowLastDropTime) >= bouldersDropDelay;
   }
   
 
@@ -1466,83 +1414,40 @@
     }
   }
   
-  // Sparkle Trail emission: emit particles from cursor based on mouse movement
-  function emitSparkles(dt) {
-    // Only emit if mouse is on-screen and moving
-    if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
-    
-    // Need at least 2 points to calculate velocity
-    if (mouseTrail.length < 2) return;
-    
-    // Check if mouse has been stopped for too long (0.1 seconds)
-    const now = performance.now() / 1000;
-    if (mouseStoppedTime > 0 && (now - mouseStoppedTime) > 0.1) {
-      return; // Mouse has been stopped for too long
-    }
-    
-    // Calculate mouse velocity using the most recent movement
-    const latest = mouseTrail[mouseTrail.length - 1];
-    const prev = mouseTrail[mouseTrail.length - 2];
-    const dtx = Math.max(1e-3, (latest.time - prev.time)); // seconds
-    const mouseVx = (latest.x - prev.x) / dtx;
-    const mouseVy = (latest.y - prev.y) / dtx;
-    const mouseSpeed = Math.sqrt(mouseVx * mouseVx + mouseVy * mouseVy);
-    
-    // Only emit if mouse is actively moving (higher threshold for more responsive stopping)
-    if (mouseSpeed < CONSTANTS.MIN_MOUSE_SPEED_FOR_TRAIL) return;
-    
-    // Emit multiple particles per frame based on emission rate
-    const particlesToEmit = sparkleEmissionRate;
-    for (let i = 0; i < particlesToEmit; i++) {
-      // Get recycled particle or create new one
-      const ball = getTrailParticle();
-
-      // Reset and configure particle with enhanced properties
-      ball.x = mouseX;
-      ball.y = mouseY;
-      ball.isSparkle = true;
-      ball.spawnTime = performance.now() / 1000;
-      ball.lifetime = sparkleLifetime;
-      ball.active = true;
-
-      // Use current color palette for more cohesive trails
-      ball.color = currentColors[Math.floor(Math.random() * currentColors.length)];
-
-      // Create more interesting velocity patterns
-      const baseAngle = Math.random() * Math.PI * 2;
-      const angleVariation = (Math.random() - 0.5) * Math.PI * 0.5; // ±45 degrees
-      const spreadAngle = baseAngle + angleVariation;
-
-      // Vary magnitude based on mouse speed for more dynamic trails
-      const speedMultiplier = Math.min(2, Math.max(0.5, mouseSpeed / 100));
-      const spreadMagnitude = sparkleVelocitySpread * speedMultiplier * (0.3 + Math.random() * 0.7);
-
-      ball.vx = Math.cos(spreadAngle) * spreadMagnitude;
-      ball.vy = Math.sin(spreadAngle) * spreadMagnitude;
-
-      // Scale particles for better visibility
-      ball.r = (R_MIN + R_MAX) / 2 * sparkleParticleScale;
-      ball.rBase = ball.r;
-
-      // Add subtle rotation for sparkle effect
-      ball.theta = Math.random() * Math.PI * 2;
-
-      // Add to active balls array
-      balls.push(ball);
+  // Trail: path-follow controller (replaces sparkle emission)
+  function trailFollow(dt) {
+    if (trailPath.length < 2) return;
+    // Each existing ball steers toward nearest recent path point
+    for (let i = 0; i < balls.length; i++) {
+      const b = balls[i];
+      let nearestIdx = -1;
+      let nearestD2 = Infinity;
+      for (let j = 0; j < trailPath.length; j++) {
+        const p = trailPath[j];
+        const dx = p.x - b.x; const dy = p.y - b.y;
+        const d2 = dx*dx + dy*dy;
+        if (d2 < nearestD2) { nearestD2 = d2; nearestIdx = j; }
+      }
+      if (nearestIdx >= 0) {
+        const p = trailPath[nearestIdx];
+        const steer = 4 * DT; // gentle steering factor
+        b.vx += (p.x - b.x) * steer;
+        b.vy += (p.y - b.y) * steer;
+      }
     }
   }
   
   function emit(dt) {
-    // Trail (Sparkle) mode: emit sparkles from cursor
+    // Trail (Path-follow) mode
     if (currentMode === MODES.TRAIL) {
-      emitSparkles(dt);
+      trailFollow(dt);
       return;
     }
     
-    // Rainbow mode: simple drop system
+    // Rainbow mode: sequential drop system
     if (currentMode === MODES.BOULDERS) {
-      if (shouldDropBoulder()) {
-        dropNextBoulder();
+      if (shouldDropRainbowBall()) {
+        dropNextRainbowBall();
       }
       return;
     }
@@ -1731,7 +1636,7 @@
     // Physics iterations optimized for realistic, stable simulation
     let physicsSteps = 0;
     while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
-      for (let i=0; i<balls.length; i++) balls[i].step(DT);
+        for (let i=0; i<balls.length; i++) balls[i].step(DT);
       
       // Ball-to-ball collisions (disabled for Flies and Trail modes)
       if (currentMode !== MODES.FLIES && currentMode !== MODES.TRAIL) {
@@ -1740,8 +1645,7 @@
       
       // Wall collisions (disabled for Trail mode - particles drift off-screen)
       if (currentMode !== MODES.TRAIL) {
-        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce :
-                                (currentMode === MODES.BOULDERS) ? boulderBounce : REST;
+        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
         for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
       }
       
@@ -1765,23 +1669,14 @@
     // Reset accumulator if we're falling behind
     if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
 
-    // Clear or fade canvas for motion blur trail
-    if (trailFade > 0 && trailSubtlety > 0) {
-      // Map sliders to effective fade alpha
-      const TRAIL_FADE_UI_MAX = 1.5;      // slider max for trail length
-      const TRAIL_SUBTLE_UI_MAX = 3.0;    // slider max for subtlety
-      const maxAlpha = 0.35;              // shortest trail (more aggressive clear)
-      const minAlpha = 0.0015;            // longest trail (very subtle clear)
-      const normLen = Math.max(0, Math.min(1, trailFade / TRAIL_FADE_UI_MAX));
-      const baseFade = maxAlpha + (minAlpha - maxAlpha) * normLen; // low slider -> big fade
-      const subtleNorm = Math.max(0, Math.min(1, trailSubtlety / TRAIL_SUBTLE_UI_MAX));
-      // Blend between full clear (1.0 alpha) at low subtlety and baseFade at high subtlety
-      let effectiveFade = 1.0 + (baseFade - 1.0) * subtleNorm;
-      // Clamp to safe bounds
-      effectiveFade = Math.max(0.001, Math.min(1.0, effectiveFade));
-      ctx.fillStyle = `rgba(0,0,0,${effectiveFade})`;
+    // Trail canvas fade for ribbon look
+    if (currentMode === MODES.TRAIL) {
+      const maxAlpha = 0.28, minAlpha = 0.002;
+      const norm = Math.max(0, Math.min(1, trailFade));
+      const a = maxAlpha + (minAlpha - maxAlpha) * norm;
+      ctx.fillStyle = `rgba(0,0,0,${a})`;
       ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.globalCompositeOperation = 'source-over';
     } else {
       ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -1836,29 +1731,29 @@
   // Reset balls to spawn positions (preserves all settings)
   function resetBallsToSpawn() {
     if (currentMode === MODES.BOULDERS) {
-      // For boulder mode, reinitialize the drop system
-      initializeBoulderMode();
+      // For rainbow mode, reinitialize the drop system
+      initializeRainbowMode();
     } else if (currentMode === MODES.WEIGHTLESS) {
       // For weightless mode, reinitialize with even distribution
       initializeWeightlessScene();
     } else {
-      for (let i = 0; i < balls.length; i++) {
-        const ball = balls[i];
-        const p = pickSpawnPoint();
-        ball.x = p.x;
-        ball.y = p.y;
-        // Re-apply natural entry throw on reset (sweep-aware, size-aware)
-        const centerX = canvas.width * 0.5;
-        const dir = EMITTER_SWEEP_ENABLED ? (emitterSweepDir >= 0 ? 1 : -1) : ((ball.x < centerX) ? 1 : -1);
-        const sizeInfluence = clamp((ball.r / ((R_MIN + R_MAX) * 0.5)), 0.6, 1.4);
-        const baseKick = 140 * sizeInfluence;
-        const randKick = 180 * sizeInfluence;
-        const upwardKick = 120;
-        ball.vx = dir * (baseKick + Math.random() * randKick);
-        ball.vy = -Math.random() * upwardKick;
-        ball.age = 0;
-        ball.driftAx = dir * (360 + Math.random() * 420) * sizeInfluence;
-        ball.driftTime = 0.22 + Math.random() * 0.28;
+    for (let i = 0; i < balls.length; i++) {
+      const ball = balls[i];
+      const p = pickSpawnPoint();
+      ball.x = p.x;
+      ball.y = p.y;
+      // Re-apply natural entry throw on reset (sweep-aware, size-aware)
+      const centerX = canvas.width * 0.5;
+      const dir = EMITTER_SWEEP_ENABLED ? (emitterSweepDir >= 0 ? 1 : -1) : ((ball.x < centerX) ? 1 : -1);
+      const sizeInfluence = clamp((ball.r / ((R_MIN + R_MAX) * 0.5)), 0.6, 1.4);
+      const baseKick = 140 * sizeInfluence;
+      const randKick = 180 * sizeInfluence;
+      const upwardKick = 120;
+      ball.vx = dir * (baseKick + Math.random() * randKick);
+      ball.vy = -Math.random() * upwardKick;
+      ball.age = 0;
+      ball.driftAx = dir * (360 + Math.random() * 420) * sizeInfluence;
+      ball.driftTime = 0.22 + Math.random() * 0.28;
       }
     }
   }
@@ -1900,8 +1795,6 @@
   let lastTrailRecordTime = 0;
   let lastMousePosition = { x: 0, y: 0 };
   let mouseStoppedTime = 0;
-  let draggedBoulder = null; // Currently dragged boulder
-  let dragOffset = { x: 0, y: 0 }; // Offset from mouse to boulder center
   
   canvas.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -1913,135 +1806,27 @@
       repellerEnabled = true;
     }
 
-    // Boulder mode: handle dragging
-    if (currentMode === MODES.BOULDERS) {
-      if (draggedBoulder) {
-        // Apply drag resistance and move boulder
-        const resistance = boulderDragResistance;
-        const dx = mouseX - draggedBoulder.x;
-        const dy = mouseY - draggedBoulder.y;
 
-        // Apply resistance (damping effect)
-        draggedBoulder.vx = dx * (1 - resistance);
-        draggedBoulder.vy = dy * (1 - resistance);
-
-        // Move boulder to mouse position with resistance
-        draggedBoulder.x = mouseX - dragOffset.x;
-        draggedBoulder.y = mouseY - dragOffset.y;
-
-        // Check for collisions with other boulders while dragging
-        for (let i = 0; i < balls.length; i++) {
-          if (balls[i] === draggedBoulder) continue;
-
-          const otherBall = balls[i];
-          const dx = draggedBoulder.x - otherBall.x;
-          const dy = draggedBoulder.y - otherBall.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          const minDistance = draggedBoulder.r + otherBall.r;
-
-          if (distance < minDistance) {
-            // Collision detected - push boulders apart
-            const overlap = (minDistance - distance) * 0.5;
-            const nx = dx / distance;
-            const ny = dy / distance;
-
-            draggedBoulder.x += nx * overlap;
-            draggedBoulder.y += ny * overlap;
-            otherBall.x -= nx * overlap;
-            otherBall.y -= ny * overlap;
-
-            // Apply collision response (bounce)
-            const relativeVx = draggedBoulder.vx - otherBall.vx;
-            const relativeVy = draggedBoulder.vy - otherBall.vy;
-            const speed = relativeVx * nx + relativeVy * ny;
-
-            if (speed < 0) continue; // Objects separating
-
-            const impulse = 2 * speed / (draggedBoulder.m + otherBall.m);
-            draggedBoulder.vx -= impulse * otherBall.m * nx;
-            draggedBoulder.vy -= impulse * otherBall.m * ny;
-            otherBall.vx += impulse * draggedBoulder.m * nx;
-            otherBall.vy += impulse * draggedBoulder.m * ny;
-          }
-        }
-      } else {
-        // Check if mouse is over a boulder for potential dragging
-        for (let i = 0; i < balls.length; i++) {
-          const ball = balls[i];
-          const dx = mouseX - ball.x;
-          const dy = mouseY - ball.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance <= ball.r) {
-            // Mouse is over a boulder - start dragging on next click
-            break;
-          }
-        }
-      }
-    }
-
-    // Trail mode: record mouse path with movement detection
+    // Trail mode: record path points with spacing
     if (currentMode === MODES.TRAIL) {
-      const now = performance.now() / 1000; // seconds
-
-      // Check if mouse has actually moved (not just jitter)
-      const dx = mouseX - lastMousePosition.x;
-      const dy = mouseY - lastMousePosition.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      // Only record if mouse has moved significantly
-      if (distance > 2) { // 2 pixel threshold to filter out jitter
-        mouseTrail.push({ x: mouseX, y: mouseY, time: now });
-        if (mouseTrail.length > MAX_MOUSE_TRAIL_LENGTH) mouseTrail.shift();
-        lastMousePosition = { x: mouseX, y: mouseY };
-        mouseStoppedTime = 0; // Reset stopped timer
-      } else {
-        // Mouse hasn't moved much - increment stopped time
-        mouseStoppedTime = now;
+      if (trailPath.length === 0) {
+        trailPath.push({ x: mouseX, y: mouseY });
+  } else {
+        const last = trailPath[trailPath.length - 1];
+        const dx = mouseX - last.x; const dy = mouseY - last.y;
+        if (dx*dx + dy*dy >= trailMinSpacing * trailMinSpacing) {
+          trailPath.push({ x: mouseX, y: mouseY });
+          if (trailPath.length > TRAIL_MAX_POINTS) trailPath.shift();
+        }
       }
     }
   });
   canvas.addEventListener('mouseleave', () => {
     mouseX = CONSTANTS.OFFSCREEN_MOUSE;
     mouseY = CONSTANTS.OFFSCREEN_MOUSE;
-    if (currentMode === MODES.TRAIL) {
-      mouseTrail = [];
-      mouseStoppedTime = 0;
-      // Reset particle pool when mouse leaves
-      resetTrailParticlePool();
-    }
-    // Stop dragging when mouse leaves
-    draggedBoulder = null;
+    if (currentMode === MODES.TRAIL) { trailPath = []; }
   });
 
-  canvas.addEventListener('mousedown', (e) => {
-    if (currentMode === MODES.BOULDERS) {
-      const rect = canvas.getBoundingClientRect();
-      const clickX = (e.clientX - rect.left) * DPR;
-      const clickY = (e.clientY - rect.top) * DPR;
-
-      // Check if clicking on a boulder
-      for (let i = 0; i < balls.length; i++) {
-        const ball = balls[i];
-        const dx = clickX - ball.x;
-        const dy = clickY - ball.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance <= ball.r) {
-          // Start dragging this boulder
-          draggedBoulder = ball;
-          dragOffset.x = clickX - ball.x;
-          dragOffset.y = clickY - ball.y;
-          break;
-        }
-      }
-    }
-  });
-
-  canvas.addEventListener('mouseup', () => {
-    // Stop dragging
-    draggedBoulder = null;
-  });
 
   // Draw a cursor as a ball matching the simulation style
   // Renders the cursor as a simulation-like ball for desktop. Hidden on touch.
@@ -2169,9 +1954,9 @@
         const strength = 1 - (d_other / separationRadius);
         sepX += (dx2 / d_other) * strength;
         sepY += (dy2 / d_other) * strength;
-        neighborCount++;
-      }
-    }
+            neighborCount++;
+          }
+        }
     if (neighborCount > 0) {
       const separationForce = 15000; // Stronger separation for more spread
       b.vx += (sepX / neighborCount) * separationForce * dt;
@@ -2311,8 +2096,8 @@
   // Scene controls
   const cornerRadiusSlider = document.getElementById('cornerRadiusSlider');
   const cornerRadiusVal = document.getElementById('cornerRadiusVal');
-  const trailFadeSlider = document.getElementById('trailFadeSlider');
-  const trailFadeVal = document.getElementById('trailFadeVal');
+  const motionBlurFadeSlider = document.getElementById('trailFadeSlider'); // motion blur uses old trailFade ID
+  const motionBlurFadeVal = document.getElementById('trailFadeVal');
   const trailSubtletySlider = document.getElementById('trailSubtletySlider');
   const trailSubtletyVal = document.getElementById('trailSubtletyVal');
 
@@ -2422,9 +2207,9 @@
     const { size, sizeVal, sizeVar, sizeVarVal, soft, softVal } = sliders;
     size && size.addEventListener('input', () => {
       const newScale = parseFloat(size.value);
-      sizeVal && (sizeVal.textContent = newScale.toFixed(1));
-      sizeScale = newScale;
-      updateEffectiveScaleAndBallSizes();
+    sizeVal && (sizeVal.textContent = newScale.toFixed(1));
+    sizeScale = newScale;
+    updateEffectiveScaleAndBallSizes();
       // Apply mass (Rainbow balls maintain 5x multiplier)
       for (let i=0; i<balls.length; i++) {
         if (currentMode === MODES.BOULDERS) {
@@ -2475,8 +2260,7 @@
   const weightPitVal = document.getElementById('weightPitVal');
   const weightWeightlessSlider = document.getElementById('weightWeightlessSlider');
   const weightWeightlessVal = document.getElementById('weightWeightlessVal');
-  const weightRainbowSlider = document.getElementById('weightRainbowSlider');
-  const weightRainbowVal = document.getElementById('weightRainbowVal');
+  // removed legacy rainbow weight controls (replaced by boulderWeight controls)
   
   // Function to update existing ball sizes based on current sizeVariation
   function updateExistingBallSizes() {
@@ -2566,80 +2350,86 @@
   const orbitRadiusVal = document.getElementById('orbitRadiusVal');
   const swarmSpeedSlider = document.getElementById('swarmSpeedSlider');
   const swarmSpeedVal = document.getElementById('swarmSpeedVal');
-  // Sparkle Trail controls
-  const sparkleEmissionSlider = document.getElementById('sparkleEmissionSlider');
-  const sparkleEmissionVal = document.getElementById('sparkleEmissionVal');
-  const sparkleLifetimeSlider = document.getElementById('sparkleLifetimeSlider');
-  const sparkleLifetimeVal = document.getElementById('sparkleLifetimeVal');
-  const sparkleSpreadSlider = document.getElementById('sparkleSpreadSlider');
-  const sparkleSpreadVal = document.getElementById('sparkleSpreadVal');
-  const sparkleDriftSlider = document.getElementById('sparkleDriftSlider');
-  const sparkleDriftVal = document.getElementById('sparkleDriftVal');
-  const sparkleScaleSlider = document.getElementById('sparkleScaleSlider');
-  const sparkleScaleVal = document.getElementById('sparkleScaleVal');
+  
+  // Trail controls
+  const trailLengthSlider = document.getElementById('trailLengthSlider');
+  const trailLengthVal = document.getElementById('trailLengthVal');
+  const trailSpacingSlider = document.getElementById('trailSpacingSlider');
+  const trailSpacingVal = document.getElementById('trailSpacingVal');
+  const trailModeFadeSlider = document.getElementById('trailModeFadeSlider'); // Trail mode fade (different from motion blur)
+  const trailModeFadeVal = document.getElementById('trailModeFadeVal');
+  
+  // Weightless controls
+  const weightlessCountSlider = document.getElementById('weightlessCountSlider');
+  const weightlessCountVal = document.getElementById('weightlessCountVal');
+  const weightlessSpeedSlider = document.getElementById('weightlessSpeedSlider');
+  const weightlessSpeedVal = document.getElementById('weightlessSpeedVal');
+  const weightlessBounceSlider = document.getElementById('weightlessBounceSlider');
+  const weightlessBounceVal = document.getElementById('weightlessBounceVal');
+  const weightlessRepelSlider = document.getElementById('weightlessRepelSlider');
+  const weightlessRepelVal = document.getElementById('weightlessRepelVal');
+  const weightlessRepelRadiusSlider = document.getElementById('weightlessRepelRadiusSlider');
+  const weightlessRepelRadiusVal = document.getElementById('weightlessRepelRadiusVal');
+  
+  // Boulders (Rainbow) controls
+  const bouldersDelaySlider = document.getElementById('bouldersDelaySlider');
+  const bouldersDelayVal = document.getElementById('bouldersDelayVal');
+  const bouldersGravitySlider = document.getElementById('bouldersGravitySlider');
+  const bouldersGravityVal = document.getElementById('bouldersGravityVal');
+  const bouldersSizeVarietySlider = document.getElementById('bouldersSizeVarietySlider');
+  const bouldersSizeVarietyVal = document.getElementById('bouldersSizeVarietyVal');
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PROFESSIONAL WEIGHTLESS SCENE INITIALIZATION
   // ═══════════════════════════════════════════════════════════════════════════
   
   function initializeWeightlessScene() {
-    // Clear existing balls
     balls.length = 0;
     
-    // Calculate optimal grid distribution
-    const targetBalls = weightlessMaxBalls;
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
+    // Fixed count from UI control
+    const targetBalls = weightlessCount;
+    const w = canvas.width;
+    const h = canvas.height;
     
-    // Calculate grid dimensions for even distribution
-    const aspectRatio = canvasWidth / canvasHeight;
+    // Grid distribution
+    const aspectRatio = w / h;
     const cols = Math.ceil(Math.sqrt(targetBalls * aspectRatio));
     const rows = Math.ceil(targetBalls / cols);
     
-    // Calculate spacing and margins
-    const marginX = 40; // Margin from edges
+    const marginX = 40;
     const marginY = 40;
-    const availableWidth = canvasWidth - (2 * marginX);
-    const availableHeight = canvasHeight - (2 * marginY);
-    const spacingX = availableWidth / (cols - 1);
-    const spacingY = availableHeight / (rows - 1);
+    const spacingX = (w - 2 * marginX) / Math.max(1, cols - 1);
+    const spacingY = (h - 2 * marginY) / Math.max(1, rows - 1);
     
-    // Generate evenly distributed positions
     const positions = [];
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         if (positions.length >= targetBalls) break;
         
-        const x = marginX + (col * spacingX);
-        const y = marginY + (row * spacingY);
+        const x = marginX + col * spacingX;
+        const y = marginY + row * spacingY;
         
-        // Add subtle jitter to avoid perfect grid alignment
-        const jitterX = (Math.random() - 0.5) * spacingX * 0.3;
-        const jitterY = (Math.random() - 0.5) * spacingY * 0.3;
+        // Subtle jitter
+        const jitterX = (Math.random() - 0.5) * spacingX * 0.25;
+        const jitterY = (Math.random() - 0.5) * spacingY * 0.25;
         
         positions.push({
-          x: Math.max(20, Math.min(canvasWidth - 20, x + jitterX)),
-          y: Math.max(20, Math.min(canvasHeight - 20, y + jitterY))
+          x: Math.max(20, Math.min(w - 20, x + jitterX)),
+          y: Math.max(20, Math.min(h - 20, y + jitterY))
         });
       }
     }
     
-    // Create balls with controlled initial velocities
-    for (let i = 0; i < positions.length; i++) {
-      const pos = positions[i];
+    // Spawn balls with random velocities
+    for (const pos of positions) {
       const ball = spawnBall(pos.x, pos.y);
-      
-      // Generate controlled initial velocity
       const angle = Math.random() * Math.PI * 2;
-      const speed = weightlessInitialSpeed * (0.5 + Math.random() * 0.5); // 50-100% of max speed
-      
+      const speed = weightlessInitialSpeed * (0.7 + Math.random() * 0.3);
       ball.vx = Math.cos(angle) * speed;
       ball.vy = Math.sin(angle) * speed;
       ball.driftAx = 0;
       ball.driftTime = 0;
     }
-    
-    console.log(`Weightless scene initialized: ${balls.length} balls distributed evenly across viewport`);
   }
 
   function updateModeControlsUI() {
@@ -2682,12 +2472,12 @@
       // Initialize professional weightless scene with even distribution
       initializeWeightlessScene();
     } else if (currentMode === MODES.BOULDERS) {
-      gravityMultiplier = boulderGravity;
+      gravityMultiplier = bouldersGravity;
       G = GE * gravityMultiplier;
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
-      // Initialize simple boulder drop system
-      initializeBoulderMode();
+      // Initialize rainbow drop system
+      initializeRainbowMode();
     }
     updateModeControlsUI();
   }
@@ -2738,142 +2528,60 @@
     swarmSpeed = parseFloat(swarmSpeedSlider.value);
     swarmSpeedVal && (swarmSpeedVal.textContent = swarmSpeed.toFixed(1));
   });
-  // Sparkle Trail event listeners
-  sparkleEmissionSlider && sparkleEmissionSlider.addEventListener('input', () => {
-    sparkleEmissionRate = parseInt(sparkleEmissionSlider.value, 10);
-    sparkleEmissionVal && (sparkleEmissionVal.textContent = sparkleEmissionRate.toString());
-    autoSaveSettings();
+  
+  // Trail controls
+  trailLengthSlider && trailLengthSlider.addEventListener('input', () => {
+    TRAIL_MAX_POINTS = parseInt(trailLengthSlider.value, 10);
+    trailLengthVal && (trailLengthVal.textContent = TRAIL_MAX_POINTS.toString());
   });
-  sparkleLifetimeSlider && sparkleLifetimeSlider.addEventListener('input', () => {
-    sparkleLifetime = parseFloat(sparkleLifetimeSlider.value);
-    sparkleLifetimeVal && (sparkleLifetimeVal.textContent = sparkleLifetime.toFixed(1));
-    autoSaveSettings();
+  trailSpacingSlider && trailSpacingSlider.addEventListener('input', () => {
+    trailMinSpacing = parseFloat(trailSpacingSlider.value);
+    trailSpacingVal && (trailSpacingVal.textContent = trailMinSpacing.toFixed(0));
   });
-  sparkleSpreadSlider && sparkleSpreadSlider.addEventListener('input', () => {
-    sparkleVelocitySpread = parseInt(sparkleSpreadSlider.value, 10);
-    sparkleSpreadVal && (sparkleSpreadVal.textContent = sparkleVelocitySpread.toString());
-    autoSaveSettings();
-  });
-  sparkleDriftSlider && sparkleDriftSlider.addEventListener('input', () => {
-    sparkleDriftStrength = parseInt(sparkleDriftSlider.value, 10);
-    sparkleDriftVal && (sparkleDriftVal.textContent = sparkleDriftStrength.toString());
-    autoSaveSettings();
-  });
-  sparkleScaleSlider && sparkleScaleSlider.addEventListener('input', () => {
-    sparkleParticleScale = parseFloat(sparkleScaleSlider.value);
-    sparkleScaleVal && (sparkleScaleVal.textContent = sparkleParticleScale.toFixed(2));
-    autoSaveSettings();
-  });
-
-  // Trail intensity control
-  const trailIntensitySlider = document.getElementById('trailIntensitySlider');
-  const trailIntensityVal = document.getElementById('trailIntensityVal');
-  trailIntensitySlider && trailIntensitySlider.addEventListener('input', () => {
-    trailIntensity = parseFloat(trailIntensitySlider.value);
-    trailIntensityVal && (trailIntensityVal.textContent = trailIntensity.toFixed(2));
-    autoSaveSettings();
+  trailModeFadeSlider && trailModeFadeSlider.addEventListener('input', () => {
+    trailFade = parseFloat(trailModeFadeSlider.value);
+    trailModeFadeVal && (trailModeFadeVal.textContent = trailFade.toFixed(2));
   });
   
-  // Weightless mode sliders
-  const weightlessSpeedSlider = document.getElementById('weightlessSpeedSlider');
-  const weightlessSpeedVal = document.getElementById('weightlessSpeedVal');
-  const weightlessBounceSlider = document.getElementById('weightlessBounceSlider');
-  const weightlessBounceVal = document.getElementById('weightlessBounceVal');
-  const weightlessMaxBallsSlider = document.getElementById('weightlessMaxBallsSlider');
-  const weightlessMaxBallsVal = document.getElementById('weightlessMaxBallsVal');
-  const weightlessRepelPowerSlider = document.getElementById('weightlessRepelPowerSlider');
-  const weightlessRepelPowerVal = document.getElementById('weightlessRepelPowerVal');
-  const weightlessRepelRadiusSlider = document.getElementById('weightlessRepelRadiusSlider');
-  const weightlessRepelRadiusVal = document.getElementById('weightlessRepelRadiusVal');
-  
+  // Weightless controls
+  weightlessCountSlider && weightlessCountSlider.addEventListener('input', () => {
+    weightlessCount = parseInt(weightlessCountSlider.value, 10);
+    weightlessCountVal && (weightlessCountVal.textContent = weightlessCount.toString());
+    if (currentMode === MODES.WEIGHTLESS) initializeWeightlessScene();
+  });
   weightlessSpeedSlider && weightlessSpeedSlider.addEventListener('input', () => {
     weightlessInitialSpeed = parseFloat(weightlessSpeedSlider.value);
     weightlessSpeedVal && (weightlessSpeedVal.textContent = Math.round(weightlessInitialSpeed).toString());
-  });
-  
-  weightWeightlessSlider && weightWeightlessSlider.addEventListener('input', () => {
-    ballMassKg = parseFloat(weightWeightlessSlider.value);
-    weightWeightlessVal && (weightWeightlessVal.textContent = ballMassKg.toFixed(2));
-    // Apply shared mass to all balls (Rainbow balls maintain 5x multiplier)
-    for (let i=0; i<balls.length; i++) {
-      if (currentMode === MODES.BOULDERS) {
-        balls[i].m = ballMassKg * 5; // Rainbow balls stay 5x heavier
-      } else {
-        balls[i].m = ballMassKg; // Normal mass for other modes
-      }
-    }
-    // Recompute derived scaling so gravity visibly changes with weight
-    recomputeMassDerivedScales();
-    autoSaveSettings();
   });
   weightlessBounceSlider && weightlessBounceSlider.addEventListener('input', () => {
     weightlessBounce = parseFloat(weightlessBounceSlider.value);
     weightlessBounceVal && (weightlessBounceVal.textContent = weightlessBounce.toFixed(2));
   });
-  weightlessMaxBallsSlider && weightlessMaxBallsSlider.addEventListener('input', () => {
-    weightlessMaxBalls = parseInt(weightlessMaxBallsSlider.value, 10);
-    weightlessMaxBallsVal && (weightlessMaxBallsVal.textContent = weightlessMaxBalls.toString());
-    // If in weightless mode, reinitialize with new ball count
-    if (currentMode === MODES.WEIGHTLESS) {
-      initializeWeightlessScene();
-    }
-  });
-  weightlessRepelPowerSlider && weightlessRepelPowerSlider.addEventListener('input', () => {
-    weightlessRepellerPower = parseFloat(weightlessRepelPowerSlider.value);
-    weightlessRepelPowerVal && (weightlessRepelPowerVal.textContent = Math.round(weightlessRepellerPower).toString());
+  weightlessRepelSlider && weightlessRepelSlider.addEventListener('input', () => {
+    weightlessRepellerPower = parseFloat(weightlessRepelSlider.value);
+    weightlessRepelVal && (weightlessRepelVal.textContent = Math.round(weightlessRepellerPower).toString());
   });
   weightlessRepelRadiusSlider && weightlessRepelRadiusSlider.addEventListener('input', () => {
     weightlessRepellerRadius = parseFloat(weightlessRepelRadiusSlider.value);
     weightlessRepelRadiusVal && (weightlessRepelRadiusVal.textContent = Math.round(weightlessRepellerRadius).toString());
   });
   
-  // Rainbow mode sliders
-  const boulderRandomnessSlider = document.getElementById('boulderRandomnessSlider');
-  const boulderRandomnessVal = document.getElementById('boulderRandomnessVal');
-  const boulderDropDelaySlider = document.getElementById('boulderDropDelaySlider');
-  const boulderDropDelayVal = document.getElementById('boulderDropDelayVal');
-  const boulderGravitySlider = document.getElementById('boulderGravitySlider');
-  const boulderGravityVal = document.getElementById('boulderGravityVal');
-  const boulderBounceSlider = document.getElementById('boulderBounceSlider');
-  const boulderBounceVal = document.getElementById('boulderBounceVal');
-  const boulderDragSlider = document.getElementById('boulderDragSlider');
-  const boulderDragVal = document.getElementById('boulderDragVal');
-  
-  boulderRandomnessSlider && boulderRandomnessSlider.addEventListener('input', () => {
-    boulderRandomness = parseFloat(boulderRandomnessSlider.value);
-    boulderRandomnessVal && (boulderRandomnessVal.textContent = boulderRandomness.toFixed(1));
+  // Boulders (Rainbow) controls
+  bouldersDelaySlider && bouldersDelaySlider.addEventListener('input', () => {
+    bouldersDropDelay = parseFloat(bouldersDelaySlider.value);
+    bouldersDelayVal && (bouldersDelayVal.textContent = bouldersDropDelay.toFixed(1));
   });
-  
-  weightBoulderSlider && weightBoulderSlider.addEventListener('input', () => {
-    ballMassKg = parseFloat(weightBoulderSlider.value);
-    weightBoulderVal && (weightBoulderVal.textContent = ballMassKg.toFixed(2));
-    // Apply shared mass to Boulder balls (maintaining 5x multiplier)
-    for (let i=0; i<balls.length; i++) {
-      balls[i].m = ballMassKg * 5; // Boulder balls are 5x heavier
-    }
-    // Recompute derived scaling so gravity visibly changes with weight
-    recomputeMassDerivedScales();
-    autoSaveSettings();
-  });
-  boulderDropDelaySlider && boulderDropDelaySlider.addEventListener('input', () => {
-    boulderDropDelay = parseFloat(boulderDropDelaySlider.value);
-    boulderDropDelayVal && (boulderDropDelayVal.textContent = boulderDropDelay.toFixed(2));
-  });
-  boulderGravitySlider && boulderGravitySlider.addEventListener('input', () => {
-    boulderGravity = parseFloat(boulderGravitySlider.value);
-    boulderGravityVal && (boulderGravityVal.textContent = boulderGravity.toFixed(1));
+  bouldersGravitySlider && bouldersGravitySlider.addEventListener('input', () => {
+    bouldersGravity = parseFloat(bouldersGravitySlider.value);
+    bouldersGravityVal && (bouldersGravityVal.textContent = bouldersGravity.toFixed(1));
     if (currentMode === MODES.BOULDERS) {
-      gravityMultiplier = boulderGravity;
+      gravityMultiplier = bouldersGravity;
       G = GE * gravityMultiplier;
     }
   });
-  boulderBounceSlider && boulderBounceSlider.addEventListener('input', () => {
-    boulderBounce = parseFloat(boulderBounceSlider.value);
-    boulderBounceVal && (boulderBounceVal.textContent = boulderBounce.toFixed(2));
-  });
-  boulderDragSlider && boulderDragSlider.addEventListener('input', () => {
-    boulderDragResistance = parseFloat(boulderDragSlider.value);
-    boulderDragVal && (boulderDragVal.textContent = boulderDragResistance.toFixed(2));
+  bouldersSizeVarietySlider && bouldersSizeVarietySlider.addEventListener('input', () => {
+    bouldersSizeVariety = parseFloat(bouldersSizeVarietySlider.value);
+    bouldersSizeVarietyVal && (bouldersSizeVarietyVal.textContent = bouldersSizeVariety.toFixed(1));
   });
 
   // Individual color picker listeners (with existing ball color update)
@@ -2911,9 +2619,9 @@
     cornerRadius = parseFloat(cornerRadiusSlider.value); 
     cornerRadiusVal && (cornerRadiusVal.textContent = cornerRadius.toFixed(0)); 
   });
-  trailFadeSlider && trailFadeSlider.addEventListener('input', () => { 
-    trailFade = parseFloat(trailFadeSlider.value); 
-    trailFadeVal && (trailFadeVal.textContent = trailFade.toFixed(3)); 
+  motionBlurFadeSlider && motionBlurFadeSlider.addEventListener('input', () => { 
+    motionBlurFade = parseFloat(motionBlurFadeSlider.value); 
+    motionBlurFadeVal && (motionBlurFadeVal.textContent = motionBlurFade.toFixed(3)); 
   });
   trailSubtletySlider && trailSubtletySlider.addEventListener('input', () => {
     trailSubtlety = parseFloat(trailSubtletySlider.value);
