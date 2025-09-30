@@ -510,7 +510,10 @@
     const ratio = effectiveScale / lastEffectiveScale;
     if (ratio !== 1) {
       for (let i = 0; i < balls.length; i++) {
-        balls[i].r *= ratio;
+        // Don't scale Rainbow mode balls - they have fixed sizes
+        if (currentMode !== MODES.RAINBOW) {
+          balls[i].r *= ratio;
+        }
       }
       lastEffectiveScale = effectiveScale;
     }
