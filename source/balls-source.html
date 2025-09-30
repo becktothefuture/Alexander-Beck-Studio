@@ -364,8 +364,6 @@
     BALL_CLUSTER_Y_OFFSET: 12,    // Y offset for clustered balls
     MAX_PHYSICS_STEPS: 2,         // Maximum physics steps per frame
     FPS_UPDATE_INTERVAL: 1.0,     // FPS counter update interval in seconds
-    MIN_MOUSE_SPEED_FOR_TRAIL: 50, // Minimum mouse speed to emit trail particles
-    SPARKLE_DRAG_COEFFICIENT: 0.98, // Drag coefficient for sparkle particles
     // Spin & squash tuning
     SPIN_DAMP_PER_S: 2.0,         // angular damping per second
     SPIN_GAIN: 0.25,              // how strongly tangential slip converts to spin
@@ -618,16 +616,9 @@
   }
   
   // Hide modes that aren't available on this device
+  // All 3 modes are available on all devices
   function applyDeviceSpecificModeVisibility() {
-    const deviceType = isTouchDevice ? 'mobile' : 'desktop';
-    const trailButton = document.getElementById('trailModeButton');
-    
-    // Hide Trail mode button on mobile (needs precise cursor control)
-    if (trailButton && !MODE_AVAILABILITY[MODES.TRAIL][deviceType]) {
-      trailButton.style.display = 'none';
-    }
-    
-    // Can add more device-specific logic here for other modes
+    // No device-specific mode hiding needed
   }
   
   // Settings persistence using localStorage
@@ -643,11 +634,6 @@
       attractionPower,
       orbitRadius,
       swarmSpeed,
-      sparkleEmissionRate,
-      sparkleLifetime,
-      sparkleVelocitySpread,
-      sparkleDriftStrength,
-      sparkleParticleScale,
       weightlessInitialSpeed,
       weightlessBounce,
       weightlessMaxBalls,
@@ -690,11 +676,6 @@
         if (settings.attractionPower) attractionPower = settings.attractionPower;
         if (settings.orbitRadius) orbitRadius = settings.orbitRadius;
         if (settings.swarmSpeed) swarmSpeed = settings.swarmSpeed;
-        if (settings.sparkleEmissionRate !== undefined) sparkleEmissionRate = settings.sparkleEmissionRate;
-        if (settings.sparkleLifetime !== undefined) sparkleLifetime = settings.sparkleLifetime;
-        if (settings.sparkleVelocitySpread !== undefined) sparkleVelocitySpread = settings.sparkleVelocitySpread;
-        if (settings.sparkleDriftStrength !== undefined) sparkleDriftStrength = settings.sparkleDriftStrength;
-        if (settings.sparkleParticleScale !== undefined) sparkleParticleScale = settings.sparkleParticleScale;
         if (settings.weightlessInitialSpeed) weightlessInitialSpeed = settings.weightlessInitialSpeed;
         if (settings.weightlessBounce) weightlessBounce = settings.weightlessBounce;
         if (settings.weightlessMaxBalls) weightlessMaxBalls = settings.weightlessMaxBalls;
@@ -1107,49 +1088,7 @@
       ctx.save();
       ctx.translate(this.x, this.y);
 
-      // Special rendering for sparkle particles
-      if (this.isSparkle) {
-        // Enhanced sparkle particle rendering with glow effect
-        const age = (performance.now() / 1000) - this.spawnTime;
-        const lifeProgress = Math.min(1, age / this.lifetime);
-        const fadeAlpha = Math.max(0, 1 - lifeProgress);
-
-        // Create glow effect for sparkle particles
-        if (trailIntensity > 0) {
-          const glowRadius = this.r * (1.5 + trailIntensity * 2);
-          const glowAlpha = fadeAlpha * trailIntensity * 0.3;
-
-          ctx.beginPath();
-          ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
-
-          // Create gradient for glow effect
-          const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowRadius);
-          const baseColor = this.color;
-          const alphaColor = baseColor.replace(/[\d\.]+\)$/g, `${glowAlpha})`);
-          const midColor = baseColor.replace(/[\d\.]+\)$/g, `${glowAlpha * 0.5})`);
-          gradient.addColorStop(0, alphaColor);
-          gradient.addColorStop(0.7, midColor);
-          gradient.addColorStop(1, baseColor.replace(/[\d\.]+\)$/g, '0)'));
-
-          ctx.fillStyle = gradient;
-          ctx.fill();
-        }
-
-        // Main particle body with enhanced visibility
-        ctx.beginPath();
-        ctx.arc(0, 0, this.r, 0, Math.PI * 2);
-        ctx.fillStyle = this.color.replace(/[\d\.]+\)$/g, `${fadeAlpha})`);
-        ctx.fill();
-
-        // Add sparkle effect (small highlight)
-        if (trailIntensity > 0.2) {
-          ctx.beginPath();
-          ctx.arc(this.r * 0.3, -this.r * 0.3, this.r * 0.15, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 255, 255, ${fadeAlpha * trailIntensity * 0.8})`;
-          ctx.fill();
-        }
-      } else {
-        // Regular ball rendering
+      // Regular ball rendering
       // World-aligned squash/stretch only if significant
         const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
       if (amt > 0.001) {
@@ -1165,7 +1104,6 @@
       ctx.arc(0, 0, this.r, 0, Math.PI*2);
       ctx.fillStyle = this.color;
       ctx.fill();
-      }
 
       // Spin indicator removed for cleaner visuals and performance
       ctx.restore();
@@ -1256,62 +1194,6 @@
     return ball;
   }
   
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RAINBOW DROP SYSTEM (Mode 5)
-  // Sequential drop, one ball per color, auto-reset when complete
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  let rainbowDropIndex = 0;
-  let rainbowLastDropTime = 0;
-  let rainbowIsActive = false;
-  
-  function initializeRainbowMode() {
-    balls.length = 0;
-    rainbowDropIndex = 0;
-    rainbowLastDropTime = 0;
-    rainbowIsActive = true;
-  }
-  
-  function dropNextRainbowBall() {
-    if (!rainbowIsActive) return false;
-    
-    // Auto-reset: if all colors dropped, restart sequence
-    if (rainbowDropIndex >= currentColors.length) {
-      rainbowDropIndex = 0;
-      balls.length = 0; // clear scene for fresh cycle
-      rainbowLastDropTime = performance.now() / 1000;
-      return false; // wait for next cycle
-    }
-
-    // Calculate size with variety
-    const baseSize = sizeScale * DPR * 30;
-    const variety = bouldersSizeVariety;
-    const t = rainbowDropIndex / Math.max(1, currentColors.length - 1);
-    const sizeMultiplier = 1.0 + (Math.random() - 0.5) * variety;
-    const size = baseSize * sizeMultiplier;
-
-    // Sequential horizontal spacing across viewport
-    const spacing = canvas.width / (currentColors.length + 1);
-    const dropX = spacing * (rainbowDropIndex + 1);
-    const dropY = -size - 100; // spawn above viewport
-
-    // Create ball
-    const ball = new Ball(dropX, dropY, size, currentColors[rainbowDropIndex]);
-    ball.vx = 0;
-    ball.vy = 0;
-    balls.push(ball);
-
-    rainbowDropIndex++;
-    rainbowLastDropTime = performance.now() / 1000;
-    return true;
-  }
-  
-  function shouldDropRainbowBall() {
-    if (!rainbowIsActive) return false;
-    const now = performance.now() / 1000;
-    return (now - rainbowLastDropTime) >= bouldersDropDelay;
-  }
-  
 
   // Continuous emitter within a vw/vh-defined rectangle
   let emitterTimer = 0;
@@ -1342,55 +1224,6 @@
     // Add slight upward randomness to spawn height for organic feel
     const y = randBetween(yTopCss * DPR, yBotCss * DPR) - (R_MAX + CONSTANTS.BALL_SPAWN_OFFSET + randBetween(0, 10 * DPR));
     return { x, y };
-  }
-  // Trail particle recycling system
-  const trailParticlePool = [];
-  let trailParticlePoolIndex = 0;
-  
-  // Get a recycled trail particle or create new one
-  function getTrailParticle() {
-    if (trailParticlePoolIndex < trailParticlePool.length) {
-      // Reuse existing particle
-      return trailParticlePool[trailParticlePoolIndex++];
-    } else {
-      // Create new Ball instance and add to pool
-      const particle = new Ball(0, 0, 0, '#ffffff');
-      particle.isSparkle = true;
-      particle.active = false;
-      trailParticlePool.push(particle);
-      return particle;
-    }
-  }
-  
-  // Reset trail particle pool for new trail
-  function resetTrailParticlePool() {
-    trailParticlePoolIndex = 0;
-    for (let i = 0; i < trailParticlePool.length; i++) {
-      trailParticlePool[i].active = false;
-    }
-  }
-  
-  // Trail: path-follow controller (replaces sparkle emission)
-  function trailFollow(dt) {
-    if (trailPath.length < 2) return;
-    // Each existing ball steers toward nearest recent path point
-    for (let i = 0; i < balls.length; i++) {
-      const b = balls[i];
-      let nearestIdx = -1;
-      let nearestD2 = Infinity;
-      for (let j = 0; j < trailPath.length; j++) {
-        const p = trailPath[j];
-        const dx = p.x - b.x; const dy = p.y - b.y;
-        const d2 = dx*dx + dy*dy;
-        if (d2 < nearestD2) { nearestD2 = d2; nearestIdx = j; }
-      }
-      if (nearestIdx >= 0) {
-        const p = trailPath[nearestIdx];
-        const steer = 4 * DT; // gentle steering factor
-        b.vx += (p.x - b.x) * steer;
-        b.vy += (p.y - b.y) * steer;
-      }
-    }
   }
   
   function emit(dt) {
@@ -1592,18 +1425,6 @@
       acc -= DT;
       physicsSteps++;
       physicsStepCount++; // Count physics steps for FPS measurement
-    }
-    
-  // Trail (Sparkle) mode: cleanup tiny particles and recycle them
-    if (currentMode === MODES.TRAIL) {
-      for (let i = balls.length - 1; i >= 0; i--) {
-        const ball = balls[i];
-        if (ball.isSparkle && ball.r <= 0.5) {
-          // Mark particle as inactive for recycling
-          ball.active = false;
-          balls.splice(i, 1); // Remove from active array
-        }
-      }
     }
     
     // Reset accumulator if we're falling behind
@@ -1916,25 +1737,6 @@
     b.vy *= 0.99;
   }
 
-  // Trail (Sparkle) mode: particles drift gently and scale down based on age
-  function applySparklePhysics(b, dt) {
-    // Apply gentle drift (random floating motion)
-    if (sparkleDriftStrength > 0) {
-      b.vx += (Math.random() - 0.5) * sparkleDriftStrength * dt;
-      b.vy += (Math.random() - 0.5) * sparkleDriftStrength * dt;
-    }
-    
-    // Apply drag (deceleration)
-    b.vx *= CONSTANTS.SPARKLE_DRAG_COEFFICIENT;
-    b.vy *= CONSTANTS.SPARKLE_DRAG_COEFFICIENT;
-    
-    // Age-based scale down
-    const currentTime = performance.now() / 1000;
-    const age = currentTime - b.spawnTime;
-    const scaleProgress = age / b.lifetime;
-    const scaleDown = Math.max(0, 1 - scaleProgress);
-    b.r = b.rBase * scaleDown * sparkleParticleScale;
-  }
 
   // UI elements
   const restitutionSlider = document.getElementById('restitutionSlider');
@@ -2252,9 +2054,7 @@
   const modeButtons = Array.from(document.querySelectorAll('.mode-button'));
   const pitControls = document.getElementById('pitControls');
   const fliesControls = document.getElementById('fliesControls');
-  const trailControls = document.getElementById('trailControls');
   const weightlessControls = document.getElementById('weightlessControls');
-  const boulderControls = document.getElementById('boulderControls');
   const gravityPitSlider = document.getElementById('gravityPitSlider');
   const gravityPitVal = document.getElementById('gravityPitVal');
   const repellerEnabledPitEl = document.getElementById('repellerEnabledPit');
@@ -2264,14 +2064,6 @@
   const orbitRadiusVal = document.getElementById('orbitRadiusVal');
   const swarmSpeedSlider = document.getElementById('swarmSpeedSlider');
   const swarmSpeedVal = document.getElementById('swarmSpeedVal');
-  
-  // Trail controls
-  const trailLengthSlider = document.getElementById('trailLengthSlider');
-  const trailLengthVal = document.getElementById('trailLengthVal');
-  const trailSpacingSlider = document.getElementById('trailSpacingSlider');
-  const trailSpacingVal = document.getElementById('trailSpacingVal');
-  const trailModeFadeSlider = document.getElementById('trailModeFadeSlider'); // Trail mode fade (different from motion blur)
-  const trailModeFadeVal = document.getElementById('trailModeFadeVal');
   
   // Weightless controls
   const weightlessCountSlider = document.getElementById('weightlessCountSlider');
@@ -2284,14 +2076,6 @@
   const weightlessRepelVal = document.getElementById('weightlessRepelVal');
   const weightlessRepelRadiusSlider = document.getElementById('weightlessRepelRadiusSlider');
   const weightlessRepelRadiusVal = document.getElementById('weightlessRepelRadiusVal');
-  
-  // Boulders (Rainbow) controls
-  const bouldersDelaySlider = document.getElementById('bouldersDelaySlider');
-  const bouldersDelayVal = document.getElementById('bouldersDelayVal');
-  const bouldersGravitySlider = document.getElementById('bouldersGravitySlider');
-  const bouldersGravityVal = document.getElementById('bouldersGravityVal');
-  const bouldersSizeVarietySlider = document.getElementById('bouldersSizeVarietySlider');
-  const bouldersSizeVarietyVal = document.getElementById('bouldersSizeVarietyVal');
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PROFESSIONAL WEIGHTLESS SCENE INITIALIZATION
@@ -2431,20 +2215,6 @@
     swarmSpeedVal && (swarmSpeedVal.textContent = swarmSpeed.toFixed(1));
   });
   
-  // Trail controls
-  trailLengthSlider && trailLengthSlider.addEventListener('input', () => {
-    TRAIL_MAX_POINTS = parseInt(trailLengthSlider.value, 10);
-    trailLengthVal && (trailLengthVal.textContent = TRAIL_MAX_POINTS.toString());
-  });
-  trailSpacingSlider && trailSpacingSlider.addEventListener('input', () => {
-    trailMinSpacing = parseFloat(trailSpacingSlider.value);
-    trailSpacingVal && (trailSpacingVal.textContent = trailMinSpacing.toFixed(0));
-  });
-  trailModeFadeSlider && trailModeFadeSlider.addEventListener('input', () => {
-    trailFade = parseFloat(trailModeFadeSlider.value);
-    trailModeFadeVal && (trailModeFadeVal.textContent = trailFade.toFixed(2));
-  });
-  
   // Weightless controls
   weightlessCountSlider && weightlessCountSlider.addEventListener('input', () => {
     weightlessCount = parseInt(weightlessCountSlider.value, 10);
@@ -2466,24 +2236,6 @@
   weightlessRepelRadiusSlider && weightlessRepelRadiusSlider.addEventListener('input', () => {
     weightlessRepellerRadius = parseFloat(weightlessRepelRadiusSlider.value);
     weightlessRepelRadiusVal && (weightlessRepelRadiusVal.textContent = Math.round(weightlessRepellerRadius).toString());
-  });
-  
-  // Boulders (Rainbow) controls
-  bouldersDelaySlider && bouldersDelaySlider.addEventListener('input', () => {
-    bouldersDropDelay = parseFloat(bouldersDelaySlider.value);
-    bouldersDelayVal && (bouldersDelayVal.textContent = bouldersDropDelay.toFixed(1));
-  });
-  bouldersGravitySlider && bouldersGravitySlider.addEventListener('input', () => {
-    bouldersGravity = parseFloat(bouldersGravitySlider.value);
-    bouldersGravityVal && (bouldersGravityVal.textContent = bouldersGravity.toFixed(1));
-    if (currentMode === MODES.BOULDERS) {
-      gravityMultiplier = bouldersGravity;
-      G = GE * gravityMultiplier;
-    }
-  });
-  bouldersSizeVarietySlider && bouldersSizeVarietySlider.addEventListener('input', () => {
-    bouldersSizeVariety = parseFloat(bouldersSizeVarietySlider.value);
-    bouldersSizeVarietyVal && (bouldersSizeVarietyVal.textContent = bouldersSizeVariety.toFixed(1));
   });
 
   // Individual color picker listeners (with existing ball color update)
