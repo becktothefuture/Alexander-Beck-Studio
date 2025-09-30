@@ -184,14 +184,19 @@
   </div>
   
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  <!-- GLOBAL SETTINGS (apply to all modes)                                   -->
-  <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  
-  <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <!-- GLOBAL SETTINGS (apply to ALL modes)                                   -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   
-  <!-- Ball Properties are mode-specific; see each mode section below -->
+  <details open>
+    <summary>🌐 Global Ball Properties</summary>
+    <div class="group">
+        <label>Size: <span class="val" id="sizeValGlobal">0.75</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="0.75"></label>
+        <label>Size variation: <span class="val" id="sizeVariationValGlobal">1.0</span><input type="range" id="sizeVariationSliderGlobal" min="0.0" max="3.0" step="0.1" value="1.0"></label>
+        <label>Weight (kg): <span class="val" id="weightValGlobal">11.20</span><input type="range" id="weightSliderGlobal" min="0.10" max="200.00" step="0.10" value="11.20"></label>
+        <label>Softness: <span class="val" id="ballSoftnessValGlobal">40</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="40"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard, 40 = normal, 100 = very squishy</div>
+    </div>
+  </details>
   
   <details open>
     <summary>🎨 Colors</summary>
@@ -239,12 +244,6 @@
     <details open>
       <summary>🎯 Ball Pit Mode</summary>
       <div class="group">
-        <!-- Mode-specific Ball Properties (apply only in Ball Pit) -->
-        <label>Size: <span class="val" id="sizeValPit">0.75</span><input type="range" id="sizeSliderPit" min="0.1" max="6.0" step="0.05" value="0.75"></label>
-        <label>Size variation: <span class="val" id="sizeVariationValPit">1.0</span><input type="range" id="sizeVariationSliderPit" min="0.0" max="3.0" step="0.1" value="1.0"></label>
-        <label>Weight (kg): <span class="val" id="weightValPit">11.20</span><input type="range" id="weightSliderPit" min="0.10" max="200.00" step="0.10" value="11.20"></label>
-        <label>Softness: <span class="val" id="ballSoftnessValPit">40</span><input type="range" id="ballSoftnessSliderPit" min="0" max="100" step="1" value="40"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard, 40 = normal, 100 = very squishy</div>
         <label>Physics template: <select id="physicsSelect"></select></label>
         <label>Gravity: <span class="val" id="gravityPitVal">1.1</span><input type="range" id="gravityPitSlider" min="0.0" max="3.0" step="0.1" value="1.1"></label>
         <label>Bounciness: <span class="val" id="restitutionVal">0.78</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.001" value="0.78"></label>
@@ -278,12 +277,6 @@
     <details open>
       <summary>🕊️ Flies to Light Mode</summary>
       <div class="group">
-        <!-- Mode-specific Ball Properties (apply only in Flies) -->
-        <label>Size: <span class="val" id="sizeValFlies">0.75</span><input type="range" id="sizeSliderFlies" min="0.1" max="6.0" step="0.05" value="0.75"></label>
-        <label>Size variation: <span class="val" id="sizeVariationValFlies">1.0</span><input type="range" id="sizeVariationSliderFlies" min="0.0" max="3.0" step="0.1" value="1.0"></label>
-        <label>Weight (kg): <span class="val" id="weightValFlies">11.20</span><input type="range" id="weightSliderFlies" min="0.10" max="200.00" step="0.10" value="11.20"></label>
-        <label>Softness: <span class="val" id="ballSoftnessValFlies">40</span><input type="range" id="ballSoftnessSliderFlies" min="0" max="100" step="1" value="40"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard, 40 = normal, 100 = very squishy</div>
         <label>Attraction power: <span class="val" id="attractPowerVal">1000</span><input type="range" id="attractPowerSlider" min="1" max="3000" step="1" value="1000"></label>
         <label>Orbit radius (px): <span class="val" id="orbitRadiusVal">150</span><input type="range" id="orbitRadiusSlider" min="50" max="500" step="10" value="150"></label>
         <label>Swarm speed: <span class="val" id="swarmSpeedVal">1.0</span><input type="range" id="swarmSpeedSlider" min="0.1" max="3.0" step="0.1" value="1.0"></label>
@@ -308,12 +301,6 @@
     <details open>
       <summary>🌌 Weightless (Zero-G) Mode</summary>
       <div class="group">
-        <!-- Mode-specific Ball Properties (apply only in Weightless) -->
-        <label>Size: <span class="val" id="sizeValZeroG">0.75</span><input type="range" id="sizeSliderZeroG" min="0.1" max="6.0" step="0.05" value="0.75"></label>
-        <label>Size variation: <span class="val" id="sizeVariationValZeroG">1.0</span><input type="range" id="sizeVariationSliderZeroG" min="0.0" max="3.0" step="0.1" value="1.0"></label>
-        <label>Weight (kg): <span class="val" id="weightValZeroG">11.20</span><input type="range" id="weightSliderZeroG" min="0.10" max="200.00" step="0.10" value="11.20"></label>
-        <label>Softness: <span class="val" id="ballSoftnessValZeroG">40</span><input type="range" id="ballSoftnessSliderZeroG" min="0" max="100" step="1" value="40"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard, 40 = normal, 100 = very squishy</div>
         <label>Initial speed: <span class="val" id="weightlessSpeedVal">400</span><input type="range" id="weightlessSpeedSlider" min="50" max="1000" step="50" value="400"></label>
         <label>Wall bounce: <span class="val" id="weightlessBounceVal">0.98</span><input type="range" id="weightlessBounceSlider" min="0.50" max="1.00" step="0.01" value="0.98"></label>
         <label>Ball count: <span class="val" id="weightlessMaxBallsVal">300</span><input type="range" id="weightlessMaxBallsSlider" min="50" max="600" step="25" value="300"></label>
@@ -1977,6 +1964,17 @@
   const frictionSlider = document.getElementById('frictionSlider');
   const emitterSlider = document.getElementById('emitterSlider');
   // Mode-specific ball properties controls
+  // Global ball properties
+  const sizeSliderGlobal = document.getElementById('sizeSliderGlobal');
+  const sizeVariationSliderGlobal = document.getElementById('sizeVariationSliderGlobal');
+  const weightSliderGlobal = document.getElementById('weightSliderGlobal');
+  const ballSoftnessSliderGlobal = document.getElementById('ballSoftnessSliderGlobal');
+  const sizeValGlobal = document.getElementById('sizeValGlobal');
+  const sizeVariationValGlobal = document.getElementById('sizeVariationValGlobal');
+  const weightValGlobal = document.getElementById('weightValGlobal');
+  const ballSoftnessValGlobal = document.getElementById('ballSoftnessValGlobal');
+  
+  // Mode-specific sliders (kept for backward compatibility)
   const sizeSliderPit = document.getElementById('sizeSliderPit');
   const sizeVariationSliderPit = document.getElementById('sizeVariationSliderPit');
   const weightSliderPit = document.getElementById('weightSliderPit');
@@ -2177,23 +2175,12 @@
     });
   }
 
+  // Global ball properties (apply to all modes)
   bindBallProps({
-    size: sizeSliderPit, sizeVal: sizeValPit,
-    sizeVar: sizeVariationSliderPit, sizeVarVal: sizeVariationValPit,
-    weight: weightSliderPit, weightVal: weightValPit,
-    soft: ballSoftnessSliderPit, softVal: ballSoftnessValPit
-  });
-  bindBallProps({
-    size: sizeSliderFlies, sizeVal: sizeValFlies,
-    sizeVar: sizeVariationSliderFlies, sizeVarVal: sizeVariationValFlies,
-    weight: weightSliderFlies, weightVal: weightValFlies,
-    soft: ballSoftnessSliderFlies, softVal: ballSoftnessValFlies
-  });
-  bindBallProps({
-    size: sizeSliderZeroG, sizeVal: sizeValZeroG,
-    sizeVar: sizeVariationSliderZeroG, sizeVarVal: sizeVariationValZeroG,
-    weight: weightSliderZeroG, weightVal: weightValZeroG,
-    soft: ballSoftnessSliderZeroG, softVal: ballSoftnessValZeroG
+    size: sizeSliderGlobal, sizeVal: sizeValGlobal,
+    sizeVar: sizeVariationSliderGlobal, sizeVarVal: sizeVariationValGlobal,
+    weight: weightSliderGlobal, weightVal: weightValGlobal,
+    soft: ballSoftnessSliderGlobal, softVal: ballSoftnessValGlobal
   });
   maxBallsSlider && maxBallsSlider.addEventListener('input', () => {
     MAX_BALLS = parseInt(maxBallsSlider.value, 10);
