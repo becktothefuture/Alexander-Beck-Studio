@@ -229,7 +229,7 @@
   <details>
     <summary>🖼️ Scene & Effects</summary>
     <div class="group">
-        <label>Max balls: <span class="val" id="maxBallsVal">400</span><input type="range" id="maxBallsSlider" min="50" max="1000" step="25" value="400"></label>
+        <label>Max balls: <span class="val" id="maxBallsVal">800</span><input type="range" id="maxBallsSlider" min="50" max="2000" step="25" value="800"></label>
         <label>Corner radius (px): <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="200" step="5" value="0"></label>
         <label>Motion blur: <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="1.500" step="0.001" value="0.000"></label>
         <label>Blur intensity: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.00" max="3.00" step="0.05" value="1.00"></label>
@@ -463,7 +463,7 @@
   let REST = 0.88;        // restitution (bounciness) - from screenshot
   let FRICTION = 0.0030;  // air drag per frame - from screenshot
   let EMIT_INTERVAL = 0.030; // seconds between drops - from screenshot
-  let MAX_BALLS = 400;    // from screenshot
+  let MAX_BALLS = 800;    // increased for better trail mode performance
   const SOLVER_ITERS = 6;    // Optimized for realistic collisions without jitter
   const POS_CORRECT_PERCENT = 0.8; // Reduced for more stable contacts
   const POS_CORRECT_SLOP = 0.5 * DPR; // Slightly more tolerance to prevent jitter
