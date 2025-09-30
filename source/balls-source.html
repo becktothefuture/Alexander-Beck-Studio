@@ -1392,18 +1392,24 @@
     // Only emit if mouse is on-screen and moving
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     
-    // Calculate mouse velocity using timestamps for stability
-    let mouseVx = 0, mouseVy = 0;
-    if (mouseTrail.length >= 2) {
-      const latest = mouseTrail[mouseTrail.length - 1];
-      const prev = mouseTrail[mouseTrail.length - 2];
-      const dtx = Math.max(1e-3, (latest.time - prev.time)); // seconds
-      mouseVx = (latest.x - prev.x) / dtx;
-      mouseVy = (latest.y - prev.y) / dtx;
+    // Need at least 2 points to calculate velocity
+    if (mouseTrail.length < 2) return;
+    
+    // Check if mouse has been stopped for too long (0.1 seconds)
+    const now = performance.now() / 1000;
+    if (mouseStoppedTime > 0 && (now - mouseStoppedTime) > 0.1) {
+      return; // Mouse has been stopped for too long
     }
+    
+    // Calculate mouse velocity using the most recent movement
+    const latest = mouseTrail[mouseTrail.length - 1];
+    const prev = mouseTrail[mouseTrail.length - 2];
+    const dtx = Math.max(1e-3, (latest.time - prev.time)); // seconds
+    const mouseVx = (latest.x - prev.x) / dtx;
+    const mouseVy = (latest.y - prev.y) / dtx;
     const mouseSpeed = Math.sqrt(mouseVx * mouseVx + mouseVy * mouseVy);
     
-    // Only emit if mouse is moving
+    // Only emit if mouse is actively moving (higher threshold for more responsive stopping)
     if (mouseSpeed < CONSTANTS.MIN_MOUSE_SPEED_FOR_TRAIL) return;
     
     // Emit multiple particles per frame based on emission rate
@@ -1788,6 +1794,9 @@
 
   // Mouse input (unified handler for repeller + trail recording)
   let lastTrailRecordTime = 0;
+  let lastMousePosition = { x: 0, y: 0 };
+  let mouseStoppedTime = 0;
+  
   canvas.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
     mouseX = (e.clientX - rect.left) * DPR;
@@ -1798,12 +1807,25 @@
       repellerEnabled = true;
     }
     
-    // Trail mode: record mouse path
+    // Trail mode: record mouse path with movement detection
     if (currentMode === MODES.TRAIL) {
       const now = performance.now() / 1000; // seconds
-      // Push sample with timestamp; keep small fixed buffer
-      mouseTrail.push({ x: mouseX, y: mouseY, time: now });
-      if (mouseTrail.length > MAX_MOUSE_TRAIL_LENGTH) mouseTrail.shift();
+      
+      // Check if mouse has actually moved (not just jitter)
+      const dx = mouseX - lastMousePosition.x;
+      const dy = mouseY - lastMousePosition.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Only record if mouse has moved significantly
+      if (distance > 2) { // 2 pixel threshold to filter out jitter
+        mouseTrail.push({ x: mouseX, y: mouseY, time: now });
+        if (mouseTrail.length > MAX_MOUSE_TRAIL_LENGTH) mouseTrail.shift();
+        lastMousePosition = { x: mouseX, y: mouseY };
+        mouseStoppedTime = 0; // Reset stopped timer
+      } else {
+        // Mouse hasn't moved much - increment stopped time
+        mouseStoppedTime = now;
+      }
     }
   });
   canvas.addEventListener('mouseleave', () => { 
@@ -1811,6 +1833,7 @@
     mouseY = CONSTANTS.OFFSCREEN_MOUSE;
     if (currentMode === MODES.TRAIL) {
       mouseTrail = [];
+      mouseStoppedTime = 0;
       // Reset particle pool when mouse leaves
       resetTrailParticlePool();
     }
