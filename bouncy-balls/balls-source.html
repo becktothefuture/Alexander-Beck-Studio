@@ -354,6 +354,7 @@
   let sparkleDriftStrength = 50; // gentle floating motion
   let sparkleParticleScale = 0.6; // smaller than normal balls
   let mouseTrail = []; // track recent mouse positions for velocity calc
+  const MAX_MOUSE_TRAIL_LENGTH = 10; // keep last 10 positions for velocity
   // Weightless mode parameters
   let weightlessInitialSpeed = 400; // initial velocity magnitude (px/s)
   let weightlessBounce = 0.98; // wall bounce restitution (very elastic)
@@ -656,7 +657,7 @@
       repelRadius,
       repelSoft,
       cornerRadius,
-      motionBlur: trailAmount,
+      motionBlur: trailFade,
       trailSubtlety,
       currentTemplate,
       cursorBallColor
@@ -681,9 +682,11 @@
         if (settings.attractionPower) attractionPower = settings.attractionPower;
         if (settings.orbitRadius) orbitRadius = settings.orbitRadius;
         if (settings.swarmSpeed) swarmSpeed = settings.swarmSpeed;
-        if (settings.trailLength) trailLength = settings.trailLength;
-        if (settings.particleSpacing) particleSpacing = settings.particleSpacing;
-        if (settings.trailFadeSpeed) trailFadeSpeed = settings.trailFadeSpeed;
+        if (settings.sparkleEmissionRate !== undefined) sparkleEmissionRate = settings.sparkleEmissionRate;
+        if (settings.sparkleLifetime !== undefined) sparkleLifetime = settings.sparkleLifetime;
+        if (settings.sparkleVelocitySpread !== undefined) sparkleVelocitySpread = settings.sparkleVelocitySpread;
+        if (settings.sparkleDriftStrength !== undefined) sparkleDriftStrength = settings.sparkleDriftStrength;
+        if (settings.sparkleParticleScale !== undefined) sparkleParticleScale = settings.sparkleParticleScale;
         if (settings.weightlessInitialSpeed) weightlessInitialSpeed = settings.weightlessInitialSpeed;
         if (settings.weightlessBounce) weightlessBounce = settings.weightlessBounce;
         if (settings.weightlessMaxBalls) weightlessMaxBalls = settings.weightlessMaxBalls;
@@ -698,7 +701,7 @@
         if (settings.repelRadius) repelRadius = settings.repelRadius;
         if (settings.repelSoft) repelSoft = settings.repelSoft;
         if (settings.cornerRadius !== undefined) cornerRadius = settings.cornerRadius;
-        if (settings.motionBlur !== undefined) trailAmount = settings.motionBlur;
+        if (settings.motionBlur !== undefined) trailFade = settings.motionBlur;
         if (settings.trailSubtlety) trailSubtlety = settings.trailSubtlety;
         if (settings.currentTemplate) currentTemplate = settings.currentTemplate;
         if (settings.cursorBallColor) cursorBallColor = settings.cursorBallColor;
@@ -2126,11 +2129,13 @@
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
     } else if (currentMode === MODES.TRAIL) {
-      gravityMultiplier = 0.0; // minimal gravity for trail particles
+      gravityMultiplier = 0.0; // no gravity for sparkle particles
       G = GE * gravityMultiplier;
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
       mouseTrail = [];
+      // Clear all existing balls when entering Trail mode
+      balls.length = 0;
     } else if (currentMode === MODES.WEIGHTLESS) {
       gravityMultiplier = 0.0; // zero gravity (weightless)
       G = GE * gravityMultiplier;
