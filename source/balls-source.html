@@ -908,8 +908,10 @@
         const rollTarget = this.vx / this.r;
         this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
       }
-      if (this.y - this.r < 0) { 
-        this.y = this.r; 
+      // Top wall collision at visible viewport top (not canvas top)
+      const viewportTop = h * 0.333; // 50vh offset from 150vh canvas
+      if (this.y - this.r < viewportTop) { 
+        this.y = viewportTop + this.r; 
         const preVy = this.vy;
         this.vy = -this.vy * rest; 
         const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
