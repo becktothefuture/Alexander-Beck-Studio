@@ -174,7 +174,7 @@
   <details open>
     <summary>🌐 Global Ball Properties</summary>
     <div class="group">
-        <label>Size: <span class="val" id="sizeValGlobal">0.75</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="0.75"></label>
+        <label>Size: <span class="val" id="sizeValGlobal">0.7</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="0.7"></label>
         <label>Size variation: <span class="val" id="sizeVariationValGlobal">1.0</span><input type="range" id="sizeVariationSliderGlobal" min="0.0" max="3.0" step="0.1" value="1.0"></label>
         <label>Softness: <span class="val" id="ballSoftnessValGlobal">40</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="40"></label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard, 40 = normal, 100 = very squishy</div>
@@ -478,7 +478,7 @@
   // Base radius values
   const R_MIN_BASE = 6;
   const R_MAX_BASE = 24;
-  let sizeScale = 0.75;     // Global ball size (default per user request)
+  let sizeScale = 0.7;     // Global ball size (default per user request)
   let sizeVariation = 1.0; // Global size variation
   // Responsive scale: reduce ball size by 60% on mobile breakpoints (≤768px)
   let responsiveScale = 1.0;
@@ -2855,7 +2855,7 @@
   // Rubber-focused physics presets under Earth gravity (≈1960 px/s²)
   const PHYSICS_PRESETS = {
     rubberPlayground: { label: 'Rubber – Playground', G: 1960, REST: 0.90, FRICTION: 0.0025, sizeScale: 1.8, maxBalls: 450, sizeVariation: 0.20 },
-    rubberRacquet:    { label: 'Rubber – Racquetball', G: 3320, REST: 0.97, FRICTION: 0.0035, sizeScale: 2.1, maxBalls: 350, sizeVariation: 0.30 },
+    rubberRacquet:    { label: 'Rubber – Racquetball', G: 3320, REST: 0.97, FRICTION: 0.0035, sizeScale: 0.7, maxBalls: 350, sizeVariation: 0.30 },
     rubberSuperball:  { label: 'Rubber – Superball', G: 1960, REST: 0.95, FRICTION: 0.0015, sizeScale: 1.2, maxBalls: 450, sizeVariation: 0.05 },
     rubberSoft:       { label: 'Rubber – Soft', G: 1960, REST: 0.86, FRICTION: 0.0035, sizeScale: 2.2, maxBalls: 350, sizeVariation: 0.25 },
     rubberHeavy:      { label: 'Rubber – Heavy', G: 1960, REST: 0.88, FRICTION: 0.0030, sizeScale: 2.0, maxBalls: 400, sizeVariation: 0.15 }
