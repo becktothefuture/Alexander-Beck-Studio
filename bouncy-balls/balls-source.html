@@ -186,26 +186,22 @@
   <!-- GLOBAL SETTINGS (apply to all modes)                                   -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- GLOBAL SETTINGS (apply to ALL modes)                                   -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  
   <details open>
-    <summary>🌐 Global Settings</summary>
+    <summary>⚙️ Ball Properties</summary>
     <div class="group">
         <label>Size: <span class="val" id="sizeVal">0.75</span><input type="range" id="sizeSlider" min="0.1" max="6.0" step="0.05" value="0.75"></label>
         <label>Size variation: <span class="val" id="sizeVariationVal">1.0</span><input type="range" id="sizeVariationSlider" min="0.0" max="3.0" step="0.1" value="1.0"></label>
-        <label>Max balls: <span class="val" id="maxBallsVal">400</span><input type="range" id="maxBallsSlider" min="50" max="1000" step="25" value="400"></label>
-        <label>Ball weight (kg): <span class="val" id="weightVal">11.20</span><input type="range" id="weightSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
+        <label>Weight (kg): <span class="val" id="weightVal">11.20</span><input type="range" id="weightSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
+        <label>Softness: <span class="val" id="ballSoftnessVal">40</span><input type="range" id="ballSoftnessSlider" min="0" max="100" step="1" value="40"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard (no squash), 40 = normal, 100 = very squishy</div>
     </div>
   </details>
   
-  <details>
-    <summary>🖼️ Scene</summary>
-    <div class="group">
-        <label>Corner radius (px): <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="200" step="5" value="0"></label>
-        <label>Motion blur: <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="1.500" step="0.001" value="0.000"></label>
-        <label>Trail subtlety: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.00" max="3.00" step="0.05" value="1.00"></label>
-    </div>
-  </details>
-  
-  <details>
+  <details open>
     <summary>🎨 Colors</summary>
     <div class="group">
         <label>Color template: <select id="colorSelect"></select></label>
@@ -230,6 +226,16 @@
           </select>
         </label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Colors appear by weight: 1 is most common, 8 is rarest</div>
+    </div>
+  </details>
+  
+  <details>
+    <summary>🖼️ Scene & Effects</summary>
+    <div class="group">
+        <label>Max balls: <span class="val" id="maxBallsVal">400</span><input type="range" id="maxBallsSlider" min="50" max="1000" step="25" value="400"></label>
+        <label>Corner radius (px): <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="200" step="5" value="0"></label>
+        <label>Motion blur: <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="1.500" step="0.001" value="0.000"></label>
+        <label>Blur intensity: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.00" max="3.00" step="0.05" value="1.00"></label>
     </div>
   </details>
   
@@ -337,6 +343,11 @@
   
   let currentMode = MODES.PIT;
   
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GLOBAL PARAMETERS (apply to all modes)
+  // ═══════════════════════════════════════════════════════════════════════════
+  let ballSoftness = 40; // 0-100: controls squash/stretch on collision (0=hard, 100=very squishy)
+  
   // Mode-specific parameters
   // Ball Pit mode parameters
   let gravityMultiplierPit = 1.1;
@@ -380,11 +391,22 @@
     SPIN_GAIN: 0.25,              // how strongly tangential slip converts to spin
     SPIN_GAIN_TANGENT: 0.18,      // ball–ball tangential slip to spin
     ROLL_FRICTION_PER_S: 1.5,     // rolling friction for horizontal speed per second when grounded
-    SQUASH_MAX: 0.20,             // maximum squash amount (moderate, prevents elongated look)
+    SQUASH_MAX_BASE: 0.20,        // base maximum squash at softness=40 (moderate)
     SQUASH_DECAY_PER_S: 18.0,     // faster relaxation for snappy feel
     WALL_REST_VEL_THRESHOLD: 70,  // below this, wall bounce becomes inelastic (settles)
     GROUND_COUPLING_PER_S: 8.0    // match roll (vx) to spin (omega) when grounded
   };
+  
+  // Dynamic squash calculation based on ball softness (0-100)
+  // 0 = completely hard (no deformation)
+  // 40 = normal/default (0.20 squash)
+  // 100 = very squishy (0.50 squash)
+  function getSquashMax() {
+    if (ballSoftness === 0) return 0; // Completely hard - no squash
+    // Linear interpolation: softness 40 = base value (0.20)
+    // softness 100 = 2.5× base (0.50)
+    return getSquashMax()_BASE * (ballSoftness / 40.0);
+  }
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d', { alpha: true });
@@ -653,6 +675,7 @@
       sizeScale,
       sizeVariation,
       ballMassKg,
+      ballSoftness,
       repelPower,
       repelRadius,
       repelSoft,
@@ -848,7 +871,7 @@
         this.vy = -this.vy * (wallRest * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
         // Squash on impact using pre-impact speed
         const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
-        this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+        this.squashAmount = Math.min(getSquashMax(), impact * 0.8);
         this.squash = 1 - this.squashAmount;
         this.squashNormalAngle = -Math.PI / 2; // ground normal upwards
         // Ground coupling: tend towards pure rolling without slipping
@@ -860,7 +883,7 @@
         const preVy = this.vy;
         this.vy = -this.vy * rest; 
         const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
-        this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+        this.squashAmount = Math.min(getSquashMax(), impact * 0.8);
         this.squash = 1 - this.squashAmount;
         this.squashNormalAngle = Math.PI / 2; // ceiling normal downwards
       }
@@ -873,7 +896,7 @@
         }
         this.vx = -this.vx * rest; 
         const impact = Math.min(1, Math.abs(this.vx) / (this.r * 90));
-        this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+        this.squashAmount = Math.min(getSquashMax(), impact * 0.8);
         this.squash = 1 - this.squashAmount;
         this.squashNormalAngle = Math.PI; // right wall normal leftwards
       }
@@ -886,7 +909,7 @@
           }
           this.vx = -this.vx * rest; 
           const impact = Math.min(1, Math.abs(this.vx) / (this.r * 90));
-          this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+          this.squashAmount = Math.min(getSquashMax(), impact * 0.8);
           this.squash = 1 - this.squashAmount;
           this.squashNormalAngle = 0; // left wall normal rightwards
         }
@@ -954,7 +977,7 @@
               
               // Add squash effect for visual impact
               const impact = Math.min(1, Math.abs(dotProduct) / (this.r * 70));
-              this.squash = 1 - CONSTANTS.SQUASH_MAX * impact;
+              this.squash = 1 - getSquashMax() * impact;
               this.squashDirX = Math.abs(nx) > Math.abs(ny) ? 1 : 0;
               this.squashDirY = Math.abs(ny) > Math.abs(nx) ? 1 : 0;
             }
@@ -1000,7 +1023,7 @@
             this.vy -= 2 * dot * ny * REST;
             // Squash aligned to corner normal, proportional to impact
             const impact = Math.min(1, Math.abs(dot) / (this.r * 90));
-            this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+            this.squashAmount = Math.min(getSquashMax(), impact * 0.8);
             this.squash = 1 - this.squashAmount;
             this.squashNormalAngle = Math.atan2(ny, nx);
           }
@@ -1032,7 +1055,7 @@
         this.vx = -this.vx * (REST * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
         // Squash aligned to wall normal
         const impact = Math.min(1, Math.abs(this.vx)/(this.r*70));
-        this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact);
+        this.squashAmount = Math.min(getSquashMax(), impact);
         this.squash = 1 - this.squashAmount;
         this.squashNormalAngle = Math.PI; // normal leftwards
       }
@@ -1047,7 +1070,7 @@
         }
         this.vx = -this.vx * (REST * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
         const impact = Math.min(1, Math.abs(this.vx)/(this.r*70));
-        this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact);
+        this.squashAmount = Math.min(getSquashMax(), impact);
         this.squash = 1 - this.squashAmount;
         this.squashNormalAngle = 0; // normal rightwards
       }
@@ -1095,7 +1118,7 @@
       ctx.save();
       ctx.translate(this.x, this.y);
       // World-aligned squash/stretch only if significant
-      const amt = Math.min(CONSTANTS.SQUASH_MAX, Math.max(0, this.squashAmount));
+      const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
       if (amt > 0.001) {
         // Area-preserving squash: s * (1/s) maintains roundness perception
         const s = 1 + amt;
@@ -1416,7 +1439,7 @@
           }
           // Visual squash aligned to contact normal based on impact
           const impact = Math.min(1, Math.abs(velAlongNormal) / ((A.r + B.r) * 50));
-          const sAmt = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+          const sAmt = Math.min(getSquashMax(), impact * 0.8);
           A.squashAmount = Math.max(A.squashAmount, sAmt * 0.8);
           A.squashNormalAngle = Math.atan2(-ny, -nx);
           B.squashAmount = Math.max(B.squashAmount, sAmt * 0.8);
@@ -1836,6 +1859,8 @@
   const maxBallsSlider = document.getElementById('maxBallsSlider');
   const sizeVariationSlider = document.getElementById('sizeVariationSlider');
   const weightSlider = document.getElementById('weightSlider');
+  const ballSoftnessSlider = document.getElementById('ballSoftnessSlider');
+  const ballSoftnessVal = document.getElementById('ballSoftnessVal');
   const spawnYSlider = document.getElementById('spawnYSlider');
   const spawnWidthSlider = document.getElementById('spawnWidthSlider');
   const spawnCenterSlider = document.getElementById('spawnCenterSlider');
@@ -1973,6 +1998,11 @@
   // Sliders (with auto-save)
   restitutionSlider && restitutionSlider.addEventListener('input', () => { REST = parseFloat(restitutionSlider.value); restitutionVal && (restitutionVal.textContent = REST.toFixed(2)); autoSaveSettings(); });
   frictionSlider && frictionSlider.addEventListener('input', () => { FRICTION = parseFloat(frictionSlider.value); frictionVal && (frictionVal.textContent = FRICTION.toFixed(4)); autoSaveSettings(); });
+  ballSoftnessSlider && ballSoftnessSlider.addEventListener('input', () => { 
+    ballSoftness = parseInt(ballSoftnessSlider.value, 10); 
+    ballSoftnessVal && (ballSoftnessVal.textContent = ballSoftness.toString()); 
+    autoSaveSettings(); 
+  });
   emitterSlider && emitterSlider.addEventListener('input', () => { EMIT_INTERVAL = parseFloat(emitterSlider.value); emitterVal && (emitterVal.textContent = EMIT_INTERVAL.toFixed(3)); autoSaveSettings(); });
   sizeSlider && sizeSlider.addEventListener('input', () => {
     const newScale = parseFloat(sizeSlider.value);
