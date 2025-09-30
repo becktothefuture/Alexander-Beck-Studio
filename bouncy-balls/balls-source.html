@@ -291,6 +291,8 @@
         <label>Initial speed: <span class="val" id="weightlessSpeedVal">400</span><input type="range" id="weightlessSpeedSlider" min="50" max="1000" step="50" value="400"></label>
         <label>Wall bounce: <span class="val" id="weightlessBounceVal">0.98</span><input type="range" id="weightlessBounceSlider" min="0.50" max="1.00" step="0.01" value="0.98"></label>
         <label>Ball count: <span class="val" id="weightlessMaxBallsVal">300</span><input type="range" id="weightlessMaxBallsSlider" min="50" max="600" step="25" value="300"></label>
+        <label>Repeller power: <span class="val" id="weightlessRepelPowerVal">800</span><input type="range" id="weightlessRepelPowerSlider" min="0" max="2000" step="100" value="800"></label>
+        <label>Repeller radius: <span class="val" id="weightlessRepelRadiusVal">120</span><input type="range" id="weightlessRepelRadiusSlider" min="0" max="300" step="10" value="120"></label>
       </div>
     </details>
   </div>
@@ -331,6 +333,8 @@
   let weightlessInitialSpeed = 400; // initial velocity magnitude (px/s)
   let weightlessBounce = 0.98; // wall bounce restitution (very elastic)
   let weightlessMaxBalls = 300; // number of balls in scene
+  let weightlessRepellerPower = 800; // subtle mouse repeller strength
+  let weightlessRepellerRadius = 120; // small repeller radius (px)
   
   // Constants for magic numbers
   const CONSTANTS = {
@@ -576,6 +580,13 @@
   let mouseX = CONSTANTS.OFFSCREEN_MOUSE, mouseY = CONSTANTS.OFFSCREEN_MOUSE; // offscreen until moved
   let repellerEnabled = false; // disabled by default; enabled by preset or sliders
   const REPELLER_GLOBAL_MULTIPLIER = 20.0; // doubled overall repeller strength
+  
+  // Touch detection - cursor ball only shows on non-touch devices
+  let isTouchDevice = false;
+  // Check for touch support
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    isTouchDevice = true;
+  }
 
   // Repeller slider mapping (wide dynamic range; midpoint equals 2× previous default)
   const REPEL_BASE_POWER = 12000; // previous default baseline
@@ -1459,6 +1470,8 @@
 
   // Draw a cursor as a ball matching the simulation style
   function drawCursorBall(ctx) {
+    // Don't show cursor ball on touch devices (mobile)
+    if (isTouchDevice) return;
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     
     // Trail mode: draw the trail path
@@ -1473,15 +1486,23 @@
       }
     }
     
-    // Draw main cursor ball for all modes
+    // Draw main cursor ball for all modes (white by default on desktop)
     const x = mouseX, y = mouseY;
     const baseSize = (R_MIN + R_MAX) / 2;
     const r = baseSize;
-    const color = cursorBallColor;
+    // White cursor ball for non-trail modes, colored for trail mode
+    const color = (currentMode === MODES.TRAIL) ? cursorBallColor : 'rgba(255, 255, 255, 0.9)';
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
+    
+    // Add subtle white outline for visibility
+    if (currentMode !== MODES.TRAIL) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   }
 
   function applyRepeller(b, dt) {
@@ -1524,9 +1545,31 @@
       return;
     }
     if (currentMode === MODES.WEIGHTLESS) {
-      // No external forces in weightless mode - just momentum conservation
+      applyWeightlessRepeller(b, dt);
       return;
     }
+  }
+  
+  // Subtle mouse repeller for Weightless mode
+  function applyWeightlessRepeller(b, dt) {
+    if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
+    if (weightlessRepellerPower <= 0 || weightlessRepellerRadius <= 0) return;
+    
+    const rPx = weightlessRepellerRadius * DPR;
+    const dx = b.x - mouseX;
+    const dy = b.y - mouseY;
+    const d2 = dx*dx + dy*dy;
+    const r2 = rPx * rPx;
+    if (d2 > r2) return;
+    
+    const d = Math.max(Math.sqrt(d2), CONSTANTS.MIN_REPEL_DISTANCE);
+    const nx = dx / d;
+    const ny = dy / d;
+    const q = Math.max(0, 1 - d / rPx);
+    const strength = weightlessRepellerPower * q; // linear falloff, gentle
+    
+    b.vx += nx * strength * dt;
+    b.vy += ny * strength * dt;
   }
 
   // Mouse attractor for Flies-to-Light mode - realistic swarm behavior like mosquitos around light
@@ -1982,6 +2025,10 @@
   const weightlessBounceVal = document.getElementById('weightlessBounceVal');
   const weightlessMaxBallsSlider = document.getElementById('weightlessMaxBallsSlider');
   const weightlessMaxBallsVal = document.getElementById('weightlessMaxBallsVal');
+  const weightlessRepelPowerSlider = document.getElementById('weightlessRepelPowerSlider');
+  const weightlessRepelPowerVal = document.getElementById('weightlessRepelPowerVal');
+  const weightlessRepelRadiusSlider = document.getElementById('weightlessRepelRadiusSlider');
+  const weightlessRepelRadiusVal = document.getElementById('weightlessRepelRadiusVal');
   
   weightlessSpeedSlider && weightlessSpeedSlider.addEventListener('input', () => {
     weightlessInitialSpeed = parseFloat(weightlessSpeedSlider.value);
@@ -2010,6 +2057,14 @@
         balls.length = weightlessMaxBalls;
       }
     }
+  });
+  weightlessRepelPowerSlider && weightlessRepelPowerSlider.addEventListener('input', () => {
+    weightlessRepellerPower = parseFloat(weightlessRepelPowerSlider.value);
+    weightlessRepelPowerVal && (weightlessRepelPowerVal.textContent = Math.round(weightlessRepellerPower).toString());
+  });
+  weightlessRepelRadiusSlider && weightlessRepelRadiusSlider.addEventListener('input', () => {
+    weightlessRepellerRadius = parseFloat(weightlessRepelRadiusSlider.value);
+    weightlessRepelRadiusVal && (weightlessRepelRadiusVal.textContent = Math.round(weightlessRepellerRadius).toString());
   });
 
   // Individual color picker listeners (with existing ball color update)
