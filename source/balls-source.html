@@ -405,6 +405,9 @@
   let rainbowGravity = 1.2; // gravity multiplier for rainbow mode
   let rainbowBounce = 0.6; // bounce restitution for rainbow mode
   
+  // Mass constants (needed before CONSTANTS object)
+  const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
+  
   // Constants for magic numbers
   const CONSTANTS = {
     CANVAS_HEIGHT_VH: 1.5,        // 150vh canvas height
@@ -489,7 +492,6 @@
   let lastEffectiveScale = null; // tracks previous (sizeScale * responsiveScale)
   // Global mass model: all balls share the same mass in kg
   let ballMassKg = 19.80; // from screenshot
-  const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
   // Mass influence tuning
   const MASS_GRAVITY_EXP = 0.35; // how much mass influences gravity (perceptual)
   const MASS_REST_EXP = 0.15;    // how much mass influences bounce restitution
