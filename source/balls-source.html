@@ -1280,12 +1280,12 @@
   // Drop next Rainbow ball
   function dropNextRainbowBall() {
     if (rainbowDropIndex >= currentColors.length || !rainbowIsActive) return false;
-    
+
     // Calculate size based on randomness setting
     const maxSize = Math.min(canvas.height * 0.2, canvas.width * 0.2);
     const minSize = 15 * DPR;
     let size;
-    
+
     if (rainbowRandomness === 0) {
       // Equal steps
       const t = rainbowDropIndex / (currentColors.length - 1);
@@ -1297,28 +1297,31 @@
       const t = Math.max(0, Math.min(1, randomT));
       size = maxSize - t * (maxSize - minSize);
     }
-    
+
     // Drop position
     const x = (canvas.width / currentColors.length) * rainbowDropIndex + (canvas.width / currentColors.length) * 0.5;
     const jitter = (Math.random() - 0.5) * (canvas.width / currentColors.length) * 0.6;
     const dropX = Math.max(20, Math.min(canvas.width - 20, x + jitter));
     const dropY = -size - 50;
-    
-    // Create ball using standard spawnBall function (ensures proper collision)
-    const ball = spawnBall(dropX, dropY, currentColors[rainbowDropIndex]);
-    
-    // Override size and make much heavier
-    ball.r = size;
-    ball.rBase = size;
+
+    // Create ball directly with proper constructor for Rainbow mode
+    const ball = new Ball(dropX, dropY, size, currentColors[rainbowDropIndex]);
+
+    // Set heavy mass for rock-like behavior
     ball.m = ballMassKg * 5; // 5x heavier than normal balls
-    
-    // Add subtle random horizontal velocity
-    ball.vx = (Math.random() - 0.5) * 80;
-    ball.vy = 0;
-    
+
+    // Override initial velocities for controlled drop
+    ball.vx = (Math.random() - 0.5) * 80; // subtle random horizontal velocity
+    ball.vy = 0; // no initial downward velocity
+    ball.driftAx = 0; // no drift acceleration
+    ball.driftTime = 0; // no drift time
+
+    // Add to balls array
+    balls.push(ball);
+
     rainbowDropIndex++;
     rainbowLastDropTime = performance.now() / 1000;
-    
+
     return true;
   }
   
@@ -1645,7 +1648,7 @@
       
       // Ball-to-ball collisions (disabled for Flies and Trail modes)
       if (currentMode !== MODES.FLIES && currentMode !== MODES.TRAIL) {
-        resolveCollisions(3); // Balanced quality vs performance
+        resolveCollisions(3); // Balanced quality vs performance - includes Rainbow mode
       }
       
       // Wall collisions (disabled for Trail mode - particles drift off-screen)
@@ -2221,7 +2224,14 @@
       sizeVal && (sizeVal.textContent = newScale.toFixed(1));
       sizeScale = newScale;
       updateEffectiveScaleAndBallSizes();
-      for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+      // Apply mass (Rainbow balls maintain 5x multiplier)
+      for (let i=0; i<balls.length; i++) {
+        if (currentMode === MODES.RAINBOW) {
+          balls[i].m = ballMassKg * 5;
+        } else {
+          balls[i].m = ballMassKg;
+        }
+      }
       autoSaveSettings();
     });
     sizeVar && sizeVar.addEventListener('input', () => {
@@ -2495,8 +2505,14 @@
   weightPitSlider && weightPitSlider.addEventListener('input', () => {
     ballMassKg = parseFloat(weightPitSlider.value);
     weightPitVal && (weightPitVal.textContent = ballMassKg.toFixed(2));
-    // Apply shared mass to all balls
-    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+    // Apply shared mass to all balls (Rainbow balls maintain 5x multiplier)
+    for (let i=0; i<balls.length; i++) {
+      if (currentMode === MODES.RAINBOW) {
+        balls[i].m = ballMassKg * 5; // Rainbow balls stay 5x heavier
+      } else {
+        balls[i].m = ballMassKg; // Normal mass for other modes
+      }
+    }
     // Recompute derived scaling so gravity visibly changes with weight
     recomputeMassDerivedScales();
     autoSaveSettings();
@@ -2564,8 +2580,14 @@
   weightWeightlessSlider && weightWeightlessSlider.addEventListener('input', () => {
     ballMassKg = parseFloat(weightWeightlessSlider.value);
     weightWeightlessVal && (weightWeightlessVal.textContent = ballMassKg.toFixed(2));
-    // Apply shared mass to all balls
-    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+    // Apply shared mass to all balls (Rainbow balls maintain 5x multiplier)
+    for (let i=0; i<balls.length; i++) {
+      if (currentMode === MODES.RAINBOW) {
+        balls[i].m = ballMassKg * 5; // Rainbow balls stay 5x heavier
+      } else {
+        balls[i].m = ballMassKg; // Normal mass for other modes
+      }
+    }
     // Recompute derived scaling so gravity visibly changes with weight
     recomputeMassDerivedScales();
     autoSaveSettings();
@@ -2609,8 +2631,10 @@
   weightRainbowSlider && weightRainbowSlider.addEventListener('input', () => {
     ballMassKg = parseFloat(weightRainbowSlider.value);
     weightRainbowVal && (weightRainbowVal.textContent = ballMassKg.toFixed(2));
-    // Apply shared mass to all balls
-    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+    // Apply shared mass to Rainbow balls (maintaining 5x multiplier)
+    for (let i=0; i<balls.length; i++) {
+      balls[i].m = ballMassKg * 5; // Rainbow balls are 5x heavier
+    }
     // Recompute derived scaling so gravity visibly changes with weight
     recomputeMassDerivedScales();
     autoSaveSettings();
@@ -2754,7 +2778,14 @@
     sizeScale = newScale;
     // Recompute effective scale and proportionally resize existing balls
     updateEffectiveScaleAndBallSizes();
-    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+    // Apply mass (Rainbow balls maintain 5x multiplier)
+    for (let i=0; i<balls.length; i++) {
+      if (currentMode === MODES.RAINBOW) {
+        balls[i].m = ballMassKg * 5;
+      } else {
+        balls[i].m = ballMassKg;
+      }
+    }
     
     // Remove excess balls if new limit is lower (truncate efficiently)
     if (balls.length > MAX_BALLS) { balls.length = MAX_BALLS; }
