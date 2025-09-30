@@ -1716,14 +1716,29 @@
 
   // Reset ball sizes to global setting when switching modes
   function resetBallSizeToGlobal() {
-    // Get current global ball size
-    const globalSize = parseFloat(sizeSliderGlobal.value);
-
-    // Update all existing balls to use global size (maintain Rainbow boulder sizes)
+    // Update size scale from slider (if needed)
+    const globalScale = parseFloat(sizeSliderGlobal.value);
+    sizeScale = globalScale;
+    
+    // Recalculate the actual size range based on sizeScale
+    updateEffectiveScaleAndBallSizes();
+    
+    // Update all existing balls to use proper global size (maintain Boulders custom sizes)
+    const baseSize = (R_MIN + R_MAX) / 2;
     for (let i = 0; i < balls.length; i++) {
       if (currentMode !== MODES.BOULDERS) {
-        balls[i].r = globalSize;
-        balls[i].rBase = globalSize;
+        // Apply size variation if set, otherwise use base size
+        if (sizeVariation === 0) {
+          balls[i].r = baseSize;
+          balls[i].rBase = baseSize;
+        } else {
+          // Apply limited variation (max 10% from global ball size)
+          const maxVariation = baseSize * 0.1;
+          const minR = Math.max(1, baseSize - maxVariation);
+          const maxR = baseSize + maxVariation;
+          balls[i].r = randBetween(minR, maxR);
+          balls[i].rBase = balls[i].r;
+        }
       }
     }
   }
@@ -2443,27 +2458,40 @@
 
   function setMode(mode) {
     currentMode = mode;
-    // Apply per-mode high-level toggles
+    
+    // Apply per-mode high-level toggles and initialization
     if (currentMode === MODES.PIT) {
       gravityMultiplier = gravityMultiplierPit;
       G = GE * gravityMultiplier;
       repellerEnabled = repellerEnabledPit && (repelPower > 0 && repelRadius > 0);
       EMITTER_SWEEP_ENABLED = true;
+      // Reset scene when entering Ball Pit
+      balls.length = 0;
+      emitterTimer = 0;
+      // Reset ball sizes to global
+      resetBallSizeToGlobal();
     } else if (currentMode === MODES.FLIES) {
       gravityMultiplier = 0.0; // no gravity
       G = GE * gravityMultiplier;
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
+      // Reset scene when entering Flies mode
+      balls.length = 0;
+      // Reset ball sizes to global
+      resetBallSizeToGlobal();
     } else if (currentMode === MODES.TRAIL) {
-      gravityMultiplier = 0.0; // no gravity for sparkle particles
+      gravityMultiplier = 0.0; // no gravity for trail particles
       G = GE * gravityMultiplier;
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
       mouseTrail = [];
+      trailPath = [];
       // Clear all existing balls when entering Trail mode
       balls.length = 0;
       // Reset particle pool for recycling
       resetTrailParticlePool();
+      // Reset ball sizes to global
+      resetBallSizeToGlobal();
     } else if (currentMode === MODES.WEIGHTLESS) {
       gravityMultiplier = 0.0; // zero gravity (weightless)
       G = GE * gravityMultiplier;
@@ -2471,6 +2499,8 @@
       EMITTER_SWEEP_ENABLED = false;
       // Initialize professional weightless scene with even distribution
       initializeWeightlessScene();
+      // Reset ball sizes to global (after initialization)
+      resetBallSizeToGlobal();
     } else if (currentMode === MODES.BOULDERS) {
       gravityMultiplier = bouldersGravity;
       G = GE * gravityMultiplier;
@@ -2478,6 +2508,7 @@
       EMITTER_SWEEP_ENABLED = false;
       // Initialize rainbow drop system
       initializeRainbowMode();
+      // Note: Boulders use custom sizes, so we don't reset to global
     }
     updateModeControlsUI();
   }
@@ -2485,8 +2516,7 @@
   // Hook up UI listeners (with auto-save on changes)
   modeButtons.forEach(btn => btn.addEventListener('click', () => {
     setMode(btn.getAttribute('data-mode'));
-    // Reset size to global ball size when switching modes
-    resetBallSizeToGlobal();
+    // Note: resetBallSizeToGlobal() is now called inside setMode() for each mode
     autoSaveSettings();
   }));
   gravityPitSlider && gravityPitSlider.addEventListener('input', () => {
