@@ -171,7 +171,7 @@
   <div class="mode-switcher">
     <button class="mode-button active" data-mode="pit">🎯 Pit</button>
     <button class="mode-button" data-mode="flies">🕊️ Flies</button>
-    <button class="mode-button" data-mode="trail">🖱️ Trail</button>
+    <button class="mode-button" data-mode="trail" id="trailModeButton">🖱️ Trail</button>
     <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
   </div>
   
@@ -309,12 +309,20 @@
 <script>
 // Version: 2024-09-30 - Added 3-mode system (Ball Pit, Flies to Light, Mouse Trail)
 (() => {
-  // Behavior modes
+  // Behavior modes with device availability
   const MODES = {
     PIT: 'pit',          // Ball Pit: gravity + repeller
     FLIES: 'flies',      // Flies to Light: attraction to mouse, no gravity
-    TRAIL: 'trail',      // Mouse Trail: particles follow mouse path
+    TRAIL: 'trail',      // Mouse Trail: static paint drops (DESKTOP ONLY)
     WEIGHTLESS: 'weightless'  // Weightless Bounce: zero-G bouncing balls
+  };
+  
+  // Mode availability by device type
+  const MODE_AVAILABILITY = {
+    [MODES.PIT]: { desktop: true, mobile: true },
+    [MODES.FLIES]: { desktop: true, mobile: true },
+    [MODES.TRAIL]: { desktop: true, mobile: false }, // Trail only on desktop (needs precise cursor)
+    [MODES.WEIGHTLESS]: { desktop: true, mobile: true }
   };
   
   let currentMode = MODES.PIT;
@@ -586,6 +594,110 @@
   // Check for touch support
   if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
     isTouchDevice = true;
+  }
+  
+  // Hide modes that aren't available on this device
+  function applyDeviceSpecificModeVisibility() {
+    const deviceType = isTouchDevice ? 'mobile' : 'desktop';
+    const trailButton = document.getElementById('trailModeButton');
+    
+    // Hide Trail mode button on mobile (needs precise cursor control)
+    if (trailButton && !MODE_AVAILABILITY[MODES.TRAIL][deviceType]) {
+      trailButton.style.display = 'none';
+    }
+    
+    // Can add more device-specific logic here for other modes
+  }
+  
+  // Settings persistence using localStorage
+  const STORAGE_KEY = 'bouncyBallsSettings';
+  
+  function saveSettings() {
+    const settings = {
+      currentMode,
+      gravityMultiplierPit,
+      repellerEnabledPit,
+      attractionPower,
+      orbitRadius,
+      swarmSpeed,
+      trailLength,
+      particleSpacing,
+      trailFadeSpeed,
+      weightlessInitialSpeed,
+      weightlessBounce,
+      weightlessMaxBalls,
+      weightlessRepellerPower,
+      weightlessRepellerRadius,
+      restitution: REST,
+      friction: FRICTION,
+      sizeScale,
+      sizeVariation,
+      ballMassKg,
+      repelPower,
+      repelRadius,
+      repelSoft,
+      cornerRadius,
+      motionBlur: trailAmount,
+      trailSubtlety,
+      currentTemplate,
+      cursorBallColor
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      console.log('✓ Settings saved');
+    } catch (e) {
+      console.warn('Could not save settings:', e);
+    }
+  }
+  
+  function loadSettings() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const settings = JSON.parse(saved);
+        // Restore all settings
+        if (settings.currentMode) currentMode = settings.currentMode;
+        if (settings.gravityMultiplierPit !== undefined) gravityMultiplierPit = settings.gravityMultiplierPit;
+        if (settings.repellerEnabledPit !== undefined) repellerEnabledPit = settings.repellerEnabledPit;
+        if (settings.attractionPower) attractionPower = settings.attractionPower;
+        if (settings.orbitRadius) orbitRadius = settings.orbitRadius;
+        if (settings.swarmSpeed) swarmSpeed = settings.swarmSpeed;
+        if (settings.trailLength) trailLength = settings.trailLength;
+        if (settings.particleSpacing) particleSpacing = settings.particleSpacing;
+        if (settings.trailFadeSpeed) trailFadeSpeed = settings.trailFadeSpeed;
+        if (settings.weightlessInitialSpeed) weightlessInitialSpeed = settings.weightlessInitialSpeed;
+        if (settings.weightlessBounce) weightlessBounce = settings.weightlessBounce;
+        if (settings.weightlessMaxBalls) weightlessMaxBalls = settings.weightlessMaxBalls;
+        if (settings.weightlessRepellerPower !== undefined) weightlessRepellerPower = settings.weightlessRepellerPower;
+        if (settings.weightlessRepellerRadius !== undefined) weightlessRepellerRadius = settings.weightlessRepellerRadius;
+        if (settings.restitution) REST = settings.restitution;
+        if (settings.friction !== undefined) FRICTION = settings.friction;
+        if (settings.sizeScale) sizeScale = settings.sizeScale;
+        if (settings.sizeVariation !== undefined) sizeVariation = settings.sizeVariation;
+        if (settings.ballMassKg) ballMassKg = settings.ballMassKg;
+        if (settings.repelPower) repelPower = settings.repelPower;
+        if (settings.repelRadius) repelRadius = settings.repelRadius;
+        if (settings.repelSoft) repelSoft = settings.repelSoft;
+        if (settings.cornerRadius !== undefined) cornerRadius = settings.cornerRadius;
+        if (settings.motionBlur !== undefined) trailAmount = settings.motionBlur;
+        if (settings.trailSubtlety) trailSubtlety = settings.trailSubtlety;
+        if (settings.currentTemplate) currentTemplate = settings.currentTemplate;
+        if (settings.cursorBallColor) cursorBallColor = settings.cursorBallColor;
+        
+        console.log('✓ Settings loaded');
+        return true;
+      }
+    } catch (e) {
+      console.warn('Could not load settings:', e);
+    }
+    return false;
+  }
+  
+  // Auto-save settings when sliders change
+  function autoSaveSettings() {
+    // Debounced save (wait 500ms after last change)
+    clearTimeout(window.settingsSaveTimeout);
+    window.settingsSaveTimeout = setTimeout(saveSettings, 500);
   }
 
   // Repeller slider mapping (wide dynamic range; midpoint equals 2× previous default)
@@ -1100,41 +1212,23 @@
     return { x, y };
   }
   function emit(dt) {
-    // Trail mode: spawn balls at cursor with reverse velocity from mouse movement
+    // Trail mode: spawn STATIC paint drops at cursor (no movement, stay where placed)
     if (currentMode === MODES.TRAIL) {
       emitterTimer += dt;
-      // Faster emission in trail mode for continuous stream
-      const trailEmitInterval = EMIT_INTERVAL * 0.15; // very fast emission
+      // Moderate emission rate for clean trail
+      const trailEmitInterval = EMIT_INTERVAL * 0.3;
       while (emitterTimer >= trailEmitInterval) {
         emitterTimer -= trailEmitInterval;
         if (balls.length < MAX_BALLS && mouseX !== CONSTANTS.OFFSCREEN_MOUSE && mouseY !== CONSTANTS.OFFSCREEN_MOUSE) {
-          // Spawn at cursor with shifting colors
-          const hue = (performance.now() * 0.15) % 360; // color shifts over time
-          const saturation = 70 + Math.random() * 30; // 70-100%
-          const lightness = 50 + Math.random() * 20; // 50-70%
-          const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-          const ball = spawnBall(mouseX, mouseY, color);
+          // Spawn at cursor with palette colors
+          const ball = spawnBall(mouseX, mouseY);
           
-          // Calculate mouse velocity from recent trail
-          let reverseVx = 0;
-          let reverseVy = 0;
-          if (mouseTrail.length >= 2) {
-            const latest = mouseTrail[mouseTrail.length - 1];
-            const prev = mouseTrail[mouseTrail.length - 2];
-            // Mouse velocity
-            const mouseVx = latest.x - prev.x;
-            const mouseVy = latest.y - prev.y;
-            // Emit balls in OPPOSITE direction with strong initial push
-            const emissionStrength = 800; // strong push away from cursor path
-            reverseVx = -mouseVx * emissionStrength;
-            reverseVy = -mouseVy * emissionStrength;
-          }
-          
-          // Set initial velocity (reverse of mouse movement + slight random spread)
-          ball.vx = reverseVx + (Math.random() - 0.5) * 100;
-          ball.vy = reverseVy + (Math.random() - 0.5) * 100;
+          // STATIC particles - NO movement at all (like paint drops)
+          ball.vx = 0;
+          ball.vy = 0;
           ball.driftAx = 0;
           ball.driftTime = 0;
+          ball.isStatic = true; // mark as static for rendering
         }
       }
       return;
@@ -1320,17 +1414,24 @@
     let physicsSteps = 0;
     while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
       for (let i=0; i<balls.length; i++) balls[i].step(DT);
-      // Disable ball-to-ball collisions in Flies mode for realistic swarming
-      if (currentMode !== MODES.FLIES) {
+      
+      // Ball-to-ball collisions (disabled for Flies and Trail modes)
+      if (currentMode !== MODES.FLIES && currentMode !== MODES.TRAIL) {
         resolveCollisions(3); // Balanced quality vs performance
       }
-      // Use custom restitution for weightless mode
-      const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
-      for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+      
+      // Wall collisions (disabled for Trail mode - particles drift off-screen)
+      if (currentMode !== MODES.TRAIL) {
+        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
+        for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+      }
+      
       acc -= DT;
       physicsSteps++;
       physicsStepCount++; // Count physics steps for FPS measurement
     }
+    
+    // Trail mode: static paint - no cleanup needed (stays permanently until reset)
     
     // Reset accumulator if we're falling behind
     if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
@@ -1572,7 +1673,7 @@
     b.vy += ny * strength * dt;
   }
 
-  // Mouse attractor for Flies-to-Light mode - realistic swarm behavior like mosquitos around light
+  // Mouse attractor for Flies-to-Light mode - FAST erratic mosquito flight
   function applyAttractor(b, dt) {
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     
@@ -1585,15 +1686,13 @@
     const dirX = dx / d;
     const dirY = dy / d;
     
-    // 1. ATTRACTION to light source (cursor)
-    // Weaker when close (to allow orbiting), stronger when far
-    const attractDist = Math.max(orbitRadius * DPR * 0.5, d);
-    const attractForce = (attractionPower * 1.5) / Math.max(1, attractDist);
+    // 1. STRONG ATTRACTION - mosquitos dart toward light quickly
+    const attractForce = attractionPower * 4.0; // Much stronger (4x instead of 1.5x)
     b.vx += dirX * attractForce * dt;
     b.vy += dirY * attractForce * dt;
     
-    // 2. SEPARATION from nearby flies (boids flocking behavior)
-    const separationRadius = 60 * DPR;
+    // 2. SEPARATION from nearby flies (keep some spacing)
+    const separationRadius = 80 * DPR; // Larger separation for more spread
     let sepX = 0, sepY = 0;
     let neighborCount = 0;
     for (let i = 0; i < balls.length; i++) {
@@ -1604,7 +1703,6 @@
       const d2_other = dx2*dx2 + dy2*dy2;
       if (d2_other < separationRadius * separationRadius && d2_other > 0) {
         const d_other = Math.sqrt(d2_other);
-        // Push away from neighbor (stronger when closer)
         const strength = 1 - (d_other / separationRadius);
         sepX += (dx2 / d_other) * strength;
         sepY += (dy2 / d_other) * strength;
@@ -1612,49 +1710,54 @@
       }
     }
     if (neighborCount > 0) {
-      const separationForce = 8000; // strong separation
+      const separationForce = 15000; // Stronger separation for more spread
       b.vx += (sepX / neighborCount) * separationForce * dt;
       b.vy += (sepY / neighborCount) * separationForce * dt;
     }
     
-    // 3. ERRATIC FLIGHT - random jittery movements like real insects
-    const jitterStrength = 300;
-    b.vx += (Math.random() - 0.5) * jitterStrength * dt;
-    b.vy += (Math.random() - 0.5) * jitterStrength * dt;
+    // 3. STRONG ERRATIC JITTER - mosquitos dart unpredictably
+    // Random direction changes and quick bursts
+    const jitterBase = 1200; // Much stronger jitter
+    const burstChance = 0.05; // 5% chance per frame for sudden burst
+    if (Math.random() < burstChance) {
+      // Sudden burst in random direction
+      const burstAngle = Math.random() * Math.PI * 2;
+      const burstStrength = 800;
+      b.vx += Math.cos(burstAngle) * burstStrength;
+      b.vy += Math.sin(burstAngle) * burstStrength;
+    }
+    // Constant jitter
+    b.vx += (Math.random() - 0.5) * jitterBase * dt;
+    b.vy += (Math.random() - 0.5) * jitterBase * dt;
     
-    // 4. ORBITAL SWIRL around the light (tangential force)
-    const orbitStrength = swarmSpeed * 600 * dt;
+    // 4. VARIABLE ORBITAL MOTION - not perfect circles, more chaotic
+    // Orbital force varies based on distance and random factor
+    const orbitVariation = 0.5 + Math.random() * 1.5; // 0.5x to 2x variation
+    const orbitStrength = swarmSpeed * 1200 * orbitVariation * dt; // 2x base orbit
     b.vx += -dirY * orbitStrength;
     b.vy += dirX * orbitStrength;
     
-    // 5. Speed limiting (flies don't move infinitely fast)
-    const maxSpeed = 600;
+    // 5. HIGHER speed limit - mosquitos are FAST
+    const maxSpeed = 1400; // Much faster than 600
     const speed = Math.sqrt(b.vx*b.vx + b.vy*b.vy);
     if (speed > maxSpeed) {
       b.vx = (b.vx / speed) * maxSpeed;
       b.vy = (b.vy / speed) * maxSpeed;
     }
     
-    // Light damping to keep movement organic
-    b.vx *= 0.98;
-    b.vy *= 0.98;
+    // Very light damping - keep energy high
+    b.vx *= 0.99; // Less damping than 0.98
+    b.vy *= 0.99;
   }
 
-  // Trail mode: balls fade out over time, strong drag for smooth trails
+  // Trail mode: STATIC paint drops (no movement, no forces, no fade)
   function applyTrailAttraction(b, dt) {
-    // Very strong drag to create smooth trailing effect
-    b.vx *= 0.92;
-    b.vy *= 0.92;
+    // Force velocity to ZERO (static paint drops)
+    b.vx = 0;
+    b.vy = 0;
     
-    // Age-based fade (starts fading immediately for continuous trail effect)
-    const fadeStart = 0.5; // start fading after 0.5s
-    if (b.age > fadeStart) {
-      const fadeDuration = 2.0; // fade over 2 seconds
-      const fadeProgress = (b.age - fadeStart) / fadeDuration;
-      b.alpha = Math.max(0, 1 - fadeProgress);
-    } else {
-      b.alpha = 1.0;
-    }
+    // NO fading - paint stays permanently
+    b.alpha = 1.0;
   }
 
   // UI elements
@@ -1799,10 +1902,10 @@
     });
   }
 
-  // Sliders
-  restitutionSlider && restitutionSlider.addEventListener('input', () => { REST = parseFloat(restitutionSlider.value); restitutionVal && (restitutionVal.textContent = REST.toFixed(2)); });
-  frictionSlider && frictionSlider.addEventListener('input', () => { FRICTION = parseFloat(frictionSlider.value); frictionVal && (frictionVal.textContent = FRICTION.toFixed(4)); });
-  emitterSlider && emitterSlider.addEventListener('input', () => { EMIT_INTERVAL = parseFloat(emitterSlider.value); emitterVal && (emitterVal.textContent = EMIT_INTERVAL.toFixed(3)); });
+  // Sliders (with auto-save)
+  restitutionSlider && restitutionSlider.addEventListener('input', () => { REST = parseFloat(restitutionSlider.value); restitutionVal && (restitutionVal.textContent = REST.toFixed(2)); autoSaveSettings(); });
+  frictionSlider && frictionSlider.addEventListener('input', () => { FRICTION = parseFloat(frictionSlider.value); frictionVal && (frictionVal.textContent = FRICTION.toFixed(4)); autoSaveSettings(); });
+  emitterSlider && emitterSlider.addEventListener('input', () => { EMIT_INTERVAL = parseFloat(emitterSlider.value); emitterVal && (emitterVal.textContent = EMIT_INTERVAL.toFixed(3)); autoSaveSettings(); });
   sizeSlider && sizeSlider.addEventListener('input', () => {
     const newScale = parseFloat(sizeSlider.value);
     sizeVal && (sizeVal.textContent = newScale.toFixed(1));
@@ -1981,11 +2084,12 @@
     updateModeControlsUI();
   }
 
-  // Hook up UI listeners
-  modeButtons.forEach(btn => btn.addEventListener('click', () => setMode(btn.getAttribute('data-mode'))));
+  // Hook up UI listeners (with auto-save on changes)
+  modeButtons.forEach(btn => btn.addEventListener('click', () => { setMode(btn.getAttribute('data-mode')); autoSaveSettings(); }));
   gravityPitSlider && gravityPitSlider.addEventListener('input', () => {
     gravityMultiplierPit = parseFloat(gravityPitSlider.value);
     gravityPitVal && (gravityPitVal.textContent = gravityMultiplierPit.toFixed(1));
+    autoSaveSettings();
     if (currentMode === MODES.PIT) { gravityMultiplier = gravityMultiplierPit; G = GE * gravityMultiplier; }
   });
   repellerEnabledPitEl && repellerEnabledPitEl.addEventListener('change', () => {
@@ -2255,8 +2359,17 @@
   // Initialize text colliders
   updateTextColliders();
   
-  // Initialize default mode (Ball Pit)
-  setMode(MODES.PIT);
+  // Load saved settings from localStorage
+  const settingsLoaded = loadSettings();
+  
+  // Apply device-specific mode visibility (hide Trail on mobile)
+  applyDeviceSpecificModeVisibility();
+  
+  // Initialize mode (use saved mode or default to Ball Pit)
+  setMode(currentMode);
+  
+  // Save settings on mode change or slider change
+  window.addEventListener('beforeunload', saveSettings);
 })();
 </script>
 </body>
