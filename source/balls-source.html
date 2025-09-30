@@ -295,11 +295,11 @@
     <details open>
       <summary>✨ Sparkle Trail Mode</summary>
       <div class="group">
-        <label>Emission rate: <span class="val" id="sparkleEmissionVal">3</span><input type="range" id="sparkleEmissionSlider" min="1" max="10" step="1" value="3"></label>
-        <label>Particle lifetime (s): <span class="val" id="sparkleLifetimeVal">1.5</span><input type="range" id="sparkleLifetimeSlider" min="0.5" max="3.0" step="0.1" value="1.5"></label>
-        <label>Velocity spread: <span class="val" id="sparkleSpreadVal">100</span><input type="range" id="sparkleSpreadSlider" min="20" max="300" step="10" value="100"></label>
-        <label>Drift strength: <span class="val" id="sparkleDriftVal">50</span><input type="range" id="sparkleDriftSlider" min="0" max="200" step="10" value="50"></label>
-        <label>Particle scale: <span class="val" id="sparkleScaleVal">0.6</span><input type="range" id="sparkleScaleSlider" min="0.3" max="1.5" step="0.05" value="0.6"></label>
+        <label>Emission rate: <span class="val" id="sparkleEmissionVal">3</span><input type="range" id="sparkleEmissionSlider" min="1" max="30" step="1" value="3"></label>
+        <label>Particle lifetime (s): <span class="val" id="sparkleLifetimeVal">1.5</span><input type="range" id="sparkleLifetimeSlider" min="0.5" max="9.0" step="0.1" value="1.5"></label>
+        <label>Velocity spread: <span class="val" id="sparkleSpreadVal">100</span><input type="range" id="sparkleSpreadSlider" min="20" max="900" step="10" value="100"></label>
+        <label>Drift strength: <span class="val" id="sparkleDriftVal">50</span><input type="range" id="sparkleDriftSlider" min="0" max="600" step="10" value="50"></label>
+        <label>Particle scale: <span class="val" id="sparkleScaleVal">0.6</span><input type="range" id="sparkleScaleSlider" min="0.1" max="4.5" step="0.05" value="0.6"></label>
       </div>
     </details>
   </div>
@@ -835,6 +835,7 @@
       this.vx = (Math.random()*2 - 1) * 200; // random lateral kick
       this.vy = -Math.random()*200;          // slight upward variation
       this.r = r;
+      this.rBase = r;                         // Store original radius for scaling
       this.m = ballMassKg;                    // all balls share the same mass
       this.color = color;
       this.t = 0;
@@ -1164,10 +1165,6 @@
         ctx.rotate(this.squashNormalAngle);
         ctx.scale(s, inv);
         ctx.rotate(-this.squashNormalAngle);
-      }
-      // Apply alpha transparency (for Trail mode fade effect)
-      if (this.alpha < 1.0) {
-        ctx.globalAlpha = this.alpha;
       }
       // Body
       ctx.beginPath();
@@ -1629,12 +1626,12 @@
       physicsStepCount++; // Count physics steps for FPS measurement
     }
     
-  // Trail (Sparkle) mode: cleanup faded particles to cap memory and keep FPS
+  // Trail (Sparkle) mode: cleanup tiny particles to cap memory and keep FPS
     if (currentMode === MODES.TRAIL) {
       for (let i = balls.length - 1; i >= 0; i--) {
         const ball = balls[i];
-        if (ball.isSparkle && ball.alpha <= 0.01) {
-          balls.splice(i, 1); // Remove faded sparkles
+        if (ball.isSparkle && ball.r <= 1) {
+          balls.splice(i, 1); // Remove tiny sparkles
         }
       }
     }
@@ -1777,23 +1774,23 @@
     if (isTouchDevice) return;
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     
-  // Draw main cursor ball for all modes (white by default on desktop)
+  // Hide cursor ball in Trail mode
+    if (currentMode === MODES.TRAIL) return;
+    
+    // Draw main cursor ball for all other modes (white by default on desktop)
     const x = mouseX, y = mouseY;
     const baseSize = (R_MIN + R_MAX) / 2;
     const r = baseSize;
-    // White cursor ball for non-trail modes, colored for trail mode
-  const color = (currentMode === MODES.TRAIL) ? cursorBallColor : 'rgba(255, 255, 255, 0.9)';
+    const color = 'rgba(255, 255, 255, 0.9)';
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
     
     // Add subtle white outline for visibility
-    if (currentMode !== MODES.TRAIL) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 
   function applyRepeller(b, dt) {
@@ -1940,7 +1937,7 @@
     b.vy *= 0.99;
   }
 
-  // Trail (Sparkle) mode: particles drift gently and fade based on age
+  // Trail (Sparkle) mode: particles drift gently and scale down based on age
   function applySparklePhysics(b, dt) {
     // Apply gentle drift (random floating motion)
     if (sparkleDriftStrength > 0) {
@@ -1953,11 +1950,12 @@
     b.vx *= SPARKLE_DRAG;
     b.vy *= SPARKLE_DRAG;
     
-    // Age-based fade
+    // Age-based scale down
     const currentTime = performance.now() / 1000;
     const age = currentTime - b.spawnTime;
-    const fadeProgress = age / b.lifetime;
-    b.alpha = Math.max(0, 1 - fadeProgress);
+    const scaleProgress = age / b.lifetime;
+    const scaleDown = Math.max(0, 1 - scaleProgress);
+    b.r = b.rBase * scaleDown * sparkleParticleScale;
   }
 
   // UI elements
