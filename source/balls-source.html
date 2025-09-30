@@ -176,7 +176,6 @@
     <div class="group">
         <label>Size: <span class="val" id="sizeValGlobal">0.75</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="0.75"></label>
         <label>Size variation: <span class="val" id="sizeVariationValGlobal">1.0</span><input type="range" id="sizeVariationSliderGlobal" min="0.0" max="3.0" step="0.1" value="1.0"></label>
-        <label>Weight (kg): <span class="val" id="weightValGlobal">11.20</span><input type="range" id="weightSliderGlobal" min="0.10" max="200.00" step="0.10" value="11.20"></label>
         <label>Softness: <span class="val" id="ballSoftnessValGlobal">40</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="40"></label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard, 40 = normal, 100 = very squishy</div>
     </div>
@@ -246,6 +245,7 @@
       <div class="group">
         <label>Physics template: <select id="physicsSelect"></select></label>
         <label>Gravity: <span class="val" id="gravityPitVal">1.1</span><input type="range" id="gravityPitSlider" min="0.0" max="3.0" step="0.1" value="1.1"></label>
+        <label>Weight (kg): <span class="val" id="weightPitVal">11.20</span><input type="range" id="weightPitSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
         <label>Bounciness: <span class="val" id="restitutionVal">0.78</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.001" value="0.78"></label>
         <label>Friction: <span class="val" id="frictionVal">0.0025</span><input type="range" id="frictionSlider" min="0.000" max="0.250" step="0.0005" value="0.0025"></label>
       </div>
@@ -302,6 +302,7 @@
       <summary>🌌 Weightless (Zero-G) Mode</summary>
       <div class="group">
         <label>Initial speed: <span class="val" id="weightlessSpeedVal">400</span><input type="range" id="weightlessSpeedSlider" min="50" max="1000" step="50" value="400"></label>
+        <label>Weight (kg): <span class="val" id="weightWeightlessVal">11.20</span><input type="range" id="weightWeightlessSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
         <label>Wall bounce: <span class="val" id="weightlessBounceVal">0.98</span><input type="range" id="weightlessBounceSlider" min="0.50" max="1.00" step="0.01" value="0.98"></label>
         <label>Ball count: <span class="val" id="weightlessMaxBallsVal">300</span><input type="range" id="weightlessMaxBallsSlider" min="50" max="600" step="25" value="300"></label>
         <label>Repeller power: <span class="val" id="weightlessRepelPowerVal">800</span><input type="range" id="weightlessRepelPowerSlider" min="0" max="2000" step="100" value="800"></label>
@@ -316,6 +317,7 @@
       <div class="group">
         <label>Randomness: <span class="val" id="rainbowRandomnessVal">1.0</span><input type="range" id="rainbowRandomnessSlider" min="0.0" max="1.0" step="0.1" value="1.0"></label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">0 = equal size steps, 1 = random distribution</div>
+        <label>Weight (kg): <span class="val" id="weightRainbowVal">11.20</span><input type="range" id="weightRainbowSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
         <label>Drop delay (s): <span class="val" id="rainbowDropDelayVal">0.15</span><input type="range" id="rainbowDropDelaySlider" min="0.05" max="0.5" step="0.05" value="0.15"></label>
         <label>Gravity: <span class="val" id="rainbowGravityVal">1.2</span><input type="range" id="rainbowGravitySlider" min="0.5" max="3.0" step="0.1" value="1.2"></label>
         <label>Bounce: <span class="val" id="rainbowBounceVal">0.30</span><input type="range" id="rainbowBounceSlider" min="0.00" max="1.00" step="0.05" value="0.30"></label>
@@ -2207,7 +2209,7 @@
   // Mode-specific ball properties listeners (apply values globally but source UI is per-mode)
   function bindBallProps(sliders) {
     if (!sliders) return;
-    const { size, sizeVal, sizeVar, sizeVarVal, weight, weightVal, soft, softVal } = sliders;
+    const { size, sizeVal, sizeVar, sizeVarVal, soft, softVal } = sliders;
     size && size.addEventListener('input', () => {
       const newScale = parseFloat(size.value);
       sizeVal && (sizeVal.textContent = newScale.toFixed(1));
@@ -2222,13 +2224,6 @@
       sizeVariation = v;
       autoSaveSettings();
     });
-    weight && weight.addEventListener('input', () => {
-      const w = parseFloat(weight.value);
-      weightVal && (weightVal.textContent = w.toFixed(2));
-      ballMassKg = w;
-      for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
-      autoSaveSettings();
-    });
     soft && soft.addEventListener('input', () => {
       const s = parseInt(soft.value, 10);
       softVal && (softVal.textContent = String(s));
@@ -2241,7 +2236,6 @@
   bindBallProps({
     size: sizeSliderGlobal, sizeVal: sizeValGlobal,
     sizeVar: sizeVariationSliderGlobal, sizeVarVal: sizeVariationValGlobal,
-    weight: weightSliderGlobal, weightVal: weightValGlobal,
     soft: ballSoftnessSliderGlobal, softVal: ballSoftnessValGlobal
   });
   maxBallsSlider && maxBallsSlider.addEventListener('input', () => {
@@ -2259,14 +2253,13 @@
     // Update existing ball sizes to reflect new variation
     updateExistingBallSizes();
   });
-  weightSliderGlobal && weightSliderGlobal.addEventListener('input', () => {
-    ballMassKg = parseFloat(weightSliderGlobal.value);
-    weightValGlobal && (weightValGlobal.textContent = ballMassKg.toFixed(2));
-    // Apply shared mass to all balls
-    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
-    // Recompute derived scaling so gravity visibly changes with weight
-    recomputeMassDerivedScales();
-  });
+  // Mode-specific weight controls
+  const weightPitSlider = document.getElementById('weightPitSlider');
+  const weightPitVal = document.getElementById('weightPitVal');
+  const weightWeightlessSlider = document.getElementById('weightWeightlessSlider');
+  const weightWeightlessVal = document.getElementById('weightWeightlessVal');
+  const weightRainbowSlider = document.getElementById('weightRainbowSlider');
+  const weightRainbowVal = document.getElementById('weightRainbowVal');
   
   // Function to update existing ball sizes based on current sizeVariation
   function updateExistingBallSizes() {
@@ -2489,6 +2482,17 @@
     autoSaveSettings();
     if (currentMode === MODES.PIT) { gravityMultiplier = gravityMultiplierPit; G = GE * gravityMultiplier; }
   });
+  
+  // Mode-specific weight controls
+  weightPitSlider && weightPitSlider.addEventListener('input', () => {
+    ballMassKg = parseFloat(weightPitSlider.value);
+    weightPitVal && (weightPitVal.textContent = ballMassKg.toFixed(2));
+    // Apply shared mass to all balls
+    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+    // Recompute derived scaling so gravity visibly changes with weight
+    recomputeMassDerivedScales();
+    autoSaveSettings();
+  });
   repellerEnabledPitEl && repellerEnabledPitEl.addEventListener('change', () => {
     repellerEnabledPit = !!repellerEnabledPitEl.checked;
     if (currentMode === MODES.PIT) repellerEnabled = repellerEnabledPit && (repelPower > 0 && repelRadius > 0);
@@ -2548,6 +2552,16 @@
     weightlessInitialSpeed = parseFloat(weightlessSpeedSlider.value);
     weightlessSpeedVal && (weightlessSpeedVal.textContent = Math.round(weightlessInitialSpeed).toString());
   });
+  
+  weightWeightlessSlider && weightWeightlessSlider.addEventListener('input', () => {
+    ballMassKg = parseFloat(weightWeightlessSlider.value);
+    weightWeightlessVal && (weightWeightlessVal.textContent = ballMassKg.toFixed(2));
+    // Apply shared mass to all balls
+    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+    // Recompute derived scaling so gravity visibly changes with weight
+    recomputeMassDerivedScales();
+    autoSaveSettings();
+  });
   weightlessBounceSlider && weightlessBounceSlider.addEventListener('input', () => {
     weightlessBounce = parseFloat(weightlessBounceSlider.value);
     weightlessBounceVal && (weightlessBounceVal.textContent = weightlessBounce.toFixed(2));
@@ -2582,6 +2596,16 @@
   rainbowRandomnessSlider && rainbowRandomnessSlider.addEventListener('input', () => {
     rainbowRandomness = parseFloat(rainbowRandomnessSlider.value);
     rainbowRandomnessVal && (rainbowRandomnessVal.textContent = rainbowRandomness.toFixed(1));
+  });
+  
+  weightRainbowSlider && weightRainbowSlider.addEventListener('input', () => {
+    ballMassKg = parseFloat(weightRainbowSlider.value);
+    weightRainbowVal && (weightRainbowVal.textContent = ballMassKg.toFixed(2));
+    // Apply shared mass to all balls
+    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+    // Recompute derived scaling so gravity visibly changes with weight
+    recomputeMassDerivedScales();
+    autoSaveSettings();
   });
   rainbowDropDelaySlider && rainbowDropDelaySlider.addEventListener('input', () => {
     rainbowDropDelay = parseFloat(rainbowDropDelaySlider.value);
