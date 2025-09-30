@@ -174,10 +174,10 @@
   <details open>
     <summary>🌐 Global Ball Properties</summary>
     <div class="group">
-        <label>Size: <span class="val" id="sizeValGlobal">0.7</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="0.7"></label>
-        <label>Size variation: <span class="val" id="sizeVariationValGlobal">1.0</span><input type="range" id="sizeVariationSliderGlobal" min="0.0" max="3.0" step="0.1" value="1.0"></label>
-        <label>Softness: <span class="val" id="ballSoftnessValGlobal">40</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="40"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = hard, 40 = normal, 100 = very squishy</div>
+        <label title="Global ball size scale (0.1-6.0). Smaller = more balls fit, larger = more dramatic collisions">Size: <span class="val" id="sizeValGlobal">0.7</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="0.7"></label>
+        <label title="Size variation from base size (0.0-1.0). 0 = identical sizes, 1.0 = up to 100% variation">Size variation: <span class="val" id="sizeVariationValGlobal">1.0</span><input type="range" id="sizeVariationSliderGlobal" min="0.0" max="1.0" step="0.05" value="1.0"></label>
+        <label title="Ball deformation on collision (0-100). 0 = rigid/hard, 100 = very soft/squishy">Softness: <span class="val" id="ballSoftnessValGlobal">40</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="40"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = rigid, 40 = normal, 100 = very squishy</div>
     </div>
   </details>
   
@@ -228,10 +228,10 @@
   <details open>
     <summary>🖼️ Scene & Effects</summary>
     <div class="group">
-        <label>Max balls: <span class="val" id="maxBallsVal">800</span><input type="range" id="maxBallsSlider" min="50" max="2000" step="25" value="800"></label>
-        <label>Corner radius (px): <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="200" step="5" value="0"></label>
-        <label>Motion blur: <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="1.500" step="0.001" value="0.000"></label>
-        <label>Blur intensity: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.00" max="3.00" step="0.05" value="1.00"></label>
+        <label title="Maximum number of balls in simulation (50-800). Higher = more crowded, lower = cleaner">Max balls: <span class="val" id="maxBallsVal">800</span><input type="range" id="maxBallsSlider" min="50" max="800" step="25" value="800"></label>
+        <label title="Rounded corner radius for viewport (0-50px). 0 = sharp corners, 50 = very rounded">Corner radius: <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="50" step="2" value="0"></label>
+        <label title="Motion blur trail length (0.0-0.5). 0 = no blur, 0.5 = long trails">Motion blur: <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="0.500" step="0.005" value="0.000"></label>
+        <label title="Motion blur intensity (0.5-2.0x). 0.5 = subtle, 2.0 = very pronounced">Blur intensity: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.50" max="2.00" step="0.05" value="1.00"></label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Motion blur works in all modes for smooth movement trails</div>
     </div>
   </details>
@@ -244,32 +244,32 @@
     <details open>
       <summary>🎯 Ball Pit Mode</summary>
       <div class="group">
-        <label>Physics template: <select id="physicsSelect"></select></label>
-        <label>Gravity: <span class="val" id="gravityPitVal">1.1</span><input type="range" id="gravityPitSlider" min="0.0" max="3.0" step="0.1" value="1.1"></label>
-        <label>Weight (kg): <span class="val" id="weightPitVal">11.20</span><input type="range" id="weightPitSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
-        <label>Bounciness: <span class="val" id="restitutionVal">0.78</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.001" value="0.78"></label>
-        <label>Friction: <span class="val" id="frictionVal">0.0025</span><input type="range" id="frictionSlider" min="0.000" max="0.250" step="0.0005" value="0.0025"></label>
+        <label title="Choose physics preset (Rubber, Bouncy, etc.)">Physics template: <select id="physicsSelect"></select></label>
+        <label title="Gravity strength (0.0-2.0x Earth). 0 = no gravity, 2.0 = very strong">Gravity: <span class="val" id="gravityPitVal">1.1</span><input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="1.1"></label>
+        <label title="Ball mass/weight (0.1-50kg). Heavier = slower acceleration, lighter = more responsive">Weight (kg): <span class="val" id="weightPitVal">11.20</span><input type="range" id="weightPitSlider" min="0.10" max="50.00" step="0.10" value="11.20"></label>
+        <label title="Bounce restitution (0.0-1.0). 0 = no bounce, 1.0 = perfect elastic">Bounciness: <span class="val" id="restitutionVal">0.78</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.78"></label>
+        <label title="Air resistance (0.000-0.050). 0 = no drag, 0.050 = high drag">Friction: <span class="val" id="frictionVal">0.0025</span><input type="range" id="frictionSlider" min="0.000" max="0.050" step="0.001" value="0.0025"></label>
       </div>
     </details>
     <details open>
       <summary>🎯 Spawn Settings</summary>
       <div class="group">
-        <label>Spawn template: <select id="spawnSelect"></select></label>
-        <label>Emit interval (s): <span class="val" id="emitterVal">0.04</span><input type="range" id="emitterSlider" min="0.000" max="1.000" step="0.005" value="0.04"></label>
-        <label>Spawn Y (vh): <span class="val" id="spawnYVal">-50</span><input type="range" id="spawnYSlider" min="-100" max="100" step="10" value="-50"></label>
-        <label>Spawn Width (vw): <span class="val" id="spawnWidthVal">100</span><input type="range" id="spawnWidthSlider" min="0" max="100" step="10" value="100"></label>
-        <label>Spawn X Center (vw): <span class="val" id="spawnCenterVal">50</span><input type="range" id="spawnCenterSlider" min="0" max="100" step="10" value="50"></label>
-        <label>Spawn Height (vh): <span class="val" id="spawnHeightVal">50</span><input type="range" id="spawnHeightSlider" min="0" max="100" step="10" value="50"></label>
+        <label title="Choose spawn behavior preset">Spawn template: <select id="spawnSelect"></select></label>
+        <label title="Time between ball spawns (0.01-0.5s). Lower = more frequent spawns">Emit interval: <span class="val" id="emitterVal">0.04</span><input type="range" id="emitterSlider" min="0.010" max="0.500" step="0.005" value="0.04"></label>
+        <label title="Vertical spawn position (-100 to 100vh). Negative = above viewport">Spawn Y: <span class="val" id="spawnYVal">-50</span><input type="range" id="spawnYSlider" min="-100" max="100" step="5" value="-50"></label>
+        <label title="Horizontal spawn area width (10-100vw). 100% = full width">Spawn Width: <span class="val" id="spawnWidthVal">100</span><input type="range" id="spawnWidthSlider" min="10" max="100" step="5" value="100"></label>
+        <label title="Horizontal spawn center position (0-100vw). 50% = center">Spawn X Center: <span class="val" id="spawnCenterVal">50</span><input type="range" id="spawnCenterSlider" min="0" max="100" step="5" value="50"></label>
+        <label title="Vertical spawn area height (10-100vh). Controls spawn zone size">Spawn Height: <span class="val" id="spawnHeightVal">50</span><input type="range" id="spawnHeightSlider" min="10" max="100" step="5" value="50"></label>
       </div>
     </details>
     <details open>
       <summary>🧲 Mouse Repeller</summary>
       <div class="group">
-        <label>Repeller template: <select id="repellerSelect"></select></label>
-        <label>Repeller active: <input type="checkbox" id="repellerEnabledPit" checked></label>
-        <label>Repel size (px): <span class="val" id="repelSizeVal">200</span><input type="range" id="repelSizeSlider" min="0" max="1000" step="5" value="200"></label>
-        <label>Repel power: <span class="val" id="repelPowerVal">24000</span><input type="range" id="repelPowerSlider" min="0" max="1000" step="1" value="500"></label>
-        <label>Repel softness: <span class="val" id="repelSoftVal">2.0</span><input type="range" id="repelSoftSlider" min="0.1" max="8" step="0.1" value="2.0"></label>
+        <label title="Choose repeller behavior preset">Repeller template: <select id="repellerSelect"></select></label>
+        <label title="Enable/disable mouse repeller effect">Repeller active: <input type="checkbox" id="repellerEnabledPit" checked></label>
+        <label title="Repeller influence radius (50-400px). Larger = affects more balls">Repel size: <span class="val" id="repelSizeVal">200</span><input type="range" id="repelSizeSlider" min="50" max="400" step="5" value="200"></label>
+        <label title="Repulsion strength (100-1000). Higher = stronger push away from mouse">Repel power: <span class="val" id="repelPowerVal">24000</span><input type="range" id="repelPowerSlider" min="100" max="1000" step="10" value="500"></label>
+        <label title="Repeller field softness (0.5-5.0). Lower = sharper cutoff, higher = gradual fade">Repel softness: <span class="val" id="repelSoftVal">2.0</span><input type="range" id="repelSoftSlider" min="0.5" max="5.0" step="0.1" value="2.0"></label>
       </div>
     </details>
   </div>
@@ -278,9 +278,9 @@
     <details open>
       <summary>🕊️ Flies to Light Mode</summary>
       <div class="group">
-        <label>Attraction power: <span class="val" id="attractPowerVal">1000</span><input type="range" id="attractPowerSlider" min="1" max="3000" step="1" value="1000"></label>
-        <label>Orbit radius (px): <span class="val" id="orbitRadiusVal">150</span><input type="range" id="orbitRadiusSlider" min="50" max="500" step="10" value="150"></label>
-        <label>Swarm speed: <span class="val" id="swarmSpeedVal">1.0</span><input type="range" id="swarmSpeedSlider" min="0.1" max="3.0" step="0.1" value="1.0"></label>
+        <label title="Attraction strength toward mouse (100-2000). Higher = stronger pull toward cursor">Attraction power: <span class="val" id="attractPowerVal">1000</span><input type="range" id="attractPowerSlider" min="100" max="2000" step="25" value="1000"></label>
+        <label title="Orbit distance around mouse (50-300px). Larger = wider swarm formation">Orbit radius: <span class="val" id="orbitRadiusVal">150</span><input type="range" id="orbitRadiusSlider" min="50" max="300" step="10" value="150"></label>
+        <label title="Swarm movement speed (0.2-2.0x). Higher = more responsive, lower = smoother">Swarm speed: <span class="val" id="swarmSpeedVal">1.0</span><input type="range" id="swarmSpeedSlider" min="0.2" max="2.0" step="0.1" value="1.0"></label>
       </div>
     </details>
   </div>
@@ -289,13 +289,13 @@
     <details open>
       <summary>🎨 Interactive Paint Mode</summary>
       <div class="group">
-        <label>Emission rate: <span class="val" id="sparkleEmissionVal">8</span><input type="range" id="sparkleEmissionSlider" min="1" max="30" step="1" value="8"></label>
-        <label>Particle lifetime (s): <span class="val" id="sparkleLifetimeVal">2.0</span><input type="range" id="sparkleLifetimeSlider" min="0.5" max="9.0" step="0.1" value="2.0"></label>
-        <label>Velocity spread: <span class="val" id="sparkleSpreadVal">150</span><input type="range" id="sparkleSpreadSlider" min="20" max="900" step="10" value="150"></label>
-        <label>Drift strength: <span class="val" id="sparkleDriftVal">30</span><input type="range" id="sparkleDriftSlider" min="0" max="600" step="10" value="30"></label>
-        <label>Particle scale: <span class="val" id="sparkleScaleVal">0.8</span><input type="range" id="sparkleScaleSlider" min="0.1" max="4.5" step="0.05" value="0.8"></label>
-        <label>Trail intensity: <span class="val" id="trailIntensityVal">0.3</span><input type="range" id="trailIntensitySlider" min="0.0" max="1.0" step="0.05" value="0.3"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Higher = more vibrant trails</div>
+        <label title="Particles emitted per frame when moving (1-20). Higher = denser trails">Emission rate: <span class="val" id="sparkleEmissionVal">8</span><input type="range" id="sparkleEmissionSlider" min="1" max="20" step="1" value="8"></label>
+        <label title="How long particles live (0.5-5.0s). Longer = trails persist, shorter = quick fade">Particle lifetime: <span class="val" id="sparkleLifetimeVal">2.0</span><input type="range" id="sparkleLifetimeSlider" min="0.5" max="5.0" step="0.1" value="2.0"></label>
+        <label title="Initial particle velocity range (20-300px/s). Higher = more spread out trails">Velocity spread: <span class="val" id="sparkleSpreadVal">150</span><input type="range" id="sparkleSpreadSlider" min="20" max="300" step="5" value="150"></label>
+        <label title="Random floating motion strength (0-100). Higher = more erratic movement">Drift strength: <span class="val" id="sparkleDriftVal">30</span><input type="range" id="sparkleDriftSlider" min="0" max="100" step="5" value="30"></label>
+        <label title="Particle size scale (0.2-2.0x). Larger = bigger particles, smaller = finer trails">Particle scale: <span class="val" id="sparkleScaleVal">0.8</span><input type="range" id="sparkleScaleSlider" min="0.2" max="2.0" step="0.05" value="0.8"></label>
+        <label title="Trail glow intensity (0.0-1.0). 0 = subtle, 1.0 = very bright and vibrant">Trail intensity: <span class="val" id="trailIntensityVal">0.3</span><input type="range" id="trailIntensitySlider" min="0.0" max="1.0" step="0.05" value="0.3"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Higher intensity = more vibrant, glowing trails</div>
       </div>
     </details>
   </div>
@@ -304,12 +304,12 @@
     <details open>
       <summary>🌌 Weightless (Zero-G) Mode</summary>
       <div class="group">
-        <label>Initial speed: <span class="val" id="weightlessSpeedVal">400</span><input type="range" id="weightlessSpeedSlider" min="50" max="1000" step="50" value="400"></label>
-        <label>Weight (kg): <span class="val" id="weightWeightlessVal">11.20</span><input type="range" id="weightWeightlessSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
-        <label>Wall bounce: <span class="val" id="weightlessBounceVal">0.98</span><input type="range" id="weightlessBounceSlider" min="0.50" max="1.00" step="0.01" value="0.98"></label>
-        <label>Ball count: <span class="val" id="weightlessMaxBallsVal">300</span><input type="range" id="weightlessMaxBallsSlider" min="50" max="600" step="25" value="300"></label>
-        <label>Repeller power: <span class="val" id="weightlessRepelPowerVal">800</span><input type="range" id="weightlessRepelPowerSlider" min="0" max="2000" step="100" value="800"></label>
-        <label>Repeller radius: <span class="val" id="weightlessRepelRadiusVal">120</span><input type="range" id="weightlessRepelRadiusSlider" min="0" max="300" step="10" value="120"></label>
+        <label title="Initial ball velocity when scene loads (100-800px/s). Higher = more energetic start">Initial speed: <span class="val" id="weightlessSpeedVal">400</span><input type="range" id="weightlessSpeedSlider" min="100" max="800" step="25" value="400"></label>
+        <label title="Ball mass/weight in zero gravity (0.1-50kg). Affects collision response">Weight (kg): <span class="val" id="weightWeightlessVal">11.20</span><input type="range" id="weightWeightlessSlider" min="0.10" max="50.00" step="0.10" value="11.20"></label>
+        <label title="Wall bounce restitution (0.7-1.0). 0.7 = some energy loss, 1.0 = perfect bounce">Wall bounce: <span class="val" id="weightlessBounceVal">0.98</span><input type="range" id="weightlessBounceSlider" min="0.70" max="1.00" step="0.01" value="0.98"></label>
+        <label title="Number of balls in zero-G scene (50-400). More = crowded space">Ball count: <span class="val" id="weightlessMaxBallsVal">300</span><input type="range" id="weightlessMaxBallsSlider" min="50" max="400" step="25" value="300"></label>
+        <label title="Mouse repeller strength (0-1500). 0 = no effect, 1500 = strong repulsion">Repeller power: <span class="val" id="weightlessRepelPowerVal">800</span><input type="range" id="weightlessRepelPowerSlider" min="0" max="1500" step="50" value="800"></label>
+        <label title="Mouse repeller radius (50-250px). Larger = affects more balls">Repeller radius: <span class="val" id="weightlessRepelRadiusVal">120</span><input type="range" id="weightlessRepelRadiusSlider" min="50" max="250" step="10" value="120"></label>
       </div>
     </details>
   </div>
@@ -318,14 +318,14 @@
     <details open>
       <summary>🪨 Falling Boulders</summary>
       <div class="group">
-        <label>Randomness: <span class="val" id="boulderRandomnessVal">1.0</span><input type="range" id="boulderRandomnessSlider" min="0.0" max="1.0" step="0.1" value="1.0"></label>
+        <label title="Size distribution randomness (0.0-1.0). 0 = equal sizes, 1.0 = fully random">Randomness: <span class="val" id="boulderRandomnessVal">1.0</span><input type="range" id="boulderRandomnessSlider" min="0.0" max="1.0" step="0.1" value="1.0"></label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">0 = equal size steps, 1 = random distribution</div>
-        <label>Weight (kg): <span class="val" id="weightBoulderVal">11.20</span><input type="range" id="weightBoulderSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
-        <label>Drop delay (s): <span class="val" id="boulderDropDelayVal">0.30</span><input type="range" id="boulderDropDelaySlider" min="0.10" max="1.0" step="0.05" value="0.30"></label>
-        <label>Drag resistance: <span class="val" id="boulderDragVal">0.95</span><input type="range" id="boulderDragSlider" min="0.80" max="0.99" step="0.01" value="0.95"></label>
+        <label title="Boulder mass/weight (0.1-50kg). Heavier = more realistic boulder physics">Weight (kg): <span class="val" id="weightBoulderVal">11.20</span><input type="range" id="weightBoulderSlider" min="0.10" max="50.00" step="0.10" value="11.20"></label>
+        <label title="Time between boulder drops (0.1-2.0s). Longer = more spaced out drops">Drop delay: <span class="val" id="boulderDropDelayVal">0.30</span><input type="range" id="boulderDropDelaySlider" min="0.10" max="2.0" step="0.05" value="0.30"></label>
+        <label title="Drag resistance when dragging (0.8-0.99). Higher = more weight/inertia feel">Drag resistance: <span class="val" id="boulderDragVal">0.95</span><input type="range" id="boulderDragSlider" min="0.80" max="0.99" step="0.01" value="0.95"></label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Higher = more resistance when dragging boulders</div>
-        <label>Gravity: <span class="val" id="boulderGravityVal">1.2</span><input type="range" id="boulderGravitySlider" min="0.5" max="3.0" step="0.1" value="1.2"></label>
-        <label>Bounce: <span class="val" id="boulderBounceVal">0.30</span><input type="range" id="boulderBounceSlider" min="0.00" max="1.00" step="0.05" value="0.30"></label>
+        <label title="Gravity strength for boulders (0.5-3.0x Earth). Higher = faster falling">Gravity: <span class="val" id="boulderGravityVal">1.2</span><input type="range" id="boulderGravitySlider" min="0.5" max="3.0" step="0.05" value="1.2"></label>
+        <label title="Boulder bounce restitution (0.0-0.8). 0 = no bounce, 0.8 = very bouncy">Bounce: <span class="val" id="boulderBounceVal">0.30</span><input type="range" id="boulderBounceSlider" min="0.00" max="0.80" step="0.05" value="0.30"></label>
       </div>
     </details>
   </div>
