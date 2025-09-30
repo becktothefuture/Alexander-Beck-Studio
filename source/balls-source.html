@@ -1451,6 +1451,11 @@
       return;
     }
     
+    // Zero-G mode: no continuous spawning, balls are distributed at initialization
+    if (currentMode === MODES.WEIGHTLESS) {
+      return;
+    }
+    
     // Ball Pit & Flies modes: standard top emitter
     emitterTimer += dt;
     while (emitterTimer >= EMIT_INTERVAL) {
