@@ -1529,36 +1529,72 @@
     }
   }
 
-  // Mouse attractor for Flies-to-Light mode - super strong magnetic attraction
+  // Mouse attractor for Flies-to-Light mode - realistic swarm behavior like mosquitos around light
   function applyAttractor(b, dt) {
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
+    
     const dx = mouseX - b.x;
     const dy = mouseY - b.y;
     const d2 = dx*dx + dy*dy;
-    const d = Math.sqrt(d2 + 1); // avoid div-by-zero
+    const d = Math.sqrt(d2 + 1);
     
-    // Direction to mouse
+    // Direction to cursor
     const dirX = dx / d;
     const dirY = dy / d;
     
-    // VERY strong attraction - simplified for dramatic effect
-    // Linear attraction with massive multiplier (not inverse square - that's too weak at distance)
-    const force = attractionPower * 2.0; // 2x the slider value for dramatic pull
-    b.vx += dirX * force * dt;
-    b.vy += dirY * force * dt;
+    // 1. ATTRACTION to light source (cursor)
+    // Weaker when close (to allow orbiting), stronger when far
+    const attractDist = Math.max(orbitRadius * DPR * 0.5, d);
+    const attractForce = (attractionPower * 1.5) / Math.max(1, attractDist);
+    b.vx += dirX * attractForce * dt;
+    b.vy += dirY * attractForce * dt;
     
-    // Add tangential swirl when within orbit radius for visual interest
-    if (d < orbitRadius * DPR * 2) {
-      const tX = -dirY;
-      const tY = dirX;
-      const swirl = swarmSpeed * 800 * dt; // strong swirl
-      b.vx += tX * swirl;
-      b.vy += tY * swirl;
+    // 2. SEPARATION from nearby flies (boids flocking behavior)
+    const separationRadius = 60 * DPR;
+    let sepX = 0, sepY = 0;
+    let neighborCount = 0;
+    for (let i = 0; i < balls.length; i++) {
+      const other = balls[i];
+      if (other === b) continue;
+      const dx2 = b.x - other.x;
+      const dy2 = b.y - other.y;
+      const d2_other = dx2*dx2 + dy2*dy2;
+      if (d2_other < separationRadius * separationRadius && d2_other > 0) {
+        const d_other = Math.sqrt(d2_other);
+        // Push away from neighbor (stronger when closer)
+        const strength = 1 - (d_other / separationRadius);
+        sepX += (dx2 / d_other) * strength;
+        sepY += (dy2 / d_other) * strength;
+        neighborCount++;
+      }
+    }
+    if (neighborCount > 0) {
+      const separationForce = 8000; // strong separation
+      b.vx += (sepX / neighborCount) * separationForce * dt;
+      b.vy += (sepY / neighborCount) * separationForce * dt;
     }
     
-    // Moderate damping to keep it energetic but prevent explosion
-    b.vx *= 0.96;
-    b.vy *= 0.96;
+    // 3. ERRATIC FLIGHT - random jittery movements like real insects
+    const jitterStrength = 300;
+    b.vx += (Math.random() - 0.5) * jitterStrength * dt;
+    b.vy += (Math.random() - 0.5) * jitterStrength * dt;
+    
+    // 4. ORBITAL SWIRL around the light (tangential force)
+    const orbitStrength = swarmSpeed * 600 * dt;
+    b.vx += -dirY * orbitStrength;
+    b.vy += dirX * orbitStrength;
+    
+    // 5. Speed limiting (flies don't move infinitely fast)
+    const maxSpeed = 600;
+    const speed = Math.sqrt(b.vx*b.vx + b.vy*b.vy);
+    if (speed > maxSpeed) {
+      b.vx = (b.vx / speed) * maxSpeed;
+      b.vy = (b.vy / speed) * maxSpeed;
+    }
+    
+    // Light damping to keep movement organic
+    b.vx *= 0.98;
+    b.vy *= 0.98;
   }
 
   // Trail mode: balls fade out over time, strong drag for smooth trails
