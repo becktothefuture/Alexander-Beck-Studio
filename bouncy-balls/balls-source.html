@@ -364,8 +364,9 @@
   let sparkleVelocitySpread = 100; // initial random velocity magnitude
   let sparkleDriftStrength = 50; // gentle floating motion
   let sparkleParticleScale = 0.6; // smaller than normal balls
-  let mouseTrail = []; // track recent mouse positions for velocity calc
-  const MAX_MOUSE_TRAIL_LENGTH = 10; // keep last 10 positions for velocity
+  // Track only recent mouse samples to estimate velocity for sparkle emission
+  let mouseTrail = []; // Array<{x:number,y:number,time:number}>
+  const MAX_MOUSE_TRAIL_LENGTH = 6; // small buffer keeps calc cheap and responsive
   // Weightless mode parameters
   let weightlessInitialSpeed = 400; // initial velocity magnitude (px/s)
   let weightlessBounce = 0.98; // wall bounce restitution (very elastic)
@@ -473,6 +474,8 @@
     return (containerWidth <= 768) ? 0.4 : 1.0;
   }
 
+  // Recomputes the effective pixel radius from global size and responsiveness,
+  // then proportionally rescales existing balls so the scene updates smoothly.
   function updateEffectiveScaleAndBallSizes() {
     responsiveScale = computeResponsiveScale();
     const effectiveScale = sizeScale * responsiveScale;
@@ -652,6 +655,8 @@
   // Settings persistence using localStorage
   const STORAGE_KEY = 'bouncyBallsSettings';
   
+  // Persist current UI/simulation settings to localStorage so user preferences
+  // survive reloads. Uses a compact single object for easy versioning.
   function saveSettings() {
     const settings = {
       currentMode,
@@ -693,6 +698,8 @@
     }
   }
   
+  // Load settings from localStorage and safely apply them. Each field is
+  // guarded to avoid clobbering defaults if a key is missing or old.
   function loadSettings() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -1261,13 +1268,14 @@
     // Only emit if mouse is on-screen and moving
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     
-    // Calculate mouse velocity from trail history
+    // Calculate mouse velocity using timestamps for stability
     let mouseVx = 0, mouseVy = 0;
     if (mouseTrail.length >= 2) {
       const latest = mouseTrail[mouseTrail.length - 1];
       const prev = mouseTrail[mouseTrail.length - 2];
-      mouseVx = (latest.x - prev.x) / dt;
-      mouseVy = (latest.y - prev.y) / dt;
+      const dtx = Math.max(1e-3, (latest.time - prev.time)); // seconds
+      mouseVx = (latest.x - prev.x) / dtx;
+      mouseVy = (latest.y - prev.y) / dtx;
     }
     const mouseSpeed = Math.sqrt(mouseVx * mouseVx + mouseVy * mouseVy);
     
@@ -1291,7 +1299,7 @@
       
       // Mark for sparkle mode and track spawn time
       ball.isSparkle = true;
-      ball.spawnTime = performance.now() / 1000; // convert to seconds
+      ball.spawnTime = performance.now() / 1000; // seconds
       ball.lifetime = sparkleLifetime;
       
       // Scale particles down
@@ -1504,7 +1512,7 @@
       physicsStepCount++; // Count physics steps for FPS measurement
     }
     
-    // Trail (Sparkle) mode: cleanup faded particles
+  // Trail (Sparkle) mode: cleanup faded particles to cap memory and keep FPS
     if (currentMode === MODES.TRAIL) {
       for (let i = balls.length - 1; i >= 0; i--) {
         const ball = balls[i];
@@ -1627,21 +1635,10 @@
     
     // Trail mode: record mouse path
     if (currentMode === MODES.TRAIL) {
-      const now = performance.now();
-      if (!mouseTrail.length || now - lastTrailRecordTime > 100) {
-        mouseTrail.push({ x: mouseX, y: mouseY });
-        if (mouseTrail.length > trailLength) mouseTrail.shift();
-        lastTrailRecordTime = now;
-      } else {
-        const last = mouseTrail[mouseTrail.length - 1];
-        const dx = mouseX - last.x;
-        const dy = mouseY - last.y;
-        if (dx*dx + dy*dy > (particleSpacing * DPR) * (particleSpacing * DPR)) {
-          mouseTrail.push({ x: mouseX, y: mouseY });
-          if (mouseTrail.length > trailLength) mouseTrail.shift();
-          lastTrailRecordTime = now;
-        }
-      }
+      const now = performance.now() / 1000; // seconds
+      // Push sample with timestamp; keep small fixed buffer
+      mouseTrail.push({ x: mouseX, y: mouseY, time: now });
+      if (mouseTrail.length > MAX_MOUSE_TRAIL_LENGTH) mouseTrail.shift();
     }
   });
   canvas.addEventListener('mouseleave', () => { 
@@ -1651,29 +1648,18 @@
   });
 
   // Draw a cursor as a ball matching the simulation style
+  // Renders the cursor as a simulation-like ball for desktop. Hidden on touch.
   function drawCursorBall(ctx) {
     // Don't show cursor ball on touch devices (mobile)
     if (isTouchDevice) return;
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     
-    // Trail mode: draw the trail path
-    if (currentMode === MODES.TRAIL && mouseTrail.length > 1) {
-      const baseSize = (R_MIN + R_MAX) / 2;
-      for (let i = 0; i < mouseTrail.length; i++) {
-        const alpha = (i / mouseTrail.length) * 0.6;
-        ctx.beginPath();
-        ctx.arc(mouseTrail[i].x, mouseTrail[i].y, baseSize * 0.8, 0, Math.PI * 2);
-        ctx.fillStyle = cursorBallColor.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
-        ctx.fill();
-      }
-    }
-    
-    // Draw main cursor ball for all modes (white by default on desktop)
+  // Draw main cursor ball for all modes (white by default on desktop)
     const x = mouseX, y = mouseY;
     const baseSize = (R_MIN + R_MAX) / 2;
     const r = baseSize;
     // White cursor ball for non-trail modes, colored for trail mode
-    const color = (currentMode === MODES.TRAIL) ? cursorBallColor : 'rgba(255, 255, 255, 0.9)';
+  const color = (currentMode === MODES.TRAIL) ? cursorBallColor : 'rgba(255, 255, 255, 0.9)';
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = color;
