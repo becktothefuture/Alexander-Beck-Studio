@@ -169,9 +169,10 @@
   
   <!-- Mode Switcher -->
   <div class="mode-switcher">
-    <button class="mode-button active" data-mode="pit">🎯 Ball Pit</button>
+    <button class="mode-button active" data-mode="pit">🎯 Pit</button>
     <button class="mode-button" data-mode="flies">🕊️ Flies</button>
     <button class="mode-button" data-mode="trail">🖱️ Trail</button>
+    <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
   </div>
   
   <!-- Build Controls -->
@@ -283,7 +284,18 @@
     </details>
   </div>
   
-    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-3</code> switch modes</div>
+  <div id="weightlessControls" class="mode-controls">
+    <details open>
+      <summary>🌌 Weightless (Zero-G) Mode</summary>
+      <div class="group">
+        <label>Initial speed: <span class="val" id="weightlessSpeedVal">400</span><input type="range" id="weightlessSpeedSlider" min="50" max="1000" step="50" value="400"></label>
+        <label>Wall bounce: <span class="val" id="weightlessBounceVal">0.98</span><input type="range" id="weightlessBounceSlider" min="0.50" max="1.00" step="0.01" value="0.98"></label>
+        <label>Ball count: <span class="val" id="weightlessMaxBallsVal">300</span><input type="range" id="weightlessMaxBallsSlider" min="50" max="600" step="25" value="300"></label>
+      </div>
+    </details>
+  </div>
+  
+    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-4</code> switch modes</div>
   </div>
   
   <!-- FPS Counter -->
@@ -297,9 +309,10 @@
 (() => {
   // Behavior modes
   const MODES = {
-    PIT: 'pit',      // Ball Pit: gravity + repeller
-    FLIES: 'flies',  // Flies to Light: attraction to mouse, no gravity
-    TRAIL: 'trail'   // Mouse Trail: particles follow mouse path
+    PIT: 'pit',          // Ball Pit: gravity + repeller
+    FLIES: 'flies',      // Flies to Light: attraction to mouse, no gravity
+    TRAIL: 'trail',      // Mouse Trail: particles follow mouse path
+    WEIGHTLESS: 'weightless'  // Weightless Bounce: zero-G bouncing balls
   };
   
   let currentMode = MODES.PIT;
@@ -314,6 +327,10 @@
   let particleSpacing = 20;
   let trailFadeSpeed = 0.95;
   let mouseTrail = []; // For trail mode
+  // Weightless mode parameters
+  let weightlessInitialSpeed = 400; // initial velocity magnitude (px/s)
+  let weightlessBounce = 0.98; // wall bounce restitution (very elastic)
+  let weightlessMaxBalls = 300; // number of balls in scene
   
   // Constants for magic numbers
   const CONSTANTS = {
@@ -665,7 +682,9 @@
       this.squash = 1 - this.squashAmount;
     }
     // Resolve collision with walls (with rounded corners)
-    walls(w, h, dt) {
+    walls(w, h, dt, customRest = REST) {
+      // Use custom restitution if provided (for mode-specific bounce behavior)
+      const rest = customRest;
       if (cornerRadius === 0) {
         // Standard rectangular collision
       if (this.y + this.r > h) { 
@@ -680,7 +699,7 @@
         const rollDamp = Math.max(0, 1 - CONSTANTS.ROLL_FRICTION_PER_S * dt / massScale);
         this.vx *= rollDamp;
         // Bounce with mass-aware restitution
-        const wallRest = Math.abs(preVy) < CONSTANTS.WALL_REST_VEL_THRESHOLD ? 0 : REST;
+        const wallRest = Math.abs(preVy) < CONSTANTS.WALL_REST_VEL_THRESHOLD ? 0 : rest;
         this.vy = -this.vy * (wallRest * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
         // Squash on impact using pre-impact speed
         const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
@@ -694,7 +713,7 @@
       if (this.vy > 0 && this.y - this.r < 0) { 
         this.y = this.r; 
         const preVy = this.vy;
-        this.vy = -this.vy * REST; 
+        this.vy = -this.vy * rest; 
         const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
         this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
         this.squash = 1 - this.squashAmount;
@@ -707,7 +726,7 @@
           const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
           this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
         }
-        this.vx = -this.vx * REST; 
+        this.vx = -this.vx * rest; 
         const impact = Math.min(1, Math.abs(this.vx) / (this.r * 90));
         this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
         this.squash = 1 - this.squashAmount;
@@ -720,7 +739,7 @@
             const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
             this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
           }
-          this.vx = -this.vx * REST; 
+          this.vx = -this.vx * rest; 
           const impact = Math.min(1, Math.abs(this.vx) / (this.r * 90));
           this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
           this.squash = 1 - this.squashAmount;
@@ -1070,21 +1089,39 @@
     return { x, y };
   }
   function emit(dt) {
-    // Trail mode: spawn balls at cursor instead of from top emitter
+    // Trail mode: spawn balls at cursor with reverse velocity from mouse movement
     if (currentMode === MODES.TRAIL) {
       emitterTimer += dt;
       // Faster emission in trail mode for continuous stream
-      const trailEmitInterval = EMIT_INTERVAL * 0.3; // 3x faster
+      const trailEmitInterval = EMIT_INTERVAL * 0.15; // very fast emission
       while (emitterTimer >= trailEmitInterval) {
         emitterTimer -= trailEmitInterval;
         if (balls.length < MAX_BALLS && mouseX !== CONSTANTS.OFFSCREEN_MOUSE && mouseY !== CONSTANTS.OFFSCREEN_MOUSE) {
           // Spawn at cursor with shifting colors
-          const hue = (performance.now() * 0.1) % 360; // color shifts over time
-          const color = `hsl(${hue}, 80%, 60%)`;
+          const hue = (performance.now() * 0.15) % 360; // color shifts over time
+          const saturation = 70 + Math.random() * 30; // 70-100%
+          const lightness = 50 + Math.random() * 20; // 50-70%
+          const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
           const ball = spawnBall(mouseX, mouseY, color);
-          // Override initial velocity for trail emission (spawn with no initial velocity)
-          ball.vx = 0;
-          ball.vy = 0;
+          
+          // Calculate mouse velocity from recent trail
+          let reverseVx = 0;
+          let reverseVy = 0;
+          if (mouseTrail.length >= 2) {
+            const latest = mouseTrail[mouseTrail.length - 1];
+            const prev = mouseTrail[mouseTrail.length - 2];
+            // Mouse velocity
+            const mouseVx = latest.x - prev.x;
+            const mouseVy = latest.y - prev.y;
+            // Emit balls in OPPOSITE direction with strong initial push
+            const emissionStrength = 800; // strong push away from cursor path
+            reverseVx = -mouseVx * emissionStrength;
+            reverseVy = -mouseVy * emissionStrength;
+          }
+          
+          // Set initial velocity (reverse of mouse movement + slight random spread)
+          ball.vx = reverseVx + (Math.random() - 0.5) * 100;
+          ball.vy = reverseVy + (Math.random() - 0.5) * 100;
           ball.driftAx = 0;
           ball.driftTime = 0;
         }
@@ -1276,7 +1313,9 @@
       if (currentMode !== MODES.FLIES) {
         resolveCollisions(3); // Balanced quality vs performance
       }
-      for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT);
+      // Use custom restitution for weightless mode
+      const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
+      for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
       acc -= DT;
       physicsSteps++;
       physicsStepCount++; // Count physics steps for FPS measurement
@@ -1361,10 +1400,11 @@
       e.preventDefault();
       panel.classList.toggle('hidden');
     }
-    // Quick mode switches 1..3
+    // Quick mode switches 1..4
     if (k === '1') setMode(MODES.PIT);
     if (k === '2') setMode(MODES.FLIES);
     if (k === '3') setMode(MODES.TRAIL);
+    if (k === '4') setMode(MODES.WEIGHTLESS);
   });
 
   // Seed initial balls across the spawn area for quicker fill
@@ -1483,52 +1523,56 @@
       applyTrailAttraction(b, dt);
       return;
     }
+    if (currentMode === MODES.WEIGHTLESS) {
+      // No external forces in weightless mode - just momentum conservation
+      return;
+    }
   }
 
-  // Mouse attractor for Flies-to-Light mode
+  // Mouse attractor for Flies-to-Light mode - super strong magnetic attraction
   function applyAttractor(b, dt) {
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     const dx = mouseX - b.x;
     const dy = mouseY - b.y;
-    const d2 = dx*dx + dy*dy + 1; // avoid div-by-zero
-    const d = Math.sqrt(d2);
-    // MUCH stronger radial attraction - 10x increase, inverse square law for realism
-    const dirX = dx / (d || 1);
-    const dirY = dy / (d || 1);
-    const radial = (attractionPower * 10 / Math.max(1, d * d * 0.01)) * dt; // inverse square, much stronger
-    b.vx += radial * dirX;
-    b.vy += radial * dirY;
-    // Strong tangential component for dramatic swarm orbit
-    const tX = -dirY;
-    const tY =  dirX;
-    const orbitError = Math.max(0, 1 - Math.min(1, Math.abs(d - orbitRadius) / Math.max(orbitRadius, 1)));
-    const tangential = swarmSpeed * orbitError * dt * 120; // 2x stronger orbit
-    b.vx += tangential * tX;
-    b.vy += tangential * tY;
-    // Heavy damping to prevent wild oscillation
-    b.vx *= 0.92;
-    b.vy *= 0.92;
+    const d2 = dx*dx + dy*dy;
+    const d = Math.sqrt(d2 + 1); // avoid div-by-zero
+    
+    // Direction to mouse
+    const dirX = dx / d;
+    const dirY = dy / d;
+    
+    // VERY strong attraction - simplified for dramatic effect
+    // Linear attraction with massive multiplier (not inverse square - that's too weak at distance)
+    const force = attractionPower * 2.0; // 2x the slider value for dramatic pull
+    b.vx += dirX * force * dt;
+    b.vy += dirY * force * dt;
+    
+    // Add tangential swirl when within orbit radius for visual interest
+    if (d < orbitRadius * DPR * 2) {
+      const tX = -dirY;
+      const tY = dirX;
+      const swirl = swarmSpeed * 800 * dt; // strong swirl
+      b.vx += tX * swirl;
+      b.vy += tY * swirl;
+    }
+    
+    // Moderate damping to keep it energetic but prevent explosion
+    b.vx *= 0.96;
+    b.vy *= 0.96;
   }
 
-  // Trail mode: balls spawn from cursor and inherit reverse velocity
+  // Trail mode: balls fade out over time, strong drag for smooth trails
   function applyTrailAttraction(b, dt) {
-    // Apply reverse momentum based on cursor velocity (emission effect)
-    if (mouseTrail.length >= 2) {
-      const latest = mouseTrail[mouseTrail.length - 1];
-      const prev = mouseTrail[mouseTrail.length - 2];
-      // Cursor velocity (direction of mouse movement)
-      const cursorVx = (latest.x - prev.x) * 0.8;
-      const cursorVy = (latest.y - prev.y) * 0.8;
-      // Apply REVERSE acceleration (emission pushes balls opposite to mouse direction)
-      b.vx -= cursorVx * dt * 2;
-      b.vy -= cursorVy * dt * 2;
-    }
-    // Strong drag to create trailing effect
-    b.vx *= 0.88;
-    b.vy *= 0.88;
-    // Age-based fade (older balls become more transparent)
-    if (b.age > 1.0) {
-      b.alpha = Math.max(0, 1 - (b.age - 1.0) * trailFadeSpeed);
+    // Very strong drag to create smooth trailing effect
+    b.vx *= 0.92;
+    b.vy *= 0.92;
+    
+    // Age-based fade (starts fading immediately for continuous trail effect)
+    const fadeStart = 0.5; // start fading after 0.5s
+    if (b.age > fadeStart) {
+      const fadeDuration = 2.0; // fade over 2 seconds
+      const fadeProgress = (b.age - fadeStart) / fadeDuration;
+      b.alpha = Math.max(0, 1 - fadeProgress);
     } else {
       b.alpha = 1.0;
     }
@@ -1791,6 +1835,7 @@
   const pitControls = document.getElementById('pitControls');
   const fliesControls = document.getElementById('fliesControls');
   const trailControls = document.getElementById('trailControls');
+  const weightlessControls = document.getElementById('weightlessControls');
   const gravityPitSlider = document.getElementById('gravityPitSlider');
   const gravityPitVal = document.getElementById('gravityPitVal');
   const repellerEnabledPitEl = document.getElementById('repellerEnabledPit');
@@ -1811,6 +1856,7 @@
     if (pitControls) pitControls.classList.toggle('active', currentMode === MODES.PIT);
     if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
     if (trailControls) trailControls.classList.toggle('active', currentMode === MODES.TRAIL);
+    if (weightlessControls) weightlessControls.classList.toggle('active', currentMode === MODES.WEIGHTLESS);
     modeButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-mode') === currentMode));
   }
 
@@ -1833,6 +1879,25 @@
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
       mouseTrail = [];
+    } else if (currentMode === MODES.WEIGHTLESS) {
+      gravityMultiplier = 0.0; // zero gravity (weightless)
+      G = GE * gravityMultiplier;
+      repellerEnabled = false;
+      EMITTER_SWEEP_ENABLED = false;
+      // Initialize weightless scene: clear all balls and spawn new ones with random velocities
+      balls.length = 0;
+      for (let i = 0; i < weightlessMaxBalls; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const ball = spawnBall(x, y);
+        // Give random velocity in any direction
+        const angle = Math.random() * Math.PI * 2;
+        const speed = weightlessInitialSpeed;
+        ball.vx = Math.cos(angle) * speed;
+        ball.vy = Math.sin(angle) * speed;
+        ball.driftAx = 0;
+        ball.driftTime = 0;
+      }
     }
     updateModeControlsUI();
   }
@@ -1872,6 +1937,43 @@
   fadeSpeedSlider && fadeSpeedSlider.addEventListener('input', () => {
     trailFadeSpeed = parseFloat(fadeSpeedSlider.value);
     fadeSpeedVal && (fadeSpeedVal.textContent = trailFadeSpeed.toFixed(2));
+  });
+  
+  // Weightless mode sliders
+  const weightlessSpeedSlider = document.getElementById('weightlessSpeedSlider');
+  const weightlessSpeedVal = document.getElementById('weightlessSpeedVal');
+  const weightlessBounceSlider = document.getElementById('weightlessBounceSlider');
+  const weightlessBounceVal = document.getElementById('weightlessBounceVal');
+  const weightlessMaxBallsSlider = document.getElementById('weightlessMaxBallsSlider');
+  const weightlessMaxBallsVal = document.getElementById('weightlessMaxBallsVal');
+  
+  weightlessSpeedSlider && weightlessSpeedSlider.addEventListener('input', () => {
+    weightlessInitialSpeed = parseFloat(weightlessSpeedSlider.value);
+    weightlessSpeedVal && (weightlessSpeedVal.textContent = Math.round(weightlessInitialSpeed).toString());
+  });
+  weightlessBounceSlider && weightlessBounceSlider.addEventListener('input', () => {
+    weightlessBounce = parseFloat(weightlessBounceSlider.value);
+    weightlessBounceVal && (weightlessBounceVal.textContent = weightlessBounce.toFixed(2));
+  });
+  weightlessMaxBallsSlider && weightlessMaxBallsSlider.addEventListener('input', () => {
+    weightlessMaxBalls = parseInt(weightlessMaxBallsSlider.value, 10);
+    weightlessMaxBallsVal && (weightlessMaxBallsVal.textContent = weightlessMaxBalls.toString());
+    // If in weightless mode, adjust ball count immediately
+    if (currentMode === MODES.WEIGHTLESS) {
+      while (balls.length < weightlessMaxBalls) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const ball = spawnBall(x, y);
+        const angle = Math.random() * Math.PI * 2;
+        ball.vx = Math.cos(angle) * weightlessInitialSpeed;
+        ball.vy = Math.sin(angle) * weightlessInitialSpeed;
+        ball.driftAx = 0;
+        ball.driftTime = 0;
+      }
+      if (balls.length > weightlessMaxBalls) {
+        balls.length = weightlessMaxBalls;
+      }
+    }
   });
 
   // Individual color picker listeners (with existing ball color update)
