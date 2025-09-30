@@ -287,13 +287,15 @@
   
   <div id="trailControls" class="mode-controls">
     <details open>
-      <summary>✨ Sparkle Trail Mode</summary>
+      <summary>🎨 Interactive Paint Mode</summary>
       <div class="group">
-        <label>Emission rate: <span class="val" id="sparkleEmissionVal">3</span><input type="range" id="sparkleEmissionSlider" min="1" max="30" step="1" value="3"></label>
-        <label>Particle lifetime (s): <span class="val" id="sparkleLifetimeVal">1.5</span><input type="range" id="sparkleLifetimeSlider" min="0.5" max="9.0" step="0.1" value="1.5"></label>
-        <label>Velocity spread: <span class="val" id="sparkleSpreadVal">100</span><input type="range" id="sparkleSpreadSlider" min="20" max="900" step="10" value="100"></label>
-        <label>Drift strength: <span class="val" id="sparkleDriftVal">50</span><input type="range" id="sparkleDriftSlider" min="0" max="600" step="10" value="50"></label>
-        <label>Particle scale: <span class="val" id="sparkleScaleVal">0.6</span><input type="range" id="sparkleScaleSlider" min="0.1" max="4.5" step="0.05" value="0.6"></label>
+        <label>Emission rate: <span class="val" id="sparkleEmissionVal">8</span><input type="range" id="sparkleEmissionSlider" min="1" max="30" step="1" value="8"></label>
+        <label>Particle lifetime (s): <span class="val" id="sparkleLifetimeVal">2.0</span><input type="range" id="sparkleLifetimeSlider" min="0.5" max="9.0" step="0.1" value="2.0"></label>
+        <label>Velocity spread: <span class="val" id="sparkleSpreadVal">150</span><input type="range" id="sparkleSpreadSlider" min="20" max="900" step="10" value="150"></label>
+        <label>Drift strength: <span class="val" id="sparkleDriftVal">30</span><input type="range" id="sparkleDriftSlider" min="0" max="600" step="10" value="30"></label>
+        <label>Particle scale: <span class="val" id="sparkleScaleVal">0.8</span><input type="range" id="sparkleScaleSlider" min="0.1" max="4.5" step="0.05" value="0.8"></label>
+        <label>Trail intensity: <span class="val" id="trailIntensityVal">0.3</span><input type="range" id="trailIntensitySlider" min="0.0" max="1.0" step="0.05" value="0.3"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Higher = more vibrant trails</div>
       </div>
     </details>
   </div>
@@ -375,12 +377,13 @@
   let orbitRadius = 150;
   let swarmSpeed = 1.0;
   
-  // Trail (Sparkle) mode parameters
-  let sparkleEmissionRate = 3; // particles per frame when moving
-  let sparkleLifetime = 1.5; // seconds before fade complete
-  let sparkleVelocitySpread = 100; // initial random velocity magnitude
-  let sparkleDriftStrength = 50; // gentle floating motion
-  let sparkleParticleScale = 0.6; // smaller than normal balls
+  // Interactive Paint mode parameters
+  let sparkleEmissionRate = 8; // particles per frame when moving
+  let sparkleLifetime = 2.0; // seconds before fade complete
+  let sparkleVelocitySpread = 150; // initial random velocity magnitude
+  let sparkleDriftStrength = 30; // gentle floating motion
+  let sparkleParticleScale = 0.8; // smaller than normal balls
+  let trailIntensity = 0.3; // trail vibrancy (0-1)
   // Track only recent mouse samples to estimate velocity for sparkle emission
   let mouseTrail = []; // Array<{x:number,y:number,time:number}>
   const MAX_MOUSE_TRAIL_LENGTH = 6; // small buffer keeps calc cheap and responsive
@@ -1159,21 +1162,67 @@
     draw(ctx) {
       ctx.save();
       ctx.translate(this.x, this.y);
-      // World-aligned squash/stretch only if significant
-      const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
-      if (amt > 0.001) {
-        // Area-preserving squash: s * (1/s) maintains roundness perception
-        const s = 1 + amt;
-        const inv = 1 / s;
-        ctx.rotate(this.squashNormalAngle);
-        ctx.scale(s, inv);
-        ctx.rotate(-this.squashNormalAngle);
+
+      // Special rendering for sparkle particles
+      if (this.isSparkle) {
+        // Enhanced sparkle particle rendering with glow effect
+        const age = (performance.now() / 1000) - this.spawnTime;
+        const lifeProgress = Math.min(1, age / this.lifetime);
+        const fadeAlpha = Math.max(0, 1 - lifeProgress);
+
+        // Create glow effect for sparkle particles
+        if (trailIntensity > 0) {
+          const glowRadius = this.r * (1.5 + trailIntensity * 2);
+          const glowAlpha = fadeAlpha * trailIntensity * 0.3;
+
+          ctx.beginPath();
+          ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
+
+          // Create gradient for glow effect
+          const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowRadius);
+          const baseColor = this.color;
+          const alphaColor = baseColor.replace(/[\d\.]+\)$/g, `${glowAlpha})`);
+          const midColor = baseColor.replace(/[\d\.]+\)$/g, `${glowAlpha * 0.5})`);
+          gradient.addColorStop(0, alphaColor);
+          gradient.addColorStop(0.7, midColor);
+          gradient.addColorStop(1, baseColor.replace(/[\d\.]+\)$/g, '0)'));
+
+          ctx.fillStyle = gradient;
+          ctx.fill();
+        }
+
+        // Main particle body with enhanced visibility
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = this.color.replace(/[\d\.]+\)$/g, `${fadeAlpha})`);
+        ctx.fill();
+
+        // Add sparkle effect (small highlight)
+        if (trailIntensity > 0.2) {
+          ctx.beginPath();
+          ctx.arc(this.r * 0.3, -this.r * 0.3, this.r * 0.15, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${fadeAlpha * trailIntensity * 0.8})`;
+          ctx.fill();
+        }
+      } else {
+        // Regular ball rendering
+        // World-aligned squash/stretch only if significant
+        const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
+        if (amt > 0.001) {
+          // Area-preserving squash: s * (1/s) maintains roundness perception
+          const s = 1 + amt;
+          const inv = 1 / s;
+          ctx.rotate(this.squashNormalAngle);
+          ctx.scale(s, inv);
+          ctx.rotate(-this.squashNormalAngle);
+        }
+        // Body
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r, 0, Math.PI*2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
       }
-      // Body
-      ctx.beginPath();
-      ctx.arc(0, 0, this.r, 0, Math.PI*2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
+
       // Spin indicator removed for cleaner visuals and performance
       ctx.restore();
     }
@@ -1447,26 +1496,37 @@
     for (let i = 0; i < particlesToEmit; i++) {
       // Get recycled particle or create new one
       const ball = getTrailParticle();
-      
-      // Reset and configure particle
+
+      // Reset and configure particle with enhanced properties
       ball.x = mouseX;
       ball.y = mouseY;
       ball.isSparkle = true;
       ball.spawnTime = performance.now() / 1000;
       ball.lifetime = sparkleLifetime;
       ball.active = true;
-      ball.color = pickRandomColor(); // Set random color
-      
-      // Random initial velocity (spread in all directions)
-      const spreadAngle = Math.random() * Math.PI * 2;
-      const spreadMagnitude = sparkleVelocitySpread * (0.5 + Math.random() * 0.5);
+
+      // Use current color palette for more cohesive trails
+      ball.color = currentColors[Math.floor(Math.random() * currentColors.length)];
+
+      // Create more interesting velocity patterns
+      const baseAngle = Math.random() * Math.PI * 2;
+      const angleVariation = (Math.random() - 0.5) * Math.PI * 0.5; // ±45 degrees
+      const spreadAngle = baseAngle + angleVariation;
+
+      // Vary magnitude based on mouse speed for more dynamic trails
+      const speedMultiplier = Math.min(2, Math.max(0.5, mouseSpeed / 100));
+      const spreadMagnitude = sparkleVelocitySpread * speedMultiplier * (0.3 + Math.random() * 0.7);
+
       ball.vx = Math.cos(spreadAngle) * spreadMagnitude;
       ball.vy = Math.sin(spreadAngle) * spreadMagnitude;
-      
-      // Scale particles down
+
+      // Scale particles for better visibility
       ball.r = (R_MIN + R_MAX) / 2 * sparkleParticleScale;
       ball.rBase = ball.r;
-      
+
+      // Add subtle rotation for sparkle effect
+      ball.theta = Math.random() * Math.PI * 2;
+
       // Add to active balls array
       balls.push(ball);
     }
@@ -2702,6 +2762,15 @@
   sparkleScaleSlider && sparkleScaleSlider.addEventListener('input', () => {
     sparkleParticleScale = parseFloat(sparkleScaleSlider.value);
     sparkleScaleVal && (sparkleScaleVal.textContent = sparkleParticleScale.toFixed(2));
+    autoSaveSettings();
+  });
+
+  // Trail intensity control
+  const trailIntensitySlider = document.getElementById('trailIntensitySlider');
+  const trailIntensityVal = document.getElementById('trailIntensityVal');
+  trailIntensitySlider && trailIntensitySlider.addEventListener('input', () => {
+    trailIntensity = parseFloat(trailIntensitySlider.value);
+    trailIntensityVal && (trailIntensityVal.textContent = trailIntensity.toFixed(2));
     autoSaveSettings();
   });
   
