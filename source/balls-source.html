@@ -418,6 +418,8 @@
     BALL_CLUSTER_Y_OFFSET: 12,    // Y offset for clustered balls
     MAX_PHYSICS_STEPS: 2,         // Maximum physics steps per frame
     FPS_UPDATE_INTERVAL: 1.0,     // FPS counter update interval in seconds
+    MIN_MOUSE_SPEED_FOR_TRAIL: 50, // Minimum mouse speed to emit trail particles
+    SPARKLE_DRAG_COEFFICIENT: 0.98, // Drag coefficient for sparkle particles
     // Spin & squash tuning
     SPIN_DAMP_PER_S: 2.0,         // angular damping per second
     SPIN_GAIN: 0.25,              // how strongly tangential slip converts to spin
@@ -1382,9 +1384,8 @@
     }
     const mouseSpeed = Math.sqrt(mouseVx * mouseVx + mouseVy * mouseVy);
     
-    // Only emit if mouse is moving (threshold: 50 px/s)
-    const MIN_MOUSE_SPEED = 50;
-    if (mouseSpeed < MIN_MOUSE_SPEED) return;
+    // Only emit if mouse is moving
+    if (mouseSpeed < CONSTANTS.MIN_MOUSE_SPEED_FOR_TRAIL) return;
     
     // Emit multiple particles per frame based on emission rate
     const particlesToEmit = sparkleEmissionRate;
@@ -1958,9 +1959,8 @@
     }
     
     // Apply drag (deceleration)
-    const SPARKLE_DRAG = 0.98;
-    b.vx *= SPARKLE_DRAG;
-    b.vy *= SPARKLE_DRAG;
+    b.vx *= CONSTANTS.SPARKLE_DRAG_COEFFICIENT;
+    b.vy *= CONSTANTS.SPARKLE_DRAG_COEFFICIENT;
     
     // Age-based scale down
     const currentTime = performance.now() / 1000;
