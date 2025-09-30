@@ -1420,6 +1420,35 @@
     const y = randBetween(yTopCss * DPR, yBotCss * DPR) - (R_MAX + CONSTANTS.BALL_SPAWN_OFFSET + randBetween(0, 10 * DPR));
     return { x, y };
   }
+  // Trail particle recycling system
+  const trailParticlePool = [];
+  let trailParticlePoolIndex = 0;
+  
+  // Get a recycled trail particle or create new one
+  function getTrailParticle() {
+    if (trailParticlePoolIndex < trailParticlePool.length) {
+      // Reuse existing particle
+      return trailParticlePool[trailParticlePoolIndex++];
+    } else {
+      // Create new particle and add to pool
+      const particle = {
+        x: 0, y: 0, vx: 0, vy: 0, r: 0, rBase: 0,
+        isSparkle: true, spawnTime: 0, lifetime: 0,
+        active: false
+      };
+      trailParticlePool.push(particle);
+      return particle;
+    }
+  }
+  
+  // Reset trail particle pool for new trail
+  function resetTrailParticlePool() {
+    trailParticlePoolIndex = 0;
+    for (let i = 0; i < trailParticlePool.length; i++) {
+      trailParticlePool[i].active = false;
+    }
+  }
+  
   // Sparkle Trail emission: emit particles from cursor based on mouse movement
   function emitSparkles(dt) {
     // Only emit if mouse is on-screen and moving
@@ -1442,10 +1471,16 @@
     // Emit multiple particles per frame based on emission rate
     const particlesToEmit = sparkleEmissionRate;
     for (let i = 0; i < particlesToEmit; i++) {
-      if (balls.length >= MAX_BALLS) break;
+      // Get recycled particle or create new one
+      const ball = getTrailParticle();
       
-      // Spawn particle at cursor position
-      const ball = spawnBall(mouseX, mouseY);
+      // Reset and configure particle
+      ball.x = mouseX;
+      ball.y = mouseY;
+      ball.isSparkle = true;
+      ball.spawnTime = performance.now() / 1000;
+      ball.lifetime = sparkleLifetime;
+      ball.active = true;
       
       // Random initial velocity (spread in all directions)
       const spreadAngle = Math.random() * Math.PI * 2;
@@ -1453,14 +1488,12 @@
       ball.vx = Math.cos(spreadAngle) * spreadMagnitude;
       ball.vy = Math.sin(spreadAngle) * spreadMagnitude;
       
-      // Mark for sparkle mode and track spawn time
-      ball.isSparkle = true;
-      ball.spawnTime = performance.now() / 1000; // seconds
-      ball.lifetime = sparkleLifetime;
-      
       // Scale particles down
-      ball.r = ball.r * sparkleParticleScale;
-      ball.rBase = ball.rBase * sparkleParticleScale;
+      ball.r = (R_MIN + R_MAX) / 2 * sparkleParticleScale;
+      ball.rBase = ball.r;
+      
+      // Add to active balls array
+      balls.push(ball);
     }
   }
   
@@ -1677,12 +1710,14 @@
       physicsStepCount++; // Count physics steps for FPS measurement
     }
     
-  // Trail (Sparkle) mode: cleanup tiny particles to cap memory and keep FPS
+  // Trail (Sparkle) mode: cleanup tiny particles and recycle them
     if (currentMode === MODES.TRAIL) {
       for (let i = balls.length - 1; i >= 0; i--) {
         const ball = balls[i];
         if (ball.isSparkle && ball.r <= 0.5) {
-          balls.splice(i, 1); // Remove tiny sparkles earlier to save memory
+          // Mark particle as inactive for recycling
+          ball.active = false;
+          balls.splice(i, 1); // Remove from active array
         }
       }
     }
@@ -1830,7 +1865,11 @@
   canvas.addEventListener('mouseleave', () => { 
     mouseX = CONSTANTS.OFFSCREEN_MOUSE; 
     mouseY = CONSTANTS.OFFSCREEN_MOUSE;
-    if (currentMode === MODES.TRAIL) mouseTrail = [];
+    if (currentMode === MODES.TRAIL) {
+      mouseTrail = [];
+      // Reset particle pool when mouse leaves
+      resetTrailParticlePool();
+    }
   });
 
   // Draw a cursor as a ball matching the simulation style
@@ -2456,6 +2495,8 @@
       mouseTrail = [];
       // Clear all existing balls when entering Trail mode
       balls.length = 0;
+      // Reset particle pool for recycling
+      resetTrailParticlePool();
     } else if (currentMode === MODES.WEIGHTLESS) {
       gravityMultiplier = 0.0; // zero gravity (weightless)
       G = GE * gravityMultiplier;
