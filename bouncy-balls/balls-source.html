@@ -90,6 +90,40 @@
   #bravia-balls .panel summary { display:flex; align-items:center; justify-content:space-between; color:#b8c2c7; }
   #bravia-balls .panel .group { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
   
+  /* Mode switcher - segmented control */
+  #bravia-balls .mode-switcher {
+    display: flex;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+  #bravia-balls .mode-button {
+    flex: 1;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(255,255,255,0.6);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+  #bravia-balls .mode-button:hover {
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.8);
+  }
+  #bravia-balls .mode-button.active {
+    background: rgba(255,255,255,0.15);
+    color: #ffffff;
+    font-weight: 600;
+  }
+  #bravia-balls .mode-controls { display: none; }
+  #bravia-balls .mode-controls.active { display: block; }
+  
   /* Palette variables (defaults match 'industrialTeal') */
   :root {
     --ball-1: #b7bcb7;
@@ -132,13 +166,24 @@
 <div id="bravia-balls">
   <canvas id="c" aria-label="Bouncy balls simulation" role="img" draggable="false"></canvas>
   <div class="panel" id="controlPanel">
+  
+  <!-- Mode Switcher -->
+  <div class="mode-switcher">
+    <button class="mode-button active" data-mode="pit">🎯 Ball Pit</button>
+    <button class="mode-button" data-mode="flies">🕊️ Flies</button>
+    <button class="mode-button" data-mode="trail">🖱️ Trail</button>
+  </div>
+  
+  <!-- Build Controls -->
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
     <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 8px;">💾 Save Config</button>
     <button id="buildBtn" style="background: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">🚀 Build Embed</button>
     <div id="configOutput" style="margin-top: 8px; font-family: monospace; font-size: 10px; color: #333; max-height: 120px; overflow-y: auto; display: none; text-align: left; background: rgba(255,255,255,0.8); padding: 6px; border-radius: 3px;"></div>
   </div>
+  
+  <!-- Global Physics Controls -->
   <details open>
-    <summary>⚙️ Physics</summary>
+    <summary>⚙️ Global Physics</summary>
     <div class="group">
         <label>Physics template: <select id="physicsSelect"></select></label>
         <label>Bounciness: <span class="val" id="restitutionVal">0.78</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.001" value="0.78"></label>
@@ -204,7 +249,41 @@
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Colors appear by weight: 1 is most common, 8 is rarest</div>
     </div>
   </details>
-    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to return balls to spawn • <code>/</code> toggle panel</div>
+  
+  <!-- Mode-Specific Controls -->
+  <div id="pitControls" class="mode-controls active">
+    <details open>
+      <summary>🎯 Ball Pit Mode</summary>
+      <div class="group">
+        <label>Gravity: <span class="val" id="gravityPitVal">1.1</span><input type="range" id="gravityPitSlider" min="0.0" max="3.0" step="0.1" value="1.1"></label>
+        <label>Repeller active: <input type="checkbox" id="repellerEnabledPit" checked></label>
+      </div>
+    </details>
+  </div>
+  
+  <div id="fliesControls" class="mode-controls">
+    <details open>
+      <summary>🕊️ Flies to Light Mode</summary>
+      <div class="group">
+        <label>Attraction power: <span class="val" id="attractPowerVal">15000</span><input type="range" id="attractPowerSlider" min="1000" max="50000" step="1000" value="15000"></label>
+        <label>Orbit radius (px): <span class="val" id="orbitRadiusVal">150</span><input type="range" id="orbitRadiusSlider" min="50" max="500" step="10" value="150"></label>
+        <label>Swarm speed: <span class="val" id="swarmSpeedVal">1.0</span><input type="range" id="swarmSpeedSlider" min="0.1" max="3.0" step="0.1" value="1.0"></label>
+      </div>
+    </details>
+  </div>
+  
+  <div id="trailControls" class="mode-controls">
+    <details open>
+      <summary>🖱️ Mouse Trail Mode</summary>
+      <div class="group">
+        <label>Trail length: <span class="val" id="trailLengthVal">50</span><input type="range" id="trailLengthSlider" min="10" max="200" step="5" value="50"></label>
+        <label>Particle spacing: <span class="val" id="particleSpacingVal">20</span><input type="range" id="particleSpacingSlider" min="5" max="100" step="5" value="20"></label>
+        <label>Fade speed: <span class="val" id="fadeSpeedVal">0.95</span><input type="range" id="fadeSpeedSlider" min="0.80" max="0.99" step="0.01" value="0.95"></label>
+      </div>
+    </details>
+  </div>
+  
+    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-3</code> switch modes</div>
   </div>
   
   <!-- FPS Counter -->
@@ -214,8 +293,28 @@
   </div>
 </div>
 <script>
-// Version: 2024-09-20 - Removed 3D rendering, simplified shadows
+// Version: 2024-09-30 - Added 3-mode system (Ball Pit, Flies to Light, Mouse Trail)
 (() => {
+  // Behavior modes
+  const MODES = {
+    PIT: 'pit',      // Ball Pit: gravity + repeller
+    FLIES: 'flies',  // Flies to Light: attraction to mouse, no gravity
+    TRAIL: 'trail'   // Mouse Trail: particles follow mouse path
+  };
+  
+  let currentMode = MODES.PIT;
+  
+  // Mode-specific parameters
+  let gravityMultiplierPit = 1.1;
+  let repellerEnabledPit = true;
+  let attractionPower = 15000;
+  let orbitRadius = 150;
+  let swarmSpeed = 1.0;
+  let trailLength = 50;
+  let particleSpacing = 20;
+  let trailFadeSpeed = 0.95;
+  let mouseTrail = []; // For trail mode
+  
   // Constants for magic numbers
   const CONSTANTS = {
     CANVAS_HEIGHT_VH: 1.5,        // 150vh canvas height
@@ -549,7 +648,7 @@
       } else if (this.driftAx !== 0) {
         this.driftAx = 0; // Clear drift when expired to skip future checks
       }
-      applyRepeller(this, dt);
+      applyExternalForces(this, dt);
       this.x += this.vx * dt;
       this.y += this.vy * dt;
       // Angular damping
@@ -1230,6 +1329,10 @@
       e.preventDefault();
       panel.classList.toggle('hidden');
     }
+    // Quick mode switches 1..3
+    if (k === '1') setMode(MODES.PIT);
+    if (k === '2') setMode(MODES.FLIES);
+    if (k === '3') setMode(MODES.TRAIL);
   });
 
   // Seed initial balls across the spawn area for quicker fill
@@ -1245,19 +1348,60 @@
 
 
 
-  // Mouse input for repeller
+  // Mouse input (unified handler for repeller + trail recording)
+  let lastTrailRecordTime = 0;
   canvas.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
     mouseX = (e.clientX - rect.left) * DPR;
     mouseY = (e.clientY - rect.top) * DPR;
-    // If mouse enters the canvas, enable repeller when power and radius are set
-    if (repelPower > 0 && repelRadius > 0) repellerEnabled = true;
+    
+    // Ball Pit: enable repeller when power and radius are set
+    if (currentMode === MODES.PIT && repelPower > 0 && repelRadius > 0) {
+      repellerEnabled = true;
+    }
+    
+    // Trail mode: record mouse path
+    if (currentMode === MODES.TRAIL) {
+      const now = performance.now();
+      if (!mouseTrail.length || now - lastTrailRecordTime > 100) {
+        mouseTrail.push({ x: mouseX, y: mouseY });
+        if (mouseTrail.length > trailLength) mouseTrail.shift();
+        lastTrailRecordTime = now;
+      } else {
+        const last = mouseTrail[mouseTrail.length - 1];
+        const dx = mouseX - last.x;
+        const dy = mouseY - last.y;
+        if (dx*dx + dy*dy > (particleSpacing * DPR) * (particleSpacing * DPR)) {
+          mouseTrail.push({ x: mouseX, y: mouseY });
+          if (mouseTrail.length > trailLength) mouseTrail.shift();
+          lastTrailRecordTime = now;
+        }
+      }
+    }
   });
-  canvas.addEventListener('mouseleave', () => { mouseX = CONSTANTS.OFFSCREEN_MOUSE; mouseY = CONSTANTS.OFFSCREEN_MOUSE; });
+  canvas.addEventListener('mouseleave', () => { 
+    mouseX = CONSTANTS.OFFSCREEN_MOUSE; 
+    mouseY = CONSTANTS.OFFSCREEN_MOUSE;
+    if (currentMode === MODES.TRAIL) mouseTrail = [];
+  });
 
   // Draw a cursor as a ball matching the simulation style
   function drawCursorBall(ctx) {
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
+    
+    // Trail mode: draw the trail path
+    if (currentMode === MODES.TRAIL && mouseTrail.length > 1) {
+      const baseSize = (R_MIN + R_MAX) / 2;
+      for (let i = 0; i < mouseTrail.length; i++) {
+        const alpha = (i / mouseTrail.length) * 0.6;
+        ctx.beginPath();
+        ctx.arc(mouseTrail[i].x, mouseTrail[i].y, baseSize * 0.8, 0, Math.PI * 2);
+        ctx.fillStyle = cursorBallColor.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
+        ctx.fill();
+      }
+    }
+    
+    // Draw main cursor ball for all modes
     const x = mouseX, y = mouseY;
     const baseSize = (R_MIN + R_MAX) / 2;
     const r = baseSize;
@@ -1287,6 +1431,67 @@
     const massScale = Math.max(0.25, b.m / MASS_BASELINE_KG);
     b.vx += (nx * strength * dt) / massScale;
     b.vy += (ny * strength * dt) / massScale;
+  }
+
+  // Behavior-mode external forces dispatcher
+  function applyExternalForces(b, dt) {
+    if (currentMode === MODES.PIT) {
+      applyRepeller(b, dt);
+      return;
+    }
+    if (currentMode === MODES.FLIES) {
+      applyAttractor(b, dt);
+      return;
+    }
+    if (currentMode === MODES.TRAIL) {
+      applyTrailAttraction(b, dt);
+      return;
+    }
+  }
+
+  // Mouse attractor for Flies-to-Light mode
+  function applyAttractor(b, dt) {
+    if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
+    const dx = mouseX - b.x;
+    const dy = mouseY - b.y;
+    const d2 = dx*dx + dy*dy + 1; // avoid div-by-zero
+    const d = Math.sqrt(d2);
+    // Radial attraction (scaled ~1/d)
+    const dirX = dx / (d || 1);
+    const dirY = dy / (d || 1);
+    const radial = (attractionPower / Math.max(120, d)) * dt; // tuned for stability
+    b.vx += radial * dirX;
+    b.vy += radial * dirY;
+    // Tangential component to encourage orbit near target radius
+    const tX = -dirY;
+    const tY =  dirX;
+    const orbitError = Math.max(0, 1 - Math.min(1, Math.abs(d - orbitRadius) / Math.max(orbitRadius, 1)));
+    const tangential = swarmSpeed * orbitError * dt * 60; // scale to frame rate
+    b.vx += tangential * tX;
+    b.vy += tangential * tY;
+  }
+
+  // Trail attraction: pull balls towards nearest point on recent mouse path
+  function applyTrailAttraction(b, dt) {
+    if (!mouseTrail.length) return;
+    let bestIdx = -1;
+    let bestD2 = Infinity;
+    for (let i = 0; i < mouseTrail.length; i++) {
+      const p = mouseTrail[i];
+      const dx = p.x - b.x;
+      const dy = p.y - b.y;
+      const d2 = dx*dx + dy*dy;
+      if (d2 < bestD2) { bestD2 = d2; bestIdx = i; }
+    }
+    if (bestIdx === -1) return;
+    const p = mouseTrail[bestIdx];
+    const d = Math.sqrt(bestD2) || 1;
+    const dirX = (p.x - b.x) / d;
+    const dirY = (p.y - b.y) / d;
+    // Use a softer pull than flies mode
+    const pull = (attractionPower * 0.5) / Math.max(160, d);
+    b.vx += pull * dirX * dt;
+    b.vy += pull * dirY * dt;
   }
 
   // UI elements
@@ -1541,6 +1746,94 @@
     syncPaletteVars();
   });
 
+  // Mode switcher wiring
+  const modeButtons = Array.from(document.querySelectorAll('.mode-button'));
+  const pitControls = document.getElementById('pitControls');
+  const fliesControls = document.getElementById('fliesControls');
+  const trailControls = document.getElementById('trailControls');
+  const gravityPitSlider = document.getElementById('gravityPitSlider');
+  const gravityPitVal = document.getElementById('gravityPitVal');
+  const repellerEnabledPitEl = document.getElementById('repellerEnabledPit');
+  const attractPowerSlider = document.getElementById('attractPowerSlider');
+  const attractPowerVal = document.getElementById('attractPowerVal');
+  const orbitRadiusSlider = document.getElementById('orbitRadiusSlider');
+  const orbitRadiusVal = document.getElementById('orbitRadiusVal');
+  const swarmSpeedSlider = document.getElementById('swarmSpeedSlider');
+  const swarmSpeedVal = document.getElementById('swarmSpeedVal');
+  const trailLengthSlider = document.getElementById('trailLengthSlider');
+  const trailLengthVal = document.getElementById('trailLengthVal');
+  const particleSpacingSlider = document.getElementById('particleSpacingSlider');
+  const particleSpacingVal = document.getElementById('particleSpacingVal');
+  const fadeSpeedSlider = document.getElementById('fadeSpeedSlider');
+  const fadeSpeedVal = document.getElementById('fadeSpeedVal');
+
+  function updateModeControlsUI() {
+    if (pitControls) pitControls.classList.toggle('active', currentMode === MODES.PIT);
+    if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
+    if (trailControls) trailControls.classList.toggle('active', currentMode === MODES.TRAIL);
+    modeButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-mode') === currentMode));
+  }
+
+  function setMode(mode) {
+    currentMode = mode;
+    // Apply per-mode high-level toggles
+    if (currentMode === MODES.PIT) {
+      gravityMultiplier = gravityMultiplierPit;
+      G = GE * gravityMultiplier;
+      repellerEnabled = repellerEnabledPit && (repelPower > 0 && repelRadius > 0);
+      EMITTER_SWEEP_ENABLED = true;
+    } else if (currentMode === MODES.FLIES) {
+      gravityMultiplier = 0.0; // no gravity
+      G = GE * gravityMultiplier;
+      repellerEnabled = false;
+      EMITTER_SWEEP_ENABLED = false;
+    } else if (currentMode === MODES.TRAIL) {
+      gravityMultiplier = 0.0; // minimal gravity for trail particles
+      G = GE * gravityMultiplier;
+      repellerEnabled = false;
+      EMITTER_SWEEP_ENABLED = false;
+      mouseTrail = [];
+    }
+    updateModeControlsUI();
+  }
+
+  // Hook up UI listeners
+  modeButtons.forEach(btn => btn.addEventListener('click', () => setMode(btn.getAttribute('data-mode'))));
+  gravityPitSlider && gravityPitSlider.addEventListener('input', () => {
+    gravityMultiplierPit = parseFloat(gravityPitSlider.value);
+    gravityPitVal && (gravityPitVal.textContent = gravityMultiplierPit.toFixed(1));
+    if (currentMode === MODES.PIT) { gravityMultiplier = gravityMultiplierPit; G = GE * gravityMultiplier; }
+  });
+  repellerEnabledPitEl && repellerEnabledPitEl.addEventListener('change', () => {
+    repellerEnabledPit = !!repellerEnabledPitEl.checked;
+    if (currentMode === MODES.PIT) repellerEnabled = repellerEnabledPit && (repelPower > 0 && repelRadius > 0);
+  });
+  attractPowerSlider && attractPowerSlider.addEventListener('input', () => {
+    attractionPower = parseFloat(attractPowerSlider.value);
+    attractPowerVal && (attractPowerVal.textContent = Math.round(attractionPower).toString());
+  });
+  orbitRadiusSlider && orbitRadiusSlider.addEventListener('input', () => {
+    orbitRadius = parseFloat(orbitRadiusSlider.value);
+    orbitRadiusVal && (orbitRadiusVal.textContent = Math.round(orbitRadius).toString());
+  });
+  swarmSpeedSlider && swarmSpeedSlider.addEventListener('input', () => {
+    swarmSpeed = parseFloat(swarmSpeedSlider.value);
+    swarmSpeedVal && (swarmSpeedVal.textContent = swarmSpeed.toFixed(1));
+  });
+  trailLengthSlider && trailLengthSlider.addEventListener('input', () => {
+    trailLength = parseInt(trailLengthSlider.value, 10);
+    trailLengthVal && (trailLengthVal.textContent = trailLength.toString());
+    if (mouseTrail.length > trailLength) mouseTrail.length = trailLength;
+  });
+  particleSpacingSlider && particleSpacingSlider.addEventListener('input', () => {
+    particleSpacing = parseInt(particleSpacingSlider.value, 10);
+    particleSpacingVal && (particleSpacingVal.textContent = particleSpacing.toString());
+  });
+  fadeSpeedSlider && fadeSpeedSlider.addEventListener('input', () => {
+    trailFadeSpeed = parseFloat(fadeSpeedSlider.value);
+    fadeSpeedVal && (fadeSpeedVal.textContent = trailFadeSpeed.toFixed(2));
+  });
+
   // Individual color picker listeners (with existing ball color update)
   function updateExistingBallColors() {
     // Update colors of existing balls to use new color palette
@@ -1728,6 +2021,9 @@
   
   // Initialize text colliders
   updateTextColliders();
+  
+  // Initialize default mode (Ball Pit)
+  setMode(MODES.PIT);
 })();
 </script>
 </body>
