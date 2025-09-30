@@ -1630,8 +1630,8 @@
     if (currentMode === MODES.TRAIL) {
       for (let i = balls.length - 1; i >= 0; i--) {
         const ball = balls[i];
-        if (ball.isSparkle && ball.r <= 1) {
-          balls.splice(i, 1); // Remove tiny sparkles
+        if (ball.isSparkle && ball.r <= 0.5) {
+          balls.splice(i, 1); // Remove tiny sparkles earlier to save memory
         }
       }
     }
@@ -1672,6 +1672,18 @@
     for (let i=0; i<balls.length; i++) balls[i].draw(ctx);
     // Draw cursor ball last
     drawCursorBall(ctx);
+    
+    // Draw current mode indicator (desktop only)
+    if (!isTouchDevice) {
+      ctx.save();
+      ctx.font = '14px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      const modeName = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
+      ctx.fillText(modeName + ' Mode', 10, canvas.height - 10);
+      ctx.restore();
+    }
 
     // Use requestAnimationFrame for proper vsync
     requestAnimationFrame(frame);

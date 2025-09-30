@@ -94,10 +94,76 @@ Performance Targets
 
 ---
 
+---
+
+### Mode 4 — Weightless Bounce
+Purpose: Zero-gravity space with elastic collisions off all walls.
+
+Behavior
+- No gravity; balls float freely in space
+- All 4 walls (including top) act as elastic boundaries
+- Balls spawn with random velocities in all directions
+- Optional subtle mouse repeller for gentle interaction
+- Perfect energy conservation creates perpetual motion
+
+User Interactions
+- Mouse move: gentle repeller pushes nearby balls
+- Keyboard: `4` switch to Weightless
+
+Controls (Panel)
+- Initial speed (velocity magnitude at spawn)
+- Ball count (fixed number, no continuous spawning)
+- Bounce elasticity (how much energy retained on wall hit)
+- Repeller power & radius (subtle push effect)
+
+Visual
+- Balls float and bounce endlessly
+- Clean elastic collisions with walls
+- Mesmerizing perpetual motion patterns
+
+Performance Targets
+- Stable physics with no energy loss over time
+
+---
+
+### Mode 5 — Rainbow Drop
+Purpose: Artistic display with one ball per color falling in sequence.
+
+Behavior
+- Balls drop one by one, each a different color from the palette
+- Configurable delay between drops
+- Gravity pulls balls down; they settle at bottom
+- No mouse interaction; purely visual
+- Resets and repeats when all colors have dropped
+
+User Interactions
+- Keyboard: `5` switch to Rainbow
+- Watch the cascade of colors
+
+Controls (Panel)
+- Drop delay (time between each ball)
+- Gravity strength (how fast they fall)
+- Ball size distribution (visual variety)
+
+Visual
+- Each ball represents one color from current palette
+- Sequential drops create a rainbow waterfall effect
+- Balls accumulate at bottom in color order
+
+Performance Targets
+- Smooth sequential spawning without stutters
+
+---
+
 ### Cross-Mode Details
 
 Common UX
-- Mode Switcher: segmented control (Ball Pit / Flies / Trail) + keys 1/2/3
+- Mode Switcher: 5 mode buttons + keyboard shortcuts 1-5
+  - `1` Ball Pit (default)
+  - `2` Flies to Light
+  - `3` Mouse Trail
+  - `4` Weightless Bounce
+  - `5` Rainbow Drop
 - Panel Toggle: `/` ; Reset: `R`
 
 Rendering & Containment
