@@ -2045,10 +2045,10 @@
   const restitutionVal = document.getElementById('restitutionVal');
   const frictionVal = document.getElementById('frictionVal');
   const emitterVal = document.getElementById('emitterVal');
-  const sizeVal = document.getElementById('sizeVal');
+  // const sizeVal = document.getElementById('sizeVal'); // Removed - using global controls
   const maxBallsVal = document.getElementById('maxBallsVal');
-  const sizeVariationVal = document.getElementById('sizeVariationVal');
-  const weightVal = document.getElementById('weightVal');
+  // const sizeVariationVal = document.getElementById('sizeVariationVal'); // Removed - using global controls
+  // const weightVal = document.getElementById('weightVal'); // Removed - using global controls
   const spawnYVal = document.getElementById('spawnYVal');
   const spawnWidthVal = document.getElementById('spawnWidthVal');
   const spawnCenterVal = document.getElementById('spawnCenterVal');
@@ -2190,16 +2190,16 @@
       balls.length = MAX_BALLS; // Truncate array efficiently
     }
   });
-  sizeVariationSlider && sizeVariationSlider.addEventListener('input', () => {
-    sizeVariation = parseFloat(sizeVariationSlider.value);
-    sizeVariationVal && (sizeVariationVal.textContent = sizeVariation.toFixed(1));
+  sizeVariationSliderGlobal && sizeVariationSliderGlobal.addEventListener('input', () => {
+    sizeVariation = parseFloat(sizeVariationSliderGlobal.value);
+    sizeVariationValGlobal && (sizeVariationValGlobal.textContent = sizeVariation.toFixed(1));
     
     // Update existing ball sizes to reflect new variation
     updateExistingBallSizes();
   });
-  weightSlider && weightSlider.addEventListener('input', () => {
-    ballMassKg = parseFloat(weightSlider.value);
-    weightVal && (weightVal.textContent = ballMassKg.toFixed(2));
+  weightSliderGlobal && weightSliderGlobal.addEventListener('input', () => {
+    ballMassKg = parseFloat(weightSliderGlobal.value);
+    weightValGlobal && (weightValGlobal.textContent = ballMassKg.toFixed(2));
     // Apply shared mass to all balls
     for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
     // Recompute derived scaling so gravity visibly changes with weight
@@ -2628,9 +2628,9 @@
     // Update UI efficiently (gravity is fixed; no slider to update)
     updateSliderAndValue(restitutionSlider, restitutionVal, REST, 2);
     updateSliderAndValue(frictionSlider, frictionVal, FRICTION, 4);
-    updateSliderAndValue(sizeSlider, sizeVal, sizeScale, 1);
+    updateSliderAndValue(sizeSliderGlobal, sizeValGlobal, sizeScale, 1);
     updateSliderAndValue(maxBallsSlider, maxBallsVal, MAX_BALLS, 0);
-    updateSliderAndValue(sizeVariationSlider, sizeVariationVal, sizeVariation, 1);
+    updateSliderAndValue(sizeVariationSliderGlobal, sizeVariationValGlobal, sizeVariation, 1);
     
     // Apply the new size variation to existing balls
     updateExistingBallSizes();
