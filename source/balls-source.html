@@ -319,7 +319,7 @@
         <label>Randomness: <span class="val" id="rainbowRandomnessVal">1.0</span><input type="range" id="rainbowRandomnessSlider" min="0.0" max="1.0" step="0.1" value="1.0"></label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">0 = equal size steps, 1 = random distribution</div>
         <label>Weight (kg): <span class="val" id="weightRainbowVal">11.20</span><input type="range" id="weightRainbowSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
-        <label>Drop delay (s): <span class="val" id="rainbowDropDelayVal">0.15</span><input type="range" id="rainbowDropDelaySlider" min="0.05" max="0.5" step="0.05" value="0.15"></label>
+        <label>Drop delay (s): <span class="val" id="rainbowDropDelayVal">0.30</span><input type="range" id="rainbowDropDelaySlider" min="0.10" max="1.0" step="0.05" value="0.30"></label>
         <label>Gravity: <span class="val" id="rainbowGravityVal">1.2</span><input type="range" id="rainbowGravitySlider" min="0.5" max="3.0" step="0.1" value="1.2"></label>
         <label>Bounce: <span class="val" id="rainbowBounceVal">0.30</span><input type="range" id="rainbowBounceSlider" min="0.00" max="1.00" step="0.05" value="0.30"></label>
       </div>
@@ -391,7 +391,7 @@
   
   // Rainbow mode parameters
   let rainbowRandomness = 1.0; // randomness factor for size distribution (0 = equal steps, 1 = random)
-  let rainbowDropDelay = 0.15; // delay between each color drop (seconds)
+  let rainbowDropDelay = 0.30; // delay between each color drop (seconds) - minimum 0.3s enforced
   let rainbowGravity = 1.2; // gravity multiplier for rainbow mode
   let rainbowBounce = 0.3; // bounce restitution for rainbow mode (lower for rock-like settling)
   
@@ -1281,7 +1281,10 @@
   function dropNextRainbowBall() {
     if (rainbowDropIndex >= currentColors.length || !rainbowIsActive) return false;
 
-    // Calculate size based on randomness setting
+    // Calculate section width for positioning
+    const sectionWidth = canvas.width / currentColors.length;
+
+    // Calculate size based on randomness setting first
     const maxSize = Math.min(canvas.height * 0.2, canvas.width * 0.2);
     const minSize = 15 * DPR;
     let size;
@@ -1298,11 +1301,30 @@
       size = maxSize - t * (maxSize - minSize);
     }
 
-    // Drop position
-    const x = (canvas.width / currentColors.length) * rainbowDropIndex + (canvas.width / currentColors.length) * 0.5;
-    const jitter = (Math.random() - 0.5) * (canvas.width / currentColors.length) * 0.6;
-    const dropX = Math.max(20, Math.min(canvas.width - 20, x + jitter));
-    const dropY = -size - 50;
+    // Check if any existing balls are too close to the drop position (prevent overlapping)
+    const centerX = sectionWidth * rainbowDropIndex + sectionWidth * 0.5;
+
+    for (let i = 0; i < balls.length; i++) {
+      const existingBall = balls[i];
+      const distance = Math.sqrt(Math.pow(existingBall.x - centerX, 2) + Math.pow(existingBall.y - (-100), 2));
+      const minDistance = (existingBall.r + size) * 1.5; // 1.5x radius for safety margin
+
+      if (distance < minDistance) {
+        // Too close to existing ball, delay drop
+        return false;
+      }
+    }
+
+    // Drop position - ensure balls drop individually from far outside viewport
+    // (centerX already calculated above for overlap check)
+
+    // Add jitter but ensure minimum spacing from edges and other balls
+    const maxJitter = Math.min(sectionWidth * 0.3, 100); // Limit jitter to 30% of section or 100px
+    const jitter = (Math.random() - 0.5) * maxJitter * 2;
+    const dropX = Math.max(size + 20, Math.min(canvas.width - size - 20, centerX + jitter));
+
+    // Drop from far outside viewport to ensure clean entry
+    const dropY = -size - 150; // Much higher up for clean individual drops
 
     // Create ball directly with proper constructor for Rainbow mode
     const ball = new Ball(dropX, dropY, size, currentColors[rainbowDropIndex]);
@@ -1310,9 +1332,9 @@
     // Set heavy mass for rock-like behavior
     ball.m = ballMassKg * 5; // 5x heavier than normal balls
 
-    // Override initial velocities for controlled drop
-    ball.vx = (Math.random() - 0.5) * 80; // subtle random horizontal velocity
-    ball.vy = 0; // no initial downward velocity
+    // Override initial velocities for clean individual drops
+    ball.vx = (Math.random() - 0.5) * 40; // very subtle random horizontal velocity
+    ball.vy = 0; // start with no vertical velocity, let gravity do the work
     ball.driftAx = 0; // no drift acceleration
     ball.driftTime = 0; // no drift time
 
@@ -1328,8 +1350,11 @@
   // Check if ready to drop next ball
   function shouldDropRainbowBall() {
     if (!rainbowIsActive || rainbowDropIndex >= currentColors.length) return false;
+
+    // Ensure minimum delay between drops to prevent overlapping
     const now = performance.now() / 1000;
-    return (now - rainbowLastDropTime) >= rainbowDropDelay;
+    const minDelay = Math.max(rainbowDropDelay, 0.3); // Minimum 0.3 seconds between drops
+    return (now - rainbowLastDropTime) >= minDelay;
   }
   
 
