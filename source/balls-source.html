@@ -185,10 +185,8 @@
   <div class="mode-switcher">
     <button class="mode-button active" data-mode="pit">🎯 Pit</button>
     <button class="mode-button" data-mode="flies">🕊️ Flies</button>
-    <button class="mode-button" data-mode="trail" id="trailModeButton">🎨 Trail</button>
     <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
-    <button class="mode-button" data-mode="boulders">🪨 Boulders</button>
-    </div>
+  </div>
   
   <!-- Build Controls -->
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
@@ -286,18 +284,6 @@
     </details>
   </div>
   
-  <!-- Trail Mode Controls -->
-  <div id="trailControls" class="modeControls" style="display:none;">
-    <details open>
-      <summary>🎨 Mouse Trail (Print)</summary>
-      <div class="group">
-        <label title="Number of path points to track (10-200). Higher = longer trail">Trail length: <span class="val" id="trailLengthVal">120</span><input type="range" id="trailLengthSlider" min="10" max="200" step="5" value="120"></label>
-        <label title="Minimum spacing between path points (5-30px). Lower = smoother curves">Point spacing: <span class="val" id="trailSpacingVal">12</span><input type="range" id="trailSpacingSlider" min="5" max="30" step="1" value="12"></label>
-        <label title="Canvas fade speed (0.0-1.0). Higher = shorter visible trails">Fade speed: <span class="val" id="trailModeFadeVal">0.5</span><input type="range" id="trailModeFadeSlider" min="0.0" max="1.0" step="0.05" value="0.5"></label>
-      </div>
-    </details>
-  </div>
-  
   <!-- Weightless Mode Controls -->
   <div id="weightlessControls" class="modeControls" style="display:none;">
     <details open>
@@ -312,19 +298,7 @@
     </details>
   </div>
   
-  <!-- Boulders Mode Controls -->
-  <div id="bouldersControls" class="modeControls" style="display:none;">
-    <details open>
-      <summary>🌈 Rainbow Drop</summary>
-      <div class="group">
-        <label title="Time delay between drops (0.2-3.0s). Slower = more dramatic">Drop delay: <span class="val" id="bouldersDelayVal">0.8</span><input type="range" id="bouldersDelaySlider" min="0.2" max="3.0" step="0.1" value="0.8"></label>
-        <label title="Gravity strength (0.5-3.0x). Higher = faster fall">Gravity: <span class="val" id="bouldersGravityVal">1.5</span><input type="range" id="bouldersGravitySlider" min="0.5" max="3.0" step="0.1" value="1.5"></label>
-        <label title="Size variation (0.0-1.0). Higher = more variety in ball sizes">Size variety: <span class="val" id="bouldersSizeVarietyVal">0.4</span><input type="range" id="bouldersSizeVarietySlider" min="0.0" max="1.0" step="0.1" value="0.4"></label>
-      </div>
-    </details>
-  </div>
-  
-    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-5</code> switch modes</div>
+    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-3</code> switch modes</div>
   </div>
   
   <!-- FPS Counter -->
@@ -340,18 +314,14 @@
   const MODES = {
     PIT: 'pit',          // Ball Pit: gravity + repeller
     FLIES: 'flies',      // Flies to Light: attraction to mouse, no gravity
-    TRAIL: 'trail',      // Mouse Trail: static paint drops (DESKTOP ONLY)
-    WEIGHTLESS: 'weightless',  // Weightless Bounce: zero-G bouncing balls
-    BOULDERS: 'boulders' // Falling Boulders: draggable heavy boulders (renamed from rainbow)
+    WEIGHTLESS: 'weightless'  // Weightless Bounce: zero-G bouncing balls
   };
   
   // Mode availability by device type
   const MODE_AVAILABILITY = {
     [MODES.PIT]: { desktop: true, mobile: true },
     [MODES.FLIES]: { desktop: true, mobile: true },
-    [MODES.TRAIL]: { desktop: true, mobile: false }, // Trail only on desktop (needs precise cursor)
-    [MODES.WEIGHTLESS]: { desktop: true, mobile: true },
-    [MODES.BOULDERS]: { desktop: true, mobile: true }
+    [MODES.WEIGHTLESS]: { desktop: true, mobile: true }
   };
   
   let currentMode = MODES.PIT;
@@ -371,23 +341,12 @@
   let orbitRadius = 150;
   let swarmSpeed = 1.0;
   
-  // Trail mode parameters (Mouse Trail / Print)
-  let trailPath = []; // Array<{x:number,y:number}>
-  let TRAIL_MAX_POINTS = 120; // number of path points to track
-  let trailMinSpacing = 12; // px between recorded points
-  let trailFade = 0.5; // fade speed (0-1)
-  
   // Weightless mode parameters
   let weightlessCount = 80; // fixed number of balls
   let weightlessInitialSpeed = 200; // initial velocity magnitude (px/s)
   let weightlessBounce = 0.98; // wall bounce restitution (very elastic)
   let weightlessRepellerPower = 300; // subtle mouse repeller strength
   let weightlessRepellerRadius = 150; // repeller radius (px)
-  
-  // Boulders (Rainbow Drop) mode parameters
-  let bouldersDropDelay = 0.8; // delay between each drop (seconds)
-  let bouldersGravity = 1.5; // gravity multiplier
-  let bouldersSizeVariety = 0.4; // size variation (0-1)
   
   // Mass constants (needed before CONSTANTS object)
   const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
@@ -507,10 +466,7 @@
     const ratio = effectiveScale / lastEffectiveScale;
     if (ratio !== 1) {
       for (let i = 0; i < balls.length; i++) {
-        // Don't scale Rainbow mode balls - they have fixed sizes
-        if (currentMode !== MODES.BOULDERS) {
         balls[i].r *= ratio;
-        }
       }
       lastEffectiveScale = effectiveScale;
     }
@@ -908,9 +864,9 @@
         const rollTarget = this.vx / this.r;
         this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
       }
-      // Top wall collision aligned to the visible viewport top, regardless of canvas strategy
-      // Compute the viewport top in canvas pixels using the current clientHeight and DPR
-      const viewportTop = Math.max(0, h - (canvas.clientHeight * DPR));
+      // Top wall collision aligned to the visible viewport top
+      // Canvas is 150vh tall, bottom 100vh visible, so top edge is at h/3
+      const viewportTop = h / 3;
       if (this.y - this.r < viewportTop) { 
         this.y = viewportTop + this.r; 
         const preVy = this.vy;
@@ -1438,20 +1394,6 @@
   }
   
   function emit(dt) {
-    // Trail (Path-follow) mode
-    if (currentMode === MODES.TRAIL) {
-      trailFollow(dt);
-      return;
-    }
-    
-    // Rainbow mode: sequential drop system
-    if (currentMode === MODES.BOULDERS) {
-      if (shouldDropRainbowBall()) {
-        dropNextRainbowBall();
-      }
-      return;
-    }
-    
     // Zero-G mode: no continuous spawning, balls are distributed at initialization
     if (currentMode === MODES.WEIGHTLESS) {
       return;
@@ -1638,16 +1580,14 @@
     while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
         for (let i=0; i<balls.length; i++) balls[i].step(DT);
       
-      // Ball-to-ball collisions (disabled for Flies and Trail modes)
-      if (currentMode !== MODES.FLIES && currentMode !== MODES.TRAIL) {
-        resolveCollisions(3); // Balanced quality vs performance - includes Rainbow mode
+      // Ball-to-ball collisions (disabled for Flies mode only)
+      if (currentMode !== MODES.FLIES) {
+        resolveCollisions(3); // Balanced quality vs performance
       }
       
-      // Wall collisions (disabled for Trail mode - particles drift off-screen)
-      if (currentMode !== MODES.TRAIL) {
-        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
-        for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
-      }
+      // Wall collisions (all modes)
+      const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
+      for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
       
       acc -= DT;
       physicsSteps++;
@@ -1669,18 +1609,8 @@
     // Reset accumulator if we're falling behind
     if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
 
-    // Trail canvas fade for ribbon look
-    if (currentMode === MODES.TRAIL) {
-      const maxAlpha = 0.28, minAlpha = 0.002;
-      const norm = Math.max(0, Math.min(1, trailFade));
-      const a = maxAlpha + (minAlpha - maxAlpha) * norm;
-      ctx.fillStyle = `rgba(0,0,0,${a})`;
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.globalCompositeOperation = 'source-over';
-    } else {
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-    }
+    // Clear canvas each frame
+    ctx.clearRect(0,0,canvas.width,canvas.height);
     
     // Draw rounded boundary if corner radius > 0 (cache boundary path for performance)
     if (cornerRadius > 0) {
@@ -1723,32 +1653,27 @@
     // Recalculate the actual size range based on sizeScale
     updateEffectiveScaleAndBallSizes();
     
-    // Update all existing balls to use proper global size (maintain Boulders custom sizes)
+    // Update all existing balls to use proper global size
     const baseSize = (R_MIN + R_MAX) / 2;
     for (let i = 0; i < balls.length; i++) {
-      if (currentMode !== MODES.BOULDERS) {
-        // Apply size variation if set, otherwise use base size
-        if (sizeVariation === 0) {
-          balls[i].r = baseSize;
-          balls[i].rBase = baseSize;
-        } else {
-          // Apply limited variation (max 10% from global ball size)
-          const maxVariation = baseSize * 0.1;
-          const minR = Math.max(1, baseSize - maxVariation);
-          const maxR = baseSize + maxVariation;
-          balls[i].r = randBetween(minR, maxR);
-          balls[i].rBase = balls[i].r;
-        }
+      // Apply size variation if set, otherwise use base size
+      if (sizeVariation === 0) {
+        balls[i].r = baseSize;
+        balls[i].rBase = baseSize;
+      } else {
+        // Apply limited variation (max 10% from global ball size)
+        const maxVariation = baseSize * 0.1;
+        const minR = Math.max(1, baseSize - maxVariation);
+        const maxR = baseSize + maxVariation;
+        balls[i].r = randBetween(minR, maxR);
+        balls[i].rBase = balls[i].r;
       }
     }
   }
 
   // Reset balls to spawn positions (preserves all settings)
   function resetBallsToSpawn() {
-    if (currentMode === MODES.BOULDERS) {
-      // For rainbow mode, reinitialize the drop system
-      initializeRainbowMode();
-    } else if (currentMode === MODES.WEIGHTLESS) {
+    if (currentMode === MODES.WEIGHTLESS) {
       // For weightless mode, reinitialize with even distribution
       initializeWeightlessScene();
     } else {
@@ -1785,12 +1710,10 @@
       e.preventDefault();
       panel.classList.toggle('hidden');
     }
-    // Quick mode switches 1..5
+    // Quick mode switches 1-3
     if (k === '1') setMode(MODES.PIT);
     if (k === '2') setMode(MODES.FLIES);
-    if (k === '3') setMode(MODES.TRAIL);
-    if (k === '4') setMode(MODES.WEIGHTLESS);
-    if (k === '5') setMode(MODES.BOULDERS);
+    if (k === '3') setMode(MODES.WEIGHTLESS);
   });
 
   // Seed initial balls across the spawn area for quicker fill
@@ -1822,24 +1745,10 @@
     }
 
 
-    // Trail mode: record path points with spacing
-    if (currentMode === MODES.TRAIL) {
-      if (trailPath.length === 0) {
-        trailPath.push({ x: mouseX, y: mouseY });
-  } else {
-        const last = trailPath[trailPath.length - 1];
-        const dx = mouseX - last.x; const dy = mouseY - last.y;
-        if (dx*dx + dy*dy >= trailMinSpacing * trailMinSpacing) {
-          trailPath.push({ x: mouseX, y: mouseY });
-          if (trailPath.length > TRAIL_MAX_POINTS) trailPath.shift();
-        }
-      }
-    }
   });
   canvas.addEventListener('mouseleave', () => {
     mouseX = CONSTANTS.OFFSCREEN_MOUSE;
     mouseY = CONSTANTS.OFFSCREEN_MOUSE;
-    if (currentMode === MODES.TRAIL) { trailPath = []; }
   });
 
 
@@ -1850,8 +1759,6 @@
     if (isTouchDevice) return;
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     
-  // Hide cursor ball in Trail mode
-    if (currentMode === MODES.TRAIL) return;
     
     // Draw main cursor ball for all other modes (white by default on desktop)
     const x = mouseX, y = mouseY;
@@ -1902,10 +1809,6 @@
     }
     if (currentMode === MODES.FLIES) {
       applyAttractor(b, dt);
-      return;
-    }
-    if (currentMode === MODES.TRAIL) {
-      applySparklePhysics(b, dt);
       return;
     }
     if (currentMode === MODES.WEIGHTLESS) {
@@ -2225,13 +2128,9 @@
     sizeVal && (sizeVal.textContent = newScale.toFixed(1));
     sizeScale = newScale;
     updateEffectiveScaleAndBallSizes();
-      // Apply mass (Rainbow balls maintain 5x multiplier)
+      // Apply mass to all balls
       for (let i=0; i<balls.length; i++) {
-        if (currentMode === MODES.BOULDERS) {
-          balls[i].m = ballMassKg * 5;
-        } else {
-          balls[i].m = ballMassKg;
-        }
+        balls[i].m = ballMassKg;
       }
       autoSaveSettings();
     });
@@ -2450,9 +2349,7 @@
   function updateModeControlsUI() {
     if (pitControls) pitControls.classList.toggle('active', currentMode === MODES.PIT);
     if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
-    if (trailControls) trailControls.classList.toggle('active', currentMode === MODES.TRAIL);
     if (weightlessControls) weightlessControls.classList.toggle('active', currentMode === MODES.WEIGHTLESS);
-    if (boulderControls) boulderControls.classList.toggle('active', currentMode === MODES.BOULDERS);
     modeButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-mode') === currentMode));
   }
 
@@ -2479,36 +2376,15 @@
       balls.length = 0;
       // Reset ball sizes to global
       resetBallSizeToGlobal();
-    } else if (currentMode === MODES.TRAIL) {
-      gravityMultiplier = 0.0; // no gravity for trail particles
-      G = GE * gravityMultiplier;
-      repellerEnabled = false;
-      EMITTER_SWEEP_ENABLED = false;
-      mouseTrail = [];
-      trailPath = [];
-      // Clear all existing balls when entering Trail mode
-      balls.length = 0;
-      // Reset particle pool for recycling
-      resetTrailParticlePool();
-      // Reset ball sizes to global
-      resetBallSizeToGlobal();
     } else if (currentMode === MODES.WEIGHTLESS) {
       gravityMultiplier = 0.0; // zero gravity (weightless)
       G = GE * gravityMultiplier;
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
-      // Initialize professional weightless scene with even distribution
+      // Initialize weightless scene with even distribution
       initializeWeightlessScene();
       // Reset ball sizes to global (after initialization)
       resetBallSizeToGlobal();
-    } else if (currentMode === MODES.BOULDERS) {
-      gravityMultiplier = bouldersGravity;
-      G = GE * gravityMultiplier;
-      repellerEnabled = false;
-      EMITTER_SWEEP_ENABLED = false;
-      // Initialize rainbow drop system
-      initializeRainbowMode();
-      // Note: Boulders use custom sizes, so we don't reset to global
     }
     updateModeControlsUI();
   }
@@ -2530,13 +2406,9 @@
   weightPitSlider && weightPitSlider.addEventListener('input', () => {
     ballMassKg = parseFloat(weightPitSlider.value);
     weightPitVal && (weightPitVal.textContent = ballMassKg.toFixed(2));
-    // Apply shared mass to all balls (Rainbow balls maintain 5x multiplier)
+    // Apply shared mass to all balls
     for (let i=0; i<balls.length; i++) {
-      if (currentMode === MODES.BOULDERS) {
-        balls[i].m = ballMassKg * 5; // Rainbow balls stay 5x heavier
-      } else {
-        balls[i].m = ballMassKg; // Normal mass for other modes
-      }
+      balls[i].m = ballMassKg;
     }
     // Recompute derived scaling so gravity visibly changes with weight
     recomputeMassDerivedScales();
