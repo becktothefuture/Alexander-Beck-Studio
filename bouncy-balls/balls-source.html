@@ -266,7 +266,7 @@
     <details open>
       <summary>🕊️ Flies to Light Mode</summary>
       <div class="group">
-        <label>Attraction power: <span class="val" id="attractPowerVal">15000</span><input type="range" id="attractPowerSlider" min="1000" max="200000" step="1000" value="15000"></label>
+        <label>Attraction power: <span class="val" id="attractPowerVal">1000</span><input type="range" id="attractPowerSlider" min="1" max="3000" step="1" value="1000"></label>
         <label>Orbit radius (px): <span class="val" id="orbitRadiusVal">150</span><input type="range" id="orbitRadiusSlider" min="50" max="500" step="10" value="150"></label>
         <label>Swarm speed: <span class="val" id="swarmSpeedVal">1.0</span><input type="range" id="swarmSpeedSlider" min="0.1" max="3.0" step="0.1" value="1.0"></label>
       </div>
@@ -330,7 +330,7 @@
   // Mode-specific parameters
   let gravityMultiplierPit = 1.1;
   let repellerEnabledPit = true;
-  let attractionPower = 15000;
+  let attractionPower = 1000; // Default attraction for Flies mode
   let orbitRadius = 150;
   let swarmSpeed = 1.0;
   let trailLength = 50;
