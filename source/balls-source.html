@@ -2982,6 +2982,8 @@
     sizeVal && (sizeVal.textContent = newScale.toFixed(1));
     sizeScale = newScale;
     updateEffectiveScaleAndBallSizes();
+    // Reset all balls to uniform base size (fixes size variation persistence)
+    resetBallSizeToGlobal();
       // Apply mass to all balls
       for (let i=0; i<balls.length; i++) {
         balls[i].m = ballMassKg;
@@ -4125,9 +4127,29 @@
   applySpawnPreset('fullRain');
   applyRepellerPreset('off');
   
-  // Initialize color system with current palette
-  updateColorPickersUI();
-  syncPaletteVars();
+  // Load saved settings from localStorage FIRST (before initializing colors)
+  const settingsLoaded = loadSettings();
+  
+  // Initialize dark mode BEFORE loading colors (critical for correct palette variant)
+  console.log('🔍 Initializing dark mode system...');
+  isDarkMode = determineDarkMode(); // Synchronously determine dark/light mode
+  console.log(`✅ Dark mode determined: ${isDarkMode ? 'DARK' : 'LIGHT'} mode`);
+  
+  // Apply dark mode styling to container (must happen before color loading)
+  if (isDarkMode) {
+    container.classList.add('dark-mode');
+  } else {
+    container.classList.remove('dark-mode');
+  }
+  console.log(`   Container classes: ${container.classList.toString()}`);
+  console.log(`   Background should be: ${isDarkMode ? '#0a0a0a (dark)' : '#cecece (light)'}`);
+  
+  // NOW initialize color system with correct dark/light variant
+  applyColorTemplate(currentTemplate); // Applies correct palette based on isDarkMode
+  console.log(`   Color template applied: ${currentTemplate} (${isDarkMode ? 'dark' : 'light'} variant)`);
+  
+  // Check dark mode every minute for time transitions
+  setInterval(checkAndApplyDarkMode, 60000); // Every 60 seconds
 
   // Hook presets to selects AFTER applying defaults
   physicsSelect && physicsSelect.addEventListener('change', () => applyPhysicsPreset(physicsSelect.value));
@@ -4140,21 +4162,8 @@
   // Initialize text colliders
   updateTextColliders();
   
-  // Load saved settings from localStorage
-  const settingsLoaded = loadSettings();
-  
   // Apply canvas shadow with loaded or default settings
   updateCanvasShadow();
-  
-  // Initialize dark mode BEFORE starting simulation (critical for correct colors)
-  console.log('🔍 Initializing dark mode system...');
-  checkAndApplyDarkMode();
-  console.log(`✅ Dark mode initialized: ${isDarkMode ? 'DARK' : 'LIGHT'} mode active`);
-  console.log(`   Container classes: ${container.classList.toString()}`);
-  console.log(`   Background should be: ${isDarkMode ? '#0a0a0a (dark)' : '#cecece (light)'}`);
-  
-  // Check dark mode every minute for time transitions
-  setInterval(checkAndApplyDarkMode, 60000); // Every 60 seconds
   
   // Apply device-specific mode visibility (hide Trail on mobile)
   applyDeviceSpecificModeVisibility();
