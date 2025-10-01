@@ -712,6 +712,10 @@
     
     const sprite = new PIXI.Graphics();
     sprite.zIndex = 0;
+    sprite._lastRadius = -1;
+    sprite._lastColor = '';
+    sprite._lastRoundness = -1;
+    sprite._lastSquash = -1;
     pixiApp.stage.addChild(sprite);
     ballSprites.set(ball, sprite);
     
@@ -727,22 +731,37 @@
       if (!sprite) return;
     }
     
-    sprite.clear();
-    
-    // Convert hex color to integer
+    // Check if visual properties changed (performance optimization)
     const colorNum = parseInt(ball.color.replace('#', ''), 16);
+    const currentSquash = ball.squashAmount || 0;
+    const needsRedraw = (
+      sprite._lastRadius !== ball.r ||
+      sprite._lastColor !== ball.color ||
+      sprite._lastRoundness !== ballRoundness ||
+      Math.abs(sprite._lastSquash - currentSquash) > 0.01
+    );
     
-    // Apply 3D shader system based on ballRoundness
-    if (shaderEnabled && ballRoundness > 0) {
-      renderBall3DWebGL(sprite, ball.r, colorNum);
-    } else {
-      // Flat rendering (original)
-      sprite.beginFill(colorNum, 1.0);
-      sprite.drawCircle(0, 0, ball.r);
-      sprite.endFill();
+    if (needsRedraw) {
+      sprite.clear();
+      
+      // Apply 3D shader system based on ballRoundness
+      if (shaderEnabled && ballRoundness > 0) {
+        renderBall3DWebGL(sprite, ball.r, colorNum);
+      } else {
+        // Flat rendering (original)
+        sprite.beginFill(colorNum, 1.0);
+        sprite.drawCircle(0, 0, ball.r);
+        sprite.endFill();
+      }
+      
+      // Cache current values
+      sprite._lastRadius = ball.r;
+      sprite._lastColor = ball.color;
+      sprite._lastRoundness = ballRoundness;
+      sprite._lastSquash = currentSquash;
     }
     
-    // Update position
+    // Always update position (balls are always moving)
     sprite.x = ball.x;
     sprite.y = ball.y;
     
@@ -790,8 +809,8 @@
     const bevelWidth = edgeBevelWidth * radius;
     const intensity = ballRoundness / 50; // 0-1 for chip effect
     
-    // Create radial gradient for chip bevel
-    const steps = 16; // Number of gradient steps
+    // Adaptive quality: reduce steps for better performance
+    const steps = Math.max(4, Math.floor(16 * adaptiveQuality)); // 4-16 steps based on performance
     for (let i = 0; i < steps; i++) {
       const t = i / (steps - 1); // 0 to 1
       const currentRadius = radius * (1 - t * 0.1); // Slightly smaller each step
@@ -823,7 +842,8 @@
   
   function renderSphereWebGL(sprite, radius, r, g, b, lightX, lightY, sphereBlend) {
     // Create full 3D sphere effect
-    const steps = 24; // More steps for smoother sphere
+    // Adaptive quality: reduce steps for better performance
+    const steps = Math.max(6, Math.floor(24 * adaptiveQuality)); // 6-24 steps based on performance
     
     for (let i = 0; i < steps; i++) {
       const t = i / (steps - 1); // 0 to 1
@@ -957,6 +977,32 @@
   
   let cursorBallSprite = null;
   let modeIndicatorSprite = null;
+  
+  // Performance monitoring for adaptive quality
+  let frameCount = 0;
+  let lastFPSCheck = 0;
+  let currentFPS = 60;
+  let adaptiveQuality = 1.0; // 1.0 = full quality, 0.5 = half quality
+  
+  function updateAdaptiveQuality() {
+    frameCount++;
+    const now = performance.now();
+    
+    if (now - lastFPSCheck >= 1000) { // Check every second
+      currentFPS = frameCount;
+      frameCount = 0;
+      lastFPSCheck = now;
+      
+      // Adaptive quality based on FPS
+      if (currentFPS < 45) {
+        adaptiveQuality = Math.max(0.3, adaptiveQuality - 0.1); // Reduce quality
+      } else if (currentFPS > 55) {
+        adaptiveQuality = Math.min(1.0, adaptiveQuality + 0.05); // Increase quality
+      }
+      
+      console.log(`🎮 WebGL FPS: ${currentFPS}, Quality: ${(adaptiveQuality * 100).toFixed(0)}%`);
+    }
+  }
   
   // Note: Mouse, cursor, device, and mode variables are defined elsewhere in the file
 
@@ -2078,14 +2124,29 @@
     
     if (useWebGL && pixiApp) {
       // WebGL Rendering Path
+      updateAdaptiveQuality(); // Monitor performance
       cleanupRemovedBalls(); // Remove sprites for deleted balls
       
       // Render visual effects
       renderRoundedBoundaryWebGL();
       
-      // Render all balls
+      // Render all balls with frustum culling
+      const margin = 100; // Render balls slightly outside viewport
       for (let i=0; i<balls.length; i++) {
-        renderBallWebGL(balls[i]);
+        const ball = balls[i];
+        // Frustum culling: skip balls outside viewport
+        if (ball.x + ball.r < -margin || ball.x - ball.r > canvas.width + margin ||
+            ball.y + ball.r < -margin || ball.y - ball.r > canvas.height + margin) {
+          // Hide off-screen sprites
+          const sprite = ballSprites.get(ball);
+          if (sprite) sprite.visible = false;
+          continue;
+        }
+        
+        // Show and render on-screen balls
+        renderBallWebGL(ball);
+        const sprite = ballSprites.get(ball);
+        if (sprite) sprite.visible = true;
       }
       
       // Render cursor ball and mode indicator
