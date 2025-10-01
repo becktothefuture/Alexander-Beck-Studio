@@ -76,15 +76,15 @@ Realistic insect swarm simulation where balls mimic mosquitoes/gnats darting tow
 - **Wall Bouncing**: Enabled to keep swarm in scene
 
 ### Spawning
-- **Location**: Top emitter (visible part of canvas)
-- **Method**: Continuous emission
-- **Spawn Rate**: Same as Ball Pit
-- **Initial Velocity**: Small downward
+- **Location**: Viewport center (idle swarm)
+- **Method**: One-time initialization (60 flies)
+- **Initial State**: Flies spawn in loose cluster with erratic movement patterns already active
+- **Swarm Radius**: ~150px initial spread from center
 
 ### User Interaction
-- **Mouse Cursor**: Acts as "light source" attracting swarm
+- **Mouse Cursor**: Acts as "light source" attracting swarm when mouse enters viewport
 - **Keyboard**: Press `2` to activate mode
-- **Idle Behavior**: Swarm circulates near last known cursor position with erratic patterns
+- **Idle Behavior**: When mouse is outside viewport, flies maintain realistic swarm behavior at center (darting, separation, erratic jitter)
 
 ### Visual Effects
 - **Erratic Darting**: Sudden bursts and direction changes (like real insects)

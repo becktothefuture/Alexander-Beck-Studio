@@ -1712,14 +1712,16 @@
   // Mouse attractor for Flies-to-Light mode - REALISTIC INSECT FLIGHT
   // Reference: Mosquitoes fly 1-2 m/s with quick acceleration and erratic patterns
   function applyAttractor(b, dt) {
-    if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
+    // Idle swarm center (viewport center) when mouse is outside
+    const swarmCenterX = (mouseX === CONSTANTS.OFFSCREEN_MOUSE) ? canvas.width * 0.5 : mouseX;
+    const swarmCenterY = (mouseY === CONSTANTS.OFFSCREEN_MOUSE) ? canvas.height * 0.5 : mouseY;
     
-    const dx = mouseX - b.x;
-    const dy = mouseY - b.y;
+    const dx = swarmCenterX - b.x;
+    const dy = swarmCenterY - b.y;
     const d2 = dx*dx + dy*dy;
     const d = Math.sqrt(d2 + 1);
     
-    // Direction to cursor
+    // Direction to target (mouse or swarm center)
     const dirX = dx / d;
     const dirY = dy / d;
     
@@ -2132,6 +2134,39 @@
   // PROFESSIONAL WEIGHTLESS SCENE INITIALIZATION
   // ═══════════════════════════════════════════════════════════════════════════
   
+  // Initialize flies in idle swarm at viewport center
+  function initializeFliesScene() {
+    balls.length = 0;
+    
+    const targetBalls = 60; // Good swarm size for flies
+    const w = canvas.width;
+    const h = canvas.height;
+    const centerX = w * 0.5;
+    const centerY = h * 0.5;
+    
+    // Spawn flies in a loose cluster at center with randomized positions
+    const swarmRadius = 150 * DPR; // Initial spread radius
+    
+    for (let i = 0; i < targetBalls; i++) {
+      // Random position within swarm radius from center
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * swarmRadius;
+      const x = centerX + Math.cos(angle) * distance;
+      const y = centerY + Math.sin(angle) * distance;
+      
+      const ball = spawnBall(x, y);
+      
+      // Initial erratic velocity (flies are already moving in idle state)
+      const speedVariation = 0.5 + Math.random() * 0.5;
+      const vAngle = Math.random() * Math.PI * 2;
+      const speed = 300 * speedVariation; // Moderate initial speed
+      ball.vx = Math.cos(vAngle) * speed;
+      ball.vy = Math.sin(vAngle) * speed;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+    }
+  }
+
   function initializeWeightlessScene() {
     balls.length = 0;
     
@@ -2217,9 +2252,9 @@
       G = GE * gravityMultiplier;
       repellerEnabled = false;
       EMITTER_SWEEP_ENABLED = false;
-      // Reset scene when entering Flies mode
-      balls.length = 0;
-      // Reset ball sizes to global
+      // Initialize flies scene with idle swarm at center
+      initializeFliesScene();
+      // Reset ball sizes to global (after initialization)
       resetBallSizeToGlobal();
     } else if (currentMode === MODES.WEIGHTLESS) {
       gravityMultiplier = 0.0; // zero gravity (weightless)
