@@ -845,383 +845,13 @@
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // WEBGL RENDERER SYSTEM (Phase 2.2)
+  // CANVAS 2D RENDERING (Primary rendering path)
   // ═══════════════════════════════════════════════════════════════════════════
   
-  let useWebGL = false; // Start with Canvas2D by default
-  let pixiApp = null;
-  let ballSprites = new Map(); // Map<Ball, PIXI.Graphics>
-  
-  async function initWebGLRenderer() {
-    if (!window.PIXI) {
-      console.error('❌ PixiJS not loaded');
-      return false;
-    }
-    
-    try {
-      // Create PixiJS application
-      pixiApp = new PIXI.Application({
-        width: canvas.width,
-        height: canvas.height,
-        resolution: DPR,
-        backgroundColor: 0xCECECE,
-        antialias: true,
-        autoDensity: true,
-      });
-      
-      // Insert WebGL canvas after Canvas2D
-      pixiApp.view.style.position = 'absolute';
-      pixiApp.view.style.bottom = '0';
-      pixiApp.view.style.left = '0';
-      pixiApp.view.style.width = '100%';
-      pixiApp.view.style.height = '100%';
-      pixiApp.view.style.display = 'block';
-      pixiApp.view.style.cursor = 'none';
-      pixiApp.view.style.touchAction = 'none';
-      pixiApp.view.id = 'webgl-canvas';
-      
-      container.appendChild(pixiApp.view);
-      
-      console.log('✅ WebGL Renderer initialized:', pixiApp.renderer.type === PIXI.RENDERER_TYPE.WEBGL ? 'WebGL' : 'Canvas2D Fallback');
-      console.log('📊 Resolution:', DPR, '| Viewport:', canvas.width, 'x', canvas.height);
-      
-      return true;
-    } catch (error) {
-      console.error('❌ WebGL initialization failed:', error);
-      useWebGL = false;
-      return false;
-    }
-  }
-  
-  function destroyWebGLRenderer() {
-    if (pixiApp) {
-      // Clear all sprites
-      ballSprites.forEach(sprite => sprite.destroy());
-      ballSprites.clear();
-      
-      // Destroy PixiJS app
-      pixiApp.destroy(true, { children: true, texture: true, baseTexture: true });
-      pixiApp = null;
-      
-      console.log('🗑️ WebGL Renderer destroyed');
-    }
-  }
-  
-  function toggleRenderer() {
-    useWebGL = !useWebGL;
-    
-    if (useWebGL) {
-      // Switch to WebGL
-      canvas.style.display = 'none';
-      initWebGLRenderer();
-      console.log('🔄 Switched to WebGL Renderer');
-    } else {
-      // Switch back to Canvas2D
-      destroyWebGLRenderer();
-      canvas.style.display = 'block';
-      console.log('🔄 Switched to Canvas2D Renderer');
-    }
-    
-    // Update toggle checkbox if it exists
-    const toggle = document.getElementById('useWebGLToggle');
-    if (toggle) toggle.checked = useWebGL;
-  }
-  
-  function createBallSprite(ball) {
-    if (!pixiApp) return null;
-    
-    const sprite = getPooledSprite(); // Use pooled sprite for performance
-    sprite.zIndex = 0;
-    sprite._lastRadius = -1;
-    sprite._lastColor = '';
-    sprite._lastGlassMorphismEnabled = null;
-    sprite._lastShadow1OffsetX = null;
-    sprite._lastShadow1OffsetY = null;
-    sprite._lastShadow1Opacity = null;
-    sprite._lastShadow2OffsetX = null;
-    sprite._lastShadow2OffsetY = null;
-    sprite._lastShadow2Opacity = null;
-    sprite._lastShadow3OffsetX = null;
-    sprite._lastShadow3OffsetY = null;
-    sprite._lastShadow3Opacity = null;
-    sprite._lastSquash = -1;
-    pixiApp.stage.addChild(sprite);
-    ballSprites.set(ball, sprite);
-    
-    return sprite;
-  }
-  
-  function renderBallWebGL(ball) {
-    if (!pixiApp) return;
-    
-    let sprite = ballSprites.get(ball);
-    if (!sprite) {
-      sprite = createBallSprite(ball);
-      if (!sprite) return;
-    }
-    
-    // Check if visual properties changed (performance optimization)
-    const colorNum = parseInt(ball.color.replace('#', ''), 16);
-    const currentSquash = ball.squashAmount || 0;
-    const needsRedraw = (
-      sprite._lastRadius !== ball.r ||
-      sprite._lastColor !== ball.color ||
-      sprite._lastGlassMorphismEnabled !== glassMorphismEnabled ||
-      sprite._lastShadow1OffsetX !== shadow1OffsetX ||
-      sprite._lastShadow1OffsetY !== shadow1OffsetY ||
-      sprite._lastShadow1Opacity !== shadow1Opacity ||
-      sprite._lastShadow2OffsetX !== shadow2OffsetX ||
-      sprite._lastShadow2OffsetY !== shadow2OffsetY ||
-      sprite._lastShadow2Opacity !== shadow2Opacity ||
-      sprite._lastShadow3OffsetX !== shadow3OffsetX ||
-      sprite._lastShadow3OffsetY !== shadow3OffsetY ||
-      sprite._lastShadow3Opacity !== shadow3Opacity ||
-      Math.abs(sprite._lastSquash - currentSquash) > 0.01
-    );
-    
-    if (needsRedraw) {
-      sprite.clear();
-      
-      // Glass morphism shadow system with performance culling
-      if (glassMorphismEnabled && (!enableShadowCulling || ball.r >= minShadowRadius)) {
-        renderBallWithGlassMorphismWebGL(sprite, ball.r, colorNum);
-      } else {
-        // Flat rendering without shadows (small balls or disabled)
-        sprite.beginFill(colorNum, 1.0);
-        sprite.drawCircle(0, 0, ball.r);
-        sprite.endFill();
-      }
-      
-      // Cache current values
-      sprite._lastRadius = ball.r;
-      sprite._lastColor = ball.color;
-      sprite._lastGlassMorphismEnabled = glassMorphismEnabled;
-      sprite._lastShadow1OffsetX = shadow1OffsetX;
-      sprite._lastShadow1OffsetY = shadow1OffsetY;
-      sprite._lastShadow1Opacity = shadow1Opacity;
-      sprite._lastShadow2OffsetX = shadow2OffsetX;
-      sprite._lastShadow2OffsetY = shadow2OffsetY;
-      sprite._lastShadow2Opacity = shadow2Opacity;
-      sprite._lastShadow3OffsetX = shadow3OffsetX;
-      sprite._lastShadow3OffsetY = shadow3OffsetY;
-      sprite._lastShadow3Opacity = shadow3Opacity;
-      sprite._lastSquash = currentSquash;
-    }
-    
-    // Always update position (balls are always moving)
-    sprite.x = ball.x;
-    sprite.y = ball.y;
-    
-    // Apply squash/stretch if enabled
-    if (ball.r > 15 && ball.squashAmount > 0.001) {
-      const amt = Math.min(getSquashMax(), Math.max(0, ball.squashAmount));
-      const s = 1 + amt;
-      const inv = 1 / s;
-      
-      // Apply transform to sprite
-      sprite.rotation = ball.squashNormalAngle;
-      sprite.scale.x = s;
-      sprite.scale.y = inv;
-    } else {
-      // Reset transform
-      sprite.rotation = ball.omega ? ball.omega * 0.01 : 0;
-      sprite.scale.x = 1;
-      sprite.scale.y = 1;
-    }
-  }
-  
-  // Performance: Cache parsed colors to avoid repeated parsing
-  let cachedShadow1ColorNum = 0x000000;
-  let cachedShadow2ColorNum = 0xffffff;
-  let cachedShadow3ColorNum = 0xffffff;
-  let lastShadow1Color = '';
-  let lastShadow2Color = '';
-  let lastShadow3Color = '';
-  
-  function updateCachedShadowColors() {
-    if (shadow1Color !== lastShadow1Color) {
-      cachedShadow1ColorNum = parseInt(shadow1Color.replace('#', ''), 16);
-      lastShadow1Color = shadow1Color;
-    }
-    if (shadow2Color !== lastShadow2Color) {
-      cachedShadow2ColorNum = parseInt(shadow2Color.replace('#', ''), 16);
-      lastShadow2Color = shadow2Color;
-    }
-    if (shadow3Color !== lastShadow3Color) {
-      cachedShadow3ColorNum = parseInt(shadow3Color.replace('#', ''), 16);
-      lastShadow3Color = shadow3Color;
-    }
-  }
-  
-  function renderBallWithGlassMorphismWebGL(sprite, radius, baseColor) {
-    // Performance optimization: Update cached colors only when needed
-    updateCachedShadowColors();
-    
-    // LOD (Level of Detail): Reduce shadow complexity for small balls
-    const isSmallBall = radius < 12;
-    const qualityMultiplier = isSmallBall ? 0.5 : adaptiveQuality;
-    
-    // Apply softness multiplier to blur radii
-    const effectiveShadow1Blur = shadow1BlurRadius * (shadowSoftness / 8);
-    const effectiveShadow2Blur = shadow2BlurRadius * (shadowSoftness / 8);
-    const effectiveShadow3Blur = shadow3BlurRadius * (shadowSoftness / 8);
-    
-    // Draw main ball first
-    sprite.beginFill(baseColor, 1.0);
-    sprite.drawCircle(0, 0, radius);
-    sprite.endFill();
-    
-    // INSET SHADOWS: Draw shadows AFTER the ball, clipped to ball boundary
-    // This creates the illusion of shadows being INSIDE the edges
-    
-    // Layer 1: Dark edge shadow (creates depth)
-    const shadow1Radius = radius * shadow1SizeMultiplier;
-    const shadow1Steps = Math.max(2, Math.floor(effectiveShadow1Blur * qualityMultiplier));
-    
-    for (let i = 0; i < shadow1Steps; i++) {
-      const t = i / Math.max(1, shadow1Steps - 1);
-      const blurOpacity = shadow1Opacity * (1 - t) * 0.4;
-      const blurRadius = shadow1Radius - i * 0.3; // Shrink inward for inset
-      sprite.beginFill(cachedShadow1ColorNum, blurOpacity);
-      sprite.drawCircle(shadow1OffsetX, shadow1OffsetY, blurRadius);
-      sprite.endFill();
-    }
-    
-    // Layer 2: Top-left light edge
-    const shadow2Radius = radius * shadow2SizeMultiplier;
-    const shadow2Steps = Math.max(1, Math.floor(effectiveShadow2Blur * qualityMultiplier));
-    
-    for (let i = 0; i < shadow2Steps; i++) {
-      const t = i / Math.max(1, shadow2Steps - 1);
-      const blurOpacity = shadow2Opacity * (1 - t) * 0.5;
-      const blurRadius = shadow2Radius - i * 0.2; // Shrink inward for inset
-      sprite.beginFill(cachedShadow2ColorNum, blurOpacity);
-      sprite.drawCircle(shadow2OffsetX, shadow2OffsetY, blurRadius);
-      sprite.endFill();
-    }
-    
-    // Layer 3: Bottom-right light edge
-    const shadow3Radius = radius * shadow3SizeMultiplier;
-    const shadow3Steps = Math.max(1, Math.floor(effectiveShadow3Blur * qualityMultiplier));
-    
-    for (let i = 0; i < shadow3Steps; i++) {
-      const t = i / Math.max(1, shadow3Steps - 1);
-      const blurOpacity = shadow3Opacity * (1 - t) * 0.5;
-      const blurRadius = shadow3Radius - i * 0.2; // Shrink inward for inset
-      sprite.beginFill(cachedShadow3ColorNum, blurOpacity);
-      sprite.drawCircle(shadow3OffsetX, shadow3OffsetY, blurRadius);
-      sprite.endFill();
-    }
-  }
-  
-  function cleanupRemovedBalls() {
-    // Remove sprites for balls that no longer exist
-    const ballSet = new Set(balls);
-    for (const [ball, sprite] of ballSprites.entries()) {
-      if (!ballSet.has(ball)) {
-        pixiApp.stage.removeChild(sprite);
-        returnSpriteToPool(sprite); // Use pooling for performance
-        ballSprites.delete(ball);
-      }
-    }
-  }
-  
-  // ═══════════════════════════════════════════════════════════════════════════
-  // WEBGL VISUAL EFFECTS (Phase 2.5)
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  let boundarySprite = null;
-  
-  function renderRoundedBoundaryWebGL() {
-    if (!pixiApp || cornerRadius <= 0) return;
-    
-    // Create boundary sprite if it doesn't exist
-    if (!boundarySprite) {
-      boundarySprite = new PIXI.Graphics();
-      boundarySprite.zIndex = -1; // Behind balls
-      pixiApp.stage.addChild(boundarySprite);
-    }
-    
-    boundarySprite.clear();
-    boundarySprite.lineStyle(2, 0xffffff, 0.1); // White, 10% opacity
-    
-    const w = canvas.width;
-    const h = canvas.height;
-    const r = cornerRadius;
-    
-    // Draw rounded rectangle path
-    boundarySprite.moveTo(r, 0);
-    boundarySprite.lineTo(w - r, 0);
-    boundarySprite.arcTo(w, 0, w, r, r);
-    boundarySprite.lineTo(w, h - r);
-    boundarySprite.arcTo(w, h, w - r, h, r);
-    boundarySprite.lineTo(r, h);
-    boundarySprite.arcTo(0, h, 0, h - r, r);
-    boundarySprite.lineTo(0, r);
-    boundarySprite.arcTo(0, 0, r, 0, r);
-    boundarySprite.closePath();
-  }
-  
-  function renderCursorBallWebGL() {
-    if (!pixiApp || !cursorBallVisible) return;
-    
-    // Create cursor ball sprite if needed
-    if (!cursorBallSprite) {
-      cursorBallSprite = new PIXI.Graphics();
-      cursorBallSprite.zIndex = 1000; // On top of everything
-      pixiApp.stage.addChild(cursorBallSprite);
-    }
-    
-    cursorBallSprite.clear();
-    
-    // Convert cursor ball color
-    const colorNum = parseInt(cursorBallColor.replace('#', ''), 16);
-    
-    // Apply same glass morphism system as regular balls
-    if (glassMorphismEnabled) {
-      renderBallWithGlassMorphismWebGL(cursorBallSprite, cursorBallRadius, colorNum);
-    } else {
-      cursorBallSprite.beginFill(colorNum, 0.8); // Slightly transparent
-      cursorBallSprite.drawCircle(0, 0, cursorBallRadius);
-      cursorBallSprite.endFill();
-    }
-    
-    // Update position
-    cursorBallSprite.x = mouseX;
-    cursorBallSprite.y = mouseY;
-  }
-  
-  function renderModeIndicatorWebGL() {
-    if (!pixiApp || isTouchDevice) return;
-    
-    // Create mode indicator sprite if needed
-    if (!modeIndicatorSprite) {
-      modeIndicatorSprite = new PIXI.Text('', {
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        fontSize: 14,
-        fill: 0xffffff,
-        alpha: 0.3
-      });
-      modeIndicatorSprite.zIndex = 999;
-      modeIndicatorSprite.x = 10;
-      modeIndicatorSprite.y = canvas.height - 30;
-      pixiApp.stage.addChild(modeIndicatorSprite);
-    }
-    
-    // Update text
-    const modeName = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
-    modeIndicatorSprite.text = modeName + ' Mode';
-    modeIndicatorSprite.y = canvas.height - 30; // Update position for canvas resize
-  }
-  
-  let cursorBallSprite = null;
-  let modeIndicatorSprite = null;
-  
-  // Performance monitoring for adaptive quality
+  // Performance monitoring
   let frameCount = 0;
   let lastFPSCheck = 0;
   let currentFPS = 60;
-  let adaptiveQuality = 1.0; // 1.0 = full quality, 0.5 = half quality
   
   // ═══════════════════════════════════════════════════════════════════════════
   // 120 FPS PERFORMANCE MODE SYSTEM
@@ -1258,36 +888,10 @@
     }
   };
   
-  // Advanced performance optimizations
+  // Canvas 2D performance optimizations
   let enableLOD = true;               // Level of Detail system
   let enableShadowCulling = true;     // Skip shadows for very small balls
   let minShadowRadius = 8;            // Don't render shadows for balls smaller than this
-  let enableSpritePooling = true;     // Reuse sprites to reduce garbage collection
-  let maxPoolSize = 100;              // Maximum sprites to keep in pool
-  
-  // Sprite pool for performance
-  let spritePool = [];
-  
-  function getPooledSprite() {
-    if (spritePool.length > 0) {
-      return spritePool.pop();
-    }
-    return new PIXI.Graphics();
-  }
-  
-  function returnSpriteToPool(sprite) {
-    if (enableSpritePooling && spritePool.length < maxPoolSize) {
-      sprite.clear();
-      sprite.visible = true;
-      sprite.x = 0;
-      sprite.y = 0;
-      sprite.rotation = 0;
-      sprite.scale.set(1, 1);
-      spritePool.push(sprite);
-    } else {
-      sprite.destroy();
-    }
-  }
   
   function updateAdaptiveQuality() {
     frameCount++;
@@ -1336,7 +940,7 @@
       const actualShadowLayers = (balls.length - shadowsSkipped) * 3;
       
       const mode = performanceMode ? 'PERF' : 'NORM';
-      console.log(`🎮 ${mode} FPS: ${currentFPS}/${targetFPS}, Quality: ${(adaptiveQuality * 100).toFixed(0)}%, Shadows: ${actualShadowLayers}/${totalShadowLayers}, Pool: ${spritePool.length}`);
+      console.log(`🎮 ${mode} FPS: ${currentFPS}/${targetFPS}, Shadows: ${actualShadowLayers}/${totalShadowLayers}`);
     }
   }
   
@@ -2590,44 +2194,10 @@
     if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
 
     // ═══════════════════════════════════════════════════════════════════
-    // RENDERING (Canvas2D or WebGL based on useWebGL flag)
+    // CANVAS 2D RENDERING
     // ═══════════════════════════════════════════════════════════════════
     
-    if (useWebGL && pixiApp) {
-      // WebGL Rendering Path
-      updateAdaptiveQuality(); // Monitor performance
-      cleanupRemovedBalls(); // Remove sprites for deleted balls
-      
-      // Render visual effects
-      renderRoundedBoundaryWebGL();
-      
-      // Render all balls with frustum culling
-      const margin = 100; // Render balls slightly outside viewport
-      for (let i=0; i<balls.length; i++) {
-        const ball = balls[i];
-        // Frustum culling: skip balls outside viewport
-        if (ball.x + ball.r < -margin || ball.x - ball.r > canvas.width + margin ||
-            ball.y + ball.r < -margin || ball.y - ball.r > canvas.height + margin) {
-          // Hide off-screen sprites
-          const sprite = ballSprites.get(ball);
-          if (sprite) sprite.visible = false;
-          continue;
-        }
-        
-        // Show and render on-screen balls
-        renderBallWebGL(ball);
-        const sprite = ballSprites.get(ball);
-        if (sprite) sprite.visible = true;
-      }
-      
-      // Render cursor ball and mode indicator
-      renderCursorBallWebGL();
-      renderModeIndicatorWebGL();
-      
-      // PixiJS handles rendering automatically via its ticker
-    } else {
-      // Canvas2D Rendering Path (Original)
-      ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
     
     // Draw rounded boundary if corner radius > 0 (cache boundary path for performance)
     if (cornerRadius > 0) {
@@ -2640,7 +2210,6 @@
     for (let i=0; i<balls.length; i++) balls[i].draw(ctx);
     // Draw cursor ball last
     drawCursorBall(ctx);
-    }
     
     // Draw current mode indicator (desktop only)
     if (!isTouchDevice) {
@@ -3243,9 +2812,7 @@
       targetFPS,
       enableLOD,
       enableShadowCulling,
-      minShadowRadius,
-      enableSpritePooling,
-      maxPoolSize
+      minShadowRadius
     };
   }
   function generateConfigCode(config) {
@@ -3410,33 +2977,6 @@
     repelSoftVal && (repelSoftVal.textContent = repelSoft.toFixed(1));
   });
   // Shadow event listeners removed
-  
-  // ═══════════════════════════════════════════════════════════════════════════
-  // WEBGL RENDERER & SHADER EVENT LISTENERS (Phase 2.2)
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  // WebGL Renderer Toggle
-  const useWebGLToggleEl = document.getElementById('useWebGLToggle');
-  const rendererStatus = document.getElementById('rendererStatus');
-  if (useWebGLToggleEl) {
-    useWebGLToggleEl.addEventListener('change', () => {
-      toggleRenderer();
-      
-      // Update status display
-      if (rendererStatus) {
-        if (useWebGL && pixiApp) {
-          const type = pixiApp.renderer.type === PIXI.RENDERER_TYPE.WEBGL ? 'WebGL' : 'Canvas2D Fallback';
-          rendererStatus.textContent = `Status: ${type} Active ✅`;
-          rendererStatus.style.background = 'rgba(0,255,0,0.2)';
-        } else {
-          rendererStatus.textContent = 'Status: Canvas2D Active';
-          rendererStatus.style.background = 'rgba(0,0,0,0.2)';
-        }
-      }
-      
-      console.log('🔄 Renderer toggled:', useWebGL ? 'WebGL' : 'Canvas2D');
-    });
-  }
   
   // Performance Mode Controls
   const performanceModeToggleEl = document.getElementById('performanceModeToggle');
