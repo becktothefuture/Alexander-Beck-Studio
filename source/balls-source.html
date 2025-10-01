@@ -230,7 +230,7 @@
     <summary>🌐 Global Ball Properties</summary>
     <div class="group">
         <label title="Global ball size scale (0.1-6.0). Smaller = more balls fit, larger = more dramatic collisions">Size: <span class="val" id="sizeValGlobal">0.7</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="0.7"></label>
-        <label title="Size variation from base size (0.0-1.0). 0 = identical sizes, 1.0 = up to 100% variation">Size variation: <span class="val" id="sizeVariationValGlobal">1.0</span><input type="range" id="sizeVariationSliderGlobal" min="0.0" max="1.0" step="0.05" value="1.0"></label>
+        <label title="Size variation from base size (0.0-1.0). Config: 0.15 for subtle variation">Size variation: <span class="val" id="sizeVariationValGlobal">0.15</span><input type="range" id="sizeVariationSliderGlobal" min="0.0" max="1.0" step="0.05" value="0.15"></label>
         <label title="Ball deformation on collision (0-100). 0 = rigid/hard, 100 = very soft/squishy">Softness: <span class="val" id="ballSoftnessValGlobal">40</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="40"></label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = rigid, 40 = normal, 100 = very squishy</div>
     </div>
@@ -328,50 +328,50 @@
           <span>Physics template</span>
           <select id="physicsSelect"></select>
         </label>
-        <label title="Gravity strength (0.0-2.0× Earth gravity). 1.0 = realistic, 0 = no gravity, 2.0 = very strong">
+        <label title="Gravity strength (0.0-2.0× Earth gravity). Config: 0 = zero gravity (weightless)">
           <span>Gravity (×Earth)</span>
-          <input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="1.15">
-          <span class="val" id="gravityPitVal">1.15</span>
+          <input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="0.0">
+          <span class="val" id="gravityPitVal">0.0</span>
         </label>
-        <label title="Ball mass/weight (50-200 grams). Realistic rubber ball: 100-150g. Heavier = more weight feel">
+        <label title="Ball mass/weight (50-200 grams). Config: 19.8g for lighter feel">
           <span>Weight (grams)</span>
-          <input type="range" id="weightPitSlider" min="50.0" max="200.0" step="5.0" value="120.0">
-          <span class="val" id="weightPitVal">120.0</span>
+          <input type="range" id="weightPitSlider" min="10.0" max="200.0" step="1.0" value="19.8">
+          <span class="val" id="weightPitVal">19.8</span>
         </label>
-        <label title="Bounce restitution (0.0-1.0). Realistic rubber: 0.75-0.85. 0 = no bounce, 1.0 = perfect elastic">
+        <label title="Bounce restitution (0.0-1.0). Config: 0.88 for bouncy feel">
           <span>Bounciness</span>
-          <input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.80">
-          <span class="val" id="restitutionVal">0.80</span>
+          <input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.88">
+          <span class="val" id="restitutionVal">0.88</span>
         </label>
-        <label title="Air resistance/friction (0.000-0.010). Realistic: 0.003-0.005. 0 = no drag, 0.010 = high drag">
+        <label title="Air resistance/friction (0.000-0.010). Config: 0.003 for light drag">
           <span>Air friction</span>
-          <input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0005" value="0.0045">
-          <span class="val" id="frictionVal">0.0045</span>
+          <input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0005" value="0.003">
+          <span class="val" id="frictionVal">0.003</span>
         </label>
       </div>
     </details>
     <details open>
       <summary>🖼️ Scene & Effects</summary>
       <div class="group">
-        <label title="Maximum number of balls in simulation (50-800). Higher = more crowded. Recommended: 150 for 90+ FPS">
+        <label title="Maximum number of balls in simulation (50-800). Higher = more crowded. Config: 350 for zero-gravity">
           <span>Max balls</span>
-          <input type="range" id="maxBallsSlider" min="50" max="800" step="25" value="150">
-          <span class="val" id="maxBallsVal">150</span>
+          <input type="range" id="maxBallsSlider" min="50" max="800" step="25" value="350">
+          <span class="val" id="maxBallsVal">350</span>
         </label>
         <label title="Rounded corner radius for viewport (0-50 pixels). 0 = sharp corners">
           <span>Corner radius (px)</span>
           <input type="range" id="cornerRadiusSlider" min="0" max="50" step="2" value="0">
           <span class="val" id="cornerRadiusVal">0</span>
         </label>
-        <label title="Motion blur trail length (0.0-0.5). 0 = no blur, 0.5 = long trails">
+        <label title="Motion blur trail length (0.0-0.5). Config: 0.025 for subtle trails">
           <span>Motion blur</span>
-          <input type="range" id="trailFadeSlider" min="0.000" max="0.500" step="0.005" value="0.000">
-          <span class="val" id="trailFadeVal">0.000</span>
+          <input type="range" id="trailFadeSlider" min="0.000" max="0.500" step="0.005" value="0.025">
+          <span class="val" id="trailFadeVal">0.025</span>
         </label>
-        <label title="Motion blur intensity (0.5-2.0×). Higher = more pronounced trails">
+        <label title="Motion blur intensity (0.5-2.0×). Config: 1.8× for pronounced trails">
           <span>Blur intensity</span>
-          <input type="range" id="trailSubtletySlider" min="0.50" max="2.00" step="0.05" value="1.00">
-          <span class="val" id="trailSubtletyVal">1.00×</span>
+          <input type="range" id="trailSubtletySlider" min="0.50" max="2.00" step="0.05" value="1.80">
+          <span class="val" id="trailSubtletyVal">1.80×</span>
         </label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Motion blur works in all modes</div>
       </div>
@@ -916,12 +916,11 @@
   
   // Note: Mouse, cursor, device, and mode variables are defined elsewhere in the file
 
-  // Spawn area controls (viewport-relative)
-  // Defaults: xCenter = 50vw, y = -50vh, width = 100vw, height = 50vh
-  let SPAWN_X_CENTER_VW = 50;
-  let SPAWN_Y_VH = -50;
-  let SPAWN_W_VW = 100;
-  let SPAWN_H_VH = 50;
+  // Spawn area controls (viewport-relative) - from config
+  let SPAWN_X_CENTER_VW = 50;  // spawnX from config
+  let SPAWN_Y_VH = -50;        // spawnY from config
+  let SPAWN_W_VW = 100;        // spawnWidth from config
+  let SPAWN_H_VH = 50;         // spawnHeight from config
 
   // Resize canvas based on current mode
   function resize() {
@@ -952,14 +951,14 @@
   setCSSSize(); resize();
   window.addEventListener('resize', handleResize);
 
-  // Physics parameters (initial)
+  // Physics parameters (from provided config)
   const GE = 1960;        // Earth gravity in px/s^2 at our scale
-  let gravityMultiplier = 1.10; // 1.1× Earth
+  let gravityMultiplier = 0; // Zero gravity (weightless mode)
   let G = GE * gravityMultiplier;
-  let REST = 0.80;        // restitution (rubber balls: 0.75-0.85, more realistic than 0.88)
-  let FRICTION = 0.0045;  // air drag (increased for realistic weight feel)
-  let EMIT_INTERVAL = 0.030; // seconds between drops - from screenshot
-  let MAX_BALLS = 150;    // Optimized for 90+ FPS performance (was 800)
+  let REST = 0.88;        // restitution from config
+  let FRICTION = 0.003;   // air drag from config
+  let EMIT_INTERVAL = 0.03; // seconds between drops from config
+  let MAX_BALLS = 350;    // max balls from config
   const SOLVER_ITERS = 6;    // Optimized for realistic collisions without jitter
   const POS_CORRECT_PERCENT = 0.8; // Reduced for more stable contacts
   const POS_CORRECT_SLOP = 0.5 * DPR; // Slightly more tolerance to prevent jitter
@@ -968,14 +967,13 @@
   // Base radius values
   const R_MIN_BASE = 6;
   const R_MAX_BASE = 24;
-  let sizeScale = 0.7;     // Global ball size (LOCKED - never override in modes)
-  let sizeVariation = 1.0; // Global size variation
+  let sizeScale = 0.7;     // Global ball size from config
+  let sizeVariation = 0.15; // Global size variation from config (reduced from 1.0)
   // Responsive scale: reduce ball size by 60% on mobile breakpoints (≤768px)
   let responsiveScale = 1.0;
   let lastEffectiveScale = null; // tracks previous (sizeScale * responsiveScale)
   // Global mass model: all balls share the same mass in kg
-  // REALISTIC MASS: Rubber bouncy balls are 100-150g (not 19.8g)
-  let ballMassKg = 120.0; // 120g rubber ball (realistic weight)
+  let ballMassKg = 19.8; // Mass from config (lighter than previous 120g)
   // Mass influence tuning
   const MASS_GRAVITY_EXP = 0.35; // how much mass influences gravity (perceptual)
   const MASS_REST_EXP = 0.15;    // how much mass influences bounce restitution
@@ -1066,7 +1064,7 @@
   }
 
   // Emitter sweep (natural hand-like motion across the top band)
-  let EMITTER_SWEEP_ENABLED = true;
+  let EMITTER_SWEEP_ENABLED = false; // Disabled per config
   let emitterPhase = 0;                 // radians
   const EMITTER_SWEEP_HZ = 0.12;        // cycles per second
   const EMITTER_SWEEP_AMPL_VW = 20;     // sweep amplitude in vw
@@ -1161,10 +1159,10 @@
     }
   }
 
-  // Repeller controls
-  let repelRadius = 135;   // px (CSS px) - from screenshot
-  let repelPower = 1536000;  // from screenshot (mapped display value)
-  let repelSoft = 3.4;     // exponent falloff - from screenshot
+  // Repeller controls (from config)
+  let repelRadius = 135;   // repelRadius from config
+  let repelPower = 1536000;  // repelPower from config
+  let repelSoft = 3.4;     // repelSoftness from config
   let mouseX = CONSTANTS.OFFSCREEN_MOUSE, mouseY = CONSTANTS.OFFSCREEN_MOUSE; // offscreen until moved
   let repellerEnabled = false; // disabled by default; enabled by preset or sliders
   const REPELLER_GLOBAL_MULTIPLIER = 20.0; // doubled overall repeller strength
