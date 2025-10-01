@@ -42,34 +42,53 @@
     top: 5vh;
     right: 5vh;
     color: #fff;
-    font: 12px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    font: 10px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     background: rgba(0,0,0,0.45);
-    padding: 10px;
+    padding: 8px;
     border-radius: 8px;
     user-select: none;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     z-index: 10;
     max-height: 90vh;
     overflow: auto;
     backdrop-filter: blur(6px);
+    cursor: move;
   }
   #bravia-balls .panel.hidden { display: none; }
+  #bravia-balls .panel.dragging { opacity: 0.9; }
+  #bravia-balls .panel-header {
+    cursor: move;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+  }
   #bravia-balls .panel label {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
-    width: 260px;
+    gap: 4px;
+    width: 220px;
+    font-size: 10px;
   }
   #bravia-balls .panel input[type="range"] {
     flex: 1;
+    height: 16px;
   }
   #bravia-balls .panel span.val {
-    width: 56px;
+    width: 48px;
     text-align: right;
     font-family: monospace;
+    font-size: 9px;
   }
   #bravia-balls .panel span.hex-val {
     font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
@@ -85,32 +104,33 @@
   #bravia-balls .panel code {
     font-family: monospace;
     background: rgba(255,255,255,0.1);
-    padding: 2px 4px;
-    border-radius: 4px;
+    padding: 1px 3px;
+    border-radius: 3px;
+    font-size: 9px;
   }
-  #bravia-balls .panel details { background: rgba(255,255,255,0.04); border-radius: 6px; padding: 6px; }
-  #bravia-balls .panel summary { cursor: pointer; list-style: none; outline: none; }
+  #bravia-balls .panel details { background: rgba(255,255,255,0.04); border-radius: 4px; padding: 5px; }
+  #bravia-balls .panel summary { cursor: pointer; list-style: none; outline: none; font-size: 10px; }
   #bravia-balls .panel summary::-webkit-details-marker { display: none; }
   #bravia-balls .panel summary { display:flex; align-items:center; justify-content:space-between; color:#b8c2c7; }
-  #bravia-balls .panel .group { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+  #bravia-balls .panel .group { display:flex; flex-direction:column; gap:5px; margin-top:5px; }
   
   /* Mode switcher - segmented control */
   #bravia-balls .mode-switcher {
     display: flex;
     background: rgba(0,0,0,0.3);
-    border-radius: 6px;
+    border-radius: 5px;
     padding: 2px;
     gap: 2px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   #bravia-balls .mode-button {
     flex: 1;
-    padding: 8px 12px;
+    padding: 6px 8px;
     background: transparent;
     border: none;
-    border-radius: 4px;
+    border-radius: 3px;
     color: rgba(255,255,255,0.6);
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -170,6 +190,11 @@
 <div id="bravia-balls">
   <canvas id="c" aria-label="Bouncy balls simulation" role="img" draggable="false"></canvas>
   <div class="panel" id="controlPanel">
+  
+  <div class="panel-header">
+    <span>⚙️ Controls</span>
+    <span style="cursor: pointer; opacity: 0.5; font-size: 11px;" title="Close panel (press / to toggle)">✕</span>
+  </div>
   
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <!-- GLOBAL SETTINGS (apply to ALL modes) - ABOVE MODE SWITCHER             -->
@@ -468,7 +493,10 @@
     </details>
   </div>
   
-    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-3</code> switch modes</div>
+    <div style="font-size:9px; opacity:0.7; line-height: 1.4; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+      <div><code>R</code> Reset • <code>/</code> Toggle panel • <code>1-3</code> Switch modes</div>
+      <div style="margin-top: 4px; font-size: 8px; opacity: 0.6;">Drag panel to move • Position saved automatically</div>
+    </div>
   </div>
   
   <!-- FPS Counter -->
@@ -478,7 +506,10 @@
   </div>
 </div>
 <script>
-// Version: 2024-09-30 - Added 3-mode system (Ball Pit, Flies to Light, Mouse Trail)
+// Version: 2024-10-01 - Phase 2.1: WebGL Migration Foundation (In Progress)
+// Note: WebGL renderer will be integrated in next steps
+// For now, keeping Canvas2D as baseline for validation
+
 (() => {
   // Behavior modes with device availability
   const MODES = {
@@ -562,6 +593,127 @@
   const panel = document.getElementById('controlPanel');
   const container = document.getElementById('bravia-balls');
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PANEL DRAG & POSITION MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // Configurable initial panel visibility (true = visible, false = hidden)
+  const PANEL_INITIAL_VISIBLE = true;
+  
+  // Panel dragging state
+  let isDragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+  
+  // Load saved panel position from localStorage
+  function loadPanelPosition() {
+    const saved = localStorage.getItem('panelPosition');
+    if (saved && panel) {
+      try {
+        const pos = JSON.parse(saved);
+        panel.style.left = pos.left;
+        panel.style.top = pos.top;
+        panel.style.right = 'auto';
+        panel.style.bottom = 'auto';
+      } catch (e) {
+        console.warn('Failed to parse saved panel position');
+      }
+    }
+  }
+  
+  // Save panel position to localStorage
+  function savePanelPosition() {
+    if (panel) {
+      localStorage.setItem('panelPosition', JSON.stringify({
+        left: panel.style.left,
+        top: panel.style.top
+      }));
+    }
+  }
+  
+  // Initialize panel dragging
+  if (panel) {
+    // Set initial visibility
+    if (!PANEL_INITIAL_VISIBLE) {
+      panel.classList.add('hidden');
+    }
+    
+    // Load saved position
+    loadPanelPosition();
+    
+    // Add close button handler
+    const closeBtn = panel.querySelector('.panel-header span:last-child');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('hidden');
+        autoSaveSettings(); // Save panel visibility state
+      });
+    }
+    
+    // Mouse/touch drag handlers
+    const startDrag = (e) => {
+      // Only drag from panel header or panel background (not controls)
+      const target = e.target;
+      if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || 
+          target.tagName === 'BUTTON' || target.closest('label') || 
+          target.closest('details')) {
+        return;
+      }
+      
+      isDragging = true;
+      panel.classList.add('dragging');
+      
+      const rect = panel.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      
+      dragOffsetX = clientX - rect.left;
+      dragOffsetY = clientY - rect.top;
+      
+      e.preventDefault();
+    };
+    
+    const doDrag = (e) => {
+      if (!isDragging) return;
+      
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      
+      const newLeft = clientX - dragOffsetX;
+      const newTop = clientY - dragOffsetY;
+      
+      // Keep panel within viewport bounds
+      const maxLeft = window.innerWidth - panel.offsetWidth;
+      const maxTop = window.innerHeight - panel.offsetHeight;
+      
+      panel.style.left = Math.max(0, Math.min(newLeft, maxLeft)) + 'px';
+      panel.style.top = Math.max(0, Math.min(newTop, maxTop)) + 'px';
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+      
+      e.preventDefault();
+    };
+    
+    const endDrag = () => {
+      if (isDragging) {
+        isDragging = false;
+        panel.classList.remove('dragging');
+        savePanelPosition();
+      }
+    };
+    
+    // Mouse events
+    panel.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', doDrag);
+    window.addEventListener('mouseup', endDrag);
+    
+    // Touch events
+    panel.addEventListener('touchstart', startDrag, { passive: false });
+    window.addEventListener('touchmove', doDrag, { passive: false });
+    window.addEventListener('touchend', endDrag);
+  }
 
   // Spawn area controls (viewport-relative)
   // Defaults: xCenter = 50vw, y = -50vh, width = 100vw, height = 50vh
@@ -860,7 +1012,8 @@
       motionBlur: trailFade,
       trailSubtlety,
       currentTemplate,
-      cursorBallColor
+      cursorBallColor,
+      panelVisible: panel && !panel.classList.contains('hidden')
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -902,6 +1055,15 @@
         if (settings.trailSubtlety) trailSubtlety = settings.trailSubtlety;
         if (settings.currentTemplate) currentTemplate = settings.currentTemplate;
         if (settings.cursorBallColor) cursorBallColor = settings.cursorBallColor;
+        
+        // Restore panel visibility
+        if (settings.panelVisible !== undefined && panel) {
+          if (settings.panelVisible) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        }
         
         console.log('✓ Settings loaded');
         return true;
@@ -1775,6 +1937,7 @@
     if (k === '/' && panel) {
       e.preventDefault();
       panel.classList.toggle('hidden');
+      autoSaveSettings(); // Save panel visibility state
     }
     // Quick mode switches 1-3
     if (k === '1') setMode(MODES.PIT);
