@@ -184,13 +184,6 @@
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = rigid, 40 = normal, 100 = very squishy</div>
     </div>
   </details>
-
-  <!-- Mode Switcher -->
-  <div class="mode-switcher">
-    <button class="mode-button active" data-mode="pit">🎯 Pit</button>
-    <button class="mode-button" data-mode="flies">🕊️ Flies</button>
-    <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
-    </div>
   
   <!-- Build Controls -->
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
@@ -227,52 +220,188 @@
     </div>
   </details>
   
-  
+  <details open>
+    <summary>✨ 3D Shader & Lighting</summary>
+    <div class="group">
+      <label title="Enable/disable 3D gradient shader effect">
+        <span>Shader enabled</span>
+        <input type="checkbox" id="shaderEnabled" checked>
+      </label>
+      
+      <label title="Ball roundness (0-100%). 0=flat, 50=casino chip with beveled edges, 100=full sphere">
+        <span>Roundness</span>
+        <input type="range" id="ballRoundness" min="0" max="100" step="5" value="0">
+        <span class="val" id="ballRoundnessVal">0%</span>
+      </label>
+      
+      <div style="font-size: 9px; opacity: 0.7; margin: 4px 0;">
+        0% = Flat · 50% = Casino Chip · 100% = Sphere
+      </div>
+      
+      <label title="Light direction angle (0-360 degrees). -135° = top-left (default), -90° = top, 0° = right">
+        <span>Light angle</span>
+        <input type="range" id="lightAngle" min="-180" max="180" step="15" value="-135">
+        <span class="val" id="lightAngleVal">-135°</span>
+      </label>
+      
+      <details>
+        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer; margin-top: 6px;">⚙️ Advanced settings</summary>
+        <div class="group" style="margin-top: 6px;">
+          <label title="Width of the beveled edge on casino chips (0-50%). Higher = wider bevel">
+            <span>Edge bevel width</span>
+            <input type="range" id="edgeBevelWidth" min="0" max="50" step="5" value="15">
+            <span class="val" id="edgeBevelWidthVal">15%</span>
+          </label>
+          
+          <label title="Sharpness of the bevel transition (0.5-5.0). Lower = softer, higher = sharper">
+            <span>Edge sharpness</span>
+            <input type="range" id="edgeSharpness" min="0.5" max="5.0" step="0.5" value="2.0">
+            <span class="val" id="edgeSharpnessVal">2.0</span>
+          </label>
+          
+          <label title="Intensity of the specular highlight (0-100%). Glass reflection strength">
+            <span>Specular intensity</span>
+            <input type="range" id="specularIntensity" min="0" max="100" step="5" value="70">
+            <span class="val" id="specularIntensityVal">70%</span>
+          </label>
+        </div>
+      </details>
+    </div>
+  </details>
   
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  <!-- MODE-SPECIFIC SETTINGS (only apply to active mode)                     -->
+  <!--                        MODE SWITCHER & MODE SETTINGS                     -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  
+  <div style="margin: 20px 0; padding: 12px 0; border-top: 1px solid rgba(255,255,255,0.15);">
+    <div style="text-align: center; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 12px;">
+      Mode Settings
+    </div>
+    
+    <!-- Mode Switcher -->
+    <div class="mode-switcher" style="margin-bottom: 16px;">
+      <button class="mode-button active" data-mode="pit">🎯 Pit</button>
+      <button class="mode-button" data-mode="flies">🕊️ Flies</button>
+      <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
+    </div>
+  </div>
   
   <div id="pitControls" class="mode-controls active">
     <details open>
       <summary>🎯 Ball Pit Mode</summary>
       <div class="group">
-        <label title="Choose physics preset (Rubber, Bouncy, etc.)">Physics template: <select id="physicsSelect"></select></label>
-        <label title="Gravity strength (0.0-2.0x Earth). Realistic: 1.0-1.2x. 0 = no gravity, 2.0 = very strong">Gravity: <span class="val" id="gravityPitVal">1.15</span><input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="1.15"></label>
-        <label title="Ball mass/weight (50-200g). Realistic rubber ball: 100-150g. Heavier = more weight feel">Weight (g): <span class="val" id="weightPitVal">120.0</span><input type="range" id="weightPitSlider" min="50.0" max="200.0" step="5.0" value="120.0"></label>
-        <label title="Bounce restitution (0.0-1.0). Realistic rubber: 0.75-0.85. 0 = no bounce, 1.0 = perfect elastic">Bounciness: <span class="val" id="restitutionVal">0.80</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.80"></label>
-        <label title="Air resistance (0.000-0.010). Realistic: 0.003-0.005. 0 = no drag, 0.010 = high drag">Friction: <span class="val" id="frictionVal">0.0045</span><input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0005" value="0.0045"></label>
+        <label title="Choose physics preset (Rubber, Bouncy, etc.)">
+          <span>Physics template</span>
+          <select id="physicsSelect"></select>
+        </label>
+        <label title="Gravity strength (0.0-2.0× Earth gravity). 1.0 = realistic, 0 = no gravity, 2.0 = very strong">
+          <span>Gravity (×Earth)</span>
+          <input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="1.15">
+          <span class="val" id="gravityPitVal">1.15</span>
+        </label>
+        <label title="Ball mass/weight (50-200 grams). Realistic rubber ball: 100-150g. Heavier = more weight feel">
+          <span>Weight (grams)</span>
+          <input type="range" id="weightPitSlider" min="50.0" max="200.0" step="5.0" value="120.0">
+          <span class="val" id="weightPitVal">120.0</span>
+        </label>
+        <label title="Bounce restitution (0.0-1.0). Realistic rubber: 0.75-0.85. 0 = no bounce, 1.0 = perfect elastic">
+          <span>Bounciness</span>
+          <input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.80">
+          <span class="val" id="restitutionVal">0.80</span>
+        </label>
+        <label title="Air resistance/friction (0.000-0.010). Realistic: 0.003-0.005. 0 = no drag, 0.010 = high drag">
+          <span>Air friction</span>
+          <input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0005" value="0.0045">
+          <span class="val" id="frictionVal">0.0045</span>
+        </label>
       </div>
     </details>
     <details open>
       <summary>🖼️ Scene & Effects</summary>
       <div class="group">
-        <label title="Maximum number of balls in simulation (50-800). Higher = more crowded, lower = cleaner">Max balls: <span class="val" id="maxBallsVal">800</span><input type="range" id="maxBallsSlider" min="50" max="800" step="25" value="800"></label>
-        <label title="Rounded corner radius for viewport (0-50px). 0 = sharp corners, 50 = very rounded">Corner radius: <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="50" step="2" value="0"></label>
-        <label title="Motion blur trail length (0.0-0.5). 0 = no blur, 0.5 = long trails">Motion blur: <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="0.500" step="0.005" value="0.000"></label>
-        <label title="Motion blur intensity (0.5-2.0x). 0.5 = subtle, 2.0 = very pronounced">Blur intensity: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.50" max="2.00" step="0.05" value="1.00"></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Motion blur works in all modes for smooth movement trails</div>
+        <label title="Maximum number of balls in simulation (50-800). Higher = more crowded. Recommended: 150 for 90+ FPS">
+          <span>Max balls</span>
+          <input type="range" id="maxBallsSlider" min="50" max="800" step="25" value="150">
+          <span class="val" id="maxBallsVal">150</span>
+        </label>
+        <label title="Rounded corner radius for viewport (0-50 pixels). 0 = sharp corners">
+          <span>Corner radius (px)</span>
+          <input type="range" id="cornerRadiusSlider" min="0" max="50" step="2" value="0">
+          <span class="val" id="cornerRadiusVal">0</span>
+        </label>
+        <label title="Motion blur trail length (0.0-0.5). 0 = no blur, 0.5 = long trails">
+          <span>Motion blur</span>
+          <input type="range" id="trailFadeSlider" min="0.000" max="0.500" step="0.005" value="0.000">
+          <span class="val" id="trailFadeVal">0.000</span>
+        </label>
+        <label title="Motion blur intensity (0.5-2.0×). Higher = more pronounced trails">
+          <span>Blur intensity</span>
+          <input type="range" id="trailSubtletySlider" min="0.50" max="2.00" step="0.05" value="1.00">
+          <span class="val" id="trailSubtletyVal">1.00×</span>
+        </label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Motion blur works in all modes</div>
       </div>
     </details>
     <details open>
       <summary>🎯 Spawn Settings</summary>
       <div class="group">
-        <label title="Choose spawn behavior preset">Spawn template: <select id="spawnSelect"></select></label>
-        <label title="Time between ball spawns (0.01-0.5s). Lower = more frequent spawns">Emit interval: <span class="val" id="emitterVal">0.04</span><input type="range" id="emitterSlider" min="0.010" max="0.500" step="0.005" value="0.04"></label>
-        <label title="Vertical spawn position (-100 to 100vh). Negative = above viewport">Spawn Y: <span class="val" id="spawnYVal">-50</span><input type="range" id="spawnYSlider" min="-100" max="100" step="5" value="-50"></label>
-        <label title="Horizontal spawn area width (10-100vw). 100% = full width">Spawn Width: <span class="val" id="spawnWidthVal">100</span><input type="range" id="spawnWidthSlider" min="10" max="100" step="5" value="100"></label>
-        <label title="Horizontal spawn center position (0-100vw). 50% = center">Spawn X Center: <span class="val" id="spawnCenterVal">50</span><input type="range" id="spawnCenterSlider" min="0" max="100" step="5" value="50"></label>
-        <label title="Vertical spawn area height (10-100vh). Controls spawn zone size">Spawn Height: <span class="val" id="spawnHeightVal">50</span><input type="range" id="spawnHeightSlider" min="10" max="100" step="5" value="50"></label>
+        <label title="Choose spawn behavior preset">
+          <span>Spawn template</span>
+          <select id="spawnSelect"></select>
+        </label>
+        <label title="Time between ball spawns (0.01-0.5 seconds). Lower = more frequent">
+          <span>Emit interval (s)</span>
+          <input type="range" id="emitterSlider" min="0.010" max="0.500" step="0.005" value="0.04">
+          <span class="val" id="emitterVal">0.04</span>
+        </label>
+        <label title="Vertical spawn position (-100 to 100% viewport height). Negative = above viewport">
+          <span>Spawn Y position (%)</span>
+          <input type="range" id="spawnYSlider" min="-100" max="100" step="5" value="-50">
+          <span class="val" id="spawnYVal">-50</span>
+        </label>
+        <label title="Horizontal spawn area width (10-100% viewport width). 100% = full width">
+          <span>Spawn width (%)</span>
+          <input type="range" id="spawnWidthSlider" min="10" max="100" step="5" value="100">
+          <span class="val" id="spawnWidthVal">100</span>
+        </label>
+        <label title="Horizontal spawn center position (0-100% viewport width). 50% = center">
+          <span>Spawn X center (%)</span>
+          <input type="range" id="spawnCenterSlider" min="0" max="100" step="5" value="50">
+          <span class="val" id="spawnCenterVal">50</span>
+        </label>
+        <label title="Vertical spawn area height (10-100% viewport height)">
+          <span>Spawn height (%)</span>
+          <input type="range" id="spawnHeightSlider" min="10" max="100" step="5" value="50">
+          <span class="val" id="spawnHeightVal">50</span>
+        </label>
       </div>
     </details>
     <details open>
       <summary>🧲 Mouse Repeller</summary>
       <div class="group">
-        <label title="Choose repeller behavior preset">Repeller template: <select id="repellerSelect"></select></label>
-        <label title="Enable/disable mouse repeller effect">Repeller active: <input type="checkbox" id="repellerEnabledPit" checked></label>
-        <label title="Repeller influence radius (50-400px). Larger = affects more balls">Repel size: <span class="val" id="repelSizeVal">200</span><input type="range" id="repelSizeSlider" min="50" max="400" step="5" value="200"></label>
-        <label title="Repulsion strength (100-1000). Higher = stronger push away from mouse">Repel power: <span class="val" id="repelPowerVal">24000</span><input type="range" id="repelPowerSlider" min="100" max="1000" step="10" value="500"></label>
-        <label title="Repeller field softness (0.5-5.0). Lower = sharper cutoff, higher = gradual fade">Repel softness: <span class="val" id="repelSoftVal">2.0</span><input type="range" id="repelSoftSlider" min="0.5" max="5.0" step="0.1" value="2.0"></label>
+        <label title="Choose repeller behavior preset">
+          <span>Repeller template</span>
+          <select id="repellerSelect"></select>
+        </label>
+        <label title="Enable/disable mouse repeller effect">
+          <span>Repeller active</span>
+          <input type="checkbox" id="repellerEnabledPit" checked>
+        </label>
+        <label title="Repeller influence radius (50-400 pixels). Larger = affects more balls">
+          <span>Repel size (px)</span>
+          <input type="range" id="repelSizeSlider" min="50" max="400" step="5" value="200">
+          <span class="val" id="repelSizeVal">200</span>
+        </label>
+        <label title="Repulsion strength (0-10000). Higher = stronger push away from mouse">
+          <span>Repel power</span>
+          <input type="range" id="repelPowerSlider" min="0" max="10000" step="100" value="500">
+          <span class="val" id="repelPowerVal">500</span>
+        </label>
+        <label title="Repeller field softness (0.5-5.0). Lower = sharper cutoff, higher = gradual fade">
+          <span>Repel softness</span>
+          <input type="range" id="repelSoftSlider" min="0.5" max="5.0" step="0.1" value="2.0">
+          <span class="val" id="repelSoftVal">2.0</span>
+        </label>
       </div>
     </details>
   </div>
@@ -281,23 +410,60 @@
     <details open>
       <summary>🕊️ Flies to Light Mode</summary>
       <div class="group">
-        <label title="Attraction strength toward mouse (100-8000). Higher = stronger pull toward cursor. Realistic insects: 4000-6000">Attraction power: <span class="val" id="attractPowerVal">5000</span><input type="range" id="attractPowerSlider" min="100" max="8000" step="50" value="5000"></label>
-        <label title="Orbit distance around mouse (50-400px). Larger = wider swarm formation. Realistic insects: 150-250">Orbit radius: <span class="val" id="orbitRadiusVal">180</span><input type="range" id="orbitRadiusSlider" min="50" max="400" step="10" value="180"></label>
-        <label title="Swarm movement speed (0.2-5.0x). Higher = faster, more responsive. Realistic insects: 2.5-4.0">Swarm speed: <span class="val" id="swarmSpeedVal">3.5</span><input type="range" id="swarmSpeedSlider" min="0.2" max="5.0" step="0.1" value="3.5"></label>
+        <label title="Attraction strength toward mouse (100-8000). Higher = stronger pull toward cursor">
+          <span>Attraction power</span>
+          <input type="range" id="attractPowerSlider" min="100" max="8000" step="50" value="5000">
+          <span class="val" id="attractPowerVal">5000</span>
+        </label>
+        <label title="Orbit distance around mouse (50-400 pixels). Larger = wider swarm formation">
+          <span>Orbit radius (px)</span>
+          <input type="range" id="orbitRadiusSlider" min="50" max="400" step="10" value="180">
+          <span class="val" id="orbitRadiusVal">180</span>
+        </label>
+        <label title="Swarm movement speed (0.2-5.0×). Higher = faster, more responsive">
+          <span>Swarm speed (×)</span>
+          <input type="range" id="swarmSpeedSlider" min="0.2" max="5.0" step="0.1" value="3.5">
+          <span class="val" id="swarmSpeedVal">3.5</span>
+        </label>
       </div>
     </details>
   </div>
   
   <!-- Weightless Mode Controls -->
-  <div id="weightlessControls" class="modeControls" style="display:none;">
+  <div id="weightlessControls" class="mode-controls">
     <details open>
-      <summary>🌌 Weightless Bounce</summary>
+      <summary>🌌 Zero-G Mode</summary>
       <div class="group">
-        <label title="Number of balls in scene (20-200). Fixed count, no spawning">Ball count: <span class="val" id="weightlessCountVal">80</span><input type="range" id="weightlessCountSlider" min="20" max="200" step="10" value="80"></label>
-        <label title="Initial velocity magnitude (100-600px/s). Realistic space: 200-300. Higher = faster motion">Initial speed: <span class="val" id="weightlessSpeedVal">250</span><input type="range" id="weightlessSpeedSlider" min="100" max="600" step="25" value="250"></label>
-        <label title="Wall bounce elasticity (0.8-1.0). Realistic space: 0.95-0.98. 1.0 = perfect energy conservation">Bounce elasticity: <span class="val" id="weightlessBounceVal">0.97</span><input type="range" id="weightlessBounceSlider" min="0.8" max="1.0" step="0.01" value="0.97"></label>
-        <label title="Repeller strength (0-800). 0 = disabled">Repeller power: <span class="val" id="weightlessRepelVal">300</span><input type="range" id="weightlessRepelSlider" min="0" max="800" step="50" value="300"></label>
-        <label title="Repeller radius (50-300px). Larger = wider push area">Repeller radius: <span class="val" id="weightlessRepelRadiusVal">150</span><input type="range" id="weightlessRepelRadiusSlider" min="50" max="300" step="10" value="150"></label>
+        <label title="Number of balls in scene (20-200). Fixed count, no spawning">
+          <span>Ball count</span>
+          <input type="range" id="weightlessCountSlider" min="20" max="200" step="10" value="80">
+          <span class="val" id="weightlessCountVal">80</span>
+        </label>
+        <label title="Initial velocity magnitude (100-600 pixels/second). Realistic space: 200-300. Higher = faster motion">
+          <span>Initial speed (px/s)</span>
+          <input type="range" id="weightlessSpeedSlider" min="100" max="600" step="25" value="250">
+          <span class="val" id="weightlessSpeedVal">250</span>
+        </label>
+        <label title="Wall bounce elasticity (0.8-1.0). Realistic space: 0.95-0.98. 1.0 = perfect energy conservation">
+          <span>Bounce elasticity</span>
+          <input type="range" id="weightlessBounceSlider" min="0.8" max="1.0" step="0.01" value="0.97">
+          <span class="val" id="weightlessBounceVal">0.97</span>
+        </label>
+      </div>
+    </details>
+    <details open>
+      <summary>🧲 Mouse Repeller</summary>
+      <div class="group">
+        <label title="Repeller strength (0-10000). 0 = disabled. Controls how strongly balls are pushed away from cursor">
+          <span>Repeller power</span>
+          <input type="range" id="weightlessRepelSlider" min="0" max="10000" step="100" value="300">
+          <span class="val" id="weightlessRepelVal">300</span>
+        </label>
+        <label title="Repeller radius (50-300 pixels). Larger = wider push area around cursor">
+          <span>Repeller radius (px)</span>
+          <input type="range" id="weightlessRepelRadiusSlider" min="50" max="300" step="10" value="150">
+          <span class="val" id="weightlessRepelRadiusVal">150</span>
+        </label>
       </div>
     </details>
   </div>
@@ -440,7 +606,7 @@
   let REST = 0.80;        // restitution (rubber balls: 0.75-0.85, more realistic than 0.88)
   let FRICTION = 0.0045;  // air drag (increased for realistic weight feel)
   let EMIT_INTERVAL = 0.030; // seconds between drops - from screenshot
-  let MAX_BALLS = 800;    // increased for better trail mode performance
+  let MAX_BALLS = 150;    // Optimized for 90+ FPS performance (was 800)
   const SOLVER_ITERS = 6;    // Optimized for realistic collisions without jitter
   const POS_CORRECT_PERCENT = 0.8; // Reduced for more stable contacts
   const POS_CORRECT_SLOP = 0.5 * DPR; // Slightly more tolerance to prevent jitter
@@ -793,7 +959,34 @@
   let currentPhysicsFPS = 0;
   const renderFpsElement = document.getElementById('render-fps');
   const physicsFpsElement = document.getElementById('physics-fps');
-  // Removed performance mode indicators
+  
+  // Adaptive Quality System - automatically adjusts settings based on FPS
+  let adaptiveQualityEnabled = true;     // Enable/disable adaptive quality
+  let currentCollisionIters = 2;         // Dynamic collision iterations (1-3)
+  let lastQualityCheck = 0;              // Last time quality was adjusted
+  const QUALITY_CHECK_INTERVAL = 2.0;    // Check every 2 seconds
+  
+  function updateAdaptiveQuality(now) {
+    if (!adaptiveQualityEnabled) return;
+    if (now - lastQualityCheck < QUALITY_CHECK_INTERVAL) return;
+    
+    lastQualityCheck = now;
+    
+    // Adjust collision iterations based on FPS
+    if (currentRenderFPS < 50) {
+      // Critical: reduce to 1 iteration
+      currentCollisionIters = 1;
+      console.log('⚡ Adaptive Quality: LOW (1 collision iter) - FPS:', currentRenderFPS);
+    } else if (currentRenderFPS < 70) {
+      // Medium: keep at 2 iterations
+      currentCollisionIters = 2;
+      console.log('⚡ Adaptive Quality: MEDIUM (2 collision iters) - FPS:', currentRenderFPS);
+    } else {
+      // High: can afford 3 iterations
+      currentCollisionIters = 3;
+      console.log('⚡ Adaptive Quality: HIGH (3 collision iters) - FPS:', currentRenderFPS);
+    }
+  }
   
   // Shadow system removed for better performance
 
@@ -1137,10 +1330,10 @@
       ctx.save();
       ctx.translate(this.x, this.y);
 
-      // Regular ball rendering
-      // World-aligned squash/stretch only if significant
-        const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
-      if (amt > 0.001) {
+      // World-aligned squash/stretch only for larger balls (performance optimization)
+      // Small balls (<15px radius) don't show visible squash, so skip expensive transforms
+      const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
+      if (this.r > 15 && amt > 0.001) {
         // Area-preserving squash: s * (1/s) maintains roundness perception
         const s = 1 + amt;
         const inv = 1 / s;
@@ -1148,13 +1341,13 @@
         ctx.scale(s, inv);
         ctx.rotate(-this.squashNormalAngle);
       }
-      // Body
+      
+      // Body rendering
       ctx.beginPath();
       ctx.arc(0, 0, this.r, 0, Math.PI*2);
       ctx.fillStyle = this.color;
       ctx.fill();
 
-      // Spin indicator removed for cleaner visuals and performance
       ctx.restore();
     }
   }
@@ -1448,6 +1641,9 @@
       renderFrameCount = 0;
       physicsStepCount = 0;
       lastFPSTime = now;
+      
+      // Update adaptive quality based on current FPS
+      updateAdaptiveQuality(now);
     }
 
     emit(dt);
@@ -1464,7 +1660,7 @@
       
       // Ball-to-ball collisions (disabled for Flies mode only)
       if (currentMode !== MODES.FLIES) {
-        resolveCollisions(3); // Balanced quality vs performance
+        resolveCollisions(currentCollisionIters); // Dynamic iterations based on adaptive quality
       }
       
       // Wall collisions (all modes)
