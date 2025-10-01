@@ -4,6 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Refined Bravia Balls – Canvas Physics</title>
+<!-- PixiJS WebGL Renderer (Phase 2.2) -->
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js"></script>
 <style>
   html, body { height: 100%; margin: 0; background: #cecece; overflow:hidden; }
   /* Scoped wrapper for embed friendliness and interaction hygiene */
@@ -215,7 +217,21 @@
     <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 8px;">💾 Save Config</button>
     <button id="buildBtn" style="background: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">🚀 Build Embed</button>
     <div id="configOutput" style="margin-top: 8px; font-family: monospace; font-size: 10px; color: #333; max-height: 120px; overflow-y: auto; display: none; text-align: left; background: rgba(255,255,255,0.8); padding: 6px; border-radius: 3px;"></div>
+  </div>
+  
+  <!-- WebGL Renderer Toggle (Phase 2.2) -->
+  <div style="margin-bottom: 12px; padding: 8px; background: rgba(255,165,0,0.15); border-radius: 4px; border: 1px solid rgba(255,165,0,0.3);">
+    <label style="display: flex; align-items: center; cursor: pointer; font-weight: 600; font-size: 11px;">
+      <input type="checkbox" id="useWebGLToggle" style="margin-right: 8px; cursor: pointer;">
+      <span>⚡ Use WebGL Renderer (Experimental)</span>
+    </label>
+    <div style="font-size: 9px; opacity: 0.7; margin-top: 6px; line-height: 1.3;">
+      WebGL provides 2-3× better performance. Currently supports basic rendering only. Toggle to compare!
     </div>
+    <div id="rendererStatus" style="font-size: 9px; margin-top: 6px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; font-family: monospace;">
+      Status: Canvas2D Active
+    </div>
+  </div>
   
   <details open>
     <summary>🎨 Colors</summary>
@@ -603,6 +619,135 @@
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
   
   console.log('🎨 Renderer: Canvas2D (WebGL available in Phase 2.2)');
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WEBGL RENDERER INITIALIZATION (Phase 2.2)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  async function initWebGLRenderer() {
+    if (!window.PIXI) {
+      console.error('❌ PixiJS not loaded');
+      return false;
+    }
+    
+    try {
+      // Create PixiJS application
+      pixiApp = new PIXI.Application({
+        width: canvas.width,
+        height: canvas.height,
+        resolution: DPR,
+        backgroundColor: 0xCECECE,
+        antialias: true,
+        autoDensity: true,
+      });
+      
+      // Insert WebGL canvas after Canvas2D
+      pixiApp.view.style.position = 'absolute';
+      pixiApp.view.style.bottom = '0';
+      pixiApp.view.style.left = '0';
+      pixiApp.view.style.width = '100%';
+      pixiApp.view.style.height = '100%';
+      pixiApp.view.style.display = 'block';
+      pixiApp.view.style.cursor = 'none';
+      pixiApp.view.style.touchAction = 'none';
+      pixiApp.view.id = 'webgl-canvas';
+      
+      container.appendChild(pixiApp.view);
+      
+      console.log('✅ WebGL Renderer initialized:', pixiApp.renderer.type === PIXI.RENDERER_TYPE.WEBGL ? 'WebGL' : 'Canvas2D Fallback');
+      console.log('📊 Resolution:', DPR, '| Viewport:', canvas.width, 'x', canvas.height);
+      
+      return true;
+    } catch (error) {
+      console.error('❌ WebGL initialization failed:', error);
+      useWebGL = false;
+      return false;
+    }
+  }
+  
+  function destroyWebGLRenderer() {
+    if (pixiApp) {
+      // Clear all sprites
+      ballSprites.forEach(sprite => sprite.destroy());
+      ballSprites.clear();
+      
+      // Destroy PixiJS app
+      pixiApp.destroy(true, { children: true, texture: true, baseTexture: true });
+      pixiApp = null;
+      
+      console.log('🗑️ WebGL Renderer destroyed');
+    }
+  }
+  
+  function toggleRenderer() {
+    useWebGL = !useWebGL;
+    
+    if (useWebGL) {
+      // Switch to WebGL
+      canvas.style.display = 'none';
+      initWebGLRenderer();
+      console.log('🔄 Switched to WebGL Renderer');
+    } else {
+      // Switch back to Canvas2D
+      destroyWebGLRenderer();
+      canvas.style.display = 'block';
+      console.log('🔄 Switched to Canvas2D Renderer');
+    }
+    
+    // Update toggle checkbox if it exists
+    const toggle = document.getElementById('useWebGLToggle');
+    if (toggle) toggle.checked = useWebGL;
+  }
+  
+  function createBallSprite(ball) {
+    if (!pixiApp) return null;
+    
+    const sprite = new PIXI.Graphics();
+    sprite.zIndex = 0;
+    pixiApp.stage.addChild(sprite);
+    ballSprites.set(ball, sprite);
+    
+    return sprite;
+  }
+  
+  function renderBallWebGL(ball) {
+    if (!pixiApp) return;
+    
+    let sprite = ballSprites.get(ball);
+    if (!sprite) {
+      sprite = createBallSprite(ball);
+      if (!sprite) return;
+    }
+    
+    sprite.clear();
+    
+    // Convert hex color to integer
+    const colorNum = parseInt(ball.color.replace('#', ''), 16);
+    
+    sprite.beginFill(colorNum, 1.0);
+    sprite.drawCircle(0, 0, ball.r);
+    sprite.endFill();
+    
+    // Update position
+    sprite.x = ball.x;
+    sprite.y = ball.y;
+    
+    // Update rotation if ball has spin
+    if (ball.omega) {
+      sprite.rotation = ball.omega * 0.01; // Visual rotation effect
+    }
+  }
+  
+  function cleanupRemovedBalls() {
+    // Remove sprites for balls that no longer exist
+    const ballSet = new Set(balls);
+    for (const [ball, sprite] of ballSprites.entries()) {
+      if (!ballSet.has(ball)) {
+        sprite.destroy();
+        ballSprites.delete(ball);
+      }
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PANEL DRAG & POSITION MANAGEMENT
@@ -1847,20 +1992,35 @@
     // Reset accumulator if we're falling behind
     if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
 
-    // Clear canvas each frame
+    // ═══════════════════════════════════════════════════════════════════
+    // RENDERING (Canvas2D or WebGL based on useWebGL flag)
+    // ═══════════════════════════════════════════════════════════════════
+    
+    if (useWebGL && pixiApp) {
+      // WebGL Rendering Path
+      cleanupRemovedBalls(); // Remove sprites for deleted balls
+      
+      for (let i=0; i<balls.length; i++) {
+        renderBallWebGL(balls[i]);
+      }
+      
+      // PixiJS handles rendering automatically via its ticker
+    } else {
+      // Canvas2D Rendering Path (Original)
       ctx.clearRect(0,0,canvas.width,canvas.height);
-    
-    // Draw rounded boundary if corner radius > 0 (cache boundary path for performance)
-    if (cornerRadius > 0) {
-      drawRoundedBoundary(ctx, canvas.width, canvas.height);
+      
+      // Draw rounded boundary if corner radius > 0 (cache boundary path for performance)
+      if (cornerRadius > 0) {
+        drawRoundedBoundary(ctx, canvas.width, canvas.height);
+      }
+      
+      // Shadow rendering removed for better performance and realism
+      
+      // Render balls with individual colors
+      for (let i=0; i<balls.length; i++) balls[i].draw(ctx);
+      // Draw cursor ball last
+      drawCursorBall(ctx);
     }
-    
-    // Shadow rendering removed for better performance and realism
-    
-    // Render balls with individual colors
-    for (let i=0; i<balls.length; i++) balls[i].draw(ctx);
-    // Draw cursor ball last
-    drawCursorBall(ctx);
     
     // Draw current mode indicator (desktop only)
     if (!isTouchDevice) {
@@ -2448,6 +2608,29 @@
     repelSoftVal && (repelSoftVal.textContent = repelSoft.toFixed(1));
   });
   // Shadow event listeners removed
+  
+  // WebGL Renderer Toggle (Phase 2.2)
+  const useWebGLToggleEl = document.getElementById('useWebGLToggle');
+  const rendererStatus = document.getElementById('rendererStatus');
+  if (useWebGLToggleEl) {
+    useWebGLToggleEl.addEventListener('change', () => {
+      toggleRenderer();
+      
+      // Update status display
+      if (rendererStatus) {
+        if (useWebGL && pixiApp) {
+          const type = pixiApp.renderer.type === PIXI.RENDERER_TYPE.WEBGL ? 'WebGL' : 'Canvas2D Fallback';
+          rendererStatus.textContent = `Status: ${type} Active ✅`;
+          rendererStatus.style.background = 'rgba(0,255,0,0.2)';
+        } else {
+          rendererStatus.textContent = 'Status: Canvas2D Active';
+          rendererStatus.style.background = 'rgba(0,0,0,0.2)';
+        }
+      }
+      
+      console.log('🔄 Renderer toggled:', useWebGL ? 'WebGL' : 'Canvas2D');
+    });
+  }
   
   // Color controls
   colorSelect && colorSelect.addEventListener('change', () => {
