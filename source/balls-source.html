@@ -433,6 +433,7 @@
       <button class="mode-button active" data-mode="pit">🎯 Pit</button>
       <button class="mode-button" data-mode="flies">🕊️ Flies</button>
       <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
+      <button class="mode-button" data-mode="pulse-grid">🎹 Pulse</button>
     </div>
   </div>
   
@@ -618,7 +619,74 @@
     </details>
   </div>
   
-    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-3</code> switch modes</div>
+  <!-- Pulse Grid Mode Controls -->
+  <div id="pulseGridControls" class="mode-controls">
+    <details open>
+      <summary>🎹 Pulse Grid Mode</summary>
+      <div class="group">
+        <label title="Choose animation preset">
+          <span>Animation preset</span>
+          <select id="gridPresetSelect">
+            <option value="synchronized">✨ Synchronized Pulse</option>
+            <option value="organic" selected>🌿 Organic Flow</option>
+            <option value="chaotic">⚡ Chaotic Dance</option>
+          </select>
+        </label>
+        <label title="Number of balls in grid (40-200)">
+          <span>Ball count</span>
+          <input type="range" id="gridBallCountSlider" min="40" max="200" step="10" value="120">
+          <span class="val" id="gridBallCountVal">120</span>
+        </label>
+        <label title="Number of columns in the grid (20-80). More columns = smaller cells">
+          <span>Grid columns</span>
+          <input type="range" id="gridColumnsSlider" min="20" max="80" step="5" value="40">
+          <span class="val" id="gridColumnsVal">40</span>
+        </label>
+      </div>
+    </details>
+    <details open>
+      <summary>⚡ Movement & Rhythm</summary>
+      <div class="group">
+        <label title="Time between movements in seconds (0.2-2.0). Lower = faster rhythm">
+          <span>Beat interval (s)</span>
+          <input type="range" id="pulseIntervalSlider" min="0.2" max="2.0" step="0.1" value="0.8">
+          <span class="val" id="pulseIntervalVal">0.8</span>
+        </label>
+        <label title="Jump animation duration (0.1-1.0 seconds). Should be less than beat interval">
+          <span>Jump speed (s)</span>
+          <input type="range" id="pulseSpeedSlider" min="0.1" max="1.0" step="0.05" value="0.25">
+          <span class="val" id="pulseSpeedVal">0.25</span>
+        </label>
+        <label title="Minimum grid cells to move (1-3)">
+          <span>Min steps</span>
+          <input type="range" id="pulseMinStepsSlider" min="1" max="3" step="1" value="1">
+          <span class="val" id="pulseMinStepsVal">1</span>
+        </label>
+        <label title="Maximum grid cells to move (1-5)">
+          <span>Max steps</span>
+          <input type="range" id="pulseMaxStepsSlider" min="1" max="5" step="1" value="3">
+          <span class="val" id="pulseMaxStepsVal">3</span>
+        </label>
+      </div>
+    </details>
+    <details open>
+      <summary>🎭 Coordination & Chaos</summary>
+      <div class="group">
+        <label title="Movement synchronization (0-1). 0 = all balls move together, 1 = completely random timing">
+          <span>Synchronicity</span>
+          <input type="range" id="pulseSynchronicitySlider" min="0.0" max="1.0" step="0.05" value="0.3">
+          <span class="val" id="pulseSynchronicityVal">0.30</span>
+        </label>
+        <label title="Movement variation (0-1). 0 = uniform, 1 = chaotic and unpredictable">
+          <span>Randomness</span>
+          <input type="range" id="pulseRandomnessSlider" min="0.0" max="1.0" step="0.05" value="0.4">
+          <span class="val" id="pulseRandomnessVal">0.40</span>
+        </label>
+      </div>
+    </details>
+  </div>
+  
+    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-4</code> switch modes</div>
   </div>
   
   <!-- FPS Counter -->
@@ -634,14 +702,16 @@
   const MODES = {
     PIT: 'pit',          // Ball Pit: gravity + repeller
     FLIES: 'flies',      // Flies to Light: attraction to mouse, no gravity
-    WEIGHTLESS: 'weightless'  // Weightless Bounce: zero-G bouncing balls
+    WEIGHTLESS: 'weightless',  // Weightless Bounce: zero-G bouncing balls
+    PULSE_GRID: 'pulse-grid'   // Pulse Grid: rhythmic grid-based movement
   };
   
   // Mode availability by device type
   const MODE_AVAILABILITY = {
     [MODES.PIT]: { desktop: true, mobile: true },
     [MODES.FLIES]: { desktop: true, mobile: true },
-    [MODES.WEIGHTLESS]: { desktop: true, mobile: true }
+    [MODES.WEIGHTLESS]: { desktop: true, mobile: true },
+    [MODES.PULSE_GRID]: { desktop: true, mobile: true }
   };
   
   let currentMode = MODES.PIT;
@@ -667,6 +737,17 @@
   let weightlessBounce = 0.97; // Very elastic but not perfect (micro-imperfections)
   let weightlessRepellerPower = 300; // subtle mouse repeller strength
   let weightlessRepellerRadius = 150; // repeller radius (px)
+  
+  // Pulse Grid mode parameters - RHYTHMIC GRID-BASED MOVEMENT
+  let gridColumns = 40; // Number of columns in the grid (width)
+  let gridCellAspect = 1.0; // Cell aspect ratio (1.0 = square cells)
+  let pulseInterval = 0.8; // Time between movements (seconds) - the "beat"
+  let pulseSpeed = 0.25; // Duration of jump animation (seconds)
+  let pulseSynchronicity = 0.3; // How synchronized movements are (0=all sync, 1=random)
+  let pulseRandomness = 0.4; // Movement variation and jitter (0=uniform, 1=chaotic)
+  let pulseMinSteps = 1; // Minimum grid cells to move per pulse
+  let pulseMaxSteps = 3; // Maximum grid cells to move per pulse
+  let gridBallCount = 120; // Number of balls in grid mode
   
   // ═══════════════════════════════════════════════════════════════════════════
   // GLASS MORPHISM SHADOW SYSTEM (Refractive depth with size + blur variation)
@@ -1896,7 +1977,13 @@
         ctx.rotate(-this.squashNormalAngle);
       }
       
-      // CSS-STYLE SHADOWS: Multiple shadow layers with blur
+      // Draw main ball first
+      ctx.beginPath();
+      ctx.arc(0, 0, this.r, 0, Math.PI*2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+      
+      // INSET SHADOWS using composite operations (CSS box-shadow: inset equivalent)
       if (glassMorphismEnabled && (!enableShadowCulling || this.r >= minShadowRadius)) {
         // Performance: LOD system for small balls
         const isSmallBall = this.r < 12;
@@ -1907,51 +1994,51 @@
         const effectiveShadow2Blur = shadow2BlurRadius * (shadowSoftness / 8) * qualityMultiplier;
         const effectiveShadow3Blur = shadow3BlurRadius * (shadowSoftness / 8) * qualityMultiplier;
         
-        // Layer 1: Dark shadow (like CSS box-shadow)
+        // Use source-atop to draw ONLY inside the ball (inset effect)
+        ctx.globalCompositeOperation = 'source-atop';
+        
+        // Layer 1: Dark edge shadow (creates depth)
         ctx.save();
         ctx.shadowColor = shadow1Color;
         ctx.shadowBlur = effectiveShadow1Blur;
         ctx.shadowOffsetX = shadow1OffsetX;
         ctx.shadowOffsetY = shadow1OffsetY;
         ctx.globalAlpha = shadow1Opacity;
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(0, 0, this.r, 0, Math.PI*2);
-        ctx.fillStyle = this.color;
         ctx.fill();
         ctx.restore();
         
-        // Layer 2: Top-left light (like CSS inner glow)
+        // Layer 2: Top-left light edge
         ctx.save();
         ctx.shadowColor = shadow2Color;
         ctx.shadowBlur = effectiveShadow2Blur;
         ctx.shadowOffsetX = shadow2OffsetX;
         ctx.shadowOffsetY = shadow2OffsetY;
         ctx.globalAlpha = shadow2Opacity;
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(0, 0, this.r, 0, Math.PI*2);
-        ctx.fillStyle = this.color;
         ctx.fill();
         ctx.restore();
         
-        // Layer 3: Bottom-right light (like CSS inner glow)
+        // Layer 3: Bottom-right light edge
         ctx.save();
         ctx.shadowColor = shadow3Color;
         ctx.shadowBlur = effectiveShadow3Blur;
         ctx.shadowOffsetX = shadow3OffsetX;
         ctx.shadowOffsetY = shadow3OffsetY;
         ctx.globalAlpha = shadow3Opacity;
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(0, 0, this.r, 0, Math.PI*2);
-        ctx.fillStyle = this.color;
         ctx.fill();
         ctx.restore();
+        
+        // Reset composite operation
+        ctx.globalCompositeOperation = 'source-over';
       }
-      
-      // Draw main ball on top (no shadows)
-      ctx.beginPath();
-      ctx.arc(0, 0, this.r, 0, Math.PI*2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
 
       ctx.restore();
     }
@@ -2074,8 +2161,8 @@
   }
   
   function emit(dt) {
-    // Zero-G mode: no continuous spawning, balls are distributed at initialization
-    if (currentMode === MODES.WEIGHTLESS) {
+    // Zero-G and Pulse Grid modes: no continuous spawning, balls are distributed at initialization
+    if (currentMode === MODES.WEIGHTLESS || currentMode === MODES.PULSE_GRID) {
       return;
     }
     
@@ -2542,23 +2629,32 @@
     
     const color = 'rgba(255, 255, 255, 0.9)';
     
-    // CSS-STYLE SHADOWS: Multiple shadow layers with blur
+    // Draw main cursor ball first
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    
+    // INSET SHADOWS using composite operations
     if (glassMorphismEnabled) {
       // Apply softness multiplier
       const effectiveShadow1Blur = shadow1BlurRadius * (shadowSoftness / 8);
       const effectiveShadow2Blur = shadow2BlurRadius * (shadowSoftness / 8);
       const effectiveShadow3Blur = shadow3BlurRadius * (shadowSoftness / 8);
       
-      // Layer 1: Dark shadow
+      // Use source-atop to draw ONLY inside the ball
+      ctx.globalCompositeOperation = 'source-atop';
+      
+      // Layer 1: Dark edge
       ctx.save();
       ctx.shadowColor = shadow1Color;
       ctx.shadowBlur = effectiveShadow1Blur;
       ctx.shadowOffsetX = shadow1OffsetX;
       ctx.shadowOffsetY = shadow1OffsetY;
       ctx.globalAlpha = shadow1Opacity;
+      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = color;
       ctx.fill();
       ctx.restore();
       
@@ -2569,9 +2665,9 @@
       ctx.shadowOffsetX = shadow2OffsetX;
       ctx.shadowOffsetY = shadow2OffsetY;
       ctx.globalAlpha = shadow2Opacity;
+      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = color;
       ctx.fill();
       ctx.restore();
       
@@ -2582,18 +2678,15 @@
       ctx.shadowOffsetX = shadow3OffsetX;
       ctx.shadowOffsetY = shadow3OffsetY;
       ctx.globalAlpha = shadow3Opacity;
+      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = color;
       ctx.fill();
       ctx.restore();
+      
+      // Reset composite operation
+      ctx.globalCompositeOperation = 'source-over';
     }
-    
-    // Draw main cursor ball on top (no shadows)
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
     
     // Add subtle white outline for visibility
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
@@ -2638,6 +2731,10 @@
     }
     if (currentMode === MODES.WEIGHTLESS) {
       applyWeightlessRepeller(b, dt);
+      return;
+    }
+    if (currentMode === MODES.PULSE_GRID) {
+      // No external forces in grid mode - movement controlled by updatePulseGrid
       return;
     }
   }
@@ -3343,6 +3440,159 @@
       ball.driftTime = 0;
     }
   }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PULSE GRID MODE - RHYTHMIC GRID-BASED MOVEMENT
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // Grid state
+  let gridCellSize = 0;
+  let gridRows = 0;
+  let gridCols = 0;
+  let gridOffsetX = 0;
+  let gridOffsetY = 0;
+  
+  function calculateGridDimensions() {
+    const w = canvas.width;
+    const h = canvas.height;
+    
+    // Calculate cell size based on columns and 1:1 aspect ratio
+    gridCols = gridColumns;
+    gridCellSize = w / gridCols;
+    gridRows = Math.floor(h / gridCellSize);
+    
+    // Center grid in viewport
+    gridOffsetX = (w - (gridCols * gridCellSize)) / 2;
+    gridOffsetY = (h - (gridRows * gridCellSize)) / 2;
+  }
+  
+  function gridCellToPixel(gridX, gridY) {
+    return {
+      x: gridOffsetX + (gridX + 0.5) * gridCellSize,
+      y: gridOffsetY + (gridY + 0.5) * gridCellSize
+    };
+  }
+  
+  function initializePulseGridScene() {
+    balls.length = 0;
+    calculateGridDimensions();
+    
+    const targetBalls = gridBallCount;
+    
+    // Randomly place balls in grid cells
+    for (let i = 0; i < targetBalls; i++) {
+      const gridX = Math.floor(Math.random() * gridCols);
+      const gridY = Math.floor(Math.random() * gridRows);
+      const pos = gridCellToPixel(gridX, gridY);
+      
+      const ball = spawnBall(pos.x, pos.y);
+      
+      // Grid-specific properties
+      ball.gridX = gridX;
+      ball.gridY = gridY;
+      ball.targetX = pos.x;
+      ball.targetY = pos.y;
+      ball.jumpProgress = 1.0; // Start at rest
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+      
+      // Stagger initial jump times based on synchronicity
+      const baseDelay = pulseInterval;
+      const phaseOffset = pulseSynchronicity * Math.random() * baseDelay;
+      ball.nextJumpTime = baseDelay + phaseOffset;
+    }
+  }
+  
+  // Update grid ball positions with rhythmic movement
+  let gridUpdateAccumulator = 0;
+  
+  function updatePulseGrid(dt) {
+    gridUpdateAccumulator += dt;
+    
+    for (let i = 0; i < balls.length; i++) {
+      const ball = balls[i];
+      
+      // Check if it's time for a new jump
+      ball.nextJumpTime -= dt;
+      
+      if (ball.nextJumpTime <= 0 && ball.jumpProgress >= 1.0) {
+        // Initiate new jump
+        const directions = [
+          { dx: 0, dy: -1 },  // up
+          { dx: 0, dy: 1 },   // down
+          { dx: -1, dy: 0 },  // left
+          { dx: 1, dy: 0 }    // right
+        ];
+        
+        // Pick random direction
+        const dir = directions[Math.floor(Math.random() * directions.length)];
+        
+        // Pick random step count
+        const stepRange = pulseMaxSteps - pulseMinSteps + 1;
+        const steps = pulseMinSteps + Math.floor(Math.random() * stepRange);
+        
+        // Apply randomness to step count
+        const randomizedSteps = Math.max(1, Math.round(steps * (1 - pulseRandomness * 0.5 + pulseRandomness * Math.random())));
+        
+        // Calculate new grid position
+        let newGridX = ball.gridX + dir.dx * randomizedSteps;
+        let newGridY = ball.gridY + dir.dy * randomizedSteps;
+        
+        // Clamp to grid bounds
+        newGridX = Math.max(0, Math.min(gridCols - 1, newGridX));
+        newGridY = Math.max(0, Math.min(gridRows - 1, newGridY));
+        
+        // Update target
+        ball.gridX = newGridX;
+        ball.gridY = newGridY;
+        const newPos = gridCellToPixel(newGridX, newGridY);
+        ball.targetX = newPos.x;
+        ball.targetY = newPos.y;
+        
+        // Start jump animation
+        ball.jumpProgress = 0.0;
+        ball.jumpStartX = ball.x;
+        ball.jumpStartY = ball.y;
+        
+        // Schedule next jump with rhythm interval and randomness
+        const intervalJitter = pulseRandomness * pulseInterval * (Math.random() - 0.5);
+        const syncJitter = pulseSynchronicity * pulseInterval * Math.random();
+        ball.nextJumpTime = pulseInterval + intervalJitter + syncJitter;
+      }
+      
+      // Animate jump if in progress
+      if (ball.jumpProgress < 1.0) {
+        ball.jumpProgress += dt / pulseSpeed;
+        
+        if (ball.jumpProgress >= 1.0) {
+          ball.jumpProgress = 1.0;
+          ball.x = ball.targetX;
+          ball.y = ball.targetY;
+          ball.vx = 0;
+          ball.vy = 0;
+        } else {
+          // Smooth easing (ease-in-out)
+          const t = ball.jumpProgress;
+          const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          
+          // Interpolate position
+          ball.x = ball.jumpStartX + (ball.targetX - ball.jumpStartX) * eased;
+          ball.y = ball.jumpStartY + (ball.targetY - ball.jumpStartY) * eased;
+          
+          // Add subtle arc to jump (parabolic)
+          const arcHeight = gridCellSize * 0.3;
+          const arc = Math.sin(t * Math.PI) * arcHeight;
+          ball.y -= arc;
+          
+          // Zero velocity during animation
+          ball.vx = 0;
+          ball.vy = 0;
+        }
+      }
+    }
+  }
 
   function updateModeControlsUI() {
     if (pitControls) pitControls.classList.toggle('active', currentMode === MODES.PIT);
@@ -3391,6 +3641,15 @@
       EMITTER_SWEEP_ENABLED = false;
       // Initialize weightless scene with even distribution
       initializeWeightlessScene();
+      // Reset ball sizes to global (after initialization)
+      resetBallSizeToGlobal();
+    } else if (currentMode === MODES.PULSE_GRID) {
+      gravityMultiplier = 0.0; // no physics gravity in grid mode
+      G = GE * gravityMultiplier;
+      repellerEnabled = false;
+      EMITTER_SWEEP_ENABLED = false;
+      // Initialize pulse grid scene with rhythmic movement
+      initializePulseGridScene();
       // Reset ball sizes to global (after initialization)
       resetBallSizeToGlobal();
     }
