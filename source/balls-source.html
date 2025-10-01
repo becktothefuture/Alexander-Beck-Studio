@@ -279,8 +279,19 @@
         <input type="checkbox" id="glassMorphismEnabled" checked>
       </label>
       
+      <label title="Choose illumination preset for realistic button lighting">
+        <span>Illumination template</span>
+        <select id="illuminationSelect">
+          <option value="classicRaised">Classic Raised Button</option>
+          <option value="pressedInset">Pressed/Inset Button</option>
+          <option value="softGlow">Soft Glow Button</option>
+          <option value="sharpGlass">Sharp Glass Button</option>
+          <option value="dramaticDepth">Dramatic Depth Button</option>
+        </select>
+      </label>
+      
       <div style="font-size: 9px; opacity: 0.7; margin: 8px 0;">
-        Glass morphism: dark base shadow + white highlight layers for realistic depth
+        Button illumination: dark base shadow + white highlights for realistic depth
       </div>
       
       <details>
@@ -631,6 +642,115 @@
   // GLASS MORPHISM SHADOW SYSTEM (Refractive depth with size + blur variation)
   // ═══════════════════════════════════════════════════════════════════════════
   let glassMorphismEnabled = true;    // Enable glass morphism shadow system
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ILLUMINATION TEMPLATES (Button lighting presets)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const ILLUMINATION_TEMPLATES = {
+    // Template 1: Classic Raised Button (top-left light, bottom-right shadow)
+    classicRaised: {
+      label: 'Classic Raised Button',
+      shadow1: { offsetX: 4, offsetY: 6, opacity: 0.35, color: '#000000', sizeMultiplier: 1.12, blurRadius: 6 }, // Base shadow
+      shadow2: { offsetX: -2, offsetY: -3, opacity: 0.25, color: '#ffffff', sizeMultiplier: 1.03, blurRadius: 2 }, // Top-left highlight
+      shadow3: { offsetX: 1, offsetY: 2, opacity: 0.15, color: '#ffffff', sizeMultiplier: 1.01, blurRadius: 1 }   // Bottom-right subtle
+    },
+    
+    // Template 2: Pressed/Inset Button (inverted lighting)
+    pressedInset: {
+      label: 'Pressed/Inset Button',
+      shadow1: { offsetX: -2, offsetY: -3, opacity: 0.3, color: '#000000', sizeMultiplier: 1.08, blurRadius: 4 }, // Top-left shadow
+      shadow2: { offsetX: 3, offsetY: 4, opacity: 0.2, color: '#ffffff', sizeMultiplier: 1.05, blurRadius: 3 },   // Bottom-right highlight
+      shadow3: { offsetX: 0, offsetY: 1, opacity: 0.1, color: '#cccccc', sizeMultiplier: 1.0, blurRadius: 1 }     // Center subtle
+    },
+    
+    // Template 3: Soft Glow Button (ambient lighting)
+    softGlow: {
+      label: 'Soft Glow Button',
+      shadow1: { offsetX: 0, offsetY: 8, opacity: 0.25, color: '#000000', sizeMultiplier: 1.25, blurRadius: 12 }, // Soft base shadow
+      shadow2: { offsetX: -1, offsetY: -2, opacity: 0.3, color: '#ffffff', sizeMultiplier: 1.15, blurRadius: 8 }, // Large top glow
+      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.2, color: '#ffffff', sizeMultiplier: 1.08, blurRadius: 4 }    // Medium glow
+    },
+    
+    // Template 4: Sharp Glass Button (crisp definition)
+    sharpGlass: {
+      label: 'Sharp Glass Button',
+      shadow1: { offsetX: 3, offsetY: 5, opacity: 0.4, color: '#000000', sizeMultiplier: 1.05, blurRadius: 2 },   // Tight shadow
+      shadow2: { offsetX: -1, offsetY: -2, opacity: 0.35, color: '#ffffff', sizeMultiplier: 0.98, blurRadius: 1 }, // Sharp top highlight
+      shadow3: { offsetX: 2, offsetY: 3, opacity: 0.2, color: '#ffffff', sizeMultiplier: 0.95, blurRadius: 1 }    // Sharp bottom highlight
+    },
+    
+    // Template 5: Dramatic Depth Button (strong contrast)
+    dramaticDepth: {
+      label: 'Dramatic Depth Button',
+      shadow1: { offsetX: 8, offsetY: 12, opacity: 0.45, color: '#000000', sizeMultiplier: 1.4, blurRadius: 16 }, // Large dramatic shadow
+      shadow2: { offsetX: -4, offsetY: -6, opacity: 0.4, color: '#ffffff', sizeMultiplier: 1.2, blurRadius: 6 },  // Strong top light
+      shadow3: { offsetX: 2, offsetY: 3, opacity: 0.25, color: '#ffffff', sizeMultiplier: 1.1, blurRadius: 3 }    // Medium bottom light
+    }
+  };
+  
+  let currentIlluminationTemplate = 'classicRaised';
+  
+  // Apply illumination template to current shadow settings
+  function applyIlluminationTemplate(templateName) {
+    const template = ILLUMINATION_TEMPLATES[templateName];
+    if (!template) return;
+    
+    currentIlluminationTemplate = templateName;
+    
+    // Apply shadow 1 (foundation)
+    shadow1OffsetX = template.shadow1.offsetX;
+    shadow1OffsetY = template.shadow1.offsetY;
+    shadow1Opacity = template.shadow1.opacity;
+    shadow1Color = template.shadow1.color;
+    shadow1SizeMultiplier = template.shadow1.sizeMultiplier;
+    shadow1BlurRadius = template.shadow1.blurRadius;
+    
+    // Apply shadow 2 (top highlight)
+    shadow2OffsetX = template.shadow2.offsetX;
+    shadow2OffsetY = template.shadow2.offsetY;
+    shadow2Opacity = template.shadow2.opacity;
+    shadow2Color = template.shadow2.color;
+    shadow2SizeMultiplier = template.shadow2.sizeMultiplier;
+    shadow2BlurRadius = template.shadow2.blurRadius;
+    
+    // Apply shadow 3 (bottom highlight)
+    shadow3OffsetX = template.shadow3.offsetX;
+    shadow3OffsetY = template.shadow3.offsetY;
+    shadow3Opacity = template.shadow3.opacity;
+    shadow3Color = template.shadow3.color;
+    shadow3SizeMultiplier = template.shadow3.sizeMultiplier;
+    shadow3BlurRadius = template.shadow3.blurRadius;
+    
+    // Update UI to reflect new values
+    updateIlluminationUI();
+    
+    console.log('🔮 Applied illumination template:', templateName);
+  }
+  
+  // Update UI controls to show current template values
+  function updateIlluminationUI() {
+    // Update shadow 1 controls
+    if (shadow1OffsetXEl) { shadow1OffsetXEl.value = shadow1OffsetX; shadow1OffsetXVal.textContent = shadow1OffsetX + 'px'; }
+    if (shadow1OffsetYEl) { shadow1OffsetYEl.value = shadow1OffsetY; shadow1OffsetYVal.textContent = shadow1OffsetY + 'px'; }
+    if (shadow1OpacityEl) { shadow1OpacityEl.value = shadow1Opacity; shadow1OpacityVal.textContent = shadow1Opacity.toFixed(2); }
+    if (shadow1ColorEl) { shadow1ColorEl.value = shadow1Color; shadow1ColorVal.textContent = shadow1Color.toUpperCase(); }
+    if (shadow1SizeMultiplierEl) { shadow1SizeMultiplierEl.value = shadow1SizeMultiplier; shadow1SizeMultiplierVal.textContent = shadow1SizeMultiplier.toFixed(2) + '×'; }
+    
+    // Update shadow 2 controls
+    if (shadow2OffsetXEl) { shadow2OffsetXEl.value = shadow2OffsetX; shadow2OffsetXVal.textContent = shadow2OffsetX + 'px'; }
+    if (shadow2OffsetYEl) { shadow2OffsetYEl.value = shadow2OffsetY; shadow2OffsetYVal.textContent = shadow2OffsetY + 'px'; }
+    if (shadow2OpacityEl) { shadow2OpacityEl.value = shadow2Opacity; shadow2OpacityVal.textContent = shadow2Opacity.toFixed(2); }
+    if (shadow2ColorEl) { shadow2ColorEl.value = shadow2Color; shadow2ColorVal.textContent = shadow2Color.toUpperCase(); }
+    if (shadow2SizeMultiplierEl) { shadow2SizeMultiplierEl.value = shadow2SizeMultiplier; shadow2SizeMultiplierVal.textContent = shadow2SizeMultiplier.toFixed(2) + '×'; }
+    
+    // Update shadow 3 controls
+    if (shadow3OffsetXEl) { shadow3OffsetXEl.value = shadow3OffsetX; shadow3OffsetXVal.textContent = shadow3OffsetX + 'px'; }
+    if (shadow3OffsetYEl) { shadow3OffsetYEl.value = shadow3OffsetY; shadow3OffsetYVal.textContent = shadow3OffsetY + 'px'; }
+    if (shadow3OpacityEl) { shadow3OpacityEl.value = shadow3Opacity; shadow3OpacityVal.textContent = shadow3Opacity.toFixed(2); }
+    if (shadow3ColorEl) { shadow3ColorEl.value = shadow3Color; shadow3ColorVal.textContent = shadow3Color.toUpperCase(); }
+    if (shadow3SizeMultiplierEl) { shadow3SizeMultiplierEl.value = shadow3SizeMultiplier; shadow3SizeMultiplierVal.textContent = shadow3SizeMultiplier.toFixed(2) + '×'; }
+  }
   
   // Shadow 1: Foundation shadow (largest, most blurred, dark base)
   let shadow1OffsetX = 6;             // Foundation offset X
@@ -2911,6 +3031,7 @@
       cursorColorIndex: cursorBallIndex,
       // Glass morphism shadow system parameters
       glassMorphismEnabled,
+      currentIlluminationTemplate,
       shadow1OffsetX,
       shadow1OffsetY,
       shadow1Opacity,
@@ -3129,6 +3250,7 @@
   
   // Glass Morphism Controls (3-layer refractive system)
   const glassMorphismEnabledEl = document.getElementById('glassMorphismEnabled');
+  const illuminationSelectEl = document.getElementById('illuminationSelect');
   
   // Shadow 1 controls (top-left highlight)
   const shadow1OffsetXEl = document.getElementById('shadow1OffsetX');
@@ -3170,6 +3292,11 @@
   glassMorphismEnabledEl && glassMorphismEnabledEl.addEventListener('change', () => {
     glassMorphismEnabled = glassMorphismEnabledEl.checked;
     console.log('🔮 Glass morphism enabled:', glassMorphismEnabled);
+  });
+  
+  // Illumination template selector
+  illuminationSelectEl && illuminationSelectEl.addEventListener('change', () => {
+    applyIlluminationTemplate(illuminationSelectEl.value);
   });
   
   // Shadow 1 listeners
