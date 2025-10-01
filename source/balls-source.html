@@ -306,9 +306,9 @@
             <input type="color" id="shadow1Color" value="#000000">
             <span class="hex-val" id="shadow1ColorVal">#000000</span>
           </label>
-          <label title="Foundation shadow size (1.0-1.3×). Larger = more diffuse">
+          <label title="Foundation shadow size (0.75-1.5×). Larger = more diffuse">
             <span>Size multiplier</span>
-            <input type="range" id="shadow1SizeMultiplier" min="1.0" max="1.3" step="0.01" value="1.15">
+            <input type="range" id="shadow1SizeMultiplier" min="0.75" max="1.5" step="0.01" value="1.15">
             <span class="val" id="shadow1SizeMultiplierVal">1.15×</span>
           </label>
         </div>
@@ -337,9 +337,9 @@
             <input type="color" id="shadow2Color" value="#ffffff">
             <span class="hex-val" id="shadow2ColorVal">#FFFFFF</span>
           </label>
-          <label title="Top highlight size (1.0-1.2×). Light diffusion">
+          <label title="Top highlight size (0.75-1.5×). Light diffusion">
             <span>Size multiplier</span>
-            <input type="range" id="shadow2SizeMultiplier" min="1.0" max="1.2" step="0.01" value="1.05">
+            <input type="range" id="shadow2SizeMultiplier" min="0.75" max="1.5" step="0.01" value="1.05">
             <span class="val" id="shadow2SizeMultiplierVal">1.05×</span>
           </label>
         </div>
@@ -368,9 +368,9 @@
             <input type="color" id="shadow3Color" value="#ffffff">
             <span class="hex-val" id="shadow3ColorVal">#FFFFFF</span>
           </label>
-          <label title="Bottom highlight size (1.0-1.1×). Sharp light definition">
+          <label title="Bottom highlight size (0.75-1.5×). Sharp light definition">
             <span>Size multiplier</span>
-            <input type="range" id="shadow3SizeMultiplier" min="1.0" max="1.1" step="0.01" value="1.02">
+            <input type="range" id="shadow3SizeMultiplier" min="0.75" max="1.5" step="0.01" value="1.02">
             <span class="val" id="shadow3SizeMultiplierVal">1.02×</span>
           </label>
         </div>
@@ -789,7 +789,7 @@
   function createBallSprite(ball) {
     if (!pixiApp) return null;
     
-    const sprite = new PIXI.Graphics();
+    const sprite = getPooledSprite(); // Use pooled sprite for performance
     sprite.zIndex = 0;
     sprite._lastRadius = -1;
     sprite._lastColor = '';
@@ -841,11 +841,11 @@
     if (needsRedraw) {
       sprite.clear();
       
-      // Glass morphism shadow system
-      if (glassMorphismEnabled) {
+      // Glass morphism shadow system with performance culling
+      if (glassMorphismEnabled && (!enableShadowCulling || ball.r >= minShadowRadius)) {
         renderBallWithGlassMorphismWebGL(sprite, ball.r, colorNum);
       } else {
-        // Flat rendering without shadows
+        // Flat rendering without shadows (small balls or disabled)
         sprite.beginFill(colorNum, 1.0);
         sprite.drawCircle(0, 0, ball.r);
         sprite.endFill();
@@ -889,44 +889,75 @@
     }
   }
   
+  // Performance: Cache parsed colors to avoid repeated parsing
+  let cachedShadow1ColorNum = 0x000000;
+  let cachedShadow2ColorNum = 0xffffff;
+  let cachedShadow3ColorNum = 0xffffff;
+  let lastShadow1Color = '';
+  let lastShadow2Color = '';
+  let lastShadow3Color = '';
+  
+  function updateCachedShadowColors() {
+    if (shadow1Color !== lastShadow1Color) {
+      cachedShadow1ColorNum = parseInt(shadow1Color.replace('#', ''), 16);
+      lastShadow1Color = shadow1Color;
+    }
+    if (shadow2Color !== lastShadow2Color) {
+      cachedShadow2ColorNum = parseInt(shadow2Color.replace('#', ''), 16);
+      lastShadow2Color = shadow2Color;
+    }
+    if (shadow3Color !== lastShadow3Color) {
+      cachedShadow3ColorNum = parseInt(shadow3Color.replace('#', ''), 16);
+      lastShadow3Color = shadow3Color;
+    }
+  }
+  
   function renderBallWithGlassMorphismWebGL(sprite, radius, baseColor) {
-    // Glass morphism: 3-layer refractive shadow system with size variation
+    // Performance optimization: Update cached colors only when needed
+    updateCachedShadowColors();
+    
+    // LOD (Level of Detail): Reduce shadow complexity for small balls
+    const isSmallBall = radius < 12;
+    const qualityMultiplier = isSmallBall ? 0.5 : adaptiveQuality;
     
     // Layer 1: Foundation shadow (largest, most blurred, underneath)
-    const shadow1ColorNum = parseInt(shadow1Color.replace('#', ''), 16);
     const shadow1Radius = radius * shadow1SizeMultiplier;
+    const shadow1Steps = Math.max(2, Math.floor(shadow1BlurRadius * qualityMultiplier));
     
     // Create multiple circles for blur effect (foundation)
-    for (let i = 0; i < shadow1BlurRadius; i++) {
-      const blurOpacity = shadow1Opacity * (1 - i / shadow1BlurRadius) * 0.3;
+    for (let i = 0; i < shadow1Steps; i++) {
+      const t = i / Math.max(1, shadow1Steps - 1);
+      const blurOpacity = shadow1Opacity * (1 - t) * 0.3;
       const blurRadius = shadow1Radius + i * 0.5;
-      sprite.beginFill(shadow1ColorNum, blurOpacity);
+      sprite.beginFill(cachedShadow1ColorNum, blurOpacity);
       sprite.drawCircle(shadow1OffsetX, shadow1OffsetY, blurRadius);
       sprite.endFill();
     }
     
-    // Layer 2: Mid-layer refraction (medium size, medium blur)
-    const shadow2ColorNum = parseInt(shadow2Color.replace('#', ''), 16);
+    // Layer 2: Top highlight (medium size, medium blur)
     const shadow2Radius = radius * shadow2SizeMultiplier;
+    const shadow2Steps = Math.max(1, Math.floor(shadow2BlurRadius * qualityMultiplier));
     
     // Create blur effect for mid-layer
-    for (let i = 0; i < shadow2BlurRadius; i++) {
-      const blurOpacity = shadow2Opacity * (1 - i / shadow2BlurRadius) * 0.4;
+    for (let i = 0; i < shadow2Steps; i++) {
+      const t = i / Math.max(1, shadow2Steps - 1);
+      const blurOpacity = shadow2Opacity * (1 - t) * 0.4;
       const blurRadius = shadow2Radius + i * 0.3;
-      sprite.beginFill(shadow2ColorNum, blurOpacity);
+      sprite.beginFill(cachedShadow2ColorNum, blurOpacity);
       sprite.drawCircle(shadow2OffsetX, shadow2OffsetY, blurRadius);
       sprite.endFill();
     }
     
-    // Layer 3: Surface reflection (ball size, minimal blur)
-    const shadow3ColorNum = parseInt(shadow3Color.replace('#', ''), 16);
+    // Layer 3: Bottom highlight (ball size, minimal blur)
     const shadow3Radius = radius * shadow3SizeMultiplier;
+    const shadow3Steps = Math.max(1, Math.floor(shadow3BlurRadius * qualityMultiplier));
     
     // Minimal blur for surface reflection
-    for (let i = 0; i < shadow3BlurRadius; i++) {
-      const blurOpacity = shadow3Opacity * (1 - i / shadow3BlurRadius) * 0.6;
+    for (let i = 0; i < shadow3Steps; i++) {
+      const t = i / Math.max(1, shadow3Steps - 1);
+      const blurOpacity = shadow3Opacity * (1 - t) * 0.6;
       const blurRadius = shadow3Radius + i * 0.1;
-      sprite.beginFill(shadow3ColorNum, blurOpacity);
+      sprite.beginFill(cachedShadow3ColorNum, blurOpacity);
       sprite.drawCircle(shadow3OffsetX, shadow3OffsetY, blurRadius);
       sprite.endFill();
     }
@@ -942,7 +973,8 @@
     const ballSet = new Set(balls);
     for (const [ball, sprite] of ballSprites.entries()) {
       if (!ballSet.has(ball)) {
-        sprite.destroy();
+        pixiApp.stage.removeChild(sprite);
+        returnSpriteToPool(sprite); // Use pooling for performance
         ballSprites.delete(ball);
       }
     }
@@ -1045,6 +1077,37 @@
   let currentFPS = 60;
   let adaptiveQuality = 1.0; // 1.0 = full quality, 0.5 = half quality
   
+  // Advanced performance optimizations
+  let enableLOD = true;               // Level of Detail system
+  let enableShadowCulling = true;     // Skip shadows for very small balls
+  let minShadowRadius = 8;            // Don't render shadows for balls smaller than this
+  let enableSpritePooling = true;     // Reuse sprites to reduce garbage collection
+  let maxPoolSize = 100;              // Maximum sprites to keep in pool
+  
+  // Sprite pool for performance
+  let spritePool = [];
+  
+  function getPooledSprite() {
+    if (spritePool.length > 0) {
+      return spritePool.pop();
+    }
+    return new PIXI.Graphics();
+  }
+  
+  function returnSpriteToPool(sprite) {
+    if (enableSpritePooling && spritePool.length < maxPoolSize) {
+      sprite.clear();
+      sprite.visible = true;
+      sprite.x = 0;
+      sprite.y = 0;
+      sprite.rotation = 0;
+      sprite.scale.set(1, 1);
+      spritePool.push(sprite);
+    } else {
+      sprite.destroy();
+    }
+  }
+  
   function updateAdaptiveQuality() {
     frameCount++;
     const now = performance.now();
@@ -1061,7 +1124,11 @@
         adaptiveQuality = Math.min(1.0, adaptiveQuality + 0.05); // Increase quality
       }
       
-      console.log(`🎮 WebGL FPS: ${currentFPS}, Quality: ${(adaptiveQuality * 100).toFixed(0)}%`);
+      const shadowsSkipped = balls.filter(b => enableShadowCulling && b.r < minShadowRadius).length;
+      const totalShadowLayers = balls.length * 3; // 3 layers per ball
+      const actualShadowLayers = (balls.length - shadowsSkipped) * 3;
+      
+      console.log(`🎮 WebGL FPS: ${currentFPS}, Quality: ${(adaptiveQuality * 100).toFixed(0)}%, Shadows: ${actualShadowLayers}/${totalShadowLayers}, Pool: ${spritePool.length}`);
     }
   }
   
@@ -1845,12 +1912,18 @@
       }
       
       // Draw glass morphism shadows if enabled (3-layer refractive system)
-      if (glassMorphismEnabled) {
+      if (glassMorphismEnabled && (!enableShadowCulling || this.r >= minShadowRadius)) {
+        // Performance: LOD system for small balls
+        const isSmallBall = this.r < 12;
+        const qualityMultiplier = isSmallBall ? 0.5 : 1.0;
+        
         // Layer 1: Foundation shadow (largest, most blurred, underneath)
         const shadow1Radius = this.r * shadow1SizeMultiplier;
-        for (let i = 0; i < shadow1BlurRadius; i++) {
+        const shadow1Steps = Math.max(2, Math.floor(shadow1BlurRadius * qualityMultiplier));
+        for (let i = 0; i < shadow1Steps; i++) {
+          const t = i / Math.max(1, shadow1Steps - 1);
           ctx.save();
-          ctx.globalAlpha = shadow1Opacity * (1 - i / shadow1BlurRadius) * 0.3;
+          ctx.globalAlpha = shadow1Opacity * (1 - t) * 0.3;
           ctx.fillStyle = shadow1Color;
           ctx.beginPath();
           ctx.arc(shadow1OffsetX, shadow1OffsetY, shadow1Radius + i * 0.5, 0, Math.PI*2);
@@ -1858,11 +1931,13 @@
           ctx.restore();
         }
         
-        // Layer 2: Mid-layer refraction (medium size, medium blur)
+        // Layer 2: Top highlight
         const shadow2Radius = this.r * shadow2SizeMultiplier;
-        for (let i = 0; i < shadow2BlurRadius; i++) {
+        const shadow2Steps = Math.max(1, Math.floor(shadow2BlurRadius * qualityMultiplier));
+        for (let i = 0; i < shadow2Steps; i++) {
+          const t = i / Math.max(1, shadow2Steps - 1);
           ctx.save();
-          ctx.globalAlpha = shadow2Opacity * (1 - i / shadow2BlurRadius) * 0.4;
+          ctx.globalAlpha = shadow2Opacity * (1 - t) * 0.4;
           ctx.fillStyle = shadow2Color;
           ctx.beginPath();
           ctx.arc(shadow2OffsetX, shadow2OffsetY, shadow2Radius + i * 0.3, 0, Math.PI*2);
@@ -1870,11 +1945,13 @@
           ctx.restore();
         }
         
-        // Layer 3: Surface reflection (ball size, minimal blur)
+        // Layer 3: Bottom highlight
         const shadow3Radius = this.r * shadow3SizeMultiplier;
-        for (let i = 0; i < shadow3BlurRadius; i++) {
+        const shadow3Steps = Math.max(1, Math.floor(shadow3BlurRadius * qualityMultiplier));
+        for (let i = 0; i < shadow3Steps; i++) {
+          const t = i / Math.max(1, shadow3Steps - 1);
           ctx.save();
-          ctx.globalAlpha = shadow3Opacity * (1 - i / shadow3BlurRadius) * 0.6;
+          ctx.globalAlpha = shadow3Opacity * (1 - t) * 0.6;
           ctx.fillStyle = shadow3Color;
           ctx.beginPath();
           ctx.arc(shadow3OffsetX, shadow3OffsetY, shadow3Radius + i * 0.1, 0, Math.PI*2);
@@ -2851,7 +2928,13 @@
       shadow3Opacity,
       shadow3Color,
       shadow3SizeMultiplier,
-      shadow3BlurRadius
+      shadow3BlurRadius,
+      // Performance optimization settings
+      enableLOD,
+      enableShadowCulling,
+      minShadowRadius,
+      enableSpritePooling,
+      maxPoolSize
     };
   }
   function generateConfigCode(config) {
