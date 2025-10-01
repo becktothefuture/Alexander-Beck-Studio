@@ -559,6 +559,7 @@
   let shadowOffsetX = 20;             // Shadow offset X (pixels)
   let shadowOffsetY = 20;             // Shadow offset Y (pixels)  
   let shadowOpacity = 0.5;            // Shadow opacity (0.0-1.0)
+  let cursorBallVisible = true;       // Show cursor ball on desktop
   
   // Mass constants (needed before CONSTANTS object)
   const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
@@ -1694,7 +1695,18 @@
         ctx.rotate(-this.squashNormalAngle);
       }
       
-      // Body rendering
+      // Draw drop shadow if enabled
+      if (dropShadowEnabled) {
+        ctx.save();
+        ctx.globalAlpha = shadowOpacity;
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(shadowOffsetX, shadowOffsetY, this.r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+      
+      // Draw main ball
       ctx.beginPath();
       ctx.arc(0, 0, this.r, 0, Math.PI*2);
       ctx.fillStyle = this.color;
@@ -2318,11 +2330,22 @@
     if (isTouchDevice) return;
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     
-    
-    // Draw main cursor ball for all other modes (white by default on desktop)
     const x = mouseX, y = mouseY;
     const baseSize = (R_MIN + R_MAX) / 2;
     const r = baseSize;
+    
+    // Draw drop shadow if enabled
+    if (dropShadowEnabled) {
+      ctx.save();
+      ctx.globalAlpha = shadowOpacity;
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(x + shadowOffsetX, y + shadowOffsetY, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    
+    // Draw main cursor ball
     const color = 'rgba(255, 255, 255, 0.9)';
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
