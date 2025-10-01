@@ -272,34 +272,79 @@
   </details>
   
   <details open>
-    <summary>🎨 Visual Effects</summary>
+    <summary>🎨 Studio Lighting & Shadows</summary>
     <div class="group">
-      <label title="Enable/disable drop shadow effect">
-        <span>Drop shadow</span>
-        <input type="checkbox" id="dropShadowEnabled" checked>
+      <label title="Enable/disable studio shadow system (3-layer Apple Glass effect)">
+        <span>Studio shadows</span>
+        <input type="checkbox" id="studioShadowsEnabled" checked>
       </label>
       
-      <label title="Horizontal shadow offset in pixels (0-50). Positive = right">
-        <span>Shadow X offset</span>
-        <input type="range" id="shadowOffsetX" min="0" max="50" step="2" value="20">
-        <span class="val" id="shadowOffsetXVal">20px</span>
-      </label>
-      
-      <label title="Vertical shadow offset in pixels (0-50). Positive = down">
-        <span>Shadow Y offset</span>
-        <input type="range" id="shadowOffsetY" min="0" max="50" step="2" value="20">
-        <span class="val" id="shadowOffsetYVal">20px</span>
-      </label>
-      
-      <label title="Shadow opacity (0.0-1.0). 0 = transparent, 1 = solid black">
-        <span>Shadow opacity</span>
-        <input type="range" id="shadowOpacity" min="0.0" max="1.0" step="0.05" value="0.5">
-        <span class="val" id="shadowOpacityVal">0.50</span>
-      </label>
-      
-      <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">
-        Sharp drop shadow creates depth without complex lighting
+      <div style="font-size: 9px; opacity: 0.7; margin: 8px 0;">
+        Three-layer studio lighting: top-left highlight, bottom-right highlight, middle shadow
       </div>
+      
+      <details>
+        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">⚙️ Shadow 1: Top-left highlight</summary>
+        <div class="group" style="margin-top: 6px;">
+          <label title="Top-left highlight X offset (-20 to 20px). Negative = left">
+            <span>X offset</span>
+            <input type="range" id="shadow1OffsetX" min="-20" max="20" step="1" value="-8">
+            <span class="val" id="shadow1OffsetXVal">-8px</span>
+          </label>
+          <label title="Top-left highlight Y offset (-20 to 20px). Negative = up">
+            <span>Y offset</span>
+            <input type="range" id="shadow1OffsetY" min="-20" max="20" step="1" value="-8">
+            <span class="val" id="shadow1OffsetYVal">-8px</span>
+          </label>
+          <label title="Top-left highlight opacity (0.0-0.5). Light highlight effect">
+            <span>Opacity</span>
+            <input type="range" id="shadow1Opacity" min="0.0" max="0.5" step="0.01" value="0.15">
+            <span class="val" id="shadow1OpacityVal">0.15</span>
+          </label>
+        </div>
+      </details>
+      
+      <details>
+        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">⚙️ Shadow 2: Bottom-right highlight</summary>
+        <div class="group" style="margin-top: 6px;">
+          <label title="Bottom-right highlight X offset (0 to 30px). Positive = right">
+            <span>X offset</span>
+            <input type="range" id="shadow2OffsetX" min="0" max="30" step="1" value="12">
+            <span class="val" id="shadow2OffsetXVal">12px</span>
+          </label>
+          <label title="Bottom-right highlight Y offset (0 to 30px). Positive = down">
+            <span>Y offset</span>
+            <input type="range" id="shadow2OffsetY" min="0" max="30" step="1" value="12">
+            <span class="val" id="shadow2OffsetYVal">12px</span>
+          </label>
+          <label title="Bottom-right highlight opacity (0.0-0.5). Light highlight effect">
+            <span>Opacity</span>
+            <input type="range" id="shadow2Opacity" min="0.0" max="0.5" step="0.01" value="0.20">
+            <span class="val" id="shadow2OpacityVal">0.20</span>
+          </label>
+        </div>
+      </details>
+      
+      <details>
+        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">⚙️ Shadow 3: Main shadow (dark)</summary>
+        <div class="group" style="margin-top: 6px;">
+          <label title="Main shadow X offset (0 to 20px). Middle position">
+            <span>X offset</span>
+            <input type="range" id="shadow3OffsetX" min="0" max="20" step="1" value="4">
+            <span class="val" id="shadow3OffsetXVal">4px</span>
+          </label>
+          <label title="Main shadow Y offset (0 to 20px). Middle position">
+            <span>Y offset</span>
+            <input type="range" id="shadow3OffsetY" min="0" max="20" step="1" value="6">
+            <span class="val" id="shadow3OffsetYVal">6px</span>
+          </label>
+          <label title="Main shadow opacity (0.0-0.8). Dark shadow underneath">
+            <span>Opacity</span>
+            <input type="range" id="shadow3Opacity" min="0.0" max="0.8" step="0.01" value="0.40">
+            <span class="val" id="shadow3OpacityVal">0.40</span>
+          </label>
+        </div>
+      </details>
     </div>
   </details>
   
@@ -553,12 +598,28 @@
   let weightlessRepellerRadius = 150; // repeller radius (px)
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // SIMPLE VISUAL EFFECTS SYSTEM
+  // STUDIO LIGHTING SHADOW SYSTEM (3-shadow Apple Glass effect)
   // ═══════════════════════════════════════════════════════════════════════════
-  let dropShadowEnabled = true;       // Enable drop shadow effect
-  let shadowOffsetX = 20;             // Shadow offset X (pixels)
-  let shadowOffsetY = 20;             // Shadow offset Y (pixels)  
-  let shadowOpacity = 0.5;            // Shadow opacity (0.0-1.0)
+  let studioShadowsEnabled = true;    // Enable studio shadow system
+  
+  // Shadow 1: Top-left light (bright environmental light)
+  let shadow1OffsetX = -8;            // Top-left offset X
+  let shadow1OffsetY = -8;            // Top-left offset Y
+  let shadow1Opacity = 0.15;          // Light shadow opacity
+  let shadow1Color = '#ffffff';       // White highlight
+  
+  // Shadow 2: Bottom-right light (secondary light source)
+  let shadow2OffsetX = 12;            // Bottom-right offset X
+  let shadow2OffsetY = 12;            // Bottom-right offset Y
+  let shadow2Opacity = 0.2;           // Light shadow opacity
+  let shadow2Color = '#ffffff';       // White highlight
+  
+  // Shadow 3: Middle dark (underneath, main shadow)
+  let shadow3OffsetX = 4;             // Middle offset X
+  let shadow3OffsetY = 6;             // Middle offset Y
+  let shadow3Opacity = 0.4;           // Dark shadow opacity
+  let shadow3Color = '#000000';       // Black shadow
+  
   let cursorBallVisible = true;       // Show cursor ball on desktop
   
   // Mass constants (needed before CONSTANTS object)
@@ -696,10 +757,16 @@
     sprite.zIndex = 0;
     sprite._lastRadius = -1;
     sprite._lastColor = '';
-    sprite._lastShadowEnabled = null;
-    sprite._lastShadowOffsetX = -1;
-    sprite._lastShadowOffsetY = -1;
-    sprite._lastShadowOpacity = -1;
+    sprite._lastStudioShadowsEnabled = null;
+    sprite._lastShadow1OffsetX = null;
+    sprite._lastShadow1OffsetY = null;
+    sprite._lastShadow1Opacity = null;
+    sprite._lastShadow2OffsetX = null;
+    sprite._lastShadow2OffsetY = null;
+    sprite._lastShadow2Opacity = null;
+    sprite._lastShadow3OffsetX = null;
+    sprite._lastShadow3OffsetY = null;
+    sprite._lastShadow3Opacity = null;
     sprite._lastSquash = -1;
     pixiApp.stage.addChild(sprite);
     ballSprites.set(ball, sprite);
@@ -722,33 +789,45 @@
     const needsRedraw = (
       sprite._lastRadius !== ball.r ||
       sprite._lastColor !== ball.color ||
-      sprite._lastShadowEnabled !== dropShadowEnabled ||
-      sprite._lastShadowOffsetX !== shadowOffsetX ||
-      sprite._lastShadowOffsetY !== shadowOffsetY ||
-      sprite._lastShadowOpacity !== shadowOpacity ||
+      sprite._lastStudioShadowsEnabled !== studioShadowsEnabled ||
+      sprite._lastShadow1OffsetX !== shadow1OffsetX ||
+      sprite._lastShadow1OffsetY !== shadow1OffsetY ||
+      sprite._lastShadow1Opacity !== shadow1Opacity ||
+      sprite._lastShadow2OffsetX !== shadow2OffsetX ||
+      sprite._lastShadow2OffsetY !== shadow2OffsetY ||
+      sprite._lastShadow2Opacity !== shadow2Opacity ||
+      sprite._lastShadow3OffsetX !== shadow3OffsetX ||
+      sprite._lastShadow3OffsetY !== shadow3OffsetY ||
+      sprite._lastShadow3Opacity !== shadow3Opacity ||
       Math.abs(sprite._lastSquash - currentSquash) > 0.01
     );
     
     if (needsRedraw) {
       sprite.clear();
       
-    // Simple ball rendering with drop shadow
-    if (dropShadowEnabled) {
-      renderBallWithShadowWebGL(sprite, ball.r, colorNum);
-    } else {
-      // Flat rendering without shadow
-      sprite.beginFill(colorNum, 1.0);
-      sprite.drawCircle(0, 0, ball.r);
-      sprite.endFill();
-    }
+      // Studio lighting shadow system
+      if (studioShadowsEnabled) {
+        renderBallWithStudioShadowsWebGL(sprite, ball.r, colorNum);
+      } else {
+        // Flat rendering without shadows
+        sprite.beginFill(colorNum, 1.0);
+        sprite.drawCircle(0, 0, ball.r);
+        sprite.endFill();
+      }
       
       // Cache current values
       sprite._lastRadius = ball.r;
       sprite._lastColor = ball.color;
-      sprite._lastShadowEnabled = dropShadowEnabled;
-      sprite._lastShadowOffsetX = shadowOffsetX;
-      sprite._lastShadowOffsetY = shadowOffsetY;
-      sprite._lastShadowOpacity = shadowOpacity;
+      sprite._lastStudioShadowsEnabled = studioShadowsEnabled;
+      sprite._lastShadow1OffsetX = shadow1OffsetX;
+      sprite._lastShadow1OffsetY = shadow1OffsetY;
+      sprite._lastShadow1Opacity = shadow1Opacity;
+      sprite._lastShadow2OffsetX = shadow2OffsetX;
+      sprite._lastShadow2OffsetY = shadow2OffsetY;
+      sprite._lastShadow2Opacity = shadow2Opacity;
+      sprite._lastShadow3OffsetX = shadow3OffsetX;
+      sprite._lastShadow3OffsetY = shadow3OffsetY;
+      sprite._lastShadow3Opacity = shadow3Opacity;
       sprite._lastSquash = currentSquash;
     }
     
@@ -774,13 +853,28 @@
     }
   }
   
-  function renderBallWithShadowWebGL(sprite, radius, baseColor) {
-    // Draw drop shadow first (behind ball)
-    sprite.beginFill(0x000000, shadowOpacity); // Black shadow
-    sprite.drawCircle(shadowOffsetX, shadowOffsetY, radius);
+  function renderBallWithStudioShadowsWebGL(sprite, radius, baseColor) {
+    // Studio lighting: 3-layer shadow system (Apple Glass effect)
+    
+    // Shadow 3: Main dark shadow (underneath, drawn first)
+    const shadow3ColorNum = parseInt(shadow3Color.replace('#', ''), 16);
+    sprite.beginFill(shadow3ColorNum, shadow3Opacity);
+    sprite.drawCircle(shadow3OffsetX, shadow3OffsetY, radius);
     sprite.endFill();
     
-    // Draw main ball on top
+    // Shadow 1: Top-left highlight (environmental light)
+    const shadow1ColorNum = parseInt(shadow1Color.replace('#', ''), 16);
+    sprite.beginFill(shadow1ColorNum, shadow1Opacity);
+    sprite.drawCircle(shadow1OffsetX, shadow1OffsetY, radius);
+    sprite.endFill();
+    
+    // Shadow 2: Bottom-right highlight (secondary light)
+    const shadow2ColorNum = parseInt(shadow2Color.replace('#', ''), 16);
+    sprite.beginFill(shadow2ColorNum, shadow2Opacity);
+    sprite.drawCircle(shadow2OffsetX, shadow2OffsetY, radius);
+    sprite.endFill();
+    
+    // Main ball on top (highest layer)
     sprite.beginFill(baseColor, 1.0);
     sprite.drawCircle(0, 0, radius);
     sprite.endFill();
@@ -848,9 +942,9 @@
     // Convert cursor ball color
     const colorNum = parseInt(cursorBallColor.replace('#', ''), 16);
     
-    // Apply same shadow system as regular balls
-    if (dropShadowEnabled) {
-      renderBallWithShadowWebGL(cursorBallSprite, cursorBallRadius, colorNum);
+    // Apply same studio shadow system as regular balls
+    if (studioShadowsEnabled) {
+      renderBallWithStudioShadowsWebGL(cursorBallSprite, cursorBallRadius, colorNum);
     } else {
       cursorBallSprite.beginFill(colorNum, 0.8); // Slightly transparent
       cursorBallSprite.drawCircle(0, 0, cursorBallRadius);
@@ -1299,8 +1393,8 @@
   const TEXT_SELECTOR = '#hero-text'; // ID selector for the main text element
   let textColliders = []; // Array of text collision rectangles
   // Motion blur parameters
-  let motionBlurFade = 0.025; // from screenshot (was trailFade)
-  let trailSubtlety = 1.80; // from screenshot
+  let motionBlurFade = 0.025; // from config (trailFade)
+  let trailSubtlety = 1.80; // from config
   
   // Performance optimizations and FPS tracking
   let renderFrameCount = 0;
@@ -1693,13 +1787,32 @@
         ctx.rotate(-this.squashNormalAngle);
       }
       
-      // Draw drop shadow if enabled
-      if (dropShadowEnabled) {
+      // Draw studio shadows if enabled (3-layer system)
+      if (studioShadowsEnabled) {
+        // Shadow 3: Main dark shadow (underneath, drawn first)
         ctx.save();
-        ctx.globalAlpha = shadowOpacity;
-        ctx.fillStyle = '#000000';
+        ctx.globalAlpha = shadow3Opacity;
+        ctx.fillStyle = shadow3Color;
         ctx.beginPath();
-        ctx.arc(shadowOffsetX, shadowOffsetY, this.r, 0, Math.PI*2);
+        ctx.arc(shadow3OffsetX, shadow3OffsetY, this.r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+        
+        // Shadow 1: Top-left highlight (environmental light)
+        ctx.save();
+        ctx.globalAlpha = shadow1Opacity;
+        ctx.fillStyle = shadow1Color;
+        ctx.beginPath();
+        ctx.arc(shadow1OffsetX, shadow1OffsetY, this.r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+        
+        // Shadow 2: Bottom-right highlight (secondary light)
+        ctx.save();
+        ctx.globalAlpha = shadow2Opacity;
+        ctx.fillStyle = shadow2Color;
+        ctx.beginPath();
+        ctx.arc(shadow2OffsetX, shadow2OffsetY, this.r, 0, Math.PI*2);
         ctx.fill();
         ctx.restore();
       }
@@ -2332,13 +2445,32 @@
     const baseSize = (R_MIN + R_MAX) / 2;
     const r = baseSize;
     
-    // Draw drop shadow if enabled
-    if (dropShadowEnabled) {
+    // Draw studio shadows if enabled
+    if (studioShadowsEnabled) {
+      // Shadow 3: Main dark shadow (underneath, drawn first)
       ctx.save();
-      ctx.globalAlpha = shadowOpacity;
-      ctx.fillStyle = '#000000';
+      ctx.globalAlpha = shadow3Opacity;
+      ctx.fillStyle = shadow3Color;
       ctx.beginPath();
-      ctx.arc(x + shadowOffsetX, y + shadowOffsetY, r, 0, Math.PI * 2);
+      ctx.arc(x + shadow3OffsetX, y + shadow3OffsetY, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      
+      // Shadow 1: Top-left highlight
+      ctx.save();
+      ctx.globalAlpha = shadow1Opacity;
+      ctx.fillStyle = shadow1Color;
+      ctx.beginPath();
+      ctx.arc(x + shadow1OffsetX, y + shadow1OffsetY, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      
+      // Shadow 2: Bottom-right highlight
+      ctx.save();
+      ctx.globalAlpha = shadow2Opacity;
+      ctx.fillStyle = shadow2Color;
+      ctx.beginPath();
+      ctx.arc(x + shadow2OffsetX, y + shadow2OffsetY, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
@@ -2619,12 +2751,26 @@
       repelRadius,
       repelPower,
       repelSoftness: repelSoft,
-      trailFade,
+      trailFade: motionBlurFade,
       trailSubtlety,
       colors: currentColors.slice(),
       colorWeights: COLOR_WEIGHTS.slice(),
       currentTemplate,
-      cursorColorIndex: cursorBallIndex
+      cursorColorIndex: cursorBallIndex,
+      // Studio shadow system parameters
+      studioShadowsEnabled,
+      shadow1OffsetX,
+      shadow1OffsetY,
+      shadow1Opacity,
+      shadow1Color,
+      shadow2OffsetX,
+      shadow2OffsetY,
+      shadow2Opacity,
+      shadow2Color,
+      shadow3OffsetX,
+      shadow3OffsetY,
+      shadow3Opacity,
+      shadow3Color
     };
   }
   function generateConfigCode(config) {
@@ -2817,36 +2963,79 @@
     });
   }
   
-  // Drop Shadow Controls
-  const dropShadowEnabledEl = document.getElementById('dropShadowEnabled');
-  const shadowOffsetXEl = document.getElementById('shadowOffsetX');
-  const shadowOffsetXVal = document.getElementById('shadowOffsetXVal');
-  const shadowOffsetYEl = document.getElementById('shadowOffsetY');
-  const shadowOffsetYVal = document.getElementById('shadowOffsetYVal');
-  const shadowOpacityEl = document.getElementById('shadowOpacity');
-  const shadowOpacityVal = document.getElementById('shadowOpacityVal');
+  // Studio Shadow Controls (3-layer system)
+  const studioShadowsEnabledEl = document.getElementById('studioShadowsEnabled');
   
-  dropShadowEnabledEl && dropShadowEnabledEl.addEventListener('change', () => {
-    dropShadowEnabled = dropShadowEnabledEl.checked;
-    console.log('🎨 Drop shadow enabled:', dropShadowEnabled);
+  // Shadow 1 controls (top-left highlight)
+  const shadow1OffsetXEl = document.getElementById('shadow1OffsetX');
+  const shadow1OffsetXVal = document.getElementById('shadow1OffsetXVal');
+  const shadow1OffsetYEl = document.getElementById('shadow1OffsetY');
+  const shadow1OffsetYVal = document.getElementById('shadow1OffsetYVal');
+  const shadow1OpacityEl = document.getElementById('shadow1Opacity');
+  const shadow1OpacityVal = document.getElementById('shadow1OpacityVal');
+  
+  // Shadow 2 controls (bottom-right highlight)
+  const shadow2OffsetXEl = document.getElementById('shadow2OffsetX');
+  const shadow2OffsetXVal = document.getElementById('shadow2OffsetXVal');
+  const shadow2OffsetYEl = document.getElementById('shadow2OffsetY');
+  const shadow2OffsetYVal = document.getElementById('shadow2OffsetYVal');
+  const shadow2OpacityEl = document.getElementById('shadow2Opacity');
+  const shadow2OpacityVal = document.getElementById('shadow2OpacityVal');
+  
+  // Shadow 3 controls (main dark shadow)
+  const shadow3OffsetXEl = document.getElementById('shadow3OffsetX');
+  const shadow3OffsetXVal = document.getElementById('shadow3OffsetXVal');
+  const shadow3OffsetYEl = document.getElementById('shadow3OffsetY');
+  const shadow3OffsetYVal = document.getElementById('shadow3OffsetYVal');
+  const shadow3OpacityEl = document.getElementById('shadow3Opacity');
+  const shadow3OpacityVal = document.getElementById('shadow3OpacityVal');
+  
+  // Master toggle
+  studioShadowsEnabledEl && studioShadowsEnabledEl.addEventListener('change', () => {
+    studioShadowsEnabled = studioShadowsEnabledEl.checked;
+    console.log('🎨 Studio shadows enabled:', studioShadowsEnabled);
   });
   
-  shadowOffsetXEl && shadowOffsetXEl.addEventListener('input', () => {
-    shadowOffsetX = parseInt(shadowOffsetXEl.value, 10);
-    if (shadowOffsetXVal) shadowOffsetXVal.textContent = shadowOffsetX + 'px';
-    console.log('➡️ Shadow X offset:', shadowOffsetX);
+  // Shadow 1 listeners
+  shadow1OffsetXEl && shadow1OffsetXEl.addEventListener('input', () => {
+    shadow1OffsetX = parseInt(shadow1OffsetXEl.value, 10);
+    if (shadow1OffsetXVal) shadow1OffsetXVal.textContent = shadow1OffsetX + 'px';
+  });
+  shadow1OffsetYEl && shadow1OffsetYEl.addEventListener('input', () => {
+    shadow1OffsetY = parseInt(shadow1OffsetYEl.value, 10);
+    if (shadow1OffsetYVal) shadow1OffsetYVal.textContent = shadow1OffsetY + 'px';
+  });
+  shadow1OpacityEl && shadow1OpacityEl.addEventListener('input', () => {
+    shadow1Opacity = parseFloat(shadow1OpacityEl.value);
+    if (shadow1OpacityVal) shadow1OpacityVal.textContent = shadow1Opacity.toFixed(2);
   });
   
-  shadowOffsetYEl && shadowOffsetYEl.addEventListener('input', () => {
-    shadowOffsetY = parseInt(shadowOffsetYEl.value, 10);
-    if (shadowOffsetYVal) shadowOffsetYVal.textContent = shadowOffsetY + 'px';
-    console.log('⬇️ Shadow Y offset:', shadowOffsetY);
+  // Shadow 2 listeners
+  shadow2OffsetXEl && shadow2OffsetXEl.addEventListener('input', () => {
+    shadow2OffsetX = parseInt(shadow2OffsetXEl.value, 10);
+    if (shadow2OffsetXVal) shadow2OffsetXVal.textContent = shadow2OffsetX + 'px';
+  });
+  shadow2OffsetYEl && shadow2OffsetYEl.addEventListener('input', () => {
+    shadow2OffsetY = parseInt(shadow2OffsetYEl.value, 10);
+    if (shadow2OffsetYVal) shadow2OffsetYVal.textContent = shadow2OffsetY + 'px';
+  });
+  shadow2OpacityEl && shadow2OpacityEl.addEventListener('input', () => {
+    shadow2Opacity = parseFloat(shadow2OpacityEl.value);
+    if (shadow2OpacityVal) shadow2OpacityVal.textContent = shadow2Opacity.toFixed(2);
   });
   
-  shadowOpacityEl && shadowOpacityEl.addEventListener('input', () => {
-    shadowOpacity = parseFloat(shadowOpacityEl.value);
-    if (shadowOpacityVal) shadowOpacityVal.textContent = shadowOpacity.toFixed(2);
-    console.log('🌫️ Shadow opacity:', shadowOpacity);
+  // Shadow 3 listeners
+  shadow3OffsetXEl && shadow3OffsetXEl.addEventListener('input', () => {
+    shadow3OffsetX = parseInt(shadow3OffsetXEl.value, 10);
+    if (shadow3OffsetXVal) shadow3OffsetXVal.textContent = shadow3OffsetX + 'px';
+  });
+  shadow3OffsetYEl && shadow3OffsetYEl.addEventListener('input', () => {
+    shadow3OffsetY = parseInt(shadow3OffsetYEl.value, 10);
+    if (shadow3OffsetYVal) shadow3OffsetYVal.textContent = shadow3OffsetY + 'px';
+  });
+  shadow3OpacityEl && shadow3OpacityEl.addEventListener('input', () => {
+    shadow3Opacity = parseFloat(shadow3OpacityEl.value);
+    if (shadow3OpacityVal) shadow3OpacityVal.textContent = shadow3Opacity.toFixed(2);
   });
   
   // Mouse tracking for cursor ball and repeller
