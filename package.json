@@ -8,8 +8,11 @@
   "scripts": {
     "start": "python3 -m http.server 8000",
     "build": "node source/build.js",
+    "build-production": "node build-production.js",
     "watch": "chokidar 'source/balls-source.html' 'source/current-config*.json' -c \"npm run build\"",
+    "watch-production": "chokidar 'webflow-export/**/*' 'source/balls-source.html' -c \"npm run build-production\"",
     "dev": "npm run build && npm start",
+    "dev-production": "npm run build-production && npm start",
     "clean": "rm -f source/current-config*.json"
   },
   "devDependencies": {
