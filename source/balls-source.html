@@ -835,13 +835,15 @@
   const canvas = document.getElementById('c');
   const container = document.getElementById('bravia-balls');
   
-  // Validate canvas context availability
+  // Validate canvas context availability with transparent background
   let ctx;
   try {
-    ctx = canvas.getContext('2d', { alpha: true });
+    ctx = canvas.getContext('2d', { alpha: true }); // Alpha channel for transparency
     if (!ctx) {
       throw new Error('Canvas 2D context not available');
     }
+    // Canvas needs transparent background to show dark mode behind it
+    console.log('✅ Canvas initialized with alpha transparency');
   } catch (error) {
     console.error('❌ Failed to initialize canvas:', error);
     container.innerHTML = `
@@ -4108,8 +4110,12 @@
   // Apply canvas shadow with loaded or default settings
   updateCanvasShadow();
   
-  // Initialize dark mode based on time of day
+  // Initialize dark mode BEFORE starting simulation (critical for correct colors)
+  console.log('🔍 Initializing dark mode system...');
   checkAndApplyDarkMode();
+  console.log(`✅ Dark mode initialized: ${isDarkMode ? 'DARK' : 'LIGHT'} mode active`);
+  console.log(`   Container classes: ${container.classList.toString()}`);
+  console.log(`   Background should be: ${isDarkMode ? '#0a0a0a (dark)' : '#cecece (light)'}`);
   
   // Check dark mode every minute for time transitions
   setInterval(checkAndApplyDarkMode, 60000); // Every 60 seconds
