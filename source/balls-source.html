@@ -560,21 +560,39 @@
   // Color 4 (7.5%): Accent color
   // Color 5 (2.5%): Rare/special color
   const COLOR_TEMPLATES = {
+    // CORE PALETTE - User's favorite (don't change)
     industrialTeal: { label: 'Industrial Teal', colors: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'] },
-    modern: { label: 'Modern European', colors: ['#9ca3af', '#d1d5db', '#ffffff', '#ff3b30', '#000000', '#00e5ff', '#1976d2', '#ffc107'] },
-    corporate: { label: 'Corporate Modern', colors: ['#a0a8b1', '#d2d8de', '#ffffff', '#1a73e8', '#000000', '#ff5722', '#7b1fa2', '#ffa000'] },
-    minimal: { label: 'Helvetica Minimal', colors: ['#bdbdbd', '#e0e0e0', '#ffffff', '#6b7280', '#000000', '#40e0d0', '#303f9f', '#ff9800'] },
-    euroBlue: { label: 'European Blue', colors: ['#9aa6b2', '#d4dde5', '#ffffff', '#0a66c2', '#000000', '#ff4081', '#388e3c', '#ffb300'] },
-    scandi: { label: 'Scandinavian Bright', colors: ['#aab2b7', '#e6eaee', '#ffffff', '#74b9ff', '#000000', '#e91e63', '#1976d2', '#4caf50'] },
-    neonCyan: { label: 'Graphite Neon Cyan', colors: ['#9aa0a6', '#d5d9dd', '#ffffff', '#00e5ff', '#000000', '#ff9800', '#9c27b0', '#4caf50'] },
-    coralTech: { label: 'Coral Tech', colors: ['#9da3a9', '#d8dde2', '#ffffff', '#ff6b6b', '#000000', '#00e676', '#3f51b5', '#ff5722'] },
-    violetMidnight: { label: 'Violet Midnight', colors: ['#9fa3b1', '#d9dce3', '#ffffff', '#7c3aed', '#000000', '#e91e63', '#388e3c', '#ffb300'] },
-    mintSage: { label: 'Mint Sage', colors: ['#a0a7a2', '#dbe0dd', '#ffffff', '#00c896', '#000000', '#ff1744', '#3f51b5', '#ff9800'] },
-    slateAzure: { label: 'Slate Azure', colors: ['#9aa3ad', '#d8dee6', '#ffffff', '#3b82f6', '#000000', '#ff4081', '#388e3c', '#ffc107'] },
-    vaporPop: { label: 'Vapor Pop', colors: ['#9ea0a8', '#d6d7dc', '#ffffff', '#ff00e5', '#000000', '#00bcd4', '#673ab7', '#ff5722'] },
-    cyberMagenta: { label: 'Cyber Magenta', colors: ['#9c9fad', '#d6d9e3', '#ffffff', '#ff007a', '#000000', '#40e0d0', '#1976d2', '#ff9800'] },
-    streetLime: { label: 'Street Lime', colors: ['#9aa19a', '#d6dbd6', '#ffffff', '#baff00', '#000000', '#e91e63', '#3f51b5', '#ff6f00'] },
-    cmykPop: { label: 'CMYK Pop', colors: ['#9f9f9f', '#d9d9d9', '#ffffff', '#ffd400', '#000000', '#ff1744', '#7b1fa2', '#4caf50'] }
+    
+    // NEW PALETTES - Designed to match Industrial Teal's playful graphic design energy
+    // Each has: neutral grays + bold hero color + high contrast + 3 vibrant accents
+    
+    sunsetCoral: { 
+      label: 'Sunset Coral', 
+      colors: ['#b8b5b1', '#e5e3df', '#ffffff', '#ff6b6b', '#000000', '#00d4aa', '#2563eb', '#f59e0b'] 
+      // Hero: Coral (warm, friendly, energetic) + Teal, Blue, Amber accents
+      // Psychology: Optimistic, approachable, creative confidence
+    },
+    
+    violetPunch: { 
+      label: 'Violet Punch', 
+      colors: ['#b5b4bd', '#e3e2e9', '#ffffff', '#8b5cf6', '#000000', '#ef4444', '#06b6d4', '#fbbf24'] 
+      // Hero: Purple (creative, imaginative, bold) + Red, Cyan, Yellow accents
+      // Psychology: Innovative, playful sophistication, design-forward
+    },
+    
+    citrusBlast: { 
+      label: 'Citrus Blast', 
+      colors: ['#b9b7b0', '#e6e4dd', '#ffffff', '#f59e0b', '#000000', '#ec4899', '#3b82f6', '#10b981'] 
+      // Hero: Orange (energetic, enthusiastic, fun) + Pink, Blue, Green accents
+      // Psychology: Cheerful, dynamic, youthful energy
+    },
+    
+    cobaltSpark: { 
+      label: 'Cobalt Spark', 
+      colors: ['#b3b6bc', '#e1e4e9', '#ffffff', '#2563eb', '#000000', '#f97316', '#ec4899', '#eab308'] 
+      // Hero: Cobalt Blue (confident, intelligent, trustworthy) + Orange, Pink, Yellow accents
+      // Psychology: Professional playfulness, sharp and smart
+    }
   };
 
   let currentTemplate = 'industrialTeal';
