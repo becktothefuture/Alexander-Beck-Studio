@@ -272,76 +272,91 @@
   </details>
   
   <details open>
-    <summary>🎨 Studio Lighting & Shadows</summary>
+    <summary>🔮 Glass Morphism Effects</summary>
     <div class="group">
-      <label title="Enable/disable studio shadow system (3-layer Apple Glass effect)">
-        <span>Studio shadows</span>
-        <input type="checkbox" id="studioShadowsEnabled" checked>
+      <label title="Enable/disable glass morphism shadow system (refractive depth layers)">
+        <span>Glass morphism</span>
+        <input type="checkbox" id="glassMorphismEnabled" checked>
       </label>
       
       <div style="font-size: 9px; opacity: 0.7; margin: 8px 0;">
-        Three-layer studio lighting: top-left highlight, bottom-right highlight, middle shadow
+        Three-layer refractive shadows: foundation (large+blur) → mid-layer → surface reflection
       </div>
       
       <details>
-        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">⚙️ Shadow 1: Top-left highlight</summary>
+        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">🌑 Foundation Shadow (largest, blurred)</summary>
         <div class="group" style="margin-top: 6px;">
-          <label title="Top-left highlight X offset (-20 to 20px). Negative = left">
+          <label title="Foundation shadow X offset (0-20px). Creates depth">
             <span>X offset</span>
-            <input type="range" id="shadow1OffsetX" min="-20" max="20" step="1" value="-8">
-            <span class="val" id="shadow1OffsetXVal">-8px</span>
+            <input type="range" id="shadow1OffsetX" min="0" max="20" step="1" value="6">
+            <span class="val" id="shadow1OffsetXVal">6px</span>
           </label>
-          <label title="Top-left highlight Y offset (-20 to 20px). Negative = up">
+          <label title="Foundation shadow Y offset (0-20px). Creates depth">
             <span>Y offset</span>
-            <input type="range" id="shadow1OffsetY" min="-20" max="20" step="1" value="-8">
-            <span class="val" id="shadow1OffsetYVal">-8px</span>
+            <input type="range" id="shadow1OffsetY" min="0" max="20" step="1" value="8">
+            <span class="val" id="shadow1OffsetYVal">8px</span>
           </label>
-          <label title="Top-left highlight opacity (0.0-0.5). Light highlight effect">
+          <label title="Foundation shadow opacity (0.0-0.5). Base depth">
             <span>Opacity</span>
-            <input type="range" id="shadow1Opacity" min="0.0" max="0.5" step="0.01" value="0.15">
-            <span class="val" id="shadow1OpacityVal">0.15</span>
+            <input type="range" id="shadow1Opacity" min="0.0" max="0.5" step="0.01" value="0.25">
+            <span class="val" id="shadow1OpacityVal">0.25</span>
+          </label>
+          <label title="Foundation shadow size (1.0-1.3×). Larger = more diffuse">
+            <span>Size multiplier</span>
+            <input type="range" id="shadow1SizeMultiplier" min="1.0" max="1.3" step="0.01" value="1.15">
+            <span class="val" id="shadow1SizeMultiplierVal">1.15×</span>
           </label>
         </div>
       </details>
       
       <details>
-        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">⚙️ Shadow 2: Bottom-right highlight</summary>
+        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">🌫️ Mid-layer Refraction (medium blur)</summary>
         <div class="group" style="margin-top: 6px;">
-          <label title="Bottom-right highlight X offset (0 to 30px). Positive = right">
+          <label title="Mid-layer X offset (0-15px). Refraction layer">
             <span>X offset</span>
-            <input type="range" id="shadow2OffsetX" min="0" max="30" step="1" value="12">
-            <span class="val" id="shadow2OffsetXVal">12px</span>
+            <input type="range" id="shadow2OffsetX" min="0" max="15" step="1" value="3">
+            <span class="val" id="shadow2OffsetXVal">3px</span>
           </label>
-          <label title="Bottom-right highlight Y offset (0 to 30px). Positive = down">
+          <label title="Mid-layer Y offset (0-15px). Refraction layer">
             <span>Y offset</span>
-            <input type="range" id="shadow2OffsetY" min="0" max="30" step="1" value="12">
-            <span class="val" id="shadow2OffsetYVal">12px</span>
+            <input type="range" id="shadow2OffsetY" min="0" max="15" step="1" value="4">
+            <span class="val" id="shadow2OffsetYVal">4px</span>
           </label>
-          <label title="Bottom-right highlight opacity (0.0-0.5). Light highlight effect">
+          <label title="Mid-layer opacity (0.0-0.3). Subtle refraction">
             <span>Opacity</span>
-            <input type="range" id="shadow2Opacity" min="0.0" max="0.5" step="0.01" value="0.20">
-            <span class="val" id="shadow2OpacityVal">0.20</span>
+            <input type="range" id="shadow2Opacity" min="0.0" max="0.3" step="0.01" value="0.15">
+            <span class="val" id="shadow2OpacityVal">0.15</span>
+          </label>
+          <label title="Mid-layer size (1.0-1.2×). Medium diffusion">
+            <span>Size multiplier</span>
+            <input type="range" id="shadow2SizeMultiplier" min="1.0" max="1.2" step="0.01" value="1.08">
+            <span class="val" id="shadow2SizeMultiplierVal">1.08×</span>
           </label>
         </div>
       </details>
       
       <details>
-        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">⚙️ Shadow 3: Main shadow (dark)</summary>
+        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">✨ Surface Reflection (sharp, minimal)</summary>
         <div class="group" style="margin-top: 6px;">
-          <label title="Main shadow X offset (0 to 20px). Middle position">
+          <label title="Surface reflection X offset (0-10px). Subtle highlight">
             <span>X offset</span>
-            <input type="range" id="shadow3OffsetX" min="0" max="20" step="1" value="4">
-            <span class="val" id="shadow3OffsetXVal">4px</span>
+            <input type="range" id="shadow3OffsetX" min="0" max="10" step="1" value="1">
+            <span class="val" id="shadow3OffsetXVal">1px</span>
           </label>
-          <label title="Main shadow Y offset (0 to 20px). Middle position">
+          <label title="Surface reflection Y offset (0-10px). Subtle highlight">
             <span>Y offset</span>
-            <input type="range" id="shadow3OffsetY" min="0" max="20" step="1" value="6">
-            <span class="val" id="shadow3OffsetYVal">6px</span>
+            <input type="range" id="shadow3OffsetY" min="0" max="10" step="1" value="2">
+            <span class="val" id="shadow3OffsetYVal">2px</span>
           </label>
-          <label title="Main shadow opacity (0.0-0.8). Dark shadow underneath">
+          <label title="Surface reflection opacity (0.0-0.2). Very subtle">
             <span>Opacity</span>
-            <input type="range" id="shadow3Opacity" min="0.0" max="0.8" step="0.01" value="0.40">
-            <span class="val" id="shadow3OpacityVal">0.40</span>
+            <input type="range" id="shadow3Opacity" min="0.0" max="0.2" step="0.01" value="0.08">
+            <span class="val" id="shadow3OpacityVal">0.08</span>
+          </label>
+          <label title="Surface reflection size (0.9-1.1×). Sharp definition">
+            <span>Size multiplier</span>
+            <input type="range" id="shadow3SizeMultiplier" min="0.9" max="1.1" step="0.01" value="1.00">
+            <span class="val" id="shadow3SizeMultiplierVal">1.00×</span>
           </label>
         </div>
       </details>
@@ -598,27 +613,33 @@
   let weightlessRepellerRadius = 150; // repeller radius (px)
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // STUDIO LIGHTING SHADOW SYSTEM (3-shadow Apple Glass effect)
+  // GLASS MORPHISM SHADOW SYSTEM (Refractive depth with size + blur variation)
   // ═══════════════════════════════════════════════════════════════════════════
-  let studioShadowsEnabled = true;    // Enable studio shadow system
+  let glassMorphismEnabled = true;    // Enable glass morphism shadow system
   
-  // Shadow 1: Top-left light (bright environmental light)
-  let shadow1OffsetX = -8;            // Top-left offset X
-  let shadow1OffsetY = -8;            // Top-left offset Y
-  let shadow1Opacity = 0.15;          // Light shadow opacity
-  let shadow1Color = '#ffffff';       // White highlight
+  // Shadow 1: Foundation shadow (largest, most blurred, underneath)
+  let shadow1OffsetX = 6;             // Foundation offset X
+  let shadow1OffsetY = 8;             // Foundation offset Y
+  let shadow1Opacity = 0.25;          // Foundation shadow opacity
+  let shadow1Color = '#000000';       // Black foundation shadow
+  let shadow1SizeMultiplier = 1.15;   // 15% larger than ball
+  let shadow1BlurRadius = 8;          // Blur amount
   
-  // Shadow 2: Bottom-right light (secondary light source)
-  let shadow2OffsetX = 12;            // Bottom-right offset X
-  let shadow2OffsetY = 12;            // Bottom-right offset Y
-  let shadow2Opacity = 0.2;           // Light shadow opacity
-  let shadow2Color = '#ffffff';       // White highlight
+  // Shadow 2: Mid-layer refraction (medium size, medium blur)
+  let shadow2OffsetX = 3;             // Mid-layer offset X
+  let shadow2OffsetY = 4;             // Mid-layer offset Y
+  let shadow2Opacity = 0.15;          // Mid-layer opacity
+  let shadow2Color = '#333333';       // Dark gray
+  let shadow2SizeMultiplier = 1.08;   // 8% larger than ball
+  let shadow2BlurRadius = 4;          // Medium blur
   
-  // Shadow 3: Middle dark (underneath, main shadow)
-  let shadow3OffsetX = 4;             // Middle offset X
-  let shadow3OffsetY = 6;             // Middle offset Y
-  let shadow3Opacity = 0.4;           // Dark shadow opacity
-  let shadow3Color = '#000000';       // Black shadow
+  // Shadow 3: Surface reflection (ball size, minimal blur, highlights)
+  let shadow3OffsetX = 1;             // Surface offset X
+  let shadow3OffsetY = 2;             // Surface offset Y
+  let shadow3Opacity = 0.08;          // Very subtle
+  let shadow3Color = '#666666';       // Light gray
+  let shadow3SizeMultiplier = 1.0;    // Same size as ball
+  let shadow3BlurRadius = 1;          // Minimal blur
   
   let cursorBallVisible = true;       // Show cursor ball on desktop
   
@@ -666,7 +687,7 @@
   const panel = document.getElementById('controlPanel');
   const container = document.getElementById('bravia-balls');
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  
+
   // ═══════════════════════════════════════════════════════════════════════════
   // WEBGL RENDERER SYSTEM (Phase 2.2)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -757,7 +778,7 @@
     sprite.zIndex = 0;
     sprite._lastRadius = -1;
     sprite._lastColor = '';
-    sprite._lastStudioShadowsEnabled = null;
+    sprite._lastGlassMorphismEnabled = null;
     sprite._lastShadow1OffsetX = null;
     sprite._lastShadow1OffsetY = null;
     sprite._lastShadow1Opacity = null;
@@ -789,7 +810,7 @@
     const needsRedraw = (
       sprite._lastRadius !== ball.r ||
       sprite._lastColor !== ball.color ||
-      sprite._lastStudioShadowsEnabled !== studioShadowsEnabled ||
+      sprite._lastGlassMorphismEnabled !== glassMorphismEnabled ||
       sprite._lastShadow1OffsetX !== shadow1OffsetX ||
       sprite._lastShadow1OffsetY !== shadow1OffsetY ||
       sprite._lastShadow1Opacity !== shadow1Opacity ||
@@ -805,9 +826,9 @@
     if (needsRedraw) {
       sprite.clear();
       
-      // Studio lighting shadow system
-      if (studioShadowsEnabled) {
-        renderBallWithStudioShadowsWebGL(sprite, ball.r, colorNum);
+      // Glass morphism shadow system
+      if (glassMorphismEnabled) {
+        renderBallWithGlassMorphismWebGL(sprite, ball.r, colorNum);
       } else {
         // Flat rendering without shadows
         sprite.beginFill(colorNum, 1.0);
@@ -818,7 +839,7 @@
       // Cache current values
       sprite._lastRadius = ball.r;
       sprite._lastColor = ball.color;
-      sprite._lastStudioShadowsEnabled = studioShadowsEnabled;
+      sprite._lastGlassMorphismEnabled = glassMorphismEnabled;
       sprite._lastShadow1OffsetX = shadow1OffsetX;
       sprite._lastShadow1OffsetY = shadow1OffsetY;
       sprite._lastShadow1Opacity = shadow1Opacity;
@@ -853,26 +874,47 @@
     }
   }
   
-  function renderBallWithStudioShadowsWebGL(sprite, radius, baseColor) {
-    // Studio lighting: 3-layer shadow system (Apple Glass effect)
+  function renderBallWithGlassMorphismWebGL(sprite, radius, baseColor) {
+    // Glass morphism: 3-layer refractive shadow system with size variation
     
-    // Shadow 3: Main dark shadow (underneath, drawn first)
-    const shadow3ColorNum = parseInt(shadow3Color.replace('#', ''), 16);
-    sprite.beginFill(shadow3ColorNum, shadow3Opacity);
-    sprite.drawCircle(shadow3OffsetX, shadow3OffsetY, radius);
-    sprite.endFill();
-    
-    // Shadow 1: Top-left highlight (environmental light)
+    // Layer 1: Foundation shadow (largest, most blurred, underneath)
     const shadow1ColorNum = parseInt(shadow1Color.replace('#', ''), 16);
-    sprite.beginFill(shadow1ColorNum, shadow1Opacity);
-    sprite.drawCircle(shadow1OffsetX, shadow1OffsetY, radius);
-    sprite.endFill();
+    const shadow1Radius = radius * shadow1SizeMultiplier;
     
-    // Shadow 2: Bottom-right highlight (secondary light)
+    // Create multiple circles for blur effect (foundation)
+    for (let i = 0; i < shadow1BlurRadius; i++) {
+      const blurOpacity = shadow1Opacity * (1 - i / shadow1BlurRadius) * 0.3;
+      const blurRadius = shadow1Radius + i * 0.5;
+      sprite.beginFill(shadow1ColorNum, blurOpacity);
+      sprite.drawCircle(shadow1OffsetX, shadow1OffsetY, blurRadius);
+      sprite.endFill();
+    }
+    
+    // Layer 2: Mid-layer refraction (medium size, medium blur)
     const shadow2ColorNum = parseInt(shadow2Color.replace('#', ''), 16);
-    sprite.beginFill(shadow2ColorNum, shadow2Opacity);
-    sprite.drawCircle(shadow2OffsetX, shadow2OffsetY, radius);
-    sprite.endFill();
+    const shadow2Radius = radius * shadow2SizeMultiplier;
+    
+    // Create blur effect for mid-layer
+    for (let i = 0; i < shadow2BlurRadius; i++) {
+      const blurOpacity = shadow2Opacity * (1 - i / shadow2BlurRadius) * 0.4;
+      const blurRadius = shadow2Radius + i * 0.3;
+      sprite.beginFill(shadow2ColorNum, blurOpacity);
+      sprite.drawCircle(shadow2OffsetX, shadow2OffsetY, blurRadius);
+      sprite.endFill();
+    }
+    
+    // Layer 3: Surface reflection (ball size, minimal blur)
+    const shadow3ColorNum = parseInt(shadow3Color.replace('#', ''), 16);
+    const shadow3Radius = radius * shadow3SizeMultiplier;
+    
+    // Minimal blur for surface reflection
+    for (let i = 0; i < shadow3BlurRadius; i++) {
+      const blurOpacity = shadow3Opacity * (1 - i / shadow3BlurRadius) * 0.6;
+      const blurRadius = shadow3Radius + i * 0.1;
+      sprite.beginFill(shadow3ColorNum, blurOpacity);
+      sprite.drawCircle(shadow3OffsetX, shadow3OffsetY, blurRadius);
+      sprite.endFill();
+    }
     
     // Main ball on top (highest layer)
     sprite.beginFill(baseColor, 1.0);
@@ -942,9 +984,9 @@
     // Convert cursor ball color
     const colorNum = parseInt(cursorBallColor.replace('#', ''), 16);
     
-    // Apply same studio shadow system as regular balls
-    if (studioShadowsEnabled) {
-      renderBallWithStudioShadowsWebGL(cursorBallSprite, cursorBallRadius, colorNum);
+    // Apply same glass morphism system as regular balls
+    if (glassMorphismEnabled) {
+      renderBallWithGlassMorphismWebGL(cursorBallSprite, cursorBallRadius, colorNum);
     } else {
       cursorBallSprite.beginFill(colorNum, 0.8); // Slightly transparent
       cursorBallSprite.drawCircle(0, 0, cursorBallRadius);
@@ -1777,7 +1819,7 @@
 
       // World-aligned squash/stretch only for larger balls (performance optimization)
       // Small balls (<15px radius) don't show visible squash, so skip expensive transforms
-      const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
+        const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
       if (this.r > 15 && amt > 0.001) {
         // Area-preserving squash: s * (1/s) maintains roundness perception
         const s = 1 + amt;
@@ -1787,34 +1829,43 @@
         ctx.rotate(-this.squashNormalAngle);
       }
       
-      // Draw studio shadows if enabled (3-layer system)
-      if (studioShadowsEnabled) {
-        // Shadow 3: Main dark shadow (underneath, drawn first)
-        ctx.save();
-        ctx.globalAlpha = shadow3Opacity;
-        ctx.fillStyle = shadow3Color;
-        ctx.beginPath();
-        ctx.arc(shadow3OffsetX, shadow3OffsetY, this.r, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
+      // Draw glass morphism shadows if enabled (3-layer refractive system)
+      if (glassMorphismEnabled) {
+        // Layer 1: Foundation shadow (largest, most blurred, underneath)
+        const shadow1Radius = this.r * shadow1SizeMultiplier;
+        for (let i = 0; i < shadow1BlurRadius; i++) {
+          ctx.save();
+          ctx.globalAlpha = shadow1Opacity * (1 - i / shadow1BlurRadius) * 0.3;
+          ctx.fillStyle = shadow1Color;
+          ctx.beginPath();
+          ctx.arc(shadow1OffsetX, shadow1OffsetY, shadow1Radius + i * 0.5, 0, Math.PI*2);
+          ctx.fill();
+          ctx.restore();
+        }
         
-        // Shadow 1: Top-left highlight (environmental light)
-        ctx.save();
-        ctx.globalAlpha = shadow1Opacity;
-        ctx.fillStyle = shadow1Color;
-        ctx.beginPath();
-        ctx.arc(shadow1OffsetX, shadow1OffsetY, this.r, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
+        // Layer 2: Mid-layer refraction (medium size, medium blur)
+        const shadow2Radius = this.r * shadow2SizeMultiplier;
+        for (let i = 0; i < shadow2BlurRadius; i++) {
+          ctx.save();
+          ctx.globalAlpha = shadow2Opacity * (1 - i / shadow2BlurRadius) * 0.4;
+          ctx.fillStyle = shadow2Color;
+          ctx.beginPath();
+          ctx.arc(shadow2OffsetX, shadow2OffsetY, shadow2Radius + i * 0.3, 0, Math.PI*2);
+          ctx.fill();
+          ctx.restore();
+        }
         
-        // Shadow 2: Bottom-right highlight (secondary light)
-        ctx.save();
-        ctx.globalAlpha = shadow2Opacity;
-        ctx.fillStyle = shadow2Color;
-        ctx.beginPath();
-        ctx.arc(shadow2OffsetX, shadow2OffsetY, this.r, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
+        // Layer 3: Surface reflection (ball size, minimal blur)
+        const shadow3Radius = this.r * shadow3SizeMultiplier;
+        for (let i = 0; i < shadow3BlurRadius; i++) {
+          ctx.save();
+          ctx.globalAlpha = shadow3Opacity * (1 - i / shadow3BlurRadius) * 0.6;
+          ctx.fillStyle = shadow3Color;
+          ctx.beginPath();
+          ctx.arc(shadow3OffsetX, shadow3OffsetY, shadow3Radius + i * 0.1, 0, Math.PI*2);
+          ctx.fill();
+          ctx.restore();
+        }
       }
       
       // Draw main ball
@@ -2189,18 +2240,18 @@
     } else {
       // Canvas2D Rendering Path (Original)
       ctx.clearRect(0,0,canvas.width,canvas.height);
-      
-      // Draw rounded boundary if corner radius > 0 (cache boundary path for performance)
-      if (cornerRadius > 0) {
-        drawRoundedBoundary(ctx, canvas.width, canvas.height);
-      }
-      
-      // Shadow rendering removed for better performance and realism
-      
-      // Render balls with individual colors
-      for (let i=0; i<balls.length; i++) balls[i].draw(ctx);
-      // Draw cursor ball last
-      drawCursorBall(ctx);
+    
+    // Draw rounded boundary if corner radius > 0 (cache boundary path for performance)
+    if (cornerRadius > 0) {
+      drawRoundedBoundary(ctx, canvas.width, canvas.height);
+    }
+    
+    // Shadow rendering removed for better performance and realism
+    
+    // Render balls with individual colors
+    for (let i=0; i<balls.length; i++) balls[i].draw(ctx);
+    // Draw cursor ball last
+    drawCursorBall(ctx);
     }
     
     // Draw current mode indicator (desktop only)
@@ -2445,34 +2496,43 @@
     const baseSize = (R_MIN + R_MAX) / 2;
     const r = baseSize;
     
-    // Draw studio shadows if enabled
-    if (studioShadowsEnabled) {
-      // Shadow 3: Main dark shadow (underneath, drawn first)
-      ctx.save();
-      ctx.globalAlpha = shadow3Opacity;
-      ctx.fillStyle = shadow3Color;
-      ctx.beginPath();
-      ctx.arc(x + shadow3OffsetX, y + shadow3OffsetY, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+    // Draw glass morphism shadows if enabled
+    if (glassMorphismEnabled) {
+      // Layer 1: Foundation shadow (largest, most blurred)
+      const shadow1Radius = r * shadow1SizeMultiplier;
+      for (let i = 0; i < shadow1BlurRadius; i++) {
+        ctx.save();
+        ctx.globalAlpha = shadow1Opacity * (1 - i / shadow1BlurRadius) * 0.3;
+        ctx.fillStyle = shadow1Color;
+        ctx.beginPath();
+        ctx.arc(x + shadow1OffsetX, y + shadow1OffsetY, shadow1Radius + i * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
       
-      // Shadow 1: Top-left highlight
-      ctx.save();
-      ctx.globalAlpha = shadow1Opacity;
-      ctx.fillStyle = shadow1Color;
-      ctx.beginPath();
-      ctx.arc(x + shadow1OffsetX, y + shadow1OffsetY, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      // Layer 2: Mid-layer refraction
+      const shadow2Radius = r * shadow2SizeMultiplier;
+      for (let i = 0; i < shadow2BlurRadius; i++) {
+        ctx.save();
+        ctx.globalAlpha = shadow2Opacity * (1 - i / shadow2BlurRadius) * 0.4;
+        ctx.fillStyle = shadow2Color;
+        ctx.beginPath();
+        ctx.arc(x + shadow2OffsetX, y + shadow2OffsetY, shadow2Radius + i * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
       
-      // Shadow 2: Bottom-right highlight
-      ctx.save();
-      ctx.globalAlpha = shadow2Opacity;
-      ctx.fillStyle = shadow2Color;
-      ctx.beginPath();
-      ctx.arc(x + shadow2OffsetX, y + shadow2OffsetY, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      // Layer 3: Surface reflection
+      const shadow3Radius = r * shadow3SizeMultiplier;
+      for (let i = 0; i < shadow3BlurRadius; i++) {
+        ctx.save();
+        ctx.globalAlpha = shadow3Opacity * (1 - i / shadow3BlurRadius) * 0.6;
+        ctx.fillStyle = shadow3Color;
+        ctx.beginPath();
+        ctx.arc(x + shadow3OffsetX, y + shadow3OffsetY, shadow3Radius + i * 0.1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
     
     // Draw main cursor ball
@@ -2757,20 +2817,26 @@
       colorWeights: COLOR_WEIGHTS.slice(),
       currentTemplate,
       cursorColorIndex: cursorBallIndex,
-      // Studio shadow system parameters
-      studioShadowsEnabled,
+      // Glass morphism shadow system parameters
+      glassMorphismEnabled,
       shadow1OffsetX,
       shadow1OffsetY,
       shadow1Opacity,
       shadow1Color,
+      shadow1SizeMultiplier,
+      shadow1BlurRadius,
       shadow2OffsetX,
       shadow2OffsetY,
       shadow2Opacity,
       shadow2Color,
+      shadow2SizeMultiplier,
+      shadow2BlurRadius,
       shadow3OffsetX,
       shadow3OffsetY,
       shadow3Opacity,
-      shadow3Color
+      shadow3Color,
+      shadow3SizeMultiplier,
+      shadow3BlurRadius
     };
   }
   function generateConfigCode(config) {
@@ -2963,8 +3029,8 @@
     });
   }
   
-  // Studio Shadow Controls (3-layer system)
-  const studioShadowsEnabledEl = document.getElementById('studioShadowsEnabled');
+  // Glass Morphism Controls (3-layer refractive system)
+  const glassMorphismEnabledEl = document.getElementById('glassMorphismEnabled');
   
   // Shadow 1 controls (top-left highlight)
   const shadow1OffsetXEl = document.getElementById('shadow1OffsetX');
@@ -2973,6 +3039,8 @@
   const shadow1OffsetYVal = document.getElementById('shadow1OffsetYVal');
   const shadow1OpacityEl = document.getElementById('shadow1Opacity');
   const shadow1OpacityVal = document.getElementById('shadow1OpacityVal');
+  const shadow1SizeMultiplierEl = document.getElementById('shadow1SizeMultiplier');
+  const shadow1SizeMultiplierVal = document.getElementById('shadow1SizeMultiplierVal');
   
   // Shadow 2 controls (bottom-right highlight)
   const shadow2OffsetXEl = document.getElementById('shadow2OffsetX');
@@ -2981,19 +3049,23 @@
   const shadow2OffsetYVal = document.getElementById('shadow2OffsetYVal');
   const shadow2OpacityEl = document.getElementById('shadow2Opacity');
   const shadow2OpacityVal = document.getElementById('shadow2OpacityVal');
+  const shadow2SizeMultiplierEl = document.getElementById('shadow2SizeMultiplier');
+  const shadow2SizeMultiplierVal = document.getElementById('shadow2SizeMultiplierVal');
   
-  // Shadow 3 controls (main dark shadow)
+  // Shadow 3 controls (surface reflection)
   const shadow3OffsetXEl = document.getElementById('shadow3OffsetX');
   const shadow3OffsetXVal = document.getElementById('shadow3OffsetXVal');
   const shadow3OffsetYEl = document.getElementById('shadow3OffsetY');
   const shadow3OffsetYVal = document.getElementById('shadow3OffsetYVal');
   const shadow3OpacityEl = document.getElementById('shadow3Opacity');
   const shadow3OpacityVal = document.getElementById('shadow3OpacityVal');
+  const shadow3SizeMultiplierEl = document.getElementById('shadow3SizeMultiplier');
+  const shadow3SizeMultiplierVal = document.getElementById('shadow3SizeMultiplierVal');
   
   // Master toggle
-  studioShadowsEnabledEl && studioShadowsEnabledEl.addEventListener('change', () => {
-    studioShadowsEnabled = studioShadowsEnabledEl.checked;
-    console.log('🎨 Studio shadows enabled:', studioShadowsEnabled);
+  glassMorphismEnabledEl && glassMorphismEnabledEl.addEventListener('change', () => {
+    glassMorphismEnabled = glassMorphismEnabledEl.checked;
+    console.log('🔮 Glass morphism enabled:', glassMorphismEnabled);
   });
   
   // Shadow 1 listeners
@@ -3009,6 +3081,10 @@
     shadow1Opacity = parseFloat(shadow1OpacityEl.value);
     if (shadow1OpacityVal) shadow1OpacityVal.textContent = shadow1Opacity.toFixed(2);
   });
+  shadow1SizeMultiplierEl && shadow1SizeMultiplierEl.addEventListener('input', () => {
+    shadow1SizeMultiplier = parseFloat(shadow1SizeMultiplierEl.value);
+    if (shadow1SizeMultiplierVal) shadow1SizeMultiplierVal.textContent = shadow1SizeMultiplier.toFixed(2) + '×';
+  });
   
   // Shadow 2 listeners
   shadow2OffsetXEl && shadow2OffsetXEl.addEventListener('input', () => {
@@ -3023,6 +3099,10 @@
     shadow2Opacity = parseFloat(shadow2OpacityEl.value);
     if (shadow2OpacityVal) shadow2OpacityVal.textContent = shadow2Opacity.toFixed(2);
   });
+  shadow2SizeMultiplierEl && shadow2SizeMultiplierEl.addEventListener('input', () => {
+    shadow2SizeMultiplier = parseFloat(shadow2SizeMultiplierEl.value);
+    if (shadow2SizeMultiplierVal) shadow2SizeMultiplierVal.textContent = shadow2SizeMultiplier.toFixed(2) + '×';
+  });
   
   // Shadow 3 listeners
   shadow3OffsetXEl && shadow3OffsetXEl.addEventListener('input', () => {
@@ -3036,6 +3116,10 @@
   shadow3OpacityEl && shadow3OpacityEl.addEventListener('input', () => {
     shadow3Opacity = parseFloat(shadow3OpacityEl.value);
     if (shadow3OpacityVal) shadow3OpacityVal.textContent = shadow3Opacity.toFixed(2);
+  });
+  shadow3SizeMultiplierEl && shadow3SizeMultiplierEl.addEventListener('input', () => {
+    shadow3SizeMultiplier = parseFloat(shadow3SizeMultiplierEl.value);
+    if (shadow3SizeMultiplierVal) shadow3SizeMultiplierVal.textContent = shadow3SizeMultiplier.toFixed(2) + '×';
   });
   
   // Mouse tracking for cursor ball and repeller
@@ -3136,7 +3220,7 @@
       ball.driftTime = 0;
     }
   }
-
+  
   function initializeWeightlessScene() {
     balls.length = 0;
     
