@@ -1,6 +1,6 @@
 # Alexander Beck Studio Website
 
-**Interactive particle physics simulation with 3 distinct modes**
+**Kinetic canvas simulation fusing minimalist aesthetics with real-time particle physics**
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)
@@ -8,12 +8,31 @@
 
 ---
 
+## Design Philosophy & Visual Language
+
+**Vibe:** Contemplative digital materialism — particles as tangible, physical entities inhabiting a minimal stage. The simulation evokes analog tactility through collision feedback, deformation squash, rotational momentum, and shadow depth while maintaining crystalline visual clarity. Time-based dark mode (sunset→sunrise) creates ambient environmental awareness, shifting from industrial concrete (#cecece) to deep charcoal (#0a0a0a) as natural light fades.
+
+**Color Strategy:** Palette-driven illumination system with light/dark variants per theme. Industrial Teal (default) establishes weighted chromatic hierarchy: 50% dominant neutral, graduated secondary/tertiary accents (25%→15%→7.5%→2.5%), finishing with rare highlight punctuation. Each palette (Cobalt Spark, Ember, Mint, Lilac) maintains this distribution while expressing distinct emotional registers through hue relationships. CSS variables expose palette for page-wide design system coherence.
+
+**Interaction Model:** Passive-primary with subtle agency. Cursor becomes ethereal repeller (Ball Pit), luminous attractor (Flies), or gentle perturbation field (Zero-G). Touch gestures translate to physics forces. Keyboard shortcuts (1-4, R, /) enable rapid mode switching. System respects `prefers-reduced-motion` by disabling animations gracefully.
+
+**Motion Language:** Fixed-timestep physics (120Hz) ensures deterministic simulation across varied refresh rates (Safari 60fps, Chrome 120fps+). Collision deformation uses ballSoftness parameter (0=rigid billiards, 100=gelatinous). Rotational dynamics visualize tangential slip during impacts. Spatial grid partitioning enables O(n) collision detection for 300+ simultaneous particles at sustained 60fps.
+
+**Technical Aesthetic:** Source-first development in single `balls-source.html` artifact. Configuration-driven behavior via JSON injection. Build pipeline extracts, minifies (66% compression → 49.9KB), and integrates into Webflow export. Zero external dependencies — pure Canvas 2D primitives orchestrated through requestAnimationFrame choreography. Defensive scoping (#bravia-balls container) prevents style cascade pollution in host document.
+
+**Accessibility Posture:** ARIA labels for screen readers. Semantic keyboard navigation. Motion respect toggle. Console logging for developer introspection. Draggable control panel with collapsible sections. Numeric precision indicators (decimals for sensitive parameters). Export/import for configuration persistence.
+
+**Conceptual Framing:** Computational physics as ambient medium rather than foregrounded spectacle. The simulation functions as digital wallpaper, conversational backdrop, or kinetic screensaver — always present, never demanding, eternally unique due to chaotic dynamics. Each reload randomizes initial conditions (mode selection, ball positions, velocities) ensuring perpetual novelty within constrained aesthetic vocabulary.
+
+---
+
 ## Features
 
-**Three Physics Modes:**
-- 🎯 **Ball Pit** - Gravity-based collisions with mouse repeller
-- 🕊️ **Flies to Light** - Swarm behavior attracted to cursor
-- 🌌 **Zero-G** - Weightless bouncing with perfect elastic collisions
+**Four Physics Modes:**
+- 🎯 **Ball Pit** - Gravity-driven cascade with collision dynamics and cursor repulsion field
+- 🕊️ **Flies** - Emergent swarm behavior with attraction to cursor luminance
+- 🌌 **Zero-G** - Weightless elastic collisions in frictionless void
+- 🔷 **Pulse Grid** - Choreographed grid-based pulsation with synchronized motion sequencing
 
 **Performance:**
 - 60 FPS sustained with 200+ particles
@@ -49,6 +68,7 @@ npm run build
 | `1` | Ball Pit mode |
 | `2` | Flies mode |
 | `3` | Zero-G mode |
+| `4` | Pulse Grid mode |
 | `R` | Reset simulation |
 | `/` | Toggle control panel |
 

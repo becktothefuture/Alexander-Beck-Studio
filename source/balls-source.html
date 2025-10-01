@@ -1322,44 +1322,83 @@
   // Color 5 (2.5%): Rare/special color
   
   // Dual palette system: each theme has light and dark variants
+  // DARK MODE DESIGN PRINCIPLE: On #0a0a0a background, colors need +30-50% luminance
+  // Black→Light gray, White→Mid-tone, Accents→Higher saturation
   const COLOR_TEMPLATES = {
-    // CORE PALETTE - User's favorite (don't change)
+    // CORE PALETTE - Industrial Teal
     industrialTeal: { 
       label: 'Industrial Teal',
       light: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
-      dark: ['#2a2a2a', '#1a1a1a', '#404040', '#00a88f', '#e0e0e0', '#ff6b47', '#3b7de0', '#ffc04d']
-      // Dark mode: Darker grays (similar to bg), brighter hero/accents for visibility
+      dark: [
+        '#6b726b',  // Color 1 (50%): Light warm gray - clearly visible on #0a0a0a
+        '#3d453d',  // Color 2 (25%): Medium-dark gray with warmth
+        '#8a928a',  // Color 3 (15%): Lighter gray for contrast
+        '#00e6c3',  // Color 4 (7.5%): Bright teal - hero color pops on dark
+        '#d5d5d5',  // Color 5 (2.5%): Off-white for cursor (was pure black)
+        '#ff6b47',  // Color 6: Bright coral-red accent
+        '#5b9aff',  // Color 7: Bright blue accent
+        '#ffb84d'   // Color 8: Bright amber accent
+      ]
     },
-    
-    // NEW PALETTES - Designed to match Industrial Teal's playful graphic design energy
-    // Each has: neutral grays + bold hero color + high contrast + 3 vibrant accents
     
     sunsetCoral: { 
       label: 'Sunset Coral', 
       light: ['#bdbbb8', '#e8e6e3', '#ffffff', '#ff3b3b', '#000000', '#00f5d4', '#1e40af', '#fb923c'],
-      dark: ['#2b2a28', '#1c1b1a', '#3d3d3d', '#ff5c5c', '#dddddd', '#00ffe7', '#4169e1', '#ffa866']
-      // Dark: Warm dark grays, bright coral + cyan + orange for visibility
+      dark: [
+        '#716f6b',  // Warm medium gray
+        '#3f3d3a',  // Dark warm gray
+        '#8e8c88',  // Light warm gray
+        '#ff6b6b',  // Bright coral - hero
+        '#d8d8d8',  // Off-white for cursor
+        '#00ffe7',  // Electric cyan accent
+        '#6ba3ff',  // Soft blue accent
+        '#ffb570'   // Peachy orange accent
+      ]
     },
     
     violetPunch: { 
       label: 'Violet Punch', 
       light: ['#b8b7c2', '#e6e5ed', '#ffffff', '#9333ea', '#000000', '#dc2626', '#0ea5e9', '#facc15'],
-      dark: ['#2a2832', '#1a1921', '#3e3d47', '#b24dff', '#e0e0e0', '#ff4444', '#00d4ff', '#ffe34d']
-      // Dark: Cool dark grays with purple tint, vivid purple + electric accents
+      dark: [
+        '#6d6c7a',  // Cool purple-tinted gray
+        '#3a3845',  // Dark cool gray
+        '#8b8a98',  // Light cool gray
+        '#c266ff',  // Bright violet - hero
+        '#dad6e8',  // Tinted off-white for cursor
+        '#ff5c5c',  // Bright red accent
+        '#42d4ff',  // Bright cyan accent
+        '#fff066'   // Bright yellow accent
+      ]
     },
     
     citrusBlast: { 
       label: 'Citrus Blast', 
       light: ['#bfbdb5', '#eae8df', '#ffffff', '#ea580c', '#000000', '#e11d48', '#2563eb', '#059669'],
-      dark: ['#2c2b27', '#1d1c19', '#3f3e3a', '#ff7733', '#dddddd', '#ff4466', '#4d8aff', '#00bf7f']
-      // Dark: Warm dark grays, vibrant orange + pink + blue + green
+      dark: [
+        '#74726a',  // Warm beige-gray
+        '#403e38',  // Dark warm gray
+        '#918f87',  // Light beige-gray
+        '#ff8c4d',  // Bright orange - hero
+        '#dbd9d1',  // Warm off-white for cursor
+        '#ff5c7a',  // Bright pink accent
+        '#6ba3ff',  // Bright blue accent
+        '#00d699'   // Bright green accent
+      ]
     },
     
     cobaltSpark: { 
       label: 'Cobalt Spark', 
       light: ['#b5b8be', '#e3e6eb', '#ffffff', '#1d4ed8', '#000000', '#ea580c', '#db2777', '#d97706'],
-      dark: ['#282b30', '#191c20', '#3d4147', '#4d7aff', '#dedede', '#ff7f3d', '#ff4d9e', '#ffad33']
-      // Dark: Cool dark grays, bright cobalt + orange + magenta + gold
+      dark: [
+        '#696d75',  // Cool blue-tinted gray
+        '#3a3e45',  // Dark steel gray
+        '#878b93',  // Light steel gray
+        '#6b9dff',  // Bright cobalt - hero
+        '#d6dae2',  // Cool off-white for cursor
+        '#ff8c5c',  // Bright orange accent
+        '#ff66b3',  // Bright magenta accent
+        '#ffc266'   // Bright gold accent
+      ]
     }
   };
 
@@ -2979,11 +3018,17 @@
     const { size, sizeVal, sizeVar, sizeVarVal, soft, softVal } = sliders;
     size && size.addEventListener('input', () => {
       const newScale = parseFloat(size.value);
-    sizeVal && (sizeVal.textContent = newScale.toFixed(1));
-    sizeScale = newScale;
-    updateEffectiveScaleAndBallSizes();
-    // Reset all balls to uniform base size (fixes size variation persistence)
-    resetBallSizeToGlobal();
+      sizeVal && (sizeVal.textContent = newScale.toFixed(1));
+      sizeScale = newScale;
+      updateEffectiveScaleAndBallSizes();
+      
+      // CRITICAL: Directly update all ball sizes to the new base (don't call resetBallSizeToGlobal)
+      const baseSize = (R_MIN + R_MAX) / 2;
+      for (let i = 0; i < balls.length; i++) {
+        balls[i].r = baseSize;
+        balls[i].rBase = baseSize;
+      }
+      
       // Apply mass to all balls
       for (let i=0; i<balls.length; i++) {
         balls[i].m = ballMassKg;
