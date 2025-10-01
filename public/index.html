@@ -1000,28 +1000,28 @@
     // Each has: neutral grays + bold hero color + high contrast + 3 vibrant accents
     
     sunsetCoral: { 
-      label: 'Sunset Coral',
+      label: 'Sunset Coral', 
       light: ['#bdbbb8', '#e8e6e3', '#ffffff', '#ff3b3b', '#000000', '#00f5d4', '#1e40af', '#fb923c'],
       dark: ['#2b2a28', '#1c1b1a', '#3d3d3d', '#ff5c5c', '#dddddd', '#00ffe7', '#4169e1', '#ffa866']
       // Dark: Warm dark grays, bright coral + cyan + orange for visibility
     },
     
     violetPunch: { 
-      label: 'Violet Punch',
+      label: 'Violet Punch', 
       light: ['#b8b7c2', '#e6e5ed', '#ffffff', '#9333ea', '#000000', '#dc2626', '#0ea5e9', '#facc15'],
       dark: ['#2a2832', '#1a1921', '#3e3d47', '#b24dff', '#e0e0e0', '#ff4444', '#00d4ff', '#ffe34d']
       // Dark: Cool dark grays with purple tint, vivid purple + electric accents
     },
     
     citrusBlast: { 
-      label: 'Citrus Blast',
+      label: 'Citrus Blast', 
       light: ['#bfbdb5', '#eae8df', '#ffffff', '#ea580c', '#000000', '#e11d48', '#2563eb', '#059669'],
       dark: ['#2c2b27', '#1d1c19', '#3f3e3a', '#ff7733', '#dddddd', '#ff4466', '#4d8aff', '#00bf7f']
       // Dark: Warm dark grays, vibrant orange + pink + blue + green
     },
     
     cobaltSpark: { 
-      label: 'Cobalt Spark',
+      label: 'Cobalt Spark', 
       light: ['#b5b8be', '#e3e6eb', '#ffffff', '#1d4ed8', '#000000', '#ea580c', '#db2777', '#d97706'],
       dark: ['#282b30', '#191c20', '#3d4147', '#4d7aff', '#dedede', '#ff7f3d', '#ff4d9e', '#ffad33']
       // Dark: Cool dark grays, bright cobalt + orange + magenta + gold
@@ -2133,7 +2133,7 @@
   const minimizeBtn = document.getElementById('minimizePanel');
   
   // Configuration: Initial panel visibility (true = visible, false = hidden)
-  const PANEL_INITIALLY_VISIBLE = true;
+  const PANEL_INITIALLY_VISIBLE = false;
   
   // Apply initial visibility
   if (!PANEL_INITIALLY_VISIBLE && panel) {
@@ -3783,7 +3783,13 @@
   // Apply device-specific mode visibility (hide Trail on mobile)
   applyDeviceSpecificModeVisibility();
   
-  // Initialize mode (use saved mode or default to Ball Pit)
+  // Initialize mode: random mode on each page load
+  if (!settingsLoaded || true) { // Always randomize mode
+    const availableModes = Object.values(MODES);
+    const randomMode = availableModes[Math.floor(Math.random() * availableModes.length)];
+    currentMode = randomMode;
+    console.log(`🎲 Random mode selected: ${randomMode}`);
+  }
   setMode(currentMode);
   
   // Save settings on mode change or slider change

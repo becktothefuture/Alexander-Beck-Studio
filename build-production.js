@@ -70,6 +70,10 @@ function extractSimulationCode(sourceFile) {
   
   let jsCode = scriptMatch[1];
   
+  // Production build: hide panel by default
+  jsCode = jsCode.replace(/const PANEL_INITIALLY_VISIBLE = true;/, 'const PANEL_INITIALLY_VISIBLE = false;');
+  console.log('✅ Panel configured to be hidden in production (toggle with / key)');
+  
   // Extract CSS between <style> tags
   const styleMatch = content.match(/<style[^>]*>([\s\S]*?)<\/style>/);
   const cssCode = styleMatch ? styleMatch[1] : '';

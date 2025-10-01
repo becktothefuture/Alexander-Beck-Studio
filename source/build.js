@@ -146,10 +146,10 @@ if (config) {
   console.log('✅ Applied configuration values to source JS');
 }
 
-// Remove all UI-related code (panel, controls, etc.)
-console.log('🧹 Removing UI controls and panel...');
-
-// Do not strip UI via regex; keep source intact for robustness.
+// Production build: hide panel by default and randomize initial mode
+console.log('🎭 Configuring production behavior...');
+jsCode = jsCode.replace(/const PANEL_INITIALLY_VISIBLE = true;/, 'const PANEL_INITIALLY_VISIBLE = false;');
+console.log('✅ Panel will be hidden in production (toggle with / key)');
 
 // Minify JS only (self-invoking bundle suitable for <script src>)
 console.log('🗜️  Minifying JS...');
