@@ -272,51 +272,34 @@
   </details>
   
   <details open>
-    <summary>✨ 3D Shader & Lighting</summary>
+    <summary>🎨 Visual Effects</summary>
     <div class="group">
-      <label title="Enable/disable 3D gradient shader effect">
-        <span>Shader enabled</span>
-        <input type="checkbox" id="shaderEnabled" checked>
+      <label title="Enable/disable drop shadow effect">
+        <span>Drop shadow</span>
+        <input type="checkbox" id="dropShadowEnabled" checked>
       </label>
       
-      <label title="Ball roundness (0-100%). 0=flat, 50=casino chip with beveled edges, 100=full sphere">
-        <span>Roundness</span>
-        <input type="range" id="ballRoundness" min="0" max="100" step="5" value="0">
-        <span class="val" id="ballRoundnessVal">0%</span>
+      <label title="Horizontal shadow offset in pixels (0-50). Positive = right">
+        <span>Shadow X offset</span>
+        <input type="range" id="shadowOffsetX" min="0" max="50" step="2" value="20">
+        <span class="val" id="shadowOffsetXVal">20px</span>
       </label>
       
-      <div style="font-size: 9px; opacity: 0.7; margin: 4px 0;">
-        0% = Flat · 50% = Casino Chip · 100% = Sphere
+      <label title="Vertical shadow offset in pixels (0-50). Positive = down">
+        <span>Shadow Y offset</span>
+        <input type="range" id="shadowOffsetY" min="0" max="50" step="2" value="20">
+        <span class="val" id="shadowOffsetYVal">20px</span>
+      </label>
+      
+      <label title="Shadow opacity (0.0-1.0). 0 = transparent, 1 = solid black">
+        <span>Shadow opacity</span>
+        <input type="range" id="shadowOpacity" min="0.0" max="1.0" step="0.05" value="0.5">
+        <span class="val" id="shadowOpacityVal">0.50</span>
+      </label>
+      
+      <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">
+        Sharp drop shadow creates depth without complex lighting
       </div>
-      
-      <label title="Light direction angle (0-360 degrees). -135° = top-left (default), -90° = top, 0° = right">
-        <span>Light angle</span>
-        <input type="range" id="lightAngle" min="-180" max="180" step="15" value="-135">
-        <span class="val" id="lightAngleVal">-135°</span>
-      </label>
-      
-      <details>
-        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer; margin-top: 6px;">⚙️ Advanced settings</summary>
-        <div class="group" style="margin-top: 6px;">
-          <label title="Width of the beveled edge on casino chips (0-50%). Higher = wider bevel">
-            <span>Edge bevel width</span>
-            <input type="range" id="edgeBevelWidth" min="0" max="50" step="5" value="15">
-            <span class="val" id="edgeBevelWidthVal">15%</span>
-          </label>
-          
-          <label title="Sharpness of the bevel transition (0.5-5.0). Lower = softer, higher = sharper">
-            <span>Edge sharpness</span>
-            <input type="range" id="edgeSharpness" min="0.5" max="5.0" step="0.5" value="2.0">
-            <span class="val" id="edgeSharpnessVal">2.0</span>
-          </label>
-          
-          <label title="Intensity of the specular highlight (0-100%). Glass reflection strength">
-            <span>Specular intensity</span>
-            <input type="range" id="specularIntensity" min="0" max="100" step="5" value="70">
-            <span class="val" id="specularIntensityVal">70%</span>
-          </label>
-        </div>
-      </details>
     </div>
   </details>
   
@@ -570,14 +553,12 @@
   let weightlessRepellerRadius = 150; // repeller radius (px)
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // 3D SHADER SYSTEM - Roundness Dial (Casino Chip → Sphere)
+  // SIMPLE VISUAL EFFECTS SYSTEM
   // ═══════════════════════════════════════════════════════════════════════════
-  let shaderEnabled = true;           // Master toggle for shader effect
-  let ballRoundness = 0;              // 0-100: 0=flat, 50=chip, 100=sphere
-  let lightAngle = -135;              // Light direction in degrees (top-left by default)
-  let edgeBevelWidth = 0.15;          // Width of chip bevel edge (0.0-0.5)
-  let edgeSharpness = 2.0;            // Sharpness of bevel transition (0.5-5.0)
-  let specularIntensity = 0.7;        // Glass reflection strength (0.0-1.0)
+  let dropShadowEnabled = true;       // Enable drop shadow effect
+  let shadowOffsetX = 20;             // Shadow offset X (pixels)
+  let shadowOffsetY = 20;             // Shadow offset Y (pixels)  
+  let shadowOpacity = 0.5;            // Shadow opacity (0.0-1.0)
   
   // Mass constants (needed before CONSTANTS object)
   const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
@@ -714,7 +695,10 @@
     sprite.zIndex = 0;
     sprite._lastRadius = -1;
     sprite._lastColor = '';
-    sprite._lastRoundness = -1;
+    sprite._lastShadowEnabled = null;
+    sprite._lastShadowOffsetX = -1;
+    sprite._lastShadowOffsetY = -1;
+    sprite._lastShadowOpacity = -1;
     sprite._lastSquash = -1;
     pixiApp.stage.addChild(sprite);
     ballSprites.set(ball, sprite);
@@ -737,27 +721,33 @@
     const needsRedraw = (
       sprite._lastRadius !== ball.r ||
       sprite._lastColor !== ball.color ||
-      sprite._lastRoundness !== ballRoundness ||
+      sprite._lastShadowEnabled !== dropShadowEnabled ||
+      sprite._lastShadowOffsetX !== shadowOffsetX ||
+      sprite._lastShadowOffsetY !== shadowOffsetY ||
+      sprite._lastShadowOpacity !== shadowOpacity ||
       Math.abs(sprite._lastSquash - currentSquash) > 0.01
     );
     
     if (needsRedraw) {
       sprite.clear();
       
-      // Apply 3D shader system based on ballRoundness
-      if (shaderEnabled && ballRoundness > 0) {
-        renderBall3DWebGL(sprite, ball.r, colorNum);
-      } else {
-        // Flat rendering (original)
-        sprite.beginFill(colorNum, 1.0);
-        sprite.drawCircle(0, 0, ball.r);
-        sprite.endFill();
-      }
+    // Simple ball rendering with drop shadow
+    if (dropShadowEnabled) {
+      renderBallWithShadowWebGL(sprite, ball.r, colorNum);
+    } else {
+      // Flat rendering without shadow
+      sprite.beginFill(colorNum, 1.0);
+      sprite.drawCircle(0, 0, ball.r);
+      sprite.endFill();
+    }
       
       // Cache current values
       sprite._lastRadius = ball.r;
       sprite._lastColor = ball.color;
-      sprite._lastRoundness = ballRoundness;
+      sprite._lastShadowEnabled = dropShadowEnabled;
+      sprite._lastShadowOffsetX = shadowOffsetX;
+      sprite._lastShadowOffsetY = shadowOffsetY;
+      sprite._lastShadowOpacity = shadowOpacity;
       sprite._lastSquash = currentSquash;
     }
     
@@ -783,97 +773,16 @@
     }
   }
   
-  function renderBall3DWebGL(sprite, radius, baseColor) {
-    // Extract RGB components from hex color
-    const r = (baseColor >> 16) & 0xFF;
-    const g = (baseColor >> 8) & 0xFF;
-    const b = baseColor & 0xFF;
+  function renderBallWithShadowWebGL(sprite, radius, baseColor) {
+    // Draw drop shadow first (behind ball)
+    sprite.beginFill(0x000000, shadowOpacity); // Black shadow
+    sprite.drawCircle(shadowOffsetX, shadowOffsetY, radius);
+    sprite.endFill();
     
-    // Convert light angle to radians
-    const lightRad = (lightAngle * Math.PI) / 180;
-    const lightX = Math.cos(lightRad);
-    const lightY = Math.sin(lightRad);
-    
-    if (ballRoundness <= 50) {
-      // Flat to Casino Chip (0-50%)
-      renderChipBevelWebGL(sprite, radius, r, g, b, lightX, lightY);
-    } else {
-      // Casino Chip to Full Sphere (50-100%)
-      const sphereBlend = (ballRoundness - 50) / 50; // 0-1
-      renderSphereWebGL(sprite, radius, r, g, b, lightX, lightY, sphereBlend);
-    }
-  }
-  
-  function renderChipBevelWebGL(sprite, radius, r, g, b, lightX, lightY) {
-    // Create casino chip effect with beveled edges
-    const bevelWidth = edgeBevelWidth * radius;
-    const intensity = ballRoundness / 50; // 0-1 for chip effect
-    
-    // Adaptive quality: reduce steps for better performance
-    const steps = Math.max(4, Math.floor(16 * adaptiveQuality)); // 4-16 steps based on performance
-    for (let i = 0; i < steps; i++) {
-      const t = i / (steps - 1); // 0 to 1
-      const currentRadius = radius * (1 - t * 0.1); // Slightly smaller each step
-      
-      // Calculate lighting based on position
-      let brightness = 1.0;
-      if (t > 0.8) {
-        // Edge bevel area
-        const edgeT = (t - 0.8) / 0.2; // 0-1 in bevel area
-        const edgeAngle = Math.atan2(lightY, lightX);
-        brightness = 0.6 + 0.4 * Math.cos(edgeAngle) * (1 - edgeT * 0.5);
-        brightness *= (1 + intensity * 0.5); // Enhance with roundness
-      } else {
-        // Center area - flat lighting
-        brightness = 0.85 + intensity * 0.15;
-      }
-      
-      // Apply brightness to color
-      const finalR = Math.min(255, r * brightness);
-      const finalG = Math.min(255, g * brightness);
-      const finalB = Math.min(255, b * brightness);
-      const color = (finalR << 16) | (finalG << 8) | finalB;
-      
-      sprite.beginFill(color, 1.0);
-      sprite.drawCircle(0, 0, currentRadius);
-      sprite.endFill();
-    }
-  }
-  
-  function renderSphereWebGL(sprite, radius, r, g, b, lightX, lightY, sphereBlend) {
-    // Create full 3D sphere effect
-    // Adaptive quality: reduce steps for better performance
-    const steps = Math.max(6, Math.floor(24 * adaptiveQuality)); // 6-24 steps based on performance
-    
-    for (let i = 0; i < steps; i++) {
-      const t = i / (steps - 1); // 0 to 1
-      const currentRadius = radius * (1 - t * 0.05); // Subtle size variation
-      
-      // Calculate sphere normal lighting
-      const x = (t - 0.5) * 2; // -1 to 1
-      const y = 0; // Center slice
-      const z = Math.sqrt(Math.max(0, 1 - x*x - y*y)); // Sphere normal Z
-      
-      // Calculate lighting (Lambertian + specular)
-      const dotProduct = (lightX * x + lightY * y + 0.5 * z);
-      const diffuse = Math.max(0.2, dotProduct * 0.8 + 0.2);
-      
-      // Add specular highlight
-      const specular = Math.pow(Math.max(0, dotProduct), 16) * specularIntensity * sphereBlend;
-      
-      let brightness = diffuse + specular;
-      brightness = 0.4 + brightness * 0.6; // Clamp to reasonable range
-      
-      // Apply brightness to color
-      const finalR = Math.min(255, r * brightness);
-      const finalG = Math.min(255, g * brightness);
-      const finalB = Math.min(255, b * brightness);
-      const color = (finalR << 16) | (finalG << 8) | finalB;
-      
-      sprite.beginFill(color, 1.0);
-      sprite.drawCircle(0, 0, currentRadius);
-      sprite.endFill();
-    }
+    // Draw main ball on top
+    sprite.beginFill(baseColor, 1.0);
+    sprite.drawCircle(0, 0, radius);
+    sprite.endFill();
   }
   
   function cleanupRemovedBalls() {
@@ -938,9 +847,9 @@
     // Convert cursor ball color
     const colorNum = parseInt(cursorBallColor.replace('#', ''), 16);
     
-    // Apply same shader system as regular balls
-    if (shaderEnabled && ballRoundness > 0) {
-      renderBall3DWebGL(cursorBallSprite, cursorBallRadius, colorNum);
+    // Apply same shadow system as regular balls
+    if (dropShadowEnabled) {
+      renderBallWithShadowWebGL(cursorBallSprite, cursorBallRadius, colorNum);
     } else {
       cursorBallSprite.beginFill(colorNum, 0.8); // Slightly transparent
       cursorBallSprite.drawCircle(0, 0, cursorBallRadius);
@@ -2887,52 +2796,36 @@
     });
   }
   
-  // 3D Shader Controls
-  const shaderEnabledEl = document.getElementById('shaderEnabled');
-  const ballRoundnessEl = document.getElementById('ballRoundness');
-  const ballRoundnessVal = document.getElementById('ballRoundnessVal');
-  const lightAngleEl = document.getElementById('lightAngle');
-  const lightAngleVal = document.getElementById('lightAngleVal');
-  const edgeBevelWidthEl = document.getElementById('edgeBevelWidth');
-  const edgeBevelWidthVal = document.getElementById('edgeBevelWidthVal');
-  const edgeSharpnessEl = document.getElementById('edgeSharpness');
-  const edgeSharpnessVal = document.getElementById('edgeSharpnessVal');
-  const specularIntensityEl = document.getElementById('specularIntensity');
-  const specularIntensityVal = document.getElementById('specularIntensityVal');
+  // Drop Shadow Controls
+  const dropShadowEnabledEl = document.getElementById('dropShadowEnabled');
+  const shadowOffsetXEl = document.getElementById('shadowOffsetX');
+  const shadowOffsetXVal = document.getElementById('shadowOffsetXVal');
+  const shadowOffsetYEl = document.getElementById('shadowOffsetY');
+  const shadowOffsetYVal = document.getElementById('shadowOffsetYVal');
+  const shadowOpacityEl = document.getElementById('shadowOpacity');
+  const shadowOpacityVal = document.getElementById('shadowOpacityVal');
   
-  shaderEnabledEl && shaderEnabledEl.addEventListener('change', () => {
-    shaderEnabled = shaderEnabledEl.checked;
-    console.log('🎨 Shader enabled:', shaderEnabled);
+  dropShadowEnabledEl && dropShadowEnabledEl.addEventListener('change', () => {
+    dropShadowEnabled = dropShadowEnabledEl.checked;
+    console.log('🎨 Drop shadow enabled:', dropShadowEnabled);
   });
   
-  ballRoundnessEl && ballRoundnessEl.addEventListener('input', () => {
-    ballRoundness = parseInt(ballRoundnessEl.value, 10);
-    if (ballRoundnessVal) ballRoundnessVal.textContent = ballRoundness + '%';
-    console.log('🔮 Ball roundness:', ballRoundness);
+  shadowOffsetXEl && shadowOffsetXEl.addEventListener('input', () => {
+    shadowOffsetX = parseInt(shadowOffsetXEl.value, 10);
+    if (shadowOffsetXVal) shadowOffsetXVal.textContent = shadowOffsetX + 'px';
+    console.log('➡️ Shadow X offset:', shadowOffsetX);
   });
   
-  lightAngleEl && lightAngleEl.addEventListener('input', () => {
-    lightAngle = parseInt(lightAngleEl.value, 10);
-    if (lightAngleVal) lightAngleVal.textContent = lightAngle + '°';
-    console.log('💡 Light angle:', lightAngle);
+  shadowOffsetYEl && shadowOffsetYEl.addEventListener('input', () => {
+    shadowOffsetY = parseInt(shadowOffsetYEl.value, 10);
+    if (shadowOffsetYVal) shadowOffsetYVal.textContent = shadowOffsetY + 'px';
+    console.log('⬇️ Shadow Y offset:', shadowOffsetY);
   });
   
-  edgeBevelWidthEl && edgeBevelWidthEl.addEventListener('input', () => {
-    edgeBevelWidth = parseFloat(edgeBevelWidthEl.value);
-    if (edgeBevelWidthVal) edgeBevelWidthVal.textContent = edgeBevelWidth.toFixed(2);
-    console.log('🔧 Edge bevel width:', edgeBevelWidth);
-  });
-  
-  edgeSharpnessEl && edgeSharpnessEl.addEventListener('input', () => {
-    edgeSharpness = parseFloat(edgeSharpnessEl.value);
-    if (edgeSharpnessVal) edgeSharpnessVal.textContent = edgeSharpness.toFixed(1);
-    console.log('⚡ Edge sharpness:', edgeSharpness);
-  });
-  
-  specularIntensityEl && specularIntensityEl.addEventListener('input', () => {
-    specularIntensity = parseFloat(specularIntensityEl.value);
-    if (specularIntensityVal) specularIntensityVal.textContent = specularIntensity.toFixed(2);
-    console.log('✨ Specular intensity:', specularIntensity);
+  shadowOpacityEl && shadowOpacityEl.addEventListener('input', () => {
+    shadowOpacity = parseFloat(shadowOpacityEl.value);
+    if (shadowOpacityVal) shadowOpacityVal.textContent = shadowOpacity.toFixed(2);
+    console.log('🌫️ Shadow opacity:', shadowOpacity);
   });
   
   // Mouse tracking for cursor ball and repeller
