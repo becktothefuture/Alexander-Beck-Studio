@@ -2293,10 +2293,12 @@
   weightlessRepelSlider && weightlessRepelSlider.addEventListener('input', () => {
     weightlessRepellerPower = parseFloat(weightlessRepelSlider.value);
     weightlessRepelVal && (weightlessRepelVal.textContent = Math.round(weightlessRepellerPower).toString());
+    autoSaveSettings();
   });
   weightlessRepelRadiusSlider && weightlessRepelRadiusSlider.addEventListener('input', () => {
     weightlessRepellerRadius = parseFloat(weightlessRepelRadiusSlider.value);
     weightlessRepelRadiusVal && (weightlessRepelRadiusVal.textContent = Math.round(weightlessRepellerRadius).toString());
+    autoSaveSettings();
   });
 
   // Individual color picker listeners (with existing ball color update)
