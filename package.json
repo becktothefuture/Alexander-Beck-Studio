@@ -13,7 +13,6 @@
     "clean": "rm -f source/current-config*.json"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.1",
     "chokidar-cli": "^3.0.0",
     "terser": "^5.31.0"
   },
