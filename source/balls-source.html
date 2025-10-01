@@ -1806,74 +1806,62 @@
         ctx.rotate(-this.squashNormalAngle);
       }
       
-      // Draw main ball first
-      ctx.beginPath();
-      ctx.arc(0, 0, this.r, 0, Math.PI*2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
-      
-      // INNER EDGE ILLUMINATION: Radial gradient rings at the borders only
+      // CSS-STYLE SHADOWS: Multiple shadow layers with blur
       if (glassMorphismEnabled && (!enableShadowCulling || this.r >= minShadowRadius)) {
         // Performance: LOD system for small balls
         const isSmallBall = this.r < 12;
         const qualityMultiplier = isSmallBall ? 0.5 : 1.0;
         
         // Apply softness multiplier
-        const effectiveShadow1Blur = shadow1BlurRadius * (shadowSoftness / 8);
-        const effectiveShadow2Blur = shadow2BlurRadius * (shadowSoftness / 8);
-        const effectiveShadow3Blur = shadow3BlurRadius * (shadowSoftness / 8);
+        const effectiveShadow1Blur = shadow1BlurRadius * (shadowSoftness / 8) * qualityMultiplier;
+        const effectiveShadow2Blur = shadow2BlurRadius * (shadowSoftness / 8) * qualityMultiplier;
+        const effectiveShadow3Blur = shadow3BlurRadius * (shadowSoftness / 8) * qualityMultiplier;
         
-        // Layer 1: Dark edge ring (creates depth at border)
-        const edgeWidth1 = effectiveShadow1Blur * qualityMultiplier;
-        if (edgeWidth1 > 0) {
-          ctx.save();
-          const grad1 = ctx.createRadialGradient(
-            shadow1OffsetX, shadow1OffsetY, this.r - edgeWidth1,
-            shadow1OffsetX, shadow1OffsetY, this.r
-          );
-          grad1.addColorStop(0, `${shadow1Color}00`); // Transparent at inner edge
-          grad1.addColorStop(1, `${shadow1Color}${Math.floor(shadow1Opacity * 255).toString(16).padStart(2, '0')}`); // Opaque at outer edge
-          ctx.fillStyle = grad1;
-          ctx.beginPath();
-          ctx.arc(shadow1OffsetX, shadow1OffsetY, this.r, 0, Math.PI*2);
-          ctx.fill();
-          ctx.restore();
-        }
+        // Layer 1: Dark shadow (like CSS box-shadow)
+        ctx.save();
+        ctx.shadowColor = shadow1Color;
+        ctx.shadowBlur = effectiveShadow1Blur;
+        ctx.shadowOffsetX = shadow1OffsetX;
+        ctx.shadowOffsetY = shadow1OffsetY;
+        ctx.globalAlpha = shadow1Opacity;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r, 0, Math.PI*2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.restore();
         
-        // Layer 2: Top-left light edge ring
-        const edgeWidth2 = effectiveShadow2Blur * qualityMultiplier;
-        if (edgeWidth2 > 0) {
-          ctx.save();
-          const grad2 = ctx.createRadialGradient(
-            shadow2OffsetX, shadow2OffsetY, this.r - edgeWidth2,
-            shadow2OffsetX, shadow2OffsetY, this.r
-          );
-          grad2.addColorStop(0, `${shadow2Color}00`); // Transparent at inner edge
-          grad2.addColorStop(1, `${shadow2Color}${Math.floor(shadow2Opacity * 255).toString(16).padStart(2, '0')}`); // Opaque at outer edge
-          ctx.fillStyle = grad2;
-          ctx.beginPath();
-          ctx.arc(shadow2OffsetX, shadow2OffsetY, this.r, 0, Math.PI*2);
-          ctx.fill();
-          ctx.restore();
-        }
+        // Layer 2: Top-left light (like CSS inner glow)
+        ctx.save();
+        ctx.shadowColor = shadow2Color;
+        ctx.shadowBlur = effectiveShadow2Blur;
+        ctx.shadowOffsetX = shadow2OffsetX;
+        ctx.shadowOffsetY = shadow2OffsetY;
+        ctx.globalAlpha = shadow2Opacity;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r, 0, Math.PI*2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.restore();
         
-        // Layer 3: Bottom-right light edge ring
-        const edgeWidth3 = effectiveShadow3Blur * qualityMultiplier;
-        if (edgeWidth3 > 0) {
-          ctx.save();
-          const grad3 = ctx.createRadialGradient(
-            shadow3OffsetX, shadow3OffsetY, this.r - edgeWidth3,
-            shadow3OffsetX, shadow3OffsetY, this.r
-          );
-          grad3.addColorStop(0, `${shadow3Color}00`); // Transparent at inner edge
-          grad3.addColorStop(1, `${shadow3Color}${Math.floor(shadow3Opacity * 255).toString(16).padStart(2, '0')}`); // Opaque at outer edge
-          ctx.fillStyle = grad3;
-          ctx.beginPath();
-          ctx.arc(shadow3OffsetX, shadow3OffsetY, this.r, 0, Math.PI*2);
-          ctx.fill();
-          ctx.restore();
-        }
+        // Layer 3: Bottom-right light (like CSS inner glow)
+        ctx.save();
+        ctx.shadowColor = shadow3Color;
+        ctx.shadowBlur = effectiveShadow3Blur;
+        ctx.shadowOffsetX = shadow3OffsetX;
+        ctx.shadowOffsetY = shadow3OffsetY;
+        ctx.globalAlpha = shadow3Opacity;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r, 0, Math.PI*2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.restore();
       }
+      
+      // Draw main ball on top (no shadows)
+      ctx.beginPath();
+      ctx.arc(0, 0, this.r, 0, Math.PI*2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
 
       ctx.restore();
     }
@@ -2462,71 +2450,60 @@
     const baseSize = (R_MIN + R_MAX) / 2;
     const r = baseSize;
     
-    // Draw main cursor ball first
     const color = 'rgba(255, 255, 255, 0.9)';
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
     
-    // INNER EDGE ILLUMINATION: Radial gradient rings at the borders only
+    // CSS-STYLE SHADOWS: Multiple shadow layers with blur
     if (glassMorphismEnabled) {
       // Apply softness multiplier
       const effectiveShadow1Blur = shadow1BlurRadius * (shadowSoftness / 8);
       const effectiveShadow2Blur = shadow2BlurRadius * (shadowSoftness / 8);
       const effectiveShadow3Blur = shadow3BlurRadius * (shadowSoftness / 8);
       
-      // Layer 1: Dark edge ring
-      const edgeWidth1 = effectiveShadow1Blur;
-      if (edgeWidth1 > 0) {
-        ctx.save();
-        const grad1 = ctx.createRadialGradient(
-          x + shadow1OffsetX, y + shadow1OffsetY, r - edgeWidth1,
-          x + shadow1OffsetX, y + shadow1OffsetY, r
-        );
-        grad1.addColorStop(0, `${shadow1Color}00`);
-        grad1.addColorStop(1, `${shadow1Color}${Math.floor(shadow1Opacity * 255).toString(16).padStart(2, '0')}`);
-        ctx.fillStyle = grad1;
-        ctx.beginPath();
-        ctx.arc(x + shadow1OffsetX, y + shadow1OffsetY, r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
+      // Layer 1: Dark shadow
+      ctx.save();
+      ctx.shadowColor = shadow1Color;
+      ctx.shadowBlur = effectiveShadow1Blur;
+      ctx.shadowOffsetX = shadow1OffsetX;
+      ctx.shadowOffsetY = shadow1OffsetY;
+      ctx.globalAlpha = shadow1Opacity;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
       
-      // Layer 2: Top-left light edge ring
-      const edgeWidth2 = effectiveShadow2Blur;
-      if (edgeWidth2 > 0) {
-        ctx.save();
-        const grad2 = ctx.createRadialGradient(
-          x + shadow2OffsetX, y + shadow2OffsetY, r - edgeWidth2,
-          x + shadow2OffsetX, y + shadow2OffsetY, r
-        );
-        grad2.addColorStop(0, `${shadow2Color}00`);
-        grad2.addColorStop(1, `${shadow2Color}${Math.floor(shadow2Opacity * 255).toString(16).padStart(2, '0')}`);
-        ctx.fillStyle = grad2;
-        ctx.beginPath();
-        ctx.arc(x + shadow2OffsetX, y + shadow2OffsetY, r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
+      // Layer 2: Top-left light
+      ctx.save();
+      ctx.shadowColor = shadow2Color;
+      ctx.shadowBlur = effectiveShadow2Blur;
+      ctx.shadowOffsetX = shadow2OffsetX;
+      ctx.shadowOffsetY = shadow2OffsetY;
+      ctx.globalAlpha = shadow2Opacity;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
       
-      // Layer 3: Bottom-right light edge ring
-      const edgeWidth3 = effectiveShadow3Blur;
-      if (edgeWidth3 > 0) {
-        ctx.save();
-        const grad3 = ctx.createRadialGradient(
-          x + shadow3OffsetX, y + shadow3OffsetY, r - edgeWidth3,
-          x + shadow3OffsetX, y + shadow3OffsetY, r
-        );
-        grad3.addColorStop(0, `${shadow3Color}00`);
-        grad3.addColorStop(1, `${shadow3Color}${Math.floor(shadow3Opacity * 255).toString(16).padStart(2, '0')}`);
-        ctx.fillStyle = grad3;
-        ctx.beginPath();
-        ctx.arc(x + shadow3OffsetX, y + shadow3OffsetY, r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
+      // Layer 3: Bottom-right light
+      ctx.save();
+      ctx.shadowColor = shadow3Color;
+      ctx.shadowBlur = effectiveShadow3Blur;
+      ctx.shadowOffsetX = shadow3OffsetX;
+      ctx.shadowOffsetY = shadow3OffsetY;
+      ctx.globalAlpha = shadow3Opacity;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
     }
+    
+    // Draw main cursor ball on top (no shadows)
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
     
     // Add subtle white outline for visibility
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
