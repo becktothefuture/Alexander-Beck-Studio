@@ -1,16 +1,3 @@
 {
-    "folder-color.pathColors": [
-        {
-            "folderPath": "Alexander Beck Studio Website/public/",
-            "color": "foldercolorizer.color_ffffff"
-        },
-        {
-            "folderPath": "Alexander Beck Studio Website/source/",
-            "color": "foldercolorizer.color_00cccc"
-        },
-        {
-            "folderPath": "Alexander Beck Studio Website/webflow export/alexander-beck-studio-staging.webflow/",
-            "color": "foldercolorizer.color_00cc66"
-        }
-    ]
+    "folder-color.pathColors": []
 }

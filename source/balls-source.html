@@ -25,15 +25,19 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 150vh;
+    height: 100svh; /* Default height for most modes */
     overscroll-behavior: contain;
     -webkit-tap-highlight-color: transparent;
     user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   }
+  /* Ball Pit mode needs extra height for spawning above viewport */
+  #bravia-balls.mode-pit {
+    height: 150vh;
+  }
   #bravia-balls canvas { 
     display: block; 
     width: 100%; 
-    height: 150vh;
+    height: 100%; /* Match parent height */
     position: absolute;
     bottom: 0;
     left: 0;
@@ -103,6 +107,40 @@
   #bravia-balls .panel summary { display:flex; align-items:center; justify-content:space-between; color:#b8c2c7; }
   #bravia-balls .panel .group { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
   
+  /* Mode switcher - segmented control */
+  #bravia-balls .mode-switcher {
+    display: flex;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+  #bravia-balls .mode-button {
+    flex: 1;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(255,255,255,0.6);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+  #bravia-balls .mode-button:hover {
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.8);
+  }
+  #bravia-balls .mode-button.active {
+    background: rgba(255,255,255,0.15);
+    color: #ffffff;
+    font-weight: 600;
+  }
+  #bravia-balls .mode-controls { display: none; }
+  #bravia-balls .mode-controls.active { display: block; }
+  
   /* Palette variables (defaults match 'industrialTeal') */
   :root {
     --ball-1: #b7bcb7;
@@ -145,52 +183,36 @@
 <div id="bravia-balls">
   <canvas id="c" aria-label="Bouncy balls simulation" role="img" draggable="false"></canvas>
   <div class="panel" id="controlPanel">
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- GLOBAL SETTINGS (apply to ALL modes) - ABOVE MODE SWITCHER             -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  
+  <details open>
+    <summary>🌐 Global Ball Properties</summary>
+    <div class="group">
+        <label title="Global ball size scale (0.1-6.0). Smaller = more balls fit, larger = more dramatic collisions">Size: <span class="val" id="sizeValGlobal">0.7</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="0.7"></label>
+        <label title="Size variation from base size (0.0-1.0). 0 = identical sizes, 1.0 = up to 100% variation">Size variation: <span class="val" id="sizeVariationValGlobal">1.0</span><input type="range" id="sizeVariationSliderGlobal" min="0.0" max="1.0" step="0.05" value="1.0"></label>
+        <label title="Ball deformation on collision (0-100). 0 = rigid/hard, 100 = very soft/squishy">Softness: <span class="val" id="ballSoftnessValGlobal">40</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="40"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = rigid, 40 = normal, 100 = very squishy</div>
+    </div>
+  </details>
+
+  <!-- Mode Switcher -->
+  <div class="mode-switcher">
+    <button class="mode-button active" data-mode="pit">🎯 Pit</button>
+    <button class="mode-button" data-mode="flies">🕊️ Flies</button>
+    <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
+    </div>
+  
+  <!-- Build Controls -->
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
     <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 8px;">💾 Save Config</button>
     <button id="buildBtn" style="background: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">🚀 Build Embed</button>
     <div id="configOutput" style="margin-top: 8px; font-family: monospace; font-size: 10px; color: #333; max-height: 120px; overflow-y: auto; display: none; text-align: left; background: rgba(255,255,255,0.8); padding: 6px; border-radius: 3px;"></div>
-  </div>
+    </div>
+  
   <details open>
-    <summary>⚙️ Physics</summary>
-    <div class="group">
-        <label>Physics template: <select id="physicsSelect"></select></label>
-        <label>Bounciness: <span class="val" id="restitutionVal">0.78</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.001" value="0.78"></label>
-        <label>Friction: <span class="val" id="frictionVal">0.0025</span><input type="range" id="frictionSlider" min="0.000" max="0.250" step="0.0005" value="0.0025"></label>
-        <label>Size: <span class="val" id="sizeVal">2.0</span><input type="range" id="sizeSlider" min="0.1" max="6.0" step="0.1" value="2.0"></label>
-        <label>Max balls: <span class="val" id="maxBallsVal">400</span><input type="range" id="maxBallsSlider" min="50" max="1000" step="25" value="400"></label>
-        <label>Size variation: <span class="val" id="sizeVariationVal">1.0</span><input type="range" id="sizeVariationSlider" min="0.0" max="3.0" step="0.1" value="1.0"></label>
-        <label>Ball weight (kg): <span class="val" id="weightVal">11.20</span><input type="range" id="weightSlider" min="0.10" max="200.00" step="0.10" value="11.20"></label>
-    </div>
-  </details>
-  <details open>
-    <summary>🎯 Spawn</summary>
-    <div class="group">
-        <label>Spawn template: <select id="spawnSelect"></select></label>
-        <label>Emit interval (s): <span class="val" id="emitterVal">0.04</span><input type="range" id="emitterSlider" min="0.000" max="1.000" step="0.005" value="0.04"></label>
-        <label>Spawn Y (vh): <span class="val" id="spawnYVal">-50</span><input type="range" id="spawnYSlider" min="-100" max="100" step="10" value="-50"></label>
-        <label>Spawn Width (vw): <span class="val" id="spawnWidthVal">100</span><input type="range" id="spawnWidthSlider" min="0" max="100" step="10" value="100"></label>
-        <label>Spawn X Center (vw): <span class="val" id="spawnCenterVal">50</span><input type="range" id="spawnCenterSlider" min="0" max="100" step="10" value="50"></label>
-        <label>Spawn Height (vh): <span class="val" id="spawnHeightVal">50</span><input type="range" id="spawnHeightSlider" min="0" max="100" step="10" value="50"></label>
-    </div>
-  </details>
-  <details>
-    <summary>🧲 Repeller</summary>
-    <div class="group">
-        <label>Repeller template: <select id="repellerSelect"></select></label>
-        <label>Repel size (px): <span class="val" id="repelSizeVal">200</span><input type="range" id="repelSizeSlider" min="0" max="1000" step="5" value="200"></label>
-        <label>Repel power: <span class="val" id="repelPowerVal">24000</span><input type="range" id="repelPowerSlider" min="0" max="1000" step="1" value="500"></label>
-        <label>Repel softness: <span class="val" id="repelSoftVal">2.0</span><input type="range" id="repelSoftSlider" min="0.1" max="8" step="0.1" value="2.0"></label>
-    </div>
-  </details>
-  <details>
-    <summary>🖼️ Scene</summary>
-    <div class="group">
-        <label>Corner radius (px): <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="200" step="5" value="0"></label>
-        <label>Motion blur (trail): <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="1.500" step="0.001" value="0.000"></label>
-        <label>Trail subtlety: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.00" max="3.00" step="0.05" value="1.00"></label>
-    </div>
-  </details>
-  <details>
     <summary>🎨 Colors</summary>
     <div class="group">
         <label>Color template: <select id="colorSelect"></select></label>
@@ -217,7 +239,83 @@
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Colors appear by weight: 1 is most common, 8 is rarest</div>
     </div>
   </details>
-    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to return balls to spawn • <code>/</code> toggle panel</div>
+  
+  
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- MODE-SPECIFIC SETTINGS (only apply to active mode)                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  
+  <div id="pitControls" class="mode-controls active">
+    <details open>
+      <summary>🎯 Ball Pit Mode</summary>
+      <div class="group">
+        <label title="Choose physics preset (Rubber, Bouncy, etc.)">Physics template: <select id="physicsSelect"></select></label>
+        <label title="Gravity strength (0.0-2.0x Earth). Realistic: 1.0-1.2x. 0 = no gravity, 2.0 = very strong">Gravity: <span class="val" id="gravityPitVal">1.15</span><input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="1.15"></label>
+        <label title="Ball mass/weight (50-200g). Realistic rubber ball: 100-150g. Heavier = more weight feel">Weight (g): <span class="val" id="weightPitVal">120.0</span><input type="range" id="weightPitSlider" min="50.0" max="200.0" step="5.0" value="120.0"></label>
+        <label title="Bounce restitution (0.0-1.0). Realistic rubber: 0.75-0.85. 0 = no bounce, 1.0 = perfect elastic">Bounciness: <span class="val" id="restitutionVal">0.80</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.80"></label>
+        <label title="Air resistance (0.000-0.010). Realistic: 0.003-0.005. 0 = no drag, 0.010 = high drag">Friction: <span class="val" id="frictionVal">0.0045</span><input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0005" value="0.0045"></label>
+      </div>
+    </details>
+    <details open>
+      <summary>🖼️ Scene & Effects</summary>
+      <div class="group">
+        <label title="Maximum number of balls in simulation (50-800). Higher = more crowded, lower = cleaner">Max balls: <span class="val" id="maxBallsVal">800</span><input type="range" id="maxBallsSlider" min="50" max="800" step="25" value="800"></label>
+        <label title="Rounded corner radius for viewport (0-50px). 0 = sharp corners, 50 = very rounded">Corner radius: <span class="val" id="cornerRadiusVal">0</span><input type="range" id="cornerRadiusSlider" min="0" max="50" step="2" value="0"></label>
+        <label title="Motion blur trail length (0.0-0.5). 0 = no blur, 0.5 = long trails">Motion blur: <span class="val" id="trailFadeVal">0.000</span><input type="range" id="trailFadeSlider" min="0.000" max="0.500" step="0.005" value="0.000"></label>
+        <label title="Motion blur intensity (0.5-2.0x). 0.5 = subtle, 2.0 = very pronounced">Blur intensity: <span class="val" id="trailSubtletyVal">1.00×</span><input type="range" id="trailSubtletySlider" min="0.50" max="2.00" step="0.05" value="1.00"></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Motion blur works in all modes for smooth movement trails</div>
+      </div>
+    </details>
+    <details open>
+      <summary>🎯 Spawn Settings</summary>
+      <div class="group">
+        <label title="Choose spawn behavior preset">Spawn template: <select id="spawnSelect"></select></label>
+        <label title="Time between ball spawns (0.01-0.5s). Lower = more frequent spawns">Emit interval: <span class="val" id="emitterVal">0.04</span><input type="range" id="emitterSlider" min="0.010" max="0.500" step="0.005" value="0.04"></label>
+        <label title="Vertical spawn position (-100 to 100vh). Negative = above viewport">Spawn Y: <span class="val" id="spawnYVal">-50</span><input type="range" id="spawnYSlider" min="-100" max="100" step="5" value="-50"></label>
+        <label title="Horizontal spawn area width (10-100vw). 100% = full width">Spawn Width: <span class="val" id="spawnWidthVal">100</span><input type="range" id="spawnWidthSlider" min="10" max="100" step="5" value="100"></label>
+        <label title="Horizontal spawn center position (0-100vw). 50% = center">Spawn X Center: <span class="val" id="spawnCenterVal">50</span><input type="range" id="spawnCenterSlider" min="0" max="100" step="5" value="50"></label>
+        <label title="Vertical spawn area height (10-100vh). Controls spawn zone size">Spawn Height: <span class="val" id="spawnHeightVal">50</span><input type="range" id="spawnHeightSlider" min="10" max="100" step="5" value="50"></label>
+      </div>
+    </details>
+    <details open>
+      <summary>🧲 Mouse Repeller</summary>
+      <div class="group">
+        <label title="Choose repeller behavior preset">Repeller template: <select id="repellerSelect"></select></label>
+        <label title="Enable/disable mouse repeller effect">Repeller active: <input type="checkbox" id="repellerEnabledPit" checked></label>
+        <label title="Repeller influence radius (50-400px). Larger = affects more balls">Repel size: <span class="val" id="repelSizeVal">200</span><input type="range" id="repelSizeSlider" min="50" max="400" step="5" value="200"></label>
+        <label title="Repulsion strength (100-1000). Higher = stronger push away from mouse">Repel power: <span class="val" id="repelPowerVal">24000</span><input type="range" id="repelPowerSlider" min="100" max="1000" step="10" value="500"></label>
+        <label title="Repeller field softness (0.5-5.0). Lower = sharper cutoff, higher = gradual fade">Repel softness: <span class="val" id="repelSoftVal">2.0</span><input type="range" id="repelSoftSlider" min="0.5" max="5.0" step="0.1" value="2.0"></label>
+      </div>
+    </details>
+  </div>
+  
+  <div id="fliesControls" class="mode-controls">
+    <details open>
+      <summary>🕊️ Flies to Light Mode</summary>
+      <div class="group">
+        <label title="Attraction strength toward mouse (100-8000). Higher = stronger pull toward cursor. Realistic insects: 4000-6000">Attraction power: <span class="val" id="attractPowerVal">5000</span><input type="range" id="attractPowerSlider" min="100" max="8000" step="50" value="5000"></label>
+        <label title="Orbit distance around mouse (50-400px). Larger = wider swarm formation. Realistic insects: 150-250">Orbit radius: <span class="val" id="orbitRadiusVal">180</span><input type="range" id="orbitRadiusSlider" min="50" max="400" step="10" value="180"></label>
+        <label title="Swarm movement speed (0.2-5.0x). Higher = faster, more responsive. Realistic insects: 2.5-4.0">Swarm speed: <span class="val" id="swarmSpeedVal">3.5</span><input type="range" id="swarmSpeedSlider" min="0.2" max="5.0" step="0.1" value="3.5"></label>
+      </div>
+    </details>
+  </div>
+  
+  <!-- Weightless Mode Controls -->
+  <div id="weightlessControls" class="modeControls" style="display:none;">
+    <details open>
+      <summary>🌌 Weightless Bounce</summary>
+      <div class="group">
+        <label title="Number of balls in scene (20-200). Fixed count, no spawning">Ball count: <span class="val" id="weightlessCountVal">80</span><input type="range" id="weightlessCountSlider" min="20" max="200" step="10" value="80"></label>
+        <label title="Initial velocity magnitude (100-600px/s). Realistic space: 200-300. Higher = faster motion">Initial speed: <span class="val" id="weightlessSpeedVal">250</span><input type="range" id="weightlessSpeedSlider" min="100" max="600" step="25" value="250"></label>
+        <label title="Wall bounce elasticity (0.8-1.0). Realistic space: 0.95-0.98. 1.0 = perfect energy conservation">Bounce elasticity: <span class="val" id="weightlessBounceVal">0.97</span><input type="range" id="weightlessBounceSlider" min="0.8" max="1.0" step="0.01" value="0.97"></label>
+        <label title="Repeller strength (0-800). 0 = disabled">Repeller power: <span class="val" id="weightlessRepelVal">300</span><input type="range" id="weightlessRepelSlider" min="0" max="800" step="50" value="300"></label>
+        <label title="Repeller radius (50-300px). Larger = wider push area">Repeller radius: <span class="val" id="weightlessRepelRadiusVal">150</span><input type="range" id="weightlessRepelRadiusSlider" min="50" max="300" step="10" value="150"></label>
+      </div>
+    </details>
+  </div>
+  
+    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-3</code> switch modes</div>
   </div>
   
   <!-- FPS Counter -->
@@ -304,11 +402,53 @@
 
   <!-- Complete Ball Simulation JavaScript Engine -->
 <script>
-// Version: 2024-09-20 - Removed 3D rendering, simplified shadows
+// Version: 2024-09-30 - Added 3-mode system (Ball Pit, Flies to Light, Mouse Trail)
 (() => {
+  // Behavior modes with device availability
+  const MODES = {
+    PIT: 'pit',          // Ball Pit: gravity + repeller
+    FLIES: 'flies',      // Flies to Light: attraction to mouse, no gravity
+    WEIGHTLESS: 'weightless'  // Weightless Bounce: zero-G bouncing balls
+  };
+  
+  // Mode availability by device type
+  const MODE_AVAILABILITY = {
+    [MODES.PIT]: { desktop: true, mobile: true },
+    [MODES.FLIES]: { desktop: true, mobile: true },
+    [MODES.WEIGHTLESS]: { desktop: true, mobile: true }
+  };
+  
+  let currentMode = MODES.PIT;
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GLOBAL PARAMETERS (apply to all modes)
+  // ═══════════════════════════════════════════════════════════════════════════
+  let ballSoftness = 40; // 0-100: controls squash/stretch on collision (0=hard, 100=very squishy)
+  
+  // Mode-specific parameters
+  // Ball Pit mode parameters - REALISTIC RUBBER BALL PHYSICS
+  let gravityMultiplierPit = 1.15; // Slightly heavier feel for realism
+  let repellerEnabledPit = true;
+  
+  // Flies mode parameters - REALISTIC INSECT FLIGHT (mosquitoes/gnats)
+  let attractionPower = 5000; // Much faster: insects dart quickly toward light
+  let orbitRadius = 180; // Wider: insects don't cluster tightly
+  let swarmSpeed = 3.5; // 3.5x faster: insects are quick and erratic
+  
+  // Weightless mode parameters - REALISTIC SPACE PHYSICS
+  let weightlessCount = 80; // fixed number of balls
+  let weightlessInitialSpeed = 250; // Slightly faster for visible motion in zero-g
+  let weightlessBounce = 0.97; // Very elastic but not perfect (micro-imperfections)
+  let weightlessRepellerPower = 300; // subtle mouse repeller strength
+  let weightlessRepellerRadius = 150; // repeller radius (px)
+  
+  // Mass constants (needed before CONSTANTS object)
+  const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
+  
   // Constants for magic numbers
   const CONSTANTS = {
-    CANVAS_HEIGHT_VH: 1.5,        // 150vh canvas height
+    CANVAS_HEIGHT_VH_PIT: 1.5,    // 150vh for Ball Pit (spawning above viewport)
+    CANVAS_HEIGHT_VH_DEFAULT: 1.0, // 100vh for other modes
     OFFSCREEN_MOUSE: -1e9,        // Offscreen mouse position
     MIN_DISTANCE_EPSILON: 1e-6,   // Minimum distance for collision calculations
     MIN_REPEL_DISTANCE: 1e-4,     // Minimum repeller distance
@@ -324,15 +464,27 @@
     SPIN_GAIN: 0.25,              // how strongly tangential slip converts to spin
     SPIN_GAIN_TANGENT: 0.18,      // ball–ball tangential slip to spin
     ROLL_FRICTION_PER_S: 1.5,     // rolling friction for horizontal speed per second when grounded
-    SQUASH_MAX: 0.20,             // maximum squash amount (moderate, prevents elongated look)
+    SQUASH_MAX_BASE: 0.20,        // base maximum squash at softness=40 (moderate)
     SQUASH_DECAY_PER_S: 18.0,     // faster relaxation for snappy feel
     WALL_REST_VEL_THRESHOLD: 70,  // below this, wall bounce becomes inelastic (settles)
     GROUND_COUPLING_PER_S: 8.0    // match roll (vx) to spin (omega) when grounded
   };
+  
+  // Dynamic squash calculation based on ball softness (0-100)
+  // 0 = completely hard (no deformation)
+  // 40 = normal/default (0.20 squash)
+  // 100 = very squishy (0.50 squash)
+  function getSquashMax() {
+    if (ballSoftness === 0) return 0; // Completely hard - no squash
+    // Linear interpolation: softness 40 = base value (0.20)
+    // softness 100 = 2.5× base (0.50)
+    return CONSTANTS.SQUASH_MAX_BASE * (ballSoftness / 40.0);
+  }
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d', { alpha: true });
   const panel = document.getElementById('controlPanel');
+  const container = document.getElementById('bravia-balls');
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
   // Spawn area controls (viewport-relative)
@@ -342,26 +494,43 @@
   let SPAWN_W_VW = 100;
   let SPAWN_H_VH = 50;
 
-  // Resize canvas to 150vh (with top 50vh hidden above viewport)
+  // Resize canvas based on current mode
   function resize() {
-    const simHeight = window.innerHeight * CONSTANTS.CANVAS_HEIGHT_VH;
+    // Ball Pit mode uses 150vh (spawning above viewport), others use 100vh
+    const heightMultiplier = (currentMode === MODES.PIT) 
+      ? CONSTANTS.CANVAS_HEIGHT_VH_PIT 
+      : CONSTANTS.CANVAS_HEIGHT_VH_DEFAULT;
+    const simHeight = window.innerHeight * heightMultiplier;
     canvas.width  = Math.floor(window.innerWidth * DPR);
     canvas.height = Math.floor(simHeight * DPR);
   }
   const setCSSSize = () => {
-    // CSS size is handled by CSS (150vh, bottom-aligned)
+    // CSS size is handled by CSS classes (mode-pit gets 150vh, others 100svh)
   };
+  
+  // Debounced resize handler to prevent expensive operations on every pixel change
+  let resizeTimeout;
+  function handleResize() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      setCSSSize();
+      resize();
+      updateEffectiveScaleAndBallSizes();
+      updateTextColliders();
+    }, 150); // 150ms debounce
+  }
+  
   setCSSSize(); resize();
-  window.addEventListener('resize', () => { setCSSSize(); resize(); updateEffectiveScaleAndBallSizes(); updateTextColliders(); });
+  window.addEventListener('resize', handleResize);
 
   // Physics parameters (initial)
   const GE = 1960;        // Earth gravity in px/s^2 at our scale
   let gravityMultiplier = 1.10; // 1.1× Earth
   let G = GE * gravityMultiplier;
-  let REST = 0.88;        // restitution (bounciness) - from screenshot
-  let FRICTION = 0.0030;  // air drag per frame - from screenshot
+  let REST = 0.80;        // restitution (rubber balls: 0.75-0.85, more realistic than 0.88)
+  let FRICTION = 0.0045;  // air drag (increased for realistic weight feel)
   let EMIT_INTERVAL = 0.030; // seconds between drops - from screenshot
-  let MAX_BALLS = 400;    // from screenshot
+  let MAX_BALLS = 800;    // increased for better trail mode performance
   const SOLVER_ITERS = 6;    // Optimized for realistic collisions without jitter
   const POS_CORRECT_PERCENT = 0.8; // Reduced for more stable contacts
   const POS_CORRECT_SLOP = 0.5 * DPR; // Slightly more tolerance to prevent jitter
@@ -370,14 +539,14 @@
   // Base radius values
   const R_MIN_BASE = 6;
   const R_MAX_BASE = 24;
-  let sizeScale = 2.0;     // from screenshot
-  let sizeVariation = 0.1; // from screenshot
+  let sizeScale = 0.7;     // Global ball size (LOCKED - never override in modes)
+  let sizeVariation = 1.0; // Global size variation
   // Responsive scale: reduce ball size by 60% on mobile breakpoints (≤768px)
   let responsiveScale = 1.0;
   let lastEffectiveScale = null; // tracks previous (sizeScale * responsiveScale)
   // Global mass model: all balls share the same mass in kg
-  let ballMassKg = 19.80; // from screenshot
-  const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
+  // REALISTIC MASS: Rubber bouncy balls are 100-150g (not 19.8g)
+  let ballMassKg = 120.0; // 120g rubber ball (realistic weight)
   // Mass influence tuning
   const MASS_GRAVITY_EXP = 0.35; // how much mass influences gravity (perceptual)
   const MASS_REST_EXP = 0.15;    // how much mass influences bounce restitution
@@ -395,6 +564,8 @@
     return (containerWidth <= 768) ? 0.4 : 1.0;
   }
 
+  // Recomputes the effective pixel radius from global size and responsiveness,
+  // then proportionally rescales existing balls so the scene updates smoothly.
   function updateEffectiveScaleAndBallSizes() {
     responsiveScale = computeResponsiveScale();
     const effectiveScale = sizeScale * responsiveScale;
@@ -479,21 +650,39 @@
   // Color 4 (7.5%): Accent color
   // Color 5 (2.5%): Rare/special color
   const COLOR_TEMPLATES = {
+    // CORE PALETTE - User's favorite (don't change)
     industrialTeal: { label: 'Industrial Teal', colors: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'] },
-    modern: { label: 'Modern European', colors: ['#9ca3af', '#d1d5db', '#ffffff', '#ff3b30', '#000000', '#00e5ff', '#1976d2', '#ffc107'] },
-    corporate: { label: 'Corporate Modern', colors: ['#a0a8b1', '#d2d8de', '#ffffff', '#1a73e8', '#000000', '#ff5722', '#7b1fa2', '#ffa000'] },
-    minimal: { label: 'Helvetica Minimal', colors: ['#bdbdbd', '#e0e0e0', '#ffffff', '#6b7280', '#000000', '#40e0d0', '#303f9f', '#ff9800'] },
-    euroBlue: { label: 'European Blue', colors: ['#9aa6b2', '#d4dde5', '#ffffff', '#0a66c2', '#000000', '#ff4081', '#388e3c', '#ffb300'] },
-    scandi: { label: 'Scandinavian Bright', colors: ['#aab2b7', '#e6eaee', '#ffffff', '#74b9ff', '#000000', '#e91e63', '#1976d2', '#4caf50'] },
-    neonCyan: { label: 'Graphite Neon Cyan', colors: ['#9aa0a6', '#d5d9dd', '#ffffff', '#00e5ff', '#000000', '#ff9800', '#9c27b0', '#4caf50'] },
-    coralTech: { label: 'Coral Tech', colors: ['#9da3a9', '#d8dde2', '#ffffff', '#ff6b6b', '#000000', '#00e676', '#3f51b5', '#ff5722'] },
-    violetMidnight: { label: 'Violet Midnight', colors: ['#9fa3b1', '#d9dce3', '#ffffff', '#7c3aed', '#000000', '#e91e63', '#388e3c', '#ffb300'] },
-    mintSage: { label: 'Mint Sage', colors: ['#a0a7a2', '#dbe0dd', '#ffffff', '#00c896', '#000000', '#ff1744', '#3f51b5', '#ff9800'] },
-    slateAzure: { label: 'Slate Azure', colors: ['#9aa3ad', '#d8dee6', '#ffffff', '#3b82f6', '#000000', '#ff4081', '#388e3c', '#ffc107'] },
-    vaporPop: { label: 'Vapor Pop', colors: ['#9ea0a8', '#d6d7dc', '#ffffff', '#ff00e5', '#000000', '#00bcd4', '#673ab7', '#ff5722'] },
-    cyberMagenta: { label: 'Cyber Magenta', colors: ['#9c9fad', '#d6d9e3', '#ffffff', '#ff007a', '#000000', '#40e0d0', '#1976d2', '#ff9800'] },
-    streetLime: { label: 'Street Lime', colors: ['#9aa19a', '#d6dbd6', '#ffffff', '#baff00', '#000000', '#e91e63', '#3f51b5', '#ff6f00'] },
-    cmykPop: { label: 'CMYK Pop', colors: ['#9f9f9f', '#d9d9d9', '#ffffff', '#ffd400', '#000000', '#ff1744', '#7b1fa2', '#4caf50'] }
+    
+    // NEW PALETTES - Designed to match Industrial Teal's playful graphic design energy
+    // Each has: neutral grays + bold hero color + high contrast + 3 vibrant accents
+    
+    sunsetCoral: { 
+      label: 'Sunset Coral', 
+      colors: ['#b8b5b1', '#e5e3df', '#ffffff', '#ff6b6b', '#000000', '#00d4aa', '#2563eb', '#f59e0b'] 
+      // Hero: Coral (warm, friendly, energetic) + Teal, Blue, Amber accents
+      // Psychology: Optimistic, approachable, creative confidence
+    },
+    
+    violetPunch: { 
+      label: 'Violet Punch', 
+      colors: ['#b5b4bd', '#e3e2e9', '#ffffff', '#8b5cf6', '#000000', '#ef4444', '#06b6d4', '#fbbf24'] 
+      // Hero: Purple (creative, imaginative, bold) + Red, Cyan, Yellow accents
+      // Psychology: Innovative, playful sophistication, design-forward
+    },
+    
+    citrusBlast: { 
+      label: 'Citrus Blast', 
+      colors: ['#b9b7b0', '#e6e4dd', '#ffffff', '#f59e0b', '#000000', '#ec4899', '#3b82f6', '#10b981'] 
+      // Hero: Orange (energetic, enthusiastic, fun) + Pink, Blue, Green accents
+      // Psychology: Cheerful, dynamic, youthful energy
+    },
+    
+    cobaltSpark: { 
+      label: 'Cobalt Spark', 
+      colors: ['#b3b6bc', '#e1e4e9', '#ffffff', '#2563eb', '#000000', '#f97316', '#ec4899', '#eab308'] 
+      // Hero: Cobalt Blue (confident, intelligent, trustworthy) + Orange, Pink, Yellow accents
+      // Psychology: Professional playfulness, sharp and smart
+    }
   };
 
   let currentTemplate = 'industrialTeal';
@@ -550,6 +739,109 @@
   let mouseX = CONSTANTS.OFFSCREEN_MOUSE, mouseY = CONSTANTS.OFFSCREEN_MOUSE; // offscreen until moved
   let repellerEnabled = false; // disabled by default; enabled by preset or sliders
   const REPELLER_GLOBAL_MULTIPLIER = 20.0; // doubled overall repeller strength
+  
+  // Touch detection - cursor ball only shows on non-touch devices
+  let isTouchDevice = false;
+  // Check for touch support
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    isTouchDevice = true;
+  }
+  
+  // Hide modes that aren't available on this device
+  // All 3 modes are available on all devices
+  function applyDeviceSpecificModeVisibility() {
+    // No device-specific mode hiding needed
+  }
+  
+  // Settings persistence using localStorage
+  const STORAGE_KEY = 'bouncyBallsSettings';
+  
+  // Persist current UI/simulation settings to localStorage so user preferences
+  // survive reloads. Uses a compact single object for easy versioning.
+  function saveSettings() {
+    const settings = {
+      currentMode,
+      gravityMultiplierPit,
+      repellerEnabledPit,
+      attractionPower,
+      orbitRadius,
+      swarmSpeed,
+      weightlessInitialSpeed,
+      weightlessBounce,
+      weightlessMaxBalls,
+      weightlessRepellerPower,
+      weightlessRepellerRadius,
+      restitution: REST,
+      friction: FRICTION,
+      sizeScale,
+      sizeVariation,
+      ballMassKg,
+      ballSoftness,
+      repelPower,
+      repelRadius,
+      repelSoft,
+      cornerRadius,
+      motionBlur: trailFade,
+      trailSubtlety,
+      currentTemplate,
+      cursorBallColor
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      console.log('✓ Settings saved');
+    } catch (e) {
+      console.warn('Could not save settings:', e);
+    }
+  }
+  
+  // Load settings from localStorage and safely apply them. Each field is
+  // guarded to avoid clobbering defaults if a key is missing or old.
+  function loadSettings() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const settings = JSON.parse(saved);
+        // Restore all settings
+        if (settings.currentMode) currentMode = settings.currentMode;
+        if (settings.gravityMultiplierPit !== undefined) gravityMultiplierPit = settings.gravityMultiplierPit;
+        if (settings.repellerEnabledPit !== undefined) repellerEnabledPit = settings.repellerEnabledPit;
+        if (settings.attractionPower) attractionPower = settings.attractionPower;
+        if (settings.orbitRadius) orbitRadius = settings.orbitRadius;
+        if (settings.swarmSpeed) swarmSpeed = settings.swarmSpeed;
+        if (settings.weightlessInitialSpeed) weightlessInitialSpeed = settings.weightlessInitialSpeed;
+        if (settings.weightlessBounce) weightlessBounce = settings.weightlessBounce;
+        if (settings.weightlessMaxBalls) weightlessMaxBalls = settings.weightlessMaxBalls;
+        if (settings.weightlessRepellerPower !== undefined) weightlessRepellerPower = settings.weightlessRepellerPower;
+        if (settings.weightlessRepellerRadius !== undefined) weightlessRepellerRadius = settings.weightlessRepellerRadius;
+        if (settings.restitution) REST = settings.restitution;
+        if (settings.friction !== undefined) FRICTION = settings.friction;
+        if (settings.sizeScale) sizeScale = settings.sizeScale;
+        if (settings.sizeVariation !== undefined) sizeVariation = settings.sizeVariation;
+        if (settings.ballMassKg) ballMassKg = settings.ballMassKg;
+        if (settings.repelPower) repelPower = settings.repelPower;
+        if (settings.repelRadius) repelRadius = settings.repelRadius;
+        if (settings.repelSoft) repelSoft = settings.repelSoft;
+        if (settings.cornerRadius !== undefined) cornerRadius = settings.cornerRadius;
+        if (settings.motionBlur !== undefined) trailFade = settings.motionBlur;
+        if (settings.trailSubtlety) trailSubtlety = settings.trailSubtlety;
+        if (settings.currentTemplate) currentTemplate = settings.currentTemplate;
+        if (settings.cursorBallColor) cursorBallColor = settings.cursorBallColor;
+        
+        console.log('✓ Settings loaded');
+        return true;
+      }
+    } catch (e) {
+      console.warn('Could not load settings:', e);
+    }
+    return false;
+  }
+  
+  // Auto-save settings when sliders change
+  function autoSaveSettings() {
+    // Debounced save (wait 500ms after last change)
+    clearTimeout(window.settingsSaveTimeout);
+    window.settingsSaveTimeout = setTimeout(saveSettings, 500);
+  }
 
   // Repeller slider mapping (wide dynamic range; midpoint equals 2× previous default)
   const REPEL_BASE_POWER = 12000; // previous default baseline
@@ -579,8 +871,8 @@
   // Text collision system
   const TEXT_SELECTOR = '#hero-text'; // ID selector for the main text element
   let textColliders = []; // Array of text collision rectangles
-  // Temporal trail for simple motion blur (0 = off, up to ~0.25)
-  let trailFade = 0.025; // from screenshot
+  // Motion blur parameters
+  let motionBlurFade = 0.025; // from screenshot (was trailFade)
   let trailSubtlety = 1.80; // from screenshot
   
   // Performance optimizations and FPS tracking
@@ -603,6 +895,7 @@
       this.vx = (Math.random()*2 - 1) * 200; // random lateral kick
       this.vy = -Math.random()*200;          // slight upward variation
       this.r = r;
+      this.rBase = r;                         // Store original radius for scaling
       this.m = ballMassKg;                    // all balls share the same mass
       this.color = color;
       this.t = 0;
@@ -619,6 +912,8 @@
       this.theta = 0;               // integrated angular position (rad)
       this.squashAmount = 0.0;      // 0 = no squash, up to SQUASH_MAX
       this.squashNormalAngle = 0.0; // world-space normal direction for squash
+      // Trail mode alpha transparency
+      this.alpha = 1.0;       // 1 = opaque, 0 = transparent
     }
     // Integrate motion with simple Euler step
     step(dt) {
@@ -627,10 +922,16 @@
       this.age += dt;
 
       // Gravity scaled by mass to make weight perceptible without changing G globally
+      // BUT: Zero-G mode has NO gravity or drag (space physics)
+      if (currentMode !== MODES.WEIGHTLESS) {
       this.vy += (G * gravityScale) * dt;
+      }
+      
       // Mass-aware drag (heavier balls lose proportionally less velocity)
+      // BUT: Zero-G mode has MINIMAL drag (vacuum of space)
       const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
-      const drag = Math.max(0, 1 - (FRICTION / massScale));
+      const dragAmount = (currentMode === MODES.WEIGHTLESS) ? 0.0001 : FRICTION; // Almost zero in zero-g
+      const drag = Math.max(0, 1 - (dragAmount / massScale));
       this.vx *= drag;
       this.vy *= drag;
       // Apply short-lived lateral drift to simulate being thrown from the side above
@@ -639,7 +940,7 @@
       } else if (this.driftAx !== 0) {
         this.driftAx = 0; // Clear drift when expired to skip future checks
       }
-      applyRepeller(this, dt);
+      applyExternalForces(this, dt);
       this.x += this.vx * dt;
       this.y += this.vy * dt;
       // Angular damping
@@ -654,7 +955,9 @@
       this.squash = 1 - this.squashAmount;
     }
     // Resolve collision with walls (with rounded corners)
-    walls(w, h, dt) {
+    walls(w, h, dt, customRest = REST) {
+      // Use custom restitution if provided (for mode-specific bounce behavior)
+      const rest = customRest;
       if (cornerRadius === 0) {
         // Standard rectangular collision
       if (this.y + this.r > h) { 
@@ -669,23 +972,27 @@
         const rollDamp = Math.max(0, 1 - CONSTANTS.ROLL_FRICTION_PER_S * dt / massScale);
         this.vx *= rollDamp;
         // Bounce with mass-aware restitution
-        const wallRest = Math.abs(preVy) < CONSTANTS.WALL_REST_VEL_THRESHOLD ? 0 : REST;
+        const wallRest = Math.abs(preVy) < CONSTANTS.WALL_REST_VEL_THRESHOLD ? 0 : rest;
         this.vy = -this.vy * (wallRest * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
         // Squash on impact using pre-impact speed
         const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
-        this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+        this.squashAmount = Math.min(getSquashMax(), impact * 0.8);
         this.squash = 1 - this.squashAmount;
         this.squashNormalAngle = -Math.PI / 2; // ground normal upwards
         // Ground coupling: tend towards pure rolling without slipping
         const rollTarget = this.vx / this.r;
         this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
       }
-      if (this.vy > 0 && this.y - this.r < 0) { 
-        this.y = this.r; 
+      // Top wall collision aligned to the visible viewport top
+      // Ball Pit: 150vh canvas, so viewport top is at h/3
+      // Other modes: 100vh canvas, so viewport top is at 0
+      const viewportTop = (currentMode === MODES.PIT) ? (h / 3) : 0;
+      if (this.y - this.r < viewportTop) { 
+        this.y = viewportTop + this.r; 
         const preVy = this.vy;
-        this.vy = -this.vy * REST; 
+        this.vy = -this.vy * rest; 
         const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
-        this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+        this.squashAmount = Math.min(getSquashMax(), impact * 0.8);
         this.squash = 1 - this.squashAmount;
         this.squashNormalAngle = Math.PI / 2; // ceiling normal downwards
       }
@@ -696,9 +1003,9 @@
           const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
           this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
         }
-        this.vx = -this.vx * REST; 
+        this.vx = -this.vx * rest; 
         const impact = Math.min(1, Math.abs(this.vx) / (this.r * 90));
-        this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+        this.squashAmount = Math.min(getSquashMax(), impact * 0.8);
         this.squash = 1 - this.squashAmount;
         this.squashNormalAngle = Math.PI; // right wall normal leftwards
       }
@@ -709,9 +1016,9 @@
             const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
             this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
           }
-          this.vx = -this.vx * REST; 
+          this.vx = -this.vx * rest; 
           const impact = Math.min(1, Math.abs(this.vx) / (this.r * 90));
-          this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+          this.squashAmount = Math.min(getSquashMax(), impact * 0.8);
           this.squash = 1 - this.squashAmount;
           this.squashNormalAngle = 0; // left wall normal rightwards
         }
@@ -779,7 +1086,7 @@
               
               // Add squash effect for visual impact
               const impact = Math.min(1, Math.abs(dotProduct) / (this.r * 70));
-              this.squash = 1 - CONSTANTS.SQUASH_MAX * impact;
+              this.squash = 1 - getSquashMax() * impact;
               this.squashDirX = Math.abs(nx) > Math.abs(ny) ? 1 : 0;
               this.squashDirY = Math.abs(ny) > Math.abs(nx) ? 1 : 0;
             }
@@ -825,7 +1132,7 @@
             this.vy -= 2 * dot * ny * REST;
             // Squash aligned to corner normal, proportional to impact
             const impact = Math.min(1, Math.abs(dot) / (this.r * 90));
-            this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+            this.squashAmount = Math.min(getSquashMax(), impact * 0.8);
             this.squash = 1 - this.squashAmount;
             this.squashNormalAngle = Math.atan2(ny, nx);
           }
@@ -857,7 +1164,7 @@
         this.vx = -this.vx * (REST * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
         // Squash aligned to wall normal
         const impact = Math.min(1, Math.abs(this.vx)/(this.r*70));
-        this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact);
+        this.squashAmount = Math.min(getSquashMax(), impact);
         this.squash = 1 - this.squashAmount;
         this.squashNormalAngle = Math.PI; // normal leftwards
       }
@@ -872,7 +1179,7 @@
         }
         this.vx = -this.vx * (REST * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
         const impact = Math.min(1, Math.abs(this.vx)/(this.r*70));
-        this.squashAmount = Math.min(CONSTANTS.SQUASH_MAX, impact);
+        this.squashAmount = Math.min(getSquashMax(), impact);
         this.squash = 1 - this.squashAmount;
         this.squashNormalAngle = 0; // normal rightwards
       }
@@ -919,8 +1226,10 @@
     draw(ctx) {
       ctx.save();
       ctx.translate(this.x, this.y);
+
+      // Regular ball rendering
       // World-aligned squash/stretch only if significant
-      const amt = Math.min(CONSTANTS.SQUASH_MAX, Math.max(0, this.squashAmount));
+        const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
       if (amt > 0.001) {
         // Area-preserving squash: s * (1/s) maintains roundness perception
         const s = 1 + amt;
@@ -934,6 +1243,7 @@
       ctx.arc(0, 0, this.r, 0, Math.PI*2);
       ctx.fillStyle = this.color;
       ctx.fill();
+
       // Spin indicator removed for cleaner visuals and performance
       ctx.restore();
     }
@@ -995,11 +1305,10 @@
       // No variation: all balls exactly the same size
       r = baseSize;
     } else {
-      // Apply variation
-      const range = (R_MAX - R_MIN) / 2;
-      const variedRange = range * sizeVariation;
-      const minR = Math.max(1, baseSize - variedRange);
-      const maxR = baseSize + variedRange;
+      // Apply limited variation (max 10% from global ball size)
+      const maxVariation = baseSize * 0.1; // 10% of global ball size
+      const minR = Math.max(1, baseSize - maxVariation);
+      const maxR = baseSize + maxVariation;
       r = randBetween(minR, maxR);
     }
     
@@ -1023,6 +1332,7 @@
     balls.push(ball);
     return ball;
   }
+  
 
   // Continuous emitter within a vw/vh-defined rectangle
   let emitterTimer = 0;
@@ -1054,7 +1364,14 @@
     const y = randBetween(yTopCss * DPR, yBotCss * DPR) - (R_MAX + CONSTANTS.BALL_SPAWN_OFFSET + randBetween(0, 10 * DPR));
     return { x, y };
   }
+  
   function emit(dt) {
+    // Zero-G mode: no continuous spawning, balls are distributed at initialization
+    if (currentMode === MODES.WEIGHTLESS) {
+      return;
+    }
+    
+    // Ball Pit & Flies modes: standard top emitter
     emitterTimer += dt;
     while (emitterTimer >= EMIT_INTERVAL) {
       // Jitter emissions slightly for organic timing
@@ -1186,7 +1503,7 @@
           }
           // Visual squash aligned to contact normal based on impact
           const impact = Math.min(1, Math.abs(velAlongNormal) / ((A.r + B.r) * 50));
-          const sAmt = Math.min(CONSTANTS.SQUASH_MAX, impact * 0.8);
+          const sAmt = Math.min(getSquashMax(), impact * 0.8);
           A.squashAmount = Math.max(A.squashAmount, sAmt * 0.8);
           A.squashNormalAngle = Math.atan2(-ny, -nx);
           B.squashAmount = Math.max(B.squashAmount, sAmt * 0.8);
@@ -1233,9 +1550,17 @@
     // Physics iterations optimized for realistic, stable simulation
     let physicsSteps = 0;
     while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
-      for (let i=0; i<balls.length; i++) balls[i].step(DT);
-      resolveCollisions(3); // Balanced quality vs performance
-      for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT);
+        for (let i=0; i<balls.length; i++) balls[i].step(DT);
+      
+      // Ball-to-ball collisions (disabled for Flies mode only)
+      if (currentMode !== MODES.FLIES) {
+        resolveCollisions(3); // Balanced quality vs performance
+      }
+      
+      // Wall collisions (all modes)
+      const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
+      for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+      
       acc -= DT;
       physicsSteps++;
       physicsStepCount++; // Count physics steps for FPS measurement
@@ -1244,27 +1569,8 @@
     // Reset accumulator if we're falling behind
     if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
 
-    // Clear or fade canvas for motion blur trail
-    if (trailFade > 0 && trailSubtlety > 0) {
-      // Map sliders to effective fade alpha
-      const TRAIL_FADE_UI_MAX = 1.5;      // slider max for trail length
-      const TRAIL_SUBTLE_UI_MAX = 3.0;    // slider max for subtlety
-      const maxAlpha = 0.35;              // shortest trail (more aggressive clear)
-      const minAlpha = 0.0015;            // longest trail (very subtle clear)
-      const normLen = Math.max(0, Math.min(1, trailFade / TRAIL_FADE_UI_MAX));
-      const baseFade = maxAlpha + (minAlpha - maxAlpha) * normLen; // low slider -> big fade
-      const subtleNorm = Math.max(0, Math.min(1, trailSubtlety / TRAIL_SUBTLE_UI_MAX));
-      // Blend between full clear (1.0 alpha) at low subtlety and baseFade at high subtlety
-      let effectiveFade = 1.0 + (baseFade - 1.0) * subtleNorm;
-      // Clamp to safe bounds
-      effectiveFade = Math.max(0.001, Math.min(1.0, effectiveFade));
-      ctx.fillStyle = `rgba(0,0,0,${effectiveFade})`;
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.globalCompositeOperation = 'source-over';
-    } else {
+    // Clear canvas each frame
       ctx.clearRect(0,0,canvas.width,canvas.height);
-    }
     
     // Draw rounded boundary if corner radius > 0 (cache boundary path for performance)
     if (cornerRadius > 0) {
@@ -1277,6 +1583,18 @@
     for (let i=0; i<balls.length; i++) balls[i].draw(ctx);
     // Draw cursor ball last
     drawCursorBall(ctx);
+    
+    // Draw current mode indicator (desktop only)
+    if (!isTouchDevice) {
+      ctx.save();
+      ctx.font = '14px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      const modeName = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
+      ctx.fillText(modeName + ' Mode', 10, canvas.height - 10);
+      ctx.restore();
+    }
 
     // Use requestAnimationFrame for proper vsync
     requestAnimationFrame(frame);
@@ -1286,8 +1604,39 @@
   console.log('High refresh mode enabled - using requestAnimationFrame');
   requestAnimationFrame(frame);
 
+  // Reset ball sizes to global setting when switching modes
+  function resetBallSizeToGlobal() {
+    // Update size scale from slider (if needed)
+    const globalScale = parseFloat(sizeSliderGlobal.value);
+    sizeScale = globalScale;
+    
+    // Recalculate the actual size range based on sizeScale
+    updateEffectiveScaleAndBallSizes();
+    
+    // Update all existing balls to use proper global size
+    const baseSize = (R_MIN + R_MAX) / 2;
+    for (let i = 0; i < balls.length; i++) {
+      // Apply size variation if set, otherwise use base size
+      if (sizeVariation === 0) {
+        balls[i].r = baseSize;
+        balls[i].rBase = baseSize;
+      } else {
+        // Apply limited variation (max 10% from global ball size)
+        const maxVariation = baseSize * 0.1;
+        const minR = Math.max(1, baseSize - maxVariation);
+        const maxR = baseSize + maxVariation;
+        balls[i].r = randBetween(minR, maxR);
+        balls[i].rBase = balls[i].r;
+      }
+    }
+  }
+
   // Reset balls to spawn positions (preserves all settings)
   function resetBallsToSpawn() {
+    if (currentMode === MODES.WEIGHTLESS) {
+      // For weightless mode, reinitialize with even distribution
+      initializeWeightlessScene();
+    } else {
     for (let i = 0; i < balls.length; i++) {
       const ball = balls[i];
       const p = pickSpawnPoint();
@@ -1305,6 +1654,7 @@
       ball.age = 0;
       ball.driftAx = dir * (360 + Math.random() * 420) * sizeInfluence;
       ball.driftTime = 0.22 + Math.random() * 0.28;
+      }
     }
   }
 
@@ -1320,6 +1670,10 @@
       e.preventDefault();
       panel.classList.toggle('hidden');
     }
+    // Quick mode switches 1-3
+    if (k === '1') setMode(MODES.PIT);
+    if (k === '2') setMode(MODES.FLIES);
+    if (k === '3') setMode(MODES.WEIGHTLESS);
   });
 
   // Seed initial balls across the spawn area for quicker fill
@@ -1335,27 +1689,51 @@
 
 
 
-  // Mouse input for repeller
-  canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    mouseX = (e.clientX - rect.left) * DPR;
-    mouseY = (e.clientY - rect.top) * DPR;
-    // If mouse enters the canvas, enable repeller when power and radius are set
-    if (repelPower > 0 && repelRadius > 0) repellerEnabled = true;
+  // Mouse input (unified handler for repeller + trail recording + boulder dragging)
+  let lastTrailRecordTime = 0;
+  let lastMousePosition = { x: 0, y: 0 };
+  let mouseStoppedTime = 0;
+  
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = (e.clientX - rect.left) * DPR;
+      mouseY = (e.clientY - rect.top) * DPR;
+    
+    // Ball Pit: enable repeller when power and radius are set
+    if (currentMode === MODES.PIT && repelPower > 0 && repelRadius > 0) {
+      repellerEnabled = true;
+    }
+
+
   });
-  canvas.addEventListener('mouseleave', () => { mouseX = CONSTANTS.OFFSCREEN_MOUSE; mouseY = CONSTANTS.OFFSCREEN_MOUSE; });
+  canvas.addEventListener('mouseleave', () => {
+    mouseX = CONSTANTS.OFFSCREEN_MOUSE;
+    mouseY = CONSTANTS.OFFSCREEN_MOUSE;
+  });
+
 
   // Draw a cursor as a ball matching the simulation style
+  // Renders the cursor as a simulation-like ball for desktop. Hidden on touch.
   function drawCursorBall(ctx) {
+    // Don't show cursor ball on touch devices (mobile)
+    if (isTouchDevice) return;
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
+    
+    
+    // Draw main cursor ball for all other modes (white by default on desktop)
     const x = mouseX, y = mouseY;
     const baseSize = (R_MIN + R_MAX) / 2;
     const r = baseSize;
-    const color = cursorBallColor;
+    const color = 'rgba(255, 255, 255, 0.9)';
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
+    
+    // Add subtle white outline for visibility
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 
   function applyRepeller(b, dt) {
@@ -1377,16 +1755,174 @@
     const massScale = Math.max(0.25, b.m / MASS_BASELINE_KG);
     b.vx += (nx * strength * dt) / massScale;
     b.vy += (ny * strength * dt) / massScale;
+    // Add subtle air turbulence for realism (micro perturbations)
+    const turbulence = 10; // subtle random force
+    b.vx += (Math.random() - 0.5) * turbulence * dt;
+    b.vy += (Math.random() - 0.5) * turbulence * dt;
   }
+
+  // Behavior-mode external forces dispatcher
+  function applyExternalForces(b, dt) {
+    if (currentMode === MODES.PIT) {
+      applyRepeller(b, dt);
+      return;
+    }
+    if (currentMode === MODES.FLIES) {
+      applyAttractor(b, dt);
+      return;
+    }
+    if (currentMode === MODES.WEIGHTLESS) {
+      applyWeightlessRepeller(b, dt);
+      return;
+    }
+  }
+  
+  // Subtle mouse repeller for Weightless mode
+  function applyWeightlessRepeller(b, dt) {
+    if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
+    if (weightlessRepellerPower <= 0 || weightlessRepellerRadius <= 0) return;
+    
+    const rPx = weightlessRepellerRadius * DPR;
+    const dx = b.x - mouseX;
+    const dy = b.y - mouseY;
+    const d2 = dx*dx + dy*dy;
+    const r2 = rPx * rPx;
+    if (d2 > r2) return;
+    
+    const d = Math.max(Math.sqrt(d2), CONSTANTS.MIN_REPEL_DISTANCE);
+    const nx = dx / d;
+    const ny = dy / d;
+    const q = Math.max(0, 1 - d / rPx);
+    const strength = weightlessRepellerPower * q; // linear falloff, gentle
+    
+    b.vx += nx * strength * dt;
+    b.vy += ny * strength * dt;
+  }
+
+  // Mouse attractor for Flies-to-Light mode - REALISTIC INSECT FLIGHT
+  // Reference: Mosquitoes fly 1-2 m/s with quick acceleration and erratic patterns
+  function applyAttractor(b, dt) {
+    if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
+    
+    const dx = mouseX - b.x;
+    const dy = mouseY - b.y;
+    const d2 = dx*dx + dy*dy;
+    const d = Math.sqrt(d2 + 1);
+    
+    // Direction to cursor
+    const dirX = dx / d;
+    const dirY = dy / d;
+    
+    // 1. VERY STRONG ATTRACTION - insects have incredible acceleration relative to size
+    // Mosquitoes can accelerate at 50+ g's in short bursts
+    const attractForce = attractionPower * swarmSpeed * 2.0; // Use swarmSpeed multiplier
+    b.vx += dirX * attractForce * dt;
+    b.vy += dirY * attractForce * dt;
+    
+    // 2. SEPARATION from nearby flies (looser swarm - insects don't stick together)
+    const separationRadius = 120 * DPR; // Much larger separation for natural spread
+    let sepX = 0, sepY = 0;
+    let neighborCount = 0;
+    for (let i = 0; i < balls.length; i++) {
+      const other = balls[i];
+      if (other === b) continue;
+      const dx2 = b.x - other.x;
+      const dy2 = b.y - other.y;
+      const d2_other = dx2*dx2 + dy2*dy2;
+      if (d2_other < separationRadius * separationRadius && d2_other > 0) {
+        const d_other = Math.sqrt(d2_other);
+        const strength = 1 - (d_other / separationRadius);
+        sepX += (dx2 / d_other) * strength;
+        sepY += (dy2 / d_other) * strength;
+            neighborCount++;
+          }
+        }
+    if (neighborCount > 0) {
+      const separationForce = 15000; // Stronger separation for more spread
+      b.vx += (sepX / neighborCount) * separationForce * dt;
+      b.vy += (sepY / neighborCount) * separationForce * dt;
+    }
+    
+    // 3. INTENSE ERRATIC JITTER - mosquitos dart unpredictably with bursts
+    // Real mosquitoes change direction constantly and have explosive acceleration
+    const jitterBase = 2500 * swarmSpeed; // Scale jitter with swarm speed
+    const burstChance = 0.08; // 8% chance per frame for sudden burst
+    if (Math.random() < burstChance) {
+      // Sudden burst in random direction (mimics insect reflex)
+      const burstAngle = Math.random() * Math.PI * 2;
+      const burstStrength = 1500 * swarmSpeed;
+      b.vx += Math.cos(burstAngle) * burstStrength;
+      b.vy += Math.sin(burstAngle) * burstStrength;
+    }
+    // Constant erratic jitter (insects never fly perfectly straight)
+    b.vx += (Math.random() - 0.5) * jitterBase * dt;
+    b.vy += (Math.random() - 0.5) * jitterBase * dt;
+    
+    // 4. CHAOTIC ORBITAL MOTION - insects spiral unpredictably
+    // Orbital force varies wildly based on distance and random factor
+    const orbitVariation = 0.3 + Math.random() * 2.0; // 0.3x to 2.3x variation
+    const orbitStrength = swarmSpeed * 2000 * orbitVariation * dt; // Strong orbital
+    b.vx += -dirY * orbitStrength;
+    b.vy += dirX * orbitStrength;
+    
+    // 5. VERY HIGH speed limit - insects are remarkably fast for their size
+    const maxSpeed = 2200 * swarmSpeed; // Scale max speed with swarm speed
+    const speed = Math.sqrt(b.vx*b.vx + b.vy*b.vy);
+    if (speed > maxSpeed) {
+      b.vx = (b.vx / speed) * maxSpeed;
+      b.vy = (b.vy / speed) * maxSpeed;
+    }
+    
+    // Minimal damping - insects maintain energy through constant wing beats
+    b.vx *= 0.995; // Very light damping for sustained high energy
+    b.vy *= 0.995;
+  }
+
 
   // UI elements
   const restitutionSlider = document.getElementById('restitutionSlider');
   const frictionSlider = document.getElementById('frictionSlider');
   const emitterSlider = document.getElementById('emitterSlider');
-  const sizeSlider = document.getElementById('sizeSlider');
+  // Mode-specific ball properties controls
+  // Global ball properties
+  const sizeSliderGlobal = document.getElementById('sizeSliderGlobal');
+  const sizeVariationSliderGlobal = document.getElementById('sizeVariationSliderGlobal');
+  const weightSliderGlobal = document.getElementById('weightSliderGlobal');
+  const ballSoftnessSliderGlobal = document.getElementById('ballSoftnessSliderGlobal');
+  const sizeValGlobal = document.getElementById('sizeValGlobal');
+  const sizeVariationValGlobal = document.getElementById('sizeVariationValGlobal');
+  const weightValGlobal = document.getElementById('weightValGlobal');
+  const ballSoftnessValGlobal = document.getElementById('ballSoftnessValGlobal');
+  
+  // Mode-specific sliders (kept for backward compatibility)
+  const sizeSliderPit = document.getElementById('sizeSliderPit');
+  const sizeVariationSliderPit = document.getElementById('sizeVariationSliderPit');
+  const weightSliderPit = document.getElementById('weightSliderPit');
+  const ballSoftnessSliderPit = document.getElementById('ballSoftnessSliderPit');
+  const sizeValPit = document.getElementById('sizeValPit');
+  const sizeVariationValPit = document.getElementById('sizeVariationValPit');
+  const weightValPit = document.getElementById('weightValPit');
+  const ballSoftnessValPit = document.getElementById('ballSoftnessValPit');
+
+  const sizeSliderFlies = document.getElementById('sizeSliderFlies');
+  const sizeVariationSliderFlies = document.getElementById('sizeVariationSliderFlies');
+  const weightSliderFlies = document.getElementById('weightSliderFlies');
+  const ballSoftnessSliderFlies = document.getElementById('ballSoftnessSliderFlies');
+  const sizeValFlies = document.getElementById('sizeValFlies');
+  const sizeVariationValFlies = document.getElementById('sizeVariationValFlies');
+  const weightValFlies = document.getElementById('weightValFlies');
+  const ballSoftnessValFlies = document.getElementById('ballSoftnessValFlies');
+
+  const sizeSliderZeroG = document.getElementById('sizeSliderZeroG');
+  const sizeVariationSliderZeroG = document.getElementById('sizeVariationSliderZeroG');
+  const weightSliderZeroG = document.getElementById('weightSliderZeroG');
+  const ballSoftnessSliderZeroG = document.getElementById('ballSoftnessSliderZeroG');
+  const sizeValZeroG = document.getElementById('sizeValZeroG');
+  const sizeVariationValZeroG = document.getElementById('sizeVariationValZeroG');
+  const weightValZeroG = document.getElementById('weightValZeroG');
+  const ballSoftnessValZeroG = document.getElementById('ballSoftnessValZeroG');
+
   const maxBallsSlider = document.getElementById('maxBallsSlider');
-  const sizeVariationSlider = document.getElementById('sizeVariationSlider');
-  const weightSlider = document.getElementById('weightSlider');
   const spawnYSlider = document.getElementById('spawnYSlider');
   const spawnWidthSlider = document.getElementById('spawnWidthSlider');
   const spawnCenterSlider = document.getElementById('spawnCenterSlider');
@@ -1421,18 +1957,18 @@
   // Scene controls
   const cornerRadiusSlider = document.getElementById('cornerRadiusSlider');
   const cornerRadiusVal = document.getElementById('cornerRadiusVal');
-  const trailFadeSlider = document.getElementById('trailFadeSlider');
-  const trailFadeVal = document.getElementById('trailFadeVal');
+  const motionBlurFadeSlider = document.getElementById('trailFadeSlider'); // motion blur uses old trailFade ID
+  const motionBlurFadeVal = document.getElementById('trailFadeVal');
   const trailSubtletySlider = document.getElementById('trailSubtletySlider');
   const trailSubtletyVal = document.getElementById('trailSubtletyVal');
 
   const restitutionVal = document.getElementById('restitutionVal');
   const frictionVal = document.getElementById('frictionVal');
   const emitterVal = document.getElementById('emitterVal');
-  const sizeVal = document.getElementById('sizeVal');
+  // const sizeVal = document.getElementById('sizeVal'); // Removed - using global controls
   const maxBallsVal = document.getElementById('maxBallsVal');
-  const sizeVariationVal = document.getElementById('sizeVariationVal');
-  const weightVal = document.getElementById('weightVal');
+  // const sizeVariationVal = document.getElementById('sizeVariationVal'); // Removed - using global controls
+  // const weightVal = document.getElementById('weightVal'); // Removed - using global controls
   const spawnYVal = document.getElementById('spawnYVal');
   const spawnWidthVal = document.getElementById('spawnWidthVal');
   const spawnCenterVal = document.getElementById('spawnCenterVal');
@@ -1521,18 +2057,45 @@
     });
   }
 
-  // Sliders
-  restitutionSlider && restitutionSlider.addEventListener('input', () => { REST = parseFloat(restitutionSlider.value); restitutionVal && (restitutionVal.textContent = REST.toFixed(2)); });
-  frictionSlider && frictionSlider.addEventListener('input', () => { FRICTION = parseFloat(frictionSlider.value); frictionVal && (frictionVal.textContent = FRICTION.toFixed(4)); });
-  emitterSlider && emitterSlider.addEventListener('input', () => { EMIT_INTERVAL = parseFloat(emitterSlider.value); emitterVal && (emitterVal.textContent = EMIT_INTERVAL.toFixed(3)); });
-  sizeSlider && sizeSlider.addEventListener('input', () => {
-    const newScale = parseFloat(sizeSlider.value);
+  // Sliders (with auto-save)
+  restitutionSlider && restitutionSlider.addEventListener('input', () => { REST = parseFloat(restitutionSlider.value); restitutionVal && (restitutionVal.textContent = REST.toFixed(2)); autoSaveSettings(); });
+  frictionSlider && frictionSlider.addEventListener('input', () => { FRICTION = parseFloat(frictionSlider.value); frictionVal && (frictionVal.textContent = FRICTION.toFixed(4)); autoSaveSettings(); });
+  emitterSlider && emitterSlider.addEventListener('input', () => { EMIT_INTERVAL = parseFloat(emitterSlider.value); emitterVal && (emitterVal.textContent = EMIT_INTERVAL.toFixed(3)); autoSaveSettings(); });
+
+  // Mode-specific ball properties listeners (apply values globally but source UI is per-mode)
+  function bindBallProps(sliders) {
+    if (!sliders) return;
+    const { size, sizeVal, sizeVar, sizeVarVal, soft, softVal } = sliders;
+    size && size.addEventListener('input', () => {
+      const newScale = parseFloat(size.value);
     sizeVal && (sizeVal.textContent = newScale.toFixed(1));
     sizeScale = newScale;
-    // Recompute effective scale and proportionally resize existing balls
     updateEffectiveScaleAndBallSizes();
-    // Keep shared mass
-    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+      // Apply mass to all balls
+      for (let i=0; i<balls.length; i++) {
+        balls[i].m = ballMassKg;
+      }
+      autoSaveSettings();
+    });
+    sizeVar && sizeVar.addEventListener('input', () => {
+      const v = parseFloat(sizeVar.value);
+      sizeVarVal && (sizeVarVal.textContent = v.toFixed(1));
+      sizeVariation = v;
+      autoSaveSettings();
+    });
+    soft && soft.addEventListener('input', () => {
+      const s = parseInt(soft.value, 10);
+      softVal && (softVal.textContent = String(s));
+      ballSoftness = s;
+      autoSaveSettings();
+    });
+  }
+
+  // Global ball properties (apply to all modes)
+  bindBallProps({
+    size: sizeSliderGlobal, sizeVal: sizeValGlobal,
+    sizeVar: sizeVariationSliderGlobal, sizeVarVal: sizeVariationValGlobal,
+    soft: ballSoftnessSliderGlobal, softVal: ballSoftnessValGlobal
   });
   maxBallsSlider && maxBallsSlider.addEventListener('input', () => {
     MAX_BALLS = parseInt(maxBallsSlider.value, 10);
@@ -1542,21 +2105,19 @@
       balls.length = MAX_BALLS; // Truncate array efficiently
     }
   });
-  sizeVariationSlider && sizeVariationSlider.addEventListener('input', () => {
-    sizeVariation = parseFloat(sizeVariationSlider.value);
-    sizeVariationVal && (sizeVariationVal.textContent = sizeVariation.toFixed(1));
+  sizeVariationSliderGlobal && sizeVariationSliderGlobal.addEventListener('input', () => {
+    sizeVariation = parseFloat(sizeVariationSliderGlobal.value);
+    sizeVariationValGlobal && (sizeVariationValGlobal.textContent = sizeVariation.toFixed(1));
     
     // Update existing ball sizes to reflect new variation
     updateExistingBallSizes();
   });
-  weightSlider && weightSlider.addEventListener('input', () => {
-    ballMassKg = parseFloat(weightSlider.value);
-    weightVal && (weightVal.textContent = ballMassKg.toFixed(2));
-    // Apply shared mass to all balls
-    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
-    // Recompute derived scaling so gravity visibly changes with weight
-    recomputeMassDerivedScales();
-  });
+  // Mode-specific weight controls
+  const weightPitSlider = document.getElementById('weightPitSlider');
+  const weightPitVal = document.getElementById('weightPitVal');
+  const weightWeightlessSlider = document.getElementById('weightWeightlessSlider');
+  const weightWeightlessVal = document.getElementById('weightWeightlessVal');
+  // removed legacy rainbow weight controls (replaced by boulderWeight controls)
   
   // Function to update existing ball sizes based on current sizeVariation
   function updateExistingBallSizes() {
@@ -1569,11 +2130,10 @@
         // No variation: all balls exactly the same size
         ball.r = baseSize;
       } else {
-        // Apply variation
-        const range = (R_MAX - R_MIN) / 2;
-        const variedRange = range * sizeVariation;
-        const minR = Math.max(1, baseSize - variedRange);
-        const maxR = baseSize + variedRange;
+        // Apply limited variation (max 10% from global ball size)
+        const maxVariation = baseSize * 0.1; // 10% of global ball size
+        const minR = Math.max(1, baseSize - maxVariation);
+        const maxR = baseSize + maxVariation;
         ball.r = randBetween(minR, maxR);
       }
       
@@ -1631,6 +2191,204 @@
     syncPaletteVars();
   });
 
+  // Mode switcher wiring
+  const modeButtons = Array.from(document.querySelectorAll('.mode-button'));
+  const pitControls = document.getElementById('pitControls');
+  const fliesControls = document.getElementById('fliesControls');
+  const weightlessControls = document.getElementById('weightlessControls');
+  const gravityPitSlider = document.getElementById('gravityPitSlider');
+  const gravityPitVal = document.getElementById('gravityPitVal');
+  const repellerEnabledPitEl = document.getElementById('repellerEnabledPit');
+  const attractPowerSlider = document.getElementById('attractPowerSlider');
+  const attractPowerVal = document.getElementById('attractPowerVal');
+  const orbitRadiusSlider = document.getElementById('orbitRadiusSlider');
+  const orbitRadiusVal = document.getElementById('orbitRadiusVal');
+  const swarmSpeedSlider = document.getElementById('swarmSpeedSlider');
+  const swarmSpeedVal = document.getElementById('swarmSpeedVal');
+  
+  // Weightless controls
+  const weightlessCountSlider = document.getElementById('weightlessCountSlider');
+  const weightlessCountVal = document.getElementById('weightlessCountVal');
+  const weightlessSpeedSlider = document.getElementById('weightlessSpeedSlider');
+  const weightlessSpeedVal = document.getElementById('weightlessSpeedVal');
+  const weightlessBounceSlider = document.getElementById('weightlessBounceSlider');
+  const weightlessBounceVal = document.getElementById('weightlessBounceVal');
+  const weightlessRepelSlider = document.getElementById('weightlessRepelSlider');
+  const weightlessRepelVal = document.getElementById('weightlessRepelVal');
+  const weightlessRepelRadiusSlider = document.getElementById('weightlessRepelRadiusSlider');
+  const weightlessRepelRadiusVal = document.getElementById('weightlessRepelRadiusVal');
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROFESSIONAL WEIGHTLESS SCENE INITIALIZATION
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function initializeWeightlessScene() {
+    balls.length = 0;
+    
+    // Fixed count from UI control
+    const targetBalls = weightlessCount;
+    const w = canvas.width;
+    const h = canvas.height;
+    
+    // Grid distribution
+    const aspectRatio = w / h;
+    const cols = Math.ceil(Math.sqrt(targetBalls * aspectRatio));
+    const rows = Math.ceil(targetBalls / cols);
+    
+    const marginX = 40;
+    const marginY = 40;
+    const spacingX = (w - 2 * marginX) / Math.max(1, cols - 1);
+    const spacingY = (h - 2 * marginY) / Math.max(1, rows - 1);
+    
+    const positions = [];
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (positions.length >= targetBalls) break;
+        
+        const x = marginX + col * spacingX;
+        const y = marginY + row * spacingY;
+        
+        // Subtle jitter
+        const jitterX = (Math.random() - 0.5) * spacingX * 0.25;
+        const jitterY = (Math.random() - 0.5) * spacingY * 0.25;
+        
+        positions.push({
+          x: Math.max(20, Math.min(w - 20, x + jitterX)),
+          y: Math.max(20, Math.min(h - 20, y + jitterY))
+        });
+      }
+    }
+    
+    // Spawn balls with random velocities
+    for (const pos of positions) {
+      const ball = spawnBall(pos.x, pos.y);
+      const angle = Math.random() * Math.PI * 2;
+      const speed = weightlessInitialSpeed * (0.7 + Math.random() * 0.3);
+      ball.vx = Math.cos(angle) * speed;
+      ball.vy = Math.sin(angle) * speed;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+    }
+  }
+
+  function updateModeControlsUI() {
+    if (pitControls) pitControls.classList.toggle('active', currentMode === MODES.PIT);
+    if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
+    if (weightlessControls) weightlessControls.classList.toggle('active', currentMode === MODES.WEIGHTLESS);
+    modeButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-mode') === currentMode));
+  }
+
+  function setMode(mode) {
+    currentMode = mode;
+    
+    // Update container CSS class for mode-specific styling (canvas height)
+    container.className = ''; // Clear all mode classes
+    if (currentMode === MODES.PIT) {
+      container.classList.add('mode-pit'); // 150vh height
+    }
+    // Other modes use default 100svh (no class needed)
+    
+    // Resize canvas to match new mode's height
+    resize();
+    
+    // Apply per-mode high-level toggles and initialization
+    if (currentMode === MODES.PIT) {
+      gravityMultiplier = gravityMultiplierPit;
+      G = GE * gravityMultiplier;
+      repellerEnabled = repellerEnabledPit && (repelPower > 0 && repelRadius > 0);
+      EMITTER_SWEEP_ENABLED = true;
+      // Reset scene when entering Ball Pit
+      balls.length = 0;
+      emitterTimer = 0;
+      // Reset ball sizes to global
+      resetBallSizeToGlobal();
+    } else if (currentMode === MODES.FLIES) {
+      gravityMultiplier = 0.0; // no gravity
+      G = GE * gravityMultiplier;
+      repellerEnabled = false;
+      EMITTER_SWEEP_ENABLED = false;
+      // Reset scene when entering Flies mode
+      balls.length = 0;
+      // Reset ball sizes to global
+      resetBallSizeToGlobal();
+    } else if (currentMode === MODES.WEIGHTLESS) {
+      gravityMultiplier = 0.0; // zero gravity (weightless)
+      G = GE * gravityMultiplier;
+      repellerEnabled = false;
+      EMITTER_SWEEP_ENABLED = false;
+      // Initialize weightless scene with even distribution
+      initializeWeightlessScene();
+      // Reset ball sizes to global (after initialization)
+      resetBallSizeToGlobal();
+    }
+    updateModeControlsUI();
+  }
+
+  // Hook up UI listeners (with auto-save on changes)
+  modeButtons.forEach(btn => btn.addEventListener('click', () => {
+    setMode(btn.getAttribute('data-mode'));
+    // Note: resetBallSizeToGlobal() is now called inside setMode() for each mode
+    autoSaveSettings();
+  }));
+  gravityPitSlider && gravityPitSlider.addEventListener('input', () => {
+    gravityMultiplierPit = parseFloat(gravityPitSlider.value);
+    gravityPitVal && (gravityPitVal.textContent = gravityMultiplierPit.toFixed(1));
+    autoSaveSettings();
+    if (currentMode === MODES.PIT) { gravityMultiplier = gravityMultiplierPit; G = GE * gravityMultiplier; }
+  });
+  
+  // Mode-specific weight controls
+  weightPitSlider && weightPitSlider.addEventListener('input', () => {
+    ballMassKg = parseFloat(weightPitSlider.value);
+    weightPitVal && (weightPitVal.textContent = ballMassKg.toFixed(2));
+    // Apply shared mass to all balls
+    for (let i=0; i<balls.length; i++) {
+      balls[i].m = ballMassKg;
+    }
+    // Recompute derived scaling so gravity visibly changes with weight
+    recomputeMassDerivedScales();
+    autoSaveSettings();
+  });
+  repellerEnabledPitEl && repellerEnabledPitEl.addEventListener('change', () => {
+    repellerEnabledPit = !!repellerEnabledPitEl.checked;
+    if (currentMode === MODES.PIT) repellerEnabled = repellerEnabledPit && (repelPower > 0 && repelRadius > 0);
+  });
+  attractPowerSlider && attractPowerSlider.addEventListener('input', () => {
+    attractionPower = parseFloat(attractPowerSlider.value);
+    attractPowerVal && (attractPowerVal.textContent = Math.round(attractionPower).toString());
+  });
+  orbitRadiusSlider && orbitRadiusSlider.addEventListener('input', () => {
+    orbitRadius = parseFloat(orbitRadiusSlider.value);
+    orbitRadiusVal && (orbitRadiusVal.textContent = Math.round(orbitRadius).toString());
+  });
+  swarmSpeedSlider && swarmSpeedSlider.addEventListener('input', () => {
+    swarmSpeed = parseFloat(swarmSpeedSlider.value);
+    swarmSpeedVal && (swarmSpeedVal.textContent = swarmSpeed.toFixed(1));
+  });
+  
+  // Weightless controls
+  weightlessCountSlider && weightlessCountSlider.addEventListener('input', () => {
+    weightlessCount = parseInt(weightlessCountSlider.value, 10);
+    weightlessCountVal && (weightlessCountVal.textContent = weightlessCount.toString());
+    if (currentMode === MODES.WEIGHTLESS) initializeWeightlessScene();
+  });
+  weightlessSpeedSlider && weightlessSpeedSlider.addEventListener('input', () => {
+    weightlessInitialSpeed = parseFloat(weightlessSpeedSlider.value);
+    weightlessSpeedVal && (weightlessSpeedVal.textContent = Math.round(weightlessInitialSpeed).toString());
+  });
+  weightlessBounceSlider && weightlessBounceSlider.addEventListener('input', () => {
+    weightlessBounce = parseFloat(weightlessBounceSlider.value);
+    weightlessBounceVal && (weightlessBounceVal.textContent = weightlessBounce.toFixed(2));
+  });
+  weightlessRepelSlider && weightlessRepelSlider.addEventListener('input', () => {
+    weightlessRepellerPower = parseFloat(weightlessRepelSlider.value);
+    weightlessRepelVal && (weightlessRepelVal.textContent = Math.round(weightlessRepellerPower).toString());
+  });
+  weightlessRepelRadiusSlider && weightlessRepelRadiusSlider.addEventListener('input', () => {
+    weightlessRepellerRadius = parseFloat(weightlessRepelRadiusSlider.value);
+    weightlessRepelRadiusVal && (weightlessRepelRadiusVal.textContent = Math.round(weightlessRepellerRadius).toString());
+  });
+
   // Individual color picker listeners (with existing ball color update)
   function updateExistingBallColors() {
     // Update colors of existing balls to use new color palette
@@ -1666,9 +2424,9 @@
     cornerRadius = parseFloat(cornerRadiusSlider.value); 
     cornerRadiusVal && (cornerRadiusVal.textContent = cornerRadius.toFixed(0)); 
   });
-  trailFadeSlider && trailFadeSlider.addEventListener('input', () => { 
-    trailFade = parseFloat(trailFadeSlider.value); 
-    trailFadeVal && (trailFadeVal.textContent = trailFade.toFixed(3)); 
+  motionBlurFadeSlider && motionBlurFadeSlider.addEventListener('input', () => { 
+    motionBlurFade = parseFloat(motionBlurFadeSlider.value); 
+    motionBlurFadeVal && (motionBlurFadeVal.textContent = motionBlurFade.toFixed(3)); 
   });
   trailSubtletySlider && trailSubtletySlider.addEventListener('input', () => {
     trailSubtlety = parseFloat(trailSubtletySlider.value);
@@ -1679,7 +2437,7 @@
   // Rubber-focused physics presets under Earth gravity (≈1960 px/s²)
   const PHYSICS_PRESETS = {
     rubberPlayground: { label: 'Rubber – Playground', G: 1960, REST: 0.90, FRICTION: 0.0025, sizeScale: 1.8, maxBalls: 450, sizeVariation: 0.20 },
-    rubberRacquet:    { label: 'Rubber – Racquetball', G: 3320, REST: 0.97, FRICTION: 0.0035, sizeScale: 2.1, maxBalls: 350, sizeVariation: 0.30 },
+    rubberRacquet:    { label: 'Rubber – Racquetball', G: 3320, REST: 0.97, FRICTION: 0.0035, sizeScale: 0.7, maxBalls: 350, sizeVariation: 0.30 },
     rubberSuperball:  { label: 'Rubber – Superball', G: 1960, REST: 0.95, FRICTION: 0.0015, sizeScale: 1.2, maxBalls: 450, sizeVariation: 0.05 },
     rubberSoft:       { label: 'Rubber – Soft', G: 1960, REST: 0.86, FRICTION: 0.0035, sizeScale: 2.2, maxBalls: 350, sizeVariation: 0.25 },
     rubberHeavy:      { label: 'Rubber – Heavy', G: 1960, REST: 0.88, FRICTION: 0.0030, sizeScale: 2.0, maxBalls: 400, sizeVariation: 0.15 }
@@ -1753,7 +2511,14 @@
     sizeScale = newScale;
     // Recompute effective scale and proportionally resize existing balls
     updateEffectiveScaleAndBallSizes();
-    for (let i=0; i<balls.length; i++) { balls[i].m = ballMassKg; }
+    // Apply mass (Rainbow balls maintain 5x multiplier)
+    for (let i=0; i<balls.length; i++) {
+      if (currentMode === MODES.BOULDERS) {
+        balls[i].m = ballMassKg * 5;
+      } else {
+        balls[i].m = ballMassKg;
+      }
+    }
     
     // Remove excess balls if new limit is lower (truncate efficiently)
     if (balls.length > MAX_BALLS) { balls.length = MAX_BALLS; }
@@ -1761,9 +2526,9 @@
     // Update UI efficiently (gravity is fixed; no slider to update)
     updateSliderAndValue(restitutionSlider, restitutionVal, REST, 2);
     updateSliderAndValue(frictionSlider, frictionVal, FRICTION, 4);
-    updateSliderAndValue(sizeSlider, sizeVal, sizeScale, 1);
+    updateSliderAndValue(sizeSliderGlobal, sizeValGlobal, sizeScale, 1);
     updateSliderAndValue(maxBallsSlider, maxBallsVal, MAX_BALLS, 0);
-    updateSliderAndValue(sizeVariationSlider, sizeVariationVal, sizeVariation, 1);
+    updateSliderAndValue(sizeVariationSliderGlobal, sizeVariationValGlobal, sizeVariation, 1);
     
     // Apply the new size variation to existing balls
     updateExistingBallSizes();
@@ -1818,6 +2583,18 @@
   
   // Initialize text colliders
   updateTextColliders();
+  
+  // Load saved settings from localStorage
+  const settingsLoaded = loadSettings();
+  
+  // Apply device-specific mode visibility (hide Trail on mobile)
+  applyDeviceSpecificModeVisibility();
+  
+  // Initialize mode (use saved mode or default to Ball Pit)
+  setMode(currentMode);
+  
+  // Save settings on mode change or slider change
+  window.addEventListener('beforeunload', saveSettings);
 })();
 </script>
 </body>
