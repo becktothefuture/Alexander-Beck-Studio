@@ -904,17 +904,53 @@
   let fpsCheckInterval = 0.5;         // Check FPS every 500ms in performance mode
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // TIME-BASED DARK MODE SYSTEM
+  // INITIALIZATION STATE MACHINE (Robust Dark Mode System)
   // ═══════════════════════════════════════════════════════════════════════════
+  // State: INITIALIZING → DETERMINING_MODE → LOADING_COLORS → READY → RUNNING
+  
+  const INIT_STATES = {
+    INITIALIZING: 'initializing',
+    DETERMINING_MODE: 'determining_mode',
+    LOADING_COLORS: 'loading_colors',
+    READY: 'ready',
+    RUNNING: 'running'
+  };
+  
+  let initState = INIT_STATES.INITIALIZING;
   let autoDarkModeEnabled = true;     // Auto dark mode based on time of day
   let isDarkMode = false;             // Current dark mode state
   const SUNSET_HOUR = 18;             // 6 PM
   const SUNRISE_HOUR = 6;             // 6 AM
   
+  /**
+   * Synchronously determine if it's night time
+   * @returns {boolean} True if between SUNSET_HOUR and SUNRISE_HOUR
+   */
   function isNightTime() {
     const now = new Date();
     const hour = now.getHours();
-    return hour >= SUNSET_HOUR || hour < SUNRISE_HOUR;
+    const isNight = hour >= SUNSET_HOUR || hour < SUNRISE_HOUR;
+    console.log(`🌍 Time check: ${hour}:${now.getMinutes().toString().padStart(2,'0')} → ${isNight ? 'Night' : 'Day'} (sunset: ${SUNSET_HOUR}, sunrise: ${SUNRISE_HOUR})`);
+    return isNight;
+  }
+  
+  /**
+   * Determine dark mode state BEFORE any initialization
+   * BLOCKING: This must complete before color loading
+   * @returns {boolean} The determined dark mode state
+   */
+  function determineDarkMode() {
+    console.log('🔍 STATE: DETERMINING_MODE');
+    initState = INIT_STATES.DETERMINING_MODE;
+    
+    if (!autoDarkModeEnabled) {
+      console.log('✓ Dark mode disabled by user → Light mode');
+      return false;
+    }
+    
+    const shouldBeDark = isNightTime();
+    console.log(`✓ Dark mode determination complete → ${shouldBeDark ? 'DARK' : 'LIGHT'} mode`);
+    return shouldBeDark;
   }
   
   /**

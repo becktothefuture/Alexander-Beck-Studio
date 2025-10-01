@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { minify: terserMinify } = require('terser');
 
 console.log('🚀 Starting Production Build...\n');
 
@@ -382,19 +383,60 @@ function createCompactSidebarHTML() {
     </div>`;
 }
 
-function minifyJavaScript(jsCode) {
-  console.log('🗜️ Minifying JavaScript...');
+/**
+ * Minify JavaScript using Terser (proper minification with mangling)
+ * @param {string} jsCode - JavaScript code to minify
+ * @returns {Promise<string>} Minified code
+ */
+async function minifyJavaScript(jsCode) {
+  console.log('🗜️ Minifying JavaScript with Terser...');
   
-  // Basic minification (remove comments and extra whitespace)
-  return jsCode
-    .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
-    .replace(/\/\/.*$/gm, '') // Remove line comments
-    .replace(/\s+/g, ' ') // Collapse whitespace
-    .replace(/;\s*}/g, ';}') // Clean up semicolons
-    .replace(/{\s*/g, '{') // Clean up braces
-    .replace(/}\s*/g, '}')
-    .replace(/,\s*/g, ',') // Clean up commas
-    .trim();
+  const terserOptions = {
+    compress: {
+      passes: 3,              // Multiple passes for better compression
+      drop_console: false,    // Keep console.log for debugging
+      dead_code: true,        // Remove unreachable code
+      unused: true,           // Remove unused variables
+      join_vars: true,        // Join consecutive var statements
+      collapse_vars: true,    // Collapse single-use variables
+      reduce_vars: true,      // Optimize variable assignments
+      if_return: true,        // Optimize if-return patterns
+      sequences: true,        // Join consecutive statements
+      properties: true,       // Optimize property access
+      comparisons: true,      // Optimize comparisons
+      booleans: true,         // Optimize boolean expressions
+      loops: true,            // Optimize loops
+      hoist_funs: true,       // Hoist function declarations
+      hoist_vars: false       // Don't hoist vars (can break code)
+    },
+    mangle: {
+      toplevel: false,        // Don't mangle top-level names
+      reserved: ['MODES', 'Ball', 'frame']  // Preserve important names
+    },
+    format: {
+      comments: false,        // Remove all comments
+      beautify: false,        // No beautification
+      preamble: '// Bouncy Balls Simulation - Minified with Terser'
+    }
+  };
+  
+  try {
+    const result = await terserMinify(jsCode, terserOptions);
+    if (!result || !result.code) {
+      throw new Error('Terser returned empty output');
+    }
+    console.log(`✅ Minification complete: ${jsCode.length} → ${result.code.length} chars (${Math.round((1 - result.code.length / jsCode.length) * 100)}% reduction)`);
+    return result.code;
+  } catch (error) {
+    console.error('❌ Terser minification failed:', error.message);
+    console.warn('⚠️  Falling back to basic minification...');
+    // Fallback to basic minification if Terser fails
+    return jsCode
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -440,7 +482,7 @@ async function buildProduction() {
     console.log('✅ Integrated simulation into Webflow HTML');
     
     // Step 7: Create minified JavaScript file
-    const minifiedJS = minifyJavaScript(simulationCode.jsCode);
+    const minifiedJS = await minifyJavaScript(simulationCode.jsCode);
     const jsOutputPath = path.join(CONFIG.publicDestination, 'js', 'bouncy-balls-embed.js');
     
     // Ensure js directory exists
@@ -451,7 +493,7 @@ async function buildProduction() {
     
     fs.writeFileSync(jsOutputPath, minifiedJS);
     console.log(`✅ Created minified JavaScript: ${jsOutputPath}`);
-    console.log(`📊 Size reduction: ${simulationCode.jsCode.length} → ${minifiedJS.length} chars (${Math.round((1 - minifiedJS.length / simulationCode.jsCode.length) * 100)}% smaller)`);
+    console.log(`📊 Final size: ${(minifiedJS.length / 1024).toFixed(1)}KB (${Math.round((1 - minifiedJS.length / simulationCode.jsCode.length) * 100)}% reduction)`);
     
     // Step 8: Create CSS file
     const cssOutputPath = path.join(CONFIG.publicDestination, 'css', 'bouncy-balls.css');

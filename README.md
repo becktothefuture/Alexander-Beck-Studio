@@ -1,50 +1,46 @@
 # Alexander Beck Studio Website
 
-Interactive portfolio website featuring a high-performance, physics-based bouncy balls simulation.
+**Interactive particle physics simulation with 3 distinct modes**
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)
+![Quality](https://img.shields.io/badge/quality-95.8%2F100-brightgreen.svg)
 
 ---
 
 ## Features
 
-**Three Physics Modes**:
+**Three Physics Modes:**
 - 🎯 **Ball Pit** - Gravity-based collisions with mouse repeller
 - 🕊️ **Flies to Light** - Swarm behavior attracted to cursor
 - 🌌 **Zero-G** - Weightless bouncing with perfect elastic collisions
 
-**Performance**:
+**Performance:**
 - 60 FPS sustained with 200+ particles
 - Spatial hashing for O(n) collision detection
-- Dynamic canvas sizing per mode (33% optimization)
+- Dynamic canvas sizing (33% optimization)
 - Mobile-optimized with touch support
 
-**Built With**:
+**Built With:**
 - Pure vanilla JavaScript (zero dependencies)
 - Canvas 2D API
 - Fixed timestep physics (120Hz)
-- 34.6 KB minified, ~12 KB gzipped
+- 45.5 KB minified
 
 ---
 
 ## Quick Start
 
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/alexander-beck-studio-website
-cd alexander-beck-studio-website
-
 # Install
 npm install
 
 # Development
-open source/balls-source.html
-# or
-npm start  # http://localhost:8000
-```
+npm start              # http://localhost:8000
 
----
+# Production
+npm run build
+```
 
 ## Controls
 
@@ -55,28 +51,30 @@ npm start  # http://localhost:8000
 | `3` | Zero-G mode |
 | `R` | Reset simulation |
 | `/` | Toggle control panel |
-| Mouse | Interact with particles |
 
 ---
 
-## Development
+## Documentation 📚
 
-### Scripts
-```bash
-npm start      # Dev server (port 8000)
-npm run build  # Production build
-npm run watch  # Auto-rebuild
-npm run clean  # Clean configs
-```
+### **New Users** → Start Here
+1. [Quick Start Guide](./docs/core/QUICK-START.md) - Get running in 2 minutes
+2. [Project Overview](./docs/core/PROJECT-OVERVIEW.md) - Understand the system
 
-### Workflow
-1. Edit `source/balls-source.html` (development file with UI)
-2. Test changes in browser
-3. Tune parameters via control panel
-4. Save config with "Save Config" button
-5. Build: `npm run build` → outputs to `public/js/bouncy-balls-embed.js`
+### **Developers** → Development Guides
+1. [Development Guide](./docs/development/DEVELOPMENT-GUIDE.md) - Workflow & debugging
+2. [Architecture](./docs/development/ARCHITECTURE.md) - Technical deep dive
 
-**See `docs/DEVELOPMENT.md` for detailed guide.**
+### **Integrators** → Reference Docs
+1. [Integration Guide](./docs/reference/INTEGRATION.md) - Embed in your site
+2. [Configuration](./docs/reference/CONFIGURATION.md) - All parameters
+3. [Modes Reference](./docs/reference/MODES.md) - Physics specifications
+
+### **Operations** → Deployment & Reviews
+1. [Deployment Guide](./docs/operations/DEPLOYMENT.md) - Production deployment
+2. [Project Assessment](./docs/operations/PROJECT-ASSESSMENT.md) - Quality review
+
+### **AI Assistants** → Quick Reference
+- [AI Agent Guide](./AI-AGENT-GUIDE.md) - Quick reference for AI assistants
 
 ---
 
@@ -84,73 +82,69 @@ npm run clean  # Clean configs
 
 ```
 /
-├── source/
-│   ├── balls-source.html      # Development version
-│   ├── build.js                # Build script
-│   └── current-config.json     # Settings
-├── public/
-│   ├── index.html              # Production site
-│   ├── css/bouncy-balls.css    # Styles
-│   └── js/bouncy-balls-embed.js # Built JS (34.6 KB)
-├── docs/
-│   ├── OVERVIEW.md             # System overview
-│   ├── MODES.md                # Mode specifications
-│   ├── ARCHITECTURE.md         # Technical docs
-│   ├── DEVELOPMENT.md          # Dev guide
-│   ├── CANVAS-HEIGHT.md        # Dynamic canvas system
-│   ├── PERFORMANCE.md          # Benchmarks
-│   └── WEBFLOW-INTEGRATION.md  # Embedding guide
-└── README.md                   # This file
+├── source/              # Development files (EDIT THESE)
+│   ├── balls-source.html    # Main development file
+│   ├── build.js             # Build script
+│   └── current-config.json  # Configuration
+├── public/              # Production output (GENERATED)
+│   ├── index.html           # Integrated page
+│   └── js/bouncy-balls-embed.js  # Built bundle (45.5 KB)
+└── docs/                # Documentation
+    ├── core/            # Essential docs
+    ├── development/     # Dev guides
+    ├── reference/       # Technical specs
+    └── operations/      # Deployment & reviews
 ```
 
 ---
 
-## Documentation
+## Development
 
-📚 **[Complete Documentation Index](docs/INDEX.md)** - Start here for guided navigation!
+### Workflow
+1. Edit `source/balls-source.html`
+2. Test in browser (refresh to see changes)
+3. Tune parameters via control panel (`/` key)
+4. Save config with "Save Config" button
+5. Build: `npm run build`
 
-### Quick Links by Role
-
-| Role | Start Here |
-|------|------------|
-| **New User** | [`docs/OVERVIEW.md`](docs/OVERVIEW.md) → [`docs/MODES.md`](docs/MODES.md) |
-| **Developer** | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
-| **Integrator** | [`docs/WEBFLOW-INTEGRATION.md`](docs/WEBFLOW-INTEGRATION.md) |
-| **Designer** | [`docs/COLOR-PALETTES.md`](docs/COLOR-PALETTES.md) |
-| **AI Assistant** | [`docs/INDEX.md`](docs/INDEX.md) → [`docs/EXECUTIVE-SUMMARY.md`](docs/EXECUTIVE-SUMMARY.md) |
-
-### All Documentation
-
-- **[`docs/INDEX.md`](docs/INDEX.md)** - Navigation hub with cross-references
-- **[`docs/OVERVIEW.md`](docs/OVERVIEW.md)** - System introduction
-- **[`docs/MODES.md`](docs/MODES.md)** - Physics mode specifications
-- **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** - Technical architecture
-- **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** - Development guide
-- **[`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)** - Benchmarks & optimization
-- **[`docs/CANVAS-HEIGHT.md`](docs/CANVAS-HEIGHT.md)** - Canvas system explained
-- **[`docs/COLOR-PALETTES.md`](docs/COLOR-PALETTES.md)** - Color psychology guide
-- **[`docs/WEBFLOW-INTEGRATION.md`](docs/WEBFLOW-INTEGRATION.md)** - Embedding guide
-- **[`docs/EXECUTIVE-SUMMARY.md`](docs/EXECUTIVE-SUMMARY.md)** - Project overview
-
----
-
-## Production Build
-
+### Scripts
 ```bash
-npm run build
+npm start              # Dev server (port 8000)
+npm run build          # Production build
+npm run watch          # Auto-rebuild on changes
+npm run build-production  # Full Webflow integration
 ```
 
-**Output**: `public/js/bouncy-balls-embed.js`
+---
 
-**Integration**:
+## Integration
+
+### Minimal HTML
 ```html
+<link rel="stylesheet" href="css/bouncy-balls.css">
+
 <div id="bravia-balls">
-  <canvas id="c" aria-label="Bouncy balls" role="img"></canvas>
+  <canvas id="c" aria-label="Bouncy balls"></canvas>
 </div>
+
 <script src="js/bouncy-balls-embed.js"></script>
 ```
 
-**See `docs/WEBFLOW-INTEGRATION.md` for embedding details.**
+**See [Integration Guide](./docs/reference/INTEGRATION.md) for detailed instructions.**
+
+---
+
+## Performance
+
+| Mode | Balls | FPS | Status |
+|------|-------|-----|--------|
+| Ball Pit | 200 | 60 | ✅ Excellent |
+| Flies | 300 | 60 | ✅ Excellent |
+| Zero-G | 150 | 60 | ✅ Excellent |
+
+**Overall Score:** 95.8/100 (A+)
+
+**See [Performance Benchmarks](./docs/development/ARCHITECTURE.md#performance-optimizations) for details.**
 
 ---
 
@@ -166,29 +160,13 @@ npm run build
 
 ---
 
-## Performance
-
-| Mode | Balls | FPS | Status |
-|------|-------|-----|--------|
-| Ball Pit | 200 | 60 | ✅ Excellent |
-| Flies | 300 | 60 | ✅ Excellent |
-| Zero-G | 150 | 60 | ✅ Excellent |
-
-**Overall Score**: 8.5/10
-
-**See `docs/PERFORMANCE.md` for detailed benchmarks.**
-
----
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details
-
----
-
 ## Contributing
 
-Contributions welcome! See `docs/DEVELOPMENT.md` for code style and workflow.
+Contributions welcome! See [Development Guide](./docs/development/DEVELOPMENT-GUIDE.md) for:
+- Code style and patterns
+- Git workflow
+- Commit conventions
+- Testing procedures
 
 ```bash
 git checkout -b feature/your-feature
@@ -199,10 +177,16 @@ git push origin feature/your-feature
 
 ---
 
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details
+
+---
+
 ## Contact
 
 Alexander Beck - [alexander@beck.fyi](mailto:alexander@beck.fyi)
 
 ---
 
-**Built with physics and attention to detail** ⚛️
+**Built with physics, performance, and attention to detail** ⚛️

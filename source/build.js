@@ -151,12 +151,35 @@ console.log('🎭 Configuring production behavior...');
 jsCode = jsCode.replace(/const PANEL_INITIALLY_VISIBLE = true;/, 'const PANEL_INITIALLY_VISIBLE = false;');
 console.log('✅ Panel will be hidden in production (toggle with / key)');
 
-// Minify JS only (self-invoking bundle suitable for <script src>)
-console.log('🗜️  Minifying JS...');
+// Minify JS with advanced Terser optimization
+console.log('🗜️  Minifying JS with Terser (advanced optimization)...');
 const terserOptions = {
-  compress: { passes: 2 },
-  mangle: true,               // keep names short for size
-  format: { comments: false },
+  compress: {
+    passes: 3,              // Multiple passes for better compression
+    drop_console: false,    // Keep console.log for debugging
+    dead_code: true,        // Remove unreachable code
+    unused: true,           // Remove unused variables
+    join_vars: true,        // Join consecutive var statements
+    collapse_vars: true,    // Collapse single-use variables
+    reduce_vars: true,      // Optimize variable assignments
+    if_return: true,        // Optimize if-return patterns
+    sequences: true,        // Join consecutive statements
+    properties: true,       // Optimize property access
+    comparisons: true,      // Optimize comparisons
+    booleans: true,         // Optimize boolean expressions
+    loops: true,            // Optimize loops
+    hoist_funs: true,       // Hoist function declarations
+    hoist_vars: false       // Don't hoist vars (can break code)
+  },
+  mangle: {
+    toplevel: false,        // Don't mangle top-level names  
+    reserved: ['MODES', 'Ball', 'frame']  // Preserve important names
+  },
+  format: {
+    comments: false,        // Remove all comments
+    beautify: false,        // No beautification
+    preamble: '// Bouncy Balls Simulation - Minified with Terser'
+  },
   sourceMap: {
     filename: 'bouncy-balls-embed.js',
     url: 'bouncy-balls-embed.js.map',
