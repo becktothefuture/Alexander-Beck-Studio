@@ -26,7 +26,7 @@ npm start
 Main development file: `source/balls-source.html`
 - Self-contained HTML with inline styles and scripts
 - Control panel for real-time parameter tuning
-- Three physics modes with keyboard shortcuts (1, 2, 3)
+- Three physics modes with keyboard shortcuts (1=Pit, 2=Flies, 3=Zero-G)
 
 #### 3. Test Changes
 - Refresh browser to see updates

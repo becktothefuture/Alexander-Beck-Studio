@@ -59,18 +59,21 @@ Three distinct physics modes:
 - Gravity: 1.1x Earth
 - Wall bouncing with friction
 - Optional cursor repeller
+- Continuous top emitter
 
 ### Flies to Light (Mode 2)
 - Zero gravity
 - Strong cursor attraction
 - Swarm behavior with jitter
 - Orbital motion dynamics
+- Continuous top emitter
 
-### Mouse Trail (Mode 3)
-- Zero gravity  
-- Particle emission from cursor
-- Velocity inheritance from mouse
-- Fade-out lifecycle
+### Weightless (Mode 3 / Zero-G)
+- Zero gravity
+- Perfect elastic wall collisions (all 4 walls)
+- Ball-to-ball collisions enabled
+- Even grid distribution at init
+- Perpetual motion
 
 ## Configuration System
 
