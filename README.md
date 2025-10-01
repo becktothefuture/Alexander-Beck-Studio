@@ -107,17 +107,30 @@ npm run clean  # Clean configs
 
 ## Documentation
 
-| File | Purpose |
-|------|---------|
-| `docs/OVERVIEW.md` | High-level system overview |
-| `docs/MODES.md` | Detailed mode specifications |
-| `docs/ARCHITECTURE.md` | Technical architecture & code structure |
-| `docs/DEVELOPMENT.md` | Development workflow & debugging |
-| `docs/PERFORMANCE.md` | Benchmarks & optimization strategies |
-| `docs/CANVAS-HEIGHT.md` | Dynamic canvas height system |
-| `docs/WEBFLOW-INTEGRATION.md` | Webflow embedding guide |
+📚 **[Complete Documentation Index](docs/INDEX.md)** - Start here for guided navigation!
 
-**Start here**: `docs/OVERVIEW.md`
+### Quick Links by Role
+
+| Role | Start Here |
+|------|------------|
+| **New User** | [`docs/OVERVIEW.md`](docs/OVERVIEW.md) → [`docs/MODES.md`](docs/MODES.md) |
+| **Developer** | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) → [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| **Integrator** | [`docs/WEBFLOW-INTEGRATION.md`](docs/WEBFLOW-INTEGRATION.md) |
+| **Designer** | [`docs/COLOR-PALETTES.md`](docs/COLOR-PALETTES.md) |
+| **AI Assistant** | [`docs/INDEX.md`](docs/INDEX.md) → [`docs/EXECUTIVE-SUMMARY.md`](docs/EXECUTIVE-SUMMARY.md) |
+
+### All Documentation
+
+- **[`docs/INDEX.md`](docs/INDEX.md)** - Navigation hub with cross-references
+- **[`docs/OVERVIEW.md`](docs/OVERVIEW.md)** - System introduction
+- **[`docs/MODES.md`](docs/MODES.md)** - Physics mode specifications
+- **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** - Technical architecture
+- **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** - Development guide
+- **[`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)** - Benchmarks & optimization
+- **[`docs/CANVAS-HEIGHT.md`](docs/CANVAS-HEIGHT.md)** - Canvas system explained
+- **[`docs/COLOR-PALETTES.md`](docs/COLOR-PALETTES.md)** - Color psychology guide
+- **[`docs/WEBFLOW-INTEGRATION.md`](docs/WEBFLOW-INTEGRATION.md)** - Embedding guide
+- **[`docs/EXECUTIVE-SUMMARY.md`](docs/EXECUTIVE-SUMMARY.md)** - Project overview
 
 ---
 
