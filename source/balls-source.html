@@ -1983,61 +1983,66 @@
       ctx.fillStyle = this.color;
       ctx.fill();
       
-      // INSET SHADOWS using composite operations (CSS box-shadow: inset equivalent)
+      // EDGE-ONLY SHADOWS: Radial gradients that only illuminate the rim
       if (glassMorphismEnabled && (!enableShadowCulling || this.r >= minShadowRadius)) {
         // Performance: LOD system for small balls
         const isSmallBall = this.r < 12;
         const qualityMultiplier = isSmallBall ? 0.5 : 1.0;
         
-        // Apply softness multiplier
-        const effectiveShadow1Blur = shadow1BlurRadius * (shadowSoftness / 8) * qualityMultiplier;
-        const effectiveShadow2Blur = shadow2BlurRadius * (shadowSoftness / 8) * qualityMultiplier;
-        const effectiveShadow3Blur = shadow3BlurRadius * (shadowSoftness / 8) * qualityMultiplier;
+        // Apply softness multiplier to calculate edge width
+        const edgeWidth1 = (shadow1BlurRadius * (shadowSoftness / 8) * qualityMultiplier);
+        const edgeWidth2 = (shadow2BlurRadius * (shadowSoftness / 8) * qualityMultiplier);
+        const edgeWidth3 = (shadow3BlurRadius * (shadowSoftness / 8) * qualityMultiplier);
         
-        // Use source-atop to draw ONLY inside the ball (inset effect)
-        ctx.globalCompositeOperation = 'source-atop';
+        // Parse colors to rgba for gradient
+        const parseColorWithOpacity = (hexColor, opacity) => {
+          const r = parseInt(hexColor.slice(1, 3), 16);
+          const g = parseInt(hexColor.slice(3, 5), 16);
+          const b = parseInt(hexColor.slice(5, 7), 16);
+          return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        };
         
-        // Layer 1: Dark edge shadow (creates depth)
-        ctx.save();
-        ctx.shadowColor = shadow1Color;
-        ctx.shadowBlur = effectiveShadow1Blur;
-        ctx.shadowOffsetX = shadow1OffsetX;
-        ctx.shadowOffsetY = shadow1OffsetY;
-        ctx.globalAlpha = shadow1Opacity;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(0, 0, this.r, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
+        // Layer 1: Dark edge gradient (bottom-right shadow)
+        if (edgeWidth1 > 0) {
+          const gradient1 = ctx.createRadialGradient(
+            shadow1OffsetX, shadow1OffsetY, Math.max(0, this.r - edgeWidth1),
+            shadow1OffsetX, shadow1OffsetY, this.r
+          );
+          gradient1.addColorStop(0, parseColorWithOpacity(shadow1Color, 0));
+          gradient1.addColorStop(1, parseColorWithOpacity(shadow1Color, shadow1Opacity));
+          ctx.fillStyle = gradient1;
+          ctx.beginPath();
+          ctx.arc(0, 0, this.r, 0, Math.PI*2);
+          ctx.fill();
+        }
         
-        // Layer 2: Top-left light edge
-        ctx.save();
-        ctx.shadowColor = shadow2Color;
-        ctx.shadowBlur = effectiveShadow2Blur;
-        ctx.shadowOffsetX = shadow2OffsetX;
-        ctx.shadowOffsetY = shadow2OffsetY;
-        ctx.globalAlpha = shadow2Opacity;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(0, 0, this.r, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
+        // Layer 2: Top-left light edge gradient
+        if (edgeWidth2 > 0) {
+          const gradient2 = ctx.createRadialGradient(
+            shadow2OffsetX, shadow2OffsetY, Math.max(0, this.r - edgeWidth2),
+            shadow2OffsetX, shadow2OffsetY, this.r
+          );
+          gradient2.addColorStop(0, parseColorWithOpacity(shadow2Color, 0));
+          gradient2.addColorStop(1, parseColorWithOpacity(shadow2Color, shadow2Opacity));
+          ctx.fillStyle = gradient2;
+          ctx.beginPath();
+          ctx.arc(0, 0, this.r, 0, Math.PI*2);
+          ctx.fill();
+        }
         
-        // Layer 3: Bottom-right light edge
-        ctx.save();
-        ctx.shadowColor = shadow3Color;
-        ctx.shadowBlur = effectiveShadow3Blur;
-        ctx.shadowOffsetX = shadow3OffsetX;
-        ctx.shadowOffsetY = shadow3OffsetY;
-        ctx.globalAlpha = shadow3Opacity;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(0, 0, this.r, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
-        
-        // Reset composite operation
-        ctx.globalCompositeOperation = 'source-over';
+        // Layer 3: Bottom-right light edge gradient
+        if (edgeWidth3 > 0) {
+          const gradient3 = ctx.createRadialGradient(
+            shadow3OffsetX, shadow3OffsetY, Math.max(0, this.r - edgeWidth3),
+            shadow3OffsetX, shadow3OffsetY, this.r
+          );
+          gradient3.addColorStop(0, parseColorWithOpacity(shadow3Color, 0));
+          gradient3.addColorStop(1, parseColorWithOpacity(shadow3Color, shadow3Opacity));
+          ctx.fillStyle = gradient3;
+          ctx.beginPath();
+          ctx.arc(0, 0, this.r, 0, Math.PI*2);
+          ctx.fill();
+        }
       }
 
       ctx.restore();
@@ -2340,6 +2345,11 @@
 
     emit(dt);
     
+    // Update pulse grid mode (rhythmic movement)
+    if (currentMode === MODES.PULSE_GRID) {
+      updatePulseGrid(dt);
+    }
+    
     // Update text colliders periodically (every ~60 frames for performance)
     if (renderFrameCount % 60 === 0) {
       updateTextColliders();
@@ -2348,16 +2358,21 @@
     // Physics iterations optimized for realistic, stable simulation
     let physicsSteps = 0;
     while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
+      // Skip physics step for pulse grid mode (movement handled by updatePulseGrid)
+      if (currentMode !== MODES.PULSE_GRID) {
         for (let i=0; i<balls.length; i++) balls[i].step(DT);
+      }
       
-      // Ball-to-ball collisions (disabled for Flies mode only)
-      if (currentMode !== MODES.FLIES) {
+      // Ball-to-ball collisions (disabled for Flies and Pulse Grid modes)
+      if (currentMode !== MODES.FLIES && currentMode !== MODES.PULSE_GRID) {
         resolveCollisions(currentCollisionIters); // Dynamic iterations based on adaptive quality
       }
       
-      // Wall collisions (all modes)
-      const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
-      for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+      // Wall collisions (all modes except Pulse Grid)
+      if (currentMode !== MODES.PULSE_GRID) {
+        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
+        for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+      }
       
       acc -= DT;
       physicsSteps++;
@@ -2574,10 +2589,11 @@
       e.preventDefault();
       panel.classList.toggle('hidden');
     }
-    // Quick mode switches 1-3
+    // Quick mode switches 1-4
     if (k === '1') setMode(MODES.PIT);
     if (k === '2') setMode(MODES.FLIES);
     if (k === '3') setMode(MODES.WEIGHTLESS);
+    if (k === '4') setMode(MODES.PULSE_GRID);
   });
 
   // Seed initial balls across the spawn area for quicker fill
@@ -2635,57 +2651,62 @@
     ctx.fillStyle = color;
     ctx.fill();
     
-    // INSET SHADOWS using composite operations
+    // EDGE-ONLY SHADOWS: Radial gradients for rim illumination
     if (glassMorphismEnabled) {
-      // Apply softness multiplier
-      const effectiveShadow1Blur = shadow1BlurRadius * (shadowSoftness / 8);
-      const effectiveShadow2Blur = shadow2BlurRadius * (shadowSoftness / 8);
-      const effectiveShadow3Blur = shadow3BlurRadius * (shadowSoftness / 8);
+      // Apply softness multiplier to calculate edge width
+      const edgeWidth1 = (shadow1BlurRadius * (shadowSoftness / 8));
+      const edgeWidth2 = (shadow2BlurRadius * (shadowSoftness / 8));
+      const edgeWidth3 = (shadow3BlurRadius * (shadowSoftness / 8));
       
-      // Use source-atop to draw ONLY inside the ball
-      ctx.globalCompositeOperation = 'source-atop';
+      // Parse colors to rgba
+      const parseColorWithOpacity = (hexColor, opacity) => {
+        const r = parseInt(hexColor.slice(1, 3), 16);
+        const g = parseInt(hexColor.slice(3, 5), 16);
+        const b = parseInt(hexColor.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+      };
       
       // Layer 1: Dark edge
-      ctx.save();
-      ctx.shadowColor = shadow1Color;
-      ctx.shadowBlur = effectiveShadow1Blur;
-      ctx.shadowOffsetX = shadow1OffsetX;
-      ctx.shadowOffsetY = shadow1OffsetY;
-      ctx.globalAlpha = shadow1Opacity;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      if (edgeWidth1 > 0) {
+        const gradient1 = ctx.createRadialGradient(
+          x + shadow1OffsetX, y + shadow1OffsetY, Math.max(0, r - edgeWidth1),
+          x + shadow1OffsetX, y + shadow1OffsetY, r
+        );
+        gradient1.addColorStop(0, parseColorWithOpacity(shadow1Color, 0));
+        gradient1.addColorStop(1, parseColorWithOpacity(shadow1Color, shadow1Opacity));
+        ctx.fillStyle = gradient1;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
       
       // Layer 2: Top-left light
-      ctx.save();
-      ctx.shadowColor = shadow2Color;
-      ctx.shadowBlur = effectiveShadow2Blur;
-      ctx.shadowOffsetX = shadow2OffsetX;
-      ctx.shadowOffsetY = shadow2OffsetY;
-      ctx.globalAlpha = shadow2Opacity;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      if (edgeWidth2 > 0) {
+        const gradient2 = ctx.createRadialGradient(
+          x + shadow2OffsetX, y + shadow2OffsetY, Math.max(0, r - edgeWidth2),
+          x + shadow2OffsetX, y + shadow2OffsetY, r
+        );
+        gradient2.addColorStop(0, parseColorWithOpacity(shadow2Color, 0));
+        gradient2.addColorStop(1, parseColorWithOpacity(shadow2Color, shadow2Opacity));
+        ctx.fillStyle = gradient2;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
       
       // Layer 3: Bottom-right light
-      ctx.save();
-      ctx.shadowColor = shadow3Color;
-      ctx.shadowBlur = effectiveShadow3Blur;
-      ctx.shadowOffsetX = shadow3OffsetX;
-      ctx.shadowOffsetY = shadow3OffsetY;
-      ctx.globalAlpha = shadow3Opacity;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-      
-      // Reset composite operation
-      ctx.globalCompositeOperation = 'source-over';
+      if (edgeWidth3 > 0) {
+        const gradient3 = ctx.createRadialGradient(
+          x + shadow3OffsetX, y + shadow3OffsetY, Math.max(0, r - edgeWidth3),
+          x + shadow3OffsetX, y + shadow3OffsetY, r
+        );
+        gradient3.addColorStop(0, parseColorWithOpacity(shadow3Color, 0));
+        gradient3.addColorStop(1, parseColorWithOpacity(shadow3Color, shadow3Opacity));
+        ctx.fillStyle = gradient3;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     
     // Add subtle white outline for visibility
@@ -3720,6 +3741,166 @@
   weightlessRepelRadiusSlider && weightlessRepelRadiusSlider.addEventListener('input', () => {
     weightlessRepellerRadius = parseFloat(weightlessRepelRadiusSlider.value);
     weightlessRepelRadiusVal && (weightlessRepelRadiusVal.textContent = Math.round(weightlessRepellerRadius).toString());
+    autoSaveSettings();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PULSE GRID MODE CONTROLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const gridPresetSelect = document.getElementById('gridPresetSelect');
+  const gridBallCountSlider = document.getElementById('gridBallCountSlider');
+  const gridBallCountVal = document.getElementById('gridBallCountVal');
+  const gridColumnsSlider = document.getElementById('gridColumnsSlider');
+  const gridColumnsVal = document.getElementById('gridColumnsVal');
+  const pulseIntervalSlider = document.getElementById('pulseIntervalSlider');
+  const pulseIntervalVal = document.getElementById('pulseIntervalVal');
+  const pulseSpeedSlider = document.getElementById('pulseSpeedSlider');
+  const pulseSpeedVal = document.getElementById('pulseSpeedVal');
+  const pulseMinStepsSlider = document.getElementById('pulseMinStepsSlider');
+  const pulseMinStepsVal = document.getElementById('pulseMinStepsVal');
+  const pulseMaxStepsSlider = document.getElementById('pulseMaxStepsSlider');
+  const pulseMaxStepsVal = document.getElementById('pulseMaxStepsVal');
+  const pulseSynchronicitySlider = document.getElementById('pulseSynchronicitySlider');
+  const pulseSynchronicityVal = document.getElementById('pulseSynchronicityVal');
+  const pulseRandomnessSlider = document.getElementById('pulseRandomnessSlider');
+  const pulseRandomnessVal = document.getElementById('pulseRandomnessVal');
+  
+  // Preset configurations
+  const gridPresets = {
+    synchronized: {
+      interval: 0.6,
+      speed: 0.2,
+      minSteps: 1,
+      maxSteps: 2,
+      synchronicity: 0.1,
+      randomness: 0.2
+    },
+    organic: {
+      interval: 0.8,
+      speed: 0.25,
+      minSteps: 1,
+      maxSteps: 3,
+      synchronicity: 0.3,
+      randomness: 0.4
+    },
+    chaotic: {
+      interval: 0.4,
+      speed: 0.15,
+      minSteps: 2,
+      maxSteps: 4,
+      synchronicity: 0.7,
+      randomness: 0.8
+    }
+  };
+  
+  function applyGridPreset(presetName) {
+    const preset = gridPresets[presetName];
+    if (!preset) return;
+    
+    pulseInterval = preset.interval;
+    pulseSpeed = preset.speed;
+    pulseMinSteps = preset.minSteps;
+    pulseMaxSteps = preset.maxSteps;
+    pulseSynchronicity = preset.synchronicity;
+    pulseRandomness = preset.randomness;
+    
+    // Update UI
+    if (pulseIntervalSlider) pulseIntervalSlider.value = preset.interval;
+    if (pulseIntervalVal) pulseIntervalVal.textContent = preset.interval.toFixed(1);
+    if (pulseSpeedSlider) pulseSpeedSlider.value = preset.speed;
+    if (pulseSpeedVal) pulseSpeedVal.textContent = preset.speed.toFixed(2);
+    if (pulseMinStepsSlider) pulseMinStepsSlider.value = preset.minSteps;
+    if (pulseMinStepsVal) pulseMinStepsVal.textContent = preset.minSteps.toString();
+    if (pulseMaxStepsSlider) pulseMaxStepsSlider.value = preset.maxSteps;
+    if (pulseMaxStepsVal) pulseMaxStepsVal.textContent = preset.maxSteps.toString();
+    if (pulseSynchronicitySlider) pulseSynchronicitySlider.value = preset.synchronicity;
+    if (pulseSynchronicityVal) pulseSynchronicityVal.textContent = preset.synchronicity.toFixed(2);
+    if (pulseRandomnessSlider) pulseRandomnessSlider.value = preset.randomness;
+    if (pulseRandomnessVal) pulseRandomnessVal.textContent = preset.randomness.toFixed(2);
+    
+    // Reinitialize if in grid mode
+    if (currentMode === MODES.PULSE_GRID) {
+      initializePulseGridScene();
+    }
+  }
+  
+  // Preset selector
+  gridPresetSelect && gridPresetSelect.addEventListener('change', () => {
+    applyGridPreset(gridPresetSelect.value);
+    autoSaveSettings();
+  });
+  
+  // Ball count
+  gridBallCountSlider && gridBallCountSlider.addEventListener('input', () => {
+    gridBallCount = parseInt(gridBallCountSlider.value, 10);
+    gridBallCountVal && (gridBallCountVal.textContent = gridBallCount.toString());
+    if (currentMode === MODES.PULSE_GRID) initializePulseGridScene();
+    autoSaveSettings();
+  });
+  
+  // Grid columns
+  gridColumnsSlider && gridColumnsSlider.addEventListener('input', () => {
+    gridColumns = parseInt(gridColumnsSlider.value, 10);
+    gridColumnsVal && (gridColumnsVal.textContent = gridColumns.toString());
+    if (currentMode === MODES.PULSE_GRID) {
+      calculateGridDimensions();
+      initializePulseGridScene();
+    }
+    autoSaveSettings();
+  });
+  
+  // Beat interval
+  pulseIntervalSlider && pulseIntervalSlider.addEventListener('input', () => {
+    pulseInterval = parseFloat(pulseIntervalSlider.value);
+    pulseIntervalVal && (pulseIntervalVal.textContent = pulseInterval.toFixed(1));
+    autoSaveSettings();
+  });
+  
+  // Jump speed
+  pulseSpeedSlider && pulseSpeedSlider.addEventListener('input', () => {
+    pulseSpeed = parseFloat(pulseSpeedSlider.value);
+    pulseSpeedVal && (pulseSpeedVal.textContent = pulseSpeed.toFixed(2));
+    autoSaveSettings();
+  });
+  
+  // Min steps
+  pulseMinStepsSlider && pulseMinStepsSlider.addEventListener('input', () => {
+    pulseMinSteps = parseInt(pulseMinStepsSlider.value, 10);
+    pulseMinStepsVal && (pulseMinStepsVal.textContent = pulseMinSteps.toString());
+    // Ensure min <= max
+    if (pulseMinSteps > pulseMaxSteps) {
+      pulseMaxSteps = pulseMinSteps;
+      if (pulseMaxStepsSlider) pulseMaxStepsSlider.value = pulseMinSteps;
+      if (pulseMaxStepsVal) pulseMaxStepsVal.textContent = pulseMinSteps.toString();
+    }
+    autoSaveSettings();
+  });
+  
+  // Max steps
+  pulseMaxStepsSlider && pulseMaxStepsSlider.addEventListener('input', () => {
+    pulseMaxSteps = parseInt(pulseMaxStepsSlider.value, 10);
+    pulseMaxStepsVal && (pulseMaxStepsVal.textContent = pulseMaxSteps.toString());
+    // Ensure min <= max
+    if (pulseMaxSteps < pulseMinSteps) {
+      pulseMinSteps = pulseMaxSteps;
+      if (pulseMinStepsSlider) pulseMinStepsSlider.value = pulseMaxSteps;
+      if (pulseMinStepsVal) pulseMinStepsVal.textContent = pulseMaxSteps.toString();
+    }
+    autoSaveSettings();
+  });
+  
+  // Synchronicity
+  pulseSynchronicitySlider && pulseSynchronicitySlider.addEventListener('input', () => {
+    pulseSynchronicity = parseFloat(pulseSynchronicitySlider.value);
+    pulseSynchronicityVal && (pulseSynchronicityVal.textContent = pulseSynchronicity.toFixed(2));
+    autoSaveSettings();
+  });
+  
+  // Randomness
+  pulseRandomnessSlider && pulseRandomnessSlider.addEventListener('input', () => {
+    pulseRandomness = parseFloat(pulseRandomnessSlider.value);
+    pulseRandomnessVal && (pulseRandomnessVal.textContent = pulseRandomness.toFixed(2));
     autoSaveSettings();
   });
 
