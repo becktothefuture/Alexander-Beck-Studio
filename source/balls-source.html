@@ -16,7 +16,6 @@
     overscroll-behavior: contain;
     -webkit-tap-highlight-color: transparent;
     user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-    transition: height 0.3s ease-out; /* Smooth transition when switching modes */
   }
   /* Ball Pit mode needs extra height for spawning above viewport */
   #bravia-balls.mode-pit {
@@ -418,8 +417,21 @@
   const setCSSSize = () => {
     // CSS size is handled by CSS classes (mode-pit gets 150vh, others 100svh)
   };
+  
+  // Debounced resize handler to prevent expensive operations on every pixel change
+  let resizeTimeout;
+  function handleResize() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      setCSSSize();
+      resize();
+      updateEffectiveScaleAndBallSizes();
+      updateTextColliders();
+    }, 150); // 150ms debounce
+  }
+  
   setCSSSize(); resize();
-  window.addEventListener('resize', () => { setCSSSize(); resize(); updateEffectiveScaleAndBallSizes(); updateTextColliders(); });
+  window.addEventListener('resize', handleResize);
 
   // Physics parameters (initial)
   const GE = 1960;        // Earth gravity in px/s^2 at our scale
