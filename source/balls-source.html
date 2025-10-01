@@ -866,6 +866,99 @@
       }
     }
   }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WEBGL VISUAL EFFECTS (Phase 2.5)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  let boundarySprite = null;
+  
+  function renderRoundedBoundaryWebGL() {
+    if (!pixiApp || cornerRadius <= 0) return;
+    
+    // Create boundary sprite if it doesn't exist
+    if (!boundarySprite) {
+      boundarySprite = new PIXI.Graphics();
+      boundarySprite.zIndex = -1; // Behind balls
+      pixiApp.stage.addChild(boundarySprite);
+    }
+    
+    boundarySprite.clear();
+    boundarySprite.lineStyle(2, 0xffffff, 0.1); // White, 10% opacity
+    
+    const w = canvas.width;
+    const h = canvas.height;
+    const r = cornerRadius;
+    
+    // Draw rounded rectangle path
+    boundarySprite.moveTo(r, 0);
+    boundarySprite.lineTo(w - r, 0);
+    boundarySprite.arcTo(w, 0, w, r, r);
+    boundarySprite.lineTo(w, h - r);
+    boundarySprite.arcTo(w, h, w - r, h, r);
+    boundarySprite.lineTo(r, h);
+    boundarySprite.arcTo(0, h, 0, h - r, r);
+    boundarySprite.lineTo(0, r);
+    boundarySprite.arcTo(0, 0, r, 0, r);
+    boundarySprite.closePath();
+  }
+  
+  function renderCursorBallWebGL() {
+    if (!pixiApp || !cursorBallVisible) return;
+    
+    // Create cursor ball sprite if needed
+    if (!cursorBallSprite) {
+      cursorBallSprite = new PIXI.Graphics();
+      cursorBallSprite.zIndex = 1000; // On top of everything
+      pixiApp.stage.addChild(cursorBallSprite);
+    }
+    
+    cursorBallSprite.clear();
+    
+    // Convert cursor ball color
+    const colorNum = parseInt(cursorBallColor.replace('#', ''), 16);
+    
+    // Apply same shader system as regular balls
+    if (shaderEnabled && ballRoundness > 0) {
+      renderBall3DWebGL(cursorBallSprite, cursorBallRadius, colorNum);
+    } else {
+      cursorBallSprite.beginFill(colorNum, 0.8); // Slightly transparent
+      cursorBallSprite.drawCircle(0, 0, cursorBallRadius);
+      cursorBallSprite.endFill();
+    }
+    
+    // Update position
+    cursorBallSprite.x = mouseX;
+    cursorBallSprite.y = mouseY;
+  }
+  
+  function renderModeIndicatorWebGL() {
+    if (!pixiApp || isTouchDevice) return;
+    
+    // Create mode indicator sprite if needed
+    if (!modeIndicatorSprite) {
+      modeIndicatorSprite = new PIXI.Text('', {
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: 14,
+        fill: 0xffffff,
+        alpha: 0.3
+      });
+      modeIndicatorSprite.zIndex = 999;
+      modeIndicatorSprite.x = 10;
+      modeIndicatorSprite.y = canvas.height - 30;
+      pixiApp.stage.addChild(modeIndicatorSprite);
+    }
+    
+    // Update text
+    const modeName = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
+    modeIndicatorSprite.text = modeName + ' Mode';
+    modeIndicatorSprite.y = canvas.height - 30; // Update position for canvas resize
+  }
+  
+  let cursorBallSprite = null;
+  let modeIndicatorSprite = null;
+  
+  // Note: Mouse, cursor, device, and mode variables are defined elsewhere in the file
 
   // Spawn area controls (viewport-relative)
   // Defaults: xCenter = 50vw, y = -50vh, width = 100vw, height = 50vh
@@ -1987,9 +2080,17 @@
       // WebGL Rendering Path
       cleanupRemovedBalls(); // Remove sprites for deleted balls
       
+      // Render visual effects
+      renderRoundedBoundaryWebGL();
+      
+      // Render all balls
       for (let i=0; i<balls.length; i++) {
         renderBallWebGL(balls[i]);
       }
+      
+      // Render cursor ball and mode indicator
+      renderCursorBallWebGL();
+      renderModeIndicatorWebGL();
       
       // PixiJS handles rendering automatically via its ticker
     } else {
@@ -2771,6 +2872,18 @@
     specularIntensity = parseFloat(specularIntensityEl.value);
     if (specularIntensityVal) specularIntensityVal.textContent = specularIntensity.toFixed(2);
     console.log('✨ Specular intensity:', specularIntensity);
+  });
+  
+  // Mouse tracking for cursor ball and repeller
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = (e.clientX - rect.left) * DPR;
+    mouseY = (e.clientY - rect.top) * DPR;
+  });
+  
+  canvas.addEventListener('mouseleave', () => {
+    mouseX = CONSTANTS.OFFSCREEN_MOUSE;
+    mouseY = CONSTANTS.OFFSCREEN_MOUSE;
   });
   
   // Color controls

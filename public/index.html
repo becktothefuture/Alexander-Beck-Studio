@@ -21,7 +21,138 @@
 <body>
   <header class="section--fullviewport">
     <div class="code-embed w-embed w-script">
-      <div id="bravia-balls"><canvas id="c" aria-label="Bouncy balls" role="img" draggable="false"></canvas></div>
+      <div id="bravia-balls">
+        <canvas id="c" aria-label="Bouncy balls" role="img" draggable="false"></canvas>
+        <div class="panel" id="controlPanel">
+          <!-- Draggable header -->
+          <div class="panel-header" id="panelHeader">
+            <span><span class="drag-handle">⋮⋮</span>Controls</span>
+            <span style="cursor: pointer; opacity: 0.7;" id="minimizePanel" title="Toggle panel (/)">−</span>
+          </div>
+          
+          <!-- Global Settings -->
+          <details open>
+            <summary>🌐 Global</summary>
+            <div class="group">
+              <label title="Global ball size"><span>Size</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="0.7"><span class="val" id="sizeValGlobal">0.7</span></label>
+              <label title="Size variation"><span>Variation</span><input type="range" id="sizeVariationSliderGlobal" min="0.0" max="1.0" step="0.05" value="1.0"><span class="val" id="sizeVariationValGlobal">1.0</span></label>
+              <label title="Ball softness"><span>Softness</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="40"><span class="val" id="ballSoftnessValGlobal">40</span></label>
+            </div>
+          </details>
+          
+          <!-- Mode Switcher -->
+          <div style="margin-bottom: 6px;">
+            <div class="mode-switcher">
+              <button class="mode-button active" data-mode="pit">🎯 Pit</button>
+              <button class="mode-button" data-mode="flies">🕊️ Flies</button>
+              <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
+            </div>
+          </div>
+          
+          <!-- Ball Pit Controls -->
+          <div id="pitControls" class="mode-controls active">
+            <details>
+              <summary>🎯 Pit Mode</summary>
+              <div class="group">
+                <label><span>Physics</span><select id="physicsSelect"></select></label>
+                <label><span>Gravity</span><input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="1.15"><span class="val" id="gravityPitVal">1.15</span></label>
+                <label><span>Weight (g)</span><input type="range" id="weightPitSlider" min="50.0" max="200.0" step="5.0" value="120.0"><span class="val" id="weightPitVal">120.0</span></label>
+                <label><span>Bounce</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.80"><span class="val" id="restitutionVal">0.80</span></label>
+                <label><span>Friction</span><input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0001" value="0.0045"><span class="val" id="frictionVal">0.0045</span></label>
+              </div>
+            </details>
+          </div>
+          
+          <!-- Flies Controls -->
+          <div id="fliesControls" class="mode-controls">
+            <details>
+              <summary>🕊️ Flies Mode</summary>
+              <div class="group">
+                <label><span>Attract Power</span><input type="range" id="attractPowerSlider" min="1000" max="15000" step="500" value="5000"><span class="val" id="attractPowerVal">5000</span></label>
+                <label><span>Orbit Radius</span><input type="range" id="orbitRadiusSlider" min="50" max="400" step="10" value="180"><span class="val" id="orbitRadiusVal">180</span></label>
+                <label><span>Swarm Speed</span><input type="range" id="swarmSpeedSlider" min="1.0" max="8.0" step="0.5" value="3.5"><span class="val" id="swarmSpeedVal">3.5</span></label>
+              </div>
+            </details>
+          </div>
+          
+          <!-- Zero-G Controls -->
+          <div id="weightlessControls" class="mode-controls">
+            <details>
+              <summary>🌌 Zero-G Mode</summary>
+              <div class="group">
+                <label><span>Ball Count</span><input type="range" id="weightlessCountSlider" min="30" max="200" step="10" value="80"><span class="val" id="weightlessCountVal">80</span></label>
+                <label><span>Init Speed</span><input type="range" id="weightlessSpeedSlider" min="50" max="500" step="25" value="250"><span class="val" id="weightlessSpeedVal">250</span></label>
+                <label><span>Bounce</span><input type="range" id="weightlessBounceSlider" min="0.8" max="1.0" step="0.01" value="0.97"><span class="val" id="weightlessBounceVal">0.97</span></label>
+                <label><span>Repel Power</span><input type="range" id="weightlessRepelSlider" min="0" max="10000" step="100" value="300"><span class="val" id="weightlessRepelVal">300</span></label>
+                <label><span>Repel Radius</span><input type="range" id="weightlessRepelRadiusSlider" min="50" max="300" step="10" value="150"><span class="val" id="weightlessRepelRadiusVal">150</span></label>
+              </div>
+            </details>
+          </div>
+          
+          <!-- Scene & Effects -->
+          <details>
+            <summary>🖼️ Scene</summary>
+            <div class="group">
+              <label><span>Max balls</span><input type="range" id="maxBallsSlider" min="50" max="800" step="25" value="150"><span class="val" id="maxBallsVal">150</span></label>
+              <label><span>Corner (px)</span><input type="range" id="cornerRadiusSlider" min="0" max="50" step="2" value="0"><span class="val" id="cornerRadiusVal">0</span></label>
+              <label><span>Blur</span><input type="range" id="trailFadeSlider" min="0.000" max="0.500" step="0.005" value="0.000"><span class="val" id="trailFadeVal">0.000</span></label>
+              <label><span>Intensity</span><input type="range" id="trailSubtletySlider" min="0.50" max="2.00" step="0.05" value="1.00"><span class="val" id="trailSubtletyVal">1.00×</span></label>
+            </div>
+          </details>
+          
+          <!-- Spawn Settings -->
+          <details>
+            <summary>🎯 Spawn</summary>
+            <div class="group">
+              <label><span>Template</span><select id="spawnSelect"></select></label>
+              <label><span>Interval (s)</span><input type="range" id="emitterSlider" min="0.010" max="0.500" step="0.005" value="0.04"><span class="val" id="emitterVal">0.040</span></label>
+              <label><span>Y Position</span><input type="range" id="spawnYSlider" min="-100" max="0" step="5" value="-50"><span class="val" id="spawnYVal">-50</span></label>
+              <label><span>Width</span><input type="range" id="spawnWidthSlider" min="0" max="100" step="5" value="100"><span class="val" id="spawnWidthVal">100</span></label>
+              <label><span>X Center</span><input type="range" id="spawnCenterSlider" min="0" max="100" step="5" value="50"><span class="val" id="spawnCenterVal">50</span></label>
+              <label><span>Height</span><input type="range" id="spawnHeightSlider" min="0" max="100" step="5" value="50"><span class="val" id="spawnHeightVal">50</span></label>
+            </div>
+          </details>
+          
+          <!-- Repeller -->
+          <details>
+            <summary>🧲 Repeller</summary>
+            <div class="group">
+              <label><span>Template</span><select id="repellerSelect"></select></label>
+              <label><span>Power</span><input type="range" id="repelPowerSlider" min="0" max="10000" step="50" value="5000"><span class="val" id="repelPowerVal">274000</span></label>
+              <label><span>Radius (px)</span><input type="range" id="repelSizeSlider" min="0" max="700" step="10" value="255"><span class="val" id="repelSizeVal">255</span></label>
+              <label><span>Softness</span><input type="range" id="repelSoftSlider" min="0.5" max="5.0" step="0.1" value="4.4"><span class="val" id="repelSoftVal">4.4</span></label>
+            </div>
+          </details>
+          
+          <!-- Colors -->
+          <details>
+            <summary>🎨 Colors</summary>
+            <div class="group">
+              <label><span>Template</span><select id="colorSelect"></select></label>
+              <label><span>Color 1</span><input type="color" id="color1" value="#ffffff"><span class="hex-val" id="color1Val">#FFFFFF</span></label>
+              <label><span>Color 2</span><input type="color" id="color2" value="#f8f9fa"><span class="hex-val" id="color2Val">#F8F9FA</span></label>
+              <label><span>Color 3</span><input type="color" id="color3" value="#e9ecef"><span class="hex-val" id="color3Val">#E9ECEF</span></label>
+              <label><span>Color 4</span><input type="color" id="color4" value="#d90429"><span class="hex-val" id="color4Val">#D90429</span></label>
+              <label><span>Color 5</span><input type="color" id="color5" value="#000000"><span class="hex-val" id="color5Val">#000000</span></label>
+              <label><span>Color 6</span><input type="color" id="color6" value="#54d4ff"><span class="hex-val" id="color6Val">#54D4FF</span></label>
+              <label><span>Color 7</span><input type="color" id="color7" value="#b589ff"><span class="hex-val" id="color7Val">#B589FF</span></label>
+              <label><span>Color 8</span><input type="color" id="color8" value="#ffc27a"><span class="hex-val" id="color8Val">#FFC27A</span></label>
+              <label><span>Cursor</span><select id="cursorColorSelect">
+                <option value="1">Color 1</option>
+                <option value="2">Color 2</option>
+                <option value="3">Color 3</option>
+                <option value="4">Color 4</option>
+                <option value="5">Color 5</option>
+                <option value="6" selected>Color 6</option>
+                <option value="7">Color 7</option>
+                <option value="8">Color 8</option>
+              </select></label>
+            </div>
+          </details>
+          
+          <div style="font-size:8px; opacity:0.7; padding:4px; text-align:center;"><code>R</code> reset • <code>/</code> panel • <code>1-3</code> modes</div>
+        </div>
+      </div>
     </div>
     <div class="header is-align-center">
       <p id="hero-text" class="heading_h2">Alexander Beck Studio.</p>
