@@ -4,8 +4,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Refined Bravia Balls – Canvas Physics</title>
-<!-- PixiJS WebGL Renderer (Phase 2.2) -->
-<script src="https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js"></script>
 <style>
   html, body { height: 100%; margin: 0; background: #cecece; overflow:hidden; }
   /* Scoped wrapper for embed friendliness and interaction hygiene */
@@ -44,50 +42,60 @@
     top: 5vh;
     right: 5vh;
     color: #fff;
-    font: 10px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    font: 10px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     background: rgba(0,0,0,0.45);
-    padding: 8px;
-    border-radius: 8px;
+    padding: 6px;
+    border-radius: 6px;
     user-select: none;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     z-index: 10;
     max-height: 90vh;
     overflow: auto;
     backdrop-filter: blur(6px);
     cursor: move;
+    min-width: 200px;
   }
   #bravia-balls .panel.hidden { display: none; }
-  #bravia-balls .panel.dragging { opacity: 0.9; }
-  #bravia-balls .panel-header {
-    cursor: move;
-    padding: 4px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    margin-bottom: 6px;
+  #bravia-balls .panel .panel-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    font-size: 9px;
+    justify-content: space-between;
+    padding: 4px 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    cursor: move;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    opacity: 0.7;
+    font-size: 11px;
+  }
+  #bravia-balls .panel .panel-header .drag-handle {
+    opacity: 0.5;
+    margin-right: 6px;
   }
   #bravia-balls .panel label {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 4px;
-    width: 220px;
-    font-size: 10px;
+    width: 200px;
+    font-size: 9px;
+  }
+  #bravia-balls .panel label span:first-child {
+    flex-shrink: 0;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   #bravia-balls .panel input[type="range"] {
     flex: 1;
-    height: 16px;
+    min-width: 60px;
+    height: 12px;
   }
   #bravia-balls .panel span.val {
-    width: 48px;
+    width: 42px;
     text-align: right;
     font-family: monospace;
     font-size: 9px;
@@ -110,24 +118,39 @@
     border-radius: 3px;
     font-size: 9px;
   }
-  #bravia-balls .panel details { background: rgba(255,255,255,0.04); border-radius: 4px; padding: 5px; }
+  #bravia-balls .panel details { background: rgba(255,255,255,0.04); border-radius: 4px; padding: 4px; }
   #bravia-balls .panel summary { cursor: pointer; list-style: none; outline: none; font-size: 10px; }
   #bravia-balls .panel summary::-webkit-details-marker { display: none; }
-  #bravia-balls .panel summary { display:flex; align-items:center; justify-content:space-between; color:#b8c2c7; }
-  #bravia-balls .panel .group { display:flex; flex-direction:column; gap:5px; margin-top:5px; }
+  #bravia-balls .panel summary { display:flex; align-items:center; justify-content:space-between; color:#b8c2c7; padding: 2px; }
+  #bravia-balls .panel .group { display:flex; flex-direction:column; gap:4px; margin-top:4px; }
+  #bravia-balls .panel button {
+    font-size: 9px;
+    padding: 4px 8px;
+  }
+  #bravia-balls .panel select {
+    font-size: 9px;
+    padding: 2px 4px;
+  }
+  #bravia-balls .panel input[type="color"] {
+    width: 28px;
+    height: 20px;
+    border: none;
+    border-radius: 3px;
+    padding: 0;
+  }
   
   /* Mode switcher - segmented control */
   #bravia-balls .mode-switcher {
     display: flex;
     background: rgba(0,0,0,0.3);
-    border-radius: 5px;
-    padding: 2px;
-    gap: 2px;
+    border-radius: 4px;
+    padding: 1px;
+    gap: 1px;
     margin-bottom: 6px;
   }
   #bravia-balls .mode-button {
     flex: 1;
-    padding: 6px 8px;
+    padding: 4px 6px;
     background: transparent;
     border: none;
     border-radius: 3px;
@@ -193,9 +216,10 @@
   <canvas id="c" aria-label="Bouncy balls simulation" role="img" draggable="false"></canvas>
   <div class="panel" id="controlPanel">
   
-  <div class="panel-header">
-    <span>⚙️ Controls</span>
-    <span style="cursor: pointer; opacity: 0.5; font-size: 11px;" title="Close panel (press / to toggle)">✕</span>
+  <!-- Draggable header -->
+  <div class="panel-header" id="panelHeader">
+    <span><span class="drag-handle">⋮⋮</span>Controls</span>
+    <span style="cursor: pointer; opacity: 0.7;" id="minimizePanel" title="Toggle panel (/)">−</span>
   </div>
   
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -217,21 +241,7 @@
     <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 8px;">💾 Save Config</button>
     <button id="buildBtn" style="background: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">🚀 Build Embed</button>
     <div id="configOutput" style="margin-top: 8px; font-family: monospace; font-size: 10px; color: #333; max-height: 120px; overflow-y: auto; display: none; text-align: left; background: rgba(255,255,255,0.8); padding: 6px; border-radius: 3px;"></div>
-  </div>
-  
-  <!-- WebGL Renderer Toggle (Phase 2.2) -->
-  <div style="margin-bottom: 12px; padding: 8px; background: rgba(255,165,0,0.15); border-radius: 4px; border: 1px solid rgba(255,165,0,0.3);">
-    <label style="display: flex; align-items: center; cursor: pointer; font-weight: 600; font-size: 11px;">
-      <input type="checkbox" id="useWebGLToggle" style="margin-right: 8px; cursor: pointer;">
-      <span>⚡ Use WebGL Renderer (Experimental)</span>
-    </label>
-    <div style="font-size: 9px; opacity: 0.7; margin-top: 6px; line-height: 1.3;">
-      WebGL provides 2-3× better performance. Currently supports basic rendering only. Toggle to compare!
     </div>
-    <div id="rendererStatus" style="font-size: 9px; margin-top: 6px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; font-family: monospace;">
-      Status: Canvas2D Active
-    </div>
-  </div>
   
   <details open>
     <summary>🎨 Colors</summary>
@@ -509,10 +519,7 @@
     </details>
   </div>
   
-    <div style="font-size:9px; opacity:0.7; line-height: 1.4; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-      <div><code>R</code> Reset • <code>/</code> Toggle panel • <code>1-3</code> Switch modes</div>
-      <div style="margin-top: 4px; font-size: 8px; opacity: 0.6;">Drag panel to move • Position saved automatically</div>
-    </div>
+    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-3</code> switch modes</div>
   </div>
   
   <!-- FPS Counter -->
@@ -522,10 +529,7 @@
   </div>
 </div>
 <script>
-// Version: 2024-10-01 - Phase 2.1: WebGL Migration Foundation (In Progress)
-// Note: WebGL renderer will be integrated in next steps
-// For now, keeping Canvas2D as baseline for validation
-
+// Version: 2024-09-30 - Added 3-mode system (Ball Pit, Flies to Light, Mouse Trail)
 (() => {
   // Behavior modes with device availability
   const MODES = {
@@ -564,6 +568,16 @@
   let weightlessBounce = 0.97; // Very elastic but not perfect (micro-imperfections)
   let weightlessRepellerPower = 300; // subtle mouse repeller strength
   let weightlessRepellerRadius = 150; // repeller radius (px)
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3D SHADER SYSTEM - Roundness Dial (Casino Chip → Sphere)
+  // ═══════════════════════════════════════════════════════════════════════════
+  let shaderEnabled = true;           // Master toggle for shader effect
+  let ballRoundness = 0;              // 0-100: 0=flat, 50=chip, 100=sphere
+  let lightAngle = -135;              // Light direction in degrees (top-left by default)
+  let edgeBevelWidth = 0.15;          // Width of chip bevel edge (0.0-0.5)
+  let edgeSharpness = 2.0;            // Sharpness of bevel transition (0.5-5.0)
+  let specularIntensity = 0.7;        // Glass reflection strength (0.0-1.0)
   
   // Mass constants (needed before CONSTANTS object)
   const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
@@ -604,25 +618,19 @@
     return CONSTANTS.SQUASH_MAX_BASE * (ballSoftness / 40.0);
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDERER INITIALIZATION (Canvas2D baseline, WebGL experimental)
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  let useWebGL = false; // Start with Canvas2D by default
-  let pixiApp = null;
-  let ballSprites = new Map(); // Map<Ball, PIXI.Graphics>
-  
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d', { alpha: true });
   const panel = document.getElementById('controlPanel');
   const container = document.getElementById('bravia-balls');
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
   
-  console.log('🎨 Renderer: Canvas2D (WebGL available in Phase 2.2)');
-
   // ═══════════════════════════════════════════════════════════════════════════
-  // WEBGL RENDERER INITIALIZATION (Phase 2.2)
+  // WEBGL RENDERER SYSTEM (Phase 2.2)
   // ═══════════════════════════════════════════════════════════════════════════
+  
+  let useWebGL = false; // Start with Canvas2D by default
+  let pixiApp = null;
+  let ballSprites = new Map(); // Map<Ball, PIXI.Graphics>
   
   async function initWebGLRenderer() {
     if (!window.PIXI) {
@@ -724,17 +732,127 @@
     // Convert hex color to integer
     const colorNum = parseInt(ball.color.replace('#', ''), 16);
     
-    sprite.beginFill(colorNum, 1.0);
-    sprite.drawCircle(0, 0, ball.r);
-    sprite.endFill();
+    // Apply 3D shader system based on ballRoundness
+    if (shaderEnabled && ballRoundness > 0) {
+      renderBall3DWebGL(sprite, ball.r, colorNum);
+    } else {
+      // Flat rendering (original)
+      sprite.beginFill(colorNum, 1.0);
+      sprite.drawCircle(0, 0, ball.r);
+      sprite.endFill();
+    }
     
     // Update position
     sprite.x = ball.x;
     sprite.y = ball.y;
     
-    // Update rotation if ball has spin
-    if (ball.omega) {
-      sprite.rotation = ball.omega * 0.01; // Visual rotation effect
+    // Apply squash/stretch if enabled
+    if (ball.r > 15 && ball.squashAmount > 0.001) {
+      const amt = Math.min(getSquashMax(), Math.max(0, ball.squashAmount));
+      const s = 1 + amt;
+      const inv = 1 / s;
+      
+      // Apply transform to sprite
+      sprite.rotation = ball.squashNormalAngle;
+      sprite.scale.x = s;
+      sprite.scale.y = inv;
+    } else {
+      // Reset transform
+      sprite.rotation = ball.omega ? ball.omega * 0.01 : 0;
+      sprite.scale.x = 1;
+      sprite.scale.y = 1;
+    }
+  }
+  
+  function renderBall3DWebGL(sprite, radius, baseColor) {
+    // Extract RGB components from hex color
+    const r = (baseColor >> 16) & 0xFF;
+    const g = (baseColor >> 8) & 0xFF;
+    const b = baseColor & 0xFF;
+    
+    // Convert light angle to radians
+    const lightRad = (lightAngle * Math.PI) / 180;
+    const lightX = Math.cos(lightRad);
+    const lightY = Math.sin(lightRad);
+    
+    if (ballRoundness <= 50) {
+      // Flat to Casino Chip (0-50%)
+      renderChipBevelWebGL(sprite, radius, r, g, b, lightX, lightY);
+    } else {
+      // Casino Chip to Full Sphere (50-100%)
+      const sphereBlend = (ballRoundness - 50) / 50; // 0-1
+      renderSphereWebGL(sprite, radius, r, g, b, lightX, lightY, sphereBlend);
+    }
+  }
+  
+  function renderChipBevelWebGL(sprite, radius, r, g, b, lightX, lightY) {
+    // Create casino chip effect with beveled edges
+    const bevelWidth = edgeBevelWidth * radius;
+    const intensity = ballRoundness / 50; // 0-1 for chip effect
+    
+    // Create radial gradient for chip bevel
+    const steps = 16; // Number of gradient steps
+    for (let i = 0; i < steps; i++) {
+      const t = i / (steps - 1); // 0 to 1
+      const currentRadius = radius * (1 - t * 0.1); // Slightly smaller each step
+      
+      // Calculate lighting based on position
+      let brightness = 1.0;
+      if (t > 0.8) {
+        // Edge bevel area
+        const edgeT = (t - 0.8) / 0.2; // 0-1 in bevel area
+        const edgeAngle = Math.atan2(lightY, lightX);
+        brightness = 0.6 + 0.4 * Math.cos(edgeAngle) * (1 - edgeT * 0.5);
+        brightness *= (1 + intensity * 0.5); // Enhance with roundness
+      } else {
+        // Center area - flat lighting
+        brightness = 0.85 + intensity * 0.15;
+      }
+      
+      // Apply brightness to color
+      const finalR = Math.min(255, r * brightness);
+      const finalG = Math.min(255, g * brightness);
+      const finalB = Math.min(255, b * brightness);
+      const color = (finalR << 16) | (finalG << 8) | finalB;
+      
+      sprite.beginFill(color, 1.0);
+      sprite.drawCircle(0, 0, currentRadius);
+      sprite.endFill();
+    }
+  }
+  
+  function renderSphereWebGL(sprite, radius, r, g, b, lightX, lightY, sphereBlend) {
+    // Create full 3D sphere effect
+    const steps = 24; // More steps for smoother sphere
+    
+    for (let i = 0; i < steps; i++) {
+      const t = i / (steps - 1); // 0 to 1
+      const currentRadius = radius * (1 - t * 0.05); // Subtle size variation
+      
+      // Calculate sphere normal lighting
+      const x = (t - 0.5) * 2; // -1 to 1
+      const y = 0; // Center slice
+      const z = Math.sqrt(Math.max(0, 1 - x*x - y*y)); // Sphere normal Z
+      
+      // Calculate lighting (Lambertian + specular)
+      const dotProduct = (lightX * x + lightY * y + 0.5 * z);
+      const diffuse = Math.max(0.2, dotProduct * 0.8 + 0.2);
+      
+      // Add specular highlight
+      const specular = Math.pow(Math.max(0, dotProduct), 16) * specularIntensity * sphereBlend;
+      
+      let brightness = diffuse + specular;
+      brightness = 0.4 + brightness * 0.6; // Clamp to reasonable range
+      
+      // Apply brightness to color
+      const finalR = Math.min(255, r * brightness);
+      const finalG = Math.min(255, g * brightness);
+      const finalB = Math.min(255, b * brightness);
+      const color = (finalR << 16) | (finalG << 8) | finalB;
+      
+      sprite.beginFill(color, 1.0);
+      sprite.drawCircle(0, 0, currentRadius);
+      sprite.endFill();
     }
   }
   
@@ -747,127 +865,6 @@
         ballSprites.delete(ball);
       }
     }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PANEL DRAG & POSITION MANAGEMENT
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  // Configurable initial panel visibility (true = visible, false = hidden)
-  const PANEL_INITIAL_VISIBLE = true;
-  
-  // Panel dragging state
-  let isDragging = false;
-  let dragOffsetX = 0;
-  let dragOffsetY = 0;
-  
-  // Load saved panel position from localStorage
-  function loadPanelPosition() {
-    const saved = localStorage.getItem('panelPosition');
-    if (saved && panel) {
-      try {
-        const pos = JSON.parse(saved);
-        panel.style.left = pos.left;
-        panel.style.top = pos.top;
-        panel.style.right = 'auto';
-        panel.style.bottom = 'auto';
-      } catch (e) {
-        console.warn('Failed to parse saved panel position');
-      }
-    }
-  }
-  
-  // Save panel position to localStorage
-  function savePanelPosition() {
-    if (panel) {
-      localStorage.setItem('panelPosition', JSON.stringify({
-        left: panel.style.left,
-        top: panel.style.top
-      }));
-    }
-  }
-  
-  // Initialize panel dragging
-  if (panel) {
-    // Set initial visibility
-    if (!PANEL_INITIAL_VISIBLE) {
-      panel.classList.add('hidden');
-    }
-    
-    // Load saved position
-    loadPanelPosition();
-    
-    // Add close button handler
-    const closeBtn = panel.querySelector('.panel-header span:last-child');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        panel.classList.toggle('hidden');
-        autoSaveSettings(); // Save panel visibility state
-      });
-    }
-    
-    // Mouse/touch drag handlers
-    const startDrag = (e) => {
-      // Only drag from panel header or panel background (not controls)
-      const target = e.target;
-      if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || 
-          target.tagName === 'BUTTON' || target.closest('label') || 
-          target.closest('details')) {
-        return;
-      }
-      
-      isDragging = true;
-      panel.classList.add('dragging');
-      
-      const rect = panel.getBoundingClientRect();
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      
-      dragOffsetX = clientX - rect.left;
-      dragOffsetY = clientY - rect.top;
-      
-      e.preventDefault();
-    };
-    
-    const doDrag = (e) => {
-      if (!isDragging) return;
-      
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      
-      const newLeft = clientX - dragOffsetX;
-      const newTop = clientY - dragOffsetY;
-      
-      // Keep panel within viewport bounds
-      const maxLeft = window.innerWidth - panel.offsetWidth;
-      const maxTop = window.innerHeight - panel.offsetHeight;
-      
-      panel.style.left = Math.max(0, Math.min(newLeft, maxLeft)) + 'px';
-      panel.style.top = Math.max(0, Math.min(newTop, maxTop)) + 'px';
-      panel.style.right = 'auto';
-      panel.style.bottom = 'auto';
-      
-      e.preventDefault();
-    };
-    
-    const endDrag = () => {
-      if (isDragging) {
-        isDragging = false;
-        panel.classList.remove('dragging');
-        savePanelPosition();
-      }
-    };
-    
-    // Mouse events
-    panel.addEventListener('mousedown', startDrag);
-    window.addEventListener('mousemove', doDrag);
-    window.addEventListener('mouseup', endDrag);
-    
-    // Touch events
-    panel.addEventListener('touchstart', startDrag, { passive: false });
-    window.addEventListener('touchmove', doDrag, { passive: false });
-    window.addEventListener('touchend', endDrag);
   }
 
   // Spawn area controls (viewport-relative)
@@ -1167,8 +1164,7 @@
       motionBlur: trailFade,
       trailSubtlety,
       currentTemplate,
-      cursorBallColor,
-      panelVisible: panel && !panel.classList.contains('hidden')
+      cursorBallColor
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -1210,15 +1206,6 @@
         if (settings.trailSubtlety) trailSubtlety = settings.trailSubtlety;
         if (settings.currentTemplate) currentTemplate = settings.currentTemplate;
         if (settings.cursorBallColor) cursorBallColor = settings.cursorBallColor;
-        
-        // Restore panel visibility
-        if (settings.panelVisible !== undefined && panel) {
-          if (settings.panelVisible) {
-            panel.classList.remove('hidden');
-          } else {
-            panel.classList.add('hidden');
-          }
-        }
         
         console.log('✓ Settings loaded');
         return true;
@@ -2097,6 +2084,109 @@
   }
 
   // Keyboard: reset balls to spawn, toggle panel
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DRAGGABLE PANEL FUNCTIONALITY
+  // ═══════════════════════════════════════════════════════════════════════════
+  const panelHeader = document.getElementById('panelHeader');
+  const minimizeBtn = document.getElementById('minimizePanel');
+  
+  // Configuration: Initial panel visibility (true = visible, false = hidden)
+  const PANEL_INITIALLY_VISIBLE = true;
+  
+  // Apply initial visibility
+  if (!PANEL_INITIALLY_VISIBLE && panel) {
+    panel.classList.add('hidden');
+  }
+  
+  // Minimize/maximize button
+  if (minimizeBtn && panel) {
+    minimizeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      panel.classList.toggle('hidden');
+    });
+  }
+  
+  // Drag functionality
+  if (panelHeader && panel) {
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+    
+    panelHeader.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+    
+    // Touch support
+    panelHeader.addEventListener('touchstart', dragStart);
+    document.addEventListener('touchmove', drag);
+    document.addEventListener('touchend', dragEnd);
+    
+    function dragStart(e) {
+      if (e.type === 'touchstart') {
+        initialX = e.touches[0].clientX - xOffset;
+        initialY = e.touches[0].clientY - yOffset;
+      } else {
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+      }
+      
+      if (e.target === panelHeader || panelHeader.contains(e.target)) {
+        isDragging = true;
+        panel.style.cursor = 'grabbing';
+      }
+    }
+    
+    function drag(e) {
+      if (isDragging) {
+        e.preventDefault();
+        
+        if (e.type === 'touchmove') {
+          currentX = e.touches[0].clientX - initialX;
+          currentY = e.touches[0].clientY - initialY;
+        } else {
+          currentX = e.clientX - initialX;
+          currentY = e.clientY - initialY;
+        }
+        
+        xOffset = currentX;
+        yOffset = currentY;
+        
+        // Convert fixed position to transform for smooth dragging
+        const rect = panel.getBoundingClientRect();
+        const computedStyle = window.getComputedStyle(panel);
+        const initialTop = parseFloat(computedStyle.top) || 0;
+        const initialRight = parseFloat(computedStyle.right) || 0;
+        
+        panel.style.top = `${initialTop + yOffset}px`;
+        panel.style.right = `${initialRight - xOffset}px`;
+        panel.style.left = 'auto';
+        panel.style.bottom = 'auto';
+        
+        // Reset offsets after applying position
+        xOffset = 0;
+        yOffset = 0;
+        initialX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        initialY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+      }
+    }
+    
+    function dragEnd(e) {
+      if (isDragging) {
+        isDragging = false;
+        panel.style.cursor = 'move';
+        initialX = currentX;
+        initialY = currentY;
+      }
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // KEYBOARD SHORTCUTS
+  // ═══════════════════════════════════════════════════════════════════════════
   window.addEventListener('keydown', e => {
     const k = e.key.toLowerCase();
     if (k === 'r') {
@@ -2107,7 +2197,6 @@
     if (k === '/' && panel) {
       e.preventDefault();
       panel.classList.toggle('hidden');
-      autoSaveSettings(); // Save panel visibility state
     }
     // Quick mode switches 1-3
     if (k === '1') setMode(MODES.PIT);
@@ -2609,7 +2698,11 @@
   });
   // Shadow event listeners removed
   
-  // WebGL Renderer Toggle (Phase 2.2)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WEBGL RENDERER & SHADER EVENT LISTENERS (Phase 2.2)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // WebGL Renderer Toggle
   const useWebGLToggleEl = document.getElementById('useWebGLToggle');
   const rendererStatus = document.getElementById('rendererStatus');
   if (useWebGLToggleEl) {
@@ -2631,6 +2724,54 @@
       console.log('🔄 Renderer toggled:', useWebGL ? 'WebGL' : 'Canvas2D');
     });
   }
+  
+  // 3D Shader Controls
+  const shaderEnabledEl = document.getElementById('shaderEnabled');
+  const ballRoundnessEl = document.getElementById('ballRoundness');
+  const ballRoundnessVal = document.getElementById('ballRoundnessVal');
+  const lightAngleEl = document.getElementById('lightAngle');
+  const lightAngleVal = document.getElementById('lightAngleVal');
+  const edgeBevelWidthEl = document.getElementById('edgeBevelWidth');
+  const edgeBevelWidthVal = document.getElementById('edgeBevelWidthVal');
+  const edgeSharpnessEl = document.getElementById('edgeSharpness');
+  const edgeSharpnessVal = document.getElementById('edgeSharpnessVal');
+  const specularIntensityEl = document.getElementById('specularIntensity');
+  const specularIntensityVal = document.getElementById('specularIntensityVal');
+  
+  shaderEnabledEl && shaderEnabledEl.addEventListener('change', () => {
+    shaderEnabled = shaderEnabledEl.checked;
+    console.log('🎨 Shader enabled:', shaderEnabled);
+  });
+  
+  ballRoundnessEl && ballRoundnessEl.addEventListener('input', () => {
+    ballRoundness = parseInt(ballRoundnessEl.value, 10);
+    if (ballRoundnessVal) ballRoundnessVal.textContent = ballRoundness + '%';
+    console.log('🔮 Ball roundness:', ballRoundness);
+  });
+  
+  lightAngleEl && lightAngleEl.addEventListener('input', () => {
+    lightAngle = parseInt(lightAngleEl.value, 10);
+    if (lightAngleVal) lightAngleVal.textContent = lightAngle + '°';
+    console.log('💡 Light angle:', lightAngle);
+  });
+  
+  edgeBevelWidthEl && edgeBevelWidthEl.addEventListener('input', () => {
+    edgeBevelWidth = parseFloat(edgeBevelWidthEl.value);
+    if (edgeBevelWidthVal) edgeBevelWidthVal.textContent = edgeBevelWidth.toFixed(2);
+    console.log('🔧 Edge bevel width:', edgeBevelWidth);
+  });
+  
+  edgeSharpnessEl && edgeSharpnessEl.addEventListener('input', () => {
+    edgeSharpness = parseFloat(edgeSharpnessEl.value);
+    if (edgeSharpnessVal) edgeSharpnessVal.textContent = edgeSharpness.toFixed(1);
+    console.log('⚡ Edge sharpness:', edgeSharpness);
+  });
+  
+  specularIntensityEl && specularIntensityEl.addEventListener('input', () => {
+    specularIntensity = parseFloat(specularIntensityEl.value);
+    if (specularIntensityVal) specularIntensityVal.textContent = specularIntensity.toFixed(2);
+    console.log('✨ Specular intensity:', specularIntensity);
+  });
   
   // Color controls
   colorSelect && colorSelect.addEventListener('change', () => {
