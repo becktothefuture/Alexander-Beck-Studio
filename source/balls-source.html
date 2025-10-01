@@ -588,11 +588,21 @@
     return CONSTANTS.SQUASH_MAX_BASE * (ballSoftness / 40.0);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDERER INITIALIZATION (Canvas2D baseline, WebGL experimental)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  let useWebGL = false; // Start with Canvas2D by default
+  let pixiApp = null;
+  let ballSprites = new Map(); // Map<Ball, PIXI.Graphics>
+  
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d', { alpha: true });
   const panel = document.getElementById('controlPanel');
   const container = document.getElementById('bravia-balls');
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  
+  console.log('🎨 Renderer: Canvas2D (WebGL available in Phase 2.2)');
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PANEL DRAG & POSITION MANAGEMENT
