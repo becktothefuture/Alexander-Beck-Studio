@@ -1,96 +1,195 @@
 # Alexander Beck Studio Website
 
-An interactive portfolio website featuring a physics-based particle simulation as the hero element.
+Interactive portfolio website featuring a high-performance, physics-based bouncy balls simulation.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)
 
-## ✨ Features
+---
 
-- **Interactive Physics Simulation** - Thousands of particles with realistic physics
-- **Three Unique Modes**:
-  - 🎱 Ball Pit - Classic bouncing balls with gravity
-  - 🦟 Flies to Light - Particles swarm around your cursor
-  - ✨ Mouse Trail - Sparkles emit from cursor movement
-- **High Performance** - 60 FPS with efficient collision detection
-- **Fully Responsive** - Works beautifully on all devices
-- **Zero Dependencies** - Pure vanilla JavaScript
+## Features
 
-## 🚀 Quick Start
+**Three Physics Modes**:
+- 🎯 **Ball Pit** - Gravity-based collisions with mouse repeller
+- 🕊️ **Flies to Light** - Swarm behavior attracted to cursor
+- 🌌 **Zero-G** - Weightless bouncing with perfect elastic collisions
+
+**Performance**:
+- 60 FPS sustained with 200+ particles
+- Spatial hashing for O(n) collision detection
+- Dynamic canvas sizing per mode (33% optimization)
+- Mobile-optimized with touch support
+
+**Built With**:
+- Pure vanilla JavaScript (zero dependencies)
+- Canvas 2D API
+- Fixed timestep physics (120Hz)
+- 34.6 KB minified, ~12 KB gzipped
+
+---
+
+## Quick Start
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/yourusername/alexander-beck-studio-website
 cd alexander-beck-studio-website
 
-# Install dependencies
+# Install
 npm install
 
-# Start development server
-npm start
-# Open http://localhost:8000/source/balls-source.html
+# Development
+open source/balls-source.html
+# or
+npm start  # http://localhost:8000
 ```
 
-## 🛠️ Development
+---
 
-### Available Scripts
+## Controls
+
+| Key | Action |
+|-----|--------|
+| `1` | Ball Pit mode |
+| `2` | Flies mode |
+| `3` | Zero-G mode |
+| `R` | Reset simulation |
+| `/` | Toggle control panel |
+| Mouse | Interact with particles |
+
+---
+
+## Development
+
+### Scripts
+```bash
+npm start      # Dev server (port 8000)
+npm run build  # Production build
+npm run watch  # Auto-rebuild
+npm run clean  # Clean configs
+```
+
+### Workflow
+1. Edit `source/balls-source.html` (development file with UI)
+2. Test changes in browser
+3. Tune parameters via control panel
+4. Save config with "Save Config" button
+5. Build: `npm run build` → outputs to `public/js/bouncy-balls-embed.js`
+
+**See `docs/DEVELOPMENT.md` for detailed guide.**
+
+---
+
+## Project Structure
+
+```
+/
+├── source/
+│   ├── balls-source.html      # Development version
+│   ├── build.js                # Build script
+│   └── current-config.json     # Settings
+├── public/
+│   ├── index.html              # Production site
+│   ├── css/bouncy-balls.css    # Styles
+│   └── js/bouncy-balls-embed.js # Built JS (34.6 KB)
+├── docs/
+│   ├── OVERVIEW.md             # System overview
+│   ├── MODES.md                # Mode specifications
+│   ├── ARCHITECTURE.md         # Technical docs
+│   ├── DEVELOPMENT.md          # Dev guide
+│   ├── CANVAS-HEIGHT.md        # Dynamic canvas system
+│   ├── PERFORMANCE.md          # Benchmarks
+│   └── WEBFLOW-INTEGRATION.md  # Embedding guide
+└── README.md                   # This file
+```
+
+---
+
+## Documentation
+
+| File | Purpose |
+|------|---------|
+| `docs/OVERVIEW.md` | High-level system overview |
+| `docs/MODES.md` | Detailed mode specifications |
+| `docs/ARCHITECTURE.md` | Technical architecture & code structure |
+| `docs/DEVELOPMENT.md` | Development workflow & debugging |
+| `docs/PERFORMANCE.md` | Benchmarks & optimization strategies |
+| `docs/CANVAS-HEIGHT.md` | Dynamic canvas height system |
+| `docs/WEBFLOW-INTEGRATION.md` | Webflow embedding guide |
+
+**Start here**: `docs/OVERVIEW.md`
+
+---
+
+## Production Build
 
 ```bash
-npm start      # Start development server on port 8000
-npm run build  # Build minified production bundle
-npm run watch  # Auto-rebuild on file changes
-npm run clean  # Remove generated config files
+npm run build
 ```
 
-### Project Structure
+**Output**: `public/js/bouncy-balls-embed.js`
 
-```
-├── source/              # Development files
-│   └── balls-source.html   # Main simulation (with controls)
-├── public/              # Production website
-│   ├── index.html         # Main website
-│   └── js/               
-│       └── bouncy-balls-embed.js  # Minified simulation
-├── docs/                # Documentation
-│   ├── ARCHITECTURE.md    # System design
-│   ├── DEVELOPMENT.md     # Dev guide
-│   └── MODES.md          # Mode specifications
-└── package.json         # Project config
+**Integration**:
+```html
+<div id="bravia-balls">
+  <canvas id="c" aria-label="Bouncy balls" role="img"></canvas>
+</div>
+<script src="js/bouncy-balls-embed.js"></script>
 ```
 
-## 🎮 Controls
+**See `docs/WEBFLOW-INTEGRATION.md` for embedding details.**
 
-- **Number Keys (1-3)** - Switch between modes
-- **R** - Reset simulation
-- **/** - Toggle control panel
-- **Mouse** - Interact with particles
+---
 
-## 📦 Building for Production
+## Browser Support
 
-1. Configure your settings in the development environment
-2. Click "Save Config" in the control panel
-3. Run `npm run build` to create optimized bundle
-4. Deploy the `public/` folder to your web host
+| Browser | Version | Status |
+|---------|---------|--------|
+| Chrome/Edge | 120+ | ✅ Excellent |
+| Firefox | 121+ | ✅ Excellent |
+| Safari | 17+ | ✅ Excellent |
+| Mobile Safari | iOS 15+ | ✅ Good |
+| Chrome Android | 12+ | ✅ Good |
 
-## 🌐 Browser Support
+---
 
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-- Mobile browsers with touch support
+## Performance
 
-## 📄 License
+| Mode | Balls | FPS | Status |
+|------|-------|-----|--------|
+| Ball Pit | 200 | 60 | ✅ Excellent |
+| Flies | 300 | 60 | ✅ Excellent |
+| Zero-G | 150 | 60 | ✅ Excellent |
+
+**Overall Score**: 8.5/10
+
+**See `docs/PERFORMANCE.md` for detailed benchmarks.**
+
+---
+
+## License
 
 MIT License - see [LICENSE](LICENSE) file for details
 
-## 🤝 Contributing
+---
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Contributing
 
-## 📧 Contact
+Contributions welcome! See `docs/DEVELOPMENT.md` for code style and workflow.
+
+```bash
+git checkout -b feature/your-feature
+# ... make changes ...
+git commit -m "feat: your feature"
+git push origin feature/your-feature
+```
+
+---
+
+## Contact
 
 Alexander Beck - [alexander@beck.fyi](mailto:alexander@beck.fyi)
 
 ---
 
-Built with ❤️ and physics
+**Built with physics and attention to detail** ⚛️
