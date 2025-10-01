@@ -222,6 +222,20 @@
     <span style="cursor: pointer; opacity: 0.7;" id="minimizePanel" title="Toggle panel (/)">−</span>
   </div>
   
+  <!-- 120 FPS Performance Mode Toggle (TOP PRIORITY) -->
+  <div style="margin-bottom: 12px; padding: 8px; background: rgba(255,0,0,0.15); border-radius: 4px; border: 1px solid rgba(255,0,0,0.3);">
+    <label style="display: flex; align-items: center; cursor: pointer; font-weight: 600; font-size: 11px;">
+      <input type="checkbox" id="performanceModeToggle" style="margin-right: 8px; cursor: pointer;">
+      <span>⚡ 120 FPS Performance Mode</span>
+    </label>
+    <div style="font-size: 9px; opacity: 0.7; margin-top: 6px; line-height: 1.3;">
+      Aggressive optimizations: reduces balls, disables glass morphism, targets 120 FPS
+    </div>
+    <div id="performanceModeStatus" style="font-size: 9px; margin-top: 6px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; font-family: monospace;">
+      🎨 Normal Mode (350 balls)
+    </div>
+  </div>
+  
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <!-- GLOBAL SETTINGS (apply to ALL modes) - ABOVE MODE SWITCHER             -->
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -1197,6 +1211,41 @@
   let currentFPS = 60;
   let adaptiveQuality = 1.0; // 1.0 = full quality, 0.5 = half quality
   
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 120 FPS PERFORMANCE MODE SYSTEM
+  // ═══════════════════════════════════════════════════════════════════════════
+  let performanceMode = false;        // 120 FPS performance mode toggle
+  let targetFPS = 60;                 // Target FPS (60 normal, 120 performance)
+  let fpsCheckInterval = 0.5;         // Check FPS every 500ms in performance mode
+  
+  // Performance mode settings (aggressive optimizations for 120 FPS)
+  const PERFORMANCE_SETTINGS = {
+    normal: {
+      maxBalls: 350,
+      glassMorphism: true,
+      shadow1BlurRadius: 8,
+      shadow2BlurRadius: 3,
+      shadow3BlurRadius: 2,
+      enableLOD: true,
+      enableShadowCulling: true,
+      minShadowRadius: 8,
+      collisionIters: 2,
+      adaptiveQualityMin: 0.5
+    },
+    performance: {
+      maxBalls: 200,              // Reduce ball count
+      glassMorphism: false,       // Disable expensive shadows
+      shadow1BlurRadius: 2,       // Minimal blur
+      shadow2BlurRadius: 1,
+      shadow3BlurRadius: 1,
+      enableLOD: true,
+      enableShadowCulling: true,
+      minShadowRadius: 12,        // More aggressive culling
+      collisionIters: 1,          // Reduce collision iterations
+      adaptiveQualityMin: 0.3     // More aggressive quality reduction
+    }
+  };
+  
   // Advanced performance optimizations
   let enableLOD = true;               // Level of Detail system
   let enableShadowCulling = true;     // Skip shadows for very small balls
@@ -1232,23 +1281,133 @@
     frameCount++;
     const now = performance.now();
     
-    if (now - lastFPSCheck >= 1000) { // Check every second
-      currentFPS = frameCount;
+    const checkInterval = performanceMode ? (fpsCheckInterval * 1000) : 1000;
+    
+    if (now - lastFPSCheck >= checkInterval) {
+      currentFPS = frameCount * (1000 / checkInterval); // Adjust for check interval
       frameCount = 0;
       lastFPSCheck = now;
       
-      // Adaptive quality based on FPS
-      if (currentFPS < 45) {
-        adaptiveQuality = Math.max(0.3, adaptiveQuality - 0.1); // Reduce quality
-      } else if (currentFPS > 55) {
-        adaptiveQuality = Math.min(1.0, adaptiveQuality + 0.05); // Increase quality
+      // Performance mode: aggressive FPS management
+      if (performanceMode) {
+        if (currentFPS < targetFPS) {
+          // Aggressively reduce quality and settings
+          adaptiveQuality = Math.max(PERFORMANCE_SETTINGS.performance.adaptiveQualityMin, adaptiveQuality - 0.2);
+          
+          // Auto-reduce ball count if FPS still low
+          if (currentFPS < targetFPS * 0.8 && balls.length > 100) {
+            const reduceBy = Math.min(20, balls.length - 100);
+            balls.length -= reduceBy;
+            console.log(`⚡ Performance mode: Reduced balls by ${reduceBy} (now ${balls.length})`);
+          }
+          
+          // Disable glass morphism if FPS critically low
+          if (currentFPS < targetFPS * 0.7 && glassMorphismEnabled) {
+            glassMorphismEnabled = false;
+            console.log('⚡ Performance mode: Disabled glass morphism for FPS');
+          }
+        } else if (currentFPS > targetFPS * 1.1) {
+          // Gradually restore quality when FPS is good
+          adaptiveQuality = Math.min(1.0, adaptiveQuality + 0.1);
+        }
+      } else {
+        // Normal mode: standard adaptive quality
+        if (currentFPS < 45) {
+          adaptiveQuality = Math.max(0.3, adaptiveQuality - 0.1);
+        } else if (currentFPS > 55) {
+          adaptiveQuality = Math.min(1.0, adaptiveQuality + 0.05);
+        }
       }
       
       const shadowsSkipped = balls.filter(b => enableShadowCulling && b.r < minShadowRadius).length;
-      const totalShadowLayers = balls.length * 3; // 3 layers per ball
+      const totalShadowLayers = balls.length * 3;
       const actualShadowLayers = (balls.length - shadowsSkipped) * 3;
       
-      console.log(`🎮 WebGL FPS: ${currentFPS}, Quality: ${(adaptiveQuality * 100).toFixed(0)}%, Shadows: ${actualShadowLayers}/${totalShadowLayers}, Pool: ${spritePool.length}`);
+      const mode = performanceMode ? 'PERF' : 'NORM';
+      console.log(`🎮 ${mode} FPS: ${currentFPS}/${targetFPS}, Quality: ${(adaptiveQuality * 100).toFixed(0)}%, Shadows: ${actualShadowLayers}/${totalShadowLayers}, Pool: ${spritePool.length}`);
+    }
+  }
+  
+  function togglePerformanceMode() {
+    performanceMode = !performanceMode;
+    targetFPS = performanceMode ? 120 : 60;
+    
+    const settings = performanceMode ? PERFORMANCE_SETTINGS.performance : PERFORMANCE_SETTINGS.normal;
+    
+    // Apply performance settings
+    if (performanceMode) {
+      console.log('⚡ PERFORMANCE MODE: Optimizing for 120 FPS...');
+      
+      // Reduce ball count if above limit
+      if (balls.length > settings.maxBalls) {
+        balls.length = settings.maxBalls;
+        console.log(`⚡ Reduced balls to ${settings.maxBalls} for 120 FPS`);
+      }
+      
+      // Update MAX_BALLS for new spawns
+      MAX_BALLS = settings.maxBalls;
+      
+      // Disable glass morphism for maximum performance
+      glassMorphismEnabled = settings.glassMorphism;
+      
+      // Reduce shadow quality
+      shadow1BlurRadius = settings.shadow1BlurRadius;
+      shadow2BlurRadius = settings.shadow2BlurRadius;
+      shadow3BlurRadius = settings.shadow3BlurRadius;
+      
+      // More aggressive culling
+      minShadowRadius = settings.minShadowRadius;
+      
+      // Reduce collision iterations
+      currentCollisionIters = settings.collisionIters;
+      
+    } else {
+      console.log('🎨 NORMAL MODE: Restoring visual quality...');
+      
+      // Restore normal settings
+      MAX_BALLS = settings.maxBalls;
+      glassMorphismEnabled = settings.glassMorphism;
+      shadow1BlurRadius = settings.shadow1BlurRadius;
+      shadow2BlurRadius = settings.shadow2BlurRadius;
+      shadow3BlurRadius = settings.shadow3BlurRadius;
+      minShadowRadius = settings.minShadowRadius;
+      currentCollisionIters = settings.collisionIters;
+    }
+    
+    // Update UI
+    updatePerformanceModeUI();
+    
+    console.log(`🎯 Target FPS: ${targetFPS}, Mode: ${performanceMode ? 'PERFORMANCE' : 'NORMAL'}`);
+  }
+  
+  function updatePerformanceModeUI() {
+    const toggle = document.getElementById('performanceModeToggle');
+    const status = document.getElementById('performanceModeStatus');
+    const maxBallsSlider = document.getElementById('maxBallsSlider');
+    const maxBallsVal = document.getElementById('maxBallsVal');
+    const glassMorphismEl = document.getElementById('glassMorphismEnabled');
+    
+    if (toggle) toggle.checked = performanceMode;
+    
+    if (status) {
+      if (performanceMode) {
+        status.textContent = `⚡ 120 FPS Mode Active (${balls.length} balls)`;
+        status.style.background = 'rgba(255,165,0,0.3)';
+      } else {
+        status.textContent = `🎨 Normal Mode (${balls.length} balls)`;
+        status.style.background = 'rgba(0,0,0,0.2)';
+      }
+    }
+    
+    // Update max balls slider
+    if (maxBallsSlider && maxBallsVal) {
+      maxBallsSlider.value = MAX_BALLS;
+      maxBallsVal.textContent = MAX_BALLS.toString();
+    }
+    
+    // Update glass morphism toggle
+    if (glassMorphismEl) {
+      glassMorphismEl.checked = glassMorphismEnabled;
     }
   }
   
@@ -3051,6 +3210,8 @@
       shadow3SizeMultiplier,
       shadow3BlurRadius,
       // Performance optimization settings
+      performanceMode,
+      targetFPS,
       enableLOD,
       enableShadowCulling,
       minShadowRadius,
@@ -3247,6 +3408,14 @@
       console.log('🔄 Renderer toggled:', useWebGL ? 'WebGL' : 'Canvas2D');
     });
   }
+  
+  // Performance Mode Controls
+  const performanceModeToggleEl = document.getElementById('performanceModeToggle');
+  const performanceModeStatusEl = document.getElementById('performanceModeStatus');
+  
+  performanceModeToggleEl && performanceModeToggleEl.addEventListener('change', () => {
+    togglePerformanceMode();
+  });
   
   // Glass Morphism Controls (3-layer refractive system)
   const glassMorphismEnabledEl = document.getElementById('glassMorphismEnabled');
