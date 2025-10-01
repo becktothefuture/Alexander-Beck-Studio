@@ -12,15 +12,20 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 150vh;
+    height: 100svh; /* Default height for most modes */
     overscroll-behavior: contain;
     -webkit-tap-highlight-color: transparent;
     user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    transition: height 0.3s ease-out; /* Smooth transition when switching modes */
+  }
+  /* Ball Pit mode needs extra height for spawning above viewport */
+  #bravia-balls.mode-pit {
+    height: 150vh;
   }
   #bravia-balls canvas { 
     display: block; 
     width: 100%; 
-    height: 150vh;
+    height: 100%; /* Match parent height */
     position: absolute;
     bottom: 0;
     left: 0;
@@ -353,7 +358,8 @@
   
   // Constants for magic numbers
   const CONSTANTS = {
-    CANVAS_HEIGHT_VH: 1.5,        // 150vh canvas height
+    CANVAS_HEIGHT_VH_PIT: 1.5,    // 150vh for Ball Pit (spawning above viewport)
+    CANVAS_HEIGHT_VH_DEFAULT: 1.0, // 100vh for other modes
     OFFSCREEN_MOUSE: -1e9,        // Offscreen mouse position
     MIN_DISTANCE_EPSILON: 1e-6,   // Minimum distance for collision calculations
     MIN_REPEL_DISTANCE: 1e-4,     // Minimum repeller distance
@@ -389,6 +395,7 @@
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d', { alpha: true });
   const panel = document.getElementById('controlPanel');
+  const container = document.getElementById('bravia-balls');
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
   // Spawn area controls (viewport-relative)
@@ -398,14 +405,18 @@
   let SPAWN_W_VW = 100;
   let SPAWN_H_VH = 50;
 
-  // Resize canvas to 150vh (with top 50vh hidden above viewport)
+  // Resize canvas based on current mode
   function resize() {
-    const simHeight = window.innerHeight * CONSTANTS.CANVAS_HEIGHT_VH;
+    // Ball Pit mode uses 150vh (spawning above viewport), others use 100vh
+    const heightMultiplier = (currentMode === MODES.PIT) 
+      ? CONSTANTS.CANVAS_HEIGHT_VH_PIT 
+      : CONSTANTS.CANVAS_HEIGHT_VH_DEFAULT;
+    const simHeight = window.innerHeight * heightMultiplier;
     canvas.width  = Math.floor(window.innerWidth * DPR);
     canvas.height = Math.floor(simHeight * DPR);
   }
   const setCSSSize = () => {
-    // CSS size is handled by CSS (150vh, bottom-aligned)
+    // CSS size is handled by CSS classes (mode-pit gets 150vh, others 100svh)
   };
   setCSSSize(); resize();
   window.addEventListener('resize', () => { setCSSSize(); resize(); updateEffectiveScaleAndBallSizes(); updateTextColliders(); });
@@ -846,8 +857,9 @@
         this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
       }
       // Top wall collision aligned to the visible viewport top
-      // Canvas is 150vh tall, bottom 100vh visible, so top edge is at h/3
-      const viewportTop = h / 3;
+      // Ball Pit: 150vh canvas, so viewport top is at h/3
+      // Other modes: 100vh canvas, so viewport top is at 0
+      const viewportTop = (currentMode === MODES.PIT) ? (h / 3) : 0;
       if (this.y - this.r < viewportTop) { 
         this.y = viewportTop + this.r; 
         const preVy = this.vy;
@@ -2139,6 +2151,16 @@
 
   function setMode(mode) {
     currentMode = mode;
+    
+    // Update container CSS class for mode-specific styling (canvas height)
+    container.className = ''; // Clear all mode classes
+    if (currentMode === MODES.PIT) {
+      container.classList.add('mode-pit'); // 150vh height
+    }
+    // Other modes use default 100svh (no class needed)
+    
+    // Resize canvas to match new mode's height
+    resize();
     
     // Apply per-mode high-level toggles and initialization
     if (currentMode === MODES.PIT) {
