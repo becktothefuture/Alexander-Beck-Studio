@@ -185,13 +185,6 @@
     </div>
   </details>
 
-  <!-- Mode Switcher -->
-  <div class="mode-switcher">
-    <button class="mode-button active" data-mode="pit">🎯 Pit</button>
-    <button class="mode-button" data-mode="flies">🕊️ Flies</button>
-    <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
-    </div>
-  
   <!-- Build Controls -->
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
     <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 8px;">💾 Save Config</button>
@@ -227,7 +220,71 @@
     </div>
   </details>
   
+  <details open>
+    <summary>✨ 3D Shader & Lighting</summary>
+    <div class="group">
+      <label title="Enable/disable 3D gradient shader effect">
+        <span>Shader enabled</span>
+        <input type="checkbox" id="shaderEnabled" checked>
+      </label>
+      
+      <label title="Ball roundness (0-100%). 0=flat, 50=casino chip with beveled edges, 100=full sphere">
+        <span>Roundness</span>
+        <input type="range" id="ballRoundness" min="0" max="100" step="5" value="0">
+        <span class="val" id="ballRoundnessVal">0%</span>
+      </label>
+      
+      <div style="font-size: 9px; opacity: 0.7; margin: 4px 0;">
+        0% = Flat · 50% = Casino Chip · 100% = Sphere
+      </div>
+      
+      <label title="Light direction angle (0-360 degrees). -135° = top-left (default), -90° = top, 0° = right">
+        <span>Light angle</span>
+        <input type="range" id="lightAngle" min="-180" max="180" step="15" value="-135">
+        <span class="val" id="lightAngleVal">-135°</span>
+      </label>
+      
+      <details>
+        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer; margin-top: 6px;">⚙️ Advanced settings</summary>
+        <div class="group" style="margin-top: 6px;">
+          <label title="Width of the beveled edge on casino chips (0-50%). Higher = wider bevel">
+            <span>Edge bevel width</span>
+            <input type="range" id="edgeBevelWidth" min="0" max="50" step="5" value="15">
+            <span class="val" id="edgeBevelWidthVal">15%</span>
+          </label>
+          
+          <label title="Sharpness of the bevel transition (0.5-5.0). Lower = softer, higher = sharper">
+            <span>Edge sharpness</span>
+            <input type="range" id="edgeSharpness" min="0.5" max="5.0" step="0.5" value="2.0">
+            <span class="val" id="edgeSharpnessVal">2.0</span>
+          </label>
+          
+          <label title="Intensity of the specular highlight (0-100%). Glass reflection strength">
+            <span>Specular intensity</span>
+            <input type="range" id="specularIntensity" min="0" max="100" step="5" value="70">
+            <span class="val" id="specularIntensityVal">70%</span>
+          </label>
+        </div>
+      </details>
+    </div>
+  </details>
   
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!--                        VISUAL SEPARATOR                                  -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  
+  <div style="margin: 24px 0; padding: 12px 0; border-top: 2px solid rgba(255,255,255,0.2); border-bottom: 2px solid rgba(255,255,255,0.2);">
+    <div style="text-align: center; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7;">
+      ↓ Mode-Specific Settings ↓
+    </div>
+  </div>
+  
+  <!-- Mode Switcher -->
+  <div class="mode-switcher">
+    <button class="mode-button active" data-mode="pit">🎯 Pit</button>
+    <button class="mode-button" data-mode="flies">🕊️ Flies</button>
+    <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
+  </div>
   
   <!-- ═══════════════════════════════════════════════════════════════════════ -->
   <!-- MODE-SPECIFIC SETTINGS (only apply to active mode)                     -->
@@ -289,15 +346,20 @@
   </div>
   
   <!-- Weightless Mode Controls -->
-  <div id="weightlessControls" class="modeControls" style="display:none;">
+  <div id="weightlessControls" class="mode-controls">
     <details open>
-      <summary>🌌 Weightless Bounce</summary>
+      <summary>🌌 Zero-G Mode</summary>
       <div class="group">
         <label title="Number of balls in scene (20-200). Fixed count, no spawning">Ball count: <span class="val" id="weightlessCountVal">80</span><input type="range" id="weightlessCountSlider" min="20" max="200" step="10" value="80"></label>
         <label title="Initial velocity magnitude (100-600px/s). Realistic space: 200-300. Higher = faster motion">Initial speed: <span class="val" id="weightlessSpeedVal">250</span><input type="range" id="weightlessSpeedSlider" min="100" max="600" step="25" value="250"></label>
         <label title="Wall bounce elasticity (0.8-1.0). Realistic space: 0.95-0.98. 1.0 = perfect energy conservation">Bounce elasticity: <span class="val" id="weightlessBounceVal">0.97</span><input type="range" id="weightlessBounceSlider" min="0.8" max="1.0" step="0.01" value="0.97"></label>
-        <label title="Repeller strength (0-800). 0 = disabled">Repeller power: <span class="val" id="weightlessRepelVal">300</span><input type="range" id="weightlessRepelSlider" min="0" max="800" step="50" value="300"></label>
-        <label title="Repeller radius (50-300px). Larger = wider push area">Repeller radius: <span class="val" id="weightlessRepelRadiusVal">150</span><input type="range" id="weightlessRepelRadiusSlider" min="50" max="300" step="10" value="150"></label>
+      </div>
+    </details>
+    <details open>
+      <summary>🧲 Mouse Repeller</summary>
+      <div class="group">
+        <label title="Repeller strength (0-800). 0 = disabled. Controls how strongly balls are pushed away from cursor">Repeller power: <span class="val" id="weightlessRepelVal">300</span><input type="range" id="weightlessRepelSlider" min="0" max="800" step="50" value="300"></label>
+        <label title="Repeller radius (50-300px). Larger = wider push area around cursor">Repeller radius: <span class="val" id="weightlessRepelRadiusVal">150</span><input type="range" id="weightlessRepelRadiusSlider" min="50" max="300" step="10" value="150"></label>
       </div>
     </details>
   </div>
@@ -785,6 +847,16 @@
   let motionBlurFade = 0.025; // from screenshot (was trailFade)
   let trailSubtlety = 1.80; // from screenshot
   
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3D SHADER SYSTEM - Roundness Dial (Casino Chip → Sphere)
+  // ═══════════════════════════════════════════════════════════════════════════
+  let shaderEnabled = true;           // Master toggle for shader effect
+  let ballRoundness = 0;              // 0-100: 0=flat, 50=chip, 100=sphere
+  let lightAngle = -135;              // Light direction in degrees (top-left by default)
+  let edgeBevelWidth = 0.15;          // Width of chip bevel edge (0.0-0.5)
+  let edgeSharpness = 2.0;            // Sharpness of bevel transition (0.5-5.0)
+  let specularIntensity = 0.7;        // Glass reflection strength (0.0-1.0)
+  
   // Performance optimizations and FPS tracking
   let renderFrameCount = 0;
   let physicsStepCount = 0;
@@ -1137,9 +1209,8 @@
       ctx.save();
       ctx.translate(this.x, this.y);
 
-      // Regular ball rendering
       // World-aligned squash/stretch only if significant
-        const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
+      const amt = Math.min(getSquashMax(), Math.max(0, this.squashAmount));
       if (amt > 0.001) {
         // Area-preserving squash: s * (1/s) maintains roundness perception
         const s = 1 + amt;
@@ -1148,13 +1219,34 @@
         ctx.scale(s, inv);
         ctx.rotate(-this.squashNormalAngle);
       }
-      // Body
-      ctx.beginPath();
-      ctx.arc(0, 0, this.r, 0, Math.PI*2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
+      
+      // ═══════════════════════════════════════════════════════════════════
+      // ROUNDNESS-BASED RENDERING: Flat → Casino Chip → Sphere
+      // ═══════════════════════════════════════════════════════════════════
+      
+      if (shaderEnabled && ballRoundness > 0) {
+        const intensity = ballRoundness / 100;  // 0.0 to 1.0
+        
+        if (intensity <= 0.30) {
+          // CASINO CHIP MODE (0-30%): Edge bevel only
+          drawChipBevel(ctx, this.r, this.color, intensity / 0.30);
+        } else if (intensity <= 0.70) {
+          // TRANSITION MODE (31-70%): Blend chip → sphere
+          const blend = (intensity - 0.30) / 0.40;
+          drawTransitionalDepth(ctx, this.r, this.color, blend);
+        } else {
+          // FULL SPHERE MODE (71-100%): Complete 3D depth
+          const sphereDepth = (intensity - 0.70) / 0.30;
+          drawFullSphere(ctx, this.r, this.color, sphereDepth);
+        }
+      } else {
+        // Original flat rendering (roundness = 0 or shader disabled)
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r, 0, Math.PI*2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+      }
 
-      // Spin indicator removed for cleaner visuals and performance
       ctx.restore();
     }
   }
@@ -1163,6 +1255,170 @@
 
   // Helpers
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // COLOR MANIPULATION UTILITIES FOR 3D SHADER
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function hexToRgb(hex) {
+    // Handle both #RRGGBB and rgb(r,g,b) formats
+    if (hex.startsWith('rgb')) {
+      const match = hex.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+      if (match) {
+        return { r: parseInt(match[1]), g: parseInt(match[2]), b: parseInt(match[3]) };
+      }
+    }
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 128, g: 128, b: 128 };
+  }
+  
+  function lightenColor(hexColor, amount) {
+    const rgb = hexToRgb(hexColor);
+    const r = Math.min(255, Math.round(rgb.r + (255 - rgb.r) * amount));
+    const g = Math.min(255, Math.round(rgb.g + (255 - rgb.g) * amount));
+    const b = Math.min(255, Math.round(rgb.b + (255 - rgb.b) * amount));
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+  
+  function darkenColor(hexColor, amount) {
+    const rgb = hexToRgb(hexColor);
+    const r = Math.max(0, Math.round(rgb.r * (1 - amount)));
+    const g = Math.max(0, Math.round(rgb.g * (1 - amount)));
+    const b = Math.max(0, Math.round(rgb.b * (1 - amount)));
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3D SHADER RENDERING FUNCTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // Casino chip effect: subtle edge bevel with light/shadow
+  function drawChipBevel(ctx, radius, color, intensity) {
+    // Base flat fill
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    
+    // Calculate light direction
+    const lightRad = (lightAngle * Math.PI) / 180;
+    const lightX = Math.cos(lightRad);
+    const lightY = Math.sin(lightRad);
+    
+    // Edge bevel gradient (light side)
+    const bevelStart = 1 - (edgeBevelWidth * intensity * 2); // Stronger for chip mode
+    const gradient = ctx.createRadialGradient(
+      lightX * radius * 0.2, lightY * radius * 0.2, radius * bevelStart,
+      0, 0, radius
+    );
+    
+    gradient.addColorStop(0, 'rgba(255,255,255,0)');
+    gradient.addColorStop(Math.max(0, bevelStart - 0.1), 'rgba(255,255,255,0)');
+    gradient.addColorStop(0.95, `rgba(255,255,255,${0.25 * intensity})`);
+    gradient.addColorStop(1, `rgba(255,255,255,${0.4 * intensity})`);
+    
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    // Shadow side (opposite of light)
+    const shadowGradient = ctx.createRadialGradient(
+      -lightX * radius * 0.2, -lightY * radius * 0.2, radius * bevelStart,
+      0, 0, radius
+    );
+    
+    shadowGradient.addColorStop(0, 'rgba(0,0,0,0)');
+    shadowGradient.addColorStop(Math.max(0, bevelStart - 0.1), 'rgba(0,0,0,0)');
+    shadowGradient.addColorStop(0.95, `rgba(0,0,0,${0.2 * intensity})`);
+    shadowGradient.addColorStop(1, `rgba(0,0,0,${0.35 * intensity})`);
+    
+    ctx.fillStyle = shadowGradient;
+    ctx.fill();
+  }
+  
+  // Transitional depth: blend between chip and sphere
+  function drawTransitionalDepth(ctx, radius, color, blend) {
+    const lightRad = (lightAngle * Math.PI) / 180;
+    const lightX = Math.cos(lightRad) * radius * 0.3;
+    const lightY = Math.sin(lightRad) * radius * 0.3;
+    
+    // Gradual radial gradient
+    const gradient = ctx.createRadialGradient(
+      lightX, lightY, 0,
+      0, 0, radius
+    );
+    
+    const brightColor = lightenColor(color, 0.3 * blend);
+    const darkColor = darkenColor(color, 0.25 * blend);
+    
+    gradient.addColorStop(0, brightColor);
+    gradient.addColorStop(0.5 + (0.2 * (1 - blend)), color);
+    gradient.addColorStop(1, darkColor);
+    
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    // Subtle specular highlight
+    if (blend > 0.3) {
+      const specGradient = ctx.createRadialGradient(
+        lightX * 1.2, lightY * 1.2, 0,
+        lightX * 1.2, lightY * 1.2, radius * 0.4
+      );
+      
+      const specAlpha = specularIntensity * (blend - 0.3) / 0.7 * 0.5;
+      specGradient.addColorStop(0, `rgba(255,255,255,${specAlpha})`);
+      specGradient.addColorStop(0.6, `rgba(255,255,255,${specAlpha * 0.2})`);
+      specGradient.addColorStop(1, 'rgba(255,255,255,0)');
+      
+      ctx.fillStyle = specGradient;
+      ctx.fill();
+    }
+  }
+  
+  // Full sphere: complete 3D depth with strong highlights
+  function drawFullSphere(ctx, radius, color, sphereDepth) {
+    const lightRad = (lightAngle * Math.PI) / 180;
+    const lightX = Math.cos(lightRad) * radius * 0.35;
+    const lightY = Math.sin(lightRad) * radius * 0.35;
+    
+    // Base sphere gradient
+    const gradient = ctx.createRadialGradient(
+      lightX, lightY, 0,
+      0, 0, radius
+    );
+    
+    const brightColor = lightenColor(color, 0.45 + (0.15 * sphereDepth));
+    const darkColor = darkenColor(color, 0.35 + (0.15 * sphereDepth));
+    
+    gradient.addColorStop(0, brightColor);
+    gradient.addColorStop(0.4, color);
+    gradient.addColorStop(1, darkColor);
+    
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    // Specular highlight (glass reflection)
+    const specGradient = ctx.createRadialGradient(
+      lightX * 1.15, lightY * 1.15, 0,
+      lightX * 1.15, lightY * 1.15, radius * 0.5
+    );
+    
+    const specAlpha = specularIntensity * (0.7 + 0.3 * sphereDepth);
+    specGradient.addColorStop(0, `rgba(255,255,255,${specAlpha})`);
+    specGradient.addColorStop(0.4, `rgba(255,255,255,${specAlpha * 0.3})`);
+    specGradient.addColorStop(1, 'rgba(255,255,255,0)');
+    
+    ctx.fillStyle = specGradient;
+    ctx.fill();
+  }
+  
   function randBetween(a, b) { return a + Math.random() * (b - a); }
   // Compute mass from radius using current weight slider as density baseline
   // Removed radius-based mass; shared mass is used instead
@@ -2378,6 +2634,57 @@
   trailSubtletySlider && trailSubtletySlider.addEventListener('input', () => {
     trailSubtlety = parseFloat(trailSubtletySlider.value);
     trailSubtletyVal && (trailSubtletyVal.textContent = trailSubtlety.toFixed(2) + '×');
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3D SHADER CONTROL EVENT LISTENERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const shaderEnabledCheckbox = document.getElementById('shaderEnabled');
+  const ballRoundnessSlider = document.getElementById('ballRoundness');
+  const ballRoundnessVal = document.getElementById('ballRoundnessVal');
+  const lightAngleSlider = document.getElementById('lightAngle');
+  const lightAngleVal = document.getElementById('lightAngleVal');
+  const edgeBevelWidthSlider = document.getElementById('edgeBevelWidth');
+  const edgeBevelWidthVal = document.getElementById('edgeBevelWidthVal');
+  const edgeSharpnessSlider = document.getElementById('edgeSharpness');
+  const edgeSharpnessVal = document.getElementById('edgeSharpnessVal');
+  const specularIntensitySlider = document.getElementById('specularIntensity');
+  const specularIntensityVal = document.getElementById('specularIntensityVal');
+  
+  shaderEnabledCheckbox && shaderEnabledCheckbox.addEventListener('change', () => {
+    shaderEnabled = shaderEnabledCheckbox.checked;
+    autoSaveSettings();
+  });
+  
+  ballRoundnessSlider && ballRoundnessSlider.addEventListener('input', () => {
+    ballRoundness = parseFloat(ballRoundnessSlider.value);
+    ballRoundnessVal && (ballRoundnessVal.textContent = ballRoundness.toFixed(0) + '%');
+    autoSaveSettings();
+  });
+  
+  lightAngleSlider && lightAngleSlider.addEventListener('input', () => {
+    lightAngle = parseFloat(lightAngleSlider.value);
+    lightAngleVal && (lightAngleVal.textContent = lightAngle.toFixed(0) + '°');
+    autoSaveSettings();
+  });
+  
+  edgeBevelWidthSlider && edgeBevelWidthSlider.addEventListener('input', () => {
+    edgeBevelWidth = parseFloat(edgeBevelWidthSlider.value) / 100;  // Convert 0-50 to 0.0-0.5
+    edgeBevelWidthVal && (edgeBevelWidthVal.textContent = edgeBevelWidthSlider.value + '%');
+    autoSaveSettings();
+  });
+  
+  edgeSharpnessSlider && edgeSharpnessSlider.addEventListener('input', () => {
+    edgeSharpness = parseFloat(edgeSharpnessSlider.value);
+    edgeSharpnessVal && (edgeSharpnessVal.textContent = edgeSharpness.toFixed(1));
+    autoSaveSettings();
+  });
+  
+  specularIntensitySlider && specularIntensitySlider.addEventListener('input', () => {
+    specularIntensity = parseFloat(specularIntensitySlider.value) / 100;  // Convert 0-100 to 0.0-1.0
+    specularIntensityVal && (specularIntensityVal.textContent = specularIntensitySlider.value + '%');
+    autoSaveSettings();
   });
 
   // Presets (10 each)
