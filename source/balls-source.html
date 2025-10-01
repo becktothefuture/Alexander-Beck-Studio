@@ -301,6 +301,16 @@
           <option value="pressedInset">Pressed (inset)</option>
           <option value="softOutset">Soft Glow (outset)</option>
           <option value="dramaticOutset">Dramatic (strong outset)</option>
+          <option value="subtleRim">Subtle Rim</option>
+          <option value="gentleDepth">Gentle Depth</option>
+          <option value="whisperLight">Whisper Light</option>
+          <option value="frostedGlass">Frosted Glass</option>
+          <option value="matteFinish">Matte Finish</option>
+          <option value="pearl">Pearl</option>
+          <option value="satin">Satin</option>
+          <option value="porcelain">Porcelain</option>
+          <option value="velvet">Velvet</option>
+          <option value="studioClassic">Studio Classic ⭐</option>
         </select>
       </label>
       
@@ -706,6 +716,86 @@
       shadow1: { offsetX: 4, offsetY: 5, opacity: 0.35, color: '#000000', sizeMultiplier: 0.97, blurRadius: 6 },   // Strong dark edge
       shadow2: { offsetX: -4, offsetY: -4, opacity: 0.4, color: '#ffffff', sizeMultiplier: 0.90, blurRadius: 5 },  // Strong top-left light
       shadow3: { offsetX: 4, offsetY: 4, opacity: 0.3, color: '#ffffff', sizeMultiplier: 0.90, blurRadius: 5 }     // Strong bottom-right light
+    },
+    
+    // Template 6: Subtle Rim (barely visible edge lighting)
+    subtleRim: {
+      label: 'Subtle Rim',
+      shadow1: { offsetX: 1, offsetY: 2, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 4 },
+      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.25, color: '#ffffff', sizeMultiplier: 0.97, blurRadius: 3 },
+      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.25, color: '#ffffff', sizeMultiplier: 0.97, blurRadius: 3 }
+    },
+    
+    // Template 7: Gentle Depth (soft, minimal contrast)
+    gentleDepth: {
+      label: 'Gentle Depth',
+      shadow1: { offsetX: 2, offsetY: 2, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 6 },
+      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.28, color: '#ffffff', sizeMultiplier: 0.96, blurRadius: 5 },
+      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.25, color: '#f5f5f5', sizeMultiplier: 0.96, blurRadius: 5 }
+    },
+    
+    // Template 8: Whisper Light (ultra-subtle)
+    whisperLight: {
+      label: 'Whisper Light',
+      shadow1: { offsetX: 1, offsetY: 1, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 8 },
+      shadow2: { offsetX: -1, offsetY: 0, opacity: 0.26, color: '#ffffff', sizeMultiplier: 0.98, blurRadius: 6 },
+      shadow3: { offsetX: 0, offsetY: 1, opacity: 0.25, color: '#ffffff', sizeMultiplier: 0.98, blurRadius: 6 }
+    },
+    
+    // Template 9: Frosted Glass (diffused all-around)
+    frostedGlass: {
+      label: 'Frosted Glass',
+      shadow1: { offsetX: 0, offsetY: 2, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 10 },
+      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.27, color: '#ffffff', sizeMultiplier: 0.97, blurRadius: 8 },
+      shadow3: { offsetX: 1, offsetY: 0, opacity: 0.25, color: '#e8e8e8', sizeMultiplier: 0.97, blurRadius: 8 }
+    },
+    
+    // Template 10: Matte Finish (flat, soft edges)
+    matteFinish: {
+      label: 'Matte Finish',
+      shadow1: { offsetX: 1, offsetY: 2, opacity: 0.25, color: '#1a1a1a', sizeMultiplier: 1.0, blurRadius: 5 },
+      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.26, color: '#f0f0f0', sizeMultiplier: 0.98, blurRadius: 4 },
+      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.25, color: '#e0e0e0', sizeMultiplier: 0.98, blurRadius: 4 }
+    },
+    
+    // Template 11: Pearl (iridescent subtle sheen)
+    pearl: {
+      label: 'Pearl',
+      shadow1: { offsetX: 0, offsetY: 1, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 6 },
+      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.28, color: '#fffef0', sizeMultiplier: 0.97, blurRadius: 5 },
+      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.26, color: '#f0f8ff', sizeMultiplier: 0.97, blurRadius: 5 }
+    },
+    
+    // Template 12: Satin (smooth, directional light)
+    satin: {
+      label: 'Satin',
+      shadow1: { offsetX: 2, offsetY: 3, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 7 },
+      shadow2: { offsetX: -2, offsetY: -2, opacity: 0.29, color: '#ffffff', sizeMultiplier: 0.96, blurRadius: 5 },
+      shadow3: { offsetX: 1, offsetY: 0, opacity: 0.25, color: '#fafafa', sizeMultiplier: 0.97, blurRadius: 4 }
+    },
+    
+    // Template 13: Porcelain (clean, delicate)
+    porcelain: {
+      label: 'Porcelain',
+      shadow1: { offsetX: 1, offsetY: 2, opacity: 0.25, color: '#2a2a2a', sizeMultiplier: 1.0, blurRadius: 5 },
+      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.3, color: '#ffffff', sizeMultiplier: 0.97, blurRadius: 4 },
+      shadow3: { offsetX: 0, offsetY: 1, opacity: 0.27, color: '#f8f8f8', sizeMultiplier: 0.98, blurRadius: 3 }
+    },
+    
+    // Template 14: Velvet (rich, soft depth)
+    velvet: {
+      label: 'Velvet',
+      shadow1: { offsetX: 2, offsetY: 2, opacity: 0.28, color: '#000000', sizeMultiplier: 1.0, blurRadius: 9 },
+      shadow2: { offsetX: -1, offsetY: -2, opacity: 0.27, color: '#ffffff', sizeMultiplier: 0.96, blurRadius: 7 },
+      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.25, color: '#fefefe', sizeMultiplier: 0.97, blurRadius: 6 }
+    },
+    
+    // Template 15: Studio Classic (YOUR REQUEST: base shadow + two lights on top)
+    studioClassic: {
+      label: 'Studio Classic',
+      shadow1: { offsetX: 0, offsetY: 3, opacity: 0.3, color: '#000000', sizeMultiplier: 1.0, blurRadius: 8 },    // Base shadow underneath
+      shadow2: { offsetX: -2, offsetY: -2, opacity: 0.35, color: '#ffffff', sizeMultiplier: 0.95, blurRadius: 5 }, // Top-left light
+      shadow3: { offsetX: 2, offsetY: 2, opacity: 0.32, color: '#ffffff', sizeMultiplier: 0.95, blurRadius: 5 }   // Bottom-right light
     }
   };
   
