@@ -190,7 +190,7 @@
     <button class="mode-button active" data-mode="pit">🎯 Pit</button>
     <button class="mode-button" data-mode="flies">🕊️ Flies</button>
     <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
-  </div>
+    </div>
   
   <!-- Build Controls -->
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
@@ -238,10 +238,10 @@
       <summary>🎯 Ball Pit Mode</summary>
       <div class="group">
         <label title="Choose physics preset (Rubber, Bouncy, etc.)">Physics template: <select id="physicsSelect"></select></label>
-        <label title="Gravity strength (0.0-2.0x Earth). 0 = no gravity, 2.0 = very strong">Gravity: <span class="val" id="gravityPitVal">1.1</span><input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="1.1"></label>
-        <label title="Ball mass/weight (0.1-50kg). Heavier = slower acceleration, lighter = more responsive">Weight (kg): <span class="val" id="weightPitVal">11.20</span><input type="range" id="weightPitSlider" min="0.10" max="50.00" step="0.10" value="11.20"></label>
-        <label title="Bounce restitution (0.0-1.0). 0 = no bounce, 1.0 = perfect elastic">Bounciness: <span class="val" id="restitutionVal">0.78</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.78"></label>
-        <label title="Air resistance (0.000-0.050). 0 = no drag, 0.050 = high drag">Friction: <span class="val" id="frictionVal">0.0025</span><input type="range" id="frictionSlider" min="0.000" max="0.050" step="0.001" value="0.0025"></label>
+        <label title="Gravity strength (0.0-2.0x Earth). Realistic: 1.0-1.2x. 0 = no gravity, 2.0 = very strong">Gravity: <span class="val" id="gravityPitVal">1.15</span><input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="1.15"></label>
+        <label title="Ball mass/weight (50-200g). Realistic rubber ball: 100-150g. Heavier = more weight feel">Weight (g): <span class="val" id="weightPitVal">120.0</span><input type="range" id="weightPitSlider" min="50.0" max="200.0" step="5.0" value="120.0"></label>
+        <label title="Bounce restitution (0.0-1.0). Realistic rubber: 0.75-0.85. 0 = no bounce, 1.0 = perfect elastic">Bounciness: <span class="val" id="restitutionVal">0.80</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.80"></label>
+        <label title="Air resistance (0.000-0.010). Realistic: 0.003-0.005. 0 = no drag, 0.010 = high drag">Friction: <span class="val" id="frictionVal">0.0045</span><input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0005" value="0.0045"></label>
       </div>
     </details>
     <details open>
@@ -281,9 +281,9 @@
     <details open>
       <summary>🕊️ Flies to Light Mode</summary>
       <div class="group">
-        <label title="Attraction strength toward mouse (100-2000). Higher = stronger pull toward cursor">Attraction power: <span class="val" id="attractPowerVal">1000</span><input type="range" id="attractPowerSlider" min="100" max="2000" step="25" value="1000"></label>
-        <label title="Orbit distance around mouse (50-300px). Larger = wider swarm formation">Orbit radius: <span class="val" id="orbitRadiusVal">150</span><input type="range" id="orbitRadiusSlider" min="50" max="300" step="10" value="150"></label>
-        <label title="Swarm movement speed (0.2-2.0x). Higher = more responsive, lower = smoother">Swarm speed: <span class="val" id="swarmSpeedVal">1.0</span><input type="range" id="swarmSpeedSlider" min="0.2" max="2.0" step="0.1" value="1.0"></label>
+        <label title="Attraction strength toward mouse (100-8000). Higher = stronger pull toward cursor. Realistic insects: 4000-6000">Attraction power: <span class="val" id="attractPowerVal">5000</span><input type="range" id="attractPowerSlider" min="100" max="8000" step="50" value="5000"></label>
+        <label title="Orbit distance around mouse (50-400px). Larger = wider swarm formation. Realistic insects: 150-250">Orbit radius: <span class="val" id="orbitRadiusVal">180</span><input type="range" id="orbitRadiusSlider" min="50" max="400" step="10" value="180"></label>
+        <label title="Swarm movement speed (0.2-5.0x). Higher = faster, more responsive. Realistic insects: 2.5-4.0">Swarm speed: <span class="val" id="swarmSpeedVal">3.5</span><input type="range" id="swarmSpeedSlider" min="0.2" max="5.0" step="0.1" value="3.5"></label>
       </div>
     </details>
   </div>
@@ -294,8 +294,8 @@
       <summary>🌌 Weightless Bounce</summary>
       <div class="group">
         <label title="Number of balls in scene (20-200). Fixed count, no spawning">Ball count: <span class="val" id="weightlessCountVal">80</span><input type="range" id="weightlessCountSlider" min="20" max="200" step="10" value="80"></label>
-        <label title="Initial velocity magnitude (50-500px/s). Higher = faster motion">Initial speed: <span class="val" id="weightlessSpeedVal">200</span><input type="range" id="weightlessSpeedSlider" min="50" max="500" step="25" value="200"></label>
-        <label title="Wall bounce elasticity (0.7-1.0). 1.0 = perfect bounce">Bounce elasticity: <span class="val" id="weightlessBounceVal">0.98</span><input type="range" id="weightlessBounceSlider" min="0.7" max="1.0" step="0.02" value="0.98"></label>
+        <label title="Initial velocity magnitude (100-600px/s). Realistic space: 200-300. Higher = faster motion">Initial speed: <span class="val" id="weightlessSpeedVal">250</span><input type="range" id="weightlessSpeedSlider" min="100" max="600" step="25" value="250"></label>
+        <label title="Wall bounce elasticity (0.8-1.0). Realistic space: 0.95-0.98. 1.0 = perfect energy conservation">Bounce elasticity: <span class="val" id="weightlessBounceVal">0.97</span><input type="range" id="weightlessBounceSlider" min="0.8" max="1.0" step="0.01" value="0.97"></label>
         <label title="Repeller strength (0-800). 0 = disabled">Repeller power: <span class="val" id="weightlessRepelVal">300</span><input type="range" id="weightlessRepelSlider" min="0" max="800" step="50" value="300"></label>
         <label title="Repeller radius (50-300px). Larger = wider push area">Repeller radius: <span class="val" id="weightlessRepelRadiusVal">150</span><input type="range" id="weightlessRepelRadiusSlider" min="50" max="300" step="10" value="150"></label>
       </div>
@@ -336,19 +336,19 @@
   let ballSoftness = 40; // 0-100: controls squash/stretch on collision (0=hard, 100=very squishy)
   
   // Mode-specific parameters
-  // Ball Pit mode parameters
-  let gravityMultiplierPit = 1.1;
+  // Ball Pit mode parameters - REALISTIC RUBBER BALL PHYSICS
+  let gravityMultiplierPit = 1.15; // Slightly heavier feel for realism
   let repellerEnabledPit = true;
   
-  // Flies mode parameters
-  let attractionPower = 1000; // Default attraction
-  let orbitRadius = 150;
-  let swarmSpeed = 1.0;
+  // Flies mode parameters - REALISTIC INSECT FLIGHT (mosquitoes/gnats)
+  let attractionPower = 5000; // Much faster: insects dart quickly toward light
+  let orbitRadius = 180; // Wider: insects don't cluster tightly
+  let swarmSpeed = 3.5; // 3.5x faster: insects are quick and erratic
   
-  // Weightless mode parameters
+  // Weightless mode parameters - REALISTIC SPACE PHYSICS
   let weightlessCount = 80; // fixed number of balls
-  let weightlessInitialSpeed = 200; // initial velocity magnitude (px/s)
-  let weightlessBounce = 0.98; // wall bounce restitution (very elastic)
+  let weightlessInitialSpeed = 250; // Slightly faster for visible motion in zero-g
+  let weightlessBounce = 0.97; // Very elastic but not perfect (micro-imperfections)
   let weightlessRepellerPower = 300; // subtle mouse repeller strength
   let weightlessRepellerRadius = 150; // repeller radius (px)
   
@@ -437,8 +437,8 @@
   const GE = 1960;        // Earth gravity in px/s^2 at our scale
   let gravityMultiplier = 1.10; // 1.1× Earth
   let G = GE * gravityMultiplier;
-  let REST = 0.88;        // restitution (bounciness) - from screenshot
-  let FRICTION = 0.0030;  // air drag per frame - from screenshot
+  let REST = 0.80;        // restitution (rubber balls: 0.75-0.85, more realistic than 0.88)
+  let FRICTION = 0.0045;  // air drag (increased for realistic weight feel)
   let EMIT_INTERVAL = 0.030; // seconds between drops - from screenshot
   let MAX_BALLS = 800;    // increased for better trail mode performance
   const SOLVER_ITERS = 6;    // Optimized for realistic collisions without jitter
@@ -449,13 +449,14 @@
   // Base radius values
   const R_MIN_BASE = 6;
   const R_MAX_BASE = 24;
-  let sizeScale = 0.7;     // Global ball size (default per user request)
+  let sizeScale = 0.7;     // Global ball size (LOCKED - never override in modes)
   let sizeVariation = 1.0; // Global size variation
   // Responsive scale: reduce ball size by 60% on mobile breakpoints (≤768px)
   let responsiveScale = 1.0;
   let lastEffectiveScale = null; // tracks previous (sizeScale * responsiveScale)
   // Global mass model: all balls share the same mass in kg
-  let ballMassKg = 19.80; // from screenshot
+  // REALISTIC MASS: Rubber bouncy balls are 100-150g (not 19.8g)
+  let ballMassKg = 120.0; // 120g rubber ball (realistic weight)
   // Mass influence tuning
   const MASS_GRAVITY_EXP = 0.35; // how much mass influences gravity (perceptual)
   const MASS_REST_EXP = 0.15;    // how much mass influences bounce restitution
@@ -813,10 +814,16 @@
       this.age += dt;
 
       // Gravity scaled by mass to make weight perceptible without changing G globally
+      // BUT: Zero-G mode has NO gravity or drag (space physics)
+      if (currentMode !== MODES.WEIGHTLESS) {
       this.vy += (G * gravityScale) * dt;
+      }
+      
       // Mass-aware drag (heavier balls lose proportionally less velocity)
+      // BUT: Zero-G mode has MINIMAL drag (vacuum of space)
       const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
-      const drag = Math.max(0, 1 - (FRICTION / massScale));
+      const dragAmount = (currentMode === MODES.WEIGHTLESS) ? 0.0001 : FRICTION; // Almost zero in zero-g
+      const drag = Math.max(0, 1 - (dragAmount / massScale));
       this.vx *= drag;
       this.vy *= drag;
       // Apply short-lived lateral drift to simulate being thrown from the side above
@@ -1455,7 +1462,7 @@
     if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
 
     // Clear canvas each frame
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
     
     // Draw rounded boundary if corner radius > 0 (cache boundary path for performance)
     if (cornerRadius > 0) {
@@ -1579,10 +1586,10 @@
   let lastMousePosition = { x: 0, y: 0 };
   let mouseStoppedTime = 0;
   
-  canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    mouseX = (e.clientX - rect.left) * DPR;
-    mouseY = (e.clientY - rect.top) * DPR;
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseX = (e.clientX - rect.left) * DPR;
+      mouseY = (e.clientY - rect.top) * DPR;
     
     // Ball Pit: enable repeller when power and radius are set
     if (currentMode === MODES.PIT && repelPower > 0 && repelRadius > 0) {
@@ -1684,7 +1691,8 @@
     b.vy += ny * strength * dt;
   }
 
-  // Mouse attractor for Flies-to-Light mode - FAST erratic mosquito flight
+  // Mouse attractor for Flies-to-Light mode - REALISTIC INSECT FLIGHT
+  // Reference: Mosquitoes fly 1-2 m/s with quick acceleration and erratic patterns
   function applyAttractor(b, dt) {
     if (mouseX === CONSTANTS.OFFSCREEN_MOUSE || mouseY === CONSTANTS.OFFSCREEN_MOUSE) return;
     
@@ -1697,13 +1705,14 @@
     const dirX = dx / d;
     const dirY = dy / d;
     
-    // 1. STRONG ATTRACTION - mosquitos dart toward light quickly
-    const attractForce = attractionPower * 4.0; // Much stronger (4x instead of 1.5x)
+    // 1. VERY STRONG ATTRACTION - insects have incredible acceleration relative to size
+    // Mosquitoes can accelerate at 50+ g's in short bursts
+    const attractForce = attractionPower * swarmSpeed * 2.0; // Use swarmSpeed multiplier
     b.vx += dirX * attractForce * dt;
     b.vy += dirY * attractForce * dt;
     
-    // 2. SEPARATION from nearby flies (keep some spacing)
-    const separationRadius = 80 * DPR; // Larger separation for more spread
+    // 2. SEPARATION from nearby flies (looser swarm - insects don't stick together)
+    const separationRadius = 120 * DPR; // Much larger separation for natural spread
     let sepX = 0, sepY = 0;
     let neighborCount = 0;
     for (let i = 0; i < balls.length; i++) {
@@ -1726,39 +1735,39 @@
       b.vy += (sepY / neighborCount) * separationForce * dt;
     }
     
-    // 3. STRONG ERRATIC JITTER - mosquitos dart unpredictably
-    // Random direction changes and quick bursts
-    const jitterBase = 1200; // Much stronger jitter
-    const burstChance = 0.05; // 5% chance per frame for sudden burst
+    // 3. INTENSE ERRATIC JITTER - mosquitos dart unpredictably with bursts
+    // Real mosquitoes change direction constantly and have explosive acceleration
+    const jitterBase = 2500 * swarmSpeed; // Scale jitter with swarm speed
+    const burstChance = 0.08; // 8% chance per frame for sudden burst
     if (Math.random() < burstChance) {
-      // Sudden burst in random direction
+      // Sudden burst in random direction (mimics insect reflex)
       const burstAngle = Math.random() * Math.PI * 2;
-      const burstStrength = 800;
+      const burstStrength = 1500 * swarmSpeed;
       b.vx += Math.cos(burstAngle) * burstStrength;
       b.vy += Math.sin(burstAngle) * burstStrength;
     }
-    // Constant jitter
+    // Constant erratic jitter (insects never fly perfectly straight)
     b.vx += (Math.random() - 0.5) * jitterBase * dt;
     b.vy += (Math.random() - 0.5) * jitterBase * dt;
     
-    // 4. VARIABLE ORBITAL MOTION - not perfect circles, more chaotic
-    // Orbital force varies based on distance and random factor
-    const orbitVariation = 0.5 + Math.random() * 1.5; // 0.5x to 2x variation
-    const orbitStrength = swarmSpeed * 1200 * orbitVariation * dt; // 2x base orbit
+    // 4. CHAOTIC ORBITAL MOTION - insects spiral unpredictably
+    // Orbital force varies wildly based on distance and random factor
+    const orbitVariation = 0.3 + Math.random() * 2.0; // 0.3x to 2.3x variation
+    const orbitStrength = swarmSpeed * 2000 * orbitVariation * dt; // Strong orbital
     b.vx += -dirY * orbitStrength;
     b.vy += dirX * orbitStrength;
     
-    // 5. HIGHER speed limit - mosquitos are FAST
-    const maxSpeed = 1400; // Much faster than 600
+    // 5. VERY HIGH speed limit - insects are remarkably fast for their size
+    const maxSpeed = 2200 * swarmSpeed; // Scale max speed with swarm speed
     const speed = Math.sqrt(b.vx*b.vx + b.vy*b.vy);
     if (speed > maxSpeed) {
       b.vx = (b.vx / speed) * maxSpeed;
       b.vy = (b.vy / speed) * maxSpeed;
     }
     
-    // Very light damping - keep energy high
-    b.vx *= 0.99; // Less damping than 0.98
-    b.vy *= 0.99;
+    // Minimal damping - insects maintain energy through constant wing beats
+    b.vx *= 0.995; // Very light damping for sustained high energy
+    b.vy *= 0.995;
   }
 
 

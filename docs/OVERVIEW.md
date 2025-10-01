@@ -9,7 +9,13 @@ A high-performance, physics-based bouncy balls simulation with three distinct mo
 ## The Three Modes
 
 ### 🎯 Mode 1: Ball Pit (Default)
-**Physics**: Realistic gravity with ball-to-ball collisions
+**Physics**: Realistic 120g rubber ball physics
+
+**Real-World Accuracy**:
+- 120g mass (actual bouncy ball weight)
+- 1.15× gravity (slightly enhanced for visual drama)
+- 0.80 restitution (rubber returns 75-85% energy)
+- Realistic air drag and rolling friction
 
 **Key Features**:
 - Balls spawn from above viewport and fall naturally
@@ -18,39 +24,52 @@ A high-performance, physics-based bouncy balls simulation with three distinct mo
 - Rolling friction and angular momentum
 - Continuous top emitter with sweep motion
 
-**Use Case**: Classic satisfying physics playground
+**Use Case**: Satisfying physics playground with genuine weight and heft
 
 **Canvas**: 150vh (allows spawning above viewport)
 
 ---
 
 ### 🕊️ Mode 2: Flies to Light
-**Physics**: Swarm behavior with cursor attraction
+**Physics**: Realistic insect flight (mosquitoes/gnats)
+
+**Real-World Accuracy**:
+- 3.5× faster speed (insects are remarkably quick)
+- 50+ g acceleration in bursts (like real mosquitoes)
+- Erratic darting and jitter (insects never fly straight)
+- Chaotic orbital motion (unpredictable spiraling)
+- Wider separation (natural insect spacing)
 
 **Key Features**:
-- Zero gravity, balls act like floating agents
-- Strong attraction toward mouse cursor
-- Orbital motion around target
-- Smooth convergence and following
+- Zero gravity, balls dart like insects toward light
+- Very strong attraction toward mouse cursor
+- Explosive bursts and sudden direction changes
+- Chaotic, unpredictable following patterns
 - No ball-to-ball collisions (performance)
 
-**Use Case**: Elegant organic movement
+**Use Case**: Mesmerizing realistic insect swarm behavior
 
 **Canvas**: 100svh (viewport-sized)
 
 ---
 
 ### 🌌 Mode 3: Zero-G (Weightless Bounce)
-**Physics**: Perpetual motion with perfect elastic collisions
+**Physics**: Realistic space physics (ISS simulation)
+
+**Real-World Accuracy**:
+- 0.97 restitution (micro-imperfections in real materials)
+- 0.0001 drag (virtually zero, vacuum of space)
+- 97% energy conservation per bounce
+- No gravity (true zero-g environment)
 
 **Key Features**:
-- Zero gravity, balls float freely
-- Perfect 4-wall collisions (including top!)
+- Zero gravity, balls float freely like in space
+- Nearly perfect 4-wall elastic collisions (including top!)
 - Even grid distribution at initialization
 - Optional subtle mouse repeller
-- Energy-conserving physics
+- Perpetual motion with gradual, realistic energy decay
 
-**Use Case**: Mesmerizing perpetual motion
+**Use Case**: Hypnotic perpetual motion mimicking space station physics
 
 **Canvas**: 100svh (viewport-sized)
 
