@@ -112,6 +112,37 @@ if (config) {
     replaceArrayConst('COLOR_WEIGHTS', config.colorWeights);
   }
 
+  // Pulse Grid mode parameters
+  if (typeof config.gridColumns === 'number') replaceVar('gridColumns', String(config.gridColumns));
+  if (typeof config.gridCellAspect === 'number') replaceVar('gridCellAspect', String(config.gridCellAspect));
+  if (typeof config.gridBallCount === 'number') replaceVar('gridBallCount', String(config.gridBallCount));
+  if (typeof config.pulseInterval === 'number') replaceVar('pulseInterval', String(config.pulseInterval));
+  if (typeof config.pulseSpeed === 'number') replaceVar('pulseSpeed', String(config.pulseSpeed));
+  if (typeof config.pulseSynchronicity === 'number') replaceVar('pulseSynchronicity', String(config.pulseSynchronicity));
+  if (typeof config.pulseRandomness === 'number') replaceVar('pulseRandomness', String(config.pulseRandomness));
+  if (typeof config.pulseMinSteps === 'number') replaceVar('pulseMinSteps', String(config.pulseMinSteps));
+  if (typeof config.pulseMaxSteps === 'number') replaceVar('pulseMaxSteps', String(config.pulseMaxSteps));
+  if (typeof config.pulseEasingStyle === 'string') {
+    const reEasing = /(let\s+pulseEasingStyle\s*=\s*)'[^']+'(;)/;
+    jsCode = jsCode.replace(reEasing, `$1'${config.pulseEasingStyle}'$2`);
+  }
+  if (typeof config.pulseOvershoot === 'number') replaceVar('pulseOvershoot', String(config.pulseOvershoot));
+  if (typeof config.pulseBounceIntensity === 'number') replaceVar('pulseBounceIntensity', String(config.pulseBounceIntensity));
+
+  // Canvas shadow parameters
+  if (typeof config.canvasShadowEnabled === 'boolean') replaceVar('canvasShadowEnabled', String(config.canvasShadowEnabled));
+  if (typeof config.shadowOffsetX === 'number') replaceVar('shadowOffsetX', String(config.shadowOffsetX));
+  if (typeof config.shadowOffsetY === 'number') replaceVar('shadowOffsetY', String(config.shadowOffsetY));
+  if (typeof config.shadowBlur === 'number') replaceVar('shadowBlur', String(config.shadowBlur));
+  if (typeof config.shadowOpacity === 'number') replaceVar('shadowOpacity', String(config.shadowOpacity));
+  if (typeof config.shadowColor === 'string') {
+    const reShadowColor = /(let\s+shadowColor\s*=\s*)'[^']+'(;)/;
+    jsCode = jsCode.replace(reShadowColor, `$1'${config.shadowColor}'$2`);
+  }
+  if (typeof config.shadow2Enabled === 'boolean') replaceVar('shadow2Enabled', String(config.shadow2Enabled));
+  if (typeof config.shadow2Blur === 'number') replaceVar('shadow2Blur', String(config.shadow2Blur));
+  if (typeof config.shadow2Opacity === 'number') replaceVar('shadow2Opacity', String(config.shadow2Opacity));
+
   console.log('✅ Applied configuration values to source JS');
 }
 
@@ -125,7 +156,12 @@ console.log('🗜️  Minifying JS...');
 const terserOptions = {
   compress: { passes: 2 },
   mangle: true,               // keep names short for size
-  format: { comments: false }
+  format: { comments: false },
+  sourceMap: {
+    filename: 'bouncy-balls-embed.js',
+    url: 'bouncy-balls-embed.js.map',
+    root: '../source/'
+  }
 };
 
 minify(jsCode, terserOptions)
@@ -136,6 +172,13 @@ minify(jsCode, terserOptions)
     // Ensure target directory exists
     fs.mkdirSync(path.dirname(OUTPUT_JS_FILE), { recursive: true });
     fs.writeFileSync(OUTPUT_JS_FILE, result.code);
+    
+    // Write source map if generated
+    if (result.map) {
+      const mapFile = OUTPUT_JS_FILE + '.map';
+      fs.writeFileSync(mapFile, result.map);
+      console.log(`🗺️  Source map: ${mapFile}`);
+    }
 
     console.log('✅ Build complete!');
     console.log(`📦 Output: ${OUTPUT_JS_FILE}`);

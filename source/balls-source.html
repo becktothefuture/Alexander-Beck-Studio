@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Refined Bravia Balls – Canvas Physics</title>
 <style>
-  html, body { height: 100%; margin: 0; background: #cecece; overflow:hidden; }
+  html, body { height: 100%; margin: 0; background: #cecece; overflow:hidden; transition: background-color 0.3s ease; }
+  html.dark-mode, body.dark-mode { background: #0a0a0a; }
   /* Scoped wrapper for embed friendliness and interaction hygiene */
   #bravia-balls {
     position: fixed;
@@ -33,6 +34,7 @@
     -webkit-user-select: none;
     touch-action: none;
     cursor: none;
+    /* Shadow applied dynamically via JavaScript */
   }
   @media (prefers-reduced-motion: reduce) { 
     #bravia-balls canvas { filter: none; } 
@@ -56,6 +58,11 @@
     backdrop-filter: blur(6px);
     cursor: move;
     min-width: 200px;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+  .dark-mode #bravia-balls .panel {
+    background: rgba(20,20,20,0.75);
+    border: 1px solid rgba(255,255,255,0.15);
   }
   #bravia-balls .panel.hidden { display: none; }
   #bravia-balls .panel .panel-header {
@@ -213,14 +220,17 @@
 </head>
 <body>
 <div id="bravia-balls">
-  <canvas id="c" aria-label="Bouncy balls simulation" role="img" draggable="false"></canvas>
-  <div class="panel" id="controlPanel">
+  <canvas id="c" aria-label="Interactive bouncy balls physics simulation" role="application" draggable="false"></canvas>
+  <div class="panel" id="controlPanel" role="region" aria-label="Simulation controls" tabindex="-1">
   
   <!-- Draggable header -->
-  <div class="panel-header" id="panelHeader">
-    <span><span class="drag-handle">⋮⋮</span>Controls</span>
-    <span style="cursor: pointer; opacity: 0.7;" id="minimizePanel" title="Toggle panel (/)">−</span>
+  <div class="panel-header" id="panelHeader" role="banner">
+    <span><span class="drag-handle" aria-hidden="true">⋮⋮</span>Controls</span>
+    <button style="cursor: pointer; opacity: 0.7; background: none; border: none; color: inherit; font-size: 16px; padding: 0;" id="minimizePanel" title="Toggle panel" aria-label="Toggle control panel" aria-expanded="true">−</button>
   </div>
+  
+  <!-- Screen reader announcements -->
+  <div role="status" aria-live="polite" aria-atomic="true" style="position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden;" id="announcer"></div>
   
   <!-- 120 FPS Performance Mode Toggle (TOP PRIORITY) -->
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(255,0,0,0.15); border-radius: 4px; border: 1px solid rgba(255,0,0,0.3);">
@@ -233,6 +243,20 @@
     </div>
     <div id="performanceModeStatus" style="font-size: 9px; margin-top: 6px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; font-family: monospace;">
       🎨 Normal Mode (350 balls)
+    </div>
+  </div>
+  
+  <!-- Dark Mode Toggle -->
+  <div style="margin-bottom: 12px; padding: 8px; background: rgba(100,100,255,0.15); border-radius: 4px; border: 1px solid rgba(100,100,255,0.3);">
+    <label style="display: flex; align-items: center; cursor: pointer; font-weight: 600; font-size: 11px;">
+      <input type="checkbox" id="darkModeToggle" style="margin-right: 8px; cursor: pointer;">
+      <span>🌙 Auto Dark Mode</span>
+    </label>
+    <div style="font-size: 9px; opacity: 0.7; margin-top: 6px; line-height: 1.3;">
+      Automatically enables dark background from sunset (6 PM) to sunrise (6 AM)
+    </div>
+    <div id="darkModeStatus" style="font-size: 9px; margin-top: 6px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; font-family: monospace;">
+      ☀️ Day Mode
     </div>
   </div>
   
@@ -275,8 +299,8 @@
             <option value="2">Color 2</option>
             <option value="3">Color 3</option>
             <option value="4">Color 4</option>
-            <option value="5">Color 5</option>
-            <option value="6" selected>Color 6 (highlight)</option>
+            <option value="5" selected>Color 5 (highlight)</option>
+            <option value="6">Color 6</option>
             <option value="7">Color 7</option>
             <option value="8">Color 8</option>
           </select>
@@ -286,136 +310,51 @@
   </details>
   
   <details open>
-    <summary>💡 Studio Lighting Effects</summary>
+    <summary>🌑 Canvas Shadow</summary>
     <div class="group">
-      <label title="Enable/disable studio lighting system (edge illumination)">
-        <span>Studio lighting</span>
-        <input type="checkbox" id="glassMorphismEnabled" checked>
+      <label title="Enable/disable canvas drop-shadow filter">
+        <span>Shadow enabled</span>
+        <input type="checkbox" id="canvasShadowEnabled">
       </label>
-      
-      <label title="Choose lighting preset">
-        <span>Lighting preset</span>
-        <select id="illuminationSelect">
-          <option value="coin">Coin (soft outset)</option>
-          <option value="button">Button (medium outset)</option>
-          <option value="pressedInset">Pressed (inset)</option>
-          <option value="softOutset">Soft Glow (outset)</option>
-          <option value="dramaticOutset">Dramatic (strong outset)</option>
-          <option value="subtleRim">Subtle Rim</option>
-          <option value="gentleDepth">Gentle Depth</option>
-          <option value="whisperLight">Whisper Light</option>
-          <option value="frostedGlass">Frosted Glass</option>
-          <option value="matteFinish">Matte Finish</option>
-          <option value="pearl">Pearl</option>
-          <option value="satin">Satin</option>
-          <option value="porcelain">Porcelain</option>
-          <option value="velvet">Velvet</option>
-          <option value="studioClassic">Studio Classic ⭐</option>
-        </select>
+      <label title="Shadow horizontal offset (-20 to 20px)">
+        <span>Shadow X offset (px)</span>
+        <input type="range" id="shadowOffsetX" min="-20" max="20" step="1" value="0">
+        <span class="val" id="shadowOffsetXVal">0</span>
       </label>
-      
-      <label title="Global softness for all shadow layers (0-20px blur). Higher = softer edges">
-        <span>Shadow softness</span>
-        <input type="range" id="shadowSoftness" min="0" max="20" step="1" value="8">
-        <span class="val" id="shadowSoftnessVal">8px</span>
+      <label title="Shadow vertical offset (-20 to 20px)">
+        <span>Shadow Y offset (px)</span>
+        <input type="range" id="shadowOffsetY" min="-20" max="20" step="1" value="4">
+        <span class="val" id="shadowOffsetYVal">4</span>
       </label>
-      
-      <div style="font-size: 9px; opacity: 0.7; margin: 8px 0;">
-        Button illumination: dark base shadow + white highlights for realistic depth
-      </div>
-      
-      <details>
-        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">🌑 Foundation Shadow (dark base, largest)</summary>
-        <div class="group" style="margin-top: 6px;">
-          <label title="Foundation shadow X offset (0-20px). Creates depth">
-            <span>X offset</span>
-            <input type="range" id="shadow1OffsetX" min="0" max="20" step="1" value="6">
-            <span class="val" id="shadow1OffsetXVal">6px</span>
+      <label title="Shadow blur radius (0-30px)">
+        <span>Shadow blur (px)</span>
+        <input type="range" id="shadowBlur" min="0" max="30" step="1" value="12">
+        <span class="val" id="shadowBlurVal">12</span>
           </label>
-          <label title="Foundation shadow Y offset (0-20px). Creates depth">
-            <span>Y offset</span>
-            <input type="range" id="shadow1OffsetY" min="0" max="20" step="1" value="8">
-            <span class="val" id="shadow1OffsetYVal">8px</span>
+      <label title="Shadow opacity (0-1)">
+        <span>Shadow opacity</span>
+        <input type="range" id="shadowOpacity" min="0" max="1" step="0.01" value="0.15">
+        <span class="val" id="shadowOpacityVal">0.15</span>
           </label>
-          <label title="Foundation shadow opacity (0.25-1.0). Base depth darkness">
-            <span>Opacity</span>
-            <input type="range" id="shadow1Opacity" min="0.25" max="1.0" step="0.01" value="0.30">
-            <span class="val" id="shadow1OpacityVal">0.30</span>
+      <label title="Shadow color">
+        <span>Shadow color</span>
+        <input type="color" id="shadowColor" value="#000000">
+        <span class="hex-val" id="shadowColorVal">#000000</span>
           </label>
-          <label title="Foundation shadow color. Dark base shadow">
-            <span>Color</span>
-            <input type="color" id="shadow1Color" value="#000000">
-            <span class="hex-val" id="shadow1ColorVal">#000000</span>
+      <label title="Additional shadow layer for depth">
+        <span>Second shadow enabled</span>
+        <input type="checkbox" id="shadow2Enabled">
+      </label>
+      <label title="Second shadow blur (0-20px)">
+        <span>Shadow 2 blur (px)</span>
+        <input type="range" id="shadow2Blur" min="0" max="20" step="1" value="4">
+        <span class="val" id="shadow2BlurVal">4</span>
           </label>
-          <label title="Foundation shadow size (0.75-1.5×). Larger = more diffuse">
-            <span>Size multiplier</span>
-            <input type="range" id="shadow1SizeMultiplier" min="0.75" max="1.5" step="0.01" value="1.15">
-            <span class="val" id="shadow1SizeMultiplierVal">1.15×</span>
+      <label title="Second shadow opacity (0-1)">
+        <span>Shadow 2 opacity</span>
+        <input type="range" id="shadow2Opacity" min="0" max="1" step="0.01" value="0.10">
+        <span class="val" id="shadow2OpacityVal">0.10</span>
           </label>
-        </div>
-      </details>
-      
-      <details>
-        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">💡 Top Highlight (white light, medium)</summary>
-        <div class="group" style="margin-top: 6px;">
-          <label title="Top highlight X offset (-20 to 20px). Light position">
-            <span>X offset</span>
-            <input type="range" id="shadow2OffsetX" min="-20" max="20" step="1" value="-3">
-            <span class="val" id="shadow2OffsetXVal">-3px</span>
-          </label>
-          <label title="Top highlight Y offset (-20 to 20px). Light position">
-            <span>Y offset</span>
-            <input type="range" id="shadow2OffsetY" min="-20" max="20" step="1" value="-4">
-            <span class="val" id="shadow2OffsetYVal">-4px</span>
-          </label>
-          <label title="Top highlight opacity (0.25-1.0). Light intensity">
-            <span>Opacity</span>
-            <input type="range" id="shadow2Opacity" min="0.25" max="1.0" step="0.01" value="0.30">
-            <span class="val" id="shadow2OpacityVal">0.30</span>
-          </label>
-          <label title="Top highlight color. Usually white for light effect">
-            <span>Color</span>
-            <input type="color" id="shadow2Color" value="#ffffff">
-            <span class="hex-val" id="shadow2ColorVal">#FFFFFF</span>
-          </label>
-          <label title="Top highlight size (0.75-1.5×). Light diffusion">
-            <span>Size multiplier</span>
-            <input type="range" id="shadow2SizeMultiplier" min="0.75" max="1.5" step="0.01" value="1.05">
-            <span class="val" id="shadow2SizeMultiplierVal">1.05×</span>
-          </label>
-        </div>
-      </details>
-      
-      <details>
-        <summary style="font-size: 11px; opacity: 0.8; cursor: pointer;">✨ Bottom Highlight (white light, subtle)</summary>
-        <div class="group" style="margin-top: 6px;">
-          <label title="Bottom highlight X offset (0-15px). Secondary light">
-            <span>X offset</span>
-            <input type="range" id="shadow3OffsetX" min="0" max="15" step="1" value="2">
-            <span class="val" id="shadow3OffsetXVal">2px</span>
-          </label>
-          <label title="Bottom highlight Y offset (0-15px). Secondary light">
-            <span>Y offset</span>
-            <input type="range" id="shadow3OffsetY" min="0" max="15" step="1" value="3">
-            <span class="val" id="shadow3OffsetYVal">3px</span>
-          </label>
-          <label title="Bottom highlight opacity (0.25-1.0). Secondary light intensity">
-            <span>Opacity</span>
-            <input type="range" id="shadow3Opacity" min="0.25" max="1.0" step="0.01" value="0.30">
-            <span class="val" id="shadow3OpacityVal">0.30</span>
-          </label>
-          <label title="Bottom highlight color. Usually white for light effect">
-            <span>Color</span>
-            <input type="color" id="shadow3Color" value="#ffffff">
-            <span class="hex-val" id="shadow3ColorVal">#FFFFFF</span>
-          </label>
-          <label title="Bottom highlight size (0.75-1.5×). Sharp light definition">
-            <span>Size multiplier</span>
-            <input type="range" id="shadow3SizeMultiplier" min="0.75" max="1.5" step="0.01" value="1.02">
-            <span class="val" id="shadow3SizeMultiplierVal">1.02×</span>
-          </label>
-        </div>
-      </details>
     </div>
   </details>
   
@@ -429,11 +368,11 @@
     </div>
     
     <!-- Mode Switcher -->
-    <div class="mode-switcher" style="margin-bottom: 16px;">
-      <button class="mode-button active" data-mode="pit">🎯 Pit</button>
-      <button class="mode-button" data-mode="flies">🕊️ Flies</button>
-      <button class="mode-button" data-mode="weightless">🌌 Zero-G</button>
-      <button class="mode-button" data-mode="pulse-grid">🎹 Pulse</button>
+    <div class="mode-switcher" style="margin-bottom: 16px;" role="group" aria-label="Simulation mode selector">
+      <button class="mode-button active" data-mode="pit" aria-label="Ball Pit mode" aria-pressed="true">🎯 Pit</button>
+      <button class="mode-button" data-mode="flies" aria-label="Flies to Light mode" aria-pressed="false">🕊️ Flies</button>
+      <button class="mode-button" data-mode="weightless" aria-label="Zero Gravity mode" aria-pressed="false">🌌 Zero-G</button>
+      <button class="mode-button" data-mode="pulse-grid" aria-label="Pulse Grid mode" aria-pressed="false">🎹 Pulse</button>
     </div>
   </div>
   
@@ -684,6 +623,30 @@
         </label>
       </div>
     </details>
+    <details open>
+      <summary>🤖 Animation Style</summary>
+      <div class="group">
+        <label title="Animation easing style">
+          <span>Easing style</span>
+          <select id="pulseEasingSelect">
+            <option value="linear">Linear (Constant speed)</option>
+            <option value="snap" selected>Snap (Robotic)</option>
+            <option value="bounce">Bounce (Elastic)</option>
+            <option value="smooth">Smooth (Ease in-out)</option>
+          </select>
+        </label>
+        <label title="Overshoot amount (1.0-1.3). 1.0 = no overshoot, 1.2 = 20% overshoot for robotic snap">
+          <span>Overshoot</span>
+          <input type="range" id="pulseOvershootSlider" min="1.0" max="1.3" step="0.01" value="1.08">
+          <span class="val" id="pulseOvershootVal">1.08</span>
+        </label>
+        <label title="Bounce-back intensity (0-0.5). Higher = more pronounced settle-back effect">
+          <span>Bounce intensity</span>
+          <input type="range" id="pulseBounceSlider" min="0.0" max="0.5" step="0.01" value="0.15">
+          <span class="val" id="pulseBounceVal">0.15</span>
+        </label>
+      </div>
+    </details>
   </div>
   
     <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-4</code> switch modes</div>
@@ -696,7 +659,7 @@
   </div>
 </div>
 <script>
-// Version: 2024-09-30 - Added 3-mode system (Ball Pit, Flies to Light, Mouse Trail)
+// Version: 2024-10-01 - 4-mode system (Ball Pit, Flies, Zero-G, Pulse Grid)
 (() => {
   // Behavior modes with device availability
   const MODES = {
@@ -748,230 +711,86 @@
   let pulseMinSteps = 1; // Minimum grid cells to move per pulse
   let pulseMaxSteps = 3; // Maximum grid cells to move per pulse
   let gridBallCount = 120; // Number of balls in grid mode
-  
-  // ═══════════════════════════════════════════════════════════════════════════
-  // GLASS MORPHISM SHADOW SYSTEM (Refractive depth with size + blur variation)
-  // ═══════════════════════════════════════════════════════════════════════════
-  let glassMorphismEnabled = true;    // Enable glass morphism shadow system
-  
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ILLUMINATION TEMPLATES (Button lighting presets)
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  const ILLUMINATION_TEMPLATES = {
-    // Template 1: Coin (default) - soft outset with light on top-left and bottom-right edges
-    coin: {
-      label: 'Coin (soft outset)',
-      shadow1: { offsetX: 3, offsetY: 4, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 8 },   // Soft base shadow (inside edge)
-      shadow2: { offsetX: -2, offsetY: -2, opacity: 0.3, color: '#ffffff', sizeMultiplier: 0.95, blurRadius: 6 }, // Top-left highlight (inside edge)
-      shadow3: { offsetX: 2, offsetY: 2, opacity: 0.2, color: '#ffffff', sizeMultiplier: 0.95, blurRadius: 6 }    // Bottom-right highlight (inside edge)
-    },
-
-    // Template 2: Button - medium outset with stronger definition
-    button: {
-      label: 'Button (medium outset)',
-      shadow1: { offsetX: 2, offsetY: 3, opacity: 0.3, color: '#000000', sizeMultiplier: 0.98, blurRadius: 5 },   // Medium base shadow
-      shadow2: { offsetX: -3, offsetY: -3, opacity: 0.35, color: '#ffffff', sizeMultiplier: 0.93, blurRadius: 4 }, // Top-left light edge
-      shadow3: { offsetX: 3, offsetY: 3, opacity: 0.25, color: '#ffffff', sizeMultiplier: 0.93, blurRadius: 4 }   // Bottom-right light edge
-    },
-
-    // Template 3: Pressed/Inset (reversed lighting - dark edges on top-left)
-    pressedInset: {
-      label: 'Pressed (inset)',
-      shadow1: { offsetX: -2, offsetY: -3, opacity: 0.3, color: '#000000', sizeMultiplier: 0.95, blurRadius: 4 }, // Top-left dark edge (inset)
-      shadow2: { offsetX: 3, offsetY: 4, opacity: 0.2, color: '#ffffff', sizeMultiplier: 0.98, blurRadius: 3 },   // Bottom-right light (inset)
-      shadow3: { offsetX: 0, offsetY: 1, opacity: 0.1, color: '#cccccc', sizeMultiplier: 0.97, blurRadius: 2 }    // Center subtle fill
-    },
-
-    // Template 4: Soft Glow Outset (ambient soft lighting)
-    softOutset: {
-      label: 'Soft Glow (outset)',
-      shadow1: { offsetX: 1, offsetY: 2, opacity: 0.2, color: '#000000', sizeMultiplier: 1.0, blurRadius: 12 },   // Very soft base
-      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.25, color: '#ffffff', sizeMultiplier: 0.96, blurRadius: 10 }, // Soft top-left glow
-      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.18, color: '#ffffff', sizeMultiplier: 0.96, blurRadius: 10 }  // Soft bottom-right glow
-    },
-
-    // Template 5: Dramatic Outset (strong edge lighting)
-    dramaticOutset: {
-      label: 'Dramatic (strong outset)',
-      shadow1: { offsetX: 4, offsetY: 5, opacity: 0.35, color: '#000000', sizeMultiplier: 0.97, blurRadius: 6 },   // Strong dark edge
-      shadow2: { offsetX: -4, offsetY: -4, opacity: 0.4, color: '#ffffff', sizeMultiplier: 0.90, blurRadius: 5 },  // Strong top-left light
-      shadow3: { offsetX: 4, offsetY: 4, opacity: 0.3, color: '#ffffff', sizeMultiplier: 0.90, blurRadius: 5 }     // Strong bottom-right light
-    },
-    
-    // Template 6: Subtle Rim (barely visible edge lighting)
-    subtleRim: {
-      label: 'Subtle Rim',
-      shadow1: { offsetX: 1, offsetY: 2, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 4 },
-      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.25, color: '#ffffff', sizeMultiplier: 0.97, blurRadius: 3 },
-      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.25, color: '#ffffff', sizeMultiplier: 0.97, blurRadius: 3 }
-    },
-    
-    // Template 7: Gentle Depth (soft, minimal contrast)
-    gentleDepth: {
-      label: 'Gentle Depth',
-      shadow1: { offsetX: 2, offsetY: 2, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 6 },
-      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.28, color: '#ffffff', sizeMultiplier: 0.96, blurRadius: 5 },
-      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.25, color: '#f5f5f5', sizeMultiplier: 0.96, blurRadius: 5 }
-    },
-    
-    // Template 8: Whisper Light (ultra-subtle)
-    whisperLight: {
-      label: 'Whisper Light',
-      shadow1: { offsetX: 1, offsetY: 1, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 8 },
-      shadow2: { offsetX: -1, offsetY: 0, opacity: 0.26, color: '#ffffff', sizeMultiplier: 0.98, blurRadius: 6 },
-      shadow3: { offsetX: 0, offsetY: 1, opacity: 0.25, color: '#ffffff', sizeMultiplier: 0.98, blurRadius: 6 }
-    },
-    
-    // Template 9: Frosted Glass (diffused all-around)
-    frostedGlass: {
-      label: 'Frosted Glass',
-      shadow1: { offsetX: 0, offsetY: 2, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 10 },
-      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.27, color: '#ffffff', sizeMultiplier: 0.97, blurRadius: 8 },
-      shadow3: { offsetX: 1, offsetY: 0, opacity: 0.25, color: '#e8e8e8', sizeMultiplier: 0.97, blurRadius: 8 }
-    },
-    
-    // Template 10: Matte Finish (flat, soft edges)
-    matteFinish: {
-      label: 'Matte Finish',
-      shadow1: { offsetX: 1, offsetY: 2, opacity: 0.25, color: '#1a1a1a', sizeMultiplier: 1.0, blurRadius: 5 },
-      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.26, color: '#f0f0f0', sizeMultiplier: 0.98, blurRadius: 4 },
-      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.25, color: '#e0e0e0', sizeMultiplier: 0.98, blurRadius: 4 }
-    },
-    
-    // Template 11: Pearl (iridescent subtle sheen)
-    pearl: {
-      label: 'Pearl',
-      shadow1: { offsetX: 0, offsetY: 1, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 6 },
-      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.28, color: '#fffef0', sizeMultiplier: 0.97, blurRadius: 5 },
-      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.26, color: '#f0f8ff', sizeMultiplier: 0.97, blurRadius: 5 }
-    },
-    
-    // Template 12: Satin (smooth, directional light)
-    satin: {
-      label: 'Satin',
-      shadow1: { offsetX: 2, offsetY: 3, opacity: 0.25, color: '#000000', sizeMultiplier: 1.0, blurRadius: 7 },
-      shadow2: { offsetX: -2, offsetY: -2, opacity: 0.29, color: '#ffffff', sizeMultiplier: 0.96, blurRadius: 5 },
-      shadow3: { offsetX: 1, offsetY: 0, opacity: 0.25, color: '#fafafa', sizeMultiplier: 0.97, blurRadius: 4 }
-    },
-    
-    // Template 13: Porcelain (clean, delicate)
-    porcelain: {
-      label: 'Porcelain',
-      shadow1: { offsetX: 1, offsetY: 2, opacity: 0.25, color: '#2a2a2a', sizeMultiplier: 1.0, blurRadius: 5 },
-      shadow2: { offsetX: -1, offsetY: -1, opacity: 0.3, color: '#ffffff', sizeMultiplier: 0.97, blurRadius: 4 },
-      shadow3: { offsetX: 0, offsetY: 1, opacity: 0.27, color: '#f8f8f8', sizeMultiplier: 0.98, blurRadius: 3 }
-    },
-    
-    // Template 14: Velvet (rich, soft depth)
-    velvet: {
-      label: 'Velvet',
-      shadow1: { offsetX: 2, offsetY: 2, opacity: 0.28, color: '#000000', sizeMultiplier: 1.0, blurRadius: 9 },
-      shadow2: { offsetX: -1, offsetY: -2, opacity: 0.27, color: '#ffffff', sizeMultiplier: 0.96, blurRadius: 7 },
-      shadow3: { offsetX: 1, offsetY: 1, opacity: 0.25, color: '#fefefe', sizeMultiplier: 0.97, blurRadius: 6 }
-    },
-    
-    // Template 15: Studio Classic (YOUR REQUEST: base shadow + two lights on top)
-    studioClassic: {
-      label: 'Studio Classic',
-      shadow1: { offsetX: 0, offsetY: 3, opacity: 0.3, color: '#000000', sizeMultiplier: 1.0, blurRadius: 8 },    // Base shadow underneath
-      shadow2: { offsetX: -2, offsetY: -2, opacity: 0.35, color: '#ffffff', sizeMultiplier: 0.95, blurRadius: 5 }, // Top-left light
-      shadow3: { offsetX: 2, offsetY: 2, opacity: 0.32, color: '#ffffff', sizeMultiplier: 0.95, blurRadius: 5 }   // Bottom-right light
-    }
-  };
-  
-  let currentIlluminationTemplate = 'coin';  // Default to coin lighting
-  let shadowSoftness = 8;  // Global shadow softness multiplier (0-20px)
-  
-  // Apply illumination template to current shadow settings
-  function applyIlluminationTemplate(templateName) {
-    const template = ILLUMINATION_TEMPLATES[templateName];
-    if (!template) return;
-    
-    currentIlluminationTemplate = templateName;
-    
-    // Apply shadow 1 (foundation)
-    shadow1OffsetX = template.shadow1.offsetX;
-    shadow1OffsetY = template.shadow1.offsetY;
-    shadow1Opacity = template.shadow1.opacity;
-    shadow1Color = template.shadow1.color;
-    shadow1SizeMultiplier = template.shadow1.sizeMultiplier;
-    shadow1BlurRadius = template.shadow1.blurRadius;
-    
-    // Apply shadow 2 (top highlight)
-    shadow2OffsetX = template.shadow2.offsetX;
-    shadow2OffsetY = template.shadow2.offsetY;
-    shadow2Opacity = template.shadow2.opacity;
-    shadow2Color = template.shadow2.color;
-    shadow2SizeMultiplier = template.shadow2.sizeMultiplier;
-    shadow2BlurRadius = template.shadow2.blurRadius;
-    
-    // Apply shadow 3 (bottom highlight)
-    shadow3OffsetX = template.shadow3.offsetX;
-    shadow3OffsetY = template.shadow3.offsetY;
-    shadow3Opacity = template.shadow3.opacity;
-    shadow3Color = template.shadow3.color;
-    shadow3SizeMultiplier = template.shadow3.sizeMultiplier;
-    shadow3BlurRadius = template.shadow3.blurRadius;
-    
-    // Update UI to reflect new values
-    updateIlluminationUI();
-    
-    console.log('🔮 Applied illumination template:', templateName);
-  }
-  
-  // Update UI controls to show current template values
-  function updateIlluminationUI() {
-    // Update shadow 1 controls
-    if (shadow1OffsetXEl) { shadow1OffsetXEl.value = shadow1OffsetX; shadow1OffsetXVal.textContent = shadow1OffsetX + 'px'; }
-    if (shadow1OffsetYEl) { shadow1OffsetYEl.value = shadow1OffsetY; shadow1OffsetYVal.textContent = shadow1OffsetY + 'px'; }
-    if (shadow1OpacityEl) { shadow1OpacityEl.value = shadow1Opacity; shadow1OpacityVal.textContent = shadow1Opacity.toFixed(2); }
-    if (shadow1ColorEl) { shadow1ColorEl.value = shadow1Color; shadow1ColorVal.textContent = shadow1Color.toUpperCase(); }
-    if (shadow1SizeMultiplierEl) { shadow1SizeMultiplierEl.value = shadow1SizeMultiplier; shadow1SizeMultiplierVal.textContent = shadow1SizeMultiplier.toFixed(2) + '×'; }
-    
-    // Update shadow 2 controls
-    if (shadow2OffsetXEl) { shadow2OffsetXEl.value = shadow2OffsetX; shadow2OffsetXVal.textContent = shadow2OffsetX + 'px'; }
-    if (shadow2OffsetYEl) { shadow2OffsetYEl.value = shadow2OffsetY; shadow2OffsetYVal.textContent = shadow2OffsetY + 'px'; }
-    if (shadow2OpacityEl) { shadow2OpacityEl.value = shadow2Opacity; shadow2OpacityVal.textContent = shadow2Opacity.toFixed(2); }
-    if (shadow2ColorEl) { shadow2ColorEl.value = shadow2Color; shadow2ColorVal.textContent = shadow2Color.toUpperCase(); }
-    if (shadow2SizeMultiplierEl) { shadow2SizeMultiplierEl.value = shadow2SizeMultiplier; shadow2SizeMultiplierVal.textContent = shadow2SizeMultiplier.toFixed(2) + '×'; }
-    
-    // Update shadow 3 controls
-    if (shadow3OffsetXEl) { shadow3OffsetXEl.value = shadow3OffsetX; shadow3OffsetXVal.textContent = shadow3OffsetX + 'px'; }
-    if (shadow3OffsetYEl) { shadow3OffsetYEl.value = shadow3OffsetY; shadow3OffsetYVal.textContent = shadow3OffsetY + 'px'; }
-    if (shadow3OpacityEl) { shadow3OpacityEl.value = shadow3Opacity; shadow3OpacityVal.textContent = shadow3Opacity.toFixed(2); }
-    if (shadow3ColorEl) { shadow3ColorEl.value = shadow3Color; shadow3ColorVal.textContent = shadow3Color.toUpperCase(); }
-    if (shadow3SizeMultiplierEl) { shadow3SizeMultiplierEl.value = shadow3SizeMultiplier; shadow3SizeMultiplierVal.textContent = shadow3SizeMultiplier.toFixed(2) + '×'; }
-  }
-  
-  // Shadow 1: Dark edge (creates depth)
-  let shadow1OffsetX = 3;             // Dark edge offset X
-  let shadow1OffsetY = 4;             // Dark edge offset Y
-  let shadow1Opacity = 0.25;          // Dark edge opacity
-  let shadow1Color = '#000000';       // Black for dark edge
-  let shadow1SizeMultiplier = 1.0;    // Same size as ball (inside edge)
-  let shadow1BlurRadius = 8;          // Soft blur for edge
-  
-  // Shadow 2: Top-left light edge (illumination)
-  let shadow2OffsetX = -2;            // Top-left light offset X
-  let shadow2OffsetY = -2;            // Top-left light offset Y
-  let shadow2Opacity = 0.3;           // Light edge opacity
-  let shadow2Color = '#ffffff';       // White for light edge
-  let shadow2SizeMultiplier = 0.95;   // Slightly smaller (inside edge)
-  let shadow2BlurRadius = 6;          // Soft blur for light edge
-  
-  // Shadow 3: Bottom-right light edge (illumination)
-  let shadow3OffsetX = 2;             // Bottom-right light offset X
-  let shadow3OffsetY = 2;             // Bottom-right light offset Y
-  let shadow3Opacity = 0.2;           // Light edge opacity
-  let shadow3Color = '#ffffff';       // White for light edge
-  let shadow3SizeMultiplier = 0.95;   // Slightly smaller (inside edge)
-  let shadow3BlurRadius = 6;          // Soft blur for light edge
+  let pulseBounceIntensity = 0.15; // Bounce-back effect strength (0=none, 1=extreme)
+  let pulseEasingStyle = 'snap'; // Easing style: 'linear', 'snap', 'bounce'
+  let pulseOvershoot = 1.08; // Overshoot multiplier for robotic feel (1.0=none, 1.2=20% overshoot)
   
   let cursorBallVisible = true;       // Show cursor ball on desktop
   
+  // Canvas shadow filter parameters
+  let canvasShadowEnabled = false;
+  let shadowOffsetX = 0;
+  let shadowOffsetY = 4;
+  let shadowBlur = 12;
+  let shadowOpacity = 0.15;
+  let shadowColor = '#000000';
+  let shadow2Enabled = false;
+  let shadow2Blur = 4;
+  let shadow2Opacity = 0.10;
+  
   // Mass constants (needed before CONSTANTS object)
   const MASS_BASELINE_KG = 1.0; // reference mass for scaling drag/forces
+  
+  // Configuration validation schema
+  const CONFIG_SCHEMA = {
+    gridColumns: { min: 20, max: 80, type: 'integer', default: 40 },
+    gridBallCount: { min: 40, max: 200, type: 'integer', default: 120 },
+    pulseInterval: { min: 0.2, max: 2.0, type: 'number', default: 0.8 },
+    pulseSpeed: { min: 0.1, max: 1.0, type: 'number', default: 0.25 },
+    pulseSynchronicity: { min: 0, max: 1, type: 'number', default: 0.3 },
+    pulseRandomness: { min: 0, max: 1, type: 'number', default: 0.4 },
+    pulseMinSteps: { min: 1, max: 3, type: 'integer', default: 1 },
+    pulseMaxSteps: { min: 1, max: 5, type: 'integer', default: 3 },
+    pulseOvershoot: { min: 1.0, max: 1.3, type: 'number', default: 1.08 },
+    pulseBounceIntensity: { min: 0, max: 0.5, type: 'number', default: 0.15 },
+    shadowOffsetX: { min: -20, max: 20, type: 'integer', default: 0 },
+    shadowOffsetY: { min: -20, max: 20, type: 'integer', default: 4 },
+    shadowBlur: { min: 0, max: 30, type: 'integer', default: 12 },
+    shadowOpacity: { min: 0, max: 1, type: 'number', default: 0.15 },
+    shadow2Blur: { min: 0, max: 20, type: 'integer', default: 4 },
+    shadow2Opacity: { min: 0, max: 1, type: 'number', default: 0.10 }
+  };
+  
+  /**
+   * Validate and clamp configuration value
+   * @param {string} key - Configuration parameter name
+   * @param {*} value - Value to validate
+   * @returns {*} Validated and clamped value
+   */
+  function validateConfigValue(key, value) {
+    const schema = CONFIG_SCHEMA[key];
+    if (!schema) return value; // Unknown key, pass through
+    
+    let validated = value;
+    
+    // Type conversion
+    if (schema.type === 'integer') {
+      validated = Math.round(Number(validated));
+      if (!Number.isFinite(validated)) {
+        console.warn(`${key} must be a number, using default ${schema.default}`);
+        return schema.default;
+      }
+    } else if (schema.type === 'number') {
+      validated = Number(validated);
+      if (!Number.isFinite(validated)) {
+        console.warn(`${key} must be a number, using default ${schema.default}`);
+        return schema.default;
+      }
+    }
+    
+    // Range validation
+    if (schema.min !== undefined && validated < schema.min) {
+      console.warn(`${key} (${validated}) below minimum (${schema.min}), clamping`);
+      validated = schema.min;
+    }
+    
+    if (schema.max !== undefined && validated > schema.max) {
+      console.warn(`${key} (${validated}) above maximum (${schema.max}), clamping`);
+      validated = schema.max;
+    }
+    
+    return validated;
+  }
   
   // Constants for magic numbers
   const CONSTANTS = {
@@ -1010,10 +829,59 @@
   }
 
   const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d', { alpha: true });
-  const panel = document.getElementById('controlPanel');
   const container = document.getElementById('bravia-balls');
+  
+  // Validate canvas context availability
+  let ctx;
+  try {
+    ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) {
+      throw new Error('Canvas 2D context not available');
+    }
+  } catch (error) {
+    console.error('❌ Failed to initialize canvas:', error);
+    container.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #1a1a1a; color: white; font-family: system-ui, -apple-system, sans-serif;">
+        <div style="text-align: center; padding: 40px; background: rgba(255,50,50,0.1); border: 2px solid rgba(255,50,50,0.3); border-radius: 12px; max-width: 480px;">
+          <div style="font-size: 72px; margin-bottom: 20px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));">⚠️</div>
+          <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600;">Canvas Not Supported</h2>
+          <p style="margin: 0 0 12px 0; opacity: 0.9; line-height: 1.6; font-size: 15px;">Your browser doesn't support the HTML5 Canvas 2D features required for this interactive simulation.</p>
+          <p style="margin: 0; opacity: 0.7; font-size: 13px;">Please try a modern browser like Chrome, Firefox, Safari, or Edge.</p>
+        </div>
+      </div>
+    `;
+    throw error; // Stop execution
+  }
+  
+  const panel = document.getElementById('controlPanel');
   const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  
+  /**
+   * Update canvas drop-shadow filter based on current shadow settings
+   * @description Applies CSS filter to canvas element with dynamic shadow parameters
+   * @returns {void}
+   */
+  function updateCanvasShadow() {
+    if (!canvasShadowEnabled) {
+      canvas.style.filter = 'none';
+      return;
+    }
+    
+    // Parse shadow color to rgba with opacity
+    const hexToRgba = (hex, opacity) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    };
+    
+    const shadow1 = `drop-shadow(${shadowOffsetX}px ${shadowOffsetY}px ${shadowBlur}px ${hexToRgba(shadowColor, shadowOpacity)})`;
+    const shadow2 = shadow2Enabled 
+      ? ` drop-shadow(${shadowOffsetX}px ${Math.round(shadowOffsetY * 0.5)}px ${shadow2Blur}px ${hexToRgba(shadowColor, shadow2Opacity)})`
+      : '';
+    
+    canvas.style.filter = shadow1 + shadow2;
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // CANVAS 2D RENDERING (Primary rendering path)
@@ -1031,29 +899,98 @@
   let targetFPS = 60;                 // Target FPS (60 normal, 120 performance)
   let fpsCheckInterval = 0.5;         // Check FPS every 500ms in performance mode
   
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIME-BASED DARK MODE SYSTEM
+  // ═══════════════════════════════════════════════════════════════════════════
+  let autoDarkModeEnabled = true;     // Auto dark mode based on time of day
+  let isDarkMode = false;             // Current dark mode state
+  const SUNSET_HOUR = 18;             // 6 PM
+  const SUNRISE_HOUR = 6;             // 6 AM
+  
+  function isNightTime() {
+    const now = new Date();
+    const hour = now.getHours();
+    return hour >= SUNSET_HOUR || hour < SUNRISE_HOUR;
+  }
+  
+  /**
+   * Apply or remove dark mode styling and update color palette
+   * @param {boolean} enabled - Whether to enable dark mode
+   * @returns {void}
+   */
+  function applyDarkMode(enabled) {
+    isDarkMode = enabled;
+    const html = document.documentElement;
+    const body = document.body;
+    
+    if (enabled) {
+      html.classList.add('dark-mode');
+      body.classList.add('dark-mode');
+    } else {
+      html.classList.remove('dark-mode');
+      body.classList.remove('dark-mode');
+    }
+    
+    // Switch to appropriate color palette (light or dark variant)
+    applyColorTemplate(currentTemplate);
+    
+    updateDarkModeUI();
+  }
+  
+  /**
+   * Check current time and apply dark mode if between sunset and sunrise
+   * @description Only applies dark mode if autoDarkModeEnabled is true
+   * @returns {void}
+   * @modifies {isDarkMode, html.classList, body.classList}
+   */
+  function checkAndApplyDarkMode() {
+    if (autoDarkModeEnabled) {
+      applyDarkMode(isNightTime());
+    }
+  }
+  
+  function updateDarkModeUI() {
+    const toggle = document.getElementById('darkModeToggle');
+    const status = document.getElementById('darkModeStatus');
+    
+    if (toggle) toggle.checked = autoDarkModeEnabled;
+    
+    if (status) {
+      const now = new Date();
+      const hour = now.getHours();
+      const timeStr = `${hour.toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      if (isDarkMode) {
+        status.textContent = `🌙 Night Mode (${timeStr})`;
+        status.style.background = 'rgba(100,100,255,0.3)';
+      } else {
+        status.textContent = `☀️ Day Mode (${timeStr})`;
+        status.style.background = 'rgba(255,200,0,0.3)';
+      }
+    }
+  }
+  
+  function toggleAutoDarkMode() {
+    autoDarkModeEnabled = !autoDarkModeEnabled;
+    
+    if (autoDarkModeEnabled) {
+      checkAndApplyDarkMode();
+      console.log('🌙 Auto Dark Mode: ENABLED');
+    } else {
+      applyDarkMode(false); // Always use light mode when auto is off
+      console.log('☀️ Auto Dark Mode: DISABLED');
+    }
+  }
+  
   // Performance mode settings (aggressive optimizations for 120 FPS)
   const PERFORMANCE_SETTINGS = {
     normal: {
       maxBalls: 350,
-      glassMorphism: true,
-      shadow1BlurRadius: 8,
-      shadow2BlurRadius: 3,
-      shadow3BlurRadius: 2,
-      enableLOD: true,
-      enableShadowCulling: true,
-      minShadowRadius: 8,
       collisionIters: 2,
       adaptiveQualityMin: 0.5
     },
     performance: {
       maxBalls: 200,              // Reduce ball count
-      glassMorphism: false,       // Disable expensive shadows
-      shadow1BlurRadius: 2,       // Minimal blur
-      shadow2BlurRadius: 1,
-      shadow3BlurRadius: 1,
-      enableLOD: true,
-      enableShadowCulling: true,
-      minShadowRadius: 12,        // More aggressive culling
       collisionIters: 1,          // Reduce collision iterations
       adaptiveQualityMin: 0.3     // More aggressive quality reduction
     }
@@ -1061,8 +998,6 @@
   
   // Canvas 2D performance optimizations
   let enableLOD = true;               // Level of Detail system
-  let enableShadowCulling = true;     // Skip shadows for very small balls
-  let minShadowRadius = 8;            // Don't render shadows for balls smaller than this
   
   function updateAdaptiveQuality() {
     frameCount++;
@@ -1088,11 +1023,6 @@
             console.log(`⚡ Performance mode: Reduced balls by ${reduceBy} (now ${balls.length})`);
           }
           
-          // Disable glass morphism if FPS critically low
-          if (currentFPS < targetFPS * 0.7 && glassMorphismEnabled) {
-            glassMorphismEnabled = false;
-            console.log('⚡ Performance mode: Disabled glass morphism for FPS');
-          }
         } else if (currentFPS > targetFPS * 1.1) {
           // Gradually restore quality when FPS is good
           adaptiveQuality = Math.min(1.0, adaptiveQuality + 0.1);
@@ -1106,12 +1036,8 @@
         }
       }
       
-      const shadowsSkipped = balls.filter(b => enableShadowCulling && b.r < minShadowRadius).length;
-      const totalShadowLayers = balls.length * 3;
-      const actualShadowLayers = (balls.length - shadowsSkipped) * 3;
-      
       const mode = performanceMode ? 'PERF' : 'NORM';
-      console.log(`🎮 ${mode} FPS: ${currentFPS}/${targetFPS}, Shadows: ${actualShadowLayers}/${totalShadowLayers}`);
+      console.log(`🎮 ${mode} FPS: ${currentFPS}/${targetFPS}, Balls: ${balls.length}`);
     }
   }
   
@@ -1134,17 +1060,6 @@
       // Update MAX_BALLS for new spawns
       MAX_BALLS = settings.maxBalls;
       
-      // Disable glass morphism for maximum performance
-      glassMorphismEnabled = settings.glassMorphism;
-      
-      // Reduce shadow quality
-      shadow1BlurRadius = settings.shadow1BlurRadius;
-      shadow2BlurRadius = settings.shadow2BlurRadius;
-      shadow3BlurRadius = settings.shadow3BlurRadius;
-      
-      // More aggressive culling
-      minShadowRadius = settings.minShadowRadius;
-      
       // Reduce collision iterations
       currentCollisionIters = settings.collisionIters;
       
@@ -1153,11 +1068,6 @@
       
       // Restore normal settings
       MAX_BALLS = settings.maxBalls;
-      glassMorphismEnabled = settings.glassMorphism;
-      shadow1BlurRadius = settings.shadow1BlurRadius;
-      shadow2BlurRadius = settings.shadow2BlurRadius;
-      shadow3BlurRadius = settings.shadow3BlurRadius;
-      minShadowRadius = settings.minShadowRadius;
       currentCollisionIters = settings.collisionIters;
     }
     
@@ -1172,7 +1082,6 @@
     const status = document.getElementById('performanceModeStatus');
     const maxBallsSlider = document.getElementById('maxBallsSlider');
     const maxBallsVal = document.getElementById('maxBallsVal');
-    const glassMorphismEl = document.getElementById('glassMorphismEnabled');
     
     if (toggle) toggle.checked = performanceMode;
     
@@ -1190,11 +1099,6 @@
     if (maxBallsSlider && maxBallsVal) {
       maxBallsSlider.value = MAX_BALLS;
       maxBallsVal.textContent = MAX_BALLS.toString();
-    }
-    
-    // Update glass morphism toggle
-    if (glassMorphismEl) {
-      glassMorphismEl.checked = glassMorphismEnabled;
     }
   }
   
@@ -1215,6 +1119,23 @@
     const simHeight = window.innerHeight * heightMultiplier;
     canvas.width  = Math.floor(window.innerWidth * DPR);
     canvas.height = Math.floor(simHeight * DPR);
+    
+    // Recalculate grid dimensions and reposition balls if in Pulse Grid mode
+    if (currentMode === MODES.PULSE_GRID) {
+      calculateGridDimensions();
+      // Reposition all balls to valid grid cells
+      for (let i = 0; i < balls.length; i++) {
+        const ball = balls[i];
+        // Clamp grid position to new dimensions
+        ball.gridX = Math.max(0, Math.min(gridCols - 1, ball.gridX));
+        ball.gridY = Math.max(0, Math.min(gridRows - 1, ball.gridY));
+        const pos = gridCellToPixel(ball.gridX, ball.gridY);
+        ball.x = pos.x;
+        ball.y = pos.y;
+        ball.targetX = pos.x;
+        ball.targetY = pos.y;
+      }
+    }
   }
   const setCSSSize = () => {
     // CSS size is handled by CSS classes (mode-pit gets 150vh, others 100svh)
@@ -1360,47 +1281,85 @@
   // Color 3 (15%): Tertiary color
   // Color 4 (7.5%): Accent color
   // Color 5 (2.5%): Rare/special color
+  
+  // Dual palette system: each theme has light and dark variants
   const COLOR_TEMPLATES = {
     // CORE PALETTE - User's favorite (don't change)
-    industrialTeal: { label: 'Industrial Teal', colors: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'] },
+    industrialTeal: { 
+      label: 'Industrial Teal',
+      light: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
+      dark: ['#2a2a2a', '#1a1a1a', '#404040', '#00a88f', '#e0e0e0', '#ff6b47', '#3b7de0', '#ffc04d']
+      // Dark mode: Darker grays (similar to bg), brighter hero/accents for visibility
+    },
     
     // NEW PALETTES - Designed to match Industrial Teal's playful graphic design energy
     // Each has: neutral grays + bold hero color + high contrast + 3 vibrant accents
     
     sunsetCoral: { 
-      label: 'Sunset Coral', 
-      colors: ['#b8b5b1', '#e5e3df', '#ffffff', '#ff6b6b', '#000000', '#00d4aa', '#2563eb', '#f59e0b'] 
-      // Hero: Coral (warm, friendly, energetic) + Teal, Blue, Amber accents
-      // Psychology: Optimistic, approachable, creative confidence
+      label: 'Sunset Coral',
+      light: ['#bdbbb8', '#e8e6e3', '#ffffff', '#ff3b3b', '#000000', '#00f5d4', '#1e40af', '#fb923c'],
+      dark: ['#2b2a28', '#1c1b1a', '#3d3d3d', '#ff5c5c', '#dddddd', '#00ffe7', '#4169e1', '#ffa866']
+      // Dark: Warm dark grays, bright coral + cyan + orange for visibility
     },
     
     violetPunch: { 
-      label: 'Violet Punch', 
-      colors: ['#b5b4bd', '#e3e2e9', '#ffffff', '#8b5cf6', '#000000', '#ef4444', '#06b6d4', '#fbbf24'] 
-      // Hero: Purple (creative, imaginative, bold) + Red, Cyan, Yellow accents
-      // Psychology: Innovative, playful sophistication, design-forward
+      label: 'Violet Punch',
+      light: ['#b8b7c2', '#e6e5ed', '#ffffff', '#9333ea', '#000000', '#dc2626', '#0ea5e9', '#facc15'],
+      dark: ['#2a2832', '#1a1921', '#3e3d47', '#b24dff', '#e0e0e0', '#ff4444', '#00d4ff', '#ffe34d']
+      // Dark: Cool dark grays with purple tint, vivid purple + electric accents
     },
     
     citrusBlast: { 
-      label: 'Citrus Blast', 
-      colors: ['#b9b7b0', '#e6e4dd', '#ffffff', '#f59e0b', '#000000', '#ec4899', '#3b82f6', '#10b981'] 
-      // Hero: Orange (energetic, enthusiastic, fun) + Pink, Blue, Green accents
-      // Psychology: Cheerful, dynamic, youthful energy
+      label: 'Citrus Blast',
+      light: ['#bfbdb5', '#eae8df', '#ffffff', '#ea580c', '#000000', '#e11d48', '#2563eb', '#059669'],
+      dark: ['#2c2b27', '#1d1c19', '#3f3e3a', '#ff7733', '#dddddd', '#ff4466', '#4d8aff', '#00bf7f']
+      // Dark: Warm dark grays, vibrant orange + pink + blue + green
     },
     
     cobaltSpark: { 
-      label: 'Cobalt Spark', 
-      colors: ['#b3b6bc', '#e1e4e9', '#ffffff', '#2563eb', '#000000', '#f97316', '#ec4899', '#eab308'] 
-      // Hero: Cobalt Blue (confident, intelligent, trustworthy) + Orange, Pink, Yellow accents
-      // Psychology: Professional playfulness, sharp and smart
+      label: 'Cobalt Spark',
+      light: ['#b5b8be', '#e3e6eb', '#ffffff', '#1d4ed8', '#000000', '#ea580c', '#db2777', '#d97706'],
+      dark: ['#282b30', '#191c20', '#3d4147', '#4d7aff', '#dedede', '#ff7f3d', '#ff4d9e', '#ffad33']
+      // Dark: Cool dark grays, bright cobalt + orange + magenta + gold
     }
   };
 
   let currentTemplate = 'industrialTeal';
-  let currentColors = COLOR_TEMPLATES.industrialTeal.colors.slice(); // 8 colors
-  // Cursor color: default to Color 6 (highlight)
-  let cursorBallIndex = 5;
-  let cursorBallColor = currentColors[cursorBallIndex] || '#ff4013';
+  let currentColors = COLOR_TEMPLATES.industrialTeal.light.slice(); // 8 colors, light variant by default
+  // Cursor color: default to Color 5 (highlight)
+  let cursorBallIndex = 4;
+  let cursorBallColor = currentColors[cursorBallIndex] || '#000000';
+  
+  /**
+   * Get current color palette based on dark mode state
+   * @param {string} templateName - Template name from COLOR_TEMPLATES
+   * @returns {Array<string>} Array of 8 color hex codes
+   */
+  function getCurrentPalette(templateName) {
+    const template = COLOR_TEMPLATES[templateName];
+    if (!template) return COLOR_TEMPLATES.industrialTeal.light;
+    return isDarkMode ? template.dark : template.light;
+  }
+  
+  /**
+   * Apply color palette and update all balls
+   * @param {string} templateName - Template name to apply
+   * @returns {void}
+   */
+  function applyColorTemplate(templateName) {
+    currentTemplate = templateName;
+    currentColors = getCurrentPalette(templateName);
+    cursorBallColor = currentColors[cursorBallIndex] || cursorBallColor;
+    
+    // Update existing ball colors
+    updateExistingBallColors();
+    
+    // Sync CSS variables
+    syncPaletteVars();
+    
+    // Update UI color pickers
+    updateColorPickersUI();
+  }
 
   // Expose palette as CSS variables for use by page elements
   function syncPaletteVars(colors = currentColors) {
@@ -1459,7 +1418,7 @@
   }
   
   // Hide modes that aren't available on this device
-  // All 3 modes are available on all devices
+  // All 4 modes are available on all devices
   function applyDeviceSpecificModeVisibility() {
     // No device-specific mode hiding needed
   }
@@ -1467,8 +1426,12 @@
   // Settings persistence using localStorage
   const STORAGE_KEY = 'bouncyBallsSettings';
   
-  // Persist current UI/simulation settings to localStorage so user preferences
-  // survive reloads. Uses a compact single object for easy versioning.
+  /**
+   * Persist current UI/simulation settings to localStorage
+   * @description Saves all mode parameters, colors, and preferences for session persistence
+   * @returns {void}
+   * @throws {Error} If localStorage is unavailable or quota exceeded
+   */
   function saveSettings() {
     const settings = {
       currentMode,
@@ -1479,7 +1442,7 @@
       swarmSpeed,
       weightlessInitialSpeed,
       weightlessBounce,
-      weightlessMaxBalls,
+      weightlessCount,
       weightlessRepellerPower,
       weightlessRepellerRadius,
       restitution: REST,
@@ -1495,7 +1458,31 @@
       motionBlur: trailFade,
       trailSubtlety,
       currentTemplate,
-      cursorBallColor
+      cursorBallColor,
+      // Pulse Grid mode settings
+      gridColumns,
+      gridBallCount,
+      pulseInterval,
+      pulseSpeed,
+      pulseSynchronicity,
+      pulseRandomness,
+      pulseMinSteps,
+      pulseMaxSteps,
+      pulseEasingStyle,
+      pulseOvershoot,
+      pulseBounceIntensity,
+      // Canvas shadow settings
+      canvasShadowEnabled,
+      shadowOffsetX,
+      shadowOffsetY,
+      shadowBlur,
+      shadowOpacity,
+      shadowColor,
+      shadow2Enabled,
+      shadow2Blur,
+      shadow2Opacity,
+      // Dark mode settings
+      autoDarkModeEnabled
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -1505,8 +1492,11 @@
     }
   }
   
-  // Load settings from localStorage and safely apply them. Each field is
-  // guarded to avoid clobbering defaults if a key is missing or old.
+  /**
+   * Load settings from localStorage and safely apply them
+   * @description Each field is guarded to avoid clobbering defaults if missing
+   * @returns {boolean} True if settings loaded successfully, false otherwise
+   */
   function loadSettings() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -1521,7 +1511,7 @@
         if (settings.swarmSpeed) swarmSpeed = settings.swarmSpeed;
         if (settings.weightlessInitialSpeed) weightlessInitialSpeed = settings.weightlessInitialSpeed;
         if (settings.weightlessBounce) weightlessBounce = settings.weightlessBounce;
-        if (settings.weightlessMaxBalls) weightlessMaxBalls = settings.weightlessMaxBalls;
+        if (settings.weightlessCount) weightlessCount = settings.weightlessCount;
         if (settings.weightlessRepellerPower !== undefined) weightlessRepellerPower = settings.weightlessRepellerPower;
         if (settings.weightlessRepellerRadius !== undefined) weightlessRepellerRadius = settings.weightlessRepellerRadius;
         if (settings.restitution) REST = settings.restitution;
@@ -1537,6 +1527,30 @@
         if (settings.trailSubtlety) trailSubtlety = settings.trailSubtlety;
         if (settings.currentTemplate) currentTemplate = settings.currentTemplate;
         if (settings.cursorBallColor) cursorBallColor = settings.cursorBallColor;
+        // Pulse Grid mode settings
+        if (settings.gridColumns !== undefined) gridColumns = settings.gridColumns;
+        if (settings.gridBallCount !== undefined) gridBallCount = settings.gridBallCount;
+        if (settings.pulseInterval !== undefined) pulseInterval = settings.pulseInterval;
+        if (settings.pulseSpeed !== undefined) pulseSpeed = settings.pulseSpeed;
+        if (settings.pulseSynchronicity !== undefined) pulseSynchronicity = settings.pulseSynchronicity;
+        if (settings.pulseRandomness !== undefined) pulseRandomness = settings.pulseRandomness;
+        if (settings.pulseMinSteps !== undefined) pulseMinSteps = settings.pulseMinSteps;
+        if (settings.pulseMaxSteps !== undefined) pulseMaxSteps = settings.pulseMaxSteps;
+        if (settings.pulseEasingStyle) pulseEasingStyle = settings.pulseEasingStyle;
+        if (settings.pulseOvershoot !== undefined) pulseOvershoot = settings.pulseOvershoot;
+        if (settings.pulseBounceIntensity !== undefined) pulseBounceIntensity = settings.pulseBounceIntensity;
+        // Canvas shadow settings
+        if (settings.canvasShadowEnabled !== undefined) canvasShadowEnabled = settings.canvasShadowEnabled;
+        if (settings.shadowOffsetX !== undefined) shadowOffsetX = settings.shadowOffsetX;
+        if (settings.shadowOffsetY !== undefined) shadowOffsetY = settings.shadowOffsetY;
+        if (settings.shadowBlur !== undefined) shadowBlur = settings.shadowBlur;
+        if (settings.shadowOpacity !== undefined) shadowOpacity = settings.shadowOpacity;
+        if (settings.shadowColor) shadowColor = settings.shadowColor;
+        if (settings.shadow2Enabled !== undefined) shadow2Enabled = settings.shadow2Enabled;
+        if (settings.shadow2Blur !== undefined) shadow2Blur = settings.shadow2Blur;
+        if (settings.shadow2Opacity !== undefined) shadow2Opacity = settings.shadow2Opacity;
+        // Dark mode settings
+        if (settings.autoDarkModeEnabled !== undefined) autoDarkModeEnabled = settings.autoDarkModeEnabled;
         
         console.log('✓ Settings loaded');
         return true;
@@ -1571,7 +1585,6 @@
     return Math.round(Math.max(0, Math.min(1, s)) * REPEL_SLIDER_MAX);
   }
 
-  // Shadows removed for better performance and realism
   
   // High refresh mode is now default
   let highRefreshMode = true; // Always enabled for best performance
@@ -1622,8 +1635,6 @@
       console.log('⚡ Adaptive Quality: HIGH (3 collision iters) - FPS:', currentRenderFPS);
     }
   }
-  
-  // Shadow system removed for better performance
 
   // Ball model - updated to remove 3D rendering
   class Ball {
@@ -1978,72 +1989,10 @@
       }
       
       // Draw main ball first
-      ctx.beginPath();
-      ctx.arc(0, 0, this.r, 0, Math.PI*2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
-      
-      // EDGE-ONLY SHADOWS: Radial gradients that only illuminate the rim
-      if (glassMorphismEnabled && (!enableShadowCulling || this.r >= minShadowRadius)) {
-        // Performance: LOD system for small balls
-        const isSmallBall = this.r < 12;
-        const qualityMultiplier = isSmallBall ? 0.5 : 1.0;
-        
-        // Apply softness multiplier to calculate edge width
-        const edgeWidth1 = (shadow1BlurRadius * (shadowSoftness / 8) * qualityMultiplier);
-        const edgeWidth2 = (shadow2BlurRadius * (shadowSoftness / 8) * qualityMultiplier);
-        const edgeWidth3 = (shadow3BlurRadius * (shadowSoftness / 8) * qualityMultiplier);
-        
-        // Parse colors to rgba for gradient
-        const parseColorWithOpacity = (hexColor, opacity) => {
-          const r = parseInt(hexColor.slice(1, 3), 16);
-          const g = parseInt(hexColor.slice(3, 5), 16);
-          const b = parseInt(hexColor.slice(5, 7), 16);
-          return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-        };
-        
-        // Layer 1: Dark edge gradient (bottom-right shadow)
-        if (edgeWidth1 > 0) {
-          const gradient1 = ctx.createRadialGradient(
-            shadow1OffsetX, shadow1OffsetY, Math.max(0, this.r - edgeWidth1),
-            shadow1OffsetX, shadow1OffsetY, this.r
-          );
-          gradient1.addColorStop(0, parseColorWithOpacity(shadow1Color, 0));
-          gradient1.addColorStop(1, parseColorWithOpacity(shadow1Color, shadow1Opacity));
-          ctx.fillStyle = gradient1;
-          ctx.beginPath();
-          ctx.arc(0, 0, this.r, 0, Math.PI*2);
-          ctx.fill();
-        }
-        
-        // Layer 2: Top-left light edge gradient
-        if (edgeWidth2 > 0) {
-          const gradient2 = ctx.createRadialGradient(
-            shadow2OffsetX, shadow2OffsetY, Math.max(0, this.r - edgeWidth2),
-            shadow2OffsetX, shadow2OffsetY, this.r
-          );
-          gradient2.addColorStop(0, parseColorWithOpacity(shadow2Color, 0));
-          gradient2.addColorStop(1, parseColorWithOpacity(shadow2Color, shadow2Opacity));
-          ctx.fillStyle = gradient2;
-          ctx.beginPath();
-          ctx.arc(0, 0, this.r, 0, Math.PI*2);
-          ctx.fill();
-        }
-        
-        // Layer 3: Bottom-right light edge gradient
-        if (edgeWidth3 > 0) {
-          const gradient3 = ctx.createRadialGradient(
-            shadow3OffsetX, shadow3OffsetY, Math.max(0, this.r - edgeWidth3),
-            shadow3OffsetX, shadow3OffsetY, this.r
-          );
-          gradient3.addColorStop(0, parseColorWithOpacity(shadow3Color, 0));
-          gradient3.addColorStop(1, parseColorWithOpacity(shadow3Color, shadow3Opacity));
-          ctx.fillStyle = gradient3;
-          ctx.beginPath();
-          ctx.arc(0, 0, this.r, 0, Math.PI*2);
-          ctx.fill();
-        }
-      }
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r, 0, Math.PI*2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
 
       ctx.restore();
     }
@@ -2370,8 +2319,8 @@
       
       // Wall collisions (all modes except Pulse Grid)
       if (currentMode !== MODES.PULSE_GRID) {
-        const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
-        for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+      const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
+      for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
       }
       
       acc -= DT;
@@ -2392,8 +2341,6 @@
     if (cornerRadius > 0) {
       drawRoundedBoundary(ctx, canvas.width, canvas.height);
     }
-    
-    // Shadow rendering removed for better performance and realism
     
     // Render balls with individual colors
     for (let i=0; i<balls.length; i++) balls[i].draw(ctx);
@@ -2605,10 +2552,6 @@
   }
   seedArea(CONSTANTS.INITIAL_SEED_BALLS);
 
-  // Shadow system removed for better performance
-
-
-
   // Mouse input (unified handler for repeller + trail recording + boulder dragging)
   let lastTrailRecordTime = 0;
   let lastMousePosition = { x: 0, y: 0 };
@@ -2650,64 +2593,6 @@
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
-    
-    // EDGE-ONLY SHADOWS: Radial gradients for rim illumination
-    if (glassMorphismEnabled) {
-      // Apply softness multiplier to calculate edge width
-      const edgeWidth1 = (shadow1BlurRadius * (shadowSoftness / 8));
-      const edgeWidth2 = (shadow2BlurRadius * (shadowSoftness / 8));
-      const edgeWidth3 = (shadow3BlurRadius * (shadowSoftness / 8));
-      
-      // Parse colors to rgba
-      const parseColorWithOpacity = (hexColor, opacity) => {
-        const r = parseInt(hexColor.slice(1, 3), 16);
-        const g = parseInt(hexColor.slice(3, 5), 16);
-        const b = parseInt(hexColor.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-      };
-      
-      // Layer 1: Dark edge
-      if (edgeWidth1 > 0) {
-        const gradient1 = ctx.createRadialGradient(
-          x + shadow1OffsetX, y + shadow1OffsetY, Math.max(0, r - edgeWidth1),
-          x + shadow1OffsetX, y + shadow1OffsetY, r
-        );
-        gradient1.addColorStop(0, parseColorWithOpacity(shadow1Color, 0));
-        gradient1.addColorStop(1, parseColorWithOpacity(shadow1Color, shadow1Opacity));
-        ctx.fillStyle = gradient1;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      // Layer 2: Top-left light
-      if (edgeWidth2 > 0) {
-        const gradient2 = ctx.createRadialGradient(
-          x + shadow2OffsetX, y + shadow2OffsetY, Math.max(0, r - edgeWidth2),
-          x + shadow2OffsetX, y + shadow2OffsetY, r
-        );
-        gradient2.addColorStop(0, parseColorWithOpacity(shadow2Color, 0));
-        gradient2.addColorStop(1, parseColorWithOpacity(shadow2Color, shadow2Opacity));
-        ctx.fillStyle = gradient2;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      // Layer 3: Bottom-right light
-      if (edgeWidth3 > 0) {
-        const gradient3 = ctx.createRadialGradient(
-          x + shadow3OffsetX, y + shadow3OffsetY, Math.max(0, r - edgeWidth3),
-          x + shadow3OffsetX, y + shadow3OffsetY, r
-        );
-        gradient3.addColorStop(0, parseColorWithOpacity(shadow3Color, 0));
-        gradient3.addColorStop(1, parseColorWithOpacity(shadow3Color, shadow3Opacity));
-        ctx.fillStyle = gradient3;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
     
     // Add subtle white outline for visibility
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
@@ -2988,34 +2873,10 @@
       colorWeights: COLOR_WEIGHTS.slice(),
       currentTemplate,
       cursorColorIndex: cursorBallIndex,
-      // Studio lighting shadow system parameters
-      glassMorphismEnabled,
-      currentIlluminationTemplate,
-      shadowSoftness,
-      shadow1OffsetX,
-      shadow1OffsetY,
-      shadow1Opacity,
-      shadow1Color,
-      shadow1SizeMultiplier,
-      shadow1BlurRadius,
-      shadow2OffsetX,
-      shadow2OffsetY,
-      shadow2Opacity,
-      shadow2Color,
-      shadow2SizeMultiplier,
-      shadow2BlurRadius,
-      shadow3OffsetX,
-      shadow3OffsetY,
-      shadow3Opacity,
-      shadow3Color,
-      shadow3SizeMultiplier,
-      shadow3BlurRadius,
       // Performance optimization settings
       performanceMode,
       targetFPS,
-      enableLOD,
-      enableShadowCulling,
-      minShadowRadius
+      enableLOD
     };
   }
   function generateConfigCode(config) {
@@ -3179,7 +3040,6 @@
     repelSoft = parseFloat(repelSoftSlider.value);
     repelSoftVal && (repelSoftVal.textContent = repelSoft.toFixed(1));
   });
-  // Shadow event listeners removed
   
   // Performance Mode Controls
   const performanceModeToggleEl = document.getElementById('performanceModeToggle');
@@ -3189,129 +3049,92 @@
     togglePerformanceMode();
   });
   
-  // Glass Morphism Controls (3-layer refractive system)
-  const glassMorphismEnabledEl = document.getElementById('glassMorphismEnabled');
-  const illuminationSelectEl = document.getElementById('illuminationSelect');
+  // Dark Mode Controls
+  const darkModeToggleEl = document.getElementById('darkModeToggle');
+  const darkModeStatusEl = document.getElementById('darkModeStatus');
   
-  // Shadow 1 controls (top-left highlight)
-  const shadow1OffsetXEl = document.getElementById('shadow1OffsetX');
-  const shadow1OffsetXVal = document.getElementById('shadow1OffsetXVal');
-  const shadow1OffsetYEl = document.getElementById('shadow1OffsetY');
-  const shadow1OffsetYVal = document.getElementById('shadow1OffsetYVal');
-  const shadow1OpacityEl = document.getElementById('shadow1Opacity');
-  const shadow1OpacityVal = document.getElementById('shadow1OpacityVal');
-  const shadow1ColorEl = document.getElementById('shadow1Color');
-  const shadow1ColorVal = document.getElementById('shadow1ColorVal');
-  const shadow1SizeMultiplierEl = document.getElementById('shadow1SizeMultiplier');
-  const shadow1SizeMultiplierVal = document.getElementById('shadow1SizeMultiplierVal');
+  darkModeToggleEl && darkModeToggleEl.addEventListener('change', () => {
+    toggleAutoDarkMode();
+    autoSaveSettings();
+  });
   
-  // Shadow 2 controls (bottom-right highlight)
-  const shadow2OffsetXEl = document.getElementById('shadow2OffsetX');
-  const shadow2OffsetXVal = document.getElementById('shadow2OffsetXVal');
-  const shadow2OffsetYEl = document.getElementById('shadow2OffsetY');
-  const shadow2OffsetYVal = document.getElementById('shadow2OffsetYVal');
+  // Canvas Shadow Controls
+  const canvasShadowEnabledEl = document.getElementById('canvasShadowEnabled');
+  const shadowOffsetXEl = document.getElementById('shadowOffsetX');
+  const shadowOffsetXVal = document.getElementById('shadowOffsetXVal');
+  const shadowOffsetYEl = document.getElementById('shadowOffsetY');
+  const shadowOffsetYVal = document.getElementById('shadowOffsetYVal');
+  const shadowBlurEl = document.getElementById('shadowBlur');
+  const shadowBlurVal = document.getElementById('shadowBlurVal');
+  const shadowOpacityEl = document.getElementById('shadowOpacity');
+  const shadowOpacityVal = document.getElementById('shadowOpacityVal');
+  const shadowColorEl = document.getElementById('shadowColor');
+  const shadowColorVal = document.getElementById('shadowColorVal');
+  const shadow2EnabledEl = document.getElementById('shadow2Enabled');
+  const shadow2BlurEl = document.getElementById('shadow2Blur');
+  const shadow2BlurVal = document.getElementById('shadow2BlurVal');
   const shadow2OpacityEl = document.getElementById('shadow2Opacity');
   const shadow2OpacityVal = document.getElementById('shadow2OpacityVal');
-  const shadow2ColorEl = document.getElementById('shadow2Color');
-  const shadow2ColorVal = document.getElementById('shadow2ColorVal');
-  const shadow2SizeMultiplierEl = document.getElementById('shadow2SizeMultiplier');
-  const shadow2SizeMultiplierVal = document.getElementById('shadow2SizeMultiplierVal');
   
-  // Shadow 3 controls (bottom highlight)
-  const shadow3OffsetXEl = document.getElementById('shadow3OffsetX');
-  const shadow3OffsetXVal = document.getElementById('shadow3OffsetXVal');
-  const shadow3OffsetYEl = document.getElementById('shadow3OffsetY');
-  const shadow3OffsetYVal = document.getElementById('shadow3OffsetYVal');
-  const shadow3OpacityEl = document.getElementById('shadow3Opacity');
-  const shadow3OpacityVal = document.getElementById('shadow3OpacityVal');
-  const shadow3ColorEl = document.getElementById('shadow3Color');
-  const shadow3ColorVal = document.getElementById('shadow3ColorVal');
-  const shadow3SizeMultiplierEl = document.getElementById('shadow3SizeMultiplier');
-  const shadow3SizeMultiplierVal = document.getElementById('shadow3SizeMultiplierVal');
-  
-  // Master toggle
-  glassMorphismEnabledEl && glassMorphismEnabledEl.addEventListener('change', () => {
-    glassMorphismEnabled = glassMorphismEnabledEl.checked;
-    console.log('🔮 Glass morphism enabled:', glassMorphismEnabled);
+  canvasShadowEnabledEl && canvasShadowEnabledEl.addEventListener('change', () => {
+    canvasShadowEnabled = canvasShadowEnabledEl.checked;
+    updateCanvasShadow();
+    autoSaveSettings();
   });
   
-  // Illumination template selector
-  illuminationSelectEl && illuminationSelectEl.addEventListener('change', () => {
-    applyIlluminationTemplate(illuminationSelectEl.value);
+  shadowOffsetXEl && shadowOffsetXEl.addEventListener('input', () => {
+    shadowOffsetX = parseInt(shadowOffsetXEl.value, 10);
+    shadowOffsetXVal && (shadowOffsetXVal.textContent = shadowOffsetX.toString());
+    updateCanvasShadow();
+    autoSaveSettings();
   });
   
-  // Shadow softness control
-  const shadowSoftnessEl = document.getElementById('shadowSoftness');
-  const shadowSoftnessVal = document.getElementById('shadowSoftnessVal');
-  shadowSoftnessEl && shadowSoftnessEl.addEventListener('input', () => {
-    shadowSoftness = parseInt(shadowSoftnessEl.value, 10);
-    if (shadowSoftnessVal) shadowSoftnessVal.textContent = shadowSoftness + 'px';
+  shadowOffsetYEl && shadowOffsetYEl.addEventListener('input', () => {
+    shadowOffsetY = parseInt(shadowOffsetYEl.value, 10);
+    shadowOffsetYVal && (shadowOffsetYVal.textContent = shadowOffsetY.toString());
+    updateCanvasShadow();
+    autoSaveSettings();
   });
   
-  // Shadow 1 listeners
-  shadow1OffsetXEl && shadow1OffsetXEl.addEventListener('input', () => {
-    shadow1OffsetX = parseInt(shadow1OffsetXEl.value, 10);
-    if (shadow1OffsetXVal) shadow1OffsetXVal.textContent = shadow1OffsetX + 'px';
-  });
-  shadow1OffsetYEl && shadow1OffsetYEl.addEventListener('input', () => {
-    shadow1OffsetY = parseInt(shadow1OffsetYEl.value, 10);
-    if (shadow1OffsetYVal) shadow1OffsetYVal.textContent = shadow1OffsetY + 'px';
-  });
-  shadow1OpacityEl && shadow1OpacityEl.addEventListener('input', () => {
-    shadow1Opacity = parseFloat(shadow1OpacityEl.value);
-    if (shadow1OpacityVal) shadow1OpacityVal.textContent = shadow1Opacity.toFixed(2);
-  });
-  shadow1ColorEl && shadow1ColorEl.addEventListener('input', () => {
-    shadow1Color = shadow1ColorEl.value;
-    if (shadow1ColorVal) shadow1ColorVal.textContent = shadow1Color.toUpperCase();
-  });
-  shadow1SizeMultiplierEl && shadow1SizeMultiplierEl.addEventListener('input', () => {
-    shadow1SizeMultiplier = parseFloat(shadow1SizeMultiplierEl.value);
-    if (shadow1SizeMultiplierVal) shadow1SizeMultiplierVal.textContent = shadow1SizeMultiplier.toFixed(2) + '×';
+  shadowBlurEl && shadowBlurEl.addEventListener('input', () => {
+    shadowBlur = parseInt(shadowBlurEl.value, 10);
+    shadowBlurVal && (shadowBlurVal.textContent = shadowBlur.toString());
+    updateCanvasShadow();
+    autoSaveSettings();
   });
   
-  // Shadow 2 listeners
-  shadow2OffsetXEl && shadow2OffsetXEl.addEventListener('input', () => {
-    shadow2OffsetX = parseInt(shadow2OffsetXEl.value, 10);
-    if (shadow2OffsetXVal) shadow2OffsetXVal.textContent = shadow2OffsetX + 'px';
+  shadowOpacityEl && shadowOpacityEl.addEventListener('input', () => {
+    shadowOpacity = parseFloat(shadowOpacityEl.value);
+    shadowOpacityVal && (shadowOpacityVal.textContent = shadowOpacity.toFixed(2));
+    updateCanvasShadow();
+    autoSaveSettings();
   });
-  shadow2OffsetYEl && shadow2OffsetYEl.addEventListener('input', () => {
-    shadow2OffsetY = parseInt(shadow2OffsetYEl.value, 10);
-    if (shadow2OffsetYVal) shadow2OffsetYVal.textContent = shadow2OffsetY + 'px';
+  
+  shadowColorEl && shadowColorEl.addEventListener('input', () => {
+    shadowColor = shadowColorEl.value;
+    shadowColorVal && (shadowColorVal.textContent = shadowColor.toUpperCase());
+    updateCanvasShadow();
+    autoSaveSettings();
   });
+  
+  shadow2EnabledEl && shadow2EnabledEl.addEventListener('change', () => {
+    shadow2Enabled = shadow2EnabledEl.checked;
+    updateCanvasShadow();
+    autoSaveSettings();
+  });
+  
+  shadow2BlurEl && shadow2BlurEl.addEventListener('input', () => {
+    shadow2Blur = parseInt(shadow2BlurEl.value, 10);
+    shadow2BlurVal && (shadow2BlurVal.textContent = shadow2Blur.toString());
+    updateCanvasShadow();
+    autoSaveSettings();
+  });
+  
   shadow2OpacityEl && shadow2OpacityEl.addEventListener('input', () => {
     shadow2Opacity = parseFloat(shadow2OpacityEl.value);
-    if (shadow2OpacityVal) shadow2OpacityVal.textContent = shadow2Opacity.toFixed(2);
-  });
-  shadow2ColorEl && shadow2ColorEl.addEventListener('input', () => {
-    shadow2Color = shadow2ColorEl.value;
-    if (shadow2ColorVal) shadow2ColorVal.textContent = shadow2Color.toUpperCase();
-  });
-  shadow2SizeMultiplierEl && shadow2SizeMultiplierEl.addEventListener('input', () => {
-    shadow2SizeMultiplier = parseFloat(shadow2SizeMultiplierEl.value);
-    if (shadow2SizeMultiplierVal) shadow2SizeMultiplierVal.textContent = shadow2SizeMultiplier.toFixed(2) + '×';
-  });
-  
-  // Shadow 3 listeners
-  shadow3OffsetXEl && shadow3OffsetXEl.addEventListener('input', () => {
-    shadow3OffsetX = parseInt(shadow3OffsetXEl.value, 10);
-    if (shadow3OffsetXVal) shadow3OffsetXVal.textContent = shadow3OffsetX + 'px';
-  });
-  shadow3OffsetYEl && shadow3OffsetYEl.addEventListener('input', () => {
-    shadow3OffsetY = parseInt(shadow3OffsetYEl.value, 10);
-    if (shadow3OffsetYVal) shadow3OffsetYVal.textContent = shadow3OffsetY + 'px';
-  });
-  shadow3OpacityEl && shadow3OpacityEl.addEventListener('input', () => {
-    shadow3Opacity = parseFloat(shadow3OpacityEl.value);
-    if (shadow3OpacityVal) shadow3OpacityVal.textContent = shadow3Opacity.toFixed(2);
-  });
-  shadow3ColorEl && shadow3ColorEl.addEventListener('input', () => {
-    shadow3Color = shadow3ColorEl.value;
-    if (shadow3ColorVal) shadow3ColorVal.textContent = shadow3Color.toUpperCase();
-  });
-  shadow3SizeMultiplierEl && shadow3SizeMultiplierEl.addEventListener('input', () => {
-    shadow3SizeMultiplier = parseFloat(shadow3SizeMultiplierEl.value);
-    if (shadow3SizeMultiplierVal) shadow3SizeMultiplierVal.textContent = shadow3SizeMultiplier.toFixed(2) + '×';
+    shadow2OpacityVal && (shadow2OpacityVal.textContent = shadow2Opacity.toFixed(2));
+    updateCanvasShadow();
+    autoSaveSettings();
   });
   
   // Mouse tracking for cursor ball and repeller
@@ -3328,25 +3151,7 @@
   
   // Color controls
   colorSelect && colorSelect.addEventListener('change', () => {
-    const template = COLOR_TEMPLATES[colorSelect.value];
-    if (!template) return;
-    currentTemplate = colorSelect.value;
-    currentColors = template.colors.slice();
-    // Keep cursor index and update color
-    cursorBallColor = currentColors[cursorBallIndex] || cursorBallColor;
-    // Update color pickers + hex spans
-    if (color1 && color1Val) { color1.value = currentColors[0]; color1Val.textContent = currentColors[0].toUpperCase(); }
-    if (color2 && color2Val) { color2.value = currentColors[1]; color2Val.textContent = currentColors[1].toUpperCase(); }
-    if (color3 && color3Val) { color3.value = currentColors[2]; color3Val.textContent = currentColors[2].toUpperCase(); }
-    if (color4 && color4Val) { color4.value = currentColors[3]; color4Val.textContent = currentColors[3].toUpperCase(); }
-    if (color5 && color5Val) { color5.value = currentColors[4]; color5Val.textContent = currentColors[4].toUpperCase(); }
-    if (color6 && color6Val) { color6.value = currentColors[5]; color6Val.textContent = currentColors[5].toUpperCase(); }
-    if (color7 && color7Val) { color7.value = currentColors[6]; color7Val.textContent = currentColors[6].toUpperCase(); }
-    if (color8 && color8Val) { color8.value = currentColors[7]; color8Val.textContent = currentColors[7].toUpperCase(); }
-    // Update existing ball colors
-    updateExistingBallColors();
-    // Sync CSS variables
-    syncPaletteVars();
+    applyColorTemplate(colorSelect.value);
   });
 
   // Mode switcher wiring
@@ -3413,6 +3218,12 @@
     }
   }
   
+  /**
+   * Initialize Zero-G scene with random ball distribution
+   * @description Spawns balls randomly across entire viewport with random velocities
+   * @returns {void}
+   * @modifies {balls}
+   */
   function initializeWeightlessScene() {
     balls.length = 0;
     
@@ -3421,38 +3232,17 @@
     const w = canvas.width;
     const h = canvas.height;
     
-    // Grid distribution
-    const aspectRatio = w / h;
-    const cols = Math.ceil(Math.sqrt(targetBalls * aspectRatio));
-    const rows = Math.ceil(targetBalls / cols);
+    // Random distribution across entire viewport (no grid)
+    const margin = 40 * DPR; // Safe margin from edges
     
-    const marginX = 40;
-    const marginY = 40;
-    const spacingX = (w - 2 * marginX) / Math.max(1, cols - 1);
-    const spacingY = (h - 2 * marginY) / Math.max(1, rows - 1);
-    
-    const positions = [];
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        if (positions.length >= targetBalls) break;
-        
-        const x = marginX + col * spacingX;
-        const y = marginY + row * spacingY;
-        
-        // Subtle jitter
-        const jitterX = (Math.random() - 0.5) * spacingX * 0.25;
-        const jitterY = (Math.random() - 0.5) * spacingY * 0.25;
-        
-        positions.push({
-          x: Math.max(20, Math.min(w - 20, x + jitterX)),
-          y: Math.max(20, Math.min(h - 20, y + jitterY))
-        });
-      }
-    }
-    
-    // Spawn balls with random velocities
-    for (const pos of positions) {
-      const ball = spawnBall(pos.x, pos.y);
+    for (let i = 0; i < targetBalls; i++) {
+      // Completely random position within viewport
+      const x = margin + Math.random() * (w - 2 * margin);
+      const y = margin + Math.random() * (h - 2 * margin);
+      
+      const ball = spawnBall(x, y);
+      
+      // Random velocity in any direction
       const angle = Math.random() * Math.PI * 2;
       const speed = weightlessInitialSpeed * (0.7 + Math.random() * 0.3);
       ball.vx = Math.cos(angle) * speed;
@@ -3473,6 +3263,12 @@
   let gridOffsetX = 0;
   let gridOffsetY = 0;
   
+  /**
+   * Calculate grid dimensions based on canvas size and column count
+   * @description Computes cell size, row count, and centering offsets for grid layout
+   * @returns {void}
+   * @modifies {gridCols, gridCellSize, gridRows, gridOffsetX, gridOffsetY}
+   */
   function calculateGridDimensions() {
     const w = canvas.width;
     const h = canvas.height;
@@ -3494,23 +3290,46 @@
     };
   }
   
+  /**
+   * Initialize Pulse Grid scene with rhythmic ball placement
+   * @description Clears existing balls and spawns new ones in unique grid cells with staggered jump times.
+   * Uses random distribution to ensure balls are spread across entire viewport.
+   * @returns {void}
+   * @modifies {balls}
+   * @example
+   * initializePulseGridScene(); // Creates 120 balls on 40-column grid
+   */
   function initializePulseGridScene() {
     balls.length = 0;
     calculateGridDimensions();
     
-    const targetBalls = gridBallCount;
+    const maxCells = gridCols * gridRows;
+    const targetBalls = Math.min(gridBallCount, maxCells); // Cap at grid capacity
     
-    // Randomly place balls in grid cells
+    // Create array of all possible cells
+    const allCells = [];
+    for (let row = 0; row < gridRows; row++) {
+      for (let col = 0; col < gridCols; col++) {
+        allCells.push({ gridX: col, gridY: row });
+      }
+    }
+    
+    // Shuffle array for random distribution
+    for (let i = allCells.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allCells[i], allCells[j]] = [allCells[j], allCells[i]];
+    }
+    
+    // Take first N cells for even random distribution across viewport
     for (let i = 0; i < targetBalls; i++) {
-      const gridX = Math.floor(Math.random() * gridCols);
-      const gridY = Math.floor(Math.random() * gridRows);
-      const pos = gridCellToPixel(gridX, gridY);
+      const cell = allCells[i];
+      const pos = gridCellToPixel(cell.gridX, cell.gridY);
       
       const ball = spawnBall(pos.x, pos.y);
       
       // Grid-specific properties
-      ball.gridX = gridX;
-      ball.gridY = gridY;
+      ball.gridX = cell.gridX;
+      ball.gridY = cell.gridY;
       ball.targetX = pos.x;
       ball.targetY = pos.y;
       ball.jumpProgress = 1.0; // Start at rest
@@ -3526,12 +3345,14 @@
     }
   }
   
-  // Update grid ball positions with rhythmic movement
-  let gridUpdateAccumulator = 0;
-  
+  /**
+   * Update grid ball positions with rhythmic movement
+   * @description Handles beat timing, direction selection, and jump animation for all balls in grid mode
+   * @param {number} dt - Delta time in seconds since last update
+   * @returns {void}
+   * @modifies {balls[].x, balls[].y, balls[].gridX, balls[].gridY, balls[].jumpProgress}
+   */
   function updatePulseGrid(dt) {
-    gridUpdateAccumulator += dt;
-    
     for (let i = 0; i < balls.length; i++) {
       const ball = balls[i];
       
@@ -3594,18 +3415,41 @@
           ball.vx = 0;
           ball.vy = 0;
         } else {
-          // Smooth easing (ease-in-out)
           const t = ball.jumpProgress;
-          const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          let eased = t;
           
-          // Interpolate position
+          // Apply easing based on style
+          if (pulseEasingStyle === 'linear') {
+            // Constant speed
+            eased = t;
+          } else if (pulseEasingStyle === 'snap') {
+            // Robotic snap with overshoot and bounce-back
+            if (t < 0.6) {
+              // Fast acceleration to overshoot point
+              const t1 = t / 0.6;
+              eased = t1 * t1 * pulseOvershoot;
+            } else {
+              // Bounce back to final position
+              const t2 = (t - 0.6) / 0.4;
+              const bounceAmount = (pulseOvershoot - 1.0) * (1 - t2);
+              eased = 1.0 + bounceAmount - pulseBounceIntensity * Math.sin(t2 * Math.PI);
+            }
+          } else if (pulseEasingStyle === 'bounce') {
+            // Elastic bounce effect
+            if (t < 0.7) {
+              eased = (t / 0.7) * (t / 0.7);
+            } else {
+              const t2 = (t - 0.7) / 0.3;
+              eased = 1.0 - pulseBounceIntensity * 0.5 * Math.sin(t2 * Math.PI * 2);
+            }
+          } else if (pulseEasingStyle === 'smooth') {
+            // Classic ease-in-out
+            eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          }
+          
+          // Interpolate position (STRAIGHT LINE - no arc)
           ball.x = ball.jumpStartX + (ball.targetX - ball.jumpStartX) * eased;
           ball.y = ball.jumpStartY + (ball.targetY - ball.jumpStartY) * eased;
-          
-          // Add subtle arc to jump (parabolic)
-          const arcHeight = gridCellSize * 0.3;
-          const arc = Math.sin(t * Math.PI) * arcHeight;
-          ball.y -= arc;
           
           // Zero velocity during animation
           ball.vx = 0;
@@ -3615,15 +3459,59 @@
     }
   }
 
+  /**
+   * Update UI to reflect current mode selection
+   * @description Toggles active class on mode controls and updates ARIA states
+   * @returns {void}
+   */
   function updateModeControlsUI() {
+    const pulseGridControls = document.getElementById('pulseGridControls');
     if (pitControls) pitControls.classList.toggle('active', currentMode === MODES.PIT);
     if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
     if (weightlessControls) weightlessControls.classList.toggle('active', currentMode === MODES.WEIGHTLESS);
-    modeButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-mode') === currentMode));
+    if (pulseGridControls) pulseGridControls.classList.toggle('active', currentMode === MODES.PULSE_GRID);
+    
+    // Update mode buttons and ARIA states
+    modeButtons.forEach(btn => {
+      const isActive = btn.getAttribute('data-mode') === currentMode;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  }
+  
+  /**
+   * Announce message to screen readers via live region
+   * @param {string} message - Message to announce
+   * @returns {void}
+   */
+  function announceToScreenReader(message) {
+    const announcer = document.getElementById('announcer');
+    if (announcer) {
+      announcer.textContent = ''; // Clear first for re-announcement
+      setTimeout(() => announcer.textContent = message, 100);
+    }
   }
 
+  /**
+   * Switch to a different simulation mode
+   * @description Changes physics behavior, initializes mode-specific scene, and updates UI
+   * @param {string} mode - Mode constant from MODES enum ('pit'|'flies'|'weightless'|'pulse-grid')
+   * @returns {void}
+   * @modifies {currentMode, balls, gravityMultiplier, G, repellerEnabled}
+   * @example
+   * setMode(MODES.PULSE_GRID); // Switch to grid mode
+   */
   function setMode(mode) {
     currentMode = mode;
+    
+    // Announce mode change to screen readers
+    const modeNames = {
+      [MODES.PIT]: 'Ball Pit',
+      [MODES.FLIES]: 'Flies to Light',
+      [MODES.WEIGHTLESS]: 'Zero Gravity',
+      [MODES.PULSE_GRID]: 'Pulse Grid'
+    };
+    announceToScreenReader(`Switched to ${modeNames[mode]} mode`);
     
     // Update container CSS class for mode-specific styling (canvas height)
     container.className = ''; // Clear all mode classes
@@ -3774,7 +3662,10 @@
       minSteps: 1,
       maxSteps: 2,
       synchronicity: 0.1,
-      randomness: 0.2
+      randomness: 0.2,
+      easingStyle: 'snap',
+      overshoot: 1.12,
+      bounce: 0.18
     },
     organic: {
       interval: 0.8,
@@ -3782,7 +3673,10 @@
       minSteps: 1,
       maxSteps: 3,
       synchronicity: 0.3,
-      randomness: 0.4
+      randomness: 0.4,
+      easingStyle: 'smooth',
+      overshoot: 1.05,
+      bounce: 0.1
     },
     chaotic: {
       interval: 0.4,
@@ -3790,10 +3684,20 @@
       minSteps: 2,
       maxSteps: 4,
       synchronicity: 0.7,
-      randomness: 0.8
+      randomness: 0.8,
+      easingStyle: 'bounce',
+      overshoot: 1.15,
+      bounce: 0.25
     }
   };
   
+  /**
+   * Apply animation preset to Pulse Grid mode
+   * @description Updates all grid animation parameters from preset configuration
+   * @param {string} presetName - Preset key ('synchronized'|'organic'|'chaotic')
+   * @returns {void}
+   * @modifies {pulseInterval, pulseSpeed, pulseMinSteps, pulseMaxSteps, pulseSynchronicity, pulseRandomness, pulseEasingStyle, pulseOvershoot, pulseBounceIntensity}
+   */
   function applyGridPreset(presetName) {
     const preset = gridPresets[presetName];
     if (!preset) return;
@@ -3804,6 +3708,9 @@
     pulseMaxSteps = preset.maxSteps;
     pulseSynchronicity = preset.synchronicity;
     pulseRandomness = preset.randomness;
+    pulseEasingStyle = preset.easingStyle;
+    pulseOvershoot = preset.overshoot;
+    pulseBounceIntensity = preset.bounce;
     
     // Update UI
     if (pulseIntervalSlider) pulseIntervalSlider.value = preset.interval;
@@ -3818,6 +3725,18 @@
     if (pulseSynchronicityVal) pulseSynchronicityVal.textContent = preset.synchronicity.toFixed(2);
     if (pulseRandomnessSlider) pulseRandomnessSlider.value = preset.randomness;
     if (pulseRandomnessVal) pulseRandomnessVal.textContent = preset.randomness.toFixed(2);
+    
+    const pulseEasingSelect = document.getElementById('pulseEasingSelect');
+    const pulseOvershootSlider = document.getElementById('pulseOvershootSlider');
+    const pulseOvershootVal = document.getElementById('pulseOvershootVal');
+    const pulseBounceSlider = document.getElementById('pulseBounceSlider');
+    const pulseBounceVal = document.getElementById('pulseBounceVal');
+    
+    if (pulseEasingSelect) pulseEasingSelect.value = preset.easingStyle;
+    if (pulseOvershootSlider) pulseOvershootSlider.value = preset.overshoot;
+    if (pulseOvershootVal) pulseOvershootVal.textContent = preset.overshoot.toFixed(2);
+    if (pulseBounceSlider) pulseBounceSlider.value = preset.bounce;
+    if (pulseBounceVal) pulseBounceVal.textContent = preset.bounce.toFixed(2);
     
     // Reinitialize if in grid mode
     if (currentMode === MODES.PULSE_GRID) {
@@ -3903,13 +3822,71 @@
     pulseRandomnessVal && (pulseRandomnessVal.textContent = pulseRandomness.toFixed(2));
     autoSaveSettings();
   });
+  
+  // Animation style controls
+  const pulseEasingSelect = document.getElementById('pulseEasingSelect');
+  const pulseOvershootSlider = document.getElementById('pulseOvershootSlider');
+  const pulseOvershootVal = document.getElementById('pulseOvershootVal');
+  const pulseBounceSlider = document.getElementById('pulseBounceSlider');
+  const pulseBounceVal = document.getElementById('pulseBounceVal');
+  
+  pulseEasingSelect && pulseEasingSelect.addEventListener('change', () => {
+    pulseEasingStyle = pulseEasingSelect.value;
+    autoSaveSettings();
+  });
+  
+  pulseOvershootSlider && pulseOvershootSlider.addEventListener('input', () => {
+    pulseOvershoot = parseFloat(pulseOvershootSlider.value);
+    pulseOvershootVal && (pulseOvershootVal.textContent = pulseOvershoot.toFixed(2));
+    autoSaveSettings();
+  });
+  
+  pulseBounceSlider && pulseBounceSlider.addEventListener('input', () => {
+    pulseBounceIntensity = parseFloat(pulseBounceSlider.value);
+    pulseBounceVal && (pulseBounceVal.textContent = pulseBounceIntensity.toFixed(2));
+    autoSaveSettings();
+  });
 
-  // Individual color picker listeners (with existing ball color update)
+  /**
+   * Update existing ball colors to use new color palette
+   * @returns {void}
+   */
   function updateExistingBallColors() {
-    // Update colors of existing balls to use new color palette
     for (let i = 0; i < balls.length; i++) {
       balls[i].color = pickRandomColor();
     }
+  }
+  
+  /**
+   * Update color picker UI elements to show current palette
+   * @returns {void}
+   */
+  function updateColorPickersUI() {
+    const color1 = document.getElementById('color1');
+    const color2 = document.getElementById('color2');
+    const color3 = document.getElementById('color3');
+    const color4 = document.getElementById('color4');
+    const color5 = document.getElementById('color5');
+    const color6 = document.getElementById('color6');
+    const color7 = document.getElementById('color7');
+    const color8 = document.getElementById('color8');
+    const color1Val = document.getElementById('color1Val');
+    const color2Val = document.getElementById('color2Val');
+    const color3Val = document.getElementById('color3Val');
+    const color4Val = document.getElementById('color4Val');
+    const color5Val = document.getElementById('color5Val');
+    const color6Val = document.getElementById('color6Val');
+    const color7Val = document.getElementById('color7Val');
+    const color8Val = document.getElementById('color8Val');
+    
+    if (color1 && color1Val) { color1.value = currentColors[0]; color1Val.textContent = currentColors[0].toUpperCase(); }
+    if (color2 && color2Val) { color2.value = currentColors[1]; color2Val.textContent = currentColors[1].toUpperCase(); }
+    if (color3 && color3Val) { color3.value = currentColors[2]; color3Val.textContent = currentColors[2].toUpperCase(); }
+    if (color4 && color4Val) { color4.value = currentColors[3]; color4Val.textContent = currentColors[3].toUpperCase(); }
+    if (color5 && color5Val) { color5.value = currentColors[4]; color5Val.textContent = currentColors[4].toUpperCase(); }
+    if (color6 && color6Val) { color6.value = currentColors[5]; color6Val.textContent = currentColors[5].toUpperCase(); }
+    if (color7 && color7Val) { color7.value = currentColors[6]; color7Val.textContent = currentColors[6].toUpperCase(); }
+    if (color8 && color8Val) { color8.value = currentColors[7]; color8Val.textContent = currentColors[7].toUpperCase(); }
   }
   
   color1 && color1.addEventListener('input', () => { currentColors[0] = color1.value; color1Val && (color1Val.textContent = color1.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
@@ -3920,7 +3897,12 @@
   color6 && color6.addEventListener('input', () => { currentColors[5] = color6.value; color6Val && (color6Val.textContent = color6.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
   color7 && color7.addEventListener('input', () => { currentColors[6] = color7.value; color7Val && (color7Val.textContent = color7.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
   color8 && color8.addEventListener('input', () => { currentColors[7] = color8.value; color8Val && (color8Val.textContent = color8.value.toUpperCase()); updateExistingBallColors(); syncPaletteVars(); });
-  cursorColorSelect && cursorColorSelect.addEventListener('change', () => { const idx = Math.max(1, Math.min(8, parseInt(cursorColorSelect.value, 10))) - 1; cursorBallIndex = idx; cursorBallColor = currentColors[cursorBallIndex] || cursorBallColor; });
+  cursorColorSelect && cursorColorSelect.addEventListener('change', () => { 
+    const idx = Math.max(1, Math.min(8, parseInt(cursorColorSelect.value, 10))) - 1; 
+    cursorBallIndex = idx; 
+    cursorBallColor = currentColors[cursorBallIndex] || cursorBallColor;
+    autoSaveSettings();
+  });
 
   // Bind click-to-copy on hex badges
   bindCopyOnClick(color1Val, () => color1.value.toUpperCase());
@@ -3984,9 +3966,6 @@
     singularity: { label: 'Singularity', r: 600, p: 30000 * 10, s: 0.5 }
   };
 
-  // Shadow presets removed for better performance
-
-
   // Populate selects
   function fillSelect(select, dict, selectedKey) {
     select.innerHTML = '';
@@ -4026,13 +4005,9 @@
     sizeScale = newScale;
     // Recompute effective scale and proportionally resize existing balls
     updateEffectiveScaleAndBallSizes();
-    // Apply mass (Rainbow balls maintain 5x multiplier)
+    // Apply mass to all balls
     for (let i=0; i<balls.length; i++) {
-      if (currentMode === MODES.BOULDERS) {
-        balls[i].m = ballMassKg * 5;
-      } else {
         balls[i].m = ballMassKg;
-      }
     }
     
     // Remove excess balls if new limit is lower (truncate efficiently)
@@ -4068,25 +4043,15 @@
     if (repelPowerVal) repelPowerVal.textContent = Math.round(repelPower).toString();
     updateSliderAndValue(repelSoftSlider, repelSoftVal, repelSoft, 1);
   }
-  // Shadow preset function removed
 
   // Apply sane defaults FIRST (before event listeners to avoid triggering them)
   applyPhysicsPreset('rubberRacquet');
   applySpawnPreset('fullRain');
   applyRepellerPreset('off');
   
-  // Initialize color system
-  const defaultTemplate = COLOR_TEMPLATES[currentTemplate];
-  if (color1 && color1Val) { color1.value = defaultTemplate.colors[0]; color1Val.textContent = defaultTemplate.colors[0].toUpperCase(); }
-  if (color2 && color2Val) { color2.value = defaultTemplate.colors[1]; color2Val.textContent = defaultTemplate.colors[1].toUpperCase(); }
-  if (color3 && color3Val) { color3.value = defaultTemplate.colors[2]; color3Val.textContent = defaultTemplate.colors[2].toUpperCase(); }
-  if (color4 && color4Val) { color4.value = defaultTemplate.colors[3]; color4Val.textContent = defaultTemplate.colors[3].toUpperCase(); }
-  if (color5 && color5Val) { color5.value = defaultTemplate.colors[4]; color5Val.textContent = defaultTemplate.colors[4].toUpperCase(); }
-  if (color6 && color6Val) { color6.value = defaultTemplate.colors[5]; color6Val.textContent = defaultTemplate.colors[5].toUpperCase(); }
-  if (color7 && color7Val) { color7.value = defaultTemplate.colors[6]; color7Val.textContent = defaultTemplate.colors[6].toUpperCase(); }
-  if (color8 && color8Val) { color8.value = defaultTemplate.colors[7]; color8Val.textContent = defaultTemplate.colors[7].toUpperCase(); }
-  // Sync CSS variables on init
-  syncPaletteVars(defaultTemplate.colors);
+  // Initialize color system with current palette
+  updateColorPickersUI();
+  syncPaletteVars();
 
   // Hook presets to selects AFTER applying defaults
   physicsSelect && physicsSelect.addEventListener('change', () => applyPhysicsPreset(physicsSelect.value));
@@ -4102,6 +4067,15 @@
   // Load saved settings from localStorage
   const settingsLoaded = loadSettings();
   
+  // Apply canvas shadow with loaded or default settings
+  updateCanvasShadow();
+  
+  // Initialize dark mode based on time of day
+  checkAndApplyDarkMode();
+  
+  // Check dark mode every minute for time transitions
+  setInterval(checkAndApplyDarkMode, 60000); // Every 60 seconds
+  
   // Apply device-specific mode visibility (hide Trail on mobile)
   applyDeviceSpecificModeVisibility();
   
@@ -4114,3 +4088,4 @@
 </script>
 </body>
 </html>
+

@@ -1,8 +1,13 @@
 {
+  "_comment_physics": "═══════════════════════════════════════════════════════════════",
+  "_comment_physics_desc": "Ball Pit Mode - Physics & Movement Parameters",
   "gravityMultiplier": 1.1,
   "restitution": 0.88,
   "friction": 0.003,
   "ballMass": 11.2,
+  
+  "_comment_spawn": "═══════════════════════════════════════════════════════════════",
+  "_comment_spawn_desc": "Ball Spawning & Emission Settings",
   "emitRate": 0.03,
   "maxBalls": 400,
   "ballScale": 1,
@@ -12,13 +17,22 @@
   "spawnWidth": 100,
   "spawnHeight": 50,
   "sweepEnabled": true,
+  
+  "_comment_repeller": "═══════════════════════════════════════════════════════════════",
+  "_comment_repeller_desc": "Mouse Repeller Settings (Ball Pit Mode)",
   "repelRadius": 255,
   "repelPower": 274000,
   "repelSoftness": 4.4,
+  
+  "_comment_visual": "═══════════════════════════════════════════════════════════════",
+  "_comment_visual_desc": "Scene & Visual Effects",
   "trailFade": 0.025,
   "trailSubtlety": 1.8,
   "printInterval": 400,
   "printMaxBalls": 40,
+  
+  "_comment_colors": "═══════════════════════════════════════════════════════════════",
+  "_comment_colors_desc": "Color Palette & Distribution",
   "colors": [
     "#b7bcb7",
     "#e4e9e4",
@@ -40,5 +54,33 @@
     0.01
   ],
   "currentTemplate": "industrialTeal",
-  "cursorColorIndex": 5
+  "cursorColorIndex": 5,
+  
+  "_comment_grid": "═══════════════════════════════════════════════════════════════",
+  "_comment_grid_desc": "Pulse Grid Mode - Rhythmic Movement Parameters",
+  "gridColumns": 40,
+  "gridCellAspect": 1.0,
+  "gridBallCount": 120,
+  "pulseInterval": 0.8,
+  "pulseSpeed": 0.25,
+  "pulseSynchronicity": 0.3,
+  "pulseRandomness": 0.4,
+  "pulseMinSteps": 1,
+  "pulseMaxSteps": 3,
+  "pulseEasingStyle": "snap",
+  "pulseOvershoot": 1.08,
+  "pulseBounceIntensity": 0.15,
+  "gridPreset": "organic",
+  
+  "_comment_shadow": "═══════════════════════════════════════════════════════════════",
+  "_comment_shadow_desc": "Canvas Drop-Shadow Filter Settings",
+  "canvasShadowEnabled": false,
+  "shadowOffsetX": 0,
+  "shadowOffsetY": 4,
+  "shadowBlur": 12,
+  "shadowOpacity": 0.15,
+  "shadowColor": "#000000",
+  "shadow2Enabled": false,
+  "shadow2Blur": 4,
+  "shadow2Opacity": 0.10
 }
