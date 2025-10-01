@@ -388,7 +388,7 @@
   // ═══════════════════════════════════════════════════════════════════════════
   // GLOBAL PARAMETERS (apply to all modes)
   // ═══════════════════════════════════════════════════════════════════════════
-  let ballSoftness = 20; // 0-100: controls squash/stretch on collision (0=hard, 100=very squishy)
+  let ballSoftness = 40; // 0-100: controls squash/stretch on collision (0=hard, 100=very squishy)
   
   // Mode-specific parameters
   // Ball Pit mode parameters - REALISTIC RUBBER BALL PHYSICS
@@ -425,10 +425,10 @@
   
   // Canvas shadow filter parameters
   let canvasShadowEnabled = false;
-  let shadowOffsetX = 1;
-  let shadowOffsetY = 1;
-  let shadowBlur = 0;
-  let shadowOpacity = 0.29;
+  let shadowOffsetX = 0;
+  let shadowOffsetY = 4;
+  let shadowBlur = 12;
+  let shadowOpacity = 0.15;
   let shadowColor = '#000000';
   let shadow2Enabled = false;
   let shadow2Blur = 4;
@@ -914,8 +914,8 @@
   // Base radius values
   const R_MIN_BASE = 6;
   const R_MAX_BASE = 24;
-  let sizeScale = 1.25;    // Global ball size from config
-  let sizeVariation = 0;   // Size variation removed (all balls same size)
+  let sizeScale = 0.7;     // Global ball size from config
+  let sizeVariation = 0.15; // Global size variation from config (reduced from 1.0)
   // Responsive scale: reduce ball size by 60% on mobile breakpoints (≤768px)
   let responsiveScale = 1.0;
   let lastEffectiveScale = null; // tracks previous (sizeScale * responsiveScale)
@@ -1857,13 +1857,12 @@
   }
   
   function emit(dt) {
-    // Ball Pit mode: no continuous spawning (all balls drop at once on mode init)
     // Zero-G and Pulse Grid modes: no continuous spawning, balls are distributed at initialization
-    if (currentMode === MODES.PIT || currentMode === MODES.WEIGHTLESS || currentMode === MODES.PULSE_GRID) {
+    if (currentMode === MODES.WEIGHTLESS || currentMode === MODES.PULSE_GRID) {
       return;
     }
     
-    // Flies mode only: standard top emitter
+    // Ball Pit & Flies modes: standard top emitter
     emitterTimer += dt;
     while (emitterTimer >= EMIT_INTERVAL) {
       // Jitter emissions slightly for organic timing
@@ -2005,16 +2004,13 @@
     }
   }
 
-  // Main loop optimized for 120fps physics with cross-browser compatibility
+  // Main loop optimized for 120fps
   let last = performance.now() / 1000;
   let acc = 0;
-  const DT = 1/120; // Target 120fps physics (fixed timestep)
+  const DT = 1/120; // Target 120fps physics
   function frame(nowMs) {
     const now = nowMs / 1000;
-    // Cap dt at 33ms (30fps min) to handle browser timing differences
-    // Safari (WebKit) runs at ~60fps (16.7ms), Chrome (Blink) can hit 120fps (8ms)
-    // Fixed timestep handles variance, but cap prevents spiral of death
-    let dt = Math.min(0.033, now - last); // Cap at 30fps minimum (cross-browser compatible)
+    let dt = Math.min(0.008, now - last); // Cap at ~120fps for high refresh displays
     last = now;
     acc += dt;
 
@@ -2078,10 +2074,9 @@
     if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
 
     // ═══════════════════════════════════════════════════════════════════
-    // CANVAS 2D RENDERING (Transparent - allows #bravia-balls background to show)
+    // CANVAS 2D RENDERING
     // ═══════════════════════════════════════════════════════════════════
     
-    // Clear canvas with transparency (shows container background color)
     ctx.clearRect(0,0,canvas.width,canvas.height);
     
     // Draw rounded boundary if corner radius > 0 (cache boundary path for performance)
@@ -2290,7 +2285,14 @@
     if (k === '4') setMode(MODES.PULSE_GRID);
   });
 
-  // Note: Ball seeding removed - all modes initialize via setMode() which calls their respective init functions
+  // Seed initial balls across the spawn area for quicker fill
+  function seedArea(n = 160) {
+    for (let i=0; i<n && balls.length < MAX_BALLS; i++) {
+      const p = pickSpawnPoint();
+      spawnBall(p.x, p.y);
+    }
+  }
+  seedArea(CONSTANTS.INITIAL_SEED_BALLS);
 
   // Mouse input (unified handler for repeller + trail recording + boulder dragging)
   let lastTrailRecordTime = 0;
@@ -2823,22 +2825,22 @@
   });
   
   shadowOffsetXEl && shadowOffsetXEl.addEventListener('input', () => {
-    shadowOffsetX = parseFloat(shadowOffsetXEl.value);
-    shadowOffsetXVal && (shadowOffsetXVal.textContent = shadowOffsetX.toFixed(1));
+    shadowOffsetX = parseInt(shadowOffsetXEl.value, 10);
+    shadowOffsetXVal && (shadowOffsetXVal.textContent = shadowOffsetX.toString());
     updateCanvasShadow();
     autoSaveSettings();
   });
   
   shadowOffsetYEl && shadowOffsetYEl.addEventListener('input', () => {
-    shadowOffsetY = parseFloat(shadowOffsetYEl.value);
-    shadowOffsetYVal && (shadowOffsetYVal.textContent = shadowOffsetY.toFixed(1));
+    shadowOffsetY = parseInt(shadowOffsetYEl.value, 10);
+    shadowOffsetYVal && (shadowOffsetYVal.textContent = shadowOffsetY.toString());
     updateCanvasShadow();
     autoSaveSettings();
   });
   
   shadowBlurEl && shadowBlurEl.addEventListener('input', () => {
-    shadowBlur = parseFloat(shadowBlurEl.value);
-    shadowBlurVal && (shadowBlurVal.textContent = shadowBlur.toFixed(1));
+    shadowBlur = parseInt(shadowBlurEl.value, 10);
+    shadowBlurVal && (shadowBlurVal.textContent = shadowBlur.toString());
     updateCanvasShadow();
     autoSaveSettings();
   });
@@ -2924,43 +2926,6 @@
   // ═══════════════════════════════════════════════════════════════════════════
   // PROFESSIONAL WEIGHTLESS SCENE INITIALIZATION
   // ═══════════════════════════════════════════════════════════════════════════
-  
-  /**
-   * Initialize Ball Pit scene with all balls dropping from above viewport
-   * @description Spawns all MAX_BALLS at once above the viewport, distributed horizontally
-   * @returns {void}
-   * @modifies {balls}
-   */
-  function initializeBallPitScene() {
-    balls.length = 0;
-    
-    const targetBalls = MAX_BALLS;
-    const w = canvas.width;
-    const hCss = canvas.clientHeight;
-    
-    // Spawn all balls at once above the viewport
-    // Use SPAWN_Y_VH and SPAWN_W_VW for positioning
-    const spawnYTop = (SPAWN_Y_VH / 100) * hCss * DPR;
-    const spawnYBottom = spawnYTop + (SPAWN_H_VH / 100) * hCss * DPR;
-    const widthCss = (SPAWN_W_VW / 100) * (canvas.clientWidth);
-    const xCenterCss = (SPAWN_X_CENTER_VW / 100) * (canvas.clientWidth);
-    const xLeftCss = xCenterCss - widthCss / 2;
-    const xRightCss = xCenterCss + widthCss / 2;
-    
-    for (let i = 0; i < targetBalls; i++) {
-      // Random position across spawn area
-      const x = (xLeftCss + Math.random() * widthCss) * DPR;
-      const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
-      
-      const ball = spawnBall(x, y);
-      
-      // Small random initial velocity for natural spread (no strong sideways kick)
-      ball.vx = (Math.random() - 0.5) * 100; // Small horizontal variation
-      ball.vy = Math.random() * 50; // Small downward variation
-      ball.driftAx = 0;
-      ball.driftTime = 0;
-    }
-  }
   
   // Initialize flies in idle swarm at viewport center
   function initializeFliesScene() {
@@ -3305,13 +3270,11 @@
       gravityMultiplier = gravityMultiplierPit;
       G = GE * gravityMultiplier;
       repellerEnabled = repellerEnabledPit && (repelPower > 0 && repelRadius > 0);
-      EMITTER_SWEEP_ENABLED = false; // Disable continuous emitter - balls drop all at once
-      // Reset scene when entering Ball Pit: spawn all balls at once above viewport
+      EMITTER_SWEEP_ENABLED = true;
+      // Reset scene when entering Ball Pit
       balls.length = 0;
       emitterTimer = 0;
-      // Spawn all balls at once from above the viewport
-      initializeBallPitScene();
-      // Reset ball sizes to global (after initialization)
+      // Reset ball sizes to global
       resetBallSizeToGlobal();
     } else if (currentMode === MODES.FLIES) {
       gravityMultiplier = 0.0; // no gravity
