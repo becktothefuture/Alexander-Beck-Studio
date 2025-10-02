@@ -28,6 +28,10 @@
     overscroll-behavior: contain;
     -webkit-tap-highlight-color: transparent;
     user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    pointer-events: auto !important; /* Critical: override Webflow's pointer-events: none */
+  }
+  #bravia-balls canvas {
+    pointer-events: auto !important; /* Ensure canvas receives mouse events */
   }
   #bravia-balls.dark-mode {
     background: #0a0a0a; /* Dark mode background */
