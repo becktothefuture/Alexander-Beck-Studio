@@ -253,21 +253,74 @@
   .border-ball-8 { border-color: var(--ball-8); }
 
   
-  /* Production Build Overrides - Ensure mouse interaction works */
-  #bravia-balls {
+  /* Production Build Overrides V2.1 - Maximum Compatibility & Performance */
+  
+  /* INTERACTION LAYER - Highest Priority Z-Index Stack */
+  html body #bravia-balls,
+  html body #bravia-balls canvas,
+  html body div.ball-simulation#bravia-balls {
+    /* Ensure simulation is ALWAYS on top (max possible z-index) */
+    z-index: 2147483647 !important;
+    isolation: isolate !important; /* Create new stacking context */
+    
+    /* Enable all pointer/touch events */
     pointer-events: auto !important;
-    z-index: 200 !important; /* Higher than Webflow viewport (z-index: 1) */
-  }
-  #bravia-balls canvas {
-    pointer-events: auto !important;
-  }
-  .ball-simulation {
-    pointer-events: auto !important; /* Override Webflow's pointer-events: none */
+    touch-action: auto !important;
+    
+    /* Visual feedback */
+    cursor: default !important;
+    
+    /* GPU acceleration for smooth rendering */
+    will-change: transform !important;
+    transform: translateZ(0) !important;
+    
+    /* Ensure positioning */
+    position: fixed !important;
   }
   
-  /* Hide FPS counter styling in production */
-  #fps-counter {
+  /* Ensure ALL nested elements can receive events */
+  #bravia-balls *,
+  #bravia-balls canvas,
+  #bravia-balls #controlPanel,
+  #bravia-balls #controlPanel * {
+    pointer-events: auto !important;
+  }
+  
+  /* Override Webflow utility classes with high specificity */
+  .w-embed.ball-simulation,
+  .ball-simulation.w-embed,
+  div[id="bravia-balls"].ball-simulation {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+    z-index: 2147483647 !important;
+  }
+  
+  /* Mobile viewport fixes */
+  @media (max-width: 768px) {
+    #bravia-balls {
+      height: 100dvh !important; /* Dynamic viewport height for mobile address bars */
+      min-height: -webkit-fill-available !important;
+    }
+  }
+  
+  /* Hide FPS counter completely in production */
+  #fps-counter,
+  #bravia-balls #fps-counter {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  
+  /* Prevent Webflow animations from affecting simulation */
+  #bravia-balls,
+  #bravia-balls * {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  /* Restore only the dark mode transition */
+  #bravia-balls {
+    transition: background-color 0.3s ease !important;
   }
 
   </style>

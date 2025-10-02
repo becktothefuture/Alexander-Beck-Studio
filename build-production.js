@@ -105,21 +105,74 @@ function extractCSS(sourceFile) {
   // Add production-specific CSS overrides at the end to ensure they take precedence
   cssCode += `
   
-  /* Production Build Overrides - Ensure mouse interaction works */
-  #bravia-balls {
+  /* Production Build Overrides V2.1 - Maximum Compatibility & Performance */
+  
+  /* INTERACTION LAYER - Highest Priority Z-Index Stack */
+  html body #bravia-balls,
+  html body #bravia-balls canvas,
+  html body div.ball-simulation#bravia-balls {
+    /* Ensure simulation is ALWAYS on top (max possible z-index) */
+    z-index: 2147483647 !important;
+    isolation: isolate !important; /* Create new stacking context */
+    
+    /* Enable all pointer/touch events */
     pointer-events: auto !important;
-    z-index: 200 !important; /* Higher than Webflow viewport (z-index: 1) */
-  }
-  #bravia-balls canvas {
-    pointer-events: auto !important;
-  }
-  .ball-simulation {
-    pointer-events: auto !important; /* Override Webflow's pointer-events: none */
+    touch-action: auto !important;
+    
+    /* Visual feedback */
+    cursor: default !important;
+    
+    /* GPU acceleration for smooth rendering */
+    will-change: transform !important;
+    transform: translateZ(0) !important;
+    
+    /* Ensure positioning */
+    position: fixed !important;
   }
   
-  /* Hide FPS counter styling in production */
-  #fps-counter {
+  /* Ensure ALL nested elements can receive events */
+  #bravia-balls *,
+  #bravia-balls canvas,
+  #bravia-balls #controlPanel,
+  #bravia-balls #controlPanel * {
+    pointer-events: auto !important;
+  }
+  
+  /* Override Webflow utility classes with high specificity */
+  .w-embed.ball-simulation,
+  .ball-simulation.w-embed,
+  div[id="bravia-balls"].ball-simulation {
+    pointer-events: auto !important;
+    touch-action: auto !important;
+    z-index: 2147483647 !important;
+  }
+  
+  /* Mobile viewport fixes */
+  @media (max-width: 768px) {
+    #bravia-balls {
+      height: 100dvh !important; /* Dynamic viewport height for mobile address bars */
+      min-height: -webkit-fill-available !important;
+    }
+  }
+  
+  /* Hide FPS counter completely in production */
+  #fps-counter,
+  #bravia-balls #fps-counter {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  
+  /* Prevent Webflow animations from affecting simulation */
+  #bravia-balls,
+  #bravia-balls * {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  /* Restore only the dark mode transition */
+  #bravia-balls {
+    transition: background-color 0.3s ease !important;
   }
 `;
   
@@ -282,6 +335,76 @@ async function minifyJavaScript(jsCode) {
 }
 
 /**
+ * Validate build output to catch issues before deployment
+ */
+function validateBuild(htmlContent, cssCode, jsCode) {
+  console.log('🔍 Validating build output...');
+  
+  const issues = [];
+  const warnings = [];
+  
+  // Critical HTML checks
+  if (!htmlContent.includes('id="bravia-balls"')) {
+    issues.push('❌ Simulation container not found in HTML');
+  }
+  if (!htmlContent.includes('<canvas id="c"')) {
+    issues.push('❌ Canvas element missing');
+  }
+  if (!htmlContent.includes('Alexander Beck Studio')) {
+    issues.push('❌ Webflow content missing - page design not preserved');
+  }
+  if (!htmlContent.includes('</html>')) {
+    issues.push('❌ HTML structure incomplete');
+  }
+  
+  // CSS validation
+  if (!cssCode.includes('pointer-events: auto !important')) {
+    warnings.push('⚠️  Mouse interaction CSS missing');
+  }
+  if (!cssCode.includes('z-index: 2147483647')) {
+    warnings.push('⚠️  Max z-index override missing');
+  }
+  if (!cssCode.includes('isolation: isolate')) {
+    warnings.push('⚠️  Stacking context isolation missing');
+  }
+  
+  // JavaScript validation
+  if (jsCode.length < 10000) {
+    issues.push('❌ JavaScript suspiciously small - may be corrupted');
+  }
+  if (!jsCode.includes('MODES')) {
+    issues.push('❌ Core simulation code (MODES) missing');
+  }
+  if (!jsCode.includes('Ball')) {
+    issues.push('❌ Ball class missing from JavaScript');
+  }
+  if (!jsCode.includes('requestAnimationFrame')) {
+    issues.push('❌ Animation loop missing');
+  }
+  
+  // Report issues
+  if (issues.length > 0) {
+    console.error('\\n❌ BUILD VALIDATION FAILED:\\n');
+    issues.forEach(issue => console.error(`   ${issue}`));
+    return false;
+  }
+  
+  // Report warnings
+  if (warnings.length > 0) {
+    console.warn('\\n⚠️  BUILD WARNINGS:\\n');
+    warnings.forEach(warning => console.warn(`   ${warning}`));
+  }
+  
+  // Success
+  console.log('✅ Build validation passed!');
+  console.log(`   HTML: ${htmlContent.length} chars`);
+  console.log(`   CSS: ${cssCode.length} chars`);
+  console.log(`   JS: ${jsCode.length} chars`);
+  
+  return true;
+}
+
+/**
  * Integrate simulation into Webflow export
  * Replaces the placeholder element with the complete simulation container
  */
@@ -372,6 +495,13 @@ async function buildProduction() {
       cssCode,
       minifiedJS
     );
+    console.log('');
+    
+    // Step 7.5: Validate build BEFORE writing
+    if (!validateBuild(integratedHTML, cssCode, minifiedJS)) {
+      throw new Error('Build validation failed - aborting to prevent corrupted deployment');
+    }
+    console.log('');
     
     // Step 8: Write integrated HTML
     fs.writeFileSync(webflowIndexPath, integratedHTML);
