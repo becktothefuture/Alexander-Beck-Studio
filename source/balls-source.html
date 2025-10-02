@@ -281,6 +281,7 @@
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
     <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 8px;">💾 Save Config</button>
     <button id="buildBtn" style="background: #2196F3; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">🚀 Build Embed</button>
+    <div style="font-size: 9px; opacity: 0.7; margin-top: 6px; line-height: 1.3;">Save downloads current-config.json → replace in source/ folder</div>
     <div id="configOutput" style="margin-top: 8px; font-family: monospace; font-size: 10px; color: #333; max-height: 120px; overflow-y: auto; display: none; text-align: left; background: rgba(255,255,255,0.8); padding: 6px; border-radius: 3px;"></div>
     </div>
   
@@ -2109,7 +2110,20 @@
       // Draw main ball first
         ctx.beginPath();
         ctx.arc(0, 0, this.r, 0, Math.PI*2);
-        ctx.fillStyle = this.color;
+        
+        // Speed-based coloring for Vortex mode
+        let finalColor = this.color;
+        if (currentMode === MODES.VORTEX && vortexSpeedColorEnabled) {
+          const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+          const maxSpeed = 800; // Reference speed for color mapping
+          const speedRatio = Math.min(speed / maxSpeed, 1);
+          
+          // Shift color based on speed (blue=slow, red=fast)
+          const hue = 220 - speedRatio * 220; // 220 (blue) to 0 (red)
+          finalColor = `hsl(${hue}, 70%, 55%)`;
+        }
+        
+        ctx.fillStyle = finalColor;
         ctx.fill();
 
       ctx.restore();
@@ -2432,6 +2446,11 @@
     if (renderFrameCount % 60 === 0) {
       updateTextColliders();
     }
+    
+    // Update gravity wells for Vortex mode
+    if (currentMode === MODES.VORTEX) {
+      updateGravityWells();
+    }
 
     // Physics iterations optimized for realistic, stable simulation
     let physicsSteps = 0;
@@ -2439,11 +2458,18 @@
       // Skip physics step for pulse grid mode (movement handled by updatePulseGrid)
       if (currentMode !== MODES.PULSE_GRID) {
         const len = balls.length; // Cache length (saves 300+ lookups per frame at max balls)
-        for (let i=0; i<len; i++) balls[i].step(DT);
+        for (let i=0; i<len; i++) {
+          balls[i].step(DT);
+          
+          // Apply gravity well forces in Vortex mode
+          if (currentMode === MODES.VORTEX) {
+            applyGravityWellForces(balls[i], DT);
+          }
+        }
       }
       
-      // Ball-to-ball collisions (disabled for Flies and Pulse Grid modes)
-      if (currentMode !== MODES.FLIES && currentMode !== MODES.PULSE_GRID) {
+      // Ball-to-ball collisions (disabled for Flies, Pulse Grid, and Vortex modes)
+      if (currentMode !== MODES.FLIES && currentMode !== MODES.PULSE_GRID && currentMode !== MODES.VORTEX) {
         resolveCollisions(currentCollisionIters); // Dynamic iterations based on adaptive quality
       }
       
@@ -3014,17 +3040,26 @@
   if (saveConfigBtn && buildBtn && configOutput) {
     saveConfigBtn.addEventListener('click', () => {
       const config = captureCurrentConfig();
-      const code = generateConfigCode(config);
+      
+      // Download as current-config.json (overwrites the default)
+      const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'current-config.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      // Show success message
       configOutput.style.display = 'block';
-      configOutput.textContent = code;
-      navigator.clipboard.writeText(code).then(() => {
-        const old = saveConfigBtn.textContent; saveConfigBtn.textContent = '✅ Copied!';
-        setTimeout(() => { saveConfigBtn.textContent = old; }, 1200);
-      }).catch(() => {
-        console.warn('Clipboard copy failed');
-        const old = saveConfigBtn.textContent; saveConfigBtn.textContent = '⚠️ Copy failed';
-        setTimeout(() => { saveConfigBtn.textContent = old; }, 1200);
-      });
+      configOutput.innerHTML = `
+<strong>💾 Config Saved!</strong><br>
+Replace <code>source/current-config.json</code> with the downloaded file.<br>
+Then rebuild: <code>npm run build-production</code>`;
+      
+      const old = saveConfigBtn.textContent;
+      saveConfigBtn.textContent = '✅ Downloaded!';
+      setTimeout(() => { saveConfigBtn.textContent = old; }, 2000);
     });
     buildBtn.addEventListener('click', () => {
       const config = captureCurrentConfig();
@@ -3461,6 +3496,124 @@
     };
   }
   
+  /**
+   * Initialize gravity wells for vortex mode
+   * @description Creates central gravity well and resets permanent wells array
+   * @returns {void}
+   * @modifies {gravityWells, permanentWells}
+   */
+  function initializeGravityWells() {
+    gravityWells = [];
+    permanentWells = [];
+    
+    // Central gravity well at canvas center
+    const centralWell = {
+      x: canvas.width / (2 * DPR),
+      y: canvas.height / (2 * DPR),
+      strength: vortexWellStrength,
+      isPermanent: true
+    };
+    gravityWells.push(centralWell);
+    permanentWells.push(centralWell);
+  }
+
+  /**
+   * Update gravity wells (add mouse well if in canvas)
+   * @description Rebuilds gravity wells array with permanent wells plus optional mouse well
+   * @returns {void}
+   * @modifies {gravityWells}
+   */
+  function updateGravityWells() {
+    // Start with permanent wells
+    gravityWells = [...permanentWells];
+    
+    // Add mouse well if cursor is over canvas
+    if (mouseInCanvas && vortexMouseWellStrength > 0) {
+      gravityWells.push({
+        x: mouseX,
+        y: mouseY,
+        strength: vortexMouseWellStrength,
+        isPermanent: false
+      });
+    }
+  }
+
+  /**
+   * Apply gravitational forces from all wells to a ball
+   * @description Calculates and applies inverse-square gravitational forces with orbital decay
+   * @param {Ball} ball - Ball to apply forces to
+   * @param {number} dt - Physics timestep (seconds)
+   * @returns {void}
+   * @modifies {ball.vx, ball.vy}
+   */
+  function applyGravityWellForces(ball, dt) {
+    for (const well of gravityWells) {
+      const dx = well.x - ball.x;
+      const dy = well.y - ball.y;
+      const distSq = dx * dx + dy * dy;
+      const dist = Math.sqrt(distSq);
+      
+      // Prevent division by zero and extreme forces
+      if (dist < 5) continue;
+      
+      // Inverse-square gravitational force: F = GM/r²
+      const forceMagnitude = (well.strength / distSq) * dt;
+      
+      // Apply force in direction of well
+      ball.vx += (dx / dist) * forceMagnitude;
+      ball.vy += (dy / dist) * forceMagnitude;
+    }
+    
+    // Apply orbital decay (energy loss/gain over time)
+    if (vortexDecayRate !== 0) {
+      ball.vx *= (1 - vortexDecayRate);
+      ball.vy *= (1 - vortexDecayRate);
+    }
+  }
+
+  /**
+   * Initialize Vortex mode scene with circular distribution and orbital velocities
+   * @description Creates balls in ring around center with tangential velocities for orbits
+   * @returns {void}
+   * @modifies {balls, gravityWells}
+   */
+  function initializeVortexScene() {
+    balls.length = 0;
+    initializeGravityWells();
+    
+    const w = canvas.width / DPR;
+    const h = canvas.height / DPR;
+    const centerX = w / 2;
+    const centerY = h / 2;
+    
+    // Distribute balls in circular ring around center
+    const minRadius = Math.min(w, h) * 0.15; // Inner ring radius
+    const maxRadius = Math.min(w, h) * 0.35; // Outer ring radius
+    
+    for (let i = 0; i < vortexBallCount; i++) {
+      // Random position in ring
+      const angle = (Math.PI * 2 * i) / vortexBallCount + (Math.random() - 0.5) * 0.5;
+      const radius = minRadius + Math.random() * (maxRadius - minRadius);
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
+      
+      // Calculate tangential velocity for circular orbit
+      // v = sqrt(GM/r) for stable orbit, with some randomness
+      const orbitalSpeed = vortexInitialSpeed * (0.7 + Math.random() * 0.6);
+      const vx = -Math.sin(angle) * orbitalSpeed;
+      const vy = Math.cos(angle) * orbitalSpeed;
+      
+      // Random ball size with variation
+      const r = BASE_RADIUS * effectiveScale * (0.9 + Math.random() * 0.2);
+      
+      // Create ball with orbital velocity
+      const ball = new Ball(x, y, r, vx, vy);
+      balls.push(ball);
+    }
+    
+    log(`🌀 Vortex scene initialized: ${vortexBallCount} balls in orbital ring`);
+  }
+
   /**
    * Initialize Pulse Grid scene with rhythmic ball placement
    * @description Clears existing balls and spawns new ones in unique grid cells with staggered jump times.
