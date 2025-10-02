@@ -1,28 +1,28 @@
 {
   "_comment_physics": "═══════════════════════════════════════════════════════════════",
   "_comment_physics_desc": "Ball Pit Mode - Physics & Movement Parameters",
-  "gravityMultiplier": 1.1,
+  "gravityMultiplier": 1.05,
   "restitution": 0.88,
-  "friction": 0.003,
-  "ballMass": 11.2,
+  "friction": 0.0065,
+  "ballMass": 91,
   
   "_comment_spawn": "═══════════════════════════════════════════════════════════════",
   "_comment_spawn_desc": "Ball Spawning & Emission Settings",
   "emitRate": 0.03,
-  "maxBalls": 400,
-  "ballScale": 1.3,
+  "maxBalls": 350,
+  "ballScale": 1,
   "ballVariation": 0.15,
   "spawnX": 50,
   "spawnY": -50,
   "spawnWidth": 100,
   "spawnHeight": 50,
-  "sweepEnabled": true,
+  "sweepEnabled": false,
   
   "_comment_repeller": "═══════════════════════════════════════════════════════════════",
   "_comment_repeller_desc": "Mouse Repeller Settings (Ball Pit Mode)",
-  "repelRadius": 255,
-  "repelPower": 274000,
-  "repelSoftness": 4.4,
+  "repelRadius": 135,
+  "repelPower": 1536000,
+  "repelSoftness": 3.4,
   
   "_comment_visual": "═══════════════════════════════════════════════════════════════",
   "_comment_visual_desc": "Scene & Visual Effects",
@@ -54,7 +54,7 @@
     0.01
   ],
   "currentTemplate": "industrialTeal",
-  "cursorColorIndex": 5,
+  "cursorColorIndex": 4,
   
   "_comment_grid": "═══════════════════════════════════════════════════════════════",
   "_comment_grid_desc": "Pulse Grid Mode - Rhythmic Movement Parameters",
@@ -82,5 +82,11 @@
   "shadowColor": "#000000",
   "shadow2Enabled": false,
   "shadow2Blur": 4,
-  "shadow2Opacity": 0.10
+  "shadow2Opacity": 0.10,
+  
+  "_comment_performance": "═══════════════════════════════════════════════════════════════",
+  "_comment_performance_desc": "Performance & Optimization Settings",
+  "performanceMode": false,
+  "targetFPS": 60,
+  "enableLOD": true
 }
