@@ -13,7 +13,7 @@
 - ✅ No global style pollution
 
 ### Features Working
-- ✅ 3 modes (Pit, Flies, Zero-G)
+- ✅ 5 modes (Ball Pit, Flies, Zero-G, Pulse Grid, Vortex)
 - ✅ Dual palettes (light/dark variants)
 - ✅ Time-based dark mode (6 PM - 6 AM)
 - ✅ Canvas shadow controls
@@ -140,7 +140,7 @@ Just include the simulation in existing site.
 ## Post-Deployment Testing
 
 ### Functional Tests
-- [ ] All 3 modes load (keys 1, 2, 3)
+- [ ] All 5 modes load (keys 1, 2, 3, 4, 5)
 - [ ] Dark mode activates correctly
 - [ ] Mouse/touch interaction works
 - [ ] Panel toggles with `/` key

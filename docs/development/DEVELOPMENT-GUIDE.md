@@ -140,7 +140,7 @@ function setMode(mode) {
 ## Testing
 
 ### Manual Testing Checklist
-- [ ] All three modes work correctly
+- [ ] All five modes work correctly (keys 1-5)
 - [ ] Keyboard shortcuts respond
 - [ ] Control panel updates live
 - [ ] Performance stays above 50 FPS

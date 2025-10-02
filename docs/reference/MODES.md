@@ -1,6 +1,6 @@
 # Mode Specifications
 
-Detailed specifications for each of the three simulation modes.
+Detailed specifications for each of the five simulation modes.
 
 ---
 
@@ -154,6 +154,110 @@ Perpetual motion machine simulating realistic space physics with near-perfect en
 - Bounce elasticity (0.8 - 1.0, realistic space: 0.95-0.98)
 - Repeller power (0 - 800, subtle in zero-g)
 - Repeller radius (50 - 300px)
+
+---
+
+## Mode 4: Pulse Grid 🎹
+
+### Purpose
+Choreographed rhythmic motion with synchronized pulsation patterns on a fixed grid.
+
+### Physics Behavior
+- **Gravity**: None (programmatic movement)
+- **Collisions**: None (ghost through each other)
+- **Movement**: Vertical jumping motion on fixed grid positions
+- **Synchronization**: Configurable (0% = random, 100% = perfectly synchronized)
+- **Jump Amplitude**: Configurable height (default: canvas height * 0.3)
+- **Grid Layout**: Dynamic based on viewport size (~40 columns)
+
+### Spawning
+- **Location**: Distributed across entire viewport in grid formation
+- **Method**: One-time initialization using Fisher-Yates shuffle for even distribution
+- **Ball Count**: Configurable (default: 120 balls)
+- **Initial State**: Balls at rest on grid with staggered jump times
+
+### User Interaction
+- **Mouse**: No direct interaction (autonomous choreography)
+- **Keyboard**: Press `4` to activate mode
+- **Reset**: Re-initializes grid with new random distribution
+
+### Visual Effects
+- **Rhythmic Pulsation**: Synchronized vertical jumps
+- **Grid Precision**: Balls return to exact grid positions
+- **Choreographed Beauty**: Emergent wave patterns from timing variations
+
+### Canvas
+- **Height**: 100svh (viewport-sized)
+- **Viewport Top**: At y = 0
+
+### Performance Characteristics
+- **200+ balls**: 60 FPS ✅ (Excellent - no physics calculations)
+- **Bottleneck**: None (simple programmatic motion)
+
+### Controls (Development Panel)
+- Ball count (20 - 300)
+- Jump synchronicity (0% - 100%)
+- Jump amplitude (10% - 80% of canvas height)
+- Animation speed multiplier (0.2x - 3.0x)
+
+---
+
+## Mode 5: Vortex 🌀
+
+### Purpose
+Mesmerizing orbital mechanics simulation with dynamic gravity wells and 3D depth effects.
+
+### Physics Behavior (**Orbital Mechanics**)
+- **Gravity Wells**: Central well that follows mouse cursor (or stays centered when mouse outside)
+- **Well Strength**: 5000 (configurable 1000-15000, creates stable orbital motion)
+- **Orbit Decay**: 0.995 per frame (gradual energy loss creates spiral effect)
+- **Initial Speed**: 180 px/s (orbital velocity calculated for stable circular motion)
+- **Ball-to-Ball Collision**: None (performance optimization)
+- **Wall Bouncing**: Yes (keeps balls contained)
+- **Speed Coloring**: Disabled by default (balls maintain palette colors)
+
+### Spawning
+- **Location**: Circular ring around viewport center (15%-35% of canvas size)
+- **Method**: One-time initialization with tangential velocity for stable orbits
+- **Ball Count**: Configurable (default: 200 balls)
+- **Initial Pattern**: Evenly distributed around ring with randomized radial positions
+- **Orbital Velocity**: Calculated per-ball for circular orbit (v = sqrt(GM/r) with variation)
+
+### User Interaction
+- **Mouse Cursor**: Gravity well moves to cursor position when mouse enters canvas
+- **Default Position**: Viewport center when mouse is outside canvas
+- **Keyboard**: Press `5` to activate mode
+- **Reset**: Re-initializes orbital ring with new random distribution
+
+### Visual Effects
+- **Orbital Motion**: Smooth spiraling trajectories around gravity well
+- **3D Depth**: Speed-based perspective (faster = closer illusion)
+- **Dynamic Center**: Vortex follows cursor creating interactive orbital patterns
+- **Palette Colors**: Maintains theme colors (speed coloring disabled)
+
+### Canvas
+- **Height**: 100svh (viewport-sized)
+- **Viewport Top**: At y = 0
+- **Boundaries**: Walls enabled to contain orbital motion
+
+### Performance Characteristics
+- **200 balls**: 60 FPS ✅ (Excellent)
+- **300 balls**: 58-60 FPS ✅
+- **Bottleneck**: Gravity force calculations (O(n) per ball)
+- **Optimization**: No collision detection, single gravity well
+
+### Controls (Development Panel)
+- Ball count (50 - 300)
+- Well strength (1000 - 15000, affects orbital radius)
+- Initial orbital speed (50 - 400 px/s)
+- Orbit decay (0.98 - 1.0, higher = tighter spirals)
+- Speed-based coloring toggle (disabled by default)
+
+### Technical Notes
+- **Inverse-Square Law**: Gravity force uses realistic F = G*M/r² calculation
+- **Orbital Stability**: Initial velocities calculated for stable circular orbits
+- **Dynamic Well**: Single gravity well updates position every frame based on mouse
+- **Energy Conservation**: Minimal decay (99.5%) maintains long-term orbital motion
 
 ---
 

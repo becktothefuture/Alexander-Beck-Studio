@@ -4,11 +4,12 @@
 
 ## 🎯 Project Context
 
-**High-performance particle physics simulation** with 4 modes:
+**High-performance particle physics simulation** with 5 modes:
 - Ball Pit (gravity + collisions)
 - Flies (swarm behavior)
 - Zero-G (weightless bounce)
 - Pulse Grid (synchronized grid motion)
+- Vortex (orbital mechanics with gravity wells)
 
 ## ⚠️ CRITICAL: Documentation is Source of Truth
 
@@ -89,7 +90,7 @@ npm run watch          # Auto-rebuild
 6. **Zero npm dependencies** - Core is vanilla JS
 7. **Accessibility** - Respect `prefers-reduced-motion`
 8. **Edit source/**, never edit `public/` directly
-9. **4 modes (not 3)** - Ball Pit, Flies, Zero-G, Pulse Grid
+9. **5 modes** - Ball Pit, Flies, Zero-G, Pulse Grid, Vortex
 
 ## 🔧 Architecture Quick Reference
 
@@ -120,9 +121,11 @@ class Ball {
 **Mode System:**
 ```javascript
 const MODES = {
-  PIT: 'pit',          // 150vh, collisions, gravity
-  FLIES: 'flies',      // 100svh, no collisions, attraction
-  WEIGHTLESS: 'weightless' // 100svh, collisions, no gravity
+  PIT: 'pit',               // 150vh, collisions, gravity
+  FLIES: 'flies',           // 100svh, no collisions, attraction
+  WEIGHTLESS: 'weightless', // 100svh, collisions, no gravity
+  PULSE_GRID: 'pulse-grid', // 100svh, grid choreography
+  VORTEX: 'vortex'          // 100svh, orbital mechanics
 };
 ```
 
@@ -176,7 +179,7 @@ const MODES = {
 ## 🧪 Testing Checklist
 
 Manual testing required:
-- [ ] All 3 modes work (keys 1, 2, 3)
+- [ ] All 5 modes work (keys 1, 2, 3, 4, 5)
 - [ ] 60 FPS stable
 - [ ] Mouse/touch interaction
 - [ ] Panel controls (key `/`)

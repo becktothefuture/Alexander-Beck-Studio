@@ -28,11 +28,12 @@
 
 ## Features
 
-**Four Physics Modes:**
+**Five Physics Modes:**
 - 🎯 **Ball Pit** - Gravity-driven cascade with collision dynamics and cursor repulsion field
 - 🕊️ **Flies** - Emergent swarm behavior with attraction to cursor luminance
 - 🌌 **Zero-G** - Weightless elastic collisions in frictionless void
 - 🔷 **Pulse Grid** - Choreographed grid-based pulsation with synchronized motion sequencing
+- 🌀 **Vortex** - Orbital mechanics with dynamic gravity wells following mouse cursor
 
 **Performance:**
 - 60 FPS sustained with 200+ particles
@@ -69,6 +70,7 @@ npm run build
 | `2` | Flies mode |
 | `3` | Zero-G mode |
 | `4` | Pulse Grid mode |
+| `5` | Vortex mode |
 | `R` | Reset simulation |
 | `/` | Toggle control panel |
 
