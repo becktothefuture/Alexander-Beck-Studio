@@ -159,16 +159,16 @@ Perpetual motion machine simulating realistic space physics with near-perfect en
 
 ## Mode Comparison Matrix
 
-| Feature | Ball Pit | Flies | Zero-G |
-|---------|----------|-------|---------|
-| **Gravity** | ✅ Yes | ❌ No | ❌ No |
-| **Ball-to-Ball Collision** | ✅ Yes | ❌ No | ✅ Yes |
-| **Wall Collision** | ✅ Yes | ✅ Yes | ✅ Yes |
-| **Mouse Interaction** | Repeller | Attractor | Repeller (subtle) |
-| **Spawning** | Continuous | Continuous | One-time |
-| **Canvas Height** | 150vh | 100svh | 100svh |
-| **Energy Loss** | High (friction) | N/A | Minimal |
-| **Performance** | Good | Excellent | Good |
+| Feature | Ball Pit | Flies | Zero-G | Pulse Grid | Vortex |
+|---------|----------|-------|---------|-----------|---------|
+| **Gravity** | ✅ Yes | ❌ No | ❌ No | ❌ No | ⚡ Wells |
+| **Ball-to-Ball Collision** | ✅ Yes | ❌ No | ✅ Yes | ❌ No | ❌ No |
+| **Wall Collision** | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No | ✅ Yes |
+| **Mouse Interaction** | Repeller | Attractor | Repeller | None | Gravity Well |
+| **Spawning** | Continuous | One-time | One-time | One-time | One-time |
+| **Canvas Height** | 150vh | 100svh | 100svh | 100svh | 100svh |
+| **Energy Loss** | High (friction) | N/A | Minimal | N/A | Minimal (decay) |
+| **Performance** | Good | Excellent | Good | Excellent | Excellent |
 
 ---
 
@@ -215,6 +215,63 @@ Perpetual motion machine simulating realistic space physics with near-perfect en
 
 ---
 
+## Mode 5: Vortex Spiral 🌀
+
+### Purpose
+Mesmerizing orbital mechanics simulation where balls orbit around gravity wells, creating spiral galaxy patterns with mouse-controlled gravitational sculpting.
+
+### Physics Behavior (**Orbital Mechanics**)
+- **Gravity Wells**: Inverse-square gravitational attraction (F = GM/r²)
+- **Central Well**: Fixed gravity well at canvas center (configurable strength)
+- **Mouse Well**: Cursor creates temporary gravity well when over canvas
+- **Orbital Velocity**: Balls maintain angular momentum, creating varied orbital paths
+- **Orbital Decay**: Slight energy loss causes gradual spiral motion (positive=inward, negative=outward)
+- **No World Gravity**: Only well-based gravitational forces apply
+- **No Collisions**: Performance optimization (like Flies mode)
+- **No Air Drag**: Minimal friction to preserve orbital motion
+
+### Spawning
+- **Location**: Circular ring around canvas center
+- **Method**: One-time initialization (no continuous spawning)
+- **Ball Count**: Default 200 balls (configurable 50-300)
+- **Initial Velocity**: Tangential velocities for stable orbits with random variation
+- **Distribution**: Evenly spaced angles with varied radial distances
+
+### User Interaction
+- **Mouse Gravity Well**: Cursor creates attractive force pulling nearby balls
+- **Strength**: Configurable mouse well strength (0-10000)
+- **Effect**: Balls curve toward mouse, can be captured into temporary orbits
+- **No Clicking Required**: Passive attraction while mouse is over canvas
+- **Keyboard**: Press `5` to activate mode
+
+### Visual Effects
+- **Speed-based coloring**: Dynamic color shift based on velocity (blue=slow, red=fast)
+- **Mesmerizing patterns**: Emergent spiral and orbital behaviors
+- **Figure-8 orbits**: Mouse well creates complex multi-body trajectories
+- **Optional trails**: Motion blur effect (currently disabled by default)
+
+### Canvas
+- **Height**: 100svh (viewport-sized)
+- **Viewport Top**: At y = 0 (standard 4-wall boundaries)
+- **Edge Behavior**: Balls naturally stay near center due to gravity wells
+
+### Performance Characteristics
+- **200 balls**: 60 FPS ✅
+- **250 balls**: 60 FPS ✅ 
+- **300 balls**: 55-60 FPS ✅
+- **Bottleneck**: Gravity force calculations O(n × w) where w = well count (typically 1-2)
+- **Better than Ball Pit**: No collision detection overhead
+
+### Controls (Development Panel)
+- Central well strength (1000 - 15000, realistic: 4000-6000)
+- Mouse well strength (0 - 10000, realistic: 2000-4000)
+- Ball count (50 - 300)
+- Initial speed (50 - 400 px/s, realistic: 150-250)
+- Orbital decay (-0.001 to +0.001, positive=spiral in, negative=spiral out)
+- Speed coloring (on/off - enables blue-to-red velocity gradient)
+
+---
+
 ## Keyboard Shortcuts
 
 | Key | Action |
@@ -222,6 +279,8 @@ Perpetual motion machine simulating realistic space physics with near-perfect en
 | `1` | Switch to Ball Pit |
 | `2` | Switch to Flies |
 | `3` | Switch to Zero-G |
+| `4` | Switch to Pulse Grid |
+| `5` | Switch to Vortex Spiral |
 | `R` | Reset scene |
 | `/` | Toggle control panel |
 

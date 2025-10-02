@@ -652,12 +652,6 @@
         </label>
       </div>
     </details>
-    
-    <!-- Save & Reset Controls -->
-    <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid rgba(255,255,255,0.15);">
-      <button id="resetBtn" style="padding: 10px 16px; background: #ff6b47; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; width: 100%; font-size: 14px;">🔄 Reset to Defaults</button>
-      <div style="font-size: 9px; opacity: 0.7; margin-top: 8px; text-align: center;">Clears saved settings & reloads with defaults</div>
-    </div>
   </div>
   
   <!-- Vortex Mode Controls -->
@@ -2795,11 +2789,12 @@
       e.preventDefault();
       panel.classList.toggle('hidden');
     }
-    // Quick mode switches 1-4
+    // Quick mode switches 1-5
     if (k === '1') setMode(MODES.PIT);
     if (k === '2') setMode(MODES.FLIES);
     if (k === '3') setMode(MODES.WEIGHTLESS);
     if (k === '4') setMode(MODES.PULSE_GRID);
+    if (k === '5') setMode(MODES.VORTEX);
   });
 
   // Note: Ball seeding removed - all modes initialize via setMode() which calls their respective init functions

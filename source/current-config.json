@@ -72,6 +72,16 @@
   "pulseBounceIntensity": 0.15,
   "gridPreset": "organic",
   
+  "_comment_vortex": "═══════════════════════════════════════════════════════════════",
+  "_comment_vortex_desc": "Vortex Mode - Orbital Mechanics Parameters",
+  "vortexWellStrength": 5000,
+  "vortexMouseWellStrength": 3000,
+  "vortexBallCount": 200,
+  "vortexInitialSpeed": 180,
+  "vortexDecayRate": 0.0002,
+  "vortexTrailLength": 0,
+  "vortexSpeedColorEnabled": true,
+  
   "_comment_shadow": "═══════════════════════════════════════════════════════════════",
   "_comment_shadow_desc": "Canvas Drop-Shadow Filter Settings",
   "canvasShadowEnabled": false,
