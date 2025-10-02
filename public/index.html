@@ -392,7 +392,7 @@
   
   // Mode-specific parameters
   // Ball Pit mode parameters - REALISTIC RUBBER BALL PHYSICS
-  let gravityMultiplierPit = 1.15; // Slightly heavier feel for realism
+  let gravityMultiplierPit = 1.05; // Lighter, floatier feel (updated from config)
   let repellerEnabledPit = true;
   
   // Flies mode parameters - REALISTIC INSECT FLIGHT (mosquitoes/gnats)
@@ -903,7 +903,7 @@
   let gravityMultiplier = 0; // Zero gravity (weightless mode)
   let G = GE * gravityMultiplier;
   let REST = 0.88;        // restitution from config
-  let FRICTION = 0.003;   // air drag from config
+  let FRICTION = 0.0065;  // air drag from config (increased for faster settling)
   let EMIT_INTERVAL = 0.03; // seconds between drops from config
   let MAX_BALLS = 350;    // max balls from config
   const SOLVER_ITERS = 6;    // Optimized for realistic collisions without jitter
@@ -914,13 +914,13 @@
   // Base radius values
   const R_MIN_BASE = 6;
   const R_MAX_BASE = 24;
-  let sizeScale = 1.3;    // Global ball size from config
+  let sizeScale = 1.0;    // Global ball size from config (updated to match frontend)
   let sizeVariation = 0;   // Size variation removed (all balls same size)
   // Responsive scale: reduce ball size by 60% on mobile breakpoints (≤768px)
   let responsiveScale = 1.0;
   let lastEffectiveScale = null; // tracks previous (sizeScale * responsiveScale)
   // Global mass model: all balls share the same mass in kg
-  let ballMassKg = 19.8; // Mass from config (lighter than previous 120g)
+  let ballMassKg = 91; // Mass from config (heavier for more momentum)
   // Mass influence tuning
   const MASS_GRAVITY_EXP = 0.35; // how much mass influences gravity (perceptual)
   const MASS_REST_EXP = 0.15;    // how much mass influences bounce restitution
@@ -1107,9 +1107,9 @@
 
   let currentTemplate = 'industrialTeal';
   let currentColors = COLOR_TEMPLATES.industrialTeal.light.slice(); // 8 colors, light variant by default
-  // Cursor color: default to Color 5 (highlight)
+  // Cursor color: default to Color 4 (hero teal)
   let cursorBallIndex = 4;
-  let cursorBallColor = currentColors[cursorBallIndex] || '#000000';
+  let cursorBallColor = currentColors[cursorBallIndex] || '#00695c';
   
   /**
    * Get current color palette based on dark mode state
@@ -1207,6 +1207,7 @@
   // Settings persistence using localStorage
   const STORAGE_KEY = 'bouncyBallsSettings';
   const SETTINGS_VERSION = 2; // Increment to invalidate old localStorage (v2: ball size 1.3 default)
+  const LOCALSTORAGE_ENABLED = false; // DISABLED - localStorage causes config issues
   
   /**
    * Persist current UI/simulation settings to localStorage
@@ -1215,6 +1216,10 @@
    * @throws {Error} If localStorage is unavailable or quota exceeded
    */
   function saveSettings() {
+    if (!LOCALSTORAGE_ENABLED) {
+      log('⚠️ localStorage is disabled');
+      return;
+    }
     const settings = {
       version: SETTINGS_VERSION, // Version number to invalidate old settings
       currentMode,
@@ -1281,6 +1286,10 @@
    * @returns {boolean} True if settings loaded successfully, false otherwise
    */
   function loadSettings() {
+    if (!LOCALSTORAGE_ENABLED) {
+      log('⚠️ localStorage is disabled - using defaults');
+      return false;
+    }
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -3414,9 +3423,11 @@
   const resetBtn = document.getElementById('resetBtn');
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
-      if (confirm('Reset all settings to defaults? This will clear saved preferences and reload the page.')) {
-        localStorage.removeItem(STORAGE_KEY);
-        log('🔄 Settings cleared - reloading...');
+      if (confirm('Reset all settings to defaults? This will reload the page with default values.')) {
+        if (LOCALSTORAGE_ENABLED) {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+        log('🔄 Reloading with defaults...');
         location.reload();
       }
     });
