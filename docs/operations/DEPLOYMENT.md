@@ -34,7 +34,7 @@
 npm run build
 
 # Full Webflow integration
-npm run build-production
+npm run build
 
 # Watch mode (development)
 npm run watch
@@ -73,7 +73,7 @@ git push origin gh-pages
 
 **Method B: Git Integration**
 1. Connect GitHub repo
-2. Build command: `npm run build-production`
+2. Build command: `npm run build`
 3. Publish directory: `public`
 4. Deploy
 
@@ -219,7 +219,7 @@ git log --oneline
 git checkout <commit-hash>
 
 # 3. Rebuild
-npm run build-production
+npm run build
 
 # 4. Redeploy
 # (platform-specific)
@@ -260,7 +260,7 @@ The 8% gap is infrastructure (CI/CD, monitoring) that can be added post-launch.
 ```bash
 # Clean and rebuild
 rm -rf public/
-npm run build-production
+npm run build
 
 # Check for syntax errors
 node source/build.js

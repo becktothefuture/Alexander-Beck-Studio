@@ -113,9 +113,9 @@ A vanilla JavaScript particle physics system featuring:
 
 ```bash
 npm start              # Dev server
-npm run build          # Production build
-npm run watch          # Auto-rebuild
-npm run build-production  # Full Webflow integration
+npm run build          # Full production build (Webflow + simulation)
+npm run build:embed-only  # Standalone embed JS only
+npm run watch          # Auto-rebuild on changes
 ```
 
 ## License

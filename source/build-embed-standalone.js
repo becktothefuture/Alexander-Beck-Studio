@@ -1,4 +1,12 @@
 #!/usr/bin/env node
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                    STANDALONE EMBED BUILD SCRIPT (LEGACY)                   ║
+// ║                                                                              ║
+// ║  Purpose: Generate standalone bouncy-balls-embed.js only                    ║
+// ║  Note: For full site build, use build-production.js instead                 ║
+// ║  Usage: npm run build:embed-only                                            ║
+// ║                                                                              ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
 
 const fs = require('fs');
 const path = require('path');

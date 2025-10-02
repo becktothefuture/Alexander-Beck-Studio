@@ -58,8 +58,9 @@ npm install
 # Development
 npm start              # http://localhost:8000
 
-# Production
-npm run build
+# Production Build
+npm run build          # Full site (Webflow + simulation)
+npm run build:embed-only  # Standalone JS only
 ```
 
 ## Controls
@@ -132,9 +133,10 @@ npm run build
 ### Scripts
 ```bash
 npm start              # Dev server (port 8000)
-npm run build          # Production build
-npm run watch          # Auto-rebuild on changes
-npm run build-production  # Full Webflow integration
+npm run build          # Full production build (Webflow + simulation)
+npm run build:embed-only  # Standalone embed JS only
+npm run watch          # Auto-rebuild on source/webflow changes
+npm run help           # Show all available commands
 ```
 
 ---

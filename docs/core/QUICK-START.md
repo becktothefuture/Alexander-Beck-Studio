@@ -24,7 +24,7 @@ npm start
 
 1. **Edit**: `source/balls-source.html`
 2. **Test**: Refresh browser
-3. **Build**: `npm run build`
+3. **Build**: `npm run build` (generates `public/` from `webflow-export/` + `source/`)
 
 ## Integration
 

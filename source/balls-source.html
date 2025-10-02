@@ -289,7 +289,7 @@
   <details open>
     <summary>🌐 Global Ball Properties</summary>
     <div class="group">
-        <label title="Global ball size scale (0.1-6.0). Smaller = more balls fit, larger = more dramatic collisions">Size: <span class="val" id="sizeValGlobal">1.0</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="1.0"></label>
+        <label title="Global ball size scale (0.1-6.0). Smaller = more balls fit, larger = more dramatic collisions">Size: <span class="val" id="sizeValGlobal">1.2</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="1.2"></label>
         <label title="Ball deformation on collision (0-100). 0 = rigid/hard, 100 = very soft/squishy">Softness: <span class="val" id="ballSoftnessValGlobal">20</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="20"></label>
         <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">Softness: 0 = rigid, 20 = subtle, 100 = very squishy</div>
     </div>
@@ -535,8 +535,8 @@
         </label>
         <label title="Swarm movement speed (0.2-5.0×). Higher = faster, more responsive">
           <span>Swarm speed (×)</span>
-          <input type="range" id="swarmSpeedSlider" min="0.2" max="5.0" step="0.1" value="3.5">
-          <span class="val" id="swarmSpeedVal">3.5</span>
+          <input type="range" id="swarmSpeedSlider" min="0.2" max="5.0" step="0.1" value="0.4">
+          <span class="val" id="swarmSpeedVal">0.4</span>
         </label>
       </div>
     </details>
@@ -694,8 +694,8 @@
         </label>
         <label title="Initial orbital velocity (50-400 px/s)">
           <span>Initial speed</span>
-          <input type="range" id="vortexInitialSpeedSlider" min="50" max="400" step="10" value="180">
-          <span class="val" id="vortexInitialSpeedVal">180</span>
+          <input type="range" id="vortexInitialSpeedSlider" min="50" max="800" step="10" value="450">
+          <span class="val" id="vortexInitialSpeedVal">450</span>
         </label>
         <label title="Orbital decay rate (-0.001 to 0.001). Positive = spiral in, negative = spiral out">
           <span>Orbital decay</span>
@@ -761,7 +761,7 @@
   // Flies mode parameters - REALISTIC INSECT FLIGHT (mosquitoes/gnats)
   let attractionPower = 5000; // Much faster: insects dart quickly toward light
   let orbitRadius = 180; // Wider: insects don't cluster tightly
-  let swarmSpeed = 3.5; // 3.5x faster: insects are quick and erratic
+  let swarmSpeed = 0.4; // Slower, more graceful movement
   
   // Weightless mode parameters - REALISTIC SPACE PHYSICS
   let weightlessCount = 80; // fixed number of balls
@@ -787,7 +787,7 @@
   // Vortex mode parameters - ORBITAL MECHANICS
   let vortexWellStrength = 5000; // Central gravity well strength
   let vortexBallCount = 200; // Number of orbiting balls
-  let vortexInitialSpeed = 180; // Initial orbital velocity (px/s)
+  let vortexInitialSpeed = 450; // Initial orbital velocity (px/s) - faster for dramatic effect
   let vortexDecayRate = 0.0002; // Orbital decay (positive=spiral in, negative=spiral out)
   let vortexMouseWellStrength = 3000; // Mouse cursor gravity well strength
   let vortexTrailLength = 0; // Trail fade (0=no trails, 0.1=long trails)
@@ -1038,11 +1038,13 @@
   function applyDarkMode(enabled) {
     isDarkMode = enabled;
     
-    // Only modify the simulation container (not entire page)
+    // Apply dark mode to both simulation container AND body for Webflow content
     if (enabled) {
       container.classList.add('dark-mode');
+      document.body.classList.add('dark-mode');
     } else {
       container.classList.remove('dark-mode');
+      document.body.classList.remove('dark-mode');
     }
     
     // Switch to appropriate color palette (light or dark variant)
@@ -1286,7 +1288,7 @@
   // Base radius values
   const R_MIN_BASE = 6;
   const R_MAX_BASE = 24;
-  let sizeScale = 1.0;    // Global ball size from config (updated to match frontend)
+  let sizeScale = 1.2;    // Global ball size multiplier
   let sizeVariation = 0.3; // Size variation: 30% range (was 0)
   // Responsive scale: reduce ball size by 60% on mobile breakpoints (≤768px)
   let responsiveScale = 1.0;
@@ -2311,8 +2313,8 @@
   
   function emit(dt) {
     // Ball Pit mode: no continuous spawning (all balls drop at once on mode init)
-    // Zero-G and Pulse Grid modes: no continuous spawning, balls are distributed at initialization
-    if (currentMode === MODES.PIT || currentMode === MODES.WEIGHTLESS || currentMode === MODES.PULSE_GRID) {
+    // Zero-G, Pulse Grid, and Vortex modes: no continuous spawning, balls are distributed at initialization
+    if (currentMode === MODES.PIT || currentMode === MODES.WEIGHTLESS || currentMode === MODES.PULSE_GRID || currentMode === MODES.VORTEX) {
       return;
     }
     
@@ -3709,9 +3711,9 @@ Then rebuild: <code>npm run build-production</code>`;
     const centerX = w / 2;
     const centerY = h / 2;
     
-    // Distribute balls in circular ring around center
-    const minRadius = Math.min(w, h) * 0.15; // Inner ring radius
-    const maxRadius = Math.min(w, h) * 0.35; // Outer ring radius
+    // Distribute balls in circular ring around center (wider ring for more dramatic effect)
+    const minRadius = Math.min(w, h) * 0.20; // Inner ring radius (increased from 0.15)
+    const maxRadius = Math.min(w, h) * 0.45; // Outer ring radius (increased from 0.35)
     
     for (let i = 0; i < vortexBallCount; i++) {
       // Random position in ring
@@ -3722,7 +3724,7 @@ Then rebuild: <code>npm run build-production</code>`;
       
       // Calculate tangential velocity for circular orbit
       // v = sqrt(GM/r) for stable orbit, with some randomness
-      const orbitalSpeed = vortexInitialSpeed * (0.7 + Math.random() * 0.6);
+      const orbitalSpeed = vortexInitialSpeed * (0.8 + Math.random() * 0.4); // More consistent speed
       const vx = -Math.sin(angle) * orbitalSpeed;
       const vy = Math.cos(angle) * orbitalSpeed;
       
@@ -3730,8 +3732,16 @@ Then rebuild: <code>npm run build-production</code>`;
       const baseRadius = (R_MIN + R_MAX) / 2;
       const r = baseRadius * (0.9 + Math.random() * 0.2);
       
-      // Create ball with orbital velocity
-      const ball = new Ball(x, y, r, vx, vy);
+      // Pick vibrant color for each ball
+      const color = pickRandomColor();
+      
+      // Create ball with proper color (constructor expects: x, y, r, color)
+      const ball = new Ball(x, y, r, color);
+      
+      // Set orbital velocity after creation
+      ball.vx = vx;
+      ball.vy = vy;
+      
       balls.push(ball);
     }
     
@@ -3970,6 +3980,16 @@ Then rebuild: <code>npm run build-production</code>`;
       container.classList.add('mode-pit'); // 150vh height
     }
     // Other modes use default 100svh (no class needed)
+    
+    // CRITICAL: Reapply dark mode state (preserves dark/light mode across mode switches)
+    if (autoDarkModeEnabled) {
+      applyDarkMode(isNightTime());
+    } else {
+      // Maintain current dark mode state even if auto is disabled
+      if (isDarkMode) {
+        container.classList.add('dark-mode');
+      }
+    }
     
     // Resize canvas to match new mode's height
     resize();
@@ -4409,11 +4429,11 @@ Then rebuild: <code>npm run build-production</code>`;
   // Presets (10 each)
   // Rubber-focused physics presets under Earth gravity (≈1960 px/s²)
   const PHYSICS_PRESETS = {
-    rubberPlayground: { label: 'Rubber – Playground', G: 1960, REST: 0.90, FRICTION: 0.0025, sizeScale: 1.8, maxBalls: 450, sizeVariation: 0.20 },
-    rubberRacquet:    { label: 'Rubber – Racquetball', G: 3320, REST: 0.97, FRICTION: 0.0035, sizeScale: 0.7, maxBalls: 350, sizeVariation: 0.30 },
+    rubberPlayground: { label: 'Rubber – Playground', G: 1960, REST: 0.90, FRICTION: 0.0025, sizeScale: 1.2, maxBalls: 450, sizeVariation: 0.20 },
+    rubberRacquet:    { label: 'Rubber – Racquetball', G: 3320, REST: 0.97, FRICTION: 0.0035, sizeScale: 1.2, maxBalls: 350, sizeVariation: 0.30 },
     rubberSuperball:  { label: 'Rubber – Superball', G: 1960, REST: 0.95, FRICTION: 0.0015, sizeScale: 1.2, maxBalls: 450, sizeVariation: 0.05 },
-    rubberSoft:       { label: 'Rubber – Soft', G: 1960, REST: 0.86, FRICTION: 0.0035, sizeScale: 2.2, maxBalls: 350, sizeVariation: 0.25 },
-    rubberHeavy:      { label: 'Rubber – Heavy', G: 1960, REST: 0.88, FRICTION: 0.0030, sizeScale: 2.0, maxBalls: 400, sizeVariation: 0.15 }
+    rubberSoft:       { label: 'Rubber – Soft', G: 1960, REST: 0.86, FRICTION: 0.0035, sizeScale: 1.2, maxBalls: 350, sizeVariation: 0.25 },
+    rubberHeavy:      { label: 'Rubber – Heavy', G: 1960, REST: 0.88, FRICTION: 0.0030, sizeScale: 1.2, maxBalls: 400, sizeVariation: 0.15 }
   };
 
   const SPAWN_PRESETS = {

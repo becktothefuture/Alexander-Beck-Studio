@@ -10,7 +10,7 @@
   "_comment_spawn_desc": "Ball Spawning & Emission Settings",
   "emitRate": 0.03,
   "maxBalls": 350,
-  "ballScale": 1,
+  "ballScale": 1.2,
   "ballVariation": 0,
   "spawnX": 50,
   "spawnY": -50,

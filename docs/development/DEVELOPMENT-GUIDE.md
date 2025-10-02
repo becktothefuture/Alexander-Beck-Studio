@@ -58,7 +58,8 @@ npm start  # Opens http://localhost:8000
 
 ### 6. Build for Production
 ```bash
-npm run build
+npm run build          # Full production build
+npm run build:embed-only  # Standalone JS only
 ```
 
 **Output**: `public/js/bouncy-balls-embed.js` (34.6 KB minified)
@@ -238,7 +239,8 @@ balls.push(new Ball(w/2, h/3, 0, 0, 30, ballColors[0], 8));
 
 ### Build Process
 ```bash
-npm run build
+npm run build          # Full production build
+npm run build:embed-only  # Standalone JS only
 ```
 
 **What Happens**:
@@ -419,7 +421,8 @@ git add .
 git commit -m "feat: your feature description"
 
 # Build and test production
-npm run build
+npm run build          # Full production build
+npm run build:embed-only  # Standalone JS only
 # Test public/index.html
 
 # Push
@@ -454,4 +457,5 @@ git push origin feature/your-feature
 
 ---
 
-**Ready to build? Run `npm run build` and ship it!** 🚀
+**Ready to build? Run `npm run build          # Full production build
+npm run build:embed-only  # Standalone JS only` and ship it!** 🚀

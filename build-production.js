@@ -11,6 +11,50 @@ const fs = require('fs');
 const path = require('path');
 const { minify: terserMinify } = require('terser');
 
+console.log('\n🏗️  SIMPLE BUILD PIPELINE STARTING...\n');
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFIGURATION VALIDATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function validateConfigConsistency(sourceHTML, config) {
+  const issues = [];
+  
+  // Extract JS default value
+  const jsMatch = sourceHTML.match(/let sizeScale = ([\d.]+)/);
+  const jsSize = jsMatch ? parseFloat(jsMatch[1]) : null;
+  
+  // Extract HTML slider default
+  const sliderMatch = sourceHTML.match(/id="sizeSliderGlobal"[^>]*value="([\d.]+)"/);
+  const sliderSize = sliderMatch ? parseFloat(sliderMatch[1]) : null;
+  
+  // Config value
+  const configSize = config.ballScale ? parseFloat(config.ballScale) : null;
+  
+  // Validate consistency
+  if (jsSize && configSize && jsSize !== configSize) {
+    issues.push(`❌ Ball size mismatch: JS=${jsSize}, Config=${configSize}`);
+  }
+  
+  if (sliderSize && configSize && sliderSize !== configSize) {
+    issues.push(`⚠️  Slider shows ${sliderSize}, but config is ${configSize}`);
+  }
+  
+  // Check physics presets
+  const presetMatches = [...sourceHTML.matchAll(/sizeScale:\s*([\d.]+)/g)];
+  const presetSizes = presetMatches.map(m => parseFloat(m[1]));
+  const nonStandardSizes = presetSizes.filter(s => s !== configSize);
+  
+  if (nonStandardSizes.length > 0) {
+    const uniqueSizes = [...new Set(nonStandardSizes)];
+    if (uniqueSizes.some(s => s !== configSize)) {
+      issues.push(`ℹ️  Some presets override ball size: ${uniqueSizes.join(', ')}`);
+    }
+  }
+  
+  return issues;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -97,8 +141,13 @@ function extractCSS(sourceHTML) {
   
   let css = styleMatch[1].trim();
   
-  // Add production overrides for z-index, pointer-events, and overflow
-  css += `\n\n/* Production overrides */\nhtml, body { overflow: hidden; margin: 0; padding: 0; }\n#bravia-balls { z-index: 2147483647 !important; isolation: isolate !important; pointer-events: auto !important; touch-action: auto !important; }\n#bravia-balls canvas { pointer-events: auto !important; touch-action: auto !important; will-change: transform; transform: translateZ(0); }\n#bravia-balls.mode-pit { height: 100dvh !important; }\n#bravia-balls.mode-pit canvas { height: 150vh !important; }\n#fps-counter { display: none !important; }\n`;
+  // Add production overrides for z-index, pointer-events, overflow, and dark mode
+  // KEY STRATEGY: Simulation is background layer, Webflow is foreground overlay
+  // - Simulation: z-index: 0, pointer-events: auto (receives all mouse events)
+  // - Webflow viewport: z-index: 10, pointer-events: none (transparent to clicks)
+  // - Interactive elements (links, buttons): pointer-events: auto (explicitly clickable)
+  // - Debug panel: z-index: 9999 (always on top)
+  css += `\n\n/* Production overrides */\nhtml, body { overflow: hidden; margin: 0; padding: 0; }\n#bravia-balls { position: fixed; bottom: 0; left: 0; width: 100%; height: 100svh; z-index: 0 !important; isolation: isolate !important; pointer-events: auto !important; }\n#bravia-balls canvas { pointer-events: auto !important; touch-action: auto !important; will-change: transform; transform: translateZ(0); }\n#bravia-balls .panel { z-index: 9999 !important; pointer-events: auto !important; position: fixed !important; }\n#bravia-balls .panel * { pointer-events: auto !important; }\n#bravia-balls.mode-pit { height: 100dvh !important; }\n#bravia-balls.mode-pit canvas { height: 150vh !important; }\n#fps-counter { display: none !important; }\n.viewport { position: relative; z-index: 10 !important; pointer-events: none !important; }\n.viewport a, .viewport button, .viewport input, .viewport select, .viewport textarea { pointer-events: auto !important; }\n.footer_link, .footer_icon-link, .corner { pointer-events: auto !important; }\n\n/* Dark mode: Change Webflow text colors to off-white (except corner SVGs) */\nbody.dark-mode .viewport { color: #f5f5f5 !important; }\nbody.dark-mode .viewport .legend__item { color: #f5f5f5 !important; }\nbody.dark-mode .viewport .header { color: #f5f5f5 !important; }\nbody.dark-mode .viewport .hero__text svg path[fill="#161616"] { fill: #f5f5f5 !important; }\nbody.dark-mode .viewport .hero__text svg ellipse[stroke="black"] { stroke: #f5f5f5 !important; }\nbody.dark-mode .viewport .hero__text svg path[fill="black"] { fill: #f5f5f5 !important; }\nbody.dark-mode .footer_link { color: #f5f5f5 !important; }\nbody.dark-mode .footer_icon-link { color: #f5f5f5 !important; }\nbody.dark-mode .caption { color: #f5f5f5 !important; }\n`;
   
   return css;
 }
@@ -149,7 +198,8 @@ function hardcodeConfig(jsCode, config) {
   };
   
   let updatedJS = jsCode;
-  let replacementCount = 0;
+  const applied = [];
+  const skipped = [];
   
   for (const [varName, configKey] of Object.entries(configMap)) {
     if (config[configKey] !== undefined) {
@@ -164,13 +214,14 @@ function hardcodeConfig(jsCode, config) {
           : `$1 ${varName} = ${value};`;
         
         updatedJS = updatedJS.replace(regex, replacement);
-        replacementCount++;
+        applied.push(`${configKey} → ${varName}`);
+      } else {
+        skipped.push(varName);
       }
     }
   }
   
-  console.log(`✅ Hardcoded ${replacementCount} config values`);
-  return updatedJS;
+  return { code: updatedJS, applied, skipped };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -258,10 +309,18 @@ async function buildProduction() {
     copyDir(CONFIG.webflowSource, CONFIG.publicDestination);
     console.log('✅ Webflow design copied to public/\n');
     
-    // STEP 2: Extract simulation components
+    // STEP 2: Load source and config
     console.log('📦 Step 2: Extracting simulation from source...');
     const sourceHTML = fs.readFileSync(CONFIG.sourceFile, 'utf-8');
     const config = JSON.parse(fs.readFileSync(CONFIG.configFile, 'utf-8'));
+    
+    // Validate configuration consistency
+    const validationIssues = validateConfigConsistency(sourceHTML, config);
+    if (validationIssues.length > 0) {
+      console.log('\n⚙️  Configuration Validation:');
+      validationIssues.forEach(issue => console.log(`   ${issue}`));
+      console.log('');
+    }
     
     const containerHTML = extractSimulationContainer(sourceHTML);
     const cssCode = extractCSS(sourceHTML);
@@ -271,7 +330,13 @@ async function buildProduction() {
     
     // STEP 3: Hardcode config
     console.log('⚙️  Step 3: Hardcoding config values...');
-    jsCode = hardcodeConfig(jsCode, config);
+    const configReport = hardcodeConfig(jsCode, config);
+    jsCode = configReport.code;
+    console.log(`   Applied ${configReport.applied.length} config values:`);
+    configReport.applied.forEach(mapping => console.log(`   ✓ ${mapping}`));
+    if (configReport.skipped.length > 0) {
+      console.log(`   ⚠️  Skipped (not found): ${configReport.skipped.join(', ')}`);
+    }
     console.log('');
     
     // STEP 4: Minify JavaScript
@@ -300,6 +365,28 @@ async function buildProduction() {
     fs.writeFileSync(path.join(cssDir, 'bouncy-balls.css'), cssCode);
     console.log('✅ Created js/bouncy-balls-embed.js');
     console.log('✅ Created css/bouncy-balls.css');
+    console.log('');
+    
+    // STEP 7: Validate build output
+    console.log('🔍 Step 7: Validating build output...');
+    const validation = {
+      indexHTML: fs.existsSync(publicIndexPath) && fs.statSync(publicIndexPath).size > 10000,
+      embedJS: fs.existsSync(path.join(jsDir, 'bouncy-balls-embed.js')),
+      embedCSS: fs.existsSync(path.join(cssDir, 'bouncy-balls.css')),
+      injectedCSS: fs.readFileSync(publicIndexPath, 'utf-8').includes('id="bravia-balls-css"'),
+      injectedJS: fs.readFileSync(publicIndexPath, 'utf-8').includes('id="bravia-balls-js"'),
+      placeholderReplaced: !fs.readFileSync(publicIndexPath, 'utf-8').includes('class="ball-simulation w-embed"')
+    };
+    
+    const allValid = Object.values(validation).every(v => v);
+    if (!allValid) {
+      console.error('❌ Build validation failed:');
+      Object.entries(validation).forEach(([key, valid]) => {
+        console.error(`   ${valid ? '✓' : '✗'} ${key}`);
+      });
+      process.exit(1);
+    }
+    console.log('✅ Build validated successfully');
     console.log('');
     
     // Success!

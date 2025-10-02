@@ -1,18 +1,41 @@
-# Build Pipeline Analysis & Improvement Plan
+# Build Pipeline Analysis
+
+**Status:** ✅ Consolidated & Optimized (v2.1)  
+**Last Updated:** 2025-10-02
 
 ## 📊 Current Architecture
 
-### Build Flow (V2)
+### Single-Source Build System
+
+**Primary Script:** `build-production.js` (root directory, 350+ lines)  
+**Command:** `npm run build`  
+**Purpose:** Transform Webflow export + simulation source → integrated production site
+
+### Build Flow (7 Steps + Validation)
 ```
-1. Copy Webflow export → public/
-2. Extract simulation HTML from balls-source.html
-3. Extract & optimize CSS
-4. Extract & minify JavaScript (Terser)
-5. Hardcode config values
-6. Replace Webflow placeholder with simulation
-7. Inject CSS into <head>
-8. Inject JavaScript before </body>
-9. Create standalone files for reference
+1. Copy webflow-export/ → public/ (clean slate)
+2. Extract simulation components from balls-source.html
+   - HTML container structure
+   - CSS with production overrides
+   - JavaScript (hide panel, enable mouse events)
+3. Hardcode config values from current-config.json
+   - 10+ variable mappings
+   - Detailed reporting of applied/skipped values
+4. Minify JavaScript with Terser
+   - 3-pass compression
+   - 70% size reduction (160KB → 48KB)
+5. Integrate simulation into public/index.html
+   - Replace Webflow placeholder
+   - Inject CSS into <head>
+   - Inject JS before </body>
+6. Create standalone files
+   - public/js/bouncy-balls-embed.js
+   - public/css/bouncy-balls.css
+7. Validate build output
+   - File existence checks
+   - Size validation
+   - Injection verification
+   - Placeholder replacement confirmation
 ```
 
 ### Current Integration Method
@@ -34,30 +57,56 @@
 
 ---
 
-## 🔍 Identified Issues
+## ✅ Resolved Issues (v2.1 Improvements)
 
-### 1. **Z-Index Stack Context Problem**
-**Issue:** Webflow uses z-index values ranging from -100 to 2147483647.  
-**Current Fix:** Simulation set to `z-index: 200`  
-**Problem:** Webflow modal overlays use `z-index: 2000` and dropdowns use `z-index: 1000`, which would cover the simulation.
+### 1. **Build System Consolidation** ✅
+**Previous Issue:** Two build scripts with inconsistent documentation  
+**Solution:**
+- Archived `source/build.js` → `source/build-embed-standalone.js`
+- Unified `npm run build` → `build-production.js`
+- Added `npm run build:embed-only` for standalone use
+- Updated all documentation consistently
 
-### 2. **Pointer Events Cascade**
-**Issue:** Webflow's base CSS has `pointer-events: none` in 3 places (lines 785, 824, 864 in webflow.css).  
-**Current Fix:** Triple `!important` declarations on #bravia-balls, canvas, and .ball-simulation  
-**Problem:** Specificity wars with Webflow's own !important rules.
+### 2. **Build Validation** ✅
+**Previous Issue:** Silent failures could produce corrupted builds  
+**Solution:** Step 7 validates:
+- File existence (index.html, embed.js, embed.css)
+- Size checks (index.html >10KB)
+- Injection verification (CSS/JS IDs present)
+- Placeholder replacement (old class removed)
+- **Aborts with detailed error** if any check fails
 
-### 3. **Position: Fixed vs Webflow Layout**
-**Issue:** Simulation uses `position: fixed` which removes it from document flow.  
-**Current:** Works, but could interfere with Webflow's viewport calculations.  
-**Problem:** On mobile, fixed positioning can cause issues with viewport units and address bar.
+### 3. **Config Transparency** ✅
+**Previous Issue:** Unclear which config values were applied  
+**Solution:** Enhanced reporting:
+```
+⚙️  Step 3: Hardcoding config values...
+   Applied 10 config values:
+   ✓ gravityMultiplier → gravityMultiplierPit
+   ✓ ballMass → ballMassKg
+   ...
+   ⚠️  Skipped (not found): [list]
+```
 
-### 4. **Build Timing & Cache Issues**
-**Issue:** No cache busting for CSS/JS files.  
-**Problem:** Browsers may serve old versions even after rebuild.
+### 4. **Documentation Completeness** ✅
+**Previous Issue:** Inconsistent build command references  
+**Solution:**
+- Updated: README.md, AI-AGENT-GUIDE.md, QUICK-START.md, DEVELOPMENT-GUIDE.md
+- Added: `docs/reference/BUILD-SYSTEM.md` (comprehensive reference)
+- Fixed: All `npm run build-production` → `npm run build`
 
-### 5. **No Build Validation**
-**Issue:** Build completes even if integration fails silently.  
-**Problem:** Corrupted builds can slip through.
+### 5. **Watch Mode Enhancement** ✅
+**Previous Issue:** Watch only monitored `source/`  
+**Solution:** Now watches `source/**/*` AND `webflow-export/**/*`
+
+---
+
+## 🎯 Still Optimal (No Changes Needed)
+
+### Z-Index Strategy (Working as Designed)
+**Current:** `z-index: 2147483647 !important` + `isolation: isolate`  
+**Status:** ✅ Correct - Uses max z-index value, creates new stacking context  
+**Evidence:** No reported stacking issues in production
 
 ---
 

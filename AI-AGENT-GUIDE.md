@@ -47,14 +47,16 @@ docs/
 ## 🚀 Quick Commands
 
 ```bash
-npm start              # Dev server
-npm run build          # Production build
-npm run watch          # Auto-rebuild
+npm start              # Dev server (http://localhost:8000)
+npm run build          # Full production build (Webflow + simulation)
+npm run build:embed-only  # Standalone embed JS only
+npm run watch          # Auto-rebuild on source/webflow changes
+npm run help           # Show all commands
 ```
 
 **Edit:** `source/balls-source.html`  
 **Test:** Refresh browser  
-**Build:** `npm run build` → `public/js/bouncy-balls-embed.js`
+**Build:** `npm run build` → Complete site in `public/` (Webflow export + simulation integrated)
 
 ## 🎯 Common Tasks
 
@@ -64,10 +66,11 @@ npm run watch          # Auto-rebuild
 3. Review [`docs/reference/MODES.md`](./docs/reference/MODES.md)
 
 ### Making Changes
-1. Edit `source/balls-source.html`
-2. Test in browser
-3. Run `npm run build`
-4. Follow [`docs/development/DEVELOPMENT-GUIDE.md`](./docs/development/DEVELOPMENT-GUIDE.md)
+1. Edit `source/balls-source.html` or `source/current-config.json`
+2. Test changes in browser (open `source/balls-source.html` directly)
+3. Run `npm run build` to generate production site in `public/`
+4. Test `public/index.html` via `npm start` (http://localhost:8000)
+5. Follow [`docs/development/DEVELOPMENT-GUIDE.md`](./docs/development/DEVELOPMENT-GUIDE.md)
 
 ### Adding Features
 1. Check [`docs/development/ARCHITECTURE.md`](./docs/development/ARCHITECTURE.md) for patterns
