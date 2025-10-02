@@ -3630,24 +3630,33 @@ Then rebuild: <code>npm run build-production</code>`;
   }
 
   /**
-   * Update gravity wells (add mouse well if in canvas)
-   * @description Rebuilds gravity wells array with permanent wells plus optional mouse well
+   * Update gravity wells (move central well to mouse position when cursor is in canvas)
+   * @description Updates central well to follow mouse, or stays at viewport center
    * @returns {void}
    * @modifies {gravityWells}
    */
   function updateGravityWells() {
-    // Start with permanent wells
-    gravityWells = [...permanentWells];
+    const w = canvas.width / DPR;
+    const h = canvas.height / DPR;
+    const centerX = w / 2;
+    const centerY = h / 2;
     
-    // Add mouse well if cursor is over canvas
-    if (mouseInCanvas && vortexMouseWellStrength > 0) {
-      gravityWells.push({
-        x: mouseX,
-        y: mouseY,
-        strength: vortexMouseWellStrength,
-        isPermanent: false
-      });
-    }
+    // If mouse is in canvas, move central well to mouse position
+    // Otherwise, keep it at viewport center
+    const wellX = mouseInCanvas ? mouseX / DPR : centerX;
+    const wellY = mouseInCanvas ? mouseY / DPR : centerY;
+    
+    // Update the central well position
+    gravityWells = [{
+      x: wellX,
+      y: wellY,
+      strength: vortexWellStrength,
+      isPermanent: false // Dynamic position based on mouse
+    }];
+    
+    // Update permanent wells reference for UI consistency
+    permanentWells[0].x = wellX;
+    permanentWells[0].y = wellY;
   }
 
   /**
