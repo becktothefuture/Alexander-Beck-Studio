@@ -2182,7 +2182,7 @@
         }
         
         ctx.fillStyle = finalColor;
-        ctx.fill();
+      ctx.fill();
 
       ctx.restore();
     }
@@ -2793,7 +2793,7 @@
     vortexSpeedColorEnabled = vortexSpeedColorCheckbox.checked;
     autoSaveSettings();
   });
-
+  
   // ═══════════════════════════════════════════════════════════════════════════
   // KEYBOARD SHORTCUTS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -3219,9 +3219,9 @@ Then rebuild: <code>npm run build-production</code>`;
     const { size, sizeVal, sizeVar, sizeVarVal, soft, softVal } = sliders;
     size && size.addEventListener('input', () => {
       const newScale = parseFloat(size.value);
-      sizeVal && (sizeVal.textContent = newScale.toFixed(1));
-      sizeScale = newScale;
-      updateEffectiveScaleAndBallSizes();
+    sizeVal && (sizeVal.textContent = newScale.toFixed(1));
+    sizeScale = newScale;
+    updateEffectiveScaleAndBallSizes();
       
       // CRITICAL: Directly update all ball sizes to the new base (don't call resetBallSizeToGlobal)
       const baseSize = (R_MIN + R_MAX) / 2;
@@ -3618,10 +3618,10 @@ Then rebuild: <code>npm run build-production</code>`;
     gravityWells = [];
     permanentWells = [];
     
-    // Central gravity well at canvas center
+    // Central gravity well at canvas center (in DPR-scaled coordinates)
     const centralWell = {
-      x: canvas.width / (2 * DPR),
-      y: canvas.height / (2 * DPR),
+      x: canvas.width / 2,
+      y: canvas.height / 2,
       strength: vortexWellStrength,
       isPermanent: true
     };
@@ -3704,8 +3704,8 @@ Then rebuild: <code>npm run build-production</code>`;
     balls.length = 0;
     initializeGravityWells();
     
-    const w = canvas.width / DPR;
-    const h = canvas.height / DPR;
+    const w = canvas.width;
+    const h = canvas.height;
     const centerX = w / 2;
     const centerY = h / 2;
     

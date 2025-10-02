@@ -408,9 +408,19 @@ function validateBuild(htmlContent, cssCode, jsCode) {
 /**
  * Integrate simulation into Webflow export
  * Replaces the placeholder element with the complete simulation container
+ * @param {string} webflowIndexPath - Path to Webflow export index.html (NOT the output!)
  */
 function integrateIntoWebflow(webflowIndexPath, containerHTML, cssCode, jsCode) {
   console.log('🔧 Integrating simulation into Webflow export...');
+  
+  // CRITICAL SAFEGUARD: Ensure we're reading from webflow-export, not public
+  if (webflowIndexPath.includes('/public/')) {
+    throw new Error('❌ CRITICAL ERROR: Attempting to read from public/ (output) instead of webflow-export/ (source)! This would destroy the Webflow design!');
+  }
+  
+  if (!fs.existsSync(webflowIndexPath)) {
+    throw new Error(`❌ Webflow export not found at: ${webflowIndexPath}`);
+  }
   
   let htmlContent = fs.readFileSync(webflowIndexPath, 'utf8');
   
@@ -455,16 +465,19 @@ async function buildProduction() {
     console.log(`   Panel Visible: ${CONFIG.panelVisibleInProduction}`);
     console.log('');
     
-    // Step 1: Verify public/ folder exists (DO NOT overwrite entire folder)
-    if (!fs.existsSync(CONFIG.publicDestination)) {
-      console.log('📁 No public folder found, copying Webflow export...');
-      if (!copyDirectory(CONFIG.webflowSource, CONFIG.publicDestination)) {
-        throw new Error('Failed to copy Webflow export');
-      }
-      console.log('✅ Webflow export copied');
-    } else {
-      console.log('✅ Public folder exists, will modify in place (preserving design)');
+    // Step 1: Backup existing public folder
+    if (CONFIG.backupExisting && fs.existsSync(CONFIG.publicDestination)) {
+      const backupPath = `${CONFIG.publicDestination}-backup-${Date.now()}`;
+      console.log(`📦 Backing up public folder to: ${backupPath}`);
+      fs.renameSync(CONFIG.publicDestination, backupPath);
     }
+    
+    // Step 2: Copy Webflow export to public folder
+    console.log('📁 Copying Webflow export to public...');
+    if (!copyDirectory(CONFIG.webflowSource, CONFIG.publicDestination)) {
+      throw new Error('Failed to copy Webflow export');
+    }
+    console.log('✅ Webflow export copied');
     console.log('');
     
     // Step 3: Load configuration
@@ -486,7 +499,8 @@ async function buildProduction() {
     console.log('');
     
     // Step 7: Integrate into Webflow HTML
-    const webflowIndexPath = path.join(CONFIG.publicDestination, 'index.html');
+    // CRITICAL: Use webflowSource (not publicDestination) to get the original Webflow export
+    const webflowIndexPath = path.join(CONFIG.webflowSource, 'index.html');
     const integratedHTML = integrateIntoWebflow(
       webflowIndexPath,
       containerHTML,
