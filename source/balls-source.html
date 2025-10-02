@@ -397,15 +397,15 @@
           <input type="range" id="weightPitSlider" min="10.0" max="200.0" step="1.0" value="19.8">
           <span class="val" id="weightPitVal">19.8</span>
         </label>
-        <label title="Bounce restitution (0.0-1.0). Config: 0.88 for bouncy feel">
+        <label title="Bounce restitution (0.0-1.0). Config: 0.97 for bouncier feel">
           <span>Bounciness</span>
-          <input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.88">
-          <span class="val" id="restitutionVal">0.88</span>
+          <input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.97">
+          <span class="val" id="restitutionVal">0.97</span>
         </label>
-        <label title="Air resistance/friction (0.000-0.010). Config: 0.003 for light drag">
+        <label title="Air resistance/friction (0.000-0.010). Config: 0.0035 for light drag">
           <span>Air friction</span>
-          <input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0005" value="0.003">
-          <span class="val" id="frictionVal">0.003</span>
+          <input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0005" value="0.0035">
+          <span class="val" id="frictionVal">0.0035</span>
         </label>
       </div>
     </details>
@@ -480,15 +480,15 @@
           <span>Repeller active</span>
           <input type="checkbox" id="repellerEnabledPit" checked>
         </label>
-        <label title="Repeller influence radius (50-400 pixels). Larger = affects more balls">
+        <label title="Repeller influence radius (50-1000 pixels). Larger = affects more balls">
           <span>Repel size (px)</span>
-          <input type="range" id="repelSizeSlider" min="50" max="400" step="5" value="200">
-          <span class="val" id="repelSizeVal">200</span>
+          <input type="range" id="repelSizeSlider" min="50" max="1000" step="5" value="710">
+          <span class="val" id="repelSizeVal">710</span>
         </label>
         <label title="Repulsion strength (0-10000). Higher = stronger push away from mouse">
           <span>Repel power</span>
-          <input type="range" id="repelPowerSlider" min="0" max="10000" step="100" value="500">
-          <span class="val" id="repelPowerVal">500</span>
+          <input type="range" id="repelPowerSlider" min="0" max="10000" step="100" value="7920">
+          <span class="val" id="repelPowerVal">274000</span>
         </label>
         <label title="Repeller field softness (0.5-5.0). Lower = sharper cutoff, higher = gradual fade">
           <span>Repel softness</span>
@@ -675,7 +675,8 @@
     PIT: 'pit',          // Ball Pit: gravity + repeller
     FLIES: 'flies',      // Flies to Light: attraction to mouse, no gravity
     WEIGHTLESS: 'weightless',  // Weightless Bounce: zero-G bouncing balls
-    PULSE_GRID: 'pulse-grid'   // Pulse Grid: rhythmic grid-based movement
+    PULSE_GRID: 'pulse-grid',   // Pulse Grid: rhythmic grid-based movement
+    VORTEX: 'vortex'     // Vortex Spiral: orbital mechanics with gravity wells
   };
   
   // Mode availability by device type
@@ -683,7 +684,8 @@
     [MODES.PIT]: { desktop: true, mobile: true },
     [MODES.FLIES]: { desktop: true, mobile: true },
     [MODES.WEIGHTLESS]: { desktop: true, mobile: true },
-    [MODES.PULSE_GRID]: { desktop: true, mobile: true }
+    [MODES.PULSE_GRID]: { desktop: true, mobile: true },
+    [MODES.VORTEX]: { desktop: true, mobile: true }
   };
   
   let currentMode = MODES.PIT;
@@ -723,6 +725,15 @@
   let pulseBounceIntensity = 0.15; // Bounce-back effect strength (0=none, 1=extreme)
   let pulseEasingStyle = 'snap'; // Easing style: 'linear', 'snap', 'bounce'
   let pulseOvershoot = 1.08; // Overshoot multiplier for robotic feel (1.0=none, 1.2=20% overshoot)
+  
+  // Vortex mode parameters - ORBITAL MECHANICS
+  let vortexWellStrength = 5000; // Central gravity well strength
+  let vortexBallCount = 200; // Number of orbiting balls
+  let vortexInitialSpeed = 180; // Initial orbital velocity (px/s)
+  let vortexDecayRate = 0.0002; // Orbital decay (positive=spiral in, negative=spiral out)
+  let vortexMouseWellStrength = 3000; // Mouse cursor gravity well strength
+  let vortexTrailLength = 0; // Trail fade (0=no trails, 0.1=long trails)
+  let vortexSpeedColorEnabled = true; // Color balls based on speed
   
   let cursorBallVisible = true;       // Show cursor ball on desktop
   
@@ -2106,6 +2117,11 @@
   }
 
   const balls = [];
+
+  // Vortex mode: gravity well system
+  let gravityWells = []; // Array of {x, y, strength} objects
+  let permanentWells = []; // User-placed permanent wells
+  const MAX_PERMANENT_WELLS = 3;
 
   // Helpers
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }

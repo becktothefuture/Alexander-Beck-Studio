@@ -372,7 +372,8 @@
     PIT: 'pit',          // Ball Pit: gravity + repeller
     FLIES: 'flies',      // Flies to Light: attraction to mouse, no gravity
     WEIGHTLESS: 'weightless',  // Weightless Bounce: zero-G bouncing balls
-    PULSE_GRID: 'pulse-grid'   // Pulse Grid: rhythmic grid-based movement
+    PULSE_GRID: 'pulse-grid',   // Pulse Grid: rhythmic grid-based movement
+    VORTEX: 'vortex'     // Vortex Spiral: orbital mechanics with gravity wells
   };
   
   // Mode availability by device type
@@ -380,7 +381,8 @@
     [MODES.PIT]: { desktop: true, mobile: true },
     [MODES.FLIES]: { desktop: true, mobile: true },
     [MODES.WEIGHTLESS]: { desktop: true, mobile: true },
-    [MODES.PULSE_GRID]: { desktop: true, mobile: true }
+    [MODES.PULSE_GRID]: { desktop: true, mobile: true },
+    [MODES.VORTEX]: { desktop: true, mobile: true }
   };
   
   let currentMode = MODES.PIT;
@@ -420,6 +422,15 @@
   let pulseBounceIntensity = 0.15; // Bounce-back effect strength (0=none, 1=extreme)
   let pulseEasingStyle = 'snap'; // Easing style: 'linear', 'snap', 'bounce'
   let pulseOvershoot = 1.08; // Overshoot multiplier for robotic feel (1.0=none, 1.2=20% overshoot)
+  
+  // Vortex mode parameters - ORBITAL MECHANICS
+  let vortexWellStrength = 5000; // Central gravity well strength
+  let vortexBallCount = 200; // Number of orbiting balls
+  let vortexInitialSpeed = 180; // Initial orbital velocity (px/s)
+  let vortexDecayRate = 0.0002; // Orbital decay (positive=spiral in, negative=spiral out)
+  let vortexMouseWellStrength = 3000; // Mouse cursor gravity well strength
+  let vortexTrailLength = 0; // Trail fade (0=no trails, 0.1=long trails)
+  let vortexSpeedColorEnabled = true; // Color balls based on speed
   
   let cursorBallVisible = true;       // Show cursor ball on desktop
   
@@ -1803,6 +1814,11 @@
   }
 
   const balls = [];
+
+  // Vortex mode: gravity well system
+  let gravityWells = []; // Array of {x, y, strength} objects
+  let permanentWells = []; // User-placed permanent wells
+  const MAX_PERMANENT_WELLS = 3;
 
   // Helpers
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
