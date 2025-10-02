@@ -1205,8 +1205,8 @@
   const GE = 1960;        // Earth gravity in px/s^2 at our scale
   let gravityMultiplier = 0; // Zero gravity (weightless mode)
   let G = GE * gravityMultiplier;
-  let REST = 0.88;        // restitution from config
-  let FRICTION = 0.0065;  // air drag from config (increased for faster settling)
+  let REST = 0.97;        // restitution from config (bouncier)
+  let FRICTION = 0.0035;  // air drag from config (less drag, slower settling)
   let EMIT_INTERVAL = 0.03; // seconds between drops from config
   let MAX_BALLS = 350;    // max balls from config
   const SOLVER_ITERS = 6;    // Optimized for realistic collisions without jitter
@@ -1218,7 +1218,7 @@
   const R_MIN_BASE = 6;
   const R_MAX_BASE = 24;
   let sizeScale = 1.0;    // Global ball size from config (updated to match frontend)
-  let sizeVariation = 0;   // Size variation removed (all balls same size)
+  let sizeVariation = 0.3; // Size variation: 30% range (was 0)
   // Responsive scale: reduce ball size by 60% on mobile breakpoints (≤768px)
   let responsiveScale = 1.0;
   let lastEffectiveScale = null; // tracks previous (sizeScale * responsiveScale)
@@ -1487,8 +1487,8 @@
   }
 
   // Repeller controls (from config)
-  let repelRadius = 135;   // repelRadius from config
-  let repelPower = 1536000;  // repelPower from config
+  let repelRadius = 710;   // repelRadius from config (wide area)
+  let repelPower = 274000;  // repelPower from config (gentle push)
   let repelSoft = 3.4;     // repelSoftness from config
   let mouseX = CONSTANTS.OFFSCREEN_MOUSE, mouseY = CONSTANTS.OFFSCREEN_MOUSE; // offscreen until moved
   let repellerEnabled = false; // disabled by default; enabled by preset or sliders
