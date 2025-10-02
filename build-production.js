@@ -73,7 +73,15 @@ function extractSimulationContainer(sourceFile) {
     throw new Error('Could not find #bravia-balls container in source file');
   }
   
-  const containerHTML = `<div id="bravia-balls">${containerMatch[1]}</div>`;
+  let containerHTML = `<div id="bravia-balls">${containerMatch[1]}</div>`;
+  
+  // Remove FPS counter for production build
+  containerHTML = containerHTML.replace(
+    /<div id="fps-counter"[^>]*>[\s\S]*?<\/div>/,
+    '<!-- FPS counter removed in production -->'
+  );
+  console.log('✅ Removed FPS counter for production build');
+  
   console.log(`✅ Extracted ${containerHTML.length} chars of HTML container`);
   
   return containerHTML;
@@ -92,8 +100,30 @@ function extractCSS(sourceFile) {
     throw new Error('Could not find <style> section in source file');
   }
   
-  const cssCode = styleMatch[1];
-  console.log(`✅ Extracted ${cssCode.length} chars of CSS`);
+  let cssCode = styleMatch[1];
+  
+  // Add production-specific CSS overrides at the end to ensure they take precedence
+  cssCode += `
+  
+  /* Production Build Overrides - Ensure mouse interaction works */
+  #bravia-balls {
+    pointer-events: auto !important;
+    z-index: 200 !important; /* Higher than Webflow viewport (z-index: 1) */
+  }
+  #bravia-balls canvas {
+    pointer-events: auto !important;
+  }
+  .ball-simulation {
+    pointer-events: auto !important; /* Override Webflow's pointer-events: none */
+  }
+  
+  /* Hide FPS counter styling in production */
+  #fps-counter {
+    display: none !important;
+  }
+`;
+  
+  console.log(`✅ Extracted ${cssCode.length} chars of CSS (with production overrides)`);
   
   return cssCode;
 }

@@ -1,12 +1,12 @@
 {
-  "buildTime": "2025-10-02T07:23:53.421Z",
+  "buildTime": "2025-10-02T07:29:42.847Z",
   "sourceFile": "./source/balls-source.html",
   "configFile": "./source/current-config.json",
   "webflowSource": "./webflow-export",
   "panelVisible": false,
   "jsSize": 51046,
-  "cssSize": 7219,
-  "htmlSize": 26565,
+  "cssSize": 7702,
+  "htmlSize": 26240,
   "configApplied": 56,
   "version": "2.0.0"
 }

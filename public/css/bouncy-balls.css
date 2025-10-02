@@ -232,3 +232,21 @@
   .border-ball-6 { border-color: var(--ball-6); }
   .border-ball-7 { border-color: var(--ball-7); }
   .border-ball-8 { border-color: var(--ball-8); }
+
+  
+  /* Production Build Overrides - Ensure mouse interaction works */
+  #bravia-balls {
+    pointer-events: auto !important;
+    z-index: 200 !important; /* Higher than Webflow viewport (z-index: 1) */
+  }
+  #bravia-balls canvas {
+    pointer-events: auto !important;
+  }
+  .ball-simulation {
+    pointer-events: auto !important; /* Override Webflow's pointer-events: none */
+  }
+  
+  /* Hide FPS counter styling in production */
+  #fps-counter {
+    display: none !important;
+  }

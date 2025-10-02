@@ -252,6 +252,24 @@
   .border-ball-7 { border-color: var(--ball-7); }
   .border-ball-8 { border-color: var(--ball-8); }
 
+  
+  /* Production Build Overrides - Ensure mouse interaction works */
+  #bravia-balls {
+    pointer-events: auto !important;
+    z-index: 200 !important; /* Higher than Webflow viewport (z-index: 1) */
+  }
+  #bravia-balls canvas {
+    pointer-events: auto !important;
+  }
+  .ball-simulation {
+    pointer-events: auto !important; /* Override Webflow's pointer-events: none */
+  }
+  
+  /* Hide FPS counter styling in production */
+  #fps-counter {
+    display: none !important;
+  }
+
   </style>
 </head>
 <body class="body">
@@ -735,10 +753,7 @@
   </div>
   
   <!-- FPS Counter -->
-  <div id="fps-counter" style="position: fixed; top: 5vh; left: 5vh; background: rgba(0,0,0,0.7); color: white; padding: 8px 12px; border-radius: 4px; font-family: monospace; font-size: 12px; z-index: 1001; backdrop-filter: blur(6px); line-height: 1.4;">
-    Render: <span id="render-fps">--</span> fps<br>
-    Physics: <span id="physics-fps">--</span> fps<br>
-  </div>
+  <!-- FPS counter removed in production -->
 </div>
   <header class="viewport viewport--content">
     <div id="w-node-e6a615f7-c7b2-8768-3157-95ffa1ec0a09-d5c39cf1" class="legend">
