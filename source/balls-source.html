@@ -569,13 +569,13 @@
       <div class="group">
         <label title="Repeller strength (0-10000). 0 = disabled. Controls how strongly balls are pushed away from cursor">
           <span>Repeller power</span>
-          <input type="range" id="weightlessRepelSlider" min="0" max="10000" step="100" value="300">
-          <span class="val" id="weightlessRepelVal">300</span>
+          <input type="range" id="weightlessRepelSlider" min="0" max="10000" step="100" value="10000">
+          <span class="val" id="weightlessRepelVal">10000</span>
         </label>
         <label title="Repeller radius (50-300 pixels). Larger = wider push area around cursor">
           <span>Repeller radius (px)</span>
-          <input type="range" id="weightlessRepelRadiusSlider" min="50" max="300" step="10" value="150">
-          <span class="val" id="weightlessRepelRadiusVal">150</span>
+          <input type="range" id="weightlessRepelRadiusSlider" min="50" max="300" step="10" value="190">
+          <span class="val" id="weightlessRepelRadiusVal">190</span>
         </label>
       </div>
     </details>
@@ -767,8 +767,8 @@
   let weightlessCount = 80; // fixed number of balls
   let weightlessInitialSpeed = 250; // Slightly faster for visible motion in zero-g
   let weightlessBounce = 0.97; // Very elastic but not perfect (micro-imperfections)
-  let weightlessRepellerPower = 300; // subtle mouse repeller strength
-  let weightlessRepellerRadius = 150; // repeller radius (px)
+  let weightlessRepellerPower = 10000; // strong mouse repeller for dramatic effect
+  let weightlessRepellerRadius = 190; // repeller radius (px)
   
   // Pulse Grid mode parameters - RHYTHMIC GRID-BASED MOVEMENT
   let gridColumns = 40; // Number of columns in the grid (width)
