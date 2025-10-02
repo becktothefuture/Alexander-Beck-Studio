@@ -1,1 +1,37 @@
+# Build output
 public/
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Test artifacts
+test-results/
+playwright-report/
+*.webm
+
+# OS files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Editor files
+.vscode/
+.idea/
+*.sublime-*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+.cache/

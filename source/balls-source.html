@@ -684,8 +684,8 @@
         </label>
         <label title="Central gravity well strength (1000-15000)">
           <span>Well strength</span>
-          <input type="range" id="vortexWellStrengthSlider" min="1000" max="15000" step="500" value="5000">
-          <span class="val" id="vortexWellStrengthVal">5000</span>
+          <input type="range" id="vortexWellStrengthSlider" min="1000" max="15000" step="500" value="8000">
+          <span class="val" id="vortexWellStrengthVal">8000</span>
         </label>
         <label title="Mouse cursor gravity well strength (0-10000)">
           <span>Mouse strength</span>
@@ -699,8 +699,8 @@
         </label>
         <label title="Orbital decay rate (-0.001 to 0.001). Positive = spiral in, negative = spiral out">
           <span>Orbital decay</span>
-          <input type="range" id="vortexDecaySlider" min="-0.001" max="0.001" step="0.0001" value="0.0002">
-          <span class="val" id="vortexDecayVal">0.0002</span>
+          <input type="range" id="vortexDecaySlider" min="-0.001" max="0.001" step="0.0001" value="0.0001">
+          <span class="val" id="vortexDecayVal">0.0001</span>
         </label>
         <label title="Color balls based on speed (blue=slow, red=fast)">
           <span>Speed coloring</span>
@@ -785,10 +785,10 @@
   let pulseOvershoot = 1.08; // Overshoot multiplier for robotic feel (1.0=none, 1.2=20% overshoot)
   
   // Vortex mode parameters - ORBITAL MECHANICS
-  let vortexWellStrength = 5000; // Central gravity well strength
+  let vortexWellStrength = 8000; // Central gravity well strength (increased for stronger spin)
   let vortexBallCount = 200; // Number of orbiting balls
   let vortexInitialSpeed = 450; // Initial orbital velocity (px/s) - faster for dramatic effect
-  let vortexDecayRate = 0.0002; // Orbital decay (positive=spiral in, negative=spiral out)
+  let vortexDecayRate = 0.0001; // Orbital decay (reduced for more stable orbits)
   let vortexMouseWellStrength = 3000; // Mouse cursor gravity well strength
   let vortexTrailLength = 0; // Trail fade (0=no trails, 0.1=long trails)
   let vortexSpeedColorEnabled = false; // Color balls based on speed (disabled for palette colors)
@@ -2854,7 +2854,7 @@
     
     const x = mouseX, y = mouseY;
     const baseSize = (R_MIN + R_MAX) / 2;
-    const r = baseSize * 1.33; // 1.33x larger cursor
+    const r = baseSize * 1.3; // 1.3x larger cursor
     
     const color = 'rgba(255, 255, 255, 0.9)';
     
@@ -3681,12 +3681,34 @@ Then rebuild: <code>npm run build-production</code>`;
       // Prevent division by zero and extreme forces
       if (dist < 5) continue;
       
-      // Inverse-square gravitational force: F = GM/r²
-      const forceMagnitude = (well.strength / distSq) * dt;
+      // Calculate normalized direction vectors
+      const nx = dx / dist;  // Normalized x (toward well)
+      const ny = dy / dist;  // Normalized y (toward well)
       
-      // Apply force in direction of well
-      ball.vx += (dx / dist) * forceMagnitude;
-      ball.vy += (dy / dist) * forceMagnitude;
+      // VORTEX PHYSICS: Create spinning motion around the mouse
+      // The key is to balance radial (inward) and tangential (spinning) forces
+      
+      // 1. Radial force - pulls balls toward center (inverse square law)
+      const radialForce = (well.strength / distSq) * dt * 0.6; // Reduced to 60% for less aggressive pull
+      
+      // 2. Tangential force - makes balls spin around the center
+      // Perpendicular to radial: rotate direction 90° counter-clockwise
+      // If radial is (nx, ny), perpendicular is (-ny, nx)
+      const tangentialStrength = well.strength * 1.2; // 120% of base strength for strong spin
+      const tangentialForce = (tangentialStrength / dist) * dt; // Use 1/r instead of 1/r² for more consistent spin
+      
+      // 3. Spatial effect - create depth by varying speed based on distance
+      // Closer balls spin faster (like inner planets), far balls spin slower (like outer planets)
+      const spatialMultiplier = 1.0 - Math.min(dist / 600, 0.5); // 0.5 to 1.0 based on distance
+      
+      // Apply forces: radial (pull in) + tangential (spin) with spatial variation
+      ball.vx += nx * radialForce + (-ny) * tangentialForce * (0.8 + spatialMultiplier * 0.4);
+      ball.vy += ny * radialForce + (nx) * tangentialForce * (0.8 + spatialMultiplier * 0.4);
+      
+      // 4. Velocity damping for stability (prevents balls from flying away)
+      const dampingFactor = 0.997; // Slight damping to keep orbits stable
+      ball.vx *= dampingFactor;
+      ball.vy *= dampingFactor;
     }
     
     // Apply orbital decay (energy loss/gain over time)

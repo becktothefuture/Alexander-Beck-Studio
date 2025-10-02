@@ -245,7 +245,7 @@ html, body { overflow: hidden; margin: 0; padding: 0; }
 .viewport a, .viewport button, .viewport input, .viewport select, .viewport textarea { pointer-events: auto !important; }
 .footer_link, .footer_icon-link, .corner { pointer-events: auto !important; }
 
-/* Dark mode: Change Webflow text colors to off-white (except corner SVGs) */
+/* Dark mode: Change Webflow text colors to off-white */
 body.dark-mode .viewport { color: #f5f5f5 !important; }
 body.dark-mode .viewport .legend__item { color: #f5f5f5 !important; }
 body.dark-mode .viewport .header { color: #f5f5f5 !important; }
@@ -255,3 +255,7 @@ body.dark-mode .viewport .hero__text svg path[fill="black"] { fill: #f5f5f5 !imp
 body.dark-mode .footer_link { color: #f5f5f5 !important; }
 body.dark-mode .footer_icon-link { color: #f5f5f5 !important; }
 body.dark-mode .caption { color: #f5f5f5 !important; }
+
+/* Dark mode: Corner SVGs become solid black */
+body.dark-mode .corner svg path { fill: #000000 !important; }
+body.dark-mode .corner svg * { fill: #000000 !important; stroke: #000000 !important; }
