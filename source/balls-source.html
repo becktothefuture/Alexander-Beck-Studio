@@ -4022,6 +4022,8 @@ Then rebuild: <code>npm run build-production</code>`;
       G = GE * gravityMultiplier;
       repellerEnabled = repellerEnabledPit && (repelPower > 0 && repelRadius > 0);
       EMITTER_SWEEP_ENABLED = false; // Disable continuous emitter - balls drop all at once
+      // Apply heavy physics preset for realistic ball pit feel
+      applyPhysicsPreset('rubberHeavy');
       // Reset scene when entering Ball Pit: spawn all balls at once above viewport
       balls.length = 0;
       emitterTimer = 0;
@@ -4563,7 +4565,7 @@ Then rebuild: <code>npm run build-production</code>`;
   }
 
   // Apply sane defaults FIRST (before event listeners to avoid triggering them)
-  applyPhysicsPreset('rubberRacquet');
+  applyPhysicsPreset('rubberHeavy'); // Heavy preset for Ball Pit mode
   applySpawnPreset('fullRain');
   applyRepellerPreset('off');
   
