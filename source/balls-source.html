@@ -3655,8 +3655,10 @@ Then rebuild: <code>npm run build-production</code>`;
     }];
     
     // Update permanent wells reference for UI consistency
-    permanentWells[0].x = wellX;
-    permanentWells[0].y = wellY;
+    if (permanentWells.length > 0) {
+      permanentWells[0].x = wellX;
+      permanentWells[0].y = wellY;
+    }
   }
 
   /**
