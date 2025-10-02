@@ -1806,7 +1806,20 @@
       // Draw main ball first
         ctx.beginPath();
         ctx.arc(0, 0, this.r, 0, Math.PI*2);
-        ctx.fillStyle = this.color;
+        
+        // Speed-based coloring for Vortex mode
+        let finalColor = this.color;
+        if (currentMode === MODES.VORTEX && vortexSpeedColorEnabled) {
+          const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+          const maxSpeed = 800; // Reference speed for color mapping
+          const speedRatio = Math.min(speed / maxSpeed, 1);
+          
+          // Shift color based on speed (blue=slow, red=fast)
+          const hue = 220 - speedRatio * 220; // 220 (blue) to 0 (red)
+          finalColor = `hsl(${hue}, 70%, 55%)`;
+        }
+        
+        ctx.fillStyle = finalColor;
         ctx.fill();
 
       ctx.restore();
@@ -3473,10 +3486,12 @@ Then rebuild: <code>npm run build-production</code>`;
    */
   function updateModeControlsUI() {
     const pulseGridControls = document.getElementById('pulseGridControls');
+    const vortexControls = document.getElementById('vortexControls');
     if (pitControls) pitControls.classList.toggle('active', currentMode === MODES.PIT);
     if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
     if (weightlessControls) weightlessControls.classList.toggle('active', currentMode === MODES.WEIGHTLESS);
     if (pulseGridControls) pulseGridControls.classList.toggle('active', currentMode === MODES.PULSE_GRID);
+    if (vortexControls) vortexControls.classList.toggle('active', currentMode === MODES.VORTEX);
     
     // Update mode buttons and ARIA states
     modeButtons.forEach(btn => {
@@ -3516,7 +3531,8 @@ Then rebuild: <code>npm run build-production</code>`;
       [MODES.PIT]: 'Ball Pit',
       [MODES.FLIES]: 'Flies to Light',
       [MODES.WEIGHTLESS]: 'Zero Gravity',
-      [MODES.PULSE_GRID]: 'Pulse Grid'
+      [MODES.PULSE_GRID]: 'Pulse Grid',
+      [MODES.VORTEX]: 'Vortex Spiral'
     };
     announceToScreenReader(`Switched to ${modeNames[mode]} mode`);
     
@@ -3568,6 +3584,15 @@ Then rebuild: <code>npm run build-production</code>`;
       EMITTER_SWEEP_ENABLED = false;
       // Initialize pulse grid scene with rhythmic movement
       initializePulseGridScene();
+      // Reset ball sizes to global (after initialization)
+      resetBallSizeToGlobal();
+    } else if (currentMode === MODES.VORTEX) {
+      gravityMultiplier = 0.0; // no world gravity in vortex mode
+      G = GE * gravityMultiplier;
+      repellerEnabled = false; // mouse acts as gravity well instead
+      EMITTER_SWEEP_ENABLED = false;
+      // Initialize vortex scene with orbital distribution
+      initializeVortexScene();
       // Reset ball sizes to global (after initialization)
       resetBallSizeToGlobal();
     }

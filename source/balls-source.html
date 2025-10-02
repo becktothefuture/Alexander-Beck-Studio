@@ -377,6 +377,7 @@
       <button class="mode-button" data-mode="flies" aria-label="Flies to Light mode" aria-pressed="false">🕊️ Flies</button>
       <button class="mode-button" data-mode="weightless" aria-label="Zero Gravity mode" aria-pressed="false">🌌 Zero-G</button>
       <button class="mode-button" data-mode="pulse-grid" aria-label="Pulse Grid mode" aria-pressed="false">🎹 Pulse</button>
+      <button class="mode-button" data-mode="vortex" aria-label="Vortex Spiral mode" aria-pressed="false">🌀 Vortex</button>
     </div>
   </div>
   
@@ -659,7 +660,51 @@
     </div>
   </div>
   
-    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-4</code> switch modes</div>
+  <!-- Vortex Mode Controls -->
+  <div id="vortexControls" class="mode-controls">
+    <details open>
+      <summary>🌀 Vortex Spiral Mode</summary>
+      <div class="group">
+        <label title="Number of orbiting balls (50-300)">
+          <span>Ball count</span>
+          <input type="range" id="vortexBallCountSlider" min="50" max="300" step="10" value="200">
+          <span class="val" id="vortexBallCountVal">200</span>
+        </label>
+        <label title="Central gravity well strength (1000-15000)">
+          <span>Well strength</span>
+          <input type="range" id="vortexWellStrengthSlider" min="1000" max="15000" step="500" value="5000">
+          <span class="val" id="vortexWellStrengthVal">5000</span>
+        </label>
+        <label title="Mouse cursor gravity well strength (0-10000)">
+          <span>Mouse strength</span>
+          <input type="range" id="vortexMouseStrengthSlider" min="0" max="10000" step="500" value="3000">
+          <span class="val" id="vortexMouseStrengthVal">3000</span>
+        </label>
+        <label title="Initial orbital velocity (50-400 px/s)">
+          <span>Initial speed</span>
+          <input type="range" id="vortexInitialSpeedSlider" min="50" max="400" step="10" value="180">
+          <span class="val" id="vortexInitialSpeedVal">180</span>
+        </label>
+        <label title="Orbital decay rate (-0.001 to 0.001). Positive = spiral in, negative = spiral out">
+          <span>Orbital decay</span>
+          <input type="range" id="vortexDecaySlider" min="-0.001" max="0.001" step="0.0001" value="0.0002">
+          <span class="val" id="vortexDecayVal">0.0002</span>
+        </label>
+        <label title="Color balls based on speed (blue=slow, red=fast)">
+          <span>Speed coloring</span>
+          <input type="checkbox" id="vortexSpeedColorCheckbox" checked>
+        </label>
+      </div>
+    </details>
+    
+    <!-- Save & Reset Controls -->
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid rgba(255,255,255,0.15);">
+      <button id="resetBtn" style="padding: 10px 16px; background: #ff6b47; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; width: 100%; font-size: 14px;">🔄 Reset to Defaults</button>
+      <div style="font-size: 9px; opacity: 0.7; margin-top: 8px; text-align: center;">Clears saved settings & reloads with defaults</div>
+    </div>
+  </div>
+  
+    <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-5</code> switch modes</div>
   </div>
   
   <!-- FPS Counter -->
@@ -2682,6 +2727,61 @@
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
+  // VORTEX MODE UI LISTENERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  const vortexBallCountSlider = document.getElementById('vortexBallCountSlider');
+  const vortexBallCountVal = document.getElementById('vortexBallCountVal');
+  const vortexWellStrengthSlider = document.getElementById('vortexWellStrengthSlider');
+  const vortexWellStrengthVal = document.getElementById('vortexWellStrengthVal');
+  const vortexMouseStrengthSlider = document.getElementById('vortexMouseStrengthSlider');
+  const vortexMouseStrengthVal = document.getElementById('vortexMouseStrengthVal');
+  const vortexInitialSpeedSlider = document.getElementById('vortexInitialSpeedSlider');
+  const vortexInitialSpeedVal = document.getElementById('vortexInitialSpeedVal');
+  const vortexDecaySlider = document.getElementById('vortexDecaySlider');
+  const vortexDecayVal = document.getElementById('vortexDecayVal');
+  const vortexSpeedColorCheckbox = document.getElementById('vortexSpeedColorCheckbox');
+  
+  vortexBallCountSlider && vortexBallCountSlider.addEventListener('input', () => {
+    vortexBallCount = parseInt(vortexBallCountSlider.value, 10);
+    vortexBallCountVal && (vortexBallCountVal.textContent = vortexBallCount.toString());
+    if (currentMode === MODES.VORTEX) initializeVortexScene();
+    autoSaveSettings();
+  });
+  
+  vortexWellStrengthSlider && vortexWellStrengthSlider.addEventListener('input', () => {
+    vortexWellStrength = parseInt(vortexWellStrengthSlider.value, 10);
+    vortexWellStrengthVal && (vortexWellStrengthVal.textContent = vortexWellStrength.toString());
+    if (currentMode === MODES.VORTEX && gravityWells.length > 0) {
+      gravityWells[0].strength = vortexWellStrength;
+      permanentWells[0].strength = vortexWellStrength;
+    }
+    autoSaveSettings();
+  });
+  
+  vortexMouseStrengthSlider && vortexMouseStrengthSlider.addEventListener('input', () => {
+    vortexMouseWellStrength = parseInt(vortexMouseStrengthSlider.value, 10);
+    vortexMouseStrengthVal && (vortexMouseStrengthVal.textContent = vortexMouseWellStrength.toString());
+    autoSaveSettings();
+  });
+  
+  vortexInitialSpeedSlider && vortexInitialSpeedSlider.addEventListener('input', () => {
+    vortexInitialSpeed = parseInt(vortexInitialSpeedSlider.value, 10);
+    vortexInitialSpeedVal && (vortexInitialSpeedVal.textContent = vortexInitialSpeed.toString());
+    autoSaveSettings();
+  });
+  
+  vortexDecaySlider && vortexDecaySlider.addEventListener('input', () => {
+    vortexDecayRate = parseFloat(vortexDecaySlider.value);
+    vortexDecayVal && (vortexDecayVal.textContent = vortexDecayRate.toFixed(4));
+    autoSaveSettings();
+  });
+  
+  vortexSpeedColorCheckbox && vortexSpeedColorCheckbox.addEventListener('change', () => {
+    vortexSpeedColorEnabled = vortexSpeedColorCheckbox.checked;
+    autoSaveSettings();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // KEYBOARD SHORTCUTS
   // ═══════════════════════════════════════════════════════════════════════════
   window.addEventListener('keydown', e => {
@@ -3790,10 +3890,12 @@ Then rebuild: <code>npm run build-production</code>`;
    */
   function updateModeControlsUI() {
     const pulseGridControls = document.getElementById('pulseGridControls');
+    const vortexControls = document.getElementById('vortexControls');
     if (pitControls) pitControls.classList.toggle('active', currentMode === MODES.PIT);
     if (fliesControls) fliesControls.classList.toggle('active', currentMode === MODES.FLIES);
     if (weightlessControls) weightlessControls.classList.toggle('active', currentMode === MODES.WEIGHTLESS);
     if (pulseGridControls) pulseGridControls.classList.toggle('active', currentMode === MODES.PULSE_GRID);
+    if (vortexControls) vortexControls.classList.toggle('active', currentMode === MODES.VORTEX);
     
     // Update mode buttons and ARIA states
     modeButtons.forEach(btn => {
@@ -3833,7 +3935,8 @@ Then rebuild: <code>npm run build-production</code>`;
       [MODES.PIT]: 'Ball Pit',
       [MODES.FLIES]: 'Flies to Light',
       [MODES.WEIGHTLESS]: 'Zero Gravity',
-      [MODES.PULSE_GRID]: 'Pulse Grid'
+      [MODES.PULSE_GRID]: 'Pulse Grid',
+      [MODES.VORTEX]: 'Vortex Spiral'
     };
     announceToScreenReader(`Switched to ${modeNames[mode]} mode`);
     
@@ -3885,6 +3988,15 @@ Then rebuild: <code>npm run build-production</code>`;
       EMITTER_SWEEP_ENABLED = false;
       // Initialize pulse grid scene with rhythmic movement
       initializePulseGridScene();
+      // Reset ball sizes to global (after initialization)
+      resetBallSizeToGlobal();
+    } else if (currentMode === MODES.VORTEX) {
+      gravityMultiplier = 0.0; // no world gravity in vortex mode
+      G = GE * gravityMultiplier;
+      repellerEnabled = false; // mouse acts as gravity well instead
+      EMITTER_SWEEP_ENABLED = false;
+      // Initialize vortex scene with orbital distribution
+      initializeVortexScene();
       // Reset ball sizes to global (after initialization)
       resetBallSizeToGlobal();
     }
