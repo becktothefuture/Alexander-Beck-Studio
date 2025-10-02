@@ -2312,13 +2312,14 @@
   }
   
   function emit(dt) {
-    // Ball Pit mode: no continuous spawning (all balls drop at once on mode init)
-    // Zero-G, Pulse Grid, and Vortex modes: no continuous spawning, balls are distributed at initialization
-    if (currentMode === MODES.PIT || currentMode === MODES.WEIGHTLESS || currentMode === MODES.PULSE_GRID || currentMode === MODES.VORTEX) {
+    // All modes: no continuous spawning
+    // Ball Pit: all balls drop at once on mode init
+    // Flies, Zero-G, Pulse Grid, Vortex: balls are distributed at initialization
+    if (currentMode === MODES.PIT || currentMode === MODES.FLIES || currentMode === MODES.WEIGHTLESS || currentMode === MODES.PULSE_GRID || currentMode === MODES.VORTEX) {
       return;
     }
     
-    // Flies mode only: standard top emitter
+    // No modes use continuous emitter anymore
     emitterTimer += dt;
     while (emitterTimer >= EMIT_INTERVAL) {
       // Jitter emissions slightly for organic timing
@@ -3638,15 +3639,16 @@ Then rebuild: <code>npm run build-production</code>`;
    * @modifies {gravityWells}
    */
   function updateGravityWells() {
-    const w = canvas.width / DPR;
-    const h = canvas.height / DPR;
+    const w = canvas.width;
+    const h = canvas.height;
     const centerX = w / 2;
     const centerY = h / 2;
     
     // If mouse is in canvas, move central well to mouse position
     // Otherwise, keep it at viewport center
-    const wellX = mouseInCanvas ? mouseX / DPR : centerX;
-    const wellY = mouseInCanvas ? mouseY / DPR : centerY;
+    // Note: mouseX and mouseY are already in canvas coordinates (scaled by DPR)
+    const wellX = mouseInCanvas ? mouseX : centerX;
+    const wellY = mouseInCanvas ? mouseY : centerY;
     
     // Update the central well position
     gravityWells = [{
