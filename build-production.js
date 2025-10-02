@@ -252,6 +252,7 @@ function hardcodeConfigIntoJS(jsCode, config) {
     'trailFade': { pattern: /let trailFadeRate = [\d.]+;/, value: config.trailFade },
     'trailSubtlety': { pattern: /let trailSubtlety = [\d.]+;/, value: config.trailSubtlety },
     'cursorColorIndex': { pattern: /let cursorBallIndex = \d+;/, value: config.cursorColorIndex },
+    'vortexSpeedColorEnabled': { pattern: /let vortexSpeedColorEnabled = (true|false);/, value: config.vortexSpeedColorEnabled },
   };
   
   for (const [configKey, mapping] of Object.entries(configMap)) {

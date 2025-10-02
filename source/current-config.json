@@ -1,10 +1,10 @@
 {
   "_comment_physics": "═══════════════════════════════════════════════════════════════",
   "_comment_physics_desc": "Ball Pit Mode - Physics & Movement Parameters",
-  "gravityMultiplier": 0,
-  "restitution": 1,
-  "friction": 0.01,
-  "ballMass": 100,
+  "gravityMultiplier": 1.05,
+  "restitution": 0.97,
+  "friction": 0.0035,
+  "ballMass": 91,
   
   "_comment_spawn": "═══════════════════════════════════════════════════════════════",
   "_comment_spawn_desc": "Ball Spawning & Emission Settings",
