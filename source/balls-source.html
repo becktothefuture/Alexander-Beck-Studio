@@ -5,9 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Refined Bravia Balls – Canvas Physics</title>
 <style>
+  /* Prevent page scrolling - simulation fills viewport */
+  html, body {
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
   /* Removed global html/body styles - simulation is self-contained within #bravia-balls */
   /* Scoped wrapper for embed friendliness and interaction hygiene */
   #bravia-balls {
+    overflow: hidden; /* Critical: prevent scrollbars from canvas overflow */
     position: fixed;
     bottom: 0;
     left: 0;
@@ -23,8 +33,12 @@
     background: #0a0a0a; /* Dark mode background */
   }
   /* Ball Pit mode needs extra height for spawning above viewport */
+  /* Canvas is clipped to 100svh visible area, but rendering extends to 150vh */
   #bravia-balls.mode-pit {
-    height: 150vh;
+    height: 100svh; /* Keep visible area at 100svh (no scrollbars) */
+  }
+  #bravia-balls.mode-pit canvas {
+    height: 150vh; /* Canvas renders 150vh for ball spawning above */
   }
   #bravia-balls canvas { 
     display: block; 

@@ -2378,6 +2378,61 @@
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
+  // VORTEX MODE UI LISTENERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  const vortexBallCountSlider = document.getElementById('vortexBallCountSlider');
+  const vortexBallCountVal = document.getElementById('vortexBallCountVal');
+  const vortexWellStrengthSlider = document.getElementById('vortexWellStrengthSlider');
+  const vortexWellStrengthVal = document.getElementById('vortexWellStrengthVal');
+  const vortexMouseStrengthSlider = document.getElementById('vortexMouseStrengthSlider');
+  const vortexMouseStrengthVal = document.getElementById('vortexMouseStrengthVal');
+  const vortexInitialSpeedSlider = document.getElementById('vortexInitialSpeedSlider');
+  const vortexInitialSpeedVal = document.getElementById('vortexInitialSpeedVal');
+  const vortexDecaySlider = document.getElementById('vortexDecaySlider');
+  const vortexDecayVal = document.getElementById('vortexDecayVal');
+  const vortexSpeedColorCheckbox = document.getElementById('vortexSpeedColorCheckbox');
+  
+  vortexBallCountSlider && vortexBallCountSlider.addEventListener('input', () => {
+    vortexBallCount = parseInt(vortexBallCountSlider.value, 10);
+    vortexBallCountVal && (vortexBallCountVal.textContent = vortexBallCount.toString());
+    if (currentMode === MODES.VORTEX) initializeVortexScene();
+    autoSaveSettings();
+  });
+  
+  vortexWellStrengthSlider && vortexWellStrengthSlider.addEventListener('input', () => {
+    vortexWellStrength = parseInt(vortexWellStrengthSlider.value, 10);
+    vortexWellStrengthVal && (vortexWellStrengthVal.textContent = vortexWellStrength.toString());
+    if (currentMode === MODES.VORTEX && gravityWells.length > 0) {
+      gravityWells[0].strength = vortexWellStrength;
+      permanentWells[0].strength = vortexWellStrength;
+    }
+    autoSaveSettings();
+  });
+  
+  vortexMouseStrengthSlider && vortexMouseStrengthSlider.addEventListener('input', () => {
+    vortexMouseWellStrength = parseInt(vortexMouseStrengthSlider.value, 10);
+    vortexMouseStrengthVal && (vortexMouseStrengthVal.textContent = vortexMouseWellStrength.toString());
+    autoSaveSettings();
+  });
+  
+  vortexInitialSpeedSlider && vortexInitialSpeedSlider.addEventListener('input', () => {
+    vortexInitialSpeed = parseInt(vortexInitialSpeedSlider.value, 10);
+    vortexInitialSpeedVal && (vortexInitialSpeedVal.textContent = vortexInitialSpeed.toString());
+    autoSaveSettings();
+  });
+  
+  vortexDecaySlider && vortexDecaySlider.addEventListener('input', () => {
+    vortexDecayRate = parseFloat(vortexDecaySlider.value);
+    vortexDecayVal && (vortexDecayVal.textContent = vortexDecayRate.toFixed(4));
+    autoSaveSettings();
+  });
+  
+  vortexSpeedColorCheckbox && vortexSpeedColorCheckbox.addEventListener('change', () => {
+    vortexSpeedColorEnabled = vortexSpeedColorCheckbox.checked;
+    autoSaveSettings();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // KEYBOARD SHORTCUTS
   // ═══════════════════════════════════════════════════════════════════════════
   window.addEventListener('keydown', e => {
@@ -2391,11 +2446,12 @@
       e.preventDefault();
       panel.classList.toggle('hidden');
     }
-    // Quick mode switches 1-4
+    // Quick mode switches 1-5
     if (k === '1') setMode(MODES.PIT);
     if (k === '2') setMode(MODES.FLIES);
     if (k === '3') setMode(MODES.WEIGHTLESS);
     if (k === '4') setMode(MODES.PULSE_GRID);
+    if (k === '5') setMode(MODES.VORTEX);
   });
 
   // Note: Ball seeding removed - all modes initialize via setMode() which calls their respective init functions
