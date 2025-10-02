@@ -455,19 +455,16 @@ async function buildProduction() {
     console.log(`   Panel Visible: ${CONFIG.panelVisibleInProduction}`);
     console.log('');
     
-    // Step 1: Backup existing public folder
-    if (CONFIG.backupExisting && fs.existsSync(CONFIG.publicDestination)) {
-      const backupPath = `${CONFIG.publicDestination}-backup-${Date.now()}`;
-      console.log(`📦 Backing up public folder to: ${backupPath}`);
-      fs.renameSync(CONFIG.publicDestination, backupPath);
+    // Step 1: Verify public/ folder exists (DO NOT overwrite entire folder)
+    if (!fs.existsSync(CONFIG.publicDestination)) {
+      console.log('📁 No public folder found, copying Webflow export...');
+      if (!copyDirectory(CONFIG.webflowSource, CONFIG.publicDestination)) {
+        throw new Error('Failed to copy Webflow export');
+      }
+      console.log('✅ Webflow export copied');
+    } else {
+      console.log('✅ Public folder exists, will modify in place (preserving design)');
     }
-    
-    // Step 2: Copy Webflow export to public folder
-    console.log('📁 Copying Webflow export to public...');
-    if (!copyDirectory(CONFIG.webflowSource, CONFIG.publicDestination)) {
-      throw new Error('Failed to copy Webflow export');
-    }
-    console.log('✅ Webflow export copied');
     console.log('');
     
     // Step 3: Load configuration
