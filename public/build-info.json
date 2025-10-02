@@ -1,10 +1,10 @@
 {
-  "buildTime": "2025-10-01T22:42:11.237Z",
+  "buildTime": "2025-10-02T06:34:11.654Z",
   "webflowSource": "./webflow-export",
   "sourceFile": "./source/balls-source.html",
   "sidebarVisible": true,
   "compactSidebar": true,
-  "jsSize": 51134,
+  "jsSize": 51270,
   "cssSize": 9897,
   "version": "1.0.0"
 }

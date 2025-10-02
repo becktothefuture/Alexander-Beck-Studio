@@ -1678,6 +1678,10 @@
   let trailSubtlety = 1.80; // from config
   
   // Performance optimizations and FPS tracking
+  // Debug logging (set to false in production for ~1KB bundle reduction)
+  const DEBUG = true; // Set to false to disable all console logs
+  const log = DEBUG ? console.log.bind(console) : () => {};
+  
   let renderFrameCount = 0;
   let physicsStepCount = 0;
   let lastFPSTime = 0;
@@ -2355,7 +2359,9 @@
     acc += dt;
 
   // FPS counters (render and physics) - only update if elements exist
-    renderFrameCount++;
+    if (renderFpsElement || physicsFpsElement) {
+      renderFrameCount++; // Only increment when FPS display elements exist (saves 60 ops/sec when panel hidden)
+    }
     if ((renderFpsElement || physicsFpsElement) && now - lastFPSTime >= CONSTANTS.FPS_UPDATE_INTERVAL) {
       if (renderFpsElement && renderFrameCount !== currentRenderFPS) {
         currentRenderFPS = renderFrameCount;
@@ -2391,7 +2397,8 @@
     while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
       // Skip physics step for pulse grid mode (movement handled by updatePulseGrid)
       if (currentMode !== MODES.PULSE_GRID) {
-        for (let i=0; i<balls.length; i++) balls[i].step(DT);
+        const len = balls.length; // Cache length (saves 300+ lookups per frame at max balls)
+        for (let i=0; i<len; i++) balls[i].step(DT);
       }
       
       // Ball-to-ball collisions (disabled for Flies and Pulse Grid modes)
@@ -2402,7 +2409,8 @@
       // Wall collisions (all modes except Pulse Grid)
       if (currentMode !== MODES.PULSE_GRID) {
       const wallRestitution = (currentMode === MODES.WEIGHTLESS) ? weightlessBounce : REST;
-      for (let i=0; i<balls.length; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+      const len = balls.length; // Cache length for wall collision loop
+      for (let i=0; i<len; i++) balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
       }
       
       acc -= DT;
@@ -2426,7 +2434,8 @@
     }
     
     // Render balls with individual colors
-    for (let i=0; i<balls.length; i++) balls[i].draw(ctx);
+    const len = balls.length; // Cache length for render loop (60 fps * 300 balls = 18k lookups/sec)
+    for (let i=0; i<len; i++) balls[i].draw(ctx);
     // Draw cursor ball last
     drawCursorBall(ctx);
     
@@ -4194,7 +4203,12 @@
   console.log(`   Color template applied: ${currentTemplate} (${isDarkMode ? 'dark' : 'light'} variant)`);
   
   // Check dark mode every minute for time transitions
-  setInterval(checkAndApplyDarkMode, 60000); // Every 60 seconds
+  const darkModeInterval = setInterval(checkAndApplyDarkMode, 60000); // Every 60 seconds
+  
+  // Cleanup intervals on page unload (prevents memory leak in SPA contexts)
+  window.addEventListener('unload', () => {
+    if (darkModeInterval) clearInterval(darkModeInterval);
+  });
 
   // Hook presets to selects AFTER applying defaults
   physicsSelect && physicsSelect.addEventListener('change', () => applyPhysicsPreset(physicsSelect.value));
