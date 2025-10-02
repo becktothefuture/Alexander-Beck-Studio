@@ -650,6 +650,12 @@
         </label>
       </div>
     </details>
+    
+    <!-- Save & Reset Controls -->
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid rgba(255,255,255,0.15);">
+      <button id="resetBtn" style="padding: 10px 16px; background: #ff6b47; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; width: 100%; font-size: 14px;">🔄 Reset to Defaults</button>
+      <div style="font-size: 9px; opacity: 0.7; margin-top: 8px; text-align: center;">Clears saved settings & reloads with defaults</div>
+    </div>
   </div>
   
     <div style="font-size:10px; opacity:0.8;">Press <code>R</code> to reset • <code>/</code> toggle panel • <code>1-4</code> switch modes</div>
@@ -1503,6 +1509,7 @@
   
   // Settings persistence using localStorage
   const STORAGE_KEY = 'bouncyBallsSettings';
+  const SETTINGS_VERSION = 2; // Increment to invalidate old localStorage (v2: ball size 1.3 default)
   
   /**
    * Persist current UI/simulation settings to localStorage
@@ -1512,6 +1519,7 @@
    */
   function saveSettings() {
     const settings = {
+      version: SETTINGS_VERSION, // Version number to invalidate old settings
       currentMode,
       gravityMultiplierPit,
       repellerEnabledPit,
@@ -1564,7 +1572,7 @@
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-      console.log('✓ Settings saved');
+      log('✓ Settings saved (version ' + SETTINGS_VERSION + ')');
     } catch (e) {
       console.warn('Could not save settings:', e);
     }
@@ -1580,6 +1588,14 @@
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const settings = JSON.parse(saved);
+        
+        // Version check - clear old localStorage if version doesn't match
+        if (!settings.version || settings.version !== SETTINGS_VERSION) {
+          log('🗑️ Clearing old localStorage (version mismatch: ' + (settings.version || 'none') + ' → ' + SETTINGS_VERSION + ')');
+          localStorage.removeItem(STORAGE_KEY);
+          return false; // Use defaults
+        }
+        
         // Restore all settings
         if (settings.currentMode) currentMode = settings.currentMode;
         if (settings.gravityMultiplierPit !== undefined) gravityMultiplierPit = settings.gravityMultiplierPit;
@@ -3695,6 +3711,18 @@
       resetBallSizeToGlobal();
     }
     updateModeControlsUI();
+  }
+
+  // Reset to Defaults button
+  const resetBtn = document.getElementById('resetBtn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      if (confirm('Reset all settings to defaults? This will clear saved preferences and reload the page.')) {
+        localStorage.removeItem(STORAGE_KEY);
+        log('🔄 Settings cleared - reloading...');
+        location.reload();
+      }
+    });
   }
 
   // Hook up UI listeners (with auto-save on changes)

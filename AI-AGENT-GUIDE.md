@@ -4,10 +4,20 @@
 
 ## 🎯 Project Context
 
-**High-performance particle physics simulation** with 3 modes:
+**High-performance particle physics simulation** with 4 modes:
 - Ball Pit (gravity + collisions)
 - Flies (swarm behavior)
 - Zero-G (weightless bounce)
+- Pulse Grid (synchronized grid motion)
+
+## ⚠️ CRITICAL: Documentation is Source of Truth
+
+**Before making ANY changes:**
+1. **Read relevant documentation** - It defines the intended design
+2. **Align with documented philosophy** - README.md defines the vision
+3. **Match specifications** - `docs/reference/MODES.md` is authoritative for behavior
+4. **Follow architecture patterns** - `docs/development/ARCHITECTURE.md` defines structure
+5. **If docs conflict with code** - Fix code to match docs (or update docs with justification)
 
 **Tech Stack:** Vanilla JavaScript, Canvas 2D, 120Hz fixed timestep  
 **Performance:** 60 FPS with 200+ particles  
@@ -71,13 +81,15 @@ npm run watch          # Auto-rebuild
 ## ⚠️ Critical Constraints
 
 **Never Violate:**
-1. **60 FPS minimum** - If change drops FPS, revert/optimize
-2. **No localStorage for user text** - Privacy-first
-3. **O(1) hot paths** - Physics/render loops constant time
-4. **Mobile support** - Test on device emulation
-5. **Zero npm dependencies** - Core is vanilla JS
-6. **Accessibility** - Respect `prefers-reduced-motion`
-7. **Edit source/**, never edit `public/` directly
+1. **Documentation is authoritative** - Code must match documented design
+2. **60 FPS minimum** - If change drops FPS, revert/optimize
+3. **No localStorage for user text** - Privacy-first
+4. **O(1) hot paths** - Physics/render loops constant time
+5. **Mobile support** - Test on device emulation
+6. **Zero npm dependencies** - Core is vanilla JS
+7. **Accessibility** - Respect `prefers-reduced-motion`
+8. **Edit source/**, never edit `public/` directly
+9. **4 modes (not 3)** - Ball Pit, Flies, Zero-G, Pulse Grid
 
 ## 🔧 Architecture Quick Reference
 
