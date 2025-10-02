@@ -1560,6 +1560,7 @@
   let repelPower = 274000;  // repelPower from config (gentle push)
   let repelSoft = 3.4;     // repelSoftness from config
   let mouseX = CONSTANTS.OFFSCREEN_MOUSE, mouseY = CONSTANTS.OFFSCREEN_MOUSE; // offscreen until moved
+  let mouseInCanvas = false; // track if mouse is over canvas (for vortex mode)
   let repellerEnabled = false; // disabled by default; enabled by preset or sliders
   const REPELLER_GLOBAL_MULTIPLIER = 20.0; // doubled overall repeller strength
   
@@ -2826,6 +2827,7 @@
       const rect = canvas.getBoundingClientRect();
       mouseX = (e.clientX - rect.left) * DPR;
       mouseY = (e.clientY - rect.top) * DPR;
+      mouseInCanvas = true; // track mouse over canvas
     
     // Ball Pit: enable repeller when power and radius are set
     if (currentMode === MODES.PIT && repelPower > 0 && repelRadius > 0) {
@@ -2837,6 +2839,7 @@
   canvas.addEventListener('mouseleave', () => {
     mouseX = CONSTANTS.OFFSCREEN_MOUSE;
     mouseY = CONSTANTS.OFFSCREEN_MOUSE;
+    mouseInCanvas = false; // track mouse leaving canvas
   });
 
 
@@ -3429,6 +3432,7 @@ Then rebuild: <code>npm run build-production</code>`;
   canvas.addEventListener('mouseleave', () => {
     mouseX = CONSTANTS.OFFSCREEN_MOUSE;
     mouseY = CONSTANTS.OFFSCREEN_MOUSE;
+    mouseInCanvas = false; // track mouse leaving canvas
   });
   
   // Color controls
@@ -3717,7 +3721,8 @@ Then rebuild: <code>npm run build-production</code>`;
       const vy = Math.cos(angle) * orbitalSpeed;
       
       // Random ball size with variation
-      const r = BASE_RADIUS * effectiveScale * (0.9 + Math.random() * 0.2);
+      const baseRadius = (R_MIN + R_MAX) / 2;
+      const r = baseRadius * (0.9 + Math.random() * 0.2);
       
       // Create ball with orbital velocity
       const ball = new Ball(x, y, r, vx, vy);
