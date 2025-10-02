@@ -3422,12 +3422,7 @@ Then rebuild: <code>npm run build-production</code>`;
     autoSaveSettings();
   });
   
-  // Mouse tracking for cursor ball and repeller
-  canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    mouseX = (e.clientX - rect.left) * DPR;
-    mouseY = (e.clientY - rect.top) * DPR;
-  });
+  // Mouse tracking for cursor ball and repeller (removed duplicate - already handled above with mouseInCanvas tracking)
   
   canvas.addEventListener('mouseleave', () => {
     mouseX = CONSTANTS.OFFSCREEN_MOUSE;

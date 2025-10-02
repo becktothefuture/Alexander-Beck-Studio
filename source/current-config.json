@@ -80,7 +80,7 @@
   "vortexInitialSpeed": 180,
   "vortexDecayRate": 0.0002,
   "vortexTrailLength": 0,
-  "vortexSpeedColorEnabled": true,
+  "vortexSpeedColorEnabled": false,
   
   "_comment_shadow": "═══════════════════════════════════════════════════════════════",
   "_comment_shadow_desc": "Canvas Drop-Shadow Filter Settings",
