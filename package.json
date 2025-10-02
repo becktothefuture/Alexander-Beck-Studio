@@ -13,9 +13,15 @@
     "watch-production": "chokidar 'webflow-export/**/*' 'source/balls-source.html' -c \"npm run build-production\"",
     "dev": "npm run build && npm start",
     "dev-production": "npm run build-production && npm start",
-    "clean": "rm -f source/current-config*.json"
+    "clean": "rm -f source/current-config*.json",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:chromium": "playwright test --project=chromium",
+    "test:report": "playwright show-report"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.1",
     "chokidar-cli": "^3.0.0",
     "terser": "^5.31.0"
   },
