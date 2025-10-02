@@ -1,17 +1,17 @@
 {
   "_comment_physics": "═══════════════════════════════════════════════════════════════",
   "_comment_physics_desc": "Ball Pit Mode - Physics & Movement Parameters",
-  "gravityMultiplier": 1.05,
-  "restitution": 0.97,
-  "friction": 0.0035,
-  "ballMass": 91,
+  "gravityMultiplier": 0,
+  "restitution": 1,
+  "friction": 0.01,
+  "ballMass": 100,
   
   "_comment_spawn": "═══════════════════════════════════════════════════════════════",
   "_comment_spawn_desc": "Ball Spawning & Emission Settings",
   "emitRate": 0.03,
   "maxBalls": 350,
   "ballScale": 1,
-  "ballVariation": 0.3,
+  "ballVariation": 0,
   "spawnX": 50,
   "spawnY": -50,
   "spawnWidth": 100,
@@ -21,8 +21,8 @@
   "_comment_repeller": "═══════════════════════════════════════════════════════════════",
   "_comment_repeller_desc": "Mouse Repeller Settings (Ball Pit Mode)",
   "repelRadius": 710,
-  "repelPower": 274000,
-  "repelSoftness": 3.4,
+  "repelPower": 250000,
+  "repelSoftness": 4,
   
   "_comment_visual": "═══════════════════════════════════════════════════════════════",
   "_comment_visual_desc": "Scene & Visual Effects",
@@ -97,6 +97,6 @@
   "_comment_performance": "═══════════════════════════════════════════════════════════════",
   "_comment_performance_desc": "Performance & Optimization Settings",
   "performanceMode": false,
-  "targetFPS": 60,
+  "targetFPS": 90,
   "enableLOD": true
 }
