@@ -4503,7 +4503,7 @@ Then rebuild: <code>npm run build-production</code>`;
   const repellerSelect = document.getElementById('repellerSelect');
 
   if (physicsSelect) fillSelect(physicsSelect, PHYSICS_PRESETS, 'rubberRacquet');
-  if (spawnSelect) fillSelect(spawnSelect, SPAWN_PRESETS, 'fullRain');
+  if (spawnSelect) fillSelect(spawnSelect, SPAWN_PRESETS, 'rightGutter');
   if (repellerSelect) fillSelect(repellerSelect, REPELLER_PRESETS, 'off');
   // Populate color template dropdown
   if (colorSelect) fillSelect(colorSelect, COLOR_TEMPLATES, 'industrialTeal');
@@ -4568,7 +4568,7 @@ Then rebuild: <code>npm run build-production</code>`;
 
   // Apply sane defaults FIRST (before event listeners to avoid triggering them)
   applyPhysicsPreset('rubberHeavy'); // Heavy preset for Ball Pit mode
-  applySpawnPreset('fullRain');
+  applySpawnPreset('rightGutter'); // Spawn balls from right edge
   applyRepellerPreset('off');
   
   // Load saved settings from localStorage FIRST (before initializing colors)
