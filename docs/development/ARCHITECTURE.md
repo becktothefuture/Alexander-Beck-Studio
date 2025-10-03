@@ -592,13 +592,43 @@ const MODE_DEFAULTS = {
 
 ## File Structure
 
+### Legacy Monolith
 ```
 /
 ├── source/
-│   ├── balls-source.html      # Development version
-│   ├── build.js                # Build script
-│   ├── current-config.json     # Configuration
-│   └── save-config.js          # Config saver
+│   ├── balls-source.html      # Development version (monolith)
+│   └── current-config.json     # Configuration
+```
+
+### Modular Architecture (New)
+```
+/
+├── source/
+│   ├── main.js                 # Entry point
+│   ├── source-modular.html     # Modular dev page
+│   ├── modules/
+│   │   ├── core/
+│   │   │   ├── constants.js    # Global constants, modes
+│   │   │   └── state.js        # Centralized state store
+│   │   ├── physics/
+│   │   │   ├── Ball.js         # Ball entity
+│   │   │   └── engine.js       # Physics system
+│   │   ├── rendering/
+│   │   │   ├── renderer.js     # Canvas setup
+│   │   │   └── theme.js        # Dark mode, colors
+│   │   ├── ui/
+│   │   │   ├── panel-controller.js # Panel creation
+│   │   │   └── keyboard.js     # Keyboard shortcuts
+│   │   ├── modes/
+│   │   │   ├── mode-controller.js # Mode switching
+│   │   │   └── flies.js        # Mode implementations
+│   │   └── input/
+│   │       └── pointer.js      # Mouse/touch
+│   ├── css/
+│   │   ├── main.css            # Base styles
+│   │   └── panel.css           # Panel styles
+│   └── config/
+│       └── default-config.json # Runtime configuration
 ├── public/
 │   ├── index.html              # Production HTML
 │   ├── css/

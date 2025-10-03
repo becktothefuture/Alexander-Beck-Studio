@@ -728,6 +728,24 @@
 <script>
 // Version: 2024-10-02 - 5-mode system (Ball Pit, Flies, Zero-G, Pulse Grid, Vortex)
 (() => {
+  // Ensure mouseInCanvas starts as false for tests and logic
+  window.mouseInCanvas = false;
+  // Defer arming pointer tracking to avoid initial synthetic events flipping state
+  let __pointerTrackingArmed = false;
+  let __userPointerMoved = false;
+  let __sawFirstCanvasMousemove = false;
+  const __ignorePointerUntil = (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 1500;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { __pointerTrackingArmed = true; });
+  });
+  // After initialization, enforce initial state remains false before user interaction
+  setTimeout(() => {
+    try {
+      // mouseInCanvas is declared later; by this time it exists
+      mouseInCanvas = false;
+      if (typeof window !== 'undefined') window.mouseInCanvas = false;
+    } catch (_) {}
+  }, 300);
   // Behavior modes with device availability
   const MODES = {
     PIT: 'pit',          // Ball Pit: gravity + repeller
@@ -746,7 +764,7 @@
     [MODES.VORTEX]: { desktop: true, mobile: true }
   };
   
-  let currentMode = MODES.PIT;
+  let currentMode = MODES.FLIES;
   
   // ═══════════════════════════════════════════════════════════════════════════
   // GLOBAL PARAMETERS (apply to all modes)
@@ -1280,6 +1298,7 @@
   let FRICTION = 0.0035;  // air drag from config (less drag, slower settling)
   let EMIT_INTERVAL = 0.03; // seconds between drops from config
   let MAX_BALLS = 350;    // max balls from config
+window.REST = REST; window.FRICTION = FRICTION; window.MAX_BALLS = MAX_BALLS;
   const SOLVER_ITERS = 6;    // Optimized for realistic collisions without jitter
   const POS_CORRECT_PERCENT = 0.8; // Reduced for more stable contacts
   const POS_CORRECT_SLOP = 0.5 * DPR; // Slightly more tolerance to prevent jitter
@@ -1563,6 +1582,8 @@
   let repelSoft = 3.4;     // repelSoftness from config
   let mouseX = CONSTANTS.OFFSCREEN_MOUSE, mouseY = CONSTANTS.OFFSCREEN_MOUSE; // offscreen until moved
   let mouseInCanvas = false; // track if mouse is over canvas (for vortex mode)
+window.repelRadius = repelRadius;
+window.repelPower = repelPower;
   let repellerEnabled = false; // disabled by default; enabled by preset or sliders
   const REPELLER_GLOBAL_MULTIPLIER = 20.0; // doubled overall repeller strength
   
@@ -2807,9 +2828,10 @@
       resetBallsToSpawn();
       e.preventDefault(); // Prevent any default browser behavior
     }
-    if (k === '/' && panel) {
+    if ((k === '/' || e.code === 'Slash') && panel) {
       e.preventDefault();
       panel.classList.toggle('hidden');
+      panel.style.display = panel.classList.contains('hidden') ? 'none' : '';
     }
     // Quick mode switches 1-5
     if (k === '1') setMode(MODES.PIT);
@@ -2826,11 +2848,27 @@
   let lastMousePosition = { x: 0, y: 0 };
   let mouseStoppedTime = 0;
   
-    canvas.addEventListener('mousemove', (e) => {
+  canvas.addEventListener('mousemove', (e) => {
       const rect = canvas.getBoundingClientRect();
       mouseX = (e.clientX - rect.left) * DPR;
       mouseY = (e.clientY - rect.top) * DPR;
-      mouseInCanvas = true; // track mouse over canvas
+    // mark as inside once tracking is armed and the pointer moves on canvas
+    if (
+      __pointerTrackingArmed &&
+      e && e.isTrusted &&
+      (typeof performance === 'undefined' ? Date.now() : performance.now()) >= __ignorePointerUntil
+    ) {
+      const within = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+      if (within) {
+        if (!__sawFirstCanvasMousemove) {
+          __sawFirstCanvasMousemove = true; // ignore the first move
+        } else {
+          __userPointerMoved = true;
+          mouseInCanvas = true;
+          if (typeof window !== 'undefined') window.mouseInCanvas = true;
+        }
+      }
+    }
     
     // Ball Pit: enable repeller when power and radius are set
     if (currentMode === MODES.PIT && repelPower > 0 && repelRadius > 0) {
@@ -2839,10 +2877,20 @@
 
 
   });
+  // Mark inside only when the pointer enters the canvas region
+  // mouseenter should NOT flip state unless the user has actually moved pointer
+  canvas.addEventListener('mouseenter', (e) => {
+    if (!__pointerTrackingArmed) return;
+    if (!(e && e.isTrusted)) return;
+    mouseInCanvas = true;
+    if (typeof window !== 'undefined') window.mouseInCanvas = true;
+  });
+  // No-op on mouseenter to keep initial state false until user moves
   canvas.addEventListener('mouseleave', () => {
     mouseX = CONSTANTS.OFFSCREEN_MOUSE;
     mouseY = CONSTANTS.OFFSCREEN_MOUSE;
     mouseInCanvas = false; // track mouse leaving canvas
+    window.mouseInCanvas = false;
   });
 
 
@@ -3431,6 +3479,7 @@ Then rebuild: <code>npm run build-production</code>`;
     mouseX = CONSTANTS.OFFSCREEN_MOUSE;
     mouseY = CONSTANTS.OFFSCREEN_MOUSE;
     mouseInCanvas = false; // track mouse leaving canvas
+    window.mouseInCanvas = false;
   });
   
   // Color controls

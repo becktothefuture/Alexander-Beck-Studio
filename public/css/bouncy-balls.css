@@ -235,11 +235,9 @@
 /* Production overrides */
 html, body { overflow: hidden; margin: 0; padding: 0; }
 #bravia-balls { position: fixed; bottom: 0; left: 0; width: 100%; height: 100svh; z-index: 0 !important; isolation: isolate !important; pointer-events: auto !important; }
-#bravia-balls canvas { pointer-events: auto !important; touch-action: auto !important; will-change: transform; transform: translateZ(0); }
+#bravia-balls canvas { pointer-events: auto !important; touch-action: auto !important; will-change: transform; transform: translateZ(0); height: 100svh !important; }
 #bravia-balls .panel { z-index: 9999 !important; pointer-events: auto !important; position: fixed !important; }
 #bravia-balls .panel * { pointer-events: auto !important; }
-#bravia-balls.mode-pit { height: 100dvh !important; }
-#bravia-balls.mode-pit canvas { height: 150vh !important; }
 #fps-counter { display: none !important; }
 .viewport { position: relative; z-index: 10 !important; pointer-events: none !important; }
 .viewport a, .viewport button, .viewport input, .viewport select, .viewport textarea { pointer-events: auto !important; }

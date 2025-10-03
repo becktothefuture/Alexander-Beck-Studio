@@ -25,13 +25,21 @@ npm run build
 **Time:** ~2-3 seconds  
 **Output Size:** ~48KB minified JS + 7.6KB CSS
 
-### Standalone Embed Build (Advanced)
+### Modular Build (New)
 ```bash
-npm run build:embed-only
+npm run build:modules
+npm run build:modules:dev  # Development with source maps
 ```
-**Generates:** Only `public/js/bouncy-balls-embed.js`  
-**Use Case:** Embedding simulation in external sites  
-**Note:** Doesn't include Webflow integration
+**Generates:** Complete site using modular ES6 architecture  
+**Process:** Rollup bundling + CSS concatenation + Webflow integration  
+**Benefits:** Tree-shaking, source maps, runtime config loading  
+**Time:** ~3-4 seconds
+
+### Watch Modes
+```bash
+npm run watch          # Legacy build auto-rebuild
+npm run watch:modules  # Modular build auto-rebuild
+```
 
 ### Auto-Rebuild on Changes
 ```bash

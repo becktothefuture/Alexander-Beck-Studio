@@ -1,0 +1,60 @@
+/* Prevent page scrolling - simulation fills viewport */
+html, body {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Scoped wrapper for embed friendliness and interaction hygiene */
+#bravia-balls {
+  overflow: hidden; /* Critical: prevent scrollbars from canvas overflow */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100svh; /* Default height for most modes */
+  background: #cecece; /* Light mode background */
+  transition: background-color 0.3s ease;
+  overscroll-behavior: contain;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  pointer-events: auto !important; /* Critical: override Webflow's pointer-events: none */
+}
+
+#bravia-balls canvas {
+  pointer-events: auto !important; /* Ensure canvas receives mouse events */
+  display: block; 
+  width: 100vw; /* Full viewport width */
+  height: 100svh; /* Full small viewport height */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  -webkit-user-drag: none;
+  user-select: none; 
+  -webkit-user-select: none;
+  touch-action: none;
+  cursor: none;
+}
+
+#bravia-balls.dark-mode {
+  background: #0a0a0a; /* Dark mode background */
+}
+
+@media (prefers-reduced-motion: reduce) { 
+  #bravia-balls canvas { filter: none; } 
+}
+
+/* CSS Variables for dynamic ball colors */
+#bravia-balls {
+  --ball-1: #b7bcb7;
+  --ball-2: #e4e9e4;
+  --ball-3: #ffffff;
+  --ball-4: #00695c;
+  --ball-5: #000000;
+  --ball-6: #ff4013;
+  --ball-7: #0d5cb6;
+  --ball-8: #ffa000;
+}
+

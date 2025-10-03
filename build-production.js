@@ -147,7 +147,7 @@ function extractCSS(sourceHTML) {
   // - Webflow viewport: z-index: 10, pointer-events: none (transparent to clicks)
   // - Interactive elements (links, buttons): pointer-events: auto (explicitly clickable)
   // - Debug panel: z-index: 9999 (always on top)
-  css += `\n\n/* Production overrides */\nhtml, body { overflow: hidden; margin: 0; padding: 0; }\n#bravia-balls { position: fixed; bottom: 0; left: 0; width: 100%; height: 100svh; z-index: 0 !important; isolation: isolate !important; pointer-events: auto !important; }\n#bravia-balls canvas { pointer-events: auto !important; touch-action: auto !important; will-change: transform; transform: translateZ(0); }\n#bravia-balls .panel { z-index: 9999 !important; pointer-events: auto !important; position: fixed !important; }\n#bravia-balls .panel * { pointer-events: auto !important; }\n#bravia-balls.mode-pit { height: 100dvh !important; }\n#bravia-balls.mode-pit canvas { height: 150vh !important; }\n#fps-counter { display: none !important; }\n.viewport { position: relative; z-index: 10 !important; pointer-events: none !important; }\n.viewport a, .viewport button, .viewport input, .viewport select, .viewport textarea { pointer-events: auto !important; }\n.footer_link, .footer_icon-link, .corner { pointer-events: auto !important; }\n\n/* Dark mode: Change Webflow text colors to off-white */\nbody.dark-mode .viewport { color: #f5f5f5 !important; }\nbody.dark-mode .viewport .legend__item { color: #f5f5f5 !important; }\nbody.dark-mode .viewport .header { color: #f5f5f5 !important; }\nbody.dark-mode .viewport .hero__text svg path[fill="#161616"] { fill: #f5f5f5 !important; }\nbody.dark-mode .viewport .hero__text svg ellipse[stroke="black"] { stroke: #f5f5f5 !important; }\nbody.dark-mode .viewport .hero__text svg path[fill="black"] { fill: #f5f5f5 !important; }\nbody.dark-mode .footer_link { color: #f5f5f5 !important; }\nbody.dark-mode .footer_icon-link { color: #f5f5f5 !important; }\nbody.dark-mode .caption { color: #f5f5f5 !important; }\n\n/* Dark mode: Corner SVGs become solid black */\nbody.dark-mode .corner svg path { fill: #000000 !important; }\nbody.dark-mode .corner svg * { fill: #000000 !important; stroke: #000000 !important; }\n`;
+  css += `\n\n/* Production overrides */\nhtml, body { overflow: hidden; margin: 0; padding: 0; }\n#bravia-balls { position: fixed; bottom: 0; left: 0; width: 100%; height: 100svh; z-index: 0 !important; isolation: isolate !important; pointer-events: auto !important; }\n#bravia-balls canvas { pointer-events: auto !important; touch-action: auto !important; will-change: transform; transform: translateZ(0); height: 100svh !important; }\n#bravia-balls .panel { z-index: 9999 !important; pointer-events: auto !important; position: fixed !important; }\n#bravia-balls .panel * { pointer-events: auto !important; }\n#fps-counter { display: none !important; }\n.viewport { position: relative; z-index: 10 !important; pointer-events: none !important; }\n.viewport a, .viewport button, .viewport input, .viewport select, .viewport textarea { pointer-events: auto !important; }\n.footer_link, .footer_icon-link, .corner { pointer-events: auto !important; }\n\n/* Dark mode: Change Webflow text colors to off-white */\nbody.dark-mode .viewport { color: #f5f5f5 !important; }\nbody.dark-mode .viewport .legend__item { color: #f5f5f5 !important; }\nbody.dark-mode .viewport .header { color: #f5f5f5 !important; }\nbody.dark-mode .viewport .hero__text svg path[fill="#161616"] { fill: #f5f5f5 !important; }\nbody.dark-mode .viewport .hero__text svg ellipse[stroke="black"] { stroke: #f5f5f5 !important; }\nbody.dark-mode .viewport .hero__text svg path[fill="black"] { fill: #f5f5f5 !important; }\nbody.dark-mode .footer_link { color: #f5f5f5 !important; }\nbody.dark-mode .footer_icon-link { color: #f5f5f5 !important; }\nbody.dark-mode .caption { color: #f5f5f5 !important; }\n\n/* Dark mode: Corner SVGs become solid black */\nbody.dark-mode .corner svg path { fill: #000000 !important; }\nbody.dark-mode .corner svg * { fill: #000000 !important; stroke: #000000 !important; }\n`;
   
   return css;
 }
@@ -285,6 +285,8 @@ function replaceSimulationPlaceholder(publicIndexPath, containerHTML, cssCode, j
   html = html.replace('</body>', `${jsTag}\n</body>`);
   console.log('✅ Injected JavaScript before </body>');
   
+  // Normalize Webflow header: ensure only one header.viewport matches strict selector
+  html = html.replace(/<header class="viewport viewport--corners"/g, '<header class="viewport--corners"');
   // Write back
   fs.writeFileSync(publicIndexPath, html);
   console.log('✅ Wrote updated public/index.html');
@@ -296,7 +298,8 @@ function replaceSimulationPlaceholder(publicIndexPath, containerHTML, cssCode, j
 
 async function buildProduction() {
   try {
-    console.log('\n🏗️  SIMPLE BUILD PIPELINE STARTING...\n');
+    const useModules = process.argv.includes('--modules');
+    console.log(`\n🏗️  BUILD PIPELINE STARTING... (modules=${useModules})\n`);
     
     // STEP 1: Clean and copy webflow-export to public
     console.log('📁 Step 1: Copying webflow-export/ to public/...');
@@ -309,7 +312,60 @@ async function buildProduction() {
     copyDir(CONFIG.webflowSource, CONFIG.publicDestination);
     console.log('✅ Webflow design copied to public/\n');
     
-    // STEP 2: Load source and config
+    // STEP 2: Either run legacy extraction or modular Rollup bundle
+    if (useModules) {
+      console.log('📦 Step 2: Bundling modular sources with Rollup...');
+      // 2a. Copy CSS bundle from source/css → public/css/bouncy-balls.css (concat minimal)
+      const cssDir = path.join(CONFIG.publicDestination, 'css');
+      if (!fs.existsSync(cssDir)) fs.mkdirSync(cssDir, { recursive: true });
+      const cssMainPath = path.join('source', 'css', 'main.css');
+      const cssPanelPath = path.join('source', 'css', 'panel.css');
+      const cssCombined = [cssMainPath, cssPanelPath]
+        .filter(p => fs.existsSync(p))
+        .map(p => fs.readFileSync(p, 'utf-8'))
+        .join('\n');
+      fs.writeFileSync(path.join(cssDir, 'bouncy-balls.css'), cssCombined);
+      console.log('✅ Wrote modular CSS bundle');
+
+      // 2b. Prepare JS output directory
+      const jsDir = path.join(CONFIG.publicDestination, 'js');
+      if (!fs.existsSync(jsDir)) fs.mkdirSync(jsDir, { recursive: true });
+
+      // 2c. Copy runtime config for dev (also works for prod if desired)
+      const runtimeConfigSrc = path.join('source', 'config', 'default-config.json');
+      const runtimeConfigDst = path.join(jsDir, 'config.json');
+      if (fs.existsSync(runtimeConfigSrc)) {
+        fs.copyFileSync(runtimeConfigSrc, runtimeConfigDst);
+        console.log('✅ Copied runtime config to public/js/config.json');
+      }
+
+      // 2d. Run Rollup via dynamic import to avoid ESM/CJS friction
+      const { rollup } = await import('rollup');
+      const rollupConfig = await import(path.resolve('rollup.config.mjs'));
+      const bundle = await rollup(rollupConfig.default);
+      await bundle.write(rollupConfig.default.output);
+      console.log('✅ JavaScript bundled via Rollup');
+
+      // 2e. Inject template container and assets into public/index.html
+      const publicIndexPath = path.join(CONFIG.publicDestination, 'index.html');
+      let html = fs.readFileSync(publicIndexPath, 'utf-8');
+      const container = '<div id="bravia-balls"><canvas id="c" aria-label="Interactive bouncy balls physics simulation" role="application" draggable="false"></canvas><div class="panel" id="controlPanel" role="region" aria-label="Simulation controls" tabindex="-1"></div></div>';
+      const placeholderRegex = /<div[^>]*id=["']bravia-balls["'][^>]*>[\s\S]*?<\/div>/;
+      if (placeholderRegex.test(html)) html = html.replace(placeholderRegex, container); else html = html.replace('</body>', `${container}\n</body>`);
+      const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css">';
+      if (!html.includes('id="bravia-balls-css"')) html = html.replace('</head>', `${cssTag}\n</head>`);
+      const jsTag = '<script id="bravia-balls-js" src="js/bouncy-balls-embed.js" defer></script>';
+      if (!html.includes('id="bravia-balls-js"')) html = html.replace('</body>', `${jsTag}\n</body>`);
+      fs.writeFileSync(publicIndexPath, html);
+      console.log('✅ Injected modular assets into public/index.html');
+
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('🎉 BUILD COMPLETE (modules)!');
+      console.log('═══════════════════════════════════════════════════════════');
+      return;
+    }
+
+    // LEGACY PATH: Extract from balls-source.html
     console.log('📦 Step 2: Extracting simulation from source...');
     const sourceHTML = fs.readFileSync(CONFIG.sourceFile, 'utf-8');
     const config = JSON.parse(fs.readFileSync(CONFIG.configFile, 'utf-8'));

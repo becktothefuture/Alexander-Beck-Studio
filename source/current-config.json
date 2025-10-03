@@ -21,7 +21,7 @@
   "_comment_repeller": "═══════════════════════════════════════════════════════════════",
   "_comment_repeller_desc": "Mouse Repeller Settings (Ball Pit Mode)",
   "repelRadius": 710,
-  "repelPower": 250000,
+  "repelPower": 274000,
   "repelSoftness": 4,
   
   "_comment_visual": "═══════════════════════════════════════════════════════════════",

@@ -9,7 +9,7 @@
         - generic [ref=e7]: ⋮⋮
         - text: Controls
       - button "Toggle control panel" [expanded] [ref=e8] [cursor=pointer]: −
-    - status [ref=e9]: Switched to Ball Pit mode
+    - status [ref=e9]: Switched to Vortex Spiral mode
     - generic [ref=e10]:
       - generic [ref=e11] [cursor=pointer]:
         - checkbox "⚡ 120 FPS Performance Mode" [ref=e12] [cursor=pointer]
@@ -18,16 +18,16 @@
       - generic [ref=e15]: 🎨 Normal Mode (350 balls)
     - generic [ref=e16]:
       - generic [ref=e17] [cursor=pointer]:
-        - checkbox "🌙 Auto Dark Mode" [ref=e18] [cursor=pointer]
+        - checkbox "🌙 Auto Dark Mode" [checked] [ref=e18] [cursor=pointer]
         - generic [ref=e19] [cursor=pointer]: 🌙 Auto Dark Mode
       - generic [ref=e20]: Automatically enables dark background from sunset (6 PM) to sunrise (6 AM)
-      - generic [ref=e21]: ☀️ Day Mode
+      - generic [ref=e21]: 🌙 Night Mode (00:51)
     - group [ref=e22]:
       - generic [ref=e24]:
         - generic "Global ball size scale (0.1-6.0). Smaller = more balls fit, larger = more dramatic collisions" [ref=e25]:
           - text: "Size:"
-          - generic [ref=e26]: "0.7"
-          - 'slider "Size: 0.7" [ref=e27]': "0.7"
+          - generic [ref=e26]: "1.2"
+          - 'slider "Size: 1.2" [ref=e27]': "1.2"
         - generic "Ball deformation on collision (0-100). 0 = rigid/hard, 100 = very soft/squishy" [ref=e28]:
           - text: "Softness:"
           - generic [ref=e29]: "20"
@@ -49,36 +49,36 @@
             - option "Cobalt Spark"
         - generic [ref=e41]:
           - text: "Color 1 (50%):"
-          - 'textbox "Color 1 (50%): #B7BCB7" [ref=e42]': "#b7bcb7"
-          - generic "Click to copy" [ref=e43] [cursor=pointer]: "#B7BCB7"
+          - 'textbox "Color 1 (50%): #6B726B" [ref=e42]': "#6b726b"
+          - generic "Click to copy" [ref=e43] [cursor=pointer]: "#6B726B"
         - generic [ref=e44]:
           - text: "Color 2 (25%):"
-          - 'textbox "Color 2 (25%): #E4E9E4" [ref=e45]': "#e4e9e4"
-          - generic "Click to copy" [ref=e46] [cursor=pointer]: "#E4E9E4"
+          - 'textbox "Color 2 (25%): #3D453D" [ref=e45]': "#3d453d"
+          - generic "Click to copy" [ref=e46] [cursor=pointer]: "#3D453D"
         - generic [ref=e47]:
           - text: "Color 3 (12%):"
-          - 'textbox "Color 3 (12%): #FFFFFF" [ref=e48]': "#ffffff"
-          - generic "Click to copy" [ref=e49] [cursor=pointer]: "#FFFFFF"
+          - 'textbox "Color 3 (12%): #8A928A" [ref=e48]': "#8a928a"
+          - generic "Click to copy" [ref=e49] [cursor=pointer]: "#8A928A"
         - generic [ref=e50]:
           - text: "Color 4 (6%):"
-          - 'textbox "Color 4 (6%): #00695C" [ref=e51]': "#00695c"
-          - generic "Click to copy" [ref=e52] [cursor=pointer]: "#00695C"
+          - 'textbox "Color 4 (6%): #00E6C3" [ref=e51]': "#00e6c3"
+          - generic "Click to copy" [ref=e52] [cursor=pointer]: "#00E6C3"
         - generic [ref=e53]:
           - text: "Color 5 (3%):"
-          - 'textbox "Color 5 (3%): #000000" [ref=e54]': "#000000"
-          - generic "Click to copy" [ref=e55] [cursor=pointer]: "#000000"
+          - 'textbox "Color 5 (3%): #D5D5D5" [ref=e54]': "#d5d5d5"
+          - generic "Click to copy" [ref=e55] [cursor=pointer]: "#D5D5D5"
         - generic [ref=e56]:
           - text: "Color 6 (2%):"
-          - 'textbox "Color 6 (2%): #FF4013" [ref=e57]': "#ff4013"
-          - generic "Click to copy" [ref=e58] [cursor=pointer]: "#FF4013"
+          - 'textbox "Color 6 (2%): #FF6B47" [ref=e57]': "#ff6b47"
+          - generic "Click to copy" [ref=e58] [cursor=pointer]: "#FF6B47"
         - generic [ref=e59]:
           - text: "Color 7 (1%):"
-          - 'textbox "Color 7 (1%): #0D5CB6" [ref=e60]': "#0d5cb6"
-          - generic "Click to copy" [ref=e61] [cursor=pointer]: "#0D5CB6"
+          - 'textbox "Color 7 (1%): #5B9AFF" [ref=e60]': "#5b9aff"
+          - generic "Click to copy" [ref=e61] [cursor=pointer]: "#5B9AFF"
         - generic [ref=e62]:
           - text: "Color 8 (1%):"
-          - 'textbox "Color 8 (1%): #FFA000" [ref=e63]': "#ffa000"
-          - generic "Click to copy" [ref=e64] [cursor=pointer]: "#FFA000"
+          - 'textbox "Color 8 (1%): #FFB84D" [ref=e63]': "#ffb84d"
+          - generic "Click to copy" [ref=e64] [cursor=pointer]: "#FFB84D"
         - generic [ref=e65]:
           - text: "Cursor color:"
           - combobox "Cursor color:" [ref=e66]:
@@ -130,135 +130,53 @@
     - generic [ref=e105]:
       - generic [ref=e106]: Mode Settings
       - group "Simulation mode selector" [ref=e107]:
-        - button "Ball Pit mode" [pressed] [ref=e108] [cursor=pointer]: 🎯 Pit
+        - button "Ball Pit mode" [ref=e108] [cursor=pointer]: 🎯 Pit
         - button "Flies to Light mode" [ref=e109] [cursor=pointer]: 🕊️ Flies
         - button "Zero Gravity mode" [ref=e110] [cursor=pointer]: 🌌 Zero-G
         - button "Pulse Grid mode" [ref=e111] [cursor=pointer]: 🎹 Pulse
-        - button "Vortex Spiral mode" [ref=e112] [cursor=pointer]: 🌀 Vortex
+        - button "Vortex Spiral mode" [pressed] [ref=e112] [cursor=pointer]: 🌀 Vortex
     - generic [ref=e113]:
       - group [ref=e114]:
         - generic [ref=e116]:
-          - generic "Choose physics preset (Rubber, Bouncy, etc.)" [ref=e117]:
-            - generic [ref=e118]: Physics template
-            - combobox "Physics template" [ref=e119]:
-              - option "Rubber – Playground"
-              - option "Rubber – Racquetball" [selected]
-              - option "Rubber – Superball"
-              - option "Rubber – Soft"
-              - option "Rubber – Heavy"
-          - 'generic "Gravity strength (0.0-2.0× Earth gravity). Config: 0 = zero gravity (weightless)" [ref=e120]':
-            - generic [ref=e121]: Gravity (×Earth)
-            - slider "Gravity (×Earth) 0.0" [ref=e122]: "0"
-            - generic [ref=e123]: "0.0"
-          - 'generic "Ball mass/weight (50-200 grams). Config: 19.8g for lighter feel" [ref=e124]':
-            - generic [ref=e125]: Weight (grams)
-            - slider "Weight (grams) 19.8" [ref=e126]: "20"
-            - generic [ref=e127]: "19.8"
-          - 'generic "Bounce restitution (0.0-1.0). Config: 0.97 for bouncier feel" [ref=e128]':
-            - generic [ref=e129]: Bounciness
-            - slider "Bounciness 0.97" [ref=e130]: "0.97"
-            - generic [ref=e131]: "0.97"
-          - 'generic "Air resistance/friction (0.000-0.010). Config: 0.0035 for light drag" [ref=e132]':
-            - generic [ref=e133]: Air friction
-            - slider "Air friction 0.0035" [ref=e134]: "0.0035"
-            - generic [ref=e135]: "0.0035"
-      - group [ref=e136]:
-        - generic [ref=e138]:
-          - 'generic "Maximum number of balls in simulation (50-800). Higher = more crowded. Config: 350 for zero-gravity" [ref=e139]':
-            - generic [ref=e140]: Max balls
-            - slider "Max balls 350" [ref=e141]: "350"
-            - generic [ref=e142]: "350"
-          - generic "Rounded corner radius for viewport (0-50 pixels). 0 = sharp corners" [ref=e143]:
-            - generic [ref=e144]: Corner radius (px)
-            - slider "Corner radius (px) 0" [ref=e145]: "0"
-            - generic [ref=e146]: "0"
-          - 'generic "Motion blur trail length (0.0-0.5). Config: 0.025 for subtle trails" [ref=e147]':
-            - generic [ref=e148]: Motion blur
-            - slider "Motion blur 0.025" [ref=e149]: "0.025"
-            - generic [ref=e150]: "0.025"
-          - 'generic "Motion blur intensity (0.5-2.0×). Config: 1.8× for pronounced trails" [ref=e151]':
-            - generic [ref=e152]: Blur intensity
-            - slider "Blur intensity 1.80×" [ref=e153]: "1.8"
-            - generic [ref=e154]: 1.80×
-          - generic [ref=e155]: Motion blur works in all modes
-      - group [ref=e156]:
-        - generic [ref=e158]:
-          - generic "Choose spawn behavior preset" [ref=e159]:
-            - generic [ref=e160]: Spawn template
-            - combobox "Spawn template" [ref=e161]:
-              - option "Full Rain (top-half)" [selected]
-              - option "Narrow Strip Top"
-              - option "Left Gutter"
-              - option "Right Gutter"
-              - option "Center Fountain"
-              - option "Storm Burst"
-              - option "Slow Snow"
-              - option "Edge Drizzle"
-              - option "Twin Columns"
-              - option "Focused Beam"
-          - generic "Time between ball spawns (0.01-0.5 seconds). Lower = more frequent" [ref=e162]:
-            - generic [ref=e163]: Emit interval (s)
-            - slider "Emit interval (s) 0.030" [ref=e164]: "0.03"
-            - generic [ref=e165]: "0.030"
-          - generic "Vertical spawn position (-100 to 100% viewport height). Negative = above viewport" [ref=e166]:
-            - generic [ref=e167]: Spawn Y position (%)
-            - slider "Spawn Y position (%) -50" [ref=e168]: "-50"
-            - generic [ref=e169]: "-50"
-          - generic "Horizontal spawn area width (10-100% viewport width). 100% = full width" [ref=e170]:
-            - generic [ref=e171]: Spawn width (%)
-            - slider "Spawn width (%) 100" [ref=e172]: "100"
-            - generic [ref=e173]: "100"
-          - generic "Horizontal spawn center position (0-100% viewport width). 50% = center" [ref=e174]:
-            - generic [ref=e175]: Spawn X center (%)
-            - slider "Spawn X center (%) 50" [ref=e176]: "50"
-            - generic [ref=e177]: "50"
-          - generic "Vertical spawn area height (10-100% viewport height)" [ref=e178]:
-            - generic [ref=e179]: Spawn height (%)
-            - slider "Spawn height (%) 50" [ref=e180]: "50"
-            - generic [ref=e181]: "50"
-      - group [ref=e182]:
-        - generic [ref=e184]:
-          - generic "Choose repeller behavior preset" [ref=e185]:
-            - generic [ref=e186]: Repeller template
-            - combobox "Repeller template" [ref=e187]:
-              - option "Off" [selected]
-              - option "Gentle Breeze"
-              - option "Push Field"
-              - option "Tractor Push"
-              - option "Magnet Repel"
-              - option "Pulse Strong"
-              - option "Wide Soft"
-              - option "Needle Point"
-              - option "Invisible Wall"
-              - option "Singularity"
-          - generic "Enable/disable mouse repeller effect" [ref=e188]:
-            - generic [ref=e189]: Repeller active
-            - checkbox "Repeller active" [checked] [ref=e190]
-          - generic "Repeller influence radius (50-1000 pixels). Larger = affects more balls" [ref=e191]:
-            - generic [ref=e192]: Repel size (px)
-            - slider "Repel size (px) 710" [ref=e193]: "710"
-            - generic [ref=e194]: "710"
-          - generic "Repulsion strength (0-10000). Higher = stronger push away from mouse" [ref=e195]:
-            - generic [ref=e196]: Repel power
-            - slider "Repel power 274000" [ref=e197]: "7900"
-            - generic [ref=e198]: "274000"
-          - generic "Repeller field softness (0.5-5.0). Lower = sharper cutoff, higher = gradual fade" [ref=e199]:
-            - generic [ref=e200]: Repel softness
-            - slider "Repel softness 3.4" [ref=e201]: "3.4"
-            - generic [ref=e202]: "3.4"
-    - generic [ref=e203]:
+          - generic "Number of orbiting balls (50-300)" [ref=e117]:
+            - generic [ref=e118]: Ball count
+            - slider "Ball count 200" [ref=e119]: "200"
+            - generic [ref=e120]: "200"
+          - generic "Central gravity well strength (1000-15000)" [ref=e121]:
+            - generic [ref=e122]: Well strength
+            - slider "Well strength 8000" [ref=e123]: "8000"
+            - generic [ref=e124]: "8000"
+          - generic "Mouse cursor gravity well strength (0-10000)" [ref=e125]:
+            - generic [ref=e126]: Mouse strength
+            - slider "Mouse strength 3000" [ref=e127]: "3000"
+            - generic [ref=e128]: "3000"
+          - generic "Initial orbital velocity (50-400 px/s)" [ref=e129]:
+            - generic [ref=e130]: Initial speed
+            - slider "Initial speed 450" [ref=e131]: "450"
+            - generic [ref=e132]: "450"
+          - generic "Orbital decay rate (-0.001 to 0.001). Positive = spiral in, negative = spiral out" [ref=e133]:
+            - generic [ref=e134]: Orbital decay
+            - slider "Orbital decay 0.0001" [ref=e135]: "0.0001"
+            - generic [ref=e136]: "0.0001"
+          - generic "Color balls based on speed (blue=slow, red=fast)" [ref=e137]:
+            - generic [ref=e138]: Speed coloring
+            - checkbox "Speed coloring" [checked] [ref=e139]
+      - generic [ref=e140]:
+        - button "🔄 Reset to Defaults" [ref=e141] [cursor=pointer]
+        - generic [ref=e142]: Clears saved settings & reloads with defaults
+    - generic [ref=e143]:
       - text: Press
-      - code [ref=e204]: R
+      - code [ref=e144]: R
       - text: to reset •
-      - code [ref=e205]: /
+      - code [ref=e145]: /
       - text: toggle panel •
-      - code [ref=e206]: 1-5
+      - code [ref=e146]: 1-5
       - text: switch modes
-  - generic [ref=e207]:
+  - generic [ref=e147]:
     - text: "Render:"
-    - generic [ref=e208]: "57"
+    - generic [ref=e148]: "57"
     - text: fps
     - text: "Physics:"
-    - generic [ref=e209]: "102"
+    - generic [ref=e149]: "104"
     - text: fps
 ```
