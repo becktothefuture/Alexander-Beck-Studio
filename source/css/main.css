@@ -113,6 +113,20 @@ a {
   }
 }
 
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+   ║                       LEGEND LAYOUT — MOBILE COLUMN                          ║
+   ╚══════════════════════════════════════════════════════════════════════════════╝ */
+@media (max-width: 640px) {
+  .legend {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-auto-flow: row !important;
+    grid-row-gap: 0.18rem !important;
+    grid-column-gap: 0 !important;
+    justify-items: flex-start !important;
+  }
+}
+
 /* Scoped wrapper for embed friendliness and interaction hygiene */
 #bravia-balls {
   overflow: hidden; /* Critical: prevent scrollbars from canvas overflow */
