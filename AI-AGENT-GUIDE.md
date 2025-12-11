@@ -4,12 +4,12 @@
 
 ## 🎯 Project Context
 
-**High-performance particle physics simulation** with 5 modes:
+**High-performance particle physics simulation** with 4 modes:
 - Ball Pit (gravity + collisions)
 - Flies (swarm behavior)
 - Zero-G (weightless bounce)
 - Pulse Grid (synchronized grid motion)
-- Vortex (orbital mechanics with gravity wells)
+<!-- Vortex removed in canonical 4-mode spec -->
 
 ## ⚠️ CRITICAL: Documentation is Source of Truth
 
@@ -47,15 +47,15 @@ docs/
 ## 🚀 Quick Commands
 
 ```bash
-npm start              # Dev server (http://localhost:8000)
-npm run build          # Full production build (Webflow + simulation)
-npm run build:embed-only  # Standalone embed JS only
+npm run start:source   # Dev page server (http://localhost:8001)
+npm start              # Public server (http://localhost:8000)
+npm run build          # Modular production build
 npm run watch          # Auto-rebuild on source/webflow changes
 npm run help           # Show all commands
 ```
 
-**Edit:** `source/balls-source.html`  
-**Test:** Refresh browser  
+**Edit:** `source/main.js` + `source/modules/**`  
+**Test:** Open `source/source-modular.html`  
 **Build:** `npm run build` → Complete site in `public/` (Webflow export + simulation integrated)
 
 ## 🎯 Common Tasks
@@ -66,8 +66,8 @@ npm run help           # Show all commands
 3. Review [`docs/reference/MODES.md`](./docs/reference/MODES.md)
 
 ### Making Changes
-1. Edit `source/balls-source.html` or `source/current-config.json`
-2. Test changes in browser (open `source/balls-source.html` directly)
+1. Edit `source/main.js` + modules or `source/config/default-config.json`
+2. Test changes in browser (open `source/source-modular.html` directly)
 3. Run `npm run build` to generate production site in `public/`
 4. Test `public/index.html` via `npm start` (http://localhost:8000)
 5. Follow [`docs/development/DEVELOPMENT-GUIDE.md`](./docs/development/DEVELOPMENT-GUIDE.md)
@@ -93,14 +93,14 @@ npm run help           # Show all commands
 6. **Zero npm dependencies** - Core is vanilla JS
 7. **Accessibility** - Respect `prefers-reduced-motion`
 8. **Edit source/**, never edit `public/` directly
-9. **5 modes** - Ball Pit, Flies, Zero-G, Pulse Grid, Vortex
+9. **4 modes** - Ball Pit, Flies, Zero-G, Pulse Grid
 
 ## 🔧 Architecture Quick Reference
 
 **Key Files:**
-- `source/balls-source.html` - Single-file development version
-- `source/build.js` - Build script
-- `source/current-config.json` - Configuration
+- `source/main.js` - Modular entry
+- `source/modules/**` - Implementation
+- `source/config/default-config.json` - Runtime defaults
 - `public/js/bouncy-balls-embed.js` - Production bundle
 
 **Core Classes:**
@@ -127,8 +127,7 @@ const MODES = {
   PIT: 'pit',               // 150vh, collisions, gravity
   FLIES: 'flies',           // 100svh, no collisions, attraction
   WEIGHTLESS: 'weightless', // 100svh, collisions, no gravity
-  PULSE_GRID: 'pulse-grid', // 100svh, grid choreography
-  VORTEX: 'vortex'          // 100svh, orbital mechanics
+  PULSE_GRID: 'pulse-grid'  // 100svh, grid choreography
 };
 ```
 
@@ -182,7 +181,7 @@ const MODES = {
 ## 🧪 Testing Checklist
 
 Manual testing required:
-- [ ] All 5 modes work (keys 1, 2, 3, 4, 5)
+- [ ] All 4 modes work (keys 1, 2, 3, 4)
 - [ ] 60 FPS stable
 - [ ] Mouse/touch interaction
 - [ ] Panel controls (key `/`)

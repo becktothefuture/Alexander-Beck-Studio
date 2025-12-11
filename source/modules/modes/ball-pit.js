@@ -5,6 +5,7 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls } from '../core/state.js';
+import { getColorByIndex } from '../visual/colors.js';
 
 export function initializeBallPit() {
   const globals = getGlobals();
@@ -28,7 +29,20 @@ export function initializeBallPit() {
   const xLeftCss = xCenterCss - widthCss / 2;
   const xRightCss = xCenterCss + widthCss / 2;
   
-  for (let i = 0; i < targetBalls; i++) {
+  // First, ensure at least one ball of each color (0-7)
+  for (let colorIndex = 0; colorIndex < 8; colorIndex++) {
+    const x = (xLeftCss + Math.random() * widthCss) * DPR;
+    const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
+    
+    const ball = spawnBall(x, y, getColorByIndex(colorIndex));
+    ball.vx = (Math.random() - 0.5) * 100;
+    ball.vy = Math.random() * 50;
+    ball.driftAx = 0;
+    ball.driftTime = 0;
+  }
+  
+  // Then fill the rest with random colors
+  for (let i = 8; i < targetBalls; i++) {
     const x = (xLeftCss + Math.random() * widthCss) * DPR;
     const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
     

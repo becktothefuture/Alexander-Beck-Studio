@@ -202,10 +202,8 @@ Choreographed rhythmic motion with synchronized pulsation patterns on a fixed gr
 
 ---
 
-## Mode 5: Vortex 🌀
-
-### Purpose
-Mesmerizing orbital mechanics simulation with dynamic gravity wells and 3D depth effects.
+<!-- Vortex mode removed in modular canonical version -->
+<!-- Future concepts can live in docs/development as proposals, not reference. -->
 
 ### Physics Behavior (**Orbital Mechanics**)
 - **Gravity Wells**: Central well that follows mouse cursor (or stays centered when mouse outside)
@@ -319,10 +317,7 @@ Mesmerizing orbital mechanics simulation with dynamic gravity wells and 3D depth
 
 ---
 
-## Mode 5: Vortex Spiral 🌀
-
-### Purpose
-Mesmerizing orbital mechanics simulation where balls orbit around gravity wells, creating spiral galaxy patterns with mouse-controlled gravitational sculpting.
+<!-- Removed: Vortex Spiral section (not part of current 4-mode spec) -->
 
 ### Physics Behavior (**Orbital Mechanics**)
 - **Gravity Wells**: Inverse-square gravitational attraction (F = GM/r²)
@@ -384,7 +379,6 @@ Mesmerizing orbital mechanics simulation where balls orbit around gravity wells,
 | `2` | Switch to Flies |
 | `3` | Switch to Zero-G |
 | `4` | Switch to Pulse Grid |
-| `5` | Switch to Vortex Spiral |
 | `R` | Reset scene |
 | `/` | Toggle control panel |
 

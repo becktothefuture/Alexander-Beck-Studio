@@ -1,3 +1,14 @@
+/* Modern CSS: Set color-scheme for native controls (Safari/iOS) */
+:root {
+  color-scheme: light;
+  --bg-light: #cecece; /* Light grey background */
+  --bg-dark: #0a0a0a;
+}
+
+:root.dark-mode {
+  color-scheme: dark;
+}
+
 /* Prevent page scrolling - simulation fills viewport */
 html, body {
   overflow: hidden;
@@ -5,6 +16,101 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
+  cursor: none; /* Hide system cursor globally - simulation draws its own */
+  background: var(--bg-light); /* Default light grey background */
+}
+
+/* Ensure body also changes in dark mode to avoid Webflow overrides */
+body.dark-mode { 
+  background: var(--bg-dark) !important;
+}
+
+body.dark-mode .viewport { 
+  background: transparent !important; 
+}
+
+/* Z-INDEX LAYERING:
+   0: Body Background
+   1: Logo (Hero Text)
+   5: Balls Simulation (Transparent Wrapper)
+   20: UI Overlay (Legend, Script, Footer, Panel)
+*/
+
+/* 1. Prevent Viewport from trapping children in low stack */
+.viewport {
+  z-index: auto !important;
+  transform: none !important; /* Prevent stacking context */
+  opacity: 1 !important;
+  filter: none !important;
+  perspective: none !important;
+  contain: none !important;
+  will-change: auto !important;
+  mix-blend-mode: normal !important;
+  position: static !important; /* Essential for z-index auto to work fully */
+  pointer-events: none; /* Let clicks pass through empty areas */
+}
+
+/* Actual scene background (area that used to be white) */
+.viewport.viewport--content {
+  background: var(--bg-light) !important; /* Use design light grey ONLY for inner scene */
+}
+
+/* 2. Push Logo to Bottom Layer */
+.hero__text,
+.hero,
+.hero-section,
+[class*="hero"],
+.header {
+  z-index: 1 !important;
+  position: relative;
+}
+
+/* 3. Pull UI Elements to Top Layer */
+.legend,
+.legend__item,
+.footer_icon-group,
+.footer_link,
+.footer_icon-link,
+.caption,
+a {
+  z-index: 20 !important;
+  position: relative; /* relative allows z-index to work */
+  pointer-events: auto !important;
+}
+
+/* 4. Corners & Script Overlay */
+.viewport.viewport--corners {
+  z-index: 20 !important;
+  position: fixed !important; /* Keep corners fixed */
+  pointer-events: none;
+}
+.viewport.viewport--corners * {
+  pointer-events: auto;
+}
+
+/* 5. Align Legend (Top Left) with Decorative Script (Top Right) */
+.legend {
+  position: fixed !important;
+  top: 1.44rem !important; /* Matches .decorative-script */
+  left: 2rem !important;
+  margin: 0 !important;
+  /* Reset grid/flex if necessary since we are fixing it */
+  width: auto !important;
+  height: auto !important;
+}
+
+/* Responsive Legend Alignment */
+@media (max-width: 768px) {
+  .legend {
+    top: 1.08rem !important;
+    left: 1.5rem !important;
+  }
+}
+@media (max-width: 480px) {
+  .legend {
+    top: 0.72rem !important;
+    left: 1rem !important;
+  }
 }
 
 /* Scoped wrapper for embed friendliness and interaction hygiene */
@@ -15,16 +121,19 @@ html, body {
   left: 0;
   width: 100%;
   height: 100svh; /* Default height for most modes */
-  background: #cecece; /* Light mode background */
-  transition: background-color 0.3s ease;
+  background: transparent !important; /* Transparent so logo shows through */
+  transition: background-color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
   overscroll-behavior: contain;
   -webkit-tap-highlight-color: transparent;
-  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  pointer-events: auto !important; /* Critical: override Webflow's pointer-events: none */
+  user-select: none; 
+  -webkit-user-select: none; 
+  -webkit-touch-callout: none;
+  pointer-events: none !important; /* Container lets events pass through */
+  z-index: 5; /* Layer 5: Above Logo, Below UI */
 }
 
 #bravia-balls canvas {
-  pointer-events: auto !important; /* Ensure canvas receives mouse events */
+  pointer-events: none !important; /* Canvas handled globally */
   display: block; 
   width: 100vw; /* Full viewport width */
   height: 100svh; /* Full small viewport height */
@@ -36,18 +145,50 @@ html, body {
   -webkit-user-select: none;
   touch-action: none;
   cursor: none;
+  z-index: 1; /* Inside wrapper */
+  border-radius: 42px; /* Match container rounded corners */
+  clip-path: inset(0 round 42px); /* Hard clip for corners */
 }
 
 #bravia-balls.dark-mode {
-  background: #0a0a0a; /* Dark mode background */
+  background: transparent !important;
+}
+
+/* Safari-specific optimizations */
+@supports (-webkit-backdrop-filter: blur(10px)) {
+  #bravia-balls {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+}
+
+/* Webflow dark-mode harmonization for modular build */
+/* Use soft grey (#c8c8c8) instead of pure white for better readability */
+body.dark-mode .viewport { color: #c8c8c8 !important; }
+body.dark-mode .viewport .legend__item { color: #b0b0b0 !important; }
+body.dark-mode .viewport .header { color: #c8c8c8 !important; }
+body.dark-mode .viewport .hero__text svg path[fill="#161616"] { fill: #c8c8c8 !important; }
+body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] { stroke: #c8c8c8 !important; }
+body.dark-mode .viewport .hero__text svg path[fill="black"] { fill: #c8c8c8 !important; }
+body.dark-mode .footer_link { color: #b0b0b0 !important; }
+body.dark-mode .footer_icon-link { color: #b0b0b0 !important; }
+body.dark-mode .caption { color: #a0a0a0 !important; }
+body.dark-mode .corner svg path { fill: #1a1a1a !important; }
+body.dark-mode .corner svg * { fill: #1a1a1a !important; stroke: #1a1a1a !important; }
+
+/* Noise texture overlay - more subtle in dark mode */
+body.dark-mode .noise-overlay,
+body.dark-mode [class*="noise"] {
+  opacity: 0.15 !important;
+  mix-blend-mode: overlay !important;
 }
 
 @media (prefers-reduced-motion: reduce) { 
   #bravia-balls canvas { filter: none; } 
 }
 
-/* CSS Variables for dynamic ball colors */
-#bravia-balls {
+/* CSS Variables for dynamic ball colors - defaults (updated by JS on :root) */
+:root {
   --ball-1: #b7bcb7;
   --ball-2: #e4e9e4;
   --ball-3: #ffffff;
@@ -58,3 +199,159 @@ html, body {
   --ball-8: #ffa000;
 }
 
+/* Legend circle color classes - use CSS variables set by simulation */
+.circle.bg-ball-1 { background-color: var(--ball-1) !important; }
+.circle.bg-ball-2 { background-color: var(--ball-2) !important; }
+.circle.bg-ball-3 { background-color: var(--ball-3) !important; }
+.circle.bg-ball-4 { background-color: var(--ball-4) !important; }
+.circle.bg-ball-5 { background-color: var(--ball-5) !important; }
+.circle.bg-ball-6 { background-color: var(--ball-6) !important; }
+.circle.bg-ball-7 { background-color: var(--ball-7) !important; }
+.circle.bg-ball-8 { background-color: var(--ball-8) !important; }
+
+/* Personal statement text in top right corner */
+.decorative-script {
+  position: fixed;
+  top: 1.44rem;
+  right: 2rem;
+  font-family: 'Geist', sans-serif;
+  font-size: clamp(0.695rem, 1.2vw, 0.8rem);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  color: #161616;
+  max-width: min(418px, 38.5vw);
+  z-index: 2001 !important; /* Above Webflow elements (z-index: 2000) */
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0.85;
+  transform: translateZ(0); /* Force GPU acceleration */
+  transition: opacity 0.3s ease, color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  visibility: visible !important;
+}
+
+.decorative-script p {
+  margin: 0;
+  text-align: left;
+}
+
+.decorative-script p a {
+  text-decoration: underline;
+  color: inherit;
+  transition: opacity 0.2s ease;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.decorative-script p a:hover {
+  color: #000000 !important;
+  opacity: 1;
+}
+
+body.dark-mode .decorative-script p a {
+  color: inherit;
+}
+
+/* Match footer links to decorative script link style */
+.footer_link {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.2s ease;
+  opacity: 0.85;
+}
+
+.footer_link:hover {
+  color: #000000 !important;
+  opacity: 1;
+}
+
+body.dark-mode .footer_link {
+  color: inherit !important;
+  opacity: 0.88;
+}
+
+body.dark-mode .footer_link:hover {
+  color: #000000 !important;
+  opacity: 1;
+}
+
+/* Legend labels - use regular font instead of monospace */
+.legend {
+  font-family: 'Geist', sans-serif !important;
+}
+
+.legend__item {
+  font-family: 'Geist', sans-serif !important;
+}
+
+/* Caption - Molle script font, thicker weight */
+.caption {
+  font-family: 'Molle', cursive !important;
+  font-size: clamp(0.904rem, 1.56vw, 1.04rem) !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  letter-spacing: 0.01em !important;
+  transition: color 0.2s ease;
+  opacity: 0.85;
+  cursor: default;
+}
+
+.caption:hover {
+  color: #000000 !important;
+  opacity: 1;
+}
+
+body.dark-mode .caption {
+  opacity: 0.88;
+}
+
+body.dark-mode .caption:hover {
+  color: #000000 !important;
+  opacity: 1;
+}
+
+/* Dark mode support for personal statement */
+body.dark-mode .decorative-script {
+  color: #f5f5f5;
+  opacity: 0.88;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .decorative-script {
+    top: 1.08rem;
+    right: 1.5rem;
+    font-size: clamp(0.638rem, 1.6vw, 0.764rem);
+    max-width: min(352px, 46.2vw);
+    line-height: 1.3;
+  }
+  
+  .caption {
+    font-size: clamp(0.829rem, 2.08vw, 0.993rem) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .decorative-script {
+    top: 0.72rem;
+    right: 1rem;
+    font-size: clamp(0.604rem, 2.39vw, 0.695rem);
+    max-width: min(308px, 52.8vw);
+    line-height: 1.3;
+  }
+  
+  .caption {
+    font-size: clamp(0.785rem, 3.11vw, 0.904rem) !important;
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .decorative-script {
+    transition: color 0.3s ease;
+  }
+}

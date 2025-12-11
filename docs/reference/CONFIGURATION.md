@@ -6,8 +6,8 @@
 
 Settings are managed through:
 1. **UI Control Panel** - Live tuning with `/` key
-2. **localStorage** - Auto-saved preferences
-3. **current-config.json** - Build-time defaults
+2. **default-config.json** - Runtime defaults copied to `public/js/config.json`
+3. (Optional) localStorage - Disabled by default for privacy
 
 ## Configuration Schema
 
@@ -147,19 +147,9 @@ Settings are managed through:
 
 ## Persistence
 
-### localStorage Structure
+### localStorage (Optional)
 
-Key: `"bouncyBallsSettings"`  
-Value: JSON string of all parameters
-
-```javascript
-// Read settings
-const stored = localStorage.getItem('bouncyBallsSettings');
-const settings = JSON.parse(stored);
-
-// Write settings
-localStorage.setItem('bouncyBallsSettings', JSON.stringify(settings));
-```
+Disabled by default. To enable, set `LOCALSTORAGE_ENABLED = true` in `source/modules/utils/storage.js` and rebuild.
 
 ### Auto-Save Behavior
 
@@ -169,9 +159,7 @@ localStorage.setItem('bouncyBallsSettings', JSON.stringify(settings));
 
 ### Manual Save
 
-Click "Save Config" button in panel to:
-1. Save to localStorage
-2. Write to `source/current-config.json` (dev only)
+Click "Save Config" button in panel to download a `current-config.json` snapshot for reference. Place values into `source/config/default-config.json` as needed.
 
 ## Validation
 

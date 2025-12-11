@@ -6,6 +6,7 @@
 import { getGlobals } from '../core/state.js';
 import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
 import { autoSaveSettings } from '../utils/storage.js';
+import { setMode, MODES } from '../modes/mode-controller.js';
 
 function bindSlider(id, onChange) {
   const el = document.getElementById(id);
@@ -21,7 +22,23 @@ function setVal(id, text) {
 export function setupControls() {
   const g = getGlobals();
 
-  // Global size/softness
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MODE BUTTONS - Critical for panel mode switching
+  // ═══════════════════════════════════════════════════════════════════════════
+  const modeButtons = document.querySelectorAll('.mode-button');
+  modeButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const mode = btn.getAttribute('data-mode');
+      console.log('Mode button clicked:', mode);
+      setMode(mode);
+      updateModeButtonsUI(mode);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GLOBAL SETTINGS
+  // ═══════════════════════════════════════════════════════════════════════════
   bindSlider('sizeSliderGlobal', (el) => {
     g.sizeScale = parseFloat(el.value);
     setVal('sizeValGlobal', g.sizeScale.toFixed(2));
@@ -41,7 +58,9 @@ export function setupControls() {
     autoSaveSettings();
   });
 
-  // Ball Pit physics sliders
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BALL PIT MODE CONTROLS
+  // ═══════════════════════════════════════════════════════════════════════════
   bindSlider('gravityPitSlider', (el) => {
     g.gravityMultiplierPit = parseFloat(el.value);
     setVal('gravityPitVal', g.gravityMultiplierPit.toFixed(2));
@@ -93,7 +112,18 @@ export function setupControls() {
     autoSaveSettings();
   });
 
-  // Flies sliders
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FLIES MODE CONTROLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  bindSlider('fliesBallCountSlider', (el) => {
+    g.fliesBallCount = parseInt(el.value, 10);
+    setVal('fliesBallCountVal', String(g.fliesBallCount));
+    if (g.currentMode === 'flies') {
+      import('../modes/flies.js').then(({ initializeFlies }) => {
+        initializeFlies();
+      });
+    }
+  });
   bindSlider('attractPowerSlider', (el) => {
     g.attractionPower = parseFloat(el.value);
     setVal('attractPowerVal', Math.round(g.attractionPower).toString());
@@ -102,8 +132,167 @@ export function setupControls() {
     g.swarmSpeed = parseFloat(el.value);
     setVal('swarmSpeedVal', g.swarmSpeed.toFixed(1));
   });
+  bindSlider('fliesSeparationSlider', (el) => {
+    g.fliesSeparation = parseFloat(el.value);
+    setVal('fliesSeparationVal', Math.round(g.fliesSeparation).toString());
+  });
 
-  // Color template select
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ZERO-G MODE CONTROLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  bindSlider('weightlessCountSlider', (el) => {
+    g.weightlessBallCount = parseInt(el.value, 10);
+    setVal('weightlessCountVal', String(g.weightlessBallCount));
+    if (g.currentMode === 'weightless') {
+      import('../modes/weightless.js').then(({ initializeWeightless }) => {
+        initializeWeightless();
+      });
+    }
+  });
+  bindSlider('weightlessSpeedSlider', (el) => {
+    g.weightlessInitialSpeed = parseFloat(el.value);
+    setVal('weightlessSpeedVal', g.weightlessInitialSpeed.toFixed(0));
+    if (g.currentMode === 'weightless') {
+      import('../modes/weightless.js').then(({ initializeWeightless }) => {
+        initializeWeightless();
+      });
+    }
+  });
+  bindSlider('weightlessBounceSlider', (el) => {
+    g.weightlessBounce = parseFloat(el.value);
+    setVal('weightlessBounceVal', g.weightlessBounce.toFixed(2));
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WATER MODE CONTROLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  bindSlider('waterBallCountSlider', (el) => {
+    g.waterBallCount = parseInt(el.value, 10);
+    setVal('waterBallCountVal', String(g.waterBallCount));
+    if (g.currentMode === 'water') {
+      import('../modes/water.js').then(({ initializeWater }) => {
+        initializeWater();
+      });
+    }
+    autoSaveSettings();
+  });
+  bindSlider('waterRippleStrengthSlider', (el) => {
+    g.waterRippleStrength = parseFloat(el.value);
+    setVal('waterRippleStrengthVal', g.waterRippleStrength.toFixed(0));
+    autoSaveSettings();
+  });
+  bindSlider('waterMotionSlider', (el) => {
+    const intensity = parseFloat(el.value);
+    g.waterDriftStrength = intensity;
+    g.waterInitialVelocity = intensity * 5;
+    setVal('waterMotionVal', intensity.toFixed(0));
+    if (g.currentMode === 'water') {
+      import('../modes/water.js').then(({ initializeWater }) => {
+        initializeWater();
+      });
+    }
+    autoSaveSettings();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VORTEX MODE CONTROLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  bindSlider('vortexBallCountSlider', (el) => {
+    g.vortexBallCount = parseInt(el.value, 10);
+    setVal('vortexBallCountVal', String(g.vortexBallCount));
+    if (g.currentMode === 'vortex') {
+      import('../modes/vortex.js').then(({ initializeVortex }) => {
+        initializeVortex();
+      });
+    }
+  });
+  bindSlider('vortexSwirlSlider', (el) => {
+    g.vortexSwirlStrength = parseFloat(el.value);
+    setVal('vortexSwirlVal', g.vortexSwirlStrength.toFixed(0));
+  });
+  bindSlider('vortexPullSlider', (el) => {
+    g.vortexRadialPull = parseFloat(el.value);
+    setVal('vortexPullVal', g.vortexRadialPull.toFixed(0));
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PING PONG MODE CONTROLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  bindSlider('pingPongBallCountSlider', (el) => {
+    g.pingPongBallCount = parseInt(el.value, 10);
+    setVal('pingPongBallCountVal', String(g.pingPongBallCount));
+    if (g.currentMode === 'ping-pong') {
+      import('../modes/ping-pong.js').then(({ initializePingPong }) => {
+        initializePingPong();
+      });
+    }
+  });
+  bindSlider('pingPongSpeedSlider', (el) => {
+    g.pingPongSpeed = parseFloat(el.value);
+    setVal('pingPongSpeedVal', g.pingPongSpeed.toFixed(0));
+    if (g.currentMode === 'ping-pong') {
+      import('../modes/ping-pong.js').then(({ initializePingPong }) => {
+        initializePingPong();
+      });
+    }
+  });
+  bindSlider('pingPongCursorSlider', (el) => {
+    g.pingPongCursorRadius = parseFloat(el.value);
+    setVal('pingPongCursorVal', g.pingPongCursorRadius.toFixed(0));
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MAGNETIC MODE CONTROLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  bindSlider('magneticBallCountSlider', (el) => {
+    g.magneticBallCount = parseInt(el.value, 10);
+    setVal('magneticBallCountVal', String(g.magneticBallCount));
+    if (g.currentMode === 'magnetic') {
+      import('../modes/magnetic.js').then(({ initializeMagnetic }) => {
+        initializeMagnetic();
+      });
+    }
+  });
+  bindSlider('magneticStrengthSlider', (el) => {
+    g.magneticStrength = parseFloat(el.value);
+    setVal('magneticStrengthVal', g.magneticStrength.toFixed(0));
+  });
+  bindSlider('magneticVelocitySlider', (el) => {
+    g.magneticMaxVelocity = parseFloat(el.value);
+    setVal('magneticVelocityVal', g.magneticMaxVelocity.toFixed(0));
+  });
+  bindSlider('magneticIntervalSlider', (el) => {
+    g.magneticExplosionInterval = parseInt(el.value, 10);
+    setVal('magneticIntervalVal', String(g.magneticExplosionInterval));
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BUBBLES MODE CONTROLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  bindSlider('bubblesRateSlider', (el) => {
+    g.bubblesSpawnRate = parseInt(el.value, 10);
+    setVal('bubblesRateVal', String(g.bubblesSpawnRate));
+  });
+  bindSlider('bubblesSpeedSlider', (el) => {
+    g.bubblesRiseSpeed = parseFloat(el.value);
+    setVal('bubblesSpeedVal', g.bubblesRiseSpeed.toFixed(0));
+  });
+  bindSlider('bubblesWobbleSlider', (el) => {
+    g.bubblesWobble = parseFloat(el.value);
+    setVal('bubblesWobbleVal', g.bubblesWobble.toFixed(0));
+  });
+  bindSlider('bubblesMaxSlider', (el) => {
+    g.bubblesMaxCount = parseInt(el.value, 10);
+    setVal('bubblesMaxVal', String(g.bubblesMaxCount));
+  });
+  bindSlider('bubblesDeflectSlider', (el) => {
+    g.bubblesDeflectRadius = parseFloat(el.value);
+    setVal('bubblesDeflectVal', g.bubblesDeflectRadius.toFixed(0));
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // COLOR TEMPLATE SELECT
+  // ═══════════════════════════════════════════════════════════════════════════
   populateColorSelect();
   const colorSelect = document.getElementById('colorSelect');
   if (colorSelect) {
@@ -112,21 +301,37 @@ export function setupControls() {
       autoSaveSettings();
     });
   }
-
-  // Color pickers update CSS vars directly (palette edits)
-  for (let i = 1; i <= 8; i++) {
-    const picker = document.getElementById(`color${i}`);
-    const display = document.getElementById(`color${i}Val`);
-    if (!picker) continue;
-    picker.addEventListener('input', () => {
-      const hex = picker.value;
-      if (display) display.textContent = hex.toUpperCase();
-      const idx = i - 1;
-      if (g.currentColors && g.currentColors[idx]) g.currentColors[idx] = hex;
-      document.documentElement.style.setProperty(`--ball-${i}`, hex);
-    });
-  }
 }
 
-
-
+/**
+ * Update mode button UI to reflect active mode
+ */
+export function updateModeButtonsUI(activeMode) {
+  const buttons = document.querySelectorAll('.mode-button');
+  buttons.forEach(btn => {
+    const isActive = btn.getAttribute('data-mode') === activeMode;
+    btn.classList.toggle('active', isActive);
+  });
+  
+  // Show/hide mode-specific controls
+  document.querySelectorAll('.mode-controls').forEach(el => el.classList.remove('active'));
+  const controlId = activeMode + 'Controls';
+  const activeControls = document.getElementById(controlId);
+  if (activeControls) activeControls.classList.add('active');
+  
+  // Update announcer for accessibility
+  const announcer = document.getElementById('announcer');
+  if (announcer) {
+    const modeNames = {
+      'pit': 'Ball Pit',
+      'flies': 'Flies to Light', 
+      'weightless': 'Zero-G',
+      'water': 'Water Swimming',
+      'vortex': 'Vortex Sheets',
+      'ping-pong': 'Ping Pong',
+      'magnetic': 'Magnetic',
+      'bubbles': 'Carbonated Bubbles'
+    };
+    announcer.textContent = `Switched to ${modeNames[activeMode] || activeMode} mode`;
+  }
+}

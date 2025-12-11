@@ -6,8 +6,8 @@ The Alexander Beck Studio website uses a **single-source production build system
 
 **Source of Truth:**
 - `webflow-export/` - Pristine Webflow export (HTML/CSS/assets)
-- `source/balls-source.html` - Unminified simulation source code
-- `source/current-config.json` - Runtime configuration values
+- `source/main.js` - Modular entry point (ES modules under `source/modules/**`)
+- `source/config/default-config.json` - Runtime configuration defaults
 
 **Output:**
 - `public/` - Complete production-ready site (fully generated, never edit directly)
@@ -16,24 +16,19 @@ The Alexander Beck Studio website uses a **single-source production build system
 
 ## Quick Commands
 
-### Production Build (Most Common)
+### Production Build (Modular-only)
 ```bash
 npm run build
 ```
 **Generates:** Complete site in `public/` directory  
-**Process:** Webflow export + simulation integration + minification  
-**Time:** ~2-3 seconds  
+**Process:** Webflow copy + Rollup bundle + asset injection  
+**Time:** ~3-4 seconds  
 **Output Size:** ~48KB minified JS + 7.6KB CSS
 
-### Modular Build (New)
+### Modular Build (Dev)
 ```bash
-npm run build:modules
 npm run build:modules:dev  # Development with source maps
 ```
-**Generates:** Complete site using modular ES6 architecture  
-**Process:** Rollup bundling + CSS concatenation + Webflow integration  
-**Benefits:** Tree-shaking, source maps, runtime config loading  
-**Time:** ~3-4 seconds
 
 ### Watch Modes
 ```bash
@@ -46,8 +41,7 @@ npm run watch:modules  # Modular build auto-rebuild
 npm run watch
 ```
 **Watches:** `source/**/*` and `webflow-export/**/*`  
-**Triggers:** `npm run build` on any file change  
-**Perfect for:** Development workflow
+**Triggers:** Modular dev build on change
 
 ### Help
 ```bash
@@ -69,24 +63,18 @@ webflow-export/ → public/
 - Copies entire Webflow export (preserves structure exactly)
 - Result: Pristine Webflow site in `public/`
 
-**2. Extract Simulation Components**
+**2. Bundle Modules**
 ```
-source/balls-source.html → [HTML, CSS, JS]
+source/main.js → Rollup → public/js/bouncy-balls-embed.js
 ```
-- Extracts `<div id="bravia-balls">` container (full structure)
-- Extracts `<style>` tag contents
-- Extracts `<script>` tag contents
-- Removes FPS counter (production override)
+- Concatenates `source/css/main.css` + `source/css/panel.css`
+- Copies runtime config to `public/js/config.json`
 
-**3. Hardcode Configuration Values**
+**3. Runtime Configuration**
 ```
-source/current-config.json → JavaScript variables
+source/config/default-config.json → public/js/config.json
 ```
-Maps config keys to JS variables:
-- `gravityMultiplier` → `gravityMultiplierPit`
-- `ballMass` → `ballMassKg`
-- `repelRadius`, `repelPower`, `repelSoftness` → corresponding vars
-- Plus 10+ more mappings
+Loaded via fetch in `main.js` with cache-busting in dev
 
 **Example:**
 ```javascript
@@ -95,13 +83,7 @@ Maps config keys to JS variables:
 ```
 
 **4. Minify JavaScript**
-```
-JavaScript (160.4KB) → Terser → (48.1KB, 70% reduction)
-```
-- 3-pass compression
-- Dead code elimination
-- Variable mangling (preserves critical names)
-- Preamble comment with build timestamp
+- Rollup terser plugin with 3-pass compression
 
 **5. Integrate into Webflow HTML**
 ```
@@ -109,8 +91,8 @@ public/index.html [placeholder] → [full simulation]
 ```
 - Finds: `<div id="bravia-balls" class="ball-simulation w-embed">`
 - Replaces with: Full simulation container (HTML structure)
-- Injects CSS into `<head>` as `<style id="bravia-balls-css">`
-- Injects minified JS before `</body>` as `<script id="bravia-balls-js">`
+- Injects CSS `<link id="bravia-balls-css">`
+- Injects JS `<script id="bravia-balls-js" src="js/bouncy-balls-embed.js">`
 
 **6. Create Standalone Files**
 ```
@@ -151,11 +133,10 @@ Checks:
 
 ### How It Works
 
-1. Build script reads `source/current-config.json`
-2. For each config key, finds corresponding JS variable
-3. Uses regex to locate variable declaration in source code
-4. Replaces value in-place (preserves `let`/`const` declaration)
-5. Reports which values were applied and which were skipped
+1. Copy Webflow export to public/
+2. Rollup bundles modules
+3. Copy runtime config to public/js/config.json
+4. Inject CSS/JS link/script tags
 
 **Example Build Output:**
 ```
@@ -211,8 +192,10 @@ Checks:
 │   ├── js/
 │   └── images/
 ├── source/                  # ← Development files
-│   ├── balls-source.html    # ← Edit this (simulation code)
-│   └── current-config.json  # ← Edit this (settings)
+│   ├── source-modular.html  # ← Dev page (modules)
+│   ├── main.js              # ← Entry point
+│   ├── config/default-config.json
+│   └── modules/**
 └── build-production.js      # ← Build script
 ```
 
@@ -235,10 +218,10 @@ Checks:
 
 ## Troubleshooting
 
-### Build Fails: "Could not find #bravia-balls container"
+### Build Fails: "Assets not injected"
 
-**Cause:** `source/balls-source.html` missing or corrupted  
-**Fix:** Restore from git or verify file contains `<div id="bravia-balls">`
+**Cause:** Webflow template diverged from expected placeholder  
+**Fix:** Ensure `<div id="bravia-balls" ...>` exists in `public/index.html`
 
 ### Build Fails: Validation Error
 
@@ -253,21 +236,23 @@ ls -lh public/js/bouncy-balls-embed.js  # Should exist
 - Placeholder not replaced → Check regex in `build-production.js`
 - CSS/JS not injected → Check file contains expected IDs
 
-### Config Values Not Applied
+### Config Not Loading
 
-**Symptom:** Changed `current-config.json` but simulation unchanged
+**Symptom:** Defaults differ from expected
 
 **Debug Steps:**
-1. Check build output for "Applied X config values"
-2. Look for "Skipped (not found)" warnings
-3. Verify config key matches mapping table above
-4. Confirm JS variable exists in `source/balls-source.html`
+1. Ensure `public/js/config.json` exists
+2. Network tab: `GET js/config.json` status 200
+3. CORS or CSP not blocking fetch
 
-**Example:**
-```
-⚠️  Skipped (not found): myCustomValue
-```
-→ Add mapping in `build-production.js` `configMap` object
+### Config Not Applied
+
+**Symptom:** Changed `default-config.json` but simulation unchanged
+
+**Debug Steps:**
+1. Ensure `public/js/config.json` was copied
+2. Check Network tab for successful fetch
+3. Verify JSON structure matches expected keys
 
 ### Public Output Doesn't Update
 
@@ -306,26 +291,15 @@ npm run watch
    cp -r webflow-export/ public/
    ```
 
-2. **Extract Simulation:**
-   ```javascript
-   // Extract HTML, CSS, JS from source/balls-source.html
-   // (See build-production.js functions for details)
-   ```
-
-3. **Apply Config:**
-   ```javascript
-   // Regex replace config values in JS code
-   ```
-
-4. **Minify:**
+2. **Bundle Modules:** (handled automatically by build script)
    ```bash
-   npx terser input.js -o output.js --compress --mangle
+   # rollup is invoked by build script
+   npm run build
    ```
 
-5. **Integrate:**
+3. **Inject Assets:**
    ```javascript
-   // Replace placeholder in public/index.html
-   // Inject CSS/JS
+   // Build script replaces placeholder and injects link/script tags
    ```
 
 ### Custom Build Scripts

@@ -6,13 +6,39 @@
 import { CONSTANTS, MODES } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { resolveCollisions } from './collision.js';
-import { updatePulseGrid } from '../modes/pulse-grid.js';
+import { updateWaterRipples, getWaterRipples } from '../modes/water.js';
 import { drawCursor } from '../rendering/cursor.js';
 
 const DT = CONSTANTS.PHYSICS_DT;
 let acc = 0;
+const CORNER_RADIUS = 42; // matches rounded container corners
+const CORNER_FORCE = 1800;
 
-export function updatePhysics(dtSeconds, applyForcesFunc) {
+function applyCornerRepellers(ball, canvas) {
+  const corners = [
+    { x: CORNER_RADIUS, y: CORNER_RADIUS },
+    { x: canvas.width - CORNER_RADIUS, y: CORNER_RADIUS },
+    { x: CORNER_RADIUS, y: canvas.height - CORNER_RADIUS },
+    { x: canvas.width - CORNER_RADIUS, y: canvas.height - CORNER_RADIUS }
+  ];
+  for (let i = 0; i < corners.length; i++) {
+    const cx = corners[i].x;
+    const cy = corners[i].y;
+    const dx = ball.x - cx;
+    const dy = ball.y - cy;
+    const dist = Math.max(1, Math.hypot(dx, dy));
+    if (dist < CORNER_RADIUS + ball.r) {
+      const pen = (CORNER_RADIUS + ball.r) - dist;
+      const strength = (pen / (CORNER_RADIUS + ball.r)) * CORNER_FORCE;
+      const nx = dx / dist;
+      const ny = dy / dist;
+      ball.vx += nx * strength * DT;
+      ball.vy += ny * strength * DT;
+    }
+  }
+}
+
+export async function updatePhysics(dtSeconds, applyForcesFunc) {
   const globals = getGlobals();
   const balls = globals.balls;
   const canvas = globals.canvas;
@@ -23,35 +49,32 @@ export function updatePhysics(dtSeconds, applyForcesFunc) {
   let physicsSteps = 0;
   
   while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
-    // Skip physics step for pulse grid mode
-    if (globals.currentMode !== MODES.PULSE_GRID) {
-      const len = balls.length;
-      for (let i = 0; i < len; i++) {
-        balls[i].step(DT, applyForcesFunc);
-      }
+    // Integrate physics for all modes
+    const len = balls.length;
+    for (let i = 0; i < len; i++) {
+      balls[i].step(DT, applyForcesFunc);
     }
     
-    // Ball-to-ball collisions (disabled for Flies and Pulse Grid modes)
-    if (globals.currentMode !== MODES.FLIES && globals.currentMode !== MODES.PULSE_GRID) {
-      resolveCollisions(6); // Use spatial hashing
+    // Ball-to-ball collisions (disabled for Flies mode)
+    if (globals.currentMode !== MODES.FLIES) {
+      resolveCollisions(10); // more solver iterations for stability
     }
     
-    // Wall collisions (all modes except Pulse Grid)
-    if (globals.currentMode !== MODES.PULSE_GRID) {
-      const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
-      const len = balls.length;
-      for (let i = 0; i < len; i++) {
-        balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
-      }
+    // Wall collisions + corner repellers
+    const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
+    const lenWalls = balls.length;
+    for (let i = 0; i < lenWalls; i++) {
+      applyCornerRepellers(balls[i], canvas);
+      balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
     }
     
     acc -= DT;
     physicsSteps++;
   }
   
-  // Pulse grid updates run per-frame, not per-substep
-  if (globals.currentMode === MODES.PULSE_GRID) {
-    updatePulseGrid(dtSeconds);
+  // Water ripple updates run per-frame
+  if (globals.currentMode === MODES.WATER) {
+    updateWaterRipples(dtSeconds);
   }
 
   // Reset accumulator if falling behind
@@ -69,10 +92,21 @@ export function render() {
   // Clear
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
+  // Draw water ripples (behind balls for gorgeous effect)
+  if (globals.currentMode === MODES.WATER) {
+    drawWaterRipples(ctx);
+  }
+  
   // Draw balls
   for (let i = 0; i < balls.length; i++) {
     balls[i].draw(ctx);
   }
+  
   // Cursor overlay
   drawCursor(ctx);
+}
+
+function drawWaterRipples(ctx) {
+  // Visual ripple rendering intentionally disabled (invisible ripples).
+  // Physics still uses ripples via getWaterRipples() in water.js forces.
 }

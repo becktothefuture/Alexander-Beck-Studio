@@ -40,7 +40,7 @@ function validateConfig(sourceHTML, config) {
       type: 'MISMATCH',
       severity: 'ERROR',
       message: `Ball size mismatch: JS=${jsDefaults.sizeScale}, Config=${config.ballScale}`,
-      locations: ['balls-source.html:1291', 'current-config.json:13']
+      locations: ['modules defaults', 'default-config.json']
     });
   }
   
@@ -51,7 +51,7 @@ function validateConfig(sourceHTML, config) {
       type: 'MISMATCH',
       severity: 'WARNING',
       message: `Slider default (${sliderDefaults.sizeScale}) doesn't match config (${config.ballScale})`,
-      locations: ['balls-source.html:292', 'current-config.json:13']
+      locations: ['panel HTML', 'default-config.json']
     });
   }
   
@@ -162,8 +162,9 @@ function applyPreset(presetName) {
 **User says:** "Make ball size 1.4"
 
 **AI should:**
-1. Update `current-config.json`: `"ballScale": 1.4`
-2. Run build (auto-syncs everything):
+1. Update `source/config/default-config.json`: `"ballScale": 1.4`
+2. Run build (copies config to public):
+   - ✅ Runtime loads config via fetch
    - ✅ JS variable updated via hardcodeConfig()
    - ✅ HTML slider updated via syncHTMLDefaults()
    - ✅ Presets inherit new value (unless explicitly overridden)
@@ -188,8 +189,8 @@ function applyPreset(presetName) {
 
 ## Files to Modify
 
-- `build-production.js` - Add validation + auto-sync
-- `balls-source.html` - Remove hardcoded defaults, use config
-- `current-config.json` - Remains source of truth
+- `build-production.js` - Ensure config copy and injection
+- `source/modules/**` - Read from runtime config
+- `source/config/default-config.json` - Source of truth
 - `docs/reference/BUILD-SYSTEM.md` - Document new flow
 

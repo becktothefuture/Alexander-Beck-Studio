@@ -3,8 +3,9 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 const { test, expect } = require('@playwright/test');
+const path = require('path');
 
-const MODULAR_SOURCE_PATH = 'http://localhost:8001/source-modular.html';
+const MODULAR_SOURCE_PATH = 'file://' + path.resolve(__dirname, '../source/source-modular.html');
 
 test.describe('Modular Source Dev Page', () => {
   test('loads ES6 modules and runs', async ({ page }) => {

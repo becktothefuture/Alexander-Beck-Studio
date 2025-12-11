@@ -7,7 +7,11 @@ export const MODES = {
   PIT: 'pit',
   FLIES: 'flies',
   WEIGHTLESS: 'weightless',
-  PULSE_GRID: 'pulse-grid'
+  WATER: 'water',
+  VORTEX: 'vortex',
+  PING_PONG: 'ping-pong',
+  MAGNETIC: 'magnetic',
+  BUBBLES: 'bubbles'
 };
 
 export const CONSTANTS = {
@@ -32,6 +36,11 @@ export const CONSTANTS = {
   SQUASH_DECAY_PER_S: 18.0,
   WALL_REST_VEL_THRESHOLD: 70,
   GROUND_COUPLING_PER_S: 8.0,
+  
+  // Sleep threshold for jitter reduction (Box2D-inspired)
+  SLEEP_VELOCITY_THRESHOLD: 5.0,      // px/s (Box2D uses 0.05 m/s)
+  SLEEP_ANGULAR_THRESHOLD: 0.05,      // rad/s
+  TIME_TO_SLEEP: 0.5,                 // seconds - must be still this long to sleep
   
   PHYSICS_DT: 1/120,
   GE: 1960

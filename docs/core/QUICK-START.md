@@ -6,8 +6,8 @@
 
 ```bash
 npm install
-npm start
-# Opens http://localhost:8000
+npm run start:source   # http://localhost:8001 (dev page)
+npm start              # http://localhost:8000 (public)
 ```
 
 ## Controls
@@ -22,9 +22,9 @@ npm start
 
 ## Development
 
-1. **Edit**: `source/balls-source.html`
-2. **Test**: Refresh browser
-3. **Build**: `npm run build` (generates `public/` from `webflow-export/` + `source/`)
+1. **Edit**: `source/main.js` + `source/modules/**`
+2. **Test**: Open `source/source-modular.html`
+3. **Build**: `npm run build` (modular Rollup + integration)
 
 ## Integration
 

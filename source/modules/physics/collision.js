@@ -70,7 +70,7 @@ function collectPairsSorted() {
   return pairs;
 }
 
-export function resolveCollisions(iterations = 6) {
+export function resolveCollisions(iterations = 10) {
   const globals = getGlobals();
   const balls = globals.balls;
   const pairs = collectPairsSorted();
@@ -84,6 +84,12 @@ export function resolveCollisions(iterations = 6) {
       const { i, j } = pairs[k];
       const A = balls[i];
       const B = balls[j];
+      
+      // Skip pairs where both are sleeping (sleep islands)
+      if (A.isSleeping && B.isSleeping) continue;
+      // Wake only the sleeping one if colliding with an awake body
+      if (A.isSleeping) A.wake();
+      if (B.isSleeping) B.wake();
       const dx = B.x - A.x;
       const dy = B.y - A.y;
       const rSum = A.r + B.r;

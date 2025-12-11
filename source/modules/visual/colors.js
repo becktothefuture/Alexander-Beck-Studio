@@ -64,6 +64,23 @@ export function pickRandomColor() {
   return colors[Math.min(colors.length - 1, 7)];
 }
 
+/**
+ * Get a specific color by index (0-7)
+ * Ensures all 8 colors are accessible for guaranteed representation
+ */
+export function getColorByIndex(index) {
+  const globals = getGlobals();
+  const colors = globals.currentColors;
+  
+  if (!colors || colors.length === 0) {
+    console.warn('No colors available, using fallback');
+    return '#ffffff';
+  }
+  
+  const clampedIndex = Math.max(0, Math.min(7, Math.floor(index)));
+  return colors[clampedIndex] || '#ffffff';
+}
+
 export function applyColorTemplate(templateName) {
   const globals = getGlobals();
   globals.currentTemplate = templateName;

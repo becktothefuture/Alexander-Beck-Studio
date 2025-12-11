@@ -517,8 +517,8 @@ autoSaveSettings(); // Debounced write
 ## Build System
 
 ### Development
-- **File**: `source/balls-source.html`
-- **Features**: Full UI panel, FPS counter, debug tools
+- **Entry**: `source/main.js` (ES modules)
+- **Dev page**: `source/source-modular.html`
 - **Size**: ~2,485 lines
 
 ### Production Build
@@ -528,9 +528,9 @@ npm run build
 ```
 
 **Process**:
-1. Read `balls-source.html`
-2. Apply `current-config.json` settings
-3. Minify with `terser`
+1. Bundle modules via Rollup
+2. Load `config/default-config.json` at runtime
+3. Minify with `@rollup/plugin-terser`
 4. Output to `public/js/bouncy-balls-embed.js`
 
 **Result**: 34.6 KB minified, ~12 KB gzipped
@@ -592,12 +592,24 @@ const MODE_DEFAULTS = {
 
 ## File Structure
 
-### Legacy Monolith
+### Modular Architecture (Canonical)
 ```
 /
 ├── source/
-│   ├── balls-source.html      # Development version (monolith)
-│   └── current-config.json     # Configuration
+│   ├── main.js                 # Entry point
+│   ├── source-modular.html     # Modular dev page
+│   ├── modules/
+│   │   ├── core/
+│   │   ├── physics/
+│   │   ├── rendering/
+│   │   ├── ui/
+│   │   ├── modes/
+│   │   └── input/
+│   ├── css/
+│   │   ├── main.css
+│   │   └── panel.css
+│   └── config/
+│       └── default-config.json
 ```
 
 ### Modular Architecture (New)

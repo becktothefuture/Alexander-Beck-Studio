@@ -21,11 +21,11 @@ const state = {
   G: 0,
   gravityScale: 1.0,
   gravityMultiplier: 0,
-  gravityMultiplierPit: 1.05,
-  REST: 0.97,
-  FRICTION: 0.0035,
-  ballMassKg: 91,
-  MASS_BASELINE_KG: 91,
+  gravityMultiplierPit: 1.10,
+  REST: 0.69,
+  FRICTION: 0.0060,
+  ballMassKg: 129,
+  MASS_BASELINE_KG: 129,
   MASS_REST_EXP: 0.15,
   MASS_GRAVITY_EXP: 0.35,
   
@@ -44,17 +44,47 @@ const state = {
   // Ball properties
   ballSoftness: 20,
   
-  // Corner
-  cornerRadius: 0,
+  // Corner (matches CSS border-radius for collision bounds)
+  cornerRadius: 42,
+  
+  // Inner border (soft visual transition)
+  
+  // Vortex mode params
+  vortexSwirlStrength: 420,
+  vortexRadialPull: 180,
+  vortexBallCount: 180,
+  
+  
+  // Magnetic mode params (updated defaults)
+  magneticBallCount: 180,
+  magneticStrength: 65000,
+  magneticMaxVelocity: 2800,
+  magneticExplosionInterval: 5,
+  
+  // Bubbles mode params
+  bubblesSpawnRate: 8,
+  bubblesRiseSpeed: 150,
+  bubblesWobble: 40,
+  bubblesMaxCount: 150,
+  bubblesDeflectRadius: 80,
+  
+  
+  // Ping Pong mode params (left-right bounce, cursor obstacle)
+  pingPongBallCount: 35,
+  pingPongSpeed: 800,
+  pingPongCursorRadius: 50,
+  
   
   // Colors
   currentColors: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
   currentTemplate: 'industrialTeal',
   
   // Flies mode
+  fliesBallCount: 60,
   attractionPower: 5000,
   orbitRadius: 180,
   swarmSpeed: 0.4,
+  fliesSeparation: 15000,
   
   // Weightless mode
   weightlessCount: 80,
@@ -66,8 +96,16 @@ const state = {
   gridBallCount: 120,
   pulseInterval: 0.8,
   
+  // Water mode
+  waterBallCount: 300,
+  waterDrag: 0.015,
+  waterRippleSpeed: 300,
+  waterRippleStrength: 18000,
+  waterDriftStrength: 40,
+  waterInitialVelocity: 200,
+  
   // Repeller
-  repelRadius: 710,
+  repelRadius: 120,
   repelPower: 274000,
   repelSoft: 3.4,
   repellerEnabled: false,

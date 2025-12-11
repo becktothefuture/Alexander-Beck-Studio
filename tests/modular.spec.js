@@ -1,4 +1,22 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                  MODULAR BUILD SMOKE TESTS                                   ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+const { test, expect } = require('@playwright/test');
+const path = require('path');
+
+const BUILD_PATH = 'file://' + path.resolve(__dirname, '../public/index.html');
+
+test.describe('Modular Build Integration', () => {
+  test('assets are injected and container is present', async ({ page }) => {
+    await page.goto(BUILD_PATH);
+    await page.waitForTimeout(1000);
+    await expect(page.locator('#bravia-balls')).toBeVisible();
+    await expect(page.locator('#c')).toBeVisible();
+  });
+});
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                        MODULAR PAGE SMOKE TESTS                              ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 

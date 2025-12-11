@@ -18,25 +18,26 @@ npm install
 
 ## Development Workflow
 
-### 1. Open Development Version
+### 1. Open Development Version (Modular)
 ```bash
-# Option A: Direct file access
-open source/balls-source.html
+# Modular dev page
+open source/source-modular.html
 
-# Option B: Local server
-npm start  # Opens http://localhost:8000
+# Or run local servers
+npm run start:source   # http://localhost:8001 (ES modules dev page)
+npm start              # http://localhost:8000 (public site)
 ```
 
 ### 2. Edit Source
-**Primary file**: `source/balls-source.html`
-- Self-contained HTML with inline CSS and JavaScript
+**Primary entry**: `source/main.js`
+- ES module architecture under `source/modules/**`
 - Full UI control panel with live parameter tuning
-- Three physics modes with instant switching
+- Four physics modes with instant switching (1-4)
 
 **Structure**:
-- Lines 1-435: CSS styles
-- Lines 436-726: HTML markup
-- Lines 727-2485: JavaScript logic
+- `source/source-modular.html`: Dev HTML shell (loads `main.js`)
+- `source/css/*.css`: Styles scoped to `#bravia-balls`
+- `source/modules/**`: Core, modes, physics, rendering, ui, utils
 
 ### 3. Test Changes
 - **Refresh browser** to see updates (Cmd+R / Ctrl+R)
@@ -49,26 +50,25 @@ npm start  # Opens http://localhost:8000
 - **Ball Pit** (`1` key): Gravity physics with collisions
 - **Flies** (`2` key): Swarm attraction to cursor
 - **Zero-G** (`3` key): Weightless bouncing
+- **Pulse Grid** (`4` key): Programmed grid pulsation
 
-### 5. Save Configuration
-1. Tune parameters to desired values
-2. Click **"Save Config"** button in panel
-3. Config written to `source/current-config.json`
-4. Config is applied during next build
+### 5. Configuration
+1. Runtime defaults live in `source/config/default-config.json`
+2. Build copies this to `public/js/config.json`
+3. No localStorage persistence by default (privacy-first)
 
-### 6. Build for Production
+### 6. Build for Production (Modular-only)
 ```bash
-npm run build          # Full production build
-npm run build:embed-only  # Standalone JS only
+npm run build          # Modular production build (Rollup + integration)
 ```
 
-**Output**: `public/js/bouncy-balls-embed.js` (34.6 KB minified)
+**Output**: `public/js/bouncy-balls-embed.js` + `public/css/bouncy-balls.css`
 
 **Process**:
-1. Reads `source/balls-source.html`
-2. Applies `source/current-config.json` settings
-3. Minifies with Terser
-4. Outputs to `public/js/`
+1. Copies Webflow export to `public/`
+2. Bundles `source/main.js` via Rollup
+3. Copies `source/config/default-config.json` to `public/js/config.json`
+4. Injects assets into `public/index.html`
 
 ---
 
@@ -76,26 +76,22 @@ npm run build:embed-only  # Standalone JS only
 
 ### File Structure
 ```
-source/balls-source.html
-├── Styles (lines 7-435)
-│   ├── Base styles
-│   ├── Canvas setup  
-│   ├── Control panel UI
-│   └── Mode-specific styles
-│
-├── HTML (lines 436-726)
-│   ├── Canvas element
-│   ├── Control panel structure
-│   └── Mode controls
-│
-└── JavaScript (lines 727-2551)
-    ├── Constants & config
-    ├── Physics engine
-    ├── Collision detection
-    ├── Rendering loop
-    ├── Mode system
-    ├── Event handlers
-    └── Initialization
+source/
+├── source-modular.html      # Dev page (loads ES modules)
+├── main.js                  # Entry point
+├── css/
+│   ├── main.css
+│   └── panel.css
+├── config/
+│   └── default-config.json
+└── modules/
+    ├── core/
+    ├── input/
+    ├── modes/
+    ├── physics/
+    ├── rendering/
+    ├── ui/
+    └── visual/
 ```
 
 ### Key Functions
@@ -141,7 +137,7 @@ function setMode(mode) {
 ## Testing
 
 ### Manual Testing Checklist
-- [ ] All five modes work correctly (keys 1-5)
+- [ ] All four modes work (keys 1-4)
 - [ ] Keyboard shortcuts respond
 - [ ] Control panel updates live
 - [ ] Performance stays above 50 FPS
@@ -239,17 +235,14 @@ balls.push(new Ball(w/2, h/3, 0, 0, 30, ballColors[0], 8));
 
 ### Build Process
 ```bash
-npm run build          # Full production build
-npm run build:embed-only  # Standalone JS only
+npm run build          # Modular production build
 ```
 
 **What Happens**:
-1. `build.js` reads `source/balls-source.html`
-2. Applies configuration from `source/current-config.json`
-3. Minifies JavaScript with Terser (mangle names, compress)
-4. Outputs to `public/js/bouncy-balls-embed.js`
-
-**Result**: 34.6 KB (minified), ~12 KB (gzipped)
+1. Rollup bundles `source/main.js`
+2. Copies runtime config
+3. Injects CSS/JS into `public/index.html`
+**Result**: ~48 KB (minified)
 
 ### Production Integration
 ```html
@@ -414,15 +407,14 @@ git checkout -b feature/your-feature
 # ... edit files ...
 
 # Test thoroughly
-open source/balls-source.html
+open source/source-modular.html
 
 # Commit
 git add .
 git commit -m "feat: your feature description"
 
 # Build and test production
-npm run build          # Full production build
-npm run build:embed-only  # Standalone JS only
+npm run build
 # Test public/index.html
 
 # Push
@@ -457,5 +449,4 @@ git push origin feature/your-feature
 
 ---
 
-**Ready to build? Run `npm run build          # Full production build
-npm run build:embed-only  # Standalone JS only` and ship it!** 🚀
+**Ready to build? Run `npm run build` and ship it!** 🚀

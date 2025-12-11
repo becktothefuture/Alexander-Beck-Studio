@@ -62,6 +62,7 @@ function validateConfigConsistency(sourceHTML, config) {
 const CONFIG = {
   webflowSource: './webflow-export',
   publicDestination: './public',
+  // Legacy fields retained for compatibility but unused in modular path
   sourceFile: './source/balls-source.html',
   configFile: './source/current-config.json',
   panelVisibleInProduction: false
@@ -298,7 +299,7 @@ function replaceSimulationPlaceholder(publicIndexPath, containerHTML, cssCode, j
 
 async function buildProduction() {
   try {
-    const useModules = process.argv.includes('--modules');
+    const useModules = true; // Force modular build path (legacy monolith deprecated)
     console.log(`\n🏗️  BUILD PIPELINE STARTING... (modules=${useModules})\n`);
     
     // STEP 1: Clean and copy webflow-export to public
@@ -331,12 +332,17 @@ async function buildProduction() {
       const jsDir = path.join(CONFIG.publicDestination, 'js');
       if (!fs.existsSync(jsDir)) fs.mkdirSync(jsDir, { recursive: true });
 
-      // 2c. Copy runtime config for dev (also works for prod if desired)
+      // 2c. Copy runtime config for prod and provide both paths used by loader
       const runtimeConfigSrc = path.join('source', 'config', 'default-config.json');
-      const runtimeConfigDst = path.join(jsDir, 'config.json');
+      const runtimeConfigDstJs = path.join(jsDir, 'config.json');
+      const runtimeConfigDstCfg = path.join(CONFIG.publicDestination, 'config', 'default-config.json');
       if (fs.existsSync(runtimeConfigSrc)) {
-        fs.copyFileSync(runtimeConfigSrc, runtimeConfigDst);
-        console.log('✅ Copied runtime config to public/js/config.json');
+        fs.copyFileSync(runtimeConfigSrc, runtimeConfigDstJs);
+        if (!fs.existsSync(path.dirname(runtimeConfigDstCfg))) {
+          fs.mkdirSync(path.dirname(runtimeConfigDstCfg), { recursive: true });
+        }
+        fs.copyFileSync(runtimeConfigSrc, runtimeConfigDstCfg);
+        console.log('✅ Copied runtime config to public/js/config.json and public/config/default-config.json');
       }
 
       // 2d. Run Rollup via dynamic import to avoid ESM/CJS friction

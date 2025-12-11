@@ -5,7 +5,7 @@
 
 ## 📊 Current Architecture
 
-### Single-Source Build System
+### Modular Build System (Canonical)
 
 **Primary Script:** `build-production.js` (root directory, 350+ lines)  
 **Command:** `npm run build`  
@@ -14,14 +14,11 @@
 ### Build Flow (7 Steps + Validation)
 ```
 1. Copy webflow-export/ → public/ (clean slate)
-2. Extract simulation components from balls-source.html
-   - HTML container structure
-   - CSS with production overrides
-   - JavaScript (hide panel, enable mouse events)
-3. Hardcode config values from current-config.json
-   - 10+ variable mappings
-   - Detailed reporting of applied/skipped values
-4. Minify JavaScript with Terser
+2. Bundle ES modules via Rollup (source/main.js)
+   - Output JS bundle
+   - Concatenate CSS
+3. Copy runtime config (source/config/default-config.json → public/js/config.json)
+4. Minify JavaScript with Terser (Rollup plugin)
    - 3-pass compression
    - 70% size reduction (160KB → 48KB)
 5. Integrate simulation into public/index.html
@@ -39,7 +36,7 @@
 ```
 
 ### Current Integration Method
-**Pattern Matching:** Finds `<div id="bravia-balls" class="ball-simulation w-embed">` in Webflow HTML and replaces it with the complete simulation container.
+**Pattern Matching:** Finds `<div id="bravia-balls" ...>` in Webflow HTML and replaces it with the complete simulation container.
 
 **CSS Strategy:** Appends production overrides to ensure mouse interaction:
 ```css
@@ -64,7 +61,6 @@
 **Solution:**
 - Archived `source/build.js` → `source/build-embed-standalone.js`
 - Unified `npm run build` → `build-production.js`
-- Added `npm run build:embed-only` for standalone use
 - Updated all documentation consistently
 
 ### 2. **Build Validation** ✅

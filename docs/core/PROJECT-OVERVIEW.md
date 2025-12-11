@@ -68,11 +68,13 @@ A vanilla JavaScript particle physics system featuring:
 ```
 /
 ├── source/              # Development files
-│   ├── balls-source.html  # Main development file
-│   ├── build.js          # Build script
-│   └── current-config.json # Configuration
+│   ├── source-modular.html  # Dev page (loads ES modules)
+│   ├── main.js              # Entry point
+│   ├── config/default-config.json
+│   └── modules/**           # Core/modes/physics/rendering/ui/utils
 ├── public/              # Production output
 │   ├── index.html       # Integrated page
+│   ├── css/bouncy-balls.css
 │   └── js/bouncy-balls-embed.js  # Built bundle
 └── docs/                # Documentation
     ├── core/            # Essential docs
@@ -112,10 +114,10 @@ A vanilla JavaScript particle physics system featuring:
 ## Quick Commands
 
 ```bash
-npm start              # Dev server
-npm run build          # Full production build (Webflow + simulation)
-npm run build:embed-only  # Standalone embed JS only
-npm run watch          # Auto-rebuild on changes
+npm run start:source   # Modular dev page server
+npm start              # Public server
+npm run build          # Modular production build
+npm run watch          # Auto-rebuild (modules)
 ```
 
 ## License
@@ -128,5 +130,5 @@ Alexander Beck - [alexander@beck.fyi](mailto:alexander@beck.fyi)
 
 ---
 
-**Next:** Read [../reference/MODES.md](../reference/MODES.md) to understand the three physics modes.
+**Next:** Read [../reference/MODES.md](../reference/MODES.md) to understand the four physics modes.
 

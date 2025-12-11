@@ -5,7 +5,7 @@
 
 import { CONSTANTS } from './modules/core/constants.js';
 import { initState, setCanvas, getGlobals } from './modules/core/state.js';
-import { initializeDarkMode } from './modules/visual/dark-mode.js';
+import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
 import { applyColorTemplate, populateColorSelect } from './modules/visual/colors.js';
 import { setupRenderer, getCanvas, getContext, resize } from './modules/rendering/renderer.js';
 import { setupPanel } from './modules/ui/panel-controller.js';

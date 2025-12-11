@@ -96,10 +96,8 @@ The simulation loads with sensible defaults:
 
 ### Runtime Configuration
 
-Settings are persisted in localStorage:
-- `bouncyBallsSettings` - User preferences
-- Auto-save after 500ms debounce
-- Survives page reloads
+Settings load from `js/config.json` (copied from `source/config/default-config.json`).
+localStorage persistence is disabled by default.
 
 ### Programmatic Control
 
@@ -227,7 +225,7 @@ Canvas has proper roles:
 ### Keyboard Accessible
 
 All functionality available via keyboard:
-- Mode switching (1, 2, 3)
+- Mode switching (1, 2, 3, 4)
 - Reset (R)
 - Panel toggle (/)
 

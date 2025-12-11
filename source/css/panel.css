@@ -1,149 +1,385 @@
-#bravia-balls .panel {
-  position: fixed;
-  top: 5vh;
-  right: 5vh;
-  color: #fff;
-  font: 10px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  background: rgba(0,0,0,0.45);
-  padding: 6px;
-  border-radius: 6px;
+.panel {
+  position: fixed !important;
+  top: 5vh !important;
+  right: 5vh !important;
+  left: auto !important;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  background: rgba(0, 0, 0, 0.35); /* Transparent glass */
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   user-select: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  z-index: 10;
+  gap: 0;
+  z-index: 2147483647 !important;
   max-height: 90vh;
-  overflow: auto;
-  backdrop-filter: blur(6px);
-  cursor: move;
-  min-width: 200px;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  overflow: hidden;
+  backdrop-filter: blur(40px) saturate(180%) brightness(1.2);
+  -webkit-backdrop-filter: blur(40px) saturate(180%) brightness(1.2);
+  cursor: default;
+  width: 280px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+  isolation: isolate;
+  transform: translateZ(0); /* Force GPU */
+  will-change: transform;
+  pointer-events: auto !important;
 }
 
-#bravia-balls.dark-mode .panel {
-  background: rgba(20,20,20,0.75);
-  border: 1px solid rgba(255,255,255,0.15);
+body.dark-mode .panel {
+  background: rgba(10, 10, 10, 0.5);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-#bravia-balls .panel.hidden { 
+.panel.hidden { 
   display: none; 
 }
 
-#bravia-balls .panel .panel-header {
+.panel * {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: auto;
+}
+
+.panel .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 6px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 4px;
-  margin-bottom: 4px;
+  padding: 12px 16px;
+  background: transparent;
+  border-bottom: 1px solid hsl(240, 3.7%, 15.9%, 0.4);
   cursor: move;
   font-weight: 600;
+  font-size: 12px;
+  letter-spacing: -0.01em;
+}
+
+.panel .panel-header .drag-handle {
+  opacity: 0.4;
+  margin-right: 8px;
+  font-size: 16px;
+  transition: opacity 0.2s;
+}
+
+.panel .panel-header:hover .drag-handle {
+  opacity: 0.7;
+}
+
+.panel .panel-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 120px);
+}
+
+.panel .panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel .panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel .panel-content::-webkit-scrollbar-thumb {
+  background: hsl(240, 3.7%, 25%, 0.5);
+  border-radius: 3px;
+}
+
+.panel .panel-content::-webkit-scrollbar-thumb:hover {
+  background: hsl(240, 3.7%, 30%, 0.7);
+}
+
+.panel details {
+  background: transparent;
+  border-radius: 8px;
+  padding: 0;
+}
+
+.panel details summary {
+  cursor: pointer;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  list-style: none;
+  user-select: none;
+  background: hsl(240, 3.7%, 15.9%, 0.4);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.panel details summary:hover {
+  background: hsl(240, 3.7%, 15.9%, 0.6);
+}
+
+.panel details summary::-webkit-details-marker { display: none; }
+
+.panel details[open] summary {
+  margin-bottom: 12px;
+  border-radius: 8px 8px 0 0;
+}
+
+/* Gestalt Principle: Proximity - Group related controls */
+.panel .group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: hsl(240, 3.7%, 8%, 0.3);
+  border-radius: 6px;
+}
+
+.panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   font-size: 11px;
+  font-weight: 500;
+  color: hsl(0, 0%, 90%);
 }
 
-#bravia-balls .panel .panel-header .drag-handle {
-  opacity: 0.5;
-  margin-right: 6px;
-}
-
-#bravia-balls .panel label {
+.panel label > span:first-child,
+.panel label > div:first-child {
+  font-size: 11px;
+  color: hsl(0, 0%, 65%);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
-  width: 200px;
-  font-size: 9px;
+  margin-bottom: 2px;
 }
 
-#bravia-balls .panel label span:first-child {
-  flex-shrink: 0;
-  max-width: 90px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.panel input[type="range"] {
+  width: 100%;
+  height: 4px;
+  border-radius: 9999px;
+  background: hsl(240, 3.7%, 20%);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  pointer-events: auto !important;
+}
+
+.panel input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: hsl(0, 0%, 98%);
+  cursor: grab;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: all 0.15s;
+  pointer-events: auto !important;
+}
+
+.panel input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.panel input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.0);
+}
+
+.panel input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: hsl(0, 0%, 98%);
+  cursor: grab;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.panel input[type="range"]::-moz-range-thumb:active {
+  cursor: grabbing;
+}
+
+.panel span.val {
+  font-family: ui-monospace, 'SF Mono', Monaco, monospace;
+  font-size: 11px;
+  color: hsl(0, 0%, 98%);
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+}
+
+.panel code {
+  font-family: ui-monospace, 'SF Mono', Monaco, monospace;
+  background: hsl(240, 3.7%, 15.9%, 0.6);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  color: hsl(0, 0%, 85%);
+}
+
+.panel button {
+  font-size: 11px;
+  padding: 8px 14px;
+  background: hsl(0, 0%, 98%);
+  border: none;
+  color: hsl(240, 10%, 3.9%);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  pointer-events: auto !important;
+}
+
+.panel button:hover {
+  background: hsl(0, 0%, 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
+}
+
+.panel button:active {
+  transform: translateY(0);
+}
+
+.panel select {
+  font-size: 11px;
+  padding: 6px 10px;
+  background: hsl(240, 3.7%, 15.9%, 0.6);
+  border: 1px solid hsl(240, 3.7%, 25%, 0.5);
+  color: hsl(0, 0%, 98%);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s;
+  pointer-events: auto !important;
+}
+
+.panel select:hover {
+  border-color: hsl(240, 3.7%, 35%, 0.7);
+  background: hsl(240, 3.7%, 18%, 0.7);
+}
+
+.panel select:focus {
+  outline: 2px solid hsl(0, 0%, 98%, 0.3);
+  outline-offset: 1px;
+}
+
+.panel checkbox,
+.panel input[type="checkbox"] {
+  cursor: pointer;
+  pointer-events: auto !important;
+}
+
+/* Gestalt Principle: Similarity - Mode buttons look alike */
+.mode-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns to prevent overflow */
+  gap: 8px;
+  padding: 12px;
+  background: hsl(240, 3.7%, 6%, 0.4);
+  border-radius: 8px;
+}
+
+.mode-button {
+  padding: 12px 10px;
+  background: hsl(240, 3.7%, 15%, 0.6);
+  border: 1px solid hsl(240, 3.7%, 20%, 0.5);
+  border-radius: 8px;
+  color: hsl(0, 0%, 70%);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+  text-align: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   white-space: nowrap;
 }
 
-#bravia-balls .panel input[type="range"] {
-  flex: 1;
-  min-width: 60px;
-  height: 12px;
+.mode-button:hover {
+  background: hsl(240, 3.7%, 18%, 0.8);
+  border-color: hsl(240, 3.7%, 30%, 0.6);
+  color: hsl(0, 0%, 95%);
+  transform: translateY(-1px);
 }
 
-#bravia-balls .panel span.val {
-  width: 42px;
-  text-align: right;
-  font-family: monospace;
-  font-size: 9px;
-}
-
-#bravia-balls .panel code {
-  font-family: monospace;
-  background: rgba(255,255,255,0.1);
-  padding: 1px 3px;
-  border-radius: 3px;
-  font-size: 9px;
-}
-
-#bravia-balls .panel button {
-  font-size: 9px;
-  padding: 4px 8px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #fff;
-  border-radius: 3px;
-  cursor: pointer;
-}
-
-#bravia-balls .panel select {
-  font-size: 9px;
-  padding: 2px 4px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #fff;
-  border-radius: 3px;
-}
-
-/* Mode switcher - segmented control */
-#bravia-balls .mode-switcher {
-  display: flex;
-  background: rgba(0,0,0,0.3);
-  border-radius: 4px;
-  padding: 1px;
-  gap: 1px;
-  margin-bottom: 6px;
-}
-
-#bravia-balls .mode-button {
-  flex: 1;
-  padding: 4px 6px;
-  background: transparent;
-  border: none;
-  border-radius: 3px;
-  color: rgba(255,255,255,0.6);
-  font-size: 9px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-}
-
-#bravia-balls .mode-button:hover {
-  background: rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.8);
-}
-
-#bravia-balls .mode-button.active {
-  background: rgba(255,255,255,0.15);
-  color: #ffffff;
+.mode-button.active {
+  background: hsl(0, 0%, 98%);
+  border-color: hsl(0, 0%, 100%);
+  color: hsl(240, 10%, 3.9%);
   font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-#bravia-balls .mode-controls { 
+.mode-button:active {
+  transform: translateY(0);
+}
+
+.mode-controls { 
   display: none; 
 }
 
-#bravia-balls .mode-controls.active { 
+.mode-controls.active { 
   display: block; 
 }
 
+/* Theme Segment Control (iOS/Safari style) */
+.theme-segment-control {
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.theme-segment-btn {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-segment-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.theme-segment-btn.active {
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(0, 0, 0, 0.95);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.theme-segment-btn:active {
+  transform: scale(0.96);
+}
+
+/* Dark mode variant */
+body.dark-mode .theme-segment-control {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .theme-segment-btn.active {
+  background: rgba(255, 255, 255, 0.95);
+}

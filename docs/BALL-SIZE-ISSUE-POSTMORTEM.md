@@ -18,10 +18,9 @@ Ball size was defined in **4 separate locations**:
 
 | Location | Original Value | Purpose | Priority |
 |----------|---------------|---------|----------|
-| `balls-source.html:1291` | `1.6` | JavaScript base default | Medium |
-| `current-config.json:13` | `1.0` | Runtime configuration | **HIGH** |
-| Physics presets (5 presets) | `1.8, 0.7, 1.2, 2.2, 2.0` | Preset overrides | **HIGHEST** |
-| HTML slider `line:292` | `1.0` | UI default display | Low |
+| `default-config.json` | `1.0` | Runtime configuration | **HIGH** |
+| Physics presets (legacy) | `1.8, 0.7, 1.2, 2.2, 2.0` | Preset overrides | (deprecated)
+| HTML slider (legacy) | `1.0` | UI default display | (deprecated)
 
 ### The Cascade of Overrides:
 
@@ -43,7 +42,7 @@ HTML slider default → 1.0
 
 ### 1. **Single Source of Truth is Critical**
 - Configuration should flow from ONE authoritative source
-- In this codebase: `current-config.json` should be that source
+- In this codebase: `source/config/default-config.json` is that source
 - All other locations should derive from or validate against it
 
 ### 2. **UI Must Reflect Reality**
@@ -72,11 +71,8 @@ HTML slider default → 1.0
 
 ### Immediate Actions Taken:
 
-1. **✅ Synchronized All 4 Locations to 1.4**
-   - `balls-source.html` JS variable: `1.4`
-   - `current-config.json`: `"ballScale": 1.4`
-   - All 5 physics presets: `sizeScale: 1.4`
-   - HTML slider default: `value="1.4"`
+1. **✅ Single Source of Truth to 1.4**
+   - `source/config/default-config.json`: `"ballScale": 1.4`
 
 2. **✅ Added Build Validation**
    - New `validateConfigConsistency()` function in `build-production.js`
@@ -101,14 +97,10 @@ HTML slider default → 1.0
 ```
 User: "Set ball size to 1.4"
 
-AI must manually:
-1. Update balls-source.html line 1291
-2. Update current-config.json line 13
-3. Update 5 physics presets (lines 4432-4436)
-4. Update HTML slider (line 292)
-5. Hope nothing was missed
-6. Build (no validation)
-7. ❌ Value still wrong - debug for 20 minutes
+Legacy workflow (deprecated):
+1. Multiple files updated manually
+2. Build without validation
+3. ❌ Value still wrong - debug for 20 minutes
 ```
 
 ### **After** (Automated, Validated):
@@ -116,13 +108,9 @@ AI must manually:
 User: "Set ball size to 1.4"
 
 AI workflow:
-1. Update current-config.json: "ballScale": 1.4
-2. Update balls-source.html JS: let sizeScale = 1.4
-3. Update HTML slider: value="1.4"
-4. Update physics presets: sizeScale: 1.4 (all 5)
-5. npm run build
-6. ✅ Validation passes - all values consistent
-7. User sees 1.4 in UI, code uses 1.4, presets use 1.4
+1. Update source/config/default-config.json: "ballScale": 1.4
+2. npm run build
+3. ✅ Runtime loads 1.4 from js/config.json
 ```
 
 ---
@@ -171,8 +159,7 @@ if (validationIssues.length > 0) {
 - Report conflicts
 
 ### Phase 2: Auto-Sync HTML from Config (RECOMMENDED)
-- Generate HTML slider defaults from `current-config.json`
-- Eliminate manual sync of sliders
+- UI defaults generated from runtime config (future)
 - One source of truth flows to UI
 
 ### Phase 3: Preset Inheritance (ADVANCED)
@@ -188,37 +175,20 @@ if (validationIssues.length > 0) {
 
 **AI Should**:
 
-1. **Update Config** (`current-config.json`):
+1. **Update Config** (`source/config/default-config.json`):
    ```json
    "ballScale": 1.4
    ```
 
-2. **Update Source** (`balls-source.html`):
-   ```javascript
-   let sizeScale = 1.4;
-   ```
-
-3. **Update UI** (`balls-source.html`):
-   ```html
-   <input type="range" value="1.4">
-   <span>1.4</span>
-   ```
-
-4. **Update Presets** (if needed):
-   ```javascript
-   rubberPlayground: { sizeScale: 1.4, ... }
-   ```
-
-5. **Run Build**:
+2. **Run Build**:
    ```bash
    npm run build
    ```
 
-6. **Verify**:
+3. **Verify**:
    ```
-   ✅ Validation passes
    ✅ No conflicts detected
-   ✅ Ball size: 1.4 everywhere
+   ✅ Ball size: 1.4 from runtime config
    ```
 
 7. **Confirm to User**:
@@ -244,13 +214,8 @@ if (validationIssues.length > 0) {
 
 When making ANY configuration change:
 
-- [ ] Update `current-config.json` (source of truth)
-- [ ] Update JavaScript variable in `balls-source.html`
-- [ ] Update HTML slider default value
-- [ ] Update HTML slider display value (`<span>`)
-- [ ] Update relevant presets (or note override)
+- [ ] Update `source/config/default-config.json` (source of truth)
 - [ ] Run `npm run build`
-- [ ] Check for validation warnings
 - [ ] Verify value in browser (press `/` to see panel)
 - [ ] Confirm slider shows correct default
 

@@ -29,6 +29,8 @@ export class Ball {
     this.squashAmount = 0.0;
     this.squashNormalAngle = 0.0;
     this.alpha = 1.0;
+    this.isSleeping = false;
+    this.sleepTimer = 0;  // Time spent below sleep threshold
   }
 
   step(dt, applyForcesFunc) {
@@ -37,6 +39,25 @@ export class Ball {
     
     this.t += dt;
     this.age += dt;
+    
+    // Wake up if sleeping and mouse is nearby (Ball Pit mode only)
+    if (this.isSleeping && currentMode === MODES.PIT) {
+      const mouseX = globals.mouseX;
+      const mouseY = globals.mouseY;
+      const wakeRadius = (globals.repelRadius || 710) * globals.DPR * 1.2; // 20% larger than repel radius
+      const dx = this.x - mouseX;
+      const dy = this.y - mouseY;
+      const dist2 = dx * dx + dy * dy;
+      
+      if (dist2 < wakeRadius * wakeRadius) {
+        this.wake();
+      }
+    }
+    
+    // Skip all physics if sleeping (Box2D approach)
+    if (this.isSleeping) {
+      return;
+    }
 
     // Gravity (skip in weightless)
     if (currentMode !== MODES.WEIGHTLESS) {
@@ -72,18 +93,121 @@ export class Ball {
     const decay = Math.min(1, CONSTANTS.SQUASH_DECAY_PER_S * dt);
     this.squashAmount += (0 - this.squashAmount) * decay;
     this.squash = 1 - this.squashAmount;
+    
+    // Sleep detection (Ball Pit mode only, Box2D-style)
+    if (currentMode === MODES.PIT) {
+      this.updateSleepState(dt, globals);
+    }
+  }
+  
+  /**
+   * Box2D-inspired sleep detection
+   * Only sleeps if grounded AND below velocity threshold for sustained time
+   */
+  updateSleepState(dt, globals) {
+    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+    const angularSpeed = Math.abs(this.omega);
+    const canvas = globals.canvas;
+    
+    // Check if grounded (within 1px of bottom)
+    const isGrounded = canvas && (this.y + this.r >= canvas.height - 1);
+    
+    // Box2D uses 0.05 m/s threshold, we use 5 px/s
+    const belowThreshold = speed < CONSTANTS.SLEEP_VELOCITY_THRESHOLD && 
+                          angularSpeed < CONSTANTS.SLEEP_ANGULAR_THRESHOLD;
+    
+    if (isGrounded && belowThreshold) {
+      this.sleepTimer += dt;
+      
+      // Must be below threshold for TIME_TO_SLEEP seconds (stability check)
+      if (this.sleepTimer >= CONSTANTS.TIME_TO_SLEEP) {
+        this.vx = 0;
+        this.vy = 0;
+        this.omega = 0;
+        this.isSleeping = true;
+      }
+    } else {
+      // Reset timer if ball moves or lifts off ground
+      this.sleepTimer = 0;
+    }
+  }
+  
+  /**
+   * Wake up a sleeping ball (Box2D-style)
+   * Called when external forces are about to be applied
+   */
+  wake() {
+    this.isSleeping = false;
+    this.sleepTimer = 0;
   }
 
   walls(w, h, dt, customRest) {
     const globals = getGlobals();
-    const { REST, MASS_BASELINE_KG, MASS_REST_EXP, cornerRadius, currentMode } = globals;
+    const { REST, MASS_BASELINE_KG, MASS_REST_EXP, cornerRadius, currentMode, DPR } = globals;
     const rest = customRest !== undefined ? customRest : REST;
     
     const viewportTop = (currentMode === MODES.PIT) ? (h / 3) : 0;
     
+    // Corner radius inset (scaled by DPR)
+    const cr = (cornerRadius || 42) * (DPR || 1);
+    
+    // No border inset - balls use full canvas bounds
+    const borderInset = 0;
+    
+    let hasWallCollision = false;
+    
+    // ════════════════════════════════════════════════════════════════════════
+    // CORNER COLLISION: Push balls out of rounded corner zones
+    // Check if ball center is within a corner quadrant and too close to arc
+    // ════════════════════════════════════════════════════════════════════════
+    const corners = [
+      { cx: cr, cy: viewportTop + cr },           // Top-left
+      { cx: w - cr, cy: viewportTop + cr },       // Top-right
+      { cx: cr, cy: h - cr },                      // Bottom-left
+      { cx: w - cr, cy: h - cr }                   // Bottom-right
+    ];
+    
+    for (let i = 0; i < corners.length; i++) {
+      const corner = corners[i];
+      // Check if ball is in this corner's quadrant
+      const inXZone = (i % 2 === 0) ? (this.x < cr) : (this.x > w - cr);
+      const inYZone = (i < 2) ? (this.y < viewportTop + cr) : (this.y > h - cr);
+      
+      if (inXZone && inYZone) {
+        const dx = this.x - corner.cx;
+        const dy = this.y - corner.cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = cr - this.r; // Ball must stay inside the arc
+        
+        if (dist > minDist && minDist > 0) {
+          // Push ball back inside the rounded corner
+          hasWallCollision = true;
+          const overlap = dist - minDist;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          this.x -= nx * overlap;
+          this.y -= ny * overlap;
+          
+          // Reflect velocity off the arc tangent
+          const velDotN = this.vx * nx + this.vy * ny;
+          if (velDotN > 0) {
+            this.vx -= (1 + rest) * velDotN * nx;
+            this.vy -= (1 + rest) * velDotN * ny;
+          }
+        }
+      }
+    }
+    
+    // Effective boundaries (accounting for inner border)
+    const minX = borderInset;
+    const maxX = w - borderInset;
+    const minY = viewportTop + borderInset;
+    const maxY = h - borderInset;
+    
     // Bottom
-    if (this.y + this.r > h) {
-      this.y = h - this.r;
+    if (this.y + this.r > maxY) {
+      hasWallCollision = true;
+      this.y = maxY - this.r;
       const preVy = this.vy;
       const slip = this.vx - this.omega * this.r;
       const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
@@ -100,8 +224,9 @@ export class Ball {
     }
     
     // Top
-    if (this.y - this.r < viewportTop) {
-      this.y = viewportTop + this.r;
+    if (this.y - this.r < minY) {
+      hasWallCollision = true;
+      this.y = minY + this.r;
       this.vy = -this.vy * rest;
       const impact = Math.min(1, Math.abs(this.vy) / (this.r * 90));
       this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
@@ -109,8 +234,9 @@ export class Ball {
     }
     
     // Right
-    if (this.x + this.r > w) {
-      this.x = w - this.r;
+    if (this.x + this.r > maxX) {
+      hasWallCollision = true;
+      this.x = maxX - this.r;
       const slip = this.vy - this.omega * this.r;
       const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
       this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
@@ -121,8 +247,9 @@ export class Ball {
     }
     
     // Left
-    if (this.x - this.r < 0) {
-      this.x = this.r;
+    if (this.x - this.r < minX) {
+      hasWallCollision = true;
+      this.x = minX + this.r;
       const slip = this.vy - this.omega * this.r;
       const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
       this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
@@ -131,37 +258,10 @@ export class Ball {
       this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
       this.squashNormalAngle = 0;
     }
-    // Text collision detection
-    this.checkTextCollisions(dt);
-  }
-
-  checkTextCollisions(dt) {
-    const globals = getGlobals();
-    const colliders = globals.textColliders || [];
-    for (let i = 0; i < colliders.length; i++) {
-      const rect = colliders[i];
-      const closestX = Math.max(rect.x, Math.min(this.x, rect.x + rect.width));
-      const closestY = Math.max(rect.y, Math.min(this.y, rect.y + rect.height));
-      const dx = this.x - closestX;
-      const dy = this.y - closestY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < this.r) {
-        if (distance === 0) {
-          this.y = rect.y - this.r;
-          this.vy = -Math.abs(this.vy) * 0.97;
-        } else {
-          const overlap = this.r - distance;
-          const nx = dx / distance;
-          const ny = dy / distance;
-          this.x += nx * overlap;
-          this.y += ny * overlap;
-          const dot = this.vx * nx + this.vy * ny;
-          if (dot < 0) {
-            this.vx -= 2 * dot * nx * 0.97;
-            this.vy -= 2 * dot * ny * 0.97;
-          }
-        }
-      }
+    
+    // Wake on wall collision (prevents sleeping balls from getting stuck in walls)
+    if (hasWallCollision && this.isSleeping) {
+      this.wake();
     }
   }
 

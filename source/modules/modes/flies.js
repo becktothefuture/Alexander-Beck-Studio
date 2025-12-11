@@ -5,6 +5,7 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls } from '../core/state.js';
+import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
 
 export function initializeFlies() {
   const globals = getGlobals();
@@ -17,7 +18,26 @@ export function initializeFlies() {
   const centerY = h * 0.5;
   const swarmRadius = 150 * globals.DPR;
   
-  for (let i = 0; i < targetBalls; i++) {
+  // First, ensure at least one ball of each color (0-7)
+  for (let colorIndex = 0; colorIndex < 8; colorIndex++) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.random() * swarmRadius;
+    const x = centerX + Math.cos(angle) * distance;
+    const y = centerY + Math.sin(angle) * distance;
+    
+    const ball = spawnBall(x, y, getColorByIndex(colorIndex));
+    
+    const speedVariation = 0.5 + Math.random() * 0.5;
+    const vAngle = Math.random() * Math.PI * 2;
+    const speed = 300 * speedVariation;
+    ball.vx = Math.cos(vAngle) * speed;
+    ball.vy = Math.sin(vAngle) * speed;
+    ball.driftAx = 0;
+    ball.driftTime = 0;
+  }
+  
+  // Then fill the rest with random colors
+  for (let i = 8; i < targetBalls; i++) {
     const angle = Math.random() * Math.PI * 2;
     const distance = Math.random() * swarmRadius;
     const x = centerX + Math.cos(angle) * distance;
