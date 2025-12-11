@@ -82,7 +82,7 @@ export function setupPointer() {
     if (e.target.closest('#controlPanel')) return;
     
     const pos = getCanvasPosition(e.clientX, e.clientY);
-    
+  
     // Calculate mouse velocity for water ripples
     const now = performance.now();
     const dt = now - lastMoveTime;
@@ -154,7 +154,7 @@ export function setupPointer() {
         if ((now - lastRippleTime) > RIPPLE_THROTTLE_MS) {
           createWaterRipple(pos.x, pos.y, 2);
           lastRippleTime = now;
-        }
+    }
       }
     }
   }, { passive: true });

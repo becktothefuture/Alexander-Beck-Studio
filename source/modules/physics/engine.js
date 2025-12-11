@@ -50,10 +50,10 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   
   while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
     // Integrate physics for all modes
-    const len = balls.length;
-    for (let i = 0; i < len; i++) {
-      balls[i].step(DT, applyForcesFunc);
-    }
+      const len = balls.length;
+      for (let i = 0; i < len; i++) {
+        balls[i].step(DT, applyForcesFunc);
+      }
     
     // Ball-to-ball collisions (disabled for Flies mode)
     if (globals.currentMode !== MODES.FLIES) {
@@ -61,11 +61,11 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
     }
     
     // Wall collisions + corner repellers
-    const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
+      const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
     const lenWalls = balls.length;
     for (let i = 0; i < lenWalls; i++) {
       applyCornerRepellers(balls[i], canvas);
-      balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+        balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
     }
     
     acc -= DT;

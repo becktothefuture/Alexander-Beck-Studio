@@ -334,4 +334,4 @@ export function updateModeButtonsUI(activeMode) {
     };
     announcer.textContent = `Switched to ${modeNames[activeMode] || activeMode} mode`;
   }
-}
+  }
