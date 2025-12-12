@@ -182,11 +182,17 @@ body.dark-mode {
   background: var(--bg-light) !important; /* The "page" surface */
   border-radius: var(--container-radius);
   
+  /* Subtle depth: vignette only at corners */
+  box-shadow: 
+    inset 0 0 120px 0 rgba(0, 0, 0, 0.03),
+    inset 0 0 60px 0 rgba(0, 0, 0, 0.02);
+  
   /* ORGANIC BREATHING: All geometric properties transition smoothly */
   transition: 
     background-color var(--duration-settle) var(--ease-settle),
     border-radius var(--duration-resize) var(--ease-organic),
-    padding var(--duration-resize) var(--ease-organic);
+    padding var(--duration-resize) var(--ease-organic),
+    box-shadow var(--duration-settle) var(--ease-settle);
 }
 
 /* Sound toggle hover - viewport content turns white */
@@ -201,6 +207,11 @@ body.dark-mode .viewport {
 
 body.dark-mode .viewport.viewport--content {
   background: var(--bg-dark) !important; /* Dark content area */
+  
+  /* Subtle depth for dark mode: lighter corners (inverse vignette) */
+  box-shadow: 
+    inset 0 0 120px 0 rgba(255, 255, 255, 0.02),
+    inset 0 0 60px 0 rgba(255, 255, 255, 0.01);
 }
 
 /* Dark mode sound hover - viewport content goes slightly lighter */
@@ -338,23 +349,29 @@ a {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   NOISE TEXTURE LAYERS
+   NOISE TEXTURE LAYERS - Subtle grain, not aggressive
    .noise (z:4) behind balls | .noise-2 (z:7) above balls | Text (z:20+) above all
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .noise {
   z-index: 4 !important;
+  opacity: 0.015 !important; /* Much softer - was 0.05 */
 }
 
 .noise-2 {
   z-index: 7 !important;
   transform: scaleX(-1) !important;
   background-size: var(--noise-size-top) var(--noise-size-top) !important;
+  opacity: 0.01 !important; /* Barely visible texture on top */
 }
 
-body.dark-mode .noise,
+body.dark-mode .noise {
+  opacity: 0.08 !important; /* Slightly more visible in dark */
+  mix-blend-mode: overlay !important;
+}
+
 body.dark-mode .noise-2 {
-  opacity: 0.15 !important;
+  opacity: 0.05 !important;
   mix-blend-mode: overlay !important;
 }
 
