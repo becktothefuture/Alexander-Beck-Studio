@@ -1,4 +1,4 @@
-/* Alexander Beck Studio – Bouncy Balls | Build: 2025-12-12T18:40:46.237Z */
+/* Alexander Beck Studio – Bouncy Balls | Build: 2025-12-12T18:55:37.686Z */
 var BouncyBalls = (function (exports) {
   'use strict';
 
@@ -88,7 +88,10 @@ var BouncyBalls = (function (exports) {
     ballSoftness: 20,
     
     // Corner (matches CSS border-radius for collision bounds)
-    cornerRadius: 42,
+    // Container border radius (12vh converted to px at runtime)
+    // 12vh ≈ 100px on typical viewport, falls back to reasonable default
+    containerRadiusVh: 12,
+    containerRadiusPx: 100, // Calculated from vh on init/resize
     
     // Inner border (soft visual transition)
     
@@ -160,13 +163,21 @@ var BouncyBalls = (function (exports) {
     autoDarkModeEnabled: true,
     isDarkMode: false,
     
-    // Frame padding (border thickness around simulation, in pixels - unified for all sides)
-    framePad: 0,
+    // Simulation padding (padding inside #bravia-balls container around canvas, in pixels)
+    simulationPadding: 0,
     
-    // Helper
+    // Container border (padding around #bravia-balls container, reveals body background, in pixels)
+    containerBorder: 0,
+    
+    // Helper: get max squash amount
     getSquashMax() {
       if (this.ballSoftness === 0) return 0;
       return CONSTANTS.SQUASH_MAX_BASE * (this.ballSoftness / 40.0);
+    },
+    
+    // Helper: get canvas corner radius (container radius - simulation padding)
+    getCanvasCornerRadius() {
+      return Math.max(0, this.containerRadiusPx - this.simulationPadding);
     }
   };
 
@@ -178,8 +189,11 @@ var BouncyBalls = (function (exports) {
     if (config.friction) state.FRICTION = config.friction;
     if (config.ballScale) state.sizeScale = config.ballScale;
     
-    // Frame padding (border thickness - unified for all sides)
-    if (config.framePad !== undefined) state.framePad = config.framePad;
+    // Simulation padding (padding inside container around canvas)
+    if (config.simulationPadding !== undefined) state.simulationPadding = config.simulationPadding;
+    
+    // Container border (padding around container, reveals body background)
+    if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;
     
     // Recalculate R_MIN and R_MAX
     const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;
@@ -620,7 +634,9 @@ var BouncyBalls = (function (exports) {
 
   /**
    * Resize canvas to match container dimensions (not window/viewport).
-   * This allows frame padding to inset the simulation area.
+   * Accounts for simulation padding (space inside container around canvas).
+   * Container border is handled by CSS inset positioning on #bravia-balls.
+   * Also calculates container radius in pixels for physics corner collisions.
    */
   function resize() {
     if (!canvas) return;
@@ -632,20 +648,30 @@ var BouncyBalls = (function (exports) {
     const containerWidth = container ? container.clientWidth : window.innerWidth;
     const containerHeight = container ? container.clientHeight : window.innerHeight;
     
+    // Calculate container radius in pixels (12vh → px)
+    // Use viewport height for vh calculation
+    const viewportHeight = window.innerHeight;
+    globals.containerRadiusPx = (globals.containerRadiusVh / 100) * viewportHeight;
+    
+    // Account for simulation padding (reduces available space for canvas)
+    const simPad = globals.simulationPadding || 0;
+    const availableWidth = Math.max(0, containerWidth - (simPad * 2));
+    const availableHeight = Math.max(0, containerHeight - (simPad * 2));
+    
     // Ball Pit mode uses 150% height (spawn area above viewport)
     const heightMultiplier = (globals.currentMode === MODES.PIT)
       ? CONSTANTS.CANVAS_HEIGHT_VH_PIT
       : CONSTANTS.CANVAS_HEIGHT_VH_DEFAULT;
     
-    const simHeight = containerHeight * heightMultiplier;
+    const simHeight = availableHeight * heightMultiplier;
     const DPR = CONSTANTS.DPR;
     
-    // Set canvas buffer size (high-DPI)
-    canvas.width = Math.floor(containerWidth * DPR);
+    // Set canvas buffer size (high-DPI) - uses available space after simulation padding
+    canvas.width = Math.floor(availableWidth * DPR);
     canvas.height = Math.floor(simHeight * DPR);
     
-    // Set CSS display size (container-relative)
-    canvas.style.width = containerWidth + 'px';
+    // Set CSS display size (container-relative, accounting for simulation padding)
+    canvas.style.width = availableWidth + 'px';
     canvas.style.height = simHeight + 'px';
     
     applyCanvasShadow(canvas);
@@ -700,10 +726,17 @@ var BouncyBalls = (function (exports) {
   
   <!-- Frame/Border Settings -->
   <details>
-    <summary>🖼️ Frame Border</summary>
+    <summary>🖼️ Frame & Padding</summary>
     <div class="group">
-        <label><span>Border thickness (px)</span><input type="range" id="framePadSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadVal">0</span></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Reveals background color around rounded container</div>
+        <div style="font-size: 9px; opacity: 0.7; margin-bottom: 8px;">Quick presets (harmonious padding + border)</div>
+        <div style="display: flex; gap: 4px; margin-bottom: 12px;">
+          <button id="framePresetNone" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">None</button>
+          <button id="framePresetThin" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">Thin</button>
+          <button id="framePresetMedium" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">Medium</button>
+          <button id="framePresetThick" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">Thick</button>
+        </div>
+        <label><span>Simulation padding (px)</span><input type="range" id="simulationPaddingSlider" min="0" max="100" step="1" value="0"><span class="val" id="simulationPaddingVal">0</span></label>
+        <label style="margin-top: 8px;"><span>Container border (px)</span><input type="range" id="containerBorderSlider" min="0" max="100" step="1" value="0"><span class="val" id="containerBorderVal">0</span></label>
     </div>
   </details>
   
@@ -1017,13 +1050,14 @@ var BouncyBalls = (function (exports) {
 
     walls(w, h, dt, customRest) {
       const globals = getGlobals();
-      const { REST, MASS_BASELINE_KG, MASS_REST_EXP, cornerRadius, currentMode, DPR } = globals;
+      const { REST, MASS_BASELINE_KG, MASS_REST_EXP, currentMode, DPR } = globals;
       const rest = customRest !== undefined ? customRest : REST;
       
       const viewportTop = (currentMode === MODES.PIT) ? (h / 3) : 0;
       
-      // Corner radius inset (scaled by DPR)
-      const cr = (cornerRadius || 42) * (DPR || 1);
+      // Corner radius: container radius minus simulation padding, scaled by DPR
+      // Uses getCanvasCornerRadius() for auto-calculation based on current padding
+      const cr = (globals.getCanvasCornerRadius() || 100) * (DPR || 1);
       
       // No border inset - balls use full canvas bounds
       const borderInset = 0;
@@ -2259,11 +2293,64 @@ var BouncyBalls = (function (exports) {
     });
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // FRAME PADDING CONTROLS (Unified border thickness - all sides)
+    // FRAME & PADDING CONTROLS (with presets)
     // ═══════════════════════════════════════════════════════════════════════════
-    bindSlider('framePadSlider', (el) => {
-      g.framePad = parseInt(el.value, 10);
-      setVal('framePadVal', String(g.framePad));
+    
+    // Preset definitions (harmonious padding + border combinations)
+    const FRAME_PRESETS = {
+      none:   { simulationPadding: 0,  containerBorder: 0  },
+      thin:   { simulationPadding: 8,  containerBorder: 4  },
+      medium: { simulationPadding: 16, containerBorder: 8  },
+      thick:  { simulationPadding: 24, containerBorder: 12 }
+    };
+    
+    // Helper to apply a preset and update UI
+    function applyFramePreset(presetName) {
+      const preset = FRAME_PRESETS[presetName];
+      if (!preset) return;
+      
+      g.simulationPadding = preset.simulationPadding;
+      g.containerBorder = preset.containerBorder;
+      
+      // Update sliders
+      const simSlider = document.getElementById('simulationPaddingSlider');
+      const borderSlider = document.getElementById('containerBorderSlider');
+      if (simSlider) simSlider.value = String(g.simulationPadding);
+      if (borderSlider) borderSlider.value = String(g.containerBorder);
+      
+      // Update value displays
+      setVal('simulationPaddingVal', String(g.simulationPadding));
+      setVal('containerBorderVal', String(g.containerBorder));
+      
+      applyFramePaddingCSSVars();
+      resize();
+      autoSaveSettings();
+    }
+    
+    // Preset buttons
+    const presetNone = document.getElementById('framePresetNone');
+    const presetThin = document.getElementById('framePresetThin');
+    const presetMedium = document.getElementById('framePresetMedium');
+    const presetThick = document.getElementById('framePresetThick');
+    
+    if (presetNone) presetNone.addEventListener('click', () => applyFramePreset('none'));
+    if (presetThin) presetThin.addEventListener('click', () => applyFramePreset('thin'));
+    if (presetMedium) presetMedium.addEventListener('click', () => applyFramePreset('medium'));
+    if (presetThick) presetThick.addEventListener('click', () => applyFramePreset('thick'));
+    
+    // Simulation padding slider
+    bindSlider('simulationPaddingSlider', (el) => {
+      g.simulationPadding = parseInt(el.value, 10);
+      setVal('simulationPaddingVal', String(g.simulationPadding));
+      applyFramePaddingCSSVars();
+      resize();
+      autoSaveSettings();
+    });
+    
+    // Container border slider
+    bindSlider('containerBorderSlider', (el) => {
+      g.containerBorder = parseInt(el.value, 10);
+      setVal('containerBorderVal', String(g.containerBorder));
       applyFramePaddingCSSVars();
       resize();
       autoSaveSettings();
@@ -3268,18 +3355,18 @@ var BouncyBalls = (function (exports) {
   }
 
   /**
-   * Apply frame padding CSS variable from global state to :root
-   * This controls the inset of #bravia-balls (frame/border thickness) on all sides
+   * Apply simulation padding and container border CSS variables from global state to :root
+   * Uses unified variables that auto-cascade to all sides via CSS var() inheritance
+   * - --simulation-pad: space inside container around canvas
+   * - --container-border: space around container (reveals body background)
    */
   function applyFramePaddingCSSVars() {
     const g = getGlobals();
     const root = document.documentElement;
-    const framePad = g.framePad || 0;
-    // Apply same value to all sides (unified border thickness)
-    root.style.setProperty('--frame-pad-top', `${framePad}px`);
-    root.style.setProperty('--frame-pad-right', `${framePad}px`);
-    root.style.setProperty('--frame-pad-bottom', `${framePad}px`);
-    root.style.setProperty('--frame-pad-left', `${framePad}px`);
+    
+    // Set unified base variables (CSS auto-cascades to all sides via var() inheritance)
+    root.style.setProperty('--simulation-pad', `${g.simulationPadding || 0}px`);
+    root.style.setProperty('--container-border', `${g.containerBorder || 0}px`);
   }
 
   /**

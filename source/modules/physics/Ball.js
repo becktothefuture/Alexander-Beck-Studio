@@ -143,13 +143,14 @@ export class Ball {
 
   walls(w, h, dt, customRest) {
     const globals = getGlobals();
-    const { REST, MASS_BASELINE_KG, MASS_REST_EXP, cornerRadius, currentMode, DPR } = globals;
+    const { REST, MASS_BASELINE_KG, MASS_REST_EXP, currentMode, DPR } = globals;
     const rest = customRest !== undefined ? customRest : REST;
     
     const viewportTop = (currentMode === MODES.PIT) ? (h / 3) : 0;
     
-    // Corner radius inset (scaled by DPR)
-    const cr = (cornerRadius || 42) * (DPR || 1);
+    // Corner radius: container radius minus simulation padding, scaled by DPR
+    // Uses getCanvasCornerRadius() for auto-calculation based on current padding
+    const cr = (globals.getCanvasCornerRadius() || 100) * (DPR || 1);
     
     // No border inset - balls use full canvas bounds
     const borderInset = 0;

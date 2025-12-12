@@ -24,7 +24,7 @@
     "test:chromium": "playwright test --project=chromium",
     "test:report": "playwright show-report",
     "clean": "rm -f source/current-config*.json",
-    "figma:socket": "node scripts/figma-websocket-server.js",
+    "figma:socket": "bunx cursor-talk-to-figma-socket",
     "figma:setup": "npm install && echo '✅ Dependencies installed. Next: Install bun (curl -fsSL https://bun.sh/install | bash)'"
   },
   "devDependencies": {

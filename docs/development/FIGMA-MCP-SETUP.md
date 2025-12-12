@@ -86,21 +86,12 @@ The WebSocket server bridges communication between Cursor and Figma:
 npm run figma:socket
 ```
 
+This runs: `bunx cursor-talk-to-figma-socket` which starts the official socket server on port 8765.
+
 **Default:** `localhost:8765`  
-**For Windows/WSL:** Uncomment `hostname: "0.0.0.0"` in `scripts/figma-websocket-server.js`
+**For Windows/WSL:** The official socket server handles this automatically
 
-You should see:
-```
-🚀 Figma WebSocket Server starting...
-📡 Listening on localhost:8765
-
-💡 Make sure to:
-   1. Install the Figma plugin in Figma
-   2. Run the plugin and join a channel
-   3. Use Cursor to communicate with Figma
-```
-
-**Keep this terminal running** while using Figma integration.
+**Keep this terminal running** while using Figma integration. The server will start and listen for connections.
 
 ### Step 3: Install Figma Plugin
 

@@ -34,18 +34,18 @@ async function loadRuntimeConfig() {
 }
 
 /**
- * Apply frame padding CSS variable from global state to :root
- * This controls the inset of #bravia-balls (frame/border thickness) on all sides
+ * Apply simulation padding and container border CSS variables from global state to :root
+ * Uses unified variables that auto-cascade to all sides via CSS var() inheritance
+ * - --simulation-pad: space inside container around canvas
+ * - --container-border: space around container (reveals body background)
  */
 export function applyFramePaddingCSSVars() {
   const g = getGlobals();
   const root = document.documentElement;
-  const framePad = g.framePad || 0;
-  // Apply same value to all sides (unified border thickness)
-  root.style.setProperty('--frame-pad-top', `${framePad}px`);
-  root.style.setProperty('--frame-pad-right', `${framePad}px`);
-  root.style.setProperty('--frame-pad-bottom', `${framePad}px`);
-  root.style.setProperty('--frame-pad-left', `${framePad}px`);
+  
+  // Set unified base variables (CSS auto-cascades to all sides via var() inheritance)
+  root.style.setProperty('--simulation-pad', `${g.simulationPadding || 0}px`);
+  root.style.setProperty('--container-border', `${g.containerBorder || 0}px`);
 }
 
 /**

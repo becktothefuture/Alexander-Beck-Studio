@@ -45,7 +45,10 @@ const state = {
   ballSoftness: 20,
   
   // Corner (matches CSS border-radius for collision bounds)
-  cornerRadius: 42,
+  // Container border radius (12vh converted to px at runtime)
+  // 12vh ≈ 100px on typical viewport, falls back to reasonable default
+  containerRadiusVh: 12,
+  containerRadiusPx: 100, // Calculated from vh on init/resize
   
   // Inner border (soft visual transition)
   
@@ -117,13 +120,21 @@ const state = {
   autoDarkModeEnabled: true,
   isDarkMode: false,
   
-  // Frame padding (border thickness around simulation, in pixels - unified for all sides)
-  framePad: 0,
+  // Simulation padding (padding inside #bravia-balls container around canvas, in pixels)
+  simulationPadding: 0,
   
-  // Helper
+  // Container border (padding around #bravia-balls container, reveals body background, in pixels)
+  containerBorder: 0,
+  
+  // Helper: get max squash amount
   getSquashMax() {
     if (this.ballSoftness === 0) return 0;
     return CONSTANTS.SQUASH_MAX_BASE * (this.ballSoftness / 40.0);
+  },
+  
+  // Helper: get canvas corner radius (container radius - simulation padding)
+  getCanvasCornerRadius() {
+    return Math.max(0, this.containerRadiusPx - this.simulationPadding);
   }
 };
 
@@ -135,8 +146,11 @@ export function initState(config) {
   if (config.friction) state.FRICTION = config.friction;
   if (config.ballScale) state.sizeScale = config.ballScale;
   
-  // Frame padding (border thickness - unified for all sides)
-  if (config.framePad !== undefined) state.framePad = config.framePad;
+  // Simulation padding (padding inside container around canvas)
+  if (config.simulationPadding !== undefined) state.simulationPadding = config.simulationPadding;
+  
+  // Container border (padding around container, reveals body background)
+  if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;
   
   // Recalculate R_MIN and R_MAX
   const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;

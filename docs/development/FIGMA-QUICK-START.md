@@ -44,10 +44,11 @@ Then in Figma:
 npm run figma:socket
 ```
 
-Keep this terminal open. You should see:
-```
-🚀 Figma WebSocket Server starting...
-📡 Listening on localhost:8765
+Keep this terminal open. The socket server will start and listen on port 8765.
+
+**Note:** The command uses `bunx` which requires Bun to be installed. If you see connection errors, ensure Bun is in your PATH:
+```bash
+export PATH="$HOME/.bun/bin:$PATH"
 ```
 
 ### Step 2: Open Figma & Run Plugin

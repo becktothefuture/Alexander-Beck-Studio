@@ -39,10 +39,17 @@ export const PANEL_HTML = `
   
   <!-- Frame/Border Settings -->
   <details>
-    <summary>🖼️ Frame Border</summary>
+    <summary>🖼️ Frame & Padding</summary>
     <div class="group">
-        <label><span>Border thickness (px)</span><input type="range" id="framePadSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadVal">0</span></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Reveals background color around rounded container</div>
+        <div style="font-size: 9px; opacity: 0.7; margin-bottom: 8px;">Quick presets (harmonious padding + border)</div>
+        <div style="display: flex; gap: 4px; margin-bottom: 12px;">
+          <button id="framePresetNone" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">None</button>
+          <button id="framePresetThin" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">Thin</button>
+          <button id="framePresetMedium" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">Medium</button>
+          <button id="framePresetThick" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">Thick</button>
+        </div>
+        <label><span>Simulation padding (px)</span><input type="range" id="simulationPaddingSlider" min="0" max="100" step="1" value="0"><span class="val" id="simulationPaddingVal">0</span></label>
+        <label style="margin-top: 8px;"><span>Container border (px)</span><input type="range" id="containerBorderSlider" min="0" max="100" step="1" value="0"><span class="val" id="containerBorderVal">0</span></label>
     </div>
   </details>
   
