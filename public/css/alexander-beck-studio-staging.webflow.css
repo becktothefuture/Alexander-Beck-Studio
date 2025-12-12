@@ -3005,7 +3005,9 @@
   text-decoration: none;
   display: flex;
   position: relative;
-  font-weight: 500; /* Thicker font weight */
+  font-weight: 600; /* Thicker font weight */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .footer_link:hover {
@@ -4880,6 +4882,8 @@ body {
   font-family: Geist, sans-serif;
   font-size: 14px;
   line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -4959,6 +4963,14 @@ a {
   font-size: 12px;
   width: 100%;
   padding: 0 !important; /* Remove any internal padding */
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.legend:hover {
+  opacity: 1;
 }
 
 .legend__item {
@@ -6917,6 +6929,14 @@ a {
   padding-top: 0 !important;
   padding-right: 0 !important;
   padding-bottom: 0 !important;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.viewport .decorative-script:hover {
+  opacity: 1;
 }
 
 .decorative-script::before, 

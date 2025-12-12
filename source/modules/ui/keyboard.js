@@ -1,22 +1,26 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                                KEYBOARD INPUT                                ║
-// ║              Panel toggle and mode switching (1,2,3,4,5)                     ║
+// ║              Panel dock toggle and mode switching (1-8)                      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { setMode, MODES } from '../modes/mode-controller.js';
 import { updateModeButtonsUI } from './controls.js';
+import { toggleDock } from './panel-dock.js';
 
 export function setupKeyboardShortcuts() {
-  const panel = document.getElementById('controlPanel');
   window.addEventListener('keydown', (e) => {
+    // Skip if typing in an input
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+    
     const k = e.key.toLowerCase();
-    // Toggle panel
-    if ((k === '/' || e.code === 'Slash') && panel) {
+    
+    // Toggle dock with /
+    if (k === '/' || e.code === 'Slash') {
       e.preventDefault();
-      panel.classList.toggle('hidden');
-      panel.style.display = panel.classList.contains('hidden') ? 'none' : '';
+      toggleDock();
       return;
     }
+    
     // Mode switching: 1=pit, 2=flies, 3=weightless, 4=water, 5=vortex, 6=ping-pong, 7=magnetic, 8=bubbles
     if (k === '1') {
       e.preventDefault();

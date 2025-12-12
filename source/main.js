@@ -8,14 +8,13 @@ import { initState, setCanvas, getGlobals } from './modules/core/state.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
 import { applyColorTemplate, populateColorSelect } from './modules/visual/colors.js';
 import { setupRenderer, getCanvas, getContext, resize } from './modules/rendering/renderer.js';
-import { setupPanel } from './modules/ui/panel-controller.js';
+import { createPanelDock } from './modules/ui/panel-dock.js';
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { setMode, MODES, getForceApplicator } from './modules/modes/mode-controller.js';
 import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
-import { createSoundToggle } from './modules/ui/sound-toggle.js';
 
 async function loadRuntimeConfig() {
   try {
@@ -147,10 +146,10 @@ function ensureNoise2Element() {
     applyColorTemplate(getGlobals().currentTemplate);
     console.log('✓ Color system initialized');
     
-    // Setup UI
-    setupPanel();
+    // Setup UI - unified panel dock (both panels visible, collapsed by default)
+    createPanelDock();
     populateColorSelect();
-    console.log('✓ Panel created');
+    console.log('✓ Panel dock created (Sound + Controls)');
     
     setupKeyboardShortcuts();
     console.log('✓ Keyboard shortcuts registered');
@@ -158,10 +157,6 @@ function ensureNoise2Element() {
     // Initialize password gate (CV protection)
     initCVGate();
     console.log('✓ Password gate initialized');
-    
-    // Initialize sound toggle (underwater pebble collision sounds)
-    createSoundToggle();
-    console.log('✓ Sound toggle created');
     
     // Initialize starting mode (Flies by default)
     setMode(MODES.FLIES);

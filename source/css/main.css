@@ -572,92 +572,12 @@ body.dark-mode .corner svg * {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SOUND TOGGLE - Right side, vertically centered
-   Orange accent (#ff4013) matching ball-6
-   Hover triggers body background transition to white
+   SOUND TOGGLE (DEPRECATED - now integrated in panel dock)
+   Kept for backward compatibility, hidden by default
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .sound-toggle {
-  position: fixed;
-  top: 50%;
-  /* ORGANIC: Uses edge inset + container border */
-  right: calc(var(--edge-inset-lg) + var(--container-border, 0px));
-  z-index: 2002 !important;
-  font-family: 'Geist', sans-serif;
-  font-size: clamp(0.7rem, 1vw, 0.82rem);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--ball-6, #ff4013);
-  background: none;
-  border: none;
-  padding: 0.4rem 0;
-  margin: 0;
-  cursor: pointer;
-  pointer-events: auto !important;
-  opacity: 0.9;
-  transform: translateY(-50%);
-  text-align: right;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  
-  /* ORGANIC TRANSITIONS */
-  transition: 
-    right var(--duration-resize) var(--ease-organic),
-    opacity var(--duration-quick) ease,
-    color var(--duration-quick) ease;
-}
-
-.sound-toggle:hover {
-  opacity: 1;
-  color: var(--ball-6, #ff4013);
-}
-
-.sound-toggle:focus {
-  outline: none;
-}
-
-.sound-toggle:focus-visible {
-  outline: 2px solid var(--ball-6, #ff4013);
-  outline-offset: 4px;
-  border-radius: 2px;
-}
-
-/* Enabled state - slightly brighter */
-.sound-toggle[data-enabled="true"] {
-  opacity: 1;
-}
-
-/* Disabled state - more muted */
-.sound-toggle[data-enabled="false"] {
-  opacity: 0.7;
-}
-
-/* Dark mode */
-body.dark-mode .sound-toggle {
-  color: #ff6b47; /* Lighter orange for dark backgrounds */
-  opacity: 0.92;
-}
-
-body.dark-mode .sound-toggle:hover {
-  opacity: 1;
-  color: #ff8566;
-}
-
-/* Dark mode sound-hover is handled in viewport section above */
-
-/* Hidden when prefers-reduced-motion (sound disabled by default) */
-@media (prefers-reduced-motion: reduce) {
-  .sound-toggle {
-    display: none;
-  }
-}
-
-/* Responsive positioning - handled by organic --edge-inset variables */
-/* Additional font-size tweaks for small screens */
-@media (max-width: 480px) {
-  .sound-toggle {
-    font-size: clamp(0.6rem, 1.6vw, 0.7rem);
-  }
+  display: none; /* Sound controls moved to panel dock */
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
