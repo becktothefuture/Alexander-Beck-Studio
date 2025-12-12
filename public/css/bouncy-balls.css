@@ -30,19 +30,31 @@
 }
 
 /* Prevent page scrolling - simulation fills viewport */
-html, body {
+html {
   overflow: hidden;
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  cursor: none; /* Hide system cursor globally - simulation draws its own */
-  background: var(--chrome-bg); /* Unified chrome/body/frame color */
+  background: var(--chrome-bg); /* Chrome background shows as border */
 }
 
-/* Ensure body also changes in dark mode to avoid Webflow overrides */
+body {
+  overflow: hidden;
+  margin: 0;
+  /* Container border: padding on body reveals html chrome-bg as outer frame */
+  padding: var(--container-border);
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  cursor: none; /* Hide system cursor globally - simulation draws its own */
+  background: var(--bg-light); /* Inner page background (light grey) */
+  transition: padding 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Ensure body background changes in dark mode */
 body.dark-mode { 
-  background: var(--chrome-bg-dark) !important;
+  background: var(--bg-dark) !important;
 }
 
 body.dark-mode .viewport { 
@@ -101,15 +113,10 @@ a {
   pointer-events: auto !important;
 }
 
-/* 4. Corners & Script Overlay - moves with container border */
+/* 4. Corners & Script Overlay */
 .viewport.viewport--corners {
   z-index: 20 !important;
-  position: fixed !important;
-  /* Apply same inset as container border so corners move with simulation */
-  top: var(--container-border);
-  right: var(--container-border);
-  bottom: var(--container-border);
-  left: var(--container-border);
+  position: fixed !important; /* Keep corners fixed */
   pointer-events: none;
 }
 .viewport.viewport--corners * {
@@ -145,9 +152,9 @@ a {
    TWO-LEVEL PADDING SYSTEM
    
    Layer 1: CONTAINER BORDER (--container-border)
-   ├── Insets #bravia-balls from viewport edges
-   ├── Reveals body background (--chrome-bg) as outer frame
-   └── Creates the "picture frame" effect around the entire simulation
+   ├── Applied to <body> as padding
+   ├── Reveals html background (--chrome-bg) as outer frame around ENTIRE page
+   └── Creates the "picture frame" effect around all content (not just simulation)
    
    Layer 2: SIMULATION PADDING (--simulation-padding)
    ├── Padding inside #bravia-balls around the canvas
@@ -155,18 +162,18 @@ a {
    └── Creates inner breathing room for the ball simulation
    
    Visual stack (outside → inside):
-   [Body bg] → [Container border gap] → [#bravia-balls] → [Sim padding] → [Canvas]
+   [HTML chrome-bg] → [Body padding = border] → [Page content] → [#bravia-balls] → [Sim padding] → [Canvas]
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 #bravia-balls {
   overflow: hidden; /* Critical: prevent scrollbars from canvas overflow */
   position: fixed;
-  /* Container border: insets container from viewport (reveals body bg as frame) */
-  top: var(--container-border);
-  right: var(--container-border);
-  bottom: var(--container-border);
-  left: var(--container-border);
-  /* Width/height auto-calculated from inset */
+  /* Full viewport (body padding creates the outer border) */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  /* Width/height auto-calculated from body padding */
   border-radius: var(--container-radius);
   background: transparent !important; /* Transparent so logo shows through */
   transition: background-color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
