@@ -35,111 +35,134 @@ const PENTATONIC_FREQUENCIES = [
 // CONFIGURATION (mutable for runtime tweaking)
 // ════════════════════════════════════════════════════════════════════════════════
 let CONFIG = {
-  // Synthesis — zen, organic pebble feel
-  attackTime: 0.012,           // 12ms soft attack (gentle onset)
-  decayTime: 0.14,             // 140ms decay (lingering, meditative)
-  harmonicGain: 0.08,          // Subtle 2nd harmonic (pure, not complex)
+  // Synthesis — soft click, instant, dissipating
+  attackTime: 0.002,           // 2ms instant attack (responsive)
+  decayTime: 0.055,            // 55ms quick decay (dissipates)
+  harmonicGain: 0.09,          // Subtle warmth
   
-  // Filter — warm, muffled, not shrill
-  filterBaseFreq: 1500,        // Lower cutoff for warmth
-  filterVelocityRange: 350,    // Minimal brightness change on hard hits
-  filterQ: 0.35,               // Very smooth, no resonant peak
+  // Filter — soft but present
+  filterBaseFreq: 2400,        // Balanced brightness
+  filterVelocityRange: 380,    // Subtle velocity response
+  filterQ: 0.4,                // Smooth, no harshness
   
-  // Reverb — spacious, ambient
-  reverbDecay: 0.48,           // Longer tail for zen atmosphere
-  reverbWetMix: 0.42,          // More reverb wash
-  reverbHighDamp: 0.7,         // Extra high-frequency damping
+  // Reverb — gentle tail
+  reverbDecay: 0.28,           // Short ambient tail
+  reverbWetMix: 0.22,          // Subtle space
+  reverbHighDamp: 0.65,        // Damped highs
   
-  // Volume — gentle, never jarring
-  minGain: 0.06,               // Whisper-soft minimum
-  maxGain: 0.32,               // Restrained maximum
-  masterGain: 0.6,             // Moderate overall
+  // Volume — soft but clicky
+  minGain: 0.05,               // Whisper minimum
+  maxGain: 0.28,               // Soft maximum
+  masterGain: 0.52,            // Understated
   
   // Performance
-  maxConcurrentSounds: 12,     // Fewer concurrent for clarity
-  minTimeBetweenSounds: 0.018, // Slightly more debounce
+  maxConcurrentSounds: 14,     // Allow overlaps
+  minTimeBetweenSounds: 0.012, // Responsive
   
   // Stereo
-  maxPan: 0.25,                // Subtle stereo (centered, calm)
+  maxPan: 0.22,                // Subtle width
 };
 
 // ════════════════════════════════════════════════════════════════════════════════
 // SOUND PRESETS
 // ════════════════════════════════════════════════════════════════════════════════
 export const SOUND_PRESETS = {
-  underwaterPebbles: {
-    label: 'Zen Pebbles',
-    description: 'Soft, organic, meditative',
-    attackTime: 0.012, decayTime: 0.14, harmonicGain: 0.08,
-    filterBaseFreq: 1500, filterVelocityRange: 350, filterQ: 0.35,
-    reverbDecay: 0.48, reverbWetMix: 0.42, masterGain: 0.6
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // DEFAULT — soft click, instant, dissipating
+  // ═══════════════════════════════════════════════════════════════════════════════
+  softClick: {
+    label: 'Soft Click',
+    description: 'Instant, clicky, gently fading',
+    attackTime: 0.002, decayTime: 0.055, harmonicGain: 0.09,
+    filterBaseFreq: 2400, filterVelocityRange: 380, filterQ: 0.4,
+    reverbDecay: 0.28, reverbWetMix: 0.22, masterGain: 0.52
   },
-  glassMarbles: {
-    label: 'Glass Marbles',
-    description: 'Bright, crystalline clicks',
-    attackTime: 0.004, decayTime: 0.06, harmonicGain: 0.2,
-    filterBaseFreq: 3800, filterVelocityRange: 900, filterQ: 0.9,
-    reverbDecay: 0.28, reverbWetMix: 0.25, masterGain: 0.55
-  },
-  woodenBeads: {
-    label: 'Wooden Beads',
-    description: 'Warm, earthy clicks',
-    attackTime: 0.008, decayTime: 0.1, harmonicGain: 0.18,
-    filterBaseFreq: 1400, filterVelocityRange: 400, filterQ: 0.4,
-    reverbDecay: 0.22, reverbWetMix: 0.18, masterGain: 0.58
-  },
-  metalChimes: {
-    label: 'Wind Chimes',
-    description: 'Gentle, shimmering bells',
-    attackTime: 0.003, decayTime: 0.18, harmonicGain: 0.25,
-    filterBaseFreq: 3200, filterVelocityRange: 800, filterQ: 1.2,
-    reverbDecay: 0.55, reverbWetMix: 0.48, masterGain: 0.45
-  },
-  softClouds: {
-    label: 'Soft Clouds',
-    description: 'Pillowy, ambient wash',
-    attackTime: 0.025, decayTime: 0.2, harmonicGain: 0.05,
-    filterBaseFreq: 1000, filterVelocityRange: 250, filterQ: 0.25,
-    reverbDecay: 0.65, reverbWetMix: 0.58, masterGain: 0.5
-  },
-  crystalCave: {
-    label: 'Crystal Cave',
-    description: 'Ethereal, spacious echoes',
-    attackTime: 0.005, decayTime: 0.12, harmonicGain: 0.15,
-    filterBaseFreq: 2400, filterVelocityRange: 600, filterQ: 0.8,
-    reverbDecay: 0.7, reverbWetMix: 0.52, masterGain: 0.48
-  },
-  deepOcean: {
-    label: 'Deep Ocean',
-    description: 'Sub-bass, distant rumbles',
-    attackTime: 0.018, decayTime: 0.22, harmonicGain: 0.06,
-    filterBaseFreq: 650, filterVelocityRange: 200, filterQ: 0.3,
-    reverbDecay: 0.6, reverbWetMix: 0.45, masterGain: 0.62
-  },
-  brightClicks: {
+  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // FAVORITES — River Stones & Rain Drops adjacent
+  // ═══════════════════════════════════════════════════════════════════════════════
+  riverStones: {
     label: 'River Stones',
     description: 'Crisp, tactile taps',
-    attackTime: 0.002, decayTime: 0.05, harmonicGain: 0.22,
-    filterBaseFreq: 2800, filterVelocityRange: 700, filterQ: 0.6,
-    reverbDecay: 0.2, reverbWetMix: 0.15, masterGain: 0.52
+    attackTime: 0.002, decayTime: 0.05, harmonicGain: 0.18,
+    filterBaseFreq: 2800, filterVelocityRange: 600, filterQ: 0.55,
+    reverbDecay: 0.2, reverbWetMix: 0.15, masterGain: 0.48
   },
-  muffledThuds: {
-    label: 'Moss Drops',
-    description: 'Heavy, dampened thuds',
-    attackTime: 0.015, decayTime: 0.12, harmonicGain: 0.04,
-    filterBaseFreq: 500, filterVelocityRange: 150, filterQ: 0.25,
-    reverbDecay: 0.35, reverbWetMix: 0.3, masterGain: 0.65
-  },
-  digitalBlips: {
+  rainDrops: {
     label: 'Rain Drops',
     description: 'Light, delicate plinks',
-    attackTime: 0.002, decayTime: 0.04, harmonicGain: 0.12,
-    filterBaseFreq: 3500, filterVelocityRange: 500, filterQ: 0.5,
-    reverbDecay: 0.4, reverbWetMix: 0.35, masterGain: 0.42
+    attackTime: 0.002, decayTime: 0.042, harmonicGain: 0.11,
+    filterBaseFreq: 3200, filterVelocityRange: 450, filterQ: 0.45,
+    reverbDecay: 0.35, reverbWetMix: 0.3, masterGain: 0.4
+  },
+  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // NEW ADDITIONS — organic variations
+  // ═══════════════════════════════════════════════════════════════════════════════
+  silkTouch: {
+    label: 'Silk Touch',
+    description: 'Ultra-smooth, barely there',
+    attackTime: 0.004, decayTime: 0.065, harmonicGain: 0.04,
+    filterBaseFreq: 1800, filterVelocityRange: 250, filterQ: 0.3,
+    reverbDecay: 0.4, reverbWetMix: 0.35, masterGain: 0.32
+  },
+  morningDew: {
+    label: 'Morning Dew',
+    description: 'Fresh, hopeful sparkle',
+    attackTime: 0.001, decayTime: 0.048, harmonicGain: 0.14,
+    filterBaseFreq: 3600, filterVelocityRange: 550, filterQ: 0.5,
+    reverbDecay: 0.32, reverbWetMix: 0.28, masterGain: 0.38
+  },
+  bamboo: {
+    label: 'Bamboo',
+    description: 'Hollow, zen garden taps',
+    attackTime: 0.003, decayTime: 0.08, harmonicGain: 0.2,
+    filterBaseFreq: 2200, filterVelocityRange: 400, filterQ: 0.65,
+    reverbDecay: 0.25, reverbWetMix: 0.2, masterGain: 0.45
+  },
+  whisper: {
+    label: 'Whisper',
+    description: 'Almost silent, intimate',
+    attackTime: 0.005, decayTime: 0.07, harmonicGain: 0.03,
+    filterBaseFreq: 1400, filterVelocityRange: 180, filterQ: 0.25,
+    reverbDecay: 0.5, reverbWetMix: 0.45, masterGain: 0.22
+  },
+  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // WILDCARD — unpredictable
+  // ═══════════════════════════════════════════════════════════════════════════════
+  glitch: {
+    label: 'Glitch',
+    description: 'Digital artifacts, unstable',
+    attackTime: 0.001, decayTime: 0.025, harmonicGain: 0.55,
+    filterBaseFreq: 5500, filterVelocityRange: 2500, filterQ: 2.5,
+    reverbDecay: 0.08, reverbWetMix: 0.05, masterGain: 0.35
+  },
+  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // SCARY — dark and unsettling
+  // ═══════════════════════════════════════════════════════════════════════════════
+  theVoid: {
+    label: 'The Void',
+    description: 'Dark, hollow, unsettling',
+    attackTime: 0.008, decayTime: 0.25, harmonicGain: 0.02,
+    filterBaseFreq: 350, filterVelocityRange: 100, filterQ: 0.8,
+    reverbDecay: 0.85, reverbWetMix: 0.7, masterGain: 0.55
+  },
+  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // COOL & UNDERSTATED — elegant mystery
+  // ═══════════════════════════════════════════════════════════════════════════════
+  midnight: {
+    label: 'Midnight',
+    description: 'Subtle, mysterious, elegant',
+    attackTime: 0.003, decayTime: 0.09, harmonicGain: 0.07,
+    filterBaseFreq: 1900, filterVelocityRange: 280, filterQ: 0.35,
+    reverbDecay: 0.55, reverbWetMix: 0.4, masterGain: 0.36
   }
 };
 
-let currentPreset = 'underwaterPebbles';
+let currentPreset = 'softClick';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // STATE

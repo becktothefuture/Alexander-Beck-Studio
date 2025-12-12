@@ -6900,3 +6900,27 @@ a {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
+
+/* Ensure decorative-script (Philosophy) has only a left border - Aggressive Override */
+.viewport .decorative-script {
+  border-style: solid !important;
+  border-top-width: 0 !important;
+  border-right-width: 0 !important;
+  border-bottom-width: 0 !important;
+  border-left-width: 1px !important;
+  border-color: currentColor !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding-left: 1em !important;
+  padding-top: 0 !important;
+  padding-right: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.decorative-script::before, 
+.decorative-script::after {
+  content: none !important;
+  display: none !important;
+  border: none !important;
+}
