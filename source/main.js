@@ -56,6 +56,53 @@ export function applyFramePaddingCSSVars() {
 }
 
 /**
+ * Apply visual CSS variables (noise opacity/size, vignette) from config to :root
+ */
+export function applyVisualCSSVars(config) {
+  const root = document.documentElement;
+  
+  // Noise texture sizing
+  if (config.noiseSizeBase !== undefined) {
+    root.style.setProperty('--noise-size-base', `${config.noiseSizeBase}px`);
+  }
+  if (config.noiseSizeTop !== undefined) {
+    root.style.setProperty('--noise-size-top', `${config.noiseSizeTop}px`);
+  }
+  
+  // Noise opacity (light mode)
+  if (config.noiseBackOpacity !== undefined) {
+    root.style.setProperty('--noise-back-opacity', String(config.noiseBackOpacity));
+  }
+  if (config.noiseFrontOpacity !== undefined) {
+    root.style.setProperty('--noise-front-opacity', String(config.noiseFrontOpacity));
+  }
+  
+  // Noise opacity (dark mode)
+  if (config.noiseBackOpacityDark !== undefined) {
+    root.style.setProperty('--noise-back-opacity-dark', String(config.noiseBackOpacityDark));
+  }
+  if (config.noiseFrontOpacityDark !== undefined) {
+    root.style.setProperty('--noise-front-opacity-dark', String(config.noiseFrontOpacityDark));
+  }
+  
+  // Vignette (light mode)
+  if (config.vignetteLightOuter !== undefined) {
+    root.style.setProperty('--vignette-light-outer', String(config.vignetteLightOuter));
+  }
+  if (config.vignetteLightInner !== undefined) {
+    root.style.setProperty('--vignette-light-inner', String(config.vignetteLightInner));
+  }
+  
+  // Vignette (dark mode)
+  if (config.vignetteDarkOuter !== undefined) {
+    root.style.setProperty('--vignette-dark-outer', String(config.vignetteDarkOuter));
+  }
+  if (config.vignetteDarkInner !== undefined) {
+    root.style.setProperty('--vignette-dark-inner', String(config.vignetteDarkInner));
+  }
+}
+
+/**
  * Ensure .noise-2 element exists (for modular dev where Webflow HTML isn't present).
  * Creates it as a sibling to .noise or as first child of body if .noise doesn't exist.
  */
@@ -106,6 +153,10 @@ function ensureNoise2Element() {
     // Apply frame padding CSS vars from config (controls border thickness)
     applyFramePaddingCSSVars();
     console.log('✓ Frame padding applied');
+    
+    // Apply visual CSS vars (noise, vignette) from config
+    applyVisualCSSVars(config);
+    console.log('✓ Visual effects configured');
     
     // Ensure noise-2 element exists (for modular dev environments)
     ensureNoise2Element();

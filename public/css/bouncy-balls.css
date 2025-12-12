@@ -89,6 +89,22 @@
   --noise-size-top: 80px; /* 20% smaller for top layer */
   
   /* ─────────────────────────────────────────────────────────────────────────────
+     NOISE OPACITY CONTROLS
+     ───────────────────────────────────────────────────────────────────────────── */
+  --noise-back-opacity: 0.015;  /* Behind balls (z:4) */
+  --noise-front-opacity: 0.01;  /* Above balls (z:7) */
+  --noise-back-opacity-dark: 0.08;  /* Dark mode - behind balls */
+  --noise-front-opacity-dark: 0.05; /* Dark mode - above balls */
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     VIGNETTE (DEPTH) CONTROLS - Inset box-shadow for corner darkening
+     ───────────────────────────────────────────────────────────────────────────── */
+  --vignette-light-outer: 0.03; /* Outer darkness (light mode) */
+  --vignette-light-inner: 0.02; /* Inner darkness (light mode) */
+  --vignette-dark-outer: 0.02;  /* Outer lightness (dark mode) */
+  --vignette-dark-inner: 0.01;  /* Inner lightness (dark mode) */
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
      BALL COLOR PALETTE (dynamically updated by JS)
      ───────────────────────────────────────────────────────────────────────────── */
   --ball-1: #b7bcb7;
@@ -182,10 +198,10 @@ body.dark-mode {
   background: var(--bg-light) !important; /* The "page" surface */
   border-radius: var(--container-radius);
   
-  /* Subtle depth: vignette only at corners */
+  /* Subtle depth: vignette only at corners (controllable via CSS vars) */
   box-shadow: 
-    inset 0 0 120px 0 rgba(0, 0, 0, 0.03),
-    inset 0 0 60px 0 rgba(0, 0, 0, 0.02);
+    inset 0 0 120px 0 rgba(0, 0, 0, var(--vignette-light-outer)),
+    inset 0 0 60px 0 rgba(0, 0, 0, var(--vignette-light-inner));
   
   /* ORGANIC BREATHING: All geometric properties transition smoothly */
   transition: 
@@ -208,10 +224,10 @@ body.dark-mode .viewport {
 body.dark-mode .viewport.viewport--content {
   background: var(--bg-dark) !important; /* Dark content area */
   
-  /* Subtle depth for dark mode: lighter corners (inverse vignette) */
+  /* Subtle depth for dark mode: lighter corners (inverse vignette, controllable) */
   box-shadow: 
-    inset 0 0 120px 0 rgba(255, 255, 255, 0.02),
-    inset 0 0 60px 0 rgba(255, 255, 255, 0.01);
+    inset 0 0 120px 0 rgba(255, 255, 255, var(--vignette-dark-outer)),
+    inset 0 0 60px 0 rgba(255, 255, 255, var(--vignette-dark-inner));
 }
 
 /* Dark mode sound hover - viewport content goes slightly lighter */
@@ -349,29 +365,30 @@ a {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   NOISE TEXTURE LAYERS - Subtle grain, not aggressive
+   NOISE TEXTURE LAYERS - Subtle grain, controllable opacity
    .noise (z:4) behind balls | .noise-2 (z:7) above balls | Text (z:20+) above all
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .noise {
   z-index: 4 !important;
-  opacity: 0.015 !important; /* Much softer - was 0.05 */
+  opacity: var(--noise-back-opacity) !important;
+  background-size: var(--noise-size-base) var(--noise-size-base) !important;
 }
 
 .noise-2 {
   z-index: 7 !important;
   transform: scaleX(-1) !important;
   background-size: var(--noise-size-top) var(--noise-size-top) !important;
-  opacity: 0.01 !important; /* Barely visible texture on top */
+  opacity: var(--noise-front-opacity) !important;
 }
 
 body.dark-mode .noise {
-  opacity: 0.08 !important; /* Slightly more visible in dark */
+  opacity: var(--noise-back-opacity-dark) !important;
   mix-blend-mode: overlay !important;
 }
 
 body.dark-mode .noise-2 {
-  opacity: 0.05 !important;
+  opacity: var(--noise-front-opacity-dark) !important;
   mix-blend-mode: overlay !important;
 }
 

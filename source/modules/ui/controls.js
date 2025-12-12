@@ -8,7 +8,7 @@ import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
 import { autoSaveSettings } from '../utils/storage.js';
 import { setMode, MODES } from '../modes/mode-controller.js';
 import { resize } from '../rendering/renderer.js';
-import { applyFramePaddingCSSVars } from '../../main.js';
+import { applyFramePaddingCSSVars, applyVisualCSSVars } from '../../main.js';
 
 function bindSlider(id, onChange) {
   const el = document.getElementById(id);
@@ -79,6 +79,55 @@ export function setupControls() {
     setVal('simulationPaddingVal', String(g.simulationPadding));
     applyFramePaddingCSSVars();
     resize();
+    autoSaveSettings();
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VISUAL EFFECTS CONTROLS (Noise & Vignette)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // Noise texture sizing
+  bindSlider('noiseSizeBaseSlider', (el) => {
+    const config = { noiseSizeBase: parseInt(el.value, 10) };
+    setVal('noiseSizeBaseVal', String(config.noiseSizeBase));
+    applyVisualCSSVars(config);
+    autoSaveSettings();
+  });
+  
+  bindSlider('noiseSizeTopSlider', (el) => {
+    const config = { noiseSizeTop: parseInt(el.value, 10) };
+    setVal('noiseSizeTopVal', String(config.noiseSizeTop));
+    applyVisualCSSVars(config);
+    autoSaveSettings();
+  });
+  
+  // Noise opacity
+  bindSlider('noiseBackOpacitySlider', (el) => {
+    const config = { noiseBackOpacity: parseFloat(el.value) };
+    setVal('noiseBackOpacityVal', config.noiseBackOpacity.toFixed(3));
+    applyVisualCSSVars(config);
+    autoSaveSettings();
+  });
+  
+  bindSlider('noiseFrontOpacitySlider', (el) => {
+    const config = { noiseFrontOpacity: parseFloat(el.value) };
+    setVal('noiseFrontOpacityVal', config.noiseFrontOpacity.toFixed(3));
+    applyVisualCSSVars(config);
+    autoSaveSettings();
+  });
+  
+  // Vignette (corner shadow/depth)
+  bindSlider('vignetteLightOuterSlider', (el) => {
+    const config = { vignetteLightOuter: parseFloat(el.value) };
+    setVal('vignetteLightOuterVal', config.vignetteLightOuter.toFixed(3));
+    applyVisualCSSVars(config);
+    autoSaveSettings();
+  });
+  
+  bindSlider('vignetteLightInnerSlider', (el) => {
+    const config = { vignetteLightInner: parseFloat(el.value) };
+    setVal('vignetteLightInnerVal', config.vignetteLightInner.toFixed(3));
+    applyVisualCSSVars(config);
     autoSaveSettings();
   });
 

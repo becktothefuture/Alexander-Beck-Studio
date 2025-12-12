@@ -48,6 +48,22 @@ export const PANEL_HTML = `
     </div>
   </details>
   
+  <!-- Visual Effects (Noise & Vignette) -->
+  <details>
+    <summary>🎭 Visual Effects</summary>
+    <div class="group">
+        <div style="font-weight: 600; font-size: 10px; margin: 8px 0 4px; opacity: 0.8;">Noise Texture</div>
+        <label><span>Back size (px)</span><input type="range" id="noiseSizeBaseSlider" min="50" max="200" step="5" value="100"><span class="val" id="noiseSizeBaseVal">100</span></label>
+        <label><span>Front size (px)</span><input type="range" id="noiseSizeTopSlider" min="40" max="150" step="5" value="80"><span class="val" id="noiseSizeTopVal">80</span></label>
+        <label><span>Back opacity</span><input type="range" id="noiseBackOpacitySlider" min="0" max="0.1" step="0.001" value="0.015"><span class="val" id="noiseBackOpacityVal">0.015</span></label>
+        <label><span>Front opacity</span><input type="range" id="noiseFrontOpacitySlider" min="0" max="0.05" step="0.001" value="0.01"><span class="val" id="noiseFrontOpacityVal">0.010</span></label>
+        
+        <div style="font-weight: 600; font-size: 10px; margin: 12px 0 4px; opacity: 0.8;">Vignette (Depth)</div>
+        <label><span>Light outer</span><input type="range" id="vignetteLightOuterSlider" min="0" max="0.1" step="0.005" value="0.03"><span class="val" id="vignetteLightOuterVal">0.030</span></label>
+        <label><span>Light inner</span><input type="range" id="vignetteLightInnerSlider" min="0" max="0.1" step="0.005" value="0.02"><span class="val" id="vignetteLightInnerVal">0.020</span></label>
+    </div>
+  </details>
+  
   <!-- Build Controls -->
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
     <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Save Config</button>

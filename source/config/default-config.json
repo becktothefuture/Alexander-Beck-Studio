@@ -7,5 +7,15 @@
   "repelRadius": 120,
   "repelPower": 274000,
   "containerBorder": 0,
-  "simulationPadding": 0
+  "simulationPadding": 0,
+  "noiseSizeBase": 100,
+  "noiseSizeTop": 80,
+  "noiseBackOpacity": 0.015,
+  "noiseFrontOpacity": 0.01,
+  "noiseBackOpacityDark": 0.08,
+  "noiseFrontOpacityDark": 0.05,
+  "vignetteLightOuter": 0.03,
+  "vignetteLightInner": 0.02,
+  "vignetteDarkOuter": 0.02,
+  "vignetteDarkInner": 0.01
 }
