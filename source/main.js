@@ -16,7 +16,6 @@ import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
-import { createSoundPanel } from './modules/ui/sound-panel.js';
 
 async function loadRuntimeConfig() {
   try {
@@ -39,27 +38,20 @@ async function loadRuntimeConfig() {
 /**
  * Apply two-level padding CSS variables from global state to :root
  * 
- * CORRECTED Visual hierarchy:
- * HTML: --chrome-bg (browser chrome color, dark/light)
- * ├── Body: transparent (inherits HTML color)
- *     └── .viewport--content: inset by --container-border, bg = --bg-light/dark, rounded corners
- *         └── #bravia-balls: simulation container
- *             └── Canvas: inset by --simulation-padding
+ * Two-level system:
+ * 1. --container-border: insets #bravia-balls from viewport (reveals body bg as outer frame)
+ * 2. --simulation-padding: padding inside container around canvas (inner breathing room)
  * 
- * Two controls:
- * 1. --container-border: Insets .viewport--content from edges (reveals HTML chrome-bg as border)
- * 2. --simulation-padding: Insets canvas from #bravia-balls (inner breathing room)
- * 
- * Canvas radius auto-calculates: calc(var(--container-radius) - var(--simulation-padding))
+ * The canvas radius auto-calculates via CSS: calc(var(--container-radius) - var(--simulation-padding))
  */
 export function applyFramePaddingCSSVars() {
   const g = getGlobals();
   const root = document.documentElement;
   
-  // Outer border: insets .viewport--content, reveals HTML chrome-bg
+  // Outer frame: container inset from viewport
   root.style.setProperty('--container-border', `${g.containerBorder || 0}px`);
   
-  // Inner padding: canvas inset from #bravia-balls
+  // Inner padding: canvas inset from container
   root.style.setProperty('--simulation-padding', `${g.simulationPadding || 0}px`);
 }
 
@@ -122,7 +114,7 @@ function ensureNoise2Element() {
     setupRenderer();
     const canvas = getCanvas();
     const ctx = getContext();
-    const container = document.getElementById('simulation-container');
+    const container = document.getElementById('bravia-balls');
     
     if (!canvas || !ctx || !container) {
       throw new Error('Missing DOM elements');
@@ -170,10 +162,6 @@ function ensureNoise2Element() {
     // Initialize sound toggle (underwater pebble collision sounds)
     createSoundToggle();
     console.log('✓ Sound toggle created');
-    
-    // Initialize sound config panel (press S to toggle)
-    createSoundPanel();
-    console.log('✓ Sound panel created');
     
     // Initialize starting mode (Flies by default)
     setMode(MODES.FLIES);

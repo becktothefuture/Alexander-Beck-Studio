@@ -18,15 +18,31 @@ npm install
 
 ## Development Workflow
 
-### 1. Open Development Version (Modular)
-```bash
-# Modular dev page
-open source/index.html
+### 1. Start Development Environment
 
-# Or run local servers
-npm run start:source   # http://localhost:8001 (ES modules dev page)
-npm start              # http://localhost:8000 (public site)
+**Option A: Live Development (Recommended)**
+```bash
+# Terminal 1: Auto-rebuild on file changes
+npm run watch
+
+# Terminal 2: Serve production build
+npm start              # http://localhost:8000
 ```
+This setup:
+- Watches `source/**/*` and `webflow-export/**/*` for changes
+- Auto-rebuilds to `public/` when you save
+- Refresh browser (Cmd+R) to see updates
+
+**Option B: Quick Start**
+```bash
+npm run dev            # Build once + start server on :8000
+```
+
+**Option C: Source-Only Development**
+```bash
+npm run start:source   # http://localhost:8001 (ES modules, no build step)
+```
+Direct ES module loading - instant refresh but not production-representative.
 
 ### 2. Edit Source
 **Primary entry**: `source/main.js`

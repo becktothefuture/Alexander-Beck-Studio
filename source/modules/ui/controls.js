@@ -9,7 +9,6 @@ import { autoSaveSettings } from '../utils/storage.js';
 import { setMode, MODES } from '../modes/mode-controller.js';
 import { resize } from '../rendering/renderer.js';
 import { applyFramePaddingCSSVars } from '../../main.js';
-import { setClickCycleEnabled } from '../input/pointer.js';
 
 function bindSlider(id, onChange) {
   const el = document.getElementById(id);
@@ -323,21 +322,6 @@ export function setupControls() {
   if (colorSelect) {
     colorSelect.addEventListener('change', () => {
       applyColorTemplate(colorSelect.value);
-      autoSaveSettings();
-    });
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CLICK-TO-CYCLE TOGGLE
-  // ═══════════════════════════════════════════════════════════════════════════
-  const clickCycleToggle = document.getElementById('clickCycleToggle');
-  if (clickCycleToggle) {
-    // Initialize checkbox state from globals
-    clickCycleToggle.checked = g.clickCycleEnabled;
-    
-    clickCycleToggle.addEventListener('change', () => {
-      g.clickCycleEnabled = clickCycleToggle.checked;
-      setClickCycleEnabled(clickCycleToggle.checked);
       autoSaveSettings();
     });
   }

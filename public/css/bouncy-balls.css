@@ -68,16 +68,19 @@ html {
 body {
   overflow: hidden;
   margin: 0;
-  padding: 0;
+  padding: var(--container-border); /* Creates outer frame effect */
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
   cursor: none; /* Simulation draws custom cursor */
-  background: transparent; /* Inherits from HTML (chrome-bg) */
-  color: rgba(64, 64, 64, 1);
+  background: transparent; /* TRANSPARENT - HTML chrome-bg shows through as border */
+  color: rgba(64, 64, 64, 1); /* Base text color */
+  transition: padding 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
 body.dark-mode { 
-  color: rgba(200, 200, 200, 1);
+  background: transparent !important; /* Still transparent in dark mode */
+  color: rgba(200, 200, 200, 1); /* Light text for dark mode */
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -95,41 +98,33 @@ body.dark-mode {
 /* Webflow .viewport reset - prevent stacking context issues */
 .viewport {
   z-index: auto !important;
+  position: static !important;
   transform: none !important;
   opacity: 1 !important;
   pointer-events: none;
 }
 
-/* Main content area - light grey background with rounded corners */
-/* Container border: insets this element from viewport, revealing HTML chrome-bg */
 .viewport.viewport--content {
-  position: fixed !important;
-  top: var(--container-border);
-  right: var(--container-border);
-  bottom: var(--container-border);
-  left: var(--container-border);
-  /* Let inset positioning control size (don't use explicit width/height) */
-  width: auto !important;
-  height: auto !important;
-  background: var(--bg-light) !important;
+  background: var(--bg-light) !important; /* Light grey content area */
   border-radius: var(--container-radius);
-  transition: 
-    background-color 430ms cubic-bezier(0.16, 1, 0.3, 1),
-    inset 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: background-color 430ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Sound toggle hover - viewport turns white */
+/* Sound toggle hover - viewport content turns white */
 body.sound-hover .viewport.viewport--content {
   background: #ffffff !important;
 }
 
-/* Dark mode - viewport content gets dark background */
-body.dark-mode .viewport.viewport--content {
-  background: var(--bg-dark) !important;
+/* Dark mode: viewport content gets dark background */
+body.dark-mode .viewport {
   color: #c8c8c8 !important;
 }
 
-/* Dark mode sound hover - viewport turns slightly lighter */
+body.dark-mode .viewport.viewport--content {
+  background: var(--bg-dark) !important; /* Dark content area */
+}
+
+/* Dark mode sound hover - viewport content goes slightly lighter */
 body.dark-mode.sound-hover .viewport.viewport--content {
   background: #1a1a1a !important;
 }
@@ -246,8 +241,8 @@ body.dark-mode .noise-2 {
 /* Legend (top-left color key) */
 .legend {
   position: fixed !important;
-  top: calc(1.44rem + var(--container-border, 0px)) !important;
-  left: calc(2rem + var(--container-border, 0px)) !important;
+  top: 1.44rem !important;
+  left: 2rem !important;
   margin: 0 !important;
   width: auto !important;
   height: auto !important;
@@ -261,8 +256,8 @@ body.dark-mode .noise-2 {
 /* Decorative script (top-right philosophy statement) */
 .decorative-script {
   position: fixed;
-  top: calc(1.44rem + var(--container-border, 0px));
-  right: calc(2rem + var(--container-border, 0px));
+  top: 1.44rem;
+  right: 2rem;
   max-width: min(418px, 38.5vw);
   z-index: 2001 !important;
   font-family: 'Geist', sans-serif;
@@ -282,9 +277,9 @@ body.dark-mode .noise-2 {
   -moz-osx-font-smoothing: grayscale;
   visibility: visible !important;
   /* Border styling - override Webflow default left-only border */
-  border: none !important;
+  border: 1px solid rgba(61, 61, 61, 1) !important;
   border-left: 1px solid rgba(61, 61, 61, 1) !important;
-  padding: 2px 0 2px 20px !important;
+  padding: 2px 20px !important;
 }
 
 .decorative-script p {
@@ -408,13 +403,13 @@ body.dark-mode .corner svg * {
 
 @media (max-width: 768px) {
   .legend {
-    top: calc(1.08rem + var(--container-border, 0px)) !important;
-    left: calc(1.5rem + var(--container-border, 0px)) !important;
+    top: 1.08rem !important;
+    left: 1.5rem !important;
   }
   
   .decorative-script {
-    top: calc(1.08rem + var(--container-border, 0px));
-    right: calc(1.5rem + var(--container-border, 0px));
+    top: 1.08rem;
+    right: 1.5rem;
     font-size: clamp(0.638rem, 1.6vw, 0.764rem);
     max-width: min(352px, 46.2vw);
   }
@@ -426,13 +421,13 @@ body.dark-mode .corner svg * {
 
 @media (max-width: 480px) {
   .legend {
-    top: calc(0.72rem + var(--container-border, 0px)) !important;
-    left: calc(1rem + var(--container-border, 0px)) !important;
+    top: 0.72rem !important;
+    left: 1rem !important;
   }
   
   .decorative-script {
-    top: calc(0.72rem + var(--container-border, 0px));
-    right: calc(1rem + var(--container-border, 0px));
+    top: 0.72rem;
+    right: 1rem;
     font-size: clamp(0.604rem, 2.39vw, 0.695rem);
     max-width: min(308px, 52.8vw);
   }
@@ -450,8 +445,8 @@ body.dark-mode .corner svg * {
 
 .sound-toggle {
   position: fixed;
-  top: calc(1.44rem + var(--container-border, 0px)); /* Match legend/script, respect frame */
-  right: calc(2rem + var(--container-border, 0px)); /* Respect frame */
+  top: 50%;
+  right: calc(2rem + var(--container-border, 0px)); /* Respect consolidated padding */
   z-index: 2002 !important; /* Above decorative script (2001) and corners */
   font-family: 'Geist', sans-serif;
   font-size: clamp(0.72rem, 1.1vw, 0.82rem);
@@ -466,6 +461,7 @@ body.dark-mode .corner svg * {
   pointer-events: auto !important;
   opacity: 0.9;
   transition: opacity 0.2s ease, color 0.2s ease;
+  transform: translateY(-50%); /* Center vertically */
   text-align: right;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -507,14 +503,7 @@ body.dark-mode .sound-toggle:hover {
   color: #ff8566;
 }
 
-/* Dark mode hover effect - body turns slightly lighter */
-body.dark-mode.sound-hover {
-  background: #1a1a1a;
-}
-
-body.dark-mode.sound-hover .viewport.viewport--content {
-  background: #1a1a1a !important;
-}
+/* Dark mode sound-hover is handled in viewport section above */
 
 /* Hidden when prefers-reduced-motion (sound disabled by default) */
 @media (prefers-reduced-motion: reduce) {
@@ -526,7 +515,6 @@ body.dark-mode.sound-hover .viewport.viewport--content {
 /* Responsive positioning */
 @media (max-width: 768px) {
   .sound-toggle {
-    top: calc(1.08rem + var(--container-border, 0px));
     right: calc(1.5rem + var(--container-border, 0px));
     font-size: clamp(0.66rem, 1.4vw, 0.76rem);
   }
@@ -534,7 +522,6 @@ body.dark-mode.sound-hover .viewport.viewport--content {
 
 @media (max-width: 480px) {
   .sound-toggle {
-    top: calc(0.72rem + var(--container-border, 0px));
     right: calc(1rem + var(--container-border, 0px));
     font-size: clamp(0.62rem, 1.8vw, 0.72rem);
   }

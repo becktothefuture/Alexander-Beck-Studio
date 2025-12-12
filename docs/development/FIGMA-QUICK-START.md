@@ -17,9 +17,19 @@ npm install
 
 ### 1. MCP Server Configuration ✅
 
-Already configured! The MCP server is set up in Cursor's settings.
+Already configured in `~/.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "TalkToFigma": {
+      "command": "bunx",
+      "args": ["cursor-talk-to-figma-mcp@latest"]
+    }
+  }
+}
+```
 
-**Restart Cursor** if you just installed Bun.
+**Restart Cursor** if you just added this configuration.
 
 ### 2. Install Figma Plugin
 
@@ -36,53 +46,54 @@ Then in Figma:
 3. Select: `cursor-talk-to-figma-mcp/src/cursor_mcp_plugin/manifest.json`
 4. Plugin appears in **Plugins** → **Development**
 
+---
+
 ## Daily Workflow
 
 ### Step 1: Start WebSocket Server
 
 ```bash
-npm run figma:socket
+bunx cursor-talk-to-figma-socket
 ```
 
-Keep this terminal open. The socket server will start and listen on port 8765.
-
-**Note:** The command uses `bunx` which requires Bun to be installed. If you see connection errors, ensure Bun is in your PATH:
-```bash
-export PATH="$HOME/.bun/bin:$PATH"
-```
+Keep this terminal open. The socket server runs on **port 3055**.
 
 ### Step 2: Open Figma & Run Plugin
 
 1. Open Figma Desktop App
 2. Open your design file
 3. **Plugins** → **Development** → **Cursor MCP Plugin**
+4. Click **Connect**
 
-### Step 3: Connect in Cursor
+### Step 3: Note the Channel Name ⚠️ CRITICAL
 
-In Cursor chat, type:
+**The plugin auto-generates a random channel name.** Look for:
+
 ```
-Join channel "default" in Figma
+Connected to server in channel: vstd5h8g
+                                ^^^^^^^^
+                                THIS IS YOUR CHANNEL
 ```
 
-### Step 4: Start Using!
+> ⚠️ **Do NOT assume the channel is "default"!** Each session generates a unique channel name.
 
-Try these commands in Cursor:
+### Step 4: Join the Channel in Cursor
+
+Tell Cursor the **exact channel name** from the plugin:
+
+```
+Join Figma channel "vstd5h8g"
+```
+
+(Replace `vstd5h8g` with your actual channel name)
+
+### Step 5: Verify Connection
 
 ```
 Get document info from Figma
 ```
 
-```
-Read my design and explain the layout
-```
-
-```
-Get current selection in Figma
-```
-
-```
-Create a rectangle at (100, 100) with size 200x150 named "Header"
-```
+If this works, you're connected!
 
 ---
 
@@ -92,6 +103,7 @@ Create a rectangle at (100, 100) with size 200x150 named "Header"
 - `Get document info from Figma`
 - `Read my design` (reads current selection)
 - `Get node info for [node-id]`
+- `Scan all text nodes in the selected frame`
 
 ### Creating Elements
 - `Create a frame at (0, 0) with size 1200x800 named "Container"`
@@ -99,31 +111,70 @@ Create a rectangle at (100, 100) with size 200x150 named "Header"
 - `Create text "Hello World" at (50, 50)`
 
 ### Modifying Elements
-- `Set fill color of selected node to rgba(255, 0, 0, 1)`
+- `Set fill color of node [node-id] to red` (uses RGBA 0-1 values)
 - `Set text content of [node-id] to "New Text"`
 - `Move node [node-id] to position (200, 200)`
 
 ### Batch Operations
-- `Scan all text nodes and replace "Old" with "New"`
-- `Get all annotations in the document`
+- `Scan all text nodes and update from this document: [paste content]`
+- `Replace text in multiple nodes at once`
 
 ---
 
 ## Troubleshooting
 
-**WebSocket server won't start?**
-- Check if port 8765 is in use: `lsof -i :8765`
-- Change port: `FIGMA_SOCKET_PORT=8766 npm run figma:socket`
+### "Request to Figma timed out"
 
-**Plugin can't connect?**
+**Cause:** Wrong channel name or plugin disconnected
+
+**Fix:**
+1. Check Figma plugin UI - is it showing "Connected"?
+2. **Read the channel name from the plugin UI**
+3. Join that exact channel: `Join Figma channel "[channel-from-plugin]"`
+
+### "Not connected"
+
+**Cause:** MCP server not connected to WebSocket
+
+**Fix:**
+1. Check WebSocket server: `lsof -i :3055`
+2. If not running: `bunx cursor-talk-to-figma-socket`
+3. Retry the command
+
+### WebSocket server won't start?
+
+- Check if port 3055 is in use: `lsof -i :3055`
+- Kill existing process: `lsof -ti:3055 | xargs kill -9`
+- Restart: `bunx cursor-talk-to-figma-socket`
+
+### Plugin can't connect?
+
 - Verify WebSocket server is running
-- Check firewall settings
-- For Windows/WSL, edit `scripts/figma-websocket-server.js` and uncomment `hostname: "0.0.0.0"`
+- Check that port shows 3055 in plugin
+- For Windows/WSL, may need hostname "0.0.0.0" configuration
 
-**Commands not working?**
-- Ensure plugin is running in Figma
-- Verify channel is joined (`join_channel` command)
-- Check WebSocket server logs for errors
+---
+
+## Two MCP Systems
+
+You have access to two Figma MCP systems:
+
+| MCP | Tools | Requires WebSocket |
+|-----|-------|-------------------|
+| **TalkToFigma** (`mcp_TalkToFigma_*`) | Read/Write - Full control | Yes |
+| **Figma Desktop** (`mcp_figma-desktop_*`) | Read-only - Quick inspection | No |
+
+Use **Figma Desktop** for quick reads without WebSocket setup.
+Use **TalkToFigma** for any modifications or batch operations.
+
+---
+
+## Global Workflow Documentation
+
+Comprehensive workflow guides are available at:
+- `~/.cursor/rules/figma-cursor-rules.md` — Connection and operation rules
+- `~/.cursor/rules/figma-knowledge.md` — Complete tool reference
+- `~/.cursor/figma-workflows/` — Workflow templates (text sync, etc.)
 
 ---
 
@@ -136,4 +187,3 @@ Create a rectangle at (100, 100) with size 200x150 named "Header"
 ---
 
 **Need Help?** See [FIGMA-MCP-SETUP.md](./FIGMA-MCP-SETUP.md) for comprehensive documentation.
-

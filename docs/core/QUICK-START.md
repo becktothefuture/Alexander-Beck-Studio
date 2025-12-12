@@ -6,8 +6,20 @@
 
 ```bash
 npm install
-npm run start:source   # http://localhost:8001 (dev page)
-npm start              # http://localhost:8000 (public)
+```
+
+## Development (Pick One)
+
+```bash
+# Option A: Live auto-rebuild (recommended)
+npm run watch          # Terminal 1: watches + rebuilds
+npm start              # Terminal 2: serves on :8000
+
+# Option B: One-shot dev
+npm run dev            # Build + serve on :8000
+
+# Option C: Source modules (no build)
+npm run start:source   # http://localhost:8001
 ```
 
 ## Controls

@@ -117,9 +117,6 @@ const state = {
   autoDarkModeEnabled: true,
   isDarkMode: false,
   
-  // Click-to-cycle mode switching
-  clickCycleEnabled: false,
-  
   // Two-level padding system (in pixels)
   containerBorder: 0,    // Outer: insets container from viewport (reveals body bg as frame)
   simulationPadding: 0,  // Inner: padding inside container around canvas

@@ -30,18 +30,17 @@ npm run build
 npm run build:modules:dev  # Development with source maps
 ```
 
-### Watch Modes
+### Live Development (Auto-Rebuild)
 ```bash
-npm run watch          # Legacy build auto-rebuild
-npm run watch:modules  # Modular build auto-rebuild
-```
-
-### Auto-Rebuild on Changes
-```bash
+# Terminal 1: Watch for changes and auto-rebuild
 npm run watch
+
+# Terminal 2: Serve the built site
+npm start              # http://localhost:8000
 ```
 **Watches:** `source/**/*` and `webflow-export/**/*`  
-**Triggers:** Modular dev build on change
+**Triggers:** Rebuilds `public/` on every file save  
+**Workflow:** Save file → wait 2s → refresh browser (Cmd+R)
 
 ### Help
 ```bash

@@ -55,12 +55,15 @@
 # Install
 npm install
 
-# Development
-npm start              # http://localhost:8000
+# Development (pick one)
+npm run watch          # Terminal 1: Auto-rebuild on save
+npm start              # Terminal 2: Serve on :8000, then refresh browser
+
+# OR: Quick one-shot
+npm run dev            # Build + serve on :8000
 
 # Production Build
 npm run build          # Full site (Webflow + simulation)
-npm run build:embed-only  # Standalone JS only
 ```
 
 ## Controls
@@ -123,19 +126,26 @@ npm run build:embed-only  # Standalone JS only
 
 ## Development
 
-### Workflow
-1. Edit `source/balls-source.html`
-2. Test in browser (refresh to see changes)
-3. Tune parameters via control panel (`/` key)
-4. Save config with "Save Config" button
-5. Build: `npm run build`
-
-### Scripts
+### Live Development Workflow
 ```bash
-npm start              # Dev server (port 8000)
-npm run build          # Full production build (Webflow + simulation)
-npm run build:embed-only  # Standalone embed JS only
-npm run watch          # Auto-rebuild on source/webflow changes
+# Terminal 1: Watch for changes
+npm run watch
+
+# Terminal 2: Serve production build
+npm start              # http://localhost:8000
+```
+1. Edit files in `source/` (main.js, modules/**, css/**)
+2. Save → auto-rebuilds to `public/` (~2 seconds)
+3. Refresh browser (Cmd+R) to see changes
+4. Tune parameters via control panel (`/` key)
+5. Final build: `npm run build`
+
+### All Commands
+```bash
+npm run watch          # Auto-rebuild on file changes (recommended)
+npm start              # Serve public/ on :8000
+npm run dev            # Build once + start server
+npm run build          # Production build (Webflow + simulation)
 npm run help           # Show all available commands
 ```
 

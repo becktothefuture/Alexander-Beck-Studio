@@ -37,14 +37,14 @@ export const PANEL_HTML = `
     </div>
   </details>
   
-  <!-- Frame Settings (Browser-Style Frame) -->
+  <!-- Frame/Border Settings (Two-Level Padding System) -->
   <details>
-    <summary>🖼️ FRAME</summary>
+    <summary>🖼️ Frame & Padding</summary>
     <div class="group">
-        <label><span>Frame thickness (px)</span><input type="range" id="containerBorderSlider" min="0" max="60" step="1" value="0"><span class="val" id="containerBorderVal">0</span></label>
-        <div style="font-size: 9px; opacity: 0.6; margin: 4px 0 10px;">Browser-style frame around content</div>
-        <label><span>Canvas padding (px)</span><input type="range" id="simulationPaddingSlider" min="0" max="60" step="1" value="0"><span class="val" id="simulationPaddingVal">0</span></label>
-        <div style="font-size: 9px; opacity: 0.6; margin-top: 4px;">Inner space around ball simulation</div>
+        <label><span>Container border (px)</span><input type="range" id="containerBorderSlider" min="0" max="60" step="1" value="0"><span class="val" id="containerBorderVal">0</span></label>
+        <div style="font-size: 9px; opacity: 0.6; margin: 4px 0 10px;">Outer frame — reveals body background</div>
+        <label><span>Simulation padding (px)</span><input type="range" id="simulationPaddingSlider" min="0" max="60" step="1" value="0"><span class="val" id="simulationPaddingVal">0</span></label>
+        <div style="font-size: 9px; opacity: 0.6; margin-top: 4px;">Inner padding — shrinks ball play area</div>
     </div>
   </details>
   
@@ -76,15 +76,6 @@ export const PANEL_HTML = `
       <button class="mode-button" data-mode="ping-pong" aria-label="Ping Pong mode">🏓 Pong</button>
       <button class="mode-button" data-mode="magnetic" aria-label="Magnetic mode">🧲 Magnet</button>
       <button class="mode-button" data-mode="bubbles" aria-label="Bubbles mode">🫧 Bubbles</button>
-    </div>
-    
-    <!-- Click-to-cycle toggle -->
-    <div style="margin-top: 12px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;">
-      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 11px;">
-        <input type="checkbox" id="clickCycleToggle" style="cursor: pointer; width: 16px; height: 16px;">
-        <span>Enable click/tap to cycle modes</span>
-      </label>
-      <div style="font-size: 9px; opacity: 0.6; margin-top: 4px; margin-left: 24px;">Click canvas or double-tap to switch modes</div>
     </div>
   </div>
   
@@ -193,7 +184,7 @@ export const PANEL_HTML = `
   </div>
   
   <div style="font-size:10px; opacity:0.5; text-align:center; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-    <code>R</code> reset • <code>/</code> panel • <code>1-8</code> modes
+    <code>R</code> reset • <code>/</code> panel • click/tap cycles modes
   </div>
   
   </div>
