@@ -933,3 +933,53 @@ body.dark-mode .theme-segment-control {
 body.dark-mode .theme-segment-btn.active {
   background: rgba(255, 255, 255, 0.95);
 }
+
+/* ════════════════════════════════════════════════════════════════════════════════
+   SOUND PANEL - Inherits base panel styles
+   ════════════════════════════════════════════════════════════════════════════════ */
+
+.sound-panel {
+  /* Position on left side to not conflict with main panel */
+  left: 5vh !important;
+  right: auto !important;
+  width: 260px;
+}
+
+.sound-panel .preset-description {
+  font-size: 10px;
+  color: hsl(0, 0%, 55%);
+  font-style: italic;
+  padding: 4px 0 0 0;
+  line-height: 1.3;
+}
+
+.sound-panel select {
+  width: 100%;
+}
+
+/* Compact details for sound panel */
+.sound-panel details summary {
+  padding: 10px 14px;
+  font-size: 12px;
+}
+
+.sound-panel .group {
+  padding: 14px;
+  gap: 14px;
+}
+
+.sound-panel details[open] summary {
+  margin-bottom: 10px;
+}
+
+/* Visual indicator when sound is playing */
+.sound-panel .panel-header::before {
+  content: '🔊';
+  margin-right: 6px;
+  font-size: 11px;
+}
+
+/* Collapsed state indicator */
+.sound-panel.collapsed .panel-header::before {
+  content: '🔇';
+}

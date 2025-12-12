@@ -32,9 +32,9 @@ const PENTATONIC_FREQUENCIES = [
 ];
 
 // ════════════════════════════════════════════════════════════════════════════════
-// CONFIGURATION
+// CONFIGURATION (mutable for runtime tweaking)
 // ════════════════════════════════════════════════════════════════════════════════
-const CONFIG = {
+let CONFIG = {
   // Synthesis
   attackTime: 0.008,           // 8ms soft attack
   decayTime: 0.08,             // 80ms exponential decay
@@ -62,6 +62,84 @@ const CONFIG = {
   // Stereo
   maxPan: 0.3,                 // Subtle stereo width (-0.3 to +0.3)
 };
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SOUND PRESETS
+// ════════════════════════════════════════════════════════════════════════════════
+export const SOUND_PRESETS = {
+  underwaterPebbles: {
+    label: 'Underwater Pebbles',
+    description: 'Dreamy, muffled, reverberant',
+    attackTime: 0.008, decayTime: 0.08, harmonicGain: 0.15,
+    filterBaseFreq: 2200, filterVelocityRange: 800, filterQ: 0.7,
+    reverbDecay: 0.35, reverbWetMix: 0.35, masterGain: 0.7
+  },
+  glassMarbles: {
+    label: 'Glass Marbles',
+    description: 'Bright, crystalline clicks',
+    attackTime: 0.003, decayTime: 0.05, harmonicGain: 0.25,
+    filterBaseFreq: 4500, filterVelocityRange: 1200, filterQ: 1.2,
+    reverbDecay: 0.25, reverbWetMix: 0.2, masterGain: 0.6
+  },
+  woodenBeads: {
+    label: 'Wooden Beads',
+    description: 'Warm, organic tones',
+    attackTime: 0.005, decayTime: 0.12, harmonicGain: 0.3,
+    filterBaseFreq: 1800, filterVelocityRange: 600, filterQ: 0.5,
+    reverbDecay: 0.2, reverbWetMix: 0.15, masterGain: 0.65
+  },
+  metalChimes: {
+    label: 'Metal Chimes',
+    description: 'Shimmering, bell-like',
+    attackTime: 0.002, decayTime: 0.2, harmonicGain: 0.4,
+    filterBaseFreq: 5000, filterVelocityRange: 1500, filterQ: 2.0,
+    reverbDecay: 0.5, reverbWetMix: 0.45, masterGain: 0.5
+  },
+  softClouds: {
+    label: 'Soft Clouds',
+    description: 'Pillowy, ambient wash',
+    attackTime: 0.02, decayTime: 0.15, harmonicGain: 0.08,
+    filterBaseFreq: 1200, filterVelocityRange: 400, filterQ: 0.3,
+    reverbDecay: 0.6, reverbWetMix: 0.55, masterGain: 0.55
+  },
+  crystalCave: {
+    label: 'Crystal Cave',
+    description: 'Ethereal, spacious echoes',
+    attackTime: 0.004, decayTime: 0.1, harmonicGain: 0.2,
+    filterBaseFreq: 3500, filterVelocityRange: 1000, filterQ: 1.5,
+    reverbDecay: 0.7, reverbWetMix: 0.5, masterGain: 0.55
+  },
+  deepOcean: {
+    label: 'Deep Ocean',
+    description: 'Sub-bass, distant rumbles',
+    attackTime: 0.015, decayTime: 0.18, harmonicGain: 0.1,
+    filterBaseFreq: 800, filterVelocityRange: 300, filterQ: 0.4,
+    reverbDecay: 0.55, reverbWetMix: 0.4, masterGain: 0.7
+  },
+  brightClicks: {
+    label: 'Bright Clicks',
+    description: 'Snappy, percussive hits',
+    attackTime: 0.001, decayTime: 0.03, harmonicGain: 0.35,
+    filterBaseFreq: 6000, filterVelocityRange: 2000, filterQ: 0.8,
+    reverbDecay: 0.15, reverbWetMix: 0.1, masterGain: 0.5
+  },
+  muffledThuds: {
+    label: 'Muffled Thuds',
+    description: 'Heavy, dampened impacts',
+    attackTime: 0.01, decayTime: 0.1, harmonicGain: 0.05,
+    filterBaseFreq: 600, filterVelocityRange: 200, filterQ: 0.3,
+    reverbDecay: 0.3, reverbWetMix: 0.25, masterGain: 0.75
+  },
+  digitalBlips: {
+    label: 'Digital Blips',
+    description: 'Retro, 8-bit inspired',
+    attackTime: 0.001, decayTime: 0.04, harmonicGain: 0.5,
+    filterBaseFreq: 8000, filterVelocityRange: 0, filterQ: 0.1,
+    reverbDecay: 0.1, reverbWetMix: 0.05, masterGain: 0.45
+  }
+};
+
+let currentPreset = 'underwaterPebbles';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // STATE
@@ -449,5 +527,87 @@ export function disposeSoundEngine() {
   isUnlocked = false;
   isEnabled = false;
   lastSoundTime.clear();
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// CONFIG API - Runtime parameter tweaking
+// ════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get current config values
+ * @returns {object} Copy of current config
+ */
+export function getSoundConfig() {
+  return { ...CONFIG };
+}
+
+/**
+ * Update specific config parameters
+ * @param {object} updates - Key/value pairs to update
+ */
+export function updateSoundConfig(updates) {
+  for (const [key, value] of Object.entries(updates)) {
+    if (key in CONFIG) {
+      CONFIG[key] = value;
+    }
+  }
+  
+  // Update wet/dry mix if reverb params changed
+  if (wetGain && dryGain && 'reverbWetMix' in updates) {
+    wetGain.gain.value = CONFIG.reverbWetMix;
+    dryGain.gain.value = 1 - CONFIG.reverbWetMix;
+  }
+  
+  // Update master gain if changed
+  if (masterGain && 'masterGain' in updates) {
+    masterGain.gain.value = CONFIG.masterGain;
+  }
+}
+
+/**
+ * Apply a sound preset
+ * @param {string} presetName - Key from SOUND_PRESETS
+ * @returns {boolean} Success
+ */
+export function applySoundPreset(presetName) {
+  const preset = SOUND_PRESETS[presetName];
+  if (!preset) {
+    console.warn(`Unknown sound preset: ${presetName}`);
+    return false;
+  }
+  
+  currentPreset = presetName;
+  
+  // Apply preset values to config
+  updateSoundConfig({
+    attackTime: preset.attackTime,
+    decayTime: preset.decayTime,
+    harmonicGain: preset.harmonicGain,
+    filterBaseFreq: preset.filterBaseFreq,
+    filterVelocityRange: preset.filterVelocityRange,
+    filterQ: preset.filterQ,
+    reverbDecay: preset.reverbDecay,
+    reverbWetMix: preset.reverbWetMix,
+    masterGain: preset.masterGain,
+  });
+  
+  console.log(`🎵 Applied sound preset: ${preset.label}`);
+  return true;
+}
+
+/**
+ * Get current preset name
+ * @returns {string}
+ */
+export function getCurrentPreset() {
+  return currentPreset;
+}
+
+/**
+ * Get all available presets
+ * @returns {object}
+ */
+export function getAvailablePresets() {
+  return SOUND_PRESETS;
 }
 

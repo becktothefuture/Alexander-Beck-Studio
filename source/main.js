@@ -16,6 +16,7 @@ import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
+import { createSoundPanel } from './modules/ui/sound-panel.js';
 
 async function loadRuntimeConfig() {
   try {
@@ -38,20 +39,25 @@ async function loadRuntimeConfig() {
 /**
  * Apply two-level padding CSS variables from global state to :root
  * 
- * Two-level system:
- * 1. --container-border: insets #bravia-balls from viewport (reveals body bg as outer frame)
- * 2. --simulation-padding: padding inside container around canvas (inner breathing room)
+ * Visual hierarchy:
+ * HTML: --chrome-bg (browser chrome color, dark/light)
+ * ├── Body: transparent, padding = --container-border (reveals HTML bg as dark frame)
+ *     └── .viewport--content: --bg-light/dark (content area, rounded corners)
  * 
- * The canvas radius auto-calculates via CSS: calc(var(--container-radius) - var(--simulation-padding))
+ * Two controls:
+ * 1. --container-border: Body padding (reveals HTML chrome-bg as outer dark/light border)
+ * 2. --simulation-padding: Canvas padding inside #bravia-balls (inner breathing room)
+ * 
+ * Canvas radius auto-calculates: calc(var(--container-radius) - var(--simulation-padding))
  */
 export function applyFramePaddingCSSVars() {
   const g = getGlobals();
   const root = document.documentElement;
   
-  // Outer frame: container inset from viewport
+  // Outer border: body padding reveals HTML chrome-bg
   root.style.setProperty('--container-border', `${g.containerBorder || 0}px`);
   
-  // Inner padding: canvas inset from container
+  // Inner padding: canvas inset from #bravia-balls container
   root.style.setProperty('--simulation-padding', `${g.simulationPadding || 0}px`);
 }
 
@@ -162,6 +168,10 @@ function ensureNoise2Element() {
     // Initialize sound toggle (underwater pebble collision sounds)
     createSoundToggle();
     console.log('✓ Sound toggle created');
+    
+    // Initialize sound config panel (press S to toggle)
+    createSoundPanel();
+    console.log('✓ Sound panel created');
     
     // Initialize starting mode (Flies by default)
     setMode(MODES.FLIES);
