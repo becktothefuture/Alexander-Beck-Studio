@@ -39,14 +39,16 @@ async function loadRuntimeConfig() {
 /**
  * Apply two-level padding CSS variables from global state to :root
  * 
- * Visual hierarchy:
+ * CORRECTED Visual hierarchy:
  * HTML: --chrome-bg (browser chrome color, dark/light)
- * ├── Body: transparent, padding = --container-border (reveals HTML bg as dark frame)
- *     └── .viewport--content: --bg-light/dark (content area, rounded corners)
+ * ├── Body: transparent (inherits HTML color)
+ *     └── .viewport--content: inset by --container-border, bg = --bg-light/dark, rounded corners
+ *         └── #bravia-balls: simulation container
+ *             └── Canvas: inset by --simulation-padding
  * 
  * Two controls:
- * 1. --container-border: Body padding (reveals HTML chrome-bg as outer dark/light border)
- * 2. --simulation-padding: Canvas padding inside #bravia-balls (inner breathing room)
+ * 1. --container-border: Insets .viewport--content from edges (reveals HTML chrome-bg as border)
+ * 2. --simulation-padding: Insets canvas from #bravia-balls (inner breathing room)
  * 
  * Canvas radius auto-calculates: calc(var(--container-radius) - var(--simulation-padding))
  */
@@ -54,10 +56,10 @@ export function applyFramePaddingCSSVars() {
   const g = getGlobals();
   const root = document.documentElement;
   
-  // Outer border: body padding reveals HTML chrome-bg
+  // Outer border: insets .viewport--content, reveals HTML chrome-bg
   root.style.setProperty('--container-border', `${g.containerBorder || 0}px`);
   
-  // Inner padding: canvas inset from #bravia-balls container
+  // Inner padding: canvas inset from #bravia-balls
   root.style.setProperty('--simulation-padding', `${g.simulationPadding || 0}px`);
 }
 
