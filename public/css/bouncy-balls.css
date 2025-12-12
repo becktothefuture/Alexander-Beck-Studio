@@ -368,6 +368,16 @@ body.dark-mode .noise-2 {
 
 .legend__item {
   font-family: 'Geist', sans-serif !important;
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     TYPOGRAPHIC REFINEMENT: Legend Labels
+     Weight 500 (medium) provides solidity without heaviness.
+     Tracking at 0.1em opens the letterforms for better hierarchy.
+     ───────────────────────────────────────────────────────────────────────────── */
+  font-weight: 500 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase;
+  font-size: clamp(0.6rem, 0.9vw, 0.75rem) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -572,12 +582,84 @@ body.dark-mode .corner svg * {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SOUND TOGGLE (DEPRECATED - now integrated in panel dock)
-   Kept for backward compatibility, hidden by default
+   SOUND TOGGLE - Quick access button (bottom-left, near social icons)
+   Detailed sound controls are in the panel dock
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .sound-toggle {
-  display: none; /* Sound controls moved to panel dock */
+  position: fixed;
+  /* Position near bottom-left, aligned with footer elements */
+  bottom: calc(var(--edge-inset-lg) + var(--container-border, 0px));
+  left: calc(var(--edge-inset-lg) + var(--container-border, 0px) + 120px); /* After social icons */
+  z-index: 20;
+  
+  font-family: 'Geist', sans-serif;
+  font-size: clamp(0.65rem, 0.9vw, 0.75rem);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  
+  color: rgba(100, 100, 100, 0.85);
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  
+  transition: 
+    color var(--duration-quick, 200ms) ease,
+    opacity var(--duration-quick, 200ms) ease,
+    bottom var(--duration-resize, 600ms) var(--ease-organic, ease),
+    left var(--duration-resize, 600ms) var(--ease-organic, ease);
+}
+
+.sound-toggle:hover {
+  color: rgba(60, 60, 60, 1);
+}
+
+/* When sound is enabled - accent color */
+.sound-toggle[data-enabled="true"] {
+  color: var(--ball-6, #ff4013);
+}
+
+.sound-toggle[data-enabled="true"]:hover {
+  color: var(--ball-6, #ff4013);
+  opacity: 0.8;
+}
+
+/* Dark mode */
+body.dark-mode .sound-toggle {
+  color: rgba(160, 160, 160, 0.85);
+}
+
+body.dark-mode .sound-toggle:hover {
+  color: rgba(200, 200, 200, 1);
+}
+
+body.dark-mode .sound-toggle[data-enabled="true"] {
+  color: #ff6b47;
+}
+
+/* Hidden when prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .sound-toggle {
+    display: none;
+  }
+}
+
+/* Responsive positioning */
+@media (max-width: 768px) {
+  .sound-toggle {
+    left: calc(var(--edge-inset, 1rem) + var(--container-border, 0px) + 100px);
+  }
+}
+
+@media (max-width: 480px) {
+  .sound-toggle {
+    left: calc(var(--edge-inset, 0.75rem) + var(--container-border, 0px) + 80px);
+    font-size: clamp(0.55rem, 1.2vw, 0.65rem);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
