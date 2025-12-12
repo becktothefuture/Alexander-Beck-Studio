@@ -67,4 +67,76 @@ Join channel "your-channel-name" in Figma
 - WebSocket server not reachable
 - Solution: Check firewall, ensure server is running, verify port matches
 
+---
+
+## Known Limitations
+
+### Cannot Reparent Existing Nodes
+
+**Status:** Confirmed limitation of TalkToFigma MCP (tested Dec 2025)
+
+**Problem:** The MCP tools cannot move an existing element into a different parent (frame/group/section).
+
+**Tools Tested:**
+
+| Tool | Result |
+|------|--------|
+| `clone_node` | ❌ Creates sibling at same hierarchy level (no `parentId` param) |
+| `move_node` | ❌ Only changes x,y coordinates, not parent |
+| `create_*` + `parentId` | ⚠️ Only works for NEW elements |
+| `appendChild` | ❌ Tool doesn't exist |
+| `setParent` / `reparent` | ❌ Tool doesn't exist |
+
+**Workarounds Evaluated:**
+
+| Approach | Feasible? | Blocker |
+|----------|-----------|---------|
+| Clone into parent | ❌ | `clone_node` has no `parentId` parameter |
+| Recreate with properties | ⚠️ Partial | Image/complex fills can't be transferred |
+| Export → reimport | ❌ | No tool to insert exported images as fills |
+| Convert to component | ❌ | No "convert to component" tool |
+
+**Use Cases Affected:**
+- "Frame selection" workflows
+- Organizing/restructuring layer hierarchies
+- Moving elements between frames programmatically
+
+### Best Approach: Hybrid Workflow
+
+For tasks requiring hierarchy changes, use a **hybrid Cursor + Figma workflow:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  RECOMMENDED WORKFLOW FOR HIERARCHY OPERATIONS                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. CURSOR: Create frames/containers at target positions        │
+│     → create_frame with name, position, size                    │
+│                                                                 │
+│  2. FIGMA (manual): Drag existing elements into frames          │
+│     → Layers panel drag-and-drop                                │
+│     → Or use Cmd+Option+G to frame selection                    │
+│                                                                 │
+│  3. CURSOR: Continue with styling, text, annotations            │
+│     → set_fill_color, set_text_content, etc.                    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Why this works:**
+- Cursor excels at: creating elements, bulk text updates, styling, annotations
+- Figma excels at: hierarchy manipulation, visual arrangement, component management
+- Combining both gives you the best of both worlds
+
+### Cannot Create Image Fills
+
+**Status:** Confirmed limitation
+
+The MCP can read image fills but cannot create them:
+- `create_rectangle` only supports solid color fills
+- No `set_image_fill` or `upload_image` tool exists
+- Exported images (via `export_node_as_image`) return base64 but can't be re-inserted
+
+**Workaround:** Add images manually in Figma, then use Cursor for other modifications.
+
 
