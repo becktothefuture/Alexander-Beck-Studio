@@ -23,7 +23,9 @@
     "test:headed": "playwright test --headed",
     "test:chromium": "playwright test --project=chromium",
     "test:report": "playwright show-report",
-    "clean": "rm -f source/current-config*.json"
+    "clean": "rm -f source/current-config*.json",
+    "figma:socket": "node scripts/figma-websocket-server.js",
+    "figma:setup": "npm install && echo '✅ Dependencies installed. Next: Install bun (curl -fsSL https://bun.sh/install | bash)'"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.1",
@@ -49,6 +51,7 @@
     "url": "https://github.com/yourusername/alexander-beck-studio-website"
   },
   "dependencies": {
-    "pixi.js": "^7.3.2"
+    "pixi.js": "^7.3.2",
+    "ws": "^8.18.3"
   }
 }

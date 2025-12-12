@@ -57,6 +57,8 @@ docs/
 |------|---------|----------|
 | [`development/DEVELOPMENT-GUIDE.md`](./development/DEVELOPMENT-GUIDE.md) | Complete dev workflow | Developers |
 | [`development/ARCHITECTURE.md`](./development/ARCHITECTURE.md) | Technical architecture | Developers |
+| [`development/FIGMA-QUICK-START.md`](./development/FIGMA-QUICK-START.md) | Figma MCP quick setup | Designers/Developers |
+| [`development/FIGMA-MCP-SETUP.md`](./development/FIGMA-MCP-SETUP.md) | Complete Figma MCP guide | Designers/Developers |
 
 ### Reference Documentation
 **Detailed specifications and integration**
@@ -135,6 +137,9 @@ docs/
 
 **"What's the code quality status?"**
 → [`operations/PROJECT-ASSESSMENT.md`](./operations/PROJECT-ASSESSMENT.md)
+
+**"How do I connect Cursor to Figma?"**
+→ [`development/FIGMA-QUICK-START.md`](./development/FIGMA-QUICK-START.md)
 
 ---
 
