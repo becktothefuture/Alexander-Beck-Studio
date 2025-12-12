@@ -121,6 +121,13 @@ const state = {
   containerBorder: 0,    // Outer: insets container from viewport (reveals body bg as frame)
   simulationPadding: 0,  // Inner: padding inside container around canvas
   
+  // Rubbery walls system
+  wallElasticity: 25,    // Max deformation in pixels (0 = disabled)
+  wallStiffness: 600,    // Spring constant (higher = snappier return)
+  wallDamping: 20,       // Damping coefficient (higher = less oscillation)
+  wallThickness: 60,     // Visual thickness of wall border
+  chromeColor: '#cecece', // Browser chrome color (synced from CSS)
+  
   // Helpers
   getSquashMax() {
     if (this.ballSoftness === 0) return 0;
@@ -145,6 +152,12 @@ export function initState(config) {
   // Two-level padding system
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;
   if (config.simulationPadding !== undefined) state.simulationPadding = config.simulationPadding;
+  
+  // Rubbery walls
+  if (config.wallElasticity !== undefined) state.wallElasticity = config.wallElasticity;
+  if (config.wallStiffness !== undefined) state.wallStiffness = config.wallStiffness;
+  if (config.wallDamping !== undefined) state.wallDamping = config.wallDamping;
+  if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
   
   // Recalculate R_MIN and R_MAX
   const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;

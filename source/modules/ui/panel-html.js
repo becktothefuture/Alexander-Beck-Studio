@@ -43,6 +43,14 @@ export const PANEL_HTML = `
     <div class="group">
         <label><span>Container border (px)</span><input type="range" id="containerBorderSlider" min="0" max="60" step="1" value="0"><span class="val" id="containerBorderVal">0</span></label>
         <div style="font-size: 9px; opacity: 0.6; margin: 4px 0 10px;">Outer frame — reveals body background</div>
+        
+        <label style="display: flex; align-items: center; gap: 8px; margin: 8px 0;">
+          <span>Border color</span>
+          <input type="color" id="chromeBgColorPicker" value="#f0f0f0" style="width: 32px; height: 24px; padding: 0; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; cursor: pointer;">
+          <button id="chromeBgResetBtn" style="padding: 2px 6px; font-size: 9px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); border-radius: 3px; cursor: pointer; color: inherit;" title="Reset to browser default">↺</button>
+        </label>
+        <div style="font-size: 9px; opacity: 0.6; margin: 4px 0 10px;">Click ↺ to match browser chrome</div>
+        
         <label><span>Simulation padding (px)</span><input type="range" id="simulationPaddingSlider" min="0" max="60" step="1" value="0"><span class="val" id="simulationPaddingVal">0</span></label>
         <div style="font-size: 9px; opacity: 0.6; margin-top: 4px;">Inner padding — shrinks ball play area</div>
     </div>
@@ -58,9 +66,18 @@ export const PANEL_HTML = `
         <label><span>Back opacity</span><input type="range" id="noiseBackOpacitySlider" min="0" max="0.1" step="0.001" value="0.015"><span class="val" id="noiseBackOpacityVal">0.015</span></label>
         <label><span>Front opacity</span><input type="range" id="noiseFrontOpacitySlider" min="0" max="0.05" step="0.001" value="0.01"><span class="val" id="noiseFrontOpacityVal">0.010</span></label>
         
-        <div style="font-weight: 600; font-size: 10px; margin: 12px 0 4px; opacity: 0.8;">Vignette (Depth)</div>
-        <label><span>Light outer</span><input type="range" id="vignetteLightOuterSlider" min="0" max="0.1" step="0.005" value="0.03"><span class="val" id="vignetteLightOuterVal">0.030</span></label>
-        <label><span>Light inner</span><input type="range" id="vignetteLightInnerSlider" min="0" max="0.1" step="0.005" value="0.02"><span class="val" id="vignetteLightInnerVal">0.020</span></label>
+        <div style="font-weight: 600; font-size: 10px; margin: 12px 0 4px; opacity: 0.8;">Vignette (Atmospheric Depth)</div>
+        <label><span>Light intensity</span><input type="range" id="vignetteLightIntensitySlider" min="0" max="1" step="0.01" value="0.08"><span class="val" id="vignetteLightIntensityVal">0.08</span></label>
+        <label><span>Dark intensity</span><input type="range" id="vignetteDarkIntensitySlider" min="0" max="1" step="0.01" value="0.05"><span class="val" id="vignetteDarkIntensityVal">0.05</span></label>
+        
+        <div style="font-size: 9px; opacity: 0.6; margin: 8px 0 4px;">Blur layers (organic depth)</div>
+        <label><span>Outer blur (px)</span><input type="range" id="vignetteBlurOuterSlider" min="0" max="400" step="10" value="180"><span class="val" id="vignetteBlurOuterVal">180</span></label>
+        <label><span>Mid blur (px)</span><input type="range" id="vignetteBlurMidSlider" min="0" max="300" step="10" value="100"><span class="val" id="vignetteBlurMidVal">100</span></label>
+        <label><span>Inner blur (px)</span><input type="range" id="vignetteBlurInnerSlider" min="0" max="200" step="5" value="40"><span class="val" id="vignetteBlurInnerVal">40</span></label>
+        
+        <div style="font-size: 9px; opacity: 0.6; margin: 8px 0 4px;">Advanced</div>
+        <label><span>Spread (px)</span><input type="range" id="vignetteSpreadSlider" min="-50" max="50" step="1" value="0"><span class="val" id="vignetteSpreadVal">0</span></label>
+        <label><span>Animation (ms)</span><input type="range" id="vignetteTransitionSlider" min="0" max="2000" step="50" value="800"><span class="val" id="vignetteTransitionVal">800</span></label>
     </div>
   </details>
   

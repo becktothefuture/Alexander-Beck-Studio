@@ -6,6 +6,7 @@
 import { getConfig, getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
+import { registerWallImpact } from './wall-state.js';
 
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;
@@ -173,6 +174,7 @@ export class Ball {
       { cx: w - cr, cy: h - cr }                   // Bottom-right
     ];
     
+    const cornerNames = ['cornerTL', 'cornerTR', 'cornerBL', 'cornerBR'];
     for (let i = 0; i < corners.length; i++) {
       const corner = corners[i];
       // Check if ball is in this corner's quadrant
@@ -199,6 +201,10 @@ export class Ball {
           if (velDotN > 0) {
             this.vx -= (1 + rest) * velDotN * nx;
             this.vy -= (1 + rest) * velDotN * ny;
+            
+            // Rubbery corner wobble (impact based on velocity into corner)
+            const impact = Math.min(1, Math.abs(velDotN) / 500);
+            registerWallImpact(cornerNames[i], 0, impact);
           }
         }
       }
@@ -231,6 +237,8 @@ export class Ball {
       if (impact > 0.08) {
         playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
       }
+      // Rubbery wall wobble
+      registerWallImpact('bottom', this.x / w, impact);
     }
     
     // Top (ceiling)
@@ -245,6 +253,8 @@ export class Ball {
       if (impact > 0.08) {
         playCollisionSound(this.r, impact * 0.6, this.x / w, this._soundId);
       }
+      // Rubbery wall wobble
+      registerWallImpact('top', this.x / w, impact);
     }
     
     // Right
@@ -263,6 +273,8 @@ export class Ball {
       if (impact > 0.08) {
         playCollisionSound(this.r, impact * 0.6, 1.0, this._soundId);
       }
+      // Rubbery wall wobble
+      registerWallImpact('right', (this.y - viewportTop) / (h - viewportTop), impact);
     }
     
     // Left
@@ -281,6 +293,8 @@ export class Ball {
       if (impact > 0.08) {
         playCollisionSound(this.r, impact * 0.6, 0.0, this._soundId);
       }
+      // Rubbery wall wobble
+      registerWallImpact('left', (this.y - viewportTop) / (h - viewportTop), impact);
     }
     
     // Wake on wall collision (prevents sleeping balls from getting stuck in walls)

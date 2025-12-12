@@ -8,6 +8,7 @@ import { getGlobals } from '../core/state.js';
 import { resolveCollisions } from './collision.js';
 import { updateWaterRipples, getWaterRipples } from '../modes/water.js';
 import { drawCursor } from '../rendering/cursor.js';
+import { wallState, drawWalls, updateChromeColor } from './wall-state.js';
 
 const DT = CONSTANTS.PHYSICS_DT;
 let acc = 0;
@@ -76,6 +77,11 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   if (globals.currentMode === MODES.WATER) {
     updateWaterRipples(dtSeconds);
   }
+  
+  // Update rubbery wall physics (runs per-frame, not per physics step)
+  if (globals.wallElasticity > 0) {
+    wallState.step(dtSeconds);
+  }
 
   // Reset accumulator if falling behind
   if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
@@ -92,6 +98,11 @@ export function render() {
   // Clear
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
+  // Draw rubbery walls FIRST (behind everything, chrome-colored border)
+  if (globals.wallElasticity > 0) {
+    drawWalls(ctx, canvas.width, canvas.height);
+  }
+  
   // Draw water ripples (behind balls for gorgeous effect)
   if (globals.currentMode === MODES.WATER) {
     drawWaterRipples(ctx);
@@ -104,6 +115,13 @@ export function render() {
   
   // Cursor overlay
   drawCursor(ctx);
+}
+
+/**
+ * Sync chrome color from CSS (call on theme change)
+ */
+export function syncChromeColor() {
+  updateChromeColor();
 }
 
 function drawWaterRipples(ctx) {

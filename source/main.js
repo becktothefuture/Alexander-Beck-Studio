@@ -85,31 +85,39 @@ export function applyVisualCSSVars(config) {
     root.style.setProperty('--noise-front-opacity-dark', String(config.noiseFrontOpacityDark));
   }
   
-  // Vignette (light mode)
-  if (config.vignetteLightOuter !== undefined) {
-    root.style.setProperty('--vignette-light-outer', String(config.vignetteLightOuter));
+  // Vignette intensity
+  if (config.vignetteLightIntensity !== undefined) {
+    root.style.setProperty('--vignette-light-intensity', String(config.vignetteLightIntensity));
   }
-  if (config.vignetteLightInner !== undefined) {
-    root.style.setProperty('--vignette-light-inner', String(config.vignetteLightInner));
+  if (config.vignetteDarkIntensity !== undefined) {
+    root.style.setProperty('--vignette-dark-intensity', String(config.vignetteDarkIntensity));
   }
   
-  // Vignette (dark mode)
-  if (config.vignetteDarkOuter !== undefined) {
-    root.style.setProperty('--vignette-dark-outer', String(config.vignetteDarkOuter));
+  // Vignette blur layers
+  if (config.vignetteBlurOuter !== undefined) {
+    root.style.setProperty('--vignette-blur-outer', `${config.vignetteBlurOuter}px`);
   }
-  if (config.vignetteDarkInner !== undefined) {
-    root.style.setProperty('--vignette-dark-inner', String(config.vignetteDarkInner));
+  if (config.vignetteBlurMid !== undefined) {
+    root.style.setProperty('--vignette-blur-mid', `${config.vignetteBlurMid}px`);
+  }
+  if (config.vignetteBlurInner !== undefined) {
+    root.style.setProperty('--vignette-blur-inner', `${config.vignetteBlurInner}px`);
+  }
+  
+  // Vignette spread and animation
+  if (config.vignetteSpread !== undefined) {
+    root.style.setProperty('--vignette-spread', `${config.vignetteSpread}px`);
+  }
+  if (config.vignetteTransition !== undefined) {
+    root.style.setProperty('--vignette-transition', `${config.vignetteTransition}ms`);
   }
 }
 
 /**
- * Ensure .noise-2 element exists (for modular dev where Webflow HTML isn't present).
- * Creates it as a sibling to .noise or as first child of body if .noise doesn't exist.
+ * Ensure .noise-2 and .noise-3 elements exist (for modular dev where Webflow HTML isn't present).
+ * Creates them as siblings to .noise inside the #bravia-balls container.
  */
-function ensureNoise2Element() {
-  // Check if .noise-2 already exists
-  if (document.querySelector('.noise-2')) return;
-  
+function ensureNoiseElements() {
   // Check if we have a noise texture image to use
   const existingNoise = document.querySelector('.noise');
   if (!existingNoise) {
@@ -117,29 +125,47 @@ function ensureNoise2Element() {
     return;
   }
   
-  // Create noise-2 element
-  const noise2 = document.createElement('div');
-  noise2.className = 'noise-2';
-  
-  // Copy background-image from existing noise if available
   const noiseStyle = getComputedStyle(existingNoise);
-  if (noiseStyle.backgroundImage && noiseStyle.backgroundImage !== 'none') {
-    noise2.style.backgroundImage = noiseStyle.backgroundImage;
+  const bgImage = (noiseStyle.backgroundImage && noiseStyle.backgroundImage !== 'none') 
+    ? noiseStyle.backgroundImage 
+    : null;
+  
+  // Create noise-2 if it doesn't exist
+  if (!document.querySelector('.noise-2')) {
+    const noise2 = document.createElement('div');
+    noise2.className = 'noise-2';
+    if (bgImage) noise2.style.backgroundImage = bgImage;
+    
+    noise2.style.position = 'fixed';
+    noise2.style.inset = '0';
+    noise2.style.pointerEvents = 'none';
+    noise2.style.backgroundRepeat = 'repeat';
+    noise2.style.backgroundPosition = '50%';
+    noise2.style.backgroundAttachment = 'fixed';
+    noise2.style.mixBlendMode = 'luminosity';
+    
+    existingNoise.insertAdjacentElement('afterend', noise2);
+    console.log('✓ Created .noise-2 element');
   }
   
-  // Position it fixed, full screen (CSS handles the rest)
-  noise2.style.position = 'fixed';
-  noise2.style.inset = '0';
-  noise2.style.pointerEvents = 'none';
-  noise2.style.backgroundRepeat = 'repeat';
-  noise2.style.backgroundPosition = '50%';
-  noise2.style.backgroundAttachment = 'fixed';
-  noise2.style.opacity = '0.03';
-  noise2.style.mixBlendMode = 'luminosity';
-  
-  // Insert after .noise element
-  existingNoise.insertAdjacentElement('afterend', noise2);
-  console.log('✓ Created .noise-2 element');
+  // Create noise-3 if it doesn't exist (on top of noise-2)
+  const noise2 = document.querySelector('.noise-2');
+  if (noise2 && !document.querySelector('.noise-3')) {
+    const noise3 = document.createElement('div');
+    noise3.className = 'noise-3';
+    if (bgImage) noise3.style.backgroundImage = bgImage;
+    
+    noise3.style.position = 'fixed';
+    noise3.style.inset = '0';
+    noise3.style.pointerEvents = 'none';
+    noise3.style.backgroundRepeat = 'repeat';
+    noise3.style.backgroundPosition = '50%';
+    noise3.style.backgroundAttachment = 'fixed';
+    noise3.style.mixBlendMode = 'luminosity';
+    
+    noise2.insertAdjacentElement('afterend', noise3);
+    console.log('✓ Created .noise-3 element');
+  }
 }
 
 (async function init() {
@@ -158,8 +184,8 @@ function ensureNoise2Element() {
     applyVisualCSSVars(config);
     console.log('✓ Visual effects configured');
     
-    // Ensure noise-2 element exists (for modular dev environments)
-    ensureNoise2Element();
+    // Ensure noise-2 and noise-3 elements exist (for modular dev environments)
+    ensureNoiseElements();
     
     // Setup canvas (attaches resize listener, but doesn't resize yet)
     setupRenderer();

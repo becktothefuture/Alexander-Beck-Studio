@@ -5,6 +5,7 @@
 
 import { getGlobals } from '../core/state.js';
 import { applyColorTemplate } from './colors.js';
+import { syncChromeColor } from '../physics/engine.js';
 
 // Theme states: 'auto', 'light', 'dark'
 let currentTheme = 'light'; // Default to light mode
@@ -96,6 +97,9 @@ function applyDarkModeToDOM(isDark) {
   
   // Update browser chrome color
   updateThemeColor(isDark);
+  
+  // Sync chrome color for rubbery walls
+  syncChromeColor();
   
   // Switch color palette variant
   applyColorTemplate(globals.currentTemplate);

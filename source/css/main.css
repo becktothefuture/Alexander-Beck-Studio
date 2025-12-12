@@ -64,9 +64,11 @@
   --bg-light: #cecece;  /* Light grey - content area */
   --bg-dark: #0a0a0a;   /* Near black - content area */
   
-  /* Browser chrome / body border color (seamless with browser) */
-  --chrome-bg-light: #cecece;
-  --chrome-bg-dark: #0a0a0a;
+  /* Browser chrome / body border color
+     Uses CSS system color 'Canvas' to match browser's actual chrome color
+     Can be overridden via JavaScript for custom border colors */
+  --chrome-bg-light: Canvas;  /* System color - matches browser chrome */
+  --chrome-bg-dark: Canvas;   /* System color - adapts to dark mode */
   --chrome-bg: var(--chrome-bg-light);
   
   /* ─────────────────────────────────────────────────────────────────────────────
@@ -86,23 +88,27 @@
      TEXTURE SIZING
      ───────────────────────────────────────────────────────────────────────────── */
   --noise-size-base: 100px;
-  --noise-size-top: 80px; /* 20% smaller for top layer */
+  --noise-size-top: 150px;
   
   /* ─────────────────────────────────────────────────────────────────────────────
      NOISE OPACITY CONTROLS
      ───────────────────────────────────────────────────────────────────────────── */
-  --noise-back-opacity: 0.015;  /* Behind balls (z:4) */
-  --noise-front-opacity: 0.01;  /* Above balls (z:7) */
+  --noise-back-opacity: 0.020;  /* Behind balls (z:4) */
+  --noise-front-opacity: 0.050;  /* Above balls (z:7) */
   --noise-back-opacity-dark: 0.08;  /* Dark mode - behind balls */
   --noise-front-opacity-dark: 0.05; /* Dark mode - above balls */
   
   /* ─────────────────────────────────────────────────────────────────────────────
-     VIGNETTE (DEPTH) CONTROLS - Inset box-shadow for corner darkening
+     VIGNETTE (DEPTH) CONTROLS - Multi-layer inset shadows for atmospheric depth
      ───────────────────────────────────────────────────────────────────────────── */
-  --vignette-light-outer: 0.03; /* Outer darkness (light mode) */
-  --vignette-light-inner: 0.02; /* Inner darkness (light mode) */
-  --vignette-dark-outer: 0.02;  /* Outer lightness (dark mode) */
-  --vignette-dark-inner: 0.01;  /* Inner lightness (dark mode) */
+  --vignette-light-intensity: 0.08;  /* Overall darkness (0-1) */
+  --vignette-dark-intensity: 0.05;   /* Overall lightness in dark mode (0-1) */
+  --vignette-blur-outer: 180px;      /* Outer blur radius (soft edge) */
+  --vignette-blur-mid: 100px;        /* Middle layer blur */
+  --vignette-blur-inner: 40px;       /* Inner layer blur (sharp gradient) */
+  --vignette-spread: 0px;            /* Spread radius (negative pulls inward) */
+  --vignette-layers: 3;              /* Number of shadow layers (1-5) */
+  --vignette-transition: 800ms;      /* Animation speed for depth changes */
   
   /* ─────────────────────────────────────────────────────────────────────────────
      BALL COLOR PALETTE (dynamically updated by JS)
@@ -146,15 +152,17 @@ html {
   background: var(--chrome-bg); /* Seamless with browser chrome */
 }
 
-body {
+body,
+body.body {
   overflow: hidden;
   margin: 0;
-  padding: var(--container-border); /* Reveals chrome-bg as frame */
+  padding: var(--container-border); /* Creates visible frame around content */
   box-sizing: border-box;
   width: 100%;
   height: 100%;
   cursor: none; /* Simulation draws custom cursor */
-  background: transparent; /* Chrome shows through */
+  background: var(--chrome-bg) !important; /* Frame/border color - !important overrides Webflow's .body */
+  background-color: var(--chrome-bg) !important;
   color: rgba(64, 64, 64, 1);
   
   /* GLOBAL TYPOGRAPHY: Soft, full letterforms across all text */
@@ -168,8 +176,10 @@ body {
     background-color var(--duration-settle) var(--ease-settle);
 }
 
-body.dark-mode { 
-  background: transparent !important; 
+body.dark-mode,
+body.body.dark-mode { 
+  background: var(--chrome-bg) !important;
+  background-color: var(--chrome-bg) !important;
   color: rgba(200, 200, 200, 1);
 }
 
@@ -198,17 +208,18 @@ body.dark-mode {
   background: var(--bg-light) !important; /* The "page" surface */
   border-radius: var(--container-radius);
   
-  /* Subtle depth: vignette only at corners (controllable via CSS vars) */
+  /* Multi-layer atmospheric depth - organic corner vignette */
   box-shadow: 
-    inset 0 0 120px 0 rgba(0, 0, 0, var(--vignette-light-outer)),
-    inset 0 0 60px 0 rgba(0, 0, 0, var(--vignette-light-inner));
+    inset 0 0 var(--vignette-blur-outer) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.6)),
+    inset 0 0 var(--vignette-blur-mid) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.4)),
+    inset 0 0 var(--vignette-blur-inner) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.3));
   
   /* ORGANIC BREATHING: All geometric properties transition smoothly */
   transition: 
     background-color var(--duration-settle) var(--ease-settle),
     border-radius var(--duration-resize) var(--ease-organic),
     padding var(--duration-resize) var(--ease-organic),
-    box-shadow var(--duration-settle) var(--ease-settle);
+    box-shadow var(--vignette-transition) var(--ease-organic);
 }
 
 /* Sound toggle hover - viewport content turns white */
@@ -224,10 +235,11 @@ body.dark-mode .viewport {
 body.dark-mode .viewport.viewport--content {
   background: var(--bg-dark) !important; /* Dark content area */
   
-  /* Subtle depth for dark mode: lighter corners (inverse vignette, controllable) */
+  /* Multi-layer atmospheric depth - lighter corners in dark mode */
   box-shadow: 
-    inset 0 0 120px 0 rgba(255, 255, 255, var(--vignette-dark-outer)),
-    inset 0 0 60px 0 rgba(255, 255, 255, var(--vignette-dark-inner));
+    inset 0 0 var(--vignette-blur-outer) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.6)),
+    inset 0 0 var(--vignette-blur-mid) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.4)),
+    inset 0 0 var(--vignette-blur-inner) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.3));
 }
 
 /* Dark mode sound hover - viewport content goes slightly lighter */
@@ -318,9 +330,10 @@ a {
 
 /* Ball Pit Mode - Extended height for spawning area above viewport */
 #bravia-balls.mode-pit {
-  /* 150vh height with bottom aligned to viewport bottom */
-  /* Top 50vh is above viewport (spawning area), bottom 100vh is visible */
-  height: 150vh;
+  /* 150% of available viewport height (after borders) aligned to bottom
+     Top 50vh is spawn area (hidden above), bottom 100vh is visible pit
+     The * 3 factor accounts for: top border + bottom border + proportional spawn area */
+  height: calc(150vh - var(--container-border) * 3);
   bottom: var(--container-border);
   top: auto;
 }
@@ -366,7 +379,8 @@ a {
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    NOISE TEXTURE LAYERS - Subtle grain, controllable opacity
-   .noise (z:4) behind balls | .noise-2 (z:7) above balls | Text (z:20+) above all
+   .noise (z:4) behind balls | .noise-2 (z:7) above balls | .noise-3 (z:8) top layer
+   Text (z:20+) above all
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .noise {
@@ -382,6 +396,13 @@ a {
   opacity: var(--noise-front-opacity) !important;
 }
 
+.noise-3 {
+  z-index: 8 !important;
+  transform: rotate(180deg) !important;
+  background-size: var(--noise-size-base) var(--noise-size-base) !important;
+  opacity: var(--noise-top-opacity, 0.015) !important;
+}
+
 body.dark-mode .noise {
   opacity: var(--noise-back-opacity-dark) !important;
   mix-blend-mode: overlay !important;
@@ -389,6 +410,11 @@ body.dark-mode .noise {
 
 body.dark-mode .noise-2 {
   opacity: var(--noise-front-opacity-dark) !important;
+  mix-blend-mode: overlay !important;
+}
+
+body.dark-mode .noise-3 {
+  opacity: var(--noise-top-opacity-dark, 0.04) !important;
   mix-blend-mode: overlay !important;
 }
 

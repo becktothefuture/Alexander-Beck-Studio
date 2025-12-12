@@ -82,6 +82,41 @@ export function setupControls() {
     autoSaveSettings();
   });
   
+  // Border/Chrome color picker
+  const chromeBgPicker = document.getElementById('chromeBgColorPicker');
+  if (chromeBgPicker) {
+    chromeBgPicker.addEventListener('input', (e) => {
+      const color = e.target.value;
+      document.documentElement.style.setProperty('--chrome-bg', color);
+      document.documentElement.style.setProperty('--chrome-bg-light', color);
+      document.documentElement.style.setProperty('--chrome-bg-dark', color);
+      g.chromeBgColor = color;
+      autoSaveSettings();
+    });
+  }
+  
+  // Reset border color to browser default (Canvas system color)
+  const chromeBgResetBtn = document.getElementById('chromeBgResetBtn');
+  if (chromeBgResetBtn) {
+    chromeBgResetBtn.addEventListener('click', () => {
+      document.documentElement.style.setProperty('--chrome-bg', 'Canvas');
+      document.documentElement.style.setProperty('--chrome-bg-light', 'Canvas');
+      document.documentElement.style.setProperty('--chrome-bg-dark', 'Canvas');
+      g.chromeBgColor = null; // null means use browser default
+      if (chromeBgPicker) {
+        // Get the computed Canvas color and update the picker
+        const computed = getComputedStyle(document.body).backgroundColor;
+        // Convert RGB to hex for the color picker
+        const match = computed.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        if (match) {
+          const hex = '#' + [match[1], match[2], match[3]].map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+          chromeBgPicker.value = hex;
+        }
+      }
+      autoSaveSettings();
+    });
+  }
+  
   // ═══════════════════════════════════════════════════════════════════════════
   // VISUAL EFFECTS CONTROLS (Noise & Vignette)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -116,17 +151,54 @@ export function setupControls() {
     autoSaveSettings();
   });
   
-  // Vignette (corner shadow/depth)
-  bindSlider('vignetteLightOuterSlider', (el) => {
-    const config = { vignetteLightOuter: parseFloat(el.value) };
-    setVal('vignetteLightOuterVal', config.vignetteLightOuter.toFixed(3));
+  // Vignette intensity
+  bindSlider('vignetteLightIntensitySlider', (el) => {
+    const config = { vignetteLightIntensity: parseFloat(el.value) };
+    setVal('vignetteLightIntensityVal', config.vignetteLightIntensity.toFixed(2));
     applyVisualCSSVars(config);
     autoSaveSettings();
   });
   
-  bindSlider('vignetteLightInnerSlider', (el) => {
-    const config = { vignetteLightInner: parseFloat(el.value) };
-    setVal('vignetteLightInnerVal', config.vignetteLightInner.toFixed(3));
+  bindSlider('vignetteDarkIntensitySlider', (el) => {
+    const config = { vignetteDarkIntensity: parseFloat(el.value) };
+    setVal('vignetteDarkIntensityVal', config.vignetteDarkIntensity.toFixed(2));
+    applyVisualCSSVars(config);
+    autoSaveSettings();
+  });
+  
+  // Vignette blur layers (organic depth)
+  bindSlider('vignetteBlurOuterSlider', (el) => {
+    const config = { vignetteBlurOuter: parseInt(el.value, 10) };
+    setVal('vignetteBlurOuterVal', String(config.vignetteBlurOuter));
+    applyVisualCSSVars(config);
+    autoSaveSettings();
+  });
+  
+  bindSlider('vignetteBlurMidSlider', (el) => {
+    const config = { vignetteBlurMid: parseInt(el.value, 10) };
+    setVal('vignetteBlurMidVal', String(config.vignetteBlurMid));
+    applyVisualCSSVars(config);
+    autoSaveSettings();
+  });
+  
+  bindSlider('vignetteBlurInnerSlider', (el) => {
+    const config = { vignetteBlurInner: parseInt(el.value, 10) };
+    setVal('vignetteBlurInnerVal', String(config.vignetteBlurInner));
+    applyVisualCSSVars(config);
+    autoSaveSettings();
+  });
+  
+  // Vignette spread and animation
+  bindSlider('vignetteSpreadSlider', (el) => {
+    const config = { vignetteSpread: parseInt(el.value, 10) };
+    setVal('vignetteSpreadVal', String(config.vignetteSpread));
+    applyVisualCSSVars(config);
+    autoSaveSettings();
+  });
+  
+  bindSlider('vignetteTransitionSlider', (el) => {
+    const config = { vignetteTransition: parseInt(el.value, 10) };
+    setVal('vignetteTransitionVal', String(config.vignetteTransition));
     applyVisualCSSVars(config);
     autoSaveSettings();
   });

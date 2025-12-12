@@ -4,7 +4,7 @@
 // ║      Sizes relative to container (supports frame padding/border)             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { CONSTANTS, MODES } from '../core/constants.js';
+import { CONSTANTS } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { applyCanvasShadow } from './effects.js';
 
@@ -46,12 +46,10 @@ export function resize() {
   const canvasWidth = containerWidth - (simPad * 2);
   const canvasHeight = containerHeight - (simPad * 2);
   
-  // Ball Pit mode uses 150% height (spawn area above viewport)
-  const heightMultiplier = (globals.currentMode === MODES.PIT)
-    ? CONSTANTS.CANVAS_HEIGHT_VH_PIT
-    : CONSTANTS.CANVAS_HEIGHT_VH_DEFAULT;
-  
-  const simHeight = canvasHeight * heightMultiplier;
+  // Canvas fills container - CSS handles mode-specific heights
+  // Ball Pit: CSS sets 150vh (border-adjusted), Other modes: CSS sets 100%
+  // No JS multiplier needed since container dimensions are already correct
+  const simHeight = canvasHeight;
   const DPR = CONSTANTS.DPR;
   
   // Set canvas buffer size (high-DPI)
