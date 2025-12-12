@@ -233,7 +233,7 @@ export class Ball {
       }
     }
     
-    // Top
+    // Top (ceiling)
     if (this.y - this.r < minY) {
       hasWallCollision = true;
       this.y = minY + this.r;
@@ -241,6 +241,10 @@ export class Ball {
       const impact = Math.min(1, Math.abs(this.vy) / (this.r * 90));
       this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
       this.squashNormalAngle = Math.PI / 2;
+      // Sound: ceiling impact
+      if (impact > 0.08) {
+        playCollisionSound(this.r, impact * 0.6, this.x / w, this._soundId);
+      }
     }
     
     // Right
