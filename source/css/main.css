@@ -108,6 +108,9 @@ body.dark-mode {
   right: var(--container-border);
   bottom: var(--container-border);
   left: var(--container-border);
+  /* Let inset positioning control size (don't use explicit width/height) */
+  width: auto !important;
+  height: auto !important;
   background: var(--bg-light) !important;
   border-radius: var(--container-radius);
   transition: 

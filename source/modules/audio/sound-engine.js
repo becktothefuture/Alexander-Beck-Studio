@@ -35,32 +35,32 @@ const PENTATONIC_FREQUENCIES = [
 // CONFIGURATION (mutable for runtime tweaking)
 // ════════════════════════════════════════════════════════════════════════════════
 let CONFIG = {
-  // Synthesis
-  attackTime: 0.008,           // 8ms soft attack
-  decayTime: 0.08,             // 80ms exponential decay
-  harmonicGain: 0.15,          // 2nd harmonic level (subtle warmth)
+  // Synthesis — zen, organic pebble feel
+  attackTime: 0.012,           // 12ms soft attack (gentle onset)
+  decayTime: 0.14,             // 140ms decay (lingering, meditative)
+  harmonicGain: 0.08,          // Subtle 2nd harmonic (pure, not complex)
   
-  // Filter (underwater muffling)
-  filterBaseFreq: 2200,        // Base cutoff Hz
-  filterVelocityRange: 800,    // +Hz for harder hits
-  filterQ: 0.7,                // Gentle resonance
+  // Filter — warm, muffled, not shrill
+  filterBaseFreq: 1500,        // Lower cutoff for warmth
+  filterVelocityRange: 350,    // Minimal brightness change on hard hits
+  filterQ: 0.35,               // Very smooth, no resonant peak
   
-  // Reverb
-  reverbDecay: 0.35,           // 350ms tail
-  reverbWetMix: 0.35,          // 35% wet
-  reverbHighDamp: 0.6,         // High-frequency damping
+  // Reverb — spacious, ambient
+  reverbDecay: 0.48,           // Longer tail for zen atmosphere
+  reverbWetMix: 0.42,          // More reverb wash
+  reverbHighDamp: 0.7,         // Extra high-frequency damping
   
-  // Volume
-  minGain: 0.12,               // Softest collision
-  maxGain: 0.45,               // Hardest collision (never jarring)
-  masterGain: 0.7,             // Overall volume
+  // Volume — gentle, never jarring
+  minGain: 0.06,               // Whisper-soft minimum
+  maxGain: 0.32,               // Restrained maximum
+  masterGain: 0.6,             // Moderate overall
   
   // Performance
-  maxConcurrentSounds: 14,     // Prevent muddy buildup
-  minTimeBetweenSounds: 0.015, // 15ms debounce per ball
+  maxConcurrentSounds: 12,     // Fewer concurrent for clarity
+  minTimeBetweenSounds: 0.018, // Slightly more debounce
   
   // Stereo
-  maxPan: 0.3,                 // Subtle stereo width (-0.3 to +0.3)
+  maxPan: 0.25,                // Subtle stereo (centered, calm)
 };
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -68,74 +68,74 @@ let CONFIG = {
 // ════════════════════════════════════════════════════════════════════════════════
 export const SOUND_PRESETS = {
   underwaterPebbles: {
-    label: 'Underwater Pebbles',
-    description: 'Dreamy, muffled, reverberant',
-    attackTime: 0.008, decayTime: 0.08, harmonicGain: 0.15,
-    filterBaseFreq: 2200, filterVelocityRange: 800, filterQ: 0.7,
-    reverbDecay: 0.35, reverbWetMix: 0.35, masterGain: 0.7
+    label: 'Zen Pebbles',
+    description: 'Soft, organic, meditative',
+    attackTime: 0.012, decayTime: 0.14, harmonicGain: 0.08,
+    filterBaseFreq: 1500, filterVelocityRange: 350, filterQ: 0.35,
+    reverbDecay: 0.48, reverbWetMix: 0.42, masterGain: 0.6
   },
   glassMarbles: {
     label: 'Glass Marbles',
     description: 'Bright, crystalline clicks',
-    attackTime: 0.003, decayTime: 0.05, harmonicGain: 0.25,
-    filterBaseFreq: 4500, filterVelocityRange: 1200, filterQ: 1.2,
-    reverbDecay: 0.25, reverbWetMix: 0.2, masterGain: 0.6
+    attackTime: 0.004, decayTime: 0.06, harmonicGain: 0.2,
+    filterBaseFreq: 3800, filterVelocityRange: 900, filterQ: 0.9,
+    reverbDecay: 0.28, reverbWetMix: 0.25, masterGain: 0.55
   },
   woodenBeads: {
     label: 'Wooden Beads',
-    description: 'Warm, organic tones',
-    attackTime: 0.005, decayTime: 0.12, harmonicGain: 0.3,
-    filterBaseFreq: 1800, filterVelocityRange: 600, filterQ: 0.5,
-    reverbDecay: 0.2, reverbWetMix: 0.15, masterGain: 0.65
+    description: 'Warm, earthy clicks',
+    attackTime: 0.008, decayTime: 0.1, harmonicGain: 0.18,
+    filterBaseFreq: 1400, filterVelocityRange: 400, filterQ: 0.4,
+    reverbDecay: 0.22, reverbWetMix: 0.18, masterGain: 0.58
   },
   metalChimes: {
-    label: 'Metal Chimes',
-    description: 'Shimmering, bell-like',
-    attackTime: 0.002, decayTime: 0.2, harmonicGain: 0.4,
-    filterBaseFreq: 5000, filterVelocityRange: 1500, filterQ: 2.0,
-    reverbDecay: 0.5, reverbWetMix: 0.45, masterGain: 0.5
+    label: 'Wind Chimes',
+    description: 'Gentle, shimmering bells',
+    attackTime: 0.003, decayTime: 0.18, harmonicGain: 0.25,
+    filterBaseFreq: 3200, filterVelocityRange: 800, filterQ: 1.2,
+    reverbDecay: 0.55, reverbWetMix: 0.48, masterGain: 0.45
   },
   softClouds: {
     label: 'Soft Clouds',
     description: 'Pillowy, ambient wash',
-    attackTime: 0.02, decayTime: 0.15, harmonicGain: 0.08,
-    filterBaseFreq: 1200, filterVelocityRange: 400, filterQ: 0.3,
-    reverbDecay: 0.6, reverbWetMix: 0.55, masterGain: 0.55
+    attackTime: 0.025, decayTime: 0.2, harmonicGain: 0.05,
+    filterBaseFreq: 1000, filterVelocityRange: 250, filterQ: 0.25,
+    reverbDecay: 0.65, reverbWetMix: 0.58, masterGain: 0.5
   },
   crystalCave: {
     label: 'Crystal Cave',
     description: 'Ethereal, spacious echoes',
-    attackTime: 0.004, decayTime: 0.1, harmonicGain: 0.2,
-    filterBaseFreq: 3500, filterVelocityRange: 1000, filterQ: 1.5,
-    reverbDecay: 0.7, reverbWetMix: 0.5, masterGain: 0.55
+    attackTime: 0.005, decayTime: 0.12, harmonicGain: 0.15,
+    filterBaseFreq: 2400, filterVelocityRange: 600, filterQ: 0.8,
+    reverbDecay: 0.7, reverbWetMix: 0.52, masterGain: 0.48
   },
   deepOcean: {
     label: 'Deep Ocean',
     description: 'Sub-bass, distant rumbles',
-    attackTime: 0.015, decayTime: 0.18, harmonicGain: 0.1,
-    filterBaseFreq: 800, filterVelocityRange: 300, filterQ: 0.4,
-    reverbDecay: 0.55, reverbWetMix: 0.4, masterGain: 0.7
+    attackTime: 0.018, decayTime: 0.22, harmonicGain: 0.06,
+    filterBaseFreq: 650, filterVelocityRange: 200, filterQ: 0.3,
+    reverbDecay: 0.6, reverbWetMix: 0.45, masterGain: 0.62
   },
   brightClicks: {
-    label: 'Bright Clicks',
-    description: 'Snappy, percussive hits',
-    attackTime: 0.001, decayTime: 0.03, harmonicGain: 0.35,
-    filterBaseFreq: 6000, filterVelocityRange: 2000, filterQ: 0.8,
-    reverbDecay: 0.15, reverbWetMix: 0.1, masterGain: 0.5
+    label: 'River Stones',
+    description: 'Crisp, tactile taps',
+    attackTime: 0.002, decayTime: 0.05, harmonicGain: 0.22,
+    filterBaseFreq: 2800, filterVelocityRange: 700, filterQ: 0.6,
+    reverbDecay: 0.2, reverbWetMix: 0.15, masterGain: 0.52
   },
   muffledThuds: {
-    label: 'Muffled Thuds',
-    description: 'Heavy, dampened impacts',
-    attackTime: 0.01, decayTime: 0.1, harmonicGain: 0.05,
-    filterBaseFreq: 600, filterVelocityRange: 200, filterQ: 0.3,
-    reverbDecay: 0.3, reverbWetMix: 0.25, masterGain: 0.75
+    label: 'Moss Drops',
+    description: 'Heavy, dampened thuds',
+    attackTime: 0.015, decayTime: 0.12, harmonicGain: 0.04,
+    filterBaseFreq: 500, filterVelocityRange: 150, filterQ: 0.25,
+    reverbDecay: 0.35, reverbWetMix: 0.3, masterGain: 0.65
   },
   digitalBlips: {
-    label: 'Digital Blips',
-    description: 'Retro, 8-bit inspired',
-    attackTime: 0.001, decayTime: 0.04, harmonicGain: 0.5,
-    filterBaseFreq: 8000, filterVelocityRange: 0, filterQ: 0.1,
-    reverbDecay: 0.1, reverbWetMix: 0.05, masterGain: 0.45
+    label: 'Rain Drops',
+    description: 'Light, delicate plinks',
+    attackTime: 0.002, decayTime: 0.04, harmonicGain: 0.12,
+    filterBaseFreq: 3500, filterVelocityRange: 500, filterQ: 0.5,
+    reverbDecay: 0.4, reverbWetMix: 0.35, masterGain: 0.42
   }
 };
 
