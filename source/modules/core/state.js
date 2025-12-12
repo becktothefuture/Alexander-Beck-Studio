@@ -121,10 +121,16 @@ const state = {
   containerBorder: 0,    // Outer: insets container from viewport (reveals body bg as frame)
   simulationPadding: 0,  // Inner: padding inside container around canvas
   
-  // Helper
+  // Helpers
   getSquashMax() {
     if (this.ballSoftness === 0) return 0;
     return CONSTANTS.SQUASH_MAX_BASE * (this.ballSoftness / 40.0);
+  },
+  
+  // Canvas corner radius = container radius - simulation padding
+  // Used by physics for corner collision detection
+  getCanvasCornerRadius() {
+    return Math.max(0, this.cornerRadius - this.simulationPadding);
   }
 };
 
