@@ -14,15 +14,15 @@
   --bg-light: #cecece;  /* Light grey - content area */
   --bg-dark: #0a0a0a;   /* Near black - content area */
   
-  /* Browser chrome / body border color */
+  /* Browser chrome / frame color */
   --chrome-bg-light: #cecece;
   --chrome-bg-dark: #0a0a0a;
   --chrome-bg: var(--chrome-bg-light);
   
-  /* Container border: padding on body that reveals chrome-bg */
+  /* Frame thickness: browser-style frame around content */
   --container-border: 0px;
   
-  /* Simulation padding: space inside #bravia-balls around canvas */
+  /* Canvas inset: inner margin around ball simulation */
   --simulation-padding: 0px;
   
   /* Corner radii */
