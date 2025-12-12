@@ -13,7 +13,7 @@ let lastMouseY = 0;
 let lastMoveTime = 0;
 let mouseVelocity = 0;
 let lastTapTime = 0;
-let clickCycleEnabled = true; // ENABLED - click/tap cycles through modes
+let clickCycleEnabled = false; // DISABLED by default - click/tap cycles through modes
 
 const MODE_CYCLE = [
   MODES.PIT,
@@ -51,6 +51,9 @@ const RIPPLE_THROTTLE_MS = 80; // Create ripple every 80ms max
 export function setupPointer() {
   const globals = getGlobals();
   const canvas = globals.canvas;
+  
+  // Initialize clickCycleEnabled from global state
+  clickCycleEnabled = globals.clickCycleEnabled || false;
   
   if (!canvas) {
     console.error('Canvas not available for pointer setup');
@@ -134,8 +137,10 @@ export function setupPointer() {
     if (!pos.inBounds) return;
     
     // NO click effects on any simulation - only mouse movement triggers interactions
-    // Click always cycles mode
-    cycleMode();
+    // Click cycles mode (if enabled)
+    if (clickCycleEnabled) {
+      cycleMode();
+    }
   });
   
   /**
@@ -175,9 +180,9 @@ export function setupPointer() {
       if (!pos.inBounds) return;
       
       // NO tap effects on any simulation - only finger drag triggers interactions
-      // Double-tap cycles mode
+      // Double-tap cycles mode (if enabled)
       const now = performance.now();
-      if (now - lastTapTime < 300) {
+      if (now - lastTapTime < 300 && clickCycleEnabled) {
         cycleMode();
       }
       lastTapTime = now;
@@ -212,4 +217,7 @@ export function setupPointer() {
  */
 export function setClickCycleEnabled(enabled) {
   clickCycleEnabled = enabled;
+  // Sync to global state
+  const globals = getGlobals();
+  globals.clickCycleEnabled = enabled;
 }
