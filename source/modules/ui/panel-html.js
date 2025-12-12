@@ -37,14 +37,14 @@ export const PANEL_HTML = `
     </div>
   </details>
   
-  <!-- Frame/Border Settings (Two-Level Padding System) -->
+  <!-- Frame Control (Browser-style frame around website) -->
   <details>
-    <summary>🖼️ Frame & Padding</summary>
+    <summary>🖼️ Frame</summary>
     <div class="group">
-        <label><span>Container border (px)</span><input type="range" id="containerBorderSlider" min="0" max="60" step="1" value="0"><span class="val" id="containerBorderVal">0</span></label>
-        <div style="font-size: 9px; opacity: 0.6; margin: 4px 0 10px;">Outer frame — reveals body background</div>
-        <label><span>Simulation padding (px)</span><input type="range" id="simulationPaddingSlider" min="0" max="60" step="1" value="0"><span class="val" id="simulationPaddingVal">0</span></label>
-        <div style="font-size: 9px; opacity: 0.6; margin-top: 4px;">Inner padding — shrinks ball play area</div>
+        <label><span>Frame thickness (px)</span><input type="range" id="containerBorderSlider" min="0" max="60" step="1" value="0"><span class="val" id="containerBorderVal">0</span></label>
+        <div style="font-size: 9px; opacity: 0.6; margin: 4px 0 10px;">Browser-style frame around content</div>
+        <label><span>Canvas inset (px)</span><input type="range" id="simulationPaddingSlider" min="0" max="60" step="1" value="0"><span class="val" id="simulationPaddingVal">0</span></label>
+        <div style="font-size: 9px; opacity: 0.6; margin-top: 4px;">Inner margin around ball area</div>
     </div>
   </details>
   

@@ -106,8 +106,8 @@ async function buildProduction() {
     // 2e. Inject template container and assets into public/index.html
     const publicIndexPath = path.join(CONFIG.publicDestination, 'index.html');
     let html = fs.readFileSync(publicIndexPath, 'utf-8');
-    const container = '<div id="bravia-balls"><canvas id="c" aria-label="Interactive bouncy balls physics simulation" role="application" draggable="false"></canvas><div class="panel" id="controlPanel" role="region" aria-label="Simulation controls" tabindex="-1"></div></div>';
-    const placeholderRegex = /<div[^>]*id=["']bravia-balls["'][^>]*>[\s\S]*?<\/div>/;
+    const container = '<div id="simulation-container"><div class="noise"></div><canvas id="c" aria-label="Interactive bouncy balls physics simulation" role="application" draggable="false"></canvas><div class="panel" id="controlPanel" role="region" aria-label="Simulation controls" tabindex="-1"></div></div>';
+    const placeholderRegex = /<div[^>]*id=["']simulation-container["'][^>]*>[\s\S]*?<\/div>/;
     if (placeholderRegex.test(html)) html = html.replace(placeholderRegex, container); else html = html.replace('</body>', `${container}\n</body>`);
     const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css">';
     if (!html.includes('id="bravia-balls-css"')) html = html.replace('</head>', `${cssTag}\n</head>`);

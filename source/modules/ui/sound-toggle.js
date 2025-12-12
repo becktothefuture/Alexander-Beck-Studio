@@ -33,15 +33,26 @@ export function createSoundToggle() {
   
   // Create button element
   buttonElement = document.createElement('button');
-  buttonElement.className = 'sound-toggle';
+  buttonElement.className = 'sound-toggle footer_link is-orange';
   buttonElement.id = 'sound-toggle';
   buttonElement.type = 'button';
   buttonElement.setAttribute('aria-label', 'Toggle collision sounds');
   buttonElement.setAttribute('aria-pressed', 'false');
   buttonElement.setAttribute('data-enabled', 'false');
   
+  // Style overrides for button reset to match link style
+  buttonElement.style.background = 'none';
+  buttonElement.style.border = 'none';
+  buttonElement.style.padding = '0';
+  buttonElement.style.font = 'inherit';
+  buttonElement.style.cursor = 'pointer';
+  buttonElement.style.position = 'fixed'; /* Default fixed if not in grid */
+  buttonElement.style.zIndex = '200'; /* Above noise (100) */
+  buttonElement.style.bottom = '3.5em'; /* Align with footer padding roughly */
+  buttonElement.style.left = '4em'; /* Align with social links roughly? No, wait. */
+
   // Initial text (sound starts off)
-  buttonElement.textContent = 'Sound off';
+  buttonElement.textContent = 'Sound Off'; // "Off" capitalized per request
   
   // Click handler
   buttonElement.addEventListener('click', handleToggleClick);
@@ -50,16 +61,8 @@ export function createSoundToggle() {
   buttonElement.addEventListener('mouseenter', handleHoverEnter);
   buttonElement.addEventListener('mouseleave', handleHoverLeave);
   
-  // Insert into the corners/decorative aside (structurally sensible for bonus UI)
-  // Falls back to body if aside doesn't exist
-  const cornersAside = document.querySelector('aside.viewport--corners');
-  
-  if (cornersAside) {
-    cornersAside.appendChild(buttonElement);
-  } else {
-    // Fallback: append to body as standalone fixed element
-    document.body.appendChild(buttonElement);
-  }
+  // Insert into body for now, fixed position
+  document.body.appendChild(buttonElement);
   
   console.log('✓ Sound toggle created');
   return buttonElement;
@@ -115,7 +118,7 @@ function updateButtonState(enabled) {
   buttonElement.setAttribute('aria-pressed', enabled ? 'true' : 'false');
   buttonElement.setAttribute('aria-label', 'Toggle collision sounds');
   
-  buttonElement.textContent = enabled ? 'Sound on' : 'Sound off';
+  buttonElement.textContent = enabled ? 'Sound On' : 'Sound Off';
 }
 
 /**

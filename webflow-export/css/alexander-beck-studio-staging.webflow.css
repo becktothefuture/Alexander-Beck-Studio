@@ -6900,3 +6900,51 @@ a {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
+
+/* Ensure decorative-script (Philosophy) has only a left border - Aggressive Override */
+.viewport .decorative-script {
+  border-style: solid !important;
+  border-top-width: 0 !important;
+  border-right-width: 0 !important;
+  border-bottom-width: 0 !important;
+  border-left-width: 1px !important;
+  border-color: currentColor !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding-left: 1em !important;
+  padding-top: 0 !important;
+  padding-right: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.decorative-script::before, 
+.decorative-script::after {
+  content: none !important;
+  display: none !important;
+  border: none !important;
+}
+
+/* Sound Toggle & Link Modifiers */
+.footer_link.is-orange {
+  color: #ff4c22 !important; /* Vivid Orange */
+  z-index: 200 !important; /* Above noise (100) */
+  position: relative; /* Ensure z-index applies */
+}
+
+.footer_link.is-orange:hover {
+  color: #ff7e5f !important; /* Lighter orange on hover */
+  opacity: 1 !important;
+}
+
+/* Ensure button reset for sound toggle if using .footer_link class */
+button.footer_link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  text-transform: inherit;
+  letter-spacing: inherit;
+}

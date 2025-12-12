@@ -101,15 +101,14 @@ body.dark-mode {
 }
 
 /* Main content area - light grey background with rounded corners */
-/* Container border: insets this element from viewport, revealing HTML chrome-bg */
+/* FRAME: Insets content from viewport edges (browser-style frame effect) */
 .viewport.viewport--content {
   position: fixed !important;
-  top: var(--container-border);
+  top: var(--container-border);    /* Frame thickness */
   right: var(--container-border);
   bottom: var(--container-border);
   left: var(--container-border);
-  /* Let inset positioning control size (don't use explicit width/height) */
-  width: auto !important;
+  width: auto !important;  /* Auto-size from inset */
   height: auto !important;
   background: var(--bg-light) !important;
   border-radius: var(--container-radius);
@@ -282,9 +281,9 @@ body.dark-mode .noise-2 {
   -moz-osx-font-smoothing: grayscale;
   visibility: visible !important;
   /* Border styling - override Webflow default left-only border */
-  border: 1px solid rgba(61, 61, 61, 1) !important;
+  border: none !important;
   border-left: 1px solid rgba(61, 61, 61, 1) !important;
-  padding: 2px 20px !important;
+  padding: 2px 0 2px 20px !important;
 }
 
 .decorative-script p {

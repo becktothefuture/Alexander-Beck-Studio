@@ -122,7 +122,7 @@ function ensureNoise2Element() {
     setupRenderer();
     const canvas = getCanvas();
     const ctx = getContext();
-    const container = document.getElementById('bravia-balls');
+    const container = document.getElementById('simulation-container');
     
     if (!canvas || !ctx || !container) {
       throw new Error('Missing DOM elements');

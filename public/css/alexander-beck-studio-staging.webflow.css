@@ -6924,3 +6924,27 @@ a {
   display: none !important;
   border: none !important;
 }
+
+/* Sound Toggle & Link Modifiers */
+.footer_link.is-orange {
+  color: #ff4c22 !important; /* Vivid Orange */
+  z-index: 200 !important; /* Above noise (100) */
+  position: relative; /* Ensure z-index applies */
+}
+
+.footer_link.is-orange:hover {
+  color: #ff7e5f !important; /* Lighter orange on hover */
+  opacity: 1 !important;
+}
+
+/* Ensure button reset for sound toggle if using .footer_link class */
+button.footer_link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  text-transform: inherit;
+  letter-spacing: inherit;
+}
