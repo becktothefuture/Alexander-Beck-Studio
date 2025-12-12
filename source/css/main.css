@@ -1,281 +1,39 @@
-/* Modern CSS: Set color-scheme for native controls (Safari/iOS) */
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+   ║                    ALEXANDER BECK STUDIO - MAIN STYLES                       ║
+   ║          Custom overrides + simulation integration for Webflow design        ║
+   ╚══════════════════════════════════════════════════════════════════════════════╝ */
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CSS VARIABLES - Single source of truth for theming & layout
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
 :root {
   color-scheme: light;
-  --bg-light: #cecece; /* Light grey background */
-  --bg-dark: #0a0a0a;
   
-  /* Unified browser chrome / body / frame color (single source of truth) */
+  /* Background colors */
+  --bg-light: #cecece;  /* Light grey - content area */
+  --bg-dark: #0a0a0a;   /* Near black - content area */
+  
+  /* Browser chrome / body border color */
   --chrome-bg-light: #cecece;
   --chrome-bg-dark: #0a0a0a;
   --chrome-bg: var(--chrome-bg-light);
   
-  /* Container border: insets #bravia-balls from viewport (reveals body/chrome bg as outer frame) */
+  /* Container border: padding on body that reveals chrome-bg */
   --container-border: 0px;
   
-  /* Simulation padding: space inside #bravia-balls around canvas (inner padding) */
+  /* Simulation padding: space inside #bravia-balls around canvas */
   --simulation-padding: 0px;
   
-  /* Corner radius for container (canvas radius = container radius - simulation padding) */
+  /* Corner radii */
   --container-radius: 42px;
   --canvas-radius: calc(var(--container-radius) - var(--simulation-padding));
   
   /* Noise texture sizing */
   --noise-size-base: 100px;
   --noise-size-top: 80px; /* 20% smaller for top layer */
-}
-
-:root.dark-mode {
-  color-scheme: dark;
-  --chrome-bg: var(--chrome-bg-dark);
-}
-
-/* Prevent page scrolling - simulation fills viewport */
-html {
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--chrome-bg); /* Chrome background shows as border */
-}
-
-body {
-  overflow: hidden;
-  margin: 0;
-  /* Container border: padding on body reveals html chrome-bg as outer frame */
-  padding: var(--container-border);
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  cursor: none; /* Hide system cursor globally - simulation draws its own */
-  background: var(--bg-light); /* Inner page background (light grey) */
-  transition: padding 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-/* Ensure body background changes in dark mode */
-body.dark-mode { 
-  background: var(--bg-dark) !important;
-}
-
-body.dark-mode .viewport { 
-  background: transparent !important; 
-}
-
-/* Z-INDEX LAYERING:
-   0: Body Background
-   1: Logo (Hero Text)
-   4: Bottom Noise (.noise) - Behind balls
-   5: Balls Simulation (#bravia-balls container + canvas)
-   7: Top Noise (.noise-2) - Above balls
-   20: UI Overlay (Legend, Script, Footer, Panel) - Above all noise
-   2001: Decorative Script - Above Webflow elements
-*/
-
-/* 1. Prevent Viewport from trapping children in low stack */
-.viewport {
-  z-index: auto !important;
-  transform: none !important; /* Prevent stacking context */
-  opacity: 1 !important;
-  filter: none !important;
-  perspective: none !important;
-  contain: none !important;
-  will-change: auto !important;
-  mix-blend-mode: normal !important;
-  position: static !important; /* Essential for z-index auto to work fully */
-  pointer-events: none; /* Let clicks pass through empty areas */
-}
-
-/* Actual scene background (area that used to be white) */
-.viewport.viewport--content {
-  background: var(--bg-light) !important; /* Use design light grey ONLY for inner scene */
-  border-radius: var(--container-radius); /* Rounded corners match container */
-}
-
-/* Dark mode: viewport content background */
-body.dark-mode .viewport.viewport--content {
-  background: var(--bg-dark) !important;
-}
-
-/* 2. Push Logo to Bottom Layer */
-.hero__text,
-.hero,
-.hero-section,
-[class*="hero"],
-.header {
-  z-index: 1 !important;
-  position: relative;
-}
-
-/* 3. Pull UI Elements to Top Layer (Above all noise layers) */
-.legend,
-.legend__item,
-.footer_icon-group,
-.footer_link,
-.footer_icon-link,
-.caption,
-a {
-  z-index: 20 !important; /* Above noise layers (z-index 4, 7) and balls (z-index 5) */
-  position: relative; /* relative allows z-index to work */
-  pointer-events: auto !important;
-}
-
-/* 4. Corners & Script Overlay */
-.viewport.viewport--corners {
-  z-index: 20 !important;
-  position: fixed !important; /* Keep corners fixed */
-  pointer-events: none;
-}
-.viewport.viewport--corners * {
-  pointer-events: auto;
-}
-
-/* 5. Align Legend (Top Left) with Decorative Script (Top Right) */
-.legend {
-  position: fixed !important;
-  top: 1.44rem !important; /* Matches .decorative-script */
-  left: 2rem !important;
-  margin: 0 !important;
-  /* Reset grid/flex if necessary since we are fixing it */
-  width: auto !important;
-  height: auto !important;
-}
-
-/* Responsive Legend Alignment */
-@media (max-width: 768px) {
-  .legend {
-    top: 1.08rem !important;
-    left: 1.5rem !important;
-  }
-}
-@media (max-width: 480px) {
-  .legend {
-    top: 0.72rem !important;
-    left: 1rem !important;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   TWO-LEVEL PADDING SYSTEM
-   
-   Layer 1: CONTAINER BORDER (--container-border)
-   ├── Applied to <body> as padding
-   ├── Reveals html background (--chrome-bg) as outer frame around ENTIRE page
-   └── Creates the "picture frame" effect around all content (not just simulation)
-   
-   Layer 2: SIMULATION PADDING (--simulation-padding)
-   ├── Padding inside #bravia-balls around the canvas
-   ├── Canvas radius auto-adjusts: container-radius - simulation-padding
-   └── Creates inner breathing room for the ball simulation
-   
-   Visual stack (outside → inside):
-   [HTML chrome-bg] → [Body padding = border] → [Page content] → [#bravia-balls] → [Sim padding] → [Canvas]
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-#bravia-balls {
-  overflow: hidden; /* Critical: prevent scrollbars from canvas overflow */
-  position: fixed;
-  /* Full viewport (body padding creates the outer border) */
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  /* Width/height auto-calculated from body padding */
-  border-radius: var(--container-radius);
-  background: transparent !important; /* Transparent so logo shows through */
-  transition: background-color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
-  overscroll-behavior: contain;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none; 
-  -webkit-user-select: none; 
-  -webkit-touch-callout: none;
-  pointer-events: none !important; /* Container lets events pass through */
-  z-index: 5; /* Layer 5: Above Logo, Below UI */
-}
-
-#bravia-balls canvas {
-  pointer-events: none !important; /* Canvas handled globally */
-  display: block; 
-  /* Simulation padding: canvas is inset from container edges */
-  position: absolute;
-  top: var(--simulation-padding);
-  right: var(--simulation-padding);
-  bottom: var(--simulation-padding);
-  left: var(--simulation-padding);
-  /* Size = container minus padding on both sides */
-  width: calc(100% - var(--simulation-padding) * 2);
-  height: calc(100% - var(--simulation-padding) * 2);
-  -webkit-user-drag: none;
-  user-select: none; 
-  -webkit-user-select: none;
-  touch-action: none;
-  cursor: none;
-  z-index: 1; /* Inside wrapper */
-  /* Canvas radius = container radius - simulation padding (auto-calculated) */
-  border-radius: var(--canvas-radius);
-  clip-path: inset(0 round var(--canvas-radius)); /* Hard clip for corners */
-}
-
-#bravia-balls.dark-mode {
-  background: transparent !important;
-}
-
-/* Safari-specific optimizations */
-@supports (-webkit-backdrop-filter: blur(10px)) {
-  #bravia-balls {
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-  }
-}
-
-/* Webflow dark-mode harmonization for modular build */
-/* Use soft grey (#c8c8c8) instead of pure white for better readability */
-body.dark-mode .viewport { color: #c8c8c8 !important; }
-body.dark-mode .viewport .legend__item { color: #b0b0b0 !important; }
-body.dark-mode .viewport .header { color: #c8c8c8 !important; }
-body.dark-mode .viewport .hero__text svg path[fill="#161616"] { fill: #c8c8c8 !important; }
-body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] { stroke: #c8c8c8 !important; }
-body.dark-mode .viewport .hero__text svg path[fill="black"] { fill: #c8c8c8 !important; }
-body.dark-mode .footer_link { color: #b0b0b0 !important; }
-body.dark-mode .footer_icon-link { color: #b0b0b0 !important; }
-body.dark-mode .caption { color: #a0a0a0 !important; }
-body.dark-mode .corner svg path { fill: #1a1a1a !important; }
-body.dark-mode .corner svg * { fill: #1a1a1a !important; stroke: #1a1a1a !important; }
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   NOISE TEXTURE LAYERS
-   Layer 1 (.noise): Behind balls (z-index 4) - Below #bravia-balls (z-index 5)
-   Layer 2 (.noise-2): Above balls (z-index 7) - Above #bravia-balls (z-index 5)
-   All text elements: z-index 20+ (above all noise layers)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-/* Bottom noise layer - behind balls (override Webflow's z-index: 1000) */
-.noise {
-  z-index: 4 !important; /* Below #bravia-balls (z-index 5) */
-  /* Webflow already sets: position:fixed, inset:0, background-image, etc. */
-}
-
-/* Top noise layer - above balls, flipped and smaller grain */
-.noise-2 {
-  z-index: 7 !important; /* Above #bravia-balls (z-index 5), below text (z-index 20+) */
-  transform: scaleX(-1) !important; /* Horizontal flip */
-  background-size: var(--noise-size-top) var(--noise-size-top) !important; /* 20% smaller */
-  /* Webflow already sets: position:fixed, inset:0, background-image, etc. */
-}
-
-/* Dark mode: more subtle noise */
-body.dark-mode .noise-overlay,
-body.dark-mode .noise,
-body.dark-mode .noise-2 {
-  opacity: 0.15 !important;
-  mix-blend-mode: overlay !important;
-}
-
-@media (prefers-reduced-motion: reduce) { 
-  #bravia-balls canvas { filter: none; } 
-}
-
-/* CSS Variables for dynamic ball colors - defaults (updated by JS on :root) */
-:root {
+  
+  /* Ball color palette (dynamically updated by JS) */
   --ball-1: #b7bcb7;
   --ball-2: #e4e9e4;
   --ball-3: #ffffff;
@@ -286,34 +44,217 @@ body.dark-mode .noise-2 {
   --ball-8: #ffa000;
 }
 
-/* Legend circle color classes - use CSS variables set by simulation */
-.circle.bg-ball-1 { background-color: var(--ball-1) !important; }
-.circle.bg-ball-2 { background-color: var(--ball-2) !important; }
-.circle.bg-ball-3 { background-color: var(--ball-3) !important; }
-.circle.bg-ball-4 { background-color: var(--ball-4) !important; }
-.circle.bg-ball-5 { background-color: var(--ball-5) !important; }
-.circle.bg-ball-6 { background-color: var(--ball-6) !important; }
-.circle.bg-ball-7 { background-color: var(--ball-7) !important; }
-.circle.bg-ball-8 { background-color: var(--ball-8) !important; }
+:root.dark-mode {
+  color-scheme: dark;
+  --chrome-bg: var(--chrome-bg-dark);
+}
 
-/* Personal statement text in top right corner */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   BASE LAYOUT - HTML & BODY
+   Two-level padding creates border effect:
+   - HTML: --chrome-bg background (browser color)
+   - Body: --container-border padding reveals HTML bg as frame
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+html {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--chrome-bg); /* Shows as border when body has padding */
+}
+
+body {
+  overflow: hidden;
+  margin: 0;
+  padding: var(--container-border); /* Creates outer frame effect */
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  cursor: none; /* Simulation draws custom cursor */
+  background: var(--bg-light);
+  transition: padding 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+body.dark-mode { 
+  background: var(--bg-dark) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Z-INDEX HIERARCHY
+   0: HTML Background
+   1: Logo (Hero Text)
+   4: Bottom Noise - Behind balls
+   5: Balls Simulation
+   7: Top Noise - Above balls
+   20: UI Elements (Legend, Links, Footer)
+   2001: Decorative Script
+   MAX: Control Panel
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Webflow .viewport reset - prevent stacking context issues */
+.viewport {
+  z-index: auto !important;
+  position: static !important;
+  transform: none !important;
+  opacity: 1 !important;
+  pointer-events: none;
+}
+
+.viewport.viewport--content {
+  background: var(--bg-light) !important;
+  border-radius: var(--container-radius);
+}
+
+body.dark-mode .viewport,
+body.dark-mode .viewport.viewport--content {
+  background: transparent !important;
+  color: #c8c8c8 !important;
+}
+
+/* Logo layer */
+.hero__text,
+.hero,
+.hero-section,
+[class*="hero"],
+.header {
+  z-index: 1 !important;
+  position: relative;
+}
+
+/* UI elements layer */
+.legend,
+.legend__item,
+.footer_icon-group,
+.footer_link,
+.footer_icon-link,
+.caption,
+a {
+  z-index: 20 !important;
+  position: relative;
+  pointer-events: auto !important;
+}
+
+/* Corners overlay */
+.viewport.viewport--corners {
+  z-index: 20 !important;
+  position: fixed !important;
+  pointer-events: none;
+}
+
+.viewport.viewport--corners * {
+  pointer-events: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SIMULATION CONTAINER - #bravia-balls
+   Transparent wrapper with rounded corners, houses canvas + controls
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+#bravia-balls {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--container-radius);
+  background: transparent !important;
+  z-index: 5;
+  pointer-events: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: contain;
+  transition: background-color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Canvas - simulation drawing surface */
+#bravia-balls canvas {
+  position: absolute;
+  top: var(--simulation-padding);
+  right: var(--simulation-padding);
+  bottom: var(--simulation-padding);
+  left: var(--simulation-padding);
+  width: calc(100% - var(--simulation-padding) * 2);
+  height: calc(100% - var(--simulation-padding) * 2);
+  display: block;
+  border-radius: var(--canvas-radius);
+  clip-path: inset(0 round var(--canvas-radius));
+  z-index: 1;
+  pointer-events: none !important;
+  cursor: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Safari-specific GPU optimization */
+@supports (-webkit-backdrop-filter: blur(10px)) {
+  #bravia-balls {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   NOISE TEXTURE LAYERS
+   .noise (z:4) behind balls | .noise-2 (z:7) above balls | Text (z:20+) above all
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.noise {
+  z-index: 4 !important;
+}
+
+.noise-2 {
+  z-index: 7 !important;
+  transform: scaleX(-1) !important;
+  background-size: var(--noise-size-top) var(--noise-size-top) !important;
+}
+
+body.dark-mode .noise,
+body.dark-mode .noise-2 {
+  opacity: 0.15 !important;
+  mix-blend-mode: overlay !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   TYPOGRAPHY & TEXT ELEMENTS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Legend (top-left color key) */
+.legend {
+  position: fixed !important;
+  top: 1.44rem !important;
+  left: 2rem !important;
+  margin: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  font-family: 'Geist', sans-serif !important;
+}
+
+.legend__item {
+  font-family: 'Geist', sans-serif !important;
+}
+
+/* Decorative script (top-right philosophy statement) */
 .decorative-script {
   position: fixed;
   top: 1.44rem;
   right: 2rem;
+  max-width: min(418px, 38.5vw);
+  z-index: 2001 !important;
   font-family: 'Geist', sans-serif;
   font-size: clamp(0.695rem, 1.2vw, 0.8rem);
   font-weight: 400;
   line-height: 1.3;
   letter-spacing: 0.01em;
   color: #161616;
-  max-width: min(418px, 38.5vw);
-  z-index: 2001 !important; /* Above Webflow elements (z-index: 2000) and all noise layers */
+  opacity: 0.85;
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
-  opacity: 0.85;
-  transform: translateZ(0); /* Force GPU acceleration */
+  transform: translateZ(0);
   transition: opacity 0.3s ease, color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -329,9 +270,9 @@ body.dark-mode .noise-2 {
 .decorative-script p a {
   text-decoration: underline;
   color: inherit;
-  transition: opacity 0.2s ease;
   pointer-events: auto;
   cursor: pointer;
+  transition: opacity 0.2s ease;
 }
 
 .decorative-script p a:hover {
@@ -339,16 +280,12 @@ body.dark-mode .noise-2 {
   opacity: 1;
 }
 
-body.dark-mode .decorative-script p a {
-  color: inherit;
-}
-
-/* Match footer links to decorative script link style */
+/* Footer links */
 .footer_link {
   text-decoration: none;
   color: inherit;
-  transition: color 0.2s ease;
   opacity: 0.85;
+  transition: color 0.2s ease;
 }
 
 .footer_link:hover {
@@ -356,35 +293,16 @@ body.dark-mode .decorative-script p a {
   opacity: 1;
 }
 
-body.dark-mode .footer_link {
-  color: inherit !important;
-  opacity: 0.88;
-}
-
-body.dark-mode .footer_link:hover {
-  color: #000000 !important;
-  opacity: 1;
-}
-
-/* Legend labels - use regular font instead of monospace */
-.legend {
-  font-family: 'Geist', sans-serif !important;
-}
-
-.legend__item {
-  font-family: 'Geist', sans-serif !important;
-}
-
-/* Caption - Molle script font, thicker weight */
+/* Caption (timestamp) */
 .caption {
   font-family: 'Molle', cursive !important;
   font-size: clamp(0.904rem, 1.56vw, 1.04rem) !important;
   font-weight: 700 !important;
   line-height: 1.3 !important;
   letter-spacing: 0.01em !important;
-  transition: color 0.2s ease;
   opacity: 0.85;
   cursor: default;
+  transition: color 0.2s ease;
 }
 
 .caption:hover {
@@ -392,29 +310,78 @@ body.dark-mode .footer_link:hover {
   opacity: 1;
 }
 
-body.dark-mode .caption {
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+body.dark-mode .viewport .legend__item,
+body.dark-mode .footer_link,
+body.dark-mode .footer_icon-link {
+  color: #b0b0b0 !important;
   opacity: 0.88;
 }
 
-body.dark-mode .caption:hover {
-  color: #000000 !important;
-  opacity: 1;
+body.dark-mode .caption {
+  color: #a0a0a0 !important;
+  opacity: 0.88;
 }
 
-/* Dark mode support for personal statement */
 body.dark-mode .decorative-script {
   color: #f5f5f5;
   opacity: 0.88;
 }
 
-/* Responsive adjustments */
+body.dark-mode .decorative-script p a,
+body.dark-mode .footer_link:hover,
+body.dark-mode .caption:hover {
+  color: #f5f5f5 !important;
+  opacity: 1;
+}
+
+/* Dark mode - SVG fills */
+body.dark-mode .viewport .hero__text svg path[fill="#161616"],
+body.dark-mode .viewport .hero__text svg path[fill="black"] {
+  fill: #c8c8c8 !important;
+}
+
+body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
+  stroke: #c8c8c8 !important;
+}
+
+body.dark-mode .corner svg path,
+body.dark-mode .corner svg * {
+  fill: #1a1a1a !important;
+  stroke: #1a1a1a !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LEGEND CIRCLE COLORS - Synced with ball palette
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.circle.bg-ball-1 { background-color: var(--ball-1) !important; }
+.circle.bg-ball-2 { background-color: var(--ball-2) !important; }
+.circle.bg-ball-3 { background-color: var(--ball-3) !important; }
+.circle.bg-ball-4 { background-color: var(--ball-4) !important; }
+.circle.bg-ball-5 { background-color: var(--ball-5) !important; }
+.circle.bg-ball-6 { background-color: var(--ball-6) !important; }
+.circle.bg-ball-7 { background-color: var(--ball-7) !important; }
+.circle.bg-ball-8 { background-color: var(--ball-8) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE ADJUSTMENTS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
 @media (max-width: 768px) {
+  .legend {
+    top: 1.08rem !important;
+    left: 1.5rem !important;
+  }
+  
   .decorative-script {
     top: 1.08rem;
     right: 1.5rem;
     font-size: clamp(0.638rem, 1.6vw, 0.764rem);
     max-width: min(352px, 46.2vw);
-    line-height: 1.3;
   }
   
   .caption {
@@ -423,12 +390,16 @@ body.dark-mode .decorative-script {
 }
 
 @media (max-width: 480px) {
+  .legend {
+    top: 0.72rem !important;
+    left: 1rem !important;
+  }
+  
   .decorative-script {
     top: 0.72rem;
     right: 1rem;
     font-size: clamp(0.604rem, 2.39vw, 0.695rem);
     max-width: min(308px, 52.8vw);
-    line-height: 1.3;
   }
   
   .caption {
@@ -436,9 +407,18 @@ body.dark-mode .decorative-script {
   }
 }
 
-/* Respect reduced motion preference */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ACCESSIBILITY
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
 @media (prefers-reduced-motion: reduce) {
-  .decorative-script {
+  #bravia-balls canvas {
+    filter: none;
+  }
+  
+  .decorative-script,
+  .footer_link,
+  .caption {
     transition: color 0.3s ease;
   }
 }
