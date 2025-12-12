@@ -449,7 +449,7 @@ body.dark-mode .noise-2 {
 .decorative-script p a::after {
   content: '';
   position: absolute;
-  bottom: -3px;
+  bottom: -1.5px;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -497,7 +497,7 @@ body.dark-mode .noise-2 {
 .footer_link::after {
   content: '';
   position: absolute;
-  bottom: -3px;
+  bottom: -1.5px;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -555,7 +555,7 @@ body.dark-mode .noise-2 {
 .caption::after {
   content: '';
   position: absolute;
-  bottom: -3px;
+  bottom: -1.5px;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -722,7 +722,7 @@ body.dark-mode .corner svg * {
 .sound-toggle::after {
   content: '';
   position: absolute;
-  bottom: -3px;
+  bottom: -1.5px;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
