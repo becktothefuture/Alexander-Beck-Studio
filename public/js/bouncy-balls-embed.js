@@ -1,4 +1,4 @@
-/* Alexander Beck Studio – Bouncy Balls | Build: 2025-12-12T19:06:17.616Z */
+/* Alexander Beck Studio – Bouncy Balls | Build: 2025-12-12T19:08:24.721Z */
 var BouncyBalls = (function (exports) {
   'use strict';
 
@@ -1348,17 +1348,26 @@ var BouncyBalls = (function (exports) {
     
     const targetBalls = 300; // MAX_BALLS
     globals.canvas.width;
-    const hCss = globals.canvas.clientHeight;
     const DPR = globals.DPR;
     
+    // CRITICAL: Use container height (not canvas height) for spawn calculations
+    // Canvas is 150% of container (top 1/3 is spawn area above viewport)
+    // Spawn positions are relative to the visible viewport, so we need base container height
+    const container = globals.container || document.getElementById('bravia-balls');
+    const containerHeightCss = container ? container.clientHeight : (globals.canvas.clientHeight / 1.5);
+    
+    // Account for simulation padding (canvas is inset from container)
+    const simPad = globals.simulationPadding || 0;
+    const visibleHeightCss = containerHeightCss - (simPad * 2);
+    
     // Spawn parameters (from config)
-    const SPAWN_Y_VH = -50;
-    const SPAWN_H_VH = 50;
-    const SPAWN_W_VW = 100;
+    const SPAWN_Y_VH = -50;  // -50% = spawn 50% above visible viewport
+    const SPAWN_H_VH = 50;   // 50% height spawn zone
+    const SPAWN_W_VW = 100;  // Full width
     const SPAWN_X_CENTER_VW = 50;
     
-    const spawnYTop = (SPAWN_Y_VH / 100) * hCss * DPR;
-    const spawnYBottom = spawnYTop + (SPAWN_H_VH / 100) * hCss * DPR;
+    const spawnYTop = (SPAWN_Y_VH / 100) * visibleHeightCss * DPR;
+    const spawnYBottom = spawnYTop + (SPAWN_H_VH / 100) * visibleHeightCss * DPR;
     const widthCss = (SPAWN_W_VW / 100) * (globals.canvas.clientWidth);
     const xCenterCss = (SPAWN_X_CENTER_VW / 100) * (globals.canvas.clientWidth);
     const xLeftCss = xCenterCss - widthCss / 2;
