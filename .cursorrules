@@ -43,4 +43,27 @@
 - [ ] Mobile responsive
 - [ ] No console errors
 
+## Git Workflow
+
+**Keep local and remote in sync:**
+1. After committing changes, always push to origin/main
+2. Before starting work, pull latest changes from origin
+3. Use descriptive commit messages with conventional commits format:
+   - `feat:` new features
+   - `fix:` bug fixes
+   - `refactor:` code changes that neither fix nor add
+   - `docs:` documentation only
+   - `style:` formatting, no code change
+   - `perf:` performance improvements
+
+**After committing:**
+```bash
+git push origin main
+```
+
+**Before starting new work:**
+```bash
+git pull origin main
+```
+
 See AI-AGENT-GUIDE.md and docs/ for complete rules.
