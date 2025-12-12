@@ -5,6 +5,7 @@
 
 import { CONSTANTS } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
+import { playCollisionSound } from '../audio/sound-engine.js';
 
 const spatialGrid = new Map();
 
@@ -139,6 +140,20 @@ export function resolveCollisions(iterations = 10) {
         A.squashNormalAngle = Math.atan2(-ny, -nx);
         B.squashAmount = Math.max(B.squashAmount, sAmt * 0.8);
         B.squashNormalAngle = Math.atan2(ny, nx);
+        
+        // ════════════════════════════════════════════════════════════════════════
+        // SOUND: Play collision sound (underwater pebble)
+        // Only on first iteration to avoid duplicate sounds
+        // ════════════════════════════════════════════════════════════════════════
+        if (iter === 0 && impact > 0.05) {
+          const avgRadius = (A.r + B.r) / 2;
+          const midX = (A.x + B.x) / 2;
+          const canvasWidth = globals.canvas?.width || 1;
+          const xNormalized = midX / canvasWidth;
+          // Use combined index as unique ID to debounce
+          const collisionId = `${i}-${j}`;
+          playCollisionSound(avgRadius, impact, xNormalized, collisionId);
+        }
       }
     }
   }

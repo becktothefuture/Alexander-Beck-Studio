@@ -5,6 +5,10 @@
 
 import { getConfig, getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES } from '../core/constants.js';
+import { playCollisionSound } from '../audio/sound-engine.js';
+
+// Unique ID counter for ball sound debouncing
+let ballIdCounter = 0;
 
 export class Ball {
   constructor(x, y, r, color) {
@@ -31,6 +35,7 @@ export class Ball {
     this.alpha = 1.0;
     this.isSleeping = false;
     this.sleepTimer = 0;  // Time spent below sleep threshold
+    this._soundId = `ball-${ballIdCounter++}`; // Unique ID for sound debouncing
   }
 
   step(dt, applyForcesFunc) {
@@ -222,6 +227,10 @@ export class Ball {
       this.squashNormalAngle = -Math.PI / 2;
       const rollTarget = this.vx / this.r;
       this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
+      // Sound: floor impact
+      if (impact > 0.08) {
+        playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
+      }
     }
     
     // Top
@@ -238,26 +247,36 @@ export class Ball {
     if (this.x + this.r > maxX) {
       hasWallCollision = true;
       this.x = maxX - this.r;
+      const preVx = this.vx;
       const slip = this.vy - this.omega * this.r;
       const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
       this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
       this.vx = -this.vx * (REST * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
-      const impact = Math.min(1, Math.abs(this.vx)/(this.r*70));
+      const impact = Math.min(1, Math.abs(preVx)/(this.r*70));
       this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
       this.squashNormalAngle = Math.PI;
+      // Sound: right wall impact
+      if (impact > 0.08) {
+        playCollisionSound(this.r, impact * 0.6, 1.0, this._soundId);
+      }
     }
     
     // Left
     if (this.x - this.r < minX) {
       hasWallCollision = true;
       this.x = minX + this.r;
+      const preVx = this.vx;
       const slip = this.vy - this.omega * this.r;
       const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
       this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
       this.vx = -this.vx * (REST * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
-      const impact = Math.min(1, Math.abs(this.vx)/(this.r*70));
+      const impact = Math.min(1, Math.abs(preVx)/(this.r*70));
       this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
       this.squashNormalAngle = 0;
+      // Sound: left wall impact
+      if (impact > 0.08) {
+        playCollisionSound(this.r, impact * 0.6, 0.0, this._soundId);
+      }
     }
     
     // Wake on wall collision (prevents sleeping balls from getting stuck in walls)
