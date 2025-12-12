@@ -9,6 +9,16 @@
   <link rel="stylesheet" href="css/password-gate.css">
 </head>
 <body>
+  <!-- Logo (hero text) - swaps with password gate -->
+  <div class="hero__text" style="position: fixed; left: 2rem; bottom: 2rem; z-index: 2; font-size: 2rem; font-weight: 700; color: #161616;">LOGO</div>
+  
+  <!-- Footer links for testing -->
+  <div style="position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); display: flex; gap: 2rem; z-index: 20;">
+    <a href="mailto:info@beck.fyi" class="footer_link" style="color: rgba(0,0,0,0.7); text-decoration: none; font-size: 0.9rem;">info@beck.fyi</a>
+    <a href="#" class="footer_link" style="color: rgba(0,0,0,0.7); text-decoration: none; font-size: 0.9rem;">Portfolio [offline]</a>
+    <a href="#" id="cv-gate-trigger" class="footer_link" style="color: rgba(0,0,0,0.7); text-decoration: none; font-size: 0.9rem;">Download Bio/CV</a>
+  </div>
+
   <div id="bravia-balls">
     <canvas id="c" aria-label="Interactive bouncy balls physics simulation" role="application" draggable="false"></canvas>
     <div class="panel" id="controlPanel" role="region" aria-label="Simulation controls" tabindex="-1"></div>
