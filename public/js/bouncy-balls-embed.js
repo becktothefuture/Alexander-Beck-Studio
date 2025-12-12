@@ -1,1 +1,3440 @@
-!function(){"use strict";const e={PIT:"pit",FLIES:"flies",WEIGHTLESS:"weightless",WATER:"water",VORTEX:"vortex",PING_PONG:"ping-pong",MAGNETIC:"magnetic",BUBBLES:"bubbles"},t={DPR:Math.max(1,Math.min(2,window.devicePixelRatio||1)),CANVAS_HEIGHT_VH_PIT:1.5,CANVAS_HEIGHT_VH_DEFAULT:1,OFFSCREEN_MOUSE:-1e9,MIN_DISTANCE_EPSILON:1e-6,ACCUMULATOR_RESET_THRESHOLD:3,MAX_PHYSICS_STEPS:2,SPIN_DAMP_PER_S:2,SPIN_GAIN:.25,SPIN_GAIN_TANGENT:.18,ROLL_FRICTION_PER_S:1.5,SQUASH_MAX_BASE:.2,SQUASH_DECAY_PER_S:18,WALL_REST_VEL_THRESHOLD:70,GROUND_COUPLING_PER_S:8,SLEEP_VELOCITY_THRESHOLD:5,SLEEP_ANGULAR_THRESHOLD:.05,TIME_TO_SLEEP:.5,PHYSICS_DT:1/120},a={config:{},currentMode:e.FLIES,balls:[],canvas:null,ctx:null,container:null,mouseX:t.OFFSCREEN_MOUSE,mouseY:t.OFFSCREEN_MOUSE,mouseInCanvas:!1,GE:1960,G:0,gravityScale:1,gravityMultiplier:0,gravityMultiplierPit:1.1,REST:.69,FRICTION:.006,ballMassKg:129,MASS_BASELINE_KG:129,MASS_REST_EXP:.15,MASS_GRAVITY_EXP:.35,DPR:Math.max(1,Math.min(2,window.devicePixelRatio||1)),sizeScale:1.2,sizeVariation:0,responsiveScale:1,R_MIN_BASE:6,R_MAX_BASE:24,R_MIN:6*1.2*.75,R_MAX:36,ballSoftness:20,cornerRadius:42,vortexSwirlStrength:420,vortexRadialPull:180,vortexBallCount:180,magneticBallCount:180,magneticStrength:65e3,magneticMaxVelocity:2800,magneticExplosionInterval:5,bubblesSpawnRate:8,bubblesRiseSpeed:150,bubblesWobble:40,bubblesMaxCount:150,bubblesDeflectRadius:80,pingPongBallCount:35,pingPongSpeed:800,pingPongCursorRadius:50,currentColors:["#b7bcb7","#e4e9e4","#ffffff","#00695c","#000000","#ff4013","#0d5cb6","#ffa000"],currentTemplate:"industrialTeal",fliesBallCount:60,attractionPower:5e3,orbitRadius:180,swarmSpeed:.4,fliesSeparation:15e3,weightlessCount:80,weightlessInitialSpeed:250,weightlessBounce:.97,gridColumns:40,gridBallCount:120,pulseInterval:.8,waterBallCount:300,waterDrag:.015,waterRippleSpeed:300,waterRippleStrength:18e3,waterDriftStrength:40,waterInitialVelocity:200,repelRadius:120,repelPower:274e3,repelSoft:3.4,repellerEnabled:!1,emitterTimer:0,autoDarkModeEnabled:!0,isDarkMode:!1,getSquashMax(){return 0===this.ballSoftness?0:t.SQUASH_MAX_BASE*(this.ballSoftness/40)}};function n(){return a}function i(){a.balls.length=0}const s={industrialTeal:{label:"Industrial Teal",light:["#b7bcb7","#e4e9e4","#ffffff","#00695c","#000000","#ff4013","#0d5cb6","#ffa000"],dark:["#6b726b","#3d453d","#8a928a","#00e6c3","#d5d5d5","#ff6b47","#5b9aff","#ffb84d"]},sunsetCoral:{label:"Sunset Coral",light:["#bdbbb8","#e8e6e3","#ffffff","#ff3b3b","#000000","#00f5d4","#1e40af","#fb923c"],dark:["#716f6b","#3f3d3a","#8e8c88","#ff6b6b","#d8d8d8","#00ffe7","#6ba3ff","#ffb570"]},violetPunch:{label:"Violet Punch",light:["#b8b7c2","#e6e5ed","#ffffff","#9333ea","#000000","#dc2626","#0ea5e9","#facc15"],dark:["#6d6c7a","#3a3845","#8b8a98","#c266ff","#dad6e8","#ff5c5c","#42d4ff","#fff066"]},citrusBlast:{label:"Citrus Blast",light:["#bfbdb5","#eae8df","#ffffff","#ea580c","#000000","#e11d48","#2563eb","#059669"],dark:["#74726a","#403e38","#918f87","#ff8c4d","#dbd9d1","#ff5c7a","#6ba3ff","#00d699"]},cobaltSpark:{label:"Cobalt Spark",light:["#b5b8be","#e3e6eb","#ffffff","#1d4ed8","#000000","#ea580c","#db2777","#d97706"],dark:["#696d75","#3a3e45","#878b93","#6b9dff","#d6dae2","#ff8c5c","#ff66b3","#ffc266"]}},o=[.5,.25,.12,.06,.03,.02,.01,.01];function l(){const e=n().currentColors;if(!e||0===e.length)return console.warn("No colors available, using fallback"),"#ffffff";const t=Math.random();let a=0;for(let n=0;n<Math.min(e.length,o.length);n++)if(a+=o[n],t<=a)return e[n];return e[Math.min(e.length-1,7)]}function r(e){const t=n().currentColors;return t&&0!==t.length?t[Math.max(0,Math.min(7,Math.floor(e)))]||"#ffffff":(console.warn("No colors available, using fallback"),"#ffffff")}function d(e){const t=n();t.currentTemplate=e,t.currentColors=function(e){const t=n(),a=s[e];return a?t.isDarkMode?a.dark:a.light:s.industrialTeal.light}(e),t.cursorBallColor=t.currentColors[t.cursorBallIndex||4],function(){const e=n().balls;for(let t=0;t<e.length;t++)e[t].color=l()}(),function(e){try{const t=document.documentElement,a=(e&&e.length?e:[]).slice(0,8);for(let e=0;e<8;e++){const n=a[e]||"#ffffff";t.style.setProperty(`--ball-${e+1}`,n)}}catch(e){}}(t.currentColors),function(){const e=n().currentColors;for(let t=1;t<=8;t++){const a=document.getElementById(`color${t}`),n=document.getElementById(`color${t}Val`);a&&e[t-1]&&(a.value=e[t-1],n&&(n.textContent=e[t-1].toUpperCase()))}}()}function c(){const e=document.getElementById("colorSelect");if(!e)return;e.innerHTML="";for(const[t,a]of Object.entries(s)){const n=document.createElement("option");n.value=t,n.textContent=a.label,e.appendChild(n)}const t=n();e.value=t.currentTemplate}let u="light",h="light";const p="#cecece",m="#0a0a0a";function g(e){u=e;let t=!1;t="auto"===e?"dark"===h:"dark"===e,function(e){const t=n();t.isDarkMode=e,document.documentElement.style.colorScheme=e?"dark":"light",e?(t.container?.classList.add("dark-mode"),document.body.classList.add("dark-mode"),document.documentElement.classList.add("dark-mode")):(t.container?.classList.remove("dark-mode"),document.body.classList.remove("dark-mode"),document.documentElement.classList.remove("dark-mode")),function(e){const t=e?m:p;let a=document.querySelector('meta[name="theme-color"]');a||(a=document.createElement("meta"),a.name="theme-color",document.head.appendChild(a)),a.content=t;let n=document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');n||(n=document.createElement("meta"),n.name="theme-color",n.media="(prefers-color-scheme: light)",document.head.appendChild(n)),n.content=p;let i=document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');i||(i=document.createElement("meta"),i.name="theme-color",i.media="(prefers-color-scheme: dark)",document.head.appendChild(i)),i.content=m}(e),d(t.currentTemplate),function(){const e=document.getElementById("themeAuto"),t=document.getElementById("themeLight"),a=document.getElementById("themeDark");if(!e||!t||!a)return;[e,t,a].forEach(e=>e.classList.remove("active")),"auto"===u?e.classList.add("active"):"light"===u?t.classList.add("active"):a.classList.add("active");const i=document.getElementById("themeStatus");if(i){const e=n();i.textContent="auto"===u?e.isDarkMode?"🌙 Auto (Dark)":"☀️ Auto (Light)":"light"===u?"☀️ Light Mode":"🌙 Dark Mode"}}()}(t);try{localStorage.setItem("theme-preference",e)}catch(e){}console.log(`🎨 Theme set to: ${e} (rendering: ${t?"dark":"light"})`)}function b(){h=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light",console.log(`🖥️ System prefers: ${h}`);let e="light";try{e=localStorage.getItem("theme-preference")||"light"}catch(e){}g(e);const t=document.getElementById("themeAuto"),a=document.getElementById("themeLight"),n=document.getElementById("themeDark");t&&t.addEventListener("click",()=>g("auto")),a&&a.addEventListener("click",()=>g("light")),n&&n.addEventListener("click",()=>g("dark")),window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",e=>{h=e.matches?"dark":"light",console.log(`🖥️ System preference changed to: ${h}`),"auto"===u&&g("auto")}),console.log("✓ Modern dark mode initialized")}let v,f;function M(){v=document.getElementById("c"),f=v?v.getContext("2d"):null,v&&f?(S(),window.addEventListener("resize",S)):console.error("Canvas not found")}function S(){if(!v)return;const a=n().currentMode===e.PIT?t.CANVAS_HEIGHT_VH_PIT:t.CANVAS_HEIGHT_VH_DEFAULT,i=window.innerHeight*a,s=t.DPR;v.width=Math.floor(window.innerWidth*s),v.height=Math.floor(i*s),v.style.width=window.innerWidth+"px",v.style.height=i+"px",function(e){const t=n();if(!t.canvasShadowEnabled)return void(e.style.filter="");const a=t.shadowOffsetX||1,i=t.shadowOffsetY||1,s=t.shadowBlur||0,o=t.shadowColor||"#000000",l=t.shadowOpacity||.29,r=t.shadow2Enabled?` drop-shadow(0 0 ${t.shadow2Blur||4}px rgba(0,0,0,${t.shadow2Opacity||.1}))`:"";e.style.filter=`drop-shadow(${a}px ${i}px ${s}px ${function(e,t){const a=e.replace("#",""),n=parseInt(a,16);return`rgba(${n>>16&255}, ${n>>8&255}, ${255&n}, ${t})`}(o,l)})${r}`}(v)}function x(){return v}function y(){return f}function w(){console.log("⚠️ localStorage is disabled")}function E(){clearTimeout(window.settingsSaveTimeout),window.settingsSaveTimeout=setTimeout(w,500)}class P{constructor(e,t,a,i){const s=n();this.x=e,this.y=t,this.vx=200*(2*Math.random()-1),this.vy=200*-Math.random(),this.r=a,this.rBase=a,this.m=s.ballMassKg,this.color=i,this.t=0,this.age=0,this.driftAx=0,this.driftTime=0,this.omega=0,this.squash=1,this.squashDirX=1,this.squashDirY=0,this.theta=0,this.squashAmount=0,this.squashNormalAngle=0,this.alpha=1,this.isSleeping=!1,this.sleepTimer=0}step(a,i){const s=n(),{currentMode:o,G:l,gravityScale:r,FRICTION:d,MASS_BASELINE_KG:c}=s;if(this.t+=a,this.age+=a,this.isSleeping&&o===e.PIT){const e=s.mouseX,t=s.mouseY,a=(s.repelRadius||710)*s.DPR*1.2,n=this.x-e,i=this.y-t;n*n+i*i<a*a&&this.wake()}if(this.isSleeping)return;o!==e.WEIGHTLESS&&(this.vy+=l*r*a);const u=Math.max(.25,this.m/c),h=o===e.WEIGHTLESS?1e-4:d,p=Math.max(0,1-h/u);this.vx*=p,this.vy*=p,0!==this.driftAx&&this.age<this.driftTime?this.vx+=this.driftAx*a/u:0!==this.driftAx&&(this.driftAx=0),i&&i(this,a),this.x+=this.vx*a,this.y+=this.vy*a;const m=Math.max(0,1-t.SPIN_DAMP_PER_S*a);this.omega*=m,this.theta+=this.omega*a;const g=Math.min(1,t.SQUASH_DECAY_PER_S*a);this.squashAmount+=(0-this.squashAmount)*g,this.squash=1-this.squashAmount,o===e.PIT&&this.updateSleepState(a,s)}updateSleepState(e,a){const n=Math.sqrt(this.vx*this.vx+this.vy*this.vy),i=Math.abs(this.omega),s=a.canvas;s&&this.y+this.r>=s.height-1&&n<t.SLEEP_VELOCITY_THRESHOLD&&i<t.SLEEP_ANGULAR_THRESHOLD?(this.sleepTimer+=e,this.sleepTimer>=t.TIME_TO_SLEEP&&(this.vx=0,this.vy=0,this.omega=0,this.isSleeping=!0)):this.sleepTimer=0}wake(){this.isSleeping=!1,this.sleepTimer=0}walls(a,i,s,o){const l=n(),{REST:r,MASS_BASELINE_KG:d,MASS_REST_EXP:c,cornerRadius:u,currentMode:h,DPR:p}=l,m=void 0!==o?o:r,g=h===e.PIT?i/3:0,b=(u||42)*(p||1);let v=!1;const f=[{cx:b,cy:g+b},{cx:a-b,cy:g+b},{cx:b,cy:i-b},{cx:a-b,cy:i-b}];for(let e=0;e<f.length;e++){const t=f[e],n=e%2==0?this.x<b:this.x>a-b,s=e<2?this.y<g+b:this.y>i-b;if(n&&s){const e=this.x-t.cx,a=this.y-t.cy,n=Math.sqrt(e*e+a*a),i=b-this.r;if(n>i&&i>0){v=!0;const t=n-i,s=e/n,o=a/n;this.x-=s*t,this.y-=o*t;const l=this.vx*s+this.vy*o;l>0&&(this.vx-=(1+m)*l*s,this.vy-=(1+m)*l*o)}}}const M=a-0,S=g+0,x=i-0;if(this.y+this.r>x){v=!0,this.y=x-this.r;const e=this.vy,a=this.vx-this.omega*this.r,n=Math.max(.25,this.m/d);this.omega+=a/this.r*t.SPIN_GAIN/n;const i=Math.max(0,1-t.ROLL_FRICTION_PER_S*s/n);this.vx*=i;const o=Math.abs(e)<t.WALL_REST_VEL_THRESHOLD?0:m;this.vy=-this.vy*(o*Math.pow(d/this.m,c));const r=Math.min(1,Math.abs(e)/(90*this.r));this.squashAmount=Math.min(l.getSquashMax(),.8*r),this.squashNormalAngle=-Math.PI/2;const u=this.vx/this.r;this.omega+=(u-this.omega)*Math.min(1,t.GROUND_COUPLING_PER_S*s)}if(this.y-this.r<S){v=!0,this.y=S+this.r,this.vy=-this.vy*m;const e=Math.min(1,Math.abs(this.vy)/(90*this.r));this.squashAmount=Math.min(l.getSquashMax(),.8*e),this.squashNormalAngle=Math.PI/2}if(this.x+this.r>M){v=!0,this.x=M-this.r;const e=this.vy-this.omega*this.r,a=Math.max(.25,this.m/d);this.omega+=e/this.r*(.5*t.SPIN_GAIN)/a,this.vx=-this.vx*(r*Math.pow(d/this.m,c));const n=Math.min(1,Math.abs(this.vx)/(70*this.r));this.squashAmount=Math.min(l.getSquashMax(),.8*n),this.squashNormalAngle=Math.PI}if(this.x-this.r<0){v=!0,this.x=0+this.r;const e=this.vy-this.omega*this.r,a=Math.max(.25,this.m/d);this.omega+=e/this.r*(.5*t.SPIN_GAIN)/a,this.vx=-this.vx*(r*Math.pow(d/this.m,c));const n=Math.min(1,Math.abs(this.vx)/(70*this.r));this.squashAmount=Math.min(l.getSquashMax(),.8*n),this.squashNormalAngle=0}v&&this.isSleeping&&this.wake()}draw(e){if(e.save(),e.translate(this.x,this.y),e.rotate(this.theta),this.squashAmount>.001){const t=1-.3*this.squashAmount,a=1+.3*this.squashAmount;e.rotate(this.squashNormalAngle),e.scale(t,a),e.rotate(-this.squashNormalAngle)}e.beginPath(),e.arc(0,0,this.r,0,2*Math.PI),e.fillStyle=this.color,e.globalAlpha=this.alpha,e.fill(),e.globalAlpha=1,e.restore()}}function I(e,t,a){a||(a=l());const i=n(),s=(i.R_MIN+i.R_MAX)/2;let o;if(0===i.sizeVariation)o=s;else{const e=.1*s;d=s+e,o=(r=Math.max(1,s-e))+Math.random()*(d-r)}var r,d;const c=new P(e,t,o,a),u=e<.5*i.canvas.width?1:-1,h=(g=o/(.5*(i.R_MIN+i.R_MAX)),Math.max(.6,Math.min(1.4,g))),p=140*h,m=180*h;var g;return c.vx=u*(p+Math.random()*m),c.vy=120*-Math.random(),c.driftAx=u*(360+420*Math.random())*h,c.driftTime=.22+.28*Math.random(),i.balls.push(c),c}function R(){const e=n();i();const t=.5*e.canvas.width,a=.5*e.canvas.height,s=150*e.DPR;for(let e=0;e<8;e++){const n=Math.random()*Math.PI*2,i=Math.random()*s,o=I(t+Math.cos(n)*i,a+Math.sin(n)*i,r(e)),l=.5+.5*Math.random(),d=Math.random()*Math.PI*2,c=300*l;o.vx=Math.cos(d)*c,o.vy=Math.sin(d)*c,o.driftAx=0,o.driftTime=0}for(let e=8;e<60;e++){const e=Math.random()*Math.PI*2,n=Math.random()*s,i=I(t+Math.cos(e)*n,a+Math.sin(e)*n),o=.5+.5*Math.random(),l=Math.random()*Math.PI*2,r=300*o;i.vx=Math.cos(l)*r,i.vy=Math.sin(l)*r,i.driftAx=0,i.driftTime=0}}function _(e,t){const a=n(),i=-1e9===a.mouseX?.5*a.canvas.width:a.mouseX,s=-1e9===a.mouseY?.5*a.canvas.height:a.mouseY,o=i-e.x,l=s-e.y,r=Math.sqrt(o*o+l*l+1),d=o/r,c=l/r;e.vx+=4e3*d*t,e.vy+=4e3*c*t;const u=120*a.DPR;let h=0,p=0,m=0;for(let t=0;t<a.balls.length;t++){const n=a.balls[t];if(n===e)continue;const i=e.x-n.x,s=e.y-n.y,o=i*i+s*s;if(o<u*u&&o>0){const e=Math.sqrt(o),t=1-e/u;h+=i/e*t,p+=s/e*t,m++}}if(m>0){const a=15e3;e.vx+=h/m*a*t,e.vy+=p/m*a*t}e.vx+=1e3*(Math.random()-.5)*t,e.vy+=1e3*(Math.random()-.5)*t}var C=Object.freeze({__proto__:null,applyFliesForces:_,initializeFlies:R});function B(e,t){const a=n(),i=a.repelPower,s=a.repelRadius,o=a.mouseX,l=a.mouseY;if(!a.repellerEnabled||i<=0||s<=0)return;const r=s*a.DPR,d=e.x-o,c=e.y-l,u=d*d+c*c;if(u>r*r)return;const h=Math.max(Math.sqrt(u),1e-4),p=d/h,m=c/h,g=Math.max(0,1-h/r),b=20*i*Math.pow(g,a.repelSoft||3.4),v=Math.max(.25,e.m/a.MASS_BASELINE_KG);e.vx+=p*b*t/v,e.vy+=m*b*t/v}function A(){const e=n();i();const t=e.weightlessCount,a=e.canvas.width,s=e.canvas.height,o=40*e.DPR;for(let n=0;n<8&&n<t;n++){const t=I(o+Math.random()*(a-2*o),o+Math.random()*(s-2*o),r(n)),i=Math.random()*Math.PI*2,l=e.weightlessInitialSpeed*(.7+.3*Math.random());t.vx=Math.cos(i)*l,t.vy=Math.sin(i)*l,t.driftAx=0,t.driftTime=0}for(let n=8;n<t;n++){const t=I(o+Math.random()*(a-2*o),o+Math.random()*(s-2*o)),n=Math.random()*Math.PI*2,i=e.weightlessInitialSpeed*(.7+.3*Math.random());t.vx=Math.cos(n)*i,t.vy=Math.sin(n)*i,t.driftAx=0,t.driftTime=0}}var T=Object.freeze({__proto__:null,initializeWeightless:A});const L=[];function N(){const e=n();i(),L.length=0;const t=e.canvas;if(!t)return;const a=t.width,s=t.height,o=e.waterBallCount||100;for(let t=0;t<8&&t<o;t++){const n=Math.random()*a,i=Math.random()*s,o=e.R_MIN+Math.random()*(e.R_MAX-e.R_MIN),l=r(t),d=new P(n,i,o,l),c=e.waterInitialVelocity||120;d.vx=(Math.random()-.5)*c,d.vy=(Math.random()-.5)*c,e.balls.push(d)}for(let t=8;t<o;t++){const t=Math.random()*a,n=Math.random()*s,i=e.R_MIN+Math.random()*(e.R_MAX-e.R_MIN),o=l(),r=new P(t,n,i,o),d=e.waterInitialVelocity||120;r.vx=(Math.random()-.5)*d,r.vy=(Math.random()-.5)*d,e.balls.push(r)}}function V(e,t){const a=n(),i=a.waterDrag||.015;e.vx*=1-i,e.vy*=1-i,e.omega*=1-.5*i;for(let a=0;a<L.length;a++){const n=L[a],i=e.x-n.x,s=e.y-n.y,o=Math.sqrt(i*i+s*s),l=40,r=n.radius-l,d=n.radius+l;if(o>r&&o<d){const a=Math.abs(o-n.radius),r=n.strength*(1-a/l);if(o>.1){const a=i/o,n=s/o;e.vx+=a*r*t,e.vy+=n*r*t}}}const s=a.waterDriftStrength||25;e.vx+=Math.sin(.5*e.t+.01*e.x)*s*t,e.vy+=Math.cos(.7*e.t+.01*e.y)*s*t}function F(e){const t=n().waterRippleSpeed||300;for(let a=L.length-1;a>=0;a--){const n=L[a];n.radius+=t*e,n.age+=e,n.strength*=.96,(n.age>3||n.strength<10)&&L.splice(a,1)}}function G(e,t,a=1){const i=(n().waterRippleStrength||15e3)*Math.min(a,5);L.push({x:e,y:t,radius:0,strength:i,age:0})}var D=Object.freeze({__proto__:null,applyWaterForces:V,createWaterRipple:G,initializeWater:N,updateWaterRipples:F});function O(){const e=n();i();const t=e.canvas;if(!t)return;const a=t.width,s=t.height,o=Math.min(e.vortexBallCount||180,e.maxBalls||300);for(let t=0;t<8&&t<o;t++){const n=Math.random()*a,i=Math.random()*s,o=e.R_MIN+Math.random()*(e.R_MAX-e.R_MIN),l=r(t),d=new P(n,i,o,l);d.vx=80*(Math.random()-.5),d.vy=80*(Math.random()-.5),e.balls.push(d)}for(let t=8;t<o;t++){const t=Math.random()*a,n=Math.random()*s,i=e.R_MIN+Math.random()*(e.R_MAX-e.R_MIN),o=l(),r=new P(t,n,i,o);r.vx=80*(Math.random()-.5),r.vy=80*(Math.random()-.5),e.balls.push(r)}}function z(t,a){const i=n();if(i.currentMode!==e.VORTEX)return;const s=i.mouseX,o=i.mouseY;if(!i.mouseInCanvas)return;const l=i.vortexSwirlStrength||420,r=i.vortexRadialPull||180,d=t.x-s,c=t.y-o,u=d*d+c*c,h=Math.max(8,Math.sqrt(u)),p=1/(1+.0015*h),m=d/h,g=c/h,b=-g,v=m,f=l*p;t.vx+=b*f*a,t.vy+=v*f*a;const M=r*p;t.vx-=m*M*a,t.vy-=g*M*a,t.vx*=.995,t.vy*=.995}var k=Object.freeze({__proto__:null,applyVortexForces:z,initializeVortex:O});function q(){const e=n();i();const t=e.canvas;if(!t)return;const a=t.width,s=t.height,o=Math.min(e.pingPongBallCount||80,e.maxBalls||300),d=e.pingPongSpeed||400;for(let t=0;t<8&&t<o;t++){const n=Math.random()*a,i=.15*s+Math.random()*s*.7,o=e.R_MIN+Math.random()*(e.R_MAX-e.R_MIN),l=r(t),c=new P(n,i,o,l),u=Math.random()>.5?1:-1;c.vx=u*(.8*d+Math.random()*d*.4),c.vy=0,c.isPingPong=!0,e.balls.push(c)}for(let t=8;t<o;t++){const t=Math.random()*a,n=.15*s+Math.random()*s*.7,i=e.R_MIN+Math.random()*(e.R_MAX-e.R_MIN),o=l(),r=new P(t,n,i,o),c=Math.random()>.5?1:-1;r.vx=c*(.8*d+Math.random()*d*.4),r.vy=0,r.isPingPong=!0,e.balls.push(r)}}function X(t,a){const i=n();if(i.currentMode!==e.PING_PONG)return;if(!t.isPingPong)return;if(i.mouseInCanvas){const e=(i.pingPongCursorRadius||100)*i.DPR,a=i.mouseX,n=i.mouseY,s=t.x-a,o=t.y-n,l=Math.sqrt(s*s+o*o),r=e+t.r;if(l<r&&l>.1){const e=r-l,a=s/l,n=o/l;t.x+=a*e*1.1,t.y+=n*e*1.1;const i=t.vx*a+t.vy*n;i<0&&(t.vx-=2*i*a,t.vy-=2*i*n,t.omega+=.02*i)}}const s=i.pingPongSpeed||400;if(Math.abs(t.vx)<.9*s){const e=t.vx>=0?1:-1;t.vx=e*s}t.vy*=.995}var H=Object.freeze({__proto__:null,applyPingPongForces:X,initializePingPong:q});function W(){const e=n();i();const t=e.canvas;if(!t)return;const a=t.width,s=t.height,o=Math.min(e.magneticBallCount||180,e.maxBalls||300);for(let t=0;t<8&&t<o;t++){const n=Math.random()*a,i=Math.random()*s,o=e.R_MIN+Math.random()*(e.R_MAX-e.R_MIN),l=r(t),d=new P(n,i,o,l);d.vx=100*(Math.random()-.5),d.vy=100*(Math.random()-.5),d.charge=Math.random()>.5?1:-1,d.baseAlpha=1,e.balls.push(d)}for(let t=8;t<o;t++){const t=Math.random()*a,n=Math.random()*s,i=e.R_MIN+Math.random()*(e.R_MAX-e.R_MIN),o=l(),r=new P(t,n,i,o);r.vx=100*(Math.random()-.5),r.vy=100*(Math.random()-.5),r.charge=Math.random()>.5?1:-1,r.baseAlpha=1,e.balls.push(r)}}function U(t,a){const i=n();if(i.currentMode!==e.MAGNETIC)return;if(!i.mouseInCanvas)return;const s=i.mouseX,o=i.mouseY,l=s-t.x,r=o-t.y,d=Math.max(30,Math.sqrt(l*l+r*r)),c=(i.magneticStrength||65e3)/(d*d)*1e3,u=l/d,h=r/d,p=t.charge||1;t.vx+=u*c*p*a,t.vy+=h*c*p*a;const m=i.magneticMaxVelocity||2800,g=Math.sqrt(t.vx*t.vx+t.vy*t.vy);g>m&&(t.vx=t.vx/g*m,t.vy=t.vy/g*m),t.vx*=.998,t.vy*=.998}var Y=Object.freeze({__proto__:null,applyMagneticForces:U,initializeMagnetic:W});function $(e,t,a,i=!1){const s=n(),o=.5*s.R_MIN,l=.8*s.R_MAX,r=o+Math.random()*(l-o),d=new P(e,t,i?r:.1,a);return d.isBubble=!0,d.baseRadius=r,d.targetRadius=r,d.wobblePhase=Math.random()*Math.PI*2,d.wobbleFreq=2+3*Math.random(),d.vx=20*(Math.random()-.5),d.vy=-50-50*Math.random(),d.spawning=!i,d.spawnProgress=i?1:0,d.dissipating=!1,d.dissipateProgress=0,d.alpha=1,s.balls.push(d),d}function j(e){const t=n(),a=t.canvas;if(!a)return;const i=a.width,s=a.height;e.x=Math.random()*i,e.y=s+20+30*Math.random(),e.vx=20*(Math.random()-.5),e.vy=-50-50*Math.random(),e.wobblePhase=Math.random()*Math.PI*2,e.wobbleFreq=2+3*Math.random(),e.c=l();const o=.5*t.R_MIN,r=.8*t.R_MAX;e.targetRadius=o+Math.random()*(r-o),e.baseRadius=e.targetRadius,e.r=.1,e.spawning=!0,e.spawnProgress=0,e.dissipating=!1,e.dissipateProgress=0,e.alpha=1}function K(t,a){const i=n();if(i.currentMode!==e.BUBBLES)return;if(!t.isBubble)return;const s=i.canvas;if(!s)return;if(t.spawning){t.spawnProgress+=3*a;const e=1-Math.pow(1-Math.min(1,t.spawnProgress),3);t.r=t.targetRadius*e,t.rBase=t.r,t.spawnProgress>=1&&(t.spawning=!1,t.r=t.targetRadius,t.rBase=t.targetRadius)}if(t.dissipating){t.dissipateProgress+=3*a;const e=Math.pow(t.dissipateProgress,2);return t.r=t.targetRadius*Math.max(0,1-e),t.rBase=t.r,t.alpha=Math.max(0,1-.5*e),t.vy*=.92,t.vx*=.92,void(t.dissipateProgress>=1&&j(t))}const o=i.bubblesRiseSpeed||150,l=.01*(i.bubblesWobble||40),r=o*i.DPR;t.vy-=r*a,t.wobblePhase+=t.wobbleFreq*a;const d=Math.sin(t.wobblePhase)*l*100;if(t.vx+=d*a,t.vx*=.92,t.vy*=.96,i.mouseInCanvas){const e=t.x-i.mouseX,n=t.y-i.mouseY,s=Math.sqrt(e*e+n*n),o=(i.bubblesDeflectRadius||80)*i.DPR;if(s<o&&s>1){const i=300*(1-s/o),l=e/s,r=n/s;t.vx+=l*i*a,t.vy+=r*i*a}}const c=2*t.targetRadius;t.y<c&&!t.dissipating&&!t.spawning&&(t.dissipating=!0,t.dissipateProgress=0),(t.x<4*-t.r||t.x>s.width+4*t.r)&&j(t)}function Z(t){const s=n();if(function(e){a.currentMode=e}(t),console.log(`Switching to mode: ${t}`),function(e){const t=document.getElementById("announcer");t&&(t.textContent="",setTimeout(()=>{t.textContent=e},10))}(`Switched to ${{pit:"Ball Pit",flies:"Flies to Light",weightless:"Zero Gravity",water:"Water Swimming",vortex:"Vortex Sheets","ping-pong":"Ping Pong",magnetic:"Magnetic",bubbles:"Carbonated Bubbles"}[t]||t} mode`),s.container){const a=s.container.classList.contains("dark-mode");s.container.className="",t===e.PIT&&s.container.classList.add("mode-pit"),(a||s.isDarkMode)&&s.container.classList.add("dark-mode")}S(),t===e.PIT?(s.gravityMultiplier=s.gravityMultiplierPit,s.G=s.GE*s.gravityMultiplier,s.repellerEnabled=!0,function(){const e=n();i(),e.canvas.width;const t=e.canvas.clientHeight,a=e.DPR,s=-.5*t*a,o=s+.5*t*a,l=1*e.canvas.clientWidth,d=.5*e.canvas.clientWidth-l/2;for(let e=0;e<8;e++){const t=I((d+Math.random()*l)*a,s+Math.random()*(o-s),r(e));t.vx=100*(Math.random()-.5),t.vy=50*Math.random(),t.driftAx=0,t.driftTime=0}for(let e=8;e<300;e++){const e=I((d+Math.random()*l)*a,s+Math.random()*(o-s));e.vx=100*(Math.random()-.5),e.vy=50*Math.random(),e.driftAx=0,e.driftTime=0}}()):t===e.FLIES?(s.gravityMultiplier=0,s.G=0,s.repellerEnabled=!1,R()):t===e.WEIGHTLESS?(s.gravityMultiplier=0,s.G=0,s.repellerEnabled=!1,A()):t===e.WATER?(s.gravityMultiplier=0,s.G=0,s.repellerEnabled=!1,N()):t===e.VORTEX?(s.gravityMultiplier=0,s.G=0,s.repellerEnabled=!1,O()):t===e.PING_PONG?(s.gravityMultiplier=0,s.G=0,s.repellerEnabled=!1,q()):t===e.MAGNETIC?(s.gravityMultiplier=0,s.G=0,s.repellerEnabled=!1,W()):t===e.BUBBLES&&(s.gravityMultiplier=0,s.G=0,s.repellerEnabled=!1,function(){const e=n();e.balls.length=0;const t=e.canvas;if(!t)return;const a=t.width,i=t.height,s=e.bubblesMaxCount||150;for(let e=0;e<8&&e<s;e++)$(Math.random()*a,.3*i+Math.random()*i*.6,r(e),!0);for(let e=8;e<s;e++)$(Math.random()*a,.3*i+Math.random()*i*.6,l(),!0)}()),console.log(`Mode ${t} initialized with ${s.balls.length} balls`)}function Q(){const t=n();return t.currentMode===e.FLIES?_:t.currentMode===e.PIT?B:t.currentMode===e.WATER?V:t.currentMode===e.VORTEX?z:t.currentMode===e.PING_PONG?X:t.currentMode===e.MAGNETIC?U:t.currentMode===e.BUBBLES?K:null}var J=Object.freeze({__proto__:null,MODES:e,getForceApplicator:Q,setMode:Z});function ee(e,t){const a=document.getElementById(e);a&&a.addEventListener("input",()=>t(a))}function te(e,t){const a=document.getElementById(e);a&&(a.textContent=t)}function ae(){const e=n();document.querySelectorAll(".mode-button").forEach(e=>{e.addEventListener("click",t=>{t.stopPropagation();const a=e.getAttribute("data-mode");console.log("Mode button clicked:",a),Z(a),ne(a)})}),ee("sizeSliderGlobal",t=>{e.sizeScale=parseFloat(t.value),te("sizeValGlobal",e.sizeScale.toFixed(2));const a=(e.R_MIN_BASE+e.R_MAX_BASE)/2;e.R_MIN=a*e.sizeScale*.75,e.R_MAX=a*e.sizeScale*1.25;const n=(e.R_MIN+e.R_MAX)/2;for(let t=0;t<e.balls.length;t++)e.balls[t].r=n,e.balls[t].rBase=n;E()}),ee("ballSoftnessSliderGlobal",t=>{e.ballSoftness=parseInt(t.value,10),te("ballSoftnessValGlobal",String(e.ballSoftness)),E()}),ee("gravityPitSlider",t=>{e.gravityMultiplierPit=parseFloat(t.value),te("gravityPitVal",e.gravityMultiplierPit.toFixed(2)),"pit"===e.currentMode&&(e.G=e.GE*e.gravityMultiplierPit),E()}),ee("weightPitSlider",t=>{e.ballMassKg=parseFloat(t.value),te("weightPitVal",e.ballMassKg.toFixed(0));for(let t=0;t<e.balls.length;t++)e.balls[t].m=e.ballMassKg;E()}),ee("restitutionSlider",t=>{e.REST=parseFloat(t.value),te("restitutionVal",e.REST.toFixed(2)),E()}),ee("frictionSlider",t=>{e.FRICTION=parseFloat(t.value),te("frictionVal",e.FRICTION.toFixed(4)),E()});const t=document.getElementById("repellerEnabledPit");t&&t.addEventListener("change",()=>{e.repellerEnabled=!!t.checked,E()}),ee("repelSizeSlider",t=>{e.repelRadius=parseFloat(t.value),te("repelSizeVal",e.repelRadius.toFixed(0)),E()}),ee("repelPowerSlider",t=>{const a=parseFloat(t.value),n=Math.max(0,Math.min(1e4,a))/1e4,i=12e3*Math.pow(2,12*(n-.5))*2;e.repelPower=i,te("repelPowerVal",Math.round(e.repelPower).toString()),E()}),ee("repelSoftSlider",t=>{e.repelSoft=parseFloat(t.value),te("repelSoftVal",e.repelSoft.toFixed(1)),E()}),ee("fliesBallCountSlider",t=>{e.fliesBallCount=parseInt(t.value,10),te("fliesBallCountVal",String(e.fliesBallCount)),"flies"===e.currentMode&&Promise.resolve().then(function(){return C}).then(({initializeFlies:e})=>{e()})}),ee("attractPowerSlider",t=>{e.attractionPower=parseFloat(t.value),te("attractPowerVal",Math.round(e.attractionPower).toString())}),ee("swarmSpeedSlider",t=>{e.swarmSpeed=parseFloat(t.value),te("swarmSpeedVal",e.swarmSpeed.toFixed(1))}),ee("fliesSeparationSlider",t=>{e.fliesSeparation=parseFloat(t.value),te("fliesSeparationVal",Math.round(e.fliesSeparation).toString())}),ee("weightlessCountSlider",t=>{e.weightlessBallCount=parseInt(t.value,10),te("weightlessCountVal",String(e.weightlessBallCount)),"weightless"===e.currentMode&&Promise.resolve().then(function(){return T}).then(({initializeWeightless:e})=>{e()})}),ee("weightlessSpeedSlider",t=>{e.weightlessInitialSpeed=parseFloat(t.value),te("weightlessSpeedVal",e.weightlessInitialSpeed.toFixed(0)),"weightless"===e.currentMode&&Promise.resolve().then(function(){return T}).then(({initializeWeightless:e})=>{e()})}),ee("weightlessBounceSlider",t=>{e.weightlessBounce=parseFloat(t.value),te("weightlessBounceVal",e.weightlessBounce.toFixed(2))}),ee("waterBallCountSlider",t=>{e.waterBallCount=parseInt(t.value,10),te("waterBallCountVal",String(e.waterBallCount)),"water"===e.currentMode&&Promise.resolve().then(function(){return D}).then(({initializeWater:e})=>{e()}),E()}),ee("waterRippleStrengthSlider",t=>{e.waterRippleStrength=parseFloat(t.value),te("waterRippleStrengthVal",e.waterRippleStrength.toFixed(0)),E()}),ee("waterMotionSlider",t=>{const a=parseFloat(t.value);e.waterDriftStrength=a,e.waterInitialVelocity=5*a,te("waterMotionVal",a.toFixed(0)),"water"===e.currentMode&&Promise.resolve().then(function(){return D}).then(({initializeWater:e})=>{e()}),E()}),ee("vortexBallCountSlider",t=>{e.vortexBallCount=parseInt(t.value,10),te("vortexBallCountVal",String(e.vortexBallCount)),"vortex"===e.currentMode&&Promise.resolve().then(function(){return k}).then(({initializeVortex:e})=>{e()})}),ee("vortexSwirlSlider",t=>{e.vortexSwirlStrength=parseFloat(t.value),te("vortexSwirlVal",e.vortexSwirlStrength.toFixed(0))}),ee("vortexPullSlider",t=>{e.vortexRadialPull=parseFloat(t.value),te("vortexPullVal",e.vortexRadialPull.toFixed(0))}),ee("pingPongBallCountSlider",t=>{e.pingPongBallCount=parseInt(t.value,10),te("pingPongBallCountVal",String(e.pingPongBallCount)),"ping-pong"===e.currentMode&&Promise.resolve().then(function(){return H}).then(({initializePingPong:e})=>{e()})}),ee("pingPongSpeedSlider",t=>{e.pingPongSpeed=parseFloat(t.value),te("pingPongSpeedVal",e.pingPongSpeed.toFixed(0)),"ping-pong"===e.currentMode&&Promise.resolve().then(function(){return H}).then(({initializePingPong:e})=>{e()})}),ee("pingPongCursorSlider",t=>{e.pingPongCursorRadius=parseFloat(t.value),te("pingPongCursorVal",e.pingPongCursorRadius.toFixed(0))}),ee("magneticBallCountSlider",t=>{e.magneticBallCount=parseInt(t.value,10),te("magneticBallCountVal",String(e.magneticBallCount)),"magnetic"===e.currentMode&&Promise.resolve().then(function(){return Y}).then(({initializeMagnetic:e})=>{e()})}),ee("magneticStrengthSlider",t=>{e.magneticStrength=parseFloat(t.value),te("magneticStrengthVal",e.magneticStrength.toFixed(0))}),ee("magneticVelocitySlider",t=>{e.magneticMaxVelocity=parseFloat(t.value),te("magneticVelocityVal",e.magneticMaxVelocity.toFixed(0))}),ee("magneticIntervalSlider",t=>{e.magneticExplosionInterval=parseInt(t.value,10),te("magneticIntervalVal",String(e.magneticExplosionInterval))}),ee("bubblesRateSlider",t=>{e.bubblesSpawnRate=parseInt(t.value,10),te("bubblesRateVal",String(e.bubblesSpawnRate))}),ee("bubblesSpeedSlider",t=>{e.bubblesRiseSpeed=parseFloat(t.value),te("bubblesSpeedVal",e.bubblesRiseSpeed.toFixed(0))}),ee("bubblesWobbleSlider",t=>{e.bubblesWobble=parseFloat(t.value),te("bubblesWobbleVal",e.bubblesWobble.toFixed(0))}),ee("bubblesMaxSlider",t=>{e.bubblesMaxCount=parseInt(t.value,10),te("bubblesMaxVal",String(e.bubblesMaxCount))}),ee("bubblesDeflectSlider",t=>{e.bubblesDeflectRadius=parseFloat(t.value),te("bubblesDeflectVal",e.bubblesDeflectRadius.toFixed(0))}),c();const a=document.getElementById("colorSelect");a&&a.addEventListener("change",()=>{d(a.value),E()})}function ne(e){document.querySelectorAll(".mode-button").forEach(t=>{const a=t.getAttribute("data-mode")===e;t.classList.toggle("active",a)}),document.querySelectorAll(".mode-controls").forEach(e=>e.classList.remove("active"));const t=e+"Controls",a=document.getElementById(t);a&&a.classList.add("active");const n=document.getElementById("announcer");if(n){const t={pit:"Ball Pit",flies:"Flies to Light",weightless:"Zero-G",water:"Water Swimming",vortex:"Vortex Sheets","ping-pong":"Ping Pong",magnetic:"Magnetic",bubbles:"Carbonated Bubbles"};n.textContent=`Switched to ${t[e]||e} mode`}}var ie=Object.freeze({__proto__:null,setupControls:ae,updateModeButtonsUI:ne});let se=0,oe=0,le=0,re=0,de=0;const ce=[e.PIT,e.FLIES,e.WEIGHTLESS,e.WATER,e.VORTEX,e.PING_PONG,e.MAGNETIC,e.BUBBLES];function ue(){const e=n().currentMode,t=ce.indexOf(e),a=ce[(t+1)%ce.length]||ce[0];Promise.resolve().then(function(){return J}).then(({setMode:e})=>{e(a)}),Promise.resolve().then(function(){return ie}).then(({updateModeButtonsUI:e})=>{e(a)})}let he=0;const pe=new Map;function me(e=10){const a=n(),i=a.balls,s=function(){const e=n(),a=e.balls,i=e.canvas,s=e.R_MAX,o=a.length;if(o<2)return[];const l=Math.max(1,2*s),r=Math.ceil(i.width/l)+1;pe.clear();for(let e=0;e<o;e++){const t=a[e],n=t.x/l|0,i=(t.y/l|0)*r+n;let s=pe.get(i);s||(s=[],pe.set(i,s)),s.push(e)}const d=[];for(const[e,n]of pe){const i=e/r|0,s=e%r;for(let e=-1;e<=1;e++)for(let o=-1;o<=1;o++){const l=(i+e)*r+(s+o),c=pe.get(l);if(c)for(let e=0;e<n.length;e++){const i=n[e];for(let e=0;e<c.length;e++){const n=c[e];if(n<=i)continue;const s=a[i],o=a[n],l=o.x-s.x,r=o.y-s.y,u=s.r+o.r,h=l*l+r*r;if(h<u*u){const e=u-Math.sqrt(Math.max(h,t.MIN_DISTANCE_EPSILON));d.push({i:i,j:n,overlap:e})}}}}}return d.sort((e,t)=>t.overlap-e.overlap),d}(),o=a.REST,l=.5*a.DPR;for(let n=0;n<e;n++)for(let e=0;e<s.length;e++){const{i:n,j:r}=s[e],d=i[n],c=i[r];if(d.isSleeping&&c.isSleeping)continue;d.isSleeping&&d.wake(),c.isSleeping&&c.wake();const u=c.x-d.x,h=c.y-d.y,p=d.r+c.r,m=u*u+h*h;if(0===m||m>p*p)continue;const g=Math.sqrt(m),b=u/g,v=h/g,f=p-g,M=1/Math.max(d.m,.001),S=1/Math.max(c.m,.001),x=.8*Math.max(f-l,0)/(M+S),y=x*b,w=x*v;d.x-=y*M,d.y-=w*M,c.x+=y*S,c.y+=w*S;const E=c.vx-d.vx,P=c.vy-d.vy,I=E*b+P*v;if(I<0){const e=-(1+(Math.abs(I)<30?0:o))*I/(M+S),n=e*b,i=e*v;d.vx-=n*M,d.vy-=i*M,c.vx+=n*S,c.vy+=i*S;const s=E-I*b,l=P-I*v,r=Math.hypot(s,l);if(r>.001){const e=s*-v+l*b>=0?1:-1,a=t.SPIN_GAIN_TANGENT;d.omega-=e*a*r/Math.max(d.r,1),c.omega+=e*a*r/Math.max(c.r,1)}const u=Math.min(1,Math.abs(I)/(50*(d.r+c.r))),h=Math.min(a.getSquashMax(),.8*u);d.squashAmount=Math.max(d.squashAmount,.8*h),d.squashNormalAngle=Math.atan2(-v,-b),c.squashAmount=Math.max(c.squashAmount,.8*h),c.squashNormalAngle=Math.atan2(v,b)}}}const ge=t.PHYSICS_DT;let be=0;const ve=42;function fe(e,t){const a=[{x:ve,y:ve},{x:t.width-ve,y:ve},{x:ve,y:t.height-ve},{x:t.width-ve,y:t.height-ve}];for(let t=0;t<a.length;t++){const n=a[t].x,i=a[t].y,s=e.x-n,o=e.y-i,l=Math.max(1,Math.hypot(s,o));if(l<ve+e.r){const t=(ve+e.r-l)/(ve+e.r)*1800,a=s/l,n=o/l;e.vx+=a*t*ge,e.vy+=n*t*ge}}}let Me=0,Se=0,xe=0,ye=performance.now()/1e3;!async function(){try{console.log("🚀 Initializing modular bouncy balls..."),function(e){a.config={...e},e.ballMass&&(a.ballMassKg=e.ballMass),e.gravityMultiplier&&(a.gravityMultiplier=e.gravityMultiplier),e.restitution&&(a.REST=e.restitution),e.friction&&(a.FRICTION=e.friction),e.ballScale&&(a.sizeScale=e.ballScale);const t=(a.R_MIN_BASE+a.R_MAX_BASE)/2;a.R_MIN=t*a.sizeScale*.75,a.R_MAX=t*a.sizeScale*1.25}(await async function(){try{const e=["config/default-config.json","js/config.json","../public/js/config.json"];for(const t of e)try{const e=await fetch(t,{cache:"no-cache"});if(e.ok)return await e.json()}catch(e){}throw new Error("No config found")}catch(e){return console.warn("Config load failed, using defaults"),{gravityMultiplier:1.05,ballMass:91,maxBalls:300}}}()),console.log("✓ Config loaded"),M();const s=x(),o=y(),l=document.getElementById("bravia-balls");if(!s||!o||!l)throw new Error("Missing DOM elements");!function(e,t,n){a.canvas=e,a.ctx=t,a.container=n}(s,o,l),console.log("✓ Canvas initialized"),n().mouseInCanvas=!1,"undefined"!=typeof window&&(window.mouseInCanvas=!1),function(){const a=n(),i=a.canvas;if(!i)return void console.error("Canvas not available for pointer setup");const s=a.DPR;function o(e,t){const a=i.getBoundingClientRect();return{x:(e-a.left)*s,y:(t-a.top)*s,inBounds:e>=a.left&&e<=a.right&&t>=a.top&&t<=a.bottom}}document.addEventListener("mousemove",t=>{if(t.target.closest("#controlPanel"))return;const n=o(t.clientX,t.clientY),i=performance.now(),s=i-le;if(s>0&&le>0){const e=n.x-se,t=n.y-oe;re=Math.sqrt(e*e+t*t)/s}if(a.mouseX=n.x,a.mouseY=n.y,a.mouseInCanvas=n.inBounds,"undefined"!=typeof window&&(window.mouseInCanvas=n.inBounds),a.currentMode===e.WATER&&n.inBounds&&re>.3&&i-he>80){const e=Math.min(2*re,3);G(n.x,n.y,e),he=i}se=n.x,oe=n.y,le=i},{passive:!0}),document.addEventListener("click",e=>{e.target.closest("#controlPanel")||e.target.closest("a")||e.target.closest("button")||o(e.clientX,e.clientY).inBounds&&ue()}),document.addEventListener("touchmove",t=>{if(t.touches&&t.touches[0]){const n=o(t.touches[0].clientX,t.touches[0].clientY);a.mouseX=n.x,a.mouseY=n.y,a.mouseInCanvas=n.inBounds;const i=performance.now();a.currentMode===e.WATER&&n.inBounds&&i-he>80&&(G(n.x,n.y,2),he=i)}},{passive:!0}),document.addEventListener("touchstart",e=>{if(!e.target.closest("#controlPanel")&&!e.target.closest("a")&&!e.target.closest("button")&&e.touches&&e.touches[0]){if(!o(e.touches[0].clientX,e.touches[0].clientY).inBounds)return;const t=performance.now();t-de<300&&ue(),de=t}},{passive:!0}),document.addEventListener("mouseleave",()=>{a.mouseX=t.OFFSCREEN_MOUSE,a.mouseY=t.OFFSCREEN_MOUSE,a.mouseInCanvas=!1,re=0,"undefined"!=typeof window&&(window.mouseInCanvas=!1)}),document.addEventListener("touchend",()=>{a.mouseX=t.OFFSCREEN_MOUSE,a.mouseY=t.OFFSCREEN_MOUSE,a.mouseInCanvas=!1},{passive:!0}),console.log("✓ Unified pointer system configured (document-level)")}(),console.log("✓ Pointer tracking configured"),console.log("⚠️ localStorage is disabled - using defaults"),b(),console.log("✓ Dark mode initialized"),d(n().currentTemplate),console.log("✓ Color system initialized"),function(){let e=document.getElementById("controlPanel");e?e.parentElement!==document.body&&(e.parentElement.removeChild(e),document.body.appendChild(e)):(e=document.createElement("div"),e.id="controlPanel",e.className="panel",document.body.appendChild(e)),e.innerHTML='\n  \x3c!-- Draggable header --\x3e\n  <div class="panel-header" id="panelHeader" role="banner">\n    <span><span class="drag-handle" aria-hidden="true">⋮⋮</span>Controls</span>\n    <button style="cursor: pointer; opacity: 0.7; background: none; border: none; color: inherit; font-size: 16px; padding: 0;" id="minimizePanel" title="Toggle panel" aria-label="Toggle control panel" aria-expanded="true">−</button>\n  </div>\n  \n  \x3c!-- Screen reader announcements --\x3e\n  <div role="status" aria-live="polite" aria-atomic="true" style="position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden;" id="announcer"></div>\n  \n  <div class="panel-content">\n  \n  \x3c!-- Theme Segment Control --\x3e\n  <div style="margin-bottom: 12px; padding: 8px; background: rgba(100,100,255,0.15); border-radius: 4px; border: 1px solid rgba(100,100,255,0.3);">\n    <div style="font-weight: 600; font-size: 11px; margin-bottom: 8px;">🎨 Theme</div>\n    <div class="theme-segment-control" role="group" aria-label="Theme selector">\n      <button id="themeAuto" class="theme-segment-btn" aria-label="Auto theme">Auto</button>\n      <button id="themeLight" class="theme-segment-btn active" aria-label="Light theme">Light</button>\n      <button id="themeDark" class="theme-segment-btn" aria-label="Dark theme">Dark</button>\n    </div>\n    <div id="themeStatus" style="font-size: 9px; margin-top: 8px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; font-family: monospace; text-align: center;">\n      ☀️ Light Mode\n    </div>\n  </div>\n  \n  \x3c!-- GLOBAL SETTINGS --\x3e\n  <details open>\n    <summary>🌐 Global Ball Properties</summary>\n    <div class="group">\n        <label title="Global ball size scale (0.1-6.0)">Size: <span class="val" id="sizeValGlobal">1.2</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="1.2"></label>\n        <label title="Ball deformation (0-100)">Softness: <span class="val" id="ballSoftnessValGlobal">20</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="20"></label>\n    </div>\n  </details>\n  \n  \x3c!-- Build Controls --\x3e\n  <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">\n    <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Save Config</button>\n    <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Save downloads current-config.json</div>\n  </div>\n  \n  <details open>\n    <summary>🎨 Colors</summary>\n    <div class="group">\n        <label>Color template: <select id="colorSelect"></select></label>\n    </div>\n  </details>\n  \n  <div style="margin: 20px 0; padding: 12px 0; border-top: 1px solid rgba(255,255,255,0.15);">\n    <div style="text-align: center; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 12px;">\n      Mode Settings\n    </div>\n    \n    \x3c!-- Mode Switcher --\x3e\n    <div class="mode-switcher" role="group" aria-label="Simulation mode selector">\n      <button class="mode-button" data-mode="pit" aria-label="Ball Pit mode">🎯 Pit</button>\n      <button class="mode-button active" data-mode="flies" aria-label="Flies mode">🕊️ Flies</button>\n      <button class="mode-button" data-mode="weightless" aria-label="Zero-G mode">🌌 Zero-G</button>\n      <button class="mode-button" data-mode="water" aria-label="Water mode">🌊 Water</button>\n      <button class="mode-button" data-mode="vortex" aria-label="Vortex mode">🌀 Vortex</button>\n      <button class="mode-button" data-mode="ping-pong" aria-label="Ping Pong mode">🏓 Pong</button>\n      <button class="mode-button" data-mode="magnetic" aria-label="Magnetic mode">🧲 Magnet</button>\n      <button class="mode-button" data-mode="bubbles" aria-label="Bubbles mode">🫧 Bubbles</button>\n    </div>\n  </div>\n  \n  <div id="pitControls" class="mode-controls">\n    <details open>\n      <summary>🎯 Ball Pit Mode</summary>\n      <div class="group">\n        <label><span>Gravity (×Earth)</span><input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="1.10"><span class="val" id="gravityPitVal">1.10</span></label>\n        <label><span>Weight (grams)</span><input type="range" id="weightPitSlider" min="10.0" max="200.0" step="1.0" value="129"><span class="val" id="weightPitVal">129</span></label>\n        <label><span>Bounciness</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.69"><span class="val" id="restitutionVal">0.69</span></label>\n        <label><span>Air friction</span><input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0005" value="0.0060"><span class="val" id="frictionVal">0.0060</span></label>\n      </div>\n    </details>\n    <details open>\n      <summary>🧲 Mouse Repeller</summary>\n      <div class="group">\n        <label><span>Repel size (px)</span><input type="range" id="repelSizeSlider" min="50" max="1000" step="5" value="120"><span class="val" id="repelSizeVal">120</span></label>\n        <label><span>Repel power</span><input type="range" id="repelPowerSlider" min="0" max="10000" step="100" value="8500"><span class="val" id="repelPowerVal">274000</span></label>\n      </div>\n    </details>\n  </div>\n  \n  <div id="fliesControls" class="mode-controls active">\n    <details open>\n      <summary>🕊️ Flies to Light Mode</summary>\n      <div class="group">\n        <label><span>Ball count</span><input type="range" id="fliesBallCountSlider" min="20" max="150" step="5" value="60"><span class="val" id="fliesBallCountVal">60</span></label>\n        <label><span>Attraction power</span><input type="range" id="attractPowerSlider" min="100" max="8000" step="50" value="5000"><span class="val" id="attractPowerVal">5000</span></label>\n        <label><span>Swarm speed (×)</span><input type="range" id="swarmSpeedSlider" min="0.2" max="5.0" step="0.1" value="0.4"><span class="val" id="swarmSpeedVal">0.4</span></label>\n        <label><span>Separation force</span><input type="range" id="fliesSeparationSlider" min="5000" max="30000" step="1000" value="15000"><span class="val" id="fliesSeparationVal">15000</span></label>\n      </div>\n    </details>\n  </div>\n  \n  <div id="weightlessControls" class="mode-controls">\n    <details open>\n      <summary>🌌 Zero-G Mode</summary>\n      <div class="group">\n        <label><span>Ball count</span><input type="range" id="weightlessCountSlider" min="20" max="200" step="10" value="80"><span class="val" id="weightlessCountVal">80</span></label>\n        <label><span>Initial speed</span><input type="range" id="weightlessSpeedSlider" min="100" max="600" step="25" value="250"><span class="val" id="weightlessSpeedVal">250</span></label>\n        <label><span>Bounce</span><input type="range" id="weightlessBounceSlider" min="0.5" max="1.0" step="0.05" value="0.95"><span class="val" id="weightlessBounceVal">0.95</span></label>\n      </div>\n    </details>\n  </div>\n  \n  <div id="waterControls" class="mode-controls">\n    <details open>\n      <summary>🌊 Water Swimming Mode</summary>\n      <div class="group">\n        <label><span>Ball count</span><input type="range" id="waterBallCountSlider" min="50" max="400" step="10" value="300"><span class="val" id="waterBallCountVal">300</span></label>\n        <label><span>Ripple strength</span><input type="range" id="waterRippleStrengthSlider" min="5000" max="30000" step="1000" value="18000"><span class="val" id="waterRippleStrengthVal">18000</span></label>\n        <label><span>Motion intensity</span><input type="range" id="waterMotionSlider" min="0" max="80" step="1" value="40"><span class="val" id="waterMotionVal">40</span></label>\n        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Move your cursor to create ripples</div>\n      </div>\n    </details>\n  </div>\n  \n  <div id="vortexControls" class="mode-controls">\n    <details open>\n      <summary>🌀 Vortex Sheets Mode</summary>\n      <div class="group">\n        <label><span>Ball count</span><input type="range" id="vortexBallCountSlider" min="50" max="300" step="10" value="180"><span class="val" id="vortexBallCountVal">180</span></label>\n        <label><span>Swirl strength</span><input type="range" id="vortexSwirlSlider" min="100" max="800" step="20" value="420"><span class="val" id="vortexSwirlVal">420</span></label>\n        <label><span>Radial pull</span><input type="range" id="vortexPullSlider" min="0" max="400" step="10" value="180"><span class="val" id="vortexPullVal">180</span></label>\n        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Move cursor to create vortex</div>\n      </div>\n    </details>\n  </div>\n  \n  <div id="ping-pongControls" class="mode-controls">\n    <details open>\n      <summary>🏓 Ping Pong Mode</summary>\n      <div class="group">\n        <label><span>Ball count</span><input type="range" id="pingPongBallCountSlider" min="10" max="100" step="5" value="35"><span class="val" id="pingPongBallCountVal">35</span></label>\n        <label><span>Ball speed</span><input type="range" id="pingPongSpeedSlider" min="200" max="1200" step="50" value="800"><span class="val" id="pingPongSpeedVal">800</span></label>\n        <label><span>Cursor obstacle size</span><input type="range" id="pingPongCursorSlider" min="20" max="200" step="10" value="50"><span class="val" id="pingPongCursorVal">50</span></label>\n        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Continuous motion • Cursor deflects balls</div>\n      </div>\n    </details>\n  </div>\n  \n  <div id="magneticControls" class="mode-controls">\n    <details open>\n      <summary>🧲 Magnetic Mode</summary>\n      <div class="group">\n        <label><span>Ball count</span><input type="range" id="magneticBallCountSlider" min="50" max="300" step="10" value="180"><span class="val" id="magneticBallCountVal">180</span></label>\n        <label><span>Magnetic strength</span><input type="range" id="magneticStrengthSlider" min="10000" max="100000" step="5000" value="65000"><span class="val" id="magneticStrengthVal">65000</span></label>\n        <label><span>Max velocity</span><input type="range" id="magneticVelocitySlider" min="500" max="4000" step="100" value="2800"><span class="val" id="magneticVelocityVal">2800</span></label>\n        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Cursor drives magnetic swirls (no explosions)</div>\n      </div>\n    </details>\n  </div>\n  \n  <div id="bubblesControls" class="mode-controls">\n    <details open>\n      <summary>🫧 Carbonated Bubbles Mode</summary>\n      <div class="group">\n        <label><span>Bubble rate</span><input type="range" id="bubblesRateSlider" min="1" max="20" step="1" value="8"><span class="val" id="bubblesRateVal">8</span></label>\n        <label><span>Rise speed</span><input type="range" id="bubblesSpeedSlider" min="50" max="400" step="25" value="150"><span class="val" id="bubblesSpeedVal">150</span></label>\n        <label><span>Wobble</span><input type="range" id="bubblesWobbleSlider" min="0" max="100" step="5" value="40"><span class="val" id="bubblesWobbleVal">40</span></label>\n        <label><span>Max bubbles</span><input type="range" id="bubblesMaxSlider" min="50" max="300" step="10" value="150"><span class="val" id="bubblesMaxVal">150</span></label>\n        <label><span>Cursor deflection</span><input type="range" id="bubblesDeflectSlider" min="20" max="150" step="10" value="80"><span class="val" id="bubblesDeflectVal">80</span></label>\n        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Bubbles rise from bottom • Pop at top • Cursor deflects</div>\n      </div>\n    </details>\n  </div>\n  \n  <div style="font-size:10px; opacity:0.5; text-align:center; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">\n    <code>R</code> reset • <code>/</code> panel • click/tap cycles modes\n  </div>\n  \n  </div>\n',b();const t=e.querySelector("#minimizePanel");t&&t.addEventListener("click",t=>{t.stopPropagation(),e.classList.toggle("hidden"),e.style.display=e.classList.contains("hidden")?"none":""}),function(e){const t=e.querySelector(".panel-header");if(!t)return;let a=!1,n=0,i=0;t.addEventListener("mousedown",s=>{a=!0;const o=e.getBoundingClientRect();n=s.clientX-o.left,i=s.clientY-o.top,t.style.cursor="grabbing"}),document.addEventListener("mousemove",t=>{if(!a)return;const s=t.clientX-n,o=t.clientY-i,l=window.innerWidth-e.offsetWidth-20,r=window.innerHeight-e.offsetHeight-20;e.style.left=Math.max(20,Math.min(s,l))+"px",e.style.top=Math.max(20,Math.min(o,r))+"px",e.style.right="auto"}),document.addEventListener("mouseup",()=>{a=!1,t.style.cursor="move"})}(e),ae(),function(){const e=document.getElementById("saveConfigBtn");e&&e.addEventListener("click",()=>{const e=n(),t={gravityMultiplier:e.gravityMultiplierPit,ballMass:e.ballMassKg,sizeScale:e.sizeScale,sizeVariation:e.sizeVariation,restitution:e.REST,friction:e.FRICTION,repelRadius:e.repelRadius,repelPower:e.repelPower,repelSoftness:e.repelSoft,cursorColorIndex:5,enableLOD:!1},a=new Blob([JSON.stringify(t,null,2)],{type:"application/json"}),i=document.createElement("a");i.href=URL.createObjectURL(a),i.download="current-config.json",document.body.appendChild(i),i.click(),document.body.removeChild(i)})}(),e.classList.add("hidden"),console.log("✓ Panel created")}(),c(),console.log("✓ Panel created"),function(){const t=document.getElementById("controlPanel");window.addEventListener("keydown",a=>{const n=a.key.toLowerCase();if(("/"===n||"Slash"===a.code)&&t)return a.preventDefault(),t.classList.toggle("hidden"),void(t.style.display=t.classList.contains("hidden")?"none":"");"1"===n?(a.preventDefault(),Z(e.PIT),ne("pit")):"2"===n?(a.preventDefault(),Z(e.FLIES),ne("flies")):"3"===n?(a.preventDefault(),Z(e.WEIGHTLESS),ne("weightless")):"4"===n?(a.preventDefault(),Z(e.WATER),ne("water")):"5"===n?(a.preventDefault(),Z(e.VORTEX),ne("vortex")):"6"===n?(a.preventDefault(),Z(e.PING_PONG),ne("ping-pong")):"7"===n?(a.preventDefault(),Z(e.MAGNETIC),ne("magnetic")):"8"===n&&(a.preventDefault(),Z(e.BUBBLES),ne("bubbles"))}),console.log("✓ Keyboard shortcuts registered")}(),console.log("✓ Keyboard shortcuts registered"),Z(e.FLIES),console.log("✓ Mode initialized");const r=()=>Q();i=(e,t)=>{const a=r();a&&a(e,t)},requestAnimationFrame(function a(s){const o=s/1e3;let l=Math.min(.033,o-ye);ye=o,async function(a,i){const s=n(),o=s.balls,l=s.canvas;if(!l||0===o.length)return;be+=a;let r=0;for(;be>=ge&&r<t.MAX_PHYSICS_STEPS;){const t=o.length;for(let e=0;e<t;e++)o[e].step(ge,i);s.currentMode!==e.FLIES&&me(10);const a=s.currentMode===e.WEIGHTLESS?s.weightlessBounce:s.REST,n=o.length;for(let e=0;e<n;e++)fe(o[e],l),o[e].walls(l.width,l.height,ge,a);be-=ge,r++}s.currentMode===e.WATER&&F(a),be>ge*t.ACCUMULATOR_RESET_THRESHOLD&&(be=0)}(l,i),function(){const e=n(),t=e.ctx,a=e.balls,i=e.canvas;if(t&&i){t.clearRect(0,0,i.width,i.height),e.currentMode;for(let e=0;e<a.length;e++)a[e].draw(t);!function(e){const t=n();if(!t.mouseInCanvas)return;if(!0===t.isTouchDevice)return;if(!1===t.cursorBallVisible)return;const a=Math.max(6*t.DPR,.12*(t.R_MIN+t.R_MAX));e.save(),e.beginPath(),e.arc(t.mouseX,t.mouseY,a,0,2*Math.PI),e.fillStyle=t.currentColors&&t.currentColors[4]||"#000000",e.globalAlpha=.9,e.fill(),e.globalAlpha=1,e.restore()}(t)}}(),function(e){if(Se++,e-Me>1e3){xe=Se,Se=0,Me=e;const t=document.getElementById("render-fps");t&&(t.textContent=String(xe))}}(performance.now()),requestAnimationFrame(a)}),console.log("✅ Bouncy Balls running (modular)")}catch(e){console.error("❌ Initialization failed:",e),document.body.innerHTML=`<div style="padding: 20px; color: red; background: white;">\n      <h2>Initialization Error</h2>\n      <pre>${e.message}\n${e.stack}</pre>\n    </div>`}var i}()}();
+/* Alexander Beck Studio – Bouncy Balls | Build: 2025-12-12T18:33:19.221Z */
+var BouncyBalls = (function (exports) {
+  'use strict';
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                          CONSTANTS (COMPLETE)                                ║
+  // ║                    Extracted from balls-source.html                          ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+  const MODES = {
+    PIT: 'pit',
+    FLIES: 'flies',
+    WEIGHTLESS: 'weightless',
+    WATER: 'water',
+    VORTEX: 'vortex',
+    PING_PONG: 'ping-pong',
+    MAGNETIC: 'magnetic',
+    BUBBLES: 'bubbles'
+  };
+
+  const CONSTANTS = {
+    DPR: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
+    CANVAS_HEIGHT_VH_PIT: 1.5,
+    CANVAS_HEIGHT_VH_DEFAULT: 1.0,
+    OFFSCREEN_MOUSE: -1e9,
+    MIN_DISTANCE_EPSILON: 1e-6,
+    ACCUMULATOR_RESET_THRESHOLD: 3,
+    MAX_PHYSICS_STEPS: 2,
+    SPIN_DAMP_PER_S: 2.0,
+    SPIN_GAIN: 0.25,
+    SPIN_GAIN_TANGENT: 0.18,
+    ROLL_FRICTION_PER_S: 1.5,
+    SQUASH_MAX_BASE: 0.20,
+    SQUASH_DECAY_PER_S: 18.0,
+    WALL_REST_VEL_THRESHOLD: 70,
+    GROUND_COUPLING_PER_S: 8.0,
+    
+    // Sleep threshold for jitter reduction (Box2D-inspired)
+    SLEEP_VELOCITY_THRESHOLD: 5.0,      // px/s (Box2D uses 0.05 m/s)
+    SLEEP_ANGULAR_THRESHOLD: 0.05,      // rad/s
+    TIME_TO_SLEEP: 0.5,                 // seconds - must be still this long to sleep
+    
+    PHYSICS_DT: 1/120};
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                      STATE STORE (COMPLETE)                                  ║
+  // ║               All global state - extracted from balls-source.html            ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  const state = {
+    config: {},
+    currentMode: MODES.FLIES,
+    balls: [],
+    canvas: null,
+    ctx: null,
+    container: null,
+    mouseX: CONSTANTS.OFFSCREEN_MOUSE,
+    mouseY: CONSTANTS.OFFSCREEN_MOUSE,
+    mouseInCanvas: false,
+    
+    // Physics constants
+    GE: 1960,
+    G: 0,
+    gravityScale: 1.0,
+    gravityMultiplier: 0,
+    gravityMultiplierPit: 1.10,
+    REST: 0.69,
+    FRICTION: 0.0060,
+    ballMassKg: 129,
+    MASS_BASELINE_KG: 129,
+    MASS_REST_EXP: 0.15,
+    MASS_GRAVITY_EXP: 0.35,
+    
+    // Device
+    DPR: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
+    
+    // Size
+    sizeScale: 1.2,
+    sizeVariation: 0,
+    responsiveScale: 1.0,
+    R_MIN_BASE: 6,
+    R_MAX_BASE: 24,
+    R_MIN: 6 * 1.2 * 0.75,
+    R_MAX: 24 * 1.2 * 1.25,
+    
+    // Ball properties
+    ballSoftness: 20,
+    
+    // Corner (matches CSS border-radius for collision bounds)
+    cornerRadius: 42,
+    
+    // Inner border (soft visual transition)
+    
+    // Vortex mode params
+    vortexSwirlStrength: 420,
+    vortexRadialPull: 180,
+    vortexBallCount: 180,
+    
+    
+    // Magnetic mode params (updated defaults)
+    magneticBallCount: 180,
+    magneticStrength: 65000,
+    magneticMaxVelocity: 2800,
+    magneticExplosionInterval: 5,
+    
+    // Bubbles mode params
+    bubblesSpawnRate: 8,
+    bubblesRiseSpeed: 150,
+    bubblesWobble: 40,
+    bubblesMaxCount: 150,
+    bubblesDeflectRadius: 80,
+    
+    
+    // Ping Pong mode params (left-right bounce, cursor obstacle)
+    pingPongBallCount: 35,
+    pingPongSpeed: 800,
+    pingPongCursorRadius: 50,
+    
+    
+    // Colors
+    currentColors: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
+    currentTemplate: 'industrialTeal',
+    
+    // Flies mode
+    fliesBallCount: 60,
+    attractionPower: 5000,
+    orbitRadius: 180,
+    swarmSpeed: 0.4,
+    fliesSeparation: 15000,
+    
+    // Weightless mode
+    weightlessCount: 80,
+    weightlessInitialSpeed: 250,
+    weightlessBounce: 0.97,
+    
+    // Pulse Grid mode
+    gridColumns: 40,
+    gridBallCount: 120,
+    pulseInterval: 0.8,
+    
+    // Water mode
+    waterBallCount: 300,
+    waterDrag: 0.015,
+    waterRippleSpeed: 300,
+    waterRippleStrength: 18000,
+    waterDriftStrength: 40,
+    waterInitialVelocity: 200,
+    
+    // Repeller
+    repelRadius: 120,
+    repelPower: 274000,
+    repelSoft: 3.4,
+    repellerEnabled: false,
+    
+    // Emitter
+    emitterTimer: 0,
+    
+    // Dark mode
+    autoDarkModeEnabled: true,
+    isDarkMode: false,
+    
+    // Frame padding (border thickness around simulation, in pixels)
+    framePadTop: 0,
+    framePadRight: 0,
+    framePadBottom: 0,
+    framePadLeft: 0,
+    
+    // Helper
+    getSquashMax() {
+      if (this.ballSoftness === 0) return 0;
+      return CONSTANTS.SQUASH_MAX_BASE * (this.ballSoftness / 40.0);
+    }
+  };
+
+  function initState(config) {
+    state.config = { ...config };
+    if (config.ballMass) state.ballMassKg = config.ballMass;
+    if (config.gravityMultiplier) state.gravityMultiplier = config.gravityMultiplier;
+    if (config.restitution) state.REST = config.restitution;
+    if (config.friction) state.FRICTION = config.friction;
+    if (config.ballScale) state.sizeScale = config.ballScale;
+    
+    // Frame padding (border thickness)
+    if (config.framePadTop !== undefined) state.framePadTop = config.framePadTop;
+    if (config.framePadRight !== undefined) state.framePadRight = config.framePadRight;
+    if (config.framePadBottom !== undefined) state.framePadBottom = config.framePadBottom;
+    if (config.framePadLeft !== undefined) state.framePadLeft = config.framePadLeft;
+    
+    // Recalculate R_MIN and R_MAX
+    const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;
+    state.R_MIN = baseSize * state.sizeScale * 0.75;
+    state.R_MAX = baseSize * state.sizeScale * 1.25;
+  }
+
+  function getGlobals() {
+    return state;
+  }
+
+  function setCanvas(canvas, ctx, container) {
+    state.canvas = canvas;
+    state.ctx = ctx;
+    state.container = container;
+  }
+
+  function setMode$1(mode) {
+    state.currentMode = mode;
+  }
+
+  function clearBalls() {
+    state.balls.length = 0;
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                        COLOR PALETTE SYSTEM (COMPLETE)                       ║
+  // ║              Extracted from balls-source.html lines 1405-1558                ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  const COLOR_TEMPLATES = {
+    industrialTeal: { 
+      label: 'Industrial Teal',
+      light: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
+      dark: ['#6b726b', '#3d453d', '#8a928a', '#00e6c3', '#d5d5d5', '#ff6b47', '#5b9aff', '#ffb84d']
+    },
+    sunsetCoral: { 
+      label: 'Sunset Coral', 
+      light: ['#bdbbb8', '#e8e6e3', '#ffffff', '#ff3b3b', '#000000', '#00f5d4', '#1e40af', '#fb923c'],
+      dark: ['#716f6b', '#3f3d3a', '#8e8c88', '#ff6b6b', '#d8d8d8', '#00ffe7', '#6ba3ff', '#ffb570']
+    },
+    violetPunch: { 
+      label: 'Violet Punch', 
+      light: ['#b8b7c2', '#e6e5ed', '#ffffff', '#9333ea', '#000000', '#dc2626', '#0ea5e9', '#facc15'],
+      dark: ['#6d6c7a', '#3a3845', '#8b8a98', '#c266ff', '#dad6e8', '#ff5c5c', '#42d4ff', '#fff066']
+    },
+    citrusBlast: { 
+      label: 'Citrus Blast', 
+      light: ['#bfbdb5', '#eae8df', '#ffffff', '#ea580c', '#000000', '#e11d48', '#2563eb', '#059669'],
+      dark: ['#74726a', '#403e38', '#918f87', '#ff8c4d', '#dbd9d1', '#ff5c7a', '#6ba3ff', '#00d699']
+    },
+    cobaltSpark: { 
+      label: 'Cobalt Spark', 
+      light: ['#b5b8be', '#e3e6eb', '#ffffff', '#1d4ed8', '#000000', '#ea580c', '#db2777', '#d97706'],
+      dark: ['#696d75', '#3a3e45', '#878b93', '#6b9dff', '#d6dae2', '#ff8c5c', '#ff66b3', '#ffc266']
+    }
+  };
+
+  const COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
+
+  function getCurrentPalette(templateName) {
+    const globals = getGlobals();
+    const template = COLOR_TEMPLATES[templateName];
+    if (!template) return COLOR_TEMPLATES.industrialTeal.light;
+    return globals.isDarkMode ? template.dark : template.light;
+  }
+
+  function pickRandomColor() {
+    const globals = getGlobals();
+    const colors = globals.currentColors;
+    
+    if (!colors || colors.length === 0) {
+      console.warn('No colors available, using fallback');
+      return '#ffffff';
+    }
+    
+    const random = Math.random();
+    let cumulativeWeight = 0;
+    
+    for (let i = 0; i < Math.min(colors.length, COLOR_WEIGHTS.length); i++) {
+      cumulativeWeight += COLOR_WEIGHTS[i];
+      if (random <= cumulativeWeight) {
+        return colors[i];
+      }
+    }
+    
+    return colors[Math.min(colors.length - 1, 7)];
+  }
+
+  /**
+   * Get a specific color by index (0-7)
+   * Ensures all 8 colors are accessible for guaranteed representation
+   */
+  function getColorByIndex(index) {
+    const globals = getGlobals();
+    const colors = globals.currentColors;
+    
+    if (!colors || colors.length === 0) {
+      console.warn('No colors available, using fallback');
+      return '#ffffff';
+    }
+    
+    const clampedIndex = Math.max(0, Math.min(7, Math.floor(index)));
+    return colors[clampedIndex] || '#ffffff';
+  }
+
+  function applyColorTemplate(templateName) {
+    const globals = getGlobals();
+    globals.currentTemplate = templateName;
+    globals.currentColors = getCurrentPalette(templateName);
+    globals.cursorBallColor = globals.currentColors[globals.cursorBallIndex || 4];
+    
+    // Update existing ball colors
+    updateExistingBallColors();
+    
+    // Sync CSS variables
+    syncPaletteVars(globals.currentColors);
+    
+    // Update UI color pickers
+    updateColorPickersUI();
+  }
+
+  function updateExistingBallColors() {
+    const globals = getGlobals();
+    const balls = globals.balls;
+    
+    for (let i = 0; i < balls.length; i++) {
+      balls[i].color = pickRandomColor();
+    }
+  }
+
+  function syncPaletteVars(colors) {
+    try {
+      const root = document.documentElement;
+      const list = (colors && colors.length ? colors : []).slice(0, 8);
+      for (let i = 0; i < 8; i++) {
+        const hex = list[i] || '#ffffff';
+        root.style.setProperty(`--ball-${i+1}`, hex);
+      }
+    } catch (_) { /* no-op */ }
+  }
+
+  function updateColorPickersUI() {
+    const globals = getGlobals();
+    const colors = globals.currentColors;
+    
+    for (let i = 1; i <= 8; i++) {
+      const picker = document.getElementById(`color${i}`);
+      const display = document.getElementById(`color${i}Val`);
+      if (picker && colors[i-1]) {
+        picker.value = colors[i-1];
+        if (display) display.textContent = colors[i-1].toUpperCase();
+      }
+    }
+  }
+
+  function populateColorSelect() {
+    const select = document.getElementById('colorSelect');
+    if (!select) return;
+    
+    select.innerHTML = '';
+    for (const [key, template] of Object.entries(COLOR_TEMPLATES)) {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = template.label;
+      select.appendChild(option);
+    }
+    
+    const globals = getGlobals();
+    select.value = globals.currentTemplate;
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                    MODERN DARK MODE SYSTEM (Best Practices)                 ║
+  // ║          Native feel with prefers-color-scheme + manual override            ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  // Theme states: 'auto', 'light', 'dark'
+  let currentTheme = 'light'; // Default to light mode
+  let systemPreference = 'light';
+
+  // Fallback colors if CSS vars not available
+  const FALLBACK_COLORS = {
+    light: '#cecece',
+    dark: '#0a0a0a'
+  };
+
+  /**
+   * Read CSS variable from :root, with fallback
+   */
+  function readCssVar(name, fallback) {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  /**
+   * Detect system color scheme preference
+   */
+  function detectSystemPreference() {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  }
+
+  /**
+   * Update browser chrome/theme color for Safari and Chrome
+   * Reads from CSS variables (--chrome-bg*) for unified color management
+   */
+  function updateThemeColor(isDark) {
+    // Read colors from CSS variables (single source of truth)
+    const lightColor = readCssVar('--chrome-bg-light', FALLBACK_COLORS.light);
+    const darkColor = readCssVar('--chrome-bg-dark', FALLBACK_COLORS.dark);
+    const currentColor = isDark ? darkColor : lightColor;
+    
+    // Update existing meta tag or create new one
+    let metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (!metaTheme) {
+      metaTheme = document.createElement('meta');
+      metaTheme.name = 'theme-color';
+      document.head.appendChild(metaTheme);
+    }
+    metaTheme.content = currentColor;
+    
+    // Safari-specific: Update for both light and dark modes
+    let metaThemeLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
+    if (!metaThemeLight) {
+      metaThemeLight = document.createElement('meta');
+      metaThemeLight.name = 'theme-color';
+      metaThemeLight.media = '(prefers-color-scheme: light)';
+      document.head.appendChild(metaThemeLight);
+    }
+    metaThemeLight.content = lightColor;
+    
+    let metaThemeDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
+    if (!metaThemeDark) {
+      metaThemeDark = document.createElement('meta');
+      metaThemeDark.name = 'theme-color';
+      metaThemeDark.media = '(prefers-color-scheme: dark)';
+      document.head.appendChild(metaThemeDark);
+    }
+    metaThemeDark.content = darkColor;
+  }
+
+  /**
+   * Apply dark mode to DOM
+   */
+  function applyDarkModeToDOM(isDark) {
+    const globals = getGlobals();
+    globals.isDarkMode = isDark;
+    
+    // Set color-scheme for native form controls (Safari)
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    
+    // Apply dark-mode class
+    if (isDark) {
+      globals.container?.classList.add('dark-mode');
+      document.body.classList.add('dark-mode');
+      document.documentElement.classList.add('dark-mode');
+    } else {
+      globals.container?.classList.remove('dark-mode');
+      document.body.classList.remove('dark-mode');
+      document.documentElement.classList.remove('dark-mode');
+    }
+    
+    // Update browser chrome color
+    updateThemeColor(isDark);
+    
+    // Switch color palette variant
+    applyColorTemplate(globals.currentTemplate);
+    
+    // Update UI
+    updateSegmentControl();
+  }
+
+  /**
+   * Update segment control UI
+   */
+  function updateSegmentControl() {
+    const autoBtn = document.getElementById('themeAuto');
+    const lightBtn = document.getElementById('themeLight');
+    const darkBtn = document.getElementById('themeDark');
+    
+    if (!autoBtn || !lightBtn || !darkBtn) return;
+    
+    // Remove active class from all
+    [autoBtn, lightBtn, darkBtn].forEach(btn => btn.classList.remove('active'));
+    
+    // Add active to current
+    if (currentTheme === 'auto') {
+      autoBtn.classList.add('active');
+    } else if (currentTheme === 'light') {
+      lightBtn.classList.add('active');
+    } else {
+      darkBtn.classList.add('active');
+    }
+    
+    // Update status text
+    const status = document.getElementById('themeStatus');
+    if (status) {
+      const globals = getGlobals();
+      if (currentTheme === 'auto') {
+        status.textContent = globals.isDarkMode ? '🌙 Auto (Dark)' : '☀️ Auto (Light)';
+      } else if (currentTheme === 'light') {
+        status.textContent = '☀️ Light Mode';
+      } else {
+        status.textContent = '🌙 Dark Mode';
+      }
+    }
+  }
+
+  /**
+   * Set theme (auto, light, or dark)
+   */
+  function setTheme(theme) {
+    currentTheme = theme;
+    
+    let shouldBeDark = false;
+    
+    if (theme === 'auto') {
+      shouldBeDark = systemPreference === 'dark';
+    } else if (theme === 'dark') {
+      shouldBeDark = true;
+    } else {
+      shouldBeDark = false;
+    }
+    
+    applyDarkModeToDOM(shouldBeDark);
+    
+    // Save preference
+    try {
+      localStorage.setItem('theme-preference', theme);
+    } catch (e) {
+      // localStorage unavailable
+    }
+    
+    console.log(`🎨 Theme set to: ${theme} (rendering: ${shouldBeDark ? 'dark' : 'light'})`);
+  }
+
+  /**
+   * Initialize dark mode system
+   */
+  function initializeDarkMode() {
+    // Detect system preference
+    systemPreference = detectSystemPreference();
+    console.log(`🖥️ System prefers: ${systemPreference}`);
+    
+    // Load saved preference or default to light
+    let savedTheme = 'light';
+    try {
+      savedTheme = localStorage.getItem('theme-preference') || 'light';
+    } catch (e) {
+      // localStorage unavailable
+    }
+    
+    // Apply theme
+    setTheme(savedTheme);
+    
+    // Setup segment control listeners
+    const autoBtn = document.getElementById('themeAuto');
+    const lightBtn = document.getElementById('themeLight');
+    const darkBtn = document.getElementById('themeDark');
+    
+    if (autoBtn) autoBtn.addEventListener('click', () => setTheme('auto'));
+    if (lightBtn) lightBtn.addEventListener('click', () => setTheme('light'));
+    if (darkBtn) darkBtn.addEventListener('click', () => setTheme('dark'));
+    
+    // Listen for system preference changes
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        systemPreference = e.matches ? 'dark' : 'light';
+        console.log(`🖥️ System preference changed to: ${systemPreference}`);
+        
+        // If in auto mode, update
+        if (currentTheme === 'auto') {
+          setTheme('auto');
+        }
+      });
+    }
+    
+    console.log('✓ Modern dark mode initialized');
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                           RENDERING EFFECTS                                  ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function applyCanvasShadow(canvas) {
+    const g = getGlobals();
+    const enabled = g.canvasShadowEnabled || false;
+    if (!enabled) {
+      canvas.style.filter = '';
+      return;
+    }
+    const x = g.shadowOffsetX || 1;
+    const y = g.shadowOffsetY || 1;
+    const blur = g.shadowBlur || 0;
+    const color = g.shadowColor || '#000000';
+    const op = g.shadowOpacity || 0.29;
+    const second = g.shadow2Enabled ? ` drop-shadow(0 0 ${g.shadow2Blur||4}px rgba(0,0,0,${g.shadow2Opacity||0.10}))` : '';
+    canvas.style.filter = `drop-shadow(${x}px ${y}px ${blur}px ${hexToRgba(color, op)})${second}`;
+  }
+
+  function hexToRgba(hex, alpha) {
+    const h = hex.replace('#', '');
+    const bigint = parseInt(h, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                          RENDERER (COMPLETE)                                 ║
+  // ║                 Canvas setup, resize, and rendering                          ║
+  // ║      Sizes relative to container (supports frame padding/border)             ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  let canvas, ctx;
+
+  function setupRenderer() {
+    canvas = document.getElementById('c');
+    ctx = canvas ? canvas.getContext('2d') : null;
+    
+    if (!canvas || !ctx) {
+      console.error('Canvas not found');
+      return;
+    }
+    
+    // NOTE: Don't call resize() here - globals.container may not be set yet
+    // main.js will call resize() after setCanvas() to ensure container is available
+    window.addEventListener('resize', resize);
+  }
+
+  /**
+   * Resize canvas to match container dimensions (not window/viewport).
+   * This allows frame padding to inset the simulation area.
+   */
+  function resize() {
+    if (!canvas) return;
+    
+    const globals = getGlobals();
+    
+    // Use container dimensions if available, fallback to window for safety
+    const container = globals.container || document.getElementById('bravia-balls');
+    const containerWidth = container ? container.clientWidth : window.innerWidth;
+    const containerHeight = container ? container.clientHeight : window.innerHeight;
+    
+    // Ball Pit mode uses 150% height (spawn area above viewport)
+    const heightMultiplier = (globals.currentMode === MODES.PIT)
+      ? CONSTANTS.CANVAS_HEIGHT_VH_PIT
+      : CONSTANTS.CANVAS_HEIGHT_VH_DEFAULT;
+    
+    const simHeight = containerHeight * heightMultiplier;
+    const DPR = CONSTANTS.DPR;
+    
+    // Set canvas buffer size (high-DPI)
+    canvas.width = Math.floor(containerWidth * DPR);
+    canvas.height = Math.floor(simHeight * DPR);
+    
+    // Set CSS display size (container-relative)
+    canvas.style.width = containerWidth + 'px';
+    canvas.style.height = simHeight + 'px';
+    
+    applyCanvasShadow(canvas);
+  }
+
+  function getCanvas() {
+    return canvas;
+  }
+
+  function getContext() {
+    return ctx;
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                         COMPLETE PANEL HTML TEMPLATE                         ║
+  // ║                 Extracted from balls-source.html lines 246-720               ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+  const PANEL_HTML = `
+  <!-- Draggable header -->
+  <div class="panel-header" id="panelHeader" role="banner">
+    <span><span class="drag-handle" aria-hidden="true">⋮⋮</span>Controls</span>
+    <button style="cursor: pointer; opacity: 0.7; background: none; border: none; color: inherit; font-size: 16px; padding: 0;" id="minimizePanel" title="Toggle panel" aria-label="Toggle control panel" aria-expanded="true">−</button>
+  </div>
+  
+  <!-- Screen reader announcements -->
+  <div role="status" aria-live="polite" aria-atomic="true" style="position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden;" id="announcer"></div>
+  
+  <div class="panel-content">
+  
+  <!-- Theme Segment Control -->
+  <div style="margin-bottom: 12px; padding: 8px; background: rgba(100,100,255,0.15); border-radius: 4px; border: 1px solid rgba(100,100,255,0.3);">
+    <div style="font-weight: 600; font-size: 11px; margin-bottom: 8px;">🎨 Theme</div>
+    <div class="theme-segment-control" role="group" aria-label="Theme selector">
+      <button id="themeAuto" class="theme-segment-btn" aria-label="Auto theme">Auto</button>
+      <button id="themeLight" class="theme-segment-btn active" aria-label="Light theme">Light</button>
+      <button id="themeDark" class="theme-segment-btn" aria-label="Dark theme">Dark</button>
+    </div>
+    <div id="themeStatus" style="font-size: 9px; margin-top: 8px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; font-family: monospace; text-align: center;">
+      ☀️ Light Mode
+    </div>
+  </div>
+  
+  <!-- GLOBAL SETTINGS -->
+  <details open>
+    <summary>🌐 Global Ball Properties</summary>
+    <div class="group">
+        <label title="Global ball size scale (0.1-6.0)">Size: <span class="val" id="sizeValGlobal">1.2</span><input type="range" id="sizeSliderGlobal" min="0.1" max="6.0" step="0.05" value="1.2"></label>
+        <label title="Ball deformation (0-100)">Softness: <span class="val" id="ballSoftnessValGlobal">20</span><input type="range" id="ballSoftnessSliderGlobal" min="0" max="100" step="1" value="20"></label>
+    </div>
+  </details>
+  
+  <!-- Frame/Border Settings -->
+  <details>
+    <summary>🖼️ Frame Border</summary>
+    <div class="group">
+        <label><span>Top (px)</span><input type="range" id="framePadTopSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadTopVal">0</span></label>
+        <label><span>Right (px)</span><input type="range" id="framePadRightSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadRightVal">0</span></label>
+        <label><span>Bottom (px)</span><input type="range" id="framePadBottomSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadBottomVal">0</span></label>
+        <label><span>Left (px)</span><input type="range" id="framePadLeftSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadLeftVal">0</span></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Border uses body/chrome background color</div>
+    </div>
+  </details>
+  
+  <!-- Build Controls -->
+  <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
+    <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Save Config</button>
+    <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Save downloads current-config.json</div>
+  </div>
+  
+  <details open>
+    <summary>🎨 Colors</summary>
+    <div class="group">
+        <label>Color template: <select id="colorSelect"></select></label>
+    </div>
+  </details>
+  
+  <div style="margin: 20px 0; padding: 12px 0; border-top: 1px solid rgba(255,255,255,0.15);">
+    <div style="text-align: center; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 12px;">
+      Mode Settings
+    </div>
+    
+    <!-- Mode Switcher -->
+    <div class="mode-switcher" role="group" aria-label="Simulation mode selector">
+      <button class="mode-button" data-mode="pit" aria-label="Ball Pit mode">🎯 Pit</button>
+      <button class="mode-button active" data-mode="flies" aria-label="Flies mode">🕊️ Flies</button>
+      <button class="mode-button" data-mode="weightless" aria-label="Zero-G mode">🌌 Zero-G</button>
+      <button class="mode-button" data-mode="water" aria-label="Water mode">🌊 Water</button>
+      <button class="mode-button" data-mode="vortex" aria-label="Vortex mode">🌀 Vortex</button>
+      <button class="mode-button" data-mode="ping-pong" aria-label="Ping Pong mode">🏓 Pong</button>
+      <button class="mode-button" data-mode="magnetic" aria-label="Magnetic mode">🧲 Magnet</button>
+      <button class="mode-button" data-mode="bubbles" aria-label="Bubbles mode">🫧 Bubbles</button>
+    </div>
+  </div>
+  
+  <div id="pitControls" class="mode-controls">
+    <details open>
+      <summary>🎯 Ball Pit Mode</summary>
+      <div class="group">
+        <label><span>Gravity (×Earth)</span><input type="range" id="gravityPitSlider" min="0.0" max="2.0" step="0.05" value="1.10"><span class="val" id="gravityPitVal">1.10</span></label>
+        <label><span>Weight (grams)</span><input type="range" id="weightPitSlider" min="10.0" max="200.0" step="1.0" value="129"><span class="val" id="weightPitVal">129</span></label>
+        <label><span>Bounciness</span><input type="range" id="restitutionSlider" min="0.00" max="1.00" step="0.01" value="0.69"><span class="val" id="restitutionVal">0.69</span></label>
+        <label><span>Air friction</span><input type="range" id="frictionSlider" min="0.000" max="0.010" step="0.0005" value="0.0060"><span class="val" id="frictionVal">0.0060</span></label>
+      </div>
+    </details>
+    <details open>
+      <summary>🧲 Mouse Repeller</summary>
+      <div class="group">
+        <label><span>Repel size (px)</span><input type="range" id="repelSizeSlider" min="50" max="1000" step="5" value="120"><span class="val" id="repelSizeVal">120</span></label>
+        <label><span>Repel power</span><input type="range" id="repelPowerSlider" min="0" max="10000" step="100" value="8500"><span class="val" id="repelPowerVal">274000</span></label>
+      </div>
+    </details>
+  </div>
+  
+  <div id="fliesControls" class="mode-controls active">
+    <details open>
+      <summary>🕊️ Flies to Light Mode</summary>
+      <div class="group">
+        <label><span>Ball count</span><input type="range" id="fliesBallCountSlider" min="20" max="150" step="5" value="60"><span class="val" id="fliesBallCountVal">60</span></label>
+        <label><span>Attraction power</span><input type="range" id="attractPowerSlider" min="100" max="8000" step="50" value="5000"><span class="val" id="attractPowerVal">5000</span></label>
+        <label><span>Swarm speed (×)</span><input type="range" id="swarmSpeedSlider" min="0.2" max="5.0" step="0.1" value="0.4"><span class="val" id="swarmSpeedVal">0.4</span></label>
+        <label><span>Separation force</span><input type="range" id="fliesSeparationSlider" min="5000" max="30000" step="1000" value="15000"><span class="val" id="fliesSeparationVal">15000</span></label>
+      </div>
+    </details>
+  </div>
+  
+  <div id="weightlessControls" class="mode-controls">
+    <details open>
+      <summary>🌌 Zero-G Mode</summary>
+      <div class="group">
+        <label><span>Ball count</span><input type="range" id="weightlessCountSlider" min="20" max="200" step="10" value="80"><span class="val" id="weightlessCountVal">80</span></label>
+        <label><span>Initial speed</span><input type="range" id="weightlessSpeedSlider" min="100" max="600" step="25" value="250"><span class="val" id="weightlessSpeedVal">250</span></label>
+        <label><span>Bounce</span><input type="range" id="weightlessBounceSlider" min="0.5" max="1.0" step="0.05" value="0.95"><span class="val" id="weightlessBounceVal">0.95</span></label>
+      </div>
+    </details>
+  </div>
+  
+  <div id="waterControls" class="mode-controls">
+    <details open>
+      <summary>🌊 Water Swimming Mode</summary>
+      <div class="group">
+        <label><span>Ball count</span><input type="range" id="waterBallCountSlider" min="50" max="400" step="10" value="300"><span class="val" id="waterBallCountVal">300</span></label>
+        <label><span>Ripple strength</span><input type="range" id="waterRippleStrengthSlider" min="5000" max="30000" step="1000" value="18000"><span class="val" id="waterRippleStrengthVal">18000</span></label>
+        <label><span>Motion intensity</span><input type="range" id="waterMotionSlider" min="0" max="80" step="1" value="40"><span class="val" id="waterMotionVal">40</span></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Move your cursor to create ripples</div>
+      </div>
+    </details>
+  </div>
+  
+  <div id="vortexControls" class="mode-controls">
+    <details open>
+      <summary>🌀 Vortex Sheets Mode</summary>
+      <div class="group">
+        <label><span>Ball count</span><input type="range" id="vortexBallCountSlider" min="50" max="300" step="10" value="180"><span class="val" id="vortexBallCountVal">180</span></label>
+        <label><span>Swirl strength</span><input type="range" id="vortexSwirlSlider" min="100" max="800" step="20" value="420"><span class="val" id="vortexSwirlVal">420</span></label>
+        <label><span>Radial pull</span><input type="range" id="vortexPullSlider" min="0" max="400" step="10" value="180"><span class="val" id="vortexPullVal">180</span></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Move cursor to create vortex</div>
+      </div>
+    </details>
+  </div>
+  
+  <div id="ping-pongControls" class="mode-controls">
+    <details open>
+      <summary>🏓 Ping Pong Mode</summary>
+      <div class="group">
+        <label><span>Ball count</span><input type="range" id="pingPongBallCountSlider" min="10" max="100" step="5" value="35"><span class="val" id="pingPongBallCountVal">35</span></label>
+        <label><span>Ball speed</span><input type="range" id="pingPongSpeedSlider" min="200" max="1200" step="50" value="800"><span class="val" id="pingPongSpeedVal">800</span></label>
+        <label><span>Cursor obstacle size</span><input type="range" id="pingPongCursorSlider" min="20" max="200" step="10" value="50"><span class="val" id="pingPongCursorVal">50</span></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Continuous motion • Cursor deflects balls</div>
+      </div>
+    </details>
+  </div>
+  
+  <div id="magneticControls" class="mode-controls">
+    <details open>
+      <summary>🧲 Magnetic Mode</summary>
+      <div class="group">
+        <label><span>Ball count</span><input type="range" id="magneticBallCountSlider" min="50" max="300" step="10" value="180"><span class="val" id="magneticBallCountVal">180</span></label>
+        <label><span>Magnetic strength</span><input type="range" id="magneticStrengthSlider" min="10000" max="100000" step="5000" value="65000"><span class="val" id="magneticStrengthVal">65000</span></label>
+        <label><span>Max velocity</span><input type="range" id="magneticVelocitySlider" min="500" max="4000" step="100" value="2800"><span class="val" id="magneticVelocityVal">2800</span></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Cursor drives magnetic swirls (no explosions)</div>
+      </div>
+    </details>
+  </div>
+  
+  <div id="bubblesControls" class="mode-controls">
+    <details open>
+      <summary>🫧 Carbonated Bubbles Mode</summary>
+      <div class="group">
+        <label><span>Bubble rate</span><input type="range" id="bubblesRateSlider" min="1" max="20" step="1" value="8"><span class="val" id="bubblesRateVal">8</span></label>
+        <label><span>Rise speed</span><input type="range" id="bubblesSpeedSlider" min="50" max="400" step="25" value="150"><span class="val" id="bubblesSpeedVal">150</span></label>
+        <label><span>Wobble</span><input type="range" id="bubblesWobbleSlider" min="0" max="100" step="5" value="40"><span class="val" id="bubblesWobbleVal">40</span></label>
+        <label><span>Max bubbles</span><input type="range" id="bubblesMaxSlider" min="50" max="300" step="10" value="150"><span class="val" id="bubblesMaxVal">150</span></label>
+        <label><span>Cursor deflection</span><input type="range" id="bubblesDeflectSlider" min="20" max="150" step="10" value="80"><span class="val" id="bubblesDeflectVal">80</span></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Bubbles rise from bottom • Pop at top • Cursor deflects</div>
+      </div>
+    </details>
+  </div>
+  
+  <div style="font-size:10px; opacity:0.5; text-align:center; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+    <code>R</code> reset • <code>/</code> panel • click/tap cycles modes
+  </div>
+  
+  </div>
+`;
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                      LOCALSTORAGE PERSISTENCE                                ║
+  // ║              Extracted from balls-source.html lines 1587-1748                ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function saveSettings() {
+    {
+      console.log('⚠️ localStorage is disabled');
+      return;
+    }
+  }
+
+  function loadSettings() {
+    {
+      console.log('⚠️ localStorage is disabled - using defaults');
+      return false;
+    }
+  }
+
+  function autoSaveSettings() {
+    clearTimeout(window.settingsSaveTimeout);
+    window.settingsSaveTimeout = setTimeout(saveSettings, 500);
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                              BALL CLASS (COMPLETE)                           ║
+  // ║                   Extracted from balls-source.html lines 1823-2234           ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  class Ball {
+    constructor(x, y, r, color) {
+      const globals = getGlobals();
+      this.x = x;
+      this.y = y;
+      this.vx = (Math.random()*2 - 1) * 200;
+      this.vy = -Math.random()*200;
+      this.r = r;
+      this.rBase = r;
+      this.m = globals.ballMassKg;
+      this.color = color;
+      this.t = 0;
+      this.age = 0;
+      this.driftAx = 0;
+      this.driftTime = 0;
+      this.omega = 0;
+      this.squash = 1.0;
+      this.squashDirX = 1;
+      this.squashDirY = 0;
+      this.theta = 0;
+      this.squashAmount = 0.0;
+      this.squashNormalAngle = 0.0;
+      this.alpha = 1.0;
+      this.isSleeping = false;
+      this.sleepTimer = 0;  // Time spent below sleep threshold
+    }
+
+    step(dt, applyForcesFunc) {
+      const globals = getGlobals();
+      const { currentMode, G, gravityScale, FRICTION, MASS_BASELINE_KG } = globals;
+      
+      this.t += dt;
+      this.age += dt;
+      
+      // Wake up if sleeping and mouse is nearby (Ball Pit mode only)
+      if (this.isSleeping && currentMode === MODES.PIT) {
+        const mouseX = globals.mouseX;
+        const mouseY = globals.mouseY;
+        const wakeRadius = (globals.repelRadius || 710) * globals.DPR * 1.2; // 20% larger than repel radius
+        const dx = this.x - mouseX;
+        const dy = this.y - mouseY;
+        const dist2 = dx * dx + dy * dy;
+        
+        if (dist2 < wakeRadius * wakeRadius) {
+          this.wake();
+        }
+      }
+      
+      // Skip all physics if sleeping (Box2D approach)
+      if (this.isSleeping) {
+        return;
+      }
+
+      // Gravity (skip in weightless)
+      if (currentMode !== MODES.WEIGHTLESS) {
+        this.vy += (G * gravityScale) * dt;
+      }
+      
+      // Drag
+      const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
+      const dragAmount = (currentMode === MODES.WEIGHTLESS) ? 0.0001 : FRICTION;
+      const drag = Math.max(0, 1 - (dragAmount / massScale));
+      this.vx *= drag;
+      this.vy *= drag;
+      
+      // Drift
+      if (this.driftAx !== 0 && this.age < this.driftTime) {
+        this.vx += (this.driftAx * dt) / massScale;
+      } else if (this.driftAx !== 0) {
+        this.driftAx = 0;
+      }
+      
+      // External forces
+      if (applyForcesFunc) applyForcesFunc(this, dt);
+      
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      
+      // Spin
+      const spinDamp = Math.max(0, 1 - CONSTANTS.SPIN_DAMP_PER_S * dt);
+      this.omega *= spinDamp;
+      this.theta += this.omega * dt;
+      
+      // Squash decay
+      const decay = Math.min(1, CONSTANTS.SQUASH_DECAY_PER_S * dt);
+      this.squashAmount += (0 - this.squashAmount) * decay;
+      this.squash = 1 - this.squashAmount;
+      
+      // Sleep detection (Ball Pit mode only, Box2D-style)
+      if (currentMode === MODES.PIT) {
+        this.updateSleepState(dt, globals);
+      }
+    }
+    
+    /**
+     * Box2D-inspired sleep detection
+     * Only sleeps if grounded AND below velocity threshold for sustained time
+     */
+    updateSleepState(dt, globals) {
+      const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+      const angularSpeed = Math.abs(this.omega);
+      const canvas = globals.canvas;
+      
+      // Check if grounded (within 1px of bottom)
+      const isGrounded = canvas && (this.y + this.r >= canvas.height - 1);
+      
+      // Box2D uses 0.05 m/s threshold, we use 5 px/s
+      const belowThreshold = speed < CONSTANTS.SLEEP_VELOCITY_THRESHOLD && 
+                            angularSpeed < CONSTANTS.SLEEP_ANGULAR_THRESHOLD;
+      
+      if (isGrounded && belowThreshold) {
+        this.sleepTimer += dt;
+        
+        // Must be below threshold for TIME_TO_SLEEP seconds (stability check)
+        if (this.sleepTimer >= CONSTANTS.TIME_TO_SLEEP) {
+          this.vx = 0;
+          this.vy = 0;
+          this.omega = 0;
+          this.isSleeping = true;
+        }
+      } else {
+        // Reset timer if ball moves or lifts off ground
+        this.sleepTimer = 0;
+      }
+    }
+    
+    /**
+     * Wake up a sleeping ball (Box2D-style)
+     * Called when external forces are about to be applied
+     */
+    wake() {
+      this.isSleeping = false;
+      this.sleepTimer = 0;
+    }
+
+    walls(w, h, dt, customRest) {
+      const globals = getGlobals();
+      const { REST, MASS_BASELINE_KG, MASS_REST_EXP, cornerRadius, currentMode, DPR } = globals;
+      const rest = customRest !== undefined ? customRest : REST;
+      
+      const viewportTop = (currentMode === MODES.PIT) ? (h / 3) : 0;
+      
+      // Corner radius inset (scaled by DPR)
+      const cr = (cornerRadius || 42) * (DPR || 1);
+      
+      // No border inset - balls use full canvas bounds
+      const borderInset = 0;
+      
+      let hasWallCollision = false;
+      
+      // ════════════════════════════════════════════════════════════════════════
+      // CORNER COLLISION: Push balls out of rounded corner zones
+      // Check if ball center is within a corner quadrant and too close to arc
+      // ════════════════════════════════════════════════════════════════════════
+      const corners = [
+        { cx: cr, cy: viewportTop + cr },           // Top-left
+        { cx: w - cr, cy: viewportTop + cr },       // Top-right
+        { cx: cr, cy: h - cr },                      // Bottom-left
+        { cx: w - cr, cy: h - cr }                   // Bottom-right
+      ];
+      
+      for (let i = 0; i < corners.length; i++) {
+        const corner = corners[i];
+        // Check if ball is in this corner's quadrant
+        const inXZone = (i % 2 === 0) ? (this.x < cr) : (this.x > w - cr);
+        const inYZone = (i < 2) ? (this.y < viewportTop + cr) : (this.y > h - cr);
+        
+        if (inXZone && inYZone) {
+          const dx = this.x - corner.cx;
+          const dy = this.y - corner.cy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const minDist = cr - this.r; // Ball must stay inside the arc
+          
+          if (dist > minDist && minDist > 0) {
+            // Push ball back inside the rounded corner
+            hasWallCollision = true;
+            const overlap = dist - minDist;
+            const nx = dx / dist;
+            const ny = dy / dist;
+            this.x -= nx * overlap;
+            this.y -= ny * overlap;
+            
+            // Reflect velocity off the arc tangent
+            const velDotN = this.vx * nx + this.vy * ny;
+            if (velDotN > 0) {
+              this.vx -= (1 + rest) * velDotN * nx;
+              this.vy -= (1 + rest) * velDotN * ny;
+            }
+          }
+        }
+      }
+      
+      // Effective boundaries (accounting for inner border)
+      const minX = borderInset;
+      const maxX = w - borderInset;
+      const minY = viewportTop + borderInset;
+      const maxY = h - borderInset;
+      
+      // Bottom
+      if (this.y + this.r > maxY) {
+        hasWallCollision = true;
+        this.y = maxY - this.r;
+        const preVy = this.vy;
+        const slip = this.vx - this.omega * this.r;
+        const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
+        this.omega += (slip / this.r) * CONSTANTS.SPIN_GAIN / massScale;
+        const rollDamp = Math.max(0, 1 - CONSTANTS.ROLL_FRICTION_PER_S * dt / massScale);
+        this.vx *= rollDamp;
+        const wallRest = Math.abs(preVy) < CONSTANTS.WALL_REST_VEL_THRESHOLD ? 0 : rest;
+        this.vy = -this.vy * (wallRest * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
+        const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
+        this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
+        this.squashNormalAngle = -Math.PI / 2;
+        const rollTarget = this.vx / this.r;
+        this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
+      }
+      
+      // Top
+      if (this.y - this.r < minY) {
+        hasWallCollision = true;
+        this.y = minY + this.r;
+        this.vy = -this.vy * rest;
+        const impact = Math.min(1, Math.abs(this.vy) / (this.r * 90));
+        this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
+        this.squashNormalAngle = Math.PI / 2;
+      }
+      
+      // Right
+      if (this.x + this.r > maxX) {
+        hasWallCollision = true;
+        this.x = maxX - this.r;
+        const slip = this.vy - this.omega * this.r;
+        const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
+        this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
+        this.vx = -this.vx * (REST * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
+        const impact = Math.min(1, Math.abs(this.vx)/(this.r*70));
+        this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
+        this.squashNormalAngle = Math.PI;
+      }
+      
+      // Left
+      if (this.x - this.r < minX) {
+        hasWallCollision = true;
+        this.x = minX + this.r;
+        const slip = this.vy - this.omega * this.r;
+        const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
+        this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
+        this.vx = -this.vx * (REST * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
+        const impact = Math.min(1, Math.abs(this.vx)/(this.r*70));
+        this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
+        this.squashNormalAngle = 0;
+      }
+      
+      // Wake on wall collision (prevents sleeping balls from getting stuck in walls)
+      if (hasWallCollision && this.isSleeping) {
+        this.wake();
+      }
+    }
+
+    draw(ctx) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.theta);
+      
+      // Apply squash
+      if (this.squashAmount > 0.001) {
+        const squashX = 1 - this.squashAmount * 0.3;
+        const squashY = 1 + this.squashAmount * 0.3;
+        ctx.rotate(this.squashNormalAngle);
+        ctx.scale(squashX, squashY);
+        ctx.rotate(-this.squashNormalAngle);
+      }
+      
+      ctx.beginPath();
+      ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = this.alpha;
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
+    }
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                              BALL SPAWNING                                   ║
+  // ║              Extracted from balls-source.html lines 2249-2284                ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+  }
+
+  function randBetween(min, max) {
+    return min + Math.random() * (max - min);
+  }
+
+  function spawnBall(x, y, color) {
+    if (!color) color = pickRandomColor();
+    const globals = getGlobals();
+    const baseSize = (globals.R_MIN + globals.R_MAX) / 2;
+    
+    let r;
+    if (globals.sizeVariation === 0) {
+      r = baseSize;
+    } else {
+      const maxVariation = baseSize * 0.1;
+      const minR = Math.max(1, baseSize - maxVariation);
+      const maxR = baseSize + maxVariation;
+      r = randBetween(minR, maxR);
+    }
+    
+    const ball = new Ball(x, y, r, color);
+    
+    const centerX = globals.canvas.width * 0.5;
+    const dir = (x < centerX) ? 1 : -1;
+    const sizeInfluence = clamp((r / ((globals.R_MIN + globals.R_MAX) * 0.5)), 0.6, 1.4);
+    const baseKick = 140 * sizeInfluence;
+    const randKick = 180 * sizeInfluence;
+    const upwardKick = 120;
+    ball.vx = dir * (baseKick + Math.random() * randKick);
+    ball.vy = -Math.random() * upwardKick;
+    ball.driftAx = dir * (360 + Math.random() * 420) * sizeInfluence;
+    ball.driftTime = 0.22 + Math.random() * 0.28;
+    
+    globals.balls.push(ball);
+    return ball;
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                                FLIES MODE                                    ║
+  // ║            Extracted from balls-source.html lines 3521-3551                  ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function initializeFlies() {
+    const globals = getGlobals();
+    clearBalls();
+    
+    const targetBalls = 60;
+    const w = globals.canvas.width;
+    const h = globals.canvas.height;
+    const centerX = w * 0.5;
+    const centerY = h * 0.5;
+    const swarmRadius = 150 * globals.DPR;
+    
+    // First, ensure at least one ball of each color (0-7)
+    for (let colorIndex = 0; colorIndex < 8; colorIndex++) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * swarmRadius;
+      const x = centerX + Math.cos(angle) * distance;
+      const y = centerY + Math.sin(angle) * distance;
+      
+      const ball = spawnBall(x, y, getColorByIndex(colorIndex));
+      
+      const speedVariation = 0.5 + Math.random() * 0.5;
+      const vAngle = Math.random() * Math.PI * 2;
+      const speed = 300 * speedVariation;
+      ball.vx = Math.cos(vAngle) * speed;
+      ball.vy = Math.sin(vAngle) * speed;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+    }
+    
+    // Then fill the rest with random colors
+    for (let i = 8; i < targetBalls; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * swarmRadius;
+      const x = centerX + Math.cos(angle) * distance;
+      const y = centerY + Math.sin(angle) * distance;
+      
+      const ball = spawnBall(x, y);
+      
+      const speedVariation = 0.5 + Math.random() * 0.5;
+      const vAngle = Math.random() * Math.PI * 2;
+      const speed = 300 * speedVariation;
+      ball.vx = Math.cos(vAngle) * speed;
+      ball.vy = Math.sin(vAngle) * speed;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+    }
+  }
+
+  function applyFliesForces(ball, dt) {
+    const globals = getGlobals();
+    const attractionPower = 5000;
+    const swarmSpeed = 0.4;
+    
+    const swarmCenterX = (globals.mouseX === -1e9) ? globals.canvas.width * 0.5 : globals.mouseX;
+    const swarmCenterY = (globals.mouseY === -1e9) ? globals.canvas.height * 0.5 : globals.mouseY;
+    
+    const dx = swarmCenterX - ball.x;
+    const dy = swarmCenterY - ball.y;
+    const d = Math.sqrt(dx*dx + dy*dy + 1);
+    
+    const dirX = dx / d;
+    const dirY = dy / d;
+    
+    const attractForce = attractionPower * swarmSpeed * 2.0;
+    ball.vx += dirX * attractForce * dt;
+    ball.vy += dirY * attractForce * dt;
+    
+    // Separation
+    const separationRadius = 120 * globals.DPR;
+    let sepX = 0, sepY = 0, neighborCount = 0;
+    for (let i = 0; i < globals.balls.length; i++) {
+      const other = globals.balls[i];
+      if (other === ball) continue;
+      const dx2 = ball.x - other.x;
+      const dy2 = ball.y - other.y;
+      const d2 = dx2*dx2 + dy2*dy2;
+      if (d2 < separationRadius * separationRadius && d2 > 0) {
+        const d_other = Math.sqrt(d2);
+        const strength = 1 - (d_other / separationRadius);
+        sepX += (dx2 / d_other) * strength;
+        sepY += (dy2 / d_other) * strength;
+        neighborCount++;
+      }
+    }
+    if (neighborCount > 0) {
+      const separationForce = 15000;
+      ball.vx += (sepX / neighborCount) * separationForce * dt;
+      ball.vy += (sepY / neighborCount) * separationForce * dt;
+    }
+    
+    // Jitter
+    const jitterBase = 2500 * swarmSpeed;
+    ball.vx += (Math.random() - 0.5) * jitterBase * dt;
+    ball.vy += (Math.random() - 0.5) * jitterBase * dt;
+  }
+
+  var flies = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    applyFliesForces: applyFliesForces,
+    initializeFlies: initializeFlies
+  });
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                              BALL PIT MODE                                   ║
+  // ║            Extracted from balls-source.html lines 3489-3518                  ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function initializeBallPit() {
+    const globals = getGlobals();
+    clearBalls();
+    
+    const targetBalls = 300; // MAX_BALLS
+    globals.canvas.width;
+    const hCss = globals.canvas.clientHeight;
+    const DPR = globals.DPR;
+    
+    // Spawn parameters (from config)
+    const SPAWN_Y_VH = -50;
+    const SPAWN_H_VH = 50;
+    const SPAWN_W_VW = 100;
+    const SPAWN_X_CENTER_VW = 50;
+    
+    const spawnYTop = (SPAWN_Y_VH / 100) * hCss * DPR;
+    const spawnYBottom = spawnYTop + (SPAWN_H_VH / 100) * hCss * DPR;
+    const widthCss = (SPAWN_W_VW / 100) * (globals.canvas.clientWidth);
+    const xCenterCss = (SPAWN_X_CENTER_VW / 100) * (globals.canvas.clientWidth);
+    const xLeftCss = xCenterCss - widthCss / 2;
+    
+    // First, ensure at least one ball of each color (0-7)
+    for (let colorIndex = 0; colorIndex < 8; colorIndex++) {
+      const x = (xLeftCss + Math.random() * widthCss) * DPR;
+      const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
+      
+      const ball = spawnBall(x, y, getColorByIndex(colorIndex));
+      ball.vx = (Math.random() - 0.5) * 100;
+      ball.vy = Math.random() * 50;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+    }
+    
+    // Then fill the rest with random colors
+    for (let i = 8; i < targetBalls; i++) {
+      const x = (xLeftCss + Math.random() * widthCss) * DPR;
+      const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
+      
+      const ball = spawnBall(x, y);
+      ball.vx = (Math.random() - 0.5) * 100;
+      ball.vy = Math.random() * 50;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+    }
+  }
+
+  function applyBallPitForces(ball, dt) {
+    const globals = getGlobals();
+    const repelPower = globals.repelPower;
+    const repelRadius = globals.repelRadius;
+    const mouseX = globals.mouseX;
+    const mouseY = globals.mouseY;
+    
+    if (!globals.repellerEnabled || repelPower <= 0 || repelRadius <= 0) return;
+    
+    const rPx = repelRadius * globals.DPR;
+    const dx = ball.x - mouseX;
+    const dy = ball.y - mouseY;
+    const d2 = dx*dx + dy*dy;
+    const r2 = rPx * rPx;
+    if (d2 > r2) return;
+    
+    const d = Math.max(Math.sqrt(d2), 1e-4);
+    const nx = dx / d;
+    const ny = dy / d;
+    const q = Math.max(0, 1 - d / rPx);
+    const strength = (repelPower * 20.0) * Math.pow(q, globals.repelSoft || 3.4);
+    const massScale = Math.max(0.25, ball.m / globals.MASS_BASELINE_KG);
+    ball.vx += (nx * strength * dt) / massScale;
+    ball.vy += (ny * strength * dt) / massScale;
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                            WEIGHTLESS MODE                                   ║
+  // ║            Extracted from balls-source.html lines 3559-3585                  ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function initializeWeightless() {
+    const globals = getGlobals();
+    clearBalls();
+    
+    const targetBalls = globals.weightlessCount;
+    const w = globals.canvas.width;
+    const h = globals.canvas.height;
+    const margin = 40 * globals.DPR;
+    
+    // First, ensure at least one ball of each color (0-7)
+    for (let colorIndex = 0; colorIndex < 8 && colorIndex < targetBalls; colorIndex++) {
+      const x = margin + Math.random() * (w - 2 * margin);
+      const y = margin + Math.random() * (h - 2 * margin);
+      
+      const ball = spawnBall(x, y, getColorByIndex(colorIndex));
+      
+      const angle = Math.random() * Math.PI * 2;
+      const speed = globals.weightlessInitialSpeed * (0.7 + Math.random() * 0.3);
+      ball.vx = Math.cos(angle) * speed;
+      ball.vy = Math.sin(angle) * speed;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+    }
+    
+    // Then fill the rest with random colors
+    for (let i = 8; i < targetBalls; i++) {
+      const x = margin + Math.random() * (w - 2 * margin);
+      const y = margin + Math.random() * (h - 2 * margin);
+      
+      const ball = spawnBall(x, y);
+      
+      const angle = Math.random() * Math.PI * 2;
+      const speed = globals.weightlessInitialSpeed * (0.7 + Math.random() * 0.3);
+      ball.vx = Math.cos(angle) * speed;
+      ball.vy = Math.sin(angle) * speed;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+    }
+  }
+
+  var weightless = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    initializeWeightless: initializeWeightless
+  });
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                            WATER/SWIMMING MODE                               ║
+  // ║           Balls swim through water with gorgeous ripple effects             ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  // Ripple system
+  const ripples = [];
+
+  function initializeWater() {
+    const globals = getGlobals();
+    clearBalls();
+    ripples.length = 0;
+    
+    const canvas = globals.canvas;
+    if (!canvas) return;
+    
+    const w = canvas.width;
+    const h = canvas.height;
+    const count = globals.waterBallCount || 100;
+    
+    // First, ensure at least one ball of each color (0-7)
+    for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      const size = globals.R_MIN + Math.random() * (globals.R_MAX - globals.R_MIN);
+      const color = getColorByIndex(colorIndex);
+      const ball = new Ball(x, y, size, color);
+      
+      // Random initial velocities (snowglobe-style movement)
+      const v0 = globals.waterInitialVelocity || 120;
+      ball.vx = (Math.random() - 0.5) * v0;
+      ball.vy = (Math.random() - 0.5) * v0;
+      
+      globals.balls.push(ball);
+    }
+    
+    // Then fill the rest with random colors
+    for (let i = 8; i < count; i++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      const size = globals.R_MIN + Math.random() * (globals.R_MAX - globals.R_MIN);
+      const color = pickRandomColor();
+      const ball = new Ball(x, y, size, color);
+      
+      // Random initial velocities (snowglobe-style movement)
+      const v0 = globals.waterInitialVelocity || 120;
+      ball.vx = (Math.random() - 0.5) * v0;
+      ball.vy = (Math.random() - 0.5) * v0;
+      
+      globals.balls.push(ball);
+    }
+  }
+
+  function applyWaterForces(ball, dt) {
+    const globals = getGlobals();
+    
+    // Strong water resistance (damping)
+    const waterDrag = globals.waterDrag || 0.015;
+    ball.vx *= (1 - waterDrag);
+    ball.vy *= (1 - waterDrag);
+    ball.omega *= (1 - waterDrag * 0.5);
+    
+    // Apply ripple forces
+    for (let i = 0; i < ripples.length; i++) {
+      const ripple = ripples[i];
+      const dx = ball.x - ripple.x;
+      const dy = ball.y - ripple.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      // Ripple affects balls in expanding ring
+      const rippleThickness = 40;
+      const innerRadius = ripple.radius - rippleThickness;
+      const outerRadius = ripple.radius + rippleThickness;
+      
+      if (dist > innerRadius && dist < outerRadius) {
+        // Calculate force based on distance from ripple edge
+        const distFromEdge = Math.abs(dist - ripple.radius);
+        const forceMag = ripple.strength * (1 - distFromEdge / rippleThickness);
+        
+        if (dist > 0.1) {
+          const nx = dx / dist;
+          const ny = dy / dist;
+          ball.vx += nx * forceMag * dt;
+          ball.vy += ny * forceMag * dt;
+        }
+      }
+    }
+    
+    // Gentle ambient drift (like currents)
+    const driftStrength = globals.waterDriftStrength || 25;
+    ball.vx += Math.sin(ball.t * 0.5 + ball.x * 0.01) * driftStrength * dt;
+    ball.vy += Math.cos(ball.t * 0.7 + ball.y * 0.01) * driftStrength * dt;
+  }
+
+  function updateWaterRipples(dt) {
+    const globals = getGlobals();
+    const rippleSpeed = globals.waterRippleSpeed || 300;
+    
+    // Update existing ripples
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const ripple = ripples[i];
+      ripple.radius += rippleSpeed * dt;
+      ripple.age += dt;
+      ripple.strength *= 0.96; // Decay
+      
+      // Remove old/weak ripples
+      if (ripple.age > 3.0 || ripple.strength < 10) {
+        ripples.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Create a water ripple at the given position
+   * @param {number} x - X position
+   * @param {number} y - Y position  
+   * @param {number} [velocityFactor=1] - Multiplier for ripple strength (based on mouse velocity)
+   */
+  function createWaterRipple(x, y, velocityFactor = 1) {
+    const globals = getGlobals();
+    const baseStrength = globals.waterRippleStrength || 15000;
+    
+    // Scale strength based on velocity factor
+    const strength = baseStrength * Math.min(velocityFactor, 5);
+    
+    ripples.push({
+      x,
+      y,
+      radius: 0,
+      strength,
+      age: 0
+    });
+  }
+
+  var water = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    applyWaterForces: applyWaterForces,
+    createWaterRipple: createWaterRipple,
+    initializeWater: initializeWater,
+    updateWaterRipples: updateWaterRipples
+  });
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                             VORTEX SHEETS MODE                               ║
+  // ║      Invisible swirl field anchored to cursor; spirals + radial pull         ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  const FAR_FALLOFF = 0.0015;    // reduces effect with distance
+
+  function initializeVortex() {
+    const g = getGlobals();
+    clearBalls();
+    const canvas = g.canvas;
+    if (!canvas) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const count = Math.min(g.vortexBallCount || 180, g.maxBalls || 300);
+
+    // Ensure at least one of each color
+    for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      const r = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+      const c = getColorByIndex(colorIndex);
+      const b = new Ball(x, y, r, c);
+      b.vx = (Math.random() - 0.5) * 80;
+      b.vy = (Math.random() - 0.5) * 80;
+      g.balls.push(b);
+    }
+
+    for (let i = 8; i < count; i++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      const r = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+      const c = pickRandomColor();
+      const b = new Ball(x, y, r, c);
+      b.vx = (Math.random() - 0.5) * 80;
+      b.vy = (Math.random() - 0.5) * 80;
+      g.balls.push(b);
+    }
+  }
+
+  function applyVortexForces(ball, dt) {
+    const g = getGlobals();
+    if (g.currentMode !== MODES.VORTEX) return;
+
+    const mx = g.mouseX;
+    const my = g.mouseY;
+    if (!g.mouseInCanvas) return;
+
+    const swirlStrength = g.vortexSwirlStrength || 420;
+    const radialPull = g.vortexRadialPull || 180;
+
+    const dx = ball.x - mx;
+    const dy = ball.y - my;
+    const dist2 = dx * dx + dy * dy;
+    const dist = Math.max(8, Math.sqrt(dist2));
+    const inv = 1 / (1 + dist * FAR_FALLOFF);
+
+    // Tangential swirl (perp to radial)
+    const nx = dx / dist;
+    const ny = dy / dist;
+    const tx = -ny;
+    const ty = nx;
+    const swirl = swirlStrength * inv;
+    ball.vx += tx * swirl * dt;
+    ball.vy += ty * swirl * dt;
+
+    // Mild inward pull
+    const pull = radialPull * inv;
+    ball.vx -= nx * pull * dt;
+    ball.vy -= ny * pull * dt;
+    
+    // Gentle drag to prevent runaway speeds
+    ball.vx *= 0.995;
+    ball.vy *= 0.995;
+  }
+
+  var vortex = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    applyVortexForces: applyVortexForces,
+    initializeVortex: initializeVortex
+  });
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                            PING PONG MODE                                    ║
+  // ║     Balls bounce left-right continuously; ONLY cursor disrupts their path    ║
+  // ║                    No drag, no friction, pure momentum                       ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function initializePingPong() {
+    const g = getGlobals();
+    clearBalls();
+    const canvas = g.canvas;
+    if (!canvas) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const count = Math.min(g.pingPongBallCount || 80, g.maxBalls || 300);
+    const baseSpeed = g.pingPongSpeed || 400;
+
+    // Ensure at least one of each color
+    for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
+      const x = Math.random() * w;
+      const y = h * 0.15 + Math.random() * h * 0.7; // Middle 70% vertically
+      const r = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+      const c = getColorByIndex(colorIndex);
+      const b = new Ball(x, y, r, c);
+      // Pure horizontal velocity - no vertical component
+      const dir = Math.random() > 0.5 ? 1 : -1;
+      b.vx = dir * (baseSpeed * 0.8 + Math.random() * baseSpeed * 0.4);
+      b.vy = 0; // Start with zero vertical
+      b.isPingPong = true; // Mark for special handling
+      g.balls.push(b);
+    }
+
+    for (let i = 8; i < count; i++) {
+      const x = Math.random() * w;
+      const y = h * 0.15 + Math.random() * h * 0.7;
+      const r = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+      const c = pickRandomColor();
+      const b = new Ball(x, y, r, c);
+      const dir = Math.random() > 0.5 ? 1 : -1;
+      b.vx = dir * (baseSpeed * 0.8 + Math.random() * baseSpeed * 0.4);
+      b.vy = 0;
+      b.isPingPong = true;
+      g.balls.push(b);
+    }
+  }
+
+  function applyPingPongForces(ball, dt) {
+    const g = getGlobals();
+    if (g.currentMode !== MODES.PING_PONG) return;
+    if (!ball.isPingPong) return;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CURSOR COLLISION - The ONLY thing that disrupts ball movement
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (g.mouseInCanvas) {
+      const cursorRadius = (g.pingPongCursorRadius || 100) * g.DPR;
+      const mx = g.mouseX;
+      const my = g.mouseY;
+      const dx = ball.x - mx;
+      const dy = ball.y - my;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = cursorRadius + ball.r;
+      
+      if (dist < minDist && dist > 0.1) {
+        // Push ball out of cursor
+        const overlap = minDist - dist;
+        const nx = dx / dist;
+        const ny = dy / dist;
+        ball.x += nx * overlap * 1.1; // Push out with small buffer
+        ball.y += ny * overlap * 1.1;
+        
+        // Reflect velocity perfectly (elastic collision)
+        const velDotN = ball.vx * nx + ball.vy * ny;
+        if (velDotN < 0) {
+          ball.vx -= 2 * velDotN * nx;
+          ball.vy -= 2 * velDotN * ny;
+          // Add some spin for visual flair
+          ball.omega += velDotN * 0.02;
+        }
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MAINTAIN HORIZONTAL ENERGY - Restore any lost horizontal speed
+    // ═══════════════════════════════════════════════════════════════════════════
+    const targetSpeed = g.pingPongSpeed || 400;
+    const currentHSpeed = Math.abs(ball.vx);
+    
+    // If horizontal speed drops below target, restore it
+    if (currentHSpeed < targetSpeed * 0.9) {
+      const dir = ball.vx >= 0 ? 1 : -1;
+      ball.vx = dir * targetSpeed;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DAMPEN VERTICAL DRIFT - Gently return to horizontal motion
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Very slowly reduce vertical velocity to return to pure horizontal motion
+    ball.vy *= 0.995;
+    
+    // NO OTHER DRAG - balls maintain momentum perfectly
+  }
+
+  var pingPong = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    applyPingPongForces: applyPingPongForces,
+    initializePingPong: initializePingPong
+  });
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                            MAGNETIC MODE                                     ║
+  // ║    Cursor creates POWERFUL magnetic field - balls are violently attracted    ║
+  // ║    or repelled based on their "charge". Auto-explosion every 10s.            ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function initializeMagnetic() {
+    const g = getGlobals();
+    clearBalls();
+    const canvas = g.canvas;
+    if (!canvas) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const count = Math.min(g.magneticBallCount || 180, g.maxBalls || 300);
+
+    // Ensure at least one of each color
+    for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      const r = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+      const c = getColorByIndex(colorIndex);
+      const b = new Ball(x, y, r, c);
+      b.vx = (Math.random() - 0.5) * 100;
+      b.vy = (Math.random() - 0.5) * 100;
+      // Assign magnetic charge: positive (attracted) or negative (repelled)
+      b.charge = Math.random() > 0.5 ? 1 : -1;
+      b.baseAlpha = 1;
+      g.balls.push(b);
+    }
+
+    for (let i = 8; i < count; i++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      const r = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+      const c = pickRandomColor();
+      const b = new Ball(x, y, r, c);
+      b.vx = (Math.random() - 0.5) * 100;
+      b.vy = (Math.random() - 0.5) * 100;
+      b.charge = Math.random() > 0.5 ? 1 : -1;
+      b.baseAlpha = 1;
+      g.balls.push(b);
+    }
+  }
+
+  function applyMagneticForces(ball, dt) {
+    const g = getGlobals();
+    if (g.currentMode !== MODES.MAGNETIC) return;
+    if (!g.mouseInCanvas) return;
+
+    const mx = g.mouseX;
+    const my = g.mouseY;
+    const dx = mx - ball.x;
+    const dy = my - ball.y;
+    const dist = Math.max(30, Math.sqrt(dx * dx + dy * dy));
+    
+    // EXAGGERATED magnetic force - inverse square law with high multiplier
+    const magneticStrength = g.magneticStrength || 65000;
+    
+    // Force magnitude: strong inverse-square attraction/repulsion
+    const forceMag = magneticStrength / (dist * dist) * 1000;
+    
+    // Normalize direction
+    const nx = dx / dist;
+    const ny = dy / dist;
+    
+    // Apply force based on charge (positive = attracted, negative = repelled)
+    const charge = ball.charge || 1;
+    ball.vx += nx * forceMag * charge * dt;
+    ball.vy += ny * forceMag * charge * dt;
+    
+    // Velocity cap to prevent explosion
+    const maxVel = g.magneticMaxVelocity || 2800;
+    const vel = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+    if (vel > maxVel) {
+      ball.vx = (ball.vx / vel) * maxVel;
+      ball.vy = (ball.vy / vel) * maxVel;
+    }
+    
+    // Very light drag to prevent chaos (but keep it snappy)
+    ball.vx *= 0.998;
+    ball.vy *= 0.998;
+  }
+
+  var magnetic = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    applyMagneticForces: applyMagneticForces,
+    initializeMagnetic: initializeMagnetic
+  });
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                         CARBONATED BUBBLES MODE                              ║
+  // ║    Bubbles rise from bottom with wobble, dissipate at top, then recycle      ║
+  // ║    Scale up from 0 on spawn, scale down to 0 on dissipate                    ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function initializeBubbles() {
+    const g = getGlobals();
+    // Clear existing balls
+    g.balls.length = 0;
+    
+    const canvas = g.canvas;
+    if (!canvas) return;
+    
+    const w = canvas.width;
+    const h = canvas.height;
+    const count = g.bubblesMaxCount || 150;
+    
+    // Spawn bubbles distributed across the screen (some already rising)
+    // First ensure one of each color
+    for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
+      const x = Math.random() * w;
+      const y = h * 0.3 + Math.random() * h * 0.6; // Middle 60% of screen
+      createBubble(x, y, getColorByIndex(colorIndex), true); // Already scaled in
+    }
+    
+    // Fill rest with random colors
+    for (let i = 8; i < count; i++) {
+      const x = Math.random() * w;
+      const y = h * 0.3 + Math.random() * h * 0.6;
+      createBubble(x, y, pickRandomColor(), true); // Already scaled in
+    }
+  }
+
+  /**
+   * Create a bubble ball at position (x, y) with given color
+   * @param {boolean} alreadyVisible - If true, skip spawn animation (for initial setup)
+   */
+  function createBubble(x, y, color, alreadyVisible = false) {
+    const g = getGlobals();
+    
+    // Variable bubble sizes
+    const minR = g.R_MIN * 0.5;
+    const maxR = g.R_MAX * 0.8;
+    const targetRadius = minR + Math.random() * (maxR - minR);
+    
+    const b = new Ball(x, y, alreadyVisible ? targetRadius : 0.1, color);
+    b.isBubble = true;
+    b.baseRadius = targetRadius;
+    b.targetRadius = targetRadius;
+    b.wobblePhase = Math.random() * Math.PI * 2;
+    b.wobbleFreq = 2 + Math.random() * 3;
+    b.vx = (Math.random() - 0.5) * 20;
+    b.vy = -50 - Math.random() * 50;
+    
+    // Animation states
+    b.spawning = !alreadyVisible;
+    b.spawnProgress = alreadyVisible ? 1 : 0;
+    b.dissipating = false;
+    b.dissipateProgress = 0;
+    b.alpha = 1;
+    
+    g.balls.push(b);
+    return b;
+  }
+
+  /**
+   * Recycle a bubble - reset it to the bottom with new properties
+   */
+  function recycleBubble(ball) {
+    const g = getGlobals();
+    const canvas = g.canvas;
+    if (!canvas) return;
+    
+    const w = canvas.width;
+    const h = canvas.height;
+    
+    // New random x position at bottom
+    ball.x = Math.random() * w;
+    ball.y = h + 20 + Math.random() * 30; // Just below screen
+    
+    // Reset velocity
+    ball.vx = (Math.random() - 0.5) * 20;
+    ball.vy = -50 - Math.random() * 50;
+    
+    // New wobble phase
+    ball.wobblePhase = Math.random() * Math.PI * 2;
+    ball.wobbleFreq = 2 + Math.random() * 3;
+    
+    // New random color from full palette
+    ball.c = pickRandomColor();
+    
+    // New target size
+    const minR = g.R_MIN * 0.5;
+    const maxR = g.R_MAX * 0.8;
+    ball.targetRadius = minR + Math.random() * (maxR - minR);
+    ball.baseRadius = ball.targetRadius;
+    
+    // Start spawn animation (scale up from 0)
+    ball.r = 0.1;
+    ball.spawning = true;
+    ball.spawnProgress = 0;
+    ball.dissipating = false;
+    ball.dissipateProgress = 0;
+    ball.alpha = 1;
+  }
+
+  function applyBubblesForces(ball, dt) {
+    const g = getGlobals();
+    if (g.currentMode !== MODES.BUBBLES) return;
+    if (!ball.isBubble) return;
+    
+    const canvas = g.canvas;
+    if (!canvas) return;
+    
+    // Handle spawn animation (scale up from 0)
+    if (ball.spawning) {
+      ball.spawnProgress += dt * 3; // Scale up over ~0.33s
+      
+      // Ease out for smooth appearance
+      const ease = 1 - Math.pow(1 - Math.min(1, ball.spawnProgress), 3);
+      ball.r = ball.targetRadius * ease;
+      ball.rBase = ball.r;
+      
+      if (ball.spawnProgress >= 1) {
+        ball.spawning = false;
+        ball.r = ball.targetRadius;
+        ball.rBase = ball.targetRadius;
+      }
+    }
+    
+    // Handle dissipation animation (scale down to 0)
+    if (ball.dissipating) {
+      ball.dissipateProgress += dt * 3; // Scale down over ~0.33s
+      
+      // Ease in for smooth disappearance
+      const ease = Math.pow(ball.dissipateProgress, 2);
+      ball.r = ball.targetRadius * Math.max(0, 1 - ease);
+      ball.rBase = ball.r;
+      ball.alpha = Math.max(0, 1 - ease * 0.5); // Slight fade
+      
+      // Slow down during dissipation
+      ball.vy *= 0.92;
+      ball.vx *= 0.92;
+      
+      // When fully dissipated, recycle
+      if (ball.dissipateProgress >= 1) {
+        recycleBubble(ball);
+      }
+      return;
+    }
+    
+    const riseSpeed = g.bubblesRiseSpeed || 150;
+    const wobbleStrength = (g.bubblesWobble || 40) * 0.01;
+    
+    // Buoyancy force (rise upward)
+    const buoyancy = riseSpeed * g.DPR;
+    ball.vy -= buoyancy * dt;
+    
+    // Wobble (side-to-side oscillation)
+    ball.wobblePhase += ball.wobbleFreq * dt;
+    const wobble = Math.sin(ball.wobblePhase) * wobbleStrength * 100;
+    ball.vx += wobble * dt;
+    
+    // Horizontal drag
+    ball.vx *= 0.92;
+    
+    // Vertical drag
+    ball.vy *= 0.96;
+    
+    // Cursor deflection
+    if (g.mouseInCanvas) {
+      const dx = ball.x - g.mouseX;
+      const dy = ball.y - g.mouseY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const deflectRadius = (g.bubblesDeflectRadius || 80) * g.DPR;
+      
+      if (dist < deflectRadius && dist > 1) {
+        const force = (1 - dist / deflectRadius) * 300;
+        const nx = dx / dist;
+        const ny = dy / dist;
+        ball.vx += nx * force * dt;
+        ball.vy += ny * force * dt;
+      }
+    }
+    
+    // Check if bubble reached very top - start dissipating
+    const topThreshold = ball.targetRadius * 2; // Very close to top edge
+    
+    if (ball.y < topThreshold && !ball.dissipating && !ball.spawning) {
+      ball.dissipating = true;
+      ball.dissipateProgress = 0;
+    }
+    
+    // Safety: recycle if bubble goes off sides
+    if (ball.x < -ball.r * 4 || ball.x > canvas.width + ball.r * 4) {
+      recycleBubble(ball);
+    }
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                            ACCESSIBILITY HELPERS                             ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+  function announceToScreenReader(message) {
+    const announcer = document.getElementById('announcer');
+    if (!announcer) return;
+    announcer.textContent = '';
+    setTimeout(() => { announcer.textContent = message; }, 10);
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                      MODE CONTROLLER (COMPLETE)                              ║
+  // ║         Extracted from balls-source.html lines 3999-4085                     ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function setMode(mode) {
+    const globals = getGlobals();
+    setMode$1(mode);
+    
+    console.log(`Switching to mode: ${mode}`);
+    const modeNames = { 
+      pit: 'Ball Pit', 
+      flies: 'Flies to Light', 
+      weightless: 'Zero Gravity', 
+      water: 'Water Swimming',
+      vortex: 'Vortex Sheets',
+      'ping-pong': 'Ping Pong',
+      magnetic: 'Magnetic',
+      bubbles: 'Carbonated Bubbles'
+    };
+    announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
+    
+    // NOTE: UI button updates are handled by the caller (controls.js, keyboard.js)
+    // to avoid circular dependencies
+    
+    // Update container class for mode-specific styling
+    // PRESERVE dark-mode class when switching modes!
+    if (globals.container) {
+      const wasDark = globals.container.classList.contains('dark-mode');
+      globals.container.className = '';
+      if (mode === MODES.PIT) {
+        globals.container.classList.add('mode-pit');
+      }
+      // Restore dark mode class if it was set
+      if (wasDark || globals.isDarkMode) {
+        globals.container.classList.add('dark-mode');
+      }
+    }
+    
+    // Resize canvas to match mode height
+    resize();
+    
+    // Set physics parameters and initialize scene
+    if (mode === MODES.PIT) {
+      globals.gravityMultiplier = globals.gravityMultiplierPit;
+      globals.G = globals.GE * globals.gravityMultiplier;
+      globals.repellerEnabled = true;
+      initializeBallPit();
+    } else if (mode === MODES.FLIES) {
+      globals.gravityMultiplier = 0.0;
+      globals.G = 0;
+      globals.repellerEnabled = false;
+      initializeFlies();
+    } else if (mode === MODES.WEIGHTLESS) {
+      globals.gravityMultiplier = 0.0;
+      globals.G = 0;
+      globals.repellerEnabled = false;
+      initializeWeightless();
+    } else if (mode === MODES.WATER) {
+      globals.gravityMultiplier = 0.0;
+      globals.G = 0;
+      globals.repellerEnabled = false;
+      initializeWater();
+    } else if (mode === MODES.VORTEX) {
+      globals.gravityMultiplier = 0.0;
+      globals.G = 0;
+      globals.repellerEnabled = false;
+      initializeVortex();
+    } else if (mode === MODES.PING_PONG) {
+      globals.gravityMultiplier = 0.0;
+      globals.G = 0;
+      globals.repellerEnabled = false;
+      initializePingPong();
+    } else if (mode === MODES.MAGNETIC) {
+      globals.gravityMultiplier = 0.0;
+      globals.G = 0;
+      globals.repellerEnabled = false;
+      initializeMagnetic();
+    } else if (mode === MODES.BUBBLES) {
+      globals.gravityMultiplier = 0.0;
+      globals.G = 0;
+      globals.repellerEnabled = false;
+      initializeBubbles();
+    }
+    
+    console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
+  }
+
+  function getForceApplicator() {
+    const globals = getGlobals();
+    if (globals.currentMode === MODES.FLIES) {
+      return applyFliesForces;
+    } else if (globals.currentMode === MODES.PIT) {
+      return applyBallPitForces;
+    } else if (globals.currentMode === MODES.WATER) {
+      return applyWaterForces;
+    } else if (globals.currentMode === MODES.VORTEX) {
+      return applyVortexForces;
+    } else if (globals.currentMode === MODES.PING_PONG) {
+      return applyPingPongForces;
+    } else if (globals.currentMode === MODES.MAGNETIC) {
+      return applyMagneticForces;
+    } else if (globals.currentMode === MODES.BUBBLES) {
+      return applyBubblesForces;
+    }
+    return null;
+  }
+
+  var modeController = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    MODES: MODES,
+    getForceApplicator: getForceApplicator,
+    setMode: setMode
+  });
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                            UI CONTROLS WIRING                                ║
+  // ║      Wires sliders/selects to global state and systems (subset)             ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function bindSlider(id, onChange) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => onChange(el));
+  }
+
+  function setVal(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  function setupControls() {
+    const g = getGlobals();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MODE BUTTONS - Critical for panel mode switching
+    // ═══════════════════════════════════════════════════════════════════════════
+    const modeButtons = document.querySelectorAll('.mode-button');
+    modeButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const mode = btn.getAttribute('data-mode');
+        console.log('Mode button clicked:', mode);
+        setMode(mode);
+        updateModeButtonsUI(mode);
+      });
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GLOBAL SETTINGS
+    // ═══════════════════════════════════════════════════════════════════════════
+    bindSlider('sizeSliderGlobal', (el) => {
+      g.sizeScale = parseFloat(el.value);
+      setVal('sizeValGlobal', g.sizeScale.toFixed(2));
+      // Update current balls to new base size
+      const base = (g.R_MIN_BASE + g.R_MAX_BASE) / 2;
+      g.R_MIN = base * g.sizeScale * 0.75;
+      g.R_MAX = base * g.sizeScale * 1.25;
+      const newSize = (g.R_MIN + g.R_MAX) / 2;
+      for (let i = 0; i < g.balls.length; i++) {
+        g.balls[i].r = newSize; g.balls[i].rBase = newSize;
+      }
+      autoSaveSettings();
+    });
+    bindSlider('ballSoftnessSliderGlobal', (el) => {
+      g.ballSoftness = parseInt(el.value, 10);
+      setVal('ballSoftnessValGlobal', String(g.ballSoftness));
+      autoSaveSettings();
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FRAME PADDING CONTROLS (Border thickness)
+    // ═══════════════════════════════════════════════════════════════════════════
+    bindSlider('framePadTopSlider', (el) => {
+      g.framePadTop = parseInt(el.value, 10);
+      setVal('framePadTopVal', String(g.framePadTop));
+      applyFramePaddingCSSVars();
+      resize();
+      autoSaveSettings();
+    });
+    bindSlider('framePadRightSlider', (el) => {
+      g.framePadRight = parseInt(el.value, 10);
+      setVal('framePadRightVal', String(g.framePadRight));
+      applyFramePaddingCSSVars();
+      resize();
+      autoSaveSettings();
+    });
+    bindSlider('framePadBottomSlider', (el) => {
+      g.framePadBottom = parseInt(el.value, 10);
+      setVal('framePadBottomVal', String(g.framePadBottom));
+      applyFramePaddingCSSVars();
+      resize();
+      autoSaveSettings();
+    });
+    bindSlider('framePadLeftSlider', (el) => {
+      g.framePadLeft = parseInt(el.value, 10);
+      setVal('framePadLeftVal', String(g.framePadLeft));
+      applyFramePaddingCSSVars();
+      resize();
+      autoSaveSettings();
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BALL PIT MODE CONTROLS
+    // ═══════════════════════════════════════════════════════════════════════════
+    bindSlider('gravityPitSlider', (el) => {
+      g.gravityMultiplierPit = parseFloat(el.value);
+      setVal('gravityPitVal', g.gravityMultiplierPit.toFixed(2));
+      if (g.currentMode === 'pit') g.G = g.GE * g.gravityMultiplierPit;
+      autoSaveSettings();
+    });
+    bindSlider('weightPitSlider', (el) => {
+      g.ballMassKg = parseFloat(el.value);
+      setVal('weightPitVal', g.ballMassKg.toFixed(0));
+      for (let i = 0; i < g.balls.length; i++) g.balls[i].m = g.ballMassKg;
+      autoSaveSettings();
+    });
+    bindSlider('restitutionSlider', (el) => {
+      g.REST = parseFloat(el.value);
+      setVal('restitutionVal', g.REST.toFixed(2));
+      autoSaveSettings();
+    });
+    bindSlider('frictionSlider', (el) => {
+      g.FRICTION = parseFloat(el.value);
+      setVal('frictionVal', g.FRICTION.toFixed(4));
+      autoSaveSettings();
+    });
+
+    // Repeller
+    const repellerEnabledPit = document.getElementById('repellerEnabledPit');
+    if (repellerEnabledPit) {
+      repellerEnabledPit.addEventListener('change', () => {
+        g.repellerEnabled = !!repellerEnabledPit.checked;
+        autoSaveSettings();
+      });
+    }
+    bindSlider('repelSizeSlider', (el) => {
+      g.repelRadius = parseFloat(el.value);
+      setVal('repelSizeVal', g.repelRadius.toFixed(0));
+      autoSaveSettings();
+    });
+    bindSlider('repelPowerSlider', (el) => {
+      const sliderPos = parseFloat(el.value);
+      // Map slider [0..10000] to exponential power range
+      const s = Math.max(0, Math.min(10000, sliderPos)) / 10000;
+      const power = Math.pow(2, (s - 0.5) * 12) * 12000 * 2.0; // approx mapping
+      g.repelPower = power;
+      setVal('repelPowerVal', Math.round(g.repelPower).toString());
+      autoSaveSettings();
+    });
+    bindSlider('repelSoftSlider', (el) => {
+      g.repelSoft = parseFloat(el.value);
+      setVal('repelSoftVal', g.repelSoft.toFixed(1));
+      autoSaveSettings();
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FLIES MODE CONTROLS
+    // ═══════════════════════════════════════════════════════════════════════════
+    bindSlider('fliesBallCountSlider', (el) => {
+      g.fliesBallCount = parseInt(el.value, 10);
+      setVal('fliesBallCountVal', String(g.fliesBallCount));
+      if (g.currentMode === 'flies') {
+        Promise.resolve().then(function () { return flies; }).then(({ initializeFlies }) => {
+          initializeFlies();
+        });
+      }
+    });
+    bindSlider('attractPowerSlider', (el) => {
+      g.attractionPower = parseFloat(el.value);
+      setVal('attractPowerVal', Math.round(g.attractionPower).toString());
+    });
+    bindSlider('swarmSpeedSlider', (el) => {
+      g.swarmSpeed = parseFloat(el.value);
+      setVal('swarmSpeedVal', g.swarmSpeed.toFixed(1));
+    });
+    bindSlider('fliesSeparationSlider', (el) => {
+      g.fliesSeparation = parseFloat(el.value);
+      setVal('fliesSeparationVal', Math.round(g.fliesSeparation).toString());
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ZERO-G MODE CONTROLS
+    // ═══════════════════════════════════════════════════════════════════════════
+    bindSlider('weightlessCountSlider', (el) => {
+      g.weightlessBallCount = parseInt(el.value, 10);
+      setVal('weightlessCountVal', String(g.weightlessBallCount));
+      if (g.currentMode === 'weightless') {
+        Promise.resolve().then(function () { return weightless; }).then(({ initializeWeightless }) => {
+          initializeWeightless();
+        });
+      }
+    });
+    bindSlider('weightlessSpeedSlider', (el) => {
+      g.weightlessInitialSpeed = parseFloat(el.value);
+      setVal('weightlessSpeedVal', g.weightlessInitialSpeed.toFixed(0));
+      if (g.currentMode === 'weightless') {
+        Promise.resolve().then(function () { return weightless; }).then(({ initializeWeightless }) => {
+          initializeWeightless();
+        });
+      }
+    });
+    bindSlider('weightlessBounceSlider', (el) => {
+      g.weightlessBounce = parseFloat(el.value);
+      setVal('weightlessBounceVal', g.weightlessBounce.toFixed(2));
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // WATER MODE CONTROLS
+    // ═══════════════════════════════════════════════════════════════════════════
+    bindSlider('waterBallCountSlider', (el) => {
+      g.waterBallCount = parseInt(el.value, 10);
+      setVal('waterBallCountVal', String(g.waterBallCount));
+      if (g.currentMode === 'water') {
+        Promise.resolve().then(function () { return water; }).then(({ initializeWater }) => {
+          initializeWater();
+        });
+      }
+      autoSaveSettings();
+    });
+    bindSlider('waterRippleStrengthSlider', (el) => {
+      g.waterRippleStrength = parseFloat(el.value);
+      setVal('waterRippleStrengthVal', g.waterRippleStrength.toFixed(0));
+      autoSaveSettings();
+    });
+    bindSlider('waterMotionSlider', (el) => {
+      const intensity = parseFloat(el.value);
+      g.waterDriftStrength = intensity;
+      g.waterInitialVelocity = intensity * 5;
+      setVal('waterMotionVal', intensity.toFixed(0));
+      if (g.currentMode === 'water') {
+        Promise.resolve().then(function () { return water; }).then(({ initializeWater }) => {
+          initializeWater();
+        });
+      }
+      autoSaveSettings();
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VORTEX MODE CONTROLS
+    // ═══════════════════════════════════════════════════════════════════════════
+    bindSlider('vortexBallCountSlider', (el) => {
+      g.vortexBallCount = parseInt(el.value, 10);
+      setVal('vortexBallCountVal', String(g.vortexBallCount));
+      if (g.currentMode === 'vortex') {
+        Promise.resolve().then(function () { return vortex; }).then(({ initializeVortex }) => {
+          initializeVortex();
+        });
+      }
+    });
+    bindSlider('vortexSwirlSlider', (el) => {
+      g.vortexSwirlStrength = parseFloat(el.value);
+      setVal('vortexSwirlVal', g.vortexSwirlStrength.toFixed(0));
+    });
+    bindSlider('vortexPullSlider', (el) => {
+      g.vortexRadialPull = parseFloat(el.value);
+      setVal('vortexPullVal', g.vortexRadialPull.toFixed(0));
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PING PONG MODE CONTROLS
+    // ═══════════════════════════════════════════════════════════════════════════
+    bindSlider('pingPongBallCountSlider', (el) => {
+      g.pingPongBallCount = parseInt(el.value, 10);
+      setVal('pingPongBallCountVal', String(g.pingPongBallCount));
+      if (g.currentMode === 'ping-pong') {
+        Promise.resolve().then(function () { return pingPong; }).then(({ initializePingPong }) => {
+          initializePingPong();
+        });
+      }
+    });
+    bindSlider('pingPongSpeedSlider', (el) => {
+      g.pingPongSpeed = parseFloat(el.value);
+      setVal('pingPongSpeedVal', g.pingPongSpeed.toFixed(0));
+      if (g.currentMode === 'ping-pong') {
+        Promise.resolve().then(function () { return pingPong; }).then(({ initializePingPong }) => {
+          initializePingPong();
+        });
+      }
+    });
+    bindSlider('pingPongCursorSlider', (el) => {
+      g.pingPongCursorRadius = parseFloat(el.value);
+      setVal('pingPongCursorVal', g.pingPongCursorRadius.toFixed(0));
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MAGNETIC MODE CONTROLS
+    // ═══════════════════════════════════════════════════════════════════════════
+    bindSlider('magneticBallCountSlider', (el) => {
+      g.magneticBallCount = parseInt(el.value, 10);
+      setVal('magneticBallCountVal', String(g.magneticBallCount));
+      if (g.currentMode === 'magnetic') {
+        Promise.resolve().then(function () { return magnetic; }).then(({ initializeMagnetic }) => {
+          initializeMagnetic();
+        });
+      }
+    });
+    bindSlider('magneticStrengthSlider', (el) => {
+      g.magneticStrength = parseFloat(el.value);
+      setVal('magneticStrengthVal', g.magneticStrength.toFixed(0));
+    });
+    bindSlider('magneticVelocitySlider', (el) => {
+      g.magneticMaxVelocity = parseFloat(el.value);
+      setVal('magneticVelocityVal', g.magneticMaxVelocity.toFixed(0));
+    });
+    bindSlider('magneticIntervalSlider', (el) => {
+      g.magneticExplosionInterval = parseInt(el.value, 10);
+      setVal('magneticIntervalVal', String(g.magneticExplosionInterval));
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BUBBLES MODE CONTROLS
+    // ═══════════════════════════════════════════════════════════════════════════
+    bindSlider('bubblesRateSlider', (el) => {
+      g.bubblesSpawnRate = parseInt(el.value, 10);
+      setVal('bubblesRateVal', String(g.bubblesSpawnRate));
+    });
+    bindSlider('bubblesSpeedSlider', (el) => {
+      g.bubblesRiseSpeed = parseFloat(el.value);
+      setVal('bubblesSpeedVal', g.bubblesRiseSpeed.toFixed(0));
+    });
+    bindSlider('bubblesWobbleSlider', (el) => {
+      g.bubblesWobble = parseFloat(el.value);
+      setVal('bubblesWobbleVal', g.bubblesWobble.toFixed(0));
+    });
+    bindSlider('bubblesMaxSlider', (el) => {
+      g.bubblesMaxCount = parseInt(el.value, 10);
+      setVal('bubblesMaxVal', String(g.bubblesMaxCount));
+    });
+    bindSlider('bubblesDeflectSlider', (el) => {
+      g.bubblesDeflectRadius = parseFloat(el.value);
+      setVal('bubblesDeflectVal', g.bubblesDeflectRadius.toFixed(0));
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // COLOR TEMPLATE SELECT
+    // ═══════════════════════════════════════════════════════════════════════════
+    populateColorSelect();
+    const colorSelect = document.getElementById('colorSelect');
+    if (colorSelect) {
+      colorSelect.addEventListener('change', () => {
+        applyColorTemplate(colorSelect.value);
+        autoSaveSettings();
+      });
+    }
+  }
+
+  /**
+   * Update mode button UI to reflect active mode
+   */
+  function updateModeButtonsUI(activeMode) {
+    const buttons = document.querySelectorAll('.mode-button');
+    buttons.forEach(btn => {
+      const isActive = btn.getAttribute('data-mode') === activeMode;
+      btn.classList.toggle('active', isActive);
+    });
+    
+    // Show/hide mode-specific controls
+    document.querySelectorAll('.mode-controls').forEach(el => el.classList.remove('active'));
+    const controlId = activeMode + 'Controls';
+    const activeControls = document.getElementById(controlId);
+    if (activeControls) activeControls.classList.add('active');
+    
+    // Update announcer for accessibility
+    const announcer = document.getElementById('announcer');
+    if (announcer) {
+      const modeNames = {
+        'pit': 'Ball Pit',
+        'flies': 'Flies to Light', 
+        'weightless': 'Zero-G',
+        'water': 'Water Swimming',
+        'vortex': 'Vortex Sheets',
+        'ping-pong': 'Ping Pong',
+        'magnetic': 'Magnetic',
+        'bubbles': 'Carbonated Bubbles'
+      };
+      announcer.textContent = `Switched to ${modeNames[activeMode] || activeMode} mode`;
+    }
+    }
+
+  var controls = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    setupControls: setupControls,
+    updateModeButtonsUI: updateModeButtonsUI
+  });
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                             BUILD / SAVE CONFIG                              ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function setupBuildControls() {
+    const btn = document.getElementById('saveConfigBtn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const g = getGlobals();
+      const config = {
+        gravityMultiplier: g.gravityMultiplierPit,
+        ballMass: g.ballMassKg,
+        sizeScale: g.sizeScale,
+        sizeVariation: g.sizeVariation,
+        restitution: g.REST,
+        friction: g.FRICTION,
+        repelRadius: g.repelRadius,
+        repelPower: g.repelPower,
+        repelSoftness: g.repelSoft,
+        cursorColorIndex: 5,
+        enableLOD: false
+      };
+      const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'current-config.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                      PANEL CONTROLLER (COMPLETE)                             ║
+  // ║              Creates panel with full controls from template                  ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function setupPanel() {
+    let panel = document.getElementById('controlPanel');
+    
+    // Ensure panel exists and is a direct child of body for correct z-index
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'controlPanel';
+      panel.className = 'panel';
+      document.body.appendChild(panel);
+    } else if (panel.parentElement !== document.body) {
+      // Move existing panel to body if it's trapped in another container
+      panel.parentElement.removeChild(panel);
+      document.body.appendChild(panel);
+    }
+    
+    // Inject complete panel HTML
+    panel.innerHTML = PANEL_HTML;
+    initializeDarkMode();
+    
+    // Wire up minimize button
+    const minimizeBtn = panel.querySelector('#minimizePanel');
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('hidden');
+        panel.style.display = panel.classList.contains('hidden') ? 'none' : '';
+      });
+    }
+    
+    // Make panel draggable
+    setupPanelDragging(panel);
+    
+    // Wire up all control listeners (mode buttons, sliders, etc.)
+    setupControls();
+    setupBuildControls();
+    
+    console.log('✓ Panel created');
+  }
+
+  function setupPanelDragging(panel) {
+    const header = panel.querySelector('.panel-header');
+    if (!header) return;
+    
+    let isDragging = false;
+    let xOffset = 0, yOffset = 0;
+    
+    header.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      const rect = panel.getBoundingClientRect();
+      xOffset = e.clientX - rect.left;
+      yOffset = e.clientY - rect.top;
+      header.style.cursor = 'grabbing';
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      
+      const x = e.clientX - xOffset;
+      const y = e.clientY - yOffset;
+      
+      // Constrain to viewport
+      const maxX = window.innerWidth - panel.offsetWidth - 20;
+      const maxY = window.innerHeight - panel.offsetHeight - 20;
+      
+      panel.style.left = Math.max(20, Math.min(x, maxX)) + 'px';
+      panel.style.top = Math.max(20, Math.min(y, maxY)) + 'px';
+      panel.style.right = 'auto';
+    });
+    
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      header.style.cursor = 'move';
+    });
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                                KEYBOARD INPUT                                ║
+  // ║              Panel toggle and mode switching (1,2,3,4,5)                     ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function setupKeyboardShortcuts() {
+    const panel = document.getElementById('controlPanel');
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      // Toggle panel
+      if ((k === '/' || e.code === 'Slash') && panel) {
+        e.preventDefault();
+        panel.classList.toggle('hidden');
+        panel.style.display = panel.classList.contains('hidden') ? 'none' : '';
+        return;
+      }
+      // Mode switching: 1=pit, 2=flies, 3=weightless, 4=water, 5=vortex, 6=ping-pong, 7=magnetic, 8=bubbles
+      if (k === '1') {
+        e.preventDefault();
+        setMode(MODES.PIT);
+        updateModeButtonsUI('pit');
+      } else if (k === '2') {
+        e.preventDefault();
+        setMode(MODES.FLIES);
+        updateModeButtonsUI('flies');
+      } else if (k === '3') {
+        e.preventDefault();
+        setMode(MODES.WEIGHTLESS);
+        updateModeButtonsUI('weightless');
+      } else if (k === '4') {
+        e.preventDefault();
+        setMode(MODES.WATER);
+        updateModeButtonsUI('water');
+      } else if (k === '5') {
+        e.preventDefault();
+        setMode(MODES.VORTEX);
+        updateModeButtonsUI('vortex');
+      } else if (k === '6') {
+        e.preventDefault();
+        setMode(MODES.PING_PONG);
+        updateModeButtonsUI('ping-pong');
+      } else if (k === '7') {
+        e.preventDefault();
+        setMode(MODES.MAGNETIC);
+        updateModeButtonsUI('magnetic');
+      } else if (k === '8') {
+        e.preventDefault();
+        setMode(MODES.BUBBLES);
+        updateModeButtonsUI('bubbles');
+      }
+    });
+    
+    console.log('✓ Keyboard shortcuts registered');
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                      MOUSE/TOUCH TRACKING (COMPLETE)                         ║
+  // ║              Unified document-level pointer system for all modes             ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  // Mouse velocity tracking for water ripples
+  let lastMouseX = 0;
+  let lastMouseY = 0;
+  let lastMoveTime = 0;
+  let mouseVelocity = 0;
+  let lastTapTime = 0;
+
+  const MODE_CYCLE = [
+    MODES.PIT,
+    MODES.FLIES,
+    MODES.WEIGHTLESS,
+    MODES.WATER,
+    MODES.VORTEX,
+    MODES.PING_PONG,
+    MODES.MAGNETIC,
+    MODES.BUBBLES
+  ];
+
+  function cycleMode() {
+    const globals = getGlobals();
+    const current = globals.currentMode;
+    const idx = MODE_CYCLE.indexOf(current);
+    const next = MODE_CYCLE[(idx + 1) % MODE_CYCLE.length] || MODE_CYCLE[0];
+    Promise.resolve().then(function () { return modeController; }).then(({ setMode }) => {
+      setMode(next);
+    });
+    Promise.resolve().then(function () { return controls; }).then(({ updateModeButtonsUI }) => {
+      updateModeButtonsUI(next);
+    });
+  }
+
+  // Throttle for water ripple creation
+  let lastRippleTime = 0;
+  const RIPPLE_THROTTLE_MS = 80; // Create ripple every 80ms max
+
+  /**
+   * GLOBAL UNIFIED MOUSE SYSTEM
+   * Handles all mouse/touch interactions at document level
+   * Works regardless of canvas z-index or pointer-events
+   */
+  function setupPointer() {
+    const globals = getGlobals();
+    const canvas = globals.canvas;
+    
+    if (!canvas) {
+      console.error('Canvas not available for pointer setup');
+      return;
+    }
+    
+    const DPR = globals.DPR;
+    
+    /**
+     * Get mouse position relative to canvas from any event
+     */
+    function getCanvasPosition(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (clientX - rect.left) * DPR,
+        y: (clientY - rect.top) * DPR,
+        inBounds: clientX >= rect.left && clientX <= rect.right && 
+                  clientY >= rect.top && clientY <= rect.bottom
+      };
+    }
+    
+    /**
+     * Document-level mouse move tracking
+     * Works even when canvas is behind content (z-index: -1)
+     * PASSIVE - doesn't interfere with panel interactions
+     */
+    document.addEventListener('mousemove', (e) => {
+      // Don't track if over panel
+      if (e.target.closest('#controlPanel')) return;
+      
+      const pos = getCanvasPosition(e.clientX, e.clientY);
+    
+      // Calculate mouse velocity for water ripples
+      const now = performance.now();
+      const dt = now - lastMoveTime;
+      if (dt > 0 && lastMoveTime > 0) {
+        const dx = pos.x - lastMouseX;
+        const dy = pos.y - lastMouseY;
+        mouseVelocity = Math.sqrt(dx * dx + dy * dy) / dt;
+      }
+      
+      // Update globals
+      globals.mouseX = pos.x;
+      globals.mouseY = pos.y;
+      globals.mouseInCanvas = pos.inBounds;
+      if (typeof window !== 'undefined') window.mouseInCanvas = pos.inBounds;
+      
+      // ════════════════════════════════════════════════════════════════════════
+      // WATER MODE: Create ripples based on mouse movement velocity
+      // ════════════════════════════════════════════════════════════════════════
+      if (globals.currentMode === MODES.WATER && pos.inBounds) {
+        // Only create ripple if moving fast enough and throttle time passed
+        if (mouseVelocity > 0.3 && (now - lastRippleTime) > RIPPLE_THROTTLE_MS) {
+          // Scale ripple strength based on velocity (faster = stronger)
+          const velocityFactor = Math.min(mouseVelocity * 2, 3);
+          createWaterRipple(pos.x, pos.y, velocityFactor);
+          lastRippleTime = now;
+        }
+      }
+
+      
+      // Store for velocity calculation
+      lastMouseX = pos.x;
+      lastMouseY = pos.y;
+      lastMoveTime = now;
+    }, { passive: true });
+    
+    /**
+     * Document-level click handler
+     * Responds to mode-specific interactions
+     */
+    document.addEventListener('click', (e) => {
+      // Ignore clicks on panel or interactive elements
+      if (e.target.closest('#controlPanel')) return;
+      if (e.target.closest('a')) return;
+      if (e.target.closest('button')) return;
+      
+      const pos = getCanvasPosition(e.clientX, e.clientY);
+      
+      // Only process if click is within canvas bounds
+      if (!pos.inBounds) return;
+      
+      // NO click effects on any simulation - only mouse movement triggers interactions
+      // Click always cycles mode
+      cycleMode();
+    });
+    
+    /**
+     * Touch move tracking for mobile
+     */
+    document.addEventListener('touchmove', (e) => {
+      if (e.touches && e.touches[0]) {
+        const pos = getCanvasPosition(e.touches[0].clientX, e.touches[0].clientY);
+        globals.mouseX = pos.x;
+        globals.mouseY = pos.y;
+        globals.mouseInCanvas = pos.inBounds;
+        
+        // Water mode: create ripples on touch move
+        const now = performance.now();
+        if (globals.currentMode === MODES.WATER && pos.inBounds) {
+          if ((now - lastRippleTime) > RIPPLE_THROTTLE_MS) {
+            createWaterRipple(pos.x, pos.y, 2);
+            lastRippleTime = now;
+      }
+        }
+      }
+    }, { passive: true });
+    
+    /**
+     * Touch tap handler for mobile interactions
+     * Water creates ripple on tap
+     */
+    document.addEventListener('touchstart', (e) => {
+      // Ignore touches on panel
+      if (e.target.closest('#controlPanel')) return;
+      if (e.target.closest('a')) return;
+      if (e.target.closest('button')) return;
+      
+      if (e.touches && e.touches[0]) {
+        const pos = getCanvasPosition(e.touches[0].clientX, e.touches[0].clientY);
+        
+        if (!pos.inBounds) return;
+        
+        // NO tap effects on any simulation - only finger drag triggers interactions
+        // Double-tap cycles mode
+        const now = performance.now();
+        if (now - lastTapTime < 300) {
+          cycleMode();
+        }
+        lastTapTime = now;
+      }
+    }, { passive: true });
+    
+    /**
+     * Reset mouse when leaving window
+     */
+    document.addEventListener('mouseleave', () => {
+      globals.mouseX = CONSTANTS.OFFSCREEN_MOUSE;
+      globals.mouseY = CONSTANTS.OFFSCREEN_MOUSE;
+      globals.mouseInCanvas = false;
+      mouseVelocity = 0;
+      if (typeof window !== 'undefined') window.mouseInCanvas = false;
+    });
+    
+    /**
+     * Touch end - reset tracking
+     */
+    document.addEventListener('touchend', () => {
+      globals.mouseX = CONSTANTS.OFFSCREEN_MOUSE;
+      globals.mouseY = CONSTANTS.OFFSCREEN_MOUSE;
+      globals.mouseInCanvas = false;
+    }, { passive: true });
+    
+    console.log('✓ Unified pointer system configured (document-level)');
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                         COLLISION DETECTION (COMPLETE)                       ║
+  // ║              Spatial hashing + resolution from lines 2350-2466               ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  const spatialGrid = new Map();
+
+  function collectPairsSorted() {
+    const globals = getGlobals();
+    const balls = globals.balls;
+    const canvas = globals.canvas;
+    const R_MAX = globals.R_MAX;
+    
+    const n = balls.length;
+    if (n < 2) return [];
+    
+    const cellSize = Math.max(1, R_MAX * 2);
+    const gridWidth = Math.ceil(canvas.width / cellSize) + 1;
+    spatialGrid.clear();
+    
+    // Build grid
+    for (let i = 0; i < n; i++) {
+      const b = balls[i];
+      const cx = (b.x / cellSize) | 0;
+      const cy = (b.y / cellSize) | 0;
+      const key = cy * gridWidth + cx;
+      let arr = spatialGrid.get(key);
+      if (!arr) { arr = []; spatialGrid.set(key, arr); }
+      arr.push(i);
+    }
+    
+    const pairs = [];
+    for (const [key, arr] of spatialGrid) {
+      const cy = (key / gridWidth) | 0;
+      const cx = key % gridWidth;
+      
+      // Check 9 neighboring cells
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          const neighborKey = (cy + oy) * gridWidth + (cx + ox);
+          const nb = spatialGrid.get(neighborKey);
+          if (!nb) continue;
+          
+          for (let ii = 0; ii < arr.length; ii++) {
+            const i = arr[ii];
+            for (let jj = 0; jj < nb.length; jj++) {
+              const j = nb[jj];
+              if (j <= i) continue;
+              
+              const A = balls[i], B = balls[j];
+              const dx = B.x - A.x, dy = B.y - A.y;
+              const rSum = A.r + B.r;
+              const dist2 = dx*dx + dy*dy;
+              
+              if (dist2 < rSum*rSum) {
+                const dist = Math.sqrt(Math.max(dist2, CONSTANTS.MIN_DISTANCE_EPSILON));
+                const overlap = rSum - dist;
+                pairs.push({ i, j, overlap });
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    pairs.sort((a, b) => b.overlap - a.overlap);
+    return pairs;
+  }
+
+  function resolveCollisions(iterations = 10) {
+    const globals = getGlobals();
+    const balls = globals.balls;
+    const pairs = collectPairsSorted();
+    const REST = globals.REST;
+    const POS_CORRECT_PERCENT = 0.8;
+    const POS_CORRECT_SLOP = 0.5 * globals.DPR;
+    const REST_VEL_THRESHOLD = 30;
+    
+    for (let iter = 0; iter < iterations; iter++) {
+      for (let k = 0; k < pairs.length; k++) {
+        const { i, j } = pairs[k];
+        const A = balls[i];
+        const B = balls[j];
+        
+        // Skip pairs where both are sleeping (sleep islands)
+        if (A.isSleeping && B.isSleeping) continue;
+        // Wake only the sleeping one if colliding with an awake body
+        if (A.isSleeping) A.wake();
+        if (B.isSleeping) B.wake();
+        const dx = B.x - A.x;
+        const dy = B.y - A.y;
+        const rSum = A.r + B.r;
+        const dist2 = dx * dx + dy * dy;
+        if (dist2 === 0 || dist2 > rSum * rSum) continue;
+        const dist = Math.sqrt(dist2);
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const overlap = rSum - dist;
+        const invA = 1 / Math.max(A.m, 0.001);
+        const invB = 1 / Math.max(B.m, 0.001);
+
+        // Positional correction
+        const correctionMag = POS_CORRECT_PERCENT * Math.max(overlap - POS_CORRECT_SLOP, 0) / (invA + invB);
+        const cx = correctionMag * nx;
+        const cy = correctionMag * ny;
+        A.x -= cx * invA; A.y -= cy * invA;
+        B.x += cx * invB; B.y += cy * invB;
+
+        // Velocity impulse
+        const rvx = B.vx - A.vx;
+        const rvy = B.vy - A.vy;
+        const velAlongNormal = rvx * nx + rvy * ny;
+        if (velAlongNormal < 0) {
+          const e = Math.abs(velAlongNormal) < REST_VEL_THRESHOLD ? 0 : REST;
+          const j = -(1 + e) * velAlongNormal / (invA + invB);
+          const ix = j * nx;
+          const iy = j * ny;
+          A.vx -= ix * invA; A.vy -= iy * invA;
+          B.vx += ix * invB; B.vy += iy * invB;
+
+          // Spin transfer
+          const tvx = rvx - velAlongNormal * nx;
+          const tvy = rvy - velAlongNormal * ny;
+          const slipMag = Math.hypot(tvx, tvy);
+          if (slipMag > 1e-3) {
+            const tangentSign = (tvx * -ny + tvy * nx) >= 0 ? 1 : -1;
+            const gain = CONSTANTS.SPIN_GAIN_TANGENT;
+            A.omega -= tangentSign * gain * slipMag / Math.max(A.r, 1);
+            B.omega += tangentSign * gain * slipMag / Math.max(B.r, 1);
+          }
+          
+          // Squash
+          const impact = Math.min(1, Math.abs(velAlongNormal) / ((A.r + B.r) * 50));
+          const sAmt = Math.min(globals.getSquashMax(), impact * 0.8);
+          A.squashAmount = Math.max(A.squashAmount, sAmt * 0.8);
+          A.squashNormalAngle = Math.atan2(-ny, -nx);
+          B.squashAmount = Math.max(B.squashAmount, sAmt * 0.8);
+          B.squashNormalAngle = Math.atan2(ny, nx);
+        }
+      }
+    }
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                             CURSOR BALL RENDERING                            ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  function drawCursor(ctx) {
+    const g = getGlobals();
+    if (!g.mouseInCanvas) return;
+    if (g.isTouchDevice === true) return;
+    if (g.cursorBallVisible === false) return;
+    
+    const r = Math.max(6 * g.DPR, (g.R_MIN + g.R_MAX) * 0.12);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(g.mouseX, g.mouseY, r, 0, Math.PI * 2);
+    ctx.fillStyle = g.currentColors ? (g.currentColors[4] || '#000000') : '#000000';
+    ctx.globalAlpha = 0.9;
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+    ctx.restore();
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                      PHYSICS ENGINE (COMPLETE)                               ║
+  // ║           Fixed-timestep with collision detection                            ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  const DT = CONSTANTS.PHYSICS_DT;
+  let acc = 0;
+  const CORNER_RADIUS = 42; // matches rounded container corners
+  const CORNER_FORCE = 1800;
+
+  function applyCornerRepellers(ball, canvas) {
+    const corners = [
+      { x: CORNER_RADIUS, y: CORNER_RADIUS },
+      { x: canvas.width - CORNER_RADIUS, y: CORNER_RADIUS },
+      { x: CORNER_RADIUS, y: canvas.height - CORNER_RADIUS },
+      { x: canvas.width - CORNER_RADIUS, y: canvas.height - CORNER_RADIUS }
+    ];
+    for (let i = 0; i < corners.length; i++) {
+      const cx = corners[i].x;
+      const cy = corners[i].y;
+      const dx = ball.x - cx;
+      const dy = ball.y - cy;
+      const dist = Math.max(1, Math.hypot(dx, dy));
+      if (dist < CORNER_RADIUS + ball.r) {
+        const pen = (CORNER_RADIUS + ball.r) - dist;
+        const strength = (pen / (CORNER_RADIUS + ball.r)) * CORNER_FORCE;
+        const nx = dx / dist;
+        const ny = dy / dist;
+        ball.vx += nx * strength * DT;
+        ball.vy += ny * strength * DT;
+      }
+    }
+  }
+
+  async function updatePhysics(dtSeconds, applyForcesFunc) {
+    const globals = getGlobals();
+    const balls = globals.balls;
+    const canvas = globals.canvas;
+    
+    if (!canvas || balls.length === 0) return;
+    
+    acc += dtSeconds;
+    let physicsSteps = 0;
+    
+    while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
+      // Integrate physics for all modes
+        const len = balls.length;
+        for (let i = 0; i < len; i++) {
+          balls[i].step(DT, applyForcesFunc);
+        }
+      
+      // Ball-to-ball collisions (disabled for Flies mode)
+      if (globals.currentMode !== MODES.FLIES) {
+        resolveCollisions(10); // more solver iterations for stability
+      }
+      
+      // Wall collisions + corner repellers
+        const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
+      const lenWalls = balls.length;
+      for (let i = 0; i < lenWalls; i++) {
+        applyCornerRepellers(balls[i], canvas);
+          balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+      }
+      
+      acc -= DT;
+      physicsSteps++;
+    }
+    
+    // Water ripple updates run per-frame
+    if (globals.currentMode === MODES.WATER) {
+      updateWaterRipples(dtSeconds);
+    }
+
+    // Reset accumulator if falling behind
+    if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
+  }
+
+  function render() {
+    const globals = getGlobals();
+    const ctx = globals.ctx;
+    const balls = globals.balls;
+    const canvas = globals.canvas;
+    
+    if (!ctx || !canvas) return;
+    
+    // Clear
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw water ripples (behind balls for gorgeous effect)
+    if (globals.currentMode === MODES.WATER) ;
+    
+    // Draw balls
+    for (let i = 0; i < balls.length; i++) {
+      balls[i].draw(ctx);
+    }
+    
+    // Cursor overlay
+    drawCursor(ctx);
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                           PERFORMANCE / FPS                                  ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+  let lastFpsUpdate = 0;
+  let frames = 0;
+  let currentFPS = 0;
+
+  function trackFrame(now) {
+    frames++;
+    if (now - lastFpsUpdate > 1000) {
+      currentFPS = frames;
+      frames = 0;
+      lastFpsUpdate = now;
+      const el = document.getElementById('render-fps');
+      if (el) el.textContent = String(currentFPS);
+    }
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                              MAIN RENDER LOOP                                ║
+  // ║                Extracted from balls-source.html lines 2472-2592              ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  let last = performance.now() / 1000;
+
+  function startMainLoop(applyForcesFunc) {
+    function frame(nowMs) {
+      const now = nowMs / 1000;
+      let dt = Math.min(0.033, now - last);
+      last = now;
+      
+      // Physics update
+      updatePhysics(dt, applyForcesFunc);
+      
+      // Render
+      render();
+      
+      // FPS tracking
+      trackFrame(performance.now());
+      
+      requestAnimationFrame(frame);
+    }
+    
+    requestAnimationFrame(frame);
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                      BOUNCY BALLS – MAIN ENTRY (COMPLETE)                    ║
+  // ║                       Modular Architecture Bootstrap                         ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+  async function loadRuntimeConfig() {
+    try {
+      const paths = ['config/default-config.json', 'js/config.json', '../public/js/config.json'];
+      for (const path of paths) {
+        try {
+          const res = await fetch(path, { cache: 'no-cache' });
+          if (res.ok) return await res.json();
+        } catch (e) {
+          // Try next
+        }
+      }
+      throw new Error('No config found');
+    } catch (e) {
+      console.warn('Config load failed, using defaults');
+      return { gravityMultiplier: 1.05, ballMass: 91, maxBalls: 300 };
+    }
+  }
+
+  /**
+   * Apply frame padding CSS variables from global state to :root
+   * This controls the inset of #bravia-balls (frame/border thickness)
+   */
+  function applyFramePaddingCSSVars() {
+    const g = getGlobals();
+    const root = document.documentElement;
+    root.style.setProperty('--frame-pad-top', `${g.framePadTop || 0}px`);
+    root.style.setProperty('--frame-pad-right', `${g.framePadRight || 0}px`);
+    root.style.setProperty('--frame-pad-bottom', `${g.framePadBottom || 0}px`);
+    root.style.setProperty('--frame-pad-left', `${g.framePadLeft || 0}px`);
+  }
+
+  /**
+   * Ensure .noise-2 element exists (for modular dev where Webflow HTML isn't present).
+   * Creates it as a sibling to .noise or as first child of body if .noise doesn't exist.
+   */
+  function ensureNoise2Element() {
+    // Check if .noise-2 already exists
+    if (document.querySelector('.noise-2')) return;
+    
+    // Check if we have a noise texture image to use
+    const existingNoise = document.querySelector('.noise');
+    if (!existingNoise) {
+      // No noise system present (modular dev without Webflow assets) - skip
+      return;
+    }
+    
+    // Create noise-2 element
+    const noise2 = document.createElement('div');
+    noise2.className = 'noise-2';
+    
+    // Copy background-image from existing noise if available
+    const noiseStyle = getComputedStyle(existingNoise);
+    if (noiseStyle.backgroundImage && noiseStyle.backgroundImage !== 'none') {
+      noise2.style.backgroundImage = noiseStyle.backgroundImage;
+    }
+    
+    // Position it fixed, full screen (CSS handles the rest)
+    noise2.style.position = 'fixed';
+    noise2.style.inset = '0';
+    noise2.style.pointerEvents = 'none';
+    noise2.style.backgroundRepeat = 'repeat';
+    noise2.style.backgroundPosition = '50%';
+    noise2.style.backgroundAttachment = 'fixed';
+    noise2.style.opacity = '0.03';
+    noise2.style.mixBlendMode = 'luminosity';
+    
+    // Insert after .noise element
+    existingNoise.insertAdjacentElement('afterend', noise2);
+    console.log('✓ Created .noise-2 element');
+  }
+
+  (async function init() {
+    try {
+      console.log('🚀 Initializing modular bouncy balls...');
+      
+      const config = await loadRuntimeConfig();
+      initState(config);
+      console.log('✓ Config loaded');
+      
+      // Apply frame padding CSS vars from config (controls border thickness)
+      applyFramePaddingCSSVars();
+      console.log('✓ Frame padding applied');
+      
+      // Ensure noise-2 element exists (for modular dev environments)
+      ensureNoise2Element();
+      
+      // Setup canvas (attaches resize listener, but doesn't resize yet)
+      setupRenderer();
+      const canvas = getCanvas();
+      const ctx = getContext();
+      const container = document.getElementById('bravia-balls');
+      
+      if (!canvas || !ctx || !container) {
+        throw new Error('Missing DOM elements');
+      }
+      
+      // Set canvas reference in state (needed for container-relative sizing)
+      setCanvas(canvas, ctx, container);
+      
+      // NOW resize - container is available for container-relative sizing
+      resize();
+      console.log('✓ Canvas initialized (container-relative sizing)');
+      
+      // Ensure initial mouseInCanvas state is false for tests
+      const globals = getGlobals();
+      globals.mouseInCanvas = false;
+      if (typeof window !== 'undefined') window.mouseInCanvas = false;
+      
+      // Setup pointer tracking BEFORE dark mode (needed for interactions)
+      setupPointer();
+      console.log('✓ Pointer tracking configured');
+      
+      // Load any saved settings
+      loadSettings();
+      
+      // Initialize dark mode BEFORE colors (determines which palette variant to load)
+      initializeDarkMode();
+      console.log('✓ Dark mode initialized');
+      
+      // Initialize color system
+      applyColorTemplate(getGlobals().currentTemplate);
+      console.log('✓ Color system initialized');
+      
+      // Setup UI
+      setupPanel();
+      populateColorSelect();
+      console.log('✓ Panel created');
+      
+      setupKeyboardShortcuts();
+      console.log('✓ Keyboard shortcuts registered');
+      
+      // Initialize starting mode (Flies by default)
+      setMode(MODES.FLIES);
+      console.log('✓ Mode initialized');
+      
+      // Start main render loop
+      const getForces = () => getForceApplicator();
+      startMainLoop((ball, dt) => {
+        const forceFn = getForces();
+        if (forceFn) forceFn(ball, dt);
+      });
+      
+      console.log('✅ Bouncy Balls running (modular)');
+      
+    } catch (error) {
+      console.error('❌ Initialization failed:', error);
+      document.body.innerHTML = `<div style="padding: 20px; color: red; background: white;">
+      <h2>Initialization Error</h2>
+      <pre>${error.message}\n${error.stack}</pre>
+    </div>`;
+    }
+  })();
+
+  exports.applyFramePaddingCSSVars = applyFramePaddingCSSVars;
+
+  return exports;
+
+})({});
+//# sourceMappingURL=bouncy-balls-embed.js.map

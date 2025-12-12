@@ -48,8 +48,11 @@ body.dark-mode .viewport {
 /* Z-INDEX LAYERING:
    0: Body Background
    1: Logo (Hero Text)
-   5: Balls Simulation (Transparent Wrapper)
-   20: UI Overlay (Legend, Script, Footer, Panel)
+   4: Bottom Noise (.noise) - Behind balls
+   5: Balls Simulation (#bravia-balls container + canvas)
+   7: Top Noise (.noise-2) - Above balls
+   20: UI Overlay (Legend, Script, Footer, Panel) - Above all noise
+   2001: Decorative Script - Above Webflow elements
 */
 
 /* 1. Prevent Viewport from trapping children in low stack */
@@ -81,7 +84,7 @@ body.dark-mode .viewport {
   position: relative;
 }
 
-/* 3. Pull UI Elements to Top Layer */
+/* 3. Pull UI Elements to Top Layer (Above all noise layers) */
 .legend,
 .legend__item,
 .footer_icon-group,
@@ -89,7 +92,7 @@ body.dark-mode .viewport {
 .footer_icon-link,
 .caption,
 a {
-  z-index: 20 !important;
+  z-index: 20 !important; /* Above noise layers (z-index 4, 7) and balls (z-index 5) */
   position: relative; /* relative allows z-index to work */
   pointer-events: auto !important;
 }
@@ -198,19 +201,20 @@ body.dark-mode .corner svg * { fill: #1a1a1a !important; stroke: #1a1a1a !import
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    NOISE TEXTURE LAYERS
-   Layer 1 (.noise): Behind balls (z-index 5, earlier in DOM = behind #bravia-balls)
-   Layer 2 (.noise-2): Above balls (z-index 6), flipped horizontally, 20% smaller
+   Layer 1 (.noise): Behind balls (z-index 4) - Below #bravia-balls (z-index 5)
+   Layer 2 (.noise-2): Above balls (z-index 7) - Above #bravia-balls (z-index 5)
+   All text elements: z-index 20+ (above all noise layers)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* Bottom noise layer - behind balls (override Webflow's z-index: 1000) */
 .noise {
-  z-index: 5 !important;
+  z-index: 4 !important; /* Below #bravia-balls (z-index 5) */
   /* Webflow already sets: position:fixed, inset:0, background-image, etc. */
 }
 
 /* Top noise layer - above balls, flipped and smaller grain */
 .noise-2 {
-  z-index: 6 !important;
+  z-index: 7 !important; /* Above #bravia-balls (z-index 5), below text (z-index 20+) */
   transform: scaleX(-1) !important; /* Horizontal flip */
   background-size: var(--noise-size-top) var(--noise-size-top) !important; /* 20% smaller */
   /* Webflow already sets: position:fixed, inset:0, background-image, etc. */
@@ -262,7 +266,7 @@ body.dark-mode .noise-2 {
   letter-spacing: 0.01em;
   color: #161616;
   max-width: min(418px, 38.5vw);
-  z-index: 2001 !important; /* Above Webflow elements (z-index: 2000) */
+  z-index: 2001 !important; /* Above Webflow elements (z-index: 2000) and all noise layers */
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;

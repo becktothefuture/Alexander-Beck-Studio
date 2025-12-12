@@ -3,10 +3,26 @@
   color-scheme: light;
   --bg-light: #cecece; /* Light grey background */
   --bg-dark: #0a0a0a;
+  
+  /* Unified browser chrome / body / frame color (single source of truth) */
+  --chrome-bg-light: #cecece;
+  --chrome-bg-dark: #0a0a0a;
+  --chrome-bg: var(--chrome-bg-light);
+  
+  /* Frame padding (border thickness around simulation) */
+  --frame-pad-top: 0px;
+  --frame-pad-right: 0px;
+  --frame-pad-bottom: 0px;
+  --frame-pad-left: 0px;
+  
+  /* Noise texture sizing */
+  --noise-size-base: 100px;
+  --noise-size-top: 80px; /* 20% smaller for top layer */
 }
 
 :root.dark-mode {
   color-scheme: dark;
+  --chrome-bg: var(--chrome-bg-dark);
 }
 
 /* Prevent page scrolling - simulation fills viewport */
@@ -17,12 +33,12 @@ html, body {
   width: 100%;
   height: 100%;
   cursor: none; /* Hide system cursor globally - simulation draws its own */
-  background: var(--bg-light); /* Default light grey background */
+  background: var(--chrome-bg); /* Unified chrome/body/frame color */
 }
 
 /* Ensure body also changes in dark mode to avoid Webflow overrides */
 body.dark-mode { 
-  background: var(--bg-dark) !important;
+  background: var(--chrome-bg-dark) !important;
 }
 
 body.dark-mode .viewport { 
@@ -32,8 +48,11 @@ body.dark-mode .viewport {
 /* Z-INDEX LAYERING:
    0: Body Background
    1: Logo (Hero Text)
-   5: Balls Simulation (Transparent Wrapper)
-   20: UI Overlay (Legend, Script, Footer, Panel)
+   4: Bottom Noise (.noise) - Behind balls
+   5: Balls Simulation (#bravia-balls container + canvas)
+   7: Top Noise (.noise-2) - Above balls
+   20: UI Overlay (Legend, Script, Footer, Panel) - Above all noise
+   2001: Decorative Script - Above Webflow elements
 */
 
 /* 1. Prevent Viewport from trapping children in low stack */
@@ -65,7 +84,7 @@ body.dark-mode .viewport {
   position: relative;
 }
 
-/* 3. Pull UI Elements to Top Layer */
+/* 3. Pull UI Elements to Top Layer (Above all noise layers) */
 .legend,
 .legend__item,
 .footer_icon-group,
@@ -73,7 +92,7 @@ body.dark-mode .viewport {
 .footer_icon-link,
 .caption,
 a {
-  z-index: 20 !important;
+  z-index: 20 !important; /* Above noise layers (z-index 4, 7) and balls (z-index 5) */
   position: relative; /* relative allows z-index to work */
   pointer-events: auto !important;
 }
@@ -114,13 +133,16 @@ a {
 }
 
 /* Scoped wrapper for embed friendliness and interaction hygiene */
+/* Frame thickness controlled by --frame-pad-* CSS vars (inset positioning) */
 #bravia-balls {
   overflow: hidden; /* Critical: prevent scrollbars from canvas overflow */
   position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 100svh; /* Default height for most modes */
+  /* Inset positioning: frame padding creates the "border" effect */
+  top: var(--frame-pad-top);
+  right: var(--frame-pad-right);
+  bottom: var(--frame-pad-bottom);
+  left: var(--frame-pad-left);
+  /* Width/height auto-calculated from inset */
   background: transparent !important; /* Transparent so logo shows through */
   transition: background-color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
   overscroll-behavior: contain;
@@ -135,8 +157,9 @@ a {
 #bravia-balls canvas {
   pointer-events: none !important; /* Canvas handled globally */
   display: block; 
-  width: 100vw; /* Full viewport width */
-  height: 100svh; /* Full small viewport height */
+  /* Container-relative sizing (not viewport) - JS sets actual pixel dimensions */
+  width: 100%;
+  height: 100%;
   position: absolute;
   bottom: 0;
   left: 0;
@@ -176,9 +199,31 @@ body.dark-mode .caption { color: #a0a0a0 !important; }
 body.dark-mode .corner svg path { fill: #1a1a1a !important; }
 body.dark-mode .corner svg * { fill: #1a1a1a !important; stroke: #1a1a1a !important; }
 
-/* Noise texture overlay - more subtle in dark mode */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   NOISE TEXTURE LAYERS
+   Layer 1 (.noise): Behind balls (z-index 4) - Below #bravia-balls (z-index 5)
+   Layer 2 (.noise-2): Above balls (z-index 7) - Above #bravia-balls (z-index 5)
+   All text elements: z-index 20+ (above all noise layers)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Bottom noise layer - behind balls (override Webflow's z-index: 1000) */
+.noise {
+  z-index: 4 !important; /* Below #bravia-balls (z-index 5) */
+  /* Webflow already sets: position:fixed, inset:0, background-image, etc. */
+}
+
+/* Top noise layer - above balls, flipped and smaller grain */
+.noise-2 {
+  z-index: 7 !important; /* Above #bravia-balls (z-index 5), below text (z-index 20+) */
+  transform: scaleX(-1) !important; /* Horizontal flip */
+  background-size: var(--noise-size-top) var(--noise-size-top) !important; /* 20% smaller */
+  /* Webflow already sets: position:fixed, inset:0, background-image, etc. */
+}
+
+/* Dark mode: more subtle noise */
 body.dark-mode .noise-overlay,
-body.dark-mode [class*="noise"] {
+body.dark-mode .noise,
+body.dark-mode .noise-2 {
   opacity: 0.15 !important;
   mix-blend-mode: overlay !important;
 }
@@ -221,7 +266,7 @@ body.dark-mode [class*="noise"] {
   letter-spacing: 0.01em;
   color: #161616;
   max-width: min(418px, 38.5vw);
-  z-index: 2001 !important; /* Above Webflow elements (z-index: 2000) */
+  z-index: 2001 !important; /* Above Webflow elements (z-index: 2000) and all noise layers */
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;

@@ -49,9 +49,5 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/yourusername/alexander-beck-studio-website"
-  },
-  "dependencies": {
-    "pixi.js": "^7.3.2",
-    "ws": "^8.18.3"
   }
 }
