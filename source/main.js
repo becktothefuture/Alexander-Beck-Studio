@@ -15,6 +15,7 @@ import { setMode, MODES, getForceApplicator } from './modules/modes/mode-control
 import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
+import { createSoundToggle } from './modules/ui/sound-toggle.js';
 
 async function loadRuntimeConfig() {
   try {
@@ -157,6 +158,10 @@ function ensureNoise2Element() {
     // Initialize password gate (CV protection)
     initCVGate();
     console.log('✓ Password gate initialized');
+    
+    // Initialize sound toggle (underwater pebble collision sounds)
+    createSoundToggle();
+    console.log('✓ Sound toggle created');
     
     // Initialize starting mode (Flies by default)
     setMode(MODES.FLIES);

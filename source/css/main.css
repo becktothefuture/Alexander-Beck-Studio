@@ -68,17 +68,19 @@ html {
 body {
   overflow: hidden;
   margin: 0;
-  padding: var(--container-border); /* Creates outer frame effect */
+  /* Container border: padding reveals HTML's chrome-bg as dark frame */
+  padding: var(--container-border);
   box-sizing: border-box;
   width: 100%;
   height: 100%;
   cursor: none; /* Simulation draws custom cursor */
-  background: var(--bg-light);
+  background: transparent; /* Inherits from HTML (chrome-bg) */
+  color: rgba(64, 64, 64, 1);
   transition: padding 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
 body.dark-mode { 
-  background: var(--bg-dark) !important;
+  color: rgba(200, 200, 200, 1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -102,15 +104,27 @@ body.dark-mode {
   pointer-events: none;
 }
 
+/* Main content area - light grey background with rounded corners */
 .viewport.viewport--content {
   background: var(--bg-light) !important;
   border-radius: var(--container-radius);
+  transition: background-color 430ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-body.dark-mode .viewport,
+/* Sound toggle hover - viewport turns white */
+body.sound-hover .viewport.viewport--content {
+  background: #ffffff !important;
+}
+
+/* Dark mode - viewport content gets dark background */
 body.dark-mode .viewport.viewport--content {
-  background: transparent !important;
+  background: var(--bg-dark) !important;
   color: #c8c8c8 !important;
+}
+
+/* Dark mode sound hover - viewport turns slightly lighter */
+body.dark-mode.sound-hover .viewport.viewport--content {
+  background: #1a1a1a !important;
 }
 
 /* Logo layer */
@@ -260,6 +274,10 @@ body.dark-mode .noise-2 {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   visibility: visible !important;
+  /* Border styling - override Webflow default left-only border */
+  border: 1px solid rgba(61, 61, 61, 1) !important;
+  border-left: 1px solid rgba(61, 61, 61, 1) !important;
+  padding: 2px 20px !important;
 }
 
 .decorative-script p {
@@ -273,6 +291,7 @@ body.dark-mode .noise-2 {
   pointer-events: auto;
   cursor: pointer;
   transition: opacity 0.2s ease;
+  white-space: nowrap; /* Prevent "Let's chat." from breaking */
 }
 
 .decorative-script p a:hover {
@@ -337,6 +356,7 @@ body.dark-mode .caption {
 body.dark-mode .decorative-script {
   color: #f5f5f5;
   opacity: 0.88;
+  border-color: rgba(120, 120, 120, 1); /* Lighter border for dark mode */
 }
 
 body.dark-mode .decorative-script p a,
@@ -412,6 +432,103 @@ body.dark-mode .corner svg * {
   
   .caption {
     font-size: clamp(0.785rem, 3.11vw, 0.904rem) !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SOUND TOGGLE - Right side, vertically centered
+   Orange accent (#ff4013) matching ball-6
+   Hover triggers body background transition to white
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.sound-toggle {
+  position: fixed;
+  top: 50%;
+  right: calc(2rem + var(--container-border, 0px)); /* Respect consolidated padding */
+  z-index: 2002 !important; /* Above decorative script (2001) and corners */
+  font-family: 'Geist', sans-serif;
+  font-size: clamp(0.72rem, 1.1vw, 0.82rem);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ball-6, #ff4013);
+  background: none;
+  border: none;
+  padding: 0.4rem 0;
+  margin: 0;
+  cursor: pointer;
+  pointer-events: auto !important;
+  opacity: 0.9;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  transform: translateY(-50%); /* Center vertically */
+  text-align: right;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.sound-toggle:hover {
+  opacity: 1;
+  color: var(--ball-6, #ff4013);
+}
+
+.sound-toggle:focus {
+  outline: none;
+}
+
+.sound-toggle:focus-visible {
+  outline: 2px solid var(--ball-6, #ff4013);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* Enabled state - slightly brighter */
+.sound-toggle[data-enabled="true"] {
+  opacity: 1;
+}
+
+/* Disabled state - more muted */
+.sound-toggle[data-enabled="false"] {
+  opacity: 0.7;
+}
+
+/* Dark mode */
+body.dark-mode .sound-toggle {
+  color: #ff6b47; /* Lighter orange for dark backgrounds */
+  opacity: 0.92;
+}
+
+body.dark-mode .sound-toggle:hover {
+  opacity: 1;
+  color: #ff8566;
+}
+
+/* Dark mode hover effect - body turns slightly lighter */
+body.dark-mode.sound-hover {
+  background: #1a1a1a;
+}
+
+body.dark-mode.sound-hover .viewport.viewport--content {
+  background: #1a1a1a !important;
+}
+
+/* Hidden when prefers-reduced-motion (sound disabled by default) */
+@media (prefers-reduced-motion: reduce) {
+  .sound-toggle {
+    display: none;
+  }
+}
+
+/* Responsive positioning */
+@media (max-width: 768px) {
+  .sound-toggle {
+    right: calc(1.5rem + var(--container-border, 0px));
+    font-size: clamp(0.66rem, 1.4vw, 0.76rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .sound-toggle {
+    right: calc(1rem + var(--container-border, 0px));
+    font-size: clamp(0.62rem, 1.8vw, 0.72rem);
   }
 }
 
