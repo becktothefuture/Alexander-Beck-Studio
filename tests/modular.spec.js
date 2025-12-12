@@ -20,9 +20,6 @@ test.describe('Modular Build Integration', () => {
 // ║                        MODULAR PAGE SMOKE TESTS                              ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-const { test, expect } = require('@playwright/test');
-const path = require('path');
-
 const MODULAR_PATH = 'file://' + path.resolve(__dirname, '../public/index.html');
 
 test.describe('Modular Simulation Page', () => {

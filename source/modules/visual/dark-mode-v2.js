@@ -10,11 +10,19 @@ import { applyColorTemplate } from './colors.js';
 let currentTheme = 'light'; // Default to light mode
 let systemPreference = 'light';
 
-// Colors for Safari/Chrome address bar
-const THEME_COLORS = {
+// Fallback colors if CSS vars not available
+const FALLBACK_COLORS = {
   light: '#cecece',
   dark: '#0a0a0a'
 };
+
+/**
+ * Read CSS variable from :root, with fallback
+ */
+function readCssVar(name, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
 
 /**
  * Detect system color scheme preference
@@ -28,9 +36,13 @@ function detectSystemPreference() {
 
 /**
  * Update browser chrome/theme color for Safari and Chrome
+ * Reads from CSS variables (--chrome-bg*) for unified color management
  */
 function updateThemeColor(isDark) {
-  const color = isDark ? THEME_COLORS.dark : THEME_COLORS.light;
+  // Read colors from CSS variables (single source of truth)
+  const lightColor = readCssVar('--chrome-bg-light', FALLBACK_COLORS.light);
+  const darkColor = readCssVar('--chrome-bg-dark', FALLBACK_COLORS.dark);
+  const currentColor = isDark ? darkColor : lightColor;
   
   // Update existing meta tag or create new one
   let metaTheme = document.querySelector('meta[name="theme-color"]');
@@ -39,7 +51,7 @@ function updateThemeColor(isDark) {
     metaTheme.name = 'theme-color';
     document.head.appendChild(metaTheme);
   }
-  metaTheme.content = color;
+  metaTheme.content = currentColor;
   
   // Safari-specific: Update for both light and dark modes
   let metaThemeLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
@@ -49,7 +61,7 @@ function updateThemeColor(isDark) {
     metaThemeLight.media = '(prefers-color-scheme: light)';
     document.head.appendChild(metaThemeLight);
   }
-  metaThemeLight.content = THEME_COLORS.light;
+  metaThemeLight.content = lightColor;
   
   let metaThemeDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
   if (!metaThemeDark) {
@@ -58,7 +70,7 @@ function updateThemeColor(isDark) {
     metaThemeDark.media = '(prefers-color-scheme: dark)';
     document.head.appendChild(metaThemeDark);
   }
-  metaThemeDark.content = THEME_COLORS.dark;
+  metaThemeDark.content = darkColor;
 }
 
 /**

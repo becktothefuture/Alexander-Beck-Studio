@@ -27,7 +27,11 @@ Settings are managed through:
   "fliesAttraction": 800,
   "fliesOrbitRadius": 120,
   "weightlessCount": 80,
-  "weightlessSpeed": 200
+  "weightlessSpeed": 200,
+  "framePadTop": 0,
+  "framePadRight": 0,
+  "framePadBottom": 0,
+  "framePadLeft": 0
 }
 ```
 
@@ -59,6 +63,40 @@ Settings are managed through:
 - **Default:** `"industrial_teal"`
 - **Description:** Active color scheme
 - **Impact:** Ball colors only
+
+### Frame/Border Settings
+
+These parameters control the visible border thickness around the simulation area. The simulation automatically resizes to fit the available container space (container-relative sizing), so changing frame padding doesn't break physics or pointer tracking.
+
+#### `framePadTop` (Number, pixels)
+- **Range:** 0 - 100
+- **Default:** 0
+- **Description:** Top frame/border thickness
+- **Impact:** Insets simulation container from viewport top edge
+
+#### `framePadRight` (Number, pixels)
+- **Range:** 0 - 100
+- **Default:** 0
+- **Description:** Right frame/border thickness
+- **Impact:** Insets simulation container from viewport right edge
+
+#### `framePadBottom` (Number, pixels)
+- **Range:** 0 - 100
+- **Default:** 0
+- **Description:** Bottom frame/border thickness
+- **Impact:** Insets simulation container from viewport bottom edge
+
+#### `framePadLeft` (Number, pixels)
+- **Range:** 0 - 100
+- **Default:** 0
+- **Description:** Left frame/border thickness
+- **Impact:** Insets simulation container from viewport left edge
+
+**Technical notes:**
+- Frame color uses the unified `--chrome-bg` CSS variable (matches body background and browser chrome)
+- Simulation dimensions are now **container-relative** not viewport-relative
+- Ball Pit mode's 150% height still works correctly (relative to container height)
+- Pointer tracking automatically adjusts to container bounds
 
 ### Ball Pit Mode
 

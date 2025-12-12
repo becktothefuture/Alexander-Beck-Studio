@@ -68,7 +68,7 @@ A vanilla JavaScript particle physics system featuring:
 ```
 /
 ├── source/              # Development files
-│   ├── source-modular.html  # Dev page (loads ES modules)
+│   ├── index.html           # Dev page (loads ES modules)
 │   ├── main.js              # Entry point
 │   ├── config/default-config.json
 │   └── modules/**           # Core/modes/physics/rendering/ui/utils

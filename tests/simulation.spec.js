@@ -7,7 +7,7 @@ const { test, expect } = require('@playwright/test');
 const path = require('path');
 
 // File paths
-const SOURCE_PATH = 'file://' + path.resolve(__dirname, '../source/source-modular.html');
+const SOURCE_PATH = 'file://' + path.resolve(__dirname, '../source/index.html');
 const BUILD_PATH = 'file://' + path.resolve(__dirname, '../public/index.html');
 
 // ═══════════════════════════════════════════════════════════════════════════════

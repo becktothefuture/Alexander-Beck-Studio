@@ -37,6 +37,18 @@ export const PANEL_HTML = `
     </div>
   </details>
   
+  <!-- Frame/Border Settings -->
+  <details>
+    <summary>🖼️ Frame Border</summary>
+    <div class="group">
+        <label><span>Top (px)</span><input type="range" id="framePadTopSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadTopVal">0</span></label>
+        <label><span>Right (px)</span><input type="range" id="framePadRightSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadRightVal">0</span></label>
+        <label><span>Bottom (px)</span><input type="range" id="framePadBottomSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadBottomVal">0</span></label>
+        <label><span>Left (px)</span><input type="range" id="framePadLeftSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadLeftVal">0</span></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Border uses body/chrome background color</div>
+    </div>
+  </details>
+  
   <!-- Build Controls -->
   <div style="margin-bottom: 12px; padding: 8px; background: rgba(0,255,0,0.1); border-radius: 4px; text-align: center;">
     <button id="saveConfigBtn" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Save Config</button>

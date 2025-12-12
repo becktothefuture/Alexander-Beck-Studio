@@ -518,7 +518,7 @@ autoSaveSettings(); // Debounced write
 
 ### Development
 - **Entry**: `source/main.js` (ES modules)
-- **Dev page**: `source/source-modular.html`
+- **Dev page**: `source/index.html`
 - **Size**: ~2,485 lines
 
 ### Production Build
@@ -597,7 +597,7 @@ const MODE_DEFAULTS = {
 /
 ├── source/
 │   ├── main.js                 # Entry point
-│   ├── source-modular.html     # Modular dev page
+│   ├── index.html              # Modular dev page
 │   ├── modules/
 │   │   ├── core/
 │   │   ├── physics/
@@ -617,7 +617,7 @@ const MODE_DEFAULTS = {
 /
 ├── source/
 │   ├── main.js                 # Entry point
-│   ├── source-modular.html     # Modular dev page
+│   ├── index.html              # Modular dev page
 │   ├── modules/
 │   │   ├── core/
 │   │   │   ├── constants.js    # Global constants, modes

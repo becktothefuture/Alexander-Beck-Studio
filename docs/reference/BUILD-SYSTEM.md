@@ -192,7 +192,7 @@ Checks:
 │   ├── js/
 │   └── images/
 ├── source/                  # ← Development files
-│   ├── source-modular.html  # ← Dev page (modules)
+│   ├── index.html           # ← Dev page (modules)
 │   ├── main.js              # ← Entry point
 │   ├── config/default-config.json
 │   └── modules/**

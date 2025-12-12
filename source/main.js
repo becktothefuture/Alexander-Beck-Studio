@@ -33,6 +33,59 @@ async function loadRuntimeConfig() {
   }
 }
 
+/**
+ * Apply frame padding CSS variables from global state to :root
+ * This controls the inset of #bravia-balls (frame/border thickness)
+ */
+export function applyFramePaddingCSSVars() {
+  const g = getGlobals();
+  const root = document.documentElement;
+  root.style.setProperty('--frame-pad-top', `${g.framePadTop || 0}px`);
+  root.style.setProperty('--frame-pad-right', `${g.framePadRight || 0}px`);
+  root.style.setProperty('--frame-pad-bottom', `${g.framePadBottom || 0}px`);
+  root.style.setProperty('--frame-pad-left', `${g.framePadLeft || 0}px`);
+}
+
+/**
+ * Ensure .noise-2 element exists (for modular dev where Webflow HTML isn't present).
+ * Creates it as a sibling to .noise or as first child of body if .noise doesn't exist.
+ */
+function ensureNoise2Element() {
+  // Check if .noise-2 already exists
+  if (document.querySelector('.noise-2')) return;
+  
+  // Check if we have a noise texture image to use
+  const existingNoise = document.querySelector('.noise');
+  if (!existingNoise) {
+    // No noise system present (modular dev without Webflow assets) - skip
+    return;
+  }
+  
+  // Create noise-2 element
+  const noise2 = document.createElement('div');
+  noise2.className = 'noise-2';
+  
+  // Copy background-image from existing noise if available
+  const noiseStyle = getComputedStyle(existingNoise);
+  if (noiseStyle.backgroundImage && noiseStyle.backgroundImage !== 'none') {
+    noise2.style.backgroundImage = noiseStyle.backgroundImage;
+  }
+  
+  // Position it fixed, full screen (CSS handles the rest)
+  noise2.style.position = 'fixed';
+  noise2.style.inset = '0';
+  noise2.style.pointerEvents = 'none';
+  noise2.style.backgroundRepeat = 'repeat';
+  noise2.style.backgroundPosition = '50%';
+  noise2.style.backgroundAttachment = 'fixed';
+  noise2.style.opacity = '0.03';
+  noise2.style.mixBlendMode = 'luminosity';
+  
+  // Insert after .noise element
+  existingNoise.insertAdjacentElement('afterend', noise2);
+  console.log('✓ Created .noise-2 element');
+}
+
 (async function init() {
   try {
     console.log('🚀 Initializing modular bouncy balls...');
@@ -41,7 +94,14 @@ async function loadRuntimeConfig() {
     initState(config);
     console.log('✓ Config loaded');
     
-    // Setup canvas first
+    // Apply frame padding CSS vars from config (controls border thickness)
+    applyFramePaddingCSSVars();
+    console.log('✓ Frame padding applied');
+    
+    // Ensure noise-2 element exists (for modular dev environments)
+    ensureNoise2Element();
+    
+    // Setup canvas (attaches resize listener, but doesn't resize yet)
     setupRenderer();
     const canvas = getCanvas();
     const ctx = getContext();
@@ -51,8 +111,13 @@ async function loadRuntimeConfig() {
       throw new Error('Missing DOM elements');
     }
     
+    // Set canvas reference in state (needed for container-relative sizing)
     setCanvas(canvas, ctx, container);
-    console.log('✓ Canvas initialized');
+    
+    // NOW resize - container is available for container-relative sizing
+    resize();
+    console.log('✓ Canvas initialized (container-relative sizing)');
+    
     // Ensure initial mouseInCanvas state is false for tests
     const globals = getGlobals();
     globals.mouseInCanvas = false;

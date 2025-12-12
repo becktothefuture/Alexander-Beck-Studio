@@ -55,7 +55,7 @@ npm run help           # Show all commands
 ```
 
 **Edit:** `source/main.js` + `source/modules/**`  
-**Test:** Open `source/source-modular.html`  
+**Test:** Open `source/index.html`  
 **Build:** `npm run build` → Complete site in `public/` (Webflow export + simulation integrated)
 
 ## 🎯 Common Tasks
@@ -67,7 +67,7 @@ npm run help           # Show all commands
 
 ### Making Changes
 1. Edit `source/main.js` + modules or `source/config/default-config.json`
-2. Test changes in browser (open `source/source-modular.html` directly)
+2. Test changes in browser (open `source/index.html` directly)
 3. Run `npm run build` to generate production site in `public/`
 4. Test `public/index.html` via `npm start` (http://localhost:8000)
 5. Follow [`docs/development/DEVELOPMENT-GUIDE.md`](./docs/development/DEVELOPMENT-GUIDE.md)

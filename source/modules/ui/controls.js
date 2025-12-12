@@ -7,6 +7,8 @@ import { getGlobals } from '../core/state.js';
 import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
 import { autoSaveSettings } from '../utils/storage.js';
 import { setMode, MODES } from '../modes/mode-controller.js';
+import { resize } from '../rendering/renderer.js';
+import { applyFramePaddingCSSVars } from '../../main.js';
 
 function bindSlider(id, onChange) {
   const el = document.getElementById(id);
@@ -55,6 +57,38 @@ export function setupControls() {
   bindSlider('ballSoftnessSliderGlobal', (el) => {
     g.ballSoftness = parseInt(el.value, 10);
     setVal('ballSoftnessValGlobal', String(g.ballSoftness));
+    autoSaveSettings();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FRAME PADDING CONTROLS (Border thickness)
+  // ═══════════════════════════════════════════════════════════════════════════
+  bindSlider('framePadTopSlider', (el) => {
+    g.framePadTop = parseInt(el.value, 10);
+    setVal('framePadTopVal', String(g.framePadTop));
+    applyFramePaddingCSSVars();
+    resize();
+    autoSaveSettings();
+  });
+  bindSlider('framePadRightSlider', (el) => {
+    g.framePadRight = parseInt(el.value, 10);
+    setVal('framePadRightVal', String(g.framePadRight));
+    applyFramePaddingCSSVars();
+    resize();
+    autoSaveSettings();
+  });
+  bindSlider('framePadBottomSlider', (el) => {
+    g.framePadBottom = parseInt(el.value, 10);
+    setVal('framePadBottomVal', String(g.framePadBottom));
+    applyFramePaddingCSSVars();
+    resize();
+    autoSaveSettings();
+  });
+  bindSlider('framePadLeftSlider', (el) => {
+    g.framePadLeft = parseInt(el.value, 10);
+    setVal('framePadLeftVal', String(g.framePadLeft));
+    applyFramePaddingCSSVars();
+    resize();
     autoSaveSettings();
   });
 

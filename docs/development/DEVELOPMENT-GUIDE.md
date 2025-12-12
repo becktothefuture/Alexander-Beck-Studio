@@ -21,7 +21,7 @@ npm install
 ### 1. Open Development Version (Modular)
 ```bash
 # Modular dev page
-open source/source-modular.html
+open source/index.html
 
 # Or run local servers
 npm run start:source   # http://localhost:8001 (ES modules dev page)
@@ -35,7 +35,7 @@ npm start              # http://localhost:8000 (public site)
 - Four physics modes with instant switching (1-4)
 
 **Structure**:
-- `source/source-modular.html`: Dev HTML shell (loads `main.js`)
+- `source/index.html`: Dev HTML shell (loads `main.js`)
 - `source/css/*.css`: Styles scoped to `#bravia-balls`
 - `source/modules/**`: Core, modes, physics, rendering, ui, utils
 
@@ -77,7 +77,7 @@ npm run build          # Modular production build (Rollup + integration)
 ### File Structure
 ```
 source/
-├── source-modular.html      # Dev page (loads ES modules)
+├── index.html               # Dev page (loads ES modules)
 ├── main.js                  # Entry point
 ├── css/
 │   ├── main.css
@@ -407,7 +407,7 @@ git checkout -b feature/your-feature
 # ... edit files ...
 
 # Test thoroughly
-open source/source-modular.html
+open source/index.html
 
 # Commit
 git add .

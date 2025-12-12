@@ -23,7 +23,7 @@ npm start              # http://localhost:8000 (public)
 ## Development
 
 1. **Edit**: `source/main.js` + `source/modules/**`
-2. **Test**: Open `source/source-modular.html`
+2. **Test**: Open `source/index.html`
 3. **Build**: `npm run build` (modular Rollup + integration)
 
 ## Integration
