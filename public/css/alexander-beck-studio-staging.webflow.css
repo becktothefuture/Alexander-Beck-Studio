@@ -2999,7 +2999,7 @@
 
 .footer_link {
   cursor: pointer;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   height: 100%;
   text-decoration: none;
@@ -4946,14 +4946,14 @@ a {
 }
 
 .legend {
-  grid-column-gap: 2vw;
-  grid-row-gap: .1rem;
+  grid-column-gap: 3vw;
+  grid-row-gap: .5rem;
   flex-flow: column;
   grid-template-rows: auto auto;
   grid-template-columns: 1fr 1fr 1fr 1fr;
   grid-auto-columns: 1fr;
-  place-items: start;
-  justify-items: start;
+  place-items: center;
+  justify-items: center;
   font-family: Geist Mono, sans-serif;
   font-size: 12px;
   display: grid;
@@ -4993,9 +4993,9 @@ a {
 }
 
 .hero__text {
-  width: clamp(450px, 20vw, 200px);
+  width: clamp(300px, 35vw, 600px);
   position: relative;
-  transform: translate(2%);
+  transform: none;
 }
 
 .corner {
@@ -6215,33 +6215,44 @@ a {
   }
 }
 
-#w-node-e6a615f7-c7b2-8768-3157-95ffa1ec0a09-d5c39cf1 {
-  grid-area: 1 / 1 / 2 / 4;
+/* Semantic grid layout for main content viewport */
+#expertise-legend {
+  grid-area: 1 / 1 / 2 / 6;
   align-self: start;
+  justify-self: center;
+  max-width: 80%;
 }
 
-#w-node-_38b28c23-04bb-05c7-72ee-2ae65152e2c6-d5c39cf1 {
-  order: 1;
-  grid-area: 4 / 1 / 5 / 6;
-  align-self: auto;
+#brand-logo {
+  grid-area: 3 / 2 / 6 / 5;
+  align-self: center;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-#w-node-a3bdcba3-22cc-d78c-cb19-91003b154f3e-d5c39cf1 {
+#social-links {
   grid-area: 7 / 1 / 8 / 2;
+  align-self: end;
 }
 
-#w-node-a3bdcba3-22cc-d78c-cb19-91003b154f55-d5c39cf1 {
+#contact-email {
   grid-area: 7 / 2 / 8 / 3;
-  align-self: center;
+  align-self: end;
+  justify-self: start;
 }
 
-#w-node-a3bdcba3-22cc-d78c-cb19-91003b154f57-d5c39cf1 {
-  grid-area: 7 / 3 / 8 / 5;
-  align-self: center;
+#portfolio-link {
+  grid-area: 7 / 3 / 8 / 4;
+  align-self: end;
+  justify-self: start;
 }
 
-#w-node-a3bdcba3-22cc-d78c-cb19-91003b154f59-d5c39cf1 {
+#site-year {
   grid-area: 7 / 5 / 8 / 6;
+  align-self: end;
+  justify-self: end;
 }
 
 #w-node-a8d86ac3-7817-9791-99c3-0a9649c41558-d5c39cfa {

@@ -154,7 +154,7 @@ function ensureNoise2Element() {
     setupKeyboardShortcuts();
     console.log('✓ Keyboard shortcuts registered');
     
-    // Initialize password gate for CV download
+    // Initialize password gate (CV protection)
     initPasswordGate();
     console.log('✓ Password gate initialized');
     
