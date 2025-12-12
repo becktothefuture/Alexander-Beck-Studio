@@ -4,36 +4,93 @@
    ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   CSS VARIABLES - Single source of truth for theming & layout
+   ORGANIC SIZING SYSTEM
+   ═══════════════════════════════════════════════════════════════════════════════
+   
+   PHILOSOPHY: The page is a living membrane. It breathes with the viewport,
+   expands when given space, contracts when constrained. Movement is natural -
+   slow to start (hesitant), then committed, slow to settle (inertia).
+   
+   PRINCIPLES:
+   1. VIEWPORT-RELATIVE: Core dimensions scale with screen (vw, vh, vmin)
+   2. PROPORTIONAL: Spacing maintains ratios (--space-unit as base)
+   3. FLUID CLAMPING: clamp(min, preferred, max) for graceful boundaries
+   4. ORGANIC TRANSITIONS: Slow ease-out mimics physical inertia
+   
+   BASE UNIT SYSTEM:
+   - --space-unit: 1vmin (smallest viewport dimension / 100)
+   - All spacing derives from this: 1x, 2x, 4x, etc.
+   - Results in proportional breathing as viewport changes
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
   color-scheme: light;
   
-  /* Background colors */
+  /* ─────────────────────────────────────────────────────────────────────────────
+     ORGANIC SPACING SYSTEM
+     Base unit = 1vmin (1% of smaller viewport dimension)
+     This creates proportional relationships that scale uniformly
+     ───────────────────────────────────────────────────────────────────────────── */
+  --space-unit: 1vmin;
+  
+  /* Spacing scale (proportional to viewport) */
+  --space-xs: calc(var(--space-unit) * 0.5);   /* 0.5vmin */
+  --space-sm: calc(var(--space-unit) * 1);     /* 1vmin */
+  --space-md: calc(var(--space-unit) * 2);     /* 2vmin */
+  --space-lg: calc(var(--space-unit) * 4);     /* 4vmin */
+  --space-xl: calc(var(--space-unit) * 6);     /* 6vmin */
+  --space-2xl: calc(var(--space-unit) * 8);    /* 8vmin */
+  
+  /* Edge insets - distance from viewport edge (with reasonable bounds) */
+  --edge-inset: clamp(1rem, 2vmin, 2rem);
+  --edge-inset-lg: clamp(1.5rem, 3vmin, 3rem);
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     ORGANIC TRANSITION TIMING
+     Mimics physical inertia: slow to start, committed middle, slow to settle
+     ───────────────────────────────────────────────────────────────────────────── */
+  --ease-organic: cubic-bezier(0.22, 1, 0.36, 1);  /* Slow start, fast middle, slow end */
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);   /* Quick response, long settle */
+  --ease-hesitant: cubic-bezier(0.4, 0, 0.2, 1);  /* Hesitant start */
+  
+  /* Transition durations (longer = more organic feel) */
+  --duration-resize: 600ms;   /* Viewport resize response */
+  --duration-settle: 400ms;   /* Color/opacity settling */
+  --duration-quick: 200ms;    /* Immediate feedback */
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     BACKGROUND COLORS
+     ───────────────────────────────────────────────────────────────────────────── */
   --bg-light: #cecece;  /* Light grey - content area */
   --bg-dark: #0a0a0a;   /* Near black - content area */
   
-  /* Browser chrome / body border color */
+  /* Browser chrome / body border color (seamless with browser) */
   --chrome-bg-light: #cecece;
   --chrome-bg-dark: #0a0a0a;
   --chrome-bg: var(--chrome-bg-light);
   
+  /* ─────────────────────────────────────────────────────────────────────────────
+     CONTAINER GEOMETRY
+     ───────────────────────────────────────────────────────────────────────────── */
   /* Container border: padding on body that reveals chrome-bg */
   --container-border: 0px;
   
   /* Simulation padding: space inside #bravia-balls around canvas */
   --simulation-padding: 0px;
   
-  /* Corner radii */
-  --container-radius: 42px;
+  /* Corner radii (proportional to viewport for organic feel) */
+  --container-radius: clamp(24px, 4vmin, 48px);
   --canvas-radius: calc(var(--container-radius) - var(--simulation-padding));
   
-  /* Noise texture sizing */
+  /* ─────────────────────────────────────────────────────────────────────────────
+     TEXTURE SIZING
+     ───────────────────────────────────────────────────────────────────────────── */
   --noise-size-base: 100px;
   --noise-size-top: 80px; /* 20% smaller for top layer */
   
-  /* Ball color palette (dynamically updated by JS) */
+  /* ─────────────────────────────────────────────────────────────────────────────
+     BALL COLOR PALETTE (dynamically updated by JS)
+     ───────────────────────────────────────────────────────────────────────────── */
   --ball-1: #b7bcb7;
   --ball-2: #e4e9e4;
   --ball-3: #ffffff;
@@ -51,9 +108,17 @@
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    BASE LAYOUT - HTML & BODY
-   Two-level padding creates border effect:
-   - HTML: --chrome-bg background (browser color)
-   - Body: --container-border padding reveals HTML bg as frame
+   ═══════════════════════════════════════════════════════════════════════════════
+   
+   STRUCTURE (outside → inside):
+   html  → Browser chrome color (seamless edge)
+     body  → Transparent + padding (reveals chrome as frame)
+       .viewport--content → The "page" organism (breathes, rounded)
+   
+   ORGANIC BEHAVIOR:
+   - Resize transitions use --ease-organic for natural inertia
+   - Body padding animates smoothly when --container-border changes
+   - All children inherit the organic timing
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 html {
@@ -62,25 +127,29 @@ html {
   padding: 0;
   width: 100%;
   height: 100%;
-  background: var(--chrome-bg); /* Shows as border when body has padding */
+  background: var(--chrome-bg); /* Seamless with browser chrome */
 }
 
 body {
   overflow: hidden;
   margin: 0;
-  padding: var(--container-border); /* Creates outer frame effect */
+  padding: var(--container-border); /* Reveals chrome-bg as frame */
   box-sizing: border-box;
   width: 100%;
   height: 100%;
   cursor: none; /* Simulation draws custom cursor */
-  background: transparent; /* TRANSPARENT - HTML chrome-bg shows through as border */
-  color: rgba(64, 64, 64, 1); /* Base text color */
-  transition: padding 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  background: transparent; /* Chrome shows through */
+  color: rgba(64, 64, 64, 1);
+  
+  /* ORGANIC TRANSITION: Padding changes feel physical, not instantaneous */
+  transition: 
+    padding var(--duration-resize) var(--ease-organic),
+    background-color var(--duration-settle) var(--ease-settle);
 }
 
 body.dark-mode { 
-  background: transparent !important; /* Still transparent in dark mode */
-  color: rgba(200, 200, 200, 1); /* Light text for dark mode */
+  background: transparent !important;
+  color: rgba(200, 200, 200, 1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -105,9 +174,14 @@ body.dark-mode {
 }
 
 .viewport.viewport--content {
-  background: var(--bg-light) !important; /* Light grey content area */
+  background: var(--bg-light) !important; /* The "page" surface */
   border-radius: var(--container-radius);
-  transition: background-color 430ms cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* ORGANIC BREATHING: All geometric properties transition smoothly */
+  transition: 
+    background-color var(--duration-settle) var(--ease-settle),
+    border-radius var(--duration-resize) var(--ease-organic),
+    padding var(--duration-resize) var(--ease-organic);
 }
 
 /* Sound toggle hover - viewport content turns white */
@@ -152,7 +226,10 @@ a {
   pointer-events: auto !important;
 }
 
-/* Corners overlay */
+/* ─────────────────────────────────────────────────────────────────────────────
+   CORNERS OVERLAY
+   Decorative corners that breathe with the viewport
+   ───────────────────────────────────────────────────────────────────────────── */
 .viewport.viewport--corners {
   z-index: 20 !important;
   position: fixed !important;
@@ -163,14 +240,30 @@ a {
   pointer-events: auto;
 }
 
+/* Corners: Already use 10vw which is fluid, but add transition */
+.corner {
+  transition: 
+    width var(--duration-resize) var(--ease-organic),
+    height var(--duration-resize) var(--ease-organic);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    SIMULATION CONTAINER - #bravia-balls
-   Transparent wrapper with rounded corners, houses canvas + controls
+   ═══════════════════════════════════════════════════════════════════════════════
+   
+   The simulation is the heartbeat of the page. It fills the viewport,
+   respecting the container-border padding on body.
+   
+   ORGANIC BEHAVIOR:
+   - Border-radius transitions smoothly when --container-radius changes
+   - Inset transitions when --container-border changes
+   - Creates the illusion of the container "breathing"
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 #bravia-balls {
   position: fixed;
-  inset: 0;
+  /* Inset from viewport by container-border (aligns with body padding) */
+  inset: var(--container-border);
   overflow: hidden;
   border-radius: var(--container-radius);
   background: transparent !important;
@@ -181,7 +274,12 @@ a {
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: contain;
-  transition: background-color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+  
+  /* ORGANIC TRANSITIONS: Container breathes with viewport changes */
+  transition: 
+    inset var(--duration-resize) var(--ease-organic),
+    border-radius var(--duration-resize) var(--ease-organic),
+    background-color var(--duration-settle) var(--ease-settle);
 }
 
 /* Canvas - simulation drawing surface */
@@ -203,6 +301,16 @@ a {
   user-select: none;
   -webkit-user-select: none;
   -webkit-user-drag: none;
+  
+  /* Canvas also breathes with padding changes */
+  transition: 
+    top var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic),
+    bottom var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
+    width var(--duration-resize) var(--ease-organic),
+    height var(--duration-resize) var(--ease-organic),
+    border-radius var(--duration-resize) var(--ease-organic);
 }
 
 /* Safari-specific GPU optimization */
@@ -238,32 +346,46 @@ body.dark-mode .noise-2 {
    TYPOGRAPHY & TEXT ELEMENTS
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* Legend (top-left color key) */
+/* ─────────────────────────────────────────────────────────────────────────────
+   LEGEND (Top-Left)
+   Uses organic spacing: positions breathe with viewport
+   ───────────────────────────────────────────────────────────────────────────── */
 .legend {
   position: fixed !important;
-  top: 1.44rem !important;
-  left: 2rem !important;
+  /* ORGANIC: Edge inset scales with viewport */
+  top: var(--edge-inset) !important;
+  left: var(--edge-inset-lg) !important;
   margin: 0 !important;
   width: auto !important;
   height: auto !important;
   font-family: 'Geist', sans-serif !important;
+  
+  /* Smooth position transitions during resize */
+  transition: 
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic);
 }
 
 .legend__item {
   font-family: 'Geist', sans-serif !important;
 }
 
-/* Decorative script (top-right philosophy statement) */
+/* ─────────────────────────────────────────────────────────────────────────────
+   DECORATIVE SCRIPT (Top-Right Philosophy Statement)
+   ───────────────────────────────────────────────────────────────────────────── */
 .decorative-script {
   position: fixed;
-  top: 1.44rem;
-  right: 2rem;
-  max-width: min(418px, 38.5vw);
+  /* ORGANIC: Mirrors legend positioning */
+  top: var(--edge-inset);
+  right: var(--edge-inset-lg);
+  /* Fluid max-width */
+  max-width: min(418px, 38vw);
   z-index: 2001 !important;
   font-family: 'Geist', sans-serif;
-  font-size: clamp(0.695rem, 1.2vw, 0.8rem);
+  /* Fluid typography */
+  font-size: clamp(0.65rem, 1.1vw, 0.8rem);
   font-weight: 400;
-  line-height: 1.3;
+  line-height: 1.35;
   letter-spacing: 0.01em;
   color: #161616;
   opacity: 0.85;
@@ -271,15 +393,21 @@ body.dark-mode .noise-2 {
   user-select: none;
   -webkit-user-select: none;
   transform: translateZ(0);
-  transition: opacity 0.3s ease, color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   visibility: visible !important;
-  /* Border styling - override Webflow default left-only border */
+  /* Border styling */
   border: 1px solid rgba(61, 61, 61, 1) !important;
-  border-left: 1px solid rgba(61, 61, 61, 1) !important;
   padding: 2px 20px !important;
+  
+  /* ORGANIC TRANSITIONS: Position and appearance */
+  transition: 
+    top var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic),
+    max-width var(--duration-resize) var(--ease-organic),
+    opacity var(--duration-settle) var(--ease-settle),
+    color var(--duration-settle) var(--ease-settle);
 }
 
 .decorative-script p {
@@ -301,13 +429,20 @@ body.dark-mode .noise-2 {
   opacity: 1;
 }
 
-/* Footer links - shifted down 20% for more breathing room */
+/* ─────────────────────────────────────────────────────────────────────────────
+   FOOTER ELEMENTS (Bottom)
+   Shifted down by proportional amount, transitions organically
+   ───────────────────────────────────────────────────────────────────────────── */
 .footer_link {
   text-decoration: none;
   color: inherit;
   opacity: 0.85;
-  transition: color 0.2s ease, transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-  transform: translateY(20%);
+  /* ORGANIC: Shift proportional to viewport, transition smoothly */
+  transform: translateY(var(--space-md));
+  transition: 
+    color var(--duration-quick) ease,
+    opacity var(--duration-quick) ease,
+    transform var(--duration-resize) var(--ease-organic);
 }
 
 .footer_link:hover {
@@ -315,23 +450,26 @@ body.dark-mode .noise-2 {
   opacity: 1;
 }
 
-/* Social icons - shifted down 20% */
+/* Social icons */
 .footer_icon-group {
-  transform: translateY(20%);
-  transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transform: translateY(var(--space-md));
+  transition: transform var(--duration-resize) var(--ease-organic);
 }
 
-/* Caption (timestamp) - shifted down 20% */
+/* Caption (timestamp) */
 .caption {
   font-family: 'Molle', cursive !important;
-  font-size: clamp(0.904rem, 1.56vw, 1.04rem) !important;
+  /* Fluid typography */
+  font-size: clamp(0.85rem, 1.5vw, 1.05rem) !important;
   font-weight: 700 !important;
   line-height: 1.3 !important;
   letter-spacing: 0.01em !important;
   opacity: 0.85;
   cursor: default;
-  transition: color 0.2s ease, transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-  transform: translateY(20%);
+  transform: translateY(var(--space-md));
+  transition: 
+    color var(--duration-quick) ease,
+    transform var(--duration-resize) var(--ease-organic);
 }
 
 .caption:hover {
@@ -399,41 +537,37 @@ body.dark-mode .corner svg * {
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    RESPONSIVE ADJUSTMENTS
+   ═══════════════════════════════════════════════════════════════════════════════
+   
+   NOTE: With the organic spacing system (vmin-based), many explicit breakpoints
+   become unnecessary. The fluid clamp() and vmin units handle most scaling.
+   
+   These breakpoints fine-tune for edge cases only.
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
-  .legend {
-    top: 1.08rem !important;
-    left: 1.5rem !important;
+  :root {
+    /* Slightly tighter spacing on tablets */
+    --edge-inset: clamp(0.75rem, 2vmin, 1.5rem);
+    --edge-inset-lg: clamp(1rem, 2.5vmin, 2rem);
   }
   
   .decorative-script {
-    top: 1.08rem;
-    right: 1.5rem;
-    font-size: clamp(0.638rem, 1.6vw, 0.764rem);
-    max-width: min(352px, 46.2vw);
-  }
-  
-  .caption {
-    font-size: clamp(0.829rem, 2.08vw, 0.993rem) !important;
+    font-size: clamp(0.6rem, 1.5vw, 0.75rem);
+    max-width: min(320px, 45vw);
   }
 }
 
 @media (max-width: 480px) {
-  .legend {
-    top: 0.72rem !important;
-    left: 1rem !important;
+  :root {
+    /* Tighter spacing on phones */
+    --edge-inset: clamp(0.5rem, 2vmin, 1rem);
+    --edge-inset-lg: clamp(0.75rem, 2vmin, 1.25rem);
   }
   
   .decorative-script {
-    top: 0.72rem;
-    right: 1rem;
-    font-size: clamp(0.604rem, 2.39vw, 0.695rem);
-    max-width: min(308px, 52.8vw);
-  }
-  
-  .caption {
-    font-size: clamp(0.785rem, 3.11vw, 0.904rem) !important;
+    font-size: clamp(0.55rem, 2.2vw, 0.68rem);
+    max-width: min(280px, 52vw);
   }
 }
 
@@ -446,10 +580,11 @@ body.dark-mode .corner svg * {
 .sound-toggle {
   position: fixed;
   top: 50%;
-  right: calc(2rem + var(--container-border, 0px)); /* Respect consolidated padding */
-  z-index: 2002 !important; /* Above decorative script (2001) and corners */
+  /* ORGANIC: Uses edge inset + container border */
+  right: calc(var(--edge-inset-lg) + var(--container-border, 0px));
+  z-index: 2002 !important;
   font-family: 'Geist', sans-serif;
-  font-size: clamp(0.72rem, 1.1vw, 0.82rem);
+  font-size: clamp(0.7rem, 1vw, 0.82rem);
   font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--ball-6, #ff4013);
@@ -460,11 +595,16 @@ body.dark-mode .corner svg * {
   cursor: pointer;
   pointer-events: auto !important;
   opacity: 0.9;
-  transition: opacity 0.2s ease, color 0.2s ease;
-  transform: translateY(-50%); /* Center vertically */
+  transform: translateY(-50%);
   text-align: right;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  
+  /* ORGANIC TRANSITIONS */
+  transition: 
+    right var(--duration-resize) var(--ease-organic),
+    opacity var(--duration-quick) ease,
+    color var(--duration-quick) ease;
 }
 
 .sound-toggle:hover {
@@ -512,18 +652,11 @@ body.dark-mode .sound-toggle:hover {
   }
 }
 
-/* Responsive positioning */
-@media (max-width: 768px) {
-  .sound-toggle {
-    right: calc(1.5rem + var(--container-border, 0px));
-    font-size: clamp(0.66rem, 1.4vw, 0.76rem);
-  }
-}
-
+/* Responsive positioning - handled by organic --edge-inset variables */
+/* Additional font-size tweaks for small screens */
 @media (max-width: 480px) {
   .sound-toggle {
-    right: calc(1rem + var(--container-border, 0px));
-    font-size: clamp(0.62rem, 1.8vw, 0.72rem);
+    font-size: clamp(0.6rem, 1.6vw, 0.7rem);
   }
 }
 

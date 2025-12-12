@@ -3005,6 +3005,7 @@
   text-decoration: none;
   display: flex;
   position: relative;
+  font-weight: 500; /* Thicker font weight */
 }
 
 .footer_link:hover {
@@ -6933,8 +6934,9 @@ a {
 }
 
 .footer_link.is-orange:hover {
-  color: #ff7e5f !important; /* Lighter orange on hover */
+  color: #d93d1a !important; /* Darker orange on hover */
   opacity: 1 !important;
+  text-decoration: none !important; /* Clean hover for button */
 }
 
 /* Ensure button reset for sound toggle if using .footer_link class */

@@ -57,10 +57,6 @@ export function createSoundToggle() {
   // Click handler
   buttonElement.addEventListener('click', handleToggleClick);
   
-  // Hover handlers - toggle body background color
-  buttonElement.addEventListener('mouseenter', handleHoverEnter);
-  buttonElement.addEventListener('mouseleave', handleHoverLeave);
-  
   // Insert into body for now, fixed position
   document.body.appendChild(buttonElement);
   
