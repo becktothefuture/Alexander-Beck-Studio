@@ -61,64 +61,22 @@ export function setupControls() {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // FRAME & PADDING CONTROLS (with presets)
+  // TWO-LEVEL PADDING CONTROLS
   // ═══════════════════════════════════════════════════════════════════════════
   
-  // Preset definitions (harmonious padding + border combinations)
-  const FRAME_PRESETS = {
-    none:   { simulationPadding: 0,  containerBorder: 0  },
-    thin:   { simulationPadding: 8,  containerBorder: 4  },
-    medium: { simulationPadding: 16, containerBorder: 8  },
-    thick:  { simulationPadding: 24, containerBorder: 12 }
-  };
-  
-  // Helper to apply a preset and update UI
-  function applyFramePreset(presetName) {
-    const preset = FRAME_PRESETS[presetName];
-    if (!preset) return;
-    
-    g.simulationPadding = preset.simulationPadding;
-    g.containerBorder = preset.containerBorder;
-    
-    // Update sliders
-    const simSlider = document.getElementById('simulationPaddingSlider');
-    const borderSlider = document.getElementById('containerBorderSlider');
-    if (simSlider) simSlider.value = String(g.simulationPadding);
-    if (borderSlider) borderSlider.value = String(g.containerBorder);
-    
-    // Update value displays
-    setVal('simulationPaddingVal', String(g.simulationPadding));
+  // Container border: outer frame (insets container from viewport)
+  bindSlider('containerBorderSlider', (el) => {
+    g.containerBorder = parseInt(el.value, 10);
     setVal('containerBorderVal', String(g.containerBorder));
-    
-    applyFramePaddingCSSVars();
-    resize();
-    autoSaveSettings();
-  }
-  
-  // Preset buttons
-  const presetNone = document.getElementById('framePresetNone');
-  const presetThin = document.getElementById('framePresetThin');
-  const presetMedium = document.getElementById('framePresetMedium');
-  const presetThick = document.getElementById('framePresetThick');
-  
-  if (presetNone) presetNone.addEventListener('click', () => applyFramePreset('none'));
-  if (presetThin) presetThin.addEventListener('click', () => applyFramePreset('thin'));
-  if (presetMedium) presetMedium.addEventListener('click', () => applyFramePreset('medium'));
-  if (presetThick) presetThick.addEventListener('click', () => applyFramePreset('thick'));
-  
-  // Simulation padding slider
-  bindSlider('simulationPaddingSlider', (el) => {
-    g.simulationPadding = parseInt(el.value, 10);
-    setVal('simulationPaddingVal', String(g.simulationPadding));
     applyFramePaddingCSSVars();
     resize();
     autoSaveSettings();
   });
   
-  // Container border slider
-  bindSlider('containerBorderSlider', (el) => {
-    g.containerBorder = parseInt(el.value, 10);
-    setVal('containerBorderVal', String(g.containerBorder));
+  // Simulation padding: inner padding (canvas inset from container)
+  bindSlider('simulationPaddingSlider', (el) => {
+    g.simulationPadding = parseInt(el.value, 10);
+    setVal('simulationPaddingVal', String(g.simulationPadding));
     applyFramePaddingCSSVars();
     resize();
     autoSaveSettings();

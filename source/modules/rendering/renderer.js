@@ -25,10 +25,11 @@ export function setupRenderer() {
 }
 
 /**
- * Resize canvas to match container dimensions (not window/viewport).
- * Accounts for simulation padding (space inside container around canvas).
- * Container border is handled by CSS inset positioning on #bravia-balls.
- * Also calculates container radius in pixels for physics corner collisions.
+ * Resize canvas to match container dimensions minus simulation padding.
+ * 
+ * Two-level padding system:
+ * 1. containerBorder: already handled by CSS (insets #bravia-balls from viewport)
+ * 2. simulationPadding: canvas is inset from container edges (handled here + CSS)
  */
 export function resize() {
   if (!canvas) return;
@@ -40,30 +41,25 @@ export function resize() {
   const containerWidth = container ? container.clientWidth : window.innerWidth;
   const containerHeight = container ? container.clientHeight : window.innerHeight;
   
-  // Calculate container radius in pixels (12vh → px)
-  // Use viewport height for vh calculation
-  const viewportHeight = window.innerHeight;
-  globals.containerRadiusPx = (globals.containerRadiusVh / 100) * viewportHeight;
-  
-  // Account for simulation padding (reduces available space for canvas)
+  // Simulation padding: canvas is inset from container edges
   const simPad = globals.simulationPadding || 0;
-  const availableWidth = Math.max(0, containerWidth - (simPad * 2));
-  const availableHeight = Math.max(0, containerHeight - (simPad * 2));
+  const canvasWidth = containerWidth - (simPad * 2);
+  const canvasHeight = containerHeight - (simPad * 2);
   
   // Ball Pit mode uses 150% height (spawn area above viewport)
   const heightMultiplier = (globals.currentMode === MODES.PIT)
     ? CONSTANTS.CANVAS_HEIGHT_VH_PIT
     : CONSTANTS.CANVAS_HEIGHT_VH_DEFAULT;
   
-  const simHeight = availableHeight * heightMultiplier;
+  const simHeight = canvasHeight * heightMultiplier;
   const DPR = CONSTANTS.DPR;
   
-  // Set canvas buffer size (high-DPI) - uses available space after simulation padding
-  canvas.width = Math.floor(availableWidth * DPR);
+  // Set canvas buffer size (high-DPI)
+  canvas.width = Math.floor(canvasWidth * DPR);
   canvas.height = Math.floor(simHeight * DPR);
   
-  // Set CSS display size (container-relative, accounting for simulation padding)
-  canvas.style.width = availableWidth + 'px';
+  // CSS handles display size via calc(100% - padding * 2), but we set explicit values for consistency
+  canvas.style.width = canvasWidth + 'px';
   canvas.style.height = simHeight + 'px';
   
   applyCanvasShadow(canvas);

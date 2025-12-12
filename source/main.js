@@ -34,18 +34,23 @@ async function loadRuntimeConfig() {
 }
 
 /**
- * Apply simulation padding and container border CSS variables from global state to :root
- * Uses unified variables that auto-cascade to all sides via CSS var() inheritance
- * - --simulation-pad: space inside container around canvas
- * - --container-border: space around container (reveals body background)
+ * Apply two-level padding CSS variables from global state to :root
+ * 
+ * Two-level system:
+ * 1. --container-border: insets #bravia-balls from viewport (reveals body bg as outer frame)
+ * 2. --simulation-padding: padding inside container around canvas (inner breathing room)
+ * 
+ * The canvas radius auto-calculates via CSS: calc(var(--container-radius) - var(--simulation-padding))
  */
 export function applyFramePaddingCSSVars() {
   const g = getGlobals();
   const root = document.documentElement;
   
-  // Set unified base variables (CSS auto-cascades to all sides via var() inheritance)
-  root.style.setProperty('--simulation-pad', `${g.simulationPadding || 0}px`);
+  // Outer frame: container inset from viewport
   root.style.setProperty('--container-border', `${g.containerBorder || 0}px`);
+  
+  // Inner padding: canvas inset from container
+  root.style.setProperty('--simulation-padding', `${g.simulationPadding || 0}px`);
 }
 
 /**

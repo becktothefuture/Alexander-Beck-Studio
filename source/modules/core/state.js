@@ -45,10 +45,7 @@ const state = {
   ballSoftness: 20,
   
   // Corner (matches CSS border-radius for collision bounds)
-  // Container border radius (12vh converted to px at runtime)
-  // 12vh ≈ 100px on typical viewport, falls back to reasonable default
-  containerRadiusVh: 12,
-  containerRadiusPx: 100, // Calculated from vh on init/resize
+  cornerRadius: 42,
   
   // Inner border (soft visual transition)
   
@@ -120,21 +117,14 @@ const state = {
   autoDarkModeEnabled: true,
   isDarkMode: false,
   
-  // Simulation padding (padding inside #bravia-balls container around canvas, in pixels)
-  simulationPadding: 0,
+  // Two-level padding system (in pixels)
+  containerBorder: 0,    // Outer: insets container from viewport (reveals body bg as frame)
+  simulationPadding: 0,  // Inner: padding inside container around canvas
   
-  // Container border (padding around #bravia-balls container, reveals body background, in pixels)
-  containerBorder: 0,
-  
-  // Helper: get max squash amount
+  // Helper
   getSquashMax() {
     if (this.ballSoftness === 0) return 0;
     return CONSTANTS.SQUASH_MAX_BASE * (this.ballSoftness / 40.0);
-  },
-  
-  // Helper: get canvas corner radius (container radius - simulation padding)
-  getCanvasCornerRadius() {
-    return Math.max(0, this.containerRadiusPx - this.simulationPadding);
   }
 };
 
@@ -146,11 +136,9 @@ export function initState(config) {
   if (config.friction) state.FRICTION = config.friction;
   if (config.ballScale) state.sizeScale = config.ballScale;
   
-  // Simulation padding (padding inside container around canvas)
-  if (config.simulationPadding !== undefined) state.simulationPadding = config.simulationPadding;
-  
-  // Container border (padding around container, reveals body background)
+  // Two-level padding system
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;
+  if (config.simulationPadding !== undefined) state.simulationPadding = config.simulationPadding;
   
   // Recalculate R_MIN and R_MAX
   const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;

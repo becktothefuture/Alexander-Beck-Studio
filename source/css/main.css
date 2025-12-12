@@ -9,28 +9,15 @@
   --chrome-bg-dark: #0a0a0a;
   --chrome-bg: var(--chrome-bg-light);
   
-  /* ═══════════════════════════════════════════════════════════════════════════
-     FRAME & PADDING SYSTEM (unified variables with auto-derived sides)
-     ═══════════════════════════════════════════════════════════════════════════ */
-  
-  /* Container border: space around #bravia-balls (reveals body background) */
+  /* Container border: insets #bravia-balls from viewport (reveals body/chrome bg as outer frame) */
   --container-border: 0px;
-  --container-border-top: var(--container-border);
-  --container-border-right: var(--container-border);
-  --container-border-bottom: var(--container-border);
-  --container-border-left: var(--container-border);
   
-  /* Simulation padding: space inside container around canvas */
-  --simulation-pad: 0px;
-  --simulation-pad-top: var(--simulation-pad);
-  --simulation-pad-right: var(--simulation-pad);
-  --simulation-pad-bottom: var(--simulation-pad);
-  --simulation-pad-left: var(--simulation-pad);
+  /* Simulation padding: space inside #bravia-balls around canvas (inner padding) */
+  --simulation-padding: 0px;
   
-  /* Container border radius: 12vh for large rounded corners */
-  --container-radius: 12vh;
-  /* Canvas radius: auto-calculated (container radius minus simulation padding) */
-  --canvas-radius: calc(var(--container-radius) - var(--simulation-pad));
+  /* Corner radius for container (canvas radius = container radius - simulation padding) */
+  --container-radius: 42px;
+  --canvas-radius: calc(var(--container-radius) - var(--simulation-padding));
   
   /* Noise texture sizing */
   --noise-size-base: 100px;
@@ -114,9 +101,14 @@ a {
   pointer-events: auto !important;
 }
 
-/* 4. Hide Webflow corner SVGs (replaced by CSS border-radius on #bravia-balls) */
+/* 4. Corners & Script Overlay */
 .viewport.viewport--corners {
-  display: none !important; /* Remove corner SVG container entirely */
+  z-index: 20 !important;
+  position: fixed !important; /* Keep corners fixed */
+  pointer-events: none;
+}
+.viewport.viewport--corners * {
+  pointer-events: auto;
 }
 
 /* 5. Align Legend (Top Left) with Decorative Script (Top Right) */
@@ -145,24 +137,34 @@ a {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SIMULATION CONTAINER (#bravia-balls)
-   - Container border: insets from viewport, reveals body background
-   - Simulation padding: insets canvas from container
-   - Border radius: 12vh rounded corners (replaces corner SVGs)
+   TWO-LEVEL PADDING SYSTEM
+   
+   Layer 1: CONTAINER BORDER (--container-border)
+   ├── Insets #bravia-balls from viewport edges
+   ├── Reveals body background (--chrome-bg) as outer frame
+   └── Creates the "picture frame" effect around the entire simulation
+   
+   Layer 2: SIMULATION PADDING (--simulation-padding)
+   ├── Padding inside #bravia-balls around the canvas
+   ├── Canvas radius auto-adjusts: container-radius - simulation-padding
+   └── Creates inner breathing room for the ball simulation
+   
+   Visual stack (outside → inside):
+   [Body bg] → [Container border gap] → [#bravia-balls] → [Sim padding] → [Canvas]
    ═══════════════════════════════════════════════════════════════════════════════ */
+
 #bravia-balls {
-  overflow: hidden; /* Critical: clips content to rounded corners */
+  overflow: hidden; /* Critical: prevent scrollbars from canvas overflow */
   position: fixed;
-  /* Container border: inset from viewport edges (reveals body/chrome background) */
-  top: var(--container-border-top);
-  right: var(--container-border-right);
-  bottom: var(--container-border-bottom);
-  left: var(--container-border-left);
+  /* Container border: insets container from viewport (reveals body bg as frame) */
+  top: var(--container-border);
+  right: var(--container-border);
+  bottom: var(--container-border);
+  left: var(--container-border);
   /* Width/height auto-calculated from inset */
-  background: var(--bg-light); /* Scene background (visible inside rounded corners) */
-  border-radius: var(--container-radius); /* 12vh rounded corners - replaces corner SVGs */
-  transition: background-color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1),
-              border-radius 0.3s ease;
+  border-radius: var(--container-radius);
+  background: transparent !important; /* Transparent so logo shows through */
+  transition: background-color 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
   overscroll-behavior: contain;
   -webkit-tap-highlight-color: transparent;
   user-select: none; 
@@ -175,26 +177,28 @@ a {
 #bravia-balls canvas {
   pointer-events: none !important; /* Canvas handled globally */
   display: block; 
-  /* Container-relative sizing with simulation padding (not viewport) - JS sets actual pixel dimensions */
+  /* Simulation padding: canvas is inset from container edges */
   position: absolute;
-  /* Simulation padding: inset canvas from container edges */
-  top: var(--simulation-pad-top);
-  right: var(--simulation-pad-right);
-  bottom: var(--simulation-pad-bottom);
-  left: var(--simulation-pad-left);
-  /* Width/height auto-calculated from inset */
+  top: var(--simulation-padding);
+  right: var(--simulation-padding);
+  bottom: var(--simulation-padding);
+  left: var(--simulation-padding);
+  /* Size = container minus padding on both sides */
+  width: calc(100% - var(--simulation-padding) * 2);
+  height: calc(100% - var(--simulation-padding) * 2);
   -webkit-user-drag: none;
   user-select: none; 
   -webkit-user-select: none;
   touch-action: none;
   cursor: none;
   z-index: 1; /* Inside wrapper */
-  /* Border radius: auto-calculated (container radius - simulation padding) */
+  /* Canvas radius = container radius - simulation padding (auto-calculated) */
   border-radius: var(--canvas-radius);
+  clip-path: inset(0 round var(--canvas-radius)); /* Hard clip for corners */
 }
 
 #bravia-balls.dark-mode {
-  background: var(--bg-dark) !important;
+  background: transparent !important;
 }
 
 /* Safari-specific optimizations */
@@ -216,7 +220,8 @@ body.dark-mode .viewport .hero__text svg path[fill="black"] { fill: #c8c8c8 !imp
 body.dark-mode .footer_link { color: #b0b0b0 !important; }
 body.dark-mode .footer_icon-link { color: #b0b0b0 !important; }
 body.dark-mode .caption { color: #a0a0a0 !important; }
-/* Corner SVGs removed - using CSS border-radius on #bravia-balls instead */
+body.dark-mode .corner svg path { fill: #1a1a1a !important; }
+body.dark-mode .corner svg * { fill: #1a1a1a !important; stroke: #1a1a1a !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    NOISE TEXTURE LAYERS

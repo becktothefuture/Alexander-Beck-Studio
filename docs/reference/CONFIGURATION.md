@@ -28,8 +28,8 @@ Settings are managed through:
   "fliesOrbitRadius": 120,
   "weightlessCount": 80,
   "weightlessSpeed": 200,
-  "simulationPadding": 0,
-  "containerBorder": 0
+  "containerBorder": 0,
+  "simulationPadding": 0
 }
 ```
 
@@ -64,34 +64,31 @@ Settings are managed through:
 
 ### Frame/Border Settings
 
-Controls the visible border thickness around the simulation area. The border reveals the background color (unified `--chrome-bg`) around the rounded container, creating a visual frame effect. All sides use the same value for uniform border thickness.
-
-#### `simulationPadding` (Number, pixels)
-- **Range:** 0 - 100
-- **Default:** 0
-- **Description:** Padding inside the `#bravia-balls` container, around the canvas
-- **Impact:** Creates space between the container edge and the simulation area
-- **Visual effect:** The simulation area shrinks, revealing the container background inside the rounded corners
+Two-level padding system that creates a sophisticated layered frame effect around the simulation.
 
 #### `containerBorder` (Number, pixels)
-- **Range:** 0 - 100
+- **Range:** 0 - 60
 - **Default:** 0
-- **Description:** Padding around the `#bravia-balls` container
-- **Impact:** Insets the container from viewport edges, revealing body background as a border
-- **Visual effect:** Creates a visible border around the entire rounded container
+- **Description:** Outer frame — insets `#bravia-balls` from viewport edges
+- **Impact:** Reveals body background (`--chrome-bg`) as an outer picture frame
+- **Visual effect:** Creates a dark/light border around the entire rounded container
 
-**Presets:**
-| Preset | Simulation Padding | Container Border |
-|--------|-------------------|------------------|
-| None   | 0                 | 0                |
-| Thin   | 8                 | 4                |
-| Medium | 16                | 8                |
-| Thick  | 24                | 12               |
+#### `simulationPadding` (Number, pixels)
+- **Range:** 0 - 60
+- **Default:** 0
+- **Description:** Inner padding — space inside `#bravia-balls` around the canvas
+- **Impact:** Shrinks the ball play area, canvas radius auto-adjusts
+- **Visual effect:** Creates breathing room inside the container
+
+**Two-level visual stack (outside → inside):**
+```
+[Body/chrome bg] → [Container border gap] → [#bravia-balls] → [Sim padding] → [Canvas]
+```
 
 **Technical notes:**
-- Container has `border-radius: 12vh` (large rounded corners, replaces corner SVGs)
-- Canvas border-radius auto-calculated: `container-radius - simulation-padding`
-- Physics corner collisions automatically adjust to the calculated canvas radius
+- Container has `border-radius: 42px` (CSS var: `--container-radius`)
+- Canvas border-radius auto-calculates: `calc(var(--container-radius) - var(--simulation-padding))`
+- Physics corner collisions automatically adjust to canvas radius
 - Container border color uses `--chrome-bg` CSS variable (matches body/browser chrome)
 - Simulation dimensions are **container-relative** not viewport-relative
 

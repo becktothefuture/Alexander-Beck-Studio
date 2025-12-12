@@ -37,19 +37,14 @@ export const PANEL_HTML = `
     </div>
   </details>
   
-  <!-- Frame/Border Settings -->
+  <!-- Frame/Border Settings (Two-Level Padding System) -->
   <details>
     <summary>🖼️ Frame & Padding</summary>
     <div class="group">
-        <div style="font-size: 9px; opacity: 0.7; margin-bottom: 8px;">Quick presets (harmonious padding + border)</div>
-        <div style="display: flex; gap: 4px; margin-bottom: 12px;">
-          <button id="framePresetNone" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">None</button>
-          <button id="framePresetThin" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">Thin</button>
-          <button id="framePresetMedium" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">Medium</button>
-          <button id="framePresetThick" style="flex: 1; padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: inherit; cursor: pointer;">Thick</button>
-        </div>
-        <label><span>Simulation padding (px)</span><input type="range" id="simulationPaddingSlider" min="0" max="100" step="1" value="0"><span class="val" id="simulationPaddingVal">0</span></label>
-        <label style="margin-top: 8px;"><span>Container border (px)</span><input type="range" id="containerBorderSlider" min="0" max="100" step="1" value="0"><span class="val" id="containerBorderVal">0</span></label>
+        <label><span>Container border (px)</span><input type="range" id="containerBorderSlider" min="0" max="60" step="1" value="0"><span class="val" id="containerBorderVal">0</span></label>
+        <div style="font-size: 9px; opacity: 0.6; margin: 4px 0 10px;">Outer frame — reveals body background</div>
+        <label><span>Simulation padding (px)</span><input type="range" id="simulationPaddingSlider" min="0" max="60" step="1" value="0"><span class="val" id="simulationPaddingVal">0</span></label>
+        <div style="font-size: 9px; opacity: 0.6; margin-top: 4px;">Inner padding — shrinks ball play area</div>
     </div>
   </details>
   

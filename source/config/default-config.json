@@ -6,6 +6,6 @@
   "maxBalls": 300,
   "repelRadius": 120,
   "repelPower": 274000,
-  "simulationPadding": 0,
-  "containerBorder": 0
+  "containerBorder": 0,
+  "simulationPadding": 0
 }
