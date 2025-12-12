@@ -246,8 +246,8 @@ body.dark-mode .noise-2 {
 /* Legend (top-left color key) */
 .legend {
   position: fixed !important;
-  top: 1.44rem !important;
-  left: 2rem !important;
+  top: calc(1.44rem + var(--container-border, 0px)) !important;
+  left: calc(2rem + var(--container-border, 0px)) !important;
   margin: 0 !important;
   width: auto !important;
   height: auto !important;
@@ -261,8 +261,8 @@ body.dark-mode .noise-2 {
 /* Decorative script (top-right philosophy statement) */
 .decorative-script {
   position: fixed;
-  top: 1.44rem;
-  right: 2rem;
+  top: calc(1.44rem + var(--container-border, 0px));
+  right: calc(2rem + var(--container-border, 0px));
   max-width: min(418px, 38.5vw);
   z-index: 2001 !important;
   font-family: 'Geist', sans-serif;
@@ -408,13 +408,13 @@ body.dark-mode .corner svg * {
 
 @media (max-width: 768px) {
   .legend {
-    top: 1.08rem !important;
-    left: 1.5rem !important;
+    top: calc(1.08rem + var(--container-border, 0px)) !important;
+    left: calc(1.5rem + var(--container-border, 0px)) !important;
   }
   
   .decorative-script {
-    top: 1.08rem;
-    right: 1.5rem;
+    top: calc(1.08rem + var(--container-border, 0px));
+    right: calc(1.5rem + var(--container-border, 0px));
     font-size: clamp(0.638rem, 1.6vw, 0.764rem);
     max-width: min(352px, 46.2vw);
   }
@@ -426,13 +426,13 @@ body.dark-mode .corner svg * {
 
 @media (max-width: 480px) {
   .legend {
-    top: 0.72rem !important;
-    left: 1rem !important;
+    top: calc(0.72rem + var(--container-border, 0px)) !important;
+    left: calc(1rem + var(--container-border, 0px)) !important;
   }
   
   .decorative-script {
-    top: 0.72rem;
-    right: 1rem;
+    top: calc(0.72rem + var(--container-border, 0px));
+    right: calc(1rem + var(--container-border, 0px));
     font-size: clamp(0.604rem, 2.39vw, 0.695rem);
     max-width: min(308px, 52.8vw);
   }
@@ -558,8 +558,8 @@ body.dark-mode.sound-hover .viewport.viewport--content {
 
 .panel {
   position: fixed !important;
-  top: 5vh !important;
-  right: 5vh !important;
+  top: calc(5vh + var(--container-border, 0px)) !important;
+  right: calc(5vh + var(--container-border, 0px)) !important;
   left: auto !important;
   color: rgba(255, 255, 255, 0.95);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
