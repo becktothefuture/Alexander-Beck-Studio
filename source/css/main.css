@@ -88,6 +88,12 @@ body.dark-mode .viewport {
 /* Actual scene background (area that used to be white) */
 .viewport.viewport--content {
   background: var(--bg-light) !important; /* Use design light grey ONLY for inner scene */
+  border-radius: var(--container-radius); /* Rounded corners match container */
+}
+
+/* Dark mode: viewport content background */
+body.dark-mode .viewport.viewport--content {
+  background: var(--bg-dark) !important;
 }
 
 /* 2. Push Logo to Bottom Layer */
