@@ -127,6 +127,29 @@ a {
   }
 }
 
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+   ║                HERO WORDMARK — MOBILE SAFE AREA & ALIGNMENT                  ║
+   ╚══════════════════════════════════════════════════════════════════════════════╝ */
+@media (max-width: 640px) {
+  .viewport.viewport--content {
+    padding: calc(2.5rem + env(safe-area-inset-top)) 1.25rem 1.9rem !important;
+    grid-row-gap: 0.75rem !important;
+    align-content: flex-start;
+    justify-items: center;
+  }
+
+  .header.is-align-center {
+    width: 100%;
+    margin-top: clamp(2.75rem, 11vh, 4.5rem);
+  }
+
+  .hero__text {
+    width: min(74vw, 300px) !important;
+    margin: 0 auto;
+    transform: none !important;
+  }
+}
+
 /* Scoped wrapper for embed friendliness and interaction hygiene */
 #bravia-balls {
   overflow: hidden; /* Critical: prevent scrollbars from canvas overflow */
