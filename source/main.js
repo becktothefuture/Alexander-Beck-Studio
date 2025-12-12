@@ -14,7 +14,7 @@ import { setupPointer } from './modules/input/pointer.js';
 import { setMode, MODES, getForceApplicator } from './modules/modes/mode-controller.js';
 import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
-import { initPasswordGate } from './modules/ui/password-gate.js';
+import { initCVGate } from './modules/ui/cv-gate.js';
 
 async function loadRuntimeConfig() {
   try {
@@ -155,7 +155,7 @@ function ensureNoise2Element() {
     console.log('✓ Keyboard shortcuts registered');
     
     // Initialize password gate (CV protection)
-    initPasswordGate();
+    initCVGate();
     console.log('✓ Password gate initialized');
     
     // Initialize starting mode (Flies by default)

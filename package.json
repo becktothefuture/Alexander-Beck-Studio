@@ -25,7 +25,8 @@
     "test:report": "playwright show-report",
     "clean": "rm -f source/current-config*.json",
     "figma:socket": "bunx cursor-talk-to-figma-socket",
-    "figma:setup": "npm install && echo '✅ Dependencies installed. Next: Install bun (curl -fsSL https://bun.sh/install | bash)'"
+    "figma:setup": "npm install && echo '✅ Dependencies installed. Next: Install bun (curl -fsSL https://bun.sh/install | bash)'",
+    "figma:config": "node scripts/setup-figma-mcp-config.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.1",

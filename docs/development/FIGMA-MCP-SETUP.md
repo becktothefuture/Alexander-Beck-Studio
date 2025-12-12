@@ -70,10 +70,18 @@ The MCP server is already configured in Cursor's settings:
   "mcpServers": {
     "TalkToFigma": {
       "command": "bunx",
-      "args": ["cursor-talk-to-figma-mcp@latest"]
+      "args": [
+        "cursor-talk-to-figma-mcp@latest"
+      ]
     }
   }
 }
+```
+
+**Setup Script:**
+You can also run the setup script to configure this automatically:
+```bash
+node scripts/setup-figma-mcp-config.js
 ```
 
 **Note:** Restart Cursor after configuration changes.

@@ -101,10 +101,15 @@ a {
   pointer-events: auto !important;
 }
 
-/* 4. Corners & Script Overlay */
+/* 4. Corners & Script Overlay - moves with container border */
 .viewport.viewport--corners {
   z-index: 20 !important;
-  position: fixed !important; /* Keep corners fixed */
+  position: fixed !important;
+  /* Apply same inset as container border so corners move with simulation */
+  top: var(--container-border);
+  right: var(--container-border);
+  bottom: var(--container-border);
+  left: var(--container-border);
   pointer-events: none;
 }
 .viewport.viewport--corners * {
