@@ -14,15 +14,15 @@
   --bg-light: #cecece;  /* Light grey - content area */
   --bg-dark: #0a0a0a;   /* Near black - content area */
   
-  /* Browser chrome / frame color */
+  /* Browser chrome / body border color */
   --chrome-bg-light: #cecece;
   --chrome-bg-dark: #0a0a0a;
   --chrome-bg: var(--chrome-bg-light);
   
-  /* Frame thickness: browser-style frame around content */
+  /* Container border: padding on body that reveals chrome-bg */
   --container-border: 0px;
   
-  /* Canvas inset: inner margin around ball simulation */
+  /* Simulation padding: space inside #bravia-balls around canvas */
   --simulation-padding: 0px;
   
   /* Corner radii */
@@ -101,14 +101,15 @@ body.dark-mode {
 }
 
 /* Main content area - light grey background with rounded corners */
-/* FRAME: Insets content from viewport edges (browser-style frame effect) */
+/* Container border: insets this element from viewport, revealing HTML chrome-bg */
 .viewport.viewport--content {
   position: fixed !important;
-  top: var(--container-border);    /* Frame thickness */
+  top: var(--container-border);
   right: var(--container-border);
   bottom: var(--container-border);
   left: var(--container-border);
-  width: auto !important;  /* Auto-size from inset */
+  /* Let inset positioning control size (don't use explicit width/height) */
+  width: auto !important;
   height: auto !important;
   background: var(--bg-light) !important;
   border-radius: var(--container-radius);
@@ -449,8 +450,8 @@ body.dark-mode .corner svg * {
 
 .sound-toggle {
   position: fixed;
-  top: 50%;
-  right: calc(2rem + var(--container-border, 0px)); /* Respect consolidated padding */
+  top: calc(1.44rem + var(--container-border, 0px)); /* Match legend/script, respect frame */
+  right: calc(2rem + var(--container-border, 0px)); /* Respect frame */
   z-index: 2002 !important; /* Above decorative script (2001) and corners */
   font-family: 'Geist', sans-serif;
   font-size: clamp(0.72rem, 1.1vw, 0.82rem);
@@ -465,7 +466,6 @@ body.dark-mode .corner svg * {
   pointer-events: auto !important;
   opacity: 0.9;
   transition: opacity 0.2s ease, color 0.2s ease;
-  transform: translateY(-50%); /* Center vertically */
   text-align: right;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -526,6 +526,7 @@ body.dark-mode.sound-hover .viewport.viewport--content {
 /* Responsive positioning */
 @media (max-width: 768px) {
   .sound-toggle {
+    top: calc(1.08rem + var(--container-border, 0px));
     right: calc(1.5rem + var(--container-border, 0px));
     font-size: clamp(0.66rem, 1.4vw, 0.76rem);
   }
@@ -533,6 +534,7 @@ body.dark-mode.sound-hover .viewport.viewport--content {
 
 @media (max-width: 480px) {
   .sound-toggle {
+    top: calc(0.72rem + var(--container-border, 0px));
     right: calc(1rem + var(--container-border, 0px));
     font-size: clamp(0.62rem, 1.8vw, 0.72rem);
   }
