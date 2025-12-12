@@ -35,8 +35,8 @@ const PENTATONIC_FREQUENCIES = [
 // CONFIGURATION (mutable for runtime tweaking)
 // ════════════════════════════════════════════════════════════════════════════════
 let CONFIG = {
-  // Synthesis — soft click, instant, dissipating
-  attackTime: 0.002,           // 2ms instant attack (responsive)
+  // Synthesis — instant attack, soft decay
+  attackTime: 0,               // 0ms = instant onset (sub-1ms response)
   decayTime: 0.055,            // 55ms quick decay (dissipates)
   harmonicGain: 0.09,          // Subtle warmth
   
@@ -56,7 +56,7 @@ let CONFIG = {
   masterGain: 0.52,            // Understated
   
   // Performance (voice pool size is fixed at 8)
-  minTimeBetweenSounds: 0.012, // Per-ball debounce (12ms)
+  minTimeBetweenSounds: 0.008, // Per-ball debounce (8ms, tighter)
   
   // Stereo
   maxPan: 0.22,                // Subtle width
@@ -68,11 +68,12 @@ let CONFIG = {
 export const SOUND_PRESETS = {
   // ═══════════════════════════════════════════════════════════════════════════════
   // DEFAULT — soft click, instant, dissipating
+  // All presets use attackTime: 0 for sub-1ms response
   // ═══════════════════════════════════════════════════════════════════════════════
   softClick: {
     label: 'Soft Click',
     description: 'Instant, clicky, gently fading',
-    attackTime: 0.002, decayTime: 0.055, harmonicGain: 0.09,
+    attackTime: 0, decayTime: 0.055, harmonicGain: 0.09,
     filterBaseFreq: 2400, filterVelocityRange: 380, filterQ: 0.4,
     reverbDecay: 0.28, reverbWetMix: 0.22, masterGain: 0.52
   },
@@ -83,14 +84,14 @@ export const SOUND_PRESETS = {
   riverStones: {
     label: 'River Stones',
     description: 'Crisp, tactile taps',
-    attackTime: 0.002, decayTime: 0.05, harmonicGain: 0.18,
+    attackTime: 0, decayTime: 0.05, harmonicGain: 0.18,
     filterBaseFreq: 2800, filterVelocityRange: 600, filterQ: 0.55,
     reverbDecay: 0.2, reverbWetMix: 0.15, masterGain: 0.48
   },
   rainDrops: {
     label: 'Rain Drops',
     description: 'Light, delicate plinks',
-    attackTime: 0.002, decayTime: 0.042, harmonicGain: 0.11,
+    attackTime: 0, decayTime: 0.042, harmonicGain: 0.11,
     filterBaseFreq: 3200, filterVelocityRange: 450, filterQ: 0.45,
     reverbDecay: 0.35, reverbWetMix: 0.3, masterGain: 0.4
   },
@@ -101,28 +102,28 @@ export const SOUND_PRESETS = {
   silkTouch: {
     label: 'Silk Touch',
     description: 'Ultra-smooth, barely there',
-    attackTime: 0.004, decayTime: 0.065, harmonicGain: 0.04,
+    attackTime: 0, decayTime: 0.065, harmonicGain: 0.04,
     filterBaseFreq: 1800, filterVelocityRange: 250, filterQ: 0.3,
     reverbDecay: 0.4, reverbWetMix: 0.35, masterGain: 0.32
   },
   morningDew: {
     label: 'Morning Dew',
     description: 'Fresh, hopeful sparkle',
-    attackTime: 0.001, decayTime: 0.048, harmonicGain: 0.14,
+    attackTime: 0, decayTime: 0.048, harmonicGain: 0.14,
     filterBaseFreq: 3600, filterVelocityRange: 550, filterQ: 0.5,
     reverbDecay: 0.32, reverbWetMix: 0.28, masterGain: 0.38
   },
   bamboo: {
     label: 'Bamboo',
     description: 'Hollow, zen garden taps',
-    attackTime: 0.003, decayTime: 0.08, harmonicGain: 0.2,
+    attackTime: 0, decayTime: 0.08, harmonicGain: 0.2,
     filterBaseFreq: 2200, filterVelocityRange: 400, filterQ: 0.65,
     reverbDecay: 0.25, reverbWetMix: 0.2, masterGain: 0.45
   },
   whisper: {
     label: 'Whisper',
     description: 'Almost silent, intimate',
-    attackTime: 0.005, decayTime: 0.07, harmonicGain: 0.03,
+    attackTime: 0, decayTime: 0.07, harmonicGain: 0.03,
     filterBaseFreq: 1400, filterVelocityRange: 180, filterQ: 0.25,
     reverbDecay: 0.5, reverbWetMix: 0.45, masterGain: 0.22
   },
@@ -133,18 +134,18 @@ export const SOUND_PRESETS = {
   glitch: {
     label: 'Glitch',
     description: 'Digital artifacts, unstable',
-    attackTime: 0.001, decayTime: 0.025, harmonicGain: 0.55,
+    attackTime: 0, decayTime: 0.025, harmonicGain: 0.55,
     filterBaseFreq: 5500, filterVelocityRange: 2500, filterQ: 2.5,
     reverbDecay: 0.08, reverbWetMix: 0.05, masterGain: 0.35
   },
   
   // ═══════════════════════════════════════════════════════════════════════════════
-  // SCARY — dark and unsettling
+  // SCARY — dark and unsettling (slight attack for eerie effect)
   // ═══════════════════════════════════════════════════════════════════════════════
   theVoid: {
     label: 'The Void',
     description: 'Dark, hollow, unsettling',
-    attackTime: 0.008, decayTime: 0.25, harmonicGain: 0.02,
+    attackTime: 0.005, decayTime: 0.25, harmonicGain: 0.02,
     filterBaseFreq: 350, filterVelocityRange: 100, filterQ: 0.8,
     reverbDecay: 0.85, reverbWetMix: 0.7, masterGain: 0.55
   },
@@ -155,7 +156,7 @@ export const SOUND_PRESETS = {
   midnight: {
     label: 'Midnight',
     description: 'Subtle, mysterious, elegant',
-    attackTime: 0.003, decayTime: 0.09, harmonicGain: 0.07,
+    attackTime: 0, decayTime: 0.09, harmonicGain: 0.07,
     filterBaseFreq: 1900, filterVelocityRange: 280, filterQ: 0.35,
     reverbDecay: 0.55, reverbWetMix: 0.4, masterGain: 0.36
   }
@@ -176,11 +177,11 @@ let limiter = null;
 let isEnabled = false;
 let isUnlocked = false;
 
-// Voice pool for efficient sound playback (no node creation at runtime)
+// Voice pool for efficient sound playback (reusable nodes)
 const VOICE_POOL_SIZE = 8; // Max simultaneous sounds
 let voicePool = [];
 let lastGlobalSoundTime = 0;
-const GLOBAL_MIN_INTERVAL = 0.008; // 8ms between ANY sounds (125 sounds/sec max)
+const GLOBAL_MIN_INTERVAL = 0.005; // 5ms between ANY sounds (200 sounds/sec max)
 
 let lastSoundTime = new Map(); // ball id → timestamp
 
@@ -216,14 +217,19 @@ export async function unlockAudio() {
   if (isUnlocked) return true;
   
   try {
-    // Create AudioContext
+    // Create AudioContext with lowest latency possible
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) {
       console.warn('Web Audio API not supported');
       return false;
     }
     
-    audioContext = new AudioCtx();
+    // 'interactive' = smallest buffer size for real-time response
+    // Typically 128 samples @ 44.1kHz = ~2.9ms latency
+    audioContext = new AudioCtx({ 
+      latencyHint: 'interactive',
+      sampleRate: 44100  // Standard rate, well-optimized
+    });
     
     // Resume if suspended (Safari requirement)
     if (audioContext.state === 'suspended') {
@@ -235,7 +241,10 @@ export async function unlockAudio() {
     
     isUnlocked = true;
     isEnabled = true;
-    console.log('✓ Audio unlocked and enabled');
+    
+    // Log actual latency achieved
+    const latencyMs = (audioContext.baseLatency || 0) * 1000;
+    console.log(`✓ Audio unlocked (${latencyMs.toFixed(1)}ms base latency)`);
     return true;
     
   } catch (error) {
@@ -479,53 +488,55 @@ function playVoice(voice, frequency, intensity, xPosition, now) {
   voice.inUse = true;
   voice.startTime = now;
   
-  // Calculate parameters
+  // Pre-calculate all parameters (minimize runtime math)
   const gain = CONFIG.minGain + (CONFIG.maxGain - CONFIG.minGain) * intensity;
   const filterFreq = CONFIG.filterBaseFreq + CONFIG.filterVelocityRange * intensity;
-  const duration = CONFIG.attackTime + CONFIG.decayTime + 0.02;
-  
-  // Update filter (reused node)
-  voice.filter.frequency.setValueAtTime(filterFreq, now);
-  voice.filter.Q.setValueAtTime(CONFIG.filterQ, now);
-  
-  // Update panner (reused node)
-  voice.panner.pan.setValueAtTime((xPosition - 0.5) * 2 * CONFIG.maxPan, now);
-  
-  // Update reverb send
+  const duration = CONFIG.decayTime + 0.015; // Tight buffer
   const reverbAmount = 1 - (intensity * 0.5);
-  voice.reverbSend.gain.setValueAtTime(reverbAmount, now);
+  const panValue = (xPosition - 0.5) * 2 * CONFIG.maxPan;
   
-  // Create oscillators (must be new each time - Web Audio limitation)
-  voice.osc = audioContext.createOscillator();
-  voice.osc.type = 'sine';
-  voice.osc.frequency.setValueAtTime(frequency, now);
+  // ─── INSTANT PARAMETER UPDATES (reused nodes) ───────────────────────────────
+  // Use .value for immediate effect (faster than setValueAtTime for static values)
+  voice.filter.frequency.value = filterFreq;
+  voice.filter.Q.value = CONFIG.filterQ;
+  voice.panner.pan.value = panValue;
+  voice.reverbSend.gain.value = reverbAmount;
   
-  voice.osc2 = audioContext.createOscillator();
-  voice.osc2.type = 'sine';
-  voice.osc2.frequency.setValueAtTime(frequency * 2, now);
-  
-  voice.harmGain = audioContext.createGain();
-  voice.harmGain.gain.setValueAtTime(CONFIG.harmonicGain, now);
-  
-  // Connect oscillators to filter (reused chain)
-  voice.osc.connect(voice.filter);
-  voice.osc2.connect(voice.harmGain);
-  voice.harmGain.connect(voice.filter);
-  
-  // Set envelope (reused node)
+  // ─── ENVELOPE: INSTANT ATTACK ───────────────────────────────────────────────
+  // Cancel any pending automation, set gain INSTANTLY, then decay
   voice.envelope.gain.cancelScheduledValues(now);
-  voice.envelope.gain.setValueAtTime(0.001, now);
-  voice.envelope.gain.linearRampToValueAtTime(gain, now + CONFIG.attackTime);
-  voice.envelope.gain.exponentialRampToValueAtTime(0.001, now + CONFIG.attackTime + CONFIG.decayTime);
+  voice.envelope.gain.setValueAtTime(gain, now);  // INSTANT onset (0ms attack)
+  voice.envelope.gain.exponentialRampToValueAtTime(0.001, now + CONFIG.decayTime);
   
-  // Start and schedule stop
-  voice.osc.start(now);
-  voice.osc2.start(now);
-  voice.osc.stop(now + duration);
-  voice.osc2.stop(now + duration);
+  // ─── OSCILLATORS (must be new - Web Audio limitation) ───────────────────────
+  const osc = audioContext.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = frequency; // Use .value (faster)
+  
+  const osc2 = audioContext.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = frequency * 2;
+  
+  const harmGain = audioContext.createGain();
+  harmGain.gain.value = CONFIG.harmonicGain;
+  
+  // Store refs for cleanup
+  voice.osc = osc;
+  voice.osc2 = osc2;
+  voice.harmGain = harmGain;
+  
+  // ─── CONNECT & START ────────────────────────────────────────────────────────
+  osc.connect(voice.filter);
+  osc2.connect(harmGain);
+  harmGain.connect(voice.filter);
+  
+  osc.start(now);
+  osc2.start(now);
+  osc.stop(now + duration);
+  osc2.stop(now + duration);
   
   // Schedule release
-  voice.osc.onended = () => releaseVoice(voice);
+  osc.onended = () => releaseVoice(voice);
 }
 
 /**
