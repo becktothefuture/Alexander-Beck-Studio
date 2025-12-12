@@ -92,7 +92,7 @@
      BALL COLOR PALETTE (dynamically updated by JS)
      ───────────────────────────────────────────────────────────────────────────── */
   --ball-1: #b7bcb7;
-  --ball-2: #e4e9e4;
+  --ball-2: #6b6b6b;  /* Darker grey - for AI Integration */
   --ball-3: #ffffff;
   --ball-4: #00695c;
   --ball-5: #000000;
@@ -371,13 +371,14 @@ body.dark-mode .noise-2 {
   
   /* ─────────────────────────────────────────────────────────────────────────────
      TYPOGRAPHIC REFINEMENT: Legend Labels
-     Weight 500 (medium) provides solidity without heaviness.
-     Tracking at 0.1em opens the letterforms for better hierarchy.
+     Weight 500 (medium) for balanced presence.
+     Tracking at 0.08em - open but not loose.
      ───────────────────────────────────────────────────────────────────────────── */
   font-weight: 500 !important;
-  letter-spacing: 0.1em !important;
+  letter-spacing: 0.08em !important;
   text-transform: uppercase;
   font-size: clamp(0.6rem, 0.9vw, 0.75rem) !important;
+  color: #1a1a1a !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -582,24 +583,28 @@ body.dark-mode .corner svg * {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SOUND TOGGLE - Quick access button (bottom-left, near social icons)
-   Detailed sound controls are in the panel dock
+   SOUND TOGGLE - Quick access button (bottom-left, near footer links)
+   Behaves like .footer_link but with accent color when enabled
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 .sound-toggle {
   position: fixed;
   /* Position near bottom-left, aligned with footer elements */
   bottom: calc(var(--edge-inset-lg) + var(--container-border, 0px));
-  left: calc(var(--edge-inset-lg) + var(--container-border, 0px) + 120px); /* After social icons */
+  left: calc(var(--edge-inset-lg) + var(--container-border, 0px) + 120px);
   z-index: 20;
   
+  /* Match .footer_link typography */
   font-family: 'Geist', sans-serif;
   font-size: clamp(0.65rem, 0.9vw, 0.75rem);
   font-weight: 500;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-decoration: none;
   
-  color: rgba(100, 100, 100, 0.85);
+  /* Match .footer_link base state */
+  color: inherit;
+  opacity: 0.85;
   background: none;
   border: none;
   padding: 0;
@@ -607,38 +612,52 @@ body.dark-mode .corner svg * {
   cursor: pointer;
   pointer-events: auto;
   
+  /* Same transform as footer elements */
+  transform: translateY(var(--space-md));
+  
+  /* Match .footer_link transitions */
   transition: 
-    color var(--duration-quick, 200ms) ease,
-    opacity var(--duration-quick, 200ms) ease,
-    bottom var(--duration-resize, 600ms) var(--ease-organic, ease),
-    left var(--duration-resize, 600ms) var(--ease-organic, ease);
+    color var(--duration-quick) ease,
+    opacity var(--duration-quick) ease,
+    transform var(--duration-resize) var(--ease-organic);
 }
 
+/* Hover: same as .footer_link - goes full black/white */
 .sound-toggle:hover {
-  color: rgba(60, 60, 60, 1);
+  color: #000000 !important;
+  opacity: 1;
 }
 
-/* When sound is enabled - accent color */
+/* When sound is enabled - accent color (orange) */
 .sound-toggle[data-enabled="true"] {
   color: var(--ball-6, #ff4013);
+  opacity: 0.85;
 }
 
 .sound-toggle[data-enabled="true"]:hover {
-  color: var(--ball-6, #ff4013);
-  opacity: 0.8;
+  color: var(--ball-6, #ff4013) !important;
+  opacity: 1;
 }
 
-/* Dark mode */
+/* Dark mode - match .footer_link dark mode behavior */
 body.dark-mode .sound-toggle {
-  color: rgba(160, 160, 160, 0.85);
+  color: #b0b0b0;
+  opacity: 0.88;
 }
 
 body.dark-mode .sound-toggle:hover {
-  color: rgba(200, 200, 200, 1);
+  color: #f5f5f5 !important;
+  opacity: 1;
 }
 
 body.dark-mode .sound-toggle[data-enabled="true"] {
   color: #ff6b47;
+  opacity: 0.88;
+}
+
+body.dark-mode .sound-toggle[data-enabled="true"]:hover {
+  color: #ff8566 !important;
+  opacity: 1;
 }
 
 /* Hidden when prefers-reduced-motion */
