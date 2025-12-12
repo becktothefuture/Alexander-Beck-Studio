@@ -61,32 +61,11 @@ export function setupControls() {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // FRAME PADDING CONTROLS (Border thickness)
+  // FRAME PADDING CONTROLS (Unified border thickness - all sides)
   // ═══════════════════════════════════════════════════════════════════════════
-  bindSlider('framePadTopSlider', (el) => {
-    g.framePadTop = parseInt(el.value, 10);
-    setVal('framePadTopVal', String(g.framePadTop));
-    applyFramePaddingCSSVars();
-    resize();
-    autoSaveSettings();
-  });
-  bindSlider('framePadRightSlider', (el) => {
-    g.framePadRight = parseInt(el.value, 10);
-    setVal('framePadRightVal', String(g.framePadRight));
-    applyFramePaddingCSSVars();
-    resize();
-    autoSaveSettings();
-  });
-  bindSlider('framePadBottomSlider', (el) => {
-    g.framePadBottom = parseInt(el.value, 10);
-    setVal('framePadBottomVal', String(g.framePadBottom));
-    applyFramePaddingCSSVars();
-    resize();
-    autoSaveSettings();
-  });
-  bindSlider('framePadLeftSlider', (el) => {
-    g.framePadLeft = parseInt(el.value, 10);
-    setVal('framePadLeftVal', String(g.framePadLeft));
+  bindSlider('framePadSlider', (el) => {
+    g.framePad = parseInt(el.value, 10);
+    setVal('framePadVal', String(g.framePad));
     applyFramePaddingCSSVars();
     resize();
     autoSaveSettings();

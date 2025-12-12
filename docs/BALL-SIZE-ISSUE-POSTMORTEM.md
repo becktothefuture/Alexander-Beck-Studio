@@ -151,7 +151,7 @@ if (validationIssues.length > 0) {
 
 ---
 
-## 📝 Future Improvements (Documented in BUILD-IMPROVEMENT-PROPOSAL.md)
+## 📝 Future Improvements
 
 ### Phase 1: Validation Only (DONE ✅)
 - Add validation function
@@ -204,7 +204,6 @@ if (validationIssues.length > 0) {
 
 ## 📚 Related Documentation
 
-- `BUILD-IMPROVEMENT-PROPOSAL.md` - Detailed improvement roadmap
 - `docs/reference/BUILD-SYSTEM.md` - Build system reference
 - `docs/reference/CONFIGURATION.md` - Configuration file format
 

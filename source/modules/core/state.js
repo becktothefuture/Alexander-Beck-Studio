@@ -117,11 +117,8 @@ const state = {
   autoDarkModeEnabled: true,
   isDarkMode: false,
   
-  // Frame padding (border thickness around simulation, in pixels)
-  framePadTop: 0,
-  framePadRight: 0,
-  framePadBottom: 0,
-  framePadLeft: 0,
+  // Frame padding (border thickness around simulation, in pixels - unified for all sides)
+  framePad: 0,
   
   // Helper
   getSquashMax() {
@@ -138,11 +135,8 @@ export function initState(config) {
   if (config.friction) state.FRICTION = config.friction;
   if (config.ballScale) state.sizeScale = config.ballScale;
   
-  // Frame padding (border thickness)
-  if (config.framePadTop !== undefined) state.framePadTop = config.framePadTop;
-  if (config.framePadRight !== undefined) state.framePadRight = config.framePadRight;
-  if (config.framePadBottom !== undefined) state.framePadBottom = config.framePadBottom;
-  if (config.framePadLeft !== undefined) state.framePadLeft = config.framePadLeft;
+  // Frame padding (border thickness - unified for all sides)
+  if (config.framePad !== undefined) state.framePad = config.framePad;
   
   // Recalculate R_MIN and R_MAX
   const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;

@@ -1,4 +1,4 @@
-/* Alexander Beck Studio – Bouncy Balls | Build: 2025-12-12T18:33:19.221Z */
+/* Alexander Beck Studio – Bouncy Balls | Build: 2025-12-12T18:40:46.237Z */
 var BouncyBalls = (function (exports) {
   'use strict';
 
@@ -160,11 +160,8 @@ var BouncyBalls = (function (exports) {
     autoDarkModeEnabled: true,
     isDarkMode: false,
     
-    // Frame padding (border thickness around simulation, in pixels)
-    framePadTop: 0,
-    framePadRight: 0,
-    framePadBottom: 0,
-    framePadLeft: 0,
+    // Frame padding (border thickness around simulation, in pixels - unified for all sides)
+    framePad: 0,
     
     // Helper
     getSquashMax() {
@@ -181,11 +178,8 @@ var BouncyBalls = (function (exports) {
     if (config.friction) state.FRICTION = config.friction;
     if (config.ballScale) state.sizeScale = config.ballScale;
     
-    // Frame padding (border thickness)
-    if (config.framePadTop !== undefined) state.framePadTop = config.framePadTop;
-    if (config.framePadRight !== undefined) state.framePadRight = config.framePadRight;
-    if (config.framePadBottom !== undefined) state.framePadBottom = config.framePadBottom;
-    if (config.framePadLeft !== undefined) state.framePadLeft = config.framePadLeft;
+    // Frame padding (border thickness - unified for all sides)
+    if (config.framePad !== undefined) state.framePad = config.framePad;
     
     // Recalculate R_MIN and R_MAX
     const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;
@@ -708,11 +702,8 @@ var BouncyBalls = (function (exports) {
   <details>
     <summary>🖼️ Frame Border</summary>
     <div class="group">
-        <label><span>Top (px)</span><input type="range" id="framePadTopSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadTopVal">0</span></label>
-        <label><span>Right (px)</span><input type="range" id="framePadRightSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadRightVal">0</span></label>
-        <label><span>Bottom (px)</span><input type="range" id="framePadBottomSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadBottomVal">0</span></label>
-        <label><span>Left (px)</span><input type="range" id="framePadLeftSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadLeftVal">0</span></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Border uses body/chrome background color</div>
+        <label><span>Border thickness (px)</span><input type="range" id="framePadSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadVal">0</span></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Reveals background color around rounded container</div>
     </div>
   </details>
   
@@ -2268,32 +2259,11 @@ var BouncyBalls = (function (exports) {
     });
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // FRAME PADDING CONTROLS (Border thickness)
+    // FRAME PADDING CONTROLS (Unified border thickness - all sides)
     // ═══════════════════════════════════════════════════════════════════════════
-    bindSlider('framePadTopSlider', (el) => {
-      g.framePadTop = parseInt(el.value, 10);
-      setVal('framePadTopVal', String(g.framePadTop));
-      applyFramePaddingCSSVars();
-      resize();
-      autoSaveSettings();
-    });
-    bindSlider('framePadRightSlider', (el) => {
-      g.framePadRight = parseInt(el.value, 10);
-      setVal('framePadRightVal', String(g.framePadRight));
-      applyFramePaddingCSSVars();
-      resize();
-      autoSaveSettings();
-    });
-    bindSlider('framePadBottomSlider', (el) => {
-      g.framePadBottom = parseInt(el.value, 10);
-      setVal('framePadBottomVal', String(g.framePadBottom));
-      applyFramePaddingCSSVars();
-      resize();
-      autoSaveSettings();
-    });
-    bindSlider('framePadLeftSlider', (el) => {
-      g.framePadLeft = parseInt(el.value, 10);
-      setVal('framePadLeftVal', String(g.framePadLeft));
+    bindSlider('framePadSlider', (el) => {
+      g.framePad = parseInt(el.value, 10);
+      setVal('framePadVal', String(g.framePad));
       applyFramePaddingCSSVars();
       resize();
       autoSaveSettings();
@@ -3298,16 +3268,18 @@ var BouncyBalls = (function (exports) {
   }
 
   /**
-   * Apply frame padding CSS variables from global state to :root
-   * This controls the inset of #bravia-balls (frame/border thickness)
+   * Apply frame padding CSS variable from global state to :root
+   * This controls the inset of #bravia-balls (frame/border thickness) on all sides
    */
   function applyFramePaddingCSSVars() {
     const g = getGlobals();
     const root = document.documentElement;
-    root.style.setProperty('--frame-pad-top', `${g.framePadTop || 0}px`);
-    root.style.setProperty('--frame-pad-right', `${g.framePadRight || 0}px`);
-    root.style.setProperty('--frame-pad-bottom', `${g.framePadBottom || 0}px`);
-    root.style.setProperty('--frame-pad-left', `${g.framePadLeft || 0}px`);
+    const framePad = g.framePad || 0;
+    // Apply same value to all sides (unified border thickness)
+    root.style.setProperty('--frame-pad-top', `${framePad}px`);
+    root.style.setProperty('--frame-pad-right', `${framePad}px`);
+    root.style.setProperty('--frame-pad-bottom', `${framePad}px`);
+    root.style.setProperty('--frame-pad-left', `${framePad}px`);
   }
 
   /**

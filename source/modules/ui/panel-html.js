@@ -41,11 +41,8 @@ export const PANEL_HTML = `
   <details>
     <summary>🖼️ Frame Border</summary>
     <div class="group">
-        <label><span>Top (px)</span><input type="range" id="framePadTopSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadTopVal">0</span></label>
-        <label><span>Right (px)</span><input type="range" id="framePadRightSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadRightVal">0</span></label>
-        <label><span>Bottom (px)</span><input type="range" id="framePadBottomSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadBottomVal">0</span></label>
-        <label><span>Left (px)</span><input type="range" id="framePadLeftSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadLeftVal">0</span></label>
-        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Border uses body/chrome background color</div>
+        <label><span>Border thickness (px)</span><input type="range" id="framePadSlider" min="0" max="100" step="1" value="0"><span class="val" id="framePadVal">0</span></label>
+        <div style="font-size: 9px; opacity: 0.7; margin-top: 6px;">Reveals background color around rounded container</div>
     </div>
   </details>
   

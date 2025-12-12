@@ -51,8 +51,7 @@ function copyDir(src, dest) {
 
 async function buildProduction() {
   try {
-    const useModules = true; // Force modular build path (legacy monolith deprecated)
-    console.log(`\n🏗️  BUILD PIPELINE STARTING... (modules=${useModules})\n`);
+    console.log('\n🏗️  BUILD PIPELINE STARTING... (modular)\n');
     
     // STEP 1: Clean and copy webflow-export to public
     console.log('📁 Step 1: Copying webflow-export/ to public/...');
@@ -65,159 +64,61 @@ async function buildProduction() {
     copyDir(CONFIG.webflowSource, CONFIG.publicDestination);
     console.log('✅ Webflow design copied to public/\n');
     
-    // STEP 2: Either run legacy extraction or modular Rollup bundle
-    if (useModules) {
-      console.log('📦 Step 2: Bundling modular sources with Rollup...');
-      // 2a. Copy CSS bundle from source/css → public/css/bouncy-balls.css (concat minimal)
-      const cssDir = path.join(CONFIG.publicDestination, 'css');
-      if (!fs.existsSync(cssDir)) fs.mkdirSync(cssDir, { recursive: true });
-      const cssMainPath = path.join('source', 'css', 'main.css');
-      const cssPanelPath = path.join('source', 'css', 'panel.css');
-      const cssCombined = [cssMainPath, cssPanelPath]
-        .filter(p => fs.existsSync(p))
-        .map(p => fs.readFileSync(p, 'utf-8'))
-        .join('\n');
-      fs.writeFileSync(path.join(cssDir, 'bouncy-balls.css'), cssCombined);
-      console.log('✅ Wrote modular CSS bundle');
-
-      // 2b. Prepare JS output directory
-      const jsDir = path.join(CONFIG.publicDestination, 'js');
-      if (!fs.existsSync(jsDir)) fs.mkdirSync(jsDir, { recursive: true });
-
-      // 2c. Copy runtime config for prod and provide both paths used by loader
-      const runtimeConfigSrc = path.join('source', 'config', 'default-config.json');
-      const runtimeConfigDstJs = path.join(jsDir, 'config.json');
-      const runtimeConfigDstCfg = path.join(CONFIG.publicDestination, 'config', 'default-config.json');
-      if (fs.existsSync(runtimeConfigSrc)) {
-        fs.copyFileSync(runtimeConfigSrc, runtimeConfigDstJs);
-        if (!fs.existsSync(path.dirname(runtimeConfigDstCfg))) {
-          fs.mkdirSync(path.dirname(runtimeConfigDstCfg), { recursive: true });
-        }
-        fs.copyFileSync(runtimeConfigSrc, runtimeConfigDstCfg);
-        console.log('✅ Copied runtime config to public/js/config.json and public/config/default-config.json');
-      }
-
-      // 2d. Run Rollup via dynamic import to avoid ESM/CJS friction
-      const { rollup } = await import('rollup');
-      const rollupConfig = await import(path.resolve('rollup.config.mjs'));
-      const bundle = await rollup(rollupConfig.default);
-      await bundle.write(rollupConfig.default.output);
-      console.log('✅ JavaScript bundled via Rollup');
-
-      // 2e. Inject template container and assets into public/index.html
-      const publicIndexPath = path.join(CONFIG.publicDestination, 'index.html');
-      let html = fs.readFileSync(publicIndexPath, 'utf-8');
-      const container = '<div id="bravia-balls"><canvas id="c" aria-label="Interactive bouncy balls physics simulation" role="application" draggable="false"></canvas><div class="panel" id="controlPanel" role="region" aria-label="Simulation controls" tabindex="-1"></div></div>';
-      const placeholderRegex = /<div[^>]*id=["']bravia-balls["'][^>]*>[\s\S]*?<\/div>/;
-      if (placeholderRegex.test(html)) html = html.replace(placeholderRegex, container); else html = html.replace('</body>', `${container}\n</body>`);
-      const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css">';
-      if (!html.includes('id="bravia-balls-css"')) html = html.replace('</head>', `${cssTag}\n</head>`);
-      const jsTag = '<script id="bravia-balls-js" src="js/bouncy-balls-embed.js" defer></script>';
-      if (!html.includes('id="bravia-balls-js"')) html = html.replace('</body>', `${jsTag}\n</body>`);
-      fs.writeFileSync(publicIndexPath, html);
-      console.log('✅ Injected modular assets into public/index.html');
-
-      console.log('═══════════════════════════════════════════════════════════');
-      console.log('🎉 BUILD COMPLETE (modules)!');
-      console.log('═══════════════════════════════════════════════════════════');
-      return;
-    }
-
-    // LEGACY PATH: Extract from balls-source.html
-    console.log('📦 Step 2: Extracting simulation from source...');
-    const sourceHTML = fs.readFileSync(CONFIG.sourceFile, 'utf-8');
-    const config = JSON.parse(fs.readFileSync(CONFIG.configFile, 'utf-8'));
+    // STEP 2: Bundle modular sources with Rollup
+    console.log('📦 Step 2: Bundling modular sources with Rollup...');
     
-    // Validate configuration consistency
-    const validationIssues = validateConfigConsistency(sourceHTML, config);
-    if (validationIssues.length > 0) {
-      console.log('\n⚙️  Configuration Validation:');
-      validationIssues.forEach(issue => console.log(`   ${issue}`));
-      console.log('');
-    }
-    
-    const containerHTML = extractSimulationContainer(sourceHTML);
-    const cssCode = extractCSS(sourceHTML);
-    let jsCode = extractJavaScript(sourceHTML);
-    
-    console.log('✅ Extracted simulation components\n');
-    
-    // STEP 3: Hardcode config
-    console.log('⚙️  Step 3: Hardcoding config values...');
-    const configReport = hardcodeConfig(jsCode, config);
-    jsCode = configReport.code;
-    console.log(`   Applied ${configReport.applied.length} config values:`);
-    configReport.applied.forEach(mapping => console.log(`   ✓ ${mapping}`));
-    if (configReport.skipped.length > 0) {
-      console.log(`   ⚠️  Skipped (not found): ${configReport.skipped.join(', ')}`);
-    }
-    console.log('');
-    
-    // STEP 4: Minify JavaScript
-    console.log('🗜️  Step 4: Minifying JavaScript...');
-    console.log(`   Before: ${(jsCode.length / 1024).toFixed(1)}KB`);
-    const jsMinified = await minifyJavaScript(jsCode);
-    console.log(`   After: ${(jsMinified.length / 1024).toFixed(1)}KB`);
-    console.log(`   Reduction: ${Math.round((1 - jsMinified.length / jsCode.length) * 100)}%`);
-    console.log('');
-    
-    // STEP 5: Replace placeholder in public/index.html
-    console.log('🔄 Step 5: Integrating simulation into public/index.html...');
-    const publicIndexPath = path.join(CONFIG.publicDestination, 'index.html');
-    replaceSimulationPlaceholder(publicIndexPath, containerHTML, cssCode, jsMinified);
-    console.log('');
-    
-    // STEP 6: Create standalone files
-    console.log('📄 Step 6: Creating standalone files...');
-    const jsDir = path.join(CONFIG.publicDestination, 'js');
+    // 2a. Copy CSS bundle from source/css → public/css/bouncy-balls.css
     const cssDir = path.join(CONFIG.publicDestination, 'css');
-    
-    if (!fs.existsSync(jsDir)) fs.mkdirSync(jsDir, { recursive: true });
     if (!fs.existsSync(cssDir)) fs.mkdirSync(cssDir, { recursive: true });
-    
-    fs.writeFileSync(path.join(jsDir, 'bouncy-balls-embed.js'), jsMinified);
-    fs.writeFileSync(path.join(cssDir, 'bouncy-balls.css'), cssCode);
-    console.log('✅ Created js/bouncy-balls-embed.js');
-    console.log('✅ Created css/bouncy-balls.css');
-    console.log('');
-    
-    // STEP 7: Validate build output
-    console.log('🔍 Step 7: Validating build output...');
-    const validation = {
-      indexHTML: fs.existsSync(publicIndexPath) && fs.statSync(publicIndexPath).size > 10000,
-      embedJS: fs.existsSync(path.join(jsDir, 'bouncy-balls-embed.js')),
-      embedCSS: fs.existsSync(path.join(cssDir, 'bouncy-balls.css')),
-      injectedCSS: fs.readFileSync(publicIndexPath, 'utf-8').includes('id="bravia-balls-css"'),
-      injectedJS: fs.readFileSync(publicIndexPath, 'utf-8').includes('id="bravia-balls-js"'),
-      placeholderReplaced: !fs.readFileSync(publicIndexPath, 'utf-8').includes('class="ball-simulation w-embed"')
-    };
-    
-    const allValid = Object.values(validation).every(v => v);
-    if (!allValid) {
-      console.error('❌ Build validation failed:');
-      Object.entries(validation).forEach(([key, valid]) => {
-        console.error(`   ${valid ? '✓' : '✗'} ${key}`);
-      });
-      process.exit(1);
+    const cssMainPath = path.join('source', 'css', 'main.css');
+    const cssPanelPath = path.join('source', 'css', 'panel.css');
+    const cssCombined = [cssMainPath, cssPanelPath]
+      .filter(p => fs.existsSync(p))
+      .map(p => fs.readFileSync(p, 'utf-8'))
+      .join('\n');
+    fs.writeFileSync(path.join(cssDir, 'bouncy-balls.css'), cssCombined);
+    console.log('✅ Wrote modular CSS bundle');
+
+    // 2b. Prepare JS output directory
+    const jsDir = path.join(CONFIG.publicDestination, 'js');
+    if (!fs.existsSync(jsDir)) fs.mkdirSync(jsDir, { recursive: true });
+
+    // 2c. Copy runtime config for prod and provide both paths used by loader
+    const runtimeConfigSrc = path.join('source', 'config', 'default-config.json');
+    const runtimeConfigDstJs = path.join(jsDir, 'config.json');
+    const runtimeConfigDstCfg = path.join(CONFIG.publicDestination, 'config', 'default-config.json');
+    if (fs.existsSync(runtimeConfigSrc)) {
+      fs.copyFileSync(runtimeConfigSrc, runtimeConfigDstJs);
+      if (!fs.existsSync(path.dirname(runtimeConfigDstCfg))) {
+        fs.mkdirSync(path.dirname(runtimeConfigDstCfg), { recursive: true });
+      }
+      fs.copyFileSync(runtimeConfigSrc, runtimeConfigDstCfg);
+      console.log('✅ Copied runtime config to public/js/config.json and public/config/default-config.json');
     }
-    console.log('✅ Build validated successfully');
-    console.log('');
-    
-    // Success!
+
+    // 2d. Run Rollup via dynamic import to avoid ESM/CJS friction
+    const { rollup } = await import('rollup');
+    const rollupConfig = await import(path.resolve('rollup.config.mjs'));
+    const bundle = await rollup(rollupConfig.default);
+    await bundle.write(rollupConfig.default.output);
+    console.log('✅ JavaScript bundled via Rollup');
+
+    // 2e. Inject template container and assets into public/index.html
+    const publicIndexPath = path.join(CONFIG.publicDestination, 'index.html');
+    let html = fs.readFileSync(publicIndexPath, 'utf-8');
+    const container = '<div id="bravia-balls"><canvas id="c" aria-label="Interactive bouncy balls physics simulation" role="application" draggable="false"></canvas><div class="panel" id="controlPanel" role="region" aria-label="Simulation controls" tabindex="-1"></div></div>';
+    const placeholderRegex = /<div[^>]*id=["']bravia-balls["'][^>]*>[\s\S]*?<\/div>/;
+    if (placeholderRegex.test(html)) html = html.replace(placeholderRegex, container); else html = html.replace('</body>', `${container}\n</body>`);
+    const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css">';
+    if (!html.includes('id="bravia-balls-css"')) html = html.replace('</head>', `${cssTag}\n</head>`);
+    const jsTag = '<script id="bravia-balls-js" src="js/bouncy-balls-embed.js" defer></script>';
+    if (!html.includes('id="bravia-balls-js"')) html = html.replace('</body>', `${jsTag}\n</body>`);
+    fs.writeFileSync(publicIndexPath, html);
+    console.log('✅ Injected modular assets into public/index.html');
+
     console.log('═══════════════════════════════════════════════════════════');
     console.log('🎉 BUILD COMPLETE!');
     console.log('═══════════════════════════════════════════════════════════');
-    console.log('');
-    console.log('📊 Summary:');
-    console.log(`   ✅ Webflow design preserved in public/`);
-    console.log(`   ✅ Simulation placeholder replaced`);
-    console.log(`   ✅ CSS: ${(cssCode.length / 1024).toFixed(1)}KB`);
-    console.log(`   ✅ JS: ${(jsMinified.length / 1024).toFixed(1)}KB (minified)`);
-    console.log(`   ✅ Panel hidden by default (toggle with /)`);
-    console.log(`   ✅ Mouse events enabled`);
-    console.log('');
-    console.log('🚀 Ready to deploy from public/ folder!');
-    console.log('');
     
   } catch (error) {
     console.error('\n❌ BUILD FAILED:', error.message);

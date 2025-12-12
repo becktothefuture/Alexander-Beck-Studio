@@ -34,16 +34,18 @@ async function loadRuntimeConfig() {
 }
 
 /**
- * Apply frame padding CSS variables from global state to :root
- * This controls the inset of #bravia-balls (frame/border thickness)
+ * Apply frame padding CSS variable from global state to :root
+ * This controls the inset of #bravia-balls (frame/border thickness) on all sides
  */
 export function applyFramePaddingCSSVars() {
   const g = getGlobals();
   const root = document.documentElement;
-  root.style.setProperty('--frame-pad-top', `${g.framePadTop || 0}px`);
-  root.style.setProperty('--frame-pad-right', `${g.framePadRight || 0}px`);
-  root.style.setProperty('--frame-pad-bottom', `${g.framePadBottom || 0}px`);
-  root.style.setProperty('--frame-pad-left', `${g.framePadLeft || 0}px`);
+  const framePad = g.framePad || 0;
+  // Apply same value to all sides (unified border thickness)
+  root.style.setProperty('--frame-pad-top', `${framePad}px`);
+  root.style.setProperty('--frame-pad-right', `${framePad}px`);
+  root.style.setProperty('--frame-pad-bottom', `${framePad}px`);
+  root.style.setProperty('--frame-pad-left', `${framePad}px`);
 }
 
 /**
