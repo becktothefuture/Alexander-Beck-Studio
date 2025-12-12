@@ -13,37 +13,32 @@ export function initializeBallPit() {
   
   const targetBalls = 300; // MAX_BALLS
   const w = globals.canvas.width;
+  const h = globals.canvas.height;
   const DPR = globals.DPR;
   
-  // CRITICAL: Use container height (not canvas height) for spawn calculations
-  // Canvas is 150% of container (top 1/3 is spawn area above viewport)
-  // Spawn positions are relative to the visible viewport, so we need base container height
-  const container = globals.container || document.getElementById('bravia-balls');
-  const containerHeightCss = container ? container.clientHeight : (globals.canvas.clientHeight / 1.5);
+  // Ball Pit canvas is 150vh tall (150% of viewport)
+  // Top 1/3 (50vh) is above viewport = spawn area [0, h/3]
+  // Bottom 2/3 (100vh) is visible viewport = play area [h/3, h]
+  // viewportTop = h/3 marks where visible area begins
   
-  // Account for simulation padding (canvas is inset from container)
-  const simPad = globals.simulationPadding || 0;
-  const visibleHeightCss = containerHeightCss - (simPad * 2);
+  const viewportTop = h / 3;
   
-  // Spawn parameters (from config)
-  const SPAWN_Y_VH = -50;  // -50% = spawn 50% above visible viewport
-  const SPAWN_H_VH = 50;   // 50% height spawn zone
-  const SPAWN_W_VW = 100;  // Full width
-  const SPAWN_X_CENTER_VW = 50;
+  // Spawn in top 70% of the hidden area (concentrated near top)
+  // This creates the effect of balls "falling in from the top"
+  const spawnYTop = 0;
+  const spawnYBottom = viewportTop * 0.7;  // Use top 70% of spawn area
   
-  const spawnYTop = (SPAWN_Y_VH / 100) * visibleHeightCss * DPR;
-  const spawnYBottom = spawnYTop + (SPAWN_H_VH / 100) * visibleHeightCss * DPR;
-  const widthCss = (SPAWN_W_VW / 100) * (globals.canvas.clientWidth);
-  const xCenterCss = (SPAWN_X_CENTER_VW / 100) * (globals.canvas.clientWidth);
-  const xLeftCss = xCenterCss - widthCss / 2;
-  const xRightCss = xCenterCss + widthCss / 2;
+  // Spawn across full width
+  const spawnXLeft = 0;
+  const spawnXRight = w;
   
   // First, ensure at least one ball of each color (0-7)
   for (let colorIndex = 0; colorIndex < 8; colorIndex++) {
-    const x = (xLeftCss + Math.random() * widthCss) * DPR;
+    const x = spawnXLeft + Math.random() * (spawnXRight - spawnXLeft);
     const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
     
     const ball = spawnBall(x, y, getColorByIndex(colorIndex));
+    // Small downward velocity and random horizontal drift
     ball.vx = (Math.random() - 0.5) * 100;
     ball.vy = Math.random() * 50;
     ball.driftAx = 0;
@@ -52,10 +47,11 @@ export function initializeBallPit() {
   
   // Then fill the rest with random colors
   for (let i = 8; i < targetBalls; i++) {
-    const x = (xLeftCss + Math.random() * widthCss) * DPR;
+    const x = spawnXLeft + Math.random() * (spawnXRight - spawnXLeft);
     const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
     
     const ball = spawnBall(x, y);
+    // Small downward velocity and random horizontal drift
     ball.vx = (Math.random() - 0.5) * 100;
     ball.vy = Math.random() * 50;
     ball.driftAx = 0;

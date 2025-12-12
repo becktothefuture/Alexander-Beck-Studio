@@ -285,7 +285,17 @@ a {
   transition: 
     inset var(--duration-resize) var(--ease-organic),
     border-radius var(--duration-resize) var(--ease-organic),
-    background-color var(--duration-settle) var(--ease-settle);
+    background-color var(--duration-settle) var(--ease-settle),
+    height var(--duration-resize) var(--ease-organic);
+}
+
+/* Ball Pit Mode - Extended height for spawning area above viewport */
+#bravia-balls.mode-pit {
+  /* 150vh height with bottom aligned to viewport bottom */
+  /* Top 50vh is above viewport (spawning area), bottom 100vh is visible */
+  height: 150vh;
+  bottom: var(--container-border);
+  top: auto;
 }
 
 /* Canvas - simulation drawing surface */
@@ -449,7 +459,7 @@ body.dark-mode .noise-2 {
 .decorative-script p a::after {
   content: '';
   position: absolute;
-  bottom: -1.5px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -497,7 +507,7 @@ body.dark-mode .noise-2 {
 .footer_link::after {
   content: '';
   position: absolute;
-  bottom: -1.5px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -555,7 +565,7 @@ body.dark-mode .noise-2 {
 .caption::after {
   content: '';
   position: absolute;
-  bottom: -1.5px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -722,7 +732,7 @@ body.dark-mode .corner svg * {
 .sound-toggle::after {
   content: '';
   position: absolute;
-  bottom: -1.5px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
