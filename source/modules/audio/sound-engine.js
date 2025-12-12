@@ -55,9 +55,8 @@ let CONFIG = {
   maxGain: 0.28,               // Soft maximum
   masterGain: 0.52,            // Understated
   
-  // Performance
-  maxConcurrentSounds: 14,     // Allow overlaps
-  minTimeBetweenSounds: 0.012, // Responsive
+  // Performance (voice pool size is fixed at 8)
+  minTimeBetweenSounds: 0.012, // Per-ball debounce (12ms)
   
   // Stereo
   maxPan: 0.22,                // Subtle width
@@ -176,7 +175,13 @@ let limiter = null;
 
 let isEnabled = false;
 let isUnlocked = false;
-let activeSoundCount = 0;
+
+// Voice pool for efficient sound playback (no node creation at runtime)
+const VOICE_POOL_SIZE = 8; // Max simultaneous sounds
+let voicePool = [];
+let lastGlobalSoundTime = 0;
+const GLOBAL_MIN_INTERVAL = 0.008; // 8ms between ANY sounds (125 sounds/sec max)
+
 let lastSoundTime = new Map(); // ball id → timestamp
 
 // Reduced motion preference
@@ -241,7 +246,7 @@ export async function unlockAudio() {
 
 /**
  * Build the audio processing graph:
- * Oscillators → Filter → [Dry + Reverb] → Limiter → Master → Output
+ * Voice Pool → [Dry + Reverb] → Limiter → Master → Output
  */
 function buildAudioGraph() {
   // Master gain (overall volume control)
@@ -272,6 +277,46 @@ function buildAudioGraph() {
   reverbNode.connect(limiter);
   limiter.connect(masterGain);
   masterGain.connect(audioContext.destination);
+  
+  // Initialize voice pool
+  initVoicePool();
+}
+
+/**
+ * Initialize the voice pool with pre-allocated audio nodes
+ * Each voice has: oscillator placeholder, filter, envelope, panner
+ */
+function initVoicePool() {
+  voicePool = [];
+  
+  for (let i = 0; i < VOICE_POOL_SIZE; i++) {
+    const voice = {
+      id: i,
+      inUse: false,
+      startTime: 0,
+      // Persistent nodes (reused)
+      filter: audioContext.createBiquadFilter(),
+      envelope: audioContext.createGain(),
+      panner: audioContext.createStereoPanner(),
+      reverbSend: audioContext.createGain(),
+      // Oscillators created per-use (can't restart, but lightweight)
+      osc: null,
+      osc2: null,
+      harmGain: null,
+    };
+    
+    // Configure filter
+    voice.filter.type = 'lowpass';
+    
+    // Connect persistent chain: filter → envelope → panner → dry/wet
+    voice.filter.connect(voice.envelope);
+    voice.envelope.connect(voice.panner);
+    voice.panner.connect(dryGain);
+    voice.panner.connect(voice.reverbSend);
+    voice.reverbSend.connect(wetGain);
+    
+    voicePool.push(voice);
+  }
 }
 
 /**
@@ -326,7 +371,7 @@ function createReverbEffect() {
 // ════════════════════════════════════════════════════════════════════════════════
 
 /**
- * Play a collision sound
+ * Play a collision sound using voice pool with stealing
  * @param {number} ballRadius - Ball radius (maps to pitch)
  * @param {number} intensity - Collision intensity 0-1 (maps to volume + brightness)
  * @param {number} xPosition - Ball X position 0-1 (maps to stereo pan)
@@ -339,34 +384,148 @@ export function playCollisionSound(ballRadius, intensity, xPosition = 0.5, ballI
   // Skip if reduced motion preferred
   if (prefersReducedMotion) return;
   
-  // Throttle concurrent sounds
-  if (activeSoundCount >= CONFIG.maxConcurrentSounds) return;
+  const now = audioContext.currentTime;
   
-  // Debounce per-ball (prevent rapid-fire from same collision)
+  // Global rate limiter (max ~125 sounds/sec across ALL sources)
+  if (now - lastGlobalSoundTime < GLOBAL_MIN_INTERVAL) return;
+  
+  // Per-ball debounce (prevent rapid-fire from same ball)
   if (ballId !== null) {
-    const now = audioContext.currentTime;
     const lastTime = lastSoundTime.get(ballId) || 0;
     if (now - lastTime < CONFIG.minTimeBetweenSounds) return;
     lastSoundTime.set(ballId, now);
   }
   
+  // Update global timestamp
+  lastGlobalSoundTime = now;
+  
   // Clean up old entries periodically
-  if (lastSoundTime.size > 500) {
-    const threshold = audioContext.currentTime - 1;
+  if (lastSoundTime.size > 200) {
+    const threshold = now - 0.5;
     for (const [id, time] of lastSoundTime) {
       if (time < threshold) lastSoundTime.delete(id);
     }
   }
   
+  // Get a voice (free or steal oldest)
+  const voice = acquireVoice(now);
+  if (!voice) return; // Should never happen with stealing
+  
   // Map ball radius to pentatonic pitch
-  // Larger balls → lower pitch, smaller balls → higher pitch
   const frequency = radiusToFrequency(ballRadius);
   
   // Clamp intensity
   const clampedIntensity = Math.max(0, Math.min(1, intensity));
   
-  // Play the synthesized pebble sound
-  playSynthesizedPebble(frequency, clampedIntensity, xPosition);
+  // Play using the pooled voice
+  playVoice(voice, frequency, clampedIntensity, xPosition, now);
+}
+
+/**
+ * Acquire a voice from the pool (with voice stealing)
+ * Returns the oldest voice if all are in use
+ */
+function acquireVoice(now) {
+  // First, look for a free voice
+  for (const voice of voicePool) {
+    if (!voice.inUse) {
+      return voice;
+    }
+  }
+  
+  // All voices in use - steal the oldest one
+  let oldestVoice = voicePool[0];
+  for (const voice of voicePool) {
+    if (voice.startTime < oldestVoice.startTime) {
+      oldestVoice = voice;
+    }
+  }
+  
+  // Stop the old oscillators immediately
+  releaseVoice(oldestVoice);
+  
+  return oldestVoice;
+}
+
+/**
+ * Release a voice (stop oscillators, mark as free)
+ */
+function releaseVoice(voice) {
+  if (voice.osc) {
+    try {
+      voice.osc.stop();
+      voice.osc.disconnect();
+    } catch (e) { /* already stopped */ }
+    voice.osc = null;
+  }
+  if (voice.osc2) {
+    try {
+      voice.osc2.stop();
+      voice.osc2.disconnect();
+    } catch (e) { /* already stopped */ }
+    voice.osc2 = null;
+  }
+  if (voice.harmGain) {
+    try { voice.harmGain.disconnect(); } catch (e) {}
+    voice.harmGain = null;
+  }
+  voice.inUse = false;
+}
+
+/**
+ * Play a sound using a pooled voice
+ */
+function playVoice(voice, frequency, intensity, xPosition, now) {
+  voice.inUse = true;
+  voice.startTime = now;
+  
+  // Calculate parameters
+  const gain = CONFIG.minGain + (CONFIG.maxGain - CONFIG.minGain) * intensity;
+  const filterFreq = CONFIG.filterBaseFreq + CONFIG.filterVelocityRange * intensity;
+  const duration = CONFIG.attackTime + CONFIG.decayTime + 0.02;
+  
+  // Update filter (reused node)
+  voice.filter.frequency.setValueAtTime(filterFreq, now);
+  voice.filter.Q.setValueAtTime(CONFIG.filterQ, now);
+  
+  // Update panner (reused node)
+  voice.panner.pan.setValueAtTime((xPosition - 0.5) * 2 * CONFIG.maxPan, now);
+  
+  // Update reverb send
+  const reverbAmount = 1 - (intensity * 0.5);
+  voice.reverbSend.gain.setValueAtTime(reverbAmount, now);
+  
+  // Create oscillators (must be new each time - Web Audio limitation)
+  voice.osc = audioContext.createOscillator();
+  voice.osc.type = 'sine';
+  voice.osc.frequency.setValueAtTime(frequency, now);
+  
+  voice.osc2 = audioContext.createOscillator();
+  voice.osc2.type = 'sine';
+  voice.osc2.frequency.setValueAtTime(frequency * 2, now);
+  
+  voice.harmGain = audioContext.createGain();
+  voice.harmGain.gain.setValueAtTime(CONFIG.harmonicGain, now);
+  
+  // Connect oscillators to filter (reused chain)
+  voice.osc.connect(voice.filter);
+  voice.osc2.connect(voice.harmGain);
+  voice.harmGain.connect(voice.filter);
+  
+  // Set envelope (reused node)
+  voice.envelope.gain.cancelScheduledValues(now);
+  voice.envelope.gain.setValueAtTime(0.001, now);
+  voice.envelope.gain.linearRampToValueAtTime(gain, now + CONFIG.attackTime);
+  voice.envelope.gain.exponentialRampToValueAtTime(0.001, now + CONFIG.attackTime + CONFIG.decayTime);
+  
+  // Start and schedule stop
+  voice.osc.start(now);
+  voice.osc2.start(now);
+  voice.osc.stop(now + duration);
+  voice.osc2.stop(now + duration);
+  
+  // Schedule release
+  voice.osc.onended = () => releaseVoice(voice);
 }
 
 /**
@@ -391,108 +550,6 @@ function radiusToFrequency(radius) {
   return PENTATONIC_FREQUENCIES[index] * detune;
 }
 
-/**
- * Synthesize and play a single "underwater pebble" sound
- */
-function playSynthesizedPebble(frequency, intensity, xPosition) {
-  const now = audioContext.currentTime;
-  
-  activeSoundCount++;
-  
-  // Calculate parameters based on intensity
-  const gain = CONFIG.minGain + (CONFIG.maxGain - CONFIG.minGain) * intensity;
-  const filterFreq = CONFIG.filterBaseFreq + CONFIG.filterVelocityRange * intensity;
-  
-  // ──────────────────────────────────────────────────────────────────────────────
-  // OSCILLATOR: Sine wave (fundamental)
-  // ──────────────────────────────────────────────────────────────────────────────
-  const osc = audioContext.createOscillator();
-  osc.type = 'sine';
-  osc.frequency.value = frequency;
-  
-  // ──────────────────────────────────────────────────────────────────────────────
-  // OSCILLATOR 2: 2nd harmonic for warmth (subtle)
-  // ──────────────────────────────────────────────────────────────────────────────
-  const osc2 = audioContext.createOscillator();
-  osc2.type = 'sine';
-  osc2.frequency.value = frequency * 2; // Octave above
-  
-  const harmGain = audioContext.createGain();
-  harmGain.gain.value = CONFIG.harmonicGain;
-  
-  // ──────────────────────────────────────────────────────────────────────────────
-  // MIXER: Combine oscillators
-  // ──────────────────────────────────────────────────────────────────────────────
-  const oscMix = audioContext.createGain();
-  
-  // ──────────────────────────────────────────────────────────────────────────────
-  // FILTER: Low-pass for underwater muffling
-  // ──────────────────────────────────────────────────────────────────────────────
-  const filter = audioContext.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = filterFreq;
-  filter.Q.value = CONFIG.filterQ;
-  
-  // ──────────────────────────────────────────────────────────────────────────────
-  // ENVELOPE: Soft attack, exponential decay
-  // ──────────────────────────────────────────────────────────────────────────────
-  const envelope = audioContext.createGain();
-  envelope.gain.setValueAtTime(0, now);
-  envelope.gain.linearRampToValueAtTime(gain, now + CONFIG.attackTime);
-  envelope.gain.exponentialRampToValueAtTime(0.001, now + CONFIG.attackTime + CONFIG.decayTime);
-  
-  // ──────────────────────────────────────────────────────────────────────────────
-  // PANNER: Subtle stereo positioning
-  // ──────────────────────────────────────────────────────────────────────────────
-  const panner = audioContext.createStereoPanner();
-  panner.pan.value = (xPosition - 0.5) * 2 * CONFIG.maxPan; // -0.3 to +0.3
-  
-  // ──────────────────────────────────────────────────────────────────────────────
-  // CONNECT AUDIO GRAPH
-  // ──────────────────────────────────────────────────────────────────────────────
-  osc.connect(oscMix);
-  osc2.connect(harmGain);
-  harmGain.connect(oscMix);
-  oscMix.connect(filter);
-  filter.connect(envelope);
-  envelope.connect(panner);
-  
-  // Route to dry + wet (reverb) buses
-  panner.connect(dryGain);
-  
-  // Softer hits get more reverb (sound more distant)
-  const reverbAmount = 1 - (intensity * 0.5); // 0.5-1.0 range
-  const reverbSend = audioContext.createGain();
-  reverbSend.gain.value = reverbAmount;
-  panner.connect(reverbSend);
-  reverbSend.connect(wetGain);
-  
-  // ──────────────────────────────────────────────────────────────────────────────
-  // START AND STOP
-  // ──────────────────────────────────────────────────────────────────────────────
-  const duration = CONFIG.attackTime + CONFIG.decayTime + 0.05; // Extra buffer for reverb tail
-  
-  osc.start(now);
-  osc2.start(now);
-  osc.stop(now + duration);
-  osc2.stop(now + duration);
-  
-  // Cleanup after sound completes
-  osc.onended = () => {
-    activeSoundCount = Math.max(0, activeSoundCount - 1);
-    // Disconnect nodes to allow GC
-    try {
-      osc.disconnect();
-      osc2.disconnect();
-      harmGain.disconnect();
-      oscMix.disconnect();
-      filter.disconnect();
-      envelope.disconnect();
-      panner.disconnect();
-      reverbSend.disconnect();
-    } catch (e) { /* already disconnected */ }
-  };
-}
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PUBLIC API
@@ -525,7 +582,8 @@ export function getSoundState() {
   return {
     isUnlocked,
     isEnabled,
-    activeSounds: activeSoundCount,
+    activeSounds: voicePool.filter(v => v.inUse).length,
+    poolSize: VOICE_POOL_SIZE,
   };
 }
 
