@@ -739,56 +739,60 @@ export function updateAmbientSounds(balls, floorY = Infinity) {
   if (prefersReducedMotion) return;
   
   let rollingSum = 0;
-  let whooshSum = 0;
   let rollingCount = 0;
   
-  // Analyze all balls for energy contribution
-  for (const ball of balls) {
-    const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-    
-    // Rolling: ball near floor + moving slowly horizontally
-    const isNearFloor = (ball.y + ball.r) >= (floorY - 5);
-    if (isNearFloor && speed > CONFIG.rollingMinVelocity && speed < CONFIG.rollingMaxVelocity) {
-      // Weight by horizontal velocity (rolling is horizontal)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ROLLING: Wooden pieces rolling on surface
+  // Only when: touching floor + moving horizontally + not bouncing
+  // ═══════════════════════════════════════════════════════════════════════════════
+  if (CONFIG.rollingEnabled) {
+    for (const ball of balls) {
+      const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
       const horizSpeed = Math.abs(ball.vx);
-      rollingSum += horizSpeed / CONFIG.rollingMaxVelocity;
-      rollingCount++;
-    }
-    
-    // Whoosh: any ball moving fast
-    if (speed > CONFIG.whooshMinVelocity) {
-      whooshSum += (speed - CONFIG.whooshMinVelocity) / 500; // Normalize
+      const vertSpeed = Math.abs(ball.vy);
+      
+      // Must be near floor
+      const isNearFloor = (ball.y + ball.r) >= (floorY - 3);
+      
+      // Must be moving primarily horizontally (rolling, not bouncing)
+      const isRolling = horizSpeed > vertSpeed * 2;
+      
+      // Must be in the right speed range
+      const inSpeedRange = speed > CONFIG.rollingMinVelocity && speed < CONFIG.rollingMaxVelocity;
+      
+      if (isNearFloor && isRolling && inSpeedRange) {
+        // Weight by horizontal velocity
+        rollingSum += horizSpeed / CONFIG.rollingMaxVelocity;
+        rollingCount++;
+      }
     }
   }
   
-  // Smooth the energy values (prevents jarring changes)
-  const targetRolling = Math.min(1, rollingSum / Math.max(1, rollingCount * 0.5));
-  const targetWhoosh = Math.min(1, whooshSum / 3);
+  // Smooth the rolling energy (prevents jarring)
+  const targetRolling = rollingCount > 0 
+    ? Math.min(1, rollingSum / Math.max(1, rollingCount * 0.7))
+    : 0;
   
   currentRollingEnergy += (targetRolling - currentRollingEnergy) * ENERGY_SMOOTH;
-  currentWhooshEnergy += (targetWhoosh - currentWhooshEnergy) * ENERGY_SMOOTH;
   
-  // Apply to ambient sound gains
+  // Apply rolling sound (very subtle, background texture)
   if (rollingGain && CONFIG.rollingEnabled) {
     const rollVol = currentRollingEnergy * CONFIG.rollingGain;
-    rollingGain.gain.setTargetAtTime(rollVol, audioContext.currentTime, 0.05);
+    rollingGain.gain.setTargetAtTime(rollVol, audioContext.currentTime, 0.08);
     
-    // Modulate pitch slightly based on average speed
+    // Gentle pitch modulation based on rolling speed
     if (rollingOsc) {
-      const pitchMod = 1 + currentRollingEnergy * 0.3; // +30% at max
-      rollingOsc.frequency.setTargetAtTime(CONFIG.rollingFreq * pitchMod, audioContext.currentTime, 0.1);
+      const pitchMod = 1 + currentRollingEnergy * 0.15; // Subtle +15% at max
+      rollingOsc.frequency.setTargetAtTime(CONFIG.rollingFreq * pitchMod, audioContext.currentTime, 0.15);
     }
   }
   
-  if (whooshGain && CONFIG.whooshEnabled) {
-    const whooshVol = currentWhooshEnergy * CONFIG.whooshGain;
-    whooshGain.gain.setTargetAtTime(whooshVol, audioContext.currentTime, 0.03);
-    
-    // Raise filter frequency for faster movement (brighter whoosh)
-    if (whooshFilter) {
-      const freqMod = 1 + currentWhooshEnergy * 1.5; // Up to 2.5x
-      whooshFilter.frequency.setTargetAtTime(CONFIG.whooshFreq * freqMod, audioContext.currentTime, 0.05);
-    }
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // WHOOSH: Disabled for small wooden pieces (not realistic)
+  // Keep gain at 0 to silence any existing nodes
+  // ═══════════════════════════════════════════════════════════════════════════════
+  if (whooshGain) {
+    whooshGain.gain.setTargetAtTime(0, audioContext.currentTime, 0.05);
   }
 }
 
