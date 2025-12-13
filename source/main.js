@@ -16,6 +16,7 @@ import { setMode, MODES, getForceApplicator } from './modules/modes/mode-control
 import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
+import { initPortfolioGate } from './modules/ui/portfolio-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
 // Layout controls now integrated into master panel
@@ -259,9 +260,12 @@ function ensureNoiseElements() {
     setupKeyboardShortcuts();
     console.log('✓ Keyboard shortcuts registered');
     
-    // Initialize password gate (CV protection)
+    // Initialize password gates (CV and Portfolio protection)
     initCVGate();
-    console.log('✓ Password gate initialized');
+    console.log('✓ CV password gate initialized');
+    
+    initPortfolioGate();
+    console.log('✓ Portfolio password gate initialized');
     
     // Create quick sound toggle button (bottom-left)
     createSoundToggle();

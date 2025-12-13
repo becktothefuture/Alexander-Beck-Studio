@@ -412,7 +412,7 @@ body.dark-mode .content-background-layer {
 
 /* SVG Logo styling */
 .brand-logo-svg {
-  width: clamp(300px, 55vw, 800px);
+  width: clamp(225px, 41vw, 600px);
   height: auto;
   color: var(--text-color, #161616);
   
@@ -429,7 +429,7 @@ body.dark-mode .brand-logo-svg {
 /* Mobile: smaller logo */
 @media (max-width: 768px) {
   .brand-logo-svg {
-    width: clamp(200px, 80vw, 400px);
+    width: clamp(150px, 60vw, 300px);
   }
 }
 

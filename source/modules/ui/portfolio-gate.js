@@ -1,6 +1,6 @@
 /**
- * CV Gate Controller
- * Handles the password protection UI for the CV download.
+ * Portfolio Gate Controller
+ * Handles the password protection UI for the portfolio section.
  */
 
 /**
@@ -37,19 +37,19 @@ function triggerFlash(flashEl, type) {
     }, duration);
 }
 
-export function initCVGate() {
-    const trigger = document.getElementById('cv-gate-trigger');
+export function initPortfolioGate() {
+    const trigger = document.getElementById('portfolio-gate-trigger');
     const logo = document.getElementById('brand-logo');
-    const gate = document.getElementById('cv-gate');
-    const portfolioGate = document.getElementById('portfolio-gate'); // Get portfolio gate to check/close if open
-    const inputs = Array.from(document.querySelectorAll('.cv-digit'));
+    const gate = document.getElementById('portfolio-gate');
+    const cvGate = document.getElementById('cv-gate'); // Get CV gate to check/close if open
+    const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
     const pageFlash = document.getElementById('page-flash');
     
     // Correct Code
-    const CODE = '1111';
+    const CODE = '1234';
     
     if (!trigger || !logo || !gate || inputs.length === 0) {
-        console.warn('CV Gate: Missing required elements');
+        console.warn('Portfolio Gate: Missing required elements');
         return;
     }
     
@@ -64,11 +64,11 @@ export function initCVGate() {
     const openGate = (e) => {
         e.preventDefault();
         
-        // Close portfolio gate if it's open
-        if (portfolioGate && portfolioGate.classList.contains('active')) {
-            portfolioGate.classList.remove('active');
+        // Close CV gate if it's open
+        if (cvGate && cvGate.classList.contains('active')) {
+            cvGate.classList.remove('active');
             setTimeout(() => {
-                portfolioGate.classList.add('hidden');
+                cvGate.classList.add('hidden');
             }, 400);
         }
         
@@ -112,7 +112,8 @@ export function initCVGate() {
                 // Success - Green flash, then redirect
                 triggerFlash(flash, 'success');
                 setTimeout(() => {
-                    window.location.href = 'cv.html';
+                    // TODO: Update with actual portfolio URL when ready
+                    window.location.href = 'portfolio.html';
                 }, 500);
             } else {
                 // Failure - Red flash, clear inputs

@@ -47,7 +47,17 @@
     </div>
   </div>
   
-  <!-- Page Flash Overlay (for CV gate success/failure feedback) -->
+  <!-- Portfolio Gate - Fixed overlay, ABOVE everything (z:100) -->
+  <div id="portfolio-gate" class="portfolio-gate hidden" aria-hidden="true">
+    <div class="portfolio-gate-inputs">
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="Digit 1" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="Digit 2" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="Digit 3" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Digit 4" autocomplete="off" />
+    </div>
+  </div>
+  
+  <!-- Page Flash Overlay (for CV and Portfolio gate success/failure feedback) -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
   
   <header class="viewport viewport--content">
@@ -116,7 +126,7 @@
   </header>
   <nav id="footer-links-container" class="footer-links-container" aria-label="Footer navigation links">
     <a id="contact-email" href="mailto:info@beck.fyi?subject=Hello!" class="footer_link">info@beck.fyi</a>
-    <a id="portfolio-link" href="mailto:alexander@beck.fyi?subject=Hello!" class="footer_link">Portfolio [offline]</a>
+    <a id="portfolio-gate-trigger" href="#" class="footer_link">Portfolio [offline]</a>
     <a id="cv-gate-trigger" href="#" class="footer_link">Download Bio/CV</a>
   </nav>
   <aside class="viewport viewport--corners" aria-label="Decorative corners and philosophy statement">

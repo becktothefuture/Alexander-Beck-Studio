@@ -169,6 +169,24 @@
     </div>
     
     <!-- ═════════════════════════════════════════════════════════════════════
+         PORTFOLIO GATE (Hidden Password Input)
+         ══════════════════════════════════════════════════════════════════════
+         
+         PURPOSE: Hidden password entry for portfolio access
+         POSITION: Absolutely centered, hidden until activated
+         
+         ANIMATION: Crossfade + vertical slide with logo (same as CV gate)
+         ═════════════════════════════════════════════════════════════════════ -->
+    <div id="portfolio-gate" class="portfolio-gate hidden" aria-hidden="true">
+      <div class="portfolio-gate-inputs">
+        <input type="text" maxlength="1" class="portfolio-digit" data-index="0" aria-label="Digit 1" />
+        <input type="text" maxlength="1" class="portfolio-digit" data-index="1" aria-label="Digit 2" />
+        <input type="text" maxlength="1" class="portfolio-digit" data-index="2" aria-label="Digit 3" />
+        <input type="text" maxlength="1" class="portfolio-digit" data-index="3" aria-label="Digit 4" />
+      </div>
+    </div>
+    
+    <!-- ═════════════════════════════════════════════════════════════════════
          FOOTER ELEMENTS (Bottom)
          ══════════════════════════════════════════════════════════════════════
          
@@ -188,7 +206,7 @@
     
     <!-- Contact links (bottom-center) -->
     <a id="contact-email" href="mailto:info@beck.fyi" class="footer_link">info@beck.fyi</a>
-    <a id="portfolio-link" href="#" class="footer_link">Portfolio [offline]</a>
+    <a id="portfolio-gate-trigger" href="#" class="footer_link">Portfolio [offline]</a>
     <a id="cv-gate-trigger" href="#" class="footer_link">Download Bio/CV</a>
     
     <!-- Timestamp (bottom-right) -->
