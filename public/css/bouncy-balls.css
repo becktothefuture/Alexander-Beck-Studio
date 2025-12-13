@@ -82,7 +82,7 @@
   
   /* Legacy alias for compatibility */
   --container-radius: var(--wall-radius);
-  --container-border: 0px;
+  --container-border: 20px;  /* Visible dark frame around content */
   --simulation-padding: 0px;
   --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
   
@@ -158,12 +158,12 @@ body,
 body.body {
   overflow: hidden;
   margin: 0;
-  padding: 0;
+  padding: var(--container-border); /* Creates visible dark frame from html bg */
   box-sizing: border-box;
   width: 100%;
   height: 100%;
   cursor: none; /* Simulation draws custom cursor */
-  /* Body is transparent - simulation container (#bravia-balls) has the wall color */
+  /* Body is transparent - reveals dark html background as frame */
   background: transparent !important;
   background-color: transparent !important;
   color: rgba(64, 64, 64, 1);
@@ -172,6 +172,9 @@ body.body {
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
   text-rendering: optimizeLegibility;
+  
+  /* Organic transition for border changes */
+  transition: padding var(--duration-resize, 600ms) var(--ease-organic, ease);
 }
 
 body.dark-mode,
