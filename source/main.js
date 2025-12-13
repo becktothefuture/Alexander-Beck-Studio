@@ -16,6 +16,7 @@ import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
+import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.js';
 import { setApplyVisualCSSVars } from './modules/ui/control-registry.js';
 
@@ -266,6 +267,10 @@ function ensureNoiseElements() {
     // Create quick sound toggle button (bottom-left)
     createSoundToggle();
     console.log('✓ Sound toggle button created');
+    
+    // Create quick theme toggle button (bottom-left)
+    createThemeToggle();
+    console.log('✓ Theme toggle button created');
     
     // Initialize starting mode (Flies by default)
     setMode(MODES.FLIES);

@@ -80,10 +80,10 @@
   --chrome-bg: var(--chrome-bg-light);  /* Current chrome color */
   
   /* Content area backgrounds */
-  --bg-light: #0a0a0a;  /* WALL COLOR - Unified background */
-  --bg-dark: #0a0a0a;   /* WALL COLOR - Unified background */
+  --bg-light: #f5f5f5;  /* Actual Light Mode: Soft white */
+  --bg-dark: #0a0a0a;   /* Wall Color: Deep dark */
   
-  /* Rubber wall color = frame color (they're the same visual element) */
+  /* Rubber wall color = frame color */
   --wall-color: var(--frame-color-light);
   --wall-thickness: 12px;          /* Thickness of the rubber wall tubes */
   --wall-softness: 20px;           /* Blur radius for cushioned glow effect */
@@ -180,7 +180,7 @@ body.body {
   /* Body is transparent - reveals dark html background as frame */
   background: transparent !important;
   background-color: transparent !important;
-  color: rgba(200, 200, 200, 1); /* Light text for dark background */
+  color: rgba(64, 64, 64, 1); /* Dark text for Light Mode */
   
   /* GLOBAL TYPOGRAPHY */
   -webkit-font-smoothing: subpixel-antialiased;
@@ -544,7 +544,7 @@ body.dark-mode .noise-3 {
   letter-spacing: 0.08em !important;
   text-transform: uppercase;
   font-size: clamp(0.6rem, 0.9vw, 0.75rem) !important;
-  color: #cecece !important; /* Light text for dark background */
+  color: #1a1a1a !important; /* Dark text for light mode */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -564,7 +564,7 @@ body.dark-mode .noise-3 {
   font-weight: 400;
   line-height: 1.35;
   letter-spacing: 0.01em;
-  color: #cecece;
+  color: #161616; /* Dark text for light mode */
   opacity: 0.85;
   pointer-events: none;
   user-select: none;
@@ -623,7 +623,7 @@ body.dark-mode .noise-3 {
 }
 
 .decorative-script p a:hover {
-  color: #ffffff !important;
+  color: #000000 !important;
   opacity: 1;
 }
 
@@ -671,7 +671,7 @@ body.dark-mode .noise-3 {
 }
 
 .footer_link:hover {
-  color: #ffffff !important;
+  color: #000000 !important;
   opacity: 1;
 }
 
@@ -703,7 +703,7 @@ body.dark-mode .noise-3 {
 }
 
 .caption:hover {
-  color: #ffffff !important;
+  color: #000000 !important;
   opacity: 1;
 }
 
@@ -892,7 +892,7 @@ body.dark-mode .corner svg * {
 
 /* Hover: same as .footer_link - goes full black/white + dot appears */
 .sound-toggle:hover {
-  color: #ffffff !important;
+  color: #000000 !important;
   opacity: 1;
 }
 
@@ -960,8 +960,96 @@ body.dark-mode .sound-toggle[data-enabled="true"]:hover {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   ACCESSIBILITY
+   THEME TOGGLE - Quick Light/Dark switch (bottom-left, next to Sound)
    ═══════════════════════════════════════════════════════════════════════════════ */
+
+.theme-toggle {
+  /* Fixed position for layout - Next to Sound Toggle */
+  position: fixed;
+  bottom: calc(var(--edge-inset-lg) + var(--container-border, 0px));
+  left: calc(var(--edge-inset-lg) + var(--container-border, 0px) + 220px); /* 100px after Sound Toggle */
+  z-index: 20;
+  
+  /* Match .footer_link exactly */
+  font-family: 'Geist', sans-serif;
+  font-size: clamp(0.65rem, 0.9vw, 0.75rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  
+  /* Match .footer_link base state */
+  color: inherit;
+  opacity: 0.85;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  
+  /* Same transform as footer elements */
+  transform: translateY(var(--space-md));
+  
+  /* Match .footer_link transitions */
+  transition: 
+    color var(--duration-quick) ease,
+    opacity var(--duration-quick) ease,
+    transform var(--duration-resize) var(--ease-organic);
+}
+
+/* Hover dot indicator - same as .footer_link */
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transition: 
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s ease;
+}
+
+/* Hover state */
+.theme-toggle:hover {
+  color: #000000 !important;
+  opacity: 1;
+}
+
+.theme-toggle:hover::after {
+  transform: translateX(-50%) scale(1);
+  opacity: 0.6;
+}
+
+/* Dark mode overrides */
+body.dark-mode .theme-toggle {
+  color: #b0b0b0;
+  opacity: 0.88;
+}
+
+body.dark-mode .theme-toggle:hover {
+  color: #f5f5f5 !important;
+  opacity: 1;
+}
+
+/* Responsive positioning */
+@media (max-width: 768px) {
+  .theme-toggle {
+    left: calc(var(--edge-inset, 1rem) + var(--container-border, 0px) + 180px);
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-toggle {
+    left: calc(var(--edge-inset, 0.75rem) + var(--container-border, 0px) + 140px);
+    font-size: clamp(0.55rem, 1.2vw, 0.65rem);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   #bravia-balls canvas {
