@@ -17,6 +17,7 @@ import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.js';
+import { setApplyVisualCSSVars } from './modules/ui/control-registry.js';
 
 async function loadRuntimeConfig() {
   try {
@@ -188,6 +189,9 @@ function ensureNoiseElements() {
 (async function init() {
   // Mark JS as enabled immediately (for CSS fallback detection)
   document.documentElement.classList.add('js-enabled');
+  
+  // Wire up control registry to use CSS vars function (avoids circular dependency)
+  setApplyVisualCSSVars(applyVisualCSSVars);
   
   try {
     console.log('🚀 Initializing modular bouncy balls...');

@@ -1,6 +1,7 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                            UI CONTROLS WIRING                                ║
-// ║      Wires sliders/selects to global state and systems (subset)             ║
+// ║      Wires sliders/selects to global state and systems                       ║
+// ║      Uses centralized control-registry.js for consistent definitions         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
@@ -9,6 +10,7 @@ import { autoSaveSettings } from '../utils/storage.js';
 import { setMode, MODES } from '../modes/mode-controller.js';
 import { resize } from '../rendering/renderer.js';
 import { applyFramePaddingCSSVars, applyVisualCSSVars } from '../../main.js';
+import { bindRegisteredControls, syncSlidersToState } from './control-registry.js';
 
 function bindSlider(id, onChange) {
   const el = document.getElementById(id);
@@ -23,6 +25,11 @@ function setVal(id, text) {
 
 export function setupControls() {
   const g = getGlobals();
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BIND ALL REGISTERED CONTROLS FROM REGISTRY
+  // ═══════════════════════════════════════════════════════════════════════════
+  bindRegisteredControls();
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MODE BUTTONS - Critical for panel mode switching
