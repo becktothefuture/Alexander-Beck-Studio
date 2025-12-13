@@ -25,6 +25,13 @@ let controlPanelElement = null;
 let soundPanelElement = null;
 let dockToggleElement = null;
 
+// Drag state
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let dockStartX = 0;
+let dockStartY = 0;
+
 // ════════════════════════════════════════════════════════════════════════════════
 // SOUND PANEL HTML (simplified for dock)
 // ════════════════════════════════════════════════════════════════════════════════
@@ -113,6 +120,9 @@ export function createPanelDock() {
   
   // Setup keyboard shortcuts
   setupKeyboardShortcuts();
+  
+  // Setup dragging
+  setupDragging();
   
   console.log('✓ Panel dock created (both panels collapsed by default)');
   return dockElement;
@@ -218,13 +228,222 @@ function createDockToggle() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
+// DRAG FUNCTIONALITY
+// ════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Setup drag handlers for the dock
+ */
+function setupDragging() {
+  if (!dockElement) return;
+  
+  // Get all panel headers in the dock
+  const headers = dockElement.querySelectorAll('.panel-header');
+  
+  headers.forEach(header => {
+    // Add drag handle indicator
+    const titleEl = header.querySelector('.panel-title');
+    if (titleEl && !titleEl.querySelector('.drag-indicator')) {
+      const dragIndicator = document.createElement('span');
+      dragIndicator.className = 'drag-indicator';
+      dragIndicator.innerHTML = '⋮⋮';
+      dragIndicator.setAttribute('aria-hidden', 'true');
+      titleEl.insertBefore(dragIndicator, titleEl.firstChild);
+    }
+    
+    // Mouse events
+    header.addEventListener('mousedown', handleDragStart);
+    
+    // Touch events
+    header.addEventListener('touchstart', handleDragStart, { passive: false });
+  });
+  
+  // Global move/end listeners
+  document.addEventListener('mousemove', handleDragMove);
+  document.addEventListener('mouseup', handleDragEnd);
+  document.addEventListener('touchmove', handleDragMove, { passive: false });
+  document.addEventListener('touchend', handleDragEnd);
+  
+  // Load saved position
+  loadDockPosition();
+}
+
+/**
+ * Handle drag start
+ */
+function handleDragStart(e) {
+  // Only drag from header, not from buttons or controls
+  if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
+    return;
+  }
+  
+  // Check if this is a collapse toggle (short click) or drag start
+  const header = e.target.closest('.panel-header');
+  if (!header) return;
+  
+  // Get position
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  
+  // Store start positions
+  dragStartX = clientX;
+  dragStartY = clientY;
+  
+  // Get dock's current position
+  const rect = dockElement.getBoundingClientRect();
+  dockStartX = rect.left;
+  dockStartY = rect.top;
+  
+  // Mark as potentially dragging (will confirm after threshold)
+  isDragging = false;
+  
+  // Store header for click detection
+  header._dragStartTime = Date.now();
+  header._dragMoved = false;
+  
+  // Prevent text selection during drag
+  e.preventDefault();
+}
+
+/**
+ * Handle drag move
+ */
+function handleDragMove(e) {
+  if (dragStartX === 0 && dragStartY === 0) return;
+  
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  
+  const deltaX = clientX - dragStartX;
+  const deltaY = clientY - dragStartY;
+  
+  // Threshold to differentiate click from drag
+  const dragThreshold = 5;
+  
+  if (!isDragging && (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold)) {
+    isDragging = true;
+    dockElement.classList.add('dragging');
+    
+    // Switch to fixed positioning with current position
+    dockElement.style.position = 'fixed';
+    dockElement.style.top = `${dockStartY}px`;
+    dockElement.style.left = `${dockStartX}px`;
+    dockElement.style.right = 'auto';
+  }
+  
+  if (isDragging) {
+    // Calculate new position
+    let newX = dockStartX + deltaX;
+    let newY = dockStartY + deltaY;
+    
+    // Constrain to viewport
+    const dockRect = dockElement.getBoundingClientRect();
+    const minX = 0;
+    const maxX = window.innerWidth - dockRect.width;
+    const minY = 0;
+    const maxY = window.innerHeight - dockRect.height;
+    
+    newX = Math.max(minX, Math.min(maxX, newX));
+    newY = Math.max(minY, Math.min(maxY, newY));
+    
+    // Apply position
+    dockElement.style.left = `${newX}px`;
+    dockElement.style.top = `${newY}px`;
+    
+    // Mark moved
+    const headers = dockElement.querySelectorAll('.panel-header');
+    headers.forEach(h => h._dragMoved = true);
+    
+    e.preventDefault();
+  }
+}
+
+/**
+ * Handle drag end
+ */
+function handleDragEnd(e) {
+  if (isDragging) {
+    isDragging = false;
+    dockElement.classList.remove('dragging');
+    
+    // Save position
+    saveDockPosition();
+  }
+  
+  // Reset drag tracking
+  dragStartX = 0;
+  dragStartY = 0;
+}
+
+/**
+ * Save dock position to localStorage
+ */
+function saveDockPosition() {
+  if (!dockElement) return;
+  
+  try {
+    const position = {
+      left: dockElement.style.left,
+      top: dockElement.style.top,
+      useCustomPosition: true
+    };
+    localStorage.setItem('panel_dock_position', JSON.stringify(position));
+  } catch (e) {}
+}
+
+/**
+ * Load dock position from localStorage
+ */
+function loadDockPosition() {
+  if (!dockElement) return;
+  
+  try {
+    const stored = localStorage.getItem('panel_dock_position');
+    if (stored) {
+      const position = JSON.parse(stored);
+      if (position.useCustomPosition) {
+        dockElement.style.position = 'fixed';
+        dockElement.style.left = position.left;
+        dockElement.style.top = position.top;
+        dockElement.style.right = 'auto';
+      }
+    }
+  } catch (e) {}
+}
+
+/**
+ * Reset dock to default position
+ */
+export function resetDockPosition() {
+  if (!dockElement) return;
+  
+  dockElement.style.position = '';
+  dockElement.style.left = '';
+  dockElement.style.top = '';
+  dockElement.style.right = '';
+  
+  try {
+    localStorage.removeItem('panel_dock_position');
+  } catch (e) {}
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
 // PANEL COLLAPSE/EXPAND
 // ════════════════════════════════════════════════════════════════════════════════
 
 /**
- * Toggle a panel's collapsed state
+ * Toggle a panel's collapsed state (only if not dragged)
  */
 function togglePanelCollapse(panel) {
+  // Get the header
+  const header = panel.querySelector('.panel-header');
+  
+  // Don't toggle if we just finished dragging
+  if (header && header._dragMoved) {
+    header._dragMoved = false;
+    return;
+  }
+  
   panel.classList.toggle('collapsed');
 }
 

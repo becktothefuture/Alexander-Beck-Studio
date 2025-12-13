@@ -80,8 +80,8 @@
   --chrome-bg: var(--chrome-bg-light);  /* Current chrome color */
   
   /* Content area backgrounds */
-  --bg-light: #cecece;  /* Light grey - content area */
-  --bg-dark: #1a1c1f;   /* Dark grey with 1% azure tint - softer than pure black */
+  --bg-light: #0a0a0a;  /* WALL COLOR - Unified background */
+  --bg-dark: #0a0a0a;   /* WALL COLOR - Unified background */
   
   /* Rubber wall color = frame color (they're the same visual element) */
   --wall-color: var(--frame-color-light);
@@ -180,7 +180,7 @@ body.body {
   /* Body is transparent - reveals dark html background as frame */
   background: transparent !important;
   background-color: transparent !important;
-  color: rgba(64, 64, 64, 1);
+  color: rgba(200, 200, 200, 1); /* Light text for dark background */
   
   /* GLOBAL TYPOGRAPHY */
   -webkit-font-smoothing: subpixel-antialiased;
@@ -544,7 +544,7 @@ body.dark-mode .noise-3 {
   letter-spacing: 0.08em !important;
   text-transform: uppercase;
   font-size: clamp(0.6rem, 0.9vw, 0.75rem) !important;
-  color: #1a1a1a !important;
+  color: #cecece !important; /* Light text for dark background */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -564,7 +564,7 @@ body.dark-mode .noise-3 {
   font-weight: 400;
   line-height: 1.35;
   letter-spacing: 0.01em;
-  color: #161616;
+  color: #cecece;
   opacity: 0.85;
   pointer-events: none;
   user-select: none;
@@ -623,7 +623,7 @@ body.dark-mode .noise-3 {
 }
 
 .decorative-script p a:hover {
-  color: #000000 !important;
+  color: #ffffff !important;
   opacity: 1;
 }
 
@@ -671,7 +671,7 @@ body.dark-mode .noise-3 {
 }
 
 .footer_link:hover {
-  color: #000000 !important;
+  color: #ffffff !important;
   opacity: 1;
 }
 
@@ -703,7 +703,7 @@ body.dark-mode .noise-3 {
 }
 
 .caption:hover {
-  color: #000000 !important;
+  color: #ffffff !important;
   opacity: 1;
 }
 
@@ -892,7 +892,7 @@ body.dark-mode .corner svg * {
 
 /* Hover: same as .footer_link - goes full black/white + dot appears */
 .sound-toggle:hover {
-  color: #000000 !important;
+  color: #ffffff !important;
   opacity: 1;
 }
 
@@ -1735,6 +1735,45 @@ body:not(.dark-mode) .panel-footer kbd {
   opacity: 0;
   pointer-events: none;
   transform: translateX(20px);
+}
+
+/* Dragging state */
+.panel-dock.dragging {
+  cursor: grabbing !important;
+  user-select: none;
+  transition: none !important;
+}
+
+.panel-dock.dragging * {
+  cursor: grabbing !important;
+}
+
+/* Drag indicator */
+.drag-indicator {
+  display: inline-block;
+  margin-right: 8px;
+  opacity: 0.35;
+  font-size: 12px;
+  letter-spacing: -2px;
+  cursor: grab;
+  transition: opacity 0.15s ease;
+}
+
+.panel-header:hover .drag-indicator {
+  opacity: 0.6;
+}
+
+.panel-dock.dragging .drag-indicator {
+  opacity: 0.8;
+}
+
+/* Make header draggable cursor */
+.panel-dock .panel-header {
+  cursor: grab;
+}
+
+.panel-dock .panel-header:active {
+  cursor: grabbing;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

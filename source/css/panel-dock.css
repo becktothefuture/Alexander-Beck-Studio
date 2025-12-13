@@ -38,6 +38,45 @@
   transform: translateX(20px);
 }
 
+/* Dragging state */
+.panel-dock.dragging {
+  cursor: grabbing !important;
+  user-select: none;
+  transition: none !important;
+}
+
+.panel-dock.dragging * {
+  cursor: grabbing !important;
+}
+
+/* Drag indicator */
+.drag-indicator {
+  display: inline-block;
+  margin-right: 8px;
+  opacity: 0.35;
+  font-size: 12px;
+  letter-spacing: -2px;
+  cursor: grab;
+  transition: opacity 0.15s ease;
+}
+
+.panel-header:hover .drag-indicator {
+  opacity: 0.6;
+}
+
+.panel-dock.dragging .drag-indicator {
+  opacity: 0.8;
+}
+
+/* Make header draggable cursor */
+.panel-dock .panel-header {
+  cursor: grab;
+}
+
+.panel-dock .panel-header:active {
+  cursor: grabbing;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    DOCKED PANELS — Override base panel positioning
    ═══════════════════════════════════════════════════════════════════════════════ */
