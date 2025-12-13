@@ -273,8 +273,8 @@ header.viewport.viewport--content {
   background-color: var(--bg-light) !important;
   border-radius: var(--container-radius);
   
-  /* Above balls (z:5) and noise layers */
-  z-index: 6 !important;
+  /* Below balls (z:5) - just provides background color */
+  z-index: 1 !important;
   
   /* Allow pointer events to pass through to balls where there's no text */
   pointer-events: none !important;
@@ -459,7 +459,7 @@ a {
   /* Outer container matches the rounded content area */
   border-radius: var(--container-radius);
   background: transparent;  /* Let .viewport--content show through */
-  z-index: 5;
+  z-index: 5 !important; /* Hard guarantee: balls are above background surface */
   pointer-events: none !important;
   user-select: none; 
   -webkit-user-select: none; 
@@ -530,11 +530,18 @@ a {
    Text (z:20+) above all
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.noise {
-  z-index: 2 !important;  /* Behind logo (z:3) and balls (z:5) */
+/* IMPORTANT: Webflow exports `.noise` as `position: fixed; inset:0; z-index:1000`.
+   If we leave it fixed, it can visually behave like a global “background overlay”
+   and confuse layering. The base noise layer must be CLIPPED inside #bravia-balls
+   and sit BEHIND the canvas (balls). */
+#bravia-balls .noise {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important; /* Behind canvas (z:1) */
   opacity: var(--noise-back-opacity) !important;
   background-size: var(--noise-size-base) var(--noise-size-base) !important;
   mix-blend-mode: multiply !important; /* Darkens grain on light background */
+  pointer-events: none !important;
 }
 
 .noise-2 {
