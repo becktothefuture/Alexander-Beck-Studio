@@ -327,21 +327,11 @@ html:not(.js-enabled) .viewport.viewport--content {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    UNIVERSAL PAGE FADE-IN (Dev + Production)
-   Staggered entrance: Canvas → Logo → Footer → UI
-   Soft 600ms ease-out creates gentle reveal without jarring pop
+   Staggered entrance: Content → Logo → Footer → Noise → UI
+   Balls are visible immediately; text/UI fades in softly
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* Canvas container - base layer, fades first */
-#bravia-balls {
-  opacity: 0;
-  transition: opacity 600ms ease-out;
-}
-
-body.page-ready #bravia-balls {
-  opacity: 1;
-}
-
-/* Hero/Logo text - slight delay after canvas */
+/* Hero/Logo text - fades in first */
 .hero__text,
 #brand-logo {
   opacity: 0;
@@ -413,7 +403,6 @@ body.page-ready #dockToggle {
 }
 
 /* FALLBACK: No-JS shows everything immediately */
-html.no-js #bravia-balls,
 html.no-js .hero__text,
 html.no-js #brand-logo,
 html.no-js .footer_link,
@@ -425,7 +414,6 @@ html.no-js .noise-3,
 html.no-js .sound-toggle,
 html.no-js .theme-toggle,
 html.no-js #dockToggle,
-html:not(.js-enabled) #bravia-balls,
 html:not(.js-enabled) .hero__text,
 html:not(.js-enabled) #brand-logo,
 html:not(.js-enabled) .footer_link,
@@ -443,7 +431,7 @@ html:not(.js-enabled) #dockToggle {
 
 /* Reduced motion: Skip animation, show immediately */
 @media (prefers-reduced-motion: reduce) {
-  #bravia-balls,
+  .viewport.viewport--content,
   .hero__text,
   #brand-logo,
   .footer_link,
@@ -458,7 +446,7 @@ html:not(.js-enabled) #dockToggle {
     transition: none !important;
   }
   
-  body.page-ready #bravia-balls,
+  body.page-ready .viewport.viewport--content,
   body.page-ready .hero__text,
   body.page-ready #brand-logo {
     opacity: 1 !important;
@@ -1260,7 +1248,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 
 /* Links inside container - remove individual positioning and ensure visibility */
 #footer-links-container #contact-email,
-#footer-links-container #portfolio-link,
+#footer-links-container #portfolio-gate-trigger,
 #footer-links-container #cv-gate-trigger {
   position: relative !important;
   left: auto !important;
@@ -1279,11 +1267,15 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   /* Explicit text styling */
   color: rgba(0, 0, 0, 0.7) !important;
   font-size: 0.9rem !important;
+  
+  /* Ensure baseline alignment */
+  vertical-align: baseline !important;
+  line-height: 1 !important;
 }
 
 /* Dark mode footer link colors */
 body.dark-mode #footer-links-container #contact-email,
-body.dark-mode #footer-links-container #portfolio-link,
+body.dark-mode #footer-links-container #portfolio-gate-trigger,
 body.dark-mode #footer-links-container #cv-gate-trigger {
   color: rgba(255, 255, 255, 0.7) !important;
 }
