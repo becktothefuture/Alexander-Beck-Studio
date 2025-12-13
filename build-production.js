@@ -63,7 +63,7 @@ async function buildProduction() {
     
     copyDir(CONFIG.webflowSource, CONFIG.publicDestination);
     console.log('✅ Webflow design copied to public/\n');
-
+    
     // Safety: ensure Webflow images exist in public/ (favicon, noise gif, etc.)
     // Some environments have shown missing images after copy, so we enforce this.
     const webflowImagesSrc = path.join(CONFIG.webflowSource, 'images');

@@ -17,6 +17,7 @@ import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
+import { createLayoutPanel } from './modules/ui/layout-panel.js';
 import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.js';
 import { setApplyVisualCSSVars } from './modules/ui/control-registry.js';
 
@@ -126,6 +127,12 @@ export function applyVisualCSSVars(config) {
   // Vignette spread and animation
   if (config.vignetteSpread !== undefined) {
     root.style.setProperty('--vignette-spread', `${config.vignetteSpread}px`);
+  }
+  if (config.vignetteX !== undefined) {
+    root.style.setProperty('--vignette-x', `${config.vignetteX}px`);
+  }
+  if (config.vignetteY !== undefined) {
+    root.style.setProperty('--vignette-y', `${config.vignetteY}px`);
   }
   if (config.vignetteTransition !== undefined) {
     root.style.setProperty('--vignette-transition', `${config.vignetteTransition}ms`);
@@ -271,6 +278,10 @@ function ensureNoiseElements() {
     // Create quick theme toggle button (bottom-left)
     createThemeToggle();
     console.log('✓ Theme toggle button created');
+    
+    // Create layout control panel (Top-Left)
+    createLayoutPanel();
+    console.log('✓ Layout panel created');
     
     // Initialize starting mode (Flies by default)
     setMode(MODES.FLIES);

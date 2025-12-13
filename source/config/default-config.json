@@ -20,6 +20,8 @@
   "vignetteBlurMid": 100,
   "vignetteBlurInner": 40,
   "vignetteSpread": 0,
+  "vignetteX": 0,
+  "vignetteY": 0,
   "vignetteTransition": 800,
   "wallThickness": 12,
   "wallSoftness": 20,

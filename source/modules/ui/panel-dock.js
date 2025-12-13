@@ -19,24 +19,79 @@ import {
   toggleSound,
   initSoundEngine
 } from '../audio/sound-engine.js';
+import {
+  generateSoundControlsHTML,
+  bindSoundControls,
+  syncSoundControlsToConfig
+} from '../audio/sound-control-registry.js';
 
 let dockElement = null;
 let controlPanelElement = null;
 let soundPanelElement = null;
 let dockToggleElement = null;
 
-// Drag state
+// ════════════════════════════════════════════════════════════════════════════════
+// STATE PERSISTENCE
+// ════════════════════════════════════════════════════════════════════════════════
+
+const STORAGE_KEYS = {
+  position: 'panel_dock_position',
+  dockHidden: 'panel_dock_hidden',
+  collapseState: 'panel_dock_collapse'
+};
+
+function loadCollapseState() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.collapseState);
+    return stored ? JSON.parse(stored) : { control: true, sound: true }; // collapsed by default
+  } catch (e) {
+    return { control: true, sound: true };
+  }
+}
+
+function saveCollapseState() {
+  try {
+    const state = {
+      control: controlPanelElement?.classList.contains('collapsed') ?? true,
+      sound: soundPanelElement?.classList.contains('collapsed') ?? true
+    };
+    localStorage.setItem(STORAGE_KEYS.collapseState, JSON.stringify(state));
+  } catch (e) {}
+}
+
+function loadDockHiddenState() {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.dockHidden) === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+function saveDockHiddenState(hidden) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.dockHidden, String(hidden));
+  } catch (e) {}
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DRAG STATE
+// ════════════════════════════════════════════════════════════════════════════════
+
 let isDragging = false;
+let hasDragged = false; // True if we moved more than threshold during this gesture
 let dragStartX = 0;
 let dragStartY = 0;
-let dockStartX = 0;
-let dockStartY = 0;
+let elementStartX = 0;
+let elementStartY = 0;
+let draggedElement = null; // The panel being dragged (individual panel, not dock)
 
 // ════════════════════════════════════════════════════════════════════════════════
 // SOUND PANEL HTML (simplified for dock)
 // ════════════════════════════════════════════════════════════════════════════════
 
-const SOUND_PANEL_CONTENT = `
+// Generate sound panel content dynamically from registry
+function getSoundPanelContent() {
+  return `
   <!-- Sound Enable/Disable -->
   <div class="sound-dock__enable">
     <button id="soundEnableBtn" class="sound-dock__enable-btn">
@@ -52,38 +107,11 @@ const SOUND_PANEL_CONTENT = `
       <p id="presetDescription" class="sound-dock__desc"></p>
     </div>
     
-    <!-- Core: 5 most important parameters (1:1 with sound-engine CONFIG) -->
-    <div class="sound-dock__section">
-      <div class="sound-dock__group">
-        <label class="sound-dock__row">
-          <span class="sound-dock__label">Master</span>
-          <input type="range" id="masterGain" class="sound-dock__slider" min="10" max="100" step="1">
-          <span class="sound-dock__val" id="masterVal">42%</span>
-        </label>
-        <label class="sound-dock__row">
-          <span class="sound-dock__label">Silence Threshold</span>
-          <input type="range" id="collisionMinImpact" class="sound-dock__slider" min="0" max="30" step="1">
-          <span class="sound-dock__val" id="thresholdVal">12%</span>
-        </label>
-        <label class="sound-dock__row">
-          <span class="sound-dock__label">Click Length</span>
-          <input type="range" id="decayTime" class="sound-dock__slider" min="20" max="180" step="1">
-          <span class="sound-dock__val" id="decayVal">45ms</span>
-        </label>
-        <label class="sound-dock__row">
-          <span class="sound-dock__label">Brightness</span>
-          <input type="range" id="filterBaseFreq" class="sound-dock__slider" min="300" max="6000" step="50">
-          <span class="sound-dock__val" id="filterVal">2100Hz</span>
-        </label>
-        <label class="sound-dock__row">
-          <span class="sound-dock__label">Surface Texture</span>
-          <input type="range" id="rollingGain" class="sound-dock__slider" min="0" max="8" step="0.1">
-          <span class="sound-dock__val" id="rollingVal">2.0%</span>
-        </label>
-      </div>
-    </div>
+    <!-- All controls from registry -->
+    ${generateSoundControlsHTML()}
   </div>
 `;
+}
 
 // ════════════════════════════════════════════════════════════════════════════════
 // DOCK CREATION
@@ -100,6 +128,12 @@ export function createPanelDock() {
   dockElement = document.createElement('div');
   dockElement.className = 'panel-dock';
   dockElement.id = 'panelDock';
+  
+  // Restore hidden state
+  const wasHidden = loadDockHiddenState();
+  if (wasHidden) {
+    dockElement.classList.add('hidden');
+  }
   
   // Create Control Panel
   controlPanelElement = createControlPanel();
@@ -118,13 +152,19 @@ export function createPanelDock() {
   document.body.appendChild(dockElement);
   document.body.appendChild(dockToggleElement);
   
+  // Update toggle button visibility based on dock state
+  if (wasHidden && dockToggleElement) {
+    dockToggleElement.style.opacity = '1';
+    dockToggleElement.style.pointerEvents = 'auto';
+  }
+  
   // Setup keyboard shortcuts
   setupKeyboardShortcuts();
   
   // Setup dragging
   setupDragging();
   
-  console.log('✓ Panel dock created (both panels collapsed by default)');
+  console.log('✓ Panel dock created');
   return dockElement;
 }
 
@@ -132,9 +172,11 @@ export function createPanelDock() {
  * Create the control panel element
  */
 function createControlPanel() {
+  const collapseState = loadCollapseState();
+  
   const panel = document.createElement('div');
   panel.id = 'controlPanel';
-  panel.className = 'panel collapsed'; // Start collapsed
+  panel.className = collapseState.control ? 'panel collapsed' : 'panel';
   panel.setAttribute('role', 'region');
   panel.setAttribute('aria-label', 'Simulation controls');
   
@@ -157,8 +199,14 @@ function createControlPanel() {
   panel.appendChild(header);
   panel.appendChild(content);
   
-  // Setup header click to toggle
-  header.addEventListener('click', () => togglePanelCollapse(panel));
+  // Setup header click to toggle (separate from drag)
+  header.addEventListener('click', (e) => {
+    // Don't toggle if we just dragged
+    if (hasDragged) return;
+    // Don't toggle if clicking on a button inside header
+    if (e.target.closest('button')) return;
+    togglePanelCollapse(panel);
+  });
   
   // Initialize dark mode and controls
   setTimeout(() => {
@@ -174,9 +222,11 @@ function createControlPanel() {
  * Create the sound panel element
  */
 function createSoundPanel() {
+  const collapseState = loadCollapseState();
+  
   const panel = document.createElement('div');
   panel.id = 'soundPanel';
-  panel.className = 'panel sound-panel collapsed'; // Start collapsed
+  panel.className = collapseState.sound ? 'panel sound-panel collapsed' : 'panel sound-panel';
   panel.setAttribute('role', 'region');
   panel.setAttribute('aria-label', 'Sound configuration');
   
@@ -194,13 +244,19 @@ function createSoundPanel() {
   // Content wrapper
   const content = document.createElement('div');
   content.className = 'panel-content';
-  content.innerHTML = SOUND_PANEL_CONTENT;
+  content.innerHTML = getSoundPanelContent();
   
   panel.appendChild(header);
   panel.appendChild(content);
   
-  // Setup header click to toggle
-  header.addEventListener('click', () => togglePanelCollapse(panel));
+  // Setup header click to toggle (separate from drag)
+  header.addEventListener('click', (e) => {
+    // Don't toggle if we just dragged
+    if (hasDragged) return;
+    // Don't toggle if clicking on a button inside header
+    if (e.target.closest('button')) return;
+    togglePanelCollapse(panel);
+  });
   
   // Setup sound controls
   setTimeout(() => setupSoundControls(panel), 0);
@@ -264,8 +320,8 @@ function setupDragging() {
   document.addEventListener('touchmove', handleDragMove, { passive: false });
   document.addEventListener('touchend', handleDragEnd);
   
-  // Load saved position
-  loadDockPosition();
+  // Load saved panel positions
+  loadPanelPositions();
 }
 
 /**
@@ -281,6 +337,10 @@ function handleDragStart(e) {
   const header = e.target.closest('.panel-header');
   if (!header) return;
   
+  // Find the panel this header belongs to
+  const panel = header.closest('.panel');
+  if (!panel) return;
+  
   // Get position
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -289,27 +349,27 @@ function handleDragStart(e) {
   dragStartX = clientX;
   dragStartY = clientY;
   
-  // Get dock's current position
-  const rect = dockElement.getBoundingClientRect();
-  dockStartX = rect.left;
-  dockStartY = rect.top;
+  // Get panel's current position
+  const rect = panel.getBoundingClientRect();
+  elementStartX = rect.left;
+  elementStartY = rect.top;
+  
+  // Store reference to dragged panel
+  draggedElement = panel;
   
   // Mark as potentially dragging (will confirm after threshold)
   isDragging = false;
+  hasDragged = false; // Reset drag flag at gesture start
   
-  // Store header for click detection
-  header._dragStartTime = Date.now();
-  header._dragMoved = false;
-  
-  // Prevent text selection during drag
-  e.preventDefault();
+  // NOTE: Do NOT call e.preventDefault() here — it blocks the click event!
+  // We'll only prevent default during actual drag movement.
 }
 
 /**
  * Handle drag move
  */
 function handleDragMove(e) {
-  if (dragStartX === 0 && dragStartY === 0) return;
+  if (dragStartX === 0 && dragStartY === 0 || !draggedElement) return;
   
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -322,38 +382,37 @@ function handleDragMove(e) {
   
   if (!isDragging && (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold)) {
     isDragging = true;
-    dockElement.classList.add('dragging');
+    hasDragged = true; // Flag for click handlers to ignore this gesture
+    draggedElement.classList.add('dragging');
     
-    // Switch to fixed positioning with current position
-    dockElement.style.position = 'fixed';
-    dockElement.style.top = `${dockStartY}px`;
-    dockElement.style.left = `${dockStartX}px`;
-    dockElement.style.right = 'auto';
+    // Detach panel from dock flow and position absolutely
+    draggedElement.style.position = 'fixed';
+    draggedElement.style.top = `${elementStartY}px`;
+    draggedElement.style.left = `${elementStartX}px`;
+    draggedElement.style.right = 'auto';
+    draggedElement.style.zIndex = '10001'; // Above dock
   }
   
   if (isDragging) {
     // Calculate new position
-    let newX = dockStartX + deltaX;
-    let newY = dockStartY + deltaY;
+    let newX = elementStartX + deltaX;
+    let newY = elementStartY + deltaY;
     
     // Constrain to viewport
-    const dockRect = dockElement.getBoundingClientRect();
+    const panelRect = draggedElement.getBoundingClientRect();
     const minX = 0;
-    const maxX = window.innerWidth - dockRect.width;
+    const maxX = window.innerWidth - panelRect.width;
     const minY = 0;
-    const maxY = window.innerHeight - dockRect.height;
+    const maxY = window.innerHeight - panelRect.height;
     
     newX = Math.max(minX, Math.min(maxX, newX));
     newY = Math.max(minY, Math.min(maxY, newY));
     
     // Apply position
-    dockElement.style.left = `${newX}px`;
-    dockElement.style.top = `${newY}px`;
+    draggedElement.style.left = `${newX}px`;
+    draggedElement.style.top = `${newY}px`;
     
-    // Mark moved
-    const headers = dockElement.querySelectorAll('.panel-header');
-    headers.forEach(h => h._dragMoved = true);
-    
+    // Prevent text selection during drag
     e.preventDefault();
   }
 }
@@ -362,89 +421,103 @@ function handleDragMove(e) {
  * Handle drag end
  */
 function handleDragEnd(e) {
-  if (isDragging) {
+  if (isDragging && draggedElement) {
     isDragging = false;
-    dockElement.classList.remove('dragging');
+    draggedElement.classList.remove('dragging');
     
-    // Save position
-    saveDockPosition();
+    // Save panel position
+    savePanelPosition(draggedElement);
   }
   
   // Reset drag tracking
   dragStartX = 0;
   dragStartY = 0;
+  draggedElement = null;
+  
+  // Reset hasDragged after click event has had a chance to fire
+  // (click fires after mouseup, so a small delay ensures the click handler sees hasDragged)
+  setTimeout(() => {
+    hasDragged = false;
+  }, 10);
 }
 
 /**
- * Save dock position to localStorage
+ * Save individual panel position to localStorage
  */
-function saveDockPosition() {
-  if (!dockElement) return;
+function savePanelPosition(panel) {
+  if (!panel) return;
   
   try {
-    const position = {
-      left: dockElement.style.left,
-      top: dockElement.style.top,
+    const positions = JSON.parse(localStorage.getItem(STORAGE_KEYS.position) || '{}');
+    positions[panel.id] = {
+      left: panel.style.left,
+      top: panel.style.top,
       useCustomPosition: true
     };
-    localStorage.setItem('panel_dock_position', JSON.stringify(position));
+    localStorage.setItem(STORAGE_KEYS.position, JSON.stringify(positions));
   } catch (e) {}
 }
 
 /**
- * Load dock position from localStorage
+ * Load panel positions from localStorage
  */
-function loadDockPosition() {
-  if (!dockElement) return;
-  
+function loadPanelPositions() {
   try {
-    const stored = localStorage.getItem('panel_dock_position');
-    if (stored) {
-      const position = JSON.parse(stored);
-      if (position.useCustomPosition) {
-        dockElement.style.position = 'fixed';
-        dockElement.style.left = position.left;
-        dockElement.style.top = position.top;
-        dockElement.style.right = 'auto';
+    const positions = JSON.parse(localStorage.getItem(STORAGE_KEYS.position) || '{}');
+    
+    // Apply positions to each panel
+    [controlPanelElement, soundPanelElement].forEach(panel => {
+      if (!panel) return;
+      const pos = positions[panel.id];
+      if (pos && pos.useCustomPosition) {
+        panel.style.position = 'fixed';
+        panel.style.left = pos.left;
+        panel.style.top = pos.top;
+        panel.style.right = 'auto';
+        panel.style.zIndex = '10001';
       }
-    }
+    });
   } catch (e) {}
 }
 
 /**
- * Reset dock to default position
+ * Reset all panels to default dock position
  */
-export function resetDockPosition() {
-  if (!dockElement) return;
-  
-  dockElement.style.position = '';
-  dockElement.style.left = '';
-  dockElement.style.top = '';
-  dockElement.style.right = '';
+export function resetPanelPositions() {
+  [controlPanelElement, soundPanelElement].forEach(panel => {
+    if (!panel) return;
+    panel.style.position = '';
+    panel.style.left = '';
+    panel.style.top = '';
+    panel.style.right = '';
+    panel.style.zIndex = '';
+  });
   
   try {
-    localStorage.removeItem('panel_dock_position');
+    localStorage.removeItem(STORAGE_KEYS.position);
   } catch (e) {}
 }
+
+// Legacy export for backwards compatibility
+export const resetDockPosition = resetPanelPositions;
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PANEL COLLAPSE/EXPAND
 // ════════════════════════════════════════════════════════════════════════════════
 
 /**
- * Toggle a panel's collapsed state (only if not dragged)
+ * Toggle a panel's collapsed state
  */
 function togglePanelCollapse(panel) {
-  // Get the header
-  const header = panel.querySelector('.panel-header');
-  
-  // Don't toggle if we just finished dragging
-  if (header && header._dragMoved) {
-    header._dragMoved = false;
-    return;
-  }
-  
   panel.classList.toggle('collapsed');
+  saveCollapseState();
+  
+  // Update collapse button arrow
+  const collapseBtn = panel.querySelector('.collapse-btn');
+  const isCollapsed = panel.classList.contains('collapsed');
+  if (collapseBtn) {
+    collapseBtn.setAttribute('aria-label', isCollapsed ? 'Expand panel' : 'Collapse panel');
+  }
 }
 
 /**
@@ -470,6 +543,7 @@ export function toggleDock() {
   if (!dockElement) return;
   
   const isHidden = dockElement.classList.toggle('hidden');
+  saveDockHiddenState(isHidden);
   
   if (dockToggleElement) {
     dockToggleElement.style.opacity = isHidden ? '1' : '0';
@@ -531,70 +605,19 @@ function setupSoundControls(panel) {
       if (presetDesc && SOUND_PRESETS[presetSelect.value]) {
         presetDesc.textContent = SOUND_PRESETS[presetSelect.value].description;
       }
-      syncSoundSliders(panel);
+      // Sync all controls from registry
+      syncSoundControlsToConfig(panel, getSoundConfig);
     });
   }
   
-  // Setup sliders
-  setupSoundSliders(panel);
+  // Bind all controls from registry
+  bindSoundControls(panel, getSoundConfig, updateSoundConfig);
+  
+  // Initial sync
+  syncSoundControlsToConfig(panel, getSoundConfig);
 }
 
-function setupSoundSliders(panel) {
-  const sliderConfigs = [
-    // Core 5 (1:1 with CONFIG keys in sound-engine.js)
-    { id: 'masterGain', valId: 'masterVal', format: v => `${Math.round(v)}%`, toConfig: v => v / 100 },
-    { id: 'collisionMinImpact', valId: 'thresholdVal', format: v => `${Math.round(v)}%`, toConfig: v => v / 100 },
-    { id: 'decayTime', valId: 'decayVal', format: v => `${Math.round(v)}ms`, toConfig: v => v / 1000 },
-    { id: 'filterBaseFreq', valId: 'filterVal', format: v => `${Math.round(v)}Hz`, toConfig: v => v },
-    { id: 'rollingGain', valId: 'rollingVal', format: v => `${v.toFixed(1)}%`, toConfig: v => v / 100 },
-  ];
-  
-  for (const config of sliderConfigs) {
-    const slider = panel.querySelector(`#${config.id}`);
-    const valDisplay = panel.querySelector(`#${config.valId}`);
-    
-    if (!slider) continue;
-    
-    slider.addEventListener('input', () => {
-      const rawValue = parseFloat(slider.value);
-      const configValue = config.toConfig(rawValue);
-      
-      if (valDisplay) {
-        valDisplay.textContent = config.format(rawValue);
-      }
-      
-      updateSoundConfig({ [config.id]: configValue });
-    });
-  }
-  
-  syncSoundSliders(panel);
-}
-
-function syncSoundSliders(panel) {
-  const config = getSoundConfig();
-  
-  const mappings = [
-    { id: 'masterGain', valId: 'masterVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
-    { id: 'collisionMinImpact', valId: 'thresholdVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
-    { id: 'decayTime', valId: 'decayVal', fromConfig: v => v * 1000, format: v => `${Math.round(v)}ms` },
-    { id: 'filterBaseFreq', valId: 'filterVal', fromConfig: v => v, format: v => `${Math.round(v)}Hz` },
-    { id: 'rollingGain', valId: 'rollingVal', fromConfig: v => v * 100, format: v => `${v.toFixed(1)}%` },
-  ];
-  
-  for (const mapping of mappings) {
-    const slider = panel.querySelector(`#${mapping.id}`);
-    const valDisplay = panel.querySelector(`#${mapping.valId}`);
-    
-    if (slider && config[mapping.id] !== undefined) {
-      const sliderValue = mapping.fromConfig(config[mapping.id]);
-      slider.value = sliderValue;
-      
-      if (valDisplay) {
-        valDisplay.textContent = mapping.format(sliderValue);
-      }
-    }
-  }
-}
+// Sound slider functions now handled by sound-control-registry.js
 
 function updateSoundIcon(enabled) {
   const header = soundPanelElement?.querySelector('.panel-header .panel-icon');

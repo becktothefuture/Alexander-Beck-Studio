@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                 BRAND LOGO – CURSOR DISTANCE SCALE (SUBTLE)                  ║
-// ║          Center of viewport → 0.9x | Farthest (corner) → 1.1x                ║
+// ║     Inner ellipse (½ viewport) → 0.9x | Outer band (min side) → 1.1x         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 /**
@@ -12,8 +12,8 @@
 
 const CSS_VAR = '--abs-brand-logo-scale';
 const DEFAULT_SCALE = 1;
-const MIN_SCALE = 0.9;
-const MAX_SCALE = 1.1;
+const MIN_SCALE = 0.98;
+const MAX_SCALE = 1.02;
 const EPSILON = 0.001;
 
 let targetEl = null;
@@ -21,7 +21,9 @@ let isEnabled = false;
 
 let viewportW = 0;
 let viewportH = 0;
-let maxDist = 1;
+let outerRadius = 1;
+let innerRx = 1;
+let innerRy = 1;
 
 let pendingClientX = null;
 let pendingClientY = null;
@@ -35,7 +37,13 @@ function clamp01(v) {
 function recomputeViewport() {
   viewportW = window.innerWidth || 0;
   viewportH = window.innerHeight || 0;
-  maxDist = Math.hypot(viewportW * 0.5, viewportH * 0.5) || 1;
+
+  // OUTER BAND: circle radius = half the shortest viewport side (distance to nearest edge)
+  outerRadius = Math.max(1, Math.min(viewportW, viewportH) * 0.5);
+
+  // INNER BAND: centered ellipse with ½ the viewport size (so radii are ¼ of viewport)
+  innerRx = Math.max(1, viewportW * 0.25);
+  innerRy = Math.max(1, viewportH * 0.25);
 }
 
 function applyPending() {
@@ -45,7 +53,33 @@ function applyPending() {
 
   const dx = pendingClientX - viewportW * 0.5;
   const dy = pendingClientY - viewportH * 0.5;
-  const t = clamp01(Math.hypot(dx, dy) / maxDist);
+
+  // Distance from center in CSS pixels
+  const r = Math.hypot(dx, dy);
+
+  // Inner ellipse boundary distance along the cursor ray (dx,dy).
+  // For a ray from origin: (x,y) = u*(dx,dy)
+  // Ellipse equation: (x/rx)^2 + (y/ry)^2 = 1 -> u = 1 / sqrt((dx^2/rx^2 + dy^2/ry^2))
+  let rInner = 0;
+  if (r > 0) {
+    const denom = Math.sqrt((dx * dx) / (innerRx * innerRx) + (dy * dy) / (innerRy * innerRy));
+    rInner = denom > 0 ? 1 / denom : 0;
+  }
+
+  // Band mapping:
+  // - Inside inner ellipse: clamp to MIN_SCALE (0.9)
+  // - Between inner ellipse and outer circle: lerp MIN→MAX
+  // - Beyond outer circle: clamp to MAX_SCALE (1.1)
+  let t = 0;
+  if (r <= rInner) {
+    t = 0;
+  } else if (r >= outerRadius) {
+    t = 1;
+  } else {
+    const span = Math.max(1e-6, outerRadius - rInner);
+    t = clamp01((r - rInner) / span);
+  }
+
   const scale = MIN_SCALE + (MAX_SCALE - MIN_SCALE) * t;
 
   if (lastAppliedScale != null && Math.abs(scale - lastAppliedScale) < EPSILON) return;

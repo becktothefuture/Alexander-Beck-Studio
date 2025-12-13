@@ -19,6 +19,18 @@ export function setupBuildControls() {
       repelRadius: g.repelRadius,
       repelPower: g.repelPower,
       repelSoftness: g.repelSoft,
+      
+      // Visual Effects
+      vignetteX: g.vignetteX,
+      vignetteY: g.vignetteY,
+      vignetteBlurOuter: g.vignetteBlurOuter,
+      vignetteBlurMid: g.vignetteBlurMid,
+      vignetteBlurInner: g.vignetteBlurInner,
+      vignetteSpread: g.vignetteSpread,
+      vignetteLightIntensity: g.vignetteLightIntensity,
+      vignetteDarkIntensity: g.vignetteDarkIntensity,
+      vignetteTransition: g.vignetteTransition,
+      
       cursorColorIndex: 5,
       enableLOD: false
     };

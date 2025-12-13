@@ -122,6 +122,8 @@
   --vignette-blur-mid: 100px;        /* Middle layer blur */
   --vignette-blur-inner: 40px;       /* Inner layer blur (sharp gradient) */
   --vignette-spread: 0px;            /* Spread radius (negative pulls inward) */
+  --vignette-x: 0px;                 /* Horizontal offset */
+  --vignette-y: 0px;                 /* Vertical offset */
   --vignette-layers: 3;              /* Number of shadow layers (1-5) */
   --vignette-transition: 800ms;      /* Animation speed for depth changes */
   
@@ -235,9 +237,9 @@ body.body.dark-mode {
   
   /* Multi-layer atmospheric depth - organic corner vignette */
   box-shadow: 
-    inset 0 0 var(--vignette-blur-outer) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.6)),
-    inset 0 0 var(--vignette-blur-mid) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.4)),
-    inset 0 0 var(--vignette-blur-inner) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.3));
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-outer) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.6)),
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-mid) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.4)),
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-inner) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.3));
   
   /* ORGANIC BREATHING: All geometric properties transition smoothly */
   transition: 
@@ -274,9 +276,9 @@ body.dark-mode .viewport.viewport--content {
   
   /* Multi-layer atmospheric depth - lighter corners in dark mode */
   box-shadow: 
-    inset 0 0 var(--vignette-blur-outer) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.6)),
-    inset 0 0 var(--vignette-blur-mid) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.4)),
-    inset 0 0 var(--vignette-blur-inner) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.3));
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-outer) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.6)),
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-mid) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.4)),
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-inner) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.3));
 }
 
 /* Dark mode sound hover - viewport content goes slightly lighter */
@@ -369,9 +371,11 @@ a {
 
 #bravia-balls {
   position: fixed;
-  inset: 0;  /* Flush with browser edges - no gap */
+  /* Match the body padding to align seamlessly with the frame */
+  inset: var(--container-border);
   overflow: hidden;
-  border-radius: 0;  /* Outer container is FLUSH with browser */
+  /* Outer container matches the rounded content area */
+  border-radius: var(--container-radius);
   background: transparent;  /* Let .viewport--content show through */
   z-index: 5;
   pointer-events: none !important;
@@ -392,12 +396,9 @@ a {
 #bravia-balls::after {
   content: '';
   position: absolute;
-  /* Inset to match canvas position */
-  top: var(--wall-thickness);
-  right: var(--wall-thickness);
-  bottom: var(--wall-thickness);
-  left: var(--wall-thickness);
-  border-radius: var(--wall-radius);
+  /* Match canvas position */
+  inset: 0;
+  border-radius: var(--container-radius);
   pointer-events: none;
   /* Radial glow that intensifies on bounce */
   box-shadow: 
@@ -415,20 +416,14 @@ a {
   top: auto;
 }
 
-/* Canvas - simulation drawing surface, sits inside the rubber walls */
+/* Canvas - simulation drawing surface, fills the container */
 #bravia-balls canvas {
   position: absolute;
-  /* Canvas inset by wall thickness to sit inside the rubber tubes */
-  top: var(--wall-thickness);
-  right: var(--wall-thickness);
-  bottom: var(--wall-thickness);
-  left: var(--wall-thickness);
-  width: calc(100% - var(--wall-thickness) * 2);
-  height: calc(100% - var(--wall-thickness) * 2);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: block;
-  /* Rounded corners on the play area */
-  border-radius: var(--wall-radius);
-  clip-path: inset(0 round var(--wall-radius));
   z-index: 1;
   pointer-events: none !important;
   cursor: none;
@@ -437,26 +432,10 @@ a {
   -webkit-user-select: none;
   -webkit-user-drag: none;
   
-  /* RUBBER WALL EFFECT on the canvas edge
-     Creates the illusion of thick rubber tubes around the play area */
-  box-shadow: 
-    /* Soft cushion glow - blurs into the wall */
-    0 0 var(--wall-softness) 0 rgba(0, 0, 0, 0.5),
-    /* 3D Bevel - outer highlight */
-    -2px -2px 4px 0 var(--wall-bevel-light),
-    /* 3D Bevel - outer shadow */
-    2px 2px 4px 0 var(--wall-bevel-dark);
-  
   /* Canvas breathes with wall changes */
   transition: 
-    top var(--duration-resize) var(--ease-organic),
-    right var(--duration-resize) var(--ease-organic),
-    bottom var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic),
     width var(--duration-resize) var(--ease-organic),
-    height var(--duration-resize) var(--ease-organic),
-    border-radius var(--duration-resize) var(--ease-organic),
-    box-shadow var(--duration-settle) var(--ease-settle);
+    height var(--duration-resize) var(--ease-organic);
 }
 
 /* Safari-specific GPU optimization */
@@ -1682,15 +1661,22 @@ body:not(.dark-mode) .panel-footer kbd {
   transform: translateX(20px);
 }
 
-/* Dragging state */
-.panel-dock.dragging {
+/* Dragging state (dock or individual panel) */
+.panel-dock.dragging,
+.panel.dragging {
   cursor: grabbing !important;
   user-select: none;
   transition: none !important;
 }
 
-.panel-dock.dragging * {
+.panel-dock.dragging *,
+.panel.dragging * {
   cursor: grabbing !important;
+}
+
+/* Individual panel when detached from dock */
+.panel[style*="position: fixed"] {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
 /* Drag indicator */
@@ -1860,6 +1846,138 @@ body:not(.dark-mode) .dock-toggle:hover {
   .panel-dock .panel-content {
     padding: 12px;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SOUND PANEL STYLES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.sound-dock__enable {
+  padding: 8px;
+}
+
+.sound-dock__enable-btn {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--panel-btn-bg, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sound-dock__enable-btn:hover {
+  background: var(--panel-btn-hover, rgba(255, 255, 255, 0.12));
+}
+
+.sound-dock__controls {
+  padding: 0 8px 8px;
+}
+
+.sound-dock__section {
+  margin-bottom: 12px;
+}
+
+.sound-dock__section-title {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.5;
+  margin-bottom: 6px;
+  padding: 0 2px;
+}
+
+.sound-dock__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sound-dock__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.sound-dock__label {
+  flex: 0 0 90px;
+  opacity: 0.7;
+}
+
+.sound-dock__slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.sound-dock__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-color, #f5a623);
+  cursor: pointer;
+}
+
+.sound-dock__slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-color, #f5a623);
+  cursor: pointer;
+  border: none;
+}
+
+.sound-dock__val {
+  flex: 0 0 48px;
+  text-align: right;
+  font-size: 10px;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.sound-dock__select {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--panel-input-bg, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  color: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.sound-dock__desc {
+  margin: 6px 0 0;
+  font-size: 10px;
+  opacity: 0.5;
+  line-height: 1.4;
+}
+
+/* Light mode overrides */
+body:not(.dark-mode) .sound-dock__slider {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+body:not(.dark-mode) .sound-dock__enable-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+body:not(.dark-mode) .sound-dock__enable-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+body:not(.dark-mode) .sound-dock__select {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗

@@ -330,6 +330,28 @@ export const CONTROL_SECTIONS = {
         cssVar: '--vignette-spread'
       },
       {
+        id: 'vignetteX',
+        label: 'Offset X',
+        stateKey: 'vignetteX',
+        type: 'range',
+        min: -100, max: 100, step: 1,
+        default: 0,
+        format: v => String(v),
+        parse: v => parseInt(v, 10),
+        cssVar: '--vignette-x'
+      },
+      {
+        id: 'vignetteY',
+        label: 'Offset Y',
+        stateKey: 'vignetteY',
+        type: 'range',
+        min: -100, max: 100, step: 1,
+        default: 0,
+        format: v => String(v),
+        parse: v => parseInt(v, 10),
+        cssVar: '--vignette-y'
+      },
+      {
         id: 'vignetteTransition',
         label: 'Animation',
         stateKey: 'vignetteTransition',

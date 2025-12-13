@@ -49,6 +49,17 @@ const state = {
   
   // Inner border (soft visual transition)
   
+  // Vignette params (visual only, synced to CSS)
+  vignetteX: 0,
+  vignetteY: 0,
+  vignetteBlurOuter: 180,
+  vignetteBlurMid: 100,
+  vignetteBlurInner: 40,
+  vignetteSpread: 0,
+  vignetteLightIntensity: 0.08,
+  vignetteDarkIntensity: 0.05,
+  vignetteTransition: 800,
+
   // Vortex mode params
   vortexSwirlStrength: 420,
   vortexRadialPull: 180,
@@ -158,6 +169,17 @@ export function initState(config) {
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
   if (config.wallSoftness !== undefined) state.wallSoftness = config.wallSoftness;
   if (config.wallRadius !== undefined) state.wallRadius = config.wallRadius;
+  
+  // Vignette
+  if (config.vignetteX !== undefined) state.vignetteX = config.vignetteX;
+  if (config.vignetteY !== undefined) state.vignetteY = config.vignetteY;
+  if (config.vignetteBlurOuter !== undefined) state.vignetteBlurOuter = config.vignetteBlurOuter;
+  if (config.vignetteBlurMid !== undefined) state.vignetteBlurMid = config.vignetteBlurMid;
+  if (config.vignetteBlurInner !== undefined) state.vignetteBlurInner = config.vignetteBlurInner;
+  if (config.vignetteSpread !== undefined) state.vignetteSpread = config.vignetteSpread;
+  if (config.vignetteLightIntensity !== undefined) state.vignetteLightIntensity = config.vignetteLightIntensity;
+  if (config.vignetteDarkIntensity !== undefined) state.vignetteDarkIntensity = config.vignetteDarkIntensity;
+  if (config.vignetteTransition !== undefined) state.vignetteTransition = config.vignetteTransition;
   
   // Recalculate R_MIN and R_MAX
   const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;

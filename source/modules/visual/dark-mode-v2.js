@@ -217,3 +217,10 @@ export function getCurrentTheme() {
   return currentTheme;
 }
 
+/**
+ * Toggle between light and dark mode manually
+ */
+export function toggleDarkMode() {
+  const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+  setTheme(newTheme);
+}

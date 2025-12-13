@@ -41,10 +41,10 @@ export function resize() {
   const containerWidth = container ? container.clientWidth : window.innerWidth;
   const containerHeight = container ? container.clientHeight : window.innerHeight;
   
-  // Canvas sits inside the rubber walls (wall thickness is the inset)
-  const wallThickness = globals.wallThickness || 0;
-  const canvasWidth = containerWidth - (wallThickness * 2);
-  const canvasHeight = containerHeight - (wallThickness * 2);
+  // Canvas fills the container completely (rubber walls are drawn at the edges)
+  // We removed the layout inset to fix the "double wall" visual issue
+  const canvasWidth = containerWidth;
+  const canvasHeight = containerHeight;
   
   // Canvas fills container - CSS handles mode-specific heights
   // Ball Pit: CSS sets 150vh, Other modes: CSS sets 100%

@@ -122,6 +122,8 @@
   --vignette-blur-mid: 100px;        /* Middle layer blur */
   --vignette-blur-inner: 40px;       /* Inner layer blur (sharp gradient) */
   --vignette-spread: 0px;            /* Spread radius (negative pulls inward) */
+  --vignette-x: 0px;                 /* Horizontal offset */
+  --vignette-y: 0px;                 /* Vertical offset */
   --vignette-layers: 3;              /* Number of shadow layers (1-5) */
   --vignette-transition: 800ms;      /* Animation speed for depth changes */
   
@@ -235,9 +237,9 @@ body.body.dark-mode {
   
   /* Multi-layer atmospheric depth - organic corner vignette */
   box-shadow: 
-    inset 0 0 var(--vignette-blur-outer) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.6)),
-    inset 0 0 var(--vignette-blur-mid) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.4)),
-    inset 0 0 var(--vignette-blur-inner) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.3));
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-outer) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.6)),
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-mid) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.4)),
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-inner) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.3));
   
   /* ORGANIC BREATHING: All geometric properties transition smoothly */
   transition: 
@@ -274,9 +276,9 @@ body.dark-mode .viewport.viewport--content {
   
   /* Multi-layer atmospheric depth - lighter corners in dark mode */
   box-shadow: 
-    inset 0 0 var(--vignette-blur-outer) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.6)),
-    inset 0 0 var(--vignette-blur-mid) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.4)),
-    inset 0 0 var(--vignette-blur-inner) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.3));
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-outer) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.6)),
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-mid) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.4)),
+    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-inner) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.3));
 }
 
 /* Dark mode sound hover - viewport content goes slightly lighter */
@@ -369,9 +371,11 @@ a {
 
 #bravia-balls {
   position: fixed;
-  inset: 0;  /* Flush with browser edges - no gap */
+  /* Match the body padding to align seamlessly with the frame */
+  inset: var(--container-border);
   overflow: hidden;
-  border-radius: 0;  /* Outer container is FLUSH with browser */
+  /* Outer container matches the rounded content area */
+  border-radius: var(--container-radius);
   background: transparent;  /* Let .viewport--content show through */
   z-index: 5;
   pointer-events: none !important;
@@ -392,12 +396,9 @@ a {
 #bravia-balls::after {
   content: '';
   position: absolute;
-  /* Inset to match canvas position */
-  top: var(--wall-thickness);
-  right: var(--wall-thickness);
-  bottom: var(--wall-thickness);
-  left: var(--wall-thickness);
-  border-radius: var(--wall-radius);
+  /* Match canvas position */
+  inset: 0;
+  border-radius: var(--container-radius);
   pointer-events: none;
   /* Radial glow that intensifies on bounce */
   box-shadow: 
@@ -415,20 +416,14 @@ a {
   top: auto;
 }
 
-/* Canvas - simulation drawing surface, sits inside the rubber walls */
+/* Canvas - simulation drawing surface, fills the container */
 #bravia-balls canvas {
   position: absolute;
-  /* Canvas inset by wall thickness to sit inside the rubber tubes */
-  top: var(--wall-thickness);
-  right: var(--wall-thickness);
-  bottom: var(--wall-thickness);
-  left: var(--wall-thickness);
-  width: calc(100% - var(--wall-thickness) * 2);
-  height: calc(100% - var(--wall-thickness) * 2);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: block;
-  /* Rounded corners on the play area */
-  border-radius: var(--wall-radius);
-  clip-path: inset(0 round var(--wall-radius));
   z-index: 1;
   pointer-events: none !important;
   cursor: none;
@@ -437,26 +432,10 @@ a {
   -webkit-user-select: none;
   -webkit-user-drag: none;
   
-  /* RUBBER WALL EFFECT on the canvas edge
-     Creates the illusion of thick rubber tubes around the play area */
-  box-shadow: 
-    /* Soft cushion glow - blurs into the wall */
-    0 0 var(--wall-softness) 0 rgba(0, 0, 0, 0.5),
-    /* 3D Bevel - outer highlight */
-    -2px -2px 4px 0 var(--wall-bevel-light),
-    /* 3D Bevel - outer shadow */
-    2px 2px 4px 0 var(--wall-bevel-dark);
-  
   /* Canvas breathes with wall changes */
   transition: 
-    top var(--duration-resize) var(--ease-organic),
-    right var(--duration-resize) var(--ease-organic),
-    bottom var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic),
     width var(--duration-resize) var(--ease-organic),
-    height var(--duration-resize) var(--ease-organic),
-    border-radius var(--duration-resize) var(--ease-organic),
-    box-shadow var(--duration-settle) var(--ease-settle);
+    height var(--duration-resize) var(--ease-organic);
 }
 
 /* Safari-specific GPU optimization */
