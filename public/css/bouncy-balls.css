@@ -734,10 +734,8 @@ a {
 }
 
 /* Ball Pit Mode - Same container as other modes
-   Balls spawn at negative Y (above canvas) and fall into view */
-#bravia-balls.mode-pit {
-  /* No special sizing - walls stay fixed, balls spawn above */
-}
+   Balls spawn at negative Y (above canvas) and fall into view.
+   No special CSS needed - walls stay fixed, balls spawn above. */
 
 /* Canvas - simulation drawing surface, fills the container */
 #bravia-balls canvas {
@@ -1241,7 +1239,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   
   display: flex !important;
   flex-direction: row !important;
-  align-items: center !important;
+  align-items: baseline !important; /* Changed from center to baseline for top alignment */
   justify-content: center !important;
   gap: 2rem !important; /* Even gaps between links */
   
