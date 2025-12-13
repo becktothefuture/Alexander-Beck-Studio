@@ -847,7 +847,7 @@ function generateSectionHTML(key, section) {
     return `
   <div id="${section.mode}Controls" class="mode-controls${section.mode === 'flies' ? ' active' : ''}">
     <details ${section.defaultOpen ? 'open' : ''}>
-      <summary>${section.title}</summary>
+      <summary>${section.icon ? section.icon + ' ' : ''}${section.title}</summary>
       <div class="group">${html}</div>
     </details>
   </div>`;
@@ -855,17 +855,16 @@ function generateSectionHTML(key, section) {
   
   return `
   <details ${section.defaultOpen ? 'open' : ''}>
-    <summary>${section.title}</summary>
+    <summary>${section.icon ? section.icon + ' ' : ''}${section.title}</summary>
     <div class="group">${html}</div>
   </details>`;
 }
 
 export function generatePanelHTML() {
+  // NOTE: Don't wrap in .panel-content here - panel-dock.js creates that wrapper
   let html = `
   <!-- Screen reader announcements -->
   <div role="status" aria-live="polite" aria-atomic="true" class="sr-only" id="announcer"></div>
-  
-  <div class="panel-content">
   
   <!-- Theme Segment Control -->
   <div class="panel-section">
@@ -929,8 +928,6 @@ export function generatePanelHTML() {
   <!-- Keyboard shortcuts -->
   <div class="panel-footer">
     <kbd>R</kbd> reset · <kbd>/</kbd> panel · click cycles modes
-  </div>
-  
   </div>`;
   
   return html;
