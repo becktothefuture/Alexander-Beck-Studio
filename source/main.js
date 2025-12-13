@@ -186,6 +186,9 @@ function ensureNoiseElements() {
 }
 
 (async function init() {
+  // Mark JS as enabled immediately (for CSS fallback detection)
+  document.documentElement.classList.add('js-enabled');
+  
   try {
     console.log('🚀 Initializing modular bouncy balls...');
     
@@ -272,6 +275,15 @@ function ensureNoiseElements() {
     });
     
     console.log('✅ Bouncy Balls running (modular)');
+    
+    // PAGE FADE-IN: Signal that everything is ready
+    // Small delay ensures first frame renders before fade begins
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.body.classList.add('page-ready');
+        console.log('✓ Page fade-in triggered');
+      });
+    });
     
   } catch (error) {
     console.error('❌ Initialization failed:', error);

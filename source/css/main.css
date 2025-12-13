@@ -219,9 +219,19 @@ body.body.dark-mode {
   pointer-events: none;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   PAGE LOAD FADE-IN: Content fades from browser color, no pop
+   - Starts with opacity: 0
+   - JS adds .page-ready class after load
+   - Fallback: no-js class shows content immediately
+   ───────────────────────────────────────────────────────────────────────────── */
 .viewport.viewport--content {
   background: var(--bg-light) !important; /* The "page" surface */
   border-radius: var(--container-radius);
+  
+  /* FADE-IN: Start invisible, fade in when .page-ready is added */
+  opacity: 0;
+  transition: opacity 800ms ease-out;
   
   /* Multi-layer atmospheric depth - organic corner vignette */
   box-shadow: 
@@ -235,6 +245,18 @@ body.body.dark-mode {
     border-radius var(--duration-resize) var(--ease-organic),
     padding var(--duration-resize) var(--ease-organic),
     box-shadow var(--vignette-transition) var(--ease-organic);
+}
+
+/* PAGE READY: Fade in when JS signals load complete */
+body.page-ready .viewport.viewport--content {
+  opacity: 1;
+}
+
+/* FALLBACK: If JS disabled, show content immediately */
+html.no-js .viewport.viewport--content,
+html:not(.js-enabled) .viewport.viewport--content {
+  opacity: 1 !important;
+  transition: none !important;
 }
 
 /* Sound toggle hover - viewport content turns white */
