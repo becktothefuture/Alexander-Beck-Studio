@@ -5039,37 +5039,6 @@ a {
   transform: none;
 }
 
-.corner {
-  width: 10vw;
-  max-width: 100px;
-  height: 10vw;
-  max-height: 100px;
-}
-
-.corner.corner--tl {
-  position: fixed;
-  inset: 0% 0% auto auto;
-  transform: rotate(90deg);
-}
-
-.corner.corner--tr {
-  position: fixed;
-  inset: 0% auto auto 0%;
-  transform: rotate(0);
-}
-
-.corner.corner--br {
-  position: fixed;
-  inset: auto 0% 0% auto;
-  transform: rotate(180deg);
-}
-
-.corner.corner--bl {
-  position: fixed;
-  inset: auto auto 0% 0%;
-  transform: rotate(270deg);
-}
-
 .div-block {
   background-color: #ce3737;
   border-radius: 50%;

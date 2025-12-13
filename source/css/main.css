@@ -178,7 +178,7 @@ body.body {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  cursor: none; /* Simulation draws custom cursor */
+  cursor: none !important; /* No cursor anywhere - custom cursor handles it */
   /* Body is transparent - reveals dark html background as frame */
   background: transparent !important;
   background-color: transparent !important;
@@ -245,6 +245,7 @@ header.viewport.viewport--content {
    ───────────────────────────────────────────────────────────────────────────── */
 .viewport.viewport--content {
   background: var(--bg-light) !important; /* The "page" surface */
+  background-color: var(--bg-light) !important; /* Force override */
   border-radius: var(--container-radius);
   
   /* FADE-IN: Start invisible, fade in when .page-ready is added */
@@ -289,6 +290,7 @@ body.dark-mode .viewport {
 
 body.dark-mode .viewport.viewport--content {
   background: var(--bg-dark) !important; /* Dark content area */
+  background-color: var(--bg-dark) !important; /* Force override */
   
   /* Multi-layer atmospheric depth - lighter corners in dark mode */
   box-shadow: 
@@ -361,13 +363,6 @@ a {
 
 .viewport.viewport--corners * {
   pointer-events: auto;
-}
-
-/* Corners: Already use 10vw which is fluid, but add transition */
-.corner {
-  transition: 
-    width var(--duration-resize) var(--ease-organic),
-    height var(--duration-resize) var(--ease-organic);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -445,7 +440,7 @@ a {
   display: block;
   z-index: 1;
   pointer-events: none !important;
-  cursor: none;
+  cursor: none !important;
   touch-action: none;
   user-select: none; 
   -webkit-user-select: none;
@@ -781,12 +776,6 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   stroke: #c8c8c8 !important;
 }
 
-body.dark-mode .corner svg path,
-body.dark-mode .corner svg * {
-  fill: #1a1a1a !important;
-  stroke: #1a1a1a !important;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    LEGEND CIRCLE COLORS - Synced with ball palette
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -915,5 +904,36 @@ body.dark-mode .corner svg * {
   .footer_link,
   .caption {
     transition: color 0.3s ease;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CUSTOM CURSOR - Circular cursor matching ball size
+   Border area: visible | Simulation: scales down to dot and disappears
+   ═══════════════════════════════════════════════════════════════════════════════ */
+#custom-cursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10000; /* Above everything */
+  border: none;
+  background: #000000;
+  transform-origin: center center;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  transition: 
+    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.2s ease,
+    height 0.2s ease;
+  will-change: transform, opacity;
+}
+
+body.dark-mode #custom-cursor {
+  background: #000000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #custom-cursor {
+    transition: none;
   }
 }

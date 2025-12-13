@@ -8,8 +8,9 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-dock {
   position: fixed;
-  top: calc(var(--edge-inset-lg, 2rem) + var(--container-border, 0px));
-  right: calc(var(--edge-inset-lg, 2rem) + var(--container-border, 0px));
+  /* Product spec: float to right with ~5vh margin, clamp for tiny viewports */
+  top: clamp(12px, 5vh, 32px);
+  right: clamp(12px, 5vh, 32px);
   z-index: 9999;
   
   /* Stack panels */
@@ -95,7 +96,10 @@
   bottom: auto !important;
   
   width: var(--panel-width, 320px);
-  max-height: 65vh;
+  /* Use a single dock max-height token so content sizing can reference it */
+  --dock-panel-max-height: 65vh;
+  --dock-panel-collapsed-height: 52px;
+  max-height: var(--dock-panel-max-height);
   
   /* Smooth collapse */
   transition: 
@@ -103,11 +107,17 @@
     opacity 0.25s ease;
 }
 
+/* Ensure content area scrolls instead of getting clipped by parent max-height */
+.panel-dock .panel .panel-content {
+  max-height: calc(var(--dock-panel-max-height) - var(--dock-panel-collapsed-height));
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    COLLAPSED STATE — Header only
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-dock .panel.collapsed {
-  max-height: 52px;
+  height: var(--dock-panel-collapsed-height);
+  max-height: var(--dock-panel-collapsed-height);
 }
 
 .panel-dock .panel.collapsed .panel-content {
@@ -204,7 +214,8 @@ body:not(.dark-mode) .dock-toggle:hover {
   
   .panel-dock .panel {
     width: 300px;
-    max-height: 55vh;
+    --dock-panel-max-height: 55vh;
+    max-height: var(--dock-panel-max-height);
   }
   
   .dock-toggle {
@@ -217,7 +228,8 @@ body:not(.dark-mode) .dock-toggle:hover {
   .panel-dock .panel {
     width: calc(100vw - 2rem - var(--container-border, 0px) * 2);
     max-width: 320px;
-    max-height: 50vh;
+    --dock-panel-max-height: 50vh;
+    max-height: var(--dock-panel-max-height);
   }
   
   .panel-dock .panel-content {

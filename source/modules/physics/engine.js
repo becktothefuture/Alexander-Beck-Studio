@@ -7,7 +7,6 @@ import { CONSTANTS, MODES } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { resolveCollisions } from './collision.js';
 import { updateWaterRipples, getWaterRipples } from '../modes/water.js';
-import { drawCursor } from '../rendering/cursor.js';
 import { wallState, drawWalls, updateChromeColor } from './wall-state.js';
 
 const DT = CONSTANTS.PHYSICS_DT;
@@ -108,9 +107,6 @@ export function render() {
   for (let i = 0; i < balls.length; i++) {
     balls[i].draw(ctx);
   }
-  
-  // Cursor overlay
-  drawCursor(ctx);
 }
 
 /**

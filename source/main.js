@@ -11,6 +11,7 @@ import { setupRenderer, getCanvas, getContext, resize } from './modules/renderin
 import { createPanelDock } from './modules/ui/panel-dock.js';
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
+import { setupCustomCursor } from './modules/rendering/cursor.js';
 import { setMode, MODES, getForceApplicator } from './modules/modes/mode-controller.js';
 import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
@@ -245,6 +246,10 @@ function ensureNoiseElements() {
     // Setup pointer tracking BEFORE dark mode (needed for interactions)
     setupPointer();
     console.log('✓ Pointer tracking configured');
+    
+    // Setup custom cursor (circular, matches ball size)
+    setupCustomCursor();
+    console.log('✓ Custom cursor initialized');
 
     // Subtle brand logo micro-interaction (cursor distance scaling)
     initBrandLogoCursorScale();

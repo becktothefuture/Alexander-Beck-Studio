@@ -8,6 +8,7 @@ import { PANEL_HTML } from './panel-html.js';
 import { setupControls } from './controls.js';
 import { setupBuildControls } from './build-controls.js';
 import { initializeDarkMode } from '../visual/dark-mode-v2.js';
+import { getGlobals } from '../core/state.js';
 import {
   SOUND_PRESETS,
   getSoundConfig,
@@ -123,6 +124,19 @@ function getSoundPanelContent() {
 export function createPanelDock() {
   // Initialize sound engine (non-blocking)
   initSoundEngine();
+
+  // Remove any legacy/injected placeholders (duplicate IDs break binding + styling)
+  // Production build may inject a #controlPanel placeholder; the dock creates its own.
+  try {
+    const existingControl = document.getElementById('controlPanel');
+    if (existingControl && !existingControl.closest('.panel-dock')) {
+      existingControl.remove();
+    }
+    const existingSound = document.getElementById('soundPanel');
+    if (existingSound && !existingSound.closest('.panel-dock')) {
+      existingSound.remove();
+    }
+  } catch (e) {}
   
   // Create dock container
   dockElement = document.createElement('div');
@@ -148,9 +162,11 @@ export function createPanelDock() {
   // Create dock toggle button
   dockToggleElement = createDockToggle();
   
-  // Append to body
-  document.body.appendChild(dockElement);
-  document.body.appendChild(dockToggleElement);
+  // Append to simulation container so styling can be safely scoped under #bravia-balls
+  // (and to avoid collisions with Webflow/global site CSS).
+  const container = getGlobals().container || document.body;
+  container.appendChild(dockElement);
+  container.appendChild(dockToggleElement);
   
   // Update toggle button visibility based on dock state
   if (wasHidden && dockToggleElement) {

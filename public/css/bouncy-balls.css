@@ -178,7 +178,7 @@ body.body {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  cursor: none; /* Simulation draws custom cursor */
+  cursor: none !important; /* No cursor anywhere - custom cursor handles it */
   /* Body is transparent - reveals dark html background as frame */
   background: transparent !important;
   background-color: transparent !important;
@@ -245,6 +245,7 @@ header.viewport.viewport--content {
    ───────────────────────────────────────────────────────────────────────────── */
 .viewport.viewport--content {
   background: var(--bg-light) !important; /* The "page" surface */
+  background-color: var(--bg-light) !important; /* Force override */
   border-radius: var(--container-radius);
   
   /* FADE-IN: Start invisible, fade in when .page-ready is added */
@@ -289,6 +290,7 @@ body.dark-mode .viewport {
 
 body.dark-mode .viewport.viewport--content {
   background: var(--bg-dark) !important; /* Dark content area */
+  background-color: var(--bg-dark) !important; /* Force override */
   
   /* Multi-layer atmospheric depth - lighter corners in dark mode */
   box-shadow: 
@@ -361,13 +363,6 @@ a {
 
 .viewport.viewport--corners * {
   pointer-events: auto;
-}
-
-/* Corners: Already use 10vw which is fluid, but add transition */
-.corner {
-  transition: 
-    width var(--duration-resize) var(--ease-organic),
-    height var(--duration-resize) var(--ease-organic);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -445,7 +440,7 @@ a {
   display: block;
   z-index: 1;
   pointer-events: none !important;
-  cursor: none;
+  cursor: none !important;
   touch-action: none;
   user-select: none; 
   -webkit-user-select: none;
@@ -781,12 +776,6 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   stroke: #c8c8c8 !important;
 }
 
-body.dark-mode .corner svg path,
-body.dark-mode .corner svg * {
-  fill: #1a1a1a !important;
-  stroke: #1a1a1a !important;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    LEGEND CIRCLE COLORS - Synced with ball palette
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -918,13 +907,45 @@ body.dark-mode .corner svg * {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CUSTOM CURSOR - Circular cursor matching ball size
+   Border area: visible | Simulation: scales down to dot and disappears
+   ═══════════════════════════════════════════════════════════════════════════════ */
+#custom-cursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10000; /* Above everything */
+  border: none;
+  background: #000000;
+  transform-origin: center center;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  transition: 
+    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.2s ease,
+    height 0.2s ease;
+  will-change: transform, opacity;
+}
+
+body.dark-mode #custom-cursor {
+  background: #000000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #custom-cursor {
+    transition: none;
+  }
+}
+
 /* ╔══════════════════════════════════════════════════════════════════════════════╗
    ║                     UNIFIED PANEL SYSTEM — WORLD CLASS                       ║
    ║           Modern glassmorphism · 14px base · Linear/Figma-inspired           ║
    ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   CSS VARIABLES — Panel Design Tokens
+   CSS VARIABLES — Panel Design Tokens (shadcn-inspired)
+   NOTE: These are safe defaults; dock mounts inside #bravia-balls in production.
    ═══════════════════════════════════════════════════════════════════════════════ */
 :root {
   /* Panel colors */
@@ -949,6 +970,12 @@ body.dark-mode .corner svg * {
   --panel-width: 320px;
   --panel-radius: 16px;
   --panel-padding: 16px;
+
+  /* Product tokens (shadcn-ish naming) */
+  --panel-surface: rgba(22, 22, 24, 0.92);
+  --panel-surface-2: rgba(255, 255, 255, 0.04);
+  --panel-muted: rgba(255, 255, 255, 0.06);
+  --panel-ring: rgba(255, 140, 0, 0.25);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -964,19 +991,19 @@ body.dark-mode .corner svg * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   
-  /* Glassmorphism */
-  background: var(--panel-bg);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  /* Surface */
+  background: var(--panel-surface);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
   
   /* Border & Shadow */
   border: 1px solid var(--panel-border);
-  border-radius: var(--panel-radius);
+  border-radius: 18px;
   box-shadow: 
-    0 0 0 1px rgba(0, 0, 0, 0.3),
-    0 8px 40px rgba(0, 0, 0, 0.35),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 0 0 1px rgba(0, 0, 0, 0.25),
+    0 18px 60px rgba(0, 0, 0, 0.28),
+    0 6px 18px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   
   /* Layout */
   width: var(--panel-width);
@@ -999,8 +1026,8 @@ body:not(.dark-mode) .panel {
   color: var(--panel-text-light);
   box-shadow: 
     0 0 0 1px rgba(0, 0, 0, 0.04),
-    0 8px 40px rgba(0, 0, 0, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 18px 60px rgba(0, 0, 0, 0.10),
+    0 6px 18px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
@@ -1020,7 +1047,7 @@ body:not(.dark-mode) .panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px var(--panel-padding);
+  padding: 12px 14px;
   border-bottom: 1px solid var(--panel-border);
   cursor: pointer;
   transition: background 0.15s ease;
@@ -1083,7 +1110,7 @@ body:not(.dark-mode) .panel .panel-header .collapse-btn:hover {
    PANEL CONTENT — Scrollable area
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel .panel-content {
-  padding: var(--panel-padding);
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1145,14 +1172,14 @@ body:not(.dark-mode) .panel .section-title {
    DETAILS/ACCORDION — Collapsible sections
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel details {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--panel-surface-2);
   border: 1px solid var(--panel-border);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
 }
 
 body:not(.dark-mode) .panel details {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(0, 0, 0, 0.025);
   border-color: var(--panel-border-light);
 }
 
@@ -1160,9 +1187,9 @@ body:not(.dark-mode) .panel details {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 11px 12px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: inherit;
   cursor: pointer;
   list-style: none;
@@ -1253,9 +1280,9 @@ body:not(.dark-mode) .panel span.val {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel input[type="range"] {
   width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
   border: none;
   outline: none;
   -webkit-appearance: none;
@@ -1280,6 +1307,11 @@ body:not(.dark-mode) .panel input[type="range"] {
     0 2px 8px rgba(0, 0, 0, 0.3),
     0 1px 2px rgba(0, 0, 0, 0.2);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.panel input[type="range"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--panel-ring);
 }
 
 .panel input[type="range"]::-webkit-slider-thumb:hover {
@@ -1320,10 +1352,10 @@ body:not(.dark-mode) .panel input[type="range"]::-moz-range-track {
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--panel-text);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -1548,9 +1580,16 @@ body:not(.dark-mode) .theme-segment-btn.active {
   display: none;
 }
 
-.panel.collapsed,
+/* Fixed collapsed height so the panel never ends up "half expanded" / cropped */
+.panel.collapsed {
+  height: 52px;
+  max-height: 52px;
+}
+
+/* Minimized is a semantic alias for collapsed in this system */
 .panel.minimized {
-  max-height: auto;
+  height: 52px;
+  max-height: 52px;
 }
 
 .panel.collapsed .collapse-btn {
@@ -1660,8 +1699,9 @@ body:not(.dark-mode) .panel-footer kbd {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-dock {
   position: fixed;
-  top: calc(var(--edge-inset-lg, 2rem) + var(--container-border, 0px));
-  right: calc(var(--edge-inset-lg, 2rem) + var(--container-border, 0px));
+  /* Product spec: float to right with ~5vh margin, clamp for tiny viewports */
+  top: clamp(12px, 5vh, 32px);
+  right: clamp(12px, 5vh, 32px);
   z-index: 9999;
   
   /* Stack panels */
@@ -1747,7 +1787,10 @@ body:not(.dark-mode) .panel-footer kbd {
   bottom: auto !important;
   
   width: var(--panel-width, 320px);
-  max-height: 65vh;
+  /* Use a single dock max-height token so content sizing can reference it */
+  --dock-panel-max-height: 65vh;
+  --dock-panel-collapsed-height: 52px;
+  max-height: var(--dock-panel-max-height);
   
   /* Smooth collapse */
   transition: 
@@ -1755,11 +1798,17 @@ body:not(.dark-mode) .panel-footer kbd {
     opacity 0.25s ease;
 }
 
+/* Ensure content area scrolls instead of getting clipped by parent max-height */
+.panel-dock .panel .panel-content {
+  max-height: calc(var(--dock-panel-max-height) - var(--dock-panel-collapsed-height));
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    COLLAPSED STATE — Header only
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-dock .panel.collapsed {
-  max-height: 52px;
+  height: var(--dock-panel-collapsed-height);
+  max-height: var(--dock-panel-collapsed-height);
 }
 
 .panel-dock .panel.collapsed .panel-content {
@@ -1856,7 +1905,8 @@ body:not(.dark-mode) .dock-toggle:hover {
   
   .panel-dock .panel {
     width: 300px;
-    max-height: 55vh;
+    --dock-panel-max-height: 55vh;
+    max-height: var(--dock-panel-max-height);
   }
   
   .dock-toggle {
@@ -1869,7 +1919,8 @@ body:not(.dark-mode) .dock-toggle:hover {
   .panel-dock .panel {
     width: calc(100vw - 2rem - var(--container-border, 0px) * 2);
     max-width: 320px;
-    max-height: 50vh;
+    --dock-panel-max-height: 50vh;
+    max-height: var(--dock-panel-max-height);
   }
   
   .panel-dock .panel-content {

@@ -106,6 +106,10 @@ export const CONTROL_SECTIONS = {
           g.R_MAX = base * val * 1.25;
           const newSize = (g.R_MIN + g.R_MAX) / 2;
           g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
+          // Update cursor size when ball size changes
+          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
+            updateCursorSize();
+          });
         }
       },
       {
@@ -117,6 +121,21 @@ export const CONTROL_SECTIONS = {
         default: 20,
         format: v => String(v),
         parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'cursorSize',
+        label: 'Cursor Size',
+        stateKey: 'cursorSize',
+        type: 'range',
+        min: 0.1, max: 3.0, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        onChange: (g, val) => {
+          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
+            updateCursorSize();
+          });
+        }
       }
     ]
   },
@@ -301,6 +320,61 @@ export const CONTROL_SECTIONS = {
         format: v => v.toFixed(1),
         parse: parseFloat,
         hint: 'Higher = flash fades faster'
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DEPTH ILLUSION EFFECT
+  // ═══════════════════════════════════════════════════════════════════════════
+  depth: {
+    title: 'Depth Illusion',
+    icon: '🔍',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'depthCenterScale',
+        label: 'Center Speed',
+        stateKey: 'depthCenterScale',
+        type: 'range',
+        min: 0.01, max: 0.5, step: 0.01,
+        default: 0.05,
+        format: v => `${(v * 100).toFixed(0)}%`,
+        parse: parseFloat,
+        hint: 'Mouse speed at viewport center (lower = slower tunnel effect)'
+      },
+      {
+        id: 'depthEdgeScale',
+        label: 'Edge Speed',
+        stateKey: 'depthEdgeScale',
+        type: 'range',
+        min: 0.5, max: 2.0, step: 0.05,
+        default: 1.0,
+        format: v => `${(v * 100).toFixed(0)}%`,
+        parse: parseFloat,
+        hint: 'Mouse speed at viewport edges (1.0 = normal speed)'
+      },
+      {
+        id: 'depthCenterZone',
+        label: 'Center Zone Size',
+        stateKey: 'depthCenterZone',
+        type: 'range',
+        min: 0.1, max: 0.8, step: 0.05,
+        default: 0.4,
+        format: v => `${(v * 100).toFixed(0)}%`,
+        parse: parseFloat,
+        hint: 'Size of slow center area (larger = wider slow zone)'
+      },
+      {
+        id: 'depthCurvePower',
+        label: 'Transition Curve',
+        stateKey: 'depthCurvePower',
+        type: 'range',
+        min: 1.0, max: 5.0, step: 0.1,
+        default: 2.5,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        hint: 'Easing curve power (higher = sharper transition from center to edge)'
       }
     ]
   },

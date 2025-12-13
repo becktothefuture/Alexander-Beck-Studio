@@ -41,6 +41,9 @@ const state = {
   R_MIN: 6 * 1.2 * 0.75,
   R_MAX: 24 * 1.2 * 1.25,
   
+  // Custom cursor
+  cursorSize: 1.0,  // Multiplier for cursor size (1.0 = average ball size)
+  
   // Ball properties
   ballSoftness: 20,
   

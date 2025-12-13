@@ -4,7 +4,8 @@
    ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   CSS VARIABLES — Panel Design Tokens
+   CSS VARIABLES — Panel Design Tokens (shadcn-inspired)
+   NOTE: These are safe defaults; dock mounts inside #bravia-balls in production.
    ═══════════════════════════════════════════════════════════════════════════════ */
 :root {
   /* Panel colors */
@@ -29,6 +30,12 @@
   --panel-width: 320px;
   --panel-radius: 16px;
   --panel-padding: 16px;
+
+  /* Product tokens (shadcn-ish naming) */
+  --panel-surface: rgba(22, 22, 24, 0.92);
+  --panel-surface-2: rgba(255, 255, 255, 0.04);
+  --panel-muted: rgba(255, 255, 255, 0.06);
+  --panel-ring: rgba(255, 140, 0, 0.25);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -44,19 +51,19 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   
-  /* Glassmorphism */
-  background: var(--panel-bg);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  /* Surface */
+  background: var(--panel-surface);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
   
   /* Border & Shadow */
   border: 1px solid var(--panel-border);
-  border-radius: var(--panel-radius);
+  border-radius: 18px;
   box-shadow: 
-    0 0 0 1px rgba(0, 0, 0, 0.3),
-    0 8px 40px rgba(0, 0, 0, 0.35),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 0 0 1px rgba(0, 0, 0, 0.25),
+    0 18px 60px rgba(0, 0, 0, 0.28),
+    0 6px 18px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   
   /* Layout */
   width: var(--panel-width);
@@ -79,8 +86,8 @@ body:not(.dark-mode) .panel {
   color: var(--panel-text-light);
   box-shadow: 
     0 0 0 1px rgba(0, 0, 0, 0.04),
-    0 8px 40px rgba(0, 0, 0, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 18px 60px rgba(0, 0, 0, 0.10),
+    0 6px 18px rgba(0, 0, 0, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
@@ -100,7 +107,7 @@ body:not(.dark-mode) .panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px var(--panel-padding);
+  padding: 12px 14px;
   border-bottom: 1px solid var(--panel-border);
   cursor: pointer;
   transition: background 0.15s ease;
@@ -163,7 +170,7 @@ body:not(.dark-mode) .panel .panel-header .collapse-btn:hover {
    PANEL CONTENT — Scrollable area
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel .panel-content {
-  padding: var(--panel-padding);
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -225,14 +232,14 @@ body:not(.dark-mode) .panel .section-title {
    DETAILS/ACCORDION — Collapsible sections
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel details {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--panel-surface-2);
   border: 1px solid var(--panel-border);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
 }
 
 body:not(.dark-mode) .panel details {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(0, 0, 0, 0.025);
   border-color: var(--panel-border-light);
 }
 
@@ -240,9 +247,9 @@ body:not(.dark-mode) .panel details {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 11px 12px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: inherit;
   cursor: pointer;
   list-style: none;
@@ -333,9 +340,9 @@ body:not(.dark-mode) .panel span.val {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel input[type="range"] {
   width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
   border: none;
   outline: none;
   -webkit-appearance: none;
@@ -360,6 +367,11 @@ body:not(.dark-mode) .panel input[type="range"] {
     0 2px 8px rgba(0, 0, 0, 0.3),
     0 1px 2px rgba(0, 0, 0, 0.2);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.panel input[type="range"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--panel-ring);
 }
 
 .panel input[type="range"]::-webkit-slider-thumb:hover {
@@ -400,10 +412,10 @@ body:not(.dark-mode) .panel input[type="range"]::-moz-range-track {
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--panel-text);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -628,9 +640,16 @@ body:not(.dark-mode) .theme-segment-btn.active {
   display: none;
 }
 
-.panel.collapsed,
+/* Fixed collapsed height so the panel never ends up "half expanded" / cropped */
+.panel.collapsed {
+  height: 52px;
+  max-height: 52px;
+}
+
+/* Minimized is a semantic alias for collapsed in this system */
 .panel.minimized {
-  max-height: auto;
+  height: 52px;
+  max-height: 52px;
 }
 
 .panel.collapsed .collapse-btn {
