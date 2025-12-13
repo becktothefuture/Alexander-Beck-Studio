@@ -60,6 +60,7 @@ const state = {
   
   // Ball properties
   ballSoftness: 20,
+  ballSpacing: 2.5,     // Extra collision padding between balls (px, 0 = no extra spacing)
   
   // Corner (matches CSS border-radius for collision bounds)
   cornerRadius: 42,
@@ -151,11 +152,11 @@ const state = {
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
 
   // Rubber wall wobble tuning (visual-only deformation, no collision changes)
-  wallWobbleMaxDeform: 70,          // Max inward deformation (px at DPR 1)
+  wallWobbleMaxDeform: 148,         // Max inward deformation (px at DPR 1)
   wallWobbleStiffness: 1300,        // Spring stiffness (higher = snappier)
-  wallWobbleDamping: 18,            // Spring damping (higher = less oscillation)
-  wallWobbleSigma: 2.0,             // Impact spread (gaussian sigma in segment units)
-  wallWobbleCornerClamp: 0.50,      // Corner stickiness (0 = free, 1 = fully pinned)
+  wallWobbleDamping: 34,            // Spring damping (higher = less oscillation)
+  wallWobbleSigma: 4.0,             // Impact spread (gaussian sigma in segment units)
+  wallWobbleCornerClamp: 1.00,      // Corner stickiness (0 = free, 1 = fully pinned)
   
   // Helpers
   getSquashMax() {
@@ -191,6 +192,9 @@ export function initState(config) {
   if (config.frameColor !== undefined) state.frameColor = config.frameColor;
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
   if (config.wallRadius !== undefined) state.wallRadius = config.wallRadius;
+
+  // Ball spacing (collision padding)
+  if (config.ballSpacing !== undefined) state.ballSpacing = config.ballSpacing;
 
   // Rubber wall wobble tuning
   if (config.wallWobbleMaxDeform !== undefined) state.wallWobbleMaxDeform = config.wallWobbleMaxDeform;

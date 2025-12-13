@@ -12,6 +12,7 @@ export function setupBuildControls() {
     const config = {
       gravityMultiplier: g.gravityMultiplierPit,
       ballMass: g.ballMassKg,
+      ballSpacing: g.ballSpacing,
       sizeScale: g.sizeScale,
       sizeVariation: g.sizeVariation,
       restitution: g.REST,

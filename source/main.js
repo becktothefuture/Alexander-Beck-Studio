@@ -139,6 +139,7 @@ function ensureNoiseElements() {
     : null;
   
   // Create noise-2 if it doesn't exist
+  // Append to body (not inside #bravia-balls) to escape stacking context
   if (!document.querySelector('.noise-2')) {
     const noise2 = document.createElement('div');
     noise2.className = 'noise-2';
@@ -152,13 +153,14 @@ function ensureNoiseElements() {
     noise2.style.backgroundAttachment = 'fixed';
     noise2.style.mixBlendMode = 'luminosity';
     
-    existingNoise.insertAdjacentElement('afterend', noise2);
+    // Append to body, not inside #bravia-balls container
+    document.body.appendChild(noise2);
     console.log('✓ Created .noise-2 element');
   }
   
   // Create noise-3 if it doesn't exist (on top of noise-2)
-  const noise2 = document.querySelector('.noise-2');
-  if (noise2 && !document.querySelector('.noise-3')) {
+  // Append to body (not inside #bravia-balls) to escape stacking context
+  if (!document.querySelector('.noise-3')) {
     const noise3 = document.createElement('div');
     noise3.className = 'noise-3';
     if (bgImage) noise3.style.backgroundImage = bgImage;
@@ -171,7 +173,8 @@ function ensureNoiseElements() {
     noise3.style.backgroundAttachment = 'fixed';
     noise3.style.mixBlendMode = 'luminosity';
     
-    noise2.insertAdjacentElement('afterend', noise3);
+    // Append to body, not inside #bravia-balls container
+    document.body.appendChild(noise3);
     console.log('✓ Created .noise-3 element');
   }
 }

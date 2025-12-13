@@ -84,12 +84,12 @@ loadVisibility();
 
 export const CONTROL_SECTIONS = {
   // ═══════════════════════════════════════════════════════════════════════════
-  // GLOBAL PROPERTIES
+  // BALLS - Size, softness, spacing
   // ═══════════════════════════════════════════════════════════════════════════
-  global: {
-    title: 'Global Properties',
+  balls: {
+    title: 'Balls',
     icon: '🎱',
-    defaultOpen: true,
+    defaultOpen: false,
     controls: [
       {
         id: 'sizeGlobal',
@@ -106,7 +106,6 @@ export const CONTROL_SECTIONS = {
           g.R_MAX = base * val * 1.25;
           const newSize = (g.R_MIN + g.R_MAX) / 2;
           g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
-          // Update cursor size when ball size changes
           import('../rendering/cursor.js').then(({ updateCursorSize }) => {
             updateCursorSize();
           });
@@ -123,8 +122,29 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10)
       },
       {
+        id: 'ballSpacing',
+        label: 'Spacing',
+        stateKey: 'ballSpacing',
+        type: 'range',
+        min: 0, max: 10, step: 0.5,
+        default: 2.5,
+        format: v => v.toFixed(1) + 'px',
+        parse: parseFloat
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CURSOR
+  // ═══════════════════════════════════════════════════════════════════════════
+  cursor: {
+    title: 'Cursor',
+    icon: '👆',
+    defaultOpen: false,
+    controls: [
+      {
         id: 'cursorSize',
-        label: 'Cursor Size',
+        label: 'Size',
         stateKey: 'cursorSize',
         type: 'range',
         min: 0.1, max: 3.0, step: 0.05,
@@ -141,36 +161,31 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // FRAME & WALLS - Unified frame system (browser chrome + walls + border)
+  // FRAME - Color, thickness, radius
   // ═══════════════════════════════════════════════════════════════════════════
-  walls: {
-    title: 'Frame & Walls',
+  frame: {
+    title: 'Frame',
     icon: '🖼️',
     defaultOpen: false,
     controls: [
-      // Frame color picker - controls ALL frame-related colors
       {
         id: 'frameColor',
-        label: 'Frame Color',
+        label: 'Color',
         stateKey: 'frameColor',
         type: 'color',
         default: '#0a0a0a',
-        hint: 'Browser chrome + walls + border (debug)',
         onChange: (g, val) => {
           const root = document.documentElement;
-          // Update all unified frame colors
           root.style.setProperty('--frame-color-light', val);
           root.style.setProperty('--frame-color-dark', val);
           root.style.setProperty('--wall-color', val);
           root.style.setProperty('--chrome-bg', val);
           root.style.setProperty('--chrome-bg-light', val);
           root.style.setProperty('--chrome-bg-dark', val);
-          // Update meta theme-color for browser chrome
           const meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.content = val;
         }
       },
-      // Frame thickness - controls both wall thickness AND container border
       {
         id: 'wallThickness',
         label: 'Wall Thickness',
@@ -178,16 +193,11 @@ export const CONTROL_SECTIONS = {
         type: 'range',
         min: 0, max: 60, step: 1,
         default: 20,
-        format: v => String(v),
+        format: v => String(v) + 'px',
         parse: v => parseInt(v, 10),
-        hint: 'Wall tube thickness (visual). Padding is controlled in Layout → Padding.',
         onChange: (g, val) => {
-          // Keep state consistent (range controls with onChange don't auto-assign)
           g.wallThickness = val;
-          const root = document.documentElement;
-          // Update wall thickness only (do NOT touch layout padding)
-          root.style.setProperty('--wall-thickness', val + 'px');
-          // Resize canvas to fit new wall thickness
+          document.documentElement.style.setProperty('--wall-thickness', val + 'px');
           resize();
         }
       },
@@ -195,41 +205,43 @@ export const CONTROL_SECTIONS = {
         id: 'wallRadius',
         label: 'Corner Radius',
         stateKey: 'wallRadius',
-        group: 'Frame Geometry',
         type: 'range',
         min: 0, max: 80, step: 2,
         default: 42,
-        format: v => String(v),
+        format: v => String(v) + 'px',
         parse: v => parseInt(v, 10),
         cssVar: '--wall-radius',
         onChange: (g, val) => {
-          // Keep state consistent (range controls with onChange don't auto-assign)
           g.wallRadius = val;
           g.cornerRadius = val;
         }
-      },
+      }
+    ]
+  },
 
-      // ───────────────────────────────────────────────────────────────────────
-      // Container Inner Shadow (inside rounded wrapper)
-      // ───────────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SHADOW - Inner shadow on container
+  // ═══════════════════════════════════════════════════════════════════════════
+  shadow: {
+    title: 'Inner Shadow',
+    icon: '🌑',
+    defaultOpen: false,
+    controls: [
       {
         id: 'containerInnerShadowOpacity',
-        label: 'Inner Shadow Strength',
+        label: 'Strength',
         stateKey: 'containerInnerShadowOpacity',
-        group: 'Container Shadow',
         type: 'range',
         min: 0.0, max: 0.4, step: 0.01,
         default: 0.12,
         format: v => v.toFixed(2),
         parse: parseFloat,
-        cssVar: '--container-inner-shadow-opacity',
-        hint: '0 = off · subtle depth inside the rounded container'
+        cssVar: '--container-inner-shadow-opacity'
       },
       {
         id: 'containerInnerShadowBlur',
-        label: 'Inner Shadow Blur',
+        label: 'Blur',
         stateKey: 'containerInnerShadowBlur',
-        group: 'Container Shadow',
         type: 'range',
         min: 0, max: 250, step: 5,
         default: 80,
@@ -239,110 +251,102 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'containerInnerShadowSpread',
-        label: 'Inner Shadow Spread',
+        label: 'Spread',
         stateKey: 'containerInnerShadowSpread',
-        group: 'Container Shadow',
         type: 'range',
         min: -50, max: 50, step: 1,
         default: -10,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
-        cssVar: '--container-inner-shadow-spread',
-        hint: 'Negative = tighter to edges'
+        cssVar: '--container-inner-shadow-spread'
       },
       {
         id: 'containerInnerShadowOffsetY',
-        label: 'Inner Shadow Offset Y',
+        label: 'Offset Y',
         stateKey: 'containerInnerShadowOffsetY',
-        group: 'Container Shadow',
         type: 'range',
         min: -60, max: 60, step: 1,
         default: 0,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
         cssVar: '--container-inner-shadow-offset-y'
-      },
-      // ───────────────────────────────────────────────────────────────────────
-      // Rubber Wobble tuning (visual-only)
-      // ───────────────────────────────────────────────────────────────────────
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WOBBLE - Rubber wall physics
+  // ═══════════════════════════════════════════════════════════════════════════
+  wobble: {
+    title: 'Wall Wobble',
+    icon: '〰️',
+    defaultOpen: false,
+    controls: [
       {
         id: 'wallWobbleMaxDeform',
-        label: 'Wobble Strength',
+        label: 'Strength',
         stateKey: 'wallWobbleMaxDeform',
-        group: 'Rubber Wobble',
         type: 'range',
         min: 0, max: 150, step: 1,
-        default: 70,
+        default: 148,
         format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Max inward bulge (visual only)'
+        parse: v => parseInt(v, 10)
       },
       {
         id: 'wallWobbleStiffness',
         label: 'Return Speed',
         stateKey: 'wallWobbleStiffness',
-        group: 'Rubber Wobble',
         type: 'range',
         min: 50, max: 3000, step: 10,
         default: 1300,
         format: v => String(v),
-        parse: v => parseInt(v, 10),
-        hint: 'Higher = snappier return'
+        parse: v => parseInt(v, 10)
       },
       {
         id: 'wallWobbleDamping',
         label: 'Damping',
         stateKey: 'wallWobbleDamping',
-        group: 'Rubber Wobble',
         type: 'range',
         min: 0, max: 80, step: 1,
-        default: 18,
+        default: 34,
         format: v => String(v),
-        parse: v => parseInt(v, 10),
-        hint: 'Higher = less oscillation'
+        parse: v => parseInt(v, 10)
       },
       {
         id: 'wallWobbleSigma',
         label: 'Impact Spread',
         stateKey: 'wallWobbleSigma',
-        group: 'Rubber Wobble',
         type: 'range',
         min: 0.5, max: 4.0, step: 0.1,
-        default: 2.0,
+        default: 4.0,
         format: v => v.toFixed(1),
-        parse: parseFloat,
-        hint: 'How wide the bulge travels along the wall'
+        parse: parseFloat
       },
       {
         id: 'wallWobbleCornerClamp',
         label: 'Corner Stickiness',
         stateKey: 'wallWobbleCornerClamp',
-        group: 'Rubber Wobble',
         type: 'range',
         min: 0.0, max: 1.0, step: 0.01,
-        default: 0.50,
+        default: 1.00,
         format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: '0 = corners wobble freely, 1 = corners fully pinned'
-      },
-      // Removed: Bounce Flash + Flash Decay (bounce highlight system removed)
+        parse: parseFloat
+      }
     ]
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // VISUAL EFFECTS
+  // NOISE - Texture overlay
   // ═══════════════════════════════════════════════════════════════════════════
-  effects: {
-    title: 'Effects',
-    icon: '🎭',
+  noise: {
+    title: 'Noise',
+    icon: '📺',
     defaultOpen: false,
     controls: [
-      // Noise
       {
         id: 'noiseSizeBase',
-        label: 'Noise Back Size',
+        label: 'Back Size',
         stateKey: 'noiseSizeBase',
-        group: 'Noise Texture',
         type: 'range',
         min: 50, max: 200, step: 5,
         default: 100,
@@ -352,7 +356,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'noiseSizeTop',
-        label: 'Noise Front Size',
+        label: 'Front Size',
         stateKey: 'noiseSizeTop',
         type: 'range',
         min: 40, max: 150, step: 5,
@@ -363,7 +367,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'noiseBackOpacity',
-        label: 'Noise Back Opacity',
+        label: 'Back Opacity',
         stateKey: 'noiseBackOpacity',
         type: 'range',
         min: 0, max: 0.1, step: 0.001,
@@ -374,7 +378,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'noiseFrontOpacity',
-        label: 'Noise Front Opacity',
+        label: 'Front Opacity',
         stateKey: 'noiseFrontOpacity',
         type: 'range',
         min: 0, max: 0.05, step: 0.001,
@@ -383,7 +387,6 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         cssVar: '--noise-front-opacity'
       }
-      // Vignette removed - replaced with simple gradient overlay in CSS
     ]
   },
 
@@ -391,10 +394,10 @@ export const CONTROL_SECTIONS = {
   // MODE-SPECIFIC CONTROLS
   // ═══════════════════════════════════════════════════════════════════════════
   pit: {
-    title: 'Ball Pit Settings',
+    title: 'Ball Pit',
     icon: '🎯',
     mode: 'pit',
-    defaultOpen: true,
+    defaultOpen: false,
     controls: [
       {
         id: 'gravityPit',
@@ -471,10 +474,10 @@ export const CONTROL_SECTIONS = {
   },
 
   flies: {
-    title: 'Flies Settings',
+    title: 'Flies',
     icon: '🕊️',
     mode: 'flies',
-    defaultOpen: true,
+    defaultOpen: false,
     controls: [
       {
         id: 'fliesBallCount',
@@ -521,10 +524,10 @@ export const CONTROL_SECTIONS = {
   },
 
   weightless: {
-    title: 'Zero-G Settings',
+    title: 'Zero-G',
     icon: '🌌',
     mode: 'weightless',
-    defaultOpen: true,
+    defaultOpen: false,
     controls: [
       {
         id: 'weightlessCount',
@@ -562,10 +565,10 @@ export const CONTROL_SECTIONS = {
   },
 
   water: {
-    title: 'Water Settings',
+    title: 'Water',
     icon: '🌊',
     mode: 'water',
-    defaultOpen: true,
+    defaultOpen: false,
     controls: [
       {
         id: 'waterBallCount',
@@ -606,10 +609,10 @@ export const CONTROL_SECTIONS = {
   },
 
   vortex: {
-    title: 'Vortex Settings',
+    title: 'Vortex',
     icon: '🌀',
     mode: 'vortex',
-    defaultOpen: true,
+    defaultOpen: false,
     controls: [
       {
         id: 'vortexBallCount',
@@ -646,10 +649,10 @@ export const CONTROL_SECTIONS = {
   },
 
   'ping-pong': {
-    title: 'Ping Pong Settings',
+    title: 'Ping Pong',
     icon: '🏓',
     mode: 'ping-pong',
-    defaultOpen: true,
+    defaultOpen: false,
     controls: [
       {
         id: 'pingPongBallCount',
@@ -687,10 +690,10 @@ export const CONTROL_SECTIONS = {
   },
 
   magnetic: {
-    title: 'Magnetic Settings',
+    title: 'Magnetic',
     icon: '🧲',
     mode: 'magnetic',
-    defaultOpen: true,
+    defaultOpen: false,
     controls: [
       {
         id: 'magneticBallCount',
@@ -727,10 +730,10 @@ export const CONTROL_SECTIONS = {
   },
 
   bubbles: {
-    title: 'Bubbles Settings',
+    title: 'Bubbles',
     icon: '🫧',
     mode: 'bubbles',
-    defaultOpen: true,
+    defaultOpen: false,
     controls: [
       {
         id: 'bubblesRate',

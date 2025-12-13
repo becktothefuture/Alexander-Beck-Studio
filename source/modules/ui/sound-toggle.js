@@ -33,26 +33,17 @@ export function createSoundToggle() {
   
   // Create button element
   buttonElement = document.createElement('button');
-  buttonElement.className = 'sound-toggle footer_link is-orange';
+  buttonElement.className = 'sound-toggle';
   buttonElement.id = 'sound-toggle';
   buttonElement.type = 'button';
   buttonElement.setAttribute('aria-label', 'Toggle collision sounds');
   buttonElement.setAttribute('aria-pressed', 'false');
   buttonElement.setAttribute('data-enabled', 'false');
   
-  // Style overrides for button reset to match link style
-  buttonElement.style.background = 'none';
-  buttonElement.style.border = 'none';
-  buttonElement.style.padding = '0';
-  buttonElement.style.font = 'inherit';
-  buttonElement.style.cursor = 'pointer';
-  buttonElement.style.position = 'fixed'; /* Default fixed if not in grid */
-  buttonElement.style.zIndex = '200'; /* Above noise (100) */
-  buttonElement.style.bottom = '3.5em'; /* Align with footer padding roughly */
-  buttonElement.style.left = '4em'; /* Align with social links roughly? No, wait. */
+  // No inline styles - CSS handles all styling via .sound-toggle class
 
   // Initial text (sound starts off)
-  buttonElement.textContent = 'Sound Off'; // "Off" capitalized per request
+  buttonElement.textContent = 'Sound Off';
   
   // Click handler
   buttonElement.addEventListener('click', handleToggleClick);

@@ -41,9 +41,12 @@
   --space-xl: calc(var(--space-unit) * 6);     /* 6vmin */
   --space-2xl: calc(var(--space-unit) * 8);    /* 8vmin */
   
-  /* Edge insets - distance from viewport edge (with reasonable bounds) */
-  --edge-inset: clamp(1rem, 2vmin, 2rem);
-  --edge-inset-lg: clamp(1.5rem, 3vmin, 3rem);
+  /* Content padding - space between frame edge and content elements */
+  --content-padding: 40px;
+  
+  /* Edge insets - TOTAL distance from viewport edge = frame + content padding */
+  --edge-inset: calc(var(--container-border) + var(--content-padding));
+  --edge-inset-lg: calc(var(--container-border) + var(--content-padding));
   
   /* ─────────────────────────────────────────────────────────────────────────────
      ORGANIC TRANSITION TIMING
@@ -86,18 +89,22 @@
   /* Rubber wall color = frame color */
   --wall-color: var(--frame-color-light);
   --wall-thickness: 12px;          /* Thickness of the rubber wall tubes */
-  --wall-softness: 20px;           /* Blur radius for cushioned glow effect */
   --wall-radius: clamp(24px, 4vmin, 48px);  /* Corner radius for all elements */
   --wall-bevel-light: rgba(255, 255, 255, 0.15);  /* Top/left highlight */
   --wall-bevel-dark: rgba(0, 0, 0, 0.3);          /* Bottom/right shadow */
-  --wall-bounce-intensity: 0;      /* 0-1, animated on ball collision */
-  --wall-bounce-color: rgba(255, 255, 255, 0.4); /* Flash color on impact */
   
   /* Legacy alias for compatibility */
   --container-radius: var(--wall-radius);
   --container-border: 20px;  /* Visible dark frame around content */
   --simulation-padding: 0px;
   --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
+
+  /* Container inner shadow (inside the rounded content area) */
+  --container-inner-shadow-opacity: 0.12; /* 0..0.4 */
+  --container-inner-shadow-blur: 80px;    /* px */
+  --container-inner-shadow-spread: -10px; /* px */
+  --container-inner-shadow-offset-y: 0px; /* px */
+  --container-inner-shadow-color: hsla(0 0% 0% / var(--container-inner-shadow-opacity));
   
   /* ─────────────────────────────────────────────────────────────────────────────
      TEXTURE SIZING
@@ -114,24 +121,10 @@
   --noise-front-opacity-dark: 0.05; /* Dark mode - above balls */
   
   /* ─────────────────────────────────────────────────────────────────────────────
-     VIGNETTE (DEPTH) CONTROLS - Multi-layer inset shadows for atmospheric depth
-     ───────────────────────────────────────────────────────────────────────────── */
-  --vignette-light-intensity: 0.08;  /* Overall darkness (0-1) */
-  --vignette-dark-intensity: 0.05;   /* Overall lightness in dark mode (0-1) */
-  --vignette-blur-outer: 180px;      /* Outer blur radius (soft edge) */
-  --vignette-blur-mid: 100px;        /* Middle layer blur */
-  --vignette-blur-inner: 40px;       /* Inner layer blur (sharp gradient) */
-  --vignette-spread: 0px;            /* Spread radius (negative pulls inward) */
-  --vignette-x: 0px;                 /* Horizontal offset */
-  --vignette-y: 0px;                 /* Vertical offset */
-  --vignette-layers: 3;              /* Number of shadow layers (1-5) */
-  --vignette-transition: 800ms;      /* Animation speed for depth changes */
-  
-  /* ─────────────────────────────────────────────────────────────────────────────
      BALL COLOR PALETTE (dynamically updated by JS)
      ───────────────────────────────────────────────────────────────────────────── */
   --ball-1: #b7bcb7;
-  --ball-2: #6b6b6b;  /* Darker grey - for AI Integration */
+  --ball-2: #ffffff;  /* White - for AI Integration */
   --ball-3: #ffffff;
   --ball-4: #00695c;
   --ball-5: #000000;
@@ -182,7 +175,7 @@ body.body {
   /* Body is transparent - reveals dark html background as frame */
   background: transparent !important;
   background-color: transparent !important;
-  color: rgba(64, 64, 64, 1); /* Dark text for Light Mode */
+  color: var(--wall-color); /* Matches wall/frame color dynamically */
   
   /* GLOBAL TYPOGRAPHY */
   -webkit-font-smoothing: subpixel-antialiased;
@@ -193,11 +186,20 @@ body.body {
   transition: padding var(--duration-resize, 600ms) var(--ease-organic, ease);
 }
 
+/* Force cursor: none on ALL elements, including links */
+body *,
+body.body * {
+  cursor: none !important;
+}
+
 body.dark-mode,
 body.body.dark-mode { 
   background: transparent !important;
   background-color: transparent !important;
   color: rgba(200, 200, 200, 1);
+
+  /* In dark mode, use a subtle light inner edge for depth */
+  --container-inner-shadow-color: hsla(0 0% 100% / calc(var(--container-inner-shadow-opacity) * 0.35));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -214,7 +216,9 @@ body.body.dark-mode {
 
 /* Webflow .viewport reset - content area behind balls but above background */
 .viewport {
-  z-index: 1 !important;  /* Below #bravia-balls (z:5) so balls show in front */
+  /* Override Webflow's z-index:1 with auto to avoid creating stacking context */
+  /* This allows fixed children (socials, caption) to escape and appear above balls */
+  z-index: auto !important;
   position: static !important;
   transform: none !important;
   opacity: 1 !important;
@@ -230,7 +234,15 @@ body.body.dark-mode {
      fixed sizing + padding values here.
    ───────────────────────────────────────────────────────────────────────────── */
 header.viewport {
-  height: 100% !important;
+  /* Match viewport--content fixed positioning */
+  position: fixed !important;
+  top: var(--container-border) !important;
+  left: var(--container-border) !important;
+  right: var(--container-border) !important;
+  bottom: var(--container-border) !important;
+  width: auto !important;
+  height: calc(100vh - var(--container-border) * 2) !important; /* Explicit height calculation */
+  max-height: calc(100vh - var(--container-border) * 2) !important;
 }
 
 header.viewport.viewport--content {
@@ -244,26 +256,57 @@ header.viewport.viewport--content {
    - Fallback: no-js class shows content immediately
    ───────────────────────────────────────────────────────────────────────────── */
 .viewport.viewport--content {
-  background: var(--bg-light) !important; /* The "page" surface */
-  background-color: var(--bg-light) !important; /* Force override */
+  /* Fixed position inside the frame border */
+  position: fixed !important;
+  top: var(--container-border) !important;
+  left: var(--container-border) !important;
+  right: var(--container-border) !important;
+  bottom: var(--container-border) !important;
+  width: auto !important;
+  height: calc(100vh - var(--container-border) * 2) !important; /* Explicit height calculation */
+  max-height: calc(100vh - var(--container-border) * 2) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  
+  /* Light mode background - the "page" surface */
+  background: var(--bg-light) !important;
+  background-color: var(--bg-light) !important;
   border-radius: var(--container-radius);
+  
+  /* Above balls (z:5) and noise layers */
+  z-index: 6 !important;
+  
+  /* Allow pointer events to pass through to balls where there's no text */
+  pointer-events: none !important;
   
   /* FADE-IN: Start invisible, fade in when .page-ready is added */
   opacity: 0;
-  transition: opacity 800ms ease-out 200ms; /* 200ms delay before fade starts */
-  
-  /* Multi-layer atmospheric depth - organic corner vignette */
-  box-shadow: 
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-outer) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.6)),
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-mid) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.4)),
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-inner) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.3));
   
   /* ORGANIC BREATHING: All geometric properties transition smoothly */
   transition: 
+    opacity 800ms ease-out 200ms,
     background-color var(--duration-settle) var(--ease-settle),
     border-radius var(--duration-resize) var(--ease-organic),
-    padding var(--duration-resize) var(--ease-organic),
-    box-shadow var(--vignette-transition) var(--ease-organic);
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic),
+    bottom var(--duration-resize) var(--ease-organic);
+}
+
+/* Light gradient overlay - subtle white glow from edges */
+.viewport.viewport--content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  /* Radial gradient: transparent center → 10% white at edges */
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 50%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.10) 100%
+  );
 }
 
 /* PAGE READY: Fade in when JS signals load complete */
@@ -281,6 +324,7 @@ html:not(.js-enabled) .viewport.viewport--content {
 /* Sound toggle hover - viewport content turns white */
 body.sound-hover .viewport.viewport--content {
   background: #ffffff !important;
+  background-color: #ffffff !important;
 }
 
 /* Dark mode: viewport content gets dark background */
@@ -291,27 +335,43 @@ body.dark-mode .viewport {
 body.dark-mode .viewport.viewport--content {
   background: var(--bg-dark) !important; /* Dark content area */
   background-color: var(--bg-dark) !important; /* Force override */
-  
-  /* Multi-layer atmospheric depth - lighter corners in dark mode */
-  box-shadow: 
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-outer) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.6)),
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-mid) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.4)),
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-inner) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.3));
+}
+
+/* Dark mode gradient: same subtle white edge glow (reads as soft highlight) */
+body.dark-mode .viewport.viewport--content::before {
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 50%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
 }
 
 /* Dark mode sound hover - viewport content goes slightly lighter */
 body.dark-mode.sound-hover .viewport.viewport--content {
   background: #1a1a1a !important;
+  background-color: #1a1a1a !important;
 }
 
-/* Logo layer - Above bottom noise (z:2), BELOW balls (z:5) */
-.hero__text,
-.hero,
-.hero-section,
-[class*="hero"],
-.header {
-  z-index: 3 !important;
-  position: relative;
+/* Logo layer - Behind balls (z:4), centered in viewport */
+#brand-logo {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 4 !important; /* Behind balls (z:5), above noise (z:2-3) */
+  pointer-events: none !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Remove relative positioning from generic hero classes when it's #brand-logo */
+#brand-logo.hero,
+#brand-logo.hero-section,
+#brand-logo.header {
+  position: fixed !important; /* Override relative positioning */
+  z-index: 4 !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -319,10 +379,11 @@ body.dark-mode.sound-hover .viewport.viewport--content {
    Center of viewport → 0.9x | Farthest (corner) → 1.1x
    - Implemented via CSS var updates (rAF-throttled) to avoid overhead
    - Transition must be >= 400ms (uses 420ms for a gentle settle)
+   - Note: Transform on .hero__text combines with parent #brand-logo centering
    ───────────────────────────────────────────────────────────────────────────── */
 #brand-logo .hero__text {
   transform-origin: 50% 50%;
-  /* Final feel = cursor-scale * (retreat driven by nearby balls) */
+  /* Scale and retreat effects - applied ON TOP of parent's centering transform */
   transform:
     translateY(calc(var(--abs-brand-logo-retreat, 0) * 3px))
     scale(calc(var(--abs-brand-logo-scale, 1) * (1 - (var(--abs-brand-logo-retreat, 0) * 0.025))));
@@ -337,18 +398,25 @@ body.dark-mode.sound-hover .viewport.viewport--content {
   }
 }
 
-/* UI elements layer */
+/* UI elements layer - ABOVE all noise layers (noise-3 is z:8) and balls (z:5) */
+/* Text elements need pointer-events: auto to be clickable since parent has pointer-events: none */
 .legend,
 .legend__item,
-.footer_icon-group,
 .footer_link,
 .footer_icon-link,
-.caption,
 a {
-  z-index: 20 !important;
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
   position: relative;
   pointer-events: auto !important;
   text-decoration: none !important; /* Remove all underlines globally */
+}
+
+/* Fixed-position UI elements (excluded from relative positioning above) */
+.footer_icon-group,
+.caption {
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  pointer-events: auto !important;
+  text-decoration: none !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -406,28 +474,24 @@ a {
     background-color var(--duration-settle) var(--ease-settle);
 }
 
-/* Bounce highlight overlay - flashes on ball collision (on canvas wrapper) */
+/* Inner shadow overlay inside the rounded container wrapper */
 #bravia-balls::after {
   content: '';
   position: absolute;
-  /* Match canvas position */
   inset: 0;
   border-radius: var(--container-radius);
   pointer-events: none;
-  /* Radial glow that intensifies on bounce */
-  box-shadow: 
-    inset 0 0 calc(var(--wall-softness) * 2) calc(var(--wall-thickness) * 0.5) 
-    rgba(255, 255, 255, calc(var(--wall-bounce-intensity) * 0.3));
-  opacity: var(--wall-bounce-intensity);
-  transition: opacity 150ms ease-out;
+  box-shadow:
+    inset 0 var(--container-inner-shadow-offset-y)
+    var(--container-inner-shadow-blur)
+    var(--container-inner-shadow-spread)
+    var(--container-inner-shadow-color);
 }
 
-/* Ball Pit Mode - Extended height for spawning area above viewport */
+/* Ball Pit Mode - Same container as other modes
+   Balls spawn at negative Y (above canvas) and fall into view */
 #bravia-balls.mode-pit {
-  /* 150% of viewport height - spawning area above visible viewport */
-  height: 150vh;
-  bottom: 0;
-  top: auto;
+  /* No special sizing - walls stay fixed, balls spawn above */
 }
 
 /* Canvas - simulation drawing surface, fills the container */
@@ -470,6 +534,7 @@ a {
   z-index: 2 !important;  /* Behind logo (z:3) and balls (z:5) */
   opacity: var(--noise-back-opacity) !important;
   background-size: var(--noise-size-base) var(--noise-size-base) !important;
+  mix-blend-mode: multiply !important; /* Darkens grain on light background */
 }
 
 .noise-2 {
@@ -477,6 +542,7 @@ a {
   transform: scaleX(-1) !important;
   background-size: var(--noise-size-top) var(--noise-size-top) !important;
   opacity: var(--noise-front-opacity) !important;
+  mix-blend-mode: multiply !important; /* Darkens grain on light background */
 }
 
 .noise-3 {
@@ -484,21 +550,23 @@ a {
   transform: rotate(180deg) !important;
   background-size: var(--noise-size-base) var(--noise-size-base) !important;
   opacity: var(--noise-top-opacity, 0.015) !important;
+  mix-blend-mode: multiply !important; /* Darkens grain on light background */
 }
 
+/* Dark mode: Invert blend mode (multiply → screen) for equivalent effect on dark bg */
 body.dark-mode .noise {
   opacity: var(--noise-back-opacity-dark) !important;
-  mix-blend-mode: overlay !important;
+  mix-blend-mode: screen !important; /* Lightens grain on dark background */
 }
 
 body.dark-mode .noise-2 {
   opacity: var(--noise-front-opacity-dark) !important;
-  mix-blend-mode: overlay !important;
+  mix-blend-mode: screen !important; /* Lightens grain on dark background */
 }
 
 body.dark-mode .noise-3 {
   opacity: var(--noise-top-opacity-dark, 0.04) !important;
-  mix-blend-mode: overlay !important;
+  mix-blend-mode: screen !important; /* Lightens grain on dark background */
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -508,21 +576,51 @@ body.dark-mode .noise-3 {
 /* ─────────────────────────────────────────────────────────────────────────────
    LEGEND (Top-Left)
    Uses organic spacing: positions breathe with viewport
+   Responsive grid: 4×2 desktop → 3×3 tablet → 1×7 mobile
    ───────────────────────────────────────────────────────────────────────────── */
 .legend {
   position: fixed !important;
-  /* ORGANIC: Edge inset scales with viewport */
+  /* Position = frame border + content padding (via --edge-inset) */
   top: var(--edge-inset) !important;
-  left: var(--edge-inset-lg) !important;
+  left: var(--edge-inset) !important;
   margin: 0 !important;
   width: auto !important;
+  max-width: calc(100vw - var(--edge-inset) * 2) !important;
   height: auto !important;
   font-family: 'Geist', sans-serif !important;
+  padding: 0 !important; /* No inner padding - positioning handles spacing */
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  
+  /* CSS Grid: 4 columns on desktop */
+  display: grid !important;
+  grid-template-columns: repeat(4, auto) !important;
+  grid-column-gap: clamp(1rem, 2vw, 1.5rem) !important;
+  grid-row-gap: 0.5rem !important;
   
   /* Smooth position transitions during resize */
   transition: 
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LEGEND RESPONSIVE: Tablet (3×3 grid)
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 991px) {
+  .legend {
+    grid-template-columns: repeat(3, auto) !important;
+    grid-column-gap: clamp(0.75rem, 1.5vw, 1.25rem) !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LEGEND RESPONSIVE: Mobile (1×7 single column)
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .legend {
+    grid-template-columns: 1fr !important;
+    grid-row-gap: 0.35rem !important;
+  }
 }
 
 .legend__item {
@@ -545,12 +643,12 @@ body.dark-mode .noise-3 {
    ───────────────────────────────────────────────────────────────────────────── */
 .decorative-script {
   position: fixed;
-  /* ORGANIC: Mirrors legend positioning */
+  /* Position = frame border + content padding (via --edge-inset) */
   top: var(--edge-inset);
-  right: var(--edge-inset-lg);
+  right: var(--edge-inset);
   /* Fluid max-width */
   max-width: min(418px, 38vw);
-  z-index: 2001 !important;
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
   font-family: 'Geist', sans-serif;
   /* Fluid typography */
   font-size: clamp(0.65rem, 1.1vw, 0.8rem);
@@ -569,7 +667,7 @@ body.dark-mode .noise-3 {
   visibility: visible !important;
   /* Border styling */
   border: 1px solid rgba(61, 61, 61, 1) !important;
-  padding: 2px 20px !important;
+  padding: 8px 12px !important; /* Simple fixed padding for the box */
   
   /* ORGANIC TRANSITIONS: Position and appearance */
   transition: 
@@ -602,7 +700,7 @@ body.dark-mode .noise-3 {
 .decorative-script p a::after {
   content: '';
   position: absolute;
-  bottom: 2px;
+  bottom: -100%;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -650,7 +748,7 @@ body.dark-mode .noise-3 {
 .footer_link::after {
   content: '';
   position: absolute;
-  bottom: 2px;
+  bottom: -100%;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -673,14 +771,24 @@ body.dark-mode .noise-3 {
   opacity: 0.6;
 }
 
-/* Social icons */
+/* Social icons - Fixed position at bottom-left inside frame */
+#social-links,
 .footer_icon-group {
-  transform: translateY(var(--space-md));
-  transition: transform var(--duration-resize) var(--ease-organic);
+  position: fixed !important;
+  bottom: var(--edge-inset) !important;
+  left: var(--edge-inset) !important;
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  transition: 
+    bottom var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic);
 }
 
-/* Caption (timestamp) */
+/* Caption (timestamp) - Fixed position at bottom-right inside frame */
 .caption {
+  position: fixed !important;
+  bottom: var(--edge-inset) !important;
+  right: var(--edge-inset) !important;
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
   font-family: 'Molle', cursive !important;
   /* Fluid typography */
   font-size: clamp(0.85rem, 1.5vw, 1.05rem) !important;
@@ -689,10 +797,10 @@ body.dark-mode .noise-3 {
   letter-spacing: 0.01em !important;
   opacity: 0.85;
   cursor: default;
-  transform: translateY(var(--space-md));
   transition: 
     color var(--duration-quick) ease,
-    transform var(--duration-resize) var(--ease-organic);
+    bottom var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic);
 }
 
 .caption:hover {
@@ -700,15 +808,10 @@ body.dark-mode .noise-3 {
   opacity: 1;
 }
 
-/* Hover dot for caption too */
-.caption {
-  position: relative;
-}
-
 .caption::after {
   content: '';
   position: absolute;
-  bottom: 2px;
+  bottom: -100%;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -737,29 +840,20 @@ body.dark-mode .footer_icon-link {
   opacity: 0.88;
 }
 
-body.dark-mode .caption {
-  color: #a0a0a0 !important;
-  opacity: 0.88;
-}
-
-body.dark-mode .decorative-script {
-  color: #f5f5f5;
-  opacity: 0.88;
-  border-color: rgba(120, 120, 120, 1); /* Lighter border for dark mode */
-}
-
-body.dark-mode .decorative-script p a,
-body.dark-mode .footer_link:hover,
-body.dark-mode .caption:hover {
-  color: #f5f5f5 !important;
+/* Sound toggle always stays dark red in dark mode - no changes */
+body.dark-mode .sound-toggle {
+  color: var(--ball-6) !important; /* Always dark red */
   opacity: 1;
 }
 
-/* Dark mode hover dots */
-body.dark-mode .footer_link:hover::after,
-body.dark-mode .caption:hover::after,
-body.dark-mode .decorative-script p a:hover::after {
-  opacity: 0.5;
+body.dark-mode .sound-toggle:hover {
+  color: var(--ball-6) !important; /* No color change on hover */
+  opacity: 1;
+}
+
+/* Remove Sound On state color change in dark mode */
+body.dark-mode .sound-toggle[data-enabled="true"] {
+  color: var(--ball-6) !important; /* Same dark red when on */
 }
 
 body.dark-mode .decorative-script p a:hover {
@@ -801,9 +895,8 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 
 @media (max-width: 768px) {
   :root {
-    /* Slightly tighter spacing on tablets */
-    --edge-inset: clamp(0.75rem, 2vmin, 1.5rem);
-    --edge-inset-lg: clamp(1rem, 2.5vmin, 2rem);
+    /* Slightly tighter content padding on tablets */
+    --content-padding: 24px;
   }
   
   .decorative-script {
@@ -814,9 +907,8 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 
 @media (max-width: 480px) {
   :root {
-    /* Tighter spacing on phones */
-    --edge-inset: clamp(0.5rem, 2vmin, 1rem);
-    --edge-inset-lg: clamp(0.75rem, 2vmin, 1.25rem);
+    /* Tighter content padding on phones */
+    --content-padding: 16px;
   }
   
   .decorative-script {
@@ -826,27 +918,27 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   THEME TOGGLE - Quick Light/Dark switch (bottom-left, next to Sound)
+   THEME TOGGLE - Hidden (user requested removal)
    ═══════════════════════════════════════════════════════════════════════════════ */
-
 .theme-toggle {
-  /* Fixed position for layout - Next to Sound Toggle */
+  display: none !important;
+}
+
+/* Sound toggle - vertically centered, left aligned, styled like footer links */
+.sound-toggle {
   position: fixed;
-  bottom: calc(var(--edge-inset-lg) + var(--container-border, 0px));
-  left: calc(var(--edge-inset-lg) + var(--container-border, 0px) + 120px); /* Positioned next to social icons */
-  z-index: 2000 !important; /* Above everything */
+  top: 50%;
+  left: var(--edge-inset);
+  transform: translateY(-50%); /* Perfect vertical centering */
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
   
-  /* Match .footer_link exactly */
-  font-family: 'Geist', sans-serif;
-  font-size: clamp(0.65rem, 0.9vw, 0.75rem);
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  /* Button reset + explicit font styling to match footer links */
+  font-family: 'Geist', sans-serif !important;
+  font-size: clamp(0.75rem, 1.2vw, 0.9rem) !important;
+  font-weight: 400 !important; /* Match Portfolio link weight */
   text-decoration: none;
-  
-  /* Match .footer_link base state */
-  color: inherit;
-  opacity: 0.85;
+  color: var(--ball-6) !important; /* Dark orange (no yellow) when off */
+  opacity: 1;
   background: none;
   border: none;
   padding: 0;
@@ -854,45 +946,79 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   cursor: pointer;
   pointer-events: auto !important;
   
-  /* Same transform as footer elements */
-  transform: translateY(var(--space-md));
-  
-  /* Match .footer_link transitions */
   transition: 
     color var(--duration-quick) ease,
     opacity var(--duration-quick) ease,
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic);
+}
+
+/* Sound On state - use lighter orange */
+.sound-toggle[data-enabled="true"] {
+  color: var(--ball-8) !important; /* Lighter orange when on */
+}
+
+/* Hover dot indicator - same as footer links */
+.sound-toggle::after {
+  content: '';
+  position: absolute;
+  bottom: -100%;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transition: 
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s ease;
+}
+
+.sound-toggle:hover {
+  color: var(--ball-6) !important; /* Brighter red-orange on hover */
+  opacity: 1;
+}
+
+.sound-toggle:hover::after {
+  transform: translateX(-50%) scale(1);
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FOOTER LINKS CONTAINER - Fixed at bottom, 4× frame thickness from edge
+   ═══════════════════════════════════════════════════════════════════════════════ */
+#footer-links-container {
+  position: fixed !important;
+  bottom: calc(var(--container-border) * 4) !important; /* 4× frame thickness from bottom */
+  left: 50% !important;
+  transform: translateX(-50%) !important; /* Center horizontally */
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2rem !important; /* Even gaps between links */
+  
+  margin: 0 !important;
+  padding: 8px 0 !important; /* Small vertical padding for invisible hit area */
+  height: auto !important; /* Height matches content + padding */
+  
+  transition: 
+    bottom var(--duration-resize) var(--ease-organic),
     transform var(--duration-resize) var(--ease-organic);
 }
 
-/* Sound toggle - move it to the right of Theme toggle */
-.sound-toggle {
-  /* Fixed position for layout */
-  position: fixed;
-  bottom: calc(var(--edge-inset-lg) + var(--container-border, 0px));
-  left: calc(var(--edge-inset-lg) + var(--container-border, 0px) + 240px); /* 120px gap from Theme */
-  z-index: 2000 !important; /* Above everything */
-  
-  /* Match .footer_link exactly */
-  text-decoration: none;
-  color: inherit;
-  opacity: 0.85;
-  
-  /* Reset button defaults */
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
-  pointer-events: auto !important;
-  
-  /* Same transform as footer elements */
-  transform: translateY(var(--space-md));
-  
-  /* Match .footer_link transitions */
-  transition: 
-    color var(--duration-quick) ease,
-    opacity var(--duration-quick) ease,
-    transform var(--duration-resize) var(--ease-organic);
+/* Links inside container - remove individual positioning */
+#footer-links-container #contact-email,
+#footer-links-container #portfolio-link,
+#footer-links-container #cv-gate-trigger {
+  position: relative !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important; /* Override .footer_link translateY */
+  margin: 0 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -939,96 +1065,95 @@ body.dark-mode #custom-cursor {
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗
-   ║                     UNIFIED PANEL SYSTEM — WORLD CLASS                       ║
-   ║           Modern glassmorphism · 14px base · Linear/Figma-inspired           ║
+   ║                    PANEL SYSTEM — SHADCN-INSPIRED DESIGN                    ║
+   ║        Modern, clean, accessible · Based on shadcn/ui design tokens         ║
    ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   CSS VARIABLES — Panel Design Tokens (shadcn-inspired)
-   NOTE: These are safe defaults; dock mounts inside #bravia-balls in production.
+   DESIGN TOKENS — shadcn/ui inspired
    ═══════════════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Panel colors */
-  --panel-bg: rgba(22, 22, 24, 0.92);
-  --panel-bg-light: rgba(255, 255, 255, 0.92);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --panel-border-light: rgba(0, 0, 0, 0.08);
+  /* Base colors - Dark mode (default for panel) */
+  --panel-background: hsl(240 10% 3.9%);
+  --panel-foreground: hsl(0 0% 98%);
+  --panel-card: hsl(240 10% 3.9%);
+  --panel-card-foreground: hsl(0 0% 98%);
+  --panel-muted: hsl(240 3.7% 15.9%);
+  --panel-muted-foreground: hsl(240 5% 64.9%);
+  --panel-accent: hsl(240 3.7% 15.9%);
+  --panel-accent-foreground: hsl(0 0% 98%);
+  --panel-border: hsl(240 3.7% 15.9%);
+  --panel-input: hsl(240 3.7% 15.9%);
+  --panel-ring: hsl(240 4.9% 83.9%);
+  --panel-primary: hsl(0 0% 98%);
+  --panel-primary-foreground: hsl(240 5.9% 10%);
+  --panel-destructive: hsl(0 62.8% 30.6%);
+  --panel-destructive-foreground: hsl(0 0% 98%);
   
-  /* Text colors */
-  --panel-text: rgba(255, 255, 255, 0.92);
-  --panel-text-secondary: rgba(255, 255, 255, 0.55);
-  --panel-text-tertiary: rgba(255, 255, 255, 0.35);
-  --panel-text-light: rgba(0, 0, 0, 0.92);
-  --panel-text-secondary-light: rgba(0, 0, 0, 0.55);
-  --panel-text-tertiary-light: rgba(0, 0, 0, 0.35);
-  
-  /* Accent */
-  --panel-accent: #ff8c00;
-  --panel-accent-hover: #ffa333;
+  /* Brand accent */
+  --panel-brand: hsl(32 95% 44%);
+  --panel-brand-foreground: hsl(0 0% 100%);
   
   /* Sizing */
+  --panel-radius: 0.75rem;
+  --panel-radius-sm: 0.5rem;
+  --panel-radius-lg: 1rem;
   --panel-width: 320px;
-  --panel-radius: 16px;
-  --panel-padding: 16px;
+  
+  /* Typography */
+  --panel-font: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  --panel-font-mono: 'Geist Mono', ui-monospace, monospace;
+  
+  /* Shadows */
+  --panel-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --panel-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
 
-  /* Product tokens (shadcn-ish naming) */
-  --panel-surface: rgba(22, 22, 24, 0.92);
-  --panel-surface-2: rgba(255, 255, 255, 0.04);
-  --panel-muted: rgba(255, 255, 255, 0.06);
-  --panel-ring: rgba(255, 140, 0, 0.25);
+/* Light mode tokens */
+body:not(.dark-mode) {
+  --panel-background: hsl(0 0% 100%);
+  --panel-foreground: hsl(240 10% 3.9%);
+  --panel-card: hsl(0 0% 100%);
+  --panel-card-foreground: hsl(240 10% 3.9%);
+  --panel-muted: hsl(240 4.8% 95.9%);
+  --panel-muted-foreground: hsl(240 3.8% 46.1%);
+  --panel-accent: hsl(240 4.8% 95.9%);
+  --panel-accent-foreground: hsl(240 5.9% 10%);
+  --panel-border: hsl(240 5.9% 90%);
+  --panel-input: hsl(240 5.9% 90%);
+  --panel-ring: hsl(240 5.9% 10%);
+  --panel-primary: hsl(240 5.9% 10%);
+  --panel-primary-foreground: hsl(0 0% 98%);
+  --panel-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --panel-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   BASE PANEL — Glassmorphism foundation
+   BASE PANEL — Card-like container
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel {
-  /* Typography - legible, modern */
-  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  font-family: var(--panel-font);
   font-size: 14px;
   line-height: 1.5;
   font-weight: 400;
-  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   
-  /* Surface */
-  background: var(--panel-surface);
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  
-  /* Border & Shadow */
+  background: var(--panel-background);
+  color: var(--panel-foreground);
   border: 1px solid var(--panel-border);
-  border-radius: 18px;
-  box-shadow: 
-    0 0 0 1px rgba(0, 0, 0, 0.25),
-    0 18px 60px rgba(0, 0, 0, 0.28),
-    0 6px 18px rgba(0, 0, 0, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-radius: var(--panel-radius-lg);
+  box-shadow: var(--panel-shadow-lg);
   
-  /* Layout */
   width: var(--panel-width);
   max-height: 80vh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   
-  /* Color */
-  color: var(--panel-text);
-  
-  /* Layering */
   z-index: 2147483647 !important;
   pointer-events: auto !important;
   user-select: none;
-}
-
-/* Light mode */
-body:not(.dark-mode) .panel {
-  background: var(--panel-bg-light);
-  border-color: var(--panel-border-light);
-  color: var(--panel-text-light);
-  box-shadow: 
-    0 0 0 1px rgba(0, 0, 0, 0.04),
-    0 18px 60px rgba(0, 0, 0, 0.10),
-    0 6px 18px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .panel.hidden { 
@@ -1038,31 +1163,25 @@ body:not(.dark-mode) .panel {
 .panel * {
   pointer-events: auto !important;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   PANEL HEADER
+   PANEL HEADER — Clean, minimal
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 16px;
   border-bottom: 1px solid var(--panel-border);
+  background: var(--panel-background);
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .panel .panel-header:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-body:not(.dark-mode) .panel .panel-header {
-  border-bottom-color: var(--panel-border-light);
-}
-
-body:not(.dark-mode) .panel .panel-header:hover {
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--panel-muted);
 }
 
 .panel .panel-header .panel-title {
@@ -1071,11 +1190,12 @@ body:not(.dark-mode) .panel .panel-header:hover {
   gap: 10px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--panel-foreground);
 }
 
 .panel .panel-header .panel-icon {
   font-size: 16px;
-  opacity: 0.9;
+  opacity: 0.8;
 }
 
 .panel .panel-header .collapse-btn {
@@ -1086,160 +1206,196 @@ body:not(.dark-mode) .panel .panel-header:hover {
   justify-content: center;
   background: transparent;
   border: none;
-  border-radius: 8px;
-  color: var(--panel-text-secondary);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-muted-foreground);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-body:not(.dark-mode) .panel .panel-header .collapse-btn {
-  color: var(--panel-text-secondary-light);
-}
-
 .panel .panel-header .collapse-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--panel-text);
-}
-
-body:not(.dark-mode) .panel .panel-header .collapse-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--panel-accent);
+  color: var(--panel-foreground);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   PANEL CONTENT — Scrollable area
+   PANEL CONTENT — Scrollable area with clean padding
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel .panel-content {
-  padding: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: calc(80vh - 60px);
+  flex: 1;
+  min-height: 0;
+  user-select: auto;
+  cursor: auto;
 }
 
-/* Elegant scrollbar */
+/* Clean minimal scrollbar */
 .panel .panel-content::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .panel .panel-content::-webkit-scrollbar-track {
   background: transparent;
-  margin: 4px 0;
 }
 
 .panel .panel-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  background: var(--panel-muted);
+  border-radius: 4px;
+  border: 2px solid var(--panel-background);
 }
 
 .panel .panel-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-body:not(.dark-mode) .panel .panel-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
-}
-
-body:not(.dark-mode) .panel .panel-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--panel-muted-foreground);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SECTION / GROUP — Container for controls
+   SECTION TITLES — Small, muted labels
    ═══════════════════════════════════════════════════════════════════════════════ */
-.panel .group {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
 .panel .section-title {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--panel-text-tertiary);
-  margin-bottom: 4px;
-}
-
-body:not(.dark-mode) .panel .section-title {
-  color: var(--panel-text-tertiary-light);
+  letter-spacing: 0.05em;
+  color: var(--panel-muted-foreground);
+  margin-bottom: 8px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   DETAILS/ACCORDION — Collapsible sections
+   SECTION ACCORDIONS — Top-level collapsible sections (Sound, Controls)
    ═══════════════════════════════════════════════════════════════════════════════ */
-.panel details {
-  background: var(--panel-surface-2);
-  border: 1px solid var(--panel-border);
-  border-radius: 14px;
-  overflow: hidden;
+.panel-section-accordion {
+  border-bottom: 1px solid var(--panel-border);
 }
 
-body:not(.dark-mode) .panel details {
-  background: rgba(0, 0, 0, 0.025);
-  border-color: var(--panel-border-light);
+.panel-section-accordion:last-child {
+  border-bottom: none;
 }
 
-.panel details summary {
+.panel-section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 11px 12px;
-  font-size: 13px;
+  gap: 10px;
+  padding: 0 16px;
+  height: 46px;
+  font-size: 14px;
   font-weight: 600;
-  color: inherit;
+  color: var(--panel-foreground);
   cursor: pointer;
   list-style: none;
   user-select: none;
   transition: background 0.15s ease;
 }
 
-.panel details summary::-webkit-details-marker {
+.panel-section-header::-webkit-details-marker {
   display: none;
 }
 
-.panel details summary::after {
+.panel-section-header::after {
   content: '';
   width: 16px;
   height: 16px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  margin-left: auto;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-size: contain;
+  background-repeat: no-repeat;
   transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
 
-body:not(.dark-mode) .panel details summary::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(0,0,0,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-}
-
-.panel details[open] summary::after {
+.panel-section-accordion[open] > .panel-section-header::after {
   transform: rotate(180deg);
 }
 
-.panel details summary:hover {
-  background: rgba(255, 255, 255, 0.04);
+.panel-section-header:hover {
+  background: var(--panel-muted);
 }
 
-body:not(.dark-mode) .panel details summary:hover {
-  background: rgba(0, 0, 0, 0.03);
+.section-icon {
+  font-size: 16px;
 }
 
-.panel details[open] summary {
-  border-bottom: 1px solid var(--panel-border);
+.section-label {
+  flex: 1;
 }
 
-body:not(.dark-mode) .panel details[open] summary {
-  border-bottom-color: var(--panel-border-light);
-}
-
-.panel details .group {
-  padding: 14px;
+.panel-section-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   LABELS — Control labels
+   NESTED ACCORDIONS — Only for legacy/inner details.
+   Top-level accordions use `.panel-section-accordion`.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel details:not(.panel-section-accordion) {
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  overflow: hidden;
+}
+
+.panel details:not(.panel-section-accordion) + details:not(.panel-section-accordion) {
+  margin-top: 8px;
+}
+
+.panel details:not(.panel-section-accordion) summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--panel-foreground);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.panel details:not(.panel-section-accordion) summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel details:not(.panel-section-accordion) summary::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.panel details:not(.panel-section-accordion)[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.panel details:not(.panel-section-accordion) summary:hover {
+  background: var(--panel-accent);
+}
+
+.panel details:not(.panel-section-accordion)[open] summary {
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.panel details:not(.panel-section-accordion) .group {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--panel-background);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LABELS & VALUES — Clean control layout
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel label {
   display: flex;
@@ -1249,30 +1405,22 @@ body:not(.dark-mode) .panel details[open] summary {
 
 .panel label > span:first-child,
 .panel label > div:first-child {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--panel-text-secondary);
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-body:not(.dark-mode) .panel label > span:first-child,
-body:not(.dark-mode) .panel label > div:first-child {
-  color: var(--panel-text-secondary-light);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--panel-muted-foreground);
 }
 
 .panel span.val {
   font-size: 13px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  color: var(--panel-text);
+  font-family: var(--panel-font-mono);
+  color: var(--panel-foreground);
   min-width: 48px;
   text-align: right;
-}
-
-body:not(.dark-mode) .panel span.val {
-  color: var(--panel-text-light);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1281,8 +1429,8 @@ body:not(.dark-mode) .panel span.val {
 .panel input[type="range"] {
   width: 100%;
   height: 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.10);
+  border-radius: 9999px;
+  background: var(--panel-muted);
   border: none;
   outline: none;
   -webkit-appearance: none;
@@ -1290,35 +1438,22 @@ body:not(.dark-mode) .panel span.val {
   cursor: pointer;
 }
 
-body:not(.dark-mode) .panel input[type="range"] {
-  background: rgba(0, 0, 0, 0.08);
-}
-
 .panel input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: var(--panel-accent);
-  border: 3px solid rgba(255, 255, 255, 0.95);
+  background: var(--panel-foreground);
+  border: none;
   cursor: pointer;
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.panel input[type="range"]:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--panel-ring);
 }
 
 .panel input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.35),
-    0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .panel input[type="range"]::-webkit-slider-thumb:active {
@@ -1326,114 +1461,108 @@ body:not(.dark-mode) .panel input[type="range"] {
 }
 
 .panel input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: var(--panel-accent);
-  border: 3px solid rgba(255, 255, 255, 0.95);
+  background: var(--panel-foreground);
+  border: none;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .panel input[type="range"]::-moz-range-track {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  height: 8px;
+  background: var(--panel-muted);
+  border-radius: 9999px;
 }
 
-body:not(.dark-mode) .panel input[type="range"]::-moz-range-track {
-  background: rgba(0, 0, 0, 0.08);
+.panel input[type="range"]:focus-visible {
+  outline: 2px solid var(--panel-ring);
+  outline-offset: 2px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   BUTTONS — Clean, tactile
+   BUTTONS — shadcn-style buttons
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel button {
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.06);
+  padding: 10px 16px;
+  background: var(--panel-muted);
   border: 1px solid var(--panel-border);
-  border-radius: 12px;
-  color: var(--panel-text);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-foreground);
   cursor: pointer;
   transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .panel button:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--panel-accent);
+  border-color: var(--panel-accent-foreground);
 }
 
 .panel button:active {
-  background: rgba(255, 255, 255, 0.06);
   transform: scale(0.98);
 }
 
-body:not(.dark-mode) .panel button {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: var(--panel-border-light);
-  color: var(--panel-text-light);
-}
-
-body:not(.dark-mode) .panel button:hover {
-  background: rgba(0, 0, 0, 0.08);
+.panel button:focus-visible {
+  outline: 2px solid var(--panel-ring);
+  outline-offset: 2px;
 }
 
 /* Primary button */
 .panel button.primary {
-  background: var(--panel-accent);
-  border-color: var(--panel-accent);
-  color: #000;
-  font-weight: 600;
+  background: var(--panel-primary);
+  border-color: var(--panel-primary);
+  color: var(--panel-primary-foreground);
 }
 
 .panel button.primary:hover {
-  background: var(--panel-accent-hover);
-  border-color: var(--panel-accent-hover);
+  background: var(--panel-primary);
+  opacity: 0.9;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SELECT — Modern dropdown
+   SELECT — Clean dropdown
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel select {
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
-  padding: 10px 36px 10px 14px;
-  background: rgba(255, 255, 255, 0.06);
+  padding: 10px 36px 10px 12px;
+  background: var(--panel-muted);
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
-  color: var(--panel-text);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-foreground);
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   transition: all 0.15s ease;
 }
 
 .panel select:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--panel-muted-foreground);
 }
 
-.panel select:focus {
-  outline: none;
-  border-color: var(--panel-accent);
-  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.15);
+.panel select:focus-visible {
+  outline: 2px solid var(--panel-ring);
+  outline-offset: 2px;
 }
 
-body:not(.dark-mode) .panel select {
-  background-color: rgba(0, 0, 0, 0.03);
-  border-color: var(--panel-border-light);
-  color: var(--panel-text-light);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(0,0,0,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+.panel select option {
+  background: var(--panel-background);
+  color: var(--panel-foreground);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   MODE SWITCHER — Grid of mode buttons
+   MODE SWITCHER — Grid of mode buttons (Segmented Control style)
    ═══════════════════════════════════════════════════════════════════════════════ */
 .mode-switcher {
   display: grid;
@@ -1442,48 +1571,38 @@ body:not(.dark-mode) .panel select {
 }
 
 .mode-button {
-  padding: 12px 10px;
-  background: rgba(255, 255, 255, 0.04);
+  padding: 12px 8px;
+  background: var(--panel-muted);
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
-  color: var(--panel-text-secondary);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-muted-foreground);
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   text-align: center;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   transition: all 0.15s ease;
 }
 
 .mode-button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: var(--panel-text);
+  background: var(--panel-accent);
+  color: var(--panel-foreground);
+  border-color: var(--panel-muted-foreground);
 }
 
 .mode-button.active {
-  background: var(--panel-accent);
-  border-color: var(--panel-accent);
-  color: #000;
+  background: var(--panel-foreground);
+  border-color: var(--panel-foreground);
+  color: var(--panel-background);
   font-weight: 600;
 }
 
 .mode-button.active:hover {
-  background: var(--panel-accent-hover);
-}
-
-body:not(.dark-mode) .mode-button {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: var(--panel-border-light);
-  color: var(--panel-text-secondary-light);
-}
-
-body:not(.dark-mode) .mode-button:hover {
-  background: rgba(0, 0, 0, 0.05);
+  opacity: 0.9;
 }
 
 .mode-controls { 
@@ -1499,16 +1618,11 @@ body:not(.dark-mode) .mode-button:hover {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .theme-segment-control {
   display: flex;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--panel-muted);
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  border-radius: var(--panel-radius-sm);
   padding: 4px;
   gap: 4px;
-}
-
-body:not(.dark-mode) .theme-segment-control {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: var(--panel-border-light);
 }
 
 .theme-segment-btn {
@@ -1516,8 +1630,8 @@ body:not(.dark-mode) .theme-segment-control {
   padding: 8px 12px;
   border: none;
   background: transparent;
-  color: var(--panel-text-secondary);
-  border-radius: 7px;
+  color: var(--panel-muted-foreground);
+  border-radius: calc(var(--panel-radius-sm) - 2px);
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -1526,50 +1640,37 @@ body:not(.dark-mode) .theme-segment-control {
 }
 
 .theme-segment-btn:hover {
-  color: var(--panel-text);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-body:not(.dark-mode) .theme-segment-btn {
-  color: var(--panel-text-secondary-light);
-}
-
-body:not(.dark-mode) .theme-segment-btn:hover {
-  background: rgba(0, 0, 0, 0.04);
+  color: var(--panel-foreground);
+  background: var(--panel-accent);
 }
 
 .theme-segment-btn.active {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--panel-text);
+  background: var(--panel-foreground);
+  color: var(--panel-background);
   font-weight: 600;
 }
 
-body:not(.dark-mode) .theme-segment-btn.active {
-  background: rgba(0, 0, 0, 0.08);
-  color: var(--panel-text-light);
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════════
-   COLOR PICKER
+   COLOR PICKER — Clean inline picker
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel input[type="color"] {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 2px solid var(--panel-border);
-  border-radius: 8px;
+  border-radius: var(--panel-radius-sm);
   cursor: pointer;
   background: transparent;
   overflow: hidden;
 }
 
 .panel input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 2px;
+  padding: 3px;
 }
 
 .panel input[type="color"]::-webkit-color-swatch {
   border: none;
-  border-radius: 4px;
+  border-radius: calc(var(--panel-radius-sm) - 4px);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1580,16 +1681,10 @@ body:not(.dark-mode) .theme-segment-btn.active {
   display: none;
 }
 
-/* Fixed collapsed height so the panel never ends up "half expanded" / cropped */
-.panel.collapsed {
-  height: 52px;
-  max-height: 52px;
-}
-
-/* Minimized is a semantic alias for collapsed in this system */
+.panel.collapsed,
 .panel.minimized {
-  height: 52px;
-  max-height: 52px;
+  height: 56px;
+  max-height: 56px;
 }
 
 .panel.collapsed .collapse-btn {
@@ -1602,17 +1697,13 @@ body:not(.dark-mode) .theme-segment-btn.active {
 .panel-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .panel-section--action {
-  padding-top: 8px;
-  margin-top: 8px;
+  padding-top: 12px;
+  margin-top: 12px;
   border-top: 1px solid var(--panel-border);
-}
-
-body:not(.dark-mode) .panel-section--action {
-  border-top-color: var(--panel-border-light);
 }
 
 .panel-section--action button {
@@ -1620,22 +1711,16 @@ body:not(.dark-mode) .panel-section--action {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   PANEL STATUS — Info display
+   PANEL STATUS — Status indicator
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-status {
   font-size: 12px;
   font-weight: 500;
-  color: var(--panel-text-secondary);
+  color: var(--panel-muted-foreground);
   text-align: center;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  margin-top: 4px;
-}
-
-body:not(.dark-mode) .panel-status {
-  background: rgba(0, 0, 0, 0.03);
-  color: var(--panel-text-secondary-light);
+  padding: 10px 12px;
+  background: var(--panel-muted);
+  border-radius: var(--panel-radius-sm);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1643,35 +1728,131 @@ body:not(.dark-mode) .panel-status {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-footer {
   font-size: 12px;
-  color: var(--panel-text-tertiary);
+  color: var(--panel-muted-foreground);
   text-align: center;
   padding-top: 12px;
-  margin-top: 8px;
+  margin-top: 12px;
   border-top: 1px solid var(--panel-border);
-}
-
-body:not(.dark-mode) .panel-footer {
-  color: var(--panel-text-tertiary-light);
-  border-top-color: var(--panel-border-light);
 }
 
 .panel-footer kbd {
   display: inline-block;
-  padding: 2px 6px;
-  font-family: inherit;
+  padding: 3px 6px;
+  font-family: var(--panel-font-mono);
   font-size: 11px;
-  font-weight: 600;
-  color: var(--panel-text-secondary);
-  background: rgba(255, 255, 255, 0.08);
+  font-weight: 500;
+  color: var(--panel-foreground);
+  background: var(--panel-muted);
   border: 1px solid var(--panel-border);
-  border-radius: 5px;
+  border-radius: 4px;
   margin: 0 2px;
 }
 
-body:not(.dark-mode) .panel-footer kbd {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: var(--panel-border-light);
-  color: var(--panel-text-secondary-light);
+/* ═══════════════════════════════════════════════════════════════════════════════
+   GROUP CONTAINER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel .group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SOUND SECTION STYLES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.sound-enable-row {
+  margin-bottom: 12px;
+}
+
+.sound-enable-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-foreground);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sound-enable-btn:hover {
+  background: var(--panel-accent);
+  border-color: var(--panel-muted-foreground);
+}
+
+.sound-enable-btn.enabled {
+  background: hsl(142 70% 35%);
+  border-color: hsl(142 70% 35%);
+  color: white;
+}
+
+.sound-enable-btn.enabled:hover {
+  background: hsl(142 70% 40%);
+}
+
+.sound-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CONTROL ROW — Unified label/input layout
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.control-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.control-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--panel-muted-foreground);
+}
+
+.control-value {
+  font-size: 12px;
+  font-family: var(--panel-font-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--panel-foreground);
+  opacity: 0.8;
+}
+
+.control-select {
+  width: 100%;
+  padding: 8px 32px 8px 10px;
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-foreground);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.control-select:hover {
+  border-color: var(--panel-muted-foreground);
+}
+
+.control-hint {
+  font-size: 11px;
+  color: var(--panel-muted-foreground);
+  line-height: 1.4;
+  margin: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1690,26 +1871,22 @@ body:not(.dark-mode) .panel-footer kbd {
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗
-   ║                       PANEL DOCK — UNIFIED CONTAINER                         ║
-   ║    Houses Sound Panel + Control Panel in collapsible stacked dock            ║
+   ║                       PANEL DOCK — UNIFIED MASTER PANEL                     ║
+   ║                  Single panel with collapsible sections                     ║
    ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    DOCK CONTAINER — Fixed to right edge
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-dock {
+  --dock-panel-max-height: 70vh;
+  --dock-panel-collapsed-height: 52px;
+  
   position: fixed;
-  /* Product spec: float to right with ~5vh margin, clamp for tiny viewports */
-  top: clamp(12px, 5vh, 32px);
-  right: clamp(12px, 5vh, 32px);
-  z-index: 9999;
+  top: var(--edge-inset, 60px);
+  right: var(--edge-inset, 60px);
+  z-index: 2147483647;
   
-  /* Stack panels */
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  
-  /* Organic transitions */
   transition: 
     top var(--duration-resize, 600ms) var(--ease-organic, ease),
     right var(--duration-resize, 600ms) var(--ease-organic, ease),
@@ -1723,6 +1900,39 @@ body:not(.dark-mode) .panel-footer kbd {
   pointer-events: auto;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CURSOR OVERRIDES
+   main.css intentionally sets `cursor: none !important` globally for the custom
+   cursor experience. For UI, we must restore native cursors so the panel feels
+   clickable/draggable and input events behave normally.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel-dock,
+.panel-dock *,
+.dock-toggle,
+.dock-toggle * {
+  cursor: auto !important;
+}
+
+.panel-dock .panel-header {
+  cursor: grab !important;
+}
+
+.panel-dock .panel-header:active {
+  cursor: grabbing !important;
+}
+
+.panel-dock button,
+.panel-dock summary,
+.panel-dock select,
+.panel-dock input,
+.dock-toggle {
+  cursor: pointer !important;
+}
+
+.panel-dock input[type="range"] {
+  cursor: ew-resize !important;
+}
+
 /* Hidden state */
 .panel-dock.hidden {
   opacity: 0;
@@ -1730,7 +1940,7 @@ body:not(.dark-mode) .panel-footer kbd {
   transform: translateX(20px);
 }
 
-/* Dragging state (dock or individual panel) */
+/* Dragging state */
 .panel-dock.dragging,
 .panel.dragging {
   cursor: grabbing !important;
@@ -1743,41 +1953,8 @@ body:not(.dark-mode) .panel-footer kbd {
   cursor: grabbing !important;
 }
 
-/* Individual panel when detached from dock */
-.panel[style*="position: fixed"] {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-}
-
-/* Drag indicator */
-.drag-indicator {
-  display: inline-block;
-  margin-right: 8px;
-  opacity: 0.35;
-  font-size: 12px;
-  letter-spacing: -2px;
-  cursor: grab;
-  transition: opacity 0.15s ease;
-}
-
-.panel-header:hover .drag-indicator {
-  opacity: 0.6;
-}
-
-.panel-dock.dragging .drag-indicator {
-  opacity: 0.8;
-}
-
-/* Make header draggable cursor */
-.panel-dock .panel-header {
-  cursor: grab;
-}
-
-.panel-dock .panel-header:active {
-  cursor: grabbing;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════════
-   DOCKED PANELS — Override base panel positioning
+   DOCKED PANEL — Sizing and positioning
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-dock .panel {
   position: relative !important;
@@ -1787,28 +1964,30 @@ body:not(.dark-mode) .panel-footer kbd {
   bottom: auto !important;
   
   width: var(--panel-width, 320px);
-  /* Use a single dock max-height token so content sizing can reference it */
-  --dock-panel-max-height: 65vh;
-  --dock-panel-collapsed-height: 52px;
   max-height: var(--dock-panel-max-height);
+  height: var(--dock-panel-max-height);
   
-  /* Smooth collapse */
   transition: 
-    max-height 0.35s var(--ease-settle, ease),
+    max-height 0.3s ease,
+    height 0.3s ease,
     opacity 0.25s ease;
 }
 
-/* Ensure content area scrolls instead of getting clipped by parent max-height */
 .panel-dock .panel .panel-content {
-  max-height: calc(var(--dock-panel-max-height) - var(--dock-panel-collapsed-height));
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   COLLAPSED STATE — Header only
+   COLLAPSED STATE
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-dock .panel.collapsed {
   height: var(--dock-panel-collapsed-height);
   max-height: var(--dock-panel-collapsed-height);
+  overflow: hidden;
 }
 
 .panel-dock .panel.collapsed .panel-content {
@@ -1824,24 +2003,22 @@ body:not(.dark-mode) .panel-footer kbd {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   DOCK TOGGLE BUTTON — Shows when dock hidden
+   DOCK TOGGLE BUTTON
    ═══════════════════════════════════════════════════════════════════════════════ */
 .dock-toggle {
   position: fixed;
-  top: calc(var(--edge-inset-lg, 2rem) + var(--container-border, 0px));
-  right: calc(var(--edge-inset-lg, 2rem) + var(--container-border, 0px));
-  z-index: 10000;
+  top: var(--edge-inset, 60px);
+  right: var(--edge-inset, 60px);
+  z-index: 2147483647;
   
   width: 44px;
   height: 44px;
   
-  background: var(--panel-bg, rgba(22, 22, 24, 0.92));
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
-  border-radius: 12px;
+  background: var(--panel-background, hsl(240 10% 3.9%));
+  border: 1px solid var(--panel-border, hsl(240 3.7% 15.9%));
+  border-radius: var(--panel-radius, 0.75rem);
   
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--panel-foreground, hsl(0 0% 98%));
   font-size: 18px;
   
   cursor: pointer;
@@ -1851,24 +2028,20 @@ body:not(.dark-mode) .panel-footer kbd {
   align-items: center;
   justify-content: center;
   
-  box-shadow: 
-    0 4px 20px rgba(0, 0, 0, 0.25),
-    0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--panel-shadow, 0 10px 15px -3px rgba(0, 0, 0, 0.3));
   
   transition: 
     opacity 0.3s ease,
     transform 0.3s ease,
     background 0.15s ease;
   
-  /* Hidden by default */
   opacity: 0;
   pointer-events: none;
   transform: scale(0.9);
 }
 
 .dock-toggle:hover {
-  background: rgba(40, 40, 44, 0.95);
-  color: #fff;
+  background: var(--panel-muted, hsl(240 3.7% 15.9%));
   transform: scale(1.02);
 }
 
@@ -1876,18 +2049,6 @@ body:not(.dark-mode) .panel-footer kbd {
   transform: scale(0.96);
 }
 
-body:not(.dark-mode) .dock-toggle {
-  background: var(--panel-bg-light, rgba(255, 255, 255, 0.92));
-  border-color: var(--panel-border-light, rgba(0, 0, 0, 0.08));
-  color: rgba(0, 0, 0, 0.7);
-}
-
-body:not(.dark-mode) .dock-toggle:hover {
-  background: rgba(255, 255, 255, 0.98);
-  color: rgba(0, 0, 0, 0.9);
-}
-
-/* Show toggle when dock is hidden */
 .panel-dock.hidden + .dock-toggle {
   opacity: 1;
   pointer-events: auto;
@@ -1899,450 +2060,99 @@ body:not(.dark-mode) .dock-toggle:hover {
    ═══════════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .panel-dock {
-    right: calc(var(--edge-inset, 1rem) + var(--container-border, 0px));
-    top: calc(var(--edge-inset, 1rem) + var(--container-border, 0px));
+    --dock-panel-max-height: 70vh;
   }
   
   .panel-dock .panel {
     width: 300px;
-    --dock-panel-max-height: 55vh;
-    max-height: var(--dock-panel-max-height);
-  }
-  
-  .dock-toggle {
-    right: calc(var(--edge-inset, 1rem) + var(--container-border, 0px));
-    top: calc(var(--edge-inset, 1rem) + var(--container-border, 0px));
   }
 }
 
 @media (max-width: 480px) {
-  .panel-dock .panel {
-    width: calc(100vw - 2rem - var(--container-border, 0px) * 2);
-    max-width: 320px;
-    --dock-panel-max-height: 50vh;
-    max-height: var(--dock-panel-max-height);
+  .panel-dock {
+    --dock-panel-max-height: 65vh;
   }
   
-  .panel-dock .panel-content {
-    padding: 12px;
+  .panel-dock .panel {
+    width: calc(100vw - var(--edge-inset, 40px) * 2);
+    max-width: 320px;
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   SOUND PANEL STYLES
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__enable {
-  padding: 8px;
-}
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+   ║                    SOUND SECTION CONTROLS                                   ║
+   ║            Styles for sound controls within master panel                    ║
+   ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
-.sound-dock__enable-btn {
-  width: 100%;
-  padding: 10px 12px;
-  background: var(--panel-btn-bg, rgba(255, 255, 255, 0.08));
-  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  color: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.sound-dock__enable-btn:hover {
-  background: var(--panel-btn-hover, rgba(255, 255, 255, 0.12));
-}
-
-.sound-dock__controls {
-  padding: 0 8px 8px;
-}
-
-.sound-dock__section {
-  margin-bottom: 12px;
-}
-
-.sound-dock__section-title {
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  opacity: 0.5;
-  margin-bottom: 6px;
-  padding: 0 2px;
-}
-
-.sound-dock__group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
+/* Sound slider rows */
 .sound-dock__row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
+  gap: 10px;
 }
 
 .sound-dock__label {
   flex: 0 0 90px;
-  opacity: 0.7;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--panel-muted-foreground);
 }
 
 .sound-dock__slider {
   flex: 1;
-  height: 4px;
+  height: 6px;
   -webkit-appearance: none;
   appearance: none;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 2px;
+  background: var(--panel-muted);
+  border-radius: 9999px;
   cursor: pointer;
 }
 
 .sound-dock__slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--accent-color, #f5a623);
+  background: var(--panel-foreground);
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .sound-dock__slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--accent-color, #f5a623);
+  background: var(--panel-foreground);
   cursor: pointer;
   border: none;
 }
 
 .sound-dock__val {
-  flex: 0 0 48px;
+  flex: 0 0 45px;
   text-align: right;
-  font-size: 10px;
-  opacity: 0.6;
-  font-variant-numeric: tabular-nums;
-}
-
-.sound-dock__select {
-  width: 100%;
-  padding: 8px 10px;
-  background: var(--panel-input-bg, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
-  border-radius: 6px;
-  color: inherit;
   font-size: 11px;
-  cursor: pointer;
-}
-
-.sound-dock__desc {
-  margin: 6px 0 0;
-  font-size: 10px;
-  opacity: 0.5;
-  line-height: 1.4;
-}
-
-/* Light mode overrides */
-body:not(.dark-mode) .sound-dock__slider {
-  background: rgba(0, 0, 0, 0.08);
-}
-
-body:not(.dark-mode) .sound-dock__enable-btn {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-body:not(.dark-mode) .sound-dock__enable-btn:hover {
-  background: rgba(0, 0, 0, 0.08);
-}
-
-body:not(.dark-mode) .sound-dock__select {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-/* ╔══════════════════════════════════════════════════════════════════════════════╗
-   ║                    SOUND PANEL — DOCK VARIANT OVERRIDES                      ║
-   ║            Builds on unified panel system with sound-specific styles         ║
-   ╚══════════════════════════════════════════════════════════════════════════════╝ */
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   SOUND PANEL SPECIFICS
-   ═══════════════════════════════════════════════════════════════════════════════ */
-#soundPanel.panel.sound-panel {
-  /* Already inherits base panel styles */
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   ENABLE BUTTON — Primary action
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__enable {
-  padding: 16px;
-  border-bottom: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
-}
-
-body:not(.dark-mode) .sound-dock__enable {
-  border-bottom-color: var(--panel-border-light, rgba(0, 0, 0, 0.08));
-}
-
-.sound-dock__enable-btn {
-  width: 100%;
-  padding: 14px 20px !important;
-  background: rgba(255, 140, 0, 0.12) !important;
-  border: 1px solid rgba(255, 140, 0, 0.25) !important;
-  border-radius: 12px !important;
-  color: var(--panel-accent, #ff8c00) !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.sound-dock__enable-btn:hover {
-  background: rgba(255, 140, 0, 0.2) !important;
-  border-color: rgba(255, 140, 0, 0.4) !important;
-  transform: translateY(-1px);
-}
-
-.sound-dock__enable-btn:active {
-  transform: translateY(0);
-}
-
-/* Enabled state */
-.sound-dock__enable-btn.enabled {
-  background: var(--panel-accent, #ff8c00) !important;
-  border-color: var(--panel-accent, #ff8c00) !important;
-  color: #000 !important;
-}
-
-.sound-dock__enable-btn.enabled:hover {
-  background: var(--panel-accent-hover, #ffa333) !important;
-  border-color: var(--panel-accent-hover, #ffa333) !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   CONTROLS WRAPPER
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__controls {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   SECTION — Preset area
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__section {
-  padding: 16px;
-  border-bottom: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
-}
-
-body:not(.dark-mode) .sound-dock__section {
-  border-bottom-color: var(--panel-border-light, rgba(0, 0, 0, 0.08));
-}
-
-.sound-dock__select {
-  width: 100%;
-  padding: 12px 40px 12px 16px !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08)) !important;
-  border-radius: 10px !important;
-  color: var(--panel-text, rgba(255, 255, 255, 0.92)) !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
-  background-repeat: no-repeat !important;
-  background-position: right 14px center !important;
-  transition: all 0.15s ease;
-}
-
-.sound-dock__select:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-}
-
-.sound-dock__select:focus {
-  outline: none !important;
-  border-color: var(--panel-accent, #ff8c00) !important;
-  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.12) !important;
-}
-
-body:not(.dark-mode) .sound-dock__select {
-  background-color: rgba(0, 0, 0, 0.03) !important;
-  border-color: var(--panel-border-light, rgba(0, 0, 0, 0.08)) !important;
-  color: var(--panel-text-light, rgba(0, 0, 0, 0.92)) !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(0,0,0,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
-}
-
-.sound-dock__desc {
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: var(--panel-text-tertiary, rgba(255, 255, 255, 0.35));
-  line-height: 1.5;
-}
-
-body:not(.dark-mode) .sound-dock__desc {
-  color: rgba(0, 0, 0, 0.4);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   CONTROL GROUP — Slider rows
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__group {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.sound-dock__row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.sound-dock__label {
-  flex: 0 0 110px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--panel-text-secondary, rgba(255, 255, 255, 0.55));
-}
-
-body:not(.dark-mode) .sound-dock__label {
-  color: var(--panel-text-secondary-light, rgba(0, 0, 0, 0.55));
-}
-
-.sound-dock__slider {
-  flex: 1;
-  height: 6px !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: none !important;
-  border-radius: 3px !important;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-body:not(.dark-mode) .sound-dock__slider {
-  background: rgba(0, 0, 0, 0.08) !important;
-}
-
-.sound-dock__slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px !important;
-  height: 18px !important;
-  background: var(--panel-accent, #ff8c00) !important;
-  border: 3px solid rgba(255, 255, 255, 0.95) !important;
-  border-radius: 50% !important;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-  transition: transform 0.15s ease;
-}
-
-.sound-dock__slider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-}
-
-.sound-dock__slider::-webkit-slider-thumb:active {
-  transform: scale(0.95);
-}
-
-.sound-dock__val {
-  flex: 0 0 54px;
-  font-size: 13px;
-  font-weight: 500;
+  font-family: var(--panel-font-mono, ui-monospace, monospace);
   font-variant-numeric: tabular-nums;
-  color: var(--panel-text, rgba(255, 255, 255, 0.92));
-  text-align: right;
+  color: var(--panel-foreground);
 }
 
-body:not(.dark-mode) .sound-dock__val {
-  color: var(--panel-text-light, rgba(0, 0, 0, 0.92));
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   ACCORDION — Collapsible sections
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__accordion {
-  border: none !important;
-  border-bottom: 1px solid var(--panel-border, rgba(255, 255, 255, 0.06)) !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-}
-
-body:not(.dark-mode) .sound-dock__accordion {
-  border-bottom-color: var(--panel-border-light, rgba(0, 0, 0, 0.06)) !important;
-}
-
-.sound-dock__accordion:last-child {
-  border-bottom: none !important;
-}
-
-.sound-dock__summary {
+/* Sound section groups */
+.sound-dock__group {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: var(--panel-text-secondary, rgba(255, 255, 255, 0.7)) !important;
-  cursor: pointer;
-  list-style: none !important;
-  background: transparent !important;
-  border: none !important;
-  transition: background 0.15s ease, color 0.15s ease;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.sound-dock__summary::-webkit-details-marker {
-  display: none;
+.sound-dock__section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--panel-muted-foreground);
+  margin-bottom: 4px;
+  margin-top: 8px;
 }
 
-.sound-dock__summary::after {
-  content: '';
-  width: 16px;
-  height: 16px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-size: contain;
-  transition: transform 0.2s ease;
-}
-
-body:not(.dark-mode) .sound-dock__summary::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(0,0,0,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-}
-
-.sound-dock__accordion[open] .sound-dock__summary::after {
-  transform: rotate(180deg);
-}
-
-.sound-dock__summary:hover {
-  background: rgba(255, 255, 255, 0.04) !important;
-  color: var(--panel-text, rgba(255, 255, 255, 0.92)) !important;
-}
-
-body:not(.dark-mode) .sound-dock__summary {
-  color: var(--panel-text-secondary-light, rgba(0, 0, 0, 0.6)) !important;
-}
-
-body:not(.dark-mode) .sound-dock__summary:hover {
-  background: rgba(0, 0, 0, 0.03) !important;
-  color: var(--panel-text-light, rgba(0, 0, 0, 0.92)) !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   ANIMATIONS
-   ═══════════════════════════════════════════════════════════════════════════════ */
-@media (prefers-reduced-motion: no-preference) {
-  .sound-dock__controls {
-    animation: fadeSlideIn 0.25s ease-out;
-  }
-  
-  @keyframes fadeSlideIn {
-    from {
-      opacity: 0;
-      transform: translateY(-8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+.sound-dock__section-title:first-child {
+  margin-top: 0;
 }

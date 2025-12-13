@@ -124,7 +124,7 @@
      BALL COLOR PALETTE (dynamically updated by JS)
      ───────────────────────────────────────────────────────────────────────────── */
   --ball-1: #b7bcb7;
-  --ball-2: #6b6b6b;  /* Darker grey - for AI Integration */
+  --ball-2: #ffffff;  /* White - for AI Integration */
   --ball-3: #ffffff;
   --ball-4: #00695c;
   --ball-5: #000000;
@@ -216,7 +216,9 @@ body.body.dark-mode {
 
 /* Webflow .viewport reset - content area behind balls but above background */
 .viewport {
-  z-index: 1 !important;  /* Below #bravia-balls (z:5) so balls show in front */
+  /* Override Webflow's z-index:1 with auto to avoid creating stacking context */
+  /* This allows fixed children (socials, caption) to escape and appear above balls */
+  z-index: auto !important;
   position: static !important;
   transform: none !important;
   opacity: 1 !important;
@@ -239,7 +241,8 @@ header.viewport {
   right: var(--container-border) !important;
   bottom: var(--container-border) !important;
   width: auto !important;
-  height: auto !important;
+  height: calc(100vh - var(--container-border) * 2) !important; /* Explicit height calculation */
+  max-height: calc(100vh - var(--container-border) * 2) !important;
 }
 
 header.viewport.viewport--content {
@@ -260,13 +263,21 @@ header.viewport.viewport--content {
   right: var(--container-border) !important;
   bottom: var(--container-border) !important;
   width: auto !important;
-  height: auto !important;
+  height: calc(100vh - var(--container-border) * 2) !important; /* Explicit height calculation */
+  max-height: calc(100vh - var(--container-border) * 2) !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
   
-  background: var(--bg-light) !important; /* The "page" surface */
-  background-color: var(--bg-light) !important; /* Force override */
+  /* Light mode background - the "page" surface */
+  background: var(--bg-light) !important;
+  background-color: var(--bg-light) !important;
   border-radius: var(--container-radius);
+  
+  /* Above balls (z:5) and noise layers */
+  z-index: 6 !important;
+  
+  /* Allow pointer events to pass through to balls where there's no text */
+  pointer-events: none !important;
   
   /* FADE-IN: Start invisible, fade in when .page-ready is added */
   opacity: 0;
@@ -313,6 +324,7 @@ html:not(.js-enabled) .viewport.viewport--content {
 /* Sound toggle hover - viewport content turns white */
 body.sound-hover .viewport.viewport--content {
   background: #ffffff !important;
+  background-color: #ffffff !important;
 }
 
 /* Dark mode: viewport content gets dark background */
@@ -337,16 +349,29 @@ body.dark-mode .viewport.viewport--content::before {
 /* Dark mode sound hover - viewport content goes slightly lighter */
 body.dark-mode.sound-hover .viewport.viewport--content {
   background: #1a1a1a !important;
+  background-color: #1a1a1a !important;
 }
 
-/* Logo layer - Above bottom noise (z:2), BELOW balls (z:5) */
-.hero__text,
-.hero,
-.hero-section,
-[class*="hero"],
-.header {
-  z-index: 3 !important;
-  position: relative;
+/* Logo layer - Behind balls (z:4), centered in viewport */
+#brand-logo {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 4 !important; /* Behind balls (z:5), above noise (z:2-3) */
+  pointer-events: none !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Remove relative positioning from generic hero classes when it's #brand-logo */
+#brand-logo.hero,
+#brand-logo.hero-section,
+#brand-logo.header {
+  position: fixed !important; /* Override relative positioning */
+  z-index: 4 !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -354,10 +379,11 @@ body.dark-mode.sound-hover .viewport.viewport--content {
    Center of viewport → 0.9x | Farthest (corner) → 1.1x
    - Implemented via CSS var updates (rAF-throttled) to avoid overhead
    - Transition must be >= 400ms (uses 420ms for a gentle settle)
+   - Note: Transform on .hero__text combines with parent #brand-logo centering
    ───────────────────────────────────────────────────────────────────────────── */
 #brand-logo .hero__text {
   transform-origin: 50% 50%;
-  /* Final feel = cursor-scale * (retreat driven by nearby balls) */
+  /* Scale and retreat effects - applied ON TOP of parent's centering transform */
   transform:
     translateY(calc(var(--abs-brand-logo-retreat, 0) * 3px))
     scale(calc(var(--abs-brand-logo-scale, 1) * (1 - (var(--abs-brand-logo-retreat, 0) * 0.025))));
@@ -372,18 +398,25 @@ body.dark-mode.sound-hover .viewport.viewport--content {
   }
 }
 
-/* UI elements layer - ABOVE balls (z:5) */
+/* UI elements layer - ABOVE all noise layers (noise-3 is z:8) and balls (z:5) */
+/* Text elements need pointer-events: auto to be clickable since parent has pointer-events: none */
 .legend,
 .legend__item,
-.footer_icon-group,
 .footer_link,
 .footer_icon-link,
-.caption,
 a {
-  z-index: 2000 !important; /* Well above balls */
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
   position: relative;
   pointer-events: auto !important;
   text-decoration: none !important; /* Remove all underlines globally */
+}
+
+/* Fixed-position UI elements (excluded from relative positioning above) */
+.footer_icon-group,
+.caption {
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  pointer-events: auto !important;
+  text-decoration: none !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -501,6 +534,7 @@ a {
   z-index: 2 !important;  /* Behind logo (z:3) and balls (z:5) */
   opacity: var(--noise-back-opacity) !important;
   background-size: var(--noise-size-base) var(--noise-size-base) !important;
+  mix-blend-mode: multiply !important; /* Darkens grain on light background */
 }
 
 .noise-2 {
@@ -508,6 +542,7 @@ a {
   transform: scaleX(-1) !important;
   background-size: var(--noise-size-top) var(--noise-size-top) !important;
   opacity: var(--noise-front-opacity) !important;
+  mix-blend-mode: multiply !important; /* Darkens grain on light background */
 }
 
 .noise-3 {
@@ -515,21 +550,23 @@ a {
   transform: rotate(180deg) !important;
   background-size: var(--noise-size-base) var(--noise-size-base) !important;
   opacity: var(--noise-top-opacity, 0.015) !important;
+  mix-blend-mode: multiply !important; /* Darkens grain on light background */
 }
 
+/* Dark mode: Invert blend mode (multiply → screen) for equivalent effect on dark bg */
 body.dark-mode .noise {
   opacity: var(--noise-back-opacity-dark) !important;
-  mix-blend-mode: overlay !important;
+  mix-blend-mode: screen !important; /* Lightens grain on dark background */
 }
 
 body.dark-mode .noise-2 {
   opacity: var(--noise-front-opacity-dark) !important;
-  mix-blend-mode: overlay !important;
+  mix-blend-mode: screen !important; /* Lightens grain on dark background */
 }
 
 body.dark-mode .noise-3 {
   opacity: var(--noise-top-opacity-dark, 0.04) !important;
-  mix-blend-mode: overlay !important;
+  mix-blend-mode: screen !important; /* Lightens grain on dark background */
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -539,6 +576,7 @@ body.dark-mode .noise-3 {
 /* ─────────────────────────────────────────────────────────────────────────────
    LEGEND (Top-Left)
    Uses organic spacing: positions breathe with viewport
+   Responsive grid: 4×2 desktop → 3×3 tablet → 1×7 mobile
    ───────────────────────────────────────────────────────────────────────────── */
 .legend {
   position: fixed !important;
@@ -547,14 +585,42 @@ body.dark-mode .noise-3 {
   left: var(--edge-inset) !important;
   margin: 0 !important;
   width: auto !important;
+  max-width: calc(100vw - var(--edge-inset) * 2) !important;
   height: auto !important;
   font-family: 'Geist', sans-serif !important;
   padding: 0 !important; /* No inner padding - positioning handles spacing */
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  
+  /* CSS Grid: 4 columns on desktop */
+  display: grid !important;
+  grid-template-columns: repeat(4, auto) !important;
+  grid-column-gap: clamp(1rem, 2vw, 1.5rem) !important;
+  grid-row-gap: 0.5rem !important;
   
   /* Smooth position transitions during resize */
   transition: 
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LEGEND RESPONSIVE: Tablet (3×3 grid)
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 991px) {
+  .legend {
+    grid-template-columns: repeat(3, auto) !important;
+    grid-column-gap: clamp(0.75rem, 1.5vw, 1.25rem) !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LEGEND RESPONSIVE: Mobile (1×7 single column)
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .legend {
+    grid-template-columns: 1fr !important;
+    grid-row-gap: 0.35rem !important;
+  }
 }
 
 .legend__item {
@@ -582,7 +648,7 @@ body.dark-mode .noise-3 {
   right: var(--edge-inset);
   /* Fluid max-width */
   max-width: min(418px, 38vw);
-  z-index: 2001 !important;
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
   font-family: 'Geist', sans-serif;
   /* Fluid typography */
   font-size: clamp(0.65rem, 1.1vw, 0.8rem);
@@ -634,7 +700,7 @@ body.dark-mode .noise-3 {
 .decorative-script p a::after {
   content: '';
   position: absolute;
-  bottom: 2px;
+  bottom: -100%;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -682,7 +748,7 @@ body.dark-mode .noise-3 {
 .footer_link::after {
   content: '';
   position: absolute;
-  bottom: 2px;
+  bottom: -100%;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -711,7 +777,7 @@ body.dark-mode .noise-3 {
   position: fixed !important;
   bottom: var(--edge-inset) !important;
   left: var(--edge-inset) !important;
-  z-index: 2000 !important; /* Above balls */
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
   transition: 
     bottom var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic);
@@ -722,7 +788,7 @@ body.dark-mode .noise-3 {
   position: fixed !important;
   bottom: var(--edge-inset) !important;
   right: var(--edge-inset) !important;
-  z-index: 2000 !important; /* Above balls */
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
   font-family: 'Molle', cursive !important;
   /* Fluid typography */
   font-size: clamp(0.85rem, 1.5vw, 1.05rem) !important;
@@ -742,15 +808,10 @@ body.dark-mode .noise-3 {
   opacity: 1;
 }
 
-/* Hover dot for caption too */
-.caption {
-  position: relative;
-}
-
 .caption::after {
   content: '';
   position: absolute;
-  bottom: 2px;
+  bottom: -100%;
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -779,29 +840,20 @@ body.dark-mode .footer_icon-link {
   opacity: 0.88;
 }
 
-body.dark-mode .caption {
-  color: #a0a0a0 !important;
-  opacity: 0.88;
-}
-
-body.dark-mode .decorative-script {
-  color: #f5f5f5;
-  opacity: 0.88;
-  border-color: rgba(120, 120, 120, 1); /* Lighter border for dark mode */
-}
-
-body.dark-mode .decorative-script p a,
-body.dark-mode .footer_link:hover,
-body.dark-mode .caption:hover {
-  color: #f5f5f5 !important;
+/* Sound toggle always stays dark red in dark mode - no changes */
+body.dark-mode .sound-toggle {
+  color: var(--ball-6) !important; /* Always dark red */
   opacity: 1;
 }
 
-/* Dark mode hover dots */
-body.dark-mode .footer_link:hover::after,
-body.dark-mode .caption:hover::after,
-body.dark-mode .decorative-script p a:hover::after {
-  opacity: 0.5;
+body.dark-mode .sound-toggle:hover {
+  color: var(--ball-6) !important; /* No color change on hover */
+  opacity: 1;
+}
+
+/* Remove Sound On state color change in dark mode */
+body.dark-mode .sound-toggle[data-enabled="true"] {
+  color: var(--ball-6) !important; /* Same dark red when on */
 }
 
 body.dark-mode .decorative-script p a:hover {
@@ -872,59 +924,101 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   display: none !important;
 }
 
-/* Sound toggle - positioned next to social icons */
+/* Sound toggle - vertically centered, left aligned, styled like footer links */
 .sound-toggle {
   position: fixed;
-  bottom: var(--edge-inset);
-  left: calc(var(--edge-inset) + 120px); /* Next to social icons */
-  z-index: 2000 !important;
+  top: 50%;
+  left: var(--edge-inset);
+  transform: translateY(-50%); /* Perfect vertical centering */
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  
+  /* Button reset + explicit font styling to match footer links */
+  font-family: 'Geist', sans-serif !important;
+  font-size: clamp(0.75rem, 1.2vw, 0.9rem) !important;
+  font-weight: 400 !important; /* Match Portfolio link weight */
   text-decoration: none;
-  color: inherit;
-  opacity: 0.85;
+  color: var(--ball-6) !important; /* Dark orange (no yellow) when off */
+  opacity: 1;
   background: none;
   border: none;
   padding: 0;
   margin: 0;
   cursor: pointer;
   pointer-events: auto !important;
+  
   transition: 
     color var(--duration-quick) ease,
     opacity var(--duration-quick) ease,
-    bottom var(--duration-resize) var(--ease-organic),
+    top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic);
 }
 
+/* Sound On state - use lighter orange */
+.sound-toggle[data-enabled="true"] {
+  color: var(--ball-8) !important; /* Lighter orange when on */
+}
+
+/* Hover dot indicator - same as footer links */
+.sound-toggle::after {
+  content: '';
+  position: absolute;
+  bottom: -100%;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  transition: 
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s ease;
+}
+
+.sound-toggle:hover {
+  color: var(--ball-6) !important; /* Brighter red-orange on hover */
+  opacity: 1;
+}
+
+.sound-toggle:hover::after {
+  transform: translateX(-50%) scale(1);
+  opacity: 0.6;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
-   MIDDLE FOOTER LINKS - Fixed at bottom edge, horizontally centered
+   FOOTER LINKS CONTAINER - Fixed at bottom, 4× frame thickness from edge
    ═══════════════════════════════════════════════════════════════════════════════ */
-#contact-email,
-#portfolio-link,
-#cv-gate-trigger {
+#footer-links-container {
   position: fixed !important;
-  bottom: var(--edge-inset) !important; /* At bottom edge, same as other bottom elements */
-  z-index: 2000 !important; /* Above balls */
+  bottom: calc(var(--container-border) * 4) !important; /* 4× frame thickness from bottom */
+  left: 50% !important;
+  transform: translateX(-50%) !important; /* Center horizontally */
+  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2rem !important; /* Even gaps between links */
+  
   margin: 0 !important;
-  padding: 0 !important;
+  padding: 8px 0 !important; /* Small vertical padding for invisible hit area */
+  height: auto !important; /* Height matches content + padding */
+  
   transition: 
     bottom var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic),
     transform var(--duration-resize) var(--ease-organic);
 }
 
-/* Override .footer_link translateY transform and position evenly at bottom */
-#contact-email {
-  left: calc(50% - 150px) !important;
+/* Links inside container - remove individual positioning */
+#footer-links-container #contact-email,
+#footer-links-container #portfolio-link,
+#footer-links-container #cv-gate-trigger {
+  position: relative !important;
+  left: auto !important;
+  bottom: auto !important;
   transform: none !important; /* Override .footer_link translateY */
-}
-
-#portfolio-link {
-  left: 50% !important;
-  transform: translateX(-50%) !important; /* Center horizontally, override .footer_link */
-}
-
-#cv-gate-trigger {
-  left: calc(50% + 80px) !important;
-  transform: none !important; /* Override .footer_link translateY */
+  margin: 0 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

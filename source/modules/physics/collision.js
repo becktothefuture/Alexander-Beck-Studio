@@ -14,6 +14,7 @@ function collectPairsSorted() {
   const balls = globals.balls;
   const canvas = globals.canvas;
   const R_MAX = globals.R_MAX;
+  const spacing = (globals.ballSpacing || 0) * (globals.DPR || 1); // Extra spacing in pixels
   
   const n = balls.length;
   if (n < 2) return [];
@@ -53,7 +54,7 @@ function collectPairsSorted() {
             
             const A = balls[i], B = balls[j];
             const dx = B.x - A.x, dy = B.y - A.y;
-            const rSum = A.r + B.r;
+            const rSum = A.r + B.r + spacing; // Add extra spacing to collision radius
             const dist2 = dx*dx + dy*dy;
             
             if (dist2 < rSum*rSum) {
@@ -79,6 +80,7 @@ export function resolveCollisions(iterations = 10) {
   const POS_CORRECT_PERCENT = 0.8;
   const POS_CORRECT_SLOP = 0.5 * globals.DPR;
   const REST_VEL_THRESHOLD = 30;
+  const spacing = (globals.ballSpacing || 0) * (globals.DPR || 1); // Extra spacing in pixels
   
   for (let iter = 0; iter < iterations; iter++) {
     for (let k = 0; k < pairs.length; k++) {
@@ -93,7 +95,7 @@ export function resolveCollisions(iterations = 10) {
       if (B.isSleeping) B.wake();
       const dx = B.x - A.x;
       const dy = B.y - A.y;
-      const rSum = A.r + B.r;
+      const rSum = A.r + B.r + spacing; // Add extra spacing to collision radius
       const dist2 = dx * dx + dy * dy;
       if (dist2 === 0 || dist2 > rSum * rSum) continue;
       const dist = Math.sqrt(dist2);
