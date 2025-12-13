@@ -172,9 +172,11 @@ body.body {
   width: 100%;
   height: 100%;
   cursor: none !important; /* No cursor anywhere - custom cursor handles it */
-  /* Body is transparent - reveals dark html background as frame */
+  
+  /* Background Color applied to Content Area only (inside the frame) */
   background: transparent !important;
   background-color: transparent !important;
+  
   color: var(--wall-color); /* Matches wall/frame color dynamically */
   
   /* GLOBAL TYPOGRAPHY */
@@ -183,7 +185,9 @@ body.body {
   text-rendering: optimizeLegibility;
   
   /* Organic transition for border changes */
-  transition: padding var(--duration-resize, 600ms) var(--ease-organic, ease);
+  transition: 
+    background-color var(--duration-settle) var(--ease-settle),
+    padding var(--duration-resize, 600ms) var(--ease-organic, ease);
 }
 
 /* Force cursor: none on ALL elements, including links */
@@ -268,13 +272,13 @@ header.viewport.viewport--content {
   box-sizing: border-box !important;
   overflow: hidden !important;
   
-  /* Light mode background - the "page" surface */
+  /* Transparent content container - background is now on body */
   background: var(--bg-light) !important;
   background-color: var(--bg-light) !important;
   border-radius: var(--container-radius);
   
-  /* Below balls (z:5) - just provides background color */
-  z-index: 1 !important;
+  /* Above EVERYTHING: Balls (z:5), Noise (z:7-8), Logo (z:4) */
+  z-index: 20 !important;
   
   /* Allow pointer events to pass through to balls where there's no text */
   pointer-events: none !important;
@@ -459,7 +463,7 @@ a {
   /* Outer container matches the rounded content area */
   border-radius: var(--container-radius);
   background: transparent;  /* Let .viewport--content show through */
-  z-index: 5 !important; /* Hard guarantee: balls are above background surface */
+  z-index: 5;
   pointer-events: none !important;
   user-select: none; 
   -webkit-user-select: none; 
@@ -530,18 +534,11 @@ a {
    Text (z:20+) above all
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* IMPORTANT: Webflow exports `.noise` as `position: fixed; inset:0; z-index:1000`.
-   If we leave it fixed, it can visually behave like a global “background overlay”
-   and confuse layering. The base noise layer must be CLIPPED inside #bravia-balls
-   and sit BEHIND the canvas (balls). */
-#bravia-balls .noise {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 0 !important; /* Behind canvas (z:1) */
+.noise {
+  z-index: 2 !important;  /* Behind logo (z:3) and balls (z:5) */
   opacity: var(--noise-back-opacity) !important;
   background-size: var(--noise-size-base) var(--noise-size-base) !important;
   mix-blend-mode: multiply !important; /* Darkens grain on light background */
-  pointer-events: none !important;
 }
 
 .noise-2 {
@@ -635,13 +632,13 @@ body.dark-mode .noise-3 {
   
   /* ─────────────────────────────────────────────────────────────────────────────
      TYPOGRAPHIC REFINEMENT: Legend Labels
-     Weight 500 (medium) for balanced presence.
+     Weight 600 (semi-bold) for balanced presence.
      Tracking at 0.08em - open but not loose.
      ───────────────────────────────────────────────────────────────────────────── */
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase;
-  font-size: clamp(0.6rem, 0.9vw, 0.75rem) !important;
+  font-size: clamp(0.5rem, 0.7vw, 0.65rem) !important;
   color: #1a1a1a !important; /* Dark text for light mode */
 }
 
@@ -672,8 +669,9 @@ body.dark-mode .noise-3 {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   visibility: visible !important;
-  /* Border styling */
-  border: 1px solid rgba(61, 61, 61, 1) !important;
+  /* Border styling - only left border as requested */
+  border: none !important;
+  border-left: 1px solid rgba(61, 61, 61, 1) !important;
   padding: 8px 12px !important; /* Simple fixed padding for the box */
   
   /* ORGANIC TRANSITIONS: Position and appearance */

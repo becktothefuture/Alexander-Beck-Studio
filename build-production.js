@@ -82,7 +82,8 @@ async function buildProduction() {
     const cssPanelPath = path.join('source', 'css', 'panel.css');
     const cssPanelDockPath = path.join('source', 'css', 'panel-dock.css');
     const cssSoundPanelPath = path.join('source', 'css', 'sound-panel.css');
-    const cssCombined = [cssMainPath, cssPanelPath, cssPanelDockPath, cssSoundPanelPath]
+    const cssPasswordGatePath = path.join('source', 'css', 'password-gate.css');
+    const cssCombined = [cssMainPath, cssPanelPath, cssPanelDockPath, cssSoundPanelPath, cssPasswordGatePath]
       .filter(p => fs.existsSync(p))
       .map(p => fs.readFileSync(p, 'utf-8'))
       .join('\n');
