@@ -121,12 +121,12 @@ const state = {
   containerBorder: 0,    // Outer: insets container from viewport (reveals body bg as frame)
   simulationPadding: 0,  // Inner: padding inside container around canvas
   
-  // Rubbery walls system
-  wallElasticity: 25,    // Max deformation in pixels (0 = disabled)
-  wallStiffness: 600,    // Spring constant (higher = snappier return)
-  wallDamping: 20,       // Damping coefficient (higher = less oscillation)
-  wallThickness: 60,     // Visual thickness of wall border
-  chromeColor: '#cecece', // Browser chrome color (synced from CSS)
+  // Rubber Wall Visual System (4 user-controllable parameters)
+  wallThickness: 12,        // Thickness of rubber tube walls (px)
+  wallSoftness: 20,         // Blur radius for cushioned glow (px)
+  wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
+  wallBounceIntensity: 0,   // Current bounce highlight (0-1, animated on impact)
+  wallBounceHighlightMax: 0.3, // Max flash intensity when balls hit (user-controllable)
   
   // Helpers
   getSquashMax() {
@@ -153,11 +153,10 @@ export function initState(config) {
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;
   if (config.simulationPadding !== undefined) state.simulationPadding = config.simulationPadding;
   
-  // Rubbery walls
-  if (config.wallElasticity !== undefined) state.wallElasticity = config.wallElasticity;
-  if (config.wallStiffness !== undefined) state.wallStiffness = config.wallStiffness;
-  if (config.wallDamping !== undefined) state.wallDamping = config.wallDamping;
+  // Rubber wall visuals
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
+  if (config.wallSoftness !== undefined) state.wallSoftness = config.wallSoftness;
+  if (config.wallRadius !== undefined) state.wallRadius = config.wallRadius;
   
   // Recalculate R_MIN and R_MAX
   const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;

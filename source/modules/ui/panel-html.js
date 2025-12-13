@@ -37,22 +37,25 @@ export const PANEL_HTML = `
     </div>
   </details>
   
-  <!-- Frame/Border Settings (Two-Level Padding System) -->
+  <!-- Rubber Walls - The simulation has rubber tube walls -->
   <details>
-    <summary>🖼️ Frame & Padding</summary>
+    <summary>🧱 Rubber Walls</summary>
     <div class="group">
-        <label><span>Container border (px)</span><input type="range" id="containerBorderSlider" min="0" max="60" step="1" value="0"><span class="val" id="containerBorderVal">0</span></label>
-        <div style="font-size: 9px; opacity: 0.6; margin: 4px 0 10px;">Outer frame — reveals body background</div>
+        <div style="font-size: 9px; opacity: 0.7; margin-bottom: 10px; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+          Dark rubber tubes frame the simulation with a soft cushioned feel and 3D depth.
+        </div>
         
-        <label style="display: flex; align-items: center; gap: 8px; margin: 8px 0;">
-          <span>Border color</span>
-          <input type="color" id="chromeBgColorPicker" value="#f0f0f0" style="width: 32px; height: 24px; padding: 0; border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; cursor: pointer;">
-          <button id="chromeBgResetBtn" style="padding: 2px 6px; font-size: 9px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); border-radius: 3px; cursor: pointer; color: inherit;" title="Reset to browser default">↺</button>
-        </label>
-        <div style="font-size: 9px; opacity: 0.6; margin: 4px 0 10px;">Click ↺ to match browser chrome</div>
+        <label><span>Thickness (px)</span><input type="range" id="wallThicknessSlider" min="0" max="40" step="1" value="12"><span class="val" id="wallThicknessVal">12</span></label>
+        <div style="font-size: 8px; opacity: 0.5; margin: 2px 0 8px;">How thick the rubber tubes appear</div>
         
-        <label><span>Simulation padding (px)</span><input type="range" id="simulationPaddingSlider" min="0" max="60" step="1" value="0"><span class="val" id="simulationPaddingVal">0</span></label>
-        <div style="font-size: 9px; opacity: 0.6; margin-top: 4px;">Inner padding — shrinks ball play area</div>
+        <label><span>Softness (px)</span><input type="range" id="wallSoftnessSlider" min="0" max="60" step="1" value="20"><span class="val" id="wallSoftnessVal">20</span></label>
+        <div style="font-size: 8px; opacity: 0.5; margin: 2px 0 8px;">Blur radius for cushioned glow</div>
+        
+        <label><span>Corner radius (px)</span><input type="range" id="wallRadiusSlider" min="0" max="80" step="2" value="42"><span class="val" id="wallRadiusVal">42</span></label>
+        <div style="font-size: 8px; opacity: 0.5; margin: 2px 0 8px;">All rounded corners share this radius</div>
+        
+        <label><span>Bounce highlight</span><input type="range" id="wallBounceHighlightSlider" min="0" max="1" step="0.05" value="0.3"><span class="val" id="wallBounceHighlightVal">0.30</span></label>
+        <div style="font-size: 8px; opacity: 0.5; margin: 2px 0 8px;">Flash intensity when balls impact</div>
     </div>
   </details>
   

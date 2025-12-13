@@ -174,7 +174,6 @@ export class Ball {
       { cx: w - cr, cy: h - cr }                   // Bottom-right
     ];
     
-    const cornerNames = ['cornerTL', 'cornerTR', 'cornerBL', 'cornerBR'];
     for (let i = 0; i < corners.length; i++) {
       const corner = corners[i];
       // Check if ball is in this corner's quadrant
@@ -201,10 +200,7 @@ export class Ball {
           if (velDotN > 0) {
             this.vx -= (1 + rest) * velDotN * nx;
             this.vy -= (1 + rest) * velDotN * ny;
-            
-            // Rubbery corner wobble (impact based on velocity into corner)
-            const impact = Math.min(1, Math.abs(velDotN) / 500);
-            registerWallImpact(cornerNames[i], 0, impact);
+            // Note: Corners are ANCHORED - no rubber wall impact
           }
         }
       }
@@ -233,10 +229,8 @@ export class Ball {
       this.squashNormalAngle = -Math.PI / 2;
       const rollTarget = this.vx / this.r;
       this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
-      // Sound: floor impact
-      if (impact > 0.08) {
-        playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
-      }
+      // Sound: floor impact (threshold handled by sound engine)
+      playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
       // Rubbery wall wobble
       registerWallImpact('bottom', this.x / w, impact);
     }
@@ -249,10 +243,8 @@ export class Ball {
       const impact = Math.min(1, Math.abs(this.vy) / (this.r * 90));
       this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
       this.squashNormalAngle = Math.PI / 2;
-      // Sound: ceiling impact
-      if (impact > 0.08) {
-        playCollisionSound(this.r, impact * 0.6, this.x / w, this._soundId);
-      }
+      // Sound: ceiling impact (threshold handled by sound engine)
+      playCollisionSound(this.r, impact * 0.6, this.x / w, this._soundId);
       // Rubbery wall wobble
       registerWallImpact('top', this.x / w, impact);
     }
@@ -269,10 +261,8 @@ export class Ball {
       const impact = Math.min(1, Math.abs(preVx)/(this.r*70));
       this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
       this.squashNormalAngle = Math.PI;
-      // Sound: right wall impact
-      if (impact > 0.08) {
-        playCollisionSound(this.r, impact * 0.6, 1.0, this._soundId);
-      }
+      // Sound: right wall impact (threshold handled by sound engine)
+      playCollisionSound(this.r, impact * 0.6, 1.0, this._soundId);
       // Rubbery wall wobble
       registerWallImpact('right', (this.y - viewportTop) / (h - viewportTop), impact);
     }
@@ -289,10 +279,8 @@ export class Ball {
       const impact = Math.min(1, Math.abs(preVx)/(this.r*70));
       this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
       this.squashNormalAngle = 0;
-      // Sound: left wall impact
-      if (impact > 0.08) {
-        playCollisionSound(this.r, impact * 0.6, 0.0, this._soundId);
-      }
+      // Sound: left wall impact (threshold handled by sound engine)
+      playCollisionSound(this.r, impact * 0.6, 0.0, this._soundId);
       // Rubbery wall wobble
       registerWallImpact('left', (this.y - viewportTop) / (h - viewportTop), impact);
     }

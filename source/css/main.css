@@ -64,25 +64,26 @@
   --bg-light: #cecece;  /* Light grey - content area */
   --bg-dark: #0a0a0a;   /* Near black - content area */
   
-  /* Browser chrome / body border color
-     Uses CSS system color 'Canvas' to match browser's actual chrome color
-     Can be overridden via JavaScript for custom border colors */
-  --chrome-bg-light: Canvas;  /* System color - matches browser chrome */
-  --chrome-bg-dark: Canvas;   /* System color - adapts to dark mode */
-  --chrome-bg: var(--chrome-bg-light);
-  
   /* ─────────────────────────────────────────────────────────────────────────────
-     CONTAINER GEOMETRY
+     RUBBER WALL SYSTEM - The simulation walls are the "chrome" frame
+     Creates thick rubber tube effect with soft cushioned glow and 3D bevel
+     
+     Border is ALWAYS DARK regardless of light/dark mode for visual contrast
      ───────────────────────────────────────────────────────────────────────────── */
-  /* Container border: padding on body that reveals chrome-bg */
+  --wall-color: #0a0a0a;           /* Always dark - matches dark mode background */
+  --wall-thickness: 12px;          /* Thickness of the rubber wall tubes */
+  --wall-softness: 20px;           /* Blur radius for cushioned glow effect */
+  --wall-radius: clamp(24px, 4vmin, 48px);  /* Corner radius for all elements */
+  --wall-bevel-light: rgba(255, 255, 255, 0.15);  /* Top/left highlight */
+  --wall-bevel-dark: rgba(0, 0, 0, 0.3);          /* Bottom/right shadow */
+  --wall-bounce-intensity: 0;      /* 0-1, animated on ball collision */
+  --wall-bounce-color: rgba(255, 255, 255, 0.4); /* Flash color on impact */
+  
+  /* Legacy alias for compatibility */
+  --container-radius: var(--wall-radius);
   --container-border: 0px;
-  
-  /* Simulation padding: space inside #bravia-balls around canvas */
   --simulation-padding: 0px;
-  
-  /* Corner radii (proportional to viewport for organic feel) */
-  --container-radius: clamp(24px, 4vmin, 48px);
-  --canvas-radius: calc(var(--container-radius) - var(--simulation-padding));
+  --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
   
   /* ─────────────────────────────────────────────────────────────────────────────
      TEXTURE SIZING
@@ -149,37 +150,33 @@ html {
   padding: 0;
   width: 100%;
   height: 100%;
-  background: var(--chrome-bg); /* Seamless with browser chrome */
+  background: var(--wall-color); /* Matches simulation wall color */
 }
 
 body,
 body.body {
   overflow: hidden;
   margin: 0;
-  padding: var(--container-border); /* Creates visible frame around content */
+  padding: 0;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
   cursor: none; /* Simulation draws custom cursor */
-  background: var(--chrome-bg) !important; /* Frame/border color - !important overrides Webflow's .body */
-  background-color: var(--chrome-bg) !important;
+  /* Body is transparent - simulation container (#bravia-balls) has the wall color */
+  background: transparent !important;
+  background-color: transparent !important;
   color: rgba(64, 64, 64, 1);
   
-  /* GLOBAL TYPOGRAPHY: Soft, full letterforms across all text */
+  /* GLOBAL TYPOGRAPHY */
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
   text-rendering: optimizeLegibility;
-  
-  /* ORGANIC TRANSITION: Padding changes feel physical, not instantaneous */
-  transition: 
-    padding var(--duration-resize) var(--ease-organic),
-    background-color var(--duration-settle) var(--ease-settle);
 }
 
 body.dark-mode,
 body.body.dark-mode { 
-  background: var(--chrome-bg) !important;
-  background-color: var(--chrome-bg) !important;
+  background: transparent !important;
+  background-color: transparent !important;
   color: rgba(200, 200, 200, 1);
 }
 
@@ -293,25 +290,29 @@ a {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SIMULATION CONTAINER - #bravia-balls
+   SIMULATION CONTAINER - #bravia-balls (RUBBER WALL SYSTEM)
    ═══════════════════════════════════════════════════════════════════════════════
    
-   The simulation is the heartbeat of the page. It fills the viewport,
-   respecting the container-border padding on body.
+   The simulation container IS the wall. It creates:
+   1. Thick rubber tube effect via inset shadows
+   2. Soft cushioned glow around edges
+   3. 3D bevel for physical depth
+   4. Bounce highlight layer for collision feedback
    
-   ORGANIC BEHAVIOR:
-   - Border-radius transitions smoothly when --container-radius changes
-   - Inset transitions when --container-border changes
-   - Creates the illusion of the container "breathing"
+   RUBBER WALL EFFECT EXPLAINED:
+   - Multiple inset box-shadows create the "thick tube" appearance
+   - Outer shadow = soft cushion glow (--wall-softness blur)
+   - Middle shadow = main wall thickness (--wall-thickness)  
+   - Inner shadows = 3D bevel (light top-left, dark bottom-right)
+   - The walls feel like inflated rubber bumpers around the play area
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 #bravia-balls {
   position: fixed;
-  /* Inset from viewport by container-border (aligns with body padding) */
-  inset: var(--container-border);
+  inset: 0;  /* Flush with browser edges - no gap */
   overflow: hidden;
-  border-radius: var(--container-radius);
-  background: transparent !important;
+  border-radius: 0;  /* Outer container is FLUSH with browser */
+  background: var(--wall-color);
   z-index: 5;
   pointer-events: none !important;
   user-select: none; 
@@ -320,36 +321,54 @@ a {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: contain;
   
-  /* ORGANIC TRANSITIONS: Container breathes with viewport changes */
+  /* No box-shadow on outer container - rubber effect is on canvas */
+  
+  /* ORGANIC TRANSITIONS */
   transition: 
-    inset var(--duration-resize) var(--ease-organic),
-    border-radius var(--duration-resize) var(--ease-organic),
-    background-color var(--duration-settle) var(--ease-settle),
-    height var(--duration-resize) var(--ease-organic);
+    background-color var(--duration-settle) var(--ease-settle);
+}
+
+/* Bounce highlight overlay - flashes on ball collision (on canvas wrapper) */
+#bravia-balls::after {
+  content: '';
+  position: absolute;
+  /* Inset to match canvas position */
+  top: var(--wall-thickness);
+  right: var(--wall-thickness);
+  bottom: var(--wall-thickness);
+  left: var(--wall-thickness);
+  border-radius: var(--wall-radius);
+  pointer-events: none;
+  /* Radial glow that intensifies on bounce */
+  box-shadow: 
+    inset 0 0 calc(var(--wall-softness) * 2) calc(var(--wall-thickness) * 0.5) 
+    rgba(255, 255, 255, calc(var(--wall-bounce-intensity) * 0.3));
+  opacity: var(--wall-bounce-intensity);
+  transition: opacity 150ms ease-out;
 }
 
 /* Ball Pit Mode - Extended height for spawning area above viewport */
 #bravia-balls.mode-pit {
-  /* 150% of available viewport height (after borders) aligned to bottom
-     Top 50vh is spawn area (hidden above), bottom 100vh is visible pit
-     The * 3 factor accounts for: top border + bottom border + proportional spawn area */
-  height: calc(150vh - var(--container-border) * 3);
-  bottom: var(--container-border);
+  /* 150% of viewport height - spawning area above visible viewport */
+  height: 150vh;
+  bottom: 0;
   top: auto;
 }
 
-/* Canvas - simulation drawing surface */
+/* Canvas - simulation drawing surface, sits inside the rubber walls */
 #bravia-balls canvas {
   position: absolute;
-  top: var(--simulation-padding);
-  right: var(--simulation-padding);
-  bottom: var(--simulation-padding);
-  left: var(--simulation-padding);
-  width: calc(100% - var(--simulation-padding) * 2);
-  height: calc(100% - var(--simulation-padding) * 2);
+  /* Canvas inset by wall thickness to sit inside the rubber tubes */
+  top: var(--wall-thickness);
+  right: var(--wall-thickness);
+  bottom: var(--wall-thickness);
+  left: var(--wall-thickness);
+  width: calc(100% - var(--wall-thickness) * 2);
+  height: calc(100% - var(--wall-thickness) * 2);
   display: block;
-  border-radius: var(--canvas-radius);
-  clip-path: inset(0 round var(--canvas-radius));
+  /* Rounded corners on the play area */
+  border-radius: var(--wall-radius);
+  clip-path: inset(0 round var(--wall-radius));
   z-index: 1;
   pointer-events: none !important;
   cursor: none;
@@ -358,7 +377,17 @@ a {
   -webkit-user-select: none;
   -webkit-user-drag: none;
   
-  /* Canvas also breathes with padding changes */
+  /* RUBBER WALL EFFECT on the canvas edge
+     Creates the illusion of thick rubber tubes around the play area */
+  box-shadow: 
+    /* Soft cushion glow - blurs into the wall */
+    0 0 var(--wall-softness) 0 rgba(0, 0, 0, 0.5),
+    /* 3D Bevel - outer highlight */
+    -2px -2px 4px 0 var(--wall-bevel-light),
+    /* 3D Bevel - outer shadow */
+    2px 2px 4px 0 var(--wall-bevel-dark);
+  
+  /* Canvas breathes with wall changes */
   transition: 
     top var(--duration-resize) var(--ease-organic),
     right var(--duration-resize) var(--ease-organic),
@@ -366,7 +395,8 @@ a {
     left var(--duration-resize) var(--ease-organic),
     width var(--duration-resize) var(--ease-organic),
     height var(--duration-resize) var(--ease-organic),
-    border-radius var(--duration-resize) var(--ease-organic);
+    border-radius var(--duration-resize) var(--ease-organic),
+    box-shadow var(--duration-settle) var(--ease-settle);
 }
 
 /* Safari-specific GPU optimization */

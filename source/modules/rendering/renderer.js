@@ -25,11 +25,11 @@ export function setupRenderer() {
 }
 
 /**
- * Resize canvas to match container dimensions minus simulation padding.
+ * Resize canvas to match container dimensions minus wall thickness.
  * 
- * Two-level padding system:
- * 1. containerBorder: already handled by CSS (insets #bravia-balls from viewport)
- * 2. simulationPadding: canvas is inset from container edges (handled here + CSS)
+ * The rubber wall system uses wall thickness as the inset for the canvas.
+ * CSS handles positioning (top/left/right/bottom = wallThickness)
+ * JS handles buffer dimensions for high-DPI rendering.
  */
 export function resize() {
   if (!canvas) return;
@@ -41,14 +41,13 @@ export function resize() {
   const containerWidth = container ? container.clientWidth : window.innerWidth;
   const containerHeight = container ? container.clientHeight : window.innerHeight;
   
-  // Simulation padding: canvas is inset from container edges
-  const simPad = globals.simulationPadding || 0;
-  const canvasWidth = containerWidth - (simPad * 2);
-  const canvasHeight = containerHeight - (simPad * 2);
+  // Canvas sits inside the rubber walls (wall thickness is the inset)
+  const wallThickness = globals.wallThickness || 0;
+  const canvasWidth = containerWidth - (wallThickness * 2);
+  const canvasHeight = containerHeight - (wallThickness * 2);
   
   // Canvas fills container - CSS handles mode-specific heights
-  // Ball Pit: CSS sets 150vh (border-adjusted), Other modes: CSS sets 100%
-  // No JS multiplier needed since container dimensions are already correct
+  // Ball Pit: CSS sets 150vh, Other modes: CSS sets 100%
   const simHeight = canvasHeight;
   const DPR = CONSTANTS.DPR;
   
@@ -56,7 +55,8 @@ export function resize() {
   canvas.width = Math.floor(canvasWidth * DPR);
   canvas.height = Math.floor(simHeight * DPR);
   
-  // CSS handles display size via calc(100% - padding * 2), but we set explicit values for consistency
+  // Let CSS handle display sizing via var(--wall-thickness)
+  // But set explicit values for consistency in non-CSS environments
   canvas.style.width = canvasWidth + 'px';
   canvas.style.height = simHeight + 'px';
   

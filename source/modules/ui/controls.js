@@ -61,61 +61,41 @@ export function setupControls() {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TWO-LEVEL PADDING CONTROLS
+  // RUBBER WALL CONTROLS - 4 parameters for the simulation walls
   // ═══════════════════════════════════════════════════════════════════════════
   
-  // Container border: outer frame (insets container from viewport)
-  bindSlider('containerBorderSlider', (el) => {
-    g.containerBorder = parseInt(el.value, 10);
-    setVal('containerBorderVal', String(g.containerBorder));
-    applyFramePaddingCSSVars();
-    resize();
+  // Wall thickness (rubber tube width)
+  bindSlider('wallThicknessSlider', (el) => {
+    g.wallThickness = parseInt(el.value, 10);
+    setVal('wallThicknessVal', String(g.wallThickness));
+    applyVisualCSSVars({ wallThickness: g.wallThickness });
+    resize(); // Canvas sits inside walls
     autoSaveSettings();
   });
   
-  // Simulation padding: inner padding (canvas inset from container)
-  bindSlider('simulationPaddingSlider', (el) => {
-    g.simulationPadding = parseInt(el.value, 10);
-    setVal('simulationPaddingVal', String(g.simulationPadding));
-    applyFramePaddingCSSVars();
-    resize();
+  // Wall softness (blur/glow radius)
+  bindSlider('wallSoftnessSlider', (el) => {
+    g.wallSoftness = parseInt(el.value, 10);
+    setVal('wallSoftnessVal', String(g.wallSoftness));
+    applyVisualCSSVars({ wallSoftness: g.wallSoftness });
     autoSaveSettings();
   });
   
-  // Border/Chrome color picker
-  const chromeBgPicker = document.getElementById('chromeBgColorPicker');
-  if (chromeBgPicker) {
-    chromeBgPicker.addEventListener('input', (e) => {
-      const color = e.target.value;
-      document.documentElement.style.setProperty('--chrome-bg', color);
-      document.documentElement.style.setProperty('--chrome-bg-light', color);
-      document.documentElement.style.setProperty('--chrome-bg-dark', color);
-      g.chromeBgColor = color;
-      autoSaveSettings();
-    });
-  }
+  // Wall radius (corner radius shared by all rounded elements)
+  bindSlider('wallRadiusSlider', (el) => {
+    g.wallRadius = parseInt(el.value, 10);
+    g.cornerRadius = g.wallRadius; // Sync with physics
+    setVal('wallRadiusVal', String(g.wallRadius));
+    applyVisualCSSVars({ wallRadius: g.wallRadius });
+    autoSaveSettings();
+  });
   
-  // Reset border color to browser default (Canvas system color)
-  const chromeBgResetBtn = document.getElementById('chromeBgResetBtn');
-  if (chromeBgResetBtn) {
-    chromeBgResetBtn.addEventListener('click', () => {
-      document.documentElement.style.setProperty('--chrome-bg', 'Canvas');
-      document.documentElement.style.setProperty('--chrome-bg-light', 'Canvas');
-      document.documentElement.style.setProperty('--chrome-bg-dark', 'Canvas');
-      g.chromeBgColor = null; // null means use browser default
-      if (chromeBgPicker) {
-        // Get the computed Canvas color and update the picker
-        const computed = getComputedStyle(document.body).backgroundColor;
-        // Convert RGB to hex for the color picker
-        const match = computed.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-        if (match) {
-          const hex = '#' + [match[1], match[2], match[3]].map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
-          chromeBgPicker.value = hex;
-        }
-      }
-      autoSaveSettings();
-    });
-  }
+  // Bounce highlight intensity (max flash brightness on impact)
+  bindSlider('wallBounceHighlightSlider', (el) => {
+    g.wallBounceHighlightMax = parseFloat(el.value);
+    setVal('wallBounceHighlightVal', g.wallBounceHighlightMax.toFixed(2));
+    autoSaveSettings();
+  });
   
   // ═══════════════════════════════════════════════════════════════════════════
   // VISUAL EFFECTS CONTROLS (Noise & Vignette)

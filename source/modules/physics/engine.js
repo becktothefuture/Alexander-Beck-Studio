@@ -78,10 +78,8 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
     updateWaterRipples(dtSeconds);
   }
   
-  // Update rubbery wall physics (runs per-frame, not per physics step)
-  if (globals.wallElasticity > 0) {
-    wallState.step(dtSeconds);
-  }
+  // Update rubber wall physics (always runs, only renders when deformed)
+  wallState.step(dtSeconds);
 
   // Reset accumulator if falling behind
   if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
@@ -98,10 +96,8 @@ export function render() {
   // Clear
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // Draw rubbery walls FIRST (behind everything, chrome-colored border)
-  if (globals.wallElasticity > 0) {
-    drawWalls(ctx, canvas.width, canvas.height);
-  }
+  // Draw rubber walls FIRST (behind everything, only when deformed)
+  drawWalls(ctx, canvas.width, canvas.height);
   
   // Draw water ripples (behind balls for gorgeous effect)
   if (globals.currentMode === MODES.WATER) {
@@ -122,6 +118,15 @@ export function render() {
  */
 export function syncChromeColor() {
   updateChromeColor();
+}
+
+/**
+ * Get the current balls array (for sound system etc.)
+ * @returns {Array} Array of Ball objects
+ */
+export function getBalls() {
+  const globals = getGlobals();
+  return globals.balls || [];
 }
 
 function drawWaterRipples(ctx) {

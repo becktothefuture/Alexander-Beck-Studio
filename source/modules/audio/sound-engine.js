@@ -60,6 +60,26 @@ let CONFIG = {
   
   // Stereo
   maxPan: 0.22,                // Subtle width
+  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ENERGY-BASED SOUND SYSTEM
+  // ═══════════════════════════════════════════════════════════════════════════════
+  
+  // Collision threshold (like real life - soft touches are silent)
+  collisionMinImpact: 0.15,    // Raised from 0.08 → more silence, more realism
+  
+  // Rolling rumble (balls touching floor + moving slowly)
+  rollingEnabled: true,
+  rollingMaxVelocity: 120,     // Below this = rolling sound
+  rollingMinVelocity: 8,       // Below this = too slow to rumble
+  rollingGain: 0.08,           // Subtle rumble volume
+  rollingFreq: 65,             // Base frequency (low rumble)
+  
+  // Air whoosh (fast-moving balls)
+  whooshEnabled: true,
+  whooshMinVelocity: 350,      // Above this = whoosh
+  whooshGain: 0.06,            // Subtle whoosh volume
+  whooshFreq: 800,             // Noise filter center
 };
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -189,6 +209,22 @@ let lastSoundTime = new Map(); // ball id → timestamp
 let prefersReducedMotion = false;
 
 // ════════════════════════════════════════════════════════════════════════════════
+// AMBIENT SOUND SOURCES (continuous, energy-modulated)
+// ════════════════════════════════════════════════════════════════════════════════
+let rollingOsc = null;        // Low-frequency oscillator for rumble
+let rollingGain = null;       // Gain control for rolling
+let rollingFilter = null;     // Low-pass for warmth
+
+let whooshNoise = null;       // Noise source for whoosh
+let whooshGain = null;        // Gain control for whoosh
+let whooshFilter = null;      // Band-pass for air sound
+
+// Energy tracking (smoothed for natural transitions)
+let currentRollingEnergy = 0;
+let currentWhooshEnergy = 0;
+const ENERGY_SMOOTH = 0.15;   // Smoothing factor (0-1, lower = smoother)
+
+// ════════════════════════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ════════════════════════════════════════════════════════════════════════════════
 
@@ -289,6 +325,85 @@ function buildAudioGraph() {
   
   // Initialize voice pool
   initVoicePool();
+  
+  // Initialize ambient sounds (rolling rumble + air whoosh)
+  initAmbientSounds();
+}
+
+/**
+ * Initialize continuous ambient sound sources
+ * These run constantly but with gain = 0 until energy is fed in
+ */
+function initAmbientSounds() {
+  // ─── ROLLING RUMBLE ─────────────────────────────────────────────────────────
+  // Low-frequency oscillator + slight noise for organic texture
+  if (CONFIG.rollingEnabled) {
+    rollingOsc = audioContext.createOscillator();
+    rollingOsc.type = 'sine';
+    rollingOsc.frequency.value = CONFIG.rollingFreq;
+    
+    // Add subtle noise for texture
+    const rollingNoise = createNoiseSource();
+    const rollingNoiseGain = audioContext.createGain();
+    rollingNoiseGain.gain.value = 0.15; // Mix noise quietly
+    
+    rollingFilter = audioContext.createBiquadFilter();
+    rollingFilter.type = 'lowpass';
+    rollingFilter.frequency.value = 200;
+    rollingFilter.Q.value = 0.5;
+    
+    rollingGain = audioContext.createGain();
+    rollingGain.gain.value = 0; // Start silent
+    
+    // Connect: (osc + noise) → filter → gain → dry bus
+    rollingOsc.connect(rollingFilter);
+    rollingNoise.connect(rollingNoiseGain);
+    rollingNoiseGain.connect(rollingFilter);
+    rollingFilter.connect(rollingGain);
+    rollingGain.connect(dryGain);
+    
+    rollingOsc.start();
+  }
+  
+  // ─── AIR WHOOSH ─────────────────────────────────────────────────────────────
+  // Filtered noise for wind/air displacement
+  if (CONFIG.whooshEnabled) {
+    whooshNoise = createNoiseSource();
+    
+    whooshFilter = audioContext.createBiquadFilter();
+    whooshFilter.type = 'bandpass';
+    whooshFilter.frequency.value = CONFIG.whooshFreq;
+    whooshFilter.Q.value = 0.8;
+    
+    whooshGain = audioContext.createGain();
+    whooshGain.gain.value = 0; // Start silent
+    
+    // Connect: noise → filter → gain → dry bus
+    whooshNoise.connect(whooshFilter);
+    whooshFilter.connect(whooshGain);
+    whooshGain.connect(dryGain);
+  }
+}
+
+/**
+ * Create a white noise source (for rumble texture and whoosh)
+ */
+function createNoiseSource() {
+  const bufferSize = audioContext.sampleRate * 2; // 2 seconds
+  const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+  const data = buffer.getChannelData(0);
+  
+  // Fill with white noise
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  
+  const noise = audioContext.createBufferSource();
+  noise.buffer = buffer;
+  noise.loop = true;
+  noise.start();
+  
+  return noise;
 }
 
 /**
@@ -393,9 +508,12 @@ export function playCollisionSound(ballRadius, intensity, xPosition = 0.5, ballI
   // Skip if reduced motion preferred
   if (prefersReducedMotion) return;
   
+  // ═══ ENERGY THRESHOLD: Soft touches are silent (like real life) ═══
+  if (intensity < CONFIG.collisionMinImpact) return;
+  
   const now = audioContext.currentTime;
   
-  // Global rate limiter (max ~125 sounds/sec across ALL sources)
+  // Global rate limiter (max ~200 sounds/sec across ALL sources)
   if (now - lastGlobalSoundTime < GLOBAL_MIN_INTERVAL) return;
   
   // Per-ball debounce (prevent rapid-fire from same ball)
@@ -595,7 +713,74 @@ export function getSoundState() {
     isEnabled,
     activeSounds: voicePool.filter(v => v.inUse).length,
     poolSize: VOICE_POOL_SIZE,
+    rollingEnergy: currentRollingEnergy,
+    whooshEnergy: currentWhooshEnergy,
   };
+}
+
+/**
+ * UPDATE AMBIENT SOUNDS based on ball velocities
+ * Call this every frame from the main loop
+ * 
+ * @param {Array} balls - Array of ball objects with {vx, vy, y, r} properties
+ * @param {number} floorY - Y coordinate of the floor (for detecting rolling)
+ */
+export function updateAmbientSounds(balls, floorY = Infinity) {
+  if (!isEnabled || !isUnlocked || !audioContext) return;
+  if (prefersReducedMotion) return;
+  
+  let rollingSum = 0;
+  let whooshSum = 0;
+  let rollingCount = 0;
+  
+  // Analyze all balls for energy contribution
+  for (const ball of balls) {
+    const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+    
+    // Rolling: ball near floor + moving slowly horizontally
+    const isNearFloor = (ball.y + ball.r) >= (floorY - 5);
+    if (isNearFloor && speed > CONFIG.rollingMinVelocity && speed < CONFIG.rollingMaxVelocity) {
+      // Weight by horizontal velocity (rolling is horizontal)
+      const horizSpeed = Math.abs(ball.vx);
+      rollingSum += horizSpeed / CONFIG.rollingMaxVelocity;
+      rollingCount++;
+    }
+    
+    // Whoosh: any ball moving fast
+    if (speed > CONFIG.whooshMinVelocity) {
+      whooshSum += (speed - CONFIG.whooshMinVelocity) / 500; // Normalize
+    }
+  }
+  
+  // Smooth the energy values (prevents jarring changes)
+  const targetRolling = Math.min(1, rollingSum / Math.max(1, rollingCount * 0.5));
+  const targetWhoosh = Math.min(1, whooshSum / 3);
+  
+  currentRollingEnergy += (targetRolling - currentRollingEnergy) * ENERGY_SMOOTH;
+  currentWhooshEnergy += (targetWhoosh - currentWhooshEnergy) * ENERGY_SMOOTH;
+  
+  // Apply to ambient sound gains
+  if (rollingGain && CONFIG.rollingEnabled) {
+    const rollVol = currentRollingEnergy * CONFIG.rollingGain;
+    rollingGain.gain.setTargetAtTime(rollVol, audioContext.currentTime, 0.05);
+    
+    // Modulate pitch slightly based on average speed
+    if (rollingOsc) {
+      const pitchMod = 1 + currentRollingEnergy * 0.3; // +30% at max
+      rollingOsc.frequency.setTargetAtTime(CONFIG.rollingFreq * pitchMod, audioContext.currentTime, 0.1);
+    }
+  }
+  
+  if (whooshGain && CONFIG.whooshEnabled) {
+    const whooshVol = currentWhooshEnergy * CONFIG.whooshGain;
+    whooshGain.gain.setTargetAtTime(whooshVol, audioContext.currentTime, 0.03);
+    
+    // Raise filter frequency for faster movement (brighter whoosh)
+    if (whooshFilter) {
+      const freqMod = 1 + currentWhooshEnergy * 1.5; // Up to 2.5x
+      whooshFilter.frequency.setTargetAtTime(CONFIG.whooshFreq * freqMod, audioContext.currentTime, 0.05);
+    }
+  }
 }
 
 /**

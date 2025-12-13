@@ -56,10 +56,26 @@ export function applyFramePaddingCSSVars() {
 }
 
 /**
- * Apply visual CSS variables (noise opacity/size, vignette) from config to :root
+ * Apply visual CSS variables (noise opacity/size, vignette, walls) from config to :root
  */
 export function applyVisualCSSVars(config) {
   const root = document.documentElement;
+  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // RUBBER WALL SYSTEM - 4 controllable parameters
+  // ═══════════════════════════════════════════════════════════════════════════════
+  if (config.wallThickness !== undefined) {
+    root.style.setProperty('--wall-thickness', `${config.wallThickness}px`);
+  }
+  if (config.wallSoftness !== undefined) {
+    root.style.setProperty('--wall-softness', `${config.wallSoftness}px`);
+  }
+  if (config.wallRadius !== undefined) {
+    root.style.setProperty('--wall-radius', `${config.wallRadius}px`);
+  }
+  if (config.wallBounceIntensity !== undefined) {
+    root.style.setProperty('--wall-bounce-intensity', String(config.wallBounceIntensity));
+  }
   
   // Noise texture sizing
   if (config.noiseSizeBase !== undefined) {

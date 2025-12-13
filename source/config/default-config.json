@@ -6,8 +6,6 @@
   "maxBalls": 300,
   "repelRadius": 120,
   "repelPower": 274000,
-  "containerBorder": 0,
-  "simulationPadding": 0,
   "noiseSizeBase": 100,
   "noiseSizeTop": 150,
   "noiseBackOpacity": 0.020,
@@ -21,8 +19,7 @@
   "vignetteBlurInner": 40,
   "vignetteSpread": 0,
   "vignetteTransition": 800,
-  "wallElasticity": 25,
-  "wallStiffness": 600,
-  "wallDamping": 20,
-  "wallThickness": 60
+  "wallThickness": 12,
+  "wallSoftness": 20,
+  "wallRadius": 42
 }
