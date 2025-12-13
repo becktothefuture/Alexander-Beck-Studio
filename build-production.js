@@ -63,6 +63,14 @@ async function buildProduction() {
     
     copyDir(CONFIG.webflowSource, CONFIG.publicDestination);
     console.log('✅ Webflow design copied to public/\n');
+
+    // Safety: ensure Webflow images exist in public/ (favicon, noise gif, etc.)
+    // Some environments have shown missing images after copy, so we enforce this.
+    const webflowImagesSrc = path.join(CONFIG.webflowSource, 'images');
+    const publicImagesDst = path.join(CONFIG.publicDestination, 'images');
+    if (fs.existsSync(webflowImagesSrc) && !fs.existsSync(publicImagesDst)) {
+      copyDir(webflowImagesSrc, publicImagesDst);
+    }
     
     // STEP 2: Bundle modular sources with Rollup
     console.log('📦 Step 2: Bundling modular sources with Rollup...');
