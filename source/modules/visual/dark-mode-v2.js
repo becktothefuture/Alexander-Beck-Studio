@@ -177,20 +177,13 @@ export function setTheme(theme) {
  * Initialize dark mode system
  */
 export function initializeDarkMode() {
-  // Detect system preference
+  // Detect system preference (for auto mode later)
   systemPreference = detectSystemPreference();
   console.log(`🖥️ System prefers: ${systemPreference}`);
   
-  // Load saved preference or default to light
-  let savedTheme = 'light';
-  try {
-    savedTheme = localStorage.getItem('theme-preference') || 'light';
-  } catch (e) {
-    // localStorage unavailable
-  }
-  
-  // Apply theme
-  setTheme(savedTheme);
+  // FORCE START IN LIGHT MODE (ignore saved preference on initial load)
+  // User can still switch modes via the theme buttons
+  setTheme('light');
   
   // Setup segment control listeners
   const autoBtn = document.getElementById('themeAuto');
