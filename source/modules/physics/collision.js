@@ -142,10 +142,10 @@ export function resolveCollisions(iterations = 10) {
         B.squashNormalAngle = Math.atan2(ny, nx);
         
         // ════════════════════════════════════════════════════════════════════════
-        // SOUND: Play collision sound (underwater pebble)
+        // SOUND: Play collision sound (threshold handled by sound engine)
         // Only on first iteration to avoid duplicate sounds
         // ════════════════════════════════════════════════════════════════════════
-        if (iter === 0 && impact > 0.05) {
+        if (iter === 0) {
           const avgRadius = (A.r + B.r) / 2;
           const midX = (A.x + B.x) / 2;
           const canvasWidth = globals.canvas?.width || 1;

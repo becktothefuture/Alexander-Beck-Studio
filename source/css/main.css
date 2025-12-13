@@ -68,9 +68,10 @@
      RUBBER WALL SYSTEM - The simulation walls are the "chrome" frame
      Creates thick rubber tube effect with soft cushioned glow and 3D bevel
      
-     Border is ALWAYS DARK regardless of light/dark mode for visual contrast
+     NOTE: For browser chrome matching, CSS has `Canvas` system color but it
+     matches document bg, not actual browser chrome. Set explicitly for consistency.
      ───────────────────────────────────────────────────────────────────────────── */
-  --wall-color: #0a0a0a;           /* Always dark - matches dark mode background */
+  --wall-color: #1f1f1f;           /* Wall color - matches Cursor/dark IDE themes */
   --wall-thickness: 12px;          /* Thickness of the rubber wall tubes */
   --wall-softness: 20px;           /* Blur radius for cushioned glow effect */
   --wall-radius: clamp(24px, 4vmin, 48px);  /* Corner radius for all elements */
