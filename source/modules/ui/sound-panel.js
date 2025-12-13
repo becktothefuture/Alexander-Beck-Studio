@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                           SOUND CONFIG PANEL                                 ║
-// ║           Presets and parameter sliders for collision sounds                 ║
+// ║                  Clean glassmorphism · Collapsible sections                  ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import {
@@ -16,92 +16,145 @@ let panelElement = null;
 let isVisible = false;
 
 // ════════════════════════════════════════════════════════════════════════════════
-// PANEL HTML TEMPLATE
+// PANEL HTML TEMPLATE - Clean, functional design
 // ════════════════════════════════════════════════════════════════════════════════
 
 const SOUND_PANEL_HTML = `
-<div class="panel-header">
-  <span><span class="drag-handle">⋮⋮</span> Sound Designer</span>
-  <button id="minimizeSoundPanel" type="button" aria-label="Minimize panel">−</button>
-</div>
-<div class="panel-content">
-  <!-- Presets -->
-  <div class="group">
-    <label>
-      <div><span>Preset</span></div>
-      <select id="soundPresetSelect"></select>
-    </label>
-    <div id="presetDescription" class="preset-description"></div>
+<header class="sound-panel__header">
+  <span class="sound-panel__title">Sound</span>
+  <button class="sound-panel__close" aria-label="Close panel">×</button>
+</header>
+
+<div class="sound-panel__body">
+  <!-- Preset Selector -->
+  <div class="sound-panel__section sound-panel__section--preset">
+    <select id="soundPresetSelect" class="sound-panel__select">
+      <option value="" disabled>Select preset...</option>
+    </select>
+    <p id="presetDescription" class="sound-panel__description"></p>
   </div>
-  
-  <!-- Envelope -->
-  <details open>
-    <summary>Envelope</summary>
-    <div class="group">
-      <label>
-        <div><span>Attack</span><span class="val" id="attackVal">8ms</span></div>
-        <input type="range" id="attackTime" min="1" max="50" step="1" value="8">
+
+  <!-- Envelope Section -->
+  <details class="sound-panel__accordion" open>
+    <summary class="sound-panel__accordion-trigger">
+      <span>Envelope</span>
+      <svg class="sound-panel__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </summary>
+    <div class="sound-panel__accordion-content">
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Attack</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="attackTime" class="sound-panel__slider" min="0" max="50" step="1">
+          <span class="sound-panel__value" id="attackVal">0ms</span>
+        </div>
       </label>
-      <label>
-        <div><span>Decay</span><span class="val" id="decayVal">80ms</span></div>
-        <input type="range" id="decayTime" min="20" max="300" step="5" value="80">
-      </label>
-    </div>
-  </details>
-  
-  <!-- Tone -->
-  <details>
-    <summary>Tone</summary>
-    <div class="group">
-      <label>
-        <div><span>Harmonic</span><span class="val" id="harmonicVal">15%</span></div>
-        <input type="range" id="harmonicGain" min="0" max="60" step="1" value="15">
-      </label>
-      <label>
-        <div><span>Filter Cutoff</span><span class="val" id="filterVal">2200Hz</span></div>
-        <input type="range" id="filterBaseFreq" min="200" max="8000" step="100" value="2200">
-      </label>
-      <label>
-        <div><span>Filter Resonance</span><span class="val" id="filterQVal">0.7</span></div>
-        <input type="range" id="filterQ" min="0.1" max="4" step="0.1" value="0.7">
-      </label>
-      <label>
-        <div><span>Velocity → Brightness</span><span class="val" id="filterVelVal">800Hz</span></div>
-        <input type="range" id="filterVelocityRange" min="0" max="3000" step="50" value="800">
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Decay</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="decayTime" class="sound-panel__slider" min="20" max="300" step="5">
+          <span class="sound-panel__value" id="decayVal">55ms</span>
+        </div>
       </label>
     </div>
   </details>
-  
-  <!-- Reverb -->
-  <details>
-    <summary>Reverb</summary>
-    <div class="group">
-      <label>
-        <div><span>Decay Time</span><span class="val" id="reverbDecayVal">35%</span></div>
-        <input type="range" id="reverbDecay" min="5" max="90" step="5" value="35">
+
+  <!-- Tone Section -->
+  <details class="sound-panel__accordion">
+    <summary class="sound-panel__accordion-trigger">
+      <span>Tone</span>
+      <svg class="sound-panel__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </summary>
+    <div class="sound-panel__accordion-content">
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Harmonic</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="harmonicGain" class="sound-panel__slider" min="0" max="60" step="1">
+          <span class="sound-panel__value" id="harmonicVal">9%</span>
+        </div>
       </label>
-      <label>
-        <div><span>Wet Mix</span><span class="val" id="reverbWetVal">35%</span></div>
-        <input type="range" id="reverbWetMix" min="0" max="80" step="5" value="35">
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Filter</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="filterBaseFreq" class="sound-panel__slider" min="200" max="8000" step="100">
+          <span class="sound-panel__value" id="filterVal">2400Hz</span>
+        </div>
+      </label>
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Resonance</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="filterQ" class="sound-panel__slider" min="0.1" max="4" step="0.1">
+          <span class="sound-panel__value" id="filterQVal">0.4</span>
+        </div>
+      </label>
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Velocity → Brightness</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="filterVelocityRange" class="sound-panel__slider" min="0" max="3000" step="50">
+          <span class="sound-panel__value" id="filterVelVal">380Hz</span>
+        </div>
       </label>
     </div>
   </details>
-  
-  <!-- Volume -->
-  <details>
-    <summary>Volume</summary>
-    <div class="group">
-      <label>
-        <div><span>Master Volume</span><span class="val" id="masterVal">70%</span></div>
-        <input type="range" id="masterGain" min="10" max="100" step="5" value="70">
+
+  <!-- Space Section -->
+  <details class="sound-panel__accordion">
+    <summary class="sound-panel__accordion-trigger">
+      <span>Space</span>
+      <svg class="sound-panel__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </summary>
+    <div class="sound-panel__accordion-content">
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Reverb Decay</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="reverbDecay" class="sound-panel__slider" min="5" max="90" step="5">
+          <span class="sound-panel__value" id="reverbDecayVal">28%</span>
+        </div>
       </label>
-      <label>
-        <div><span>Min Collision Vol</span><span class="val" id="minGainVal">12%</span></div>
-        <input type="range" id="minGain" min="1" max="40" step="1" value="12">
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Wet/Dry</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="reverbWetMix" class="sound-panel__slider" min="0" max="80" step="5">
+          <span class="sound-panel__value" id="reverbWetVal">22%</span>
+        </div>
       </label>
-      <label>
-        <div><span>Max Collision Vol</span><span class="val" id="maxGainVal">45%</span></div>
-        <input type="range" id="maxGain" min="20" max="80" step="1" value="45">
+    </div>
+  </details>
+
+  <!-- Volume Section -->
+  <details class="sound-panel__accordion">
+    <summary class="sound-panel__accordion-trigger">
+      <span>Volume</span>
+      <svg class="sound-panel__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </summary>
+    <div class="sound-panel__accordion-content">
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Master</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="masterGain" class="sound-panel__slider" min="10" max="100" step="5">
+          <span class="sound-panel__value" id="masterVal">52%</span>
+        </div>
+      </label>
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Min</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="minGain" class="sound-panel__slider" min="1" max="40" step="1">
+          <span class="sound-panel__value" id="minGainVal">5%</span>
+        </div>
+      </label>
+      <label class="sound-panel__control">
+        <span class="sound-panel__label">Max</span>
+        <div class="sound-panel__slider-row">
+          <input type="range" id="maxGain" class="sound-panel__slider" min="20" max="80" step="1">
+          <span class="sound-panel__value" id="maxGainVal">28%</span>
+        </div>
       </label>
     </div>
   </details>
@@ -117,10 +170,9 @@ const SOUND_PANEL_HTML = `
  * Press 'S' to toggle visibility
  */
 export function createSoundPanel() {
-  // Create panel element
-  panelElement = document.createElement('div');
+  panelElement = document.createElement('aside');
   panelElement.id = 'soundPanel';
-  panelElement.className = 'panel sound-panel';
+  panelElement.className = 'sound-panel';
   panelElement.setAttribute('role', 'dialog');
   panelElement.setAttribute('aria-label', 'Sound configuration');
   panelElement.innerHTML = SOUND_PANEL_HTML;
@@ -129,14 +181,11 @@ export function createSoundPanel() {
   panelElement.style.display = 'none';
   isVisible = false;
   
-  // Append to body
   document.body.appendChild(panelElement);
   
-  // Wire up controls
   setupPresetSelect();
   setupSliders();
-  setupMinimizeButton();
-  setupDragging();
+  setupCloseButton();
   setupKeyboardToggle();
   
   console.log('✓ Sound panel created (press S to toggle)');
@@ -210,17 +259,14 @@ function setupSliders() {
       const rawValue = parseFloat(slider.value);
       const configValue = config.toConfig(rawValue);
       
-      // Update display
       if (valDisplay) {
         valDisplay.textContent = config.format(rawValue);
       }
       
-      // Update config
       updateSoundConfig({ [config.id]: configValue });
     });
   }
   
-  // Sync sliders to current config on load
   syncSlidersToConfig();
 }
 
@@ -260,10 +306,10 @@ function syncSlidersToConfig() {
 }
 
 /**
- * Setup minimize button
+ * Setup close button
  */
-function setupMinimizeButton() {
-  const btn = panelElement.querySelector('#minimizeSoundPanel');
+function setupCloseButton() {
+  const btn = panelElement.querySelector('.sound-panel__close');
   if (btn) {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -273,58 +319,14 @@ function setupMinimizeButton() {
 }
 
 /**
- * Setup panel dragging
- */
-function setupDragging() {
-  const header = panelElement.querySelector('.panel-header');
-  if (!header) return;
-  
-  let isDragging = false;
-  let xOffset = 0, yOffset = 0;
-  
-  header.addEventListener('mousedown', (e) => {
-    // Don't drag if clicking minimize button
-    if (e.target.tagName === 'BUTTON') return;
-    
-    isDragging = true;
-    const rect = panelElement.getBoundingClientRect();
-    xOffset = e.clientX - rect.left;
-    yOffset = e.clientY - rect.top;
-    header.style.cursor = 'grabbing';
-  });
-  
-  document.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    
-    const x = e.clientX - xOffset;
-    const y = e.clientY - yOffset;
-    
-    // Constrain to viewport
-    const maxX = window.innerWidth - panelElement.offsetWidth - 20;
-    const maxY = window.innerHeight - panelElement.offsetHeight - 20;
-    
-    panelElement.style.left = Math.max(20, Math.min(x, maxX)) + 'px';
-    panelElement.style.top = Math.max(20, Math.min(y, maxY)) + 'px';
-    panelElement.style.right = 'auto';
-  });
-  
-  document.addEventListener('mouseup', () => {
-    isDragging = false;
-    if (header) header.style.cursor = 'move';
-  });
-}
-
-/**
  * Setup keyboard shortcut (S to toggle)
  */
 function setupKeyboardToggle() {
   document.addEventListener('keydown', (e) => {
-    // Don't trigger if typing in an input
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
       return;
     }
     
-    // S to toggle sound panel (only when sound is enabled)
     if (e.key === 's' || e.key === 'S') {
       const state = getSoundState();
       if (state.isUnlocked) {
@@ -338,9 +340,6 @@ function setupKeyboardToggle() {
 // PUBLIC API
 // ════════════════════════════════════════════════════════════════════════════════
 
-/**
- * Toggle panel visibility
- */
 export function toggleSoundPanel() {
   if (!panelElement) return;
   
@@ -352,9 +351,6 @@ export function toggleSoundPanel() {
   }
 }
 
-/**
- * Show the sound panel
- */
 export function showSoundPanel() {
   if (!panelElement) return;
   isVisible = true;
@@ -362,19 +358,12 @@ export function showSoundPanel() {
   syncSlidersToConfig();
 }
 
-/**
- * Hide the sound panel
- */
 export function hideSoundPanel() {
   if (!panelElement) return;
   isVisible = false;
   panelElement.style.display = 'none';
 }
 
-/**
- * Get panel visibility state
- */
 export function isSoundPanelVisible() {
   return isVisible;
 }
-

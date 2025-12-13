@@ -62,24 +62,26 @@ let CONFIG = {
   maxPan: 0.22,                // Subtle width
   
   // ═══════════════════════════════════════════════════════════════════════════════
-  // ENERGY-BASED SOUND SYSTEM
+  // ENERGY-BASED SOUND SYSTEM — Small Wooden Play Circles
   // ═══════════════════════════════════════════════════════════════════════════════
   
-  // Collision threshold (like real life - soft touches are silent)
-  collisionMinImpact: 0.15,    // Raised from 0.08 → more silence, more realism
+  // Collision threshold (soft touches are silent, like real wooden pieces)
+  collisionMinImpact: 0.12,    // Light taps still audible, feather touches silent
   
-  // Rolling rumble (balls touching floor + moving slowly)
+  // Rolling rumble (wood-on-surface friction)
+  // Think: wooden beads rolling on a table — subtle, textured
   rollingEnabled: true,
-  rollingMaxVelocity: 120,     // Below this = rolling sound
-  rollingMinVelocity: 8,       // Below this = too slow to rumble
-  rollingGain: 0.08,           // Subtle rumble volume
-  rollingFreq: 65,             // Base frequency (low rumble)
+  rollingMaxVelocity: 80,      // Only when rolling slowly (settling)
+  rollingMinVelocity: 15,      // Below this = too slow, silent
+  rollingGain: 0.025,          // Very subtle — background texture only
+  rollingFreq: 120,            // Higher than before (wood is lighter than stone)
   
-  // Air whoosh (fast-moving balls)
-  whooshEnabled: true,
-  whooshMinVelocity: 350,      // Above this = whoosh
-  whooshGain: 0.06,            // Subtle whoosh volume
-  whooshFreq: 800,             // Noise filter center
+  // Air whoosh — DISABLED for small wooden pieces
+  // These are too small/light to displace air audibly
+  whooshEnabled: false,        // ← Disabled! Not realistic for small objects
+  whooshMinVelocity: 500,      // (unused)
+  whooshGain: 0.0,             // (unused)
+  whooshFreq: 800,             // (unused)
 };
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -335,28 +337,35 @@ function buildAudioGraph() {
  * These run constantly but with gain = 0 until energy is fed in
  */
 function initAmbientSounds() {
-  // ─── ROLLING RUMBLE ─────────────────────────────────────────────────────────
-  // Low-frequency oscillator + slight noise for organic texture
+  // ─── ROLLING TEXTURE ────────────────────────────────────────────────────────
+  // Wood-on-surface friction: primarily noise with subtle tonal component
+  // Think: wooden beads rolling on a table, gentle and textured
   if (CONFIG.rollingEnabled) {
+    // Subtle tonal component (triangle wave = slightly wooden)
     rollingOsc = audioContext.createOscillator();
-    rollingOsc.type = 'sine';
+    rollingOsc.type = 'triangle';
     rollingOsc.frequency.value = CONFIG.rollingFreq;
     
-    // Add subtle noise for texture
+    const rollingOscGain = audioContext.createGain();
+    rollingOscGain.gain.value = 0.3; // Tonal is secondary to noise
+    
+    // Primary: filtered noise (friction texture)
     const rollingNoise = createNoiseSource();
     const rollingNoiseGain = audioContext.createGain();
-    rollingNoiseGain.gain.value = 0.15; // Mix noise quietly
+    rollingNoiseGain.gain.value = 0.7; // Noise is primary (friction)
     
+    // Bandpass filter for "woody" character (not too bassy, not too hissy)
     rollingFilter = audioContext.createBiquadFilter();
-    rollingFilter.type = 'lowpass';
-    rollingFilter.frequency.value = 200;
-    rollingFilter.Q.value = 0.5;
+    rollingFilter.type = 'bandpass';
+    rollingFilter.frequency.value = 350;  // Mid-range, wooden
+    rollingFilter.Q.value = 0.8;          // Gentle bandwidth
     
     rollingGain = audioContext.createGain();
     rollingGain.gain.value = 0; // Start silent
     
     // Connect: (osc + noise) → filter → gain → dry bus
-    rollingOsc.connect(rollingFilter);
+    rollingOsc.connect(rollingOscGain);
+    rollingOscGain.connect(rollingFilter);
     rollingNoise.connect(rollingNoiseGain);
     rollingNoiseGain.connect(rollingFilter);
     rollingFilter.connect(rollingGain);

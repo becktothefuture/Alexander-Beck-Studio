@@ -186,12 +186,12 @@ body.body.dark-mode {
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    Z-INDEX HIERARCHY
-   0: HTML Background
-   1: Logo (Hero Text)
+   0: HTML Background (dark border)
    4: Bottom Noise - Behind balls
    5: Balls Simulation
-   7: Top Noise - Above balls
-   20: UI Elements (Legend, Links, Footer)
+   7-8: Top Noise layers - Above balls
+   15: Logo (Hero Text) - Above noise, below UI
+   20: UI Elements (Legend, Links, Footer, Corners)
    2001: Decorative Script
    MAX: Control Panel
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -248,13 +248,13 @@ body.dark-mode.sound-hover .viewport.viewport--content {
   background: #1a1a1a !important;
 }
 
-/* Logo layer */
+/* Logo layer - MUST be above noise (z:4,7,8) but below UI (z:20) */
 .hero__text,
 .hero,
 .hero-section,
 [class*="hero"],
 .header {
-  z-index: 1 !important;
+  z-index: 15 !important;
   position: relative;
 }
 

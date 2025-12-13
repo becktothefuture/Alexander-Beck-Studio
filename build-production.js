@@ -73,7 +73,8 @@ async function buildProduction() {
     const cssMainPath = path.join('source', 'css', 'main.css');
     const cssPanelPath = path.join('source', 'css', 'panel.css');
     const cssPanelDockPath = path.join('source', 'css', 'panel-dock.css');
-    const cssCombined = [cssMainPath, cssPanelPath, cssPanelDockPath]
+    const cssSoundPanelPath = path.join('source', 'css', 'sound-panel.css');
+    const cssCombined = [cssMainPath, cssPanelPath, cssPanelDockPath, cssSoundPanelPath]
       .filter(p => fs.existsSync(p))
       .map(p => fs.readFileSync(p, 'utf-8'))
       .join('\n');

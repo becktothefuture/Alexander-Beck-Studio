@@ -452,68 +452,7 @@ body.dark-mode .theme-segment-control {
   background: rgba(0, 0, 0, 0.5);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   SOUND PANEL - Left side variant
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-panel {
-  left: 5vh !important;
-  right: auto !important;
-  width: 240px;
-  
-  /* Amber CRT variant for sound */
-  color: #ffaa00;
-  text-shadow: 0 0 2px rgba(255, 170, 0, 0.3);
-  border-color: rgba(255, 170, 0, 0.3);
-}
-
-.sound-panel .panel-header {
-  background: linear-gradient(180deg, rgba(255, 170, 0, 0.15) 0%, transparent 100%);
-  border-bottom-color: rgba(255, 170, 0, 0.3);
-}
-
-.sound-panel details {
-  border-color: rgba(255, 170, 0, 0.2);
-}
-
-.sound-panel details summary {
-  background: rgba(255, 170, 0, 0.08);
-}
-
-.sound-panel details summary:hover {
-  background: rgba(255, 170, 0, 0.15);
-}
-
-.sound-panel .preset-description {
-  font-size: 8px;
-  color: rgba(255, 170, 0, 0.5);
-  font-style: normal;
-  padding: 4px 0 0 0;
-  line-height: 1.3;
-}
-
-.sound-panel select {
-  width: 100%;
-  color: #ffaa00;
-  border-color: rgba(255, 170, 0, 0.4);
-}
-
-.sound-panel input[type="range"]::-webkit-slider-thumb {
-  background: #ffaa00;
-}
-
-.sound-panel button {
-  background: #ffaa00;
-}
-
-.sound-panel .panel-header::before {
-  content: '♪';
-  margin-right: 4px;
-  font-size: 10px;
-}
-
-.sound-panel.collapsed .panel-header::before {
-  content: '○';
-}
+/* Sound panel styles moved to sound-panel.css */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    COLOR PICKER OVERRIDES
