@@ -199,6 +199,16 @@ function createControlPanel() {
   panel.appendChild(header);
   panel.appendChild(content);
   
+  // Make the chevron button actually toggle (header click ignores buttons)
+  const collapseBtn = header.querySelector('.collapse-btn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePanelCollapse(panel);
+    });
+  }
+  
   // Setup header click to toggle (separate from drag)
   header.addEventListener('click', (e) => {
     // Don't toggle if we just dragged
@@ -248,6 +258,16 @@ function createSoundPanel() {
   
   panel.appendChild(header);
   panel.appendChild(content);
+  
+  // Make the chevron button actually toggle (header click ignores buttons)
+  const collapseBtn = header.querySelector('.collapse-btn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePanelCollapse(panel);
+    });
+  }
   
   // Setup header click to toggle (separate from drag)
   header.addEventListener('click', (e) => {

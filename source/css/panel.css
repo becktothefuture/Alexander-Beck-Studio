@@ -19,6 +19,7 @@
   --panel-text-tertiary: rgba(255, 255, 255, 0.35);
   --panel-text-light: rgba(0, 0, 0, 0.92);
   --panel-text-secondary-light: rgba(0, 0, 0, 0.55);
+  --panel-text-tertiary-light: rgba(0, 0, 0, 0.35);
   
   /* Accent */
   --panel-accent: #ff8c00;
@@ -145,6 +146,10 @@ body:not(.dark-mode) .panel .panel-header:hover {
   transition: all 0.15s ease;
 }
 
+body:not(.dark-mode) .panel .panel-header .collapse-btn {
+  color: var(--panel-text-secondary-light);
+}
+
 .panel .panel-header .collapse-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--panel-text);
@@ -212,6 +217,10 @@ body:not(.dark-mode) .panel .panel-content::-webkit-scrollbar-thumb:hover {
   margin-bottom: 4px;
 }
 
+body:not(.dark-mode) .panel .section-title {
+  color: var(--panel-text-tertiary-light);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    DETAILS/ACCORDION — Collapsible sections
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -234,7 +243,7 @@ body:not(.dark-mode) .panel details {
   padding: 12px 14px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--panel-text);
+  color: inherit;
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -683,6 +692,7 @@ body:not(.dark-mode) .panel-status {
 }
 
 body:not(.dark-mode) .panel-footer {
+  color: var(--panel-text-tertiary-light);
   border-top-color: var(--panel-border-light);
 }
 

@@ -19,6 +19,7 @@ import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { createLayoutPanel } from './modules/ui/layout-panel.js';
 import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.js';
+import { initBrandLogoBallSpace } from './modules/ui/brand-logo-ball-space.js';
 import { setApplyVisualCSSVars } from './modules/ui/control-registry.js';
 
 async function loadRuntimeConfig() {
@@ -247,6 +248,9 @@ function ensureNoiseElements() {
 
     // Subtle brand logo micro-interaction (cursor distance scaling)
     initBrandLogoCursorScale();
+
+    // Brand logo yields when balls crowd its area (simulation-driven, throttled)
+    initBrandLogoBallSpace();
     
     // Load any saved settings
     loadSettings();

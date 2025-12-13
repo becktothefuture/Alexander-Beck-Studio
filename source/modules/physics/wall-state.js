@@ -13,11 +13,11 @@ import { getGlobals } from '../core/state.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
-const SEGMENTS_PER_WALL = 12;  // Resolution for smooth curves
-const SPRING_STIFFNESS = 400;  // How fast walls spring back
-const SPRING_DAMPING = 18;     // How quickly oscillation dies down
-const MAX_DEFORM = 30;         // Maximum inward flex (pixels at DPR 1)
-const BOUNCE_HIGHLIGHT_DECAY = 5.0; // How fast the highlight fades (per second)
+const SEGMENTS_PER_WALL = 12;  // Resolution for smooth curves (kept constant for perf)
+const SPRING_STIFFNESS = 400;  // Default spring stiffness
+const SPRING_DAMPING = 18;     // Default spring damping
+const MAX_DEFORM = 30;         // Default max inward flex (px at DPR 1)
+const BOUNCE_HIGHLIGHT_DECAY = 5.0; // Default highlight fade speed (per second)
 
 // Bounce highlight state (global for all walls)
 let bounceHighlightIntensity = 0;
@@ -37,14 +37,16 @@ class WallEdge {
    * Corners (0 and 1) don't flex - only middle sections
    */
   impact(normalizedPos, intensity) {
-    // Clamp position to middle section (avoid corners)
-    // This ensures corner segments stay "stuck"
-    const pos = Math.max(0.1, Math.min(0.9, normalizedPos));
+    const g = getGlobals();
+    const clamp = Math.max(0, Math.min(0.45, g.wallWobbleCornerClamp ?? 0.1));
+    // Clamp position away from corners (keeps corners "stuck")
+    const pos = Math.max(clamp, Math.min(1 - clamp, normalizedPos));
     const segmentIdx = pos * (SEGMENTS_PER_WALL - 1);
-    const impulse = MAX_DEFORM * intensity;
+    const maxDeform = g.wallWobbleMaxDeform ?? MAX_DEFORM;
+    const impulse = maxDeform * intensity;
     
     // Gaussian spread with corner falloff
-    const sigma = 2.0;
+    const sigma = Math.max(0.25, g.wallWobbleSigma ?? 2.0);
     for (let i = 1; i < SEGMENTS_PER_WALL - 1; i++) { // Skip first and last (corners)
       const dist = Math.abs(i - segmentIdx);
       const falloff = Math.exp(-(dist * dist) / (2 * sigma * sigma));
@@ -61,6 +63,10 @@ class WallEdge {
    * Spring physics update - corners stay pinned at 0
    */
   step(dt) {
+    const g = getGlobals();
+    const stiffness = Math.max(1, g.wallWobbleStiffness ?? SPRING_STIFFNESS);
+    const damping = Math.max(0, g.wallWobbleDamping ?? SPRING_DAMPING);
+    const maxDeform = Math.max(0, g.wallWobbleMaxDeform ?? MAX_DEFORM);
     // First and last segments are ANCHORED (no movement)
     this.deformations[0] = 0;
     this.deformations[SEGMENTS_PER_WALL - 1] = 0;
@@ -69,12 +75,12 @@ class WallEdge {
     
     for (let i = 1; i < SEGMENTS_PER_WALL - 1; i++) {
       // Damped spring: F = -k*x - c*v
-      const force = -SPRING_STIFFNESS * this.deformations[i] - SPRING_DAMPING * this.velocities[i];
+      const force = -stiffness * this.deformations[i] - damping * this.velocities[i];
       this.velocities[i] += force * dt;
       this.deformations[i] += this.velocities[i] * dt;
       
       // Clamp to prevent runaway
-      this.deformations[i] = Math.max(0, Math.min(MAX_DEFORM, this.deformations[i]));
+      this.deformations[i] = Math.max(0, Math.min(maxDeform, this.deformations[i]));
       
       // Kill tiny values
       if (Math.abs(this.deformations[i]) < 0.05 && Math.abs(this.velocities[i]) < 0.1) {
@@ -138,7 +144,9 @@ export const wallState = {
     this.right.step(dt);
     
     // Decay bounce highlight
-    bounceHighlightIntensity = Math.max(0, bounceHighlightIntensity - BOUNCE_HIGHLIGHT_DECAY * dt);
+    const g = getGlobals();
+    const decay = Math.max(0, g.wallBounceHighlightDecay ?? BOUNCE_HIGHLIGHT_DECAY);
+    bounceHighlightIntensity = Math.max(0, bounceHighlightIntensity - decay * dt);
     
     // Update CSS variable for visual effect
     updateBounceHighlightCSS();
@@ -170,10 +178,11 @@ export function registerWallImpact(wall, normalizedPos, intensity) {
   if (wall.startsWith('corner')) return;
   
   // Skip low-intensity impacts
-  if (intensity < 0.05) return;
+  const g = getGlobals();
+  const threshold = Math.max(0, Math.min(1, g.wallWobbleImpactThreshold ?? 0.05));
+  if (intensity < threshold) return;
   
   // Add to bounce highlight (capped at max)
-  const g = getGlobals();
   const maxHighlight = g.wallBounceHighlightMax || 0.3;
   bounceHighlightIntensity = Math.min(maxHighlight, bounceHighlightIntensity + intensity * 0.5);
   

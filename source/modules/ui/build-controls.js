@@ -20,6 +20,22 @@ export function setupBuildControls() {
       repelPower: g.repelPower,
       repelSoftness: g.repelSoft,
       
+      // Frame & Walls
+      frameColor: g.frameColor,
+      containerBorder: g.containerBorder,
+      simulationPadding: g.simulationPadding,
+      wallThickness: g.wallThickness,
+      wallSoftness: g.wallSoftness,
+      wallRadius: g.wallRadius,
+      wallBounceHighlightMax: g.wallBounceHighlightMax,
+      wallWobbleMaxDeform: g.wallWobbleMaxDeform,
+      wallWobbleStiffness: g.wallWobbleStiffness,
+      wallWobbleDamping: g.wallWobbleDamping,
+      wallWobbleSigma: g.wallWobbleSigma,
+      wallWobbleImpactThreshold: g.wallWobbleImpactThreshold,
+      wallWobbleCornerClamp: g.wallWobbleCornerClamp,
+      wallBounceHighlightDecay: g.wallBounceHighlightDecay,
+      
       // Visual Effects
       vignetteX: g.vignetteX,
       vignetteY: g.vignetteY,

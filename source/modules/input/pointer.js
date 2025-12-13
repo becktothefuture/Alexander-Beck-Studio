@@ -63,6 +63,32 @@ export function setupPointer() {
   
   const DPR = globals.DPR;
   
+  // Mouse movement scaling: 77% reduction = 23% of actual movement (centered)
+  const MOUSE_SCALE_FACTOR = 0.23;
+  
+  /**
+   * Scale mouse position relative to canvas center
+   * Creates "smaller mouse on smaller screen" effect
+   */
+  function scaleMousePositionCentered(x, y) {
+    const centerX = canvas.width * 0.5;
+    const centerY = canvas.height * 0.5;
+    
+    // Calculate offset from center
+    const dx = x - centerX;
+    const dy = y - centerY;
+    
+    // Scale the offset (77% reduction = 23% movement)
+    const scaledDx = dx * MOUSE_SCALE_FACTOR;
+    const scaledDy = dy * MOUSE_SCALE_FACTOR;
+    
+    // Add scaled offset back to center
+    return {
+      x: centerX + scaledDx,
+      y: centerY + scaledDy
+    };
+  }
+  
   /**
    * Get mouse position relative to canvas from any event
    */
@@ -89,19 +115,22 @@ export function setupPointer() {
     if (e.target.closest('#controlPanel')) return;
     
     const pos = getCanvasPosition(e.clientX, e.clientY);
+    
+    // Scale mouse position centered (77% reduction)
+    const scaledPos = scaleMousePositionCentered(pos.x, pos.y);
   
-    // Calculate mouse velocity for water ripples
+    // Calculate mouse velocity for water ripples (using scaled position)
     const now = performance.now();
     const dt = now - lastMoveTime;
     if (dt > 0 && lastMoveTime > 0) {
-      const dx = pos.x - lastMouseX;
-      const dy = pos.y - lastMouseY;
+      const dx = scaledPos.x - lastMouseX;
+      const dy = scaledPos.y - lastMouseY;
       mouseVelocity = Math.sqrt(dx * dx + dy * dy) / dt;
     }
     
-    // Update globals
-    globals.mouseX = pos.x;
-    globals.mouseY = pos.y;
+    // Update globals with scaled position
+    globals.mouseX = scaledPos.x;
+    globals.mouseY = scaledPos.y;
     globals.mouseInCanvas = pos.inBounds;
     if (typeof window !== 'undefined') window.mouseInCanvas = pos.inBounds;
     
@@ -113,15 +142,15 @@ export function setupPointer() {
       if (mouseVelocity > 0.3 && (now - lastRippleTime) > RIPPLE_THROTTLE_MS) {
         // Scale ripple strength based on velocity (faster = stronger)
         const velocityFactor = Math.min(mouseVelocity * 2, 3);
-        createWaterRipple(pos.x, pos.y, velocityFactor);
+        createWaterRipple(scaledPos.x, scaledPos.y, velocityFactor);
         lastRippleTime = now;
       }
     }
 
     
-    // Store for velocity calculation
-    lastMouseX = pos.x;
-    lastMouseY = pos.y;
+    // Store for velocity calculation (using scaled position)
+    lastMouseX = scaledPos.x;
+    lastMouseY = scaledPos.y;
     lastMoveTime = now;
   }, { passive: true });
   
@@ -153,15 +182,17 @@ export function setupPointer() {
   document.addEventListener('touchmove', (e) => {
     if (e.touches && e.touches[0]) {
       const pos = getCanvasPosition(e.touches[0].clientX, e.touches[0].clientY);
-      globals.mouseX = pos.x;
-      globals.mouseY = pos.y;
+      // Scale touch position centered (77% reduction)
+      const scaledPos = scaleMousePositionCentered(pos.x, pos.y);
+      globals.mouseX = scaledPos.x;
+      globals.mouseY = scaledPos.y;
       globals.mouseInCanvas = pos.inBounds;
       
       // Water mode: create ripples on touch move
       const now = performance.now();
       if (globals.currentMode === MODES.WATER && pos.inBounds) {
         if ((now - lastRippleTime) > RIPPLE_THROTTLE_MS) {
-          createWaterRipple(pos.x, pos.y, 2);
+          createWaterRipple(scaledPos.x, scaledPos.y, 2);
           lastRippleTime = now;
     }
       }

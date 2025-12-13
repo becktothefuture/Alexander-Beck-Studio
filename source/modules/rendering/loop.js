@@ -7,6 +7,7 @@ import { updatePhysics, render, getBalls } from '../physics/engine.js';
 import { trackFrame } from '../utils/performance.js';
 import { updateAmbientSounds } from '../audio/sound-engine.js';
 import { getGlobals } from '../core/state.js';
+import { tickBrandLogoBallSpace } from '../ui/brand-logo-ball-space.js';
 
 let last = performance.now() / 1000;
 
@@ -21,6 +22,9 @@ export function startMainLoop(applyForcesFunc) {
     
     // Render
     render();
+
+    // UI micro-interactions driven by simulation state (throttled internally)
+    tickBrandLogoBallSpace(nowMs);
     
     // Update ambient sounds (rolling rumble + air whoosh)
     const balls = getBalls();

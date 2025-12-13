@@ -139,6 +139,15 @@ const state = {
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
   wallBounceIntensity: 0,   // Current bounce highlight (0-1, animated on impact)
   wallBounceHighlightMax: 0.3, // Max flash intensity when balls hit (user-controllable)
+
+  // Rubber wall wobble tuning (visual-only deformation, no collision changes)
+  wallWobbleMaxDeform: 30,          // Max inward deformation (px at DPR 1)
+  wallWobbleStiffness: 400,         // Spring stiffness (higher = snappier)
+  wallWobbleDamping: 18,            // Spring damping (higher = less oscillation)
+  wallWobbleSigma: 2.0,             // Impact spread (gaussian sigma in segment units)
+  wallWobbleImpactThreshold: 0.05,  // Ignore impacts below this intensity
+  wallWobbleCornerClamp: 0.10,      // Clamp impacts away from corners (0..0.45)
+  wallBounceHighlightDecay: 5.0,    // Flash fade speed (per second)
   
   // Helpers
   getSquashMax() {
@@ -165,10 +174,21 @@ export function initState(config) {
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;
   if (config.simulationPadding !== undefined) state.simulationPadding = config.simulationPadding;
   
-  // Rubber wall visuals
+  // Unified frame + rubber wall visuals
+  if (config.frameColor !== undefined) state.frameColor = config.frameColor;
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
   if (config.wallSoftness !== undefined) state.wallSoftness = config.wallSoftness;
   if (config.wallRadius !== undefined) state.wallRadius = config.wallRadius;
+  if (config.wallBounceHighlightMax !== undefined) state.wallBounceHighlightMax = config.wallBounceHighlightMax;
+
+  // Rubber wall wobble tuning
+  if (config.wallWobbleMaxDeform !== undefined) state.wallWobbleMaxDeform = config.wallWobbleMaxDeform;
+  if (config.wallWobbleStiffness !== undefined) state.wallWobbleStiffness = config.wallWobbleStiffness;
+  if (config.wallWobbleDamping !== undefined) state.wallWobbleDamping = config.wallWobbleDamping;
+  if (config.wallWobbleSigma !== undefined) state.wallWobbleSigma = config.wallWobbleSigma;
+  if (config.wallWobbleImpactThreshold !== undefined) state.wallWobbleImpactThreshold = config.wallWobbleImpactThreshold;
+  if (config.wallWobbleCornerClamp !== undefined) state.wallWobbleCornerClamp = config.wallWobbleCornerClamp;
+  if (config.wallBounceHighlightDecay !== undefined) state.wallBounceHighlightDecay = config.wallBounceHighlightDecay;
   
   // Vignette
   if (config.vignetteX !== undefined) state.vignetteX = config.vignetteX;

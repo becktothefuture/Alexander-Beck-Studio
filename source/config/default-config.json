@@ -25,5 +25,14 @@
   "vignetteTransition": 800,
   "wallThickness": 12,
   "wallSoftness": 20,
-  "wallRadius": 42
+  "wallRadius": 42,
+  "wallBounceHighlightMax": 0.3,
+  "frameColor": "#0a0a0a",
+  "wallWobbleMaxDeform": 30,
+  "wallWobbleStiffness": 400,
+  "wallWobbleDamping": 18,
+  "wallWobbleSigma": 2.0,
+  "wallWobbleImpactThreshold": 0.05,
+  "wallWobbleCornerClamp": 0.1,
+  "wallBounceHighlightDecay": 5.0
 }

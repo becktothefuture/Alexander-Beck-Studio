@@ -222,6 +222,22 @@ body.body.dark-mode {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   WEBFLOW OVERRIDES (LAYOUT FIXES)
+   - Webflow export sets:
+     - `.viewport { height: 100svh; position: fixed; }`
+     - `.viewport--content { padding: 3.2em 3em 2.8em 3em; }` (bottom ≈ 39.2px)
+   - We run a "membrane" layout (static flow), so we override the remaining
+     fixed sizing + padding values here.
+   ───────────────────────────────────────────────────────────────────────────── */
+header.viewport {
+  height: 100% !important;
+}
+
+header.viewport.viewport--content {
+  padding-bottom: 0 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    PAGE LOAD FADE-IN: Content fades from browser color, no pop
    - Starts with opacity: 0
    - JS adds .page-ready class after load
@@ -304,7 +320,10 @@ body.dark-mode.sound-hover .viewport.viewport--content {
    ───────────────────────────────────────────────────────────────────────────── */
 #brand-logo .hero__text {
   transform-origin: 50% 50%;
-  transform: scale(var(--abs-brand-logo-scale, 1));
+  /* Final feel = cursor-scale * (retreat driven by nearby balls) */
+  transform:
+    translateY(calc(var(--abs-brand-logo-retreat, 0) * 3px))
+    scale(calc(var(--abs-brand-logo-scale, 1) * (1 - (var(--abs-brand-logo-retreat, 0) * 0.025))));
   transition: transform 420ms var(--ease-settle, ease);
   will-change: transform;
 }

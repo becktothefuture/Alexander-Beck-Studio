@@ -222,6 +222,22 @@ body.body.dark-mode {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   WEBFLOW OVERRIDES (LAYOUT FIXES)
+   - Webflow export sets:
+     - `.viewport { height: 100svh; position: fixed; }`
+     - `.viewport--content { padding: 3.2em 3em 2.8em 3em; }` (bottom ≈ 39.2px)
+   - We run a "membrane" layout (static flow), so we override the remaining
+     fixed sizing + padding values here.
+   ───────────────────────────────────────────────────────────────────────────── */
+header.viewport {
+  height: 100% !important;
+}
+
+header.viewport.viewport--content {
+  padding-bottom: 0 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    PAGE LOAD FADE-IN: Content fades from browser color, no pop
    - Starts with opacity: 0
    - JS adds .page-ready class after load
@@ -304,7 +320,10 @@ body.dark-mode.sound-hover .viewport.viewport--content {
    ───────────────────────────────────────────────────────────────────────────── */
 #brand-logo .hero__text {
   transform-origin: 50% 50%;
-  transform: scale(var(--abs-brand-logo-scale, 1));
+  /* Final feel = cursor-scale * (retreat driven by nearby balls) */
+  transform:
+    translateY(calc(var(--abs-brand-logo-retreat, 0) * 3px))
+    scale(calc(var(--abs-brand-logo-scale, 1) * (1 - (var(--abs-brand-logo-retreat, 0) * 0.025))));
   transition: transform 420ms var(--ease-settle, ease);
   will-change: transform;
 }
@@ -920,6 +939,7 @@ body.dark-mode .corner svg * {
   --panel-text-tertiary: rgba(255, 255, 255, 0.35);
   --panel-text-light: rgba(0, 0, 0, 0.92);
   --panel-text-secondary-light: rgba(0, 0, 0, 0.55);
+  --panel-text-tertiary-light: rgba(0, 0, 0, 0.35);
   
   /* Accent */
   --panel-accent: #ff8c00;
@@ -1046,6 +1066,10 @@ body:not(.dark-mode) .panel .panel-header:hover {
   transition: all 0.15s ease;
 }
 
+body:not(.dark-mode) .panel .panel-header .collapse-btn {
+  color: var(--panel-text-secondary-light);
+}
+
 .panel .panel-header .collapse-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--panel-text);
@@ -1113,6 +1137,10 @@ body:not(.dark-mode) .panel .panel-content::-webkit-scrollbar-thumb:hover {
   margin-bottom: 4px;
 }
 
+body:not(.dark-mode) .panel .section-title {
+  color: var(--panel-text-tertiary-light);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    DETAILS/ACCORDION — Collapsible sections
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -1135,7 +1163,7 @@ body:not(.dark-mode) .panel details {
   padding: 12px 14px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--panel-text);
+  color: inherit;
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -1584,6 +1612,7 @@ body:not(.dark-mode) .panel-status {
 }
 
 body:not(.dark-mode) .panel-footer {
+  color: var(--panel-text-tertiary-light);
   border-top-color: var(--panel-border-light);
 }
 

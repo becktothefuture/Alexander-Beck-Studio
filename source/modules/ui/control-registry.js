@@ -163,6 +163,9 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10),
         hint: 'Unified: wall tubes + body border',
         onChange: (g, val) => {
+          // Keep state consistent (range controls with onChange don't auto-assign)
+          g.wallThickness = val;
+          g.containerBorder = val;
           const root = document.documentElement;
           // Update both CSS vars - they're the same "frame"
           root.style.setProperty('--wall-thickness', val + 'px');
@@ -175,6 +178,7 @@ export const CONTROL_SECTIONS = {
         id: 'wallSoftness',
         label: 'Glow Softness',
         stateKey: 'wallSoftness',
+        group: 'Frame Geometry',
         type: 'range',
         min: 0, max: 60, step: 1,
         default: 20,
@@ -186,23 +190,117 @@ export const CONTROL_SECTIONS = {
         id: 'wallRadius',
         label: 'Corner Radius',
         stateKey: 'wallRadius',
+        group: 'Frame Geometry',
         type: 'range',
         min: 0, max: 80, step: 2,
         default: 42,
         format: v => String(v),
         parse: v => parseInt(v, 10),
         cssVar: '--wall-radius',
-        onChange: (g, val) => { g.cornerRadius = val; }
+        onChange: (g, val) => {
+          // Keep state consistent (range controls with onChange don't auto-assign)
+          g.wallRadius = val;
+          g.cornerRadius = val;
+        }
       },
       {
         id: 'wallBounceHighlight',
         label: 'Bounce Flash',
         stateKey: 'wallBounceHighlightMax',
+        group: 'Bounce Flash',
         type: 'range',
         min: 0, max: 1, step: 0.05,
         default: 0.3,
         format: v => v.toFixed(2),
         parse: parseFloat
+      },
+
+      // ───────────────────────────────────────────────────────────────────────
+      // Rubber Wobble tuning (visual-only)
+      // ───────────────────────────────────────────────────────────────────────
+      {
+        id: 'wallWobbleMaxDeform',
+        label: 'Wobble Strength',
+        stateKey: 'wallWobbleMaxDeform',
+        group: 'Rubber Wobble',
+        type: 'range',
+        min: 0, max: 80, step: 1,
+        default: 30,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Max inward bulge (visual only)'
+      },
+      {
+        id: 'wallWobbleStiffness',
+        label: 'Return Speed',
+        stateKey: 'wallWobbleStiffness',
+        group: 'Rubber Wobble',
+        type: 'range',
+        min: 50, max: 1200, step: 10,
+        default: 400,
+        format: v => String(v),
+        parse: v => parseInt(v, 10),
+        hint: 'Higher = snappier return'
+      },
+      {
+        id: 'wallWobbleDamping',
+        label: 'Damping',
+        stateKey: 'wallWobbleDamping',
+        group: 'Rubber Wobble',
+        type: 'range',
+        min: 0, max: 80, step: 1,
+        default: 18,
+        format: v => String(v),
+        parse: v => parseInt(v, 10),
+        hint: 'Higher = less oscillation'
+      },
+      {
+        id: 'wallWobbleSigma',
+        label: 'Impact Spread',
+        stateKey: 'wallWobbleSigma',
+        group: 'Rubber Wobble',
+        type: 'range',
+        min: 0.5, max: 4.0, step: 0.1,
+        default: 2.0,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        hint: 'How wide the bulge travels along the wall'
+      },
+      {
+        id: 'wallWobbleCornerClamp',
+        label: 'Corner Stickiness',
+        stateKey: 'wallWobbleCornerClamp',
+        group: 'Rubber Wobble',
+        type: 'range',
+        min: 0.0, max: 0.3, step: 0.01,
+        default: 0.10,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: '0 = corners wobble, higher = corners pinned'
+      },
+      {
+        id: 'wallWobbleImpactThreshold',
+        label: 'Min Impact',
+        stateKey: 'wallWobbleImpactThreshold',
+        group: 'Rubber Wobble',
+        type: 'range',
+        min: 0.0, max: 0.2, step: 0.01,
+        default: 0.05,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Ignore tiny taps'
+      },
+      {
+        id: 'wallBounceHighlightDecay',
+        label: 'Flash Decay',
+        stateKey: 'wallBounceHighlightDecay',
+        group: 'Bounce Flash',
+        type: 'range',
+        min: 0.0, max: 12.0, step: 0.5,
+        default: 5.0,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        hint: 'Higher = flash fades faster'
       }
     ]
   },
