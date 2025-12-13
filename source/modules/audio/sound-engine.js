@@ -89,6 +89,89 @@ let CONFIG = {
 // ════════════════════════════════════════════════════════════════════════════════
 export const SOUND_PRESETS = {
   // ═══════════════════════════════════════════════════════════════════════════════
+  // MATERIAL FAMILY — same "room/space", different material response
+  //
+  // Philosophy:
+  // - We keep Space constant across materials (reverbDecay/reverbWetMix fixed),
+  //   because the *environment* is stable while the *material* changes.
+  // - Material primarily shifts: brightness (filterBaseFreq), body (harmonicGain),
+  //   onset/decay (decayTime), silence threshold (collisionMinImpact),
+  //   and surface friction (rollingGain/rollingFreq).
+  //
+  // Shared Space (dry-ish studio / classroom room tone)
+  //   reverbDecay: 0.18, reverbWetMix: 0.12
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  materialWood: {
+    label: 'Material — Wood',
+    description: 'Warm clacks · dry room · subtle surface friction',
+    attackTime: 0,
+    decayTime: 0.045,
+    harmonicGain: 0.12,
+    filterBaseFreq: 2100,
+    filterVelocityRange: 320,
+    filterQ: 0.45,
+    reverbDecay: 0.18,
+    reverbWetMix: 0.12,
+    masterGain: 0.42,
+    minGain: 0.03,
+    maxGain: 0.18,
+    collisionMinImpact: 0.12,
+    rollingEnabled: true,
+    rollingGain: 0.02,
+    rollingFreq: 130,
+    rollingMinVelocity: 14,
+    rollingMaxVelocity: 85,
+    whooshEnabled: false,
+  },
+
+  materialStone: {
+    label: 'Material — Stone',
+    description: 'Crisper taps · slightly brighter · more “tick”',
+    attackTime: 0,
+    decayTime: 0.04,
+    harmonicGain: 0.08,      // stone is “hard”, less warm harmonic body
+    filterBaseFreq: 2850,    // brighter than wood
+    filterVelocityRange: 520,
+    filterQ: 0.55,
+    reverbDecay: 0.18,
+    reverbWetMix: 0.12,
+    masterGain: 0.4,
+    minGain: 0.03,
+    maxGain: 0.2,
+    collisionMinImpact: 0.14, // small contacts often silent (hard, quick)
+    rollingEnabled: true,
+    rollingGain: 0.012,       // stone rolling is quieter at this scale
+    rollingFreq: 110,
+    rollingMinVelocity: 14,
+    rollingMaxVelocity: 85,
+    whooshEnabled: false,
+  },
+
+  materialPlastic: {
+    label: 'Material — Plastic',
+    description: 'Softer “tok” · less bright · slightly longer decay',
+    attackTime: 0,
+    decayTime: 0.06,
+    harmonicGain: 0.16,     // a bit more “hollow” body
+    filterBaseFreq: 1650,   // darker, less brittle
+    filterVelocityRange: 260,
+    filterQ: 0.35,
+    reverbDecay: 0.18,
+    reverbWetMix: 0.12,
+    masterGain: 0.44,
+    minGain: 0.03,
+    maxGain: 0.19,
+    collisionMinImpact: 0.1,  // plastic transmits small taps more audibly
+    rollingEnabled: true,
+    rollingGain: 0.024,       // slightly more surface chatter
+    rollingFreq: 155,
+    rollingMinVelocity: 14,
+    rollingMaxVelocity: 85,
+    whooshEnabled: false,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════════
   // DEFAULT — Wooden Discs (preschool play circles)
   // Design goal: soft woody "clack", dry room, light collisions mostly silent
   // ═══════════════════════════════════════════════════════════════════════════════
