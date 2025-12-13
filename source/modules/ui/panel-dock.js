@@ -31,80 +31,50 @@ let dockToggleElement = null;
 
 const SOUND_PANEL_CONTENT = `
   <!-- Sound Enable/Disable -->
-  <div class="group" style="margin-bottom: 12px;">
-    <button id="soundEnableBtn" style="width: 100%; padding: 10px; font-weight: 600;">
+  <div class="sound-dock__enable">
+    <button id="soundEnableBtn" class="sound-dock__enable-btn">
       🔇 Enable Sound
     </button>
-    <div style="font-size: 9px; opacity: 0.6; text-align: center; margin-top: 6px;">
-      Click to enable collision sounds
-    </div>
   </div>
   
-  <!-- Presets (only visible when sound enabled) -->
-  <div id="soundControlsWrapper" style="display: none;">
-    <div class="group">
-      <label>
-        <div><span>Preset</span></div>
-        <select id="soundPresetSelect"></select>
-      </label>
-      <div id="presetDescription" class="preset-description" style="font-size: 10px; opacity: 0.6; margin-top: 4px;"></div>
+  <!-- Controls (visible when sound enabled) -->
+  <div id="soundControlsWrapper" class="sound-dock__controls" style="display: none;">
+    <!-- Preset -->
+    <div class="sound-dock__section">
+      <select id="soundPresetSelect" class="sound-dock__select"></select>
+      <p id="presetDescription" class="sound-dock__desc"></p>
     </div>
     
-    <!-- Volume -->
-    <details>
-      <summary>Volume</summary>
-      <div class="group">
-        <label>
-          <div><span>Master</span><span class="val" id="masterVal">70%</span></div>
-          <input type="range" id="masterGain" min="10" max="100" step="5" value="70">
+    <!-- Core: 5 most important parameters (1:1 with sound-engine CONFIG) -->
+    <div class="sound-dock__section">
+      <div class="sound-dock__group">
+        <label class="sound-dock__row">
+          <span class="sound-dock__label">Master</span>
+          <input type="range" id="masterGain" class="sound-dock__slider" min="10" max="100" step="1">
+          <span class="sound-dock__val" id="masterVal">42%</span>
+        </label>
+        <label class="sound-dock__row">
+          <span class="sound-dock__label">Silence Threshold</span>
+          <input type="range" id="collisionMinImpact" class="sound-dock__slider" min="0" max="30" step="1">
+          <span class="sound-dock__val" id="thresholdVal">12%</span>
+        </label>
+        <label class="sound-dock__row">
+          <span class="sound-dock__label">Click Length</span>
+          <input type="range" id="decayTime" class="sound-dock__slider" min="20" max="180" step="1">
+          <span class="sound-dock__val" id="decayVal">45ms</span>
+        </label>
+        <label class="sound-dock__row">
+          <span class="sound-dock__label">Brightness</span>
+          <input type="range" id="filterBaseFreq" class="sound-dock__slider" min="300" max="6000" step="50">
+          <span class="sound-dock__val" id="filterVal">2100Hz</span>
+        </label>
+        <label class="sound-dock__row">
+          <span class="sound-dock__label">Surface Texture</span>
+          <input type="range" id="rollingGain" class="sound-dock__slider" min="0" max="8" step="0.1">
+          <span class="sound-dock__val" id="rollingVal">2.0%</span>
         </label>
       </div>
-    </details>
-    
-    <!-- Envelope -->
-    <details>
-      <summary>Envelope</summary>
-      <div class="group">
-        <label>
-          <div><span>Attack</span><span class="val" id="attackVal">8ms</span></div>
-          <input type="range" id="attackTime" min="1" max="50" step="1" value="8">
-        </label>
-        <label>
-          <div><span>Decay</span><span class="val" id="decayVal">80ms</span></div>
-          <input type="range" id="decayTime" min="20" max="300" step="5" value="80">
-        </label>
-      </div>
-    </details>
-    
-    <!-- Tone -->
-    <details>
-      <summary>Tone</summary>
-      <div class="group">
-        <label>
-          <div><span>Harmonic</span><span class="val" id="harmonicVal">15%</span></div>
-          <input type="range" id="harmonicGain" min="0" max="60" step="1" value="15">
-        </label>
-        <label>
-          <div><span>Filter</span><span class="val" id="filterVal">2200Hz</span></div>
-          <input type="range" id="filterBaseFreq" min="200" max="8000" step="100" value="2200">
-        </label>
-      </div>
-    </details>
-    
-    <!-- Reverb -->
-    <details>
-      <summary>Reverb</summary>
-      <div class="group">
-        <label>
-          <div><span>Decay</span><span class="val" id="reverbDecayVal">35%</span></div>
-          <input type="range" id="reverbDecay" min="5" max="90" step="5" value="35">
-        </label>
-        <label>
-          <div><span>Wet Mix</span><span class="val" id="reverbWetVal">35%</span></div>
-          <input type="range" id="reverbWetMix" min="0" max="80" step="5" value="35">
-        </label>
-      </div>
-    </details>
+    </div>
   </div>
 `;
 
@@ -352,13 +322,12 @@ function setupSoundControls(panel) {
 
 function setupSoundSliders(panel) {
   const sliderConfigs = [
-    { id: 'attackTime', valId: 'attackVal', format: v => `${v}ms`, toConfig: v => v / 1000 },
-    { id: 'decayTime', valId: 'decayVal', format: v => `${v}ms`, toConfig: v => v / 1000 },
-    { id: 'harmonicGain', valId: 'harmonicVal', format: v => `${v}%`, toConfig: v => v / 100 },
-    { id: 'filterBaseFreq', valId: 'filterVal', format: v => `${v}Hz`, toConfig: v => v },
-    { id: 'reverbDecay', valId: 'reverbDecayVal', format: v => `${v}%`, toConfig: v => v / 100 },
-    { id: 'reverbWetMix', valId: 'reverbWetVal', format: v => `${v}%`, toConfig: v => v / 100 },
-    { id: 'masterGain', valId: 'masterVal', format: v => `${v}%`, toConfig: v => v / 100 },
+    // Core 5 (1:1 with CONFIG keys in sound-engine.js)
+    { id: 'masterGain', valId: 'masterVal', format: v => `${Math.round(v)}%`, toConfig: v => v / 100 },
+    { id: 'collisionMinImpact', valId: 'thresholdVal', format: v => `${Math.round(v)}%`, toConfig: v => v / 100 },
+    { id: 'decayTime', valId: 'decayVal', format: v => `${Math.round(v)}ms`, toConfig: v => v / 1000 },
+    { id: 'filterBaseFreq', valId: 'filterVal', format: v => `${Math.round(v)}Hz`, toConfig: v => v },
+    { id: 'rollingGain', valId: 'rollingVal', format: v => `${v.toFixed(1)}%`, toConfig: v => v / 100 },
   ];
   
   for (const config of sliderConfigs) {
@@ -386,13 +355,11 @@ function syncSoundSliders(panel) {
   const config = getSoundConfig();
   
   const mappings = [
-    { id: 'attackTime', valId: 'attackVal', fromConfig: v => v * 1000, format: v => `${Math.round(v)}ms` },
-    { id: 'decayTime', valId: 'decayVal', fromConfig: v => v * 1000, format: v => `${Math.round(v)}ms` },
-    { id: 'harmonicGain', valId: 'harmonicVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
-    { id: 'filterBaseFreq', valId: 'filterVal', fromConfig: v => v, format: v => `${Math.round(v)}Hz` },
-    { id: 'reverbDecay', valId: 'reverbDecayVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
-    { id: 'reverbWetMix', valId: 'reverbWetVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
     { id: 'masterGain', valId: 'masterVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
+    { id: 'collisionMinImpact', valId: 'thresholdVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
+    { id: 'decayTime', valId: 'decayVal', fromConfig: v => v * 1000, format: v => `${Math.round(v)}ms` },
+    { id: 'filterBaseFreq', valId: 'filterVal', fromConfig: v => v, format: v => `${Math.round(v)}Hz` },
+    { id: 'rollingGain', valId: 'rollingVal', fromConfig: v => v * 100, format: v => `${v.toFixed(1)}%` },
   ];
   
   for (const mapping of mappings) {

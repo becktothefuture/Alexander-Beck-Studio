@@ -89,6 +89,36 @@ let CONFIG = {
 // ════════════════════════════════════════════════════════════════════════════════
 export const SOUND_PRESETS = {
   // ═══════════════════════════════════════════════════════════════════════════════
+  // DEFAULT — Wooden Discs (preschool play circles)
+  // Design goal: soft woody "clack", dry room, light collisions mostly silent
+  // ═══════════════════════════════════════════════════════════════════════════════
+  woodenDiscs: {
+    label: 'Wooden Discs',
+    description: 'Warm woody clacks · subtle table friction · no air whoosh',
+    // Collision voice
+    attackTime: 0,
+    decayTime: 0.045,
+    harmonicGain: 0.12,
+    filterBaseFreq: 2100,
+    filterVelocityRange: 320,
+    filterQ: 0.45,
+    reverbDecay: 0.18,
+    reverbWetMix: 0.12,
+    // Loudness shaping (so the scene stays calm)
+    masterGain: 0.42,
+    minGain: 0.03,
+    maxGain: 0.18,
+    // Energy system
+    collisionMinImpact: 0.12,
+    rollingEnabled: true,
+    rollingGain: 0.02,
+    rollingFreq: 130,
+    rollingMinVelocity: 14,
+    rollingMaxVelocity: 85,
+    whooshEnabled: false,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════════
   // DEFAULT — soft click, instant, dissipating
   // All presets use attackTime: 0 for sub-1ms response
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -97,7 +127,11 @@ export const SOUND_PRESETS = {
     description: 'Instant, clicky, gently fading',
     attackTime: 0, decayTime: 0.055, harmonicGain: 0.09,
     filterBaseFreq: 2400, filterVelocityRange: 380, filterQ: 0.4,
-    reverbDecay: 0.28, reverbWetMix: 0.22, masterGain: 0.52
+    reverbDecay: 0.28, reverbWetMix: 0.22, masterGain: 0.52,
+    minGain: 0.05, maxGain: 0.28,
+    collisionMinImpact: 0.13,
+    rollingEnabled: true, rollingGain: 0.018, rollingFreq: 120, rollingMinVelocity: 14, rollingMaxVelocity: 85,
+    whooshEnabled: false,
   },
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -108,14 +142,22 @@ export const SOUND_PRESETS = {
     description: 'Crisp, tactile taps',
     attackTime: 0, decayTime: 0.05, harmonicGain: 0.18,
     filterBaseFreq: 2800, filterVelocityRange: 600, filterQ: 0.55,
-    reverbDecay: 0.2, reverbWetMix: 0.15, masterGain: 0.48
+    reverbDecay: 0.2, reverbWetMix: 0.15, masterGain: 0.48,
+    minGain: 0.04, maxGain: 0.22,
+    collisionMinImpact: 0.14,
+    rollingEnabled: true, rollingGain: 0.016, rollingFreq: 110, rollingMinVelocity: 14, rollingMaxVelocity: 85,
+    whooshEnabled: false,
   },
   rainDrops: {
     label: 'Rain Drops',
     description: 'Light, delicate plinks',
     attackTime: 0, decayTime: 0.042, harmonicGain: 0.11,
     filterBaseFreq: 3200, filterVelocityRange: 450, filterQ: 0.45,
-    reverbDecay: 0.35, reverbWetMix: 0.3, masterGain: 0.4
+    reverbDecay: 0.35, reverbWetMix: 0.3, masterGain: 0.4,
+    minGain: 0.03, maxGain: 0.18,
+    collisionMinImpact: 0.12,
+    rollingEnabled: true, rollingGain: 0.014, rollingFreq: 135, rollingMinVelocity: 14, rollingMaxVelocity: 85,
+    whooshEnabled: false,
   },
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -126,28 +168,44 @@ export const SOUND_PRESETS = {
     description: 'Ultra-smooth, barely there',
     attackTime: 0, decayTime: 0.065, harmonicGain: 0.04,
     filterBaseFreq: 1800, filterVelocityRange: 250, filterQ: 0.3,
-    reverbDecay: 0.4, reverbWetMix: 0.35, masterGain: 0.32
+    reverbDecay: 0.4, reverbWetMix: 0.35, masterGain: 0.32,
+    minGain: 0.02, maxGain: 0.14,
+    collisionMinImpact: 0.16,
+    rollingEnabled: true, rollingGain: 0.012, rollingFreq: 115, rollingMinVelocity: 14, rollingMaxVelocity: 85,
+    whooshEnabled: false,
   },
   morningDew: {
     label: 'Morning Dew',
     description: 'Fresh, hopeful sparkle',
     attackTime: 0, decayTime: 0.048, harmonicGain: 0.14,
     filterBaseFreq: 3600, filterVelocityRange: 550, filterQ: 0.5,
-    reverbDecay: 0.32, reverbWetMix: 0.28, masterGain: 0.38
+    reverbDecay: 0.32, reverbWetMix: 0.28, masterGain: 0.38,
+    minGain: 0.03, maxGain: 0.19,
+    collisionMinImpact: 0.12,
+    rollingEnabled: true, rollingGain: 0.014, rollingFreq: 140, rollingMinVelocity: 14, rollingMaxVelocity: 85,
+    whooshEnabled: false,
   },
   bamboo: {
     label: 'Bamboo',
     description: 'Hollow, zen garden taps',
     attackTime: 0, decayTime: 0.08, harmonicGain: 0.2,
     filterBaseFreq: 2200, filterVelocityRange: 400, filterQ: 0.65,
-    reverbDecay: 0.25, reverbWetMix: 0.2, masterGain: 0.45
+    reverbDecay: 0.25, reverbWetMix: 0.2, masterGain: 0.45,
+    minGain: 0.04, maxGain: 0.22,
+    collisionMinImpact: 0.13,
+    rollingEnabled: true, rollingGain: 0.018, rollingFreq: 105, rollingMinVelocity: 14, rollingMaxVelocity: 85,
+    whooshEnabled: false,
   },
   whisper: {
     label: 'Whisper',
     description: 'Almost silent, intimate',
     attackTime: 0, decayTime: 0.07, harmonicGain: 0.03,
     filterBaseFreq: 1400, filterVelocityRange: 180, filterQ: 0.25,
-    reverbDecay: 0.5, reverbWetMix: 0.45, masterGain: 0.22
+    reverbDecay: 0.5, reverbWetMix: 0.45, masterGain: 0.22,
+    minGain: 0.015, maxGain: 0.11,
+    collisionMinImpact: 0.17,
+    rollingEnabled: true, rollingGain: 0.01, rollingFreq: 110, rollingMinVelocity: 14, rollingMaxVelocity: 85,
+    whooshEnabled: false,
   },
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -158,7 +216,11 @@ export const SOUND_PRESETS = {
     description: 'Digital artifacts, unstable',
     attackTime: 0, decayTime: 0.025, harmonicGain: 0.55,
     filterBaseFreq: 5500, filterVelocityRange: 2500, filterQ: 2.5,
-    reverbDecay: 0.08, reverbWetMix: 0.05, masterGain: 0.35
+    reverbDecay: 0.08, reverbWetMix: 0.05, masterGain: 0.35,
+    minGain: 0.03, maxGain: 0.2,
+    collisionMinImpact: 0.08,
+    rollingEnabled: true, rollingGain: 0.02, rollingFreq: 160, rollingMinVelocity: 14, rollingMaxVelocity: 85,
+    whooshEnabled: false,
   },
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -169,7 +231,11 @@ export const SOUND_PRESETS = {
     description: 'Dark, hollow, unsettling',
     attackTime: 0.005, decayTime: 0.25, harmonicGain: 0.02,
     filterBaseFreq: 350, filterVelocityRange: 100, filterQ: 0.8,
-    reverbDecay: 0.85, reverbWetMix: 0.7, masterGain: 0.55
+    reverbDecay: 0.85, reverbWetMix: 0.7, masterGain: 0.55,
+    minGain: 0.06, maxGain: 0.32,
+    collisionMinImpact: 0.11,
+    rollingEnabled: true, rollingGain: 0.012, rollingFreq: 80, rollingMinVelocity: 14, rollingMaxVelocity: 85,
+    whooshEnabled: false,
   },
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -180,11 +246,15 @@ export const SOUND_PRESETS = {
     description: 'Subtle, mysterious, elegant',
     attackTime: 0, decayTime: 0.09, harmonicGain: 0.07,
     filterBaseFreq: 1900, filterVelocityRange: 280, filterQ: 0.35,
-    reverbDecay: 0.55, reverbWetMix: 0.4, masterGain: 0.36
+    reverbDecay: 0.55, reverbWetMix: 0.4, masterGain: 0.36,
+    minGain: 0.03, maxGain: 0.18,
+    collisionMinImpact: 0.15,
+    rollingEnabled: true, rollingGain: 0.012, rollingFreq: 120, rollingMinVelocity: 14, rollingMaxVelocity: 85,
+    whooshEnabled: false,
   }
 };
 
-let currentPreset = 'softClick';
+let currentPreset = 'woodenDiscs';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // STATE
@@ -868,18 +938,10 @@ export function applySoundPreset(presetName) {
   
   currentPreset = presetName;
   
-  // Apply preset values to config
-  updateSoundConfig({
-    attackTime: preset.attackTime,
-    decayTime: preset.decayTime,
-    harmonicGain: preset.harmonicGain,
-    filterBaseFreq: preset.filterBaseFreq,
-    filterVelocityRange: preset.filterVelocityRange,
-    filterQ: preset.filterQ,
-    reverbDecay: preset.reverbDecay,
-    reverbWetMix: preset.reverbWetMix,
-    masterGain: preset.masterGain,
-  });
+  // Apply preset values to config (1:1 with CONFIG keys)
+  // NOTE: We intentionally exclude label/description from updateSoundConfig.
+  const { label, description, ...values } = preset;
+  updateSoundConfig(values);
   
   console.log(`🎵 Applied sound preset: ${preset.label}`);
   return true;

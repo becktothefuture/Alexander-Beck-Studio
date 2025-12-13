@@ -34,130 +34,48 @@ const SOUND_PANEL_HTML = `
     <p id="presetDescription" class="sound-panel__description"></p>
   </div>
 
-  <!-- Envelope Section -->
-  <details class="sound-panel__accordion" open>
-    <summary class="sound-panel__accordion-trigger">
-      <span>Envelope</span>
-      <svg class="sound-panel__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>
-    </summary>
-    <div class="sound-panel__accordion-content">
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Attack</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="attackTime" class="sound-panel__slider" min="0" max="50" step="1">
-          <span class="sound-panel__value" id="attackVal">0ms</span>
-        </div>
-      </label>
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Decay</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="decayTime" class="sound-panel__slider" min="20" max="300" step="5">
-          <span class="sound-panel__value" id="decayVal">55ms</span>
-        </div>
-      </label>
-    </div>
-  </details>
+  <!-- Core Controls (5 most important parameters) -->
+  <div class="sound-panel__section sound-panel__section--core">
+    <label class="sound-panel__control">
+      <span class="sound-panel__label">Master Volume</span>
+      <div class="sound-panel__slider-row">
+        <input type="range" id="masterGain" class="sound-panel__slider" min="10" max="100" step="1">
+        <span class="sound-panel__value" id="masterVal">42%</span>
+      </div>
+    </label>
 
-  <!-- Tone Section -->
-  <details class="sound-panel__accordion">
-    <summary class="sound-panel__accordion-trigger">
-      <span>Tone</span>
-      <svg class="sound-panel__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>
-    </summary>
-    <div class="sound-panel__accordion-content">
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Harmonic</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="harmonicGain" class="sound-panel__slider" min="0" max="60" step="1">
-          <span class="sound-panel__value" id="harmonicVal">9%</span>
-        </div>
-      </label>
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Filter</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="filterBaseFreq" class="sound-panel__slider" min="200" max="8000" step="100">
-          <span class="sound-panel__value" id="filterVal">2400Hz</span>
-        </div>
-      </label>
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Resonance</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="filterQ" class="sound-panel__slider" min="0.1" max="4" step="0.1">
-          <span class="sound-panel__value" id="filterQVal">0.4</span>
-        </div>
-      </label>
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Velocity → Brightness</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="filterVelocityRange" class="sound-panel__slider" min="0" max="3000" step="50">
-          <span class="sound-panel__value" id="filterVelVal">380Hz</span>
-        </div>
-      </label>
-    </div>
-  </details>
+    <label class="sound-panel__control">
+      <span class="sound-panel__label">Silence Threshold</span>
+      <div class="sound-panel__slider-row">
+        <input type="range" id="collisionMinImpact" class="sound-panel__slider" min="0" max="30" step="1">
+        <span class="sound-panel__value" id="thresholdVal">12%</span>
+      </div>
+    </label>
 
-  <!-- Space Section -->
-  <details class="sound-panel__accordion">
-    <summary class="sound-panel__accordion-trigger">
-      <span>Space</span>
-      <svg class="sound-panel__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>
-    </summary>
-    <div class="sound-panel__accordion-content">
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Reverb Decay</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="reverbDecay" class="sound-panel__slider" min="5" max="90" step="5">
-          <span class="sound-panel__value" id="reverbDecayVal">28%</span>
-        </div>
-      </label>
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Wet/Dry</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="reverbWetMix" class="sound-panel__slider" min="0" max="80" step="5">
-          <span class="sound-panel__value" id="reverbWetVal">22%</span>
-        </div>
-      </label>
-    </div>
-  </details>
+    <label class="sound-panel__control">
+      <span class="sound-panel__label">Click Length</span>
+      <div class="sound-panel__slider-row">
+        <input type="range" id="decayTime" class="sound-panel__slider" min="20" max="180" step="1">
+        <span class="sound-panel__value" id="decayVal">45ms</span>
+      </div>
+    </label>
 
-  <!-- Volume Section -->
-  <details class="sound-panel__accordion">
-    <summary class="sound-panel__accordion-trigger">
-      <span>Volume</span>
-      <svg class="sound-panel__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>
-    </summary>
-    <div class="sound-panel__accordion-content">
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Master</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="masterGain" class="sound-panel__slider" min="10" max="100" step="5">
-          <span class="sound-panel__value" id="masterVal">52%</span>
-        </div>
-      </label>
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Min</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="minGain" class="sound-panel__slider" min="1" max="40" step="1">
-          <span class="sound-panel__value" id="minGainVal">5%</span>
-        </div>
-      </label>
-      <label class="sound-panel__control">
-        <span class="sound-panel__label">Max</span>
-        <div class="sound-panel__slider-row">
-          <input type="range" id="maxGain" class="sound-panel__slider" min="20" max="80" step="1">
-          <span class="sound-panel__value" id="maxGainVal">28%</span>
-        </div>
-      </label>
-    </div>
-  </details>
+    <label class="sound-panel__control">
+      <span class="sound-panel__label">Brightness</span>
+      <div class="sound-panel__slider-row">
+        <input type="range" id="filterBaseFreq" class="sound-panel__slider" min="300" max="6000" step="50">
+        <span class="sound-panel__value" id="filterVal">2100Hz</span>
+      </div>
+    </label>
+
+    <label class="sound-panel__control">
+      <span class="sound-panel__label">Surface Texture (Rolling)</span>
+      <div class="sound-panel__slider-row">
+        <input type="range" id="rollingGain" class="sound-panel__slider" min="0" max="8" step="0.1">
+        <span class="sound-panel__value" id="rollingVal">2.0%</span>
+      </div>
+    </label>
+  </div>
 </div>
 `;
 
@@ -236,17 +154,12 @@ function updatePresetDescription(presetName) {
  */
 function setupSliders() {
   const sliderConfigs = [
-    { id: 'attackTime', valId: 'attackVal', format: v => `${v}ms`, toConfig: v => v / 1000 },
-    { id: 'decayTime', valId: 'decayVal', format: v => `${v}ms`, toConfig: v => v / 1000 },
-    { id: 'harmonicGain', valId: 'harmonicVal', format: v => `${v}%`, toConfig: v => v / 100 },
-    { id: 'filterBaseFreq', valId: 'filterVal', format: v => `${v}Hz`, toConfig: v => v },
-    { id: 'filterQ', valId: 'filterQVal', format: v => v.toFixed(1), toConfig: v => v },
-    { id: 'filterVelocityRange', valId: 'filterVelVal', format: v => `${v}Hz`, toConfig: v => v },
-    { id: 'reverbDecay', valId: 'reverbDecayVal', format: v => `${v}%`, toConfig: v => v / 100 },
-    { id: 'reverbWetMix', valId: 'reverbWetVal', format: v => `${v}%`, toConfig: v => v / 100 },
+    // Core 5 (1:1 with CONFIG)
     { id: 'masterGain', valId: 'masterVal', format: v => `${v}%`, toConfig: v => v / 100 },
-    { id: 'minGain', valId: 'minGainVal', format: v => `${v}%`, toConfig: v => v / 100 },
-    { id: 'maxGain', valId: 'maxGainVal', format: v => `${v}%`, toConfig: v => v / 100 },
+    { id: 'collisionMinImpact', valId: 'thresholdVal', format: v => `${v}%`, toConfig: v => v / 100 },
+    { id: 'decayTime', valId: 'decayVal', format: v => `${v}ms`, toConfig: v => v / 1000 },
+    { id: 'filterBaseFreq', valId: 'filterVal', format: v => `${Math.round(v)}Hz`, toConfig: v => v },
+    { id: 'rollingGain', valId: 'rollingVal', format: v => `${v.toFixed(1)}%`, toConfig: v => v / 100 },
   ];
   
   for (const config of sliderConfigs) {
@@ -277,17 +190,11 @@ function syncSlidersToConfig() {
   const config = getSoundConfig();
   
   const mappings = [
-    { id: 'attackTime', valId: 'attackVal', fromConfig: v => v * 1000, format: v => `${Math.round(v)}ms` },
-    { id: 'decayTime', valId: 'decayVal', fromConfig: v => v * 1000, format: v => `${Math.round(v)}ms` },
-    { id: 'harmonicGain', valId: 'harmonicVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
-    { id: 'filterBaseFreq', valId: 'filterVal', fromConfig: v => v, format: v => `${Math.round(v)}Hz` },
-    { id: 'filterQ', valId: 'filterQVal', fromConfig: v => v, format: v => v.toFixed(1) },
-    { id: 'filterVelocityRange', valId: 'filterVelVal', fromConfig: v => v, format: v => `${Math.round(v)}Hz` },
-    { id: 'reverbDecay', valId: 'reverbDecayVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
-    { id: 'reverbWetMix', valId: 'reverbWetVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
     { id: 'masterGain', valId: 'masterVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
-    { id: 'minGain', valId: 'minGainVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
-    { id: 'maxGain', valId: 'maxGainVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
+    { id: 'collisionMinImpact', valId: 'thresholdVal', fromConfig: v => v * 100, format: v => `${Math.round(v)}%` },
+    { id: 'decayTime', valId: 'decayVal', fromConfig: v => v * 1000, format: v => `${Math.round(v)}ms` },
+    { id: 'filterBaseFreq', valId: 'filterVal', fromConfig: v => v, format: v => `${Math.round(v)}Hz` },
+    { id: 'rollingGain', valId: 'rollingVal', fromConfig: v => v * 100, format: v => `${v.toFixed(1)}%` },
   ];
   
   for (const mapping of mappings) {
