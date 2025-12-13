@@ -121,8 +121,9 @@ const state = {
   containerBorder: 0,    // Outer: insets container from viewport (reveals body bg as frame)
   simulationPadding: 0,  // Inner: padding inside container around canvas
   
-  // Rubber Wall Visual System (4 user-controllable parameters)
-  wallThickness: 12,        // Thickness of rubber tube walls (px)
+  // Unified Frame System (walls, chrome, border all share these)
+  frameColor: '#0a0a0a',    // Frame color (browser chrome + walls + border)
+  wallThickness: 20,        // Unified: wall tubes + body border (px)
   wallSoftness: 20,         // Blur radius for cushioned glow (px)
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
   wallBounceIntensity: 0,   // Current bounce highlight (0-1, animated on impact)

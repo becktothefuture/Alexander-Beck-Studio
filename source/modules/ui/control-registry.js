@@ -122,27 +122,58 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // WALLS
+  // FRAME & WALLS - Unified frame system (browser chrome + walls + border)
   // ═══════════════════════════════════════════════════════════════════════════
   walls: {
-    title: 'Walls',
-    icon: '🧱',
+    title: 'Frame & Walls',
+    icon: '🖼️',
     defaultOpen: false,
     controls: [
+      // Frame color picker - controls ALL frame-related colors
+      {
+        id: 'frameColor',
+        label: 'Frame Color',
+        stateKey: 'frameColor',
+        type: 'color',
+        default: '#0a0a0a',
+        hint: 'Browser chrome + walls + border (debug)',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          // Update all unified frame colors
+          root.style.setProperty('--frame-color-light', val);
+          root.style.setProperty('--frame-color-dark', val);
+          root.style.setProperty('--wall-color', val);
+          root.style.setProperty('--chrome-bg', val);
+          root.style.setProperty('--chrome-bg-light', val);
+          root.style.setProperty('--chrome-bg-dark', val);
+          // Update meta theme-color for browser chrome
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.content = val;
+        }
+      },
+      // Frame thickness - controls both wall thickness AND container border
       {
         id: 'wallThickness',
-        label: 'Thickness',
+        label: 'Frame Thickness',
         stateKey: 'wallThickness',
         type: 'range',
-        min: 0, max: 40, step: 1,
-        default: 12,
+        min: 0, max: 60, step: 1,
+        default: 20,
         format: v => String(v),
         parse: v => parseInt(v, 10),
-        cssVar: '--wall-thickness'
+        hint: 'Unified: wall tubes + body border',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          // Update both CSS vars - they're the same "frame"
+          root.style.setProperty('--wall-thickness', val + 'px');
+          root.style.setProperty('--container-border', val + 'px');
+          // Resize canvas to fit new wall thickness
+          resize();
+        }
       },
       {
         id: 'wallSoftness',
-        label: 'Softness',
+        label: 'Glow Softness',
         stateKey: 'wallSoftness',
         type: 'range',
         min: 0, max: 60, step: 1,
@@ -742,12 +773,26 @@ function generateControlHTML(control) {
   
   const sliderId = control.id + 'Slider';
   const valId = control.id + 'Val';
+  const pickerId = control.id + 'Picker';
+  
+  // Color picker type
+  if (control.type === 'color') {
+    return `
+      <label data-control-id="${control.id}" style="flex-direction: row; align-items: center; gap: 8px;">
+        <span style="flex: 1;">${control.label}</span>
+        <input type="color" id="${pickerId}" value="${control.default}" style="width: 32px; height: 20px; border: 1px solid rgba(0,255,136,0.4); cursor: pointer;">
+        <span class="val" id="${valId}" style="min-width: 60px; font-size: 7px;">${control.default}</span>
+      </label>${control.hint ? `<div style="font-size: 7px; opacity: 0.5; margin: -6px 0 8px;">${control.hint}</div>` : ''}`;
+  }
+  
+  // Default: range slider
+  const hintHtml = control.hint ? `<div style="font-size: 7px; opacity: 0.5; margin: -6px 0 8px;">${control.hint}</div>` : '';
   
   return `
       <label data-control-id="${control.id}">
         <span>${control.label}<span class="val" id="${valId}">${control.format(control.default)}</span></span>
         <input type="range" id="${sliderId}" min="${control.min}" max="${control.max}" step="${control.step}" value="${control.default}">
-      </label>`;
+      </label>${hintHtml}`;
 }
 
 function generateSectionHTML(key, section) {
@@ -878,10 +923,43 @@ export function bindRegisteredControls() {
   
   for (const [sectionKey, section] of Object.entries(CONTROL_SECTIONS)) {
     for (const control of section.controls) {
-      const sliderId = control.id + 'Slider';
       const valId = control.id + 'Val';
-      const el = document.getElementById(sliderId);
       const valEl = document.getElementById(valId);
+      
+      // Color picker binding
+      if (control.type === 'color') {
+        const pickerId = control.id + 'Picker';
+        const pickerEl = document.getElementById(pickerId);
+        
+        if (!pickerEl) continue;
+        
+        pickerEl.addEventListener('input', () => {
+          const colorVal = pickerEl.value;
+          
+          // Update state
+          if (control.stateKey) {
+            g[control.stateKey] = colorVal;
+          }
+          
+          // Custom handler (most color pickers use this for multi-var updates)
+          if (control.onChange) {
+            control.onChange(g, colorVal);
+          }
+          
+          // Update display value
+          if (valEl) {
+            valEl.textContent = colorVal;
+          }
+          
+          autoSaveSettings();
+        });
+        
+        continue;
+      }
+      
+      // Default: Range slider binding
+      const sliderId = control.id + 'Slider';
+      const el = document.getElementById(sliderId);
       
       if (!el) continue;
       
