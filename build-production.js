@@ -130,12 +130,11 @@ async function buildProduction() {
     await bundle.write(rollupConfig.default.output);
     console.log('✅ JavaScript bundled via Rollup');
 
-    // 2e. Inject template container and assets into public/index.html
+    // 2e. Inject assets into public/index.html
+    // NOTE: The webflow export already has #bravia-balls container with canvas
+    // We do NOT need to inject a simulation-container - just inject CSS and JS
     const publicIndexPath = path.join(CONFIG.publicDestination, 'index.html');
     let html = fs.readFileSync(publicIndexPath, 'utf-8');
-    const container = '<div id="simulation-container"><div class="noise"></div><canvas id="c" aria-label="Interactive bouncy balls physics simulation" role="application" draggable="false"></canvas><div class="panel" id="controlPanel" role="region" aria-label="Simulation controls" tabindex="-1"></div></div>';
-    const placeholderRegex = /<div[^>]*id=["']simulation-container["'][^>]*>[\s\S]*?<\/div>/;
-    if (placeholderRegex.test(html)) html = html.replace(placeholderRegex, container); else html = html.replace('</body>', `${container}\n</body>`);
     // Inject theme-color meta tags for mobile browsers (Safari iOS, Chrome Android)
     // These MUST match --frame-color-light/dark in main.css (#0a0a0a)
     const themeColorTags = `

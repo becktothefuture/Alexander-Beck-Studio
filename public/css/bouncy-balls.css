@@ -172,9 +172,11 @@ body.body {
   width: 100%;
   height: 100%;
   cursor: none !important; /* No cursor anywhere - custom cursor handles it */
-  /* Body is transparent - reveals dark html background as frame */
+  
+  /* Background Color applied to Content Area only (inside the frame) */
   background: transparent !important;
   background-color: transparent !important;
+  
   color: var(--wall-color); /* Matches wall/frame color dynamically */
   
   /* GLOBAL TYPOGRAPHY */
@@ -183,7 +185,9 @@ body.body {
   text-rendering: optimizeLegibility;
   
   /* Organic transition for border changes */
-  transition: padding var(--duration-resize, 600ms) var(--ease-organic, ease);
+  transition: 
+    background-color var(--duration-settle) var(--ease-settle),
+    padding var(--duration-resize, 600ms) var(--ease-organic, ease);
 }
 
 /* Force cursor: none on ALL elements, including links */
@@ -268,13 +272,13 @@ header.viewport.viewport--content {
   box-sizing: border-box !important;
   overflow: hidden !important;
   
-  /* Light mode background - the "page" surface */
-  background: var(--bg-light) !important;
-  background-color: var(--bg-light) !important;
+  /* TRANSPARENT - Let balls show through! Background is on body/html */
+  background: transparent !important;
+  background-color: transparent !important;
   border-radius: var(--container-radius);
   
-  /* Below balls (z:5) - just provides background color */
-  z-index: 1 !important;
+  /* Above EVERYTHING: Balls (z:5), Noise (z:7-8), Logo (z:4) */
+  z-index: 20 !important;
   
   /* Allow pointer events to pass through to balls where there's no text */
   pointer-events: none !important;
@@ -333,8 +337,13 @@ body.dark-mode .viewport {
 }
 
 body.dark-mode .viewport.viewport--content {
-  background: var(--bg-dark) !important; /* Dark content area */
-  background-color: var(--bg-dark) !important; /* Force override */
+  background: transparent !important; /* Transparent in dark mode too */
+  background-color: transparent !important;
+}
+
+/* Dark mode: simulation container stays transparent */
+body.dark-mode #bravia-balls {
+  background: transparent;
 }
 
 /* Dark mode gradient: same subtle white edge glow (reads as soft highlight) */
@@ -352,6 +361,95 @@ body.dark-mode.sound-hover .viewport.viewport--content {
   background-color: #1a1a1a !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CONTENT BACKGROUND LAYER - The actual background color
+   z-index: 1 (BEHIND logo z:3 and balls z:5)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.content-background-layer {
+  position: fixed;
+  inset: var(--container-border);
+  border-radius: var(--container-radius);
+  background: var(--bg-light);
+  z-index: 1; /* BEHIND everything else */
+  pointer-events: none;
+}
+
+body.dark-mode .content-background-layer {
+  background: var(--bg-dark);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   BRAND LOGO LAYER - SEPARATE LAYER, BEHIND balls
+   This is its own fixed layer, NOT inside #bravia-balls
+   z-index: 3 (BEHIND balls z:5)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.brand-logo-layer {
+  position: fixed;
+  /* Centered in viewport */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  
+  /* BEHIND balls (z:5), but in front of background */
+  z-index: 3;
+  
+  /* NOT CLICKABLE - clicks pass through to balls */
+  pointer-events: none;
+  user-select: none;
+  
+  /* Fade transition for CV gate swap */
+  opacity: 1;
+  transition: opacity 0.4s cubic-bezier(0.4, 0.0, 0.2, 1),
+              transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.brand-logo-layer.fade-out-up {
+  opacity: 0;
+  transform: translate(-50%, -50%) translateY(-20px);
+}
+
+/* SVG Logo styling */
+.brand-logo-svg {
+  width: clamp(300px, 55vw, 800px);
+  height: auto;
+  color: var(--text-color, #161616);
+  
+  /* Subtle shadow for depth */
+  filter: drop-shadow(0 2px 20px rgba(0, 0, 0, 0.06));
+}
+
+/* Dark mode logo color */
+body.dark-mode .brand-logo-svg {
+  color: var(--text-color-dark, #d5d5d5);
+  filter: drop-shadow(0 2px 20px rgba(0, 0, 0, 0.25));
+}
+
+/* Mobile: smaller logo */
+@media (max-width: 768px) {
+  .brand-logo-svg {
+    width: clamp(200px, 80vw, 400px);
+  }
+}
+
+/* Fallback text styling (if SVG not used) */
+.brand-logo-text {
+  font-family: 'Geist', sans-serif;
+  font-size: clamp(2rem, 8vw, 5rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-color, #161616);
+  white-space: nowrap;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+}
+
+body.dark-mode .brand-logo-text {
+  color: var(--text-color-dark, #d5d5d5);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* OLD Logo layer selector - kept for Webflow CSS compatibility */
 /* Logo layer - Behind balls (z:4), centered in viewport */
 #brand-logo {
   position: fixed !important;
@@ -458,8 +556,9 @@ a {
   overflow: hidden;
   /* Outer container matches the rounded content area */
   border-radius: var(--container-radius);
-  background: transparent;  /* Let .viewport--content show through */
-  z-index: 5 !important; /* Hard guarantee: balls are above background surface */
+  /* TRANSPARENT - let logo show through from behind */
+  background: transparent;
+  z-index: 5;
   pointer-events: none !important;
   user-select: none; 
   -webkit-user-select: none; 
@@ -501,6 +600,7 @@ a {
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: 5; /* ABOVE logo (z:3), balls render on top */
   display: block;
   z-index: 1;
   pointer-events: none !important;
@@ -530,18 +630,11 @@ a {
    Text (z:20+) above all
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* IMPORTANT: Webflow exports `.noise` as `position: fixed; inset:0; z-index:1000`.
-   If we leave it fixed, it can visually behave like a global “background overlay”
-   and confuse layering. The base noise layer must be CLIPPED inside #bravia-balls
-   and sit BEHIND the canvas (balls). */
-#bravia-balls .noise {
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 0 !important; /* Behind canvas (z:1) */
+.noise {
+  z-index: 2 !important;  /* Behind logo (z:3) and balls (z:5) */
   opacity: var(--noise-back-opacity) !important;
   background-size: var(--noise-size-base) var(--noise-size-base) !important;
   mix-blend-mode: multiply !important; /* Darkens grain on light background */
-  pointer-events: none !important;
 }
 
 .noise-2 {
@@ -635,14 +728,14 @@ body.dark-mode .noise-3 {
   
   /* ─────────────────────────────────────────────────────────────────────────────
      TYPOGRAPHIC REFINEMENT: Legend Labels
-     Weight 500 (medium) for balanced presence.
+     Weight 600 (semi-bold) for balanced presence.
      Tracking at 0.08em - open but not loose.
      ───────────────────────────────────────────────────────────────────────────── */
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase;
-  font-size: clamp(0.6rem, 0.9vw, 0.75rem) !important;
-  color: #1a1a1a !important; /* Dark text for light mode */
+  font-size: clamp(0.5rem, 0.7vw, 0.65rem) !important;
+  color: #404040 !important; /* Medium grey for light mode - softer contrast */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -672,8 +765,9 @@ body.dark-mode .noise-3 {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   visibility: visible !important;
-  /* Border styling */
-  border: 1px solid rgba(61, 61, 61, 1) !important;
+  /* Border styling - only left border as requested */
+  border: none !important;
+  border-left: 1px solid rgba(61, 61, 61, 1) !important;
   padding: 8px 12px !important; /* Simple fixed padding for the box */
   
   /* ORGANIC TRANSITIONS: Position and appearance */
@@ -1000,7 +1094,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   bottom: calc(var(--container-border) * 4) !important; /* 4× frame thickness from bottom */
   left: 50% !important;
   transform: translateX(-50%) !important; /* Center horizontally */
-  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  z-index: 25 !important; /* Above everything: viewport-content (z:20), noise (z:7-8), balls (z:5) */
   
   display: flex !important;
   flex-direction: row !important;
@@ -1011,21 +1105,46 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   margin: 0 !important;
   padding: 8px 0 !important; /* Small vertical padding for invisible hit area */
   height: auto !important; /* Height matches content + padding */
+  width: auto !important;
+  
+  /* Ensure visibility */
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
   
   transition: 
     bottom var(--duration-resize) var(--ease-organic),
     transform var(--duration-resize) var(--ease-organic);
 }
 
-/* Links inside container - remove individual positioning */
+/* Links inside container - remove individual positioning and ensure visibility */
 #footer-links-container #contact-email,
 #footer-links-container #portfolio-link,
 #footer-links-container #cv-gate-trigger {
   position: relative !important;
   left: auto !important;
+  right: auto !important;
+  top: auto !important;
   bottom: auto !important;
   transform: none !important; /* Override .footer_link translateY */
   margin: 0 !important;
+  
+  /* Ensure visibility - override any Webflow grid positioning */
+  grid-area: auto !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  
+  /* Explicit text styling */
+  color: rgba(0, 0, 0, 0.7) !important;
+  font-size: 0.9rem !important;
+}
+
+/* Dark mode footer link colors */
+body.dark-mode #footer-links-container #contact-email,
+body.dark-mode #footer-links-container #portfolio-link,
+body.dark-mode #footer-links-container #cv-gate-trigger {
+  color: rgba(255, 255, 255, 0.7) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2162,4 +2281,199 @@ body:not(.dark-mode) {
 
 .sound-dock__section-title:first-child {
   margin-top: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PASSWORD GATE - CV PROTECTION SYSTEM
+   4-digit input that swaps position with logo, validates code
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Password gate container (initially hidden, CENTERED like logo) */
+.cv-gate {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateY(30px) scale(0.95);
+  z-index: 25; /* Above viewport-content (z:20) */
+  pointer-events: none;
+  
+  /* Initially hidden (scaled down, transparent) */
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.4, 0.0, 0.2, 1),
+              transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Helper for fully hiding from layout if needed */
+.cv-gate.hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Active state: visible and in position (CENTERED) */
+.cv-gate.active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* Input container: flex row with spacing */
+.cv-gate-inputs {
+  display: flex;
+  gap: clamp(0.8rem, 1.5vw, 1.2rem);
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Individual digit input - large, square, centered */
+.cv-digit {
+  width: clamp(3.5rem, 8vw, 5rem);
+  height: clamp(3.5rem, 8vw, 5rem);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-family: 'Geist Mono', monospace;
+  font-weight: 600;
+  text-align: center;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.5);
+  color: #161616;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+  caret-color: #161616;
+  outline: none;
+  box-shadow: none;
+  backdrop-filter: blur(20px);
+}
+
+.cv-digit:focus {
+  border-color: #161616;
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.05);
+}
+
+.cv-digit::placeholder {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+/* Dark mode styling */
+body.dark-mode .cv-digit {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #d5d5d5;
+  caret-color: #d5d5d5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .cv-digit:focus {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+body.dark-mode .cv-digit::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LOGO ↔ PASSWORD SWAP ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Logo: normal state */
+#brand-logo {
+  transition: opacity 0.4s cubic-bezier(0.4, 0.0, 0.2, 1),
+              transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Logo: swapped out (fades out, moves up as per JS class name) */
+/* JS uses 'fade-out-up', implying it moves UP? 
+   Original CSS moved down (translateY(30px)).
+   Let's match the class name 'fade-out-up' literally if possible, 
+   or stick to the design intent. 
+   If gate comes UP from bottom, logo should probably go UP or vanish.
+   The JS says: logo.classList.add('fade-out-up');
+   Let's make it move up and fade out.
+*/
+.fade-out-up {
+  opacity: 0;
+  transform: translateY(-30px) scale(0.95);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PAGE FLASH EFFECTS (Success = Green, Error = Red)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.page-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in;
+}
+
+.page-flash--active {
+  opacity: 1;
+}
+
+/* Success flash: green */
+.page-flash--success {
+  background: rgba(34, 197, 94, 0.25);
+  animation: flash-success 0.6s ease-in-out;
+}
+
+@keyframes flash-success {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Error flash: red */
+.page-flash--error {
+  background: rgba(239, 68, 68, 0.3);
+  animation: flash-error 0.3s ease-in-out;
+}
+
+@keyframes flash-error {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE ADJUSTMENTS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* CV gate stays centered on tablet */
+  .cv-gate-inputs {
+    gap: 0.6rem;
+  }
+  
+  .cv-digit {
+    width: clamp(3rem, 15vw, 4rem);
+    height: clamp(3rem, 15vw, 4rem);
+    font-size: clamp(1.5rem, 8vw, 2rem);
+    border-radius: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* CV gate stays centered on mobile */
+  .cv-gate-inputs {
+    gap: 0.5rem;
+  }
+  
+  .cv-digit {
+    width: clamp(2.5rem, 18vw, 3.5rem);
+    height: clamp(2.5rem, 18vw, 3.5rem);
+    font-size: clamp(1.2rem, 10vw, 1.8rem);
+  }
+}
+
+/* Prevent zoom on iOS when focusing inputs */
+@media screen and (max-width: 768px) {
+  .cv-digit {
+    font-size: 16px; /* iOS doesn't zoom if font-size >= 16px */
+  }
 }

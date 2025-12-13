@@ -1039,12 +1039,12 @@ export function bindRegisteredControls() {
       el.addEventListener('input', () => {
         const rawVal = control.parse(el.value);
         
-        // Update state
-        if (control.stateKey && !control.onChange) {
+        // Update state (ALWAYS if stateKey exists)
+        if (control.stateKey) {
           g[control.stateKey] = rawVal;
         }
         
-        // Custom handler
+        // Custom handler (AFTER state update)
         if (control.onChange) {
           control.onChange(g, rawVal);
         }

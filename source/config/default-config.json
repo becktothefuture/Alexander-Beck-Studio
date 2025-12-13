@@ -23,9 +23,9 @@
   "wallThickness": 12,
   "wallRadius": 42,
   "frameColor": "#0a0a0a",
-  "wallWobbleMaxDeform": 148,
-  "wallWobbleStiffness": 1300,
-  "wallWobbleDamping": 34,
+  "wallWobbleMaxDeform": 80,
+  "wallWobbleStiffness": 2500,
+  "wallWobbleDamping": 65,
   "wallWobbleSigma": 4.0,
   "wallWobbleCornerClamp": 1.0
 }

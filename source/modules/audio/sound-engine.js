@@ -14,24 +14,6 @@
  */
 
 // ════════════════════════════════════════════════════════════════════════════════
-// PENTATONIC SCALE FREQUENCIES (C Major Pentatonic: C-D-E-G-A)
-// Always harmonious when multiple sounds overlap
-// ════════════════════════════════════════════════════════════════════════════════
-const PENTATONIC_FREQUENCIES = [
-  131.0,  // C3
-  147.0,  // D3
-  165.0,  // E3
-  196.0,  // G3
-  220.0,  // A3
-  262.0,  // C4
-  294.0,  // D4
-  330.0,  // E4
-  392.0,  // G4
-  440.0,  // A4
-  523.0,  // C5
-];
-
-// ════════════════════════════════════════════════════════════════════════════════
 // MICRO-VARIATION HELPERS — The Secret to Realistic Sound
 // Real-world collisions NEVER sound identical. These helpers add organic variance.
 // ════════════════════════════════════════════════════════════════════════════════
@@ -63,374 +45,113 @@ function chance(probability) {
 
 // ════════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION (mutable for runtime tweaking)
+// Soft, non-melodic baseline derived from the current default settings
+// and locked as the starting point for further evolution.
 // ════════════════════════════════════════════════════════════════════════════════
-let CONFIG = {
-  // Synthesis — instant attack, soft decay
-  attackTime: 0,               // 0ms = instant onset (sub-1ms response)
-  decayTime: 0.055,            // Slightly longer for warmth
-  harmonicGain: 0.18,          // More body/warmth to counter tinny-ness
+const BASE_CONFIG = Object.freeze({
+  // Synthesis — softened attack and decay
+  attackTime: 0.001,
+  decayTime: 0.060,
+  harmonicGain: 0.04,           // Keep a hint of body but avoid harmonics stack
   
-  // Filter — warm, not tinny
-  filterBaseFreq: 1400,        // Warmer: reduced high-end
-  filterVelocityRange: 280,    // Less brightness swing
-  filterQ: 0.35,               // Softer resonance
+  // Filter — warmer, darker
+  filterBaseFreq: 950,
+  filterVelocityRange: 260,
+  filterQ: 0.24,
   
-  // Reverb — gentle tail
-  reverbDecay: 0.18,           // Wooden: drier room
-  reverbWetMix: 0.12,          // Wooden: low wet mix
-  reverbHighDamp: 0.65,        // Damped highs
+  // Reverb — short room, subtle glue
+  reverbDecay: 0.14,
+  reverbWetMix: 0.10,
+  reverbHighDamp: 0.72,
   
-  // Volume — soft but clicky
-  minGain: 0.03,               // Lower floor (avoid constant "ticking")
-  maxGain: 0.18,               // Cap peaks (keeps scene calm)
-  masterGain: 0.42,            // Lower overall loudness
+  // Volume — softer and safer
+  minGain: 0.018,
+  maxGain: 0.11,
+  masterGain: 0.30,
   
   // Performance (voice pool size is fixed at 8)
-  minTimeBetweenSounds: 0.008, // Per-ball debounce (8ms, tighter)
+  minTimeBetweenSounds: 0.010,
   
   // Stereo
-  maxPan: 0.22,                // Subtle width
+  maxPan: 0.18,
   
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // REALISTIC VARIATION — What makes it sound alive, not synthetic
-  // ═══════════════════════════════════════════════════════════════════════════════
-  
-  // Transient noise burst (the "snap" at moment of impact)
+  // Realism: transient but muted
   noiseTransientEnabled: true,
-  noiseTransientGain: 0.28,      // Reduced for less harshness
-  noiseTransientDecay: 0.010,    // Slightly longer (10ms) - softer attack
-  noiseTransientFilterMin: 1200, // Darker transient base
-  noiseTransientFilterMax: 3500, // Reduced upper bound (less harsh)
+  noiseTransientGain: 0.12,
+  noiseTransientDecay: 0.012,
+  noiseTransientFilterMin: 750,
+  noiseTransientFilterMax: 2400,
   
-  // Micro-variation ranges (0.15 = ±15% random variation per hit)
-  variancePitch: 0.08,           // Pitch wobble (±8%)
-  varianceDecay: 0.25,           // Decay time (±25%)
-  varianceGain: 0.20,            // Volume (±20%)
-  varianceFilter: 0.18,          // Brightness (±18%)
-  varianceNoise: 0.30,           // Transient intensity (±30%)
+  // Micro-variation
+  variancePitch: 0.035,
+  varianceDecay: 0.16,
+  varianceGain: 0.12,
+  varianceFilter: 0.12,
+  varianceNoise: 0.18,
   
-  // Inharmonic partials (what makes wood sound like wood, not a synth)
-  inharmonicityEnabled: true,
-  inharmonicSpread: 0.012,       // 2nd harmonic is ~1.2% sharp (typical of wood)
-  thirdHarmonicGain: 0.06,       // Add subtle 3rd partial
-  thirdHarmonicInharm: 0.018,    // 3rd is slightly more detuned
+  // Inharmonicity (disabled for non-melodic feel)
+  inharmonicityEnabled: false,
+  inharmonicSpread: 0,
+  thirdHarmonicGain: 0,
+  thirdHarmonicInharm: 0,
   
-  // Velocity-sensitive timbre (soft=warm/mellow, hard=punchy but not harsh)
-  velocityNoiseScale: 2.0,       // Reduced: hard hits get 2x transient noise
-  velocityBrightnessScale: 1.3,  // Reduced: less brightness boost on hard hits
-  velocityDecayScale: 0.7,       // Slightly longer decay for warmth
+  // Velocity-sensitive timbre (subtle)
+  velocityNoiseScale: 1.4,
+  velocityBrightnessScale: 1.1,
+  velocityDecayScale: 0.78,
   
-  // Occasional "character" hits (rare, distinctive sounds)
-  characterHitChance: 0.08,      // 8% of hits get extra character
-  characterBrightnessBoost: 1.4, // Character hits are 40% brighter
-  characterResonanceBoost: 1.6,  // Character hits have more resonance
+  // Character hits disabled to avoid melodic accents
+  characterHitChance: 0,
+  characterBrightnessBoost: 1,
+  characterResonanceBoost: 1,
 
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // TONE SAFETY (anti-harshness at extremes + anti-clipping headroom)
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // Prevent “ugly” sound at the edges of the tone range by softly:
-  // - reducing gain for very high / very low notes
-  // - reducing brightness for very high notes
-  // - clamping filter to a safe range
-  //
-  // This is *not* a hard clamp that kills expressiveness — it’s a gentle curve.
-  toneSafetyMinHz: 120,        // Covers slight detune below C3
-  toneSafetyMaxHz: 600,        // Covers slight detune above C5
-  toneSafetyExponent: 2.2,     // Higher = more focused attenuation at extremes
-  toneSafetyHighGainAtten: 0.22, // Up to -22% gain at very high notes
-  toneSafetyLowGainAtten: 0.10,  // Up to -10% gain at very low notes
-  toneSafetyHighBrightAtten: 0.30, // Up to -30% filter freq at very high notes
+  // Tone safety
+  toneSafetyMinHz: 140,
+  toneSafetyMaxHz: 520,
+  toneSafetyExponent: 2.0,
+  toneSafetyHighGainAtten: 0.18,
+  toneSafetyLowGainAtten: 0.08,
+  toneSafetyHighBrightAtten: 0.32,
 
-  filterMinHz: 450,            // Avoid “mud” + prevent weird lowpass edge behavior
-  filterMaxHz: 5200,           // Avoid brittle highs / aliasy edge cases
+  filterMinHz: 420,
+  filterMaxHz: 3800,
 
-  voiceGainMax: 0.25,          // Final per-voice ceiling (pre-master), prevents spikes
+  voiceGainMax: 0.18,
   
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // ENERGY-BASED SOUND SYSTEM — Small Wooden Play Circles
-  // ═══════════════════════════════════════════════════════════════════════════════
+  // Energy-based sound system
+  collisionMinImpact: 0.52,
   
-  // Collision threshold (only significant impacts make sound)
-  collisionMinImpact: 0.60,    // 60% threshold - only noticeable collisions
-  
-  // Rolling rumble (wood-on-surface friction) — DISABLED by default
-  // Background should be quiet; collisions only
+  // Ambient sources remain disabled
   rollingEnabled: false,
   rollingMaxVelocity: 80,
   rollingMinVelocity: 15,
-  rollingGain: 0,              // Silent
-  rollingFreq: 130,
+    rollingGain: 0,
+    rollingFreq: 130,
   
-  // Air whoosh — DISABLED for small wooden pieces
-  // These are too small/light to displace air audibly
-  whooshEnabled: false,        // ← Disabled! Not realistic for small objects
-  whooshMinVelocity: 500,      // (unused)
-  whooshGain: 0.0,             // (unused)
-  whooshFreq: 800,             // (unused)
-};
+    whooshEnabled: false,
+  whooshMinVelocity: 500,
+  whooshGain: 0.0,
+  whooshFreq: 800,
+
+  // Gentle high-shelf roll-off to tame highs
+  highShelfFreq: 3400,
+  highShelfGain: -3.5,
+});
+
+let CONFIG = { ...BASE_CONFIG };
 
 // ════════════════════════════════════════════════════════════════════════════════
-// SOUND PRESETS — 6 Refined, Balanced Presets
-// ════════════════════════════════════════════════════════════════════════════════
-// Philosophy: Subtle but responsive. Each preset has distinct character while
-// maintaining consistent quality. All use 60% silence threshold for clean sound.
+// SOUND PRESETS — Locked to the soft baseline for evolution
 // ════════════════════════════════════════════════════════════════════════════════
 export const SOUND_PRESETS = {
-
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // 1. NATURAL WOOD — Warm, organic, the refined default
-  // ═══════════════════════════════════════════════════════════════════════════════
-  naturalWood: {
-    label: 'Natural Wood',
-    description: 'Warm organic tones · soft body · refined default',
-    attackTime: 0,
-    decayTime: 0.058,
-    harmonicGain: 0.16,
-    filterBaseFreq: 1350,
-    filterVelocityRange: 300,
-    filterQ: 0.32,
-    reverbDecay: 0.20,
-    reverbWetMix: 0.14,
-    masterGain: 0.44,
-    minGain: 0.03,
-    maxGain: 0.17,
-    collisionMinImpact: 0.60,
-    rollingEnabled: false,
-    rollingGain: 0,
-    rollingFreq: 130,
-    rollingMinVelocity: 14,
-    rollingMaxVelocity: 85,
-    whooshEnabled: false,
-    noiseTransientEnabled: true,
-    noiseTransientGain: 0.24,
-    noiseTransientDecay: 0.011,
-    noiseTransientFilterMin: 1100,
-    noiseTransientFilterMax: 3200,
-    variancePitch: 0.07,
-    varianceDecay: 0.22,
-    varianceGain: 0.18,
-    varianceFilter: 0.16,
-    varianceNoise: 0.28,
-    inharmonicityEnabled: true,
-    inharmonicSpread: 0.010,
-    thirdHarmonicGain: 0.07,
-    velocityNoiseScale: 1.8,
-    velocityBrightnessScale: 1.25,
-    characterHitChance: 0.07,
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // 2. SOFT CERAMIC — Smooth, refined, gentle brightness
-  // ═══════════════════════════════════════════════════════════════════════════════
-  softCeramic: {
-    label: 'Soft Ceramic',
-    description: 'Smooth refined touch · gentle brightness · elegant',
-    attackTime: 0,
-    decayTime: 0.048,
-    harmonicGain: 0.11,
-    filterBaseFreq: 1700,
-    filterVelocityRange: 380,
-    filterQ: 0.38,
-    reverbDecay: 0.24,
-    reverbWetMix: 0.18,
-    masterGain: 0.42,
-    minGain: 0.03,
-    maxGain: 0.16,
-    collisionMinImpact: 0.60,
-    rollingEnabled: false,
-    rollingGain: 0,
-    rollingFreq: 130,
-    rollingMinVelocity: 14,
-    rollingMaxVelocity: 85,
-    whooshEnabled: false,
-    noiseTransientEnabled: true,
-    noiseTransientGain: 0.30,
-    noiseTransientDecay: 0.008,
-    noiseTransientFilterMin: 1400,
-    noiseTransientFilterMax: 3800,
-    variancePitch: 0.06,
-    varianceDecay: 0.20,
-    varianceGain: 0.16,
-    varianceFilter: 0.14,
-    varianceNoise: 0.25,
-    inharmonicityEnabled: false,
-    inharmonicSpread: 0.006,
-    thirdHarmonicGain: 0.04,
-    velocityNoiseScale: 2.0,
-    velocityBrightnessScale: 1.35,
-    characterHitChance: 0.09,
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // 3. RIVER PEBBLES — Tactile, natural, satisfying clicks
-  // ═══════════════════════════════════════════════════════════════════════════════
-  riverPebbles: {
-    label: 'River Pebbles',
-    description: 'Tactile stone clicks · natural variation · satisfying',
-    attackTime: 0,
-    decayTime: 0.042,
-    harmonicGain: 0.13,
-    filterBaseFreq: 1900,
-    filterVelocityRange: 450,
-    filterQ: 0.45,
-    reverbDecay: 0.22,
-    reverbWetMix: 0.16,
-    masterGain: 0.45,
-    minGain: 0.035,
-    maxGain: 0.18,
-    collisionMinImpact: 0.60,
-    rollingEnabled: false,
-    rollingGain: 0,
-    rollingFreq: 110,
-    rollingMinVelocity: 14,
-    rollingMaxVelocity: 85,
-    whooshEnabled: false,
-    noiseTransientEnabled: true,
-    noiseTransientGain: 0.34,
-    noiseTransientDecay: 0.007,
-    noiseTransientFilterMin: 1500,
-    noiseTransientFilterMax: 4200,
-    variancePitch: 0.08,
-    varianceDecay: 0.24,
-    varianceGain: 0.20,
-    varianceFilter: 0.18,
-    varianceNoise: 0.30,
-    inharmonicityEnabled: false,
-    inharmonicSpread: 0.008,
-    thirdHarmonicGain: 0.05,
-    velocityNoiseScale: 2.2,
-    velocityBrightnessScale: 1.45,
-    characterHitChance: 0.10,
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // 4. FELT TOUCH — Ultra-soft, intimate, muffled warmth
-  // ═══════════════════════════════════════════════════════════════════════════════
-  feltTouch: {
-    label: 'Felt Touch',
-    description: 'Ultra-soft · intimate warmth · gentle presence',
-    attackTime: 0,
-    decayTime: 0.068,
-    harmonicGain: 0.20,
-    filterBaseFreq: 1100,
-    filterVelocityRange: 200,
-    filterQ: 0.28,
-    reverbDecay: 0.30,
-    reverbWetMix: 0.22,
-    masterGain: 0.40,
-    minGain: 0.025,
-    maxGain: 0.14,
-    collisionMinImpact: 0.60,
-    rollingEnabled: false,
-    rollingGain: 0,
-    rollingFreq: 100,
-    rollingMinVelocity: 14,
-    rollingMaxVelocity: 85,
-    whooshEnabled: false,
-    noiseTransientEnabled: true,
-    noiseTransientGain: 0.16,
-    noiseTransientDecay: 0.014,
-    noiseTransientFilterMin: 900,
-    noiseTransientFilterMax: 2400,
-    variancePitch: 0.06,
-    varianceDecay: 0.20,
-    varianceGain: 0.15,
-    varianceFilter: 0.12,
-    varianceNoise: 0.22,
-    inharmonicityEnabled: true,
-    inharmonicSpread: 0.008,
-    thirdHarmonicGain: 0.09,
-    velocityNoiseScale: 1.4,
-    velocityBrightnessScale: 1.15,
-    characterHitChance: 0.05,
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // 5. GLASS MARBLES — Clear, bright but controlled, playful
-  // ═══════════════════════════════════════════════════════════════════════════════
-  glassMarbles: {
-    label: 'Glass Marbles',
-    description: 'Clear bright tones · playful clicks · controlled sparkle',
-    attackTime: 0,
-    decayTime: 0.038,
-    harmonicGain: 0.08,
-    filterBaseFreq: 2200,
-    filterVelocityRange: 500,
-    filterQ: 0.52,
-    reverbDecay: 0.26,
-    reverbWetMix: 0.20,
-    masterGain: 0.40,
-    minGain: 0.03,
-    maxGain: 0.16,
-    collisionMinImpact: 0.60,
-    rollingEnabled: false,
-    rollingGain: 0,
-    rollingFreq: 140,
-    rollingMinVelocity: 14,
-    rollingMaxVelocity: 85,
-    whooshEnabled: false,
-    noiseTransientEnabled: true,
-    noiseTransientGain: 0.32,
-    noiseTransientDecay: 0.006,
-    noiseTransientFilterMin: 1800,
-    noiseTransientFilterMax: 4500,
-    variancePitch: 0.09,
-    varianceDecay: 0.26,
-    varianceGain: 0.20,
-    varianceFilter: 0.18,
-    varianceNoise: 0.30,
-    inharmonicityEnabled: false,
-    inharmonicSpread: 0.004,
-    thirdHarmonicGain: 0.03,
-    velocityNoiseScale: 2.4,
-    velocityBrightnessScale: 1.5,
-    characterHitChance: 0.12,
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // 6. MUTED CLAY — Earthy, deep, grounded warmth
-  // ═══════════════════════════════════════════════════════════════════════════════
-  mutedClay: {
-    label: 'Muted Clay',
-    description: 'Earthy deep tones · grounded warmth · subtle presence',
-    attackTime: 0,
-    decayTime: 0.065,
-    harmonicGain: 0.22,
-    filterBaseFreq: 1000,
-    filterVelocityRange: 220,
-    filterQ: 0.30,
-    reverbDecay: 0.28,
-    reverbWetMix: 0.18,
-    masterGain: 0.46,
-    minGain: 0.03,
-    maxGain: 0.16,
-    collisionMinImpact: 0.60,
-    rollingEnabled: false,
-    rollingGain: 0,
-    rollingFreq: 90,
-    rollingMinVelocity: 14,
-    rollingMaxVelocity: 85,
-    whooshEnabled: false,
-    noiseTransientEnabled: true,
-    noiseTransientGain: 0.20,
-    noiseTransientDecay: 0.012,
-    noiseTransientFilterMin: 800,
-    noiseTransientFilterMax: 2600,
-    variancePitch: 0.07,
-    varianceDecay: 0.24,
-    varianceGain: 0.18,
-    varianceFilter: 0.15,
-    varianceNoise: 0.26,
-    inharmonicityEnabled: true,
-    inharmonicSpread: 0.014,
-    thirdHarmonicGain: 0.10,
-    velocityNoiseScale: 1.6,
-    velocityBrightnessScale: 1.2,
-    characterHitChance: 0.06,
+  softImpact: {
+    label: 'Soft Impact (Baseline)',
+    description: 'Organic, non-melodic thuds with gentle high roll-off',
+    ...BASE_CONFIG,
   },
 };
 
-let currentPreset = 'naturalWood';
+let currentPreset = 'softImpact';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // STATE
@@ -442,6 +163,7 @@ let dryGain = null;
 let wetGain = null;
 let limiter = null;
 let saturator = null;
+let highShelf = null;
 
 let isEnabled = false;
 let isUnlocked = false;
@@ -555,6 +277,13 @@ function buildAudioGraph() {
   limiter.attack.value = 0.001;
   limiter.release.value = 0.1;
 
+  // Gentle high-shelf to soften highs without hard-cutting
+  highShelf = audioContext.createBiquadFilter();
+  highShelf.type = 'highshelf';
+  highShelf.frequency.value = CONFIG.highShelfFreq;
+  highShelf.gain.value = CONFIG.highShelfGain;
+  highShelf.Q.value = 0.7;
+
   // Soft clipper (gentle safety before the limiter)
   saturator = audioContext.createWaveShaper();
   saturator.curve = makeSoftClipCurve(0.85);
@@ -575,7 +304,8 @@ function buildAudioGraph() {
   dryGain.connect(saturator);
   wetGain.connect(reverbNode);
   reverbOut.connect(saturator);
-  saturator.connect(limiter);
+  saturator.connect(highShelf);
+  highShelf.connect(limiter);
   limiter.connect(masterGain);
   masterGain.connect(audioContext.destination);
   
@@ -937,161 +667,84 @@ function releaseVoice(voice) {
 }
 
 /**
- * Play a sound using a pooled voice — REALISTIC VERSION
+ * Play a sound using a pooled voice — simplified, soft impact version
  * 
- * Key realism techniques:
- * 1. Noise transient burst ("snap" at impact moment)
- * 2. Micro-variation on every parameter
- * 3. Velocity-sensitive timbre (soft=warm, hard=bright+snappy)
- * 4. Inharmonic partials (real wood is never perfectly harmonic)
- * 5. Multi-stage decay (transient + body)
- * 6. Occasional "character" hits with extra resonance
+ * Key traits:
+ * 1) Continuous frequency mapping (non-melodic), radius-weighted
+ * 2) Intensity drives gain, brightness, and transient amount
+ * 3) Single sine body + short noise burst for organic texture
  */
 function playVoice(voice, frequency, intensity, xPosition, now) {
   voice.inUse = true;
   voice.startTime = now;
   
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // STEP 1: MICRO-RANDOMIZATION — Make every hit unique
-  // ═══════════════════════════════════════════════════════════════════════════════
+  const energy = clamp(intensity, 0, 1);
+  const gainShape = Math.pow(energy, 0.85); // Compress dynamics for softer peaks
   const variedFreq = vary(frequency, CONFIG.variancePitch);
-  const variedDecay = vary(CONFIG.decayTime, CONFIG.varianceDecay);
-  const variedGain = vary(1.0, CONFIG.varianceGain);
-  const variedFilter = vary(1.0, CONFIG.varianceFilter);
-  const variedNoise = vary(1.0, CONFIG.varianceNoise);
-  
-  // Check for occasional "character" hit (slight extra resonance/brightness)
-  const isCharacterHit = chance(CONFIG.characterHitChance);
-  
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // STEP 2: VELOCITY-SENSITIVE TIMBRE
-  // Soft hits = warm, mellow | Hard hits = bright, snappy, more transient noise
-  // ═══════════════════════════════════════════════════════════════════════════════
-  const velocityCurve = Math.pow(intensity, 0.7); // Slight compression for naturalness
-  
-  // Noise scales UP with velocity (hard hits have more "crack")
-  const noiseAmount = velocityCurve * CONFIG.velocityNoiseScale * variedNoise;
-  
-  // Brightness scales UP with velocity
-  const brightnessBoost = 1 + (velocityCurve * (CONFIG.velocityBrightnessScale - 1));
-  
-  // Decay scales DOWN with velocity (hard = snappier)
-  const decayMod = 1 - (velocityCurve * (1 - CONFIG.velocityDecayScale));
-  const finalDecay = variedDecay * decayMod;
-  
-  // Character hit adjustments
-  const charBrightMod = isCharacterHit ? CONFIG.characterBrightnessBoost : 1;
-  const charResMod = isCharacterHit ? CONFIG.characterResonanceBoost : 1;
-  
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // STEP 3: CALCULATE FINAL PARAMETERS
-  // ═══════════════════════════════════════════════════════════════════════════════
-  let baseGain = CONFIG.minGain + (CONFIG.maxGain - CONFIG.minGain) * intensity;
-  let gain = baseGain * variedGain;
-  
-  let filterFreq = (CONFIG.filterBaseFreq + CONFIG.filterVelocityRange * intensity) 
-                   * variedFilter * brightnessBoost * charBrightMod;
-  
-  const filterQ = CONFIG.filterQ * charResMod;
-  const duration = finalDecay + 0.025; // Buffer for release
-  const reverbAmount = 1 - (intensity * 0.5);
+  const decayVar = vary(CONFIG.decayTime, CONFIG.varianceDecay);
+  const finalDecay = decayVar * (1 - gainShape * (1 - CONFIG.velocityDecayScale));
+  const duration = finalDecay + 0.02;
+
+  let gain = CONFIG.minGain + (CONFIG.maxGain - CONFIG.minGain) * gainShape;
+  gain *= vary(1.0, CONFIG.varianceGain);
+
+  let filterFreq = (CONFIG.filterBaseFreq + CONFIG.filterVelocityRange * gainShape) *
+    vary(1.0, CONFIG.varianceFilter) * CONFIG.velocityBrightnessScale;
   const panValue = (xPosition - 0.5) * 2 * CONFIG.maxPan;
+  const reverbAmount = 0.18 + (1 - gainShape) * 0.6; // Softer hits get more space
   
-  // ─── TONE SAFETY ─────────────────────────────────────────────────────────────
+  // Tone safety + anti-clipping headroom
   ({ gain, filterFreq } = applyToneSafety(variedFreq, gain, filterFreq));
   
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // STEP 4: SETUP TONAL OSCILLATORS (with inharmonicity)
-  // ═══════════════════════════════════════════════════════════════════════════════
   voice.filter.frequency.value = filterFreq;
-  voice.filter.Q.value = filterQ;
+  voice.filter.Q.value = CONFIG.filterQ;
   voice.panner.pan.value = panValue;
   voice.reverbSend.gain.value = reverbAmount;
   
-  // Main envelope (tonal body)
+  // Main envelope (single sine body)
   voice.envelope.gain.cancelScheduledValues(now);
   voice.envelope.gain.setValueAtTime(gain, now);
   voice.envelope.gain.exponentialRampToValueAtTime(0.001, now + finalDecay);
   
-  // ─── FUNDAMENTAL ────────────────────────────────────────────────────────────
   const osc = audioContext.createOscillator();
   osc.type = 'sine';
   osc.frequency.value = variedFreq;
   
-  // ─── 2nd HARMONIC (with inharmonicity for wood character) ───────────────────
-  const osc2 = audioContext.createOscillator();
-  osc2.type = 'sine';
-  // Inharmonicity: real wood overtones are slightly sharp
-  const inharm2 = CONFIG.inharmonicityEnabled 
-    ? (1 + vary(CONFIG.inharmonicSpread, 0.3)) 
-    : 1;
-  osc2.frequency.value = variedFreq * 2 * inharm2;
-  
-  const harmGain = audioContext.createGain();
-  // 2nd harmonic gains slightly more presence on harder hits
-  harmGain.gain.value = CONFIG.harmonicGain * (1 + velocityCurve * 0.3);
-  
-  // ─── 3rd HARMONIC (subtle, adds body) ───────────────────────────────────────
-  const osc3 = audioContext.createOscillator();
-  osc3.type = 'sine';
-  const inharm3 = CONFIG.inharmonicityEnabled 
-    ? (1 + vary(CONFIG.thirdHarmonicInharm, 0.4)) 
-    : 1;
-  osc3.frequency.value = variedFreq * 3 * inharm3;
-  
-  const harm3Gain = audioContext.createGain();
-  harm3Gain.gain.value = CONFIG.thirdHarmonicGain * (isCharacterHit ? 1.5 : 1);
-  
-  // Store refs
+  // Store refs (harmonics disabled)
   voice.osc = osc;
-  voice.osc2 = osc2;
-  voice.osc3 = osc3;
-  voice.harmGain = harmGain;
-  voice.harm3Gain = harm3Gain;
+  voice.osc2 = null;
+  voice.osc3 = null;
+  voice.harmGain = null;
+  voice.harm3Gain = null;
   
   // Connect tonal chain
   osc.connect(voice.filter);
-  osc2.connect(harmGain);
-  harmGain.connect(voice.filter);
-  osc3.connect(harm3Gain);
-  harm3Gain.connect(voice.filter);
-  
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // STEP 5: NOISE TRANSIENT ("snap" at impact)
-  // This is what makes it sound like a REAL collision vs a synth
-  // ═══════════════════════════════════════════════════════════════════════════════
-  if (CONFIG.noiseTransientEnabled && noiseAmount > 0.1) {
+
+  // Short, muted transient for tactile onset
+  if (CONFIG.noiseTransientEnabled) {
     const noiseSource = createTransientNoise();
     voice.noiseSource = noiseSource;
     
-    // Noise filter frequency: scales with velocity (hard = brighter snap)
-    const noiseFilterFreq = CONFIG.noiseTransientFilterMin + 
-      (CONFIG.noiseTransientFilterMax - CONFIG.noiseTransientFilterMin) * velocityCurve;
-    voice.noiseFilter.frequency.value = vary(noiseFilterFreq, 0.15);
+    const noiseFilterBase = CONFIG.noiseTransientFilterMin + 
+      (CONFIG.noiseTransientFilterMax - CONFIG.noiseTransientFilterMin) * gainShape;
+    voice.noiseFilter.frequency.value = vary(noiseFilterBase, 0.12);
     
-    // Noise envelope: very short burst, then instant decay
-    const noiseGain = CONFIG.noiseTransientGain * noiseAmount * gain;
+    const noiseGain = CONFIG.noiseTransientGain * CONFIG.velocityNoiseScale * gainShape * gain;
     const noiseDecay = vary(CONFIG.noiseTransientDecay, 0.25);
     
     voice.noiseEnvelope.gain.cancelScheduledValues(now);
     voice.noiseEnvelope.gain.setValueAtTime(noiseGain, now);
     voice.noiseEnvelope.gain.exponentialRampToValueAtTime(0.001, now + noiseDecay);
     
-    // Connect and start noise
     noiseSource.connect(voice.noiseFilter);
     noiseSource.start(now);
     noiseSource.stop(now + noiseDecay + 0.01);
+  } else {
+    voice.noiseSource = null;
   }
   
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // STEP 6: START & SCHEDULE CLEANUP
-  // ═══════════════════════════════════════════════════════════════════════════════
   osc.start(now);
-  osc2.start(now);
-  osc3.start(now);
   osc.stop(now + duration);
-  osc2.stop(now + duration);
-  osc3.stop(now + duration);
   
   osc.onended = () => releaseVoice(voice);
 }
@@ -1141,21 +794,14 @@ function applyToneSafety(frequency, gain, filterFreq) {
  * Uses inverse mapping: larger radius = lower frequency
  */
 function radiusToFrequency(radius) {
-  // Assume radius range ~10-50 (DPR-scaled)
-  // Normalize to 0-1 then invert (large = 0, small = 1)
-  const minR = 8, maxR = 55;
-  const normalized = 1 - Math.max(0, Math.min(1, (radius - minR) / (maxR - minR)));
-  
-  // Map to pentatonic scale index with slight randomization
-  const baseIndex = normalized * (PENTATONIC_FREQUENCIES.length - 1);
-  const randomOffset = (Math.random() - 0.5) * 1.5; // ±0.75 index variation
-  const index = Math.max(0, Math.min(PENTATONIC_FREQUENCIES.length - 1, 
-    Math.round(baseIndex + randomOffset)));
-  
-  // Add subtle detuning for organic feel (±3%)
-  const detune = 1 + (Math.random() - 0.5) * 0.06;
-  
-  return PENTATONIC_FREQUENCIES[index] * detune;
+  const minR = 8;
+  const maxR = 55;
+  const normalized = clamp((radius - minR) / (maxR - minR), 0, 1);
+  const inv = 1 - normalized; // Larger radius → lower pitch
+
+  // Continuous, non-quantized range for non-melodic thuds
+  const baseFreq = 170 + inv * 140; // ~170–310 Hz
+  return baseFreq * vary(1, CONFIG.variancePitch * 1.2);
 }
 
 
@@ -1318,6 +964,11 @@ export function updateSoundConfig(updates) {
     dryGain.gain.value = 1 - CONFIG.reverbWetMix;
   }
   
+  if (highShelf && ('highShelfFreq' in updates || 'highShelfGain' in updates)) {
+    highShelf.frequency.value = CONFIG.highShelfFreq;
+    highShelf.gain.value = CONFIG.highShelfGain;
+  }
+
   // Update master gain if changed
   if (masterGain && 'masterGain' in updates) {
     masterGain.gain.value = CONFIG.masterGain;

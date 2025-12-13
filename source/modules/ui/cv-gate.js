@@ -3,12 +3,46 @@
  * Handles the password protection UI for the CV download.
  */
 
+/**
+ * Create the page flash overlay element if it doesn't exist
+ */
+function createPageFlash() {
+    const flash = document.createElement('div');
+    flash.id = 'page-flash';
+    flash.className = 'page-flash';
+    flash.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(flash);
+    return flash;
+}
+
+/**
+ * Trigger a flash effect on the page
+ * @param {HTMLElement} flashEl - The flash overlay element
+ * @param {'success' | 'error'} type - The type of flash
+ */
+function triggerFlash(flashEl, type) {
+    // Remove any existing flash classes
+    flashEl.classList.remove('page-flash--success', 'page-flash--error');
+    
+    // Force reflow to restart animation
+    void flashEl.offsetWidth;
+    
+    // Add the appropriate class
+    flashEl.classList.add(`page-flash--${type}`);
+    
+    // Remove after animation completes
+    const duration = type === 'success' ? 600 : 300;
+    setTimeout(() => {
+        flashEl.classList.remove(`page-flash--${type}`);
+    }, duration);
+}
+
 export function initCVGate() {
     const trigger = document.getElementById('cv-gate-trigger');
     const logo = document.getElementById('brand-logo');
     const gate = document.getElementById('cv-gate');
     const inputs = Array.from(document.querySelectorAll('.cv-digit'));
-    const body = document.body;
+    const pageFlash = document.getElementById('page-flash');
     
     // Correct Code
     const CODE = '1111';
@@ -17,6 +51,9 @@ export function initCVGate() {
         console.warn('CV Gate: Missing required elements');
         return;
     }
+    
+    // Create page-flash element if it doesn't exist
+    const flash = pageFlash || createPageFlash();
 
     // State
     let isOpen = false;
@@ -62,19 +99,18 @@ export function initCVGate() {
         
         if (enteredCode.length === 4) {
             if (enteredCode === CODE) {
-                // Success
-                body.classList.add('flash-green');
+                // Success - Green flash, then redirect
+                triggerFlash(flash, 'success');
                 setTimeout(() => {
-                    window.location.href = 'cv-test.html';
-                }, 400);
+                    window.location.href = 'cv.html';
+                }, 500);
             } else {
-                // Failure
-                body.classList.add('flash-red');
+                // Failure - Red flash, clear inputs
+                triggerFlash(flash, 'error');
                 setTimeout(() => {
-                    body.classList.remove('flash-red');
                     inputs.forEach(input => input.value = '');
                     inputs[0].focus();
-                }, 400);
+                }, 350);
             }
         }
     };
