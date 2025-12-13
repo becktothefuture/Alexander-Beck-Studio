@@ -60,6 +60,27 @@ let CONFIG = {
   
   // Stereo
   maxPan: 0.22,                // Subtle width
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // TONE SAFETY (anti-harshness at extremes + anti-clipping headroom)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Prevent “ugly” sound at the edges of the tone range by softly:
+  // - reducing gain for very high / very low notes
+  // - reducing brightness for very high notes
+  // - clamping filter to a safe range
+  //
+  // This is *not* a hard clamp that kills expressiveness — it’s a gentle curve.
+  toneSafetyMinHz: 120,        // Covers slight detune below C3
+  toneSafetyMaxHz: 600,        // Covers slight detune above C5
+  toneSafetyExponent: 2.2,     // Higher = more focused attenuation at extremes
+  toneSafetyHighGainAtten: 0.22, // Up to -22% gain at very high notes
+  toneSafetyLowGainAtten: 0.10,  // Up to -10% gain at very low notes
+  toneSafetyHighBrightAtten: 0.30, // Up to -30% filter freq at very high notes
+
+  filterMinHz: 450,            // Avoid “mud” + prevent weird lowpass edge behavior
+  filterMaxHz: 5200,           // Avoid brittle highs / aliasy edge cases
+
+  voiceGainMax: 0.25,          // Final per-voice ceiling (pre-master), prevents spikes
   
   // ═══════════════════════════════════════════════════════════════════════════════
   // ENERGY-BASED SOUND SYSTEM — Small Wooden Play Circles
@@ -348,6 +369,7 @@ let reverbNode = null;
 let dryGain = null;
 let wetGain = null;
 let limiter = null;
+let saturator = null;
 
 let isEnabled = false;
 let isUnlocked = false;
@@ -446,7 +468,7 @@ export async function unlockAudio() {
 
 /**
  * Build the audio processing graph:
- * Voice Pool → [Dry + Reverb] → Limiter → Master → Output
+ * Voice Pool → [Dry + Reverb] → Soft Clip → Limiter → Master → Output
  */
 function buildAudioGraph() {
   // Master gain (overall volume control)
@@ -460,6 +482,11 @@ function buildAudioGraph() {
   limiter.ratio.value = 12;
   limiter.attack.value = 0.001;
   limiter.release.value = 0.1;
+
+  // Soft clipper (gentle safety before the limiter)
+  saturator = audioContext.createWaveShaper();
+  saturator.curve = makeSoftClipCurve(0.85);
+  saturator.oversample = '2x';
   
   // Dry/wet routing for reverb
   dryGain = audioContext.createGain();
@@ -470,11 +497,13 @@ function buildAudioGraph() {
   
   // Create reverb (algorithmic approach using delay network)
   reverbNode = createReverbEffect();
+  const reverbOut = reverbNode?._output || reverbNode;
   
   // Connect graph
-  dryGain.connect(limiter);
+  dryGain.connect(saturator);
   wetGain.connect(reverbNode);
-  reverbNode.connect(limiter);
+  reverbOut.connect(saturator);
+  saturator.connect(limiter);
   limiter.connect(masterGain);
   masterGain.connect(audioContext.destination);
   
@@ -483,6 +512,22 @@ function buildAudioGraph() {
   
   // Initialize ambient sounds (rolling rumble + air whoosh)
   initAmbientSounds();
+}
+
+/**
+ * Create a gentle soft-clipping curve (tanh-style)
+ * @param {number} amount - 0..1 (higher = more saturation)
+ */
+function makeSoftClipCurve(amount = 0.8) {
+  const n = 1024;
+  const curve = new Float32Array(n);
+  const drive = 1 + amount * 8; // 1..9
+  for (let i = 0; i < n; i++) {
+    const x = (i * 2) / (n - 1) - 1; // -1..1
+    // Smooth saturation: tanh(drive*x) / tanh(drive)
+    curve[i] = Math.tanh(drive * x) / Math.tanh(drive);
+  }
+  return curve;
 }
 
 /**
@@ -769,11 +814,18 @@ function playVoice(voice, frequency, intensity, xPosition, now) {
   voice.startTime = now;
   
   // Pre-calculate all parameters (minimize runtime math)
-  const gain = CONFIG.minGain + (CONFIG.maxGain - CONFIG.minGain) * intensity;
-  const filterFreq = CONFIG.filterBaseFreq + CONFIG.filterVelocityRange * intensity;
+  let gain = CONFIG.minGain + (CONFIG.maxGain - CONFIG.minGain) * intensity;
+  let filterFreq = CONFIG.filterBaseFreq + CONFIG.filterVelocityRange * intensity;
   const duration = CONFIG.decayTime + 0.015; // Tight buffer
   const reverbAmount = 1 - (intensity * 0.5);
   const panValue = (xPosition - 0.5) * 2 * CONFIG.maxPan;
+
+  // ─── TONE SAFETY ─────────────────────────────────────────────────────────────
+  // Prevent harshness / “ugly clipping” at the edges of tone range:
+  // - soften gain for extreme notes
+  // - soften brightness for high notes
+  // - clamp filter into a safe range
+  ({ gain, filterFreq } = applyToneSafety(frequency, gain, filterFreq));
   
   // ─── INSTANT PARAMETER UPDATES (reused nodes) ───────────────────────────────
   // Use .value for immediate effect (faster than setValueAtTime for static values)
@@ -817,6 +869,46 @@ function playVoice(voice, frequency, intensity, xPosition, now) {
   
   // Schedule release
   osc.onended = () => releaseVoice(voice);
+}
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+/**
+ * Apply gentle, “musical” constraints so extreme tones don't get brittle/ugly.
+ * Returns adjusted {gain, filterFreq}.
+ */
+function applyToneSafety(frequency, gain, filterFreq) {
+  const t = clamp(
+    (frequency - CONFIG.toneSafetyMinHz) / (CONFIG.toneSafetyMaxHz - CONFIG.toneSafetyMinHz),
+    0,
+    1
+  );
+
+  const exp = CONFIG.toneSafetyExponent;
+  const high = Math.pow(t, exp);
+  const low = Math.pow(1 - t, exp);
+
+  // Gain: reduce at extremes (mostly high end)
+  const gainMul = clamp(
+    1 - (CONFIG.toneSafetyHighGainAtten * high) - (CONFIG.toneSafetyLowGainAtten * low),
+    0.6,
+    1
+  );
+  let safeGain = gain * gainMul;
+
+  // Brightness: reduce at high end (prevents brittle “sizzle”)
+  const brightMul = clamp(1 - CONFIG.toneSafetyHighBrightAtten * high, 0.55, 1);
+  let safeFilter = filterFreq * brightMul;
+
+  // Clamp into safe filter range
+  safeFilter = clamp(safeFilter, CONFIG.filterMinHz, CONFIG.filterMaxHz);
+
+  // Absolute ceiling per voice (pre-master)
+  safeGain = Math.min(safeGain, CONFIG.voiceGainMax);
+
+  return { gain: safeGain, filterFreq: safeFilter };
 }
 
 /**
