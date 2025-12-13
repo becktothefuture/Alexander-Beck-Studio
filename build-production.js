@@ -81,6 +81,22 @@ async function buildProduction() {
     fs.writeFileSync(path.join(cssDir, 'bouncy-balls.css'), cssCombined);
     console.log('✅ Wrote modular CSS bundle');
 
+    // 2a.1 Ensure Webflow CSS assets remain available (normalize/webflow/site css)
+    // Some hosting/local setups rely on these static files being present, and the
+    // Webflow-exported HTML still references them.
+    const webflowCssDir = path.join(CONFIG.webflowSource, 'css');
+    if (fs.existsSync(webflowCssDir)) {
+      const webflowCssFiles = fs.readdirSync(webflowCssDir);
+      for (const file of webflowCssFiles) {
+        if (!file.endsWith('.css')) continue;
+        const src = path.join(webflowCssDir, file);
+        const dst = path.join(cssDir, file);
+        if (!fs.existsSync(dst)) {
+          fs.copyFileSync(src, dst);
+        }
+      }
+    }
+
     // 2b. Prepare JS output directory
     const jsDir = path.join(CONFIG.publicDestination, 'js');
     if (!fs.existsSync(jsDir)) fs.mkdirSync(jsDir, { recursive: true });

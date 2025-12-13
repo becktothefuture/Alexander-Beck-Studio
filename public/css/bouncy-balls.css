@@ -81,7 +81,7 @@
   
   /* Content area backgrounds */
   --bg-light: #cecece;  /* Light grey - content area */
-  --bg-dark: #0a0a0a;   /* Near black - content area */
+  --bg-dark: #1a1c1f;   /* Dark grey with 1% azure tint - softer than pure black */
   
   /* Rubber wall color = frame color (they're the same visual element) */
   --wall-color: var(--frame-color-light);
@@ -210,9 +210,9 @@ body.body.dark-mode {
    MAX: Control Panel
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* Webflow .viewport reset - prevent stacking context issues */
+/* Webflow .viewport reset - content area behind balls but above background */
 .viewport {
-  z-index: auto !important;
+  z-index: 1 !important;  /* Below #bravia-balls (z:5) so balls show in front */
   position: static !important;
   transform: none !important;
   opacity: 1 !important;
@@ -350,7 +350,7 @@ a {
   inset: 0;  /* Flush with browser edges - no gap */
   overflow: hidden;
   border-radius: 0;  /* Outer container is FLUSH with browser */
-  background: var(--wall-color);
+  background: transparent;  /* Let .viewport--content show through */
   z-index: 5;
   pointer-events: none !important;
   user-select: none; 
@@ -954,75 +954,88 @@ body.dark-mode .sound-toggle[data-enabled="true"]:hover {
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗
-   ║                    PIXEL ART CONTROL PANEL                                    ║
-   ║              8px fonts · Glassmorphism · Retro game aesthetic                 ║
+   ║                     UNIFIED PANEL SYSTEM — WORLD CLASS                       ║
+   ║           Modern glassmorphism · 14px base · Linear/Figma-inspired           ║
    ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   PIXEL FONT SETUP
-   Using system monospace with explicit pixel sizing and disabled smoothing
+   CSS VARIABLES — Panel Design Tokens
    ═══════════════════════════════════════════════════════════════════════════════ */
-@font-face {
-  font-family: 'Pixel';
-  src: local('Courier New'), local('Consolas'), local('Monaco');
-  font-display: swap;
+:root {
+  /* Panel colors */
+  --panel-bg: rgba(22, 22, 24, 0.92);
+  --panel-bg-light: rgba(255, 255, 255, 0.92);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --panel-border-light: rgba(0, 0, 0, 0.08);
+  
+  /* Text colors */
+  --panel-text: rgba(255, 255, 255, 0.92);
+  --panel-text-secondary: rgba(255, 255, 255, 0.55);
+  --panel-text-tertiary: rgba(255, 255, 255, 0.35);
+  --panel-text-light: rgba(0, 0, 0, 0.92);
+  --panel-text-secondary-light: rgba(0, 0, 0, 0.55);
+  
+  /* Accent */
+  --panel-accent: #ff8c00;
+  --panel-accent-hover: #ffa333;
+  
+  /* Sizing */
+  --panel-width: 320px;
+  --panel-radius: 16px;
+  --panel-padding: 16px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   MAIN PANEL - Glassmorphism with pixel aesthetic
+   BASE PANEL — Glassmorphism foundation
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel {
-  position: fixed !important;
-  top: calc(5vh + var(--container-border, 0px)) !important;
-  right: calc(5vh + var(--container-border, 0px)) !important;
-  left: auto !important;
-  
-  /* Pixel font base */
-  font-family: 'Courier New', Consolas, Monaco, monospace;
-  font-size: 8px;
+  /* Typography - legible, modern */
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  font-size: 14px;
   line-height: 1.5;
-  letter-spacing: 0.5px;
-  -webkit-font-smoothing: none;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-smooth: never;
-  text-rendering: optimizeSpeed;
   
-  /* Glassmorphism: frosted dark glass */
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  /* Glassmorphism */
+  background: var(--panel-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   
-  /* Sharp pixel edges - no rounded corners */
-  border-radius: 0;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  /* Border & Shadow */
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius);
   box-shadow: 
-    0 0 0 1px rgba(0, 0, 0, 0.8),
-    4px 4px 0 rgba(0, 0, 0, 0.5),
-    inset 0 0 20px rgba(255, 255, 255, 0.02);
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 8px 40px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   
   /* Layout */
-  width: 260px;
-  max-height: 85vh;
+  width: var(--panel-width);
+  max-height: 80vh;
   overflow: hidden;
-  padding: 0;
+  
+  /* Color */
+  color: var(--panel-text);
   
   /* Layering */
   z-index: 2147483647 !important;
-  isolation: isolate;
-  transform: translateZ(0);
-  will-change: transform;
   pointer-events: auto !important;
   user-select: none;
-  cursor: default;
-  
-  /* Retro CRT-like text color */
-  color: #00ff88;
-  text-shadow: 0 0 2px rgba(0, 255, 136, 0.3);
 }
 
-body.dark-mode .panel {
-  background: rgba(0, 0, 0, 0.85);
-  border-color: rgba(0, 255, 136, 0.4);
+/* Light mode */
+body:not(.dark-mode) .panel {
+  background: var(--panel-bg-light);
+  border-color: var(--panel-border-light);
+  color: var(--panel-text-light);
+  box-shadow: 
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 8px 40px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .panel.hidden { 
@@ -1031,321 +1044,440 @@ body.dark-mode .panel {
 
 .panel * {
   pointer-events: auto !important;
-  position: relative;
-  z-index: auto;
   font-family: inherit;
-  -webkit-font-smoothing: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   PANEL HEADER - Draggable title bar
+   PANEL HEADER
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
-  background: linear-gradient(180deg, rgba(0, 255, 136, 0.15) 0%, transparent 100%);
-  border-bottom: 1px solid rgba(0, 255, 136, 0.3);
-  cursor: move;
-  font-weight: bold;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+  padding: 14px var(--panel-padding);
+  border-bottom: 1px solid var(--panel-border);
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.panel .panel-header .drag-handle {
-  opacity: 0.5;
-  margin-right: 6px;
-  font-size: 10px;
+.panel .panel-header:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.panel .panel-header:hover .drag-handle {
-  opacity: 0.8;
+body:not(.dark-mode) .panel .panel-header {
+  border-bottom-color: var(--panel-border-light);
+}
+
+body:not(.dark-mode) .panel .panel-header:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.panel .panel-header .panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panel .panel-header .panel-icon {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.panel .panel-header .collapse-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--panel-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.panel .panel-header .collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--panel-text);
+}
+
+body:not(.dark-mode) .panel .panel-header .collapse-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   PANEL CONTENT - Scrollable area
+   PANEL CONTENT — Scrollable area
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel .panel-content {
-  padding: 12px;
+  padding: var(--panel-padding);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: calc(100vh - 100px);
+  max-height: calc(80vh - 60px);
 }
 
-/* Pixel-style scrollbar */
+/* Elegant scrollbar */
 .panel .panel-content::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .panel .panel-content::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
+  background: transparent;
+  margin: 4px 0;
 }
 
 .panel .panel-content::-webkit-scrollbar-thumb {
-  background: #00ff88;
-  border: 2px solid rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
 }
 
 .panel .panel-content::-webkit-scrollbar-thumb:hover {
-  background: #00ffaa;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+body:not(.dark-mode) .panel .panel-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+body:not(.dark-mode) .panel .panel-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   DETAILS/ACCORDIONS - Collapsible sections
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.panel details {
-  background: transparent;
-  border: 1px solid rgba(0, 255, 136, 0.2);
-  padding: 0;
-}
-
-.panel details summary {
-  cursor: pointer;
-  padding: 8px 10px;
-  font-weight: bold;
-  font-size: 8px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  list-style: none;
-  user-select: none;
-  background: rgba(0, 255, 136, 0.08);
-  transition: background 0.1s;
-}
-
-.panel details summary:hover {
-  background: rgba(0, 255, 136, 0.15);
-}
-
-.panel details summary::-webkit-details-marker { display: none; }
-
-.panel details summary::before {
-  content: '▸ ';
-  font-size: 8px;
-}
-
-.panel details[open] summary::before {
-  content: '▾ ';
-}
-
-.panel details[open] summary {
-  border-bottom: 1px solid rgba(0, 255, 136, 0.2);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   GROUP - Control containers
+   SECTION / GROUP — Container for controls
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel .group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.3);
+  gap: 14px;
+}
+
+.panel .section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--panel-text-tertiary);
+  margin-bottom: 4px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   LABELS & VALUES
+   DETAILS/ACCORDION — Collapsible sections
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel details {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+body:not(.dark-mode) .panel details {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: var(--panel-border-light);
+}
+
+.panel details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--panel-text);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.panel details summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel details summary::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-size: contain;
+  transition: transform 0.2s ease;
+}
+
+body:not(.dark-mode) .panel details summary::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(0,0,0,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+.panel details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.panel details summary:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body:not(.dark-mode) .panel details summary:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.panel details[open] summary {
+  border-bottom: 1px solid var(--panel-border);
+}
+
+body:not(.dark-mode) .panel details[open] summary {
+  border-bottom-color: var(--panel-border-light);
+}
+
+.panel details .group {
+  padding: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LABELS — Control labels
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 8px;
-  color: rgba(0, 255, 136, 0.8);
+  gap: 8px;
 }
 
 .panel label > span:first-child,
 .panel label > div:first-child {
-  font-size: 8px;
-  color: rgba(0, 255, 136, 0.6);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--panel-text-secondary);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+}
+
+body:not(.dark-mode) .panel label > span:first-child,
+body:not(.dark-mode) .panel label > div:first-child {
+  color: var(--panel-text-secondary-light);
 }
 
 .panel span.val {
-  font-family: inherit;
-  font-size: 8px;
-  color: #fff;
-  font-weight: bold;
-  min-width: 32px;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--panel-text);
+  min-width: 48px;
   text-align: right;
-  background: rgba(0, 255, 136, 0.1);
-  padding: 2px 4px;
-  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+body:not(.dark-mode) .panel span.val {
+  color: var(--panel-text-light);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SLIDERS - Pixel-perfect range inputs
+   SLIDERS — Modern range inputs
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel input[type="range"] {
   width: 100%;
-  height: 8px;
-  border-radius: 0;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(0, 255, 136, 0.3);
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
   outline: none;
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
-  pointer-events: auto !important;
+}
+
+body:not(.dark-mode) .panel input[type="range"] {
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .panel input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 12px;
-  height: 16px;
-  border-radius: 0;
-  background: #00ff88;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--panel-accent);
+  border: 3px solid rgba(255, 255, 255, 0.95);
   cursor: pointer;
-  border: 2px solid #fff;
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
-  pointer-events: auto !important;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .panel input[type="range"]::-webkit-slider-thumb:hover {
-  background: #00ffaa;
+  transform: scale(1.1);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .panel input[type="range"]::-webkit-slider-thumb:active {
-  background: #fff;
-  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  transform: scale(0.95);
 }
 
 .panel input[type="range"]::-moz-range-thumb {
-  width: 12px;
-  height: 16px;
-  border-radius: 0;
-  background: #00ff88;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--panel-accent);
+  border: 3px solid rgba(255, 255, 255, 0.95);
   cursor: pointer;
-  border: 2px solid #fff;
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.panel input[type="range"]::-moz-range-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+body:not(.dark-mode) .panel input[type="range"]::-moz-range-track {
+  background: rgba(0, 0, 0, 0.08);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   BUTTONS - Retro game style
+   BUTTONS — Clean, tactile
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel button {
   font-family: inherit;
-  font-size: 8px;
-  padding: 6px 10px;
-  background: #00ff88;
-  border: 2px solid #fff;
-  border-radius: 0;
-  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  color: var(--panel-text);
   cursor: pointer;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
-  transition: all 0.05s;
-  pointer-events: auto !important;
+  transition: all 0.15s ease;
 }
 
 .panel button:hover {
-  background: #00ffaa;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .panel button:active {
-  background: #fff;
-  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
-  transform: translate(2px, 2px);
+  background: rgba(255, 255, 255, 0.06);
+  transform: scale(0.98);
+}
+
+body:not(.dark-mode) .panel button {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: var(--panel-border-light);
+  color: var(--panel-text-light);
+}
+
+body:not(.dark-mode) .panel button:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Primary button */
+.panel button.primary {
+  background: var(--panel-accent);
+  border-color: var(--panel-accent);
+  color: #000;
+  font-weight: 600;
+}
+
+.panel button.primary:hover {
+  background: var(--panel-accent-hover);
+  border-color: var(--panel-accent-hover);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SELECT DROPDOWNS
+   SELECT — Modern dropdown
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel select {
   font-family: inherit;
-  font-size: 8px;
-  padding: 4px 6px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(0, 255, 136, 0.4);
-  border-radius: 0;
-  color: #00ff88;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 36px 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  color: var(--panel-text);
   cursor: pointer;
-  pointer-events: auto !important;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: all 0.15s ease;
 }
 
 .panel select:hover {
-  border-color: rgba(0, 255, 136, 0.7);
-  background: rgba(0, 0, 0, 0.7);
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .panel select:focus {
-  outline: 2px solid #00ff88;
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--panel-accent);
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.15);
+}
+
+body:not(.dark-mode) .panel select {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-color: var(--panel-border-light);
+  color: var(--panel-text-light);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(0,0,0,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   CODE TAGS
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.panel code {
-  font-family: inherit;
-  background: rgba(0, 255, 136, 0.15);
-  padding: 2px 4px;
-  border: 1px solid rgba(0, 255, 136, 0.3);
-  font-size: 8px;
-  color: #fff;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   MODE SWITCHER - Grid of mode buttons
+   MODE SWITCHER — Grid of mode buttons
    ═══════════════════════════════════════════════════════════════════════════════ */
 .mode-switcher {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 4px;
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 255, 136, 0.2);
+  gap: 8px;
 }
 
 .mode-button {
-  padding: 8px 6px;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(0, 255, 136, 0.3);
-  border-radius: 0;
-  color: rgba(0, 255, 136, 0.7);
+  padding: 12px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  color: var(--panel-text-secondary);
   font-family: inherit;
-  font-size: 8px;
-  font-weight: normal;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   text-align: center;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  white-space: nowrap;
-  transition: all 0.05s;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  gap: 6px;
+  transition: all 0.15s ease;
 }
 
 .mode-button:hover {
-  background: rgba(0, 255, 136, 0.1);
-  border-color: rgba(0, 255, 136, 0.5);
-  color: #00ff88;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--panel-text);
 }
 
 .mode-button.active {
-  background: #00ff88;
-  border-color: #fff;
+  background: var(--panel-accent);
+  border-color: var(--panel-accent);
   color: #000;
-  font-weight: bold;
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  font-weight: 600;
 }
 
-.mode-button:active {
-  transform: translate(1px, 1px);
+.mode-button.active:hover {
+  background: var(--panel-accent-hover);
+}
+
+body:not(.dark-mode) .mode-button {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: var(--panel-border-light);
+  color: var(--panel-text-secondary-light);
+}
+
+body:not(.dark-mode) .mode-button:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .mode-controls { 
@@ -1357,107 +1489,98 @@ body.dark-mode .panel {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   THEME SEGMENT CONTROL - Auto/Light/Dark toggle
+   THEME SEGMENT CONTROL — Auto/Light/Dark toggle
    ═══════════════════════════════════════════════════════════════════════════════ */
 .theme-segment-control {
   display: flex;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 255, 136, 0.3);
-  padding: 0;
-  gap: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+}
+
+body:not(.dark-mode) .theme-segment-control {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: var(--panel-border-light);
 }
 
 .theme-segment-btn {
   flex: 1;
-  padding: 6px 8px;
+  padding: 8px 12px;
   border: none;
-  border-right: 1px solid rgba(0, 255, 136, 0.2);
   background: transparent;
-  color: rgba(0, 255, 136, 0.6);
-  border-radius: 0;
+  color: var(--panel-text-secondary);
+  border-radius: 7px;
   font-family: inherit;
-  font-size: 8px;
-  font-weight: normal;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: all 0.05s;
-}
-
-.theme-segment-btn:last-child {
-  border-right: none;
+  transition: all 0.15s ease;
 }
 
 .theme-segment-btn:hover {
-  color: #00ff88;
-  background: rgba(0, 255, 136, 0.05);
+  color: var(--panel-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+body:not(.dark-mode) .theme-segment-btn {
+  color: var(--panel-text-secondary-light);
+}
+
+body:not(.dark-mode) .theme-segment-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .theme-segment-btn.active {
-  background: #00ff88;
-  color: #000;
-  font-weight: bold;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--panel-text);
+  font-weight: 600;
 }
 
-.theme-segment-btn:active {
-  background: #fff;
+body:not(.dark-mode) .theme-segment-btn.active {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--panel-text-light);
 }
-
-body.dark-mode .theme-segment-control {
-  background: rgba(0, 0, 0, 0.5);
-}
-
-/* Sound panel styles moved to sound-panel.css */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   COLOR PICKER OVERRIDES
+   COLOR PICKER
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel input[type="color"] {
-  width: 24px;
-  height: 16px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border: 2px solid rgba(0, 255, 136, 0.5);
-  border-radius: 0;
+  border: 2px solid var(--panel-border);
+  border-radius: 8px;
   cursor: pointer;
   background: transparent;
+  overflow: hidden;
 }
 
 .panel input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 0;
+  padding: 2px;
 }
 
 .panel input[type="color"]::-webkit-color-swatch {
   border: none;
-  border-radius: 0;
+  border-radius: 4px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   SCANLINE EFFECT - Subtle CRT look
+   COLLAPSED STATE
    ═══════════════════════════════════════════════════════════════════════════════ */
-.panel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0px,
-    transparent 1px,
-    rgba(0, 0, 0, 0.1) 1px,
-    rgba(0, 0, 0, 0.1) 2px
-  );
-  opacity: 0.3;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   MINIMIZED STATE
-   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel.collapsed .panel-content,
 .panel.minimized .panel-content {
   display: none;
 }
 
+.panel.collapsed,
 .panel.minimized {
   max-height: auto;
+}
+
+.panel.collapsed .collapse-btn {
+  transform: rotate(-90deg);
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗

@@ -81,7 +81,7 @@
   
   /* Content area backgrounds */
   --bg-light: #cecece;  /* Light grey - content area */
-  --bg-dark: #0a0a0a;   /* Near black - content area */
+  --bg-dark: #1a1c1f;   /* Dark grey with 1% azure tint - softer than pure black */
   
   /* Rubber wall color = frame color (they're the same visual element) */
   --wall-color: var(--frame-color-light);
@@ -210,9 +210,9 @@ body.body.dark-mode {
    MAX: Control Panel
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* Webflow .viewport reset - prevent stacking context issues */
+/* Webflow .viewport reset - content area behind balls but above background */
 .viewport {
-  z-index: auto !important;
+  z-index: 1 !important;  /* Below #bravia-balls (z:5) so balls show in front */
   position: static !important;
   transform: none !important;
   opacity: 1 !important;
@@ -350,7 +350,7 @@ a {
   inset: 0;  /* Flush with browser edges - no gap */
   overflow: hidden;
   border-radius: 0;  /* Outer container is FLUSH with browser */
-  background: var(--wall-color);
+  background: transparent;  /* Let .viewport--content show through */
   z-index: 5;
   pointer-events: none !important;
   user-select: none; 
