@@ -17,10 +17,7 @@ const SEGMENTS_PER_WALL = 12;  // Resolution for smooth curves (kept constant fo
 const SPRING_STIFFNESS = 400;  // Default spring stiffness
 const SPRING_DAMPING = 18;     // Default spring damping
 const MAX_DEFORM = 30;         // Default max inward flex (px at DPR 1)
-const BOUNCE_HIGHLIGHT_DECAY = 5.0; // Default highlight fade speed (per second)
-
-// Bounce highlight state (global for all walls)
-let bounceHighlightIntensity = 0;
+// Bounce flash removed (was previously implemented via CSS var --wall-bounce-intensity)
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WALL EDGE - Straight section between two corners
@@ -135,21 +132,13 @@ export const wallState = {
   right: new WallEdge(),
   
   /**
-   * Update all wall physics + bounce highlight decay
+   * Update all wall physics
    */
   step(dt) {
     this.top.step(dt);
     this.bottom.step(dt);
     this.left.step(dt);
     this.right.step(dt);
-    
-    // Decay bounce highlight
-    const g = getGlobals();
-    const decay = Math.max(0, g.wallBounceHighlightDecay ?? BOUNCE_HIGHLIGHT_DECAY);
-    bounceHighlightIntensity = Math.max(0, bounceHighlightIntensity - decay * dt);
-    
-    // Update CSS variable for visual effect
-    updateBounceHighlightCSS();
   },
   
   reset() {
@@ -157,8 +146,6 @@ export const wallState = {
     this.bottom.reset();
     this.left.reset();
     this.right.reset();
-    bounceHighlightIntensity = 0;
-    updateBounceHighlightCSS();
   },
   
   hasAnyDeformation() {
@@ -177,15 +164,6 @@ export function registerWallImpact(wall, normalizedPos, intensity) {
   // Skip corner impacts - corners are stuck
   if (wall.startsWith('corner')) return;
   
-  // Skip low-intensity impacts
-  const g = getGlobals();
-  const threshold = Math.max(0, Math.min(1, g.wallWobbleImpactThreshold ?? 0.05));
-  if (intensity < threshold) return;
-  
-  // Add to bounce highlight (capped at max)
-  const maxHighlight = g.wallBounceHighlightMax || 0.3;
-  bounceHighlightIntensity = Math.min(maxHighlight, bounceHighlightIntensity + intensity * 0.5);
-  
   if (wall === 'top') {
     wallState.top.impact(normalizedPos, intensity);
   } else if (wall === 'bottom') {
@@ -198,25 +176,11 @@ export function registerWallImpact(wall, normalizedPos, intensity) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// BOUNCE HIGHLIGHT CSS UPDATE
-// Updates the CSS variable for the wall highlight flash effect
-// ═══════════════════════════════════════════════════════════════════════════════
-function updateBounceHighlightCSS() {
-  const root = document.documentElement;
-  if (root) {
-    root.style.setProperty('--wall-bounce-intensity', String(bounceHighlightIntensity));
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // WALL RENDERING
 // Draws rubber walls anchored at viewport edges with flexible middles
 // ═══════════════════════════════════════════════════════════════════════════════
 export function drawWalls(ctx, w, h) {
   const g = getGlobals();
-  
-  // Skip if no deformation
-  if (!wallState.hasAnyDeformation()) return;
   
   // Get chrome color
   const chromeColor = getChromeColorFromCSS();
@@ -224,32 +188,26 @@ export function drawWalls(ctx, w, h) {
   // Wall thickness (visual stroke width)
   const thickness = (g.wallThickness || 12) * (g.DPR || 1);
   
-  // Viewport top (Ball Pit mode starts lower)
-  const viewportTop = (g.currentMode === 'pit') ? (h / 3) : 0;
+  // Walls always at canvas edges - no special mode offsets
   
   ctx.save();
   ctx.fillStyle = chromeColor;
   
   // ─────────────────────────────────────────────────────────────────────────
-  // BOTTOM WALL
-  // Anchored at FULL WIDTH (0 to w), flexible in middle
+  // BOTTOM WALL - Only draw when there's deformation (like other walls)
   // ─────────────────────────────────────────────────────────────────────────
   if (wallState.bottom.hasDeformation()) {
     ctx.beginPath();
-    
-    // Start outside canvas at bottom-left corner (full width)
     ctx.moveTo(0, h + thickness);
     
-    // Draw deformed edge across full width
     for (let i = 0; i <= SEGMENTS_PER_WALL; i++) {
       const t = i / SEGMENTS_PER_WALL;
-      const x = t * w; // Map 0..1 to 0..w
+      const x = t * w;
       const deform = wallState.bottom.getDeformAt(t);
-      // Positive deform = chrome pushes UP into canvas
+      // Inner edge at h, deform pushes inward
       ctx.lineTo(x, h - deform);
     }
     
-    // Close path below canvas at bottom-right
     ctx.lineTo(w, h + thickness);
     ctx.closePath();
     ctx.fill();
@@ -257,38 +215,36 @@ export function drawWalls(ctx, w, h) {
   
   // ─────────────────────────────────────────────────────────────────────────
   // TOP WALL  
-  // Anchored at FULL WIDTH at viewportTop
   // ─────────────────────────────────────────────────────────────────────────
   if (wallState.top.hasDeformation()) {
     ctx.beginPath();
     
-    ctx.moveTo(0, viewportTop - thickness);
+    ctx.moveTo(0, -thickness);
     
     for (let i = 0; i <= SEGMENTS_PER_WALL; i++) {
       const t = i / SEGMENTS_PER_WALL;
       const x = t * w;
       const deform = wallState.top.getDeformAt(t);
       // Positive deform = chrome pushes DOWN into canvas
-      ctx.lineTo(x, viewportTop + deform);
+      ctx.lineTo(x, deform);
     }
     
-    ctx.lineTo(w, viewportTop - thickness);
+    ctx.lineTo(w, -thickness);
     ctx.closePath();
     ctx.fill();
   }
   
   // ─────────────────────────────────────────────────────────────────────────
   // LEFT WALL
-  // Anchored at FULL HEIGHT (viewportTop to h)
   // ─────────────────────────────────────────────────────────────────────────
   if (wallState.left.hasDeformation()) {
     ctx.beginPath();
     
-    ctx.moveTo(-thickness, viewportTop);
+    ctx.moveTo(-thickness, 0);
     
     for (let i = 0; i <= SEGMENTS_PER_WALL; i++) {
       const t = i / SEGMENTS_PER_WALL;
-      const y = viewportTop + t * (h - viewportTop);
+      const y = t * h;
       const deform = wallState.left.getDeformAt(t);
       // Positive deform = chrome pushes RIGHT into canvas
       ctx.lineTo(deform, y);
@@ -301,16 +257,15 @@ export function drawWalls(ctx, w, h) {
   
   // ─────────────────────────────────────────────────────────────────────────
   // RIGHT WALL
-  // Anchored at FULL HEIGHT (viewportTop to h)
   // ─────────────────────────────────────────────────────────────────────────
   if (wallState.right.hasDeformation()) {
     ctx.beginPath();
     
-    ctx.moveTo(w + thickness, viewportTop);
+    ctx.moveTo(w + thickness, 0);
     
     for (let i = 0; i <= SEGMENTS_PER_WALL; i++) {
       const t = i / SEGMENTS_PER_WALL;
-      const y = viewportTop + t * (h - viewportTop);
+      const y = t * h;
       const deform = wallState.right.getDeformAt(t);
       // Positive deform = chrome pushes LEFT into canvas
       ctx.lineTo(w - deform, y);

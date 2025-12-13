@@ -95,10 +95,7 @@ export function render() {
   // Clear
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // Draw rubber walls FIRST (behind everything, only when deformed)
-  drawWalls(ctx, canvas.width, canvas.height);
-  
-  // Draw water ripples (behind balls for gorgeous effect)
+  // Draw water ripples (behind balls)
   if (globals.currentMode === MODES.WATER) {
     drawWaterRipples(ctx);
   }
@@ -107,6 +104,9 @@ export function render() {
   for (let i = 0; i < balls.length; i++) {
     balls[i].draw(ctx);
   }
+  
+  // Draw rubber walls LAST (in front of balls)
+  drawWalls(ctx, canvas.width, canvas.height);
 }
 
 /**

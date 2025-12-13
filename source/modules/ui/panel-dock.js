@@ -1,7 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                          PANEL DOCK CONTROLLER                              ║
-// ║        Unified container for Control Panel and Sound Panel                  ║
-// ║        Both panels collapsed and visible by default                         ║
+// ║                       UNIFIED MASTER PANEL                                   ║
+// ║           Single panel with collapsible sections                             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { PANEL_HTML } from './panel-html.js';
@@ -25,10 +24,10 @@ import {
   bindSoundControls,
   syncSoundControlsToConfig
 } from '../audio/sound-control-registry.js';
+import { resize } from '../rendering/renderer.js';
 
 let dockElement = null;
-let controlPanelElement = null;
-let soundPanelElement = null;
+let masterPanelElement = null;
 let dockToggleElement = null;
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -38,25 +37,20 @@ let dockToggleElement = null;
 const STORAGE_KEYS = {
   position: 'panel_dock_position',
   dockHidden: 'panel_dock_hidden',
-  collapseState: 'panel_dock_collapse'
+  panelCollapsed: 'master_panel_collapsed'
 };
 
-function loadCollapseState() {
+function loadPanelCollapsed() {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.collapseState);
-    return stored ? JSON.parse(stored) : { control: true, sound: true }; // collapsed by default
+    return localStorage.getItem(STORAGE_KEYS.panelCollapsed) === 'true';
   } catch (e) {
-    return { control: true, sound: true };
+    return false;
   }
 }
 
-function saveCollapseState() {
+function savePanelCollapsed(collapsed) {
   try {
-    const state = {
-      control: controlPanelElement?.classList.contains('collapsed') ?? true,
-      sound: soundPanelElement?.classList.contains('collapsed') ?? true
-    };
-    localStorage.setItem(STORAGE_KEYS.collapseState, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEYS.panelCollapsed, String(collapsed));
   } catch (e) {}
 }
 
@@ -79,63 +73,112 @@ function saveDockHiddenState(hidden) {
 // ════════════════════════════════════════════════════════════════════════════════
 
 let isDragging = false;
-let hasDragged = false; // True if we moved more than threshold during this gesture
+let hasDragged = false;
 let dragStartX = 0;
 let dragStartY = 0;
 let elementStartX = 0;
 let elementStartY = 0;
-let draggedElement = null; // The panel being dragged (individual panel, not dock)
 
 // ════════════════════════════════════════════════════════════════════════════════
-// SOUND PANEL HTML (simplified for dock)
+// MASTER PANEL HTML
 // ════════════════════════════════════════════════════════════════════════════════
 
-// Generate sound panel content dynamically from registry
-function getSoundPanelContent() {
+function getMasterPanelContent() {
+  // Get current CSS values for layout controls
+  const getVar = (name) => {
+    const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return parseInt(val) || 0;
+  };
+  const frameVal = getVar('--container-border') || 20;
+  const radiusVal = getVar('--wall-radius') || 42;
+  const contentPadVal = getVar('--content-padding') || 40;
+
   return `
-  <!-- Sound Enable/Disable -->
-  <div class="sound-dock__enable">
-    <button id="soundEnableBtn" class="sound-dock__enable-btn">
-      🔇 Enable Sound
-    </button>
-  </div>
-  
-  <!-- Controls (visible when sound enabled) -->
-  <div id="soundControlsWrapper" class="sound-dock__controls" style="display: none;">
-    <!-- Preset -->
-    <div class="sound-dock__section">
-      <select id="soundPresetSelect" class="sound-dock__select"></select>
-      <p id="presetDescription" class="sound-dock__desc"></p>
-    </div>
-    
-    <!-- All controls from registry -->
-    ${generateSoundControlsHTML()}
-  </div>
-`;
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         LAYOUT SECTION - Frame & Content Spacing
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <details class="panel-section-accordion" id="layoutSection">
+      <summary class="panel-section-header">
+        <span class="section-icon">📐</span>
+        <span class="section-label">Layout</span>
+      </summary>
+      <div class="panel-section-content">
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Frame</span>
+            <span class="control-value" id="frameValue">${frameVal}px</span>
+          </div>
+          <input type="range" id="layoutFrame" min="0" max="100" value="${frameVal}" />
+        </label>
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Content Padding</span>
+            <span class="control-value" id="contentPadValue">${contentPadVal}px</span>
+          </div>
+          <input type="range" id="contentPadding" min="0" max="80" value="${contentPadVal}" />
+        </label>
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Radius</span>
+            <span class="control-value" id="radiusValue">${radiusVal}px</span>
+          </div>
+          <input type="range" id="layoutRadius" min="0" max="100" value="${radiusVal}" />
+        </label>
+      </div>
+    </details>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SOUND SECTION
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <details class="panel-section-accordion" id="soundSection">
+      <summary class="panel-section-header">
+        <span class="section-icon">🔊</span>
+        <span class="section-label">Sound</span>
+      </summary>
+      <div class="panel-section-content">
+        <div class="sound-enable-row">
+          <button id="soundEnableBtn" class="sound-enable-btn">🔇 Enable Sound</button>
+        </div>
+        <div id="soundControlsWrapper" class="sound-controls" style="display: none;">
+          <label class="control-row">
+            <span class="control-label">Preset</span>
+            <select id="soundPresetSelect" class="control-select"></select>
+          </label>
+          <p id="presetDescription" class="control-hint"></p>
+          ${generateSoundControlsHTML()}
+        </div>
+      </div>
+    </details>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         CONTROLS SECTION - Theme & Mode
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <details class="panel-section-accordion" id="controlsSection" open>
+      <summary class="panel-section-header">
+        <span class="section-icon">⚙️</span>
+        <span class="section-label">Controls</span>
+      </summary>
+      <div class="panel-section-content">
+        ${PANEL_HTML}
+      </div>
+    </details>
+  `;
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
 // DOCK CREATION
 // ════════════════════════════════════════════════════════════════════════════════
 
-/**
- * Create the unified panel dock with both panels
- */
 export function createPanelDock() {
   // Initialize sound engine (non-blocking)
   initSoundEngine();
 
-  // Remove any legacy/injected placeholders (duplicate IDs break binding + styling)
-  // Production build may inject a #controlPanel placeholder; the dock creates its own.
+  // Remove any legacy placeholders
   try {
     const existingControl = document.getElementById('controlPanel');
-    if (existingControl && !existingControl.closest('.panel-dock')) {
-      existingControl.remove();
-    }
+    if (existingControl) existingControl.remove();
     const existingSound = document.getElementById('soundPanel');
-    if (existingSound && !existingSound.closest('.panel-dock')) {
-      existingSound.remove();
-    }
+    if (existingSound) existingSound.remove();
   } catch (e) {}
   
   // Create dock container
@@ -149,73 +192,58 @@ export function createPanelDock() {
     dockElement.classList.add('hidden');
   }
   
-  // Create Control Panel
-  controlPanelElement = createControlPanel();
-  
-  // Create Sound Panel
-  soundPanelElement = createSoundPanel();
-  
-  // Add panels to dock (Sound on top, Controls below)
-  dockElement.appendChild(soundPanelElement);
-  dockElement.appendChild(controlPanelElement);
+  // Create master panel
+  masterPanelElement = createMasterPanel();
+  dockElement.appendChild(masterPanelElement);
   
   // Create dock toggle button
   dockToggleElement = createDockToggle();
   
-  // Append to simulation container so styling can be safely scoped under #bravia-balls
-  // (and to avoid collisions with Webflow/global site CSS).
-  const container = getGlobals().container || document.body;
-  container.appendChild(dockElement);
-  container.appendChild(dockToggleElement);
+  // Append to body as first child for maximum z-index stacking
+  document.body.insertBefore(dockElement, document.body.firstChild);
+  document.body.insertBefore(dockToggleElement, document.body.firstChild);
   
-  // Update toggle button visibility based on dock state
+  // Update toggle visibility
   if (wasHidden && dockToggleElement) {
     dockToggleElement.style.opacity = '1';
     dockToggleElement.style.pointerEvents = 'auto';
   }
   
-  // Setup keyboard shortcuts
+  // Setup interactions
   setupKeyboardShortcuts();
-  
-  // Setup dragging
   setupDragging();
   
   console.log('✓ Panel dock created');
   return dockElement;
 }
 
-/**
- * Create the control panel element
- */
-function createControlPanel() {
-  const collapseState = loadCollapseState();
-  
+function createMasterPanel() {
   const panel = document.createElement('div');
-  panel.id = 'controlPanel';
-  panel.className = collapseState.control ? 'panel collapsed' : 'panel';
+  panel.id = 'masterPanel';
+  panel.className = loadPanelCollapsed() ? 'panel collapsed' : 'panel';
   panel.setAttribute('role', 'region');
-  panel.setAttribute('aria-label', 'Simulation controls');
+  panel.setAttribute('aria-label', 'Settings');
   
-  // Custom header for dock
+  // Header
   const header = document.createElement('div');
   header.className = 'panel-header';
   header.innerHTML = `
     <div class="panel-title">
-      <span class="panel-icon">⚙️</span>
-      <span>Controls</span>
+      <span class="drag-indicator" aria-hidden="true">⋮⋮</span>
+      <span>Settings</span>
     </div>
-    <button class="collapse-btn" aria-label="Expand/collapse controls">▼</button>
+    <button class="collapse-btn" aria-label="Collapse panel">▼</button>
   `;
   
-  // Content wrapper
+  // Content
   const content = document.createElement('div');
   content.className = 'panel-content';
-  content.innerHTML = PANEL_HTML.replace(/<div class="panel-header"[\s\S]*?<\/div>/, ''); // Remove original header
+  content.innerHTML = getMasterPanelContent();
   
   panel.appendChild(header);
   panel.appendChild(content);
   
-  // Make the chevron button actually toggle (header click ignores buttons)
+  // Collapse button
   const collapseBtn = header.querySelector('.collapse-btn');
   if (collapseBtn) {
     collapseBtn.addEventListener('click', (e) => {
@@ -225,95 +253,37 @@ function createControlPanel() {
     });
   }
   
-  // Setup header click to toggle (separate from drag)
+  // Header click to toggle
   header.addEventListener('click', (e) => {
-    // Don't toggle if we just dragged
     if (hasDragged) return;
-    // Don't toggle if clicking on a button inside header
     if (e.target.closest('button')) return;
     togglePanelCollapse(panel);
   });
   
-  // Initialize dark mode and controls
+  // Initialize controls
   setTimeout(() => {
     initializeDarkMode();
     setupControls();
     setupBuildControls();
+    setupSoundControls(panel);
+    setupLayoutControls(panel);
   }, 0);
   
   return panel;
 }
 
-/**
- * Create the sound panel element
- */
-function createSoundPanel() {
-  const collapseState = loadCollapseState();
-  
-  const panel = document.createElement('div');
-  panel.id = 'soundPanel';
-  panel.className = collapseState.sound ? 'panel sound-panel collapsed' : 'panel sound-panel';
-  panel.setAttribute('role', 'region');
-  panel.setAttribute('aria-label', 'Sound configuration');
-  
-  // Custom header for dock
-  const header = document.createElement('div');
-  header.className = 'panel-header';
-  header.innerHTML = `
-    <div class="panel-title">
-      <span class="panel-icon">🔊</span>
-      <span>Sound</span>
-    </div>
-    <button class="collapse-btn" aria-label="Expand/collapse sound">▼</button>
-  `;
-  
-  // Content wrapper
-  const content = document.createElement('div');
-  content.className = 'panel-content';
-  content.innerHTML = getSoundPanelContent();
-  
-  panel.appendChild(header);
-  panel.appendChild(content);
-  
-  // Make the chevron button actually toggle (header click ignores buttons)
-  const collapseBtn = header.querySelector('.collapse-btn');
-  if (collapseBtn) {
-    collapseBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      togglePanelCollapse(panel);
-    });
-  }
-  
-  // Setup header click to toggle (separate from drag)
-  header.addEventListener('click', (e) => {
-    // Don't toggle if we just dragged
-    if (hasDragged) return;
-    // Don't toggle if clicking on a button inside header
-    if (e.target.closest('button')) return;
-    togglePanelCollapse(panel);
-  });
-  
-  // Setup sound controls
-  setTimeout(() => setupSoundControls(panel), 0);
-  
-  return panel;
-}
-
-/**
- * Create the dock toggle button (shows when dock is hidden)
- */
 function createDockToggle() {
   const btn = document.createElement('button');
   btn.className = 'dock-toggle';
   btn.id = 'dockToggle';
-  btn.setAttribute('aria-label', 'Show panels');
+  btn.setAttribute('aria-label', 'Show settings');
   btn.innerHTML = '⚙️';
   
   btn.addEventListener('click', () => {
     dockElement.classList.remove('hidden');
     btn.style.opacity = '0';
     btn.style.pointerEvents = 'none';
+    saveDockHiddenState(false);
   });
   
   return btn;
@@ -323,258 +293,138 @@ function createDockToggle() {
 // DRAG FUNCTIONALITY
 // ════════════════════════════════════════════════════════════════════════════════
 
-/**
- * Setup drag handlers for the dock
- */
 function setupDragging() {
-  if (!dockElement) return;
+  if (!masterPanelElement) return;
   
-  // Get all panel headers in the dock
-  const headers = dockElement.querySelectorAll('.panel-header');
+  const header = masterPanelElement.querySelector('.panel-header');
+  if (!header) return;
   
-  headers.forEach(header => {
-    // Add drag handle indicator
-    const titleEl = header.querySelector('.panel-title');
-    if (titleEl && !titleEl.querySelector('.drag-indicator')) {
-      const dragIndicator = document.createElement('span');
-      dragIndicator.className = 'drag-indicator';
-      dragIndicator.innerHTML = '⋮⋮';
-      dragIndicator.setAttribute('aria-hidden', 'true');
-      titleEl.insertBefore(dragIndicator, titleEl.firstChild);
-    }
-    
-    // Mouse events
-    header.addEventListener('mousedown', handleDragStart);
-    
-    // Touch events
-    header.addEventListener('touchstart', handleDragStart, { passive: false });
-  });
+  header.addEventListener('mousedown', handleDragStart);
+  header.addEventListener('touchstart', handleDragStart, { passive: false });
   
-  // Global move/end listeners
   document.addEventListener('mousemove', handleDragMove);
   document.addEventListener('mouseup', handleDragEnd);
   document.addEventListener('touchmove', handleDragMove, { passive: false });
   document.addEventListener('touchend', handleDragEnd);
   
-  // Load saved panel positions
-  loadPanelPositions();
+  loadPanelPosition();
 }
 
-/**
- * Handle drag start
- */
 function handleDragStart(e) {
-  // Only drag from header, not from buttons or controls
-  if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
-    return;
-  }
+  if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
   
-  // Check if this is a collapse toggle (short click) or drag start
-  const header = e.target.closest('.panel-header');
-  if (!header) return;
-  
-  // Find the panel this header belongs to
-  const panel = header.closest('.panel');
-  if (!panel) return;
-  
-  // Get position
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
   
-  // Store start positions
+  const rect = masterPanelElement.getBoundingClientRect();
   dragStartX = clientX;
   dragStartY = clientY;
-  
-  // Get panel's current position
-  const rect = panel.getBoundingClientRect();
   elementStartX = rect.left;
   elementStartY = rect.top;
-  
-  // Store reference to dragged panel
-  draggedElement = panel;
-  
-  // Mark as potentially dragging (will confirm after threshold)
   isDragging = false;
-  hasDragged = false; // Reset drag flag at gesture start
-  
-  // NOTE: Do NOT call e.preventDefault() here — it blocks the click event!
-  // We'll only prevent default during actual drag movement.
+  hasDragged = false;
 }
 
-/**
- * Handle drag move
- */
 function handleDragMove(e) {
-  if (dragStartX === 0 && dragStartY === 0 || !draggedElement) return;
+  if (dragStartX === 0 && dragStartY === 0) return;
   
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
   
   const deltaX = clientX - dragStartX;
   const deltaY = clientY - dragStartY;
+  const threshold = 5;
   
-  // Threshold to differentiate click from drag
-  const dragThreshold = 5;
-  
-  if (!isDragging && (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold)) {
+  if (!isDragging && (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold)) {
     isDragging = true;
-    hasDragged = true; // Flag for click handlers to ignore this gesture
-    draggedElement.classList.add('dragging');
-    
-    // Detach panel from dock flow and position absolutely
-    draggedElement.style.position = 'fixed';
-    draggedElement.style.top = `${elementStartY}px`;
-    draggedElement.style.left = `${elementStartX}px`;
-    draggedElement.style.right = 'auto';
-    draggedElement.style.zIndex = '10001'; // Above dock
+    hasDragged = true;
+    masterPanelElement.classList.add('dragging');
+    masterPanelElement.style.position = 'fixed';
+    masterPanelElement.style.top = `${elementStartY}px`;
+    masterPanelElement.style.left = `${elementStartX}px`;
+    masterPanelElement.style.right = 'auto';
   }
   
   if (isDragging) {
-    // Calculate new position
     let newX = elementStartX + deltaX;
     let newY = elementStartY + deltaY;
     
-    // Constrain to viewport
-    const panelRect = draggedElement.getBoundingClientRect();
-    const minX = 0;
-    const maxX = window.innerWidth - panelRect.width;
-    const minY = 0;
-    const maxY = window.innerHeight - panelRect.height;
+    const rect = masterPanelElement.getBoundingClientRect();
+    newX = Math.max(0, Math.min(window.innerWidth - rect.width, newX));
+    newY = Math.max(0, Math.min(window.innerHeight - rect.height, newY));
     
-    newX = Math.max(minX, Math.min(maxX, newX));
-    newY = Math.max(minY, Math.min(maxY, newY));
-    
-    // Apply position
-    draggedElement.style.left = `${newX}px`;
-    draggedElement.style.top = `${newY}px`;
-    
-    // Prevent text selection during drag
+    masterPanelElement.style.left = `${newX}px`;
+    masterPanelElement.style.top = `${newY}px`;
     e.preventDefault();
   }
 }
 
-/**
- * Handle drag end
- */
-function handleDragEnd(e) {
-  if (isDragging && draggedElement) {
+function handleDragEnd() {
+  if (isDragging) {
     isDragging = false;
-    draggedElement.classList.remove('dragging');
-    
-    // Save panel position
-    savePanelPosition(draggedElement);
+    masterPanelElement.classList.remove('dragging');
+    savePanelPosition();
   }
   
-  // Reset drag tracking
   dragStartX = 0;
   dragStartY = 0;
-  draggedElement = null;
   
-  // Reset hasDragged after click event has had a chance to fire
-  // (click fires after mouseup, so a small delay ensures the click handler sees hasDragged)
-  setTimeout(() => {
-    hasDragged = false;
-  }, 10);
+  setTimeout(() => { hasDragged = false; }, 10);
 }
 
-/**
- * Save individual panel position to localStorage
- */
-function savePanelPosition(panel) {
-  if (!panel) return;
-  
+function savePanelPosition() {
   try {
-    const positions = JSON.parse(localStorage.getItem(STORAGE_KEYS.position) || '{}');
-    positions[panel.id] = {
-      left: panel.style.left,
-      top: panel.style.top,
-      useCustomPosition: true
+    const pos = {
+      left: masterPanelElement.style.left,
+      top: masterPanelElement.style.top,
+      custom: true
     };
-    localStorage.setItem(STORAGE_KEYS.position, JSON.stringify(positions));
+    localStorage.setItem(STORAGE_KEYS.position, JSON.stringify(pos));
   } catch (e) {}
 }
 
-/**
- * Load panel positions from localStorage
- */
-function loadPanelPositions() {
+function loadPanelPosition() {
   try {
-    const positions = JSON.parse(localStorage.getItem(STORAGE_KEYS.position) || '{}');
-    
-    // Apply positions to each panel
-    [controlPanelElement, soundPanelElement].forEach(panel => {
-      if (!panel) return;
-      const pos = positions[panel.id];
-      if (pos && pos.useCustomPosition) {
-        panel.style.position = 'fixed';
-        panel.style.left = pos.left;
-        panel.style.top = pos.top;
-        panel.style.right = 'auto';
-        panel.style.zIndex = '10001';
-      }
-    });
+    const pos = JSON.parse(localStorage.getItem(STORAGE_KEYS.position) || '{}');
+    if (pos.custom) {
+      masterPanelElement.style.position = 'fixed';
+      masterPanelElement.style.left = pos.left;
+      masterPanelElement.style.top = pos.top;
+      masterPanelElement.style.right = 'auto';
+    }
   } catch (e) {}
 }
 
-/**
- * Reset all panels to default dock position
- */
 export function resetPanelPositions() {
-  [controlPanelElement, soundPanelElement].forEach(panel => {
-    if (!panel) return;
-    panel.style.position = '';
-    panel.style.left = '';
-    panel.style.top = '';
-    panel.style.right = '';
-    panel.style.zIndex = '';
-  });
-  
+  if (!masterPanelElement) return;
+  masterPanelElement.style.position = '';
+  masterPanelElement.style.left = '';
+  masterPanelElement.style.top = '';
+  masterPanelElement.style.right = '';
   try {
     localStorage.removeItem(STORAGE_KEYS.position);
   } catch (e) {}
 }
 
-// Legacy export for backwards compatibility
 export const resetDockPosition = resetPanelPositions;
 
 // ════════════════════════════════════════════════════════════════════════════════
-// PANEL COLLAPSE/EXPAND
+// PANEL COLLAPSE
 // ════════════════════════════════════════════════════════════════════════════════
 
-/**
- * Toggle a panel's collapsed state
- */
 function togglePanelCollapse(panel) {
   panel.classList.toggle('collapsed');
-  saveCollapseState();
-  
-  // Update collapse button arrow
-  const collapseBtn = panel.querySelector('.collapse-btn');
-  const isCollapsed = panel.classList.contains('collapsed');
-  if (collapseBtn) {
-    collapseBtn.setAttribute('aria-label', isCollapsed ? 'Expand panel' : 'Collapse panel');
-  }
+  savePanelCollapsed(panel.classList.contains('collapsed'));
 }
 
-/**
- * Expand a specific panel
- */
-export function expandPanel(panelId) {
-  const panel = document.getElementById(panelId);
-  if (panel) panel.classList.remove('collapsed');
+export function expandPanel() {
+  if (masterPanelElement) masterPanelElement.classList.remove('collapsed');
 }
 
-/**
- * Collapse a specific panel
- */
-export function collapsePanel(panelId) {
-  const panel = document.getElementById(panelId);
-  if (panel) panel.classList.add('collapsed');
+export function collapsePanel() {
+  if (masterPanelElement) masterPanelElement.classList.add('collapsed');
 }
 
-/**
- * Toggle the entire dock visibility
- */
 export function toggleDock() {
   if (!dockElement) return;
   
@@ -588,7 +438,7 @@ export function toggleDock() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// SOUND CONTROLS SETUP
+// SOUND CONTROLS
 // ════════════════════════════════════════════════════════════════════════════════
 
 function setupSoundControls(panel) {
@@ -597,32 +447,26 @@ function setupSoundControls(panel) {
   const presetSelect = panel.querySelector('#soundPresetSelect');
   const presetDesc = panel.querySelector('#presetDescription');
   
-  // Sound enable button
   if (enableBtn) {
     enableBtn.addEventListener('click', async () => {
       const state = getSoundState();
       
       if (!state.isUnlocked) {
-        // First click: unlock audio
         const success = await unlockAudio();
         if (success) {
           enableBtn.textContent = '🔊 Sound On';
-          enableBtn.style.background = 'rgba(76, 175, 80, 0.3)';
+          enableBtn.classList.add('enabled');
           if (controlsWrapper) controlsWrapper.style.display = '';
-          updateSoundIcon(true);
         }
       } else {
-        // Toggle sound
         const newState = toggleSound();
         enableBtn.textContent = newState ? '🔊 Sound On' : '🔇 Sound Off';
-        enableBtn.style.background = newState ? 'rgba(76, 175, 80, 0.3)' : '';
+        enableBtn.classList.toggle('enabled', newState);
         if (controlsWrapper) controlsWrapper.style.display = newState ? '' : 'none';
-        updateSoundIcon(newState);
       }
     });
   }
   
-  // Preset select
   if (presetSelect) {
     for (const [key, preset] of Object.entries(SOUND_PRESETS)) {
       const option = document.createElement('option');
@@ -641,55 +485,71 @@ function setupSoundControls(panel) {
       if (presetDesc && SOUND_PRESETS[presetSelect.value]) {
         presetDesc.textContent = SOUND_PRESETS[presetSelect.value].description;
       }
-      // Sync all controls from registry
       syncSoundControlsToConfig(panel, getSoundConfig);
     });
   }
   
-  // Bind all controls from registry
   bindSoundControls(panel, getSoundConfig, updateSoundConfig);
-  
-  // Initial sync
   syncSoundControlsToConfig(panel, getSoundConfig);
 }
 
-// Sound slider functions now handled by sound-control-registry.js
+// ════════════════════════════════════════════════════════════════════════════════
+// LAYOUT CONTROLS
+// ════════════════════════════════════════════════════════════════════════════════
 
-function updateSoundIcon(enabled) {
-  const header = soundPanelElement?.querySelector('.panel-header .panel-icon');
-  if (header) {
-    header.textContent = enabled ? '🔊' : '🔇';
+function setupLayoutControls(panel) {
+  const frameSlider = panel.querySelector('#layoutFrame');
+  const frameValue = panel.querySelector('#frameValue');
+  const contentPadSlider = panel.querySelector('#contentPadding');
+  const contentPadValue = panel.querySelector('#contentPadValue');
+  const radiusSlider = panel.querySelector('#layoutRadius');
+  const radiusValue = panel.querySelector('#radiusValue');
+  const g = getGlobals();
+  
+  // Frame (outer dark border around content)
+  if (frameSlider && frameValue) {
+    frameSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      frameValue.textContent = `${val}px`;
+      // Update frame border CSS
+      document.documentElement.style.setProperty('--container-border', `${val}px`);
+      // Keep state in sync for config export
+      g.containerBorder = val;
+      // Trigger canvas resize to account for new frame size
+      resize();
+    });
+  }
+  
+  // Content padding (space between frame edge and content elements)
+  if (contentPadSlider && contentPadValue) {
+    contentPadSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      contentPadValue.textContent = `${val}px`;
+      // Update content padding CSS
+      document.documentElement.style.setProperty('--content-padding', `${val}px`);
+      // Keep state in sync for config export
+      g.contentPadding = val;
+    });
+  }
+  
+  // Corner radius
+  if (radiusSlider && radiusValue) {
+    radiusSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      radiusValue.textContent = `${val}px`;
+      document.documentElement.style.setProperty('--wall-radius', `${val}px`);
+      // Keep state in sync for config export
+      g.wallRadius = val;
+    });
   }
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// KEYBOARD SHORTCUTS (S and C only - / is handled by keyboard.js)
+// KEYBOARD SHORTCUTS
 // ════════════════════════════════════════════════════════════════════════════════
 
 function setupKeyboardShortcuts() {
-  document.addEventListener('keydown', (e) => {
-    // Skip if typing in input
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-    
-    // Note: / for dock toggle is handled in keyboard.js
-    switch (e.key) {
-      case 's':
-      case 'S':
-        // Toggle sound panel collapse
-        if (dockElement && !dockElement.classList.contains('hidden') && soundPanelElement) {
-          togglePanelCollapse(soundPanelElement);
-        }
-        break;
-      case 'c':
-      case 'C':
-        // Toggle control panel collapse (avoid conflict with browser shortcuts)
-        if (e.ctrlKey || e.metaKey) return; // Don't override Ctrl+C / Cmd+C
-        if (dockElement && !dockElement.classList.contains('hidden') && controlPanelElement) {
-          togglePanelCollapse(controlPanelElement);
-        }
-        break;
-    }
-  });
+  // Note: / for dock toggle is handled in keyboard.js
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -697,6 +557,5 @@ function setupKeyboardShortcuts() {
 // ════════════════════════════════════════════════════════════════════════════════
 
 export function getDock() { return dockElement; }
-export function getControlPanel() { return controlPanelElement; }
-export function getSoundPanel() { return soundPanelElement; }
-
+export function getControlPanel() { return masterPanelElement; }
+export function getSoundPanel() { return masterPanelElement; }

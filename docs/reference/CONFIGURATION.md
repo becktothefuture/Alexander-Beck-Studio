@@ -29,7 +29,8 @@ Settings are managed through:
   "weightlessCount": 80,
   "weightlessSpeed": 200,
   "containerBorder": 0,
-  "simulationPadding": 0
+  "simulationPadding": 0,
+  "textWrapperPadding": 20
 }
 ```
 
@@ -79,6 +80,34 @@ Two-level padding system that creates a sophisticated layered frame effect aroun
 - **Description:** Inner padding — space inside `#bravia-balls` around the canvas
 - **Impact:** Shrinks the ball play area, canvas radius auto-adjusts
 - **Visual effect:** Creates breathing room inside the container
+
+#### `textWrapperPadding` (Number, pixels)
+- **Range:** 0 - 40
+- **Default:** 20
+- **Description:** Inner padding for the fixed text wrappers (top-left legend + top-right statement)
+- **Impact:** Purely layout/typography; does not affect physics
+- **Visual effect:** More/less breathing room inside the bordered text block(s)
+
+#### `containerInnerShadowOpacity` (Number)
+- **Range:** 0.0 - 0.4
+- **Default:** 0.12
+- **Description:** Strength of the inner shadow cast **inside** the rounded container wrapper
+- **Impact:** Visual only
+
+#### `containerInnerShadowBlur` (Number, pixels)
+- **Range:** 0 - 250
+- **Default:** 80
+- **Description:** Blur radius of the inner shadow
+
+#### `containerInnerShadowSpread` (Number, pixels)
+- **Range:** -50 - 50
+- **Default:** -10
+- **Description:** Spread of the inner shadow (negative = tighter to edges)
+
+#### `containerInnerShadowOffsetY` (Number, pixels)
+- **Range:** -60 - 60
+- **Default:** 0
+- **Description:** Vertical offset of the inner shadow (positive pushes it downward)
 
 **Two-level visual stack (outside → inside):**
 ```

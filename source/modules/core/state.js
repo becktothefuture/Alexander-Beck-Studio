@@ -1,9 +1,23 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                      STATE STORE (COMPLETE)                                  ║
+// ║                       STATE STORE (OPTIMIZED)                               ║
 // ║               All global state - extracted from balls-source.html            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { CONSTANTS, MODES } from './constants.js';
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PERFORMANCE: Dynamic DPR getter - allows runtime adaptation
+// The renderer can reduce DPR on weak devices for better performance
+// ════════════════════════════════════════════════════════════════════════════════
+let _effectiveDPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+export function setEffectiveDPR(dpr) {
+  _effectiveDPR = dpr;
+}
+
+export function getEffectiveDPR() {
+  return _effectiveDPR;
+}
 
 const state = {
   config: {},
@@ -29,8 +43,8 @@ const state = {
   MASS_REST_EXP: 0.15,
   MASS_GRAVITY_EXP: 0.35,
   
-  // Device
-  DPR: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
+  // Device - now a getter that returns the adaptive DPR
+  get DPR() { return _effectiveDPR; },
   
   // Size
   sizeScale: 1.2,
@@ -49,19 +63,6 @@ const state = {
   
   // Corner (matches CSS border-radius for collision bounds)
   cornerRadius: 42,
-  
-  // Inner border (soft visual transition)
-  
-  // Vignette params (visual only, synced to CSS)
-  vignetteX: 0,
-  vignetteY: 0,
-  vignetteBlurOuter: 180,
-  vignetteBlurMid: 100,
-  vignetteBlurInner: 40,
-  vignetteSpread: 0,
-  vignetteLightIntensity: 0.08,
-  vignetteDarkIntensity: 0.05,
-  vignetteTransition: 800,
 
   // Vortex mode params
   vortexSwirlStrength: 420,
@@ -132,25 +133,29 @@ const state = {
   isDarkMode: false,
   
   // Two-level padding system (in pixels)
-  containerBorder: 0,    // Outer: insets container from viewport (reveals body bg as frame)
+  containerBorder: 20,   // Outer: insets container from viewport (reveals body bg as frame)
   simulationPadding: 0,  // Inner: padding inside container around canvas
+
+  // Text wrapper padding (in pixels) for UI text blocks (legend, top-right statement)
+  contentPadding: 40,    // Space between frame edge and content elements
+
+  // Container inner shadow controls (inside rounded content wrapper)
+  containerInnerShadowOpacity: 0.12,
+  containerInnerShadowBlur: 80,
+  containerInnerShadowSpread: -10,
+  containerInnerShadowOffsetY: 0,
   
   // Unified Frame System (walls, chrome, border all share these)
   frameColor: '#0a0a0a',    // Frame color (browser chrome + walls + border)
   wallThickness: 20,        // Unified: wall tubes + body border (px)
-  wallSoftness: 20,         // Blur radius for cushioned glow (px)
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
-  wallBounceIntensity: 0,   // Current bounce highlight (0-1, animated on impact)
-  wallBounceHighlightMax: 0.3, // Max flash intensity when balls hit (user-controllable)
 
   // Rubber wall wobble tuning (visual-only deformation, no collision changes)
-  wallWobbleMaxDeform: 30,          // Max inward deformation (px at DPR 1)
-  wallWobbleStiffness: 400,         // Spring stiffness (higher = snappier)
+  wallWobbleMaxDeform: 70,          // Max inward deformation (px at DPR 1)
+  wallWobbleStiffness: 1300,        // Spring stiffness (higher = snappier)
   wallWobbleDamping: 18,            // Spring damping (higher = less oscillation)
   wallWobbleSigma: 2.0,             // Impact spread (gaussian sigma in segment units)
-  wallWobbleImpactThreshold: 0.05,  // Ignore impacts below this intensity
-  wallWobbleCornerClamp: 0.10,      // Clamp impacts away from corners (0..0.45)
-  wallBounceHighlightDecay: 5.0,    // Flash fade speed (per second)
+  wallWobbleCornerClamp: 0.50,      // Corner stickiness (0 = free, 1 = fully pinned)
   
   // Helpers
   getSquashMax() {
@@ -176,33 +181,23 @@ export function initState(config) {
   // Two-level padding system
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;
   if (config.simulationPadding !== undefined) state.simulationPadding = config.simulationPadding;
+  if (config.contentPadding !== undefined) state.contentPadding = config.contentPadding;
+  if (config.containerInnerShadowOpacity !== undefined) state.containerInnerShadowOpacity = config.containerInnerShadowOpacity;
+  if (config.containerInnerShadowBlur !== undefined) state.containerInnerShadowBlur = config.containerInnerShadowBlur;
+  if (config.containerInnerShadowSpread !== undefined) state.containerInnerShadowSpread = config.containerInnerShadowSpread;
+  if (config.containerInnerShadowOffsetY !== undefined) state.containerInnerShadowOffsetY = config.containerInnerShadowOffsetY;
   
   // Unified frame + rubber wall visuals
   if (config.frameColor !== undefined) state.frameColor = config.frameColor;
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
-  if (config.wallSoftness !== undefined) state.wallSoftness = config.wallSoftness;
   if (config.wallRadius !== undefined) state.wallRadius = config.wallRadius;
-  if (config.wallBounceHighlightMax !== undefined) state.wallBounceHighlightMax = config.wallBounceHighlightMax;
 
   // Rubber wall wobble tuning
   if (config.wallWobbleMaxDeform !== undefined) state.wallWobbleMaxDeform = config.wallWobbleMaxDeform;
   if (config.wallWobbleStiffness !== undefined) state.wallWobbleStiffness = config.wallWobbleStiffness;
   if (config.wallWobbleDamping !== undefined) state.wallWobbleDamping = config.wallWobbleDamping;
   if (config.wallWobbleSigma !== undefined) state.wallWobbleSigma = config.wallWobbleSigma;
-  if (config.wallWobbleImpactThreshold !== undefined) state.wallWobbleImpactThreshold = config.wallWobbleImpactThreshold;
   if (config.wallWobbleCornerClamp !== undefined) state.wallWobbleCornerClamp = config.wallWobbleCornerClamp;
-  if (config.wallBounceHighlightDecay !== undefined) state.wallBounceHighlightDecay = config.wallBounceHighlightDecay;
-  
-  // Vignette
-  if (config.vignetteX !== undefined) state.vignetteX = config.vignetteX;
-  if (config.vignetteY !== undefined) state.vignetteY = config.vignetteY;
-  if (config.vignetteBlurOuter !== undefined) state.vignetteBlurOuter = config.vignetteBlurOuter;
-  if (config.vignetteBlurMid !== undefined) state.vignetteBlurMid = config.vignetteBlurMid;
-  if (config.vignetteBlurInner !== undefined) state.vignetteBlurInner = config.vignetteBlurInner;
-  if (config.vignetteSpread !== undefined) state.vignetteSpread = config.vignetteSpread;
-  if (config.vignetteLightIntensity !== undefined) state.vignetteLightIntensity = config.vignetteLightIntensity;
-  if (config.vignetteDarkIntensity !== undefined) state.vignetteDarkIntensity = config.vignetteDarkIntensity;
-  if (config.vignetteTransition !== undefined) state.vignetteTransition = config.vignetteTransition;
   
   // Recalculate R_MIN and R_MAX
   const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;

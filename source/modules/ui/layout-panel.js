@@ -101,6 +101,14 @@ function addControl(parent, label, cssVar, min, max, initialValue) {
     const val = e.target.value;
     valEl.textContent = `${val}px`;
     document.documentElement.style.setProperty(cssVar, `${val}px`);
+    
+    // If updating container border, also update edge insets proportionally
+    if (cssVar === '--container-border') {
+      const edgeInset = Math.max(8, val * 0.75);
+      const edgeInsetLg = Math.max(12, val * 1.0);
+      document.documentElement.style.setProperty('--edge-inset', `${edgeInset}px`);
+      document.documentElement.style.setProperty('--edge-inset-lg', `${edgeInsetLg}px`);
+    }
   };
   
   wrapper.appendChild(header);

@@ -173,37 +173,23 @@ export const CONTROL_SECTIONS = {
       // Frame thickness - controls both wall thickness AND container border
       {
         id: 'wallThickness',
-        label: 'Frame Thickness',
+        label: 'Wall Thickness',
         stateKey: 'wallThickness',
         type: 'range',
         min: 0, max: 60, step: 1,
         default: 20,
         format: v => String(v),
         parse: v => parseInt(v, 10),
-        hint: 'Unified: wall tubes + body border',
+        hint: 'Wall tube thickness (visual). Padding is controlled in Layout → Padding.',
         onChange: (g, val) => {
           // Keep state consistent (range controls with onChange don't auto-assign)
           g.wallThickness = val;
-          g.containerBorder = val;
           const root = document.documentElement;
-          // Update both CSS vars - they're the same "frame"
+          // Update wall thickness only (do NOT touch layout padding)
           root.style.setProperty('--wall-thickness', val + 'px');
-          root.style.setProperty('--container-border', val + 'px');
           // Resize canvas to fit new wall thickness
           resize();
         }
-      },
-      {
-        id: 'wallSoftness',
-        label: 'Glow Softness',
-        stateKey: 'wallSoftness',
-        group: 'Frame Geometry',
-        type: 'range',
-        min: 0, max: 60, step: 1,
-        default: 20,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        cssVar: '--wall-softness'
       },
       {
         id: 'wallRadius',
@@ -222,18 +208,60 @@ export const CONTROL_SECTIONS = {
           g.cornerRadius = val;
         }
       },
-      {
-        id: 'wallBounceHighlight',
-        label: 'Bounce Flash',
-        stateKey: 'wallBounceHighlightMax',
-        group: 'Bounce Flash',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.3,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
 
+      // ───────────────────────────────────────────────────────────────────────
+      // Container Inner Shadow (inside rounded wrapper)
+      // ───────────────────────────────────────────────────────────────────────
+      {
+        id: 'containerInnerShadowOpacity',
+        label: 'Inner Shadow Strength',
+        stateKey: 'containerInnerShadowOpacity',
+        group: 'Container Shadow',
+        type: 'range',
+        min: 0.0, max: 0.4, step: 0.01,
+        default: 0.12,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        cssVar: '--container-inner-shadow-opacity',
+        hint: '0 = off · subtle depth inside the rounded container'
+      },
+      {
+        id: 'containerInnerShadowBlur',
+        label: 'Inner Shadow Blur',
+        stateKey: 'containerInnerShadowBlur',
+        group: 'Container Shadow',
+        type: 'range',
+        min: 0, max: 250, step: 5,
+        default: 80,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        cssVar: '--container-inner-shadow-blur'
+      },
+      {
+        id: 'containerInnerShadowSpread',
+        label: 'Inner Shadow Spread',
+        stateKey: 'containerInnerShadowSpread',
+        group: 'Container Shadow',
+        type: 'range',
+        min: -50, max: 50, step: 1,
+        default: -10,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        cssVar: '--container-inner-shadow-spread',
+        hint: 'Negative = tighter to edges'
+      },
+      {
+        id: 'containerInnerShadowOffsetY',
+        label: 'Inner Shadow Offset Y',
+        stateKey: 'containerInnerShadowOffsetY',
+        group: 'Container Shadow',
+        type: 'range',
+        min: -60, max: 60, step: 1,
+        default: 0,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        cssVar: '--container-inner-shadow-offset-y'
+      },
       // ───────────────────────────────────────────────────────────────────────
       // Rubber Wobble tuning (visual-only)
       // ───────────────────────────────────────────────────────────────────────
@@ -243,8 +271,8 @@ export const CONTROL_SECTIONS = {
         stateKey: 'wallWobbleMaxDeform',
         group: 'Rubber Wobble',
         type: 'range',
-        min: 0, max: 80, step: 1,
-        default: 30,
+        min: 0, max: 150, step: 1,
+        default: 70,
         format: v => `${v}px`,
         parse: v => parseInt(v, 10),
         hint: 'Max inward bulge (visual only)'
@@ -255,8 +283,8 @@ export const CONTROL_SECTIONS = {
         stateKey: 'wallWobbleStiffness',
         group: 'Rubber Wobble',
         type: 'range',
-        min: 50, max: 1200, step: 10,
-        default: 400,
+        min: 50, max: 3000, step: 10,
+        default: 1300,
         format: v => String(v),
         parse: v => parseInt(v, 10),
         hint: 'Higher = snappier return'
@@ -291,91 +319,13 @@ export const CONTROL_SECTIONS = {
         stateKey: 'wallWobbleCornerClamp',
         group: 'Rubber Wobble',
         type: 'range',
-        min: 0.0, max: 0.3, step: 0.01,
-        default: 0.10,
+        min: 0.0, max: 1.0, step: 0.01,
+        default: 0.50,
         format: v => v.toFixed(2),
         parse: parseFloat,
-        hint: '0 = corners wobble, higher = corners pinned'
+        hint: '0 = corners wobble freely, 1 = corners fully pinned'
       },
-      {
-        id: 'wallWobbleImpactThreshold',
-        label: 'Min Impact',
-        stateKey: 'wallWobbleImpactThreshold',
-        group: 'Rubber Wobble',
-        type: 'range',
-        min: 0.0, max: 0.2, step: 0.01,
-        default: 0.05,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Ignore tiny taps'
-      },
-      {
-        id: 'wallBounceHighlightDecay',
-        label: 'Flash Decay',
-        stateKey: 'wallBounceHighlightDecay',
-        group: 'Bounce Flash',
-        type: 'range',
-        min: 0.0, max: 12.0, step: 0.5,
-        default: 5.0,
-        format: v => v.toFixed(1),
-        parse: parseFloat,
-        hint: 'Higher = flash fades faster'
-      }
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // DEPTH ILLUSION EFFECT
-  // ═══════════════════════════════════════════════════════════════════════════
-  depth: {
-    title: 'Depth Illusion',
-    icon: '🔍',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'depthCenterScale',
-        label: 'Center Speed',
-        stateKey: 'depthCenterScale',
-        type: 'range',
-        min: 0.01, max: 0.5, step: 0.01,
-        default: 0.05,
-        format: v => `${(v * 100).toFixed(0)}%`,
-        parse: parseFloat,
-        hint: 'Mouse speed at viewport center (lower = slower tunnel effect)'
-      },
-      {
-        id: 'depthEdgeScale',
-        label: 'Edge Speed',
-        stateKey: 'depthEdgeScale',
-        type: 'range',
-        min: 0.5, max: 2.0, step: 0.05,
-        default: 1.0,
-        format: v => `${(v * 100).toFixed(0)}%`,
-        parse: parseFloat,
-        hint: 'Mouse speed at viewport edges (1.0 = normal speed)'
-      },
-      {
-        id: 'depthCenterZone',
-        label: 'Center Zone Size',
-        stateKey: 'depthCenterZone',
-        type: 'range',
-        min: 0.1, max: 0.8, step: 0.05,
-        default: 0.4,
-        format: v => `${(v * 100).toFixed(0)}%`,
-        parse: parseFloat,
-        hint: 'Size of slow center area (larger = wider slow zone)'
-      },
-      {
-        id: 'depthCurvePower',
-        label: 'Transition Curve',
-        stateKey: 'depthCurvePower',
-        type: 'range',
-        min: 1.0, max: 5.0, step: 0.1,
-        default: 2.5,
-        format: v => v.toFixed(1),
-        parse: parseFloat,
-        hint: 'Easing curve power (higher = sharper transition from center to edge)'
-      }
+      // Removed: Bounce Flash + Flash Decay (bounce highlight system removed)
     ]
   },
 
@@ -432,108 +382,8 @@ export const CONTROL_SECTIONS = {
         format: v => v.toFixed(3),
         parse: parseFloat,
         cssVar: '--noise-front-opacity'
-      },
-      // Vignette
-      {
-        id: 'vignetteLightIntensity',
-        label: 'Light Intensity',
-        stateKey: 'vignetteLightIntensity',
-        group: 'Vignette',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.08,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        cssVar: '--vignette-light-intensity'
-      },
-      {
-        id: 'vignetteDarkIntensity',
-        label: 'Dark Intensity',
-        stateKey: 'vignetteDarkIntensity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.05,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        cssVar: '--vignette-dark-intensity'
-      },
-      {
-        id: 'vignetteBlurOuter',
-        label: 'Outer Blur',
-        stateKey: 'vignetteBlurOuter',
-        type: 'range',
-        min: 0, max: 400, step: 10,
-        default: 180,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        cssVar: '--vignette-blur-outer'
-      },
-      {
-        id: 'vignetteBlurMid',
-        label: 'Mid Blur',
-        stateKey: 'vignetteBlurMid',
-        type: 'range',
-        min: 0, max: 300, step: 10,
-        default: 100,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        cssVar: '--vignette-blur-mid'
-      },
-      {
-        id: 'vignetteBlurInner',
-        label: 'Inner Blur',
-        stateKey: 'vignetteBlurInner',
-        type: 'range',
-        min: 0, max: 200, step: 5,
-        default: 40,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        cssVar: '--vignette-blur-inner'
-      },
-      {
-        id: 'vignetteSpread',
-        label: 'Spread',
-        stateKey: 'vignetteSpread',
-        type: 'range',
-        min: -50, max: 50, step: 1,
-        default: 0,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        cssVar: '--vignette-spread'
-      },
-      {
-        id: 'vignetteX',
-        label: 'Offset X',
-        stateKey: 'vignetteX',
-        type: 'range',
-        min: -100, max: 100, step: 1,
-        default: 0,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        cssVar: '--vignette-x'
-      },
-      {
-        id: 'vignetteY',
-        label: 'Offset Y',
-        stateKey: 'vignetteY',
-        type: 'range',
-        min: -100, max: 100, step: 1,
-        default: 0,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        cssVar: '--vignette-y'
-      },
-      {
-        id: 'vignetteTransition',
-        label: 'Animation',
-        stateKey: 'vignetteTransition',
-        type: 'range',
-        min: 0, max: 2000, step: 50,
-        default: 800,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        cssVar: '--vignette-transition'
       }
+      // Vignette removed - replaced with simple gradient overlay in CSS
     ]
   },
 
@@ -972,21 +822,28 @@ function generateControlHTML(control) {
   // Color picker type
   if (control.type === 'color') {
     return `
-      <label data-control-id="${control.id}" style="flex-direction: row; align-items: center; gap: 8px;">
-        <span style="flex: 1;">${control.label}</span>
-        <input type="color" id="${pickerId}" value="${control.default}" style="width: 32px; height: 20px; border: 1px solid rgba(0,255,136,0.4); cursor: pointer;">
-        <span class="val" id="${valId}" style="min-width: 60px; font-size: 7px;">${control.default}</span>
-      </label>${control.hint ? `<div style="font-size: 7px; opacity: 0.5; margin: -6px 0 8px;">${control.hint}</div>` : ''}`;
+      <label class="control-row" data-control-id="${control.id}">
+        <div class="control-row-header">
+          <span class="control-label">${control.label}</span>
+          <span class="control-value" id="${valId}">${control.default}</span>
+        </div>
+        <input type="color" id="${pickerId}" value="${control.default}" aria-label="${control.label}" />
+      </label>
+      ${control.hint ? `<p class="control-hint">${control.hint}</p>` : ''}`;
   }
   
   // Default: range slider
-  const hintHtml = control.hint ? `<div style="font-size: 7px; opacity: 0.5; margin: -6px 0 8px;">${control.hint}</div>` : '';
+  const hintHtml = control.hint ? `<p class="control-hint">${control.hint}</p>` : '';
   
   return `
-      <label data-control-id="${control.id}">
-        <span>${control.label}<span class="val" id="${valId}">${control.format(control.default)}</span></span>
+      <label class="control-row" data-control-id="${control.id}">
+        <div class="control-row-header">
+          <span class="control-label">${control.label}</span>
+          <span class="control-value" id="${valId}">${control.format(control.default)}</span>
+        </div>
         <input type="range" id="${sliderId}" min="${control.min}" max="${control.max}" step="${control.step}" value="${control.default}">
-      </label>${hintHtml}`;
+      </label>
+      ${hintHtml}`;
 }
 
 function generateSectionHTML(key, section) {
@@ -1014,55 +871,74 @@ function generateSectionHTML(key, section) {
   // Close any open group
   if (currentGroup !== null) html += '</div>';
   
-  // Wrap in accordion/details if not mode-specific
+  // Wrap in the unified accordion style used by the master panel
+  // (single scroll container in `.panel-content`, no nested overflow traps)
+  const detailsAttrs = `${section.defaultOpen ? 'open' : ''}`;
+  const header = `
+    <summary class="panel-section-header">
+      ${section.icon ? `<span class="section-icon">${section.icon}</span>` : ''}
+      <span class="section-label">${section.title}</span>
+    </summary>`;
+  const body = `<div class="panel-section-content">${html}</div>`;
+
   if (section.mode) {
     return `
-  <div id="${section.mode}Controls" class="mode-controls${section.mode === 'flies' ? ' active' : ''}">
-    <details ${section.defaultOpen ? 'open' : ''}>
-      <summary>${section.icon ? section.icon + ' ' : ''}${section.title}</summary>
-      <div class="group">${html}</div>
-    </details>
-  </div>`;
+      <div id="${section.mode}Controls" class="mode-controls">
+        <details class="panel-section-accordion" ${detailsAttrs}>
+          ${header}
+          ${body}
+        </details>
+      </div>`;
   }
-  
+
   return `
-  <details ${section.defaultOpen ? 'open' : ''}>
-    <summary>${section.icon ? section.icon + ' ' : ''}${section.title}</summary>
-    <div class="group">${html}</div>
-  </details>`;
+    <details class="panel-section-accordion" ${detailsAttrs}>
+      ${header}
+      ${body}
+    </details>`;
 }
 
 export function generatePanelHTML() {
   // NOTE: Don't wrap in .panel-content here - panel-dock.js creates that wrapper
   let html = `
-  <!-- Screen reader announcements -->
-  <div role="status" aria-live="polite" aria-atomic="true" class="sr-only" id="announcer"></div>
-  
-  <!-- Theme Segment Control -->
-  <div class="panel-section">
-    <div class="section-title">🎨 Theme</div>
-    <div class="theme-segment-control" role="group" aria-label="Theme selector">
-      <button id="themeAuto" class="theme-segment-btn" aria-label="Auto theme">Auto</button>
-      <button id="themeLight" class="theme-segment-btn active" aria-label="Light theme">Light</button>
-      <button id="themeDark" class="theme-segment-btn" aria-label="Dark theme">Dark</button>
-    </div>
-    <div id="themeStatus" class="panel-status">☀️ Light Mode</div>
-  </div>
-  
-  <!-- Mode Switcher -->
-  <div class="panel-section">
-    <div class="section-title">Mode</div>
-    <div class="mode-switcher" role="group" aria-label="Simulation mode selector">
-      <button class="mode-button" data-mode="pit" aria-label="Ball Pit mode">🎯 Pit</button>
-      <button class="mode-button active" data-mode="flies" aria-label="Flies mode">🕊️ Flies</button>
-      <button class="mode-button" data-mode="weightless" aria-label="Zero-G mode">🌌 Zero-G</button>
-      <button class="mode-button" data-mode="water" aria-label="Water mode">🌊 Water</button>
-      <button class="mode-button" data-mode="vortex" aria-label="Vortex mode">🌀 Vortex</button>
-      <button class="mode-button" data-mode="ping-pong" aria-label="Ping Pong mode">🏓 Pong</button>
-      <button class="mode-button" data-mode="magnetic" aria-label="Magnetic mode">🧲 Magnet</button>
-      <button class="mode-button" data-mode="bubbles" aria-label="Bubbles mode">🫧 Bubbles</button>
-    </div>
-  </div>`;
+    <!-- Screen reader announcements -->
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only" id="announcer"></div>
+
+    <!-- Theme -->
+    <details class="panel-section-accordion" open>
+      <summary class="panel-section-header">
+        <span class="section-icon">🎨</span>
+        <span class="section-label">Theme</span>
+      </summary>
+      <div class="panel-section-content">
+        <div class="theme-segment-control" role="group" aria-label="Theme selector">
+          <button id="themeAuto" class="theme-segment-btn" aria-label="Auto theme">Auto</button>
+          <button id="themeLight" class="theme-segment-btn active" aria-label="Light theme">Light</button>
+          <button id="themeDark" class="theme-segment-btn" aria-label="Dark theme">Dark</button>
+        </div>
+        <div id="themeStatus" class="panel-status">☀️ Light Mode</div>
+      </div>
+    </details>
+
+    <!-- Mode -->
+    <details class="panel-section-accordion" open>
+      <summary class="panel-section-header">
+        <span class="section-icon">🎛️</span>
+        <span class="section-label">Mode</span>
+      </summary>
+      <div class="panel-section-content">
+        <div class="mode-switcher" role="group" aria-label="Simulation mode selector">
+          <button class="mode-button active" data-mode="pit" aria-label="Ball Pit mode">🎯 Pit</button>
+          <button class="mode-button" data-mode="flies" aria-label="Flies mode">🕊️ Flies</button>
+          <button class="mode-button" data-mode="weightless" aria-label="Zero-G mode">🌌 Zero-G</button>
+          <button class="mode-button" data-mode="water" aria-label="Water mode">🌊 Water</button>
+          <button class="mode-button" data-mode="vortex" aria-label="Vortex mode">🌀 Vortex</button>
+          <button class="mode-button" data-mode="ping-pong" aria-label="Ping Pong mode">🏓 Pong</button>
+          <button class="mode-button" data-mode="magnetic" aria-label="Magnetic mode">🧲 Magnet</button>
+          <button class="mode-button" data-mode="bubbles" aria-label="Bubbles mode">🫧 Bubbles</button>
+        </div>
+      </div>
+    </details>`;
 
   // Non-mode sections
   for (const [key, section] of Object.entries(CONTROL_SECTIONS)) {
@@ -1073,15 +949,21 @@ export function generatePanelHTML() {
   
   // Colors (special handling)
   html += `
-  <details>
-    <summary>Colors</summary>
-    <div class="group">
-      <label>
-        <span>Color Template</span>
-        <select id="colorSelect"></select>
-      </label>
-    </div>
-  </details>`;
+    <details class="panel-section-accordion">
+      <summary class="panel-section-header">
+        <span class="section-icon">🌈</span>
+        <span class="section-label">Colors</span>
+      </summary>
+      <div class="panel-section-content">
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Color Template</span>
+            <span class="control-value"></span>
+          </div>
+          <select id="colorSelect"></select>
+        </label>
+      </div>
+    </details>`;
   
   // Mode-specific sections
   for (const [key, section] of Object.entries(CONTROL_SECTIONS)) {
@@ -1092,15 +974,12 @@ export function generatePanelHTML() {
   
   // Footer
   html += `
-  <!-- Save Config -->
-  <div class="panel-section panel-section--action">
-    <button id="saveConfigBtn" class="primary">💾 Save Config</button>
-  </div>
-  
-  <!-- Keyboard shortcuts -->
-  <div class="panel-footer">
-    <kbd>R</kbd> reset · <kbd>/</kbd> panel · click cycles modes
-  </div>`;
+    <div class="panel-section panel-section--action">
+      <button id="saveConfigBtn" class="primary">💾 Save Config</button>
+    </div>
+    <div class="panel-footer">
+      <kbd>R</kbd> reset · <kbd>/</kbd> panel · click cycles modes
+    </div>`;
   
   return html;
 }

@@ -1,286 +1,77 @@
 /* ╔══════════════════════════════════════════════════════════════════════════════╗
-   ║                    SOUND PANEL — DOCK VARIANT OVERRIDES                      ║
-   ║            Builds on unified panel system with sound-specific styles         ║
+   ║                    SOUND SECTION CONTROLS                                   ║
+   ║            Styles for sound controls within master panel                    ║
    ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   SOUND PANEL SPECIFICS
-   ═══════════════════════════════════════════════════════════════════════════════ */
-#soundPanel.panel.sound-panel {
-  /* Already inherits base panel styles */
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   ENABLE BUTTON — Primary action
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__enable {
-  padding: 16px;
-  border-bottom: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
-}
-
-body:not(.dark-mode) .sound-dock__enable {
-  border-bottom-color: var(--panel-border-light, rgba(0, 0, 0, 0.08));
-}
-
-.sound-dock__enable-btn {
-  width: 100%;
-  padding: 14px 20px !important;
-  background: rgba(255, 140, 0, 0.12) !important;
-  border: 1px solid rgba(255, 140, 0, 0.25) !important;
-  border-radius: 12px !important;
-  color: var(--panel-accent, #ff8c00) !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.sound-dock__enable-btn:hover {
-  background: rgba(255, 140, 0, 0.2) !important;
-  border-color: rgba(255, 140, 0, 0.4) !important;
-  transform: translateY(-1px);
-}
-
-.sound-dock__enable-btn:active {
-  transform: translateY(0);
-}
-
-/* Enabled state */
-.sound-dock__enable-btn.enabled {
-  background: var(--panel-accent, #ff8c00) !important;
-  border-color: var(--panel-accent, #ff8c00) !important;
-  color: #000 !important;
-}
-
-.sound-dock__enable-btn.enabled:hover {
-  background: var(--panel-accent-hover, #ffa333) !important;
-  border-color: var(--panel-accent-hover, #ffa333) !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   CONTROLS WRAPPER
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__controls {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   SECTION — Preset area
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__section {
-  padding: 16px;
-  border-bottom: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08));
-}
-
-body:not(.dark-mode) .sound-dock__section {
-  border-bottom-color: var(--panel-border-light, rgba(0, 0, 0, 0.08));
-}
-
-.sound-dock__select {
-  width: 100%;
-  padding: 12px 40px 12px 16px !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.08)) !important;
-  border-radius: 10px !important;
-  color: var(--panel-text, rgba(255, 255, 255, 0.92)) !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
-  background-repeat: no-repeat !important;
-  background-position: right 14px center !important;
-  transition: all 0.15s ease;
-}
-
-.sound-dock__select:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-}
-
-.sound-dock__select:focus {
-  outline: none !important;
-  border-color: var(--panel-accent, #ff8c00) !important;
-  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.12) !important;
-}
-
-body:not(.dark-mode) .sound-dock__select {
-  background-color: rgba(0, 0, 0, 0.03) !important;
-  border-color: var(--panel-border-light, rgba(0, 0, 0, 0.08)) !important;
-  color: var(--panel-text-light, rgba(0, 0, 0, 0.92)) !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(0,0,0,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
-}
-
-.sound-dock__desc {
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: var(--panel-text-tertiary, rgba(255, 255, 255, 0.35));
-  line-height: 1.5;
-}
-
-body:not(.dark-mode) .sound-dock__desc {
-  color: rgba(0, 0, 0, 0.4);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   CONTROL GROUP — Slider rows
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__group {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
+/* Sound slider rows */
 .sound-dock__row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
 }
 
 .sound-dock__label {
-  flex: 0 0 110px;
-  font-size: 13px;
+  flex: 0 0 90px;
+  font-size: 12px;
   font-weight: 500;
-  color: var(--panel-text-secondary, rgba(255, 255, 255, 0.55));
-}
-
-body:not(.dark-mode) .sound-dock__label {
-  color: var(--panel-text-secondary-light, rgba(0, 0, 0, 0.55));
+  color: var(--panel-muted-foreground);
 }
 
 .sound-dock__slider {
   flex: 1;
-  height: 6px !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: none !important;
-  border-radius: 3px !important;
+  height: 6px;
   -webkit-appearance: none;
   appearance: none;
-}
-
-body:not(.dark-mode) .sound-dock__slider {
-  background: rgba(0, 0, 0, 0.08) !important;
+  background: var(--panel-muted);
+  border-radius: 9999px;
+  cursor: pointer;
 }
 
 .sound-dock__slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 18px !important;
-  height: 18px !important;
-  background: var(--panel-accent, #ff8c00) !important;
-  border: 3px solid rgba(255, 255, 255, 0.95) !important;
-  border-radius: 50% !important;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--panel-foreground);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-  transition: transform 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.sound-dock__slider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-}
-
-.sound-dock__slider::-webkit-slider-thumb:active {
-  transform: scale(0.95);
+.sound-dock__slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--panel-foreground);
+  cursor: pointer;
+  border: none;
 }
 
 .sound-dock__val {
-  flex: 0 0 54px;
-  font-size: 13px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: var(--panel-text, rgba(255, 255, 255, 0.92));
+  flex: 0 0 45px;
   text-align: right;
+  font-size: 11px;
+  font-family: var(--panel-font-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--panel-foreground);
 }
 
-body:not(.dark-mode) .sound-dock__val {
-  color: var(--panel-text-light, rgba(0, 0, 0, 0.92));
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   ACCORDION — Collapsible sections
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.sound-dock__accordion {
-  border: none !important;
-  border-bottom: 1px solid var(--panel-border, rgba(255, 255, 255, 0.06)) !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-}
-
-body:not(.dark-mode) .sound-dock__accordion {
-  border-bottom-color: var(--panel-border-light, rgba(0, 0, 0, 0.06)) !important;
-}
-
-.sound-dock__accordion:last-child {
-  border-bottom: none !important;
-}
-
-.sound-dock__summary {
+/* Sound section groups */
+.sound-dock__group {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: var(--panel-text-secondary, rgba(255, 255, 255, 0.7)) !important;
-  cursor: pointer;
-  list-style: none !important;
-  background: transparent !important;
-  border: none !important;
-  transition: background 0.15s ease, color 0.15s ease;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.sound-dock__summary::-webkit-details-marker {
-  display: none;
+.sound-dock__section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--panel-muted-foreground);
+  margin-bottom: 4px;
+  margin-top: 8px;
 }
 
-.sound-dock__summary::after {
-  content: '';
-  width: 16px;
-  height: 16px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-size: contain;
-  transition: transform 0.2s ease;
-}
-
-body:not(.dark-mode) .sound-dock__summary::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(0,0,0,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-}
-
-.sound-dock__accordion[open] .sound-dock__summary::after {
-  transform: rotate(180deg);
-}
-
-.sound-dock__summary:hover {
-  background: rgba(255, 255, 255, 0.04) !important;
-  color: var(--panel-text, rgba(255, 255, 255, 0.92)) !important;
-}
-
-body:not(.dark-mode) .sound-dock__summary {
-  color: var(--panel-text-secondary-light, rgba(0, 0, 0, 0.6)) !important;
-}
-
-body:not(.dark-mode) .sound-dock__summary:hover {
-  background: rgba(0, 0, 0, 0.03) !important;
-  color: var(--panel-text-light, rgba(0, 0, 0, 0.92)) !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   ANIMATIONS
-   ═══════════════════════════════════════════════════════════════════════════════ */
-@media (prefers-reduced-motion: no-preference) {
-  .sound-dock__controls {
-    animation: fadeSlideIn 0.25s ease-out;
-  }
-  
-  @keyframes fadeSlideIn {
-    from {
-      opacity: 0;
-      transform: translateY(-8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+.sound-dock__section-title:first-child {
+  margin-top: 0;
 }

@@ -18,7 +18,7 @@ import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
-import { createLayoutPanel } from './modules/ui/layout-panel.js';
+// Layout controls now integrated into master panel
 import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.js';
 import { initBrandLogoBallSpace } from './modules/ui/brand-logo-ball-space.js';
 import { setApplyVisualCSSVars } from './modules/ui/control-registry.js';
@@ -55,32 +55,45 @@ export function applyFramePaddingCSSVars() {
   const root = document.documentElement;
   
   // Outer frame: container inset from viewport
-  root.style.setProperty('--container-border', `${g.containerBorder || 0}px`);
+  root.style.setProperty('--container-border', `${g.containerBorder ?? 20}px`);
   
   // Inner padding: canvas inset from container
   root.style.setProperty('--simulation-padding', `${g.simulationPadding || 0}px`);
 }
 
 /**
- * Apply visual CSS variables (noise opacity/size, vignette, walls) from config to :root
+ * Apply visual CSS variables (noise opacity/size, walls) from config to :root
  */
 export function applyVisualCSSVars(config) {
   const root = document.documentElement;
   
   // ═══════════════════════════════════════════════════════════════════════════════
-  // RUBBER WALL SYSTEM - 4 controllable parameters
+  // RUBBER WALL SYSTEM
   // ═══════════════════════════════════════════════════════════════════════════════
   if (config.wallThickness !== undefined) {
     root.style.setProperty('--wall-thickness', `${config.wallThickness}px`);
   }
-  if (config.wallSoftness !== undefined) {
-    root.style.setProperty('--wall-softness', `${config.wallSoftness}px`);
-  }
   if (config.wallRadius !== undefined) {
     root.style.setProperty('--wall-radius', `${config.wallRadius}px`);
   }
-  if (config.wallBounceIntensity !== undefined) {
-    root.style.setProperty('--wall-bounce-intensity', String(config.wallBounceIntensity));
+  
+  // Content padding (space between frame edge and content elements)
+  if (config.contentPadding !== undefined) {
+    root.style.setProperty('--content-padding', `${config.contentPadding}px`);
+  }
+
+  // Container inner shadow (inside rounded container wrapper)
+  if (config.containerInnerShadowOpacity !== undefined) {
+    root.style.setProperty('--container-inner-shadow-opacity', String(config.containerInnerShadowOpacity));
+  }
+  if (config.containerInnerShadowBlur !== undefined) {
+    root.style.setProperty('--container-inner-shadow-blur', `${config.containerInnerShadowBlur}px`);
+  }
+  if (config.containerInnerShadowSpread !== undefined) {
+    root.style.setProperty('--container-inner-shadow-spread', `${config.containerInnerShadowSpread}px`);
+  }
+  if (config.containerInnerShadowOffsetY !== undefined) {
+    root.style.setProperty('--container-inner-shadow-offset-y', `${config.containerInnerShadowOffsetY}px`);
   }
   
   // Noise texture sizing
@@ -105,39 +118,6 @@ export function applyVisualCSSVars(config) {
   }
   if (config.noiseFrontOpacityDark !== undefined) {
     root.style.setProperty('--noise-front-opacity-dark', String(config.noiseFrontOpacityDark));
-  }
-  
-  // Vignette intensity
-  if (config.vignetteLightIntensity !== undefined) {
-    root.style.setProperty('--vignette-light-intensity', String(config.vignetteLightIntensity));
-  }
-  if (config.vignetteDarkIntensity !== undefined) {
-    root.style.setProperty('--vignette-dark-intensity', String(config.vignetteDarkIntensity));
-  }
-  
-  // Vignette blur layers
-  if (config.vignetteBlurOuter !== undefined) {
-    root.style.setProperty('--vignette-blur-outer', `${config.vignetteBlurOuter}px`);
-  }
-  if (config.vignetteBlurMid !== undefined) {
-    root.style.setProperty('--vignette-blur-mid', `${config.vignetteBlurMid}px`);
-  }
-  if (config.vignetteBlurInner !== undefined) {
-    root.style.setProperty('--vignette-blur-inner', `${config.vignetteBlurInner}px`);
-  }
-  
-  // Vignette spread and animation
-  if (config.vignetteSpread !== undefined) {
-    root.style.setProperty('--vignette-spread', `${config.vignetteSpread}px`);
-  }
-  if (config.vignetteX !== undefined) {
-    root.style.setProperty('--vignette-x', `${config.vignetteX}px`);
-  }
-  if (config.vignetteY !== undefined) {
-    root.style.setProperty('--vignette-y', `${config.vignetteY}px`);
-  }
-  if (config.vignetteTransition !== undefined) {
-    root.style.setProperty('--vignette-transition', `${config.vignetteTransition}ms`);
   }
 }
 
@@ -214,7 +194,7 @@ function ensureNoiseElements() {
     applyFramePaddingCSSVars();
     console.log('✓ Frame padding applied');
     
-    // Apply visual CSS vars (noise, vignette) from config
+    // Apply visual CSS vars (noise, inner shadow) from config
     applyVisualCSSVars(config);
     console.log('✓ Visual effects configured');
     
@@ -288,12 +268,10 @@ function ensureNoiseElements() {
     createThemeToggle();
     console.log('✓ Theme toggle button created');
     
-    // Create layout control panel (Top-Left)
-    createLayoutPanel();
-    console.log('✓ Layout panel created');
+    // Layout controls integrated into master panel
     
-    // Initialize starting mode (Flies by default)
-    setMode(MODES.FLIES);
+    // Initialize starting mode (Ball Pit by default)
+    setMode(MODES.PIT);
     console.log('✓ Mode initialized');
     
     // Start main render loop

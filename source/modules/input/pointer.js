@@ -63,6 +63,22 @@ export function setupPointer() {
   }
   
   const DPR = globals.DPR;
+
+  /**
+   * Panel/UI hit-test: when interacting with the settings UI, we must NOT
+   * update simulation mouse state (repel/attract), and the UI must receive
+   * pointer events normally.
+   */
+  function isEventOnUI(target) {
+    if (!target || !target.closest) return false;
+    return Boolean(
+      target.closest('#panelDock') ||
+      target.closest('#masterPanel') ||
+      target.closest('#dockToggle') ||
+      target.closest('.panel-dock') ||
+      target.closest('.panel')
+    );
+  }
   
   /**
    * Get mouse position relative to canvas from any event
@@ -89,8 +105,8 @@ export function setupPointer() {
     // Update custom cursor position
     updateCursorPosition(e.clientX, e.clientY);
 
-    // Don't track if over panel
-    if (e.target.closest('#controlPanel')) return;
+    // Don't track simulation interactions if the user is over the panel UI
+    if (isEventOnUI(e.target)) return;
     
     const pos = getCanvasPosition(e.clientX, e.clientY);
   
@@ -135,9 +151,12 @@ export function setupPointer() {
    */
   document.addEventListener('click', (e) => {
     // Ignore clicks on panel or interactive elements
-    if (e.target.closest('#controlPanel')) return;
+    if (isEventOnUI(e.target)) return;
     if (e.target.closest('a')) return;
     if (e.target.closest('button')) return;
+    if (e.target.closest('input')) return;
+    if (e.target.closest('select')) return;
+    if (e.target.closest('textarea')) return;
     
     const pos = getCanvasPosition(e.clientX, e.clientY);
     
@@ -178,9 +197,12 @@ export function setupPointer() {
    */
   document.addEventListener('touchstart', (e) => {
     // Ignore touches on panel
-    if (e.target.closest('#controlPanel')) return;
+    if (isEventOnUI(e.target)) return;
     if (e.target.closest('a')) return;
     if (e.target.closest('button')) return;
+    if (e.target.closest('input')) return;
+    if (e.target.closest('select')) return;
+    if (e.target.closest('textarea')) return;
     
     if (e.touches && e.touches[0]) {
       const pos = getCanvasPosition(e.touches[0].clientX, e.touches[0].clientY);

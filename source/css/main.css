@@ -41,9 +41,12 @@
   --space-xl: calc(var(--space-unit) * 6);     /* 6vmin */
   --space-2xl: calc(var(--space-unit) * 8);    /* 8vmin */
   
-  /* Edge insets - distance from viewport edge (with reasonable bounds) */
-  --edge-inset: clamp(1rem, 2vmin, 2rem);
-  --edge-inset-lg: clamp(1.5rem, 3vmin, 3rem);
+  /* Content padding - space between frame edge and content elements */
+  --content-padding: 40px;
+  
+  /* Edge insets - TOTAL distance from viewport edge = frame + content padding */
+  --edge-inset: calc(var(--container-border) + var(--content-padding));
+  --edge-inset-lg: calc(var(--container-border) + var(--content-padding));
   
   /* ─────────────────────────────────────────────────────────────────────────────
      ORGANIC TRANSITION TIMING
@@ -86,18 +89,22 @@
   /* Rubber wall color = frame color */
   --wall-color: var(--frame-color-light);
   --wall-thickness: 12px;          /* Thickness of the rubber wall tubes */
-  --wall-softness: 20px;           /* Blur radius for cushioned glow effect */
   --wall-radius: clamp(24px, 4vmin, 48px);  /* Corner radius for all elements */
   --wall-bevel-light: rgba(255, 255, 255, 0.15);  /* Top/left highlight */
   --wall-bevel-dark: rgba(0, 0, 0, 0.3);          /* Bottom/right shadow */
-  --wall-bounce-intensity: 0;      /* 0-1, animated on ball collision */
-  --wall-bounce-color: rgba(255, 255, 255, 0.4); /* Flash color on impact */
   
   /* Legacy alias for compatibility */
   --container-radius: var(--wall-radius);
   --container-border: 20px;  /* Visible dark frame around content */
   --simulation-padding: 0px;
   --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
+
+  /* Container inner shadow (inside the rounded content area) */
+  --container-inner-shadow-opacity: 0.12; /* 0..0.4 */
+  --container-inner-shadow-blur: 80px;    /* px */
+  --container-inner-shadow-spread: -10px; /* px */
+  --container-inner-shadow-offset-y: 0px; /* px */
+  --container-inner-shadow-color: hsla(0 0% 0% / var(--container-inner-shadow-opacity));
   
   /* ─────────────────────────────────────────────────────────────────────────────
      TEXTURE SIZING
@@ -112,20 +119,6 @@
   --noise-front-opacity: 0.050;  /* Above balls (z:7) */
   --noise-back-opacity-dark: 0.08;  /* Dark mode - behind balls */
   --noise-front-opacity-dark: 0.05; /* Dark mode - above balls */
-  
-  /* ─────────────────────────────────────────────────────────────────────────────
-     VIGNETTE (DEPTH) CONTROLS - Multi-layer inset shadows for atmospheric depth
-     ───────────────────────────────────────────────────────────────────────────── */
-  --vignette-light-intensity: 0.08;  /* Overall darkness (0-1) */
-  --vignette-dark-intensity: 0.05;   /* Overall lightness in dark mode (0-1) */
-  --vignette-blur-outer: 180px;      /* Outer blur radius (soft edge) */
-  --vignette-blur-mid: 100px;        /* Middle layer blur */
-  --vignette-blur-inner: 40px;       /* Inner layer blur (sharp gradient) */
-  --vignette-spread: 0px;            /* Spread radius (negative pulls inward) */
-  --vignette-x: 0px;                 /* Horizontal offset */
-  --vignette-y: 0px;                 /* Vertical offset */
-  --vignette-layers: 3;              /* Number of shadow layers (1-5) */
-  --vignette-transition: 800ms;      /* Animation speed for depth changes */
   
   /* ─────────────────────────────────────────────────────────────────────────────
      BALL COLOR PALETTE (dynamically updated by JS)
@@ -182,7 +175,7 @@ body.body {
   /* Body is transparent - reveals dark html background as frame */
   background: transparent !important;
   background-color: transparent !important;
-  color: rgba(64, 64, 64, 1); /* Dark text for Light Mode */
+  color: var(--wall-color); /* Matches wall/frame color dynamically */
   
   /* GLOBAL TYPOGRAPHY */
   -webkit-font-smoothing: subpixel-antialiased;
@@ -193,11 +186,20 @@ body.body {
   transition: padding var(--duration-resize, 600ms) var(--ease-organic, ease);
 }
 
+/* Force cursor: none on ALL elements, including links */
+body *,
+body.body * {
+  cursor: none !important;
+}
+
 body.dark-mode,
 body.body.dark-mode { 
   background: transparent !important;
   background-color: transparent !important;
   color: rgba(200, 200, 200, 1);
+
+  /* In dark mode, use a subtle light inner edge for depth */
+  --container-inner-shadow-color: hsla(0 0% 100% / calc(var(--container-inner-shadow-opacity) * 0.35));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -230,7 +232,14 @@ body.body.dark-mode {
      fixed sizing + padding values here.
    ───────────────────────────────────────────────────────────────────────────── */
 header.viewport {
-  height: 100% !important;
+  /* Match viewport--content fixed positioning */
+  position: fixed !important;
+  top: var(--container-border) !important;
+  left: var(--container-border) !important;
+  right: var(--container-border) !important;
+  bottom: var(--container-border) !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 header.viewport.viewport--content {
@@ -244,26 +253,49 @@ header.viewport.viewport--content {
    - Fallback: no-js class shows content immediately
    ───────────────────────────────────────────────────────────────────────────── */
 .viewport.viewport--content {
+  /* Fixed position inside the frame border */
+  position: fixed !important;
+  top: var(--container-border) !important;
+  left: var(--container-border) !important;
+  right: var(--container-border) !important;
+  bottom: var(--container-border) !important;
+  width: auto !important;
+  height: auto !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  
   background: var(--bg-light) !important; /* The "page" surface */
   background-color: var(--bg-light) !important; /* Force override */
   border-radius: var(--container-radius);
   
   /* FADE-IN: Start invisible, fade in when .page-ready is added */
   opacity: 0;
-  transition: opacity 800ms ease-out 200ms; /* 200ms delay before fade starts */
-  
-  /* Multi-layer atmospheric depth - organic corner vignette */
-  box-shadow: 
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-outer) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.6)),
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-mid) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.4)),
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-inner) var(--vignette-spread) rgba(0, 0, 0, calc(var(--vignette-light-intensity) * 0.3));
   
   /* ORGANIC BREATHING: All geometric properties transition smoothly */
   transition: 
+    opacity 800ms ease-out 200ms,
     background-color var(--duration-settle) var(--ease-settle),
     border-radius var(--duration-resize) var(--ease-organic),
-    padding var(--duration-resize) var(--ease-organic),
-    box-shadow var(--vignette-transition) var(--ease-organic);
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic),
+    bottom var(--duration-resize) var(--ease-organic);
+}
+
+/* Light gradient overlay - subtle white glow from edges */
+.viewport.viewport--content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  /* Radial gradient: transparent center → 10% white at edges */
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 50%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.10) 100%
+  );
 }
 
 /* PAGE READY: Fade in when JS signals load complete */
@@ -291,12 +323,15 @@ body.dark-mode .viewport {
 body.dark-mode .viewport.viewport--content {
   background: var(--bg-dark) !important; /* Dark content area */
   background-color: var(--bg-dark) !important; /* Force override */
-  
-  /* Multi-layer atmospheric depth - lighter corners in dark mode */
-  box-shadow: 
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-outer) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.6)),
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-mid) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.4)),
-    inset var(--vignette-x) var(--vignette-y) var(--vignette-blur-inner) var(--vignette-spread) rgba(255, 255, 255, calc(var(--vignette-dark-intensity) * 0.3));
+}
+
+/* Dark mode gradient: same subtle white edge glow (reads as soft highlight) */
+body.dark-mode .viewport.viewport--content::before {
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 50%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
 }
 
 /* Dark mode sound hover - viewport content goes slightly lighter */
@@ -337,7 +372,7 @@ body.dark-mode.sound-hover .viewport.viewport--content {
   }
 }
 
-/* UI elements layer */
+/* UI elements layer - ABOVE balls (z:5) */
 .legend,
 .legend__item,
 .footer_icon-group,
@@ -345,7 +380,7 @@ body.dark-mode.sound-hover .viewport.viewport--content {
 .footer_icon-link,
 .caption,
 a {
-  z-index: 20 !important;
+  z-index: 2000 !important; /* Well above balls */
   position: relative;
   pointer-events: auto !important;
   text-decoration: none !important; /* Remove all underlines globally */
@@ -406,28 +441,24 @@ a {
     background-color var(--duration-settle) var(--ease-settle);
 }
 
-/* Bounce highlight overlay - flashes on ball collision (on canvas wrapper) */
+/* Inner shadow overlay inside the rounded container wrapper */
 #bravia-balls::after {
   content: '';
   position: absolute;
-  /* Match canvas position */
   inset: 0;
   border-radius: var(--container-radius);
   pointer-events: none;
-  /* Radial glow that intensifies on bounce */
-  box-shadow: 
-    inset 0 0 calc(var(--wall-softness) * 2) calc(var(--wall-thickness) * 0.5) 
-    rgba(255, 255, 255, calc(var(--wall-bounce-intensity) * 0.3));
-  opacity: var(--wall-bounce-intensity);
-  transition: opacity 150ms ease-out;
+  box-shadow:
+    inset 0 var(--container-inner-shadow-offset-y)
+    var(--container-inner-shadow-blur)
+    var(--container-inner-shadow-spread)
+    var(--container-inner-shadow-color);
 }
 
-/* Ball Pit Mode - Extended height for spawning area above viewport */
+/* Ball Pit Mode - Same container as other modes
+   Balls spawn at negative Y (above canvas) and fall into view */
 #bravia-balls.mode-pit {
-  /* 150% of viewport height - spawning area above visible viewport */
-  height: 150vh;
-  bottom: 0;
-  top: auto;
+  /* No special sizing - walls stay fixed, balls spawn above */
 }
 
 /* Canvas - simulation drawing surface, fills the container */
@@ -511,13 +542,14 @@ body.dark-mode .noise-3 {
    ───────────────────────────────────────────────────────────────────────────── */
 .legend {
   position: fixed !important;
-  /* ORGANIC: Edge inset scales with viewport */
+  /* Position = frame border + content padding (via --edge-inset) */
   top: var(--edge-inset) !important;
-  left: var(--edge-inset-lg) !important;
+  left: var(--edge-inset) !important;
   margin: 0 !important;
   width: auto !important;
   height: auto !important;
   font-family: 'Geist', sans-serif !important;
+  padding: 0 !important; /* No inner padding - positioning handles spacing */
   
   /* Smooth position transitions during resize */
   transition: 
@@ -545,9 +577,9 @@ body.dark-mode .noise-3 {
    ───────────────────────────────────────────────────────────────────────────── */
 .decorative-script {
   position: fixed;
-  /* ORGANIC: Mirrors legend positioning */
+  /* Position = frame border + content padding (via --edge-inset) */
   top: var(--edge-inset);
-  right: var(--edge-inset-lg);
+  right: var(--edge-inset);
   /* Fluid max-width */
   max-width: min(418px, 38vw);
   z-index: 2001 !important;
@@ -569,7 +601,7 @@ body.dark-mode .noise-3 {
   visibility: visible !important;
   /* Border styling */
   border: 1px solid rgba(61, 61, 61, 1) !important;
-  padding: 2px 20px !important;
+  padding: 8px 12px !important; /* Simple fixed padding for the box */
   
   /* ORGANIC TRANSITIONS: Position and appearance */
   transition: 
@@ -673,14 +705,24 @@ body.dark-mode .noise-3 {
   opacity: 0.6;
 }
 
-/* Social icons */
+/* Social icons - Fixed position at bottom-left inside frame */
+#social-links,
 .footer_icon-group {
-  transform: translateY(var(--space-md));
-  transition: transform var(--duration-resize) var(--ease-organic);
+  position: fixed !important;
+  bottom: var(--edge-inset) !important;
+  left: var(--edge-inset) !important;
+  z-index: 2000 !important; /* Above balls */
+  transition: 
+    bottom var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic);
 }
 
-/* Caption (timestamp) */
+/* Caption (timestamp) - Fixed position at bottom-right inside frame */
 .caption {
+  position: fixed !important;
+  bottom: var(--edge-inset) !important;
+  right: var(--edge-inset) !important;
+  z-index: 2000 !important; /* Above balls */
   font-family: 'Molle', cursive !important;
   /* Fluid typography */
   font-size: clamp(0.85rem, 1.5vw, 1.05rem) !important;
@@ -689,10 +731,10 @@ body.dark-mode .noise-3 {
   letter-spacing: 0.01em !important;
   opacity: 0.85;
   cursor: default;
-  transform: translateY(var(--space-md));
   transition: 
     color var(--duration-quick) ease,
-    transform var(--duration-resize) var(--ease-organic);
+    bottom var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic);
 }
 
 .caption:hover {
@@ -801,9 +843,8 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 
 @media (max-width: 768px) {
   :root {
-    /* Slightly tighter spacing on tablets */
-    --edge-inset: clamp(0.75rem, 2vmin, 1.5rem);
-    --edge-inset-lg: clamp(1rem, 2.5vmin, 2rem);
+    /* Slightly tighter content padding on tablets */
+    --content-padding: 24px;
   }
   
   .decorative-script {
@@ -814,9 +855,8 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 
 @media (max-width: 480px) {
   :root {
-    /* Tighter spacing on phones */
-    --edge-inset: clamp(0.5rem, 2vmin, 1rem);
-    --edge-inset-lg: clamp(0.75rem, 2vmin, 1.25rem);
+    /* Tighter content padding on phones */
+    --content-padding: 16px;
   }
   
   .decorative-script {
@@ -826,25 +866,19 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   THEME TOGGLE - Quick Light/Dark switch (bottom-left, next to Sound)
+   THEME TOGGLE - Hidden (user requested removal)
    ═══════════════════════════════════════════════════════════════════════════════ */
-
 .theme-toggle {
-  /* Fixed position for layout - Next to Sound Toggle */
+  display: none !important;
+}
+
+/* Sound toggle - positioned next to social icons */
+.sound-toggle {
   position: fixed;
-  bottom: calc(var(--edge-inset-lg) + var(--container-border, 0px));
-  left: calc(var(--edge-inset-lg) + var(--container-border, 0px) + 120px); /* Positioned next to social icons */
-  z-index: 2000 !important; /* Above everything */
-  
-  /* Match .footer_link exactly */
-  font-family: 'Geist', sans-serif;
-  font-size: clamp(0.65rem, 0.9vw, 0.75rem);
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  bottom: var(--edge-inset);
+  left: calc(var(--edge-inset) + 120px); /* Next to social icons */
+  z-index: 2000 !important;
   text-decoration: none;
-  
-  /* Match .footer_link base state */
   color: inherit;
   opacity: 0.85;
   background: none;
@@ -853,46 +887,44 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   margin: 0;
   cursor: pointer;
   pointer-events: auto !important;
-  
-  /* Same transform as footer elements */
-  transform: translateY(var(--space-md));
-  
-  /* Match .footer_link transitions */
   transition: 
     color var(--duration-quick) ease,
     opacity var(--duration-quick) ease,
+    bottom var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MIDDLE FOOTER LINKS - Fixed at bottom edge, horizontally centered
+   ═══════════════════════════════════════════════════════════════════════════════ */
+#contact-email,
+#portfolio-link,
+#cv-gate-trigger {
+  position: fixed !important;
+  bottom: var(--edge-inset) !important; /* At bottom edge, same as other bottom elements */
+  z-index: 2000 !important; /* Above balls */
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: 
+    bottom var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
     transform var(--duration-resize) var(--ease-organic);
 }
 
-/* Sound toggle - move it to the right of Theme toggle */
-.sound-toggle {
-  /* Fixed position for layout */
-  position: fixed;
-  bottom: calc(var(--edge-inset-lg) + var(--container-border, 0px));
-  left: calc(var(--edge-inset-lg) + var(--container-border, 0px) + 240px); /* 120px gap from Theme */
-  z-index: 2000 !important; /* Above everything */
-  
-  /* Match .footer_link exactly */
-  text-decoration: none;
-  color: inherit;
-  opacity: 0.85;
-  
-  /* Reset button defaults */
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
-  pointer-events: auto !important;
-  
-  /* Same transform as footer elements */
-  transform: translateY(var(--space-md));
-  
-  /* Match .footer_link transitions */
-  transition: 
-    color var(--duration-quick) ease,
-    opacity var(--duration-quick) ease,
-    transform var(--duration-resize) var(--ease-organic);
+/* Override .footer_link translateY transform and position evenly at bottom */
+#contact-email {
+  left: calc(50% - 150px) !important;
+  transform: none !important; /* Override .footer_link translateY */
+}
+
+#portfolio-link {
+  left: 50% !important;
+  transform: translateX(-50%) !important; /* Center horizontally, override .footer_link */
+}
+
+#cv-gate-trigger {
+  left: calc(50% + 80px) !important;
+  transform: none !important; /* Override .footer_link translateY */
 }
 
 @media (prefers-reduced-motion: reduce) {

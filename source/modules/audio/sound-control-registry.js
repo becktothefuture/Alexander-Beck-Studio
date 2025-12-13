@@ -34,7 +34,7 @@ export const SOUND_CONTROLS = {
       {
         id: 'collisionMinImpact',
         label: 'Silence Threshold',
-        min: 0, max: 30, step: 1,
+        min: 20, max: 85, step: 1,
         format: v => `${Math.round(v)}%`,
         toConfig: v => v / 100,
         fromConfig: v => v * 100,
@@ -143,26 +143,42 @@ export const SOUND_CONTROLS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // ROLLING (surface friction)
+  // REALISM (what makes it sound alive)
   // ═══════════════════════════════════════════════════════════════════════════════
-  rolling: {
-    title: 'Surface Texture',
+  realism: {
+    title: 'Realism',
     controls: [
       {
-        id: 'rollingGain',
-        label: 'Texture Volume',
-        min: 0, max: 8, step: 0.1,
-        format: v => `${v.toFixed(1)}%`,
+        id: 'noiseTransientGain',
+        label: 'Impact Snap',
+        min: 0, max: 80, step: 1,
+        format: v => `${Math.round(v)}%`,
         toConfig: v => v / 100,
         fromConfig: v => v * 100,
       },
       {
-        id: 'rollingFreq',
-        label: 'Texture Pitch',
-        min: 50, max: 300, step: 10,
-        format: v => `${Math.round(v)}Hz`,
-        toConfig: v => v,
-        fromConfig: v => v,
+        id: 'varianceGain',
+        label: 'Volume Variance',
+        min: 0, max: 50, step: 1,
+        format: v => `±${Math.round(v)}%`,
+        toConfig: v => v / 100,
+        fromConfig: v => v * 100,
+      },
+      {
+        id: 'variancePitch',
+        label: 'Pitch Variance',
+        min: 0, max: 25, step: 1,
+        format: v => `±${Math.round(v)}%`,
+        toConfig: v => v / 100,
+        fromConfig: v => v * 100,
+      },
+      {
+        id: 'velocityNoiseScale',
+        label: 'Hard Hit Crack',
+        min: 100, max: 500, step: 10,
+        format: v => `${(v / 100).toFixed(1)}×`,
+        toConfig: v => v / 100,
+        fromConfig: v => v * 100,
       },
     ]
   },

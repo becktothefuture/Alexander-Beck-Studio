@@ -43,7 +43,7 @@ export function createThemeToggle() {
 
 function updateButtonState(btn) {
   const current = getTheme();
-  // Using text labels to match design system (uppercase, tracked)
-  // "LIGHT MODE" or "DARK MODE"
-  btn.textContent = current === 'dark' ? 'Dark Mode' : 'Light Mode';
+  // Use simple icon instead of text label
+  btn.textContent = current === 'dark' ? '☀' : '☾';
+  btn.title = current === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
 }

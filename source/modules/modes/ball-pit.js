@@ -16,21 +16,17 @@ export function initializeBallPit() {
   const h = globals.canvas.height;
   const DPR = globals.DPR;
   
-  // Ball Pit canvas is 150vh tall (150% of viewport)
-  // Top 1/3 (50vh) is above viewport = spawn area [0, h/3]
-  // Bottom 2/3 (100vh) is visible viewport = play area [h/3, h]
-  // viewportTop = h/3 marks where visible area begins
+  // Spawn balls ABOVE the canvas (negative Y coordinates)
+  // They will fall into the visible area via gravity
+  // This is "negative spacing" - spawn area extends above y=0
+  const spawnHeight = h * 0.5;  // Spawn within 50% of canvas height above canvas
+  const spawnYTop = -spawnHeight;
+  const spawnYBottom = 0;
   
-  const viewportTop = h / 3;
-  
-  // Spawn in top 70% of the hidden area (concentrated near top)
-  // This creates the effect of balls "falling in from the top"
-  const spawnYTop = 0;
-  const spawnYBottom = viewportTop * 0.7;  // Use top 70% of spawn area
-  
-  // Spawn across full width
-  const spawnXLeft = 0;
-  const spawnXRight = w;
+  // Spawn across full width (with padding for wall thickness)
+  const padding = (globals.wallThickness || 20) * DPR;
+  const spawnXLeft = padding;
+  const spawnXRight = w - padding;
   
   // First, ensure at least one ball of each color (0-7)
   for (let colorIndex = 0; colorIndex < 8; colorIndex++) {
@@ -40,7 +36,7 @@ export function initializeBallPit() {
     const ball = spawnBall(x, y, getColorByIndex(colorIndex));
     // Small downward velocity and random horizontal drift
     ball.vx = (Math.random() - 0.5) * 100;
-    ball.vy = Math.random() * 50;
+    ball.vy = Math.random() * 50 + 50;  // Initial downward velocity
     ball.driftAx = 0;
     ball.driftTime = 0;
   }
@@ -53,7 +49,7 @@ export function initializeBallPit() {
     const ball = spawnBall(x, y);
     // Small downward velocity and random horizontal drift
     ball.vx = (Math.random() - 0.5) * 100;
-    ball.vy = Math.random() * 50;
+    ball.vy = Math.random() * 50 + 50;  // Initial downward velocity
     ball.driftAx = 0;
     ball.driftTime = 0;
   }

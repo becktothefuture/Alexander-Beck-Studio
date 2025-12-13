@@ -152,14 +152,12 @@ export class Ball {
     const { REST, MASS_BASELINE_KG, MASS_REST_EXP, currentMode, DPR } = globals;
     const rest = customRest !== undefined ? customRest : REST;
     
-    const viewportTop = (currentMode === MODES.PIT) ? (h / 3) : 0;
-    
-    // Corner radius: container radius minus simulation padding, scaled by DPR
-    // Uses getCanvasCornerRadius() for auto-calculation based on current padding
+    // Corner radius for rounded corner collision
     const cr = (globals.getCanvasCornerRadius() || 100) * (DPR || 1);
     
-    // No border inset - balls use full canvas bounds
-    const borderInset = 0;
+    // Small inset to create a gap between balls and walls (prevents overlap)
+    // Positive value = balls stop before the edge
+    const borderInset = 3 * (DPR || 1);
     
     let hasWallCollision = false;
     
@@ -168,17 +166,20 @@ export class Ball {
     // Check if ball center is within a corner quadrant and too close to arc
     // ════════════════════════════════════════════════════════════════════════
     const corners = [
-      { cx: cr, cy: viewportTop + cr },           // Top-left
-      { cx: w - cr, cy: viewportTop + cr },       // Top-right
-      { cx: cr, cy: h - cr },                      // Bottom-left
-      { cx: w - cr, cy: h - cr }                   // Bottom-right
+      { cx: cr, cy: cr },           // Top-left
+      { cx: w - cr, cy: cr },       // Top-right
+      { cx: cr, cy: h - cr },       // Bottom-left
+      { cx: w - cr, cy: h - cr }    // Bottom-right
     ];
     
     for (let i = 0; i < corners.length; i++) {
+      // Skip top corners (0, 1) in Ball Pit mode so balls can fall in
+      if (currentMode === MODES.PIT && i < 2) continue;
+      
       const corner = corners[i];
       // Check if ball is in this corner's quadrant
       const inXZone = (i % 2 === 0) ? (this.x < cr) : (this.x > w - cr);
-      const inYZone = (i < 2) ? (this.y < viewportTop + cr) : (this.y > h - cr);
+      const inYZone = (i < 2) ? (this.y < cr) : (this.y > h - cr);
       
       if (inXZone && inYZone) {
         const dx = this.x - corner.cx;
@@ -207,9 +208,10 @@ export class Ball {
     }
     
     // Effective boundaries (accounting for inner border)
+    // Same for ALL modes - walls never move
     const minX = borderInset;
     const maxX = w - borderInset;
-    const minY = viewportTop + borderInset;
+    const minY = borderInset;  // No special viewportTop offset - walls stay fixed
     const maxY = h - borderInset;
     
     // Bottom
@@ -235,8 +237,8 @@ export class Ball {
       registerWallImpact('bottom', this.x / w, impact);
     }
     
-    // Top (ceiling)
-    if (this.y - this.r < minY) {
+    // Top (ceiling) - Skip in Ball Pit mode so balls can fall in from above
+    if (currentMode !== MODES.PIT && this.y - this.r < minY) {
       hasWallCollision = true;
       this.y = minY + this.r;
       this.vy = -this.vy * rest;
@@ -264,7 +266,7 @@ export class Ball {
       // Sound: right wall impact (threshold handled by sound engine)
       playCollisionSound(this.r, impact * 0.6, 1.0, this._soundId);
       // Rubbery wall wobble
-      registerWallImpact('right', (this.y - viewportTop) / (h - viewportTop), impact);
+      registerWallImpact('right', this.y / h, impact);
     }
     
     // Left
@@ -282,7 +284,7 @@ export class Ball {
       // Sound: left wall impact (threshold handled by sound engine)
       playCollisionSound(this.r, impact * 0.6, 0.0, this._soundId);
       // Rubbery wall wobble
-      registerWallImpact('left', (this.y - viewportTop) / (h - viewportTop), impact);
+      registerWallImpact('left', this.y / h, impact);
     }
     
     // Wake on wall collision (prevents sleeping balls from getting stuck in walls)
@@ -292,25 +294,47 @@ export class Ball {
   }
 
   draw(ctx) {
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(this.theta);
+    // ══════════════════════════════════════════════════════════════════════════════
+    // PERFORMANCE: Optimized draw with minimal state changes
+    // - Skip save/restore when possible (expensive operations)
+    // - Batch similar operations
+    // - Only use transforms when necessary
+    // ══════════════════════════════════════════════════════════════════════════════
     
-    // Apply squash
-    if (this.squashAmount > 0.001) {
-      const squashX = 1 - this.squashAmount * 0.3;
-      const squashY = 1 + this.squashAmount * 0.3;
-      ctx.rotate(this.squashNormalAngle);
-      ctx.scale(squashX, squashY);
-      ctx.rotate(-this.squashNormalAngle);
+    const hasSquash = this.squashAmount > 0.001;
+    const hasAlpha = this.alpha < 1.0;
+    
+    // Only use save/restore when we have transforms that need cleanup
+    if (hasSquash || hasAlpha) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      
+      if (hasSquash) {
+        ctx.rotate(this.theta + this.squashNormalAngle);
+        const squashX = 1 - this.squashAmount * 0.3;
+        const squashY = 1 + this.squashAmount * 0.3;
+        ctx.scale(squashX, squashY);
+        ctx.rotate(-this.squashNormalAngle);
+      } else {
+        ctx.rotate(this.theta);
+      }
+      
+      if (hasAlpha) {
+        ctx.globalAlpha = this.alpha;
+      }
+      
+      ctx.beginPath();
+      ctx.arc(0, 0, this.r, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+      
+      ctx.restore();
+    } else {
+      // Fast path: no squash, no alpha - draw directly without save/restore
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.fill();
     }
-    
-    ctx.beginPath();
-    ctx.arc(0, 0, this.r, 0, Math.PI * 2);
-    ctx.fillStyle = this.color;
-    ctx.globalAlpha = this.alpha;
-    ctx.fill();
-    ctx.globalAlpha = 1.0;
-    ctx.restore();
   }
 }
