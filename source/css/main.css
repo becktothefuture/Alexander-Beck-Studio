@@ -325,6 +325,152 @@ html:not(.js-enabled) .viewport.viewport--content {
   transition: none !important;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   UNIVERSAL PAGE FADE-IN (Dev + Production)
+   Staggered entrance: Canvas → Logo → Footer → UI
+   Soft 600ms ease-out creates gentle reveal without jarring pop
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Canvas container - base layer, fades first */
+#bravia-balls {
+  opacity: 0;
+  transition: opacity 600ms ease-out;
+}
+
+body.page-ready #bravia-balls {
+  opacity: 1;
+}
+
+/* Hero/Logo text - slight delay after canvas */
+.hero__text,
+#brand-logo {
+  opacity: 0;
+  transition: opacity 600ms ease-out 100ms;
+}
+
+body.page-ready .hero__text,
+body.page-ready #brand-logo {
+  opacity: 1;
+}
+
+/* Footer links - staggered after logo */
+.footer_link {
+  opacity: 0;
+  transition: 
+    opacity 600ms ease-out 200ms,
+    color var(--duration-quick) ease,
+    transform var(--duration-resize) var(--ease-organic);
+}
+
+body.page-ready .footer_link {
+  opacity: 0.85;
+}
+
+/* Decorative elements - fade with footer */
+.decorative-script,
+.caption {
+  opacity: 0;
+  transition: opacity 600ms ease-out 200ms;
+}
+
+body.page-ready .decorative-script,
+body.page-ready .caption {
+  opacity: 0.85;
+}
+
+/* Noise layers - fade in last, very subtle */
+.noise,
+.noise-2,
+.noise-3 {
+  opacity: 0 !important;
+  transition: opacity 800ms ease-out 300ms !important;
+}
+
+body.page-ready .noise {
+  opacity: var(--noise-back-opacity) !important;
+}
+
+body.page-ready .noise-2 {
+  opacity: var(--noise-front-opacity) !important;
+}
+
+body.page-ready .noise-3 {
+  opacity: var(--noise-top-opacity, 0.015) !important;
+}
+
+/* UI toggles (sound, theme) - appear last */
+.sound-toggle,
+.theme-toggle,
+#dockToggle {
+  opacity: 0;
+  transition: opacity 500ms ease-out 400ms;
+}
+
+body.page-ready .sound-toggle,
+body.page-ready .theme-toggle,
+body.page-ready #dockToggle {
+  opacity: 1;
+}
+
+/* FALLBACK: No-JS shows everything immediately */
+html.no-js #bravia-balls,
+html.no-js .hero__text,
+html.no-js #brand-logo,
+html.no-js .footer_link,
+html.no-js .decorative-script,
+html.no-js .caption,
+html.no-js .noise,
+html.no-js .noise-2,
+html.no-js .noise-3,
+html.no-js .sound-toggle,
+html.no-js .theme-toggle,
+html.no-js #dockToggle,
+html:not(.js-enabled) #bravia-balls,
+html:not(.js-enabled) .hero__text,
+html:not(.js-enabled) #brand-logo,
+html:not(.js-enabled) .footer_link,
+html:not(.js-enabled) .decorative-script,
+html:not(.js-enabled) .caption,
+html:not(.js-enabled) .noise,
+html:not(.js-enabled) .noise-2,
+html:not(.js-enabled) .noise-3,
+html:not(.js-enabled) .sound-toggle,
+html:not(.js-enabled) .theme-toggle,
+html:not(.js-enabled) #dockToggle {
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+/* Reduced motion: Skip animation, show immediately */
+@media (prefers-reduced-motion: reduce) {
+  #bravia-balls,
+  .hero__text,
+  #brand-logo,
+  .footer_link,
+  .decorative-script,
+  .caption,
+  .noise,
+  .noise-2,
+  .noise-3,
+  .sound-toggle,
+  .theme-toggle,
+  #dockToggle {
+    transition: none !important;
+  }
+  
+  body.page-ready #bravia-balls,
+  body.page-ready .hero__text,
+  body.page-ready #brand-logo {
+    opacity: 1 !important;
+  }
+  
+  body.page-ready .footer_link,
+  body.page-ready .decorative-script,
+  body.page-ready .caption {
+    opacity: 0.85 !important;
+  }
+}
+
 /* Sound toggle hover - viewport content turns white */
 body.sound-hover .viewport.viewport--content {
   background: #ffffff !important;
@@ -654,17 +800,18 @@ a {
 }
 
 /* Dark mode: Invert blend mode (multiply → screen) for equivalent effect on dark bg */
-body.dark-mode .noise {
+/* Note: Also requires page-ready to maintain fade-in behavior */
+body.dark-mode.page-ready .noise {
   opacity: var(--noise-back-opacity-dark) !important;
   mix-blend-mode: screen !important; /* Lightens grain on dark background */
 }
 
-body.dark-mode .noise-2 {
+body.dark-mode.page-ready .noise-2 {
   opacity: var(--noise-front-opacity-dark) !important;
   mix-blend-mode: screen !important; /* Lightens grain on dark background */
 }
 
-body.dark-mode .noise-3 {
+body.dark-mode.page-ready .noise-3 {
   opacity: var(--noise-top-opacity-dark, 0.04) !important;
   mix-blend-mode: screen !important; /* Lightens grain on dark background */
 }
@@ -756,7 +903,7 @@ body.dark-mode .noise-3 {
   line-height: 1.35;
   letter-spacing: 0.01em;
   color: #161616; /* Dark text for light mode */
-  opacity: 0.85;
+  /* opacity controlled by page-ready fade-in system */
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
@@ -834,15 +981,11 @@ body.dark-mode .noise-3 {
 .footer_link {
   text-decoration: none;
   color: inherit;
-  opacity: 0.85;
+  /* opacity controlled by page-ready fade-in system above */
   position: relative;
   
   /* ORGANIC: Shift proportional to viewport, transition smoothly */
   transform: translateY(var(--space-md));
-  transition: 
-    color var(--duration-quick) ease,
-    opacity var(--duration-quick) ease,
-    transform var(--duration-resize) var(--ease-organic);
 }
 
 /* Hover dot indicator - small circle that fades in */
@@ -896,7 +1039,7 @@ body.dark-mode .noise-3 {
   font-weight: 700 !important;
   line-height: 1.3 !important;
   letter-spacing: 0.01em !important;
-  opacity: 0.85;
+  /* opacity controlled by page-ready fade-in system */
   cursor: default;
   transition: 
     color var(--duration-quick) ease,

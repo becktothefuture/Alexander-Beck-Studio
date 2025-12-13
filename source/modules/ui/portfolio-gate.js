@@ -44,6 +44,7 @@ export function initPortfolioGate() {
     const cvGate = document.getElementById('cv-gate'); // Get CV gate to check/close if open
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
     const pageFlash = document.getElementById('page-flash');
+    const gateLabel = document.getElementById('portfolio-gate-label');
     
     // Correct Code
     const CODE = '1234';
@@ -51,6 +52,14 @@ export function initPortfolioGate() {
     if (!trigger || !logo || !gate || inputs.length === 0) {
         console.warn('Portfolio Gate: Missing required elements');
         return;
+    }
+    
+    // Set label text if element exists
+    if (gateLabel) {
+        gateLabel.innerHTML = `
+            <h2 class="gate-title">View Portfolio</h2>
+            <p class="gate-description">Good work deserves good context. This small step ensures you're here with intention, not just browsing. Quality takes time—yours and mine.</p>
+        `;
     }
     
     // Create page-flash element if it doesn't exist

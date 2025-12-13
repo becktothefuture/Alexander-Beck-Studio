@@ -1,16 +1,18 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                    SOUND ENGINE — "UNDERWATER PEBBLES"                       ║
-// ║        Dreamy, muffled collision sounds using Web Audio API synthesis        ║
+// ║                    SOUND ENGINE — "SOFT ORGANIC IMPACTS"                     ║
+// ║    Realistic, non-melodic collision sounds with intensity-driven dynamics    ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 /**
- * Sound Design: Underwater Pebbles
- * - Sine wave body with subtle 2nd harmonic for warmth
- * - Low-pass filter (2-3.5kHz) simulates water absorption
- * - Shared reverb bus for cohesion
- * - Pentatonic pitch mapping ensures pleasant overlaps
- * - Ball radius → pitch (large = low, small = high)
- * - Collision intensity → volume + filter brightness
+ * Sound Design: Soft Organic Impacts
+ * 
+ * Key principles for realism:
+ * - Intensity drives EVERYTHING: soft touches ≈ silent, hard hits ≈ audible
+ * - Non-linear dynamics: energy^1.5 curve means gentle hits are very quiet
+ * - Darker timbre baseline: only hard impacts reveal high frequencies
+ * - Micro-variance on all parameters: no two hits sound identical
+ * - Aggressive high-frequency rolloff: prevents harsh/clacky artifacts
+ * - Soft limiting: peaks are compressed, never clip
  */
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -45,113 +47,120 @@ function chance(probability) {
 
 // ════════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION (mutable for runtime tweaking)
-// Soft, non-melodic baseline derived from the current default settings
-// and locked as the starting point for further evolution.
+// Soft organic impacts — locked baseline for further evolution.
 // ════════════════════════════════════════════════════════════════════════════════
 const BASE_CONFIG = Object.freeze({
-  // Synthesis — softened attack and decay
-  attackTime: 0.001,
-  decayTime: 0.060,
-  harmonicGain: 0.04,           // Keep a hint of body but avoid harmonics stack
+  // ─── Synthesis ────────────────────────────────────────────────────────────────
+  // Softer attack removes the initial "click"; longer decay for natural tail
+  attackTime: 0.005,            // Was 0.001 — softer onset, less clacky
+  decayTime: 0.075,             // Was 0.060 — slightly longer for body
+  harmonicGain: 0.02,           // Was 0.04 — minimal harmonics (non-melodic)
   
-  // Filter — warmer, darker
-  filterBaseFreq: 950,
-  filterVelocityRange: 260,
-  filterQ: 0.24,
+  // ─── Filter (Timbre) ──────────────────────────────────────────────────────────
+  // Darker baseline; only hard impacts get brightness
+  filterBaseFreq: 580,          // Was 950 — much darker default
+  filterVelocityRange: 400,     // Was 260 — intensity can open up more
+  filterQ: 0.18,                // Was 0.24 — gentler resonance
   
-  // Reverb — short room, subtle glue
+  // ─── Reverb ───────────────────────────────────────────────────────────────────
+  // Short room, subtle glue (unchanged)
   reverbDecay: 0.14,
-  reverbWetMix: 0.10,
-  reverbHighDamp: 0.72,
+  reverbWetMix: 0.08,           // Was 0.10 — slightly drier
+  reverbHighDamp: 0.80,         // Was 0.72 — more high damping
   
-  // Volume — softer and safer
-  minGain: 0.018,
-  maxGain: 0.11,
-  masterGain: 0.30,
+  // ─── Volume / Dynamics ────────────────────────────────────────────────────────
+  // Lower overall, with more headroom for intensity scaling
+  minGain: 0.008,               // Was 0.018 — soft hits nearly inaudible
+  maxGain: 0.09,                // Was 0.11 — hard hits still present
+  masterGain: 0.28,             // Was 0.30 — slight reduction
   
-  // Performance (voice pool size is fixed at 8)
-  minTimeBetweenSounds: 0.010,
+  // ─── Performance ──────────────────────────────────────────────────────────────
+  minTimeBetweenSounds: 0.012,  // Was 0.010 — slightly more debounce
   
-  // Stereo
-  maxPan: 0.18,
+  // ─── Stereo ───────────────────────────────────────────────────────────────────
+  maxPan: 0.15,                 // Was 0.18 — tighter stereo image
   
-  // Realism: transient but muted
+  // ─── Noise Transient (the "snap" at impact) ───────────────────────────────────
+  // Significantly reduced for softer, less percussive sound
   noiseTransientEnabled: true,
-  noiseTransientGain: 0.12,
-  noiseTransientDecay: 0.012,
-  noiseTransientFilterMin: 750,
-  noiseTransientFilterMax: 2400,
+  noiseTransientGain: 0.045,    // Was 0.12 — 63% reduction
+  noiseTransientDecay: 0.008,   // Was 0.012 — shorter burst
+  noiseTransientFilterMin: 500, // Was 750 — darker transient
+  noiseTransientFilterMax: 1800,// Was 2400 — less harsh
   
-  // Micro-variation
-  variancePitch: 0.035,
-  varianceDecay: 0.16,
-  varianceGain: 0.12,
-  varianceFilter: 0.12,
-  varianceNoise: 0.18,
+  // ─── Micro-Variation (organic feel) ───────────────────────────────────────────
+  variancePitch: 0.06,          // Was 0.035 — more pitch variance (non-melodic)
+  varianceDecay: 0.20,          // Was 0.16 — more decay variance
+  varianceGain: 0.15,           // Was 0.12 — more volume variance
+  varianceFilter: 0.18,         // Was 0.12 — more timbre variance
+  varianceNoise: 0.25,          // Was 0.18 — more transient variance
   
-  // Inharmonicity (disabled for non-melodic feel)
+  // ─── Inharmonicity (disabled) ─────────────────────────────────────────────────
   inharmonicityEnabled: false,
   inharmonicSpread: 0,
   thirdHarmonicGain: 0,
   thirdHarmonicInharm: 0,
   
-  // Velocity-sensitive timbre (subtle)
-  velocityNoiseScale: 1.4,
-  velocityBrightnessScale: 1.1,
-  velocityDecayScale: 0.78,
+  // ─── Intensity-Driven Dynamics ────────────────────────────────────────────────
+  // These scale based on collision energy — key to realistic feel
+  velocityNoiseScale: 1.8,      // Was 1.4 — harder hits get more snap
+  velocityBrightnessScale: 1.4, // Was 1.1 — harder hits get brighter
+  velocityDecayScale: 0.65,     // Was 0.78 — harder hits decay faster
+  intensityExponent: 1.5,       // NEW: non-linear curve (soft hits very quiet)
   
-  // Character hits disabled to avoid melodic accents
+  // ─── Character Hits (disabled) ────────────────────────────────────────────────
   characterHitChance: 0,
   characterBrightnessBoost: 1,
   characterResonanceBoost: 1,
 
-  // Tone safety
-  toneSafetyMinHz: 140,
-  toneSafetyMaxHz: 520,
-  toneSafetyExponent: 2.0,
-  toneSafetyHighGainAtten: 0.18,
-  toneSafetyLowGainAtten: 0.08,
-  toneSafetyHighBrightAtten: 0.32,
+  // ─── Tone Safety (anti-harshness) ─────────────────────────────────────────────
+  toneSafetyMinHz: 130,         // Was 140 — slightly wider safe zone
+  toneSafetyMaxHz: 480,         // Was 520 — narrower safe zone
+  toneSafetyExponent: 2.2,      // Was 2.0 — steeper rolloff at extremes
+  toneSafetyHighGainAtten: 0.25,// Was 0.18 — more high attenuation
+  toneSafetyLowGainAtten: 0.06, // Was 0.08 — less low attenuation
+  toneSafetyHighBrightAtten: 0.45,// Was 0.32 — much darker highs
 
-  filterMinHz: 420,
-  filterMaxHz: 3800,
+  filterMinHz: 350,             // Was 420 — allow darker sounds
+  filterMaxHz: 2800,            // Was 3800 — hard cap lower
 
-  voiceGainMax: 0.18,
+  voiceGainMax: 0.14,           // Was 0.18 — lower ceiling per voice
   
-  // Energy-based sound system
-  collisionMinImpact: 0.52,
+  // ─── Energy Threshold ─────────────────────────────────────────────────────────
+  collisionMinImpact: 0.58,     // Was 0.52 — ignore more soft touches
   
-  // Ambient sources remain disabled
+  // ─── Ambient (disabled) ───────────────────────────────────────────────────────
   rollingEnabled: false,
   rollingMaxVelocity: 80,
   rollingMinVelocity: 15,
-    rollingGain: 0,
-    rollingFreq: 130,
+  rollingGain: 0,
+  rollingFreq: 130,
   
-    whooshEnabled: false,
+  whooshEnabled: false,
   whooshMinVelocity: 500,
   whooshGain: 0.0,
   whooshFreq: 800,
 
-  // Gentle high-shelf roll-off to tame highs
-  highShelfFreq: 3400,
-  highShelfGain: -3.5,
+  // ─── High-Shelf EQ (aggressive high rolloff) ──────────────────────────────────
+  // This is the "ramp" that tames harsh frequencies without hard-cutting
+  highShelfFreq: 2200,          // Was 3400 — starts rolling off earlier
+  highShelfGain: -6.0,          // Was -3.5 — nearly double the cut
 });
 
 let CONFIG = { ...BASE_CONFIG };
 
 // ════════════════════════════════════════════════════════════════════════════════
-// SOUND PRESETS — Locked to the soft baseline for evolution
+// SOUND PRESETS — Locked baseline for evolution
 // ════════════════════════════════════════════════════════════════════════════════
 export const SOUND_PRESETS = {
-  softImpact: {
-    label: 'Soft Impact (Baseline)',
-    description: 'Organic, non-melodic thuds with gentle high roll-off',
+  organicImpact: {
+    label: 'Organic Impact (Baseline)',
+    description: 'Soft, intensity-driven thuds with aggressive high rolloff',
     ...BASE_CONFIG,
   },
 };
 
-let currentPreset = 'softImpact';
+let currentPreset = 'organicImpact';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // STATE
@@ -270,12 +279,13 @@ function buildAudioGraph() {
   masterGain.gain.value = CONFIG.masterGain;
   
   // Limiter (prevent clipping with many simultaneous sounds)
+  // More aggressive settings for transparent peak control
   limiter = audioContext.createDynamicsCompressor();
-  limiter.threshold.value = -3;
-  limiter.knee.value = 6;
-  limiter.ratio.value = 12;
-  limiter.attack.value = 0.001;
-  limiter.release.value = 0.1;
+  limiter.threshold.value = -6;    // Was -3 — catches more peaks
+  limiter.knee.value = 10;         // Was 6 — softer knee for transparency
+  limiter.ratio.value = 16;        // Was 12 — harder limiting
+  limiter.attack.value = 0.0005;   // Was 0.001 — faster attack catches transients
+  limiter.release.value = 0.08;    // Was 0.1 — slightly faster release
 
   // Gentle high-shelf to soften highs without hard-cutting
   highShelf = audioContext.createBiquadFilter();
@@ -285,8 +295,9 @@ function buildAudioGraph() {
   highShelf.Q.value = 0.7;
 
   // Soft clipper (gentle safety before the limiter)
+  // Lower amount = gentler saturation, more headroom before distortion
   saturator = audioContext.createWaveShaper();
-  saturator.curve = makeSoftClipCurve(0.85);
+  saturator.curve = makeSoftClipCurve(0.55);  // Was 0.85 — much gentler
   saturator.oversample = '2x';
   
   // Dry/wet routing for reverb
@@ -667,31 +678,47 @@ function releaseVoice(voice) {
 }
 
 /**
- * Play a sound using a pooled voice — simplified, soft impact version
+ * Play a sound using a pooled voice — soft organic impact
  * 
- * Key traits:
- * 1) Continuous frequency mapping (non-melodic), radius-weighted
- * 2) Intensity drives gain, brightness, and transient amount
- * 3) Single sine body + short noise burst for organic texture
+ * Key traits for realism:
+ * 1) Non-linear intensity curve: soft hits are MUCH quieter than hard hits
+ * 2) Intensity drives gain, brightness (filter), and transient amount
+ * 3) Darker baseline timbre; only hard impacts reveal highs
+ * 4) Micro-variance on all parameters for organic feel
  */
 function playVoice(voice, frequency, intensity, xPosition, now) {
   voice.inUse = true;
   voice.startTime = now;
   
+  // ═══ NON-LINEAR INTENSITY CURVE ═══
+  // This is the key to realistic dynamics:
+  // - intensity^1.5 means a 50% intensity collision plays at ~35% perceived volume
+  // - Soft touches become nearly inaudible; only hard impacts are prominent
   const energy = clamp(intensity, 0, 1);
-  const gainShape = Math.pow(energy, 0.85); // Compress dynamics for softer peaks
+  const gainShape = Math.pow(energy, CONFIG.intensityExponent); // Non-linear!
+  
+  // ═══ FREQUENCY (with variance) ═══
   const variedFreq = vary(frequency, CONFIG.variancePitch);
+  
+  // ═══ DECAY (intensity-dependent) ═══
+  // Harder hits have shorter decay (snappier); soft hits linger slightly
   const decayVar = vary(CONFIG.decayTime, CONFIG.varianceDecay);
   const finalDecay = decayVar * (1 - gainShape * (1 - CONFIG.velocityDecayScale));
   const duration = finalDecay + 0.02;
 
+  // ═══ GAIN (non-linear intensity mapping) ═══
   let gain = CONFIG.minGain + (CONFIG.maxGain - CONFIG.minGain) * gainShape;
   gain *= vary(1.0, CONFIG.varianceGain);
 
-  let filterFreq = (CONFIG.filterBaseFreq + CONFIG.filterVelocityRange * gainShape) *
-    vary(1.0, CONFIG.varianceFilter) * CONFIG.velocityBrightnessScale;
+  // ═══ FILTER (brightness scales with intensity) ═══
+  // Soft hits stay dark; only hard impacts open up the filter
+  const brightnessScale = 1 + (CONFIG.velocityBrightnessScale - 1) * gainShape;
+  let filterFreq = CONFIG.filterBaseFreq + CONFIG.filterVelocityRange * Math.pow(gainShape, 1.3);
+  filterFreq *= vary(1.0, CONFIG.varianceFilter) * brightnessScale;
+  
+  // ═══ STEREO + REVERB ═══
   const panValue = (xPosition - 0.5) * 2 * CONFIG.maxPan;
-  const reverbAmount = 0.18 + (1 - gainShape) * 0.6; // Softer hits get more space
+  const reverbAmount = 0.12 + (1 - gainShape) * 0.5; // Softer hits = more diffuse
   
   // Tone safety + anti-clipping headroom
   ({ gain, filterFreq } = applyToneSafety(variedFreq, gain, filterFreq));
@@ -720,17 +747,24 @@ function playVoice(voice, frequency, intensity, xPosition, now) {
   // Connect tonal chain
   osc.connect(voice.filter);
 
-  // Short, muted transient for tactile onset
-  if (CONFIG.noiseTransientEnabled) {
+  // ═══ NOISE TRANSIENT (the "snap" at impact) ═══
+  // Only prominent on hard hits; soft touches have almost no transient
+  if (CONFIG.noiseTransientEnabled && gainShape > 0.25) {
     const noiseSource = createTransientNoise();
     voice.noiseSource = noiseSource;
     
+    // Filter opens with intensity (soft = dark transient, hard = brighter)
+    const noiseIntensity = Math.pow(gainShape, 1.4); // Even steeper curve for transient
     const noiseFilterBase = CONFIG.noiseTransientFilterMin + 
-      (CONFIG.noiseTransientFilterMax - CONFIG.noiseTransientFilterMin) * gainShape;
-    voice.noiseFilter.frequency.value = vary(noiseFilterBase, 0.12);
+      (CONFIG.noiseTransientFilterMax - CONFIG.noiseTransientFilterMin) * noiseIntensity;
+    voice.noiseFilter.frequency.value = vary(noiseFilterBase, CONFIG.varianceNoise);
     
-    const noiseGain = CONFIG.noiseTransientGain * CONFIG.velocityNoiseScale * gainShape * gain;
-    const noiseDecay = vary(CONFIG.noiseTransientDecay, 0.25);
+    // Transient gain scales with intensity (soft hits get almost no snap)
+    const noiseGain = CONFIG.noiseTransientGain * 
+      CONFIG.velocityNoiseScale * 
+      noiseIntensity * 
+      gain;
+    const noiseDecay = vary(CONFIG.noiseTransientDecay, CONFIG.varianceNoise);
     
     voice.noiseEnvelope.gain.cancelScheduledValues(now);
     voice.noiseEnvelope.gain.setValueAtTime(noiseGain, now);
@@ -790,8 +824,13 @@ function applyToneSafety(frequency, gain, filterFreq) {
 }
 
 /**
- * Map ball radius to pentatonic frequency
+ * Map ball radius to organic frequency (non-melodic)
  * Uses inverse mapping: larger radius = lower frequency
+ * 
+ * Key difference from melodic mapping:
+ * - Continuous (not quantized to scale)
+ * - Wide variance makes each hit unique
+ * - Narrower overall range (thuddy, not tinny)
  */
 function radiusToFrequency(radius) {
   const minR = 8;
@@ -799,9 +838,12 @@ function radiusToFrequency(radius) {
   const normalized = clamp((radius - minR) / (maxR - minR), 0, 1);
   const inv = 1 - normalized; // Larger radius → lower pitch
 
-  // Continuous, non-quantized range for non-melodic thuds
-  const baseFreq = 170 + inv * 140; // ~170–310 Hz
-  return baseFreq * vary(1, CONFIG.variancePitch * 1.2);
+  // Narrow, low range for thuddy impacts (not clacky/tinny)
+  // Range: ~145–280 Hz (much lower than before)
+  const baseFreq = 145 + inv * 135;
+  
+  // High variance (±9%) ensures no two hits sound alike
+  return baseFreq * vary(1, CONFIG.variancePitch * 1.5);
 }
 
 

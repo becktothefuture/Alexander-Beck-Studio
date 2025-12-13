@@ -44,6 +44,7 @@ export function initCVGate() {
     const portfolioGate = document.getElementById('portfolio-gate'); // Get portfolio gate to check/close if open
     const inputs = Array.from(document.querySelectorAll('.cv-digit'));
     const pageFlash = document.getElementById('page-flash');
+    const gateLabel = document.getElementById('cv-gate-label');
     
     // Correct Code
     const CODE = '1111';
@@ -51,6 +52,14 @@ export function initCVGate() {
     if (!trigger || !logo || !gate || inputs.length === 0) {
         console.warn('CV Gate: Missing required elements');
         return;
+    }
+    
+    // Set label text if element exists
+    if (gateLabel) {
+        gateLabel.innerHTML = `
+            <h2 class="gate-title">Download Bio/CV</h2>
+            <p class="gate-description">Because spam bots don't deserve nice things—and neither do recruiters who don't read portfolios. This keeps my inbox slightly more civilized.</p>
+        `;
     }
     
     // Create page-flash element if it doesn't exist
