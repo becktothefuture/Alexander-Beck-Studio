@@ -124,7 +124,7 @@
      BALL COLOR PALETTE (dynamically updated by JS)
      ───────────────────────────────────────────────────────────────────────────── */
   --ball-1: #b7bcb7;
-  --ball-2: #ffffff;  /* White - for AI Integration */
+  --ball-2: #d0d0d0;  /* Light Gray */
   --ball-3: #ffffff;
   --ball-4: #00695c;
   --ball-5: #000000;
@@ -254,10 +254,8 @@ header.viewport.viewport--content {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   PAGE LOAD FADE-IN: Content fades from browser color, no pop
-   - Starts with opacity: 0
-   - JS adds .page-ready class after load
-   - Fallback: no-js class shows content immediately
+   VIEWPORT CONTENT - Layout and positioning
+   (Opacity/fade handled by ORCHESTRATED PAGE ENTRANCE section below)
    ───────────────────────────────────────────────────────────────────────────── */
 .viewport.viewport--content {
   /* Fixed position inside the frame border */
@@ -267,7 +265,7 @@ header.viewport.viewport--content {
   right: var(--container-border) !important;
   bottom: var(--container-border) !important;
   width: auto !important;
-  height: calc(100vh - var(--container-border) * 2) !important; /* Explicit height calculation */
+  height: calc(100vh - var(--container-border) * 2) !important;
   max-height: calc(100vh - var(--container-border) * 2) !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
@@ -282,19 +280,6 @@ header.viewport.viewport--content {
   
   /* Allow pointer events to pass through to balls where there's no text */
   pointer-events: none !important;
-  
-  /* FADE-IN: Start invisible, fade in when .page-ready is added */
-  opacity: 0;
-  
-  /* ORGANIC BREATHING: All geometric properties transition smoothly */
-  transition: 
-    opacity 800ms ease-out 200ms,
-    background-color var(--duration-settle) var(--ease-settle),
-    border-radius var(--duration-resize) var(--ease-organic),
-    top var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic),
-    right var(--duration-resize) var(--ease-organic),
-    bottom var(--duration-resize) var(--ease-organic);
 }
 
 /* Light gradient overlay - subtle white glow from edges */
@@ -313,150 +298,44 @@ header.viewport.viewport--content {
   );
 }
 
-/* PAGE READY: Fade in when JS signals load complete */
-body.page-ready .viewport.viewport--content {
-  opacity: 1;
-}
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FADE SYSTEM: Single wrapper fades all content
+   ═══════════════════════════════════════════════════════════════════════════════
+   
+   HOW IT WORKS:
+   1. Blocking <style> in <head>: #fade-content { opacity: 0 } - prevents FOUC
+   2. #fade-content is a fixed, transformed stacking context so it CONTAINS fixed UI
+   3. JS uses Web Animations API to fade from 0 → 1 (bypasses CSS override issues)
+   4. Animation: 0.5s delay, 2s duration, ease-in-out
+   
+   WHY WEB ANIMATIONS API:
+   - CSS animations/transitions can be overridden by other rules
+   - Web Animations API runs directly on the element, guaranteed to work
+   
+   WHY FIXED + TRANSFORM HERE:
+   - Many UI nodes are `position: fixed` (Webflow export + our overrides).
+   - Fixed-position descendants can be composited outside a normal wrapper, which
+     makes parent opacity fades unreliable.
+   - A transformed ancestor becomes the containing block for fixed descendants,
+     so the fade applies to the entire UI layer as one unit.
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* FALLBACK: If JS disabled, show content immediately */
-html.no-js .viewport.viewport--content,
-html:not(.js-enabled) .viewport.viewport--content {
-  opacity: 1 !important;
-  transition: none !important;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   UNIVERSAL PAGE FADE-IN (Dev + Production)
-   Staggered entrance: Content → Logo → Footer → Noise → UI
-   Balls are visible immediately; text/UI fades in softly
-   ───────────────────────────────────────────────────────────────────────────── */
-
-/* Hero/Logo text - fades in first */
-.hero__text,
-#brand-logo {
+#fade-content {
   opacity: 0;
-  transition: opacity 600ms ease-out 100ms;
+  position: fixed;
+  inset: 0;
+  z-index: 20; /* Above background/logo/balls; below panel (panel has its own z) */
+  transform: translateZ(0); /* Containing block for fixed-position UI descendants */
+  pointer-events: none; /* Pass-through by default; interactive children re-enable */
 }
 
-body.page-ready .hero__text,
-body.page-ready #brand-logo {
-  opacity: 1;
-}
-
-/* Footer links - staggered after logo */
-.footer_link {
-  opacity: 0;
-  transition: 
-    opacity 600ms ease-out 200ms,
-    color var(--duration-quick) ease,
-    transform var(--duration-resize) var(--ease-organic);
-}
-
-body.page-ready .footer_link {
-  opacity: 0.85;
-}
-
-/* Decorative elements - fade with footer */
-.decorative-script,
-.caption {
-  opacity: 0;
-  transition: opacity 600ms ease-out 200ms;
-}
-
-body.page-ready .decorative-script,
-body.page-ready .caption {
-  opacity: 0.85;
-}
-
-/* Noise layers - fade in last, very subtle */
-.noise,
-.noise-2,
-.noise-3 {
-  opacity: 0 !important;
-  transition: opacity 800ms ease-out 300ms !important;
-}
-
-body.page-ready .noise {
-  opacity: var(--noise-back-opacity) !important;
-}
-
-body.page-ready .noise-2 {
-  opacity: var(--noise-front-opacity) !important;
-}
-
-body.page-ready .noise-3 {
-  opacity: var(--noise-top-opacity, 0.015) !important;
-}
-
-/* UI toggles (sound, theme) - appear last */
-.sound-toggle,
-.theme-toggle,
-#dockToggle {
-  opacity: 0;
-  transition: opacity 500ms ease-out 400ms;
-}
-
-body.page-ready .sound-toggle,
-body.page-ready .theme-toggle,
-body.page-ready #dockToggle {
-  opacity: 1;
-}
-
-/* FALLBACK: No-JS shows everything immediately */
-html.no-js .hero__text,
-html.no-js #brand-logo,
-html.no-js .footer_link,
-html.no-js .decorative-script,
-html.no-js .caption,
-html.no-js .noise,
-html.no-js .noise-2,
-html.no-js .noise-3,
-html.no-js .sound-toggle,
-html.no-js .theme-toggle,
-html.no-js #dockToggle,
-html:not(.js-enabled) .hero__text,
-html:not(.js-enabled) #brand-logo,
-html:not(.js-enabled) .footer_link,
-html:not(.js-enabled) .decorative-script,
-html:not(.js-enabled) .caption,
-html:not(.js-enabled) .noise,
-html:not(.js-enabled) .noise-2,
-html:not(.js-enabled) .noise-3,
-html:not(.js-enabled) .sound-toggle,
-html:not(.js-enabled) .theme-toggle,
-html:not(.js-enabled) #dockToggle {
-  opacity: 1 !important;
-  transition: none !important;
-}
-
-/* Reduced motion: Skip animation, show immediately */
-@media (prefers-reduced-motion: reduce) {
-  .viewport.viewport--content,
-  .hero__text,
-  #brand-logo,
-  .footer_link,
-  .decorative-script,
-  .caption,
-  .noise,
-  .noise-2,
-  .noise-3,
-  .sound-toggle,
-  .theme-toggle,
-  #dockToggle {
-    transition: none !important;
-  }
-  
-  body.page-ready .viewport.viewport--content,
-  body.page-ready .hero__text,
-  body.page-ready #brand-logo {
-    opacity: 1 !important;
-  }
-  
-  body.page-ready .footer_link,
-  body.page-ready .decorative-script,
-  body.page-ready .caption {
-    opacity: 0.85 !important;
-  }
+/* Ensure key interactive UI inside the fade layer remains clickable */
+#fade-content a,
+#fade-content button,
+#fade-content input,
+#fade-content [role="button"],
+#fade-content [tabindex] {
+  pointer-events: auto;
 }
 
 /* Sound toggle hover - viewport content turns white */
@@ -533,8 +412,8 @@ body.dark-mode .content-background-layer {
   pointer-events: none;
   user-select: none;
   
-  /* Fade transition for CV gate swap */
-  opacity: 1;
+  /* opacity controlled by page-ready fade-in (#brand-logo rule) */
+  /* transition for CV gate swap animation */
   transition: opacity 0.4s cubic-bezier(0.4, 0.0, 0.2, 1),
               transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
@@ -735,7 +614,9 @@ a {
   z-index: 5; /* ABOVE logo (z:3), balls render on top */
   display: block;
   z-index: 1;
-  pointer-events: none !important;
+  /* Allow real pointer targeting for tests + input ergonomics.
+     Panel/UI still opt-out via isEventOnUI() in pointer tracking. */
+  pointer-events: auto !important;
   cursor: none !important;
   touch-action: none;
   user-select: none; 
@@ -823,6 +704,8 @@ body.dark-mode.page-ready .noise-3 {
   font-family: 'Geist', sans-serif !important;
   padding: 0 !important; /* No inner padding - positioning handles spacing */
   z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  opacity: 0.9 !important; /* Keep constant: Webflow sets .legend:hover { opacity: 1 } */
+  color: #2f2f2f !important; /* Slightly darker, globally applied to all legend text (light mode) */
   
   /* CSS Grid: 4 columns on desktop */
   display: grid !important;
@@ -834,6 +717,11 @@ body.dark-mode.page-ready .noise-3 {
   transition: 
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic);
+}
+
+/* Prevent any hover opacity shift from Webflow (.legend:hover { opacity: 1 }) */
+.legend:hover {
+  opacity: 0.9 !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -867,8 +755,17 @@ body.dark-mode.page-ready .noise-3 {
   font-weight: 600 !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase;
-  font-size: clamp(0.5rem, 0.7vw, 0.65rem) !important;
-  color: #404040 !important; /* Medium grey for light mode - softer contrast */
+  font-size: clamp(9px, 1vw, 12px) !important;
+  color: inherit !important; /* Inherit from .legend (enables single global legend text color) */
+  opacity: 0.9; /* Keep constant: no hover opacity changes */
+}
+
+/* Legend labels: ensure no span-level formatting overrides (e.g., Webflow/inline styles) */
+#expertise-legend span {
+  color: inherit !important;
+  font-weight: inherit !important;
+  letter-spacing: inherit !important;
+  text-transform: inherit !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -900,8 +797,8 @@ body.dark-mode.page-ready .noise-3 {
   visibility: visible !important;
   /* Border styling - only left border as requested */
   border: none !important;
-  border-left: 1px solid rgba(61, 61, 61, 1) !important;
-  padding: 8px 12px !important; /* Simple fixed padding for the box */
+  border-left: 1px solid rgba(100, 100, 100, 1) !important; /* 20% lighter than rgb(61,61,61) */
+  padding: 6px 16px !important; /* Simple fixed padding for the box */
   
   /* ORGANIC TRANSITIONS: Position and appearance */
   transition: 
@@ -918,15 +815,14 @@ body.dark-mode.page-ready .noise-3 {
 }
 
 .decorative-script p a {
-  text-decoration: none;
+  text-decoration: underline !important;
   color: inherit;
   pointer-events: auto;
   cursor: pointer;
   position: relative;
-  opacity: 0.85;
+  opacity: 0.9; /* Keep constant: no hover opacity changes */
   transition: 
-    color var(--duration-quick) ease,
-    opacity var(--duration-quick) ease;
+    color var(--duration-quick) ease;
   white-space: nowrap; /* Prevent "Let's chat." from breaking */
 }
 
@@ -949,7 +845,7 @@ body.dark-mode.page-ready .noise-3 {
 
 .decorative-script p a:hover {
   color: #000000 !important;
-  opacity: 1;
+  opacity: 0.9; /* Keep constant */
 }
 
 .decorative-script p a:hover::after {
@@ -967,8 +863,14 @@ body.dark-mode.page-ready .noise-3 {
 .footer_link {
   text-decoration: none;
   color: inherit;
-  /* opacity controlled by page-ready fade-in system above */
+  /* opacity and transition controlled by ORCHESTRATED PAGE ENTRANCE above */
   position: relative;
+  opacity: 0.9; /* Keep constant: no hover opacity changes */
+  
+  /* Clickable/hover padding - expands hit area */
+  display: inline-block;
+  padding: 30px;
+  margin: -30px; /* Compensate for visual shift */
   
   /* ORGANIC: Shift proportional to viewport, transition smoothly */
   transform: translateY(var(--space-md));
@@ -978,7 +880,8 @@ body.dark-mode.page-ready .noise-3 {
 .footer_link::after {
   content: '';
   position: absolute;
-  bottom: -100%;
+  /* Keep dot-to-text spacing stable even though links use padded hit areas */
+  bottom: 14px; /* 16px from label with 30px hit-area padding */
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -993,12 +896,12 @@ body.dark-mode.page-ready .noise-3 {
 
 .footer_link:hover {
   color: #000000 !important;
-  opacity: 1;
+  opacity: 0.9; /* Keep constant */
 }
 
 .footer_link:hover::after {
   transform: translateX(-50%) scale(1);
-  opacity: 0.6;
+  opacity: 1;
 }
 
 /* Social icons - Fixed position at bottom-left inside frame */
@@ -1013,11 +916,20 @@ body.dark-mode.page-ready .noise-3 {
     left var(--duration-resize) var(--ease-organic);
 }
 
+/* Social icon links: keep a consistent opacity (no hover opacity shifts) */
+.footer_icon-link {
+  opacity: 0.9;
+}
+
+.footer_icon-link:hover {
+  opacity: 0.9;
+}
+
 /* Caption (timestamp) - Fixed position at bottom-right inside frame */
 .caption {
   position: fixed !important;
-  bottom: var(--edge-inset) !important;
-  right: var(--edge-inset) !important;
+  bottom: calc(var(--edge-inset) - 10px) !important; /* Compensate for padding */
+  right: calc(var(--edge-inset) - 10px) !important;
   z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
   font-family: 'Molle', cursive !important;
   /* Fluid typography */
@@ -1025,38 +937,17 @@ body.dark-mode.page-ready .noise-3 {
   font-weight: 700 !important;
   line-height: 1.3 !important;
   letter-spacing: 0.01em !important;
-  /* opacity controlled by page-ready fade-in system */
+  /* opacity and transition controlled by ORCHESTRATED PAGE ENTRANCE above */
   cursor: default;
-  transition: 
-    color var(--duration-quick) ease,
-    bottom var(--duration-resize) var(--ease-organic),
-    right var(--duration-resize) var(--ease-organic);
+  
+  /* Clickable/hover padding - expands hit area */
+  padding: 10px;
+  opacity: 0.9; /* Keep constant: no hover opacity changes */
 }
 
 .caption:hover {
   color: #000000 !important;
-  opacity: 1;
-}
-
-.caption::after {
-  content: '';
-  position: absolute;
-  bottom: -100%;
-  left: 50%;
-  transform: translateX(-50%) scale(0);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
-  transition: 
-    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-    opacity 0.2s ease;
-}
-
-.caption:hover::after {
-  transform: translateX(-50%) scale(1);
-  opacity: 0.6;
+  opacity: 0.9; /* Keep constant */
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1067,18 +958,18 @@ body.dark-mode .viewport .legend__item,
 body.dark-mode .footer_link,
 body.dark-mode .footer_icon-link {
   color: #b0b0b0 !important;
-  opacity: 0.88;
+  opacity: 0.9; /* Keep constant across hover states */
 }
 
 /* Sound toggle always stays dark red in dark mode - no changes */
 body.dark-mode .sound-toggle {
   color: var(--ball-6) !important; /* Always dark red */
-  opacity: 1;
+  /* opacity handled by FADE SYSTEM - don't override here */
 }
 
 body.dark-mode .sound-toggle:hover {
   color: var(--ball-6) !important; /* No color change on hover */
-  opacity: 1;
+  /* opacity handled by FADE SYSTEM - don't override here */
 }
 
 /* Remove Sound On state color change in dark mode */
@@ -1157,7 +1048,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 /* Sound toggle - vertically centered, left aligned, styled like footer links */
 .sound-toggle {
   position: fixed;
-  top: 50%;
+  top: 52%; /* Slightly below center: tuned to align with the Alexander Beck Studio wordmark */
   left: var(--edge-inset);
   transform: translateY(-50%); /* Perfect vertical centering */
   z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
@@ -1168,11 +1059,12 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   font-weight: 400 !important; /* Match Portfolio link weight */
   text-decoration: none;
   color: var(--ball-6) !important; /* Dark orange (no yellow) when off */
-  opacity: 1;
+  /* opacity handled by FADE SYSTEM above - don't set here */
   background: none;
   border: none;
-  padding: 0;
-  margin: 0;
+  /* Match footer links: larger hit area without changing visual layout */
+  padding: 30px;
+  margin: -30px;
   cursor: pointer;
   pointer-events: auto !important;
   
@@ -1183,16 +1075,47 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
     left var(--duration-resize) var(--ease-organic);
 }
 
-/* Sound On state - use lighter orange */
+/* Sound toggle mounted inside #social-links (bottom-left icon group) */
+#social-links .sound-toggle.sound-toggle--social,
+.footer_icon-group .sound-toggle.sound-toggle--social {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* When the toggle is in the icon row, disable the footer-link hover dot positioning */
+#social-links .sound-toggle.sound-toggle--social::after,
+.footer_icon-group .sound-toggle.sound-toggle--social::after {
+  display: none !important;
+}
+
+/* Ensure the inserted list item doesn't introduce unwanted spacing */
+#social-links .sound-toggle-item,
+.footer_icon-group .sound-toggle-item {
+  margin-bottom: 0 !important;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Sound On state - stays orange (no yellow) */
 .sound-toggle[data-enabled="true"] {
-  color: var(--ball-8) !important; /* Lighter orange when on */
+  color: var(--ball-6) !important; /* Same orange when on */
 }
 
 /* Hover dot indicator - same as footer links */
 .sound-toggle::after {
   content: '';
   position: absolute;
-  bottom: -100%;
+  /* Keep dot-to-text spacing stable even though button uses padded hit area */
+  bottom: 14px; /* 16px from label with 30px hit-area padding */
   left: 50%;
   transform: translateX(-50%) scale(0);
   width: 4px;
@@ -1207,12 +1130,12 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 
 .sound-toggle:hover {
   color: var(--ball-6) !important; /* Brighter red-orange on hover */
-  opacity: 1;
+  /* opacity handled by FADE SYSTEM - don't override here */
 }
 
 .sound-toggle:hover::after {
   transform: translateX(-50%) scale(1);
-  opacity: 0.6;
+  opacity: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1229,7 +1152,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   flex-direction: row !important;
   align-items: baseline !important; /* Changed from center to baseline for top alignment */
   justify-content: center !important;
-  gap: 2rem !important; /* Even gaps between links */
+  gap: 0 !important; /* No gap between links (spacing comes from per-link padding) */
   
   margin: 0 !important;
   padding: 8px 0 !important; /* Small vertical padding for invisible hit area */
@@ -1257,6 +1180,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   bottom: auto !important;
   transform: none !important; /* Override .footer_link translateY */
   margin: 0 !important;
+  padding: 30px !important; /* Larger tap target + spacing (replaces container gap) */
   
   /* Ensure visibility - override any Webflow grid positioning */
   grid-area: auto !important;

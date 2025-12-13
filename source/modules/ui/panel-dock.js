@@ -15,6 +15,7 @@ import {
   applySoundPreset,
   getCurrentPreset,
   getSoundState,
+  SOUND_STATE_EVENT,
   unlockAudio,
   toggleSound,
   initSoundEngine
@@ -446,6 +447,28 @@ function setupSoundControls(panel) {
   const controlsWrapper = panel.querySelector('#soundControlsWrapper');
   const presetSelect = panel.querySelector('#soundPresetSelect');
   const presetDesc = panel.querySelector('#presetDescription');
+  const soundDetails = panel.querySelector('#soundSection');
+
+  const syncSoundSectionUI = (state, { openIfEnabled = false } = {}) => {
+    if (!enableBtn) return;
+    const s = state || getSoundState();
+    const enabled = !!(s.isUnlocked && s.isEnabled);
+    const unlocked = !!s.isUnlocked;
+
+    enableBtn.textContent = unlocked
+      ? (enabled ? '🔊 Sound On' : '🔇 Sound Off')
+      : '🔇 Enable Sound';
+
+    enableBtn.classList.toggle('enabled', enabled);
+
+    if (controlsWrapper) {
+      controlsWrapper.style.display = enabled ? '' : 'none';
+    }
+
+    if (openIfEnabled && enabled && soundDetails && !soundDetails.open) {
+      soundDetails.open = true;
+    }
+  };
   
   if (enableBtn) {
     enableBtn.addEventListener('click', async () => {
@@ -454,15 +477,11 @@ function setupSoundControls(panel) {
       if (!state.isUnlocked) {
         const success = await unlockAudio();
         if (success) {
-          enableBtn.textContent = '🔊 Sound On';
-          enableBtn.classList.add('enabled');
-          if (controlsWrapper) controlsWrapper.style.display = '';
+          syncSoundSectionUI(null, { openIfEnabled: true });
         }
       } else {
         const newState = toggleSound();
-        enableBtn.textContent = newState ? '🔊 Sound On' : '🔇 Sound Off';
-        enableBtn.classList.toggle('enabled', newState);
-        if (controlsWrapper) controlsWrapper.style.display = newState ? '' : 'none';
+        syncSoundSectionUI({ ...state, isEnabled: newState });
       }
     });
   }
@@ -491,6 +510,16 @@ function setupSoundControls(panel) {
   
   bindSoundControls(panel, getSoundConfig, updateSoundConfig);
   syncSoundControlsToConfig(panel, getSoundConfig);
+
+  // Initial state (if sound was enabled elsewhere, show controls immediately)
+  syncSoundSectionUI();
+
+  // Stay in sync with external toggles (e.g. the floating sound toggle button)
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener(SOUND_STATE_EVENT, (e) => {
+      syncSoundSectionUI(e && e.detail ? e.detail : null);
+    });
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -506,13 +535,16 @@ function setupLayoutControls(panel) {
   const radiusValue = panel.querySelector('#radiusValue');
   const g = getGlobals();
   
-  // Frame (outer dark border around content)
+  // Frame (outer dark border around content + wall thickness)
   if (frameSlider && frameValue) {
     frameSlider.addEventListener('input', (e) => {
       const val = parseInt(e.target.value, 10);
       frameValue.textContent = `${val}px`;
       // Update frame border CSS
       document.documentElement.style.setProperty('--container-border', `${val}px`);
+      // Sync wall thickness to frame thickness
+      document.documentElement.style.setProperty('--wall-thickness', `${val}px`);
+      g.wallThickness = val;
       // Keep state in sync for config export
       g.containerBorder = val;
       // Trigger canvas resize to account for new frame size
@@ -532,7 +564,7 @@ function setupLayoutControls(panel) {
     });
   }
   
-  // Corner radius
+  // Corner radius (syncs wallRadius + cornerRadius)
   if (radiusSlider && radiusValue) {
     radiusSlider.addEventListener('input', (e) => {
       const val = parseInt(e.target.value, 10);
@@ -540,6 +572,7 @@ function setupLayoutControls(panel) {
       document.documentElement.style.setProperty('--wall-radius', `${val}px`);
       // Keep state in sync for config export
       g.wallRadius = val;
+      g.cornerRadius = val;
     });
   }
 }

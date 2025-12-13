@@ -8,7 +8,7 @@ import { getGlobals } from '../core/state.js';
 export const COLOR_TEMPLATES = {
   industrialTeal: { 
     label: 'Industrial Teal',
-    light: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
+    light: ['#b7bcb7', '#d0d0d0', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
     dark: ['#6b726b', '#3d453d', '#8a928a', '#00e6c3', '#d5d5d5', '#ff6b47', '#5b9aff', '#ffb84d']
   },
   sunsetCoral: { 
@@ -100,7 +100,22 @@ export function applyColorTemplate(templateName) {
 function updateExistingBallColors() {
   const globals = getGlobals();
   const balls = globals.balls;
+  const colors = globals.currentColors;
   
+  // Guarantee: ensure at least one ball uses each palette color (matches legend circles).
+  // This runs only on palette changes, not in hot paths.
+  if (balls.length > 0 && colors && colors.length > 0) {
+    const count = Math.min(8, colors.length, balls.length);
+    const start = Math.floor(Math.random() * count);
+    for (let i = 0; i < count; i++) {
+      balls[i].color = colors[(start + i) % count];
+    }
+    for (let i = count; i < balls.length; i++) {
+      balls[i].color = pickRandomColor();
+    }
+    return;
+  }
+
   for (let i = 0; i < balls.length; i++) {
     balls[i].color = pickRandomColor();
   }

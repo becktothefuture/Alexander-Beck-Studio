@@ -40,6 +40,25 @@ module.exports = defineConfig({
     // Viewport size
     viewport: { width: 1280, height: 720 },
   },
+
+  // Run tests against real HTTP servers (avoid file:// CORS/fetch restrictions).
+  // We serve:
+  // - public/  → http://127.0.0.1:8000
+  // - source/  → http://127.0.0.1:8001
+  webServer: [
+    {
+      command: 'npm run build && cd public && python3 -m http.server 8800',
+      url: 'http://127.0.0.1:8800',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+    {
+      command: 'cd source && python3 -m http.server 8801',
+      url: 'http://127.0.0.1:8801',
+      reuseExistingServer: !process.env.CI,
+      timeout: 60 * 1000,
+    },
+  ],
   
   // Configure projects for major browsers
   projects: [

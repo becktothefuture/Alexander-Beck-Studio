@@ -1,6 +1,6 @@
 # Project Overview
 
-**High-performance interactive physics simulation with 4 distinct modes**
+**High-performance interactive physics simulation with 8 distinct modes**
 
 ## What Is This?
 
@@ -8,7 +8,11 @@ A vanilla JavaScript particle physics system featuring:
 - **Ball Pit** - Gravity-based collisions with mouse repeller
 - **Flies to Light** - Swarm behavior attracted to cursor
 - **Zero-G** - Weightless bouncing with perfect elastic collisions
-- **Pulse Grid** - Synchronized grid-based motion sequencing
+- **Water** - Dense floating field with drag + ripple behavior
+- **Vortex** - Orbital flow field (swirl + radial pull)
+- **Ping Pong** - Side-to-side bounce with cursor obstacle
+- **Magnetic** - Attraction/explosions with velocity limiting
+- **Bubbles** - Rising bubble field with wobble + deflection
 
 **Design Philosophy:** Contemplative digital materialism — particles as tangible physical entities in a minimal stage. See README.md for complete vision.
 

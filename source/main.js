@@ -181,7 +181,7 @@ function ensureNoiseElements() {
 }
 
 (async function init() {
-  // Mark JS as enabled immediately (for CSS fallback detection)
+  // Mark JS as enabled (for CSS fallback detection)
   document.documentElement.classList.add('js-enabled');
   
   // Wire up control registry to use CSS vars function (avoids circular dependency)
@@ -193,6 +193,19 @@ function ensureNoiseElements() {
     const config = await loadRuntimeConfig();
     initState(config);
     console.log('✓ Config loaded');
+
+    // Test/debug compatibility: expose key config-derived values on window
+    // (Playwright tests assert these exist and match the runtime config)
+    try {
+      const g = getGlobals();
+      if (typeof window !== 'undefined') {
+        window.REST = g.REST;
+        window.FRICTION = g.FRICTION;
+        window.MAX_BALLS = g.maxBalls;
+        window.repelRadius = g.repelRadius;
+        window.repelPower = g.repelPower;
+      }
+    } catch (e) {}
     
     // Apply frame padding CSS vars from config (controls border thickness)
     applyFramePaddingCSSVars();
@@ -290,14 +303,83 @@ function ensureNoiseElements() {
     
     console.log('✅ Bouncy Balls running (modular)');
     
-    // PAGE FADE-IN: Signal that everything is ready
-    // Small delay ensures first frame renders before fade begins
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        document.body.classList.add('page-ready');
-        console.log('✓ Page fade-in triggered');
+    // ╔══════════════════════════════════════════════════════════════════════════════╗
+    // ║                             PAGE FADE-IN                                    ║
+    // ╚══════════════════════════════════════════════════════════════════════════════╝
+    // Goal: fade ALL UI content (inside #fade-content) from 0 → 1 on reload.
+    //
+    // Why this is tricky in this project:
+    // - Much of the UI is `position: fixed` (Webflow export + our overrides).
+    // - Fixed descendants can be composited outside a normal wrapper, so fading
+    //   a parent via CSS can appear “broken”.
+    // - We solve this with a fixed + transformed `#fade-content` (CSS) and we
+    //   run the fade using Web Animations API (WAAPI) for maximum robustness.
+    //
+    // Failsafe:
+    // If, for any reason, the animation gets canceled or never runs, we force
+    // the content visible after a short timeout so the page never “sticks” hidden.
+
+    const FADE_DELAY_MS = 400;
+    const FADE_DURATION_MS = 3000;
+    // Expo-ish ease-out approximation (WAAPI accepts CSS easing strings)
+    // Intention: commits quickly, then settles gently.
+    const FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
+    const FADE_FAILSAFE_MS = FADE_DELAY_MS + FADE_DURATION_MS + 750;
+
+    const forceFadeVisible = (fadeEl, reason) => {
+      // Inline style beats stylesheet opacity:0
+      fadeEl.style.opacity = '1';
+      console.warn(`⚠️ Fade failsafe: forcing #fade-content visible (${reason})`);
+    };
+
+    setTimeout(() => {
+      const fadeContent = document.getElementById('fade-content');
+      if (!fadeContent) {
+        console.warn('⚠️ #fade-content not found (fade skipped)');
+        return;
+      }
+
+      // Accessibility: respect reduced motion by skipping animation entirely.
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+        fadeContent.style.opacity = '1';
+        console.log('✓ Page fade-in skipped (prefers-reduced-motion)');
+        return;
+      }
+
+      // If WAAPI is missing (older browsers / restricted contexts), fall back to inline style.
+      if (typeof fadeContent.animate !== 'function') {
+        forceFadeVisible(fadeContent, 'WAAPI unsupported');
+        return;
+      }
+
+      const anim = fadeContent.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        {
+          duration: FADE_DURATION_MS,
+          easing: FADE_EASING,
+          fill: 'forwards',
+        }
+      );
+
+      // When finished, stamp final opacity as an inline style. This prevents edge cases
+      // where a later style recalc/compositing change makes it appear hidden again.
+      anim.addEventListener?.('finish', () => {
+        fadeContent.style.opacity = '1';
+        console.log('✓ Page fade-in finished');
       });
-    });
+
+      anim.addEventListener?.('cancel', () => {
+        forceFadeVisible(fadeContent, 'animation canceled');
+      });
+
+      console.log('✓ Page fade-in started (WAAPI)');
+
+      // Ultimate failsafe: never allow permanent hidden UI.
+      setTimeout(() => {
+        const opacity = window.getComputedStyle(fadeContent).opacity;
+        if (opacity === '0') forceFadeVisible(fadeContent, 'opacity still 0 after failsafe window');
+      }, FADE_FAILSAFE_MS);
+    }, FADE_DELAY_MS);
     
   } catch (error) {
     console.error('❌ Initialization failed:', error);

@@ -135,6 +135,34 @@ async function buildProduction() {
     // We do NOT need to inject a simulation-container - just inject CSS and JS
     const publicIndexPath = path.join(CONFIG.publicDestination, 'index.html');
     let html = fs.readFileSync(publicIndexPath, 'utf-8');
+    
+    // FADE SYSTEM: Wrap content elements in #fade-content for single-element fade
+    // Logo and balls stay outside (always visible), content fades in
+    if (!html.includes('id="fade-content"')) {
+      // Insert opening wrapper before header.viewport--content
+      html = html.replace(
+        '<header class="viewport viewport--content">',
+        '<div id="fade-content">\n  <header class="viewport viewport--content">'
+      );
+      
+      // Insert closing wrapper after aside.viewport--corners
+      html = html.replace(
+        /<\/aside>\s*(<script)/,
+        '</aside>\n</div>\n$1'
+      );
+      
+      console.log('✅ Wrapped content in #fade-content for fade system');
+    }
+    
+    // FADE SYSTEM: Inject blocking CSS in <head> to prevent FOUC
+    // Include transition here so it's defined from the start (no delay, JS handles timing)
+    // Blocking style: Hide content immediately, animation handles the reveal
+// No transition needed - keyframe animation in main.css handles the fade
+const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</style>`;
+    if (!html.includes('id="fade-blocking"')) {
+      html = html.replace('<head>', '<head>\n' + fadeBlockingCSS);
+    }
+    
     // Inject theme-color meta tags for mobile browsers (Safari iOS, Chrome Android)
     // These MUST match --frame-color-light/dark in main.css (#0a0a0a)
     const themeColorTags = `
@@ -148,9 +176,9 @@ async function buildProduction() {
 `;
     if (!html.includes('name="theme-color"')) html = html.replace('</head>', `${themeColorTags}</head>`);
     
-    const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css">';
+    const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css?v=' + Date.now() + '">';
     if (!html.includes('id="bravia-balls-css"')) html = html.replace('</head>', `${cssTag}\n</head>`);
-    const jsTag = '<script id="bravia-balls-js" src="js/bouncy-balls-embed.js" defer></script>';
+    const jsTag = '<script id="bravia-balls-js" src="js/bouncy-balls-embed.js?v=' + Date.now() + '" defer></script>';
     if (!html.includes('id="bravia-balls-js"')) html = html.replace('</body>', `${jsTag}\n</body>`);
     fs.writeFileSync(publicIndexPath, html);
     console.log('✅ Injected modular assets into public/index.html');

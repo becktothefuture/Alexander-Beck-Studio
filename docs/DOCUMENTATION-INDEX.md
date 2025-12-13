@@ -21,7 +21,7 @@ docs/
 ### **New User** → Getting Started
 1. [`core/QUICK-START.md`](./core/QUICK-START.md) - Get running in 2 minutes
 2. [`core/PROJECT-OVERVIEW.md`](./core/PROJECT-OVERVIEW.md) - Understand the system
-3. [`reference/MODES.md`](./reference/MODES.md) - Explore the 3 physics modes
+3. [`reference/MODES.md`](./reference/MODES.md) - Explore the simulation modes
 
 ### **Developer** → Building & Modifying
 1. [`development/DEVELOPMENT-GUIDE.md`](./development/DEVELOPMENT-GUIDE.md) - Workflow & debugging
@@ -66,6 +66,7 @@ docs/
 | File | Purpose | Audience |
 |------|---------|----------|
 | [`reference/MODES.md`](./reference/MODES.md) | Physics mode specifications | All |
+| [`reference/SOUND.md`](./reference/SOUND.md) | Sound engine & presets | All |
 | [`reference/CONFIGURATION.md`](./reference/CONFIGURATION.md) | Complete parameter reference | Developers/Integrators |
 | [`reference/INTEGRATION.md`](./reference/INTEGRATION.md) | Embedding guide | Integrators |
 
@@ -102,6 +103,10 @@ docs/
 - [`reference/MODES.md`](./reference/MODES.md) - Mode specifications
 - [`development/ARCHITECTURE.md`](./development/ARCHITECTURE.md#physics-engine) - Engine implementation
 
+### Sound
+- [`reference/SOUND.md`](./reference/SOUND.md) - Sound engine documentation
+- [`reference/SOUND.md#presets`](./reference/SOUND.md#presets) - Available sound presets
+
 ### Configuration
 - [`reference/CONFIGURATION.md`](./reference/CONFIGURATION.md) - Complete reference
 - [`development/DEVELOPMENT-GUIDE.md`](./development/DEVELOPMENT-GUIDE.md) - Development workflow
@@ -131,6 +136,9 @@ docs/
 
 **"How do the physics modes work?"**
 → [`reference/MODES.md`](./reference/MODES.md)
+
+**"How does the sound system work?"**
+→ [`reference/SOUND.md`](./reference/SOUND.md)
 
 **"How do I deploy to production?"**
 → [`operations/DEPLOYMENT.md`](./operations/DEPLOYMENT.md)

@@ -55,16 +55,17 @@
 # Install
 npm install
 
-# Development (pick one)
-npm run watch          # Terminal 1: Auto-rebuild on save
-npm start              # Terminal 2: Serve on :8000, then refresh browser
+# 🚀 Recommended: Interactive Startup (choose your workflow)
+npm run startup
 
-# OR: Quick one-shot
-npm run dev            # Build + serve on :8000
-
-# Production Build
-npm run build          # Full site (Webflow + simulation)
+# Quick Options:
+npm run dev            # Fast dev mode (port 8001, instant reload)
+npm run preview        # Test production build (port 8000)
+npm run dev:watch      # Dev + auto-rebuild
+npm run build          # Production build only
 ```
+
+**New to the project?** Run `npm run startup` for an interactive menu that helps you choose the right development mode. See [Dev Workflow Guide](./docs/development/DEV-WORKFLOW.md) for details.
 
 ## Controls
 
@@ -87,8 +88,9 @@ npm run build          # Full site (Webflow + simulation)
 2. [Project Overview](./docs/core/PROJECT-OVERVIEW.md) - Understand the system
 
 ### **Developers** → Development Guides
-1. [Development Guide](./docs/development/DEVELOPMENT-GUIDE.md) - Workflow & debugging
-2. [Architecture](./docs/development/ARCHITECTURE.md) - Technical deep dive
+1. [**Dev Workflow Guide**](./docs/development/DEV-WORKFLOW.md) - **Start here!** Interactive startup & environment modes
+2. [Development Guide](./docs/development/DEVELOPMENT-GUIDE.md) - Workflow & debugging
+3. [Architecture](./docs/development/ARCHITECTURE.md) - Technical deep dive
 
 ### **Integrators** → Reference Docs
 1. [Integration Guide](./docs/reference/INTEGRATION.md) - Embed in your site
@@ -126,7 +128,46 @@ npm run build          # Full site (Webflow + simulation)
 
 ## Development
 
-### Live Development Workflow
+### 🚀 Quick Start Development
+
+**Recommended approach:**
+```bash
+npm run startup
+```
+This launches an interactive menu with 5 development modes:
+1. **Quick Dev** - Port 8001, instant reload (no rebuild needed)
+2. **Build Preview** - Port 8000, test production bundle
+3. **Dual Mode** - Both servers simultaneously
+4. **Watch Mode** - Dev + auto-rebuild
+5. **Build Only** - Production build and exit
+
+**Environment Indicators:**
+- 🚀 **Green badge** = DEV MODE (port 8001, instant changes)
+- 📦 **Orange badge** = PRODUCTION BUILD (port 8000, bundled)
+
+Press `/` to open the control panel and see which environment you're in.
+
+### Manual Workflows
+
+**Fast Iteration (Recommended for daily work):**
+```bash
+npm run dev              # Port 8001 - instant reload
+# Edit source/ files → Save → Refresh browser → See changes
+```
+
+**Production Testing:**
+```bash
+npm run preview          # Builds + serves on port 8000
+# Tests actual bundled/minified code
+```
+
+**Auto-rebuild + Dev:**
+```bash
+npm run dev:watch        # Port 8001 + background watcher
+# Changes auto-rebuild in background
+```
+
+**Traditional Multi-terminal:**
 ```bash
 # Terminal 1: Watch for changes
 npm run watch
@@ -134,20 +175,27 @@ npm run watch
 # Terminal 2: Serve production build
 npm start              # http://localhost:8000
 ```
+
+### Development Flow
 1. Edit files in `source/` (main.js, modules/**, css/**)
-2. Save → auto-rebuilds to `public/` (~2 seconds)
-3. Refresh browser (Cmd+R) to see changes
+2. **Port 8001:** Save → Refresh browser (instant)
+3. **Port 8000:** Save → Auto-rebuild (~2s) → Refresh browser
 4. Tune parameters via control panel (`/` key)
-5. Final build: `npm run build`
+5. Final production build: `npm run build`
 
 ### All Commands
 ```bash
-npm run watch          # Auto-rebuild on file changes (recommended)
-npm start              # Serve public/ on :8000
-npm run dev            # Build once + start server
-npm run build          # Production build (Webflow + simulation)
-npm run help           # Show all available commands
+npm run startup        # Interactive menu (RECOMMENDED)
+npm run dev            # Quick dev (port 8001, instant reload)
+npm run preview        # Build + preview (port 8000)
+npm run dev:watch      # Dev + auto-rebuild
+npm run build          # Production build
+npm run watch          # Auto-rebuild only
+npm start              # Serve public/ on port 8000
+npm run help           # Show all commands
 ```
+
+**📖 Full details:** [Dev Workflow Guide](./docs/development/DEV-WORKFLOW.md)
 
 ---
 

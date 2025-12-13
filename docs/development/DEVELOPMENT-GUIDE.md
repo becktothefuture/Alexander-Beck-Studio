@@ -48,7 +48,7 @@ Direct ES module loading - instant refresh but not production-representative.
 **Primary entry**: `source/main.js`
 - ES module architecture under `source/modules/**`
 - Full UI control panel with live parameter tuning
-- Four physics modes with instant switching (1-4)
+- Eight simulation modes with instant switching (1-8)
 
 **Structure**:
 - `source/index.html`: Dev HTML shell (loads `main.js`)
@@ -66,7 +66,11 @@ Direct ES module loading - instant refresh but not production-representative.
 - **Ball Pit** (`1` key): Gravity physics with collisions
 - **Flies** (`2` key): Swarm attraction to cursor
 - **Zero-G** (`3` key): Weightless bouncing
-- **Pulse Grid** (`4` key): Programmed grid pulsation
+- **Water** (`4` key): Dense floating field with drag + ripples
+- **Vortex** (`5` key): Orbital flow field (swirl + radial pull)
+- **Ping Pong** (`6` key): Side-to-side bounce with cursor obstacle
+- **Magnetic** (`7` key): Attraction/explosions with velocity limiting
+- **Bubbles** (`8` key): Rising bubble field with wobble + deflection
 
 ### 5. Configuration
 1. Runtime defaults live in `source/config/default-config.json`

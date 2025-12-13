@@ -66,8 +66,9 @@ webflow-export/ → public/
 ```
 source/main.js → Rollup → public/js/bouncy-balls-embed.js
 ```
-- Concatenates `source/css/main.css` + `source/css/panel.css`
-- Copies runtime config to `public/js/config.json`
+- Bundles JS via Rollup
+- Bundles CSS from `source/css/` into `public/css/bouncy-balls.css` (includes panel + dock + sound + gates)
+- Copies runtime config into production output (see “Runtime Configuration Details”)
 
 **3. Runtime Configuration**
 ```
@@ -92,6 +93,7 @@ public/index.html [placeholder] → [full simulation]
 - Replaces with: Full simulation container (HTML structure)
 - Injects CSS `<link id="bravia-balls-css">`
 - Injects JS `<script id="bravia-balls-js" src="js/bouncy-balls-embed.js">`
+- Wraps the content layer in `#fade-content` and injects a blocking `<style id="fade-blocking">` to prevent FOUC
 
 **6. Create Standalone Files**
 ```
@@ -113,40 +115,25 @@ Checks:
 
 ---
 
-## Configuration Injection Details
+## Runtime Configuration Details
 
-### Config Mapping Table
+### Build-time copy targets
 
-| Config Key | JavaScript Variable | Type | Example |
-|------------|-------------------|------|---------|
-| `gravityMultiplier` | `gravityMultiplierPit` | number | 1.05 |
-| `ballMass` | `ballMassKg` | number | 91 |
-| `ballScale` | `sizeScale` | number | 1.0 |
-| `ballVariation` | `sizeVariation` | number | 0 |
-| `repelRadius` | `repelRadius` | number | 710 |
-| `repelPower` | `repelPower` | number | 250000 |
-| `repelSoftness` | `repelSoft` | number | 4 |
-| `cursorColorIndex` | `cursorBallIndex` | number | 4 |
-| `enableLOD` | `enableLOD` | boolean | true |
-| `vortexSpeedColorEnabled` | `vortexSpeedColorEnabled` | boolean | false |
+`source/config/default-config.json` is copied to:
+- `public/js/config.json`
+- `public/config/default-config.json`
 
-### How It Works
+### Runtime load order
 
-1. Copy Webflow export to public/
-2. Rollup bundles modules
-3. Copy runtime config to public/js/config.json
-4. Inject CSS/JS link/script tags
+At runtime, `source/main.js` attempts to fetch (in order):
+1. `config/default-config.json`
+2. `js/config.json`
+3. `../public/js/config.json`
 
-**Example Build Output:**
-```
-⚙️  Step 3: Hardcoding config values...
-   Applied 10 config values:
-   ✓ gravityMultiplier → gravityMultiplierPit
-   ✓ ballMass → ballMassKg
-   ✓ repelRadius → repelRadius
-   ...
-   ⚠️  Skipped (not found): gravityMultiplierFlies, restitution, friction
-```
+### Where values are applied
+
+- **Simulation state**: `source/modules/core/state.js` (`initState(config)`) maps the JSON keys into runtime globals used by physics and interaction.
+- **Visual system**: `source/main.js` applies CSS variables (noise sizing/opacity, wall geometry, inner shadow, content padding) from the config.
 
 ---
 
@@ -339,7 +326,7 @@ npm run watch
 | Ball Pit | 200+ | 60 | ✅ Excellent |
 | Flies | 300+ | 60 | ✅ Excellent |
 | Zero-G | 150+ | 60 | ✅ Excellent |
-| Pulse Grid | 120 | 60 | ✅ Excellent |
+| Water | 300 | 60 | ✅ Excellent |
 
 ---
 

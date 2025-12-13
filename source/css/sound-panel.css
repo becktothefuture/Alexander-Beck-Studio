@@ -7,19 +7,19 @@
 .sound-dock__row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .sound-dock__label {
-  flex: 0 0 90px;
-  font-size: 12px;
+  flex: 0 0 74px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--panel-muted-foreground);
 }
 
 .sound-dock__slider {
   flex: 1;
-  height: 6px;
+  height: 4px;
   -webkit-appearance: none;
   appearance: none;
   background: var(--panel-muted);
@@ -29,8 +29,8 @@
 
 .sound-dock__slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--panel-foreground);
   cursor: pointer;
@@ -38,8 +38,8 @@
 }
 
 .sound-dock__slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--panel-foreground);
   cursor: pointer;
@@ -59,7 +59,7 @@
 .sound-dock__group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .sound-dock__section-title {
@@ -68,10 +68,41 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--panel-muted-foreground);
-  margin-bottom: 4px;
-  margin-top: 8px;
+  margin-bottom: 2px;
+  margin-top: 6px;
 }
 
 .sound-dock__section-title:first-child {
   margin-top: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SOUND SECTION — Dense “DAW synth” layout (scoped to the Sound accordion)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+#soundSection .panel-section-content {
+  gap: 8px;
+  padding-top: 12px;
+  padding-bottom: 14px;
+}
+
+#soundSection .sound-enable-row {
+  margin-bottom: 6px;
+}
+
+#soundSection .sound-enable-btn {
+  padding: 10px 14px;
+}
+
+#soundSection .sound-controls {
+  gap: 8px;
+}
+
+#soundSection .control-row {
+  gap: 4px;
+}
+
+#soundSection .control-hint {
+  margin-top: -2px;
+  padding-bottom: 2px;
 }

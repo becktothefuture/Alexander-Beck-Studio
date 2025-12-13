@@ -57,7 +57,7 @@
 - **Ball Pit:** Balls collide with walls/floor (solid boundaries)
 - **Flies:** No boundary collisions (endless space, respawns above on exit)
 - **Zero-G:** Balls bounce off all edges (contained space)
-- **Pulse Grid:** No collisions (grid-locked movement)
+- **Water:** Balls remain contained; mode adds drag + ripple dynamics
 
 #### Collision Response
 - **Restitution:** 0.0-1.0 (energy retention, 0.88 default)
@@ -71,7 +71,7 @@
 - **Ball Pit:** Radial repulsion field (power/radius adjustable)
 - **Flies:** Attraction point (swarm converges)
 - **Zero-G:** Gentle perturbation (impulse on proximity)
-- **Pulse Grid:** No direct interaction (autonomous choreography)
+- **Water:** No repeller by default (mode-specific motion + ripples)
 
 #### Cursor Visualization
 - **Always rendered:** Hollow circle at cursor position
@@ -85,7 +85,7 @@
 - **Ball Pit:** 200 max (collision-heavy)
 - **Flies:** 300 max (no collisions)
 - **Zero-G:** 150 max (collision-heavy)
-- **Pulse Grid:** Based on grid density (typically 100-200)
+- **Water:** 300 max (drag + ripple updates)
 
 #### Optimization Strategies
 - **Spatial grid:** Broad-phase collision culling
@@ -105,33 +105,16 @@
 - **Focus management:** Control panel keyboard navigable
 
 #### Keyboard Controls
-- **Mode switching:** Number keys 1-4
+- **Mode switching:** Number keys 1-8
 - **Reset:** R key
 - **Panel toggle:** / key
 - **Panel drag:** Mouse drag on header
 - **Slider focus:** Tab navigation + arrow keys
 
 ### 8. Configuration Persistence
+Simulation settings persistence is disabled by default (`LOCALSTORAGE_ENABLED = false`).
 
-#### localStorage Schema
-```json
-{
-  "currentMode": "string (pit|flies|weightless|pulse-grid)",
-  "currentTemplate": "string (palette name)",
-  "sizeScale": "number (0.1-6.0)",
-  "ballSoftness": "number (0-100)",
-  "shadowOffsetX": "number (-20 to 20)",
-  "shadowOffsetY": "number (-20 to 20)",
-  "shadowBlur": "number (0-30)",
-  "shadowOpacity": "number (0-1)",
-  "autoDarkModeEnabled": "boolean"
-}
-```
-
-#### Save Triggers
-- **Auto-save:** 500ms debounce after slider changes
-- **Manual save:** "Save Config" button in panel
-- **Export/Import:** JSON file download/upload
+Panel UI state (dock visibility/position/collapse) may persist via localStorage.
 
 ---
 
@@ -155,11 +138,11 @@
 **Spawn:** Random positions with random velocities
 **Behavior:** Billiard-like ricochets → rotational spin transfer → chaotic trajectories
 
-### Mode 4: Pulse Grid
-**Strengths:** Choreographed synchronicity, grid aesthetic, parametric motion
-**Physics:** No collisions + eased interpolation between grid cells
-**Spawn:** Even distribution across grid
-**Behavior:** Synchronized pulses → neighbor-aware timing → organic breathing
+### Mode 4: Water
+**Strengths:** Dense, fluid-like motion, ripples, calm drift
+**Physics:** Drag + mode-specific forces (no world gravity)
+**Spawn:** Mode-specific initialization (high ball count)
+**Behavior:** Slow drift → ripples on interactions → cohesive “swim” field
 
 ---
 

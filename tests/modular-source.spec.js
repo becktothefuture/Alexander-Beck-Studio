@@ -3,9 +3,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 const { test, expect } = require('@playwright/test');
-const path = require('path');
-
-const MODULAR_SOURCE_PATH = 'file://' + path.resolve(__dirname, '../source/index.html');
+const MODULAR_SOURCE_URL = 'http://127.0.0.1:8801/index.html';
 
 test.describe('Modular Source Dev Page', () => {
   test('loads ES6 modules and runs', async ({ page }) => {
@@ -15,7 +13,7 @@ test.describe('Modular Source Dev Page', () => {
       if (msg.type() === 'log') console.log('Browser log:', msg.text());
     });
     
-    await page.goto(MODULAR_SOURCE_PATH);
+    await page.goto(MODULAR_SOURCE_URL);
     await page.waitForTimeout(2000);
     
     if (errors.length > 0) {

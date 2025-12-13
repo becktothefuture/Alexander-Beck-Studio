@@ -13,12 +13,13 @@
 - ✅ No global style pollution
 
 ### Features Working
-- ✅ 5 modes (Ball Pit, Flies, Zero-G, Pulse Grid, Vortex)
+- ✅ 8 modes (Ball Pit, Flies, Zero-G, Water, Vortex, Ping Pong, Magnetic, Bubbles)
 - ✅ Dual palettes (light/dark variants)
 - ✅ Time-based dark mode (6 PM - 6 AM)
 - ✅ Canvas shadow controls
 - ✅ All UI controls functional
-- ✅ Settings persistence
+- ✅ Panel UI state persistence (position/collapse)
+- ✅ Simulation settings persistence disabled by default (privacy-first)
 
 ### Performance
 - ✅ 60 FPS sustained

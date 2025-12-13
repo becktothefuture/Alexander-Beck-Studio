@@ -241,12 +241,13 @@ export class Ball {
     if (currentMode !== MODES.PIT && this.y - this.r < minY) {
       hasWallCollision = true;
       this.y = minY + this.r;
+      const preVy = this.vy;  // Capture BEFORE reversal for impact calculation
       this.vy = -this.vy * rest;
-      const impact = Math.min(1, Math.abs(this.vy) / (this.r * 90));
+      const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
       this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
       this.squashNormalAngle = Math.PI / 2;
       // Sound: ceiling impact (threshold handled by sound engine)
-      playCollisionSound(this.r, impact * 0.6, this.x / w, this._soundId);
+      playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
       // Rubbery wall wobble
       registerWallImpact('top', this.x / w, impact);
     }

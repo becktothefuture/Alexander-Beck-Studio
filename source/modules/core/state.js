@@ -174,10 +174,17 @@ const state = {
 export function initState(config) {
   state.config = { ...config };
   if (config.ballMass) state.ballMassKg = config.ballMass;
-  if (config.gravityMultiplier) state.gravityMultiplier = config.gravityMultiplier;
+  // Treat config.gravityMultiplier as the Ball Pit gravity multiplier (historical naming)
+  if (config.gravityMultiplier !== undefined) {
+    state.gravityMultiplier = config.gravityMultiplier;
+    state.gravityMultiplierPit = config.gravityMultiplier;
+  }
   if (config.restitution) state.REST = config.restitution;
   if (config.friction) state.FRICTION = config.friction;
   if (config.ballScale) state.sizeScale = config.ballScale;
+  if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
+  if (config.repelRadius !== undefined) state.repelRadius = config.repelRadius;
+  if (config.repelPower !== undefined) state.repelPower = config.repelPower;
   
   // Two-level padding system
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;

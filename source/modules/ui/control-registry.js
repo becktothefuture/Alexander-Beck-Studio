@@ -6,7 +6,6 @@
 
 import { getGlobals } from '../core/state.js';
 import { autoSaveSettings } from '../utils/storage.js';
-import { resize } from '../rendering/renderer.js';
 
 // Will be set by main.js to avoid circular dependency
 let applyVisualCSSVars = null;
@@ -97,7 +96,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sizeScale',
         type: 'range',
         min: 0.1, max: 6.0, step: 0.05,
-        default: 1.2,
+        default: 0.8,
         format: v => v.toFixed(2),
         parse: parseFloat,
         onChange: (g, val) => {
@@ -161,7 +160,7 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // FRAME - Color, thickness, radius
+  // FRAME - Color only (thickness/radius controlled via Layout section)
   // ═══════════════════════════════════════════════════════════════════════════
   frame: {
     title: 'Frame',
@@ -184,36 +183,6 @@ export const CONTROL_SECTIONS = {
           root.style.setProperty('--chrome-bg-dark', val);
           const meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.content = val;
-        }
-      },
-      {
-        id: 'wallThickness',
-        label: 'Wall Thickness',
-        stateKey: 'wallThickness',
-        type: 'range',
-        min: 0, max: 60, step: 1,
-        default: 20,
-        format: v => String(v) + 'px',
-        parse: v => parseInt(v, 10),
-        onChange: (g, val) => {
-          g.wallThickness = val;
-          document.documentElement.style.setProperty('--wall-thickness', val + 'px');
-          resize();
-        }
-      },
-      {
-        id: 'wallRadius',
-        label: 'Corner Radius',
-        stateKey: 'wallRadius',
-        type: 'range',
-        min: 0, max: 80, step: 2,
-        default: 42,
-        format: v => String(v) + 'px',
-        parse: v => parseInt(v, 10),
-        cssVar: '--wall-radius',
-        onChange: (g, val) => {
-          g.wallRadius = val;
-          g.cornerRadius = val;
         }
       }
     ]
@@ -903,7 +872,35 @@ function generateSectionHTML(key, section) {
 
 export function generatePanelHTML() {
   // NOTE: Don't wrap in .panel-content here - panel-dock.js creates that wrapper
-  let html = `
+  
+  // Detect environment: Dev (port 8001 or ES modules) vs Production (bundled)
+  const isDevMode = window.location.port === '8001' || 
+                    document.querySelector('script[type="module"][src*="main.js"]') !== null;
+  
+  // Get actual port for display
+  const currentPort = window.location.port || '8000';
+  
+  const environmentBadge = `
+    <div class="environment-badge" style="
+      position: sticky;
+      top: 0;
+      padding: 0.5rem 1rem;
+      background: ${isDevMode ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'};
+      color: white;
+      font-weight: 700;
+      font-size: 0.7rem;
+      text-align: center;
+      z-index: 1000;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin: -1rem -1rem 1rem -1rem;
+      user-select: none;
+    " role="status" aria-label="Environment indicator">
+      ${isDevMode ? '🚀 DEV MODE — Port ' + currentPort : '📦 PRODUCTION — Port ' + currentPort}
+    </div>`;
+  
+  let html = environmentBadge + `
     <!-- Screen reader announcements -->
     <div role="status" aria-live="polite" aria-atomic="true" class="sr-only" id="announcer"></div>
 
@@ -1062,11 +1059,6 @@ export function bindRegisteredControls() {
           const cssKey = control.cssVar.replace('--', '').replace(/-([a-z])/g, (_, c) => c.toUpperCase());
           cssConfig[cssKey] = rawVal;
           applyVisualCSSVars(cssConfig);
-          
-          // Special case: wall thickness triggers resize
-          if (control.id === 'wallThickness') {
-            resize();
-          }
         }
         
         // Re-init mode if needed

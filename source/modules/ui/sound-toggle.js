@@ -8,6 +8,7 @@ import {
   unlockAudio, 
   toggleSound, 
   getSoundState,
+  SOUND_STATE_EVENT,
   initSoundEngine 
 } from '../audio/sound-engine.js';
 
@@ -48,10 +49,40 @@ export function createSoundToggle() {
   // Click handler
   buttonElement.addEventListener('click', handleToggleClick);
   
-  // Insert into body for now, fixed position
-  document.body.appendChild(buttonElement);
+  // Preferred mount: inside the social icon group (bottom-left) so it aligns vertically.
+  // Fallback: append to #fade-content so it fades with other content.
+  const fadeContent = document.getElementById('fade-content');
+  const socialLinks = document.getElementById('social-links');
+  const canMountInSocialLinks = socialLinks && (!fadeContent || fadeContent.contains(socialLinks));
+  
+  if (canMountInSocialLinks) {
+    const li = document.createElement('li');
+    li.className = 'margin-bottom_none sound-toggle-item';
+    buttonElement.classList.add('sound-toggle--social');
+    li.appendChild(buttonElement);
+    socialLinks.appendChild(li);
+  } else if (fadeContent) {
+    fadeContent.appendChild(buttonElement);
+  } else {
+    document.body.appendChild(buttonElement);
+  }
   
   console.log('✓ Sound toggle created');
+
+  // Sync initial UI with current sound state (if enabled elsewhere)
+  try {
+    const state = getSoundState();
+    updateButtonState(!!(state.isUnlocked && state.isEnabled));
+  } catch (e) {}
+
+  // Stay in sync with panel toggles
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener(SOUND_STATE_EVENT, (e) => {
+      const s = e && e.detail ? e.detail : null;
+      if (s) updateButtonState(!!(s.isUnlocked && s.isEnabled));
+    });
+  }
+
   return buttonElement;
 }
 

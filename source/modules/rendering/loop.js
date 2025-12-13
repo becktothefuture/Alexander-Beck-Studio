@@ -3,10 +3,8 @@
 // ║              Electron-grade performance with adaptive throttling             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { updatePhysics, render, getBalls } from '../physics/engine.js';
+import { updatePhysics, render } from '../physics/engine.js';
 import { trackFrame } from '../utils/performance.js';
-import { updateAmbientSounds } from '../audio/sound-engine.js';
-import { getGlobals } from '../core/state.js';
 import { tickBrandLogoBallSpace } from '../ui/brand-logo-ball-space.js';
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -110,15 +108,6 @@ export function startMainLoop(applyForcesFunc) {
     // Skip at heavy throttle level
     if (adaptiveThrottleLevel < 2) {
       tickBrandLogoBallSpace(nowMs);
-    }
-    
-    // Update ambient sounds (rolling rumble + air whoosh)
-    // Skip at any throttle level to save CPU
-    if (adaptiveThrottleLevel === 0) {
-      const balls = getBalls();
-      const globals = getGlobals();
-      const floorY = globals.canvas ? globals.canvas.height - (globals.simulationPadding || 0) : Infinity;
-      updateAmbientSounds(balls, floorY);
     }
     
     // FPS tracking

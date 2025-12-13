@@ -93,6 +93,79 @@ export const SOUND_CONTROLS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════════
+  // CRYSTAL (pitch + sparkle character)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  crystal: {
+    title: 'Crystal',
+    controls: [
+      {
+        id: 'pitchMinHz',
+        label: 'Pitch Low',
+        min: 80, max: 1200, step: 10,
+        format: v => `${Math.round(v)}Hz`,
+        toConfig: v => v,
+        fromConfig: v => v,
+      },
+      {
+        id: 'pitchMaxHz',
+        label: 'Pitch High',
+        min: 200, max: 4000, step: 20,
+        format: v => `${Math.round(v)}Hz`,
+        toConfig: v => v,
+        fromConfig: v => v,
+      },
+      {
+        id: 'pitchCurve',
+        label: 'Pitch Curve',
+        min: 70, max: 160, step: 1,
+        format: v => `${(v / 100).toFixed(2)}×`,
+        toConfig: v => v / 100,
+        fromConfig: v => v * 100,
+      },
+      {
+        id: 'sparkleGain',
+        label: 'Sparkle',
+        min: 0, max: 35, step: 1,
+        format: v => `${Math.round(v)}%`,
+        toConfig: v => v / 100,
+        fromConfig: v => v * 100,
+      },
+      {
+        id: 'sparkleRatioMin',
+        label: 'Sparkle Min',
+        min: 120, max: 600, step: 10,
+        format: v => `${(v / 100).toFixed(2)}×`,
+        toConfig: v => v / 100,
+        fromConfig: v => v * 100,
+      },
+      {
+        id: 'sparkleRatioMax',
+        label: 'Sparkle Max',
+        min: 160, max: 800, step: 10,
+        format: v => `${(v / 100).toFixed(2)}×`,
+        toConfig: v => v / 100,
+        fromConfig: v => v * 100,
+      },
+      {
+        id: 'sparkleDecayMul',
+        label: 'Sparkle Decay',
+        min: 20, max: 95, step: 1,
+        format: v => `${Math.round(v)}%`,
+        toConfig: v => v / 100,
+        fromConfig: v => v * 100,
+      },
+      {
+        id: 'noiseTransientQ',
+        label: 'Sparkle Q',
+        min: 60, max: 600, step: 5,
+        format: v => `${(v / 100).toFixed(2)}`,
+        toConfig: v => v / 100,
+        fromConfig: v => v * 100,
+      },
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════════
   // SPACE (reverb)
   // ═══════════════════════════════════════════════════════════════════════════════
   space: {
