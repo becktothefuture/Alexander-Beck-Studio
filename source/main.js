@@ -16,6 +16,7 @@ import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
+import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.js';
 
 async function loadRuntimeConfig() {
   try {
@@ -228,6 +229,9 @@ function ensureNoiseElements() {
     // Setup pointer tracking BEFORE dark mode (needed for interactions)
     setupPointer();
     console.log('✓ Pointer tracking configured');
+
+    // Subtle brand logo micro-interaction (cursor distance scaling)
+    initBrandLogoCursorScale();
     
     // Load any saved settings
     loadSettings();

@@ -37,23 +37,23 @@ const PENTATONIC_FREQUENCIES = [
 let CONFIG = {
   // Synthesis — instant attack, soft decay
   attackTime: 0,               // 0ms = instant onset (sub-1ms response)
-  decayTime: 0.055,            // 55ms quick decay (dissipates)
-  harmonicGain: 0.09,          // Subtle warmth
+  decayTime: 0.045,            // Wooden: quick, dry "clack"
+  harmonicGain: 0.12,          // Wooden: a bit more body (warmth)
   
   // Filter — soft but present
-  filterBaseFreq: 2400,        // Balanced brightness
-  filterVelocityRange: 380,    // Subtle velocity response
-  filterQ: 0.4,                // Smooth, no harshness
+  filterBaseFreq: 2100,        // Wooden: mid-range, not glassy
+  filterVelocityRange: 320,    // Wooden: less brightness swing
+  filterQ: 0.45,               // Slightly more focused than "soft click"
   
   // Reverb — gentle tail
-  reverbDecay: 0.28,           // Short ambient tail
-  reverbWetMix: 0.22,          // Subtle space
+  reverbDecay: 0.18,           // Wooden: drier room
+  reverbWetMix: 0.12,          // Wooden: low wet mix
   reverbHighDamp: 0.65,        // Damped highs
   
   // Volume — soft but clicky
-  minGain: 0.05,               // Whisper minimum
-  maxGain: 0.28,               // Soft maximum
-  masterGain: 0.52,            // Understated
+  minGain: 0.03,               // Lower floor (avoid constant “ticking”)
+  maxGain: 0.18,               // Cap peaks (keeps scene calm)
+  masterGain: 0.42,            // Lower overall loudness
   
   // Performance (voice pool size is fixed at 8)
   minTimeBetweenSounds: 0.008, // Per-ball debounce (8ms, tighter)
@@ -73,8 +73,8 @@ let CONFIG = {
   rollingEnabled: true,
   rollingMaxVelocity: 80,      // Only when rolling slowly (settling)
   rollingMinVelocity: 15,      // Below this = too slow, silent
-  rollingGain: 0.025,          // Very subtle — background texture only
-  rollingFreq: 120,            // Higher than before (wood is lighter than stone)
+  rollingGain: 0.02,           // Very subtle — background texture only
+  rollingFreq: 130,            // Slightly higher (lighter wooden timbre)
   
   // Air whoosh — DISABLED for small wooden pieces
   // These are too small/light to displace air audibly

@@ -12,9 +12,10 @@ let currentTheme = 'light'; // Default to light mode
 let systemPreference = 'light';
 
 // Fallback colors if CSS vars not available
+// MUST match --frame-color-light / --frame-color-dark in main.css
 const FALLBACK_COLORS = {
-  light: '#cecece',
-  dark: '#0a0a0a'
+  light: '#0a0a0a',  // Dark frame even in light mode
+  dark: '#0a0a0a'    // Dark frame in dark mode (seamless)
 };
 
 /**

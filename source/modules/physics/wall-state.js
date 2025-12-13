@@ -293,9 +293,10 @@ export function drawWalls(ctx, w, h) {
 function getChromeColorFromCSS() {
   try {
     const style = getComputedStyle(document.documentElement);
-    return style.getPropertyValue('--chrome-bg').trim() || '#cecece';
+    // Use --wall-color (which equals --frame-color-* which equals --chrome-bg-*)
+    return style.getPropertyValue('--wall-color').trim() || '#0a0a0a';
   } catch {
-    return '#cecece';
+    return '#0a0a0a';  // Must match --frame-color-* in main.css
   }
 }
 

@@ -59,19 +59,32 @@
   --duration-quick: 200ms;    /* Immediate feedback */
   
   /* ─────────────────────────────────────────────────────────────────────────────
-     BACKGROUND COLORS
+     UNIFIED COLOR SYSTEM - Browser Chrome, Walls, Background ALL match
+     
+     HIERARCHY (all use the same color per theme):
+     1. Browser chrome (meta theme-color) — Safari/Chrome address bar, iOS/Android
+     2. HTML background — Seamless edge with browser
+     3. Simulation walls — Rubber tubes around content
+     4. Container border — Visual frame around content
+     
+     This creates a unified "frame" that blends browser → walls → content
      ───────────────────────────────────────────────────────────────────────────── */
+  
+  /* SINGLE SOURCE OF TRUTH: The frame color (walls, chrome, html bg) */
+  --frame-color-light: #0a0a0a;    /* Dark frame even in light mode (strong contrast) */
+  --frame-color-dark: #0a0a0a;     /* Same dark frame in dark mode (seamless) */
+  
+  /* Browser chrome / theme-color (read by JS for meta tag) */
+  --chrome-bg-light: var(--frame-color-light);
+  --chrome-bg-dark: var(--frame-color-dark);
+  --chrome-bg: var(--chrome-bg-light);  /* Current chrome color */
+  
+  /* Content area backgrounds */
   --bg-light: #cecece;  /* Light grey - content area */
   --bg-dark: #0a0a0a;   /* Near black - content area */
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     RUBBER WALL SYSTEM - The simulation walls are the "chrome" frame
-     Creates thick rubber tube effect with soft cushioned glow and 3D bevel
-     
-     NOTE: For browser chrome matching, CSS has `Canvas` system color but it
-     matches document bg, not actual browser chrome. Set explicitly for consistency.
-     ───────────────────────────────────────────────────────────────────────────── */
-  --wall-color: #1f1f1f;           /* Wall color - matches Cursor/dark IDE themes */
+  /* Rubber wall color = frame color (they're the same visual element) */
+  --wall-color: var(--frame-color-light);
   --wall-thickness: 12px;          /* Thickness of the rubber wall tubes */
   --wall-softness: 20px;           /* Blur radius for cushioned glow effect */
   --wall-radius: clamp(24px, 4vmin, 48px);  /* Corner radius for all elements */
@@ -128,6 +141,7 @@
 :root.dark-mode {
   color-scheme: dark;
   --chrome-bg: var(--chrome-bg-dark);
+  --wall-color: var(--frame-color-dark);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -256,6 +270,26 @@ body.dark-mode.sound-hover .viewport.viewport--content {
 .header {
   z-index: 3 !important;
   position: relative;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   BRAND LOGO – CURSOR DISTANCE SCALE
+   Center of viewport → 0.9x | Farthest (corner) → 1.1x
+   - Implemented via CSS var updates (rAF-throttled) to avoid overhead
+   - Transition must be >= 400ms (uses 420ms for a gentle settle)
+   ───────────────────────────────────────────────────────────────────────────── */
+#brand-logo .hero__text {
+  transform-origin: 50% 50%;
+  transform: scale(var(--abs-brand-logo-scale, 1));
+  transition: transform 420ms var(--ease-settle, ease);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #brand-logo .hero__text {
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 /* UI elements layer */

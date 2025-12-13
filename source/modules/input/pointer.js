@@ -6,6 +6,7 @@
 import { getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES } from '../core/constants.js';
 import { createWaterRipple } from '../modes/water.js';
+import { updateBrandLogoCursorScaleFromClient } from '../ui/brand-logo-cursor-scale.js';
 
 // Mouse velocity tracking for water ripples
 let lastMouseX = 0;
@@ -81,6 +82,9 @@ export function setupPointer() {
    * PASSIVE - doesn't interfere with panel interactions
    */
   document.addEventListener('mousemove', (e) => {
+    // Title/logo micro-interaction (viewport based) — keep responsive even over UI.
+    updateBrandLogoCursorScaleFromClient(e.clientX, e.clientY);
+
     // Don't track if over panel
     if (e.target.closest('#controlPanel')) return;
     

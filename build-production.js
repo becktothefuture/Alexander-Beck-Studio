@@ -111,6 +111,19 @@ async function buildProduction() {
     const container = '<div id="simulation-container"><div class="noise"></div><canvas id="c" aria-label="Interactive bouncy balls physics simulation" role="application" draggable="false"></canvas><div class="panel" id="controlPanel" role="region" aria-label="Simulation controls" tabindex="-1"></div></div>';
     const placeholderRegex = /<div[^>]*id=["']simulation-container["'][^>]*>[\s\S]*?<\/div>/;
     if (placeholderRegex.test(html)) html = html.replace(placeholderRegex, container); else html = html.replace('</body>', `${container}\n</body>`);
+    // Inject theme-color meta tags for mobile browsers (Safari iOS, Chrome Android)
+    // These MUST match --frame-color-light/dark in main.css (#0a0a0a)
+    const themeColorTags = `
+  <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0a0a">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
+  <!-- Apple-specific: Status bar style -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+`;
+    if (!html.includes('name="theme-color"')) html = html.replace('</head>', `${themeColorTags}</head>`);
+    
     const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css">';
     if (!html.includes('id="bravia-balls-css"')) html = html.replace('</head>', `${cssTag}\n</head>`);
     const jsTag = '<script id="bravia-balls-js" src="js/bouncy-balls-embed.js" defer></script>';
