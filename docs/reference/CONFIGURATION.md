@@ -165,6 +165,34 @@ These keys control the ball-only Critters simulation (mode `critters`).
 
 ---
 
+## Crystal Growth (Simulation 12)
+
+These keys control the Crystal Growth simulation (mode `crystal`).
+
+**Important:** The cursor affects **movement only** in this mode. Crystal growth is automatic and is never accelerated by cursor proximity.
+
+- `crystalBallCount` (number): initial seed count (re-init on change; hard-capped)
+- `crystalGrowthRate` (number): crystal mass accumulation rate (mass/sec)
+- `crystalBondThreshold` (number 0..1): mass required before a ball can form a bond
+- `crystalBondRadius` (number px): proximity threshold for bond formation
+- `crystalBondStiffness` (number 0..1): constraint stiffness (higher = tighter bonds)
+- `crystalBondDamping` (number 0..1): constraint damping (higher = less oscillation)
+- `crystalMaxBondsPerBall` (number): branching cap per ball
+- `crystalMaxBondsTotal` (number): hard cap for total bonds (FIFO pruning when full; may re-init on change)
+- `crystalCursorRadius` (number px): cursor field radius (movement only)
+- `crystalCursorPower` (number): cursor force strength (positive repels, negative attracts)
+- `crystalCursorSoft` (number): cursor force softness (prevents singularities)
+- `crystalBondWidth` (number px): bond line width
+- `crystalBondOpacity` (number 0..1): bond opacity
+- `crystalGlowBlur` (number px): glow blur radius for bonds + balls
+- `crystalPulseAmt` (number 0..1): pulse amplitude for bonds + balls
+- `crystalPulseHz` (number Hz): pulse rate
+- `crystalParticlesPerBond` (number): number of sparkle particles spawned per new bond
+- `crystalParticleMax` (number): hard cap for active sparkle particles
+- `crystalParticleLife` (number s): sparkle particle lifetime
+
+---
+
 ## Layout (Frame & Content)
 
 Two-level padding system:

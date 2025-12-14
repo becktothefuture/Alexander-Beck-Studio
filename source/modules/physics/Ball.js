@@ -397,14 +397,11 @@ export class Ball {
     // - Only use transforms when necessary
     // ══════════════════════════════════════════════════════════════════════════════
     
-    const globals = getGlobals();
     const hasSquash = this.squashAmount > 0.001;
     const hasAlpha = this.alpha < 1.0;
-    const isCritter = globals.currentMode === MODES.CRITTERS;
     
     // Only use save/restore when we have transforms that need cleanup
-    // Critters draw a tiny “face” (eyes/highlight) so they always use transforms.
-    if (hasSquash || hasAlpha || isCritter) {
+    if (hasSquash || hasAlpha) {
       ctx.save();
       ctx.translate(this.x, this.y);
       
@@ -426,33 +423,6 @@ export class Ball {
       ctx.arc(0, 0, this.r, 0, Math.PI * 2);
       ctx.fillStyle = this.color;
       ctx.fill();
-
-      // ════════════════════════════════════════════════════════════════════════
-      // Critters: simple “cutesy” face (eyes + specular highlight)
-      // - Cheap: 3 tiny circles
-      // - Oriented by theta (already set by mode)
-      // - Scales/squashes with the body transform above
-      // ════════════════════════════════════════════════════════════════════════
-      if (isCritter && this.r >= 7 * (globals.DPR || 1)) {
-        const r = this.r;
-        const eyeR = r * 0.11;
-        const eyeF = r * 0.22;  // forward offset
-        const eyeS = r * 0.16;  // side offset
-        const hiR = r * 0.07;
-
-        // Eyes (dark)
-        ctx.fillStyle = 'rgba(0,0,0,0.65)';
-        ctx.beginPath();
-        ctx.arc(eyeF, -eyeS, eyeR, 0, Math.PI * 2);
-        ctx.arc(eyeF,  eyeS, eyeR, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Highlight (white)
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.beginPath();
-        ctx.arc(eyeF + r * 0.06, -eyeS - r * 0.05, hiR, 0, Math.PI * 2);
-        ctx.fill();
-      }
       
       ctx.restore();
     } else {

@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                                KEYBOARD INPUT                                ║
-// ║              Panel dock toggle and mode switching (1-9)                      ║
+// ║              Panel dock toggle and mode switching (0-9)                      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { setMode, MODES } from '../modes/mode-controller.js';
@@ -27,7 +27,11 @@ export function setupKeyboardShortcuts() {
     }
     
     // Mode switching: 1=pit, 2=flies, 3=weightless, 4=water, 5=vortex, 6=ping-pong, 7=magnetic, 8=bubbles, 9=kaleidoscope
-    if (k === '1') {
+    if (k === '0') {
+      e.preventDefault();
+      setMode(MODES.CRYSTAL);
+      updateModeButtonsUI('crystal');
+    } else if (k === '1') {
       e.preventDefault();
       setMode(MODES.PIT);
       updateModeButtonsUI('pit');
