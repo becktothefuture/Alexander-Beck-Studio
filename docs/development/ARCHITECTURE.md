@@ -351,6 +351,29 @@ draw(ctx) {
 
 ---
 
+## Kaleidoscope Lessons Learned (Design + Performance)
+
+These notes capture practical lessons from implementing Kaleidoscope as a mode that is both **interactive** and **60fps-stable**.
+
+### 1) Seamless wedges require a “proper” mapping
+- **Don’t**: clip and draw wedge slices — anti-aliasing and sub-pixel seams will show gaps.
+- **Do**: fold polar angle into a wedge and mirror within that wedge (polar angle folding + reflection). This produces continuity at boundaries by construction.
+
+### 2) Avoid bursty idle updates (they look like lag)
+- Low-frequency “idle physics stepping” creates a mismatch: render runs at 60fps while positions only update at ~10–20fps.
+- Even if CPU usage is low, it reads as **jank**. Prefer consistent cadence and smooth decays.
+
+### 3) Drive “feel” with an activity envelope
+- Apply a smoothed activity signal that ramps **up** on recent pointer movement and ramps **down** when idle.
+- Keep a tiny idle baseline so the mode feels alive, but not wild.
+
+### 4) Mode-local overrides prevent cross-mode regressions
+- Spacing, collision iterations, and bounds behavior should be mode-scoped so other modes keep their intended character.
+
+### 5) Don’t couple Kaleidoscope to wall-impact visuals
+- Kaleidoscope is primarily a **visual mapping** mode. Rubber wall deformation / impacts should remain unaffected.
+- If containment is required, use simple bounds reflection without wall-state side effects.
+
 ## Dynamic Canvas Height
 
 ### CSS Implementation

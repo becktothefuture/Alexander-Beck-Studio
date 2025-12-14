@@ -62,6 +62,38 @@ function springTo(state, target, dt, omega = 10) {
   return state.x;
 }
 
+export function applyKaleidoscopeBounds(ball, w, h, dt) {
+  // Bounds for Kaleidoscope only:
+  // - Keep balls inside the canvas
+  // - No sounds, no rubber wall impacts, no corner repellers
+  // - Gentle reflection with mild energy loss for stability
+  const g = getGlobals();
+  const inset = Math.max(2, (g.wallInset || 3)) * (g.DPR || 1);
+  const minX = inset + ball.r;
+  const maxX = w - inset - ball.r;
+  const minY = inset + ball.r;
+  const maxY = h - inset - ball.r;
+
+  const rest = 0.92;
+  const damp = Math.max(0.0, 1 - 0.15 * dt); // mild per-second damping on bounces
+
+  if (ball.x < minX) {
+    ball.x = minX;
+    ball.vx = Math.abs(ball.vx) * rest * damp;
+  } else if (ball.x > maxX) {
+    ball.x = maxX;
+    ball.vx = -Math.abs(ball.vx) * rest * damp;
+  }
+
+  if (ball.y < minY) {
+    ball.y = minY;
+    ball.vy = Math.abs(ball.vy) * rest * damp;
+  } else if (ball.y > maxY) {
+    ball.y = maxY;
+    ball.vy = -Math.abs(ball.vy) * rest * damp;
+  }
+}
+
 export function initializeKaleidoscope() {
   const g = getGlobals();
   clearBalls();
@@ -150,9 +182,22 @@ export function applyKaleidoscopeForces(ball, dt) {
 
   const { x: cx, y: cy } = getLensCenter(g);
   const unit = getViewportUnit(g);
-  const idle = (performance.now() - (g.lastPointerMoveMs || 0)) > 40;
-  // Allow >1 for “much stronger” idle drift.
-  const idleFactor = idle ? clamp(g.kaleidoscopeIdleMotion ?? 0.12, 0, 6) : 1;
+  const nowMs = performance.now();
+  const sinceMoveMs = nowMs - (g.lastPointerMoveMs || 0);
+  const movingRecently = sinceMoveMs < 90; // small grace window for smooth release
+
+  // Smooth activity envelope: ramps in/out with easing (no snapping).
+  if (g._kaleiActivity === undefined) g._kaleiActivity = 0;
+  const target = movingRecently ? 1 : 0;
+  const tauIn = 0.08;
+  const tauOut = 0.22;
+  const tau = target > g._kaleiActivity ? tauIn : tauOut;
+  const k = 1 - Math.exp(-dt / Math.max(1e-4, tau));
+  g._kaleiActivity += (target - g._kaleiActivity) * k;
+
+  // Idle baseline is intentionally tiny; motion is mostly driven by activity.
+  const idleBase = clamp(g.kaleidoscopeIdleMotion ?? 0.03, 0, 1);
+  const motionFactor = idleBase + g._kaleiActivity * (1 - idleBase);
 
   const dx = ball.x - cx;
   const dy = ball.y - cy;
@@ -167,13 +212,13 @@ export function applyKaleidoscopeForces(ball, dt) {
   const farFalloff = 1 / Math.max(240, Math.min(canvas.width, canvas.height) * 0.65);
   const inv = 1 / (1 + dist * farFalloff);
 
-  const swirlStrength = (g.kaleidoscopeSwirlStrength ?? 52) * unit * inv * idleFactor;
-  const radialPull = (g.kaleidoscopeRadialPull ?? 260) * unit * inv * idleFactor;
+  const swirlStrength = (g.kaleidoscopeSwirlStrength ?? 52) * unit * inv * motionFactor;
+  const radialPull = (g.kaleidoscopeRadialPull ?? 260) * unit * inv * motionFactor;
 
   // Organic drift: per-ball low-frequency wander that gently perturbs direction.
-  const t = performance.now() * 0.001;
+  const t = nowMs * 0.001;
   const seed = (ball._kaleiSeed ?? 0) + ball.age * 0.07;
-  const wanderAmt = clamp(g.kaleidoscopeWander ?? 0.25, 0, 1) * inv * idleFactor;
+  const wanderAmt = clamp(g.kaleidoscopeWander ?? 0.25, 0, 1) * inv * motionFactor;
   const rot = Math.sin(t * 0.35 + seed) * (0.55 * wanderAmt); // radians
   const cr = Math.cos(rot);
   const sr = Math.sin(rot);
@@ -192,8 +237,9 @@ export function applyKaleidoscopeForces(ball, dt) {
   ball.vy += dvyTarget * alpha;
 
   // Gentle damping to prevent runaway energy
-  // Slightly more damping when idle to keep the motion subtle (but still visible)
-  const damp = idle ? 0.995 : 0.996;
+  // Idle should be a slow, continuous loop (no start/stop).
+  // Too much damping causes velocities to die, then collision correction "kicks" them (visible pops).
+  const damp = (g._kaleiActivity < 0.05) ? 0.9985 : 0.996;
   ball.vx *= damp;
   ball.vy *= damp;
 

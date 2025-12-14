@@ -1257,8 +1257,8 @@ body.dark-mode.page-ready .noise-3 {
 /* Caption (timestamp) - Fixed position at bottom-right inside frame */
 .caption {
   position: fixed !important;
-  bottom: calc(var(--edge-inset) - var(--caption-offset)) !important; /* Compensate for padding */
-  right: calc(var(--edge-inset) - var(--caption-offset)) !important;
+  bottom: var(--edge-inset) !important;
+  right: var(--edge-inset) !important;
   z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
   font-family: 'Molle', cursive !important;
   /* Fluid typography */
@@ -1269,8 +1269,15 @@ body.dark-mode.page-ready .noise-3 {
   /* opacity and transition controlled by ORCHESTRATED PAGE ENTRANCE above */
   cursor: default;
   
-  /* Clickable/hover padding - expands hit area */
-  padding: var(--caption-offset);
+  /* OPTICAL ALIGNMENT FIX: */
+  /* Match social icons exactly by using the same padded hit-area strategy */
+  /* This aligns the visual center of the text with the visual center of the icons */
+  height: var(--size-icon) !important; 
+  display: flex !important;
+  align-items: center;
+  padding: var(--hit-area-lg);
+  margin: calc(var(--hit-area-lg) * -1);
+  
   opacity: var(--text-opacity-base); /* Keep constant: no hover opacity changes */
 }
 

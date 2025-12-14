@@ -104,7 +104,12 @@ export function setupPointer() {
     updateBrandLogoCursorScaleFromClient(clientX, clientY);
 
     // Update custom cursor position only for mouse-like pointers.
-    if (isMouseLike) updateCursorPosition(clientX, clientY);
+    if (isMouseLike) {
+      updateCursorPosition(clientX, clientY);
+    } else {
+      // Ensure cursor is hidden for touch/pen inputs that aren't mouse-like
+      hideCursor();
+    }
 
     // Don't track simulation interactions if the user is over the panel UI
     if (isEventOnUI(target)) return;
@@ -156,6 +161,10 @@ export function setupPointer() {
    * PASSIVE - doesn't interfere with panel interactions
    */
   document.addEventListener('mousemove', (e) => {
+    // If Pointer Events are supported, they handle this with better granularity (pointerType)
+    // This prevents synthetic mousemove events from touch interactions from showing the cursor
+    if (window.PointerEvent) return;
+    
     handleMove(e.clientX, e.clientY, e.target, { isMouseLike: true });
   }, { passive: true });
 
@@ -223,6 +232,10 @@ export function setupPointer() {
   document.addEventListener('touchstart', (e) => {
     // Ignore touches on panel
     if (isEventOnUI(e.target)) return;
+    
+    // Explicitly hide cursor on touch start to prevent it getting stuck
+    hideCursor();
+
     if (e.target.closest('a')) return;
     if (e.target.closest('button')) return;
     if (e.target.closest('input')) return;

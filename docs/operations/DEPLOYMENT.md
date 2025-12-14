@@ -13,7 +13,7 @@
 - ✅ No global style pollution
 
 ### Features Working
-- ✅ 10 modes (Ball Pit, Flies, Zero-G, Water, Vortex, Ping Pong, Magnetic, Bubbles, Tilt, Kaleidoscope)
+- ✅ 9 modes (Ball Pit, Flies, Zero-G, Water, Vortex, Ping Pong, Magnetic, Bubbles, Kaleidoscope)
 - ✅ Dual palettes (light/dark variants)
 - ✅ Time-based dark mode (6 PM - 6 AM)
 - ✅ Canvas shadow controls

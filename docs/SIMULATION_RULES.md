@@ -105,11 +105,19 @@
 - **Focus management:** Control panel keyboard navigable
 
 #### Keyboard Controls
-- **Mode switching:** Number keys 1-9, 0
+- **Mode switching:** Number keys 1-9
 - **Reset:** R key
 - **Panel toggle:** / key
 - **Panel drag:** Mouse drag on header
 - **Slider focus:** Tab navigation + arrow keys
+
+---
+
+## Kaleidoscope: Implementation Lessons (Performance + Feel)
+
+- **Perceptual smoothness > “average FPS”**: avoid low-frequency “idle stepping” loops that update physics in bursts while rendering at 60fps (it reads as lag/jank).
+- **Animate with envelopes**: drive most motion through a smoothed activity envelope (ramps up on recent pointer movement, decays to a tiny idle baseline) so idle stays calm and interaction feels organic.
+- **Keep walls separate**: modes that are “pure mapping” should not participate in rubber-wall impact visuals; use simple bounds if containment is needed.
 
 ### 8. Configuration Persistence
 Simulation settings persistence is disabled by default (`LOCALSTORAGE_ENABLED = false`).

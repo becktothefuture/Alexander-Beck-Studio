@@ -121,12 +121,13 @@ Current mode system supports **9 modes** (switchable via keyboard shortcuts and 
 ## Mode 9: Kaleidoscope 🪞
 **Keyboard:** Press `9`
 
-**Purpose:** Mirror-wedge kaleidoscope rendering of the same circle-style balls, driven by mouse movement.
+**Purpose:** Seamless mirror-wedge kaleidoscope rendering of the same circle-style balls, driven by mouse movement.
 
 - **Gravity:** Disabled
-- **Collisions:** None (performance-friendly; enables high wedge counts)
-- **Interaction:** Cursor controls kaleidoscope center + rotation behavior
-- **Render:** Balls are drawn into mirrored wedge segments; rubber walls remain normal (not kaleidoscoped)
+- **Collisions:** Enabled (keeps circles from overlapping; spacing is mode-scoped)
+- **Interaction:** Cursor changes the kaleidoscope *mapping* (pan/phase/flow), while the kaleidoscope center stays anchored to the viewport center
+- **Render:** “Proper” kaleidoscope mapping (polar angle folding + optional mirroring) to avoid wedge seam gaps
+- **Walls:** Kaleidoscope does **not** participate in the rubber wall / impact system (walls remain visually unaffected)
 - **Settings (panel):**
   - `kaleidoscopeSegments` (wedges)
   - `kaleidoscopeMirror` (0/1)
@@ -134,7 +135,17 @@ Current mode system supports **9 modes** (switchable via keyboard shortcuts and 
   - `kaleidoscopeRadialPull`
   - `kaleidoscopeRotationFollow`
   - `kaleidoscopePanStrength`
+  - `kaleidoscopeBallSpacing`
+  - `kaleidoscopeEase`
+  - `kaleidoscopeWander`
+  - `kaleidoscopeIdleMotion` (idle baseline; default is intentionally tiny)
   - `kaleidoscopeMaxSpeed`
+
+### Implementation Lessons (Kaleidoscope)
+- **Avoid “bursty idle stepping”**: a low-frequency idle physics loop can look like lag even when FPS is high; prefer a consistent cadence and smooth envelopes.
+- **Separate physics from mapping**: keep the simulation stable and use mouse-driven *mapping* changes (pan/phase) for the kaleidoscope “image shift”.
+- **Use an activity envelope**: ramp forces in/out smoothly based on recent pointer movement so idle stays calm and interaction feels organic.
+- **Mode-local overrides**: spacing/collisions/bounds behavior should be scoped to Kaleidoscope so other modes keep their identity.
 
 ---
 

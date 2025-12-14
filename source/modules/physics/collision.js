@@ -161,4 +161,85 @@ export function resolveCollisions(iterations = 10) {
   }
 }
 
+/**
+ * Kaleidoscope-friendly collision resolution:
+ * - Avoids large, sudden positional corrections ("popping")
+ * - Optionally disables sound/squash/spin side-effects
+ * - Caps per-pair correction magnitude to keep motion continuous
+ */
+export function resolveCollisionsCustom({
+  iterations = 4,
+  positionalCorrectionPercent = 0.25,
+  positionalCorrectionSlopPx = null,
+  maxCorrectionPx = null,
+  enableSound = true
+} = {}) {
+  const globals = getGlobals();
+  const balls = globals.balls;
+  const pairs = collectPairsSorted();
+  const REST = globals.REST;
+  const POS_CORRECT_PERCENT = positionalCorrectionPercent;
+  const POS_CORRECT_SLOP = (positionalCorrectionSlopPx ?? (0.5 * globals.DPR));
+  const REST_VEL_THRESHOLD = 30;
+  const spacing = (globals.ballSpacing || 0) * (globals.DPR || 1);
+  const correctionCap = (maxCorrectionPx ?? (2.0 * (globals.DPR || 1)));
+
+  for (let iter = 0; iter < iterations; iter++) {
+    for (let k = 0; k < pairs.length; k++) {
+      const { i, j } = pairs[k];
+      const A = balls[i];
+      const B = balls[j];
+
+      if (A.isSleeping && B.isSleeping) continue;
+      if (A.isSleeping) A.wake();
+      if (B.isSleeping) B.wake();
+
+      const dx = B.x - A.x;
+      const dy = B.y - A.y;
+      const rSum = A.r + B.r + spacing;
+      const dist2 = dx * dx + dy * dy;
+      if (dist2 === 0 || dist2 > rSum * rSum) continue;
+
+      const dist = Math.sqrt(dist2);
+      const nx = dx / dist;
+      const ny = dy / dist;
+      const overlap = rSum - dist;
+      const invA = 1 / Math.max(A.m, 0.001);
+      const invB = 1 / Math.max(B.m, 0.001);
+
+      // Positional correction (capped to prevent visible pops)
+      let correctionMag = POS_CORRECT_PERCENT * Math.max(overlap - POS_CORRECT_SLOP, 0) / (invA + invB);
+      if (correctionMag > correctionCap) correctionMag = correctionCap;
+      const cx = correctionMag * nx;
+      const cy = correctionMag * ny;
+      A.x -= cx * invA; A.y -= cy * invA;
+      B.x += cx * invB; B.y += cy * invB;
+
+      // Velocity impulse (keeps them from re-overlapping immediately)
+      const rvx = B.vx - A.vx;
+      const rvy = B.vy - A.vy;
+      const velAlongNormal = rvx * nx + rvy * ny;
+      if (velAlongNormal < 0) {
+        const e = Math.abs(velAlongNormal) < REST_VEL_THRESHOLD ? 0 : REST;
+        const jImpulse = -(1 + e) * velAlongNormal / (invA + invB);
+        const ix = jImpulse * nx;
+        const iy = jImpulse * ny;
+        A.vx -= ix * invA; A.vy -= iy * invA;
+        B.vx += ix * invB; B.vy += iy * invB;
+
+        // SOUND (optional)
+        if (enableSound && iter === 0) {
+          const avgRadius = (A.r + B.r) / 2;
+          const midX = (A.x + B.x) / 2;
+          const canvasWidth = globals.canvas?.width || 1;
+          const xNormalized = midX / canvasWidth;
+          const impact = Math.min(1, Math.abs(velAlongNormal) / ((A.r + B.r) * 50));
+          const collisionId = `${i}-${j}`;
+          playCollisionSound(avgRadius, impact, xNormalized, collisionId);
+        }
+      }
+    }
+  }
+}
+
 

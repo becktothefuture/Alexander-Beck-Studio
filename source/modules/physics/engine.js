@@ -5,11 +5,12 @@
 
 import { CONSTANTS, MODES } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
-import { resolveCollisions } from './collision.js';
+import { resolveCollisions, resolveCollisionsCustom } from './collision.js';
 import { updateWaterRipples, getWaterRipples } from '../modes/water.js';
 import { wallState, drawWalls, updateChromeColor } from './wall-state.js';
 import { getModeUpdater } from '../modes/mode-controller.js';
 import { renderKaleidoscope } from '../modes/kaleidoscope.js';
+import { applyKaleidoscopeBounds } from '../modes/kaleidoscope.js';
 
 const DT = CONSTANTS.PHYSICS_DT;
 let acc = 0;
@@ -47,23 +48,34 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   
   if (!canvas || balls.length === 0) return;
 
-  // Kaleidoscope: mostly mouse-driven, but allow a subtle idle drift.
-  // We throttle physics when idle so it doesn’t animate constantly.
+  // Kaleidoscope has its own lightweight physics path:
+  // - Smooth (per-frame), not fixed-timestep accumulator
+  // - Collisions on (prevents overlap)
+  // - NO rubber wall deformation / impacts
+  // - Simple bounds handling (no corner repellers, no wall wobble)
   if (globals.currentMode === MODES.KALEIDOSCOPE) {
-    const nowMs = performance.now();
-    const lastMove = globals.lastPointerMoveMs || 0;
-    const idleMs = nowMs - lastMove;
-    if (idleMs > 40) {
-      const lastIdleStep = globals._kaleiLastIdleStepMs || 0;
-      const idleStepIntervalMs = 90; // ~11fps idle drift (still very cheap)
-      if (nowMs - lastIdleStep < idleStepIntervalMs) {
-        acc = 0;
-        return;
-      }
-      globals._kaleiLastIdleStepMs = nowMs;
-      // Force a single small step worth of accumulator so it doesn't “catch up”.
-      dtSeconds = DT;
+    const dt = Math.min(0.033, Math.max(0, dtSeconds));
+    const len = balls.length;
+    for (let i = 0; i < len; i++) {
+      balls[i].step(dt, applyForcesFunc);
     }
+
+    // Keep circles apart (non-overlap) with a lighter solver
+    resolveCollisionsCustom({
+      iterations: 3,
+      positionalCorrectionPercent: 0.22,
+      maxCorrectionPx: 1.25 * (globals.DPR || 1),
+      enableSound: false
+    });
+
+    // Simple bounds (no impacts / no wobble)
+    for (let i = 0; i < len; i++) {
+      applyKaleidoscopeBounds(balls[i], canvas.width, canvas.height, dt);
+    }
+
+    // No wallState.step() in Kaleidoscope
+    acc = 0;
+    return;
   }
   
   acc += dtSeconds;
@@ -104,7 +116,7 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
     modeUpdater(dtSeconds);
   }
   
-  // Update rubber wall physics (always runs, only renders when deformed)
+  // Update rubber wall physics (all non-kaleidoscope modes)
   wallState.step(dtSeconds);
 
   // Reset accumulator if falling behind

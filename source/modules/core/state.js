@@ -54,6 +54,7 @@ const state = {
   sizeVariation: 0,
   responsiveScale: 1.0,       // Runtime responsive scale (calculated on init)
   responsiveScaleMobile: 0.75, // Scale factor for mobile devices (iPad/iPhone)
+  isMobile: false,            // Mobile device detected?
   R_MIN_BASE: 6,
   R_MAX_BASE: 24,
   R_MIN: 6 * 1.2 * 0.75,
@@ -124,7 +125,9 @@ const state = {
   kaleidoscopeRotationFollow: 1.0,
   kaleidoscopePanStrength: 0.75,
   kaleidoscopeMaxSpeed: 2600,
-  kaleidoscopeIdleMotion: 3.2, // 0..6: idle drift strength when pointer is still
+  // Idle baseline factor (0..1). 0 = frozen when idle, 1 = full-strength even when idle.
+  // Keep very low by default so the mode feels calm until the mouse moves.
+  kaleidoscopeIdleMotion: 0.03,
   kaleidoscopeEase: 0.18,       // 0..1: easing for force response (higher = snappier)
   kaleidoscopeWander: 0.25,     // 0..1: organic drift amount (unique per ball)
   
@@ -297,9 +300,11 @@ export function detectResponsiveScale() {
   const isIPhone = /iPhone/.test(ua);
   
   if (isIPad || isIPhone) {
+    state.isMobile = true;
     state.responsiveScale = state.responsiveScaleMobile;
     console.log(`✓ Mobile device detected - ball scale: ${state.responsiveScale}x`);
   } else {
+    state.isMobile = false;
     state.responsiveScale = 1.0;
   }
   
