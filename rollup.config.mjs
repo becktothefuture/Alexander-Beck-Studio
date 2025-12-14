@@ -25,6 +25,7 @@ export default {
     replace({
       preventAssignment: true,
       values: {
+        __DEV__: JSON.stringify(!isProd),
         __PANEL_INITIALLY_VISIBLE__: isProd ? 'false' : 'true',
         __EXPERIMENTAL_VORTEX__: JSON.stringify(!!process.env.EXPERIMENTAL_VORTEX)
       }

@@ -11,7 +11,10 @@ import {
   SOUND_STATE_EVENT,
   initSoundEngine 
 } from '../audio/sound-engine.js';
-import { ICON_SOUND_OFF, ICON_SOUND_ON } from './icons.js';
+
+// Icon font glyphs (Tabler Icons Outline)
+const ICON_SOUND_OFF = '<i class="ti ti-volume-off" aria-hidden="true"></i>';
+const ICON_SOUND_ON = '<i class="ti ti-volume-2" aria-hidden="true"></i>';
 
 let buttonElement = null;
 

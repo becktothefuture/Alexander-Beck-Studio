@@ -15,6 +15,26 @@ const path = require('path');
 const readline = require('readline');
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// DEV ASSET SYNC (Webflow export → source/webflow)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function syncWebflowAssets() {
+  return new Promise((resolve) => {
+    const syncScript = path.join(process.cwd(), 'scripts', 'sync-webflow-assets.js');
+    if (!fs.existsSync(syncScript)) {
+      // Non-fatal: dev can still run, but may not match production visuals
+      log('⚠️  Webflow sync script missing (scripts/sync-webflow-assets.js)', 'yellow');
+      resolve(false);
+      return;
+    }
+
+    const p = spawn('node', [syncScript], { stdio: 'inherit', shell: false });
+    p.on('close', (code) => resolve(code === 0));
+    p.on('error', () => resolve(false));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // ANSI COLORS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -90,34 +110,6 @@ function runHealthCheck() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const servers = [];
-
-function checkPortAvailable(port) {
-  return new Promise((resolve) => {
-    const { exec } = require('child_process');
-    exec(`lsof -ti:${port}`, (error, stdout) => {
-      // If lsof finds a process, stdout will have a PID
-      // If port is free, error will be non-null (no process found)
-      resolve(stdout.trim() === '');
-    });
-  });
-}
-
-async function ensurePortAvailable(port) {
-  const isAvailable = await checkPortAvailable(port);
-  
-  if (!isAvailable) {
-    log(`⚠️  Port ${port} is already in use!`, 'yellow');
-    log(`   To free it, run: kill $(lsof -ti:${port})`, 'dim');
-    return false;
-  }
-  
-  return true;
-}
-
-function setTerminalTitle(title) {
-  // Set terminal window title (works in most terminals)
-  process.stdout.write(`\x1b]2;${title}\x07`);
-}
 
 function startServer(name, command, port, description) {
   return new Promise((resolve) => {
@@ -276,14 +268,8 @@ async function runBuild() {
 async function quickDevMode() {
   header('QUICK DEV MODE');
   log('Starting development server with instant reload...\n', 'cyan');
-  
-  // Check port availability
-  if (!await ensurePortAvailable(8001)) {
-    log('\n❌ Cannot start dev server. Port 8001 is in use.', 'red');
-    return;
-  }
-  
-  setTerminalTitle('Alexander Beck Studio - Dev Server (8001)');
+
+  await syncWebflowAssets();
   
   await startServer(
     'Dev Server',
@@ -311,14 +297,6 @@ async function buildPreviewMode() {
     }
   }
   
-  // Check port availability
-  if (!await ensurePortAvailable(8000)) {
-    log('\n❌ Cannot start build preview. Port 8000 is in use.', 'red');
-    return;
-  }
-  
-  setTerminalTitle('Alexander Beck Studio - Build Preview (8000)');
-  
   log('\nStarting production build preview...\n', 'cyan');
   
   await startServer(
@@ -339,6 +317,8 @@ async function buildPreviewMode() {
 async function dualMode() {
   header('DUAL MODE - DEV + BUILD');
   log('Starting both servers for side-by-side comparison...\n', 'cyan');
+
+  await syncWebflowAssets();
   
   if (!checkBuildOutput()) {
     log('⚠️  No build output found. Running build first...\n', 'yellow');
@@ -349,17 +329,6 @@ async function dualMode() {
       return;
     }
   }
-  
-  // Check both ports
-  const port8000Available = await ensurePortAvailable(8000);
-  const port8001Available = await ensurePortAvailable(8001);
-  
-  if (!port8000Available || !port8001Available) {
-    log('\n❌ Cannot start dual mode. One or both ports are in use.', 'red');
-    return;
-  }
-  
-  setTerminalTitle('Alexander Beck Studio - Dual Mode (8000 + 8001)');
   
   await Promise.all([
     startServer(
@@ -387,40 +356,26 @@ async function dualMode() {
 async function watchMode() {
   header('WATCH MODE - AUTO-REBUILD');
   log('Starting dev server with background auto-rebuild...\n', 'cyan');
+
+  await syncWebflowAssets();
   
-  // Check port availability
-  if (!await ensurePortAvailable(8001)) {
-    log('\n❌ Cannot start watch mode. Port 8001 is in use.', 'red');
-    return;
-  }
-  
-  setTerminalTitle('Alexander Beck Studio - Watch Mode (8001 + Watcher)');
-  
+  // Watch Mode should be fully end-to-end: run dev server, build server, and watcher.
   await Promise.all([
-    startServer(
-      'Dev Server',
-      'npm run start:source',
-      8001,
-      '🚀 Instant reload for source changes'
-    ),
+    startServer('Dev Server', 'npm run start:source', 8001, '🚀 Instant reload for source changes'),
+    startServer('Build Preview', 'npm run start', 8000, '📦 Production preview (refresh to see rebuilds)'),
     (async () => {
       log('👁️  Starting file watcher...', 'cyan');
-      const watcher = spawn('npm', ['run', 'watch'], {
-        stdio: 'pipe',
-        shell: true,
-      });
+      const watcher = spawn('npm', ['run', 'watch'], { stdio: 'inherit', shell: true });
       servers.push({ name: 'Watcher', process: watcher, port: null });
       log('✅ File watcher active (rebuilding on save)', 'green');
-      log('   Build output updates automatically at port 8000', 'dim');
     })(),
   ]);
   
   console.log();
   log('👁️  WATCH MODE ACTIVE!', 'bright');
   log(`   Dev:   ${colors.bright}${colors.green}http://localhost:8001${colors.reset} (instant changes)`, 'green');
-  log('   Build: Auto-rebuilding in background', 'dim');
-  log('   Start build preview with: npm run start (in another terminal)', 'yellow');
-  log('\n   Press Ctrl+C to stop watcher\n', 'yellow');
+  log(`   Build: ${colors.bright}${colors.yellow}http://localhost:8000${colors.reset} (refresh after rebuild)`, 'yellow');
+  log('\n   Press Ctrl+C to stop (dev + build + watcher)\n', 'yellow');
 }
 
 async function buildOnlyMode() {

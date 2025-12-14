@@ -146,22 +146,47 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   ICON SYSTEM (24px line icons)
-   - Prefer inline SVG over icon fonts for crisp rendering + no external calls
-   - Rounded stroke caps/joins, consistent across browsers/DPIs
+   ICON FONT (Tabler Icons — Outline)
+   - Self-hosted (no external requests)
+   - Small, explicit subset of glyph mappings we actually use
+   - Best practice: `font-display: swap` + WOFF2 primary
    ═══════════════════════════════════════════════════════════════════════════════ */
-.ui-icon {
+@font-face {
+  font-family: "tabler-icons";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("../fonts/tabler-icons-outline.woff2") format("woff2"),
+    url("../fonts/tabler-icons-outline.woff") format("woff");
+}
+
+.ti {
+  font-family: "tabler-icons" !important;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* 24px target size across the site */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 24px;
   height: 24px;
-  display: block;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-  shape-rendering: geometricPrecision;
+  font-size: 24px;
 }
+
+/* Minimal glyph map (from @tabler/icons-webfont 3.35.0 outline set) */
+.ti-brand-apple:before { content: "\ec17"; }
+.ti-brand-instagram:before { content: "\ec20"; }
+.ti-brand-linkedin:before { content: "\ec8c"; }
+.ti-volume-2:before { content: "\eb4f"; }
+.ti-volume-off:before { content: "\f1c3"; }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    DOT INDICATOR ANIMATION
@@ -744,7 +769,6 @@ body.dark-mode.page-ready .noise-3 {
   display: flex !important;
   align-items: flex-start !important;
   justify-content: space-between !important;
-  gap: 10vw !important; /* Spacing between legend (left) and decorative text (right) */
 
   pointer-events: auto !important;
   opacity: 0;
@@ -752,7 +776,7 @@ body.dark-mode.page-ready .noise-3 {
 
 #top-elements-left,
 #top-elements-right {
-  flex: 0 1 calc(50% - 5vw) !important; /* Allow shrinking, account for gap */
+  flex: 0 0 50% !important;
   min-width: 0 !important;
   display: flex !important;
   align-items: flex-start !important;
@@ -767,10 +791,10 @@ body.dark-mode.page-ready .noise-3 {
 }
 
 #top-elements-rightRow {
-  width: 100% !important;
+  flex: 1 1 auto !important; /* Grow to fill available space */
   display: flex !important;
   align-items: flex-start !important;
-  justify-content: flex-start !important; /* Text fills left, icon stays right */
+  justify-content: flex-end !important; /* Push everything to right */
   gap: var(--space-md) !important;
 }
 
@@ -804,15 +828,15 @@ body.dark-mode.page-ready .noise-3 {
 
 /* Sound toggle mounted into the top row */
 .sound-toggle.sound-toggle--top {
-  position: relative !important;
+  position: static !important; /* Override base fixed positioning */
   top: auto !important;
   left: auto !important;
   transform: none !important;
-  margin: 0 !important; /* No margin - align flush right */
-  padding: 0 !important; /* No padding - icon only */
-  display: inline-flex;
-  align-items: flex-start;
-  white-space: nowrap;
+  margin: 0 !important; /* Remove all margins - flush right */
+  padding: 0 !important; /* Remove all padding - icon only */
+  display: inline-flex !important;
+  align-items: flex-start !important;
+  white-space: nowrap !important;
   flex: 0 0 auto !important; /* Don't grow/shrink, stay compact */
   /* In the top row, match adjacent text by default; hover turns orange-red */
   color: inherit !important;
@@ -847,7 +871,7 @@ body.dark-mode.page-ready .noise-3 {
   display: flex !important;
   flex-wrap: wrap !important;
   align-items: flex-start !important;
-  gap: 0.5rem clamp(1rem, 2vw, 1.5rem) !important; /* row-gap column-gap */
+  gap: 0.5rem 10vw !important; /* row-gap column-gap */
   overflow: hidden !important; /* Prevent visible overflow */
   
   /* Smooth position transitions during resize */
@@ -866,7 +890,7 @@ body.dark-mode.page-ready .noise-3 {
    ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 991px) {
   .legend {
-    gap: 0.4rem clamp(0.75rem, 1.5vw, 1.25rem) !important;
+    gap: 0.4rem 10vw !important; /* Maintain 10vw column gap */
   }
 }
 
@@ -935,10 +959,9 @@ body.dark-mode.page-ready .noise-3 {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   visibility: visible !important;
-  /* Border styling - only left border as requested */
+  /* No border or padding */
   border: none !important;
-  border-left: 1px solid rgba(100, 100, 100, 1) !important; /* 20% lighter than rgb(61,61,61) */
-  padding: 6px 16px !important; /* Simple fixed padding for the box */
+  padding: 0 !important;
   
   /* ORGANIC TRANSITIONS: Position and appearance */
   transition: 
@@ -1210,12 +1233,13 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
      ───────────────────────────────────────────────────────────────────────────── */
   #top-elements {
     flex-wrap: wrap !important;
-    gap: 10px 5vw !important; /* Reduced column gap on mobile */
+    /* Mobile gutter: 10vw between legend + description */
+    gap: 10px 10vw !important; /* row-gap column-gap */
   }
 
   #top-elements-left,
   #top-elements-right {
-    flex: 0 1 calc(50% - 2.5vw) !important; /* Account for reduced gap */
+    flex: 0 0 calc(50% - 5vw) !important; /* Account for 10vw gutter */
   }
 
   #top-elements-soundRow {
@@ -1361,10 +1385,11 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   color: var(--ball-6) !important; /* Same orange when on */
 }
 
-/* Sound icon sizing: lock to 24px (avoid fractional scaling blur) */
-.sound-toggle .ui-icon {
-  width: 24px !important;
-  height: 24px !important;
+/* Sound icon sizing: ~40% larger than 24px */
+.sound-toggle .ti {
+  width: 34px !important;
+  height: 34px !important;
+  font-size: 34px !important;
 }
 
 /* Hover dot indicator - same as footer links */

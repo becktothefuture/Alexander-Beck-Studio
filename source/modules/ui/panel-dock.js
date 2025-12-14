@@ -503,21 +503,8 @@ function setupSoundControls(panel) {
   const shuffleBtn = panel.querySelector('#soundShuffleBtn');
 
   // Icon-only button labels (no text), with accessible aria-label/title.
-  const ICON_SOUND_OFF = `
-    <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      <path d="M6.2 5.2 3.6 7H2.2C1.5 7 1 7.5 1 8.2v-.4C1 7.5 1.5 7 2.2 7h1.4l2.6-1.8V3.4c0-.3.2-.5.5-.5.1 0 .2 0 .3.1l3.1 2.2h1.7c.3 0 .5.2.5.5s-.2.5-.5.5H9.8L7.2 3.9v8.2l1.2-.9c.2-.1.4-.1.6 0 .2.1.3.3.3.5v.4c0-.2-.1-.4-.3-.5-.2-.1-.4-.1-.6 0l-1.2.9V3.4c0-.3-.2-.5-.5-.5-.1 0-.2 0-.3.1L6.2 3.9v1.3z" fill="currentColor"/>
-      <path d="M10.3 5.7a.5.5 0 0 1 .7 0l3.3 3.3a.5.5 0 0 1 0 .7.5.5 0 0 1-.7 0L10.3 6.4a.5.5 0 0 1 0-.7z" fill="currentColor"/>
-      <path d="M13.6 5.7a.5.5 0 0 1 .7.7L11 9.7a.5.5 0 0 1-.7-.7l3.3-3.3z" fill="currentColor"/>
-    </svg>
-  `;
-
-  const ICON_SOUND_ON = `
-    <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      <path d="M6.5 3.3c.2-.2.6-.2.8 0l3.0 2.2h2.0c.3 0 .5.2.5.5s-.2.5-.5.5h-2.2L7.5 4.6v6.8l2.6-1.9h2.2c.3 0 .5.2.5.5s-.2.5-.5.5h-2.0l-3.0 2.2c-.2.2-.6.2-.8 0a.5.5 0 0 1-.2-.4V3.7c0-.2.1-.3.2-.4z" fill="currentColor"/>
-      <path d="M12.2 4.7a.5.5 0 0 1 .7.0c1.4 1.4 1.4 5.2 0 6.6a.5.5 0 1 1-.7-.7c1-1 1-4.2 0-5.2a.5.5 0 0 1 0-.7z" fill="currentColor"/>
-      <path d="M10.9 6.0a.5.5 0 0 1 .7 0c.7.7.7 2.6 0 3.3a.5.5 0 1 1-.7-.7c.3-.3.3-1.6 0-1.9a.5.5 0 0 1 0-.7z" fill="currentColor"/>
-    </svg>
-  `;
+  const ICON_SOUND_OFF = '<i class="ti ti-volume-off" aria-hidden="true"></i>';
+  const ICON_SOUND_ON = '<i class="ti ti-volume-2" aria-hidden="true"></i>';
 
   const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
   const jitter = (base, amount) => base + (Math.random() - 0.5) * 2 * amount;

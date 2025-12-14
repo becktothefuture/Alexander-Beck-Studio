@@ -71,6 +71,14 @@ async function buildProduction() {
     if (fs.existsSync(webflowImagesSrc) && !fs.existsSync(publicImagesDst)) {
       copyDir(webflowImagesSrc, publicImagesDst);
     }
+
+    // Ensure self-hosted fonts are available in public/
+    // (Used by icon font + any future typography assets)
+    const sourceFontsDir = path.join('source', 'fonts');
+    const publicFontsDir = path.join(CONFIG.publicDestination, 'fonts');
+    if (fs.existsSync(sourceFontsDir)) {
+      copyDir(sourceFontsDir, publicFontsDir);
+    }
     
     // STEP 2: Bundle modular sources with Rollup
     console.log('📦 Step 2: Bundling modular sources with Rollup...');

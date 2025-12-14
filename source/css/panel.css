@@ -745,7 +745,7 @@ body:not(.dark-mode) .panel-section--action {
   transition: all 0.15s ease;
 }
 
-.sound-enable-btn svg {
+.sound-enable-btn .ti {
   width: 18px;
   height: 18px;
   display: block;

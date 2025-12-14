@@ -47,13 +47,15 @@ module.exports = defineConfig({
   // - source/  → http://127.0.0.1:8001
   webServer: [
     {
-      command: 'npm run build && cd public && python3 -m http.server 8800',
+      // Silence request logs to keep test output readable.
+      command: 'npm run build && cd public && python3 -m http.server 8800 > /dev/null 2>&1',
       url: 'http://127.0.0.1:8800',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
     {
-      command: 'cd source && python3 -m http.server 8801',
+      // Silence request logs to keep test output readable.
+      command: 'node scripts/sync-webflow-assets.js && cd source && python3 -m http.server 8801 > /dev/null 2>&1',
       url: 'http://127.0.0.1:8801',
       reuseExistingServer: !process.env.CI,
       timeout: 60 * 1000,

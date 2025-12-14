@@ -161,6 +161,9 @@ export class Ball {
     // Small inset to create a gap between balls and walls (prevents overlap)
     // Positive value = balls stop before the edge
     const borderInset = Math.max(0, (globals.wallInset ?? 3)) * (DPR || 1);
+    // If we inset the playable bounds, the corner arc radius must shrink by the same amount
+    // so the straight edges and the rounded corners remain perfectly tangent/aligned.
+    const cornerArc = Math.max(0, cr - borderInset);
     
     let hasWallCollision = false;
     
@@ -188,7 +191,7 @@ export class Ball {
         const dx = this.x - corner.cx;
         const dy = this.y - corner.cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const minDist = cr - this.r; // Ball must stay inside the arc
+        const minDist = cornerArc - this.r; // Ball must stay inside the inset arc
         
         if (dist > minDist && minDist > 0) {
           // Push ball back inside the rounded corner

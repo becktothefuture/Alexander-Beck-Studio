@@ -60,6 +60,18 @@
   --duration-resize: 600ms;   /* Viewport resize response */
   --duration-settle: 400ms;   /* Color/opacity settling */
   --duration-quick: 200ms;    /* Immediate feedback */
+
+  /* ─────────────────────────────────────────────────────────────────────────────
+     INTERACTION TOKENS
+     ───────────────────────────────────────────────────────────────────────────── */
+  /* Hover color should match the brand “dark orange” (ball orange-red) */
+  --link-hover-color: var(--ball-6);
+  --duration-link-hover: 30ms;
+  --dot-bounce-duration: 500ms;
+
+  /* Button-equivalent hit area padding */
+  --hit-area-padding: 30px;
+  --hit-area-padding-neg: -30px;
   
   /* ─────────────────────────────────────────────────────────────────────────────
      UNIFIED COLOR SYSTEM - Browser Chrome, Walls, Background ALL match
@@ -89,7 +101,7 @@
   /* Rubber wall color = frame color */
   --wall-color: var(--frame-color-light);
   --wall-thickness: 12px;          /* Thickness of the rubber wall tubes */
-  --wall-radius: clamp(24px, 4vmin, 48px);  /* Corner radius for all elements */
+  --wall-radius: 42px;  /* Corner radius for all elements (kept in sync with config/state) */
   --wall-bevel-light: rgba(255, 255, 255, 0.15);  /* Top/left highlight */
   --wall-bevel-dark: rgba(0, 0, 0, 0.3);          /* Bottom/right shadow */
   
@@ -131,6 +143,60 @@
   --ball-6: #ff4013;
   --ball-7: #0d5cb6;
   --ball-8: #ffa000;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ICON FONT (Tabler Icons — Outline)
+   - Self-hosted (no external requests)
+   - Small, explicit subset of glyph mappings we actually use
+   - Best practice: `font-display: swap` + WOFF2 primary
+   ═══════════════════════════════════════════════════════════════════════════════ */
+@font-face {
+  font-family: "tabler-icons";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("../fonts/tabler-icons-outline.woff2") format("woff2"),
+    url("../fonts/tabler-icons-outline.woff") format("woff");
+}
+
+.ti {
+  font-family: "tabler-icons" !important;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* 24px target size across the site */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+}
+
+/* Minimal glyph map (from @tabler/icons-webfont 3.35.0 outline set) */
+.ti-brand-apple:before { content: "\ec17"; }
+.ti-brand-instagram:before { content: "\ec20"; }
+.ti-brand-linkedin:before { content: "\ec8c"; }
+.ti-volume-2:before { content: "\eb4f"; }
+.ti-volume-off:before { content: "\f1c3"; }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DOT INDICATOR ANIMATION
+   - Bounce-out effect (scaleY: 0 → 1.2 → 1)
+   - Used for hover dots on links/icons
+   ═══════════════════════════════════════════════════════════════════════════════ */
+@keyframes braviaDotBounceIn {
+  0%   { transform: translate3d(-50%, 0, 0) scaleY(0); }
+  60%  { transform: translate3d(-50%, 0, 0) scaleY(1.2); }
+  100% { transform: translate3d(-50%, 0, 0) scaleY(1); }
 }
 
 :root.dark-mode {
@@ -688,9 +754,103 @@ body.dark-mode.page-ready .noise-3 {
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   TOP ELEMENTS (Top) – Runtime-composed layout
+   Legend (left) + Decorative text + Sound toggle (right)
+   Each group = 50% width, top-aligned across viewports.
+   ───────────────────────────────────────────────────────────────────────────── */
+#top-elements {
+  position: fixed !important;
+  top: var(--edge-inset) !important;
+  left: var(--edge-inset) !important;
+  right: var(--edge-inset) !important;
+  /* Keep below the settings window (avoid z-index overflow) */
+  z-index: 9000 !important;
+
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+
+  pointer-events: auto !important;
+  opacity: 0;
+}
+
+#top-elements-left,
+#top-elements-right {
+  flex: 0 0 50% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+}
+
+#top-elements-left {
+  justify-content: flex-start !important;
+}
+
+#top-elements-right {
+  justify-content: flex-end !important;
+}
+
+#top-elements-rightRow {
+  flex: 1 1 auto !important; /* Grow to fill available space */
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-end !important; /* Push everything to right */
+  gap: var(--space-md) !important;
+}
+
+#top-elements-rightText {
+  flex: 1 1 0 !important; /* Fill available space */
+  min-width: 0 !important;
+  display: block !important; /* Simple block for text flow */
+  text-align: left !important;
+}
+
+/* When nested in #top-elements, stop using fixed positioning */
+#top-elements .legend {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  max-width: 100% !important;
+  transition: none !important;
+  /* Ensure flexbox wrap behavior in container context */
+  flex: 0 1 auto !important;
+}
+
+/* When nested in #top-elements, stop using fixed positioning and allow interactions */
+#top-elements .decorative-script {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  pointer-events: auto !important;
+  max-width: none !important; /* Fill available space in flex container */
+  width: 100% !important;
+}
+
+/* Sound toggle mounted into the top row */
+.sound-toggle.sound-toggle--top {
+  position: static !important; /* Override base fixed positioning */
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  margin: 0 !important; /* Remove all margins - flush right */
+  padding: 0 !important; /* Remove all padding - icon only */
+  display: inline-flex !important;
+  align-items: flex-start !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto !important; /* Don't grow/shrink, stay compact */
+  /* In the top row, match adjacent text by default; hover turns orange-red */
+  color: inherit !important;
+}
+
+/* Ensure hover color wins in the top row (important + higher specificity) */
+.sound-toggle.sound-toggle--top:hover {
+  color: var(--link-hover-color) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    LEGEND (Top-Left)
    Uses organic spacing: positions breathe with viewport
-   Responsive grid: 4×2 desktop → 3×3 tablet → 1×7 mobile
+   Horizontal flexbox with wrap → vertical stack on mobile
    ───────────────────────────────────────────────────────────────────────────── */
 .legend {
   position: fixed !important;
@@ -699,7 +859,7 @@ body.dark-mode.page-ready .noise-3 {
   left: var(--edge-inset) !important;
   margin: 0 !important;
   width: auto !important;
-  max-width: calc(100vw - var(--edge-inset) * 2) !important;
+  max-width: 100% !important; /* Constrain to parent (no overflow) */
   height: auto !important;
   font-family: 'Geist', sans-serif !important;
   padding: 0 !important; /* No inner padding - positioning handles spacing */
@@ -707,11 +867,12 @@ body.dark-mode.page-ready .noise-3 {
   opacity: 0.9 !important; /* Keep constant: Webflow sets .legend:hover { opacity: 1 } */
   color: #2f2f2f !important; /* Slightly darker, globally applied to all legend text (light mode) */
   
-  /* CSS Grid: 4 columns on desktop */
-  display: grid !important;
-  grid-template-columns: repeat(4, auto) !important;
-  grid-column-gap: clamp(1rem, 2vw, 1.5rem) !important;
-  grid-row-gap: 0.5rem !important;
+  /* Horizontal flexbox with wrap */
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  gap: 0.5rem 10vw !important; /* row-gap column-gap */
+  overflow: hidden !important; /* Prevent visible overflow */
   
   /* Smooth position transitions during resize */
   transition: 
@@ -725,22 +886,21 @@ body.dark-mode.page-ready .noise-3 {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LEGEND RESPONSIVE: Tablet (3×3 grid)
+   LEGEND RESPONSIVE: Tablet (tighter spacing)
    ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 991px) {
   .legend {
-    grid-template-columns: repeat(3, auto) !important;
-    grid-column-gap: clamp(0.75rem, 1.5vw, 1.25rem) !important;
+    gap: 0.4rem 10vw !important; /* Maintain 10vw column gap */
   }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LEGEND RESPONSIVE: Mobile (1×7 single column)
+   LEGEND RESPONSIVE: Mobile (vertical stack)
    ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .legend {
-    grid-template-columns: 1fr !important;
-    grid-row-gap: 0.35rem !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
   }
 }
 
@@ -758,6 +918,10 @@ body.dark-mode.page-ready .noise-3 {
   font-size: clamp(9px, 1vw, 12px) !important;
   color: inherit !important; /* Inherit from .legend (enables single global legend text color) */
   opacity: 0.9; /* Keep constant: no hover opacity changes */
+  
+  /* Equal width for all legend items within each row */
+  flex: 1 1 0 !important;
+  white-space: nowrap !important; /* Prevent text from wrapping within item */
 }
 
 /* Legend labels: ensure no span-level formatting overrides (e.g., Webflow/inline styles) */
@@ -795,10 +959,9 @@ body.dark-mode.page-ready .noise-3 {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   visibility: visible !important;
-  /* Border styling - only left border as requested */
+  /* No border or padding */
   border: none !important;
-  border-left: 1px solid rgba(100, 100, 100, 1) !important; /* 20% lighter than rgb(61,61,61) */
-  padding: 6px 16px !important; /* Simple fixed padding for the box */
+  padding: 0 !important;
   
   /* ORGANIC TRANSITIONS: Position and appearance */
   transition: 
@@ -822,7 +985,7 @@ body.dark-mode.page-ready .noise-3 {
   position: relative;
   opacity: 0.9; /* Keep constant: no hover opacity changes */
   transition: 
-    color var(--duration-quick) ease;
+    color var(--duration-link-hover) ease;
   white-space: nowrap; /* Prevent "Let's chat." from breaking */
 }
 
@@ -830,27 +993,26 @@ body.dark-mode.page-ready .noise-3 {
 .decorative-script p a::after {
   content: '';
   position: absolute;
-  bottom: -100%;
+  bottom: -10px;
   left: 50%;
-  transform: translateX(-50%) scale(0);
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: 50% 50%;
   width: 4px;
   height: 4px;
   border-radius: 50%;
   background: currentColor;
   opacity: 0;
-  transition: 
-    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-    opacity 0.2s ease;
+  will-change: transform, opacity;
 }
 
 .decorative-script p a:hover {
-  color: #000000 !important;
+  color: var(--link-hover-color) !important;
   opacity: 0.9; /* Keep constant */
 }
 
 .decorative-script p a:hover::after {
-  transform: translateX(-50%) scale(1);
-  opacity: 0.6;
+  opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -866,6 +1028,7 @@ body.dark-mode.page-ready .noise-3 {
   /* opacity and transition controlled by ORCHESTRATED PAGE ENTRANCE above */
   position: relative;
   opacity: 0.9; /* Keep constant: no hover opacity changes */
+  transition: color var(--duration-link-hover) ease;
   
   /* Clickable/hover padding - expands hit area */
   display: inline-block;
@@ -883,25 +1046,24 @@ body.dark-mode.page-ready .noise-3 {
   /* Keep dot-to-text spacing stable even though links use padded hit areas */
   bottom: 14px; /* 16px from label with 30px hit-area padding */
   left: 50%;
-  transform: translateX(-50%) scale(0);
+  transform: translate3d(-50%, 0, 0) scaleY(0);
+  transform-origin: 50% 50%;
   width: 4px;
   height: 4px;
   border-radius: 50%;
   background: currentColor;
   opacity: 0;
-  transition: 
-    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), /* Bounce effect */
-    opacity 0.2s ease;
+  will-change: transform, opacity;
 }
 
 .footer_link:hover {
-  color: #000000 !important;
+  color: var(--link-hover-color) !important;
   opacity: 0.9; /* Keep constant */
 }
 
 .footer_link:hover::after {
-  transform: translateX(-50%) scale(1);
   opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
 
 /* Social icons - Fixed position at bottom-left inside frame */
@@ -919,10 +1081,36 @@ body.dark-mode.page-ready .noise-3 {
 /* Social icon links: keep a consistent opacity (no hover opacity shifts) */
 .footer_icon-link {
   opacity: 0.9;
+  transition: color var(--duration-link-hover) ease;
 }
 
 .footer_icon-link:hover {
   opacity: 0.9;
+}
+
+/* Social icon hover dot indicator (identical to footer link dots) */
+.footer_icon-link::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: 50% 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.footer_icon-link:hover {
+  color: var(--link-hover-color) !important;
+}
+
+.footer_icon-link:hover::after {
+  opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
 
 /* Caption (timestamp) - Fixed position at bottom-right inside frame */
@@ -968,7 +1156,7 @@ body.dark-mode .sound-toggle {
 }
 
 body.dark-mode .sound-toggle:hover {
-  color: var(--ball-6) !important; /* No color change on hover */
+  color: var(--link-hover-color) !important;
   /* opacity handled by FADE SYSTEM - don't override here */
 }
 
@@ -978,7 +1166,7 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
 }
 
 body.dark-mode .decorative-script p a:hover {
-  color: #f5f5f5 !important;
+  color: var(--link-hover-color) !important;
 }
 
 /* Dark mode - SVG fills */
@@ -1036,6 +1224,93 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
     font-size: clamp(0.55rem, 2.2vw, 0.68rem);
     max-width: min(280px, 52vw);
   }
+
+  /* ─────────────────────────────────────────────────────────────────────────────
+     TOP ELEMENTS — MOBILE LAYOUT
+     Row 1: Legend (left) | Description (right) with reduced gap
+     Row 2: Sound button spans 100% below both
+     Desktop unchanged (scoped to <=480px only).
+     ───────────────────────────────────────────────────────────────────────────── */
+  #top-elements {
+    flex-wrap: wrap !important;
+    /* Mobile gutter: 10vw between legend + description */
+    gap: 10px 10vw !important; /* row-gap column-gap */
+  }
+
+  #top-elements-left,
+  #top-elements-right {
+    flex: 0 0 calc(50% - 5vw) !important; /* Account for 10vw gutter */
+  }
+
+  #top-elements-soundRow {
+    flex: 0 0 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    pointer-events: none; /* child button re-enables */
+  }
+
+  #top-elements-soundRow #sound-toggle {
+    pointer-events: auto !important;
+  }
+
+  /* Full-width sound toggle on mobile */
+  #top-elements #sound-toggle.sound-toggle--topwide {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 14px 0 !important;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────────
+     FOOTER LINKS — MOBILE ALIGNMENT
+     - Center align as a group
+     - Allow wrapping between links
+     - Keep "Get in touch" and "Bio/CV" readable
+     ───────────────────────────────────────────────────────────────────────────── */
+  #footer-links-container {
+    width: calc(100vw - (var(--edge-inset) * 2)) !important;
+    max-width: none !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    text-align: center !important;
+    row-gap: 0 !important;
+    gap: 0 !important;
+  }
+
+  #footer-links-container #contact-email,
+  #footer-links-container #portfolio-gate-trigger {
+    white-space: nowrap !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+
+  /* Allow "Download" + "Bio/CV" to split into 2 lines on mobile */
+  #footer-links-container #cv-gate-trigger {
+    white-space: normal !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    line-height: 1.05 !important;
+  }
+
+  #footer-links-container #cv-gate-trigger .footer-link-nowrap {
+    white-space: nowrap !important;
+  }
+
+  /* Slightly tighter type so 3 links fit in a single row */
+  #footer-links-container #contact-email,
+  #footer-links-container #portfolio-gate-trigger,
+  #footer-links-container #cv-gate-trigger {
+    font-size: 0.85rem !important;
+  }
+
+  /* Slightly tighter tap targets on phones to prevent collisions */
+  #footer-links-container #contact-email,
+  #footer-links-container #portfolio-gate-trigger,
+  #footer-links-container #cv-gate-trigger {
+    padding: 18px 18px !important;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1069,7 +1344,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   pointer-events: auto !important;
   
   transition: 
-    color var(--duration-quick) ease,
+    color var(--duration-link-hover) ease,
     opacity var(--duration-quick) ease,
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic);
@@ -1110,6 +1385,13 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   color: var(--ball-6) !important; /* Same orange when on */
 }
 
+/* Sound icon sizing: ~40% larger than 24px */
+.sound-toggle .ti {
+  width: 34px !important;
+  height: 34px !important;
+  font-size: 34px !important;
+}
+
 /* Hover dot indicator - same as footer links */
 .sound-toggle::after {
   content: '';
@@ -1117,25 +1399,24 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   /* Keep dot-to-text spacing stable even though button uses padded hit area */
   bottom: 14px; /* 16px from label with 30px hit-area padding */
   left: 50%;
-  transform: translateX(-50%) scale(0);
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: 50% 50%;
   width: 4px;
   height: 4px;
   border-radius: 50%;
   background: currentColor;
   opacity: 0;
-  transition: 
-    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-    opacity 0.2s ease;
+  will-change: transform, opacity;
 }
 
 .sound-toggle:hover {
-  color: var(--ball-6) !important; /* Brighter red-orange on hover */
+  color: var(--link-hover-color) !important;
   /* opacity handled by FADE SYSTEM - don't override here */
 }
 
 .sound-toggle:hover::after {
-  transform: translateX(-50%) scale(1);
   opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1184,7 +1465,9 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   
   /* Ensure visibility - override any Webflow grid positioning */
   grid-area: auto !important;
-  display: inline-block !important;
+  display: inline-flex !important;
+  justify-content: center !important;
+  text-align: center !important;
   visibility: visible !important;
   opacity: 1 !important;
   
@@ -1195,6 +1478,23 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   /* Ensure baseline alignment */
   vertical-align: baseline !important;
   line-height: 1 !important;
+}
+
+/* Hover override: these links have high-specificity base colors */
+#footer-links-container #contact-email:hover,
+#footer-links-container #portfolio-gate-trigger:hover,
+#footer-links-container #cv-gate-trigger:hover {
+  color: var(--link-hover-color) !important;
+}
+
+/* Ensure "Get in touch" matches the exact hover behavior (color + dot) */
+#footer-links-container a.footer_link:hover {
+  color: var(--link-hover-color) !important;
+}
+
+#footer-links-container a.footer_link:hover::after {
+  opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
 
 /* Dark mode footer link colors */
@@ -1281,7 +1581,15 @@ body.dark-mode #custom-cursor {
   --panel-radius: 0.75rem;
   --panel-radius-sm: 0.5rem;
   --panel-radius-lg: 1rem;
-  --panel-width: 320px;
+  /* “23” → compact mac-style width */
+  --panel-width: 23rem;
+
+  /* Density (DAW-style compact spacing) */
+  --panel-pad: 10px;
+  --panel-gap: 8px;
+  --panel-section-pad: 10px;
+  --panel-section-gap: 6px;
+  --panel-control-gap: 3px;
   
   /* Typography */
   --panel-font: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
@@ -1316,8 +1624,8 @@ body:not(.dark-mode) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel {
   font-family: var(--panel-font);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 12.5px;
+  line-height: 1.35;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -1334,7 +1642,8 @@ body:not(.dark-mode) {
   display: flex;
   flex-direction: column;
   
-  z-index: 2147483647 !important;
+  /* Keep within sane stacking ranges; dock container manages global stacking */
+  z-index: 10000 !important;
   pointer-events: auto !important;
   user-select: none;
 }
@@ -1356,7 +1665,7 @@ body:not(.dark-mode) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: var(--panel-pad);
   border-bottom: 1px solid var(--panel-border);
   background: var(--panel-background);
   cursor: pointer;
@@ -1371,7 +1680,7 @@ body:not(.dark-mode) {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--panel-foreground);
 }
@@ -1405,10 +1714,10 @@ body:not(.dark-mode) {
    PANEL CONTENT — Scrollable area with clean padding
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel .panel-content {
-  padding: 16px;
+  padding: var(--panel-pad);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--panel-gap);
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
@@ -1463,9 +1772,9 @@ body:not(.dark-mode) {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 16px;
-  height: 46px;
-  font-size: 14px;
+  padding: 0 var(--panel-pad);
+  height: 38px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--panel-foreground);
   cursor: pointer;
@@ -1507,10 +1816,10 @@ body:not(.dark-mode) {
 }
 
 .panel-section-content {
-  padding: 16px;
+  padding: var(--panel-section-pad);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--panel-section-gap);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1570,10 +1879,10 @@ body:not(.dark-mode) {
 }
 
 .panel details:not(.panel-section-accordion) .group {
-  padding: 12px;
+  padding: var(--panel-section-pad);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--panel-section-gap);
   background: var(--panel-background);
 }
 
@@ -1583,7 +1892,7 @@ body:not(.dark-mode) {
 .panel label {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--panel-control-gap);
 }
 
 .panel label > span:first-child,
@@ -1591,13 +1900,13 @@ body:not(.dark-mode) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--panel-muted-foreground);
 }
 
 .panel span.val {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   font-family: var(--panel-font-mono);
@@ -1611,7 +1920,7 @@ body:not(.dark-mode) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel input[type="range"] {
   width: 100%;
-  height: 8px;
+  height: 6px;
   border-radius: 9999px;
   background: var(--panel-muted);
   border: none;
@@ -1624,8 +1933,8 @@ body:not(.dark-mode) {
 .panel input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--panel-foreground);
   border: none;
@@ -1644,8 +1953,8 @@ body:not(.dark-mode) {
 }
 
 .panel input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--panel-foreground);
   border: none;
@@ -1654,7 +1963,7 @@ body:not(.dark-mode) {
 }
 
 .panel input[type="range"]::-moz-range-track {
-  height: 8px;
+  height: 6px;
   background: var(--panel-muted);
   border-radius: 9999px;
 }
@@ -1669,9 +1978,9 @@ body:not(.dark-mode) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel button {
   font-family: inherit;
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 500;
-  padding: 10px 16px;
+  padding: 7px 10px;
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
@@ -1715,9 +2024,9 @@ body:not(.dark-mode) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel select {
   font-family: inherit;
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 500;
-  padding: 10px 36px 10px 12px;
+  padding: 7px 32px 7px 10px;
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
@@ -1754,13 +2063,13 @@ body:not(.dark-mode) {
 }
 
 .mode-button {
-  padding: 12px 8px;
+  padding: 8px 8px;
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
   color: var(--panel-muted-foreground);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
   text-align: center;
@@ -1880,13 +2189,37 @@ body:not(.dark-mode) {
 .panel-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--panel-section-gap);
 }
 
 .panel-section--action {
-  padding-top: 12px;
-  margin-top: 12px;
+  padding-top: var(--panel-section-gap);
+  margin-top: var(--panel-section-gap);
   border-top: 1px solid var(--panel-border);
+}
+
+/* Pin config export to bottom of the window */
+.panel-section--action {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-bottom: 8px;
+  /* soft fade so it reads as “anchored” without a hard edge */
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.20) 24%,
+    rgba(0, 0, 0, 0.38) 100%
+  );
+}
+
+body:not(.dark-mode) .panel-section--action {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 24%,
+    rgba(255, 255, 255, 0.80) 100%
+  );
 }
 
 .panel-section--action button {
@@ -1937,19 +2270,19 @@ body:not(.dark-mode) {
 .panel .group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--panel-section-gap);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    SOUND SECTION STYLES
    ═══════════════════════════════════════════════════════════════════════════════ */
 .sound-enable-row {
-  margin-bottom: 12px;
+  margin-bottom: var(--panel-section-gap);
 }
 
 .sound-enable-btn {
   width: 100%;
-  padding: 12px 16px;
+  padding: 9px 12px;
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
@@ -1959,6 +2292,12 @@ body:not(.dark-mode) {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.sound-enable-btn .ti {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .sound-enable-btn:hover {
@@ -1979,7 +2318,7 @@ body:not(.dark-mode) {
 .sound-controls {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--panel-section-gap);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1988,7 +2327,7 @@ body:not(.dark-mode) {
 .control-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--panel-control-gap);
 }
 
 .control-row-header {
@@ -1998,13 +2337,13 @@ body:not(.dark-mode) {
 }
 
 .control-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--panel-muted-foreground);
 }
 
 .control-value {
-  font-size: 12px;
+  font-size: 11px;
   font-family: var(--panel-font-mono, ui-monospace, monospace);
   font-variant-numeric: tabular-nums;
   color: var(--panel-foreground);
@@ -2019,7 +2358,7 @@ body:not(.dark-mode) {
   border-radius: var(--panel-radius-sm);
   color: var(--panel-foreground);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 11.5px;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -2064,19 +2403,26 @@ body:not(.dark-mode) {
 .panel-dock {
   --dock-panel-max-height: 70vh;
   --dock-panel-collapsed-height: 52px;
+  --dock-edge: 10px;
+  --dock-top: calc(env(safe-area-inset-top, 0px) + var(--dock-edge));
   
   position: fixed;
-  top: var(--edge-inset, 60px);
-  right: var(--edge-inset, 60px);
-  z-index: 2147483647;
+  top: var(--dock-top);
+  right: var(--dock-edge);
+  /* Must sit above all site UI layers (avoid z-index overflow) */
+  z-index: 10000;
   
   transition: 
     top var(--duration-resize, 600ms) var(--ease-organic, ease),
     right var(--duration-resize, 600ms) var(--ease-organic, ease),
     opacity 0.3s ease,
-    transform 0.3s ease;
+    transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
   
   pointer-events: none;
+  /* CRITICAL: backdrop-filter needs to be on the container, not child */
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
+  /* Only use will-change when actively dragging */
 }
 
 .panel-dock > * {
@@ -2116,11 +2462,21 @@ body:not(.dark-mode) {
   cursor: ew-resize !important;
 }
 
+.panel-dock .panel {
+  /* Show native resize cursor on the resize corner */
+  cursor: default !important;
+}
+
+.panel-dock .panel:active {
+  cursor: default !important;
+}
+
 /* Hidden state */
 .panel-dock.hidden {
   opacity: 0;
   pointer-events: none;
-  transform: translateX(20px);
+  /* Slide out to the right from current position */
+  transform: translateX(calc(100% + 40px));
 }
 
 /* Dragging state */
@@ -2129,6 +2485,7 @@ body:not(.dark-mode) {
   cursor: grabbing !important;
   user-select: none;
   transition: none !important;
+  will-change: transform;
 }
 
 .panel-dock.dragging *,
@@ -2147,13 +2504,122 @@ body:not(.dark-mode) {
   bottom: auto !important;
   
   width: var(--panel-width, 320px);
-  max-height: var(--dock-panel-max-height);
   height: var(--dock-panel-max-height);
+  max-height: calc(100vh - var(--dock-top) - var(--dock-edge));
+  max-width: calc(100vw - (var(--dock-edge) * 2));
+  min-width: 280px;
+  min-height: 240px;
+
+  /* “Mac window” affordances */
+  resize: both;
+  overflow: hidden;
   
   transition: 
     max-height 0.3s ease,
     height 0.3s ease,
     opacity 0.25s ease;
+}
+
+/* Native-ish translucent window styling (scoped to dock) */
+/* backdrop-filter is on .panel-dock container - panel must be transparent to show blur */
+body.dark-mode .panel-dock .panel {
+  background: rgba(18, 18, 22, 0.40);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 40px 120px rgba(0, 0, 0, 0.70),
+    0 18px 40px rgba(0, 0, 0, 0.50);
+}
+
+body:not(.dark-mode) .panel-dock .panel {
+  background: rgba(250, 250, 252, 0.40);
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  box-shadow:
+    0 40px 120px rgba(0, 0, 0, 0.26),
+    0 18px 40px rgba(0, 0, 0, 0.16);
+}
+
+.panel-dock .panel-header {
+  padding: 10px 12px;
+  cursor: grab !important;
+}
+
+.panel-dock .panel-header:hover {
+  background: transparent;
+}
+
+.panel-dock .mac-titlebar {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-dock .mac-title {
+  justify-self: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--panel-foreground);
+  opacity: 0.92;
+}
+
+.panel-dock .mac-traffic {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.panel-dock .mac-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 9999px;
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18);
+}
+
+.panel-dock .mac-dot--red { background: #ff5f57; }
+.panel-dock .mac-dot--yellow { background: #febc2e; }
+.panel-dock .mac-dot--green { background: #28c840; }
+
+.panel-dock .mac-collapse {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border-radius: 8px;
+  justify-self: end;
+  opacity: 0.85;
+}
+
+.panel-dock .mac-right {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-dock .panel-mode-pill {
+  height: 20px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1;
+  color: var(--panel-foreground);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+body:not(.dark-mode) .panel-dock .panel-mode-pill {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .panel-dock .panel .panel-content {
@@ -2185,58 +2651,8 @@ body:not(.dark-mode) {
   transform: rotate(0deg);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   DOCK TOGGLE BUTTON
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.dock-toggle {
-  position: fixed;
-  top: var(--edge-inset, 60px);
-  right: var(--edge-inset, 60px);
-  z-index: 2147483647;
-  
-  width: 44px;
-  height: 44px;
-  
-  background: var(--panel-background, hsl(240 10% 3.9%));
-  border: 1px solid var(--panel-border, hsl(240 3.7% 15.9%));
-  border-radius: var(--panel-radius, 0.75rem);
-  
-  color: var(--panel-foreground, hsl(0 0% 98%));
-  font-size: 18px;
-  
-  cursor: pointer;
-  pointer-events: auto;
-  
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  box-shadow: var(--panel-shadow, 0 10px 15px -3px rgba(0, 0, 0, 0.3));
-  
-  transition: 
-    opacity 0.3s ease,
-    transform 0.3s ease,
-    background 0.15s ease;
-  
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(0.9);
-}
-
-.dock-toggle:hover {
-  background: var(--panel-muted, hsl(240 3.7% 15.9%));
-  transform: scale(1.02);
-}
-
-.dock-toggle:active {
-  transform: scale(0.96);
-}
-
-.panel-dock.hidden + .dock-toggle {
-  opacity: 1;
-  pointer-events: auto;
-  transform: scale(1);
-}
+/* Dock toggle button is not used (keyboard-only: `/`) */
+.dock-toggle { display: none !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    RESPONSIVE
@@ -2369,6 +2785,51 @@ body:not(.dark-mode) {
 #soundSection .control-hint {
   margin-top: -2px;
   padding-bottom: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SOUND PERF ROW — Tiny “synth strip” buttons
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.sound-perf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 2px;
+}
+
+.sound-perf__btn {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-muted);
+  color: var(--panel-foreground);
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sound-perf__btn:hover {
+  background: var(--panel-accent);
+  border-color: var(--panel-muted-foreground);
+}
+
+.sound-perf__btn:active {
+  transform: translateY(0.5px);
+}
+
+.sound-perf__hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--panel-muted-foreground);
+  font-family: var(--panel-font-mono, ui-monospace, monospace);
+  opacity: 0.9;
+  user-select: none;
+  white-space: nowrap;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

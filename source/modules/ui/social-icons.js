@@ -1,15 +1,13 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                           SOCIAL ICONS UPGRADE                               ║
-// ║      Replace Webflow-exported filled icons with 24px line SVGs               ║
-// ║                 (no external fonts, consistent rendering)                    ║
+// ║      Replace Webflow-exported icons with a self-hosted icon font             ║
+// ║                 (no inline SVGs in the DOM)                                  ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { ICON_INSTAGRAM, ICON_LINKEDIN, ICON_MUSIC } from './icons.js';
-
 const ICON_BY_LABEL = new Map([
-  ['apple music', ICON_MUSIC],
-  ['instagram', ICON_INSTAGRAM],
-  ['linkedin', ICON_LINKEDIN],
+  ['apple music', '<i class="ti ti-brand-apple" aria-hidden="true"></i>'],
+  ['instagram', '<i class="ti ti-brand-instagram" aria-hidden="true"></i>'],
+  ['linkedin', '<i class="ti ti-brand-linkedin" aria-hidden="true"></i>'],
 ]);
 
 export function upgradeSocialIcons() {
@@ -17,26 +15,21 @@ export function upgradeSocialIcons() {
   if (!list) return;
 
   // Idempotent: if we already upgraded one icon, bail out fast.
-  if (list.querySelector('svg.ui-icon')) return;
+  if (list.querySelector('i.ti')) return;
 
   const links = Array.from(list.querySelectorAll('a.footer_icon-link[aria-label]'));
   for (const a of links) {
     const label = (a.getAttribute('aria-label') || '').trim().toLowerCase();
-    const svg = ICON_BY_LABEL.get(label);
-    if (!svg) continue;
+    const iconHtml = ICON_BY_LABEL.get(label);
+    if (!iconHtml) continue;
 
     const existingSvg = a.querySelector('svg');
     if (existingSvg) {
-      // Replace only the SVG; preserve the screen-reader text span.
-      try {
-        existingSvg.outerHTML = svg;
-      } catch (e) {
-        // Fallback: inject at start.
-        a.insertAdjacentHTML('afterbegin', svg);
-        existingSvg.remove();
-      }
+      // Replace only the icon; preserve the screen-reader text span.
+      a.insertAdjacentHTML('afterbegin', iconHtml);
+      existingSvg.remove();
     } else {
-      a.insertAdjacentHTML('afterbegin', svg);
+      a.insertAdjacentHTML('afterbegin', iconHtml);
     }
   }
 }
