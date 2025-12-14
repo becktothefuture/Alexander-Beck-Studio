@@ -40,7 +40,7 @@ const rawConsole = (() => {
 let devMode = null;
 let seq = 0;
 let t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-let prodBannerPrinted = false;
+let bannerPrinted = false;
 
 function detectDevMode() {
   // Bundled builds can inject __DEV__ (boolean literal) via Rollup replace.
@@ -170,7 +170,7 @@ function colorizeAsciiLines(ascii, clusterSize = 3) {
   return results;
 }
 
-export function initConsolePolicy({
+export function printConsoleBanner({
   sentence = 'Curious mind detected. Design meets engineering at 60fps.',
   ascii = [
     '██████  ███████  ██████ ██   ██',
@@ -179,26 +179,22 @@ export function initConsolePolicy({
     '██   ██ ██      ██      ██  ██ ',
     '██████  ███████  ██████ ██   ██',
   ],
+  silence = false,
 } = {}) {
-  // Only apply the policy once.
-  if (prodBannerPrinted) return;
+  // Print only once per page load (dev or prod).
+  if (bannerPrinted) return;
+  bannerPrinted = true;
 
-  const dev = isDev();
-  if (dev) return;
-
-  prodBannerPrinted = true;
-
-  // Production: styled banner + multi-colored ASCII, then silence non-error logs.
   try {
-    // Print sentence with subtle styling
+    // Sentence (subtle styling)
     rawConsole.log('%c' + sentence, 'color: #888; font-style: italic;');
     rawConsole.log(''); // spacer
-    // Print ASCII with distributed colors (all 8 guaranteed to appear)
+
+    // ASCII (distributed colors; all 8 guaranteed to appear)
     const coloredLines = colorizeAsciiLines(ascii, 3);
-    for (const args of coloredLines) {
-      rawConsole.log(...args);
-    }
+    for (const args of coloredLines) rawConsole.log(...args);
     rawConsole.log(''); // spacer
+
     // Copyright notice
     const year = new Date().getFullYear();
     rawConsole.log(
@@ -208,6 +204,8 @@ export function initConsolePolicy({
   } catch (e) {
     // If console is not writable, ignore.
   }
+
+  if (!silence) return;
 
   try {
     // Keep console.error intact for real failures; silence everything else.
@@ -220,6 +218,23 @@ export function initConsolePolicy({
     console.groupCollapsed = () => {};
     console.groupEnd = () => {};
   } catch (e) {}
+}
+
+export function initConsolePolicy({
+  sentence = 'Curious mind detected. Design meets engineering at 60fps.',
+  ascii = [
+    '██████  ███████  ██████ ██   ██',
+    '██   ██ ██      ██      ██  ██ ',
+    '██████  █████   ██      █████  ',
+    '██   ██ ██      ██      ██  ██ ',
+    '██████  ███████  ██████ ██   ██',
+  ],
+} = {}) {
+  const dev = isDev();
+  if (dev) return;
+
+  // Production: banner + multi-colored ASCII, then silence non-error logs.
+  printConsoleBanner({ sentence, ascii, silence: true });
 }
 
 export function group(label) {

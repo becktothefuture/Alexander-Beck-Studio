@@ -23,14 +23,20 @@ export function initializeBallPit() {
   const spawnYTop = -spawnHeight;
   const spawnYBottom = 0;
   
-  // Spawn across full width (with padding for wall thickness)
+  // Spawn from the top, biased toward the right but ~1/3 in toward center.
+  // Keep a narrow band so the drop-in reads as a deliberate "pour".
   const padding = (globals.wallThickness || 20) * DPR;
   const spawnXLeft = padding;
   const spawnXRight = w - padding;
+  const usableW = spawnXRight - spawnXLeft;
+  const spawnBandWidth = Math.max(1, usableW * 0.22);
+  const anchorX = spawnXLeft + usableW * (2 / 3); // one-third in from right edge
+  const spawnXMin = Math.max(spawnXLeft, anchorX - spawnBandWidth * 0.5);
+  const spawnXMax = Math.min(spawnXRight, anchorX + spawnBandWidth * 0.5);
   
   // First, ensure at least one ball of each color (0-7)
   for (let colorIndex = 0; colorIndex < 8; colorIndex++) {
-    const x = spawnXLeft + Math.random() * (spawnXRight - spawnXLeft);
+    const x = spawnXMin + Math.random() * (spawnXMax - spawnXMin);
     const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
     
     const ball = spawnBall(x, y, getColorByIndex(colorIndex));
@@ -43,7 +49,7 @@ export function initializeBallPit() {
   
   // Then fill the rest with random colors
   for (let i = 8; i < targetBalls; i++) {
-    const x = spawnXLeft + Math.random() * (spawnXRight - spawnXLeft);
+    const x = spawnXMin + Math.random() * (spawnXMax - spawnXMin);
     const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
     
     const ball = spawnBall(x, y);

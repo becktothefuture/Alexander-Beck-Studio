@@ -26,6 +26,7 @@ import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.j
 import { initBrandLogoBallSpace } from './modules/ui/brand-logo-ball-space.js';
 import {
   initConsolePolicy,
+  printConsoleBanner,
   group,
   groupEnd,
   isDev,
@@ -212,10 +213,14 @@ function enhanceFooterLinksForMobile() {
   // Mark JS as enabled (for CSS fallback detection)
   document.documentElement.classList.add('js-enabled');
 
-  // Production console policy (banner + silence). DEV remains verbose.
-  // Production console policy: multi-colored ASCII banner matching ball palette.
-  // Uses defaults from logger.js (sentence + ASCII defined there for single source of truth).
-  initConsolePolicy();
+  // Console banner:
+  // - DEV: show the same colored banner (but keep logs)
+  // - PROD: show banner and silence non-error console output
+  if (isDev()) {
+    printConsoleBanner();
+  } else {
+    initConsolePolicy();
+  }
   
   // DEV-only: wire control registry to use CSS vars function (avoids circular dependency).
   // In production we ship no config panel, so the registry is not loaded.

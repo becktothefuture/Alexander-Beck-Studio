@@ -19,7 +19,10 @@ console.log('\n🏗️  SIMPLE BUILD PIPELINE STARTING...\n');
 const CONFIG = {
   webflowSource: './webflow-export',
   publicDestination: './public',
-  panelVisibleInProduction: false
+  panelVisibleInProduction: false,
+  // Source index is the canonical DOM/layout (dev + prod should match).
+  // Build pipeline composes production assets into this template.
+  sourceIndexTemplate: './source/index.html'
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -45,6 +48,15 @@ function copyDir(src, dest) {
   }
 }
 
+function safeReadFile(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    return fs.readFileSync(filePath, 'utf-8');
+  } catch (e) {
+    return null;
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN BUILD FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -66,6 +78,18 @@ async function buildProduction() {
     copyDir(CONFIG.webflowSource, CONFIG.publicDestination);
     console.log('✅ Webflow design copied to public/\n');
     
+    // DEV/PREVIEW COMPAT: mirror Webflow assets under public/webflow/*
+    // The canonical source HTML (`source/index.html`) references Webflow assets via
+    // `webflow/css/*`, `webflow/js/*`, `webflow/images/*`. Production output must
+    // provide these paths so dev + build share identical DOM/styling references.
+    const publicWebflowDir = path.join(CONFIG.publicDestination, 'webflow');
+    const webflowCssSrc = path.join(CONFIG.webflowSource, 'css');
+    const webflowJsSrc = path.join(CONFIG.webflowSource, 'js');
+    const webflowImagesSrc2 = path.join(CONFIG.webflowSource, 'images');
+    if (fs.existsSync(webflowCssSrc)) copyDir(webflowCssSrc, path.join(publicWebflowDir, 'css'));
+    if (fs.existsSync(webflowJsSrc)) copyDir(webflowJsSrc, path.join(publicWebflowDir, 'js'));
+    if (fs.existsSync(webflowImagesSrc2)) copyDir(webflowImagesSrc2, path.join(publicWebflowDir, 'images'));
+
     // Safety: ensure Webflow images exist in public/ (favicon, noise gif, etc.)
     // Some environments have shown missing images after copy, so we enforce this.
     const webflowImagesSrc = path.join(CONFIG.webflowSource, 'images');
@@ -150,7 +174,29 @@ async function buildProduction() {
     // NOTE: The webflow export already has #bravia-balls container with canvas
     // We do NOT need to inject a simulation-container - just inject CSS and JS
     const publicIndexPath = path.join(CONFIG.publicDestination, 'index.html');
-    let html = fs.readFileSync(publicIndexPath, 'utf-8');
+    const template = safeReadFile(CONFIG.sourceIndexTemplate);
+    let html = template || fs.readFileSync(publicIndexPath, 'utf-8');
+
+    // Production template composition:
+    // - Remove dev-only CSS links (we ship a single bundled CSS in production)
+    // - Remove dev module entry (we ship a single bundled JS in production)
+    // - If panel is disabled in production, remove the panel container to avoid
+    //   unstyled layout shifts (panel CSS is excluded from the prod bundle).
+    html = html
+      // Strip unbundled CSS links
+      .replace(/^\s*<!-- Dev Modules CSS \(unbundled\) -->\s*$/gm, '')
+      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/main\.css">\s*$/gm, '')
+      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/panel\.css">\s*$/gm, '')
+      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/panel-dock\.css">\s*$/gm, '')
+      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/sound-panel\.css">\s*$/gm, '')
+      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/password-gate\.css">\s*$/gm, '')
+      // Strip dev ES module entrypoint
+      .replace(/^\s*<!-- Use ES module for dev \(instant reload\) -->\s*$/gm, '')
+      .replace(/^\s*<script\s+type="module"\s+src="main\.js"><\/script>\s*$/gm, '');
+
+    if (includePanelCSS === false) {
+      html = html.replace(/\s*<div class="panel" id="controlPanel"[^>]*><\/div>\s*/m, '\n');
+    }
     
     // FADE SYSTEM: Wrap content elements in #fade-content for single-element fade
     // Logo and balls stay outside (always visible), content fades in
