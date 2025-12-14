@@ -112,8 +112,8 @@ export function render() {
   if (globals.currentMode === MODES.KALEIDOSCOPE) {
     renderKaleidoscope(ctx);
   } else {
-    for (let i = 0; i < balls.length; i++) {
-      balls[i].draw(ctx);
+  for (let i = 0; i < balls.length; i++) {
+    balls[i].draw(ctx);
     }
   }
   

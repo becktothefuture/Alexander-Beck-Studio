@@ -26,7 +26,6 @@ const MODE_CYCLE = [
   MODES.PING_PONG,
   MODES.MAGNETIC,
   MODES.BUBBLES,
-  MODES.TILT,
   MODES.KALEIDOSCOPE
 ];
 
@@ -56,8 +55,8 @@ export function setupPointer() {
   const globals = getGlobals();
   const canvas = globals.canvas;
   
-  // Initialize clickCycleEnabled from global state
-  clickCycleEnabled = globals.clickCycleEnabled || false;
+  // Initialize clickCycleEnabled from global state (default true)
+  clickCycleEnabled = globals.clickCycleEnabled !== undefined ? globals.clickCycleEnabled : true;
   
   if (!canvas) {
     console.error('Canvas not available for pointer setup');

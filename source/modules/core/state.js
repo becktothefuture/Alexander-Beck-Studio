@@ -94,14 +94,6 @@ const state = {
   pingPongSpeed: 800,
   pingPongCursorRadius: 50,
   
-  // Tilt mode params (mouse-driven viewport rotation - water-like)
-  tiltMaxAngle: 2,          // Max tilt angle in degrees (±2°)
-  tiltLerpSpeed: 0.08,      // Smoothing factor for tilt transitions
-  tiltBallCount: 300,       // Number of balls to spawn (more particles = more realistic)
-  tiltGlassBallMass: 0.08,  // Ball mass multiplier (0.08x baseline = light, stable)
-  tiltFriction: 0.008,      // Air friction for tilt mode (higher for realistic damping)
-  currentTiltAngle: 0,      // Runtime state: current tilt angle
-  
   // Colors
   currentColors: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
   currentTemplate: 'industrialTeal',
