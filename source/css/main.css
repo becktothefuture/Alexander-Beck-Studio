@@ -72,10 +72,10 @@
   --noise-size-top: 150px;
   
   /* Noise Opacity */
-  --noise-back-opacity: 0.020;
-  --noise-front-opacity: 0.050;
-  --noise-back-opacity-dark: 0.08;
-  --noise-front-opacity-dark: 0.05;
+  --noise-back-opacity-light: 0.020;
+  --noise-front-opacity-light: 0.050;
+  --noise-back-opacity-dark: 0.06;
+  --noise-front-opacity-dark: 0.04;
   
   /* Ball Colors */
   --ball-1: #b7bcb7;
@@ -259,6 +259,10 @@ body.body.dark-mode {
   --container-inner-shadow-color: hsla(0 0% 100% / calc(var(--container-inner-shadow-opacity) * 0.35));
 }
 
+body.dark-mode .content-background-layer {
+  background: var(--bg-dark) !important;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    DOM REWORK: FLEXBOX UI LAYOUT (FIGMA ALIGNMENT)
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -406,6 +410,10 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   pointer-events: auto;
 }
 
+p {
+  color: var(--text-color-light-muted);
+}
+
 .decorative-script p {
   margin: 0;
   text-align: left; /* Keep left aligned within the block */
@@ -476,8 +484,10 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   padding: 0 !important;
   display: flex !important;
   gap: 0 !important;
-  width: auto !important;
+  width: 100% !important;
+  height: fit-content !important;
   justify-content: center !important;
+  align-items: center !important;
   pointer-events: auto !important;
 }
 
@@ -517,6 +527,13 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
 .footer_link:hover::after {
   opacity: 1;
   animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
+}
+
+/* Footer link ID overrides - reset margins to 0 */
+#contact-email,
+#portfolio-gate-trigger,
+#cv-gate-trigger {
+  margin: 0 !important;
 }
 
 /* Row 2: Socials + Meta (Space Between) */
@@ -660,6 +677,13 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   color: var(--text-color-light-base) !important;
 }
 
+/* Time Display - Geist font, smaller size */
+#time-display {
+  font-family: 'Geist', sans-serif !important;
+  font-size: var(--text-sm) !important;
+  font-weight: 400 !important;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    CENTER SECTION (LOGO) - Kept absolute/fixed behind UI
    ───────────────────────────────────────────────────────────────────────────── */
@@ -742,7 +766,7 @@ body.dark-mode .brand-logo-svg {
   height: 100% !important;
   background-attachment: scroll !important;
   z-index: 2 !important;
-  opacity: var(--noise-back-opacity) !important;
+  opacity: var(--noise-back-opacity-light) !important;
   background-size: var(--noise-size-base) var(--noise-size-base) !important;
   mix-blend-mode: multiply !important;
 }
@@ -754,7 +778,7 @@ body.dark-mode .brand-logo-svg {
   height: 100% !important;
   background-attachment: scroll !important;
   z-index: 7 !important;
-  opacity: var(--noise-front-opacity) !important;
+  opacity: var(--noise-front-opacity-light) !important;
   background-size: var(--noise-size-top) var(--noise-size-top) !important;
   mix-blend-mode: multiply !important;
 }
@@ -782,7 +806,19 @@ body.dark-mode .noise-2 {
 body.dark-mode .noise,
 body.dark-mode .noise-2,
 body.dark-mode .noise-3 {
-  mix-blend-mode: screen !important;
+  mix-blend-mode: overlay !important;
+}
+
+body.dark-mode .footer_link,
+body.dark-mode .footer_icon-link,
+body.dark-mode .legend__item,
+body.dark-mode p,
+body.dark-mode .decorative-script {
+  color: var(--text-color-dark-base) !important;
+}
+
+body.dark-mode .sound-toggle {
+  color: var(--text-color-dark-base) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

@@ -6,9 +6,8 @@
 import { CONSTANTS } from './modules/core/constants.js';
 import { initState, setCanvas, getGlobals } from './modules/core/state.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
-import { applyColorTemplate, populateColorSelect } from './modules/visual/colors.js';
+import { applyColorTemplate } from './modules/visual/colors.js';
 import { setupRenderer, getCanvas, getContext, resize } from './modules/rendering/renderer.js';
-import { createPanelDock } from './modules/ui/panel-dock.js';
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { setupCustomCursor } from './modules/rendering/cursor.js';
@@ -19,17 +18,17 @@ import { initCVGate } from './modules/ui/cv-gate.js';
 import { initPortfolioGate } from './modules/ui/portfolio-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
-import { initSoundEngine } from './modules/audio/sound-engine.js';
+import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
 import { upgradeSocialIcons } from './modules/ui/social-icons.js';
 import { initTimeDisplay } from './modules/ui/time-display.js';
 // Layout controls now integrated into master panel
 import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.js';
 import { initBrandLogoBallSpace } from './modules/ui/brand-logo-ball-space.js';
-import { setApplyVisualCSSVars } from './modules/ui/control-registry.js';
 import {
   initConsolePolicy,
   group,
   groupEnd,
+  isDev,
   log,
   mark,
   measure,
@@ -38,6 +37,14 @@ import {
 
 async function loadRuntimeConfig() {
   try {
+    // Production builds can inline config into HTML (hardcoded at build time).
+    // This is the preferred path for production: no fetch, no runtime variability.
+    try {
+      if (typeof window !== 'undefined' && window.__RUNTIME_CONFIG__ && typeof window.__RUNTIME_CONFIG__ === 'object') {
+        return window.__RUNTIME_CONFIG__;
+      }
+    } catch (e) {}
+
     const paths = ['config/default-config.json', 'js/config.json', '../public/js/config.json'];
     for (const path of paths) {
       try {
@@ -119,10 +126,13 @@ export function applyVisualCSSVars(config) {
   
   // Noise opacity (light mode)
   if (config.noiseBackOpacity !== undefined) {
+    // Keep both legacy + current variable names for compatibility.
     root.style.setProperty('--noise-back-opacity', String(config.noiseBackOpacity));
+    root.style.setProperty('--noise-back-opacity-light', String(config.noiseBackOpacity));
   }
   if (config.noiseFrontOpacity !== undefined) {
     root.style.setProperty('--noise-front-opacity', String(config.noiseFrontOpacity));
+    root.style.setProperty('--noise-front-opacity-light', String(config.noiseFrontOpacity));
   }
   
   // Noise opacity (dark mode)
@@ -207,8 +217,14 @@ function enhanceFooterLinksForMobile() {
   // Uses defaults from logger.js (sentence + ASCII defined there for single source of truth).
   initConsolePolicy();
   
-  // Wire up control registry to use CSS vars function (avoids circular dependency)
-  setApplyVisualCSSVars(applyVisualCSSVars);
+  // DEV-only: wire control registry to use CSS vars function (avoids circular dependency).
+  // In production we ship no config panel, so the registry is not loaded.
+  if (isDev()) {
+    try {
+      const mod = await import('./modules/ui/control-registry.js');
+      mod.setApplyVisualCSSVars?.(applyVisualCSSVars);
+    } catch (e) {}
+  }
   
   try {
     group('BouncyBalls bootstrap');
@@ -296,13 +312,24 @@ function enhanceFooterLinksForMobile() {
 
     // Initialize sound engine once (no AudioContext yet; unlock requires user gesture)
     initSoundEngine();
+    // Apply sound settings from runtime config (so panel + exports round-trip).
+    try {
+      applySoundConfigFromRuntimeConfig(config);
+    } catch (e) {}
     log('✓ Sound engine primed (awaiting user unlock)');
     
-    // Setup UI (panel DOM must exist before theme init binds buttons)
-    createPanelDock();
-    populateColorSelect();
+    // DEV-only: setup configuration panel UI.
+    // Production builds must ship without the panel (config is hardcoded during build).
+    if (isDev()) {
+      try {
+        const panelDock = await import('./modules/ui/panel-dock.js');
+        panelDock.createPanelDock?.();
+        const colors = await import('./modules/visual/colors.js');
+        colors.populateColorSelect?.();
+      } catch (e) {}
+    }
     mark('bb:ui');
-    log('✓ Panel dock created (Sound + Controls)');
+    log(isDev() ? '✓ Panel dock created (Sound + Controls)' : '✓ UI initialized (panel disabled in production)');
 
     // Initialize dark mode AFTER panel creation (theme buttons exist now)
     initializeDarkMode();

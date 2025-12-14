@@ -14,7 +14,9 @@ export const MODES = {
   BUBBLES: 'bubbles',
   KALEIDOSCOPE: 'kaleidoscope',
   // Simulation 11 (no keyboard shortcut yet)
-  WORMS: 'worms'
+  WORMS: 'worms',
+  // Simulation 12
+  CRYSTAL: 'crystal'
 };
 
 export const CONSTANTS = {

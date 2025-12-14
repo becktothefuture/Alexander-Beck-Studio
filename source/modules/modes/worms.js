@@ -35,16 +35,16 @@ const COLLISION_PASSES = 2;
 // Grounded Verlet parameters
 // Overhead view: no gravity / no "ground plane". Keep motion non-floaty via friction.
 const GRAVITY_PX_S2 = 0;
-const DAMP_AIR = 0.88;           // stronger damping (prevents glide/float)
+const DAMP_AIR = 0.88;           // default damping (overridden by panel/config)
 
 // Locomotion (head drive)
-const BASE_SPEED = 420;          // px/s baseline crawl (faster)
-const STEP_HZ = 3.4;             // step cadence (bursty feel)
+const BASE_SPEED = 420;          // default px/s baseline (overridden by panel/config)
+const STEP_HZ = 3.4;             // default cadence (overridden by panel/config)
 const STEP_PULSE_SHARPNESS = 2.2;// larger = more “step-like”
-const TURN_DAMP = 8.5;           // higher = more inertial turning
-const TURN_NOISE = 2.0;          // random walk strength
+const TURN_DAMP = 8.5;           // default turning inertia damping (overridden)
+const TURN_NOISE = 2.0;          // default random walk strength (overridden)
 const TURN_RATE_MAX = 2.1;       // rad/s clamp (prevents instant turning)
-const TURN_SEEK = 6.5;           // how strongly we steer toward a target direction (mouse/peers)
+const TURN_SEEK = 6.5;           // default steer strength (overridden)
 
 // Micro-pauses (jittery, step-like)
 const PAUSE_CHANCE_PER_S = 0.35;
@@ -62,9 +62,9 @@ const AVOID_SWIRL = 0.35;        // adds a small tangential dodge (prevents dead
 const CROWD_SPEED_BOOST = 0.22;  // extra speed when near other heads
 
 // Visual squash/stretch
-const SQUASH_DECAY = 0.86;
-const SPEED_STRETCH_GAIN = 0.0011;
-const SPEED_STRETCH_MAX = 0.38;
+const SQUASH_DECAY = 0.86;        // overridden by state.wormSquashDecay
+const SPEED_STRETCH_GAIN = 0.0011; // overridden by state.wormStretchGain
+const SPEED_STRETCH_MAX = 0.38;    // overridden by state.wormStretchMax
 
 // Precomputed sine lookup table (avoids heavy trig in hot loops).
 const SIN_LUT_SIZE = 256;
@@ -149,13 +149,16 @@ export function initializeWorms() {
   const linkBase = rBase * 1.85;
 
   // User override: "Create twice as many" (originally 12 here) -> 24 minimum.
-  const wormCount = Math.max(WORMS_MIN, 24);
+  const desiredPop = Math.max(WORMS_MIN, Math.round(g.wormPopulation ?? 24));
+  const singleChance = clamp01(Number(g.wormSingleChance ?? SINGLE_ORGANISM_CHANCE));
+  const wormCount = desiredPop;
 
   // First pass: decide segment counts and total segments.
   const wormSegCount = new Uint8Array(wormCount);
   const wormStart = new Uint16Array(wormCount);
   const wormTheta = new Float32Array(wormCount);
   const wormTurnRate = new Float32Array(wormCount);
+  const wormTurnSquash = new Float32Array(wormCount);
   const wormStepPhase = new Float32Array(wormCount);
   const wormPause = new Float32Array(wormCount);
   const wormRng = new Uint32Array(wormCount);
@@ -171,7 +174,7 @@ export function initializeWorms() {
     wormRng[wi] = lcgNext(wormRng[wi]);
     const u = lcgFloat01(wormRng[wi]);
     let segs;
-    if (u < SINGLE_ORGANISM_CHANCE) {
+    if (u < singleChance) {
       segs = SEG_MIN_SINGLE;
     } else {
       wormRng[wi] = lcgNext(wormRng[wi]);
@@ -216,6 +219,7 @@ export function initializeWorms() {
     const dir = lcgFloat01(wormRng[wi]) * TAU;
     wormTheta[wi] = dir;
     wormTurnRate[wi] = 0;
+    wormTurnSquash[wi] = 0;
     wormStepPhase[wi] = lcgFloat01(wormRng[wi]);
     wormPause[wi] = 0;
 
@@ -254,6 +258,7 @@ export function initializeWorms() {
     // Worm dynamics
     wormTheta,
     wormTurnRate,
+    wormTurnSquash,
     wormStepPhase,
     wormPause,
     wormRng,
@@ -280,28 +285,37 @@ function applyBoundsAndGround(sim, canvasW, canvasH, inset) {
   const maxX = canvasW - inset;
   const maxY = canvasH - inset;
 
+  // Damped "bounce" away from boundaries to prevent edge sticking.
+  // (Not a bouncy sim; just enough to avoid accumulating on walls.)
+  const wallDamp = 0.55;
+
   for (let i = 0; i < n; i++) {
     const ri = r[i];
 
     // Left/right bounds
     if (x[i] < minX + ri) {
       x[i] = minX + ri;
-      px[i] = x[i];
+      // Reflect X velocity component (Verlet): vx = x - px
+      const vx = x[i] - px[i];
+      px[i] = x[i] + vx * wallDamp;
     } else if (x[i] > maxX - ri) {
       x[i] = maxX - ri;
-      px[i] = x[i];
+      const vx = x[i] - px[i];
+      px[i] = x[i] + vx * wallDamp;
     }
 
     // Ceiling (rare)
     if (y[i] < minY + ri) {
       y[i] = minY + ri;
-      py[i] = y[i];
+      const vy = y[i] - py[i];
+      py[i] = y[i] + vy * wallDamp;
     }
 
     // Bottom bound
     if (y[i] > maxY - ri) {
       y[i] = maxY - ri;
-      py[i] = y[i];
+      const vy = y[i] - py[i];
+      py[i] = y[i] + vy * wallDamp;
     }
   }
 }
@@ -419,31 +433,64 @@ function updateLocomotion(sim, dt, canvasW, inset, g) {
   const wormSegCount = sim.wormSegCount;
   const theta = sim.wormTheta;
   const turnRate = sim.wormTurnRate;
+  const turnSquash = sim.wormTurnSquash;
   const phase = sim.wormStepPhase;
   const pause = sim.wormPause;
   const rng = sim.wormRng;
   const canvasH = g.canvas?.height || 0;
 
-  // Head steering away from walls (2D).
-  const margin = 120 * (g.DPR || 1);
-  const minX = inset + margin;
-  const maxX = canvasW - inset - margin;
-  const minY = inset + margin;
-  const maxY = canvasH - inset - margin;
-
   const dpr = g.DPR || 1;
-  const fleeR = FLEE_RADIUS * dpr;
-  const fleeR2 = fleeR * fleeR;
-  const senseR = SENSE_RADIUS * dpr;
+  // Mouse attraction:
+  // The worms are attracted only when they are within a circular “zone” around the pointer.
+  // The zone radius is defined in vw (default 30vw).
+  //
+  // NOTE: We keep backward compatibility by treating `wormMouseFear` as an alias for
+  // `wormMousePull` if the new key isn't present.
+  const mousePull = Math.max(0, Number(g.wormMousePull ?? g.wormMouseFear ?? 1.0));
+  const mouseRadiusVw = Math.max(0, Number(g.wormMouseRadiusVw ?? 30));
+  const mouseRadius = (window.innerWidth * (mouseRadiusVw / 100)) * dpr;
+  const mouseR2 = mouseRadius * mouseRadius;
+
+  // IMPORTANT (realism + stability):
+  // Long-range “sensing” makes the whole population behave like a pressure field,
+  // and in a bounded box that pressure naturally finds the perimeter (edge-clumping).
+  // Real insects interact locally, so we clamp sense radius to a fraction of the viewport.
+  const minDim = Math.max(1, Math.min(canvasW, canvasH));
+  const senseRRequested = Math.max(0, Number(g.wormSenseRadius ?? SENSE_RADIUS)) * dpr;
+  const senseRMax = 0.28 * minDim; // local neighborhood only (in canvas px)
+  const senseR = Math.min(senseRRequested, senseRMax);
   const senseR2 = senseR * senseR;
+  const dotMul = Number(g.wormDotSpeedMul ?? 1.15);
+  const baseSpeed = Number(g.wormBaseSpeed ?? BASE_SPEED);
+  const stepHz = Number(g.wormStepHz ?? STEP_HZ);
+  const noiseTurn = Number(g.wormTurnNoise ?? TURN_NOISE);
+  const dampTurn = Number(g.wormTurnDamp ?? TURN_DAMP);
+  const seek = Number(g.wormTurnSeek ?? TURN_SEEK);
+  // Clamp avoidance to avoid “global repulsion” looks at extreme config values.
+  const avoidForce = Math.min(3.0, Math.max(0, Number(g.wormAvoidForce ?? AVOID_FORCE)));
+  const avoidSwirl = Math.min(1.5, Math.max(0, Number(g.wormAvoidSwirl ?? AVOID_SWIRL)));
+  const crowdBoost = Number(g.wormCrowdBoost ?? CROWD_SPEED_BOOST);
 
   const hasMouse = g.mouseInCanvas && g.mouseX > -1e8 && g.mouseY > -1e8;
   const mx = g.mouseX;
   const my = g.mouseY;
 
+  // Edge avoidance (simplified):
+  // Strong enough to keep heads off the walls, but not so strong it looks like a force-field.
+  const edgeAvoid = Math.max(0, Number(g.wormEdgeAvoid ?? 1.0));
+  const edgeZone = Math.max(40 * dpr, Math.min(300 * dpr, 0.18 * minDim));
+  const edgeForce = 3.6 * edgeAvoid;
+  const centerForce = 0.12 * edgeAvoid; // tiny bias to break perimeter equilibria
+  const cx = canvasW * 0.5;
+  const cy = canvasH * 0.5;
+  const edgeMinX = inset + edgeZone;
+  const edgeMaxX = canvasW - inset - edgeZone;
+  const edgeMinY = inset + edgeZone;
+  const edgeMaxY = canvasH - inset - edgeZone;
+
   for (let wi = 0; wi < wormCount; wi++) {
     // Advance gait phase
-    let ph = phase[wi] + (STEP_HZ * dt);
+    let ph = phase[wi] + (stepHz * dt);
     ph -= Math.floor(ph);
     phase[wi] = ph;
 
@@ -465,39 +512,76 @@ function updateLocomotion(sim, dt, canvasW, inset, g) {
 
     // Correlated random walk for direction (turning inertia).
     rng[wi] = lcgNext(rng[wi]);
-    const noise = (lcgFloat01(rng[wi]) * 2 - 1) * TURN_NOISE;
+    const noise = (lcgFloat01(rng[wi]) * 2 - 1) * noiseTurn;
 
     let tr = turnRate[wi];
-    tr += (noise - tr * TURN_DAMP) * dt;
+    tr += (noise - tr * dampTurn) * dt;
 
-    // Wall steering bias (gentle) in X.
     const head = wormStart[wi];
     const hx = x[head];
-    if (hx < minX) tr += (minX - hx) * 0.002;
-    else if (hx > maxX) tr -= (hx - maxX) * 0.002;
-    // Wall steering bias in Y: push heading away by nudging turnRate based on vertical position.
-    // This is a cheap "keep within box" bias without changing speed.
     const hy = y[head];
-    if (hy < minY) tr += (minY - hy) * 0.001;
-    else if (hy > maxY) tr -= (hy - maxY) * 0.001;
 
-    // Flee from mouse: steer away and run faster when close.
-    let panic = 0;
+    // Attract to mouse ONLY inside the zone.
+    // We also add a small tangential swirl near center to avoid hard stacking.
+    let mouseInfluence = 0;
     let steerX = 0;
     let steerY = 0;
     if (hasMouse) {
-      const mdx = hx - mx;
-      const mdy = hy - my;
+      const mdx = mx - hx;
+      const mdy = my - hy;
       const md2 = mdx * mdx + mdy * mdy;
-      if (md2 < fleeR2 && md2 > 1e-6) {
+      if (md2 < mouseR2 && md2 > 1e-6) {
         const md = Math.sqrt(md2);
-        const t = 1 - md / fleeR;
+        const t = 1 - md / mouseRadius;
         const w = t * t; // eased
         const inv = 1 / md;
-        steerX += (mdx * inv) * (w * FLEE_FORCE);
-        steerY += (mdy * inv) * (w * FLEE_FORCE);
-        panic = w;
+        const nx = mdx * inv;
+        const ny = mdy * inv;
+
+        // Pull inward.
+        const pull = w * mousePull * 2.2;
+        steerX += nx * pull;
+        steerY += ny * pull;
+
+        // Gentle orbiting swirl to prevent “all pile on the mouse”.
+        const swirl = w * mousePull * 0.55;
+        const swirlSign = (wi & 1) ? 1 : -1;
+        steerX += (-ny) * swirl * swirlSign;
+        steerY += (nx) * swirl * swirlSign;
+
+        mouseInfluence = w;
       }
+    }
+
+    // Edge repulsion field (prevents "flocking to edges" at high density).
+    // Adds an inward vector when inside the edge zone.
+    if (hx < edgeMinX) {
+      const t = 1 - (hx - inset) / edgeZone;
+      const w = t * t;
+      steerX += w * edgeForce;
+    } else if (hx > edgeMaxX) {
+      const t = 1 - (canvasW - inset - hx) / edgeZone;
+      const w = t * t;
+      steerX -= w * edgeForce;
+    }
+    if (hy < edgeMinY) {
+      const t = 1 - (hy - inset) / edgeZone;
+      const w = t * t;
+      steerY += w * edgeForce;
+    } else if (hy > edgeMaxY) {
+      const t = 1 - (canvasH - inset - hy) / edgeZone;
+      const w = t * t;
+      steerY -= w * edgeForce;
+    }
+
+    // Subtle center bias (always-on, very low gain).
+    if (centerForce > 0) {
+      const dxC = cx - hx;
+      const dyC = cy - hy;
+      const distC = Math.sqrt(dxC * dxC + dyC * dyC) + 1e-6;
+      const w = Math.min(1, distC / (0.5 * minDim));
+      steerX += (dxC / distC) * (centerForce * w);
+      steerY += (dyC / distC) * (centerForce * w);
     }
 
     // "See each other": head-to-head avoidance + small tangential deflection.
@@ -516,14 +600,14 @@ function updateLocomotion(sim, dt, canvasW, inset, g) {
         const inv = 1 / d;
         const nx = dx * inv;
         const ny = dy * inv;
-        steerX += nx * (w * AVOID_FORCE);
-        steerY += ny * (w * AVOID_FORCE);
+        steerX += nx * (w * avoidForce);
+        steerY += ny * (w * avoidForce);
         // Tangential "slide past" to avoid getting stuck in pure repulsion.
         const tx = -ny;
         const ty = nx;
         const swirlSign = (wi & 1) ? 1 : -1;
-        steerX += tx * (w * AVOID_SWIRL * swirlSign);
-        steerY += ty * (w * AVOID_SWIRL * swirlSign);
+        steerX += tx * (w * avoidSwirl * swirlSign);
+        steerY += ty * (w * avoidSwirl * swirlSign);
         crowd = Math.max(crowd, w);
       }
     }
@@ -539,7 +623,7 @@ function updateLocomotion(sim, dt, canvasW, inset, g) {
       // Wrap to [-π, π]
       if (da > Math.PI) da -= TAU;
       else if (da < -Math.PI) da += TAU;
-      tr += da * TURN_SEEK * dt;
+      tr += da * seek * dt;
     }
 
     tr = clamp(tr, -TURN_RATE_MAX, TURN_RATE_MAX);
@@ -551,11 +635,38 @@ function updateLocomotion(sim, dt, canvasW, inset, g) {
     else if (th < -Math.PI) th += TAU;
     theta[wi] = th;
 
+    // Turning squash driver (Disney-ish: squash on sharp turns / stopping).
+    // This is a mode-level signal applied in rendering; it decays smoothly.
+    const turn01 = Math.min(1, Math.abs(tr) / TURN_RATE_MAX);
+    const turnGain = Math.max(0, Number(g.wormTurnSquashGain ?? 0.28));
+    const targetTurnSquash = Math.min(1, turn01 * turnGain);
+    // Smooth in/out (slow-in/slow-out)
+    turnSquash[wi] += (targetTurnSquash - turnSquash[wi]) * Math.min(1, 10 * dt);
+
     // Step envelope (bursty locomotion, eased).
     const pulse = stepPulse(ph);
     const pauseMul = pause[wi] > 0 ? 0 : 1;
-    const speedBase = BASE_SPEED * (0.30 + 1.05 * pulse) * pauseMul;
-    const speed = speedBase * (1 + panic * PANIC_SPEED_BOOST + crowd * CROWD_SPEED_BOOST);
+    const segs = wormSegCount[wi];
+
+    // Size-speed relationship:
+    // - Single dots should be slower than multi-segment organisms.
+    // - Longer worms should move faster (head leads, body follows).
+    //
+    // Keep this lightweight and deterministic.
+    const lenT = (segs - 1) / Math.max(1, (SEG_MAX - 1)); // 0..1
+    const lengthSpeedGain = 0.90; // max +90% at full length (9 segments)
+    const lengthMul = 1 + lengthSpeedGain * lenT;
+
+    // Dot speed: interpret wormDotSpeedMul as an inverse for dots.
+    // (Higher slider value => dots slower). This matches the current config
+    // where dots were previously too fast (e.g. 2.5).
+    const dotSpeedMul = (segs === 1)
+      ? clamp(1 / Math.max(0.05, dotMul), 0.05, 2.0)
+      : 1;
+
+    const speedBase = baseSpeed * (0.30 + 1.05 * pulse) * pauseMul * lengthMul * dotSpeedMul;
+    // Slight speed-up when being “drawn in”, but no runaway acceleration.
+    const speed = speedBase * (1 + mouseInfluence * 0.35 + crowd * crowdBoost);
 
     const dt2 = dt * dt;
     const ax = cosLut(th) * speed * dt2;
@@ -567,7 +678,6 @@ function updateLocomotion(sim, dt, canvasW, inset, g) {
 
     // Follow-through: a small lag impulse propagated down the chain by constraints.
     // (No allocations; just slightly bias the second segment’s previous position.)
-    const segs = wormSegCount[wi];
     if (segs > 2) {
       const neck = head + 1;
       const vx = x[head] - px[head];
@@ -605,13 +715,15 @@ export function updateWorms(dtSeconds) {
     const px = sim.px;
     const py = sim.py;
     const n = sim.totalSegs;
+    const damp = clamp(Number(g.wormDamping ?? DAMP_AIR), 0.0, 0.9999);
+    const squashDecay = clamp(Number(g.wormSquashDecay ?? SQUASH_DECAY), 0.0, 0.9999);
 
     // Gravity term in Verlet form: a * dt^2
     const gy = 0;
 
     for (let i = 0; i < n; i++) {
-      const vx = (x[i] - px[i]) * DAMP_AIR;
-      const vy = (y[i] - py[i]) * DAMP_AIR;
+      const vx = (x[i] - px[i]) * damp;
+      const vy = (y[i] - py[i]) * damp;
 
       px[i] = x[i];
       py[i] = y[i];
@@ -620,7 +732,7 @@ export function updateWorms(dtSeconds) {
       y[i] += (vy + gy);
 
       // Decay contact squash for visuals.
-      sim.squash[i] *= SQUASH_DECAY;
+      sim.squash[i] *= squashDecay;
     }
 
     // Constraint solver passes:
@@ -640,7 +752,7 @@ export function updateWorms(dtSeconds) {
     // Reduced motion: still enforce bounds and decay squash.
     applyBoundsAndGround(sim, canvas.width, canvas.height, inset);
     for (let i = 0; i < sim.totalSegs; i++) {
-      sim.squash[i] *= SQUASH_DECAY;
+      sim.squash[i] *= clamp(Number(g.wormSquashDecay ?? SQUASH_DECAY), 0.0, 0.9999);
     }
   }
 }
@@ -664,11 +776,17 @@ export function renderWorms(ctx) {
   const squash = sim.squash;
   const segWorm = sim.segWorm;
   const wormColorIdx = sim.wormColorIdx;
+  const turnSquash = sim.wormTurnSquash;
   const n = sim.totalSegs;
 
   // Use a fixed dt for velocity visualization to keep stable at different frame rates.
   const dt = 1 / 60;
   const invDt = 1 / dt;
+
+  const stretchGain = Number(g.wormStretchGain ?? SPEED_STRETCH_GAIN);
+  const stretchMax = Number(g.wormStretchMax ?? SPEED_STRETCH_MAX);
+  const contactX = Number(g.wormContactSquashX ?? 0.22);
+  const contactY = Number(g.wormContactSquashY ?? 0.35);
 
   for (let i = 0; i < n; i++) {
     const vx = (x[i] - px[i]) * invDt;
@@ -676,16 +794,16 @@ export function renderWorms(ctx) {
     const speed = Math.sqrt(vx * vx + vy * vy);
 
     // Stretch along velocity; preserve area via inverse scaling.
-    const stretch = clamp(speed * SPEED_STRETCH_GAIN, 0, SPEED_STRETCH_MAX);
-    const contact = clamp01(squash[i]);
+    const stretch = clamp(speed * stretchGain, 0, stretchMax);
+    const wi = segWorm[i];
+    const contact = clamp01(Math.max(squash[i], turnSquash ? (turnSquash[wi] || 0) : 0));
 
-    const sx = (1 + stretch) * (1 - contact * 0.22);
-    const sy = (1 / (1 + stretch)) * (1 + contact * 0.35);
+    const sx = (1 + stretch) * (1 - contact * contactX);
+    const sy = (1 / (1 + stretch)) * (1 + contact * contactY);
 
     // Align to velocity direction when moving; otherwise keep neutral.
     const ang = speed > 2 ? Math.atan2(vy, vx) : 0;
 
-    const wi = segWorm[i];
     const ci = wormColorIdx[wi] % 8;
     const fill = colors[ci] || '#0a0a0a';
 

@@ -307,6 +307,40 @@ export function initSoundEngine() {
 }
 
 /**
+ * Apply runtime-config overrides for sound.
+ *
+ * Supported config shapes:
+ * - { soundPreset: "crystalPebbles", soundConfig: { ...CONFIG_KEYS } }
+ * - { soundPreset: "crystalPebbles", <CONFIG_KEYS>: <value>, ... }
+ */
+export function applySoundConfigFromRuntimeConfig(runtimeConfig) {
+  const cfg = runtimeConfig && typeof runtimeConfig === 'object' ? runtimeConfig : null;
+  if (!cfg) return;
+
+  // Preset first (sets baseline)
+  if (typeof cfg.soundPreset === 'string') {
+    applySoundPreset(cfg.soundPreset);
+  }
+
+  // Explicit object overrides
+  if (cfg.soundConfig && typeof cfg.soundConfig === 'object') {
+    updateSoundConfig(cfg.soundConfig);
+    return;
+  }
+
+  // Flat-key overrides (only if key exists in CONFIG)
+  const updates = {};
+  let hasAny = false;
+  for (const [k, v] of Object.entries(cfg)) {
+    if (k in CONFIG) {
+      updates[k] = v;
+      hasAny = true;
+    }
+  }
+  if (hasAny) updateSoundConfig(updates);
+}
+
+/**
  * Unlock audio (must be called from user gesture like click)
  * Creates AudioContext and builds the audio graph
  */

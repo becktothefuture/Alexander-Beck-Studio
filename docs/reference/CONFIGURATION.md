@@ -64,7 +64,25 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
   "wallWobbleStiffness": 2500,
   "wallWobbleDamping": 65,
   "wallWobbleSigma": 4.0,
-  "wallWobbleCornerClamp": 1.0
+  "wallWobbleCornerClamp": 1.0,
+
+  // Worms (Simulation 11)
+  "wormPopulation": 24,
+  "wormSingleChance": 0.22,
+  "wormDotSpeedMul": 1.15,
+  "wormBaseSpeed": 420,
+  "wormDamping": 0.88,
+  "wormStepHz": 3.4,
+  "wormTurnNoise": 2.0,
+  "wormTurnDamp": 8.5,
+  "wormTurnSeek": 6.5,
+  "wormFleeRadius": 260,
+  "wormFleeForce": 1.6,
+  "wormPanicBoost": 0.85,
+  "wormSenseRadius": 220,
+  "wormAvoidForce": 0.9,
+  "wormAvoidSwirl": 0.35,
+  "wormCrowdBoost": 0.22
 }
 ```
 
@@ -90,6 +108,15 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 - **Meaning**: Relative mass scalar used for drag scaling and collision feel (not real-world kg).
 - **Applied to**: `state.ballMassKg` (historical variable name)
 
+### `ballScale` / `sizeScale` (number)
+- **Meaning**: Global size multiplier for balls (and some mode-derived sizing, e.g. Worms segment radius baseline).
+- **Applied to**: `state.sizeScale`
+- **Notes**: Both keys are accepted for compatibility. `ballScale` is the canonical name.
+
+### `sizeVariation` (number)
+- **Meaning**: Ball size variation amount (currently used by legacy ball init logic).
+- **Applied to**: `state.sizeVariation`
+
 ### `ballSpacing` (number, px)
 - **Meaning**: Extra collision padding between balls.
 - **Applied to**: `state.ballSpacing`
@@ -109,6 +136,34 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 ### `repelPower` (number)
 - **Meaning**: Repeller force strength.
 - **Applied to**: `state.repelPower`
+
+### `repelSoft` / `repelSoftness` (number)
+- **Meaning**: Softness falloff for repeller field.
+- **Applied to**: `state.repelSoft`
+- **Notes**: Both keys are accepted for compatibility. `repelSoft` is the canonical name.
+
+---
+
+## Worms (Simulation 11)
+
+These keys control the Worms/organisms simulation (mode `worms`).
+
+- `wormPopulation` (number): organism count (re-init on change)
+- `wormSingleChance` (number 0..1): fraction of organisms that are single-segment “dots” (re-init on change)
+- `wormDotSpeedMul` (number): speed multiplier for single-segment organisms
+- `wormBaseSpeed` (number): baseline speed (px/s)
+- `wormDamping` (number 0..1): Verlet damping (lower = more glide)
+- `wormStepHz` (number): step cadence
+- `wormTurnNoise` (number): wander amount
+- `wormTurnDamp` (number): turning inertia damping
+- `wormTurnSeek` (number): steering strength toward desired heading
+- `wormFleeRadius` (number px): mouse fear radius
+- `wormFleeForce` (number): mouse fear steering strength
+- `wormPanicBoost` (number): speed boost near mouse
+- `wormSenseRadius` (number px): head-to-head sensing radius
+- `wormAvoidForce` (number): avoidance strength
+- `wormAvoidSwirl` (number): tangential dodge (helps “pass by” behavior)
+- `wormCrowdBoost` (number): speed boost when near other heads
 
 ---
 

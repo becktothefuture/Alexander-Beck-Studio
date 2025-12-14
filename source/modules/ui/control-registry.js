@@ -356,25 +356,47 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'noiseBackOpacity',
-        label: 'Back Opacity',
+        label: 'Back Opacity (Light)',
         stateKey: 'noiseBackOpacity',
         type: 'range',
-        min: 0, max: 0.1, step: 0.001,
-        default: 0.015,
+        min: 0, max: 0.15, step: 0.001,
+        default: 0.020,
         format: v => v.toFixed(3),
         parse: parseFloat,
         cssVar: '--noise-back-opacity'
       },
       {
         id: 'noiseFrontOpacity',
-        label: 'Front Opacity',
+        label: 'Front Opacity (Light)',
         stateKey: 'noiseFrontOpacity',
         type: 'range',
-        min: 0, max: 0.05, step: 0.001,
-        default: 0.01,
+        min: 0, max: 0.15, step: 0.001,
+        default: 0.050,
         format: v => v.toFixed(3),
         parse: parseFloat,
         cssVar: '--noise-front-opacity'
+      },
+      {
+        id: 'noiseBackOpacityDark',
+        label: 'Back Opacity (Dark)',
+        stateKey: 'noiseBackOpacityDark',
+        type: 'range',
+        min: 0, max: 0.15, step: 0.001,
+        default: 0.06,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        cssVar: '--noise-back-opacity-dark'
+      },
+      {
+        id: 'noiseFrontOpacityDark',
+        label: 'Front Opacity (Dark)',
+        stateKey: 'noiseFrontOpacityDark',
+        type: 'range',
+        min: 0, max: 0.15, step: 0.001,
+        default: 0.04,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        cssVar: '--noise-front-opacity-dark'
       }
     ]
   },
@@ -382,6 +404,251 @@ export const CONTROL_SECTIONS = {
   // ═══════════════════════════════════════════════════════════════════════════
   // MODE-SPECIFIC CONTROLS
   // ═══════════════════════════════════════════════════════════════════════════
+  worms: {
+    title: 'Worms',
+    icon: '🪱',
+    mode: 'worms',
+    defaultOpen: false,
+    controls: [
+      // Population
+      {
+        id: 'wormPopulation',
+        label: 'Population',
+        stateKey: 'wormPopulation',
+        type: 'range',
+        min: 1, max: 200, step: 1,
+        default: 28,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'wormSingleChance',
+        label: 'Dot Chance',
+        stateKey: 'wormSingleChance',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.42,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'wormDotSpeedMul',
+        label: 'Dot Speed',
+        stateKey: 'wormDotSpeedMul',
+        type: 'range',
+        min: 0.1, max: 6, step: 0.05,
+        default: 2.5,
+        format: v => v.toFixed(2) + 'x',
+        parse: parseFloat
+      },
+
+      // Movement
+      {
+        id: 'wormBaseSpeed',
+        label: 'Speed',
+        stateKey: 'wormBaseSpeed',
+        type: 'range',
+        min: 0, max: 2000, step: 10,
+        default: 900,
+        format: v => `${Math.round(v)} px/s`,
+        parse: parseFloat
+      },
+      {
+        id: 'wormDamping',
+        label: 'Damping',
+        stateKey: 'wormDamping',
+        type: 'range',
+        min: 0.6, max: 0.99, step: 0.001,
+        default: 0.885,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      {
+        id: 'wormStepHz',
+        label: 'Step Rate',
+        stateKey: 'wormStepHz',
+        type: 'range',
+        min: 0, max: 12, step: 0.1,
+        default: 1.7,
+        format: v => v.toFixed(1) + ' Hz',
+        parse: parseFloat
+      },
+
+      // Turning / personality
+      {
+        id: 'wormTurnNoise',
+        label: 'Wander',
+        stateKey: 'wormTurnNoise',
+        type: 'range',
+        min: 0, max: 12, step: 0.1,
+        default: 4.6,
+        format: v => v.toFixed(1),
+        parse: parseFloat
+      },
+      {
+        id: 'wormTurnDamp',
+        label: 'Turn Inertia',
+        stateKey: 'wormTurnDamp',
+        type: 'range',
+        min: 0, max: 40, step: 0.5,
+        default: 5,
+        format: v => v.toFixed(1),
+        parse: parseFloat
+      },
+      {
+        id: 'wormTurnSeek',
+        label: 'Steering',
+        stateKey: 'wormTurnSeek',
+        type: 'range',
+        min: 0, max: 40, step: 0.25,
+        default: 16,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+
+      // Mouse avoidance
+      {
+        id: 'wormMousePull',
+        label: 'Mouse Pull',
+        stateKey: 'wormMousePull',
+        type: 'range',
+        min: 0, max: 4, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2) + 'x',
+        parse: parseFloat,
+        hint: 'Attraction strength inside the mouse zone'
+      },
+      {
+        id: 'wormMouseRadiusVw',
+        label: 'Mouse Zone',
+        stateKey: 'wormMouseRadiusVw',
+        type: 'range',
+        min: 0, max: 80, step: 1,
+        default: 30,
+        format: v => `${Math.round(v)}vw`,
+        parse: parseFloat,
+        hint: 'Radius of the attraction circle (viewport width units)'
+      },
+      {
+        id: 'wormEdgeAvoid',
+        label: 'Edge Avoid',
+        stateKey: 'wormEdgeAvoid',
+        type: 'range',
+        min: 0, max: 3, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2) + 'x',
+        parse: parseFloat,
+        hint: 'Keeps heads off the walls (reduces edge-clumping)'
+      },
+
+      // Social interaction
+      {
+        id: 'wormSenseRadius',
+        label: 'Sense Radius',
+        stateKey: 'wormSenseRadius',
+        type: 'range',
+        min: 0, max: 2000, step: 10,
+        default: 450,
+        format: v => `${Math.round(v)}px`,
+        parse: parseFloat
+      },
+      {
+        id: 'wormAvoidForce',
+        label: 'Avoid',
+        stateKey: 'wormAvoidForce',
+        type: 'range',
+        min: 0, max: 8, step: 0.05,
+        default: 2.5,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'wormAvoidSwirl',
+        label: 'Swirl',
+        stateKey: 'wormAvoidSwirl',
+        type: 'range',
+        min: 0, max: 3, step: 0.05,
+        default: 0.35,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'wormCrowdBoost',
+        label: 'Crowd Boost',
+        stateKey: 'wormCrowdBoost',
+        type: 'range',
+        min: 0, max: 6, step: 0.05,
+        default: 1.3,
+        format: v => v.toFixed(2) + 'x',
+        parse: parseFloat
+      },
+
+      // Squash & stretch
+      {
+        id: 'wormSquashDecay',
+        label: 'Squash Decay',
+        stateKey: 'wormSquashDecay',
+        type: 'range',
+        min: 0.6, max: 0.99, step: 0.001,
+        default: 0.86,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      {
+        id: 'wormStretchGain',
+        label: 'Stretch Gain',
+        stateKey: 'wormStretchGain',
+        type: 'range',
+        min: 0.0, max: 0.01, step: 0.0001,
+        default: 0.0011,
+        format: v => v.toFixed(4),
+        parse: parseFloat
+      },
+      {
+        id: 'wormStretchMax',
+        label: 'Stretch Max',
+        stateKey: 'wormStretchMax',
+        type: 'range',
+        min: 0.0, max: 2.0, step: 0.01,
+        default: 0.38,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'wormContactSquashX',
+        label: 'Contact Squash X',
+        stateKey: 'wormContactSquashX',
+        type: 'range',
+        min: 0.0, max: 1.0, step: 0.01,
+        default: 0.22,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'wormContactSquashY',
+        label: 'Contact Squash Y',
+        stateKey: 'wormContactSquashY',
+        type: 'range',
+        min: 0.0, max: 2.0, step: 0.01,
+        default: 0.35,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'wormTurnSquashGain',
+        label: 'Turn Squash',
+        stateKey: 'wormTurnSquashGain',
+        type: 'range',
+        min: 0.0, max: 2.0, step: 0.01,
+        default: 0.28,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      }
+    ]
+  },
+
   pit: {
     title: 'Ball Pit',
     icon: '🎯',

@@ -91,7 +91,13 @@ async function buildProduction() {
     const cssPanelDockPath = path.join('source', 'css', 'panel-dock.css');
     const cssSoundPanelPath = path.join('source', 'css', 'sound-panel.css');
     const cssPasswordGatePath = path.join('source', 'css', 'password-gate.css');
-    const cssCombined = [cssMainPath, cssPanelPath, cssPanelDockPath, cssSoundPanelPath, cssPasswordGatePath]
+    const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+    const includePanelCSS = !(isProd && CONFIG.panelVisibleInProduction === false);
+    const cssCombined = [
+      cssMainPath,
+      ...(includePanelCSS ? [cssPanelPath, cssPanelDockPath, cssSoundPanelPath] : []),
+      cssPasswordGatePath
+    ]
       .filter(p => fs.existsSync(p))
       .map(p => fs.readFileSync(p, 'utf-8'))
       .join('\n');
@@ -169,6 +175,20 @@ async function buildProduction() {
 const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</style>`;
     if (!html.includes('id="fade-blocking"')) {
       html = html.replace('<head>', '<head>\n' + fadeBlockingCSS);
+    }
+
+    // CONFIG: Inline runtime config into HTML for production (hardcoded at build-time).
+    // This allows the JS to boot without fetching any config, while still using the
+    // config file as the single source of truth (read here, injected into HTML).
+    if (isProd && fs.existsSync(runtimeConfigSrc) && !html.includes('__RUNTIME_CONFIG__')) {
+      try {
+        const raw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
+        // Prevent accidental </script> termination and keep HTML safe.
+        const safe = raw.replace(/</g, '\\u003c');
+        const inline = `<script>window.__RUNTIME_CONFIG__=${safe};</script>`;
+        html = html.replace('</head>', `${inline}\n</head>`);
+        console.log('✅ Inlined runtime config into public/index.html (hardcoded)');
+      } catch (e) {}
     }
     
     // Inject theme-color meta tags for mobile browsers (Safari iOS, Chrome Android)

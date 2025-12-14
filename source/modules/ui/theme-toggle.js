@@ -6,6 +6,9 @@
 import { getCurrentTheme as getTheme, setTheme } from '../visual/dark-mode-v2.js';
 
 export function createThemeToggle() {
+  // Theme toggle button disabled as per user request
+  return;
+  /*
   // Check if toggle already exists
   if (document.getElementById('theme-toggle-btn')) return;
   
@@ -39,6 +42,7 @@ export function createThemeToggle() {
   
   // Add to body
   document.body.appendChild(btn);
+  */
 }
 
 function updateButtonState(btn) {
