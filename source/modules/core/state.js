@@ -29,6 +29,9 @@ const state = {
   mouseX: CONSTANTS.OFFSCREEN_MOUSE,
   mouseY: CONSTANTS.OFFSCREEN_MOUSE,
   mouseInCanvas: false,
+  lastPointerMoveMs: 0,
+  lastPointerMoveX: CONSTANTS.OFFSCREEN_MOUSE,
+  lastPointerMoveY: CONSTANTS.OFFSCREEN_MOUSE,
   
   // Physics constants
   GE: 1960,
@@ -49,7 +52,8 @@ const state = {
   // Size
   sizeScale: 1.2,
   sizeVariation: 0,
-  responsiveScale: 1.0,
+  responsiveScale: 1.0,       // Runtime responsive scale (calculated on init)
+  responsiveScaleMobile: 0.75, // Scale factor for mobile devices (iPad/iPhone)
   R_MIN_BASE: 6,
   R_MAX_BASE: 24,
   R_MIN: 6 * 1.2 * 0.75,
@@ -115,7 +119,7 @@ const state = {
   kaleidoscopeSegments: 12,
   kaleidoscopeMirror: 1,
   kaleidoscopeBallSpacing: 9, // Mode-only spacing (px). Applied only while in Kaleidoscope.
-  kaleidoscopeSwirlStrength: 520,
+  kaleidoscopeSwirlStrength: 52,
   kaleidoscopeRadialPull: 260,
   kaleidoscopeRotationFollow: 1.0,
   kaleidoscopePanStrength: 0.75,
@@ -141,6 +145,9 @@ const state = {
   // Dark mode
   autoDarkModeEnabled: true,
   isDarkMode: false,
+  
+  // Click-to-cycle mode switching
+  clickCycleEnabled: true,
   
   // Two-level padding system (in pixels)
   containerBorder: 20,   // Outer: insets container from viewport (reveals body bg as frame)
@@ -195,6 +202,10 @@ export function initState(config) {
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
   if (config.repelRadius !== undefined) state.repelRadius = config.repelRadius;
   if (config.repelPower !== undefined) state.repelPower = config.repelPower;
+  if (config.responsiveScaleMobile !== undefined) state.responsiveScaleMobile = config.responsiveScaleMobile;
+  
+  // Detect mobile/tablet devices and apply responsive scaling
+  detectResponsiveScale();
   
   // Kaleidoscope (optional config overrides)
   if (config.kaleidoscopeBallCount !== undefined) state.kaleidoscopeBallCount = config.kaleidoscopeBallCount;
@@ -237,10 +248,8 @@ export function initState(config) {
   if (config.wallWobbleSigma !== undefined) state.wallWobbleSigma = config.wallWobbleSigma;
   if (config.wallWobbleCornerClamp !== undefined) state.wallWobbleCornerClamp = config.wallWobbleCornerClamp;
   
-  // Recalculate R_MIN and R_MAX
-  const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;
-  state.R_MIN = baseSize * state.sizeScale * 0.75;
-  state.R_MAX = baseSize * state.sizeScale * 1.25;
+  // Ball sizes are recalculated in detectResponsiveScale (called above)
+  // which applies both sizeScale and responsiveScale
 }
 
 export function getState() {
@@ -271,4 +280,34 @@ export function getBalls() {
 
 export function clearBalls() {
   state.balls.length = 0;
+}
+
+/**
+ * Detect device type and apply responsive ball scaling
+ * iPad and iPhone get smaller balls for better visual balance
+ */
+export function detectResponsiveScale() {
+  const ua = navigator.userAgent || '';
+  const isIPad = /iPad/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
+  const isIPhone = /iPhone/.test(ua);
+  
+  if (isIPad || isIPhone) {
+    state.responsiveScale = state.responsiveScaleMobile;
+    console.log(`✓ Mobile device detected - ball scale: ${state.responsiveScale}x`);
+  } else {
+    state.responsiveScale = 1.0;
+  }
+  
+  // Recalculate ball sizes with responsive scale applied
+  updateBallSizes();
+}
+
+/**
+ * Update ball size calculations based on current sizeScale and responsiveScale
+ */
+export function updateBallSizes() {
+  const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;
+  const totalScale = state.sizeScale * state.responsiveScale;
+  state.R_MIN = baseSize * totalScale * 0.75;
+  state.R_MAX = baseSize * totalScale * 1.25;
 }

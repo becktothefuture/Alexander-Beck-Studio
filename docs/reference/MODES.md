@@ -1,6 +1,6 @@
 # Mode Specifications
 
-Current mode system supports **10 modes** (switchable via keyboard shortcuts and the Settings panel).
+Current mode system supports **9 modes** (switchable via keyboard shortcuts and the Settings panel).
 
 ---
 
@@ -14,8 +14,7 @@ Current mode system supports **10 modes** (switchable via keyboard shortcuts and
 6. **Ping Pong** (`ping-pong`)
 7. **Magnetic** (`magnetic`)
 8. **Carbonated Bubbles** (`bubbles`)
-9. **Tilt** (`tilt`)
-10. **Kaleidoscope** (`kaleidoscope`)
+9. **Kaleidoscope** (`kaleidoscope`)
 
 ---
 
@@ -31,8 +30,7 @@ Current mode system supports **10 modes** (switchable via keyboard shortcuts and
 | `6` | Ping Pong |
 | `7` | Magnetic |
 | `8` | Carbonated Bubbles |
-| `9` | Tilt |
-| `0` | Kaleidoscope |
+| `9` | Kaleidoscope |
 | `/` | Toggle Settings panel dock |
 
 ---
@@ -120,24 +118,7 @@ Current mode system supports **10 modes** (switchable via keyboard shortcuts and
 
 ---
 
-## Mode 9: Tilt ⚖️
-
-**Purpose:** Mouse-driven viewport rotation with physics-matched gravity angle.
-
-- **Gravity:** Enabled (angled based on tilt)
-- **Collisions:** Ball-to-ball + wall collision
-- **Interaction:** Mouse X position controls tilt angle (left = tilt left, right = tilt right)
-- **Visual:** Entire viewport rotates smoothly following cursor
-- **Physics:** Gravity vector decomposes into X and Y components matching visual tilt
-- **Settings:**
-  - `tiltMaxAngle` (default: 2°): Maximum tilt angle in degrees
-  - `tiltLerpSpeed` (default: 0.08): Smoothing factor for tilt transitions
-  - `tiltBallCount` (default: 200): Number of balls to spawn
-- **Accessibility:** Respects `prefers-reduced-motion` (skips CSS rotation but physics still responds)
-
----
-
-## Mode 10: Kaleidoscope 🪞
+## Mode 9: Kaleidoscope 🪞
 
 **Purpose:** Mirror-wedge kaleidoscope rendering of the same circle-style balls, driven by mouse movement.
 

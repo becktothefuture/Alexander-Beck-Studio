@@ -100,13 +100,33 @@ export const CONTROL_SECTIONS = {
         format: v => v.toFixed(2),
         parse: parseFloat,
         onChange: (g, val) => {
-          const base = (g.R_MIN_BASE + g.R_MAX_BASE) / 2;
-          g.R_MIN = base * val * 0.75;
-          g.R_MAX = base * val * 1.25;
-          const newSize = (g.R_MIN + g.R_MAX) / 2;
-          g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
+          // Use updateBallSizes to apply both sizeScale and responsiveScale
+          import('../core/state.js').then(({ updateBallSizes }) => {
+            updateBallSizes();
+            const newSize = (g.R_MIN + g.R_MAX) / 2;
+            g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
+          });
           import('../rendering/cursor.js').then(({ updateCursorSize }) => {
             updateCursorSize();
+          });
+        }
+      },
+      {
+        id: 'responsiveScaleMobile',
+        label: 'Mobile Scale',
+        stateKey: 'responsiveScaleMobile',
+        type: 'range',
+        min: 0.5, max: 1.5, step: 0.05,
+        default: 0.75,
+        format: v => v.toFixed(2) + 'x',
+        parse: parseFloat,
+        hint: 'Ball size multiplier for iPad/iPhone (requires reload)',
+        onChange: (g, val) => {
+          // Refresh responsive scale detection
+          import('../core/state.js').then(({ detectResponsiveScale }) => {
+            detectResponsiveScale();
+            const newSize = (g.R_MIN + g.R_MAX) / 2;
+            g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
           });
         }
       },
@@ -876,8 +896,8 @@ export const CONTROL_SECTIONS = {
         label: 'Swirl',
         stateKey: 'kaleidoscopeSwirlStrength',
         type: 'range',
-        min: 0, max: 1200, step: 20,
-        default: 520,
+        min: 0, max: 800, step: 5,
+        default: 52,
         format: v => String(Math.round(v)),
         parse: parseFloat
       },
@@ -1076,7 +1096,6 @@ export function generatePanelHTML() {
           <button class="mode-button" data-mode="ping-pong" aria-label="Ping Pong mode">🏓 Pong</button>
           <button class="mode-button" data-mode="magnetic" aria-label="Magnetic mode">🧲 Magnet</button>
           <button class="mode-button" data-mode="bubbles" aria-label="Bubbles mode">🫧 Bubbles</button>
-          <button class="mode-button" data-mode="tilt" aria-label="Tilt mode">⚖️ Tilt</button>
           <button class="mode-button" data-mode="kaleidoscope" aria-label="Kaleidoscope mode">🪞 Kalei</button>
         </div>
       </div>
@@ -1120,7 +1139,7 @@ export function generatePanelHTML() {
       <button id="saveConfigBtn" class="primary">💾 Save Config</button>
     </div>
     <div class="panel-footer">
-      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>0</kbd> kalei · click cycles modes
+      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · click cycles modes
     </div>`;
   
   return html;

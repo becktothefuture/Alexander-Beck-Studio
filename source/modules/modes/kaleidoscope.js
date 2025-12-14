@@ -71,9 +71,10 @@ export function initializeKaleidoscope() {
   const count = clamp(g.kaleidoscopeBallCount ?? 140, 10, maxBalls);
 
   // Spawn as a loose ring so the first frame is already “kaleidoscopic”.
-  // Push the ring outward to avoid dense central clusters.
-  const ringMin = Math.min(w, h) * 0.24;
-  const ringMax = Math.min(w, h) * 0.60;
+  // Wide range ensures coverage across the whole viewport without central clumping
+  // (spacing + non-overlap keeps it airy).
+  const ringMin = Math.min(w, h) * 0.10;
+  const ringMax = Math.min(w, h) * 0.95;
 
   // Non-overlapping spawn (one-time O(n²), acceptable at init)
   const placed = [];
@@ -95,7 +96,8 @@ export function initializeKaleidoscope() {
       if (!isOverlapping(placed, x, y, radius + g.ballSpacing * g.DPR)) {
         placed.push({ x, y, r: radius + g.ballSpacing * g.DPR });
         const b = new Ball(x, y, radius, color);
-        const speed = 120 + Math.random() * 120;
+        // Much slower by default (10×) so the field doesn’t “auto-rotate” aggressively.
+        const speed = 12 + Math.random() * 12;
         b.vx = -Math.sin(a) * speed;
         b.vy = Math.cos(a) * speed;
         b.driftAx = 0;
@@ -111,7 +113,7 @@ export function initializeKaleidoscope() {
     const x = centerX + Math.cos(a) * rr;
     const y = centerY + Math.sin(a) * rr;
     const b = new Ball(x, y, radius, color);
-    const speed = 120 + Math.random() * 120;
+    const speed = 12 + Math.random() * 12;
     b.vx = -Math.sin(a) * speed;
     b.vy = Math.cos(a) * speed;
     b.driftAx = 0;
@@ -276,7 +278,9 @@ export function renderKaleidoscope(ctx) {
     // Map into center-relative coords, then apply pan (mouse changes mapping).
     const rx = (ball.x - cx) + panX;
     const ry = (ball.y - cy) + panY;
-    const r = Math.hypot(rx, ry);
+    // Scale radius to ensure full-viewport coverage (and spill beyond edges if needed).
+    const fillScale = 1.8;
+    const r = Math.hypot(rx, ry) * fillScale;
     if (r < EPS) continue;
 
     // Canonical kaleidoscope fold:

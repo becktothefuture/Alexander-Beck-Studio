@@ -46,6 +46,17 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   const canvas = globals.canvas;
   
   if (!canvas || balls.length === 0) return;
+
+  // Kaleidoscope should only move when the pointer moves.
+  // If the pointer hasn't moved recently, freeze physics entirely (no drift/settling).
+  if (globals.currentMode === MODES.KALEIDOSCOPE) {
+    const nowMs = performance.now();
+    const lastMove = globals.lastPointerMoveMs || 0;
+    if (nowMs - lastMove > 40) {
+      acc = 0;
+      return;
+    }
+  }
   
   acc += dtSeconds;
   let physicsSteps = 0;

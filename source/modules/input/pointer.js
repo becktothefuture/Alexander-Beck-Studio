@@ -55,8 +55,8 @@ export function setupPointer() {
   const globals = getGlobals();
   const canvas = globals.canvas;
   
-  // Initialize clickCycleEnabled from global state (default true)
-  clickCycleEnabled = globals.clickCycleEnabled !== undefined ? globals.clickCycleEnabled : true;
+  // Initialize clickCycleEnabled from global state
+  clickCycleEnabled = globals.clickCycleEnabled || false;
   
   if (!canvas) {
     console.error('Canvas not available for pointer setup');
@@ -126,6 +126,15 @@ export function setupPointer() {
     globals.mouseInCanvas = pos.inBounds;
     if (typeof window !== 'undefined') window.mouseInCanvas = pos.inBounds;
 
+    // Track real movement for “only move when mouse moves” modes (Kaleidoscope)
+    // Use a small threshold to ignore subpixel jitter.
+    const movedPx = Math.hypot(pos.x - (globals.lastPointerMoveX ?? pos.x), pos.y - (globals.lastPointerMoveY ?? pos.y));
+    if (movedPx > 0.5) {
+      globals.lastPointerMoveMs = now;
+      globals.lastPointerMoveX = pos.x;
+      globals.lastPointerMoveY = pos.y;
+    }
+
     // WATER MODE: Create ripples based on mouse movement velocity
     if (globals.currentMode === MODES.WATER && pos.inBounds) {
       if (mouseVelocity > 0.3 && (now - lastRippleTime) > RIPPLE_THROTTLE_MS) {
@@ -189,9 +198,15 @@ export function setupPointer() {
       globals.mouseX = pos.x;
       globals.mouseY = pos.y;
       globals.mouseInCanvas = pos.inBounds;
+      const now = performance.now();
+      const movedPx = Math.hypot(pos.x - (globals.lastPointerMoveX ?? pos.x), pos.y - (globals.lastPointerMoveY ?? pos.y));
+      if (movedPx > 0.5) {
+        globals.lastPointerMoveMs = now;
+        globals.lastPointerMoveX = pos.x;
+        globals.lastPointerMoveY = pos.y;
+      }
       
       // Water mode: create ripples on touch move
-      const now = performance.now();
       if (globals.currentMode === MODES.WATER && pos.inBounds) {
         if ((now - lastRippleTime) > RIPPLE_THROTTLE_MS) {
           createWaterRipple(pos.x, pos.y, 2);
