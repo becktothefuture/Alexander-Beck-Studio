@@ -92,24 +92,24 @@ export function setupPointer() {
                 clientY >= rect.top && clientY <= rect.bottom
     };
   }
-  
+
   /**
-   * Document-level mouse move tracking
-   * Works even when canvas is behind content (z-index: -1)
-   * PASSIVE - doesn't interfere with panel interactions
+   * Shared move handler (mouse + pointer).
+   * Mobile Playwright projects may not emit `mousemove` reliably; `pointermove`
+   * is the canonical cross-input signal.
    */
-  document.addEventListener('mousemove', (e) => {
+  function handleMove(clientX, clientY, target, { isMouseLike } = { isMouseLike: true }) {
     // Title/logo micro-interaction (viewport based) — keep responsive even over UI.
-    updateBrandLogoCursorScaleFromClient(e.clientX, e.clientY);
-    
-    // Update custom cursor position
-    updateCursorPosition(e.clientX, e.clientY);
+    updateBrandLogoCursorScaleFromClient(clientX, clientY);
+
+    // Update custom cursor position only for mouse-like pointers.
+    if (isMouseLike) updateCursorPosition(clientX, clientY);
 
     // Don't track simulation interactions if the user is over the panel UI
-    if (isEventOnUI(e.target)) return;
-    
-    const pos = getCanvasPosition(e.clientX, e.clientY);
-  
+    if (isEventOnUI(target)) return;
+
+    const pos = getCanvasPosition(clientX, clientY);
+
     // Calculate mouse velocity for water ripples
     const now = performance.now();
     const dt = now - lastMoveTime;
@@ -118,31 +118,40 @@ export function setupPointer() {
       const dy = pos.y - lastMouseY;
       mouseVelocity = Math.sqrt(dx * dx + dy * dy) / dt;
     }
-    
+
     // Update globals with 1:1 mouse position
     globals.mouseX = pos.x;
     globals.mouseY = pos.y;
     globals.mouseInCanvas = pos.inBounds;
     if (typeof window !== 'undefined') window.mouseInCanvas = pos.inBounds;
-    
-    // ════════════════════════════════════════════════════════════════════════
+
     // WATER MODE: Create ripples based on mouse movement velocity
-    // ════════════════════════════════════════════════════════════════════════
     if (globals.currentMode === MODES.WATER && pos.inBounds) {
-      // Only create ripple if moving fast enough and throttle time passed
       if (mouseVelocity > 0.3 && (now - lastRippleTime) > RIPPLE_THROTTLE_MS) {
-        // Scale ripple strength based on velocity (faster = stronger)
         const velocityFactor = Math.min(mouseVelocity * 2, 3);
         createWaterRipple(pos.x, pos.y, velocityFactor);
         lastRippleTime = now;
       }
     }
 
-    
     // Store for velocity calculation
     lastMouseX = pos.x;
     lastMouseY = pos.y;
     lastMoveTime = now;
+  }
+  
+  /**
+   * Document-level mouse move tracking
+   * Works even when canvas is behind content (z-index: -1)
+   * PASSIVE - doesn't interfere with panel interactions
+   */
+  document.addEventListener('mousemove', (e) => {
+    handleMove(e.clientX, e.clientY, e.target, { isMouseLike: true });
+  }, { passive: true });
+
+  document.addEventListener('pointermove', (e) => {
+    const isMouseLike = e.pointerType === 'mouse' || e.pointerType === 'pen';
+    handleMove(e.clientX, e.clientY, e.target, { isMouseLike });
   }, { passive: true });
   
   /**
@@ -248,6 +257,10 @@ export function setupPointer() {
   }, { passive: true });
   
   console.log('✓ Unified pointer system configured (document-level)');
+
+  // Test hook: allow Playwright to wait for pointer wiring across engines.
+  globals.__pointerReady = true;
+  if (typeof window !== 'undefined') window.__pointerReady = true;
 }
 
 /**

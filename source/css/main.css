@@ -60,6 +60,18 @@
   --duration-resize: 600ms;   /* Viewport resize response */
   --duration-settle: 400ms;   /* Color/opacity settling */
   --duration-quick: 200ms;    /* Immediate feedback */
+
+  /* ─────────────────────────────────────────────────────────────────────────────
+     INTERACTION TOKENS
+     ───────────────────────────────────────────────────────────────────────────── */
+  /* Hover color should match the brand “dark orange” (ball orange-red) */
+  --link-hover-color: var(--ball-6);
+  --duration-link-hover: 30ms;
+  --dot-bounce-duration: 500ms;
+
+  /* Button-equivalent hit area padding */
+  --hit-area-padding: 30px;
+  --hit-area-padding-neg: -30px;
   
   /* ─────────────────────────────────────────────────────────────────────────────
      UNIFIED COLOR SYSTEM - Browser Chrome, Walls, Background ALL match
@@ -89,7 +101,7 @@
   /* Rubber wall color = frame color */
   --wall-color: var(--frame-color-light);
   --wall-thickness: 12px;          /* Thickness of the rubber wall tubes */
-  --wall-radius: clamp(24px, 4vmin, 48px);  /* Corner radius for all elements */
+  --wall-radius: 42px;  /* Corner radius for all elements (kept in sync with config/state) */
   --wall-bevel-light: rgba(255, 255, 255, 0.15);  /* Top/left highlight */
   --wall-bevel-dark: rgba(0, 0, 0, 0.3);          /* Bottom/right shadow */
   
@@ -131,6 +143,35 @@
   --ball-6: #ff4013;
   --ball-7: #0d5cb6;
   --ball-8: #ffa000;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ICON SYSTEM (24px line icons)
+   - Prefer inline SVG over icon fonts for crisp rendering + no external calls
+   - Rounded stroke caps/joins, consistent across browsers/DPIs
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.ui-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: geometricPrecision;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DOT INDICATOR ANIMATION
+   - Bounce-out effect (scaleY: 0 → 1.2 → 1)
+   - Used for hover dots on links/icons
+   ═══════════════════════════════════════════════════════════════════════════════ */
+@keyframes braviaDotBounceIn {
+  0%   { transform: translate3d(-50%, 0, 0) scaleY(0); }
+  60%  { transform: translate3d(-50%, 0, 0) scaleY(1.2); }
+  100% { transform: translate3d(-50%, 0, 0) scaleY(1); }
 }
 
 :root.dark-mode {
@@ -688,9 +729,104 @@ body.dark-mode.page-ready .noise-3 {
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   TOP ELEMENTS (Top) – Runtime-composed layout
+   Legend (left) + Decorative text + Sound toggle (right)
+   Each group = 50% width, top-aligned across viewports.
+   ───────────────────────────────────────────────────────────────────────────── */
+#top-elements {
+  position: fixed !important;
+  top: var(--edge-inset) !important;
+  left: var(--edge-inset) !important;
+  right: var(--edge-inset) !important;
+  /* Keep below the settings window (avoid z-index overflow) */
+  z-index: 9000 !important;
+
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 10vw !important; /* Spacing between legend (left) and decorative text (right) */
+
+  pointer-events: auto !important;
+  opacity: 0;
+}
+
+#top-elements-left,
+#top-elements-right {
+  flex: 0 1 calc(50% - 5vw) !important; /* Allow shrinking, account for gap */
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+}
+
+#top-elements-left {
+  justify-content: flex-start !important;
+}
+
+#top-elements-right {
+  justify-content: flex-end !important;
+}
+
+#top-elements-rightRow {
+  width: 100% !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important; /* Text fills left, icon stays right */
+  gap: var(--space-md) !important;
+}
+
+#top-elements-rightText {
+  flex: 1 1 0 !important; /* Fill available space */
+  min-width: 0 !important;
+  display: block !important; /* Simple block for text flow */
+  text-align: left !important;
+}
+
+/* When nested in #top-elements, stop using fixed positioning */
+#top-elements .legend {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  max-width: 100% !important;
+  transition: none !important;
+  /* Ensure flexbox wrap behavior in container context */
+  flex: 0 1 auto !important;
+}
+
+/* When nested in #top-elements, stop using fixed positioning and allow interactions */
+#top-elements .decorative-script {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  pointer-events: auto !important;
+  max-width: none !important; /* Fill available space in flex container */
+  width: 100% !important;
+}
+
+/* Sound toggle mounted into the top row */
+.sound-toggle.sound-toggle--top {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  margin: 0 !important; /* No margin - align flush right */
+  padding: 0 !important; /* No padding - icon only */
+  display: inline-flex;
+  align-items: flex-start;
+  white-space: nowrap;
+  flex: 0 0 auto !important; /* Don't grow/shrink, stay compact */
+  /* In the top row, match adjacent text by default; hover turns orange-red */
+  color: inherit !important;
+}
+
+/* Ensure hover color wins in the top row (important + higher specificity) */
+.sound-toggle.sound-toggle--top:hover {
+  color: var(--link-hover-color) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    LEGEND (Top-Left)
    Uses organic spacing: positions breathe with viewport
-   Responsive grid: 4×2 desktop → 3×3 tablet → 1×7 mobile
+   Horizontal flexbox with wrap → vertical stack on mobile
    ───────────────────────────────────────────────────────────────────────────── */
 .legend {
   position: fixed !important;
@@ -699,7 +835,7 @@ body.dark-mode.page-ready .noise-3 {
   left: var(--edge-inset) !important;
   margin: 0 !important;
   width: auto !important;
-  max-width: calc(100vw - var(--edge-inset) * 2) !important;
+  max-width: 100% !important; /* Constrain to parent (no overflow) */
   height: auto !important;
   font-family: 'Geist', sans-serif !important;
   padding: 0 !important; /* No inner padding - positioning handles spacing */
@@ -707,11 +843,12 @@ body.dark-mode.page-ready .noise-3 {
   opacity: 0.9 !important; /* Keep constant: Webflow sets .legend:hover { opacity: 1 } */
   color: #2f2f2f !important; /* Slightly darker, globally applied to all legend text (light mode) */
   
-  /* CSS Grid: 4 columns on desktop */
-  display: grid !important;
-  grid-template-columns: repeat(4, auto) !important;
-  grid-column-gap: clamp(1rem, 2vw, 1.5rem) !important;
-  grid-row-gap: 0.5rem !important;
+  /* Horizontal flexbox with wrap */
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  gap: 0.5rem clamp(1rem, 2vw, 1.5rem) !important; /* row-gap column-gap */
+  overflow: hidden !important; /* Prevent visible overflow */
   
   /* Smooth position transitions during resize */
   transition: 
@@ -725,22 +862,21 @@ body.dark-mode.page-ready .noise-3 {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LEGEND RESPONSIVE: Tablet (3×3 grid)
+   LEGEND RESPONSIVE: Tablet (tighter spacing)
    ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 991px) {
   .legend {
-    grid-template-columns: repeat(3, auto) !important;
-    grid-column-gap: clamp(0.75rem, 1.5vw, 1.25rem) !important;
+    gap: 0.4rem clamp(0.75rem, 1.5vw, 1.25rem) !important;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LEGEND RESPONSIVE: Mobile (1×7 single column)
+   LEGEND RESPONSIVE: Mobile (vertical stack)
    ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .legend {
-    grid-template-columns: 1fr !important;
-    grid-row-gap: 0.35rem !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
   }
 }
 
@@ -758,6 +894,10 @@ body.dark-mode.page-ready .noise-3 {
   font-size: clamp(9px, 1vw, 12px) !important;
   color: inherit !important; /* Inherit from .legend (enables single global legend text color) */
   opacity: 0.9; /* Keep constant: no hover opacity changes */
+  
+  /* Equal width for all legend items within each row */
+  flex: 1 1 0 !important;
+  white-space: nowrap !important; /* Prevent text from wrapping within item */
 }
 
 /* Legend labels: ensure no span-level formatting overrides (e.g., Webflow/inline styles) */
@@ -822,7 +962,7 @@ body.dark-mode.page-ready .noise-3 {
   position: relative;
   opacity: 0.9; /* Keep constant: no hover opacity changes */
   transition: 
-    color var(--duration-quick) ease;
+    color var(--duration-link-hover) ease;
   white-space: nowrap; /* Prevent "Let's chat." from breaking */
 }
 
@@ -830,27 +970,26 @@ body.dark-mode.page-ready .noise-3 {
 .decorative-script p a::after {
   content: '';
   position: absolute;
-  bottom: -100%;
+  bottom: -10px;
   left: 50%;
-  transform: translateX(-50%) scale(0);
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: 50% 50%;
   width: 4px;
   height: 4px;
   border-radius: 50%;
   background: currentColor;
   opacity: 0;
-  transition: 
-    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-    opacity 0.2s ease;
+  will-change: transform, opacity;
 }
 
 .decorative-script p a:hover {
-  color: #000000 !important;
+  color: var(--link-hover-color) !important;
   opacity: 0.9; /* Keep constant */
 }
 
 .decorative-script p a:hover::after {
-  transform: translateX(-50%) scale(1);
-  opacity: 0.6;
+  opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -866,6 +1005,7 @@ body.dark-mode.page-ready .noise-3 {
   /* opacity and transition controlled by ORCHESTRATED PAGE ENTRANCE above */
   position: relative;
   opacity: 0.9; /* Keep constant: no hover opacity changes */
+  transition: color var(--duration-link-hover) ease;
   
   /* Clickable/hover padding - expands hit area */
   display: inline-block;
@@ -883,25 +1023,24 @@ body.dark-mode.page-ready .noise-3 {
   /* Keep dot-to-text spacing stable even though links use padded hit areas */
   bottom: 14px; /* 16px from label with 30px hit-area padding */
   left: 50%;
-  transform: translateX(-50%) scale(0);
+  transform: translate3d(-50%, 0, 0) scaleY(0);
+  transform-origin: 50% 50%;
   width: 4px;
   height: 4px;
   border-radius: 50%;
   background: currentColor;
   opacity: 0;
-  transition: 
-    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), /* Bounce effect */
-    opacity 0.2s ease;
+  will-change: transform, opacity;
 }
 
 .footer_link:hover {
-  color: #000000 !important;
+  color: var(--link-hover-color) !important;
   opacity: 0.9; /* Keep constant */
 }
 
 .footer_link:hover::after {
-  transform: translateX(-50%) scale(1);
   opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
 
 /* Social icons - Fixed position at bottom-left inside frame */
@@ -919,10 +1058,36 @@ body.dark-mode.page-ready .noise-3 {
 /* Social icon links: keep a consistent opacity (no hover opacity shifts) */
 .footer_icon-link {
   opacity: 0.9;
+  transition: color var(--duration-link-hover) ease;
 }
 
 .footer_icon-link:hover {
   opacity: 0.9;
+}
+
+/* Social icon hover dot indicator (identical to footer link dots) */
+.footer_icon-link::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: 50% 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.footer_icon-link:hover {
+  color: var(--link-hover-color) !important;
+}
+
+.footer_icon-link:hover::after {
+  opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
 
 /* Caption (timestamp) - Fixed position at bottom-right inside frame */
@@ -968,7 +1133,7 @@ body.dark-mode .sound-toggle {
 }
 
 body.dark-mode .sound-toggle:hover {
-  color: var(--ball-6) !important; /* No color change on hover */
+  color: var(--link-hover-color) !important;
   /* opacity handled by FADE SYSTEM - don't override here */
 }
 
@@ -978,7 +1143,7 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
 }
 
 body.dark-mode .decorative-script p a:hover {
-  color: #f5f5f5 !important;
+  color: var(--link-hover-color) !important;
 }
 
 /* Dark mode - SVG fills */
@@ -1036,6 +1201,92 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
     font-size: clamp(0.55rem, 2.2vw, 0.68rem);
     max-width: min(280px, 52vw);
   }
+
+  /* ─────────────────────────────────────────────────────────────────────────────
+     TOP ELEMENTS — MOBILE LAYOUT
+     Row 1: Legend (left) | Description (right) with reduced gap
+     Row 2: Sound button spans 100% below both
+     Desktop unchanged (scoped to <=480px only).
+     ───────────────────────────────────────────────────────────────────────────── */
+  #top-elements {
+    flex-wrap: wrap !important;
+    gap: 10px 5vw !important; /* Reduced column gap on mobile */
+  }
+
+  #top-elements-left,
+  #top-elements-right {
+    flex: 0 1 calc(50% - 2.5vw) !important; /* Account for reduced gap */
+  }
+
+  #top-elements-soundRow {
+    flex: 0 0 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    pointer-events: none; /* child button re-enables */
+  }
+
+  #top-elements-soundRow #sound-toggle {
+    pointer-events: auto !important;
+  }
+
+  /* Full-width sound toggle on mobile */
+  #top-elements #sound-toggle.sound-toggle--topwide {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 14px 0 !important;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────────
+     FOOTER LINKS — MOBILE ALIGNMENT
+     - Center align as a group
+     - Allow wrapping between links
+     - Keep "Get in touch" and "Bio/CV" readable
+     ───────────────────────────────────────────────────────────────────────────── */
+  #footer-links-container {
+    width: calc(100vw - (var(--edge-inset) * 2)) !important;
+    max-width: none !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    text-align: center !important;
+    row-gap: 0 !important;
+    gap: 0 !important;
+  }
+
+  #footer-links-container #contact-email,
+  #footer-links-container #portfolio-gate-trigger {
+    white-space: nowrap !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+
+  /* Allow "Download" + "Bio/CV" to split into 2 lines on mobile */
+  #footer-links-container #cv-gate-trigger {
+    white-space: normal !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    line-height: 1.05 !important;
+  }
+
+  #footer-links-container #cv-gate-trigger .footer-link-nowrap {
+    white-space: nowrap !important;
+  }
+
+  /* Slightly tighter type so 3 links fit in a single row */
+  #footer-links-container #contact-email,
+  #footer-links-container #portfolio-gate-trigger,
+  #footer-links-container #cv-gate-trigger {
+    font-size: 0.85rem !important;
+  }
+
+  /* Slightly tighter tap targets on phones to prevent collisions */
+  #footer-links-container #contact-email,
+  #footer-links-container #portfolio-gate-trigger,
+  #footer-links-container #cv-gate-trigger {
+    padding: 18px 18px !important;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1069,7 +1320,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   pointer-events: auto !important;
   
   transition: 
-    color var(--duration-quick) ease,
+    color var(--duration-link-hover) ease,
     opacity var(--duration-quick) ease,
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic);
@@ -1110,6 +1361,12 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   color: var(--ball-6) !important; /* Same orange when on */
 }
 
+/* Sound icon sizing: lock to 24px (avoid fractional scaling blur) */
+.sound-toggle .ui-icon {
+  width: 24px !important;
+  height: 24px !important;
+}
+
 /* Hover dot indicator - same as footer links */
 .sound-toggle::after {
   content: '';
@@ -1117,25 +1374,24 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   /* Keep dot-to-text spacing stable even though button uses padded hit area */
   bottom: 14px; /* 16px from label with 30px hit-area padding */
   left: 50%;
-  transform: translateX(-50%) scale(0);
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: 50% 50%;
   width: 4px;
   height: 4px;
   border-radius: 50%;
   background: currentColor;
   opacity: 0;
-  transition: 
-    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-    opacity 0.2s ease;
+  will-change: transform, opacity;
 }
 
 .sound-toggle:hover {
-  color: var(--ball-6) !important; /* Brighter red-orange on hover */
+  color: var(--link-hover-color) !important;
   /* opacity handled by FADE SYSTEM - don't override here */
 }
 
 .sound-toggle:hover::after {
-  transform: translateX(-50%) scale(1);
   opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1184,7 +1440,9 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   
   /* Ensure visibility - override any Webflow grid positioning */
   grid-area: auto !important;
-  display: inline-block !important;
+  display: inline-flex !important;
+  justify-content: center !important;
+  text-align: center !important;
   visibility: visible !important;
   opacity: 1 !important;
   
@@ -1195,6 +1453,23 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   /* Ensure baseline alignment */
   vertical-align: baseline !important;
   line-height: 1 !important;
+}
+
+/* Hover override: these links have high-specificity base colors */
+#footer-links-container #contact-email:hover,
+#footer-links-container #portfolio-gate-trigger:hover,
+#footer-links-container #cv-gate-trigger:hover {
+  color: var(--link-hover-color) !important;
+}
+
+/* Ensure "Get in touch" matches the exact hover behavior (color + dot) */
+#footer-links-container a.footer_link:hover {
+  color: var(--link-hover-color) !important;
+}
+
+#footer-links-container a.footer_link:hover::after {
+  opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
 
 /* Dark mode footer link colors */

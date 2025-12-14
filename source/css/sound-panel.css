@@ -106,3 +106,48 @@
   margin-top: -2px;
   padding-bottom: 2px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SOUND PERF ROW — Tiny “synth strip” buttons
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.sound-perf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 2px;
+}
+
+.sound-perf__btn {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-muted);
+  color: var(--panel-foreground);
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sound-perf__btn:hover {
+  background: var(--panel-accent);
+  border-color: var(--panel-muted-foreground);
+}
+
+.sound-perf__btn:active {
+  transform: translateY(0.5px);
+}
+
+.sound-perf__hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--panel-muted-foreground);
+  font-family: var(--panel-font-mono, ui-monospace, monospace);
+  opacity: 0.9;
+  user-select: none;
+  white-space: nowrap;
+}

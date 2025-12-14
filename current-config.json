@@ -18,6 +18,7 @@
   "containerInnerShadowOffsetY": 0,
   "wallThickness": 12,
   "wallRadius": 42,
+  "wallInset": 3,
   "wallWobbleMaxDeform": 70,
   "wallWobbleStiffness": 1300,
   "wallWobbleDamping": 18,

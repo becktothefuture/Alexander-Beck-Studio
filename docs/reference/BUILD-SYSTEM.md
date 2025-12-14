@@ -25,9 +25,9 @@ npm run build
 **Time:** ~3-4 seconds  
 **Output Size:** ~48KB minified JS + 7.6KB CSS
 
-### Modular Build (Dev)
+### Development Build
 ```bash
-npm run build:modules:dev  # Development with source maps
+npm run build:dev  # Development build with source maps (faster, no minification)
 ```
 
 ### Live Development (Auto-Rebuild)
@@ -41,6 +41,18 @@ npm start              # http://localhost:8000
 **Watches:** `source/**/*` and `webflow-export/**/*`  
 **Triggers:** Rebuilds `public/` on every file save  
 **Workflow:** Save file → wait 2s → refresh browser (Cmd+R)
+
+### Visual-Parity Dev (Recommended)
+
+Dev now mirrors the production Webflow structure by syncing Webflow-exported assets into the dev server:
+
+```bash
+npm run startup
+# Option 4 (Watch Mode) runs:
+# - Dev server:   http://localhost:8001 (modules)
+# - Build server: http://localhost:8000 (bundle)
+# - Watcher: rebuilds public/ on save
+```
 
 ### Help
 ```bash
@@ -144,7 +156,7 @@ At runtime, `source/main.js` attempts to fetch (in order):
 **Compression Settings:**
 - **3 passes** - Multiple optimization rounds
 - **Dead code elimination** - Removes unreachable code
-- **Console preservation** - Keeps `console.log` for debugging
+- **Console policy** - Production prints a single banner (plus ASCII “BECK”), then silences `console.log/info/warn/debug` (while keeping `console.error` for real failures). Dev remains verbose for debugging.
 - **Debugger removal** - Strips `debugger` statements
 - **Unsafe optimizations** - Aggressive math/method optimizations
 

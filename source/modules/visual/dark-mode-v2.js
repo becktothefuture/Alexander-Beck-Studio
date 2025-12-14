@@ -6,10 +6,12 @@
 import { getGlobals } from '../core/state.js';
 import { applyColorTemplate } from './colors.js';
 import { syncChromeColor } from '../physics/engine.js';
+import { log as devLog } from '../utils/logger.js';
 
 // Theme states: 'auto', 'light', 'dark'
 let currentTheme = 'light'; // Default to light mode
 let systemPreference = 'light';
+let isDarkModeInitialized = false;
 
 // Fallback colors if CSS vars not available
 // MUST match --frame-color-light / --frame-color-dark in main.css
@@ -170,16 +172,19 @@ export function setTheme(theme) {
     // localStorage unavailable
   }
   
-  console.log(`🎨 Theme set to: ${theme} (rendering: ${shouldBeDark ? 'dark' : 'light'})`);
+  devLog(`🎨 Theme set to: ${theme} (rendering: ${shouldBeDark ? 'dark' : 'light'})`);
 }
 
 /**
  * Initialize dark mode system
  */
 export function initializeDarkMode() {
+  if (isDarkModeInitialized) return;
+  isDarkModeInitialized = true;
+
   // Detect system preference (for auto mode later)
   systemPreference = detectSystemPreference();
-  console.log(`🖥️ System prefers: ${systemPreference}`);
+  devLog(`🖥️ System prefers: ${systemPreference}`);
   
   // FORCE START IN LIGHT MODE (ignore saved preference on initial load)
   // User can still switch modes via the theme buttons
@@ -198,7 +203,7 @@ export function initializeDarkMode() {
   if (window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
       systemPreference = e.matches ? 'dark' : 'light';
-      console.log(`🖥️ System preference changed to: ${systemPreference}`);
+      devLog(`🖥️ System preference changed to: ${systemPreference}`);
       
       // If in auto mode, update
       if (currentTheme === 'auto') {
@@ -206,8 +211,7 @@ export function initializeDarkMode() {
       }
     });
   }
-  
-  console.log('✓ Modern dark mode initialized');
+  devLog('✓ Modern dark mode initialized');
 }
 
 /**

@@ -64,6 +64,10 @@ const state = {
   
   // Corner (matches CSS border-radius for collision bounds)
   cornerRadius: 42,
+  
+  // Wall collision inset (px). Helps prevent visual overlap with the wall edge.
+  // This is distinct from radius: it shrinks the effective collision bounds uniformly.
+  wallInset: 3,
 
   // Vortex mode params
   vortexSwirlStrength: 420,
@@ -150,6 +154,7 @@ const state = {
   frameColor: '#0a0a0a',    // Frame color (browser chrome + walls + border)
   wallThickness: 20,        // Unified: wall tubes + body border (px)
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
+  wallInset: 3,             // Physics-only inset from edges (px at DPR 1)
 
   // Rubber wall wobble tuning (visual-only deformation, no collision changes)
   wallWobbleMaxDeform: 148,         // Max inward deformation (px at DPR 1)
@@ -198,7 +203,13 @@ export function initState(config) {
   // Unified frame + rubber wall visuals
   if (config.frameColor !== undefined) state.frameColor = config.frameColor;
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
-  if (config.wallRadius !== undefined) state.wallRadius = config.wallRadius;
+  if (config.wallRadius !== undefined) {
+    state.wallRadius = config.wallRadius;
+    // Keep physics corner collision aligned to the visual radius.
+    state.cornerRadius = config.wallRadius;
+  }
+  if (config.wallInset !== undefined) state.wallInset = config.wallInset;
+  if (config.wallInset !== undefined) state.wallInset = config.wallInset;
 
   // Ball spacing (collision padding)
   if (config.ballSpacing !== undefined) state.ballSpacing = config.ballSpacing;

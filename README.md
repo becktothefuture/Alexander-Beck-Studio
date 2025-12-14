@@ -61,7 +61,6 @@ npm run startup
 # Quick Options:
 npm run dev            # Fast dev mode (port 8001, instant reload)
 npm run preview        # Test production build (port 8000)
-npm run dev:watch      # Dev + auto-rebuild
 npm run build          # Production build only
 ```
 
@@ -163,8 +162,8 @@ npm run preview          # Builds + serves on port 8000
 
 **Auto-rebuild + Dev:**
 ```bash
-npm run dev:watch        # Port 8001 + background watcher
-# Changes auto-rebuild in background
+npm run startup          # Choose option 4 (Watch Mode)
+# Dev server + background watcher for auto-rebuild
 ```
 
 **Traditional Multi-terminal:**
@@ -188,7 +187,6 @@ npm start              # http://localhost:8000
 npm run startup        # Interactive menu (RECOMMENDED)
 npm run dev            # Quick dev (port 8001, instant reload)
 npm run preview        # Build + preview (port 8000)
-npm run dev:watch      # Dev + auto-rebuild
 npm run build          # Production build
 npm run watch          # Auto-rebuild only
 npm start              # Serve public/ on port 8000

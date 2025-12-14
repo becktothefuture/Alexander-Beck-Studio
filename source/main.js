@@ -19,10 +19,21 @@ import { initCVGate } from './modules/ui/cv-gate.js';
 import { initPortfolioGate } from './modules/ui/portfolio-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
+import { initSoundEngine } from './modules/audio/sound-engine.js';
+import { upgradeSocialIcons } from './modules/ui/social-icons.js';
 // Layout controls now integrated into master panel
 import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.js';
 import { initBrandLogoBallSpace } from './modules/ui/brand-logo-ball-space.js';
 import { setApplyVisualCSSVars } from './modules/ui/control-registry.js';
+import {
+  initConsolePolicy,
+  group,
+  groupEnd,
+  log,
+  mark,
+  measure,
+  table
+} from './modules/utils/logger.js';
 
 async function loadRuntimeConfig() {
   try {
@@ -180,19 +191,113 @@ function ensureNoiseElements() {
   }
 }
 
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                         TOP UI LAYOUT (RUNTIME)                               ║
+// ║        Compose legend + decorative-script + sound toggle into one row         ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+/**
+ * Create a single top-aligned flex row for:
+ * - Left:  #expertise-legend (labels)
+ * - Right: .decorative-script (text) + #sound-toggle (button)
+ *
+ * We do this at runtime to avoid modifying the Webflow export template.
+ * This function is safe to call multiple times (idempotent).
+ */
+function setupTopElementsLayout() {
+  if (document.getElementById('top-elements')) return;
+
+  // Some engines/devices can lag in exposing the Webflow nodes immediately after navigation.
+  // Retry a few times rather than permanently skipping layout composition.
+  setupTopElementsLayout._tries = (setupTopElementsLayout._tries || 0);
+
+  const legend = document.getElementById('expertise-legend');
+  const decorativeScript = document.querySelector('.decorative-script');
+
+  // Modular dev page may not include these Webflow elements; don't create a new layout there.
+  if (!legend && !decorativeScript) {
+    if (setupTopElementsLayout._tries < 40) {
+      setupTopElementsLayout._tries++;
+      setTimeout(setupTopElementsLayout, 100);
+    }
+    return;
+  }
+
+  setupTopElementsLayout._tries = 0;
+
+  // Mount outside #fade-content so it can layer above the panel dock.
+  const mountRoot = document.body;
+
+  const container = document.createElement('div');
+  container.id = 'top-elements';
+
+  const left = document.createElement('div');
+  left.id = 'top-elements-left';
+
+  const right = document.createElement('div');
+  right.id = 'top-elements-right';
+
+  const rightRow = document.createElement('div');
+  rightRow.id = 'top-elements-rightRow';
+
+  const rightText = document.createElement('div');
+  rightText.id = 'top-elements-rightText';
+
+  if (legend) left.appendChild(legend);
+  if (decorativeScript) rightText.appendChild(decorativeScript);
+
+  rightRow.appendChild(rightText);
+  right.appendChild(rightRow);
+
+  container.appendChild(left);
+  container.appendChild(right);
+
+  // Mobile layout target:
+  // Provide a dedicated full-width row for the sound button under both columns.
+  // (Desktop keeps the sound button mounted next to the decorative text.)
+  const soundRow = document.createElement('div');
+  soundRow.id = 'top-elements-soundRow';
+  container.appendChild(soundRow);
+
+  mountRoot.appendChild(container);
+}
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                    FOOTER LINKS — MOBILE WRAP ENHANCEMENTS                    ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+// We avoid editing the Webflow export HTML directly by enhancing at runtime.
+function enhanceFooterLinksForMobile() {
+  try {
+    const cv = document.getElementById('cv-gate-trigger');
+    if (cv && !cv.querySelector('.footer-link-nowrap')) {
+      const raw = (cv.textContent || '').trim().replace(/\s+/g, ' ');
+      if (raw.toLowerCase() === 'download bio/cv') {
+        cv.innerHTML = 'Download <span class="footer-link-nowrap">Bio/CV</span>';
+      }
+    }
+  } catch (e) {}
+}
+
 (async function init() {
   // Mark JS as enabled (for CSS fallback detection)
   document.documentElement.classList.add('js-enabled');
+
+  // Production console policy (banner + silence). DEV remains verbose.
+  // Production console policy: multi-colored ASCII banner matching ball palette.
+  // Uses defaults from logger.js (sentence + ASCII defined there for single source of truth).
+  initConsolePolicy();
   
   // Wire up control registry to use CSS vars function (avoids circular dependency)
   setApplyVisualCSSVars(applyVisualCSSVars);
   
   try {
-    console.log('🚀 Initializing modular bouncy balls...');
+    group('BouncyBalls bootstrap');
+    mark('bb:start');
+    log('🚀 Initializing modular bouncy balls...');
     
     const config = await loadRuntimeConfig();
     initState(config);
-    console.log('✓ Config loaded');
+    mark('bb:config');
+    log('✓ Config loaded');
 
     // Test/debug compatibility: expose key config-derived values on window
     // (Playwright tests assert these exist and match the runtime config)
@@ -209,11 +314,11 @@ function ensureNoiseElements() {
     
     // Apply frame padding CSS vars from config (controls border thickness)
     applyFramePaddingCSSVars();
-    console.log('✓ Frame padding applied');
+    log('✓ Frame padding applied');
     
     // Apply visual CSS vars (noise, inner shadow) from config
     applyVisualCSSVars(config);
-    console.log('✓ Visual effects configured');
+    log('✓ Visual effects configured');
     
     // Ensure noise-2 and noise-3 elements exist (for modular dev environments)
     ensureNoiseElements();
@@ -227,13 +332,23 @@ function ensureNoiseElements() {
     if (!canvas || !ctx || !container) {
       throw new Error('Missing DOM elements');
     }
+
+    // Accessibility: the canvas is an interactive surface (keyboard + pointer).
+    // Ensure we expose it as an application-like region for AT.
+    try {
+      canvas.setAttribute('role', 'application');
+      if (!canvas.getAttribute('aria-label')) {
+        canvas.setAttribute('aria-label', 'Interactive bouncy balls physics simulation');
+      }
+    } catch (e) {}
     
     // Set canvas reference in state (needed for container-relative sizing)
     setCanvas(canvas, ctx, container);
     
     // NOW resize - container is available for container-relative sizing
     resize();
-    console.log('✓ Canvas initialized (container-relative sizing)');
+    mark('bb:renderer');
+    log('✓ Canvas initialized (container-relative sizing)');
     
     // Ensure initial mouseInCanvas state is false for tests
     const globals = getGlobals();
@@ -242,11 +357,12 @@ function ensureNoiseElements() {
     
     // Setup pointer tracking BEFORE dark mode (needed for interactions)
     setupPointer();
-    console.log('✓ Pointer tracking configured');
+    log('✓ Pointer tracking configured');
     
     // Setup custom cursor (circular, matches ball size)
     setupCustomCursor();
-    console.log('✓ Custom cursor initialized');
+    mark('bb:input');
+    log('✓ Custom cursor initialized');
 
     // Subtle brand logo micro-interaction (cursor distance scaling)
     initBrandLogoCursorScale();
@@ -256,43 +372,55 @@ function ensureNoiseElements() {
     
     // Load any saved settings
     loadSettings();
+
+    // Initialize sound engine once (no AudioContext yet; unlock requires user gesture)
+    initSoundEngine();
+    log('✓ Sound engine primed (awaiting user unlock)');
     
-    // Initialize dark mode BEFORE colors (determines which palette variant to load)
-    initializeDarkMode();
-    console.log('✓ Dark mode initialized');
-    
-    // Initialize color system
-    applyColorTemplate(getGlobals().currentTemplate);
-    console.log('✓ Color system initialized');
-    
-    // Setup UI - unified panel dock (both panels visible, collapsed by default)
+    // Setup UI (panel DOM must exist before theme init binds buttons)
     createPanelDock();
     populateColorSelect();
-    console.log('✓ Panel dock created (Sound + Controls)');
+    mark('bb:ui');
+    log('✓ Panel dock created (Sound + Controls)');
+
+    // Initialize dark mode AFTER panel creation (theme buttons exist now)
+    initializeDarkMode();
+    mark('bb:theme');
     
     setupKeyboardShortcuts();
-    console.log('✓ Keyboard shortcuts registered');
+    log('✓ Keyboard shortcuts registered');
     
     // Initialize password gates (CV and Portfolio protection)
     initCVGate();
-    console.log('✓ CV password gate initialized');
+    log('✓ CV password gate initialized');
     
     initPortfolioGate();
-    console.log('✓ Portfolio password gate initialized');
+    log('✓ Portfolio password gate initialized');
+
+    // Compose the top UI (legend + decorative-script + sound toggle target row)
+    setupTopElementsLayout();
+
+    // Normalize social icons (line SVGs) across dev + build.
+    // (Build uses webflow-export HTML; we patch at runtime for consistency.)
+    upgradeSocialIcons();
+
+    // Footer: mobile-friendly wrapping tweaks (keeps "Bio/CV" together)
+    enhanceFooterLinksForMobile();
     
-    // Create quick sound toggle button (bottom-left)
+    // Create quick sound toggle button (top-right, next to decorative text)
     createSoundToggle();
-    console.log('✓ Sound toggle button created');
+    log('✓ Sound toggle button created');
     
     // Create quick theme toggle button (bottom-left)
     createThemeToggle();
-    console.log('✓ Theme toggle button created');
+    log('✓ Theme toggle button created');
     
     // Layout controls integrated into master panel
     
     // Initialize starting mode (Ball Pit by default)
     setMode(MODES.PIT);
-    console.log('✓ Mode initialized');
+    mark('bb:mode');
+    log('✓ Mode initialized');
     
     // Start main render loop
     const getForces = () => getForceApplicator();
@@ -301,7 +429,21 @@ function ensureNoiseElements() {
       if (forceFn) forceFn(ball, dt);
     });
     
-    console.log('✅ Bouncy Balls running (modular)');
+    mark('bb:end');
+    log('✅ Bouncy Balls running (modular)');
+
+    // DEV-only: summarize init timings in a compact table.
+    const rows = [
+      { phase: 'config', ms: measure('bb:m:config', 'bb:start', 'bb:config') },
+      { phase: 'renderer', ms: measure('bb:m:renderer', 'bb:config', 'bb:renderer') },
+      { phase: 'input', ms: measure('bb:m:input', 'bb:renderer', 'bb:input') },
+      { phase: 'ui', ms: measure('bb:m:ui', 'bb:input', 'bb:ui') },
+      { phase: 'theme', ms: measure('bb:m:theme', 'bb:ui', 'bb:theme') },
+      { phase: 'mode+loop', ms: measure('bb:m:mode', 'bb:theme', 'bb:mode') },
+      { phase: 'total', ms: measure('bb:m:total', 'bb:start', 'bb:end') },
+    ].filter((r) => typeof r.ms === 'number');
+    if (rows.length) table(rows.map((r) => ({ ...r, ms: Number(r.ms.toFixed(2)) })));
+    groupEnd();
     
     // ╔══════════════════════════════════════════════════════════════════════════════╗
     // ║                             PAGE FADE-IN                                    ║
@@ -334,50 +476,75 @@ function ensureNoiseElements() {
 
     setTimeout(() => {
       const fadeContent = document.getElementById('fade-content');
-      if (!fadeContent) {
-        console.warn('⚠️ #fade-content not found (fade skipped)');
+      const topElements = document.getElementById('top-elements');
+
+      if (!fadeContent && !topElements) {
+        console.warn('⚠️ #fade-content/#top-elements not found (fade skipped)');
         return;
       }
 
       // Accessibility: respect reduced motion by skipping animation entirely.
       if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-        fadeContent.style.opacity = '1';
+        if (fadeContent) fadeContent.style.opacity = '1';
+        if (topElements) topElements.style.opacity = '1';
         console.log('✓ Page fade-in skipped (prefers-reduced-motion)');
         return;
       }
 
       // If WAAPI is missing (older browsers / restricted contexts), fall back to inline style.
-      if (typeof fadeContent.animate !== 'function') {
+      if (fadeContent && typeof fadeContent.animate !== 'function') {
         forceFadeVisible(fadeContent, 'WAAPI unsupported');
+        if (topElements) topElements.style.opacity = '1';
         return;
       }
 
-      const anim = fadeContent.animate(
-        [{ opacity: 0 }, { opacity: 1 }],
-        {
-          duration: FADE_DURATION_MS,
-          easing: FADE_EASING,
-          fill: 'forwards',
-        }
-      );
+      const animateOpacity = (el) => {
+        if (!el || typeof el.animate !== 'function') return null;
+        return el.animate(
+          [{ opacity: 0 }, { opacity: 1 }],
+          {
+            duration: FADE_DURATION_MS,
+            easing: FADE_EASING,
+            fill: 'forwards',
+          }
+        );
+      };
+
+      const anim = animateOpacity(fadeContent);
+      const topAnim = animateOpacity(topElements);
 
       // When finished, stamp final opacity as an inline style. This prevents edge cases
       // where a later style recalc/compositing change makes it appear hidden again.
-      anim.addEventListener?.('finish', () => {
-        fadeContent.style.opacity = '1';
+      anim?.addEventListener?.('finish', () => {
+        if (fadeContent) fadeContent.style.opacity = '1';
         console.log('✓ Page fade-in finished');
       });
 
-      anim.addEventListener?.('cancel', () => {
-        forceFadeVisible(fadeContent, 'animation canceled');
+      anim?.addEventListener?.('cancel', () => {
+        if (fadeContent) forceFadeVisible(fadeContent, 'animation canceled');
+      });
+
+      topAnim?.addEventListener?.('finish', () => {
+        if (topElements) topElements.style.opacity = '1';
+      });
+
+      topAnim?.addEventListener?.('cancel', () => {
+        if (topElements) topElements.style.opacity = '1';
       });
 
       console.log('✓ Page fade-in started (WAAPI)');
 
       // Ultimate failsafe: never allow permanent hidden UI.
       setTimeout(() => {
-        const opacity = window.getComputedStyle(fadeContent).opacity;
-        if (opacity === '0') forceFadeVisible(fadeContent, 'opacity still 0 after failsafe window');
+        if (fadeContent) {
+          const opacity = window.getComputedStyle(fadeContent).opacity;
+          if (opacity === '0') forceFadeVisible(fadeContent, 'opacity still 0 after failsafe window');
+        }
+
+        if (topElements) {
+          const opacity = window.getComputedStyle(topElements).opacity;
+          if (opacity === '0') topElements.style.opacity = '1';
+        }
       }, FADE_FAILSAFE_MS);
     }, FADE_DELAY_MS);
     

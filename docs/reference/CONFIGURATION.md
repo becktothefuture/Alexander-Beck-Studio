@@ -58,6 +58,7 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
   "noiseFrontOpacityDark": 0.05,
   "wallThickness": 12,
   "wallRadius": 42,
+  "wallInset": 3,
   "frameColor": "#0a0a0a",
   "wallWobbleMaxDeform": 80,
   "wallWobbleStiffness": 2500,
@@ -161,6 +162,7 @@ Applied to CSS vars `--container-inner-shadow-*`.
 ### Geometry
 - `wallThickness` (number, px) → `--wall-thickness`
 - `wallRadius` (number, px) → `--wall-radius` (also feeds rounded-corner collision bounds)
+- `wallInset` (number, px) → physics-only inset (shrinks effective collision bounds to prevent visual overlap)
 
 ### Wobble tuning (visual-only deformation)
 - `wallWobbleMaxDeform` (number, px)

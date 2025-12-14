@@ -11,6 +11,7 @@ import {
   SOUND_STATE_EVENT,
   initSoundEngine 
 } from '../audio/sound-engine.js';
+import { ICON_SOUND_OFF, ICON_SOUND_ON } from './icons.js';
 
 let buttonElement = null;
 
@@ -43,19 +44,48 @@ export function createSoundToggle() {
   
   // No inline styles - CSS handles all styling via .sound-toggle class
 
-  // Initial text (sound starts off)
-  buttonElement.textContent = 'Sound Off';
+  // Initial icon (sound starts off)
+  buttonElement.innerHTML = ICON_SOUND_OFF;
+  buttonElement.title = 'Sound off';
   
   // Click handler
   buttonElement.addEventListener('click', handleToggleClick);
   
-  // Preferred mount: inside the social icon group (bottom-left) so it aligns vertically.
+  // Preferred mounts:
+  // - Mobile: a full-width row under legend + description (#top-elements-soundRow)
+  // - Desktop: top-right row next to the decorative text (#top-elements-rightRow)
   // Fallback: append to #fade-content so it fades with other content.
   const fadeContent = document.getElementById('fade-content');
+  const topRow = document.getElementById('top-elements-rightRow');
+  const soundRow = document.getElementById('top-elements-soundRow');
   const socialLinks = document.getElementById('social-links');
+  const canMountInTopRow = !!topRow;
   const canMountInSocialLinks = socialLinks && (!fadeContent || fadeContent.contains(socialLinks));
+  const prefersMobileFullWidth =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(max-width: 480px)').matches;
   
-  if (canMountInSocialLinks) {
+  const mountInto = (parent) => {
+    if (!parent) return false;
+    // Move if already mounted somewhere else
+    try {
+      if (buttonElement.parentElement && buttonElement.parentElement !== parent) {
+        buttonElement.parentElement.removeChild(buttonElement);
+      }
+    } catch (e) {}
+    parent.appendChild(buttonElement);
+    return true;
+  };
+
+  if (prefersMobileFullWidth && soundRow) {
+    buttonElement.classList.add('sound-toggle--top');
+    buttonElement.classList.add('sound-toggle--topwide');
+    mountInto(soundRow);
+  } else if (canMountInTopRow) {
+    buttonElement.classList.add('sound-toggle--top');
+    topRow.appendChild(buttonElement);
+  } else if (canMountInSocialLinks) {
     const li = document.createElement('li');
     li.className = 'margin-bottom_none sound-toggle-item';
     buttonElement.classList.add('sound-toggle--social');
@@ -66,6 +96,27 @@ export function createSoundToggle() {
   } else {
     document.body.appendChild(buttonElement);
   }
+
+  // If the viewport crosses the mobile breakpoint, re-mount to keep layout correct.
+  try {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      const mq = window.matchMedia('(max-width: 480px)');
+      const handler = () => {
+        const sr = document.getElementById('top-elements-soundRow');
+        const tr = document.getElementById('top-elements-rightRow');
+        const shouldBeWide = mq.matches && !!sr;
+        buttonElement.classList.toggle('sound-toggle--topwide', shouldBeWide);
+        if (shouldBeWide) {
+          mountInto(sr);
+        } else if (tr) {
+          mountInto(tr);
+        }
+      };
+      // Prefer modern API, fall back gracefully.
+      if (typeof mq.addEventListener === 'function') mq.addEventListener('change', handler);
+      else if (typeof mq.addListener === 'function') mq.addListener(handler);
+    }
+  } catch (e) {}
   
   console.log('✓ Sound toggle created');
 
@@ -113,9 +164,13 @@ async function handleToggleClick() {
       updateButtonState(true);
     } else {
       // Failed to unlock - show error state briefly, then revert
-      buttonElement.textContent = 'Audio unavailable';
+      if (buttonElement) {
+        buttonElement.innerHTML = ICON_SOUND_OFF;
+        buttonElement.setAttribute('aria-label', 'Audio unavailable');
+        buttonElement.title = 'Audio unavailable';
+      }
       setTimeout(() => {
-        buttonElement.textContent = 'Sound off';
+        updateButtonState(false);
       }, 2000);
     }
   } else {
@@ -134,9 +189,9 @@ function updateButtonState(enabled) {
   
   buttonElement.setAttribute('data-enabled', enabled ? 'true' : 'false');
   buttonElement.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-  buttonElement.setAttribute('aria-label', 'Toggle collision sounds');
-  
-  buttonElement.textContent = enabled ? 'Sound On' : 'Sound Off';
+  buttonElement.setAttribute('aria-label', enabled ? 'Sound on' : 'Sound off');
+  buttonElement.title = enabled ? 'Sound on' : 'Sound off';
+  buttonElement.innerHTML = enabled ? ICON_SOUND_ON : ICON_SOUND_OFF;
 }
 
 /**

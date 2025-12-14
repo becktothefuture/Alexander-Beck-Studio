@@ -872,35 +872,8 @@ function generateSectionHTML(key, section) {
 
 export function generatePanelHTML() {
   // NOTE: Don't wrap in .panel-content here - panel-dock.js creates that wrapper
-  
-  // Detect environment: Dev (port 8001 or ES modules) vs Production (bundled)
-  const isDevMode = window.location.port === '8001' || 
-                    document.querySelector('script[type="module"][src*="main.js"]') !== null;
-  
-  // Get actual port for display
-  const currentPort = window.location.port || '8000';
-  
-  const environmentBadge = `
-    <div class="environment-badge" style="
-      position: sticky;
-      top: 0;
-      padding: 0.5rem 1rem;
-      background: ${isDevMode ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'};
-      color: white;
-      font-weight: 700;
-      font-size: 0.7rem;
-      text-align: center;
-      z-index: 1000;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin: -1rem -1rem 1rem -1rem;
-      user-select: none;
-    " role="status" aria-label="Environment indicator">
-      ${isDevMode ? '🚀 DEV MODE — Port ' + currentPort : '📦 PRODUCTION — Port ' + currentPort}
-    </div>`;
-  
-  let html = environmentBadge + `
+
+  let html = `
     <!-- Screen reader announcements -->
     <div role="status" aria-live="polite" aria-atomic="true" class="sr-only" id="announcer"></div>
 

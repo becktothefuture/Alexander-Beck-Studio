@@ -32,7 +32,15 @@
   --panel-radius: 0.75rem;
   --panel-radius-sm: 0.5rem;
   --panel-radius-lg: 1rem;
-  --panel-width: 320px;
+  /* “23” → compact mac-style width */
+  --panel-width: 23rem;
+
+  /* Density (DAW-style compact spacing) */
+  --panel-pad: 10px;
+  --panel-gap: 8px;
+  --panel-section-pad: 10px;
+  --panel-section-gap: 6px;
+  --panel-control-gap: 3px;
   
   /* Typography */
   --panel-font: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
@@ -67,8 +75,8 @@ body:not(.dark-mode) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel {
   font-family: var(--panel-font);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 12.5px;
+  line-height: 1.35;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -85,7 +93,8 @@ body:not(.dark-mode) {
   display: flex;
   flex-direction: column;
   
-  z-index: 2147483647 !important;
+  /* Keep within sane stacking ranges; dock container manages global stacking */
+  z-index: 10000 !important;
   pointer-events: auto !important;
   user-select: none;
 }
@@ -107,7 +116,7 @@ body:not(.dark-mode) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: var(--panel-pad);
   border-bottom: 1px solid var(--panel-border);
   background: var(--panel-background);
   cursor: pointer;
@@ -122,7 +131,7 @@ body:not(.dark-mode) {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--panel-foreground);
 }
@@ -156,10 +165,10 @@ body:not(.dark-mode) {
    PANEL CONTENT — Scrollable area with clean padding
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel .panel-content {
-  padding: 16px;
+  padding: var(--panel-pad);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--panel-gap);
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
@@ -214,9 +223,9 @@ body:not(.dark-mode) {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 16px;
-  height: 46px;
-  font-size: 14px;
+  padding: 0 var(--panel-pad);
+  height: 38px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--panel-foreground);
   cursor: pointer;
@@ -258,10 +267,10 @@ body:not(.dark-mode) {
 }
 
 .panel-section-content {
-  padding: 16px;
+  padding: var(--panel-section-pad);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--panel-section-gap);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -321,10 +330,10 @@ body:not(.dark-mode) {
 }
 
 .panel details:not(.panel-section-accordion) .group {
-  padding: 12px;
+  padding: var(--panel-section-pad);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--panel-section-gap);
   background: var(--panel-background);
 }
 
@@ -334,7 +343,7 @@ body:not(.dark-mode) {
 .panel label {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--panel-control-gap);
 }
 
 .panel label > span:first-child,
@@ -342,13 +351,13 @@ body:not(.dark-mode) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--panel-muted-foreground);
 }
 
 .panel span.val {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   font-family: var(--panel-font-mono);
@@ -362,7 +371,7 @@ body:not(.dark-mode) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel input[type="range"] {
   width: 100%;
-  height: 8px;
+  height: 6px;
   border-radius: 9999px;
   background: var(--panel-muted);
   border: none;
@@ -375,8 +384,8 @@ body:not(.dark-mode) {
 .panel input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--panel-foreground);
   border: none;
@@ -395,8 +404,8 @@ body:not(.dark-mode) {
 }
 
 .panel input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--panel-foreground);
   border: none;
@@ -405,7 +414,7 @@ body:not(.dark-mode) {
 }
 
 .panel input[type="range"]::-moz-range-track {
-  height: 8px;
+  height: 6px;
   background: var(--panel-muted);
   border-radius: 9999px;
 }
@@ -420,9 +429,9 @@ body:not(.dark-mode) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel button {
   font-family: inherit;
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 500;
-  padding: 10px 16px;
+  padding: 7px 10px;
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
@@ -466,9 +475,9 @@ body:not(.dark-mode) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel select {
   font-family: inherit;
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 500;
-  padding: 10px 36px 10px 12px;
+  padding: 7px 32px 7px 10px;
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
@@ -505,13 +514,13 @@ body:not(.dark-mode) {
 }
 
 .mode-button {
-  padding: 12px 8px;
+  padding: 8px 8px;
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
   color: var(--panel-muted-foreground);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
   text-align: center;
@@ -631,13 +640,37 @@ body:not(.dark-mode) {
 .panel-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--panel-section-gap);
 }
 
 .panel-section--action {
-  padding-top: 12px;
-  margin-top: 12px;
+  padding-top: var(--panel-section-gap);
+  margin-top: var(--panel-section-gap);
   border-top: 1px solid var(--panel-border);
+}
+
+/* Pin config export to bottom of the window */
+.panel-section--action {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-bottom: 8px;
+  /* soft fade so it reads as “anchored” without a hard edge */
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.20) 24%,
+    rgba(0, 0, 0, 0.38) 100%
+  );
+}
+
+body:not(.dark-mode) .panel-section--action {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 24%,
+    rgba(255, 255, 255, 0.80) 100%
+  );
 }
 
 .panel-section--action button {
@@ -688,19 +721,19 @@ body:not(.dark-mode) {
 .panel .group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--panel-section-gap);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    SOUND SECTION STYLES
    ═══════════════════════════════════════════════════════════════════════════════ */
 .sound-enable-row {
-  margin-bottom: 12px;
+  margin-bottom: var(--panel-section-gap);
 }
 
 .sound-enable-btn {
   width: 100%;
-  padding: 12px 16px;
+  padding: 9px 12px;
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
@@ -710,6 +743,12 @@ body:not(.dark-mode) {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.sound-enable-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .sound-enable-btn:hover {
@@ -730,7 +769,7 @@ body:not(.dark-mode) {
 .sound-controls {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--panel-section-gap);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -739,7 +778,7 @@ body:not(.dark-mode) {
 .control-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--panel-control-gap);
 }
 
 .control-row-header {
@@ -749,13 +788,13 @@ body:not(.dark-mode) {
 }
 
 .control-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--panel-muted-foreground);
 }
 
 .control-value {
-  font-size: 12px;
+  font-size: 11px;
   font-family: var(--panel-font-mono, ui-monospace, monospace);
   font-variant-numeric: tabular-nums;
   color: var(--panel-foreground);
@@ -770,7 +809,7 @@ body:not(.dark-mode) {
   border-radius: var(--panel-radius-sm);
   color: var(--panel-foreground);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 11.5px;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");

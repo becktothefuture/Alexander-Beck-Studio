@@ -10,6 +10,7 @@ export function setupBuildControls() {
   btn.addEventListener('click', () => {
     const g = getGlobals();
     const config = {
+      maxBalls: g.maxBalls,
       gravityMultiplier: g.gravityMultiplierPit,
       ballMass: g.ballMassKg,
       ballSpacing: g.ballSpacing,
@@ -19,7 +20,7 @@ export function setupBuildControls() {
       friction: g.FRICTION,
       repelRadius: g.repelRadius,
       repelPower: g.repelPower,
-      repelSoftness: g.repelSoft,
+      repelSoft: g.repelSoft,
       
       // Frame & Walls
       frameColor: g.frameColor,
@@ -30,8 +31,18 @@ export function setupBuildControls() {
       containerInnerShadowBlur: g.containerInnerShadowBlur,
       containerInnerShadowSpread: g.containerInnerShadowSpread,
       containerInnerShadowOffsetY: g.containerInnerShadowOffsetY,
+      
+      // Noise
+      noiseSizeBase: g.noiseSizeBase,
+      noiseSizeTop: g.noiseSizeTop,
+      noiseBackOpacity: g.noiseBackOpacity,
+      noiseFrontOpacity: g.noiseFrontOpacity,
+      noiseBackOpacityDark: g.noiseBackOpacityDark,
+      noiseFrontOpacityDark: g.noiseFrontOpacityDark,
+
       wallThickness: g.wallThickness,
       wallRadius: g.wallRadius,
+      wallInset: g.wallInset,
       wallWobbleMaxDeform: g.wallWobbleMaxDeform,
       wallWobbleStiffness: g.wallWobbleStiffness,
       wallWobbleDamping: g.wallWobbleDamping,

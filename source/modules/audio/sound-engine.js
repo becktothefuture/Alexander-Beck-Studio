@@ -283,6 +283,8 @@ let prefersReducedMotion = false;
 // Shared noise buffer (created once, reused)
 let sharedNoiseBuffer = null;
 
+let isSoundEngineInitialized = false;
+
 // ════════════════════════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ════════════════════════════════════════════════════════════════════════════════
@@ -292,6 +294,9 @@ let sharedNoiseBuffer = null;
  * Does NOT create AudioContext yet — that requires user interaction
  */
 export function initSoundEngine() {
+  if (isSoundEngineInitialized) return;
+  isSoundEngineInitialized = true;
+
   if (typeof window !== 'undefined' && window.matchMedia) {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     prefersReducedMotion = motionQuery.matches;
@@ -299,7 +304,6 @@ export function initSoundEngine() {
       prefersReducedMotion = e.matches;
     });
   }
-  console.log('✓ Sound engine initialized (awaiting user unlock)');
 }
 
 /**
@@ -559,6 +563,15 @@ export function playCollisionSound(ballRadius, intensity, xPosition = 0.5, ballI
   const clampedIntensity = Math.max(0, Math.min(1, intensity));
   
   playVoice(voice, frequency, clampedIntensity, xPosition, now);
+}
+
+/**
+ * Play a short test hit (for UI auditioning).
+ * Useful for the synth-style control surface: lets you "fumble" settings without
+ * needing a physical collision to happen.
+ */
+export function playTestSound({ intensity = 0.82, radius = 18, xPosition = 0.72 } = {}) {
+  playCollisionSound(radius, intensity, xPosition, null);
 }
 
 /** Acquire a voice from the pool (with voice stealing) */

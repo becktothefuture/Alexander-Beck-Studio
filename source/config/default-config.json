@@ -22,6 +22,7 @@
   "noiseFrontOpacityDark": 0.05,
   "wallThickness": 12,
   "wallRadius": 42,
+  "wallInset": 3,
   "frameColor": "#0a0a0a",
   "wallWobbleMaxDeform": 80,
   "wallWobbleStiffness": 2500,

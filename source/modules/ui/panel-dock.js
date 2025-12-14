@@ -6,7 +6,6 @@
 import { PANEL_HTML } from './panel-html.js';
 import { setupControls } from './controls.js';
 import { setupBuildControls } from './build-controls.js';
-import { initializeDarkMode } from '../visual/dark-mode-v2.js';
 import { getGlobals } from '../core/state.js';
 import {
   SOUND_PRESETS,
@@ -16,9 +15,9 @@ import {
   getCurrentPreset,
   getSoundState,
   SOUND_STATE_EVENT,
+  playTestSound,
   unlockAudio,
-  toggleSound,
-  initSoundEngine
+  toggleSound
 } from '../audio/sound-engine.js';
 import {
   generateSoundControlsHTML,
@@ -26,26 +25,31 @@ import {
   syncSoundControlsToConfig
 } from '../audio/sound-control-registry.js';
 import { resize } from '../rendering/renderer.js';
+import { isDev } from '../utils/logger.js';
 
 let dockElement = null;
 let masterPanelElement = null;
-let dockToggleElement = null;
 
 // ════════════════════════════════════════════════════════════════════════════════
 // STATE PERSISTENCE
 // ════════════════════════════════════════════════════════════════════════════════
 
 const STORAGE_KEYS = {
-  position: 'panel_dock_position',
+  // v2: avoid inheriting old “too low” positions
+  position: 'panel_dock_position_v2',
   dockHidden: 'panel_dock_hidden',
-  panelCollapsed: 'master_panel_collapsed'
+  panelCollapsed: 'master_panel_collapsed',
+  panelSize: 'panel_dock_size'
 };
 
 function loadPanelCollapsed() {
   try {
-    return localStorage.getItem(STORAGE_KEYS.panelCollapsed) === 'true';
+    const v = localStorage.getItem(STORAGE_KEYS.panelCollapsed);
+    // Default: collapsed (avoid obstructing content on first visit).
+    if (v === null) return true;
+    return v === 'true';
   } catch (e) {
-    return false;
+    return true;
   }
 }
 
@@ -57,15 +61,49 @@ function savePanelCollapsed(collapsed) {
 
 function loadDockHiddenState() {
   try {
-    return localStorage.getItem(STORAGE_KEYS.dockHidden) === 'true';
+    const v = localStorage.getItem(STORAGE_KEYS.dockHidden);
+    // Default: hidden (debug panel should not obstruct first visit)
+    if (v === null) return true;
+    return v === 'true';
   } catch (e) {
-    return false;
+    return true;
   }
 }
 
 function saveDockHiddenState(hidden) {
   try {
     localStorage.setItem(STORAGE_KEYS.dockHidden, String(hidden));
+  } catch (e) {}
+}
+
+function loadPanelSize() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.panelSize);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const width = Number(parsed.width);
+    const height = Number(parsed.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+    return {
+      width: Math.round(width),
+      height: Math.round(height),
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function savePanelSizeFromElement(el) {
+  try {
+    if (!el) return;
+    if (el.classList.contains('collapsed')) return;
+    const rect = el.getBoundingClientRect();
+    const next = {
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+    };
+    localStorage.setItem(STORAGE_KEYS.panelSize, JSON.stringify(next));
   } catch (e) {}
 }
 
@@ -93,6 +131,8 @@ function getMasterPanelContent() {
   const frameVal = getVar('--container-border') || 20;
   const radiusVal = getVar('--wall-radius') || 42;
   const contentPadVal = getVar('--content-padding') || 40;
+  const g = getGlobals();
+  const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
 
   return `
     <!-- ═══════════════════════════════════════════════════════════════════════
@@ -125,6 +165,13 @@ function getMasterPanelContent() {
           </div>
           <input type="range" id="layoutRadius" min="0" max="100" value="${radiusVal}" />
         </label>
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Wall Inset</span>
+            <span class="control-value" id="wallInsetValue">${wallInsetVal}px</span>
+          </div>
+          <input type="range" id="layoutWallInset" min="0" max="20" value="${wallInsetVal}" />
+        </label>
       </div>
     </details>
 
@@ -138,9 +185,15 @@ function getMasterPanelContent() {
       </summary>
       <div class="panel-section-content">
         <div class="sound-enable-row">
-          <button id="soundEnableBtn" class="sound-enable-btn">🔇 Enable Sound</button>
+          <button id="soundEnableBtn" class="sound-enable-btn" aria-label="Enable sound" title="Enable sound">🔇</button>
         </div>
         <div id="soundControlsWrapper" class="sound-controls" style="display: none;">
+          <div class="sound-perf" aria-label="Sound performance controls">
+            <button type="button" id="soundTapBtn" class="sound-perf__btn" aria-label="Play test hit">▶︎</button>
+            <button type="button" id="soundResetBtn" class="sound-perf__btn" aria-label="Reset to preset">↺</button>
+            <button type="button" id="soundShuffleBtn" class="sound-perf__btn" aria-label="Shuffle (subtle) sound">🎲</button>
+            <span class="sound-perf__hint">wheel adjusts · shift/alt = fine</span>
+          </div>
           <label class="control-row">
             <span class="control-label">Preset</span>
             <select id="soundPresetSelect" class="control-select"></select>
@@ -171,9 +224,6 @@ function getMasterPanelContent() {
 // ════════════════════════════════════════════════════════════════════════════════
 
 export function createPanelDock() {
-  // Initialize sound engine (non-blocking)
-  initSoundEngine();
-
   // Remove any legacy placeholders
   try {
     const existingControl = document.getElementById('controlPanel');
@@ -187,34 +237,21 @@ export function createPanelDock() {
   dockElement.className = 'panel-dock';
   dockElement.id = 'panelDock';
   
-  // Restore hidden state
-  const wasHidden = loadDockHiddenState();
-  if (wasHidden) {
-    dockElement.classList.add('hidden');
-  }
+  // Always start hidden on load (user summons with `/`)
+  dockElement.classList.add('hidden');
+  saveDockHiddenState(true);
   
   // Create master panel
   masterPanelElement = createMasterPanel();
   dockElement.appendChild(masterPanelElement);
-  
-  // Create dock toggle button
-  dockToggleElement = createDockToggle();
-  
+
   // Append to body as first child for maximum z-index stacking
   document.body.insertBefore(dockElement, document.body.firstChild);
-  document.body.insertBefore(dockToggleElement, document.body.firstChild);
-  
-  // Update toggle visibility
-  if (wasHidden && dockToggleElement) {
-    dockToggleElement.style.opacity = '1';
-    dockToggleElement.style.pointerEvents = 'auto';
-  }
   
   // Setup interactions
-  setupKeyboardShortcuts();
   setupDragging();
-  
-  console.log('✓ Panel dock created');
+  setupResizePersistence();
+
   return dockElement;
 }
 
@@ -228,12 +265,20 @@ function createMasterPanel() {
   // Header
   const header = document.createElement('div');
   header.className = 'panel-header';
+  const modeLabel = isDev() ? 'DEV MODE' : 'BUILD MODE';
   header.innerHTML = `
-    <div class="panel-title">
-      <span class="drag-indicator" aria-hidden="true">⋮⋮</span>
-      <span>Settings</span>
+    <div class="mac-titlebar">
+      <div class="mac-traffic" aria-hidden="true">
+        <span class="mac-dot mac-dot--red"></span>
+        <span class="mac-dot mac-dot--yellow"></span>
+        <span class="mac-dot mac-dot--green"></span>
+      </div>
+      <div class="panel-title mac-title">Settings</div>
+      <div class="mac-right">
+        <span class="panel-mode-pill" role="status" aria-label="Runtime mode">${modeLabel}</span>
+        <button class="collapse-btn mac-collapse" aria-label="Collapse panel" title="Collapse">▾</button>
+      </div>
     </div>
-    <button class="collapse-btn" aria-label="Collapse panel">▼</button>
   `;
   
   // Content
@@ -243,6 +288,14 @@ function createMasterPanel() {
   
   panel.appendChild(header);
   panel.appendChild(content);
+
+  // Restore size (if previously resized)
+  const savedSize = loadPanelSize();
+  if (savedSize) {
+    panel.style.width = `${savedSize.width}px`;
+    panel.style.height = `${savedSize.height}px`;
+    panel.style.maxHeight = 'none';
+  }
   
   // Collapse button
   const collapseBtn = header.querySelector('.collapse-btn');
@@ -253,17 +306,11 @@ function createMasterPanel() {
       togglePanelCollapse(panel);
     });
   }
-  
-  // Header click to toggle
-  header.addEventListener('click', (e) => {
-    if (hasDragged) return;
-    if (e.target.closest('button')) return;
-    togglePanelCollapse(panel);
-  });
+  // Header click should NOT toggle collapse.
+  // For a Mac-window feel, the titlebar is for dragging; collapse is explicit via the button.
   
   // Initialize controls
   setTimeout(() => {
-    initializeDarkMode();
     setupControls();
     setupBuildControls();
     setupSoundControls(panel);
@@ -273,21 +320,25 @@ function createMasterPanel() {
   return panel;
 }
 
-function createDockToggle() {
-  const btn = document.createElement('button');
-  btn.className = 'dock-toggle';
-  btn.id = 'dockToggle';
-  btn.setAttribute('aria-label', 'Show settings');
-  btn.innerHTML = '⚙️';
-  
-  btn.addEventListener('click', () => {
-    dockElement.classList.remove('hidden');
-    btn.style.opacity = '0';
-    btn.style.pointerEvents = 'none';
-    saveDockHiddenState(false);
+function setupResizePersistence() {
+  if (!masterPanelElement) return;
+  if (typeof ResizeObserver === 'undefined') return;
+
+  let t = 0;
+  const ro = new ResizeObserver(() => {
+    if (!masterPanelElement) return;
+    // Avoid persisting while collapsed (it forces a short height)
+    if (masterPanelElement.classList.contains('collapsed')) return;
+
+    window.clearTimeout(t);
+    t = window.setTimeout(() => {
+      savePanelSizeFromElement(masterPanelElement);
+    }, 150);
   });
-  
-  return btn;
+
+  try {
+    ro.observe(masterPanelElement);
+  } catch (e) {}
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -313,11 +364,12 @@ function setupDragging() {
 
 function handleDragStart(e) {
   if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+  if (!dockElement) return;
   
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
   
-  const rect = masterPanelElement.getBoundingClientRect();
+  const rect = dockElement.getBoundingClientRect();
   dragStartX = clientX;
   dragStartY = clientY;
   elementStartX = rect.left;
@@ -328,6 +380,7 @@ function handleDragStart(e) {
 
 function handleDragMove(e) {
   if (dragStartX === 0 && dragStartY === 0) return;
+  if (!dockElement) return;
   
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -339,23 +392,23 @@ function handleDragMove(e) {
   if (!isDragging && (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold)) {
     isDragging = true;
     hasDragged = true;
-    masterPanelElement.classList.add('dragging');
-    masterPanelElement.style.position = 'fixed';
-    masterPanelElement.style.top = `${elementStartY}px`;
-    masterPanelElement.style.left = `${elementStartX}px`;
-    masterPanelElement.style.right = 'auto';
+    dockElement.classList.add('dragging');
+    dockElement.style.position = 'fixed';
+    dockElement.style.top = `${elementStartY}px`;
+    dockElement.style.left = `${elementStartX}px`;
+    dockElement.style.right = 'auto';
   }
   
   if (isDragging) {
     let newX = elementStartX + deltaX;
     let newY = elementStartY + deltaY;
     
-    const rect = masterPanelElement.getBoundingClientRect();
+    const rect = dockElement.getBoundingClientRect();
     newX = Math.max(0, Math.min(window.innerWidth - rect.width, newX));
     newY = Math.max(0, Math.min(window.innerHeight - rect.height, newY));
     
-    masterPanelElement.style.left = `${newX}px`;
-    masterPanelElement.style.top = `${newY}px`;
+    dockElement.style.left = `${newX}px`;
+    dockElement.style.top = `${newY}px`;
     e.preventDefault();
   }
 }
@@ -363,7 +416,7 @@ function handleDragMove(e) {
 function handleDragEnd() {
   if (isDragging) {
     isDragging = false;
-    masterPanelElement.classList.remove('dragging');
+    if (dockElement) dockElement.classList.remove('dragging');
     savePanelPosition();
   }
   
@@ -375,9 +428,10 @@ function handleDragEnd() {
 
 function savePanelPosition() {
   try {
+    if (!dockElement) return;
     const pos = {
-      left: masterPanelElement.style.left,
-      top: masterPanelElement.style.top,
+      left: dockElement.style.left,
+      top: dockElement.style.top,
       custom: true
     };
     localStorage.setItem(STORAGE_KEYS.position, JSON.stringify(pos));
@@ -386,22 +440,23 @@ function savePanelPosition() {
 
 function loadPanelPosition() {
   try {
+    if (!dockElement) return;
     const pos = JSON.parse(localStorage.getItem(STORAGE_KEYS.position) || '{}');
     if (pos.custom) {
-      masterPanelElement.style.position = 'fixed';
-      masterPanelElement.style.left = pos.left;
-      masterPanelElement.style.top = pos.top;
-      masterPanelElement.style.right = 'auto';
+      dockElement.style.position = 'fixed';
+      dockElement.style.left = pos.left;
+      dockElement.style.top = pos.top;
+      dockElement.style.right = 'auto';
     }
   } catch (e) {}
 }
 
 export function resetPanelPositions() {
-  if (!masterPanelElement) return;
-  masterPanelElement.style.position = '';
-  masterPanelElement.style.left = '';
-  masterPanelElement.style.top = '';
-  masterPanelElement.style.right = '';
+  if (!dockElement) return;
+  dockElement.style.position = '';
+  dockElement.style.left = '';
+  dockElement.style.top = '';
+  dockElement.style.right = '';
   try {
     localStorage.removeItem(STORAGE_KEYS.position);
   } catch (e) {}
@@ -431,11 +486,6 @@ export function toggleDock() {
   
   const isHidden = dockElement.classList.toggle('hidden');
   saveDockHiddenState(isHidden);
-  
-  if (dockToggleElement) {
-    dockToggleElement.style.opacity = isHidden ? '1' : '0';
-    dockToggleElement.style.pointerEvents = isHidden ? 'auto' : 'none';
-  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -448,6 +498,29 @@ function setupSoundControls(panel) {
   const presetSelect = panel.querySelector('#soundPresetSelect');
   const presetDesc = panel.querySelector('#presetDescription');
   const soundDetails = panel.querySelector('#soundSection');
+  const tapBtn = panel.querySelector('#soundTapBtn');
+  const resetBtn = panel.querySelector('#soundResetBtn');
+  const shuffleBtn = panel.querySelector('#soundShuffleBtn');
+
+  // Icon-only button labels (no text), with accessible aria-label/title.
+  const ICON_SOUND_OFF = `
+    <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M6.2 5.2 3.6 7H2.2C1.5 7 1 7.5 1 8.2v-.4C1 7.5 1.5 7 2.2 7h1.4l2.6-1.8V3.4c0-.3.2-.5.5-.5.1 0 .2 0 .3.1l3.1 2.2h1.7c.3 0 .5.2.5.5s-.2.5-.5.5H9.8L7.2 3.9v8.2l1.2-.9c.2-.1.4-.1.6 0 .2.1.3.3.3.5v.4c0-.2-.1-.4-.3-.5-.2-.1-.4-.1-.6 0l-1.2.9V3.4c0-.3-.2-.5-.5-.5-.1 0-.2 0-.3.1L6.2 3.9v1.3z" fill="currentColor"/>
+      <path d="M10.3 5.7a.5.5 0 0 1 .7 0l3.3 3.3a.5.5 0 0 1 0 .7.5.5 0 0 1-.7 0L10.3 6.4a.5.5 0 0 1 0-.7z" fill="currentColor"/>
+      <path d="M13.6 5.7a.5.5 0 0 1 .7.7L11 9.7a.5.5 0 0 1-.7-.7l3.3-3.3z" fill="currentColor"/>
+    </svg>
+  `;
+
+  const ICON_SOUND_ON = `
+    <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M6.5 3.3c.2-.2.6-.2.8 0l3.0 2.2h2.0c.3 0 .5.2.5.5s-.2.5-.5.5h-2.2L7.5 4.6v6.8l2.6-1.9h2.2c.3 0 .5.2.5.5s-.2.5-.5.5h-2.0l-3.0 2.2c-.2.2-.6.2-.8 0a.5.5 0 0 1-.2-.4V3.7c0-.2.1-.3.2-.4z" fill="currentColor"/>
+      <path d="M12.2 4.7a.5.5 0 0 1 .7.0c1.4 1.4 1.4 5.2 0 6.6a.5.5 0 1 1-.7-.7c1-1 1-4.2 0-5.2a.5.5 0 0 1 0-.7z" fill="currentColor"/>
+      <path d="M10.9 6.0a.5.5 0 0 1 .7 0c.7.7.7 2.6 0 3.3a.5.5 0 1 1-.7-.7c.3-.3.3-1.6 0-1.9a.5.5 0 0 1 0-.7z" fill="currentColor"/>
+    </svg>
+  `;
+
+  const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
+  const jitter = (base, amount) => base + (Math.random() - 0.5) * 2 * amount;
 
   const syncSoundSectionUI = (state, { openIfEnabled = false } = {}) => {
     if (!enableBtn) return;
@@ -455,9 +528,10 @@ function setupSoundControls(panel) {
     const enabled = !!(s.isUnlocked && s.isEnabled);
     const unlocked = !!s.isUnlocked;
 
-    enableBtn.textContent = unlocked
-      ? (enabled ? '🔊 Sound On' : '🔇 Sound Off')
-      : '🔇 Enable Sound';
+    // Icon-only (no text). Use aria-label/title for accessibility.
+    enableBtn.innerHTML = (unlocked && enabled) ? ICON_SOUND_ON : ICON_SOUND_OFF;
+    enableBtn.setAttribute('aria-label', unlocked ? (enabled ? 'Sound on' : 'Sound off') : 'Enable sound');
+    enableBtn.title = unlocked ? (enabled ? 'Sound on' : 'Sound off') : 'Enable sound';
 
     enableBtn.classList.toggle('enabled', enabled);
 
@@ -469,6 +543,52 @@ function setupSoundControls(panel) {
       soundDetails.open = true;
     }
   };
+
+  // Performance controls (audition / reset / gentle shuffle)
+  if (tapBtn) {
+    tapBtn.addEventListener('click', () => {
+      // If sound isn't enabled, do nothing; user can hit "Enable Sound" first
+      playTestSound({ intensity: 0.86, radius: 18, xPosition: 0.72 });
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      const preset = getCurrentPreset();
+      applySoundPreset(preset);
+      if (presetDesc && SOUND_PRESETS[preset]) presetDesc.textContent = SOUND_PRESETS[preset].description;
+      syncSoundControlsToConfig(panel, getSoundConfig);
+    });
+  }
+
+  if (shuffleBtn) {
+    shuffleBtn.addEventListener('click', () => {
+      // Subtle, musical micro-randomization: never wild, just "alive".
+      const c = getSoundConfig();
+      const next = {
+        // Tone / crystal
+        filterBaseFreq: clamp(jitter(c.filterBaseFreq, 120), 300, 8000),
+        filterQ: clamp(jitter(c.filterQ, 0.04), 0.05, 0.9),
+        pitchCurve: clamp(jitter(c.pitchCurve, 0.06), 0.6, 1.8),
+        sparkleGain: clamp(jitter(c.sparkleGain, 0.03), 0.0, 0.35),
+        sparkleDecayMul: clamp(jitter(c.sparkleDecayMul, 0.05), 0.25, 0.95),
+        noiseTransientQ: clamp(jitter(c.noiseTransientQ, 0.25), 0.6, 6.0),
+
+        // Space / dynamics
+        reverbWetMix: clamp(jitter(c.reverbWetMix, 0.02), 0.0, 0.35),
+        reverbDecay: clamp(jitter(c.reverbDecay, 0.03), 0.05, 0.40),
+        collisionMinImpact: clamp(jitter(c.collisionMinImpact, 0.03), 0.45, 0.90),
+
+        // Humanization
+        variancePitch: clamp(jitter(c.variancePitch, 0.01), 0.0, 0.20),
+        varianceGain: clamp(jitter(c.varianceGain, 0.02), 0.0, 0.35),
+      };
+
+      updateSoundConfig(next);
+      syncSoundControlsToConfig(panel, getSoundConfig);
+      playTestSound({ intensity: 0.86, radius: 18, xPosition: 0.72 });
+    });
+  }
   
   if (enableBtn) {
     enableBtn.addEventListener('click', async () => {
@@ -533,6 +653,8 @@ function setupLayoutControls(panel) {
   const contentPadValue = panel.querySelector('#contentPadValue');
   const radiusSlider = panel.querySelector('#layoutRadius');
   const radiusValue = panel.querySelector('#radiusValue');
+  const wallInsetSlider = panel.querySelector('#layoutWallInset');
+  const wallInsetValue = panel.querySelector('#wallInsetValue');
   const g = getGlobals();
   
   // Frame (outer dark border around content + wall thickness)
@@ -573,6 +695,15 @@ function setupLayoutControls(panel) {
       // Keep state in sync for config export
       g.wallRadius = val;
       g.cornerRadius = val;
+    });
+  }
+
+  // Wall inset (physics-only): shrinks the effective collision bounds uniformly
+  if (wallInsetSlider && wallInsetValue) {
+    wallInsetSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      wallInsetValue.textContent = `${val}px`;
+      g.wallInset = val;
     });
   }
 }

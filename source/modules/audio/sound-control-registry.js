@@ -292,23 +292,61 @@ export function generateSoundControlsHTML() {
  * Bind all sound controls to the sound engine
  */
 export function bindSoundControls(panel, getSoundConfig, updateSoundConfig) {
+  const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
+
   for (const section of Object.values(SOUND_CONTROLS)) {
     for (const control of section.controls) {
       const slider = panel.querySelector(`#sound_${control.id}`);
       const valDisplay = panel.querySelector(`#sound_${control.id}_val`);
       
       if (!slider) continue;
+
+      const applyRawValue = (rawValue) => {
+        const min = parseFloat(slider.min);
+        const max = parseFloat(slider.max);
+        const next = clamp(rawValue, min, max);
+        slider.value = String(next);
+        const configValue = control.toConfig(next);
+        if (valDisplay) valDisplay.textContent = control.format(next);
+        updateSoundConfig({ [control.id]: configValue });
+      };
       
       slider.addEventListener('input', () => {
-        const rawValue = parseFloat(slider.value);
-        const configValue = control.toConfig(rawValue);
-        
-        if (valDisplay) {
-          valDisplay.textContent = control.format(rawValue);
-        }
-        
-        updateSoundConfig({ [control.id]: configValue });
+        applyRawValue(parseFloat(slider.value));
       });
+
+      // DAW-style: scroll to adjust (Shift/Alt = finer)
+      slider.addEventListener('wheel', (e) => {
+        // Avoid fighting browser zoom gestures (trackpad pinch)
+        if (e.ctrlKey) return;
+
+        const stepBase = parseFloat(slider.step) || 1;
+        const fineMul = e.altKey ? 0.1 : (e.shiftKey ? 0.2 : 1.0);
+        const step = stepBase * fineMul;
+
+        const dir = e.deltaY < 0 ? 1 : -1;
+        const current = parseFloat(slider.value);
+
+        e.preventDefault();
+        applyRawValue(current + dir * step);
+      }, { passive: false });
+
+      // Convenience: wheel over the value readout too
+      if (valDisplay) {
+        valDisplay.addEventListener('wheel', (e) => {
+          if (e.ctrlKey) return;
+
+          const stepBase = parseFloat(slider.step) || 1;
+          const fineMul = e.altKey ? 0.1 : (e.shiftKey ? 0.2 : 1.0);
+          const step = stepBase * fineMul;
+
+          const dir = e.deltaY < 0 ? 1 : -1;
+          const current = parseFloat(slider.value);
+
+          e.preventDefault();
+          applyRawValue(current + dir * step);
+        }, { passive: false });
+      }
     }
   }
 }

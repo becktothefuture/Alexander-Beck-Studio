@@ -153,11 +153,14 @@ export class Ball {
     const rest = customRest !== undefined ? customRest : REST;
     
     // Corner radius for rounded corner collision
-    const cr = (globals.getCanvasCornerRadius() || 100) * (DPR || 1);
+    const cornerRadiusPx = (typeof globals.getCanvasCornerRadius === 'function')
+      ? globals.getCanvasCornerRadius()
+      : (globals.cornerRadius ?? globals.wallRadius ?? 42);
+    const cr = Math.max(0, cornerRadiusPx) * (DPR || 1);
     
     // Small inset to create a gap between balls and walls (prevents overlap)
     // Positive value = balls stop before the edge
-    const borderInset = 3 * (DPR || 1);
+    const borderInset = Math.max(0, (globals.wallInset ?? 3)) * (DPR || 1);
     
     let hasWallCollision = false;
     

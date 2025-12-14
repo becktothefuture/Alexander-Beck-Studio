@@ -7,7 +7,12 @@ import { setMode, MODES } from '../modes/mode-controller.js';
 import { updateModeButtonsUI } from './controls.js';
 import { toggleDock } from './panel-dock.js';
 
+let isKeyboardWired = false;
+
 export function setupKeyboardShortcuts() {
+  if (isKeyboardWired) return;
+  isKeyboardWired = true;
+
   window.addEventListener('keydown', (e) => {
     // Skip if typing in an input
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
@@ -56,6 +61,4 @@ export function setupKeyboardShortcuts() {
       updateModeButtonsUI('bubbles');
     }
   });
-  
-  console.log('✓ Keyboard shortcuts registered');
 }

@@ -10,6 +10,8 @@ npm run startup
 
 This launches an interactive menu that guides you through all available development modes.
 
+Note: On startup we sync Webflow-exported assets into `source/webflow/` so the dev server can render the exact same typography/layout as the production build.
+
 ---
 
 ## Development Modes Overview
@@ -18,7 +20,7 @@ This launches an interactive menu that guides you through all available developm
 |------|---------|-------|------------------|----------|
 | **Quick Dev** | `npm run dev` | 8001 | ❌ No (instant) | Rapid iteration, UI tweaks |
 | **Build Preview** | `npm run preview` | 8000 | ✅ Yes (auto on start) | Testing production bundle |
-| **Watch Mode** | `npm run dev:watch` | 8001 | ⚡ Auto-rebuild | Dev + background build updates |
+| **Watch Mode** | `npm run startup` → 4 | 8001 | ⚡ Auto-rebuild | Dev + background build updates |
 | **Manual Servers** | See below | 8000 + 8001 | Hybrid | Advanced workflows |
 
 ---
@@ -38,10 +40,17 @@ npm run startup → option 1
 - Starts HTTP server on port 8001
 - Serves `source/` directory directly
 - Uses native ES modules (no bundling)
+- **Visually identical to production** (uses same HTML structure)
 - Changes reflect instantly on browser refresh
 
 **Visual indicator:**
 - 🚀 **Green badge** in control panel: "DEV MODE — Instant Reload"
+
+**Architecture:**
+- `source/index.html` mirrors `webflow-export/index.html` structure
+- Loads Webflow CSS from `../webflow-export/`
+- Loads dev CSS modules individually
+- Loads `main.js` as ES module
 
 **Workflow:**
 1. Edit any file in `source/`
@@ -54,6 +63,7 @@ npm run startup → option 1
 - JavaScript logic changes
 - Module refactoring
 - Quick experimentation
+- Full site testing (includes gates, footer, etc.)
 
 ---
 
@@ -93,13 +103,13 @@ npm run startup → option 2
 
 **Command:**
 ```bash
-npm run dev:watch
-# or via interactive menu:
-npm run startup → option 4
+npm run startup
+# Choose option 4 (Watch Mode)
 ```
 
 **What it does:**
 - Starts dev server on port 8001 (instant feedback)
+- Starts build preview server on port 8000 (production structure + bundle)
 - Runs file watcher in background
 - Auto-rebuilds `public/` when `source/` changes
 - Keeps both environments in sync
@@ -112,7 +122,7 @@ npm run startup → option 4
 1. Edit files in `source/`
 2. Save file
 3. Port 8001: refresh → instant changes
-4. Port 8000: refresh (if running) → see rebuilt version
+4. Port 8000: refresh → see rebuilt version
 5. Watcher automatically rebuilds in background
 
 **Best for:**
@@ -121,13 +131,7 @@ npm run startup → option 4
 - Catching build-specific issues early
 
 **Note:** To view the rebuilt output, start preview server in separate terminal:
-```bash
-# Terminal 1 (already running watch mode)
-npm run dev:watch
-
-# Terminal 2 (optional - for build preview)
-npm start
-```
+Watch Mode now starts both servers automatically (8001 + 8000).
 
 ---
 
@@ -182,6 +186,11 @@ The application automatically detects which environment it's running in:
 **PRODUCTION Mode otherwise:**
 - Port 8000
 - Bundled script (`bouncy-balls-embed.js`)
+
+### Console Output Policy
+
+- **DEV**: structured bootstrap logs (to prove init order + timing)
+- **PRODUCTION**: prints a small “tech visitor” banner (plus ASCII “BECK”), then silences `console.log/info/warn/debug` (while leaving `console.error` for real failures)
 
 ### Visual Indicators
 
@@ -358,9 +367,9 @@ You can bypass the interactive menu:
 # Direct commands
 npm run dev           # Quick dev only
 npm run preview       # Build + preview
-npm run dev:watch     # Dev + watcher
 npm start             # Build preview only (manual)
 npm run start:source  # Dev server only (manual)
+npm run watch         # File watcher only (manual)
 ```
 
 ### Parallel Development
@@ -408,7 +417,7 @@ For dual-mode development:
 🚀 Start developing:        npm run startup
 💨 Fastest iteration:       npm run dev (port 8001)
 📦 Test production:         npm run preview (port 8000)
-👁️  Auto-rebuild:           npm run dev:watch
+👁️  Auto-rebuild:           npm run startup → option 4
 🔄 Side-by-side:           npm run startup → option 3
 🏗️  Build only:             npm run build
 ❓ Help:                    npm run help
