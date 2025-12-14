@@ -575,152 +575,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  crystal: {
-    title: 'Crystal Growth',
-    icon: '💎',
-    mode: 'crystal',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'crystalBallCount',
-        label: 'Seeds',
-        stateKey: 'crystalBallCount',
-        type: 'range',
-        min: 10, max: 80, step: 5,
-        default: 40,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'crystalGrowthRate',
-        label: 'Growth Speed',
-        stateKey: 'crystalGrowthRate',
-        type: 'range',
-        min: 0.1, max: 2.0, step: 0.05,
-        default: 0.8,
-        format: v => v.toFixed(2) + '/s',
-        parse: parseFloat,
-        hint: 'Automatic growth (cursor does not affect this)'
-      },
-      {
-        id: 'crystalBondThreshold',
-        label: 'Bond Threshold',
-        stateKey: 'crystalBondThreshold',
-        type: 'range',
-        min: 0.1, max: 1.0, step: 0.05,
-        default: 0.55,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'crystalBondRadius',
-        label: 'Bond Distance',
-        stateKey: 'crystalBondRadius',
-        type: 'range',
-        min: 10, max: 80, step: 2,
-        default: 30,
-        format: v => `${Math.round(v)}px`,
-        parse: parseFloat
-      },
-      {
-        id: 'crystalBondStiffness',
-        label: 'Bond Stiffness',
-        stateKey: 'crystalBondStiffness',
-        type: 'range',
-        min: 0.05, max: 1.0, step: 0.05,
-        default: 0.60,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'crystalBondDamping',
-        label: 'Bond Damping',
-        stateKey: 'crystalBondDamping',
-        type: 'range',
-        min: 0.0, max: 1.0, step: 0.05,
-        default: 0.38,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'crystalMaxBondsPerBall',
-        label: 'Max Branches',
-        stateKey: 'crystalMaxBondsPerBall',
-        type: 'range',
-        min: 1, max: 8, step: 1,
-        default: 4,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'crystalMaxBondsTotal',
-        label: 'Max Bonds (Cap)',
-        stateKey: 'crystalMaxBondsTotal',
-        type: 'range',
-        min: 0, max: 400, step: 10,
-        default: 200,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true,
-        hint: 'Hard performance cap (oldest bonds are pruned when full)'
-      },
-      {
-        id: 'crystalCursorRadius',
-        label: 'Cursor Radius',
-        stateKey: 'crystalCursorRadius',
-        type: 'range',
-        min: 30, max: 320, step: 5,
-        default: 150,
-        format: v => `${Math.round(v)}px`,
-        parse: parseFloat,
-        hint: 'Movement-only field (does not affect growth)'
-      },
-      {
-        id: 'crystalCursorPower',
-        label: 'Cursor Power',
-        stateKey: 'crystalCursorPower',
-        type: 'range',
-        min: -20000, max: 20000, step: 500,
-        default: 9000,
-        format: v => String(Math.round(v)),
-        parse: parseFloat,
-        hint: 'Positive repels, negative attracts (movement only)'
-      },
-      {
-        id: 'crystalGlowBlur',
-        label: 'Glow',
-        stateKey: 'crystalGlowBlur',
-        type: 'range',
-        min: 0, max: 30, step: 1,
-        default: 12,
-        format: v => `${Math.round(v)}px`,
-        parse: parseFloat
-      },
-      {
-        id: 'crystalPulseAmt',
-        label: 'Pulse',
-        stateKey: 'crystalPulseAmt',
-        type: 'range',
-        min: 0, max: 0.4, step: 0.01,
-        default: 0.18,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'crystalParticlesPerBond',
-        label: 'Sparkles',
-        stateKey: 'crystalParticlesPerBond',
-        type: 'range',
-        min: 0, max: 12, step: 1,
-        default: 7,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Disabled automatically when prefers-reduced-motion is on'
-      }
-    ]
-  },
-
   pit: {
     title: 'Ball Pit',
     icon: '🎯',
@@ -1450,7 +1304,6 @@ export function generatePanelHTML() {
       <div class="panel-section-content">
         <div class="mode-switcher" role="group" aria-label="Simulation mode selector">
           <button class="mode-button active" data-mode="critters" aria-label="Critters mode">🪲 Critters</button>
-          <button class="mode-button" data-mode="crystal" aria-label="Crystal Growth mode">💎 Crystal</button>
           <button class="mode-button" data-mode="pit" aria-label="Ball Pit mode">🎯 Pit</button>
           <button class="mode-button" data-mode="flies" aria-label="Flies mode">🕊️ Flies</button>
           <button class="mode-button" data-mode="weightless" aria-label="Zero-G mode">🌌 Zero-G</button>
@@ -1502,7 +1355,7 @@ export function generatePanelHTML() {
       <button id="saveConfigBtn" class="primary">💾 Save Config</button>
     </div>
     <div class="panel-footer">
-      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>0</kbd> crystal · <kbd>9</kbd> kalei · Critters has no key (yet)
+      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters has no key (yet)
     </div>`;
   
   return html;

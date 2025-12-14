@@ -84,32 +84,6 @@ const state = {
   critterMouseRadiusVw: 30,   // zone radius (vw)
   critterRestitution: 0.18,   // collision “bounciness” override while mode active
   critterFriction: 0.018,     // drag override while mode active
-
-  // Crystal Growth (Simulation 12) — bonding + constraints (hard-capped)
-  // NOTE: Cursor affects MOVEMENT ONLY. Growth is automatic (no cursor growth boosts).
-  crystalBallCount: 40,
-  crystalGrowthRate: 0.8,          // mass/sec (0..1)
-  crystalBondThreshold: 0.55,      // mass needed to form a bond (0..1)
-  crystalBondRadius: 30,           // px (pre-DPR)
-  crystalBondStiffness: 0.60,      // 0..1
-  crystalBondDamping: 0.38,        // 0..1
-  crystalMaxBondsPerBall: 4,       // branch cap
-  crystalMaxBondsTotal: 200,       // hard cap (performance)
-
-  // Cursor movement field (mode-local; does not affect growth)
-  crystalCursorRadius: 150,        // px (pre-DPR)
-  crystalCursorPower: 9000,        // force scalar (tuned in crystal mode)
-  crystalCursorSoft: 2.8,          // softness for inverse falloff
-
-  // Magical rendering
-  crystalBondWidth: 4,             // px
-  crystalBondOpacity: 0.85,        // 0..1
-  crystalGlowBlur: 12,             // px blur radius
-  crystalPulseAmt: 0.18,           // 0..1, pulsing amplitude for bonds + balls
-  crystalPulseHz: 1.0,             // Hz
-  crystalParticlesPerBond: 7,      // particle burst size
-  crystalParticleMax: 100,         // hard cap (performance)
-  crystalParticleLife: 0.42,       // seconds
   
   // Corner (matches CSS border-radius for collision bounds)
   cornerRadius: 42,

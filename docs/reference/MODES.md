@@ -1,6 +1,6 @@
 # Mode Specifications
 
-Current mode system supports **11 modes** (switchable via the Settings panel; 0–9 also have keyboard shortcuts).
+Current mode system supports **10 modes** (switchable via the Settings panel; 1–9 also have keyboard shortcuts).
 
 ---
 
@@ -16,7 +16,6 @@ Current mode system supports **11 modes** (switchable via the Settings panel; 0�
 8. **Carbonated Bubbles** (`bubbles`)
 9. **Kaleidoscope** (`kaleidoscope`)
 10. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
-11. **Crystal Growth** (`crystal`)
 
 ---
 
@@ -24,7 +23,6 @@ Current mode system supports **11 modes** (switchable via the Settings panel; 0�
 
 | Key | Action |
 |-----|--------|
-| `0` | Crystal Growth |
 | `1` | Ball Pit |
 | `2` | Flies to Light |
 | `3` | Zero Gravity |
@@ -39,19 +37,6 @@ Current mode system supports **11 modes** (switchable via the Settings panel; 0�
 ---
 
 ## Mode Details
-
-## Simulation 12: Crystal Growth 💎
-
-**Purpose:** Magical “crystallization” — balls accumulate crystal mass automatically and form bonds when close, building branching structures.  
-**Keyboard:** `0`  
-**Interaction:** Cursor affects **movement only** (repel/attract). **Growth is never accelerated by the cursor.**  
-**Click/tap:** Spawn a new seed (hard-capped for performance).
-
-- **Growth:** Automatic `crystalMass` accumulation over time
-- **Bonding:** Proximity + thresholded mass → new bonds, with FIFO pruning when capped
-- **Constraints:** Bonds are solved as spring-like constraints each physics step
-- **Performance caps:** Max balls, max bonds, and max particles (sparkles) are enforced
-- **Reduced motion:** Particle sparkles and pulsing reduce automatically when `prefers-reduced-motion: reduce`
 
 ## Simulation 11: Critters 🪲
 

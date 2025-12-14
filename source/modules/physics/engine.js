@@ -11,7 +11,6 @@ import { wallState, drawWalls, updateChromeColor } from './wall-state.js';
 import { getModeUpdater } from '../modes/mode-controller.js';
 import { renderKaleidoscope } from '../modes/kaleidoscope.js';
 import { applyKaleidoscopeBounds } from '../modes/kaleidoscope.js';
-import { renderCrystal, stepCrystal } from '../modes/crystal.js';
 
 const DT = CONSTANTS.PHYSICS_DT;
 let acc = 0;
@@ -101,11 +100,6 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
       resolveCollisions(10); // standard solver iterations for stability
     }
 
-    // Crystal mode: bonds + constraint solver (fixed-timestep, after collisions)
-    if (globals.currentMode === MODES.CRYSTAL) {
-      stepCrystal(DT);
-    }
-    
     // Clear wall pressure before re-accumulating (called each physics step)
     wallState.clearAllPressure();
     
@@ -153,8 +147,6 @@ export function render() {
   // Draw balls (or mode-specific renderer)
   if (globals.currentMode === MODES.KALEIDOSCOPE) {
     renderKaleidoscope(ctx);
-  } else if (globals.currentMode === MODES.CRYSTAL) {
-    renderCrystal(ctx);
   } else {
   for (let i = 0; i < balls.length; i++) {
     balls[i].draw(ctx);

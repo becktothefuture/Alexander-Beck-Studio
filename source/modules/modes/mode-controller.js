@@ -16,7 +16,6 @@ import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magne
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
 import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
 import { initializeCritters, applyCrittersForces } from './critters.js';
-import { initializeCrystal, applyCrystalForces } from './crystal.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 
 export { MODES };
@@ -60,7 +59,6 @@ export function setMode(mode) {
     magnetic: 'Magnetic',
     bubbles: 'Carbonated Bubbles',
     kaleidoscope: 'Kaleidoscope',
-    crystal: 'Crystal Growth',
     critters: 'Critters'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
@@ -142,11 +140,6 @@ export function setMode(mode) {
     globals.ballSpacing = spacingBase * unit;
 
     initializeKaleidoscope();
-  } else if (mode === MODES.CRYSTAL) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeCrystal();
   } else if (mode === MODES.CRITTERS) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -182,8 +175,6 @@ export function getForceApplicator() {
     return applyBubblesForces;
   } else if (globals.currentMode === MODES.KALEIDOSCOPE) {
     return applyKaleidoscopeForces;
-  } else if (globals.currentMode === MODES.CRYSTAL) {
-    return applyCrystalForces;
   } else if (globals.currentMode === MODES.CRITTERS) {
     return applyCrittersForces;
   }

@@ -19,7 +19,6 @@ let lastTapTime = 0;
 
 const MODE_CYCLE = [
   MODES.CRITTERS,
-  MODES.CRYSTAL,
   MODES.PIT,
   MODES.FLIES,
   MODES.WEIGHTLESS,
@@ -193,14 +192,6 @@ export function setupPointer() {
     // Only process if click is within canvas bounds
     if (!pos.inBounds) return;
     
-    // Crystal mode: click spawns a new seed (noticeable, but contained and capped).
-    if (globals.currentMode === MODES.CRYSTAL) {
-      import('../modes/crystal.js').then(({ spawnCrystalSeedAt }) => {
-        spawnCrystalSeedAt(pos.x, pos.y);
-      });
-      return;
-    }
-
     // Default: NO click effects on any simulation - only mouse movement triggers interactions
     // Click cycles mode (if enabled)
     if (globals.clickCycleEnabled) {
@@ -257,15 +248,6 @@ export function setupPointer() {
       
       if (!pos.inBounds) return;
 
-      // Crystal mode: single-tap spawns a seed (safe: capped).
-      if (globals.currentMode === MODES.CRYSTAL) {
-        import('../modes/crystal.js').then(({ spawnCrystalSeedAt }) => {
-          spawnCrystalSeedAt(pos.x, pos.y);
-        });
-        lastTapTime = performance.now();
-        return;
-      }
-      
       // NO tap effects on any simulation - only finger drag triggers interactions
       // Double-tap cycles mode (if enabled)
       const now = performance.now();

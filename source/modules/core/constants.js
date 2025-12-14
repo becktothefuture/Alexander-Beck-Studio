@@ -13,8 +13,6 @@ export const MODES = {
   MAGNETIC: 'magnetic',
   BUBBLES: 'bubbles',
   KALEIDOSCOPE: 'kaleidoscope',
-  // Simulation 12: Crystal Growth (bonding + constraints)
-  CRYSTAL: 'crystal',
   // Simulation 11: ball-only “critters” (no keyboard shortcut yet)
   CRITTERS: 'critters'
 };
