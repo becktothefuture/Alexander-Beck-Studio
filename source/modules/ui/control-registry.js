@@ -1110,7 +1110,8 @@ export function generatePanelHTML() {
       </summary>
       <div class="panel-section-content">
         <div class="mode-switcher" role="group" aria-label="Simulation mode selector">
-          <button class="mode-button active" data-mode="pit" aria-label="Ball Pit mode">🎯 Pit</button>
+          <button class="mode-button active" data-mode="worms" aria-label="Worms mode">🪱 Worms</button>
+          <button class="mode-button" data-mode="pit" aria-label="Ball Pit mode">🎯 Pit</button>
           <button class="mode-button" data-mode="flies" aria-label="Flies mode">🕊️ Flies</button>
           <button class="mode-button" data-mode="weightless" aria-label="Zero-G mode">🌌 Zero-G</button>
           <button class="mode-button" data-mode="water" aria-label="Water mode">🌊 Water</button>
@@ -1161,7 +1162,7 @@ export function generatePanelHTML() {
       <button id="saveConfigBtn" class="primary">💾 Save Config</button>
     </div>
     <div class="panel-footer">
-      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · click cycles modes
+      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Worms has no key (yet)
     </div>`;
   
   return html;

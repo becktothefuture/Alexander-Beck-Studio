@@ -59,10 +59,11 @@ export function createSoundToggle() {
   // - Desktop: top-right row next to the decorative text (#top-elements-rightRow)
   // Fallback: append to #fade-content so it fades with other content.
   const fadeContent = document.getElementById('fade-content');
-  const topRow = document.getElementById('top-elements-rightRow');
+  const topSlot = document.getElementById('sound-toggle-slot');
   const soundRow = document.getElementById('top-elements-soundRow');
   const socialLinks = document.getElementById('social-links');
-  const canMountInTopRow = !!topRow;
+  const footerMeta = document.querySelector('.ui-meta-right'); // New slot
+  const canMountInTopSlot = !!topSlot;
   const canMountInSocialLinks = socialLinks && (!fadeContent || fadeContent.contains(socialLinks));
   const prefersMobileFullWidth =
     typeof window !== 'undefined' &&
@@ -77,6 +78,14 @@ export function createSoundToggle() {
         buttonElement.parentElement.removeChild(buttonElement);
       }
     } catch (e) {}
+    // If mounting into ui-meta-right, put it before the time element
+    if (parent.classList.contains('ui-meta-right')) {
+        const timeEl = parent.querySelector('time');
+        if (timeEl) {
+            parent.insertBefore(buttonElement, timeEl);
+            return true;
+        }
+    }
     parent.appendChild(buttonElement);
     return true;
   };
@@ -85,9 +94,13 @@ export function createSoundToggle() {
     buttonElement.classList.add('sound-toggle--top');
     buttonElement.classList.add('sound-toggle--topwide');
     mountInto(soundRow);
-  } else if (canMountInTopRow) {
+  } else if (canMountInTopSlot) {
+    // Priority: Top Right Slot (Desktop/Tablet)
     buttonElement.classList.add('sound-toggle--top');
-    topRow.appendChild(buttonElement);
+    mountInto(topSlot);
+  } else if (footerMeta) {
+    // Fallback: Footer Meta
+    mountInto(footerMeta);
   } else if (canMountInSocialLinks) {
     const li = document.createElement('li');
     li.className = 'margin-bottom_none sound-toggle-item';
@@ -106,13 +119,13 @@ export function createSoundToggle() {
       const mq = window.matchMedia('(max-width: 480px)');
       const handler = () => {
         const sr = document.getElementById('top-elements-soundRow');
-        const tr = document.getElementById('top-elements-rightRow');
+        const ts = document.getElementById('sound-toggle-slot');
         const shouldBeWide = mq.matches && !!sr;
         buttonElement.classList.toggle('sound-toggle--topwide', shouldBeWide);
         if (shouldBeWide) {
           mountInto(sr);
-        } else if (tr) {
-          mountInto(tr);
+        } else if (ts) {
+          mountInto(ts);
         }
       };
       // Prefer modern API, fall back gracefully.

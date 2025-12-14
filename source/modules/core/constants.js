@@ -12,7 +12,9 @@ export const MODES = {
   PING_PONG: 'ping-pong',
   MAGNETIC: 'magnetic',
   BUBBLES: 'bubbles',
-  KALEIDOSCOPE: 'kaleidoscope'
+  KALEIDOSCOPE: 'kaleidoscope',
+  // Simulation 11 (no keyboard shortcut yet)
+  WORMS: 'worms'
 };
 
 export const CONSTANTS = {

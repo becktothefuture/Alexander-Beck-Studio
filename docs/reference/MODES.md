@@ -1,6 +1,6 @@
 # Mode Specifications
 
-Current mode system supports **9 modes** (switchable via keyboard shortcuts and the Settings panel).
+Current mode system supports **10 modes** (switchable via the Settings panel; 1–9 also have keyboard shortcuts).
 
 ---
 
@@ -15,6 +15,7 @@ Current mode system supports **9 modes** (switchable via keyboard shortcuts and 
 7. **Magnetic** (`magnetic`)
 8. **Carbonated Bubbles** (`bubbles`)
 9. **Kaleidoscope** (`kaleidoscope`)
+11. **Worms** (`worms`) — **default** (no keyboard shortcut yet)
 
 ---
 
@@ -36,6 +37,18 @@ Current mode system supports **9 modes** (switchable via keyboard shortcuts and 
 ---
 
 ## Mode Details
+
+## Simulation 11: Worms 🪱
+
+**Purpose:** Overhead-view organisms: each organism is a chain of circles moving via Verlet integration + distance constraints (soft-body / rope style).  
+**Default:** Active by default (for now).  
+**Keyboard:** None (for now).
+
+- **Population:** ~24 organisms (some are single-segment)
+- **Constraints:** Multiple passes per frame for stable shape and “body drag”
+- **Collisions:** Circle non-overlap for all segments (including non-adjacent within a worm)
+- **Interaction:** Pointer proximity repulsion + drag-to-pull segments
+- **Notes:** Click-to-cycle is disabled while Worms is active (to avoid conflicts with dragging)
 
 ## Mode 1: Ball Pit 🎯
 

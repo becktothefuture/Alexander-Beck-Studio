@@ -15,6 +15,7 @@ import { initializePingPong, applyPingPongForces } from './ping-pong.js';
 import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magnetic.js';
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
 import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
+import { initializeWorms } from './worms.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 
 export { MODES };
@@ -25,6 +26,20 @@ export function initModeSystem() {
 
 export function setMode(mode) {
   const globals = getGlobals();
+
+  // Worms uses click+drag interactions; prevent click-to-cycle while active.
+  if (globals.currentMode === MODES.WORMS && mode !== MODES.WORMS) {
+    if (globals._clickCycleBeforeWorms !== undefined) {
+      globals.clickCycleEnabled = globals._clickCycleBeforeWorms;
+      delete globals._clickCycleBeforeWorms;
+    }
+  }
+  if (mode === MODES.WORMS) {
+    if (globals._clickCycleBeforeWorms === undefined) {
+      globals._clickCycleBeforeWorms = globals.clickCycleEnabled;
+    }
+    globals.clickCycleEnabled = false;
+  }
   
   // Clean up Kaleidoscope spacing override when leaving the mode
   if (globals.currentMode === MODES.KALEIDOSCOPE && mode !== MODES.KALEIDOSCOPE) {
@@ -46,7 +61,8 @@ export function setMode(mode) {
     'ping-pong': 'Ping Pong',
     magnetic: 'Magnetic',
     bubbles: 'Carbonated Bubbles',
-    kaleidoscope: 'Kaleidoscope'
+    kaleidoscope: 'Kaleidoscope',
+    worms: 'Worms'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
   
@@ -127,6 +143,11 @@ export function setMode(mode) {
     globals.ballSpacing = spacingBase * unit;
 
     initializeKaleidoscope();
+  } else if (mode === MODES.WORMS) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeWorms();
   }
   
   console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);

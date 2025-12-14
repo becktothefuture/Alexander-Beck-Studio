@@ -14,13 +14,18 @@ export function setupBuildControls() {
       gravityMultiplier: g.gravityMultiplierPit,
       ballMass: g.ballMassKg,
       ballSpacing: g.ballSpacing,
+      // Size scale: export both keys for compatibility.
+      // Runtime reads either `ballScale` or `sizeScale`.
+      ballScale: g.sizeScale,
       sizeScale: g.sizeScale,
       sizeVariation: g.sizeVariation,
       restitution: g.REST,
       friction: g.FRICTION,
       repelRadius: g.repelRadius,
       repelPower: g.repelPower,
+      // Repel softness: export both keys for compatibility.
       repelSoft: g.repelSoft,
+      repelSoftness: g.repelSoft,
       
       // Frame & Walls
       frameColor: g.frameColor,
@@ -48,6 +53,24 @@ export function setupBuildControls() {
       wallWobbleDamping: g.wallWobbleDamping,
       wallWobbleSigma: g.wallWobbleSigma,
       wallWobbleCornerClamp: g.wallWobbleCornerClamp,
+
+      // Worms (Simulation 11)
+      wormPopulation: g.wormPopulation,
+      wormSingleChance: g.wormSingleChance,
+      wormDotSpeedMul: g.wormDotSpeedMul,
+      wormBaseSpeed: g.wormBaseSpeed,
+      wormDamping: g.wormDamping,
+      wormStepHz: g.wormStepHz,
+      wormTurnNoise: g.wormTurnNoise,
+      wormTurnDamp: g.wormTurnDamp,
+      wormTurnSeek: g.wormTurnSeek,
+      wormFleeRadius: g.wormFleeRadius,
+      wormFleeForce: g.wormFleeForce,
+      wormPanicBoost: g.wormPanicBoost,
+      wormSenseRadius: g.wormSenseRadius,
+      wormAvoidForce: g.wormAvoidForce,
+      wormAvoidSwirl: g.wormAvoidSwirl,
+      wormCrowdBoost: g.wormCrowdBoost,
       
       cursorColorIndex: 5,
       enableLOD: false

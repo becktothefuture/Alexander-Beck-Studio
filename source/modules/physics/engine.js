@@ -11,6 +11,7 @@ import { wallState, drawWalls, updateChromeColor } from './wall-state.js';
 import { getModeUpdater } from '../modes/mode-controller.js';
 import { renderKaleidoscope } from '../modes/kaleidoscope.js';
 import { applyKaleidoscopeBounds } from '../modes/kaleidoscope.js';
+import { updateWorms, renderWorms } from '../modes/worms.js';
 
 const DT = CONSTANTS.PHYSICS_DT;
 let acc = 0;
@@ -46,7 +47,17 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   const balls = globals.balls;
   const canvas = globals.canvas;
   
-  if (!canvas || balls.length === 0) return;
+  if (!canvas) return;
+
+  // Worms mode is a non-ball simulation with its own data + solver.
+  if (globals.currentMode === MODES.WORMS) {
+    const dt = Math.min(0.033, Math.max(0, dtSeconds));
+    updateWorms(dt);
+    acc = 0;
+    return;
+  }
+
+  if (balls.length === 0) return;
 
   // Kaleidoscope has its own lightweight physics path:
   // - Smooth (per-frame), not fixed-timestep accumulator
@@ -142,6 +153,8 @@ export function render() {
   // Draw balls (or mode-specific renderer)
   if (globals.currentMode === MODES.KALEIDOSCOPE) {
     renderKaleidoscope(ctx);
+  } else if (globals.currentMode === MODES.WORMS) {
+    renderWorms(ctx);
   } else {
   for (let i = 0; i < balls.length; i++) {
     balls[i].draw(ctx);

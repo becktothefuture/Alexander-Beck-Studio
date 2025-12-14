@@ -21,7 +21,8 @@ export function getEffectiveDPR() {
 
 const state = {
   config: {},
-  currentMode: MODES.FLIES,
+  // Default boot mode (overridden by main.js on init, but kept consistent here too).
+  currentMode: MODES.WORMS,
   balls: [],
   canvas: null,
   ctx: null,
@@ -66,6 +67,24 @@ const state = {
   // Ball properties
   ballSoftness: 20,
   ballSpacing: 2.5,     // Extra collision padding between balls (px, 0 = no extra spacing)
+
+  // Worms (Simulation 11) — overhead-view organisms
+  wormPopulation: 24,
+  wormSingleChance: 0.22,       // fraction of organisms that are single-segment
+  wormDotSpeedMul: 1.15,        // speed multiplier for single-segment organisms
+  wormBaseSpeed: 420,           // px/s baseline
+  wormDamping: 0.88,            // Verlet damping (0..1)
+  wormStepHz: 3.4,              // gait cadence
+  wormTurnNoise: 2.0,           // random walk strength
+  wormTurnDamp: 8.5,            // turning inertia damping
+  wormTurnSeek: 6.5,            // steer strength toward a desired heading
+  wormFleeRadius: 260,          // px (pre-DPR)
+  wormFleeForce: 1.6,           // heading bias away from pointer
+  wormPanicBoost: 0.85,         // speed boost near pointer
+  wormSenseRadius: 220,         // px (pre-DPR)
+  wormAvoidForce: 0.9,          // head-to-head avoidance
+  wormAvoidSwirl: 0.35,         // tangential dodge to prevent deadlocks
+  wormCrowdBoost: 0.22,         // speed boost when near other heads
   
   // Corner (matches CSS border-radius for collision bounds)
   cornerRadius: 42,
@@ -204,10 +223,16 @@ export function initState(config) {
   }
   if (config.restitution) state.REST = config.restitution;
   if (config.friction) state.FRICTION = config.friction;
-  if (config.ballScale) state.sizeScale = config.ballScale;
+  // Size scale: accept both legacy `ballScale` and newer `sizeScale`
+  if (config.ballScale !== undefined) state.sizeScale = config.ballScale;
+  if (config.sizeScale !== undefined) state.sizeScale = config.sizeScale;
+  if (config.sizeVariation !== undefined) state.sizeVariation = config.sizeVariation;
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
   if (config.repelRadius !== undefined) state.repelRadius = config.repelRadius;
   if (config.repelPower !== undefined) state.repelPower = config.repelPower;
+  // Repel softness: accept both `repelSoft` and `repelSoftness`
+  if (config.repelSoft !== undefined) state.repelSoft = config.repelSoft;
+  if (config.repelSoftness !== undefined) state.repelSoft = config.repelSoftness;
   if (config.responsiveScaleMobile !== undefined) state.responsiveScaleMobile = config.responsiveScaleMobile;
   
   // Detect mobile/tablet devices and apply responsive scaling
@@ -225,6 +250,24 @@ export function initState(config) {
   if (config.kaleidoscopeMaxSpeed !== undefined) state.kaleidoscopeMaxSpeed = config.kaleidoscopeMaxSpeed;
   if (config.kaleidoscopeEase !== undefined) state.kaleidoscopeEase = config.kaleidoscopeEase;
   if (config.kaleidoscopeWander !== undefined) state.kaleidoscopeWander = config.kaleidoscopeWander;
+
+  // Worms (Simulation 11) config overrides
+  if (config.wormPopulation !== undefined) state.wormPopulation = config.wormPopulation;
+  if (config.wormSingleChance !== undefined) state.wormSingleChance = config.wormSingleChance;
+  if (config.wormDotSpeedMul !== undefined) state.wormDotSpeedMul = config.wormDotSpeedMul;
+  if (config.wormBaseSpeed !== undefined) state.wormBaseSpeed = config.wormBaseSpeed;
+  if (config.wormDamping !== undefined) state.wormDamping = config.wormDamping;
+  if (config.wormStepHz !== undefined) state.wormStepHz = config.wormStepHz;
+  if (config.wormTurnNoise !== undefined) state.wormTurnNoise = config.wormTurnNoise;
+  if (config.wormTurnDamp !== undefined) state.wormTurnDamp = config.wormTurnDamp;
+  if (config.wormTurnSeek !== undefined) state.wormTurnSeek = config.wormTurnSeek;
+  if (config.wormFleeRadius !== undefined) state.wormFleeRadius = config.wormFleeRadius;
+  if (config.wormFleeForce !== undefined) state.wormFleeForce = config.wormFleeForce;
+  if (config.wormPanicBoost !== undefined) state.wormPanicBoost = config.wormPanicBoost;
+  if (config.wormSenseRadius !== undefined) state.wormSenseRadius = config.wormSenseRadius;
+  if (config.wormAvoidForce !== undefined) state.wormAvoidForce = config.wormAvoidForce;
+  if (config.wormAvoidSwirl !== undefined) state.wormAvoidSwirl = config.wormAvoidSwirl;
+  if (config.wormCrowdBoost !== undefined) state.wormCrowdBoost = config.wormCrowdBoost;
   
   // Two-level padding system
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;

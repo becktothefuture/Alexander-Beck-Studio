@@ -15,9 +15,10 @@ let lastMouseY = 0;
 let lastMoveTime = 0;
 let mouseVelocity = 0;
 let lastTapTime = 0;
-let clickCycleEnabled = true; // Click/tap cycles through modes
+// Click/tap cycles through modes (value stored on globals; avoid caching so modes can override).
 
 const MODE_CYCLE = [
+  MODES.WORMS,
   MODES.PIT,
   MODES.FLIES,
   MODES.WEIGHTLESS,
@@ -55,8 +56,8 @@ export function setupPointer() {
   const globals = getGlobals();
   const canvas = globals.canvas;
   
-  // Initialize clickCycleEnabled from global state
-  clickCycleEnabled = globals.clickCycleEnabled || false;
+  // Ensure the flag exists (some modes may override it at runtime).
+  if (globals.clickCycleEnabled === undefined) globals.clickCycleEnabled = false;
   
   if (!canvas) {
     console.error('Canvas not available for pointer setup');
@@ -193,7 +194,9 @@ export function setupPointer() {
     
     // NO click effects on any simulation - only mouse movement triggers interactions
     // Click cycles mode (if enabled)
-    if (clickCycleEnabled) {
+    // Worms uses click/drag for interaction; never cycle from clicks there.
+    if (globals.currentMode === MODES.WORMS) return;
+    if (globals.clickCycleEnabled) {
       cycleMode();
     }
   });
@@ -250,7 +253,8 @@ export function setupPointer() {
       // NO tap effects on any simulation - only finger drag triggers interactions
       // Double-tap cycles mode (if enabled)
       const now = performance.now();
-      if (now - lastTapTime < 300 && clickCycleEnabled) {
+      if (globals.currentMode === MODES.WORMS) return;
+      if (now - lastTapTime < 300 && globals.clickCycleEnabled) {
         cycleMode();
       }
       lastTapTime = now;
@@ -296,7 +300,6 @@ export function setupPointer() {
  * Enable/disable click-to-cycle mode switching
  */
 export function setClickCycleEnabled(enabled) {
-  clickCycleEnabled = enabled;
   // Sync to global state
   const globals = getGlobals();
   globals.clickCycleEnabled = enabled;

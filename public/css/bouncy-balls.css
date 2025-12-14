@@ -5,138 +5,81 @@
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    ORGANIC SIZING SYSTEM
-   ═══════════════════════════════════════════════════════════════════════════════
-   
-   PHILOSOPHY: The page is a living membrane. It breathes with the viewport,
-   expands when given space, contracts when constrained. Movement is natural -
-   slow to start (hesitant), then committed, slow to settle (inertia).
-   
-   PRINCIPLES:
-   1. VIEWPORT-RELATIVE: Core dimensions scale with screen (vw, vh, vmin)
-   2. PROPORTIONAL: Spacing maintains ratios (--space-unit as base)
-   3. FLUID CLAMPING: clamp(min, preferred, max) for graceful boundaries
-   4. ORGANIC TRANSITIONS: Slow ease-out mimics physical inertia
-   
-   BASE UNIT SYSTEM:
-   - --space-unit: 1vmin (smallest viewport dimension / 100)
-   - All spacing derives from this: 1x, 2x, 4x, etc.
-   - Results in proportional breathing as viewport changes
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
   color-scheme: light;
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     ORGANIC SPACING SYSTEM
-     Base unit = 1vmin (1% of smaller viewport dimension)
-     This creates proportional relationships that scale uniformly
-     ───────────────────────────────────────────────────────────────────────────── */
+  /* Organic Spacing System */
   --space-unit: 1vmin;
+  --space-xs: calc(var(--space-unit) * 0.5);
+  --space-sm: calc(var(--space-unit) * 1);
+  --space-md: calc(var(--space-unit) * 2);
+  --space-lg: calc(var(--space-unit) * 4);
+  --space-xl: calc(var(--space-unit) * 6);
+  --space-2xl: calc(var(--space-unit) * 8);
   
-  /* Spacing scale (proportional to viewport) */
-  --space-xs: calc(var(--space-unit) * 0.5);   /* 0.5vmin */
-  --space-sm: calc(var(--space-unit) * 1);     /* 1vmin */
-  --space-md: calc(var(--space-unit) * 2);     /* 2vmin */
-  --space-lg: calc(var(--space-unit) * 4);     /* 4vmin */
-  --space-xl: calc(var(--space-unit) * 6);     /* 6vmin */
-  --space-2xl: calc(var(--space-unit) * 8);    /* 8vmin */
-  
-  /* Content padding - space between frame edge and content elements (will be overridden by --content-padding-fluid in responsive contexts) */
+  /* Content padding */
   --content-padding: clamp(16px, 4vmin, 40px);
-  
-  /* Edge insets - TOTAL distance from viewport edge = frame + content padding */
   --edge-inset: calc(var(--container-border) + var(--content-padding));
   --edge-inset-lg: calc(var(--container-border) + var(--content-padding));
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     ORGANIC TRANSITION TIMING
-     Mimics physical inertia: slow to start, committed middle, slow to settle
-     ───────────────────────────────────────────────────────────────────────────── */
-  --ease-organic: cubic-bezier(0.22, 1, 0.36, 1);  /* Slow start, fast middle, slow end */
-  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);   /* Quick response, long settle */
-  --ease-hesitant: cubic-bezier(0.4, 0, 0.2, 1);  /* Hesitant start */
+  /* Transition Timing */
+  --ease-organic: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-hesitant: cubic-bezier(0.4, 0, 0.2, 1);
   
-  /* Transition durations (longer = more organic feel) */
-  --duration-resize: 600ms;   /* Viewport resize response */
-  --duration-settle: 400ms;   /* Color/opacity settling */
-  --duration-quick: 200ms;    /* Immediate feedback */
+  --duration-resize: 600ms;
+  --duration-settle: 400ms;
+  --duration-quick: 200ms;
 
-  /* ─────────────────────────────────────────────────────────────────────────────
-     INTERACTION TOKENS
-     ───────────────────────────────────────────────────────────────────────────── */
-  /* Hover color should match the brand “dark orange” (ball orange-red) */
+  /* Interaction Tokens */
   --link-hover-color: var(--ball-6);
   --duration-link-hover: 30ms;
   --dot-bounce-duration: 500ms;
-
-  /* Button-equivalent hit area padding (deprecated - use --hit-area-lg) */
   --hit-area-padding: clamp(20px, 3vmin, 30px);
   --hit-area-padding-neg: calc(var(--hit-area-padding) * -1);
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     UNIFIED COLOR SYSTEM - Browser Chrome, Walls, Background ALL match
-     
-     HIERARCHY (all use the same color per theme):
-     1. Browser chrome (meta theme-color) — Safari/Chrome address bar, iOS/Android
-     2. HTML background — Seamless edge with browser
-     3. Simulation walls — Rubber tubes around content
-     4. Container border — Visual frame around content
-     
-     This creates a unified "frame" that blends browser → walls → content
-     ───────────────────────────────────────────────────────────────────────────── */
-  
-  /* SINGLE SOURCE OF TRUTH: The frame color (walls, chrome, html bg) */
-  --frame-color-light: #0a0a0a;    /* Dark frame even in light mode (strong contrast) */
-  --frame-color-dark: #0a0a0a;     /* Same dark frame in dark mode (seamless) */
-  
-  /* Browser chrome / theme-color (read by JS for meta tag) */
+  /* Unified Color System */
+  --frame-color-light: #0a0a0a;
+  --frame-color-dark: #0a0a0a;
   --chrome-bg-light: var(--frame-color-light);
   --chrome-bg-dark: var(--frame-color-dark);
-  --chrome-bg: var(--chrome-bg-light);  /* Current chrome color */
+  --chrome-bg: var(--chrome-bg-light);
   
-  /* Content area backgrounds */
-  --bg-light: #f5f5f5;  /* Actual Light Mode: Soft white */
-  --bg-dark: #0a0a0a;   /* Wall Color: Deep dark */
+  --bg-light: #f5f5f5;
+  --bg-dark: #0a0a0a;
   
-  /* Rubber wall color = frame color */
   --wall-color: var(--frame-color-light);
-  --wall-thickness: 12px;          /* Thickness of the rubber wall tubes */
-  --wall-radius: 42px;  /* Corner radius for all elements (kept in sync with config/state) */
-  --wall-bevel-light: rgba(255, 255, 255, 0.15);  /* Top/left highlight */
-  --wall-bevel-dark: rgba(0, 0, 0, 0.3);          /* Bottom/right shadow */
+  --wall-thickness: 12px;
+  --wall-radius: 42px;
+  --wall-bevel-light: rgba(255, 255, 255, 0.15);
+  --wall-bevel-dark: rgba(0, 0, 0, 0.3);
   
-  /* Legacy alias for compatibility */
   --container-radius: var(--wall-radius);
-  --container-border: 20px;  /* Visible dark frame around content */
+  --container-border: 20px;
   --simulation-padding: 0px;
   --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
 
-  /* Container inner shadow (inside the rounded content area) */
-  --container-inner-shadow-opacity: 0.12; /* 0..0.4 */
-  --container-inner-shadow-blur: 80px;    /* px */
-  --container-inner-shadow-spread: -10px; /* px */
-  --container-inner-shadow-offset-y: 0px; /* px */
+  --container-inner-shadow-opacity: 0.12;
+  --container-inner-shadow-blur: 80px;
+  --container-inner-shadow-spread: -10px;
+  --container-inner-shadow-offset-y: 0px;
   --container-inner-shadow-color: hsla(0 0% 0% / var(--container-inner-shadow-opacity));
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     TEXTURE SIZING
-     ───────────────────────────────────────────────────────────────────────────── */
+  /* Texture Sizing */
   --noise-size-base: 100px;
   --noise-size-top: 150px;
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     NOISE OPACITY CONTROLS
-     ───────────────────────────────────────────────────────────────────────────── */
-  --noise-back-opacity: 0.020;  /* Behind balls (z:4) */
-  --noise-front-opacity: 0.050;  /* Above balls (z:7) */
-  --noise-back-opacity-dark: 0.08;  /* Dark mode - behind balls */
-  --noise-front-opacity-dark: 0.05; /* Dark mode - above balls */
+  /* Noise Opacity */
+  --noise-back-opacity: 0.020;
+  --noise-front-opacity: 0.050;
+  --noise-back-opacity-dark: 0.08;
+  --noise-front-opacity-dark: 0.05;
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     BALL COLOR PALETTE (dynamically updated by JS)
-     ───────────────────────────────────────────────────────────────────────────── */
+  /* Ball Colors */
   --ball-1: #b7bcb7;
-  --ball-2: #d0d0d0;  /* Light Gray */
+  --ball-2: #d0d0d0;
   --ball-3: #ffffff;
   --ball-4: #00695c;
   --ball-5: #000000;
@@ -144,52 +87,30 @@
   --ball-7: #0d5cb6;
   --ball-8: #ffa000;
   
-  /* ═══════════════════════════════════════════════════════════════════════════════
-     STREAMLINED DESIGN TOKEN SYSTEM
-     Core scales + semantic aliases = fewer tokens, easier maintenance
-     ═══════════════════════════════════════════════════════════════════════════════ */
+  /* Design Tokens */
+  --gap-xs: clamp(4px, 0.5vmin, 8px);
+  --gap-sm: clamp(8px, 1vmin, 12px);
+  --gap-md: clamp(12px, 1.5vmin, 20px);
+  --gap-lg: clamp(16px, 2vw, 24px);
+  --gap-xl: clamp(24px, 2.5vw, 40px);
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     CORE GAP SCALE - Universal spacing for all components
-     ───────────────────────────────────────────────────────────────────────────── */
-  --gap-xs: clamp(4px, 0.5vmin, 8px);         /* Tight vertical spacing */
-  --gap-sm: clamp(8px, 1vmin, 12px);          /* Base component gaps */
-  --gap-md: clamp(12px, 1.5vmin, 20px);       /* Medium spacing */
-  --gap-lg: clamp(16px, 2vw, 24px);           /* Horizontal spread */
-  --gap-xl: clamp(24px, 2.5vw, 40px);         /* Large spacing */
+  --text-xs: clamp(9px, 1vw, 12px);
+  --text-sm: clamp(11px, 1.2vw, 14px);
+  --text-md: clamp(12px, 1.4vw, 16px);
+  --text-lg: clamp(0.85rem, 1.5vw, 1.05rem);
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     CORE TYPOGRAPHY SCALE - Universal text sizing
-     ───────────────────────────────────────────────────────────────────────────── */
-  --text-xs: clamp(9px, 1vw, 12px);           /* Small UI (legend) */
-  --text-sm: clamp(11px, 1.2vw, 14px);        /* Base UI (decorative script) */
-  --text-md: clamp(12px, 1.4vw, 16px);        /* Emphasized (footer links) */
-  --text-lg: clamp(0.85rem, 1.5vw, 1.05rem);  /* Large display (caption) */
-  
-  /* Line heights */
   --line-height-tight: 1.3;
   --line-height-base: 1.35;
   --line-height-relaxed: 1.4;
   --line-height-loose: 1.75;
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     CORE DIMENSION SCALE - Icons, dots, indicators
-     ───────────────────────────────────────────────────────────────────────────── */
-  --size-icon: clamp(14px, 1.5vw, 16px);      /* Standard icon size */
-  --size-icon-lg: clamp(24px, 2.5vw, 28px);   /* Large icons/glyphs (1.2x original) */
-  --size-dot: clamp(3px, 0.4vmin, 4px);       /* Hover indicator dots */
+  --size-icon: clamp(14px, 1.5vw, 16px);
+  --size-icon-lg: clamp(24px, 2.5vw, 28px);
+  --size-dot: clamp(3px, 0.4vmin, 4px);
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     CORE INTERACTION SCALE - Tap targets and hit areas
-     ───────────────────────────────────────────────────────────────────────────── */
-  --tap-target: clamp(12px, 2.5vmin, 30px);   /* Universal interaction padding */
+  --tap-target: clamp(12px, 2.5vmin, 30px);
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     SEMANTIC ALIASES - Component-specific names pointing to core scales
-     Components reference these for clarity, modify core scale to change all
-     ───────────────────────────────────────────────────────────────────────────── */
-  
-  /* Legend aliases */
+  /* Semantic Aliases */
   --legend-gap-row: var(--gap-xs);
   --legend-gap-col: var(--gap-lg);
   --legend-item-gap: var(--gap-sm);
@@ -200,7 +121,6 @@
   --legend-line-height: var(--line-height-loose);
   --legend-opacity: 0.9;
   
-  /* Decorative script aliases */
   --decorative-script-max-width: clamp(240px, 25vw, 280px);
   --decorative-script-font-size: var(--text-sm);
   --decorative-script-line-height: var(--line-height-base);
@@ -208,33 +128,26 @@
   --decorative-script-padding-left: var(--gap-md);
   --decorative-script-padding-vertical: var(--gap-sm);
   
-  /* Footer aliases */
   --footer-icon-gap: var(--gap-lg);
   --footer-icon-size: var(--size-icon);
   --footer-links-padding: var(--tap-target);
   --footer-links-font-size: var(--text-md);
   
-  /* Caption aliases */
   --caption-font-size: var(--text-lg);
   --caption-font-weight: 700;
   --caption-line-height: var(--line-height-tight);
   --caption-letter-spacing: 0.01em;
   --caption-offset: var(--gap-sm);
   
-  /* Interaction aliases */
   --hit-area-sm: var(--gap-sm);
   --hit-area-md: var(--gap-md);
   --hit-area-lg: var(--tap-target);
   --dot-indicator-size: var(--size-dot);
   --dot-indicator-offset: var(--gap-sm);
   
-  /* Icon size aliases (backward compatibility) */
   --icon-size-base: var(--size-icon);
   --icon-size-lg: var(--size-icon-lg);
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     COLOR & OPACITY TOKENS
-     ───────────────────────────────────────────────────────────────────────────── */
   --text-opacity-base: 0.9;
   --text-opacity-muted: 0.7;
   
@@ -242,32 +155,19 @@
   --text-color-light-muted: #2f2f2f;
   --text-color-dark: rgba(255, 255, 255, 0.7);
   
-  /* Semantic aliases for backward compatibility */
   --text-color-light-base: var(--text-color-light);
   --text-color-dark-base: var(--text-color-dark);
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     Z-INDEX TOKENS - Layering system
-     ───────────────────────────────────────────────────────────────────────────── */
-  --z-ui-base: 10;         /* Base UI elements above noise/balls */
-  --z-ui-elevated: 20;     /* Elevated UI (corners overlay) */
-  --z-ui-top: 25;          /* Top-level UI (footer links) */
-  --z-panel: 9999;         /* Control panel */
+  --z-ui-base: 10;
+  --z-ui-elevated: 20;
+  --z-ui-top: 25;
+  --z-panel: 9999;
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     RESPONSIVE BREAKPOINT TOKENS
-     ───────────────────────────────────────────────────────────────────────────── */
   --breakpoint-tablet: 991px;
   --breakpoint-mobile-l: 767px;
   --breakpoint-mobile-p: 480px;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   ICON FONT (Tabler Icons — Outline)
-   - Self-hosted (no external requests)
-   - Small, explicit subset of glyph mappings we actually use
-   - Best practice: `font-display: swap` + WOFF2 primary
-   ═══════════════════════════════════════════════════════════════════════════════ */
 @font-face {
   font-family: "tabler-icons";
   font-style: normal;
@@ -288,31 +188,21 @@
   line-height: 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  /* 24px target size across the site */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
   font-size: 24px;
-
-  /* Ensure the parent link/button receives the click */
   pointer-events: none;
 }
 
-/* Minimal glyph map (from @tabler/icons-webfont 3.35.0 outline set) */
 .ti-brand-apple:before { content: "\ec17"; }
 .ti-brand-instagram:before { content: "\ec20"; }
 .ti-brand-linkedin:before { content: "\ec8c"; }
 .ti-volume-2:before { content: "\eb4f"; }
 .ti-volume-off:before { content: "\f1c3"; }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   DOT INDICATOR ANIMATION
-   - Bounce-out effect (scaleY: 0 → 1.2 → 1)
-   - Used for hover dots on links/icons
-   ═══════════════════════════════════════════════════════════════════════════════ */
 @keyframes braviaDotBounceIn {
   0%   { transform: translate3d(-50%, 0, 0) scaleY(0); }
   60%  { transform: translate3d(-50%, 0, 0) scaleY(1.2); }
@@ -325,64 +215,37 @@
   --wall-color: var(--frame-color-dark);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   BASE LAYOUT - HTML & BODY
-   ═══════════════════════════════════════════════════════════════════════════════
-   
-   STRUCTURE (outside → inside):
-   html  → Browser chrome color (seamless edge)
-     body  → Transparent + padding (reveals chrome as frame)
-       .viewport--content → The "page" organism (breathes, rounded)
-   
-   ORGANIC BEHAVIOR:
-   - Resize transitions use --ease-organic for natural inertia
-   - Body padding animates smoothly when --container-border changes
-   - All children inherit the organic timing
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
 html {
   overflow: hidden;
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  background: var(--wall-color); /* Matches simulation wall color */
+  background: var(--wall-color);
 }
 
 body,
 body.body {
   overflow: hidden;
   margin: 0;
-  padding: var(--container-border); /* Creates visible dark frame from html bg */
+  padding: var(--container-border);
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  cursor: none !important; /* No cursor anywhere - custom cursor handles it */
-  
-  /* Disable text selection globally */
+  cursor: none !important;
   user-select: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  
-  /* Background Color applied to Content Area only (inside the frame) */
   background: transparent !important;
   background-color: transparent !important;
-  
-  color: var(--wall-color); /* Matches wall/frame color dynamically */
-  
-  /* GLOBAL TYPOGRAPHY */
+  color: var(--wall-color);
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
   text-rendering: optimizeLegibility;
-  
-  /* Organic transition for border changes */
   transition: 
     background-color var(--duration-settle) var(--ease-settle),
     padding var(--duration-resize, 600ms) var(--ease-organic, ease);
 }
 
-/* Force cursor: none on ALL elements, including links */
 body *,
 body.body * {
   cursor: none !important;
@@ -393,96 +256,68 @@ body.body.dark-mode {
   background: transparent !important;
   background-color: transparent !important;
   color: #c8c8c8;
-
-  /* In dark mode, use a subtle light inner edge for depth */
   --container-inner-shadow-color: hsla(0 0% 100% / calc(var(--container-inner-shadow-opacity) * 0.35));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   Z-INDEX HIERARCHY
-   0: HTML Background (dark border)
-   2: Bottom Noise - Behind everything
-   3: Logo (Hero Text) - Above bottom noise, BELOW balls
-   5: Balls Simulation
-   7-8: Top Noise layers - Above balls (grain effect)
-   20: UI Elements (Legend, Links, Footer, Corners)
-   2001: Decorative Script
-   MAX: Control Panel
+   DOM REWORK: FLEXBOX UI LAYOUT (FIGMA ALIGNMENT)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* Webflow .viewport reset - content area behind balls but above background */
-.viewport {
-  /* Override Webflow's z-index:1 with auto to avoid creating stacking context */
-  /* This allows fixed children (socials, caption) to escape and appear above balls */
-  z-index: auto !important;
-  position: static !important;
-  transform: none !important;
-  opacity: 1 !important;
+/* Replaces old .viewport styling and #fade-content behavior */
+#fade-content,
+#fade-content.viewport.viewport--content {
+  /* Layout: Full height flex column inside the frame */
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  
+  /* Positioning: Matches frame inset (border + padding handled by children if needed, or parent) */
+  position: fixed !important;
+  /* Use edge-inset to respect organic padding immediately */
+  inset: var(--container-border) !important;
+  width: auto !important;
+  height: auto !important;
+  
+  /* Reset */
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: var(--content-padding) !important; /* Apply organic padding here */
+  
+  /* Visuals */
+  background: transparent !important;
+  border-radius: var(--container-radius);
+  z-index: 20 !important; /* Above canvas */
+  pointer-events: none !important; /* Let clicks pass through to canvas in empty areas */
+  
+  /* Fade System handled by JS (opacity transition) */
+  opacity: 0;
+  transform: translateZ(0);
+}
+
+/* Re-enable pointer events for actual UI children */
+#fade-content *,
+.ui-layer-wrapper * {
+  pointer-events: auto;
+}
+
+/* UI Wrapper Frame */
+.ui-layer-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   WEBFLOW OVERRIDES (LAYOUT FIXES)
-   - Webflow export sets:
-     - `.viewport { height: 100svh; position: fixed; }`
-     - `.viewport--content { padding: 3.2em 3em 2.8em 3em; }` (bottom ≈ 39.2px)
-   - We run a "membrane" layout (static flow), so we override the remaining
-     fixed sizing + padding values here.
-   ───────────────────────────────────────────────────────────────────────────── */
-header.viewport {
-  /* Match viewport--content fixed positioning */
-  position: fixed !important;
-  top: var(--container-border) !important;
-  left: var(--container-border) !important;
-  right: var(--container-border) !important;
-  bottom: var(--container-border) !important;
-  width: auto !important;
-  height: calc(100vh - var(--container-border) * 2) !important; /* Explicit height calculation */
-  max-height: calc(100vh - var(--container-border) * 2) !important;
-}
-
-header.viewport.viewport--content {
-  padding-bottom: 0 !important;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   VIEWPORT CONTENT - Layout and positioning
-   (Opacity/fade handled by ORCHESTRATED PAGE ENTRANCE section below)
-   ───────────────────────────────────────────────────────────────────────────── */
-.viewport.viewport--content {
-  /* Fixed position inside the frame border */
-  position: fixed !important;
-  top: var(--container-border) !important;
-  left: var(--container-border) !important;
-  right: var(--container-border) !important;
-  bottom: var(--container-border) !important;
-  width: auto !important;
-  height: calc(100vh - var(--container-border) * 2) !important;
-  max-height: calc(100vh - var(--container-border) * 2) !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-  
-  /* TRANSPARENT - Let balls show through! Background is on body/html */
-  background: transparent !important;
-  background-color: transparent !important;
-  border-radius: var(--container-radius);
-  
-  /* Above EVERYTHING: Balls (z:5), Noise (z:7-8), Logo (z:4) */
-  z-index: 20 !important;
-  
-  /* Allow pointer events to pass through to balls where there's no text */
-  pointer-events: none !important;
-}
-
-/* Light gradient overlay - subtle white glow from edges */
-.viewport.viewport--content::before {
+/* Light gradient overlay from .viewport--content::before - preserved */
+#fade-content.viewport.viewport--content::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
   z-index: 1;
-  /* Radial gradient: transparent center → 10% white at edges */
   background: radial-gradient(
     ellipse 100% 100% at 50% 50%,
     transparent 40%,
@@ -490,69 +325,7 @@ header.viewport.viewport--content {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   FADE SYSTEM: Single wrapper fades all content
-   ═══════════════════════════════════════════════════════════════════════════════
-   
-   HOW IT WORKS:
-   1. Blocking <style> in <head>: #fade-content { opacity: 0 } - prevents FOUC
-   2. #fade-content is a fixed, transformed stacking context so it CONTAINS fixed UI
-   3. JS uses Web Animations API to fade from 0 → 1 (bypasses CSS override issues)
-   4. Animation: 0.5s delay, 2s duration, ease-in-out
-   
-   WHY WEB ANIMATIONS API:
-   - CSS animations/transitions can be overridden by other rules
-   - Web Animations API runs directly on the element, guaranteed to work
-   
-   WHY FIXED + TRANSFORM HERE:
-   - Many UI nodes are `position: fixed` (Webflow export + our overrides).
-   - Fixed-position descendants can be composited outside a normal wrapper, which
-     makes parent opacity fades unreliable.
-   - A transformed ancestor becomes the containing block for fixed descendants,
-     so the fade applies to the entire UI layer as one unit.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-#fade-content {
-  opacity: 0;
-  position: fixed;
-  inset: 0;
-  z-index: 20; /* Above background/logo/balls; below panel (panel has its own z) */
-  transform: translateZ(0); /* Containing block for fixed-position UI descendants */
-  pointer-events: none; /* Pass-through by default; interactive children re-enable */
-}
-
-/* Ensure key interactive UI inside the fade layer remains clickable */
-#fade-content a,
-#fade-content button,
-#fade-content input,
-#fade-content [role="button"],
-#fade-content [tabindex] {
-  pointer-events: auto;
-}
-
-/* Sound toggle hover - viewport content turns white */
-body.sound-hover .viewport.viewport--content {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-}
-
-/* Dark mode: viewport content gets dark background */
-body.dark-mode .viewport {
-  color: #c8c8c8 !important;
-}
-
-body.dark-mode .viewport.viewport--content {
-  background: transparent !important; /* Transparent in dark mode too */
-  background-color: transparent !important;
-}
-
-/* Dark mode: simulation container stays transparent */
-body.dark-mode #bravia-balls {
-  background: transparent;
-}
-
-/* Dark mode gradient: same subtle white edge glow (reads as soft highlight) */
-body.dark-mode .viewport.viewport--content::before {
+body.dark-mode #fade-content.viewport.viewport--content::before {
   background: radial-gradient(
     ellipse 100% 100% at 50% 50%,
     transparent 40%,
@@ -560,108 +333,322 @@ body.dark-mode .viewport.viewport--content::before {
   );
 }
 
-/* Dark mode sound hover - viewport content goes slightly lighter */
-body.dark-mode.sound-hover .viewport.viewport--content {
-  background: #1a1a1a !important;
-  background-color: #1a1a1a !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   CONTENT BACKGROUND LAYER - The actual background color
-   z-index: 1 (BEHIND logo z:3 and balls z:5)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-.content-background-layer {
-  position: fixed;
-  inset: var(--container-border);
-  border-radius: var(--container-radius);
-  background: var(--bg-light);
-  z-index: 1; /* BEHIND everything else */
+/* ─────────────────────────────────────────────────────────────────────────────
+   TOP SECTION
+   ───────────────────────────────────────────────────────────────────────────── */
+.ui-top {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  z-index: 20 !important;
+  gap: var(--gap-xl);
   pointer-events: none;
 }
 
-body.dark-mode .content-background-layer {
-  background: var(--bg-dark);
+/* Legend - Left */
+.legend {
+  position: relative !important; /* Remove fixed */
+  top: auto !important;
+  left: auto !important;
+  /* Switch to GRID for 4x2 layout */
+  display: grid !important;
+  grid-template-columns: repeat(4, auto) !important;
+  gap: var(--legend-gap-row) var(--legend-gap-col) !important;
+  /* max-width is handled by grid columns/content */
+  max-width: none !important; 
+  font-family: 'Geist', sans-serif !important;
+  color: var(--text-color-light-muted) !important;
+  opacity: var(--legend-opacity) !important;
+  pointer-events: auto;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   BRAND LOGO LAYER - SEPARATE LAYER, BEHIND balls
-   This is its own fixed layer, NOT inside #bravia-balls
-   z-index: 3 (BEHIND balls z:5)
-   ═══════════════════════════════════════════════════════════════════════════════ */
+.legend:hover {
+  opacity: var(--legend-opacity) !important;
+}
 
-.brand-logo-layer {
-  position: fixed;
-  /* Centered in viewport */
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  
-  /* BEHIND balls (z:5), but in front of background */
-  z-index: 3;
-  
-  /* NOT CLICKABLE - clicks pass through to balls */
+.legend__item {
+  font-family: 'Geist', sans-serif !important;
+  font-weight: var(--legend-font-weight) !important;
+  letter-spacing: var(--legend-letter-spacing) !important;
+  text-transform: uppercase;
+  font-size: var(--legend-font-size) !important;
+  line-height: var(--legend-line-height) !important;
+  color: inherit !important;
+  opacity: var(--text-opacity-base);
+  white-space: nowrap !important;
+}
+
+/* Philosophy Text - Right */
+.ui-top-right {
+  display: flex;
+  align-items: flex-start; /* Align top */
+  justify-content: flex-end;
+  max-width: 50vw;
   pointer-events: none;
-  user-select: none;
-  
-  /* opacity controlled by page-ready fade-in (#brand-logo rule) */
-  /* transition for CV gate swap animation */
-  transition: opacity 0.4s cubic-bezier(0.4, 0.0, 0.2, 1),
-              transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  gap: var(--gap-lg); /* Gap between text and sound button */
 }
 
-.brand-logo-layer.fade-out-up {
-  opacity: 0;
-  transform: translate(-50%, -50%) translateY(-20px);
-}
-
-/* SVG Logo styling */
-.brand-logo-svg {
-  width: clamp(225px, 41vw, 600px);
-  height: auto;
-  color: var(--text-color, #161616);
-  
-  /* Subtle shadow for depth */
-  filter: drop-shadow(0 2px 20px rgba(0, 0, 0, 0.06));
-}
-
-/* Dark mode logo color */
-body.dark-mode .brand-logo-svg {
-  color: var(--text-color-dark, #d5d5d5);
-  filter: drop-shadow(0 2px 20px rgba(0, 0, 0, 0.25));
-}
-
-/* Mobile: smaller logo */
-@media (max-width: 768px) {
-  .brand-logo-svg {
-    width: clamp(150px, 60vw, 300px);
-  }
-}
-
-/* Fallback text styling (if SVG not used) */
-.brand-logo-text {
+.decorative-script {
+  position: relative !important; /* Remove fixed */
+  top: auto !important;
+  right: auto !important;
+  max-width: var(--decorative-script-max-width) !important;
   font-family: 'Geist', sans-serif;
-  font-size: clamp(2rem, 8vw, 5rem);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--text-color, #161616);
+  font-size: var(--decorative-script-font-size);
+  font-weight: 400;
+  line-height: var(--decorative-script-line-height);
+  letter-spacing: var(--decorative-script-letter-spacing);
+  color: var(--text-color-light-base);
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: auto;
+}
+
+.decorative-script p {
+  margin: 0;
+  text-align: left; /* Keep left aligned within the block */
+}
+
+.decorative-script p a {
+  text-decoration: underline !important;
+  color: inherit;
+  pointer-events: auto;
+  cursor: pointer;
+  position: relative;
+  opacity: var(--text-opacity-base);
+  transition: color var(--duration-link-hover) ease;
   white-space: nowrap;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
 }
 
-body.dark-mode .brand-logo-text {
-  color: var(--text-color-dark, #d5d5d5);
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+.decorative-script p a:hover {
+  color: var(--link-hover-color) !important;
 }
 
-/* OLD Logo layer selector - kept for Webflow CSS compatibility */
-/* Logo layer - Behind balls (z:4), centered in viewport */
+/* ─────────────────────────────────────────────────────────────────────────────
+   BOTTOM SECTION
+   ───────────────────────────────────────────────────────────────────────────── */
+.ui-bottom {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: var(--space-xl) !important; /* Spacing between Links Row and Meta Row */
+  z-index: 20 !important;
+  pointer-events: none;
+}
+
+/* Row 1: Links (Centered) */
+.ui-nav-row {
+  display: flex !important;
+  justify-content: center !important;
+  width: 100% !important;
+  pointer-events: auto;
+}
+
+#footer-links-container {
+  position: relative !important; /* Remove fixed */
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  gap: 0 !important;
+  width: auto !important;
+  justify-content: center !important;
+  pointer-events: auto !important;
+}
+
+.footer_link {
+  position: relative !important;
+  transform: none !important;
+  padding: var(--hit-area-lg) !important; /* Force padding */
+  margin: calc(var(--hit-area-lg) * -1) !important;
+  display: inline-block;
+  color: var(--text-color-light-muted) !important;
+  font-size: var(--footer-links-font-size) !important;
+  text-decoration: none !important; /* No underline */
+  opacity: var(--text-opacity-base);
+  transition: color var(--duration-link-hover) ease;
+}
+
+.footer_link::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translate3d(-50%, 0, 0) scaleY(0);
+  transform-origin: 50% 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--link-hover-color); /* Use direct color, not currentColor */
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.footer_link:hover {
+  color: var(--link-hover-color) !important;
+  opacity: 1 !important; /* Remove opacity on hover - full strength color */
+}
+
+.footer_link:hover::after {
+  opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
+}
+
+/* Row 2: Socials + Meta (Space Between) */
+.ui-meta-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-end !important;
+  width: 100% !important;
+  pointer-events: none;
+}
+
+.ui-meta-left, .ui-meta-right {
+  pointer-events: auto;
+}
+
+/* Left: Socials */
+#social-links,
+.footer_icon-group {
+  position: relative !important; /* Remove fixed */
+  bottom: auto !important;
+  left: auto !important;
+  display: flex !important;
+  gap: var(--footer-icon-gap) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.footer_icon-link {
+  color: rgba(0, 0, 0, 0.7) !important;
+  opacity: 0.9;
+  transition: color var(--duration-link-hover) ease;
+  display: inline-block;
+  position: relative;
+  text-decoration: none !important;
+}
+
+.footer_icon-link::after {
+  content: '';
+  position: absolute;
+  bottom: calc(var(--dot-indicator-offset) * -1);
+  left: 50%;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: 50% 50%;
+  width: var(--dot-indicator-size);
+  height: var(--dot-indicator-size);
+  border-radius: 50%;
+  background: var(--link-hover-color); /* Use direct color */
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.footer_icon-link:hover {
+  color: var(--link-hover-color) !important;
+  opacity: 1 !important; /* Remove opacity on hover - full strength color */
+}
+
+.footer_icon-link:hover::after {
+  opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
+}
+
+/* Right: Meta (Time + Sound) */
+.ui-meta-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--gap-lg) !important;
+}
+
+/* Sound Toggle in Top or Footer */
+.sound-toggle {
+  position: relative !important; /* Remove fixed */
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+  /* Keep standard button padding but ensure alignment */
+  padding: var(--hit-area-lg);
+  margin: calc(var(--hit-area-lg) * -1);
+  color: rgba(0, 0, 0, 0.7) !important;
+  font-family: 'Geist', sans-serif !important;
+  background: none;
+  border: none;
+  cursor: pointer;
+  pointer-events: auto !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sound-toggle::after {
+  content: '';
+  position: absolute;
+  bottom: calc(var(--dot-indicator-offset) * -1);
+  left: 50%;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: 50% 50%;
+  width: var(--dot-indicator-size);
+  height: var(--dot-indicator-size);
+  border-radius: 50%;
+  background: var(--link-hover-color); /* Use direct color */
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* Sound Toggle in Top-Right specifically */
+.ui-top-right .sound-toggle {
+  /* No special margin needed if gap handles it, but check hit area */
+  /* Remove negative margin to respect gap */
+  margin: 0 !important;
+  padding: var(--hit-area-sm) !important; /* Smaller hit area padding for top */
+}
+
+.sound-toggle:hover {
+  color: var(--link-hover-color) !important;
+  opacity: 1 !important; /* Remove opacity on hover - full strength color */
+}
+
+.sound-toggle:hover::after {
+  opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
+}
+
+/* Time/Caption */
+.caption {
+  position: relative !important; /* Remove fixed */
+  bottom: auto !important;
+  right: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: auto !important;
+  font-family: 'Molle', cursive !important;
+  font-size: var(--caption-font-size) !important;
+  font-weight: var(--caption-font-weight) !important;
+  line-height: 1 !important;
+  opacity: var(--text-opacity-base);
+  color: var(--text-color-light-muted);
+}
+
+.caption:hover {
+  color: var(--text-color-light-base) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CENTER SECTION (LOGO) - Kept absolute/fixed behind UI
+   ───────────────────────────────────────────────────────────────────────────── */
+/* Note: #brand-logo is separate from #fade-content structure to maintain z-index: 3 */
 #brand-logo {
   position: fixed !important;
   top: 50% !important;
   left: 50% !important;
   transform: translate(-50%, -50%) !important;
-  z-index: 4 !important; /* Behind balls (z:5), above noise (z:2-3) */
+  z-index: 3 !important; /* Behind balls (z:5) */
   pointer-events: none !important;
   width: auto !important;
   height: auto !important;
@@ -669,116 +656,40 @@ body.dark-mode .brand-logo-text {
   padding: 0 !important;
 }
 
-/* Remove relative positioning from generic hero classes when it's #brand-logo */
-#brand-logo.hero,
-#brand-logo.hero-section,
-#brand-logo.header {
-  position: fixed !important; /* Override relative positioning */
-  z-index: 4 !important;
+.brand-logo-svg {
+  width: clamp(225px, 41vw, 600px);
+  height: auto;
+  color: var(--text-color, #161616);
+  filter: drop-shadow(0 2px 20px rgba(0, 0, 0, 0.06));
+}
+
+body.dark-mode .brand-logo-svg {
+  color: var(--text-color-dark, #d5d5d5);
+  filter: drop-shadow(0 2px 20px rgba(0, 0, 0, 0.25));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   BRAND LOGO – CURSOR DISTANCE SCALE
-   Center of viewport → 0.9x | Farthest (corner) → 1.1x
-   - Implemented via CSS var updates (rAF-throttled) to avoid overhead
-   - Transition must be >= 400ms (uses 420ms for a gentle settle)
-   - Note: Transform on .hero__text combines with parent #brand-logo centering
+   OTHER LAYERS
    ───────────────────────────────────────────────────────────────────────────── */
-#brand-logo .hero__text {
-  transform-origin: 50% 50%;
-  /* Scale and retreat effects - applied ON TOP of parent's centering transform */
-  transform:
-    translateY(calc(var(--abs-brand-logo-retreat, 0) * 3px))
-    scale(calc(var(--abs-brand-logo-scale, 1) * (1 - (var(--abs-brand-logo-retreat, 0) * 0.025))));
-  transition: transform 420ms var(--ease-settle, ease);
-  will-change: transform;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #brand-logo .hero__text {
-    transition: none !important;
-    transform: none !important;
-  }
-}
-
-/* UI elements layer - ABOVE all noise layers (noise-3 is z:8) and balls (z:5) */
-/* Text elements need pointer-events: auto to be clickable since parent has pointer-events: none */
-.legend,
-.legend__item,
-.footer_link,
-.footer_icon-link,
-a {
-  z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
-  position: relative;
-  pointer-events: auto !important;
-  text-decoration: none !important; /* Remove all underlines globally */
-}
-
-/* Fixed-position UI elements (excluded from relative positioning above) */
-.footer_icon-group,
-.caption {
-  z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
-  pointer-events: auto !important;
-  text-decoration: none !important;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   CORNERS OVERLAY
-   Decorative corners that breathe with the viewport
-   ───────────────────────────────────────────────────────────────────────────── */
-.viewport.viewport--corners {
-  z-index: var(--z-ui-elevated) !important;
-  position: fixed !important;
+.content-background-layer {
+  position: fixed;
+  inset: var(--container-border);
+  border-radius: var(--container-radius);
+  background: var(--bg-light);
+  z-index: 1; 
   pointer-events: none;
 }
 
-.viewport.viewport--corners * {
-  pointer-events: auto;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   SIMULATION CONTAINER - #bravia-balls (RUBBER WALL SYSTEM)
-   ═══════════════════════════════════════════════════════════════════════════════
-   
-   The simulation container IS the wall. It creates:
-   1. Thick rubber tube effect via inset shadows
-   2. Soft cushioned glow around edges
-   3. 3D bevel for physical depth
-   4. Bounce highlight layer for collision feedback
-   
-   RUBBER WALL EFFECT EXPLAINED:
-   - Multiple inset box-shadows create the "thick tube" appearance
-   - Outer shadow = soft cushion glow (--wall-softness blur)
-   - Middle shadow = main wall thickness (--wall-thickness)  
-   - Inner shadows = 3D bevel (light top-left, dark bottom-right)
-   - The walls feel like inflated rubber bumpers around the play area
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
 #bravia-balls {
   position: fixed;
-  /* Match the body padding to align seamlessly with the frame */
   inset: var(--container-border);
-  overflow: hidden;
-  /* Outer container matches the rounded content area */
   border-radius: var(--container-radius);
-  /* TRANSPARENT - let logo show through from behind */
   background: transparent;
   z-index: 5;
   pointer-events: none !important;
-  user-select: none; 
-  -webkit-user-select: none; 
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-  overscroll-behavior: contain;
-  
-  /* No box-shadow on outer container - rubber effect is on canvas */
-  
-  /* ORGANIC TRANSITIONS */
-  transition: 
-    background-color var(--duration-settle) var(--ease-settle);
+  overflow: hidden;
 }
 
-/* Inner shadow overlay inside the rounded container wrapper */
 #bravia-balls::after {
   content: '';
   position: absolute;
@@ -792,531 +703,144 @@ a {
     var(--container-inner-shadow-color);
 }
 
-/* Ball Pit Mode - Same container as other modes
-   Balls spawn at negative Y (above canvas) and fall into view.
-   No special CSS needed - walls stay fixed, balls spawn above. */
-
-/* Canvas - simulation drawing surface, fills the container */
 #bravia-balls canvas {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 5; /* ABOVE logo (z:3), balls render on top */
-  display: block;
-  z-index: 1;
-  /* Allow real pointer targeting for tests + input ergonomics.
-     Panel/UI still opt-out via isEventOnUI() in pointer tracking. */
-  pointer-events: auto !important;
-  cursor: none !important;
+  z-index: 5;
+  pointer-events: auto !important; /* Interactions enabled */
   touch-action: none;
-  user-select: none; 
-  -webkit-user-select: none;
-  -webkit-user-drag: none;
-  
-  /* Canvas breathes with wall changes */
-  transition: 
-    width var(--duration-resize) var(--ease-organic),
-    height var(--duration-resize) var(--ease-organic);
 }
-
-/* Safari-specific GPU optimization */
-@supports (-webkit-backdrop-filter: blur(10px)) {
-  #bravia-balls {
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   NOISE TEXTURE LAYERS - Subtle grain, controllable opacity
-   .noise (z:4) behind balls | .noise-2 (z:7) above balls | .noise-3 (z:8) top layer
-   Text (z:20+) above all
-   ═══════════════════════════════════════════════════════════════════════════════ */
 
 .noise {
-  z-index: 2 !important;  /* Behind logo (z:3) and balls (z:5) */
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-attachment: scroll !important;
+  z-index: 2 !important;
   opacity: var(--noise-back-opacity) !important;
   background-size: var(--noise-size-base) var(--noise-size-base) !important;
-  mix-blend-mode: multiply !important; /* Darkens grain on light background */
+  mix-blend-mode: multiply !important;
 }
 
 .noise-2 {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-attachment: scroll !important;
   z-index: 7 !important;
-  transform: scaleX(-1) !important;
-  background-size: var(--noise-size-top) var(--noise-size-top) !important;
   opacity: var(--noise-front-opacity) !important;
-  mix-blend-mode: multiply !important; /* Darkens grain on light background */
+  background-size: var(--noise-size-top) var(--noise-size-top) !important;
+  mix-blend-mode: multiply !important;
 }
 
 .noise-3 {
-  z-index: 8 !important;
-  transform: rotate(180deg) !important;
-  background-size: var(--noise-size-base) var(--noise-size-base) !important;
-  opacity: var(--noise-top-opacity, 0.015) !important;
-  mix-blend-mode: multiply !important; /* Darkens grain on light background */
-}
-
-/* Dark mode: Invert blend mode (multiply → screen) for equivalent effect on dark bg */
-/* Note: Also requires page-ready to maintain fade-in behavior */
-body.dark-mode.page-ready .noise {
-  opacity: var(--noise-back-opacity-dark) !important;
-  mix-blend-mode: screen !important; /* Lightens grain on dark background */
-}
-
-body.dark-mode.page-ready .noise-2 {
-  opacity: var(--noise-front-opacity-dark) !important;
-  mix-blend-mode: screen !important; /* Lightens grain on dark background */
-}
-
-body.dark-mode.page-ready .noise-3 {
-  opacity: var(--noise-top-opacity-dark, 0.04) !important;
-  mix-blend-mode: screen !important; /* Lightens grain on dark background */
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   TYPOGRAPHY & TEXT ELEMENTS
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   TOP ELEMENTS (Top) – Runtime-composed layout
-   Legend (left) + Decorative text + Sound toggle (right)
-   Each group = 50% width, top-aligned across viewports.
-   ───────────────────────────────────────────────────────────────────────────── */
-#top-elements {
-  position: fixed !important;
-  top: var(--edge-inset) !important;
-  left: var(--edge-inset) !important;
-  right: var(--edge-inset) !important;
-  /* Keep below the settings window (avoid z-index overflow) */
-  z-index: 9000 !important;
-
-  display: flex !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important;
-  gap: clamp(4vw, 5vw, 6vw) !important; /* Gap between labels wrapper and text container */
-
-  pointer-events: auto !important;
-  opacity: 0;
-}
-
-#top-elements-left,
-#top-elements-right {
-  flex: 0 1 calc(50% - clamp(2vw, 2.5vw, 3vw)) !important; /* Allow shrinking, account for gap */
-  min-width: 0 !important;
-  display: flex !important;
-  align-items: flex-start !important;
-  overflow: hidden !important; /* Prevent overflow */
-}
-
-#top-elements-left {
-  justify-content: flex-start !important;
-}
-
-#top-elements-right {
-  justify-content: flex-end !important;
-}
-
-#top-elements-rightRow {
-  width: 100% !important; /* Fill parent */
-  min-width: 0 !important; /* Allow shrinking */
-  max-width: 100% !important; /* Constrain to parent */
-  display: flex !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important; /* Text fills left, icon stays right */
-  gap: clamp(4vw, 5vw, 6vw) !important; /* Gap between text container and sound icon */
-  flex-wrap: wrap !important; /* Wrap instead of pushing the sound button off-screen */
-  overflow: visible !important; /* Allow hover/click + dot rendering */
-}
-
-#top-elements-rightText {
-  flex: 1 1 0 !important; /* Fill available space but allow shrinking */
-  min-width: 0 !important; /* Critical: allow text to wrap/truncate */
-  display: block !important; /* Simple block for text flow */
-  text-align: left !important;
-  overflow-wrap: break-word !important; /* Allow text to wrap */
-  word-break: break-word !important; /* Break long words if needed */
-}
-
-/* When nested in #top-elements, stop using fixed positioning */
-#top-elements .legend {
-  position: static !important;
-  top: auto !important;
-  left: auto !important;
-  max-width: 100% !important;
-  transition: none !important;
-  /* Ensure flexbox wrap behavior in container context */
-  flex: 0 1 auto !important;
-  gap: var(--legend-gap-row) var(--legend-gap-col) !important;
-}
-
-/* When nested in #top-elements, stop using fixed positioning and allow interactions */
-#top-elements .decorative-script {
-  position: static !important;
-  top: auto !important;
-  right: auto !important;
-  pointer-events: auto !important;
-  max-width: 100% !important; /* Constrain to container */
+  position: absolute !important;
+  inset: 0 !important;
   width: 100% !important;
-  overflow-wrap: break-word !important; /* Allow text to wrap */
-  word-break: break-word !important; /* Break long words if needed */
+  height: 100% !important;
+  background-attachment: scroll !important;
+  z-index: 8 !important;
+  opacity: var(--noise-top-opacity, 0.015) !important;
+  background-size: var(--noise-size-base) var(--noise-size-base) !important;
+  mix-blend-mode: multiply !important;
 }
 
-/* Sound toggle mounted into the top row */
-.sound-toggle.sound-toggle--top {
-  position: relative !important; /* Anchor the hover dot + ensure hit-testing */
-  top: auto !important;
-  left: auto !important;
-  transform: none !important;
-  margin: 0 !important;
-  padding: var(--layout-gap-sm) !important;      /* Reasonable hit area without layout shift */
-  margin: calc(var(--layout-gap-sm) * -1) !important;      /* Compensate for added padding */
-  display: inline-flex !important;
-  align-items: flex-start !important;
-  white-space: nowrap !important;
-  flex: 0 0 auto !important; /* Fixed size, don't shrink */
-  /* Match the icon system base color; hover turns orange-red */
-  color: var(--text-color-light-muted) !important;
+body.dark-mode .noise {
+  opacity: var(--noise-back-opacity-dark) !important;
 }
 
-/* Ensure hover color wins in the top row (important + higher specificity) */
-.sound-toggle.sound-toggle--top:hover {
-  color: var(--link-hover-color) !important;
+body.dark-mode .noise-2 {
+  opacity: var(--noise-front-opacity-dark) !important;
+}
+
+body.dark-mode .noise,
+body.dark-mode .noise-2,
+body.dark-mode .noise-3 {
+  mix-blend-mode: screen !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LEGEND (Top-Left)
-   Uses organic spacing: positions breathe with viewport
-   Horizontal flexbox with wrap → vertical stack on mobile
+   RESPONSIVE ADJUSTMENTS
    ───────────────────────────────────────────────────────────────────────────── */
-.legend {
-  position: fixed !important;
-  /* Position = frame border + content padding (via --edge-inset) */
-  top: var(--edge-inset) !important;
-  left: var(--edge-inset) !important;
-  margin: 0 !important;
-  width: auto !important;
-  max-width: 100% !important; /* Constrain to parent (no overflow) */
-  height: auto !important;
-  font-family: 'Geist', sans-serif !important;
-  padding: 0 !important; /* No inner padding - positioning handles spacing */
-  z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
-  opacity: var(--legend-opacity) !important; /* Keep constant: Webflow sets .legend:hover { opacity: 1 } */
-  color: var(--text-color-light-muted) !important; /* Slightly darker, globally applied to all legend text (light mode) */
-  
-  /* Horizontal flexbox with wrap */
-  display: flex !important;
-  flex-wrap: wrap !important;
-  align-items: flex-start !important;
-  gap: var(--legend-gap-row) var(--legend-gap-col) !important; /* row-gap column-gap */
-  overflow: hidden !important; /* Prevent visible overflow */
-  
-  /* Smooth position transitions during resize */
-  transition: 
-    top var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic);
-}
-
-/* Prevent any hover opacity shift from Webflow (.legend:hover { opacity: 1 }) */
-.legend:hover {
-  opacity: var(--legend-opacity) !important;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   LEGEND RESPONSIVE: Tablet (tighter spacing)
-   ───────────────────────────────────────────────────────────────────────────── */
-@media (max-width: var(--breakpoint-tablet)) {
+@media (max-width: 991px) { /* Tablet */
   .legend {
+    grid-template-columns: repeat(3, auto) !important; /* 3x3 layout */
     gap: clamp(3px, 0.4vmin, 6px) clamp(12px, 1.5vw, 20px) !important;
   }
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   LEGEND RESPONSIVE: Mobile (vertical stack)
-   ───────────────────────────────────────────────────────────────────────────── */
-@media (max-width: var(--breakpoint-mobile-p)) {
+@media (max-width: 480px) { /* Mobile */
+  .ui-top {
+    flex-wrap: wrap;
+    gap: var(--gap-md);
+  }
+  
   .legend {
-    flex-direction: column !important;
-    gap: clamp(4px, 0.5vmin, 6px) !important;
+    max-width: 100% !important;
+    grid-template-columns: 1fr !important; /* 1x7 layout */
+    gap: 4px !important;
+  }
+  
+  .ui-top-right {
+    max-width: 100% !important;
+    justify-content: flex-start;
+  }
+  
+  .ui-bottom {
+    gap: var(--space-md) !important;
+  }
+  
+  .ui-nav-row {
+    justify-content: space-between !important; /* Spread links on mobile */
+  }
+  
+  #footer-links-container {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  
+  .footer_link {
+    font-size: clamp(0.7rem, 1.2vw, 0.78rem) !important;
+    padding: var(--hit-area-sm) !important;
+  }
+  
+  .ui-meta-row {
+    align-items: center !important;
+  }
+  
+  .ui-meta-right {
+    flex-direction: row;
+    gap: var(--gap-md) !important;
   }
 }
 
-.legend__item {
-  font-family: 'Geist', sans-serif !important;
-  
-  /* ─────────────────────────────────────────────────────────────────────────────
-     TYPOGRAPHIC REFINEMENT: Legend Labels
-     Weight 600 (semi-bold) for balanced presence.
-     Tracking at 0.08em - open but not loose.
-     ───────────────────────────────────────────────────────────────────────────── */
-  font-weight: var(--legend-font-weight) !important;
-  letter-spacing: var(--legend-letter-spacing) !important;
-  text-transform: uppercase;
-  font-size: var(--legend-font-size) !important;
-  line-height: var(--legend-line-height) !important;
-  color: inherit !important; /* Inherit from .legend (enables single global legend text color) */
-  opacity: var(--text-opacity-base); /* Keep constant: no hover opacity changes */
-  
-  /* Equal width for all legend items within each row */
-  flex: 1 1 0 !important;
-  white-space: nowrap !important; /* Prevent text from wrapping within item */
-}
-
-/* Legend labels: ensure no span-level formatting overrides (e.g., Webflow/inline styles) */
-#expertise-legend span {
-  color: inherit !important;
-  font-weight: inherit !important;
-  letter-spacing: inherit !important;
-  text-transform: inherit !important;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   DECORATIVE SCRIPT (Top-Right Philosophy Statement)
-   ───────────────────────────────────────────────────────────────────────────── */
-.decorative-script {
+/* Custom Cursor */
+#custom-cursor {
   position: fixed;
-  /* Position = frame border + content padding (via --edge-inset) */
-  top: var(--edge-inset);
-  right: var(--edge-inset);
-  /* Fluid max-width */
-  max-width: var(--decorative-script-max-width);
-  z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
-  font-family: 'Geist', sans-serif;
-  /* Fluid typography */
-  font-size: var(--decorative-script-font-size);
-  font-weight: 400;
-  line-height: var(--decorative-script-line-height);
-  letter-spacing: var(--decorative-script-letter-spacing);
-  color: var(--text-color-light-base); /* Dark text for light mode */
-  /* opacity controlled by page-ready fade-in system */
   pointer-events: none;
-  user-select: none;
-  -webkit-user-select: none;
-  transform: translateZ(0);
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  visibility: visible !important;
-  /* No border or padding */
-  border: none !important;
-  padding: 0 !important;
-  
-  /* ORGANIC TRANSITIONS: Position and appearance */
-  transition: 
-    top var(--duration-resize) var(--ease-organic),
-    right var(--duration-resize) var(--ease-organic),
-    max-width var(--duration-resize) var(--ease-organic),
-    opacity var(--duration-settle) var(--ease-settle),
-    color var(--duration-settle) var(--ease-settle);
-}
-
-.decorative-script p {
-  margin: 0;
-  text-align: left;
-}
-
-.decorative-script p a {
-  text-decoration: underline !important;
-  color: inherit;
-  pointer-events: auto;
-  cursor: pointer;
-  position: relative;
-  opacity: var(--text-opacity-base); /* Keep constant: no hover opacity changes */
-  transition: 
-    color var(--duration-link-hover) ease;
-  white-space: nowrap; /* Prevent "Let's chat." from breaking */
-}
-
-/* Hover dot - same as footer links */
-.decorative-script p a::after {
-  content: '';
-  position: absolute;
-  bottom: calc(var(--dot-indicator-offset) * -1);
-  left: 50%;
-  transform: translateX(-50%) scaleY(0);
-  transform-origin: 50% 50%;
-  width: var(--dot-indicator-size);
-  height: var(--dot-indicator-size);
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-.decorative-script p a:hover {
-  color: var(--link-hover-color) !important;
-  opacity: var(--text-opacity-base); /* Keep constant */
-}
-
-.decorative-script p a:hover::after {
+  z-index: 10000;
+  border: none;
+  background: #000000;
+  transform-origin: center center;
+  transform: translate(-50%, -50%) scale(1);
   opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   FOOTER ELEMENTS (Bottom)
-   Shifted down by proportional amount, transitions organically
-   
-   HOVER EFFECT: Small circle dot appears underneath on hover
-   Creates an elegant, minimal indicator without underlines
-   ───────────────────────────────────────────────────────────────────────────── */
-.footer_link {
-  text-decoration: none;
-  color: inherit;
-  /* opacity and transition controlled by ORCHESTRATED PAGE ENTRANCE above */
-  position: relative;
-  opacity: var(--text-opacity-base); /* Keep constant: no hover opacity changes */
-  transition: color var(--duration-link-hover) ease;
-  
-  /* Clickable/hover padding - expands hit area */
-  display: inline-block;
-  padding: var(--hit-area-lg);
-  margin: calc(var(--hit-area-lg) * -1); /* Compensate for visual shift */
-  
-  /* ORGANIC: Shift proportional to viewport, transition smoothly */
-  transform: translateY(var(--space-md));
-}
-
-/* Hover dot indicator - small circle that fades in */
-.footer_link::after {
-  content: '';
-  position: absolute;
-  /* Keep dot-to-text spacing stable even though links use padded hit areas */
-  bottom: 8px; /* Decreased to bring dot closer to text label */
-  left: 50%;
-  transform: translate3d(-50%, 0, 0) scaleY(0);
-  transform-origin: 50% 50%;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, opacity;
-}
-
-.footer_link:hover {
-  color: var(--link-hover-color) !important;
-  opacity: 0.9; /* Keep constant */
-}
-
-.footer_link:hover::after {
-  opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
-}
-
-/* Social icons - Fixed position at bottom-left inside frame */
-#social-links,
-.footer_icon-group {
-  position: fixed !important;
-  bottom: var(--edge-inset) !important;
-  left: var(--edge-inset) !important;
-  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
-  transition: 
-    bottom var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic);
-}
-
-/* Social icon links: keep a consistent opacity (no hover opacity shifts) */
-.footer_icon-link {
-  /* Match footer links’ base tone */
-  color: rgba(0, 0, 0, 0.7) !important;
-  opacity: 0.9;
-  transition: color var(--duration-link-hover) ease;
-}
-
-.footer_icon-link:hover {
-  opacity: var(--text-opacity-base);
-}
-
-/* Social icon hover dot indicator (identical to footer link dots) */
-.footer_icon-link::after {
-  content: '';
-  position: absolute;
-  bottom: calc(var(--dot-indicator-offset) * -1);
-  left: 50%;
-  transform: translateX(-50%) scaleY(0);
-  transform-origin: 50% 50%;
-  width: var(--dot-indicator-size);
-  height: var(--dot-indicator-size);
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
-  will-change: transform, opacity;
 }
 
-.footer_icon-link:hover {
-  color: var(--link-hover-color) !important;
+body.dark-mode #custom-cursor {
+  background: #ffffff;
 }
 
-.footer_icon-link:hover::after {
-  opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
-}
-
-/* Caption (timestamp) - Fixed position at bottom-right inside frame */
-.caption {
-  position: fixed !important;
-  bottom: calc(var(--edge-inset) - var(--caption-offset)) !important; /* Compensate for padding */
-  right: calc(var(--edge-inset) - var(--caption-offset)) !important;
-  z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
-  font-family: 'Molle', cursive !important;
-  /* Fluid typography */
-  font-size: var(--caption-font-size) !important;
-  font-weight: var(--caption-font-weight) !important;
-  line-height: var(--caption-line-height) !important;
-  letter-spacing: var(--caption-letter-spacing) !important;
-  /* opacity and transition controlled by ORCHESTRATED PAGE ENTRANCE above */
-  cursor: default;
-  
-  /* Clickable/hover padding - expands hit area */
-  padding: var(--caption-offset);
-  opacity: var(--text-opacity-base); /* Keep constant: no hover opacity changes */
-}
-
-.caption:hover {
-  color: var(--text-color-light-base) !important;
-  opacity: var(--text-opacity-base); /* Keep constant */
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   DARK MODE OVERRIDES
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-body.dark-mode .viewport .legend__item,
-body.dark-mode .footer_link,
-body.dark-mode .footer_icon-link {
-  color: var(--text-color-dark-base) !important;
-  opacity: var(--text-opacity-base); /* Keep constant across hover states */
-}
-
-/* Sound toggle follows the same base color as the icon/link system in dark mode */
-body.dark-mode .sound-toggle {
-  color: var(--text-color-dark-base) !important;
-}
-
-body.dark-mode .sound-toggle.sound-toggle--top {
-  color: var(--text-color-dark-base) !important;
-}
-
-body.dark-mode .decorative-script p a:hover {
-  color: var(--link-hover-color) !important;
-}
-
-/* Dark mode - SVG fills */
-body.dark-mode .viewport .hero__text svg path[fill="#161616"],
-body.dark-mode .viewport .hero__text svg path[fill="black"] {
-  fill: #c8c8c8 !important;
-}
-
-body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
-  stroke: #c8c8c8 !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   LEGEND CIRCLE COLORS - Synced with ball palette
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
+/* Circle Colors */
 .circle.bg-ball-1 { background-color: var(--ball-1) !important; }
 .circle.bg-ball-2 { background-color: var(--ball-2) !important; }
 .circle.bg-ball-3 { background-color: var(--ball-3) !important; }
@@ -1325,365 +849,6 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 .circle.bg-ball-6 { background-color: var(--ball-6) !important; }
 .circle.bg-ball-7 { background-color: var(--ball-7) !important; }
 .circle.bg-ball-8 { background-color: var(--ball-8) !important; }
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   RESPONSIVE ADJUSTMENTS
-   ═══════════════════════════════════════════════════════════════════════════════
-   
-   NOTE: With the organic spacing system (vmin-based), many explicit breakpoints
-   become unnecessary. The fluid clamp() and vmin units handle most scaling.
-   
-   These breakpoints fine-tune for edge cases only.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-@media (max-width: var(--breakpoint-mobile-l)) {
-  :root {
-    /* Slightly tighter content padding on tablets */
-    --content-padding: clamp(20px, 3vmin, 24px);
-    --decorative-script-font-size: clamp(0.6rem, 1.5vw, 0.75rem);
-    --decorative-script-max-width: clamp(280px, 45vw, 320px);
-  }
-}
-
-@media (max-width: var(--breakpoint-mobile-p)) {
-  :root {
-    /* Tighter content padding on phones */
-    --content-padding: clamp(12px, 2.5vmin, 16px);
-    --decorative-script-font-size: clamp(0.55rem, 2.2vw, 0.68rem);
-    --decorative-script-max-width: clamp(240px, 52vw, 280px);
-  }
-
-  /* ─────────────────────────────────────────────────────────────────────────────
-     TOP ELEMENTS — MOBILE LAYOUT
-     Row 1: Legend (left) | Description (right) with reduced gap
-     Row 2: Sound button spans 100% below both
-     Desktop unchanged (scoped to <=480px only).
-     ───────────────────────────────────────────────────────────────────────────── */
-  #top-elements {
-    flex-wrap: wrap !important;
-    /* Mobile gutter: between legend + description */
-    gap: var(--layout-gap-sm) clamp(8vw, 10vw, 12vw) !important; /* row-gap column-gap */
-  }
-
-  #top-elements-left,
-  #top-elements-right {
-    flex: 0 0 calc(50% - clamp(4vw, 5vw, 6vw)) !important; /* Account for gutter */
-  }
-
-  #top-elements-soundRow {
-    flex: 0 0 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    pointer-events: none; /* child button re-enables */
-  }
-
-  #top-elements-soundRow #sound-toggle {
-    pointer-events: auto !important;
-  }
-
-  /* Full-width sound toggle on mobile */
-  #top-elements #sound-toggle.sound-toggle--topwide {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    margin: 0 !important;
-    padding: var(--layout-gap-md) 0 !important;
-  }
-
-  /* ─────────────────────────────────────────────────────────────────────────────
-     FOOTER LINKS — MOBILE ALIGNMENT
-     - Center align as a group
-     - Allow wrapping between links
-     - Keep "Get in touch" and "Bio/CV" readable
-     ───────────────────────────────────────────────────────────────────────────── */
-  #footer-links-container {
-    width: calc(100vw - (var(--edge-inset) * 2)) !important;
-    max-width: none !important;
-    flex-wrap: nowrap !important;
-    justify-content: space-between !important;
-    text-align: center !important;
-    row-gap: 0 !important;
-    gap: 0 !important;
-  }
-
-  #footer-links-container #contact-email,
-  #footer-links-container #portfolio-gate-trigger {
-    white-space: nowrap !important;
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
-  }
-
-  #footer-links-container #cv-gate-trigger {
-    white-space: nowrap !important;
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
-  }
-
-  #footer-links-container #cv-gate-trigger .footer-link-nowrap {
-    white-space: nowrap !important;
-  }
-
-  /* HARD GUARANTEE: no wrapping inside any footer link on mobile */
-  #footer-links-container a.footer_link,
-  #footer-links-container a.footer_link * {
-    white-space: nowrap !important;
-  }
-
-  /* If Webflow/JS wraps parts in spans, keep them inline */
-  #footer-links-container a.footer_link span {
-    display: inline !important;
-  }
-
-  /* Slightly tighter type so 3 links fit in a single row */
-  #footer-links-container #contact-email,
-  #footer-links-container #portfolio-gate-trigger,
-  #footer-links-container #cv-gate-trigger {
-    font-size: clamp(0.7rem, 1.2vw, 0.78rem) !important;
-  }
-  
-  /* Slightly tighter tap targets on phones to prevent collisions */
-  #footer-links-container #contact-email,
-  #footer-links-container #portfolio-gate-trigger,
-  #footer-links-container #cv-gate-trigger {
-    padding: var(--hit-area-sm) var(--hit-area-sm) !important;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   THEME TOGGLE - Hidden (user requested removal)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.theme-toggle {
-  display: none !important;
-}
-
-/* Sound toggle - vertically centered, left aligned, styled like footer links */
-.sound-toggle {
-  position: fixed;
-  top: 52%; /* Slightly below center: tuned to align with the Alexander Beck Studio wordmark */
-  left: var(--edge-inset);
-  transform: translateY(-50%); /* Perfect vertical centering */
-  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
-  
-  /* Button reset + explicit font styling to match footer links */
-  font-family: 'Geist', sans-serif !important;
-  font-size: clamp(0.75rem, 1.2vw, 0.9rem) !important;
-  font-weight: 400 !important; /* Match Portfolio link weight */
-  text-decoration: none;
-  /* Match the icon/link base tone (not “always orange”) */
-  color: rgba(0, 0, 0, 0.7) !important;
-  /* opacity handled by FADE SYSTEM above - don't set here */
-  background: none;
-  border: none;
-  /* Match footer links: larger hit area without changing visual layout */
-  padding: var(--hit-area-lg);
-  margin: calc(var(--hit-area-lg) * -1);
-  cursor: pointer;
-  pointer-events: auto !important;
-  
-  transition: 
-    color var(--duration-link-hover) ease,
-    opacity var(--duration-quick) ease,
-    top var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic);
-}
-
-/* Sound toggle mounted inside #social-links (bottom-left icon group) */
-#social-links .sound-toggle.sound-toggle--social,
-.footer_icon-group .sound-toggle.sound-toggle--social {
-  position: static !important;
-  top: auto !important;
-  left: auto !important;
-  transform: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-/* In the icon row, match the social icon dot position */
-#social-links .sound-toggle.sound-toggle--social::after,
-.footer_icon-group .sound-toggle.sound-toggle--social::after {
-  bottom: calc(var(--dot-indicator-offset) * -1) !important;
-}
-
-/* Ensure the inserted list item doesn't introduce unwanted spacing */
-#social-links .sound-toggle-item,
-.footer_icon-group .sound-toggle-item {
-  margin-bottom: 0 !important;
-  display: inline-flex;
-  align-items: center;
-}
-
-/* Ensure the sound icon uses the global glyph size */
-.sound-toggle .ti {
-  width: var(--icon-size-lg) !important;
-  height: var(--icon-size-lg) !important;
-  font-size: var(--icon-size-lg) !important;
-}
-
-/* Hover dot indicator - same as footer links */
-.sound-toggle::after {
-  content: '';
-  position: absolute;
-  /* Default (for the fixed-position button): keep dot clear of the enlarged hit-area */
-  bottom: clamp(10px, 1.5vmin, 14px);
-  left: 50%;
-  transform: translateX(-50%) scaleY(0);
-  transform-origin: 50% 50%;
-  width: var(--dot-indicator-size);
-  height: var(--dot-indicator-size);
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-/* When mounted into the top row, match social icon dot position */
-.sound-toggle.sound-toggle--top::after {
-  bottom: -10px !important;
-}
-
-.sound-toggle:hover {
-  color: var(--link-hover-color) !important;
-  /* opacity handled by FADE SYSTEM - don't override here */
-}
-
-.sound-toggle:hover::after {
-  opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   FOOTER LINKS CONTAINER - Fixed at bottom, 4× frame thickness from edge
-   ═══════════════════════════════════════════════════════════════════════════════ */
-#footer-links-container {
-  position: fixed !important;
-  bottom: calc(var(--container-border) * 4) !important; /* 4× frame thickness from bottom */
-  left: 50% !important;
-  transform: translateX(-50%) !important; /* Center horizontally */
-  z-index: var(--z-ui-top) !important; /* Above everything: viewport-content (z:20), noise (z:7-8), balls (z:5) */
-  
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: baseline !important; /* Changed from center to baseline for top alignment */
-  justify-content: center !important;
-  gap: 0 !important; /* No gap between links (spacing comes from per-link padding) */
-  
-  margin: 0 !important;
-  padding: var(--layout-gap-sm) 0 !important; /* Small vertical padding for invisible hit area */
-  height: auto !important; /* Height matches content + padding */
-  width: auto !important;
-  
-  /* Ensure visibility */
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  
-  transition: 
-    bottom var(--duration-resize) var(--ease-organic),
-    transform var(--duration-resize) var(--ease-organic);
-}
-
-/* Links inside container - remove individual positioning and ensure visibility */
-#footer-links-container #contact-email,
-#footer-links-container #portfolio-gate-trigger,
-#footer-links-container #cv-gate-trigger {
-  position: relative !important;
-  left: auto !important;
-  right: auto !important;
-  top: auto !important;
-  bottom: auto !important;
-  transform: none !important; /* Override .footer_link translateY */
-  margin: 0 !important;
-  padding: calc(var(--footer-links-padding) * 1.5) var(--footer-links-padding) !important; /* Increased vertical padding by 1.5x */
-  
-  /* Ensure visibility - override any Webflow grid positioning */
-  grid-area: auto !important;
-  display: inline-flex !important;
-  justify-content: center !important;
-  text-align: center !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  
-  /* Explicit text styling */
-  color: var(--text-color-light-muted) !important;
-  font-size: var(--footer-links-font-size) !important;
-  
-  /* Ensure baseline alignment */
-  vertical-align: baseline !important;
-  line-height: 1 !important;
-}
-
-/* Hover override: these links have high-specificity base colors */
-#footer-links-container #contact-email:hover,
-#footer-links-container #portfolio-gate-trigger:hover,
-#footer-links-container #cv-gate-trigger:hover {
-  color: var(--link-hover-color) !important;
-}
-
-/* Ensure "Get in touch" matches the exact hover behavior (color + dot) */
-#footer-links-container a.footer_link:hover {
-  color: var(--link-hover-color) !important;
-}
-
-#footer-links-container a.footer_link:hover::after {
-  opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
-}
-
-/* Dark mode footer link colors */
-body.dark-mode #footer-links-container #contact-email,
-body.dark-mode #footer-links-container #portfolio-gate-trigger,
-body.dark-mode #footer-links-container #cv-gate-trigger {
-  color: var(--text-color-dark-base) !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #bravia-balls canvas {
-    filter: none;
-  }
-  
-  .decorative-script,
-  .footer_link,
-  .caption {
-    transition: color 0.3s ease;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   CUSTOM CURSOR - Circular cursor matching ball size
-   Border area: visible | Simulation: scales down to dot and disappears
-   ═══════════════════════════════════════════════════════════════════════════════ */
-#custom-cursor {
-  position: fixed;
-  pointer-events: none;
-  z-index: 10000; /* Above everything */
-  border: none;
-  background: #000000;
-  transform-origin: center center;
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 1;
-  transition: 
-    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    width 0.2s ease,
-    height 0.2s ease;
-  will-change: transform, opacity;
-}
-
-body.dark-mode #custom-cursor {
-  background: #000000;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #custom-cursor {
-    transition: none;
-  }
-}
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗
    ║                    PANEL SYSTEM — SHADCN-INSPIRED DESIGN                    ║

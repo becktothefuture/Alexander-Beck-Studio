@@ -21,6 +21,7 @@ import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { initSoundEngine } from './modules/audio/sound-engine.js';
 import { upgradeSocialIcons } from './modules/ui/social-icons.js';
+import { initTimeDisplay } from './modules/ui/time-display.js';
 // Layout controls now integrated into master panel
 import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.js';
 import { initBrandLogoBallSpace } from './modules/ui/brand-logo-ball-space.js';
@@ -144,6 +145,14 @@ function ensureNoiseElements() {
     // No noise system present (modular dev without Webflow assets) - skip
     return;
   }
+
+  // Keep noise layers scoped to the simulation container (rounded/inset frame),
+  // otherwise `position: fixed` + body-append will blanket the entire viewport.
+  const container =
+    existingNoise.closest('#bravia-balls') ||
+    document.getElementById('bravia-balls') ||
+    existingNoise.parentElement ||
+    document.body;
   
   const noiseStyle = getComputedStyle(existingNoise);
   const bgImage = (noiseStyle.backgroundImage && noiseStyle.backgroundImage !== 'none') 
@@ -151,119 +160,26 @@ function ensureNoiseElements() {
     : null;
   
   // Create noise-2 if it doesn't exist
-  // Append to body (not inside #bravia-balls) to escape stacking context
   if (!document.querySelector('.noise-2')) {
     const noise2 = document.createElement('div');
     noise2.className = 'noise-2';
     if (bgImage) noise2.style.backgroundImage = bgImage;
-    
-    noise2.style.position = 'fixed';
-    noise2.style.inset = '0';
-    noise2.style.pointerEvents = 'none';
-    noise2.style.backgroundRepeat = 'repeat';
-    noise2.style.backgroundPosition = '50%';
-    noise2.style.backgroundAttachment = 'fixed';
-    noise2.style.mixBlendMode = 'luminosity';
-    
-    // Append to body, not inside #bravia-balls container
-    document.body.appendChild(noise2);
+
+    // Let CSS own positioning/blend/opacity so it stays in sync with config vars.
+    container.appendChild(noise2);
     console.log('✓ Created .noise-2 element');
   }
   
   // Create noise-3 if it doesn't exist (on top of noise-2)
-  // Append to body (not inside #bravia-balls) to escape stacking context
   if (!document.querySelector('.noise-3')) {
     const noise3 = document.createElement('div');
     noise3.className = 'noise-3';
     if (bgImage) noise3.style.backgroundImage = bgImage;
-    
-    noise3.style.position = 'fixed';
-    noise3.style.inset = '0';
-    noise3.style.pointerEvents = 'none';
-    noise3.style.backgroundRepeat = 'repeat';
-    noise3.style.backgroundPosition = '50%';
-    noise3.style.backgroundAttachment = 'fixed';
-    noise3.style.mixBlendMode = 'luminosity';
-    
-    // Append to body, not inside #bravia-balls container
-    document.body.appendChild(noise3);
+
+    // Let CSS own positioning/blend/opacity so it stays in sync with config vars.
+    container.appendChild(noise3);
     console.log('✓ Created .noise-3 element');
   }
-}
-
-// ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                         TOP UI LAYOUT (RUNTIME)                               ║
-// ║        Compose legend + decorative-script + sound toggle into one row         ║
-// ╚══════════════════════════════════════════════════════════════════════════════╝
-/**
- * Create a single top-aligned flex row for:
- * - Left:  #expertise-legend (labels)
- * - Right: .decorative-script (text) + #sound-toggle (button)
- *
- * We do this at runtime to avoid modifying the Webflow export template.
- * This function is safe to call multiple times (idempotent).
- */
-function setupTopElementsLayout() {
-  if (document.getElementById('top-elements')) return;
-
-  // Some engines/devices can lag in exposing the Webflow nodes immediately after navigation.
-  // Retry a few times rather than permanently skipping layout composition.
-  setupTopElementsLayout._tries = (setupTopElementsLayout._tries || 0);
-
-  const legend = document.getElementById('expertise-legend');
-  const decorativeScript = document.querySelector('.decorative-script');
-
-  // We need BOTH elements to compose the intended top row.
-  // In some engines, one can appear before the other during navigation/layout.
-  // Retry a few times rather than composing a partial layout (which would leave
-  // one element "fixed" in its legacy position and break alignment).
-  //
-  // Modular dev page may not include these Webflow elements; after retries, bail.
-  if (!legend || !decorativeScript) {
-    if (setupTopElementsLayout._tries < 40) {
-      setupTopElementsLayout._tries++;
-      setTimeout(setupTopElementsLayout, 100);
-    }
-    return;
-  }
-
-  setupTopElementsLayout._tries = 0;
-
-  // Mount outside #fade-content so it can layer above the panel dock.
-  const mountRoot = document.body;
-
-  const container = document.createElement('div');
-  container.id = 'top-elements';
-
-  const left = document.createElement('div');
-  left.id = 'top-elements-left';
-
-  const right = document.createElement('div');
-  right.id = 'top-elements-right';
-
-  const rightRow = document.createElement('div');
-  rightRow.id = 'top-elements-rightRow';
-
-  const rightText = document.createElement('div');
-  rightText.id = 'top-elements-rightText';
-
-  if (legend) left.appendChild(legend);
-  if (decorativeScript) rightText.appendChild(decorativeScript);
-
-  rightRow.appendChild(rightText);
-  right.appendChild(rightRow);
-
-  container.appendChild(left);
-  container.appendChild(right);
-
-  // Mobile layout target:
-  // Provide a dedicated full-width row for the sound button under both columns.
-  // (Desktop keeps the sound button mounted next to the decorative text.)
-  const soundRow = document.createElement('div');
-  soundRow.id = 'top-elements-soundRow';
-  container.appendChild(soundRow);
-
-  mountRoot.appendChild(container);
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -402,17 +318,20 @@ function enhanceFooterLinksForMobile() {
     initPortfolioGate();
     log('✓ Portfolio password gate initialized');
 
-    // Compose the top UI (legend + decorative-script + sound toggle target row)
-    setupTopElementsLayout();
+    // Compose the top UI (LEGACY FUNCTION REMOVED - NOW IN DOM)
+    // setupTopElementsLayout();
 
     // Normalize social icons (line SVGs) across dev + build.
     // (Build uses webflow-export HTML; we patch at runtime for consistency.)
     upgradeSocialIcons();
 
+    // Initialize time display (London time)
+    initTimeDisplay();
+
     // Footer: mobile-friendly wrapping tweaks (keeps "Bio/CV" together)
     enhanceFooterLinksForMobile();
     
-    // Create quick sound toggle button (top-right, next to decorative text)
+    // Create quick sound toggle button (bottom-right, next to time)
     createSoundToggle();
     log('✓ Sound toggle button created');
     
@@ -422,8 +341,8 @@ function enhanceFooterLinksForMobile() {
     
     // Layout controls integrated into master panel
     
-    // Initialize starting mode (Ball Pit by default)
-    setMode(MODES.PIT);
+    // Initialize starting mode (Simulation 11: Worms, active by default for now)
+    setMode(MODES.WORMS);
     mark('bb:mode');
     log('✓ Mode initialized');
     
@@ -481,17 +400,16 @@ function enhanceFooterLinksForMobile() {
 
     setTimeout(() => {
       const fadeContent = document.getElementById('fade-content');
-      const topElements = document.getElementById('top-elements');
+      // Legacy #top-elements is gone, now part of #fade-content
 
-      if (!fadeContent && !topElements) {
-        console.warn('⚠️ #fade-content/#top-elements not found (fade skipped)');
+      if (!fadeContent) {
+        console.warn('⚠️ #fade-content not found (fade skipped)');
         return;
       }
 
       // Accessibility: respect reduced motion by skipping animation entirely.
       if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
         if (fadeContent) fadeContent.style.opacity = '1';
-        if (topElements) topElements.style.opacity = '1';
         console.log('✓ Page fade-in skipped (prefers-reduced-motion)');
         return;
       }
@@ -499,7 +417,6 @@ function enhanceFooterLinksForMobile() {
       // If WAAPI is missing (older browsers / restricted contexts), fall back to inline style.
       if (fadeContent && typeof fadeContent.animate !== 'function') {
         forceFadeVisible(fadeContent, 'WAAPI unsupported');
-        if (topElements) topElements.style.opacity = '1';
         return;
       }
 
@@ -516,7 +433,6 @@ function enhanceFooterLinksForMobile() {
       };
 
       const anim = animateOpacity(fadeContent);
-      const topAnim = animateOpacity(topElements);
 
       // When finished, stamp final opacity as an inline style. This prevents edge cases
       // where a later style recalc/compositing change makes it appear hidden again.
@@ -529,14 +445,6 @@ function enhanceFooterLinksForMobile() {
         if (fadeContent) forceFadeVisible(fadeContent, 'animation canceled');
       });
 
-      topAnim?.addEventListener?.('finish', () => {
-        if (topElements) topElements.style.opacity = '1';
-      });
-
-      topAnim?.addEventListener?.('cancel', () => {
-        if (topElements) topElements.style.opacity = '1';
-      });
-
       console.log('✓ Page fade-in started (WAAPI)');
 
       // Ultimate failsafe: never allow permanent hidden UI.
@@ -544,11 +452,6 @@ function enhanceFooterLinksForMobile() {
         if (fadeContent) {
           const opacity = window.getComputedStyle(fadeContent).opacity;
           if (opacity === '0') forceFadeVisible(fadeContent, 'opacity still 0 after failsafe window');
-        }
-
-        if (topElements) {
-          const opacity = window.getComputedStyle(topElements).opacity;
-          if (opacity === '0') topElements.style.opacity = '1';
         }
       }, FADE_FAILSAFE_MS);
     }, FADE_DELAY_MS);
