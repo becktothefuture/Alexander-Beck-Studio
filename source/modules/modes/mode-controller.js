@@ -120,7 +120,11 @@ export function setMode(mode) {
     if (globals._ballSpacingBeforeKaleidoscope === undefined) {
       globals._ballSpacingBeforeKaleidoscope = globals.ballSpacing;
     }
-    globals.ballSpacing = globals.kaleidoscopeBallSpacing ?? globals.ballSpacing;
+    // Interpret kaleidoscopeBallSpacing as “px at 1000px min viewport dimension” for mobile consistency.
+    const canvas = globals.canvas;
+    const unit = canvas ? Math.max(0.35, Math.min(3.0, Math.min(canvas.width, canvas.height) / 1000)) : 1;
+    const spacingBase = globals.kaleidoscopeBallSpacing ?? globals.ballSpacing;
+    globals.ballSpacing = spacingBase * unit;
 
     initializeKaleidoscope();
   }

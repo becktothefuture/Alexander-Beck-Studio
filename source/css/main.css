@@ -145,51 +145,26 @@
   --ball-8: #ffa000;
   
   /* ═══════════════════════════════════════════════════════════════════════════════
-     FLUID DESIGN TOKEN SYSTEM
-     Centralized, viewport-responsive values for all layout components
+     STREAMLINED DESIGN TOKEN SYSTEM
+     Core scales + semantic aliases = fewer tokens, easier maintenance
      ═══════════════════════════════════════════════════════════════════════════════ */
   
   /* ─────────────────────────────────────────────────────────────────────────────
-     LAYOUT SPACING TOKENS - Fluid gaps and padding
+     CORE GAP SCALE - Universal spacing for all components
      ───────────────────────────────────────────────────────────────────────────── */
-  --layout-gap-xs: clamp(4px, 0.5vmin, 8px);
-  --layout-gap-sm: clamp(8px, 1vmin, 12px);
-  --layout-gap-md: clamp(12px, 1.5vmin, 20px);
-  --layout-gap-lg: clamp(20px, 2vw, 32px);
-  --layout-gap-xl: clamp(24px, 2.5vw, 40px);
-  --layout-gap-2xl: clamp(32px, 3vw, 48px);
-  
-  /* Content padding - fluid based on viewport */
-  --content-padding-fluid: clamp(16px, 4vmin, 40px);
-  
-  /* Hit area padding - interaction zones */
-  --hit-area-sm: clamp(8px, 1.5vmin, 12px);
-  --hit-area-md: clamp(12px, 2vmin, 20px);
-  --hit-area-lg: clamp(20px, 3vmin, 30px);
+  --gap-xs: clamp(4px, 0.5vmin, 8px);         /* Tight vertical spacing */
+  --gap-sm: clamp(8px, 1vmin, 12px);          /* Base component gaps */
+  --gap-md: clamp(12px, 1.5vmin, 20px);       /* Medium spacing */
+  --gap-lg: clamp(16px, 2vw, 24px);           /* Horizontal spread */
+  --gap-xl: clamp(24px, 2.5vw, 40px);         /* Large spacing */
   
   /* ─────────────────────────────────────────────────────────────────────────────
-     LEGEND SPECIFIC TOKENS
+     CORE TYPOGRAPHY SCALE - Universal text sizing
      ───────────────────────────────────────────────────────────────────────────── */
-  --legend-gap-row: clamp(4px, 0.5vmin, 8px);
-  --legend-gap-col: clamp(16px, 2vw, 24px);
-  --legend-item-gap: clamp(6px, 0.75vmin, 8px);
-  --legend-circle-size: clamp(6px, 0.75vmin, 8px);
-  --legend-opacity: 0.9;
-  
-  /* Legend typography */
-  --legend-font-size: clamp(9px, 1vw, 12px);
-  --legend-font-weight: 600;
-  --legend-letter-spacing: 0.08em;
-  --legend-line-height: 1.75;
-  
-  /* ─────────────────────────────────────────────────────────────────────────────
-     TYPOGRAPHY SCALE - Fluid font sizing
-     ───────────────────────────────────────────────────────────────────────────── */
-  --type-xs: clamp(9px, 1vw, 12px);
-  --type-sm: clamp(10px, 1.1vw, 13px);
-  --type-base: clamp(11px, 1.2vw, 14px);
-  --type-md: clamp(12px, 1.3vw, 16px);
-  --type-lg: clamp(14px, 1.5vw, 18px);
+  --text-xs: clamp(9px, 1vw, 12px);           /* Small UI (legend) */
+  --text-sm: clamp(11px, 1.2vw, 14px);        /* Base UI (decorative script) */
+  --text-md: clamp(12px, 1.4vw, 16px);        /* Emphasized (footer links) */
+  --text-lg: clamp(0.85rem, 1.5vw, 1.05rem);  /* Large display (caption) */
   
   /* Line heights */
   --line-height-tight: 1.3;
@@ -198,50 +173,78 @@
   --line-height-loose: 1.75;
   
   /* ─────────────────────────────────────────────────────────────────────────────
-     DECORATIVE SCRIPT TOKENS
+     CORE DIMENSION SCALE - Icons, dots, indicators
      ───────────────────────────────────────────────────────────────────────────── */
-  --decorative-script-max-width: clamp(240px, 25vw, 280px);
-  --decorative-script-font-size: clamp(0.65rem, 1.1vw, 0.8rem);
-  --decorative-script-line-height: var(--line-height-base);
-  --decorative-script-letter-spacing: 0.01em;
-  --decorative-script-padding-left: clamp(12px, 1.5vmin, 16px);
-  --decorative-script-padding-vertical: clamp(8px, 1vmin, 12px);
+  --size-icon: clamp(14px, 1.5vw, 16px);      /* Standard icon size */
+  --size-icon-lg: clamp(24px, 2.5vw, 28px);   /* Large icons/glyphs (1.2x original) */
+  --size-dot: clamp(3px, 0.4vmin, 4px);       /* Hover indicator dots */
   
   /* ─────────────────────────────────────────────────────────────────────────────
-     FOOTER COMPONENTS TOKENS
+     CORE INTERACTION SCALE - Tap targets and hit areas
      ───────────────────────────────────────────────────────────────────────────── */
-  --footer-icon-gap: clamp(16px, 1.25vw, 20px);
-  --footer-icon-size: clamp(14px, 1.5vw, 16px);
-  --footer-links-gap: clamp(24px, 3vw, 32px);
-  --footer-links-padding: clamp(12px, 2.5vmin, 30px);
-  --footer-links-font-size: clamp(12px, 1.4vw, 16px);
+  --tap-target: clamp(12px, 2.5vmin, 30px);   /* Universal interaction padding */
   
-  /* Caption specific */
-  --caption-font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+  /* ─────────────────────────────────────────────────────────────────────────────
+     SEMANTIC ALIASES - Component-specific names pointing to core scales
+     Components reference these for clarity, modify core scale to change all
+     ───────────────────────────────────────────────────────────────────────────── */
+  
+  /* Legend aliases */
+  --legend-gap-row: var(--gap-xs);
+  --legend-gap-col: var(--gap-lg);
+  --legend-item-gap: var(--gap-sm);
+  --legend-circle-size: var(--gap-sm);
+  --legend-font-size: var(--text-xs);
+  --legend-font-weight: 600;
+  --legend-letter-spacing: 0.08em;
+  --legend-line-height: var(--line-height-loose);
+  --legend-opacity: 0.9;
+  
+  /* Decorative script aliases */
+  --decorative-script-max-width: clamp(240px, 25vw, 280px);
+  --decorative-script-font-size: var(--text-sm);
+  --decorative-script-line-height: var(--line-height-base);
+  --decorative-script-letter-spacing: 0.01em;
+  --decorative-script-padding-left: var(--gap-md);
+  --decorative-script-padding-vertical: var(--gap-sm);
+  
+  /* Footer aliases */
+  --footer-icon-gap: var(--gap-lg);
+  --footer-icon-size: var(--size-icon);
+  --footer-links-padding: var(--tap-target);
+  --footer-links-font-size: var(--text-md);
+  
+  /* Caption aliases */
+  --caption-font-size: var(--text-lg);
   --caption-font-weight: 700;
   --caption-line-height: var(--line-height-tight);
   --caption-letter-spacing: 0.01em;
-  --caption-offset: clamp(6px, 1vmin, 10px);
+  --caption-offset: var(--gap-sm);
+  
+  /* Interaction aliases */
+  --hit-area-sm: var(--gap-sm);
+  --hit-area-md: var(--gap-md);
+  --hit-area-lg: var(--tap-target);
+  --dot-indicator-size: var(--size-dot);
+  --dot-indicator-offset: var(--gap-sm);
+  
+  /* Icon size aliases (backward compatibility) */
+  --icon-size-base: var(--size-icon);
+  --icon-size-lg: var(--size-icon-lg);
   
   /* ─────────────────────────────────────────────────────────────────────────────
-     COMPONENT DIMENSIONS
-     ───────────────────────────────────────────────────────────────────────────── */
-  --icon-size-base: clamp(14px, 1.5vw, 16px);
-  --icon-size-lg: clamp(20px, 2vw, 24px);
-  --dot-indicator-size: clamp(3px, 0.4vmin, 4px);
-  --dot-indicator-offset: clamp(8px, 1vmin, 10px);
-  
-  /* ─────────────────────────────────────────────────────────────────────────────
-     COLOR & OPACITY TOKENS - Semantic naming
+     COLOR & OPACITY TOKENS
      ───────────────────────────────────────────────────────────────────────────── */
   --text-opacity-base: 0.9;
   --text-opacity-muted: 0.7;
-  --text-opacity-subtle: 0.8;
   
-  --text-color-light-base: #161616;
+  --text-color-light: #161616;
   --text-color-light-muted: #2f2f2f;
-  --text-color-dark-base: rgba(255, 255, 255, 0.7);
-  --text-color-dark-muted: rgba(255, 255, 255, 0.5);
+  --text-color-dark: rgba(255, 255, 255, 0.7);
+  
+  /* Semantic aliases for backward compatibility */
+  --text-color-light-base: var(--text-color-light);
+  --text-color-dark-base: var(--text-color-dark);
   
   /* ─────────────────────────────────────────────────────────────────────────────
      Z-INDEX TOKENS - Layering system
@@ -355,6 +358,12 @@ body.body {
   width: 100%;
   height: 100%;
   cursor: none !important; /* No cursor anywhere - custom cursor handles it */
+  
+  /* Disable text selection globally */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
   
   /* Background Color applied to Content Area only (inside the frame) */
   background: transparent !important;
@@ -1174,7 +1183,7 @@ body.dark-mode.page-ready .noise-3 {
   content: '';
   position: absolute;
   /* Keep dot-to-text spacing stable even though links use padded hit areas */
-  bottom: 14px; /* 16px from label with 30px hit-area padding */
+  bottom: 8px; /* Decreased to bring dot closer to text label */
   left: 50%;
   transform: translate3d(-50%, 0, 0) scaleY(0);
   transform-origin: 50% 50%;
@@ -1590,7 +1599,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   bottom: auto !important;
   transform: none !important; /* Override .footer_link translateY */
   margin: 0 !important;
-  padding: var(--footer-links-padding) !important; /* Larger tap target + spacing (replaces container gap) */
+  padding: calc(var(--footer-links-padding) * 1.5) var(--footer-links-padding) !important; /* Increased vertical padding by 1.5x */
   
   /* Ensure visibility - override any Webflow grid positioning */
   grid-area: auto !important;

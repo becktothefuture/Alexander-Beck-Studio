@@ -849,8 +849,8 @@ export const CONTROL_SECTIONS = {
         label: 'Ball Count',
         stateKey: 'kaleidoscopeBallCount',
         type: 'range',
-        min: 20, max: 200, step: 5,
-        default: 45,
+        min: 10, max: 200, step: 1,
+        default: 23,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -887,7 +887,9 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           // Apply immediately only in Kaleidoscope, otherwise it would affect all modes.
           if (g.currentMode === 'kaleidoscope') {
-            g.ballSpacing = val;
+            const canvas = g.canvas;
+            const unit = canvas ? Math.max(0.35, Math.min(3.0, Math.min(canvas.width, canvas.height) / 1000)) : 1;
+            g.ballSpacing = val * unit;
           }
         }
       },
@@ -928,6 +930,26 @@ export const CONTROL_SECTIONS = {
         type: 'range',
         min: 0, max: 2, step: 0.05,
         default: 0.75,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'kaleiEase',
+        label: 'Easing',
+        stateKey: 'kaleidoscopeEase',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.18,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'kaleiWander',
+        label: 'Organic',
+        stateKey: 'kaleidoscopeWander',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.25,
         format: v => v.toFixed(2),
         parse: parseFloat
       },

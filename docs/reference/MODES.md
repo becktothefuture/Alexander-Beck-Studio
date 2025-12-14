@@ -119,6 +119,7 @@ Current mode system supports **9 modes** (switchable via keyboard shortcuts and 
 ---
 
 ## Mode 9: Kaleidoscope 🪞
+**Keyboard:** Press `9`
 
 **Purpose:** Mirror-wedge kaleidoscope rendering of the same circle-style balls, driven by mouse movement.
 

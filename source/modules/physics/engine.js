@@ -47,14 +47,22 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   
   if (!canvas || balls.length === 0) return;
 
-  // Kaleidoscope should only move when the pointer moves.
-  // If the pointer hasn't moved recently, freeze physics entirely (no drift/settling).
+  // Kaleidoscope: mostly mouse-driven, but allow a subtle idle drift.
+  // We throttle physics when idle so it doesn’t animate constantly.
   if (globals.currentMode === MODES.KALEIDOSCOPE) {
     const nowMs = performance.now();
     const lastMove = globals.lastPointerMoveMs || 0;
-    if (nowMs - lastMove > 40) {
-      acc = 0;
-      return;
+    const idleMs = nowMs - lastMove;
+    if (idleMs > 40) {
+      const lastIdleStep = globals._kaleiLastIdleStepMs || 0;
+      const idleStepIntervalMs = 90; // ~11fps idle drift (still very cheap)
+      if (nowMs - lastIdleStep < idleStepIntervalMs) {
+        acc = 0;
+        return;
+      }
+      globals._kaleiLastIdleStepMs = nowMs;
+      // Force a single small step worth of accumulator so it doesn't “catch up”.
+      dtSeconds = DT;
     }
   }
   

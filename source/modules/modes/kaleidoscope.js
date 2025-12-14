@@ -25,6 +25,13 @@ function getLensCenter(g) {
   return { x: canvas.width * 0.5, y: canvas.height * 0.5 };
 }
 
+function getViewportUnit(g) {
+  // Use 1000px as a neutral baseline. Values scale proportionally with viewport size.
+  const canvas = g.canvas;
+  if (!canvas) return 1;
+  return clamp(Math.min(canvas.width, canvas.height) / 1000, 0.35, 3.0);
+}
+
 function isOverlapping(existing, x, y, r) {
   for (let i = 0; i < existing.length; i++) {
     const o = existing[i];
@@ -66,9 +73,10 @@ export function initializeKaleidoscope() {
   const h = canvas.height;
   const centerX = w * 0.5;
   const centerY = h * 0.5;
+  const unit = getViewportUnit(g);
 
   const maxBalls = g.maxBalls || 300;
-  const count = clamp(g.kaleidoscopeBallCount ?? 140, 10, maxBalls);
+  const count = clamp(g.kaleidoscopeBallCount ?? 23, 10, maxBalls);
 
   // Spawn as a loose ring so the first frame is already “kaleidoscopic”.
   // Wide range ensures coverage across the whole viewport without central clumping
@@ -96,8 +104,9 @@ export function initializeKaleidoscope() {
       if (!isOverlapping(placed, x, y, radius + g.ballSpacing * g.DPR)) {
         placed.push({ x, y, r: radius + g.ballSpacing * g.DPR });
         const b = new Ball(x, y, radius, color);
-        // Much slower by default (10×) so the field doesn’t “auto-rotate” aggressively.
-        const speed = 12 + Math.random() * 12;
+        b._kaleiSeed = Math.random() * TAU;
+        // Viewport-relative tangential speed (baseline: 12–24 at 1000px min-dim).
+        const speed = (12 + Math.random() * 12) * unit;
         b.vx = -Math.sin(a) * speed;
         b.vy = Math.cos(a) * speed;
         b.driftAx = 0;
@@ -113,7 +122,8 @@ export function initializeKaleidoscope() {
     const x = centerX + Math.cos(a) * rr;
     const y = centerY + Math.sin(a) * rr;
     const b = new Ball(x, y, radius, color);
-    const speed = 12 + Math.random() * 12;
+    b._kaleiSeed = Math.random() * TAU;
+    const speed = (12 + Math.random() * 12) * unit;
     b.vx = -Math.sin(a) * speed;
     b.vy = Math.cos(a) * speed;
     b.driftAx = 0;
@@ -139,6 +149,10 @@ export function applyKaleidoscopeForces(ball, dt) {
   if (!canvas) return;
 
   const { x: cx, y: cy } = getLensCenter(g);
+  const unit = getViewportUnit(g);
+  const idle = (performance.now() - (g.lastPointerMoveMs || 0)) > 40;
+  // Allow >1 for “much stronger” idle drift.
+  const idleFactor = idle ? clamp(g.kaleidoscopeIdleMotion ?? 0.12, 0, 6) : 1;
 
   const dx = ball.x - cx;
   const dy = ball.y - cy;
@@ -150,25 +164,41 @@ export function applyKaleidoscopeForces(ball, dt) {
   const ty = nx;
 
   // Distance falloff keeps the field controllable across screen sizes.
-  const farFalloff = 0.0016;
+  const farFalloff = 1 / Math.max(240, Math.min(canvas.width, canvas.height) * 0.65);
   const inv = 1 / (1 + dist * farFalloff);
 
-  const swirlStrength = (g.kaleidoscopeSwirlStrength ?? 520) * inv;
-  const radialPull = (g.kaleidoscopeRadialPull ?? 260) * inv;
+  const swirlStrength = (g.kaleidoscopeSwirlStrength ?? 52) * unit * inv * idleFactor;
+  const radialPull = (g.kaleidoscopeRadialPull ?? 260) * unit * inv * idleFactor;
 
-  ball.vx += tx * swirlStrength * dt;
-  ball.vy += ty * swirlStrength * dt;
+  // Organic drift: per-ball low-frequency wander that gently perturbs direction.
+  const t = performance.now() * 0.001;
+  const seed = (ball._kaleiSeed ?? 0) + ball.age * 0.07;
+  const wanderAmt = clamp(g.kaleidoscopeWander ?? 0.25, 0, 1) * inv * idleFactor;
+  const rot = Math.sin(t * 0.35 + seed) * (0.55 * wanderAmt); // radians
+  const cr = Math.cos(rot);
+  const sr = Math.sin(rot);
+  // Rotate tangential direction slightly toward/away from radial for “organic” flow
+  const tRx = tx * cr - nx * sr;
+  const tRy = ty * cr - ny * sr;
 
   // Mild inward pull (negative radial)
-  ball.vx -= nx * radialPull * dt;
-  ball.vy -= ny * radialPull * dt;
+  const dvxTarget = (tRx * swirlStrength - nx * radialPull) * dt;
+  const dvyTarget = (tRy * swirlStrength - ny * radialPull) * dt;
+
+  // Ease velocity changes (frame-rate independent)
+  const ease = clamp(g.kaleidoscopeEase ?? 0.18, 0, 1);
+  const alpha = 1 - Math.pow(1 - ease, dt * 60);
+  ball.vx += dvxTarget * alpha;
+  ball.vy += dvyTarget * alpha;
 
   // Gentle damping to prevent runaway energy
-  ball.vx *= 0.996;
-  ball.vy *= 0.996;
+  // Slightly more damping when idle to keep the motion subtle (but still visible)
+  const damp = idle ? 0.995 : 0.996;
+  ball.vx *= damp;
+  ball.vy *= damp;
 
   // Soft speed clamp (user-tunable)
-  const maxSpeed = clamp(g.kaleidoscopeMaxSpeed ?? 2600, 300, 8000);
+  const maxSpeed = clamp((g.kaleidoscopeMaxSpeed ?? 2600) * unit, 300, 12000);
   const s2 = ball.vx * ball.vx + ball.vy * ball.vy;
   if (s2 > maxSpeed * maxSpeed) {
     const s = Math.sqrt(s2);
@@ -201,6 +231,7 @@ export function renderKaleidoscope(ctx) {
   const balls = g.balls;
   const w = canvas.width;
   const h = canvas.height;
+  const unit = getViewportUnit(g);
 
   const segmentsRaw = g.kaleidoscopeSegments ?? 12;
   const segments = clamp(Math.round(segmentsRaw), 3, 24);
@@ -279,7 +310,7 @@ export function renderKaleidoscope(ctx) {
     const rx = (ball.x - cx) + panX;
     const ry = (ball.y - cy) + panY;
     // Scale radius to ensure full-viewport coverage (and spill beyond edges if needed).
-    const fillScale = 1.8;
+    const fillScale = 1.8 * unit;
     const r = Math.hypot(rx, ry) * fillScale;
     if (r < EPS) continue;
 

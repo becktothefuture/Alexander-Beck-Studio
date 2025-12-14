@@ -115,7 +115,7 @@ const state = {
   weightlessBounce: 0.97,
   
   // Kaleidoscope mode (mouse-driven mirrored wedges)
-  kaleidoscopeBallCount: 45,
+  kaleidoscopeBallCount: 23,
   kaleidoscopeSegments: 12,
   kaleidoscopeMirror: 1,
   kaleidoscopeBallSpacing: 9, // Mode-only spacing (px). Applied only while in Kaleidoscope.
@@ -124,6 +124,9 @@ const state = {
   kaleidoscopeRotationFollow: 1.0,
   kaleidoscopePanStrength: 0.75,
   kaleidoscopeMaxSpeed: 2600,
+  kaleidoscopeIdleMotion: 3.2, // 0..6: idle drift strength when pointer is still
+  kaleidoscopeEase: 0.18,       // 0..1: easing for force response (higher = snappier)
+  kaleidoscopeWander: 0.25,     // 0..1: organic drift amount (unique per ball)
   
   // Water mode
   waterBallCount: 300,
@@ -217,6 +220,8 @@ export function initState(config) {
   if (config.kaleidoscopeRotationFollow !== undefined) state.kaleidoscopeRotationFollow = config.kaleidoscopeRotationFollow;
   if (config.kaleidoscopePanStrength !== undefined) state.kaleidoscopePanStrength = config.kaleidoscopePanStrength;
   if (config.kaleidoscopeMaxSpeed !== undefined) state.kaleidoscopeMaxSpeed = config.kaleidoscopeMaxSpeed;
+  if (config.kaleidoscopeEase !== undefined) state.kaleidoscopeEase = config.kaleidoscopeEase;
+  if (config.kaleidoscopeWander !== undefined) state.kaleidoscopeWander = config.kaleidoscopeWander;
   
   // Two-level padding system
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;
