@@ -13,7 +13,7 @@
 - ✅ No global style pollution
 
 ### Features Working
-- ✅ 8 modes (Ball Pit, Flies, Zero-G, Water, Vortex, Ping Pong, Magnetic, Bubbles)
+- ✅ 10 modes (Ball Pit, Flies, Zero-G, Water, Vortex, Ping Pong, Magnetic, Bubbles, Tilt, Kaleidoscope)
 - ✅ Dual palettes (light/dark variants)
 - ✅ Time-based dark mode (6 PM - 6 AM)
 - ✅ Canvas shadow controls
@@ -141,7 +141,7 @@ Just include the simulation in existing site.
 ## Post-Deployment Testing
 
 ### Functional Tests
-- [ ] All 5 modes load (keys 1, 2, 3, 4, 5)
+- [ ] All modes load (keys 1-9 and 0)
 - [ ] Dark mode activates correctly
 - [ ] Mouse/touch interaction works
 - [ ] Panel toggles with `/` key

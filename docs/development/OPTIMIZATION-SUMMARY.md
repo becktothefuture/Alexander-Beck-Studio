@@ -300,7 +300,7 @@ R  - Reset simulation
 1  - Ball Pit mode
 2  - Flies mode
 3  - Zero-G mode
-4  - Pulse Grid mode
+4  - Grid-based choreography mode (removed)
 ```
 
 ---

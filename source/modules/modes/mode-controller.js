@@ -14,6 +14,8 @@ import { initializeVortex, applyVortexForces } from './vortex.js';
 import { initializePingPong, applyPingPongForces } from './ping-pong.js';
 import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magnetic.js';
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
+import { initializeTilt, applyTiltForces, updateTilt, exitTilt } from './tilt.js';
+import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 
 export { MODES };
@@ -24,6 +26,20 @@ export function initModeSystem() {
 
 export function setMode(mode) {
   const globals = getGlobals();
+  
+  // Clean up previous mode if switching away from Tilt
+  if (globals.currentMode === MODES.TILT && mode !== MODES.TILT) {
+    exitTilt();
+  }
+
+  // Clean up Kaleidoscope spacing override when leaving the mode
+  if (globals.currentMode === MODES.KALEIDOSCOPE && mode !== MODES.KALEIDOSCOPE) {
+    if (globals._ballSpacingBeforeKaleidoscope !== undefined) {
+      globals.ballSpacing = globals._ballSpacingBeforeKaleidoscope;
+      delete globals._ballSpacingBeforeKaleidoscope;
+    }
+  }
+  
   setModeState(mode);
   
   console.log(`Switching to mode: ${mode}`);
@@ -35,7 +51,9 @@ export function setMode(mode) {
     vortex: 'Vortex Sheets',
     'ping-pong': 'Ping Pong',
     magnetic: 'Magnetic',
-    bubbles: 'Carbonated Bubbles'
+    bubbles: 'Carbonated Bubbles',
+    kaleidoscope: 'Kaleidoscope',
+    tilt: 'Tilt'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
   
@@ -100,6 +118,27 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeBubbles();
+  } else if (mode === MODES.KALEIDOSCOPE) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+
+    // Mode-only spacing: keep Kaleidoscope airy without changing other modes.
+    if (globals._ballSpacingBeforeKaleidoscope === undefined) {
+      globals._ballSpacingBeforeKaleidoscope = globals.ballSpacing;
+    }
+    globals.ballSpacing = globals.kaleidoscopeBallSpacing ?? globals.ballSpacing;
+
+    initializeKaleidoscope();
+  } else if (mode === MODES.TILT) {
+    // Tilt uses standard gravity magnitude (same as Ball Pit)
+    globals.gravityMultiplier = globals.gravityMultiplierPit;
+    globals.G = globals.GE * globals.gravityMultiplier;
+    globals.repellerEnabled = false;
+    // Realistic physics - minimal bounce, moderate friction for stable flow
+    globals.REST = 0.05; // Almost no bounce - very damped
+    globals.FRICTION = globals.tiltFriction || 0.008; // Higher friction for realistic damping
+    initializeTilt();
   }
   
   console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
@@ -121,6 +160,10 @@ export function getForceApplicator() {
     return applyMagneticForces;
   } else if (globals.currentMode === MODES.BUBBLES) {
     return applyBubblesForces;
+  } else if (globals.currentMode === MODES.KALEIDOSCOPE) {
+    return applyKaleidoscopeForces;
+  } else if (globals.currentMode === MODES.TILT) {
+    return applyTiltForces;
   }
   return null;
 }
@@ -133,6 +176,8 @@ export function getModeUpdater() {
     return updateMagnetic;
   } else if (globals.currentMode === MODES.BUBBLES) {
     return updateBubbles;
+  } else if (globals.currentMode === MODES.TILT) {
+    return updateTilt;
   }
   return null;
 }

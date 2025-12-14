@@ -755,6 +755,173 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat
       }
     ]
+  },
+
+  tilt: {
+    title: 'Tilt',
+    icon: '⚖️',
+    mode: 'tilt',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'tiltBallCount',
+        label: 'Particle Count',
+        stateKey: 'tiltBallCount',
+        type: 'range',
+        min: 100, max: 500, step: 10,
+        default: 300,
+        format: v => String(v),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'tiltMaxAngle',
+        label: 'Max Angle',
+        stateKey: 'tiltMaxAngle',
+        type: 'range',
+        min: 0.5, max: 10, step: 0.5,
+        default: 2,
+        format: v => v.toFixed(1) + '°',
+        parse: parseFloat
+      },
+      {
+        id: 'tiltLerpSpeed',
+        label: 'Smoothness',
+        stateKey: 'tiltLerpSpeed',
+        type: 'range',
+        min: 0.01, max: 0.5, step: 0.01,
+        default: 0.08,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'tiltGlassMass',
+        label: 'Particle Mass',
+        stateKey: 'tiltGlassBallMass',
+        type: 'range',
+        min: 0.02, max: 0.3, step: 0.01,
+        default: 0.08,
+        format: v => v.toFixed(2) + 'x',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'tiltFriction',
+        label: 'Friction',
+        stateKey: 'tiltFriction',
+        type: 'range',
+        min: 0.002, max: 0.02, step: 0.001,
+        default: 0.008,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      }
+    ]
+  },
+
+  kaleidoscope: {
+    title: 'Kaleidoscope',
+    icon: '🪞',
+    mode: 'kaleidoscope',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'kaleiBallCount',
+        label: 'Ball Count',
+        stateKey: 'kaleidoscopeBallCount',
+        type: 'range',
+        min: 20, max: 200, step: 5,
+        default: 45,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'kaleiSegments',
+        label: 'Wedges',
+        stateKey: 'kaleidoscopeSegments',
+        type: 'range',
+        min: 3, max: 24, step: 1,
+        default: 12,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'kaleiMirror',
+        label: 'Mirror',
+        stateKey: 'kaleidoscopeMirror',
+        type: 'range',
+        min: 0, max: 1, step: 1,
+        default: 1,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'kaleiSpacing',
+        label: 'Spacing',
+        stateKey: 'kaleidoscopeBallSpacing',
+        type: 'range',
+        min: 0, max: 20, step: 0.5,
+        default: 9,
+        format: v => v.toFixed(1) + 'px',
+        parse: parseFloat,
+        onChange: (g, val) => {
+          // Apply immediately only in Kaleidoscope, otherwise it would affect all modes.
+          if (g.currentMode === 'kaleidoscope') {
+            g.ballSpacing = val;
+          }
+        }
+      },
+      {
+        id: 'kaleiSwirl',
+        label: 'Swirl',
+        stateKey: 'kaleidoscopeSwirlStrength',
+        type: 'range',
+        min: 0, max: 1200, step: 20,
+        default: 520,
+        format: v => String(Math.round(v)),
+        parse: parseFloat
+      },
+      {
+        id: 'kaleiPull',
+        label: 'Pull',
+        stateKey: 'kaleidoscopeRadialPull',
+        type: 'range',
+        min: 0, max: 800, step: 10,
+        default: 260,
+        format: v => String(Math.round(v)),
+        parse: parseFloat
+      },
+      {
+        id: 'kaleiRotFollow',
+        label: 'Rotation Follow',
+        stateKey: 'kaleidoscopeRotationFollow',
+        type: 'range',
+        min: 0, max: 3, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'kaleiPan',
+        label: 'Pan',
+        stateKey: 'kaleidoscopePanStrength',
+        type: 'range',
+        min: 0, max: 2, step: 0.05,
+        default: 0.75,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'kaleiMaxSpeed',
+        label: 'Speed Clamp',
+        stateKey: 'kaleidoscopeMaxSpeed',
+        type: 'range',
+        min: 300, max: 8000, step: 100,
+        default: 2600,
+        format: v => String(Math.round(v)),
+        parse: parseFloat
+      }
+    ]
   }
 };
 
@@ -909,6 +1076,8 @@ export function generatePanelHTML() {
           <button class="mode-button" data-mode="ping-pong" aria-label="Ping Pong mode">🏓 Pong</button>
           <button class="mode-button" data-mode="magnetic" aria-label="Magnetic mode">🧲 Magnet</button>
           <button class="mode-button" data-mode="bubbles" aria-label="Bubbles mode">🫧 Bubbles</button>
+          <button class="mode-button" data-mode="tilt" aria-label="Tilt mode">⚖️ Tilt</button>
+          <button class="mode-button" data-mode="kaleidoscope" aria-label="Kaleidoscope mode">🪞 Kalei</button>
         </div>
       </div>
     </details>`;
@@ -951,7 +1120,7 @@ export function generatePanelHTML() {
       <button id="saveConfigBtn" class="primary">💾 Save Config</button>
     </div>
     <div class="panel-footer">
-      <kbd>R</kbd> reset · <kbd>/</kbd> panel · click cycles modes
+      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>0</kbd> kalei · click cycles modes
     </div>`;
   
   return html;

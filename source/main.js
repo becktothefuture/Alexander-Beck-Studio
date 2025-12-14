@@ -213,8 +213,13 @@ function setupTopElementsLayout() {
   const legend = document.getElementById('expertise-legend');
   const decorativeScript = document.querySelector('.decorative-script');
 
-  // Modular dev page may not include these Webflow elements; don't create a new layout there.
-  if (!legend && !decorativeScript) {
+  // We need BOTH elements to compose the intended top row.
+  // In some engines, one can appear before the other during navigation/layout.
+  // Retry a few times rather than composing a partial layout (which would leave
+  // one element "fixed" in its legacy position and break alignment).
+  //
+  // Modular dev page may not include these Webflow elements; after retries, bail.
+  if (!legend || !decorativeScript) {
     if (setupTopElementsLayout._tries < 40) {
       setupTopElementsLayout._tries++;
       setTimeout(setupTopElementsLayout, 100);

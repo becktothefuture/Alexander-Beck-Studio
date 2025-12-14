@@ -65,8 +65,8 @@ export class Ball {
       return;
     }
 
-    // Gravity (skip in weightless)
-    if (currentMode !== MODES.WEIGHTLESS) {
+    // Gravity (skip in weightless and tilt - they handle gravity in their force functions)
+    if (currentMode !== MODES.WEIGHTLESS && currentMode !== MODES.TILT) {
       this.vy += (G * gravityScale) * dt;
     }
     

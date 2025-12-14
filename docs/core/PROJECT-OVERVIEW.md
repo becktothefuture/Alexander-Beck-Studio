@@ -1,6 +1,6 @@
 # Project Overview
 
-**High-performance interactive physics simulation with 8 distinct modes**
+**High-performance interactive physics simulation with 10 distinct modes**
 
 ## What Is This?
 
@@ -13,6 +13,8 @@ A vanilla JavaScript particle physics system featuring:
 - **Ping Pong** - Side-to-side bounce with cursor obstacle
 - **Magnetic** - Attraction/explosions with velocity limiting
 - **Bubbles** - Rising bubble field with wobble + deflection
+- **Tilt** - Cursor-driven tilt (visual tilt + matching gravity vector)
+- **Kaleidoscope** - Mirror-wedge kaleidoscope rendering driven by cursor
 
 **Design Philosophy:** Contemplative digital materialism — particles as tangible physical entities in a minimal stage. See README.md for complete vision.
 
@@ -134,5 +136,5 @@ Alexander Beck - [alexander@beck.fyi](mailto:alexander@beck.fyi)
 
 ---
 
-**Next:** Read [../reference/MODES.md](../reference/MODES.md) to understand the four physics modes.
+**Next:** Read [../reference/MODES.md](../reference/MODES.md) to understand the available modes and keyboard shortcuts.
 

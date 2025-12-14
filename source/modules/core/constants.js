@@ -11,7 +11,9 @@ export const MODES = {
   VORTEX: 'vortex',
   PING_PONG: 'ping-pong',
   MAGNETIC: 'magnetic',
-  BUBBLES: 'bubbles'
+  BUBBLES: 'bubbles',
+  KALEIDOSCOPE: 'kaleidoscope',
+  TILT: 'tilt'
 };
 
 export const CONSTANTS = {

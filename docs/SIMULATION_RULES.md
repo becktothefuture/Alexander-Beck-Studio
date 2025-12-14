@@ -105,7 +105,7 @@
 - **Focus management:** Control panel keyboard navigable
 
 #### Keyboard Controls
-- **Mode switching:** Number keys 1-8
+- **Mode switching:** Number keys 1-9, 0
 - **Reset:** R key
 - **Panel toggle:** / key
 - **Panel drag:** Mouse drag on header
@@ -214,7 +214,7 @@ function updateBall(ball) {
 
 ### Mode 6: Kinetic Wave 〰️
 
-**Concept:** Balls exist in a 2D grid formation (similar to Pulse Grid) but transmit kinetic energy to neighbors when disturbed. User clicks create epicenter ripples that propagate through the grid as wave interference patterns — combining, reflecting, and creating standing waves.
+**Concept:** Balls exist in a 2D grid formation but transmit kinetic energy to neighbors when disturbed. User clicks create epicenter ripples that propagate through the grid as wave interference patterns — combining, reflecting, and creating standing waves.
 
 #### Physics Model
 - **Spring lattice:** Each ball connected to 4-8 neighbors via virtual springs

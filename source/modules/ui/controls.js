@@ -93,7 +93,9 @@ export function updateModeButtonsUI(activeMode) {
       'vortex': 'Vortex Sheets',
       'ping-pong': 'Ping Pong',
       'magnetic': 'Magnetic',
-      'bubbles': 'Carbonated Bubbles'
+      'bubbles': 'Carbonated Bubbles',
+      'kaleidoscope': 'Kaleidoscope',
+      'tilt': 'Tilt'
     };
     announcer.textContent = `Switched to ${modeNames[activeMode] || activeMode} mode`;
   }

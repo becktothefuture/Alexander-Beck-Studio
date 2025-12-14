@@ -748,6 +748,7 @@ body:not(.dark-mode) .panel-section--action {
 .sound-enable-btn .ti {
   width: 18px;
   height: 18px;
+  font-size: 18px;
   display: block;
 }
 

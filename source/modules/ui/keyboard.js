@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                                KEYBOARD INPUT                                ║
-// ║              Panel dock toggle and mode switching (1-8)                      ║
+// ║              Panel dock toggle and mode switching (1-9,0)                    ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { setMode, MODES } from '../modes/mode-controller.js';
@@ -26,7 +26,7 @@ export function setupKeyboardShortcuts() {
       return;
     }
     
-    // Mode switching: 1=pit, 2=flies, 3=weightless, 4=water, 5=vortex, 6=ping-pong, 7=magnetic, 8=bubbles
+    // Mode switching: 1=pit, 2=flies, 3=weightless, 4=water, 5=vortex, 6=ping-pong, 7=magnetic, 8=bubbles, 9=tilt, 0=kaleidoscope
     if (k === '1') {
       e.preventDefault();
       setMode(MODES.PIT);
@@ -59,6 +59,14 @@ export function setupKeyboardShortcuts() {
       e.preventDefault();
       setMode(MODES.BUBBLES);
       updateModeButtonsUI('bubbles');
+    } else if (k === '9') {
+      e.preventDefault();
+      setMode(MODES.TILT);
+      updateModeButtonsUI('tilt');
+    } else if (k === '0') {
+      e.preventDefault();
+      setMode(MODES.KALEIDOSCOPE);
+      updateModeButtonsUI('kaleidoscope');
     }
   });
 }

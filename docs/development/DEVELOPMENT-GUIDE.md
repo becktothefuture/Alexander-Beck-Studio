@@ -48,7 +48,7 @@ Direct ES module loading - instant refresh but not production-representative.
 **Primary entry**: `source/main.js`
 - ES module architecture under `source/modules/**`
 - Full UI control panel with live parameter tuning
-- Eight simulation modes with instant switching (1-8)
+- Ten simulation modes with instant switching (1-9, 0)
 
 **Structure**:
 - `source/index.html`: Dev HTML shell (loads `main.js`)
@@ -71,6 +71,8 @@ Direct ES module loading - instant refresh but not production-representative.
 - **Ping Pong** (`6` key): Side-to-side bounce with cursor obstacle
 - **Magnetic** (`7` key): Attraction/explosions with velocity limiting
 - **Bubbles** (`8` key): Rising bubble field with wobble + deflection
+- **Tilt** (`9` key): Cursor-driven tilt (visual + physics)
+- **Kaleidoscope** (`0` key): Mirror-wedge kaleidoscope rendering driven by cursor
 
 ### 5. Configuration
 1. Runtime defaults live in `source/config/default-config.json`

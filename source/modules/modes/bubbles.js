@@ -19,20 +19,20 @@ export function initializeBubbles() {
   
   const w = canvas.width;
   const h = canvas.height;
-  const count = g.bubblesMaxCount || 150;
+  const count = g.bubblesMaxCount || 200; // Increased for continuous coverage
   
-  // Spawn bubbles distributed across the screen (some already rising)
+  // Spawn bubbles distributed across entire screen height for continuous flow
   // First ensure one of each color
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
-    const y = h * 0.3 + Math.random() * h * 0.6; // Middle 60% of screen
+    const y = Math.random() * h; // Full screen height
     createBubble(x, y, getColorByIndex(colorIndex), true); // Already scaled in
   }
   
-  // Fill rest with random colors
+  // Fill rest with random colors across full height
   for (let i = 8; i < count; i++) {
     const x = Math.random() * w;
-    const y = h * 0.3 + Math.random() * h * 0.6;
+    const y = Math.random() * h; // Full screen height
     createBubble(x, y, pickRandomColor(), true); // Already scaled in
   }
 }
@@ -82,7 +82,9 @@ function recycleBubble(ball) {
   
   // New random x position at bottom
   ball.x = Math.random() * w;
-  ball.y = h + 20 + Math.random() * 30; // Just below screen
+  // Spawn 60-90px below screen so scale-in completes as bubble enters view
+  // (bubbles rise ~50px during 0.33s spawn animation)
+  ball.y = h + 60 + Math.random() * 30;
   
   // Reset velocity
   ball.vx = (Math.random() - 0.5) * 20;
@@ -101,8 +103,9 @@ function recycleBubble(ball) {
   ball.targetRadius = minR + Math.random() * (maxR - minR);
   ball.baseRadius = ball.targetRadius;
   
-  // Start spawn animation (scale up from 0)
+  // Start spawn animation (scale up from 0 to full size)
   ball.r = 0.1;
+  ball.rBase = 0.1;
   ball.spawning = true;
   ball.spawnProgress = 0;
   ball.dissipating = false;
@@ -173,19 +176,36 @@ export function applyBubblesForces(ball, dt) {
   // Vertical drag
   ball.vy *= 0.96;
   
-  // Cursor deflection
+  // Cursor collision force (powerful solid-object push)
   if (g.mouseInCanvas) {
     const dx = ball.x - g.mouseX;
     const dy = ball.y - g.mouseY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const deflectRadius = (g.bubblesDeflectRadius || 80) * g.DPR;
+    const collisionRadius = (g.bubblesDeflectRadius || 200) * g.DPR;
     
-    if (dist < deflectRadius && dist > 1) {
-      const force = (1 - dist / deflectRadius) * 300;
+    if (dist < collisionRadius && dist > 1) {
+      // Cubic falloff for very strong close-range collision feel
+      const normalizedDist = dist / collisionRadius;
+      const falloff = Math.pow(1 - normalizedDist, 3);
+      
+      // Much stronger base force for solid collision feel
+      const baseForce = 3000;
+      const force = falloff * baseForce;
+      
+      // Direction away from cursor
       const nx = dx / dist;
       const ny = dy / dist;
+      
+      // Apply strong repulsion
       ball.vx += nx * force * dt;
       ball.vy += ny * force * dt;
+      
+      // Add extra "impact" velocity when very close (collision feel)
+      if (dist < collisionRadius * 0.3) {
+        const impactBoost = (1 - dist / (collisionRadius * 0.3)) * 500;
+        ball.vx += nx * impactBoost * dt;
+        ball.vy += ny * impactBoost * dt;
+      }
     }
   }
   

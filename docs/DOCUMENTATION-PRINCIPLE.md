@@ -218,7 +218,7 @@ When working on this project:
 **In Commits:**
 ```bash
 # Good commit messages
-feat: add pulse grid mode per MODES.md specification
+feat: add new mode per MODES.md specification
 fix: ball physics now matches MODES.md restitution values
 docs: update ARCHITECTURE.md to reflect new Ball properties
 

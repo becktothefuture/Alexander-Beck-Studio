@@ -1,0 +1,312 @@
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                           KALEIDOSCOPE MODE (NEW)                            ║
+// ║    Center-anchored mirrored wedges; mouse-reactive rotation; circle style     ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+import { getGlobals, clearBalls } from '../core/state.js';
+import { MODES } from '../core/constants.js';
+import { Ball } from '../physics/Ball.js';
+import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
+
+const TAU = Math.PI * 2;
+const EPS = 1e-6;
+
+// Render-time smoothing state (mouse-driven mapping should ease-in/out)
+let _lastRenderMs = 0;
+
+function clamp(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+function getLensCenter(g) {
+  const canvas = g.canvas;
+  // IMPORTANT: The kaleidoscope origin is always anchored at viewport center.
+  // Mouse still affects the image via rotation/phase, but the lens does not follow.
+  return { x: canvas.width * 0.5, y: canvas.height * 0.5 };
+}
+
+function isOverlapping(existing, x, y, r) {
+  for (let i = 0; i < existing.length; i++) {
+    const o = existing[i];
+    const dx = x - o.x;
+    const dy = y - o.y;
+    const rr = r + o.r;
+    if (dx * dx + dy * dy < rr * rr) return true;
+  }
+  return false;
+}
+
+function getRenderDtSeconds() {
+  const now = performance.now();
+  const last = _lastRenderMs || now;
+  _lastRenderMs = now;
+  // Clamp dt to avoid big spikes when tab regains focus
+  return clamp((now - last) / 1000, 0, 0.05);
+}
+
+function springTo(state, target, dt, omega = 10) {
+  // Critically damped spring: natural ease-in/out, no overshoot.
+  // omega controls responsiveness (higher = snappier).
+  const k = omega * omega;
+  const c = 2 * omega;
+  state.v += (target - state.x) * k * dt;
+  state.v *= Math.max(0, 1 - c * dt);
+  state.x += state.v * dt;
+  return state.x;
+}
+
+export function initializeKaleidoscope() {
+  const g = getGlobals();
+  clearBalls();
+
+  const canvas = g.canvas;
+  if (!canvas) return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  const centerX = w * 0.5;
+  const centerY = h * 0.5;
+
+  const maxBalls = g.maxBalls || 300;
+  const count = clamp(g.kaleidoscopeBallCount ?? 140, 10, maxBalls);
+
+  // Spawn as a loose ring so the first frame is already “kaleidoscopic”.
+  // Push the ring outward to avoid dense central clusters.
+  const ringMin = Math.min(w, h) * 0.24;
+  const ringMax = Math.min(w, h) * 0.60;
+
+  // Non-overlapping spawn (one-time O(n²), acceptable at init)
+  const placed = [];
+  const maxAttemptsPerBall = 90;
+  const margin = Math.max(2, g.wallInset || 3) * g.DPR;
+
+  function spawnOne(color) {
+    const radius = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+    const minX = margin + radius;
+    const maxX = w - margin - radius;
+    const minY = margin + radius;
+    const maxY = h - margin - radius;
+
+    for (let attempt = 0; attempt < maxAttemptsPerBall; attempt++) {
+      const a = Math.random() * TAU;
+      const rr = ringMin + Math.random() * (ringMax - ringMin);
+      const x = clamp(centerX + Math.cos(a) * rr, minX, maxX);
+      const y = clamp(centerY + Math.sin(a) * rr, minY, maxY);
+      if (!isOverlapping(placed, x, y, radius + g.ballSpacing * g.DPR)) {
+        placed.push({ x, y, r: radius + g.ballSpacing * g.DPR });
+        const b = new Ball(x, y, radius, color);
+        const speed = 120 + Math.random() * 120;
+        b.vx = -Math.sin(a) * speed;
+        b.vy = Math.cos(a) * speed;
+        b.driftAx = 0;
+        b.driftTime = 0;
+        g.balls.push(b);
+        return;
+      }
+    }
+
+    // Fallback: accept overlap if we couldn't place it (rare at sane counts)
+    const a = Math.random() * TAU;
+    const rr = ringMin + Math.random() * (ringMax - ringMin);
+    const x = centerX + Math.cos(a) * rr;
+    const y = centerY + Math.sin(a) * rr;
+    const b = new Ball(x, y, radius, color);
+    const speed = 120 + Math.random() * 120;
+    b.vx = -Math.sin(a) * speed;
+    b.vy = Math.cos(a) * speed;
+    b.driftAx = 0;
+    b.driftTime = 0;
+    g.balls.push(b);
+  }
+
+  // Ensure at least one of each palette color
+  for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
+    spawnOne(getColorByIndex(colorIndex));
+  }
+
+  for (let i = 8; i < count; i++) {
+    spawnOne(pickRandomColor());
+  }
+}
+
+export function applyKaleidoscopeForces(ball, dt) {
+  const g = getGlobals();
+  if (g.currentMode !== MODES.KALEIDOSCOPE) return;
+
+  const canvas = g.canvas;
+  if (!canvas) return;
+
+  const { x: cx, y: cy } = getLensCenter(g);
+
+  const dx = ball.x - cx;
+  const dy = ball.y - cy;
+  const dist = Math.max(EPS, Math.hypot(dx, dy));
+  const nx = dx / dist;
+  const ny = dy / dist;
+
+  const tx = -ny;
+  const ty = nx;
+
+  // Distance falloff keeps the field controllable across screen sizes.
+  const farFalloff = 0.0016;
+  const inv = 1 / (1 + dist * farFalloff);
+
+  const swirlStrength = (g.kaleidoscopeSwirlStrength ?? 520) * inv;
+  const radialPull = (g.kaleidoscopeRadialPull ?? 260) * inv;
+
+  ball.vx += tx * swirlStrength * dt;
+  ball.vy += ty * swirlStrength * dt;
+
+  // Mild inward pull (negative radial)
+  ball.vx -= nx * radialPull * dt;
+  ball.vy -= ny * radialPull * dt;
+
+  // Gentle damping to prevent runaway energy
+  ball.vx *= 0.996;
+  ball.vy *= 0.996;
+
+  // Soft speed clamp (user-tunable)
+  const maxSpeed = clamp(g.kaleidoscopeMaxSpeed ?? 2600, 300, 8000);
+  const s2 = ball.vx * ball.vx + ball.vy * ball.vy;
+  if (s2 > maxSpeed * maxSpeed) {
+    const s = Math.sqrt(s2);
+    const k = maxSpeed / Math.max(EPS, s);
+    ball.vx *= k;
+    ball.vy *= k;
+  }
+}
+
+function drawBallCircleOnly(ctx, ball) {
+  // Preserve “same circle style”: filled circles with palette colors.
+  // We intentionally skip squash transforms here to keep the kaleidoscope fast.
+  if (ball.alpha < 1) ctx.globalAlpha = ball.alpha;
+  ctx.fillStyle = ball.color;
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, TAU);
+  ctx.fill();
+  if (ball.alpha < 1) ctx.globalAlpha = 1;
+}
+
+export function renderKaleidoscope(ctx) {
+  const g = getGlobals();
+  if (g.currentMode !== MODES.KALEIDOSCOPE) return;
+
+  const canvas = g.canvas;
+  if (!canvas) return;
+
+  const dt = getRenderDtSeconds();
+
+  const balls = g.balls;
+  const w = canvas.width;
+  const h = canvas.height;
+
+  const segmentsRaw = g.kaleidoscopeSegments ?? 12;
+  const segments = clamp(Math.round(segmentsRaw), 3, 24);
+  const mirror = Boolean(g.kaleidoscopeMirror ?? true);
+
+  const { x: cx, y: cy } = getLensCenter(g);
+
+  // “Proper” kaleidoscope mapping:
+  // Fold polar angle into a single wedge, mirror within wedge, then replicate across wedges.
+  // Mouse affects the mapping (pan + phase), not the kaleidoscope center position.
+
+  const wedgeAngle = TAU / segments;
+  const rotationFollow = clamp(g.kaleidoscopeRotationFollow ?? 1.0, 0, 3);
+  const seamEps = Math.max(1e-5, wedgeAngle * 1e-4); // keep away from exact seam angles
+
+  // Mouse-driven mapping offsets
+  const mx = g.mouseInCanvas ? g.mouseX : cx;
+  const my = g.mouseInCanvas ? g.mouseY : cy;
+  const mdx = mx - cx;
+  const mdy = my - cy;
+  const mAngle = Math.atan2(mdy, mdx);
+  const mDist = Math.hypot(mdx, mdy);
+  const mDistN = clamp(mDist / Math.max(1, Math.min(w, h) * 0.5), 0, 1);
+  const invertT = g.mouseInCanvas ? (1 - mDistN) : 0; // Inverted interaction: outside => “center” (neutral)
+
+  // Phase controls which “slice” you see; distance contributes a zoom-ish feel.
+  const phaseTarget = (mAngle * 0.6 * invertT + invertT * 1.2) * rotationFollow;
+
+  // Pan: shifts the sampling field so the kaleidoscope changes, not just rotates.
+  const panStrength = clamp(g.kaleidoscopePanStrength ?? 0.75, 0, 2);
+  const panXTarget = mdx * panStrength * invertT;
+  const panYTarget = mdy * panStrength * invertT;
+
+  // Smooth pan + phase so direction changes ease-in/out (no snappy reversals)
+  if (!g._kaleiEase) {
+    g._kaleiEase = {
+      panX: { x: 0, v: 0 },
+      panY: { x: 0, v: 0 },
+      phase: { x: 0, v: 0 },
+      lastMouseX: mx,
+      lastMouseY: my,
+      lastInCanvas: Boolean(g.mouseInCanvas),
+    };
+  }
+
+  // Slightly different responsiveness for pan vs phase feels best
+  const ex = g._kaleiEase;
+  const inCanvasNow = Boolean(g.mouseInCanvas);
+  const movedPx = Math.hypot(mx - ex.lastMouseX, my - ex.lastMouseY);
+  const moved = movedPx > 0.5 || inCanvasNow !== ex.lastInCanvas; // includes enter/leave
+
+  let panX = ex.panX.x;
+  let panY = ex.panY.x;
+  let phase = ex.phase.x;
+
+  if (moved) {
+    ex.lastMouseX = mx;
+    ex.lastMouseY = my;
+    ex.lastInCanvas = inCanvasNow;
+
+    panX = springTo(ex.panX, panXTarget, dt, 9);
+    panY = springTo(ex.panY, panYTarget, dt, 9);
+    phase = springTo(ex.phase, phaseTarget, dt, 11);
+  } else {
+    // Freeze when the mouse isn't moving: no settling/inertia.
+    ex.panX.v = 0;
+    ex.panY.v = 0;
+    ex.phase.v = 0;
+  }
+
+  // Draw
+  for (let bi = 0; bi < balls.length; bi++) {
+    const ball = balls[bi];
+
+    // Map into center-relative coords, then apply pan (mouse changes mapping).
+    const rx = (ball.x - cx) + panX;
+    const ry = (ball.y - cy) + panY;
+    const r = Math.hypot(rx, ry);
+    if (r < EPS) continue;
+
+    // Canonical kaleidoscope fold:
+    // - If mirror is enabled: fold angle into [0, wedgeAngle] using a 2*wedgeAngle period reflection.
+    //   This guarantees continuity across wedge boundaries (no “flip seams”).
+    // - If mirror is disabled: simple modulo into [0, wedgeAngle).
+    const period = mirror ? (2 * wedgeAngle) : wedgeAngle;
+    let local = Math.atan2(ry, rx) + phase;
+    local = ((local % period) + period) % period; // wrap to [0, period)
+    if (mirror && local > wedgeAngle) local = period - local; // reflect into [0, wedgeAngle]
+
+    // Avoid exact seam angles (helps prevent razor-thin discontinuities from float/AA).
+    local = clamp(local, seamEps, wedgeAngle - seamEps);
+
+    // Replicate across wedges
+    for (let wi = 0; wi < segments; wi++) {
+      const outA = (wi * wedgeAngle) + local;
+
+      const x = cx + Math.cos(outA) * r;
+      const y = cy + Math.sin(outA) * r;
+
+      // Draw circle (same style)
+      if (ball.alpha < 1) ctx.globalAlpha = ball.alpha;
+      ctx.fillStyle = ball.color;
+      ctx.beginPath();
+      ctx.arc(x, y, ball.r, 0, TAU);
+      ctx.fill();
+      if (ball.alpha < 1) ctx.globalAlpha = 1;
+    }
+  }
+}
+
+

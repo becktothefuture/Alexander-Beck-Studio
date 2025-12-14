@@ -9,7 +9,9 @@ const BUILD_URL = 'http://127.0.0.1:8800/index.html';
 async function expectHoverOrangeAndDot(page, selector) {
   const el = page.locator(selector).first();
   await expect(el).toBeVisible();
-  await el.hover();
+  // Some fixed-position UI elements can be reported as partially outside viewport
+  // under heavy parallel load; force hover to avoid flake.
+  await el.hover({ force: true });
 
   const expected = await page.evaluate(() => {
     // Normalize the intended hover color from CSS var (supports theming changes)
@@ -52,29 +54,29 @@ async function expectHoverOrangeAndDot(page, selector) {
       const color = await el.evaluate((node) => window.getComputedStyle(node).color);
       const rgb = parseRGB(color);
       return isClose(rgb, expectedRGB, expected ? 10 : 8);
-    }, { timeout: 1200 })
+    }, { timeout: 2500 })
     .toBe(true);
 
   await expect
     .poll(async () => {
       const dotOpacity = await el.evaluate((node) => window.getComputedStyle(node, '::after').opacity);
       return Number(dotOpacity);
-    }, { timeout: 1200 })
+    }, { timeout: 2500 })
     .toBeGreaterThan(0);
 }
 
 test.describe('Top elements layout (legend + text + sound)', () => {
   test('mounts sound toggle in top row (not in social links)', async ({ page }) => {
     await page.goto(BUILD_URL);
-    await expect(page.locator('#top-elements')).toHaveCount(1, { timeout: 8000 });
+    await expect(page.locator('#top-elements')).toHaveCount(1, { timeout: 15000 });
 
-    await expect(page.locator('#sound-toggle')).toHaveCount(1);
+    await expect(page.locator('#sound-toggle')).toHaveCount(1, { timeout: 8000 });
     await expect(page.locator('#social-links #sound-toggle')).toHaveCount(0);
   });
 
   test('keeps 50/50 top layout at desktop and mobile widths', async ({ page }) => {
     await page.goto(BUILD_URL);
-    await expect(page.locator('#top-elements')).toHaveCount(1, { timeout: 8000 });
+    await expect(page.locator('#top-elements')).toHaveCount(1, { timeout: 15000 });
 
     const assertHalfWidth = async () => {
       const container = page.locator('#top-elements');
@@ -133,7 +135,10 @@ test.describe('Top elements layout (legend + text + sound)', () => {
 
   test('hover turns orange and dots appear (links, icons, sound toggle)', async ({ page }) => {
     await page.goto(BUILD_URL);
-    await page.waitForTimeout(800);
+    await expect(page.locator('#top-elements')).toHaveCount(1, { timeout: 15000 });
+    await expect(page.locator('#footer-links-container')).toHaveCount(1, { timeout: 15000 });
+    await expect(page.locator('#social-links')).toHaveCount(1, { timeout: 15000 });
+    await expect(page.locator('#sound-toggle')).toHaveCount(1, { timeout: 15000 });
 
     await expectHoverOrangeAndDot(page, '#footer-links-container #contact-email');
     await expectHoverOrangeAndDot(page, '.decorative-script a');

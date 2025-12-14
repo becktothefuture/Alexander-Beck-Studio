@@ -8,6 +8,8 @@ import { getGlobals } from '../core/state.js';
 import { resolveCollisions } from './collision.js';
 import { updateWaterRipples, getWaterRipples } from '../modes/water.js';
 import { wallState, drawWalls, updateChromeColor } from './wall-state.js';
+import { getModeUpdater } from '../modes/mode-controller.js';
+import { renderKaleidoscope } from '../modes/kaleidoscope.js';
 
 const DT = CONSTANTS.PHYSICS_DT;
 let acc = 0;
@@ -55,9 +57,14 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
         balls[i].step(DT, applyForcesFunc);
       }
     
-    // Ball-to-ball collisions (disabled for Flies mode)
-    if (globals.currentMode !== MODES.FLIES) {
-      resolveCollisions(10); // more solver iterations for stability
+    // Ball-to-ball collisions:
+    // - Disabled for Flies (swarm aesthetic)
+    // - Reduced for Kaleidoscope (performance)
+    // - Standard for Tilt (many light balls flow like water)
+    if (globals.currentMode === MODES.KALEIDOSCOPE) {
+      resolveCollisions(6); // fewer iterations than heavy modes; enough to prevent overlap
+    } else if (globals.currentMode !== MODES.FLIES) {
+      resolveCollisions(10); // standard solver iterations for stability
     }
     
     // Wall collisions + corner repellers
@@ -72,9 +79,10 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
     physicsSteps++;
   }
   
-  // Water ripple updates run per-frame
-  if (globals.currentMode === MODES.WATER) {
-    updateWaterRipples(dtSeconds);
+  // Mode-specific per-frame updates (water ripples, magnetic explosions, tilt transform, etc.)
+  const modeUpdater = getModeUpdater();
+  if (modeUpdater) {
+    modeUpdater(dtSeconds);
   }
   
   // Update rubber wall physics (always runs, only renders when deformed)
@@ -100,9 +108,13 @@ export function render() {
     drawWaterRipples(ctx);
   }
   
-  // Draw balls
-  for (let i = 0; i < balls.length; i++) {
-    balls[i].draw(ctx);
+  // Draw balls (or mode-specific renderer)
+  if (globals.currentMode === MODES.KALEIDOSCOPE) {
+    renderKaleidoscope(ctx);
+  } else {
+    for (let i = 0; i < balls.length; i++) {
+      balls[i].draw(ctx);
+    }
   }
   
   // Draw rubber walls LAST (in front of balls)

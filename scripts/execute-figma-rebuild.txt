@@ -1,0 +1,16 @@
+Join channel "ffzut1cu" in Figma
+
+Get document info from Figma
+
+Read my design
+
+Get current selection in Figma
+
+Create a frame at (0, 0) with size 1120x2000 named "Rebuilt Layout - 1120px"
+
+Set layout mode to VERTICAL for frame "Rebuilt Layout - 1120px"
+
+Set padding for frame "Rebuilt Layout - 1120px" to top: 0, right: 0, bottom: 0, left: 0
+
+Set primary axis alignment to MIN and counter axis alignment to MIN for frame "Rebuilt Layout - 1120px"
+

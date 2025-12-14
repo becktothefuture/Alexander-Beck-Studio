@@ -85,8 +85,8 @@ const state = {
   bubblesSpawnRate: 8,
   bubblesRiseSpeed: 150,
   bubblesWobble: 40,
-  bubblesMaxCount: 150,
-  bubblesDeflectRadius: 80,
+  bubblesMaxCount: 200,
+  bubblesDeflectRadius: 200,
   
   
   // Ping Pong mode params (left-right bounce, cursor obstacle)
@@ -94,6 +94,13 @@ const state = {
   pingPongSpeed: 800,
   pingPongCursorRadius: 50,
   
+  // Tilt mode params (mouse-driven viewport rotation - water-like)
+  tiltMaxAngle: 2,          // Max tilt angle in degrees (±2°)
+  tiltLerpSpeed: 0.08,      // Smoothing factor for tilt transitions
+  tiltBallCount: 300,       // Number of balls to spawn (more particles = more realistic)
+  tiltGlassBallMass: 0.08,  // Ball mass multiplier (0.08x baseline = light, stable)
+  tiltFriction: 0.008,      // Air friction for tilt mode (higher for realistic damping)
+  currentTiltAngle: 0,      // Runtime state: current tilt angle
   
   // Colors
   currentColors: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
@@ -111,10 +118,16 @@ const state = {
   weightlessInitialSpeed: 250,
   weightlessBounce: 0.97,
   
-  // Pulse Grid mode
-  gridColumns: 40,
-  gridBallCount: 120,
-  pulseInterval: 0.8,
+  // Kaleidoscope mode (mouse-driven mirrored wedges)
+  kaleidoscopeBallCount: 45,
+  kaleidoscopeSegments: 12,
+  kaleidoscopeMirror: 1,
+  kaleidoscopeBallSpacing: 9, // Mode-only spacing (px). Applied only while in Kaleidoscope.
+  kaleidoscopeSwirlStrength: 520,
+  kaleidoscopeRadialPull: 260,
+  kaleidoscopeRotationFollow: 1.0,
+  kaleidoscopePanStrength: 0.75,
+  kaleidoscopeMaxSpeed: 2600,
   
   // Water mode
   waterBallCount: 300,
@@ -190,6 +203,17 @@ export function initState(config) {
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
   if (config.repelRadius !== undefined) state.repelRadius = config.repelRadius;
   if (config.repelPower !== undefined) state.repelPower = config.repelPower;
+  
+  // Kaleidoscope (optional config overrides)
+  if (config.kaleidoscopeBallCount !== undefined) state.kaleidoscopeBallCount = config.kaleidoscopeBallCount;
+  if (config.kaleidoscopeSegments !== undefined) state.kaleidoscopeSegments = config.kaleidoscopeSegments;
+  if (config.kaleidoscopeMirror !== undefined) state.kaleidoscopeMirror = config.kaleidoscopeMirror;
+  if (config.kaleidoscopeBallSpacing !== undefined) state.kaleidoscopeBallSpacing = config.kaleidoscopeBallSpacing;
+  if (config.kaleidoscopeSwirlStrength !== undefined) state.kaleidoscopeSwirlStrength = config.kaleidoscopeSwirlStrength;
+  if (config.kaleidoscopeRadialPull !== undefined) state.kaleidoscopeRadialPull = config.kaleidoscopeRadialPull;
+  if (config.kaleidoscopeRotationFollow !== undefined) state.kaleidoscopeRotationFollow = config.kaleidoscopeRotationFollow;
+  if (config.kaleidoscopePanStrength !== undefined) state.kaleidoscopePanStrength = config.kaleidoscopePanStrength;
+  if (config.kaleidoscopeMaxSpeed !== undefined) state.kaleidoscopeMaxSpeed = config.kaleidoscopeMaxSpeed;
   
   // Two-level padding system
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;

@@ -41,8 +41,8 @@
   --space-xl: calc(var(--space-unit) * 6);     /* 6vmin */
   --space-2xl: calc(var(--space-unit) * 8);    /* 8vmin */
   
-  /* Content padding - space between frame edge and content elements */
-  --content-padding: 40px;
+  /* Content padding - space between frame edge and content elements (will be overridden by --content-padding-fluid in responsive contexts) */
+  --content-padding: clamp(16px, 4vmin, 40px);
   
   /* Edge insets - TOTAL distance from viewport edge = frame + content padding */
   --edge-inset: calc(var(--container-border) + var(--content-padding));
@@ -69,9 +69,9 @@
   --duration-link-hover: 30ms;
   --dot-bounce-duration: 500ms;
 
-  /* Button-equivalent hit area padding */
-  --hit-area-padding: 30px;
-  --hit-area-padding-neg: -30px;
+  /* Button-equivalent hit area padding (deprecated - use --hit-area-lg) */
+  --hit-area-padding: clamp(20px, 3vmin, 30px);
+  --hit-area-padding-neg: calc(var(--hit-area-padding) * -1);
   
   /* ─────────────────────────────────────────────────────────────────────────────
      UNIFIED COLOR SYSTEM - Browser Chrome, Walls, Background ALL match
@@ -143,6 +143,120 @@
   --ball-6: #ff4013;
   --ball-7: #0d5cb6;
   --ball-8: #ffa000;
+  
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     FLUID DESIGN TOKEN SYSTEM
+     Centralized, viewport-responsive values for all layout components
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     LAYOUT SPACING TOKENS - Fluid gaps and padding
+     ───────────────────────────────────────────────────────────────────────────── */
+  --layout-gap-xs: clamp(4px, 0.5vmin, 8px);
+  --layout-gap-sm: clamp(8px, 1vmin, 12px);
+  --layout-gap-md: clamp(12px, 1.5vmin, 20px);
+  --layout-gap-lg: clamp(20px, 2vw, 32px);
+  --layout-gap-xl: clamp(24px, 2.5vw, 40px);
+  --layout-gap-2xl: clamp(32px, 3vw, 48px);
+  
+  /* Content padding - fluid based on viewport */
+  --content-padding-fluid: clamp(16px, 4vmin, 40px);
+  
+  /* Hit area padding - interaction zones */
+  --hit-area-sm: clamp(8px, 1.5vmin, 12px);
+  --hit-area-md: clamp(12px, 2vmin, 20px);
+  --hit-area-lg: clamp(20px, 3vmin, 30px);
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     LEGEND SPECIFIC TOKENS
+     ───────────────────────────────────────────────────────────────────────────── */
+  --legend-gap-row: clamp(4px, 0.5vmin, 8px);
+  --legend-gap-col: clamp(16px, 2vw, 24px);
+  --legend-item-gap: clamp(6px, 0.75vmin, 8px);
+  --legend-circle-size: clamp(6px, 0.75vmin, 8px);
+  --legend-opacity: 0.9;
+  
+  /* Legend typography */
+  --legend-font-size: clamp(9px, 1vw, 12px);
+  --legend-font-weight: 600;
+  --legend-letter-spacing: 0.08em;
+  --legend-line-height: 1.75;
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     TYPOGRAPHY SCALE - Fluid font sizing
+     ───────────────────────────────────────────────────────────────────────────── */
+  --type-xs: clamp(9px, 1vw, 12px);
+  --type-sm: clamp(10px, 1.1vw, 13px);
+  --type-base: clamp(11px, 1.2vw, 14px);
+  --type-md: clamp(12px, 1.3vw, 16px);
+  --type-lg: clamp(14px, 1.5vw, 18px);
+  
+  /* Line heights */
+  --line-height-tight: 1.3;
+  --line-height-base: 1.35;
+  --line-height-relaxed: 1.4;
+  --line-height-loose: 1.75;
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     DECORATIVE SCRIPT TOKENS
+     ───────────────────────────────────────────────────────────────────────────── */
+  --decorative-script-max-width: clamp(240px, 25vw, 280px);
+  --decorative-script-font-size: clamp(0.65rem, 1.1vw, 0.8rem);
+  --decorative-script-line-height: var(--line-height-base);
+  --decorative-script-letter-spacing: 0.01em;
+  --decorative-script-padding-left: clamp(12px, 1.5vmin, 16px);
+  --decorative-script-padding-vertical: clamp(8px, 1vmin, 12px);
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     FOOTER COMPONENTS TOKENS
+     ───────────────────────────────────────────────────────────────────────────── */
+  --footer-icon-gap: clamp(16px, 1.25vw, 20px);
+  --footer-icon-size: clamp(14px, 1.5vw, 16px);
+  --footer-links-gap: clamp(24px, 3vw, 32px);
+  --footer-links-padding: clamp(12px, 2.5vmin, 30px);
+  --footer-links-font-size: clamp(12px, 1.4vw, 16px);
+  
+  /* Caption specific */
+  --caption-font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+  --caption-font-weight: 700;
+  --caption-line-height: var(--line-height-tight);
+  --caption-letter-spacing: 0.01em;
+  --caption-offset: clamp(6px, 1vmin, 10px);
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     COMPONENT DIMENSIONS
+     ───────────────────────────────────────────────────────────────────────────── */
+  --icon-size-base: clamp(14px, 1.5vw, 16px);
+  --icon-size-lg: clamp(20px, 2vw, 24px);
+  --dot-indicator-size: clamp(3px, 0.4vmin, 4px);
+  --dot-indicator-offset: clamp(8px, 1vmin, 10px);
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     COLOR & OPACITY TOKENS - Semantic naming
+     ───────────────────────────────────────────────────────────────────────────── */
+  --text-opacity-base: 0.9;
+  --text-opacity-muted: 0.7;
+  --text-opacity-subtle: 0.8;
+  
+  --text-color-light-base: #161616;
+  --text-color-light-muted: #2f2f2f;
+  --text-color-dark-base: rgba(255, 255, 255, 0.7);
+  --text-color-dark-muted: rgba(255, 255, 255, 0.5);
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     Z-INDEX TOKENS - Layering system
+     ───────────────────────────────────────────────────────────────────────────── */
+  --z-ui-base: 10;         /* Base UI elements above noise/balls */
+  --z-ui-elevated: 20;     /* Elevated UI (corners overlay) */
+  --z-ui-top: 25;          /* Top-level UI (footer links) */
+  --z-panel: 9999;         /* Control panel */
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     RESPONSIVE BREAKPOINT TOKENS
+     ───────────────────────────────────────────────────────────────────────────── */
+  --breakpoint-tablet: 991px;
+  --breakpoint-mobile-l: 767px;
+  --breakpoint-mobile-p: 480px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -179,6 +293,9 @@
   width: 24px;
   height: 24px;
   font-size: 24px;
+
+  /* Ensure the parent link/button receives the click */
+  pointer-events: none;
 }
 
 /* Minimal glyph map (from @tabler/icons-webfont 3.35.0 outline set) */
@@ -266,7 +383,7 @@ body.dark-mode,
 body.body.dark-mode { 
   background: transparent !important;
   background-color: transparent !important;
-  color: rgba(200, 200, 200, 1);
+  color: #c8c8c8;
 
   /* In dark mode, use a subtle light inner edge for depth */
   --container-inner-shadow-color: hsla(0 0% 100% / calc(var(--container-inner-shadow-opacity) * 0.35));
@@ -582,7 +699,7 @@ body.dark-mode .brand-logo-text {
 .footer_link,
 .footer_icon-link,
 a {
-  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
   position: relative;
   pointer-events: auto !important;
   text-decoration: none !important; /* Remove all underlines globally */
@@ -591,7 +708,7 @@ a {
 /* Fixed-position UI elements (excluded from relative positioning above) */
 .footer_icon-group,
 .caption {
-  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
   pointer-events: auto !important;
   text-decoration: none !important;
 }
@@ -601,7 +718,7 @@ a {
    Decorative corners that breathe with the viewport
    ───────────────────────────────────────────────────────────────────────────── */
 .viewport.viewport--corners {
-  z-index: 20 !important;
+  z-index: var(--z-ui-elevated) !important;
   position: fixed !important;
   pointer-events: none;
 }
@@ -769,6 +886,7 @@ body.dark-mode.page-ready .noise-3 {
   display: flex !important;
   align-items: flex-start !important;
   justify-content: space-between !important;
+  gap: clamp(4vw, 5vw, 6vw) !important; /* Gap between labels wrapper and text container */
 
   pointer-events: auto !important;
   opacity: 0;
@@ -776,10 +894,11 @@ body.dark-mode.page-ready .noise-3 {
 
 #top-elements-left,
 #top-elements-right {
-  flex: 0 0 50% !important;
+  flex: 0 1 calc(50% - clamp(2vw, 2.5vw, 3vw)) !important; /* Allow shrinking, account for gap */
   min-width: 0 !important;
   display: flex !important;
   align-items: flex-start !important;
+  overflow: hidden !important; /* Prevent overflow */
 }
 
 #top-elements-left {
@@ -791,18 +910,24 @@ body.dark-mode.page-ready .noise-3 {
 }
 
 #top-elements-rightRow {
-  flex: 1 1 auto !important; /* Grow to fill available space */
+  width: 100% !important; /* Fill parent */
+  min-width: 0 !important; /* Allow shrinking */
+  max-width: 100% !important; /* Constrain to parent */
   display: flex !important;
   align-items: flex-start !important;
-  justify-content: flex-end !important; /* Push everything to right */
-  gap: var(--space-md) !important;
+  justify-content: space-between !important; /* Text fills left, icon stays right */
+  gap: clamp(4vw, 5vw, 6vw) !important; /* Gap between text container and sound icon */
+  flex-wrap: wrap !important; /* Wrap instead of pushing the sound button off-screen */
+  overflow: visible !important; /* Allow hover/click + dot rendering */
 }
 
 #top-elements-rightText {
-  flex: 1 1 0 !important; /* Fill available space */
-  min-width: 0 !important;
+  flex: 1 1 0 !important; /* Fill available space but allow shrinking */
+  min-width: 0 !important; /* Critical: allow text to wrap/truncate */
   display: block !important; /* Simple block for text flow */
   text-align: left !important;
+  overflow-wrap: break-word !important; /* Allow text to wrap */
+  word-break: break-word !important; /* Break long words if needed */
 }
 
 /* When nested in #top-elements, stop using fixed positioning */
@@ -814,6 +939,7 @@ body.dark-mode.page-ready .noise-3 {
   transition: none !important;
   /* Ensure flexbox wrap behavior in container context */
   flex: 0 1 auto !important;
+  gap: var(--legend-gap-row) var(--legend-gap-col) !important;
 }
 
 /* When nested in #top-elements, stop using fixed positioning and allow interactions */
@@ -822,24 +948,27 @@ body.dark-mode.page-ready .noise-3 {
   top: auto !important;
   right: auto !important;
   pointer-events: auto !important;
-  max-width: none !important; /* Fill available space in flex container */
+  max-width: 100% !important; /* Constrain to container */
   width: 100% !important;
+  overflow-wrap: break-word !important; /* Allow text to wrap */
+  word-break: break-word !important; /* Break long words if needed */
 }
 
 /* Sound toggle mounted into the top row */
 .sound-toggle.sound-toggle--top {
-  position: static !important; /* Override base fixed positioning */
+  position: relative !important; /* Anchor the hover dot + ensure hit-testing */
   top: auto !important;
   left: auto !important;
   transform: none !important;
-  margin: 0 !important; /* Remove all margins - flush right */
-  padding: 0 !important; /* Remove all padding - icon only */
+  margin: 0 !important;
+  padding: var(--layout-gap-sm) !important;      /* Reasonable hit area without layout shift */
+  margin: calc(var(--layout-gap-sm) * -1) !important;      /* Compensate for added padding */
   display: inline-flex !important;
   align-items: flex-start !important;
   white-space: nowrap !important;
-  flex: 0 0 auto !important; /* Don't grow/shrink, stay compact */
-  /* In the top row, match adjacent text by default; hover turns orange-red */
-  color: inherit !important;
+  flex: 0 0 auto !important; /* Fixed size, don't shrink */
+  /* Match the icon system base color; hover turns orange-red */
+  color: var(--text-color-light-muted) !important;
 }
 
 /* Ensure hover color wins in the top row (important + higher specificity) */
@@ -863,15 +992,15 @@ body.dark-mode.page-ready .noise-3 {
   height: auto !important;
   font-family: 'Geist', sans-serif !important;
   padding: 0 !important; /* No inner padding - positioning handles spacing */
-  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
-  opacity: 0.9 !important; /* Keep constant: Webflow sets .legend:hover { opacity: 1 } */
-  color: #2f2f2f !important; /* Slightly darker, globally applied to all legend text (light mode) */
+  z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  opacity: var(--legend-opacity) !important; /* Keep constant: Webflow sets .legend:hover { opacity: 1 } */
+  color: var(--text-color-light-muted) !important; /* Slightly darker, globally applied to all legend text (light mode) */
   
   /* Horizontal flexbox with wrap */
   display: flex !important;
   flex-wrap: wrap !important;
   align-items: flex-start !important;
-  gap: 0.5rem 10vw !important; /* row-gap column-gap */
+  gap: var(--legend-gap-row) var(--legend-gap-col) !important; /* row-gap column-gap */
   overflow: hidden !important; /* Prevent visible overflow */
   
   /* Smooth position transitions during resize */
@@ -882,25 +1011,25 @@ body.dark-mode.page-ready .noise-3 {
 
 /* Prevent any hover opacity shift from Webflow (.legend:hover { opacity: 1 }) */
 .legend:hover {
-  opacity: 0.9 !important;
+  opacity: var(--legend-opacity) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    LEGEND RESPONSIVE: Tablet (tighter spacing)
    ───────────────────────────────────────────────────────────────────────────── */
-@media (max-width: 991px) {
+@media (max-width: var(--breakpoint-tablet)) {
   .legend {
-    gap: 0.4rem 10vw !important; /* Maintain 10vw column gap */
+    gap: clamp(3px, 0.4vmin, 6px) clamp(12px, 1.5vw, 20px) !important;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    LEGEND RESPONSIVE: Mobile (vertical stack)
    ───────────────────────────────────────────────────────────────────────────── */
-@media (max-width: 480px) {
+@media (max-width: var(--breakpoint-mobile-p)) {
   .legend {
     flex-direction: column !important;
-    gap: 0.35rem !important;
+    gap: clamp(4px, 0.5vmin, 6px) !important;
   }
 }
 
@@ -912,12 +1041,13 @@ body.dark-mode.page-ready .noise-3 {
      Weight 600 (semi-bold) for balanced presence.
      Tracking at 0.08em - open but not loose.
      ───────────────────────────────────────────────────────────────────────────── */
-  font-weight: 600 !important;
-  letter-spacing: 0.08em !important;
+  font-weight: var(--legend-font-weight) !important;
+  letter-spacing: var(--legend-letter-spacing) !important;
   text-transform: uppercase;
-  font-size: clamp(9px, 1vw, 12px) !important;
+  font-size: var(--legend-font-size) !important;
+  line-height: var(--legend-line-height) !important;
   color: inherit !important; /* Inherit from .legend (enables single global legend text color) */
-  opacity: 0.9; /* Keep constant: no hover opacity changes */
+  opacity: var(--text-opacity-base); /* Keep constant: no hover opacity changes */
   
   /* Equal width for all legend items within each row */
   flex: 1 1 0 !important;
@@ -941,15 +1071,15 @@ body.dark-mode.page-ready .noise-3 {
   top: var(--edge-inset);
   right: var(--edge-inset);
   /* Fluid max-width */
-  max-width: min(418px, 38vw);
-  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  max-width: var(--decorative-script-max-width);
+  z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
   font-family: 'Geist', sans-serif;
   /* Fluid typography */
-  font-size: clamp(0.65rem, 1.1vw, 0.8rem);
+  font-size: var(--decorative-script-font-size);
   font-weight: 400;
-  line-height: 1.35;
-  letter-spacing: 0.01em;
-  color: #161616; /* Dark text for light mode */
+  line-height: var(--decorative-script-line-height);
+  letter-spacing: var(--decorative-script-letter-spacing);
+  color: var(--text-color-light-base); /* Dark text for light mode */
   /* opacity controlled by page-ready fade-in system */
   pointer-events: none;
   user-select: none;
@@ -983,7 +1113,7 @@ body.dark-mode.page-ready .noise-3 {
   pointer-events: auto;
   cursor: pointer;
   position: relative;
-  opacity: 0.9; /* Keep constant: no hover opacity changes */
+  opacity: var(--text-opacity-base); /* Keep constant: no hover opacity changes */
   transition: 
     color var(--duration-link-hover) ease;
   white-space: nowrap; /* Prevent "Let's chat." from breaking */
@@ -993,12 +1123,12 @@ body.dark-mode.page-ready .noise-3 {
 .decorative-script p a::after {
   content: '';
   position: absolute;
-  bottom: -10px;
+  bottom: calc(var(--dot-indicator-offset) * -1);
   left: 50%;
   transform: translateX(-50%) scaleY(0);
   transform-origin: 50% 50%;
-  width: 4px;
-  height: 4px;
+  width: var(--dot-indicator-size);
+  height: var(--dot-indicator-size);
   border-radius: 50%;
   background: currentColor;
   opacity: 0;
@@ -1007,7 +1137,7 @@ body.dark-mode.page-ready .noise-3 {
 
 .decorative-script p a:hover {
   color: var(--link-hover-color) !important;
-  opacity: 0.9; /* Keep constant */
+  opacity: var(--text-opacity-base); /* Keep constant */
 }
 
 .decorative-script p a:hover::after {
@@ -1027,13 +1157,13 @@ body.dark-mode.page-ready .noise-3 {
   color: inherit;
   /* opacity and transition controlled by ORCHESTRATED PAGE ENTRANCE above */
   position: relative;
-  opacity: 0.9; /* Keep constant: no hover opacity changes */
+  opacity: var(--text-opacity-base); /* Keep constant: no hover opacity changes */
   transition: color var(--duration-link-hover) ease;
   
   /* Clickable/hover padding - expands hit area */
   display: inline-block;
-  padding: 30px;
-  margin: -30px; /* Compensate for visual shift */
+  padding: var(--hit-area-lg);
+  margin: calc(var(--hit-area-lg) * -1); /* Compensate for visual shift */
   
   /* ORGANIC: Shift proportional to viewport, transition smoothly */
   transform: translateY(var(--space-md));
@@ -1080,24 +1210,26 @@ body.dark-mode.page-ready .noise-3 {
 
 /* Social icon links: keep a consistent opacity (no hover opacity shifts) */
 .footer_icon-link {
+  /* Match footer links’ base tone */
+  color: rgba(0, 0, 0, 0.7) !important;
   opacity: 0.9;
   transition: color var(--duration-link-hover) ease;
 }
 
 .footer_icon-link:hover {
-  opacity: 0.9;
+  opacity: var(--text-opacity-base);
 }
 
 /* Social icon hover dot indicator (identical to footer link dots) */
 .footer_icon-link::after {
   content: '';
   position: absolute;
-  bottom: -10px;
+  bottom: calc(var(--dot-indicator-offset) * -1);
   left: 50%;
   transform: translateX(-50%) scaleY(0);
   transform-origin: 50% 50%;
-  width: 4px;
-  height: 4px;
+  width: var(--dot-indicator-size);
+  height: var(--dot-indicator-size);
   border-radius: 50%;
   background: currentColor;
   opacity: 0;
@@ -1116,26 +1248,26 @@ body.dark-mode.page-ready .noise-3 {
 /* Caption (timestamp) - Fixed position at bottom-right inside frame */
 .caption {
   position: fixed !important;
-  bottom: calc(var(--edge-inset) - 10px) !important; /* Compensate for padding */
-  right: calc(var(--edge-inset) - 10px) !important;
-  z-index: 10 !important; /* Above noise layers (z:7-8) and balls (z:5) */
+  bottom: calc(var(--edge-inset) - var(--caption-offset)) !important; /* Compensate for padding */
+  right: calc(var(--edge-inset) - var(--caption-offset)) !important;
+  z-index: var(--z-ui-base) !important; /* Above noise layers (z:7-8) and balls (z:5) */
   font-family: 'Molle', cursive !important;
   /* Fluid typography */
-  font-size: clamp(0.85rem, 1.5vw, 1.05rem) !important;
-  font-weight: 700 !important;
-  line-height: 1.3 !important;
-  letter-spacing: 0.01em !important;
+  font-size: var(--caption-font-size) !important;
+  font-weight: var(--caption-font-weight) !important;
+  line-height: var(--caption-line-height) !important;
+  letter-spacing: var(--caption-letter-spacing) !important;
   /* opacity and transition controlled by ORCHESTRATED PAGE ENTRANCE above */
   cursor: default;
   
   /* Clickable/hover padding - expands hit area */
-  padding: 10px;
-  opacity: 0.9; /* Keep constant: no hover opacity changes */
+  padding: var(--caption-offset);
+  opacity: var(--text-opacity-base); /* Keep constant: no hover opacity changes */
 }
 
 .caption:hover {
-  color: #000000 !important;
-  opacity: 0.9; /* Keep constant */
+  color: var(--text-color-light-base) !important;
+  opacity: var(--text-opacity-base); /* Keep constant */
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1145,24 +1277,17 @@ body.dark-mode.page-ready .noise-3 {
 body.dark-mode .viewport .legend__item,
 body.dark-mode .footer_link,
 body.dark-mode .footer_icon-link {
-  color: #b0b0b0 !important;
-  opacity: 0.9; /* Keep constant across hover states */
+  color: var(--text-color-dark-base) !important;
+  opacity: var(--text-opacity-base); /* Keep constant across hover states */
 }
 
-/* Sound toggle always stays dark red in dark mode - no changes */
+/* Sound toggle follows the same base color as the icon/link system in dark mode */
 body.dark-mode .sound-toggle {
-  color: var(--ball-6) !important; /* Always dark red */
-  /* opacity handled by FADE SYSTEM - don't override here */
+  color: var(--text-color-dark-base) !important;
 }
 
-body.dark-mode .sound-toggle:hover {
-  color: var(--link-hover-color) !important;
-  /* opacity handled by FADE SYSTEM - don't override here */
-}
-
-/* Remove Sound On state color change in dark mode */
-body.dark-mode .sound-toggle[data-enabled="true"] {
-  color: var(--ball-6) !important; /* Same dark red when on */
+body.dark-mode .sound-toggle.sound-toggle--top {
+  color: var(--text-color-dark-base) !important;
 }
 
 body.dark-mode .decorative-script p a:hover {
@@ -1202,27 +1327,21 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
    These breakpoints fine-tune for edge cases only.
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-@media (max-width: 768px) {
+@media (max-width: var(--breakpoint-mobile-l)) {
   :root {
     /* Slightly tighter content padding on tablets */
-    --content-padding: 24px;
-  }
-  
-  .decorative-script {
-    font-size: clamp(0.6rem, 1.5vw, 0.75rem);
-    max-width: min(320px, 45vw);
+    --content-padding: clamp(20px, 3vmin, 24px);
+    --decorative-script-font-size: clamp(0.6rem, 1.5vw, 0.75rem);
+    --decorative-script-max-width: clamp(280px, 45vw, 320px);
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: var(--breakpoint-mobile-p)) {
   :root {
     /* Tighter content padding on phones */
-    --content-padding: 16px;
-  }
-  
-  .decorative-script {
-    font-size: clamp(0.55rem, 2.2vw, 0.68rem);
-    max-width: min(280px, 52vw);
+    --content-padding: clamp(12px, 2.5vmin, 16px);
+    --decorative-script-font-size: clamp(0.55rem, 2.2vw, 0.68rem);
+    --decorative-script-max-width: clamp(240px, 52vw, 280px);
   }
 
   /* ─────────────────────────────────────────────────────────────────────────────
@@ -1233,13 +1352,13 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
      ───────────────────────────────────────────────────────────────────────────── */
   #top-elements {
     flex-wrap: wrap !important;
-    /* Mobile gutter: 10vw between legend + description */
-    gap: 10px 10vw !important; /* row-gap column-gap */
+    /* Mobile gutter: between legend + description */
+    gap: var(--layout-gap-sm) clamp(8vw, 10vw, 12vw) !important; /* row-gap column-gap */
   }
 
   #top-elements-left,
   #top-elements-right {
-    flex: 0 0 calc(50% - 5vw) !important; /* Account for 10vw gutter */
+    flex: 0 0 calc(50% - clamp(4vw, 5vw, 6vw)) !important; /* Account for gutter */
   }
 
   #top-elements-soundRow {
@@ -1260,7 +1379,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
     display: flex !important;
     justify-content: center !important;
     margin: 0 !important;
-    padding: 14px 0 !important;
+    padding: var(--layout-gap-md) 0 !important;
   }
 
   /* ─────────────────────────────────────────────────────────────────────────────
@@ -1286,30 +1405,39 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
     min-width: 0 !important;
   }
 
-  /* Allow "Download" + "Bio/CV" to split into 2 lines on mobile */
   #footer-links-container #cv-gate-trigger {
-    white-space: normal !important;
+    white-space: nowrap !important;
     flex: 1 1 0 !important;
     min-width: 0 !important;
-    line-height: 1.05 !important;
   }
 
   #footer-links-container #cv-gate-trigger .footer-link-nowrap {
     white-space: nowrap !important;
   }
 
+  /* HARD GUARANTEE: no wrapping inside any footer link on mobile */
+  #footer-links-container a.footer_link,
+  #footer-links-container a.footer_link * {
+    white-space: nowrap !important;
+  }
+
+  /* If Webflow/JS wraps parts in spans, keep them inline */
+  #footer-links-container a.footer_link span {
+    display: inline !important;
+  }
+
   /* Slightly tighter type so 3 links fit in a single row */
   #footer-links-container #contact-email,
   #footer-links-container #portfolio-gate-trigger,
   #footer-links-container #cv-gate-trigger {
-    font-size: 0.85rem !important;
+    font-size: clamp(0.7rem, 1.2vw, 0.78rem) !important;
   }
-
+  
   /* Slightly tighter tap targets on phones to prevent collisions */
   #footer-links-container #contact-email,
   #footer-links-container #portfolio-gate-trigger,
   #footer-links-container #cv-gate-trigger {
-    padding: 18px 18px !important;
+    padding: var(--hit-area-sm) var(--hit-area-sm) !important;
   }
 }
 
@@ -1333,13 +1461,14 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   font-size: clamp(0.75rem, 1.2vw, 0.9rem) !important;
   font-weight: 400 !important; /* Match Portfolio link weight */
   text-decoration: none;
-  color: var(--ball-6) !important; /* Dark orange (no yellow) when off */
+  /* Match the icon/link base tone (not “always orange”) */
+  color: rgba(0, 0, 0, 0.7) !important;
   /* opacity handled by FADE SYSTEM above - don't set here */
   background: none;
   border: none;
   /* Match footer links: larger hit area without changing visual layout */
-  padding: 30px;
-  margin: -30px;
+  padding: var(--hit-area-lg);
+  margin: calc(var(--hit-area-lg) * -1);
   cursor: pointer;
   pointer-events: auto !important;
   
@@ -1366,10 +1495,10 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   white-space: nowrap;
 }
 
-/* When the toggle is in the icon row, disable the footer-link hover dot positioning */
+/* In the icon row, match the social icon dot position */
 #social-links .sound-toggle.sound-toggle--social::after,
 .footer_icon-group .sound-toggle.sound-toggle--social::after {
-  display: none !important;
+  bottom: calc(var(--dot-indicator-offset) * -1) !important;
 }
 
 /* Ensure the inserted list item doesn't introduce unwanted spacing */
@@ -1380,33 +1509,33 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   align-items: center;
 }
 
-/* Sound On state - stays orange (no yellow) */
-.sound-toggle[data-enabled="true"] {
-  color: var(--ball-6) !important; /* Same orange when on */
-}
-
-/* Sound icon sizing: ~40% larger than 24px */
+/* Ensure the sound icon uses the global glyph size */
 .sound-toggle .ti {
-  width: 34px !important;
-  height: 34px !important;
-  font-size: 34px !important;
+  width: var(--icon-size-lg) !important;
+  height: var(--icon-size-lg) !important;
+  font-size: var(--icon-size-lg) !important;
 }
 
 /* Hover dot indicator - same as footer links */
 .sound-toggle::after {
   content: '';
   position: absolute;
-  /* Keep dot-to-text spacing stable even though button uses padded hit area */
-  bottom: 14px; /* 16px from label with 30px hit-area padding */
+  /* Default (for the fixed-position button): keep dot clear of the enlarged hit-area */
+  bottom: clamp(10px, 1.5vmin, 14px);
   left: 50%;
   transform: translateX(-50%) scaleY(0);
   transform-origin: 50% 50%;
-  width: 4px;
-  height: 4px;
+  width: var(--dot-indicator-size);
+  height: var(--dot-indicator-size);
   border-radius: 50%;
   background: currentColor;
   opacity: 0;
   will-change: transform, opacity;
+}
+
+/* When mounted into the top row, match social icon dot position */
+.sound-toggle.sound-toggle--top::after {
+  bottom: -10px !important;
 }
 
 .sound-toggle:hover {
@@ -1427,7 +1556,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   bottom: calc(var(--container-border) * 4) !important; /* 4× frame thickness from bottom */
   left: 50% !important;
   transform: translateX(-50%) !important; /* Center horizontally */
-  z-index: 25 !important; /* Above everything: viewport-content (z:20), noise (z:7-8), balls (z:5) */
+  z-index: var(--z-ui-top) !important; /* Above everything: viewport-content (z:20), noise (z:7-8), balls (z:5) */
   
   display: flex !important;
   flex-direction: row !important;
@@ -1436,7 +1565,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   gap: 0 !important; /* No gap between links (spacing comes from per-link padding) */
   
   margin: 0 !important;
-  padding: 8px 0 !important; /* Small vertical padding for invisible hit area */
+  padding: var(--layout-gap-sm) 0 !important; /* Small vertical padding for invisible hit area */
   height: auto !important; /* Height matches content + padding */
   width: auto !important;
   
@@ -1461,7 +1590,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   bottom: auto !important;
   transform: none !important; /* Override .footer_link translateY */
   margin: 0 !important;
-  padding: 30px !important; /* Larger tap target + spacing (replaces container gap) */
+  padding: var(--footer-links-padding) !important; /* Larger tap target + spacing (replaces container gap) */
   
   /* Ensure visibility - override any Webflow grid positioning */
   grid-area: auto !important;
@@ -1472,8 +1601,8 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
   opacity: 1 !important;
   
   /* Explicit text styling */
-  color: rgba(0, 0, 0, 0.7) !important;
-  font-size: 0.9rem !important;
+  color: var(--text-color-light-muted) !important;
+  font-size: var(--footer-links-font-size) !important;
   
   /* Ensure baseline alignment */
   vertical-align: baseline !important;
@@ -1501,7 +1630,7 @@ body.dark-mode .viewport .hero__text svg ellipse[stroke="black"] {
 body.dark-mode #footer-links-container #contact-email,
 body.dark-mode #footer-links-container #portfolio-gate-trigger,
 body.dark-mode #footer-links-container #cv-gate-trigger {
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: var(--text-color-dark-base) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

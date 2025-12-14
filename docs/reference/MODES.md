@@ -1,6 +1,6 @@
 # Mode Specifications
 
-Current mode system supports **8 modes** (switchable via keyboard shortcuts and the Settings panel).
+Current mode system supports **10 modes** (switchable via keyboard shortcuts and the Settings panel).
 
 ---
 
@@ -14,6 +14,8 @@ Current mode system supports **8 modes** (switchable via keyboard shortcuts and 
 6. **Ping Pong** (`ping-pong`)
 7. **Magnetic** (`magnetic`)
 8. **Carbonated Bubbles** (`bubbles`)
+9. **Tilt** (`tilt`)
+10. **Kaleidoscope** (`kaleidoscope`)
 
 ---
 
@@ -29,6 +31,8 @@ Current mode system supports **8 modes** (switchable via keyboard shortcuts and 
 | `6` | Ping Pong |
 | `7` | Magnetic |
 | `8` | Carbonated Bubbles |
+| `9` | Tilt |
+| `0` | Kaleidoscope |
 | `/` | Toggle Settings panel dock |
 
 ---
@@ -48,7 +52,7 @@ Current mode system supports **8 modes** (switchable via keyboard shortcuts and 
 
 ## Mode 2: Flies to Light 🕊️
 
-**Purpose:** Insect-like swarm behavior attracted to cursor “light”.
+**Purpose:** Insect-like swarm behavior attracted to cursor "light".
 
 - **Gravity:** Disabled
 - **Collisions:** None (performance-friendly)
@@ -116,14 +120,39 @@ Current mode system supports **8 modes** (switchable via keyboard shortcuts and 
 
 ---
 
-## Notes: “Pulse Grid”
+## Mode 9: Tilt ⚖️
 
-Some grid/pulse-related parameters exist in state (e.g. `gridBallCount`, `pulseInterval`), but **Pulse Grid is not currently a selectable mode** in the runtime mode controller.
+**Purpose:** Mouse-driven viewport rotation with physics-matched gravity angle.
 
-If/when Pulse Grid returns, this document should be updated alongside:
-- `source/modules/core/constants.js` (mode list)
-- `source/modules/modes/mode-controller.js` (initialization + force/update hooks)
-- `source/modules/ui/keyboard.js` (keyboard mapping)
+- **Gravity:** Enabled (angled based on tilt)
+- **Collisions:** Ball-to-ball + wall collision
+- **Interaction:** Mouse X position controls tilt angle (left = tilt left, right = tilt right)
+- **Visual:** Entire viewport rotates smoothly following cursor
+- **Physics:** Gravity vector decomposes into X and Y components matching visual tilt
+- **Settings:**
+  - `tiltMaxAngle` (default: 2°): Maximum tilt angle in degrees
+  - `tiltLerpSpeed` (default: 0.08): Smoothing factor for tilt transitions
+  - `tiltBallCount` (default: 200): Number of balls to spawn
+- **Accessibility:** Respects `prefers-reduced-motion` (skips CSS rotation but physics still responds)
+
+---
+
+## Mode 10: Kaleidoscope 🪞
+
+**Purpose:** Mirror-wedge kaleidoscope rendering of the same circle-style balls, driven by mouse movement.
+
+- **Gravity:** Disabled
+- **Collisions:** None (performance-friendly; enables high wedge counts)
+- **Interaction:** Cursor controls kaleidoscope center + rotation behavior
+- **Render:** Balls are drawn into mirrored wedge segments; rubber walls remain normal (not kaleidoscoped)
+- **Settings (panel):**
+  - `kaleidoscopeSegments` (wedges)
+  - `kaleidoscopeMirror` (0/1)
+  - `kaleidoscopeSwirlStrength`
+  - `kaleidoscopeRadialPull`
+  - `kaleidoscopeRotationFollow`
+  - `kaleidoscopePanStrength`
+  - `kaleidoscopeMaxSpeed`
 
 ---
 

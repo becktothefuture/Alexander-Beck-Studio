@@ -15,7 +15,7 @@ let lastMouseY = 0;
 let lastMoveTime = 0;
 let mouseVelocity = 0;
 let lastTapTime = 0;
-let clickCycleEnabled = false; // DISABLED by default - click/tap cycles through modes
+let clickCycleEnabled = true; // Click/tap cycles through modes
 
 const MODE_CYCLE = [
   MODES.PIT,
@@ -25,7 +25,9 @@ const MODE_CYCLE = [
   MODES.VORTEX,
   MODES.PING_PONG,
   MODES.MAGNETIC,
-  MODES.BUBBLES
+  MODES.BUBBLES,
+  MODES.TILT,
+  MODES.KALEIDOSCOPE
 ];
 
 function cycleMode() {
