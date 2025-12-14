@@ -6,7 +6,7 @@
 import { getConfig, getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
-import { registerWallImpact } from './wall-state.js';
+import { registerWallImpact, registerWallPressure } from './wall-state.js';
 
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;
@@ -70,12 +70,36 @@ export class Ball {
       this.vy += (G * gravityScale) * dt;
     }
     
-    // Drag
+    // ════════════════════════════════════════════════════════════════════════════
+    // PROGRESSIVE DRAG - Higher damping at low velocities to prevent micro-jitters
+    // This simulates rolling resistance and static friction engaging at low speeds
+    // ════════════════════════════════════════════════════════════════════════════
     const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
-    const dragAmount = (currentMode === MODES.WEIGHTLESS) ? 0.0001 : FRICTION;
-    const drag = Math.max(0, 1 - (dragAmount / massScale));
+    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+    
+    // Base drag from config
+    const baseDrag = (currentMode === MODES.WEIGHTLESS) ? 0.0001 : FRICTION;
+    
+    // Progressive drag: multiply instead of divide for stability
+    // At high speed (>100 px/s): base drag only (multiplier = 0)
+    // At low speed (<10 px/s): up to 2x base drag (multiplier = 1)
+    const speedMultiplier = Math.max(0, Math.min(1, 1 - speed / 100));
+    const progressiveDrag = baseDrag * (1 + speedMultiplier * 1.0); // Up to 2x at low speed
+    
+    const drag = Math.max(0, 1 - (progressiveDrag / massScale));
     this.vx *= drag;
     this.vy *= drag;
+    
+    // ════════════════════════════════════════════════════════════════════════════
+    // MICRO-JITTER PREVENTION - Snap tiny velocities to zero
+    // Below this threshold, friction would dominate anyway
+    // ════════════════════════════════════════════════════════════════════════════
+    const MICRO_VEL_THRESHOLD = 2.0; // px/s - below this, snap to zero
+    if (Math.abs(this.vx) < MICRO_VEL_THRESHOLD) this.vx = 0;
+    if (Math.abs(this.vy) < MICRO_VEL_THRESHOLD && currentMode === MODES.WEIGHTLESS) {
+      // Only snap vy in weightless (gravity modes need vy to settle naturally)
+      this.vy = 0;
+    }
     
     // Drift
     if (this.driftAx !== 0 && this.age < this.driftTime) {
@@ -90,10 +114,19 @@ export class Ball {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     
-    // Spin
-    const spinDamp = Math.max(0, 1 - CONSTANTS.SPIN_DAMP_PER_S * dt);
+    // ════════════════════════════════════════════════════════════════════════════
+    // SPIN DAMPING - Progressive damping prevents endless rotation
+    // ════════════════════════════════════════════════════════════════════════════
+    const angularSpeed = Math.abs(this.omega);
+    // Multiply instead of divide for stability: higher damping at low angular velocity
+    const angularMultiplier = Math.max(0, Math.min(1, 1 - angularSpeed / 2.0));
+    const progressiveSpinDamp = CONSTANTS.SPIN_DAMP_PER_S * (1 + angularMultiplier * 0.5); // Up to 1.5x
+    const spinDamp = Math.max(0, 1 - progressiveSpinDamp * dt);
     this.omega *= spinDamp;
     this.theta += this.omega * dt;
+    
+    // Snap tiny angular velocity to zero
+    if (Math.abs(this.omega) < 0.01) this.omega = 0;
     
     // Squash decay
     const decay = Math.min(1, CONSTANTS.SQUASH_DECAY_PER_S * dt);
@@ -228,8 +261,22 @@ export class Ball {
       const slip = this.vx - this.omega * this.r;
       const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
       this.omega += (slip / this.r) * CONSTANTS.SPIN_GAIN / massScale;
-      const rollDamp = Math.max(0, 1 - CONSTANTS.ROLL_FRICTION_PER_S * dt / massScale);
+      
+      // ══════════════════════════════════════════════════════════════════════════
+      // PROGRESSIVE GROUND FRICTION - Higher friction at low speeds
+      // Simulates rolling resistance and static friction engaging
+      // ══════════════════════════════════════════════════════════════════════════
+      const groundSpeed = Math.abs(this.vx);
+      // Progressive friction: multiply instead of divide for stability
+      // Higher at low speeds (up to 2x at <10 px/s)
+      const frictionMultiplier = Math.max(0, Math.min(1, 1 - groundSpeed / 80));
+      const progressiveRollFriction = CONSTANTS.ROLL_FRICTION_PER_S * (1 + frictionMultiplier * 1.0);
+      const rollDamp = Math.max(0, 1 - progressiveRollFriction * dt / massScale);
       this.vx *= rollDamp;
+      
+      // Snap slow horizontal movement to zero (prevents endless creeping)
+      if (Math.abs(this.vx) < 3.0) this.vx = 0;
+      
       const wallRest = Math.abs(preVy) < CONSTANTS.WALL_REST_VEL_THRESHOLD ? 0 : rest;
       this.vy = -this.vy * (wallRest * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
       const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
@@ -237,10 +284,25 @@ export class Ball {
       this.squashNormalAngle = -Math.PI / 2;
       const rollTarget = this.vx / this.r;
       this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
+      
+      // Snap slow spin to zero when on ground
+      if (Math.abs(this.omega) < 0.05) this.omega = 0;
+      
       // Sound: floor impact (threshold handled by sound engine)
       playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
-      // Rubbery wall wobble
-      registerWallImpact('bottom', this.x / w, impact);
+      // Rubbery wall wobble - only register if ball is moving DOWN into wall (actual impact, not just weight)
+      // Skip if sleeping (resting balls shouldn't cause wobble)
+      if (!this.isSleeping && preVy > 0 && preVy >= CONSTANTS.WALL_REST_VEL_THRESHOLD) {
+        registerWallImpact('bottom', this.x / w, impact);
+      }
+      
+      // ALWAYS register pressure when touching ground (whether impacting or not)
+      // This kills wobble from stacked/resting balls
+      // Pressure is cumulative, so more balls = more damping
+      const pressureAmount = this.isSleeping ? 1.0 : Math.min(1.0, (CONSTANTS.WALL_REST_VEL_THRESHOLD - Math.abs(preVy)) / CONSTANTS.WALL_REST_VEL_THRESHOLD);
+      if (pressureAmount > 0.1) {
+        registerWallPressure('bottom', this.x / w, pressureAmount);
+      }
     }
     
     // Top (ceiling) - Skip in Ball Pit mode so balls can fall in from above
@@ -254,8 +316,17 @@ export class Ball {
       this.squashNormalAngle = Math.PI / 2;
       // Sound: ceiling impact (threshold handled by sound engine)
       playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
-      // Rubbery wall wobble
-      registerWallImpact('top', this.x / w, impact);
+      // Rubbery wall wobble - only register if ball is moving UP into wall (actual impact, not just weight)
+      // Skip if sleeping (resting balls shouldn't cause wobble)
+      if (!this.isSleeping && preVy < 0 && Math.abs(preVy) >= CONSTANTS.WALL_REST_VEL_THRESHOLD) {
+        registerWallImpact('top', this.x / w, impact);
+      }
+      
+      // ALWAYS register pressure when touching ceiling
+      const pressureAmount = this.isSleeping ? 1.0 : Math.min(1.0, (CONSTANTS.WALL_REST_VEL_THRESHOLD - Math.abs(preVy)) / CONSTANTS.WALL_REST_VEL_THRESHOLD);
+      if (pressureAmount > 0.1) {
+        registerWallPressure('top', this.x / w, pressureAmount);
+      }
     }
     
     // Right
@@ -272,8 +343,17 @@ export class Ball {
       this.squashNormalAngle = Math.PI;
       // Sound: right wall impact (threshold handled by sound engine)
       playCollisionSound(this.r, impact * 0.6, 1.0, this._soundId);
-      // Rubbery wall wobble
-      registerWallImpact('right', this.y / h, impact);
+      // Rubbery wall wobble - only register if ball is moving RIGHT into wall (actual impact, not just weight)
+      // Skip if sleeping (resting balls shouldn't cause wobble)
+      if (!this.isSleeping && preVx > 0 && preVx >= CONSTANTS.WALL_REST_VEL_THRESHOLD) {
+        registerWallImpact('right', this.y / h, impact);
+      }
+      
+      // ALWAYS register pressure when touching wall
+      const pressureAmountR = this.isSleeping ? 1.0 : Math.min(1.0, (CONSTANTS.WALL_REST_VEL_THRESHOLD - Math.abs(preVx)) / CONSTANTS.WALL_REST_VEL_THRESHOLD);
+      if (pressureAmountR > 0.1) {
+        registerWallPressure('right', this.y / h, pressureAmountR);
+      }
     }
     
     // Left
@@ -290,8 +370,17 @@ export class Ball {
       this.squashNormalAngle = 0;
       // Sound: left wall impact (threshold handled by sound engine)
       playCollisionSound(this.r, impact * 0.6, 0.0, this._soundId);
-      // Rubbery wall wobble
-      registerWallImpact('left', this.y / h, impact);
+      // Rubbery wall wobble - only register if ball is moving LEFT into wall (actual impact, not just weight)
+      // Skip if sleeping (resting balls shouldn't cause wobble)
+      if (!this.isSleeping && preVx < 0 && Math.abs(preVx) >= CONSTANTS.WALL_REST_VEL_THRESHOLD) {
+        registerWallImpact('left', this.y / h, impact);
+      }
+      
+      // ALWAYS register pressure when touching wall
+      const pressureAmountL = this.isSleeping ? 1.0 : Math.min(1.0, (CONSTANTS.WALL_REST_VEL_THRESHOLD - Math.abs(preVx)) / CONSTANTS.WALL_REST_VEL_THRESHOLD);
+      if (pressureAmountL > 0.1) {
+        registerWallPressure('left', this.y / h, pressureAmountL);
+      }
     }
     
     // Wake on wall collision (prevents sleeping balls from getting stuck in walls)
@@ -308,11 +397,14 @@ export class Ball {
     // - Only use transforms when necessary
     // ══════════════════════════════════════════════════════════════════════════════
     
+    const globals = getGlobals();
     const hasSquash = this.squashAmount > 0.001;
     const hasAlpha = this.alpha < 1.0;
+    const isCritter = globals.currentMode === MODES.CRITTERS;
     
     // Only use save/restore when we have transforms that need cleanup
-    if (hasSquash || hasAlpha) {
+    // Critters draw a tiny “face” (eyes/highlight) so they always use transforms.
+    if (hasSquash || hasAlpha || isCritter) {
       ctx.save();
       ctx.translate(this.x, this.y);
       
@@ -334,6 +426,33 @@ export class Ball {
       ctx.arc(0, 0, this.r, 0, Math.PI * 2);
       ctx.fillStyle = this.color;
       ctx.fill();
+
+      // ════════════════════════════════════════════════════════════════════════
+      // Critters: simple “cutesy” face (eyes + specular highlight)
+      // - Cheap: 3 tiny circles
+      // - Oriented by theta (already set by mode)
+      // - Scales/squashes with the body transform above
+      // ════════════════════════════════════════════════════════════════════════
+      if (isCritter && this.r >= 7 * (globals.DPR || 1)) {
+        const r = this.r;
+        const eyeR = r * 0.11;
+        const eyeF = r * 0.22;  // forward offset
+        const eyeS = r * 0.16;  // side offset
+        const hiR = r * 0.07;
+
+        // Eyes (dark)
+        ctx.fillStyle = 'rgba(0,0,0,0.65)';
+        ctx.beginPath();
+        ctx.arc(eyeF, -eyeS, eyeR, 0, Math.PI * 2);
+        ctx.arc(eyeF,  eyeS, eyeR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Highlight (white)
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.beginPath();
+        ctx.arc(eyeF + r * 0.06, -eyeS - r * 0.05, hiR, 0, Math.PI * 2);
+        ctx.fill();
+      }
       
       ctx.restore();
     } else {

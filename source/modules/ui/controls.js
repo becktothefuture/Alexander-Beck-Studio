@@ -86,7 +86,7 @@ export function updateModeButtonsUI(activeMode) {
   const announcer = document.getElementById('announcer');
   if (announcer) {
     const modeNames = {
-      'worms': 'Worms',
+      'critters': 'Critters',
       'pit': 'Ball Pit',
       'flies': 'Flies to Light', 
       'weightless': 'Zero-G',

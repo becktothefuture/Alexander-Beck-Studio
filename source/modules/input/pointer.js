@@ -18,7 +18,7 @@ let lastTapTime = 0;
 // Click/tap cycles through modes (value stored on globals; avoid caching so modes can override).
 
 const MODE_CYCLE = [
-  MODES.WORMS,
+  MODES.CRITTERS,
   MODES.PIT,
   MODES.FLIES,
   MODES.WEIGHTLESS,
@@ -194,8 +194,6 @@ export function setupPointer() {
     
     // NO click effects on any simulation - only mouse movement triggers interactions
     // Click cycles mode (if enabled)
-    // Worms uses click/drag for interaction; never cycle from clicks there.
-    if (globals.currentMode === MODES.WORMS) return;
     if (globals.clickCycleEnabled) {
       cycleMode();
     }
@@ -253,7 +251,6 @@ export function setupPointer() {
       // NO tap effects on any simulation - only finger drag triggers interactions
       // Double-tap cycles mode (if enabled)
       const now = performance.now();
-      if (globals.currentMode === MODES.WORMS) return;
       if (now - lastTapTime < 300 && globals.clickCycleEnabled) {
         cycleMode();
       }

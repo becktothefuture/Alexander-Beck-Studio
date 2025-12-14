@@ -368,8 +368,8 @@ function enhanceFooterLinksForMobile() {
     
     // Layout controls integrated into master panel
     
-    // Initialize starting mode (Simulation 11: Worms, active by default for now)
-    setMode(MODES.WORMS);
+    // Initialize starting mode (Simulation 11: Critters, active by default for now)
+    setMode(MODES.CRITTERS);
     mark('bb:mode');
     log('✓ Mode initialized');
     

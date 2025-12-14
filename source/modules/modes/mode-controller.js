@@ -15,7 +15,7 @@ import { initializePingPong, applyPingPongForces } from './ping-pong.js';
 import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magnetic.js';
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
 import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
-import { initializeWorms } from './worms.js';
+import { initializeCritters, applyCrittersForces } from './critters.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 
 export { MODES };
@@ -26,19 +26,16 @@ export function initModeSystem() {
 
 export function setMode(mode) {
   const globals = getGlobals();
-
-  // Worms uses click+drag interactions; prevent click-to-cycle while active.
-  if (globals.currentMode === MODES.WORMS && mode !== MODES.WORMS) {
-    if (globals._clickCycleBeforeWorms !== undefined) {
-      globals.clickCycleEnabled = globals._clickCycleBeforeWorms;
-      delete globals._clickCycleBeforeWorms;
+  // Restore physics overrides when leaving Critters mode
+  if (globals.currentMode === MODES.CRITTERS && mode !== MODES.CRITTERS) {
+    if (globals._restBeforeCritters !== undefined) {
+      globals.REST = globals._restBeforeCritters;
+      delete globals._restBeforeCritters;
     }
-  }
-  if (mode === MODES.WORMS) {
-    if (globals._clickCycleBeforeWorms === undefined) {
-      globals._clickCycleBeforeWorms = globals.clickCycleEnabled;
+    if (globals._frictionBeforeCritters !== undefined) {
+      globals.FRICTION = globals._frictionBeforeCritters;
+      delete globals._frictionBeforeCritters;
     }
-    globals.clickCycleEnabled = false;
   }
   
   // Clean up Kaleidoscope spacing override when leaving the mode
@@ -62,7 +59,7 @@ export function setMode(mode) {
     magnetic: 'Magnetic',
     bubbles: 'Carbonated Bubbles',
     kaleidoscope: 'Kaleidoscope',
-    worms: 'Worms'
+    critters: 'Critters'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
   
@@ -143,11 +140,18 @@ export function setMode(mode) {
     globals.ballSpacing = spacingBase * unit;
 
     initializeKaleidoscope();
-  } else if (mode === MODES.WORMS) {
+  } else if (mode === MODES.CRITTERS) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
     globals.repellerEnabled = false;
-    initializeWorms();
+
+    // Critters are “crawl-y”: lower restitution + higher drag (mode-only overrides).
+    if (globals._restBeforeCritters === undefined) globals._restBeforeCritters = globals.REST;
+    if (globals._frictionBeforeCritters === undefined) globals._frictionBeforeCritters = globals.FRICTION;
+    globals.REST = globals.critterRestitution ?? globals.REST;
+    globals.FRICTION = globals.critterFriction ?? globals.FRICTION;
+
+    initializeCritters();
   }
   
   console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
@@ -171,6 +175,8 @@ export function getForceApplicator() {
     return applyBubblesForces;
   } else if (globals.currentMode === MODES.KALEIDOSCOPE) {
     return applyKaleidoscopeForces;
+  } else if (globals.currentMode === MODES.CRITTERS) {
+    return applyCrittersForces;
   }
   return null;
 }

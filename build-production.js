@@ -57,7 +57,9 @@ async function buildProduction() {
     console.log('📁 Step 1: Copying webflow-export/ to public/...');
     
     if (fs.existsSync(CONFIG.publicDestination)) {
-      fs.rmSync(CONFIG.publicDestination, { recursive: true, force: true });
+      // macOS + concurrent file watchers (dev startup) can cause transient ENOTEMPTY
+      // during recursive deletion. Use retries to make the build resilient.
+      fs.rmSync(CONFIG.publicDestination, { recursive: true, force: true, maxRetries: 10, retryDelay: 75 });
       console.log('   Cleaned existing public/ folder');
     }
     

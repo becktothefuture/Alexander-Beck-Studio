@@ -15,7 +15,7 @@ Current mode system supports **10 modes** (switchable via the Settings panel; 1�
 7. **Magnetic** (`magnetic`)
 8. **Carbonated Bubbles** (`bubbles`)
 9. **Kaleidoscope** (`kaleidoscope`)
-11. **Worms** (`worms`) — **default** (no keyboard shortcut yet)
+10. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
 
 ---
 
@@ -38,17 +38,16 @@ Current mode system supports **10 modes** (switchable via the Settings panel; 1�
 
 ## Mode Details
 
-## Simulation 11: Worms 🪱
+## Simulation 11: Critters 🪲
 
-**Purpose:** Overhead-view organisms: each organism is a chain of circles moving via Verlet integration + distance constraints (soft-body / rope style).  
+**Purpose:** Ball-only “little creatures”: each critter is a single circle with step-like locomotion (stride pulses), turning inertia, edge avoidance, and local separation.  
 **Default:** Active by default (for now).  
 **Keyboard:** None (for now).
 
-- **Population:** ~24 organisms (some are single-segment)
-- **Constraints:** Multiple passes per frame for stable shape and “body drag”
-- **Collisions:** Circle non-overlap for all segments (including non-adjacent within a worm)
-- **Interaction:** Pointer proximity repulsion + drag-to-pull segments
-- **Notes:** Click-to-cycle is disabled while Worms is active (to avoid conflicts with dragging)
+- **Population:** ~90 critters (configurable)
+- **Motion:** Step cadence + staccato “start/stop” pulse (no floating drift)
+- **Collisions:** Standard ball collisions (but with Critters-only low restitution + higher drag)
+- **Interaction:** Cursor acts as a local attractor within a vw-defined radius
 
 ## Mode 1: Ball Pit 🎯
 

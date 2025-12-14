@@ -22,7 +22,7 @@ export function getEffectiveDPR() {
 const state = {
   config: {},
   // Default boot mode (overridden by main.js on init, but kept consistent here too).
-  currentMode: MODES.WORMS,
+  currentMode: MODES.CRITTERS,
   balls: [],
   canvas: null,
   ctx: null,
@@ -68,41 +68,48 @@ const state = {
   ballSoftness: 20,
   ballSpacing: 2.5,     // Extra collision padding between balls (px, 0 = no extra spacing)
 
-  // Worms (Simulation 11) — overhead-view organisms
-  // Defaults intentionally match `source/config/default-config.json` (dev+build parity).
-  wormPopulation: 28,
-  wormSingleChance: 0.42,       // fraction of organisms that are single-segment
-  wormDotSpeedMul: 2.5,         // speed multiplier for single-segment organisms
-  wormBaseSpeed: 900,           // px/s baseline
-  wormDamping: 0.885,           // Verlet damping (0..1)
-  wormStepHz: 1.7,              // gait cadence
-  wormTurnNoise: 4.6,           // random walk strength
-  wormTurnDamp: 5.0,            // turning inertia damping
-  wormTurnSeek: 16.0,           // steer strength toward a desired heading
+  // Critters (Simulation 11) — ball-only “little creatures”
+  critterCount: 90,
+  critterSpeed: 680,          // thrust scale (px/s-ish)
+  critterMaxSpeed: 1400,      // clamp
+  critterStepHz: 5.0,         // step cadence
+  critterStepSharpness: 2.4,  // higher = more staccato steps
+  critterTurnNoise: 2.2,      // wander
+  critterTurnDamp: 10.0,      // turning inertia damping
+  critterTurnSeek: 10.0,      // steering toward desired heading
+  critterAvoidRadius: 120,    // px
+  critterAvoidForce: 9000,    // separation acceleration
+  critterEdgeAvoid: 1.0,      // edge repulsion strength
+  critterMousePull: 1.0,      // attraction strength inside mouse zone
+  critterMouseRadiusVw: 30,   // zone radius (vw)
+  critterRestitution: 0.18,   // collision “bounciness” override while mode active
+  critterFriction: 0.018,     // drag override while mode active
 
-  // Mouse interaction (macro control + derived values)
-  // NOTE: `wormMouseFear` is kept for backward compatibility and is treated as an alias for `wormMousePull`.
-  wormMousePull: 1.0,           // 0..N scalar; attraction strength inside mouse zone
-  wormMouseFear: 1.0,           // legacy alias
-  wormMouseRadiusVw: 30,        // radius of attraction zone (vw)
-  wormEdgeAvoid: 1.0,           // 0..N scalar; scales edge repulsion (1.0 = current)
-  wormFleeRadius: 700,          // px (pre-DPR)
-  wormFleeForce: 3.85,          // heading bias away from pointer
-  wormPanicBoost: 2.5,          // speed boost near pointer
+  // Crystal Growth (Simulation 12) — bonding + constraints (hard-capped)
+  // NOTE: Cursor affects MOVEMENT ONLY. Growth is automatic (no cursor growth boosts).
+  crystalBallCount: 40,
+  crystalGrowthRate: 0.8,          // mass/sec (0..1)
+  crystalBondThreshold: 0.55,      // mass needed to form a bond (0..1)
+  crystalBondRadius: 30,           // px (pre-DPR)
+  crystalBondStiffness: 0.60,      // 0..1
+  crystalBondDamping: 0.38,        // 0..1
+  crystalMaxBondsPerBall: 4,       // branch cap
+  crystalMaxBondsTotal: 200,       // hard cap (performance)
 
-  // Social interaction
-  wormSenseRadius: 450,         // px (pre-DPR)
-  wormAvoidForce: 2.5,          // head-to-head avoidance
-  wormAvoidSwirl: 0.35,         // tangential dodge to prevent deadlocks
-  wormCrowdBoost: 1.3,          // speed boost when near other heads
+  // Cursor movement field (mode-local; does not affect growth)
+  crystalCursorRadius: 150,        // px (pre-DPR)
+  crystalCursorPower: 9000,        // force scalar (tuned in crystal mode)
+  crystalCursorSoft: 2.8,          // softness for inverse falloff
 
-  // Squash & stretch (render-time shape language)
-  wormSquashDecay: 0.86,        // decay per frame step (0..1)
-  wormStretchGain: 0.0011,      // speed->stretch mapping
-  wormStretchMax: 0.38,         // max stretch amount
-  wormContactSquashX: 0.22,     // how much contact squashes X
-  wormContactSquashY: 0.35,     // how much contact squashes Y
-  wormTurnSquashGain: 0.28,     // extra squash from sharp turns (0..)
+  // Magical rendering
+  crystalBondWidth: 4,             // px
+  crystalBondOpacity: 0.85,        // 0..1
+  crystalGlowBlur: 12,             // px blur radius
+  crystalPulseAmt: 0.18,           // 0..1, pulsing amplitude for bonds + balls
+  crystalPulseHz: 1.0,             // Hz
+  crystalParticlesPerBond: 7,      // particle burst size
+  crystalParticleMax: 100,         // hard cap (performance)
+  crystalParticleLife: 0.42,       // seconds
   
   // Corner (matches CSS border-radius for collision bounds)
   cornerRadius: 42,
@@ -130,15 +137,6 @@ const state = {
   bubblesMaxCount: 200,
   bubblesDeflectRadius: 200,
   
-  // Crystal mode params (Simulation 12)
-  crystalBallCount: 50,
-  crystalGrowthRate: 0.5,
-  bondFormationRadius: 25,
-  bondStiffness: 0.4,
-  catalystRadius: 120,
-  catalystStrength: 2.5,
-  maxBondsPerBall: 4,
-  bondVisualOpacity: 0.6,
   
   // Ping Pong mode params (left-right bounce, cursor obstacle)
   pingPongBallCount: 35,
@@ -278,33 +276,22 @@ export function initState(config) {
   if (config.kaleidoscopeEase !== undefined) state.kaleidoscopeEase = config.kaleidoscopeEase;
   if (config.kaleidoscopeWander !== undefined) state.kaleidoscopeWander = config.kaleidoscopeWander;
 
-  // Worms (Simulation 11) config overrides
-  if (config.wormPopulation !== undefined) state.wormPopulation = config.wormPopulation;
-  if (config.wormSingleChance !== undefined) state.wormSingleChance = config.wormSingleChance;
-  if (config.wormDotSpeedMul !== undefined) state.wormDotSpeedMul = config.wormDotSpeedMul;
-  if (config.wormBaseSpeed !== undefined) state.wormBaseSpeed = config.wormBaseSpeed;
-  if (config.wormDamping !== undefined) state.wormDamping = config.wormDamping;
-  if (config.wormStepHz !== undefined) state.wormStepHz = config.wormStepHz;
-  if (config.wormTurnNoise !== undefined) state.wormTurnNoise = config.wormTurnNoise;
-  if (config.wormTurnDamp !== undefined) state.wormTurnDamp = config.wormTurnDamp;
-  if (config.wormTurnSeek !== undefined) state.wormTurnSeek = config.wormTurnSeek;
-  if (config.wormMousePull !== undefined) state.wormMousePull = config.wormMousePull;
-  if (config.wormMouseFear !== undefined) state.wormMouseFear = config.wormMouseFear;
-  if (config.wormMouseRadiusVw !== undefined) state.wormMouseRadiusVw = config.wormMouseRadiusVw;
-  if (config.wormEdgeAvoid !== undefined) state.wormEdgeAvoid = config.wormEdgeAvoid;
-  if (config.wormFleeRadius !== undefined) state.wormFleeRadius = config.wormFleeRadius;
-  if (config.wormFleeForce !== undefined) state.wormFleeForce = config.wormFleeForce;
-  if (config.wormPanicBoost !== undefined) state.wormPanicBoost = config.wormPanicBoost;
-  if (config.wormSenseRadius !== undefined) state.wormSenseRadius = config.wormSenseRadius;
-  if (config.wormAvoidForce !== undefined) state.wormAvoidForce = config.wormAvoidForce;
-  if (config.wormAvoidSwirl !== undefined) state.wormAvoidSwirl = config.wormAvoidSwirl;
-  if (config.wormCrowdBoost !== undefined) state.wormCrowdBoost = config.wormCrowdBoost;
-  if (config.wormSquashDecay !== undefined) state.wormSquashDecay = config.wormSquashDecay;
-  if (config.wormStretchGain !== undefined) state.wormStretchGain = config.wormStretchGain;
-  if (config.wormStretchMax !== undefined) state.wormStretchMax = config.wormStretchMax;
-  if (config.wormContactSquashX !== undefined) state.wormContactSquashX = config.wormContactSquashX;
-  if (config.wormContactSquashY !== undefined) state.wormContactSquashY = config.wormContactSquashY;
-  if (config.wormTurnSquashGain !== undefined) state.wormTurnSquashGain = config.wormTurnSquashGain;
+  // Critters (Simulation 11) config overrides
+  if (config.critterCount !== undefined) state.critterCount = config.critterCount;
+  if (config.critterSpeed !== undefined) state.critterSpeed = config.critterSpeed;
+  if (config.critterMaxSpeed !== undefined) state.critterMaxSpeed = config.critterMaxSpeed;
+  if (config.critterStepHz !== undefined) state.critterStepHz = config.critterStepHz;
+  if (config.critterStepSharpness !== undefined) state.critterStepSharpness = config.critterStepSharpness;
+  if (config.critterTurnNoise !== undefined) state.critterTurnNoise = config.critterTurnNoise;
+  if (config.critterTurnDamp !== undefined) state.critterTurnDamp = config.critterTurnDamp;
+  if (config.critterTurnSeek !== undefined) state.critterTurnSeek = config.critterTurnSeek;
+  if (config.critterAvoidRadius !== undefined) state.critterAvoidRadius = config.critterAvoidRadius;
+  if (config.critterAvoidForce !== undefined) state.critterAvoidForce = config.critterAvoidForce;
+  if (config.critterEdgeAvoid !== undefined) state.critterEdgeAvoid = config.critterEdgeAvoid;
+  if (config.critterMousePull !== undefined) state.critterMousePull = config.critterMousePull;
+  if (config.critterMouseRadiusVw !== undefined) state.critterMouseRadiusVw = config.critterMouseRadiusVw;
+  if (config.critterRestitution !== undefined) state.critterRestitution = config.critterRestitution;
+  if (config.critterFriction !== undefined) state.critterFriction = config.critterFriction;
 
   // Generic "apply like-for-like" config keys to state
   // This ensures panel-exported config round-trips cleanly across modes.

@@ -66,23 +66,22 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
   "wallWobbleSigma": 4.0,
   "wallWobbleCornerClamp": 1.0,
 
-  // Worms (Simulation 11)
-  "wormPopulation": 24,
-  "wormSingleChance": 0.22,
-  "wormDotSpeedMul": 1.15,
-  "wormBaseSpeed": 420,
-  "wormDamping": 0.88,
-  "wormStepHz": 3.4,
-  "wormTurnNoise": 2.0,
-  "wormTurnDamp": 8.5,
-  "wormTurnSeek": 6.5,
-  "wormFleeRadius": 260,
-  "wormFleeForce": 1.6,
-  "wormPanicBoost": 0.85,
-  "wormSenseRadius": 220,
-  "wormAvoidForce": 0.9,
-  "wormAvoidSwirl": 0.35,
-  "wormCrowdBoost": 0.22
+  // Critters (Simulation 11)
+  "critterCount": 90,
+  "critterSpeed": 680,
+  "critterMaxSpeed": 1400,
+  "critterStepHz": 5,
+  "critterStepSharpness": 2.4,
+  "critterTurnNoise": 2.2,
+  "critterTurnDamp": 10,
+  "critterTurnSeek": 10,
+  "critterAvoidRadius": 120,
+  "critterAvoidForce": 9000,
+  "critterEdgeAvoid": 1,
+  "critterMousePull": 1,
+  "critterMouseRadiusVw": 30,
+  "critterRestitution": 0.18,
+  "critterFriction": 0.018
 }
 ```
 
@@ -109,7 +108,7 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 - **Applied to**: `state.ballMassKg` (historical variable name)
 
 ### `ballScale` / `sizeScale` (number)
-- **Meaning**: Global size multiplier for balls (and some mode-derived sizing, e.g. Worms segment radius baseline).
+- **Meaning**: Global size multiplier for balls.
 - **Applied to**: `state.sizeScale`
 - **Notes**: Both keys are accepted for compatibility. `ballScale` is the canonical name.
 
@@ -144,26 +143,25 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 
 ---
 
-## Worms (Simulation 11)
+## Critters (Simulation 11)
 
-These keys control the Worms/organisms simulation (mode `worms`).
+These keys control the ball-only Critters simulation (mode `critters`).
 
-- `wormPopulation` (number): organism count (re-init on change)
-- `wormSingleChance` (number 0..1): fraction of organisms that are single-segment “dots” (re-init on change)
-- `wormDotSpeedMul` (number): speed multiplier for single-segment organisms
-- `wormBaseSpeed` (number): baseline speed (px/s)
-- `wormDamping` (number 0..1): Verlet damping (lower = more glide)
-- `wormStepHz` (number): step cadence
-- `wormTurnNoise` (number): wander amount
-- `wormTurnDamp` (number): turning inertia damping
-- `wormTurnSeek` (number): steering strength toward desired heading
-- `wormFleeRadius` (number px): mouse fear radius
-- `wormFleeForce` (number): mouse fear steering strength
-- `wormPanicBoost` (number): speed boost near mouse
-- `wormSenseRadius` (number px): head-to-head sensing radius
-- `wormAvoidForce` (number): avoidance strength
-- `wormAvoidSwirl` (number): tangential dodge (helps “pass by” behavior)
-- `wormCrowdBoost` (number): speed boost when near other heads
+- `critterCount` (number): initial critter count (re-init on change)
+- `critterSpeed` (number): forward thrust scale
+- `critterMaxSpeed` (number): velocity clamp
+- `critterStepHz` (number): step cadence (higher = faster feet)
+- `critterStepSharpness` (number): step “staccato” amount (higher = more stop/start)
+- `critterTurnNoise` (number): wander amount
+- `critterTurnDamp` (number): turning inertia damping
+- `critterTurnSeek` (number): steering strength toward desired heading
+- `critterAvoidRadius` (number px): local separation radius
+- `critterAvoidForce` (number): local separation push strength
+- `critterEdgeAvoid` (number): strength of soft edge repulsion (reduces edge clumping)
+- `critterMousePull` (number): flee strength within mouse zone
+- `critterMouseRadiusVw` (number vw): mouse zone radius (viewport width units)
+- `critterRestitution` (number 0..1): Critters-only collision bounciness override
+- `critterFriction` (number): Critters-only drag override
 
 ---
 

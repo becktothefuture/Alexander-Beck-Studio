@@ -404,247 +404,173 @@ export const CONTROL_SECTIONS = {
   // ═══════════════════════════════════════════════════════════════════════════
   // MODE-SPECIFIC CONTROLS
   // ═══════════════════════════════════════════════════════════════════════════
-  worms: {
-    title: 'Worms',
-    icon: '🪱',
-    mode: 'worms',
+  critters: {
+    title: 'Critters',
+    icon: '🪲',
+    mode: 'critters',
     defaultOpen: false,
     controls: [
-      // Population
       {
-        id: 'wormPopulation',
-        label: 'Population',
-        stateKey: 'wormPopulation',
+        id: 'critterCount',
+        label: 'Count',
+        stateKey: 'critterCount',
         type: 'range',
-        min: 1, max: 200, step: 1,
-        default: 28,
+        min: 10, max: 260, step: 5,
+        default: 90,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
       },
       {
-        id: 'wormSingleChance',
-        label: 'Dot Chance',
-        stateKey: 'wormSingleChance',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.42,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'wormDotSpeedMul',
-        label: 'Dot Speed',
-        stateKey: 'wormDotSpeedMul',
-        type: 'range',
-        min: 0.1, max: 6, step: 0.05,
-        default: 2.5,
-        format: v => v.toFixed(2) + 'x',
-        parse: parseFloat
-      },
-
-      // Movement
-      {
-        id: 'wormBaseSpeed',
+        id: 'critterSpeed',
         label: 'Speed',
-        stateKey: 'wormBaseSpeed',
+        stateKey: 'critterSpeed',
         type: 'range',
-        min: 0, max: 2000, step: 10,
-        default: 900,
-        format: v => `${Math.round(v)} px/s`,
+        min: 0, max: 1800, step: 10,
+        default: 680,
+        format: v => `${Math.round(v)}`
+        ,
         parse: parseFloat
       },
       {
-        id: 'wormDamping',
-        label: 'Damping',
-        stateKey: 'wormDamping',
+        id: 'critterMaxSpeed',
+        label: 'Max Speed',
+        stateKey: 'critterMaxSpeed',
         type: 'range',
-        min: 0.6, max: 0.99, step: 0.001,
-        default: 0.885,
-        format: v => v.toFixed(3),
+        min: 200, max: 4000, step: 25,
+        default: 1400,
+        format: v => `${Math.round(v)}`
+        ,
         parse: parseFloat
       },
       {
-        id: 'wormStepHz',
+        id: 'critterStepHz',
         label: 'Step Rate',
-        stateKey: 'wormStepHz',
+        stateKey: 'critterStepHz',
         type: 'range',
-        min: 0, max: 12, step: 0.1,
-        default: 1.7,
+        min: 0, max: 16, step: 0.1,
+        default: 5.0,
         format: v => v.toFixed(1) + ' Hz',
         parse: parseFloat
       },
-
-      // Turning / personality
       {
-        id: 'wormTurnNoise',
+        id: 'critterStepSharpness',
+        label: 'Step Sharpness',
+        stateKey: 'critterStepSharpness',
+        type: 'range',
+        min: 0.5, max: 6.0, step: 0.1,
+        default: 2.4,
+        format: v => v.toFixed(1),
+        parse: parseFloat
+      },
+      {
+        id: 'critterTurnNoise',
         label: 'Wander',
-        stateKey: 'wormTurnNoise',
+        stateKey: 'critterTurnNoise',
         type: 'range',
-        min: 0, max: 12, step: 0.1,
-        default: 4.6,
+        min: 0, max: 8, step: 0.1,
+        default: 2.2,
         format: v => v.toFixed(1),
         parse: parseFloat
       },
       {
-        id: 'wormTurnDamp',
+        id: 'critterTurnDamp',
         label: 'Turn Inertia',
-        stateKey: 'wormTurnDamp',
+        stateKey: 'critterTurnDamp',
         type: 'range',
-        min: 0, max: 40, step: 0.5,
-        default: 5,
+        min: 0.5, max: 30, step: 0.5,
+        default: 10.0,
         format: v => v.toFixed(1),
         parse: parseFloat
       },
       {
-        id: 'wormTurnSeek',
+        id: 'critterTurnSeek',
         label: 'Steering',
-        stateKey: 'wormTurnSeek',
+        stateKey: 'critterTurnSeek',
         type: 'range',
-        min: 0, max: 40, step: 0.25,
-        default: 16,
-        format: v => v.toFixed(2),
+        min: 0, max: 30, step: 0.5,
+        default: 10.0,
+        format: v => v.toFixed(1),
         parse: parseFloat
       },
-
-      // Mouse avoidance
       {
-        id: 'wormMousePull',
-        label: 'Mouse Pull',
-        stateKey: 'wormMousePull',
+        id: 'critterAvoidRadius',
+        label: 'Avoid Radius',
+        stateKey: 'critterAvoidRadius',
+        type: 'range',
+        min: 0, max: 260, step: 5,
+        default: 120,
+        format: v => `${Math.round(v)}px`,
+        parse: parseFloat
+      },
+      {
+        id: 'critterAvoidForce',
+        label: 'Avoid Force',
+        stateKey: 'critterAvoidForce',
+        type: 'range',
+        min: 0, max: 25000, step: 250,
+        default: 9000,
+        format: v => String(Math.round(v)),
+        parse: parseFloat
+      },
+      {
+        id: 'critterEdgeAvoid',
+        label: 'Edge Avoid',
+        stateKey: 'critterEdgeAvoid',
+        type: 'range',
+        min: 0, max: 3, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2) + 'x',
+        parse: parseFloat
+      },
+      {
+        id: 'critterMousePull',
+        label: 'Mouse Fear',
+        stateKey: 'critterMousePull',
         type: 'range',
         min: 0, max: 4, step: 0.05,
         default: 1.0,
         format: v => v.toFixed(2) + 'x',
         parse: parseFloat,
-        hint: 'Attraction strength inside the mouse zone'
+        hint: 'Flee strength inside the mouse zone'
       },
       {
-        id: 'wormMouseRadiusVw',
+        id: 'critterMouseRadiusVw',
         label: 'Mouse Zone',
-        stateKey: 'wormMouseRadiusVw',
+        stateKey: 'critterMouseRadiusVw',
         type: 'range',
         min: 0, max: 80, step: 1,
         default: 30,
         format: v => `${Math.round(v)}vw`,
-        parse: parseFloat,
-        hint: 'Radius of the attraction circle (viewport width units)'
-      },
-      {
-        id: 'wormEdgeAvoid',
-        label: 'Edge Avoid',
-        stateKey: 'wormEdgeAvoid',
-        type: 'range',
-        min: 0, max: 3, step: 0.05,
-        default: 1.0,
-        format: v => v.toFixed(2) + 'x',
-        parse: parseFloat,
-        hint: 'Keeps heads off the walls (reduces edge-clumping)'
-      },
-
-      // Social interaction
-      {
-        id: 'wormSenseRadius',
-        label: 'Sense Radius',
-        stateKey: 'wormSenseRadius',
-        type: 'range',
-        min: 0, max: 2000, step: 10,
-        default: 450,
-        format: v => `${Math.round(v)}px`,
         parse: parseFloat
       },
       {
-        id: 'wormAvoidForce',
-        label: 'Avoid',
-        stateKey: 'wormAvoidForce',
+        id: 'critterRestitution',
+        label: 'Bounciness',
+        stateKey: 'critterRestitution',
         type: 'range',
-        min: 0, max: 8, step: 0.05,
-        default: 2.5,
+        min: 0, max: 0.6, step: 0.01,
+        default: 0.18,
         format: v => v.toFixed(2),
-        parse: parseFloat
+        parse: parseFloat,
+        hint: 'Mode-only override',
+        onChange: (g, val) => {
+          if (g.currentMode === 'critters') g.REST = val;
+        }
       },
       {
-        id: 'wormAvoidSwirl',
-        label: 'Swirl',
-        stateKey: 'wormAvoidSwirl',
+        id: 'critterFriction',
+        label: 'Friction',
+        stateKey: 'critterFriction',
         type: 'range',
-        min: 0, max: 3, step: 0.05,
-        default: 0.35,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'wormCrowdBoost',
-        label: 'Crowd Boost',
-        stateKey: 'wormCrowdBoost',
-        type: 'range',
-        min: 0, max: 6, step: 0.05,
-        default: 1.3,
-        format: v => v.toFixed(2) + 'x',
-        parse: parseFloat
-      },
-
-      // Squash & stretch
-      {
-        id: 'wormSquashDecay',
-        label: 'Squash Decay',
-        stateKey: 'wormSquashDecay',
-        type: 'range',
-        min: 0.6, max: 0.99, step: 0.001,
-        default: 0.86,
+        min: 0, max: 0.06, step: 0.001,
+        default: 0.018,
         format: v => v.toFixed(3),
-        parse: parseFloat
-      },
-      {
-        id: 'wormStretchGain',
-        label: 'Stretch Gain',
-        stateKey: 'wormStretchGain',
-        type: 'range',
-        min: 0.0, max: 0.01, step: 0.0001,
-        default: 0.0011,
-        format: v => v.toFixed(4),
-        parse: parseFloat
-      },
-      {
-        id: 'wormStretchMax',
-        label: 'Stretch Max',
-        stateKey: 'wormStretchMax',
-        type: 'range',
-        min: 0.0, max: 2.0, step: 0.01,
-        default: 0.38,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'wormContactSquashX',
-        label: 'Contact Squash X',
-        stateKey: 'wormContactSquashX',
-        type: 'range',
-        min: 0.0, max: 1.0, step: 0.01,
-        default: 0.22,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'wormContactSquashY',
-        label: 'Contact Squash Y',
-        stateKey: 'wormContactSquashY',
-        type: 'range',
-        min: 0.0, max: 2.0, step: 0.01,
-        default: 0.35,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'wormTurnSquashGain',
-        label: 'Turn Squash',
-        stateKey: 'wormTurnSquashGain',
-        type: 'range',
-        min: 0.0, max: 2.0, step: 0.01,
-        default: 0.28,
-        format: v => v.toFixed(2),
-        parse: parseFloat
+        parse: parseFloat,
+        hint: 'Mode-only override',
+        onChange: (g, val) => {
+          if (g.currentMode === 'critters') g.FRICTION = val;
+        }
       }
     ]
   },
@@ -1377,7 +1303,7 @@ export function generatePanelHTML() {
       </summary>
       <div class="panel-section-content">
         <div class="mode-switcher" role="group" aria-label="Simulation mode selector">
-          <button class="mode-button active" data-mode="worms" aria-label="Worms mode">🪱 Worms</button>
+          <button class="mode-button active" data-mode="critters" aria-label="Critters mode">🪲 Critters</button>
           <button class="mode-button" data-mode="pit" aria-label="Ball Pit mode">🎯 Pit</button>
           <button class="mode-button" data-mode="flies" aria-label="Flies mode">🕊️ Flies</button>
           <button class="mode-button" data-mode="weightless" aria-label="Zero-G mode">🌌 Zero-G</button>
@@ -1429,7 +1355,7 @@ export function generatePanelHTML() {
       <button id="saveConfigBtn" class="primary">💾 Save Config</button>
     </div>
     <div class="panel-footer">
-      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Worms has no key (yet)
+      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters has no key (yet)
     </div>`;
   
   return html;
