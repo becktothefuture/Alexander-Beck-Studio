@@ -306,7 +306,7 @@ body.dark-mode .edge-copyright__text {
   opacity: 0.55;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .edge-copyright {
     right: calc(var(--container-border) + 6px);
   }
@@ -396,11 +396,27 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
    ───────────────────────────────────────────────────────────────────────────── */
 .ui-top {
   display: flex !important;
-  justify-content: space-between !important;
-  align-items: flex-start !important;
+  flex-direction: column !important;
   width: 100% !important;
   z-index: 20 !important;
-  gap: var(--gap-xl);
+  pointer-events: none;
+}
+
+/* Desktop/Tablet: main top row (legend + blurb + optional sound icon in top-right slot) */
+.ui-top-main {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  gap: var(--gap-xl) !important;
+  pointer-events: none;
+}
+
+/* Mobile-only row: sound toggle sits under legend + blurb, centered */
+.ui-top-soundRow {
+  display: none;
+  width: 100%;
   pointer-events: none;
 }
 
@@ -516,7 +532,7 @@ p {
   display: flex !important;
   flex-direction: column !important;
   width: 100% !important;
-  gap: var(--space-xl) !important; /* Spacing between Links Row and Meta Row */
+  gap: 24px !important; /* Spacing between Links Row and Meta Row */
   z-index: 20 !important;
   pointer-events: none;
 }
@@ -548,8 +564,10 @@ p {
 .footer_link {
   position: relative !important;
   transform: none !important;
-  padding: var(--hit-area-lg) !important; /* Force padding */
-  margin: calc(var(--hit-area-lg) * -1) !important;
+  padding-block: var(--hit-area-lg) !important; /* Larger hit area without affecting layout */
+  padding-inline: var(--hit-area-lg) !important;
+  margin-block: calc(var(--hit-area-lg) * -1) !important;
+  margin-inline: calc(var(--hit-area-lg) * -1) !important;
   display: inline-block;
   color: var(--text-color-light-muted) !important;
   font-size: var(--footer-links-font-size) !important;
@@ -886,10 +904,52 @@ body.dark-mode .sound-toggle {
   }
 }
 
-@media (max-width: 480px) { /* Mobile */
+/* Mid widths (~740px): legend gets too wide at 3 columns and squeezes the philosophy text.
+   Switch to 2 columns so the right blurb can breathe. */
+@media (max-width: 820px) {
+  .legend {
+    grid-template-columns: repeat(2, auto) !important;
+    gap: clamp(3px, 0.4vmin, 6px) clamp(10px, 1.2vw, 16px) !important;
+  }
+}
+
+@media (max-width: 600px) { /* Mobile */
+  :root {
+    --legend-font-size: 10px;
+  }
+
   .ui-top {
-    flex-wrap: wrap;
     gap: var(--gap-md);
+  }
+
+  .ui-top-main {
+    flex-direction: row !important;
+    gap: var(--gap-md) !important;
+    align-items: flex-start !important;
+  }
+
+  .ui-top-left,
+  .ui-top-right {
+    flex: 1 1 0 !important;
+    width: 50% !important;
+    min-width: 0 !important; /* allow text/grid to shrink instead of forcing overflow */
+  }
+
+  .ui-top-right {
+    max-width: none !important;
+  }
+
+  #top-elements-soundRow.ui-top-soundRow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+  }
+
+  #top-elements-soundRow.ui-top-soundRow .sound-toggle {
+    /* Avoid the global negative margin expanding the row/hit-area offscreen on mobile */
+    margin: 0 !important;
+    padding: var(--hit-area-sm) !important;
   }
   
   .legend {
@@ -904,7 +964,7 @@ body.dark-mode .sound-toggle {
   }
   
   .ui-bottom {
-    gap: var(--space-md) !important;
+    gap: 24px !important;
   }
   
   .ui-nav-row {
@@ -917,8 +977,13 @@ body.dark-mode .sound-toggle {
   }
   
   .footer_link {
-    font-size: clamp(0.7rem, 1.2vw, 0.78rem) !important;
-    padding: var(--hit-area-sm) !important;
+    font-size: calc(clamp(0.7rem, 1.2vw, 0.78rem) + 1px) !important;
+
+    /* Bigger vertical hit area on mobile, keep visual alignment via matching negative margins */
+    padding-block: calc(var(--hit-area-sm) + 6px) !important;
+    padding-inline: var(--hit-area-sm) !important;
+    margin-block: calc((var(--hit-area-sm) + 6px) * -1) !important;
+    margin-inline: calc(var(--hit-area-sm) * -1) !important;
   }
   
   .ui-meta-row {
@@ -968,6 +1033,19 @@ body.dark-mode #custom-cursor {
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* Password gate container (initially hidden, CENTERED like logo) */
+.cv-gate,
+.portfolio-gate,
+.contact-gate {
+  /* Padding tokens (avoid hard-coded padding declarations) */
+  --gate-pad-3xs: 0.25rem;
+  --gate-pad-xs: 0.45rem;
+  --gate-pad-sm-y: 0.75rem;
+  --gate-pad-sm-x: 0.85rem;
+  --gate-pad-md-y: 0.9rem;
+  --gate-pad-md-x: 1.05rem;
+  --gate-pad-nav-right: 6px;
+}
+
 .cv-gate,
 .portfolio-gate,
 .contact-gate {
@@ -1035,7 +1113,7 @@ body.dark-mode #custom-cursor {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-right: 6px;
+  padding-right: var(--gate-pad-nav-right);
   margin: 0 0 0.75rem 0;
 }
 
@@ -1044,7 +1122,7 @@ body.dark-mode #custom-cursor {
   border: 0;
   background: transparent;
   background-color: rgba(255, 255, 255, 0);
-  padding: 0.45rem 0.25rem;
+  padding: var(--gate-pad-xs) var(--gate-pad-3xs);
   margin: 0;
   display: inline-flex;
   justify-content: flex-start;
@@ -1132,7 +1210,7 @@ body.dark-mode .gate-description {
   justify-content: space-between;
   gap: 1rem;
 
-  padding: 0.9rem 1.05rem;
+  padding: var(--gate-pad-md-y) var(--gate-pad-md-x);
   border: 2px solid rgba(0, 0, 0, 0.12);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.55);
@@ -1171,7 +1249,7 @@ body.dark-mode .gate-description {
   appearance: none;
   border: 0;
   background: transparent;
-  padding: 0.9rem 1.05rem;
+  padding: var(--gate-pad-md-y) var(--gate-pad-md-x);
   flex: 1 1 auto;
   cursor: pointer;
   text-align: left;
@@ -1182,7 +1260,7 @@ body.dark-mode .gate-description {
   border: 0;
   border-left: 1px solid rgba(0, 0, 0, 0.14);
   background: transparent;
-  padding: 0.75rem 0.85rem;
+  padding: var(--gate-pad-sm-y) var(--gate-pad-sm-x);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1451,7 +1529,7 @@ body.dark-mode .portfolio-digit::placeholder {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   /* CV and Portfolio gate stay centered on mobile */
   .cv-gate-inputs,
   .portfolio-gate-inputs {

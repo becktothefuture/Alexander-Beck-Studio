@@ -145,7 +145,7 @@ body:not(.dark-mode) .panel-dock .panel {
 }
 
 .panel-dock .panel-header {
-  padding: 10px 12px;
+  padding: var(--panel-pad-10) var(--panel-pad-12);
   cursor: grab !important;
 }
 
@@ -206,7 +206,7 @@ body:not(.dark-mode) .panel-dock .panel {
 
 .panel-dock .panel-mode-pill {
   height: 20px;
-  padding: 0 10px;
+  padding: 0 var(--panel-pad-10);
   border-radius: 9999px;
   display: inline-flex;
   align-items: center;
@@ -273,7 +273,7 @@ body:not(.dark-mode) .panel-dock .panel-mode-pill {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .panel-dock {
     --dock-panel-max-height: 65vh;
   }

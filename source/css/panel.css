@@ -41,6 +41,19 @@
   --panel-section-pad: 10px;
   --panel-section-gap: 6px;
   --panel-control-gap: 3px;
+
+  /* Padding tokens (avoid hard-coded padding declarations) */
+  --panel-pad-2: 2px;
+  --panel-pad-3: 3px;
+  --panel-pad-4: 4px;
+  --panel-pad-6: 6px;
+  --panel-pad-7: 7px;
+  --panel-pad-8: 8px;
+  --panel-pad-9: 9px;
+  --panel-pad-10: 10px;
+  --panel-pad-12: 12px;
+  --panel-pad-14: 14px;
+  --panel-pad-32: 32px;
   
   /* Typography */
   --panel-font: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
@@ -292,7 +305,7 @@ body:not(.dark-mode) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: var(--panel-pad-10) var(--panel-pad-12);
   font-size: 13px;
   font-weight: 500;
   color: var(--panel-foreground);
@@ -431,7 +444,7 @@ body:not(.dark-mode) {
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 500;
-  padding: 7px 10px;
+  padding: var(--panel-pad-7) var(--panel-pad-10);
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
@@ -477,7 +490,7 @@ body:not(.dark-mode) {
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 500;
-  padding: 7px 32px 7px 10px;
+  padding: var(--panel-pad-7) var(--panel-pad-32) var(--panel-pad-7) var(--panel-pad-10);
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
@@ -514,7 +527,7 @@ body:not(.dark-mode) {
 }
 
 .mode-button {
-  padding: 8px 8px;
+  padding: var(--panel-pad-8);
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
@@ -564,13 +577,13 @@ body:not(.dark-mode) {
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
-  padding: 4px;
+  padding: var(--panel-pad-4);
   gap: 4px;
 }
 
 .theme-segment-btn {
   flex: 1;
-  padding: 8px 12px;
+  padding: var(--panel-pad-8) var(--panel-pad-12);
   border: none;
   background: transparent;
   color: var(--panel-muted-foreground);
@@ -608,7 +621,7 @@ body:not(.dark-mode) {
 }
 
 .panel input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 3px;
+  padding: var(--panel-pad-3);
 }
 
 .panel input[type="color"]::-webkit-color-swatch {
@@ -654,7 +667,7 @@ body:not(.dark-mode) {
   position: sticky;
   bottom: 0;
   z-index: 2;
-  padding-bottom: 8px;
+  padding-bottom: var(--panel-pad-8);
   /* soft fade so it reads as “anchored” without a hard edge */
   background: linear-gradient(
     to bottom,
@@ -685,7 +698,7 @@ body:not(.dark-mode) .panel-section--action {
   font-weight: 500;
   color: var(--panel-muted-foreground);
   text-align: center;
-  padding: 10px 12px;
+  padding: var(--panel-pad-10) var(--panel-pad-12);
   background: var(--panel-muted);
   border-radius: var(--panel-radius-sm);
 }
@@ -697,14 +710,14 @@ body:not(.dark-mode) .panel-section--action {
   font-size: 12px;
   color: var(--panel-muted-foreground);
   text-align: center;
-  padding-top: 12px;
+  padding-top: var(--panel-pad-12);
   margin-top: 12px;
   border-top: 1px solid var(--panel-border);
 }
 
 .panel-footer kbd {
   display: inline-block;
-  padding: 3px 6px;
+  padding: var(--panel-pad-3) var(--panel-pad-6);
   font-family: var(--panel-font-mono);
   font-size: 11px;
   font-weight: 500;
@@ -733,7 +746,7 @@ body:not(.dark-mode) .panel-section--action {
 
 .sound-enable-btn {
   width: 100%;
-  padding: 9px 12px;
+  padding: var(--panel-pad-9) var(--panel-pad-12);
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);
@@ -804,7 +817,7 @@ body:not(.dark-mode) .panel-section--action {
 
 .control-select {
   width: 100%;
-  padding: 8px 32px 8px 10px;
+  padding: var(--panel-pad-8) var(--panel-pad-32) var(--panel-pad-8) var(--panel-pad-10);
   background: var(--panel-muted);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius-sm);

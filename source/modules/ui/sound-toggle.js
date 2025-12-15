@@ -68,7 +68,7 @@ export function createSoundToggle() {
   const prefersMobileFullWidth =
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
-    window.matchMedia('(max-width: 480px)').matches;
+    window.matchMedia('(max-width: 600px)').matches;
   
   const mountInto = (parent) => {
     if (!parent) return false;
@@ -116,7 +116,7 @@ export function createSoundToggle() {
   // If the viewport crosses the mobile breakpoint, re-mount to keep layout correct.
   try {
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-      const mq = window.matchMedia('(max-width: 480px)');
+      const mq = window.matchMedia('(max-width: 600px)');
       const handler = () => {
         const sr = document.getElementById('top-elements-soundRow');
         const ts = document.getElementById('sound-toggle-slot');

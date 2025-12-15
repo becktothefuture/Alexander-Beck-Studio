@@ -99,45 +99,50 @@
       
       <!-- TOP SECTION -->
       <header class="ui-top">
-        <div class="ui-top-left">
-          <nav id="expertise-legend" class="legend" aria-label="Areas of expertise">
-            <div class="w-layout-hflex legend__item">
-              <div class="circle bg-ball-1" aria-hidden="true"></div>
-              <span>AI Integration</span>
-            </div>
-            <div class="w-layout-hflex legend__item">
-              <div class="circle bg-ball-5" aria-hidden="true"></div>
-              <span>UI/UX Design</span>
-            </div>
-            <div class="w-layout-hflex legend__item">
-              <div class="circle bg-ball-4" aria-hidden="true"></div>
-              <span>Creative Strategy</span>
-            </div>
-            <div class="w-layout-hflex legend__item">
-              <div class="circle bg-ball-8" aria-hidden="true"></div>
-              <span>Frontend Development</span>
-            </div>
-            <div class="w-layout-hflex legend__item">
-              <div class="circle bg-ball-6" aria-hidden="true"></div>
-              <span>Brand Identity</span>
-            </div>
-            <div class="w-layout-hflex legend__item">
-              <div class="circle bg-ball-7" aria-hidden="true"></div>
-              <span>3D Design</span>
-            </div>
-            <div class="w-layout-hflex legend__item">
-              <div class="circle bg-ball-3" aria-hidden="true"></div>
-              <span>Art Direction</span>
-            </div>
-          </nav>
+        <div class="ui-top-main">
+          <div class="ui-top-left">
+            <nav id="expertise-legend" class="legend" aria-label="Areas of expertise">
+              <div class="w-layout-hflex legend__item">
+                <div class="circle bg-ball-1" aria-hidden="true"></div>
+                <span>AI Integration</span>
+              </div>
+              <div class="w-layout-hflex legend__item">
+                <div class="circle bg-ball-5" aria-hidden="true"></div>
+                <span>UI/UX Design</span>
+              </div>
+              <div class="w-layout-hflex legend__item">
+                <div class="circle bg-ball-4" aria-hidden="true"></div>
+                <span>Creative Strategy</span>
+              </div>
+              <div class="w-layout-hflex legend__item">
+                <div class="circle bg-ball-8" aria-hidden="true"></div>
+                <span>Frontend Development</span>
+              </div>
+              <div class="w-layout-hflex legend__item">
+                <div class="circle bg-ball-6" aria-hidden="true"></div>
+                <span>Brand Identity</span>
+              </div>
+              <div class="w-layout-hflex legend__item">
+                <div class="circle bg-ball-7" aria-hidden="true"></div>
+                <span>3D Design</span>
+              </div>
+              <div class="w-layout-hflex legend__item">
+                <div class="circle bg-ball-3" aria-hidden="true"></div>
+                <span>Art Direction</span>
+              </div>
+            </nav>
+          </div>
+          
+          <div class="ui-top-right">
+            <blockquote class="decorative-script">
+              <p>Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity. <a id="contact-email-inline" href="#">Let's chat.</a></p>
+            </blockquote>
+            <div id="sound-toggle-slot"></div>
+          </div>
         </div>
-        
-        <div class="ui-top-right">
-          <blockquote class="decorative-script">
-            <p>Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity. <a id="contact-email-inline" href="#">Let's chat.</a></p>
-          </blockquote>
-          <div id="sound-toggle-slot"></div>
-        </div>
+
+        <!-- Mobile: sound-toggle.js will mount the button here (full-width row under legend + description) -->
+        <div id="top-elements-soundRow" class="ui-top-soundRow"></div>
       </header>
       
       <!-- CENTER SPACER (Flex Grow to push footer down) -->

@@ -82,8 +82,8 @@
 
 #soundSection .panel-section-content {
   gap: 8px;
-  padding-top: 12px;
-  padding-bottom: 14px;
+  padding-top: var(--panel-pad-12);
+  padding-bottom: var(--panel-pad-14);
 }
 
 #soundSection .sound-enable-row {
@@ -91,7 +91,7 @@
 }
 
 #soundSection .sound-enable-btn {
-  padding: 10px 14px;
+  padding: var(--panel-pad-10) var(--panel-pad-14);
 }
 
 #soundSection .sound-controls {
@@ -104,7 +104,7 @@
 
 #soundSection .control-hint {
   margin-top: -2px;
-  padding-bottom: 2px;
+  padding-bottom: var(--panel-pad-2);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -115,7 +115,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 0 2px;
+  padding: var(--panel-pad-4) 0 var(--panel-pad-2);
 }
 
 .sound-perf__btn {
