@@ -40,9 +40,14 @@ export function setupBuildControls() {
     config.repelSoftness = g.repelSoft;
 
     // 3) Explicitly include layout controls (not in registry)
-    config.containerBorder = g.containerBorder;
-    config.simulationPadding = g.simulationPadding;
-    config.contentPadding = g.contentPadding;
+    // Layout is vw-native (derived to px at runtime). Export vw keys as canonical.
+    config.layoutViewportWidthPx = g.layoutViewportWidthPx || 0;
+    config.containerBorderVw = g.containerBorderVw;
+    config.simulationPaddingVw = g.simulationPaddingVw;
+    config.contentPaddingVw = g.contentPaddingVw;
+    config.wallRadiusVw = g.wallRadiusVw;
+    config.wallThicknessVw = g.wallThicknessVw;
+    // Physics-only inset remains px.
     config.wallInset = g.wallInset;
 
     // 4) Sound (full round-trip)

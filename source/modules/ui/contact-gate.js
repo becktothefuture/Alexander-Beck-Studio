@@ -13,6 +13,8 @@
 // - No network calls
 // - No user text stored (clipboard copy is a single fixed string)
 
+import { showOverlay, hideOverlay } from './gate-overlay.js';
+
 const CONTACT_EMAIL = 'info@beck.fyi';
 const TRANSITION_MS = 400; // Must match password-gate.css transitions
 const COPY_FEEDBACK_MS = 1200;
@@ -104,6 +106,13 @@ export function initContactGate() {
   let isOpen = false;
   let copyTimer = null;
 
+  // Helper to check if any gate is currently active
+  const isAnyGateActive = () => {
+    return (gate && gate.classList.contains('active')) ||
+           (cvGate && cvGate.classList.contains('active')) ||
+           (portfolioGate && portfolioGate.classList.contains('active'));
+  };
+
   const setCopyUI = (state) => {
     if (!emailValueBtn || !emailCopyBtn || !statusEl) return;
     if (copyTimer) window.clearTimeout(copyTimer);
@@ -135,6 +144,9 @@ export function initContactGate() {
   const openGate = (e) => {
     e?.preventDefault?.();
 
+    // Check if any other gate is currently open
+    const wasAnyGateActive = isAnyGateActive();
+
     // Close other gates if open (match existing behavior)
     if (cvGate && cvGate.classList.contains('active')) {
       cvGate.classList.remove('active');
@@ -148,6 +160,11 @@ export function initContactGate() {
     }
 
     isOpen = true;
+    
+    // Show overlay only if no gate was previously active
+    if (!wasAnyGateActive) {
+      showOverlay();
+    }
     setCopyUI('idle');
 
     // Animate Logo Out (Up)
@@ -175,6 +192,14 @@ export function initContactGate() {
 
     setTimeout(() => {
       if (!isOpen) gate.classList.add('hidden');
+      
+      // Hide overlay only if no other gate is now active
+      // Small delay to let state settle after closing
+      setTimeout(() => {
+        if (!isAnyGateActive()) {
+          hideOverlay();
+        }
+      }, 50);
     }, TRANSITION_MS);
   };
 

@@ -5,7 +5,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { CONSTANTS } from '../core/constants.js';
-import { getGlobals, setEffectiveDPR } from '../core/state.js';
+import { getGlobals, setEffectiveDPR, applyLayoutFromVwToPx, applyLayoutCSSVars } from '../core/state.js';
 import { applyCanvasShadow } from './effects.js';
 
 let canvas, ctx;
@@ -96,6 +96,13 @@ export function resize() {
   if (!canvas) return;
   
   const globals = getGlobals();
+
+  // Keep vw-based layout responsive: on any resize we recompute derived px and
+  // restamp CSS vars before measuring container dimensions.
+  try {
+    applyLayoutFromVwToPx();
+    applyLayoutCSSVars();
+  } catch (e) {}
   
   // Use container dimensions if available, fallback to window for safety
   const container = globals.container || document.getElementById('bravia-balls');

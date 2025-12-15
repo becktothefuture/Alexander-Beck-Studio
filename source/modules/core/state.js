@@ -111,6 +111,25 @@ const state = {
   
   // Corner (matches CSS border-radius for collision bounds)
   cornerRadius: 42,
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Layout: vw-native controls (derived to px on demand)
+  //
+  // Goal: keep UI + config in viewport-relative units, while keeping hot paths
+  // (physics + layout reads) in pixels with zero per-frame conversion.
+  //
+  // - `layoutViewportWidthPx`: if > 0, we treat this as the viewport width used
+  //   for vw→px conversion (debug “virtual viewport width”).
+  // - When 0, we use `window.innerWidth`.
+  // ─────────────────────────────────────────────────────────────────────────────
+  layoutViewportWidthPx: 0,
+
+  // Canonical layout knobs (vw units)
+  containerBorderVw: 0,     // outer inset from viewport (vw)
+  simulationPaddingVw: 0,   // inner inset around canvas (vw)
+  contentPaddingVw: 0,      // padding for content blocks inside frame (vw)
+  wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
+  wallThicknessVw: 0,       // wall tube thickness (vw)
   
   // Wall collision inset (px). Helps prevent visual overlap with the wall edge.
   // This is distinct from radius: it shrinks the effective collision bounds uniformly.
@@ -212,7 +231,7 @@ const state = {
   
   // Unified Frame System (walls, chrome, border all share these)
   frameColor: '#0a0a0a',    // Frame color (browser chrome + walls + border)
-  wallThickness: 20,        // Unified: wall tubes + body border (px)
+  wallThickness: 12,        // Unified: wall tubes + body border (px)
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
   wallInset: 3,             // Physics-only inset from edges (px at DPR 1)
 
@@ -236,8 +255,76 @@ const state = {
   }
 };
 
+function clampNumber(v, min, max, fallback) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
+export function getLayoutViewportWidthPx() {
+  // Virtual viewport width (debug) → allows tuning vw values without resizing window.
+  // IMPORTANT: keep this O(1) and allocation-free.
+  const forced = Number(state.layoutViewportWidthPx);
+  if (Number.isFinite(forced) && forced > 0) return forced;
+  return Math.max(1, window.innerWidth || 1);
+}
+
+export function pxToVw(px, viewportWidthPx) {
+  const w = Math.max(1, viewportWidthPx || getLayoutViewportWidthPx());
+  const p = Number(px);
+  if (!Number.isFinite(p)) return 0;
+  return (p / w) * 100;
+}
+
+export function vwToPx(vw, viewportWidthPx) {
+  const w = Math.max(1, viewportWidthPx || getLayoutViewportWidthPx());
+  const v = Number(vw);
+  if (!Number.isFinite(v)) return 0;
+  return (v / 100) * w;
+}
+
+export function applyLayoutFromVwToPx() {
+  // Derive px values once, then everything downstream remains px-based.
+  const w = getLayoutViewportWidthPx();
+
+  const borderPx = vwToPx(state.containerBorderVw, w);
+  const simPadPx = vwToPx(state.simulationPaddingVw, w);
+  const contentPadPx = vwToPx(state.contentPaddingVw, w);
+  const radiusPx = vwToPx(state.wallRadiusVw, w);
+
+  // If wallThicknessVw is not set, default it to containerBorderVw (keeps “frame”
+  // control behavior consistent with the current panel’s linked thickness).
+  const thicknessVw = (Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)
+    ? state.wallThicknessVw
+    : state.containerBorderVw;
+  const thicknessPx = vwToPx(thicknessVw, w);
+
+  state.containerBorder = Math.round(borderPx);
+  state.simulationPadding = Math.round(simPadPx);
+  state.contentPadding = Math.round(contentPadPx);
+  state.wallRadius = Math.round(radiusPx);
+  state.cornerRadius = state.wallRadius;
+  state.wallThickness = Math.round(thicknessPx);
+}
+
+export function applyLayoutCSSVars() {
+  // Single place that stamps layout CSS vars from the derived px fields.
+  // Keeps CSS + physics aligned, and allows vw-based tuning without touching
+  // performance-sensitive paths.
+  const root = document.documentElement;
+  root.style.setProperty('--container-border', `${state.containerBorder}px`);
+  root.style.setProperty('--simulation-padding', `${state.simulationPadding}px`);
+  root.style.setProperty('--content-padding', `${state.contentPadding}px`);
+  root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
+  root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
+}
+
 export function initState(config) {
   state.config = { ...config };
+  // Virtual viewport width must be read early so px→vw migrations use the intended basis.
+  if (config.layoutViewportWidthPx !== undefined) {
+    state.layoutViewportWidthPx = clampNumber(config.layoutViewportWidthPx, 0, 4096, 0);
+  }
   if (config.ballMass) state.ballMassKg = config.ballMass;
   // Treat config.gravityMultiplier as the Ball Pit gravity multiplier (historical naming)
   if (config.gravityMultiplier !== undefined) {
@@ -338,6 +425,39 @@ export function initState(config) {
   
   // Ball sizes are recalculated in detectResponsiveScale (called above)
   // which applies both sizeScale and responsiveScale
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Layout: vw-native inputs + backwards-compatible px migration
+  // ─────────────────────────────────────────────────────────────────────────────
+  const basisW = getLayoutViewportWidthPx();
+
+  // Canonical vw keys (preferred)
+  if (config.containerBorderVw !== undefined) state.containerBorderVw = clampNumber(config.containerBorderVw, 0, 20, state.containerBorderVw);
+  if (config.simulationPaddingVw !== undefined) state.simulationPaddingVw = clampNumber(config.simulationPaddingVw, 0, 20, state.simulationPaddingVw);
+  if (config.contentPaddingVw !== undefined) state.contentPaddingVw = clampNumber(config.contentPaddingVw, 0, 40, state.contentPaddingVw);
+  if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);
+  if (config.wallThicknessVw !== undefined) state.wallThicknessVw = clampNumber(config.wallThicknessVw, 0, 20, state.wallThicknessVw);
+
+  // If vw values are missing, migrate from px so the current look is preserved at
+  // the current (or virtual) viewport width.
+  if (!(Number.isFinite(state.containerBorderVw) && state.containerBorderVw > 0)) {
+    state.containerBorderVw = pxToVw(state.containerBorder, basisW);
+  }
+  if (!(Number.isFinite(state.simulationPaddingVw) && state.simulationPaddingVw >= 0)) {
+    state.simulationPaddingVw = pxToVw(state.simulationPadding, basisW);
+  }
+  if (!(Number.isFinite(state.contentPaddingVw) && state.contentPaddingVw > 0)) {
+    state.contentPaddingVw = pxToVw(state.contentPadding, basisW);
+  }
+  if (!(Number.isFinite(state.wallRadiusVw) && state.wallRadiusVw > 0)) {
+    state.wallRadiusVw = pxToVw(state.wallRadius, basisW);
+  }
+  if (!(Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)) {
+    state.wallThicknessVw = pxToVw(state.wallThickness, basisW);
+  }
+
+  // Finally, derive px from vw (so downstream users always read px fields).
+  applyLayoutFromVwToPx();
 }
 
 export function getState() {

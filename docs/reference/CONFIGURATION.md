@@ -43,9 +43,10 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
   "maxBalls": 300,
   "repelRadius": 120,
   "repelPower": 274000,
-  "containerBorder": 20,
-  "simulationPadding": 0,
-  "contentPadding": 40,
+  "layoutViewportWidthPx": 0,
+  "containerBorderVw": 1.11,
+  "simulationPaddingVw": 0,
+  "contentPaddingVw": 2.36,
   "containerInnerShadowOpacity": 0.12,
   "containerInnerShadowBlur": 80,
   "containerInnerShadowSpread": -10,
@@ -56,8 +57,8 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
   "noiseFrontOpacity": 0.012,
   "noiseBackOpacityDark": 0.08,
   "noiseFrontOpacityDark": 0.05,
-  "wallThickness": 12,
-  "wallRadius": 42,
+  "wallThicknessVw": 0.83,
+  "wallRadiusVw": 2.92,
   "wallInset": 3,
   "frameColor": "#0a0a0a",
   "wallWobbleMaxDeform": 80,
@@ -234,18 +235,31 @@ These keys control the ball-only Critters simulation (mode `critters`).
 ## Layout (Frame & Content)
 
 Two-level padding system:
-- **Outer**: `containerBorder` insets the whole simulation container from the viewport.
-- **Inner**: `simulationPadding` insets the canvas inside the container.
+- **Outer**: `containerBorderVw` insets the whole simulation container from the viewport (vw-native).
+- **Inner**: `simulationPaddingVw` insets the canvas inside the container (vw-native).
 
-### `containerBorder` (number, px)
-- **Applied to**: CSS var `--container-border`
+All vw-native layout keys are converted to **derived px** at runtime and applied to CSS vars. This keeps the simulation/physics hot-paths px-based (no per-frame conversion), while allowing layout to scale with viewport width.
 
-### `simulationPadding` (number, px)
-- **Applied to**: CSS var `--simulation-padding`
+### `layoutViewportWidthPx` (number, px)
+- **Meaning**: Optional “virtual viewport width” used for vw→px conversion.
+- **Default**: `0` (auto: uses `window.innerWidth`)
+- **Used for**: tuning vw-based layout without resizing the browser window.
 
-### `contentPadding` (number, px)
+### `containerBorderVw` (number, vw)
+- **Applied to**: CSS var `--container-border` (derived px)
+
+### `simulationPaddingVw` (number, vw)
+- **Applied to**: CSS var `--simulation-padding` (derived px)
+
+### `contentPaddingVw` (number, vw)
 - **Meaning**: Padding for fixed content elements inside the frame (legend/statement blocks).
-- **Applied to**: CSS var `--content-padding`
+- **Applied to**: CSS var `--content-padding` (derived px)
+
+### Legacy compatibility (px keys)
+The following legacy keys are still accepted and will be converted to vw at startup (using `layoutViewportWidthPx` if set, otherwise `window.innerWidth`):
+- `containerBorder` (px)
+- `simulationPadding` (px)
+- `contentPadding` (px)
 
 ### Container inner shadow
 - `containerInnerShadowOpacity` (number)
@@ -279,9 +293,14 @@ Applied to CSS vars `--container-inner-shadow-*`.
 - **Meaning**: Unified frame color (border + walls + browser chrome meta tags).
 
 ### Geometry
-- `wallThickness` (number, px) → `--wall-thickness`
-- `wallRadius` (number, px) → `--wall-radius` (also feeds rounded-corner collision bounds)
+- `wallThicknessVw` (number, vw) → `--wall-thickness` (derived px)
+- `wallRadiusVw` (number, vw) → `--wall-radius` (derived px; also feeds rounded-corner collision bounds)
 - `wallInset` (number, px) → physics-only inset (shrinks effective collision bounds to prevent visual overlap)
+
+### Legacy compatibility (px keys)
+The following legacy keys are still accepted and will be converted to vw at startup:
+- `wallThickness` (px)
+- `wallRadius` (px)
 
 ### Wobble tuning (visual-only deformation)
 - `wallWobbleMaxDeform` (number, px)

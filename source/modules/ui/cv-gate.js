@@ -3,6 +3,8 @@
  * Handles the password protection UI for the CV download.
  */
 
+import { showOverlay, hideOverlay } from './gate-overlay.js';
+
 /**
  * Create the page flash overlay element if it doesn't exist
  */
@@ -75,10 +77,20 @@ export function initCVGate() {
     // State
     let isOpen = false;
 
+    // Helper to check if any gate is currently active
+    const isAnyGateActive = () => {
+        return (gate && gate.classList.contains('active')) ||
+               (portfolioGate && portfolioGate.classList.contains('active')) ||
+               (contactGate && contactGate.classList.contains('active'));
+    };
+
     // --- Actions ---
 
     const openGate = (e) => {
         e.preventDefault();
+        
+        // Check if any other gate is currently open
+        const wasAnyGateActive = isAnyGateActive();
         
         // Close portfolio gate if it's open
         if (portfolioGate && portfolioGate.classList.contains('active')) {
@@ -99,6 +111,11 @@ export function initCVGate() {
         }
         
         isOpen = true;
+        
+        // Show overlay only if no gate was previously active
+        if (!wasAnyGateActive) {
+            showOverlay();
+        }
         
         // Animate Logo Out (Up)
         logo.classList.add('fade-out-up');
@@ -129,6 +146,14 @@ export function initCVGate() {
         
         setTimeout(() => {
             if (!isOpen) gate.classList.add('hidden');
+            
+            // Hide overlay only if no other gate is now active
+            // Small delay to let state settle after closing
+            setTimeout(() => {
+                if (!isAnyGateActive()) {
+                    hideOverlay();
+                }
+            }, 50);
         }, 400); // Match transition time
     };
 

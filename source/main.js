@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { CONSTANTS } from './modules/core/constants.js';
-import { initState, setCanvas, getGlobals } from './modules/core/state.js';
+import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/core/state.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
 import { applyColorTemplate } from './modules/visual/colors.js';
 import { setupRenderer, getCanvas, getContext, resize } from './modules/rendering/renderer.js';
@@ -17,6 +17,7 @@ import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
 import { initPortfolioGate } from './modules/ui/portfolio-gate.js';
 import { initContactGate } from './modules/ui/contact-gate.js';
+import { initGateOverlay } from './modules/ui/gate-overlay.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
@@ -105,14 +106,9 @@ async function loadRuntimeConfig() {
  * The canvas radius auto-calculates via CSS: calc(var(--container-radius) - var(--simulation-padding))
  */
 export function applyFramePaddingCSSVars() {
-  const g = getGlobals();
-  const root = document.documentElement;
-  
-  // Outer frame: container inset from viewport
-  root.style.setProperty('--container-border', `${g.containerBorder ?? 20}px`);
-  
-  // Inner padding: canvas inset from container
-  root.style.setProperty('--simulation-padding', `${g.simulationPadding || 0}px`);
+  // Back-compat export: this project previously applied only frame padding here.
+  // Layout is now vw-native in config/state, with px derived and stamped centrally.
+  applyLayoutCSSVars();
 }
 
 /**
@@ -121,20 +117,8 @@ export function applyFramePaddingCSSVars() {
 export function applyVisualCSSVars(config) {
   const root = document.documentElement;
   
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // RUBBER WALL SYSTEM
-  // ═══════════════════════════════════════════════════════════════════════════════
-  if (config.wallThickness !== undefined) {
-    root.style.setProperty('--wall-thickness', `${config.wallThickness}px`);
-  }
-  if (config.wallRadius !== undefined) {
-    root.style.setProperty('--wall-radius', `${config.wallRadius}px`);
-  }
-  
-  // Content padding (space between frame edge and content elements)
-  if (config.contentPadding !== undefined) {
-    root.style.setProperty('--content-padding', `${config.contentPadding}px`);
-  }
+  // NOTE: Layout CSS vars (frame/padding/radius/thickness) are applied via
+  // `applyLayoutCSSVars()` from state (vw-native → px derived).
 
   // Container inner shadow (inside rounded container wrapper)
   if (config.containerInnerShadowOpacity !== undefined) {
@@ -287,9 +271,9 @@ function enhanceFooterLinksForMobile() {
       }
     } catch (e) {}
     
-    // Apply frame padding CSS vars from config (controls border thickness)
-    applyFramePaddingCSSVars();
-    log('✓ Frame padding applied');
+    // Apply vw-native layout (frame/padding/radius) as derived px CSS vars.
+    applyLayoutCSSVars();
+    log('✓ Layout applied');
     
     // Apply visual CSS vars (noise, inner shadow) from config
     applyVisualCSSVars(config);
@@ -375,6 +359,10 @@ function enhanceFooterLinksForMobile() {
     
     setupKeyboardShortcuts();
     log('✓ Keyboard shortcuts registered');
+    
+    // Initialize gate blur overlay system
+    initGateOverlay(config);
+    log('✓ Gate overlay system initialized');
     
     // Initialize password gates (CV and Portfolio protection)
     initCVGate();

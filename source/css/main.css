@@ -115,7 +115,7 @@
   --legend-gap-col: var(--gap-lg);
   --legend-item-gap: var(--gap-sm);
   --legend-circle-size: var(--gap-sm);
-  --legend-font-size: 11px;
+  --legend-font-size: 10px;
   --legend-font-weight: 600;
   --legend-letter-spacing: 0.08em;
   --legend-line-height: var(--line-height-loose);
@@ -132,7 +132,7 @@
   --footer-icon-gap: var(--gap-lg);
   --footer-icon-size: var(--size-icon);
   --footer-links-padding: var(--tap-target);
-  --footer-links-font-size: var(--text-md);
+  --footer-links-font-size: clamp(14px, 1.4vw, 18px);
   
   --caption-font-size: var(--text-lg);
   --caption-font-weight: 700;
@@ -409,7 +409,7 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   align-items: flex-start !important;
   flex-wrap: nowrap !important;
   width: 100% !important;
-  gap: var(--gap-xl) !important;
+  gap: 56px !important;
   pointer-events: none;
 }
 
@@ -418,6 +418,10 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   display: none;
   width: 100%;
   pointer-events: none;
+}
+
+.ui-top-left {
+  width: 100% !important;
 }
 
 /* Legend - Left */
@@ -431,6 +435,7 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   gap: var(--legend-gap-row) var(--legend-gap-col) !important;
   /* max-width is handled by grid columns/content */
   max-width: none !important; 
+  width: 100% !important;
   font-family: 'Geist', sans-serif !important;
   color: var(--text-color-light-muted) !important;
   opacity: var(--legend-opacity) !important;
@@ -459,6 +464,7 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   align-items: flex-start; /* Align top */
   justify-content: flex-end;
   max-width: 60vw; /* +20% */
+  width: 100% !important;
   pointer-events: none;
   gap: var(--gap-lg); /* Gap between text and sound button */
 }
@@ -639,9 +645,16 @@ p {
   color: rgba(0, 0, 0, 0.7) !important;
   opacity: 0.9;
   transition: color var(--duration-link-hover) ease;
-  display: inline-block;
+  /* Keep the link box aligned to the icon box so the hover dot centers correctly.
+     (Webflow sets a smaller fixed width; our Tabler icons are 24px.) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--footer-icon-size);
+  height: var(--footer-icon-size);
   position: relative;
   text-decoration: none !important;
+  padding: 0 !important;
 }
 
 .footer_icon-link::after {
@@ -914,24 +927,18 @@ body.dark-mode .sound-toggle {
 }
 
 @media (max-width: 600px) { /* Mobile */
-  :root {
-    --legend-font-size: 10px;
-  }
-
   .ui-top {
     gap: var(--gap-md);
   }
 
   .ui-top-main {
     flex-direction: row !important;
-    gap: var(--gap-md) !important;
     align-items: flex-start !important;
   }
 
   .ui-top-left,
   .ui-top-right {
     flex: 1 1 0 !important;
-    width: 50% !important;
     min-width: 0 !important; /* allow text/grid to shrink instead of forcing overflow */
   }
 
@@ -977,7 +984,7 @@ body.dark-mode .sound-toggle {
   }
   
   .footer_link {
-    font-size: calc(clamp(0.7rem, 1.2vw, 0.78rem) + 1px) !important;
+    font-size: calc(clamp(0.7rem, 1.2vw, 0.78rem) + 3px) !important;
 
     /* Bigger vertical hit area on mobile, keep visual alignment via matching negative margins */
     padding-block: calc(var(--hit-area-sm) + 6px) !important;

@@ -6,7 +6,7 @@
 import { PANEL_HTML } from './panel-html.js';
 import { setupControls } from './controls.js';
 import { setupBuildControls } from './build-controls.js';
-import { getGlobals } from '../core/state.js';
+import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
 import {
   SOUND_PRESETS,
   getSoundConfig,
@@ -123,15 +123,19 @@ let elementStartY = 0;
 // ════════════════════════════════════════════════════════════════════════════════
 
 function getMasterPanelContent() {
-  // Get current CSS values for layout controls
-  const getVar = (name) => {
-    const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    return parseInt(val) || 0;
-  };
-  const frameVal = getVar('--container-border') || 20;
-  const radiusVal = getVar('--wall-radius') || 42;
-  const contentPadVal = getVar('--content-padding') || 40;
   const g = getGlobals();
+  // Values are vw-native in state; px values are derived once and kept in sync.
+  const frameVw = Number(g.containerBorderVw || 0);
+  const radiusVw = Number(g.wallRadiusVw || 0);
+  const contentPadVw = Number(g.contentPaddingVw || 0);
+  const viewportWidthPx = getLayoutViewportWidthPx();
+  const viewportWidthLabel = g.layoutViewportWidthPx > 0
+    ? `${Math.round(g.layoutViewportWidthPx)}px`
+    : `Auto (${Math.round(viewportWidthPx)}px)`;
+
+  const framePx = Math.max(0, Math.round(g.containerBorder ?? 0));
+  const radiusPx = Math.max(0, Math.round(g.wallRadius ?? g.cornerRadius ?? 0));
+  const contentPadPx = Math.max(0, Math.round(g.contentPadding ?? 0));
   const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
 
   return `
@@ -147,23 +151,31 @@ function getMasterPanelContent() {
         <label class="control-row">
           <div class="control-row-header">
             <span class="control-label">Frame</span>
-            <span class="control-value" id="frameValue">${frameVal}px</span>
+            <span class="control-value" id="frameValue">${frameVw.toFixed(2)}vw · ${framePx}px</span>
           </div>
-          <input type="range" id="layoutFrame" min="0" max="100" value="${frameVal}" />
+          <input type="range" id="layoutFrame" min="0" max="8" step="0.05" value="${frameVw || 0}" />
         </label>
         <label class="control-row">
           <div class="control-row-header">
             <span class="control-label">Content Padding</span>
-            <span class="control-value" id="contentPadValue">${contentPadVal}px</span>
+            <span class="control-value" id="contentPadValue">${contentPadVw.toFixed(2)}vw · ${contentPadPx}px</span>
           </div>
-          <input type="range" id="contentPadding" min="0" max="80" value="${contentPadVal}" />
+          <input type="range" id="contentPadding" min="0" max="12" step="0.05" value="${contentPadVw || 0}" />
         </label>
         <label class="control-row">
           <div class="control-row-header">
             <span class="control-label">Radius</span>
-            <span class="control-value" id="radiusValue">${radiusVal}px</span>
+            <span class="control-value" id="radiusValue">${radiusVw.toFixed(2)}vw · ${radiusPx}px</span>
           </div>
-          <input type="range" id="layoutRadius" min="0" max="100" value="${radiusVal}" />
+          <input type="range" id="layoutRadius" min="0" max="20" step="0.05" value="${radiusVw || 0}" />
+        </label>
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Viewport Width</span>
+            <span class="control-value" id="viewportWidthValue">${viewportWidthLabel}</span>
+          </div>
+          <input type="range" id="layoutViewportWidth" min="0" max="2400" step="10" value="${Math.round(g.layoutViewportWidthPx || 0)}" />
+          <div class="control-hint">0 = Auto (uses current window width)</div>
         </label>
         <label class="control-row">
           <div class="control-row-header">
@@ -695,48 +707,63 @@ function setupLayoutControls(panel) {
   const contentPadValue = panel.querySelector('#contentPadValue');
   const radiusSlider = panel.querySelector('#layoutRadius');
   const radiusValue = panel.querySelector('#radiusValue');
+  const viewportWidthSlider = panel.querySelector('#layoutViewportWidth');
+  const viewportWidthValue = panel.querySelector('#viewportWidthValue');
   const wallInsetSlider = panel.querySelector('#layoutWallInset');
   const wallInsetValue = panel.querySelector('#wallInsetValue');
   const g = getGlobals();
+
+  const syncDerivedLayout = ({ triggerResize = false } = {}) => {
+    applyLayoutFromVwToPx();
+    applyLayoutCSSVars();
+    if (frameValue) frameValue.textContent = `${(g.containerBorderVw || 0).toFixed(2)}vw · ${Math.round(g.containerBorder || 0)}px`;
+    if (contentPadValue) contentPadValue.textContent = `${(g.contentPaddingVw || 0).toFixed(2)}vw · ${Math.round(g.contentPadding || 0)}px`;
+    if (radiusValue) radiusValue.textContent = `${(g.wallRadiusVw || 0).toFixed(2)}vw · ${Math.round(g.wallRadius || 0)}px`;
+    if (viewportWidthValue) {
+      const w = getLayoutViewportWidthPx();
+      viewportWidthValue.textContent = g.layoutViewportWidthPx > 0 ? `${Math.round(g.layoutViewportWidthPx)}px` : `Auto (${Math.round(w)}px)`;
+    }
+    if (triggerResize) resize();
+  };
   
   // Frame (outer dark border around content + wall thickness)
   if (frameSlider && frameValue) {
     frameSlider.addEventListener('input', (e) => {
-      const val = parseInt(e.target.value, 10);
-      frameValue.textContent = `${val}px`;
-      // Update frame border CSS
-      document.documentElement.style.setProperty('--container-border', `${val}px`);
-      // Sync wall thickness to frame thickness
-      document.documentElement.style.setProperty('--wall-thickness', `${val}px`);
-      g.wallThickness = val;
-      // Keep state in sync for config export
-      g.containerBorder = val;
-      // Trigger canvas resize to account for new frame size
-      resize();
+      const val = parseFloat(e.target.value);
+      if (!Number.isFinite(val)) return;
+      g.containerBorderVw = val;
+      // Keep the legacy “frame links thickness + border” behavior:
+      g.wallThicknessVw = val;
+      syncDerivedLayout({ triggerResize: true });
     });
   }
   
   // Content padding (space between frame edge and content elements)
   if (contentPadSlider && contentPadValue) {
     contentPadSlider.addEventListener('input', (e) => {
-      const val = parseInt(e.target.value, 10);
-      contentPadValue.textContent = `${val}px`;
-      // Update content padding CSS
-      document.documentElement.style.setProperty('--content-padding', `${val}px`);
-      // Keep state in sync for config export
-      g.contentPadding = val;
+      const val = parseFloat(e.target.value);
+      if (!Number.isFinite(val)) return;
+      g.contentPaddingVw = val;
+      syncDerivedLayout();
     });
   }
   
   // Corner radius (syncs wallRadius + cornerRadius)
   if (radiusSlider && radiusValue) {
     radiusSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (!Number.isFinite(val)) return;
+      g.wallRadiusVw = val;
+      syncDerivedLayout();
+    });
+  }
+
+  // Virtual viewport width (debug): changes the vw→px conversion basis
+  if (viewportWidthSlider && viewportWidthValue) {
+    viewportWidthSlider.addEventListener('input', (e) => {
       const val = parseInt(e.target.value, 10);
-      radiusValue.textContent = `${val}px`;
-      document.documentElement.style.setProperty('--wall-radius', `${val}px`);
-      // Keep state in sync for config export
-      g.wallRadius = val;
-      g.cornerRadius = val;
+      g.layoutViewportWidthPx = Number.isFinite(val) ? Math.max(0, val) : 0;
+      syncDerivedLayout({ triggerResize: true });
     });
   }
 
