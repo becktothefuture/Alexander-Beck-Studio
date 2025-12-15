@@ -34,6 +34,9 @@ export function saveSettings() {
     weightlessCount: globals.weightlessCount,
     weightlessInitialSpeed: globals.weightlessInitialSpeed,
     weightlessBounce: globals.weightlessBounce,
+    weightlessRepelRadius: globals.weightlessRepelRadius,
+    weightlessRepelPower: globals.weightlessRepelPower,
+    weightlessRepelSoft: globals.weightlessRepelSoft,
     currentTemplate: globals.currentTemplate,
     autoDarkModeEnabled: globals.autoDarkModeEnabled
   };
@@ -69,6 +72,12 @@ export function loadSettings() {
       if (settings.ballMassKg !== undefined) globals.ballMassKg = settings.ballMassKg;
       if (settings.restitution !== undefined) globals.REST = settings.restitution;
       if (settings.friction !== undefined) globals.FRICTION = settings.friction;
+      if (settings.weightlessCount !== undefined) globals.weightlessCount = settings.weightlessCount;
+      if (settings.weightlessInitialSpeed !== undefined) globals.weightlessInitialSpeed = settings.weightlessInitialSpeed;
+      if (settings.weightlessBounce !== undefined) globals.weightlessBounce = settings.weightlessBounce;
+      if (settings.weightlessRepelRadius !== undefined) globals.weightlessRepelRadius = settings.weightlessRepelRadius;
+      if (settings.weightlessRepelPower !== undefined) globals.weightlessRepelPower = settings.weightlessRepelPower;
+      if (settings.weightlessRepelSoft !== undefined) globals.weightlessRepelSoft = settings.weightlessRepelSoft;
       if (settings.currentTemplate) globals.currentTemplate = settings.currentTemplate;
       if (settings.autoDarkModeEnabled !== undefined) globals.autoDarkModeEnabled = settings.autoDarkModeEnabled;
       

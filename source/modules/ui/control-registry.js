@@ -952,7 +952,7 @@ export const CONTROL_SECTIONS = {
       {
         id: 'weightlessCount',
         label: 'Ball Count',
-        stateKey: 'weightlessBallCount',
+        stateKey: 'weightlessCount',
         type: 'range',
         min: 20, max: 200, step: 10,
         default: 80,
@@ -979,6 +979,36 @@ export const CONTROL_SECTIONS = {
         min: 0.5, max: 1, step: 0.05,
         default: 0.95,
         format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'weightlessRepelRadius',
+        label: 'Cursor Blast Radius',
+        stateKey: 'weightlessRepelRadius',
+        type: 'range',
+        min: 50, max: 450, step: 10,
+        default: 220,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'weightlessRepelPower',
+        label: 'Cursor Blast Power',
+        stateKey: 'weightlessRepelPower',
+        type: 'range',
+        min: 0, max: 600000, step: 10000,
+        default: 220000,
+        format: v => Math.round(v).toString(),
+        parse: parseFloat
+      },
+      {
+        id: 'weightlessRepelSoft',
+        label: 'Cursor Blast Falloff',
+        stateKey: 'weightlessRepelSoft',
+        type: 'range',
+        min: 0.5, max: 6.0, step: 0.1,
+        default: 2.2,
+        format: v => v.toFixed(1),
         parse: parseFloat
       }
     ]

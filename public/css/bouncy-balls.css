@@ -21,6 +21,9 @@
   
   /* Content padding */
   --content-padding: clamp(16px, 4vmin, 40px);
+  /* Split padding so we can tune mobile horizontal breathing room independently */
+  --content-padding-x: var(--content-padding);
+  --content-padding-y: var(--content-padding);
   --edge-inset: calc(var(--container-border) + var(--content-padding));
   --edge-inset-lg: calc(var(--container-border) + var(--content-padding));
   
@@ -339,7 +342,7 @@ body.dark-mode .edge-copyright__text {
   /* Reset */
   box-sizing: border-box !important;
   margin: 0 !important;
-  padding: var(--content-padding) !important; /* Apply organic padding here */
+  padding: var(--content-padding-y) var(--content-padding-x) !important; /* Apply organic padding here */
   
   /* Visuals */
   background: transparent !important;
@@ -927,6 +930,11 @@ body.dark-mode .sound-toggle {
 }
 
 @media (max-width: 600px) { /* Mobile */
+  :root {
+    /* Mobile UX: +1–2vw horizontal breathing room (keep vertical rhythm unchanged) */
+    --content-padding-x: calc(var(--content-padding) + 1.5vw);
+  }
+
   .ui-top {
     gap: var(--gap-md);
   }
@@ -981,15 +989,18 @@ body.dark-mode .sound-toggle {
   #footer-links-container {
     width: 100% !important;
     justify-content: space-between !important;
+    /* Mobile UX: pull the group slightly upward + inward for calmer balance */
+    padding-inline: 2.5vw !important;
+    transform: translateY(-10px);
   }
   
   .footer_link {
     font-size: calc(clamp(0.7rem, 1.2vw, 0.78rem) + 3px) !important;
 
-    /* Bigger vertical hit area on mobile, keep visual alignment via matching negative margins */
-    padding-block: calc(var(--hit-area-sm) + 6px) !important;
+    /* Mobile UX: tighter, more intentional link height (no extra vertical padding) */
+    padding-block: var(--hit-area-sm) !important;
     padding-inline: var(--hit-area-sm) !important;
-    margin-block: calc((var(--hit-area-sm) + 6px) * -1) !important;
+    margin-block: calc(var(--hit-area-sm) * -1) !important;
     margin-inline: calc(var(--hit-area-sm) * -1) !important;
   }
   

@@ -86,7 +86,11 @@ Current mode system supports **11 modes** (switchable via the Settings panel; 1�
 
 - **Gravity:** Disabled
 - **Collisions:** Ball-to-ball + wall collision
-- **Interaction:** No repeller (default)
+- **Interaction:** Cursor “explosion” repeller — balls are propelled outward from the mouse in all directions (Zero‑G stays gravity-free)
+- **Settings (panel):**
+  - `Cursor Blast Radius`
+  - `Cursor Blast Power`
+  - `Cursor Blast Falloff`
 
 ---
 

@@ -175,6 +175,9 @@ const state = {
   weightlessCount: 80,
   weightlessInitialSpeed: 250,
   weightlessBounce: 0.97,
+  weightlessRepelRadius: 220,
+  weightlessRepelPower: 220000,
+  weightlessRepelSoft: 2.2,
   
   // Kaleidoscope mode (mouse-driven mirrored wedges)
   kaleidoscopeBallCount: 23,

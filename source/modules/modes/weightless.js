@@ -47,4 +47,34 @@ export function initializeWeightless() {
   }
 }
 
+export function applyWeightlessForces(ball, dt) {
+  const globals = getGlobals();
+  if (!globals.mouseInCanvas) return;
+
+  const radius = globals.weightlessRepelRadius ?? 0;
+  const power = globals.weightlessRepelPower ?? 0;
+  if (radius <= 0 || power <= 0) return;
+
+  // Treat as “CSS px” and scale into canvas units via DPR (matches Ball Pit repeller behavior).
+  const rPx = radius * (globals.DPR || 1);
+  const dx = ball.x - globals.mouseX;
+  const dy = ball.y - globals.mouseY;
+  const d2 = dx * dx + dy * dy;
+  const r2 = rPx * rPx;
+  if (d2 > r2) return;
+
+  const d = Math.max(Math.sqrt(d2), 1e-4);
+  const nx = dx / d;
+  const ny = dy / d;
+
+  // Strong near-field impulse (“explosion” feel), smoothly falling off to 0 at the radius.
+  const q = Math.max(0, 1 - d / rPx);
+  const soft = globals.weightlessRepelSoft ?? 2.2;
+  const strength = (power * 20.0) * Math.pow(q, soft);
+
+  const massScale = Math.max(0.25, ball.m / globals.MASS_BASELINE_KG);
+  ball.vx += (nx * strength * dt) / massScale;
+  ball.vy += (ny * strength * dt) / massScale;
+}
+
 

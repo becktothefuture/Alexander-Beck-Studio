@@ -8,7 +8,7 @@ import { setMode as setModeState, getGlobals } from '../core/state.js';
 import { initializeFlies, applyFliesForces } from './flies.js';
 import { initializeBallPit, applyBallPitForces } from './ball-pit.js';
 import { initializePitThrows, updatePitThrows } from './pit-throws.js';
-import { initializeWeightless } from './weightless.js';
+import { initializeWeightless, applyWeightlessForces } from './weightless.js';
 import { resize } from '../rendering/renderer.js';
 import { initializeWater, applyWaterForces, updateWaterRipples } from './water.js';
 import { initializeVortex, applyVortexForces } from './vortex.js';
@@ -182,6 +182,8 @@ export function getForceApplicator() {
     return applyFliesForces;
   } else if (globals.currentMode === MODES.PIT || globals.currentMode === MODES.PIT_THROWS) {
     return applyBallPitForces;
+  } else if (globals.currentMode === MODES.WEIGHTLESS) {
+    return applyWeightlessForces;
   } else if (globals.currentMode === MODES.WATER) {
     return applyWaterForces;
   } else if (globals.currentMode === MODES.VORTEX) {
