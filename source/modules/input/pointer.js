@@ -8,6 +8,7 @@ import { CONSTANTS, MODES } from '../core/constants.js';
 import { createWaterRipple } from '../modes/water.js';
 import { updateBrandLogoCursorScaleFromClient } from '../ui/brand-logo-cursor-scale.js';
 import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
+import { notifyMouseTrailMove } from '../visual/mouse-trail.js';
 
 // Mouse velocity tracking for water ripples
 let lastMouseX = 0;
@@ -20,6 +21,7 @@ let lastTapTime = 0;
 const MODE_CYCLE = [
   MODES.CRITTERS,
   MODES.PIT,
+  MODES.PIT_THROWS,
   MODES.FLIES,
   MODES.WEIGHTLESS,
   MODES.WATER,
@@ -30,11 +32,35 @@ const MODE_CYCLE = [
   MODES.KALEIDOSCOPE
 ];
 
+function pickRandomMode(excludeMode) {
+  const candidates = MODE_CYCLE.filter((m) => m !== excludeMode);
+  if (!candidates.length) return excludeMode || MODE_CYCLE[0];
+  return candidates[(Math.random() * candidates.length) | 0];
+}
+
 function cycleMode() {
   const globals = getGlobals();
   const current = globals.currentMode;
-  const idx = MODE_CYCLE.indexOf(current);
-  const next = MODE_CYCLE[(idx + 1) % MODE_CYCLE.length] || MODE_CYCLE[0];
+  // Randomize click-to-change simulation (avoid immediate repeats).
+  // Best-effort: keep the last click mode in sessionStorage (not persistent).
+  let lastClick = null;
+  try {
+    lastClick = sessionStorage.getItem('bb:last_click_mode');
+  } catch (e) {}
+
+  // Prefer excluding the currently running mode; also try to exclude the last click pick.
+  let next = pickRandomMode(current);
+  if (lastClick && MODE_CYCLE.length > 2) {
+    // Retry a couple times to avoid repeat patterns on small sets.
+    for (let i = 0; i < 3 && next === lastClick; i++) {
+      next = pickRandomMode(current);
+    }
+  }
+
+  try {
+    sessionStorage.setItem('bb:last_click_mode', next);
+  } catch (e) {}
+
   import('../modes/mode-controller.js').then(({ setMode }) => {
     setMode(next);
   });
@@ -139,6 +165,11 @@ export function setupPointer() {
       globals.lastPointerMoveMs = now;
       globals.lastPointerMoveX = pos.x;
       globals.lastPointerMoveY = pos.y;
+    }
+
+    // Mouse trail (canvas-rendered): record only for mouse-like pointers and real movement.
+    if (isMouseLike && movedPx > 0.5) {
+      notifyMouseTrailMove(pos.x, pos.y, now, pos.inBounds);
     }
 
     // WATER MODE: Create ripples based on mouse movement velocity

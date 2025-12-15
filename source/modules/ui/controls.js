@@ -88,6 +88,7 @@ export function updateModeButtonsUI(activeMode) {
     const modeNames = {
       'critters': 'Critters',
       'pit': 'Ball Pit',
+      'pit-throws': 'Ball Pit (Throws)',
       'flies': 'Flies to Light', 
       'weightless': 'Zero-G',
       'water': 'Water Swimming',

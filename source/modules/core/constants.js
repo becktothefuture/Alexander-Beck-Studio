@@ -5,6 +5,7 @@
 
 export const MODES = {
   PIT: 'pit',
+  PIT_THROWS: 'pit-throws',
   FLIES: 'flies',
   WEIGHTLESS: 'weightless',
   WATER: 'water',

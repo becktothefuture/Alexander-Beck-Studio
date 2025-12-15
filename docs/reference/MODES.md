@@ -1,6 +1,6 @@
 # Mode Specifications
 
-Current mode system supports **10 modes** (switchable via the Settings panel; 1–9 also have keyboard shortcuts).
+Current mode system supports **11 modes** (switchable via the Settings panel; 1–9 also have keyboard shortcuts).
 
 ---
 
@@ -16,6 +16,7 @@ Current mode system supports **10 modes** (switchable via the Settings panel; 1�
 8. **Carbonated Bubbles** (`bubbles`)
 9. **Kaleidoscope** (`kaleidoscope`)
 10. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
+11. **Ball Pit (Throws)** (`pit-throws`) — **no keyboard shortcut yet**
 
 ---
 
@@ -57,6 +58,15 @@ Current mode system supports **10 modes** (switchable via the Settings panel; 1�
 - **Collisions:** Ball-to-ball + wall collision
 - **Interaction:** Cursor repeller enabled
 - **Notes:** Includes sleep logic to reduce jitter when balls settle
+
+## Mode 1b: Ball Pit (Throws) 🎯
+
+**Purpose:** Ball Pit, but seeded by balls thrown in **color-by-color batches** from the **top-left/top-right** into the scene.
+
+- **Gravity:** Enabled (via `gravityMultiplier`)
+- **Collisions:** Ball-to-ball + wall collision
+- **Interaction:** Cursor repeller enabled
+- **Tuning:** See Ball Pit (Throws) keys in `CONFIGURATION.md`
 
 ---
 

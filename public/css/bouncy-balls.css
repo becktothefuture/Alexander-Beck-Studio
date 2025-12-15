@@ -115,13 +115,14 @@
   --legend-gap-col: var(--gap-lg);
   --legend-item-gap: var(--gap-sm);
   --legend-circle-size: var(--gap-sm);
-  --legend-font-size: var(--text-xs);
+  --legend-font-size: 11px;
   --legend-font-weight: 600;
   --legend-letter-spacing: 0.08em;
   --legend-line-height: var(--line-height-loose);
   --legend-opacity: 0.9;
   
-  --decorative-script-max-width: clamp(240px, 25vw, 280px);
+  /* +20% width: gives top-right blurb more breathing room */
+  --decorative-script-max-width: clamp(288px, 30vw, 403px);
   --decorative-script-font-size: var(--text-sm);
   --decorative-script-line-height: var(--line-height-base);
   --decorative-script-letter-spacing: 0.01em;
@@ -200,6 +201,10 @@
 .ti-brand-apple:before { content: "\ec17"; }
 .ti-brand-instagram:before { content: "\ec20"; }
 .ti-brand-linkedin:before { content: "\ec8c"; }
+.ti-arrow-left:before { content: "\ea19"; }
+.ti-copy:before { content: "\ea7a"; }
+.ti-check:before { content: "\ea5e"; }
+.ti-alert-triangle:before { content: "\ea06"; }
 .ti-volume-2:before { content: "\eb4f"; }
 .ti-volume-off:before { content: "\f1c3"; }
 
@@ -261,6 +266,55 @@ body.body.dark-mode {
 
 body.dark-mode .content-background-layer {
   background: var(--bg-dark) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   EDGE COPYRIGHT (Right Edge, Tilted)
+   ───────────────────────────────────────────────────────────────────────────── */
+.edge-copyright {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: calc(var(--container-border) + 8px);
+  z-index: 6; /* Above canvas (5), below UI (20) */
+  pointer-events: none;
+  display: flex;
+  align-items: center; /* True vertical centering in viewport */
+}
+
+.edge-copyright__text {
+  display: block;
+  font-family: 'Geist Mono', monospace;
+  font-size: calc(var(--text-xs) * 0.85);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  color: var(--text-color-light-muted);
+  opacity: 0.55;
+
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg); /* Keeps reading direction feeling “upright” */
+  transform-origin: center;
+}
+
+body.dark-mode .edge-copyright__text {
+  color: var(--text-color-dark-base);
+  opacity: 0.55;
+}
+
+@media (max-width: 480px) {
+  .edge-copyright {
+    right: calc(var(--container-border) + 6px);
+  }
+
+  .edge-copyright__text {
+    font-size: calc(var(--text-xs) * 0.8);
+    opacity: 0.5;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -388,7 +442,7 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   display: flex;
   align-items: flex-start; /* Align top */
   justify-content: flex-end;
-  max-width: 50vw;
+  max-width: 60vw; /* +20% */
   pointer-events: none;
   gap: var(--gap-lg); /* Gap between text and sound button */
 }
@@ -499,6 +553,7 @@ p {
   display: inline-block;
   color: var(--text-color-light-muted) !important;
   font-size: var(--footer-links-font-size) !important;
+  letter-spacing: 0.02ch !important;
   text-decoration: none !important; /* No underline */
   opacity: var(--text-opacity-base);
   transition: color var(--duration-link-hover) ease;
@@ -914,7 +969,8 @@ body.dark-mode #custom-cursor {
 
 /* Password gate container (initially hidden, CENTERED like logo) */
 .cv-gate,
-.portfolio-gate {
+.portfolio-gate,
+.contact-gate {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -937,7 +993,8 @@ body.dark-mode #custom-cursor {
 
 /* Helper for fully hiding from layout if needed */
 .cv-gate.hidden,
-.portfolio-gate.hidden {
+.portfolio-gate.hidden,
+.contact-gate.hidden {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
@@ -945,7 +1002,8 @@ body.dark-mode #custom-cursor {
 
 /* Active state: visible and in position (CENTERED) */
 .cv-gate.active,
-.portfolio-gate.active {
+.portfolio-gate.active,
+.contact-gate.active {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
   pointer-events: auto;
@@ -962,16 +1020,82 @@ body.dark-mode #custom-cursor {
 }
 
 .cv-gate.active .gate-label,
-.portfolio-gate.active .gate-label {
+.portfolio-gate.active .gate-label,
+.contact-gate.active .gate-label {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   GATE NAV (BACK BUTTON)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.gate-nav {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-right: 6px;
+  margin: 0 0 0.75rem 0;
+}
+
+.gate-back {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  background-color: rgba(255, 255, 255, 0);
+  padding: 0.45rem 0.25rem;
+  margin: 0;
+  display: inline-flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: auto;
+  gap: 0.45rem;
+  cursor: pointer;
+  user-select: none;
+
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.gate-back span {
+  font-family: 'Geist', sans-serif;
+}
+
+.gate-back i.ti {
+  font-weight: 500;
+}
+
+.gate-back:hover {
+  color: rgba(0, 0, 0, 0.95);
+}
+
+.gate-back:focus-visible {
+  outline: 2px solid rgba(0, 0, 0, 0.35);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+body.dark-mode .gate-back {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.dark-mode .gate-back:hover {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+body.dark-mode .gate-back:focus-visible {
+  outline-color: rgba(255, 255, 255, 0.35);
 }
 
 /* Gate title */
 .gate-title {
   font-family: 'Geist', sans-serif;
   font-size: clamp(1.5rem, 4vw, 2rem);
-  font-weight: 600;
+  font-weight: 400;
   color: #161616;
   margin: 0 0 0.75rem 0;
   letter-spacing: -0.02em;
@@ -996,6 +1120,178 @@ body.dark-mode .gate-description {
   color: rgba(255, 255, 255, 0.7);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CONTACT GATE CONTENT
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.contact-email-button {
+  width: 100%;
+  max-width: clamp(320px, 80vw, 520px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  padding: 0.9rem 1.05rem;
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px);
+
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+}
+
+/* Preferred "field + subtle copy button" structure */
+.contact-email-row {
+  width: 100%;
+  max-width: clamp(320px, 80vw, 520px);
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.contact-email-row:hover {
+  border-color: rgba(0, 0, 0, 0.22);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.contact-email-row:focus-within {
+  /* No outer outline ring — keep it subtle like the code fields */
+  border-color: rgba(0, 0, 0, 0.32);
+}
+
+.contact-email-value {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.9rem 1.05rem;
+  flex: 1 1 auto;
+  cursor: pointer;
+  text-align: left;
+}
+
+.contact-email-copy {
+  appearance: none;
+  border: 0;
+  border-left: 1px solid rgba(0, 0, 0, 0.14);
+  background: transparent;
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.contact-email-row.is-copied {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.contact-email-row.is-error {
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+body.dark-mode .contact-email-row {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .contact-email-row:hover {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+body.dark-mode .contact-email-copy {
+  border-left-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.dark-mode .contact-email-row:focus-within {
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+.contact-email-button:hover {
+  border-color: rgba(0, 0, 0, 0.22);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.contact-email-button:active {
+  transform: scale(0.99);
+}
+
+.contact-email-button:focus-visible {
+  outline: 2px solid rgba(0, 0, 0, 0.35);
+  outline-offset: 4px;
+}
+
+.contact-email-text {
+  font-family: 'Geist Mono', monospace;
+  font-size: clamp(1.15rem, 3vw, 1.9rem);
+  font-weight: 400;
+  letter-spacing: 0.608px;
+  color: var(--text-color-light-muted);
+}
+
+.contact-email-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 1.25rem;
+}
+
+.contact-copy-status {
+  /* Absolutely positioned so it never shifts layout */
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 0.35rem);
+  transform: translateX(-50%);
+  width: 100%;
+  text-align: center;
+  pointer-events: none;
+  font-family: 'Geist', sans-serif;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.contact-email-button.is-copied {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.contact-email-button.is-error {
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+body.dark-mode .contact-email-button {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .contact-email-button:hover {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+body.dark-mode .contact-email-text {
+  color: #d5d5d5;
+}
+
+body.dark-mode .contact-email-icon {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.dark-mode .contact-copy-status {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* Input container: flex row with spacing */
 .cv-gate-inputs,
 .portfolio-gate-inputs {
@@ -1003,6 +1299,16 @@ body.dark-mode .gate-description {
   gap: clamp(0.8rem, 1.5vw, 1.2rem);
   align-items: center;
   justify-content: flex-start;
+}
+
+/* Contact “field” container: match gate layout rhythm */
+.contact-gate-inputs {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  position: relative;
 }
 
 /* Individual digit input - large, square, centered */
@@ -1165,5 +1471,18 @@ body.dark-mode .portfolio-digit::placeholder {
   .cv-digit,
   .portfolio-digit {
     font-size: 16px; /* iOS doesn't zoom if font-size >= 16px */
+  }
+}
+
+/* Reduced motion: remove transitions for swap UI */
+@media (prefers-reduced-motion: reduce) {
+  .cv-gate,
+  .portfolio-gate,
+  .contact-gate,
+  #brand-logo,
+  .gate-label,
+  .contact-email-button,
+  .contact-email-row {
+    transition: none !important;
   }
 }

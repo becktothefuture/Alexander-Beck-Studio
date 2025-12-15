@@ -180,6 +180,65 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // TRAIL - Mouse trail tuning (performance-first)
+  // ═══════════════════════════════════════════════════════════════════════════
+  trail: {
+    title: 'Trail',
+    icon: '✨',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'mouseTrailEnabled',
+        label: 'Enabled',
+        stateKey: 'mouseTrailEnabled',
+        type: 'checkbox',
+        default: true
+      },
+      {
+        id: 'mouseTrailLength',
+        label: 'Length',
+        stateKey: 'mouseTrailLength',
+        type: 'range',
+        min: 4, max: 96, step: 1,
+        default: 18,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Max samples kept (higher = smoother, slightly more work)'
+      },
+      {
+        id: 'mouseTrailSize',
+        label: 'Size',
+        stateKey: 'mouseTrailSize',
+        type: 'range',
+        min: 0.5, max: 10, step: 0.1,
+        default: 1.3,
+        format: v => v.toFixed(1) + 'px',
+        parse: parseFloat
+      },
+      {
+        id: 'mouseTrailFadeMs',
+        label: 'Fade',
+        stateKey: 'mouseTrailFadeMs',
+        type: 'range',
+        min: 40, max: 1200, step: 10,
+        default: 220,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'mouseTrailOpacity',
+        label: 'Opacity',
+        stateKey: 'mouseTrailOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.35,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // FRAME - Color only (thickness/radius controlled via Layout section)
   // ═══════════════════════════════════════════════════════════════════════════
   frame: {
@@ -499,7 +558,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'critterAvoidRadius',
         type: 'range',
         min: 0, max: 260, step: 5,
-        default: 120,
+        default: 90,
         format: v => `${Math.round(v)}px`,
         parse: parseFloat
       },
@@ -509,7 +568,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'critterAvoidForce',
         type: 'range',
         min: 0, max: 25000, step: 250,
-        default: 9000,
+        default: 9500,
         format: v => String(Math.round(v)),
         parse: parseFloat
       },
@@ -651,6 +710,185 @@ export const CONTROL_SECTIONS = {
           const s = Math.max(0, Math.min(10000, sliderVal)) / 10000;
           g.repelPower = Math.pow(2, (s - 0.5) * 12) * 12000 * 2.0;
         }
+      }
+    ]
+  },
+
+  pitThrows: {
+    title: 'Ball Pit (Throws)',
+    icon: '🎯',
+    mode: 'pit-throws',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'gravityPitThrows',
+        label: 'Gravity',
+        stateKey: 'gravityMultiplierPit',
+        type: 'range',
+        min: 0, max: 2, step: 0.05,
+        default: 1.1,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        onChange: (g, val) => {
+          if (g.currentMode === 'pit-throws') g.G = g.GE * val;
+        }
+      },
+      {
+        id: 'pitThrowsSpeed',
+        label: 'Throw Speed',
+        stateKey: 'pitThrowSpeed',
+        type: 'range',
+        min: 100, max: 2000, step: 25,
+        default: 650,
+        format: v => String(Math.round(v)),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'pitThrowsSpeedVar',
+        label: 'Speed Variance',
+        stateKey: 'pitThrowSpeedVar',
+        type: 'range',
+        min: 0, max: 0.6, step: 0.01,
+        default: 0.18,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'pitThrowsInterval',
+        label: 'Throw Interval',
+        stateKey: 'pitThrowIntervalMs',
+        type: 'range',
+        min: 10, max: 500, step: 5,
+        default: 70,
+        format: v => `${Math.round(v)}ms`,
+        parse: parseFloat
+      },
+      {
+        id: 'pitThrowsColorPause',
+        label: 'Color Pause',
+        stateKey: 'pitThrowColorPauseMs',
+        type: 'range',
+        min: 0, max: 1200, step: 10,
+        default: 180,
+        format: v => `${Math.round(v)}ms`,
+        parse: parseFloat
+      },
+      {
+        id: 'pitThrowsPairChance',
+        label: 'Pair Chance',
+        stateKey: 'pitThrowPairChance',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.35,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'pitThrowsPairStagger',
+        label: 'Pair Stagger',
+        stateKey: 'pitThrowPairStaggerMs',
+        type: 'range',
+        min: 0, max: 120, step: 1,
+        default: 18,
+        format: v => `${Math.round(v)}ms`,
+        parse: parseFloat
+      },
+      {
+        id: 'pitThrowsBatchSize',
+        label: 'Batch Size',
+        stateKey: 'pitThrowBatchSize',
+        type: 'range',
+        min: 1, max: 60, step: 1,
+        default: 18,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'pitThrowsTargetYFrac',
+        label: 'Throw Aim (Y)',
+        stateKey: 'pitThrowTargetYFrac',
+        type: 'range',
+        min: 0.12, max: 0.7, step: 0.01,
+        default: 0.36,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'pitThrowsAngleJitter',
+        label: 'Angle Jitter',
+        stateKey: 'pitThrowAngleJitter',
+        type: 'range',
+        min: 0, max: 0.6, step: 0.01,
+        default: 0.16,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'pitThrowsSpreadVar',
+        label: 'Spread Variance',
+        stateKey: 'pitThrowSpreadVar',
+        type: 'range',
+        min: 0, max: 0.8, step: 0.01,
+        default: 0.25,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'pitThrowsSpeedJitter',
+        label: 'Speed Jitter',
+        stateKey: 'pitThrowSpeedJitter',
+        type: 'range',
+        min: 0, max: 0.8, step: 0.01,
+        default: 0.22,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'pitThrowsInletInset',
+        label: 'Inlet Inset',
+        stateKey: 'pitThrowInletInset',
+        type: 'range',
+        min: 0, max: 0.2, step: 0.005,
+        default: 0.06,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'pitThrowsSpawnSpread',
+        label: 'Spawn Spread',
+        stateKey: 'pitThrowSpawnSpread',
+        type: 'range',
+        min: 0, max: 0.12, step: 0.0025,
+        default: 0.02,
+        format: v => v.toFixed(4),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'pitThrowsAimJitter',
+        label: 'Aim Jitter',
+        stateKey: 'pitThrowAimJitter',
+        type: 'range',
+        min: 0, max: 0.2, step: 0.005,
+        default: 0.04,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      {
+        id: 'pitThrowsCrossBias',
+        label: 'Cross Aim',
+        stateKey: 'pitThrowCrossBias',
+        type: 'range',
+        min: 0, max: 0.3, step: 0.005,
+        default: 0.12,
+        format: v => v.toFixed(3),
+        parse: parseFloat
       }
     ]
   },
@@ -1205,6 +1443,20 @@ function generateControlHTML(control) {
       </label>
       ${control.hint ? `<p class="control-hint">${control.hint}</p>` : ''}`;
   }
+
+  // Checkbox type
+  if (control.type === 'checkbox') {
+    const checkedAttr = control.default ? 'checked' : '';
+    return `
+      <label class="control-row" data-control-id="${control.id}">
+        <div class="control-row-header">
+          <span class="control-label">${control.label}</span>
+          <span class="control-value" id="${valId}">${control.default ? 'On' : 'Off'}</span>
+        </div>
+        <input type="checkbox" id="${sliderId}" ${checkedAttr} aria-label="${control.label}">
+      </label>
+      ${control.hint ? `<p class="control-hint">${control.hint}</p>` : ''}`;
+  }
   
   // Default: range slider
   const hintHtml = control.hint ? `<p class="control-hint">${control.hint}</p>` : '';
@@ -1305,6 +1557,7 @@ export function generatePanelHTML() {
         <div class="mode-switcher" role="group" aria-label="Simulation mode selector">
           <button class="mode-button active" data-mode="critters" aria-label="Critters mode">🪲 Critters</button>
           <button class="mode-button" data-mode="pit" aria-label="Ball Pit mode">🎯 Pit</button>
+          <button class="mode-button" data-mode="pit-throws" aria-label="Ball Pit throws mode">🎯 Throws</button>
           <button class="mode-button" data-mode="flies" aria-label="Flies mode">🕊️ Flies</button>
           <button class="mode-button" data-mode="weightless" aria-label="Zero-G mode">🌌 Zero-G</button>
           <button class="mode-button" data-mode="water" aria-label="Water mode">🌊 Water</button>
@@ -1355,7 +1608,7 @@ export function generatePanelHTML() {
       <button id="saveConfigBtn" class="primary">💾 Save Config</button>
     </div>
     <div class="panel-footer">
-      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters has no key (yet)
+      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters + Throws have no key (yet)
     </div>`;
   
   return html;
@@ -1403,7 +1656,44 @@ export function bindRegisteredControls() {
         
         continue;
       }
-      
+
+      // Checkbox binding
+      if (control.type === 'checkbox') {
+        const checkboxId = control.id + 'Slider';
+        const el = document.getElementById(checkboxId);
+        if (!el) continue;
+
+        el.addEventListener('change', () => {
+          const rawVal = !!el.checked;
+
+          if (control.stateKey) {
+            g[control.stateKey] = rawVal;
+          }
+
+          if (control.onChange) {
+            control.onChange(g, rawVal);
+          }
+
+          if (valEl) {
+            valEl.textContent = rawVal ? 'On' : 'Off';
+          }
+
+          // Re-init mode if needed
+          if (control.reinitMode && g.currentMode === section.mode) {
+            import(`../modes/${section.mode}.js`).then(mod => {
+              const initFn = Object.values(mod).find(fn =>
+                typeof fn === 'function' && fn.name.toLowerCase().includes('initialize')
+              );
+              if (initFn) initFn();
+            }).catch(() => {});
+          }
+
+          autoSaveSettings();
+        });
+
+        continue;
+      }
+
       // Default: Range slider binding
       const sliderId = control.id + 'Slider';
       const el = document.getElementById(sliderId);
@@ -1473,8 +1763,13 @@ export function syncSlidersToState() {
       
       const stateVal = g[control.stateKey];
       if (stateVal !== undefined) {
-        el.value = stateVal;
-        if (valEl) valEl.textContent = control.format(stateVal);
+        if (control.type === 'checkbox') {
+          el.checked = !!stateVal;
+          if (valEl) valEl.textContent = stateVal ? 'On' : 'Off';
+        } else {
+          el.value = stateVal;
+          if (valEl) valEl.textContent = control.format(stateVal);
+        }
       }
     }
   }

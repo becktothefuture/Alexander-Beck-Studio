@@ -482,10 +482,65 @@ export function collapsePanel() {
 }
 
 export function toggleDock() {
-  if (!dockElement) return;
-  
+  // Dev-only safety: if the dock hasn't been created yet (or got removed),
+  // create it on-demand so `/` always works.
+  if (!dockElement) {
+    try {
+      createPanelDock();
+    } catch (e) {
+      return;
+    }
+  }
+
   const isHidden = dockElement.classList.toggle('hidden');
   saveDockHiddenState(isHidden);
+
+  // If we're showing, ensure it isn't off-screen due to a stale saved position.
+  if (!isHidden) {
+    try {
+      ensureDockOnscreen();
+    } catch (e) {}
+  }
+}
+
+function ensureDockOnscreen() {
+  if (!dockElement) return;
+
+  // If the dock is in its default “right/top” position (no custom left/top),
+  // don't interfere.
+  const hasCustomLeft = !!dockElement.style.left;
+  const hasCustomTop = !!dockElement.style.top;
+  if (!hasCustomLeft && !hasCustomTop) return;
+
+  const rect = dockElement.getBoundingClientRect();
+  const vw = window.innerWidth || 0;
+  const vh = window.innerHeight || 0;
+  if (!vw || !vh) return;
+
+  const edge = 10;
+
+  // If rect is wildly out of view, reset to default docked position.
+  const totallyOff =
+    rect.right < edge ||
+    rect.left > vw - edge ||
+    rect.bottom < edge ||
+    rect.top > vh - edge;
+  if (totallyOff) {
+    resetPanelPositions();
+    return;
+  }
+
+  // Clamp to viewport.
+  const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
+  const nextLeft = clamp(rect.left, edge, Math.max(edge, vw - rect.width - edge));
+  const nextTop = clamp(rect.top, edge, Math.max(edge, vh - rect.height - edge));
+
+  dockElement.style.position = 'fixed';
+  dockElement.style.left = `${Math.round(nextLeft)}px`;
+  dockElement.style.top = `${Math.round(nextTop)}px`;
+  dockElement.style.right = 'auto';
+
+  savePanelPosition();
 }
 
 // ════════════════════════════════════════════════════════════════════════════════

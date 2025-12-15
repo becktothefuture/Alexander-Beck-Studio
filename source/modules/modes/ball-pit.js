@@ -7,22 +7,18 @@ import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls } from '../core/state.js';
 import { getColorByIndex } from '../visual/colors.js';
 
-export function initializeBallPit() {
-  const globals = getGlobals();
-  clearBalls();
-  
-  const targetBalls = 300; // MAX_BALLS
+function spawnPourBallPit(globals, targetBalls) {
   const w = globals.canvas.width;
   const h = globals.canvas.height;
   const DPR = globals.DPR;
-  
+
   // Spawn balls ABOVE the canvas (negative Y coordinates)
   // They will fall into the visible area via gravity
   // This is "negative spacing" - spawn area extends above y=0
-  const spawnHeight = h * 0.5;  // Spawn within 50% of canvas height above canvas
+  const spawnHeight = h * 0.5; // Spawn within 50% of canvas height above canvas
   const spawnYTop = -spawnHeight;
   const spawnYBottom = 0;
-  
+
   // Spawn from the top, biased toward the right but ~1/3 in toward center.
   // Keep a narrow band so the drop-in reads as a deliberate "pour".
   const padding = (globals.wallThickness || 20) * DPR;
@@ -33,32 +29,42 @@ export function initializeBallPit() {
   const anchorX = spawnXLeft + usableW * (2 / 3); // one-third in from right edge
   const spawnXMin = Math.max(spawnXLeft, anchorX - spawnBandWidth * 0.5);
   const spawnXMax = Math.min(spawnXRight, anchorX + spawnBandWidth * 0.5);
-  
+
+  const count = Math.max(0, targetBalls | 0);
+
   // First, ensure at least one ball of each color (0-7)
-  for (let colorIndex = 0; colorIndex < 8; colorIndex++) {
+  for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = spawnXMin + Math.random() * (spawnXMax - spawnXMin);
     const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
-    
+
     const ball = spawnBall(x, y, getColorByIndex(colorIndex));
     // Small downward velocity and random horizontal drift
     ball.vx = (Math.random() - 0.5) * 100;
-    ball.vy = Math.random() * 50 + 50;  // Initial downward velocity
+    ball.vy = Math.random() * 50 + 50; // Initial downward velocity
     ball.driftAx = 0;
     ball.driftTime = 0;
   }
-  
+
   // Then fill the rest with random colors
-  for (let i = 8; i < targetBalls; i++) {
+  for (let i = 8; i < count; i++) {
     const x = spawnXMin + Math.random() * (spawnXMax - spawnXMin);
     const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
-    
+
     const ball = spawnBall(x, y);
     // Small downward velocity and random horizontal drift
     ball.vx = (Math.random() - 0.5) * 100;
-    ball.vy = Math.random() * 50 + 50;  // Initial downward velocity
+    ball.vy = Math.random() * 50 + 50; // Initial downward velocity
     ball.driftAx = 0;
     ball.driftTime = 0;
   }
+}
+
+export function initializeBallPit() {
+  const globals = getGlobals();
+  clearBalls();
+  
+  const targetBalls = globals.maxBalls ?? 300;
+  spawnPourBallPit(globals, targetBalls);
 }
 
 export function applyBallPitForces(ball, dt) {

@@ -40,6 +40,9 @@
 <body class="body">
   <!-- LAYER 0: Content Background - BEHIND everything (z:1) -->
   <div id="content-background" class="content-background-layer" aria-hidden="true"></div>
+  <div id="edge-copyright" class="edge-copyright">
+    <span class="edge-copyright__text">© 2025 Alexander Beck Studio. All rights reserved.</span>
+  </div>
   
   <!-- LAYER 1: Brand Logo - BEHIND balls (z:3) -->
   <!-- Kept separate to preserve Z-index layering (Logo < Balls < UI) -->
@@ -80,6 +83,12 @@
       <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Digit 4" autocomplete="off" />
     </div>
   </div>
+
+  <!-- Contact Gate - Same transition as CV/Portfolio (no password) -->
+  <div id="contact-gate" class="contact-gate hidden" aria-hidden="true">
+    <div id="contact-gate-label" class="gate-label"></div>
+    <div id="contact-gate-inputs" class="contact-gate-inputs"></div>
+  </div>
   
   <!-- Page Flash Overlay (for CV and Portfolio gate success/failure feedback) -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
@@ -118,14 +127,14 @@
             </div>
             <div class="w-layout-hflex legend__item">
               <div class="circle bg-ball-3" aria-hidden="true"></div>
-              <span>Aesthetic Studies</span>
+              <span>Art Direction</span>
             </div>
           </nav>
         </div>
         
         <div class="ui-top-right">
           <blockquote class="decorative-script">
-            <p>Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity. <a href="mailto:info@beck.fyi">Let's chat.</a></p>
+            <p>Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity. <a id="contact-email-inline" href="#">Let's chat.</a></p>
           </blockquote>
           <div id="sound-toggle-slot"></div>
         </div>
@@ -138,7 +147,7 @@
       <footer class="ui-bottom">
         <!-- Row 1: Nav Links (Centered) -->
         <nav id="footer-links-container" class="ui-nav-row" aria-label="Footer navigation links">
-          <a id="contact-email" href="mailto:info@beck.fyi?subject=Hello!" class="footer_link">Get in touch</a>
+          <a id="contact-email" href="#" class="footer_link">Get in touch</a>
           <a id="portfolio-gate-trigger" href="#" class="footer_link">Portfolio</a>
           <a id="cv-gate-trigger" href="#" class="footer_link">Download Bio/CV</a>
         </nav>

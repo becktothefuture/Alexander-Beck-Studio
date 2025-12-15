@@ -75,8 +75,8 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
   "critterTurnNoise": 2.2,
   "critterTurnDamp": 10,
   "critterTurnSeek": 10,
-  "critterAvoidRadius": 120,
-  "critterAvoidForce": 9000,
+  "critterAvoidRadius": 90,
+  "critterAvoidForce": 9500,
   "critterEdgeAvoid": 1,
   "critterMousePull": 1,
   "critterMouseRadiusVw": 30,
@@ -94,6 +94,72 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 ### `gravityMultiplier` (number)
 - **Meaning**: Ball Pit gravity multiplier (applied to base gravity \(G_E = 1960\)).
 - **Applied to**: `state.gravityMultiplierPit`
+
+---
+
+## Ball Pit (Throws)
+
+These keys tune the **Ball Pit (Throws)** mode (`pit-throws`): balls thrown in **color-by-color batches** from the **top-left/top-right** toward the center.
+
+### `pitThrowSpeed` (number)
+- **Meaning**: Base launch speed for side throws.
+- **Applied to**: `state.pitThrowSpeed`
+
+### `pitThrowSpeedJitter` (number, 0..1)
+- **Meaning**: Random speed variation (multiplier jitter around `pitThrowSpeed`).
+- **Applied to**: `state.pitThrowSpeedJitter`
+
+### `pitThrowSpeedVar` (number, 0..1)
+- **Meaning**: Per-throw speed multiplier variance (each throw gets its own speed scaling before jitter).
+- **Applied to**: `state.pitThrowSpeedVar`
+
+### `pitThrowAngleJitter` (number, 0..1)
+- **Meaning**: Random angular variation applied to the aim direction.
+- **Applied to**: `state.pitThrowAngleJitter`
+
+### `pitThrowBatchSize` (number)
+- **Meaning**: Balls per color batch (each batch uses a single color; batches alternate left/right).
+- **Applied to**: `state.pitThrowBatchSize`
+
+### `pitThrowIntervalMs` (number, ms)
+- **Meaning**: Time between throws *within* a single color batch.
+- **Applied to**: `state.pitThrowIntervalMs`
+
+### `pitThrowColorPauseMs` (number, ms)
+- **Meaning**: Pause between colors (after a batch finishes, before the next color starts).
+- **Applied to**: `state.pitThrowColorPauseMs`
+
+### `pitThrowPairChance` (number, 0..1)
+- **Meaning**: Chance that a throw will schedule a second, opposite-side throw (for overlap).
+- **Applied to**: `state.pitThrowPairChance`
+
+### `pitThrowPairStaggerMs` (number, ms)
+- **Meaning**: Delay for the paired (second) throw.
+- **Applied to**: `state.pitThrowPairStaggerMs`
+
+### `pitThrowTargetYFrac` (number, 0..1)
+- **Meaning**: Vertical aim point for throws, as a fraction of canvas height.
+- **Applied to**: `state.pitThrowTargetYFrac`
+
+### `pitThrowInletInset` (number, 0..1)
+- **Meaning**: How far in from each wall the top “inlets” are, as a fraction of usable width.
+- **Applied to**: `state.pitThrowInletInset`
+
+### `pitThrowCrossBias` (number, 0..1)
+- **Meaning**: Cross-aim bias. Left throws aim slightly right-of-center; right throws aim slightly left-of-center.
+- **Applied to**: `state.pitThrowCrossBias`
+
+### `pitThrowSpawnSpread` (number, 0..1)
+- **Meaning**: Horizontal spawn spread around the inlet, as a fraction of usable width.
+- **Applied to**: `state.pitThrowSpawnSpread`
+
+### `pitThrowAimJitter` (number, 0..1)
+- **Meaning**: Aim X jitter, as a fraction of canvas width (adds organic randomness).
+- **Applied to**: `state.pitThrowAimJitter`
+
+### `pitThrowSpreadVar` (number, 0..1)
+- **Meaning**: Per-throw spread multiplier variance (affects spawn spread + aim jitter per throw).
+- **Applied to**: `state.pitThrowSpreadVar`
 
 ### `restitution` (number)
 - **Meaning**: Coefficient of restitution (energy retained on impact).

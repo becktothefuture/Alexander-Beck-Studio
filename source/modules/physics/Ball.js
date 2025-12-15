@@ -47,7 +47,8 @@ export class Ball {
     this.age += dt;
     
     // Wake up if sleeping and mouse is nearby (Ball Pit mode only)
-    if (this.isSleeping && currentMode === MODES.PIT) {
+    const isPitLike = currentMode === MODES.PIT || currentMode === MODES.PIT_THROWS;
+    if (this.isSleeping && isPitLike) {
       const mouseX = globals.mouseX;
       const mouseY = globals.mouseY;
       const wakeRadius = (globals.repelRadius || 710) * globals.DPR * 1.2; // 20% larger than repel radius
@@ -134,7 +135,7 @@ export class Ball {
     this.squash = 1 - this.squashAmount;
     
     // Sleep detection (Ball Pit mode only, Box2D-style)
-    if (currentMode === MODES.PIT) {
+    if (isPitLike) {
       this.updateSleepState(dt, globals);
     }
   }
@@ -213,7 +214,7 @@ export class Ball {
     
     for (let i = 0; i < corners.length; i++) {
       // Skip top corners (0, 1) in Ball Pit mode so balls can fall in
-      if (currentMode === MODES.PIT && i < 2) continue;
+      if ((currentMode === MODES.PIT || currentMode === MODES.PIT_THROWS) && i < 2) continue;
       
       const corner = corners[i];
       // Check if ball is in this corner's quadrant
@@ -306,7 +307,7 @@ export class Ball {
     }
     
     // Top (ceiling) - Skip in Ball Pit mode so balls can fall in from above
-    if (currentMode !== MODES.PIT && this.y - this.r < minY) {
+    if (currentMode !== MODES.PIT && currentMode !== MODES.PIT_THROWS && this.y - this.r < minY) {
       hasWallCollision = true;
       this.y = minY + this.r;
       const preVy = this.vy;  // Capture BEFORE reversal for impact calculation

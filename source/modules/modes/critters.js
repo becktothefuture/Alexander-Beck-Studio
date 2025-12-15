@@ -173,21 +173,23 @@ export function applyCrittersForces(ball, dt) {
       const d2 = dx * dx + dy * dy;
       if (d2 > 0 && d2 < rr2) {
         const d = Math.sqrt(d2);
+        // Make separation mostly *near-field* so critters can travel in tighter packs.
         const q = 1 - (d / avoidR);
+        const q2 = q * q;
         const inv = 1 / (d + 1e-6);
-        ax += dx * inv * q;
-        ay += dy * inv * q;
+        ax += dx * inv * q2;
+        ay += dy * inv * q2;
         n++;
       }
     }
     if (n > 0) {
       const invN = 1 / n;
-      steerX += (ax * invN) * 1.8;
-      steerY += (ay * invN) * 1.8;
+      steerX += (ax * invN) * 1.15;
+      steerY += (ay * invN) * 1.15;
 
       // Apply a direct velocity push too (feels like a “flinch”)
-      ball.vx += (ax * invN) * avoidF * dt;
-      ball.vy += (ay * invN) * avoidF * dt;
+      ball.vx += (ax * invN) * (avoidF * 0.65) * dt;
+      ball.vy += (ay * invN) * (avoidF * 0.65) * dt;
     }
   }
 

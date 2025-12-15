@@ -42,6 +42,7 @@ export function initPortfolioGate() {
     const logo = document.getElementById('brand-logo');
     const gate = document.getElementById('portfolio-gate');
     const cvGate = document.getElementById('cv-gate'); // Get CV gate to check/close if open
+    const contactGate = document.getElementById('contact-gate'); // Get contact gate to check/close if open
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
     const pageFlash = document.getElementById('page-flash');
     const gateLabel = document.getElementById('portfolio-gate-label');
@@ -57,6 +58,12 @@ export function initPortfolioGate() {
     // Set label text if element exists
     if (gateLabel) {
         gateLabel.innerHTML = `
+            <div class="gate-nav">
+                <button type="button" class="gate-back" data-gate-back aria-label="Back">
+                    <i class="ti ti-arrow-left" aria-hidden="true"></i>
+                    <span>BACK</span>
+                </button>
+            </div>
             <h2 class="gate-title">View Portfolio</h2>
             <p class="gate-description">Good work deserves good context. This small step ensures you're here with intention, not just browsing. Quality takes time—yours and mine.</p>
         `;
@@ -76,8 +83,18 @@ export function initPortfolioGate() {
         // Close CV gate if it's open
         if (cvGate && cvGate.classList.contains('active')) {
             cvGate.classList.remove('active');
+            cvGate.setAttribute('aria-hidden', 'true');
             setTimeout(() => {
                 cvGate.classList.add('hidden');
+            }, 400);
+        }
+
+        // Close contact gate if it's open (keep gates mutually exclusive)
+        if (contactGate && contactGate.classList.contains('active')) {
+            contactGate.classList.remove('active');
+            contactGate.setAttribute('aria-hidden', 'true');
+            setTimeout(() => {
+                contactGate.classList.add('hidden');
             }, 400);
         }
         
@@ -88,6 +105,7 @@ export function initPortfolioGate() {
         
         // Animate Gate In (Up)
         gate.classList.remove('hidden');
+        gate.setAttribute('aria-hidden', 'false');
         // Force reflow
         void gate.offsetWidth; 
         gate.classList.add('active');
@@ -104,6 +122,7 @@ export function initPortfolioGate() {
         
         // Animate Gate Out (Down)
         gate.classList.remove('active');
+        gate.setAttribute('aria-hidden', 'true');
         
         // Animate Logo In (Down)
         logo.classList.remove('fade-out-up');
@@ -112,6 +131,12 @@ export function initPortfolioGate() {
             if (!isOpen) gate.classList.add('hidden');
         }, 400); // Match transition time
     };
+
+    // Back button closes gate (matches new UI pattern)
+    try {
+        const backBtn = gateLabel?.querySelector?.('[data-gate-back]');
+        if (backBtn) backBtn.addEventListener('click', closeGate);
+    } catch (e) {}
 
     const checkCode = () => {
         const enteredCode = inputs.map(input => input.value).join('');

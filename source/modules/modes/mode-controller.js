@@ -7,6 +7,7 @@ import { MODES, CONSTANTS } from '../core/constants.js';
 import { setMode as setModeState, getGlobals } from '../core/state.js';
 import { initializeFlies, applyFliesForces } from './flies.js';
 import { initializeBallPit, applyBallPitForces } from './ball-pit.js';
+import { initializePitThrows, updatePitThrows } from './pit-throws.js';
 import { initializeWeightless } from './weightless.js';
 import { resize } from '../rendering/renderer.js';
 import { initializeWater, applyWaterForces, updateWaterRipples } from './water.js';
@@ -36,6 +37,11 @@ export function setMode(mode) {
       globals.FRICTION = globals._frictionBeforeCritters;
       delete globals._frictionBeforeCritters;
     }
+    // Critters-only spacing override cleanup
+    if (globals._ballSpacingBeforeCritters !== undefined) {
+      globals.ballSpacing = globals._ballSpacingBeforeCritters;
+      delete globals._ballSpacingBeforeCritters;
+    }
   }
   
   // Clean up Kaleidoscope spacing override when leaving the mode
@@ -51,6 +57,7 @@ export function setMode(mode) {
   console.log(`Switching to mode: ${mode}`);
   const modeNames = { 
     pit: 'Ball Pit', 
+    'pit-throws': 'Ball Pit (Throws)',
     flies: 'Flies to Light', 
     weightless: 'Zero Gravity', 
     water: 'Water Swimming',
@@ -71,7 +78,7 @@ export function setMode(mode) {
   if (globals.container) {
     const wasDark = globals.container.classList.contains('dark-mode');
     globals.container.className = '';
-    if (mode === MODES.PIT) {
+    if (mode === MODES.PIT || mode === MODES.PIT_THROWS) {
       globals.container.classList.add('mode-pit');
     }
     // Restore dark mode class if it was set
@@ -89,6 +96,11 @@ export function setMode(mode) {
     globals.G = globals.GE * globals.gravityMultiplier;
     globals.repellerEnabled = true;
     initializeBallPit();
+  } else if (mode === MODES.PIT_THROWS) {
+    globals.gravityMultiplier = globals.gravityMultiplierPit;
+    globals.G = globals.GE * globals.gravityMultiplier;
+    globals.repellerEnabled = true;
+    initializePitThrows();
   } else if (mode === MODES.FLIES) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -151,6 +163,13 @@ export function setMode(mode) {
     globals.REST = globals.critterRestitution ?? globals.REST;
     globals.FRICTION = globals.critterFriction ?? globals.FRICTION;
 
+    // Critters should feel more “clumpy” than the global default spacing.
+    // Keep this mode-local so other modes retain their tuned spacing.
+    if (globals._ballSpacingBeforeCritters === undefined) {
+      globals._ballSpacingBeforeCritters = globals.ballSpacing;
+    }
+    globals.ballSpacing = Math.min(globals.ballSpacing || 0, 1.0);
+
     initializeCritters();
   }
   
@@ -161,7 +180,7 @@ export function getForceApplicator() {
   const globals = getGlobals();
   if (globals.currentMode === MODES.FLIES) {
     return applyFliesForces;
-  } else if (globals.currentMode === MODES.PIT) {
+  } else if (globals.currentMode === MODES.PIT || globals.currentMode === MODES.PIT_THROWS) {
     return applyBallPitForces;
   } else if (globals.currentMode === MODES.WATER) {
     return applyWaterForces;
@@ -185,6 +204,8 @@ export function getModeUpdater() {
   const globals = getGlobals();
   if (globals.currentMode === MODES.WATER) {
     return updateWaterRipples;
+  } else if (globals.currentMode === MODES.PIT_THROWS) {
+    return updatePitThrows;
   } else if (globals.currentMode === MODES.MAGNETIC) {
     return updateMagnetic;
   } else if (globals.currentMode === MODES.BUBBLES) {

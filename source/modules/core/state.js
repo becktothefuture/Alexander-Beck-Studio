@@ -40,6 +40,23 @@ const state = {
   gravityScale: 1.0,
   gravityMultiplier: 0,
   gravityMultiplierPit: 1.10,
+
+  // Ball Pit (Throws) spawn tuning (mode: pit-throws)
+  pitThrowSpeed: 650,          // px/s-ish (canvas units)
+  pitThrowSpeedJitter: 0.22,   // 0..1 (multiplier jitter)
+  pitThrowAngleJitter: 0.16,   // 0..1 (radians scaled by π)
+  pitThrowBatchSize: 18,       // balls per color batch
+  pitThrowIntervalMs: 70,      // ms between throws within a color
+  pitThrowColorPauseMs: 180,   // ms pause between colors
+  pitThrowTargetYFrac: 0.36,   // 0..1 (aim point in canvas height)
+  pitThrowInletInset: 0.06,    // 0..1 (fraction of usable width from wall)
+  pitThrowCrossBias: 0.12,     // 0..1 (cross-aim bias: left->right, right->left)
+  pitThrowSpawnSpread: 0.02,   // 0..1 (fraction of usable width)
+  pitThrowAimJitter: 0.04,     // 0..1 (fraction of canvas width)
+  pitThrowPairChance: 0.35,    // 0..1 (chance to schedule a paired throw)
+  pitThrowPairStaggerMs: 18,   // ms (delay for the paired throw)
+  pitThrowSpeedVar: 0.18,      // 0..1 (per-throw speed multiplier variance)
+  pitThrowSpreadVar: 0.25,     // 0..1 (per-throw spread multiplier variance)
   REST: 0.69,
   FRICTION: 0.0060,
   ballMassKg: 129,
@@ -63,6 +80,13 @@ const state = {
   
   // Custom cursor
   cursorSize: 1.0,  // Multiplier for cursor size (1.0 = average ball size)
+
+  // Mouse trail (canvas-rendered)
+  mouseTrailEnabled: true,
+  mouseTrailLength: 18,     // number of samples to keep
+  mouseTrailSize: 1.3,      // CSS px (scaled by DPR at draw time)
+  mouseTrailFadeMs: 220,    // lifetime of a sample
+  mouseTrailOpacity: 0.35,  // 0..1
   
   // Ball properties
   ballSoftness: 20,
@@ -77,8 +101,8 @@ const state = {
   critterTurnNoise: 2.2,      // wander
   critterTurnDamp: 10.0,      // turning inertia damping
   critterTurnSeek: 10.0,      // steering toward desired heading
-  critterAvoidRadius: 120,    // px
-  critterAvoidForce: 9000,    // separation acceleration
+  critterAvoidRadius: 90,     // px (tighter packs; separation is now mostly near-field)
+  critterAvoidForce: 9500,    // separation acceleration
   critterEdgeAvoid: 1.0,      // edge repulsion strength
   critterMousePull: 1.0,      // attraction strength inside mouse zone
   critterMouseRadiusVw: 30,   // zone radius (vw)

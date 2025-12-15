@@ -16,6 +16,7 @@ import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVGate } from './modules/ui/cv-gate.js';
 import { initPortfolioGate } from './modules/ui/portfolio-gate.js';
+import { initContactGate } from './modules/ui/contact-gate.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
@@ -35,6 +36,38 @@ import {
   measure,
   table
 } from './modules/utils/logger.js';
+
+function pickStartupMode() {
+  // Pick a different simulation on each reload.
+  // Best-effort: avoid immediate repeats using sessionStorage (non-persistent).
+  const all = [
+    MODES.CRITTERS,
+    MODES.PIT,
+    MODES.PIT_THROWS,
+    MODES.FLIES,
+    MODES.WEIGHTLESS,
+    MODES.WATER,
+    MODES.VORTEX,
+    MODES.PING_PONG,
+    MODES.MAGNETIC,
+    MODES.BUBBLES,
+    MODES.KALEIDOSCOPE,
+  ];
+
+  let last = null;
+  try {
+    last = sessionStorage.getItem('bb:last_start_mode');
+  } catch (e) {}
+
+  const candidates = (last && all.length > 1) ? all.filter(m => m !== last) : all;
+  const pick = candidates[Math.floor(Math.random() * candidates.length)] || MODES.CRITTERS;
+
+  try {
+    sessionStorage.setItem('bb:last_start_mode', pick);
+  } catch (e) {}
+
+  return pick;
+}
 
 async function loadRuntimeConfig() {
   try {
@@ -350,6 +383,9 @@ function enhanceFooterLinksForMobile() {
     initPortfolioGate();
     log('✓ Portfolio password gate initialized');
 
+    initContactGate();
+    log('✓ Contact gate initialized');
+
     // Compose the top UI (LEGACY FUNCTION REMOVED - NOW IN DOM)
     // setupTopElementsLayout();
 
@@ -373,8 +409,13 @@ function enhanceFooterLinksForMobile() {
     
     // Layout controls integrated into master panel
     
-    // Initialize starting mode (Simulation 11: Critters, active by default for now)
-    setMode(MODES.CRITTERS);
+    // Initialize starting mode (randomized on each reload)
+    const startMode = pickStartupMode();
+    setMode(startMode);
+    try {
+      const ui = await import('./modules/ui/controls.js');
+      ui.updateModeButtonsUI?.(startMode);
+    } catch (e) {}
     mark('bb:mode');
     log('✓ Mode initialized');
     

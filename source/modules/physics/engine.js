@@ -11,6 +11,7 @@ import { wallState, drawWalls, updateChromeColor } from './wall-state.js';
 import { getModeUpdater } from '../modes/mode-controller.js';
 import { renderKaleidoscope } from '../modes/kaleidoscope.js';
 import { applyKaleidoscopeBounds } from '../modes/kaleidoscope.js';
+import { drawMouseTrail } from '../visual/mouse-trail.js';
 
 const DT = CONSTANTS.PHYSICS_DT;
 let acc = 0;
@@ -152,6 +153,9 @@ export function render() {
     balls[i].draw(ctx);
     }
   }
+
+  // Mouse trail: lightweight overlay pass (kept behind the wall/frame draw)
+  drawMouseTrail(ctx);
   
   // Draw rubber walls LAST (in front of balls)
   drawWalls(ctx, canvas.width, canvas.height);

@@ -115,13 +115,14 @@
   --legend-gap-col: var(--gap-lg);
   --legend-item-gap: var(--gap-sm);
   --legend-circle-size: var(--gap-sm);
-  --legend-font-size: var(--text-xs);
+  --legend-font-size: 11px;
   --legend-font-weight: 600;
   --legend-letter-spacing: 0.08em;
   --legend-line-height: var(--line-height-loose);
   --legend-opacity: 0.9;
   
-  --decorative-script-max-width: clamp(240px, 25vw, 280px);
+  /* +20% width: gives top-right blurb more breathing room */
+  --decorative-script-max-width: clamp(288px, 30vw, 403px);
   --decorative-script-font-size: var(--text-sm);
   --decorative-script-line-height: var(--line-height-base);
   --decorative-script-letter-spacing: 0.01em;
@@ -200,6 +201,10 @@
 .ti-brand-apple:before { content: "\ec17"; }
 .ti-brand-instagram:before { content: "\ec20"; }
 .ti-brand-linkedin:before { content: "\ec8c"; }
+.ti-arrow-left:before { content: "\ea19"; }
+.ti-copy:before { content: "\ea7a"; }
+.ti-check:before { content: "\ea5e"; }
+.ti-alert-triangle:before { content: "\ea06"; }
 .ti-volume-2:before { content: "\eb4f"; }
 .ti-volume-off:before { content: "\f1c3"; }
 
@@ -261,6 +266,55 @@ body.body.dark-mode {
 
 body.dark-mode .content-background-layer {
   background: var(--bg-dark) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   EDGE COPYRIGHT (Right Edge, Tilted)
+   ───────────────────────────────────────────────────────────────────────────── */
+.edge-copyright {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: calc(var(--container-border) + 8px);
+  z-index: 6; /* Above canvas (5), below UI (20) */
+  pointer-events: none;
+  display: flex;
+  align-items: center; /* True vertical centering in viewport */
+}
+
+.edge-copyright__text {
+  display: block;
+  font-family: 'Geist Mono', monospace;
+  font-size: calc(var(--text-xs) * 0.85);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  color: var(--text-color-light-muted);
+  opacity: 0.55;
+
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg); /* Keeps reading direction feeling “upright” */
+  transform-origin: center;
+}
+
+body.dark-mode .edge-copyright__text {
+  color: var(--text-color-dark-base);
+  opacity: 0.55;
+}
+
+@media (max-width: 480px) {
+  .edge-copyright {
+    right: calc(var(--container-border) + 6px);
+  }
+
+  .edge-copyright__text {
+    font-size: calc(var(--text-xs) * 0.8);
+    opacity: 0.5;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -388,7 +442,7 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   display: flex;
   align-items: flex-start; /* Align top */
   justify-content: flex-end;
-  max-width: 50vw;
+  max-width: 60vw; /* +20% */
   pointer-events: none;
   gap: var(--gap-lg); /* Gap between text and sound button */
 }
@@ -499,6 +553,7 @@ p {
   display: inline-block;
   color: var(--text-color-light-muted) !important;
   font-size: var(--footer-links-font-size) !important;
+  letter-spacing: 0.02ch !important;
   text-decoration: none !important; /* No underline */
   opacity: var(--text-opacity-base);
   transition: color var(--duration-link-hover) ease;
