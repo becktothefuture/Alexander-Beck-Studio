@@ -15,7 +15,7 @@
 
 import { showOverlay, hideOverlay } from './gate-overlay.js';
 
-const CONTACT_EMAIL = 'info@beck.fyi';
+const CONTACT_EMAIL = 'alexander@beck.fyi';
 const TRANSITION_MS = 400; // Must match password-gate.css transitions
 const COPY_FEEDBACK_MS = 1200;
 

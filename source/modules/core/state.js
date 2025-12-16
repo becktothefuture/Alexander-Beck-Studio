@@ -130,6 +130,14 @@ const state = {
   contentPaddingVw: 0,      // padding for content blocks inside frame (vw)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
+
+  // Minimum clamp targets (px)
+  // These define the “clamp down towards” values on small viewports, where vw-derived
+  // padding/radius can become too tight. Kept here so:
+  // - The clamp logic uses the same source of truth
+  // - The control panel can display the effective minimums
+  layoutMinContentPaddingPx: 16,
+  layoutMinWallRadiusPx: 28,
   
   // Wall collision inset (px). Helps prevent visual overlap with the wall edge.
   // This is distinct from radius: it shrinks the effective collision bounds uniformly.
@@ -295,6 +303,9 @@ export function applyLayoutFromVwToPx() {
   const contentPadPx = vwToPx(state.contentPaddingVw, w);
   const radiusPx = vwToPx(state.wallRadiusVw, w);
 
+  const minContentPaddingPx = Math.max(0, Math.round(state.layoutMinContentPaddingPx || 0));
+  const minWallRadiusPx = Math.max(0, Math.round(state.layoutMinWallRadiusPx || 0));
+
   // If wallThicknessVw is not set, default it to containerBorderVw (keeps “frame”
   // control behavior consistent with the current panel’s linked thickness).
   const thicknessVw = (Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)
@@ -304,8 +315,8 @@ export function applyLayoutFromVwToPx() {
 
   state.containerBorder = Math.round(borderPx);
   state.simulationPadding = Math.round(simPadPx);
-  state.contentPadding = Math.round(contentPadPx);
-  state.wallRadius = Math.round(radiusPx);
+  state.contentPadding = Math.max(minContentPaddingPx, Math.round(contentPadPx));
+  state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
   state.wallThickness = Math.round(thicknessPx);
 }
@@ -377,6 +388,15 @@ export function initState(config) {
   if (config.critterAvoidForce !== undefined) state.critterAvoidForce = config.critterAvoidForce;
   if (config.critterEdgeAvoid !== undefined) state.critterEdgeAvoid = config.critterEdgeAvoid;
   if (config.critterMousePull !== undefined) state.critterMousePull = config.critterMousePull;
+  
+  // Layout min clamp targets (px)
+  // These define the minimum padding/radius we clamp down towards on small viewports.
+  if (config.layoutMinContentPaddingPx !== undefined) {
+    state.layoutMinContentPaddingPx = clampNumber(config.layoutMinContentPaddingPx, 0, 200, state.layoutMinContentPaddingPx);
+  }
+  if (config.layoutMinWallRadiusPx !== undefined) {
+    state.layoutMinWallRadiusPx = clampNumber(config.layoutMinWallRadiusPx, 0, 400, state.layoutMinWallRadiusPx);
+  }
   if (config.critterMouseRadiusVw !== undefined) state.critterMouseRadiusVw = config.critterMouseRadiusVw;
   if (config.critterRestitution !== undefined) state.critterRestitution = config.critterRestitution;
   if (config.critterFriction !== undefined) state.critterFriction = config.critterFriction;

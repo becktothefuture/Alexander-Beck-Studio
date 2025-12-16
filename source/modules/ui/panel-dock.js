@@ -137,6 +137,8 @@ function getMasterPanelContent() {
   const radiusPx = Math.max(0, Math.round(g.wallRadius ?? g.cornerRadius ?? 0));
   const contentPadPx = Math.max(0, Math.round(g.contentPadding ?? 0));
   const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
+  const minContentPadPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
+  const minRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
 
   return `
     <!-- ═══════════════════════════════════════════════════════════════════════
@@ -158,16 +160,32 @@ function getMasterPanelContent() {
         <label class="control-row">
           <div class="control-row-header">
             <span class="control-label">Content Padding</span>
-            <span class="control-value" id="contentPadValue">${contentPadVw.toFixed(2)}vw · ${contentPadPx}px</span>
+            <span class="control-value" id="contentPadValue">${contentPadVw.toFixed(2)}vw · ${contentPadPx}px (min ${minContentPadPx}px)</span>
           </div>
           <input type="range" id="contentPadding" min="0" max="12" step="0.05" value="${contentPadVw || 0}" />
         </label>
         <label class="control-row">
           <div class="control-row-header">
+            <span class="control-label">Min Content Padding</span>
+            <span class="control-value" id="minContentPadValue">${minContentPadPx}px</span>
+          </div>
+          <input type="range" id="layoutMinContentPaddingPx" min="0" max="64" step="1" value="${minContentPadPx}" />
+          <div class="control-hint">Clamp target on smallest viewports (px).</div>
+        </label>
+        <label class="control-row">
+          <div class="control-row-header">
             <span class="control-label">Radius</span>
-            <span class="control-value" id="radiusValue">${radiusVw.toFixed(2)}vw · ${radiusPx}px</span>
+            <span class="control-value" id="radiusValue">${radiusVw.toFixed(2)}vw · ${radiusPx}px (min ${minRadiusPx}px)</span>
           </div>
           <input type="range" id="layoutRadius" min="0" max="20" step="0.05" value="${radiusVw || 0}" />
+        </label>
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Min Radius</span>
+            <span class="control-value" id="minRadiusValue">${minRadiusPx}px</span>
+          </div>
+          <input type="range" id="layoutMinWallRadiusPx" min="0" max="120" step="1" value="${minRadiusPx}" />
+          <div class="control-hint">Clamp target on smallest viewports (px).</div>
         </label>
         <label class="control-row">
           <div class="control-row-header">
@@ -705,8 +723,12 @@ function setupLayoutControls(panel) {
   const frameValue = panel.querySelector('#frameValue');
   const contentPadSlider = panel.querySelector('#contentPadding');
   const contentPadValue = panel.querySelector('#contentPadValue');
+  const minContentPadSlider = panel.querySelector('#layoutMinContentPaddingPx');
+  const minContentPadValue = panel.querySelector('#minContentPadValue');
   const radiusSlider = panel.querySelector('#layoutRadius');
   const radiusValue = panel.querySelector('#radiusValue');
+  const minRadiusSlider = panel.querySelector('#layoutMinWallRadiusPx');
+  const minRadiusValue = panel.querySelector('#minRadiusValue');
   const viewportWidthSlider = panel.querySelector('#layoutViewportWidth');
   const viewportWidthValue = panel.querySelector('#viewportWidthValue');
   const wallInsetSlider = panel.querySelector('#layoutWallInset');
@@ -717,8 +739,16 @@ function setupLayoutControls(panel) {
     applyLayoutFromVwToPx();
     applyLayoutCSSVars();
     if (frameValue) frameValue.textContent = `${(g.containerBorderVw || 0).toFixed(2)}vw · ${Math.round(g.containerBorder || 0)}px`;
-    if (contentPadValue) contentPadValue.textContent = `${(g.contentPaddingVw || 0).toFixed(2)}vw · ${Math.round(g.contentPadding || 0)}px`;
-    if (radiusValue) radiusValue.textContent = `${(g.wallRadiusVw || 0).toFixed(2)}vw · ${Math.round(g.wallRadius || 0)}px`;
+    if (contentPadValue) {
+      const minPad = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
+      contentPadValue.textContent = `${(g.contentPaddingVw || 0).toFixed(2)}vw · ${Math.round(g.contentPadding || 0)}px (min ${minPad}px)`;
+    }
+    if (radiusValue) {
+      const minR = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
+      radiusValue.textContent = `${(g.wallRadiusVw || 0).toFixed(2)}vw · ${Math.round(g.wallRadius || 0)}px (min ${minR}px)`;
+    }
+    if (minContentPadValue) minContentPadValue.textContent = `${Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0))}px`;
+    if (minRadiusValue) minRadiusValue.textContent = `${Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0))}px`;
     if (viewportWidthValue) {
       const w = getLayoutViewportWidthPx();
       viewportWidthValue.textContent = g.layoutViewportWidthPx > 0 ? `${Math.round(g.layoutViewportWidthPx)}px` : `Auto (${Math.round(w)}px)`;
@@ -747,6 +777,16 @@ function setupLayoutControls(panel) {
       syncDerivedLayout();
     });
   }
+
+  // Minimum content padding clamp (px)
+  if (minContentPadSlider && minContentPadValue) {
+    minContentPadSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (!Number.isFinite(val)) return;
+      g.layoutMinContentPaddingPx = Math.max(0, val);
+      syncDerivedLayout({ triggerResize: true });
+    });
+  }
   
   // Corner radius (syncs wallRadius + cornerRadius)
   if (radiusSlider && radiusValue) {
@@ -755,6 +795,16 @@ function setupLayoutControls(panel) {
       if (!Number.isFinite(val)) return;
       g.wallRadiusVw = val;
       syncDerivedLayout();
+    });
+  }
+
+  // Minimum wall radius clamp (px)
+  if (minRadiusSlider && minRadiusValue) {
+    minRadiusSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (!Number.isFinite(val)) return;
+      g.layoutMinWallRadiusPx = Math.max(0, val);
+      syncDerivedLayout({ triggerResize: true });
     });
   }
 

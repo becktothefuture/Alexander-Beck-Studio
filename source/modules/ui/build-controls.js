@@ -47,6 +47,9 @@ export function setupBuildControls() {
     config.contentPaddingVw = g.contentPaddingVw;
     config.wallRadiusVw = g.wallRadiusVw;
     config.wallThicknessVw = g.wallThicknessVw;
+    // Minimum clamp targets (px)
+    config.layoutMinContentPaddingPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
+    config.layoutMinWallRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
     // Physics-only inset remains px.
     config.wallInset = g.wallInset;
 

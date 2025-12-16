@@ -138,7 +138,8 @@
   --footer-links-font-size: clamp(14px, 1.4vw, 18px);
   
   --caption-font-size: var(--text-lg);
-  --caption-font-weight: 700;
+  /* Molle only ships 400; using 700 causes inconsistent synthetic rendering on mobile. */
+  --caption-font-weight: 400;
   --caption-line-height: var(--line-height-tight);
   --caption-letter-spacing: 0.01em;
   --caption-offset: var(--gap-sm);
@@ -713,6 +714,16 @@ p {
   justify-content: center;
 }
 
+.sound-toggle[data-enabled="true"] {
+  /* Persistent “sound ON” signal (orange) */
+  color: var(--ball-8) !important;
+}
+
+.sound-toggle[data-enabled="true"]::after {
+  /* Keep dot hover-only, but match the ON color when it does appear */
+  background: var(--ball-8);
+}
+
 .sound-toggle::after {
   content: '';
   position: absolute;
@@ -741,6 +752,11 @@ p {
   opacity: 1 !important; /* Remove opacity on hover - full strength color */
 }
 
+.sound-toggle[data-enabled="true"]:hover {
+  /* Keep the ON signal stable even on hover */
+  color: var(--ball-8) !important;
+}
+
 .sound-toggle:hover::after {
   opacity: 1;
   animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
@@ -755,6 +771,8 @@ p {
   padding: 0 !important;
   height: auto !important;
   font-family: 'Molle', cursive !important;
+  /* Prevent synthetic bold/italic differences across platforms */
+  font-synthesis: none;
   font-size: var(--caption-font-size) !important;
   font-weight: var(--caption-font-weight) !important;
   line-height: 1 !important;
