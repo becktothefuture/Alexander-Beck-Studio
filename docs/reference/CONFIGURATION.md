@@ -43,6 +43,7 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
   "maxBalls": 300,
   "repelRadius": 120,
   "repelPower": 274000,
+  "cursorInfluenceRadiusVw": 14,
   "layoutViewportWidthPx": 0,
   "containerBorderVw": 1.11,
   "simulationPaddingVw": 0,

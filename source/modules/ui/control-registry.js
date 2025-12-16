@@ -175,6 +175,17 @@ export const CONTROL_SECTIONS = {
             updateCursorSize();
           });
         }
+      },
+      {
+        id: 'cursorInfluenceRadiusVw',
+        label: 'Influence Radius',
+        stateKey: 'cursorInfluenceRadiusVw',
+        type: 'range',
+        min: 0, max: 80, step: 0.5,
+        default: 14,
+        format: v => `${v.toFixed(1)}vw`,
+        parse: parseFloat,
+        hint: 'Universal cursor interaction zone (scales with viewport width).'
       }
     ]
   },
@@ -687,16 +698,6 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat
       },
       {
-        id: 'repelSize',
-        label: 'Repel Size',
-        stateKey: 'repelRadius',
-        type: 'range',
-        min: 50, max: 1000, step: 5,
-        default: 120,
-        format: v => v.toFixed(0),
-        parse: parseFloat
-      },
-      {
         id: 'repelPower',
         label: 'Repel Power',
         stateKey: 'repelPower',
@@ -982,16 +983,6 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat
       },
       {
-        id: 'weightlessRepelRadius',
-        label: 'Cursor Blast Radius',
-        stateKey: 'weightlessRepelRadius',
-        type: 'range',
-        min: 50, max: 450, step: 10,
-        default: 220,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10)
-      },
-      {
         id: 'weightlessRepelPower',
         label: 'Cursor Blast Power',
         stateKey: 'weightlessRepelPower',
@@ -1126,16 +1117,6 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         reinitMode: true
       },
-      {
-        id: 'pingPongCursor',
-        label: 'Cursor Size',
-        stateKey: 'pingPongCursorRadius',
-        type: 'range',
-        min: 20, max: 200, step: 10,
-        default: 50,
-        format: v => v.toFixed(0),
-        parse: parseFloat
-      }
     ]
   },
 
@@ -1225,16 +1206,6 @@ export const CONTROL_SECTIONS = {
         format: v => String(v),
         parse: v => parseInt(v, 10)
       },
-      {
-        id: 'bubblesDeflect',
-        label: 'Cursor Deflection',
-        stateKey: 'bubblesDeflectRadius',
-        type: 'range',
-        min: 20, max: 150, step: 10,
-        default: 80,
-        format: v => v.toFixed(0),
-        parse: parseFloat
-      }
     ]
   },
 

@@ -216,6 +216,12 @@ const state = {
   repelPower: 274000,
   repelSoft: 3.4,
   repellerEnabled: false,
+
+  // Universal cursor influence (vw-based, derived to px on layout updates)
+  // Goal: one radius that scales with viewport width so mobile/touch interaction
+  // feels “near the finger” instead of using desktop-fixed pixel distances.
+  cursorInfluenceRadiusVw: 14,          // 14vw ≈ 140px at 1000px viewport
+  cursorInfluenceRadiusPx: 140,         // derived (px)
   
   // Emitter
   emitterTimer: 0,
@@ -319,6 +325,16 @@ export function applyLayoutFromVwToPx() {
   state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
   state.wallThickness = Math.round(thicknessPx);
+
+  // Cursor influence radius (vw → px), then apply mode multipliers.
+  // This keeps a single “interaction zone” definition that naturally scales on mobile.
+  const baseCursorPx = Math.max(0, vwToPx(state.cursorInfluenceRadiusVw || 0, w));
+  state.cursorInfluenceRadiusPx = Math.round(baseCursorPx);
+  // Universal: all cursor interaction radii share the same base value.
+  state.repelRadius = Math.round(baseCursorPx);
+  state.weightlessRepelRadius = Math.round(baseCursorPx);
+  state.pingPongCursorRadius = Math.round(baseCursorPx);
+  state.bubblesDeflectRadius = Math.round(baseCursorPx);
 }
 
 export function applyLayoutCSSVars() {
@@ -357,6 +373,15 @@ export function initState(config) {
   // Repel softness: accept both `repelSoft` and `repelSoftness`
   if (config.repelSoft !== undefined) state.repelSoft = config.repelSoft;
   if (config.repelSoftness !== undefined) state.repelSoft = config.repelSoftness;
+
+  // Universal cursor influence radius (vw) + mode multipliers.
+  // Back-compat: if `cursorInfluenceRadiusVw` isn't provided, infer it from the legacy
+  // pixel-based repel radius (treating it as “desktop px” at a 1000px viewport baseline).
+  if (config.cursorInfluenceRadiusVw !== undefined) {
+    state.cursorInfluenceRadiusVw = clampNumber(config.cursorInfluenceRadiusVw, 0, 80, state.cursorInfluenceRadiusVw);
+  } else if (config.repelRadius !== undefined) {
+    state.cursorInfluenceRadiusVw = clampNumber(config.repelRadius / 10, 0, 80, state.cursorInfluenceRadiusVw);
+  }
   if (config.responsiveScaleMobile !== undefined) state.responsiveScaleMobile = config.responsiveScaleMobile;
   
   // Detect mobile/tablet devices and apply responsive scaling
