@@ -50,6 +50,11 @@ Direct ES module loading - instant refresh but not production-representative.
 - Full UI control panel with live parameter tuning
 - Nine simulation modes with instant switching (1-9)
 
+### Sizing + Spacing Rule (Project-Wide)
+- **No raw pixel literals in rules**: prefer CSS tokens (`var(--gap-*)`, `var(--text-*)`, `var(--size-*)`, etc.) or viewport units (`vw/vh/vmin/vmax`, `clamp()`).
+- **If you need an exact pixel value** to preserve layout, define a token in `:root` in `source/css/main.css` (e.g. `--gap-24: 24px;`) and reference it via `var(--gap-24)`.
+- **Why**: keeps spacing consistent, makes responsive tuning intentional, and avoids one-off magic numbers scattered through CSS.
+
 **Structure**:
 - `source/index.html`: Dev HTML shell (loads `main.js`)
 - `source/css/*.css`: Styles scoped to `#bravia-balls`

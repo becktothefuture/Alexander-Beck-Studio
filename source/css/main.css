@@ -96,6 +96,8 @@
   --gap-md: clamp(12px, 1.5vmin, 20px);
   --gap-lg: clamp(16px, 2vw, 24px);
   --gap-xl: clamp(24px, 2.5vw, 40px);
+  /* Fixed (non-responsive) spacing tokens: use when layout must not drift */
+  --gap-24: 24px;
   
   --text-xs: clamp(9px, 1vw, 12px);
   --text-sm: clamp(11px, 1.2vw, 14px);
@@ -413,7 +415,7 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   align-items: flex-start !important;
   flex-wrap: nowrap !important;
   width: 100% !important;
-  gap: 56px !important;
+  gap: var(--gap-24) !important;
   pointer-events: none;
 }
 
@@ -542,7 +544,7 @@ p {
   display: flex !important;
   flex-direction: column !important;
   width: 100% !important;
-  gap: 24px !important; /* Spacing between Links Row and Meta Row */
+  gap: var(--gap-24) !important; /* Spacing between Links Row and Meta Row */
   z-index: 20 !important;
   pointer-events: none;
 }
@@ -997,7 +999,7 @@ body.dark-mode .sound-toggle {
   }
   
   .ui-bottom {
-    gap: 24px !important;
+    gap: var(--gap-24) !important;
   }
   
   .ui-nav-row {

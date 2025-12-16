@@ -1,3 +1,10 @@
+---
+version: "1.0.0"
+lastUpdated: "2025-01-01"
+format: "cursor-rules-v1"
+schema: ".cursorrules.json"
+---
+
 # Alexander Beck Studio Website - Project Rules
 
 ## Documentation as Source of Truth
@@ -20,6 +27,12 @@
 7. **O(1) hot paths** - Constant time per entity in loops
 8. **Mobile support** - Test on device emulation, 60% ball scaling
 9. **Accessibility** - ARIA labels, keyboard nav, prefers-reduced-motion
+
+## CSS Sizing & Spacing Tokens (Project Rule)
+
+1. **No raw pixel literals in CSS rules**: prefer design tokens (e.g. `var(--gap-*)`, `var(--text-*)`, `var(--size-*)`) or viewport units (`vw/vh/vmin/vmax`, `clamp()`).
+2. **If an exact pixel value is required** to preserve layout, define it once as a token in `:root` (in `source/css/main.css`) and reference it via `var()`.
+3. **Keep the site looking identical** when tokenizing: use fixed tokens (e.g. `--gap-24: 24px`) when a responsive clamp would change computed values.
 
 ## Files
 
@@ -65,5 +78,123 @@ git push origin main
 ```bash
 git pull origin main
 ```
+
+## File Location Quick Reference
+
+**Core Files:**
+- `source/main.js` - Entry point, mode switching
+- `source/modules/core/` - Constants, state management
+- `source/modules/physics/` - Ball class, collision detection
+- `source/modules/rendering/` - Canvas, theme, dark mode
+- `source/modules/ui/` - Panel, keyboard, controls
+- `source/modules/modes/` - Mode implementations (pit, flies, weightless, pulse-grid)
+- `source/css/main.css` - All styles, design tokens in `:root`
+- `source/config/default-config.json` - Runtime defaults
+
+**Documentation:**
+- `docs/reference/MODES.md` - Physics specs (authoritative)
+- `docs/development/ARCHITECTURE.md` - Code structure patterns
+- `docs/reference/CONFIGURATION.md` - Config parameter definitions
+- `AI-AGENT-GUIDE.md` - Quick reference for AI agents
+
+## Efficient Search Strategies
+
+**Use `grep` for:**
+- Exact symbol/function names: `grep -r "functionName" source/`
+- CSS selectors/classes: `grep -r "\.class-name" source/css/`
+- Config keys: `grep -r "\"key\"" source/config/`
+- Import paths: `grep -r "from.*module" source/`
+
+**Use `codebase_search` for:**
+- "How does X work?" - Understanding behavior
+- "Where is Y handled?" - Finding implementation
+- "What happens when Z?" - Tracing execution flow
+
+**Use `read_file` for:**
+- Reading documentation first (before changes)
+- Understanding file structure
+- Checking existing patterns before adding similar code
+
+**Search order for new features:**
+1. `docs/reference/MODES.md` - Check if mode/behavior is documented
+2. `docs/development/ARCHITECTURE.md` - Find similar patterns
+3. `grep` for similar implementations in `source/modules/`
+4. `read_file` on relevant module files
+
+## Change Verification Workflow
+
+**Before making changes:**
+1. Read relevant docs (MODES.md, ARCHITECTURE.md, CONFIGURATION.md)
+2. Search for similar patterns: `grep -r "similarPattern" source/`
+3. Understand current implementation: `read_file` on relevant files
+
+**After making changes:**
+1. **Visual test**: Open `source/index.html` in browser, test affected features
+2. **Performance check**: Press `/` to show FPS counter, verify 60 FPS
+3. **Mode test**: Test all 4 modes (keys 1,2,3,4) if physics/rendering changed
+4. **Build test**: Run `npm run build`, verify no errors
+5. **Production test**: `npm start`, test `public/index.html` on :8000
+6. **Lint check**: Run `read_lints` on modified files
+
+**Performance verification:**
+- FPS counter: Press `/` key in browser
+- Check console for warnings/errors
+- Test with 200+ balls (Ball Pit mode)
+- Profile in DevTools Performance tab if FPS drops
+
+## Common Patterns & Anti-Patterns
+
+**✅ DO:**
+- Use existing design tokens: `var(--gap-lg)`, `var(--text-md)`, `var(--size-icon)`
+- Follow module structure: `source/modules/{category}/{file}.js`
+- Use fixed timestep: `PHYSICS_DT = 1/120` (120Hz physics)
+- Use spatial hashing for collisions (O(n) not O(n²))
+- Early returns, minimal nesting
+- Descriptive names: `updateBallPhysics()` not `update()`
+
+**❌ DON'T:**
+- Raw pixel values in CSS (use tokens or viewport units)
+- Edit `public/` directly (always edit `source/`)
+- Allocate in hot paths (physics/render loops)
+- O(n²) collision detection (use spatial hash)
+- Change physics constants without updating MODES.md
+- Add localStorage for user text (privacy-first)
+- Break 60 FPS requirement
+
+## Performance Constraints
+
+**Hot path rules:**
+- Physics loop (`step()`): O(1) per ball, no allocations
+- Render loop (`draw()`): Batch operations, minimize canvas state changes
+- Collision detection: Use spatial hash, not brute force O(n²)
+
+**If FPS drops:**
+1. Check ball count (should handle 200+)
+2. Profile with DevTools Performance tab
+3. Look for O(n²) loops or allocations in hot paths
+4. Verify spatial hashing is active
+5. Revert if can't fix quickly
+
+## Context Gathering Order
+
+**For new features:**
+1. `docs/reference/MODES.md` - Understand physics/behavior specs
+2. `docs/development/ARCHITECTURE.md` - Find similar patterns
+3. `grep` for similar code in `source/modules/`
+4. `read_file` on 2-3 similar module files
+5. Implement following existing patterns
+
+**For bug fixes:**
+1. Reproduce issue, note symptoms
+2. `grep` for related code (error messages, function names)
+3. `codebase_search` for "How does X work?"
+4. `read_file` on relevant files
+5. Fix following existing patterns
+
+**For CSS changes:**
+1. Check `source/css/main.css` for existing tokens
+2. Use `grep` to find similar selectors
+3. Follow token system (no raw px)
+4. Test visual appearance matches intent
 
 See AI-AGENT-GUIDE.md and docs/ for complete rules.
