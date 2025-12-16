@@ -94,8 +94,8 @@ function recycleBubble(ball) {
   ball.wobblePhase = Math.random() * Math.PI * 2;
   ball.wobbleFreq = 2 + Math.random() * 3;
   
-  // New random color from full palette
-  ball.c = pickRandomColor();
+  // New random color from full palette (using weighted distribution)
+  ball.color = pickRandomColor();
   
   // New target size
   const minR = g.R_MIN * 0.5;

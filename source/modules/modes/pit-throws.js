@@ -15,33 +15,78 @@ function randBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
-function shuffle8InPlace(a) {
-  // Fisher-Yates shuffle for an 8-slot array (numbers 0..7).
-  for (let i = 7; i > 0; i--) {
-    const j = (Math.random() * (i + 1)) | 0;
-    const tmp = a[i];
-    a[i] = a[j];
-    a[j] = tmp;
+/**
+ * Create a weighted color bag that ensures all colors appear while maintaining ratio
+ * Bag contains 100 items: [50, 25, 12, 6, 3, 2, 1, 1] for colors [0-7]
+ */
+function createWeightedColorBag() {
+  const g = getGlobals();
+  const colors = g.currentColors;
+  if (!colors || colors.length === 0) {
+    return [getColorByIndex(0)]; // Fallback
   }
+
+  const bag = [];
+  // Fill bag according to weights (scaled to 100 items for exact ratio)
+  const counts = [50, 25, 12, 6, 3, 2, 1, 1];
+  for (let i = 0; i < 8 && i < colors.length; i++) {
+    for (let j = 0; j < counts[i]; j++) {
+      bag.push(colors[i]);
+    }
+  }
+  
+  // Fisher-Yates shuffle
+  for (let i = bag.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = bag[i];
+    bag[i] = bag[j];
+    bag[j] = tmp;
+  }
+  
+  return bag;
 }
 
-function getNextBalancedColorIndex(state) {
-  // Match Ball Pit’s “random colors but balanced” feel:
-  // - Each bag contains 0..7 exactly once (guarantees each color appears)
-  // - Bag order is randomized (feels random, avoids deterministic cycles)
-  // - Refill + reshuffle when exhausted
-  const bag = state.colorBag;
-  if (!bag) return 0;
-  if (state.colorBagIdx >= 8) {
-    shuffle8InPlace(bag);
+/**
+ * Create an initial “one-of-each” bag (0..7) so Pit Throws matches the same
+ * palette-coverage rationale as other modes: you always *see* all colors early.
+ * (After the bootstrap, we use the weighted bag to preserve the Ball Pit ratio.)
+ */
+function createBootstrapColorBag() {
+  const bag = [];
+  for (let i = 0; i < 8; i++) bag.push(getColorByIndex(i));
+
+  // Fisher-Yates shuffle
+  for (let i = bag.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = bag[i];
+    bag[i] = bag[j];
+    bag[j] = tmp;
+  }
+
+  return bag;
+}
+
+/**
+ * Get next color from weighted bag, refilling when exhausted
+ */
+function getNextWeightedColor(state) {
+  // Bootstrap: guarantee each palette color appears once (0..7) before weighted distribution.
+  if (state.bootstrapBag && state.bootstrapIdx < state.bootstrapBag.length) {
+    const color = state.bootstrapBag[state.bootstrapIdx];
+    state.bootstrapIdx++;
+    return color;
+  }
+
+  if (!state.colorBag || state.colorBagIdx >= state.colorBag.length) {
+    state.colorBag = createWeightedColorBag();
     state.colorBagIdx = 0;
   }
-  const c = bag[state.colorBagIdx] | 0;
+  const color = state.colorBag[state.colorBagIdx];
   state.colorBagIdx++;
-  return c;
+  return color;
 }
 
-function spawnOneThrow(g, colorIndex, side, { speedMul = 1, spreadMul = 1 } = {}) {
+function spawnOneThrow(g, color, side, { speedMul = 1, spreadMul = 1 } = {}) {
   const w = g.canvas.width;
   const h = g.canvas.height;
   const DPR = g.DPR;
@@ -76,7 +121,7 @@ function spawnOneThrow(g, colorIndex, side, { speedMul = 1, spreadMul = 1 } = {}
   const speedJitter = clamp(g.pitThrowSpeedJitter ?? 0.22, 0, 0.8);
   const angleJitter = clamp(g.pitThrowAngleJitter ?? 0.16, 0, 0.8);
 
-  const ball = spawnBall(x, y, getColorByIndex(colorIndex));
+  const ball = spawnBall(x, y, color);
 
   // Aim vector toward (aimX, aimY), with angular jitter.
   const dx = aimX - x;
@@ -111,34 +156,32 @@ export function initializePitThrows() {
   clearBalls();
 
   // Emitter state (kept on globals to avoid per-frame allocations)
-  g._pitThrows = {
-    colorIndex: 0,
+  const initialState = {
+    bootstrapBag: createBootstrapColorBag(),
+    bootstrapIdx: 0,
+    colorBag: null,
+    colorBagIdx: 0,
     side: 0, // 0 = left, 1 = right
     inColorRemaining: clamp(g.pitThrowBatchSize ?? 13, 1, 120) | 0,
     cooldown: 0,
     phase: 'throw', // 'throw' | 'pause'
     queueA: -1,
     queueB: -1,
-    queueColorA: 0,
-    queueColorB: 0,
+    queueColorA: null,
+    queueColorB: null,
     queueSideA: 0,
-    queueSideB: 1,
-
-    // Balanced “random” color distribution (like standard Ball Pit):
-    // each bag contains all 8 colors once, shuffled.
-    colorBag: [0, 1, 2, 3, 4, 5, 6, 7],
-    colorBagIdx: 8
+    queueSideB: 1
   };
-
-  // Force initial shuffle so the first run is not 0..7 in order.
-  shuffle8InPlace(g._pitThrows.colorBag);
-  g._pitThrows.colorBagIdx = 0;
-
-  // Start on a randomized-but-balanced first color.
-  g._pitThrows.colorIndex = getNextBalancedColorIndex(g._pitThrows);
+  
+  // Initialize weighted color bag and get first color
+  initialState.color = getNextWeightedColor(initialState);
+  initialState.queueColorA = getNextWeightedColor(initialState);
+  initialState.queueColorB = getNextWeightedColor(initialState);
+  
+  g._pitThrows = initialState;
 
   // IMPORTANT: Physics loop early-returns if there are no balls, so seed with 1 throw.
-  spawnOneThrow(g, g._pitThrows.colorIndex, g._pitThrows.side);
+  spawnOneThrow(g, g._pitThrows.color, g._pitThrows.side);
   g._pitThrows.inColorRemaining = Math.max(0, g._pitThrows.inColorRemaining - 1);
 }
 
@@ -204,9 +247,9 @@ export function updatePitThrows(dtSeconds) {
 
   while (spawned < maxSpawnsThisFrame && g.balls.length < targetBalls) {
     if (s.phase === 'pause') {
-      // Transition into next color
+      // Transition into next color (using weighted bag - ensures all colors appear)
       s.phase = 'throw';
-      s.colorIndex = getNextBalancedColorIndex(s);
+      s.color = getNextWeightedColor(s);
       s.side = 1 - s.side; // alternate starting side each color
       s.inColorRemaining = clamp(g.pitThrowBatchSize ?? 13, 1, 120) | 0;
     }
@@ -218,7 +261,7 @@ export function updatePitThrows(dtSeconds) {
 
       const speedMul = 1 + randBetween(-speedVar, speedVar);
       const spreadMul = 1 + randBetween(-spreadVar, spreadVar);
-      spawnOneThrow(g, s.colorIndex, thisSide, { speedMul, spreadMul });
+      spawnOneThrow(g, s.color, thisSide, { speedMul, spreadMul });
       s.inColorRemaining--;
       spawned++;
 
@@ -229,11 +272,11 @@ export function updatePitThrows(dtSeconds) {
         // If both occupied, we just skip pairing this time.
         if (s.queueA < 0) {
           s.queueA = pairStagger;
-          s.queueColorA = s.colorIndex;
+          s.queueColorA = s.color;
           s.queueSideA = side2;
         } else if (s.queueB < 0) {
           s.queueB = pairStagger;
-          s.queueColorB = s.colorIndex;
+          s.queueColorB = s.color;
           s.queueSideB = side2;
         }
       }

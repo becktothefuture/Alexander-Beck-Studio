@@ -5,7 +5,7 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls } from '../core/state.js';
-import { getColorByIndex } from '../visual/colors.js';
+import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
 
 function clamp(v, lo, hi) {
   return v < lo ? lo : (v > hi ? hi : v);
@@ -41,16 +41,41 @@ export function initializeCritters() {
 
   const count = Math.max(10, Math.min(260, globals.critterCount | 0));
 
-  // Keep critters visually “creature-sized”
+  // Keep critters visually "creature-sized"
   const rMin = Math.max(4 * DPR, globals.R_MIN * 0.70);
   const rMax = Math.max(rMin + 1, Math.min(globals.R_MAX * 0.90, 16 * DPR));
 
-  for (let i = 0; i < count; i++) {
+  // First, ensure at least one critter of each color (0-7) for palette representation
+  for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
+    const x = (Math.random() * w) | 0;
+    const y = (Math.random() * h) | 0;
+    const color = getColorByIndex(colorIndex);
+    const ball = spawnBall(x, y, color);
+
+    // Override radius tighter for "critters" feel
+    const rr = rMin + Math.random() * (rMax - rMin);
+    ball.r = rr;
+    ball.m = Math.max(1, rr * rr * 0.12);
+
+    ball.vx = 0;
+    ball.vy = 0;
+
+    // Per-ball "critter brain" (stored on the ball object; no per-frame allocs)
+    ball._critterHeading = Math.random() * Math.PI * 2;
+    ball._critterTurn = 0;
+    ball._critterPhase = Math.random();
+    ball._critterLastPhase = ball._critterPhase;
+    ball._critterWander = (Math.random() * 2 - 1); // stable personality
+    ball._critterPause = 0;
+  }
+
+  // Then fill the rest with weighted random colors
+  for (let i = 8; i < count; i++) {
     const x = (Math.random() * w) | 0;
     const y = (Math.random() * h) | 0;
 
-    // Ensure some palette variety
-    const color = getColorByIndex(i % 8);
+    // Use weighted color distribution (matches Ball Pit ratio)
+    const color = pickRandomColor();
     const ball = spawnBall(x, y, color);
 
     // Override radius tighter for “critters” feel
