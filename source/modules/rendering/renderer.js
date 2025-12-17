@@ -208,12 +208,19 @@ export function resize() {
     const vv = window.visualViewport;
     const vhPx = (vv && typeof vv.height === 'number') ? vv.height : window.innerHeight;
     const topPx = (vv && typeof vv.offsetTop === 'number') ? vv.offsetTop : 0;
+    const vwPx = (vv && typeof vv.width === 'number') ? vv.width : window.innerWidth;
+    const leftPx = (vv && typeof vv.offsetLeft === 'number') ? vv.offsetLeft : 0;
     // Center of the *visual* viewport (keyboard + URL bar aware).
     const centerYPx = topPx + (vhPx / 2);
+    const centerXPx = leftPx + (vwPx / 2);
 
     const rootStyle = document.documentElement?.style;
     rootStyle?.setProperty('--abs-viewport-h', `${vhPx}px`);
     rootStyle?.setProperty('--abs-vv-offset-top', `${topPx}px`);
+    rootStyle?.setProperty('--abs-vv-offset-left', `${leftPx}px`);
+    rootStyle?.setProperty('--abs-vv-h', `${vhPx}px`);
+    rootStyle?.setProperty('--abs-vv-w', `${vwPx}px`);
+    rootStyle?.setProperty('--abs-vv-center-x', `${centerXPx}px`);
     rootStyle?.setProperty('--abs-vv-center-y', `${centerYPx}px`);
   } catch (e) {}
 

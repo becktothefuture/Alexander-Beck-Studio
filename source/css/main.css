@@ -498,7 +498,8 @@ body.dark-mode .edge-chapter__text {
   top: var(--container-border-y, var(--container-border)) !important;
   left: var(--container-border-x, var(--container-border)) !important;
   right: var(--container-border-x, var(--container-border)) !important;
-  height: calc(var(--abs-viewport-h, 100vh) - (var(--container-border-y, var(--container-border)) * 2)) !important;
+  height: calc(100vh - (var(--container-border-y, var(--container-border)) * 2)) !important;
+  height: calc(100svh - (var(--container-border-y, var(--container-border)) * 2)) !important;
   width: auto !important;
   /* Height is explicitly controlled above to avoid iOS Safari 100vh cut-off. */
   
@@ -1012,7 +1013,10 @@ p {
   top: 0;
   left: 0;
   right: 0;
-  height: var(--abs-viewport-h, 100vh);
+  /* Stable frame height on mobile: do NOT shrink the whole scene with the keyboard.
+     Use small viewport units when available (iOS Safari UI-safe), fallback to vh. */
+  height: 100vh;
+  height: 100svh;
   z-index: 0;
   pointer-events: auto;
   transform-origin: center center;
@@ -1111,7 +1115,8 @@ body.dark-mode .brand-logo-svg {
   top: var(--container-border-y, var(--container-border));
   left: var(--container-border-x, var(--container-border));
   right: var(--container-border-x, var(--container-border));
-  height: calc(var(--abs-viewport-h, 100vh) - (var(--container-border-y, var(--container-border)) * 2));
+  height: calc(100vh - (var(--container-border-y, var(--container-border)) * 2));
+  height: calc(100svh - (var(--container-border-y, var(--container-border)) * 2));
   border-radius: var(--container-radius);
   background: var(--bg-light);
   z-index: 1; 
@@ -1132,7 +1137,8 @@ body.dark-mode .brand-logo-svg {
   top: var(--container-border-y, var(--container-border));
   left: var(--container-border-x, var(--container-border));
   right: var(--container-border-x, var(--container-border));
-  height: calc(var(--abs-viewport-h, 100vh) - (var(--container-border-y, var(--container-border)) * 2));
+  height: calc(100vh - (var(--container-border-y, var(--container-border)) * 2));
+  height: calc(100svh - (var(--container-border-y, var(--container-border)) * 2));
   border-radius: var(--container-radius);
   background: transparent;
   z-index: 5;
