@@ -44,26 +44,26 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 
 The arrow keys cycle through a fixed story order (looping). Think of it as chapters — each mode is a new lens on the same set of elements:
 
-1. **Ball Pit** (`pit`) — **RAW INGREDIENTS**
-2. **Carbonated Bubbles** (`bubbles`) — **SIGNAL NOISE**
-3. **Critters** (`critters`) — **CONCEPT MODEL**
-4. **Flies to Light** (`flies`) — **SWARM LOGIC**
-5. **Ball Pit (Throws)** (`pit-throws`) — **SOURCE ITERATION**
-6. **Water Swimming** (`water`) — **FLOW STATE**
-7. **Vortex Sheets** (`vortex`) — **ORDERED CHAOS**
-8. **Magnetic** (`magnetic`) — **FORCE FIELDS**
-9. **Ping Pong** (`ping-pong`) — **FEEDBACK PATTERNS**
-10. **Zero Gravity** (`weightless`) — **ZERO GRAVITY**
-11. **Kaleidoscope I** (`kaleidoscope-1`) — **LANGUAGE SEED**
-12. **Kaleidoscope II** (`kaleidoscope-2`) — **LANGUAGE SURGE**
-13. **Kaleidoscope III** (`kaleidoscope-3`) — **LANGUAGE STORM**
-14. **Kaleidoscope** (`kaleidoscope`) — **A NEW LANGUAGE**
-15. **Orbit 3D** (`orbit-3d`) — **AXIAL STORM**
-16. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`) — **TIGHT SWARM**
-17. **Crystal Lattice** (`lattice`) — **CRYSTAL LOGIC**
-18. **Neural Network** (`neural`) — **SYNAPTIC WEB**
-19. **Parallax (Linear)** (`parallax-linear`) — **DEPTH DRIFT**
-20. **Parallax (Perspective)** (`parallax-perspective`) — **PERSPECTIVE FIELD**
+1. **Ball Pit** (`pit`) — **SOURCE MATERIAL**
+2. **Flies to Light** (`flies`) — **SEEKING LIGHT**
+3. **Crystal Lattice** (`lattice`) — **CRYSTAL FRAME**
+4. **Carbonated Bubbles** (`bubbles`) — **SIGNAL NOISE**
+5. **Ball Pit (Throws)** (`pit-throws`) — **ITERATION ENGINE**
+6. **Magnetic** (`magnetic`) — **FORCE FIELDS**
+7. **Water Swimming** (`water`) — **FLOW STATE**
+8. **Ping Pong** (`ping-pong`) — **FEEDBACK LOOP**
+9. **Neural Network** (`neural`) — **SYNAPTIC WEB**
+10. **Vortex Sheets** (`vortex`) — **ORDERED CHAOS**
+11. **Orbit 3D** (`orbit-3d`) — **AXIAL STORM**
+12. **Zero Gravity** (`weightless`) — **ZERO GRAVITY**
+13. **Parallax (Linear)** (`parallax-linear`) — **DEPTH DRIFT**
+14. **Critters** (`critters`) — **LIVING MODELS**
+15. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`) — **ORBIT SWARM**
+16. **Parallax (Perspective)** (`parallax-perspective`) — **PERSPECTIVE FIELD**
+17. **Kaleidoscope I** (`kaleidoscope-1`) — **LANGUAGE SEED**
+18. **Kaleidoscope II** (`kaleidoscope-2`) — **LANGUAGE FLOW**
+19. **Kaleidoscope III** (`kaleidoscope-3`) — **LANGUAGE BLOOM**
+20. **Kaleidoscope** (`kaleidoscope`) — **A NEW LANGUAGE**
 
 ---
 

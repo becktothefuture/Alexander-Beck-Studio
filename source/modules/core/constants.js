@@ -33,30 +33,34 @@ export const MODES = {
 // ║          Used for ArrowLeft/ArrowRight navigation (looping)                   ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 //
-// Story arc: arrival → foundation → first breath → creatures → swarm → current
-//           → storm → forces → duel → release → transformation (finale)
+// Story arc (curated alternation):
+// - Keep tonal contrast between adjacent sims (avoid “similar twice in a row”)
+// - Ball Pit opens the story
+// - Ball Pit (Throws) lands mid-story (the “filling up” iteration beat)
+// - Kaleidoscopes are contiguous and increase complexity
+// - Keep orbit and parallax variants separated
 export const NARRATIVE_MODE_SEQUENCE = [
   MODES.PIT,
-  MODES.BUBBLES,
-  MODES.CRITTERS,
   MODES.FLIES,
+  MODES.LATTICE,
+  MODES.BUBBLES,
   MODES.PIT_THROWS,
-  MODES.WATER,
-  MODES.VORTEX,
   MODES.MAGNETIC,
+  MODES.WATER,
   MODES.PING_PONG,
+  MODES.NEURAL,
+  MODES.VORTEX,
+  MODES.ORBIT_3D,
   MODES.WEIGHTLESS,
-  // Kaleidoscope variants (treated as variants; kept consecutive)
+  MODES.PARALLAX_LINEAR,
+  MODES.CRITTERS,
+  MODES.ORBIT_3D_2,
+  MODES.PARALLAX_PERSPECTIVE,
+  // Kaleidoscope variants (treated as variants; kept consecutive, increasing complexity)
   MODES.KALEIDOSCOPE_1,
   MODES.KALEIDOSCOPE_2,
   MODES.KALEIDOSCOPE_3,
-  MODES.KALEIDOSCOPE,
-  MODES.ORBIT_3D,
-  MODES.ORBIT_3D_2,
-  MODES.LATTICE,
-  MODES.NEURAL,
-  MODES.PARALLAX_LINEAR,
-  MODES.PARALLAX_PERSPECTIVE
+  MODES.KALEIDOSCOPE
 ];
 
 // Short chapter titles (no numbers) — used by the left-edge narrative label.
@@ -64,25 +68,25 @@ export const NARRATIVE_MODE_SEQUENCE = [
 // not literal mode names.
 export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.PIT]: 'SOURCE MATERIAL',
+  [MODES.FLIES]: 'SEEKING LIGHT',
+  [MODES.LATTICE]: 'CRYSTAL FRAME',
   [MODES.BUBBLES]: 'SIGNAL NOISE',
-  [MODES.CRITTERS]: 'CONCEPT MODEL',
-  [MODES.FLIES]: 'SWARM LOGIC',
-  [MODES.PIT_THROWS]: 'SOURCE ITERATION',
+  [MODES.PIT_THROWS]: 'ITERATION ENGINE',
   [MODES.WATER]: 'FLOW STATE',
   [MODES.VORTEX]: 'ORDERED CHAOS',
   [MODES.MAGNETIC]: 'FORCE FIELDS',
-  [MODES.PING_PONG]: 'FEEDBACK PATTERNS',
+  [MODES.PING_PONG]: 'FEEDBACK LOOP',
   [MODES.WEIGHTLESS]: 'ZERO GRAVITY',
   [MODES.KALEIDOSCOPE]: 'A NEW LANGUAGE',
   [MODES.KALEIDOSCOPE_1]: 'LANGUAGE SEED',
   [MODES.KALEIDOSCOPE_2]: 'LANGUAGE FLOW',
   [MODES.KALEIDOSCOPE_3]: 'LANGUAGE BLOOM',
   [MODES.ORBIT_3D]: 'AXIAL STORM',
-  [MODES.ORBIT_3D_2]: 'TIGHT SWARM',
-  [MODES.LATTICE]: 'CRYSTAL LOGIC',
+  [MODES.ORBIT_3D_2]: 'ORBIT SWARM',
   [MODES.NEURAL]: 'SYNAPTIC WEB',
   [MODES.PARALLAX_LINEAR]: 'DEPTH DRIFT',
-  [MODES.PARALLAX_PERSPECTIVE]: 'PERSPECTIVE FIELD'
+  [MODES.PARALLAX_PERSPECTIVE]: 'PERSPECTIVE FIELD',
+  [MODES.CRITTERS]: 'LIVING MODELS'
 };
 
 export const CONSTANTS = {
