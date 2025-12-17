@@ -1060,6 +1060,38 @@ export const CONTROL_SECTIONS = {
           });
         }
       },
+      {
+        id: 'mobileEdgeLabelSizeFactor',
+        label: 'Mobile Label Size',
+        stateKey: 'mobileEdgeLabelSizeFactor',
+        type: 'range',
+        min: 0.3, max: 2.0, step: 0.05,
+        default: 0.85,
+        format: v => `${v.toFixed(2)}×`,
+        parse: parseFloat,
+        hint: 'Font size multiplier for edge labels on mobile',
+        onChange: (g, val) => {
+          import('../core/state.js').then(mod => {
+            mod.applyLayoutCSSVars();
+          });
+        }
+      },
+      {
+        id: 'mobileEdgeLabelOpacity',
+        label: 'Mobile Label Opacity',
+        stateKey: 'mobileEdgeLabelOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.5,
+        format: v => `${(v * 100).toFixed(0)}%`,
+        parse: parseFloat,
+        hint: 'Opacity for edge labels on mobile',
+        onChange: (g, val) => {
+          import('../core/state.js').then(mod => {
+            mod.applyLayoutCSSVars();
+          });
+        }
+      },
       
       // Advanced Wobble Settings
       {
