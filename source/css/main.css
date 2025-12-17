@@ -323,6 +323,7 @@
 
 html {
   overflow: hidden;
+  overscroll-behavior: none;
   margin: 0;
   padding: 0;
   width: 100%;
@@ -333,6 +334,7 @@ html {
 body,
 body.body {
   overflow: hidden;
+  overscroll-behavior: none;
   margin: 0;
   /* Y (top/bottom) X (left/right) - mobile factor only on X */
   padding: var(--container-border-y, var(--container-border)) var(--container-border-x, var(--container-border));

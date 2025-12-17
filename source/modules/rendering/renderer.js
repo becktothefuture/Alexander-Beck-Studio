@@ -207,7 +207,14 @@ export function resize() {
   try {
     const vv = window.visualViewport;
     const vhPx = (vv && typeof vv.height === 'number') ? vv.height : window.innerHeight;
-    document.documentElement?.style?.setProperty('--abs-viewport-h', `${vhPx}px`);
+    const topPx = (vv && typeof vv.offsetTop === 'number') ? vv.offsetTop : 0;
+    // Center of the *visual* viewport (keyboard + URL bar aware).
+    const centerYPx = topPx + (vhPx / 2);
+
+    const rootStyle = document.documentElement?.style;
+    rootStyle?.setProperty('--abs-viewport-h', `${vhPx}px`);
+    rootStyle?.setProperty('--abs-vv-offset-top', `${topPx}px`);
+    rootStyle?.setProperty('--abs-vv-center-y', `${centerYPx}px`);
   } catch (e) {}
 
   // Keep vw-based layout responsive: on any resize we recompute derived px and

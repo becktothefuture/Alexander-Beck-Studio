@@ -11,6 +11,7 @@ import { setupRenderer, getCanvas, getContext, resize, setForceRenderCallback } 
 import { render } from './modules/physics/engine.js';
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
+import { setupOverscrollLock } from './modules/input/overscroll-lock.js';
 import { setupCustomCursor } from './modules/rendering/cursor.js';
 import { setMode, MODES, getForceApplicator } from './modules/modes/mode-controller.js';
 import { startMainLoop } from './modules/rendering/loop.js';
@@ -292,6 +293,10 @@ function enhanceFooterLinksForMobile() {
     // Setup pointer tracking BEFORE dark mode (needed for interactions)
     setupPointer();
     log('✓ Pointer tracking configured');
+
+    // iOS Safari: prevent page rubber-banding while still allowing UI internal scrolling.
+    setupOverscrollLock();
+    log('✓ Overscroll lock configured');
     
     // Setup custom cursor (circular, matches ball size)
     setupCustomCursor();
