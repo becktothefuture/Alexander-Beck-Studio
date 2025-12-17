@@ -4,7 +4,7 @@
   "autoDarkNightStartHour": 18,
   "autoDarkNightEndHour": 6,
   "sizeScale": 0.6,
-  "responsiveScaleMobile": 0.85,
+  "responsiveScaleMobile": 1.0625,
   "mobileObjectReductionFactor": 0.7,
   "ballSoftness": 28,
   "ballSpacing": 0.28,

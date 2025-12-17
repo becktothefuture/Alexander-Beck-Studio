@@ -209,8 +209,20 @@ export function showOverlay() {
     // Transform cursor to larger transparent circle
     const cursor = document.getElementById('custom-cursor');
     if (cursor) {
-        cursor.classList.add('gate-active');
-        cursor.style.display = 'block';
+        // On mobile, don't force-show the custom cursor inside dialogs.
+        // (It can appear as an odd floating circle while the keyboard opens.)
+        let isMobileViewport = false;
+        try {
+            isMobileViewport = Boolean(window.matchMedia && window.matchMedia('(max-width: 600px)').matches);
+        } catch (e) {}
+
+        if (isMobileViewport) {
+            cursor.classList.remove('gate-active');
+            cursor.style.display = 'none';
+        } else {
+            cursor.classList.add('gate-active');
+            cursor.style.display = 'block';
+        }
     }
     
     // Apply depth effect to scene

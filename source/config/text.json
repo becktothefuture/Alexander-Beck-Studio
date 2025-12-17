@@ -71,15 +71,15 @@
     },
     "cv": {
       "title": "Bio/CV",
-      "description": "Because spam bots don't deserve nice things—and neither do recruiters who don't read portfolios. This keeps my inbox slightly more civilized."
+      "description": "Because spam bots don’t deserve nice things. This keeps my inbox a little more civilised. Need access? Get in touch for the code."
     },
     "portfolio": {
       "title": "View Portfolio",
-      "description": "Good work deserves good context. This small step ensures you're here with intention, not just browsing. Quality takes time—yours and mine."
+      "description": "Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated. Blame the fine print :-) "
     },
     "contact": {
       "title": "Contact",
-      "description": "For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain."
+      "description": "For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain. For job opportunities, drop me a note."
     }
   }
 }
