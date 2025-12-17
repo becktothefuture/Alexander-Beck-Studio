@@ -688,6 +688,13 @@ export function applyLayoutCSSVars() {
     : state.containerBorderVw;
   root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * mobileWallFactor}`);
   
+  // Edge label inset: relative to wall (containerBorder) + small gap + user adjustment
+  const edgeLabelGap = 8; // Base gap between wall and label (px)
+  const edgeLabelAdjust = state.edgeLabelInsetAdjustPx || 0;
+  const edgeLabelInset = state.containerBorder + edgeLabelGap + edgeLabelAdjust;
+  root.style.setProperty('--edge-label-inset', `${edgeLabelInset}px`);
+  root.style.setProperty('--edge-label-inset-adjust', `${edgeLabelAdjust}px`);
+  
   // Mobile edge label visibility (CSS only applies this var on mobile via @media)
   const displayValue = (isMobileLayout && state.mobileEdgeLabelsVisible) ? 'flex' : 'none';
   root.style.setProperty('--edge-label-mobile-display', displayValue);

@@ -891,9 +891,12 @@ export const CONTROL_SECTIONS = {
         default: 0,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
-        hint: 'Adjusts edge label inset. Higher = further inward; lower/negative = outward.',
+        hint: 'Adjusts edge label inset relative to wall. Higher = inward; lower = outward.',
         onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--edge-label-inset-adjust', `${val}px`);
+          // Recalculate edge label inset (relative to wall)
+          import('../core/state.js').then(mod => {
+            mod.applyLayoutCSSVars();
+          });
         }
       },
       
