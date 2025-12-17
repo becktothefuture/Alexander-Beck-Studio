@@ -6,6 +6,8 @@
 import { getGlobals, clearBalls } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
+import { randomRadiusForMode } from '../utils/ball-sizing.js';
+import { MODES } from '../core/constants.js';
 
 // Ripple system
 const ripples = [];
@@ -26,7 +28,7 @@ export function initializeWater() {
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
     const y = Math.random() * h;
-    const size = globals.R_MIN + Math.random() * (globals.R_MAX - globals.R_MIN);
+    const size = randomRadiusForMode(globals, MODES.WATER);
     const color = getColorByIndex(colorIndex);
     const ball = new Ball(x, y, size, color);
     
@@ -42,7 +44,7 @@ export function initializeWater() {
   for (let i = 8; i < count; i++) {
     const x = Math.random() * w;
     const y = Math.random() * h;
-    const size = globals.R_MIN + Math.random() * (globals.R_MAX - globals.R_MIN);
+    const size = randomRadiusForMode(globals, MODES.WATER);
     const color = pickRandomColor();
     const ball = new Ball(x, y, size, color);
     

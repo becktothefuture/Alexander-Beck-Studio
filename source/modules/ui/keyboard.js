@@ -3,11 +3,26 @@
 // ║              Panel dock toggle and mode switching (1-9)                      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { setMode, MODES } from '../modes/mode-controller.js';
+import { setMode, MODES, resetCurrentMode } from '../modes/mode-controller.js';
+import { NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
+import { getGlobals } from '../core/state.js';
 import { updateModeButtonsUI } from './controls.js';
 import { toggleDock } from './panel-dock.js';
 
 let isKeyboardWired = false;
+
+function navigateNarrative(delta) {
+  const g = getGlobals();
+  const mode = g?.currentMode || MODES.PIT_THROWS;
+  const seq = NARRATIVE_MODE_SEQUENCE;
+  if (!seq || !seq.length) return;
+  const idx = seq.indexOf(mode);
+  const base = (idx >= 0) ? idx : 0;
+  const next = (base + delta + seq.length) % seq.length;
+  const nextMode = seq[next];
+  setMode(nextMode);
+  updateModeButtonsUI(nextMode);
+}
 
 export function setupKeyboardShortcuts() {
   if (isKeyboardWired) return;
@@ -25,44 +40,32 @@ export function setupKeyboardShortcuts() {
       toggleDock();
       return;
     }
-    
-    // Mode switching: 1=pit, 2=flies, 3=weightless, 4=water, 5=vortex, 6=ping-pong, 7=magnetic, 8=bubbles, 9=kaleidoscope
-    if (k === '1') {
+
+    // Reset current simulation with R
+    if (k === 'r') {
       e.preventDefault();
-      setMode(MODES.PIT);
-      updateModeButtonsUI('pit');
-    } else if (k === '2') {
-      e.preventDefault();
-      setMode(MODES.FLIES);
-      updateModeButtonsUI('flies');
-    } else if (k === '3') {
-      e.preventDefault();
-      setMode(MODES.WEIGHTLESS);
-      updateModeButtonsUI('weightless');
-    } else if (k === '4') {
-      e.preventDefault();
-      setMode(MODES.WATER);
-      updateModeButtonsUI('water');
-    } else if (k === '5') {
-      e.preventDefault();
-      setMode(MODES.VORTEX);
-      updateModeButtonsUI('vortex');
-    } else if (k === '6') {
-      e.preventDefault();
-      setMode(MODES.PING_PONG);
-      updateModeButtonsUI('ping-pong');
-    } else if (k === '7') {
-      e.preventDefault();
-      setMode(MODES.MAGNETIC);
-      updateModeButtonsUI('magnetic');
-    } else if (k === '8') {
-      e.preventDefault();
-      setMode(MODES.BUBBLES);
-      updateModeButtonsUI('bubbles');
-    } else if (k === '9') {
-      e.preventDefault();
-      setMode(MODES.KALEIDOSCOPE);
-      updateModeButtonsUI('kaleidoscope');
+      resetCurrentMode();
+      try {
+        const g = getGlobals();
+        updateModeButtonsUI(g.currentMode);
+      } catch (e) {}
+      return;
     }
+
+    // Narrative navigation
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      navigateNarrative(1);
+      return;
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      navigateNarrative(-1);
+      return;
+    }
+    // Direct simulation key mappings are intentionally disabled.
+    // Switch simulations using:
+    // - ArrowLeft / ArrowRight (narrative sequence)
+    // - Panel mode buttons
   });
 }

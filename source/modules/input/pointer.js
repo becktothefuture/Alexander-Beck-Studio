@@ -4,11 +4,11 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { CONSTANTS, MODES } from '../core/constants.js';
+import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
 import { createWaterRipple } from '../modes/water.js';
-import { updateBrandLogoCursorScaleFromClient } from '../ui/brand-logo-cursor-scale.js';
 import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
 import { notifyMouseTrailMove } from '../visual/mouse-trail.js';
+import { isOverlayActive } from '../ui/gate-overlay.js';
 
 // Mouse velocity tracking for water ripples
 let lastMouseX = 0;
@@ -18,48 +18,13 @@ let mouseVelocity = 0;
 let lastTapTime = 0;
 // Click/tap cycles through modes (value stored on globals; avoid caching so modes can override).
 
-const MODE_CYCLE = [
-  MODES.CRITTERS,
-  MODES.PIT,
-  MODES.PIT_THROWS,
-  MODES.FLIES,
-  MODES.WEIGHTLESS,
-  MODES.WATER,
-  MODES.VORTEX,
-  MODES.PING_PONG,
-  MODES.MAGNETIC,
-  MODES.BUBBLES,
-  MODES.KALEIDOSCOPE
-];
-
-function pickRandomMode(excludeMode) {
-  const candidates = MODE_CYCLE.filter((m) => m !== excludeMode);
-  if (!candidates.length) return excludeMode || MODE_CYCLE[0];
-  return candidates[(Math.random() * candidates.length) | 0];
-}
-
 function cycleMode() {
   const globals = getGlobals();
   const current = globals.currentMode;
-  // Randomize click-to-change simulation (avoid immediate repeats).
-  // Best-effort: keep the last click mode in sessionStorage (not persistent).
-  let lastClick = null;
-  try {
-    lastClick = sessionStorage.getItem('bb:last_click_mode');
-  } catch (e) {}
-
-  // Prefer excluding the currently running mode; also try to exclude the last click pick.
-  let next = pickRandomMode(current);
-  if (lastClick && MODE_CYCLE.length > 2) {
-    // Retry a couple times to avoid repeat patterns on small sets.
-    for (let i = 0; i < 3 && next === lastClick; i++) {
-      next = pickRandomMode(current);
-    }
-  }
-
-  try {
-    sessionStorage.setItem('bb:last_click_mode', next);
-  } catch (e) {}
+  const seq = NARRATIVE_MODE_SEQUENCE;
+  const idx = seq.indexOf(current);
+  const base = idx >= 0 ? idx : 0;
+  const next = seq[(base + 1) % seq.length];
 
   import('../modes/mode-controller.js').then(({ setMode }) => {
     setMode(next);
@@ -127,9 +92,6 @@ export function setupPointer() {
    * is the canonical cross-input signal.
    */
   function handleMove(clientX, clientY, target, { isMouseLike } = { isMouseLike: true }) {
-    // Title/logo micro-interaction (viewport based) — keep responsive even over UI.
-    updateBrandLogoCursorScaleFromClient(clientX, clientY);
-
     // Update custom cursor position only for mouse-like pointers.
     if (isMouseLike) {
       updateCursorPosition(clientX, clientY);
@@ -138,8 +100,13 @@ export function setupPointer() {
       hideCursor();
     }
 
-    // Don't track simulation interactions if the user is over the panel UI
-    if (isEventOnUI(target)) return;
+    // Don't track simulation interactions if the user is over the panel UI.
+    // EXCEPTION: Orbit modes should always follow the cursor, even when UI overlays intercept pointer events.
+    const isOrbitMode = globals.currentMode === MODES.ORBIT_3D || globals.currentMode === MODES.ORBIT_3D_2;
+    if (!isOrbitMode && isEventOnUI(target)) return;
+    
+    // Don't track simulation interactions when gates/overlay are active
+    if (isOverlayActive()) return;
 
     const pos = getCanvasPosition(clientX, clientY);
 
@@ -218,6 +185,9 @@ export function setupPointer() {
     if (e.target.closest('select')) return;
     if (e.target.closest('textarea')) return;
     
+    // Ignore clicks when gates/overlay are active
+    if (isOverlayActive()) return;
+    
     const pos = getCanvasPosition(e.clientX, e.clientY);
     
     // Only process if click is within canvas bounds
@@ -234,6 +204,9 @@ export function setupPointer() {
    * Touch move tracking for mobile
    */
   document.addEventListener('touchmove', (e) => {
+    // Ignore touch when gates/overlay are active
+    if (isOverlayActive()) return;
+    
     if (e.touches && e.touches[0]) {
       const pos = getCanvasPosition(e.touches[0].clientX, e.touches[0].clientY);
       globals.mouseX = pos.x;
@@ -264,6 +237,9 @@ export function setupPointer() {
   document.addEventListener('touchstart', (e) => {
     // Ignore touches on panel
     if (isEventOnUI(e.target)) return;
+    
+    // Ignore touches when gates/overlay are active
+    if (isOverlayActive()) return;
     
     // Explicitly hide cursor on touch start to prevent it getting stuck
     hideCursor();

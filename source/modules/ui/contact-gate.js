@@ -180,33 +180,61 @@ export function initContactGate() {
     emailValueBtn?.focus?.();
   };
 
-  const closeGate = () => {
+  const closeGate = (instant = false) => {
     isOpen = false;
     setCopyUI('idle');
 
+    if (instant) {
+      // Instant close: disable transition, remove active, then re-enable
+      gate.style.transition = 'none';
+      logo.style.transition = 'none';
+
     gate.classList.remove('active');
     gate.setAttribute('aria-hidden', 'true');
-
-    // Animate Logo In (Down)
+      gate.classList.add('hidden');
+      logo.classList.remove('fade-out-up');
+      
+      // Hide overlay immediately if no other gate is active
+      if (!isAnyGateActive()) {
+        hideOverlay();
+      }
+      
+      // Re-enable transitions after a frame
+      requestAnimationFrame(() => {
+        gate.style.removeProperty('transition');
+        logo.style.removeProperty('transition');
+      });
+    } else {
+      // Smooth close: use CSS transition
+      gate.classList.remove('active');
+      gate.setAttribute('aria-hidden', 'true');
     logo.classList.remove('fade-out-up');
 
     setTimeout(() => {
       if (!isOpen) gate.classList.add('hidden');
       
-      // Hide overlay only if no other gate is now active
-      // Small delay to let state settle after closing
-      setTimeout(() => {
+        // Hide overlay if no other gate is now active
         if (!isAnyGateActive()) {
           hideOverlay();
         }
-      }, 50);
     }, TRANSITION_MS);
+    }
   };
 
   // Triggers
   // Capture phase so we win against any Webflow interactions on these links.
   triggers.forEach((t) => t.addEventListener('click', openGate, { capture: true }));
   backBtn?.addEventListener('click', closeGate);
+  
+  // Click on gate background (not on buttons) also closes instantly
+  gate.addEventListener('click', (e) => {
+    // Only close if clicking the gate container itself or non-interactive areas
+    if (e.target === gate || e.target.classList.contains('gate-label') || 
+        e.target.classList.contains('gate-description') || e.target.tagName === 'H2' ||
+        e.target.tagName === 'P') {
+      closeGate(true);
+    }
+  });
 
   // Copy interaction
   const onCopy = async (e) => {
@@ -219,6 +247,14 @@ export function initContactGate() {
   // Escape closes (consistent with other gates)
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isOpen) closeGate();
+  });
+  
+  // Close when overlay is clicked (dismiss event from gate-overlay.js)
+  document.addEventListener('gate-overlay-dismiss', (e) => {
+    if (isOpen) {
+      const instant = e.detail?.instant || false;
+      closeGate(instant);
+    }
   });
 }
 

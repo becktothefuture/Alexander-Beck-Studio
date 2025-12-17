@@ -7,17 +7,18 @@ import { getGlobals } from '../core/state.js';
 import { applyColorTemplate } from './colors.js';
 import { syncChromeColor } from '../physics/engine.js';
 import { log as devLog } from '../utils/logger.js';
+import { applyChromeHarmony } from './chrome-harmony.js';
 
 // Theme states: 'auto', 'light', 'dark'
-let currentTheme = 'light'; // Default to light mode
+let currentTheme = 'auto'; // Default to auto (system + night heuristic)
 let systemPreference = 'light';
 let isDarkModeInitialized = false;
 
 // Fallback colors if CSS vars not available
-// MUST match --frame-color-light / --frame-color-dark in main.css
+// MUST match --bg-light / --bg-dark in main.css
 const FALLBACK_COLORS = {
-  light: '#0a0a0a',  // Dark frame even in light mode
-  dark: '#0a0a0a'    // Dark frame in dark mode (seamless)
+  light: '#f5f5f5',
+  dark: '#0a0a0a'
 };
 
 /**
@@ -36,6 +37,18 @@ function detectSystemPreference() {
     return 'dark';
   }
   return 'light';
+}
+
+function isNightByLocalClock() {
+  const g = getGlobals();
+  if (!g.autoDarkModeEnabled) return false;
+  const start = Number.isFinite(g.autoDarkNightStartHour) ? g.autoDarkNightStartHour : 18;
+  const end = Number.isFinite(g.autoDarkNightEndHour) ? g.autoDarkNightEndHour : 6;
+  const h = new Date().getHours();
+  // Handles windows that cross midnight (e.g., 18 → 6).
+  if (start === end) return false;
+  if (start < end) return h >= start && h < end;
+  return h >= start || h < end;
 }
 
 /**
@@ -98,7 +111,9 @@ function applyDarkModeToDOM(isDark) {
     document.documentElement.classList.remove('dark-mode');
   }
   
-  // Update browser chrome color
+  // 1) If the browser ignores theme-color (desktop Chrome tabs), adapt the wall to match the browser UI.
+  // 2) Then update meta theme-color from the (possibly updated) CSS vars.
+  applyChromeHarmony(isDark);
   updateThemeColor(isDark);
   
   // Sync chrome color for rubbery walls
@@ -156,7 +171,7 @@ export function setTheme(theme) {
   let shouldBeDark = false;
   
   if (theme === 'auto') {
-    shouldBeDark = systemPreference === 'dark';
+    shouldBeDark = (systemPreference === 'dark') || isNightByLocalClock();
   } else if (theme === 'dark') {
     shouldBeDark = true;
   } else {
@@ -186,9 +201,13 @@ export function initializeDarkMode() {
   systemPreference = detectSystemPreference();
   devLog(`🖥️ System prefers: ${systemPreference}`);
   
-  // FORCE START IN LIGHT MODE (ignore saved preference on initial load)
-  // User can still switch modes via the theme buttons
-  setTheme('light');
+  // Restore saved preference if available; otherwise default to Auto.
+  let initial = 'auto';
+  try {
+    const saved = localStorage.getItem('theme-preference');
+    if (saved === 'auto' || saved === 'light' || saved === 'dark') initial = saved;
+  } catch (e) {}
+  setTheme(initial);
   
   // Setup segment control listeners
   const autoBtn = document.getElementById('themeAuto');
@@ -211,6 +230,13 @@ export function initializeDarkMode() {
       }
     });
   }
+
+  // Night-window re-evaluation (privacy-first heuristic; only applies in Auto mode)
+  window.setInterval(() => {
+    if (currentTheme !== 'auto') return;
+    setTheme('auto');
+  }, 60_000);
+
   devLog('✓ Modern dark mode initialized');
 }
 

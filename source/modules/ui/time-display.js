@@ -5,27 +5,24 @@ export function initTimeDisplay() {
   const timeDisplay = document.getElementById('time-display');
   if (!timeDisplay) return;
 
+  // Prebuild formatter so we avoid reallocating inside the interval.
+  const formatTime = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+
   function updateTime() {
     const now = new Date();
-    // Get London time
-    const timeString = now.toLocaleTimeString('en-GB', {
-      timeZone: 'Europe/London',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    }).toUpperCase(); // AM/PM usually upper case
-
-    // Remove any leading zero if present (en-GB/US might add it depending on browser, 
-    // but hour: 'numeric' usually suppresses it).
-    // Also, usually AM/PM is with space.
-    
-    timeDisplay.textContent = timeString;
+    timeDisplay.textContent = formatTime.format(now).toUpperCase();
   }
 
   // Update immediately
   updateTime();
 
-  // Update every second to ensure accuracy (lightweight)
+  // Update every second to keep display current without extra work.
   setInterval(updateTime, 1000);
 }
 

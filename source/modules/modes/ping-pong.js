@@ -8,6 +8,7 @@ import { getGlobals, clearBalls } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
+import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
 export function initializePingPong() {
   const g = getGlobals();
@@ -24,7 +25,7 @@ export function initializePingPong() {
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
     const y = h * 0.15 + Math.random() * h * 0.7; // Middle 70% vertically
-    const r = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+    const r = randomRadiusForMode(g, MODES.PING_PONG);
     const c = getColorByIndex(colorIndex);
     const b = new Ball(x, y, r, c);
     // Pure horizontal velocity - no vertical component
@@ -38,7 +39,7 @@ export function initializePingPong() {
   for (let i = 8; i < count; i++) {
     const x = Math.random() * w;
     const y = h * 0.15 + Math.random() * h * 0.7;
-    const r = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+    const r = randomRadiusForMode(g, MODES.PING_PONG);
     const c = pickRandomColor();
     const b = new Ball(x, y, r, c);
     const dir = Math.random() > 0.5 ? 1 : -1;
@@ -101,7 +102,8 @@ export function applyPingPongForces(ball, dt) {
   // DAMPEN VERTICAL DRIFT - Gently return to horizontal motion
   // ═══════════════════════════════════════════════════════════════════════════
   // Very slowly reduce vertical velocity to return to pure horizontal motion
-  ball.vy *= 0.995;
+  const vertDamp = Math.max(0, Math.min(1, g.pingPongVerticalDamp ?? 0.995));
+  ball.vy *= vertDamp;
   
   // NO OTHER DRAG - balls maintain momentum perfectly
 }

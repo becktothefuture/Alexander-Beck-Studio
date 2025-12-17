@@ -6,6 +6,9 @@
 
 import { getGlobals } from '../core/state.js';
 import { autoSaveSettings } from '../utils/storage.js';
+import { deriveWallParamsFromHighLevel, applyWallPreset } from '../physics/wall-state.js';
+import { WALL_PRESETS, ORBIT3D_PRESETS, PARALLAX_LINEAR_PRESETS, PARALLAX_PERSPECTIVE_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
+import { applyOrbit3DPreset } from '../modes/orbit-3d.js';
 
 // Will be set by main.js to avoid circular dependency
 let applyVisualCSSVars = null;
@@ -60,6 +63,70 @@ export function resetVisibility() {
 loadVisibility();
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PRESET APPLIERS (avoid circular dependencies by keeping them here)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function applyParallaxLinearPreset(presetName, reinit = true) {
+  const preset = PARALLAX_LINEAR_PRESETS[presetName];
+  if (!preset) return;
+
+  const g = getGlobals();
+  for (const [key, val] of Object.entries(preset)) {
+    if (key === 'label') continue;
+    if (g[key] !== undefined) g[key] = val;
+  }
+  g.parallaxLinearPreset = presetName;
+
+  if (reinit) {
+    import('../modes/mode-controller.js').then(({ resetCurrentMode }) => resetCurrentMode());
+  }
+
+  try { syncSlidersToState(); } catch (e) {}
+  console.log(`Applied parallax linear preset: ${preset.label}`);
+}
+
+export function applyParallaxPerspectivePreset(presetName, reinit = true) {
+  const preset = PARALLAX_PERSPECTIVE_PRESETS[presetName];
+  if (!preset) return;
+
+  const g = getGlobals();
+  for (const [key, val] of Object.entries(preset)) {
+    if (key === 'label') continue;
+    if (g[key] !== undefined) g[key] = val;
+  }
+  g.parallaxPerspectivePreset = presetName;
+
+  if (reinit) {
+    import('../modes/mode-controller.js').then(({ resetCurrentMode }) => resetCurrentMode());
+  }
+
+  try { syncSlidersToState(); } catch (e) {}
+  console.log(`Applied parallax perspective preset: ${preset.label}`);
+}
+
+function warmupFramesControl(stateKey) {
+  return {
+    id: stateKey,
+    label: 'Warmup Frames',
+    stateKey,
+    type: 'range',
+    min: 0, max: 240, step: 1,
+    default: 10,
+    format: v => String(Math.round(v)),
+    parse: v => parseInt(v, 10),
+    reinitMode: true,
+    hint: 'Pre-runs physics before first render to avoid visible settling on mode start.'
+  };
+}
+
+function safeFormat(control, value) {
+  try {
+    if (typeof control?.format === 'function') return control.format(value);
+  } catch (e) {}
+  return String(value ?? '');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CONTROL REGISTRY
 // Complete definition of ALL controls with metadata
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -82,6 +149,82 @@ loadVisibility();
  */
 
 export const CONTROL_SECTIONS = {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BROWSER / THEME ENVIRONMENT
+  // ═══════════════════════════════════════════════════════════════════════════
+  environment: {
+    title: 'Browser',
+    icon: '🧭',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'chromeHarmonyMode',
+        label: 'Chrome Harmony',
+        stateKey: 'chromeHarmonyMode',
+        type: 'select',
+        options: [
+          { value: 'auto', label: 'Auto (adapt only when needed)' },
+          { value: 'site', label: 'Site (benchmark)' },
+          { value: 'browser', label: 'Browser (force adapt)' }
+        ],
+        default: 'site',
+        format: v => String(v),
+        parse: v => String(v),
+        hint: 'If desktop browsers ignore theme-color, the wall adapts to match the browser UI palette.',
+        onChange: (g) => {
+          import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
+            setTheme(getCurrentTheme());
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'autoDarkModeEnabled',
+        label: 'Auto Dark (Night)',
+        stateKey: 'autoDarkModeEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'In Auto theme, prefer Dark during the night window (privacy-first: local clock only).',
+        onChange: () => {
+          import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
+            if (getCurrentTheme() === 'auto') setTheme('auto');
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'autoDarkNightStartHour',
+        label: 'Night Starts',
+        stateKey: 'autoDarkNightStartHour',
+        type: 'range',
+        min: 0, max: 23, step: 1,
+        default: 18,
+        format: v => `${Math.round(v)}:00`,
+        parse: v => parseInt(v, 10),
+        onChange: () => {
+          import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
+            if (getCurrentTheme() === 'auto') setTheme('auto');
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'autoDarkNightEndHour',
+        label: 'Night Ends',
+        stateKey: 'autoDarkNightEndHour',
+        type: 'range',
+        min: 0, max: 23, step: 1,
+        default: 6,
+        format: v => `${Math.round(v)}:00`,
+        parse: v => parseInt(v, 10),
+        onChange: () => {
+          import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
+            if (getCurrentTheme() === 'auto') setTheme('auto');
+          }).catch(() => {});
+        }
+      }
+    ]
+  },
+
   // ═══════════════════════════════════════════════════════════════════════════
   // BALLS - Size, softness, spacing
   // ═══════════════════════════════════════════════════════════════════════════
@@ -250,6 +393,340 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // LOGO - Mode change “click-in” micro-interaction tuning
+  // ═══════════════════════════════════════════════════════════════════════════
+  logo: {
+    title: 'Logo',
+    icon: '◎',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'brandLogoImpactMul',
+        label: 'Click Depth',
+        stateKey: 'brandLogoImpactMul',
+        type: 'range',
+        min: 0.0, max: 0.12, step: 0.001,
+        default: 0.014,
+        format: (v) => v.toFixed(3),
+        parse: parseFloat,
+        hint: 'How far the logo “presses in” on simulation change.',
+        onChange: (_g, val) => {
+          const el = document.getElementById('brand-logo');
+          if (!el) return;
+          el.style.setProperty('--abs-brand-logo-impact-mul', String(val));
+        }
+      },
+      {
+        id: 'brandLogoSquashMul',
+        label: 'Squash',
+        stateKey: 'brandLogoSquashMul',
+        type: 'range',
+        min: 0.0, max: 7.5, step: 0.05,
+        default: 1.0,
+        format: (v) => v.toFixed(2) + 'x',
+        parse: parseFloat,
+        hint: 'Squash & stretch amount during the click-in (Disney-ish).',
+        onChange: (_g, val) => {
+          const el = document.getElementById('brand-logo');
+          if (!el) return;
+          // Keep base ratios consistent with the CSS defaults.
+          el.style.setProperty('--abs-brand-logo-squash-x-mul', String(0.009 * val));
+          el.style.setProperty('--abs-brand-logo-squash-y-mul', String(0.015 * val));
+        }
+      },
+      {
+        id: 'brandLogoOvershoot',
+        label: 'Bounce Out',
+        stateKey: 'brandLogoOvershoot',
+        type: 'range',
+        min: 0.0, max: 1.8, step: 0.01,
+        default: 0.22,
+        format: (v) => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'How much it “pops past rest” on release (higher = bouncier).'
+      },
+      {
+        id: 'brandLogoReleaseMs',
+        label: 'Bounce Duration',
+        stateKey: 'brandLogoReleaseMs',
+        type: 'range',
+        min: 60, max: 1440, step: 5,
+        default: 220,
+        format: (v) => `${Math.round(v)}ms`,
+        parse: (v) => parseInt(v, 10),
+        hint: 'How long the release takes (longer = softer).'
+      },
+      {
+        id: 'brandLogoTiltDeg',
+        label: 'Tilt',
+        stateKey: 'brandLogoTiltDeg',
+        type: 'range',
+        min: 0.0, max: 6.0, step: 0.05,
+        default: 0.0,
+        format: (v) => `${v.toFixed(2)}°`,
+        parse: parseFloat,
+        hint: 'Tiny rotation tied to the click (follow-through).',
+        onChange: (_g, val) => {
+          const el = document.getElementById('brand-logo');
+          if (!el) return;
+          el.style.setProperty('--abs-brand-logo-tilt-deg', String(val));
+        }
+      },
+      {
+        id: 'brandLogoAnticipation',
+        label: 'Anticipation',
+        stateKey: 'brandLogoAnticipation',
+        type: 'range',
+        min: 0.0, max: 1.2, step: 0.01,
+        default: 0.0,
+        format: (v) => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Micro pre-pop before the click-in (0 = off).'
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // OVERLAY - Blur, Depth Effect
+  // ═══════════════════════════════════════════════════════════════════════════
+  overlay: {
+    title: 'Overlay',
+    icon: '🌫️',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'gateOverlayEnabled',
+        label: 'Enabled',
+        stateKey: 'gateOverlayEnabled',
+        type: 'checkbox',
+        default: true
+      },
+      {
+        id: 'gateOverlayOpacity',
+        label: 'White Wash',
+        stateKey: 'gateOverlayOpacity',
+        type: 'range',
+        min: 0, max: 0.1, step: 0.001,
+        default: 0.01,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        onChange: (g, val) => {
+          import('./gate-overlay.js').then(({ updateOverlayOpacity }) => {
+            updateOverlayOpacity(val);
+          });
+        }
+      },
+      {
+        id: 'gateOverlayTransitionMs',
+        label: 'Anim In Speed',
+        stateKey: 'gateOverlayTransitionMs',
+        type: 'range',
+        min: 200, max: 1500, step: 50,
+        default: 800,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Duration for blur & depth zoom when opening',
+        onChange: (g, val) => {
+          import('./gate-overlay.js').then(({ updateOverlayTransition }) => {
+            updateOverlayTransition(val);
+          });
+        }
+      },
+      {
+        id: 'gateOverlayTransitionOutMs',
+        label: 'Anim Out Speed',
+        stateKey: 'gateOverlayTransitionOutMs',
+        type: 'range',
+        min: 200, max: 1200, step: 50,
+        default: 600,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Duration for blur & depth zoom when closing',
+        onChange: (g, val) => {
+          import('./gate-overlay.js').then(({ updateOverlayTransitionOut }) => {
+            updateOverlayTransitionOut(val);
+          });
+        }
+      },
+      {
+        id: 'gateOverlayContentDelayMs',
+        label: 'Content Delay',
+        stateKey: 'gateOverlayContentDelayMs',
+        type: 'range',
+        min: 0, max: 1000, step: 50,
+        default: 200,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Wait before showing dialog content',
+        onChange: (g, val) => {
+          import('./gate-overlay.js').then(({ updateGateContentDelay }) => {
+            updateGateContentDelay(val);
+          });
+        }
+      },
+      {
+        id: 'gateDepthScale',
+        label: 'Depth Scale',
+        stateKey: 'gateDepthScale',
+        type: 'range',
+        min: 0.9, max: 1.0, step: 0.001,
+        default: 0.96,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        hint: 'Scene scale when gate opens (0.9-1.0)',
+        onChange: (g, val) => {
+          import('./gate-overlay.js').then(({ updateGateDepthScale }) => {
+            updateGateDepthScale(val);
+          });
+        }
+      },
+      {
+        id: 'gateDepthTranslateY',
+        label: 'Depth Shift',
+        stateKey: 'gateDepthTranslateY',
+        type: 'range',
+        min: 0, max: 30, step: 1,
+        default: 8,
+        format: v => `${Math.round(v)}px`,
+        parse: parseInt,
+        hint: 'Vertical shift when gate opens',
+        onChange: (g, val) => {
+          import('./gate-overlay.js').then(({ updateGateDepthTranslateY }) => {
+            updateGateDepthTranslateY(val);
+          });
+        }
+      },
+      {
+        id: 'logoOpacityInactive',
+        label: 'Logo Opacity Closed',
+        stateKey: 'logoOpacityInactive',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 1,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Logo opacity when gate is closed (1 = fully visible)',
+        onChange: (g, val) => {
+          import('./gate-overlay.js').then(({ updateLogoOpacityInactive }) => {
+            updateLogoOpacityInactive(val);
+          });
+        }
+      },
+      {
+        id: 'logoOpacityActive',
+        label: 'Logo Opacity Open',
+        stateKey: 'logoOpacityActive',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.2,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Logo opacity when gate is active (0.2 = more faded)',
+        onChange: (g, val) => {
+          import('./gate-overlay.js').then(({ updateLogoOpacityActive }) => {
+            updateLogoOpacityActive(val);
+          });
+        }
+      },
+      {
+        id: 'logoBlurInactive',
+        label: 'Logo Blur Closed',
+        stateKey: 'logoBlurInactive',
+        type: 'range',
+        min: 0, max: 20, step: 0.5,
+        default: 0,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Logo blur when gate is closed (0 = sharp)',
+        onChange: (g, val) => {
+          import('./gate-overlay.js').then(({ updateLogoBlurInactive }) => {
+            updateLogoBlurInactive(val);
+          });
+        }
+      },
+      {
+        id: 'logoBlurActive',
+        label: 'Logo Blur Open',
+        stateKey: 'logoBlurActive',
+        type: 'range',
+        min: 0, max: 30, step: 0.5,
+        default: 12,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Logo blur when gate is active (12px = soft blur)',
+        onChange: (g, val) => {
+          import('./gate-overlay.js').then(({ updateLogoBlurActive }) => {
+            updateLogoBlurActive(val);
+          });
+        }
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EFFECTS - Ghost trails (performance-first)
+  // ═══════════════════════════════════════════════════════════════════════════
+  effects: {
+    title: 'Effects',
+    icon: '✨',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'ghostLayerEnabled',
+        label: 'Ghost Trails',
+        stateKey: 'ghostLayerEnabled',
+        type: 'checkbox',
+        default: false
+      },
+      {
+        id: 'ghostLayerOpacity',
+        label: 'Trail Fade',
+        stateKey: 'ghostLayerOpacity',
+        type: 'range',
+        min: 0.05, max: 1.0, step: 0.01,
+        default: 0.70,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Higher = shorter trails'
+      },
+      {
+        id: 'ghostLayerUsePerThemeOpacity',
+        label: 'Per-Theme Fade',
+        stateKey: 'ghostLayerUsePerThemeOpacity',
+        type: 'checkbox',
+        default: false,
+        group: 'Advanced',
+        groupCollapsed: true,
+        hint: 'Use separate fade values for Light vs Dark mode'
+      },
+      {
+        id: 'ghostLayerOpacityLight',
+        label: 'Fade (Light)',
+        stateKey: 'ghostLayerOpacityLight',
+        type: 'range',
+        min: 0.05, max: 1.0, step: 0.01,
+        default: 0.70,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        group: 'Advanced',
+        hint: 'Higher = shorter trails'
+      },
+      {
+        id: 'ghostLayerOpacityDark',
+        label: 'Fade (Dark)',
+        stateKey: 'ghostLayerOpacityDark',
+        type: 'range',
+        min: 0.05, max: 1.0, step: 0.01,
+        default: 0.70,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        group: 'Advanced',
+        hint: 'Higher = shorter trails'
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // FRAME - Color only (thickness/radius controlled via Layout section)
   // ═══════════════════════════════════════════════════════════════════════════
   frame: {
@@ -334,32 +811,115 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // WOBBLE - Rubber wall physics
+  // WALL - Unified Frame & Physics
   // ═══════════════════════════════════════════════════════════════════════════
-  wobble: {
-    title: 'Wall Wobble',
-    icon: '〰️',
+  wall: {
+    title: 'Wall',
+    icon: '🏗️',
     defaultOpen: false,
     controls: [
       {
+        id: 'wallPreset',
+        label: 'Material',
+        stateKey: 'wallPreset',
+        type: 'select',
+        options: Object.keys(WALL_PRESETS).map(k => ({ value: k, label: k.charAt(0).toUpperCase() + k.slice(1) })),
+        default: 'rubber',
+        format: v => v.charAt(0).toUpperCase() + v.slice(1),
+        onChange: (g, val) => {
+          applyWallPreset(val, g);
+          syncSlidersToState();
+        }
+      },
+      {
+        id: 'frameColor',
+        label: 'Color',
+        stateKey: 'frameColor',
+        type: 'color',
+        default: '#0a0a0a',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          // Set primary frame color
+          root.style.setProperty('--frame-color-light', val);
+          root.style.setProperty('--frame-color-dark', val);
+          root.style.setProperty('--wall-color', val);
+          
+          // Also set meta theme color for browser chrome integration
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.content = val;
+        }
+      },
+      {
+        id: 'wallThicknessVw',
+        label: 'Thickness',
+        stateKey: 'wallThicknessVw',
+        type: 'range',
+        min: 0, max: 8, step: 0.1,
+        default: 1.3,
+        format: v => `${v.toFixed(1)}vw`,
+        parse: parseFloat,
+        onChange: (g, val) => {
+          import('../core/state.js').then(mod => {
+            mod.applyLayoutFromVwToPx();
+            mod.applyLayoutCSSVars();
+            // Update overlay blur which depends on wall thickness
+            import('./gate-overlay.js').then(({ updateBlurFromWallThickness }) => {
+              updateBlurFromWallThickness();
+            });
+          });
+        }
+      },
+      {
+        id: 'wallRadiusVw',
+        label: 'Corner Radius',
+        stateKey: 'wallRadiusVw',
+        type: 'range',
+        min: 0, max: 12, step: 0.1,
+        default: 3.7,
+        format: v => `${v.toFixed(1)}vw`,
+        parse: parseFloat,
+        onChange: (g, val) => {
+          import('../core/state.js').then(mod => {
+            mod.applyLayoutFromVwToPx();
+            mod.applyLayoutCSSVars();
+          });
+        }
+      },
+      {
+        id: 'wallInset',
+        label: 'Collision Inset',
+        stateKey: 'wallInset',
+        type: 'range',
+        min: 0, max: 20, step: 1,
+        default: 2,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Physics padding inside the visual wall'
+      },
+      
+      // Advanced Wobble Settings
+      {
         id: 'wallWobbleMaxDeform',
-        label: 'Strength',
+        label: 'Strength (Max Deform)',
         stateKey: 'wallWobbleMaxDeform',
         type: 'range',
         min: 0, max: 150, step: 1,
-        default: 148,
+        default: 45,
         format: v => `${v}px`,
-        parse: v => parseInt(v, 10)
+        parse: v => parseInt(v, 10),
+        group: 'Advanced Physics',
+        groupCollapsed: true
       },
       {
         id: 'wallWobbleStiffness',
-        label: 'Return Speed',
+        label: 'Stiffness',
         stateKey: 'wallWobbleStiffness',
         type: 'range',
         min: 50, max: 3000, step: 10,
-        default: 1300,
+        default: 2200,
         format: v => String(v),
-        parse: v => parseInt(v, 10)
+        parse: v => parseInt(v, 10),
+        group: 'Advanced Physics'
       },
       {
         id: 'wallWobbleDamping',
@@ -367,9 +927,10 @@ export const CONTROL_SECTIONS = {
         stateKey: 'wallWobbleDamping',
         type: 'range',
         min: 0, max: 80, step: 1,
-        default: 34,
+        default: 35,
         format: v => String(v),
-        parse: v => parseInt(v, 10)
+        parse: v => parseInt(v, 10),
+        group: 'Advanced Physics'
       },
       {
         id: 'wallWobbleSigma',
@@ -377,9 +938,10 @@ export const CONTROL_SECTIONS = {
         stateKey: 'wallWobbleSigma',
         type: 'range',
         min: 0.5, max: 4.0, step: 0.1,
-        default: 4.0,
+        default: 2.0,
         format: v => v.toFixed(1),
-        parse: parseFloat
+        parse: parseFloat,
+        group: 'Advanced Physics'
       },
       {
         id: 'wallWobbleCornerClamp',
@@ -387,9 +949,34 @@ export const CONTROL_SECTIONS = {
         stateKey: 'wallWobbleCornerClamp',
         type: 'range',
         min: 0.0, max: 1.0, step: 0.01,
-        default: 1.00,
+        default: 0.6,
         format: v => v.toFixed(2),
-        parse: parseFloat
+        parse: parseFloat,
+        group: 'Advanced Physics'
+      },
+      {
+        id: 'wallWobbleImpactThreshold',
+        label: 'Impact Threshold',
+        stateKey: 'wallWobbleImpactThreshold',
+        type: 'range',
+        min: 20, max: 200, step: 1,
+        default: 140,
+        format: v => `${v} px/s`,
+        parse: v => parseInt(v, 10),
+        group: 'Advanced Physics',
+        hint: 'Minimum velocity to trigger wall wobble'
+      },
+      {
+        id: 'wallWobbleSettlingSpeed',
+        label: 'Settling Speed',
+        stateKey: 'wallWobbleSettlingSpeed',
+        type: 'range',
+        min: 0, max: 100, step: 1,
+        default: 75,
+        format: v => `${v}%`,
+        parse: v => parseInt(v, 10),
+        group: 'Advanced Physics',
+        hint: 'How aggressively walls stop moving'
       }
     ]
   },
@@ -641,7 +1228,8 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           if (g.currentMode === 'critters') g.FRICTION = val;
         }
-      }
+      },
+      warmupFramesControl('crittersWarmupFrames')
     ]
   },
 
@@ -711,7 +1299,8 @@ export const CONTROL_SECTIONS = {
           const s = Math.max(0, Math.min(10000, sliderVal)) / 10000;
           g.repelPower = Math.pow(2, (s - 0.5) * 12) * 12000 * 2.0;
         }
-      }
+      },
+      warmupFramesControl('pitWarmupFrames')
     ]
   },
 
@@ -890,7 +1479,8 @@ export const CONTROL_SECTIONS = {
         default: 0.12,
         format: v => v.toFixed(3),
         parse: parseFloat
-      }
+      },
+      warmupFramesControl('pitThrowsWarmupFrames')
     ]
   },
 
@@ -940,7 +1530,8 @@ export const CONTROL_SECTIONS = {
         default: 15000,
         format: v => Math.round(v).toString(),
         parse: parseFloat
-      }
+      },
+      warmupFramesControl('fliesWarmupFrames')
     ]
   },
 
@@ -1001,7 +1592,8 @@ export const CONTROL_SECTIONS = {
         default: 2.2,
         format: v => v.toFixed(1),
         parse: parseFloat
-      }
+      },
+      warmupFramesControl('weightlessWarmupFrames')
     ]
   },
 
@@ -1023,6 +1615,16 @@ export const CONTROL_SECTIONS = {
         reinitMode: true
       },
       {
+        id: 'waterDrag',
+        label: 'Water Resistance',
+        stateKey: 'waterDrag',
+        type: 'range',
+        min: 0.001, max: 0.05, step: 0.001,
+        default: 0.015,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      {
         id: 'waterRippleStrength',
         label: 'Ripple Strength',
         stateKey: 'waterRippleStrength',
@@ -1034,7 +1636,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'waterMotion',
-        label: 'Motion',
+        label: 'Drift Strength',
         stateKey: 'waterDriftStrength',
         type: 'range',
         min: 0, max: 80, step: 1,
@@ -1045,7 +1647,8 @@ export const CONTROL_SECTIONS = {
           g.waterInitialVelocity = val * 5;
         },
         reinitMode: true
-      }
+      },
+      warmupFramesControl('waterWarmupFrames')
     ]
   },
 
@@ -1060,7 +1663,7 @@ export const CONTROL_SECTIONS = {
         label: 'Ball Count',
         stateKey: 'vortexBallCount',
         type: 'range',
-        min: 50, max: 300, step: 10,
+        min: 50, max: 500, step: 10,
         default: 180,
         format: v => String(v),
         parse: v => parseInt(v, 10),
@@ -1071,7 +1674,7 @@ export const CONTROL_SECTIONS = {
         label: 'Swirl Strength',
         stateKey: 'vortexSwirlStrength',
         type: 'range',
-        min: 100, max: 800, step: 20,
+        min: 100, max: 3000, step: 50,
         default: 420,
         format: v => v.toFixed(0),
         parse: parseFloat
@@ -1081,11 +1684,97 @@ export const CONTROL_SECTIONS = {
         label: 'Radial Pull',
         stateKey: 'vortexRadialPull',
         type: 'range',
-        min: 0, max: 400, step: 10,
+        min: 0, max: 2000, step: 20,
         default: 180,
         format: v => v.toFixed(0),
         parse: parseFloat
-      }
+      },
+      {
+        id: 'vortexSpeedMultiplier',
+        label: 'Speed Multiplier',
+        stateKey: 'vortexSpeedMultiplier',
+        type: 'range',
+        min: 0.1, max: 3.0, step: 0.1,
+        default: 1.0,
+        format: v => v.toFixed(1),
+        parse: parseFloat
+      },
+      {
+        id: 'vortexRadius',
+        label: 'Vortex Radius',
+        stateKey: 'vortexRadius',
+        type: 'range',
+        min: 0, max: 800, step: 20,
+        default: 0,
+        format: v => v === 0 ? 'Unlimited' : v.toFixed(0) + 'px',
+        parse: parseFloat,
+        tooltip: 'Maximum effective radius (0 = unlimited, uses distance falloff)'
+      },
+      {
+        id: 'vortexFalloffCurve',
+        label: 'Falloff Curve',
+        stateKey: 'vortexFalloffCurve',
+        type: 'range',
+        min: 0.3, max: 3.0, step: 0.1,
+        default: 1.0,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        tooltip: 'Falloff shape: 1.0 = linear, 2.0 = quadratic (sharper), 0.5 = gentle'
+      },
+      {
+        id: 'vortexRotationDirection',
+        label: 'Rotation Direction',
+        stateKey: 'vortexRotationDirection',
+        type: 'range',
+        min: -1, max: 1, step: 2,
+        default: 1,
+        format: v => v === 1 ? 'Counterclockwise' : 'Clockwise',
+        parse: parseFloat
+      },
+      {
+        id: 'vortexCoreStrength',
+        label: 'Core Strength',
+        stateKey: 'vortexCoreStrength',
+        type: 'range',
+        min: 0.5, max: 3.0, step: 0.1,
+        default: 1.0,
+        format: v => v.toFixed(1) + 'x',
+        parse: parseFloat,
+        tooltip: 'Strength multiplier at vortex center'
+      },
+      {
+        id: 'vortexAccelerationZone',
+        label: 'Acceleration Zone',
+        stateKey: 'vortexAccelerationZone',
+        type: 'range',
+        min: 0, max: 400, step: 20,
+        default: 0,
+        format: v => v === 0 ? 'Disabled' : v.toFixed(0) + 'px',
+        parse: parseFloat,
+        tooltip: 'Radius where extra acceleration occurs (0 = disabled)'
+      },
+      {
+        id: 'vortexOutwardPush',
+        label: 'Outward Push',
+        stateKey: 'vortexOutwardPush',
+        type: 'range',
+        min: 0, max: 1000, step: 20,
+        default: 0,
+        format: v => v === 0 ? 'Disabled' : v.toFixed(0),
+        parse: parseFloat,
+        tooltip: 'Outward force at edges (only when radius is set)'
+      },
+      {
+        id: 'vortexDrag',
+        label: 'Drag',
+        stateKey: 'vortexDrag',
+        type: 'range',
+        min: 0.001, max: 0.05, step: 0.001,
+        default: 0.005,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      warmupFramesControl('vortexWarmupFrames')
     ]
   },
 
@@ -1111,12 +1800,33 @@ export const CONTROL_SECTIONS = {
         label: 'Ball Speed',
         stateKey: 'pingPongSpeed',
         type: 'range',
-        min: 200, max: 1200, step: 50,
+        min: 200, max: 1600, step: 50,
         default: 800,
         format: v => v.toFixed(0),
         parse: parseFloat,
         reinitMode: true
       },
+      {
+        id: 'pingPongCursorRadius',
+        label: 'Cursor Radius',
+        stateKey: 'pingPongCursorRadius',
+        type: 'range',
+        min: 30, max: 200, step: 5,
+        default: 100,
+        format: v => v.toFixed(0),
+        parse: parseFloat
+      },
+      {
+        id: 'pingPongVerticalDamp',
+        label: 'Vertical Damping',
+        stateKey: 'pingPongVerticalDamp',
+        type: 'range',
+        min: 0.8, max: 0.999, step: 0.001,
+        default: 0.995,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      warmupFramesControl('pingPongWarmupFrames')
     ]
   },
 
@@ -1156,7 +1866,18 @@ export const CONTROL_SECTIONS = {
         default: 2800,
         format: v => v.toFixed(0),
         parse: parseFloat
-      }
+      },
+      {
+        id: 'magneticDamping',
+        label: 'Damping',
+        stateKey: 'magneticDamping',
+        type: 'range',
+        min: 0.8, max: 0.999, step: 0.001,
+        default: 0.98,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      warmupFramesControl('magneticWarmupFrames')
     ]
   },
 
@@ -1206,6 +1927,7 @@ export const CONTROL_SECTIONS = {
         format: v => String(v),
         parse: v => parseInt(v, 10)
       },
+      warmupFramesControl('bubblesWarmupFrames')
     ]
   },
 
@@ -1281,18 +2003,18 @@ export const CONTROL_SECTIONS = {
         label: 'Ball Count',
         stateKey: 'kaleidoscopeBallCount',
         type: 'range',
-        min: 10, max: 200, step: 1,
+        min: 15, max: 120, step: 1,
         default: 23,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
       },
       {
-        id: 'kaleiSegments',
+        id: 'kaleiWedges',
         label: 'Wedges',
-        stateKey: 'kaleidoscopeSegments',
+        stateKey: 'kaleidoscopeWedges',
         type: 'range',
-        min: 3, max: 24, step: 1,
+        min: 4, max: 16, step: 1,
         default: 12,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10)
@@ -1300,7 +2022,6 @@ export const CONTROL_SECTIONS = {
       {
         id: 'kaleiMirror',
         label: 'Mirror',
-        stateKey: 'kaleidoscopeMirror',
         type: 'range',
         min: 0, max: 1, step: 1,
         default: 1,
@@ -1308,93 +2029,892 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10)
       },
       {
-        id: 'kaleiSpacing',
-        label: 'Spacing',
-        stateKey: 'kaleidoscopeBallSpacing',
+        id: 'kaleiSpeed',
+        label: 'Speed',
+        stateKey: 'kaleidoscopeSpeed',
         type: 'range',
-        min: 0, max: 20, step: 0.5,
-        default: 9,
-        format: v => v.toFixed(1) + 'px',
-        parse: parseFloat,
-        onChange: (g, val) => {
-          // Apply immediately only in Kaleidoscope, otherwise it would affect all modes.
-          if (g.currentMode === 'kaleidoscope') {
-            const canvas = g.canvas;
-            const unit = canvas ? Math.max(0.35, Math.min(3.0, Math.min(canvas.width, canvas.height) / 1000)) : 1;
-            g.ballSpacing = val * unit;
-          }
-        }
-      },
-      {
-        id: 'kaleiSwirl',
-        label: 'Swirl',
-        stateKey: 'kaleidoscopeSwirlStrength',
-        type: 'range',
-        min: 0, max: 800, step: 5,
-        default: 52,
-        format: v => String(Math.round(v)),
-        parse: parseFloat
-      },
-      {
-        id: 'kaleiPull',
-        label: 'Pull',
-        stateKey: 'kaleidoscopeRadialPull',
-        type: 'range',
-        min: 0, max: 800, step: 10,
-        default: 260,
-        format: v => String(Math.round(v)),
-        parse: parseFloat
-      },
-      {
-        id: 'kaleiRotFollow',
-        label: 'Rotation Follow',
-        stateKey: 'kaleidoscopeRotationFollow',
-        type: 'range',
-        min: 0, max: 3, step: 0.05,
+        min: 0.2, max: 2.0, step: 0.05,
         default: 1.0,
         format: v => v.toFixed(2),
         parse: parseFloat
       },
       {
-        id: 'kaleiPan',
-        label: 'Pan',
-        stateKey: 'kaleidoscopePanStrength',
+        id: 'kaleiDotSizeVh',
+        label: 'Dot Size (vh)',
+        stateKey: 'kaleidoscopeDotSizeVh',
         type: 'range',
-        min: 0, max: 2, step: 0.05,
-        default: 0.75,
+        min: 0.2, max: 2.5, step: 0.05,
+        default: 0.95,
+        format: v => v.toFixed(2) + 'vh',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kaleiDotAreaMul',
+        label: 'Dot Area',
+        stateKey: 'kaleidoscopeDotAreaMul',
+        type: 'range',
+        min: 0.3, max: 1.5, step: 0.05,
+        default: 0.7,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      warmupFramesControl('kaleidoscopeWarmupFrames')
+    ]
+  },
+
+  kaleidoscope1: {
+    title: 'Kaleidoscope I (Variant)',
+    icon: '🪞',
+    mode: 'kaleidoscope-1',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'kalei1BallCount',
+        label: 'Ball Count',
+        stateKey: 'kaleidoscope1BallCount',
+        type: 'range',
+        min: 6, max: 180, step: 1,
+        default: 18,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'kalei1Wedges',
+        label: 'Wedges',
+        stateKey: 'kaleidoscope1Wedges',
+        type: 'range',
+        min: 3, max: 24, step: 1,
+        default: 8,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'kalei1Speed',
+        label: 'Speed',
+        stateKey: 'kaleidoscope1Speed',
+        type: 'range',
+        min: 0.2, max: 2.0, step: 0.05,
+        default: 0.8,
         format: v => v.toFixed(2),
         parse: parseFloat
       },
       {
-        id: 'kaleiEase',
-        label: 'Easing',
-        stateKey: 'kaleidoscopeEase',
+        id: 'kalei1DotSizeVh',
+        label: 'Dot Size (vh)',
+        stateKey: 'kaleidoscope1DotSizeVh',
         type: 'range',
-        min: 0, max: 1, step: 0.01,
+        min: 0.2, max: 2.5, step: 0.05,
+        default: 0.95,
+        format: v => v.toFixed(2) + 'vh',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kalei1DotAreaMul',
+        label: 'Dot Area',
+        stateKey: 'kaleidoscope1DotAreaMul',
+        type: 'range',
+        min: 0.3, max: 1.5, step: 0.05,
+        default: 0.7,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      warmupFramesControl('kaleidoscope1WarmupFrames')
+    ]
+  },
+
+  kaleidoscope2: {
+    title: 'Kaleidoscope II (Variant)',
+    icon: '🪞',
+    mode: 'kaleidoscope-2',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'kalei2BallCount',
+        label: 'Ball Count',
+        stateKey: 'kaleidoscope2BallCount',
+        type: 'range',
+        min: 10, max: 260, step: 2,
+        default: 36,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'kalei2Wedges',
+        label: 'Wedges',
+        stateKey: 'kaleidoscope2Wedges',
+        type: 'range',
+        min: 3, max: 24, step: 1,
+        default: 8,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'kalei2Speed',
+        label: 'Speed',
+        stateKey: 'kaleidoscope2Speed',
+        type: 'range',
+        min: 0.2, max: 2.0, step: 0.05,
+        default: 1.15,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'kalei2DotSizeVh',
+        label: 'Dot Size (vh)',
+        stateKey: 'kaleidoscope2DotSizeVh',
+        type: 'range',
+        min: 0.2, max: 2.5, step: 0.05,
+        default: 0.95,
+        format: v => v.toFixed(2) + 'vh',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kalei2DotAreaMul',
+        label: 'Dot Area',
+        stateKey: 'kaleidoscope2DotAreaMul',
+        type: 'range',
+        min: 0.3, max: 1.5, step: 0.05,
+        default: 0.7,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      warmupFramesControl('kaleidoscope2WarmupFrames')
+    ]
+  },
+
+  kaleidoscope3: {
+    title: 'Kaleidoscope III (Variant)',
+    icon: '🪞',
+    mode: 'kaleidoscope-3',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'kalei3BallCount',
+        label: 'Ball Count',
+        stateKey: 'kaleidoscope3BallCount',
+        type: 'range',
+        min: 12, max: 300, step: 3,
+        default: 54,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'kalei3Wedges',
+        label: 'Wedges',
+        stateKey: 'kaleidoscope3Wedges',
+        type: 'range',
+        min: 3, max: 24, step: 1,
+        default: 8,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'kalei3Speed',
+        label: 'Speed',
+        stateKey: 'kaleidoscope3Speed',
+        type: 'range',
+        min: 0.2, max: 2.0, step: 0.05,
+        default: 1.55,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'kalei3DotSizeVh',
+        label: 'Dot Size (vh)',
+        stateKey: 'kaleidoscope3DotSizeVh',
+        type: 'range',
+        min: 0.2, max: 2.5, step: 0.05,
+        default: 0.95,
+        format: v => v.toFixed(2) + 'vh',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kalei3DotAreaMul',
+        label: 'Dot Area',
+        stateKey: 'kaleidoscope3DotAreaMul',
+        type: 'range',
+        min: 0.3, max: 1.5, step: 0.05,
+        default: 0.7,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      warmupFramesControl('kaleidoscope3WarmupFrames')
+    ]
+  },
+
+  orbit3d: {
+    title: 'Orbit 3D: Zero Gravity',
+    icon: '🌪️',
+    mode: 'orbit-3d',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'orbit3dMoonCount',
+        label: 'Body Count',
+        stateKey: 'orbit3dMoonCount',
+        type: 'range',
+        min: 10, max: 200, step: 10,
+        default: 80,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'orbit3dGravity',
+        label: 'Gravity Pull',
+        stateKey: 'orbit3dGravity',
+        type: 'range',
+        min: 1000, max: 10000, step: 500,
+        default: 5000,
+        format: v => Math.round(v),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3dVelocityMult',
+        label: 'Orbital Speed',
+        stateKey: 'orbit3dVelocityMult',
+        type: 'range',
+        min: 50, max: 300, step: 10,
+        default: 150,
+        format: v => Math.round(v),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3dDepthScale',
+        label: 'Depth Effect',
+        stateKey: 'orbit3dDepthScale',
+        type: 'range',
+        min: 0, max: 1.5, step: 0.1,
+        default: 0.8,
+        format: v => v.toFixed(1),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3dDamping',
+        label: 'Stability',
+        stateKey: 'orbit3dDamping',
+        type: 'range',
+        min: 0.005, max: 0.05, step: 0.005,
+        default: 0.02,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      {
+        id: 'sizeVariationOrbit3d',
+        label: 'Size Variation',
+        stateKey: 'sizeVariationOrbit3d',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      warmupFramesControl('orbit3dWarmupFrames')
+    ]
+  },
+  orbit3d2: {
+    title: 'Orbit 3D (Tight Swarm)',
+    icon: '🌪️',
+    mode: 'orbit-3d-2',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'orbit3d2MoonCount',
+        label: 'Moon Count',
+        stateKey: 'orbit3d2MoonCount',
+        type: 'range',
+        min: 20, max: 200, step: 10,
+        default: 100,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'orbit3d2Gravity',
+        label: 'Gravity (G×M)',
+        stateKey: 'orbit3d2Gravity',
+        type: 'range',
+        min: 10000, max: 300000, step: 10000,
+        default: 80000,
+        format: v => `${Math.round(v / 1000)}k`,
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'orbit3d2VelocityMult',
+        label: 'Initial Velocity',
+        stateKey: 'orbit3d2VelocityMult',
+        type: 'range',
+        min: 0.5, max: 1.5, step: 0.05,
+        default: 1.1,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'orbit3d2MinOrbit',
+        label: 'Min Orbit (vw)',
+        stateKey: 'orbit3d2MinOrbit',
+        type: 'range',
+        min: 2, max: 15, step: 1,
+        default: 4,
+        format: v => v + 'vw',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'orbit3d2MaxOrbit',
+        label: 'Max Orbit (vw)',
+        stateKey: 'orbit3d2MaxOrbit',
+        type: 'range',
+        min: 3, max: 25, step: 1,
+        default: 12,
+        format: v => v + 'vw',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'orbit3d2DepthScale',
+        label: 'Depth Effect',
+        stateKey: 'orbit3d2DepthScale',
+        type: 'range',
+        min: 0, max: 0.8, step: 0.05,
+        default: 0.6,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3d2Damping',
+        label: 'Damping',
+        stateKey: 'orbit3d2Damping',
+        type: 'range',
+        min: 0, max: 0.2, step: 0.005,
+        default: 0.01,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3d2FollowSmoothing',
+        label: 'Cursor Follow Speed',
+        stateKey: 'orbit3d2FollowSmoothing',
+        type: 'range',
+        min: 1, max: 200, step: 1,
+        default: 40,
+        format: v => Math.round(v),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3d2Softening',
+        label: 'Gravity Softening',
+        stateKey: 'orbit3d2Softening',
+        type: 'range',
+        min: 1, max: 100, step: 1,
+        default: 15,
+        format: v => Math.round(v),
+        parse: parseFloat
+      },
+      {
+        id: 'sizeVariationOrbit3d2',
+        label: 'Size Variation',
+        stateKey: 'sizeVariationOrbit3d2',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      warmupFramesControl('orbit3d2WarmupFrames')
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LATTICE — Crystal structure from chaos
+  // ═══════════════════════════════════════════════════════════════════════════
+  lattice: {
+    title: 'Crystal Lattice',
+    icon: '💎',
+    mode: 'lattice',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'sizeVariationLattice',
+        label: 'Size Variation',
+        stateKey: 'sizeVariationLattice',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'latticeSpacingVw',
+        label: 'Spacing (vw)',
+        stateKey: 'latticeSpacingVw',
+        type: 'range',
+        min: 1, max: 20, step: 0.25,
+        default: 8.5,
+        format: v => v.toFixed(2) + 'vw',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'latticeStiffness',
+        label: 'Stiffness',
+        stateKey: 'latticeStiffness',
+        type: 'range',
+        min: 0, max: 10, step: 0.1,
+        default: 2.2,
+        format: v => v.toFixed(1),
+        parse: parseFloat
+      },
+      {
+        id: 'latticeDamping',
+        label: 'Damping',
+        stateKey: 'latticeDamping',
+        type: 'range',
+        min: 0.5, max: 1.0, step: 0.01,
+        default: 0.92,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'latticeDisruptRadius',
+        label: 'Mesh Stretch Radius',
+        stateKey: 'latticeDisruptRadius',
+        type: 'range',
+        min: 50, max: 1000, step: 25,
+        default: 600,
+        format: v => String(Math.round(v)) + 'px',
+        parse: parseFloat
+      },
+      {
+        id: 'latticeDisruptPower',
+        label: 'Mesh Stretch Power',
+        stateKey: 'latticeDisruptPower',
+        type: 'range',
+        min: 0, max: 50, step: 1,
+        default: 25.0,
+        format: v => v.toFixed(1),
+        parse: parseFloat
+      },
+      {
+        id: 'latticeMeshWaveStrength',
+        label: 'Wave Amplitude',
+        stateKey: 'latticeMeshWaveStrength',
+        type: 'range',
+        min: 0, max: 50, step: 1,
+        default: 12.0,
+        format: v => String(Math.round(v)) + 'px',
+        parse: parseFloat
+      },
+      {
+        id: 'latticeMeshWaveSpeed',
+        label: 'Wave Speed',
+        stateKey: 'latticeMeshWaveSpeed',
+        type: 'range',
+        min: 0, max: 3.0, step: 0.1,
+        default: 0.8,
+        format: v => v.toFixed(1) + 'x',
+        parse: parseFloat
+      },
+      {
+        id: 'latticeAlignment',
+        label: 'Grid Alignment',
+        stateKey: 'latticeAlignment',
+        type: 'select',
+        options: [
+          { value: 'center', label: 'Center (Fill)' },
+          { value: 'top-left', label: 'Top-Left' },
+          { value: 'top-center', label: 'Top-Center' },
+          { value: 'top-right', label: 'Top-Right' }
+        ],
+        default: 'center',
+        format: v => String(v),
+        parse: v => String(v),
+        reinitMode: true
+      },
+      warmupFramesControl('latticeWarmupFrames')
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEURAL — Connectivity expressed through motion only (no lines)
+  // ═══════════════════════════════════════════════════════════════════════════
+  neural: {
+    title: 'Neural Network',
+    icon: '🧠',
+    mode: 'neural',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'neuralBallCount',
+        label: 'Ball Count',
+        stateKey: 'neuralBallCount',
+        type: 'range',
+        min: 8, max: 260, step: 1,
+        default: 80,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'sizeVariationNeural',
+        label: 'Size Variation',
+        stateKey: 'sizeVariationNeural',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'neuralWanderStrength',
+        label: 'Wander Strength',
+        stateKey: 'neuralWanderStrength',
+        type: 'range',
+        min: 0, max: 2000, step: 10,
+        default: 420,
+        format: v => String(Math.round(v)),
+        parse: parseFloat
+      },
+      {
+        id: 'neuralDamping',
+        label: 'Damping',
+        stateKey: 'neuralDamping',
+        type: 'range',
+        min: 0.8, max: 1.0, step: 0.005,
+        default: 0.985,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      {
+        id: 'neuralCohesion',
+        label: 'Cohesion',
+        stateKey: 'neuralCohesion',
+        type: 'range',
+        min: 0, max: 1.0, step: 0.01,
         default: 0.18,
         format: v => v.toFixed(2),
         parse: parseFloat
       },
+      warmupFramesControl('neuralWarmupFrames')
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NOTE: “Warmup Frames” is appended per mode below to avoid visible settling
+  // on mode switches (no pop-in / no flash). It is consumed by the physics engine
+  // before the first render after init.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  parallaxLinear: {
+    title: 'Parallax (Linear)',
+    icon: '🫧',
+    mode: 'parallax-linear',
+    defaultOpen: false,
+    controls: [
       {
-        id: 'kaleiWander',
-        label: 'Organic',
-        stateKey: 'kaleidoscopeWander',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.25,
-        format: v => v.toFixed(2),
-        parse: parseFloat
+        id: 'parallaxLinearPreset',
+        label: 'Preset',
+        stateKey: 'parallaxLinearPreset',
+        type: 'select',
+        options: Object.keys(PARALLAX_LINEAR_PRESETS).map(k => ({ value: k, label: PARALLAX_LINEAR_PRESETS[k].label })),
+        default: 'default',
+        format: v => PARALLAX_LINEAR_PRESETS[v]?.label || v,
+        onChange: (value) => {
+          applyParallaxLinearPreset(value, true);
+        }
       },
       {
-        id: 'kaleiMaxSpeed',
-        label: 'Speed Clamp',
-        stateKey: 'kaleidoscopeMaxSpeed',
+        id: 'parallaxLinearDotSizeMul',
+        label: 'Dot Size',
+        stateKey: 'parallaxLinearDotSizeMul',
         type: 'range',
-        min: 300, max: 8000, step: 100,
-        default: 2600,
+        min: 0.2, max: 6.0, step: 0.1,
+        default: 1.8,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'sizeVariationParallaxLinear',
+        label: 'Size Variation',
+        stateKey: 'sizeVariationParallaxLinear',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'parallaxLinearGridX',
+        label: 'Grid X (Cols)',
+        stateKey: 'parallaxLinearGridX',
+        type: 'range',
+        min: 3, max: 40, step: 1,
+        default: 14,
         format: v => String(Math.round(v)),
-        parse: parseFloat
-      }
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxLinearGridY',
+        label: 'Grid Y (Rows)',
+        stateKey: 'parallaxLinearGridY',
+        type: 'range',
+        min: 3, max: 40, step: 1,
+        default: 10,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxLinearGridZ',
+        label: 'Grid Z (Layers)',
+        stateKey: 'parallaxLinearGridZ',
+        type: 'range',
+        min: 2, max: 20, step: 1,
+        default: 7,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxLinearSpanX',
+        label: 'Span X',
+        stateKey: 'parallaxLinearSpanX',
+        type: 'range',
+        min: 0.2, max: 3.0, step: 0.05,
+        default: 1.35,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'World-space width as a multiple of the viewport width. Use >1 to fill edge-to-edge.'
+      },
+      {
+        id: 'parallaxLinearSpanY',
+        label: 'Span Y',
+        stateKey: 'parallaxLinearSpanY',
+        type: 'range',
+        min: 0.2, max: 3.0, step: 0.05,
+        default: 1.35,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'World-space height as a multiple of the viewport height.'
+      },
+      {
+        id: 'parallaxLinearZNear',
+        label: 'Z Near',
+        stateKey: 'parallaxLinearZNear',
+        type: 'range',
+        min: 10, max: 1200, step: 10,
+        default: 50,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxLinearZFar',
+        label: 'Z Far',
+        stateKey: 'parallaxLinearZFar',
+        type: 'range',
+        min: 50, max: 3000, step: 25,
+        default: 900,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxLinearFocalLength',
+        label: 'Focal Length',
+        stateKey: 'parallaxLinearFocalLength',
+        type: 'range',
+        min: 80, max: 2000, step: 10,
+        default: 420,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'parallaxLinearParallaxStrength',
+        label: 'Parallax Strength',
+        stateKey: 'parallaxLinearParallaxStrength',
+        type: 'range',
+        min: 0, max: 2000, step: 10,
+        default: 260,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10)
+      },
+      warmupFramesControl('parallaxLinearWarmupFrames')
+    ]
+  },
+
+  parallaxPerspective: {
+    title: 'Parallax (Perspective)',
+    icon: '🫧',
+    mode: 'parallax-perspective',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'parallaxPerspectivePreset',
+        label: 'Preset',
+        stateKey: 'parallaxPerspectivePreset',
+        type: 'select',
+        options: Object.keys(PARALLAX_PERSPECTIVE_PRESETS).map(k => ({ value: k, label: PARALLAX_PERSPECTIVE_PRESETS[k].label })),
+        default: 'default',
+        format: v => PARALLAX_PERSPECTIVE_PRESETS[v]?.label || v,
+        onChange: (value) => {
+          applyParallaxPerspectivePreset(value, true);
+        }
+      },
+      {
+        id: 'parallaxPerspectiveRandomness',
+        label: 'Randomness',
+        stateKey: 'parallaxPerspectiveRandomness',
+        type: 'range',
+        min: 0, max: 1.0, step: 0.05,
+        default: 0.6,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true,
+        hint: '0 = perfect grid. 1 = full jitter from grid vertices.'
+      },
+      {
+        id: 'parallaxPerspectiveDotSizeMul',
+        label: 'Dot Size',
+        stateKey: 'parallaxPerspectiveDotSizeMul',
+        type: 'range',
+        min: 0.2, max: 6.0, step: 0.1,
+        default: 1.8,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'sizeVariationParallaxPerspective',
+        label: 'Size Variation',
+        stateKey: 'sizeVariationParallaxPerspective',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'parallaxPerspectiveGridX',
+        label: 'Grid X (Cols)',
+        stateKey: 'parallaxPerspectiveGridX',
+        type: 'range',
+        min: 3, max: 50, step: 1,
+        default: 16,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxPerspectiveGridY',
+        label: 'Grid Y (Rows)',
+        stateKey: 'parallaxPerspectiveGridY',
+        type: 'range',
+        min: 3, max: 50, step: 1,
+        default: 12,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxPerspectiveGridZ',
+        label: 'Grid Z (Layers)',
+        stateKey: 'parallaxPerspectiveGridZ',
+        type: 'range',
+        min: 2, max: 25, step: 1,
+        default: 8,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxPerspectiveSpanX',
+        label: 'Span X',
+        stateKey: 'parallaxPerspectiveSpanX',
+        type: 'range',
+        min: 0.2, max: 3.0, step: 0.05,
+        default: 1.45,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'parallaxPerspectiveSpanY',
+        label: 'Span Y',
+        stateKey: 'parallaxPerspectiveSpanY',
+        type: 'range',
+        min: 0.2, max: 3.0, step: 0.05,
+        default: 1.45,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'parallaxPerspectiveZNear',
+        label: 'Z Near',
+        stateKey: 'parallaxPerspectiveZNear',
+        type: 'range',
+        min: 10, max: 1200, step: 10,
+        default: 40,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxPerspectiveZFar',
+        label: 'Z Far',
+        stateKey: 'parallaxPerspectiveZFar',
+        type: 'range',
+        min: 50, max: 4000, step: 50,
+        default: 1200,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxPerspectiveFocalLength',
+        label: 'Focal Length',
+        stateKey: 'parallaxPerspectiveFocalLength',
+        type: 'range',
+        min: 80, max: 2000, step: 10,
+        default: 420,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'parallaxPerspectiveParallaxStrength',
+        label: 'Parallax Strength',
+        stateKey: 'parallaxPerspectiveParallaxStrength',
+        type: 'range',
+        min: 0, max: 2000, step: 10,
+        default: 280,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10)
+      },
+      warmupFramesControl('parallaxPerspectiveWarmupFrames')
     ]
   }
 };
@@ -1445,6 +2965,29 @@ function generateControlHTML(control) {
       ${control.hint ? `<p class="control-hint">${control.hint}</p>` : ''}`;
   }
 
+  // Select type
+  if (control.type === 'select') {
+    const opts = Array.isArray(control.options) ? control.options : [];
+    const optionsHtml = opts.map((o) => {
+      const v = String(o.value);
+      const label = String(o.label ?? o.value);
+      const selectedAttr = String(control.default) === v ? 'selected' : '';
+      return `<option value="${v}" ${selectedAttr}>${label}</option>`;
+    }).join('');
+    const hintHtml = control.hint ? `<p class="control-hint">${control.hint}</p>` : '';
+    return `
+      <label class="control-row" data-control-id="${control.id}">
+        <div class="control-row-header">
+          <span class="control-label">${control.label}</span>
+          <span class="control-value" id="${valId}">${safeFormat(control, control.default)}</span>
+        </div>
+        <select id="${sliderId}" class="control-select" aria-label="${control.label}">
+          ${optionsHtml}
+        </select>
+      </label>
+      ${hintHtml}`;
+  }
+
   // Checkbox type
   if (control.type === 'checkbox') {
     const checkedAttr = control.default ? 'checked' : '';
@@ -1466,7 +3009,7 @@ function generateControlHTML(control) {
       <label class="control-row" data-control-id="${control.id}">
         <div class="control-row-header">
           <span class="control-label">${control.label}</span>
-          <span class="control-value" id="${valId}">${control.format(control.default)}</span>
+          <span class="control-value" id="${valId}">${safeFormat(control, control.default)}</span>
         </div>
         <input type="range" id="${sliderId}" min="${control.min}" max="${control.max}" step="${control.step}" value="${control.default}">
       </label>
@@ -1528,6 +3071,22 @@ function generateSectionHTML(key, section) {
 export function generatePanelHTML() {
   // NOTE: Don't wrap in .panel-content here - panel-dock.js creates that wrapper
 
+  // Rule: every simulation must have at least 4 configurable parameters.
+  // We enforce this in dev as a warning to keep production resilient.
+  try {
+    for (const [, section] of Object.entries(CONTROL_SECTIONS)) {
+      if (!section?.mode) continue;
+      const n = Array.isArray(section.controls) ? section.controls.length : 0;
+      if (n < 4) console.warn(`[panel] Mode \"${section.mode}\" has only ${n} controls; add at least 4 parameters.`);
+    }
+  } catch (e) {}
+
+  // Mode-specific options should appear directly under the mode selector.
+  const modeControlsHtml = Object.entries(CONTROL_SECTIONS)
+    .filter(([, section]) => section?.mode)
+    .map(([key, section]) => generateSectionHTML(key, section))
+    .join('');
+
   let html = `
     <!-- Screen reader announcements -->
     <div role="status" aria-live="polite" aria-atomic="true" class="sr-only" id="announcer"></div>
@@ -1556,18 +3115,58 @@ export function generatePanelHTML() {
       </summary>
       <div class="panel-section-content">
         <div class="mode-switcher" role="group" aria-label="Simulation mode selector">
-          <button class="mode-button active" data-mode="critters" aria-label="Critters mode">🪲 Critters</button>
-          <button class="mode-button" data-mode="pit" aria-label="Ball Pit mode">🎯 Pit</button>
-          <button class="mode-button" data-mode="pit-throws" aria-label="Ball Pit throws mode">🎯 Throws</button>
-          <button class="mode-button" data-mode="flies" aria-label="Flies mode">🕊️ Flies</button>
-          <button class="mode-button" data-mode="weightless" aria-label="Zero-G mode">🌌 Zero-G</button>
-          <button class="mode-button" data-mode="water" aria-label="Water mode">🌊 Water</button>
-          <button class="mode-button" data-mode="vortex" aria-label="Vortex mode">🌀 Vortex</button>
-          <button class="mode-button" data-mode="ping-pong" aria-label="Ping Pong mode">🏓 Pong</button>
-          <button class="mode-button" data-mode="magnetic" aria-label="Magnetic mode">🧲 Magnet</button>
-          <button class="mode-button" data-mode="bubbles" aria-label="Bubbles mode">🫧 Bubbles</button>
-          <button class="mode-button" data-mode="kaleidoscope" aria-label="Kaleidoscope mode">🪞 Kalei</button>
+          ${(() => {
+            const modeIcons = {
+              'pit': '🎯',
+              'bubbles': '🫧',
+              'critters': '🪲',
+              'flies': '🕊️',
+              'pit-throws': '🎯',
+              'water': '🌊',
+              'vortex': '🌀',
+              'magnetic': '🧲',
+              'ping-pong': '🏓',
+              'weightless': '🌌',
+              'kaleidoscope': '🪞',
+              'kaleidoscope-1': '🪞',
+              'kaleidoscope-2': '🪞',
+              'kaleidoscope-3': '🪞',
+              'orbit-3d': '🌪️',
+              'orbit-3d-2': '🌪️',
+              'lattice': '💎',
+              'neural': '🧠'
+            };
+            const modeLabels = {
+              'pit': 'Pit',
+              'bubbles': 'Bubbles',
+              'critters': 'Critters',
+              'flies': 'Flies',
+              'pit-throws': 'Throws',
+              'water': 'Water',
+              'vortex': 'Vortex',
+              'magnetic': 'Magnet',
+              'ping-pong': 'Pong',
+              'weightless': 'Zero-G',
+              'kaleidoscope': 'Kalei',
+              'kaleidoscope-1': 'Kalei I',
+              'kaleidoscope-2': 'Kalei II',
+              'kaleidoscope-3': 'Kalei III',
+              'orbit-3d': 'Orbit',
+              'orbit-3d-2': 'Swarm',
+              'lattice': 'Lattice',
+              'neural': 'Neural'
+            };
+            let buttons = '';
+            NARRATIVE_MODE_SEQUENCE.forEach((mode) => {
+              const modeKey = mode;
+              const icon = modeIcons[modeKey] || '⚪';
+              const label = modeLabels[modeKey] || modeKey;
+              buttons += `<button class="mode-button" data-mode="${modeKey}" aria-label="${NARRATIVE_CHAPTER_TITLES[mode] || label} mode">${icon} ${label}</button>`;
+            });
+            return buttons;
+          })()}
         </div>
+        ${modeControlsHtml}
       </div>
     </details>`;
 
@@ -1596,12 +3195,7 @@ export function generatePanelHTML() {
       </div>
     </details>`;
   
-  // Mode-specific sections
-  for (const [key, section] of Object.entries(CONTROL_SECTIONS)) {
-    if (section.mode) {
-      html += generateSectionHTML(key, section);
-    }
-  }
+  // Mode-specific sections are injected directly under the Mode selector (above).
   
   // Footer
   html += `
@@ -1658,6 +3252,34 @@ export function bindRegisteredControls() {
         continue;
       }
 
+      // Select binding
+      if (control.type === 'select') {
+        const selectId = control.id + 'Slider';
+        const el = document.getElementById(selectId);
+        if (!el) continue;
+        
+        el.addEventListener('change', () => {
+          const rawVal = control.parse ? control.parse(el.value) : el.value;
+          
+          if (control.stateKey) {
+            g[control.stateKey] = rawVal;
+          }
+          
+          if (control.onChange) {
+            control.onChange(g, rawVal);
+          }
+          
+          if (valEl) {
+            const displayVal = control.stateKey ? g[control.stateKey] : rawVal;
+            valEl.textContent = control.format ? control.format(displayVal) : String(displayVal);
+          }
+          
+          autoSaveSettings();
+        });
+        
+        continue;
+      }
+
       // Checkbox binding
       if (control.type === 'checkbox') {
         const checkboxId = control.id + 'Slider';
@@ -1680,13 +3302,12 @@ export function bindRegisteredControls() {
           }
 
           // Re-init mode if needed
+          // IMPORTANT: Do NOT import per-mode module files by name (e.g. `kaleidoscope-1.js` doesn't exist).
+          // Always reset via the mode controller so variants that share a module re-init correctly.
           if (control.reinitMode && g.currentMode === section.mode) {
-            import(`../modes/${section.mode}.js`).then(mod => {
-              const initFn = Object.values(mod).find(fn =>
-                typeof fn === 'function' && fn.name.toLowerCase().includes('initialize')
-              );
-              if (initFn) initFn();
-            }).catch(() => {});
+            import('../modes/mode-controller.js')
+              .then(({ resetCurrentMode }) => resetCurrentMode?.())
+              .catch(() => {});
           }
 
           autoSaveSettings();
@@ -1729,15 +3350,11 @@ export function bindRegisteredControls() {
           applyVisualCSSVars(cssConfig);
         }
         
-        // Re-init mode if needed
+        // Re-init mode if needed (see note above)
         if (control.reinitMode && g.currentMode === section.mode) {
-          const modeName = section.mode.replace('-', '');
-          import(`../modes/${section.mode}.js`).then(mod => {
-            const initFn = Object.values(mod).find(fn => 
-              typeof fn === 'function' && fn.name.toLowerCase().includes('initialize')
-            );
-            if (initFn) initFn();
-          }).catch(() => {});
+          import('../modes/mode-controller.js')
+            .then(({ resetCurrentMode }) => resetCurrentMode?.())
+            .catch(() => {});
         }
         
         autoSaveSettings();

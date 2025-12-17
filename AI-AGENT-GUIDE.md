@@ -76,6 +76,15 @@ npm run help           # Show all commands
 1. Check [`docs/development/ARCHITECTURE.md`](./docs/development/ARCHITECTURE.md) for patterns
 2. Review [`docs/reference/CONFIGURATION.md`](./docs/reference/CONFIGURATION.md) for settings
 3. Update relevant documentation
+4. **Important**: When adding a new simulation mode:
+   - Add to `MODES` in `source/modules/core/constants.js`
+   - Add to `NARRATIVE_MODE_SEQUENCE` in `source/modules/core/constants.js` (for keyboard/click cycling)
+   - Add to `NARRATIVE_CHAPTER_TITLES` in `source/modules/core/constants.js`
+   - Add to `modeNames` in `source/modules/ui/controls.js` and `source/modules/modes/mode-controller.js`
+   - Add UI controls in `source/modules/ui/control-registry.js`
+   - Register in `source/modules/modes/mode-controller.js` (init logic, force applicator)
+   - Add to keyboard shortcuts in `source/modules/ui/keyboard.js`
+   - Document in `docs/reference/MODES.md`
 
 ### Debugging
 1. Check [`docs/development/DEVELOPMENT-GUIDE.md`](./docs/development/DEVELOPMENT-GUIDE.md) troubleshooting

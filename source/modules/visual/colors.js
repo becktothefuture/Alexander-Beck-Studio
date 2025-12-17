@@ -35,6 +35,165 @@ export const COLOR_TEMPLATES = {
 
 const COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// CURSOR COLOR (contrasty-only palette selection)
+// - Single source of truth for cursor dot + trail
+// - Event-driven (mode switch / reset / startup / palette change), not in hot paths
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CURSOR_SAFE_FALLBACK_INDICES = [3, 5, 6, 7];
+const CURSOR_SAT_MIN = 0.18; // exclude greys/white/black; keep “ball color” feel
+
+function clampInt(v, min, max) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return min;
+  const i = Math.floor(n);
+  return i < min ? min : i > max ? max : i;
+}
+
+function isArrayOfNumbers(v) {
+  return Array.isArray(v) && v.every(x => Number.isFinite(Number(x)));
+}
+
+function hexToRgb01(hex) {
+  const h = String(hex || '').trim();
+  if (!h) return null;
+  const s = h[0] === '#' ? h.slice(1) : h;
+  if (!(s.length === 3 || s.length === 6)) return null;
+  const full = s.length === 3
+    ? (s[0] + s[0] + s[1] + s[1] + s[2] + s[2])
+    : s;
+  const n = parseInt(full, 16);
+  if (!Number.isFinite(n)) return null;
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return { r: r / 255, g: g / 255, b: b / 255 };
+}
+
+function srgbToLinear(c) {
+  return c <= 0.04045 ? (c / 12.92) : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+function relativeLuminance(hex) {
+  const rgb = hexToRgb01(hex);
+  if (!rgb) return 1;
+  const r = srgbToLinear(rgb.r);
+  const g = srgbToLinear(rgb.g);
+  const b = srgbToLinear(rgb.b);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function hsvSaturation(hex) {
+  const rgb = hexToRgb01(hex);
+  if (!rgb) return 0;
+  const max = Math.max(rgb.r, rgb.g, rgb.b);
+  const min = Math.min(rgb.r, rgb.g, rgb.b);
+  const d = max - min;
+  if (max <= 0) return 0;
+  return d / max;
+}
+
+function stampCursorCSSVar(hex) {
+  try {
+    document.documentElement.style.setProperty('--cursor-color', String(hex || '').trim() || '#000000');
+  } catch (_) { /* no-op */ }
+}
+
+function resolveCursorHexFromIndex(colors, idx) {
+  const list = colors && colors.length ? colors : [];
+  const i = clampInt(idx, 0, Math.max(0, Math.min(7, list.length - 1)));
+  return list[i] || '#000000';
+}
+
+export function getCursorCandidateIndices(colors, globalsOverride) {
+  const g = globalsOverride || getGlobals();
+  const list = colors && colors.length ? colors : [];
+  const maxIdx = Math.min(7, list.length - 1);
+  if (maxIdx < 0) return [];
+
+  const lumaMax = Number.isFinite(Number(g.cursorColorLumaMax)) ? Number(g.cursorColorLumaMax) : 0.62;
+  const allow = isArrayOfNumbers(g.cursorColorAllowIndices)
+    ? g.cursorColorAllowIndices.map(x => clampInt(x, 0, 7))
+    : [];
+  const deny = isArrayOfNumbers(g.cursorColorDenyIndices)
+    ? g.cursorColorDenyIndices.map(x => clampInt(x, 0, 7))
+    : [];
+
+  const denySet = new Set(deny);
+  const allowSet = allow.length ? new Set(allow) : null;
+
+  const out = [];
+  for (let i = 0; i <= maxIdx; i++) {
+    if (denySet.has(i)) continue;
+    if (allowSet && !allowSet.has(i)) continue;
+    const hex = list[i];
+    if (!hex) continue;
+    const luma = relativeLuminance(hex);
+    if (luma > lumaMax) continue;          // too light
+    const sat = hsvSaturation(hex);
+    if (sat < CURSOR_SAT_MIN) continue;    // too grey/neutral
+    out.push(i);
+  }
+
+  if (out.length) return out;
+
+  // Hard fallback: always try the “nice” indices first.
+  const safe = [];
+  for (const i of CURSOR_SAFE_FALLBACK_INDICES) {
+    if (i <= maxIdx && !denySet.has(i) && (!allowSet || allowSet.has(i))) safe.push(i);
+  }
+  if (safe.length) return safe;
+
+  // Last resort: any existing index not denied.
+  for (let i = 0; i <= maxIdx; i++) {
+    if (!denySet.has(i) && (!allowSet || allowSet.has(i))) safe.push(i);
+  }
+  return safe;
+}
+
+export function applyCursorColorIndex(index, { forceMode } = {}) {
+  const g = getGlobals();
+  const colors = g.currentColors;
+  const candidates = getCursorCandidateIndices(colors, g);
+
+  // If the desired index is not a candidate, snap to first candidate.
+  const desired = clampInt(index, 0, 7);
+  const finalIdx = candidates.includes(desired) ? desired : (candidates[0] ?? desired);
+  const hex = resolveCursorHexFromIndex(colors, finalIdx);
+
+  if (forceMode) g.cursorColorMode = forceMode;
+  g.cursorColorIndex = finalIdx;
+  g.cursorColorHex = hex;
+  stampCursorCSSVar(hex);
+  return { index: finalIdx, hex };
+}
+
+export function maybeAutoPickCursorColor(reason = 'auto') {
+  const g = getGlobals();
+  if (g.cursorColorMode !== 'auto') {
+    // Still ensure CSS var is aligned with current palette variant.
+    applyCursorColorIndex(g.cursorColorIndex, { forceMode: g.cursorColorMode });
+    return false;
+  }
+
+  const colors = g.currentColors;
+  const candidates = getCursorCandidateIndices(colors, g);
+  if (!candidates.length) return false;
+
+  const last = Number.isFinite(Number(g._lastCursorColorIndex)) ? Number(g._lastCursorColorIndex) : -1;
+  let pick = candidates[(Math.random() * candidates.length) | 0];
+  if (candidates.length > 1 && pick === last) {
+    // Avoid immediate repeats when possible.
+    pick = candidates[(Math.random() * candidates.length) | 0];
+    if (pick === last) pick = candidates[(candidates.indexOf(last) + 1) % candidates.length];
+  }
+  g._lastCursorColorIndex = pick;
+
+  applyCursorColorIndex(pick, { forceMode: 'auto' });
+  return true;
+}
+
 export function getCurrentPalette(templateName) {
   const globals = getGlobals();
   const template = COLOR_TEMPLATES[templateName];
@@ -85,7 +244,13 @@ export function applyColorTemplate(templateName) {
   const globals = getGlobals();
   globals.currentTemplate = templateName;
   globals.currentColors = getCurrentPalette(templateName);
-  globals.cursorBallColor = globals.currentColors[globals.cursorBallIndex || 4];
+  
+  // Cursor color must remain valid across template + theme changes.
+  // Do NOT auto-rotate here; only re-resolve to the new palette variant (or snap if invalid).
+  if (globals.cursorColorMode !== 'auto' && globals.cursorColorMode !== 'manual') {
+    globals.cursorColorMode = 'auto';
+  }
+  applyCursorColorIndex(globals.cursorColorIndex, { forceMode: globals.cursorColorMode });
   
   // Update existing ball colors
   updateExistingBallColors();
@@ -95,6 +260,12 @@ export function applyColorTemplate(templateName) {
   
   // Update UI color pickers
   updateColorPickersUI();
+  
+  // Notify optional UI consumers (e.g., dev control panel swatches).
+  // Event-driven; not used in hot paths.
+  try {
+    window.dispatchEvent(new CustomEvent('bb:paletteChanged', { detail: { template: templateName } }));
+  } catch (_) { /* no-op */ }
 }
 
 function updateExistingBallColors() {

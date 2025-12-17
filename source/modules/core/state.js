@@ -23,6 +23,9 @@ const state = {
   config: {},
   // Default boot mode (overridden by main.js on init, but kept consistent here too).
   currentMode: MODES.CRITTERS,
+  // Mode-switch warmup: engine consumes this before first render after init.
+  // Units: render frames at 60fps (each warmup frame advances ~1/60s via physics steps).
+  warmupFramesRemaining: 0,
   balls: [],
   canvas: null,
   ctx: null,
@@ -69,17 +72,80 @@ const state = {
   
   // Size
   sizeScale: 1.2,
+  // Global sizing variation system:
+  // - Per-mode sliders (0..1): how much this mode varies sizes
+  // - Global multiplier (0..2): scales all per-mode variations (default 1 = neutral)
+  // - Internal cap: max fractional deviation from medium radius when per-mode=1 and globalMul=1
+  sizeVariationGlobalMul: 1.0,
+  sizeVariationCap: 0.12,
+  // Per-mode variation (0..1)
+  sizeVariationPit: 0,
+  sizeVariationPitThrows: 0,
+  sizeVariationFlies: 0,
+  sizeVariationWeightless: 0,
+  sizeVariationWater: 0,
+  sizeVariationVortex: 0.2,
+  sizeVariationPingPong: 0,
+  sizeVariationMagnetic: 0,
+  sizeVariationBubbles: 0.2,
+  sizeVariationKaleidoscope: 0,
+  sizeVariationOrbit3d: 0,
+  sizeVariationCritters: 0.2,
+  sizeVariationNeural: 0,
+  sizeVariationLattice: 0,
+  sizeVariationParallaxLinear: 0,
+  sizeVariationParallaxPerspective: 0,
+  
+  // Warmup (per simulation) — how many “startup frames” to pre-run before first render.
+  // Default 10 for all modes (quick settle; avoids visible pop-in while testing).
+  pitWarmupFrames: 10,
+  pitThrowsWarmupFrames: 10,
+  fliesWarmupFrames: 10,
+  weightlessWarmupFrames: 10,
+  waterWarmupFrames: 10,
+  vortexWarmupFrames: 10,
+  pingPongWarmupFrames: 10,
+  magneticWarmupFrames: 10,
+  bubblesWarmupFrames: 10,
+  kaleidoscopeWarmupFrames: 10,
+  kaleidoscope1WarmupFrames: 10,
+  kaleidoscope2WarmupFrames: 10,
+  kaleidoscope3WarmupFrames: 10,
+  orbit3dWarmupFrames: 10,
+  orbit3d2WarmupFrames: 10,
+  crittersWarmupFrames: 10,
+  neuralWarmupFrames: 10,
+  latticeWarmupFrames: 10,
+  parallaxLinearWarmupFrames: 10,
+  parallaxPerspectiveWarmupFrames: 10,
+  // Legacy (pre per-mode system) — kept for back-compat; prefer the per-mode keys above.
   sizeVariation: 0,
   responsiveScale: 1.0,       // Runtime responsive scale (calculated on init)
   responsiveScaleMobile: 0.75, // Scale factor for mobile devices (iPad/iPhone)
   isMobile: false,            // Mobile device detected?
   R_MIN_BASE: 6,
   R_MAX_BASE: 24,
-  R_MIN: 6 * 1.2 * 0.75,
-  R_MAX: 24 * 1.2 * 1.25,
+  // Derived by updateBallSizes()
+  R_MED: 0,
+  R_MIN: 0,
+  R_MAX: 0,
   
   // Custom cursor
   cursorSize: 1.0,  // Multiplier for cursor size (1.0 = average ball size)
+  
+  // Cursor color (dot + trail)
+  // - `cursorColorMode`: 'auto' picks a new contrasty palette color on startup/mode/reset.
+  // - `cursorColorIndex`: palette index 0..7 (used when manual; also the current selection in auto).
+  // - `cursorColorHex`: resolved hex string stamped into CSS (--cursor-color) and used by the trail.
+  cursorColorMode: 'auto',
+  cursorColorIndex: 5,
+  cursorColorHex: '#ff4013',
+  // Relative luminance threshold (0..1). Higher = more permissive, lower = more contrasty.
+  // Cursor must never be white / light greys; we filter aggressively by default.
+  cursorColorLumaMax: 0.62,
+  // Optional override lists (0..7). If allowlist is set, we only choose from it.
+  cursorColorAllowIndices: [],
+  cursorColorDenyIndices: [],
 
   // Mouse trail (canvas-rendered)
   mouseTrailEnabled: true,
@@ -128,6 +194,7 @@ const state = {
   containerBorderVw: 0,     // outer inset from viewport (vw)
   simulationPaddingVw: 0,   // inner inset around canvas (vw)
   contentPaddingVw: 0,      // padding for content blocks inside frame (vw)
+  contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
 
@@ -147,6 +214,14 @@ const state = {
   vortexSwirlStrength: 420,
   vortexRadialPull: 180,
   vortexBallCount: 180,
+  vortexSpeedMultiplier: 1.0,
+  vortexRadius: 0, // 0 = unlimited (uses falloff)
+  vortexFalloffCurve: 1.0, // 1.0 = linear, 2.0 = quadratic, 0.5 = sqrt
+  vortexRotationDirection: 1, // 1 = counterclockwise, -1 = clockwise
+  vortexCoreStrength: 1.0, // Multiplier for center strength
+  vortexAccelerationZone: 0, // Radius where acceleration is strongest (0 = disabled)
+  vortexOutwardPush: 0, // Outward force at edges (0 = disabled)
+  vortexFalloffRate: 0.0015, // Distance-based falloff rate (when radius = 0)
   
   
   // Magnetic mode params (updated defaults)
@@ -189,19 +264,125 @@ const state = {
   
   // Kaleidoscope mode (mouse-driven mirrored wedges)
   kaleidoscopeBallCount: 23,
-  kaleidoscopeSegments: 12,
+  // Number of mirrored wedges/segments in the kaleidoscope render.
+  kaleidoscopeWedges: 12,
   kaleidoscopeMirror: 1,
-  kaleidoscopeBallSpacing: 9, // Mode-only spacing (px). Applied only while in Kaleidoscope.
-  kaleidoscopeSwirlStrength: 52,
-  kaleidoscopeRadialPull: 260,
-  kaleidoscopeRotationFollow: 1.0,
-  kaleidoscopePanStrength: 0.75,
-  kaleidoscopeMaxSpeed: 2600,
-  // Idle baseline factor (0..1). 0 = frozen when idle, 1 = full-strength even when idle.
-  // Keep very low by default so the mode feels calm until the mouse moves.
-  kaleidoscopeIdleMotion: 0.03,
-  kaleidoscopeEase: 0.18,       // 0..1: easing for force response (higher = snappier)
-  kaleidoscopeWander: 0.25,     // 0..1: organic drift amount (unique per ball)
+  // Normalized swirl speed (0.2..2.0). Higher = faster orbiting.
+  kaleidoscopeSpeed: 1.0,
+  // Kaleidoscope dot sizing (vh-driven, ~30% smaller area by default)
+  kaleidoscopeDotSizeVh: 0.95,
+  kaleidoscopeDotAreaMul: 0.7,
+
+  // Kaleidoscope variants (I/II/III) — treated as variants of the same sim
+  kaleidoscope1BallCount: 18,
+  kaleidoscope1Wedges: 8,
+  kaleidoscope1Speed: 0.8,
+  kaleidoscope1DotSizeVh: 0.95,
+  kaleidoscope1DotAreaMul: 0.7,
+
+  kaleidoscope2BallCount: 36,
+  kaleidoscope2Wedges: 8,
+  kaleidoscope2Speed: 1.15,
+  kaleidoscope2DotSizeVh: 0.95,
+  kaleidoscope2DotAreaMul: 0.7,
+
+  kaleidoscope3BallCount: 54,
+  kaleidoscope3Wedges: 8,
+  kaleidoscope3Speed: 1.55,
+  kaleidoscope3DotSizeVh: 0.95,
+  kaleidoscope3DotAreaMul: 0.7,
+
+  // Orbit 3D mode (real gravitational physics)
+  orbit3dPreset: 'serene',     // active preset name
+  orbit3dMoonCount: 80,         // number of moons
+  orbit3dGravity: 5000,        // cursor gravitational force (lower = gentler pull)
+  orbit3dMoonMass: 1.0,         // moon mass (lighter = more responsive, heavier = more stable)
+  orbit3dVelocityMult: 150,     // orbital speed (px/s) - higher = faster orbits
+  orbit3dTargetOrbit: 12,       // target orbit distance (vw) - ideal distance
+  orbit3dMinOrbit: 3,           // min orbit distance (vw) - repulsion boundary
+  orbit3dMaxOrbit: 3,          // max orbit distance (vw) - attraction boundary
+  orbit3dDepthScale: 0.8,       // faux 3D depth effect strength
+  orbit3dDamping: 0.02,         // velocity damping (min 0.01)
+
+  // Orbit 3D Mode 2 (spiral vortex)
+  orbit3d2MoonCount: 60,       // number of spirals
+  orbit3d2Gravity: 3000,       // spiral attraction strength
+  orbit3d2VelocityMult: 200,   // initial tangential speed
+  orbit3d2MinOrbit: 5,         // min orbit distance (vw)
+  orbit3d2MaxOrbit: 30,        // max orbit distance (vw)
+  orbit3d2DepthScale: 0.5,     // faux 3D depth effect
+  orbit3d2Damping: 0.98,       // velocity damping (higher = less damping)
+  orbit3d2MoonMass: 1.0,       // moon mass (affects responsiveness)
+  orbit3d2MaxSpeed: 800,       // speed limit to prevent instability
+
+  // Neural mode (emergent "synapses")
+  neuralBallCount: 80,
+  neuralLinkDistanceVw: 14,
+  neuralLineOpacity: 0.22,
+  neuralWanderStrength: 420,
+  neuralMaxLinksPerBall: 4,
+  neuralDamping: 0.985,
+
+  // Lattice mode (hex crystallization with living mesh animation)
+  latticeBallCount: 90,
+  latticeSpacingVw: 8.5,
+  latticeStiffness: 2.2,
+  latticeDamping: 0.92,
+  latticeDisruptRadius: 600,
+  latticeDisruptPower: 25.0,
+  latticeMeshWaveStrength: 12.0,
+  latticeMeshWaveSpeed: 0.8,
+  latticeAlignment: 'center',
+
+  // Parallax modes (mouse-driven depth parallax)
+  // NOTE: Older parallax parameters are kept for compatibility with older presets/UI,
+  // but the current Parallax implementations use the 3D grid keys below.
+  parallaxLinearDotCount: 95,
+  parallaxLinearRowPattern: 'thirds',
+  parallaxLinearSpacingPattern: 'even',
+  parallaxLinearFarPct: 0.42,
+  parallaxLinearMidPct: 0.32,
+  parallaxLinearFarSpeed: 0.15,
+  parallaxLinearMidSpeed: 0.5,
+  parallaxLinearNearSpeed: 1.0,
+  parallaxLinearFollowStrength: 16.0,
+  parallaxLinearDamping: 12.0,
+  parallaxPerspectiveDotCount: 240,
+  parallaxPerspectiveDepthMul: 1.6,
+  parallaxPerspectiveFocalLength: 400,
+  parallaxPerspectiveFollowStrength: 16.0,
+  parallaxPerspectiveDamping: 12.0,
+  parallaxPerspectiveZ1: 1200,   // Deepest layer
+  parallaxPerspectiveZ2: 700,
+  parallaxPerspectiveZ3: 350,    // Middle layer
+  parallaxPerspectiveZ4: 120,
+  parallaxPerspectiveZ5: 35,     // Closest layer
+
+  // Parallax (3D grid) — fills the viewport and responds to mouse like a camera pan.
+  // These are the canonical knobs for the rebuilt Parallax simulations.
+  parallaxLinearGridX: 14,
+  parallaxLinearGridY: 10,
+  parallaxLinearGridZ: 7,
+  // Grid span in viewport units (multipliers applied to canvas width/height).
+  // 1.0 ≈ edge-to-edge in the grid's *world* space; use >1 to counter perspective shrink.
+  parallaxLinearSpanX: 1.35,
+  parallaxLinearSpanY: 1.35,
+  parallaxLinearZNear: 50,
+  parallaxLinearZFar: 900,
+  parallaxLinearFocalLength: 420,
+  parallaxLinearParallaxStrength: 260,
+  parallaxLinearDotSizeMul: 1.8,
+
+  parallaxPerspectiveGridX: 16,
+  parallaxPerspectiveGridY: 12,
+  parallaxPerspectiveGridZ: 8,
+  parallaxPerspectiveSpanX: 1.45,
+  parallaxPerspectiveSpanY: 1.45,
+  parallaxPerspectiveZNear: 40,
+  parallaxPerspectiveZFar: 1200,
+  parallaxPerspectiveParallaxStrength: 280,
+  parallaxPerspectiveRandomness: 0.6,
+  parallaxPerspectiveDotSizeMul: 1.8,
   
   // Water mode
   waterBallCount: 300,
@@ -210,6 +391,16 @@ const state = {
   waterRippleStrength: 18000,
   waterDriftStrength: 40,
   waterInitialVelocity: 200,
+  
+  // Vortex mode
+  vortexDrag: 0.005,
+  
+  // Ping Pong mode
+  pingPongCursorRadius: 100,
+  pingPongVerticalDamp: 0.995,
+  
+  // Magnetic mode
+  magneticDamping: 0.98,
   
   // Repeller
   repelRadius: 120,
@@ -229,16 +420,43 @@ const state = {
   // Dark mode
   autoDarkModeEnabled: true,
   isDarkMode: false,
+
+  // Browser ↔ Wall harmony (when browsers ignore theme-color on desktop)
+  // - 'auto': only adapt on browsers where theme-color is typically ignored
+  // - 'site': always keep site wall (benchmark / Safari look)
+  // - 'browser': always adapt wall to browser UI palette (artful extension)
+  // Default should preserve the benchmark look (no forced wall adaptation).
+  chromeHarmonyMode: 'site',
+  // Night window heuristic (local clock): if enabled and theme is Auto, prefer Dark during this window.
+  // Default: 18:00–06:00 (privacy-first; no geolocation).
+  autoDarkNightStartHour: 18,
+  autoDarkNightEndHour: 6,
   
   // Click-to-cycle mode switching
   clickCycleEnabled: true,
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Brand Logo micro-interaction (mode change “click-in”)
+  // These are visual-only and applied via CSS vars + `brand-logo-react.js`.
+  // ─────────────────────────────────────────────────────────────────────────────
+  brandLogoImpactMul: 0.014,    // scale depth per unit impact (unitless)
+  brandLogoSquashMul: 1.0,      // 0..2 multiplier applied to base squash X/Y
+  brandLogoOvershoot: 0.22,     // 0..0.6 (release overshoot amount, unitless)
+  brandLogoAnticipation: 0.0,   // 0..0.4 (micro pre-pop opposite direction; 0 disables)
+  brandLogoTiltDeg: 0.0,        // 0..2 (tiny rotation tied to impact sign)
+  brandLogoSkewDeg: 0.0,        // 0..2 (tiny skew tied to impact sign)
+  brandLogoPressMs: 75,         // ms (press-in duration)
+  brandLogoHoldMs: 55,          // ms (hold before release)
+  brandLogoReleaseMs: 220,      // ms (bounce-out duration)
   
   // Two-level padding system (in pixels)
   containerBorder: 20,   // Outer: insets container from viewport (reveals body bg as frame)
   simulationPadding: 0,  // Inner: padding inside container around canvas
 
   // Text wrapper padding (in pixels) for UI text blocks (legend, top-right statement)
-  contentPadding: 40,    // Space between frame edge and content elements
+  contentPadding: 40,    // Space between frame edge and content elements (base)
+  contentPaddingX: 40,   // Horizontal padding (derived: base × horizontalRatio)
+  contentPaddingY: 40,   // Vertical padding (always = base)
 
   // Container inner shadow controls (inside rounded content wrapper)
   containerInnerShadowOpacity: 0.12,
@@ -253,11 +471,43 @@ const state = {
   wallInset: 3,             // Physics-only inset from edges (px at DPR 1)
 
   // Rubber wall wobble tuning (visual-only deformation, no collision changes)
-  wallWobbleMaxDeform: 148,         // Max inward deformation (px at DPR 1)
-  wallWobbleStiffness: 1300,        // Spring stiffness (higher = snappier)
-  wallWobbleDamping: 34,            // Spring damping (higher = less oscillation)
-  wallWobbleSigma: 4.0,             // Impact spread (gaussian sigma in segment units)
-  wallWobbleCornerClamp: 1.00,      // Corner stickiness (0 = free, 1 = fully pinned)
+  // High-level controls (0-100)
+  wallPreset: 'rubber',             // Preset name: rubber, trampoline, jelly, stiff
+  wallSoftness: 50,                 // Legacy support / manual tweak
+  wallBounciness: 50,               // Legacy support / manual tweak
+  
+  // Low-level parameters (derived from above or set manually)
+  wallWobbleMaxDeform: 45,          // Max inward deformation (px at DPR 1)
+  wallWobbleStiffness: 2200,        // Spring stiffness (higher = snappier)
+  wallWobbleDamping: 35,            // Spring damping (higher = less oscillation)
+  wallWobbleSigma: 2.0,             // Impact spread (gaussian sigma in segment units)
+  wallWobbleCornerClamp: 0.60,      // Corner stickiness (0 = free, 1 = fully pinned)
+  
+  // Settling parameters (Advanced)
+  wallWobbleImpactThreshold: 140,   // Min velocity (px/s) to trigger wobble
+  wallWobbleSettlingSpeed: 75,      // Controls snap-to-zero aggression (0-100)
+  
+  // Gate overlay (blur backdrop for dialogs)
+  gateOverlayEnabled: true,         // Enable/disable overlay
+  gateOverlayOpacity: 0.01,          // White wash opacity (0-1)
+  gateOverlayBlurPx: 16,            // Backdrop blur amount (px)
+  gateOverlayTransitionMs: 800,     // Blur-in transition duration (ms)
+  gateOverlayTransitionOutMs: 600,  // Blur-out transition duration (ms)
+  gateOverlayContentDelayMs: 200,   // Delay before dialog content appears (ms)
+  gateDepthScale: 0.96,             // Scene scale when gate is open (0.9-1.0)
+  gateDepthTranslateY: 8,           // Scene Y translation when gate is open (px)
+  logoOpacityInactive: 1,           // Logo opacity when gate is closed (0-1)
+  logoOpacityActive: 0.2,           // Logo opacity when gate is active (0-1)
+  logoBlurInactive: 0,              // Logo blur when gate is closed (px)
+  logoBlurActive: 12,               // Logo blur when gate is active (px)
+
+  // Ghost layer (motion trails)
+  ghostLayerEnabled: false,         // Off by default (opt-in effect)
+  // NOTE: Higher opacity = SHORTER trails (more clearing each frame).
+  ghostLayerOpacity: 0.70,          // 0..1
+  ghostLayerUsePerThemeOpacity: false,
+  ghostLayerOpacityLight: 0.70,     // 0..1
+  ghostLayerOpacityDark: 0.70,      // 0..1
   
   // Helpers
   getSquashMax() {
@@ -276,6 +526,11 @@ function clampNumber(v, min, max, fallback) {
   const n = Number(v);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, n));
+}
+
+function clampInt(v, min, max, fallback) {
+  const n = clampNumber(v, min, max, fallback);
+  return Math.round(n);
 }
 
 export function getLayoutViewportWidthPx() {
@@ -322,6 +577,12 @@ export function applyLayoutFromVwToPx() {
   state.containerBorder = Math.round(borderPx);
   state.simulationPadding = Math.round(simPadPx);
   state.contentPadding = Math.max(minContentPaddingPx, Math.round(contentPadPx));
+  
+  // Derive directional padding: horizontal = base × ratio, vertical = base
+  const horizRatio = Math.max(0.1, state.contentPaddingHorizontalRatio || 1.0);
+  state.contentPaddingY = state.contentPadding;
+  state.contentPaddingX = Math.round(state.contentPadding * horizRatio);
+  
   state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
   state.wallThickness = Math.round(thicknessPx);
@@ -345,6 +606,8 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--container-border', `${state.containerBorder}px`);
   root.style.setProperty('--simulation-padding', `${state.simulationPadding}px`);
   root.style.setProperty('--content-padding', `${state.contentPadding}px`);
+  root.style.setProperty('--content-padding-x', `${state.contentPaddingX}px`);
+  root.style.setProperty('--content-padding-y', `${state.contentPaddingY}px`);
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
 }
@@ -366,7 +629,55 @@ export function initState(config) {
   // Size scale: accept both legacy `ballScale` and newer `sizeScale`
   if (config.ballScale !== undefined) state.sizeScale = config.ballScale;
   if (config.sizeScale !== undefined) state.sizeScale = config.sizeScale;
+  // Global variation multiplier
+  if (config.sizeVariationGlobalMul !== undefined) {
+    state.sizeVariationGlobalMul = clampNumber(config.sizeVariationGlobalMul, 0, 2, state.sizeVariationGlobalMul);
+  }
+  // Per-mode variation sliders (0..1)
+  if (config.sizeVariationPit !== undefined) state.sizeVariationPit = clampNumber(config.sizeVariationPit, 0, 1, state.sizeVariationPit);
+  if (config.sizeVariationPitThrows !== undefined) state.sizeVariationPitThrows = clampNumber(config.sizeVariationPitThrows, 0, 1, state.sizeVariationPitThrows);
+  if (config.sizeVariationFlies !== undefined) state.sizeVariationFlies = clampNumber(config.sizeVariationFlies, 0, 1, state.sizeVariationFlies);
+  if (config.sizeVariationWeightless !== undefined) state.sizeVariationWeightless = clampNumber(config.sizeVariationWeightless, 0, 1, state.sizeVariationWeightless);
+  if (config.sizeVariationWater !== undefined) state.sizeVariationWater = clampNumber(config.sizeVariationWater, 0, 1, state.sizeVariationWater);
+  if (config.sizeVariationVortex !== undefined) state.sizeVariationVortex = clampNumber(config.sizeVariationVortex, 0, 1, state.sizeVariationVortex);
+  if (config.sizeVariationPingPong !== undefined) state.sizeVariationPingPong = clampNumber(config.sizeVariationPingPong, 0, 1, state.sizeVariationPingPong);
+  if (config.sizeVariationMagnetic !== undefined) state.sizeVariationMagnetic = clampNumber(config.sizeVariationMagnetic, 0, 1, state.sizeVariationMagnetic);
+  if (config.sizeVariationBubbles !== undefined) state.sizeVariationBubbles = clampNumber(config.sizeVariationBubbles, 0, 1, state.sizeVariationBubbles);
+  if (config.sizeVariationKaleidoscope !== undefined) state.sizeVariationKaleidoscope = clampNumber(config.sizeVariationKaleidoscope, 0, 1, state.sizeVariationKaleidoscope);
+  if (config.sizeVariationOrbit3d !== undefined) state.sizeVariationOrbit3d = clampNumber(config.sizeVariationOrbit3d, 0, 1, state.sizeVariationOrbit3d);
+  if (config.sizeVariationCritters !== undefined) state.sizeVariationCritters = clampNumber(config.sizeVariationCritters, 0, 1, state.sizeVariationCritters);
+  if (config.sizeVariationNeural !== undefined) state.sizeVariationNeural = clampNumber(config.sizeVariationNeural, 0, 1, state.sizeVariationNeural);
+  if (config.sizeVariationLattice !== undefined) state.sizeVariationLattice = clampNumber(config.sizeVariationLattice, 0, 1, state.sizeVariationLattice);
+  if (config.sizeVariationParallaxLinear !== undefined) state.sizeVariationParallaxLinear = clampNumber(config.sizeVariationParallaxLinear, 0, 1, state.sizeVariationParallaxLinear);
+  if (config.sizeVariationParallaxPerspective !== undefined) state.sizeVariationParallaxPerspective = clampNumber(config.sizeVariationParallaxPerspective, 0, 1, state.sizeVariationParallaxPerspective);
+  // Legacy key (kept): does not affect per-mode sliders, but we store it.
   if (config.sizeVariation !== undefined) state.sizeVariation = config.sizeVariation;
+
+  // Warmup frames (per simulation) — integer 0..240
+  if (config.pitWarmupFrames !== undefined) state.pitWarmupFrames = clampInt(config.pitWarmupFrames, 0, 240, state.pitWarmupFrames);
+  if (config.pitThrowsWarmupFrames !== undefined) state.pitThrowsWarmupFrames = clampInt(config.pitThrowsWarmupFrames, 0, 240, state.pitThrowsWarmupFrames);
+  if (config.fliesWarmupFrames !== undefined) state.fliesWarmupFrames = clampInt(config.fliesWarmupFrames, 0, 240, state.fliesWarmupFrames);
+  if (config.weightlessWarmupFrames !== undefined) state.weightlessWarmupFrames = clampInt(config.weightlessWarmupFrames, 0, 240, state.weightlessWarmupFrames);
+  if (config.waterWarmupFrames !== undefined) state.waterWarmupFrames = clampInt(config.waterWarmupFrames, 0, 240, state.waterWarmupFrames);
+  if (config.vortexWarmupFrames !== undefined) state.vortexWarmupFrames = clampInt(config.vortexWarmupFrames, 0, 240, state.vortexWarmupFrames);
+  if (config.pingPongWarmupFrames !== undefined) state.pingPongWarmupFrames = clampInt(config.pingPongWarmupFrames, 0, 240, state.pingPongWarmupFrames);
+  if (config.magneticWarmupFrames !== undefined) state.magneticWarmupFrames = clampInt(config.magneticWarmupFrames, 0, 240, state.magneticWarmupFrames);
+  if (config.bubblesWarmupFrames !== undefined) state.bubblesWarmupFrames = clampInt(config.bubblesWarmupFrames, 0, 240, state.bubblesWarmupFrames);
+  if (config.kaleidoscopeWarmupFrames !== undefined) state.kaleidoscopeWarmupFrames = clampInt(config.kaleidoscopeWarmupFrames, 0, 240, state.kaleidoscopeWarmupFrames);
+  if (config.kaleidoscope1WarmupFrames !== undefined) state.kaleidoscope1WarmupFrames = clampInt(config.kaleidoscope1WarmupFrames, 0, 240, state.kaleidoscope1WarmupFrames);
+  if (config.kaleidoscope2WarmupFrames !== undefined) state.kaleidoscope2WarmupFrames = clampInt(config.kaleidoscope2WarmupFrames, 0, 240, state.kaleidoscope2WarmupFrames);
+  if (config.kaleidoscope3WarmupFrames !== undefined) state.kaleidoscope3WarmupFrames = clampInt(config.kaleidoscope3WarmupFrames, 0, 240, state.kaleidoscope3WarmupFrames);
+  if (config.orbit3dWarmupFrames !== undefined) state.orbit3dWarmupFrames = clampInt(config.orbit3dWarmupFrames, 0, 240, state.orbit3dWarmupFrames);
+  if (config.orbit3d2WarmupFrames !== undefined) state.orbit3d2WarmupFrames = clampInt(config.orbit3d2WarmupFrames, 0, 240, state.orbit3d2WarmupFrames);
+  if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
+  if (config.neuralWarmupFrames !== undefined) state.neuralWarmupFrames = clampInt(config.neuralWarmupFrames, 0, 240, state.neuralWarmupFrames);
+  if (config.latticeWarmupFrames !== undefined) state.latticeWarmupFrames = clampInt(config.latticeWarmupFrames, 0, 240, state.latticeWarmupFrames);
+  if (config.parallaxLinearWarmupFrames !== undefined) state.parallaxLinearWarmupFrames = clampInt(config.parallaxLinearWarmupFrames, 0, 240, state.parallaxLinearWarmupFrames);
+  if (config.parallaxPerspectiveWarmupFrames !== undefined) state.parallaxPerspectiveWarmupFrames = clampInt(config.parallaxPerspectiveWarmupFrames, 0, 240, state.parallaxPerspectiveWarmupFrames);
+
+  // Ensure sizing baselines are computed immediately after config is applied.
+  // (Otherwise per-mode sizing falls back to placeholder values and sliders appear “dead”.)
+  updateBallSizes();
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
   if (config.repelRadius !== undefined) state.repelRadius = config.repelRadius;
   if (config.repelPower !== undefined) state.repelPower = config.repelPower;
@@ -388,17 +699,51 @@ export function initState(config) {
   detectResponsiveScale();
   
   // Kaleidoscope (optional config overrides)
-  if (config.kaleidoscopeBallCount !== undefined) state.kaleidoscopeBallCount = config.kaleidoscopeBallCount;
-  if (config.kaleidoscopeSegments !== undefined) state.kaleidoscopeSegments = config.kaleidoscopeSegments;
-  if (config.kaleidoscopeMirror !== undefined) state.kaleidoscopeMirror = config.kaleidoscopeMirror;
-  if (config.kaleidoscopeBallSpacing !== undefined) state.kaleidoscopeBallSpacing = config.kaleidoscopeBallSpacing;
-  if (config.kaleidoscopeSwirlStrength !== undefined) state.kaleidoscopeSwirlStrength = config.kaleidoscopeSwirlStrength;
-  if (config.kaleidoscopeRadialPull !== undefined) state.kaleidoscopeRadialPull = config.kaleidoscopeRadialPull;
-  if (config.kaleidoscopeRotationFollow !== undefined) state.kaleidoscopeRotationFollow = config.kaleidoscopeRotationFollow;
-  if (config.kaleidoscopePanStrength !== undefined) state.kaleidoscopePanStrength = config.kaleidoscopePanStrength;
-  if (config.kaleidoscopeMaxSpeed !== undefined) state.kaleidoscopeMaxSpeed = config.kaleidoscopeMaxSpeed;
-  if (config.kaleidoscopeEase !== undefined) state.kaleidoscopeEase = config.kaleidoscopeEase;
-  if (config.kaleidoscopeWander !== undefined) state.kaleidoscopeWander = config.kaleidoscopeWander;
+  if (config.kaleidoscopeBallCount !== undefined) {
+    state.kaleidoscopeBallCount = clampNumber(config.kaleidoscopeBallCount, 10, 300, state.kaleidoscopeBallCount);
+  }
+  if (config.kaleidoscopeDotSizeVh !== undefined) {
+    state.kaleidoscopeDotSizeVh = clampNumber(config.kaleidoscopeDotSizeVh, 0.1, 6.0, state.kaleidoscopeDotSizeVh);
+  }
+  if (config.kaleidoscopeDotAreaMul !== undefined) {
+    state.kaleidoscopeDotAreaMul = clampNumber(config.kaleidoscopeDotAreaMul, 0.1, 2.0, state.kaleidoscopeDotAreaMul);
+  }
+
+  // Kaleidoscope I/II/III overrides (variants)
+  if (config.kaleidoscope1BallCount !== undefined) state.kaleidoscope1BallCount = clampNumber(config.kaleidoscope1BallCount, 3, 300, state.kaleidoscope1BallCount);
+  if (config.kaleidoscope1Wedges !== undefined) state.kaleidoscope1Wedges = clampNumber(config.kaleidoscope1Wedges, 3, 24, state.kaleidoscope1Wedges);
+  if (config.kaleidoscope1Speed !== undefined) state.kaleidoscope1Speed = clampNumber(config.kaleidoscope1Speed, 0.2, 2.0, state.kaleidoscope1Speed);
+  if (config.kaleidoscope1DotSizeVh !== undefined) state.kaleidoscope1DotSizeVh = clampNumber(config.kaleidoscope1DotSizeVh, 0.1, 6.0, state.kaleidoscope1DotSizeVh);
+  if (config.kaleidoscope1DotAreaMul !== undefined) state.kaleidoscope1DotAreaMul = clampNumber(config.kaleidoscope1DotAreaMul, 0.1, 2.0, state.kaleidoscope1DotAreaMul);
+
+  if (config.kaleidoscope2BallCount !== undefined) state.kaleidoscope2BallCount = clampNumber(config.kaleidoscope2BallCount, 3, 300, state.kaleidoscope2BallCount);
+  if (config.kaleidoscope2Wedges !== undefined) state.kaleidoscope2Wedges = clampNumber(config.kaleidoscope2Wedges, 3, 24, state.kaleidoscope2Wedges);
+  if (config.kaleidoscope2Speed !== undefined) state.kaleidoscope2Speed = clampNumber(config.kaleidoscope2Speed, 0.2, 2.0, state.kaleidoscope2Speed);
+  if (config.kaleidoscope2DotSizeVh !== undefined) state.kaleidoscope2DotSizeVh = clampNumber(config.kaleidoscope2DotSizeVh, 0.1, 6.0, state.kaleidoscope2DotSizeVh);
+  if (config.kaleidoscope2DotAreaMul !== undefined) state.kaleidoscope2DotAreaMul = clampNumber(config.kaleidoscope2DotAreaMul, 0.1, 2.0, state.kaleidoscope2DotAreaMul);
+
+  if (config.kaleidoscope3BallCount !== undefined) state.kaleidoscope3BallCount = clampNumber(config.kaleidoscope3BallCount, 3, 300, state.kaleidoscope3BallCount);
+  if (config.kaleidoscope3Wedges !== undefined) state.kaleidoscope3Wedges = clampNumber(config.kaleidoscope3Wedges, 3, 24, state.kaleidoscope3Wedges);
+  if (config.kaleidoscope3Speed !== undefined) state.kaleidoscope3Speed = clampNumber(config.kaleidoscope3Speed, 0.2, 2.0, state.kaleidoscope3Speed);
+  if (config.kaleidoscope3DotSizeVh !== undefined) state.kaleidoscope3DotSizeVh = clampNumber(config.kaleidoscope3DotSizeVh, 0.1, 6.0, state.kaleidoscope3DotSizeVh);
+  if (config.kaleidoscope3DotAreaMul !== undefined) state.kaleidoscope3DotAreaMul = clampNumber(config.kaleidoscope3DotAreaMul, 0.1, 2.0, state.kaleidoscope3DotAreaMul);
+  // New key: kaleidoscopeWedges (preferred). Back-compat: kaleidoscopeSegments.
+  if (config.kaleidoscopeWedges !== undefined) {
+    state.kaleidoscopeWedges = clampNumber(config.kaleidoscopeWedges, 3, 24, state.kaleidoscopeWedges);
+  } else if (config.kaleidoscopeSegments !== undefined) {
+    state.kaleidoscopeWedges = clampNumber(config.kaleidoscopeSegments, 3, 24, state.kaleidoscopeWedges);
+  }
+  if (config.kaleidoscopeMirror !== undefined) {
+    state.kaleidoscopeMirror = clampNumber(config.kaleidoscopeMirror, 0, 1, state.kaleidoscopeMirror);
+  }
+  // New key: kaleidoscopeSpeed (preferred). Back-compat: kaleidoscopeSwirlStrength (mapped).
+  if (config.kaleidoscopeSpeed !== undefined) {
+    state.kaleidoscopeSpeed = clampNumber(config.kaleidoscopeSpeed, 0.2, 2.0, state.kaleidoscopeSpeed);
+  } else if (config.kaleidoscopeSwirlStrength !== undefined) {
+    // Historical values were in a much larger range (0..800-ish). Map 0..800 → 0.2..2.0.
+    const legacy = clampNumber(config.kaleidoscopeSwirlStrength, 0, 800, 52);
+    state.kaleidoscopeSpeed = clampNumber(0.2 + (legacy / 800) * 1.8, 0.2, 2.0, state.kaleidoscopeSpeed);
+  }
 
   // Critters (Simulation 11) config overrides
   if (config.critterCount !== undefined) state.critterCount = config.critterCount;
@@ -426,6 +771,64 @@ export function initState(config) {
   if (config.critterRestitution !== undefined) state.critterRestitution = config.critterRestitution;
   if (config.critterFriction !== undefined) state.critterFriction = config.critterFriction;
 
+  // Neural (config overrides)
+  if (config.neuralBallCount !== undefined) state.neuralBallCount = clampNumber(config.neuralBallCount, 8, 260, state.neuralBallCount);
+  if (config.neuralLinkDistanceVw !== undefined) state.neuralLinkDistanceVw = clampNumber(config.neuralLinkDistanceVw, 1, 50, state.neuralLinkDistanceVw);
+  if (config.neuralLineOpacity !== undefined) state.neuralLineOpacity = clampNumber(config.neuralLineOpacity, 0, 1, state.neuralLineOpacity);
+  if (config.neuralWanderStrength !== undefined) state.neuralWanderStrength = clampNumber(config.neuralWanderStrength, 0, 4000, state.neuralWanderStrength);
+  if (config.neuralMaxLinksPerBall !== undefined) state.neuralMaxLinksPerBall = clampNumber(config.neuralMaxLinksPerBall, 0, 16, state.neuralMaxLinksPerBall);
+  if (config.neuralDamping !== undefined) state.neuralDamping = clampNumber(config.neuralDamping, 0.8, 1.0, state.neuralDamping);
+
+  // Lattice (config overrides)
+  if (config.latticeBallCount !== undefined) state.latticeBallCount = clampNumber(config.latticeBallCount, 8, 260, state.latticeBallCount);
+  if (config.latticeSpacingVw !== undefined) state.latticeSpacingVw = clampNumber(config.latticeSpacingVw, 1, 40, state.latticeSpacingVw);
+  if (config.latticeStiffness !== undefined) state.latticeStiffness = clampNumber(config.latticeStiffness, 0, 20, state.latticeStiffness);
+  if (config.latticeDamping !== undefined) state.latticeDamping = clampNumber(config.latticeDamping, 0.5, 1.0, state.latticeDamping);
+  if (config.latticeDisruptRadius !== undefined) state.latticeDisruptRadius = clampNumber(config.latticeDisruptRadius, 50, 800, state.latticeDisruptRadius);
+  if (config.latticeDisruptPower !== undefined) state.latticeDisruptPower = clampNumber(config.latticeDisruptPower, 0, 20, state.latticeDisruptPower);
+  if (config.latticeMeshWaveStrength !== undefined) state.latticeMeshWaveStrength = clampNumber(config.latticeMeshWaveStrength, 0, 50, state.latticeMeshWaveStrength);
+  if (config.latticeMeshWaveSpeed !== undefined) state.latticeMeshWaveSpeed = clampNumber(config.latticeMeshWaveSpeed, 0, 3.0, state.latticeMeshWaveSpeed);
+  if (config.latticeAlignment !== undefined) state.latticeAlignment = String(config.latticeAlignment);
+
+  // Parallax (config overrides)
+  if (config.parallaxLinearDotCount !== undefined) state.parallaxLinearDotCount = clampNumber(config.parallaxLinearDotCount, 20, 220, state.parallaxLinearDotCount);
+  if (config.parallaxLinearGridJitter !== undefined) state.parallaxLinearGridJitter = clampNumber(config.parallaxLinearGridJitter, 0, 1, state.parallaxLinearGridJitter);
+  if (config.parallaxLinearFarSpeed !== undefined) state.parallaxLinearFarSpeed = clampNumber(config.parallaxLinearFarSpeed, 0, 1.5, state.parallaxLinearFarSpeed);
+  if (config.parallaxLinearMidSpeed !== undefined) state.parallaxLinearMidSpeed = clampNumber(config.parallaxLinearMidSpeed, 0, 1.5, state.parallaxLinearMidSpeed);
+  if (config.parallaxLinearNearSpeed !== undefined) state.parallaxLinearNearSpeed = clampNumber(config.parallaxLinearNearSpeed, 0, 1.5, state.parallaxLinearNearSpeed);
+  if (config.parallaxLinearGridX !== undefined) state.parallaxLinearGridX = clampInt(config.parallaxLinearGridX, 3, 40, state.parallaxLinearGridX);
+  if (config.parallaxLinearGridY !== undefined) state.parallaxLinearGridY = clampInt(config.parallaxLinearGridY, 3, 40, state.parallaxLinearGridY);
+  if (config.parallaxLinearGridZ !== undefined) state.parallaxLinearGridZ = clampInt(config.parallaxLinearGridZ, 2, 20, state.parallaxLinearGridZ);
+  if (config.parallaxLinearSpanX !== undefined) state.parallaxLinearSpanX = clampNumber(config.parallaxLinearSpanX, 0.2, 3.0, state.parallaxLinearSpanX);
+  if (config.parallaxLinearSpanY !== undefined) state.parallaxLinearSpanY = clampNumber(config.parallaxLinearSpanY, 0.2, 3.0, state.parallaxLinearSpanY);
+  if (config.parallaxLinearZNear !== undefined) state.parallaxLinearZNear = clampNumber(config.parallaxLinearZNear, 10, 1200, state.parallaxLinearZNear);
+  if (config.parallaxLinearZFar !== undefined) state.parallaxLinearZFar = clampNumber(config.parallaxLinearZFar, 50, 3000, state.parallaxLinearZFar);
+  if (config.parallaxLinearFocalLength !== undefined) state.parallaxLinearFocalLength = clampNumber(config.parallaxLinearFocalLength, 80, 2000, state.parallaxLinearFocalLength);
+  if (config.parallaxLinearParallaxStrength !== undefined) state.parallaxLinearParallaxStrength = clampNumber(config.parallaxLinearParallaxStrength, 0, 2000, state.parallaxLinearParallaxStrength);
+  if (config.parallaxLinearDotSizeMul !== undefined) state.parallaxLinearDotSizeMul = clampNumber(config.parallaxLinearDotSizeMul, 0.1, 6.0, state.parallaxLinearDotSizeMul);
+  if (config.parallaxLinearFollowStrength !== undefined) state.parallaxLinearFollowStrength = clampNumber(config.parallaxLinearFollowStrength, 1, 80, state.parallaxLinearFollowStrength);
+  if (config.parallaxLinearDamping !== undefined) state.parallaxLinearDamping = clampNumber(config.parallaxLinearDamping, 1, 80, state.parallaxLinearDamping);
+  if (config.parallaxPerspectiveDotCount !== undefined) state.parallaxPerspectiveDotCount = clampNumber(config.parallaxPerspectiveDotCount, 40, 420, state.parallaxPerspectiveDotCount);
+  if (config.parallaxPerspectiveDepthMul !== undefined) state.parallaxPerspectiveDepthMul = clampNumber(config.parallaxPerspectiveDepthMul, 0.5, 3.0, state.parallaxPerspectiveDepthMul);
+  if (config.parallaxPerspectiveFocalLength !== undefined) state.parallaxPerspectiveFocalLength = clampNumber(config.parallaxPerspectiveFocalLength, 80, 1000, state.parallaxPerspectiveFocalLength);
+  if (config.parallaxPerspectiveFollowStrength !== undefined) state.parallaxPerspectiveFollowStrength = clampNumber(config.parallaxPerspectiveFollowStrength, 1, 40, state.parallaxPerspectiveFollowStrength);
+  if (config.parallaxPerspectiveDamping !== undefined) state.parallaxPerspectiveDamping = clampNumber(config.parallaxPerspectiveDamping, 1, 40, state.parallaxPerspectiveDamping);
+  if (config.parallaxPerspectiveZ1 !== undefined) state.parallaxPerspectiveZ1 = clampNumber(config.parallaxPerspectiveZ1, 200, 2000, state.parallaxPerspectiveZ1);
+  if (config.parallaxPerspectiveZ2 !== undefined) state.parallaxPerspectiveZ2 = clampNumber(config.parallaxPerspectiveZ2, 150, 1500, state.parallaxPerspectiveZ2);
+  if (config.parallaxPerspectiveZ3 !== undefined) state.parallaxPerspectiveZ3 = clampNumber(config.parallaxPerspectiveZ3, 100, 1000, state.parallaxPerspectiveZ3);
+  if (config.parallaxPerspectiveZ4 !== undefined) state.parallaxPerspectiveZ4 = clampNumber(config.parallaxPerspectiveZ4, 40, 600, state.parallaxPerspectiveZ4);
+  if (config.parallaxPerspectiveZ5 !== undefined) state.parallaxPerspectiveZ5 = clampNumber(config.parallaxPerspectiveZ5, 10, 300, state.parallaxPerspectiveZ5);
+  if (config.parallaxPerspectiveGridX !== undefined) state.parallaxPerspectiveGridX = clampInt(config.parallaxPerspectiveGridX, 3, 50, state.parallaxPerspectiveGridX);
+  if (config.parallaxPerspectiveGridY !== undefined) state.parallaxPerspectiveGridY = clampInt(config.parallaxPerspectiveGridY, 3, 50, state.parallaxPerspectiveGridY);
+  if (config.parallaxPerspectiveGridZ !== undefined) state.parallaxPerspectiveGridZ = clampInt(config.parallaxPerspectiveGridZ, 2, 25, state.parallaxPerspectiveGridZ);
+  if (config.parallaxPerspectiveSpanX !== undefined) state.parallaxPerspectiveSpanX = clampNumber(config.parallaxPerspectiveSpanX, 0.2, 3.0, state.parallaxPerspectiveSpanX);
+  if (config.parallaxPerspectiveSpanY !== undefined) state.parallaxPerspectiveSpanY = clampNumber(config.parallaxPerspectiveSpanY, 0.2, 3.0, state.parallaxPerspectiveSpanY);
+  if (config.parallaxPerspectiveZNear !== undefined) state.parallaxPerspectiveZNear = clampNumber(config.parallaxPerspectiveZNear, 10, 1200, state.parallaxPerspectiveZNear);
+  if (config.parallaxPerspectiveZFar !== undefined) state.parallaxPerspectiveZFar = clampNumber(config.parallaxPerspectiveZFar, 50, 4000, state.parallaxPerspectiveZFar);
+  if (config.parallaxPerspectiveParallaxStrength !== undefined) state.parallaxPerspectiveParallaxStrength = clampNumber(config.parallaxPerspectiveParallaxStrength, 0, 2000, state.parallaxPerspectiveParallaxStrength);
+  if (config.parallaxPerspectiveRandomness !== undefined) state.parallaxPerspectiveRandomness = clampNumber(config.parallaxPerspectiveRandomness, 0, 1, state.parallaxPerspectiveRandomness);
+  if (config.parallaxPerspectiveDotSizeMul !== undefined) state.parallaxPerspectiveDotSizeMul = clampNumber(config.parallaxPerspectiveDotSizeMul, 0.1, 6.0, state.parallaxPerspectiveDotSizeMul);
+
   // Generic "apply like-for-like" config keys to state
   // This ensures panel-exported config round-trips cleanly across modes.
   for (const [key, val] of Object.entries(config || {})) {
@@ -439,6 +842,35 @@ export function initState(config) {
     if (!isArray && !isPrimitive) continue;
     if (val === undefined) continue;
     state[key] = val;
+  }
+
+  // Clamp brand logo tuning (defensive; UI-only)
+  if (config.brandLogoImpactMul !== undefined) {
+    state.brandLogoImpactMul = clampNumber(config.brandLogoImpactMul, 0, 0.05, state.brandLogoImpactMul);
+  }
+  if (config.brandLogoSquashMul !== undefined) {
+    state.brandLogoSquashMul = clampNumber(config.brandLogoSquashMul, 0, 3, state.brandLogoSquashMul);
+  }
+  if (config.brandLogoOvershoot !== undefined) {
+    state.brandLogoOvershoot = clampNumber(config.brandLogoOvershoot, 0, 0.8, state.brandLogoOvershoot);
+  }
+  if (config.brandLogoAnticipation !== undefined) {
+    state.brandLogoAnticipation = clampNumber(config.brandLogoAnticipation, 0, 0.6, state.brandLogoAnticipation);
+  }
+  if (config.brandLogoTiltDeg !== undefined) {
+    state.brandLogoTiltDeg = clampNumber(config.brandLogoTiltDeg, 0, 5, state.brandLogoTiltDeg);
+  }
+  if (config.brandLogoSkewDeg !== undefined) {
+    state.brandLogoSkewDeg = clampNumber(config.brandLogoSkewDeg, 0, 5, state.brandLogoSkewDeg);
+  }
+  if (config.brandLogoPressMs !== undefined) {
+    state.brandLogoPressMs = clampNumber(config.brandLogoPressMs, 20, 300, state.brandLogoPressMs);
+  }
+  if (config.brandLogoHoldMs !== undefined) {
+    state.brandLogoHoldMs = clampNumber(config.brandLogoHoldMs, 0, 300, state.brandLogoHoldMs);
+  }
+  if (config.brandLogoReleaseMs !== undefined) {
+    state.brandLogoReleaseMs = clampNumber(config.brandLogoReleaseMs, 40, 800, state.brandLogoReleaseMs);
   }
   
   // Two-level padding system
@@ -465,12 +897,63 @@ export function initState(config) {
   if (config.ballSpacing !== undefined) state.ballSpacing = config.ballSpacing;
 
   // Rubber wall wobble tuning
+  if (config.wallPreset !== undefined) state.wallPreset = config.wallPreset;
+  if (config.wallSoftness !== undefined) state.wallSoftness = config.wallSoftness;
+  if (config.wallBounciness !== undefined) state.wallBounciness = config.wallBounciness;
+  
   if (config.wallWobbleMaxDeform !== undefined) state.wallWobbleMaxDeform = config.wallWobbleMaxDeform;
   if (config.wallWobbleStiffness !== undefined) state.wallWobbleStiffness = config.wallWobbleStiffness;
   if (config.wallWobbleDamping !== undefined) state.wallWobbleDamping = config.wallWobbleDamping;
   if (config.wallWobbleSigma !== undefined) state.wallWobbleSigma = config.wallWobbleSigma;
   if (config.wallWobbleCornerClamp !== undefined) state.wallWobbleCornerClamp = config.wallWobbleCornerClamp;
   
+  if (config.wallWobbleImpactThreshold !== undefined) state.wallWobbleImpactThreshold = config.wallWobbleImpactThreshold;
+  if (config.wallWobbleSettlingSpeed !== undefined) state.wallWobbleSettlingSpeed = config.wallWobbleSettlingSpeed;
+  
+  // Gate overlay settings
+  if (config.gateOverlayEnabled !== undefined) state.gateOverlayEnabled = config.gateOverlayEnabled;
+  if (config.gateOverlayOpacity !== undefined) state.gateOverlayOpacity = config.gateOverlayOpacity;
+  if (config.gateOverlayBlurPx !== undefined) state.gateOverlayBlurPx = config.gateOverlayBlurPx;
+  if (config.gateOverlayTransitionMs !== undefined) state.gateOverlayTransitionMs = config.gateOverlayTransitionMs;
+  if (config.gateOverlayTransitionOutMs !== undefined) state.gateOverlayTransitionOutMs = config.gateOverlayTransitionOutMs;
+
+  // Ghost layer (motion trails)
+  if (config.ghostLayerEnabled !== undefined) state.ghostLayerEnabled = !!config.ghostLayerEnabled;
+  if (config.ghostLayerOpacity !== undefined) {
+    state.ghostLayerOpacity = clampNumber(config.ghostLayerOpacity, 0, 1, state.ghostLayerOpacity);
+  }
+  if (config.ghostLayerUsePerThemeOpacity !== undefined) {
+    state.ghostLayerUsePerThemeOpacity = !!config.ghostLayerUsePerThemeOpacity;
+  }
+  if (config.ghostLayerOpacityLight !== undefined) {
+    state.ghostLayerOpacityLight = clampNumber(config.ghostLayerOpacityLight, 0, 1, state.ghostLayerOpacityLight);
+  }
+  if (config.ghostLayerOpacityDark !== undefined) {
+    state.ghostLayerOpacityDark = clampNumber(config.ghostLayerOpacityDark, 0, 1, state.ghostLayerOpacityDark);
+  }
+  
+  // Orbit 3D mode (simplified energetic physics)
+  if (config.orbit3dMoonCount !== undefined) state.orbit3dMoonCount = clampNumber(config.orbit3dMoonCount, 1, 1000, state.orbit3dMoonCount);
+  if (config.orbit3dGravity !== undefined) state.orbit3dGravity = clampNumber(config.orbit3dGravity, 1000, 500000, state.orbit3dGravity);
+  if (config.orbit3dMoonMass !== undefined) state.orbit3dMoonMass = clampNumber(config.orbit3dMoonMass, 0.1, 100, state.orbit3dMoonMass);
+  if (config.orbit3dVelocityMult !== undefined) state.orbit3dVelocityMult = clampNumber(config.orbit3dVelocityMult, 10, 1000, state.orbit3dVelocityMult);
+  if (config.orbit3dTargetOrbit !== undefined) state.orbit3dTargetOrbit = clampNumber(config.orbit3dTargetOrbit, 1, 100, state.orbit3dTargetOrbit);
+  if (config.orbit3dMinOrbit !== undefined) state.orbit3dMinOrbit = clampNumber(config.orbit3dMinOrbit, 1, 100, state.orbit3dMinOrbit);
+  if (config.orbit3dMaxOrbit !== undefined) state.orbit3dMaxOrbit = clampNumber(config.orbit3dMaxOrbit, 1, 200, state.orbit3dMaxOrbit);
+  if (config.orbit3dDepthScale !== undefined) state.orbit3dDepthScale = clampNumber(config.orbit3dDepthScale, 0, 1.5, state.orbit3dDepthScale);
+  if (config.orbit3dDamping !== undefined) state.orbit3dDamping = clampNumber(config.orbit3dDamping, 0.01, 0.2, state.orbit3dDamping);
+
+  // Orbit 3D Mode 2 (tight swarm)
+  if (config.orbit3d2MoonCount !== undefined) state.orbit3d2MoonCount = clampNumber(config.orbit3d2MoonCount, 1, 300, state.orbit3d2MoonCount);
+  if (config.orbit3d2Gravity !== undefined) state.orbit3d2Gravity = clampNumber(config.orbit3d2Gravity, 1000, 500000, state.orbit3d2Gravity);
+  if (config.orbit3d2VelocityMult !== undefined) state.orbit3d2VelocityMult = clampNumber(config.orbit3d2VelocityMult, 0.1, 2.0, state.orbit3d2VelocityMult);
+  if (config.orbit3d2MinOrbit !== undefined) state.orbit3d2MinOrbit = clampNumber(config.orbit3d2MinOrbit, 1, 50, state.orbit3d2MinOrbit);
+  if (config.orbit3d2MaxOrbit !== undefined) state.orbit3d2MaxOrbit = clampNumber(config.orbit3d2MaxOrbit, 1, 50, state.orbit3d2MaxOrbit);
+  if (config.orbit3d2DepthScale !== undefined) state.orbit3d2DepthScale = clampNumber(config.orbit3d2DepthScale, 0, 0.95, state.orbit3d2DepthScale);
+  if (config.orbit3d2Damping !== undefined) state.orbit3d2Damping = clampNumber(config.orbit3d2Damping, 0, 1, state.orbit3d2Damping);
+  if (config.orbit3d2FollowSmoothing !== undefined) state.orbit3d2FollowSmoothing = clampNumber(config.orbit3d2FollowSmoothing, 1, 200, state.orbit3d2FollowSmoothing);
+  if (config.orbit3d2Softening !== undefined) state.orbit3d2Softening = clampNumber(config.orbit3d2Softening, 1, 100, state.orbit3d2Softening);
+
   // Ball sizes are recalculated in detectResponsiveScale (called above)
   // which applies both sizeScale and responsiveScale
 
@@ -483,6 +966,7 @@ export function initState(config) {
   if (config.containerBorderVw !== undefined) state.containerBorderVw = clampNumber(config.containerBorderVw, 0, 20, state.containerBorderVw);
   if (config.simulationPaddingVw !== undefined) state.simulationPaddingVw = clampNumber(config.simulationPaddingVw, 0, 20, state.simulationPaddingVw);
   if (config.contentPaddingVw !== undefined) state.contentPaddingVw = clampNumber(config.contentPaddingVw, 0, 40, state.contentPaddingVw);
+  if (config.contentPaddingHorizontalRatio !== undefined) state.contentPaddingHorizontalRatio = clampNumber(config.contentPaddingHorizontalRatio, 0.1, 3.0, state.contentPaddingHorizontalRatio);
   if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);
   if (config.wallThicknessVw !== undefined) state.wallThicknessVw = clampNumber(config.wallThicknessVw, 0, 20, state.wallThicknessVw);
 
@@ -566,6 +1050,13 @@ export function detectResponsiveScale() {
 export function updateBallSizes() {
   const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;
   const totalScale = state.sizeScale * state.responsiveScale;
-  state.R_MIN = baseSize * totalScale * 0.75;
-  state.R_MAX = baseSize * totalScale * 1.25;
+  const medium = baseSize * totalScale;
+  state.R_MED = Math.max(1, medium);
+  // R_MIN/R_MAX are the absolute cap for “max variation” (per-mode=1, globalMul=1).
+  // Individual modes scale within this cap using their own 0..1 slider.
+  const cap = clampNumber(state.sizeVariationCap, 0, 0.5, 0.12);
+  const mul = clampNumber(state.sizeVariationGlobalMul, 0, 2, 1.0);
+  const v = clampNumber(cap * mul, 0, 0.5, cap);
+  state.R_MIN = Math.max(1, state.R_MED * (1 - v));
+  state.R_MAX = Math.max(state.R_MIN, state.R_MED * (1 + v));
 }

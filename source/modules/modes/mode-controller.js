@@ -15,9 +15,16 @@ import { initializeVortex, applyVortexForces } from './vortex.js';
 import { initializePingPong, applyPingPongForces } from './ping-pong.js';
 import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magnetic.js';
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
-import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
+import { initializeKaleidoscope, initializeKaleidoscope1, initializeKaleidoscope2, initializeKaleidoscope3, applyKaleidoscopeForces } from './kaleidoscope.js';
+import { initializeOrbit3D, applyOrbit3DForces } from './orbit-3d.js';
+import { initializeOrbit3D2, applyOrbit3D2Forces } from './orbit-3d-2.js';
 import { initializeCritters, applyCrittersForces } from './critters.js';
+import { initializeNeural, applyNeuralForces, preRenderNeural } from './neural.js';
+import { initializeLattice, applyLatticeForces } from './lattice.js';
+import { initializeParallaxLinear, applyParallaxLinearForces } from './parallax-linear.js';
+import { initializeParallaxPerspective, applyParallaxPerspectiveForces } from './parallax-perspective.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
+import { maybeAutoPickCursorColor } from '../visual/colors.js';
 
 export { MODES };
 
@@ -25,8 +32,37 @@ export function initModeSystem() {
   // Initialize mode system
 }
 
+function getWarmupFramesForMode(mode, globals) {
+  // Per-simulation warmup frames (render-frame units).
+  // Default is 10 everywhere unless overridden via config/panel.
+  switch (mode) {
+    case MODES.PIT: return globals.pitWarmupFrames ?? 10;
+    case MODES.PIT_THROWS: return globals.pitThrowsWarmupFrames ?? 10;
+    case MODES.FLIES: return globals.fliesWarmupFrames ?? 10;
+    case MODES.WEIGHTLESS: return globals.weightlessWarmupFrames ?? 10;
+    case MODES.WATER: return globals.waterWarmupFrames ?? 10;
+    case MODES.VORTEX: return globals.vortexWarmupFrames ?? 10;
+    case MODES.PING_PONG: return globals.pingPongWarmupFrames ?? 10;
+    case MODES.MAGNETIC: return globals.magneticWarmupFrames ?? 10;
+    case MODES.BUBBLES: return globals.bubblesWarmupFrames ?? 10;
+    case MODES.KALEIDOSCOPE: return globals.kaleidoscopeWarmupFrames ?? 10;
+    case MODES.KALEIDOSCOPE_1: return globals.kaleidoscope1WarmupFrames ?? 10;
+    case MODES.KALEIDOSCOPE_2: return globals.kaleidoscope2WarmupFrames ?? 10;
+    case MODES.KALEIDOSCOPE_3: return globals.kaleidoscope3WarmupFrames ?? 10;
+    case MODES.ORBIT_3D: return globals.orbit3dWarmupFrames ?? 10;
+    case MODES.ORBIT_3D_2: return globals.orbit3d2WarmupFrames ?? 10;
+    case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
+    case MODES.NEURAL: return globals.neuralWarmupFrames ?? 10;
+    case MODES.LATTICE: return globals.latticeWarmupFrames ?? 10;
+    case MODES.PARALLAX_LINEAR: return globals.parallaxLinearWarmupFrames ?? 10;
+    case MODES.PARALLAX_PERSPECTIVE: return globals.parallaxPerspectiveWarmupFrames ?? 10;
+    default: return 10;
+  }
+}
+
 export function setMode(mode) {
   const globals = getGlobals();
+  const prevMode = globals.currentMode;
   // Restore physics overrides when leaving Critters mode
   if (globals.currentMode === MODES.CRITTERS && mode !== MODES.CRITTERS) {
     if (globals._restBeforeCritters !== undefined) {
@@ -44,15 +80,14 @@ export function setMode(mode) {
     }
   }
   
-  // Clean up Kaleidoscope spacing override when leaving the mode
-  if (globals.currentMode === MODES.KALEIDOSCOPE && mode !== MODES.KALEIDOSCOPE) {
-    if (globals._ballSpacingBeforeKaleidoscope !== undefined) {
-      globals.ballSpacing = globals._ballSpacingBeforeKaleidoscope;
-      delete globals._ballSpacingBeforeKaleidoscope;
-    }
-  }
+  // Kaleidoscope no longer overrides global spacing (keeps parameters config-driven).
   
   setModeState(mode);
+  
+  // Cursor color: only auto-cycle when switching to a different mode.
+  if (mode !== prevMode) {
+    try { maybeAutoPickCursorColor?.('mode'); } catch (e) {}
+  }
   
   console.log(`Switching to mode: ${mode}`);
   const modeNames = { 
@@ -66,7 +101,16 @@ export function setMode(mode) {
     magnetic: 'Magnetic',
     bubbles: 'Carbonated Bubbles',
     kaleidoscope: 'Kaleidoscope',
-    critters: 'Critters'
+    'kaleidoscope-1': 'Kaleidoscope I',
+    'kaleidoscope-2': 'Kaleidoscope II',
+    'kaleidoscope-3': 'Kaleidoscope III',
+    'orbit-3d': 'Orbit 3D',
+    'orbit-3d-2': 'Orbit 3D (Tight Swarm)',
+    critters: 'Critters',
+    neural: 'Neural Network',
+    lattice: 'Crystal Lattice',
+    'parallax-linear': 'Parallax (Linear)',
+    'parallax-perspective': 'Parallax (Perspective)'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
   
@@ -140,18 +184,32 @@ export function setMode(mode) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
     globals.repellerEnabled = false;
-
-    // Mode-only spacing: keep Kaleidoscope airy without changing other modes.
-    if (globals._ballSpacingBeforeKaleidoscope === undefined) {
-      globals._ballSpacingBeforeKaleidoscope = globals.ballSpacing;
-    }
-    // Interpret kaleidoscopeBallSpacing as “px at 1000px min viewport dimension” for mobile consistency.
-    const canvas = globals.canvas;
-    const unit = canvas ? Math.max(0.35, Math.min(3.0, Math.min(canvas.width, canvas.height) / 1000)) : 1;
-    const spacingBase = globals.kaleidoscopeBallSpacing ?? globals.ballSpacing;
-    globals.ballSpacing = spacingBase * unit;
-
     initializeKaleidoscope();
+  } else if (mode === MODES.KALEIDOSCOPE_1) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeKaleidoscope1();
+  } else if (mode === MODES.KALEIDOSCOPE_2) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeKaleidoscope2();
+  } else if (mode === MODES.KALEIDOSCOPE_3) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeKaleidoscope3();
+  } else if (mode === MODES.ORBIT_3D) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeOrbit3D();
+  } else if (mode === MODES.ORBIT_3D_2) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeOrbit3D2();
   } else if (mode === MODES.CRITTERS) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -171,9 +229,49 @@ export function setMode(mode) {
     globals.ballSpacing = Math.min(globals.ballSpacing || 0, 1.0);
 
     initializeCritters();
+  } else if (mode === MODES.NEURAL) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = true;
+    initializeNeural();
+  } else if (mode === MODES.LATTICE) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = true;
+    initializeLattice();
+  } else if (mode === MODES.PARALLAX_LINEAR) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeParallaxLinear();
+  } else if (mode === MODES.PARALLAX_PERSPECTIVE) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeParallaxPerspective();
   }
   
   console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
+
+  // Schedule warmup consumption (no rendering during warmup).
+  // The physics engine will consume this before the first render after mode init.
+  const warmupFrames = Math.max(0, Math.round(getWarmupFramesForMode(mode, globals) || 0));
+  globals.warmupFramesRemaining = warmupFrames;
+
+  // Broadcast mode changes for lightweight UI micro-interactions (e.g., logo pulse).
+  // Keep this decoupled from UI modules to avoid circular dependencies.
+  if (typeof window !== 'undefined' && mode !== prevMode) {
+    try {
+      window.dispatchEvent(new CustomEvent('bb:modeChanged', { detail: { prevMode, mode } }));
+    } catch (e) {}
+  }
+}
+
+export function resetCurrentMode() {
+  const globals = getGlobals();
+  // Cursor color: auto-cycle on explicit resets (even though mode stays the same).
+  try { maybeAutoPickCursorColor?.('reset'); } catch (e) {}
+  setMode(globals.currentMode);
 }
 
 export function getForceApplicator() {
@@ -194,10 +292,25 @@ export function getForceApplicator() {
     return applyMagneticForces;
   } else if (globals.currentMode === MODES.BUBBLES) {
     return applyBubblesForces;
-  } else if (globals.currentMode === MODES.KALEIDOSCOPE) {
+  } else if (globals.currentMode === MODES.KALEIDOSCOPE || 
+             globals.currentMode === MODES.KALEIDOSCOPE_1 ||
+             globals.currentMode === MODES.KALEIDOSCOPE_2 ||
+             globals.currentMode === MODES.KALEIDOSCOPE_3) {
     return applyKaleidoscopeForces;
+  } else if (globals.currentMode === MODES.ORBIT_3D) {
+    return applyOrbit3DForces;
+  } else if (globals.currentMode === MODES.ORBIT_3D_2) {
+    return applyOrbit3D2Forces;
   } else if (globals.currentMode === MODES.CRITTERS) {
     return applyCrittersForces;
+  } else if (globals.currentMode === MODES.NEURAL) {
+    return applyNeuralForces;
+  } else if (globals.currentMode === MODES.LATTICE) {
+    return applyLatticeForces;
+  } else if (globals.currentMode === MODES.PARALLAX_LINEAR) {
+    return applyParallaxLinearForces;
+  } else if (globals.currentMode === MODES.PARALLAX_PERSPECTIVE) {
+    return applyParallaxPerspectiveForces;
   }
   return null;
 }
@@ -212,6 +325,16 @@ export function getModeUpdater() {
     return updateMagnetic;
   } else if (globals.currentMode === MODES.BUBBLES) {
     return updateBubbles;
+  }
+  return null;
+}
+
+export function getModeRenderer() {
+  const globals = getGlobals();
+  if (globals.currentMode === MODES.NEURAL) {
+    return {
+      preRender: preRenderNeural
+    };
   }
   return null;
 }

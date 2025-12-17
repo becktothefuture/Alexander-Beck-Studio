@@ -44,6 +44,17 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
   "repelRadius": 120,
   "repelPower": 274000,
   "cursorInfluenceRadiusVw": 14,
+  "cursorSize": 1.0,
+  "cursorColorMode": "auto",
+  "cursorColorIndex": 5,
+  "cursorColorLumaMax": 0.62,
+  "cursorColorAllowIndices": [],
+  "cursorColorDenyIndices": [],
+  "mouseTrailEnabled": true,
+  "mouseTrailLength": 18,
+  "mouseTrailSize": 1.3,
+  "mouseTrailFadeMs": 220,
+  "mouseTrailOpacity": 0.35,
   "layoutViewportWidthPx": 0,
   "containerBorderVw": 1.11,
   "simulationPaddingVw": 0,
@@ -70,6 +81,17 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
   "wallWobbleSigma": 4.0,
   "wallWobbleCornerClamp": 1.0,
 
+  // Brand Logo (mode change micro-interaction)
+  "brandLogoImpactMul": 0.014,
+  "brandLogoSquashMul": 1.0,
+  "brandLogoOvershoot": 0.22,
+  "brandLogoAnticipation": 0.0,
+  "brandLogoTiltDeg": 0.0,
+  "brandLogoSkewDeg": 0.0,
+  "brandLogoPressMs": 75,
+  "brandLogoHoldMs": 55,
+  "brandLogoReleaseMs": 220,
+
   // Critters (Simulation 11)
   "critterCount": 90,
   "critterSpeed": 680,
@@ -94,6 +116,72 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 ## Parameters by Category
 
 ## Physics (Global)
+
+## Balls (Global)
+
+---
+
+## Effects
+
+### Ghost Layer (Motion Trails)
+
+These keys control the **ghost trail** effect implemented in `source/modules/physics/engine.js` (it replaces the hard `clearRect` with a fade-to-transparent pass when enabled, so DOM elements behind the canvas remain visible).
+
+- **`ghostLayerEnabled`** (boolean)
+  - **Meaning**: Enables/disables ghost trails.
+  - **Default**: `false`
+
+- **`ghostLayerOpacity`** (number, 0.05..1.0)
+  - **Meaning**: Fade amount per frame when ghost trails are enabled.
+  - **Important**: **Higher = shorter trails** (more clearing each frame).
+  - **Default**: `0.70`
+  - **Panel range**: 0.05 → 1.0 (step 0.01)
+
+- **`ghostLayerUsePerThemeOpacity`** (boolean)
+  - **Meaning**: If true, use `ghostLayerOpacityLight` / `ghostLayerOpacityDark` instead of `ghostLayerOpacity`.
+  - **Default**: `false`
+
+- **`ghostLayerOpacityLight`** (number, 0.05..1.0)
+  - **Meaning**: Fade amount per frame in **Light mode** when `ghostLayerUsePerThemeOpacity` is enabled.
+  - **Default**: `0.70`
+  - **Panel range**: 0.05 → 1.0 (step 0.01)
+
+- **`ghostLayerOpacityDark`** (number, 0.05..1.0)
+  - **Meaning**: Fade amount per frame in **Dark mode** when `ghostLayerUsePerThemeOpacity` is enabled.
+  - **Default**: `0.70`
+  - **Panel range**: 0.05 → 1.0 (step 0.01)
+
+### `sizeVariationGlobalMul` (number, 0..2)
+- **Meaning**: Global multiplier applied on top of each simulation’s **Size Variation** slider.  
+  - `1.0` = neutral (no influence)  
+  - `0.0` = forces **no variation** everywhere  
+  - `2.0` = doubles all per-mode variation amounts
+- **Applied to**: `state.sizeVariationGlobalMul` (used by per-mode sizing helper)
+- **Notes**:
+  - Each simulation has its own slider (`sizeVariation*`) in the range `0..1`.
+  - There is an internal cap (`state.sizeVariationCap`, currently `0.12`) that defines what “1.0 variation” means in absolute size terms.
+
+---
+
+## Balls (Per Simulation)
+
+These keys are all **0..1**:
+
+- `sizeVariationPit`
+- `sizeVariationPitThrows`
+- `sizeVariationFlies`
+- `sizeVariationWeightless`
+- `sizeVariationWater`
+- `sizeVariationVortex`
+- `sizeVariationPingPong`
+- `sizeVariationMagnetic`
+- `sizeVariationBubbles`
+- `sizeVariationKaleidoscope`
+- `sizeVariationCritters`
+
+- **Meaning**: Per-simulation size variance. `0` => no variation (all balls use the medium radius); `1` => maximum variation (as defined by the internal cap), scaled by `sizeVariationGlobalMul`.
+
+---
 
 ### `gravityMultiplier` (number)
 - **Meaning**: Ball Pit gravity multiplier (applied to base gravity \(G_E = 1960\)).
@@ -213,6 +301,81 @@ These keys tune the **Ball Pit (Throws)** mode (`pit-throws`): balls thrown in *
 
 ---
 
+## Cursor (Visual)
+
+These keys control the cursor’s **visual system** (dot + canvas trail) and its palette-driven cursor color.
+
+### `cursorSize` (number)
+- **Meaning**: Cursor size multiplier relative to average ball size.
+- **Applied to**: `state.cursorSize`
+
+### `cursorInfluenceRadiusVw` (number, vw)
+- **Meaning**: Universal cursor interaction zone radius (scales with viewport width).
+- **Applied to**: `state.cursorInfluenceRadiusVw` (derived into px for mode-specific forces)
+
+### `cursorColorMode` (`\"auto\" | \"manual\"`)
+- **Meaning**: Whether the cursor color auto-cycles or stays fixed.
+- **Applied to**: `state.cursorColorMode`
+- **Behavior**:
+  - `auto`: picks a new **contrasty** ball color on **startup**, **mode switch**, and **reset**.
+  - `manual`: locks to `cursorColorIndex`.
+
+### `cursorColorIndex` (number, 0..7)
+- **Meaning**: Palette index used for cursor color selection (dot + trail).
+- **Applied to**: `state.cursorColorIndex`
+
+### `cursorColorLumaMax` (number, 0..1)
+- **Meaning**: Maximum allowed relative luminance for cursor candidates.
+- **Notes**: Lower values exclude light colors (e.g., whites / light greys) to keep the cursor high-contrast.
+
+### `cursorColorAllowIndices` / `cursorColorDenyIndices` (array of 0..7)
+- **Meaning**: Optional allow/deny overrides for cursor candidate indices.
+- **Notes**: If `cursorColorAllowIndices` is non-empty, auto-pick will only choose from that subset.
+
+### Mouse trail
+- `mouseTrailEnabled` (boolean)
+- `mouseTrailLength` (number)
+- `mouseTrailSize` (number)
+- `mouseTrailFadeMs` (number)
+- `mouseTrailOpacity` (number)
+
+---
+
+## Brand Logo (Mode Change Micro‑Interaction)
+
+These keys tune the **center logo** reaction that triggers **only** when the simulation/mode changes (event: `bb:modeChanged`).
+
+### `brandLogoImpactMul` (number, unitless)
+- **Meaning**: How deep the logo “clicks in” (scale-down strength per pulse).
+- **Applied to**: CSS var `--abs-brand-logo-impact-mul` (stamped on `#brand-logo`)
+
+### `brandLogoSquashMul` (number, 0..~7.5)
+- **Meaning**: Squash & stretch multiplier during click-in (wider + flatter).
+- **Applied to**: CSS vars `--abs-brand-logo-squash-x-mul` / `--abs-brand-logo-squash-y-mul`
+
+### `brandLogoOvershoot` (number, 0..~1.8)
+- **Meaning**: Release overshoot amount (“bounce out”). Higher = bouncier.
+
+### `brandLogoAnticipation` (number, 0..~1.2)
+- **Meaning**: Micro pre-pop in the opposite direction before click-in (0 disables).
+
+### `brandLogoTiltDeg` (number, degrees)
+- **Meaning**: Tiny rotation tied to the click (automatically flips on overshoot).
+
+### `brandLogoSkewDeg` (number, degrees)
+- **Meaning**: Tiny skew tied to the click (automatically flips on overshoot).
+
+### `brandLogoPressMs` (number, ms)
+- **Meaning**: Press-in duration.
+
+### `brandLogoHoldMs` (number, ms)
+- **Meaning**: Hold time between press and release.
+
+### `brandLogoReleaseMs` (number, ms)
+- **Meaning**: Release duration (“bounce out” length). Panel range now supports up to ~1.44s for longer rebounds.
+
+---
+
 ## Critters (Simulation 11)
 
 These keys control the ball-only Critters simulation (mode `critters`).
@@ -232,6 +395,25 @@ These keys control the ball-only Critters simulation (mode `critters`).
 - `critterMouseRadiusVw` (number vw): mouse zone radius (viewport width units)
 - `critterRestitution` (number 0..1): Critters-only collision bounciness override
 - `critterFriction` (number): Critters-only drag override
+
+---
+
+## Orbit 3D (Mode 12)
+
+These keys control the Orbit 3D simulation (mode `orbit-3d`):
+
+- `orbit3dBallCount` (number): number of orbiting balls (re-init on change)
+- `orbit3dMinRadiusVw` (number, vw): inner orbit radius bound (vw → px at init)
+- `orbit3dMaxRadiusVw` (number, vw): outer orbit radius bound (vw → px at init)
+- `orbit3dAngularSpeed` (number, rad/s): base angular speed (inner orbits run faster via Kepler-ish scaling)
+- `orbit3dFollowStrength` (number): spring strength pulling balls toward their orbit target (higher = tighter, less lag)
+- `orbit3dFollowDamping` (number): damping applied during target following (higher = heavier, less overshoot)
+- `orbit3dMaxSpeed` (number, px/s): velocity clamp to prevent spikes on fast cursor movement
+- `orbit3dDepthScale` (number, 0..1): faux-3D depth strength (size scaling based on orbital angle)
+
+Notes:
+- Orbit 3D uses a **spring-damper anchor** to preserve “weight” and inertia; it does not snap balls to the cursor.
+- Collisions are disabled between balls (for clarity), but wall collisions still apply.
 
 ---
 

@@ -98,6 +98,16 @@ async function buildProduction() {
       copyDir(webflowImagesSrc, publicImagesDst);
     }
 
+    // Copy standalone HTML pages from source/ (cv.html, portfolio.html, etc.)
+    const standalonePages = ['cv.html', 'portfolio.html'];
+    for (const page of standalonePages) {
+      const src = path.join('source', page);
+      const dst = path.join(CONFIG.publicDestination, page);
+      if (fs.existsSync(src)) {
+        fs.copyFileSync(src, dst);
+      }
+    }
+
     // Ensure self-hosted fonts are available in public/
     // (Used by icon font + any future typography assets)
     const sourceFontsDir = path.join('source', 'fonts');
@@ -239,12 +249,12 @@ const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</sty
       } catch (e) {}
     }
     
-    // Inject theme-color meta tags for mobile browsers (Safari iOS, Chrome Android)
-    // These MUST match --frame-color-light/dark in main.css (#0a0a0a)
+    // Inject theme-color meta tags for mobile browsers (Safari iOS, Chrome Android, Edge).
+    // These SHOULD match --bg-light / --bg-dark in source/css/main.css for first paint.
     const themeColorTags = `
   <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
-  <meta name="theme-color" content="#0a0a0a">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0a0a">
+  <meta name="theme-color" content="#f5f5f5">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
   <!-- Apple-specific: Status bar style -->
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

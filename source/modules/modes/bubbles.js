@@ -8,6 +8,7 @@ import { getGlobals } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
+import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
 export function initializeBubbles() {
   const g = getGlobals();
@@ -44,10 +45,8 @@ export function initializeBubbles() {
 function createBubble(x, y, color, alreadyVisible = false) {
   const g = getGlobals();
   
-  // Variable bubble sizes
-  const minR = g.R_MIN * 0.5;
-  const maxR = g.R_MAX * 0.8;
-  const targetRadius = minR + Math.random() * (maxR - minR);
+  // Per-mode sizing system: bubbles vary only according to the Bubbles variation slider.
+  const targetRadius = randomRadiusForMode(g, MODES.BUBBLES);
   
   const b = new Ball(x, y, alreadyVisible ? targetRadius : 0.1, color);
   b.isBubble = true;
@@ -98,9 +97,7 @@ function recycleBubble(ball) {
   ball.color = pickRandomColor();
   
   // New target size
-  const minR = g.R_MIN * 0.5;
-  const maxR = g.R_MAX * 0.8;
-  ball.targetRadius = minR + Math.random() * (maxR - minR);
+  ball.targetRadius = randomRadiusForMode(g, MODES.BUBBLES);
   ball.baseRadius = ball.targetRadius;
   
   // Start spawn animation (scale up from 0 to full size)

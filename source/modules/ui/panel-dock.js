@@ -138,6 +138,7 @@ function getMasterPanelContent() {
   const contentPadPx = Math.max(0, Math.round(g.contentPadding ?? 0));
   const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
   const minContentPadPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
+  const contentPadHorizRatio = Number(g.contentPaddingHorizontalRatio || 1.0);
   const minRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
 
   return `
@@ -163,6 +164,14 @@ function getMasterPanelContent() {
             <span class="control-value" id="contentPadValue">${contentPadVw.toFixed(2)}vw · ${contentPadPx}px (min ${minContentPadPx}px)</span>
           </div>
           <input type="range" id="contentPadding" min="0" max="12" step="0.05" value="${contentPadVw || 0}" />
+        </label>
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Horizontal Ratio</span>
+            <span class="control-value" id="contentPadHorizRatioValue">${contentPadHorizRatio.toFixed(2)}× → ${Math.round(contentPadPx * contentPadHorizRatio)}px</span>
+          </div>
+          <input type="range" id="contentPadHorizRatio" min="0.5" max="2.5" step="0.05" value="${contentPadHorizRatio}" />
+          <div class="control-hint">Horizontal padding = base × ratio</div>
         </label>
         <label class="control-row">
           <div class="control-row-header">
@@ -723,6 +732,8 @@ function setupLayoutControls(panel) {
   const frameValue = panel.querySelector('#frameValue');
   const contentPadSlider = panel.querySelector('#contentPadding');
   const contentPadValue = panel.querySelector('#contentPadValue');
+  const contentPadHorizRatioSlider = panel.querySelector('#contentPadHorizRatio');
+  const contentPadHorizRatioValue = panel.querySelector('#contentPadHorizRatioValue');
   const minContentPadSlider = panel.querySelector('#layoutMinContentPaddingPx');
   const minContentPadValue = panel.querySelector('#minContentPadValue');
   const radiusSlider = panel.querySelector('#layoutRadius');
@@ -743,6 +754,10 @@ function setupLayoutControls(panel) {
       const minPad = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
       contentPadValue.textContent = `${(g.contentPaddingVw || 0).toFixed(2)}vw · ${Math.round(g.contentPadding || 0)}px (min ${minPad}px)`;
     }
+    if (contentPadHorizRatioValue) {
+      const ratio = g.contentPaddingHorizontalRatio || 1.0;
+      contentPadHorizRatioValue.textContent = `${ratio.toFixed(2)}× → ${Math.round(g.contentPaddingX || g.contentPadding)}px`;
+    }
     if (radiusValue) {
       const minR = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
       radiusValue.textContent = `${(g.wallRadiusVw || 0).toFixed(2)}vw · ${Math.round(g.wallRadius || 0)}px (min ${minR}px)`;
@@ -754,6 +769,9 @@ function setupLayoutControls(panel) {
       viewportWidthValue.textContent = g.layoutViewportWidthPx > 0 ? `${Math.round(g.layoutViewportWidthPx)}px` : `Auto (${Math.round(w)}px)`;
     }
     if (triggerResize) resize();
+    
+    // Notify overlay system that layout changed (blur needs recalculation)
+    document.dispatchEvent(new CustomEvent('layout-updated'));
   };
   
   // Frame (outer dark border around content + wall thickness)
@@ -774,6 +792,16 @@ function setupLayoutControls(panel) {
       const val = parseFloat(e.target.value);
       if (!Number.isFinite(val)) return;
       g.contentPaddingVw = val;
+      syncDerivedLayout();
+    });
+  }
+  
+  // Horizontal ratio: contentPaddingX = contentPadding × ratio
+  if (contentPadHorizRatioSlider && contentPadHorizRatioValue) {
+    contentPadHorizRatioSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (!Number.isFinite(val)) return;
+      g.contentPaddingHorizontalRatio = Math.max(0.1, val);
       syncDerivedLayout();
     });
   }

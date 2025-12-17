@@ -16,74 +16,15 @@ function randBetween(min, max) {
 }
 
 /**
- * Create a weighted color bag that ensures all colors appear while maintaining ratio
- * Bag contains 100 items: [50, 25, 12, 6, 3, 2, 1, 1] for colors [0-7]
+ * Ball Pit color rule (to match the main Ball Pit look exactly):
+ * - First 8 spawns: force indices 0..7 (guaranteed palette coverage)
+ * - After that: leave color undefined so spawnBall() uses pickRandomColor()
+ *   (which uses the same COLOR_WEIGHTS as Ball Pit).
  */
-function createWeightedColorBag() {
-  const g = getGlobals();
-  const colors = g.currentColors;
-  if (!colors || colors.length === 0) {
-    return [getColorByIndex(0)]; // Fallback
-  }
-
-  const bag = [];
-  // Fill bag according to weights (scaled to 100 items for exact ratio)
-  const counts = [50, 25, 12, 6, 3, 2, 1, 1];
-  for (let i = 0; i < 8 && i < colors.length; i++) {
-    for (let j = 0; j < counts[i]; j++) {
-      bag.push(colors[i]);
-    }
-  }
-  
-  // Fisher-Yates shuffle
-  for (let i = bag.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const tmp = bag[i];
-    bag[i] = bag[j];
-    bag[j] = tmp;
-  }
-  
-  return bag;
-}
-
-/**
- * Create an initial “one-of-each” bag (0..7) so Pit Throws matches the same
- * palette-coverage rationale as other modes: you always *see* all colors early.
- * (After the bootstrap, we use the weighted bag to preserve the Ball Pit ratio.)
- */
-function createBootstrapColorBag() {
-  const bag = [];
-  for (let i = 0; i < 8; i++) bag.push(getColorByIndex(i));
-
-  // Fisher-Yates shuffle
-  for (let i = bag.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const tmp = bag[i];
-    bag[i] = bag[j];
-    bag[j] = tmp;
-  }
-
-  return bag;
-}
-
-/**
- * Get next color from weighted bag, refilling when exhausted
- */
-function getNextWeightedColor(state) {
-  // Bootstrap: guarantee each palette color appears once (0..7) before weighted distribution.
-  if (state.bootstrapBag && state.bootstrapIdx < state.bootstrapBag.length) {
-    const color = state.bootstrapBag[state.bootstrapIdx];
-    state.bootstrapIdx++;
-    return color;
-  }
-
-  if (!state.colorBag || state.colorBagIdx >= state.colorBag.length) {
-    state.colorBag = createWeightedColorBag();
-    state.colorBagIdx = 0;
-  }
-  const color = state.colorBag[state.colorBagIdx];
-  state.colorBagIdx++;
-  return color;
+function getNextPitLikeColor(state) {
+  const i = state.spawnedTotal | 0;
+  state.spawnedTotal = i + 1;
+  return (i < 8) ? getColorByIndex(i) : undefined;
 }
 
 function spawnOneThrow(g, color, side, { speedMul = 1, spreadMul = 1 } = {}) {
@@ -157,32 +98,25 @@ export function initializePitThrows() {
 
   // Emitter state (kept on globals to avoid per-frame allocations)
   const initialState = {
-    bootstrapBag: createBootstrapColorBag(),
-    bootstrapIdx: 0,
-    colorBag: null,
-    colorBagIdx: 0,
+    spawnedTotal: 0,
     side: 0, // 0 = left, 1 = right
-    inColorRemaining: clamp(g.pitThrowBatchSize ?? 13, 1, 120) | 0,
     cooldown: 0,
-    phase: 'throw', // 'throw' | 'pause'
+    batchCount: 0,       // balls thrown in current batch
+    batchPaused: false,  // true during inter-batch pause
     queueA: -1,
     queueB: -1,
-    queueColorA: null,
-    queueColorB: null,
+    queueColorA: undefined,
+    queueColorB: undefined,
     queueSideA: 0,
     queueSideB: 1
   };
   
-  // Initialize weighted color bag and get first color
-  initialState.color = getNextWeightedColor(initialState);
-  initialState.queueColorA = getNextWeightedColor(initialState);
-  initialState.queueColorB = getNextWeightedColor(initialState);
-  
   g._pitThrows = initialState;
 
   // IMPORTANT: Physics loop early-returns if there are no balls, so seed with 1 throw.
-  spawnOneThrow(g, g._pitThrows.color, g._pitThrows.side);
-  g._pitThrows.inColorRemaining = Math.max(0, g._pitThrows.inColorRemaining - 1);
+  const c0 = getNextPitLikeColor(g._pitThrows);
+  spawnOneThrow(g, c0, g._pitThrows.side);
+  g._pitThrows.side = 1 - g._pitThrows.side;
 }
 
 export function updatePitThrows(dtSeconds) {
@@ -196,11 +130,12 @@ export function updatePitThrows(dtSeconds) {
   const s = g._pitThrows;
   if (!s) return;
 
-  // Timing
+  // Timing config
   const intervalMs = clamp(g.pitThrowIntervalMs ?? 70, 10, 2000);
-  const pauseMs = clamp(g.pitThrowColorPauseMs ?? 180, 0, 5000);
   const interval = intervalMs / 1000;
-  const pause = pauseMs / 1000;
+  const batchSize = clamp(g.pitThrowBatchSize ?? 12, 1, 100);
+  const batchPauseMs = clamp(g.pitThrowColorPauseMs ?? 400, 0, 3000);
+  const batchPause = batchPauseMs / 1000;
   const pairChance = clamp(g.pitThrowPairChance ?? 0.35, 0, 1);
   const pairStagger = clamp(g.pitThrowPairStaggerMs ?? 18, 0, 300) / 1000;
   const speedVar = clamp(g.pitThrowSpeedVar ?? 0.18, 0, 1);
@@ -213,7 +148,7 @@ export function updatePitThrows(dtSeconds) {
   const maxSpawnsThisFrame = 6;
   let spawned = 0;
 
-  // Service queued stagger throws (A/B lanes)
+  // Service queued stagger throws (A/B lanes) - these don't count toward batch
   if (s.queueA >= 0) s.queueA -= dtSeconds;
   if (s.queueB >= 0) s.queueB -= dtSeconds;
 
@@ -245,58 +180,46 @@ export function updatePitThrows(dtSeconds) {
 
   if (s.cooldown > 0) return;
 
+  // Check if we're in a batch pause
+  if (s.batchPaused) {
+    // Batch pause complete → flip side for next batch, start fresh
+    s.batchPaused = false;
+    s.batchCount = 0;
+    s.side = 1 - s.side; // Alternate side between batches
+  }
+
   while (spawned < maxSpawnsThisFrame && g.balls.length < targetBalls) {
-    if (s.phase === 'pause') {
-      // Transition into next color (using weighted bag - ensures all colors appear)
-      s.phase = 'throw';
-      s.color = getNextWeightedColor(s);
-      s.side = 1 - s.side; // alternate starting side each color
-      s.inColorRemaining = clamp(g.pitThrowBatchSize ?? 13, 1, 120) | 0;
-    }
-
-    if (s.inColorRemaining > 0) {
-      // Alternate side within the color too (more overlap + interleaving)
-      const thisSide = s.side;
-      s.side = 1 - s.side;
-
-      const speedMul = 1 + randBetween(-speedVar, speedVar);
-      const spreadMul = 1 + randBetween(-spreadVar, spreadVar);
-      spawnOneThrow(g, s.color, thisSide, { speedMul, spreadMul });
-      s.inColorRemaining--;
-      spawned++;
-
-      // Optional paired throw from the opposite side, slightly staggered
-      if (pairStagger > 0 && Math.random() < pairChance && g.balls.length < targetBalls) {
-        const side2 = 1 - thisSide;
-        // Put into one of two tiny queues (A/B) so we can stagger without allocations.
-        // If both occupied, we just skip pairing this time.
-        if (s.queueA < 0) {
-          s.queueA = pairStagger;
-          s.queueColorA = s.color;
-          s.queueSideA = side2;
-        } else if (s.queueB < 0) {
-          s.queueB = pairStagger;
-          s.queueColorB = s.color;
-          s.queueSideB = side2;
-        }
-      }
-
-      if (s.inColorRemaining <= 0) {
-        // Finished this color: short pause before next color
-        s.phase = 'pause';
-        s.cooldown = pause;
-        break;
-      } else {
-        // Short interval between balls of the same color
-        s.cooldown = interval;
-        break;
-      }
-    } else {
-      // Safety: if somehow depleted, force a pause->next-color transition
-      s.phase = 'pause';
-      s.cooldown = pause;
+    // Check if batch is complete → enter pause
+    if (batchPause > 0 && s.batchCount >= batchSize) {
+      s.cooldown = batchPause;
+      s.batchPaused = true;
       break;
     }
+
+    // This entire batch comes from the same side
+    const thisSide = s.side;
+
+    const speedMul = 1 + randBetween(-speedVar, speedVar);
+    const spreadMul = 1 + randBetween(-spreadVar, spreadVar);
+    const color = getNextPitLikeColor(s);
+    spawnOneThrow(g, color, thisSide, { speedMul, spreadMul });
+    spawned++;
+    s.batchCount++;
+
+    // Optional extra ball from SAME side (handful effect)
+    if (Math.random() < pairChance && g.balls.length < targetBalls && s.batchCount < batchSize) {
+      const c2 = getNextPitLikeColor(s);
+      if (s.queueA < 0) {
+        s.queueA = pairStagger;
+        s.queueColorA = c2;
+        s.queueSideA = thisSide; // Same side for handful effect
+        s.batchCount++;
+      }
+    }
+
+    // Interval between throws within batch
+    s.cooldown = interval;
+    break;
   }
 }
 

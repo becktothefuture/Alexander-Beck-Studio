@@ -225,11 +225,15 @@ body:not(.dark-mode) {
    SECTION ACCORDIONS — Top-level collapsible sections (Sound, Controls)
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-section-accordion {
-  border-bottom: 1px solid var(--panel-border);
+  border-bottom: 3px solid var(--panel-border);
+  padding-bottom: var(--panel-pad-6);
+  margin-bottom: var(--panel-pad-6);
 }
 
 .panel-section-accordion:last-child {
   border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 .panel-section-header {
@@ -848,6 +852,36 @@ body:not(.dark-mode) .panel-section--action {
   width: 16px;
   height: 16px;
   accent-color: var(--panel-brand);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PALETTE SWATCH ROW — Cursor color picker (contrasty-only options)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.palette-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--panel-gap);
+  padding-top: var(--panel-pad-4);
+}
+
+.palette-swatch {
+  width: calc(var(--panel-pad-10) + var(--panel-pad-12)); /* 22px */
+  height: calc(var(--panel-pad-10) + var(--panel-pad-12)); /* 22px */
+  border-radius: 999px;
+  border: calc(var(--panel-pad-2) * 0.5) solid var(--panel-border); /* 1px */
+  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.palette-swatch:hover {
+  transform: translateY(calc(var(--panel-pad-2) * -0.5)); /* -1px */
+  border-color: var(--panel-muted-foreground);
+}
+
+.palette-swatch.active {
+  border-color: var(--panel-ring);
+  box-shadow: 0 0 0 var(--panel-pad-2) color-mix(in oklab, var(--panel-ring), transparent 30%); /* 2px */
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

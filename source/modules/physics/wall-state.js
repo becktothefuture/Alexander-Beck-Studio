@@ -9,15 +9,32 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
+import { WALL_PRESETS } from '../core/constants.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
 const SEGMENTS_PER_WALL = 12;  // Resolution for smooth curves (kept constant for perf)
-const SPRING_STIFFNESS = 400;  // Default spring stiffness
-const SPRING_DAMPING = 18;     // Default spring damping
-const MAX_DEFORM = 30;         // Default max inward flex (px at DPR 1)
-// Bounce flash removed (was previously implemented via CSS var --wall-bounce-intensity)
+const SPRING_STIFFNESS = 2200; // Default spring stiffness (tuned for rubber)
+const SPRING_DAMPING = 35;     // Default spring damping
+const MAX_DEFORM = 45;         // Default max inward flex (px at DPR 1)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WALL PRESETS - Moved to core/constants.js to avoid circular deps
+// ═══════════════════════════════════════════════════════════════════════════════
+export { WALL_PRESETS }; // Re-export for convenience if needed, but prefer direct import
+
+/**
+ * Apply a named preset to the global state
+ * @param {string} presetName key in WALL_PRESETS
+ * @param {object} g global state object
+ */
+export function applyWallPreset(presetName, g) {
+  const preset = WALL_PRESETS[presetName];
+  if (!preset) return;
+  Object.assign(g, preset);
+  g.wallPreset = presetName;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WALL EDGE - Straight section between two corners
@@ -99,11 +116,16 @@ class WallEdge {
     const baseDamping = Math.max(0, g.wallWobbleDamping ?? SPRING_DAMPING);
     const maxDeform = Math.max(0, g.wallWobbleMaxDeform ?? MAX_DEFORM);
     
+    // Settling speed (0-100) - controls how aggressively walls stop moving
+    const settlingSpeed = Math.max(0, Math.min(100, g.wallWobbleSettlingSpeed ?? 50));
+    const settleFactor = settlingSpeed / 100; // 0..1
+    
     // Calculate critical damping for reference: c_crit = 2 * sqrt(k * m) where m=1
     const criticalDamping = 2 * Math.sqrt(stiffness);
     
     // Extra damping multiplier when there's pressure (resting balls create friction)
-    const PRESSURE_DAMPING_MULT = 15.0; // 15x damping where balls are resting (very aggressive)
+    // Scale from 5x (low settling) to 35x (high settling) based on setting
+    const pressureDampingMult = 5.0 + (30.0 * settleFactor); 
     
     // First and last segments are ANCHORED (no movement)
     this.deformations[0] = 0;
@@ -112,6 +134,10 @@ class WallEdge {
     this.velocities[SEGMENTS_PER_WALL - 1] = 0;
     this.pressure[0] = 0;
     this.pressure[SEGMENTS_PER_WALL - 1] = 0;
+    
+    // Aggressive snap-to-zero for micro-oscillations
+    // Higher settling = larger snap thresholds (snaps sooner)
+    const snapScale = 0.5 + (1.5 * settleFactor); // 0.5x .. 2.0x
     
     for (let i = 1; i < SEGMENTS_PER_WALL - 1; i++) {
       const vel = Math.abs(this.velocities[i]);
@@ -124,7 +150,7 @@ class WallEdge {
       const progressiveDamping = baseDamping * (1 + amplitudeFactor * 1.0); // Up to 2x damping
       
       // Apply extra damping where there's pressure (resting balls)
-      const pressureDamping = progressiveDamping * (1 + this.pressure[i] * PRESSURE_DAMPING_MULT);
+      const pressureDamping = progressiveDamping * (1 + this.pressure[i] * pressureDampingMult);
       
       // Cap at critical damping to prevent over-damping instability
       const effectiveDamping = Math.min(pressureDamping, criticalDamping * 0.95);
@@ -137,13 +163,11 @@ class WallEdge {
       // Clamp to prevent runaway
       this.deformations[i] = Math.max(0, Math.min(maxDeform, this.deformations[i]));
       
-      // Aggressive snap-to-zero for micro-oscillations
-      // Threshold scales with pressure (more aggressive when balls are resting)
-      // With high pressure (>0.5), snap very aggressively to kill micro-wobble
-      const deformThreshold = this.pressure[i] > 0.5 ? 0.3 : (this.pressure[i] > 0.1 ? 0.8 : 2.0); // px
-      const velThreshold = this.pressure[i] > 0.5 ? 0.5 : (this.pressure[i] > 0.1 ? 3.0 : 10.0);    // px/s
+      // Snap thresholds derived from pressure and settling speed
+      const baseDeformThresh = this.pressure[i] > 0.5 ? 0.3 : (this.pressure[i] > 0.1 ? 0.8 : 2.0);
+      const baseVelThresh = this.pressure[i] > 0.5 ? 0.5 : (this.pressure[i] > 0.1 ? 3.0 : 10.0);
       
-      if (def < deformThreshold && vel < velThreshold) {
+      if (def < baseDeformThresh * snapScale && vel < baseVelThresh * snapScale) {
         this.deformations[i] = 0;
         this.velocities[i] = 0;
       }
@@ -391,4 +415,26 @@ function getChromeColorFromCSS() {
 export function updateChromeColor() {
   // No-op now - we read directly from CSS each frame
   // This is kept for API compatibility
+}
+
+/**
+ * Derive low-level wall wobble parameters from high-level controls
+ * @param {number} softness 0-100 (softer = more flex, lower stiffness)
+ * @param {number} bounciness 0-100 (bouncier = less damping, less settling)
+ * @returns {Object} { wallWobbleStiffness, wallWobbleMaxDeform, wallWobbleDamping, wallWobbleSettlingSpeed }
+ */
+export function deriveWallParamsFromHighLevel(softness, bounciness) {
+  const s = Math.max(0, Math.min(100, softness)) / 100;
+  const b = Math.max(0, Math.min(100, bounciness)) / 100;
+  
+  function lerp(min, max, t) { return min + (max - min) * t; }
+  
+  return {
+    wallWobbleStiffness: Math.round(lerp(2800, 600, s)),
+    wallWobbleMaxDeform: Math.round(lerp(40, 140, s)),
+    wallWobbleDamping: Math.round(lerp(70, 12, b)),
+    // Settling speed inversely related to bounciness by default (bouncier = less settling)
+    // But exposed as separate advanced control
+    wallWobbleSettlingSpeed: Math.round(lerp(80, 20, b))
+  };
 }

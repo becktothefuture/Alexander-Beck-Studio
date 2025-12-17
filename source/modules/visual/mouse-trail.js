@@ -40,9 +40,10 @@ function ensureCapacity(nextCap) {
 }
 
 function getStrokeStyle() {
-  // Match the custom cursor’s “circle” language (solid black).
-  // User explicitly requested black even in dark mode.
-  return '#000000';
+  // Unified cursor color: matches the dot (CSS var --cursor-color).
+  // Keep this O(1): a single string read, no parsing/allocation.
+  const g = getGlobals();
+  return (g && typeof g.cursorColorHex === 'string' && g.cursorColorHex) ? g.cursorColorHex : '#000000';
 }
 
 function clamp(v, min, max) {
@@ -130,7 +131,7 @@ export function drawMouseTrail(ctx) {
   }
   if (!size) return;
 
-  // If only one sample remains, skip drawing (avoids “dot” artifacts).
+  // If only one sample remains, skip drawing (avoids "dot" artifacts).
   if (size < 2) return;
 
   const stroke = getStrokeStyle();
@@ -189,5 +190,3 @@ export function drawMouseTrail(ctx) {
   ctx.strokeStyle = prevStrokeStyle;
   ctx.lineWidth = prevLineWidth;
 }
-
-

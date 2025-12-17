@@ -15,7 +15,8 @@ function spawnPourBallPit(globals, targetBalls) {
   // Spawn balls ABOVE the canvas (negative Y coordinates)
   // They will fall into the visible area via gravity
   // This is "negative spacing" - spawn area extends above y=0
-  const spawnHeight = h * 0.5; // Spawn within 50% of canvas height above canvas
+  // Drop-in from higher: +30% taller spawn band above the canvas.
+  const spawnHeight = h * 0.65; // was 0.50h
   const spawnYTop = -spawnHeight;
   const spawnYBottom = 0;
 

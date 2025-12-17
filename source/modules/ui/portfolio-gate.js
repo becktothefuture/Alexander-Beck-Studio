@@ -131,30 +131,47 @@ export function initPortfolioGate() {
         inputs[0].focus();
     };
 
-    const closeGate = () => {
+    const closeGate = (instant = false) => {
         isOpen = false;
         
         // Clear inputs
         inputs.forEach(input => input.value = '');
         
-        // Animate Gate Out (Down)
+        if (instant) {
+            // Instant close: disable transition, remove active, then re-enable
+            gate.style.transition = 'none';
+            logo.style.transition = 'none';
+            
         gate.classList.remove('active');
         gate.setAttribute('aria-hidden', 'true');
-        
-        // Animate Logo In (Down)
+            gate.classList.add('hidden');
+            logo.classList.remove('fade-out-up');
+            
+            // Hide overlay immediately if no other gate is active
+            if (!isAnyGateActive()) {
+                hideOverlay();
+            }
+            
+            // Re-enable transitions after a frame
+            requestAnimationFrame(() => {
+                gate.style.removeProperty('transition');
+                logo.style.removeProperty('transition');
+            });
+        } else {
+            // Smooth close: use CSS transition
+            gate.classList.remove('active');
+            gate.setAttribute('aria-hidden', 'true');
         logo.classList.remove('fade-out-up');
         
         setTimeout(() => {
             if (!isOpen) gate.classList.add('hidden');
             
-            // Hide overlay only if no other gate is now active
-            // Small delay to let state settle after closing
-            setTimeout(() => {
+                // Hide overlay if no other gate is now active
                 if (!isAnyGateActive()) {
                     hideOverlay();
                 }
-            }, 50);
         }, 400); // Match transition time
+        }
     };
 
     // Back button closes gate (matches new UI pattern)
@@ -162,6 +179,16 @@ export function initPortfolioGate() {
         const backBtn = gateLabel?.querySelector?.('[data-gate-back]');
         if (backBtn) backBtn.addEventListener('click', closeGate);
     } catch (e) {}
+    
+    // Click on gate background (not on inputs) also closes instantly
+    gate.addEventListener('click', (e) => {
+        // Only close if clicking the gate container itself or non-interactive areas
+        if (e.target === gate || e.target.classList.contains('gate-label') || 
+            e.target.classList.contains('gate-description') || e.target.tagName === 'H2' ||
+            e.target.tagName === 'P') {
+            closeGate(true);
+        }
+    });
 
     const checkCode = () => {
         const enteredCode = inputs.map(input => input.value).join('');
@@ -189,10 +216,18 @@ export function initPortfolioGate() {
 
     trigger.addEventListener('click', openGate);
 
-    // Close on Escape or click outside (optional, sticking to ESC for now)
+    // Close on Escape
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && isOpen) {
             closeGate();
+        }
+    });
+    
+    // Close when overlay is clicked (dismiss event from gate-overlay.js)
+    document.addEventListener('gate-overlay-dismiss', (e) => {
+        if (isOpen) {
+            const instant = e.detail?.instant || false;
+            closeGate(instant);
         }
     });
 

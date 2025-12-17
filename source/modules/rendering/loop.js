@@ -5,7 +5,6 @@
 
 import { updatePhysics, render } from '../physics/engine.js';
 import { trackFrame } from '../utils/performance.js';
-import { tickBrandLogoBallSpace } from '../ui/brand-logo-ball-space.js';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PERFORMANCE: Frame timing and throttling state
@@ -103,12 +102,6 @@ export function startMainLoop(applyForcesFunc) {
     
     // Render
     render();
-
-    // UI micro-interactions driven by simulation state (throttled internally)
-    // Skip at heavy throttle level
-    if (adaptiveThrottleLevel < 2) {
-      tickBrandLogoBallSpace(nowMs);
-    }
     
     // FPS tracking
     trackFrame(performance.now());

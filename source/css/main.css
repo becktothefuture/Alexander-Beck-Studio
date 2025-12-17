@@ -36,6 +36,21 @@
   --duration-settle: 400ms;
   --duration-quick: 200ms;
 
+  /* ───────────────────────────────────────────────────────────────────────────
+     Brand Logo Micro-Interactions (CSS-var driven)
+     - JS stamps these vars onto #brand-logo (inherited by .brand-logo-svg)
+     - impact is unitless (can be +/- for rebound)
+     ─────────────────────────────────────────────────────────────────────────── */
+  --abs-brand-logo-impact: 0;
+  --abs-brand-logo-squash: 0;
+  --abs-brand-logo-impact-dur: 100ms;
+  /* Tunable multipliers (driven by control panel / config) */
+  --abs-brand-logo-impact-mul: 0.014;
+  --abs-brand-logo-squash-x-mul: 0.009;
+  --abs-brand-logo-squash-y-mul: 0.015;
+  --abs-brand-logo-tilt-deg: 0; /* number (degrees), multiplied by impact sign */
+  --abs-brand-logo-skew-deg: 0; /* number (degrees), multiplied by impact sign */
+
   /* Interaction Tokens */
   --link-hover-color: var(--ball-6);
   --duration-link-hover: 30ms;
@@ -46,13 +61,21 @@
   /* Unified Color System */
   --frame-color-light: #0a0a0a;
   --frame-color-dark: #0a0a0a;
-  --chrome-bg-light: var(--frame-color-light);
-  --chrome-bg-dark: var(--frame-color-dark);
+  /* Browser chrome tint (theme-color): should reflect the *page background* for each theme */
+  --chrome-bg-light: var(--bg-light);
+  --chrome-bg-dark: var(--bg-dark);
   --chrome-bg: var(--chrome-bg-light);
   
   --bg-light: #f5f5f5;
   --bg-dark: #0a0a0a;
   
+  /* Wall (frame tube) sources */
+  --wall-color-site-light: var(--frame-color-light);
+  --wall-color-site-dark: var(--frame-color-dark);
+  /* Browser UI fallback (desktop browsers where theme-color is ignored) */
+  --wall-color-browser-light: #f1f3f4;
+  --wall-color-browser-dark: #202124;
+
   --wall-color: var(--frame-color-light);
   --wall-thickness: 12px;
   --wall-radius: 42px;
@@ -73,12 +96,14 @@
   /* Texture Sizing */
   --noise-size-base: 100px;
   --noise-size-top: 150px;
+  --noise-size-scale: 1;
   
   /* Noise Opacity */
-  --noise-back-opacity-light: 0.020;
-  --noise-front-opacity-light: 0.050;
-  --noise-back-opacity-dark: 0.06;
-  --noise-front-opacity-dark: 0.04;
+  --noise-back-opacity-light: 0.010;
+  --noise-front-opacity-light: 0.040;
+  --noise-back-opacity-dark: 0.05;
+  --noise-front-opacity-dark: 0.03;
+  --noise-top-opacity: 0.005;
   
   /* Ball Colors */
   --ball-1: #b7bcb7;
@@ -89,6 +114,9 @@
   --ball-6: #ff4013;
   --ball-7: #0d5cb6;
   --ball-8: #ffa000;
+  
+  /* Cursor (dot + trail) color. JS stamps this from the current palette. */
+  --cursor-color: var(--ball-6);
   
   /* Design Tokens */
   --gap-xs: clamp(4px, 0.5vmin, 8px);
@@ -187,7 +215,6 @@
 
 .ti {
   font-family: "tabler-icons" !important;
-  speak: none;
   font-style: normal;
   font-weight: normal;
   font-variant: normal;
@@ -323,6 +350,55 @@ body.dark-mode .edge-copyright__text {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   EDGE CHAPTER (Left Edge, Tilted) — current simulation chapter title
+   ───────────────────────────────────────────────────────────────────────────── */
+.edge-chapter {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--container-border) + var(--gap-sm));
+  z-index: 6; /* Above canvas (5), below UI (20) */
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.edge-chapter__text {
+  display: block;
+  font-family: 'Geist Mono', monospace;
+  font-size: calc(var(--text-xs) * 0.85);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  color: var(--text-color-light-muted);
+  opacity: 0.55;
+
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  transform-origin: center;
+}
+
+body.dark-mode .edge-chapter__text {
+  color: var(--text-color-dark-base);
+  opacity: 0.55;
+}
+
+@media (max-width: 600px) {
+  .edge-chapter {
+    left: calc(var(--container-border) + var(--gap-xs));
+  }
+
+  .edge-chapter__text {
+    font-size: calc(var(--text-xs) * 0.8);
+    opacity: 0.5;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    DOM REWORK: FLEXBOX UI LAYOUT (FIGMA ALIGNMENT)
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -355,7 +431,10 @@ body.dark-mode .edge-copyright__text {
   
   /* Fade System handled by JS (opacity transition) */
   opacity: 0;
-  transform: translateZ(0);
+  /* Include depth effect variables in transform chain */
+  transform: translateZ(0) scale(var(--gate-depth-scale-active, 1)) translateY(var(--gate-depth-ty-active, 0px));
+  transform-origin: center center;
+  transition: transform var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 /* Re-enable pointer events for actual UI children */
@@ -565,7 +644,7 @@ p {
   margin: 0 !important;
   padding: 0 !important;
   display: flex !important;
-  gap: 0 !important;
+  gap: var(--gap-xl) !important;
   width: 100% !important;
   height: fit-content !important;
   justify-content: center !important;
@@ -791,6 +870,8 @@ p {
   font-family: 'Geist', sans-serif !important;
   font-size: var(--text-sm) !important;
   font-weight: 400 !important;
+  font-variant-numeric: tabular-nums !important;
+  font-feature-settings: 'tnum' 1 !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -801,25 +882,76 @@ p {
   position: fixed !important;
   top: 50% !important;
   left: 50% !important;
-  transform: translate(-50%, -50%) !important;
+  /* Include depth effect variables in transform chain */
+  transform: translate3d(-50%, -50%, 0) scale(var(--gate-depth-scale-active, 1)) translateY(var(--gate-depth-ty-active, 0px)) !important;
+  transform-origin: center center;
+  /* Fade opacity when gate opens (subtle, not full disappear) */
+  opacity: var(--logo-opacity-active, 1);
+  /* Sync all transitions: transform + opacity with OUT duration by default */
+  transition: 
+    transform var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1),
+    opacity var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
   z-index: 3 !important; /* Behind balls (z:5) */
   pointer-events: none !important;
   width: auto !important;
   height: auto !important;
   margin: 0 !important;
   padding: 0 !important;
+  /* Subpixel/compositing hints: keeps tiny transform animations smooth */
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+/* When gate is opening (active state), use IN duration for perfect sync */
+#brand-logo.gate-depth-active {
+  transition: 
+    transform var(--gate-depth-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1),
+    opacity var(--gate-depth-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 .brand-logo-svg {
   width: clamp(225px, 41vw, 600px);
   height: auto;
   color: var(--text-color, #161616);
-  filter: drop-shadow(0 2px 20px rgba(0, 0, 0, 0.06));
+  /* Combine drop-shadow with dynamic blur (0 when closed, increases when gate opens) */
+  filter: 
+    drop-shadow(0 2px 20px rgba(0, 0, 0, 0.06))
+    blur(var(--logo-blur-active, 0px));
+  /* Sync filter transition with depth animation (OUT duration by default) */
+  transition: 
+    filter var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
+
+  /* Micro-reaction stack (no layout shift; transform only) */
+  transform-origin: center center;
+  transform:
+    translateZ(0)
+    scale(calc(1 - (var(--abs-brand-logo-impact, 0) * var(--abs-brand-logo-impact-mul, 0.014))))
+    /* Disney-ish "squash & stretch" on click: a hair wider + flatter */
+    scaleX(calc(1 + (var(--abs-brand-logo-squash, 0) * var(--abs-brand-logo-squash-x-mul, 0.009))))
+    scaleY(calc(1 - (var(--abs-brand-logo-squash, 0) * var(--abs-brand-logo-squash-y-mul, 0.015))))
+    /* Follow-through: tiny tilt/skew that automatically flips on overshoot (impact sign) */
+    rotate(calc(var(--abs-brand-logo-impact, 0) * var(--abs-brand-logo-tilt-deg, 0) * 1deg))
+    skewX(calc(var(--abs-brand-logo-impact, 0) * var(--abs-brand-logo-skew-deg, 0) * 1deg));
+  will-change: transform, filter;
+  /* No ease-in feel: snap quickly, then soften to rest (ease-out only). */
+  transition: 
+    transform var(--abs-brand-logo-impact-dur, 100ms) cubic-bezier(0, 0, 0.2, 1),
+    filter var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* When gate is opening, sync blur transition with IN duration */
+.gate-depth-active .brand-logo-svg {
+  transition: 
+    transform var(--abs-brand-logo-impact-dur, 100ms) cubic-bezier(0, 0, 0.2, 1),
+    filter var(--gate-depth-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 body.dark-mode .brand-logo-svg {
   color: var(--text-color-dark, #d5d5d5);
-  filter: drop-shadow(0 2px 20px rgba(0, 0, 0, 0.25));
+  /* Must include blur in dark mode to prevent override */
+  filter: 
+    drop-shadow(0 2px 20px rgba(0, 0, 0, 0.25))
+    blur(var(--logo-blur-active, 0px));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -832,6 +964,10 @@ body.dark-mode .brand-logo-svg {
   background: var(--bg-light);
   z-index: 1; 
   pointer-events: none;
+  /* Include depth effect variables */
+  transform: scale(var(--gate-depth-scale-active, 1)) translateY(var(--gate-depth-ty-active, 0px));
+  transform-origin: center center;
+  transition: transform var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 #bravia-balls {
@@ -842,6 +978,10 @@ body.dark-mode .brand-logo-svg {
   z-index: 5;
   pointer-events: none !important;
   overflow: hidden;
+  /* Include depth effect variables */
+  transform: scale(var(--gate-depth-scale-active, 1)) translateY(var(--gate-depth-ty-active, 0px));
+  transform-origin: center center;
+  transition: transform var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 #bravia-balls::after {
@@ -876,7 +1016,7 @@ body.dark-mode .brand-logo-svg {
   background-attachment: scroll !important;
   z-index: 2 !important;
   opacity: var(--noise-back-opacity-light) !important;
-  background-size: var(--noise-size-base) var(--noise-size-base) !important;
+  background-size: calc(var(--noise-size-base) * var(--noise-size-scale)) calc(var(--noise-size-base) * var(--noise-size-scale)) !important;
   mix-blend-mode: multiply !important;
 }
 
@@ -888,7 +1028,7 @@ body.dark-mode .brand-logo-svg {
   background-attachment: scroll !important;
   z-index: 7 !important;
   opacity: var(--noise-front-opacity-light) !important;
-  background-size: var(--noise-size-top) var(--noise-size-top) !important;
+  background-size: calc(var(--noise-size-top) * var(--noise-size-scale)) calc(var(--noise-size-top) * var(--noise-size-scale)) !important;
   mix-blend-mode: multiply !important;
 }
 
@@ -899,8 +1039,8 @@ body.dark-mode .brand-logo-svg {
   height: 100% !important;
   background-attachment: scroll !important;
   z-index: 8 !important;
-  opacity: var(--noise-top-opacity, 0.015) !important;
-  background-size: var(--noise-size-base) var(--noise-size-base) !important;
+  opacity: var(--noise-top-opacity) !important;
+  background-size: calc(var(--noise-size-base) * var(--noise-size-scale)) calc(var(--noise-size-base) * var(--noise-size-scale)) !important;
   mix-blend-mode: multiply !important;
 }
 
@@ -951,8 +1091,9 @@ body.dark-mode .sound-toggle {
 
 @media (max-width: 600px) { /* Mobile */
   :root {
-    /* Mobile UX: +1–2vw horizontal breathing room (keep vertical rhythm unchanged) */
-    --content-padding-x: calc(var(--content-padding) + 1.5vw);
+    /* Horizontal ratio is now handled by JS (contentPaddingHorizontalRatio).
+       CSS fallback kept for graceful degradation if JS hasn't stamped values yet. */
+    --noise-size-scale: 0.8;
   }
 
   .ui-top {
@@ -1038,22 +1179,35 @@ body.dark-mode .sound-toggle {
 #custom-cursor {
   position: fixed;
   pointer-events: none;
-  z-index: 10000;
+  z-index: 30000; /* Above gates (20000) and overlay */
   border: none;
-  background: #000000;
+  background: var(--cursor-color);
   transform-origin: center center;
   transform: translate(-50%, -50%) scale(1);
-  opacity: 1;
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform, opacity;
+  opacity: 0.85; /* Transparent but visible */
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity, width, height, background;
   width: 20px;
   height: 20px;
   border-radius: 50%;
 }
 
-body.dark-mode #custom-cursor {
-  background: #ffffff;
+/* Cursor transforms to larger transparent circle when gates are open */
+#custom-cursor.gate-active {
+  display: block !important;
+  width: 48px !important;
+  height: 48px !important;
+  background: rgba(255, 255, 255, 0.5) !important; /* Transparent but visible */
+  border: 1.5px solid rgba(255, 255, 255, 0.8) !important; /* Visible border */
+  transform: translate(-50%, -50%) scale(1) !important;
+  opacity: 1 !important;
 }
+
+/* Cursor color is palette-driven via --cursor-color (no dark-mode override). */
 
 /* Circle Colors */
 .circle.bg-ball-1 { background-color: var(--ball-1) !important; }
@@ -1064,3 +1218,16 @@ body.dark-mode #custom-cursor {
 .circle.bg-ball-6 { background-color: var(--ball-6) !important; }
 .circle.bg-ball-7 { background-color: var(--ball-7) !important; }
 .circle.bg-ball-8 { background-color: var(--ball-8) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   GATE DEPTH EFFECT
+   Scene "pulls back" when dialogs open.
+   Uses CSS variables so each element can include depth in its own transform chain.
+   JS sets --gate-depth-scale-active and --gate-depth-ty-active on :root.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Depth variables - defaults to no effect */
+:root {
+  --gate-depth-scale-active: 1;
+  --gate-depth-ty-active: 0px;
+}

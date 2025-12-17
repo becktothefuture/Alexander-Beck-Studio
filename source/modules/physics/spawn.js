@@ -6,6 +6,8 @@
 import { Ball } from './Ball.js';
 import { getGlobals } from '../core/state.js';
 import { pickRandomColor } from '../visual/colors.js';
+import { randomRadiusForMode } from '../utils/ball-sizing.js';
+import { MODES } from '../core/constants.js';
 
 function clamp(val, min, max) {
   return Math.max(min, Math.min(max, val));
@@ -18,17 +20,10 @@ function randBetween(min, max) {
 export function spawnBall(x, y, color) {
   if (!color) color = pickRandomColor();
   const globals = getGlobals();
-  const baseSize = (globals.R_MIN + globals.R_MAX) / 2;
   
-  let r;
-  if (globals.sizeVariation === 0) {
-    r = baseSize;
-  } else {
-    const maxVariation = baseSize * 0.1;
-    const minR = Math.max(1, baseSize - maxVariation);
-    const maxR = baseSize + maxVariation;
-    r = randBetween(minR, maxR);
-  }
+  // Per-mode sizing rule:
+  // Radius depends on the current mode’s 0..1 variation slider, scaled by global multiplier.
+  const r = randomRadiusForMode(globals, globals.currentMode || MODES.PIT);
   
   const ball = new Ball(x, y, r, color);
   

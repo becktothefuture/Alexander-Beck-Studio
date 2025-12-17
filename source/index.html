@@ -35,8 +35,8 @@
   <link rel="manifest" href="webflow/images/site.webmanifest">
 
   <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
-  <meta name="theme-color" content="#0a0a0a">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0a0a">
+  <meta name="theme-color" content="#f5f5f5">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
   <!-- Apple-specific: Status bar style -->
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -45,6 +45,9 @@
 <body class="body">
   <!-- LAYER 0: Content Background - BEHIND everything (z:1) -->
   <div id="content-background" class="content-background-layer" aria-hidden="true"></div>
+  <div id="edge-chapter" class="edge-chapter" role="status" aria-live="polite" aria-atomic="true">
+    <span id="edge-chapter-text" class="edge-chapter__text">SOURCE MATERIAL</span>
+  </div>
   <div id="edge-copyright" class="edge-copyright">
     <span class="edge-copyright__text">© 2025 Alexander Beck Studio. All rights reserved.</span>
   </div>
@@ -193,7 +196,7 @@
           <div class="ui-meta-right">
              <!-- Sound Toggle will be injected here by JS -->
              <time id="site-year" class="w-layout-hflex caption">
-              <span>London · <span id="time-display"></span></span>
+              <span>London, UK · <span id="time-display"></span></span>
             </time>
           </div>
         </div>

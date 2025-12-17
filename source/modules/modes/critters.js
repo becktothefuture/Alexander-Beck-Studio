@@ -6,6 +6,8 @@
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls } from '../core/state.js';
 import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
+import { randomRadiusForMode } from '../utils/ball-sizing.js';
+import { MODES } from '../core/constants.js';
 
 function clamp(v, lo, hi) {
   return v < lo ? lo : (v > hi ? hi : v);
@@ -41,10 +43,6 @@ export function initializeCritters() {
 
   const count = Math.max(10, Math.min(260, globals.critterCount | 0));
 
-  // Keep critters visually "creature-sized"
-  const rMin = Math.max(4 * DPR, globals.R_MIN * 0.70);
-  const rMax = Math.max(rMin + 1, Math.min(globals.R_MAX * 0.90, 16 * DPR));
-
   // First, ensure at least one critter of each color (0-7) for palette representation
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = (Math.random() * w) | 0;
@@ -52,9 +50,11 @@ export function initializeCritters() {
     const color = getColorByIndex(colorIndex);
     const ball = spawnBall(x, y, color);
 
-    // Override radius tighter for "critters" feel
-    const rr = rMin + Math.random() * (rMax - rMin);
+    // Critter size now follows the global sizing system (R_MIN..R_MAX),
+    // so critters are not an outlier across simulations.
+    const rr = randomRadiusForMode(globals, MODES.CRITTERS);
     ball.r = rr;
+    ball.rBase = rr;
     ball.m = Math.max(1, rr * rr * 0.12);
 
     ball.vx = 0;
@@ -78,9 +78,9 @@ export function initializeCritters() {
     const color = pickRandomColor();
     const ball = spawnBall(x, y, color);
 
-    // Override radius tighter for “critters” feel
-    const rr = rMin + Math.random() * (rMax - rMin);
+    const rr = randomRadiusForMode(globals, MODES.CRITTERS);
     ball.r = rr;
+    ball.rBase = rr;
     ball.m = Math.max(1, rr * rr * 0.12);
 
     ball.vx = 0;

@@ -8,6 +8,7 @@ import { getGlobals, clearBalls } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
+import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
 // Explosion timer state (kept for compatibility, but explosions disabled)
 let explosionTimer = 0;
@@ -31,7 +32,7 @@ export function initializeMagnetic() {
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
     const y = Math.random() * h;
-    const r = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+    const r = randomRadiusForMode(g, MODES.MAGNETIC);
     const c = getColorByIndex(colorIndex);
     const b = new Ball(x, y, r, c);
     b.vx = (Math.random() - 0.5) * 100;
@@ -45,7 +46,7 @@ export function initializeMagnetic() {
   for (let i = 8; i < count; i++) {
     const x = Math.random() * w;
     const y = Math.random() * h;
-    const r = g.R_MIN + Math.random() * (g.R_MAX - g.R_MIN);
+    const r = randomRadiusForMode(g, MODES.MAGNETIC);
     const c = pickRandomColor();
     const b = new Ball(x, y, r, c);
     b.vx = (Math.random() - 0.5) * 100;

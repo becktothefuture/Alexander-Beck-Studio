@@ -1,6 +1,6 @@
 # Mode Specifications
 
-Current mode system supports **11 modes** (switchable via the Settings panel; 1–9 also have keyboard shortcuts).
+Current mode system supports **multiple modes** (switchable via the Settings panel; narrative cycling is via Arrow keys).
 
 ---
 
@@ -14,9 +14,18 @@ Current mode system supports **11 modes** (switchable via the Settings panel; 1�
 6. **Ping Pong** (`ping-pong`)
 7. **Magnetic** (`magnetic`)
 8. **Carbonated Bubbles** (`bubbles`)
-9. **Kaleidoscope** (`kaleidoscope`)
-10. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
-11. **Ball Pit (Throws)** (`pit-throws`) — **no keyboard shortcut yet**
+9. **Kaleidoscope I** (`kaleidoscope-1`)
+10. **Kaleidoscope II** (`kaleidoscope-2`)
+11. **Kaleidoscope III** (`kaleidoscope-3`)
+12. **Kaleidoscope** (`kaleidoscope`)
+13. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
+14. **Ball Pit (Throws)** (`pit-throws`) — **no keyboard shortcut yet**
+15. **Orbit 3D** (`orbit-3d`)
+16. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`)
+17. **Crystal Lattice** (`lattice`)
+18. **Neural Network** (`neural`)
+19. **Parallax (Linear)** (`parallax-linear`)
+20. **Parallax (Perspective)** (`parallax-perspective`)
 
 ---
 
@@ -24,20 +33,75 @@ Current mode system supports **11 modes** (switchable via the Settings panel; 1�
 
 | Key | Action |
 |-----|--------|
-| `1` | Ball Pit |
-| `2` | Flies to Light |
-| `3` | Zero Gravity |
-| `4` | Water Swimming |
-| `5` | Vortex Sheets |
-| `6` | Ping Pong |
-| `7` | Magnetic |
-| `8` | Carbonated Bubbles |
-| `9` | Kaleidoscope |
 | `/` | Toggle Settings panel dock |
+| `R` | Reset current simulation |
+| `←` (Left Arrow) | Previous simulation in narrative sequence |
+| `→` (Right Arrow) | Next simulation in narrative sequence |
+
+---
+
+## Narrative Mode Sequence (Arrow Keys)
+
+The arrow keys cycle through a fixed story order (looping). Think of it as chapters — each mode is a new lens on the same set of elements:
+
+1. **Ball Pit** (`pit`) — **RAW INGREDIENTS**
+2. **Carbonated Bubbles** (`bubbles`) — **SIGNAL NOISE**
+3. **Critters** (`critters`) — **CONCEPT MODEL**
+4. **Flies to Light** (`flies`) — **SWARM LOGIC**
+5. **Ball Pit (Throws)** (`pit-throws`) — **SOURCE ITERATION**
+6. **Water Swimming** (`water`) — **FLOW STATE**
+7. **Vortex Sheets** (`vortex`) — **ORDERED CHAOS**
+8. **Magnetic** (`magnetic`) — **FORCE FIELDS**
+9. **Ping Pong** (`ping-pong`) — **FEEDBACK PATTERNS**
+10. **Zero Gravity** (`weightless`) — **ZERO GRAVITY**
+11. **Kaleidoscope I** (`kaleidoscope-1`) — **LANGUAGE SEED**
+12. **Kaleidoscope II** (`kaleidoscope-2`) — **LANGUAGE SURGE**
+13. **Kaleidoscope III** (`kaleidoscope-3`) — **LANGUAGE STORM**
+14. **Kaleidoscope** (`kaleidoscope`) — **A NEW LANGUAGE**
+15. **Orbit 3D** (`orbit-3d`) — **AXIAL STORM**
+16. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`) — **TIGHT SWARM**
+17. **Crystal Lattice** (`lattice`) — **CRYSTAL LOGIC**
+18. **Neural Network** (`neural`) — **SYNAPTIC WEB**
+19. **Parallax (Linear)** (`parallax-linear`) — **DEPTH DRIFT**
+20. **Parallax (Perspective)** (`parallax-perspective`) — **PERSPECTIVE FIELD**
 
 ---
 
 ## Mode Details
+
+## Mode 15: Orbit 3D 🌪️ (Zero Gravity)
+
+**Purpose:** Bodies orbit the mouse cursor in zero gravity with true depth scaling. Each body maintains stable orbital motion around the cursor as the center of gravity, creating a beautiful celestial dance.
+
+- **Gravity:** Zero gravity (orbital mechanics only)
+- **Collisions:** Disabled for clean orbital motion
+- **Interaction:** Mouse cursor acts as the gravitational center
+- **Depth:** True 3D depth effect through size scaling (0-1 depth range)
+- **Motion model:** Tangential velocity for stable orbits + weak radial pull
+- **Visual effect:** Depth oscillation creates dynamic size changes
+- **Accessibility:** Respects `prefers-reduced-motion`
+- **Settings (panel):**
+  - `Body Count` (10-200) - number of orbiting bodies
+  - `Gravity Pull` (1000-10000) - strength of radial attraction
+  - `Orbital Speed` (50-300) - tangential velocity for orbits
+  - `Depth Effect` (0-1.5) - size scaling strength
+  - `Stability` (0.005-0.05) - velocity damping factor
+
+## Mode 17: Crystal Lattice 💎
+
+**Purpose:** "Crystallization" narrative. Balls are pulled towards a hexagonal grid, forming a solid structure out of chaos.
+- **Gravity:** Disabled
+- **Collisions:** Enabled
+- **Interaction:** Repeller enabled (disrupts the lattice)
+- **Forces:** Strong spring force towards nearest hex grid vertex.
+
+## Mode 18: Neural Network 🧠
+
+**Purpose:** "Connectivity" narrative. Balls wander gently and form transient clusters (connections expressed through motion only).
+- **Gravity:** Disabled
+- **Collisions:** Enabled
+- **Interaction:** Repeller enabled
+- **Visuals:** **No lines** — circle-only rendering.
 
 ## Simulation 11: Critters 🪲
 

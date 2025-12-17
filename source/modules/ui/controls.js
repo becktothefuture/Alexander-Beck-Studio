@@ -5,6 +5,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
+import { NARRATIVE_CHAPTER_TITLES } from '../core/constants.js';
 import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
 import { autoSaveSettings } from '../utils/storage.js';
 import { setMode } from '../modes/mode-controller.js';
@@ -96,8 +97,23 @@ export function updateModeButtonsUI(activeMode) {
       'ping-pong': 'Ping Pong',
       'magnetic': 'Magnetic',
       'bubbles': 'Carbonated Bubbles',
-      'kaleidoscope': 'Kaleidoscope'
+      'kaleidoscope': 'Kaleidoscope',
+      'kaleidoscope-1': 'Kaleidoscope I',
+      'kaleidoscope-2': 'Kaleidoscope II',
+      'kaleidoscope-3': 'Kaleidoscope III',
+      'orbit-3d': 'Orbit 3D',
+      'orbit-3d-2': 'Orbit 3D (Tight Swarm)',
+      'lattice': 'Crystal Lattice',
+      'neural': 'Neural Network'
     };
     announcer.textContent = `Switched to ${modeNames[activeMode] || activeMode} mode`;
   }
+
+  // Update left-edge chapter label (creative-process narrative title)
+  try {
+    const el = document.getElementById('edge-chapter-text');
+    if (el) {
+      el.textContent = NARRATIVE_CHAPTER_TITLES?.[activeMode] || '—';
+    }
+  } catch (e) {}
 }

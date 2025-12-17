@@ -45,6 +45,7 @@ export function setupBuildControls() {
     config.containerBorderVw = g.containerBorderVw;
     config.simulationPaddingVw = g.simulationPaddingVw;
     config.contentPaddingVw = g.contentPaddingVw;
+    config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;
     config.wallRadiusVw = g.wallRadiusVw;
     config.wallThicknessVw = g.wallThicknessVw;
     // Minimum clamp targets (px)
@@ -59,8 +60,13 @@ export function setupBuildControls() {
       config.soundConfig = getSoundConfig();
     } catch (e) {}
 
+    // 4b) Browser / theme environment
+    config.chromeHarmonyMode = g.chromeHarmonyMode;
+    config.autoDarkModeEnabled = g.autoDarkModeEnabled;
+    config.autoDarkNightStartHour = g.autoDarkNightStartHour;
+    config.autoDarkNightEndHour = g.autoDarkNightEndHour;
+
     // 5) Stable housekeeping defaults
-    config.cursorColorIndex = 5;
     config.enableLOD = false;
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');

@@ -603,6 +603,27 @@ const MODE_DEFAULTS = {
 - ES6+ features (const, let, arrow functions, template literals)
 - localStorage
 
+---
+
+## Browser ↔ Wall Chrome Harmony (Theme + Frame)
+
+### Goal
+Make the page feel like an extension of the user’s browser UI:
+- When a browser **honors** `meta[name="theme-color"]`, we tint the browser chrome using the **page background** for Light/Dark.
+- When a browser (notably **desktop Chromium tabs**) **ignores** `theme-color`, we do the opposite: adapt the **wall/frame color** to match the browser’s UI palette so the outer chrome and inner wall feel unified.
+
+### Source of truth
+- **Chrome tint**: `--chrome-bg-light` / `--chrome-bg-dark` (should match `--bg-light` / `--bg-dark`) in `source/css/main.css`.
+- **Wall benchmark**: `--wall-color-site-light` / `--wall-color-site-dark` (the “Safari looks perfect” baseline).
+- **Browser fallback wall**: `--wall-color-browser-light` / `--wall-color-browser-dark` (used when theme-color can’t tint chrome).
+
+### Runtime behavior
+- Theme selection lives in `source/modules/visual/dark-mode-v2.js`.
+- Wall adaptation lives in `source/modules/visual/chrome-harmony.js` and is controlled by `chromeHarmonyMode`:
+  - `auto`: only adapt for desktop Chromium when theme-color is unlikely to apply
+  - `site`: never adapt (benchmark)
+  - `browser`: always adapt (force the “browser extension” aesthetic)
+
 ### Tested Browsers
 - ✅ Chrome 120+ (Excellent)
 - ✅ Firefox 121+ (Excellent)

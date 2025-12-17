@@ -15,8 +15,8 @@
   position: fixed;
   top: var(--dock-top);
   right: var(--dock-edge);
-  /* Must sit above all site UI layers (avoid z-index overflow) */
-  z-index: 10000;
+  /* Must sit above gates (20000) and overlay (19999) */
+  z-index: 25000;
   
   transition: 
     top var(--duration-resize, 600ms) var(--ease-organic, ease),

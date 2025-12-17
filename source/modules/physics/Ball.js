@@ -78,8 +78,8 @@ export class Ball {
     const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
     const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
     
-    // Base drag from config
-    const baseDrag = (currentMode === MODES.WEIGHTLESS) ? 0.0001 : FRICTION;
+    // Base drag from config (skip for WEIGHTLESS and ORBIT modes - they manage their own damping)
+    const baseDrag = (currentMode === MODES.WEIGHTLESS || currentMode === MODES.ORBIT_3D || currentMode === MODES.ORBIT_3D_2) ? 0 : FRICTION;
     
     // Progressive drag: multiply instead of divide for stability
     // At high speed (>100 px/s): base drag only (multiplier = 0)
@@ -94,12 +94,15 @@ export class Ball {
     // ════════════════════════════════════════════════════════════════════════════
     // MICRO-JITTER PREVENTION - Snap tiny velocities to zero
     // Below this threshold, friction would dominate anyway
+    // Skip for ORBIT modes (orbital velocities need to persist)
     // ════════════════════════════════════════════════════════════════════════════
+    if (currentMode !== MODES.ORBIT_3D && currentMode !== MODES.ORBIT_3D_2) {
     const MICRO_VEL_THRESHOLD = 2.0; // px/s - below this, snap to zero
     if (Math.abs(this.vx) < MICRO_VEL_THRESHOLD) this.vx = 0;
     if (Math.abs(this.vy) < MICRO_VEL_THRESHOLD && currentMode === MODES.WEIGHTLESS) {
       // Only snap vy in weightless (gravity modes need vy to settle naturally)
       this.vy = 0;
+      }
     }
     
     // Drift
@@ -185,6 +188,7 @@ export class Ball {
     const globals = getGlobals();
     const { REST, MASS_BASELINE_KG, MASS_REST_EXP, currentMode, DPR } = globals;
     const rest = customRest !== undefined ? customRest : REST;
+    const wobbleThreshold = globals.wallWobbleImpactThreshold ?? CONSTANTS.WALL_REST_VEL_THRESHOLD;
     
     // Corner radius for rounded corner collision
     const cornerRadiusPx = (typeof globals.getCanvasCornerRadius === 'function')
@@ -278,7 +282,7 @@ export class Ball {
       // Snap slow horizontal movement to zero (prevents endless creeping)
       if (Math.abs(this.vx) < 3.0) this.vx = 0;
       
-      const wallRest = Math.abs(preVy) < CONSTANTS.WALL_REST_VEL_THRESHOLD ? 0 : rest;
+      const wallRest = Math.abs(preVy) < wobbleThreshold ? 0 : rest;
       this.vy = -this.vy * (wallRest * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
       const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
       this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
@@ -293,14 +297,14 @@ export class Ball {
       playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
       // Rubbery wall wobble - only register if ball is moving DOWN into wall (actual impact, not just weight)
       // Skip if sleeping (resting balls shouldn't cause wobble)
-      if (!this.isSleeping && preVy > 0 && preVy >= CONSTANTS.WALL_REST_VEL_THRESHOLD) {
+      if (!this.isSleeping && preVy > 0 && preVy >= wobbleThreshold) {
         registerWallImpact('bottom', this.x / w, impact);
       }
       
       // ALWAYS register pressure when touching ground (whether impacting or not)
       // This kills wobble from stacked/resting balls
       // Pressure is cumulative, so more balls = more damping
-      const pressureAmount = this.isSleeping ? 1.0 : Math.min(1.0, (CONSTANTS.WALL_REST_VEL_THRESHOLD - Math.abs(preVy)) / CONSTANTS.WALL_REST_VEL_THRESHOLD);
+      const pressureAmount = this.isSleeping ? 1.0 : Math.min(1.0, (wobbleThreshold - Math.abs(preVy)) / wobbleThreshold);
       if (pressureAmount > 0.1) {
         registerWallPressure('bottom', this.x / w, pressureAmount);
       }
@@ -319,12 +323,12 @@ export class Ball {
       playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
       // Rubbery wall wobble - only register if ball is moving UP into wall (actual impact, not just weight)
       // Skip if sleeping (resting balls shouldn't cause wobble)
-      if (!this.isSleeping && preVy < 0 && Math.abs(preVy) >= CONSTANTS.WALL_REST_VEL_THRESHOLD) {
+      if (!this.isSleeping && preVy < 0 && Math.abs(preVy) >= wobbleThreshold) {
         registerWallImpact('top', this.x / w, impact);
       }
       
       // ALWAYS register pressure when touching ceiling
-      const pressureAmount = this.isSleeping ? 1.0 : Math.min(1.0, (CONSTANTS.WALL_REST_VEL_THRESHOLD - Math.abs(preVy)) / CONSTANTS.WALL_REST_VEL_THRESHOLD);
+      const pressureAmount = this.isSleeping ? 1.0 : Math.min(1.0, (wobbleThreshold - Math.abs(preVy)) / wobbleThreshold);
       if (pressureAmount > 0.1) {
         registerWallPressure('top', this.x / w, pressureAmount);
       }
@@ -346,12 +350,12 @@ export class Ball {
       playCollisionSound(this.r, impact * 0.6, 1.0, this._soundId);
       // Rubbery wall wobble - only register if ball is moving RIGHT into wall (actual impact, not just weight)
       // Skip if sleeping (resting balls shouldn't cause wobble)
-      if (!this.isSleeping && preVx > 0 && preVx >= CONSTANTS.WALL_REST_VEL_THRESHOLD) {
+      if (!this.isSleeping && preVx > 0 && preVx >= wobbleThreshold) {
         registerWallImpact('right', this.y / h, impact);
       }
       
       // ALWAYS register pressure when touching wall
-      const pressureAmountR = this.isSleeping ? 1.0 : Math.min(1.0, (CONSTANTS.WALL_REST_VEL_THRESHOLD - Math.abs(preVx)) / CONSTANTS.WALL_REST_VEL_THRESHOLD);
+      const pressureAmountR = this.isSleeping ? 1.0 : Math.min(1.0, (wobbleThreshold - Math.abs(preVx)) / wobbleThreshold);
       if (pressureAmountR > 0.1) {
         registerWallPressure('right', this.y / h, pressureAmountR);
       }
@@ -373,12 +377,12 @@ export class Ball {
       playCollisionSound(this.r, impact * 0.6, 0.0, this._soundId);
       // Rubbery wall wobble - only register if ball is moving LEFT into wall (actual impact, not just weight)
       // Skip if sleeping (resting balls shouldn't cause wobble)
-      if (!this.isSleeping && preVx < 0 && Math.abs(preVx) >= CONSTANTS.WALL_REST_VEL_THRESHOLD) {
+      if (!this.isSleeping && preVx < 0 && Math.abs(preVx) >= wobbleThreshold) {
         registerWallImpact('left', this.y / h, impact);
       }
       
       // ALWAYS register pressure when touching wall
-      const pressureAmountL = this.isSleeping ? 1.0 : Math.min(1.0, (CONSTANTS.WALL_REST_VEL_THRESHOLD - Math.abs(preVx)) / CONSTANTS.WALL_REST_VEL_THRESHOLD);
+      const pressureAmountL = this.isSleeping ? 1.0 : Math.min(1.0, (wobbleThreshold - Math.abs(preVx)) / wobbleThreshold);
       if (pressureAmountL > 0.1) {
         registerWallPressure('left', this.y / h, pressureAmountL);
       }

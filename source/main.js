@@ -6,7 +6,7 @@
 import { CONSTANTS } from './modules/core/constants.js';
 import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/core/state.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
-import { applyColorTemplate } from './modules/visual/colors.js';
+import { applyColorTemplate, maybeAutoPickCursorColor } from './modules/visual/colors.js';
 import { setupRenderer, getCanvas, getContext, resize } from './modules/rendering/renderer.js';
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
@@ -24,8 +24,7 @@ import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/au
 import { upgradeSocialIcons } from './modules/ui/social-icons.js';
 import { initTimeDisplay } from './modules/ui/time-display.js';
 // Layout controls now integrated into master panel
-import { initBrandLogoCursorScale } from './modules/ui/brand-logo-cursor-scale.js';
-import { initBrandLogoBallSpace } from './modules/ui/brand-logo-ball-space.js';
+import { initBrandLogoReact } from './modules/ui/brand-logo-react.js';
 import {
   initConsolePolicy,
   printConsoleBanner,
@@ -39,35 +38,8 @@ import {
 } from './modules/utils/logger.js';
 
 function pickStartupMode() {
-  // Pick a different simulation on each reload.
-  // Best-effort: avoid immediate repeats using sessionStorage (non-persistent).
-  const all = [
-    MODES.CRITTERS,
-    MODES.PIT,
-    MODES.PIT_THROWS,
-    MODES.FLIES,
-    MODES.WEIGHTLESS,
-    MODES.WATER,
-    MODES.VORTEX,
-    MODES.PING_PONG,
-    MODES.MAGNETIC,
-    MODES.BUBBLES,
-    MODES.KALEIDOSCOPE,
-  ];
-
-  let last = null;
-  try {
-    last = sessionStorage.getItem('bb:last_start_mode');
-  } catch (e) {}
-
-  const candidates = (last && all.length > 1) ? all.filter(m => m !== last) : all;
-  const pick = candidates[Math.floor(Math.random() * candidates.length)] || MODES.CRITTERS;
-
-  try {
-    sessionStorage.setItem('bb:last_start_mode', pick);
-  } catch (e) {}
-
-  return pick;
+  // Narrative opening: start with Ball Pit.
+  return MODES.PIT;
 }
 
 async function loadRuntimeConfig() {
@@ -323,11 +295,8 @@ function enhanceFooterLinksForMobile() {
     mark('bb:input');
     log('✓ Custom cursor initialized');
 
-    // Subtle brand logo micro-interaction (cursor distance scaling)
-    initBrandLogoCursorScale();
-
-    // Brand logo yields when balls crowd its area (simulation-driven, throttled)
-    initBrandLogoBallSpace();
+    // Brand logo micro-interaction: subtle “clicked-in” response on simulation changes
+    initBrandLogoReact();
     
     // Load any saved settings
     loadSettings();
@@ -399,6 +368,9 @@ function enhanceFooterLinksForMobile() {
     
     // Initialize starting mode (randomized on each reload)
     const startMode = pickStartupMode();
+    // Cursor color: auto-pick a new contrasty ball color per simulation load.
+    // Must run after theme/palette is initialized (initializeDarkMode → applyColorTemplate).
+    maybeAutoPickCursorColor?.('startup');
     setMode(startMode);
     try {
       const ui = await import('./modules/ui/controls.js');
