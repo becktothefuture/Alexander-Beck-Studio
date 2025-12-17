@@ -1106,7 +1106,10 @@ body.dark-mode .brand-logo-svg {
 .content-background-layer {
   position: fixed;
   /* Y (top/bottom) X (left/right) - mobile factor only on X */
-  inset: var(--container-border-y, var(--container-border)) var(--container-border-x, var(--container-border));
+  top: var(--container-border-y, var(--container-border));
+  left: var(--container-border-x, var(--container-border));
+  right: var(--container-border-x, var(--container-border));
+  height: calc(var(--abs-viewport-h, 100vh) - (var(--container-border-y, var(--container-border)) * 2));
   border-radius: var(--container-radius);
   background: var(--bg-light);
   z-index: 1; 
@@ -1114,14 +1117,20 @@ body.dark-mode .brand-logo-svg {
   transform: translateZ(0);
   /* Smooth resize-driven geometry changes (inset + radius). */
   transition:
-    inset var(--duration-resize) var(--ease-organic),
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic),
+    height var(--duration-resize) var(--ease-organic),
     border-radius var(--duration-resize) var(--ease-organic);
 }
 
 #bravia-balls {
   position: fixed;
   /* Y (top/bottom) X (left/right) - mobile factor only on X */
-  inset: var(--container-border-y, var(--container-border)) var(--container-border-x, var(--container-border));
+  top: var(--container-border-y, var(--container-border));
+  left: var(--container-border-x, var(--container-border));
+  right: var(--container-border-x, var(--container-border));
+  height: calc(var(--abs-viewport-h, 100vh) - (var(--container-border-y, var(--container-border)) * 2));
   border-radius: var(--container-radius);
   background: transparent;
   z-index: 5;
@@ -1130,7 +1139,10 @@ body.dark-mode .brand-logo-svg {
   transform: translateZ(0);
   /* Smooth resize-driven geometry changes (inset + radius). */
   transition:
-    inset var(--duration-resize) var(--ease-organic),
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic),
+    height var(--duration-resize) var(--ease-organic),
     border-radius var(--duration-resize) var(--ease-organic);
 }
 
