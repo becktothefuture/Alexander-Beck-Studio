@@ -206,13 +206,23 @@ export function resize() {
   // ══════════════════════════════════════════════════════════════════════════════
   try {
     const vv = window.visualViewport;
-    const vhPx = (vv && typeof vv.height === 'number') ? vv.height : window.innerHeight;
-    const topPx = (vv && typeof vv.offsetTop === 'number') ? vv.offsetTop : 0;
-    const vwPx = (vv && typeof vv.width === 'number') ? vv.width : window.innerWidth;
-    const leftPx = (vv && typeof vv.offsetLeft === 'number') ? vv.offsetLeft : 0;
+    // iOS Safari can transiently report 0 for vv.width/height during keyboard/zoom.
+    // Never propagate 0-sized viewport values into layout CSS vars.
+    const rawVh = (vv && typeof vv.height === 'number') ? vv.height : window.innerHeight;
+    const rawVw = (vv && typeof vv.width === 'number') ? vv.width : window.innerWidth;
+    const vhPx = rawVh > 0 ? rawVh : window.innerHeight;
+    const vwPx = rawVw > 0 ? rawVw : window.innerWidth;
+
+    const rawTop = (vv && typeof vv.offsetTop === 'number') ? vv.offsetTop : 0;
+    const rawLeft = (vv && typeof vv.offsetLeft === 'number') ? vv.offsetLeft : 0;
+    const topPx = Number.isFinite(rawTop) ? rawTop : 0;
+    const leftPx = Number.isFinite(rawLeft) ? rawLeft : 0;
     // Center of the *visual* viewport (keyboard + URL bar aware).
-    const centerYPx = topPx + (vhPx / 2);
-    const centerXPx = leftPx + (vwPx / 2);
+    let centerYPx = topPx + (vhPx / 2);
+    let centerXPx = leftPx + (vwPx / 2);
+    // Safety: if anything is still degenerate, fall back to the layout viewport center.
+    if (!(centerXPx > 0)) centerXPx = window.innerWidth / 2;
+    if (!(centerYPx > 0)) centerYPx = window.innerHeight / 2;
 
     const rootStyle = document.documentElement?.style;
     rootStyle?.setProperty('--abs-viewport-h', `${vhPx}px`);
