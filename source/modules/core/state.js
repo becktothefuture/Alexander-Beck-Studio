@@ -205,6 +205,7 @@ const state = {
   simulationPaddingVw: 0,   // inner inset around canvas (vw)
   contentPaddingVw: 0,      // padding for content blocks inside frame (vw)
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
+  mobileContentPaddingXFactor: 1.2,   // extra horizontal padding multiplier on mobile (1.0 = same as desktop)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
 
@@ -627,10 +628,13 @@ export function applyLayoutFromVwToPx() {
   state.simulationPadding = Math.round(simPadPx);
   state.contentPadding = Math.max(minContentPaddingPx, Math.round(contentPadPx));
   
-  // Derive directional padding: horizontal = base × ratio, vertical = base
+  // Derive directional padding: horizontal = base × ratio × mobileFactor, vertical = base
   const horizRatio = Math.max(0.1, state.contentPaddingHorizontalRatio || 1.0);
+  const mobilePaddingFactor = (state.isMobile || state.isMobileViewport)
+    ? Math.max(0.5, state.mobileContentPaddingXFactor || 1.0)
+    : 1.0;
   state.contentPaddingY = state.contentPadding;
-  state.contentPaddingX = Math.round(state.contentPadding * horizRatio);
+  state.contentPaddingX = Math.round(state.contentPadding * horizRatio * mobilePaddingFactor);
   
   state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
@@ -1055,6 +1059,7 @@ export function initState(config) {
   if (config.simulationPaddingVw !== undefined) state.simulationPaddingVw = clampNumber(config.simulationPaddingVw, 0, 20, state.simulationPaddingVw);
   if (config.contentPaddingVw !== undefined) state.contentPaddingVw = clampNumber(config.contentPaddingVw, 0, 40, state.contentPaddingVw);
   if (config.contentPaddingHorizontalRatio !== undefined) state.contentPaddingHorizontalRatio = clampNumber(config.contentPaddingHorizontalRatio, 0.1, 3.0, state.contentPaddingHorizontalRatio);
+  if (config.mobileContentPaddingXFactor !== undefined) state.mobileContentPaddingXFactor = clampNumber(config.mobileContentPaddingXFactor, 0.5, 3.0, state.mobileContentPaddingXFactor);
   if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);
   if (config.wallThicknessVw !== undefined) state.wallThicknessVw = clampNumber(config.wallThicknessVw, 0, 20, state.wallThicknessVw);
 

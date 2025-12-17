@@ -251,6 +251,7 @@
   "simulationPaddingVw": 0,
   "contentPaddingVw": 1.7,
   "contentPaddingHorizontalRatio": 1.5,
+  "mobileContentPaddingXFactor": 1.2,
   "layoutMinContentPaddingPx": 21,
   "layoutMinWallRadiusPx": 32,
   "soundPreset": "crystalPebbles",
