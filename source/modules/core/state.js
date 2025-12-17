@@ -467,6 +467,9 @@ const state = {
   // ─────────────────────────────────────────────────────────────────────────────
   sceneImpactEnabled: true,
   sceneImpactMul: 0.004,        // scale depth per unit impact (0.4%, kept subtle to avoid snap)
+  // Mobile-only multiplier applied on top of sceneImpactMul.
+  // Allows “more depth” on small screens without re-tuning desktop.
+  sceneImpactMobileMulFactor: 1.0,
   sceneImpactOvershoot: 0.22,   // release overshoot amount (unitless)
   sceneImpactAnticipation: 0.0, // micro pre-pop opposite direction; 0 disables
   sceneImpactPressMs: 75,       // ms (press-in duration)
@@ -915,6 +918,9 @@ export function initState(config) {
   } else if (config.brandLogoImpactMul !== undefined) {
     // Back-compat: reuse old logo tuning if scene tuning is absent.
     state.sceneImpactMul = clampNumber(config.brandLogoImpactMul, 0, 0.05, state.sceneImpactMul);
+  }
+  if (config.sceneImpactMobileMulFactor !== undefined) {
+    state.sceneImpactMobileMulFactor = clampNumber(config.sceneImpactMobileMulFactor, 0.25, 3.0, state.sceneImpactMobileMulFactor);
   }
   if (config.sceneImpactOvershoot !== undefined) {
     state.sceneImpactOvershoot = clampNumber(config.sceneImpactOvershoot, 0, 0.8, state.sceneImpactOvershoot);

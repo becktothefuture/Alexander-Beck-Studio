@@ -1,16 +1,17 @@
 # Alexander Beck Studio Website
 
-Minimal, high-speed kinetic canvas built with vanilla JS + Canvas 2D. Eleven simulations, a floating right-aligned panel, and a production build that keeps 60fps while staying privacy-first.
+Minimal, high-speed kinetic canvas built with vanilla JS + Canvas 2D. A **curated, panel-free production experience** (narrative mode cycling) plus a **full dev control surface** on port 8001 — all tuned for 60fps and privacy-first defaults.
 
 ---
 
 ## What this site does
 - Kinetic homepage: particles, walls, and light fields living inside `#bravia-balls` so the rest of the page stays untouched.
-- Eleven simulations (core + experimental): Ball Pit, Flies, Zero-G, Water, Vortex, Ping Pong, Magnetic, Bubbles, Kaleidoscope, Critters, Ball Pit (Throws).
+- Multiple simulations (core + experimental), documented in `docs/reference/MODES.md` (Ball Pit, Flies, Zero‑G, Water, Vortex, Ping Pong, Magnetic, Bubbles, Kaleidoscope variants, Critters, Orbit 3D variants, Lattice, Neural, Parallax variants, Ball Pit (Throws), and more).
 - Visual finesse: rubber wall wobble, browser-colored wall/frame, layered film grain, adaptive dark/light palettes, brand-logo micro-interactions, and an optional motion-respect path for `prefers-reduced-motion`.
-- Interaction model: cursor can repel, attract, or reshape; touch maps to the same force fields; keyboard (`1–9`, `/`, `R`) for quick mode/panel/reset.
-- Control surface: single master panel docked right with collapsible sections, always summonable via `/`, floating with 5vh inset.
-- Privacy + perf: no external calls, localStorage only for panel chrome; spatial hashing + fixed timestep keep loops O(1) per entity.
+- Interaction model: cursor can repel/attract/reshape; touch maps to the same forces; keyboard for **narrative cycling + reset** (see below).
+- Dev control surface: a single master panel docked right with collapsible sections (port **8001** dev only).
+- Privacy + perf: no external calls; localStorage only for settings (no user text); spatial hashing + fixed timestep keep loops O(1) per entity.
+- Mobile fidelity: responsive scaling + **canvas-level rounded-corner clipping** (prevents “corner bleed” in non-wall modes like Kaleidoscope on iOS).
 
 ---
 
@@ -31,25 +32,25 @@ Open `http://localhost:8001` for dev or `http://localhost:8000` for the producti
 ## Controls
 | Key | Action |
 | --- | --- |
-| `1` | Ball Pit |
-| `2` | Flies |
-| `3` | Zero-G |
-| `4` | Water |
-| `5` | Vortex |
-| `6` | Ping Pong |
-| `7` | Magnetic |
-| `8` | Bubbles |
-| `9` | Kaleidoscope |
-| `/` | Toggle panel |
+| `→` | Next simulation (narrative sequence) |
+| `←` | Previous simulation (narrative sequence) |
+| `/` | Toggle panel dock (**dev / port 8001**) |
 | `R` | Reset simulation |
 
-Critters + Ball Pit (Throws) are selectable from the panel.
+Direct `1–9` mode hotkeys are intentionally disabled; switch via Arrow keys (narrative) or the dev panel.  
+See `docs/reference/MODES.md` for the authoritative mode list + narrative ordering.
+
+---
+
+## Mobile tuning notes
+- **Click depth**: on mobile viewports the scene “press” depth is boosted via `sceneImpactMobileMulFactor` (default `1.5x`) on top of `sceneImpactMul`. This is exposed in the dev panel under **Scene → Mobile Depth ×**.
+- **Rounded corners**: canvas rendering is clipped to the rounded frame radius (cached per-resize) so modes with non-rounded bounds (e.g. Kaleidoscope) never “peek” past corners on iOS.
 
 ---
 
 ## Feature roundup (at-a-glance)
 - **Core features:** physics engine (fixed 120Hz), spatial hash collisions, mode controller, Canvas renderer, adaptive dark/light theme, palette-driven color system, master control panel, keyboard/touch input, runtime config loader, audio hooks (collision/ambient ready), password gates for CV/Portfolio/Contact, social/time widgets, brand micro-interactions.
-- **Bonus behaviors:** wall wobble deformation, browser-colored wall/frame sync, layered film grain, cursor morph (ball-sized), noise overlays, mode-aware canvas height (150vh for Ball Pit, 100svh elsewhere), randomized startup mode, mobile-friendly footer link wrapping.
+- **Bonus behaviors:** wall wobble deformation, browser-colored wall/frame sync, layered film grain, cursor morph (ball-sized), noise overlays, mode-aware canvas height (150vh for Ball Pit, 100svh elsewhere), randomized startup mode, mobile-friendly footer link wrapping, iOS-safe rounded-corner canvas clipping.
 - **Links & gates:** CV gate, Portfolio gate, Contact gate overlays; social icons normalized at runtime; sound/theme toggles in corners; panel lives on the right and can be minimized and reopened with `/`.
 - **Visual finesse features:** rubber wall wobble, browser-tinted frame, grain stack (`.noise`, `.noise-2`, `.noise-3`), brand logo yield-to-crowd, cursor-synchronized halo.
 - **Simulations:** 
@@ -67,7 +68,7 @@ Critters + Ball Pit (Throws) are selectable from the panel.
 - **Scoped styles**: everything contained in `#bravia-balls`; CSS variables drive palette, wall, and grain; panel styles are confined to the dock.
 - **Config-injected**: runtime config pulled from `config/default-config.json` (or inlined); localStorage optional and off for physics state by default.
 - **Accessibility + privacy**: canvas labeled, keyboardable; no network calls beyond initial config fetch; respects reduced motion.
-- **Workflow**: `npm run startup` menu for dev/watch/preview; `npm start` serves the built bundle on port 8000.
+- **Workflow**: `npm run startup` menu for dev/watch/preview; `npm start` serves the built bundle on port 8000; `npm run start:source` serves `source/` on port 8001.
 
 ---
 

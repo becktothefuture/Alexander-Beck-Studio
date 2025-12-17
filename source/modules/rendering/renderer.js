@@ -22,7 +22,55 @@ let prevCanvasHeight = 0;
 
 // Debounce resize to prevent excessive recalculation during drag-resize
 let resizeDebounceId = null;
-const RESIZE_DEBOUNCE_MS = 16; // ~1 frame
+
+// Callback to force immediate render after canvas dimensions change
+// This prevents blank frames during resize
+let forceRenderCallback = null;
+
+/**
+ * Register a callback to force render after canvas dimension changes
+ * Called by main.js after render loop is set up
+ */
+export function setForceRenderCallback(callback) {
+  forceRenderCallback = callback;
+}
+
+// Cached canvas clip path (rounded rect) — recomputed on resize only.
+// This prevents iOS/mobile corner “bleed” where canvas pixels can peek past the
+// container’s rounded corners during fast motion / compositing.
+let cachedClipW = 0;
+let cachedClipH = 0;
+let cachedClipR = 0;
+
+function clamp01(v) {
+  return Math.max(0, Math.min(1, v));
+}
+
+function buildRoundedRectPath(w, h, r) {
+  // Build a rounded-rect path in *canvas pixel* space.
+  // Important: keep allocation out of hot paths (called only on resize).
+  const rr = Math.max(0, Math.min(r, Math.min(w, h) * 0.5));
+  if (typeof Path2D === 'undefined') return null;
+  const p = new Path2D();
+
+  if (rr <= 0) {
+    p.rect(0, 0, w, h);
+    return p;
+  }
+
+  // Rounded rect via arcTo (widely supported).
+  p.moveTo(rr, 0);
+  p.lineTo(w - rr, 0);
+  p.arcTo(w, 0, w, rr, rr);
+  p.lineTo(w, h - rr);
+  p.arcTo(w, h, w - rr, h, rr);
+  p.lineTo(rr, h);
+  p.arcTo(0, h, 0, h - rr, rr);
+  p.lineTo(0, rr);
+  p.arcTo(0, 0, rr, 0, rr);
+  p.closePath();
+  return p;
+}
 
 function detectOptimalDPR() {
   const baseDPR = window.devicePixelRatio || 1;
@@ -165,6 +213,15 @@ export function resize() {
   const containerWidth = container ? container.clientWidth : window.innerWidth;
   const containerHeight = container ? container.clientHeight : window.innerHeight;
   
+  // ══════════════════════════════════════════════════════════════════════════════
+  // SAFETY: Skip resize if container reports invalid dimensions
+  // This can happen during CSS transitions or when the element is temporarily hidden.
+  // Processing 0/negative dimensions would corrupt ball positions (all become 0).
+  // ══════════════════════════════════════════════════════════════════════════════
+  if (containerWidth <= 0 || containerHeight <= 0) {
+    return;
+  }
+  
   // Canvas fills the container completely (rubber walls are drawn at the edges)
   // We removed the layout inset to fix the "double wall" visual issue
   const canvasWidth = containerWidth;
@@ -181,6 +238,11 @@ export function resize() {
   const newWidth = Math.floor(canvasWidth * DPR);
   const newHeight = Math.floor(simHeight * DPR);
   
+  // Safety: ensure we have valid positive dimensions after DPR scaling
+  if (newWidth <= 0 || newHeight <= 0) {
+    return;
+  }
+  
   // Early-out if dimensions haven't changed (prevents unnecessary canvas clearing)
   if (newWidth === prevCanvasWidth && newHeight === prevCanvasHeight) {
     return;
@@ -195,49 +257,88 @@ export function resize() {
     const scaleX = newWidth / prevCanvasWidth;
     const scaleY = newHeight / prevCanvasHeight;
     
-    const balls = globals.balls;
-    for (let i = 0; i < balls.length; i++) {
-      const ball = balls[i];
-      if (!ball) continue;
-      
-      // Scale position proportionally
-      ball.x *= scaleX;
-      ball.y *= scaleY;
-      
-      // Clamp to ensure ball stays within new bounds (with radius margin)
-      const r = ball.r || 10;
-      ball.x = Math.max(r, Math.min(newWidth - r, ball.x));
-      ball.y = Math.max(r, Math.min(newHeight - r, ball.y));
-      
-      // Wake sleeping balls so they can settle into new positions
-      if (ball.isSleeping) {
-        ball.isSleeping = false;
-        ball.sleepTimer = 0;
+    // Safety: only reposition if scale factors are reasonable (not 0, not extreme)
+    // Extreme scales (>10x or <0.1x) likely indicate invalid intermediate states
+    if (scaleX > 0.1 && scaleX < 10 && scaleY > 0.1 && scaleY < 10) {
+      const balls = globals.balls;
+      for (let i = 0; i < balls.length; i++) {
+        const ball = balls[i];
+        if (!ball) continue;
+        
+        // Scale position proportionally
+        ball.x *= scaleX;
+        ball.y *= scaleY;
+        
+        // Clamp to ensure ball stays within new bounds (with radius margin)
+        const r = ball.r || 10;
+        ball.x = Math.max(r, Math.min(newWidth - r, ball.x));
+        ball.y = Math.max(r, Math.min(newHeight - r, ball.y));
+        
+        // Wake sleeping balls so they can settle into new positions
+        if (ball.isSleeping) {
+          ball.isSleeping = false;
+          ball.sleepTimer = 0;
+        }
       }
     }
-    
-    console.log(`📐 Resize: ${balls.length} balls repositioned (${prevCanvasWidth}x${prevCanvasHeight} → ${newWidth}x${newHeight})`);
   }
   
   // Store dimensions for next resize comparison
   prevCanvasWidth = newWidth;
   prevCanvasHeight = newHeight;
   
-  // Set canvas buffer size (high-DPI)
-  canvas.width = newWidth;
-  canvas.height = newHeight;
+  // ══════════════════════════════════════════════════════════════════════════════
+  // CANVAS DIMENSION UPDATE with flicker prevention
+  // Setting canvas.width/height clears the buffer. To prevent flicker:
+  // 1. Only update if dimensions actually need changing
+  // 2. Immediately render after update (no gap for transparent frame)
+  // ══════════════════════════════════════════════════════════════════════════════
   
-  // Let CSS handle display sizing via var(--wall-thickness)
-  // But set explicit values for consistency in non-CSS environments
+  // Check if canvas buffer dimensions need updating
+  const needsUpdate = canvas.width !== newWidth || canvas.height !== newHeight;
+  
+  if (needsUpdate) {
+    // Set canvas buffer size (high-DPI) - this clears the canvas buffer
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    
+    // Re-apply context optimizations after resize (some browsers reset them)
+    if (ctx) {
+      ctx.imageSmoothingEnabled = false;
+    }
+  }
+  
+  // Always update CSS display size (doesn't cause flicker)
   canvas.style.width = canvasWidth + 'px';
   canvas.style.height = simHeight + 'px';
   
-  // Re-apply context optimizations after resize (some browsers reset them)
-  if (ctx) {
-    ctx.imageSmoothingEnabled = false;
+  if (needsUpdate) {
+    applyCanvasShadow(canvas);
+    
+    // Force immediate render after canvas dimension change to prevent blank frame
+    if (forceRenderCallback) {
+      try {
+        forceRenderCallback();
+      } catch (e) {
+        // Ignore render errors during resize
+      }
+    }
   }
-  
-  applyCanvasShadow(canvas);
+
+  // Update cached clip path (rounded-rect) on any resize that changes buffer dims
+  // Radius comes from state (container radius - simulation padding), then DPR-scaled.
+  try {
+    const rCssPx = (typeof globals.getCanvasCornerRadius === 'function')
+      ? globals.getCanvasCornerRadius()
+      : (globals.cornerRadius ?? globals.wallRadius ?? 0);
+    const rCanvasPx = Math.max(0, (Number(rCssPx) || 0) * (globals.DPR || 1));
+    if (canvas.width !== cachedClipW || canvas.height !== cachedClipH || Math.abs(rCanvasPx - cachedClipR) > 1e-3) {
+      cachedClipW = canvas.width;
+      cachedClipH = canvas.height;
+      cachedClipR = rCanvasPx;
+      globals.canvasClipPath = buildRoundedRectPath(canvas.width, canvas.height, rCanvasPx);
+    }
+  } catch (e) {}
 }
 
 export function getCanvas() {

@@ -254,7 +254,17 @@ export function render() {
   if (!ctx || !canvas) return;
   
   // Clear frame (ghost trails removed per performance optimization plan)
+  // Clear BEFORE applying clip so the corners never accumulate stale pixels.
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Hard clip the entire render to the rounded-rect canvas radius.
+  // This prevents “corner bleed” on iOS/mobile (balls peeking past rounded corners),
+  // especially in modes that use non-rounded bounds (e.g., Kaleidoscope).
+  const clipPath = globals.canvasClipPath;
+  if (clipPath) {
+    ctx.save();
+    try { ctx.clip(clipPath); } catch (e) {}
+  }
   
   // Draw water ripples (behind balls)
   if (globals.currentMode === MODES.WATER) {
@@ -287,6 +297,10 @@ export function render() {
   
   // Draw rubber walls LAST (in front of balls)
   drawWalls(ctx, canvas.width, canvas.height);
+
+  if (clipPath) {
+    ctx.restore();
+  }
 }
 
 /**

@@ -25,6 +25,34 @@ let releaseTimeoutId = 0;
 let cleanupTimeoutId = 0;
 let manualArmed = false;
 
+function isMobileNow(g) {
+  // Prefer state flags (kept current by renderer.resize() → detectResponsiveScale()).
+  if (g?.isMobile || g?.isMobileViewport) return true;
+  // Fallback for edge cases (devtools emulation / early init).
+  try {
+    return Boolean(window.matchMedia && window.matchMedia('(max-width: 600px)').matches);
+  } catch (e) {
+    return false;
+  }
+}
+
+function computeEffectiveImpactMul(g) {
+  const base = Number(g?.sceneImpactMul);
+  const baseMul = Number.isFinite(base) ? base : 0;
+  const f = Number(g?.sceneImpactMobileMulFactor);
+  const factor = (Number.isFinite(f) && f > 0) ? f : 1.0;
+  return baseMul * (isMobileNow(g) ? factor : 1.0);
+}
+
+function applyImpactMulFromGlobals() {
+  if (!el) return;
+  let g = null;
+  try { g = getGlobals(); } catch (e) {}
+  if (!g) return;
+  const eff = computeEffectiveImpactMul(g);
+  el.style.setProperty(CSS_VAR_IMPACT_MUL, String(eff));
+}
+
 function prefersReducedMotion() {
   try {
     return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -64,16 +92,18 @@ export function initSceneImpactReact() {
   el.style.setProperty(CSS_VAR_IMPACT_DUR, '100ms');
 
   // Stamp tunable multipliers (if available) so config/panel changes apply.
-  if (g) {
-    if (g.sceneImpactMul !== undefined) {
-      el.style.setProperty(CSS_VAR_IMPACT_MUL, String(g.sceneImpactMul));
-    }
-  }
+  applyImpactMulFromGlobals();
 
   // Respect reduced motion: keep stable/robust and do not animate.
   if (prefersReducedMotion()) return;
 
   enabled = true;
+
+  // Keep multiplier responsive across mobile breakpoints (resize-driven).
+  // Cheap: only a single style write per resize.
+  try {
+    window.addEventListener('resize', applyImpactMulFromGlobals, { passive: true });
+  } catch (e) {}
 
   // Mode change pulse (dispatched from mode-controller.js).
   window.addEventListener('bb:modeChanged', (e) => {

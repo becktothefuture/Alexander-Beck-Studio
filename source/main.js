@@ -7,7 +7,8 @@ import { CONSTANTS } from './modules/core/constants.js';
 import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/core/state.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
 import { applyColorTemplate, maybeAutoPickCursorColor } from './modules/visual/colors.js';
-import { setupRenderer, getCanvas, getContext, resize } from './modules/rendering/renderer.js';
+import { setupRenderer, getCanvas, getContext, resize, setForceRenderCallback } from './modules/rendering/renderer.js';
+import { render } from './modules/physics/engine.js';
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { setupCustomCursor } from './modules/rendering/cursor.js';
@@ -386,6 +387,9 @@ function enhanceFooterLinksForMobile() {
     } catch (e) {}
     mark('bb:mode');
     log('✓ Mode initialized');
+    
+    // Register force render callback for resize (prevents blank frames during drag-resize)
+    setForceRenderCallback(render);
     
     // Start main render loop
     const getForces = () => getForceApplicator();

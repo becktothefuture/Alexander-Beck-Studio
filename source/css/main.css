@@ -1049,6 +1049,13 @@ p {
   will-change: filter;
 }
 
+/* Mobile: increase logo size by 10% for better visibility on small screens */
+@media (max-width: 768px) {
+  .brand-logo-svg {
+    width: clamp(248px, 45vw, 600px);
+  }
+}
+
 /* When gate is opening, sync blur transition with IN duration */
 .gate-depth-active .brand-logo-svg {
   transition:
@@ -1270,12 +1277,14 @@ body.dark-mode #time-display {
   }
   
   .footer_link {
-    font-size: calc(clamp(0.7rem, 1.2vw, 0.78rem) + 3px) !important;
+    /* Mobile sizing: +10% on “main links” */
+    font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 1.1) !important;
 
-    /* Mobile UX: tighter, more intentional link height (no extra vertical padding) */
-    padding-block: var(--hit-area-sm) !important;
+    /* Mobile UX: +10% vertical padding */
+    --abs-footer-link-pad-mobile: calc(var(--hit-area-sm) * 1.1);
+    padding-block: var(--abs-footer-link-pad-mobile) !important;
     padding-inline: var(--hit-area-sm) !important;
-    margin-block: calc(var(--hit-area-sm) * -1) !important;
+    margin-block: calc(var(--abs-footer-link-pad-mobile) * -1) !important;
     margin-inline: calc(var(--hit-area-sm) * -1) !important;
     text-align: center !important;
     /* Make the hover dot sit under the text (measured from text bottom) */

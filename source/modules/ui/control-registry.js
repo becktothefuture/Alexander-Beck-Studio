@@ -470,7 +470,35 @@ export const CONTROL_SECTIONS = {
         onChange: (_g, val) => {
           const el = document.getElementById('abs-scene');
           if (!el) return;
-          el.style.setProperty('--abs-scene-impact-mul', String(val));
+          const g = _g || {};
+          const f = Number(g.sceneImpactMobileMulFactor);
+          const factor = (Number.isFinite(f) && f > 0) ? f : 1.0;
+          const isMobile = Boolean(g.isMobile || g.isMobileViewport);
+          const eff = Number(val) * (isMobile ? factor : 1.0);
+          el.style.setProperty('--abs-scene-impact-mul', String(eff));
+        }
+      },
+      {
+        id: 'sceneImpactMobileMulFactor',
+        label: 'Mobile Depth ×',
+        stateKey: 'sceneImpactMobileMulFactor',
+        type: 'range',
+        min: 0.25, max: 3.0, step: 0.05,
+        default: 1.0,
+        format: (v) => v.toFixed(2) + 'x',
+        parse: parseFloat,
+        hint: 'Multiplier applied to Click Depth on mobile-sized viewports.',
+        onChange: (_g, val) => {
+          const el = document.getElementById('abs-scene');
+          if (!el) return;
+          const g = _g || {};
+          const base = Number(g.sceneImpactMul);
+          const baseMul = Number.isFinite(base) ? base : 0;
+          const f = Number(val);
+          const factor = (Number.isFinite(f) && f > 0) ? f : 1.0;
+          const isMobile = Boolean(g.isMobile || g.isMobileViewport);
+          const eff = baseMul * (isMobile ? factor : 1.0);
+          el.style.setProperty('--abs-scene-impact-mul', String(eff));
         }
       },
       {
