@@ -26,6 +26,19 @@
   --content-padding-y: var(--content-padding);
   --edge-inset: calc(var(--container-border) + var(--content-padding));
   --edge-inset-lg: calc(var(--container-border) + var(--content-padding));
+
+  /* ───────────────────────────────────────────────────────────────────────────
+     Edge labels (vertical chapter + copyright)
+     - Keep separate from general text colors so we can tune them independently.
+     - Inset is base (border + gap) + an adjustable pixel offset from config/panel.
+     ─────────────────────────────────────────────────────────────────────────── */
+  --edge-label-inset-base: calc(var(--container-border) + var(--gap-sm));
+  --edge-label-inset-adjust: 0px;
+  --edge-label-inset: calc(var(--edge-label-inset-base) + var(--edge-label-inset-adjust));
+
+  --edge-label-color-light: var(--text-color-light-muted);
+  --edge-label-color-dark: var(--text-color-dark-base);
+  --edge-label-opacity: 0.38;
   
   /* Transition Timing */
   --ease-organic: cubic-bezier(0.22, 1, 0.36, 1);
@@ -360,7 +373,8 @@ body.dark-mode .content-background-layer {
   position: fixed;
   top: 0;
   bottom: 0;
-  right: calc(var(--container-border) + 8px);
+  left: auto;
+  right: var(--edge-label-inset);
   z-index: 6; /* Above canvas (5), below UI (20) */
   pointer-events: none;
   display: flex;
@@ -379,8 +393,8 @@ body.dark-mode .content-background-layer {
   text-transform: uppercase;
   white-space: nowrap;
 
-  color: var(--text-color-light-muted);
-  opacity: 0.55;
+  color: var(--edge-label-color-light);
+  opacity: var(--edge-label-opacity);
 
   writing-mode: vertical-rl;
   text-orientation: mixed;
@@ -389,18 +403,19 @@ body.dark-mode .content-background-layer {
 }
 
 body.dark-mode .edge-copyright__text {
-  color: var(--text-color-dark-base);
-  opacity: 0.55;
+  color: var(--edge-label-color-dark);
+  opacity: var(--edge-label-opacity);
 }
 
 @media (max-width: 600px) {
   .edge-copyright {
-    right: calc(var(--container-border) + 6px);
+    /* Keep the same inset logic across viewports; only tune type size. */
+    right: var(--edge-label-inset);
   }
 
   .edge-copyright__text {
     font-size: calc(var(--text-xs) * 0.8);
-    opacity: 0.5;
+    opacity: var(--edge-label-opacity);
   }
 }
 
@@ -411,7 +426,8 @@ body.dark-mode .edge-copyright__text {
   position: fixed;
   top: 0;
   bottom: 0;
-  left: calc(var(--container-border) + var(--gap-sm));
+  left: var(--edge-label-inset);
+  right: auto;
   z-index: 6; /* Above canvas (5), below UI (20) */
   pointer-events: none;
   display: flex;
@@ -430,8 +446,8 @@ body.dark-mode .edge-copyright__text {
   text-transform: uppercase;
   white-space: nowrap;
 
-  color: var(--text-color-light-muted);
-  opacity: 0.55;
+  color: var(--edge-label-color-light);
+  opacity: var(--edge-label-opacity);
 
   writing-mode: vertical-lr;
   text-orientation: mixed;
@@ -440,18 +456,19 @@ body.dark-mode .edge-copyright__text {
 }
 
 body.dark-mode .edge-chapter__text {
-  color: var(--text-color-dark-base);
-  opacity: 0.55;
+  color: var(--edge-label-color-dark);
+  opacity: var(--edge-label-opacity);
 }
 
 @media (max-width: 600px) {
   .edge-chapter {
-    left: calc(var(--container-border) + var(--gap-xs));
+    /* Keep the same inset logic across viewports; only tune type size. */
+    left: var(--edge-label-inset);
   }
 
   .edge-chapter__text {
     font-size: calc(var(--text-xs) * 0.8);
-    opacity: 0.5;
+    opacity: var(--edge-label-opacity);
   }
 }
 

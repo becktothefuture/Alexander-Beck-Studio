@@ -63,6 +63,17 @@ function syncCssVarsFromConfig() {
   if (g?.textColorDarkMuted) {
     root.style.setProperty('--text-color-dark-muted', g.textColorDarkMuted);
   }
+
+  // Edge labels (vertical chapter/copyright)
+  if (g?.edgeLabelColorLight) {
+    root.style.setProperty('--edge-label-color-light', g.edgeLabelColorLight);
+  }
+  if (g?.edgeLabelColorDark) {
+    root.style.setProperty('--edge-label-color-dark', g.edgeLabelColorDark);
+  }
+  if (Number.isFinite(g?.edgeLabelInsetAdjustPx)) {
+    root.style.setProperty('--edge-label-inset-adjust', `${g.edgeLabelInsetAdjustPx}px`);
+  }
   
   // Link colors
   if (g?.linkHoverColor) {

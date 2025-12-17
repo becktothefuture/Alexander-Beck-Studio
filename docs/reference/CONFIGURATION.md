@@ -473,6 +473,30 @@ Applied to CSS vars `--container-inner-shadow-*`.
 
 ---
 
+## Edge Labels (UI)
+
+These keys control the **vertical edge labels**:
+- Left: current chapter title (`#edge-chapter`)
+- Right: copyright (`#edge-copyright`)
+
+They’re intentionally **independent** from the global text colors so you can tune them as faint “frame metadata”.
+
+### `edgeLabelColorLight` (string, CSS color)
+- **Meaning**: Edge label color in **light mode**
+- **Applied to**: CSS var `--edge-label-color-light`
+
+### `edgeLabelColorDark` (string, CSS color)
+- **Meaning**: Edge label color in **dark mode**
+- **Applied to**: CSS var `--edge-label-color-dark`
+
+### `edgeLabelInsetAdjustPx` (number, px)
+- **Meaning**: Adjusts how far the edge labels sit from the frame.
+  - **Higher** = further inward
+  - **Lower / negative** = further outward
+- **Applied to**: CSS var `--edge-label-inset-adjust` (added on top of the base inset)
+
+---
+
 ## Noise / Film Grain (Visual)
 
 ### Noise sizing

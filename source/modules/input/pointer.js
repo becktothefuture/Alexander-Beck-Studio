@@ -20,6 +20,11 @@ let lastTapTime = 0;
 // Click/tap cycles through modes (value stored on globals; avoid caching so modes can override).
 let pressCycleActive = false;
 let pressCyclePointerId = null;
+// Touch drag detection: track start position and total movement to distinguish tap vs drag
+let pressCycleStartX = 0;
+let pressCycleStartY = 0;
+let pressCycleTotalMove = 0;
+const TAP_MOVE_THRESHOLD = 15; // px: movement below this is considered a tap, above is a drag
 
 function cycleMode() {
   const globals = getGlobals();
@@ -205,7 +210,7 @@ export function setupPointer() {
     );
   }
 
-  function tryPressCycleStart(clientX, clientY, target, pointerId = null) {
+  function tryPressCycleStart(clientX, clientY, target, pointerId = null, pointerType = 'mouse') {
     if (pressCycleActive) return;
     if (isEventOnUI(target)) return;
     if (isTargetInteractive(target)) return;
@@ -217,16 +222,33 @@ export function setupPointer() {
 
     pressCycleActive = true;
     pressCyclePointerId = pointerId;
+    // Record start position for drag detection (touch only)
+    pressCycleStartX = clientX;
+    pressCycleStartY = clientY;
+    pressCycleTotalMove = 0;
 
     // Press-in immediately and HOLD (no auto-release), and arm manual so bb:modeChanged doesn't double-pulse.
     sceneImpactPress(1, { armManual: true, scheduleRelease: false });
   }
 
-  function tryPressCycleEnd(pointerId = null) {
+  function tryPressCycleEnd(pointerId = null, pointerType = 'mouse') {
     if (!pressCycleActive) return;
     if (pressCyclePointerId !== null && pointerId !== null && pointerId !== pressCyclePointerId) return;
+    
+    const wasActive = pressCycleActive;
+    const totalMove = pressCycleTotalMove;
     pressCycleActive = false;
     pressCyclePointerId = null;
+    pressCycleTotalMove = 0;
+    
+    // On touch devices: only cycle mode if it was a tap (minimal movement), not a drag
+    const isTouch = pointerType === 'touch' || pointerType === 'pen';
+    if (isTouch && totalMove > TAP_MOVE_THRESHOLD) {
+      // It was a drag, not a tap - just release the impact animation without changing mode
+      sceneImpactRelease(1);
+      return;
+    }
+    
     // Swap sim on release, then bounce out.
     cycleMode();
     sceneImpactRelease(1);
@@ -234,24 +256,33 @@ export function setupPointer() {
 
   if (window.PointerEvent) {
     document.addEventListener('pointerdown', (e) => {
-      tryPressCycleStart(e.clientX, e.clientY, e.target, e.pointerId);
+      tryPressCycleStart(e.clientX, e.clientY, e.target, e.pointerId, e.pointerType);
+    }, { passive: true });
+
+    document.addEventListener('pointermove', (e) => {
+      // Track movement during active press cycle (for tap vs drag detection)
+      if (pressCycleActive && pressCyclePointerId === e.pointerId) {
+        const dx = e.clientX - pressCycleStartX;
+        const dy = e.clientY - pressCycleStartY;
+        pressCycleTotalMove = Math.max(pressCycleTotalMove, Math.hypot(dx, dy));
+      }
     }, { passive: true });
 
     document.addEventListener('pointerup', (e) => {
-      tryPressCycleEnd(e.pointerId);
+      tryPressCycleEnd(e.pointerId, e.pointerType);
     }, { passive: true });
 
     document.addEventListener('pointercancel', (e) => {
-      tryPressCycleEnd(e.pointerId);
+      tryPressCycleEnd(e.pointerId, e.pointerType);
     }, { passive: true });
   } else {
     // Fallbacks for older browsers without Pointer Events
     document.addEventListener('mousedown', (e) => {
-      tryPressCycleStart(e.clientX, e.clientY, e.target, null);
+      tryPressCycleStart(e.clientX, e.clientY, e.target, null, 'mouse');
     }, { passive: true });
 
     document.addEventListener('mouseup', () => {
-      tryPressCycleEnd(null);
+      tryPressCycleEnd(null, 'mouse');
     }, { passive: true });
   }
   
@@ -308,27 +339,43 @@ export function setupPointer() {
     if (e.target.closest('textarea')) return;
     
     if (e.touches && e.touches[0]) {
-      const pos = getCanvasPosition(e.touches[0].clientX, e.touches[0].clientY);
+      const touch = e.touches[0];
+      const pos = getCanvasPosition(touch.clientX, touch.clientY);
       
       if (!pos.inBounds) return;
 
       if (globals.clickCycleEnabled) {
         pressCycleActive = true;
         pressCyclePointerId = null;
+        // Record start position for drag detection
+        pressCycleStartX = touch.clientX;
+        pressCycleStartY = touch.clientY;
+        pressCycleTotalMove = 0;
         // Press in on touchstart and HOLD; release will handle switching + bounce.
         sceneImpactPress(1, { armManual: true, scheduleRelease: false });
       }
     }
   }, { passive: true });
 
+  // Track touch movement for tap vs drag detection (fallback for no PointerEvent)
+  document.addEventListener('touchmove', (e) => {
+    if (window.PointerEvent) return;
+    if (pressCycleActive && e.touches && e.touches[0]) {
+      const touch = e.touches[0];
+      const dx = touch.clientX - pressCycleStartX;
+      const dy = touch.clientY - pressCycleStartY;
+      pressCycleTotalMove = Math.max(pressCycleTotalMove, Math.hypot(dx, dy));
+    }
+  }, { passive: true });
+
   document.addEventListener('touchend', () => {
     if (window.PointerEvent) return;
-    tryPressCycleEnd(null);
+    tryPressCycleEnd(null, 'touch');
   }, { passive: true });
 
   document.addEventListener('touchcancel', () => {
     if (window.PointerEvent) return;
-    tryPressCycleEnd(null);
+    tryPressCycleEnd(null, 'touch');
   }, { passive: true });
   
   /**

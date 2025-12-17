@@ -512,6 +512,10 @@ const state = {
   textColorLightMuted: '#2f2f2f',     // Secondary/muted text (light mode)
   textColorDark: 'rgba(255,255,255,0.7)',  // Primary text (dark mode)
   textColorDarkMuted: 'rgba(255,255,255,0.5)', // Secondary/muted text (dark mode)
+  // Edge labels (vertical chapter/copyright) — independently tunable from body text
+  edgeLabelColorLight: '#2f2f2f',
+  edgeLabelColorDark: '#b3b3b3',
+  edgeLabelInsetAdjustPx: 0,
   
   // Link Colors
   linkHoverColor: '#ff4013',          // Link hover accent (shared)
@@ -964,6 +968,11 @@ export function initState(config) {
   if (config.textColorLightMuted !== undefined) state.textColorLightMuted = config.textColorLightMuted;
   if (config.textColorDark !== undefined) state.textColorDark = config.textColorDark;
   if (config.textColorDarkMuted !== undefined) state.textColorDarkMuted = config.textColorDarkMuted;
+  if (config.edgeLabelColorLight !== undefined) state.edgeLabelColorLight = config.edgeLabelColorLight;
+  if (config.edgeLabelColorDark !== undefined) state.edgeLabelColorDark = config.edgeLabelColorDark;
+  if (config.edgeLabelInsetAdjustPx !== undefined) {
+    state.edgeLabelInsetAdjustPx = clampNumber(config.edgeLabelInsetAdjustPx, -500, 500, state.edgeLabelInsetAdjustPx);
+  }
   
   // Link colors
   if (config.linkHoverColor !== undefined) state.linkHoverColor = config.linkHoverColor;

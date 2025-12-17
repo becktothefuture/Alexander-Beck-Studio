@@ -857,6 +857,45 @@ export const CONTROL_SECTIONS = {
           root.style.setProperty('--text-color-dark-muted', val);
         }
       },
+
+      // ─── EDGE LABELS (CHAPTER + COPYRIGHT) ─────────────────────────────────
+      { type: 'divider', label: 'Edge Labels' },
+      {
+        id: 'edgeLabelColorLight',
+        label: 'Light Mode',
+        stateKey: 'edgeLabelColorLight',
+        type: 'color',
+        default: '#2f2f2f',
+        hint: 'Color for the vertical edge labels in light mode',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--edge-label-color-light', val);
+        }
+      },
+      {
+        id: 'edgeLabelColorDark',
+        label: 'Dark Mode',
+        stateKey: 'edgeLabelColorDark',
+        type: 'color',
+        default: '#b3b3b3',
+        hint: 'Color for the vertical edge labels in dark mode',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--edge-label-color-dark', val);
+        }
+      },
+      {
+        id: 'edgeLabelInsetAdjustPx',
+        label: 'Inset',
+        stateKey: 'edgeLabelInsetAdjustPx',
+        type: 'range',
+        min: -120, max: 240, step: 1,
+        default: 0,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Adjusts edge label inset. Higher = further inward; lower/negative = outward.',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--edge-label-inset-adjust', `${val}px`);
+        }
+      },
       
       // ─── LINKS ───────────────────────────────────────────────────────────
       { type: 'divider', label: 'Links' },
