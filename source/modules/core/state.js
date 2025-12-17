@@ -206,7 +206,7 @@ const state = {
   contentPaddingVw: 0,      // padding for content blocks inside frame (vw)
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
   mobileContentPaddingXFactor: 1.2,   // extra horizontal padding multiplier on mobile (1.0 = same as desktop)
-  mobileContainerBorderFactor: 1.0,   // container border multiplier on mobile (1.0 = same as desktop)
+  mobileWallThicknessFactor: 1.0,     // wall thickness multiplier on mobile (1.0 = same as desktop)
   mobileEdgeLabelsVisible: false,     // whether to show edge labels on mobile (default: hidden)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
@@ -626,13 +626,9 @@ export function applyLayoutFromVwToPx() {
     : state.containerBorderVw;
   const thicknessPx = vwToPx(thicknessVw, w);
 
-  // Apply mobile container border factor if on mobile
   const isMobileLayout = state.isMobile || state.isMobileViewport;
-  const mobileContainerFactor = isMobileLayout
-    ? Math.max(0.5, state.mobileContainerBorderFactor || 1.0)
-    : 1.0;
   
-  state.containerBorder = Math.round(borderPx * mobileContainerFactor);
+  state.containerBorder = Math.round(borderPx);
   state.simulationPadding = Math.round(simPadPx);
   state.contentPadding = Math.max(minContentPaddingPx, Math.round(contentPadPx));
   
@@ -646,7 +642,12 @@ export function applyLayoutFromVwToPx() {
   
   state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
-  state.wallThickness = Math.round(thicknessPx);
+  
+  // Apply mobile wall thickness factor
+  const mobileWallFactor = isMobileLayout
+    ? Math.max(0.5, state.mobileWallThicknessFactor || 1.0)
+    : 1.0;
+  state.wallThickness = Math.round(thicknessPx * mobileWallFactor);
 
   // Cursor influence radius (vw → px), then apply mode multipliers.
   // This keeps a single “interaction zone” definition that naturally scales on mobile.
@@ -1073,7 +1074,7 @@ export function initState(config) {
   if (config.contentPaddingVw !== undefined) state.contentPaddingVw = clampNumber(config.contentPaddingVw, 0, 40, state.contentPaddingVw);
   if (config.contentPaddingHorizontalRatio !== undefined) state.contentPaddingHorizontalRatio = clampNumber(config.contentPaddingHorizontalRatio, 0.1, 3.0, state.contentPaddingHorizontalRatio);
   if (config.mobileContentPaddingXFactor !== undefined) state.mobileContentPaddingXFactor = clampNumber(config.mobileContentPaddingXFactor, 0.5, 3.0, state.mobileContentPaddingXFactor);
-  if (config.mobileContainerBorderFactor !== undefined) state.mobileContainerBorderFactor = clampNumber(config.mobileContainerBorderFactor, 0.5, 3.0, state.mobileContainerBorderFactor);
+  if (config.mobileWallThicknessFactor !== undefined) state.mobileWallThicknessFactor = clampNumber(config.mobileWallThicknessFactor, 0.5, 3.0, state.mobileWallThicknessFactor);
   if (config.mobileEdgeLabelsVisible !== undefined) state.mobileEdgeLabelsVisible = !!config.mobileEdgeLabelsVisible;
   if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);
   if (config.wallThicknessVw !== undefined) state.wallThicknessVw = clampNumber(config.wallThicknessVw, 0, 20, state.wallThicknessVw);

@@ -1043,15 +1043,15 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
-        id: 'mobileContainerBorderFactor',
-        label: 'Mobile Frame Inset',
-        stateKey: 'mobileContainerBorderFactor',
+        id: 'mobileWallThicknessFactor',
+        label: 'Mobile Wall Thickness',
+        stateKey: 'mobileWallThicknessFactor',
         type: 'range',
         min: 0.5, max: 3.0, step: 0.05,
         default: 1.0,
         format: v => `${v.toFixed(2)}×`,
         parse: parseFloat,
-        hint: 'Frame/wall inset multiplier on mobile (1.0 = same as desktop)',
+        hint: 'Wall thickness multiplier on mobile (1.0 = same as desktop)',
         onChange: (g, val) => {
           import('../core/state.js').then(mod => {
             mod.applyLayoutFromVwToPx();
