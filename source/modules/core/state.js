@@ -205,7 +205,7 @@ const state = {
   simulationPaddingVw: 0,   // inner inset around canvas (vw)
   contentPaddingVw: 0,      // padding for content blocks inside frame (vw)
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
-  mobileWallThicknessFactor: 1.0,     // wall thickness multiplier on mobile (1.0 = same as desktop)
+  mobileWallThicknessXFactor: 1.4,    // wall thickness multiplier for LEFT/RIGHT on mobile (1.0 = same as desktop)
   mobileEdgeLabelsVisible: true,     // whether to show edge labels on mobile (default: visible)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
@@ -494,7 +494,8 @@ const state = {
   brandLogoReleaseMs: 220,
   
   // Two-level padding system (in pixels)
-  containerBorder: 20,   // Outer: insets container from viewport (reveals body bg as frame)
+  containerBorder: 20,   // Outer Y: insets container top/bottom from viewport
+  containerBorderX: 20,  // Outer X: insets container left/right (mobile factor applied)
   simulationPadding: 0,  // Inner: padding inside container around canvas
 
   // Text wrapper padding (in pixels) for UI text blocks (legend, top-right statement)
@@ -627,13 +628,14 @@ export function applyLayoutFromVwToPx() {
 
   const isMobileLayout = state.isMobile || state.isMobileViewport;
   
-  // Apply mobile wall thickness factor to both containerBorder and wallThickness
-  // (they both control the visual frame appearance)
-  const mobileWallFactor = isMobileLayout
-    ? Math.max(0.5, state.mobileWallThicknessFactor || 1.0)
+  // Apply mobile wall thickness factor to LEFT/RIGHT only (horizontal)
+  const mobileWallXFactor = isMobileLayout
+    ? Math.max(0.5, state.mobileWallThicknessXFactor || 1.0)
     : 1.0;
   
-  state.containerBorder = Math.round(borderPx * mobileWallFactor);
+  // Vertical (top/bottom) stays same, horizontal (left/right) gets mobile factor
+  state.containerBorder = Math.round(borderPx); // Y (top/bottom)
+  state.containerBorderX = Math.round(borderPx * mobileWallXFactor); // X (left/right)
   state.simulationPadding = Math.round(simPadPx);
   state.contentPadding = Math.max(minContentPaddingPx, Math.round(contentPadPx));
   
@@ -645,7 +647,8 @@ export function applyLayoutFromVwToPx() {
   state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
   
-  state.wallThickness = Math.round(thicknessPx * mobileWallFactor);
+  // Wall thickness uses horizontal factor on mobile (matches left/right border)
+  state.wallThickness = Math.round(thicknessPx * mobileWallXFactor);
 
   // Cursor influence radius (vw → px), then apply mode multipliers.
   // This keeps a single “interaction zone” definition that naturally scales on mobile.
@@ -664,14 +667,17 @@ export function applyLayoutCSSVars() {
   // performance-sensitive paths.
   const root = document.documentElement;
   
-  // Calculate mobile factor for CSS vars
+  // Calculate mobile factor for CSS vars (X = left/right only)
   const isMobileLayout = state.isMobile || state.isMobileViewport;
-  const mobileWallFactor = isMobileLayout
-    ? Math.max(0.5, state.mobileWallThicknessFactor || 1.0)
+  const mobileWallXFactor = isMobileLayout
+    ? Math.max(0.5, state.mobileWallThicknessXFactor || 1.0)
     : 1.0;
   
   // Set all layout CSS vars (px values override CSS calcs)
-  root.style.setProperty('--container-border', `${state.containerBorder}px`);
+  // Y = top/bottom (no mobile factor), X = left/right (with mobile factor)
+  root.style.setProperty('--container-border', `${state.containerBorder}px`); // Y (top/bottom)
+  root.style.setProperty('--container-border-x', `${state.containerBorderX}px`); // X (left/right)
+  root.style.setProperty('--container-border-y', `${state.containerBorder}px`); // alias for clarity
   root.style.setProperty('--simulation-padding', `${state.simulationPadding}px`);
   root.style.setProperty('--content-padding', `${state.contentPadding}px`);
   root.style.setProperty('--content-padding-x', `${state.contentPaddingX}px`);
@@ -679,14 +685,15 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
   
-  // Also update vw-based vars for CSS calc fallbacks (with mobile factor applied)
+  // Also update vw-based vars for CSS calc fallbacks
   const baseContainerVw = state.containerBorderVw || 1.3;
-  root.style.setProperty('--container-border-vw', `${baseContainerVw * mobileWallFactor}`);
+  root.style.setProperty('--container-border-vw', `${baseContainerVw}`);
+  root.style.setProperty('--container-border-x-vw', `${baseContainerVw * mobileWallXFactor}`);
   
   const baseThicknessVw = (Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)
     ? state.wallThicknessVw
     : state.containerBorderVw;
-  root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * mobileWallFactor}`);
+  root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * mobileWallXFactor}`);
   
   // Edge label inset: relative to wall (containerBorder) + small gap + user adjustment
   const edgeLabelGap = 8; // Base gap between wall and label (px)
@@ -1094,7 +1101,7 @@ export function initState(config) {
   if (config.simulationPaddingVw !== undefined) state.simulationPaddingVw = clampNumber(config.simulationPaddingVw, 0, 20, state.simulationPaddingVw);
   if (config.contentPaddingVw !== undefined) state.contentPaddingVw = clampNumber(config.contentPaddingVw, 0, 40, state.contentPaddingVw);
   if (config.contentPaddingHorizontalRatio !== undefined) state.contentPaddingHorizontalRatio = clampNumber(config.contentPaddingHorizontalRatio, 0.1, 3.0, state.contentPaddingHorizontalRatio);
-  if (config.mobileWallThicknessFactor !== undefined) state.mobileWallThicknessFactor = clampNumber(config.mobileWallThicknessFactor, 0.5, 3.0, state.mobileWallThicknessFactor);
+  if (config.mobileWallThicknessXFactor !== undefined) state.mobileWallThicknessXFactor = clampNumber(config.mobileWallThicknessXFactor, 0.5, 3.0, state.mobileWallThicknessXFactor);
   if (config.mobileEdgeLabelsVisible !== undefined) state.mobileEdgeLabelsVisible = !!config.mobileEdgeLabelsVisible;
   if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);
   if (config.wallThicknessVw !== undefined) state.wallThicknessVw = clampNumber(config.wallThicknessVw, 0, 20, state.wallThicknessVw);

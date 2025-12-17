@@ -1031,15 +1031,15 @@ export const CONTROL_SECTIONS = {
         hint: 'Physics padding inside the visual wall'
       },
       {
-        id: 'mobileWallThicknessFactor',
-        label: 'Mobile Wall Thickness',
-        stateKey: 'mobileWallThicknessFactor',
+        id: 'mobileWallThicknessXFactor',
+        label: 'Mobile L/R Thickness',
+        stateKey: 'mobileWallThicknessXFactor',
         type: 'range',
         min: 0.5, max: 3.0, step: 0.05,
-        default: 1.0,
+        default: 1.4,
         format: v => `${v.toFixed(2)}×`,
         parse: parseFloat,
-        hint: 'Wall thickness multiplier on mobile (1.0 = same as desktop)',
+        hint: 'Wall thickness multiplier for LEFT/RIGHT sides on mobile',
         onChange: (g, val) => {
           import('../core/state.js').then(mod => {
             mod.applyLayoutFromVwToPx();

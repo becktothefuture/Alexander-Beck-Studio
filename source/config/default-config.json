@@ -251,7 +251,7 @@
   "simulationPaddingVw": 0,
   "contentPaddingVw": 1.7,
   "contentPaddingHorizontalRatio": 1.5,
-  "mobileWallThicknessFactor": 1.0,
+  "mobileWallThicknessXFactor": 1.4,
   "mobileEdgeLabelsVisible": true,
   "layoutMinContentPaddingPx": 21,
   "layoutMinWallRadiusPx": 32,

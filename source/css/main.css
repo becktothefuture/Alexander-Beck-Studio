@@ -334,7 +334,8 @@ body,
 body.body {
   overflow: hidden;
   margin: 0;
-  padding: var(--container-border);
+  /* Y (top/bottom) X (left/right) - mobile factor only on X */
+  padding: var(--container-border-y, var(--container-border)) var(--container-border-x, var(--container-border));
   box-sizing: border-box;
   width: 100%;
   height: 100%;
@@ -491,10 +492,13 @@ body.dark-mode .edge-chapter__text {
   
   /* Positioning: Matches frame inset (border + padding handled by children if needed, or parent) */
   position: fixed !important;
-  /* Use edge-inset to respect organic padding immediately */
-  inset: var(--container-border) !important;
+  /* Use edge-inset to respect organic padding immediately - Y (top/bottom) X (left/right) */
+  top: var(--container-border-y, var(--container-border)) !important;
+  left: var(--container-border-x, var(--container-border)) !important;
+  right: var(--container-border-x, var(--container-border)) !important;
+  height: calc(var(--abs-viewport-h, 100vh) - (var(--container-border-y, var(--container-border)) * 2)) !important;
   width: auto !important;
-  height: auto !important;
+  /* Height is explicitly controlled above to avoid iOS Safari 100vh cut-off. */
   
   /* Reset */
   box-sizing: border-box !important;
@@ -508,7 +512,10 @@ body.dark-mode .edge-chapter__text {
   pointer-events: none !important; /* Let clicks pass through to canvas in empty areas */
   /* Smooth layout updates (resize + config). Avoid overriding other timings by only setting this where none exists. */
   transition:
-    inset var(--duration-resize) var(--ease-organic),
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic),
+    height var(--duration-resize) var(--ease-organic),
     padding var(--duration-resize) var(--ease-organic),
     border-radius var(--duration-resize) var(--ease-organic);
   
@@ -1000,7 +1007,10 @@ p {
    ───────────────────────────────────────────────────────────────────────────── */
 #abs-scene {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--abs-viewport-h, 100vh);
   z-index: 0;
   pointer-events: auto;
   transform-origin: center center;
@@ -1095,7 +1105,8 @@ body.dark-mode .brand-logo-svg {
    ───────────────────────────────────────────────────────────────────────────── */
 .content-background-layer {
   position: fixed;
-  inset: var(--container-border);
+  /* Y (top/bottom) X (left/right) - mobile factor only on X */
+  inset: var(--container-border-y, var(--container-border)) var(--container-border-x, var(--container-border));
   border-radius: var(--container-radius);
   background: var(--bg-light);
   z-index: 1; 
@@ -1109,7 +1120,8 @@ body.dark-mode .brand-logo-svg {
 
 #bravia-balls {
   position: fixed;
-  inset: var(--container-border);
+  /* Y (top/bottom) X (left/right) - mobile factor only on X */
+  inset: var(--container-border-y, var(--container-border)) var(--container-border-x, var(--container-border));
   border-radius: var(--container-radius);
   background: transparent;
   z-index: 5;

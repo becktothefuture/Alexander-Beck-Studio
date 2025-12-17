@@ -198,6 +198,18 @@ export function resize() {
   
   const globals = getGlobals();
 
+  // ══════════════════════════════════════════════════════════════════════════════
+  // iOS SAFARI VIEWPORT FIX:
+  // Keep a CSS var synced to the *visual* viewport height (keyboard + URL bar aware).
+  // This ensures fixed-position "frame" layers size to the actually visible area.
+  // Runs only on resize events (debounced by rAF), not in hot render loops.
+  // ══════════════════════════════════════════════════════════════════════════════
+  try {
+    const vv = window.visualViewport;
+    const vhPx = (vv && typeof vv.height === 'number') ? vv.height : window.innerHeight;
+    document.documentElement?.style?.setProperty('--abs-viewport-h', `${vhPx}px`);
+  } catch (e) {}
+
   // Keep vw-based layout responsive: on any resize we recompute derived px and
   // restamp CSS vars before measuring container dimensions.
   try {
