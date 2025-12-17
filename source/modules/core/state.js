@@ -205,7 +205,6 @@ const state = {
   simulationPaddingVw: 0,   // inner inset around canvas (vw)
   contentPaddingVw: 0,      // padding for content blocks inside frame (vw)
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
-  mobileContentPaddingXFactor: 1.2,   // extra horizontal padding multiplier on mobile (1.0 = same as desktop)
   mobileWallThicknessFactor: 1.0,     // wall thickness multiplier on mobile (1.0 = same as desktop)
   mobileEdgeLabelsVisible: true,     // whether to show edge labels on mobile (default: visible)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
@@ -632,13 +631,10 @@ export function applyLayoutFromVwToPx() {
   state.simulationPadding = Math.round(simPadPx);
   state.contentPadding = Math.max(minContentPaddingPx, Math.round(contentPadPx));
   
-  // Derive directional padding: horizontal = base × ratio × mobileFactor, vertical = base
+  // Derive directional padding: horizontal = base × ratio, vertical = base
   const horizRatio = Math.max(0.1, state.contentPaddingHorizontalRatio || 1.0);
-  const mobilePaddingFactor = isMobileLayout
-    ? Math.max(0.5, state.mobileContentPaddingXFactor || 1.0)
-    : 1.0;
   state.contentPaddingY = state.contentPadding;
-  state.contentPaddingX = Math.round(state.contentPadding * horizRatio * mobilePaddingFactor);
+  state.contentPaddingX = Math.round(state.contentPadding * horizRatio);
   
   state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
@@ -671,10 +667,21 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--content-padding-x', `${state.contentPaddingX}px`);
   root.style.setProperty('--content-padding-y', `${state.contentPaddingY}px`);
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
+  // Set wall thickness (px) - this overrides CSS calc
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
   
-  // Mobile edge label visibility (CSS only applies this var on mobile via @media)
+  // Also update --wall-thickness-vw for CSS calc fallback (with mobile factor applied)
   const isMobileLayout = state.isMobile || state.isMobileViewport;
+  const mobileWallFactor = isMobileLayout
+    ? Math.max(0.5, state.mobileWallThicknessFactor || 1.0)
+    : 1.0;
+  const baseThicknessVw = (Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)
+    ? state.wallThicknessVw
+    : state.containerBorderVw;
+  const effectiveThicknessVw = baseThicknessVw * mobileWallFactor;
+  root.style.setProperty('--wall-thickness-vw', `${effectiveThicknessVw}`);
+  
+  // Mobile edge label visibility (CSS only applies this var on mobile via @media)
   const displayValue = (isMobileLayout && state.mobileEdgeLabelsVisible) ? 'flex' : 'none';
   root.style.setProperty('--edge-label-mobile-display', displayValue);
 }
@@ -1073,7 +1080,6 @@ export function initState(config) {
   if (config.simulationPaddingVw !== undefined) state.simulationPaddingVw = clampNumber(config.simulationPaddingVw, 0, 20, state.simulationPaddingVw);
   if (config.contentPaddingVw !== undefined) state.contentPaddingVw = clampNumber(config.contentPaddingVw, 0, 40, state.contentPaddingVw);
   if (config.contentPaddingHorizontalRatio !== undefined) state.contentPaddingHorizontalRatio = clampNumber(config.contentPaddingHorizontalRatio, 0.1, 3.0, state.contentPaddingHorizontalRatio);
-  if (config.mobileContentPaddingXFactor !== undefined) state.mobileContentPaddingXFactor = clampNumber(config.mobileContentPaddingXFactor, 0.5, 3.0, state.mobileContentPaddingXFactor);
   if (config.mobileWallThicknessFactor !== undefined) state.mobileWallThicknessFactor = clampNumber(config.mobileWallThicknessFactor, 0.5, 3.0, state.mobileWallThicknessFactor);
   if (config.mobileEdgeLabelsVisible !== undefined) state.mobileEdgeLabelsVisible = !!config.mobileEdgeLabelsVisible;
   if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);

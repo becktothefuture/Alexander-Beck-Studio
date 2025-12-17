@@ -1026,23 +1026,6 @@ export const CONTROL_SECTIONS = {
         hint: 'Physics padding inside the visual wall'
       },
       {
-        id: 'mobileContentPaddingXFactor',
-        label: 'Mobile H-Padding',
-        stateKey: 'mobileContentPaddingXFactor',
-        type: 'range',
-        min: 0.5, max: 3.0, step: 0.05,
-        default: 1.2,
-        format: v => `${v.toFixed(2)}×`,
-        parse: parseFloat,
-        hint: 'Extra horizontal content padding on mobile (1.0 = same as desktop)',
-        onChange: (g, val) => {
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutFromVwToPx();
-            mod.applyLayoutCSSVars();
-          });
-        }
-      },
-      {
         id: 'mobileWallThicknessFactor',
         label: 'Mobile Wall Thickness',
         stateKey: 'mobileWallThicknessFactor',
