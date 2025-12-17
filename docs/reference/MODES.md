@@ -45,25 +45,25 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 The arrow keys cycle through a fixed story order (looping). Think of it as chapters — each mode is a new lens on the same set of elements:
 
 1. **Ball Pit** (`pit`) — **SOURCE MATERIAL**
-2. **Flies to Light** (`flies`) — **SEEKING LIGHT**
-3. **Crystal Lattice** (`lattice`) — **CRYSTAL FRAME**
-4. **Carbonated Bubbles** (`bubbles`) — **SIGNAL NOISE**
-5. **Ball Pit (Throws)** (`pit-throws`) — **ITERATION ENGINE**
-6. **Magnetic** (`magnetic`) — **FORCE FIELDS**
-7. **Water Swimming** (`water`) — **FLOW STATE**
-8. **Ping Pong** (`ping-pong`) — **FEEDBACK LOOP**
-9. **Neural Network** (`neural`) — **SYNAPTIC WEB**
-10. **Vortex Sheets** (`vortex`) — **ORDERED CHAOS**
-11. **Orbit 3D** (`orbit-3d`) — **AXIAL STORM**
-12. **Zero Gravity** (`weightless`) — **ZERO GRAVITY**
-13. **Parallax (Linear)** (`parallax-linear`) — **DEPTH DRIFT**
-14. **Critters** (`critters`) — **LIVING MODELS**
-15. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`) — **ORBIT SWARM**
-16. **Parallax (Perspective)** (`parallax-perspective`) — **PERSPECTIVE FIELD**
-17. **Kaleidoscope I** (`kaleidoscope-1`) — **LANGUAGE SEED**
-18. **Kaleidoscope II** (`kaleidoscope-2`) — **LANGUAGE FLOW**
-19. **Kaleidoscope III** (`kaleidoscope-3`) — **LANGUAGE BLOOM**
-20. **Kaleidoscope** (`kaleidoscope`) — **A NEW LANGUAGE**
+2. **Flies to Light** (`flies`) — **IDEA SPARK**
+3. **Crystal Lattice** (`lattice`) — **SYSTEM FRAME**
+4. **Carbonated Bubbles** (`bubbles`) — **NOISE SIGNAL**
+5. **Ball Pit (Throws)** (`pit-throws`) — **PROTOTYPE LOOP**
+6. **Magnetic** (`magnetic`) — **DESIGN FORCES**
+7. **Water Swimming** (`water`) — **USER FLOW**
+8. **Ping Pong** (`ping-pong`) — **FEEDBACK CYCLE**
+9. **Neural Network** (`neural`) — **CONNECTION MAP**
+10. **Vortex Sheets** (`vortex`) — **EMERGENT ORDER**
+11. **Orbit 3D** (`orbit-3d`) — **SYSTEM DYNAMICS**
+12. **Zero Gravity** (`weightless`) — **OPEN SPACE**
+13. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
+14. **Critters** (`critters`) — **BEHAVIOR MODEL**
+15. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`) — **EDGE CASES**
+16. **Parallax (Perspective)** (`parallax-perspective`) — **CONTEXT FIELD**
+17. **Kaleidoscope I** (`kaleidoscope-1`) — **VOCAB SEED**
+18. **Kaleidoscope II** (`kaleidoscope-2`) — **VOCAB FLOW**
+19. **Kaleidoscope III** (`kaleidoscope-3`) — **VOCAB BLOOM**
+20. **Kaleidoscope** (`kaleidoscope`) — **VISUAL LANGUAGE**
 
 ---
 
