@@ -409,7 +409,8 @@ body.dark-mode .edge-copyright__text {
 
 @media (max-width: 600px) {
   .edge-copyright {
-    /* Keep the same inset logic across viewports; only tune type size. */
+    /* JS-controlled visibility on mobile via --edge-label-mobile-display */
+    display: var(--edge-label-mobile-display, none);
     right: var(--edge-label-inset);
   }
 
@@ -462,7 +463,8 @@ body.dark-mode .edge-chapter__text {
 
 @media (max-width: 600px) {
   .edge-chapter {
-    /* Keep the same inset logic across viewports; only tune type size. */
+    /* JS-controlled visibility on mobile via --edge-label-mobile-display */
+    display: var(--edge-label-mobile-display, none);
     left: var(--edge-label-inset);
   }
 
