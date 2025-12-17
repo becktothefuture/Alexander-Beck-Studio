@@ -1064,7 +1064,7 @@ export const CONTROL_SECTIONS = {
         label: 'Mobile Edge Labels',
         stateKey: 'mobileEdgeLabelsVisible',
         type: 'toggle',
-        default: false,
+        default: true,
         hint: 'Show side edge labels on mobile (chapter/copyright)',
         onChange: (g, val) => {
           import('../core/state.js').then(mod => {

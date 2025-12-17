@@ -253,7 +253,7 @@
   "contentPaddingHorizontalRatio": 1.5,
   "mobileContentPaddingXFactor": 1.2,
   "mobileWallThicknessFactor": 1.0,
-  "mobileEdgeLabelsVisible": false,
+  "mobileEdgeLabelsVisible": true,
   "layoutMinContentPaddingPx": 21,
   "layoutMinWallRadiusPx": 32,
   "soundPreset": "crystalPebbles",

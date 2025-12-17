@@ -27,6 +27,9 @@
   --edge-inset: calc(var(--container-border) + var(--content-padding));
   --edge-inset-lg: calc(var(--container-border) + var(--content-padding));
 
+  /* Gate overlays (CV/Portfolio/Contact) */
+  --abs-gate-mobile-pad-x: 20px;
+
   /* ───────────────────────────────────────────────────────────────────────────
      Edge labels (vertical chapter + copyright)
      - Keep separate from general text colors so we can tune them independently.

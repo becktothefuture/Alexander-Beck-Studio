@@ -207,7 +207,7 @@ const state = {
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
   mobileContentPaddingXFactor: 1.2,   // extra horizontal padding multiplier on mobile (1.0 = same as desktop)
   mobileWallThicknessFactor: 1.0,     // wall thickness multiplier on mobile (1.0 = same as desktop)
-  mobileEdgeLabelsVisible: false,     // whether to show edge labels on mobile (default: hidden)
+  mobileEdgeLabelsVisible: true,     // whether to show edge labels on mobile (default: visible)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
 
@@ -673,10 +673,10 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
   
-  // Mobile edge label visibility (CSS uses display:none when 0)
+  // Mobile edge label visibility (CSS only applies this var on mobile via @media)
   const isMobileLayout = state.isMobile || state.isMobileViewport;
-  const showEdgeLabels = isMobileLayout ? (state.mobileEdgeLabelsVisible ? 1 : 0) : 1;
-  root.style.setProperty('--edge-label-mobile-display', showEdgeLabels ? 'flex' : 'none');
+  const displayValue = (isMobileLayout && state.mobileEdgeLabelsVisible) ? 'flex' : 'none';
+  root.style.setProperty('--edge-label-mobile-display', displayValue);
 }
 
 export function initState(config) {
