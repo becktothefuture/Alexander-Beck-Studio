@@ -627,7 +627,13 @@ export function applyLayoutFromVwToPx() {
 
   const isMobileLayout = state.isMobile || state.isMobileViewport;
   
-  state.containerBorder = Math.round(borderPx);
+  // Apply mobile wall thickness factor to both containerBorder and wallThickness
+  // (they both control the visual frame appearance)
+  const mobileWallFactor = isMobileLayout
+    ? Math.max(0.5, state.mobileWallThicknessFactor || 1.0)
+    : 1.0;
+  
+  state.containerBorder = Math.round(borderPx * mobileWallFactor);
   state.simulationPadding = Math.round(simPadPx);
   state.contentPadding = Math.max(minContentPaddingPx, Math.round(contentPadPx));
   
@@ -639,10 +645,6 @@ export function applyLayoutFromVwToPx() {
   state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
   
-  // Apply mobile wall thickness factor
-  const mobileWallFactor = isMobileLayout
-    ? Math.max(0.5, state.mobileWallThicknessFactor || 1.0)
-    : 1.0;
   state.wallThickness = Math.round(thicknessPx * mobileWallFactor);
 
   // Cursor influence radius (vw → px), then apply mode multipliers.
@@ -661,25 +663,30 @@ export function applyLayoutCSSVars() {
   // Keeps CSS + physics aligned, and allows vw-based tuning without touching
   // performance-sensitive paths.
   const root = document.documentElement;
+  
+  // Calculate mobile factor for CSS vars
+  const isMobileLayout = state.isMobile || state.isMobileViewport;
+  const mobileWallFactor = isMobileLayout
+    ? Math.max(0.5, state.mobileWallThicknessFactor || 1.0)
+    : 1.0;
+  
+  // Set all layout CSS vars (px values override CSS calcs)
   root.style.setProperty('--container-border', `${state.containerBorder}px`);
   root.style.setProperty('--simulation-padding', `${state.simulationPadding}px`);
   root.style.setProperty('--content-padding', `${state.contentPadding}px`);
   root.style.setProperty('--content-padding-x', `${state.contentPaddingX}px`);
   root.style.setProperty('--content-padding-y', `${state.contentPaddingY}px`);
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
-  // Set wall thickness (px) - this overrides CSS calc
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
   
-  // Also update --wall-thickness-vw for CSS calc fallback (with mobile factor applied)
-  const isMobileLayout = state.isMobile || state.isMobileViewport;
-  const mobileWallFactor = isMobileLayout
-    ? Math.max(0.5, state.mobileWallThicknessFactor || 1.0)
-    : 1.0;
+  // Also update vw-based vars for CSS calc fallbacks (with mobile factor applied)
+  const baseContainerVw = state.containerBorderVw || 1.3;
+  root.style.setProperty('--container-border-vw', `${baseContainerVw * mobileWallFactor}`);
+  
   const baseThicknessVw = (Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)
     ? state.wallThicknessVw
     : state.containerBorderVw;
-  const effectiveThicknessVw = baseThicknessVw * mobileWallFactor;
-  root.style.setProperty('--wall-thickness-vw', `${effectiveThicknessVw}`);
+  root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * mobileWallFactor}`);
   
   // Mobile edge label visibility (CSS only applies this var on mobile via @media)
   const displayValue = (isMobileLayout && state.mobileEdgeLabelsVisible) ? 'flex' : 'none';

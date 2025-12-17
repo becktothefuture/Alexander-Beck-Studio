@@ -988,6 +988,8 @@ export const CONTROL_SECTIONS = {
         format: v => `${v.toFixed(1)}vw`,
         parse: parseFloat,
         onChange: (g, val) => {
+          // Sync containerBorderVw with wallThicknessVw (they control the same visual frame)
+          g.containerBorderVw = val;
           import('../core/state.js').then(mod => {
             mod.applyLayoutFromVwToPx();
             mod.applyLayoutCSSVars();
