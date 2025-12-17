@@ -4,7 +4,7 @@
 // ║                    No drag, no friction, pure momentum                       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
@@ -18,7 +18,9 @@ export function initializePingPong() {
 
   const w = canvas.width;
   const h = canvas.height;
-  const count = Math.min(g.pingPongBallCount || 80, g.maxBalls || 300);
+  const baseCount = Math.min(g.pingPongBallCount || 80, g.maxBalls || 300);
+  const count = getMobileAdjustedCount(baseCount);
+  if (count <= 0) return;
   const baseSpeed = g.pingPongSpeed || 400;
 
   // Ensure at least one of each color

@@ -3,7 +3,7 @@
 // ║          Same physics as Orbit 2, configured for tight fast motion          ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { spawnBall } from '../physics/spawn.js';
 import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
 import { ORBIT3D_PRESETS } from '../core/constants.js';
@@ -12,7 +12,9 @@ export function initializeOrbit3D() {
   const globals = getGlobals();
   clearBalls();
 
-  const count = Math.max(1, (globals.orbit3dMoonCount ?? 80) | 0);
+  const baseCount = Math.max(0, (globals.orbit3dMoonCount ?? 80) | 0);
+  const count = getMobileAdjustedCount(baseCount);
+  if (count <= 0) return;
   const w = globals.canvas.width;
   const h = globals.canvas.height;
 
@@ -26,8 +28,9 @@ export function initializeOrbit3D() {
     const ball = spawnBall(x, y, i < 8 ? getColorByIndex(i) : pickRandomColor());
     if (!ball) continue;
 
-    // FAST: Initial tangential velocity
-    const speed = (globals.orbit3dVelocityMult ?? 150) * (0.9 + Math.random() * 0.2);
+    // FAST: Initial tangential velocity (DPR-scaled)
+    const DPR = globals.DPR || 1;
+    const speed = (globals.orbit3dVelocityMult ?? 150) * (0.9 + Math.random() * 0.2) * DPR;
     ball.vx = -Math.sin(angle) * speed;
     ball.vy = Math.cos(angle) * speed;
     ball.orbitDepth = Math.random();
@@ -51,7 +54,9 @@ export function applyOrbit3DForces(ball, dt) {
   const tangentY = dx / dist;
 
   // GUARDRAIL 1: Minimum distance repulsion
-  const minRadius = 40; // TIGHT: Smaller min radius
+  // DPR-scaled: physics runs in canvas pixels
+  const DPR = g.DPR || 1;
+  const minRadius = 40 * DPR; // TIGHT: Smaller min radius
   if (dist < minRadius) {
     const repulsionStrength = (minRadius - dist) * 100;
     ball.vx -= radialX * repulsionStrength * dt;
@@ -67,7 +72,7 @@ export function applyOrbit3DForces(ball, dt) {
   ball.vy += tangentY * tangentForce * dt;
 
   // Weak inward pull for slow spiral (softened)
-  const softening = 100;
+  const softening = 100 * DPR;
   const radialForce = (gravity * 0.003) / (1 + dist / softening);
   ball.vx += radialX * radialForce * dt;
   ball.vy += radialY * radialForce * dt;
@@ -95,8 +100,8 @@ export function applyOrbit3DForces(ball, dt) {
     ball.vy += (sepY / neighborCount) * separationForce * dt;
   }
 
-  // GUARDRAIL 3: Speed limiting
-  const maxSpeed = (g.orbit3dVelocityMult ?? 150) * 2;
+  // GUARDRAIL 3: Speed limiting (DPR-scaled)
+  const maxSpeed = (g.orbit3dVelocityMult ?? 150) * 2 * DPR;
   const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
   if (speed > maxSpeed) {
     ball.vx = (ball.vx / speed) * maxSpeed;

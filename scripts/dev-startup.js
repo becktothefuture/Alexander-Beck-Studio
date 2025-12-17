@@ -14,25 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// DEV ASSET SYNC (Webflow export → source/webflow)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function syncWebflowAssets() {
-  return new Promise((resolve) => {
-    const syncScript = path.join(process.cwd(), 'scripts', 'sync-webflow-assets.js');
-    if (!fs.existsSync(syncScript)) {
-      // Non-fatal: dev can still run, but may not match production visuals
-      log('⚠️  Webflow sync script missing (scripts/sync-webflow-assets.js)', 'yellow');
-      resolve(false);
-      return;
-    }
-
-    const p = spawn('node', [syncScript], { stdio: 'inherit', shell: false });
-    p.on('close', (code) => resolve(code === 0));
-    p.on('error', () => resolve(false));
-  });
-}
+// (Legacy) Asset sync removed: the project no longer depends on external exports.
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ANSI COLORS
@@ -269,7 +251,7 @@ async function quickDevMode() {
   header('QUICK DEV MODE');
   log('Starting development server with instant reload...\n', 'cyan');
 
-  await syncWebflowAssets();
+  // No-op: legacy asset sync removed.
   
   await startServer(
     'Dev Server',
@@ -318,7 +300,7 @@ async function dualMode() {
   header('DUAL MODE - DEV + BUILD');
   log('Starting both servers for side-by-side comparison...\n', 'cyan');
 
-  await syncWebflowAssets();
+  // No-op: legacy asset sync removed.
   
   if (!checkBuildOutput()) {
     log('⚠️  No build output found. Running build first...\n', 'yellow');
@@ -357,7 +339,7 @@ async function watchMode() {
   header('WATCH MODE - AUTO-REBUILD');
   log('Starting dev server with background auto-rebuild...\n', 'cyan');
 
-  await syncWebflowAssets();
+  // No-op: legacy asset sync removed.
   
   // Watch Mode should be fully end-to-end: run dev server, build server, and watcher.
   await Promise.all([

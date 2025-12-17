@@ -69,7 +69,7 @@ export function getModeSizeVarianceFrac(g, mode) {
  * Kaleidoscope radius helper (vh-based):
  * - Base radius derives from canvas height (vh feel)
  * - Area multiplier defaults to 0.7 (≈30% smaller area)
- * - Still respects per-mode size variation (via global cap + per-mode slider)
+ * - Uses per-variant size variance for more control
  */
 export function randomRadiusForKaleidoscopeVh(g, mode) {
   const canvas = g?.canvas;
@@ -88,12 +88,20 @@ export function randomRadiusForKaleidoscopeVh(g, mode) {
     if (mode === MODES.KALEIDOSCOPE_3) return Number(g.kaleidoscope3DotAreaMul ?? g.kaleidoscopeDotAreaMul ?? 0.7);
     return Number(g.kaleidoscopeDotAreaMul ?? 0.7);
   };
+  // Per-variant size variance (0..1) - controls how much ball sizes differ
+  const getSizeVariance = () => {
+    if (mode === MODES.KALEIDOSCOPE_1) return Number(g.kaleidoscope1SizeVariance ?? g.kaleidoscopeSizeVariance ?? 0.3);
+    if (mode === MODES.KALEIDOSCOPE_2) return Number(g.kaleidoscope2SizeVariance ?? g.kaleidoscopeSizeVariance ?? 0.3);
+    if (mode === MODES.KALEIDOSCOPE_3) return Number(g.kaleidoscope3SizeVariance ?? g.kaleidoscopeSizeVariance ?? 0.3);
+    return Number(g.kaleidoscopeSizeVariance ?? 0.3);
+  };
 
   const vh = clamp(getVh(), 0.1, 6.0);
   const areaMul = clamp(getAreaMul(), 0.1, 2.0);
   const base = Math.max(1, (vh * 0.01) * h * Math.sqrt(areaMul));
 
-  const v = getModeSizeVarianceFrac(g, mode);
+  // Use per-variant size variance directly (scaled to ±50% max deviation)
+  const v = clamp(getSizeVariance() * 0.5, 0, 0.5);
   const minR = Math.max(1, base * (1 - v));
   const maxR = Math.max(1, base * (1 + v));
   if (maxR - minR < 1e-6) return base;

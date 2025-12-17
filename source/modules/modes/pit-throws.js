@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { spawnBall } from '../physics/spawn.js';
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { getColorByIndex } from '../visual/colors.js';
 
 function clamp(v, min, max) {
@@ -58,7 +58,8 @@ function spawnOneThrow(g, color, side, { speedMul = 1, spreadMul = 1 } = {}) {
   const aimX = w * (0.5 + (side === 0 ? crossBias : -crossBias) + aimJitter);
   const aimY = h * targetYFrac;
 
-  const baseSpeed = clamp(g.pitThrowSpeed ?? 650, 50, 4000);
+  // Base speed (DPR-scaled)
+  const baseSpeed = clamp(g.pitThrowSpeed ?? 650, 50, 4000) * DPR;
   const speedJitter = clamp(g.pitThrowSpeedJitter ?? 0.22, 0, 0.8);
   const angleJitter = clamp(g.pitThrowAngleJitter ?? 0.16, 0, 0.8);
 
@@ -96,6 +97,9 @@ export function initializePitThrows() {
   const g = getGlobals();
   clearBalls();
 
+  const targetBalls = getMobileAdjustedCount(g.maxBalls ?? 300);
+  if (targetBalls <= 0) return;
+
   // Emitter state (kept on globals to avoid per-frame allocations)
   const initialState = {
     spawnedTotal: 0,
@@ -123,7 +127,7 @@ export function updatePitThrows(dtSeconds) {
   const g = getGlobals();
   if (!g || g.currentMode !== 'pit-throws') return;
 
-  const targetBalls = Math.max(0, (g.maxBalls ?? 300) | 0);
+  const targetBalls = Math.max(0, getMobileAdjustedCount(g.maxBalls ?? 300));
   if (targetBalls <= 0) return;
   if (g.balls.length >= targetBalls) return;
 

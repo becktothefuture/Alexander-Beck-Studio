@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 //
 // Goals:
-// - Clicking "Get in touch" (and inline "Let's chat.") opens a gate overlay
+// - Clicking "Contact" (and inline "Let's chat.") opens a gate overlay
 // - Gate uses the same logo ↔ gate swap transition as CV/Portfolio
 // - Email row copies the email to clipboard (no mailto)
 // - Gate includes a small BACK button (arrow + BACK) to close
@@ -14,8 +14,8 @@
 // - No user text stored (clipboard copy is a single fixed string)
 
 import { showOverlay, hideOverlay } from './gate-overlay.js';
+import { getText } from '../utils/text-loader.js';
 
-const CONTACT_EMAIL = 'alexander@beck.fyi';
 const TRANSITION_MS = 400; // Must match password-gate.css transitions
 const COPY_FEEDBACK_MS = 1200;
 
@@ -49,6 +49,18 @@ async function copyToClipboard(text) {
 }
 
 export function initContactGate() {
+  const CONTACT_EMAIL = getText('contact.email', 'alexander@beck.fyi');
+  const BACK_TEXT = getText('gates.common.backText', 'BACK');
+  const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
+  const TITLE = getText('gates.contact.title', 'Contact');
+  const DESC = getText(
+    'gates.contact.description',
+    'For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain.'
+  );
+  const COPY_ARIA = getText('contact.copy.buttonAriaLabel', 'Copy email address');
+  const COPIED_TEXT = getText('contact.copy.statusCopied', 'Copied');
+  const ERROR_TEXT = getText('contact.copy.statusError', 'Copy failed');
+
   const triggers = [
     document.getElementById('contact-email'),
     document.getElementById('contact-email-inline')
@@ -72,23 +84,23 @@ export function initContactGate() {
   // - gateInputs: “field” row (arrives with the gate transition like the digit inputs)
   gateLabel.innerHTML = `
     <div class="gate-nav">
-      <button type="button" class="gate-back" data-gate-back aria-label="Back">
+      <button type="button" class="gate-back" data-gate-back aria-label="${BACK_ARIA}">
         <i class="ti ti-arrow-left" aria-hidden="true"></i>
-        <span>BACK</span>
+        <span>${BACK_TEXT}</span>
       </button>
     </div>
-    <h2 class="gate-title">Get in touch</h2>
+    <h2 class="gate-title">${TITLE}</h2>
     <p class="gate-description">
-      For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain.
+      ${DESC}
     </p>
   `;
 
   gateInputs.innerHTML = `
     <div class="contact-email-row" data-email-row>
-      <button type="button" class="contact-email-value" data-copy-email aria-label="Copy email address">
+      <button type="button" class="contact-email-value" data-copy-email aria-label="${COPY_ARIA}">
         <span class="contact-email-text">${CONTACT_EMAIL}</span>
       </button>
-      <button type="button" class="contact-email-copy" data-copy-email-icon aria-label="Copy email address">
+      <button type="button" class="contact-email-copy" data-copy-email-icon aria-label="${COPY_ARIA}">
         <i class="ti ti-copy" aria-hidden="true"></i>
       </button>
     </div>
@@ -120,7 +132,7 @@ export function initContactGate() {
     if (state === 'copied') {
       emailRow?.classList?.add?.('is-copied');
       emailRow?.classList?.remove?.('is-error');
-      statusEl.textContent = 'Copied';
+      statusEl.textContent = COPIED_TEXT;
       if (iconI) iconI.className = 'ti ti-check';
       copyTimer = window.setTimeout(() => setCopyUI('idle'), COPY_FEEDBACK_MS);
       return;
@@ -129,7 +141,7 @@ export function initContactGate() {
     if (state === 'error') {
       emailRow?.classList?.add?.('is-error');
       emailRow?.classList?.remove?.('is-copied');
-      statusEl.textContent = 'Copy failed';
+      statusEl.textContent = ERROR_TEXT;
       if (iconI) iconI.className = 'ti ti-alert-triangle';
       copyTimer = window.setTimeout(() => setCopyUI('idle'), COPY_FEEDBACK_MS);
       return;
@@ -222,7 +234,7 @@ export function initContactGate() {
   };
 
   // Triggers
-  // Capture phase so we win against any Webflow interactions on these links.
+  // Capture phase so we win against any legacy exported interactions on these links.
   triggers.forEach((t) => t.addEventListener('click', openGate, { capture: true }));
   backBtn?.addEventListener('click', closeGate);
   

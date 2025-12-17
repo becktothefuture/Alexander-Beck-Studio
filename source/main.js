@@ -23,8 +23,12 @@ import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
 import { upgradeSocialIcons } from './modules/ui/social-icons.js';
 import { initTimeDisplay } from './modules/ui/time-display.js';
+import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 // Layout controls now integrated into master panel
-import { initBrandLogoReact } from './modules/ui/brand-logo-react.js';
+import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
+import { initSceneChangeSFX } from './modules/ui/scene-change-sfx.js';
+import { loadRuntimeText, getText } from './modules/utils/text-loader.js';
+import { applyRuntimeTextToDOM } from './modules/ui/apply-text.js';
 import {
   initConsolePolicy,
   printConsoleBanner,
@@ -92,19 +96,7 @@ export function applyVisualCSSVars(config) {
   // NOTE: Layout CSS vars (frame/padding/radius/thickness) are applied via
   // `applyLayoutCSSVars()` from state (vw-native → px derived).
 
-  // Container inner shadow (inside rounded container wrapper)
-  if (config.containerInnerShadowOpacity !== undefined) {
-    root.style.setProperty('--container-inner-shadow-opacity', String(config.containerInnerShadowOpacity));
-  }
-  if (config.containerInnerShadowBlur !== undefined) {
-    root.style.setProperty('--container-inner-shadow-blur', `${config.containerInnerShadowBlur}px`);
-  }
-  if (config.containerInnerShadowSpread !== undefined) {
-    root.style.setProperty('--container-inner-shadow-spread', `${config.containerInnerShadowSpread}px`);
-  }
-  if (config.containerInnerShadowOffsetY !== undefined) {
-    root.style.setProperty('--container-inner-shadow-offset-y', `${config.containerInnerShadowOffsetY}px`);
-  }
+  // Container inner shadow removed
   
   // Noise texture sizing
   if (config.noiseSizeBase !== undefined) {
@@ -135,14 +127,14 @@ export function applyVisualCSSVars(config) {
 }
 
 /**
- * Ensure .noise-2 and .noise-3 elements exist (for modular dev where Webflow HTML isn't present).
+ * Ensure .noise-2 and .noise-3 elements exist (for dev environments where the full exported HTML isn't present).
  * Creates them as siblings to .noise inside the #bravia-balls container.
  */
 function ensureNoiseElements() {
   // Check if we have a noise texture image to use
   const existingNoise = document.querySelector('.noise');
   if (!existingNoise) {
-    // No noise system present (modular dev without Webflow assets) - skip
+    // No noise system present (minimal dev markup) - skip
     return;
   }
 
@@ -185,14 +177,17 @@ function ensureNoiseElements() {
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                    FOOTER LINKS — MOBILE WRAP ENHANCEMENTS                    ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
-// We avoid editing the Webflow export HTML directly by enhancing at runtime.
+// We avoid editing exported HTML directly by enhancing at runtime.
 function enhanceFooterLinksForMobile() {
   try {
     const cv = document.getElementById('cv-gate-trigger');
     if (cv && !cv.querySelector('.footer-link-nowrap')) {
+      const expected = String(getText('footer.links.cv.text', '') || '').trim();
       const raw = (cv.textContent || '').trim().replace(/\s+/g, ' ');
-      if (raw.toLowerCase() === 'download bio/cv') {
-        cv.innerHTML = 'Download <span class="footer-link-nowrap">Bio/CV</span>';
+      const txt = expected || raw;
+      // Keep short compound labels together on mobile (e.g. "Bio/CV").
+      if (txt && txt.includes('/') && raw === txt) {
+        cv.innerHTML = `<span class="footer-link-nowrap">${txt}</span>`;
       }
     }
   } catch (e) {}
@@ -201,6 +196,13 @@ function enhanceFooterLinksForMobile() {
 (async function init() {
   // Mark JS as enabled (for CSS fallback detection)
   document.documentElement.classList.add('js-enabled');
+
+  // TEXT (SOURCE OF TRUTH):
+  // Load and apply all copy BEFORE fade-in so there is no visible “pop-in”.
+  try {
+    await loadRuntimeText();
+    applyRuntimeTextToDOM();
+  } catch (e) {}
 
   // Console banner:
   // - DEV: show the same colored banner (but keep logs)
@@ -295,8 +297,8 @@ function enhanceFooterLinksForMobile() {
     mark('bb:input');
     log('✓ Custom cursor initialized');
 
-    // Brand logo micro-interaction: subtle “clicked-in” response on simulation changes
-    initBrandLogoReact();
+    // Scene micro-interaction: subtle “clicked-in” response on simulation changes
+    initSceneImpactReact();
     
     // Load any saved settings
     loadSettings();
@@ -308,6 +310,9 @@ function enhanceFooterLinksForMobile() {
       applySoundConfigFromRuntimeConfig(config);
     } catch (e) {}
     log('✓ Sound engine primed (awaiting user unlock)');
+
+    // Scene change SFX (soothing “pebble-like” tick on mode change)
+    initSceneChangeSFX();
     
     // DEV-only: setup configuration panel UI.
     // Production builds must ship without the panel (config is hardcoded during build).
@@ -325,6 +330,9 @@ function enhanceFooterLinksForMobile() {
     // Initialize dark mode AFTER panel creation (theme buttons exist now)
     initializeDarkMode();
     mark('bb:theme');
+
+    // Legend dots: assign discipline colors (palette-driven + story overrides)
+    applyExpertiseLegendColors();
     
     setupKeyboardShortcuts();
     log('✓ Keyboard shortcuts registered');
@@ -347,7 +355,7 @@ function enhanceFooterLinksForMobile() {
     // setupTopElementsLayout();
 
     // Normalize social icons (line SVGs) across dev + build.
-    // (Build uses webflow-export HTML; we patch at runtime for consistency.)
+    // (Build uses the exported HTML; we patch at runtime for consistency.)
     upgradeSocialIcons();
 
     // Initialize time display (London time)
@@ -408,7 +416,7 @@ function enhanceFooterLinksForMobile() {
     // Goal: fade ALL UI content (inside #fade-content) from 0 → 1 on reload.
     //
     // Why this is tricky in this project:
-    // - Much of the UI is `position: fixed` (Webflow export + our overrides).
+    // - Much of the UI is `position: fixed` (exported layout + our overrides).
     // - Fixed descendants can be composited outside a normal wrapper, so fading
     //   a parent via CSS can appear “broken”.
     // - We solve this with a fixed + transformed `#fade-content` (CSS) and we

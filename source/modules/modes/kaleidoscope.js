@@ -3,7 +3,7 @@
 // ║    Center-anchored mirrored wedges; mouse-reactive rotation; circle style     ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { MODES } from '../core/constants.js';
 import { Ball } from '../physics/Ball.js';
 import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
@@ -103,7 +103,9 @@ function getKaleidoscopeParams(g) {
       count: g.kaleidoscope1BallCount ?? 18,
       wedges: g.kaleidoscope1Wedges ?? g.kaleidoscopeWedges ?? 12,
       speed: g.kaleidoscope1Speed ?? 0.8,
-      complexity: 0.55
+      complexity: 0.55,
+      spawnAreaMul: g.kaleidoscope1SpawnAreaMul ?? 1.0,
+      sizeVariance: g.kaleidoscope1SizeVariance ?? 0.3
     };
   }
   if (g.currentMode === MODES.KALEIDOSCOPE_2) {
@@ -111,7 +113,9 @@ function getKaleidoscopeParams(g) {
       count: g.kaleidoscope2BallCount ?? 36,
       wedges: g.kaleidoscope2Wedges ?? g.kaleidoscopeWedges ?? 12,
       speed: g.kaleidoscope2Speed ?? 1.15,
-      complexity: 0.95
+      complexity: 0.95,
+      spawnAreaMul: g.kaleidoscope2SpawnAreaMul ?? 1.0,
+      sizeVariance: g.kaleidoscope2SizeVariance ?? 0.3
     };
   }
   if (g.currentMode === MODES.KALEIDOSCOPE_3) {
@@ -119,14 +123,18 @@ function getKaleidoscopeParams(g) {
       count: g.kaleidoscope3BallCount ?? 54,
       wedges: g.kaleidoscope3Wedges ?? g.kaleidoscopeWedges ?? 12,
       speed: g.kaleidoscope3Speed ?? 1.55,
-      complexity: 1.35
+      complexity: 1.35,
+      spawnAreaMul: g.kaleidoscope3SpawnAreaMul ?? 1.0,
+      sizeVariance: g.kaleidoscope3SizeVariance ?? 0.3
     };
   }
   return {
     count: g.kaleidoscopeBallCount ?? 23,
     wedges: g.kaleidoscopeWedges ?? g.kaleidoscopeSegments ?? 12,
     speed: g.kaleidoscopeSpeed ?? 1.0,
-    complexity: 0.75
+    complexity: 0.75,
+    spawnAreaMul: g.kaleidoscopeSpawnAreaMul ?? 1.0,
+    sizeVariance: g.kaleidoscopeSizeVariance ?? 0.3
   };
 }
 
@@ -145,14 +153,19 @@ function initializeKaleidoscopeWithCount(count, mode) {
   const unit = getViewportUnit(g);
 
   const maxBalls = g.maxBalls || 300;
-  const clampedCount = clamp(count, 3, maxBalls);
+  const clampedCount = clamp(Math.max(0, count | 0), 0, maxBalls);
+  if (clampedCount <= 0) return;
+
+  // Get mode-specific params including spawn area multiplier
+  const params = getKaleidoscopeParams(g);
+  const spawnAreaMul = clamp(params.spawnAreaMul ?? 1.0, 0.2, 2.0);
 
   // Spawn as a loose ring so the first frame is already "kaleidoscopic".
-  // Expanded area: 200% more surface = 3x total area, so balls spawn well beyond viewport.
-  // This ensures the kaleidoscope pattern fills the entire screen when rendered.
+  // SpawnAreaMul controls density: smaller = tighter/denser, larger = more spread
   const viewportSize = Math.min(w, h);
   const ringMin = viewportSize * 0.05;
-  const ringMax = viewportSize * 2.8; // 3x area means ~1.73x radius, but go bigger for full coverage
+  // Base ringMax at 2.8, scaled by spawn area multiplier
+  const ringMax = viewportSize * 2.8 * spawnAreaMul;
 
   // Non-overlapping spawn (one-time O(n²), acceptable at init)
   const placed = [];
@@ -173,8 +186,10 @@ function initializeKaleidoscopeWithCount(count, mode) {
       const rr = ringMin + Math.random() * (ringMax - ringMin);
       const x = clamp(centerX + Math.cos(a) * rr, minX, maxX);
       const y = clamp(centerY + Math.sin(a) * rr, minY, maxY);
-      if (!isOverlapping(placed, x, y, radius + g.ballSpacing * g.DPR)) {
-        placed.push({ x, y, r: radius + g.ballSpacing * g.DPR });
+      // Spacing is now a ratio of ball radius (e.g., 0.1 = 10% of radius)
+      const spacedRadius = radius * (1 + (g.ballSpacing || 0));
+      if (!isOverlapping(placed, x, y, spacedRadius)) {
+        placed.push({ x, y, r: spacedRadius });
         const b = new Ball(x, y, radius, color);
         b._kaleiSeed = Math.random() * TAU;
         // Lock in an individual “orbit band” so the system stays distributed
@@ -224,25 +239,25 @@ function initializeKaleidoscopeWithCount(count, mode) {
 
 export function initializeKaleidoscope() {
   const g = getGlobals();
-  const count = g.kaleidoscopeBallCount ?? 23;
+  const count = getMobileAdjustedCount(g.kaleidoscopeBallCount ?? 23);
   initializeKaleidoscopeWithCount(count, MODES.KALEIDOSCOPE);
 }
 
 export function initializeKaleidoscope1() {
   const g = getGlobals();
-  const count = g.kaleidoscope1BallCount ?? 18;
+  const count = getMobileAdjustedCount(g.kaleidoscope1BallCount ?? 18);
   initializeKaleidoscopeWithCount(count, MODES.KALEIDOSCOPE_1);
 }
 
 export function initializeKaleidoscope2() {
   const g = getGlobals();
-  const count = g.kaleidoscope2BallCount ?? 36;
+  const count = getMobileAdjustedCount(g.kaleidoscope2BallCount ?? 36);
   initializeKaleidoscopeWithCount(count, MODES.KALEIDOSCOPE_2);
 }
 
 export function initializeKaleidoscope3() {
   const g = getGlobals();
-  const count = g.kaleidoscope3BallCount ?? 54;
+  const count = getMobileAdjustedCount(g.kaleidoscope3BallCount ?? 54);
   initializeKaleidoscopeWithCount(count, MODES.KALEIDOSCOPE_3);
 }
 

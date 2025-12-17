@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { spawnBall } from '../physics/spawn.js';
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { getColorByIndex } from '../visual/colors.js';
 
 function spawnPourBallPit(globals, targetBalls) {
@@ -32,6 +32,10 @@ function spawnPourBallPit(globals, targetBalls) {
   const spawnXMax = Math.min(spawnXRight, anchorX + spawnBandWidth * 0.5);
 
   const count = Math.max(0, targetBalls | 0);
+  
+  // Initial velocity base values (DPR-scaled)
+  const vxBase = 100 * DPR;
+  const vyBase = 50 * DPR;
 
   // First, ensure at least one ball of each color (0-7)
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
@@ -39,9 +43,9 @@ function spawnPourBallPit(globals, targetBalls) {
     const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
 
     const ball = spawnBall(x, y, getColorByIndex(colorIndex));
-    // Small downward velocity and random horizontal drift
-    ball.vx = (Math.random() - 0.5) * 100;
-    ball.vy = Math.random() * 50 + 50; // Initial downward velocity
+    // Small downward velocity and random horizontal drift (DPR-scaled)
+    ball.vx = (Math.random() - 0.5) * vxBase;
+    ball.vy = Math.random() * vyBase + vyBase; // Initial downward velocity
     ball.driftAx = 0;
     ball.driftTime = 0;
   }
@@ -52,9 +56,9 @@ function spawnPourBallPit(globals, targetBalls) {
     const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
 
     const ball = spawnBall(x, y);
-    // Small downward velocity and random horizontal drift
-    ball.vx = (Math.random() - 0.5) * 100;
-    ball.vy = Math.random() * 50 + 50; // Initial downward velocity
+    // Small downward velocity and random horizontal drift (DPR-scaled)
+    ball.vx = (Math.random() - 0.5) * vxBase;
+    ball.vy = Math.random() * vyBase + vyBase; // Initial downward velocity
     ball.driftAx = 0;
     ball.driftTime = 0;
   }
@@ -64,7 +68,7 @@ export function initializeBallPit() {
   const globals = getGlobals();
   clearBalls();
   
-  const targetBalls = globals.maxBalls ?? 300;
+  const targetBalls = getMobileAdjustedCount(globals.maxBalls ?? 300);
   spawnPourBallPit(globals, targetBalls);
 }
 

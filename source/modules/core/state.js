@@ -122,7 +122,11 @@ const state = {
   sizeVariation: 0,
   responsiveScale: 1.0,       // Runtime responsive scale (calculated on init)
   responsiveScaleMobile: 0.75, // Scale factor for mobile devices (iPad/iPhone)
-  isMobile: false,            // Mobile device detected?
+  isMobile: false,            // Mobile *device* detected? (UA/touch heuristic)
+  isMobileViewport: false,    // Mobile viewport detected? (width breakpoint)
+  // Mobile performance: global multiplier applied to object counts (0..1).
+  // 1.0 = no reduction, 0.0 = (effectively) no objects.
+  mobileObjectReductionFactor: 0.7,
   R_MIN_BASE: 6,
   R_MAX_BASE: 24,
   // Derived by updateBallSizes()
@@ -156,7 +160,13 @@ const state = {
   
   // Ball properties
   ballSoftness: 20,
-  ballSpacing: 2.5,     // Extra collision padding between balls (px, 0 = no extra spacing)
+  ballSpacing: 0.08,    // Extra collision padding as ratio of ball radius (0.1 = 10% of ball size)
+
+  // Sleep tuning (Ball Pit modes only)
+  // Higher thresholds = balls settle/sleep sooner (less idle jiggle).
+  sleepVelocityThreshold: 12.0, // px/s
+  sleepAngularThreshold: 0.18,  // rad/s
+  timeToSleep: 0.25,            // seconds
 
   // Critters (Simulation 11) — ball-only “little creatures”
   critterCount: 90,
@@ -197,6 +207,12 @@ const state = {
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
+
+  // Noise texture opacity (visual overlay)
+  noiseBackOpacity: 0.025,        // back layer opacity (light mode)
+  noiseFrontOpacity: 0.055,       // front layer opacity (light mode)
+  noiseBackOpacityDark: 0.12,     // back layer opacity (dark mode)
+  noiseFrontOpacityDark: 0.08,    // front layer opacity (dark mode)
 
   // Minimum clamp targets (px)
   // These define the “clamp down towards” values on small viewports, where vw-derived
@@ -272,6 +288,10 @@ const state = {
   // Kaleidoscope dot sizing (vh-driven, ~30% smaller area by default)
   kaleidoscopeDotSizeVh: 0.95,
   kaleidoscopeDotAreaMul: 0.7,
+  // Spawn area multiplier: smaller = denser, larger = more spread out (0.2..2.0)
+  kaleidoscopeSpawnAreaMul: 1.0,
+  // Size variance (0..1): higher = more variety in ball sizes
+  kaleidoscopeSizeVariance: 0.3,
 
   // Kaleidoscope variants (I/II/III) — treated as variants of the same sim
   kaleidoscope1BallCount: 18,
@@ -279,18 +299,24 @@ const state = {
   kaleidoscope1Speed: 0.8,
   kaleidoscope1DotSizeVh: 0.95,
   kaleidoscope1DotAreaMul: 0.7,
+  kaleidoscope1SpawnAreaMul: 1.0,
+  kaleidoscope1SizeVariance: 0.3,
 
   kaleidoscope2BallCount: 36,
   kaleidoscope2Wedges: 8,
   kaleidoscope2Speed: 1.15,
   kaleidoscope2DotSizeVh: 0.95,
   kaleidoscope2DotAreaMul: 0.7,
+  kaleidoscope2SpawnAreaMul: 1.0,
+  kaleidoscope2SizeVariance: 0.3,
 
   kaleidoscope3BallCount: 54,
   kaleidoscope3Wedges: 8,
   kaleidoscope3Speed: 1.55,
   kaleidoscope3DotSizeVh: 0.95,
   kaleidoscope3DotAreaMul: 0.7,
+  kaleidoscope3SpawnAreaMul: 1.0,
+  kaleidoscope3SizeVariance: 0.3,
 
   // Orbit 3D mode (real gravitational physics)
   orbit3dPreset: 'serene',     // active preset name
@@ -436,18 +462,31 @@ const state = {
   clickCycleEnabled: true,
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Brand Logo micro-interaction (mode change “click-in”)
-  // These are visual-only and applied via CSS vars + `brand-logo-react.js`.
+  // Scene micro-interaction (mode change “click-in”)
+  // These are visual-only and applied via CSS vars + `scene-impact-react.js`.
   // ─────────────────────────────────────────────────────────────────────────────
-  brandLogoImpactMul: 0.014,    // scale depth per unit impact (unitless)
-  brandLogoSquashMul: 1.0,      // 0..2 multiplier applied to base squash X/Y
-  brandLogoOvershoot: 0.22,     // 0..0.6 (release overshoot amount, unitless)
-  brandLogoAnticipation: 0.0,   // 0..0.4 (micro pre-pop opposite direction; 0 disables)
-  brandLogoTiltDeg: 0.0,        // 0..2 (tiny rotation tied to impact sign)
-  brandLogoSkewDeg: 0.0,        // 0..2 (tiny skew tied to impact sign)
-  brandLogoPressMs: 75,         // ms (press-in duration)
-  brandLogoHoldMs: 55,          // ms (hold before release)
-  brandLogoReleaseMs: 220,      // ms (bounce-out duration)
+  sceneImpactEnabled: true,
+  sceneImpactMul: 0.004,        // scale depth per unit impact (0.4%, kept subtle to avoid snap)
+  sceneImpactOvershoot: 0.22,   // release overshoot amount (unitless)
+  sceneImpactAnticipation: 0.0, // micro pre-pop opposite direction; 0 disables
+  sceneImpactPressMs: 75,       // ms (press-in duration)
+  sceneImpactReleaseMs: 220,    // ms (bounce-out duration)
+
+  // Scene change SFX (plays only when sound is enabled/unlocked)
+  sceneChangeSoundEnabled: true,
+  sceneChangeSoundIntensity: 0.35, // 0..1 (maps to volume/brightness)
+  sceneChangeSoundRadius: 18,      // pseudo “ball size” driving pitch
+
+  // Legacy (logo-only micro interaction) — kept for config/panel back-compat; no longer used.
+  brandLogoImpactMul: 0.014,
+  brandLogoSquashMul: 1.0,
+  brandLogoOvershoot: 0.22,
+  brandLogoAnticipation: 0.0,
+  brandLogoTiltDeg: 0.0,
+  brandLogoSkewDeg: 0.0,
+  brandLogoPressMs: 75,
+  brandLogoHoldMs: 55,
+  brandLogoReleaseMs: 220,
   
   // Two-level padding system (in pixels)
   containerBorder: 20,   // Outer: insets container from viewport (reveals body bg as frame)
@@ -458,14 +497,25 @@ const state = {
   contentPaddingX: 40,   // Horizontal padding (derived: base × horizontalRatio)
   contentPaddingY: 40,   // Vertical padding (always = base)
 
-  // Container inner shadow controls (inside rounded content wrapper)
-  containerInnerShadowOpacity: 0.12,
-  containerInnerShadowBlur: 80,
-  containerInnerShadowSpread: -10,
-  containerInnerShadowOffsetY: 0,
+  // Container inner shadow removed
   
-  // Unified Frame System (walls, chrome, border all share these)
+  // Unified Color System (backgrounds, frame, walls)
+  bgLight: '#f5f5f5',       // Light mode background color
+  bgDark: '#0a0a0a',        // Dark mode background color
   frameColor: '#0a0a0a',    // Frame color (browser chrome + walls + border)
+  
+  // Text Colors
+  textColorLight: '#161616',          // Primary text (light mode)
+  textColorLightMuted: '#2f2f2f',     // Secondary/muted text (light mode)
+  textColorDark: 'rgba(255,255,255,0.7)',  // Primary text (dark mode)
+  textColorDarkMuted: 'rgba(255,255,255,0.5)', // Secondary/muted text (dark mode)
+  
+  // Link Colors
+  linkHoverColor: '#ff4013',          // Link hover accent (shared)
+  
+  // Logo Colors
+  logoColorLight: '#161616',          // Logo color (light mode)
+  logoColorDark: '#d5d5d5',           // Logo color (dark mode)
   wallThickness: 12,        // Unified: wall tubes + body border (px)
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
   wallInset: 3,             // Physics-only inset from edges (px at DPR 1)
@@ -500,14 +550,6 @@ const state = {
   logoOpacityActive: 0.2,           // Logo opacity when gate is active (0-1)
   logoBlurInactive: 0,              // Logo blur when gate is closed (px)
   logoBlurActive: 12,               // Logo blur when gate is active (px)
-
-  // Ghost layer (motion trails)
-  ghostLayerEnabled: false,         // Off by default (opt-in effect)
-  // NOTE: Higher opacity = SHORTER trails (more clearing each frame).
-  ghostLayerOpacity: 0.70,          // 0..1
-  ghostLayerUsePerThemeOpacity: false,
-  ghostLayerOpacityLight: 0.70,     // 0..1
-  ghostLayerOpacityDark: 0.70,      // 0..1
   
   // Helpers
   getSquashMax() {
@@ -694,6 +736,14 @@ export function initState(config) {
     state.cursorInfluenceRadiusVw = clampNumber(config.repelRadius / 10, 0, 80, state.cursorInfluenceRadiusVw);
   }
   if (config.responsiveScaleMobile !== undefined) state.responsiveScaleMobile = config.responsiveScaleMobile;
+  if (config.mobileObjectReductionFactor !== undefined) {
+    state.mobileObjectReductionFactor = clampNumber(
+      config.mobileObjectReductionFactor,
+      0,
+      1,
+      state.mobileObjectReductionFactor
+    );
+  }
   
   // Detect mobile/tablet devices and apply responsive scaling
   detectResponsiveScale();
@@ -708,6 +758,12 @@ export function initState(config) {
   if (config.kaleidoscopeDotAreaMul !== undefined) {
     state.kaleidoscopeDotAreaMul = clampNumber(config.kaleidoscopeDotAreaMul, 0.1, 2.0, state.kaleidoscopeDotAreaMul);
   }
+  if (config.kaleidoscopeSpawnAreaMul !== undefined) {
+    state.kaleidoscopeSpawnAreaMul = clampNumber(config.kaleidoscopeSpawnAreaMul, 0.2, 2.0, state.kaleidoscopeSpawnAreaMul);
+  }
+  if (config.kaleidoscopeSizeVariance !== undefined) {
+    state.kaleidoscopeSizeVariance = clampNumber(config.kaleidoscopeSizeVariance, 0, 1, state.kaleidoscopeSizeVariance);
+  }
 
   // Kaleidoscope I/II/III overrides (variants)
   if (config.kaleidoscope1BallCount !== undefined) state.kaleidoscope1BallCount = clampNumber(config.kaleidoscope1BallCount, 3, 300, state.kaleidoscope1BallCount);
@@ -715,18 +771,24 @@ export function initState(config) {
   if (config.kaleidoscope1Speed !== undefined) state.kaleidoscope1Speed = clampNumber(config.kaleidoscope1Speed, 0.2, 2.0, state.kaleidoscope1Speed);
   if (config.kaleidoscope1DotSizeVh !== undefined) state.kaleidoscope1DotSizeVh = clampNumber(config.kaleidoscope1DotSizeVh, 0.1, 6.0, state.kaleidoscope1DotSizeVh);
   if (config.kaleidoscope1DotAreaMul !== undefined) state.kaleidoscope1DotAreaMul = clampNumber(config.kaleidoscope1DotAreaMul, 0.1, 2.0, state.kaleidoscope1DotAreaMul);
+  if (config.kaleidoscope1SpawnAreaMul !== undefined) state.kaleidoscope1SpawnAreaMul = clampNumber(config.kaleidoscope1SpawnAreaMul, 0.2, 2.0, state.kaleidoscope1SpawnAreaMul);
+  if (config.kaleidoscope1SizeVariance !== undefined) state.kaleidoscope1SizeVariance = clampNumber(config.kaleidoscope1SizeVariance, 0, 1, state.kaleidoscope1SizeVariance);
 
   if (config.kaleidoscope2BallCount !== undefined) state.kaleidoscope2BallCount = clampNumber(config.kaleidoscope2BallCount, 3, 300, state.kaleidoscope2BallCount);
   if (config.kaleidoscope2Wedges !== undefined) state.kaleidoscope2Wedges = clampNumber(config.kaleidoscope2Wedges, 3, 24, state.kaleidoscope2Wedges);
   if (config.kaleidoscope2Speed !== undefined) state.kaleidoscope2Speed = clampNumber(config.kaleidoscope2Speed, 0.2, 2.0, state.kaleidoscope2Speed);
   if (config.kaleidoscope2DotSizeVh !== undefined) state.kaleidoscope2DotSizeVh = clampNumber(config.kaleidoscope2DotSizeVh, 0.1, 6.0, state.kaleidoscope2DotSizeVh);
   if (config.kaleidoscope2DotAreaMul !== undefined) state.kaleidoscope2DotAreaMul = clampNumber(config.kaleidoscope2DotAreaMul, 0.1, 2.0, state.kaleidoscope2DotAreaMul);
+  if (config.kaleidoscope2SpawnAreaMul !== undefined) state.kaleidoscope2SpawnAreaMul = clampNumber(config.kaleidoscope2SpawnAreaMul, 0.2, 2.0, state.kaleidoscope2SpawnAreaMul);
+  if (config.kaleidoscope2SizeVariance !== undefined) state.kaleidoscope2SizeVariance = clampNumber(config.kaleidoscope2SizeVariance, 0, 1, state.kaleidoscope2SizeVariance);
 
   if (config.kaleidoscope3BallCount !== undefined) state.kaleidoscope3BallCount = clampNumber(config.kaleidoscope3BallCount, 3, 300, state.kaleidoscope3BallCount);
   if (config.kaleidoscope3Wedges !== undefined) state.kaleidoscope3Wedges = clampNumber(config.kaleidoscope3Wedges, 3, 24, state.kaleidoscope3Wedges);
   if (config.kaleidoscope3Speed !== undefined) state.kaleidoscope3Speed = clampNumber(config.kaleidoscope3Speed, 0.2, 2.0, state.kaleidoscope3Speed);
   if (config.kaleidoscope3DotSizeVh !== undefined) state.kaleidoscope3DotSizeVh = clampNumber(config.kaleidoscope3DotSizeVh, 0.1, 6.0, state.kaleidoscope3DotSizeVh);
   if (config.kaleidoscope3DotAreaMul !== undefined) state.kaleidoscope3DotAreaMul = clampNumber(config.kaleidoscope3DotAreaMul, 0.1, 2.0, state.kaleidoscope3DotAreaMul);
+  if (config.kaleidoscope3SpawnAreaMul !== undefined) state.kaleidoscope3SpawnAreaMul = clampNumber(config.kaleidoscope3SpawnAreaMul, 0.2, 2.0, state.kaleidoscope3SpawnAreaMul);
+  if (config.kaleidoscope3SizeVariance !== undefined) state.kaleidoscope3SizeVariance = clampNumber(config.kaleidoscope3SizeVariance, 0, 1, state.kaleidoscope3SizeVariance);
   // New key: kaleidoscopeWedges (preferred). Back-compat: kaleidoscopeSegments.
   if (config.kaleidoscopeWedges !== undefined) {
     state.kaleidoscopeWedges = clampNumber(config.kaleidoscopeWedges, 3, 24, state.kaleidoscopeWedges);
@@ -844,46 +906,72 @@ export function initState(config) {
     state[key] = val;
   }
 
-  // Clamp brand logo tuning (defensive; UI-only)
-  if (config.brandLogoImpactMul !== undefined) {
-    state.brandLogoImpactMul = clampNumber(config.brandLogoImpactMul, 0, 0.05, state.brandLogoImpactMul);
+  // Clamp scene micro-reaction tuning (defensive; UI-only)
+  if (config.sceneImpactEnabled !== undefined) {
+    state.sceneImpactEnabled = Boolean(config.sceneImpactEnabled);
   }
-  if (config.brandLogoSquashMul !== undefined) {
-    state.brandLogoSquashMul = clampNumber(config.brandLogoSquashMul, 0, 3, state.brandLogoSquashMul);
+  if (config.sceneImpactMul !== undefined) {
+    state.sceneImpactMul = clampNumber(config.sceneImpactMul, 0, 0.05, state.sceneImpactMul);
+  } else if (config.brandLogoImpactMul !== undefined) {
+    // Back-compat: reuse old logo tuning if scene tuning is absent.
+    state.sceneImpactMul = clampNumber(config.brandLogoImpactMul, 0, 0.05, state.sceneImpactMul);
   }
-  if (config.brandLogoOvershoot !== undefined) {
-    state.brandLogoOvershoot = clampNumber(config.brandLogoOvershoot, 0, 0.8, state.brandLogoOvershoot);
+  if (config.sceneImpactOvershoot !== undefined) {
+    state.sceneImpactOvershoot = clampNumber(config.sceneImpactOvershoot, 0, 0.8, state.sceneImpactOvershoot);
+  } else if (config.brandLogoOvershoot !== undefined) {
+    state.sceneImpactOvershoot = clampNumber(config.brandLogoOvershoot, 0, 0.8, state.sceneImpactOvershoot);
   }
-  if (config.brandLogoAnticipation !== undefined) {
-    state.brandLogoAnticipation = clampNumber(config.brandLogoAnticipation, 0, 0.6, state.brandLogoAnticipation);
+  if (config.sceneImpactAnticipation !== undefined) {
+    state.sceneImpactAnticipation = clampNumber(config.sceneImpactAnticipation, 0, 0.6, state.sceneImpactAnticipation);
+  } else if (config.brandLogoAnticipation !== undefined) {
+    state.sceneImpactAnticipation = clampNumber(config.brandLogoAnticipation, 0, 0.6, state.sceneImpactAnticipation);
   }
-  if (config.brandLogoTiltDeg !== undefined) {
-    state.brandLogoTiltDeg = clampNumber(config.brandLogoTiltDeg, 0, 5, state.brandLogoTiltDeg);
+  if (config.sceneImpactPressMs !== undefined) {
+    state.sceneImpactPressMs = clampNumber(config.sceneImpactPressMs, 20, 300, state.sceneImpactPressMs);
+  } else if (config.brandLogoPressMs !== undefined) {
+    state.sceneImpactPressMs = clampNumber(config.brandLogoPressMs, 20, 300, state.sceneImpactPressMs);
   }
-  if (config.brandLogoSkewDeg !== undefined) {
-    state.brandLogoSkewDeg = clampNumber(config.brandLogoSkewDeg, 0, 5, state.brandLogoSkewDeg);
+  if (config.sceneImpactReleaseMs !== undefined) {
+    state.sceneImpactReleaseMs = clampNumber(config.sceneImpactReleaseMs, 40, 1200, state.sceneImpactReleaseMs);
+  } else if (config.brandLogoReleaseMs !== undefined) {
+    state.sceneImpactReleaseMs = clampNumber(config.brandLogoReleaseMs, 40, 1200, state.sceneImpactReleaseMs);
   }
-  if (config.brandLogoPressMs !== undefined) {
-    state.brandLogoPressMs = clampNumber(config.brandLogoPressMs, 20, 300, state.brandLogoPressMs);
-  }
-  if (config.brandLogoHoldMs !== undefined) {
-    state.brandLogoHoldMs = clampNumber(config.brandLogoHoldMs, 0, 300, state.brandLogoHoldMs);
-  }
-  if (config.brandLogoReleaseMs !== undefined) {
-    state.brandLogoReleaseMs = clampNumber(config.brandLogoReleaseMs, 40, 800, state.brandLogoReleaseMs);
-  }
+
+  // Scene change SFX
+  if (config.sceneChangeSoundEnabled !== undefined) state.sceneChangeSoundEnabled = Boolean(config.sceneChangeSoundEnabled);
+  if (config.sceneChangeSoundIntensity !== undefined) state.sceneChangeSoundIntensity = clampNumber(config.sceneChangeSoundIntensity, 0, 1, state.sceneChangeSoundIntensity);
+  if (config.sceneChangeSoundRadius !== undefined) state.sceneChangeSoundRadius = clampNumber(config.sceneChangeSoundRadius, 6, 60, state.sceneChangeSoundRadius);
   
   // Two-level padding system
   if (config.containerBorder !== undefined) state.containerBorder = config.containerBorder;
   if (config.simulationPadding !== undefined) state.simulationPadding = config.simulationPadding;
   if (config.contentPadding !== undefined) state.contentPadding = config.contentPadding;
-  if (config.containerInnerShadowOpacity !== undefined) state.containerInnerShadowOpacity = config.containerInnerShadowOpacity;
-  if (config.containerInnerShadowBlur !== undefined) state.containerInnerShadowBlur = config.containerInnerShadowBlur;
-  if (config.containerInnerShadowSpread !== undefined) state.containerInnerShadowSpread = config.containerInnerShadowSpread;
-  if (config.containerInnerShadowOffsetY !== undefined) state.containerInnerShadowOffsetY = config.containerInnerShadowOffsetY;
+  // Container inner shadow removed
   
-  // Unified frame + rubber wall visuals
+  // Unified color system (backgrounds + frame)
+  if (config.bgLight !== undefined) state.bgLight = config.bgLight;
+  if (config.bgDark !== undefined) state.bgDark = config.bgDark;
   if (config.frameColor !== undefined) state.frameColor = config.frameColor;
+  
+  // Text colors
+  if (config.textColorLight !== undefined) state.textColorLight = config.textColorLight;
+  if (config.textColorLightMuted !== undefined) state.textColorLightMuted = config.textColorLightMuted;
+  if (config.textColorDark !== undefined) state.textColorDark = config.textColorDark;
+  if (config.textColorDarkMuted !== undefined) state.textColorDarkMuted = config.textColorDarkMuted;
+  
+  // Link colors
+  if (config.linkHoverColor !== undefined) state.linkHoverColor = config.linkHoverColor;
+  
+  // Logo colors
+  if (config.logoColorLight !== undefined) state.logoColorLight = config.logoColorLight;
+  if (config.logoColorDark !== undefined) state.logoColorDark = config.logoColorDark;
+  
+  // Noise texture opacity (visual overlay)
+  if (config.noiseBackOpacity !== undefined) state.noiseBackOpacity = clampNumber(config.noiseBackOpacity, 0, 0.3, state.noiseBackOpacity);
+  if (config.noiseFrontOpacity !== undefined) state.noiseFrontOpacity = clampNumber(config.noiseFrontOpacity, 0, 0.3, state.noiseFrontOpacity);
+  if (config.noiseBackOpacityDark !== undefined) state.noiseBackOpacityDark = clampNumber(config.noiseBackOpacityDark, 0, 0.5, state.noiseBackOpacityDark);
+  if (config.noiseFrontOpacityDark !== undefined) state.noiseFrontOpacityDark = clampNumber(config.noiseFrontOpacityDark, 0, 0.5, state.noiseFrontOpacityDark);
+  
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
   if (config.wallRadius !== undefined) {
     state.wallRadius = config.wallRadius;
@@ -916,21 +1004,6 @@ export function initState(config) {
   if (config.gateOverlayBlurPx !== undefined) state.gateOverlayBlurPx = config.gateOverlayBlurPx;
   if (config.gateOverlayTransitionMs !== undefined) state.gateOverlayTransitionMs = config.gateOverlayTransitionMs;
   if (config.gateOverlayTransitionOutMs !== undefined) state.gateOverlayTransitionOutMs = config.gateOverlayTransitionOutMs;
-
-  // Ghost layer (motion trails)
-  if (config.ghostLayerEnabled !== undefined) state.ghostLayerEnabled = !!config.ghostLayerEnabled;
-  if (config.ghostLayerOpacity !== undefined) {
-    state.ghostLayerOpacity = clampNumber(config.ghostLayerOpacity, 0, 1, state.ghostLayerOpacity);
-  }
-  if (config.ghostLayerUsePerThemeOpacity !== undefined) {
-    state.ghostLayerUsePerThemeOpacity = !!config.ghostLayerUsePerThemeOpacity;
-  }
-  if (config.ghostLayerOpacityLight !== undefined) {
-    state.ghostLayerOpacityLight = clampNumber(config.ghostLayerOpacityLight, 0, 1, state.ghostLayerOpacityLight);
-  }
-  if (config.ghostLayerOpacityDark !== undefined) {
-    state.ghostLayerOpacityDark = clampNumber(config.ghostLayerOpacityDark, 0, 1, state.ghostLayerOpacityDark);
-  }
   
   // Orbit 3D mode (simplified energetic physics)
   if (config.orbit3dMoonCount !== undefined) state.orbit3dMoonCount = clampNumber(config.orbit3dMoonCount, 1, 1000, state.orbit3dMoonCount);
@@ -1000,6 +1073,19 @@ export function getGlobals() {
   return state;
 }
 
+/**
+ * Mobile performance helper: apply `mobileObjectReductionFactor` to any
+ * mode count/size that represents “number of objects”. On non-mobile,
+ * returns the base count unchanged.
+ */
+export function getMobileAdjustedCount(baseCount) {
+  const globals = getGlobals();
+  const n = Math.round(Number(baseCount) || 0);
+  if (!globals.isMobile) return Math.max(0, n);
+  const factor = Math.max(0, Math.min(1, Number(globals.mobileObjectReductionFactor ?? 0.7)));
+  return Math.max(0, Math.round(n * factor));
+}
+
 export function getConfig() {
   return state.config;
 }
@@ -1030,18 +1116,48 @@ export function detectResponsiveScale() {
   const ua = navigator.userAgent || '';
   const isIPad = /iPad/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
   const isIPhone = /iPhone/.test(ua);
-  
-  if (isIPad || isIPhone) {
-    state.isMobile = true;
-    state.responsiveScale = state.responsiveScaleMobile;
-    console.log(`✓ Mobile device detected - ball scale: ${state.responsiveScale}x`);
-  } else {
-    state.isMobile = false;
-    state.responsiveScale = 1.0;
+
+  // Viewport breakpoint (lets desktop “responsive mode” behave like mobile)
+  let isMobileViewport = false;
+  try {
+    isMobileViewport = Boolean(window.matchMedia && window.matchMedia('(max-width: 600px)').matches);
+  } catch (e) {}
+
+  const isMobileDevice = Boolean(isIPad || isIPhone);
+  const nextMobileViewport = isMobileViewport;
+  const nextMobileDevice = isMobileDevice;
+  const nextResponsiveScale = (isMobileDevice || isMobileViewport) ? state.responsiveScaleMobile : 1.0;
+
+  // Early-out: avoid work during resize drags unless we actually cross a breakpoint / scale changes.
+  const didChange =
+    state.isMobile !== nextMobileDevice ||
+    state.isMobileViewport !== nextMobileViewport ||
+    Math.abs((state.responsiveScale ?? 1.0) - nextResponsiveScale) > 1e-6;
+  if (!didChange) return;
+
+  state.isMobile = nextMobileDevice;
+  state.isMobileViewport = nextMobileViewport;
+  state.responsiveScale = nextResponsiveScale;
+
+  if (state.isMobile || state.isMobileViewport) {
+    console.log(`✓ Mobile scaling active - ball scale: ${state.responsiveScale}x (${state.isMobile ? 'device' : 'viewport'})`);
   }
-  
+
   // Recalculate ball sizes with responsive scale applied
   updateBallSizes();
+
+  // Update existing balls only when the scale actually changes (resize-safe).
+  try {
+    const newSize = (state.R_MIN + state.R_MAX) / 2;
+    if (Number.isFinite(newSize) && newSize > 0 && Array.isArray(state.balls) && state.balls.length) {
+      for (let i = 0; i < state.balls.length; i++) {
+        const b = state.balls[i];
+        if (!b) continue;
+        b.r = newSize;
+        b.rBase = newSize;
+      }
+    }
+  } catch (e) {}
 }
 
 /**

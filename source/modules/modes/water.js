@@ -3,7 +3,7 @@
 // ║           Balls swim through water with gorgeous ripple effects             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
@@ -22,7 +22,12 @@ export function initializeWater() {
   
   const w = canvas.width;
   const h = canvas.height;
-  const count = globals.waterBallCount || 100;
+  const count = getMobileAdjustedCount(globals.waterBallCount || 100);
+  if (count <= 0) return;
+  
+  // Initial velocity (DPR-scaled)
+  const DPR = globals.DPR || 1;
+  const v0 = (globals.waterInitialVelocity || 120) * DPR;
   
   // First, ensure at least one ball of each color (0-7)
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
@@ -33,7 +38,6 @@ export function initializeWater() {
     const ball = new Ball(x, y, size, color);
     
     // Random initial velocities (snowglobe-style movement)
-    const v0 = globals.waterInitialVelocity || 120;
     ball.vx = (Math.random() - 0.5) * v0;
     ball.vy = (Math.random() - 0.5) * v0;
     
@@ -49,7 +53,6 @@ export function initializeWater() {
     const ball = new Ball(x, y, size, color);
     
     // Random initial velocities (snowglobe-style movement)
-    const v0 = globals.waterInitialVelocity || 120;
     ball.vx = (Math.random() - 0.5) * v0;
     ball.vy = (Math.random() - 0.5) * v0;
     
@@ -67,14 +70,15 @@ export function applyWaterForces(ball, dt) {
   ball.omega *= (1 - waterDrag * 0.5);
   
   // Apply ripple forces
+  const DPR = globals.DPR || 1;
   for (let i = 0; i < ripples.length; i++) {
     const ripple = ripples[i];
     const dx = ball.x - ripple.x;
     const dy = ball.y - ripple.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     
-    // Ripple affects balls in expanding ring
-    const rippleThickness = 40;
+    // Ripple affects balls in expanding ring (DPR-scaled)
+    const rippleThickness = 40 * DPR;
     const innerRadius = ripple.radius - rippleThickness;
     const outerRadius = ripple.radius + rippleThickness;
     

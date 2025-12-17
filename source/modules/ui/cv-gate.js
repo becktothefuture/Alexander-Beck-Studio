@@ -4,6 +4,7 @@
  */
 
 import { showOverlay, hideOverlay } from './gate-overlay.js';
+import { getText } from '../utils/text-loader.js';
 
 /**
  * Create the page flash overlay element if it doesn't exist
@@ -57,17 +58,25 @@ export function initCVGate() {
         return;
     }
     
+    const BACK_TEXT = getText('gates.common.backText', 'BACK');
+    const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
+    const TITLE = getText('gates.cv.title', 'Bio/CV');
+    const DESC = getText(
+        'gates.cv.description',
+        "Because spam bots don't deserve nice things—and neither do recruiters who don't read portfolios. This keeps my inbox slightly more civilized."
+    );
+
     // Set label text if element exists
     if (gateLabel) {
         gateLabel.innerHTML = `
             <div class="gate-nav">
-                <button type="button" class="gate-back" data-gate-back aria-label="Back">
+                <button type="button" class="gate-back" data-gate-back aria-label="${BACK_ARIA}">
                     <i class="ti ti-arrow-left" aria-hidden="true"></i>
-                    <span>BACK</span>
+                    <span>${BACK_TEXT}</span>
                 </button>
             </div>
-            <h2 class="gate-title">Download Bio/CV</h2>
-            <p class="gate-description">Because spam bots don't deserve nice things—and neither do recruiters who don't read portfolios. This keeps my inbox slightly more civilized.</p>
+            <h2 class="gate-title">${TITLE}</h2>
+            <p class="gate-description">${DESC}</p>
         `;
     }
     

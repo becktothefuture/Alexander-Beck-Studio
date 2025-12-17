@@ -14,12 +14,69 @@ let currentTheme = 'auto'; // Default to auto (system + night heuristic)
 let systemPreference = 'light';
 let isDarkModeInitialized = false;
 
-// Fallback colors if CSS vars not available
-// MUST match --bg-light / --bg-dark in main.css
-const FALLBACK_COLORS = {
-  light: '#f5f5f5',
-  dark: '#0a0a0a'
-};
+/**
+ * Get background colors from globals (config-driven) with CSS fallback
+ */
+function getBackgroundColors() {
+  const g = getGlobals();
+  return {
+    light: g?.bgLight || readCssVar('--bg-light', '#f5f5f5'),
+    dark: g?.bgDark || readCssVar('--bg-dark', '#0a0a0a')
+  };
+}
+
+/**
+ * Sync CSS variables from config values (called at init)
+ * This ensures config-driven colors override CSS defaults
+ */
+function syncCssVarsFromConfig() {
+  const g = getGlobals();
+  const root = document.documentElement;
+  
+  // Backgrounds
+  if (g?.bgLight) {
+    root.style.setProperty('--bg-light', g.bgLight);
+    root.style.setProperty('--chrome-bg-light', g.bgLight);
+  }
+  if (g?.bgDark) {
+    root.style.setProperty('--bg-dark', g.bgDark);
+    root.style.setProperty('--chrome-bg-dark', g.bgDark);
+  }
+  if (g?.frameColor) {
+    root.style.setProperty('--frame-color-light', g.frameColor);
+    root.style.setProperty('--frame-color-dark', g.frameColor);
+    root.style.setProperty('--wall-color', g.frameColor);
+  }
+  
+  // Text colors
+  if (g?.textColorLight) {
+    root.style.setProperty('--text-color-light', g.textColorLight);
+    root.style.setProperty('--text-color-light-base', g.textColorLight);
+  }
+  if (g?.textColorLightMuted) {
+    root.style.setProperty('--text-color-light-muted', g.textColorLightMuted);
+  }
+  if (g?.textColorDark) {
+    root.style.setProperty('--text-color-dark', g.textColorDark);
+    root.style.setProperty('--text-color-dark-base', g.textColorDark);
+  }
+  if (g?.textColorDarkMuted) {
+    root.style.setProperty('--text-color-dark-muted', g.textColorDarkMuted);
+  }
+  
+  // Link colors
+  if (g?.linkHoverColor) {
+    root.style.setProperty('--link-hover-color', g.linkHoverColor);
+  }
+  
+  // Logo colors
+  if (g?.logoColorLight) {
+    root.style.setProperty('--logo-color-light', g.logoColorLight);
+  }
+  if (g?.logoColorDark) {
+    root.style.setProperty('--logo-color-dark', g.logoColorDark);
+  }
+}
 
 /**
  * Read CSS variable from :root, with fallback
@@ -56,9 +113,10 @@ function isNightByLocalClock() {
  * Reads from CSS variables (--chrome-bg*) for unified color management
  */
 function updateThemeColor(isDark) {
-  // Read colors from CSS variables (single source of truth)
-  const lightColor = readCssVar('--chrome-bg-light', FALLBACK_COLORS.light);
-  const darkColor = readCssVar('--chrome-bg-dark', FALLBACK_COLORS.dark);
+  // Read colors from globals (config-driven) with CSS fallback
+  const colors = getBackgroundColors();
+  const lightColor = readCssVar('--chrome-bg-light', colors.light);
+  const darkColor = readCssVar('--chrome-bg-dark', colors.dark);
   const currentColor = isDark ? darkColor : lightColor;
   
   // Update existing meta tag or create new one
@@ -196,6 +254,9 @@ export function setTheme(theme) {
 export function initializeDarkMode() {
   if (isDarkModeInitialized) return;
   isDarkModeInitialized = true;
+
+  // Sync CSS variables from config FIRST (before theme application)
+  syncCssVarsFromConfig();
 
   // Detect system preference (for auto mode later)
   systemPreference = detectSystemPreference();

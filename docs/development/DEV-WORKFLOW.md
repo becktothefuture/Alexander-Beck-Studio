@@ -10,7 +10,7 @@ npm run startup
 
 This launches an interactive menu that guides you through all available development modes.
 
-Note: On startup we sync Webflow-exported assets into `source/webflow/` so the dev server can render the exact same typography/layout as the production build.
+Note: The project no longer syncs external exports into `source/`. Dev and production both use the canonical `source/` layout/assets.
 
 ---
 
@@ -47,8 +47,8 @@ npm run startup → option 1
 - 🚀 **Green badge** in control panel: "DEV MODE — Instant Reload"
 
 **Architecture:**
-- `source/index.html` mirrors `webflow-export/index.html` structure
-- Loads Webflow CSS from `../webflow-export/`
+- `source/index.html` is the canonical HTML layout
+- CSS lives in `source/css/**`
 - Loads dev CSS modules individually
 - Loads `main.js` as ES module
 
@@ -233,7 +233,7 @@ source/
 ### Build Output (Generated - Don't Edit)
 ```
 public/
-├── index.html                    → Production HTML (from webflow-export)
+├── index.html                    → Production HTML (from source/index.html)
 ├── js/
 │   └── bouncy-balls-embed.js    → Bundled JS (Rollup output)
 ├── css/

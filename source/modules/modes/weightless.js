@@ -4,17 +4,21 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { spawnBall } from '../physics/spawn.js';
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { getColorByIndex } from '../visual/colors.js';
 
 export function initializeWeightless() {
   const globals = getGlobals();
   clearBalls();
   
-  const targetBalls = globals.weightlessCount;
+  const targetBalls = getMobileAdjustedCount(globals.weightlessCount);
+  if (targetBalls <= 0) return;
   const w = globals.canvas.width;
   const h = globals.canvas.height;
-  const margin = 40 * globals.DPR;
+  const DPR = globals.DPR || 1;
+  const margin = 40 * DPR;
+  // Initial speed (DPR-scaled)
+  const baseSpeed = globals.weightlessInitialSpeed * DPR;
   
   // First, ensure at least one ball of each color (0-7)
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < targetBalls; colorIndex++) {
@@ -24,7 +28,7 @@ export function initializeWeightless() {
     const ball = spawnBall(x, y, getColorByIndex(colorIndex));
     
     const angle = Math.random() * Math.PI * 2;
-    const speed = globals.weightlessInitialSpeed * (0.7 + Math.random() * 0.3);
+    const speed = baseSpeed * (0.7 + Math.random() * 0.3);
     ball.vx = Math.cos(angle) * speed;
     ball.vy = Math.sin(angle) * speed;
     ball.driftAx = 0;
@@ -39,7 +43,7 @@ export function initializeWeightless() {
     const ball = spawnBall(x, y);
     
     const angle = Math.random() * Math.PI * 2;
-    const speed = globals.weightlessInitialSpeed * (0.7 + Math.random() * 0.3);
+    const speed = baseSpeed * (0.7 + Math.random() * 0.3);
     ball.vx = Math.cos(angle) * speed;
     ball.vy = Math.sin(angle) * speed;
     ball.driftAx = 0;

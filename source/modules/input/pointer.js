@@ -9,6 +9,7 @@ import { createWaterRipple } from '../modes/water.js';
 import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
 import { notifyMouseTrailMove } from '../visual/mouse-trail.js';
 import { isOverlayActive } from '../ui/gate-overlay.js';
+import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
 
 // Mouse velocity tracking for water ripples
 let lastMouseX = 0;
@@ -17,6 +18,8 @@ let lastMoveTime = 0;
 let mouseVelocity = 0;
 let lastTapTime = 0;
 // Click/tap cycles through modes (value stored on globals; avoid caching so modes can override).
+let pressCycleActive = false;
+let pressCyclePointerId = null;
 
 function cycleMode() {
   const globals = getGlobals();
@@ -57,6 +60,16 @@ export function setupPointer() {
   
   const DPR = globals.DPR;
 
+  // Cache canvas rect to avoid layout reads on every pointermove.
+  // Invalidate on resize (and on first use).
+  let cachedCanvasRect = null;
+  let rectInvalidated = true;
+  try {
+    window.addEventListener('resize', () => {
+      rectInvalidated = true;
+    }, { passive: true });
+  } catch (e) {}
+
   /**
    * Panel/UI hit-test: when interacting with the settings UI, we must NOT
    * update simulation mouse state (repel/attract), and the UI must receive
@@ -77,7 +90,11 @@ export function setupPointer() {
    * Get mouse position relative to canvas from any event
    */
   function getCanvasPosition(clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
+    if (rectInvalidated || !cachedCanvasRect) {
+      cachedCanvasRect = canvas.getBoundingClientRect();
+      rectInvalidated = false;
+    }
+    const rect = cachedCanvasRect;
     return {
       x: (clientX - rect.left) * DPR,
       y: (clientY - rect.top) * DPR,
@@ -173,32 +190,70 @@ export function setupPointer() {
   }, { passive: true });
   
   /**
-   * Document-level click handler
-   * Responds to mode-specific interactions
+   * Document-level press handler (pointerdown/up)
+   * - Press in + switch sim on down
+   * - Bounce out on release
    */
-  document.addEventListener('click', (e) => {
-    // Ignore clicks on panel or interactive elements
-    if (isEventOnUI(e.target)) return;
-    if (e.target.closest('a')) return;
-    if (e.target.closest('button')) return;
-    if (e.target.closest('input')) return;
-    if (e.target.closest('select')) return;
-    if (e.target.closest('textarea')) return;
-    
-    // Ignore clicks when gates/overlay are active
+  function isTargetInteractive(el) {
+    if (!el || !el.closest) return false;
+    return Boolean(
+      el.closest('a') ||
+      el.closest('button') ||
+      el.closest('input') ||
+      el.closest('select') ||
+      el.closest('textarea')
+    );
+  }
+
+  function tryPressCycleStart(clientX, clientY, target, pointerId = null) {
+    if (pressCycleActive) return;
+    if (isEventOnUI(target)) return;
+    if (isTargetInteractive(target)) return;
     if (isOverlayActive()) return;
-    
-    const pos = getCanvasPosition(e.clientX, e.clientY);
-    
-    // Only process if click is within canvas bounds
+    if (!globals.clickCycleEnabled) return;
+
+    const pos = getCanvasPosition(clientX, clientY);
     if (!pos.inBounds) return;
-    
-    // Default: NO click effects on any simulation - only mouse movement triggers interactions
-    // Click cycles mode (if enabled)
-    if (globals.clickCycleEnabled) {
-      cycleMode();
-    }
-  });
+
+    pressCycleActive = true;
+    pressCyclePointerId = pointerId;
+
+    // Press-in immediately and HOLD (no auto-release), and arm manual so bb:modeChanged doesn't double-pulse.
+    sceneImpactPress(1, { armManual: true, scheduleRelease: false });
+  }
+
+  function tryPressCycleEnd(pointerId = null) {
+    if (!pressCycleActive) return;
+    if (pressCyclePointerId !== null && pointerId !== null && pointerId !== pressCyclePointerId) return;
+    pressCycleActive = false;
+    pressCyclePointerId = null;
+    // Swap sim on release, then bounce out.
+    cycleMode();
+    sceneImpactRelease(1);
+  }
+
+  if (window.PointerEvent) {
+    document.addEventListener('pointerdown', (e) => {
+      tryPressCycleStart(e.clientX, e.clientY, e.target, e.pointerId);
+    }, { passive: true });
+
+    document.addEventListener('pointerup', (e) => {
+      tryPressCycleEnd(e.pointerId);
+    }, { passive: true });
+
+    document.addEventListener('pointercancel', (e) => {
+      tryPressCycleEnd(e.pointerId);
+    }, { passive: true });
+  } else {
+    // Fallbacks for older browsers without Pointer Events
+    document.addEventListener('mousedown', (e) => {
+      tryPressCycleStart(e.clientX, e.clientY, e.target, null);
+    }, { passive: true });
+
+    document.addEventListener('mouseup', () => {
+      tryPressCycleEnd(null);
+    }, { passive: true });
+  }
   
   /**
    * Touch move tracking for mobile
@@ -235,6 +290,8 @@ export function setupPointer() {
    * Water creates ripple on tap
    */
   document.addEventListener('touchstart', (e) => {
+    // If Pointer Events are supported, touch is handled by pointerdown/up above.
+    if (window.PointerEvent) return;
     // Ignore touches on panel
     if (isEventOnUI(e.target)) return;
     
@@ -255,14 +312,23 @@ export function setupPointer() {
       
       if (!pos.inBounds) return;
 
-      // NO tap effects on any simulation - only finger drag triggers interactions
-      // Double-tap cycles mode (if enabled)
-      const now = performance.now();
-      if (now - lastTapTime < 300 && globals.clickCycleEnabled) {
-        cycleMode();
+      if (globals.clickCycleEnabled) {
+        pressCycleActive = true;
+        pressCyclePointerId = null;
+        // Press in on touchstart and HOLD; release will handle switching + bounce.
+        sceneImpactPress(1, { armManual: true, scheduleRelease: false });
       }
-      lastTapTime = now;
     }
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (window.PointerEvent) return;
+    tryPressCycleEnd(null);
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', () => {
+    if (window.PointerEvent) return;
+    tryPressCycleEnd(null);
   }, { passive: true });
   
   /**

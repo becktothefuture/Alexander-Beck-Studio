@@ -29,7 +29,7 @@ npm run watch
 npm start              # http://localhost:8000
 ```
 This setup:
-- Watches `source/**/*` and `webflow-export/**/*` for changes
+- Watches `source/**/*` for changes
 - Auto-rebuilds to `public/` when you save
 - Refresh browser (Cmd+R) to see updates
 
@@ -91,7 +91,7 @@ npm run build          # Modular production build (Rollup + integration)
 **Output**: `public/js/bouncy-balls-embed.js` + `public/css/bouncy-balls.css`
 
 **Process**:
-1. Copies Webflow export to `public/`
+1. Prepares `public/` from `source/` (static assets)
 2. Bundles `source/main.js` via Rollup
 3. Copies `source/config/default-config.json` to `public/js/config.json`
 4. Injects assets into `public/index.html`
@@ -281,7 +281,7 @@ npm run build          # Modular production build
 <script src="js/bouncy-balls-embed.js"></script>
 ```
 
-**See `WEBFLOW-INTEGRATION.md` for detailed embedding guide.**
+**See `reference/INTEGRATION.md` for the embedding guide.**
 
 ### Performance Tips
 
@@ -466,7 +466,7 @@ git push origin feature/your-feature
 - `ARCHITECTURE.md` - Technical architecture
 - `PERFORMANCE.md` - Benchmarks & optimization
 - `CANVAS-HEIGHT.md` - Dynamic canvas system
-- `WEBFLOW-INTEGRATION.md` - Embedding guide
+- `INTEGRATION.md` - Embedding guide
 
 ### External Resources
 - [MDN Canvas API](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)

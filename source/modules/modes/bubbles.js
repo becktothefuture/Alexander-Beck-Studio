@@ -4,7 +4,7 @@
 // ║    Scale up from 0 on spawn, scale down to 0 on dissipate                    ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals } from '../core/state.js';
+import { getGlobals, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
@@ -20,7 +20,8 @@ export function initializeBubbles() {
   
   const w = canvas.width;
   const h = canvas.height;
-  const count = g.bubblesMaxCount || 200; // Increased for continuous coverage
+  const count = getMobileAdjustedCount(g.bubblesMaxCount || 200); // Increased for continuous coverage
+  if (count <= 0) return;
   
   // Spawn bubbles distributed across entire screen height for continuous flow
   // First ensure one of each color
@@ -44,6 +45,7 @@ export function initializeBubbles() {
  */
 function createBubble(x, y, color, alreadyVisible = false) {
   const g = getGlobals();
+  const DPR = g.DPR || 1;
   
   // Per-mode sizing system: bubbles vary only according to the Bubbles variation slider.
   const targetRadius = randomRadiusForMode(g, MODES.BUBBLES);
@@ -54,8 +56,9 @@ function createBubble(x, y, color, alreadyVisible = false) {
   b.targetRadius = targetRadius;
   b.wobblePhase = Math.random() * Math.PI * 2;
   b.wobbleFreq = 2 + Math.random() * 3;
-  b.vx = (Math.random() - 0.5) * 20;
-  b.vy = -50 - Math.random() * 50;
+  // Initial velocity (DPR-scaled)
+  b.vx = (Math.random() - 0.5) * 20 * DPR;
+  b.vy = (-50 - Math.random() * 50) * DPR;
   
   // Animation states
   b.spawning = !alreadyVisible;
@@ -76,6 +79,7 @@ function recycleBubble(ball) {
   const canvas = g.canvas;
   if (!canvas) return;
   
+  const DPR = g.DPR || 1;
   const w = canvas.width;
   const h = canvas.height;
   
@@ -83,11 +87,11 @@ function recycleBubble(ball) {
   ball.x = Math.random() * w;
   // Spawn 60-90px below screen so scale-in completes as bubble enters view
   // (bubbles rise ~50px during 0.33s spawn animation)
-  ball.y = h + 60 + Math.random() * 30;
+  ball.y = h + (60 + Math.random() * 30) * DPR;
   
-  // Reset velocity
-  ball.vx = (Math.random() - 0.5) * 20;
-  ball.vy = -50 - Math.random() * 50;
+  // Reset velocity (DPR-scaled)
+  ball.vx = (Math.random() - 0.5) * 20 * DPR;
+  ball.vy = (-50 - Math.random() * 50) * DPR;
   
   // New wobble phase
   ball.wobblePhase = Math.random() * Math.PI * 2;

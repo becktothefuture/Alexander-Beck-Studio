@@ -26,8 +26,20 @@ export function initializeLattice() {
   
   // Calculate grid dimensions needed to FILL viewport completely
   // Add extra rows/cols to ensure complete edge coverage
-  const cols = Math.ceil(w / spacing) + 2;
-  const rows = Math.ceil(h / rowHeight) + 2;
+  const baseCols = Math.ceil(w / spacing) + 2;
+  const baseRows = Math.ceil(h / rowHeight) + 2;
+
+  // Mobile performance: reduce lattice density by scaling grid dimensions.
+  // We apply sqrt(factor) per dimension so total objects scales ~factor.
+  const mobileFactor = g.isMobile
+    ? Math.max(0, Math.min(1, Number(g.mobileObjectReductionFactor ?? 0.7)))
+    : 1;
+  if (g.isMobile && mobileFactor <= 0) return;
+
+  const dimFactor = Math.sqrt(mobileFactor);
+  const cols = Math.max(0, Math.round(baseCols * dimFactor));
+  const rows = Math.max(0, Math.round(baseRows * dimFactor));
+  if (cols <= 0 || rows <= 0) return;
   
   // Alignment control: 'center' (default), 'top-left', 'top-center', 'top-right', etc.
   const alignment = g.latticeAlignment ?? 'center';
@@ -62,9 +74,8 @@ export function initializeLattice() {
   }
   
   // Create ALL balls to fill viewport (no ball count limit)
-  // Use first 8 palette colors, then cycle through them
+  // Randomize color distribution for organic appearance
   const edgeMargin = spacing * 0.25;
-  let ballIndex = 0;
   
   for (let row = 0; row < rows; row++) {
     const isOddRow = (row & 1) !== 0;
@@ -76,8 +87,8 @@ export function initializeLattice() {
       
       // Only create balls within viewport bounds (with small edge tolerance for complete coverage)
       if (x >= -edgeMargin && x <= w + edgeMargin && y >= -edgeMargin && y <= h + edgeMargin) {
-        // Cycle through color palette (8 colors)
-        const colorIndex = ballIndex % 8;
+        // Random color from palette (8 colors) - creates organic, non-patterned distribution
+        const colorIndex = Math.floor(Math.random() * 8);
         const ball = spawnBall(x, y, getColorByIndex(colorIndex));
         
         // Store HOME position - this is where the ball always wants to return
@@ -90,8 +101,6 @@ export function initializeLattice() {
         ball.vy = 0;
         ball.driftAx = 0;
         ball.driftTime = 0;
-        
-        ballIndex++;
       }
     }
   }

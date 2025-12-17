@@ -1,6 +1,6 @@
 /* ╔══════════════════════════════════════════════════════════════════════════════╗
    ║                    ALEXANDER BECK STUDIO - MAIN STYLES                       ║
-   ║          Custom overrides + simulation integration for Webflow design        ║
+   ║          Custom overrides + simulation integration                           ║
    ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -51,8 +51,20 @@
   --abs-brand-logo-tilt-deg: 0; /* number (degrees), multiplied by impact sign */
   --abs-brand-logo-skew-deg: 0; /* number (degrees), multiplied by impact sign */
 
+  /* ───────────────────────────────────────────────────────────────────────────
+     Scene Micro-Reaction (CSS-var driven)
+     - JS stamps these vars onto #abs-scene
+     - impact is unitless (can be +/- for rebound)
+     ─────────────────────────────────────────────────────────────────────────── */
+  --abs-scene-impact: 0;
+  --abs-scene-impact-dur: 100ms;
+  /* Tunable multiplier (driven by control panel / config).
+     Keep subtle (0.4%) to avoid visible snap on scale transitions. */
+  --abs-scene-impact-mul: 0.004;
+
   /* Interaction Tokens */
-  --link-hover-color: var(--ball-6);
+  /* Link hover accent is fixed (ban yellow): always use dark orange (#ff4013). */
+  --link-hover-color: #ff4013;
   --duration-link-hover: 30ms;
   --dot-bounce-duration: 500ms;
   --hit-area-padding: clamp(20px, 3vmin, 30px);
@@ -77,21 +89,28 @@
   --wall-color-browser-dark: #202124;
 
   --wall-color: var(--frame-color-light);
-  --wall-thickness: 12px;
-  --wall-radius: 42px;
+
+  /* Layout primitives: match runtime config (vw) to avoid first-paint "radius pop".
+     These are CSS-native responsive values. JS may override with px values for 
+     performance, but these provide the fallback for responsiveness. */
+  --container-border-vw: 1.3;
+  --wall-thickness-vw: 0.9;
+  --wall-radius-vw: 3.7;
+  --layout-min-wall-radius: 32px;
+  --layout-min-content-padding: 16px;
+
+  /* Native vw-based calculations (responsive by default, overridable by JS inline styles) */
+  --wall-thickness: calc(var(--wall-thickness-vw) * 1vw);
+  --wall-radius: clamp(var(--layout-min-wall-radius), calc(var(--wall-radius-vw) * 1vw), 999px);
   --wall-bevel-light: rgba(255, 255, 255, 0.15);
   --wall-bevel-dark: rgba(0, 0, 0, 0.3);
   
   --container-radius: var(--wall-radius);
-  --container-border: 20px;
+  --container-border: calc(var(--container-border-vw) * 1vw);
   --simulation-padding: 0px;
   --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
 
-  --container-inner-shadow-opacity: 0.12;
-  --container-inner-shadow-blur: 80px;
-  --container-inner-shadow-spread: -10px;
-  --container-inner-shadow-offset-y: 0px;
-  --container-inner-shadow-color: hsla(0 0% 0% / var(--container-inner-shadow-opacity));
+  /* Inner shadow removed */
   
   /* Texture Sizing */
   --noise-size-base: 100px;
@@ -99,11 +118,32 @@
   --noise-size-scale: 1;
   
   /* Noise Opacity */
-  --noise-back-opacity-light: 0.010;
-  --noise-front-opacity-light: 0.040;
-  --noise-back-opacity-dark: 0.05;
-  --noise-front-opacity-dark: 0.03;
-  --noise-top-opacity: 0.005;
+  --noise-back-opacity-light: 0.025;
+  --noise-front-opacity-light: 0.055;
+  --noise-back-opacity-dark: 0.12;
+  --noise-front-opacity-dark: 0.08;
+  --noise-top-opacity: 0.01;
+
+  /* Gate overlay + depth defaults: match runtime config to avoid first-paint “pop” */
+  --gate-overlay-opacity: 0.01;
+  --gate-overlay-transition-duration: 800ms;
+  --gate-overlay-transition-out-duration: 600ms;
+  --gate-content-delay: 200ms;
+  /* Blur is always derived from wall thickness (matches JS behavior) */
+  --gate-overlay-blur: calc(var(--wall-thickness) / 2);
+
+  --gate-depth-scale: 0.96;
+  --gate-depth-translate-y: 8px;
+  --gate-depth-duration: 800ms;
+  --gate-depth-out-duration: 600ms;
+
+  --logo-opacity-inactive: 1;
+  --logo-opacity-active-target: 0.2;
+  --logo-opacity-active: 1;
+
+  --logo-blur-inactive: 0px;
+  --logo-blur-active-target: 12px;
+  --logo-blur-active: 0px;
   
   /* Ball Colors */
   --ball-1: #b7bcb7;
@@ -166,10 +206,13 @@
   --footer-icon-size: var(--size-icon);
   --footer-links-padding: var(--tap-target);
   --footer-links-font-size: clamp(14px, 1.4vw, 18px);
+  /* Footer link hover dot (keep legacy visuals but avoid raw px literals in rules) */
+  --footer-link-dot-size: 4px;
+  --footer-link-dot-offset: 8px;
   
   --caption-font-size: var(--text-lg);
-  /* Molle only ships 400; using 700 causes inconsistent synthetic rendering on mobile. */
-  --caption-font-weight: 400;
+  /* Molle: render “thick” consistently (synthetic weight if needed). */
+  --caption-font-weight: 800;
   --caption-line-height: var(--line-height-tight);
   --caption-letter-spacing: 0.01em;
   --caption-offset: var(--gap-sm);
@@ -186,12 +229,21 @@
   --text-opacity-base: 0.9;
   --text-opacity-muted: 0.7;
   
+  /* Text colors (config-driven with defaults) */
   --text-color-light: #161616;
   --text-color-light-muted: #2f2f2f;
-  --text-color-dark: rgba(255, 255, 255, 0.7);
+  --text-color-dark: #b3b3b3;
+  --text-color-dark-muted: #808080;
   
   --text-color-light-base: var(--text-color-light);
   --text-color-dark-base: var(--text-color-dark);
+  
+  /* Link colors */
+  --link-hover-color: #ff4013;
+  
+  /* Logo colors - set via JS from config, fallback to these defaults */
+  --logo-color-light: #161616;
+  --logo-color-dark: #d5d5d5;
   
   --z-ui-base: 10;
   --z-ui-elevated: 20;
@@ -294,7 +346,7 @@ body.body.dark-mode {
   background: transparent !important;
   background-color: transparent !important;
   color: #c8c8c8;
-  --container-inner-shadow-color: hsla(0 0% 100% / calc(var(--container-inner-shadow-opacity) * 0.35));
+  /* Inner shadow removed */
 }
 
 body.dark-mode .content-background-layer {
@@ -313,6 +365,8 @@ body.dark-mode .content-background-layer {
   pointer-events: none;
   display: flex;
   align-items: center; /* True vertical centering in viewport */
+  /* Smooth container-border-driven movement on resize (no existing transition here). */
+  transition: right var(--duration-resize) var(--ease-organic);
 }
 
 .edge-copyright__text {
@@ -362,6 +416,8 @@ body.dark-mode .edge-copyright__text {
   pointer-events: none;
   display: flex;
   align-items: center;
+  /* Smooth container-border-driven movement on resize (no existing transition here). */
+  transition: left var(--duration-resize) var(--ease-organic);
 }
 
 .edge-chapter__text {
@@ -428,19 +484,53 @@ body.dark-mode .edge-chapter__text {
   border-radius: var(--container-radius);
   z-index: 20 !important; /* Above canvas */
   pointer-events: none !important; /* Let clicks pass through to canvas in empty areas */
+  /* Smooth layout updates (resize + config). Avoid overriding other timings by only setting this where none exists. */
+  transition:
+    inset var(--duration-resize) var(--ease-organic),
+    padding var(--duration-resize) var(--ease-organic),
+    border-radius var(--duration-resize) var(--ease-organic);
   
   /* Fade System handled by JS (opacity transition) */
   opacity: 0;
-  /* Include depth effect variables in transform chain */
-  transform: translateZ(0) scale(var(--gate-depth-scale-active, 1)) translateY(var(--gate-depth-ty-active, 0px));
-  transform-origin: center center;
-  transition: transform var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
+  /* NOTE: Scene motion (gate depth + click-in) is applied on #abs-scene only. */
+  transform: translateZ(0);
 }
 
-/* Re-enable pointer events for actual UI children */
-#fade-content *,
-.ui-layer-wrapper * {
+/* Re-enable pointer events ONLY for actual interactive UI elements.
+   Non-interactive wrappers remain pointer-events: none so clicks pass through to canvas.
+   This prevents blank areas in header/footer from blocking simulation interaction. */
+#fade-content a,
+#fade-content button,
+#fade-content input,
+#fade-content select,
+#fade-content textarea,
+#fade-content [role="button"],
+#fade-content summary,
+.ui-layer-wrapper a,
+.ui-layer-wrapper button,
+.ui-layer-wrapper input,
+.ui-layer-wrapper select,
+.ui-layer-wrapper textarea,
+.ui-layer-wrapper [role="button"],
+.ui-layer-wrapper summary {
   pointer-events: auto;
+}
+
+/* Interactive content containers that need full pointer events.
+   Maintain cursor:none to preserve custom cursor experience.
+   Links/buttons inside will inherit from specific rules below. */
+.legend,
+.decorative-script,
+#footer-links-container,
+.socials_list {
+  pointer-events: auto;
+  cursor: none !important;
+}
+
+/* Sound toggle is a button-like element - maintain custom cursor experience */
+.sound-toggle {
+  pointer-events: auto;
+  cursor: none !important;
 }
 
 /* UI Wrapper Frame */
@@ -541,6 +631,31 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   color: inherit !important;
   opacity: var(--text-opacity-base);
   white-space: nowrap !important;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--legend-item-gap);
+}
+
+/* Legend dots (restored; Webflow previously provided base circle sizing) */
+.circle {
+  width: var(--legend-circle-size);
+  height: var(--legend-circle-size);
+  border-radius: 999px;
+  flex: 0 0 auto;
+  display: inline-block;
+}
+
+/* Visually hidden helper (used by social icons and other a11y-only labels) */
+.screen-reader {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
 /* Philosophy Text - Right */
@@ -584,7 +699,7 @@ p {
   text-decoration: underline !important;
   color: inherit;
   pointer-events: auto;
-  cursor: pointer;
+  cursor: none !important; /* Maintain custom cursor experience */
   position: relative;
   opacity: var(--text-opacity-base);
   transition: color var(--duration-link-hover) ease;
@@ -666,17 +781,18 @@ p {
   text-decoration: none !important; /* No underline */
   opacity: var(--text-opacity-base);
   transition: color var(--duration-link-hover) ease;
+  cursor: none !important; /* Maintain custom cursor experience */
 }
 
 .footer_link::after {
   content: '';
   position: absolute;
-  bottom: 8px;
+  bottom: var(--footer-link-dot-offset);
   left: 50%;
   transform: translate3d(-50%, 0, 0) scaleY(0);
   transform-origin: 50% 50%;
-  width: 4px;
-  height: 4px;
+  width: var(--footer-link-dot-size);
+  height: var(--footer-link-dot-size);
   border-radius: 50%;
   background: var(--link-hover-color); /* Use direct color, not currentColor */
   opacity: 0;
@@ -731,7 +847,7 @@ p {
   opacity: 0.9;
   transition: color var(--duration-link-hover) ease;
   /* Keep the link box aligned to the icon box so the hover dot centers correctly.
-     (Webflow sets a smaller fixed width; our Tabler icons are 24px.) */
+     (Legacy export set a smaller fixed width; our Tabler icons are 24px.) */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -740,6 +856,7 @@ p {
   position: relative;
   text-decoration: none !important;
   padding: 0 !important;
+  cursor: none !important; /* Maintain custom cursor experience */
 }
 
 .footer_icon-link::after {
@@ -786,6 +903,7 @@ p {
   margin: calc(var(--hit-area-lg) * -1);
   color: rgba(0, 0, 0, 0.7) !important;
   font-family: 'Geist', sans-serif !important;
+  cursor: none !important; /* Maintain custom cursor experience */
   background: none;
   border: none;
   cursor: pointer;
@@ -797,28 +915,11 @@ p {
 
 .sound-toggle[data-enabled="true"] {
   /* Persistent “sound ON” signal (orange) */
-  color: var(--ball-8) !important;
+  color: var(--link-hover-color) !important;
 }
 
-.sound-toggle[data-enabled="true"]::after {
-  /* Keep dot hover-only, but match the ON color when it does appear */
-  background: var(--ball-8);
-}
-
-.sound-toggle::after {
-  content: '';
-  position: absolute;
-  bottom: calc(var(--dot-indicator-offset) * -1);
-  left: 50%;
-  transform: translateX(-50%) scaleY(0);
-  transform-origin: 50% 50%;
-  width: var(--dot-indicator-size);
-  height: var(--dot-indicator-size);
-  border-radius: 50%;
-  background: var(--link-hover-color); /* Use direct color */
-  opacity: 0;
-  will-change: transform, opacity;
-}
+/* No hover dot for sound toggle (two-state only) */
+.sound-toggle::after { content: none !important; }
 
 /* Sound Toggle in Top-Right specifically */
 .ui-top-right .sound-toggle {
@@ -828,20 +929,7 @@ p {
   padding: var(--hit-area-sm) !important; /* Smaller hit area padding for top */
 }
 
-.sound-toggle:hover {
-  color: var(--link-hover-color) !important;
-  opacity: 1 !important; /* Remove opacity on hover - full strength color */
-}
-
-.sound-toggle[data-enabled="true"]:hover {
-  /* Keep the ON signal stable even on hover */
-  color: var(--ball-8) !important;
-}
-
-.sound-toggle:hover::after {
-  opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
-}
+/* No hover styling for sound toggle (two-state only) */
 
 /* Time/Caption */
 .caption {
@@ -852,26 +940,73 @@ p {
   padding: 0 !important;
   height: auto !important;
   font-family: 'Molle', cursive !important;
-  /* Prevent synthetic bold/italic differences across platforms */
-  font-synthesis: none;
+  font-style: italic !important; /* Molle is italic-only */
   font-size: var(--caption-font-size) !important;
-  font-weight: var(--caption-font-weight) !important;
+  font-weight: 400 !important; /* Molle only has one weight */
   line-height: 1 !important;
   opacity: var(--text-opacity-base);
   color: var(--text-color-light-muted);
+}
+
+.caption {
+  cursor: pointer;
 }
 
 .caption:hover {
   color: var(--text-color-light-base) !important;
 }
 
-/* Time Display - Geist font, smaller size */
+/* Location name (London) - Molle (italic-only font) */
+.location-name {
+  font-family: 'Molle', cursive !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
+}
+
+/* Time Display - Geist font (not Molle) */
 #time-display {
   font-family: 'Geist', sans-serif !important;
-  font-size: var(--text-sm) !important;
+  font-style: normal !important;
+  font-size: inherit !important;
   font-weight: 400 !important;
   font-variant-numeric: tabular-nums !important;
   font-feature-settings: 'tnum' 1 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SCENE WRAPPER (single transform for all layers)
+   ───────────────────────────────────────────────────────────────────────────── */
+#abs-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: auto;
+  transform-origin: center center;
+  /* Compose: gate depth (dialog push-back) + micro-impact (mode change click-in) */
+  transform:
+    scale(var(--gate-depth-scale-active, 1))
+    translateY(var(--gate-depth-ty-active, 0px))
+    scale(calc(1 - (var(--abs-scene-impact, 0) * var(--abs-scene-impact-mul, 0.008))));
+  transition:
+    transform var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+#abs-scene.gate-depth-active {
+  transition:
+    transform var(--gate-depth-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+#abs-scene.abs-scene--impact {
+  /* Use non-overshooting easing to prevent "pop" past rest on release.
+     Smooth ease-out-quint: fast start, gentle deceleration, no overshoot. */
+  transition:
+    transform var(--abs-scene-impact-dur, 100ms) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#abs-scene.abs-scene--animating {
+  will-change: transform;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -882,14 +1017,12 @@ p {
   position: fixed !important;
   top: 50% !important;
   left: 50% !important;
-  /* Include depth effect variables in transform chain */
-  transform: translate3d(-50%, -50%, 0) scale(var(--gate-depth-scale-active, 1)) translateY(var(--gate-depth-ty-active, 0px)) !important;
+  transform: translate3d(-50%, -50%, 0) !important;
   transform-origin: center center;
   /* Fade opacity when gate opens (subtle, not full disappear) */
   opacity: var(--logo-opacity-active, 1);
   /* Sync all transitions: transform + opacity with OUT duration by default */
   transition: 
-    transform var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1),
     opacity var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
   z-index: 3 !important; /* Behind balls (z:5) */
   pointer-events: none !important;
@@ -902,56 +1035,30 @@ p {
   transform-style: preserve-3d;
 }
 
-/* When gate is opening (active state), use IN duration for perfect sync */
-#brand-logo.gate-depth-active {
-  transition: 
-    transform var(--gate-depth-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1),
-    opacity var(--gate-depth-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1);
-}
-
 .brand-logo-svg {
   width: clamp(225px, 41vw, 600px);
   height: auto;
-  color: var(--text-color, #161616);
-  /* Combine drop-shadow with dynamic blur (0 when closed, increases when gate opens) */
-  filter: 
-    drop-shadow(0 2px 20px rgba(0, 0, 0, 0.06))
-    blur(var(--logo-blur-active, 0px));
+  color: var(--logo-color-light);
+  /* Dynamic blur (0 when closed, increases when gate opens) */
+  filter: blur(var(--logo-blur-active, 0px));
   /* Sync filter transition with depth animation (OUT duration by default) */
   transition: 
-    filter var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
-
-  /* Micro-reaction stack (no layout shift; transform only) */
-  transform-origin: center center;
-  transform:
-    translateZ(0)
-    scale(calc(1 - (var(--abs-brand-logo-impact, 0) * var(--abs-brand-logo-impact-mul, 0.014))))
-    /* Disney-ish "squash & stretch" on click: a hair wider + flatter */
-    scaleX(calc(1 + (var(--abs-brand-logo-squash, 0) * var(--abs-brand-logo-squash-x-mul, 0.009))))
-    scaleY(calc(1 - (var(--abs-brand-logo-squash, 0) * var(--abs-brand-logo-squash-y-mul, 0.015))))
-    /* Follow-through: tiny tilt/skew that automatically flips on overshoot (impact sign) */
-    rotate(calc(var(--abs-brand-logo-impact, 0) * var(--abs-brand-logo-tilt-deg, 0) * 1deg))
-    skewX(calc(var(--abs-brand-logo-impact, 0) * var(--abs-brand-logo-skew-deg, 0) * 1deg));
-  will-change: transform, filter;
-  /* No ease-in feel: snap quickly, then soften to rest (ease-out only). */
-  transition: 
-    transform var(--abs-brand-logo-impact-dur, 100ms) cubic-bezier(0, 0, 0.2, 1),
-    filter var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
+    filter var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1),
+    color 200ms ease-out;
+  transform: translateZ(0);
+  will-change: filter;
 }
 
 /* When gate is opening, sync blur transition with IN duration */
 .gate-depth-active .brand-logo-svg {
-  transition: 
-    transform var(--abs-brand-logo-impact-dur, 100ms) cubic-bezier(0, 0, 0.2, 1),
+  transition:
     filter var(--gate-depth-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 body.dark-mode .brand-logo-svg {
-  color: var(--text-color-dark, #d5d5d5);
+  color: var(--logo-color-dark);
   /* Must include blur in dark mode to prevent override */
-  filter: 
-    drop-shadow(0 2px 20px rgba(0, 0, 0, 0.25))
-    blur(var(--logo-blur-active, 0px));
+  filter: blur(var(--logo-blur-active, 0px));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -964,10 +1071,11 @@ body.dark-mode .brand-logo-svg {
   background: var(--bg-light);
   z-index: 1; 
   pointer-events: none;
-  /* Include depth effect variables */
-  transform: scale(var(--gate-depth-scale-active, 1)) translateY(var(--gate-depth-ty-active, 0px));
-  transform-origin: center center;
-  transition: transform var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
+  transform: translateZ(0);
+  /* Smooth resize-driven geometry changes (inset + radius). */
+  transition:
+    inset var(--duration-resize) var(--ease-organic),
+    border-radius var(--duration-resize) var(--ease-organic);
 }
 
 #bravia-balls {
@@ -978,24 +1086,14 @@ body.dark-mode .brand-logo-svg {
   z-index: 5;
   pointer-events: none !important;
   overflow: hidden;
-  /* Include depth effect variables */
-  transform: scale(var(--gate-depth-scale-active, 1)) translateY(var(--gate-depth-ty-active, 0px));
-  transform-origin: center center;
-  transition: transform var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
+  transform: translateZ(0);
+  /* Smooth resize-driven geometry changes (inset + radius). */
+  transition:
+    inset var(--duration-resize) var(--ease-organic),
+    border-radius var(--duration-resize) var(--ease-organic);
 }
 
-#bravia-balls::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: var(--container-radius);
-  pointer-events: none;
-  box-shadow:
-    inset 0 var(--container-inner-shadow-offset-y)
-    var(--container-inner-shadow-blur)
-    var(--container-inner-shadow-spread)
-    var(--container-inner-shadow-color);
-}
+/* Inner shadow removed */
 
 #bravia-balls canvas {
   position: absolute;
@@ -1013,11 +1111,14 @@ body.dark-mode .brand-logo-svg {
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  background-image: url(../images/realistic_noise.gif) !important;
+  background-repeat: repeat !important;
   background-attachment: scroll !important;
   z-index: 2 !important;
   opacity: var(--noise-back-opacity-light) !important;
   background-size: calc(var(--noise-size-base) * var(--noise-size-scale)) calc(var(--noise-size-base) * var(--noise-size-scale)) !important;
   mix-blend-mode: multiply !important;
+  pointer-events: none !important;
 }
 
 .noise-2 {
@@ -1025,11 +1126,14 @@ body.dark-mode .brand-logo-svg {
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  background-image: url(../images/realistic_noise.gif) !important;
+  background-repeat: repeat !important;
   background-attachment: scroll !important;
   z-index: 7 !important;
   opacity: var(--noise-front-opacity-light) !important;
   background-size: calc(var(--noise-size-top) * var(--noise-size-scale)) calc(var(--noise-size-top) * var(--noise-size-scale)) !important;
   mix-blend-mode: multiply !important;
+  pointer-events: none !important;
 }
 
 .noise-3 {
@@ -1037,11 +1141,14 @@ body.dark-mode .brand-logo-svg {
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  background-image: url(../images/realistic_noise.gif) !important;
+  background-repeat: repeat !important;
   background-attachment: scroll !important;
   z-index: 8 !important;
   opacity: var(--noise-top-opacity) !important;
   background-size: calc(var(--noise-size-base) * var(--noise-size-scale)) calc(var(--noise-size-base) * var(--noise-size-scale)) !important;
   mix-blend-mode: multiply !important;
+  pointer-events: none !important;
 }
 
 body.dark-mode .noise {
@@ -1067,6 +1174,12 @@ body.dark-mode .decorative-script {
 }
 
 body.dark-mode .sound-toggle {
+  color: var(--text-color-dark-base) !important;
+}
+
+body.dark-mode .caption,
+body.dark-mode .location-name,
+body.dark-mode #time-display {
   color: var(--text-color-dark-base) !important;
 }
 
@@ -1144,15 +1257,16 @@ body.dark-mode .sound-toggle {
   }
   
   .ui-nav-row {
-    justify-content: space-between !important; /* Spread links on mobile */
+    justify-content: center !important;
   }
   
   #footer-links-container {
     width: 100% !important;
-    justify-content: space-between !important;
-    /* Mobile UX: pull the group slightly upward + inward for calmer balance */
-    padding-inline: 2.5vw !important;
-    transform: translateY(-10px);
+    justify-content: center !important;
+    align-items: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: var(--gap-md) !important;
+    row-gap: var(--gap-sm) !important;
   }
   
   .footer_link {
@@ -1163,6 +1277,29 @@ body.dark-mode .sound-toggle {
     padding-inline: var(--hit-area-sm) !important;
     margin-block: calc(var(--hit-area-sm) * -1) !important;
     margin-inline: calc(var(--hit-area-sm) * -1) !important;
+    text-align: center !important;
+    /* Make the hover dot sit under the text (measured from text bottom) */
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .footer_link::after {
+    position: static !important;
+    left: auto !important;
+    bottom: auto !important;
+    margin-top: var(--gap-xs) !important;
+    opacity: 0 !important;
+    transform: scaleY(0) !important;
+  }
+
+  /* Touch + keyboard parity: show the dot on active/focus too */
+  .footer_link:active::after,
+  .footer_link:focus-visible::after,
+  .footer_link:focus::after {
+    opacity: 1 !important;
+    transform: scaleY(1) !important;
+    animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
   }
   
   .ui-meta-row {
@@ -1218,6 +1355,10 @@ body.dark-mode .sound-toggle {
 .circle.bg-ball-6 { background-color: var(--ball-6) !important; }
 .circle.bg-ball-7 { background-color: var(--ball-7) !important; }
 .circle.bg-ball-8 { background-color: var(--ball-8) !important; }
+
+/* Story-specific legend color: Creative Strategy = darker grey */
+.circle.bg-story-grey { background-color: var(--text-color-light-muted) !important; }
+body.dark-mode .circle.bg-story-grey { background-color: rgba(255, 255, 255, 0.35) !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    GATE DEPTH EFFECT

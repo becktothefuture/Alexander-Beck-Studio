@@ -1,6 +1,6 @@
 # Alexander Beck Studio Website
 
-Minimal, high-speed kinetic canvas built with vanilla JS + Canvas 2D. Eleven simulations, a floating right-aligned panel, and a Webflow-friendly bundle that keeps 60fps while staying privacy-first.
+Minimal, high-speed kinetic canvas built with vanilla JS + Canvas 2D. Eleven simulations, a floating right-aligned panel, and a production build that keeps 60fps while staying privacy-first.
 
 ---
 
@@ -62,7 +62,7 @@ Critters + Ball Pit (Throws) are selectable from the panel.
 ---
 
 ## How it is built (why it works this way)
-- **Source-first**: all edits in `source/`; build emits `public/js/bouncy-balls-embed.js`. Webflow HTML/CSS assets live alongside but are never hand-edited post-build.
+- **Source-first**: all edits in `source/`; build emits `public/js/bouncy-balls-embed.js`. Exported HTML/CSS assets are composed at build-time and are never hand-edited post-build.
 - **Constant-time hot paths**: spatial grid for collisions, minimal allocations per frame, dt capped for Safari/Chrome parity.
 - **Scoped styles**: everything contained in `#bravia-balls`; CSS variables drive palette, wall, and grain; panel styles are confined to the dock.
 - **Config-injected**: runtime config pulled from `config/default-config.json` (or inlined); localStorage optional and off for physics state by default.

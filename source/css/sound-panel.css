@@ -50,7 +50,7 @@
   flex: 0 0 45px;
   text-align: right;
   font-size: 11px;
-  font-family: var(--panel-font-mono, ui-monospace, monospace);
+  font-family: var(--panel-font-mono, monospace);
   font-variant-numeric: tabular-nums;
   color: var(--panel-foreground);
 }
@@ -146,7 +146,7 @@
   margin-left: auto;
   font-size: 10px;
   color: var(--panel-muted-foreground);
-  font-family: var(--panel-font-mono, ui-monospace, monospace);
+  font-family: var(--panel-font-mono, monospace);
   opacity: 0.9;
   user-select: none;
   white-space: nowrap;

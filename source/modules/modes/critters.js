@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { spawnBall } from '../physics/spawn.js';
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { MODES } from '../core/constants.js';
@@ -41,7 +41,9 @@ export function initializeCritters() {
   const h = globals.canvas.height;
   const DPR = globals.DPR || 1;
 
-  const count = Math.max(10, Math.min(260, globals.critterCount | 0));
+  const baseCount = Math.max(10, Math.min(260, globals.critterCount | 0));
+  const count = getMobileAdjustedCount(baseCount);
+  if (count <= 0) return;
 
   // First, ensure at least one critter of each color (0-7) for palette representation
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
@@ -101,9 +103,10 @@ export function applyCrittersForces(ball, dt) {
   const canvas = g.canvas;
   if (!canvas) return;
 
-  // ---- Parameters (config-driven) ----
+  // ---- Parameters (config-driven, DPR-scaled where needed) ----
+  const DPR = g.DPR || 1;
   const speed = Math.max(0, g.critterSpeed || 0);
-  const vMax = Math.max(50, g.critterMaxSpeed || 0);
+  const vMax = Math.max(50, g.critterMaxSpeed || 0) * DPR;
   const stepHz = Math.max(0, g.critterStepHz || 0);
   const sharp = g.critterStepSharpness ?? 2.4;
   const turnNoise = Math.max(0, g.critterTurnNoise || 0);

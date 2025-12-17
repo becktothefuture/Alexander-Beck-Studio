@@ -125,10 +125,80 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         globals.currentMode !== MODES.PARALLAX_PERSPECTIVE &&
         globals.currentMode !== MODES.LATTICE) {
       const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
+      const isPitLike = (globals.currentMode === MODES.PIT || globals.currentMode === MODES.PIT_THROWS);
       const lenWalls = balls.length;
       for (let i = 0; i < lenWalls; i++) {
-        applyCornerRepellers(balls[i], canvas);
+        // Ball Pit has explicit rounded-corner arc clamping in Ball.walls().
+        // Avoid an additional velocity-based corner repeller there, which can
+        // create local compressions in dense corner stacks.
+        if (!isPitLike) applyCornerRepellers(balls[i], canvas);
         balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+      }
+    }
+
+    // Ball Pit stabilization:
+    // Wall/corner clamping can re-introduce overlaps in dense stacks (especially near the floor).
+    // Run a small post-wall collision pass for Pit-like modes only.
+    if (globals.currentMode === MODES.PIT || globals.currentMode === MODES.PIT_THROWS) {
+      resolveCollisions(3);
+
+      // The post-wall collision pass can push bodies slightly outside the inset wall bounds.
+      // Clamp once more without registering wall effects (sound/pressure/wobble).
+      const wallRestitution = globals.REST;
+      const lenClamp = balls.length;
+      for (let i = 0; i < lenClamp; i++) {
+        balls[i].walls(canvas.width, canvas.height, DT, wallRestitution, { registerEffects: false });
+      }
+
+      // ══════════════════════════════════════════════════════════════════════════
+      // POST-PHYSICS STABILIZATION (Pit modes only)
+      // After all constraints, aggressively dampen near-stationary balls.
+      // This simulates static friction and prevents perpetual micro-wiggle on mobile.
+      // ══════════════════════════════════════════════════════════════════════════
+      const DPR = globals.DPR || 1;
+      // Thresholds must be DPR-scaled: physics runs in canvas pixels (displayPx * DPR)
+      // Same apparent motion = DPRx higher velocity in canvas space
+      const STABLE_VEL_THRESHOLD = 8 * DPR; // px/s - very low; balls moving slower are "settled"
+      const STABLE_ANGULAR_THRESHOLD = 0.1; // rad/s (rotation not DPR-affected)
+      const tSleep = globals.timeToSleep ?? 0.25;
+      
+      for (let i = 0; i < lenClamp; i++) {
+        const b = balls[i];
+        if (!b || b.isSleeping) continue;
+        
+        const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        const angSpeed = Math.abs(b.omega);
+        
+        // Aggressive stabilization: if grounded OR supported with tiny velocity, zero it
+        // hasSupport = resting on another ball; isGrounded = touching floor
+        const isSettled = b.isGrounded || b.hasSupport;
+        if (isSettled && speed < STABLE_VEL_THRESHOLD && angSpeed < STABLE_ANGULAR_THRESHOLD) {
+          // Aggressively dampen toward zero (static friction simulation)
+          b.vx *= 0.5;
+          b.vy *= 0.5;
+          b.omega *= 0.5;
+          
+          // If really tiny, snap to zero (DPR-scaled)
+          if (speed < 2 * DPR) {
+            b.vx = 0;
+            b.vy = 0;
+          }
+          if (angSpeed < 0.02) {
+            b.omega = 0;
+          }
+          
+          // Accumulate sleep timer
+          b.sleepTimer += DT;
+          if (b.sleepTimer >= tSleep) {
+            b.vx = 0;
+            b.vy = 0;
+            b.omega = 0;
+            b.isSleeping = true;
+          }
+        } else {
+          // Moving too fast - reset sleep timer
+          b.sleepTimer = 0;
+        }
       }
     }
     
@@ -183,26 +253,8 @@ export function render() {
   
   if (!ctx || !canvas) return;
   
-  // Clear / Ghost layer (motion trails)
-  if (globals.ghostLayerEnabled) {
-    const alpha = globals.ghostLayerUsePerThemeOpacity
-      ? (globals.isDarkMode ? globals.ghostLayerOpacityDark : globals.ghostLayerOpacityLight)
-      : globals.ghostLayerOpacity;
-
-    // IMPORTANT: Fade to TRANSPARENT (not to a solid background color).
-    // This preserves visibility of DOM elements behind the canvas (e.g. the logo).
-    if (alpha >= 1) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    } else if (alpha > 0) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.globalAlpha = alpha;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-    }
-  } else {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
+  // Clear frame (ghost trails removed per performance optimization plan)
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   
   // Draw water ripples (behind balls)
   if (globals.currentMode === MODES.WATER) {

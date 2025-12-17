@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                           SOCIAL ICONS UPGRADE                               ║
-// ║      Replace Webflow-exported icons with a self-hosted icon font             ║
+// ║      Replace exported icons with a self-hosted icon font                     ║
 // ║                 (no inline SVGs in the DOM)                                  ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 

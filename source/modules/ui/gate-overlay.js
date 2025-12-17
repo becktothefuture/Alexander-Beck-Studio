@@ -153,7 +153,7 @@ function handleOverlayClick(e) {
  */
 function applyDepthEffect(active) {
     const root = document.documentElement;
-    const logo = document.getElementById('brand-logo');
+    const scene = document.getElementById('abs-scene');
     
     if (active) {
         // Get depth values from existing CSS vars or use defaults
@@ -171,8 +171,8 @@ function applyDepthEffect(active) {
         root.style.setProperty('--logo-opacity-active', logoOpacityActive);
         root.style.setProperty('--logo-blur-active', logoBlurActive);
         
-        // Add class to logo for IN duration timing sync
-        if (logo) logo.classList.add('gate-depth-active');
+        // Add class to scene wrapper for IN duration timing sync
+        if (scene) scene.classList.add('gate-depth-active');
     } else {
         // Reset to identity (no effect)
         const logoOpacityInactive = getComputedStyle(root).getPropertyValue('--logo-opacity-inactive').trim() || '1';
@@ -183,8 +183,8 @@ function applyDepthEffect(active) {
         root.style.setProperty('--logo-opacity-active', logoOpacityInactive);
         root.style.setProperty('--logo-blur-active', logoBlurInactive);
         
-        // Remove class from logo to use OUT duration timing
-        if (logo) logo.classList.remove('gate-depth-active');
+        // Remove class from scene wrapper to use OUT duration timing
+        if (scene) scene.classList.remove('gate-depth-active');
     }
 }
 

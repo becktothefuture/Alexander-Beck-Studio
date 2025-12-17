@@ -56,8 +56,8 @@
   --panel-pad-32: 32px;
   
   /* Typography */
-  --panel-font: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
-  --panel-font-mono: 'Geist Mono', ui-monospace, monospace;
+  --panel-font: 'Geist', sans-serif;
+  --panel-font-mono: 'Geist Mono', monospace;
   
   /* Shadows */
   --panel-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
@@ -813,7 +813,7 @@ body:not(.dark-mode) .panel-section--action {
 
 .control-value {
   font-size: 11px;
-  font-family: var(--panel-font-mono, ui-monospace, monospace);
+  font-family: var(--panel-font-mono, monospace);
   font-variant-numeric: tabular-nums;
   color: var(--panel-foreground);
   opacity: 0.8;
@@ -844,6 +844,34 @@ body:not(.dark-mode) .panel-section--action {
   color: var(--panel-muted-foreground);
   line-height: 1.4;
   margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CONTROL DIVIDER — Section separator within a category
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.control-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 8px 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-muted-foreground);
+  opacity: 0.4;
+}
+
+.control-divider:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.control-divider-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--panel-muted-foreground);
+  white-space: nowrap;
 }
 
 /* Checkbox controls (used for simple on/off toggles like Trail Enabled) */

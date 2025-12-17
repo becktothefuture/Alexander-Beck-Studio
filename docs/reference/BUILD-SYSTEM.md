@@ -2,12 +2,15 @@
 
 ## Overview
 
-The Alexander Beck Studio website uses a **single-source production build system** that transforms Webflow export templates and custom simulation code into a fully integrated, optimized static site.
+The Alexander Beck Studio website uses a **single-source production build system** that transforms the canonical `source/` HTML/CSS/JS and runtime config into a fully integrated, optimized static site.
 
 **Source of Truth:**
-- `webflow-export/` - Pristine Webflow export (HTML/CSS/assets)
+- `source/index.html` - Canonical HTML layout
+- `source/css/**` - Canonical styles (including normalize)
 - `source/main.js` - Modular entry point (ES modules under `source/modules/**`)
+- `source/images/**` - Favicons + static assets (including `realistic_noise.gif`)
 - `source/config/default-config.json` - Runtime configuration defaults
+- `source/config/text.json` - **All user-facing copy** (single source of truth)
 
 **Output:**
 - `public/` - Complete production-ready site (fully generated, never edit directly)
@@ -21,7 +24,7 @@ The Alexander Beck Studio website uses a **single-source production build system
 npm run build
 ```
 **Generates:** Complete site in `public/` directory  
-**Process:** Webflow copy + Rollup bundle + asset injection  
+**Process:** source → public (static assets) + Rollup bundle + asset injection  
 **Time:** ~3-4 seconds  
 **Output Size:** ~48KB minified JS + 7.6KB CSS
 
@@ -38,21 +41,13 @@ npm run watch
 # Terminal 2: Serve the built site
 npm start              # http://localhost:8000
 ```
-**Watches:** `source/**/*` and `webflow-export/**/*`  
+**Watches:** `source/**/*`  
 **Triggers:** Rebuilds `public/` on every file save  
 **Workflow:** Save file → wait 2s → refresh browser (Cmd+R)
 
-### Visual-Parity Dev (Recommended)
+### Visual-Parity Dev
 
-Dev now mirrors the production Webflow structure by syncing Webflow-exported assets into the dev server:
-
-```bash
-npm run startup
-# Option 4 (Watch Mode) runs:
-# - Dev server:   http://localhost:8001 (modules)
-# - Build server: http://localhost:8000 (bundle)
-# - Watcher: rebuilds public/ on save
-```
+Dev and production share the same canonical `source/index.html` and `source/css/**`. The production build composes assets into `public/`.
 
 ### Help
 ```bash
@@ -66,20 +61,16 @@ Shows all available build commands with descriptions.
 
 ### Step-by-Step Process
 
-**1. Clean Slate Copy**
-```
-webflow-export/ → public/
-```
+**1. Prepare `public/`**
 - Deletes existing `public/` directory
-- Copies entire Webflow export (preserves structure exactly)
-- Result: Pristine Webflow site in `public/`
+- Copies required static assets from `source/` (images, fonts, standalone pages)
 
 **2. Bundle Modules**
 ```
 source/main.js → Rollup → public/js/bouncy-balls-embed.js
 ```
 - Bundles JS via Rollup
-- Bundles CSS from `source/css/` into `public/css/bouncy-balls.css` (includes panel + dock + sound + gates)
+- Bundles CSS from `source/css/` into `public/css/bouncy-balls.css` (includes normalize + main + gates; panel assets are excluded in production)
 - Copies runtime config into production output (see “Runtime Configuration Details”)
 
 **3. Runtime Configuration**
@@ -87,6 +78,13 @@ source/main.js → Rollup → public/js/bouncy-balls-embed.js
 source/config/default-config.json → public/js/config.json
 ```
 Loaded via fetch in `main.js` with cache-busting in dev
+
+**3b. Runtime Text (Single Source of Truth)**
+```
+source/config/text.json → public/js/text.json
+```
+- **Dev:** fetched once at startup via `loadRuntimeText()` (`source/modules/utils/text-loader.js`)
+- **Prod:** **inlined + minified** into `public/index.html` as `window.__TEXT__` (zero fetch, no pop-in)
 
 **Example:**
 ```javascript
@@ -97,12 +95,10 @@ Loaded via fetch in `main.js` with cache-busting in dev
 **4. Minify JavaScript**
 - Rollup terser plugin with 3-pass compression
 
-**5. Integrate into Webflow HTML**
+**5. Integrate into HTML**
 ```
 public/index.html [placeholder] → [full simulation]
 ```
-- Finds: `<div id="bravia-balls" class="ball-simulation w-embed">`
-- Replaces with: Full simulation container (HTML structure)
 - Injects CSS `<link id="bravia-balls-css">`
 - Injects JS `<script id="bravia-balls-js" src="js/bouncy-balls-embed.js">`
 - Wraps the content layer in `#fade-content` and injects a blocking `<style id="fade-blocking">` to prevent FOUC
@@ -135,6 +131,10 @@ Checks:
 - `public/js/config.json`
 - `public/config/default-config.json`
 
+`source/config/text.json` is copied to:
+- `public/js/text.json`
+- `public/config/text.json`
+
 ### Runtime load order
 
 At runtime, `source/main.js` attempts to fetch (in order):
@@ -151,30 +151,48 @@ At runtime, `source/main.js` attempts to fetch (in order):
 
 ## Minification Strategy
 
-### Terser Configuration
+### Terser Configuration (v2 - Optimized)
 
 **Compression Settings:**
-- **3 passes** - Multiple optimization rounds
+- **3 passes** - Multiple optimization rounds for maximum compression
+- **ECMAScript 2020 target** - Modern syntax (arrow functions, spread, etc.)
 - **Dead code elimination** - Removes unreachable code
-- **Console policy** - Production prints a single banner (plus ASCII “BECK”), then silences `console.log/info/warn/debug` (while keeping `console.error` for real failures). Dev remains verbose for debugging.
+- **Console policy** - Keeps all console statements (runtime handles verbosity)
 - **Debugger removal** - Strips `debugger` statements
-- **Unsafe optimizations** - Aggressive math/method optimizations
+- **Function inlining** - Inlines single-use functions (level 2)
+- **Variable collapsing** - Collapses single-use variables
+- **Pure functions** - Annotates Math/Object/Array methods as side-effect-free
+- **Property hoisting** - Hoists property access for smaller output
+- **Sequence optimization** - Uses comma sequences where safe
+- **Unsafe optimizations** - Aggressive arrow/method/regexp optimizations
 
 **Mangling:**
 - **Top-level mangling** - Renames function/variable names
 - **Safari 10 compatibility** - Avoids known Safari bugs
+- **Private property mangling** - Mangles properties starting with `_`
 
 **Output:**
 - **No comments** - Removes all documentation
-- **Build preamble** - Adds timestamp header
-- **70% size reduction** - 160KB → 48KB
+- **Compact format** - Minimal whitespace
+- **IIFE wrapping** - Safe for inclusion anywhere
 
-### Why Terser?
+### CSS Minification
 
-- Industry standard for JavaScript minification
-- Excellent compression ratio
-- Source map support (not currently enabled)
-- Active maintenance and bug fixes
+The build now minifies CSS (previously only concatenated):
+- Removes comments
+- Collapses whitespace
+- Removes unnecessary semicolons
+- Optimizes selectors
+
+### Bundle Sizes
+
+| Asset | Raw | Minified | Gzipped |
+|-------|-----|----------|---------|
+| JS | ~400KB | ~240KB | ~62KB |
+| CSS | ~70KB | ~36KB | ~7KB |
+| **Total** | ~470KB | ~276KB | **~69KB** |
+
+**Note:** Gzipped sizes represent actual network transfer (what users download).
 
 ---
 
@@ -184,14 +202,11 @@ At runtime, `source/main.js` attempts to fetch (in order):
 
 ```
 /
-├── webflow-export/          # ← Webflow template (pristine)
-│   ├── index.html
-│   ├── css/
-│   ├── js/
-│   └── images/
 ├── source/                  # ← Development files
-│   ├── index.html           # ← Dev page (modules)
+│   ├── index.html           # ← Canonical HTML
 │   ├── main.js              # ← Entry point
+│   ├── images/**
+│   ├── css/**
 │   ├── config/default-config.json
 │   └── modules/**
 └── build-production.js      # ← Build script
@@ -202,14 +217,12 @@ At runtime, `source/main.js` attempts to fetch (in order):
 ```
 /
 ├── public/                  # ← Generated (don't edit!)
-│   ├── index.html           # Webflow + simulation integrated
+│   ├── index.html           # Bundled + config inlined
 │   ├── css/
-│   │   ├── (Webflow CSS files)
-│   │   └── bouncy-balls.css # Standalone simulation styles
+│   │   └── bouncy-balls.css # Bundled CSS (includes normalize + site styles)
 │   ├── js/
-│   │   ├── (Webflow JS files)
 │   │   └── bouncy-balls-embed.js  # Minified simulation
-│   └── images/              # (Webflow assets)
+│   └── images/              # Static assets from source/images
 ```
 
 ---
@@ -218,8 +231,8 @@ At runtime, `source/main.js` attempts to fetch (in order):
 
 ### Build Fails: "Assets not injected"
 
-**Cause:** Webflow template diverged from expected placeholder  
-**Fix:** Ensure `<div id="bravia-balls" ...>` exists in `public/index.html`
+**Cause:** HTML template changed or build injection failed  
+**Fix:** Ensure the build is using `source/index.html` and that it injects `bravia-balls-css` and `bravia-balls-js`.
 
 ### Build Fails: Validation Error
 
@@ -283,19 +296,13 @@ npm run watch
 
 ### Manual Build Steps (For Understanding)
 
-1. **Copy Webflow Export:**
+1. **Clean output + copy static assets:**
    ```bash
    rm -rf public/
-   cp -r webflow-export/ public/
-   ```
-
-2. **Bundle Modules:** (handled automatically by build script)
-   ```bash
-   # rollup is invoked by build script
    npm run build
    ```
 
-3. **Inject Assets:**
+2. **Inject Assets:**
    ```javascript
    // Build script replaces placeholder and injects link/script tags
    ```

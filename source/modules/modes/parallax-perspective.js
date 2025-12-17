@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { spawnBall } from '../physics/spawn.js';
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { getModeSizeVarianceFrac } from '../utils/ball-sizing.js';
@@ -22,9 +22,10 @@ export function initializeParallaxPerspective() {
   const h = canvas.height;
 
   // Grid dimensions
-  const gridX = Math.max(3, Math.min(50, g.parallaxPerspectiveGridX ?? 16));
-  const gridY = Math.max(3, Math.min(50, g.parallaxPerspectiveGridY ?? 12));
-  const gridZ = Math.max(2, Math.min(25, g.parallaxPerspectiveGridZ ?? 8));
+  const gridX = getMobileAdjustedCount(Math.max(0, Math.min(50, Math.round(g.parallaxPerspectiveGridX ?? 16))));
+  const gridY = getMobileAdjustedCount(Math.max(0, Math.min(50, Math.round(g.parallaxPerspectiveGridY ?? 12))));
+  const gridZ = getMobileAdjustedCount(Math.max(0, Math.min(25, Math.round(g.parallaxPerspectiveGridZ ?? 8))));
+  if (gridX <= 0 || gridY <= 0 || gridZ <= 0) return;
 
   // Grid span (viewport fill in world space)
   const spanX = Math.max(0.2, Math.min(3.0, g.parallaxPerspectiveSpanX ?? 1.45));
@@ -78,9 +79,9 @@ export function initializeParallaxPerspective() {
         const x2d = centerX + x3d * scale;
         const y2d = centerY + y3d * scale;
 
-        // Size and opacity
+        // Size (opacity is constant)
         const r = baseR * scale;
-        const alpha = Math.max(0.2, Math.min(1.0, 0.3 + (1 - depthFactor) * 0.7));
+        const alpha = 1.0;
 
         const color = getColorByIndex((idx + iz * 3) & 7);
         const ball = spawnBall(x2d, y2d, color);

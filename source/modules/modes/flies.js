@@ -4,19 +4,23 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { spawnBall } from '../physics/spawn.js';
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
 
 export function initializeFlies() {
   const globals = getGlobals();
   clearBalls();
   
-  const targetBalls = 60;
+  const targetBalls = getMobileAdjustedCount(globals.fliesBallCount ?? 60);
+  if (targetBalls <= 0) return;
   const w = globals.canvas.width;
   const h = globals.canvas.height;
   const centerX = w * 0.5;
   const centerY = h * 0.5;
   const swarmRadius = 150 * globals.DPR;
+  
+  // Initial velocity base (DPR-scaled)
+  const baseSpeed = 300 * globals.DPR;
   
   // First, ensure at least one ball of each color (0-7)
   for (let colorIndex = 0; colorIndex < 8; colorIndex++) {
@@ -29,7 +33,7 @@ export function initializeFlies() {
     
     const speedVariation = 0.5 + Math.random() * 0.5;
     const vAngle = Math.random() * Math.PI * 2;
-    const speed = 300 * speedVariation;
+    const speed = baseSpeed * speedVariation;
     ball.vx = Math.cos(vAngle) * speed;
     ball.vy = Math.sin(vAngle) * speed;
     ball.driftAx = 0;
@@ -47,7 +51,7 @@ export function initializeFlies() {
     
     const speedVariation = 0.5 + Math.random() * 0.5;
     const vAngle = Math.random() * Math.PI * 2;
-    const speed = 300 * speedVariation;
+    const speed = baseSpeed * speedVariation;
     ball.vx = Math.cos(vAngle) * speed;
     ball.vy = Math.sin(vAngle) * speed;
     ball.driftAx = 0;

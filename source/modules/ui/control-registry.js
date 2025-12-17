@@ -274,6 +274,22 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
+        id: 'mobileObjectReductionFactor',
+        label: 'Mobile Density',
+        stateKey: 'mobileObjectReductionFactor',
+        type: 'range',
+        min: 0, max: 1.0, step: 0.05,
+        default: 0.7,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Scales object counts on mobile (0% = none). Resets the current mode.',
+        onChange: (g, _val) => {
+          import('../modes/mode-controller.js').then(({ setMode }) => {
+            setMode(g.currentMode);
+          }).catch(() => {});
+        }
+      },
+      {
         id: 'ballSoftnessGlobal',
         label: 'Softness',
         stateKey: 'ballSoftness',
@@ -288,10 +304,43 @@ export const CONTROL_SECTIONS = {
         label: 'Spacing',
         stateKey: 'ballSpacing',
         type: 'range',
-        min: 0, max: 10, step: 0.5,
-        default: 2.5,
-        format: v => v.toFixed(1) + 'px',
-        parse: parseFloat
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.08,
+        format: v => Math.round(v * 100) + '%',
+        parse: parseFloat,
+        hint: 'Collision gap as % of ball radius (affects physics)'
+      },
+      {
+        id: 'sizeVariationGlobalMul',
+        label: 'Variation Scale',
+        stateKey: 'sizeVariationGlobalMul',
+        type: 'range',
+        min: 0, max: 2.0, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2) + 'x',
+        parse: parseFloat,
+        hint: 'Global multiplier for per-mode size variation',
+        onChange: (g, _val) => {
+          import('../core/state.js').then(({ updateBallSizes }) => {
+            updateBallSizes();
+          });
+        }
+      },
+      {
+        id: 'sizeVariationCap',
+        label: 'Variation Cap',
+        stateKey: 'sizeVariationCap',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.12,
+        format: v => Math.round(v * 100) + '%',
+        parse: parseFloat,
+        hint: 'Max radius deviation from medium (12% = ±12%)',
+        onChange: (g, _val) => {
+          import('../core/state.js').then(({ updateBallSizes }) => {
+            updateBallSizes();
+          });
+        }
       }
     ]
   },
@@ -393,95 +442,98 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LOGO - Mode change “click-in” micro-interaction tuning
+  // SCENE - Mode change “click-in” micro-interaction tuning
   // ═══════════════════════════════════════════════════════════════════════════
-  logo: {
-    title: 'Logo',
-    icon: '◎',
+  scene: {
+    title: 'Scene',
+    icon: '⬚',
     defaultOpen: false,
     controls: [
       {
-        id: 'brandLogoImpactMul',
+        id: 'sceneImpactEnabled',
+        label: 'Enabled',
+        stateKey: 'sceneImpactEnabled',
+        type: 'checkbox',
+        default: true,
+        hint: 'If disabled, mode changes will not animate the scene.'
+      },
+      {
+        id: 'sceneImpactMul',
         label: 'Click Depth',
-        stateKey: 'brandLogoImpactMul',
+        stateKey: 'sceneImpactMul',
         type: 'range',
-        min: 0.0, max: 0.12, step: 0.001,
-        default: 0.014,
+        min: 0.0, max: 0.05, step: 0.001,
+        default: 0.004,
         format: (v) => v.toFixed(3),
         parse: parseFloat,
-        hint: 'How far the logo “presses in” on simulation change.',
+        hint: 'How far the entire scene “presses in” on simulation change.',
         onChange: (_g, val) => {
-          const el = document.getElementById('brand-logo');
+          const el = document.getElementById('abs-scene');
           if (!el) return;
-          el.style.setProperty('--abs-brand-logo-impact-mul', String(val));
+          el.style.setProperty('--abs-scene-impact-mul', String(val));
         }
       },
       {
-        id: 'brandLogoSquashMul',
-        label: 'Squash',
-        stateKey: 'brandLogoSquashMul',
+        id: 'sceneImpactPressMs',
+        label: 'Press',
+        stateKey: 'sceneImpactPressMs',
         type: 'range',
-        min: 0.0, max: 7.5, step: 0.05,
-        default: 1.0,
-        format: (v) => v.toFixed(2) + 'x',
-        parse: parseFloat,
-        hint: 'Squash & stretch amount during the click-in (Disney-ish).',
-        onChange: (_g, val) => {
-          const el = document.getElementById('brand-logo');
-          if (!el) return;
-          // Keep base ratios consistent with the CSS defaults.
-          el.style.setProperty('--abs-brand-logo-squash-x-mul', String(0.009 * val));
-          el.style.setProperty('--abs-brand-logo-squash-y-mul', String(0.015 * val));
-        }
+        min: 20, max: 300, step: 5,
+        default: 75,
+        format: (v) => `${Math.round(v)}ms`,
+        parse: (v) => parseInt(v, 10),
+        hint: 'Press-in duration.'
       },
       {
-        id: 'brandLogoOvershoot',
-        label: 'Bounce Out',
-        stateKey: 'brandLogoOvershoot',
+        id: 'sceneImpactReleaseMs',
+        label: 'Release',
+        stateKey: 'sceneImpactReleaseMs',
         type: 'range',
-        min: 0.0, max: 1.8, step: 0.01,
-        default: 0.22,
-        format: (v) => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'How much it “pops past rest” on release (higher = bouncier).'
-      },
-      {
-        id: 'brandLogoReleaseMs',
-        label: 'Bounce Duration',
-        stateKey: 'brandLogoReleaseMs',
-        type: 'range',
-        min: 60, max: 1440, step: 5,
+        min: 40, max: 1200, step: 10,
         default: 220,
         format: (v) => `${Math.round(v)}ms`,
         parse: (v) => parseInt(v, 10),
-        hint: 'How long the release takes (longer = softer).'
+        hint: 'Release duration (“bounce out” length).'
       },
       {
-        id: 'brandLogoTiltDeg',
-        label: 'Tilt',
-        stateKey: 'brandLogoTiltDeg',
-        type: 'range',
-        min: 0.0, max: 6.0, step: 0.05,
-        default: 0.0,
-        format: (v) => `${v.toFixed(2)}°`,
-        parse: parseFloat,
-        hint: 'Tiny rotation tied to the click (follow-through).',
-        onChange: (_g, val) => {
-          const el = document.getElementById('brand-logo');
-          if (!el) return;
-          el.style.setProperty('--abs-brand-logo-tilt-deg', String(val));
-        }
-      },
-      {
-        id: 'brandLogoAnticipation',
+        id: 'sceneImpactAnticipation',
         label: 'Anticipation',
-        stateKey: 'brandLogoAnticipation',
+        stateKey: 'sceneImpactAnticipation',
         type: 'range',
-        min: 0.0, max: 1.2, step: 0.01,
+        min: 0.0, max: 0.6, step: 0.01,
         default: 0.0,
         format: (v) => v.toFixed(2),
         parse: parseFloat,
         hint: 'Micro pre-pop before the click-in (0 = off).'
+      },
+      {
+        id: 'sceneChangeSoundEnabled',
+        label: 'Scene Sound',
+        stateKey: 'sceneChangeSoundEnabled',
+        type: 'checkbox',
+        default: true,
+        hint: 'Plays a soft “pebble-like” tick when switching simulations (only if sound is enabled).'
+      },
+      {
+        id: 'sceneChangeSoundIntensity',
+        label: 'Scene Sound Intensity',
+        stateKey: 'sceneChangeSoundIntensity',
+        type: 'range',
+        min: 0.0, max: 1.0, step: 0.01,
+        default: 0.35,
+        format: (v) => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'sceneChangeSoundRadius',
+        label: 'Scene Sound Pitch',
+        stateKey: 'sceneChangeSoundRadius',
+        type: 'range',
+        min: 6, max: 60, step: 1,
+        default: 18,
+        format: (v) => `${Math.round(v)}`,
+        parse: (v) => parseInt(v, 10),
+        hint: 'Higher = lower pitch (maps like “ball size”).'
       }
     ]
   },
@@ -664,151 +716,165 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // EFFECTS - Ghost trails (performance-first)
+  // COLORS - Full color system (backgrounds, text, links, logo)
   // ═══════════════════════════════════════════════════════════════════════════
-  effects: {
-    title: 'Effects',
-    icon: '✨',
+  colors: {
+    title: 'Colors',
+    icon: '🎨',
     defaultOpen: false,
     controls: [
+      // ─── BACKGROUNDS ─────────────────────────────────────────────────────
+      { type: 'divider', label: 'Backgrounds' },
       {
-        id: 'ghostLayerEnabled',
-        label: 'Ghost Trails',
-        stateKey: 'ghostLayerEnabled',
-        type: 'checkbox',
-        default: false
+        id: 'bgLight',
+        label: 'Light Mode',
+        stateKey: 'bgLight',
+        type: 'color',
+        default: '#f5f5f5',
+        hint: 'Background color for light mode',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--bg-light', val);
+          if (!g.isDarkMode) {
+            root.style.setProperty('--chrome-bg', val);
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.content = val;
+          }
+        }
       },
       {
-        id: 'ghostLayerOpacity',
-        label: 'Trail Fade',
-        stateKey: 'ghostLayerOpacity',
-        type: 'range',
-        min: 0.05, max: 1.0, step: 0.01,
-        default: 0.70,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Higher = shorter trails'
+        id: 'bgDark',
+        label: 'Dark Mode',
+        stateKey: 'bgDark',
+        type: 'color',
+        default: '#0a0a0a',
+        hint: 'Background color for dark mode',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--bg-dark', val);
+          if (g.isDarkMode) {
+            root.style.setProperty('--chrome-bg', val);
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.content = val;
+          }
+        }
       },
-      {
-        id: 'ghostLayerUsePerThemeOpacity',
-        label: 'Per-Theme Fade',
-        stateKey: 'ghostLayerUsePerThemeOpacity',
-        type: 'checkbox',
-        default: false,
-        group: 'Advanced',
-        groupCollapsed: true,
-        hint: 'Use separate fade values for Light vs Dark mode'
-      },
-      {
-        id: 'ghostLayerOpacityLight',
-        label: 'Fade (Light)',
-        stateKey: 'ghostLayerOpacityLight',
-        type: 'range',
-        min: 0.05, max: 1.0, step: 0.01,
-        default: 0.70,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        group: 'Advanced',
-        hint: 'Higher = shorter trails'
-      },
-      {
-        id: 'ghostLayerOpacityDark',
-        label: 'Fade (Dark)',
-        stateKey: 'ghostLayerOpacityDark',
-        type: 'range',
-        min: 0.05, max: 1.0, step: 0.01,
-        default: 0.70,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        group: 'Advanced',
-        hint: 'Higher = shorter trails'
-      }
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FRAME - Color only (thickness/radius controlled via Layout section)
-  // ═══════════════════════════════════════════════════════════════════════════
-  frame: {
-    title: 'Frame',
-    icon: '🖼️',
-    defaultOpen: false,
-    controls: [
       {
         id: 'frameColor',
-        label: 'Color',
+        label: 'Frame/Wall',
         stateKey: 'frameColor',
         type: 'color',
         default: '#0a0a0a',
+        hint: 'Color for the wall/frame border',
         onChange: (g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--frame-color-light', val);
           root.style.setProperty('--frame-color-dark', val);
           root.style.setProperty('--wall-color', val);
-          root.style.setProperty('--chrome-bg', val);
-          root.style.setProperty('--chrome-bg-light', val);
-          root.style.setProperty('--chrome-bg-dark', val);
-          const meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.content = val;
+        }
+      },
+      
+      // ─── TEXT (LIGHT MODE) ───────────────────────────────────────────────
+      { type: 'divider', label: 'Text · Light Mode' },
+      {
+        id: 'textColorLight',
+        label: 'Primary',
+        stateKey: 'textColorLight',
+        type: 'color',
+        default: '#161616',
+        hint: 'Main text color in light mode',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--text-color-light', val);
+          root.style.setProperty('--text-color-light-base', val);
+        }
+      },
+      {
+        id: 'textColorLightMuted',
+        label: 'Muted',
+        stateKey: 'textColorLightMuted',
+        type: 'color',
+        default: '#2f2f2f',
+        hint: 'Secondary/muted text in light mode',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--text-color-light-muted', val);
+        }
+      },
+      
+      // ─── TEXT (DARK MODE) ────────────────────────────────────────────────
+      { type: 'divider', label: 'Text · Dark Mode' },
+      {
+        id: 'textColorDark',
+        label: 'Primary',
+        stateKey: 'textColorDark',
+        type: 'color',
+        default: '#b3b3b3',
+        hint: 'Main text color in dark mode',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--text-color-dark', val);
+          root.style.setProperty('--text-color-dark-base', val);
+        }
+      },
+      {
+        id: 'textColorDarkMuted',
+        label: 'Muted',
+        stateKey: 'textColorDarkMuted',
+        type: 'color',
+        default: '#808080',
+        hint: 'Secondary/muted text in dark mode',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--text-color-dark-muted', val);
+        }
+      },
+      
+      // ─── LINKS ───────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Links' },
+      {
+        id: 'linkHoverColor',
+        label: 'Hover Accent',
+        stateKey: 'linkHoverColor',
+        type: 'color',
+        default: '#ff4013',
+        hint: 'Link hover color (accent)',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--link-hover-color', val);
+        }
+      },
+      
+      // ─── LOGO ────────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Logo' },
+      {
+        id: 'logoColorLight',
+        label: 'Light Mode',
+        stateKey: 'logoColorLight',
+        type: 'color',
+        default: '#161616',
+        hint: 'Logo color in light mode',
+        onChange: (_g, val) => {
+          // Only set CSS variable - let CSS handle mode switching
+          document.documentElement.style.setProperty('--logo-color-light', val);
+        }
+      },
+      {
+        id: 'logoColorDark',
+        label: 'Dark Mode',
+        stateKey: 'logoColorDark',
+        type: 'color',
+        default: '#d5d5d5',
+        hint: 'Logo color in dark mode',
+        onChange: (_g, val) => {
+          // Only set CSS variable - let CSS handle mode switching
+          document.documentElement.style.setProperty('--logo-color-dark', val);
         }
       }
     ]
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SHADOW - Inner shadow on container
-  // ═══════════════════════════════════════════════════════════════════════════
-  shadow: {
-    title: 'Inner Shadow',
-    icon: '🌑',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'containerInnerShadowOpacity',
-        label: 'Strength',
-        stateKey: 'containerInnerShadowOpacity',
-        type: 'range',
-        min: 0.0, max: 0.4, step: 0.01,
-        default: 0.12,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        cssVar: '--container-inner-shadow-opacity'
-      },
-      {
-        id: 'containerInnerShadowBlur',
-        label: 'Blur',
-        stateKey: 'containerInnerShadowBlur',
-        type: 'range',
-        min: 0, max: 250, step: 5,
-        default: 80,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        cssVar: '--container-inner-shadow-blur'
-      },
-      {
-        id: 'containerInnerShadowSpread',
-        label: 'Spread',
-        stateKey: 'containerInnerShadowSpread',
-        type: 'range',
-        min: -50, max: 50, step: 1,
-        default: -10,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        cssVar: '--container-inner-shadow-spread'
-      },
-      {
-        id: 'containerInnerShadowOffsetY',
-        label: 'Offset Y',
-        stateKey: 'containerInnerShadowOffsetY',
-        type: 'range',
-        min: -60, max: 60, step: 1,
-        default: 0,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        cssVar: '--container-inner-shadow-offset-y'
-      }
-    ]
-  },
+  // Inner shadow removed
 
   // ═══════════════════════════════════════════════════════════════════════════
   // WALL - Unified Frame & Physics
@@ -837,16 +903,12 @@ export const CONTROL_SECTIONS = {
         stateKey: 'frameColor',
         type: 'color',
         default: '#0a0a0a',
+        hint: 'Wall/frame border color (same as Colors → Frame Color)',
         onChange: (g, val) => {
           const root = document.documentElement;
-          // Set primary frame color
           root.style.setProperty('--frame-color-light', val);
           root.style.setProperty('--frame-color-dark', val);
           root.style.setProperty('--wall-color', val);
-          
-          // Also set meta theme color for browser chrome integration
-          const meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.content = val;
         }
       },
       {
@@ -1016,8 +1078,8 @@ export const CONTROL_SECTIONS = {
         label: 'Back Opacity (Light)',
         stateKey: 'noiseBackOpacity',
         type: 'range',
-        min: 0, max: 0.15, step: 0.001,
-        default: 0.020,
+        min: 0, max: 0.3, step: 0.005,
+        default: 0.025,
         format: v => v.toFixed(3),
         parse: parseFloat,
         cssVar: '--noise-back-opacity'
@@ -1027,8 +1089,8 @@ export const CONTROL_SECTIONS = {
         label: 'Front Opacity (Light)',
         stateKey: 'noiseFrontOpacity',
         type: 'range',
-        min: 0, max: 0.15, step: 0.001,
-        default: 0.050,
+        min: 0, max: 0.3, step: 0.005,
+        default: 0.055,
         format: v => v.toFixed(3),
         parse: parseFloat,
         cssVar: '--noise-front-opacity'
@@ -1038,8 +1100,8 @@ export const CONTROL_SECTIONS = {
         label: 'Back Opacity (Dark)',
         stateKey: 'noiseBackOpacityDark',
         type: 'range',
-        min: 0, max: 0.15, step: 0.001,
-        default: 0.06,
+        min: 0, max: 0.5, step: 0.005,
+        default: 0.12,
         format: v => v.toFixed(3),
         parse: parseFloat,
         cssVar: '--noise-back-opacity-dark'
@@ -1049,8 +1111,8 @@ export const CONTROL_SECTIONS = {
         label: 'Front Opacity (Dark)',
         stateKey: 'noiseFrontOpacityDark',
         type: 'range',
-        min: 0, max: 0.15, step: 0.001,
-        default: 0.04,
+        min: 0, max: 0.5, step: 0.005,
+        default: 0.08,
         format: v => v.toFixed(3),
         parse: parseFloat,
         cssVar: '--noise-front-opacity-dark'
@@ -1300,6 +1362,39 @@ export const CONTROL_SECTIONS = {
           g.repelPower = Math.pow(2, (s - 0.5) * 12) * 12000 * 2.0;
         }
       },
+      {
+        id: 'sleepVelocityThreshold',
+        label: 'Sleep Speed',
+        stateKey: 'sleepVelocityThreshold',
+        type: 'range',
+        min: 0, max: 40, step: 0.5,
+        default: 12,
+        format: v => `${Number(v).toFixed(1)} px/s`,
+        parse: parseFloat,
+        hint: 'Pit modes only. Higher = settles sooner.'
+      },
+      {
+        id: 'sleepAngularThreshold',
+        label: 'Sleep Spin',
+        stateKey: 'sleepAngularThreshold',
+        type: 'range',
+        min: 0, max: 1.0, step: 0.01,
+        default: 0.18,
+        format: v => `${Number(v).toFixed(2)} rad/s`,
+        parse: parseFloat,
+        hint: 'Pit modes only. Higher = stops spinning sooner.'
+      },
+      {
+        id: 'timeToSleep',
+        label: 'Sleep Time',
+        stateKey: 'timeToSleep',
+        type: 'range',
+        min: 0.05, max: 2.0, step: 0.05,
+        default: 0.25,
+        format: v => `${Number(v).toFixed(2)}s`,
+        parse: parseFloat,
+        hint: 'Pit modes only. Lower = sleeps faster.'
+      },
       warmupFramesControl('pitWarmupFrames')
     ]
   },
@@ -1343,6 +1438,39 @@ export const CONTROL_SECTIONS = {
         default: 0.18,
         format: v => v.toFixed(2),
         parse: parseFloat
+      },
+      {
+        id: 'sleepVelocityThresholdThrows',
+        label: 'Sleep Speed',
+        stateKey: 'sleepVelocityThreshold',
+        type: 'range',
+        min: 0, max: 40, step: 0.5,
+        default: 12,
+        format: v => `${Number(v).toFixed(1)} px/s`,
+        parse: parseFloat,
+        hint: 'Pit modes only. Higher = settles sooner.'
+      },
+      {
+        id: 'sleepAngularThresholdThrows',
+        label: 'Sleep Spin',
+        stateKey: 'sleepAngularThreshold',
+        type: 'range',
+        min: 0, max: 1.0, step: 0.01,
+        default: 0.18,
+        format: v => `${Number(v).toFixed(2)} rad/s`,
+        parse: parseFloat,
+        hint: 'Pit modes only. Higher = stops spinning sooner.'
+      },
+      {
+        id: 'timeToSleepThrows',
+        label: 'Sleep Time',
+        stateKey: 'timeToSleep',
+        type: 'range',
+        min: 0.05, max: 2.0, step: 0.05,
+        default: 0.25,
+        format: v => `${Number(v).toFixed(2)}s`,
+        parse: parseFloat,
+        hint: 'Pit modes only. Lower = sleeps faster.'
       },
       {
         id: 'pitThrowsInterval',
@@ -2060,6 +2188,28 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         reinitMode: true
       },
+      {
+        id: 'kaleiSpawnArea',
+        label: 'Spawn Density',
+        stateKey: 'kaleidoscopeSpawnAreaMul',
+        type: 'range',
+        min: 0.2, max: 2.0, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kaleiSizeVar',
+        label: 'Size Variance',
+        stateKey: 'kaleidoscopeSizeVariance',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.3,
+        format: v => (v * 100).toFixed(0) + '%',
+        parse: parseFloat,
+        reinitMode: true
+      },
       warmupFramesControl('kaleidoscopeWarmupFrames')
     ]
   },
@@ -2120,6 +2270,28 @@ export const CONTROL_SECTIONS = {
         min: 0.3, max: 1.5, step: 0.05,
         default: 0.7,
         format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kalei1SpawnArea',
+        label: 'Spawn Density',
+        stateKey: 'kaleidoscope1SpawnAreaMul',
+        type: 'range',
+        min: 0.2, max: 2.0, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kalei1SizeVar',
+        label: 'Size Variance',
+        stateKey: 'kaleidoscope1SizeVariance',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.3,
+        format: v => (v * 100).toFixed(0) + '%',
         parse: parseFloat,
         reinitMode: true
       },
@@ -2186,6 +2358,28 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         reinitMode: true
       },
+      {
+        id: 'kalei2SpawnArea',
+        label: 'Spawn Density',
+        stateKey: 'kaleidoscope2SpawnAreaMul',
+        type: 'range',
+        min: 0.2, max: 2.0, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kalei2SizeVar',
+        label: 'Size Variance',
+        stateKey: 'kaleidoscope2SizeVariance',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.3,
+        format: v => (v * 100).toFixed(0) + '%',
+        parse: parseFloat,
+        reinitMode: true
+      },
       warmupFramesControl('kaleidoscope2WarmupFrames')
     ]
   },
@@ -2246,6 +2440,28 @@ export const CONTROL_SECTIONS = {
         min: 0.3, max: 1.5, step: 0.05,
         default: 0.7,
         format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kalei3SpawnArea',
+        label: 'Spawn Density',
+        stateKey: 'kaleidoscope3SpawnAreaMul',
+        type: 'range',
+        min: 0.2, max: 2.0, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'kalei3SizeVar',
+        label: 'Size Variance',
+        stateKey: 'kaleidoscope3SizeVariance',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.3,
+        format: v => (v * 100).toFixed(0) + '%',
         parse: parseFloat,
         reinitMode: true
       },
@@ -2946,6 +3162,11 @@ export function getControlById(id) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function generateControlHTML(control) {
+  // Divider type - section separator within a category
+  if (control.type === 'divider') {
+    return `<div class="control-divider"><span class="control-divider-label">${control.label || ''}</span></div>`;
+  }
+  
   if (!isControlVisible(control.id)) return '';
   
   const sliderId = control.id + 'Slider';

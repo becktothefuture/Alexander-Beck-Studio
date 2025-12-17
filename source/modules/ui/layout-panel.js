@@ -22,7 +22,7 @@ export function createLayoutPanel() {
     borderRadius: '12px',
     boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
     zIndex: '10000',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: '\'Geist\', sans-serif',
     fontSize: '13px',
     display: 'flex',
     flexDirection: 'column',

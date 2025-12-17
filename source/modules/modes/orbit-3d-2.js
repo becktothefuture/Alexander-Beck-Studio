@@ -3,7 +3,7 @@
 // ║         Same physics as Orbit 1, configured for expansive motion            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { spawnBall } from '../physics/spawn.js';
 import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
 
@@ -11,7 +11,9 @@ export function initializeOrbit3D2() {
   const globals = getGlobals();
   clearBalls();
 
-  const count = Math.max(1, (globals.orbit3d2MoonCount ?? 100) | 0);
+  const baseCount = Math.max(0, (globals.orbit3d2MoonCount ?? 100) | 0);
+  const count = getMobileAdjustedCount(baseCount);
+  if (count <= 0) return;
   const w = globals.canvas.width;
   const h = globals.canvas.height;
 
@@ -25,8 +27,9 @@ export function initializeOrbit3D2() {
     const ball = spawnBall(x, y, i < 8 ? getColorByIndex(i) : pickRandomColor());
     if (!ball) continue;
 
-    // SLOWER: Initial tangential velocity
-    const speed = (globals.orbit3d2VelocityMult ?? 1.1) * 150;
+    // SLOWER: Initial tangential velocity (DPR-scaled)
+    const DPR = globals.DPR || 1;
+    const speed = (globals.orbit3d2VelocityMult ?? 1.1) * 150 * DPR;
     ball.vx = -Math.sin(angle) * speed;
     ball.vy = Math.cos(angle) * speed;
     ball.orbitDepth = Math.random();
@@ -50,7 +53,9 @@ export function applyOrbit3D2Forces(ball, dt) {
   const tangentY = dx / dist;
 
   // GUARDRAIL 1: Minimum distance repulsion
-  const minRadius = 80; // EXPANSIVE: Larger min radius
+  // DPR-scaled: physics runs in canvas pixels
+  const DPR = g.DPR || 1;
+  const minRadius = 80 * DPR; // EXPANSIVE: Larger min radius
   if (dist < minRadius) {
     const repulsionStrength = (minRadius - dist) * 100;
     ball.vx -= radialX * repulsionStrength * dt;
@@ -66,7 +71,7 @@ export function applyOrbit3D2Forces(ball, dt) {
   ball.vy += tangentY * tangentForce * dt;
 
   // Weak inward pull for slow spiral (softened)
-  const softening = 100;
+  const softening = 100 * DPR;
   const radialForce = (gravity * 0.003) / (1 + dist / softening);
   ball.vx += radialX * radialForce * dt;
   ball.vy += radialY * radialForce * dt;
@@ -94,8 +99,8 @@ export function applyOrbit3D2Forces(ball, dt) {
     ball.vy += (sepY / neighborCount) * separationForce * dt;
   }
 
-  // GUARDRAIL 3: Speed limiting
-  const maxSpeed = 300; // EXPANSIVE: Fixed max speed
+  // GUARDRAIL 3: Speed limiting (DPR-scaled)
+  const maxSpeed = 300 * DPR; // EXPANSIVE: Fixed max speed
   const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
   if (speed > maxSpeed) {
     ball.vx = (ball.vx / speed) * maxSpeed;

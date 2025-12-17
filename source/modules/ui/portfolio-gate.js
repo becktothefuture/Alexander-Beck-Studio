@@ -4,6 +4,7 @@
  */
 
 import { showOverlay, hideOverlay } from './gate-overlay.js';
+import { getText } from '../utils/text-loader.js';
 
 /**
  * Create the page flash overlay element if it doesn't exist
@@ -57,17 +58,25 @@ export function initPortfolioGate() {
         return;
     }
     
+    const BACK_TEXT = getText('gates.common.backText', 'BACK');
+    const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
+    const TITLE = getText('gates.portfolio.title', 'View Portfolio');
+    const DESC = getText(
+        'gates.portfolio.description',
+        "Good work deserves good context. This small step ensures you're here with intention, not just browsing. Quality takes time—yours and mine."
+    );
+
     // Set label text if element exists
     if (gateLabel) {
         gateLabel.innerHTML = `
             <div class="gate-nav">
-                <button type="button" class="gate-back" data-gate-back aria-label="Back">
+                <button type="button" class="gate-back" data-gate-back aria-label="${BACK_ARIA}">
                     <i class="ti ti-arrow-left" aria-hidden="true"></i>
-                    <span>BACK</span>
+                    <span>${BACK_TEXT}</span>
                 </button>
             </div>
-            <h2 class="gate-title">View Portfolio</h2>
-            <p class="gate-description">Good work deserves good context. This small step ensures you're here with intention, not just browsing. Quality takes time—yours and mine.</p>
+            <h2 class="gate-title">${TITLE}</h2>
+            <p class="gate-description">${DESC}</p>
         `;
     }
     

@@ -5,12 +5,12 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 ---
 
 ## High-level map
-- **Purpose:** Webflow-friendly kinetic homepage with 11 simulations, right-docked control panel, privacy-first runtime, 60fps target.
+- **Purpose:** Kinetic homepage with 11 simulations, right-docked control panel, privacy-first runtime, 60fps target.
 - **Edit here:** `source/` only.  
 - **Build output:** `public/` (generated).  
 - **Docs:** `docs/` (authoritative specs).  
 - **Tests:** `tests/` (Playwright smoke).  
-- **Exports/archives:** `webflow-export/`, `playwright-report/` (artifacts, not served).  
+- **Exports/archives:** `playwright-report/` (artifacts, not served).  
 - **Scripts:** `scripts/`, `build-production.js`, `rollup.config.mjs` (helpers/tooling).
 
 ---
@@ -43,23 +43,22 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
   - **utils/** `logger.js`, `performance.js`, `storage.js` (localStorage off by default for physics), `accessibility.js`.
   - **visual/** `colors.js`, `dark-mode-v2.js` (active dark-mode implementation), `mouse-trail.js`; `dark-mode.js` (legacy; see deprecated list).
   - **ui/html helpers**: `panel-controller.js`, `panel-dock.js` create the right-floating, collapsible panel (summoned by `/`).
-- `webflow/` – reference copy of Webflow-exported assets used for dev parity (not built).
+- (Removed) legacy export asset copies (no longer used).
 
 ### public/ (generated; do not edit)
-- `index.html`, `css/`, `js/bouncy-balls-embed.js`, `images/`, `fonts/`, `webflow/`. Served by `npm start` / `npm run preview`.
+- `index.html`, `css/`, `js/bouncy-balls-embed.js`, `images/`, `fonts/`. Served by `npm start` / `npm run preview`.
 
 ### docs/ (source of truth)
 - `core/` (PROJECT-OVERVIEW, QUICK-START), `development/` (ARCHITECTURE, DEV-WORKFLOW, DEVELOPMENT-GUIDE, OPTIMIZATION-SUMMARY, FIGMA setup), `reference/` (MODES, CONFIGURATION, BUILD-SYSTEM, INTEGRATION, SOUND), `operations/` (DEPLOYMENT, PROJECT-ASSESSMENT), `SIMULATION_RULES.md`, `DOCUMENTATION-INDEX.md`, `DOCUMENTATION-PRINCIPLE.md`.
 
 ### scripts/
-- Automation/support: `dev-startup.js`, `sync-webflow-assets.js`, `check-figma-mcp-status.js`, `setup-figma-mcp-config.js`, `figma-websocket-server.js`, plus docs for Figma rebuild/test.
+- Automation/support: `dev-startup.js`, `check-figma-mcp-status.js`, `setup-figma-mcp-config.js`, `figma-websocket-server.js`, plus docs for Figma rebuild/test.
 
 ### tests/ and reports
 - `tests/top-elements.spec.js` – Playwright smoke.
 - `playwright-report/` – artifacts from runs (images, videos, HTML).
 
-### webflow-export/
-- Static snapshot of the Webflow export (html/css/js/images). Used as reference; not deployed directly.
+### (Removed) legacy export snapshots
 
 ### test-results/
 - Output folder for test runs (empty/auxiliary).
@@ -90,7 +89,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 - `source/modules/visual/dark-mode.js` – legacy dark-mode implementation; not imported (replaced by `dark-mode-v2.js`). Safe to remove once verified no external references.
 - `source/index-annotated.html` – annotated dev HTML; keep if useful for onboarding, otherwise consider pruning.
 - `playwright-report/` zips/webms/pngs – test artifacts; keep out of commits if not needed.
-- `webflow-export/` duplicate assets – retained as reference; not used by runtime/build.
+- Legacy duplicate assets removed; not used by runtime/build.
 
 ---
 
@@ -113,5 +112,5 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 - Delete/retire `source/modules/visual/dark-mode.js` after confirming no downstream consumers.
 - Consider trimming `index-annotated.html` if duplicate of `index.html`.
 - Keep test artifacts (`playwright-report/`, `test-results/`) out of release packages.
-- Periodically resync/remove stale assets in `webflow-export/` if not referenced by build.
+- No external export resync required.
 

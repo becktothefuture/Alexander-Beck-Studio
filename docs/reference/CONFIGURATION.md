@@ -81,16 +81,12 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
   "wallWobbleSigma": 4.0,
   "wallWobbleCornerClamp": 1.0,
 
-  // Brand Logo (mode change micro-interaction)
-  "brandLogoImpactMul": 0.014,
-  "brandLogoSquashMul": 1.0,
-  "brandLogoOvershoot": 0.22,
-  "brandLogoAnticipation": 0.0,
-  "brandLogoTiltDeg": 0.0,
-  "brandLogoSkewDeg": 0.0,
-  "brandLogoPressMs": 75,
-  "brandLogoHoldMs": 55,
-  "brandLogoReleaseMs": 220,
+  // Scene (mode change micro-interaction)
+  "sceneImpactEnabled": true,
+  "sceneImpactMul": 0.008,
+  "sceneImpactAnticipation": 0.0,
+  "sceneImpactPressMs": 75,
+  "sceneImpactReleaseMs": 220,
 
   // Critters (Simulation 11)
   "critterCount": 90,
@@ -118,6 +114,23 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 ## Physics (Global)
 
 ## Balls (Global)
+
+### Sleep / Settling (Ball Pit modes)
+
+These keys tune the **sleep** behavior used to stop micro-jiggle when balls are fully at rest (billiard-ball feel).  
+They are only applied in **Ball Pit** (`pit`) and **Ball Pit (Throws)** (`pit-throws`).
+
+- **`sleepVelocityThreshold`** (number, px/s)
+  - **Meaning**: Linear speed below which a grounded ball can begin sleeping.
+  - **Higher** = settles sooner (less idle motion).
+
+- **`sleepAngularThreshold`** (number, rad/s)
+  - **Meaning**: Angular speed below which a grounded ball can begin sleeping.
+  - **Higher** = stops spinning sooner.
+
+- **`timeToSleep`** (number, seconds)
+  - **Meaning**: Time a grounded ball must remain below both thresholds before sleeping.
+  - **Lower** = sleeps faster.
 
 ---
 
@@ -341,38 +354,42 @@ These keys control the cursor’s **visual system** (dot + canvas trail) and its
 
 ---
 
-## Brand Logo (Mode Change Micro‑Interaction)
+## Scene (Mode Change Micro‑Interaction)
 
-These keys tune the **center logo** reaction that triggers **only** when the simulation/mode changes (event: `bb:modeChanged`).
+These keys tune the **scene-wide** reaction that triggers **only** when the simulation/mode changes (event: `bb:modeChanged`).  
+Implementation: `source/modules/ui/scene-impact-react.js` drives CSS vars on `#abs-scene` so **all layers move together** via a single GPU transform.
 
-### `brandLogoImpactMul` (number, unitless)
-- **Meaning**: How deep the logo “clicks in” (scale-down strength per pulse).
-- **Applied to**: CSS var `--abs-brand-logo-impact-mul` (stamped on `#brand-logo`)
+### `sceneImpactEnabled` (boolean)
+- **Meaning**: Enables/disables the scene click-in micro reaction.
 
-### `brandLogoSquashMul` (number, 0..~7.5)
-- **Meaning**: Squash & stretch multiplier during click-in (wider + flatter).
-- **Applied to**: CSS vars `--abs-brand-logo-squash-x-mul` / `--abs-brand-logo-squash-y-mul`
+### `sceneImpactMul` (number, unitless)
+- **Meaning**: How deep the scene “clicks in” (scale-down strength per pulse).
+- **Applied to**: CSS var `--abs-scene-impact-mul` (stamped on `#abs-scene`)
 
-### `brandLogoOvershoot` (number, 0..~1.8)
-- **Meaning**: Release overshoot amount (“bounce out”). Higher = bouncier.
-
-### `brandLogoAnticipation` (number, 0..~1.2)
+### `sceneImpactAnticipation` (number, 0..~0.6)
 - **Meaning**: Micro pre-pop in the opposite direction before click-in (0 disables).
 
-### `brandLogoTiltDeg` (number, degrees)
-- **Meaning**: Tiny rotation tied to the click (automatically flips on overshoot).
-
-### `brandLogoSkewDeg` (number, degrees)
-- **Meaning**: Tiny skew tied to the click (automatically flips on overshoot).
-
-### `brandLogoPressMs` (number, ms)
+### `sceneImpactPressMs` (number, ms)
 - **Meaning**: Press-in duration.
 
-### `brandLogoHoldMs` (number, ms)
-- **Meaning**: Hold time between press and release.
+### `sceneImpactReleaseMs` (number, ms)
+- **Meaning**: Release duration (“bounce out” length).
 
-### `brandLogoReleaseMs` (number, ms)
-- **Meaning**: Release duration (“bounce out” length). Panel range now supports up to ~1.44s for longer rebounds.
+---
+
+## Scene Change Sound (SFX)
+
+These keys add a soft, non-intrusive “pebble-like” tick on simulation changes (event: `bb:modeChanged`).  
+Implementation: `source/modules/ui/scene-change-sfx.js` uses the existing collision synth so it only plays when sound is enabled/unlocked.
+
+### `sceneChangeSoundEnabled` (boolean)
+- **Meaning**: Enables/disables the scene-change sound.
+
+### `sceneChangeSoundIntensity` (number, 0..1)
+- **Meaning**: Loudness/brightness of the tick.
+
+### `sceneChangeSoundRadius` (number)
+- **Meaning**: Pitch proxy (mapped like “ball size”). Higher values tend to sound lower.
 
 ---
 

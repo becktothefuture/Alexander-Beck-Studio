@@ -3,7 +3,7 @@
 // ║      Enhanced swirl field with configurable radius, falloff, and strength    ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
@@ -17,11 +17,14 @@ export function initializeVortex() {
 
   const w = canvas.width;
   const h = canvas.height;
-  const count = Math.min(g.vortexBallCount || 180, g.maxBalls || 500);
+  const baseCount = Math.min(g.vortexBallCount || 180, g.maxBalls || 500);
+  const count = getMobileAdjustedCount(baseCount);
+  if (count <= 0) return;
   
-  // Enhanced initial velocity based on speed multiplier
+  // Enhanced initial velocity based on speed multiplier (DPR-scaled)
+  const DPR = g.DPR || 1;
   const speedMultiplier = g.vortexSpeedMultiplier ?? 1.0;
-  const baseSpeed = 80 * speedMultiplier;
+  const baseSpeed = 80 * speedMultiplier * DPR;
 
   // Ensure at least one of each color
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {

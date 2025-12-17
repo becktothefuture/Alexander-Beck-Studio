@@ -2,13 +2,14 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                    SIMPLE PRODUCTION BUILD PIPELINE                         ║
 // ║                                                                              ║
-// ║  1. Copy entire webflow-export/ to public/                                  ║
-// ║  2. Replace simulation placeholder in public/index.html                     ║
+// ║  1. Clean and prepare public/ from source/ (static assets)                  ║
+// ║  2. Bundle CSS/JS and inject into public/index.html                         ║
 // ║                                                                              ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
 console.log('\n🏗️  SIMPLE BUILD PIPELINE STARTING...\n');
 
@@ -17,7 +18,6 @@ console.log('\n🏗️  SIMPLE BUILD PIPELINE STARTING...\n');
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const CONFIG = {
-  webflowSource: './webflow-export',
   publicDestination: './public',
   panelVisibleInProduction: false,
   // Source index is the canonical DOM/layout (dev + prod should match).
@@ -58,6 +58,56 @@ function safeReadFile(filePath) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// HELPER: CSS Minification (enhanced cssnano-lite patterns, no dependencies)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function minifyCSS(css) {
+  return css
+    // Remove CSS comments (preserve /*! license comments */)
+    .replace(/\/\*(?!!)[^*]*\*+([^/*][^*]*\*+)*\//g, '')
+    // Remove newlines and carriage returns
+    .replace(/[\r\n]+/g, '')
+    // Collapse multiple spaces/tabs into single space
+    .replace(/[\t ]+/g, ' ')
+    // Remove space around structural chars { } : ; , > + ~ =
+    .replace(/\s*([{};:,>+~=])\s*/g, '$1')
+    // Remove trailing semicolons before closing braces
+    .replace(/;}/g, '}')
+    // Remove space around parens
+    .replace(/\(\s+/g, '(')
+    .replace(/\s+\)/g, ')')
+    // Remove space around brackets
+    .replace(/\[\s+/g, '[')
+    .replace(/\s+\]/g, ']')
+    // Optimize zero values: 0px → 0, 0em → 0, etc. (except 0%)
+    .replace(/\b0(?:px|em|rem|ex|ch|vw|vh|vmin|vmax|cm|mm|in|pt|pc)\b/gi, '0')
+    // Remove units from zero in transforms: translate(0px) → translate(0)
+    .replace(/translate\(0(px|em|rem|%)?\)/gi, 'translate(0)')
+    .replace(/translate3d\(0(px|em|rem|%)?,\s*0(px|em|rem|%)?,\s*0(px|em|rem|%)?\)/gi, 'translate3d(0,0,0)')
+    // Optimize colors: rgb(0,0,0) → #000, rgba(0,0,0,1) → #000
+    .replace(/rgb\(0,0,0\)/gi, '#000')
+    .replace(/rgba\(0,0,0,1\)/gi, '#000')
+    .replace(/rgb\(255,255,255\)/gi, '#fff')
+    .replace(/rgba\(255,255,255,1\)/gi, '#fff')
+    // Shorten hex colors: #ffffff → #fff, #000000 → #000
+    .replace(/#([0-9a-f])\1([0-9a-f])\2([0-9a-f])\3/gi, '#$1$2$3')
+    // Optimize font-weight: normal → 400, bold → 700
+    .replace(/font-weight:normal/gi, 'font-weight:400')
+    .replace(/font-weight:bold/gi, 'font-weight:700')
+    // Remove leading zeros: 0.5 → .5
+    .replace(/:0\.(\d)/g, ':.$1')
+    .replace(/\s0\.(\d)/g, ' .$1')
+    .replace(/,0\.(\d)/g, ',.$1')
+    // Optimize calc(): calc(0px + 10px) → 10px (simple cases)
+    .replace(/calc\(0\s*\+\s*([^)]+)\)/gi, '$1')
+    .replace(/calc\(([^)]+)\s*\+\s*0\)/gi, '$1')
+    // Remove empty rules
+    .replace(/[^{}]+\{\s*\}/g, '')
+    // Final trim
+    .trim();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN BUILD FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -65,8 +115,8 @@ async function buildProduction() {
   try {
     console.log('\n🏗️  BUILD PIPELINE STARTING... (modular)\n');
     
-    // STEP 1: Clean and copy webflow-export to public
-    console.log('📁 Step 1: Copying webflow-export/ to public/...');
+    // STEP 1: Clean and prepare public/ from source/
+    console.log('📁 Step 1: Preparing public/ from source/...');
     
     if (fs.existsSync(CONFIG.publicDestination)) {
       // macOS + concurrent file watchers (dev startup) can cause transient ENOTEMPTY
@@ -74,29 +124,14 @@ async function buildProduction() {
       fs.rmSync(CONFIG.publicDestination, { recursive: true, force: true, maxRetries: 10, retryDelay: 75 });
       console.log('   Cleaned existing public/ folder');
     }
-    
-    copyDir(CONFIG.webflowSource, CONFIG.publicDestination);
-    console.log('✅ Webflow design copied to public/\n');
-    
-    // DEV/PREVIEW COMPAT: mirror Webflow assets under public/webflow/*
-    // The canonical source HTML (`source/index.html`) references Webflow assets via
-    // `webflow/css/*`, `webflow/js/*`, `webflow/images/*`. Production output must
-    // provide these paths so dev + build share identical DOM/styling references.
-    const publicWebflowDir = path.join(CONFIG.publicDestination, 'webflow');
-    const webflowCssSrc = path.join(CONFIG.webflowSource, 'css');
-    const webflowJsSrc = path.join(CONFIG.webflowSource, 'js');
-    const webflowImagesSrc2 = path.join(CONFIG.webflowSource, 'images');
-    if (fs.existsSync(webflowCssSrc)) copyDir(webflowCssSrc, path.join(publicWebflowDir, 'css'));
-    if (fs.existsSync(webflowJsSrc)) copyDir(webflowJsSrc, path.join(publicWebflowDir, 'js'));
-    if (fs.existsSync(webflowImagesSrc2)) copyDir(webflowImagesSrc2, path.join(publicWebflowDir, 'images'));
 
-    // Safety: ensure Webflow images exist in public/ (favicon, noise gif, etc.)
-    // Some environments have shown missing images after copy, so we enforce this.
-    const webflowImagesSrc = path.join(CONFIG.webflowSource, 'images');
-    const publicImagesDst = path.join(CONFIG.publicDestination, 'images');
-    if (fs.existsSync(webflowImagesSrc) && !fs.existsSync(publicImagesDst)) {
-      copyDir(webflowImagesSrc, publicImagesDst);
-    }
+    // Recreate public root
+    fs.mkdirSync(CONFIG.publicDestination, { recursive: true });
+
+    // Copy static assets from source/
+    const sourceImagesDir = path.join('source', 'images');
+    const publicImagesDir = path.join(CONFIG.publicDestination, 'images');
+    if (fs.existsSync(sourceImagesDir)) copyDir(sourceImagesDir, publicImagesDir);
 
     // Copy standalone HTML pages from source/ (cv.html, portfolio.html, etc.)
     const standalonePages = ['cv.html', 'portfolio.html'];
@@ -122,6 +157,7 @@ async function buildProduction() {
     // 2a. Copy CSS bundle from source/css → public/css/bouncy-balls.css
     const cssDir = path.join(CONFIG.publicDestination, 'css');
     if (!fs.existsSync(cssDir)) fs.mkdirSync(cssDir, { recursive: true });
+    const cssNormalizePath = path.join('source', 'css', 'normalize.css');
     const cssMainPath = path.join('source', 'css', 'main.css');
     const cssPanelPath = path.join('source', 'css', 'panel.css');
     const cssPanelDockPath = path.join('source', 'css', 'panel-dock.css');
@@ -129,7 +165,8 @@ async function buildProduction() {
     const cssPasswordGatePath = path.join('source', 'css', 'password-gate.css');
     const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
     const includePanelCSS = !(isProd && CONFIG.panelVisibleInProduction === false);
-    const cssCombined = [
+    const cssRaw = [
+      cssNormalizePath,
       cssMainPath,
       ...(includePanelCSS ? [cssPanelPath, cssPanelDockPath, cssSoundPanelPath] : []),
       cssPasswordGatePath
@@ -137,40 +174,50 @@ async function buildProduction() {
       .filter(p => fs.existsSync(p))
       .map(p => fs.readFileSync(p, 'utf-8'))
       .join('\n');
+    
+    // Minify CSS in production builds
+    const cssCombined = isProd ? minifyCSS(cssRaw) : cssRaw;
+    const cssRawSize = Buffer.byteLength(cssRaw, 'utf-8');
+    const cssMinSize = Buffer.byteLength(cssCombined, 'utf-8');
+    const cssReduction = Math.round((1 - cssMinSize / cssRawSize) * 100);
+    
     fs.writeFileSync(path.join(cssDir, 'bouncy-balls.css'), cssCombined);
-    console.log('✅ Wrote modular CSS bundle');
-
-    // 2a.1 Ensure Webflow CSS assets remain available (normalize/webflow/site css)
-    // Some hosting/local setups rely on these static files being present, and the
-    // Webflow-exported HTML still references them.
-    const webflowCssDir = path.join(CONFIG.webflowSource, 'css');
-    if (fs.existsSync(webflowCssDir)) {
-      const webflowCssFiles = fs.readdirSync(webflowCssDir);
-      for (const file of webflowCssFiles) {
-        if (!file.endsWith('.css')) continue;
-        const src = path.join(webflowCssDir, file);
-        const dst = path.join(cssDir, file);
-        if (!fs.existsSync(dst)) {
-          fs.copyFileSync(src, dst);
-        }
-      }
-    }
+    console.log(`✅ Wrote CSS bundle (${isProd ? `minified: ${Math.round(cssMinSize/1024)}KB, ${cssReduction}% smaller` : 'unminified'})`);
 
     // 2b. Prepare JS output directory
     const jsDir = path.join(CONFIG.publicDestination, 'js');
     if (!fs.existsSync(jsDir)) fs.mkdirSync(jsDir, { recursive: true });
 
-    // 2c. Copy runtime config for prod and provide both paths used by loader
+    // 2c. Copy runtime config for prod (minified in production)
     const runtimeConfigSrc = path.join('source', 'config', 'default-config.json');
     const runtimeConfigDstJs = path.join(jsDir, 'config.json');
     const runtimeConfigDstCfg = path.join(CONFIG.publicDestination, 'config', 'default-config.json');
     if (fs.existsSync(runtimeConfigSrc)) {
-      fs.copyFileSync(runtimeConfigSrc, runtimeConfigDstJs);
+      const configRaw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
+      const configOut = isProd ? JSON.stringify(JSON.parse(configRaw)) : configRaw;
+      fs.writeFileSync(runtimeConfigDstJs, configOut);
       if (!fs.existsSync(path.dirname(runtimeConfigDstCfg))) {
         fs.mkdirSync(path.dirname(runtimeConfigDstCfg), { recursive: true });
       }
-      fs.copyFileSync(runtimeConfigSrc, runtimeConfigDstCfg);
-      console.log('✅ Copied runtime config to public/js/config.json and public/config/default-config.json');
+      fs.writeFileSync(runtimeConfigDstCfg, configOut);
+      const savedBytes = Buffer.byteLength(configRaw) - Buffer.byteLength(configOut);
+      console.log(`✅ ${isProd ? 'Minified' : 'Copied'} runtime config (${isProd ? `-${savedBytes}B` : 'unminified'})`);
+    }
+
+    // 2c.2 Copy text dictionary (minified in production)
+    const runtimeTextSrc = path.join('source', 'config', 'text.json');
+    const runtimeTextDstJs = path.join(jsDir, 'text.json');
+    const runtimeTextDstCfg = path.join(CONFIG.publicDestination, 'config', 'text.json');
+    if (fs.existsSync(runtimeTextSrc)) {
+      const textRaw = fs.readFileSync(runtimeTextSrc, 'utf-8');
+      const textOut = isProd ? JSON.stringify(JSON.parse(textRaw)) : textRaw;
+      fs.writeFileSync(runtimeTextDstJs, textOut);
+      if (!fs.existsSync(path.dirname(runtimeTextDstCfg))) {
+        fs.mkdirSync(path.dirname(runtimeTextDstCfg), { recursive: true });
+      }
+      fs.writeFileSync(runtimeTextDstCfg, textOut);
+      const savedBytes = Buffer.byteLength(textRaw) - Buffer.byteLength(textOut);
+      console.log(`✅ ${isProd ? 'Minified' : 'Copied'} text dictionary (${isProd ? `-${savedBytes}B` : 'unminified'})`);
     }
 
     // 2d. Run Rollup via dynamic import to avoid ESM/CJS friction
@@ -181,11 +228,10 @@ async function buildProduction() {
     console.log('✅ JavaScript bundled via Rollup');
 
     // 2e. Inject assets into public/index.html
-    // NOTE: The webflow export already has #bravia-balls container with canvas
-    // We do NOT need to inject a simulation-container - just inject CSS and JS
     const publicIndexPath = path.join(CONFIG.publicDestination, 'index.html');
     const template = safeReadFile(CONFIG.sourceIndexTemplate);
-    let html = template || fs.readFileSync(publicIndexPath, 'utf-8');
+    if (!template) throw new Error('Missing source index template at ' + CONFIG.sourceIndexTemplate);
+    let html = template;
 
     // Production template composition:
     // - Remove dev-only CSS links (we ship a single bundled CSS in production)
@@ -195,6 +241,7 @@ async function buildProduction() {
     html = html
       // Strip unbundled CSS links
       .replace(/^\s*<!-- Dev Modules CSS \(unbundled\) -->\s*$/gm, '')
+      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/normalize\.css">\s*$/gm, '')
       .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/main\.css">\s*$/gm, '')
       .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/panel\.css">\s*$/gm, '')
       .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/panel-dock\.css">\s*$/gm, '')
@@ -248,6 +295,19 @@ const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</sty
         console.log('✅ Inlined runtime config into public/index.html (hardcoded)');
       } catch (e) {}
     }
+
+    // TEXT: Inline runtime text dictionary into HTML for production (hardcoded + minified).
+    // Guarantees: zero fetch, no copy pop-in, and a single authoring surface.
+    if (isProd && fs.existsSync(runtimeTextSrc) && !html.includes('__TEXT__')) {
+      try {
+        const raw = fs.readFileSync(runtimeTextSrc, 'utf-8');
+        const min = JSON.stringify(JSON.parse(raw));
+        const safe = min.replace(/</g, '\\u003c');
+        const inline = `<script>window.__TEXT__=${safe};</script>`;
+        html = html.replace('</head>', `${inline}\n</head>`);
+        console.log('✅ Inlined runtime text into public/index.html as window.__TEXT__ (minified)');
+      } catch (e) {}
+    }
     
     // Inject theme-color meta tags for mobile browsers (Safari iOS, Chrome Android, Edge).
     // These SHOULD match --bg-light / --bg-dark in source/css/main.css for first paint.
@@ -256,11 +316,21 @@ const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</sty
   <meta name="theme-color" content="#f5f5f5">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
-  <!-- Apple-specific: Status bar style -->
+  <!-- PWA: Mobile web app capable (modern + legacy) -->
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-capable" content="yes">
 `;
     if (!html.includes('name="theme-color"')) html = html.replace('</head>', `${themeColorTags}</head>`);
+    
+    // Inject resource hints for critical assets (preload fonts, preconnect Google Fonts)
+    // Note: CSS/JS preloads removed as they're loaded with cache-bust query strings
+    const resourceHints = `
+  <!-- Resource Hints: Font Preloading + Connection Hints -->
+  <link rel="preload" href="fonts/tabler-icons-outline.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+`;
+    if (!html.includes('rel="preload"') && isProd) html = html.replace('<meta charset', `${resourceHints}<meta charset`);
     
     const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css?v=' + Date.now() + '">';
     if (!html.includes('id="bravia-balls-css"')) html = html.replace('</head>', `${cssTag}\n</head>`);
@@ -269,6 +339,23 @@ const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</sty
     fs.writeFileSync(publicIndexPath, html);
     console.log('✅ Injected modular assets into public/index.html');
 
+    // Report final bundle sizes (including gzip estimates)
+    const jsPath = path.join(jsDir, 'bouncy-balls-embed.js');
+    const cssPath = path.join(cssDir, 'bouncy-balls.css');
+    
+    if (isProd && fs.existsSync(jsPath) && fs.existsSync(cssPath)) {
+      const jsRaw = fs.readFileSync(jsPath);
+      const cssRaw = fs.readFileSync(cssPath);
+      const jsGzip = zlib.gzipSync(jsRaw, { level: 9 });
+      const cssGzip = zlib.gzipSync(cssRaw, { level: 9 });
+      
+      console.log('═══════════════════════════════════════════════════════════');
+      console.log('📊 BUNDLE SIZES:');
+      console.log(`   JS:  ${Math.round(jsRaw.length/1024)}KB → ${Math.round(jsGzip.length/1024)}KB gzipped`);
+      console.log(`   CSS: ${Math.round(cssRaw.length/1024)}KB → ${Math.round(cssGzip.length/1024)}KB gzipped`);
+      console.log(`   Total transfer: ~${Math.round((jsGzip.length + cssGzip.length)/1024)}KB gzipped`);
+    }
+    
     console.log('═══════════════════════════════════════════════════════════');
     console.log('🎉 BUILD COMPLETE!');
     console.log('═══════════════════════════════════════════════════════════');

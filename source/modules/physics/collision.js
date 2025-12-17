@@ -14,12 +14,14 @@ function collectPairsSorted() {
   const balls = globals.balls;
   const canvas = globals.canvas;
   const R_MAX = globals.R_MAX;
-  const spacing = (globals.ballSpacing || 0) * (globals.DPR || 1); // Extra spacing in pixels
+  const spacingRatio = globals.ballSpacing || 0; // Ratio of average radius (0.1 = 10% of ball size)
   
   const n = balls.length;
   if (n < 2) return [];
   
-  const cellSize = Math.max(1, R_MAX * 2);
+  // Cell size must account for spacing: max collision distance is R_MAX*2*(1+spacingRatio/2)
+  // since spacing is applied to the average radius. Using (1 + spacingRatio) to be safe.
+  const cellSize = Math.max(1, R_MAX * 2 * (1 + spacingRatio));
   const gridWidth = Math.ceil(canvas.width / cellSize) + 1;
   spatialGrid.clear();
   
@@ -54,7 +56,8 @@ function collectPairsSorted() {
             
             const A = balls[i], B = balls[j];
             const dx = B.x - A.x, dy = B.y - A.y;
-            const rSum = A.r + B.r + spacing; // Add extra spacing to collision radius
+            const avgRadius = (A.r + B.r) / 2;
+            const rSum = A.r + B.r + (avgRadius * spacingRatio); // Spacing as ratio of average radius
             const dist2 = dx*dx + dy*dy;
             
             if (dist2 < rSum*rSum) {
@@ -80,7 +83,7 @@ export function resolveCollisions(iterations = 10) {
   const POS_CORRECT_PERCENT = 0.8;
   const POS_CORRECT_SLOP = 0.5 * globals.DPR;
   const REST_VEL_THRESHOLD = 30;
-  const spacing = (globals.ballSpacing || 0) * (globals.DPR || 1); // Extra spacing in pixels
+  const spacingRatio = globals.ballSpacing || 0; // Ratio of average radius
   
   for (let iter = 0; iter < iterations; iter++) {
     for (let k = 0; k < pairs.length; k++) {
@@ -88,14 +91,10 @@ export function resolveCollisions(iterations = 10) {
       const A = balls[i];
       const B = balls[j];
       
-      // Skip pairs where both are sleeping (sleep islands)
-      if (A.isSleeping && B.isSleeping) continue;
-      // Wake only the sleeping one if colliding with an awake body
-      if (A.isSleeping) A.wake();
-      if (B.isSleeping) B.wake();
       const dx = B.x - A.x;
       const dy = B.y - A.y;
-      const rSum = A.r + B.r + spacing; // Add extra spacing to collision radius
+      const avgRadius = (A.r + B.r) / 2;
+      const rSum = A.r + B.r + (avgRadius * spacingRatio); // Spacing as ratio of average radius
       const dist2 = dx * dx + dy * dy;
       if (dist2 === 0 || dist2 > rSum * rSum) continue;
       const dist = Math.sqrt(dist2);
@@ -105,17 +104,53 @@ export function resolveCollisions(iterations = 10) {
       const invA = 1 / Math.max(A.m, 0.001);
       const invB = 1 / Math.max(B.m, 0.001);
 
-      // Positional correction
+      const bothSleeping = A.isSleeping && B.isSleeping;
+
+      // Positional correction (always applied to prevent overlap, even for sleeping bodies)
       const correctionMag = POS_CORRECT_PERCENT * Math.max(overlap - POS_CORRECT_SLOP, 0) / (invA + invB);
       const cx = correctionMag * nx;
       const cy = correctionMag * ny;
       A.x -= cx * invA; A.y -= cy * invA;
       B.x += cx * invB; B.y += cy * invB;
 
-      // Velocity impulse
+      // ════════════════════════════════════════════════════════════════════════════
+      // BALL-ON-BALL SUPPORT DETECTION (Pit modes only)
+      // If ball B is resting on ball A (B above A, contact normal pointing up),
+      // mark B as "supported" so gravity is balanced by normal force next step.
+      // This prevents gravity→collision→bounce jitter in stacked balls.
+      // ════════════════════════════════════════════════════════════════════════════
+      const isPitLike = (globals.currentMode === 'pit' || globals.currentMode === 'pit-throws');
+      if (isPitLike && ny < -0.3) { // Normal pointing up = B is on top of A
+        // B is supported from below by A
+        B.hasSupport = true;
+      } else if (isPitLike && ny > 0.3) { // Normal pointing down = A is on top of B
+        // A is supported from below by B
+        A.hasSupport = true;
+      }
+
+      // If both bodies are sleeping, skip velocity impulses entirely
+      // (prevents micro-jiggle in fully settled stacks).
+      if (bothSleeping) continue;
+
+      // Velocity impulse calculation
       const rvx = B.vx - A.vx;
       const rvy = B.vy - A.vy;
       const velAlongNormal = rvx * nx + rvy * ny;
+      
+      // ════════════════════════════════════════════════════════════════════════════
+      // REAL PHYSICS: Only wake sleeping balls if impulse is significant
+      // Small positional corrections shouldn't wake settled stacks (causes cascade)
+      // Threshold DPR-scaled: physics runs in canvas pixels (displayPx * DPR)
+      // ════════════════════════════════════════════════════════════════════════════
+      const DPR = globals.DPR || 1;
+      const WAKE_VEL_THRESHOLD = 15 * DPR; // px/s - only wake if approaching at meaningful speed
+      const shouldWake = velAlongNormal < -WAKE_VEL_THRESHOLD;
+      
+      if (A.isSleeping && !shouldWake) continue; // Don't wake from tiny impulse
+      if (B.isSleeping && !shouldWake) continue;
+      if (A.isSleeping) A.wake();
+      if (B.isSleeping) B.wake();
+
       if (velAlongNormal < 0) {
         const e = Math.abs(velAlongNormal) < REST_VEL_THRESHOLD ? 0 : REST;
         const j = -(1 + e) * velAlongNormal / (invA + invB);
@@ -181,7 +216,7 @@ export function resolveCollisionsCustom({
   const POS_CORRECT_PERCENT = positionalCorrectionPercent;
   const POS_CORRECT_SLOP = (positionalCorrectionSlopPx ?? (0.5 * globals.DPR));
   const REST_VEL_THRESHOLD = 30;
-  const spacing = (globals.ballSpacing || 0) * (globals.DPR || 1);
+  const spacingRatio = globals.ballSpacing || 0; // Ratio of average radius
   const correctionCap = (maxCorrectionPx ?? (2.0 * (globals.DPR || 1)));
 
   for (let iter = 0; iter < iterations; iter++) {
@@ -196,7 +231,8 @@ export function resolveCollisionsCustom({
 
       const dx = B.x - A.x;
       const dy = B.y - A.y;
-      const rSum = A.r + B.r + spacing;
+      const avgRadius = (A.r + B.r) / 2;
+      const rSum = A.r + B.r + (avgRadius * spacingRatio); // Spacing as ratio of average radius
       const dist2 = dx * dx + dy * dy;
       if (dist2 === 0 || dist2 > rSum * rSum) continue;
 

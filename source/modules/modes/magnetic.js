@@ -4,7 +4,7 @@
 // ║    or repelled based on their "charge". Auto-explosion every 10s.            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
@@ -26,8 +26,14 @@ export function initializeMagnetic() {
 
   const w = canvas.width;
   const h = canvas.height;
-  const count = Math.min(g.magneticBallCount || 180, g.maxBalls || 300);
+  const baseCount = Math.min(g.magneticBallCount || 180, g.maxBalls || 300);
+  const count = getMobileAdjustedCount(baseCount);
+  if (count <= 0) return;
 
+  // Initial velocity (DPR-scaled)
+  const DPR = g.DPR || 1;
+  const initSpeed = 100 * DPR;
+  
   // Ensure at least one of each color
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
@@ -35,8 +41,8 @@ export function initializeMagnetic() {
     const r = randomRadiusForMode(g, MODES.MAGNETIC);
     const c = getColorByIndex(colorIndex);
     const b = new Ball(x, y, r, c);
-    b.vx = (Math.random() - 0.5) * 100;
-    b.vy = (Math.random() - 0.5) * 100;
+    b.vx = (Math.random() - 0.5) * initSpeed;
+    b.vy = (Math.random() - 0.5) * initSpeed;
     // Assign magnetic charge: positive (attracted) or negative (repelled)
     b.charge = Math.random() > 0.5 ? 1 : -1;
     b.baseAlpha = 1;
@@ -49,8 +55,8 @@ export function initializeMagnetic() {
     const r = randomRadiusForMode(g, MODES.MAGNETIC);
     const c = pickRandomColor();
     const b = new Ball(x, y, r, c);
-    b.vx = (Math.random() - 0.5) * 100;
-    b.vy = (Math.random() - 0.5) * 100;
+    b.vx = (Math.random() - 0.5) * initSpeed;
+    b.vy = (Math.random() - 0.5) * initSpeed;
     b.charge = Math.random() > 0.5 ? 1 : -1;
     b.baseAlpha = 1;
     g.balls.push(b);
@@ -69,17 +75,18 @@ function triggerAutoExplosion() {
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
   const force = g.magneticStrength || 50000;
+  const DPR = g.DPR || 1;
   
   for (let i = 0; i < g.balls.length; i++) {
     const ball = g.balls[i];
     const dx = ball.x - cx;
     const dy = ball.y - cy;
-    const dist = Math.max(30, Math.sqrt(dx * dx + dy * dy));
+    const dist = Math.max(30 * DPR, Math.sqrt(dx * dx + dy * dy));
     const nx = dx / dist;
     const ny = dy / dist;
     
-    // Strong outward explosion
-    const strength = (force / 50) * Math.min(1, 400 / dist);
+    // Strong outward explosion (DPR-scaled distance reference)
+    const strength = (force / 50) * Math.min(1, (400 * DPR) / dist);
     ball.vx += nx * strength;
     ball.vy += ny * strength;
     ball.omega += (Math.random() - 0.5) * 15;
@@ -95,7 +102,8 @@ export function applyMagneticForces(ball, dt) {
   const my = g.mouseY;
   const dx = mx - ball.x;
   const dy = my - ball.y;
-  const dist = Math.max(30, Math.sqrt(dx * dx + dy * dy));
+  const DPR = g.DPR || 1;
+  const dist = Math.max(30 * DPR, Math.sqrt(dx * dx + dy * dy));
   
   // EXAGGERATED magnetic force - inverse square law with high multiplier
   const magneticStrength = g.magneticStrength || 65000;
@@ -112,8 +120,8 @@ export function applyMagneticForces(ball, dt) {
   ball.vx += nx * forceMag * charge * dt;
   ball.vy += ny * forceMag * charge * dt;
   
-  // Velocity cap to prevent explosion
-  const maxVel = g.magneticMaxVelocity || 2800;
+  // Velocity cap to prevent explosion (DPR-scaled)
+  const maxVel = (g.magneticMaxVelocity || 2800) * DPR;
   const vel = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
   if (vel > maxVel) {
     ball.vx = (ball.vx / vel) * maxVel;

@@ -97,7 +97,7 @@ export const CONSTANTS = {
   BALL_SPAWN_OFFSET: 2,
   BALL_CLUSTER_SPACING: 8,
   BALL_CLUSTER_Y_OFFSET: 12,
-  MAX_PHYSICS_STEPS: 2,
+  MAX_PHYSICS_STEPS: 4, // Increased from 2 to handle low-framerate mobile (30fps → needs 4 steps at 120Hz)
   FPS_UPDATE_INTERVAL: 1.0,
   SPIN_DAMP_PER_S: 3.0,             // Faster spin decay to prevent endless rotation
   SPIN_GAIN: 0.25,
@@ -109,8 +109,8 @@ export const CONSTANTS = {
   GROUND_COUPLING_PER_S: 12.0,      // Stronger ground coupling for realistic rolling
   
   // Sleep threshold for jitter reduction (Box2D-inspired)
-  SLEEP_VELOCITY_THRESHOLD: 8.0,      // px/s - slightly higher to catch more jitter
-  SLEEP_ANGULAR_THRESHOLD: 0.1,       // rad/s - catch slow rotation too
+  SLEEP_VELOCITY_THRESHOLD: 12.0,     // px/s - higher = settles sooner (less idle jiggle)
+  SLEEP_ANGULAR_THRESHOLD: 0.18,      // rad/s - higher = settles sooner (less idle spin)
   TIME_TO_SLEEP: 0.25,                // seconds - faster sleep for quicker settling
   
   PHYSICS_DT: 1/120,

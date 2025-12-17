@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { spawnBall } from '../physics/spawn.js';
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { getColorByIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { getModeSizeVarianceFrac } from '../utils/ball-sizing.js';
@@ -20,9 +20,10 @@ export function initializeParallaxLinear() {
   const h = canvas.height;
 
   // Grid dimensions (number of vertices in each dimension)
-  const gridX = Math.max(3, Math.min(40, g.parallaxLinearGridX ?? 14));
-  const gridY = Math.max(3, Math.min(40, g.parallaxLinearGridY ?? 10));
-  const gridZ = Math.max(2, Math.min(20, g.parallaxLinearGridZ ?? 7));
+  const gridX = getMobileAdjustedCount(Math.max(0, Math.min(40, Math.round(g.parallaxLinearGridX ?? 14))));
+  const gridY = getMobileAdjustedCount(Math.max(0, Math.min(40, Math.round(g.parallaxLinearGridY ?? 10))));
+  const gridZ = getMobileAdjustedCount(Math.max(0, Math.min(20, Math.round(g.parallaxLinearGridZ ?? 7))));
+  if (gridX <= 0 || gridY <= 0 || gridZ <= 0) return;
 
   // Grid span: how much of the viewport the grid occupies in world space.
   // Use >1 to counter perspective shrink and visually reach the edges.
@@ -67,9 +68,9 @@ export function initializeParallaxLinear() {
         const x2d = centerX + x3d * scale;
         const y2d = centerY + y3d * scale;
 
-        // Size and opacity based on depth
+        // Size (opacity is constant)
         const r = baseR * scale;
-        const alpha = Math.max(0.25, Math.min(1.0, 0.4 + (1 - depthFactor) * 0.6));
+        const alpha = 1.0;
 
         const color = getColorByIndex((idx + iz * 2) & 7);
         const ball = spawnBall(x2d, y2d, color);

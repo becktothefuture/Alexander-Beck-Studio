@@ -96,7 +96,7 @@ export function initBrandLogoCursorScale() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  // Prefer scaling the inner wrapper so we don't override any Webflow transforms on #brand-logo.
+  // Prefer scaling the inner wrapper so we don't override any legacy exported transforms on #brand-logo.
   targetEl =
     document.querySelector('#brand-logo .hero__text') ||
     document.querySelector('#brand-logo') ||

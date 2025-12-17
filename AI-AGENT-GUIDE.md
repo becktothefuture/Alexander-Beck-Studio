@@ -50,13 +50,13 @@ docs/
 npm run start:source   # Dev page server (http://localhost:8001)
 npm start              # Public server (http://localhost:8000)
 npm run build          # Modular production build
-npm run watch          # Auto-rebuild on source/webflow changes
+npm run watch          # Auto-rebuild on source changes
 npm run help           # Show all commands
 ```
 
 **Edit:** `source/main.js` + `source/modules/**`  
 **Test:** Open `source/index.html`  
-**Build:** `npm run build` → Complete site in `public/` (Webflow export + simulation integrated)
+**Build:** `npm run build` → Complete site in `public/` (bundled + config inlined)
 
 ## 🎯 Common Tasks
 

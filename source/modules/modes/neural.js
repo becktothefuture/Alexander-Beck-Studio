@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { spawnBall } from '../physics/spawn.js';
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { MODES } from '../core/constants.js';
@@ -21,7 +21,9 @@ export function initializeNeural() {
   if (!canvas) return;
   clearBalls();
 
-  const targetBalls = Math.max(8, Math.min(g.neuralBallCount ?? 80, 260));
+  const baseCount = Math.max(8, Math.min(g.neuralBallCount ?? 80, 260));
+  const targetBalls = getMobileAdjustedCount(baseCount);
+  if (targetBalls <= 0) return;
   const w = canvas.width;
   const h = canvas.height;
   const margin = 40 * (g.DPR || 1);

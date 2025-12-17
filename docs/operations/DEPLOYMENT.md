@@ -9,7 +9,7 @@
 - ✅ Build warnings: 0
 - ✅ Score: 95.8/100 (A+)
 - ✅ All styles scoped to `#bravia-balls`
-- ✅ Dark mode container-only (Webflow-safe)
+- ✅ Dark mode container-only (host/CMS-safe)
 - ✅ No global style pollution
 
 ### Features Working
@@ -34,7 +34,7 @@
 # Standard build
 npm run build
 
-# Full Webflow integration
+# Full integration
 npm run build
 
 # Watch mode (development)
@@ -112,10 +112,10 @@ server {
 
 ### Method 1: Full Page (Recommended)
 
-Deploy entire `public/` folder including Webflow design.
+Deploy the entire `public/` folder.
 
 **Includes:**
-- Webflow page design
+- Static page design
 - Integrated simulation
 - All styles and scripts
 
@@ -154,10 +154,10 @@ Just include the simulation in existing site.
 - [ ] No memory leaks over 5 minutes
 - [ ] Bundle loads quickly (<2s on 3G)
 
-### Webflow Integration Tests
+### Integration Tests
 - [ ] Page scrolling works
 - [ ] Dark mode only affects simulation
-- [ ] Webflow styles intact
+- [ ] Styles intact
 - [ ] No layout conflicts
 - [ ] Header/footer visible
 

@@ -24,17 +24,17 @@
 
 **That's it!** The simulation auto-initializes.
 
-## Webflow Integration
+## Embedding Integration
 
 ### Step 1: Prepare Files
 
-Upload to Webflow:
+Upload to your host/CMS:
 - `bouncy-balls-embed.js` → Assets
 - `bouncy-balls.css` → Custom Code or Assets
 
 ### Step 2: Add HTML Structure
 
-In Webflow Designer, add Embed element:
+In your host/CMS, add an embed/HTML block:
 
 ```html
 <div id="bravia-balls" class="w-100">
@@ -259,7 +259,7 @@ Respects `prefers-reduced-motion`:
 The simulation is scoped to `#bravia-balls`:
 - Styles won't leak to page
 - Dark mode only affects container
-- Safe for Webflow/WordPress/etc.
+- Safe for common hosts/CMS platforms.
 
 If conflicts occur:
 ```css

@@ -698,7 +698,7 @@ Make the page feel like an extension of the user’s browser UI:
 │   ├── DEVELOPMENT.md          # Dev workflow
 │   ├── CANVAS-HEIGHT.md        # Dynamic height docs
 │   ├── PERFORMANCE.md          # Benchmarks & optimization
-│   └── WEBFLOW-INTEGRATION.md  # Embedding guide
+│   └── INTEGRATION.md          # Embedding guide
 └── README.md                   # Quick start
 ```
 
@@ -758,4 +758,4 @@ The architecture is:
 - `DEVELOPMENT.md` - Development workflow
 - `PERFORMANCE.md` - Optimization strategies
 - `CANVAS-HEIGHT.md` - Dynamic canvas height system
-- `WEBFLOW-INTEGRATION.md` - Embedding guide
+- `INTEGRATION.md` - Embedding guide
