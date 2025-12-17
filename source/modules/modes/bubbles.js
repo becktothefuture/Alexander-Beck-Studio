@@ -182,7 +182,9 @@ export function applyBubblesForces(ball, dt) {
     const dx = ball.x - g.mouseX;
     const dy = ball.y - g.mouseY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const collisionRadius = (g.bubblesDeflectRadius || 200) * g.DPR;
+    // Cursor deflect radius is derived from vw-based layout in `applyLayoutFromVwToPx()`.
+    // Keep this hot path allocation-free and avoid per-frame vw→px conversions.
+    const collisionRadius = Math.max(0, (g.bubblesDeflectRadius || 0)) * g.DPR;
     
     if (dist < collisionRadius && dist > 1) {
       // Cubic falloff for very strong close-range collision feel

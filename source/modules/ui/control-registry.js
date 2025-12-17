@@ -2069,16 +2069,6 @@ export const CONTROL_SECTIONS = {
         reinitMode: true
       },
       {
-        id: 'pingPongCursorRadius',
-        label: 'Cursor Radius',
-        stateKey: 'pingPongCursorRadius',
-        type: 'range',
-        min: 30, max: 200, step: 5,
-        default: 100,
-        format: v => v.toFixed(0),
-        parse: parseFloat
-      },
-      {
         id: 'pingPongVerticalDamp',
         label: 'Vertical Damping',
         stateKey: 'pingPongVerticalDamp',

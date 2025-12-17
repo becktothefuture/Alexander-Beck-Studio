@@ -61,7 +61,9 @@ export function applyPingPongForces(ball, dt) {
   // CURSOR COLLISION - The ONLY thing that disrupts ball movement
   // ═══════════════════════════════════════════════════════════════════════════
   if (g.mouseInCanvas) {
-    const cursorRadius = (g.pingPongCursorRadius || 100) * g.DPR;
+    // Cursor radius is derived from vw-based layout in `applyLayoutFromVwToPx()`.
+    // Keep this hot path allocation-free and avoid per-frame vw→px conversions.
+    const cursorRadius = Math.max(0, (g.pingPongCursorRadius || 0)) * g.DPR;
     const mx = g.mouseX;
     const my = g.mouseY;
     const dx = ball.x - mx;

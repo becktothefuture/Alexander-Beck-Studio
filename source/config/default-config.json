@@ -136,7 +136,6 @@
   "vortexWarmupFrames": 10,
   "pingPongBallCount": 35,
   "pingPongSpeed": 800,
-  "pingPongCursorRadius": 112,
   "pingPongVerticalDamp": 0.995,
   "pingPongWarmupFrames": 10,
   "magneticBallCount": 150,

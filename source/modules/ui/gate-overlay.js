@@ -9,6 +9,47 @@ import { getGlobals } from '../core/state.js';
 
 let overlayElement = null;
 let isEnabled = true;
+let modalHostElement = null;
+const gateOriginalPlacement = new WeakMap();
+
+function ensureModalHost() {
+    if (!overlayElement) return null;
+    if (modalHostElement && modalHostElement.isConnected) return modalHostElement;
+
+    let host = document.getElementById('gate-modal-host');
+    if (!host) {
+        host = document.createElement('div');
+        host.id = 'gate-modal-host';
+        host.className = 'gate-modal-host';
+        overlayElement.appendChild(host);
+    }
+    modalHostElement = host;
+    return modalHostElement;
+}
+
+export function mountGateIntoOverlay(gateEl) {
+    if (!overlayElement || !gateEl) return;
+    const host = ensureModalHost();
+    if (!host) return;
+
+    if (!gateOriginalPlacement.has(gateEl)) {
+        gateOriginalPlacement.set(gateEl, { parent: gateEl.parentNode, nextSibling: gateEl.nextSibling });
+    }
+    host.appendChild(gateEl);
+}
+
+export function unmountGateFromOverlay(gateEl) {
+    if (!gateEl) return;
+    const rec = gateOriginalPlacement.get(gateEl);
+    if (!rec || !rec.parent) return;
+    try {
+        if (rec.nextSibling && rec.nextSibling.parentNode === rec.parent) {
+            rec.parent.insertBefore(gateEl, rec.nextSibling);
+        } else {
+            rec.parent.appendChild(gateEl);
+        }
+    } catch (e) {}
+}
 
 /**
  * Get wall thickness from CSS variable or state
@@ -60,6 +101,9 @@ export function initGateOverlay(config) {
     
     // Ensure overlay is visible (not display: none) when enabled
     overlayElement.style.display = '';
+
+    // Ensure modal host exists (overlay becomes the modal container)
+    ensureModalHost();
     
     // Inject CSS custom properties from config
     const opacity = config.gateOverlayOpacity ?? 0.01;
@@ -140,7 +184,8 @@ function handleOverlayClick(e) {
                            e.target.classList.contains('gate-label') ||
                            e.target.classList.contains('gate-description');
     
-    if (e.target === overlayElement || isGateContainer) {
+    const isOverlaySurface = e.target === overlayElement || e.target?.id === 'gate-modal-host';
+    if (isOverlaySurface || isGateContainer) {
         // Dispatch custom event with instant flag
         document.dispatchEvent(new CustomEvent('gate-overlay-dismiss', { detail: { instant: true } }));
     }

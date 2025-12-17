@@ -3,7 +3,7 @@
  * Handles the password protection UI for the portfolio section.
  */
 
-import { showOverlay, hideOverlay } from './gate-overlay.js';
+import { showOverlay, hideOverlay, mountGateIntoOverlay, unmountGateFromOverlay } from './gate-overlay.js';
 import { getText } from '../utils/text-loader.js';
 
 /**
@@ -107,6 +107,7 @@ export function initPortfolioGate() {
             cvGate.setAttribute('aria-hidden', 'true');
             setTimeout(() => {
                 cvGate.classList.add('hidden');
+                unmountGateFromOverlay(cvGate);
             }, 400);
         }
 
@@ -116,6 +117,7 @@ export function initPortfolioGate() {
             contactGate.setAttribute('aria-hidden', 'true');
             setTimeout(() => {
                 contactGate.classList.add('hidden');
+                unmountGateFromOverlay(contactGate);
             }, 400);
         }
         
@@ -128,7 +130,10 @@ export function initPortfolioGate() {
         
         // Animate Logo Out (Up)
         logo.classList.add('fade-out-up');
-        
+
+        // Modal: mount gate inside overlay flex container
+        mountGateIntoOverlay(gate);
+
         // Animate Gate In (Up)
         gate.classList.remove('hidden');
         gate.setAttribute('aria-hidden', 'false');
@@ -154,6 +159,7 @@ export function initPortfolioGate() {
         gate.classList.remove('active');
         gate.setAttribute('aria-hidden', 'true');
             gate.classList.add('hidden');
+            unmountGateFromOverlay(gate);
             logo.classList.remove('fade-out-up');
             
             // Hide overlay immediately if no other gate is active
@@ -173,7 +179,10 @@ export function initPortfolioGate() {
         logo.classList.remove('fade-out-up');
         
         setTimeout(() => {
-            if (!isOpen) gate.classList.add('hidden');
+            if (!isOpen) {
+                gate.classList.add('hidden');
+                unmountGateFromOverlay(gate);
+            }
             
                 // Hide overlay if no other gate is now active
                 if (!isAnyGateActive()) {

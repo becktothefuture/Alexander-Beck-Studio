@@ -13,7 +13,7 @@
 // - No network calls
 // - No user text stored (clipboard copy is a single fixed string)
 
-import { showOverlay, hideOverlay } from './gate-overlay.js';
+import { showOverlay, hideOverlay, mountGateIntoOverlay, unmountGateFromOverlay } from './gate-overlay.js';
 import { getText } from '../utils/text-loader.js';
 
 const TRANSITION_MS = 400; // Must match password-gate.css transitions
@@ -163,12 +163,18 @@ export function initContactGate() {
     if (cvGate && cvGate.classList.contains('active')) {
       cvGate.classList.remove('active');
       cvGate.setAttribute('aria-hidden', 'true');
-      setTimeout(() => cvGate.classList.add('hidden'), TRANSITION_MS);
+      setTimeout(() => {
+        cvGate.classList.add('hidden');
+        unmountGateFromOverlay(cvGate);
+      }, TRANSITION_MS);
     }
     if (portfolioGate && portfolioGate.classList.contains('active')) {
       portfolioGate.classList.remove('active');
       portfolioGate.setAttribute('aria-hidden', 'true');
-      setTimeout(() => portfolioGate.classList.add('hidden'), TRANSITION_MS);
+      setTimeout(() => {
+        portfolioGate.classList.add('hidden');
+        unmountGateFromOverlay(portfolioGate);
+      }, TRANSITION_MS);
     }
 
     isOpen = true;
@@ -181,6 +187,9 @@ export function initContactGate() {
 
     // Animate Logo Out (Up)
     logo.classList.add('fade-out-up');
+
+    // Modal: mount gate inside overlay flex container
+    mountGateIntoOverlay(gate);
 
     // Animate Gate In (Up)
     gate.classList.remove('hidden');
@@ -204,6 +213,7 @@ export function initContactGate() {
     gate.classList.remove('active');
     gate.setAttribute('aria-hidden', 'true');
       gate.classList.add('hidden');
+      unmountGateFromOverlay(gate);
       logo.classList.remove('fade-out-up');
       
       // Hide overlay immediately if no other gate is active
@@ -223,7 +233,10 @@ export function initContactGate() {
     logo.classList.remove('fade-out-up');
 
     setTimeout(() => {
-      if (!isOpen) gate.classList.add('hidden');
+      if (!isOpen) {
+        gate.classList.add('hidden');
+        unmountGateFromOverlay(gate);
+      }
       
         // Hide overlay if no other gate is now active
         if (!isAnyGateActive()) {

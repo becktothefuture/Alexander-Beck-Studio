@@ -253,13 +253,15 @@ const state = {
   bubblesRiseSpeed: 150,
   bubblesWobble: 40,
   bubblesMaxCount: 200,
-  bubblesDeflectRadius: 200,
+  // Derived (px): set in `applyLayoutFromVwToPx()` from `cursorInfluenceRadiusVw`.
+  bubblesDeflectRadius: 0,
   
   
   // Ping Pong mode params (left-right bounce, cursor obstacle)
   pingPongBallCount: 35,
   pingPongSpeed: 800,
-  pingPongCursorRadius: 50,
+  // Derived (px): set in `applyLayoutFromVwToPx()` from `cursorInfluenceRadiusVw`.
+  pingPongCursorRadius: 0,
   
   // Colors
   currentColors: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
@@ -424,7 +426,6 @@ const state = {
   vortexDrag: 0.005,
   
   // Ping Pong mode
-  pingPongCursorRadius: 100,
   pingPongVerticalDamp: 0.995,
   
   // Magnetic mode

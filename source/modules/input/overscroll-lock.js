@@ -12,18 +12,13 @@
  *
  * IMPORTANT:
  * - We only preventDefault on touchmove, not touchstart, so taps/clicks still work.
- * - We allow scrolling inside gate dialogs (when active) and the panel scroll area.
+ * - We allow scrolling only inside dedicated scroll containers (panel). Gates are NOT scrollable.
  */
 export function setupOverscrollLock() {
   if (typeof document === 'undefined') return;
 
   const isAllowedScrollTarget = (target) => {
     if (!(target instanceof Element)) return false;
-
-    // Allow scroll inside active gate dialogs (they are internally scrollable)
-    if (target.closest('.cv-gate.active')) return true;
-    if (target.closest('.portfolio-gate.active')) return true;
-    if (target.closest('.contact-gate.active')) return true;
 
     // Allow scroll inside the panel content (dock + legacy panel)
     if (target.closest('.panel-dock .panel .panel-content')) return true;
