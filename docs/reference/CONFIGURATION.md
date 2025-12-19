@@ -115,6 +115,33 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 
 ## Balls (Global)
 
+### Color Distribution (Global)
+
+Controls **which palette colors are used** for new balls across **all modes**, and **how frequently** they appear.
+
+- **`colorDistribution`** (array of 7 objects)
+  - **Meaning**: Maps each discipline label to exactly one palette slot (`colorIndex`) and a weight (`weight`).
+  - **Schema**:
+
+```json
+{
+  "colorDistribution": [
+    { "label": "AI Integration", "colorIndex": 0, "weight": 30 },
+    { "label": "UI/UX Design", "colorIndex": 4, "weight": 18 },
+    { "label": "Creative Strategy", "colorIndex": 3, "weight": 15 },
+    { "label": "Frontend Development", "colorIndex": 2, "weight": 12 },
+    { "label": "Brand Identity", "colorIndex": 5, "weight": 10 },
+    { "label": "3D Design", "colorIndex": 6, "weight": 10 },
+    { "label": "Art Direction", "colorIndex": 7, "weight": 5 }
+  ]
+}
+```
+
+  - **`label`** (string): The discipline text used in the legend.
+  - **`colorIndex`** (integer, 0–7): Palette slot index. This maps to CSS variables `--ball-1` .. `--ball-8` via \(index + 1\).
+  - **`weight`** (integer, 0–100): Relative weight for spawning. The panel enforces the weights sum to **100**.
+  - **Uniqueness**: The panel enforces each label uses a **unique** `colorIndex`, so 7 labels will select 7 distinct palette slots (one of the 8 palette colors may remain unused).
+
 ### Sleep / Settling (Ball Pit modes)
 
 These keys tune the **sleep** behavior used to stop micro-jiggle when balls are fully at rest (billiard-ball feel).  

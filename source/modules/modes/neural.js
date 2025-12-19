@@ -5,7 +5,7 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { MODES } from '../core/constants.js';
 
@@ -33,7 +33,7 @@ export function initializeNeural() {
   for (let colorIndex = 0; colorIndex < first; colorIndex++) {
     const x = margin + Math.random() * (w - 2 * margin);
     const y = margin + Math.random() * (h - 2 * margin);
-    const ball = spawnBall(x, y, getColorByIndex(colorIndex));
+    const ball = spawnBall(x, y, pickRandomColor());
 
     // Size system: make Neural respect per-mode sizing variation.
     const rr = randomRadiusForMode(g, MODES.NEURAL);

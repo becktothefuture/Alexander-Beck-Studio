@@ -16,6 +16,8 @@ import { getGlobals } from '../core/state.js';
 const CSS_VAR_IMPACT = '--abs-scene-impact'; // unitless (can be +/- for rebound)
 const CSS_VAR_IMPACT_DUR = '--abs-scene-impact-dur'; // e.g. "100ms"
 const CSS_VAR_IMPACT_MUL = '--abs-scene-impact-mul';
+const CSS_VAR_LOGO_COMP_MUL = '--abs-scene-impact-logo-comp-mul';
+const CSS_VAR_LOGO_SCALE = '--abs-scene-impact-logo-scale';
 
 let el = null;
 let enabled = false;
@@ -51,6 +53,32 @@ function applyImpactMulFromGlobals() {
   if (!g) return;
   const eff = computeEffectiveImpactMul(g);
   el.style.setProperty(CSS_VAR_IMPACT_MUL, String(eff));
+
+  // Keep logo counter-scale gain synced from config/panel.
+  // Applied to #abs-scene so #brand-logo (descendant) inherits it.
+  const comp = Number(g.sceneImpactLogoCompMul);
+  if (Number.isFinite(comp) && comp > 0) {
+    el.style.setProperty(CSS_VAR_LOGO_COMP_MUL, String(comp));
+  }
+}
+
+function computeLogoScaleFromImpact(impact01, g) {
+  const effMul = computeEffectiveImpactMul(g);
+  // Must match CSS: scale(1 - (impact * mul))
+  // Note: `0.008` in CSS is only the fallback value for `--abs-scene-impact-mul`.
+  const x = Math.max(0, Number(impact01) || 0) * effMul;
+  const sceneScale = Math.max(0.001, 1 - x);
+  const exactComp = 1 / sceneScale;
+
+  // Extra anchoring beyond exact compensation (still derived from same x),
+  // so motion stays visually “connected”.
+  const compMul = Number(g?.sceneImpactLogoCompMul);
+  const gain = (Number.isFinite(compMul) && compMul > 0) ? compMul : 1.0;
+  const extra = 1 + ((gain - 1) * x);
+
+  // Defensive clamp (UI-only)
+  const out = exactComp * extra;
+  return Math.max(0.5, Math.min(4.0, out));
 }
 
 function prefersReducedMotion() {
@@ -90,6 +118,7 @@ export function initSceneImpactReact() {
   // Always seed vars so CSS has deterministic defaults.
   el.style.setProperty(CSS_VAR_IMPACT, '0');
   el.style.setProperty(CSS_VAR_IMPACT_DUR, '100ms');
+  el.style.setProperty(CSS_VAR_LOGO_SCALE, '1');
 
   // Stamp tunable multipliers (if available) so config/panel changes apply.
   applyImpactMulFromGlobals();
@@ -98,6 +127,10 @@ export function initSceneImpactReact() {
   if (prefersReducedMotion()) return;
 
   enabled = true;
+
+  // Keep impact transition rules stable to prevent end-of-animation snapping.
+  // Gate-depth can still override via `.gate-depth-active`.
+  el.classList.add('abs-scene--impact');
 
   // Keep multiplier responsive across mobile breakpoints (resize-driven).
   // Cheap: only a single style write per resize.
@@ -117,15 +150,59 @@ export function initSceneImpactReact() {
 
     const detail = e?.detail || {};
     const didChange = detail.prevMode && detail.mode && detail.prevMode !== detail.mode;
-    sceneImpactPress(didChange ? 1 : 0.75, { armManual: false });
+    pulseSceneImpact(didChange ? 1 : 0.75, { armManual: false });
   }, { passive: true });
 }
 
 /**
  * Mode change pulse: “click-in” (press) → rebound → settle.
  */
-export function pulseSceneImpact(strength = 1) {
-  sceneImpactPress(strength, { armManual: false });
+export function pulseSceneImpact(strength = 1, opts = {}) {
+  if (!enabled || !el) return;
+
+  const g = getGlobals();
+  if (g?.sceneImpactEnabled === false) return;
+
+  const s = Math.max(0, Math.min(1, Number(strength) || 0));
+  const token = ++impactToken;
+
+  clearTimers();
+
+  // Mark as animating to opt-in to will-change only during the pulse.
+  el.classList.add('abs-scene--animating');
+  // `.abs-scene--impact` is kept on permanently (init) to avoid transition swaps.
+
+  if (opts?.armManual) manualArmed = true;
+
+  const pressMsBase = g?.sceneImpactPressMs ?? 75;
+  const releaseMsBase = g?.sceneImpactReleaseMs ?? 220;
+  // Timing skew (requested): press in faster, return slower.
+  const pressMs = Math.max(1, Math.round((Number(pressMsBase) || 0) * 0.8));
+  const releaseMs = Math.max(1, Math.round((Number(releaseMsBase) || 0) * 1.2));
+  // No standalone config for hold: derive from press duration so the “click” feel
+  // stays consistent when users tune pressMs.
+  const holdMs = Math.round(Math.min(80, Math.max(0, (Number(pressMs) || 0) * 0.4)));
+
+  // Press in.
+  el.style.setProperty(CSS_VAR_IMPACT_DUR, `${Math.round(pressMs)}ms`);
+  window.requestAnimationFrame(() => {
+    if (!enabled || !el) return;
+    if (token !== impactToken) return;
+    el.style.setProperty(CSS_VAR_IMPACT, String(s));
+    el.style.setProperty(CSS_VAR_LOGO_SCALE, String(computeLogoScaleFromImpact(s, g)));
+  });
+
+  // Hold briefly at full press, then release out.
+  releaseTimeoutId = window.setTimeout(() => {
+    applySceneImpactRelease({ token, releaseMs });
+  }, Math.max(0, Math.round(pressMs) + holdMs));
+
+  cleanupTimeoutId = window.setTimeout(() => {
+    cleanupTimeoutId = 0;
+    if (!el) return;
+    // Keep `.abs-scene--impact` to prevent transition swaps that can cause snapping.
+    el.classList.remove('abs-scene--animating');
+  }, Math.max(0, Math.round(pressMs) + holdMs + Math.round(releaseMs) + 80));
 }
 
 /**
@@ -147,12 +224,15 @@ export function sceneImpactPress(strength = 1, opts = {}) {
 
   // Mark as animating to opt-in to will-change only during the pulse.
   el.classList.add('abs-scene--animating');
-  el.classList.add('abs-scene--impact');
+  // `.abs-scene--impact` is kept on permanently (init) to avoid transition swaps.
 
   if (opts?.armManual) manualArmed = true;
 
-  const pressMs = g?.sceneImpactPressMs ?? 75;
-  const releaseMs = g?.sceneImpactReleaseMs ?? 220;
+  const pressMsBase = g?.sceneImpactPressMs ?? 75;
+  const releaseMsBase = g?.sceneImpactReleaseMs ?? 220;
+  // Timing skew (requested): press in faster, return slower.
+  const pressMs = Math.max(1, Math.round((Number(pressMsBase) || 0) * 0.8));
+  const releaseMs = Math.max(1, Math.round((Number(releaseMsBase) || 0) * 1.2));
 
   // Smooth press-in: set duration then animate impact.
   // No hard reset - let in-flight transitions blend naturally.
@@ -162,6 +242,7 @@ export function sceneImpactPress(strength = 1, opts = {}) {
     if (!enabled || !el) return;
     if (token !== impactToken) return;
     el.style.setProperty(CSS_VAR_IMPACT, String(s));
+    el.style.setProperty(CSS_VAR_LOGO_SCALE, String(computeLogoScaleFromImpact(s, g)));
   });
 
   if (scheduleRelease) {
@@ -172,8 +253,7 @@ export function sceneImpactPress(strength = 1, opts = {}) {
     cleanupTimeoutId = window.setTimeout(() => {
       cleanupTimeoutId = 0;
       if (!el) return;
-      // Return to non-impact transition rules once we’ve settled.
-      el.classList.remove('abs-scene--impact');
+      // Keep `.abs-scene--impact` to prevent transition swaps that can cause snapping.
       el.classList.remove('abs-scene--animating');
     }, Math.max(0, Math.round(releaseMs) + 80));
   }
@@ -188,7 +268,9 @@ export function sceneImpactRelease(strength = 1) {
   const g = getGlobals();
   if (g?.sceneImpactEnabled === false) return;
   const token = impactToken;
-  const releaseMs = g?.sceneImpactReleaseMs ?? 220;
+  const releaseMsBase = g?.sceneImpactReleaseMs ?? 220;
+  // Timing skew (requested): return slower.
+  const releaseMs = Math.max(1, Math.round((Number(releaseMsBase) || 0) * 1.2));
   // Release always returns smoothly to rest (no overshoot).
   return applySceneImpactRelease({ token, releaseMs });
 }
@@ -204,13 +286,14 @@ function applySceneImpactRelease({ token, releaseMs }) {
     if (!enabled || !el) return;
     if (token !== impactToken) return;
     el.style.setProperty(CSS_VAR_IMPACT, '0');
+    el.style.setProperty(CSS_VAR_LOGO_SCALE, '1');
   });
 
   // Ensure we always drop will-change after release (covers pointer-hold path).
   cleanupTimeoutId = window.setTimeout(() => {
     cleanupTimeoutId = 0;
     if (!el) return;
-    el.classList.remove('abs-scene--impact');
+    // Keep `.abs-scene--impact` to prevent transition swaps that can cause snapping.
     el.classList.remove('abs-scene--animating');
   }, Math.max(0, Math.round(releaseMs) + 80));
 }

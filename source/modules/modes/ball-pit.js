@@ -5,7 +5,6 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { getColorByIndex } from '../visual/colors.js';
 
 function spawnPourBallPit(globals, targetBalls) {
   const w = globals.canvas.width;
@@ -37,21 +36,8 @@ function spawnPourBallPit(globals, targetBalls) {
   const vxBase = 100 * DPR;
   const vyBase = 50 * DPR;
 
-  // First, ensure at least one ball of each color (0-7)
-  for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
-    const x = spawnXMin + Math.random() * (spawnXMax - spawnXMin);
-    const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
-
-    const ball = spawnBall(x, y, getColorByIndex(colorIndex));
-    // Small downward velocity and random horizontal drift (DPR-scaled)
-    ball.vx = (Math.random() - 0.5) * vxBase;
-    ball.vy = Math.random() * vyBase + vyBase; // Initial downward velocity
-    ball.driftAx = 0;
-    ball.driftTime = 0;
-  }
-
-  // Then fill the rest with random colors
-  for (let i = 8; i < count; i++) {
+  // Color distribution is handled by spawnBall() via pickRandomColor().
+  for (let i = 0; i < count; i++) {
     const x = spawnXMin + Math.random() * (spawnXMax - spawnXMin);
     const y = spawnYTop + Math.random() * (spawnYBottom - spawnYTop);
 

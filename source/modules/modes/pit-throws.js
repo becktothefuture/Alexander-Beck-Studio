@@ -5,7 +5,6 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { getColorByIndex } from '../visual/colors.js';
 
 function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
@@ -17,14 +16,13 @@ function randBetween(min, max) {
 
 /**
  * Ball Pit color rule (to match the main Ball Pit look exactly):
- * - First 8 spawns: force indices 0..7 (guaranteed palette coverage)
- * - After that: leave color undefined so spawnBall() uses pickRandomColor()
- *   (which uses the same COLOR_WEIGHTS as Ball Pit).
+ * - Always leave color undefined so spawnBall() uses pickRandomColor()
+ *   (which is driven by the runtime colorDistribution for ALL modes).
  */
 function getNextPitLikeColor(state) {
   const i = state.spawnedTotal | 0;
   state.spawnedTotal = i + 1;
-  return (i < 8) ? getColorByIndex(i) : undefined;
+  return undefined;
 }
 
 function spawnOneThrow(g, color, side, { speedMul = 1, spreadMul = 1 } = {}) {

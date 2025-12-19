@@ -6,7 +6,7 @@
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
-import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
@@ -28,7 +28,7 @@ export function initializePingPong() {
     const x = Math.random() * w;
     const y = h * 0.15 + Math.random() * h * 0.7; // Middle 70% vertically
     const r = randomRadiusForMode(g, MODES.PING_PONG);
-    const c = getColorByIndex(colorIndex);
+    const c = pickRandomColor();
     const b = new Ball(x, y, r, c);
     // Pure horizontal velocity - no vertical component
     const dir = Math.random() > 0.5 ? 1 : -1;

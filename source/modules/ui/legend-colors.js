@@ -3,28 +3,37 @@
 // ║     Assign discipline dots based on ball palette distribution + story        ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
+import { getGlobals } from '../core/state.js';
+
 /**
- * We align to the ball palette distribution:
- * - --ball-1 (index 0) is the dominant neutral in all templates (weight 0.50)
- * - --ball-2 (index 1) is the secondary neutral (weight 0.25)
- * - --ball-3 (index 2) is typically white / very light (weight 0.12) → avoid for dots
- * - --ball-4..--ball-8 are accents + black (weights 0.06..0.01)
- *
- * Story constraint:
- * - Creative Strategy uses a darker grey (not an accent).
+ * Legend colors are driven by `globals.colorDistribution`:
+ * - Each label picks a palette index (0..7), rendered as `bg-ball-(index+1)`.
+ * - The same source of truth is used by `pickRandomColor()` for ALL mode spawns.
  */
-const CLASS_BY_DISCIPLINE = new Map([
-  ['ai integration', 'bg-ball-4'],
-  ['ui/ux design', 'bg-ball-2'],
-  ['creative strategy', 'bg-story-grey'],
-  ['frontend development', 'bg-ball-5'],
-  ['brand identity', 'bg-ball-8'],
-  ['3d design', 'bg-ball-7'],
-  ['art direction', 'bg-ball-6'],
-]);
 
 function normalizeLabel(s) {
   return String(s || '').trim().toLowerCase();
+}
+
+function clampInt(v, min, max, fallback = min) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  const i = Math.floor(n);
+  return i < min ? min : i > max ? max : i;
+}
+
+function resolveClassForLegendLabel(labelText) {
+  const g = getGlobals();
+  const target = normalizeLabel(labelText);
+  const dist = Array.isArray(g.colorDistribution) ? g.colorDistribution : null;
+  if (!dist) return null;
+  for (let i = 0; i < dist.length; i++) {
+    const row = dist[i];
+    if (normalizeLabel(row?.label) !== target) continue;
+    const idx = clampInt(row?.colorIndex, 0, 7, 0);
+    return `bg-ball-${idx + 1}`;
+  }
+  return null;
 }
 
 export function applyExpertiseLegendColors() {
@@ -38,7 +47,7 @@ export function applyExpertiseLegendColors() {
     if (!labelEl || !circle) continue;
 
     const label = normalizeLabel(labelEl.textContent);
-    const cls = CLASS_BY_DISCIPLINE.get(label);
+    const cls = resolveClassForLegendLabel(label);
     if (!cls) continue;
 
     // Remove any previous bg-ball-* classes so we can reassign cleanly.

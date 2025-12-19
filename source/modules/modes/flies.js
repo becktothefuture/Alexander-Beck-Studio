@@ -5,7 +5,7 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 
 export function initializeFlies() {
   const globals = getGlobals();
@@ -29,7 +29,7 @@ export function initializeFlies() {
     const x = centerX + Math.cos(angle) * distance;
     const y = centerY + Math.sin(angle) * distance;
     
-    const ball = spawnBall(x, y, getColorByIndex(colorIndex));
+    const ball = spawnBall(x, y, pickRandomColor());
     
     const speedVariation = 0.5 + Math.random() * 0.5;
     const vAngle = Math.random() * Math.PI * 2;

@@ -5,7 +5,7 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { MODES } from '../core/constants.js';
 
@@ -49,7 +49,7 @@ export function initializeCritters() {
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = (Math.random() * w) | 0;
     const y = (Math.random() * h) | 0;
-    const color = getColorByIndex(colorIndex);
+    const color = pickRandomColor();
     const ball = spawnBall(x, y, color);
 
     // Critter size now follows the global sizing system (R_MIN..R_MAX),

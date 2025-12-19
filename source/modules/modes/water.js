@@ -5,7 +5,7 @@
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
-import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { MODES } from '../core/constants.js';
 
@@ -34,7 +34,7 @@ export function initializeWater() {
     const x = Math.random() * w;
     const y = Math.random() * h;
     const size = randomRadiusForMode(globals, MODES.WATER);
-    const color = getColorByIndex(colorIndex);
+    const color = pickRandomColor();
     const ball = new Ball(x, y, size, color);
     
     // Random initial velocities (snowglobe-style movement)

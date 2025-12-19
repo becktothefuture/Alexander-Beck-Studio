@@ -5,7 +5,6 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { getColorByIndex } from '../visual/colors.js';
 
 export function initializeWeightless() {
   const globals = getGlobals();
@@ -20,23 +19,8 @@ export function initializeWeightless() {
   // Initial speed (DPR-scaled)
   const baseSpeed = globals.weightlessInitialSpeed * DPR;
   
-  // First, ensure at least one ball of each color (0-7)
-  for (let colorIndex = 0; colorIndex < 8 && colorIndex < targetBalls; colorIndex++) {
-    const x = margin + Math.random() * (w - 2 * margin);
-    const y = margin + Math.random() * (h - 2 * margin);
-    
-    const ball = spawnBall(x, y, getColorByIndex(colorIndex));
-    
-    const angle = Math.random() * Math.PI * 2;
-    const speed = baseSpeed * (0.7 + Math.random() * 0.3);
-    ball.vx = Math.cos(angle) * speed;
-    ball.vy = Math.sin(angle) * speed;
-    ball.driftAx = 0;
-    ball.driftTime = 0;
-  }
-  
-  // Then fill the rest with random colors
-  for (let i = 8; i < targetBalls; i++) {
+  // Color distribution is handled by spawnBall() via pickRandomColor().
+  for (let i = 0; i < targetBalls; i++) {
     const x = margin + Math.random() * (w - 2 * margin);
     const y = margin + Math.random() * (h - 2 * margin);
     

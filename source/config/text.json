@@ -13,10 +13,10 @@
       { "colorClass": "bg-ball-1", "label": "AI Integration" },
       { "colorClass": "bg-ball-5", "label": "UI/UX Design" },
       { "colorClass": "bg-ball-4", "label": "Creative Strategy" },
-      { "colorClass": "bg-ball-8", "label": "Frontend Development" },
+      { "colorClass": "bg-ball-3", "label": "Frontend Development" },
       { "colorClass": "bg-ball-6", "label": "Brand Identity" },
       { "colorClass": "bg-ball-7", "label": "3D Design" },
-      { "colorClass": "bg-ball-3", "label": "Art Direction" }
+      { "colorClass": "bg-ball-8", "label": "Art Direction" }
     ]
   },
   "philosophy": {

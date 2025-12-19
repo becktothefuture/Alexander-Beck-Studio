@@ -5,7 +5,7 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
-import { getColorByIndex } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { getModeSizeVarianceFrac } from '../utils/ball-sizing.js';
 
@@ -83,7 +83,7 @@ export function initializeParallaxPerspective() {
         const r = baseR * scale;
         const alpha = 1.0;
 
-        const color = getColorByIndex((idx + iz * 3) & 7);
+        const color = pickRandomColor();
         const ball = spawnBall(x2d, y2d, color);
         ball.r = r;
         ball.vx = 0;

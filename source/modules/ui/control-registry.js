@@ -463,7 +463,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sceneImpactMul',
         type: 'range',
         min: 0.0, max: 0.05, step: 0.001,
-        default: 0.004,
+        default: 0.010,
         format: (v) => v.toFixed(3),
         parse: parseFloat,
         hint: 'How far the entire scene “presses in” on simulation change.',
@@ -476,6 +476,24 @@ export const CONTROL_SECTIONS = {
           const isMobile = Boolean(g.isMobile || g.isMobileViewport);
           const eff = Number(val) * (isMobile ? factor : 1.0);
           el.style.setProperty('--abs-scene-impact-mul', String(eff));
+        }
+      },
+      {
+        id: 'sceneImpactLogoCompMul',
+        label: 'Logo Comp',
+        stateKey: 'sceneImpactLogoCompMul',
+        type: 'range',
+        min: 0.25, max: 6.0, step: 0.05,
+        default: 3.6,
+        format: (v) => v.toFixed(2) + 'x',
+        parse: parseFloat,
+        hint: 'How strongly the logo counter-scales against the scene press (higher = logo feels more “anchored”).',
+        onChange: (_g, val) => {
+          const el = document.getElementById('abs-scene');
+          if (!el) return;
+          const v = Number(val);
+          const safe = (Number.isFinite(v) && v > 0) ? v : 1.0;
+          el.style.setProperty('--abs-scene-impact-logo-comp-mul', String(safe));
         }
       },
       {
@@ -507,7 +525,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sceneImpactPressMs',
         type: 'range',
         min: 20, max: 300, step: 5,
-        default: 75,
+        default: 90,
         format: (v) => `${Math.round(v)}ms`,
         parse: (v) => parseInt(v, 10),
         hint: 'Press-in duration.'
@@ -518,7 +536,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sceneImpactReleaseMs',
         type: 'range',
         min: 40, max: 1200, step: 10,
-        default: 220,
+        default: 310,
         format: (v) => `${Math.round(v)}ms`,
         parse: (v) => parseInt(v, 10),
         hint: 'Release duration (“bounce out” length).'
@@ -940,6 +958,34 @@ export const CONTROL_SECTIONS = {
           // Only set CSS variable - let CSS handle mode switching
           document.documentElement.style.setProperty('--logo-color-dark', val);
         }
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // COLOR DISTRIBUTION - Discipline ↔ Palette slot ↔ Weight (sum=100)
+  // ═══════════════════════════════════════════════════════════════════════════
+  colorDistribution: {
+    title: 'Color Distribution',
+    icon: '🧩',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'colorDistribution',
+        label: 'Discipline Colors',
+        stateKey: 'colorDistribution',
+        type: 'colorDistribution',
+        // Labels are fixed; you assign which palette slot + weight each label gets.
+        labels: [
+          'AI Integration',
+          'UI/UX Design',
+          'Creative Strategy',
+          'Frontend Development',
+          'Brand Identity',
+          '3D Design',
+          'Art Direction'
+        ],
+        hint: 'Assign each discipline to one palette color (unique) and set weights that must sum to 100%. This distribution is used for ALL ball spawns across modes.'
       }
     ]
   },
@@ -3296,6 +3342,42 @@ function generateControlHTML(control) {
   const sliderId = control.id + 'Slider';
   const valId = control.id + 'Val';
   const pickerId = control.id + 'Picker';
+
+  // Color distribution (custom control)
+  if (control.type === 'colorDistribution') {
+    const labels = Array.isArray(control.labels) ? control.labels : [];
+    const rowsHtml = labels.map((label, i) => {
+      const safeLabel = String(label || '').trim();
+      const swatchId = `colorDistSwatch${i}`;
+      const selectId = `colorDistColor${i}`;
+      const weightId = `colorDistWeight${i}`;
+      const weightValId = `colorDistWeightVal${i}`;
+      return `
+        <div class="color-dist-row" data-color-dist-row="${i}">
+          <div class="color-dist-row-label">${safeLabel}</div>
+          <div class="color-dist-row-controls">
+            <span class="color-dist-swatch" id="${swatchId}" aria-hidden="true"></span>
+            <select id="${selectId}" class="control-select color-dist-select" aria-label="${safeLabel} color"></select>
+            <input type="range" id="${weightId}" min="0" max="100" step="1" value="0" aria-label="${safeLabel} weight">
+            <span class="color-dist-weight" id="${weightValId}">0%</span>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="control-row" data-control-id="${control.id}">
+        <div class="control-row-header">
+          <span class="control-label">${control.label}</span>
+          <span class="control-value" id="colorDistTotalVal">100%</span>
+        </div>
+        <div class="color-dist-grid" id="colorDistGrid">
+          ${rowsHtml}
+        </div>
+        <div class="color-dist-actions">
+          <button type="button" class="secondary" id="colorDistResetBtn" aria-label="Reset color distribution to defaults">Reset Defaults</button>
+        </div>
+      </div>
+      ${control.hint ? `<p class="control-hint">${control.hint}</p>` : ''}`;
+  }
   
   // Color picker type
   if (control.type === 'color') {
@@ -3565,6 +3647,271 @@ export function bindRegisteredControls() {
     for (const control of section.controls) {
       const valId = control.id + 'Val';
       const valEl = document.getElementById(valId);
+
+      // Color distribution binding (custom)
+      if (control.type === 'colorDistribution') {
+        const labels = Array.isArray(control.labels) ? control.labels : [];
+        const resetBtn = document.getElementById('colorDistResetBtn');
+
+        function normalizeLabel(s) {
+          return String(s || '').trim().toLowerCase();
+        }
+
+        function clampIntLocal(v, min, max, fallback = min) {
+          const n = Number(v);
+          if (!Number.isFinite(n)) return fallback;
+          const i = Math.floor(n);
+          return i < min ? min : i > max ? max : i;
+        }
+
+        function buildPaletteOptions(usedByIndex) {
+          // Palette indices are stable (0..7), colors vary by template.
+          const out = [];
+          for (let idx = 0; idx < 8; idx++) {
+            const labelSuffix = usedByIndex[idx] ? ` — ${usedByIndex[idx]}` : '';
+            out.push({ value: String(idx), label: `Ball ${idx + 1}${labelSuffix}` });
+          }
+          return out;
+        }
+
+        function sanitizeDistribution(src) {
+          const base = Array.isArray(g.colorDistribution) ? g.colorDistribution : [];
+          const map = new Map();
+          for (const row of base) {
+            map.set(normalizeLabel(row?.label), row);
+          }
+          // Start from src if valid, otherwise base.
+          const raw = Array.isArray(src) ? src : base;
+          const out = [];
+          const used = new Set();
+
+          // Collect preferred indices in order.
+          for (let i = 0; i < labels.length; i++) {
+            const label = String(labels[i] || '').trim();
+            const key = normalizeLabel(label);
+            const incoming = raw.find(r => normalizeLabel(r?.label) === key) || map.get(key) || { label };
+            let idx = clampIntLocal(incoming?.colorIndex, 0, 7, clampIntLocal(map.get(key)?.colorIndex, 0, 7, 0));
+            // Enforce uniqueness: if already used, pick the first free palette slot.
+            if (used.has(idx)) {
+              for (let j = 0; j < 8; j++) {
+                if (!used.has(j)) { idx = j; break; }
+              }
+            }
+            used.add(idx);
+            const w = clampIntLocal(incoming?.weight, 0, 100, clampIntLocal(map.get(key)?.weight, 0, 100, 0));
+            out.push({ label, colorIndex: idx, weight: w });
+          }
+          return out;
+        }
+
+        function normalizeWeightsTo100(weights, preferredIdx = 0) {
+          // Integer weights, clamp 0..100, then fix rounding drift to sum exactly 100.
+          const w = weights.map(x => clampIntLocal(x, 0, 100, 0));
+          let sum = 0;
+          for (let i = 0; i < w.length; i++) sum += w[i];
+          if (sum === 100) return w;
+          if (sum === 0) {
+            w[preferredIdx] = 100;
+            return w;
+          }
+          // Scale to 100, then distribute remainder.
+          const scaled = new Array(w.length).fill(0);
+          let scaledSum = 0;
+          for (let i = 0; i < w.length; i++) {
+            const v = Math.round((w[i] / sum) * 100);
+            scaled[i] = v;
+            scaledSum += v;
+          }
+          let drift = 100 - scaledSum;
+          // Fix drift by adding/subtracting 1s.
+          while (drift !== 0) {
+            if (drift > 0) {
+              // Add to the largest (prefer the edited index if tie).
+              let best = 0;
+              for (let i = 1; i < scaled.length; i++) {
+                if (scaled[i] > scaled[best]) best = i;
+              }
+              scaled[best] += 1;
+              drift -= 1;
+            } else {
+              // Subtract from the largest positive.
+              let best = -1;
+              for (let i = 0; i < scaled.length; i++) {
+                if (scaled[i] > 0 && (best === -1 || scaled[i] > scaled[best])) best = i;
+              }
+              if (best === -1) break;
+              scaled[best] -= 1;
+              drift += 1;
+            }
+          }
+          return scaled.map(x => clampIntLocal(x, 0, 100, 0));
+        }
+
+        function rebalanceWeights(dist, changedRow, newWeight) {
+          const weights = dist.map(r => clampIntLocal(r?.weight, 0, 100, 0));
+          weights[changedRow] = clampIntLocal(newWeight, 0, 100, weights[changedRow]);
+          const sum = weights.reduce((a, b) => a + b, 0);
+          if (sum === 100) return weights;
+          // Normalize to 100 while preserving relative proportions as much as possible.
+          return normalizeWeightsTo100(weights, changedRow);
+        }
+
+        function getModeBallCountApprox() {
+          // Best-effort: show an approximate per-mode ball count for “≈N balls” readouts.
+          const mode = g.currentMode;
+          const map = {
+            pit: null,
+            'pit-throws': null,
+            flies: g.fliesBallCount,
+            weightless: g.weightlessCount,
+            water: g.waterBallCount,
+            vortex: g.vortexBallCount,
+            'ping-pong': g.pingPongBallCount,
+            magnetic: g.magneticBallCount,
+            bubbles: g.bubblesMaxCount,
+            kaleidoscope: g.kaleidoscopeBallCount,
+            'kaleidoscope-1': g.kaleidoscope1BallCount,
+            'kaleidoscope-2': g.kaleidoscope2BallCount,
+            'kaleidoscope-3': g.kaleidoscope3BallCount,
+            critters: g.critterCount,
+            neural: g.neuralBallCount,
+            lattice: g.latticeBallCount,
+            orbit3d: g.orbit3dMoonCount,
+            orbit3d2: g.orbit3d2MoonCount
+          };
+          const v = map[mode];
+          return Number.isFinite(Number(v)) ? Number(v) : null;
+        }
+
+        function applyDistributionSideEffects() {
+          // 1) Update legend classes (label → palette slot)
+          import('./legend-colors.js')
+            .then(({ applyExpertiseLegendColors }) => applyExpertiseLegendColors?.())
+            .catch(() => {});
+          // 2) Recolor existing balls for immediate feedback (event-driven; not hot path)
+          import('../visual/colors.js')
+            .then(({ pickRandomColor }) => {
+              if (typeof pickRandomColor !== 'function') return;
+              const balls = g.balls || [];
+              for (let i = 0; i < balls.length; i++) {
+                balls[i].color = pickRandomColor();
+              }
+            })
+            .catch(() => {});
+        }
+
+        function syncColorDistributionUI() {
+          // Ensure state is sane + unique.
+          const sanitized = sanitizeDistribution(g.colorDistribution);
+          // Ensure sum to 100.
+          const weights = normalizeWeightsTo100(sanitized.map(r => r.weight), 0);
+          for (let i = 0; i < sanitized.length; i++) sanitized[i].weight = weights[i];
+          g.colorDistribution = sanitized;
+
+          // Used colors map (for disabling dropdown options).
+          const usedByIndex = {};
+          for (let i = 0; i < sanitized.length; i++) {
+            usedByIndex[sanitized[i].colorIndex] = sanitized[i].label;
+          }
+
+          const options = buildPaletteOptions(usedByIndex);
+          const modeCount = getModeBallCountApprox();
+
+          // Update each row UI.
+          for (let i = 0; i < labels.length; i++) {
+            const row = sanitized[i] || { colorIndex: 0, weight: 0, label: labels[i] };
+            const swatch = document.getElementById(`colorDistSwatch${i}`);
+            const select = document.getElementById(`colorDistColor${i}`);
+            const weight = document.getElementById(`colorDistWeight${i}`);
+            const weightVal = document.getElementById(`colorDistWeightVal${i}`);
+            if (select) {
+              // Rebuild options with disabled selections (except your own current selection).
+              select.innerHTML = '';
+              for (const o of options) {
+                const opt = document.createElement('option');
+                opt.value = o.value;
+                opt.textContent = o.label;
+                const idx = clampIntLocal(o.value, 0, 7, 0);
+                const takenBy = usedByIndex[idx];
+                const isMine = idx === row.colorIndex;
+                if (takenBy && !isMine) opt.disabled = true;
+                select.appendChild(opt);
+              }
+              select.value = String(row.colorIndex);
+            }
+            if (weight) {
+              weight.value = String(clampIntLocal(row.weight, 0, 100, 0));
+            }
+            if (weightVal) {
+              const pct = clampIntLocal(row.weight, 0, 100, 0);
+              const approx = (modeCount != null) ? Math.round((pct / 100) * modeCount) : null;
+              weightVal.textContent = approx != null ? `${pct}% (≈${approx})` : `${pct}%`;
+            }
+            if (swatch) {
+              const idx = clampIntLocal(row.colorIndex, 0, 7, 0);
+              // We use CSS vars to stay aligned with the current template + dark mode.
+              swatch.style.backgroundColor = `var(--ball-${idx + 1})`;
+            }
+          }
+
+          // Total
+          const totalEl = document.getElementById('colorDistTotalVal');
+          if (totalEl) {
+            let total = 0;
+            for (let i = 0; i < sanitized.length; i++) total += sanitized[i].weight;
+            totalEl.textContent = `${total}%`;
+          }
+        }
+
+        // Initial sync (panel just mounted)
+        try { syncColorDistributionUI(); } catch (e) {}
+
+        // Reset defaults
+        if (resetBtn) {
+          resetBtn.addEventListener('click', () => {
+            const defaults = g?.config?.colorDistribution;
+            g.colorDistribution = sanitizeDistribution(defaults);
+            const weights = normalizeWeightsTo100(g.colorDistribution.map(r => r.weight), 0);
+            for (let i = 0; i < g.colorDistribution.length; i++) g.colorDistribution[i].weight = weights[i];
+            syncColorDistributionUI();
+            applyDistributionSideEffects();
+            autoSaveSettings();
+          });
+        }
+
+        // Wire per-row events
+        for (let i = 0; i < labels.length; i++) {
+          const select = document.getElementById(`colorDistColor${i}`);
+          const weight = document.getElementById(`colorDistWeight${i}`);
+
+          if (select) {
+            select.addEventListener('change', () => {
+              const idx = clampIntLocal(select.value, 0, 7, 0);
+              const dist = sanitizeDistribution(g.colorDistribution);
+              dist[i].colorIndex = idx;
+              g.colorDistribution = dist;
+              syncColorDistributionUI();
+              applyDistributionSideEffects();
+              autoSaveSettings();
+            });
+          }
+
+          if (weight) {
+            weight.addEventListener('input', () => {
+              const val = clampIntLocal(weight.value, 0, 100, 0);
+              const dist = sanitizeDistribution(g.colorDistribution);
+              const newWeights = rebalanceWeights(dist, i, val);
+              for (let j = 0; j < dist.length; j++) dist[j].weight = newWeights[j];
+              g.colorDistribution = dist;
+              syncColorDistributionUI();
+              applyDistributionSideEffects();
+              autoSaveSettings();
+            });
+          }
+        }
+
+        continue;
+      }
       
       // Color picker binding
       if (control.type === 'color') {
@@ -3719,6 +4066,11 @@ export function syncSlidersToState() {
     for (const control of section.controls) {
       const sliderId = control.id + 'Slider';
       const valId = control.id + 'Val';
+      // Custom: color distribution UI is synced in bindRegisteredControls (it needs to build options).
+      if (control.type === 'colorDistribution') {
+        // No-op here.
+        continue;
+      }
       const el = document.getElementById(sliderId);
       const valEl = document.getElementById(valId);
       

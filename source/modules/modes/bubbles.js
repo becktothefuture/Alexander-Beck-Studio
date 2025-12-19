@@ -6,7 +6,7 @@
 
 import { getGlobals, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
-import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
@@ -28,7 +28,7 @@ export function initializeBubbles() {
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
     const y = Math.random() * h; // Full screen height
-    createBubble(x, y, getColorByIndex(colorIndex), true); // Already scaled in
+    createBubble(x, y, pickRandomColor(), true); // Already scaled in
   }
   
   // Fill rest with random colors across full height

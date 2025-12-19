@@ -847,6 +847,59 @@ body:not(.dark-mode) .panel-section--action {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
+   COLOR DISTRIBUTION — Discipline ↔ Palette slot ↔ Weight
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.color-dist-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-gap);
+  margin-top: var(--panel-pad-6);
+}
+
+.color-dist-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-pad-4);
+}
+
+.color-dist-row-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--panel-muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.color-dist-row-controls {
+  display: grid;
+  grid-template-columns: calc(var(--panel-pad-10) + var(--panel-pad-4)) minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: var(--panel-gap);
+}
+
+.color-dist-swatch {
+  width: calc(var(--panel-pad-10) + var(--panel-pad-4));
+  height: calc(var(--panel-pad-10) + var(--panel-pad-4));
+  border-radius: 999px;
+  outline: calc(var(--panel-pad-2) * 0.5) solid var(--panel-border);
+}
+
+.color-dist-weight {
+  font-size: 10px;
+  font-family: var(--panel-font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--panel-muted-foreground);
+  white-space: nowrap;
+}
+
+.color-dist-actions {
+  margin-top: var(--panel-pad-6);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
    CONTROL DIVIDER — Section separator within a category
    ═══════════════════════════════════════════════════════════════════════════════ */
 .control-divider {

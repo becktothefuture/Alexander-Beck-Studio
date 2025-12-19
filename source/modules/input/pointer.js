@@ -25,6 +25,8 @@ let pressCycleStartX = 0;
 let pressCycleStartY = 0;
 let pressCycleTotalMove = 0;
 const TAP_MOVE_THRESHOLD = 15; // px: movement below this is considered a tap, above is a drag
+let pressCycleDidPress = false;
+let mobilePulseTimeoutId = 0;
 
 function cycleMode() {
   const globals = getGlobals();
@@ -210,6 +212,23 @@ export function setupPointer() {
     );
   }
 
+  function isMobileViewportNow() {
+    // Prefer state flags (kept current by renderer.resize()).
+    if (globals?.isMobile || globals?.isMobileViewport) return true;
+    // Fallback for edge cases / devtools emulation.
+    try {
+      return Boolean(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function clearMobilePulseTimeout() {
+    if (!mobilePulseTimeoutId) return;
+    try { window.clearTimeout(mobilePulseTimeoutId); } catch (e) {}
+    mobilePulseTimeoutId = 0;
+  }
+
   function tryPressCycleStart(clientX, clientY, target, pointerId = null, pointerType = 'mouse') {
     if (pressCycleActive) return;
     if (isEventOnUI(target)) return;
@@ -226,9 +245,15 @@ export function setupPointer() {
     pressCycleStartX = clientX;
     pressCycleStartY = clientY;
     pressCycleTotalMove = 0;
+    pressCycleDidPress = false;
 
-    // Press-in immediately and HOLD (no auto-release), and arm manual so bb:modeChanged doesn't double-pulse.
-    sceneImpactPress(1, { armManual: true, scheduleRelease: false });
+    // Desktop behavior: press-in immediately on down, hold until release.
+    // Mobile behavior: do NOT press on down (scroll/drag should never push the scene).
+    clearMobilePulseTimeout();
+    if (!isMobileViewportNow()) {
+      pressCycleDidPress = true;
+      sceneImpactPress(1, { armManual: true, scheduleRelease: false });
+    }
   }
 
   function tryPressCycleEnd(pointerId = null, pointerType = 'mouse') {
@@ -240,18 +265,48 @@ export function setupPointer() {
     pressCycleActive = false;
     pressCyclePointerId = null;
     pressCycleTotalMove = 0;
+    const didPress = pressCycleDidPress;
+    pressCycleDidPress = false;
     
     // On touch devices: only cycle mode if it was a tap (minimal movement), not a drag
     const isTouch = pointerType === 'touch' || pointerType === 'pen';
     if (isTouch && totalMove > TAP_MOVE_THRESHOLD) {
-      // It was a drag, not a tap - just release the impact animation without changing mode
-      sceneImpactRelease(1);
+      // It was a drag, not a tap - do not change modes.
+      // If we were in a desktop press-hold path, ensure we release the scene.
+      if (didPress) sceneImpactRelease(1);
       return;
     }
-    
-    // Swap sim on release, then bounce out.
+
+    // Mobile: click/tap triggers BOTH parts (press then return) in sequence.
+    // Mode changes when the return begins.
+    if (isMobileViewportNow()) {
+      sceneImpactPress(1, { armManual: true, scheduleRelease: false });
+      const pressMsBase = globals.sceneImpactPressMs ?? 75;
+      const pressMs = Math.max(1, Math.round((Number(pressMsBase) || 0) * 0.8)); // must match scene-impact-react
+      const holdMs = Math.round(Math.min(80, Math.max(0, (Number(pressMs) || 0) * 0.4)));
+      clearMobilePulseTimeout();
+      mobilePulseTimeoutId = window.setTimeout(() => {
+        mobilePulseTimeoutId = 0;
+        cycleMode();
+        sceneImpactRelease(1);
+      }, Math.max(0, Math.round(pressMs) + holdMs));
+      return;
+    }
+
+    // Desktop: mode changes on release while the scene returns.
     cycleMode();
     sceneImpactRelease(1);
+  }
+
+  function tryPressCycleCancel(pointerId = null) {
+    if (!pressCycleActive) return;
+    if (pressCyclePointerId !== null && pointerId !== null && pointerId !== pressCyclePointerId) return;
+    pressCycleActive = false;
+    pressCyclePointerId = null;
+    pressCycleTotalMove = 0;
+    clearMobilePulseTimeout();
+    if (pressCycleDidPress) sceneImpactRelease(1);
+    pressCycleDidPress = false;
   }
 
   if (window.PointerEvent) {
@@ -273,7 +328,7 @@ export function setupPointer() {
     }, { passive: true });
 
     document.addEventListener('pointercancel', (e) => {
-      tryPressCycleEnd(e.pointerId, e.pointerType);
+      tryPressCycleCancel(e.pointerId);
     }, { passive: true });
   } else {
     // Fallbacks for older browsers without Pointer Events
@@ -351,8 +406,6 @@ export function setupPointer() {
         pressCycleStartX = touch.clientX;
         pressCycleStartY = touch.clientY;
         pressCycleTotalMove = 0;
-        // Press in on touchstart and HOLD; release will handle switching + bounce.
-        sceneImpactPress(1, { armManual: true, scheduleRelease: false });
       }
     }
   }, { passive: true });
@@ -375,7 +428,7 @@ export function setupPointer() {
 
   document.addEventListener('touchcancel', () => {
     if (window.PointerEvent) return;
-    tryPressCycleEnd(null, 'touch');
+    tryPressCycleCancel(null);
   }, { passive: true });
   
   /**

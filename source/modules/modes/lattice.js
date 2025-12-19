@@ -5,7 +5,7 @@
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls } from '../core/state.js';
-import { getColorByIndex } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 
 function toPxFromVwLike(canvas, vw) {
   const basis = Math.max(1, Math.min(canvas.width, canvas.height));
@@ -89,7 +89,7 @@ export function initializeLattice() {
       if (x >= -edgeMargin && x <= w + edgeMargin && y >= -edgeMargin && y <= h + edgeMargin) {
         // Random color from palette (8 colors) - creates organic, non-patterned distribution
         const colorIndex = Math.floor(Math.random() * 8);
-        const ball = spawnBall(x, y, getColorByIndex(colorIndex));
+        const ball = spawnBall(x, y, pickRandomColor());
         
         // Store HOME position - this is where the ball always wants to return
         ball.latticeHomeX = x;

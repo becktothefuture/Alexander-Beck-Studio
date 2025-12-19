@@ -18,11 +18,12 @@
   "mouseTrailFadeMs": 180,
   "mouseTrailOpacity": 1,
   "sceneImpactEnabled": true,
-  "sceneImpactMul": 0.016,
-  "sceneImpactMobileMulFactor": 1.5,
-  "sceneImpactPressMs": 260,
-  "sceneImpactReleaseMs": 70,
-  "sceneImpactAnticipation": 0.6,
+  "sceneImpactMul": 0.017,
+  "sceneImpactLogoCompMul": 3.5,
+  "sceneImpactMobileMulFactor": 1,
+  "sceneImpactPressMs": 145,
+  "sceneImpactReleaseMs": 580,
+  "sceneImpactAnticipation": 0,
   "sceneChangeSoundEnabled": true,
   "sceneChangeSoundIntensity": 1,
   "sceneChangeSoundRadius": 60,
@@ -50,10 +51,49 @@
   "linkHoverColor": "#ff4013",
   "logoColorLight": "#161616",
   "logoColorDark": "#d5d5d5",
+  "colorDistribution": [
+    {
+      "label": "AI Integration",
+      "colorIndex": 0,
+      "weight": 66
+    },
+    {
+      "label": "UI/UX Design",
+      "colorIndex": 4,
+      "weight": 2
+    },
+    {
+      "label": "Creative Strategy",
+      "colorIndex": 3,
+      "weight": 4
+    },
+    {
+      "label": "Frontend Development",
+      "colorIndex": 2,
+      "weight": 10
+    },
+    {
+      "label": "Brand Identity",
+      "colorIndex": 5,
+      "weight": 3
+    },
+    {
+      "label": "3D Design",
+      "colorIndex": 6,
+      "weight": 5
+    },
+    {
+      "label": "Art Direction",
+      "colorIndex": 7,
+      "weight": 10
+    }
+  ],
   "wallPreset": "trampoline",
   "wallThicknessVw": 0.9,
   "wallRadiusVw": 3.7,
   "wallInset": 3,
+  "mobileWallThicknessXFactor": 1.4,
+  "mobileEdgeLabelsVisible": true,
   "wallWobbleMaxDeform": 55,
   "wallWobbleStiffness": 2410,
   "wallWobbleDamping": 15,
@@ -250,8 +290,6 @@
   "simulationPaddingVw": 0,
   "contentPaddingVw": 1.7,
   "contentPaddingHorizontalRatio": 1.5,
-  "mobileWallThicknessXFactor": 1.4,
-  "mobileEdgeLabelsVisible": true,
   "layoutMinContentPaddingPx": 21,
   "layoutMinWallRadiusPx": 32,
   "soundPreset": "crystalPebbles",

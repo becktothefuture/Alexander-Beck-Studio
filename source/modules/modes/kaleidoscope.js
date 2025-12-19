@@ -6,7 +6,7 @@
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { MODES } from '../core/constants.js';
 import { Ball } from '../physics/Ball.js';
-import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
 
 const TAU = Math.PI * 2;
@@ -229,7 +229,7 @@ function initializeKaleidoscopeWithCount(count, mode) {
   // Ensure at least one of each palette color (if we have enough balls)
   const colorCount = Math.min(8, clampedCount);
   for (let colorIndex = 0; colorIndex < colorCount; colorIndex++) {
-    spawnOne(getColorByIndex(colorIndex));
+    spawnOne(pickRandomColor());
   }
 
   for (let i = colorCount; i < clampedCount; i++) {

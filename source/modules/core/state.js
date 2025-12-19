@@ -266,6 +266,18 @@ const state = {
   // Colors
   currentColors: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
   currentTemplate: 'industrialTeal',
+  // Color Distribution (labels ↔ palette indices ↔ weights)
+  // Used by `pickRandomColor()` for ALL modes.
+  // NOTE: 7 disciplines choose 7 distinct palette indices (0..7). One palette color may remain unused.
+  colorDistribution: [
+    { label: 'AI Integration', colorIndex: 0, weight: 30 },
+    { label: 'UI/UX Design', colorIndex: 4, weight: 18 },
+    { label: 'Creative Strategy', colorIndex: 3, weight: 15 },
+    { label: 'Frontend Development', colorIndex: 2, weight: 12 },
+    { label: 'Brand Identity', colorIndex: 5, weight: 10 },
+    { label: '3D Design', colorIndex: 6, weight: 10 },
+    { label: 'Art Direction', colorIndex: 7, weight: 5 }
+  ],
   
   // Flies mode
   fliesBallCount: 60,
@@ -469,14 +481,16 @@ const state = {
   // These are visual-only and applied via CSS vars + `scene-impact-react.js`.
   // ─────────────────────────────────────────────────────────────────────────────
   sceneImpactEnabled: true,
-  sceneImpactMul: 0.004,        // scale depth per unit impact (0.4%, kept subtle to avoid snap)
+  sceneImpactMul: 0.010,        // scale depth per unit impact (1.0%, tuned subtle to avoid snap)
   // Mobile-only multiplier applied on top of sceneImpactMul.
   // Allows “more depth” on small screens without re-tuning desktop.
   sceneImpactMobileMulFactor: 1.0,
+  // Logo counter-scale gain (multiplies the compensation so the logo stays “anchored”)
+  sceneImpactLogoCompMul: 3.6,
   sceneImpactOvershoot: 0.22,   // release overshoot amount (unitless)
   sceneImpactAnticipation: 0.0, // micro pre-pop opposite direction; 0 disables
-  sceneImpactPressMs: 75,       // ms (press-in duration)
-  sceneImpactReleaseMs: 220,    // ms (bounce-out duration)
+  sceneImpactPressMs: 90,       // ms (press-in duration)
+  sceneImpactReleaseMs: 310,    // ms (bounce-out duration)
 
   // Scene change SFX (plays only when sound is enabled/unlocked)
   sceneChangeSoundEnabled: true,
@@ -749,6 +763,28 @@ export function initState(config) {
   // Legacy key (kept): does not affect per-mode sliders, but we store it.
   if (config.sizeVariation !== undefined) state.sizeVariation = config.sizeVariation;
 
+  // Color distribution (7 rows)
+  // Accepts: [{ label: string, colorIndex: 0..7, weight: 0..100 }, ...]
+  // We clamp indices + weights for safety; UI enforces uniqueness + sum=100.
+  if (Array.isArray(config.colorDistribution)) {
+    const src = config.colorDistribution;
+    // Build on top of existing defaults so missing entries don't explode the UI.
+    const base = Array.isArray(state.colorDistribution) ? state.colorDistribution : [];
+    const out = [];
+    const n = Math.max(0, Math.min(7, src.length));
+    for (let i = 0; i < 7; i++) {
+      const b = base[i] || {};
+      const s = src[i] || {};
+      const label = (typeof s.label === 'string' && s.label.trim())
+        ? s.label.trim()
+        : (typeof b.label === 'string' ? b.label : `Discipline ${i + 1}`);
+      const colorIndex = clampInt(s.colorIndex, 0, 7, clampInt(b.colorIndex, 0, 7, 0));
+      const weight = clampInt(s.weight, 0, 100, clampInt(b.weight, 0, 100, 0));
+      out.push({ label, colorIndex, weight });
+    }
+    state.colorDistribution = out;
+  }
+
   // Warmup frames (per simulation) — integer 0..240
   if (config.pitWarmupFrames !== undefined) state.pitWarmupFrames = clampInt(config.pitWarmupFrames, 0, 240, state.pitWarmupFrames);
   if (config.pitThrowsWarmupFrames !== undefined) state.pitThrowsWarmupFrames = clampInt(config.pitThrowsWarmupFrames, 0, 240, state.pitThrowsWarmupFrames);
@@ -972,6 +1008,9 @@ export function initState(config) {
   }
   if (config.sceneImpactMobileMulFactor !== undefined) {
     state.sceneImpactMobileMulFactor = clampNumber(config.sceneImpactMobileMulFactor, 0.25, 3.0, state.sceneImpactMobileMulFactor);
+  }
+  if (config.sceneImpactLogoCompMul !== undefined) {
+    state.sceneImpactLogoCompMul = clampNumber(config.sceneImpactLogoCompMul, 0.25, 6.0, state.sceneImpactLogoCompMul);
   }
   if (config.sceneImpactOvershoot !== undefined) {
     state.sceneImpactOvershoot = clampNumber(config.sceneImpactOvershoot, 0, 0.8, state.sceneImpactOvershoot);

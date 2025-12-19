@@ -5,7 +5,7 @@
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
-import { pickRandomColor, getColorByIndex } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
@@ -31,7 +31,7 @@ export function initializeVortex() {
     const x = Math.random() * w;
     const y = Math.random() * h;
     const r = randomRadiusForMode(g, MODES.VORTEX);
-    const c = getColorByIndex(colorIndex);
+    const c = pickRandomColor();
     const b = new Ball(x, y, r, c);
     b.vx = (Math.random() - 0.5) * baseSpeed;
     b.vy = (Math.random() - 0.5) * baseSpeed;

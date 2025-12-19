@@ -33,7 +33,20 @@ export const COLOR_TEMPLATES = {
   }
 };
 
-const COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
+// Legacy fallback weights (only used if no valid `colorDistribution` is present).
+const LEGACY_COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
+
+function clampIntFallback(v, min, max, fallback = min) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  const i = Math.floor(n);
+  return i < min ? min : i > max ? max : i;
+}
+
+function getDistribution(g) {
+  const dist = g?.colorDistribution;
+  return Array.isArray(dist) ? dist : null;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CURSOR COLOR (contrasty-only palette selection)
@@ -210,17 +223,43 @@ export function pickRandomColor() {
     return '#ffffff';
   }
   
-  const random = Math.random();
-  let cumulativeWeight = 0;
-  
-  for (let i = 0; i < Math.min(colors.length, COLOR_WEIGHTS.length); i++) {
-    cumulativeWeight += COLOR_WEIGHTS[i];
-    if (random <= cumulativeWeight) {
-      return colors[i];
+  // Primary: use the runtime color distribution (7 labels → 7 distinct palette indices).
+  // Hot-path safe: O(7) work, zero allocations.
+  const dist = getDistribution(globals);
+  if (dist && dist.length) {
+    let total = 0;
+    for (let i = 0; i < dist.length; i++) {
+      const w = Number(dist[i]?.weight);
+      if (Number.isFinite(w) && w > 0) total += w;
+    }
+    if (total > 0) {
+      let r = Math.random() * total;
+      for (let i = 0; i < dist.length; i++) {
+        const row = dist[i];
+        const w = Number(row?.weight);
+        if (!Number.isFinite(w) || w <= 0) continue;
+        r -= w;
+        if (r <= 0) {
+          const idx = clampIntFallback(row?.colorIndex, 0, 7, 0);
+          return colors[idx] || colors[0] || '#ffffff';
+        }
+      }
+      // Numeric edge case: fall through to a deterministic row.
+      const last = dist[dist.length - 1];
+      const idx = clampIntFallback(last?.colorIndex, 0, 7, 0);
+      return colors[idx] || colors[0] || '#ffffff';
     }
   }
-  
-  return colors[Math.min(colors.length - 1, 7)];
+
+  // Fallback: legacy weights over the first 8 palette entries.
+  const random = Math.random();
+  let cumulativeWeight = 0;
+  const maxIdx = Math.min(colors.length, LEGACY_COLOR_WEIGHTS.length, 8);
+  for (let i = 0; i < maxIdx; i++) {
+    cumulativeWeight += LEGACY_COLOR_WEIGHTS[i];
+    if (random <= cumulativeWeight) return colors[i];
+  }
+  return colors[Math.min(colors.length - 1, 7)] || '#ffffff';
 }
 
 /**
@@ -271,21 +310,6 @@ export function applyColorTemplate(templateName) {
 function updateExistingBallColors() {
   const globals = getGlobals();
   const balls = globals.balls;
-  const colors = globals.currentColors;
-  
-  // Guarantee: ensure at least one ball uses each palette color (matches legend circles).
-  // This runs only on palette changes, not in hot paths.
-  if (balls.length > 0 && colors && colors.length > 0) {
-    const count = Math.min(8, colors.length, balls.length);
-    const start = Math.floor(Math.random() * count);
-    for (let i = 0; i < count; i++) {
-      balls[i].color = colors[(start + i) % count];
-    }
-    for (let i = count; i < balls.length; i++) {
-      balls[i].color = pickRandomColor();
-    }
-    return;
-  }
 
   for (let i = 0; i < balls.length; i++) {
     balls[i].color = pickRandomColor();

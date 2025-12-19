@@ -5,7 +5,7 @@
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { spawnBall } from '../physics/spawn.js';
-import { getColorByIndex, pickRandomColor } from '../visual/colors.js';
+import { pickRandomColor } from '../visual/colors.js';
 
 export function initializeOrbit3D2() {
   const globals = getGlobals();
@@ -24,7 +24,7 @@ export function initializeOrbit3D2() {
     const x = w * 0.5 + Math.cos(angle) * radius;
     const y = h * 0.5 + Math.sin(angle) * radius;
 
-    const ball = spawnBall(x, y, i < 8 ? getColorByIndex(i) : pickRandomColor());
+    const ball = spawnBall(x, y, pickRandomColor());
     if (!ball) continue;
 
     // SLOWER: Initial tangential velocity (DPR-scaled)

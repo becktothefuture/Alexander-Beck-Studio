@@ -74,9 +74,16 @@
      ─────────────────────────────────────────────────────────────────────────── */
   --abs-scene-impact: 0;
   --abs-scene-impact-dur: 100ms;
+  --abs-scene-impact-logo-scale: 1;
+  /* Impact easing: ease-in (expo-like) + ease-out (circ-like).
+     Applied to BOTH the scene press and the logo counter-scale for tight coupling. */
+  --abs-scene-impact-ease: cubic-bezier(0.78, 0.00, 0.22, 1.00);
   /* Tunable multiplier (driven by control panel / config).
      Keep subtle (0.4%) to avoid visible snap on scale transitions. */
-  --abs-scene-impact-mul: 0.004;
+  --abs-scene-impact-mul: 0.010;
+  /* Logo counter-scale gain: multiply the compensation so the logo can feel “anchored”
+     even when scene depth is tuned more subtly. */
+  --abs-scene-impact-logo-comp-mul: 2.0;
 
   /* Interaction Tokens */
   /* Link hover accent is fixed (ban yellow): always use dark orange (#ff4013). */
@@ -369,7 +376,7 @@ body.body.dark-mode {
 }
 
 body.dark-mode .content-background-layer {
-  background: var(--bg-dark) !important;
+  background: transparent !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1024,27 +1031,31 @@ p {
   transform:
     scale(var(--gate-depth-scale-active, 1))
     translateY(var(--gate-depth-ty-active, 0px))
-    scale(calc(1 - (var(--abs-scene-impact, 0) * var(--abs-scene-impact-mul, 0.008))));
+    scale(calc(1 - (var(--abs-scene-impact, 0) * var(--abs-scene-impact-mul, 0.008))))
+    translateZ(0);
   transition:
     transform var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
+  /* Keep the transform layer stable across the whole session to prevent
+     1-frame corner “snaps” when the scene settles and the browser demotes layers. */
+  will-change: transform;
   backface-visibility: hidden;
   transform-style: preserve-3d;
-}
-
-#abs-scene.gate-depth-active {
-  transition:
-    transform var(--gate-depth-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 #abs-scene.abs-scene--impact {
   /* Use non-overshooting easing to prevent "pop" past rest on release.
      Smooth ease-out-quint: fast start, gentle deceleration, no overshoot. */
   transition:
-    transform var(--abs-scene-impact-dur, 100ms) cubic-bezier(0.22, 1, 0.36, 1);
+    transform var(--abs-scene-impact-dur, 100ms) var(--abs-scene-impact-ease, cubic-bezier(0.33, 1, 0.68, 1));
 }
 
 #abs-scene.abs-scene--animating {
   will-change: transform;
+}
+
+#abs-scene.gate-depth-active {
+  transition:
+    transform var(--gate-depth-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1055,12 +1066,18 @@ p {
   position: fixed !important;
   top: 50% !important;
   left: 50% !important;
-  transform: translate3d(-50%, -50%, 0) !important;
+  /* Counter-scale the scene “press-in” so the logo stays visually stable.
+     #brand-logo lives inside #abs-scene, so it inherits the scene’s transform scale. */
+  transform:
+    translate3d(-50%, -50%, 0)
+    scale(var(--abs-scene-impact-logo-scale, 1))
+    !important;
   transform-origin: center center;
   /* Fade opacity when gate opens (subtle, not full disappear) */
   opacity: var(--logo-opacity-active, 1);
   /* Sync all transitions: transform + opacity with OUT duration by default */
   transition: 
+    transform var(--abs-scene-impact-dur, 100ms) var(--abs-scene-impact-ease, cubic-bezier(0.33, 1, 0.68, 1)),
     opacity var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
   z-index: 3 !important; /* Behind balls (z:5) */
   pointer-events: none !important;
@@ -1118,7 +1135,9 @@ body.dark-mode .brand-logo-svg {
   height: calc(100vh - (var(--container-border-y, var(--container-border)) * 2));
   height: calc(100svh - (var(--container-border-y, var(--container-border)) * 2));
   border-radius: var(--container-radius);
-  background: var(--bg-light);
+  /* Background is owned by #bravia-balls (single rounded surface) to prevent
+     multi-layer rounded-edge re-rasterization “snaps” at the end of scene scaling. */
+  background: transparent;
   z-index: 1; 
   pointer-events: none;
   transform: translateZ(0);
@@ -1140,7 +1159,7 @@ body.dark-mode .brand-logo-svg {
   height: calc(100vh - (var(--container-border-y, var(--container-border)) * 2));
   height: calc(100svh - (var(--container-border-y, var(--container-border)) * 2));
   border-radius: var(--container-radius);
-  background: transparent;
+  background: var(--bg-light);
   z-index: 5;
   pointer-events: none !important;
   overflow: hidden;
@@ -1152,6 +1171,10 @@ body.dark-mode .brand-logo-svg {
     right var(--duration-resize) var(--ease-organic),
     height var(--duration-resize) var(--ease-organic),
     border-radius var(--duration-resize) var(--ease-organic);
+}
+
+body.dark-mode #bravia-balls {
+  background: var(--bg-dark);
 }
 
 /* Inner shadow removed */
