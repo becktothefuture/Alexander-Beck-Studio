@@ -24,6 +24,7 @@
   "sceneImpactPressMs": 145,
   "sceneImpactReleaseMs": 580,
   "sceneImpactAnticipation": 0,
+  "topLogoWidthVw": 12,
   "sceneChangeSoundEnabled": true,
   "sceneChangeSoundIntensity": 1,
   "sceneChangeSoundRadius": 60,

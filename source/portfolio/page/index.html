@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ring-Bound Notebook</title>
+    <!-- External CSS file containing all the visual styling and 3D transforms -->
+    <link rel="stylesheet" href="style.css" />
+    <!-- Google Fonts: Geist (main) and Tiny5 (commentary) -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700;800;900&display=swap"
+    />
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js" type="text/javascript"></script>
+    <script type="text/javascript">WebFont.load({  google: {    families: ["Tiny5:regular"]  }});</script>
+  </head>
+  <body class="body">
+    <!-- RGB Noise implemented via CSS - no performance impact -->
+
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+      <div class="top-nav__left">
+        <a href="mailto:alexander@beck.fyi" class="top-nav__link top-nav__link--mail" aria-label="Email">
+          <div class="top-nav__icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+            </svg>
+          </div>
+        </a>
+        <a href="https://www.linkedin.com/in/thisisbeck/" target="_blank" rel="noopener noreferrer" class="top-nav__link top-nav__link--linkedin" aria-label="LinkedIn">
+          <div class="top-nav__icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+          </div>
+        </a>
+        <a href="https://x.com/alex40939195" target="_blank" rel="noopener noreferrer" class="top-nav__link top-nav__link--x" aria-label="X">
+          <div class="top-nav__icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M8.267 3a1 1 0 0 1 .73 .317l.076 .092l4.274 5.828l5.946 -5.944a1 1 0 0 1 1.497 1.32l-.083 .094l-6.163 6.162l6.262 8.54a1 1 0 0 1 -.697 1.585l-.109 .006h-4.267a1 1 0 0 1 -.73 -.317l-.076 -.092l-4.276 -5.829l-5.944 5.945a1 1 0 0 1 -1.497 -1.32l.083 -.094l6.161 -6.163l-6.26 -8.539a1 1 0 0 1 .697 -1.585l.109 -.006h4.267z" />
+            </svg>
+          </div>
+        </a>
+      </div>
+      <a href="#cv" class="top-nav__cv">CV</a>
+      <a href="../../index.html" class="heading-wrapper" aria-label="Return to homepage">
+        <div class="heading-group">
+          <div class="heading-main">Alexander Beck</div>
+          <div class="heading-sub">problem solving. web aesthetics. product design.</div>
+        </div>
+        <div class="divider"></div>
+      </a>
+    </nav>
+
+    <!-- Head Bobble Content Wrapper - everything except top nav -->
+    <div class="head-bobble-wrapper">
+      
+      <!-- Video Overlay - full viewport with overlay blend mode -->
+      <div class="ambient-light-overlay">
+        <video class="ambient-light-overlay__video" autoplay muted loop playsinline>
+          <source src="assets/videos/looping-shadows.webm" type="video/webm">
+        </video>
+      </div>
+      
+      <!-- Mobile rotation overlay from Webflow -->
+    <div class="overlay--rotate">
+      <div class="code-embed w-embed">
+        <svg viewbox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 1H3C2.46957 1 1.96086 1.21071 1.58579 1.58579C1.21071 1.96086 1 2.46957 1 3V16C1 16.5304 1.21071 17.0391 1.58579 17.4142C1.96086 17.7893 2.46957 18 3 18H4V15H3V3H9V11H11V3C11 2.46957 10.7893 1.96086 10.4142 1.58579C10.0391 1.21071 9.53043 1 9 1ZM23 21V15C23 14.4696 22.7893 13.9609 22.4142 13.5858C22.0391 13.2107 21.5304 13 21 13H8C7.46957 13 6.96086 13.2107 6.58579 13.5858C6.21071 13.9609 6 14.4696 6 15V21C6 21.5304 6.21071 22.0391 6.58579 22.4142C6.96086 22.7893 7.46957 23 8 23H21C21.5304 23 22.0391 22.7893 22.4142 22.4142C22.7893 22.0391 23 21.5304 23 21ZM9 21V15H21V21H9ZM23 10H21.5C21.5 7 19.69 4.27 16.92 3.09L16 5L14 1C16.3869 1 18.6761 1.94821 20.364 3.63604C22.0518 5.32387 23 7.61305 23 10Z" fill="currentColor" style="fill:black;fill-opacity:1;"></path>
+        </svg>
+      </div>
+      <h6 class="text-block">Big ideas need space. <br>Please turn your phone sideways</h6>
+    </div>
+
+    <!-- Pixel screen indicator moved to top-level within head-bobble-wrapper -->
+    <div class="pixel-screen">
+      <div class="pixel-screen__text" id="pixel-commentary">This is the commentary text inside of a div block. And the text goes over 5 lines to allow some space to properly explain what's going on</div>
+    </div>
+
+    <main class="w-layout-hflex page-wrapper">
+      <!-- Main notebook container with Webflow structure -->
+      <div class="notebook">
+        <!-- Header from Webflow -->
+   
+
+        <!-- Notebook container -->
+        <div id="notebook" class="notebook-inner">
+        
+        <!-- 3D NOTEBOOK PAGE SYSTEM - USER SPECIFICATION -->
+        <div class="page-stack" id="page-stack">
+          <!-- 
+            All pages stay in this single container.
+            No z-index manipulation - depth controlled by translateZ only.
+            Transform origin: 50% 0 0 (hinge exactly on top edge).
+            Backface-visibility: visible with grey ::after pseudo-element.
+          -->
+          
+          <!-- Pages are generated dynamically by portfolioLoader.js -->
+          <!-- This includes front cover, portfolio pages, and back cover -->
+          
+          <!-- Generated content will be inserted here -->
+          <!-- GENERATED_PAGES -->
+          <!-- END_GENERATED_PAGES -->
+        </div>
+        
+        <div class="notebook__shadow" aria-hidden="true"></div>
+
+          <!-- Ring binding system from Webflow - positioned above all pages -->
+          <div class="rings-wrapper">
+            <img src="assets/background-assets/rings-top.webp" loading="lazy" alt="" class="rings rings--front">
+            <img src="assets/background-assets/rings-bottom.webp" loading="lazy" alt="" class="rings rings--back">
+          </div>
+
+          <!-- Background scene from Webflow -->
+          <div class="notebook-background">
+            <div class="phone-screen">
+              <img src="assets/background-assets/images/phone-cover.png" loading="lazy" alt="" class="phone-screen__cover">
+              <div data-poster-url="" 
+                   data-video-urls="assets/videos/phone.webm" 
+                   data-autoplay="true" data-loop="true" data-wf-ignore="true" 
+                   class="phone-screen__video w-background-video w-background-video-atom">
+                <video autoplay="" loop="" style="" 
+                       muted="" playsinline="" data-wf-ignore="true" data-object-fit="contain">
+                  <source src="assets/videos/phone.webm" data-wf-ignore="true">
+                </video>
+              </div>
+            </div>
+            <!-- Interactive Cookie Module -->
+            <div class="interactive-cookie" id="interactive-cookie">
+              <video id="cookie-video" class="cookie-video" muted>
+                <source src="assets/videos/cookie-animation.webm" type="video/webm">
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </div>
+        </div>
+    </main>
+    
+      <!-- 
+        JAVASCRIPT MODULE: The main application logic
+        - type="module" enables ES6 import/export syntax
+        - app.js orchestrates the entire application
+        - It imports and initializes all other modules (config, utils, scroll engine, renderer)
+      -->
+      <script type="module" src="app.js"></script>
+    </div> <!-- End head-bobble-wrapper -->
+  </body>
+</html>

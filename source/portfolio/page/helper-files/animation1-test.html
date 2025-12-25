@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en" style="overflow: hidden">
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      @keyframes animation_node_3_2_flow_1 {
+            from {
+            r: 60.5px;opacity: 0.3;
+            }
+            to {
+              r: 84.5px;opacity: 0;
+            }
+          }
+          @keyframes animation_node_3_2_flow_2 {
+            from {
+            r: 84.5px;opacity: 0;
+            }
+            to {
+              r: 60.5px;opacity: 0.3;
+            }
+          }
+          @keyframes animation_node_2_3_flow_1 {
+            from {
+            r: 25.5px;opacity: 1;
+            }
+            to {
+              r: 60.5px;opacity: 0.3;
+            }
+          }
+          @keyframes animation_node_2_3_flow_2 {
+            from {
+            r: 60.5px;opacity: 0.3;
+            }
+            to {
+              r: 25.5px;opacity: 1;
+            }
+          }
+          @keyframes animation_node_1_4_flow_1 {
+            from {
+            r: 18.5px;opacity: 0;
+            }
+            to {
+              r: 25.5px;opacity: 1;
+            }
+          }
+          @keyframes animation_node_1_4_flow_2 {
+            from {
+            r: 25.5px;opacity: 1;
+            }
+            to {
+              r: 18.5px;opacity: 0;
+            }
+          }  
+      #node_3_2 {
+          animation: animation_node_3_2_flow_1 0.75s cubic-bezier(0.27000001072883606, 0.11999999731779099, 0.25, 0.9900000095367432) 0s forwards, animation_node_3_2_flow_2 0s linear 1.05s forwards;
+        }
+        
+        #node_2_3 {
+          animation: animation_node_2_3_flow_1 0.75s cubic-bezier(0.27000001072883606, 0.11999999731779099, 0.25, 0.9900000095367432) 0s forwards, animation_node_2_3_flow_2 0s linear 1.05s forwards;
+        }
+        
+        #node_1_4 {
+          animation: animation_node_1_4_flow_1 0.75s cubic-bezier(0.27000001072883606, 0.11999999731779099, 0.25, 0.9900000095367432) 0s forwards, animation_node_1_4_flow_2 0s linear 1.05s forwards;
+        }
+      </style>
+  </head>
+
+  <body
+    style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 0; ">
+    <div class="svg-container" style="border: 2px solid #e6e6e6">
+      <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"
+        viewBox="0 0 200 200" fill="none">
+        <g id="animation_1_0">
+          <circle id="node_4_1" opacity="0" cx="99.5" cy="99.5" r="84.5"
+            stroke="#D9D9D9"
+            style="stroke:#D9D9D9;stroke:color(display-p3 0.8510 0.8510 0.8510);stroke-opacity:1;"
+            stroke-width="2" transform="rotate(0 99.5 99.5)" />
+          <circle id="node_3_2" opacity="0.3" cx="99.5" cy="99.5" r="60.5"
+            stroke="#D9D9D9"
+            style="stroke:#D9D9D9;stroke:color(display-p3 0.8510 0.8510 0.8510);stroke-opacity:1;"
+            stroke-width="2" transform="rotate(0 99.5 99.5)" />
+          <circle id="node_2_3" cx="99.5" cy="99.5" r="25.5" stroke="#D9D9D9"
+            style="stroke:#D9D9D9;stroke:color(display-p3 0.8510 0.8510 0.8510);stroke-opacity:1;"
+            stroke-width="2" transform="rotate(0 99.5 99.5)" />
+          <circle id="node_1_4" opacity="0" cx="99.5" cy="99.5" r="18.5"
+            stroke="#D9D9D9"
+            style="stroke:#D9D9D9;stroke:color(display-p3 0.8510 0.8510 0.8510);stroke-opacity:1;"
+            stroke-width="2" transform="rotate(0 99.5 99.5)" />
+          <circle id="node_4_5" opacity="0" cx="99.5" cy="99.5" r="84.5"
+            stroke="#D9D9D9"
+            style="stroke:#D9D9D9;stroke:color(display-p3 0.8510 0.8510 0.8510);stroke-opacity:1;"
+            stroke-width="2" transform="rotate(0 99.5 99.5)" />
+        </g>
+      </svg>
+    </div>
+  </body>
+  <script>
+  
+document.addEventListener('DOMContentLoaded', (event) => {
+  const sourceIdNames = ["node_3_2","node_2_3","node_1_4"];
+  
+
+  const candidateElement = document.getElementById("node_1_4")
+  candidateElement.addEventListener("animationend", (event) => {
+    if (event.animationName === "animation_node_1_4_flow_2") {
+
+      sourceIdNames.forEach((id, index) => {
+        const element = document.getElementById(id)
+      
+        const animation = element.style.animation
+      
+        element.style.animation =  'none'
+        setTimeout(() => {
+          element.style.animation = animation
+        }, 5) 
+      })
+    };
+  });
+
+})
+</script>
+</html>

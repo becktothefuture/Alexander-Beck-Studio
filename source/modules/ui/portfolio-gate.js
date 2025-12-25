@@ -42,8 +42,9 @@ function triggerFlash(flashEl, type) {
 
 export function initPortfolioGate() {
     const trigger = document.getElementById('portfolio-gate-trigger');
-    const logo = document.getElementById('brand-logo');
     const gate = document.getElementById('portfolio-gate');
+    // Brand logo is optional (some layouts remove it); gate should still function without it.
+    const logo = document.getElementById('brand-logo');
     const cvGate = document.getElementById('cv-gate'); // Get CV gate to check/close if open
     const contactGate = document.getElementById('contact-gate'); // Get contact gate to check/close if open
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
@@ -53,7 +54,7 @@ export function initPortfolioGate() {
     // Correct Code
     const CODE = '1234';
     
-    if (!trigger || !logo || !gate || inputs.length === 0) {
+    if (!trigger || !gate || inputs.length === 0) {
         console.warn('Portfolio Gate: Missing required elements');
         return;
     }
@@ -96,10 +97,22 @@ export function initPortfolioGate() {
     // --- Actions ---
 
     const openGate = (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         
         // Check if any other gate is currently open
         const wasAnyGateActive = isAnyGateActive();
+
+        // Prefetch portfolio resources (non-blocking)
+        const prefetchLink = document.createElement('link');
+        prefetchLink.rel = 'prefetch';
+        prefetchLink.href = 'portfolio/page/js/portfolio-bundle.js'; // path in prod
+        document.head.appendChild(prefetchLink);
+        
+        const preloadImg = document.createElement('link');
+        preloadImg.rel = 'preload';
+        preloadImg.as = 'image';
+        preloadImg.href = 'portfolio/page/assets/background-assets/paper-holes.webp';
+        document.head.appendChild(preloadImg);
         
         // Close CV gate if it's open
         if (cvGate && cvGate.classList.contains('active')) {
@@ -129,7 +142,7 @@ export function initPortfolioGate() {
         }
         
         // Animate Logo Out (Up)
-        logo.classList.add('fade-out-up');
+        if (logo) logo.classList.add('fade-out-up');
 
         // Modal: mount gate inside overlay flex container
         mountGateIntoOverlay(gate);
@@ -154,13 +167,13 @@ export function initPortfolioGate() {
         if (instant) {
             // Instant close: disable transition, remove active, then re-enable
             gate.style.transition = 'none';
-            logo.style.transition = 'none';
+            if (logo) logo.style.transition = 'none';
             
         gate.classList.remove('active');
         gate.setAttribute('aria-hidden', 'true');
             gate.classList.add('hidden');
             unmountGateFromOverlay(gate);
-            logo.classList.remove('fade-out-up');
+            if (logo) logo.classList.remove('fade-out-up');
             
             // Hide overlay immediately if no other gate is active
             if (!isAnyGateActive()) {
@@ -170,13 +183,13 @@ export function initPortfolioGate() {
             // Re-enable transitions after a frame
             requestAnimationFrame(() => {
                 gate.style.removeProperty('transition');
-                logo.style.removeProperty('transition');
+                if (logo) logo.style.removeProperty('transition');
             });
         } else {
             // Smooth close: use CSS transition
             gate.classList.remove('active');
             gate.setAttribute('aria-hidden', 'true');
-        logo.classList.remove('fade-out-up');
+        if (logo) logo.classList.remove('fade-out-up');
         
         setTimeout(() => {
             if (!isOpen) {
@@ -215,8 +228,12 @@ export function initPortfolioGate() {
             if (enteredCode === CODE) {
                 // Success - Green flash, then redirect
                 triggerFlash(flash, 'success');
+                
+                // Set session token (soft gate)
+                sessionStorage.setItem('abs_portfolio_ok', Date.now());
+
                 setTimeout(() => {
-                    // TODO: Update with actual portfolio URL when ready
+                    // Update with actual portfolio URL when ready
                     window.location.href = 'portfolio.html';
                 }, 500);
             } else {
@@ -231,6 +248,13 @@ export function initPortfolioGate() {
     };
 
     // --- Event Listeners ---
+
+    // Auto-open check (if redirected back from portfolio.html)
+    if (sessionStorage.getItem('abs_open_portfolio_gate')) {
+        sessionStorage.removeItem('abs_open_portfolio_gate');
+        // Small delay to allow page init
+        setTimeout(() => openGate(), 300);
+    }
 
     trigger.addEventListener('click', openGate);
 
@@ -303,6 +327,5 @@ export function initPortfolioGate() {
         });
     });
 }
-
 
 

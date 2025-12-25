@@ -109,11 +109,12 @@ export function updateCursorPosition(clientX, clientY) {
       });
     } else {
       // Already in simulation - ensure dot state is maintained
+      cursorElement.style.opacity = '1';
+
       // Check if we're already at dot scale, if not set it
       const currentTransform = cursorElement.style.transform;
       if (!currentTransform.includes('scale(0.25)')) {
         cursorElement.style.transform = 'translate(-50%, -50%) scale(0.25)';
-        cursorElement.style.opacity = '1';
       }
     }
   } else {

@@ -141,6 +141,48 @@
     }
   },
   "workflows": {
+    "startup": {
+      "command": "npm run startup",
+      "rationale": "Preferred entry point for dev/preview/watch to keep health checks and ports consistent.",
+      "healthChecks": [
+        "Dependencies installed",
+        "Source files present",
+        "Build output exists"
+      ],
+      "modes": [
+        {
+          "name": "Quick Dev",
+          "commands": ["npm run start:source"],
+          "port": 8001,
+          "useWhen": "Rapid iteration, UI tweaks, logic changes"
+        },
+        {
+          "name": "Build Preview",
+          "commands": ["npm start"],
+          "port": 8000,
+          "useWhen": "Production-like preview",
+          "autoBuildIfMissing": true
+        },
+        {
+          "name": "Dual Mode",
+          "commands": ["npm run start:source", "npm start"],
+          "ports": [8001, 8000],
+          "useWhen": "Side-by-side comparison"
+        },
+        {
+          "name": "Watch Mode",
+          "commands": ["npm run start:source", "npm start", "npm run watch"],
+          "ports": [8001, 8000],
+          "useWhen": "Auto-rebuild with dev + preview"
+        },
+        {
+          "name": "Build Only",
+          "commands": ["npm run build"],
+          "useWhen": "Generate production bundle and exit"
+        }
+      ],
+      "fallback": "Use direct commands only for automation or non-interactive runs."
+    },
     "beforeChanges": [
       {
         "step": 1,
@@ -309,4 +351,3 @@
     "Changing physics behavior"
   ]
 }
-

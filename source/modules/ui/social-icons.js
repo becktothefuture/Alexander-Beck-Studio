@@ -8,6 +8,7 @@ const ICON_BY_LABEL = new Map([
   ['apple music', '<i class="ti ti-brand-apple" aria-hidden="true"></i>'],
   ['instagram', '<i class="ti ti-brand-instagram" aria-hidden="true"></i>'],
   ['linkedin', '<i class="ti ti-brand-linkedin" aria-hidden="true"></i>'],
+  ['x', '<i class="ti ti-brand-x" aria-hidden="true"></i>'],
 ]);
 
 export function upgradeSocialIcons() {

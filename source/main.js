@@ -31,6 +31,7 @@ import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
 import { initSceneChangeSFX } from './modules/ui/scene-change-sfx.js';
 import { loadRuntimeText, getText } from './modules/utils/text-loader.js';
 import { applyRuntimeTextToDOM } from './modules/ui/apply-text.js';
+import { loadRuntimeConfig } from './modules/utils/runtime-config.js';
 import {
   initConsolePolicy,
   printConsoleBanner,
@@ -46,32 +47,6 @@ import {
 function pickStartupMode() {
   // Narrative opening: start with Ball Pit.
   return MODES.PIT;
-}
-
-async function loadRuntimeConfig() {
-  try {
-    // Production builds can inline config into HTML (hardcoded at build time).
-    // This is the preferred path for production: no fetch, no runtime variability.
-    try {
-      if (typeof window !== 'undefined' && window.__RUNTIME_CONFIG__ && typeof window.__RUNTIME_CONFIG__ === 'object') {
-        return window.__RUNTIME_CONFIG__;
-      }
-    } catch (e) {}
-
-    const paths = ['config/default-config.json', 'js/config.json', '../public/js/config.json'];
-    for (const path of paths) {
-      try {
-        const res = await fetch(path, { cache: 'no-cache' });
-        if (res.ok) return await res.json();
-      } catch (e) {
-        // Try next
-      }
-    }
-    throw new Error('No config found');
-  } catch (e) {
-    console.warn('Config load failed, using defaults');
-    return { gravityMultiplier: 1.05, ballMass: 91, maxBalls: 300 };
-  }
 }
 
 /**
@@ -407,6 +382,8 @@ function enhanceFooterLinksForMobile() {
     // Register force render callback for resize (prevents blank frames during drag-resize)
     setForceRenderCallback(render);
     
+    // NOTE: Scroll FX is portfolio-only (see `source/portfolio/page/`).
+
     // Start main render loop
     const getForces = () => getForceApplicator();
     startMainLoop((ball, dt) => {

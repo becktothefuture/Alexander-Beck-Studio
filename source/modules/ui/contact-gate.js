@@ -281,5 +281,14 @@ export function initContactGate() {
       closeGate(instant);
     }
   });
+
+  // Allow other pages (e.g. portfolio) to route via index and auto-open Contact gate.
+  try {
+    if (sessionStorage.getItem('abs_open_contact_gate')) {
+      sessionStorage.removeItem('abs_open_contact_gate');
+      // Defer one frame so other init steps (overlay, layout) are fully settled.
+      requestAnimationFrame(() => openGate());
+    }
+  } catch (e) {}
 }
 

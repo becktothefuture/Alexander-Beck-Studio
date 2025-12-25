@@ -108,6 +108,48 @@ const BASE_CONFIG = {
   highShelfGain: -6.0,
 };
 
+let WHEEL_SFX_CONFIG = {
+  // Continuous wheel loop (legacy). When disabled, `updateWheelSfx()` will stop any loops.
+  continuousEnabled: false,
+  tickGainMul: 1.0,
+  swishGainMul: 1.0,
+
+  tickBaseGain: 0.05,
+  tickMinVelocity: 50,
+  tickMaxVelocity: 1600,
+  tickMinRate: 0.6,
+  tickMaxRate: 9,
+  swishBaseGain: 0.04,
+  swishMinVelocity: 220,
+  swishMaxVelocity: 2200,
+  swishMinHz: 600,
+  swishMaxHz: 2200,
+
+  // Discrete click used by portfolio carousel when a project passes center
+  centerGain: 0.08,
+  centerFilterHz: 1600,
+
+  snapGain: 0.12,
+  openGain: 0.12,
+  openFilterHz: 1800,
+  closeGain: 0.10,
+  closeFilterHz: 1600,
+  snapDebounceMs: 300,
+  stopDelayMs: 60,
+};
+
+export function getWheelSfxConfig() {
+  return { ...WHEEL_SFX_CONFIG };
+}
+
+export function updateWheelSfxConfig(updates) {
+  for (const [key, value] of Object.entries(updates)) {
+    if (key in WHEEL_SFX_CONFIG) {
+      WHEEL_SFX_CONFIG[key] = value;
+    }
+  }
+}
+
 // Mutable config (initialized after presets are defined)
 let CONFIG = null;
 
@@ -255,6 +297,7 @@ let wetGain = null;
 let limiter = null;
 let saturator = null;
 let highShelf = null;
+let wheelBus = null;
 
 let isEnabled = false;
 let isUnlocked = false;
@@ -282,6 +325,18 @@ let prefersReducedMotion = false;
 
 // Shared noise buffer (created once, reused)
 let sharedNoiseBuffer = null;
+
+// Wheel SFX state
+let wheelTickBuffer = null;
+let wheelTickSource = null;
+let wheelTickGain = null;
+let wheelTickFilter = null;
+let wheelSwishBuffer = null;
+let wheelSwishSource = null;
+let wheelSwishGain = null;
+let wheelSwishFilter = null;
+let wheelWhooshBuffer = null;
+let wheelStopTimer = null;
 
 let isSoundEngineInitialized = false;
 
@@ -427,6 +482,8 @@ function buildAudioGraph() {
   highShelf.connect(limiter);
   limiter.connect(masterGain);
   masterGain.connect(audioContext.destination);
+
+  ensureWheelBus();
   
   // Initialize voice pool
   initVoicePool();
@@ -522,6 +579,236 @@ function initVoicePool() {
     
     voicePool.push(voice);
   }
+}
+
+function ensureWheelBus() {
+  if (!audioContext) return;
+  if (!wheelBus) {
+    wheelBus = audioContext.createGain();
+    wheelBus.gain.value = 1;
+  } else {
+    try { wheelBus.disconnect(); } catch (e) {}
+  }
+  if (limiter) {
+    wheelBus.connect(limiter);
+  } else {
+    wheelBus.connect(audioContext.destination);
+  }
+}
+
+function createWheelTickBuffer() {
+  if (wheelTickBuffer || !audioContext) return;
+  const sampleRate = audioContext.sampleRate;
+  const duration = 0.045;
+  const length = Math.floor(sampleRate * duration);
+  wheelTickBuffer = audioContext.createBuffer(1, length, sampleRate);
+  const data = wheelTickBuffer.getChannelData(0);
+  const noiseEnd = Math.floor(sampleRate * 0.003);
+  const sineEnd = Math.floor(sampleRate * 0.010);
+  for (let i = 0; i < noiseEnd; i++) {
+    const decay = Math.exp(-i / noiseEnd * 6);
+    data[i] = (Math.random() * 2 - 1) * decay;
+  }
+  const freq = 880;
+  for (let i = noiseEnd; i < sineEnd; i++) {
+    const t = i / sampleRate;
+    const env = 0.65 * (1 - (i - noiseEnd) / (sineEnd - noiseEnd));
+    data[i] = Math.sin(2 * Math.PI * freq * t) * env;
+  }
+}
+
+function createWheelSwishBuffer() {
+  if (wheelSwishBuffer || !audioContext) return;
+  const sampleRate = audioContext.sampleRate;
+  const duration = 0.28;
+  const length = Math.floor(sampleRate * duration);
+  wheelSwishBuffer = audioContext.createBuffer(1, length, sampleRate);
+  const data = wheelSwishBuffer.getChannelData(0);
+  for (let i = 0; i < length; i++) {
+    const t = i / length;
+    const env = t < 0.08 ? t / 0.08 : (t > 0.92 ? (1 - t) / 0.08 : 1);
+    data[i] = (Math.random() * 2 - 1) * env * 0.6;
+  }
+}
+
+function createWheelWhooshBuffer() {
+  if (wheelWhooshBuffer || !audioContext) return;
+  const sampleRate = audioContext.sampleRate;
+  const duration = 0.12;
+  const length = Math.floor(sampleRate * duration);
+  wheelWhooshBuffer = audioContext.createBuffer(1, length, sampleRate);
+  const data = wheelWhooshBuffer.getChannelData(0);
+  for (let i = 0; i < length; i++) {
+    const decay = Math.exp(-4.5 * i / length);
+    data[i] = (Math.random() * 2 - 1) * decay;
+  }
+}
+
+function startWheelLoops() {
+  if (!audioContext) return;
+  if (wheelTickSource && wheelSwishSource) return;
+  ensureWheelBus();
+  createWheelTickBuffer();
+  wheelTickSource = audioContext.createBufferSource();
+  wheelTickSource.buffer = wheelTickBuffer;
+  wheelTickSource.loop = true;
+  wheelTickGain = audioContext.createGain();
+  wheelTickGain.gain.value = 0;
+  wheelTickFilter = audioContext.createBiquadFilter();
+  wheelTickFilter.type = 'highpass';
+  wheelTickFilter.frequency.value = 700;
+  wheelTickSource.connect(wheelTickFilter).connect(wheelTickGain).connect(wheelBus);
+  wheelTickSource.start();
+
+  createWheelSwishBuffer();
+  wheelSwishSource = audioContext.createBufferSource();
+  wheelSwishSource.buffer = wheelSwishBuffer;
+  wheelSwishSource.loop = true;
+  wheelSwishGain = audioContext.createGain();
+  wheelSwishGain.gain.value = 0;
+  wheelSwishFilter = audioContext.createBiquadFilter();
+  wheelSwishFilter.type = 'bandpass';
+  wheelSwishFilter.frequency.value = WHEEL_SFX_CONFIG.swishMinHz;
+  wheelSwishFilter.Q.value = 0.8;
+  wheelSwishSource.connect(wheelSwishFilter).connect(wheelSwishGain).connect(wheelBus);
+  wheelSwishSource.start();
+}
+
+function stopWheelLoops() {
+  if (wheelStopTimer) {
+    clearTimeout(wheelStopTimer);
+    wheelStopTimer = null;
+  }
+  if (wheelTickSource) {
+    try { wheelTickSource.stop(); } catch (e) {}
+    wheelTickSource.disconnect();
+    wheelTickGain.disconnect();
+    wheelTickFilter.disconnect();
+    wheelTickSource = wheelTickGain = wheelTickFilter = null;
+  }
+  if (wheelSwishSource) {
+    try { wheelSwishSource.stop(); } catch (e) {}
+    wheelSwishSource.disconnect();
+    wheelSwishGain.disconnect();
+    wheelSwishFilter.disconnect();
+    wheelSwishSource = wheelSwishGain = wheelSwishFilter = null;
+  }
+}
+
+function playWheelClick(gain, filterHz) {
+  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
+  ensureWheelBus();
+  createWheelTickBuffer();
+  const src = audioContext.createBufferSource();
+  src.buffer = wheelTickBuffer;
+  const g = audioContext.createGain();
+  g.gain.value = gain;
+  const lp = audioContext.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = filterHz;
+  src.connect(lp).connect(g).connect(wheelBus);
+  src.start();
+}
+
+function playWheelWhoosh(gain, filterHz) {
+  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
+  ensureWheelBus();
+  createWheelWhooshBuffer();
+  const src = audioContext.createBufferSource();
+  src.buffer = wheelWhooshBuffer;
+  const g = audioContext.createGain();
+  g.gain.value = gain;
+  const bp = audioContext.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = filterHz;
+  bp.Q.value = 0.9;
+  src.connect(bp).connect(g).connect(wheelBus);
+  src.start();
+}
+
+export function updateWheelSfx(velocityPxPerSec = 0) {
+  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) {
+    stopWheelLoops();
+    return;
+  }
+  if (!WHEEL_SFX_CONFIG.continuousEnabled) {
+    stopWheelLoops();
+    return;
+  }
+  const speed = Math.abs(velocityPxPerSec);
+  if (!Number.isFinite(speed)) return;
+
+  if (speed < WHEEL_SFX_CONFIG.tickMinVelocity) {
+    if (wheelTickGain) {
+      const now = audioContext.currentTime;
+      wheelTickGain.gain.setTargetAtTime(0, now, 0.05);
+    }
+    if (wheelSwishGain) {
+      const now = audioContext.currentTime;
+      wheelSwishGain.gain.setTargetAtTime(0, now, 0.08);
+    }
+    if (!wheelStopTimer) {
+      wheelStopTimer = setTimeout(stopWheelLoops, WHEEL_SFX_CONFIG.stopDelayMs);
+    }
+    return;
+  }
+
+  if (wheelStopTimer) {
+    clearTimeout(wheelStopTimer);
+    wheelStopTimer = null;
+  }
+
+  startWheelLoops();
+  const now = audioContext.currentTime;
+  const tickNorm = clamp(
+    (speed - WHEEL_SFX_CONFIG.tickMinVelocity) /
+      (WHEEL_SFX_CONFIG.tickMaxVelocity - WHEEL_SFX_CONFIG.tickMinVelocity),
+    0,
+    1
+  );
+  const tickRate = WHEEL_SFX_CONFIG.tickMinRate +
+    ((WHEEL_SFX_CONFIG.tickMaxRate - WHEEL_SFX_CONFIG.tickMinRate) * tickNorm);
+  if (wheelTickSource) {
+    wheelTickSource.playbackRate.setTargetAtTime(tickRate, now, 0.04);
+  }
+  if (wheelTickGain) {
+    const mul = Number.isFinite(WHEEL_SFX_CONFIG.tickGainMul) ? WHEEL_SFX_CONFIG.tickGainMul : 1.0;
+    const gain = (WHEEL_SFX_CONFIG.tickBaseGain * (0.35 + tickNorm * 0.75)) * Math.max(0, mul);
+    wheelTickGain.gain.setTargetAtTime(gain, now, 0.05);
+  }
+
+  const swishNorm = clamp(
+    (speed - WHEEL_SFX_CONFIG.swishMinVelocity) /
+      (WHEEL_SFX_CONFIG.swishMaxVelocity - WHEEL_SFX_CONFIG.swishMinVelocity),
+    0,
+    1
+  );
+  if (wheelSwishGain) {
+    const mul = Number.isFinite(WHEEL_SFX_CONFIG.swishGainMul) ? WHEEL_SFX_CONFIG.swishGainMul : 1.0;
+    const gain = (WHEEL_SFX_CONFIG.swishBaseGain * Math.pow(swishNorm, 1.4)) * Math.max(0, mul);
+    wheelSwishGain.gain.setTargetAtTime(gain, now, 0.08);
+  }
+  if (wheelSwishFilter) {
+    const freq = WHEEL_SFX_CONFIG.swishMinHz +
+      ((WHEEL_SFX_CONFIG.swishMaxHz - WHEEL_SFX_CONFIG.swishMinHz) * swishNorm);
+    wheelSwishFilter.frequency.setTargetAtTime(freq, now, 0.08);
+  }
+}
+
+export function playWheelSnap() {
+  playWheelClick(WHEEL_SFX_CONFIG.snapGain, 1600);
+}
+
+export function playWheelCenterClick() {
+  playWheelClick(WHEEL_SFX_CONFIG.centerGain, WHEEL_SFX_CONFIG.centerFilterHz || 1600);
+}
+
+export function playWheelOpen() {
+  playWheelClick(WHEEL_SFX_CONFIG.openGain, WHEEL_SFX_CONFIG.openFilterHz || 1800);
+}
+
+export function playWheelClose() {
+  playWheelClick(WHEEL_SFX_CONFIG.closeGain, WHEEL_SFX_CONFIG.closeFilterHz || 1600);
 }
 
 /** Create a short noise burst for transient "snap" */
@@ -830,6 +1117,7 @@ function radiusToFrequency(radius) {
 export function toggleSound() {
   if (!isUnlocked) return false;
   isEnabled = !isEnabled;
+  if (!isEnabled) stopWheelLoops();
   emitSoundStateChange();
   return isEnabled;
 }
@@ -838,6 +1126,7 @@ export function toggleSound() {
 export function setSoundEnabled(enabled) {
   if (!isUnlocked) return;
   isEnabled = !!enabled;
+  if (!isEnabled) stopWheelLoops();
   emitSoundStateChange();
 }
 
@@ -867,6 +1156,8 @@ export function disposeSoundEngine() {
   isUnlocked = false;
   isEnabled = false;
   lastSoundTime.clear();
+  stopWheelLoops();
+  wheelBus = null;
   emitSoundStateChange();
 }
 

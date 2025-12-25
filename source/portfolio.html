@@ -1,57 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <style id="fade-blocking">#fade-content{opacity:0}</style>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Portfolio - Alexander Beck</title>
+  <!-- Dev/source: mirror index chrome so typography + UI sizing match exactly. -->
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/password-gate.css">
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&family=Molle:ital@1&display=swap" rel="stylesheet">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      width: 100%;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Geist', sans-serif;
-      background: #0a0a0a;
-      color: #d5d5d5;
-    }
-    
-    .portfolio-placeholder {
-      text-align: center;
-      font-size: clamp(2rem, 5vw, 4rem);
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-    
-    .back-link {
-      position: fixed;
-      top: 2rem;
-      left: 2rem;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
-      text-decoration: none;
-      transition: color 0.2s ease;
-    }
-    
-    .back-link:hover {
-      color: rgba(255, 255, 255, 1);
-    }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400&family=Molle:ital@1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/panel.css">
+  <link rel="stylesheet" href="css/panel-dock.css">
+  <link rel="stylesheet" href="portfolio/page/style.css">
+  <script>
+    // Soft gate: if no token, bounce back and auto-open the gate.
+    (function() {
+      const token = sessionStorage.getItem('abs_portfolio_ok');
+      if (!token) {
+        sessionStorage.setItem('abs_open_portfolio_gate', '1');
+        window.location.replace('index.html');
+        return;
+      }
+      window.PORTFOLIO_BASE = 'portfolio/page/';
+    })();
+  </script>
 </head>
-<body>
-  <a href="index.html" class="back-link">← Back to site</a>
-  <div class="portfolio-placeholder">
-    OPENS PORTFOLIO PAGE
+<body class="portfolio-page">
+
+  <!-- Brand Logo (portfolio placement is top-centered via CSS override) -->
+  <div id="brand-logo" class="brand-logo-layer" aria-hidden="true">
+    <svg class="brand-logo-svg" viewbox="0 0 921 123" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Alexander Beck Studio">
+      <path d="M1.76 93L24.288 30.52H34.496L57.024 93H48.752L42.504 75.224H16.28L10.032 93H1.76ZM18.832 67.832H39.952L29.392 37.12L18.832 67.832ZM72.3333 93C69.6346 93 67.4346 92.296 65.7333 90.888C64.0319 89.48 63.1813 87.2507 63.1813 84.2V30.52H70.5733V83.584C70.5733 84.5227 70.8079 85.256 71.2773 85.784C71.8053 86.2533 72.5386 86.488 73.4773 86.488H77.5253V93H72.3333ZM102.218 94.056C97.8182 94.056 94.0049 93.0587 90.7782 91.064C87.6102 89.0693 85.1462 86.2533 83.3862 82.616C81.6849 78.92 80.8342 74.608 80.8342 69.68C80.8342 64.752 81.6849 60.4693 83.3862 56.832C85.1462 53.1947 87.5809 50.3787 90.6902 48.384C93.8582 46.3307 97.5835 45.304 101.866 45.304C105.914 45.304 109.493 46.272 112.602 48.208C115.712 50.0853 118.117 52.8427 119.818 56.48C121.578 60.1173 122.458 64.5467 122.458 69.768V71.968H88.5782C88.8715 76.9547 90.1915 80.7093 92.5382 83.232C94.9435 85.7547 98.1702 87.016 102.218 87.016C105.269 87.016 107.762 86.312 109.698 84.904C111.693 83.4373 113.072 81.5307 113.834 79.184L121.754 79.8C120.522 83.9653 118.176 87.3973 114.714 90.096C111.312 92.736 107.146 94.056 102.218 94.056ZM88.5782 65.456H114.362C114.01 60.9387 112.69 57.624 110.402 55.512C108.173 53.4 105.328 52.344 101.866 52.344C98.2875 52.344 95.3249 53.4587 92.9782 55.688C90.6902 57.8587 89.2235 61.1147 88.5782 65.456ZM126.906 93L144.066 69.064L127.786 46.36H136.41L148.642 63.96L160.522 46.36H169.322L153.218 69.24L170.114 93H161.49L148.642 74.168L135.706 93H126.906ZM192.551 94.056C188.092 94.056 184.396 92.9413 181.463 90.712C178.588 88.4827 176.418 85.52 174.951 81.824C173.543 78.128 172.839 74.08 172.839 69.68C172.839 65.3387 173.543 61.32 174.951 57.624C176.359 53.928 178.5 50.9653 181.375 48.736C184.308 46.448 188.004 45.304 192.463 45.304C195.924 45.304 198.858 45.9787 201.263 47.328C203.727 48.6773 205.604 50.5253 206.895 52.872V46.36H214.287V93H207.599L207.247 82.44L208.303 83.32C207.658 85.4907 206.602 87.3973 205.135 89.04C203.727 90.624 201.967 91.856 199.855 92.736C197.743 93.616 195.308 94.056 192.551 94.056ZM194.047 87.016C197.274 87.016 199.796 86.1947 201.615 84.552C203.492 82.8507 204.842 80.68 205.663 78.04C206.484 75.3413 206.895 72.5547 206.895 69.68C206.895 66.6293 206.484 63.8133 205.663 61.232C204.842 58.592 203.492 56.4507 201.615 54.808C199.796 53.1653 197.274 52.344 194.047 52.344C190.938 52.344 188.386 53.1653 186.391 54.808C184.396 56.392 182.93 58.504 181.991 61.144C181.052 63.7253 180.583 66.5707 180.583 69.68C180.583 72.6133 181.023 75.4293 181.903 78.128C182.842 80.768 184.308 82.9093 186.303 84.552C188.298 86.1947 190.879 87.016 194.047 87.016ZM225.703 93V46.36H232.479L232.743 58.24L231.863 57.448C232.449 54.6907 233.476 52.432 234.943 50.672C236.409 48.8533 238.169 47.504 240.223 46.624C242.335 45.744 244.593 45.304 246.999 45.304C250.577 45.304 253.511 46.096 255.799 47.68C258.145 49.264 259.876 51.4053 260.991 54.104C262.164 56.744 262.751 59.7067 262.751 62.992V93H255.359V65.104C255.359 62.2293 255.007 59.824 254.303 57.888C253.657 55.8933 252.601 54.3973 251.135 53.4C249.668 52.344 247.761 51.816 245.415 51.816C241.836 51.816 238.873 52.96 236.527 55.248C234.239 57.4773 233.095 60.7627 233.095 65.104V93H225.703Z" fill="currentColor"/>
+      <ellipse cx="904" cy="50.9883" rx="16" ry="16" stroke="currentColor" stroke-width="1.5" fill="none"/>
+      <path d="M909.046 44.9121C910.191 44.9121 911.157 45.2424 911.837 45.8262C912.518 46.4108 912.908 47.2457 912.908 48.2432C912.908 49.4861 912.309 50.4595 911.38 50.7969C912.714 51.1016 913.594 52.194 913.594 53.6748C913.594 55.6619 911.973 57.0575 909.731 57.0576H905.715V44.9121H909.046ZM907.116 55.6562H909.731C910.436 55.6562 911.031 55.4466 911.447 55.0898C911.863 54.7337 912.106 54.2277 912.106 53.624C912.106 53.0203 911.863 52.5144 911.447 52.1582C911.031 51.8013 910.436 51.5909 909.731 51.5908H907.116V55.6562ZM907.116 50.1904H909.046C909.76 50.1904 910.355 49.9887 910.77 49.6465C911.183 49.3052 911.421 48.8204 911.421 48.2432C911.421 47.6656 911.187 47.1854 910.776 46.8486C910.364 46.5108 909.77 46.3135 909.046 46.3135H907.116V50.1904Z" fill="currentColor"/>
+      <path d="M900.007 44.9121L900.024 44.9629L904.154 56.958L904.188 57.0576H902.677L902.659 57.0068L901.34 53.1846H896.632L895.312 57.0068L895.295 57.0576H893.782L893.816 56.958L897.946 44.9629L897.964 44.9121H900.007ZM897.111 51.7842H900.859L898.993 46.3486L897.111 51.7842Z" fill="currentColor"/>
+    </svg>
   </div>
+
+  <div class="wall-frame">
+    <div class="portfolio-noise portfolio-noise--back" aria-hidden="true"></div>
+    <div class="portfolio-stage">
+      <!-- Main Viewport -->
+      <div class="portfolio-viewport" id="viewport">
+        <div class="slider-track" id="track">
+          <!-- Slides will be injected here by app.js -->
+        </div>
+      </div>
+
+      <div class="portfolio-meta" id="portfolioMeta" aria-live="polite">
+        <div class="portfolio-meta__inner">
+          <span class="meta-client" data-meta="client"></span>
+          <span class="meta-title" data-meta="title"></span>
+          <span class="meta-summary" data-meta="summary"></span>
+        </div>
+      </div>
+    </div>
+    <div id="fade-content">
+      <div id="app-frame" class="ui-layer-wrapper">
+        <!-- Header (index-parity chrome) -->
+        <header class="ui-top" data-portfolio-ui>
+          <div class="ui-top-main">
+            <div class="ui-top-left">
+              <div class="decorative-script">
+                <p id="portfolio-blurb">Selected collaborations across finance, luxury, digital identity, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently building my own app; check the final project in the slider.</p>
+              </div>
+            </div>
+            <div class="ui-top-right">
+              <div class="portfolio-header__actions" aria-label="Portfolio header actions">
+                <a id="contact-email" class="portfolio-cv-link" href="#" aria-label="Contact">Contact</a>
+                <a id="portfolio-cv-trigger" class="portfolio-cv-link" href="#" aria-label="Bio/CV">Bio/CV</a>
+                <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>
+              </div>
+            </div>
+          </div>
+          <div id="top-elements-soundRow" class="ui-top-soundRow"></div>
+        </header>
+
+        <footer class="ui-bottom portfolio-footer" data-portfolio-ui>
+          <div class="ui-meta-row">
+            <div class="ui-meta-left">
+              <ul id="social-links" role="list" aria-label="Social media links" class="footer_icon-group w-list-unstyled">
+                <li class="margin-bottom_none">
+                  <a href="https://music.apple.com/profile/beckandeggs" class="footer_icon-link w-inline-block" aria-label="Apple Music">
+                    <i class="ti ti-brand-apple" aria-hidden="true"></i>
+                    <span class="screen-reader">Apple Music</span>
+                  </a>
+                </li>
+                <li class="margin-bottom_none">
+                  <a href="https://x.com/alex40939195" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block" aria-label="X">
+                    <i class="ti ti-brand-x" aria-hidden="true"></i>
+                    <span class="screen-reader">X</span>
+                  </a>
+                </li>
+                <li class="margin-bottom_none">
+                  <a href="https://www.linkedin.com/in/thisisbeck/" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block" aria-label="LinkedIn">
+                    <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
+                    <span class="screen-reader">LinkedIn</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+            
+            <div class="ui-meta-right">
+               <time id="site-year" class="w-layout-hflex caption">
+                <span><strong class="location-name">London</strong>, UK &middot; <span id="time-display"></span></span>
+              </time>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gate Blur Overlay - Backdrop blur when gates are active -->
+  <div id="gate-overlay" class="gate-overlay" aria-hidden="true"></div>
+
+  <!-- Contact Gate (same structure/ids as index so behavior matches) -->
+  <div id="contact-gate" class="contact-gate hidden" aria-hidden="true">
+    <div id="contact-gate-label" class="gate-label"></div>
+    <div id="contact-gate-inputs" class="contact-gate-inputs"></div>
+  </div>
+
+  <!-- Panel dock is injected in dev only (mirrors index behavior). -->
+
+  <script type="module" src="portfolio/page/app.js"></script>
 </body>
 </html>
-

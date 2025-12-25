@@ -93,7 +93,7 @@ const terserConfig = {
     safari10: true,
     properties: {
       regex: /^_/,
-      reserved: ['__DEV__', '__PANEL_INITIALLY_VISIBLE__', '__EXPERIMENTAL_VORTEX__', '__RUNTIME_CONFIG__', '__TEXT__'],
+      reserved: ['__DEV__', '__PANEL_INITIALLY_VISIBLE__', '__EXPERIMENTAL_VORTEX__', '__RUNTIME_CONFIG__', '__PORTFOLIO_CONFIG__', '__TEXT__'],
     },
   },
   format: {
@@ -108,7 +108,7 @@ const terserConfig = {
   },
 };
 
-export default {
+export default [{
   input: 'source/main.js',
   output: {
     file: 'public/js/bouncy-balls-embed.js',
@@ -138,7 +138,44 @@ export default {
     commonjs(),
     json(),
     isProd && terserPlugin(terserConfig),
-  ],
-};
-
-
+  ]
+}, {
+  // Portfolio Page Bundle
+  input: 'source/portfolio/page/app.js',
+  output: {
+    file: 'public/portfolio/page/js/portfolio-bundle.js',
+    format: 'iife',
+    name: 'PortfolioPage',
+    sourcemap: !isProd,
+    banner: `/* Portfolio Page | Alexander Beck Studio | ${new Date().toISOString().split('T')[0]} */`,
+    compact: isProd,
+    extend: true, // Allow extending the window object without overwriting
+    globals: {
+        window: 'window'
+    },
+    inlineDynamicImports: true,
+  },
+  treeshake: {
+    moduleSideEffects: false,
+    propertyReadSideEffects: false,
+    tryCatchDeoptimization: false,
+  },
+  plugins: [
+    replace({
+      preventAssignment: true,
+      values: {
+        __DEV__: JSON.stringify(!isProd),
+        'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
+      }
+    }),
+    nodeResolve({ browser: true, extensions: ['.mjs', '.js', '.json', '.node'] }),
+    /*
+    commonjs({
+        // Only transform node_modules, ensuring our ESM source is treated as ESM
+        include: /node_modules/, 
+    }),
+    */
+    json(),
+    isProd && terserPlugin(terserConfig),
+  ]
+}];

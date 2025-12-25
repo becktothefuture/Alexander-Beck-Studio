@@ -40,6 +40,20 @@ schema: ".cursorrules.json"
 **NEVER EDIT:** public/ (generated)  
 **BUILD:** npm run build → public/js/bouncy-balls-embed.js
 
+## Startup Workflow (Preferred)
+
+**Primary command:** `npm run startup` (interactive menu + health checks)
+
+**Process:**
+1. Run `npm run startup` to verify dependencies, source files, and build output.
+2. Choose the mode that matches the task:
+   - **Quick Dev** → `npm run start:source` (port 8001, instant reload)
+   - **Build Preview** → `npm start` (port 8000, production bundle)
+   - **Dual Mode** → both 8001 + 8000 for side-by-side comparison
+   - **Watch Mode** → dev + build + `npm run watch` for auto-rebuilds
+   - **Build Only** → `npm run build` and exit
+3. Use direct commands only for automation or non-interactive runs; otherwise prefer `npm run startup` for consistency.
+
 ## Documentation Updates Required When:
 - Adding/removing modes
 - Changing keyboard shortcuts

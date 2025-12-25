@@ -67,11 +67,11 @@
 /* Light mode tokens */
 body:not(.dark-mode) {
   --panel-background: hsl(0 0% 100%);
-  --panel-foreground: hsl(240 10% 3.9%);
+  --panel-foreground: hsl(240 10% 10%);
   --panel-card: hsl(0 0% 100%);
   --panel-card-foreground: hsl(240 10% 3.9%);
   --panel-muted: hsl(240 4.8% 95.9%);
-  --panel-muted-foreground: hsl(240 3.8% 46.1%);
+  --panel-muted-foreground: hsl(240 5% 30%);
   --panel-accent: hsl(240 4.8% 95.9%);
   --panel-accent-foreground: hsl(240 5.9% 10%);
   --panel-border: hsl(240 5.9% 90%);
@@ -225,7 +225,10 @@ body:not(.dark-mode) {
    SECTION ACCORDIONS — Top-level collapsible sections (Sound, Controls)
    ═══════════════════════════════════════════════════════════════════════════════ */
 .panel-section-accordion {
-  border-bottom: 3px solid var(--panel-border);
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  border-image: none;
+  background-color: rgba(250, 250, 252, 0);
   padding-bottom: var(--panel-pad-6);
   margin-bottom: var(--panel-pad-6);
 }
@@ -436,9 +439,10 @@ body:not(.dark-mode) {
   border-radius: 9999px;
 }
 
+/* Focus states intentionally disabled (per request). */
 .panel input[type="range"]:focus-visible {
-  outline: 2px solid var(--panel-ring);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -471,8 +475,8 @@ body:not(.dark-mode) {
 }
 
 .panel button:focus-visible {
-  outline: 2px solid var(--panel-ring);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: none;
 }
 
 /* Primary button */
@@ -512,8 +516,8 @@ body:not(.dark-mode) {
 }
 
 .panel select:focus-visible {
-  outline: 2px solid var(--panel-ring);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: none;
 }
 
 .panel select option {

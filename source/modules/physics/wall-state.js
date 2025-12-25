@@ -305,8 +305,16 @@ export function drawWalls(ctx, w, h) {
   // Get chrome color
   const chromeColor = getChromeColorFromCSS();
   
-  // Wall thickness (visual stroke width)
-  const thickness = (g.wallThickness || 12) * (g.DPR || 1);
+  // Calculate thickness for top/bottom (Y) and left/right (X) walls
+  // On mobile, left/right walls are thicker than top/bottom via containerBorderX
+  // Use state values directly (they're already calculated with mobile factors)
+  const baseThicknessPx = g.containerBorder || 12;  // Top/bottom (CSS pixels)
+  const leftRightThicknessPx = g.containerBorderX || baseThicknessPx;  // Left/right (CSS pixels)
+  
+  // Scale to canvas buffer coordinates (DPR)
+  const DPR = g.DPR || 1;
+  const thicknessY = baseThicknessPx * DPR;      // Top/bottom
+  const thicknessX = leftRightThicknessPx * DPR;  // Left/right
   
   // Walls always at canvas edges - no special mode offsets
   
@@ -318,17 +326,19 @@ export function drawWalls(ctx, w, h) {
   // ─────────────────────────────────────────────────────────────────────────
   if (wallState.bottom.hasDeformation()) {
     ctx.beginPath();
-    ctx.moveTo(0, h + thickness);
+    ctx.moveTo(0, h + thicknessY);
     
     for (let i = 0; i <= SEGMENTS_PER_WALL; i++) {
       const t = i / SEGMENTS_PER_WALL;
       const x = t * w;
       const deform = wallState.bottom.getDeformAt(t);
+      // Scale deformation from CSS pixels to canvas buffer coordinates
+      const deformScaled = deform * DPR;
       // Inner edge at h, deform pushes inward
-      ctx.lineTo(x, h - deform);
+      ctx.lineTo(x, h - deformScaled);
     }
     
-    ctx.lineTo(w, h + thickness);
+    ctx.lineTo(w, h + thicknessY);
     ctx.closePath();
     ctx.fill();
   }
@@ -339,17 +349,19 @@ export function drawWalls(ctx, w, h) {
   if (wallState.top.hasDeformation()) {
     ctx.beginPath();
     
-    ctx.moveTo(0, -thickness);
+    ctx.moveTo(0, -thicknessY);
     
     for (let i = 0; i <= SEGMENTS_PER_WALL; i++) {
       const t = i / SEGMENTS_PER_WALL;
       const x = t * w;
       const deform = wallState.top.getDeformAt(t);
+      // Scale deformation from CSS pixels to canvas buffer coordinates
+      const deformScaled = deform * DPR;
       // Positive deform = chrome pushes DOWN into canvas
-      ctx.lineTo(x, deform);
+      ctx.lineTo(x, deformScaled);
     }
     
-    ctx.lineTo(w, -thickness);
+    ctx.lineTo(w, -thicknessY);
     ctx.closePath();
     ctx.fill();
   }
@@ -360,17 +372,19 @@ export function drawWalls(ctx, w, h) {
   if (wallState.left.hasDeformation()) {
     ctx.beginPath();
     
-    ctx.moveTo(-thickness, 0);
+    ctx.moveTo(-thicknessX, 0);
     
     for (let i = 0; i <= SEGMENTS_PER_WALL; i++) {
       const t = i / SEGMENTS_PER_WALL;
       const y = t * h;
       const deform = wallState.left.getDeformAt(t);
+      // Scale deformation from CSS pixels to canvas buffer coordinates
+      const deformScaled = deform * DPR;
       // Positive deform = chrome pushes RIGHT into canvas
-      ctx.lineTo(deform, y);
+      ctx.lineTo(deformScaled, y);
     }
     
-    ctx.lineTo(-thickness, h);
+    ctx.lineTo(-thicknessX, h);
     ctx.closePath();
     ctx.fill();
   }
@@ -381,17 +395,19 @@ export function drawWalls(ctx, w, h) {
   if (wallState.right.hasDeformation()) {
     ctx.beginPath();
     
-    ctx.moveTo(w + thickness, 0);
+    ctx.moveTo(w + thicknessX, 0);
     
     for (let i = 0; i <= SEGMENTS_PER_WALL; i++) {
       const t = i / SEGMENTS_PER_WALL;
       const y = t * h;
       const deform = wallState.right.getDeformAt(t);
+      // Scale deformation from CSS pixels to canvas buffer coordinates
+      const deformScaled = deform * DPR;
       // Positive deform = chrome pushes LEFT into canvas
-      ctx.lineTo(w - deform, y);
+      ctx.lineTo(w - deformScaled, y);
     }
     
-    ctx.lineTo(w + thickness, h);
+    ctx.lineTo(w + thicknessX, h);
     ctx.closePath();
     ctx.fill();
   }

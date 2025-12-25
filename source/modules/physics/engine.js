@@ -295,12 +295,13 @@ export function render() {
   // Mouse trail: lightweight overlay pass (kept behind the wall/frame draw)
   drawMouseTrail(ctx);
   
-  // Draw rubber walls LAST (in front of balls)
-  drawWalls(ctx, canvas.width, canvas.height);
-
+  // Restore clip BEFORE drawing walls (walls extend beyond canvas edges)
   if (clipPath) {
     ctx.restore();
   }
+  
+  // Draw rubber walls LAST (in front of balls, outside clip path)
+  drawWalls(ctx, canvas.width, canvas.height);
 }
 
 /**

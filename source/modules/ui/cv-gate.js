@@ -96,7 +96,7 @@ export function initCVGate() {
     // --- Actions ---
 
     const openGate = (e) => {
-        e.preventDefault();
+        e?.preventDefault?.();
         
         // Check if any other gate is currently open
         const wasAnyGateActive = isAnyGateActive();
@@ -232,6 +232,15 @@ export function initCVGate() {
     // --- Event Listeners ---
 
     trigger.addEventListener('click', openGate);
+
+    // Auto-open check (e.g. navigated from portfolio page)
+    try {
+        if (sessionStorage.getItem('abs_open_cv_gate')) {
+            sessionStorage.removeItem('abs_open_cv_gate');
+            // Small delay to allow page init
+            setTimeout(() => openGate(), 300);
+        }
+    } catch (e) {}
 
     // Close on Escape
     document.addEventListener('keydown', (e) => {

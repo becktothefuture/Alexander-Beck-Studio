@@ -44,15 +44,15 @@
         "screenReaderText": "Apple Music",
         "url": "https://music.apple.com/profile/beckandeggs"
       },
-      "instagram": {
-        "ariaLabel": "Instagram",
-        "screenReaderText": "Instagram",
-        "url": "#"
+      "x": {
+        "ariaLabel": "X",
+        "screenReaderText": "X",
+        "url": "https://x.com/alex40939195"
       },
       "linkedin": {
         "ariaLabel": "LinkedIn",
         "screenReaderText": "LinkedIn",
-        "url": "#"
+        "url": "https://www.linkedin.com/in/thisisbeck/"
       }
     }
   },
@@ -63,6 +63,9 @@
       "statusCopied": "Copied",
       "statusError": "Copy failed"
     }
+  },
+  "portfolio": {
+    "blurb": "Selected collaborations across finance, luxury, digital identity, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently building my own app; check the final project in the slider."
   },
   "gates": {
     "common": {

@@ -272,6 +272,9 @@
   --z-ui-elevated: 20;
   --z-ui-top: 25;
   --z-panel: 9999;
+
+  /* Brand logo: user scale multiplier (applies to index + portfolio; default neutral). */
+  --brand-logo-user-scale: 1;
   
   --breakpoint-tablet: 991px;
   --breakpoint-mobile-l: 767px;
@@ -309,6 +312,7 @@
 .ti-brand-apple:before { content: "\ec17"; }
 .ti-brand-instagram:before { content: "\ec20"; }
 .ti-brand-linkedin:before { content: "\ec8c"; }
+.ti-brand-x:before { content: "\fc0f"; }
 .ti-arrow-left:before { content: "\ea19"; }
 .ti-copy:before { content: "\ea7a"; }
 .ti-check:before { content: "\ea5e"; }
@@ -361,6 +365,11 @@ body.body {
     background-color var(--duration-settle) var(--ease-settle),
     padding var(--duration-resize, 600ms) var(--ease-organic, ease);
 }
+
+/* Pages that do not use the index fade-in pipeline should be visible + interactive.
+   Portfolio and CV are standalone experiences driven by their own scripts. */
+/* (Intentionally no portfolio/cv override here.)
+   Portfolio/CV now run the same WAAPI fade-in sequence as index. */
 
 body *,
 body.body * {
@@ -1070,7 +1079,7 @@ p {
      #brand-logo lives inside #abs-scene, so it inherits the scene’s transform scale. */
   transform:
     translate3d(-50%, -50%, 0)
-    scale(var(--abs-scene-impact-logo-scale, 1))
+    scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)))
     !important;
   transform-origin: center center;
   /* Fade opacity when gate opens (subtle, not full disappear) */
@@ -1088,6 +1097,29 @@ p {
   /* Subpixel/compositing hints: keeps tiny transform animations smooth */
   backface-visibility: hidden;
   transform-style: preserve-3d;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PORTFOLIO: TOP-CENTERED BRAND LOGO
+   (Index keeps the centered logo; portfolio pins it to the top.)
+   ───────────────────────────────────────────────────────────────────────────── */
+body.portfolio-page #brand-logo {
+  top: var(--portfolio-brand-logo-top, 5vh) !important;
+  left: 50% !important;
+  transform:
+    translate3d(-50%, 0, 0)
+    scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)))
+    !important;
+  z-index: var(--z-ui-top) !important;
+}
+
+/* Keep the gate “logo swap” animation pinned correctly on portfolio. */
+body.portfolio-page #brand-logo.fade-out-up {
+  transform:
+    translate3d(-50%, 0, 0)
+    translateY(-30px)
+    scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1) * 0.95))
+    !important;
 }
 
 .brand-logo-svg {
@@ -1379,10 +1411,8 @@ body.dark-mode #time-display {
     transform: scaleY(0) !important;
   }
 
-  /* Touch + keyboard parity: show the dot on active/focus too */
-  .footer_link:active::after,
-  .footer_link:focus-visible::after,
-  .footer_link:focus::after {
+  /* Focus states intentionally disabled (per request). */
+  .footer_link:active::after {
     opacity: 1 !important;
     transform: scaleY(1) !important;
     animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
@@ -1396,6 +1426,16 @@ body.dark-mode #time-display {
     flex-direction: row;
     gap: var(--gap-md) !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FOCUS STYLES — DISABLED (per request)
+   Removes all focus outlines / rings across the site.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+*:focus,
+*:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Custom Cursor */

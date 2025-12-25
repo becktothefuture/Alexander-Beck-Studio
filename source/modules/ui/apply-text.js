@@ -51,6 +51,7 @@ function applyLegend() {
 }
 
 function applyPhilosophy() {
+  // Only apply on pages that actually include the decorative-script block (index).
   const p = document.querySelector('.decorative-script p');
   if (!p) return;
 
@@ -107,7 +108,7 @@ function applySocials() {
   const items = getText('socials.items', null);
   if (!ul || !items || typeof items !== 'object') return;
 
-  const order = ['appleMusic', 'instagram', 'linkedin'];
+  const order = ['appleMusic', 'x', 'linkedin'];
   const anchors = ul.querySelectorAll('a.footer_icon-link');
 
   for (let i = 0; i < anchors.length && i < order.length; i++) {
@@ -119,6 +120,28 @@ function applySocials() {
 
     const sr = a.querySelector('.screen-reader');
     if (sr && cfg.screenReaderText) sr.textContent = cfg.screenReaderText;
+  }
+}
+
+function applyHeaderCvLink() {
+  // Reuse footer.links.cv as the single source of truth for the Bio/CV label + href.
+  const link = document.getElementById('header-cv-link');
+  if (!link) return;
+
+  const entry = getText('footer.links.cv', null);
+  if (!entry || typeof entry !== 'object') return;
+
+  if (entry.href) link.setAttribute('href', entry.href);
+  if (entry.text) link.textContent = entry.text;
+}
+
+function applyPortfolioBlurb() {
+  // Only applies on portfolio UI pages.
+  const p = document.querySelector('[data-portfolio-ui] .decorative-script p');
+  if (!p) return;
+  const text = getText('portfolio.blurb', '');
+  if (text) {
+    p.textContent = text;
   }
 }
 
@@ -134,6 +157,8 @@ export function applyRuntimeTextToDOM() {
     applyPhilosophy();
     applyFooter();
     applySocials();
+    applyHeaderCvLink();
+    applyPortfolioBlurb();
   } catch (e) {
     // Never allow copy application to crash boot.
   }

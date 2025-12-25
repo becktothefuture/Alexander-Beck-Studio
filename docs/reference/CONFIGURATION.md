@@ -6,6 +6,72 @@ This document describes the configuration keys that are copied into the producti
 
 ---
 
+## Portfolio Page Configuration (Separate Runtime)
+
+The **portfolio page** (`source/portfolio/page/`) uses a **separate config file** and loader:
+
+- **Source of truth (portfolio)**: `source/config/portfolio-config.json`
+- **Loader/normalizer**: `source/portfolio/page/portfolio-config.js`
+
+The portfolio config is copied into the build as `public/js/portfolio-config.json` and is applied only to the portfolio carousel + portfolio-only effects (it does **not** affect the main simulation).
+
+### Portfolio `cssVars` (Card sizing)
+
+Card sizing is **height-driven** (via `vh`) with a **locked aspect ratio**. Width is derived as:
+\[
+\text{cardWidth} = \text{cardHeight} \cdot \frac{\text{aspectW}}{\text{aspectH}}
+\]
+
+Relevant keys (all strings, applied as CSS variables):
+
+```json
+{
+  "cssVars": {
+    "--card-aspect-w": "5",
+    "--card-aspect-h": "4",
+    "--card-height-min": "29vh",
+    "--card-height-ideal": "49vh",
+    "--card-height-max": "62vh"
+  }
+}
+```
+
+### Portfolio `runtime.sound` (Carousel scroll + detail SFX)
+
+These keys control the **portfolio carousel sound cues** (implemented in `source/portfolio/page/app.js` using `source/modules/audio/sound-engine.js`).
+
+```json
+{
+  "runtime": {
+    "sound": {
+      "centerClickEnabled": true,
+      "centerClickGain": 8,
+      "centerClickFilterHz": 1600,
+      "centerClickMinSpeed": 120,
+      "centerClickDebounceMs": 70,
+
+      "continuousWheelEnabled": false,
+      "continuousTickGainMul": 100,
+      "continuousSwishGainMul": 100,
+
+      "snapEnabled": false,
+      "snapGain": 12,
+      "openGain": 12,
+      "openFilterHz": 1800,
+      "closeGain": 10,
+      "closeFilterHz": 1600,
+      "snapDebounceMs": 300
+    }
+  }
+}
+```
+
+- **`centerClick*`**: Plays **one click per project** when it passes the carousel center (debounced to prevent boundary chatter).
+- **`continuousWheelEnabled`**: Enables the legacy continuous tick/swish loop driven by scroll velocity (off by default).
+- **`snapEnabled`**: Enables an extra click when the carousel settles/snaps (off by default to avoid double-clicking when center clicks are enabled).
+
+---
+
 ## Configuration System (How It Loads)
 
 At startup the app attempts to fetch (in order):

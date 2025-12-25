@@ -958,12 +958,35 @@ export const CONTROL_SECTIONS = {
           // Only set CSS variable - let CSS handle mode switching
           document.documentElement.style.setProperty('--logo-color-dark', val);
         }
+      },
+      {
+        id: 'topLogoWidthVw',
+        label: 'Logo Size',
+        stateKey: 'topLogoWidthVw',
+        type: 'range',
+        min: 4, max: 30, step: 0.25,
+        default: 12,
+        format: (v) => `${parseFloat(v).toFixed(2)}vw`,
+        parse: parseFloat,
+        hint: 'Top-center logo width (clamped by min/max tokens).',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--top-logo-width-vw', String(val));
+        }
       }
     ]
   },
 
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // COLOR DISTRIBUTION - Discipline ↔ Palette slot ↔ Weight (sum=100)
+  // PORTFOLIO PAGE - Controls removed to protect main page regression
+  // (Controls should be implemented within the portfolio page if needed)
+  // ═══════════════════════════════════════════════════════════════════════════
+  /*
+  portfolio: {
+    ...
+  },
+  */
+
   // ═══════════════════════════════════════════════════════════════════════════
   colorDistribution: {
     title: 'Color Distribution',
@@ -4089,4 +4112,3 @@ export function syncSlidersToState() {
     }
   }
 }
-

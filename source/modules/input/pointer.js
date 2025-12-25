@@ -71,10 +71,77 @@ export function setupPointer() {
   // Invalidate on resize (and on first use).
   let cachedCanvasRect = null;
   let rectInvalidated = true;
+
+  // During layout/transform transitions (scene depth + frame inset), the canvas'
+  // bounding rect changes continuously. If we cache a single rect through that
+  // window, the canvas-space cursor (and trail) will be offset until the
+  // transition ends. Keep caching for steady-state perf, but disable caching
+  // while relevant transitions are active.
+  let rectTransitionActive = 0;
+  let rectDynamicUntilMs = 0;
+  function markRectDynamicForAWhile(ms = 1200) {
+    rectInvalidated = true;
+    const now = performance.now();
+    rectDynamicUntilMs = Math.max(rectDynamicUntilMs, now + ms);
+  }
+  function shouldUseDynamicRect() {
+    if (rectTransitionActive > 0) return true;
+    return performance.now() < rectDynamicUntilMs;
+  }
+
   try {
     window.addEventListener('resize', () => {
       rectInvalidated = true;
     }, { passive: true });
+  } catch (e) {}
+
+  // IMPORTANT:
+  // The index page applies scene-level transforms on `#abs-scene` (gate depth + click-in impact).
+  // Those transforms change the canvas' bounding rect WITHOUT a window resize event.
+  // If we cache the rect through a transform transition, the simulation-space mouse (and trail)
+  // will drift relative to the viewport-space cursor dot until the next resize.
+  //
+  // Fix: invalidate cached rect whenever the scene transform transitions, and
+  // disable rect caching while the transition is running.
+  try {
+    const wantsDynamicProp = (p) => {
+      // Properties that can affect canvas rect / coordinate mapping.
+      // - abs-scene: transform
+      // - bravia-balls: top/left/right/bottom/width/height (inset + responsive frame)
+      // If propertyName is missing, be conservative and assume it matters.
+      if (!p) return true;
+      return (
+        p === 'transform' ||
+        p === 'top' ||
+        p === 'left' ||
+        p === 'right' ||
+        p === 'bottom' ||
+        p === 'width' ||
+        p === 'height'
+      );
+    };
+
+    const attachTransitionRectWatcher = (el, dynamicMs) => {
+      if (!el || !el.addEventListener) return;
+
+      el.addEventListener('transitionrun', (e) => {
+        if (!wantsDynamicProp(e?.propertyName)) return;
+        rectTransitionActive++;
+        markRectDynamicForAWhile(dynamicMs);
+      });
+
+      const onEnd = (e) => {
+        if (!wantsDynamicProp(e?.propertyName)) return;
+        rectTransitionActive = Math.max(0, rectTransitionActive - 1);
+        markRectDynamicForAWhile(120); // ensure we snap to the final rect
+      };
+      el.addEventListener('transitionend', onEnd);
+      el.addEventListener('transitioncancel', onEnd);
+    };
+
+    attachTransitionRectWatcher(document.getElementById('abs-scene'), 600);
+    // #bravia-balls transitions inset geometry with --duration-resize (600ms default).
+    attachTransitionRectWatcher(document.getElementById('bravia-balls'), 1200);
   } catch (e) {}
 
   /**
@@ -97,6 +164,16 @@ export function setupPointer() {
    * Get mouse position relative to canvas from any event
    */
   function getCanvasPosition(clientX, clientY) {
+    if (shouldUseDynamicRect()) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (clientX - rect.left) * DPR,
+        y: (clientY - rect.top) * DPR,
+        inBounds: clientX >= rect.left && clientX <= rect.right && 
+                  clientY >= rect.top && clientY <= rect.bottom
+      };
+    }
+
     if (rectInvalidated || !cachedCanvasRect) {
       cachedCanvasRect = canvas.getBoundingClientRect();
       rectInvalidated = false;
