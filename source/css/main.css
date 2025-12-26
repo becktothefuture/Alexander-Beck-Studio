@@ -1104,55 +1104,7 @@ p {
    (Index keeps the centered logo; portfolio pins it to the top.)
    ───────────────────────────────────────────────────────────────────────────── */
 body.portfolio-page #brand-logo {
-  top: var(--portfolio-brand-logo-top, 5vh) !important;
-  left: 50% !important;
-  transform:
-    translate3d(-50%, 0, 0)
-    scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)))
-    !important;
-  z-index: var(--z-ui-top) !important;
-}
-
-/* Keep the gate “logo swap” animation pinned correctly on portfolio. */
-body.portfolio-page #brand-logo.fade-out-up {
-  transform:
-    translate3d(-50%, 0, 0)
-    translateY(-30px)
-    scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1) * 0.95))
-    !important;
-}
-
-.brand-logo-svg {
-  width: clamp(225px, 41vw, 600px);
-  height: auto;
-  color: var(--logo-color-light);
-  /* Dynamic blur (0 when closed, increases when gate opens) */
-  filter: blur(var(--logo-blur-active, 0px));
-  /* Sync filter transition with depth animation (OUT duration by default) */
-  transition: 
-    filter var(--gate-depth-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1),
-    color 200ms ease-out;
-  transform: translateZ(0);
-  will-change: filter;
-}
-
-/* Mobile: increase logo size by 10% for better visibility on small screens */
-@media (max-width: 768px) {
-  .brand-logo-svg {
-    width: clamp(248px, 45vw, 600px);
-  }
-}
-
-/* When gate is opening, sync blur transition with IN duration */
-.gate-depth-active .brand-logo-svg {
-  transition:
-    filter var(--gate-depth-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1);
-}
-
-body.dark-mode .brand-logo-svg {
-  color: var(--logo-color-dark);
-  /* Must include blur in dark mode to prevent override */
-  filter: blur(var(--logo-blur-active, 0px));
+  display: none !important;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

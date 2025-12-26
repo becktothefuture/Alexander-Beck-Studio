@@ -983,3 +983,412 @@ body:not(.dark-mode) .panel-section--action {
   white-space: nowrap;
   border: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SOUND SECTION — Dense “DAW synth” layout (formerly sound-panel.css)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Sound slider rows */
+.sound-dock__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sound-dock__label {
+  flex: 0 0 74px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--panel-muted-foreground);
+}
+
+.sound-dock__slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--panel-muted);
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+.sound-dock__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--panel-foreground);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.sound-dock__slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--panel-foreground);
+  cursor: pointer;
+  border: none;
+}
+
+.sound-dock__val {
+  flex: 0 0 45px;
+  text-align: right;
+  font-size: 11px;
+  font-family: var(--panel-font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--panel-foreground);
+}
+
+/* Sound section groups */
+.sound-dock__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sound-dock__section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--panel-muted-foreground);
+  margin-bottom: 2px;
+  margin-top: 6px;
+}
+
+.sound-dock__section-title:first-child {
+  margin-top: 0;
+}
+
+#soundSection .panel-section-content {
+  gap: 8px;
+  padding-top: var(--panel-pad-12);
+  padding-bottom: var(--panel-pad-14);
+}
+
+#soundSection .sound-enable-row {
+  margin-bottom: 6px;
+}
+
+#soundSection .sound-enable-btn {
+  padding: var(--panel-pad-10) var(--panel-pad-14);
+}
+
+#soundSection .sound-controls {
+  gap: 8px;
+}
+
+#soundSection .control-row {
+  gap: 4px;
+}
+
+#soundSection .control-hint {
+  margin-top: -2px;
+  padding-bottom: var(--panel-pad-2);
+}
+
+.sound-perf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--panel-pad-4) 0 var(--panel-pad-2);
+}
+
+.sound-perf__btn {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-muted);
+  color: var(--panel-foreground);
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sound-perf__btn:hover {
+  background: var(--panel-accent);
+  border-color: var(--panel-muted-foreground);
+}
+
+.sound-perf__btn:active {
+  transform: translateY(0.5px);
+}
+
+.sound-perf__hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--panel-muted-foreground);
+  font-family: var(--panel-font-mono, monospace);
+  opacity: 0.9;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PANEL DOCK — Unified master panel (formerly panel-dock.css)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel-dock {
+  --dock-panel-max-height: 70vh;
+  --dock-panel-collapsed-height: 52px;
+  --dock-edge: 5vh;
+  --dock-top: calc(env(safe-area-inset-top, 0px) + var(--dock-edge));
+  
+  position: fixed;
+  top: var(--dock-top);
+  right: var(--dock-edge);
+  z-index: 40000;
+  
+  transition: 
+    top var(--duration-resize, 600ms) var(--ease-organic, ease),
+    right var(--duration-resize, 600ms) var(--ease-organic, ease),
+    opacity 0.3s ease,
+    transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
+}
+
+#portfolioPanelDock {
+  -webkit-backdrop-filter: blur(100px);
+  backdrop-filter: blur(100px);
+}
+
+.panel-dock > * {
+  pointer-events: auto;
+}
+
+.panel-dock,
+.panel-dock *,
+.dock-toggle,
+.dock-toggle * {
+  cursor: auto !important;
+}
+
+.panel-dock .panel-header {
+  cursor: grab !important;
+}
+
+.panel-dock .panel-header:active {
+  cursor: grabbing !important;
+}
+
+.panel-dock button,
+.panel-dock summary,
+.panel-dock select,
+.panel-dock input,
+.dock-toggle {
+  cursor: pointer !important;
+}
+
+.panel-dock input[type="range"] {
+  cursor: ew-resize !important;
+}
+
+.panel-dock .panel {
+  cursor: default !important;
+}
+
+.panel-dock .panel:active {
+  cursor: default !important;
+}
+
+.panel-dock.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(100% + 40px));
+}
+
+.panel-dock.dragging,
+.panel.dragging {
+  cursor: grabbing !important;
+  user-select: none;
+  transition: none !important;
+  will-change: transform;
+}
+
+.panel-dock.dragging *,
+.panel.dragging * {
+  cursor: grabbing !important;
+}
+
+.panel-dock .panel {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  
+  width: var(--panel-width, 320px);
+  height: var(--dock-panel-max-height);
+  max-height: calc(100vh - var(--dock-top) - var(--dock-edge));
+  max-width: calc(100vw - (var(--dock-edge) * 2));
+  min-width: 280px;
+  min-height: 240px;
+
+  resize: both;
+  overflow: hidden;
+  
+  transition: 
+    max-height 0.3s ease,
+    height 0.3s ease,
+    opacity 0.25s ease;
+}
+
+body.dark-mode .panel-dock .panel {
+  background: rgba(18, 18, 22, 0.40);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 40px 120px rgba(0, 0, 0, 0.70),
+    0 18px 40px rgba(0, 0, 0, 0.50);
+}
+
+body:not(.dark-mode) .panel-dock .panel {
+  background: rgba(250, 250, 252, 0.40);
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  box-shadow:
+    0 40px 120px rgba(0, 0, 0, 0.26),
+    0 18px 40px rgba(0, 0, 0, 0.16);
+}
+
+body:not(.dark-mode) #portfolioPanel {
+  background-color: rgba(250, 250, 252, 0.85);
+}
+
+.panel-dock .panel-header {
+  padding: var(--panel-pad-10) var(--panel-pad-12);
+  cursor: grab !important;
+}
+
+.panel-dock .panel-header:hover {
+  background: transparent;
+}
+
+.panel-dock .mac-titlebar {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-dock .mac-title {
+  justify-self: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--panel-foreground);
+  opacity: 0.92;
+}
+
+.panel-dock .mac-traffic {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.panel-dock .mac-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 9999px;
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18);
+}
+
+.panel-dock .mac-dot--red { background: #ff5f57; }
+.panel-dock .mac-dot--yellow { background: #febc2e; }
+.panel-dock .mac-dot--green { background: #28c840; }
+
+.panel-dock .mac-collapse {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border-radius: 8px;
+  justify-self: end;
+  opacity: 0.85;
+}
+
+.panel-dock .mac-right {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-dock .panel-mode-pill {
+  height: 20px;
+  padding: 0 var(--panel-pad-10);
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1;
+  color: var(--panel-foreground);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+body:not(.dark-mode) .panel-dock .panel-mode-pill {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.panel-dock .panel .panel-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.panel-dock .panel.collapsed {
+  height: var(--dock-panel-collapsed-height);
+  max-height: var(--dock-panel-collapsed-height);
+  overflow: hidden;
+}
+
+.panel-dock .panel.collapsed .panel-content {
+  display: flex;
+}
+
+.panel-dock .panel.collapsed .collapse-btn {
+  transform: rotate(-90deg);
+}
+
+.panel-dock .panel:not(.collapsed) .collapse-btn {
+  transform: rotate(0deg);
+}
+
+.dock-toggle { display: none !important; }
+
+@media (max-width: 768px) {
+  .panel-dock {
+    --dock-panel-max-height: 70vh;
+  }
+  
+  .panel-dock .panel {
+    width: 300px;
+  }
+}
+
+@media (max-width: 600px) {
+  .panel-dock {
+    --dock-panel-max-height: 65vh;
+  }
+  
+  .panel-dock .panel {
+    width: calc(100vw - var(--edge-inset, 40px) * 2);
+    max-width: 320px;
+  }
+}
