@@ -1,4 +1,4 @@
-// Portfolio carousel entry (shares chrome with the index layout; consumes config/portfolio-config.json and config/portfolio-data.json)
+// Portfolio carousel entry (shares chrome with the index layout; consumes config/portfolio-config.json and config/contents-portfolio.json)
 
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
 import { applyWallFrameFromConfig, applyWallFrameLayout } from '../visual/wall-frame.js';
@@ -24,7 +24,7 @@ const BASE_PATH = (() => {
 const CONFIG = {
   basePath: BASE_PATH,
   assetBasePath: `${BASE_PATH}images/portfolio/pages/`,
-  dataPath: `${BASE_PATH}config/portfolio-data.json`,
+  dataPath: `${BASE_PATH}config/contents-portfolio.json`,
   coverFallback: `${BASE_PATH}images/portfolio/folio-cover/cover-default.webp`,
 };
 const DEFAULT_DETAIL_TRANSITION_MS = 700;
@@ -33,6 +33,9 @@ const DETAIL_FADE_MS = 240;
 async function fetchPortfolioData() {
   const paths = [
     CONFIG.dataPath,
+    `${CONFIG.basePath}js/contents-portfolio.json`,
+    '../public/js/contents-portfolio.json',
+    `${CONFIG.basePath}config/portfolio-data.json`,
     `${CONFIG.basePath}js/portfolio-data.json`,
     '../public/js/portfolio-data.json',
   ];
@@ -121,8 +124,7 @@ class PortfolioApp {
     this.isTransitioning = false; // Guard against rapid open/close
     this.detailOverlay = null;
     this.detailContent = null;
-    this.currentOpenAnimation = null; // Track WAAPI animation
-    this.currentCloseAnimation = null; // Track WAAPI animation
+    this.detailAnimations = [];
     this.detailScroller = null;
     this.detailClose = null;
     this.activeSlide = null;
@@ -1321,8 +1323,61 @@ class PortfolioApp {
     return Number.isFinite(value) ? value : fallback;
   }
 
+  getCssString(varName, fallback) {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(varName);
+    if (!raw) return fallback;
+    const trimmed = raw.trim();
+    return trimmed || fallback;
+  }
+
   getDetailTransitionMs() {
     return this.getCssNumber('--detail-transition-ms', DEFAULT_DETAIL_TRANSITION_MS);
+  }
+
+  getDetailEase() {
+    return this.getCssString('--detail-transition-ease', 'cubic-bezier(0.16, 1, 0.3, 1)');
+  }
+
+  getDetailFadeMs() {
+    return this.getCssNumber('--detail-transition-fade-ms', DETAIL_FADE_MS);
+  }
+
+  getDetailFadeDelay() {
+    return this.getCssNumber('--detail-transition-fade-delay', 0);
+  }
+
+  getDetailContentDuration() {
+    return this.getCssNumber('--detail-content-pop-duration', this.getDetailFadeMs());
+  }
+
+  getDetailContentStartScale() {
+    return this.getCssNumber('--detail-content-pop-start-scale', 0.96);
+  }
+
+  getDetailContentEase() {
+    return this.getCssString('--detail-content-pop-ease', this.getDetailEase());
+  }
+
+  getDetailCardSwingDeg() {
+    return this.getCssNumber('--detail-card-swing-deg', -6);
+  }
+
+  getDetailCardSwingScale() {
+    return this.getCssNumber('--detail-card-swing-scale', 1.05);
+  }
+
+  getDetailCardPopScale() {
+    return this.getCssNumber('--detail-card-pop-scale', 1.12);
+  }
+
+  cancelDetailAnimations() {
+    if (!this.detailAnimations || !this.detailAnimations.length) return;
+    this.detailAnimations.forEach((anim) => {
+      try {
+        anim?.cancel?.();
+      } catch (e) {}
+    });
+    this.detailAnimations = [];
   }
 
   beginDetailTransition() {
@@ -1356,14 +1411,7 @@ class PortfolioApp {
     if (!project) return;
 
     // Cancel any ongoing animations
-    if (this.currentOpenAnimation) {
-      this.currentOpenAnimation.cancel();
-      this.currentOpenAnimation = null;
-    }
-    if (this.currentCloseAnimation) {
-      this.currentCloseAnimation.cancel();
-      this.currentCloseAnimation = null;
-    }
+    this.cancelDetailAnimations();
 
     this.isTransitioning = true;
     this.detailOpen = true;
@@ -1385,7 +1433,6 @@ class PortfolioApp {
     this.setupCloseButtonScrollAnimation();
 
     const slideMedia = slide.querySelector('.slide-image-container');
-    const detailMedia = this.detailOverlay?.querySelector('.project-detail__media');
     
     // Calculate crossfade parameters from clicked slide
     const crossfadeParams = slideMedia ? this.getCrossfadeParams(slideMedia) : null;
@@ -1398,49 +1445,99 @@ class PortfolioApp {
 
     if (!this.prefersReducedMotion) {
       const duration = this.getDetailTransitionMs();
-      
-      // Soft, organic approach: just fade in the detail overlay
-      // Let the carousel continue naturally underneath - no slide manipulation
-      const easing = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'; // easeOutQuad - gentle and smooth
-      
+      const easing = this.getDetailEase();
+      const contentDuration = this.getDetailContentDuration();
+      const contentDelay = this.getDetailFadeDelay();
+      const contentEase = this.getDetailContentEase();
+      const contentStartScale = this.getDetailContentStartScale();
+      const overlayStartScale = crossfadeParams?.scale ?? 0.92;
+      const swingDeg = this.getDetailCardSwingDeg();
+      const swingScale = this.getDetailCardSwingScale();
+      const popScale = this.getDetailCardPopScale();
+
       // Setup initial state
       this.detailOverlay.classList.remove('is-closing', 'is-collapsing');
       this.detailOverlay.classList.add('is-open', 'is-animating', 'is-expanding');
-      
-      // WAAPI: Soft fade in on detail overlay only
-      const detailAnimation = this.detailOverlay.animate([
-        { opacity: '0' },
-        { opacity: '1' }
+      this.detailOverlay.style.transformOrigin = crossfadeParams?.transformOrigin || '50% 50%';
+
+      const overlayAnimation = this.detailOverlay.animate([
+        { opacity: '0', transform: `scale(${overlayStartScale})` },
+        { opacity: '1', transform: 'scale(1)' }
       ], {
         duration,
         easing,
-        fill: 'none' // Don't leave inline styles - let CSS take over
+        fill: 'both'
       });
-      
-      // Store animation reference for cancellation if needed
-      this.currentOpenAnimation = detailAnimation;
-      
-      // Clean up after animation completes
-      detailAnimation.finished.then(() => {
-        // Check if detail is still supposed to be open (user didn't close during animation)
+
+      const contentAnimation = this.detailContent?.animate([
+        { opacity: '0', transform: `scale(${contentStartScale})` },
+        { opacity: '1', transform: 'scale(1)' }
+      ], {
+        duration: contentDuration,
+        delay: contentDelay,
+        easing: contentEase,
+        fill: 'both'
+      });
+
+      let slideAnimation = null;
+      if (slideMedia) {
+        slideMedia.style.opacity = '1';
+        slideMedia.style.transform = 'rotate(0deg) scale(1)';
+        slideAnimation = slideMedia.animate([
+          { transform: 'rotate(0deg) scale(1)', opacity: 1 },
+          { transform: `rotate(${swingDeg}deg) scale(${swingScale})`, opacity: 1, offset: 0.35 },
+          { transform: `rotate(0deg) scale(${popScale})`, opacity: 0 }
+        ], {
+          duration,
+          easing,
+          fill: 'both'
+        });
+
+        slideAnimation.finished.then(() => {
+          slideMedia.style.opacity = '0';
+          slideMedia.style.transform = `scale(${popScale})`;
+        }).catch(() => {});
+      }
+
+      this.detailAnimations = [overlayAnimation, contentAnimation, slideAnimation].filter(Boolean);
+
+      const finalizeOpen = () => {
         if (!this.detailOpen) {
           this.detailOverlay.classList.remove('is-open');
           this.isTransitioning = false;
           return;
         }
-        
-        // Clean up classes
+
         this.detailOverlay.classList.remove('is-animating', 'is-expanding');
-        
-        // Clear animation reference
-        this.currentOpenAnimation = null;
+        this.detailOverlay.style.removeProperty('opacity');
+        this.detailOverlay.style.removeProperty('transform');
+        this.detailOverlay.style.removeProperty('transformOrigin');
+        if (this.detailContent) {
+          this.detailContent.style.removeProperty('opacity');
+          this.detailContent.style.removeProperty('transform');
+        }
+        this.detailAnimations = [];
         this.isTransitioning = false;
         this.endDetailTransition();
-      }).catch((err) => {
-        // Animation was cancelled or errored - clean up safely
+      };
+
+      overlayAnimation.finished.then(finalizeOpen).catch((err) => {
         console.warn('Open animation interrupted:', err);
         this.detailOverlay.classList.remove('is-animating', 'is-expanding');
-        this.currentOpenAnimation = null;
+        if (this.detailOpen) {
+          this.detailOverlay.style.removeProperty('opacity');
+          this.detailOverlay.style.removeProperty('transform');
+          this.detailOverlay.style.removeProperty('transformOrigin');
+          if (this.detailContent) {
+            this.detailContent.style.removeProperty('opacity');
+            this.detailContent.style.removeProperty('transform');
+          }
+          if (slideMedia) {
+            slideMedia.style.removeProperty('opacity');
+            slideMedia.style.removeProperty('transform');
+          }
+        }
+        this.detailAnimations = [];
         this.isTransitioning = false;
         this.endDetailTransition();
       });
@@ -1448,6 +1545,14 @@ class PortfolioApp {
       // Reduced motion: instant open
       this.detailOverlay.classList.remove('is-closing', 'is-collapsing');
       this.detailOverlay.classList.add('is-open');
+      if (slideMedia) {
+        slideMedia.style.removeProperty('opacity');
+        slideMedia.style.removeProperty('transform');
+      }
+      if (this.detailContent) {
+        this.detailContent.style.removeProperty('opacity');
+        this.detailContent.style.removeProperty('transform');
+      }
       this.isTransitioning = false;
       this.endDetailTransition();
     }
@@ -1462,14 +1567,7 @@ class PortfolioApp {
     SoundEngine.playWheelClose();
     
     // Cancel any ongoing animations
-    if (this.currentOpenAnimation) {
-      this.currentOpenAnimation.cancel();
-      this.currentOpenAnimation = null;
-    }
-    if (this.currentCloseAnimation) {
-      this.currentCloseAnimation.cancel();
-      this.currentCloseAnimation = null;
-    }
+    this.cancelDetailAnimations();
     
     if (this.openTransitionTimer) {
         window.clearTimeout(this.openTransitionTimer);
@@ -1486,6 +1584,10 @@ class PortfolioApp {
     }
     this.stopDetailVideos();
 
+    // Recalculate crossfade params in case slide position changed (e.g. resize)
+    const slideMedia = this.activeSlide?.querySelector('.slide-image-container');
+    const crossfadeParams = slideMedia ? this.getCrossfadeParams(slideMedia) : this.lastCrossfadeParams;
+
     const finalizeClose = () => {
         if (this.detailCloseWatchdogTimer) {
             window.clearTimeout(this.detailCloseWatchdogTimer);
@@ -1497,6 +1599,15 @@ class PortfolioApp {
         this.detailOverlay.style.removeProperty('transform');
         this.detailOverlay.style.removeProperty('opacity');
         this.detailOverlay.style.removeProperty('transformOrigin');
+        if (this.detailContent) {
+          this.detailContent.style.removeProperty('opacity');
+          this.detailContent.style.removeProperty('transform');
+        }
+        if (slideMedia) {
+          slideMedia.style.removeProperty('opacity');
+          slideMedia.style.removeProperty('transform');
+        }
+        this.detailAnimations = [];
         this.detailOverlay.setAttribute('aria-hidden', 'true');
         // Snap wheel immediately so the active card returns sharp (no depth blur settling).
         this.wheelVelocity = 0;
@@ -1514,35 +1625,63 @@ class PortfolioApp {
         window.clearTimeout(this.detailCloseWatchdogTimer);
         this.detailCloseWatchdogTimer = null;
     }
-    
-    // Recalculate crossfade params in case slide position changed (e.g. resize)
-    const slideMedia = this.activeSlide?.querySelector('.slide-image-container');
-    const crossfadeParams = slideMedia ? this.getCrossfadeParams(slideMedia) : this.lastCrossfadeParams;
-    const detailMedia = this.detailOverlay?.querySelector('.project-detail__media');
 
     if (!this.prefersReducedMotion) {
       const duration = this.getDetailTransitionMs();
-      
-      // Soft, organic approach: just fade out the detail overlay
-      // Carousel continues naturally underneath - no slide manipulation needed
-      const easing = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'; // easeOutQuad - gentle and smooth
-      
+      const easing = this.getDetailEase();
+      const contentDuration = this.getDetailContentDuration();
+      const contentDelay = this.getDetailFadeDelay();
+      const contentEase = this.getDetailContentEase();
+      const contentStartScale = this.getDetailContentStartScale();
+      const overlayStartScale = crossfadeParams?.scale ?? 0.92;
+      const swingDeg = this.getDetailCardSwingDeg();
+      const swingScale = this.getDetailCardSwingScale();
+      const popScale = this.getDetailCardPopScale();
+      const closeDelay = Math.max(0, duration - contentDelay - contentDuration);
+
       // Setup initial state
       this.detailOverlay.classList.remove('is-expanding');
       this.detailOverlay.classList.add('is-animating', 'is-collapsing');
-      
-      // WAAPI: Soft fade out on detail overlay only
-      const detailAnimation = this.detailOverlay.animate([
-        { opacity: '1' },
-        { opacity: '0' }
+      this.detailOverlay.style.transformOrigin = crossfadeParams?.transformOrigin || '50% 50%';
+
+      const overlayAnimation = this.detailOverlay.animate([
+        { opacity: '0', transform: `scale(${overlayStartScale})` },
+        { opacity: '1', transform: 'scale(1)' }
       ], {
         duration,
         easing,
-        fill: 'none' // Don't leave inline styles
+        fill: 'both',
+        direction: 'reverse'
       });
-      
-      // Store animation reference for cancellation if needed
-      this.currentCloseAnimation = detailAnimation;
+
+      const contentAnimation = this.detailContent?.animate([
+        { opacity: '0', transform: `scale(${contentStartScale})` },
+        { opacity: '1', transform: 'scale(1)' }
+      ], {
+        duration: contentDuration,
+        delay: closeDelay,
+        easing: contentEase,
+        fill: 'both',
+        direction: 'reverse'
+      });
+
+      let slideAnimation = null;
+      if (slideMedia) {
+        slideMedia.style.opacity = '0';
+        slideMedia.style.transform = `scale(${popScale})`;
+        slideAnimation = slideMedia.animate([
+          { transform: 'rotate(0deg) scale(1)', opacity: 1 },
+          { transform: `rotate(${swingDeg}deg) scale(${swingScale})`, opacity: 1, offset: 0.35 },
+          { transform: `rotate(0deg) scale(${popScale})`, opacity: 0 }
+        ], {
+          duration,
+          easing,
+          fill: 'both',
+          direction: 'reverse'
+        });
+      }
+
+      this.detailAnimations = [overlayAnimation, contentAnimation, slideAnimation].filter(Boolean);
       
       // Watchdog: guarantee cleanup even if animation fails (fallback only)
       this.detailCloseWatchdogTimer = window.setTimeout(() => {
@@ -1551,7 +1690,7 @@ class PortfolioApp {
       }, duration + 500);
       
       // Clean up after animation completes
-      detailAnimation.finished.then(() => {
+      overlayAnimation.finished.then(() => {
         // Clear watchdog since we completed successfully
         if (this.detailCloseWatchdogTimer) {
           window.clearTimeout(this.detailCloseWatchdogTimer);
@@ -1560,9 +1699,6 @@ class PortfolioApp {
         
         // Clean up classes
         this.detailOverlay.classList.remove('is-animating', 'is-collapsing');
-        
-        // Clear animation reference
-        this.currentCloseAnimation = null;
         
         finalizeClose();
       }).catch((err) => {
@@ -1573,7 +1709,6 @@ class PortfolioApp {
           this.detailCloseWatchdogTimer = null;
         }
         this.detailOverlay.classList.remove('is-animating', 'is-collapsing');
-        this.currentCloseAnimation = null;
         finalizeClose();
       });
     } else {

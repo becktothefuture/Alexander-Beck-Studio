@@ -13,17 +13,17 @@
 
 ## Data + assets
 - `source/config/portfolio-config.json` – carousel/runtime tuning (copied/minified to `public/config/portfolio-config.json` and `public/js/portfolio-config.json`).
-- `source/config/portfolio-data.json` – project list (cover, gallery, content blocks, links, takeaways) consumed by `PortfolioApp`.
+- `source/config/contents-portfolio.json` – project list (cover, gallery, content blocks, links, takeaways) consumed by `PortfolioApp`.
 - `source/images/portfolio/` – covers, pages, and detail media (copied to `public/images/portfolio/`).
 
 ### Editing the content
-- Update `source/config/portfolio-data.json` for copy/links/takeaways.
+- Update `source/config/contents-portfolio.json` for copy/links/takeaways.
 - Add or replace media in `source/images/portfolio/` and point paths in the JSON to the matching files.
 
 ## Build outputs
 - JS: `public/js/portfolio-bundle.js` (Rollup)
 - CSS: `public/css/portfolio.css` (copied/minified)
-- Config/Data: `public/config/portfolio-config.json`, `public/config/portfolio-data.json`
+- Config/Data: `public/config/portfolio-config.json`, `public/config/contents-portfolio.json`
 
 ## Dev vs prod paths
 - Dev: `portfolio.html` pulls `modules/portfolio/app.js` directly.

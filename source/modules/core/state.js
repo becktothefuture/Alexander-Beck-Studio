@@ -481,16 +481,16 @@ const state = {
   // These are visual-only and applied via CSS vars + `scene-impact-react.js`.
   // ─────────────────────────────────────────────────────────────────────────────
   sceneImpactEnabled: true,
-  sceneImpactMul: 0.010,        // scale depth per unit impact (1.0%, tuned subtle to avoid snap)
+  sceneImpactMul: 0.005,        // scale depth per unit impact (tuned down for more stillness)
   // Mobile-only multiplier applied on top of sceneImpactMul.
   // Allows “more depth” on small screens without re-tuning desktop.
   sceneImpactMobileMulFactor: 1.0,
   // Logo counter-scale gain (multiplies the compensation so the logo stays “anchored”)
-  sceneImpactLogoCompMul: 3.6,
+  sceneImpactLogoCompMul: 1.8,
   sceneImpactOvershoot: 0.22,   // release overshoot amount (unitless)
   sceneImpactAnticipation: 0.0, // micro pre-pop opposite direction; 0 disables
-  sceneImpactPressMs: 90,       // ms (press-in duration)
-  sceneImpactReleaseMs: 310,    // ms (bounce-out duration)
+  sceneImpactPressMs: 0,        // ms (press-in duration)
+  sceneImpactReleaseMs: 620,    // ms (bounce-out duration)
 
   // Scene change SFX (plays only when sound is enabled/unlocked)
   sceneChangeSoundEnabled: true,

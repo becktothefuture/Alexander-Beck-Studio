@@ -1,0 +1,363 @@
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+   ║                    ALEXANDER BECK STUDIO - DESIGN TOKENS                    ║
+   ║   Central palette, typography, spacing, radii, opacities, and surfaces      ║
+   ╚══════════════════════════════════════════════════════════════════════════════╝ */
+
+:root {
+  color-scheme: light;
+
+  /* Palette Primitives */
+  --abs-neutral-1000: #000000;
+  --abs-neutral-950: #0a0a0a;
+  --abs-neutral-900: #161616;
+  --abs-neutral-800: #2f2f2f;
+  --abs-neutral-650: #808080;
+  --abs-neutral-500: #b3b3b3;
+  --abs-neutral-450: #c8c8c8;
+  --abs-neutral-400: #d0d0d0;
+  --abs-neutral-350: #d5d5d5;
+  --abs-neutral-100: #f5f5f5;
+  --abs-neutral-50: #ffffff;
+  --abs-chrome-light: #f1f3f4;
+  --abs-chrome-dark: #202124;
+
+  --abs-accent-primary: #ff4013;
+  --abs-accent-emerald: #00695c;
+  --abs-accent-blue: #0d5cb6;
+  --abs-accent-gold: #ffa000;
+  --abs-accent-silver: #b7bcb7;
+  --abs-accent-ash: #d0d0d0;
+
+  --abs-state-success: #22c55e;
+  --abs-state-error: #ef4444;
+
+  --abs-rgb-white: 255, 255, 255;
+  --abs-rgb-black: 0, 0, 0;
+
+  /* Typography Tokens */
+  --abs-font-sans: 'Geist', sans-serif;
+  --abs-font-mono: 'Geist Mono', monospace;
+  --abs-font-display: 'Sarina', cursive;
+  --abs-weight-regular: 400;
+  --abs-weight-medium: 600;
+  --abs-weight-semibold: 700;
+
+  --abs-text-xs: clamp(9px, 1vw, 12px);
+  --abs-text-sm: clamp(11px, 1.2vw, 14px);
+  --abs-text-md: clamp(12px, 1.4vw, 16px);
+  --abs-text-lg: clamp(0.85rem, 1.5vw, 1.05rem);
+
+  --abs-line-tight: 1.3;
+  --abs-line-base: 1.35;
+  --abs-line-relaxed: 1.4;
+  --abs-line-loose: 1.75;
+
+  /* Spacing & Sizing */
+  --abs-space-unit: 1vmin;
+  --abs-space-2xs: calc(var(--abs-space-unit) * 0.5);
+  --abs-space-xs: calc(var(--abs-space-unit) * 1);
+  --abs-space-sm: calc(var(--abs-space-unit) * 2);
+  --abs-space-md: calc(var(--abs-space-unit) * 4);
+  --abs-space-lg: calc(var(--abs-space-unit) * 6);
+  --abs-space-xl: calc(var(--abs-space-unit) * 8);
+
+  --abs-content-padding: clamp(16px, 4vmin, 40px);
+  --abs-gap-xs: clamp(4px, 0.5vmin, 8px);
+  --abs-gap-sm: clamp(8px, 1vmin, 12px);
+  --abs-gap-md: clamp(12px, 1.5vmin, 20px);
+  --abs-gap-lg: clamp(16px, 2vw, 24px);
+  --abs-gap-xl: clamp(24px, 2.5vw, 40px);
+  --abs-gap-fixed-24: 24px;
+
+  --abs-size-icon: clamp(14px, 1.5vw, 16px);
+  --abs-size-icon-lg: clamp(24px, 2.5vw, 28px);
+  --abs-size-dot: clamp(3px, 0.4vmin, 4px);
+  --abs-tap-target: clamp(12px, 2.5vmin, 30px);
+
+  /* Radii & Layout Metrics */
+  --abs-radius-wall-min: 32px;
+  --abs-radius-card: 3vmin;
+  --abs-radius-input: 8px;
+  --abs-radius-cta: 10px;
+  --abs-radius-pill: 999px;
+
+  --abs-container-border-vw: 1.3;
+  --abs-wall-thickness-vw: 0.9;
+  --abs-wall-radius-vw: 3.7;
+  --abs-layout-min-padding: 16px;
+
+  /* Opacity Scale */
+  --abs-opacity-strong: 0.9;
+  --abs-opacity-muted: 0.7;
+  --abs-opacity-soft: 0.55;
+  --abs-opacity-quiet: 0.38;
+  --abs-opacity-faint: 0.25;
+  --abs-opacity-ghost: 0.12;
+
+  /* Surface + Stroke System */
+  --abs-surface-page: var(--abs-neutral-100);
+  --abs-surface-page-dark: var(--abs-neutral-950);
+  --abs-surface-frame: var(--abs-neutral-950);
+  --abs-surface-contrast: var(--abs-neutral-50);
+  --abs-surface-contrast-dark: var(--abs-neutral-900);
+  --abs-surface-chrome: var(--abs-chrome-light);
+  --abs-surface-chrome-dark: var(--abs-chrome-dark);
+
+  --abs-surface-glass-strong: rgba(var(--abs-rgb-white), 0.75);
+  --abs-surface-glass-medium: rgba(var(--abs-rgb-white), 0.55);
+  --abs-surface-glass-balanced: rgba(var(--abs-rgb-white), 0.5);
+  --abs-surface-glass-soft: rgba(var(--abs-rgb-white), 0.18);
+  --abs-surface-glass-ghost: rgba(var(--abs-rgb-white), 0.12);
+  --abs-surface-glass-faint: rgba(var(--abs-rgb-white), 0.05);
+  --abs-surface-glass-dim: rgba(var(--abs-rgb-white), 0.35);
+  --abs-surface-glass-dark: rgba(var(--abs-rgb-white), 0.12);
+  --abs-surface-glass-dark-strong: rgba(var(--abs-rgb-white), 0.16);
+
+  --abs-overlay-veil: rgba(var(--abs-rgb-white), 0.5);
+  --abs-overlay-success: rgba(34, 197, 94, 0.25);
+  --abs-overlay-error: rgba(239, 68, 68, 0.3);
+  --abs-state-success-strong: rgba(34, 197, 94, 0.45);
+  --abs-state-error-strong: rgba(239, 68, 68, 0.45);
+
+  --abs-stroke-strong: rgba(var(--abs-rgb-black), 0.22);
+  --abs-stroke-medium: rgba(var(--abs-rgb-black), 0.18);
+  --abs-stroke-subtle: rgba(var(--abs-rgb-black), 0.15);
+  --abs-stroke-soft: rgba(var(--abs-rgb-black), 0.14);
+  --abs-stroke-ghost: rgba(var(--abs-rgb-black), 0.12);
+  --abs-stroke-hairline: rgba(var(--abs-rgb-black), 0.1);
+  --abs-stroke-strong-inverse: rgba(var(--abs-rgb-white), 0.34);
+  --abs-stroke-medium-inverse: rgba(var(--abs-rgb-white), 0.25);
+  --abs-stroke-soft-inverse: rgba(var(--abs-rgb-white), 0.22);
+  --abs-stroke-ghost-inverse: rgba(var(--abs-rgb-white), 0.18);
+  --abs-stroke-hairline-inverse: rgba(var(--abs-rgb-white), 0.12);
+  --abs-stroke-highlight-inverse: rgba(var(--abs-rgb-white), 0.8);
+  --abs-bevel-light: rgba(var(--abs-rgb-white), 0.15);
+  --abs-bevel-dark: rgba(var(--abs-rgb-black), 0.3);
+
+  /* Shadows */
+  --abs-shadow-soft: 0 2px 10px rgba(var(--abs-rgb-black), 0.05);
+  --abs-shadow-lift: 0 18px 40px rgba(var(--abs-rgb-black), 0.12);
+
+  /* Typography Aliases */
+  --text-xs: var(--abs-text-xs);
+  --text-sm: var(--abs-text-sm);
+  --text-md: var(--abs-text-md);
+  --text-lg: var(--abs-text-lg);
+  --line-height-tight: var(--abs-line-tight);
+  --line-height-base: var(--abs-line-base);
+  --line-height-relaxed: var(--abs-line-relaxed);
+  --line-height-loose: var(--abs-line-loose);
+
+  /* Spacing Aliases */
+  --space-unit: var(--abs-space-unit);
+  --space-xs: var(--abs-space-2xs);
+  --space-sm: var(--abs-space-xs);
+  --space-md: var(--abs-space-sm);
+  --space-lg: var(--abs-space-md);
+  --space-xl: var(--abs-space-lg);
+  --space-2xl: var(--abs-space-xl);
+
+  --content-padding: var(--abs-content-padding);
+  --content-padding-x: var(--abs-content-padding);
+  --content-padding-y: var(--abs-content-padding);
+  --edge-inset: calc(var(--container-border) + var(--content-padding));
+  --edge-inset-lg: calc(var(--container-border) + var(--content-padding));
+
+  --gap-xs: var(--abs-gap-xs);
+  --gap-sm: var(--abs-gap-sm);
+  --gap-md: var(--abs-gap-md);
+  --gap-lg: var(--abs-gap-lg);
+  --gap-xl: var(--abs-gap-xl);
+  --gap-24: var(--abs-gap-fixed-24);
+
+  --size-icon: var(--abs-size-icon);
+  --size-icon-lg: var(--abs-size-icon-lg);
+  --size-dot: var(--abs-size-dot);
+  --tap-target: var(--abs-tap-target);
+
+  /* Text Colors + Opacity */
+  --text-color-light: var(--abs-neutral-900);
+  --text-color-light-muted: var(--abs-neutral-800);
+  --text-color-dark: var(--abs-neutral-500);
+  --text-color-dark-soft: var(--abs-neutral-450);
+  --text-color-dark-muted: var(--abs-neutral-650);
+  --text-color-light-base: var(--text-color-light);
+  --text-color-dark-base: var(--text-color-dark);
+  --text-opacity-base: var(--abs-opacity-strong);
+  --text-opacity-muted: var(--abs-opacity-muted);
+  --text-quiet: rgba(var(--abs-rgb-black), 0.7);
+  --text-quiet-strong: rgba(var(--abs-rgb-black), 0.65);
+  --text-quiet-inverse: rgba(var(--abs-rgb-white), 0.72);
+  --text-placeholder: rgba(var(--abs-rgb-black), 0.3);
+  --text-placeholder-inverse: rgba(var(--abs-rgb-white), 0.3);
+
+  --edge-label-color-light: var(--text-color-light-muted);
+  --edge-label-color-dark: var(--text-color-dark-base);
+  --edge-label-opacity: var(--abs-opacity-quiet);
+
+  /* Link + Accent Colors */
+  --link-hover-color: var(--abs-accent-primary);
+  --cursor-color: var(--ball-6);
+
+  /* Logo Colors */
+  --logo-color-light: var(--text-color-light);
+  --logo-color-dark: var(--abs-neutral-350);
+
+  /* Surface Tokens Mapped to Legacy Names */
+  --frame-color-light: var(--abs-surface-frame);
+  --frame-color-dark: var(--abs-surface-frame);
+  --bg-light: var(--abs-surface-page);
+  --bg-dark: var(--abs-surface-page-dark);
+  --chrome-bg-light: var(--abs-surface-chrome);
+  --chrome-bg-dark: var(--abs-surface-chrome-dark);
+  --chrome-bg: var(--chrome-bg-light);
+  --chrome-bg: var(--chrome-bg-light);
+
+  --wall-color-site-light: var(--frame-color-light);
+  --wall-color-site-dark: var(--frame-color-dark);
+  --wall-color-browser-light: var(--abs-surface-chrome);
+  --wall-color-browser-dark: var(--abs-surface-chrome-dark);
+  --wall-color: var(--frame-color-light);
+
+  /* Layout + Radius */
+  --container-border-vw: var(--abs-container-border-vw);
+  --wall-thickness-vw: var(--abs-wall-thickness-vw);
+  --wall-radius-vw: var(--abs-wall-radius-vw);
+  --layout-min-wall-radius: var(--abs-radius-wall-min);
+  --layout-min-content-padding: var(--abs-layout-min-padding);
+  --wall-thickness: calc(var(--wall-thickness-vw) * 1vw);
+  --wall-radius: clamp(var(--layout-min-wall-radius), calc(var(--wall-radius-vw) * 1vw), 999px);
+  --container-radius: var(--wall-radius);
+  --container-border: calc(var(--container-border-vw) * 1vw);
+  --simulation-padding: 0px;
+  --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
+
+  /* Noise + Grain */
+  --noise-size-base: 100px;
+  --noise-size-top: 150px;
+  --noise-size-scale: 1;
+  --noise-back-opacity-light: 0.025;
+  --noise-front-opacity-light: 0.055;
+  --noise-back-opacity-dark: 0.12;
+  --noise-front-opacity-dark: 0.08;
+  --noise-top-opacity: 0.01;
+  --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
+
+  /* Interaction + Motion Tokens */
+  --edge-label-inset-base: calc(var(--container-border) + var(--gap-sm));
+  --edge-label-inset-adjust: 0px;
+  --edge-label-inset: calc(var(--edge-label-inset-base) + var(--edge-label-inset-adjust));
+  --ease-organic: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-hesitant: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-resize: 600ms;
+  --duration-settle: 400ms;
+  --duration-quick: 200ms;
+  --duration-link-hover: 30ms;
+  --dot-bounce-duration: 500ms;
+  --hit-area-padding: clamp(20px, 3vmin, 30px);
+  --hit-area-padding-neg: calc(var(--hit-area-padding) * -1);
+
+  --abs-brand-logo-impact: 0;
+  --abs-brand-logo-squash: 0;
+  --abs-brand-logo-impact-dur: 100ms;
+  --abs-brand-logo-impact-mul: 0.014;
+  --abs-brand-logo-squash-x-mul: 0.009;
+  --abs-brand-logo-squash-y-mul: 0.015;
+  --abs-brand-logo-tilt-deg: 0;
+  --abs-brand-logo-skew-deg: 0;
+  --abs-scene-impact: 0;
+  --abs-scene-impact-dur: 100ms;
+  --abs-scene-impact-logo-scale: 1;
+  --abs-scene-impact-ease: cubic-bezier(0.78, 0.00, 0.22, 1.00);
+  --abs-scene-impact-mul: 0.005;
+  --abs-scene-impact-logo-comp-mul: 1.0;
+
+  /* Gate Defaults */
+  --abs-gate-mobile-pad-x: 20px;
+  --gate-overlay-opacity: 0.01;
+  --gate-overlay-transition-duration: 800ms;
+  --gate-overlay-transition-out-duration: 600ms;
+  --gate-content-delay: 200ms;
+  --gate-overlay-blur: calc(var(--wall-thickness) / 2);
+  --gate-depth-scale: 0.96;
+  --gate-depth-translate-y: 8px;
+  --gate-depth-duration: 800ms;
+  --gate-depth-out-duration: 600ms;
+
+  --logo-opacity-inactive: 1;
+  --logo-opacity-active-target: 0.2;
+  --logo-opacity-active: 1;
+
+  --logo-blur-inactive: 0px;
+  --logo-blur-active-target: 12px;
+  --logo-blur-active: 0px;
+
+  /* Accent Palette (Legend / Balls) */
+  --ball-1: var(--abs-accent-silver);
+  --ball-2: var(--abs-accent-ash);
+  --ball-3: var(--abs-neutral-50);
+  --ball-4: var(--abs-accent-emerald);
+  --ball-5: var(--abs-neutral-1000);
+  --ball-6: var(--abs-accent-primary);
+  --ball-7: var(--abs-accent-blue);
+  --ball-8: var(--abs-accent-gold);
+
+  /* Semantic Aliases */
+  --legend-gap-row: var(--gap-xs);
+  --legend-gap-col: var(--gap-lg);
+  --legend-item-gap: var(--gap-sm);
+  --legend-circle-size: var(--gap-sm);
+  --legend-font-size: 10px;
+  --legend-font-weight: 600;
+  --legend-letter-spacing: 0.08em;
+  --legend-line-height: var(--line-height-loose);
+  --legend-opacity: 0.9;
+
+  --decorative-script-max-width: clamp(288px, 30vw, 403px);
+  --decorative-script-font-size: var(--text-sm);
+  --decorative-script-line-height: var(--line-height-base);
+  --decorative-script-letter-spacing: calc(0.01em * 1.02);
+  --decorative-script-padding-left: var(--gap-md);
+  --decorative-script-padding-vertical: var(--gap-sm);
+
+  --footer-icon-gap: var(--gap-lg);
+  --footer-icon-size: var(--size-icon);
+  --footer-links-padding: var(--tap-target);
+  --footer-links-font-size: clamp(14px, 1.4vw, 18px);
+  --footer-links-letter-spacing: calc(0.02ch * 1.02);
+  --footer-link-dot-size: 4px;
+  --footer-link-dot-offset: 8px;
+
+  --caption-font-size: var(--text-lg);
+  --caption-font-weight: 400;
+  --caption-line-height: var(--line-height-tight);
+  --caption-letter-spacing: 0.01em;
+  --caption-offset: var(--gap-sm);
+
+  --hit-area-sm: var(--gap-sm);
+  --hit-area-md: var(--gap-md);
+  --hit-area-lg: var(--tap-target);
+  --dot-indicator-size: var(--size-dot);
+  --dot-indicator-offset: var(--gap-sm);
+
+  --icon-size-base: var(--size-icon);
+  --icon-size-lg: var(--size-icon-lg);
+
+  --z-ui-base: 10;
+  --z-ui-elevated: 20;
+  --z-ui-top: 25;
+  --z-panel: 9999;
+
+  --brand-logo-user-scale: 1;
+
+  --breakpoint-tablet: 991px;
+  --breakpoint-mobile-l: 767px;
+  --breakpoint-mobile-p: 480px;
+}
+
+:root.dark-mode {
+  color-scheme: dark;
+  --chrome-bg: var(--chrome-bg-dark);
+  --wall-color: var(--frame-color-dark);
+}

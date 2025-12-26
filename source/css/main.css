@@ -7,280 +7,7 @@
    ORGANIC SIZING SYSTEM
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-:root {
-  color-scheme: light;
-  
-  /* Organic Spacing System */
-  --space-unit: 1vmin;
-  --space-xs: calc(var(--space-unit) * 0.5);
-  --space-sm: calc(var(--space-unit) * 1);
-  --space-md: calc(var(--space-unit) * 2);
-  --space-lg: calc(var(--space-unit) * 4);
-  --space-xl: calc(var(--space-unit) * 6);
-  --space-2xl: calc(var(--space-unit) * 8);
-  
-  /* Content padding */
-  --content-padding: clamp(16px, 4vmin, 40px);
-  /* Split padding so we can tune mobile horizontal breathing room independently */
-  --content-padding-x: var(--content-padding);
-  --content-padding-y: var(--content-padding);
-  --edge-inset: calc(var(--container-border) + var(--content-padding));
-  --edge-inset-lg: calc(var(--container-border) + var(--content-padding));
-
-  /* Gate overlays (CV/Portfolio/Contact) */
-  --abs-gate-mobile-pad-x: 20px;
-
-  /* ───────────────────────────────────────────────────────────────────────────
-     Edge labels (vertical chapter + copyright)
-     - Keep separate from general text colors so we can tune them independently.
-     - Inset is base (border + gap) + an adjustable pixel offset from config/panel.
-     ─────────────────────────────────────────────────────────────────────────── */
-  --edge-label-inset-base: calc(var(--container-border) + var(--gap-sm));
-  --edge-label-inset-adjust: 0px;
-  --edge-label-inset: calc(var(--edge-label-inset-base) + var(--edge-label-inset-adjust));
-
-  --edge-label-color-light: var(--text-color-light-muted);
-  --edge-label-color-dark: var(--text-color-dark-base);
-  --edge-label-opacity: 0.38;
-  
-  /* Transition Timing */
-  --ease-organic: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-hesitant: cubic-bezier(0.4, 0, 0.2, 1);
-  
-  --duration-resize: 600ms;
-  --duration-settle: 400ms;
-  --duration-quick: 200ms;
-
-  /* ───────────────────────────────────────────────────────────────────────────
-     Brand Logo Micro-Interactions (CSS-var driven)
-     - JS stamps these vars onto #brand-logo (inherited by .brand-logo-svg)
-     - impact is unitless (can be +/- for rebound)
-     ─────────────────────────────────────────────────────────────────────────── */
-  --abs-brand-logo-impact: 0;
-  --abs-brand-logo-squash: 0;
-  --abs-brand-logo-impact-dur: 100ms;
-  /* Tunable multipliers (driven by control panel / config) */
-  --abs-brand-logo-impact-mul: 0.014;
-  --abs-brand-logo-squash-x-mul: 0.009;
-  --abs-brand-logo-squash-y-mul: 0.015;
-  --abs-brand-logo-tilt-deg: 0; /* number (degrees), multiplied by impact sign */
-  --abs-brand-logo-skew-deg: 0; /* number (degrees), multiplied by impact sign */
-
-  /* ───────────────────────────────────────────────────────────────────────────
-     Scene Micro-Reaction (CSS-var driven)
-     - JS stamps these vars onto #abs-scene
-     - impact is unitless (can be +/- for rebound)
-     ─────────────────────────────────────────────────────────────────────────── */
-  --abs-scene-impact: 0;
-  --abs-scene-impact-dur: 100ms;
-  --abs-scene-impact-logo-scale: 1;
-  /* Impact easing: ease-in (expo-like) + ease-out (circ-like).
-     Applied to BOTH the scene press and the logo counter-scale for tight coupling. */
-  --abs-scene-impact-ease: cubic-bezier(0.78, 0.00, 0.22, 1.00);
-  /* Tunable multiplier (driven by control panel / config).
-     Keep subtle (0.4%) to avoid visible snap on scale transitions. */
-  --abs-scene-impact-mul: 0.010;
-  /* Logo counter-scale gain: multiply the compensation so the logo can feel “anchored”
-     even when scene depth is tuned more subtly. */
-  --abs-scene-impact-logo-comp-mul: 2.0;
-
-  /* Interaction Tokens */
-  /* Link hover accent is fixed (ban yellow): always use dark orange (#ff4013). */
-  --link-hover-color: #ff4013;
-  --duration-link-hover: 30ms;
-  --dot-bounce-duration: 500ms;
-  --hit-area-padding: clamp(20px, 3vmin, 30px);
-  --hit-area-padding-neg: calc(var(--hit-area-padding) * -1);
-  
-  /* Unified Color System */
-  --frame-color-light: #0a0a0a;
-  --frame-color-dark: #0a0a0a;
-  /* Browser chrome tint (theme-color): should reflect the *page background* for each theme */
-  --chrome-bg-light: var(--bg-light);
-  --chrome-bg-dark: var(--bg-dark);
-  --chrome-bg: var(--chrome-bg-light);
-  
-  --bg-light: #f5f5f5;
-  --bg-dark: #0a0a0a;
-  
-  /* Wall (frame tube) sources */
-  --wall-color-site-light: var(--frame-color-light);
-  --wall-color-site-dark: var(--frame-color-dark);
-  /* Browser UI fallback (desktop browsers where theme-color is ignored) */
-  --wall-color-browser-light: #f1f3f4;
-  --wall-color-browser-dark: #202124;
-
-  --wall-color: var(--frame-color-light);
-
-  /* Layout primitives: match runtime config (vw) to avoid first-paint "radius pop".
-     These are CSS-native responsive values. JS may override with px values for 
-     performance, but these provide the fallback for responsiveness. */
-  --container-border-vw: 1.3;
-  --wall-thickness-vw: 0.9;
-  --wall-radius-vw: 3.7;
-  --layout-min-wall-radius: 32px;
-  --layout-min-content-padding: 16px;
-
-  /* Native vw-based calculations (responsive by default, overridable by JS inline styles) */
-  --wall-thickness: calc(var(--wall-thickness-vw) * 1vw);
-  --wall-radius: clamp(var(--layout-min-wall-radius), calc(var(--wall-radius-vw) * 1vw), 999px);
-  --wall-bevel-light: rgba(255, 255, 255, 0.15);
-  --wall-bevel-dark: rgba(0, 0, 0, 0.3);
-  
-  --container-radius: var(--wall-radius);
-  --container-border: calc(var(--container-border-vw) * 1vw);
-  --simulation-padding: 0px;
-  --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
-
-  /* Inner shadow removed */
-  
-  /* Texture Sizing */
-  --noise-size-base: 100px;
-  --noise-size-top: 150px;
-  --noise-size-scale: 1;
-  
-  /* Noise Opacity */
-  --noise-back-opacity-light: 0.025;
-  --noise-front-opacity-light: 0.055;
-  --noise-back-opacity-dark: 0.12;
-  --noise-front-opacity-dark: 0.08;
-  --noise-top-opacity: 0.01;
-
-  /* Gate overlay + depth defaults: match runtime config to avoid first-paint “pop” */
-  --gate-overlay-opacity: 0.01;
-  --gate-overlay-transition-duration: 800ms;
-  --gate-overlay-transition-out-duration: 600ms;
-  --gate-content-delay: 200ms;
-  /* Blur is always derived from wall thickness (matches JS behavior) */
-  --gate-overlay-blur: calc(var(--wall-thickness) / 2);
-
-  --gate-depth-scale: 0.96;
-  --gate-depth-translate-y: 8px;
-  --gate-depth-duration: 800ms;
-  --gate-depth-out-duration: 600ms;
-
-  --logo-opacity-inactive: 1;
-  --logo-opacity-active-target: 0.2;
-  --logo-opacity-active: 1;
-
-  --logo-blur-inactive: 0px;
-  --logo-blur-active-target: 12px;
-  --logo-blur-active: 0px;
-  
-  /* Ball Colors */
-  --ball-1: #b7bcb7;
-  --ball-2: #d0d0d0;
-  --ball-3: #ffffff;
-  --ball-4: #00695c;
-  --ball-5: #000000;
-  --ball-6: #ff4013;
-  --ball-7: #0d5cb6;
-  --ball-8: #ffa000;
-  
-  /* Cursor (dot + trail) color. JS stamps this from the current palette. */
-  --cursor-color: var(--ball-6);
-  
-  /* Design Tokens */
-  --gap-xs: clamp(4px, 0.5vmin, 8px);
-  --gap-sm: clamp(8px, 1vmin, 12px);
-  --gap-md: clamp(12px, 1.5vmin, 20px);
-  --gap-lg: clamp(16px, 2vw, 24px);
-  --gap-xl: clamp(24px, 2.5vw, 40px);
-  /* Fixed (non-responsive) spacing tokens: use when layout must not drift */
-  --gap-24: 24px;
-  
-  --text-xs: clamp(9px, 1vw, 12px);
-  --text-sm: clamp(11px, 1.2vw, 14px);
-  --text-md: clamp(12px, 1.4vw, 16px);
-  --text-lg: clamp(0.85rem, 1.5vw, 1.05rem);
-  
-  --line-height-tight: 1.3;
-  --line-height-base: 1.35;
-  --line-height-relaxed: 1.4;
-  --line-height-loose: 1.75;
-  
-  --size-icon: clamp(14px, 1.5vw, 16px);
-  --size-icon-lg: clamp(24px, 2.5vw, 28px);
-  --size-dot: clamp(3px, 0.4vmin, 4px);
-  
-  --tap-target: clamp(12px, 2.5vmin, 30px);
-  
-  /* Semantic Aliases */
-  --legend-gap-row: var(--gap-xs);
-  --legend-gap-col: var(--gap-lg);
-  --legend-item-gap: var(--gap-sm);
-  --legend-circle-size: var(--gap-sm);
-  --legend-font-size: 10px;
-  --legend-font-weight: 600;
-  --legend-letter-spacing: 0.08em;
-  --legend-line-height: var(--line-height-loose);
-  --legend-opacity: 0.9;
-  
-  /* +20% width: gives top-right blurb more breathing room */
-  --decorative-script-max-width: clamp(288px, 30vw, 403px);
-  --decorative-script-font-size: var(--text-sm);
-  --decorative-script-line-height: var(--line-height-base);
-  --decorative-script-letter-spacing: calc(0.01em * 1.02); /* +2% letter spacing */
-  --decorative-script-padding-left: var(--gap-md);
-  --decorative-script-padding-vertical: var(--gap-sm);
-  
-  --footer-icon-gap: var(--gap-lg);
-  --footer-icon-size: var(--size-icon);
-  --footer-links-padding: var(--tap-target);
-  --footer-links-font-size: clamp(14px, 1.4vw, 18px);
-  --footer-links-letter-spacing: calc(0.02ch * 1.02); /* +2% letter spacing */
-  /* Footer link hover dot (keep legacy visuals but avoid raw px literals in rules) */
-  --footer-link-dot-size: 4px;
-  --footer-link-dot-offset: 8px;
-  
-  --caption-font-size: var(--text-lg);
-  /* Sarina ships as a single regular weight. */
-  --caption-font-weight: 400;
-  --caption-line-height: var(--line-height-tight);
-  --caption-letter-spacing: 0.01em;
-  --caption-offset: var(--gap-sm);
-  
-  --hit-area-sm: var(--gap-sm);
-  --hit-area-md: var(--gap-md);
-  --hit-area-lg: var(--tap-target);
-  --dot-indicator-size: var(--size-dot);
-  --dot-indicator-offset: var(--gap-sm);
-  
-  --icon-size-base: var(--size-icon);
-  --icon-size-lg: var(--size-icon-lg);
-  
-  --text-opacity-base: 0.9;
-  --text-opacity-muted: 0.7;
-  
-  /* Text colors (config-driven with defaults) */
-  --text-color-light: #161616;
-  --text-color-light-muted: #2f2f2f;
-  --text-color-dark: #b3b3b3;
-  --text-color-dark-muted: #808080;
-  
-  --text-color-light-base: var(--text-color-light);
-  --text-color-dark-base: var(--text-color-dark);
-  
-  /* Link colors */
-  --link-hover-color: #ff4013;
-  
-  /* Logo colors - set via JS from config, fallback to these defaults */
-  --logo-color-light: #161616;
-  --logo-color-dark: #d5d5d5;
-  
-  --z-ui-base: 10;
-  --z-ui-elevated: 20;
-  --z-ui-top: 25;
-  --z-panel: 9999;
-
-  /* Brand logo: user scale multiplier (applies to index + portfolio; default neutral). */
-  --brand-logo-user-scale: 1;
-  
-  --breakpoint-tablet: 991px;
-  --breakpoint-mobile-l: 767px;
-  --breakpoint-mobile-p: 480px;
-}
+/* Design tokens are defined in source/css/tokens.css */
 
 @font-face {
   font-family: "tabler-icons";
@@ -327,11 +54,6 @@
   100% { transform: translate3d(-50%, 0, 0) scaleY(1); }
 }
 
-:root.dark-mode {
-  color-scheme: dark;
-  --chrome-bg: var(--chrome-bg-dark);
-  --wall-color: var(--frame-color-dark);
-}
 
 html {
   overflow: hidden;
@@ -356,6 +78,7 @@ body.body {
   cursor: none !important;
   user-select: none;
   -webkit-user-select: none;
+  font-family: var(--abs-font-sans);
   background: transparent !important;
   background-color: transparent !important;
   color: var(--wall-color);
@@ -381,7 +104,7 @@ body.dark-mode,
 body.body.dark-mode { 
   background: transparent !important;
   background-color: transparent !important;
-  color: #c8c8c8;
+  color: var(--text-color-dark-soft);
   /* Inner shadow removed */
 }
 
@@ -603,7 +326,7 @@ body.dark-mode .edge-chapter__text {
   background: radial-gradient(
     ellipse 100% 100% at 50% 50%,
     transparent 40%,
-    rgba(255, 255, 255, 0.10) 100%
+    rgba(var(--abs-rgb-white), 0.10) 100%
   );
 }
 
@@ -611,7 +334,7 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   background: radial-gradient(
     ellipse 100% 100% at 50% 50%,
     transparent 40%,
-    rgba(255, 255, 255, 0.05) 100%
+    var(--abs-surface-glass-faint) 100%
   );
 }
 
@@ -902,7 +625,7 @@ p {
 }
 
 .footer_icon-link {
-  color: rgba(0, 0, 0, 0.7) !important;
+  color: var(--text-quiet) !important;
   opacity: 0.9;
   transition: color var(--duration-link-hover) ease;
   /* Keep the link box aligned to the icon box so the hover dot centers correctly.
@@ -960,7 +683,7 @@ p {
   /* Keep standard button padding but ensure alignment */
   padding: var(--hit-area-lg);
   margin: calc(var(--hit-area-lg) * -1);
-  color: rgba(0, 0, 0, 0.7) !important;
+  color: var(--text-quiet) !important;
   font-family: 'Geist', sans-serif !important;
   cursor: none !important; /* Maintain custom cursor experience */
   background: none;
@@ -1083,13 +806,14 @@ p {
    ───────────────────────────────────────────────────────────────────────────── */
 /* Note: #brand-logo is separate from #fade-content structure to maintain z-index: 3 */
 #brand-logo {
+  color: var(--logo-color-light);
   position: fixed !important;
   top: 50% !important;
   left: 50% !important;
   /* Counter-scale the scene “press-in” so the logo stays visually stable.
      #brand-logo lives inside #abs-scene, so it inherits the scene’s transform scale. */
   transform:
-    translate3d(-50%, -50%, 0)
+    translate3d(-47.5%, -50%, 0)
     scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)))
     !important;
   transform-origin: center center;
@@ -1108,6 +832,16 @@ p {
   /* Subpixel/compositing hints: keeps tiny transform animations smooth */
   backface-visibility: hidden;
   transform-style: preserve-3d;
+}
+
+body.dark-mode #brand-logo {
+  color: var(--logo-color-dark);
+}
+
+#brand-logo .brand-logo-svg {
+  display: block;
+  width: clamp(300px, 35vw, 600px);
+  height: auto;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1429,8 +1163,8 @@ body.dark-mode #time-display {
   display: block !important;
   width: 48px !important;
   height: 48px !important;
-  background: rgba(255, 255, 255, 0.5) !important; /* Transparent but visible */
-  border: 1.5px solid rgba(255, 255, 255, 0.8) !important; /* Visible border */
+  background: var(--abs-surface-glass-balanced) !important; /* Transparent but visible */
+  border: 1.5px solid var(--abs-stroke-highlight-inverse) !important; /* Visible border */
   transform: translate(-50%, -50%) scale(1) !important;
   opacity: 1 !important;
 }
@@ -1449,7 +1183,7 @@ body.dark-mode #time-display {
 
 /* Story-specific legend color: Creative Strategy = darker grey */
 .circle.bg-story-grey { background-color: var(--text-color-light-muted) !important; }
-body.dark-mode .circle.bg-story-grey { background-color: rgba(255, 255, 255, 0.35) !important; }
+body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass-dim) !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    GATE DEPTH EFFECT
@@ -1590,7 +1324,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(255, 255, 255, 0.3
   appearance: none;
   border: 0;
   background: transparent;
-  background-color: rgba(255, 255, 255, 0);
+  background-color: transparent;
   padding: var(--gate-pad-xs);
   margin: 0;
   display: inline-flex;
@@ -1599,7 +1333,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(255, 255, 255, 0.3
   width: 100%;
   cursor: pointer;
   user-select: none;
-  color: rgba(0, 0, 0, 0.7);
+  color: var(--text-quiet);
 }
 
 .gate-back span {
@@ -1620,7 +1354,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(255, 255, 255, 0.3
 }
 
 body.dark-mode .gate-back {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-quiet-inverse);
 }
 
 body.dark-mode .gate-back:hover {
@@ -1636,7 +1370,7 @@ body.dark-mode .gate-back:focus-visible {
   font-family: 'Geist', sans-serif;
   font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 400;
-  color: #161616;
+  color: var(--text-color-light);
   margin: 0 0 0.75rem 0;
   letter-spacing: -0.02em;
 }
@@ -1645,7 +1379,7 @@ body.dark-mode .gate-back:focus-visible {
   font-family: 'Geist', sans-serif;
   font-size: clamp(0.875rem, 2vw, 1rem);
   font-weight: 400;
-  color: rgba(0, 0, 0, 0.7);
+  color: var(--text-quiet);
   margin: 0;
   line-height: 1.5;
   max-width: 100%;
@@ -1653,11 +1387,11 @@ body.dark-mode .gate-back:focus-visible {
 }
 
 body.dark-mode .gate-title {
-  color: #d5d5d5;
+  color: var(--logo-color-dark);
 }
 
 body.dark-mode .gate-description {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(var(--abs-rgb-white), var(--abs-opacity-muted));
 }
 
 .contact-email-button {
@@ -1669,9 +1403,9 @@ body.dark-mode .gate-description {
   gap: 1rem;
 
   padding: var(--gate-pad-md-y) var(--gate-pad-md-x);
-  border: 2px solid rgba(0, 0, 0, 0.12);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid var(--abs-stroke-ghost);
+  border-radius: var(--abs-radius-cta);
+  background: var(--abs-surface-glass-medium);
   backdrop-filter: blur(20px);
 
   cursor: pointer;
@@ -1684,21 +1418,21 @@ body.dark-mode .gate-description {
   display: flex;
   align-items: stretch;
   margin: 0;
-  border: 1px solid rgba(0, 0, 0, 0.18);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--abs-stroke-medium);
+  border-radius: var(--abs-radius-cta);
+  background: var(--abs-surface-glass-medium);
   backdrop-filter: blur(20px);
   overflow: hidden;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .contact-email-row:hover {
-  border-color: rgba(0, 0, 0, 0.22);
-  background: rgba(255, 255, 255, 0.75);
+  border-color: var(--abs-stroke-strong);
+  background: var(--abs-surface-glass-strong);
 }
 
 .contact-email-row:focus-within {
-  border-color: rgba(0, 0, 0, 0.18);
+  border-color: var(--abs-stroke-medium);
 }
 
 .contact-email-value {
@@ -1714,46 +1448,46 @@ body.dark-mode .gate-description {
 .contact-email-copy {
   appearance: none;
   border: 0;
-  border-left: 1px solid rgba(0, 0, 0, 0.14);
+  border-left: 1px solid var(--abs-stroke-soft);
   background: transparent;
   padding: var(--gate-pad-sm-y) var(--gate-pad-sm-x);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: rgba(0, 0, 0, 0.7);
+  color: var(--text-quiet);
 }
 
 .contact-email-row.is-copied {
-  border-color: rgba(34, 197, 94, 0.45);
+  border-color: var(--abs-state-success-strong);
 }
 
 .contact-email-row.is-error {
-  border-color: rgba(239, 68, 68, 0.45);
+  border-color: var(--abs-state-error-strong);
 }
 
 body.dark-mode .contact-email-row {
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--abs-stroke-strong-inverse);
+  background: var(--abs-surface-glass-ghost);
 }
 
 body.dark-mode .contact-email-row:hover {
-  border-color: rgba(255, 255, 255, 0.34);
-  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--abs-stroke-strong-inverse);
+  background: var(--abs-surface-glass-dark-strong);
 }
 
 body.dark-mode .contact-email-copy {
-  border-left-color: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.72);
+  border-left-color: var(--abs-stroke-ghost-inverse);
+  color: var(--text-quiet-inverse);
 }
 
 body.dark-mode .contact-email-row:focus-within {
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--abs-stroke-soft-inverse);
 }
 
 .contact-email-button:hover {
-  border-color: rgba(0, 0, 0, 0.22);
-  background: rgba(255, 255, 255, 0.75);
+  border-color: var(--abs-stroke-strong);
+  background: var(--abs-surface-glass-strong);
 }
 
 .contact-email-button:active {
@@ -1778,7 +1512,7 @@ body.dark-mode .contact-email-row:focus-within {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: rgba(0, 0, 0, 0.7);
+  color: var(--text-quiet);
   font-size: 1.25rem;
 }
 
@@ -1792,37 +1526,37 @@ body.dark-mode .contact-email-row:focus-within {
   pointer-events: none;
   font-family: 'Geist', sans-serif;
   font-size: 0.9rem;
-  color: rgba(0, 0, 0, 0.65);
+  color: var(--text-quiet-strong);
 }
 
 .contact-email-button.is-copied {
-  border-color: rgba(34, 197, 94, 0.45);
+  border-color: var(--abs-state-success-strong);
 }
 
 .contact-email-button.is-error {
-  border-color: rgba(239, 68, 68, 0.45);
+  border-color: var(--abs-state-error-strong);
 }
 
 body.dark-mode .contact-email-button {
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--abs-stroke-soft-inverse);
+  background: var(--abs-surface-glass-ghost);
 }
 
 body.dark-mode .contact-email-button:hover {
-  border-color: rgba(255, 255, 255, 0.34);
-  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--abs-stroke-strong-inverse);
+  background: var(--abs-surface-glass-dark-strong);
 }
 
 body.dark-mode .contact-email-text {
-  color: #d5d5d5;
+  color: var(--logo-color-dark);
 }
 
 body.dark-mode .contact-email-icon {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-quiet-inverse);
 }
 
 body.dark-mode .contact-copy-status {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(var(--abs-rgb-white), var(--abs-opacity-muted));
 }
 
 .cv-gate-inputs,
@@ -1850,13 +1584,13 @@ body.dark-mode .contact-copy-status {
   font-family: 'Geist Mono', monospace;
   font-weight: 600;
   text-align: center;
-  border: 2px solid rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.5);
-  background-color: rgba(255, 255, 255, 0.5);
-  color: #161616;
+  border: 2px solid var(--abs-stroke-subtle);
+  border-radius: var(--abs-radius-input);
+  background: var(--abs-surface-glass-balanced);
+  background-color: var(--abs-surface-glass-balanced);
+  color: var(--text-color-light);
   transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
-  caret-color: #161616;
+  caret-color: var(--text-color-light);
   outline: none;
   box-shadow: none;
   backdrop-filter: blur(20px);
@@ -1872,34 +1606,34 @@ body.dark-mode .contact-copy-status {
 
 .cv-digit:focus,
 .portfolio-digit:focus {
-  border-color: rgba(0, 0, 0, 0.12);
-  background: rgba(255, 255, 255, 0.55);
+  border-color: var(--abs-stroke-ghost);
+  background: var(--abs-surface-glass-medium);
   transform: none;
 }
 
 .cv-digit::placeholder,
 .portfolio-digit::placeholder {
-  color: rgba(0, 0, 0, 0.3);
+  color: var(--text-placeholder);
 }
 
 body.dark-mode .cv-digit,
 body.dark-mode .portfolio-digit {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #d5d5d5;
-  caret-color: #d5d5d5;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  background: var(--abs-surface-glass-ghost);
+  border-color: var(--abs-stroke-medium-inverse);
+  color: var(--logo-color-dark);
+  caret-color: var(--logo-color-dark);
+  box-shadow: var(--shadow-input-dark);
 }
 
 body.dark-mode .cv-digit:focus,
 body.dark-mode .portfolio-digit:focus {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--abs-stroke-medium-inverse);
+  background: var(--abs-surface-glass-ghost);
 }
 
 body.dark-mode .cv-digit::placeholder,
 body.dark-mode .portfolio-digit::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--text-placeholder-inverse);
 }
 
 #brand-logo.fade-out-up {
@@ -1927,7 +1661,7 @@ body.dark-mode .portfolio-digit::placeholder {
 }
 
 .page-flash--success {
-  background: rgba(34, 197, 94, 0.25);
+  background: var(--abs-overlay-success);
   animation: flash-success 0.6s ease-in-out;
 }
 
@@ -1938,7 +1672,7 @@ body.dark-mode .portfolio-digit::placeholder {
 }
 
 .page-flash--error {
-  background: rgba(239, 68, 68, 0.3);
+  background: var(--abs-overlay-error);
   animation: flash-error 0.3s ease-in-out;
 }
 
@@ -1985,7 +1719,7 @@ body.dark-mode .portfolio-digit::placeholder {
 .gate-overlay.active {
   backdrop-filter: blur(var(--gate-overlay-blur, 16px));
   -webkit-backdrop-filter: blur(var(--gate-overlay-blur, 16px));
-  background-color: rgba(255, 255, 255, var(--gate-overlay-opacity, 0.01));
+  background-color: rgba(var(--abs-rgb-white), var(--gate-overlay-opacity, 0.01));
   pointer-events: auto;
   
   transition: backdrop-filter var(--gate-overlay-transition-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1),
@@ -1995,7 +1729,7 @@ body.dark-mode .portfolio-digit::placeholder {
 
 @supports not (backdrop-filter: blur(10px)) {
   .gate-overlay.active {
-    background-color: rgba(255, 255, 255, 0.5);
+    background-color: var(--abs-overlay-veil);
   }
 }
 

@@ -109,6 +109,63 @@ function minifyCSS(css) {
     .trim();
 }
 
+function extractRootCssVars(css) {
+  const rootMatch = css.match(/:root\s*\{([\s\S]*?)\n\}/);
+  if (!rootMatch) return {};
+  const block = rootMatch[1];
+  const vars = {};
+  const varRegex = /--([a-z0-9-_]+)\s*:\s*([^;]+);/gi;
+  let match = null;
+  while ((match = varRegex.exec(block))) {
+    vars[`--${match[1]}`] = String(match[2]).trim();
+  }
+  return vars;
+}
+
+function resolveCssVars(vars) {
+  const cache = {};
+  const resolving = new Set();
+
+  const resolveValue = (value) => {
+    const raw = String(value || '');
+    return raw.replace(/var\((--[a-z0-9-_]+)(?:\s*,\s*([^)]+))?\)/gi, (_match, name, fallback) => {
+      if (cache[name]) return cache[name];
+      if (resolving.has(name)) return String(fallback || '').trim();
+      const next = vars[name];
+      if (!next) return String(fallback || '').trim();
+      resolving.add(name);
+      const resolved = resolveValue(next).trim();
+      resolving.delete(name);
+      cache[name] = resolved;
+      return resolved;
+    });
+  };
+
+  const resolved = {};
+  for (const [key, val] of Object.entries(vars)) {
+    resolved[key] = resolveValue(val).trim();
+  }
+  return resolved;
+}
+
+function buildTokensSnapshot(css) {
+  const cssVars = extractRootCssVars(css);
+  const resolved = resolveCssVars(cssVars);
+  return { cssVars, resolved };
+}
+
+function sanitizeInlineJson(raw) {
+  return raw.replace(/</g, '\\u003c');
+}
+
+function isValidThemeColor(value) {
+  if (!value) return false;
+  const v = String(value).trim();
+  if (!v) return false;
+  if (v.includes('var(')) return false;
+  return true;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN BUILD FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -161,12 +218,14 @@ async function buildProduction() {
     // 2a. Copy CSS bundle from source/css → public/css/bouncy-balls.css
     const cssDir = path.join(CONFIG.publicDestination, 'css');
     if (!fs.existsSync(cssDir)) fs.mkdirSync(cssDir, { recursive: true });
+    const cssTokensPath = path.join('source', 'css', 'tokens.css');
     const cssNormalizePath = path.join('source', 'css', 'normalize.css');
     const cssMainPath = path.join('source', 'css', 'main.css');
     const cssPanelPath = path.join('source', 'css', 'panel.css');
     const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
     const includePanelCSS = !(isProd && CONFIG.panelVisibleInProduction === false);
     const cssRaw = [
+      cssTokensPath,
       cssNormalizePath,
       cssMainPath,
       ...(includePanelCSS ? [cssPanelPath] : [])
@@ -217,10 +276,10 @@ async function buildProduction() {
       console.log(`✅ ${isProd ? 'Minified' : 'Copied'} runtime config (${isProd ? `-${savedBytes}B` : 'unminified'})`);
     }
 
-    // 2c.2 Copy text dictionary (minified in production)
-    const runtimeTextSrc = path.join('source', 'config', 'text.json');
-    const runtimeTextDstJs = path.join(jsDir, 'text.json');
-    const runtimeTextDstCfg = path.join(CONFIG.publicDestination, 'config', 'text.json');
+    // 2c.2 Copy home contents dictionary (minified in production)
+    const runtimeTextSrc = path.join('source', 'config', 'contents-home.json');
+    const runtimeTextDstJs = path.join(jsDir, 'contents-home.json');
+    const runtimeTextDstCfg = path.join(CONFIG.publicDestination, 'config', 'contents-home.json');
     if (fs.existsSync(runtimeTextSrc)) {
       const textRaw = fs.readFileSync(runtimeTextSrc, 'utf-8');
       const textOut = isProd ? JSON.stringify(JSON.parse(textRaw)) : textRaw;
@@ -230,7 +289,7 @@ async function buildProduction() {
       }
       fs.writeFileSync(runtimeTextDstCfg, textOut);
       const savedBytes = Buffer.byteLength(textRaw) - Buffer.byteLength(textOut);
-      console.log(`✅ ${isProd ? 'Minified' : 'Copied'} text dictionary (${isProd ? `-${savedBytes}B` : 'unminified'})`);
+      console.log(`✅ ${isProd ? 'Minified' : 'Copied'} home contents (${isProd ? `-${savedBytes}B` : 'unminified'})`);
     }
 
     // 2c.3 Portfolio config (minified in production)
@@ -249,10 +308,10 @@ async function buildProduction() {
       console.log(`✅ ${isProd ? 'Minified' : 'Copied'} portfolio config (${isProd ? `-${savedBytes}B` : 'unminified'})`);
     }
 
-    // 2c.4 Portfolio data (minified in production)
-    const portfolioDataSrc = path.join('source', 'config', 'portfolio-data.json');
-    const portfolioDataDstJs = path.join(jsDir, 'portfolio-data.json');
-    const portfolioDataDstCfg = path.join(CONFIG.publicDestination, 'config', 'portfolio-data.json');
+    // 2c.4 Portfolio contents (minified in production)
+    const portfolioDataSrc = path.join('source', 'config', 'contents-portfolio.json');
+    const portfolioDataDstJs = path.join(jsDir, 'contents-portfolio.json');
+    const portfolioDataDstCfg = path.join(CONFIG.publicDestination, 'config', 'contents-portfolio.json');
     if (fs.existsSync(portfolioDataSrc)) {
       const dataRaw = fs.readFileSync(portfolioDataSrc, 'utf-8');
       const dataOut = isProd ? JSON.stringify(JSON.parse(dataRaw)) : dataRaw;
@@ -262,7 +321,7 @@ async function buildProduction() {
       }
       fs.writeFileSync(portfolioDataDstCfg, dataOut);
       const savedBytes = Buffer.byteLength(dataRaw) - Buffer.byteLength(dataOut);
-      console.log(`✅ ${isProd ? 'Minified' : 'Copied'} portfolio data (${isProd ? `-${savedBytes}B` : 'unminified'})`);
+      console.log(`✅ ${isProd ? 'Minified' : 'Copied'} portfolio contents (${isProd ? `-${savedBytes}B` : 'unminified'})`);
     }
 
     // 2d. Run Rollup via dynamic import to avoid ESM/CJS friction
@@ -299,6 +358,7 @@ async function buildProduction() {
         // Strip unbundled CSS links (portfolio should mirror index build behavior)
         pHtml = pHtml
           .replace(/^\s*<!-- Dev Modules CSS \(unbundled\) -->\s*$/gm, '')
+          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/tokens\.css">\s*$/gm, '')
           .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/normalize\.css">\s*$/gm, '')
           .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/main\.css">\s*$/gm, '')
           .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/panel\.css">\s*$/gm, '');
@@ -339,6 +399,7 @@ async function buildProduction() {
     html = html
       // Strip unbundled CSS links
       .replace(/^\s*<!-- Dev Modules CSS \(unbundled\) -->\s*$/gm, '')
+      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/tokens\.css">\s*$/gm, '')
       .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/normalize\.css">\s*$/gm, '')
       .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/main\.css">\s*$/gm, '')
       .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/panel\.css">\s*$/gm, '')

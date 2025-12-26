@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                          TEXT LOADER (SOURCE OF TRUTH)                       ║
-// ║     Loads `source/config/text.json` (dev) or reads `window.__TEXT__` (prod)   ║
+// ║  Loads `source/config/contents-home.json` (dev) or reads `window.__TEXT__`    ║
 // ║                 Guarantee: no dialog/text pop-in once visible                ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -21,6 +21,9 @@ function readWindowText() {
 
 async function fetchTextJSON() {
   const paths = [
+    'config/contents-home.json',
+    'js/contents-home.json',
+    '../public/js/contents-home.json',
     'config/text.json',
     'js/text.json',
     '../public/js/text.json',
@@ -36,7 +39,7 @@ async function fetchTextJSON() {
       // Try next path
     }
   }
-  throw new Error('No text.json found');
+  throw new Error('No contents-home.json found');
 }
 
 /**
@@ -86,5 +89,4 @@ export function getText(path, fallback = '') {
   }
   return cur;
 }
-
 

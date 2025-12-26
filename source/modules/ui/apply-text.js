@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                           APPLY RUNTIME TEXT (DOM)                            ║
-// ║     Single source of truth: source/config/text.json → window.__TEXT__         ║
+// ║  Single source of truth: source/config/contents-home.json → window.__TEXT__   ║
 // ║     Goal: apply ALL user-facing copy before fade-in (no pop-in)               ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -163,5 +163,4 @@ export function applyRuntimeTextToDOM() {
     // Never allow copy application to crash boot.
   }
 }
-
 
