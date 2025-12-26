@@ -654,6 +654,16 @@ class PortfolioApp {
     this.wheelRadiusX = this.getCssLength('--wheel-radius-x', window.innerWidth * 0.35);
     this.wheelRadiusY = this.getCssLength('--wheel-radius-y', window.innerHeight * 0.18);
     this.wheelSpacing = this.getCssLength('--wheel-spacing', 0);
+    // Enforce a minimum spacing derived from actual card width and angular step
+    const baseSpacing = this.wheelSpacing;
+    const firstSlide = this.slides?.[0];
+    const cardWidthPx = firstSlide?.getBoundingClientRect?.()?.width || 0;
+    const step = this.wheelStep || this.wheelBaseStep || 0;
+    if (cardWidthPx > 0 && step > 0) {
+      const minRadius = (cardWidthPx * 1.1) / (2 * Math.max(Math.sin(step / 2), 0.001));
+      const requiredSpacing = Math.max(0, minRadius - this.wheelRadiusX);
+      this.wheelSpacing = Math.max(baseSpacing, requiredSpacing);
+    }
     this.wheelCenterX = this.getCssLength('--wheel-center-x', 0);
     this.wheelCenterY = this.getCssLength('--wheel-center-y', 0);
     const tiltDeg = this.getCssNumber('--wheel-tilt', 60);
