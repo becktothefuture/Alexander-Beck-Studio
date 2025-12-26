@@ -221,7 +221,7 @@
   --decorative-script-max-width: clamp(288px, 30vw, 403px);
   --decorative-script-font-size: var(--text-sm);
   --decorative-script-line-height: var(--line-height-base);
-  --decorative-script-letter-spacing: 0.01em;
+  --decorative-script-letter-spacing: calc(0.01em * 1.02); /* +2% letter spacing */
   --decorative-script-padding-left: var(--gap-md);
   --decorative-script-padding-vertical: var(--gap-sm);
   
@@ -229,13 +229,14 @@
   --footer-icon-size: var(--size-icon);
   --footer-links-padding: var(--tap-target);
   --footer-links-font-size: clamp(14px, 1.4vw, 18px);
+  --footer-links-letter-spacing: calc(0.02ch * 1.02); /* +2% letter spacing */
   /* Footer link hover dot (keep legacy visuals but avoid raw px literals in rules) */
   --footer-link-dot-size: 4px;
   --footer-link-dot-offset: 8px;
   
   --caption-font-size: var(--text-lg);
-  /* Molle: render “thick” consistently (synthetic weight if needed). */
-  --caption-font-weight: 800;
+  /* Sarina ships as a single regular weight. */
+  --caption-font-weight: 400;
   --caption-line-height: var(--line-height-tight);
   --caption-letter-spacing: 0.01em;
   --caption-offset: var(--gap-sm);
@@ -815,24 +816,30 @@ p {
   pointer-events: auto !important;
 }
 
-.footer_link {
+.footer_link,
+.portfolio-cv-link,
+#header-cv-link {
   position: relative !important;
   transform: none !important;
   padding-block: var(--hit-area-lg) !important; /* Larger hit area without affecting layout */
   padding-inline: var(--hit-area-lg) !important;
   margin-block: calc(var(--hit-area-lg) * -1) !important;
   margin-inline: calc(var(--hit-area-lg) * -1) !important;
-  display: inline-block;
+  display: inline-block !important;
+  pointer-events: auto !important;
   color: var(--text-color-light-muted) !important;
   font-size: var(--footer-links-font-size) !important;
-  letter-spacing: 0.02ch !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--footer-links-letter-spacing) !important;
   text-decoration: none !important; /* No underline */
   opacity: var(--text-opacity-base);
   transition: color var(--duration-link-hover) ease;
   cursor: none !important; /* Maintain custom cursor experience */
 }
 
-.footer_link::after {
+.footer_link::after,
+.portfolio-cv-link::after,
+#header-cv-link::after {
   content: '';
   position: absolute;
   bottom: var(--footer-link-dot-offset);
@@ -847,12 +854,16 @@ p {
   will-change: transform, opacity;
 }
 
-.footer_link:hover {
+.footer_link:hover,
+.portfolio-cv-link:hover,
+#header-cv-link:hover {
   color: var(--link-hover-color) !important;
   opacity: 1 !important; /* Remove opacity on hover - full strength color */
 }
 
-.footer_link:hover::after {
+.footer_link:hover::after,
+.portfolio-cv-link:hover::after,
+#header-cv-link:hover::after {
   opacity: 1;
   animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
 }
@@ -987,10 +998,10 @@ p {
   margin: 0 !important;
   padding: 0 !important;
   height: auto !important;
-  font-family: 'Molle', cursive !important;
-  font-style: italic !important; /* Molle is italic-only */
+  font-family: 'Sarina', cursive !important;
+  font-style: normal !important; /* Sarina ships in regular only */
   font-size: var(--caption-font-size) !important;
-  font-weight: 400 !important; /* Molle only has one weight */
+  font-weight: 400 !important; /* Sarina only has one weight */
   line-height: 1 !important;
   opacity: var(--text-opacity-base);
   color: var(--text-color-light-muted);
@@ -1004,14 +1015,14 @@ p {
   color: var(--text-color-light-base) !important;
 }
 
-/* Location name (London) - Molle (italic-only font) */
+/* Location name (London) - Sarina (script font) */
 .location-name {
-  font-family: 'Molle', cursive !important;
-  font-style: italic !important;
+  font-family: 'Sarina', cursive !important;
+  font-style: normal !important;
   font-weight: 400 !important;
 }
 
-/* Time Display - Geist font (not Molle) */
+/* Time Display - Geist font (not Sarina) */
 #time-display {
   font-family: 'Geist', sans-serif !important;
   font-style: normal !important;
@@ -1234,6 +1245,8 @@ body.dark-mode .noise-3 {
 }
 
 body.dark-mode .footer_link,
+body.dark-mode .portfolio-cv-link,
+body.dark-mode #header-cv-link,
 body.dark-mode .footer_icon-link,
 body.dark-mode .legend__item,
 body.dark-mode p,
@@ -1449,4 +1462,557 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(255, 255, 255, 0.3
 :root {
   --gate-depth-scale-active: 1;
   --gate-depth-ty-active: 0px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PASSWORD GATE — CV & PORTFOLIO PROTECTION SYSTEM (merged from password-gate.css)
+   4-digit input that swaps position with logo, validates code
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.cv-gate,
+.portfolio-gate,
+.contact-gate {
+  --gate-pad-3xs: 0.25rem;
+  --gate-pad-xs: 0.45rem;
+  --gate-pad-sm-y: 0.75rem;
+  --gate-pad-sm-x: 0.85rem;
+  --gate-pad-md-y: 0.9rem;
+  --gate-pad-md-x: 1.05rem;
+  --gate-pad-nav-right: 6px;
+  --gate-shift-y: 0%;
+}
+
+.cv-gate,
+.portfolio-gate,
+.contact-gate {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: scale(1.05);
+  z-index: 1;
+  pointer-events: none;
+  
+  opacity: 0;
+  transition: opacity var(--gate-overlay-transition-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1),
+              transform var(--gate-overlay-transition-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
+  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.5rem, 3vw, 2rem);
+  font-size: clamp(0.9em, 0.95em + 0.2vw, 1em);
+
+  width: min(80vw, 480px);
+  max-width: min(80vw, 480px);
+  padding-inline: var(--abs-gate-mobile-pad-x, 20px);
+  padding-block: clamp(20px, 10vw, 64px);
+  max-height: none;
+  overflow: visible;
+  box-sizing: border-box;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cv-gate,
+.portfolio-gate {
+  padding-inline: calc(var(--abs-gate-mobile-pad-x, 20px) + var(--gate-pad-md-x));
+}
+
+@media (max-width: 768px) {
+  .cv-gate,
+  .portfolio-gate {
+    padding-inline: 10vw;
+  }
+}
+
+@media (min-width: 769px) {
+  .cv-gate,
+  .portfolio-gate {
+    padding-inline: calc(var(--abs-gate-mobile-pad-x, 20px) + var(--gate-pad-md-x));
+  }
+}
+
+.cv-gate::-webkit-scrollbar,
+.portfolio-gate::-webkit-scrollbar,
+.contact-gate::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.cv-gate.hidden,
+.portfolio-gate.hidden,
+.contact-gate.hidden {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.cv-gate.active,
+.portfolio-gate.active,
+.contact-gate.active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  visibility: visible;
+  
+  transition: opacity var(--gate-overlay-transition-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1) var(--gate-content-delay, 200ms),
+              transform var(--gate-overlay-transition-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1) var(--gate-content-delay, 200ms);
+}
+
+.gate-label {
+  text-align: center;
+  width: 100%;
+  max-width: clamp(300px, 80vw, 480px);
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease 0.2s, transform 0.3s ease 0.2s;
+}
+
+.cv-gate.active .gate-label,
+.portfolio-gate.active .gate-label,
+.contact-gate.active .gate-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.gate-nav {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 0 0 0.75rem 0;
+}
+
+.gate-back {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  background-color: rgba(255, 255, 255, 0);
+  padding: var(--gate-pad-xs);
+  margin: 0;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
+  user-select: none;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.gate-back span {
+  display: none;
+}
+
+.gate-back i.ti {
+  font-weight: 500;
+}
+
+.gate-back:hover {
+  color: var(--link-hover-color);
+}
+
+.gate-back:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+body.dark-mode .gate-back {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.dark-mode .gate-back:hover {
+  color: var(--link-hover-color);
+}
+
+body.dark-mode .gate-back:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.gate-title {
+  font-family: 'Geist', sans-serif;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 400;
+  color: #161616;
+  margin: 0 0 0.75rem 0;
+  letter-spacing: -0.02em;
+}
+
+.gate-description {
+  font-family: 'Geist', sans-serif;
+  font-size: clamp(0.875rem, 2vw, 1rem);
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.7);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+body.dark-mode .gate-title {
+  color: #d5d5d5;
+}
+
+body.dark-mode .gate-description {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.contact-email-button {
+  width: 100%;
+  max-width: clamp(320px, 80vw, 520px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  padding: var(--gate-pad-md-y) var(--gate-pad-md-x);
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px);
+
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+}
+
+.contact-email-row {
+  width: 100%;
+  max-width: clamp(320px, 80vw, 520px);
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.contact-email-row:hover {
+  border-color: rgba(0, 0, 0, 0.22);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.contact-email-row:focus-within {
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+.contact-email-value {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: var(--gate-pad-md-y) var(--gate-pad-md-x);
+  flex: 1 1 auto;
+  cursor: pointer;
+  text-align: left;
+}
+
+.contact-email-copy {
+  appearance: none;
+  border: 0;
+  border-left: 1px solid rgba(0, 0, 0, 0.14);
+  background: transparent;
+  padding: var(--gate-pad-sm-y) var(--gate-pad-sm-x);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.contact-email-row.is-copied {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.contact-email-row.is-error {
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+body.dark-mode .contact-email-row {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .contact-email-row:hover {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+body.dark-mode .contact-email-copy {
+  border-left-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.dark-mode .contact-email-row:focus-within {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.contact-email-button:hover {
+  border-color: rgba(0, 0, 0, 0.22);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.contact-email-button:active {
+  transform: scale(0.99);
+}
+
+.contact-email-button:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.contact-email-text {
+  font-family: 'Geist Mono', monospace;
+  font-size: clamp(1.15rem, 3vw, 1.9rem);
+  font-weight: 400;
+  letter-spacing: 0.608px;
+  color: var(--text-color-light-muted);
+}
+
+.contact-email-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 1.25rem;
+}
+
+.contact-copy-status {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 0.35rem);
+  transform: translateX(-50%);
+  width: 100%;
+  text-align: center;
+  pointer-events: none;
+  font-family: 'Geist', sans-serif;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.contact-email-button.is-copied {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.contact-email-button.is-error {
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+body.dark-mode .contact-email-button {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .contact-email-button:hover {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+body.dark-mode .contact-email-text {
+  color: #d5d5d5;
+}
+
+body.dark-mode .contact-email-icon {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+body.dark-mode .contact-copy-status {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.cv-gate-inputs,
+.portfolio-gate-inputs {
+  display: flex;
+  gap: clamp(0.8rem, 1.5vw, 1.2rem);
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.contact-gate-inputs {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+
+.cv-digit,
+.portfolio-digit {
+  width: clamp(3.5rem, 8vw, 5rem);
+  height: clamp(3.5rem, 8vw, 5rem);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-family: 'Geist Mono', monospace;
+  font-weight: 600;
+  text-align: center;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.5);
+  color: #161616;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+  caret-color: #161616;
+  outline: none;
+  box-shadow: none;
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+.cv-digit::-webkit-scrollbar,
+.portfolio-digit::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.cv-digit:focus,
+.portfolio-digit:focus {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.55);
+  transform: none;
+}
+
+.cv-digit::placeholder,
+.portfolio-digit::placeholder {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .cv-digit,
+body.dark-mode .portfolio-digit {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #d5d5d5;
+  caret-color: #d5d5d5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .cv-digit:focus,
+body.dark-mode .portfolio-digit:focus {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .cv-digit::placeholder,
+body.dark-mode .portfolio-digit::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+#brand-logo.fade-out-up {
+  transition: opacity 0.4s cubic-bezier(0.4, 0.0, 0.2, 1),
+              transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.fade-out-up {
+  opacity: 0;
+  transform: translateY(-30px) scale(0.95);
+  pointer-events: none;
+}
+
+.page-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 21000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in;
+}
+
+.page-flash--active {
+  opacity: 1;
+}
+
+.page-flash--success {
+  background: rgba(34, 197, 94, 0.25);
+  animation: flash-success 0.6s ease-in-out;
+}
+
+@keyframes flash-success {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.page-flash--error {
+  background: rgba(239, 68, 68, 0.3);
+  animation: flash-error 0.3s ease-in-out;
+}
+
+@keyframes flash-error {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.gate-overlay {
+  position: fixed;
+  top: var(--abs-vv-offset-top, 0px);
+  left: var(--abs-vv-offset-left, 0px);
+  width: var(--abs-vv-w, 100vw);
+  height: var(--abs-vv-h, 100vh);
+  z-index: 19999;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(env(safe-area-inset-top, 0px) + var(--gap-sm))
+           calc(env(safe-area-inset-right, 0px) + var(--gap-sm))
+           calc(env(safe-area-inset-bottom, 0px) + var(--gap-sm))
+           calc(env(safe-area-inset-left, 0px) + var(--gap-sm));
+  
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  background-color: transparent;
+  
+  transition: backdrop-filter var(--gate-overlay-transition-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1),
+              -webkit-backdrop-filter var(--gate-overlay-transition-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1),
+              background-color var(--gate-overlay-transition-out-duration, 250ms) cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+.gate-modal-host {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.gate-overlay.active {
+  backdrop-filter: blur(var(--gate-overlay-blur, 16px));
+  -webkit-backdrop-filter: blur(var(--gate-overlay-blur, 16px));
+  background-color: rgba(255, 255, 255, var(--gate-overlay-opacity, 0.01));
+  pointer-events: auto;
+  
+  transition: backdrop-filter var(--gate-overlay-transition-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1),
+              -webkit-backdrop-filter var(--gate-overlay-transition-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1),
+              background-color var(--gate-overlay-transition-duration, 400ms) cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+@supports not (backdrop-filter: blur(10px)) {
+  .gate-overlay.active {
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-gate,
+  .portfolio-gate,
+  .contact-gate,
+  #brand-logo,
+  .gate-label,
+  .contact-email-button,
+  .contact-email-row,
+  .gate-overlay {
+    transition: none !important;
+  }
+  
+  .gate-overlay.active {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }

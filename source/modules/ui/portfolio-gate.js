@@ -103,15 +103,26 @@ export function initPortfolioGate() {
         const wasAnyGateActive = isAnyGateActive();
 
         // Prefetch portfolio resources (non-blocking)
+        const basePath = (() => {
+            try {
+                const b = window.PORTFOLIO_BASE || '';
+                return b && !b.endsWith('/') ? `${b}/` : b;
+            } catch (e) {
+                return '';
+            }
+        })();
+        const bundlePath = (typeof __DEV__ !== 'undefined' && __DEV__)
+            ? 'modules/portfolio/app.js'
+            : 'js/portfolio-bundle.js';
         const prefetchLink = document.createElement('link');
         prefetchLink.rel = 'prefetch';
-        prefetchLink.href = 'portfolio/page/js/portfolio-bundle.js'; // path in prod
+        prefetchLink.href = `${basePath}${bundlePath}`;
         document.head.appendChild(prefetchLink);
         
         const preloadImg = document.createElement('link');
         preloadImg.rel = 'preload';
         preloadImg.as = 'image';
-        preloadImg.href = 'portfolio/page/assets/background-assets/paper-holes.webp';
+        preloadImg.href = `${basePath}images/portfolio/pages/chapter-0-1.webp`;
         document.head.appendChild(preloadImg);
         
         // Close CV gate if it's open
@@ -327,5 +338,3 @@ export function initPortfolioGate() {
         });
     });
 }
-
-

@@ -8,10 +8,11 @@ This document describes the configuration keys that are copied into the producti
 
 ## Portfolio Page Configuration (Separate Runtime)
 
-The **portfolio page** (`source/portfolio/page/`) uses a **separate config file** and loader:
+The **portfolio page** (see `source/portfolio.html`) uses a **separate config file** and loader:
 
 - **Source of truth (portfolio)**: `source/config/portfolio-config.json`
-- **Loader/normalizer**: `source/portfolio/page/portfolio-config.js`
+- **Portfolio data (slides/content)**: `source/config/portfolio-data.json`
+- **Loader/normalizer**: `source/modules/portfolio/portfolio-config.js`
 
 The portfolio config is copied into the build as `public/js/portfolio-config.json` and is applied only to the portfolio carousel + portfolio-only effects (it does **not** affect the main simulation).
 
@@ -38,7 +39,9 @@ Relevant keys (all strings, applied as CSS variables):
 
 ### Portfolio `runtime.sound` (Carousel scroll + detail SFX)
 
-These keys control the **portfolio carousel sound cues** (implemented in `source/portfolio/page/app.js` using `source/modules/audio/sound-engine.js`).
+These keys control the **portfolio carousel sound cues** (implemented in `source/modules/portfolio/app.js` using `source/modules/audio/sound-engine.js`).
+
+Portfolio content (cover + gallery + detail blocks) is pulled from `config/portfolio-data.json` and resolved against `images/portfolio/` (mirrored to `public/` at build time).
 
 ```json
 {
@@ -635,5 +638,3 @@ The following legacy keys are still accepted and will be converted to vw at star
 - [`MODES.md`](./MODES.md) — Mode behavior & keyboard shortcuts
 - [`SOUND.md`](./SOUND.md) — Collision sound system
 - [`BUILD-SYSTEM.md`](./BUILD-SYSTEM.md) — How config gets copied into `public/`
-
-

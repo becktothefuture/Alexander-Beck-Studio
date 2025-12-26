@@ -16,7 +16,7 @@
 import { showOverlay, hideOverlay, mountGateIntoOverlay, unmountGateFromOverlay } from './gate-overlay.js';
 import { getText } from '../utils/text-loader.js';
 
-const TRANSITION_MS = 400; // Must match password-gate.css transitions
+const TRANSITION_MS = 400; // Must match gate transitions defined in main.css
 const COPY_FEEDBACK_MS = 1200;
 
 async function copyToClipboard(text) {
@@ -291,4 +291,3 @@ export function initContactGate() {
     }
   } catch (e) {}
 }
-

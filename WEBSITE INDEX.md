@@ -30,7 +30,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 - `main.js` – bootstrap: load config → set layout vars → renderer → modes → UI → loop → randomized startup mode.
 - `config/default-config.json` – runtime physics/visual defaults copied into build.
 - `css/` – styles scoped to the simulation/panel:
-  - `main.css` (base), `panel.css`, `panel-dock.css` (right dock), `password-gate.css`, `sound-panel.css`.
+- `normalize.css` (base reset), `main.css` (site + gates), `panel.css` (panel, dock, sound controls).
 - `fonts/` – Tabler icons for UI glyphs.
 - `modules/`
   - **core/** `constants.js`, `state.js` (mode registry, globals, layout vars).
@@ -113,4 +113,3 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 - Consider trimming `index-annotated.html` if duplicate of `index.html`.
 - Keep test artifacts (`playwright-report/`, `test-results/`) out of release packages.
 - No external export resync required.
-

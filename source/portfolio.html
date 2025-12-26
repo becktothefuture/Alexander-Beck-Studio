@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Portfolio carousel page (shares chrome + gates with index) -->
 <html lang="en">
 <head>
   <style id="fade-blocking">#fade-content{opacity:0}</style>
@@ -8,15 +9,14 @@
   <!-- Dev/source: mirror index chrome so typography + UI sizing match exactly. -->
   <link rel="stylesheet" href="css/normalize.css">
   <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/password-gate.css">
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400&family=Molle:ital@1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400&family=Sarina&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/panel.css">
-  <link rel="stylesheet" href="css/panel-dock.css">
-  <link rel="stylesheet" href="portfolio/page/style.css">
+  <link rel="stylesheet" href="css/portfolio.css">
   <script>
     // Soft gate: if no token, bounce back and auto-open the gate.
+    // PORTFOLIO_BASE stays blank for root hosting; change if served from a subfolder.
     (function() {
       const token = sessionStorage.getItem('abs_portfolio_ok');
       if (!token) {
@@ -24,7 +24,7 @@
         window.location.replace('index.html');
         return;
       }
-      window.PORTFOLIO_BASE = 'portfolio/page/';
+      window.PORTFOLIO_BASE = '';
     })();
   </script>
 </head>
@@ -126,6 +126,6 @@
 
   <!-- Panel dock is injected in dev only (mirrors index behavior). -->
 
-  <script type="module" src="portfolio/page/app.js"></script>
+  <script type="module" src="modules/portfolio/app.js"></script>
 </body>
 </html>

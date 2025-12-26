@@ -12,6 +12,8 @@ This launches an interactive menu that guides you through all available developm
 
 Note: The project no longer syncs external exports into `source/`. Dev and production both use the canonical `source/` layout/assets.
 
+Portfolio follows the same pattern: in dev (`npm run dev`) `source/portfolio.html` loads `modules/portfolio/app.js` directly; in preview/build it loads the bundled `public/js/portfolio-bundle.js` plus `public/css/portfolio.css` with data/config copied to `public/config/`.
+
 ---
 
 ## Development Modes Overview
@@ -219,8 +221,7 @@ source/
 ├── index.html           → Dev HTML (uses modules)
 ├── css/
 │   ├── main.css         → Core styles
-│   ├── panel.css        → Panel styles
-│   ├── panel-dock.css   → Dock styles
+│   ├── panel.css        → Panel + dock + sound styles
 │   └── ...
 └── modules/
     ├── core/            → State, lifecycle
@@ -428,4 +429,3 @@ For dual-mode development:
 - Orange badge = Production build (requires rebuild)
 - Press `/` to toggle control panel
 - Port 8001 = development, Port 8000 = production
-

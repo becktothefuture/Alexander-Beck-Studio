@@ -141,9 +141,9 @@ export default [{
   ]
 }, {
   // Portfolio Page Bundle
-  input: 'source/portfolio/page/app.js',
+  input: 'source/modules/portfolio/app.js',
   output: {
-    file: 'public/portfolio/page/js/portfolio-bundle.js',
+    file: 'public/js/portfolio-bundle.js',
     format: 'iife',
     name: 'PortfolioPage',
     sourcemap: !isProd,

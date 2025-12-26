@@ -382,7 +382,7 @@ function enhanceFooterLinksForMobile() {
     // Register force render callback for resize (prevents blank frames during drag-resize)
     setForceRenderCallback(render);
     
-    // NOTE: Scroll FX is portfolio-only (see `source/portfolio/page/`).
+    // NOTE: Scroll FX is portfolio-only (see `source/modules/portfolio/`).
 
     // Start main render loop
     const getForces = () => getForceApplicator();

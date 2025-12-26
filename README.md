@@ -22,7 +22,7 @@ npm run startup    # choose dev/preview/watch from menu
 # or
 npm run dev        # port 8001, instant reload
 npm run preview    # port 8000, production bundle
-npm run build      # produce public/js/bouncy-balls-embed.js
+npm run build      # produce public/js/bouncy-balls-embed.js + public/js/portfolio-bundle.js
 ```
 
 Open `http://localhost:8001` for dev or `http://localhost:8000` for the production bundle. Never edit `public/` by hand.
@@ -64,6 +64,7 @@ See `docs/reference/MODES.md` for the authoritative mode list + narrative orderi
 
 ## How it is built (why it works this way)
 - **Source-first**: all edits in `source/`; build emits `public/js/bouncy-balls-embed.js`. Exported HTML/CSS assets are composed at build-time and are never hand-edited post-build.
+- **Portfolio mirrors the same pattern**: `source/portfolio.html` loads the shared chrome plus `modules/portfolio/app.js`; build emits `public/js/portfolio-bundle.js`, `public/css/portfolio.css`, and copies `config/portfolio-*.json`.
 - **Constant-time hot paths**: spatial grid for collisions, minimal allocations per frame, dt capped for Safari/Chrome parity.
 - **Scoped styles**: everything contained in `#bravia-balls`; CSS variables drive palette, wall, and grain; panel styles are confined to the dock.
 - **Config-injected**: runtime config pulled from `config/default-config.json` (or inlined); localStorage optional and off for physics state by default.
@@ -77,18 +78,23 @@ See `docs/reference/MODES.md` for the authoritative mode list + narrative orderi
 source/
   main.js            # bootstrap: config → layout vars → renderer → modes → UI
   css/               # base, panel, gates, sound panel
+    portfolio.css    # portfolio carousel styling (shares chrome with index)
+  images/portfolio/  # portfolio covers, slides, and videos (shared by both dev/prod)
   modules/
     core/            # constants, global state
     physics/         # Ball class, collision, engine, spawn, wall state, text colliders
     rendering/       # renderer, loop, cursor, effects, theme
     modes/           # ball-pit, pit-throws, flies, weightless, water, vortex, ping-pong, magnetic, bubbles, kaleidoscope, critters, controller
     ui/              # panel dock, control registry, gates, toggles, brand interactions, time/social
+    portfolio/       # portfolio carousel entry + panel (mirrors the index chrome)
     input/           # pointer tracking
     audio/           # sound engine + control registry
     utils/           # accessibility, logger, performance, storage
     visual/          # colors, dark-mode-v2 (active), mouse trail
+  config/            # default-config.json, text.json, portfolio-config.json, portfolio-data.json
+  portfolio.html     # gated portfolio page that consumes modules/portfolio/app.js
 public/              # generated bundle + css/images (do not edit)
-docs/                # core, development, reference, operations
+docs/                # lean docs: dev workflow + reference (config, integration, modes, portfolio)
 ```
 
 ---
@@ -102,6 +108,19 @@ docs/                # core, development, reference, operations
 <script src="js/bouncy-balls-embed.js"></script>
 ```
 See `docs/reference/INTEGRATION.md` for host-page notes and `docs/reference/CONFIGURATION.md` for tunables.
+
+## Docs to know
+- Dev workflow: `docs/development/DEV-WORKFLOW.md`
+- Config + tunables: `docs/reference/CONFIGURATION.md`
+- Integration snippet: `docs/reference/INTEGRATION.md`
+- Portfolio specifics: `docs/reference/PORTFOLIO.md`
+- Mode list: `docs/reference/MODES.md`
+
+### Portfolio experience (gated)
+- Entry: `source/portfolio.html` (same chrome as index, gated via `portfolio-gate.js`).
+- Runtime: `modules/portfolio/app.js` loads `config/portfolio-config.json` + `config/portfolio-data.json`, and assets under `images/portfolio/`.
+- To edit portfolio content: update `config/portfolio-data.json` and drop new media into `images/portfolio/` (keep paths matching the JSON).
+- Build output: `public/js/portfolio-bundle.js`, `public/css/portfolio.css`, `public/config/portfolio-config.json`, `public/config/portfolio-data.json`.
 
 ---
 
