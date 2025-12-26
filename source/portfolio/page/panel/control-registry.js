@@ -12,7 +12,6 @@ const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--top-logo-width-vw', String(val));
         }
       },
-      { id: 'brandLogoScale', label: 'Brand Logo Scale', cssVar: '--brand-logo-user-scale', type: 'range', min: 0.5, max: 2, step: 0.01, unit: '', default: 1 },
       // Use dvh to match the shipped config + avoid silently converting 100dvh -> 100vh in snapshots.
       { id: 'sliderMaxHeight', label: 'Max Height', cssVar: '--slider-max-height', type: 'range', min: 40, max: 100, step: 1, unit: 'dvh', default: 100, refresh: true },
       { id: 'wheelRadiusX', label: 'Wheel Radius X', cssVar: '--wheel-radius-x', type: 'range', min: 10, max: 100, step: 1, unit: 'vw', default: 36, refresh: true },
