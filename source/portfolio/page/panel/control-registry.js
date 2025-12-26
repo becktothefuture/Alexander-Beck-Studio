@@ -17,7 +17,7 @@ const CONTROL_SECTIONS = {
       { id: 'sliderMaxHeight', label: 'Max Height', cssVar: '--slider-max-height', type: 'range', min: 40, max: 100, step: 1, unit: 'dvh', default: 100, refresh: true },
       { id: 'wheelRadiusX', label: 'Wheel Radius X', cssVar: '--wheel-radius-x', type: 'range', min: 10, max: 100, step: 1, unit: 'vw', default: 36, refresh: true },
       { id: 'wheelRadiusY', label: 'Wheel Radius Y', cssVar: '--wheel-radius-y', type: 'range', min: 2, max: 60, step: 1, unit: 'vh', default: 14, refresh: true },
-      { id: 'wheelSpacingRatio', label: 'Wheel Spacing (Ratio)', cssVar: '--wheel-spacing-ratio', type: 'range', min: 0, max: 1, step: 0.01, unit: '', default: 0.18, refresh: true },
+      { id: 'wheelSpacingRatio', label: 'Wheel Spacing (Ratio)', cssVar: '--wheel-spacing-ratio', type: 'range', min: 0, max: 1, step: 0.01, unit: '', default: 0.22, refresh: true },
       { id: 'wheelCenterX', label: 'Center X', cssVar: '--wheel-center-x', type: 'range', min: -50, max: 50, step: 0.5, unit: 'vw', default: 0, refresh: true },
       { id: 'wheelCenterY', label: 'Center Y', cssVar: '--wheel-center-y', type: 'range', min: -50, max: 50, step: 0.5, unit: 'vh', default: -6, refresh: true },
       { id: 'wheelTilt', label: 'Wheel Tilt', cssVar: '--wheel-tilt', type: 'range', min: 0, max: 180, step: 1, unit: 'deg', default: 60, refresh: true },

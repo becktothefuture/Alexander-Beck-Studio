@@ -4,7 +4,7 @@
     "--slider-max-height": "100dvh",
     "--wheel-radius-x": "66vw",
     "--wheel-radius-y": "28vh",
-    "--wheel-spacing-ratio": "0.18",
+    "--wheel-spacing-ratio": "0.22",
     "--wheel-center-x": "0vw",
     "--wheel-center-y": "-6vh",
     "--wheel-tilt": "66deg",

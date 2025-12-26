@@ -8,8 +8,8 @@
   --wheel-radius-x: 36vw;
   --wheel-radius-y: 14vh;
   /* Card spacing as ratio of card width (prevents overlap on small screens) */
-  --wheel-spacing-ratio: 0.18;
-  --wheel-spacing: calc(var(--card-width) * var(--wheel-spacing-ratio));
+  --wheel-spacing-ratio: 0.22;
+  --wheel-spacing: max(calc(var(--card-width) * var(--wheel-spacing-ratio)), 7vw);
   --wheel-center-x: 0vw;
   --wheel-center-y: -6vh;
   --wheel-rotate: 12deg;
@@ -47,6 +47,7 @@
   --card-width: calc(var(--card-height) * var(--card-aspect-w) / var(--card-aspect-h));
   --corner-radius: 3vmin;
   --border-width: 0.6vmin;
+  --card-content-inset: clamp(6px, 1vw, 12px);
 
   /* --- Appearance --- */
   --active-shadow-intensity: 0.2;
@@ -162,11 +163,11 @@ body.dark-mode {
   width: 100%;
   z-index: 9000;
   background: transparent;
-  padding: clamp(12px, 2vmin, 24px) clamp(16px, 3vmin, 32px);
+  padding: clamp(14px, 2.4vmin, 28px) clamp(18px, 3.6vmin, 36px);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: clamp(16px, 3vw, 32px);
+  column-gap: clamp(18px, 3.2vw, 36px);
   pointer-events: none;
 }
 
@@ -255,9 +256,12 @@ body.dark-mode .top-nav__cv:hover {
   flex-direction: column;
   align-items: center;
   gap: clamp(6px, 1vw, 10px);
+  padding-inline: clamp(8px, 2vw, 16px);
+  min-width: clamp(140px, 42vw, 250px);
   max-width: clamp(120px, 40vw, 250px);
   cursor: pointer;
   text-decoration: none;
+  flex-shrink: 0;
   transition: opacity 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
               transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -539,6 +543,8 @@ body.dark-mode .portfolio-noise--back {
 }
 
 .slide-image-container {
+  box-sizing: border-box;
+  padding: var(--card-content-inset);
   width: 100%;
   height: 100%;
   border-radius: var(--corner-radius);
@@ -1251,8 +1257,8 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
     --wheel-radius-x: 46vw;
     --wheel-radius-y: 18vh;
     /* Mobile: tighter spacing ratio to prevent overlap on small screens */
-    --wheel-spacing-ratio: 0.12;
-    --wheel-spacing: calc(var(--card-width) * var(--wheel-spacing-ratio));
+    --wheel-spacing-ratio: 0.16;
+    --wheel-spacing: max(calc(var(--card-width) * var(--wheel-spacing-ratio)), 6vw);
     --wheel-center-y: -4vh;
     --wheel-tilt: 55deg;
     --wheel-active-lift: 2vh;
