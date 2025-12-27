@@ -6,7 +6,6 @@
 
 import { getGlobals } from '../core/state.js';
 import { autoSaveSettings } from '../utils/storage.js';
-import { deriveWallParamsFromHighLevel, applyWallPreset } from '../physics/wall-state.js';
 import { WALL_PRESETS, ORBIT3D_PRESETS, PARALLAX_LINEAR_PRESETS, PARALLAX_PERSPECTIVE_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyOrbit3DPreset } from '../modes/orbit-3d.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
@@ -1347,26 +1346,6 @@ export const CONTROL_SECTIONS = {
           import('../physics/engine.js').then(mod => {
             mod.syncChromeColor();
           });
-        }
-      },
-      {
-        id: 'wallPreset',
-        label: 'Material',
-        stateKey: 'wallPreset',
-        type: 'select',
-        // Explicit order + artist-facing copy (don't rely on Object.keys order).
-        options: [
-          { value: 'pudding', label: 'Pudding (thick, soft)' },
-          { value: 'rubber', label: 'Rubber (balanced)' },
-          { value: 'jelly', label: 'Jelly (soft, wobbly)' },
-          { value: 'trampoline', label: 'Trampoline (bouncy)' },
-          { value: 'stiff', label: 'Stiff (rigid)' }
-        ],
-        default: 'pudding',
-        format: v => String(v),
-        onChange: (g, val) => {
-          applyWallPreset(val, g);
-          syncSlidersToState();
         }
       },
       {
