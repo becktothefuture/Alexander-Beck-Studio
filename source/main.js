@@ -6,7 +6,8 @@
 import { CONSTANTS } from './modules/core/constants.js';
 import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/core/state.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
-import { applyColorTemplate, maybeAutoPickCursorColor } from './modules/visual/colors.js';
+import { applyColorTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
+import { initNoiseSystem } from './modules/visual/noise-system.js';
 import { setupRenderer, getCanvas, getContext, resize, setForceRenderCallback } from './modules/rendering/renderer.js';
 import { render } from './modules/physics/engine.js';
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
@@ -26,12 +27,15 @@ import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/au
 import { upgradeSocialIcons } from './modules/ui/social-icons.js';
 import { initTimeDisplay } from './modules/ui/time-display.js';
 import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
+import { initLinkCursorHop } from './modules/ui/link-cursor-hop.js';
 // Layout controls now integrated into master panel
 import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
 import { initSceneChangeSFX } from './modules/ui/scene-change-sfx.js';
 import { loadRuntimeText, getText } from './modules/utils/text-loader.js';
 import { applyRuntimeTextToDOM } from './modules/ui/apply-text.js';
 import { loadRuntimeConfig } from './modules/utils/runtime-config.js';
+import { waitForFonts } from './modules/utils/font-loader.js';
+import { readTokenVar } from './modules/utils/tokens.js';
 import {
   initConsolePolicy,
   printConsoleBanner,
@@ -72,6 +76,11 @@ export function applyVisualCSSVars(config) {
   
   // NOTE: Layout CSS vars (frame/padding/radius/thickness) are applied via
   // `applyLayoutCSSVars()` from state (vw-native → px derived).
+
+  // Brand logo sizing (shared token; driven by runtime config + dev panel slider).
+  if (config.topLogoWidthVw !== undefined) {
+    root.style.setProperty('--top-logo-width-vw', String(config.topLogoWidthVw));
+  }
 
   // Container inner shadow removed
   
@@ -181,14 +190,7 @@ function enhanceFooterLinksForMobile() {
     applyRuntimeTextToDOM();
   } catch (e) {}
 
-  // Console banner:
-  // - DEV: show the same colored banner (but keep logs)
-  // - PROD: show banner and silence non-error console output
-  if (isDev()) {
-    printConsoleBanner();
-  } else {
-    initConsolePolicy();
-  }
+  // Console banner will be printed after colors are initialized (see below)
   
   // DEV-only: wire control registry to use CSS vars function (avoids circular dependency).
   // In production we ship no config panel, so the registry is not loaded.
@@ -229,9 +231,27 @@ function enhanceFooterLinksForMobile() {
     // Apply visual CSS vars (noise, inner shadow) from config
     applyVisualCSSVars(config);
     log('✓ Visual effects configured');
+
+    // Apply config-driven UI CSS vars that aren't part of layout/colors stamping.
+    // (Production ships without the panel, so config must fully drive these.)
+    try {
+      const g = getGlobals();
+      const root = document.documentElement;
+      if (Number.isFinite(g?.topLogoWidthVw)) {
+        root.style.setProperty('--top-logo-width-vw', String(g.topLogoWidthVw));
+      }
+      if (Number.isFinite(g?.homeMainLinksBelowLogoPx)) {
+        root.style.setProperty('--home-main-links-below-logo-px', String(g.homeMainLinksBelowLogoPx));
+      }
+    } catch (e) {}
     
     // Ensure noise-2 and noise-3 elements exist (for modular dev environments)
     ensureNoiseElements();
+
+    // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.
+    try {
+      initNoiseSystem(getGlobals());
+    } catch (e) {}
     
     // Setup canvas (attaches resize listener, but doesn't resize yet)
     setupRenderer();
@@ -289,11 +309,17 @@ function enhanceFooterLinksForMobile() {
     mark('bb:input');
     log('✓ Custom cursor initialized');
 
+    // Link hover: hide cursor + trail; let hover dot “become” the cursor.
+    initLinkCursorHop();
+
     // Scene micro-interaction: subtle “clicked-in” response on simulation changes
     initSceneImpactReact();
     
     // Load any saved settings
     loadSettings();
+
+    // Palette chapters: rotate on each reload (cursor + ball colors only).
+    rotatePaletteChapterOnReload();
 
     // Initialize sound engine once (no AudioContext yet; unlock requires user gesture)
     initSoundEngine();
@@ -407,6 +433,26 @@ function enhanceFooterLinksForMobile() {
     if (rows.length) table(rows.map((r) => ({ ...r, ms: Number(r.ms.toFixed(2)) })));
     groupEnd();
     
+    // Console banner: print AFTER colors are initialized and group is closed so it's always visible
+    // - DEV: show the same colored banner (but keep logs)
+    // - PROD: show banner and silence non-error console output
+    try {
+      if (isDev()) {
+        printConsoleBanner();
+      } else {
+        initConsolePolicy();
+      }
+    } catch (bannerError) {
+      // Ensure banner always prints even if there's an error
+      try {
+        console.error('Banner print error:', bannerError);
+        // Fallback: print simple banner
+        console.log('%cCurious mind detected. Design meets engineering at 60fps.', 'color: #888; font-style: italic;');
+      } catch (e) {
+        // Console completely unavailable
+      }
+    }
+    
     // ╔══════════════════════════════════════════════════════════════════════════════╗
     // ║                             PAGE FADE-IN                                    ║
     // ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -423,76 +469,52 @@ function enhanceFooterLinksForMobile() {
     // If, for any reason, the animation gets canceled or never runs, we force
     // the content visible after a short timeout so the page never “sticks” hidden.
 
-    const FADE_DELAY_MS = 400;
-    const FADE_DURATION_MS = 3000;
-    // Expo-ish ease-out approximation (WAAPI accepts CSS easing strings)
-    // Intention: commits quickly, then settles gently.
-    const FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
-    const FADE_FAILSAFE_MS = FADE_DELAY_MS + FADE_DURATION_MS + 750;
+    // ╔══════════════════════════════════════════════════════════════════════════════╗
+    // ║                    DRAMATIC ENTRANCE ANIMATION                               ║
+    // ║        Browser default → wall-state with 3D perspective orchestration        ║
+    // ╚══════════════════════════════════════════════════════════════════════════════╝
+    
+    try {
+      const { orchestrateEntrance } = await import('./modules/visual/entrance-animation.js');
+      const g = getGlobals();
+      
+      // Skip entrance animation if disabled or reduced motion preferred
+      if (!g.entranceEnabled || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+        // Fallback: simple fade-in
+    try {
+      await waitForFonts();
+    } catch (e) {}
 
-    const forceFadeVisible = (fadeEl, reason) => {
-      // Inline style beats stylesheet opacity:0
-      fadeEl.style.opacity = '1';
-      console.warn(`⚠️ Fade failsafe: forcing #fade-content visible (${reason})`);
-    };
-
-    setTimeout(() => {
       const fadeContent = document.getElementById('fade-content');
-      // Legacy #top-elements is gone, now part of #fade-content
-
-      if (!fadeContent) {
-        console.warn('⚠️ #fade-content not found (fade skipped)');
-        return;
-      }
-
-      // Accessibility: respect reduced motion by skipping animation entirely.
-      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-        if (fadeContent) fadeContent.style.opacity = '1';
-        console.log('✓ Page fade-in skipped (prefers-reduced-motion)');
-        return;
-      }
-
-      // If WAAPI is missing (older browsers / restricted contexts), fall back to inline style.
-      if (fadeContent && typeof fadeContent.animate !== 'function') {
-        forceFadeVisible(fadeContent, 'WAAPI unsupported');
-        return;
-      }
-
-      const animateOpacity = (el) => {
-        if (!el || typeof el.animate !== 'function') return null;
-        return el.animate(
-          [{ opacity: 0 }, { opacity: 1 }],
-          {
-            duration: FADE_DURATION_MS,
-            easing: FADE_EASING,
-            fill: 'forwards',
-          }
-        );
-      };
-
-      const anim = animateOpacity(fadeContent);
-
-      // When finished, stamp final opacity as an inline style. This prevents edge cases
-      // where a later style recalc/compositing change makes it appear hidden again.
-      anim?.addEventListener?.('finish', () => {
-        if (fadeContent) fadeContent.style.opacity = '1';
-        console.log('✓ Page fade-in finished');
-      });
-
-      anim?.addEventListener?.('cancel', () => {
-        if (fadeContent) forceFadeVisible(fadeContent, 'animation canceled');
-      });
-
-      console.log('✓ Page fade-in started (WAAPI)');
-
-      // Ultimate failsafe: never allow permanent hidden UI.
-      setTimeout(() => {
         if (fadeContent) {
-          const opacity = window.getComputedStyle(fadeContent).opacity;
-          if (opacity === '0') forceFadeVisible(fadeContent, 'opacity still 0 after failsafe window');
+          fadeContent.style.opacity = '1';
+          fadeContent.style.transform = 'translateZ(0)';
         }
-      }, FADE_FAILSAFE_MS);
-    }, FADE_DELAY_MS);
+        console.log('✓ Entrance animation skipped (disabled or reduced motion)');
+      } else {
+        // Orchestrate dramatic entrance
+        await orchestrateEntrance({
+          waitForFonts: async () => {
+            try {
+              await waitForFonts();
+            } catch (e) {}
+          }
+        });
+        console.log('✓ Dramatic entrance animation orchestrated');
+      }
+    } catch (e) {
+      console.warn('⚠️ Entrance animation failed, falling back to simple fade:', e);
+      // Fallback: simple fade-in
+      try {
+        await waitForFonts();
+      } catch (e) {}
+      
+      const fadeContent = document.getElementById('fade-content');
+        if (fadeContent) {
+          fadeContent.style.opacity = '1';
+          fadeContent.style.transform = 'translateZ(0)';
+        }
+    }
     
   } catch (error) {
     console.error('❌ Initialization failed:', error);

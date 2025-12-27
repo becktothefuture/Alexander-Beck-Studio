@@ -8,6 +8,8 @@ import { getGlobals } from '../core/state.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 
 const spatialGrid = new Map();
+const reusablePairs = [];
+const pairPool = [];
 
 function collectPairsSorted() {
   const globals = getGlobals();
@@ -17,13 +19,32 @@ function collectPairsSorted() {
   const spacingRatio = globals.ballSpacing || 0; // Ratio of average radius (0.1 = 10% of ball size)
   
   const n = balls.length;
-  if (n < 2) return [];
+  // Always reuse the same array to avoid per-frame allocations.
+  reusablePairs.length = 0;
+  if (n < 2) return reusablePairs;
+
+  const reuseGrid = globals.physicsSpatialGridOptimization !== false;
+
+  // Fast path: if everything is sleeping, avoid grid build + pair sort entirely.
+  // (Very common in Pit mode after settling.)
+  if (reuseGrid) {
+    let anyAwake = false;
+    for (let i = 0; i < n; i++) {
+      const b = balls[i];
+      if (b && !b.isSleeping) { anyAwake = true; break; }
+    }
+    if (!anyAwake) return reusablePairs;
+  }
   
   // Cell size must account for spacing: max collision distance is R_MAX*2*(1+spacingRatio/2)
   // since spacing is applied to the average radius. Using (1 + spacingRatio) to be safe.
   const cellSize = Math.max(1, R_MAX * 2 * (1 + spacingRatio));
   const gridWidth = Math.ceil(canvas.width / cellSize) + 1;
-  spatialGrid.clear();
+  if (reuseGrid) {
+    for (const arr of spatialGrid.values()) arr.length = 0;
+  } else {
+    spatialGrid.clear();
+  }
   
   // Build grid
   for (let i = 0; i < n; i++) {
@@ -36,8 +57,8 @@ function collectPairsSorted() {
     arr.push(i);
   }
   
-  const pairs = [];
   for (const [key, arr] of spatialGrid) {
+    if (arr.length === 0) continue;
     const cy = (key / gridWidth) | 0;
     const cx = key % gridWidth;
     
@@ -47,6 +68,7 @@ function collectPairsSorted() {
         const neighborKey = (cy + oy) * gridWidth + (cx + ox);
         const nb = spatialGrid.get(neighborKey);
         if (!nb) continue;
+        if (nb.length === 0) continue;
         
         for (let ii = 0; ii < arr.length; ii++) {
           const i = arr[ii];
@@ -63,7 +85,13 @@ function collectPairsSorted() {
             if (dist2 < rSum*rSum) {
               const dist = Math.sqrt(Math.max(dist2, CONSTANTS.MIN_DISTANCE_EPSILON));
               const overlap = rSum - dist;
-              pairs.push({ i, j, overlap });
+              const idx = reusablePairs.length;
+              let p = pairPool[idx];
+              if (!p) { p = { i: 0, j: 0, overlap: 0 }; pairPool[idx] = p; }
+              p.i = i;
+              p.j = j;
+              p.overlap = overlap;
+              reusablePairs.push(p);
             }
           }
         }
@@ -71,8 +99,8 @@ function collectPairsSorted() {
     }
   }
   
-  pairs.sort((a, b) => b.overlap - a.overlap);
-  return pairs;
+  reusablePairs.sort((a, b) => b.overlap - a.overlap);
+  return reusablePairs;
 }
 
 export function resolveCollisions(iterations = 10) {
@@ -84,6 +112,7 @@ export function resolveCollisions(iterations = 10) {
   const POS_CORRECT_SLOP = 0.5 * globals.DPR;
   const REST_VEL_THRESHOLD = 30;
   const spacingRatio = globals.ballSpacing || 0; // Ratio of average radius
+  const skipSleepingCollisions = Boolean(globals.physicsSkipSleepingCollisions);
   
   for (let iter = 0; iter < iterations; iter++) {
     for (let k = 0; k < pairs.length; k++) {
@@ -127,6 +156,10 @@ export function resolveCollisions(iterations = 10) {
         // A is supported from below by B
         A.hasSupport = true;
       }
+
+      // PERFORMANCE: When both bodies are sleeping, we still need positional correction
+      // (prevents overlap drift), but we can skip all velocity/sound/squash work.
+      if (skipSleepingCollisions && bothSleeping) continue;
 
       // If both bodies are sleeping, skip velocity impulses entirely
       // (prevents micro-jiggle in fully settled stacks).

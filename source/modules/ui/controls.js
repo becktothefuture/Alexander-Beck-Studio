@@ -8,33 +8,18 @@ import { getGlobals } from '../core/state.js';
 import { NARRATIVE_CHAPTER_TITLES } from '../core/constants.js';
 import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
 import { autoSaveSettings } from '../utils/storage.js';
-import { setMode } from '../modes/mode-controller.js';
 import { bindRegisteredControls, syncSlidersToState } from './control-registry.js';
 
 /**
- * Initialize all panel controls
+ * Master controls (shared across pages)
  * - Registry handles all slider/picker bindings via bindRegisteredControls()
- * - This file handles only: mode buttons, color select, and UI updates
+ * - This file handles only: theme buttons and color template select
  */
-export function setupControls() {
+export function setupMasterControls() {
   // ═══════════════════════════════════════════════════════════════════════════
   // BIND ALL REGISTERED CONTROLS FROM REGISTRY (single source of truth)
   // ═══════════════════════════════════════════════════════════════════════════
   bindRegisteredControls();
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MODE BUTTONS — Critical for panel mode switching
-  // ═══════════════════════════════════════════════════════════════════════════
-  const modeButtons = document.querySelectorAll('.mode-button');
-  modeButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const mode = btn.getAttribute('data-mode');
-      console.log('Mode button clicked:', mode);
-      setMode(mode);
-      updateModeButtonsUI(mode);
-    });
-  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // COLOR TEMPLATE SELECT — Special handling (not in registry)
@@ -65,6 +50,37 @@ export function setupControls() {
       });
     }
   });
+}
+
+/**
+ * Index-only controls (home page)
+ * - Adds mode switching UI and related updates
+ */
+export function setupIndexControls() {
+  setupMasterControls();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MODE BUTTONS — Critical for panel mode switching
+  // ═══════════════════════════════════════════════════════════════════════════
+  const modeButtons = document.querySelectorAll('.mode-button');
+  modeButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const mode = btn.getAttribute('data-mode');
+      console.log('Mode button clicked:', mode);
+      import('../modes/mode-controller.js')
+        .then(({ setMode }) => {
+          setMode(mode);
+          updateModeButtonsUI(mode);
+        })
+        .catch(() => {});
+    });
+  });
+}
+
+// Backwards compatibility: the index page historically called `setupControls()`.
+export function setupControls() {
+  setupIndexControls();
 }
 
 /**

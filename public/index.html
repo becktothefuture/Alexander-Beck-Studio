@@ -1,7 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="fonts-loading">
 <head>
 <style id="fade-blocking">#fade-content{opacity:0}</style>
+  <!-- CRITICAL: Dark mode detection BEFORE first paint to prevent white flash -->
+  <script>
+    (function() {
+      'use strict';
+      // Detect dark mode preference synchronously before any rendering
+      let shouldBeDark = false;
+      
+      // Get saved theme preference
+      let themePreference = 'auto';
+      try {
+        const saved = localStorage.getItem('theme-preference');
+        if (saved === 'auto' || saved === 'light' || saved === 'dark') {
+          themePreference = saved;
+        }
+      } catch (e) {}
+      
+      if (themePreference === 'dark') {
+        shouldBeDark = true;
+      } else if (themePreference === 'light') {
+        shouldBeDark = false;
+      } else {
+        // Auto mode: check system preference + night heuristic
+        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        // Night-time heuristic (privacy-first: local clock only)
+        // Default: 18:00 - 06:00 (can be overridden by config later)
+        const hour = new Date().getHours();
+        const isNightTime = hour >= 18 || hour < 6;
+        
+        // In auto mode, prefer dark if system prefers dark OR if it's night time
+        shouldBeDark = systemPrefersDark || isNightTime;
+      }
+      
+      // Apply dark mode IMMEDIATELY before first paint
+      if (shouldBeDark) {
+        document.documentElement.classList.add('dark-mode');
+        document.documentElement.style.colorScheme = 'dark';
+        // Set background color immediately to prevent white flash (use !important to override CSS)
+        document.documentElement.style.setProperty('background', '#0a0a0a', 'important');
+        document.documentElement.style.setProperty('background-color', '#0a0a0a', 'important');
+        // Apply to body as well (will be set properly when body exists)
+        if (document.body) {
+          document.body.classList.add('dark-mode');
+        } else {
+          // If body doesn't exist yet, set it when DOMContentLoaded fires
+          document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('dark-mode');
+          }, { once: true });
+        }
+        // Update theme-color meta tag for browser chrome
+        const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
+        if (metaDark) metaDark.content = '#0a0a0a';
+      }
+    })();
+  </script>
   
   <!-- Resource Hints: Font Preloading + Connection Hints -->
   <link rel="preload" href="fonts/tabler-icons-outline.woff2" as="font" type="font/woff2" crossorigin>
@@ -25,9 +80,9 @@
   <link rel="manifest" href="images/site.webmanifest">
 
   <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
-  <meta name="theme-color" content="#f5f5f5">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
+
+
+
   <!-- PWA: Mobile web app capable (modern + legacy) -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -36,13 +91,22 @@
   "autoDarkModeEnabled": true,
   "autoDarkNightStartHour": 18,
   "autoDarkNightEndHour": 6,
-  "sizeScale": 0.6,
-  "responsiveScaleMobile": 1.0625,
+  "ballMassKg": 193,
+  "REST": 0.14,
+  "FRICTION": 0.001,
+  "physicsCollisionIterations": 4,
+  "physicsSkipSleepingCollisions": true,
+  "physicsSpatialGridOptimization": true,
+  "physicsSleepThreshold": 7,
+  "physicsSleepTime": 0.2,
+  "physicsSkipSleepingSteps": true,
+  "sizeScale": 1.15,
+  "responsiveScaleMobile": 1,
   "mobileObjectReductionFactor": 0.7,
   "ballSoftness": 28,
   "ballSpacing": 0.28,
   "sizeVariationGlobalMul": 1,
-  "sizeVariationCap": 0.12,
+  "sizeVariationCap": 0.2,
   "cursorSize": 1.15,
   "cursorInfluenceRadiusVw": 9.5,
   "mouseTrailEnabled": true,
@@ -50,41 +114,49 @@
   "mouseTrailSize": 3.6,
   "mouseTrailFadeMs": 180,
   "mouseTrailOpacity": 1,
+  "linkTextPadding": 19,
+  "linkIconPadding": 19,
+  "linkColorInfluence": 0.92,
+  "linkImpactScale": 0.95,
+  "linkImpactBlur": 1,
+  "linkImpactDuration": 140,
   "sceneImpactEnabled": true,
-  "sceneImpactMul": 0.017,
-  "sceneImpactLogoCompMul": 3.5,
+  "sceneImpactMul": 0.0085,
+  "sceneImpactLogoCompMul": 1.75,
   "sceneImpactMobileMulFactor": 1,
-  "sceneImpactPressMs": 145,
-  "sceneImpactReleaseMs": 580,
+  "sceneImpactPressMs": 20,
+  "sceneImpactReleaseMs": 1160,
   "sceneImpactAnticipation": 0,
-  "topLogoWidthVw": 12,
   "sceneChangeSoundEnabled": true,
   "sceneChangeSoundIntensity": 1,
   "sceneChangeSoundRadius": 60,
   "gateOverlayEnabled": true,
-  "gateOverlayOpacity": 0,
-  "gateOverlayTransitionMs": 500,
-  "gateOverlayTransitionOutMs": 400,
-  "gateOverlayContentDelayMs": 150,
+  "gateOverlayOpacity": 0.01,
+  "gateOverlayTransitionMs": 800,
+  "gateOverlayTransitionOutMs": 600,
+  "gateOverlayContentDelayMs": 200,
   "gateDepthScale": 0.96,
   "gateDepthTranslateY": 8,
   "logoOpacityInactive": 1,
-  "logoOpacityActive": 0,
+  "logoOpacityActive": 0.2,
   "logoBlurInactive": 0,
-  "logoBlurActive": 0,
+  "logoBlurActive": 12,
   "bgLight": "#f5f5f5",
-  "bgDark": "#0f0f0f",
-  "frameColor": "#0a0a0a",
-  "textColorLight": "#262626",
-  "textColorLightMuted": "#262626",
-  "textColorDark": "#dbdbdb",
-  "textColorDarkMuted": "#c2c2c2",
-  "edgeLabelColorLight": "#262626",
-  "edgeLabelColorDark": "#dbdbdb",
-  "edgeLabelInsetAdjustPx": 0,
+  "bgDark": "#0c0f18",
+  "textColorLight": "#161616",
+  "textColorLightMuted": "#2f2f2f",
+  "textColorDark": "#7a8fa3",
+  "textColorDarkMuted": "#9db0c4",
+  "edgeLabelColorLight": "#2f2f2f",
+  "edgeLabelColorDark": "#8a9ba8",
+  "edgeLabelInsetAdjustPx": 4,
   "linkHoverColor": "#ff4013",
   "logoColorLight": "#161616",
-  "logoColorDark": "#d5d5d5",
+  "logoColorDark": "#b8c5d3",
+  "topLogoWidthVw": 32.5,
+  "homeMainLinksBelowLogoPx": 36,
+  "portfolioLogoColorLight": "#161616",
+  "portfolioLogoColorDark": "#374862",
   "colorDistribution": [
     {
       "label": "AI Integration",
@@ -122,23 +194,52 @@
       "weight": 10
     }
   ],
-  "wallPreset": "trampoline",
-  "wallThicknessVw": 0.9,
+  "frameColorLight": "#2b2b2b",
+  "frameColorDark": "#1a1a1a",
+  "wallPreset": "pudding",
+  "wallThicknessVw": 5.1,
   "wallRadiusVw": 3.7,
-  "wallInset": 3,
-  "mobileWallThicknessXFactor": 1.4,
+  "wallInset": 0,
+  "mobileWallThicknessXFactor": 1.5,
   "mobileEdgeLabelsVisible": true,
-  "wallWobbleMaxDeform": 55,
-  "wallWobbleStiffness": 2410,
-  "wallWobbleDamping": 15,
-  "wallWobbleSigma": 2.5,
-  "wallWobbleCornerClamp": 0.5,
-  "wallWobbleImpactThreshold": 20,
-  "wallWobbleSettlingSpeed": 40,
-  "noiseBackOpacity": 0.02,
-  "noiseFrontOpacity": 0.03,
-  "noiseBackOpacityDark": 0,
-  "noiseFrontOpacityDark": 0.005,
+  "wallWobbleMaxDeform": 91,
+  "wallWobbleStiffness": 120,
+  "wallWobbleDamping": 58,
+  "wallWobbleSigma": 5,
+  "wallWobbleCornerClamp": 0,
+  "wallWobbleImpactThreshold": 111,
+  "wallWobbleSettlingSpeed": 56,
+  "wallDeformPhysicsPrecision": 50,
+  "wallWobbleMaxVel": 690,
+  "wallWobbleMaxImpulse": 75,
+  "wallWobbleMaxEnergyPerStep": 38500,
+  "wallPhysicsSamples": 48,
+  "wallPhysicsSkipInactive": true,
+  "wallRenderDecimation": 5,
+  "noiseEnabled": true,
+  "noiseSeed": 1337,
+  "noiseTextureSize": 96,
+  "noiseDistribution": "gaussian",
+  "noiseMonochrome": true,
+  "noiseChroma": 1,
+  "noiseSizeBase": 65,
+  "noiseSizeTop": 85,
+  "noiseTopOpacity": 0,
+  "noiseBackOpacity": 0.015,
+  "noiseFrontOpacity": 0.045,
+  "noiseBackOpacityDark": 0.06,
+  "noiseFrontOpacityDark": 0.08,
+  "noiseMotion": "jitter",
+  "noiseMotionAmount": 1.2,
+  "noiseSpeedBackMs": 1400,
+  "noiseSpeedFrontMs": 900,
+  "noiseFlicker": 0.08,
+  "noiseFlickerSpeedMs": 180,
+  "noiseBlurPx": 0,
+  "noiseContrast": 1.2,
+  "noiseBrightness": 1.15,
+  "noiseSaturation": 2.13,
+  "noiseHue": 15,
   "critterCount": 110,
   "critterSpeed": 110,
   "critterMaxSpeed": 2675,
@@ -156,9 +257,6 @@
   "critterFriction": 0.011,
   "crittersWarmupFrames": 10,
   "gravityMultiplierPit": 1.55,
-  "ballMassKg": 171,
-  "REST": 0.31,
-  "FRICTION": 0.011,
   "repelPower": 274000,
   "sleepVelocityThreshold": 12,
   "sleepAngularThreshold": 0.18,
@@ -222,7 +320,7 @@
   "bubblesWobble": 100,
   "bubblesMaxCount": 85,
   "bubblesWarmupFrames": 10,
-  "kaleidoscopeBallCount": 118,
+  "kaleidoscopeBallCount": 59,
   "kaleidoscopeWedges": 15,
   "kaleidoscopeSpeed": 2,
   "kaleidoscopeDotSizeVh": 0.4,
@@ -230,7 +328,7 @@
   "kaleidoscopeSpawnAreaMul": 0.3,
   "kaleidoscopeSizeVariance": 0,
   "kaleidoscopeWarmupFrames": 10,
-  "kaleidoscope1BallCount": 24,
+  "kaleidoscope1BallCount": 12,
   "kaleidoscope1Wedges": 8,
   "kaleidoscope1Speed": 0.9,
   "kaleidoscope1DotSizeVh": 1.1,
@@ -238,7 +336,7 @@
   "kaleidoscope1SpawnAreaMul": 0.4,
   "kaleidoscope1SizeVariance": 0.25,
   "kaleidoscope1WarmupFrames": 10,
-  "kaleidoscope2BallCount": 166,
+  "kaleidoscope2BallCount": 83,
   "kaleidoscope2Wedges": 12,
   "kaleidoscope2Speed": 0.7,
   "kaleidoscope2DotSizeVh": 1.85,
@@ -246,7 +344,7 @@
   "kaleidoscope2SpawnAreaMul": 0.45,
   "kaleidoscope2SizeVariance": 0.35,
   "kaleidoscope2WarmupFrames": 10,
-  "kaleidoscope3BallCount": 300,
+  "kaleidoscope3BallCount": 150,
   "kaleidoscope3Wedges": 16,
   "kaleidoscope3Speed": 0.2,
   "kaleidoscope3DotSizeVh": 1.35,
@@ -311,20 +409,31 @@
   "parallaxPerspectiveFocalLength": 550,
   "parallaxPerspectiveParallaxStrength": 80,
   "parallaxPerspectiveWarmupFrames": 64,
+  "entranceEnabled": true,
+  "entranceWallTransitionDelay": 300,
+  "entranceWallTransitionDuration": 800,
+  "entranceWallInitialScale": 1.1,
+  "entranceWallEasing": "cubic-bezier(0.16, 1, 0.3, 1)",
+  "entranceElementDuration": 200,
+  "entranceElementScaleStart": 0.95,
+  "entranceElementTranslateZStart": -20,
+  "entrancePerspectiveLandscape": 1200,
+  "entrancePerspectiveSquare": 1000,
+  "entrancePerspectivePortrait": 800,
   "gravityMultiplier": 1.55,
-  "restitution": 0.31,
-  "friction": 0.011,
-  "ballMass": 171,
-  "ballScale": 0.6,
+  "restitution": 0.14,
+  "friction": 0.001,
+  "ballMass": 193,
+  "ballScale": 1.15,
   "sizeVariation": 0,
   "repelSoft": 3.4,
   "repelSoftness": 3.4,
   "layoutViewportWidthPx": 0,
-  "containerBorderVw": 1.3,
+  "containerBorderVw": 5.1,
   "simulationPaddingVw": 0,
-  "contentPaddingVw": 1.7,
-  "contentPaddingHorizontalRatio": 1.5,
-  "layoutMinContentPaddingPx": 21,
+  "contentPaddingVw": 2.55,
+  "contentPaddingHorizontalRatio": 1.15,
+  "layoutMinContentPaddingPx": 12,
   "layoutMinWallRadiusPx": 32,
   "soundPreset": "crystalPebbles",
   "soundConfig": {
@@ -379,8 +488,15 @@
   },
   "enableLOD": false
 };</script>
-<script>window.__TEXT__={"meta":{"title":"Alexander Beck Studio :: Al Creative :: User Experience :: Product Design","description":"c366"},"edge":{"chapterText":"SOURCE MATERIAL","copyright":"© 2025 Alexander Beck Studio. All rights reserved."},"legend":{"ariaLabel":"Areas of expertise","items":[{"colorClass":"bg-ball-1","label":"AI Integration"},{"colorClass":"bg-ball-5","label":"UI/UX Design"},{"colorClass":"bg-ball-4","label":"Creative Strategy"},{"colorClass":"bg-ball-3","label":"Frontend Development"},{"colorClass":"bg-ball-6","label":"Brand Identity"},{"colorClass":"bg-ball-7","label":"3D Design"},{"colorClass":"bg-ball-8","label":"Art Direction"}]},"philosophy":{"textBeforeLink":"Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity. ","link":{"id":"contact-email-inline","href":"#","text":"Let's chat."}},"footer":{"navAriaLabel":"Footer navigation links","links":{"contact":{"id":"contact-email","href":"#","text":"Contact"},"portfolio":{"id":"portfolio-gate-trigger","href":"#","text":"Portfolio"},"cv":{"id":"cv-gate-trigger","href":"#","text":"Bio/CV"}},"metaLocationPrefix":"London, UK · "},"socials":{"ariaLabel":"Social media links","items":{"appleMusic":{"ariaLabel":"Apple Music","screenReaderText":"Apple Music","url":"https://music.apple.com/profile/beckandeggs"},"x":{"ariaLabel":"X","screenReaderText":"X","url":"https://x.com/alex40939195"},"linkedin":{"ariaLabel":"LinkedIn","screenReaderText":"LinkedIn","url":"https://www.linkedin.com/in/thisisbeck/"}}},"contact":{"email":"alexander@beck.fyi","copy":{"buttonAriaLabel":"Copy email address","statusCopied":"Copied","statusError":"Copy failed"}},"portfolio":{"blurb":"Selected collaborations across finance, luxury, digital identity, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently building my own app; check the final project in the slider."},"gates":{"common":{"backText":"BACK","backAriaLabel":"Back"},"cv":{"title":"Bio/CV","description":"Because spam bots don’t deserve nice things. This keeps my inbox a little more civilised. Need access? Get in touch for the code."},"portfolio":{"title":"View Portfolio","description":"Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated. Blame the fine print :-) "},"contact":{"title":"Contact","description":"For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain. For job opportunities, drop me a note."}}};</script>
-<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css?v=1766760333140">
+<script>window.__TEXT__={"meta":{"title":"Alexander Beck Studio :: Al Creative :: User Experience :: Product Design","description":"c366"},"edge":{"chapterText":"SOURCE MATERIAL","copyright":"© 2025 Alexander Beck Studio"},"legend":{"ariaLabel":"Areas of expertise","items":[{"colorClass":"bg-ball-1","label":"AI Integration"},{"colorClass":"bg-ball-5","label":"UI/UX Design"},{"colorClass":"bg-ball-4","label":"Creative Strategy"},{"colorClass":"bg-ball-3","label":"Frontend Development"},{"colorClass":"bg-ball-6","label":"Brand Identity"},{"colorClass":"bg-ball-7","label":"3D Design"},{"colorClass":"bg-ball-8","label":"Art Direction"}]},"philosophy":{"textBeforeLink":"Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity. ","link":{"id":"contact-email-inline","href":"#","text":"Let's chat."}},"footer":{"navAriaLabel":"Footer navigation links","links":{"contact":{"id":"contact-email","href":"#","text":"Contact"},"portfolio":{"id":"portfolio-gate-trigger","href":"#","text":"Portfolio"},"cv":{"id":"cv-gate-trigger","href":"#","text":"Bio/CV"}},"metaLocationPrefix":"London, UK · "},"socials":{"ariaLabel":"Social media links","items":{"appleMusic":{"ariaLabel":"Apple Music","screenReaderText":"Apple Music","url":"https://music.apple.com/profile/beckandeggs"},"x":{"ariaLabel":"X","screenReaderText":"X","url":"https://x.com/alex40939195"},"linkedin":{"ariaLabel":"LinkedIn","screenReaderText":"LinkedIn","url":"https://www.linkedin.com/in/thisisbeck/"}}},"contact":{"email":"alexander@beck.fyi","copy":{"buttonAriaLabel":"Copy email address","statusCopied":"Copied","statusError":"Copy failed"}},"portfolio":{"blurb":"Selected collaborations across finance, luxury, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently designing for neurodivergent humans."},"gates":{"common":{"backText":"BACK","backAriaLabel":"Back"},"cv":{"title":"Bio/CV","description":"Because spam bots don’t deserve nice things. This keeps my inbox a little more civilised. Need access? Get in touch for the code."},"portfolio":{"title":"View Portfolio","description":"Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated. Blame the fine print :-) "},"contact":{"title":"Contact","description":"For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain. For job opportunities, drop me a note."}}};</script>
+<script>window.__TOKENS__={"cssVars":{"--abs-neutral-1000":"#000000","--abs-neutral-950":"#0a0a0a","--abs-neutral-900":"#161616","--abs-neutral-800":"#2f2f2f","--abs-neutral-650":"#808080","--abs-neutral-500":"#b3b3b3","--abs-neutral-450":"#c8c8c8","--abs-neutral-400":"#d0d0d0","--abs-neutral-350":"#d5d5d5","--abs-neutral-100":"#f5f5f5","--abs-neutral-50":"#ffffff","--abs-chrome-light":"#f1f3f4","--abs-chrome-dark":"#202124","--abs-accent-primary":"#ff4013","--abs-accent-emerald":"#00695c","--abs-accent-blue":"#0d5cb6","--abs-accent-gold":"#ffa000","--abs-accent-silver":"#b7bcb7","--abs-accent-ash":"#d0d0d0","--abs-state-success":"#22c55e","--abs-state-error":"#ef4444","--abs-rgb-white":"255, 255, 255","--abs-rgb-black":"0, 0, 0","--abs-font-sans":"'Geist', sans-serif","--abs-font-mono":"'Geist Mono', monospace","--abs-font-display":"'Sarina', cursive","--abs-weight-regular":"400","--abs-weight-medium":"600","--abs-weight-semibold":"700","--abs-text-xs":"clamp(9px, 1vw, 12px)","--abs-text-sm":"clamp(11px, 1.2vw, 14px)","--abs-text-md":"clamp(12px, 1.4vw, 16px)","--abs-text-lg":"clamp(0.85rem, 1.5vw, 1.05rem)","--abs-text-xl":"24px","--abs-line-display":"0.95","--abs-line-title":"1.1","--abs-line-tight":"1.3","--abs-line-base":"1.35","--abs-line-relaxed":"1.4","--abs-line-body":"1.6","--abs-line-body-relaxed":"1.7","--abs-line-loose":"1.75","--abs-line-summary":"1.2","--abs-letter-spacing-tight":"-0.02em","--abs-letter-spacing-normal":"0.05em","--abs-letter-spacing-loose":"0.12em","--abs-space-unit":"1vmin","--abs-space-2xs":"calc(var(--abs-space-unit) * 0.5)","--abs-space-xs":"calc(var(--abs-space-unit) * 1)","--abs-space-sm":"calc(var(--abs-space-unit) * 2)","--abs-space-md":"calc(var(--abs-space-unit) * 4)","--abs-space-lg":"calc(var(--abs-space-unit) * 6)","--abs-space-xl":"calc(var(--abs-space-unit) * 8)","--abs-content-padding":"clamp(16px, 4vmin, 40px)","--abs-gap-xs":"clamp(4px, 0.5vmin, 8px)","--abs-gap-sm":"clamp(8px, 1vmin, 12px)","--abs-gap-md":"clamp(12px, 1.5vmin, 20px)","--abs-gap-lg":"clamp(16px, 2vw, 24px)","--abs-gap-xl":"clamp(24px, 2.5vw, 40px)","--abs-gap-fixed-24":"24px","--abs-size-icon":"clamp(14px, 1.5vw, 16px)","--abs-size-icon-lg":"clamp(24px, 2.5vw, 28px)","--abs-size-dot":"clamp(3px, 0.4vmin, 4px)","--abs-tap-target":"clamp(12px, 2.5vmin, 30px)","--abs-radius-wall-min":"32px","--abs-radius-card":"3vmin","--abs-radius-input":"8px","--abs-radius-cta":"10px","--abs-radius-pill":"999px","--abs-container-border-vw":"1.3","--abs-wall-thickness-vw":"0.9","--abs-wall-radius-vw":"3.7","--abs-layout-min-padding":"16px","--abs-opacity-strong":"0.9","--abs-opacity-muted":"0.7","--abs-opacity-soft":"0.55","--abs-opacity-quiet":"0.38","--abs-opacity-faint":"0.25","--abs-opacity-ghost":"0.12","--abs-surface-page":"var(--abs-neutral-100)","--abs-surface-page-dark":"var(--abs-neutral-950)","--abs-surface-frame":"var(--abs-neutral-950)","--abs-surface-contrast":"var(--abs-neutral-50)","--abs-surface-contrast-dark":"var(--abs-neutral-900)","--abs-surface-chrome":"var(--abs-chrome-light)","--abs-surface-chrome-dark":"var(--abs-chrome-dark)","--abs-surface-glass-strong":"rgba(var(--abs-rgb-white), 0.75)","--abs-surface-glass-medium":"rgba(var(--abs-rgb-white), 0.5)","--abs-surface-glass-balanced":"rgba(var(--abs-rgb-white), 0.5)","--abs-surface-glass-soft":"rgba(var(--abs-rgb-white), 0.18)","--abs-surface-glass-ghost":"rgba(var(--abs-rgb-white), 0.12)","--abs-surface-glass-dim":"rgba(var(--abs-rgb-white), 0.35)","--abs-surface-glass-dark-strong":"rgba(var(--abs-rgb-white), 0.16)","--abs-overlay-veil":"rgba(var(--abs-rgb-white), 0.5)","--abs-overlay-success":"rgba(34, 197, 94, 0.25)","--abs-overlay-error":"rgba(239, 68, 68, 0.3)","--abs-state-success-strong":"rgba(34, 197, 94, 0.45)","--abs-state-error-strong":"rgba(239, 68, 68, 0.45)","--abs-stroke-strong":"rgba(var(--abs-rgb-black), 0.22)","--abs-stroke-medium":"rgba(var(--abs-rgb-black), 0.18)","--abs-stroke-soft":"rgba(var(--abs-rgb-black), 0.12)","--abs-stroke-subtle":"rgba(var(--abs-rgb-black), 0.15)","--abs-stroke-hairline":"rgba(var(--abs-rgb-black), 0.1)","--abs-stroke-strong-inverse":"rgba(var(--abs-rgb-white), 0.34)","--abs-stroke-medium-inverse":"rgba(var(--abs-rgb-white), 0.25)","--abs-stroke-soft-inverse":"rgba(var(--abs-rgb-white), 0.18)","--abs-stroke-highlight-inverse":"rgba(var(--abs-rgb-white), 0.8)","--abs-bevel-light":"rgba(var(--abs-rgb-white), 0.15)","--abs-bevel-dark":"rgba(var(--abs-rgb-black), 0.3)","--abs-shadow-soft":"0 2px 10px rgba(var(--abs-rgb-black), 0.05)","--abs-shadow-lift":"0 18px 40px rgba(var(--abs-rgb-black), 0.12)","--text-xs":"var(--abs-text-xs)","--text-sm":"var(--abs-text-sm)","--text-md":"var(--abs-text-md)","--text-lg":"var(--abs-text-lg)","--text-xl":"var(--abs-text-xl)","--line-height-display":"var(--abs-line-display)","--line-height-title":"var(--abs-line-title)","--line-height-tight":"var(--abs-line-tight)","--line-height-base":"var(--abs-line-base)","--line-height-relaxed":"var(--abs-line-relaxed)","--line-height-body":"var(--abs-line-body)","--line-height-body-relaxed":"var(--abs-line-body-relaxed)","--line-height-loose":"var(--abs-line-loose)","--line-height-summary":"var(--abs-line-summary)","--letter-spacing-tight":"var(--abs-letter-spacing-tight)","--letter-spacing-normal":"var(--abs-letter-spacing-normal)","--letter-spacing-loose":"var(--abs-letter-spacing-loose)","--space-xs":"var(--abs-space-xs)","--space-sm":"var(--abs-space-sm)","--space-md":"var(--abs-space-md)","--space-lg":"var(--abs-space-lg)","--space-xl":"var(--abs-space-xl)","--content-padding":"var(--abs-content-padding)","--content-padding-x":"var(--abs-content-padding)","--content-padding-y":"var(--abs-content-padding)","--edge-inset":"calc(var(--container-border) + var(--content-padding))","--edge-inset-lg":"calc(var(--container-border) + var(--content-padding))","--gap-xs":"var(--abs-gap-xs)","--gap-sm":"var(--abs-gap-sm)","--gap-md":"var(--abs-gap-md)","--gap-lg":"var(--abs-gap-lg)","--gap-xl":"var(--abs-gap-xl)","--gap-24":"var(--abs-gap-fixed-24)","--size-icon":"var(--abs-size-icon)","--size-icon-lg":"var(--abs-size-icon-lg)","--icon-size-base":"var(--abs-size-icon)","--icon-size-lg":"var(--abs-size-icon-lg)","--size-dot":"var(--abs-size-dot)","--tap-target":"var(--abs-tap-target)","--text-color-light":"var(--abs-neutral-900)","--text-color-light-muted":"var(--abs-neutral-800)","--text-color-dark":"var(--abs-neutral-500)","--text-color-dark-muted":"var(--abs-neutral-650)","--text-primary":"var(--text-color-light)","--text-muted":"var(--text-color-light-muted)","--text-soft":"rgba(var(--abs-rgb-black), 0.85)","--text-strong":"rgba(var(--abs-rgb-black), 1)","--text-action":"var(--text-color-light-muted)","--text-input":"var(--text-color-light)","--text-quiet":"rgba(var(--abs-rgb-black), 0.7)","--text-placeholder":"rgba(var(--abs-rgb-black), 0.3)","--edge-label-color-light":"var(--text-color-light-muted)","--edge-label-color-dark":"var(--text-color-dark)","--edge-label-opacity":"var(--abs-opacity-quiet)","--abs-moonlight-text-primary":"#7a8fa3","--abs-moonlight-text-muted":"#9db0c4","--abs-moonlight-top-a":"rgba(255, 255, 255, 0.08)","--abs-moonlight-top-b":"rgba(200, 220, 255, 0.04)","--link-hover-color":"var(--abs-accent-primary)","--cursor-color":"var(--ball-6)","--logo-color-light":"var(--abs-neutral-900)","--logo-color-dark":"var(--abs-neutral-350)","--portfolio-logo-color-light":"var(--abs-neutral-900)","--portfolio-logo-color-dark":"var(--abs-neutral-350)","--frame-color-light":"var(--abs-surface-frame)","--frame-color-dark":"var(--abs-surface-frame)","--bg-light":"var(--abs-surface-page)","--bg-dark":"var(--abs-surface-page-dark)","--chrome-bg-light":"var(--abs-surface-chrome)","--chrome-bg-dark":"var(--abs-surface-chrome-dark)","--chrome-bg":"var(--chrome-bg-light)","--wall-color-site-light":"var(--frame-color-light)","--wall-color-site-dark":"var(--frame-color-dark)","--wall-color-browser-light":"var(--abs-surface-chrome)","--wall-color-browser-dark":"var(--abs-surface-chrome-dark)","--wall-color-light":"var(--frame-color-light)","--wall-color-dark":"var(--frame-color-dark)","--wall-color":"var(--wall-color-light)","--container-border-vw":"var(--abs-container-border-vw)","--wall-thickness-vw":"var(--abs-wall-thickness-vw)","--wall-radius-vw":"var(--abs-wall-radius-vw)","--layout-min-wall-radius":"var(--abs-radius-wall-min)","--layout-min-content-padding":"var(--abs-layout-min-padding)","--wall-thickness":"calc(var(--wall-thickness-vw) * 1vw)","--wall-radius":"clamp(var(--layout-min-wall-radius), calc(var(--wall-radius-vw) * 1vw), 999px)","--container-radius":"var(--wall-radius)","--container-border":"calc(var(--container-border-vw) * 1vw)","--simulation-padding":"0px","--canvas-radius":"calc(var(--wall-radius) - var(--simulation-padding))","--noise-size-base":"100px","--noise-size-top":"150px","--noise-size-scale":"1","--noise-back-opacity-light":"0.025","--noise-front-opacity-light":"0.12","--noise-back-opacity-dark":"0.12","--noise-front-opacity-dark":"0.18","--noise-top-opacity":"0","--detail-noise-opacity":"1","--abs-noise-enabled":"1","--abs-noise-texture":"none","--abs-noise-keyframes":"abs-noise-jitter","--abs-noise-timing":"steps(1, end)","--abs-noise-speed-back":"1800ms","--abs-noise-speed-front":"1100ms","--abs-noise-motion-amount":"1","--abs-noise-overscan":"-220px","--abs-noise-flicker":"0.12","--abs-noise-flicker-speed":"220ms","--abs-noise-filter":"none","--abs-noise-blur":"0px","--abs-noise-contrast":"1.35","--abs-noise-brightness":"1","--abs-noise-saturation":"1","--abs-noise-hue":"0deg","--abs-noise-j1-x":"0px","--abs-noise-j1-y":"0px","--abs-noise-j2-x":"0px","--abs-noise-j2-y":"0px","--abs-noise-j3-x":"0px","--abs-noise-j3-y":"0px","--abs-noise-j4-x":"0px","--abs-noise-j4-y":"0px","--abs-noise-j5-x":"0px","--abs-noise-j5-y":"0px","--abs-noise-j6-x":"0px","--abs-noise-j6-y":"0px","--abs-noise-j7-x":"0px","--abs-noise-j7-y":"0px","--abs-noise-j8-x":"0px","--abs-noise-j8-y":"0px","--abs-noise-j9-x":"0px","--abs-noise-j9-y":"0px","--abs-noise-drift-x":"0px","--abs-noise-drift-y":"0px","--shadow-input-dark":"0 2px 8px rgba(var(--abs-rgb-black), 0.4)","--edge-label-inset-base":"calc(var(--container-border) + var(--gap-sm))","--edge-label-inset-adjust":"0px","--edge-label-inset":"calc(var(--edge-label-inset-base) + var(--edge-label-inset-adjust))","--ease-organic":"cubic-bezier(0.22, 1.28, 0.36, 1)","--ease-settle":"cubic-bezier(0.16, 1, 0.3, 1)","--ease-hesitant":"cubic-bezier(0.4, 0, 0.2, 1)","--ease-gate":"var(--ease-organic)","--ease-fade":"var(--ease-settle)","--ease-bounce":"cubic-bezier(0.34, 1.56, 0.64, 1)","--duration-resize":"600ms","--duration-settle":"400ms","--duration-quick":"200ms","--duration-link-hover":"30ms","--dot-bounce-duration":"500ms","--hit-area-padding":"clamp(20px, 3vmin, 30px)","--hit-area-padding-neg":"calc(var(--hit-area-padding) * -1)","--abs-brand-logo-impact":"0","--abs-brand-logo-squash":"0","--abs-brand-logo-impact-dur":"100ms","--abs-brand-logo-impact-mul":"0.014","--abs-brand-logo-squash-x-mul":"0.009","--abs-brand-logo-squash-y-mul":"0.015","--abs-brand-logo-tilt-deg":"0","--abs-brand-logo-skew-deg":"0","--abs-scene-impact":"0","--abs-scene-impact-dur":"100ms","--abs-scene-impact-logo-scale":"1","--abs-scene-impact-ease":"var(--ease-gate)","--abs-scene-impact-mul":"0.005","--abs-scene-impact-logo-comp-mul":"1.0","--abs-gate-mobile-pad-x":"20px","--gate-overlay-opacity":"0.01","--gate-overlay-transition-duration":"800ms","--gate-overlay-transition-out-duration":"600ms","--gate-content-delay":"200ms","--gate-overlay-blur":"calc(var(--wall-thickness) / 2)","--gate-depth-scale":"0.96","--gate-depth-translate-y":"8px","--gate-depth-duration":"800ms","--gate-depth-out-duration":"600ms","--logo-opacity-inactive":"1","--logo-opacity-active-target":"0.2","--logo-opacity-active":"1","--logo-blur-inactive":"0px","--logo-blur-active-target":"12px","--logo-blur-active":"0px","--ball-1":"var(--abs-accent-silver)","--ball-2":"var(--abs-accent-ash)","--ball-3":"var(--abs-neutral-50)","--ball-4":"var(--abs-accent-emerald)","--ball-5":"var(--abs-neutral-1000)","--ball-6":"var(--abs-accent-primary)","--ball-7":"var(--abs-accent-blue)","--ball-8":"var(--abs-accent-gold)","--legend-gap-row":"var(--gap-xs)","--legend-gap-col":"var(--gap-lg)","--legend-item-gap":"var(--gap-sm)","--legend-circle-size":"var(--gap-sm)","--legend-font-size":"10px","--legend-font-weight":"600","--legend-letter-spacing":"var(--letter-spacing-loose)","--legend-line-height":"var(--line-height-loose)","--legend-opacity":"0.9","--decorative-script-max-width":"clamp(288px, 30vw, 403px)","--decorative-script-font-size":"var(--text-sm)","--decorative-script-line-height":"var(--line-height-base)","--decorative-script-letter-spacing":"var(--letter-spacing-normal)","--decorative-script-padding-left":"var(--gap-md)","--decorative-script-padding-vertical":"var(--gap-sm)","--footer-icon-gap":"var(--gap-lg)","--footer-icon-size":"var(--size-icon)","--footer-links-padding":"var(--tap-target)","--footer-links-font-size":"clamp(14px, 1.4vw, 18px)","--footer-links-letter-spacing":"var(--letter-spacing-normal)","--footer-link-dot-size":"4px","--footer-link-dot-offset":"8px","--link-text-padding":"var(--hit-area-lg)","--link-text-margin":"calc(var(--link-text-padding) * -1)","--link-icon-padding":"var(--gap-lg)","--link-icon-margin":"calc(var(--link-icon-padding) * -1)","--link-color-influence":"1","--link-impact-scale":"0.95","--link-impact-blur":"10px","--link-impact-duration":"0.15s","--caption-font-size":"var(--text-lg)","--caption-font-weight":"400","--caption-line-height":"var(--line-height-tight)","--caption-letter-spacing":"var(--letter-spacing-normal)","--caption-offset":"var(--gap-sm)","--hit-area-sm":"var(--gap-sm)","--hit-area-md":"var(--gap-md)","--hit-area-lg":"var(--tap-target)","--dot-indicator-size":"var(--size-dot)","--dot-indicator-offset":"var(--gap-sm)","--ui-hit-area-mul":"1","--ui-icon-tighten-px":"4","--ui-link-hit-pad":"calc(var(--hit-area-lg) * var(--ui-hit-area-mul, 1))","--ui-icon-hit-pad":"calc(var(--hit-area-md) * var(--ui-hit-area-mul, 1))","--z-ui-base":"10","--z-ui-elevated":"20","--z-ui-top":"25","--z-panel":"9999","--top-logo-width-vw":"35","--brand-logo-width-min":"300px","--brand-logo-width-max":"600px","--abs-brand-logo-width":"clamp(\n    var(--brand-logo-width-min),\n    calc(var(--top-logo-width-vw, 35) * 1vw),\n    var(--brand-logo-width-max)\n  )","--abs-brand-logo-height":"calc(var(--abs-brand-logo-width) * 66 / 919)","--home-main-links-below-logo-px":"40","--brand-logo-user-scale":"1","--breakpoint-tablet":"991px","--breakpoint-mobile-l":"767px","--breakpoint-mobile-p":"480px"},"resolved":{"--abs-neutral-1000":"#000000","--abs-neutral-950":"#0a0a0a","--abs-neutral-900":"#161616","--abs-neutral-800":"#2f2f2f","--abs-neutral-650":"#808080","--abs-neutral-500":"#b3b3b3","--abs-neutral-450":"#c8c8c8","--abs-neutral-400":"#d0d0d0","--abs-neutral-350":"#d5d5d5","--abs-neutral-100":"#f5f5f5","--abs-neutral-50":"#ffffff","--abs-chrome-light":"#f1f3f4","--abs-chrome-dark":"#202124","--abs-accent-primary":"#ff4013","--abs-accent-emerald":"#00695c","--abs-accent-blue":"#0d5cb6","--abs-accent-gold":"#ffa000","--abs-accent-silver":"#b7bcb7","--abs-accent-ash":"#d0d0d0","--abs-state-success":"#22c55e","--abs-state-error":"#ef4444","--abs-rgb-white":"255, 255, 255","--abs-rgb-black":"0, 0, 0","--abs-font-sans":"'Geist', sans-serif","--abs-font-mono":"'Geist Mono', monospace","--abs-font-display":"'Sarina', cursive","--abs-weight-regular":"400","--abs-weight-medium":"600","--abs-weight-semibold":"700","--abs-text-xs":"clamp(9px, 1vw, 12px)","--abs-text-sm":"clamp(11px, 1.2vw, 14px)","--abs-text-md":"clamp(12px, 1.4vw, 16px)","--abs-text-lg":"clamp(0.85rem, 1.5vw, 1.05rem)","--abs-text-xl":"24px","--abs-line-display":"0.95","--abs-line-title":"1.1","--abs-line-tight":"1.3","--abs-line-base":"1.35","--abs-line-relaxed":"1.4","--abs-line-body":"1.6","--abs-line-body-relaxed":"1.7","--abs-line-loose":"1.75","--abs-line-summary":"1.2","--abs-letter-spacing-tight":"-0.02em","--abs-letter-spacing-normal":"0.05em","--abs-letter-spacing-loose":"0.12em","--abs-space-unit":"1vmin","--abs-space-2xs":"calc(1vmin * 0.5)","--abs-space-xs":"calc(1vmin * 1)","--abs-space-sm":"calc(1vmin * 2)","--abs-space-md":"calc(1vmin * 4)","--abs-space-lg":"calc(1vmin * 6)","--abs-space-xl":"calc(1vmin * 8)","--abs-content-padding":"clamp(16px, 4vmin, 40px)","--abs-gap-xs":"clamp(4px, 0.5vmin, 8px)","--abs-gap-sm":"clamp(8px, 1vmin, 12px)","--abs-gap-md":"clamp(12px, 1.5vmin, 20px)","--abs-gap-lg":"clamp(16px, 2vw, 24px)","--abs-gap-xl":"clamp(24px, 2.5vw, 40px)","--abs-gap-fixed-24":"24px","--abs-size-icon":"clamp(14px, 1.5vw, 16px)","--abs-size-icon-lg":"clamp(24px, 2.5vw, 28px)","--abs-size-dot":"clamp(3px, 0.4vmin, 4px)","--abs-tap-target":"clamp(12px, 2.5vmin, 30px)","--abs-radius-wall-min":"32px","--abs-radius-card":"3vmin","--abs-radius-input":"8px","--abs-radius-cta":"10px","--abs-radius-pill":"999px","--abs-container-border-vw":"1.3","--abs-wall-thickness-vw":"0.9","--abs-wall-radius-vw":"3.7","--abs-layout-min-padding":"16px","--abs-opacity-strong":"0.9","--abs-opacity-muted":"0.7","--abs-opacity-soft":"0.55","--abs-opacity-quiet":"0.38","--abs-opacity-faint":"0.25","--abs-opacity-ghost":"0.12","--abs-surface-page":"#f5f5f5","--abs-surface-page-dark":"#0a0a0a","--abs-surface-frame":"#0a0a0a","--abs-surface-contrast":"#ffffff","--abs-surface-contrast-dark":"#161616","--abs-surface-chrome":"#f1f3f4","--abs-surface-chrome-dark":"#202124","--abs-surface-glass-strong":"rgba(255, 255, 255, 0.75)","--abs-surface-glass-medium":"rgba(255, 255, 255, 0.5)","--abs-surface-glass-balanced":"rgba(255, 255, 255, 0.5)","--abs-surface-glass-soft":"rgba(255, 255, 255, 0.18)","--abs-surface-glass-ghost":"rgba(255, 255, 255, 0.12)","--abs-surface-glass-dim":"rgba(255, 255, 255, 0.35)","--abs-surface-glass-dark-strong":"rgba(255, 255, 255, 0.16)","--abs-overlay-veil":"rgba(255, 255, 255, 0.5)","--abs-overlay-success":"rgba(34, 197, 94, 0.25)","--abs-overlay-error":"rgba(239, 68, 68, 0.3)","--abs-state-success-strong":"rgba(34, 197, 94, 0.45)","--abs-state-error-strong":"rgba(239, 68, 68, 0.45)","--abs-stroke-strong":"rgba(0, 0, 0, 0.22)","--abs-stroke-medium":"rgba(0, 0, 0, 0.18)","--abs-stroke-soft":"rgba(0, 0, 0, 0.12)","--abs-stroke-subtle":"rgba(0, 0, 0, 0.15)","--abs-stroke-hairline":"rgba(0, 0, 0, 0.1)","--abs-stroke-strong-inverse":"rgba(255, 255, 255, 0.34)","--abs-stroke-medium-inverse":"rgba(255, 255, 255, 0.25)","--abs-stroke-soft-inverse":"rgba(255, 255, 255, 0.18)","--abs-stroke-highlight-inverse":"rgba(255, 255, 255, 0.8)","--abs-bevel-light":"rgba(255, 255, 255, 0.15)","--abs-bevel-dark":"rgba(0, 0, 0, 0.3)","--abs-shadow-soft":"0 2px 10px rgba(0, 0, 0, 0.05)","--abs-shadow-lift":"0 18px 40px rgba(0, 0, 0, 0.12)","--text-xs":"clamp(9px, 1vw, 12px)","--text-sm":"clamp(11px, 1.2vw, 14px)","--text-md":"clamp(12px, 1.4vw, 16px)","--text-lg":"clamp(0.85rem, 1.5vw, 1.05rem)","--text-xl":"24px","--line-height-display":"0.95","--line-height-title":"1.1","--line-height-tight":"1.3","--line-height-base":"1.35","--line-height-relaxed":"1.4","--line-height-body":"1.6","--line-height-body-relaxed":"1.7","--line-height-loose":"1.75","--line-height-summary":"1.2","--letter-spacing-tight":"-0.02em","--letter-spacing-normal":"0.05em","--letter-spacing-loose":"0.12em","--space-xs":"calc(1vmin * 1)","--space-sm":"calc(1vmin * 2)","--space-md":"calc(1vmin * 4)","--space-lg":"calc(1vmin * 6)","--space-xl":"calc(1vmin * 8)","--content-padding":"clamp(16px, 4vmin, 40px)","--content-padding-x":"clamp(16px, 4vmin, 40px)","--content-padding-y":"clamp(16px, 4vmin, 40px)","--edge-inset":"calc(calc(1.3 * 1vw) + clamp(16px, 4vmin, 40px))","--edge-inset-lg":"calc(calc(1.3 * 1vw) + clamp(16px, 4vmin, 40px))","--gap-xs":"clamp(4px, 0.5vmin, 8px)","--gap-sm":"clamp(8px, 1vmin, 12px)","--gap-md":"clamp(12px, 1.5vmin, 20px)","--gap-lg":"clamp(16px, 2vw, 24px)","--gap-xl":"clamp(24px, 2.5vw, 40px)","--gap-24":"24px","--size-icon":"clamp(14px, 1.5vw, 16px)","--size-icon-lg":"clamp(24px, 2.5vw, 28px)","--icon-size-base":"clamp(14px, 1.5vw, 16px)","--icon-size-lg":"clamp(24px, 2.5vw, 28px)","--size-dot":"clamp(3px, 0.4vmin, 4px)","--tap-target":"clamp(12px, 2.5vmin, 30px)","--text-color-light":"#161616","--text-color-light-muted":"#2f2f2f","--text-color-dark":"#b3b3b3","--text-color-dark-muted":"#808080","--text-primary":"#161616","--text-muted":"#2f2f2f","--text-soft":"rgba(0, 0, 0, 0.85)","--text-strong":"rgba(0, 0, 0, 1)","--text-action":"#2f2f2f","--text-input":"#161616","--text-quiet":"rgba(0, 0, 0, 0.7)","--text-placeholder":"rgba(0, 0, 0, 0.3)","--edge-label-color-light":"#2f2f2f","--edge-label-color-dark":"#b3b3b3","--edge-label-opacity":"0.38","--abs-moonlight-text-primary":"#7a8fa3","--abs-moonlight-text-muted":"#9db0c4","--abs-moonlight-top-a":"rgba(255, 255, 255, 0.08)","--abs-moonlight-top-b":"rgba(200, 220, 255, 0.04)","--link-hover-color":"#ff4013","--cursor-color":"#ff4013","--logo-color-light":"#161616","--logo-color-dark":"#d5d5d5","--portfolio-logo-color-light":"#161616","--portfolio-logo-color-dark":"#d5d5d5","--frame-color-light":"#0a0a0a","--frame-color-dark":"#0a0a0a","--bg-light":"#f5f5f5","--bg-dark":"#0a0a0a","--chrome-bg-light":"#f1f3f4","--chrome-bg-dark":"#202124","--chrome-bg":"#f1f3f4","--wall-color-site-light":"#0a0a0a","--wall-color-site-dark":"#0a0a0a","--wall-color-browser-light":"#f1f3f4","--wall-color-browser-dark":"#202124","--wall-color-light":"#0a0a0a","--wall-color-dark":"#0a0a0a","--wall-color":"#0a0a0a","--container-border-vw":"1.3","--wall-thickness-vw":"0.9","--wall-radius-vw":"3.7","--layout-min-wall-radius":"32px","--layout-min-content-padding":"16px","--wall-thickness":"calc(0.9 * 1vw)","--wall-radius":"clamp(32px, calc(3.7 * 1vw), 999px)","--container-radius":"clamp(32px, calc(3.7 * 1vw), 999px)","--container-border":"calc(1.3 * 1vw)","--simulation-padding":"0px","--canvas-radius":"calc(clamp(32px, calc(3.7 * 1vw), 999px) - 0px)","--noise-size-base":"100px","--noise-size-top":"150px","--noise-size-scale":"1","--noise-back-opacity-light":"0.025","--noise-front-opacity-light":"0.12","--noise-back-opacity-dark":"0.12","--noise-front-opacity-dark":"0.18","--noise-top-opacity":"0","--detail-noise-opacity":"1","--abs-noise-enabled":"1","--abs-noise-texture":"none","--abs-noise-keyframes":"abs-noise-jitter","--abs-noise-timing":"steps(1, end)","--abs-noise-speed-back":"1800ms","--abs-noise-speed-front":"1100ms","--abs-noise-motion-amount":"1","--abs-noise-overscan":"-220px","--abs-noise-flicker":"0.12","--abs-noise-flicker-speed":"220ms","--abs-noise-filter":"none","--abs-noise-blur":"0px","--abs-noise-contrast":"1.35","--abs-noise-brightness":"1","--abs-noise-saturation":"1","--abs-noise-hue":"0deg","--abs-noise-j1-x":"0px","--abs-noise-j1-y":"0px","--abs-noise-j2-x":"0px","--abs-noise-j2-y":"0px","--abs-noise-j3-x":"0px","--abs-noise-j3-y":"0px","--abs-noise-j4-x":"0px","--abs-noise-j4-y":"0px","--abs-noise-j5-x":"0px","--abs-noise-j5-y":"0px","--abs-noise-j6-x":"0px","--abs-noise-j6-y":"0px","--abs-noise-j7-x":"0px","--abs-noise-j7-y":"0px","--abs-noise-j8-x":"0px","--abs-noise-j8-y":"0px","--abs-noise-j9-x":"0px","--abs-noise-j9-y":"0px","--abs-noise-drift-x":"0px","--abs-noise-drift-y":"0px","--shadow-input-dark":"0 2px 8px rgba(0, 0, 0, 0.4)","--edge-label-inset-base":"calc(calc(1.3 * 1vw) + clamp(8px, 1vmin, 12px))","--edge-label-inset-adjust":"0px","--edge-label-inset":"calc(calc(calc(1.3 * 1vw) + clamp(8px, 1vmin, 12px)) + 0px)","--ease-organic":"cubic-bezier(0.22, 1.28, 0.36, 1)","--ease-settle":"cubic-bezier(0.16, 1, 0.3, 1)","--ease-hesitant":"cubic-bezier(0.4, 0, 0.2, 1)","--ease-gate":"cubic-bezier(0.22, 1.28, 0.36, 1)","--ease-fade":"cubic-bezier(0.16, 1, 0.3, 1)","--ease-bounce":"cubic-bezier(0.34, 1.56, 0.64, 1)","--duration-resize":"600ms","--duration-settle":"400ms","--duration-quick":"200ms","--duration-link-hover":"30ms","--dot-bounce-duration":"500ms","--hit-area-padding":"clamp(20px, 3vmin, 30px)","--hit-area-padding-neg":"calc(clamp(20px, 3vmin, 30px) * -1)","--abs-brand-logo-impact":"0","--abs-brand-logo-squash":"0","--abs-brand-logo-impact-dur":"100ms","--abs-brand-logo-impact-mul":"0.014","--abs-brand-logo-squash-x-mul":"0.009","--abs-brand-logo-squash-y-mul":"0.015","--abs-brand-logo-tilt-deg":"0","--abs-brand-logo-skew-deg":"0","--abs-scene-impact":"0","--abs-scene-impact-dur":"100ms","--abs-scene-impact-logo-scale":"1","--abs-scene-impact-ease":"cubic-bezier(0.22, 1.28, 0.36, 1)","--abs-scene-impact-mul":"0.005","--abs-scene-impact-logo-comp-mul":"1.0","--abs-gate-mobile-pad-x":"20px","--gate-overlay-opacity":"0.01","--gate-overlay-transition-duration":"800ms","--gate-overlay-transition-out-duration":"600ms","--gate-content-delay":"200ms","--gate-overlay-blur":"calc(calc(0.9 * 1vw) / 2)","--gate-depth-scale":"0.96","--gate-depth-translate-y":"8px","--gate-depth-duration":"800ms","--gate-depth-out-duration":"600ms","--logo-opacity-inactive":"1","--logo-opacity-active-target":"0.2","--logo-opacity-active":"1","--logo-blur-inactive":"0px","--logo-blur-active-target":"12px","--logo-blur-active":"0px","--ball-1":"#b7bcb7","--ball-2":"#d0d0d0","--ball-3":"#ffffff","--ball-4":"#00695c","--ball-5":"#000000","--ball-6":"#ff4013","--ball-7":"#0d5cb6","--ball-8":"#ffa000","--legend-gap-row":"clamp(4px, 0.5vmin, 8px)","--legend-gap-col":"clamp(16px, 2vw, 24px)","--legend-item-gap":"clamp(8px, 1vmin, 12px)","--legend-circle-size":"clamp(8px, 1vmin, 12px)","--legend-font-size":"10px","--legend-font-weight":"600","--legend-letter-spacing":"0.12em","--legend-line-height":"1.75","--legend-opacity":"0.9","--decorative-script-max-width":"clamp(288px, 30vw, 403px)","--decorative-script-font-size":"clamp(11px, 1.2vw, 14px)","--decorative-script-line-height":"1.35","--decorative-script-letter-spacing":"0.05em","--decorative-script-padding-left":"clamp(12px, 1.5vmin, 20px)","--decorative-script-padding-vertical":"clamp(8px, 1vmin, 12px)","--footer-icon-gap":"clamp(16px, 2vw, 24px)","--footer-icon-size":"clamp(14px, 1.5vw, 16px)","--footer-links-padding":"clamp(12px, 2.5vmin, 30px)","--footer-links-font-size":"clamp(14px, 1.4vw, 18px)","--footer-links-letter-spacing":"0.05em","--footer-link-dot-size":"4px","--footer-link-dot-offset":"8px","--link-text-padding":"clamp(12px, 2.5vmin, 30px)","--link-text-margin":"calc(clamp(12px, 2.5vmin, 30px) * -1)","--link-icon-padding":"clamp(16px, 2vw, 24px)","--link-icon-margin":"calc(clamp(16px, 2vw, 24px) * -1)","--link-color-influence":"1","--link-impact-scale":"0.95","--link-impact-blur":"10px","--link-impact-duration":"0.15s","--caption-font-size":"clamp(0.85rem, 1.5vw, 1.05rem)","--caption-font-weight":"400","--caption-line-height":"1.3","--caption-letter-spacing":"0.05em","--caption-offset":"clamp(8px, 1vmin, 12px)","--hit-area-sm":"clamp(8px, 1vmin, 12px)","--hit-area-md":"clamp(12px, 1.5vmin, 20px)","--hit-area-lg":"clamp(12px, 2.5vmin, 30px)","--dot-indicator-size":"clamp(3px, 0.4vmin, 4px)","--dot-indicator-offset":"clamp(8px, 1vmin, 12px)","--ui-hit-area-mul":"1","--ui-icon-tighten-px":"4","--ui-link-hit-pad":"calc(clamp(12px, 2.5vmin, 30px) * 1)","--ui-icon-hit-pad":"calc(clamp(12px, 1.5vmin, 20px) * 1)","--z-ui-base":"10","--z-ui-elevated":"20","--z-ui-top":"25","--z-panel":"9999","--top-logo-width-vw":"35","--brand-logo-width-min":"300px","--brand-logo-width-max":"600px","--abs-brand-logo-width":"clamp(\n    300px,\n    calc(35 * 1vw),\n    600px\n  )","--abs-brand-logo-height":"calc(clamp(\n    300px,\n    calc(35 * 1vw),\n    600px\n  ) * 66 / 919)","--home-main-links-below-logo-px":"40","--brand-logo-user-scale":"1","--breakpoint-tablet":"991px","--breakpoint-mobile-l":"767px","--breakpoint-mobile-p":"480px"}};</script>
+
+  <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
+  <meta name="theme-color" content="#f5f5f5">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
+
+<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css?v=1766849629344">
 </head>
 <body class="body">
   <!-- SCENE WRAPPER: All scene layers move together (depth + micro-reactions). -->
@@ -392,16 +508,16 @@
       <span id="edge-chapter-text" class="edge-chapter__text">SOURCE MATERIAL</span>
     </div>
     <div id="edge-copyright" class="edge-copyright">
-      <span class="edge-copyright__text">© 2025 Alexander Beck Studio. All rights reserved.</span>
+      <span class="edge-copyright__text">© 2025 Alexander Beck Studio</span>
     </div>
     
     <!-- LAYER 1: Brand Logo - BEHIND balls (z:3) -->
     <div id="brand-logo" class="brand-logo-layer" aria-hidden="true">
-      <svg class="brand-logo-svg" viewbox="0 0 921 123" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Alexander Beck Studio">
-      <path d="M1.76 93L24.288 30.52H34.496L57.024 93H48.752L42.504 75.224H16.28L10.032 93H1.76ZM18.832 67.832H39.952L29.392 37.12L18.832 67.832ZM72.3333 93C69.6346 93 67.4346 92.296 65.7333 90.888C64.0319 89.48 63.1813 87.2507 63.1813 84.2V30.52H70.5733V83.584C70.5733 84.5227 70.8079 85.256 71.2773 85.784C71.8053 86.2533 72.5386 86.488 73.4773 86.488H77.5253V93H72.3333ZM102.218 94.056C97.8182 94.056 94.0049 93.0587 90.7782 91.064C87.6102 89.0693 85.1462 86.2533 83.3862 82.616C81.6849 78.92 80.8342 74.608 80.8342 69.68C80.8342 64.752 81.6849 60.4693 83.3862 56.832C85.1462 53.1947 87.5809 50.3787 90.6902 48.384C93.8582 46.3307 97.5835 45.304 101.866 45.304C105.914 45.304 109.493 46.272 112.602 48.208C115.712 50.0853 118.117 52.8427 119.818 56.48C121.578 60.1173 122.458 64.5467 122.458 69.768V71.968H88.5782C88.8715 76.9547 90.1915 80.7093 92.5382 83.232C94.9435 85.7547 98.1702 87.016 102.218 87.016C105.269 87.016 107.762 86.312 109.698 84.904C111.693 83.4373 113.072 81.5307 113.834 79.184L121.754 79.8C120.522 83.9653 118.176 87.3973 114.714 90.096C111.312 92.736 107.146 94.056 102.218 94.056ZM88.5782 65.456H114.362C114.01 60.9387 112.69 57.624 110.402 55.512C108.173 53.4 105.328 52.344 101.866 52.344C98.2875 52.344 95.3249 53.4587 92.9782 55.688C90.6902 57.8587 89.2235 61.1147 88.5782 65.456ZM126.906 93L144.066 69.064L127.786 46.36H136.41L148.642 63.96L160.522 46.36H169.322L153.218 69.24L170.114 93H161.49L148.642 74.168L135.706 93H126.906ZM192.551 94.056C188.092 94.056 184.396 92.9413 181.463 90.712C178.588 88.4827 176.418 85.52 174.951 81.824C173.543 78.128 172.839 74.08 172.839 69.68C172.839 65.3387 173.543 61.32 174.951 57.624C176.359 53.928 178.5 50.9653 181.375 48.736C184.308 46.448 188.004 45.304 192.463 45.304C195.924 45.304 198.858 45.9787 201.263 47.328C203.727 48.6773 205.604 50.5253 206.895 52.872V46.36H214.287V93H207.599L207.247 82.44L208.303 83.32C207.658 85.4907 206.602 87.3973 205.135 89.04C203.727 90.624 201.967 91.856 199.855 92.736C197.743 93.616 195.308 94.056 192.551 94.056ZM194.047 87.016C197.274 87.016 199.796 86.1947 201.615 84.552C203.492 82.8507 204.842 80.68 205.663 78.04C206.484 75.3413 206.895 72.5547 206.895 69.68C206.895 66.6293 206.484 63.8133 205.663 61.232C204.842 58.592 203.492 56.4507 201.615 54.808C199.796 53.1653 197.274 52.344 194.047 52.344C190.938 52.344 188.386 53.1653 186.391 54.808C184.396 56.392 182.93 58.504 181.991 61.144C181.052 63.7253 180.583 66.5707 180.583 69.68C180.583 72.6133 181.023 75.4293 181.903 78.128C182.842 80.768 184.308 82.9093 186.303 84.552C188.298 86.1947 190.879 87.016 194.047 87.016ZM225.703 93V46.36H232.479L232.743 58.24L231.863 57.448C232.449 54.6907 233.476 52.432 234.943 50.672C236.409 48.8533 238.169 47.504 240.223 46.624C242.335 45.744 244.593 45.304 246.999 45.304C250.577 45.304 253.511 46.096 255.799 47.68C258.145 49.264 259.876 51.4053 260.991 54.104C262.164 56.744 262.751 59.7067 262.751 62.992V93H255.359V65.104C255.359 62.2293 255.007 59.824 254.303 57.888C253.657 55.8933 252.601 54.3973 251.135 53.4C249.668 52.344 247.761 51.816 245.415 51.816C241.836 51.816 238.873 52.96 236.527 55.248C234.239 57.4773 233.095 60.7627 233.095 65.104V93H225.703ZM290.74 94.056C286.692 94.056 283.172 93.0587 280.18 91.064C277.246 89.0693 274.988 86.2533 273.404 82.616C271.82 78.9787 271.028 74.6667 271.028 69.68C271.028 64.6933 271.82 60.3813 273.404 56.744C274.988 53.1067 277.246 50.2907 280.18 48.296C283.172 46.3013 286.692 45.304 290.74 45.304C293.849 45.304 296.694 45.9787 299.276 47.328C301.857 48.6187 303.793 50.4667 305.084 52.872V30.52H312.476V93H305.788L305.524 85.96C304.233 88.4827 302.268 90.4773 299.628 91.944C296.988 93.352 294.025 94.056 290.74 94.056ZM292.236 87.016C294.993 87.016 297.31 86.312 299.188 84.904C301.124 83.496 302.59 81.5013 303.588 78.92C304.585 76.28 305.084 73.2 305.084 69.68C305.084 66.0427 304.585 62.9333 303.588 60.352C302.59 57.7707 301.124 55.8053 299.188 54.456C297.31 53.048 294.993 52.344 292.236 52.344C288.129 52.344 284.844 53.8987 282.38 57.008C279.974 60.0587 278.772 64.2827 278.772 69.68C278.772 75.0187 279.974 79.2427 282.38 82.352C284.844 85.4613 288.129 87.016 292.236 87.016ZM342.108 94.056C337.708 94.056 333.894 93.0587 330.668 91.064C327.5 89.0693 325.036 86.2533 323.276 82.616C321.574 78.92 320.724 74.608 320.724 69.68C320.724 64.752 321.574 60.4693 323.276 56.832C325.036 53.1947 327.47 50.3787 330.58 48.384C333.748 46.3307 337.473 45.304 341.756 45.304C345.804 45.304 349.382 46.272 352.492 48.208C355.601 50.0853 358.006 52.8427 359.708 56.48C361.468 60.1173 362.348 64.5467 362.348 69.768V71.968H328.468C328.761 76.9547 330.081 80.7093 332.428 83.232C334.833 85.7547 338.06 87.016 342.108 87.016C345.158 87.016 347.652 86.312 349.588 84.904C351.582 83.4373 352.961 81.5307 353.724 79.184L361.644 79.8C360.412 83.9653 358.065 87.3973 354.604 90.096C351.201 92.736 347.036 94.056 342.108 94.056ZM328.468 65.456H354.252C353.9 60.9387 352.58 57.624 350.292 55.512C348.062 53.4 345.217 52.344 341.756 52.344C338.177 52.344 335.214 53.4587 332.868 55.688C330.58 57.8587 329.113 61.1147 328.468 65.456ZM370.58 93V46.36H377.092L377.444 58.152L376.74 57.888C377.326 53.8987 378.588 50.9947 380.524 49.176C382.518 47.2987 385.158 46.36 388.444 46.36H393.02V53.4H388.532C386.185 53.4 384.22 53.84 382.636 54.72C381.11 55.5413 379.937 56.8027 379.116 58.504C378.353 60.1467 377.972 62.2587 377.972 64.84V93H370.58ZM419.059 93V30.52H440.531C447.923 30.52 453.467 31.8693 457.163 34.568C460.859 37.2667 462.707 41.52 462.707 47.328C462.707 50.0267 462.121 52.4027 460.947 54.456C459.774 56.5093 458.102 58.1227 455.931 59.296C453.761 60.4107 451.179 60.968 448.187 60.968L448.099 60.44C453.438 60.44 457.633 61.8773 460.683 64.752C463.793 67.568 465.347 71.264 465.347 75.84C465.347 81.5307 463.499 85.8133 459.803 88.688C456.107 91.5627 450.857 93 444.051 93H419.059ZM426.627 85.608H444.051C448.334 85.608 451.619 84.728 453.907 82.968C456.254 81.208 457.427 78.6853 457.427 75.4C457.427 72.1147 456.254 69.5627 453.907 67.744C451.619 65.8667 448.334 64.928 444.051 64.928H426.627V85.608ZM426.627 57.536H440.531C445.107 57.536 448.627 56.6853 451.091 54.984C453.555 53.224 454.787 50.7893 454.787 47.68C454.787 44.3947 453.585 41.96 451.179 40.376C448.833 38.7333 445.283 37.912 440.531 37.912H426.627V57.536ZM492.512 94.056C488.112 94.056 484.299 93.0587 481.072 91.064C477.904 89.0693 475.44 86.2533 473.68 82.616C471.979 78.92 471.128 74.608 471.128 69.68C471.128 64.752 471.979 60.4693 473.68 56.832C475.44 53.1947 477.875 50.3787 480.984 48.384C484.152 46.3307 487.877 45.304 492.16 45.304C496.208 45.304 499.787 46.272 502.896 48.208C506.005 50.0853 508.411 52.8427 510.112 56.48C511.872 60.1173 512.752 64.5467 512.752 69.768V71.968H478.872C479.165 76.9547 480.485 80.7093 482.832 83.232C485.237 85.7547 488.464 87.016 492.512 87.016C495.563 87.016 498.056 86.312 499.992 84.904C501.987 83.4373 503.365 81.5307 504.128 79.184L512.048 79.8C510.816 83.9653 508.469 87.3973 505.008 90.096C501.605 92.736 497.44 94.056 492.512 94.056ZM478.872 65.456H504.656C504.304 60.9387 502.984 57.624 500.696 55.512C498.467 53.4 495.621 52.344 492.16 52.344C488.581 52.344 485.619 53.4587 483.272 55.688C480.984 57.8587 479.517 61.1147 478.872 65.456ZM540.08 94.056C535.739 94.056 531.955 93.0587 528.728 91.064C525.56 89.0693 523.096 86.2533 521.336 82.616C519.576 78.92 518.696 74.608 518.696 69.68C518.696 64.752 519.576 60.4693 521.336 56.832C523.096 53.1947 525.56 50.3787 528.728 48.384C531.955 46.3307 535.739 45.304 540.08 45.304C543.659 45.304 546.827 45.9493 549.584 47.24C552.4 48.472 554.688 50.2907 556.448 52.696C558.208 55.1013 559.352 58.0347 559.88 61.496L552.136 62.024C551.608 58.9147 550.259 56.5387 548.088 54.896C545.917 53.1947 543.248 52.344 540.08 52.344C535.797 52.344 532.453 53.8987 530.048 57.008C527.643 60.0587 526.44 64.2827 526.44 69.68C526.44 75.0773 527.643 79.3307 530.048 82.44C532.453 85.4907 535.797 87.016 540.08 87.016C543.248 87.016 545.917 86.136 548.088 84.376C550.259 82.616 551.608 79.976 552.136 76.456L559.88 76.984C559.352 80.4453 558.208 83.4667 556.448 86.048C554.688 88.5707 552.4 90.536 549.584 91.944C546.827 93.352 543.659 94.056 540.08 94.056ZM567.263 93V30.52H574.655V71.44L597.359 46.36H607.215L588.823 66.16L608.007 93H599.031L583.807 71.176L574.655 80.856V93H567.263ZM655.777 94.408C650.967 94.408 646.772 93.4987 643.193 91.68C639.615 89.8613 636.769 87.368 634.657 84.2C632.604 80.9733 631.401 77.248 631.049 73.024L638.969 72.496C639.38 75.6053 640.289 78.2453 641.697 80.416C643.105 82.5867 644.983 84.2293 647.329 85.344C649.735 86.4587 652.609 87.016 655.953 87.016C658.887 87.016 661.38 86.6347 663.433 85.872C665.487 85.1093 667.041 83.9947 668.097 82.528C669.212 81.0613 669.769 79.272 669.769 77.16C669.769 75.224 669.3 73.5227 668.361 72.056C667.481 70.5307 665.751 69.152 663.169 67.92C660.647 66.6293 656.892 65.368 651.905 64.136C647.095 62.904 643.252 61.5547 640.377 60.088C637.561 58.6213 635.508 56.832 634.217 54.72C632.985 52.608 632.369 49.9973 632.369 46.888C632.369 43.368 633.191 40.288 634.833 37.648C636.535 34.9493 638.94 32.8667 642.049 31.4C645.159 29.8747 648.855 29.112 653.137 29.112C657.713 29.112 661.644 29.992 664.929 31.752C668.215 33.4533 670.825 35.8 672.761 38.792C674.697 41.784 675.9 45.1867 676.369 49L668.449 49.528C668.097 47.0053 667.276 44.776 665.985 42.84C664.753 40.8453 663.052 39.2907 660.881 38.176C658.711 37.0613 656.071 36.504 652.961 36.504C649.089 36.504 646.009 37.4427 643.721 39.32C641.433 41.1387 640.289 43.544 640.289 46.536C640.289 48.472 640.729 50.0853 641.609 51.376C642.548 52.608 644.191 53.7227 646.537 54.72C648.884 55.6587 652.257 56.6853 656.657 57.8C661.879 59.0907 666.015 60.6453 669.065 62.464C672.175 64.224 674.375 66.2773 675.665 68.624C677.015 70.9707 677.689 73.64 677.689 76.632C677.689 80.2693 676.751 83.4373 674.873 86.136C672.996 88.776 670.415 90.8293 667.129 92.296C663.844 93.704 660.06 94.408 655.777 94.408ZM702.21 93C697.986 93 694.848 92.032 692.794 90.096C690.8 88.16 689.802 85.1387 689.802 81.032V35.448H697.194V80.856C697.194 82.968 697.664 84.4347 698.602 85.256C699.541 86.0773 700.978 86.488 702.914 86.488H709.602V93H702.21ZM682.938 52.872V46.36H709.602V52.872H682.938ZM732.271 94.056C727.637 94.056 723.911 92.5013 721.095 89.392C718.338 86.224 716.959 81.8827 716.959 76.368V46.36H724.351V74.344C724.351 78.8613 725.143 82.2053 726.727 84.376C728.37 86.488 730.863 87.544 734.207 87.544C737.903 87.544 740.807 86.3707 742.919 84.024C745.031 81.6187 746.087 78.3333 746.087 74.168V46.36H753.479V93H746.439V81.472L747.583 82.088C746.645 85.9013 744.855 88.864 742.215 90.976C739.575 93.0293 736.261 94.056 732.271 94.056ZM781.481 94.056C777.433 94.056 773.913 93.0587 770.921 91.064C767.987 89.0693 765.729 86.2533 764.145 82.616C762.561 78.9787 761.769 74.6667 761.769 69.68C761.769 64.6933 762.561 60.3813 764.145 56.744C765.729 53.1067 767.987 50.2907 770.921 48.296C773.913 46.3013 777.433 45.304 781.481 45.304C784.59 45.304 787.435 45.9787 790.017 47.328C792.598 48.6187 794.534 50.4667 795.825 52.872V30.52H803.217V93H796.529L796.265 85.96C794.974 88.4827 793.009 90.4773 790.369 91.944C787.729 93.352 784.766 94.056 781.481 94.056ZM782.977 87.016C785.734 87.016 788.051 86.312 789.929 84.904C791.865 83.496 793.331 81.5013 794.329 78.92C795.326 76.28 795.825 73.2 795.825 69.68C795.825 66.0427 795.326 62.9333 794.329 60.352C793.331 57.7707 791.865 55.8053 789.929 54.456C788.051 53.048 785.734 52.344 782.977 52.344C778.87 52.344 775.585 53.8987 773.121 57.008C770.715 60.0587 769.513 64.2827 769.513 69.68C769.513 75.0187 770.715 79.2427 773.121 82.352C775.585 85.4613 778.87 87.016 782.977 87.016ZM814.632 93V46.36H822.024V93H814.632ZM818.416 39.32C817.184 39.32 816.158 38.9387 815.336 38.176C814.574 37.3547 814.192 36.2693 814.192 34.92C814.192 33.6293 814.574 32.5733 815.336 31.752C816.158 30.9307 817.184 30.52 818.416 30.52C819.648 30.52 820.646 30.9307 821.408 31.752C822.23 32.5733 822.64 33.6293 822.64 34.92C822.64 36.2693 822.23 37.3547 821.408 38.176C820.646 38.9387 819.648 39.32 818.416 39.32ZM851.693 94.056C847.41 94.056 843.656 93.0587 840.429 91.064C837.202 89.0693 834.709 86.2533 832.949 82.616C831.189 78.92 830.309 74.608 830.309 69.68C830.309 64.6933 831.189 60.3813 832.949 56.744C834.709 53.1067 837.202 50.2907 840.429 48.296C843.656 46.3013 847.41 45.304 851.693 45.304C855.976 45.304 859.701 46.3013 862.869 48.296C866.096 50.2907 868.589 53.1067 870.349 56.744C872.109 60.3813 872.989 64.6933 872.989 69.68C872.989 74.608 872.109 78.92 870.349 82.616C868.589 86.2533 866.096 89.0693 862.869 91.064C859.701 93.0587 855.976 94.056 851.693 94.056ZM851.693 87.016C855.976 87.016 859.29 85.4907 861.637 82.44C864.042 79.3307 865.245 75.0773 865.245 69.68C865.245 64.2827 864.042 60.0587 861.637 57.008C859.29 53.8987 855.976 52.344 851.693 52.344C847.41 52.344 844.066 53.8987 841.661 57.008C839.256 60.0587 838.053 64.2827 838.053 69.68C838.053 75.0773 839.256 79.3307 841.661 82.44C844.066 85.4907 847.41 87.016 851.693 87.016Z" fill="currentColor"/>
-      <ellipse cx="904" cy="50.9883" rx="16" ry="16" stroke="currentColor" stroke-width="1.5" fill="none"/>
-      <path d="M909.046 44.9121C910.191 44.9121 911.157 45.2424 911.837 45.8262C912.518 46.4108 912.908 47.2457 912.908 48.2432C912.908 49.4861 912.309 50.4595 911.38 50.7969C912.714 51.1016 913.594 52.194 913.594 53.6748C913.594 55.6619 911.973 57.0575 909.731 57.0576H905.715V44.9121H909.046ZM907.116 55.6562H909.731C910.436 55.6562 911.031 55.4466 911.447 55.0898C911.863 54.7337 912.106 54.2277 912.106 53.624C912.106 53.0203 911.863 52.5144 911.447 52.1582C911.031 51.8013 910.436 51.5909 909.731 51.5908H907.116V55.6562ZM907.116 50.1904H909.046C909.76 50.1904 910.355 49.9887 910.77 49.6465C911.183 49.3052 911.421 48.8204 911.421 48.2432C911.421 47.6656 911.187 47.1854 910.776 46.8486C910.364 46.5108 909.77 46.3135 909.046 46.3135H907.116V50.1904Z" fill="currentColor"/>
-      <path d="M900.007 44.9121L900.024 44.9629L904.154 56.958L904.188 57.0576H902.677L902.659 57.0068L901.34 53.1846H896.632L895.312 57.0068L895.295 57.0576H893.782L893.816 56.958L897.946 44.9629L897.964 44.9121H900.007ZM897.111 51.7842H900.859L898.993 46.3486L897.111 51.7842Z" fill="currentColor"/>
+      <svg class="brand-logo-svg" viewBox="0 0 919 66" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-label="Alexander Beck Studio">
+        <path d="M0 63.888L22.528 1.408H32.736L55.264 63.888H46.992L40.744 46.112H14.52L8.272 63.888H0ZM17.072 38.72H38.192L27.632 8.008L17.072 38.72ZM70.5733 63.888C67.8746 63.888 65.6746 63.184 63.9733 61.776C62.2719 60.368 61.4213 58.1387 61.4213 55.088V1.408H68.8133V54.472C68.8133 55.4107 69.0479 56.144 69.5173 56.672C70.0453 57.1413 70.7786 57.376 71.7173 57.376H75.7653V63.888H70.5733ZM100.458 64.944C96.0582 64.944 92.2449 63.9467 89.0182 61.952C85.8502 59.9573 83.3862 57.1413 81.6262 53.504C79.9249 49.808 79.0742 45.496 79.0742 40.568C79.0742 35.64 79.9249 31.3573 81.6262 27.72C83.3862 24.0827 85.8209 21.2667 88.9302 19.272C92.0982 17.2187 95.8235 16.192 100.106 16.192C104.154 16.192 107.733 17.16 110.842 19.096C113.952 20.9733 116.357 23.7307 118.058 27.368C119.818 31.0053 120.698 35.4347 120.698 40.656V42.856H86.8182C87.1115 47.8427 88.4315 51.5973 90.7782 54.12C93.1835 56.6427 96.4102 57.904 100.458 57.904C103.509 57.904 106.002 57.2 107.938 55.792C109.933 54.3253 111.312 52.4187 112.074 50.072L119.994 50.688C118.762 54.8533 116.416 58.2853 112.954 60.984C109.552 63.624 105.386 64.944 100.458 64.944ZM86.8182 36.344H112.602C112.25 31.8267 110.93 28.512 108.642 26.4C106.413 24.288 103.568 23.232 100.106 23.232C96.5275 23.232 93.5649 24.3467 91.2182 26.576C88.9302 28.7467 87.4635 32.0027 86.8182 36.344ZM125.146 63.888L142.306 39.952L126.026 17.248H134.65L146.882 34.848L158.762 17.248H167.562L151.458 40.128L168.354 63.888H159.73L146.882 45.056L133.946 63.888H125.146ZM190.791 64.944C186.332 64.944 182.636 63.8293 179.703 61.6C176.828 59.3707 174.658 56.408 173.191 52.712C171.783 49.016 171.079 44.968 171.079 40.568C171.079 36.2267 171.783 32.208 173.191 28.512C174.599 24.816 176.74 21.8533 179.615 19.624C182.548 17.336 186.244 16.192 190.703 16.192C194.164 16.192 197.098 16.8667 199.503 18.216C201.967 19.5653 203.844 21.4133 205.135 23.76V17.248H212.527V63.888H205.839L205.487 53.328L206.543 54.208C205.898 56.3787 204.842 58.2853 203.375 59.928C201.967 61.512 200.207 62.744 198.095 63.624C195.983 64.504 193.548 64.944 190.791 64.944ZM192.287 57.904C195.514 57.904 198.036 57.0827 199.855 55.44C201.732 53.7387 203.082 51.568 203.903 48.928C204.724 46.2293 205.135 43.4427 205.135 40.568C205.135 37.5173 204.724 34.7013 203.903 32.12C203.082 29.48 201.732 27.3387 199.855 25.696C198.036 24.0533 195.514 23.232 192.287 23.232C189.178 23.232 186.626 24.0533 184.631 25.696C182.636 27.28 181.17 29.392 180.231 32.032C179.292 34.6133 178.823 37.4587 178.823 40.568C178.823 43.5013 179.263 46.3173 180.143 49.016C181.082 51.656 182.548 53.7973 184.543 55.44C186.538 57.0827 189.119 57.904 192.287 57.904ZM223.943 63.888V17.248H230.719L230.983 29.128L230.103 28.336C230.689 25.5787 231.716 23.32 233.183 21.56C234.649 19.7413 236.409 18.392 238.463 17.512C240.575 16.632 242.833 16.192 245.239 16.192C248.817 16.192 251.751 16.984 254.039 18.568C256.385 20.152 258.116 22.2933 259.231 24.992C260.404 27.632 260.991 30.5947 260.991 33.88V63.888H253.599V35.992C253.599 33.1173 253.247 30.712 252.543 28.776C251.897 26.7813 250.841 25.2853 249.375 24.288C247.908 23.232 246.001 22.704 243.655 22.704C240.076 22.704 237.113 23.848 234.767 26.136C232.479 28.3653 231.335 31.6507 231.335 35.992V63.888H223.943ZM288.98 64.944C284.932 64.944 281.412 63.9467 278.42 61.952C275.486 59.9573 273.228 57.1413 271.644 53.504C270.06 49.8667 269.268 45.5547 269.268 40.568C269.268 35.5813 270.06 31.2693 271.644 27.632C273.228 23.9947 275.486 21.1787 278.42 19.184C281.412 17.1893 284.932 16.192 288.98 16.192C292.089 16.192 294.934 16.8667 297.516 18.216C300.097 19.5067 302.033 21.3547 303.324 23.76V1.408H310.716V63.888H304.028L303.764 56.848C302.473 59.3707 300.508 61.3653 297.868 62.832C295.228 64.24 292.265 64.944 288.98 64.944ZM290.476 57.904C293.233 57.904 295.55 57.2 297.428 55.792C299.364 54.384 300.83 52.3893 301.828 49.808C302.825 47.168 303.324 44.088 303.324 40.568C303.324 36.9307 302.825 33.8213 301.828 31.24C300.83 28.6587 299.364 26.6933 297.428 25.344C295.55 23.936 293.233 23.232 290.476 23.232C286.369 23.232 283.084 24.7867 280.62 27.896C278.214 30.9467 277.012 35.1707 277.012 40.568C277.012 45.9067 278.214 50.1307 280.62 53.24C283.084 56.3493 286.369 57.904 290.476 57.904ZM340.348 64.944C335.948 64.944 332.134 63.9467 328.908 61.952C325.74 59.9573 323.276 57.1413 321.516 53.504C319.814 49.808 318.964 45.496 318.964 40.568C318.964 35.64 319.814 31.3573 321.516 27.72C323.276 24.0827 325.71 21.2667 328.82 19.272C331.988 17.2187 335.713 16.192 339.996 16.192C344.044 16.192 347.622 17.16 350.732 19.096C353.841 20.9733 356.246 23.7307 357.948 27.368C359.708 31.0053 360.588 35.4347 360.588 40.656V42.856H326.708C327.001 47.8427 328.321 51.5973 330.668 54.12C333.073 56.6427 336.3 57.904 340.348 57.904C343.398 57.904 345.892 57.2 347.828 55.792C349.822 54.3253 351.201 52.4187 351.964 50.072L359.884 50.688C358.652 54.8533 356.305 58.2853 352.844 60.984C349.441 63.624 345.276 64.944 340.348 64.944ZM326.708 36.344H352.492C352.14 31.8267 350.82 28.512 348.532 26.4C346.302 24.288 343.457 23.232 339.996 23.232C336.417 23.232 333.454 24.3467 331.108 26.576C328.82 28.7467 327.353 32.0027 326.708 36.344ZM368.82 63.888V17.248H375.332L375.684 29.04L374.98 28.776C375.566 24.7867 376.828 21.8827 378.764 20.064C380.758 18.1867 383.398 17.248 386.684 17.248H391.26V24.288H386.772C384.425 24.288 382.46 24.728 380.876 25.608C379.35 26.4293 378.177 27.6907 377.356 29.392C376.593 31.0347 376.212 33.1467 376.212 35.728V63.888H368.82ZM418.299 63.888V1.408H439.771C447.163 1.408 452.707 2.7573 456.403 5.456C460.099 8.1547 461.947 12.408 461.947 18.216C461.947 20.9147 461.361 23.2907 460.187 25.344C459.014 27.3973 457.342 29.0107 455.171 30.184C453.001 31.2987 450.419 31.856 447.427 31.856L447.339 31.328C452.678 31.328 456.873 32.7653 459.923 35.64C463.033 38.456 464.587 42.152 464.587 46.728C464.587 52.4187 462.739 56.7013 459.043 59.576C455.347 62.4507 450.097 63.888 443.291 63.888H418.299ZM425.867 56.496H443.291C447.574 56.496 450.859 55.616 453.147 53.856C455.494 52.096 456.667 49.5733 456.667 46.288C456.667 43.0027 455.494 40.4507 453.147 38.632C450.859 36.7547 447.574 35.816 443.291 35.816H425.867V56.496ZM425.867 28.424H439.771C444.347 28.424 447.867 27.5733 450.331 25.872C452.795 24.112 454.027 21.6773 454.027 18.568C454.027 15.2827 452.825 12.848 450.419 11.264C448.073 9.6213 444.523 8.8 439.771 8.8H425.867V28.424ZM491.752 64.944C487.352 64.944 483.539 63.9467 480.312 61.952C477.144 59.9573 474.68 57.1413 472.92 53.504C471.219 49.808 470.368 45.496 470.368 40.568C470.368 35.64 471.219 31.3573 472.92 27.72C474.68 24.0827 477.115 21.2667 480.224 19.272C483.392 17.2187 487.117 16.192 491.4 16.192C495.448 16.192 499.027 17.16 502.136 19.096C505.245 20.9733 507.651 23.7307 509.352 27.368C511.112 31.0053 511.992 35.4347 511.992 40.656V42.856H478.112C478.405 47.8427 479.725 51.5973 482.072 54.12C484.477 56.6427 487.704 57.904 491.752 57.904C494.803 57.904 497.296 57.2 499.232 55.792C501.227 54.3253 502.605 52.4187 503.368 50.072L511.288 50.688C510.056 54.8533 507.709 58.2853 504.248 60.984C500.845 63.624 496.68 64.944 491.752 64.944ZM478.112 36.344H503.896C503.544 31.8267 502.224 28.512 499.936 26.4C497.707 24.288 494.861 23.232 491.4 23.232C487.821 23.232 484.859 24.3467 482.512 26.576C480.224 28.7467 478.757 32.0027 478.112 36.344ZM539.32 64.944C534.979 64.944 531.195 63.9467 527.968 61.952C524.8 59.9573 522.336 57.1413 520.576 53.504C518.816 49.808 517.936 45.496 517.936 40.568C517.936 35.64 518.816 31.3573 520.576 27.72C522.336 24.0827 524.8 21.2667 527.968 19.272C531.195 17.2187 534.979 16.192 539.32 16.192C542.899 16.192 546.067 16.8373 548.824 18.128C551.64 19.36 553.928 21.1787 555.688 23.584C557.448 25.9893 558.592 28.9227 559.12 32.384L551.376 32.912C550.848 29.8027 549.499 27.4267 547.328 25.784C545.157 24.0827 542.488 23.232 539.32 23.232C535.037 23.232 531.693 24.7867 529.288 27.896C526.883 30.9467 525.68 35.1707 525.68 40.568C525.68 45.9653 526.883 50.2187 529.288 53.328C531.693 56.3787 535.037 57.904 539.32 57.904C542.488 57.904 545.157 57.024 547.328 55.264C549.499 53.504 550.848 50.864 551.376 47.344L559.12 47.872C558.592 51.3333 557.448 54.3547 555.688 56.936C553.928 59.4587 551.64 61.424 548.824 62.832C546.067 64.24 542.899 64.944 539.32 64.944ZM566.503 63.888V1.408H573.895V42.328L596.599 17.248H606.455L588.063 37.048L607.247 63.888H598.271L583.047 42.064L573.895 51.744V63.888H566.503ZM655.017 65.296C650.207 65.296 646.012 64.3867 642.433 62.568C638.855 60.7493 636.009 58.256 633.897 55.088C631.844 51.8613 630.641 48.136 630.289 43.912L638.209 43.384C638.62 46.4933 639.529 49.1333 640.937 51.304C642.345 53.4747 644.223 55.1173 646.569 56.232C648.975 57.3467 651.849 57.904 655.193 57.904C658.127 57.904 660.62 57.5227 662.673 56.76C664.727 55.9973 666.281 54.8827 667.337 53.416C668.452 51.9493 669.009 50.16 669.009 48.048C669.009 46.112 668.54 44.4107 667.601 42.944C666.721 41.4187 664.991 40.04 662.409 38.808C659.887 37.5173 656.132 36.256 651.145 35.024C646.335 33.792 642.492 32.4427 639.617 30.976C636.801 29.5093 634.748 27.72 633.457 25.608C632.225 23.496 631.609 20.8853 631.609 17.776C631.609 14.256 632.431 11.176 634.073 8.536C635.775 5.8373 638.18 3.7547 641.289 2.288C644.399 0.7627 648.095 0 652.377 0C656.953 0 660.884 0.880001 664.169 2.64C667.455 4.3413 670.065 6.688 672.001 9.68C673.937 12.672 675.14 16.0747 675.609 19.888L667.689 20.416C667.337 17.8933 666.516 15.664 665.225 13.728C663.993 11.7333 662.292 10.1787 660.121 9.064C657.951 7.9493 655.311 7.392 652.201 7.392C648.329 7.392 645.249 8.3307 642.961 10.208C640.673 12.0267 639.529 14.432 639.529 17.424C639.529 19.36 639.969 20.9733 640.849 22.264C641.788 23.496 643.431 24.6107 645.777 25.608C648.124 26.5467 651.497 27.5733 655.897 28.688C661.119 29.9787 665.255 31.5333 668.305 33.352C671.415 35.112 673.615 37.1653 674.905 39.512C676.255 41.8587 676.929 44.528 676.929 47.52C676.929 51.1573 675.991 54.3253 674.113 57.024C672.236 59.664 669.655 61.7173 666.369 63.184C663.084 64.592 659.3 65.296 655.017 65.296ZM701.45 63.888C697.226 63.888 694.088 62.92 692.034 60.984C690.04 59.048 689.042 56.0267 689.042 51.92V6.336H696.434V51.744C696.434 53.856 696.904 55.3227 697.842 56.144C698.781 56.9653 700.218 57.376 702.154 57.376H708.842V63.888H701.45ZM682.178 23.76V17.248H708.842V23.76H682.178ZM731.511 64.944C726.877 64.944 723.151 63.3893 720.335 60.28C717.578 57.112 716.199 52.7707 716.199 47.256V17.248H723.591V45.232C723.591 49.7493 724.383 53.0933 725.967 55.264C727.61 57.376 730.103 58.432 733.447 58.432C737.143 58.432 740.047 57.2587 742.159 54.912C744.271 52.5067 745.327 49.2213 745.327 45.056V17.248H752.719V63.888H745.679V52.36L746.823 52.976C745.885 56.7893 744.095 59.752 741.455 61.864C738.815 63.9173 735.501 64.944 731.511 64.944ZM780.721 64.944C776.673 64.944 773.153 63.9467 770.161 61.952C767.227 59.9573 764.969 57.1413 763.385 53.504C761.801 49.8667 761.009 45.5547 761.009 40.568C761.009 35.5813 761.801 31.2693 763.385 27.632C764.969 23.9947 767.227 21.1787 770.161 19.184C773.153 17.1893 776.673 16.192 780.721 16.192C783.83 16.192 786.675 16.8667 789.257 18.216C791.838 19.5067 793.774 21.3547 795.065 23.76V1.408H802.457V63.888H795.769L795.505 56.848C794.214 59.3707 792.249 61.3653 789.609 62.832C786.969 64.24 784.006 64.944 780.721 64.944ZM782.217 57.904C784.974 57.904 787.291 57.2 789.169 55.792C791.105 54.384 792.571 52.3893 793.569 49.808C794.566 47.168 795.065 44.088 795.065 40.568C795.065 36.9307 794.566 33.8213 793.569 31.24C792.571 28.6587 791.105 26.6933 789.169 25.344C787.291 23.936 784.974 23.232 782.217 23.232C778.11 23.232 774.825 24.7867 772.361 27.896C769.955 30.9467 768.753 35.1707 768.753 40.568C768.753 45.9067 769.955 50.1307 772.361 53.24C774.825 56.3493 778.11 57.904 782.217 57.904ZM813.872 63.888V17.248H821.264V63.888H813.872ZM817.656 10.208C816.424 10.208 815.398 9.8267 814.576 9.064C813.814 8.2427 813.432 7.1573 813.432 5.808C813.432 4.5173 813.814 3.4613 814.576 2.64C815.398 1.8187 816.424 1.408 817.656 1.408C818.888 1.408 819.886 1.8187 820.648 2.64C821.47 3.4613 821.88 4.5173 821.88 5.808C821.88 7.1573 821.47 8.2427 820.648 9.064C819.886 9.8267 818.888 10.208 817.656 10.208ZM850.933 64.944C846.65 64.944 842.896 63.9467 839.669 61.952C836.442 59.9573 833.949 57.1413 832.189 53.504C830.429 49.808 829.549 45.496 829.549 40.568C829.549 35.5813 830.429 31.2693 832.189 27.632C833.949 23.9947 836.442 21.1787 839.669 19.184C842.896 17.1893 846.65 16.192 850.933 16.192C855.216 16.192 858.941 17.1893 862.109 19.184C865.336 21.1787 867.829 23.9947 869.589 27.632C871.349 31.2693 872.229 35.5813 872.229 40.568C872.229 45.496 871.349 49.808 869.589 53.504C867.829 57.1413 865.336 59.9573 862.109 61.952C858.941 63.9467 855.216 64.944 850.933 64.944ZM850.933 57.904C855.216 57.904 858.53 56.3787 860.877 53.328C863.282 50.2187 864.485 45.9653 864.485 40.568C864.485 35.1707 863.282 30.9467 860.877 27.896C858.53 24.7867 855.216 23.232 850.933 23.232C846.65 23.232 843.306 24.7867 840.901 27.896C838.496 30.9467 837.293 35.1707 837.293 40.568C837.293 45.9653 838.496 50.2187 840.901 53.328C843.306 56.3787 846.65 57.904 850.933 57.904Z"/>
+        <path d="M916.159 18.6003C916.159 9.64032 908.895 2.37671 899.935 2.37665C890.975 2.37665 883.712 9.64028 883.712 18.6003C883.712 27.5602 890.975 34.8239 899.935 34.8239C908.895 34.8238 916.159 27.5602 916.159 18.6003ZM918.409 18.6003C918.409 28.8028 910.138 37.0738 899.935 37.0739C889.733 37.0739 881.462 28.8029 881.462 18.6003C881.462 8.39764 889.733 0.126648 899.935 0.126648C910.138 0.126714 918.409 8.39768 918.409 18.6003Z"/>
+        <path d="M901.458 24.9002V12.1202H906.246C907.806 12.1202 908.988 12.4022 909.792 12.9662C910.608 13.5182 911.016 14.3882 911.016 15.5762C911.016 16.3322 910.794 16.9502 910.35 17.4302C909.906 17.9102 909.288 18.1982 908.496 18.2942C909.468 18.3902 910.218 18.7142 910.746 19.2662C911.286 19.8062 911.556 20.5142 911.556 21.3902C911.556 22.5662 911.148 23.4482 910.332 24.0362C909.528 24.6122 908.382 24.9002 906.894 24.9002H901.458ZM903.798 17.4842H906.174C906.942 17.4842 907.542 17.3402 907.974 17.0522C908.406 16.7642 908.622 16.3442 908.622 15.7922C908.622 15.2162 908.412 14.7902 907.992 14.5142C907.572 14.2382 906.966 14.1002 906.174 14.1002H903.798V17.4842ZM903.798 22.9202H906.786C907.518 22.9202 908.094 22.7702 908.514 22.4702C908.946 22.1702 909.162 21.7262 909.162 21.1382C909.162 20.5502 908.946 20.1002 908.514 19.7882C908.094 19.4762 907.518 19.3202 906.786 19.3202H903.798V22.9202Z"/>
+        <path d="M888.038 24.9002L892.646 12.1202H895.508L900.116 24.9002H897.668L896.606 21.8762H891.548L890.486 24.9002H888.038ZM892.232 19.8782H895.922L894.086 14.4782L892.232 19.8782Z"/>
       </svg>
     </div>
 
@@ -503,7 +619,7 @@
           <div class="ui-meta-right">
              <!-- Sound Toggle will be injected here by JS -->
              <time id="site-year" class="w-layout-hflex caption">
-              <span><strong class="location-name">London</strong>, UK · <span id="time-display"></span></span>
+              <span><strong class="location-name">London</strong> · <span id="time-display"></span></span>
             </time>
           </div>
         </div>
@@ -547,6 +663,6 @@
   <!-- Page Flash Overlay (for CV and Portfolio gate success/failure feedback) -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
-<script id="bravia-balls-js" src="js/bouncy-balls-embed.js?v=1766760333140" defer></script>
+<script id="bravia-balls-js" src="js/bouncy-balls-embed.js?v=1766849629344" defer></script>
 </body>
 </html>

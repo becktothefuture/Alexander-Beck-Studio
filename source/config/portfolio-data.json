@@ -61,36 +61,6 @@
       ]
     },
     {
-      "id": "chapter-0",
-      "client": "Branding",
-      "title": "Visual Identity Systems at Scale",
-      "image": "chapter-0-1.webp",
-      "tags": ["#identity", "#branding", "#typography", "#visual design", "#art direction"],
-      "summary": "A modular identity toolkit built to flex across print, product, and motion without losing cohesion.",
-      "role": "Creative Direction, Brand Design",
-      "year": "2023",
-      "overview": "Crafted typography, grid logic, and motion rules that let teams move fast while staying on-brand across channels.",
-      "gallery": [
-        "images/portfolio/pages/chapter-0-2.webp",
-        "images/portfolio/pages/chapter-0-4.webp"
-      ],
-      "links": [
-        { "label": "Case Study", "url": "https://example.com" },
-        { "label": "Brand Toolkit", "url": "https://example.com" }
-      ],
-      "contentBlocks": [
-        { "type": "image", "src": "images/portfolio/pages/chapter-0-3.webp", "caption": "Core mark exploration and lockup rules." },
-        { "type": "video", "src": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.mp4", "caption": "Motion system demo with kinetic typography." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-0-5.webp", "caption": "Grid and spacing tokens for rapid layout." },
-        { "type": "image", "src": "images/portfolio/pages/chapter-0-7.webp", "caption": "Applied identity across digital surfaces." }
-      ],
-      "takeaways": [
-        "Define a strict grid early to unlock fast iteration.",
-        "Motion can unify brand tone across touchpoints.",
-        "System-first thinking reduces downstream design debt."
-      ]
-    },
-    {
       "id": "chapter-3",
       "client": "Motion",
       "title": "Motion & Interaction Systems",
@@ -152,7 +122,7 @@
     },
     {
       "id": "chapter-5",
-      "client": "Leadership",
+      "client": "Meta",
       "title": "Creative Direction + Launch Narratives",
       "image": "chapter-5-1.webp",
       "tags": ["#creative direction", "#team leadership", "#mentorship", "#vision", "#execution"],

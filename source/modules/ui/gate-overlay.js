@@ -6,6 +6,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
+import { readTokenMs, readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
 
 let overlayElement = null;
 let isEnabled = true;
@@ -55,13 +56,11 @@ export function unmountGateFromOverlay(gateEl) {
  * Get wall thickness from CSS variable or state
  */
 function getWallThickness() {
-    try {
-        const style = getComputedStyle(document.documentElement);
-        const thickness = style.getPropertyValue('--wall-thickness').trim();
-        if (thickness) {
-            return parseFloat(thickness) || 12; // Fallback to 12px
-        }
-    } catch (e) {}
+    const thickness = readTokenVar('--wall-thickness', '');
+    if (thickness && !/calc\(|vw|vh|vmin|vmax|%/i.test(thickness)) {
+        const parsed = parseFloat(thickness);
+        if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
     
     // Fallback to state
     const g = getGlobals();
@@ -106,22 +105,22 @@ export function initGateOverlay(config) {
     ensureModalHost();
     
     // Inject CSS custom properties from config
-    const opacity = config.gateOverlayOpacity ?? 0.01;
-    const transitionMs = config.gateOverlayTransitionMs ?? 400;
-    const transitionOutMs = config.gateOverlayTransitionOutMs ?? 250;
-    const contentDelayMs = config.gateOverlayContentDelayMs ?? 200;
+    const opacity = config.gateOverlayOpacity ?? readTokenNumber('--gate-overlay-opacity', 0.01);
+    const transitionMs = config.gateOverlayTransitionMs ?? readTokenMs('--gate-overlay-transition-duration', 800);
+    const transitionOutMs = config.gateOverlayTransitionOutMs ?? readTokenMs('--gate-overlay-transition-out-duration', 600);
+    const contentDelayMs = config.gateOverlayContentDelayMs ?? readTokenMs('--gate-content-delay', 200);
     
     // Depth effect settings
-    const depthScale = config.gateDepthScale ?? 0.96;
-    const depthY = config.gateDepthTranslateY ?? 8;
+    const depthScale = config.gateDepthScale ?? readTokenNumber('--gate-depth-scale', 0.96);
+    const depthY = config.gateDepthTranslateY ?? readTokenPx('--gate-depth-translate-y', 8);
     
     // Logo opacity settings (fade when gate is active)
-    const logoOpacityInactive = config.logoOpacityInactive ?? 1;
-    const logoOpacityActive = config.logoOpacityActive ?? 0.2;
+    const logoOpacityInactive = config.logoOpacityInactive ?? readTokenNumber('--logo-opacity-inactive', 1);
+    const logoOpacityActive = config.logoOpacityActive ?? readTokenNumber('--logo-opacity-active-target', 0.2);
     
     // Logo blur settings (blur when gate is active)
-    const logoBlurInactive = config.logoBlurInactive ?? 0;
-    const logoBlurActive = config.logoBlurActive ?? 12;
+    const logoBlurInactive = config.logoBlurInactive ?? readTokenPx('--logo-blur-inactive', 0);
+    const logoBlurActive = config.logoBlurActive ?? readTokenPx('--logo-blur-active-target', 12);
     
     // Set depth variables on root so they are available to all scene elements
     const root = document.documentElement;

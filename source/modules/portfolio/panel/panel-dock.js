@@ -104,9 +104,9 @@ export function createPanelDock({ config, onMetricsChange, onRuntimeChange, pane
 
   document.body.insertBefore(dockElement, document.body.firstChild);
 
-  // Lock to right-docked position (no drag positioning / drift).
-  resetDockPosition();
+  // Default to top-right via CSS (but allow user drag positioning).
   setupResizePersistence();
+  setupDragging();
   bindDockToggleShortcut();
 
   // If something inside the panel was focused (e.g. restored state), don't let it
@@ -126,6 +126,24 @@ function createPanel({ config, onMetricsChange, onRuntimeChange, panelTitle, mod
   panel.setAttribute('role', 'region');
   panel.setAttribute('aria-label', 'Portfolio settings');
 
+  // Header (drag handle + collapse control).
+  const header = document.createElement('div');
+  header.className = 'panel-header';
+  header.innerHTML = `
+    <div class="mac-titlebar">
+      <div class="mac-traffic" aria-hidden="true">
+        <span class="mac-dot mac-dot--red"></span>
+        <span class="mac-dot mac-dot--yellow"></span>
+        <span class="mac-dot mac-dot--green"></span>
+      </div>
+      <div class="panel-title mac-title">${panelTitle}</div>
+      <div class="mac-right">
+        <span class="panel-mode-pill" role="status" aria-label="Runtime mode">${modeLabel}</span>
+        <button class="collapse-btn mac-collapse" aria-label="Collapse panel" title="Collapse">▾</button>
+      </div>
+    </div>
+  `;
+
   const content = document.createElement('div');
   content.className = 'panel-content';
   // Render immediately (HTML only). If something goes wrong (e.g. config missing or module load failure),
@@ -143,13 +161,36 @@ function createPanel({ config, onMetricsChange, onRuntimeChange, panelTitle, mod
     `;
   }
 
+  panel.appendChild(header);
   panel.appendChild(content);
 
+  // Restore size (only if user has manually resized - i.e., significantly different from CSS defaults)
   const savedSize = loadPanelSize();
   if (savedSize) {
-    panel.style.width = `${savedSize.width}px`;
-    panel.style.height = `${savedSize.height}px`;
-    panel.style.maxHeight = 'none';
+    // CSS defaults: width = 23rem (368px), height = 80vh
+    // Only apply saved size if it's meaningfully different (user actually resized)
+    const cssDefaultWidth = 368; // 23rem
+    const cssDefaultHeight = window.innerHeight * 0.8; // 80vh
+    const maxSavedHeight = cssDefaultHeight;
+    const widthDiff = Math.abs(savedSize.width - cssDefaultWidth);
+    const heightDiff = Math.abs(savedSize.height - cssDefaultHeight);
+    
+    // Only restore if difference is significant (> 5px) - means user manually resized
+    if (widthDiff > 5 || heightDiff > 5) {
+      panel.style.width = `${savedSize.width}px`;
+      panel.style.height = `${Math.min(savedSize.height, maxSavedHeight)}px`;
+      panel.style.maxHeight = '80vh';
+    }
+    // Otherwise, let CSS defaults apply
+  }
+
+  const collapseBtn = header.querySelector('.collapse-btn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      togglePanelCollapse(panel);
+    });
   }
 
   setTimeout(() => {
@@ -182,11 +223,24 @@ function setupResizePersistence() {
 
 function setupDragging() {
   if (!panelElement || !dockElement) return;
-  const header = panelElement.querySelector('.panel-header');
-  if (!header) return;
 
-  header.addEventListener('mousedown', handleDragStart);
-  header.addEventListener('touchstart', handleDragStart, { passive: false });
+  // Make panel draggable from top border area (orange line)
+  panelElement.addEventListener('mousedown', (e) => {
+    // Only start drag from top 12px area (where orange line is)
+    const rect = panelElement.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    if (y <= 12 && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+      handleDragStart(e);
+    }
+  });
+  panelElement.addEventListener('touchstart', (e) => {
+    const rect = panelElement.getBoundingClientRect();
+    const touch = e.touches[0];
+    const y = touch.clientY - rect.top;
+    if (y <= 12 && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+      handleDragStart(e);
+    }
+  }, { passive: false });
 
   document.addEventListener('mousemove', handleDragMove);
   document.addEventListener('mouseup', handleDragEnd);
@@ -302,6 +356,12 @@ export function toggleDock() {
   const isHidden = dockElement.classList.toggle('hidden');
   saveDockHiddenState(isHidden);
   dockElement.setAttribute('aria-hidden', isHidden ? 'true' : 'false');
+
+  if (!isHidden) {
+    try {
+      ensureDockOnscreen();
+    } catch (e) {}
+  }
 }
 
 function ensureDockOnscreen() {

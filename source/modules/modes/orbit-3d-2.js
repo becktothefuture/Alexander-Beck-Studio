@@ -6,6 +6,7 @@
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { spawnBall } from '../physics/spawn.js';
 import { pickRandomColor } from '../visual/colors.js';
+import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 
 export function initializeOrbit3D2() {
   const globals = getGlobals();
@@ -117,5 +118,6 @@ export function applyOrbit3D2Forces(ball, dt) {
   const depthScale = g.orbit3d2DepthScale ?? 0.6;
   ball.z = ball.orbitDepth + Math.sin(angle * 2) * 0.2;
   ball.z = Math.max(0, Math.min(1, ball.z));
-  ball.r = Math.max(2, ball.rBase * (0.5 + ball.z * depthScale));
+  const rawR = Math.max(2, ball.rBase * (0.5 + ball.z * depthScale));
+  ball.r = clampRadiusToGlobalBounds(g, rawR);
 }

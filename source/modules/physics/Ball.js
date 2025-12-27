@@ -6,7 +6,7 @@
 import { getConfig, getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
-import { registerWallImpact, registerWallPressure } from './wall-state.js';
+import { registerWallImpact, registerWallPressure, wallState } from './wall-state.js';
 
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;
@@ -48,9 +48,10 @@ export class Ball {
     this.t += dt;
     this.age += dt;
     
-    // Wake up if sleeping and mouse is nearby (Ball Pit mode only)
+    // Wake up if sleeping and mouse is nearby.
+    // This is kept cheap (no sqrt) so sleeping can safely be used beyond Pit modes.
     const isPitLike = currentMode === MODES.PIT || currentMode === MODES.PIT_THROWS;
-    if (this.isSleeping && isPitLike) {
+    if (this.isSleeping) {
       const mouseX = globals.mouseX;
       const mouseY = globals.mouseY;
       const wakeRadius = (globals.repelRadius || 710) * globals.DPR * 1.2; // 20% larger than repel radius
@@ -64,7 +65,8 @@ export class Ball {
     }
     
     // Skip all physics if sleeping (Box2D approach)
-    if (this.isSleeping) {
+    // Can be disabled for debugging / extreme tuning.
+    if (this.isSleeping && globals.physicsSkipSleepingSteps !== false) {
       return;
     }
 
@@ -230,210 +232,220 @@ export class Ball {
     const effectiveRadius = this.r * (1 + spacingRatio);
     
     // Corner radius for rounded corner collision
+    // Must match the wall rendering's inner radius calculation exactly (same fallback chain)
     const cornerRadiusPx = (typeof globals.getCanvasCornerRadius === 'function')
       ? globals.getCanvasCornerRadius()
-      : (globals.cornerRadius ?? globals.wallRadius ?? 42);
-    const cr = Math.max(0, cornerRadiusPx) * (DPR || 1);
+      : (globals.cornerRadius ?? globals.wallRadius ?? 0);
+    const cr = Math.max(0, Number(cornerRadiusPx) || 0) * (DPR || 1);
     
-    // Small inset to create a gap between balls and walls (prevents overlap)
-    // Positive value = balls stop before the edge
+    // Balls collide with the INNER EDGE of the wall, which is inset by wall thickness only.
+    // Content padding is layout-only and must not affect physics.
+    const wallThicknessPx = Math.max(0, (globals.wallThickness ?? 0) * (DPR || 1));
+    const insetPx = wallThicknessPx;
+    
+    // Small additional inset to create a gap between balls and walls (prevents overlap)
+    // This is physics-only padding on top of wall thickness
     const borderInset = Math.max(0, (globals.wallInset ?? 3)) * (DPR || 1);
-    // If we inset the playable bounds, the corner arc radius must shrink by the same amount
-    // so the straight edges and the rounded corners remain perfectly tangent/aligned.
-    const cornerArc = Math.max(0, cr - borderInset);
+    
+    // Corner arc radius must match wall rendering's INNER geometry:
+    // innerR is clamped to inner dims, then borderInset applies as physics-only padding.
+    const innerW = Math.max(1, w - insetPx * 2);
+    const innerH = Math.max(1, h - insetPx * 2);
+    const innerR = Math.max(0, Math.min(cr, innerW * 0.5, innerH * 0.5));
+    const cornerArc = Math.max(0, innerR - borderInset);
     
     let hasWallCollision = false;
     // Note: isGrounded is cleared at start of step() and re-set here if touching floor
     
     // ════════════════════════════════════════════════════════════════════════
-    // CORNER COLLISION: Push balls out of rounded corner zones
-    // Check if ball center is within a corner quadrant and too close to arc
+    // UNIFIED ROUNDED-RECT SDF COLLISION
+    // Single continuous distance field - no corner/edge transitions = no swirls
     // ════════════════════════════════════════════════════════════════════════
-    const corners = [
-      { cx: cr, cy: cr },           // Top-left
-      { cx: w - cr, cy: cr },       // Top-right
-      { cx: cr, cy: h - cr },       // Bottom-left
-      { cx: w - cr, cy: h - cr }    // Bottom-right
-    ];
+    const isPitMode = currentMode === MODES.PIT || currentMode === MODES.PIT_THROWS;
     
-    for (let i = 0; i < corners.length; i++) {
-      // Skip top corners (0, 1) in Ball Pit mode so balls can fall in
-      if ((currentMode === MODES.PIT || currentMode === MODES.PIT_THROWS) && i < 2) continue;
+    // SDF parameters: inner boundary is inset by wallThickness
+    const hx = innerW * 0.5;  // half-width
+    const hy = innerH * 0.5;  // half-height
+    const rr = innerR;        // corner radius
+    
+    // Transform ball position to inner coordinate space (centered)
+    const cx = insetPx + hx;  // center x in canvas coords
+    const cy = insetPx + hy;  // center y in canvas coords
+    
+    // Rounded-rect SDF: returns (distance, outward normal)
+    // Negative = inside, Positive = outside (in wall)
+    const computeSDF = (px, py) => {
+      // Local coords relative to center
+      const lx = px - cx;
+      const ly = py - cy;
+      const ax = Math.abs(lx);
+      const ay = Math.abs(ly);
       
-      const corner = corners[i];
-      // Check if ball is in this corner's quadrant
-      const inXZone = (i % 2 === 0) ? (this.x < cr) : (this.x > w - cr);
-      const inYZone = (i < 2) ? (this.y < cr) : (this.y > h - cr);
+      // Distance to inner rect (shrunk by corner radius)
+      const dx = ax - (hx - rr);
+      const dy = ay - (hy - rr);
       
-      if (inXZone && inYZone) {
-        const dx = this.x - corner.cx;
-        const dy = this.y - corner.cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const minDist = cornerArc - effectiveRadius; // Ball + spacing must stay inside the inset arc
+      // SDF formula for rounded rect
+      const outsideCorner = Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
+      const insideRect = Math.min(Math.max(dx, dy), 0);
+      const dist = outsideCorner + insideRect - rr;
+      
+      // Compute outward normal (gradient direction)
+      let nx = 0, ny = 0;
+      if (dx > 0 && dy > 0) {
+        // In corner region: normal points away from corner center
+        const len = Math.hypot(dx, dy);
+        if (len > 1e-6) {
+          nx = dx / len;
+          ny = dy / len;
+        }
+      } else if (dx > dy) {
+        // Closer to vertical edge
+        nx = 1;
+        ny = 0;
+      } else {
+        // Closer to horizontal edge
+        nx = 0;
+        ny = 1;
+      }
+      
+      // Apply sign based on quadrant
+      nx *= lx < 0 ? -1 : 1;
+      ny *= ly < 0 ? -1 : 1;
+      
+      return { dist, nx, ny };
+    };
+    
+    // Wall deformation: sample at contact point
+    const precision = Math.max(0, Math.min(100, globals.wallDeformPhysicsPrecision ?? 50));
+    const useDeformation = precision > 0 && typeof wallState?.getDeformationAtPoint === 'function';
+    
+    // Compute SDF and check for collision
+    const { dist: sdfDist, nx, ny } = computeSDF(this.x, this.y);
+    
+    // Ball Pit mode: skip collision if normal points upward (allow entry from top)
+    const skipForPit = isPitMode && ny < -0.5;
+    
+    // Total margin: ball radius + physics padding + deformation
+    let deform = 0;
+    if (useDeformation && !skipForPit) {
+      // Sample deformation at the closest boundary point
+      const bx = this.x - nx * sdfDist;
+      const by = this.y - ny * sdfDist;
+      deform = wallState.getDeformationAtPoint(bx, by);
+    }
+    
+    const margin = effectiveRadius + borderInset + deform;
+    const penetration = sdfDist + margin;
+    
+    if (penetration > 0 && !skipForPit) {
+      hasWallCollision = true;
+      
+      // Capture pre-collision velocity
+      const preVn = this.vx * nx + this.vy * ny;
+      
+      // Push ball inward (opposite to outward normal)
+      this.x -= nx * penetration;
+      this.y -= ny * penetration;
+      
+      // Reflect velocity only if moving into wall (positive = outward = into wall)
+      if (preVn > 0) {
+        this.vx -= (1 + rest) * preVn * nx;
+        this.vy -= (1 + rest) * preVn * ny;
+      }
+      
+      // Determine wall classification for effects
+      const absNx = Math.abs(nx);
+      const absNy = Math.abs(ny);
+      const isFloor = ny > 0.7;  // Mostly downward-facing = floor
+      const isCeiling = ny < -0.7;
+      const isLeftWall = nx < -0.7;
+      const isRightWall = nx > 0.7;
+      
+      // Calculate impact strength
+      const impactSpeed = Math.abs(preVn);
+      const impact = Math.min(1, impactSpeed / (this.r * 80));
+      
+      // Floor-specific: grounding and rolling friction
+      if (isFloor) {
+        this.isGrounded = true;
         
-        if (dist > minDist && minDist > 0) {
-          // Push ball back inside the rounded corner
-          hasWallCollision = true;
-          const overlap = dist - minDist;
-          const nx = dx / dist;
-          const ny = dy / dist;
-          this.x -= nx * overlap;
-          this.y -= ny * overlap;
+        // Rolling friction
+        const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
+        const groundSpeed = Math.abs(this.vx);
+        const frictionMul = Math.max(0, Math.min(1, 1 - groundSpeed / (80 * DPR)));
+        const rollFriction = CONSTANTS.ROLL_FRICTION_PER_S * (1 + frictionMul);
+        const rollDamp = Math.max(0, 1 - rollFriction * dt / massScale);
+        this.vx *= rollDamp;
+        
+        if (Math.abs(this.vx) < 3.0 * DPR) this.vx = 0;
+        
+        // Spin coupling
+        const slip = this.vx - this.omega * this.r;
+        this.omega += (slip / this.r) * CONSTANTS.SPIN_GAIN / massScale;
+        const rollTarget = this.vx / this.r;
+        this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
+        if (Math.abs(this.omega) < 0.05) this.omega = 0;
+      }
+      
+      // Visual squash
+      this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
+      this.squashNormalAngle = Math.atan2(-ny, -nx);
+      
+      // Sound and wobble effects
+      if (registerEffects) {
+        // Sound panned by x position
+        const pan = this.x / Math.max(1, w);
+        playCollisionSound(this.r, impact * 0.65, pan, this._soundId);
+        
+        // Wobble registration
+        if (!this.isSleeping && impactSpeed >= wobbleThreshold) {
+          // Determine wall name and position for wobble
+          let wall = null;
+          let pos = 0;
           
-          // Reflect velocity off the arc tangent
-          const velDotN = this.vx * nx + this.vy * ny;
-          if (velDotN > 0) {
-            this.vx -= (1 + rest) * velDotN * nx;
-            this.vy -= (1 + rest) * velDotN * ny;
-            // Note: Corners are ANCHORED - no rubber wall impact
+          if (isFloor) {
+            wall = 'bottom';
+            pos = innerW > 1 ? (this.x - insetPx) / innerW : 0.5;
+          } else if (isCeiling && !isPitMode) {
+            wall = 'top';
+            pos = innerW > 1 ? (this.x - insetPx) / innerW : 0.5;
+          } else if (isLeftWall) {
+            wall = 'left';
+            pos = innerH > 1 ? (this.y - insetPx) / innerH : 0.5;
+          } else if (isRightWall) {
+            wall = 'right';
+            pos = innerH > 1 ? (this.y - insetPx) / innerH : 0.5;
+          }
+          
+          if (wall) {
+            registerWallImpact(wall, Math.max(0, Math.min(1, pos)), impact);
           }
         }
-      }
-    }
-    
-    // Effective boundaries (accounting for inner border)
-    // Same for ALL modes - walls never move
-    const minX = borderInset;
-    const maxX = w - borderInset;
-    const minY = borderInset;  // No special viewportTop offset - walls stay fixed
-    const maxY = h - borderInset;
-    
-    // Bottom (use effectiveRadius for spacing-aware collision)
-    if (this.y + effectiveRadius > maxY) {
-      hasWallCollision = true;
-      this.isGrounded = true;
-      this.y = maxY - effectiveRadius;
-      const preVy = this.vy;
-      const slip = this.vx - this.omega * this.r;
-      const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
-      this.omega += (slip / this.r) * CONSTANTS.SPIN_GAIN / massScale;
-      
-      // ══════════════════════════════════════════════════════════════════════════
-      // PROGRESSIVE GROUND FRICTION - Higher friction at low speeds
-      // Simulates rolling resistance and static friction engaging
-      // DPR-scaled thresholds: physics runs in canvas pixels (displayPx * DPR)
-      // ══════════════════════════════════════════════════════════════════════════
-      const groundSpeed = Math.abs(this.vx);
-      // Progressive friction: multiply instead of divide for stability
-      // Higher at low speeds (up to 2x at <10 px/s scaled by DPR)
-      const frictionMultiplier = Math.max(0, Math.min(1, 1 - groundSpeed / (80 * DPR)));
-      const progressiveRollFriction = CONSTANTS.ROLL_FRICTION_PER_S * (1 + frictionMultiplier * 1.0);
-      const rollDamp = Math.max(0, 1 - progressiveRollFriction * dt / massScale);
-      this.vx *= rollDamp;
-      
-      // Snap slow horizontal movement to zero (prevents endless creeping)
-      if (Math.abs(this.vx) < 3.0 * DPR) this.vx = 0;
-      
-      const wallRest = Math.abs(preVy) < wobbleThreshold ? 0 : rest;
-      this.vy = -this.vy * (wallRest * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
-      const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
-      this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
-      this.squashNormalAngle = -Math.PI / 2;
-      const rollTarget = this.vx / this.r;
-      this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
-      
-      // Snap slow spin to zero when on ground
-      if (Math.abs(this.omega) < 0.05) this.omega = 0;
-      
-      if (registerEffects) {
-        // Sound: floor impact (threshold handled by sound engine)
-        playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
-        // Rubbery wall wobble - only register if ball is moving DOWN into wall (actual impact, not just weight)
-        // Skip if sleeping (resting balls shouldn't cause wobble)
-        if (!this.isSleeping && preVy > 0 && preVy >= wobbleThreshold) {
-          registerWallImpact('bottom', this.x / w, impact);
-        }
         
-        // ALWAYS register pressure when touching ground (whether impacting or not)
-        // This kills wobble from stacked/resting balls
-        // Pressure is cumulative, so more balls = more damping
-        const pressureAmount = this.isSleeping ? 1.0 : Math.min(1.0, (wobbleThreshold - Math.abs(preVy)) / wobbleThreshold);
+        // Pressure registration (dampens wobble from resting contact)
+        const pressureAmount = this.isSleeping ? 1.0 : Math.max(0, (wobbleThreshold - impactSpeed) / wobbleThreshold);
         if (pressureAmount > 0.1) {
-          registerWallPressure('bottom', this.x / w, pressureAmount);
-        }
-      }
-    }
-    
-    // Top (ceiling) - Skip in Ball Pit mode so balls can fall in from above
-    if (currentMode !== MODES.PIT && currentMode !== MODES.PIT_THROWS && this.y - effectiveRadius < minY) {
-      hasWallCollision = true;
-      this.y = minY + effectiveRadius;
-      const preVy = this.vy;  // Capture BEFORE reversal for impact calculation
-      this.vy = -this.vy * rest;
-      const impact = Math.min(1, Math.abs(preVy) / (this.r * 90));
-      this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
-      this.squashNormalAngle = Math.PI / 2;
-      if (registerEffects) {
-        // Sound: ceiling impact (threshold handled by sound engine)
-        playCollisionSound(this.r, impact * 0.7, this.x / w, this._soundId);
-        // Rubbery wall wobble - only register if ball is moving UP into wall (actual impact, not just weight)
-        // Skip if sleeping (resting balls shouldn't cause wobble)
-        if (!this.isSleeping && preVy < 0 && Math.abs(preVy) >= wobbleThreshold) {
-          registerWallImpact('top', this.x / w, impact);
-        }
-        
-        // ALWAYS register pressure when touching ceiling
-        const pressureAmount = this.isSleeping ? 1.0 : Math.min(1.0, (wobbleThreshold - Math.abs(preVy)) / wobbleThreshold);
-        if (pressureAmount > 0.1) {
-          registerWallPressure('top', this.x / w, pressureAmount);
-        }
-      }
-    }
-    
-    // Right (use effectiveRadius for spacing-aware collision)
-    if (this.x + effectiveRadius > maxX) {
-      hasWallCollision = true;
-      this.x = maxX - effectiveRadius;
-      const preVx = this.vx;
-      const slip = this.vy - this.omega * this.r;
-      const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
-      this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
-      this.vx = -this.vx * (REST * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
-      const impact = Math.min(1, Math.abs(preVx)/(this.r*70));
-      this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
-      this.squashNormalAngle = Math.PI;
-      if (registerEffects) {
-        // Sound: right wall impact (threshold handled by sound engine)
-        playCollisionSound(this.r, impact * 0.6, 1.0, this._soundId);
-        // Rubbery wall wobble - only register if ball is moving RIGHT into wall (actual impact, not just weight)
-        // Skip if sleeping (resting balls shouldn't cause wobble)
-        if (!this.isSleeping && preVx > 0 && preVx >= wobbleThreshold) {
-          registerWallImpact('right', this.y / h, impact);
-        }
-        
-        // ALWAYS register pressure when touching wall
-        const pressureAmountR = this.isSleeping ? 1.0 : Math.min(1.0, (wobbleThreshold - Math.abs(preVx)) / wobbleThreshold);
-        if (pressureAmountR > 0.1) {
-          registerWallPressure('right', this.y / h, pressureAmountR);
-        }
-      }
-    }
-    
-    // Left (use effectiveRadius for spacing-aware collision)
-    if (this.x - effectiveRadius < minX) {
-      hasWallCollision = true;
-      this.x = minX + effectiveRadius;
-      const preVx = this.vx;
-      const slip = this.vy - this.omega * this.r;
-      const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
-      this.omega += (slip / this.r) * (CONSTANTS.SPIN_GAIN * 0.5) / massScale;
-      this.vx = -this.vx * (REST * Math.pow(MASS_BASELINE_KG / this.m, MASS_REST_EXP));
-      const impact = Math.min(1, Math.abs(preVx)/(this.r*70));
-      this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
-      this.squashNormalAngle = 0;
-      if (registerEffects) {
-        // Sound: left wall impact (threshold handled by sound engine)
-        playCollisionSound(this.r, impact * 0.6, 0.0, this._soundId);
-        // Rubbery wall wobble - only register if ball is moving LEFT into wall (actual impact, not just weight)
-        // Skip if sleeping (resting balls shouldn't cause wobble)
-        if (!this.isSleeping && preVx < 0 && Math.abs(preVx) >= wobbleThreshold) {
-          registerWallImpact('left', this.y / h, impact);
-        }
-        
-        // ALWAYS register pressure when touching wall
-        const pressureAmountL = this.isSleeping ? 1.0 : Math.min(1.0, (wobbleThreshold - Math.abs(preVx)) / wobbleThreshold);
-        if (pressureAmountL > 0.1) {
-          registerWallPressure('left', this.y / h, pressureAmountL);
+          let wall = null;
+          let pos = 0;
+          
+          if (isFloor) {
+            wall = 'bottom';
+            pos = innerW > 1 ? (this.x - insetPx) / innerW : 0.5;
+          } else if (isCeiling && !isPitMode) {
+            wall = 'top';
+            pos = innerW > 1 ? (this.x - insetPx) / innerW : 0.5;
+          } else if (isLeftWall) {
+            wall = 'left';
+            pos = innerH > 1 ? (this.y - insetPx) / innerH : 0.5;
+          } else if (isRightWall) {
+            wall = 'right';
+            pos = innerH > 1 ? (this.y - insetPx) / innerH : 0.5;
+          }
+          
+          if (wall) {
+            registerWallPressure(wall, Math.max(0, Math.min(1, pos)), pressureAmount);
+          }
         }
       }
     }

@@ -1,17 +1,23 @@
 // Portfolio carousel entry (shares chrome with the index layout; consumes config/portfolio-config.json and config/contents-portfolio.json)
 
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
-import { applyWallFrameFromConfig, applyWallFrameLayout } from '../visual/wall-frame.js';
+import { applyWallFrameFromConfig, applyWallFrameLayout, syncWallFrameColors } from '../visual/wall-frame.js';
 import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioRuntime } from './portfolio-config.js';
 import { createSoundToggle } from '../ui/sound-toggle.js';
 import { initializeDarkMode } from '../visual/dark-mode-v2.js';
+import { maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
+import { getGlobals } from '../core/state.js';
+import { initNoiseSystem } from '../visual/noise-system.js';
 import { initTimeDisplay } from '../ui/time-display.js';
 import { upgradeSocialIcons } from '../ui/social-icons.js';
 import { loadRuntimeText } from '../utils/text-loader.js';
 import { applyRuntimeTextToDOM } from '../ui/apply-text.js';
+import { waitForFonts } from '../utils/font-loader.js';
+import { readTokenVar } from '../utils/tokens.js';
 import * as SoundEngine from '../audio/sound-engine.js';
 import { initGateOverlay } from '../ui/gate-overlay.js';
 import { initContactGate } from '../ui/contact-gate.js';
+import { initLinkCursorHop } from '../ui/link-cursor-hop.js';
 
 const BASE_PATH = (() => {
   try {
@@ -27,17 +33,29 @@ const CONFIG = {
   dataPath: `${BASE_PATH}config/contents-portfolio.json`,
   coverFallback: `${BASE_PATH}images/portfolio/folio-cover/cover-default.webp`,
 };
-const DEFAULT_DETAIL_TRANSITION_MS = 700;
-const DETAIL_FADE_MS = 240;
+
+// Cache-busting: Use build timestamp in production, or generate session-based timestamp for dev
+// Session timestamp persists per page load, preventing cache while allowing reasonable performance
+let CACHE_BUST_VALUE = null;
+function getCacheBustValue() {
+  if (CACHE_BUST_VALUE !== null) return CACHE_BUST_VALUE;
+  
+  // Prefer build timestamp (production)
+  if (typeof window !== 'undefined' && typeof window.__BUILD_TIMESTAMP__ !== 'undefined') {
+    CACHE_BUST_VALUE = String(window.__BUILD_TIMESTAMP__);
+  } else {
+    // Dev mode: Use session-based timestamp (set once per page load)
+    // This ensures images refresh on page reload but aren't re-fetched on every render
+    CACHE_BUST_VALUE = String(Date.now());
+  }
+  return CACHE_BUST_VALUE;
+}
 
 async function fetchPortfolioData() {
   const paths = [
     CONFIG.dataPath,
     `${CONFIG.basePath}js/contents-portfolio.json`,
     '../public/js/contents-portfolio.json',
-    `${CONFIG.basePath}config/portfolio-data.json`,
-    `${CONFIG.basePath}js/portfolio-data.json`,
-    '../public/js/portfolio-data.json',
   ];
 
   for (const path of paths) {
@@ -117,6 +135,8 @@ class PortfolioApp {
     this.mouseTiltCurrentY = 0;
     this.mouseTiltTargetX = 0;
     this.mouseTiltTargetY = 0;
+    this.cardHoverScale = 1.025; // Scale increase for hover feedback (2.5%)
+    this.cardHoverLift = 8; // Z-axis movement on hover (move towards user in 3D space, in vmin)
     this.activeSlot = -1;
     this.lastWheelTime = 0;
     this.activeIndex = -1;
@@ -124,14 +144,10 @@ class PortfolioApp {
     this.isTransitioning = false; // Guard against rapid open/close
     this.detailOverlay = null;
     this.detailContent = null;
-    this.detailAnimations = [];
     this.detailScroller = null;
     this.detailClose = null;
     this.activeSlide = null;
     this.lastFocusedElement = null;
-    this.lastCrossfadeParams = null;
-    this.detailTransitionEndTimer = null;
-    this.detailCloseWatchdogTimer = null;
     this.preloadedProjects = new Set();
     this.preloadedAssets = new Set();
     this.detailVideoObserver = null;
@@ -200,13 +216,35 @@ class PortfolioApp {
       this.mouseTiltInvertY = Boolean(mouseTiltConfig.invertY);
     }
 
+    // Cylinder background removed.
+
     // Apply Scroll FX config live (portfolio-only)
     // Scroll FX removed (per request).
   }
 
   async init() {
+    // Ensure wall-frame and portfolio-stage are visible immediately
+    const wallFrame = document.querySelector('.wall-frame');
+    const portfolioStage = document.querySelector('.portfolio-stage');
+    if (wallFrame) {
+      wallFrame.style.opacity = '1';
+      wallFrame.style.visibility = 'visible';
+    }
+    if (portfolioStage) {
+      portfolioStage.style.opacity = '1';
+      portfolioStage.style.visibility = 'visible';
+    }
+
     await this.loadData();
     this.renderSlides();
+    
+    // Verify slides were rendered
+    if (this.slides.length === 0) {
+      console.error('⚠️ No slides rendered - check portfolio data');
+    } else {
+      console.log(`✓ Rendered ${this.slides.length} slides`);
+    }
+
     this.setupMeta();
     this.setupDetailOverlay();
     this.inputSurface = document.body;
@@ -214,9 +252,13 @@ class PortfolioApp {
     this.setupCustomCursor();
     this.setupSoundToggle();
     this.setupPortfolioCVLink();
+    // Setup card hover after slides are rendered
+    this.setupCardHover();
 
     this.updateWheelConfig();
     this.startWheel();
+
+    // Cylinder background removed.
 
     window.addEventListener('resize', () => {
         this.updateWheelConfig();
@@ -256,6 +298,22 @@ class PortfolioApp {
     this.cardBobVel = new Array(slotCount).fill(0);
     this.lastSnapSlot = -1;
 
+    // Get current color scheme colors for gradient
+    const globals = getGlobals();
+    const currentColors = globals?.currentColors || [
+      '#b7bcb7', '#d0d0d0', '#ffffff', '#00695c', 
+      '#000000', '#ff4013', '#0d5cb6', '#ffa000'
+    ];
+    
+    // Filter out neutral/background colors, keep vibrant ones for gradient
+    // Typically indices 3, 5, 6, 7 are the accent colors
+    const gradientColors = [
+      currentColors[3] || '#00695c',  // teal/emerald
+      currentColors[5] || '#ff4013',  // orange/primary
+      currentColors[6] || '#0d5cb6',  // blue
+      currentColors[7] || '#ffa000'   // gold/amber
+    ].filter(Boolean);
+
     for (let slot = 0; slot < slotCount; slot += 1) {
       const projectIndex = slot % projectCount;
       const project = this.projects[projectIndex];
@@ -267,6 +325,19 @@ class PortfolioApp {
       slide.setAttribute('role', 'button');
       slide.tabIndex = 0;
       slide.setAttribute('aria-label', `Open project: ${project?.title || 'Project'}`);
+      
+      // Create gradient string with hard stops for animated border
+      // Each color appears twice to create hard stops: color1 0%, color1 25%, color2 25%, color2 50%, etc.
+      const gradientStops = [];
+      const numColors = gradientColors.length;
+      for (let i = 0; i < numColors; i++) {
+        const startPercent = (i / numColors) * 100;
+        const endPercent = ((i + 1) / numColors) * 100;
+        gradientStops.push(`${gradientColors[i]} ${startPercent}%`);
+        gradientStops.push(`${gradientColors[i]} ${endPercent}%`);
+      }
+      const gradientString = `linear-gradient(90deg, ${gradientStops.join(', ')})`;
+      slide.style.setProperty('--slide-gradient', gradientString);
 
       const imgContainer = document.createElement('div');
       imgContainer.className = 'slide-image-container';
@@ -274,9 +345,12 @@ class PortfolioApp {
       const img = document.createElement('img');
       img.className = 'slide-image';
       img.alt = project?.title ? `${project.title} preview` : 'Project preview';
-      const imgSrc = project?.image
+      let imgSrc = project?.image
         ? `${CONFIG.assetBasePath}${project.image}`
         : CONFIG.coverFallback;
+      // Add cache-busting query parameter (works in both dev and production)
+      const separator = imgSrc.includes('?') ? '&' : '?';
+      imgSrc = `${imgSrc}${separator}v=${getCacheBustValue()}`;
       img.src = imgSrc;
       img.loading = 'lazy';
       img.draggable = false;
@@ -464,16 +538,14 @@ class PortfolioApp {
         // If CSS/DOM gets out of sync (e.g., interrupted close), the carousel can become unclickable
         // due to `body.detail-open .portfolio-viewport { pointer-events:none; }`.
         if (this.detailOpen) return;
-        if (!document.body.classList.contains('detail-open') && !document.body.classList.contains('detail-transitioning')) return;
+        if (!document.body.classList.contains('detail-open')) return;
 
         document.body.classList.remove('detail-open');
-        document.body.classList.remove('detail-transitioning');
 
         if (this.detailOverlay) {
-            this.detailOverlay.classList.remove('is-open', 'is-closing', 'is-collapsing', 'is-animating', 'is-expanding');
+            this.detailOverlay.classList.remove('is-open');
             this.detailOverlay.style.removeProperty('opacity');
             this.detailOverlay.style.removeProperty('transform');
-            this.detailOverlay.style.removeProperty('filter');
             this.detailOverlay.setAttribute('aria-hidden', 'true');
         }
     };
@@ -644,6 +716,41 @@ class PortfolioApp {
     });
   }
 
+  setupCardHover() {
+    // Add hover listeners to all slides for cursor color change
+    const handleSlideEnter = (e) => {
+      if (e.pointerType === 'touch') return;
+      document.body.classList.add('portfolio-card-hovering');
+    };
+
+    const handleSlideLeave = (e) => {
+      if (e.pointerType === 'touch') return;
+      // Only remove if we're not moving to another slide
+      const relatedSlide = e.relatedTarget?.closest('.slide');
+      if (!relatedSlide) {
+        document.body.classList.remove('portfolio-card-hovering');
+      }
+    };
+
+    // Use event delegation on the rig for dynamic slides (works even if slides are re-rendered)
+    if (this.rig) {
+      this.rig.addEventListener('mouseenter', (e) => {
+        if (e.target.closest('.slide')) {
+          handleSlideEnter(e);
+        }
+      }, true);
+      this.rig.addEventListener('mouseleave', handleSlideLeave, true);
+    }
+
+    // Also attach listeners to individual slides for more precise control
+    if (this.slides && this.slides.length > 0) {
+      this.slides.forEach(slide => {
+        slide.addEventListener('mouseenter', handleSlideEnter);
+        slide.addEventListener('mouseleave', handleSlideLeave);
+      });
+    }
+  }
+
   setupSoundToggle() {
     try {
       createSoundToggle();
@@ -709,6 +816,10 @@ class PortfolioApp {
     this.wheelScrollSpeed = this.getCssNumber('--wheel-scroll-speed', 0.7);
     this.wheelDragSpeed = this.getCssNumber('--wheel-drag-speed', 1);
     this.wheelFriction = this.getCssNumber('--wheel-friction', 4);
+    
+    // Read hover effect values from CSS
+    this.cardHoverScale = this.getCssNumber('--card-hover-scale', 1.025);
+    this.cardHoverLift = this.getCssLength('--card-hover-lift', 0.6); // Z-axis movement towards user on hover (vmin, reduced by 92.5% total)
     this.wheelSnapSpeed = this.getCssNumber('--wheel-snap-speed', 0.2);
     this.wheelSnapStrength = this.getCssNumber('--wheel-snap-strength', 6);
     this.wheelBounceStrength = this.getCssNumber('--wheel-bounce-strength', 14);
@@ -867,18 +978,43 @@ class PortfolioApp {
         y += nextBob;
       }
 
-      const xVw = viewportWidth ? (x / viewportWidth) * 100 : 0;
-      const yVh = viewportHeight ? (y / viewportHeight) * 100 : 0;
-
-      slide.style.setProperty('--slide-x', `${xVw}vw`);
-      slide.style.setProperty('--slide-y', `${yVh}vh`);
+      // Don't update X/Y for expanding cards (they're frozen in place)
+      if (!slide.classList.contains('is-expanding')) {
+        const xVw = viewportWidth ? (x / viewportWidth) * 100 : 0;
+        const yVh = viewportHeight ? (y / viewportHeight) * 100 : 0;
+        slide.style.setProperty('--slide-x', `${xVw}vw`);
+        slide.style.setProperty('--slide-y', `${yVh}vh`);
+      } else {
+        // Restore frozen X/Y position for expanding cards
+        if (slide.dataset.frozenX) {
+          slide.style.setProperty('--slide-x', slide.dataset.frozenX);
+        }
+        if (slide.dataset.frozenY) {
+          slide.style.setProperty('--slide-y', slide.dataset.frozenY);
+        }
+      }
       // True 3D geometry: give the wheel depth along Z so perspective doesn't look flat.
       // Symmetric around the rig origin: front cards move toward camera, back cards recede.
       const zSpreadVmin = this.wheelDepth * 10; // reuse existing depth control as the overall 3D amplitude
       const zVmin = (0.5 - depthFactor) * zSpreadVmin;
-      slide.style.setProperty('--slide-z', `${zVmin.toFixed(2)}vmin`);
-      slide.style.setProperty('--slide-scale', scale.toFixed(3));
-      slide.style.setProperty('--slide-blur', `${blurVmin}vmin`);
+      
+      // Don't update Z/scale for expanding cards (they're already positioned)
+      if (!slide.classList.contains('is-expanding')) {
+        // Hover effect: Move forward on Z-axis (towards user) and scale up
+        const isHovered = slide.matches(':hover');
+        // Apply scale increase on hover
+        const finalScale = isHovered ? scale * this.cardHoverScale : scale;
+        // Move forward on Z-axis on hover (towards camera in 3D space)
+        // Positive Z moves towards viewer, anchored in 3D perspective viewport
+        const finalZ = isHovered ? zVmin + this.cardHoverLift : zVmin;
+        
+        slide.style.setProperty('--slide-z', `${finalZ.toFixed(2)}vmin`);
+        slide.style.setProperty('--slide-scale', finalScale.toFixed(4)); // 4 decimal precision
+      }
+      // Remove blur on hover - CSS will override with !important, but set it here too for consistency
+      const isHovered = slide.matches(':hover');
+      const finalBlur = isHovered ? 0 : blurVmin;
+      slide.style.setProperty('--slide-blur', `${finalBlur}vmin`);
       slide.style.setProperty('--slide-opacity', Math.max(0, Math.min(1, opacity)).toFixed(3));
       slide.style.setProperty('--slide-rotate', `${rotate.toFixed(2)}deg`);
       slide.style.zIndex = String(Math.round((1 - depthFactor) * 1000));
@@ -1037,8 +1173,6 @@ class PortfolioApp {
     this.detailContent = this.detailOverlay.querySelector('#projectDetailContent');
     this.detailScroller = this.detailOverlay.querySelector('.project-detail__scroller');
     this.detailClose = this.detailOverlay.querySelector('[data-detail-close]');
-    this.closeLetters = this.detailOverlay ? Array.from(this.detailOverlay.querySelectorAll('.close-letter')) : [];
-
     if (this.detailClose) {
         this.detailClose.addEventListener('click', () => this.closeProjectDetail());
     }
@@ -1047,96 +1181,7 @@ class PortfolioApp {
   }
 
   setupCloseButtonScrollAnimation() {
-    if (!this.detailScroller || !this.closeLetters.length || this.prefersReducedMotion) return;
-
-    let rafId = null;
-    let lastScrollTop = 0;
-    let scrollVelocity = 0;
-    const velocityDecay = 0.85;
-
-    const animate = () => {
-      if (!this.detailOpen || !this.detailScroller) {
-        rafId = null;
-        return;
-      }
-
-      const scrollTop = this.detailScroller.scrollTop;
-      const scrollDelta = scrollTop - lastScrollTop;
-      scrollVelocity = scrollVelocity * velocityDecay + (scrollDelta * 0.3);
-      const maxScroll = this.detailScroller.scrollHeight - this.detailScroller.clientHeight;
-      const scrollProgress = maxScroll > 0 ? Math.min(scrollTop / maxScroll, 1) : 0;
-
-      // Subtle, playful animation - each letter responds differently to scroll
-      // INVERTED: scrolling down moves letters up, scrolling up moves letters down
-      this.closeLetters.forEach((letter, index) => {
-        const letterIndex = index;
-        const delay = letterIndex * 0.08;
-        const direction = scrollDelta > 0 ? -1 : 1; // INVERTED: positive scrollDelta (down) = negative direction (up)
-        
-        // Gentle wave effect based on scroll position
-        const wavePhase = scrollProgress * Math.PI * 3 + delay;
-        const waveOffset = Math.sin(wavePhase) * 1.2;
-        
-        // Subtle vertical movement based on scroll velocity (INVERTED)
-        const velocityOffset = Math.min(Math.abs(scrollVelocity) * 0.15, 4) * direction;
-        
-        // Very subtle rotation - playful but not intrusive
-        const rotate = Math.sin(wavePhase * 0.7) * 2;
-        
-        // Gentle scale pulse
-        const scale = 1 + Math.sin(wavePhase * 1.3) * 0.03;
-
-        letter.style.transform = `translateY(${waveOffset + velocityOffset}px) rotate(${rotate}deg) scale(${scale})`;
-        letter.style.opacity = String(0.85 + Math.sin(wavePhase * 0.5) * 0.15);
-      });
-      
-      // Animate the arrow icon as well
-      const closeIcon = this.detailOverlay.querySelector('.close-icon');
-      if (closeIcon) {
-        const iconDelay = 0.04;
-        const iconWavePhase = scrollProgress * Math.PI * 3 + iconDelay;
-        const iconWaveOffset = Math.sin(iconWavePhase) * 1.2;
-        const iconDirection = scrollDelta > 0 ? -1 : 1;
-        const iconVelocityOffset = Math.min(Math.abs(scrollVelocity) * 0.15, 4) * iconDirection;
-        const iconRotate = Math.sin(iconWavePhase * 0.7) * 2;
-        const iconScale = 1 + Math.sin(iconWavePhase * 1.3) * 0.03;
-        
-        closeIcon.style.transform = `translateY(${iconWaveOffset + iconVelocityOffset}px) rotate(${iconRotate}deg) scale(${iconScale})`;
-        closeIcon.style.opacity = String(0.85 + Math.sin(iconWavePhase * 0.5) * 0.15);
-      }
-
-      lastScrollTop = scrollTop;
-      rafId = requestAnimationFrame(animate);
-    };
-
-    const handleScroll = () => {
-      if (!rafId) {
-        rafId = requestAnimationFrame(animate);
-      }
-    };
-
-    this.detailScroller.addEventListener('scroll', handleScroll, { passive: true });
-    
-    // Store cleanup function
-    this.closeButtonScrollCleanup = () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-      if (this.detailScroller) {
-        this.detailScroller.removeEventListener('scroll', handleScroll);
-      }
-      // Reset letter and icon transforms
-      this.closeLetters.forEach(letter => {
-        letter.style.transform = '';
-        letter.style.opacity = '';
-      });
-      const closeIcon = this.detailOverlay?.querySelector('.close-icon');
-      if (closeIcon) {
-        closeIcon.style.transform = '';
-        closeIcon.style.opacity = '';
-      }
-    };
+    // Scroll animation removed - button is now static
   }
 
   createDetailOverlay() {
@@ -1145,18 +1190,16 @@ class PortfolioApp {
     overlay.className = 'project-detail';
     overlay.setAttribute('aria-hidden', 'true');
     overlay.innerHTML = `
+      <div class="project-detail__noise project-detail__noise--back" aria-hidden="true"></div>
       <div class="project-detail__card" role="dialog" aria-modal="true" aria-label="Project detail">
         <button class="project-detail__close" type="button" aria-label="Close project detail" data-detail-close>
           <i class="ti ti-arrow-left close-icon" aria-hidden="true"></i>
-          <span class="close-letter" data-letter="B">B</span>
-          <span class="close-letter" data-letter="A">A</span>
-          <span class="close-letter" data-letter="C">C</span>
-          <span class="close-letter" data-letter="K">K</span>
         </button>
         <div class="project-detail__scroller">
           <div class="project-detail__inner" id="projectDetailContent"></div>
         </div>
       </div>
+      <div class="project-detail__noise project-detail__noise--front" aria-hidden="true"></div>
     `;
     const mountTarget = document.querySelector('.wall-frame') || document.body;
     this.transitionHost = mountTarget;
@@ -1169,7 +1212,10 @@ class PortfolioApp {
     if (!src) return '';
     if (/^https?:\/\//.test(src)) return src;
     const trimmed = src.replace(/^\/+/, '');
-    return `${CONFIG.basePath}${trimmed}`;
+    const baseUrl = `${CONFIG.basePath}${trimmed}`;
+    // Add cache-busting query parameter (works in both dev and production)
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${separator}v=${getCacheBustValue()}`;
   }
 
   getContentBlocks(project) {
@@ -1192,9 +1238,12 @@ class PortfolioApp {
   renderDetailContent(project) {
     if (!this.detailContent || !project) return;
 
-    const headerSrc = project.image
+    let headerSrc = project.image
         ? `${CONFIG.assetBasePath}${project.image}`
         : CONFIG.coverFallback;
+    // Add cache-busting query parameter (works in both dev and production)
+    const separator = headerSrc.includes('?') ? '&' : '?';
+    headerSrc = `${headerSrc}${separator}v=${getCacheBustValue()}`;
     const blocks = this.getContentBlocks(project);
     const links = Array.isArray(project.links) ? project.links : [];
     const takeaways = Array.isArray(project.takeaways) && project.takeaways.length
@@ -1263,7 +1312,6 @@ class PortfolioApp {
           <div class="project-detail__intro">
             ${project.client ? `<div class="project-detail__eyebrow">${project.client}</div>` : ''}
             <h1 class="project-detail__title">${project.title || ''}</h1>
-            ${project.summary ? `<p class="project-detail__summary">${project.summary}</p>` : ''}
             ${metaItems.length ? `<dl class="project-detail__meta">${metaHtml}</dl>` : ''}
           </div>
         </div>
@@ -1292,115 +1340,33 @@ class PortfolioApp {
     if (this.detailScroller) this.detailScroller.scrollTop = 0;
   }
 
-  /**
-   * Calculate crossfade animation parameters from a slide element.
-   * Returns transform-origin (slide center) and scale (slide size / viewport).
-   */
-  getCrossfadeParams(slideEl) {
-    const slideRect = slideEl.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    // Transform-origin: slide center relative to viewport (in pixels)
-    const originX = slideRect.left + slideRect.width / 2;
-    const originY = slideRect.top + slideRect.height / 2;
-    
-    // Scale: how much smaller is the slide compared to viewport
-    // Use height as the primary dimension for aspect-ratio preservation
-    const scale = Math.min(slideRect.width / viewportWidth, slideRect.height / viewportHeight);
-    
-    return {
-      originX,
-      originY,
-      scale,
-      transformOrigin: `${originX}px ${originY}px`,
-    };
-  }
-
   getCssNumber(varName, fallback) {
     const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
     const value = parseFloat(raw);
     return Number.isFinite(value) ? value : fallback;
   }
 
-  getCssString(varName, fallback) {
-    const raw = getComputedStyle(document.documentElement).getPropertyValue(varName);
-    if (!raw) return fallback;
-    const trimmed = raw.trim();
-    return trimmed || fallback;
+  hasDetailTransition() {
+    if (!this.detailOverlay || this.prefersReducedMotion) return false;
+    const raw = getComputedStyle(this.detailOverlay).transitionDuration || '';
+    const parts = raw.split(',').map((value) => parseFloat(value));
+    return parts.some((value) => Number.isFinite(value) && value > 0);
   }
 
-  getDetailTransitionMs() {
-    return this.getCssNumber('--detail-transition-ms', DEFAULT_DETAIL_TRANSITION_MS);
-  }
-
-  getDetailEase() {
-    return this.getCssString('--detail-transition-ease', 'cubic-bezier(0.16, 1, 0.3, 1)');
-  }
-
-  getDetailFadeMs() {
-    return this.getCssNumber('--detail-transition-fade-ms', DETAIL_FADE_MS);
-  }
-
-  getDetailFadeDelay() {
-    return this.getCssNumber('--detail-transition-fade-delay', 0);
-  }
-
-  getDetailContentDuration() {
-    return this.getCssNumber('--detail-content-pop-duration', this.getDetailFadeMs());
-  }
-
-  getDetailContentStartScale() {
-    return this.getCssNumber('--detail-content-pop-start-scale', 0.96);
-  }
-
-  getDetailContentEase() {
-    return this.getCssString('--detail-content-pop-ease', this.getDetailEase());
-  }
-
-  getDetailCardSwingDeg() {
-    return this.getCssNumber('--detail-card-swing-deg', -6);
-  }
-
-  getDetailCardSwingScale() {
-    return this.getCssNumber('--detail-card-swing-scale', 1.05);
-  }
-
-  getDetailCardPopScale() {
-    return this.getCssNumber('--detail-card-pop-scale', 1.12);
-  }
-
-  cancelDetailAnimations() {
-    if (!this.detailAnimations || !this.detailAnimations.length) return;
-    this.detailAnimations.forEach((anim) => {
-      try {
-        anim?.cancel?.();
-      } catch (e) {}
-    });
-    this.detailAnimations = [];
-  }
-
-  beginDetailTransition() {
-    if (this.detailTransitionEndTimer) {
-        window.clearTimeout(this.detailTransitionEndTimer);
-        this.detailTransitionEndTimer = null;
+  waitForDetailTransition(callback) {
+    if (!this.detailOverlay) {
+      this.isTransitioning = false;
+      this.detailOpen = false;
+      return;
     }
-    document.body.classList.add('detail-transitioning');
-  }
-
-  endDetailTransition(delay = 0) {
-    if (this.detailTransitionEndTimer) {
-        window.clearTimeout(this.detailTransitionEndTimer);
-        this.detailTransitionEndTimer = null;
-    }
-    if (delay > 0) {
-        this.detailTransitionEndTimer = window.setTimeout(() => {
-            this.detailTransitionEndTimer = null;
-            document.body.classList.remove('detail-transitioning');
-        }, delay);
-        return;
-    }
-    document.body.classList.remove('detail-transitioning');
+    const overlay = this.detailOverlay;
+    const handler = (event) => {
+      if (event.target !== overlay) return;
+      if (event.propertyName !== 'opacity') return;
+      overlay.removeEventListener('transitionend', handler);
+      callback?.();
+    };
+    overlay.addEventListener('transitionend', handler);
   }
 
 
@@ -1410,151 +1376,70 @@ class PortfolioApp {
     const project = this.projects[index];
     if (!project) return;
 
-    // Cancel any ongoing animations
-    this.cancelDetailAnimations();
-
     this.isTransitioning = true;
     this.detailOpen = true;
     this.activeSlide = slide;
     this.lastFocusedElement = document.activeElement;
 
+    // Freeze the clicked card's X/Y position to prevent lateral movement
+    // Only animate forward on Z-axis (towards user)
+    const currentX = getComputedStyle(slide).getPropertyValue('--slide-x').trim();
+    const currentY = getComputedStyle(slide).getPropertyValue('--slide-y').trim();
+    slide.dataset.frozenX = currentX;
+    slide.dataset.frozenY = currentY;
+    
+    // Get current Z and scale before adding expanding class
+    const currentZStr = getComputedStyle(slide).getPropertyValue('--slide-z').trim();
+    const currentZ = parseFloat(currentZStr.replace('vmin', '')) || 0;
+    const currentScale = parseFloat(getComputedStyle(slide).getPropertyValue('--slide-scale').trim()) || 1;
+    
+    // Add expanding class first, then set new values to trigger smooth transition
+    slide.classList.add('is-expanding');
+    
+    // Request animation frame to ensure class is applied before setting new values
+    requestAnimationFrame(() => {
+      // Subtle forward movement on Z-axis (only 3vmin) - enough for visual feedback but keeps card accessible
+      const expandLift = 3;
+      slide.style.setProperty('--slide-z', `${currentZ + expandLift}vmin`);
+      
+      // Minimal scale increase for subtle visual feedback
+      slide.style.setProperty('--slide-scale', (currentScale * 1.015).toFixed(3));
+    });
+
     this.prefetchProjectAssets(project);
     this.renderDetailContent(project);
 
-    // Re-initialize close button letters and scroll animation
-    this.closeLetters = Array.from(this.detailOverlay.querySelectorAll('.close-letter'));
+    // Reset close button icon styles (cleanup from any previous state)
     if (this.detailOverlay) {
+      this.closeLetters = Array.from(this.detailOverlay.querySelectorAll('.close-letter'));
       const closeIcon = this.detailOverlay.querySelector('.close-icon');
       if (closeIcon) {
         closeIcon.style.transform = '';
         closeIcon.style.opacity = '';
       }
     }
+
     this.setupCloseButtonScrollAnimation();
 
-    const slideMedia = slide.querySelector('.slide-image-container');
-    
-    // Calculate crossfade parameters from clicked slide
-    const crossfadeParams = slideMedia ? this.getCrossfadeParams(slideMedia) : null;
-    this.lastCrossfadeParams = crossfadeParams; // Store for close animation
-    
+    if (!this.detailOverlay) {
+      this.isTransitioning = false;
+      this.detailOpen = false;
+      return;
+    }
     this.detailOverlay.setAttribute('aria-hidden', 'false');
+    this.detailOverlay.classList.add('is-open');
     document.body.classList.add('detail-open');
     SoundEngine.playWheelOpen();
-    this.beginDetailTransition();
 
-    if (!this.prefersReducedMotion) {
-      const duration = this.getDetailTransitionMs();
-      const easing = this.getDetailEase();
-      const contentDuration = this.getDetailContentDuration();
-      const contentDelay = this.getDetailFadeDelay();
-      const contentEase = this.getDetailContentEase();
-      const contentStartScale = this.getDetailContentStartScale();
-      const overlayStartScale = crossfadeParams?.scale ?? 0.92;
-      const swingDeg = this.getDetailCardSwingDeg();
-      const swingScale = this.getDetailCardSwingScale();
-      const popScale = this.getDetailCardPopScale();
-
-      // Setup initial state
-      this.detailOverlay.classList.remove('is-closing', 'is-collapsing');
-      this.detailOverlay.classList.add('is-open', 'is-animating', 'is-expanding');
-      this.detailOverlay.style.transformOrigin = crossfadeParams?.transformOrigin || '50% 50%';
-
-      const overlayAnimation = this.detailOverlay.animate([
-        { opacity: '0', transform: `scale(${overlayStartScale})` },
-        { opacity: '1', transform: 'scale(1)' }
-      ], {
-        duration,
-        easing,
-        fill: 'both'
-      });
-
-      const contentAnimation = this.detailContent?.animate([
-        { opacity: '0', transform: `scale(${contentStartScale})` },
-        { opacity: '1', transform: 'scale(1)' }
-      ], {
-        duration: contentDuration,
-        delay: contentDelay,
-        easing: contentEase,
-        fill: 'both'
-      });
-
-      let slideAnimation = null;
-      if (slideMedia) {
-        slideMedia.style.opacity = '1';
-        slideMedia.style.transform = 'rotate(0deg) scale(1)';
-        slideAnimation = slideMedia.animate([
-          { transform: 'rotate(0deg) scale(1)', opacity: 1 },
-          { transform: `rotate(${swingDeg}deg) scale(${swingScale})`, opacity: 1, offset: 0.35 },
-          { transform: `rotate(0deg) scale(${popScale})`, opacity: 0 }
-        ], {
-          duration,
-          easing,
-          fill: 'both'
-        });
-
-        slideAnimation.finished.then(() => {
-          slideMedia.style.opacity = '0';
-          slideMedia.style.transform = `scale(${popScale})`;
-        }).catch(() => {});
-      }
-
-      this.detailAnimations = [overlayAnimation, contentAnimation, slideAnimation].filter(Boolean);
-
-      const finalizeOpen = () => {
-        if (!this.detailOpen) {
-          this.detailOverlay.classList.remove('is-open');
-          this.isTransitioning = false;
-          return;
-        }
-
-        this.detailOverlay.classList.remove('is-animating', 'is-expanding');
-        this.detailOverlay.style.removeProperty('opacity');
-        this.detailOverlay.style.removeProperty('transform');
-        this.detailOverlay.style.removeProperty('transformOrigin');
-        if (this.detailContent) {
-          this.detailContent.style.removeProperty('opacity');
-          this.detailContent.style.removeProperty('transform');
-        }
-        this.detailAnimations = [];
-        this.isTransitioning = false;
-        this.endDetailTransition();
-      };
-
-      overlayAnimation.finished.then(finalizeOpen).catch((err) => {
-        console.warn('Open animation interrupted:', err);
-        this.detailOverlay.classList.remove('is-animating', 'is-expanding');
-        if (this.detailOpen) {
-          this.detailOverlay.style.removeProperty('opacity');
-          this.detailOverlay.style.removeProperty('transform');
-          this.detailOverlay.style.removeProperty('transformOrigin');
-          if (this.detailContent) {
-            this.detailContent.style.removeProperty('opacity');
-            this.detailContent.style.removeProperty('transform');
-          }
-          if (slideMedia) {
-            slideMedia.style.removeProperty('opacity');
-            slideMedia.style.removeProperty('transform');
-          }
-        }
-        this.detailAnimations = [];
-        this.isTransitioning = false;
-        this.endDetailTransition();
-      });
-    } else {
-      // Reduced motion: instant open
-      this.detailOverlay.classList.remove('is-closing', 'is-collapsing');
-      this.detailOverlay.classList.add('is-open');
-      if (slideMedia) {
-        slideMedia.style.removeProperty('opacity');
-        slideMedia.style.removeProperty('transform');
-      }
-      if (this.detailContent) {
-        this.detailContent.style.removeProperty('opacity');
-        this.detailContent.style.removeProperty('transform');
-      }
+    const finalizeOpen = () => {
+      if (!this.detailOpen) return;
       this.isTransitioning = false;
-      this.endDetailTransition();
+    };
+
+    if (this.hasDetailTransition()) {
+      this.waitForDetailTransition(finalizeOpen);
+    } else {
+      finalizeOpen();
     }
 
     if (this.detailClose) this.detailClose.focus();
@@ -1565,17 +1450,25 @@ class PortfolioApp {
     if (!this.detailOpen || this.isTransitioning) return;
     
     SoundEngine.playWheelClose();
-    
-    // Cancel any ongoing animations
-    this.cancelDetailAnimations();
-    
-    if (this.openTransitionTimer) {
-        window.clearTimeout(this.openTransitionTimer);
-        this.openTransitionTimer = null;
-    }
-    
+
     this.isTransitioning = true;
     this.detailOpen = false;
+    
+    // Remove expanding state and restore normal positioning
+    if (this.activeSlide) {
+      this.activeSlide.classList.remove('is-expanding');
+      this.activeSlide.classList.add('is-collapsing');
+      // Clear frozen position after a brief delay to allow collapse animation
+      setTimeout(() => {
+        if (this.activeSlide) {
+          this.activeSlide.classList.remove('is-collapsing');
+          delete this.activeSlide.dataset.frozenX;
+          delete this.activeSlide.dataset.frozenY;
+          // Force immediate position update
+          this.updateWheelPositions(0, true);
+        }
+      }, 400);
+    }
     
     // Clean up scroll animation
     if (this.closeButtonScrollCleanup) {
@@ -1584,30 +1477,8 @@ class PortfolioApp {
     }
     this.stopDetailVideos();
 
-    // Recalculate crossfade params in case slide position changed (e.g. resize)
-    const slideMedia = this.activeSlide?.querySelector('.slide-image-container');
-    const crossfadeParams = slideMedia ? this.getCrossfadeParams(slideMedia) : this.lastCrossfadeParams;
-
     const finalizeClose = () => {
-        if (this.detailCloseWatchdogTimer) {
-            window.clearTimeout(this.detailCloseWatchdogTimer);
-            this.detailCloseWatchdogTimer = null;
-        }
-        this.endDetailTransition();
         document.body.classList.remove('detail-open');
-        this.detailOverlay.classList.remove('is-open', 'is-closing', 'is-collapsing', 'is-animating', 'is-expanding');
-        this.detailOverlay.style.removeProperty('transform');
-        this.detailOverlay.style.removeProperty('opacity');
-        this.detailOverlay.style.removeProperty('transformOrigin');
-        if (this.detailContent) {
-          this.detailContent.style.removeProperty('opacity');
-          this.detailContent.style.removeProperty('transform');
-        }
-        if (slideMedia) {
-          slideMedia.style.removeProperty('opacity');
-          slideMedia.style.removeProperty('transform');
-        }
-        this.detailAnimations = [];
         this.detailOverlay.setAttribute('aria-hidden', 'true');
         // Snap wheel immediately so the active card returns sharp (no depth blur settling).
         this.wheelVelocity = 0;
@@ -1619,102 +1490,13 @@ class PortfolioApp {
         this.isTransitioning = false;
     };
 
-    this.beginDetailTransition();
-    // Watchdog: guarantee we leave `detail-open` even if a transition is interrupted.
-    if (this.detailCloseWatchdogTimer) {
-        window.clearTimeout(this.detailCloseWatchdogTimer);
-        this.detailCloseWatchdogTimer = null;
+    document.body.classList.remove('detail-open');
+    const hasTransition = this.hasDetailTransition();
+    if (hasTransition) {
+      this.waitForDetailTransition(finalizeClose);
     }
-
-    if (!this.prefersReducedMotion) {
-      const duration = this.getDetailTransitionMs();
-      const easing = this.getDetailEase();
-      const contentDuration = this.getDetailContentDuration();
-      const contentDelay = this.getDetailFadeDelay();
-      const contentEase = this.getDetailContentEase();
-      const contentStartScale = this.getDetailContentStartScale();
-      const overlayStartScale = crossfadeParams?.scale ?? 0.92;
-      const swingDeg = this.getDetailCardSwingDeg();
-      const swingScale = this.getDetailCardSwingScale();
-      const popScale = this.getDetailCardPopScale();
-      const closeDelay = Math.max(0, duration - contentDelay - contentDuration);
-
-      // Setup initial state
-      this.detailOverlay.classList.remove('is-expanding');
-      this.detailOverlay.classList.add('is-animating', 'is-collapsing');
-      this.detailOverlay.style.transformOrigin = crossfadeParams?.transformOrigin || '50% 50%';
-
-      const overlayAnimation = this.detailOverlay.animate([
-        { opacity: '0', transform: `scale(${overlayStartScale})` },
-        { opacity: '1', transform: 'scale(1)' }
-      ], {
-        duration,
-        easing,
-        fill: 'both',
-        direction: 'reverse'
-      });
-
-      const contentAnimation = this.detailContent?.animate([
-        { opacity: '0', transform: `scale(${contentStartScale})` },
-        { opacity: '1', transform: 'scale(1)' }
-      ], {
-        duration: contentDuration,
-        delay: closeDelay,
-        easing: contentEase,
-        fill: 'both',
-        direction: 'reverse'
-      });
-
-      let slideAnimation = null;
-      if (slideMedia) {
-        slideMedia.style.opacity = '0';
-        slideMedia.style.transform = `scale(${popScale})`;
-        slideAnimation = slideMedia.animate([
-          { transform: 'rotate(0deg) scale(1)', opacity: 1 },
-          { transform: `rotate(${swingDeg}deg) scale(${swingScale})`, opacity: 1, offset: 0.35 },
-          { transform: `rotate(0deg) scale(${popScale})`, opacity: 0 }
-        ], {
-          duration,
-          easing,
-          fill: 'both',
-          direction: 'reverse'
-        });
-      }
-
-      this.detailAnimations = [overlayAnimation, contentAnimation, slideAnimation].filter(Boolean);
-      
-      // Watchdog: guarantee cleanup even if animation fails (fallback only)
-      this.detailCloseWatchdogTimer = window.setTimeout(() => {
-        console.warn('Close animation watchdog triggered - forcing cleanup');
-        finalizeClose();
-      }, duration + 500);
-      
-      // Clean up after animation completes
-      overlayAnimation.finished.then(() => {
-        // Clear watchdog since we completed successfully
-        if (this.detailCloseWatchdogTimer) {
-          window.clearTimeout(this.detailCloseWatchdogTimer);
-          this.detailCloseWatchdogTimer = null;
-        }
-        
-        // Clean up classes
-        this.detailOverlay.classList.remove('is-animating', 'is-collapsing');
-        
-        finalizeClose();
-      }).catch((err) => {
-        // Animation was cancelled or errored - clean up safely
-        console.warn('Close animation interrupted:', err);
-        if (this.detailCloseWatchdogTimer) {
-          window.clearTimeout(this.detailCloseWatchdogTimer);
-          this.detailCloseWatchdogTimer = null;
-        }
-        this.detailOverlay.classList.remove('is-animating', 'is-collapsing');
-        finalizeClose();
-      });
-    } else {
-      // Reduced motion: instant close
-      finalizeClose();
-    }
+    this.detailOverlay.classList.remove('is-open');
+    if (!hasTransition) finalizeClose();
   }
 
   syncDetailVideos() {
@@ -1846,21 +1628,41 @@ function isPortfolioDev() {
 }
 
 async function bootstrapPortfolio() {
+  // Index parity: keep the centered brand logo inside the frame stacking context so it
+  // can sit "behind" the portfolio content instead of overlaying it as a separate layer.
+  try {
+    const wallFrame = document.querySelector('.wall-frame');
+    const logo = document.getElementById('brand-logo');
+    if (wallFrame && logo && logo.parentElement !== wallFrame) {
+      wallFrame.prepend(logo);
+    }
+  } catch (e) {}
+
+  try {
+    await loadRuntimeText();
+    applyRuntimeTextToDOM();
+  } catch (e) {
+    // Text is non-fatal; continue.
+  }
+
+  try {
+    await waitForFonts();
+  } catch (e) {}
+
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                             PAGE FADE-IN (INDEX PARITY)                     ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
   // Match the index page fade-in behavior: #fade-content starts at opacity:0
   // (via <style id="fade-blocking">) and is animated to 1 with WAAPI + failsafes.
-  //
-  // Keep this early so reveal timing matches index even while async work continues.
   try {
     const FADE_DELAY_MS = 400;
     const FADE_DURATION_MS = 3000;
-    const FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
+    const FADE_EASING = readTokenVar('--ease-fade', 'cubic-bezier(0.16, 1, 0.3, 1)');
     const FADE_FAILSAFE_MS = FADE_DELAY_MS + FADE_DURATION_MS + 750;
 
     const forceFadeVisible = (fadeEl, reason) => {
       fadeEl.style.opacity = '1';
+      fadeEl.style.transform = 'translateZ(0)';
       console.warn(`⚠️ Fade failsafe: forcing #fade-content visible (${reason})`);
     };
 
@@ -1874,6 +1676,7 @@ async function bootstrapPortfolio() {
       // Accessibility: respect reduced motion by skipping animation entirely.
       if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
         fadeContent.style.opacity = '1';
+        fadeContent.style.transform = 'translateZ(0)';
         console.log('✓ Page fade-in skipped (prefers-reduced-motion)');
         return;
       }
@@ -1885,13 +1688,17 @@ async function bootstrapPortfolio() {
       }
 
       const anim = fadeContent.animate(
-        [{ opacity: 0 }, { opacity: 1 }],
+        [
+          { opacity: 0, transform: 'translateZ(0) scale(1.1)' },
+          { opacity: 1, transform: 'translateZ(0) scale(1)' },
+        ],
         { duration: FADE_DURATION_MS, easing: FADE_EASING, fill: 'forwards' }
       );
 
       // Stamp final opacity so it can't get stuck hidden.
       anim?.addEventListener?.('finish', () => {
         fadeContent.style.opacity = '1';
+        fadeContent.style.transform = 'translateZ(0)';
         console.log('✓ Page fade-in finished');
       });
 
@@ -1907,25 +1714,68 @@ async function bootstrapPortfolio() {
         if (opacity === '0') forceFadeVisible(fadeContent, 'opacity still 0 after failsafe window');
       }, FADE_FAILSAFE_MS);
     }, FADE_DELAY_MS);
-  } catch (e) {}
-
-  try {
-    await loadRuntimeText();
-    applyRuntimeTextToDOM();
   } catch (e) {
-    // Text is non-fatal; continue.
+    // Fallback: use new entrance animation system
+    try {
+      const { orchestrateEntrance } = await import('../visual/entrance-animation.js');
+      const { getGlobals } = await import('../core/state.js');
+      const g = getGlobals();
+      
+      if (g.entranceEnabled && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+        await orchestrateEntrance({
+          waitForFonts: async () => {
+            try {
+              const { waitForFonts } = await import('../utils/font-loader.js');
+              await waitForFonts();
+            } catch (e) {}
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('⚠️ Entrance animation fallback failed:', err);
+    }
   }
+
+  // Background elements (including #brand-logo) are now visible immediately - no fade-in
+  // Keep it isolated so entrance-fallback errors don't break the rest of bootstrap.
+  try {
+      // ╔══════════════════════════════════════════════════════════════════════════════╗
+      // ║                    LOGO VISIBILITY (NO FADE-IN)                              ║
+      // ╚══════════════════════════════════════════════════════════════════════════════╝
+      // Logo is a background element - visible immediately, no fade-in animation
+
+      window.setTimeout(() => {
+        const logo = document.getElementById('brand-logo');
+        if (!logo) {
+          console.warn('⚠️ #brand-logo not found');
+          return;
+        }
+
+        // Make logo visible immediately (background element, no fade-in)
+        logo.style.opacity = '1';
+        console.log('✓ Logo visible immediately (background element, no fade-in)');
+      }, 0);
+  } catch (e) {}
 
   let runtimeConfig = null;
   try {
     runtimeConfig = await loadRuntimeConfig();
+    // Initialize state with runtime config so all global parameters are available
     applyWallFrameFromConfig(runtimeConfig);
     SoundEngine.initSoundEngine();
     SoundEngine.applySoundConfigFromRuntimeConfig(runtimeConfig);
+    // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.
+    // Initialize with globals (same as index page) so noise settings match index page
+    // getGlobals() contains all processed config values from initState()
+    try { 
+      initNoiseSystem(getGlobals());
+    } catch (e) {}
     // Keep the frame responsive to viewport changes (same behavior as index).
     window.addEventListener('resize', applyWallFrameLayout);
   } catch (e) {
     // Safe fallback: run without the studio frame if config fails.
+    // Still try to initialize noise with defaults
+    try { initNoiseSystem(); } catch (e2) {}
   }
 
   // Gates should work even if runtime config fails to load (use defaults).
@@ -1934,9 +1784,48 @@ async function bootstrapPortfolio() {
     initContactGate();
   } catch (e) {}
 
+  // Palette chapters: rotate on each reload (applies only to cursor + palette-driven dots).
+  rotatePaletteChapterOnReload();
+
   initializeDarkMode();
+  
+  // Ensure wall colors are applied after dark mode initialization
+  // (dark mode syncCssVarsFromConfig might override them, so re-apply from config/globals)
+  const g = getGlobals();
+  const root = document.documentElement;
+  
+  if (runtimeConfig) {
+    // Re-apply wall colors to ensure they match index page
+    syncWallFrameColors(runtimeConfig);
+  } else {
+    // Fallback: use globals if config not available
+    const frameLight = g?.frameColorLight || g?.frameColor;
+    const frameDark = g?.frameColorDark || g?.frameColor;
+    if (frameLight) root.style.setProperty('--frame-color-light', frameLight);
+    if (frameDark) root.style.setProperty('--frame-color-dark', frameDark);
+  }
+  
+  // Force update from globals to ensure values are correct (globals have processed values from initState)
+  const frameLight = g?.frameColorLight || g?.frameColor;
+  const frameDark = g?.frameColorDark || g?.frameColor;
+  if (frameLight) {
+    root.style.setProperty('--frame-color-light', frameLight);
+  }
+  if (frameDark) {
+    root.style.setProperty('--frame-color-dark', frameDark);
+  }
+  
+  // Also update theme-color meta tag with the correct wall color for browser chrome
+  const currentWallColor = g.isDarkMode ? frameDark : frameLight;
+  if (currentWallColor) {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = currentWallColor;
+    root.style.setProperty('--chrome-bg', currentWallColor);
+  }
+  maybeAutoPickCursorColor?.('startup');
   initTimeDisplay();
   upgradeSocialIcons();
+  initLinkCursorHop();
 
   let portfolioConfig = null;
   try {
@@ -1949,13 +1838,29 @@ async function bootstrapPortfolio() {
 
   // Index parity: the config panel exists in all builds, starts hidden, and is summoned with `/`.
   try {
-    const panelDock = await import('./panel/panel-dock.js');
-    panelDock.createPanelDock({
-      config: normalizedPortfolioConfig,
-      onMetricsChange: () => app.updateWheelConfig(),
-      onRuntimeChange: (runtime) => app.applyRuntimeConfig(runtime),
+    const { createPanelDock } = await import('../ui/panel-dock.js');
+    const { generatePanelSectionsHTML } = await import('./panel/control-registry.js');
+    const { setupControls } = await import('./panel/controls.js');
+    const { setupBuildControls } = await import('./panel/build-controls.js');
+
+    const pageHTML = generatePanelSectionsHTML(normalizedPortfolioConfig);
+
+    createPanelDock({
+      page: 'portfolio',
+      pageLabel: 'Portfolio',
+      pageHTML,
+      includePageSaveButton: true,
+      pageSaveButtonId: 'savePortfolioConfigBtn',
+      bindShortcut: true,
       panelTitle: 'Settings',
       modeLabel: isPortfolioDev() ? 'DEV MODE' : 'BUILD MODE',
+      setupPageControls: () => {
+        setupControls(normalizedPortfolioConfig, {
+          onMetricsChange: () => app.updateWheelConfig(),
+          onRuntimeChange: (runtime) => app.applyRuntimeConfig(runtime),
+        });
+        setupBuildControls(normalizedPortfolioConfig);
+      },
     });
   } catch (e) {}
 }

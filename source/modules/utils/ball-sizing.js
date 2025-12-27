@@ -13,6 +13,8 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
+const SIZE_VARIATION_MAX = 0.2;
+
 export function getModeSizeVariation01(g, mode) {
   switch (mode) {
     case MODES.PIT: return g.sizeVariationPit ?? 0;
@@ -47,22 +49,32 @@ export function getModeSizeVariation01(g, mode) {
  */
 export function getRadiusBoundsForMode(g, mode) {
   const med = Math.max(1, g.R_MED || (g.R_MIN + g.R_MAX) * 0.5 || 10);
-  const cap = clamp(Number(g.sizeVariationCap ?? 0.12), 0, 0.5);
+  const cap = clamp(Number(g.sizeVariationCap ?? 0.12), 0, SIZE_VARIATION_MAX);
   const mul = clamp(Number(g.sizeVariationGlobalMul ?? 1.0), 0, 2);
   const per = clamp(Number(getModeSizeVariation01(g, mode) ?? 0), 0, 1);
-  const v = clamp(cap * mul * per, 0, 0.5);
+  const v = clamp(cap * mul * per, 0, SIZE_VARIATION_MAX);
   return { minR: Math.max(1, med * (1 - v)), maxR: Math.max(1, med * (1 + v)), medR: med };
 }
 
 /**
  * Compute the fractional size variance for a mode based on the global cap + multiplier.
- * Returns 0..0.5 representing +/- fraction around a base radius.
+ * Returns 0..SIZE_VARIATION_MAX representing +/- fraction around a base radius.
  */
 export function getModeSizeVarianceFrac(g, mode) {
-  const cap = clamp(Number(g.sizeVariationCap ?? 0.12), 0, 0.5);
+  const cap = clamp(Number(g.sizeVariationCap ?? 0.12), 0, SIZE_VARIATION_MAX);
   const mul = clamp(Number(g.sizeVariationGlobalMul ?? 1.0), 0, 2);
   const per = clamp(Number(getModeSizeVariation01(g, mode) ?? 0), 0, 1);
-  return clamp(cap * mul * per, 0, 0.5);
+  return clamp(cap * mul * per, 0, SIZE_VARIATION_MAX);
+}
+
+export function clampRadiusToGlobalBounds(g, r) {
+  const minR = Number.isFinite(g?.R_MIN) ? Math.max(1, g.R_MIN) : 0;
+  const maxR = Number.isFinite(g?.R_MAX) ? Math.max(minR || 1, g.R_MAX) : 0;
+  if (minR > 0 && maxR > 0) return clamp(r, minR, maxR);
+  const med = Math.max(1, g?.R_MED || r || 1);
+  const minFallback = med * (1 - SIZE_VARIATION_MAX);
+  const maxFallback = med * (1 + SIZE_VARIATION_MAX);
+  return clamp(r, minFallback, maxFallback);
 }
 
 /**
@@ -100,12 +112,12 @@ export function randomRadiusForKaleidoscopeVh(g, mode) {
   const areaMul = clamp(getAreaMul(), 0.1, 2.0);
   const base = Math.max(1, (vh * 0.01) * h * Math.sqrt(areaMul));
 
-  // Use per-variant size variance directly (scaled to ±50% max deviation)
-  const v = clamp(getSizeVariance() * 0.5, 0, 0.5);
+  // Use per-variant size variance directly (scaled and capped to global max deviation)
+  const v = clamp(getSizeVariance() * 0.5, 0, SIZE_VARIATION_MAX);
   const minR = Math.max(1, base * (1 - v));
   const maxR = Math.max(1, base * (1 + v));
-  if (maxR - minR < 1e-6) return base;
-  return lerp(minR, maxR, Math.random());
+  if (maxR - minR < 1e-6) return clampRadiusToGlobalBounds(g, base);
+  return clampRadiusToGlobalBounds(g, lerp(minR, maxR, Math.random()));
 }
 
 /**
@@ -117,5 +129,3 @@ export function randomRadiusForMode(g, mode) {
   if (maxR - minR < 1e-6) return medR;
   return lerp(minR, maxR, Math.random());
 }
-
-

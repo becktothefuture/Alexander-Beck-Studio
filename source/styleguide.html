@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Styleguide - Alexander Beck Studio</title>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/styleguide.css">
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400&family=Sarina&display=swap" rel="stylesheet">
+</head>
+<body class="styleguide-shell">
+  <header class="sg-header">
+    <a class="sg-back" href="index.html" aria-label="Back to index">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i>
+      <span>Back</span>
+    </a>
+    <div class="sg-title">
+      <h1>Typography Styleguide</h1>
+      <p>Preview all text styles across responsive touchpoints.</p>
+    </div>
+  </header>
+
+  <main class="sg-grid" aria-label="Responsive typography previews">
+    <section class="sg-frame">
+      <header class="sg-frame__header">
+        <h2>Mobile</h2>
+        <span class="sg-frame__meta">360px</span>
+      </header>
+      <iframe title="Typography preview: mobile" src="styleguide-frame.html" style="width: 360px;"></iframe>
+    </section>
+
+    <section class="sg-frame">
+      <header class="sg-frame__header">
+        <h2>Small Tablet</h2>
+        <span class="sg-frame__meta">600px</span>
+      </header>
+      <iframe title="Typography preview: small tablet" src="styleguide-frame.html" style="width: 600px;"></iframe>
+    </section>
+
+    <section class="sg-frame">
+      <header class="sg-frame__header">
+        <h2>Tablet</h2>
+        <span class="sg-frame__meta">768px</span>
+      </header>
+      <iframe title="Typography preview: tablet" src="styleguide-frame.html" style="width: 768px;"></iframe>
+    </section>
+
+    <section class="sg-frame">
+      <header class="sg-frame__header">
+        <h2>Desktop</h2>
+        <span class="sg-frame__meta">1200px</span>
+      </header>
+      <iframe title="Typography preview: desktop" src="styleguide-frame.html" style="width: 1200px;"></iframe>
+    </section>
+  </main>
+</body>
+</html>

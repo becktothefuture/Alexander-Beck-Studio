@@ -182,6 +182,36 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 
 ## Physics (Global)
 
+### Collision Solver (Ball-on-ball)
+
+- **`physicsCollisionIterations`** (number, 3..20)
+  - **Meaning**: Ball–ball collision solver iterations for physics-based modes.
+  - **Lower** = faster but looser stacks; **higher** = tighter stacks but more CPU.
+
+- **`physicsSkipSleepingCollisions`** (boolean)
+  - **Meaning**: When **both** balls in a pair are sleeping, keep **positional correction** but skip all non-essential collision work (impulses/sound/squash).
+  - **Why**: Reduces CPU while preserving “no overlap drift”.
+
+### Global Sleep (Non-Pit physics modes)
+
+These keys complement the **Pit-only** sleep keys (`sleepVelocityThreshold`, `sleepAngularThreshold`, `timeToSleep`).  
+Pit modes still use the Pit keys; other physics modes can use the global keys to reduce idle work.
+
+- **`physicsSleepThreshold`** (number, px/s)
+  - **Meaning**: Linear speed threshold below which a ball can start sleeping in **non-Pit** physics modes.
+  - **Notes**: DPR-scaled internally. Set to `0` to effectively disable.
+
+- **`physicsSleepTime`** (number, seconds)
+  - **Meaning**: Time a ball must remain below `physicsSleepThreshold` before sleeping in **non-Pit** modes.
+
+- **`physicsSkipSleepingSteps`** (boolean)
+  - **Meaning**: If enabled, sleeping balls skip `Ball.step()` work until woken (e.g. cursor proximity / impacts).
+
+### Spatial Grid / Pair Collection
+
+- **`physicsSpatialGridOptimization`** (boolean)
+  - **Meaning**: Reuse spatial grid buckets + collision pair buffers to reduce allocations / GC during collision detection.
+
 ## Balls (Global)
 
 ### Color Distribution (Global)
@@ -268,7 +298,7 @@ These keys control the **ghost trail** effect implemented in `source/modules/phy
 - **Applied to**: `state.sizeVariationGlobalMul` (used by per-mode sizing helper)
 - **Notes**:
   - Each simulation has its own slider (`sizeVariation*`) in the range `0..1`.
-  - There is an internal cap (`state.sizeVariationCap`, currently `0.12`) that defines what “1.0 variation” means in absolute size terms.
+  - There is an internal cap (`state.sizeVariationCap`, currently `0.2`) that defines what “1.0 variation” means in absolute size terms.
 
 ---
 
@@ -630,6 +660,31 @@ The following legacy keys are still accepted and will be converted to vw at star
 - `wallWobbleDamping` (number)
 - `wallWobbleSigma` (number)
 - `wallWobbleCornerClamp` (number)
+- `wallWobbleMaxVel` (number)
+- `wallWobbleMaxImpulse` (number)
+- `wallWobbleMaxEnergyPerStep` (number)
+
+### Stability clamps (recommended)
+- **`wallWobbleMaxVel`**: Caps the wobble velocity to prevent erratic spikes (especially in dense bottom stacks).
+- **`wallWobbleMaxImpulse`**: Caps per-sample impact injection so repeated impacts don't create runaway energy.
+- **`wallWobbleMaxEnergyPerStep`**: Caps total injected impact energy per wall physics tick (last-resort failsafe for rare spikes).
+
+### Performance (visual-only wall system)
+
+- **`wallPhysicsSamples`** (number, 8..96)
+  - **Meaning**: Sample count used for the wall wobble **integration** (visual-only). Lower is faster; higher is smoother.
+
+- **`wallPhysicsSkipInactive`** (boolean)
+  - **Meaning**: Skip wall wobble integration when there is no active deformation.
+
+- **`wallRenderDecimation`** (number, 1..12)
+  - **Meaning**: Renders every Nth wall sample (visual-only).
+  - **Common settings**:
+    - `1` = 96 points (smoothest, slowest)
+    - `2` = 48 points (default balance)
+    - `4` = 24 points (faster)
+    - `12` = 8 points (fastest/polygonal)
+  - **Notes**: This affects **rendering only**; it does not change the wall wobble physics sample count (`wallPhysicsSamples`).
 
 ---
 

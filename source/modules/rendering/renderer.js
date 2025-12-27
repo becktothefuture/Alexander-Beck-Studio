@@ -258,8 +258,8 @@ export function resize() {
     return;
   }
   
-  // Canvas fills the container completely (rubber walls are drawn at the edges)
-  // We removed the layout inset to fix the "double wall" visual issue
+  // Canvas fills container completely - wall is drawn inset within canvas via wall rendering
+  // Container fills viewport, canvas fills container, wall is drawn inside canvas
   const canvasWidth = containerWidth;
   const canvasHeight = containerHeight;
   
@@ -362,12 +362,11 @@ export function resize() {
   }
 
   // Update cached clip path (rounded-rect) on any resize that changes buffer dims
-  // Radius comes from state (container radius - simulation padding), then DPR-scaled.
+  // Radius is controlled entirely by rubber wall system - canvas uses rectangular clip (0 radius)
+  // This ensures visual rounded corners come only from wall rendering, not canvas clipping
   try {
-    const rCssPx = (typeof globals.getCanvasCornerRadius === 'function')
-      ? globals.getCanvasCornerRadius()
-      : (globals.cornerRadius ?? globals.wallRadius ?? 0);
-    const rCanvasPx = Math.max(0, (Number(rCssPx) || 0) * (globals.DPR || 1));
+    // Force 0 radius for canvas clip - rubber wall system controls visual radius
+    const rCanvasPx = 0;
     if (canvas.width !== cachedClipW || canvas.height !== cachedClipH || Math.abs(rCanvasPx - cachedClipR) > 1e-3) {
       cachedClipW = canvas.width;
       cachedClipH = canvas.height;

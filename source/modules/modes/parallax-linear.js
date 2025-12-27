@@ -7,7 +7,7 @@ import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { pickRandomColor } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
-import { getModeSizeVarianceFrac } from '../utils/ball-sizing.js';
+import { getModeSizeVarianceFrac, clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 
 export function initializeParallaxLinear() {
   const g = getGlobals();
@@ -74,7 +74,7 @@ export function initializeParallaxLinear() {
 
         const color = pickRandomColor();
         const ball = spawnBall(x2d, y2d, color);
-        ball.r = r;
+        ball.r = clampRadiusToGlobalBounds(g, r);
         ball.vx = 0;
         ball.vy = 0;
         ball.alpha = alpha;
@@ -123,7 +123,8 @@ export function applyParallaxLinearForces(ball, dt) {
   // Update size based on depth
   const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxLinearDotSizeMul ?? 1.8));
   const sizeMul = Number.isFinite(ball._parallaxSizeMul) ? ball._parallaxSizeMul : 1.0;
-  ball.r = (g.R_MED || 20) * 0.32 * 2.4 * (g.DPR || 1) * dotSizeMul * sizeMul * scale;
+  const rawR = (g.R_MED || 20) * 0.32 * 2.4 * (g.DPR || 1) * dotSizeMul * sizeMul * scale;
+  ball.r = clampRadiusToGlobalBounds(g, rawR);
 
   // No easing: snap directly to cursor-driven projection
   ball.x = targetX;

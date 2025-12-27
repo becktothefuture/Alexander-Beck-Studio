@@ -8,6 +8,7 @@ import { applyColorTemplate } from './colors.js';
 import { syncChromeColor } from '../physics/engine.js';
 import { log as devLog } from '../utils/logger.js';
 import { applyChromeHarmony } from './chrome-harmony.js';
+import { readTokenVar } from '../utils/tokens.js';
 
 // Theme states: 'auto', 'light', 'dark'
 let currentTheme = 'auto'; // Default to auto (system + night heuristic)
@@ -20,8 +21,8 @@ let isDarkModeInitialized = false;
 function getBackgroundColors() {
   const g = getGlobals();
   return {
-    light: g?.bgLight || readCssVar('--bg-light', '#f5f5f5'),
-    dark: g?.bgDark || readCssVar('--bg-dark', '#0a0a0a')
+    light: g?.bgLight || readTokenVar('--bg-light', '#f5f5f5'),
+    dark: g?.bgDark || readTokenVar('--bg-dark', '#0a0a0a')
   };
 }
 
@@ -42,23 +43,33 @@ function syncCssVarsFromConfig() {
     root.style.setProperty('--bg-dark', g.bgDark);
     root.style.setProperty('--chrome-bg-dark', g.bgDark);
   }
-  if (g?.frameColor) {
-    root.style.setProperty('--frame-color-light', g.frameColor);
-    root.style.setProperty('--frame-color-dark', g.frameColor);
-    root.style.setProperty('--wall-color', g.frameColor);
+  // Frame colors: separate light and dark mode wall colors
+  // IMPORTANT: Only use frameColorLight/frameColorDark - do NOT fallback to frameColor
+  // as it would override the separate light/dark colors set by the control panel
+  if (g?.frameColorLight) {
+    root.style.setProperty('--frame-color-light', g.frameColorLight);
+  }
+  if (g?.frameColorDark) {
+    root.style.setProperty('--frame-color-dark', g.frameColorDark);
+  }
+  // Wall colors automatically point to frameColor via CSS (--wall-color-light: var(--frame-color-light))
+  // Update browser chrome with the appropriate color for current mode
+  const chromeColor = g.isDarkMode ? g?.frameColorDark : g?.frameColorLight;
+  if (chromeColor) {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = chromeColor;
+    root.style.setProperty('--chrome-bg', chromeColor);
   }
   
   // Text colors
   if (g?.textColorLight) {
     root.style.setProperty('--text-color-light', g.textColorLight);
-    root.style.setProperty('--text-color-light-base', g.textColorLight);
   }
   if (g?.textColorLightMuted) {
     root.style.setProperty('--text-color-light-muted', g.textColorLightMuted);
   }
   if (g?.textColorDark) {
     root.style.setProperty('--text-color-dark', g.textColorDark);
-    root.style.setProperty('--text-color-dark-base', g.textColorDark);
   }
   if (g?.textColorDarkMuted) {
     root.style.setProperty('--text-color-dark-muted', g.textColorDarkMuted);
@@ -87,14 +98,14 @@ function syncCssVarsFromConfig() {
   if (g?.logoColorDark) {
     root.style.setProperty('--logo-color-dark', g.logoColorDark);
   }
-}
-
-/**
- * Read CSS variable from :root, with fallback
- */
-function readCssVar(name, fallback) {
-  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return value || fallback;
+  
+  // Portfolio logo colors (separate from index)
+  if (g?.portfolioLogoColorLight) {
+    root.style.setProperty('--portfolio-logo-color-light', g.portfolioLogoColorLight);
+  }
+  if (g?.portfolioLogoColorDark) {
+    root.style.setProperty('--portfolio-logo-color-dark', g.portfolioLogoColorDark);
+  }
 }
 
 /**
@@ -121,13 +132,13 @@ function isNightByLocalClock() {
 
 /**
  * Update browser chrome/theme color for Safari and Chrome
- * Reads from CSS variables (--chrome-bg*) for unified color management
+ * Uses wall colors (frame colors) for browser chrome to match the wall appearance
  */
 function updateThemeColor(isDark) {
-  // Read colors from globals (config-driven) with CSS fallback
-  const colors = getBackgroundColors();
-  const lightColor = readCssVar('--chrome-bg-light', colors.light);
-  const darkColor = readCssVar('--chrome-bg-dark', colors.dark);
+  const g = getGlobals();
+  // Use wall colors (frame colors) for browser chrome - matches the wall appearance
+  const lightColor = g?.frameColorLight || readTokenVar('--frame-color-light', '#0a0a0a');
+  const darkColor = g?.frameColorDark || readTokenVar('--frame-color-dark', '#0a0a0a');
   const currentColor = isDark ? darkColor : lightColor;
   
   // Update existing meta tag or create new one

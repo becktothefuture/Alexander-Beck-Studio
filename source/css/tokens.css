@@ -46,11 +46,22 @@
   --abs-text-sm: clamp(11px, 1.2vw, 14px);
   --abs-text-md: clamp(12px, 1.4vw, 16px);
   --abs-text-lg: clamp(0.85rem, 1.5vw, 1.05rem);
+  --abs-text-xl: 24px;
 
+  --abs-line-display: 0.95;
+  --abs-line-title: 1.1;
   --abs-line-tight: 1.3;
   --abs-line-base: 1.35;
   --abs-line-relaxed: 1.4;
+  --abs-line-body: 1.6;
+  --abs-line-body-relaxed: 1.7;
   --abs-line-loose: 1.75;
+  --abs-line-summary: 1.2;
+
+  /* Letter spacing relative to font height (em-based) */
+  --abs-letter-spacing-tight: -0.02em;
+  --abs-letter-spacing-normal: 0.05em;
+  --abs-letter-spacing-loose: 0.12em;
 
   /* Spacing & Sizing */
   --abs-space-unit: 1vmin;
@@ -104,13 +115,11 @@
   --abs-surface-chrome-dark: var(--abs-chrome-dark);
 
   --abs-surface-glass-strong: rgba(var(--abs-rgb-white), 0.75);
-  --abs-surface-glass-medium: rgba(var(--abs-rgb-white), 0.55);
+  --abs-surface-glass-medium: rgba(var(--abs-rgb-white), 0.5);
   --abs-surface-glass-balanced: rgba(var(--abs-rgb-white), 0.5);
   --abs-surface-glass-soft: rgba(var(--abs-rgb-white), 0.18);
   --abs-surface-glass-ghost: rgba(var(--abs-rgb-white), 0.12);
-  --abs-surface-glass-faint: rgba(var(--abs-rgb-white), 0.05);
   --abs-surface-glass-dim: rgba(var(--abs-rgb-white), 0.35);
-  --abs-surface-glass-dark: rgba(var(--abs-rgb-white), 0.12);
   --abs-surface-glass-dark-strong: rgba(var(--abs-rgb-white), 0.16);
 
   --abs-overlay-veil: rgba(var(--abs-rgb-white), 0.5);
@@ -121,15 +130,12 @@
 
   --abs-stroke-strong: rgba(var(--abs-rgb-black), 0.22);
   --abs-stroke-medium: rgba(var(--abs-rgb-black), 0.18);
+  --abs-stroke-soft: rgba(var(--abs-rgb-black), 0.12);
   --abs-stroke-subtle: rgba(var(--abs-rgb-black), 0.15);
-  --abs-stroke-soft: rgba(var(--abs-rgb-black), 0.14);
-  --abs-stroke-ghost: rgba(var(--abs-rgb-black), 0.12);
   --abs-stroke-hairline: rgba(var(--abs-rgb-black), 0.1);
   --abs-stroke-strong-inverse: rgba(var(--abs-rgb-white), 0.34);
   --abs-stroke-medium-inverse: rgba(var(--abs-rgb-white), 0.25);
-  --abs-stroke-soft-inverse: rgba(var(--abs-rgb-white), 0.22);
-  --abs-stroke-ghost-inverse: rgba(var(--abs-rgb-white), 0.18);
-  --abs-stroke-hairline-inverse: rgba(var(--abs-rgb-white), 0.12);
+  --abs-stroke-soft-inverse: rgba(var(--abs-rgb-white), 0.18);
   --abs-stroke-highlight-inverse: rgba(var(--abs-rgb-white), 0.8);
   --abs-bevel-light: rgba(var(--abs-rgb-white), 0.15);
   --abs-bevel-dark: rgba(var(--abs-rgb-black), 0.3);
@@ -143,19 +149,26 @@
   --text-sm: var(--abs-text-sm);
   --text-md: var(--abs-text-md);
   --text-lg: var(--abs-text-lg);
+  --text-xl: var(--abs-text-xl);
+  --line-height-display: var(--abs-line-display);
+  --line-height-title: var(--abs-line-title);
   --line-height-tight: var(--abs-line-tight);
   --line-height-base: var(--abs-line-base);
   --line-height-relaxed: var(--abs-line-relaxed);
+  --line-height-body: var(--abs-line-body);
+  --line-height-body-relaxed: var(--abs-line-body-relaxed);
   --line-height-loose: var(--abs-line-loose);
+  --line-height-summary: var(--abs-line-summary);
+  --letter-spacing-tight: var(--abs-letter-spacing-tight);
+  --letter-spacing-normal: var(--abs-letter-spacing-normal);
+  --letter-spacing-loose: var(--abs-letter-spacing-loose);
 
   /* Spacing Aliases */
-  --space-unit: var(--abs-space-unit);
-  --space-xs: var(--abs-space-2xs);
-  --space-sm: var(--abs-space-xs);
-  --space-md: var(--abs-space-sm);
-  --space-lg: var(--abs-space-md);
-  --space-xl: var(--abs-space-lg);
-  --space-2xl: var(--abs-space-xl);
+  --space-xs: var(--abs-space-xs);
+  --space-sm: var(--abs-space-sm);
+  --space-md: var(--abs-space-md);
+  --space-lg: var(--abs-space-lg);
+  --space-xl: var(--abs-space-xl);
 
   --content-padding: var(--abs-content-padding);
   --content-padding-x: var(--abs-content-padding);
@@ -172,36 +185,46 @@
 
   --size-icon: var(--abs-size-icon);
   --size-icon-lg: var(--abs-size-icon-lg);
+  --icon-size-base: var(--abs-size-icon);
+  --icon-size-lg: var(--abs-size-icon-lg);
   --size-dot: var(--abs-size-dot);
   --tap-target: var(--abs-tap-target);
 
-  /* Text Colors + Opacity */
+  /* Text Colors — Light mode defaults */
   --text-color-light: var(--abs-neutral-900);
   --text-color-light-muted: var(--abs-neutral-800);
   --text-color-dark: var(--abs-neutral-500);
-  --text-color-dark-soft: var(--abs-neutral-450);
   --text-color-dark-muted: var(--abs-neutral-650);
-  --text-color-light-base: var(--text-color-light);
-  --text-color-dark-base: var(--text-color-dark);
-  --text-opacity-base: var(--abs-opacity-strong);
-  --text-opacity-muted: var(--abs-opacity-muted);
+  
+  --text-primary: var(--text-color-light);
+  --text-muted: var(--text-color-light-muted);
+  --text-soft: rgba(var(--abs-rgb-black), 0.85);
+  --text-strong: rgba(var(--abs-rgb-black), 1);
+  --text-action: var(--text-color-light-muted);
+  --text-input: var(--text-color-light);
   --text-quiet: rgba(var(--abs-rgb-black), 0.7);
-  --text-quiet-strong: rgba(var(--abs-rgb-black), 0.65);
-  --text-quiet-inverse: rgba(var(--abs-rgb-white), 0.72);
   --text-placeholder: rgba(var(--abs-rgb-black), 0.3);
-  --text-placeholder-inverse: rgba(var(--abs-rgb-white), 0.3);
 
   --edge-label-color-light: var(--text-color-light-muted);
-  --edge-label-color-dark: var(--text-color-dark-base);
+  --edge-label-color-dark: var(--text-color-dark);
   --edge-label-opacity: var(--abs-opacity-quiet);
+
+  /* Moonlight (Dark Mode) — harmonized blue-gray to match dark blue/green background */
+  --abs-moonlight-text-primary: #7a8fa3;
+  --abs-moonlight-text-muted: #9db0c4;
+  --abs-moonlight-top-a: rgba(255, 255, 255, 0.08);
+  --abs-moonlight-top-b: rgba(200, 220, 255, 0.04);
 
   /* Link + Accent Colors */
   --link-hover-color: var(--abs-accent-primary);
   --cursor-color: var(--ball-6);
 
   /* Logo Colors */
-  --logo-color-light: var(--text-color-light);
+  --logo-color-light: var(--abs-neutral-900);
   --logo-color-dark: var(--abs-neutral-350);
+  /* Portfolio Logo Colors (separate from index) */
+  --portfolio-logo-color-light: var(--abs-neutral-900);
+  --portfolio-logo-color-dark: var(--abs-neutral-350);
 
   /* Surface Tokens Mapped to Legacy Names */
   --frame-color-light: var(--abs-surface-frame);
@@ -213,11 +236,15 @@
   --chrome-bg: var(--chrome-bg-light);
   --chrome-bg: var(--chrome-bg-light);
 
+  /* Wall color: single master source (frameColor) - all wall colors point here */
   --wall-color-site-light: var(--frame-color-light);
   --wall-color-site-dark: var(--frame-color-dark);
   --wall-color-browser-light: var(--abs-surface-chrome);
   --wall-color-browser-dark: var(--abs-surface-chrome-dark);
-  --wall-color: var(--frame-color-light);
+  /* Master wall color tokens (point to frameColor) */
+  --wall-color-light: var(--frame-color-light);
+  --wall-color-dark: var(--frame-color-dark);
+  --wall-color: var(--wall-color-light);
 
   /* Layout + Radius */
   --container-border-vw: var(--abs-container-border-vw);
@@ -237,19 +264,61 @@
   --noise-size-top: 150px;
   --noise-size-scale: 1;
   --noise-back-opacity-light: 0.025;
-  --noise-front-opacity-light: 0.055;
+  --noise-front-opacity-light: 0.12;
   --noise-back-opacity-dark: 0.12;
-  --noise-front-opacity-dark: 0.08;
-  --noise-top-opacity: 0.01;
+  --noise-front-opacity-dark: 0.18;
+  --noise-top-opacity: 0; /* Disabled: noise-3 layer removed */
+  --detail-noise-opacity: 1; /* Overall opacity multiplier for detail page noise */
+  /* Procedural noise (generated at runtime; motion is CSS-only). */
+  --abs-noise-enabled: 1;
+  --abs-noise-texture: none;
+  --abs-noise-keyframes: abs-noise-jitter;
+  --abs-noise-timing: steps(1, end);
+  --abs-noise-speed-back: 1800ms;
+  --abs-noise-speed-front: 1100ms;
+  --abs-noise-motion-amount: 1;
+  --abs-noise-overscan: -220px;
+  --abs-noise-flicker: 0.12;
+  --abs-noise-flicker-speed: 220ms;
+  --abs-noise-filter: none;
+  --abs-noise-blur: 0px;
+  --abs-noise-contrast: 1.35;
+  --abs-noise-brightness: 1;
+  --abs-noise-saturation: 1;
+  --abs-noise-hue: 0deg;
+  --abs-noise-j1-x: 0px;
+  --abs-noise-j1-y: 0px;
+  --abs-noise-j2-x: 0px;
+  --abs-noise-j2-y: 0px;
+  --abs-noise-j3-x: 0px;
+  --abs-noise-j3-y: 0px;
+  --abs-noise-j4-x: 0px;
+  --abs-noise-j4-y: 0px;
+  --abs-noise-j5-x: 0px;
+  --abs-noise-j5-y: 0px;
+  --abs-noise-j6-x: 0px;
+  --abs-noise-j6-y: 0px;
+  --abs-noise-j7-x: 0px;
+  --abs-noise-j7-y: 0px;
+  --abs-noise-j8-x: 0px;
+  --abs-noise-j8-y: 0px;
+  --abs-noise-j9-x: 0px;
+  --abs-noise-j9-y: 0px;
+  --abs-noise-drift-x: 0px;
+  --abs-noise-drift-y: 0px;
   --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
 
   /* Interaction + Motion Tokens */
   --edge-label-inset-base: calc(var(--container-border) + var(--gap-sm));
   --edge-label-inset-adjust: 0px;
   --edge-label-inset: calc(var(--edge-label-inset-base) + var(--edge-label-inset-adjust));
-  --ease-organic: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Core easings (tokenized everywhere). */
+  --ease-organic: cubic-bezier(0.22, 1.28, 0.36, 1);
   --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-hesitant: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-gate: var(--ease-organic);
+  --ease-fade: var(--ease-settle);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --duration-resize: 600ms;
   --duration-settle: 400ms;
   --duration-quick: 200ms;
@@ -269,7 +338,7 @@
   --abs-scene-impact: 0;
   --abs-scene-impact-dur: 100ms;
   --abs-scene-impact-logo-scale: 1;
-  --abs-scene-impact-ease: cubic-bezier(0.78, 0.00, 0.22, 1.00);
+  --abs-scene-impact-ease: var(--ease-gate);
   --abs-scene-impact-mul: 0.005;
   --abs-scene-impact-logo-comp-mul: 1.0;
 
@@ -310,14 +379,14 @@
   --legend-circle-size: var(--gap-sm);
   --legend-font-size: 10px;
   --legend-font-weight: 600;
-  --legend-letter-spacing: 0.08em;
+  --legend-letter-spacing: var(--letter-spacing-loose);
   --legend-line-height: var(--line-height-loose);
   --legend-opacity: 0.9;
 
   --decorative-script-max-width: clamp(288px, 30vw, 403px);
   --decorative-script-font-size: var(--text-sm);
   --decorative-script-line-height: var(--line-height-base);
-  --decorative-script-letter-spacing: calc(0.01em * 1.02);
+  --decorative-script-letter-spacing: var(--letter-spacing-normal);
   --decorative-script-padding-left: var(--gap-md);
   --decorative-script-padding-vertical: var(--gap-sm);
 
@@ -325,14 +394,24 @@
   --footer-icon-size: var(--size-icon);
   --footer-links-padding: var(--tap-target);
   --footer-links-font-size: clamp(14px, 1.4vw, 18px);
-  --footer-links-letter-spacing: calc(0.02ch * 1.02);
+  --footer-links-letter-spacing: var(--letter-spacing-normal);
   --footer-link-dot-size: 4px;
   --footer-link-dot-offset: 8px;
+
+  /* Link Controls (Panel Tunable) */
+  --link-text-padding: var(--hit-area-lg);
+  --link-text-margin: calc(var(--link-text-padding) * -1);
+  --link-icon-padding: var(--gap-lg);
+  --link-icon-margin: calc(var(--link-icon-padding) * -1);
+  --link-color-influence: 1;
+  --link-impact-scale: 0.95;
+  --link-impact-blur: 10px;
+  --link-impact-duration: 0.15s;
 
   --caption-font-size: var(--text-lg);
   --caption-font-weight: 400;
   --caption-line-height: var(--line-height-tight);
-  --caption-letter-spacing: 0.01em;
+  --caption-letter-spacing: var(--letter-spacing-normal);
   --caption-offset: var(--gap-sm);
 
   --hit-area-sm: var(--gap-sm);
@@ -341,13 +420,32 @@
   --dot-indicator-size: var(--size-dot);
   --dot-indicator-offset: var(--gap-sm);
 
-  --icon-size-base: var(--size-icon);
-  --icon-size-lg: var(--size-icon-lg);
+  /* UI hit areas (links + icon links) */
+  --ui-hit-area-mul: 1;
+  --ui-icon-tighten-px: 4;
+  --ui-link-hit-pad: calc(var(--hit-area-lg) * var(--ui-hit-area-mul, 1));
+  --ui-icon-hit-pad: calc(var(--hit-area-md) * var(--ui-hit-area-mul, 1));
+
 
   --z-ui-base: 10;
   --z-ui-elevated: 20;
   --z-ui-top: 25;
   --z-panel: 9999;
+
+  /* Brand logo sizing (driven by the dev panel slider via `--top-logo-width-vw`). */
+  --top-logo-width-vw: 35;
+  --brand-logo-width-min: 300px;
+  --brand-logo-width-max: 600px;
+  --abs-brand-logo-width: clamp(
+    var(--brand-logo-width-min),
+    calc(var(--top-logo-width-vw, 35) * 1vw),
+    var(--brand-logo-width-max)
+  );
+  /* Index/portfolio logo SVG viewBox: 919×66. */
+  --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 66 / 919);
+
+  /* Index: primary (footer) links positioned under logo. */
+  --home-main-links-below-logo-px: 40;
 
   --brand-logo-user-scale: 1;
 
@@ -359,5 +457,17 @@
 :root.dark-mode {
   color-scheme: dark;
   --chrome-bg: var(--chrome-bg-dark);
-  --wall-color: var(--frame-color-dark);
+  --wall-color: var(--wall-color-dark);
+
+  /* Text — Dark mode overrides */
+  --text-color-dark: var(--abs-moonlight-text-primary);
+  --text-color-dark-muted: var(--abs-moonlight-text-muted);
+  --text-primary: var(--text-color-dark);
+  --text-muted: var(--text-color-dark-muted);
+  --text-soft: rgba(var(--abs-rgb-white), 0.9);
+  --text-strong: rgba(var(--abs-rgb-white), 1);
+  --text-action: var(--abs-neutral-350);
+  --text-input: var(--abs-neutral-350);
+  --text-quiet: rgba(var(--abs-rgb-white), 0.72);
+  --text-placeholder: rgba(var(--abs-rgb-white), 0.3);
 }

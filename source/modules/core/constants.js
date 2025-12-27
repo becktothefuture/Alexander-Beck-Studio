@@ -134,6 +134,15 @@ export const WALL_PRESETS = {
     wallWobbleSigma: 2.0,
     wallWobbleCornerClamp: 0.6
   },
+  pudding: {   // Thick, soft, overdamped blobs (cloth/pudding feel)
+    wallWobbleMaxDeform: 70,
+    wallWobbleStiffness: 520,
+    wallWobbleDamping: 78,
+    wallWobbleImpactThreshold: 60,
+    wallWobbleSettlingSpeed: 92,
+    wallWobbleSigma: 5.0,
+    wallWobbleCornerClamp: 0.25
+  },
   trampoline: { // Very bouncy, quick response
     wallWobbleMaxDeform: 55,
     wallWobbleStiffness: 2800,

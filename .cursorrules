@@ -28,6 +28,20 @@ schema: ".cursorrules.json"
 8. **Mobile support** - Test on device emulation, 60% ball scaling
 9. **Accessibility** - ARIA labels, keyboard nav, prefers-reduced-motion
 
+## Industrial Color System Psychology
+
+Industrial Teal is the anchor “vibe” for this project’s color language. Any new palettes/variants must preserve the same underlying psychology:
+
+- Sophisticated and technical (muted saturation, not bright)
+- Professional and trustworthy
+- Modern industrial aesthetic
+- Balanced between cool and natural
+- Corporate, chill, understated
+- Subtle anime-inspired clarity (clean silhouettes, luminous restraint)
+- Grounded in modern Bauhaus (functional, geometric, minimal)
+
+If additional palettes are introduced, they should feel like different “chapters” of the same industrial story (multifaceted, interesting, sometimes more saturated or more poppy), while still aligning to the core psychological profile above.
+
 ## CSS Sizing & Spacing Tokens (Project Rule)
 
 1. **No raw pixel literals in CSS rules**: prefer design tokens (e.g. `var(--gap-*)`, `var(--text-*)`, `var(--size-*)`) or viewport units (`vw/vh/vmin/vmax`, `clamp()`).
@@ -210,5 +224,55 @@ git pull origin main
 2. Use `grep` to find similar selectors
 3. Follow token system (no raw px)
 4. Test visual appearance matches intent
+
+## Config Panel Design System
+
+**Standard panel styling pattern for all configuration panels:**
+
+### Visual Structure
+1. **Orange Top Border** (4px): `border-top: 4px solid var(--panel-brand);` - Serves as visual anchor and drag handle
+2. **No Header**: Header is hidden (`display: none`) to save vertical space
+3. **Category Grouping**: Logical sections grouped with:
+   - **Category Labels**: Small uppercase labels (9px, letter-spacing 0.1em, muted color)
+   - **Separator Lines**: Light top border (1px solid var(--panel-border), opacity 0.6)
+   - **Padding**: `margin-top: var(--panel-pad-8)`, `padding-top: var(--panel-pad-6)` between groups
+4. **Compact Spacing**: 
+   - Section padding: `var(--panel-section-pad: 7px)`
+   - Section gap: `var(--panel-section-gap: 4px)`
+   - Control gap: `var(--panel-control-gap: 2px)`
+
+### Category Group Implementation
+- Define `SECTION_CATEGORIES` mapping section keys to category names
+- Use `.panel-category-group` wrapper div around related sections
+- Category label uses `.panel-category-label` class
+- First category has no top border/padding
+
+### Panel Dimensions
+- **Width**: `23rem (368px)` default
+- **Height**: `80vh` default
+- **Max-height**: Respects viewport minus safe area insets
+- **Min-width**: `280px`
+
+### Theme Toggle
+- Compact horizontal layout: `padding: 2px`, `gap: 2px`
+- Small buttons: `padding: 3px 6px`, `font-size: 10px`
+- Fits on single line: `white-space: nowrap`
+
+### CSS Classes Reference
+- `.panel-category-group` - Wrapper for grouped sections with separator
+- `.panel-category-label` - Uppercase category title (9px, muted)
+- `.panel-section-accordion` - Collapsible section container
+- `.panel-section-header` - Section header (hidden in this design)
+- `.panel-section-content` - Section content area
+- `.theme-segment-control` - Theme toggle container
+- `.theme-segment-btn` - Individual theme button
+
+### JavaScript Integration
+- Sections generated via `generateMasterSectionsHTML()` 
+- Category grouping handled in generation logic
+- Only restore saved panel size if significantly different (>5px) from CSS defaults
+- Dragging works from top 12px area (orange border zone)
+
+**When creating new config panels, follow this exact pattern for consistency.**
 
 See AI-AGENT-GUIDE.md and docs/ for complete rules.

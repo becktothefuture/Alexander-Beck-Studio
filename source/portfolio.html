@@ -1,8 +1,63 @@
 <!DOCTYPE html>
 <!-- Portfolio carousel page (shares chrome + gates with index) -->
-<html lang="en">
+<html lang="en" class="fonts-loading">
 <head>
   <style id="fade-blocking">#fade-content{opacity:0}</style>
+  <!-- CRITICAL: Dark mode detection BEFORE first paint to prevent white flash -->
+  <script>
+    (function() {
+      'use strict';
+      // Detect dark mode preference synchronously before any rendering
+      let shouldBeDark = false;
+      
+      // Get saved theme preference
+      let themePreference = 'auto';
+      try {
+        const saved = localStorage.getItem('theme-preference');
+        if (saved === 'auto' || saved === 'light' || saved === 'dark') {
+          themePreference = saved;
+        }
+      } catch (e) {}
+      
+      if (themePreference === 'dark') {
+        shouldBeDark = true;
+      } else if (themePreference === 'light') {
+        shouldBeDark = false;
+      } else {
+        // Auto mode: check system preference + night heuristic
+        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        // Night-time heuristic (privacy-first: local clock only)
+        // Default: 18:00 - 06:00 (can be overridden by config later)
+        const hour = new Date().getHours();
+        const isNightTime = hour >= 18 || hour < 6;
+        
+        // In auto mode, prefer dark if system prefers dark OR if it's night time
+        shouldBeDark = systemPrefersDark || isNightTime;
+      }
+      
+      // Apply dark mode IMMEDIATELY before first paint
+      if (shouldBeDark) {
+        document.documentElement.classList.add('dark-mode');
+        document.documentElement.style.colorScheme = 'dark';
+        // Set background color immediately to prevent white flash (use !important to override CSS)
+        document.documentElement.style.setProperty('background', '#0a0a0a', 'important');
+        document.documentElement.style.setProperty('background-color', '#0a0a0a', 'important');
+        // Apply to body as well (will be set properly when body exists)
+        if (document.body) {
+          document.body.classList.add('dark-mode');
+        } else {
+          // If body doesn't exist yet, set it when DOMContentLoaded fires
+          document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('dark-mode');
+          }, { once: true });
+        }
+        // Update theme-color meta tag for browser chrome
+        const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
+        if (metaDark) metaDark.content = '#0a0a0a';
+      }
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Portfolio - Alexander Beck</title>
@@ -42,7 +97,9 @@
   </div>
 
   <div class="wall-frame">
-    <div class="portfolio-noise portfolio-noise--back" aria-hidden="true"></div>
+    <div class="noise" aria-hidden="true"></div>
+    <div class="noise-2" aria-hidden="true"></div>
+    <div class="noise-3" aria-hidden="true"></div>
     <div class="portfolio-stage">
       <!-- Main Viewport -->
       <div class="portfolio-viewport" id="viewport">
@@ -59,22 +116,24 @@
         </div>
       </div>
     </div>
-    <div id="fade-content">
+      <div id="fade-content">
       <div id="app-frame" class="ui-layer-wrapper">
         <!-- Header (index-parity chrome) -->
         <header class="ui-top" data-portfolio-ui>
           <div class="ui-top-main">
             <div class="ui-top-left">
-              <div class="decorative-script">
-                <p id="portfolio-blurb">Selected collaborations across finance, luxury, digital identity, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently building my own app; check the final project in the slider.</p>
-              </div>
+              <a href="index.html" class="gate-back" aria-label="Back to home">
+                <i class="ti ti-arrow-left" aria-hidden="true"></i>
+              </a>
+              <blockquote class="decorative-script">
+                <p id="portfolio-blurb">Selected collaborations across finance, luxury, digital identity, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently building my own app; check the final project in the slider. <a id="contact-email-inline" href="#">Let's chat.</a></p>
+              </blockquote>
             </div>
             <div class="ui-top-right">
               <div class="portfolio-header__actions" aria-label="Portfolio header actions">
-                <a id="contact-email" class="portfolio-cv-link" href="#" aria-label="Contact">Contact</a>
                 <a id="portfolio-cv-trigger" class="portfolio-cv-link" href="#" aria-label="Bio/CV">Bio/CV</a>
-                <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>
               </div>
+              <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>
             </div>
           </div>
           <div id="top-elements-soundRow" class="ui-top-soundRow"></div>

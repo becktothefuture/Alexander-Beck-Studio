@@ -39,6 +39,24 @@ const DEFAULT_MOUSE_TILT_CONFIG = {
   invertY: false,
 };
 
+const DEFAULT_CYLINDER_CONFIG = {
+  enabled: true,
+  ringCount: 12,
+  dotsPerRing: 24,
+  depthRange: 1000,
+  radiusMin: 100,
+  radiusMax: 500,
+  radiusStep: 80,
+  radiusRings: 5,
+  verticalSpacing: 60,
+  randomness: 0.2,
+  dotSize: 3,
+  opacityMin: 0.15,
+  opacityMax: 0.9,
+  rotationSync: 1.0,
+  gridPattern: 'even',
+};
+
 const WALL_CSS_VARS = new Set([
   '--bg-light',
   '--bg-dark',
@@ -62,6 +80,15 @@ const WALL_CSS_VARS = new Set([
   '--bg-color',
 ]);
 
+// Vars that are now token-controlled and should not be user-configurable.
+// (We ignore them even if they exist in older saved configs.)
+const LOCKED_CSS_VARS = new Set([
+  '--text-client-size',
+  '--text-title-size',
+  '--text-tags-size',
+  '--close-button-font-size',
+]);
+
 export function normalizePortfolioRuntime(runtime = {}) {
   const wheel = (runtime && runtime.wheel && typeof runtime.wheel === 'object')
     ? runtime.wheel
@@ -71,6 +98,9 @@ export function normalizePortfolioRuntime(runtime = {}) {
     : {};
   const mouseTilt = (runtime && runtime.mouseTilt && typeof runtime.mouseTilt === 'object')
     ? runtime.mouseTilt
+    : {};
+  const cylinder = (runtime && runtime.cylinder && typeof runtime.cylinder === 'object')
+    ? runtime.cylinder
     : {};
 
   const toNumber = (value, fallback) => {
@@ -121,6 +151,23 @@ export function normalizePortfolioRuntime(runtime = {}) {
       ease: toNumber(mouseTilt.ease, DEFAULT_MOUSE_TILT_CONFIG.ease),
       invertX: toBoolean(mouseTilt.invertX, DEFAULT_MOUSE_TILT_CONFIG.invertX),
       invertY: toBoolean(mouseTilt.invertY, DEFAULT_MOUSE_TILT_CONFIG.invertY),
+    },
+    cylinder: {
+      enabled: toBoolean(cylinder.enabled, DEFAULT_CYLINDER_CONFIG.enabled),
+      ringCount: toNumber(cylinder.ringCount, DEFAULT_CYLINDER_CONFIG.ringCount),
+      dotsPerRing: toNumber(cylinder.dotsPerRing, DEFAULT_CYLINDER_CONFIG.dotsPerRing),
+      depthRange: toNumber(cylinder.depthRange, DEFAULT_CYLINDER_CONFIG.depthRange),
+      radiusMin: toNumber(cylinder.radiusMin, DEFAULT_CYLINDER_CONFIG.radiusMin),
+      radiusMax: toNumber(cylinder.radiusMax, DEFAULT_CYLINDER_CONFIG.radiusMax),
+      radiusStep: toNumber(cylinder.radiusStep, DEFAULT_CYLINDER_CONFIG.radiusStep),
+      radiusRings: toNumber(cylinder.radiusRings, DEFAULT_CYLINDER_CONFIG.radiusRings),
+      verticalSpacing: toNumber(cylinder.verticalSpacing, DEFAULT_CYLINDER_CONFIG.verticalSpacing),
+      randomness: toNumber(cylinder.randomness, DEFAULT_CYLINDER_CONFIG.randomness),
+      dotSize: toNumber(cylinder.dotSize, DEFAULT_CYLINDER_CONFIG.dotSize),
+      opacityMin: toNumber(cylinder.opacityMin, DEFAULT_CYLINDER_CONFIG.opacityMin),
+      opacityMax: toNumber(cylinder.opacityMax, DEFAULT_CYLINDER_CONFIG.opacityMax),
+      rotationSync: toNumber(cylinder.rotationSync, DEFAULT_CYLINDER_CONFIG.rotationSync),
+      gridPattern: String(cylinder.gridPattern || DEFAULT_CYLINDER_CONFIG.gridPattern),
     },
   };
 }
@@ -174,7 +221,7 @@ export function applyPortfolioConfig(config) {
 
   // Only apply carousel-specific vars; wall tuning stays on the index config.
   for (const [key, value] of Object.entries(cssVars)) {
-    if (!key || WALL_CSS_VARS.has(key)) continue;
+    if (!key || WALL_CSS_VARS.has(key) || LOCKED_CSS_VARS.has(key)) continue;
     if (value === undefined || value === null || value === '') continue;
     root.style.setProperty(key, String(value));
   }

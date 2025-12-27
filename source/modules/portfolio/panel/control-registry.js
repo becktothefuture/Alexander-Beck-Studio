@@ -3,42 +3,47 @@
 
 const CONTROL_SECTIONS = {
   layout: {
-    title: 'Layout',
+    title: 'Stage',
     icon: '📐',
     defaultOpen: true,
     controls: [
-      { id: 'topLogoWidthVw', label: 'Top Logo Size', type: 'range', min: 4, max: 30, step: 0.25, unit: 'vw', default: 12,
+      { id: 'topLogoWidthVw', label: 'Top Logo Size', type: 'range', min: 15, max: 45, step: 0.25, unit: 'vw', default: 35,
         onChange: (_config, val) => {
           document.documentElement.style.setProperty('--top-logo-width-vw', String(val));
         }
       },
+      { id: 'portfolioLogoBlur', label: 'Logo Blur', cssVar: '--portfolio-logo-blur', type: 'range', min: 0, max: 30, step: 0.5, unit: 'px', default: 0,
+        hint: 'Blur amount for the background logo (0 = sharp)'
+      },
+      { id: 'contentOffset', label: 'Content Offset', cssVar: '--content-offset', type: 'range', min: 0, max: 50, step: 0.1, unit: 'vh', default: 23.5 },
+      { id: 'metaPadding', label: 'Meta Padding', cssVar: '--meta-padding', type: 'range', min: 0, max: 10, step: 0.1, unit: 'vmin', default: 0 },
       // Use dvh to match the shipped config + avoid silently converting 100dvh -> 100vh in snapshots.
       { id: 'sliderMaxHeight', label: 'Max Height', cssVar: '--slider-max-height', type: 'range', min: 40, max: 100, step: 1, unit: 'dvh', default: 100, refresh: true },
-      { id: 'wheelRadiusX', label: 'Wheel Radius X', cssVar: '--wheel-radius-x', type: 'range', min: 10, max: 100, step: 1, unit: 'vw', default: 36, refresh: true },
-      { id: 'wheelRadiusY', label: 'Wheel Radius Y', cssVar: '--wheel-radius-y', type: 'range', min: 2, max: 60, step: 1, unit: 'vh', default: 14, refresh: true },
-      { id: 'wheelSpacingRatio', label: 'Wheel Spacing (Ratio)', cssVar: '--wheel-spacing-ratio', type: 'range', min: 0, max: 1, step: 0.01, unit: '', default: 0.22, refresh: true },
-      { id: 'wheelCenterX', label: 'Center X', cssVar: '--wheel-center-x', type: 'range', min: -50, max: 50, step: 0.5, unit: 'vw', default: 0, refresh: true },
-      { id: 'wheelCenterY', label: 'Center Y', cssVar: '--wheel-center-y', type: 'range', min: -50, max: 50, step: 0.5, unit: 'vh', default: -6, refresh: true },
-      { id: 'wheelTilt', label: 'Wheel Tilt', cssVar: '--wheel-tilt', type: 'range', min: 0, max: 180, step: 1, unit: 'deg', default: 60, refresh: true },
-      { id: 'wheelDepth', label: 'Wheel Depth', cssVar: '--wheel-depth', type: 'range', min: 0.1, max: 3, step: 0.05, unit: '', default: 1, refresh: true },
+      { id: 'wheelRadiusX', label: 'Carousel Radius X', cssVar: '--wheel-radius-x', type: 'range', min: 10, max: 100, step: 1, unit: 'vw', default: 36, refresh: true },
+      { id: 'wheelRadiusY', label: 'Carousel Radius Y', cssVar: '--wheel-radius-y', type: 'range', min: 2, max: 60, step: 1, unit: 'vh', default: 14, refresh: true },
+      { id: 'wheelSpacingRatio', label: 'Card Spacing (Ratio)', cssVar: '--wheel-spacing-ratio', type: 'range', min: 0, max: 1, step: 0.01, unit: '', default: 0.22, refresh: true },
+      { id: 'wheelCenterX', label: 'Carousel Offset X', cssVar: '--wheel-center-x', type: 'range', min: -50, max: 50, step: 0.5, unit: 'vw', default: 0, refresh: true },
+      { id: 'wheelCenterY', label: 'Carousel Offset Y', cssVar: '--wheel-center-y', type: 'range', min: -50, max: 50, step: 0.5, unit: 'vh', default: -6, refresh: true },
+      { id: 'wheelTilt', label: 'Tilt', cssVar: '--wheel-tilt', type: 'range', min: 0, max: 180, step: 1, unit: 'deg', default: 60, refresh: true },
+      { id: 'wheelDepth', label: 'Depth', cssVar: '--wheel-depth', type: 'range', min: 0.1, max: 3, step: 0.05, unit: '', default: 1, refresh: true },
     ],
   },
   card: {
-    title: 'Card',
+    title: 'Cards',
     icon: '🗂️',
     defaultOpen: false,
     controls: [
       { id: 'cardAspectW', label: 'Aspect W', cssVar: '--card-aspect-w', type: 'range', min: 1, max: 30, step: 1, unit: '', default: 5, refresh: true },
       { id: 'cardAspectH', label: 'Aspect H', cssVar: '--card-aspect-h', type: 'range', min: 1, max: 30, step: 1, unit: '', default: 4, refresh: true },
       { id: 'cardHeightMin', label: 'Height Min', cssVar: '--card-height-min', type: 'range', min: 10, max: 90, step: 1, unit: 'vh', default: 30, refresh: true },
-      { id: 'cardHeightIdeal', label: 'Height Ideal', cssVar: '--card-height-ideal', type: 'range', min: 15, max: 95, step: 1, unit: 'vh', default: 44, refresh: true },
-      { id: 'cardHeightMax', label: 'Height Max', cssVar: '--card-height-max', type: 'range', min: 20, max: 100, step: 1, unit: 'vh', default: 60, refresh: true },
-      { id: 'cornerRadius', label: 'Corner Radius', cssVar: '--corner-radius', type: 'range', min: 0, max: 8, step: 0.1, unit: 'vmin', default: 3 },
+      { id: 'cardHeightIdeal', label: 'Height Ideal', cssVar: '--card-height-ideal', type: 'range', min: 15, max: 95, step: 1, unit: 'vh', default: 45, refresh: true },
+      { id: 'cardHeightMax', label: 'Height Max', cssVar: '--card-height-max', type: 'range', min: 20, max: 100, step: 1, unit: 'vh', default: 55, refresh: true },
+      { id: 'cornerRadius', label: 'Corner Radius', cssVar: '--corner-radius', type: 'range', min: 0, max: 8, step: 0.1, unit: 'vmin', default: 1.9 },
       { id: 'borderWidth', label: 'Border Width', cssVar: '--border-width', type: 'range', min: 0, max: 2, step: 0.1, unit: 'vmin', default: 0.6 },
     ],
   },
   appearance: {
-    title: 'Appearance',
+    title: 'Depth & Atmosphere',
     icon: '🎨',
     defaultOpen: false,
     controls: [
@@ -57,6 +62,26 @@ const CONTROL_SECTIONS = {
       { id: 'accentColor', label: 'Accent Color', cssVar: '--accent-color', type: 'color', default: '#000000' },
     ],
   },
+  cylinder: {
+    title: 'Cylinder Background',
+    icon: '🌀',
+    defaultOpen: false,
+    controls: [
+      { id: 'cylinderEnabled', label: 'Enabled', configKey: 'runtime.cylinder.enabled', type: 'checkbox', default: true },
+      { id: 'cylinderRingCount', label: 'Depth Layers', configKey: 'runtime.cylinder.ringCount', type: 'range', min: 4, max: 30, step: 1, default: 12, hint: 'Number of depth layers along Z-axis' },
+      { id: 'cylinderDotsPerRing', label: 'Dots Per Ring', configKey: 'runtime.cylinder.dotsPerRing', type: 'range', min: 8, max: 60, step: 2, default: 24, hint: 'Dots around circumference of each ring' },
+      { id: 'cylinderRadiusRings', label: 'Radial Rings', configKey: 'runtime.cylinder.radiusRings', type: 'range', min: 2, max: 12, step: 1, default: 5, hint: 'Number of concentric rings extending outward' },
+      { id: 'cylinderRadiusMin', label: 'Radius Start', configKey: 'runtime.cylinder.radiusMin', type: 'range', min: 50, max: 400, step: 10, unit: 'px', default: 100, hint: 'Inner radius (closest to center)' },
+      { id: 'cylinderRadiusStep', label: 'Radius Spacing', configKey: 'runtime.cylinder.radiusStep', type: 'range', min: 20, max: 200, step: 10, unit: 'px', default: 80, hint: 'Spacing between concentric rings' },
+      { id: 'cylinderVerticalSpacing', label: 'Vertical Spacing', configKey: 'runtime.cylinder.verticalSpacing', type: 'range', min: 20, max: 150, step: 5, unit: 'px', default: 60, hint: 'Vertical spacing between rings' },
+      { id: 'cylinderDepthRange', label: 'Depth Range', configKey: 'runtime.cylinder.depthRange', type: 'range', min: 300, max: 2500, step: 50, default: 1000, hint: 'How far back the grid extends' },
+      { id: 'cylinderRandomness', label: 'Grid Randomness', configKey: 'runtime.cylinder.randomness', type: 'range', min: 0, max: 1, step: 0.05, default: 0.2, hint: 'Jitter amount (0 = perfect grid, 1 = chaotic)' },
+      { id: 'cylinderDotSize', label: 'Dot Size', configKey: 'runtime.cylinder.dotSize', type: 'range', min: 1, max: 10, step: 0.5, unit: 'px', default: 3 },
+      { id: 'cylinderOpacityMin', label: 'Opacity Far', configKey: 'runtime.cylinder.opacityMin', type: 'range', min: 0, max: 1, step: 0.05, default: 0.15 },
+      { id: 'cylinderOpacityMax', label: 'Opacity Near', configKey: 'runtime.cylinder.opacityMax', type: 'range', min: 0, max: 1, step: 0.05, default: 0.9 },
+      { id: 'cylinderRotationSync', label: 'Rotation Sync', configKey: 'runtime.cylinder.rotationSync', type: 'range', min: 0, max: 2, step: 0.1, default: 1, hint: 'How much cylinder rotates with carousel (1.0 = perfect sync)' },
+    ],
+  },
   wheelMotion: {
     title: 'Wheel Motion',
     icon: '🌀',
@@ -70,7 +95,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   physics: {
-    title: 'Physics',
+    title: 'Dynamics',
     icon: '🧲',
     defaultOpen: false,
     controls: [
@@ -79,19 +104,8 @@ const CONTROL_SECTIONS = {
       { id: 'wheelBounceImpulse', label: 'Bounce Impulse', cssVar: '--wheel-bounce-impulse', type: 'range', min: 0, max: 20, step: 0.2, unit: 'vmin', default: 2.6, refresh: true },
     ],
   },
-  typography: {
-    title: 'Typography',
-    icon: '✍️',
-    defaultOpen: false,
-    controls: [
-      { id: 'textClientSize', label: 'Client Size', cssVar: '--text-client-size', type: 'range', min: 0.1, max: 10, step: 0.1, unit: 'vw', default: 1.1 },
-      { id: 'textTitleSize', label: 'Title Size', cssVar: '--text-title-size', type: 'range', min: 0.5, max: 15, step: 0.1, unit: 'vw', default: 2.5 },
-      { id: 'textTagsSize', label: 'Summary Size', cssVar: '--text-tags-size', type: 'range', min: 0.1, max: 8, step: 0.1, unit: 'vw', default: 0.9 },
-      { id: 'contentOffset', label: 'Content Offset', cssVar: '--content-offset', type: 'range', min: 0, max: 50, step: 0.2, unit: 'vh', default: 12 },
-    ],
-  },
   detail: {
-    title: 'Detail',
+    title: 'Detail Layout',
     icon: '🔎',
     defaultOpen: false,
     controls: [
@@ -102,7 +116,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   closeButton: {
-    title: 'Close Button',
+    title: 'Detail Close',
     icon: '✕',
     defaultOpen: false,
     controls: [
@@ -110,12 +124,11 @@ const CONTROL_SECTIONS = {
       { id: 'closeButtonLeft', label: 'Left Position', cssVar: '--close-button-left', type: 'range', min: 0, max: 200, step: 1, unit: 'px', default: 0 },
       { id: 'closeButtonWidth', label: 'Width', cssVar: '--close-button-width', type: 'range', min: 50, max: 100, step: 1, unit: '%', default: 100 },
       { id: 'closeButtonHeight', label: 'Height', cssVar: '--close-button-height', type: 'range', min: 30, max: 120, step: 2, unit: 'px', default: 60 },
-      { id: 'closeButtonFontSize', label: 'Font Size', cssVar: '--close-button-font-size', type: 'range', min: 8, max: 24, step: 0.5, unit: 'px', default: 14 },
       { id: 'closeButtonIconSize', label: 'Icon Size', cssVar: '--close-button-icon-size', type: 'range', min: 8, max: 32, step: 0.5, unit: 'px', default: 15 },
     ],
   },
   transition: {
-    title: 'Transition',
+    title: 'Motion',
     icon: '✨',
     defaultOpen: false,
     controls: [
@@ -125,12 +138,12 @@ const CONTROL_SECTIONS = {
         cssVar: '--detail-transition-ease',
         type: 'select',
         options: [
-          { label: 'Balanced', value: 'cubic-bezier(0.25, 0.1, 0.25, 1)' },
-          { label: 'Soft', value: 'cubic-bezier(0.16, 1, 0.3, 1)' },
-          { label: 'Snappy', value: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+          { label: 'Rubber', value: 'var(--ease-gate)' },
+          { label: 'Soft', value: 'var(--ease-settle)' },
+          { label: 'Snappy', value: 'var(--ease-hesitant)' },
           { label: 'Linear', value: 'linear' },
         ],
-        default: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+        default: 'var(--ease-gate)',
       },
       { id: 'detailDuration', label: 'Detail Duration', cssVar: '--detail-transition-ms', type: 'range', min: 0, max: 5000, step: 20, unit: 'ms', default: 700 },
       { id: 'detailBlur', label: 'Image Blur', cssVar: '--detail-transition-blur', type: 'range', min: 0, max: 100, step: 1, unit: 'px', default: 8 },
@@ -149,19 +162,19 @@ const CONTROL_SECTIONS = {
         cssVar: '--detail-content-pop-ease',
         type: 'select',
         options: [
-          { label: 'Bouncy', value: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
-          { label: 'Soft', value: 'cubic-bezier(0.16, 1, 0.3, 1)' },
-          { label: 'Snappy', value: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+          { label: 'Bouncy', value: 'var(--ease-bounce)' },
+          { label: 'Soft', value: 'var(--ease-settle)' },
+          { label: 'Snappy', value: 'var(--ease-organic)' },
           { label: 'Linear', value: 'linear' },
         ],
-        default: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        default: 'var(--ease-bounce)',
       },
       { id: 'slideSpeed', label: 'Slide Speed', cssVar: '--transition-speed', type: 'range', min: 0, max: 5000, step: 50, unit: 'ms', default: 600 },
       { id: 'perspective', label: 'Perspective', cssVar: '--perspective', type: 'range', min: 0, max: 5000, step: 50, unit: 'px', default: 1000 },
     ],
   },
   navigation: {
-    title: 'Navigation',
+    title: 'Scroll',
     icon: '🧭',
     defaultOpen: false,
     controls: [
@@ -172,7 +185,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   mouseTilt: {
-    title: 'Mouse Tilt',
+    title: 'Tilt',
     icon: '🖱️',
     defaultOpen: false,
     controls: [
@@ -469,19 +482,26 @@ export function generatePanelHTML(config) {
     ? getComputedStyle(document.documentElement)
     : null;
 
-  let html = '';
-  for (const section of Object.values(CONTROL_SECTIONS)) {
-    html += generateSectionHTML(section, config, computedRoot);
-  }
-
-  html += `
+  const sectionsHtml = generatePanelSectionsHTML(config, computedRoot);
+  return `
+    ${sectionsHtml}
     <div class="panel-section panel-section--action">
-      <button id="saveConfigBtn" class="primary">💾 Save Config</button>
+      <button id="savePortfolioConfigBtn" class="primary">💾 Save Portfolio Config</button>
     </div>
     <div class="panel-footer">
       <kbd>/</kbd> panel
     </div>`;
+}
 
+export function generatePanelSectionsHTML(config, computedRoot = null) {
+  const rootStyle = computedRoot || ((typeof window !== 'undefined' && document?.documentElement)
+    ? getComputedStyle(document.documentElement)
+    : null);
+
+  let html = '';
+  for (const section of Object.values(CONTROL_SECTIONS)) {
+    html += generateSectionHTML(section, config, rootStyle);
+  }
   return html;
 }
 

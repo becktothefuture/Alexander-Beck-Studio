@@ -3,7 +3,7 @@
 import { buildConfigSnapshot } from './control-registry.js';
 
 export function setupBuildControls(config) {
-  const btn = document.getElementById('saveConfigBtn');
+  const btn = document.getElementById('savePortfolioConfigBtn');
   if (!btn) return;
 
   btn.addEventListener('click', () => {

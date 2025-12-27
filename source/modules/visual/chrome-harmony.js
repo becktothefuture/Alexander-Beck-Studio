@@ -4,19 +4,17 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-
-function readCssVar(name, fallback) {
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return v || fallback;
-}
+import { readTokenVar } from '../utils/tokens.js';
 
 let _siteFrameLight = null;
 let _siteFrameDark = null;
 
 function captureSiteFrameColorsIfNeeded() {
   if (_siteFrameLight && _siteFrameDark) return;
-  _siteFrameLight = readCssVar('--frame-color-light', '#0a0a0a');
-  _siteFrameDark = readCssVar('--frame-color-dark', '#0a0a0a');
+  // Try to get from globals first (they have the config values), fallback to CSS tokens
+  const g = getGlobals();
+  _siteFrameLight = g?.frameColorLight || g?.frameColor || readTokenVar('--frame-color-light', '#0a0a0a');
+  _siteFrameDark = g?.frameColorDark || g?.frameColor || readTokenVar('--frame-color-dark', '#0a0a0a');
 }
 
 function detectBrowserFamily() {
@@ -53,31 +51,37 @@ function detectThemeColorLikelyApplied() {
 
 function applyWallColor(hex) {
   const root = document.documentElement;
-  // Keep the system unified: wall + frame should agree when we are adapting.
-  root.style.setProperty('--wall-color', hex);
+  // Set frameColor (master) - wall colors automatically point to this via CSS tokens
   root.style.setProperty('--frame-color-light', hex);
   root.style.setProperty('--frame-color-dark', hex);
+  // Wall colors are automatically updated via CSS: --wall-color-light: var(--frame-color-light)
 }
 
 function restoreSiteWallColor(isDark) {
   // If we've previously adapted the wall/frame, restore to the captured site values.
+  // Set frameColor (master) - wall colors automatically point to this via CSS tokens
   if (_siteFrameLight && _siteFrameDark) {
     const root = document.documentElement;
     root.style.setProperty('--frame-color-light', _siteFrameLight);
     root.style.setProperty('--frame-color-dark', _siteFrameDark);
-    root.style.setProperty('--wall-color', isDark ? _siteFrameDark : _siteFrameLight);
+    // Wall colors are automatically updated via CSS: --wall-color-light: var(--frame-color-light)
     return;
   }
-  // Otherwise, treat the current frame colors as the site baseline.
-  const site = readCssVar(isDark ? '--frame-color-dark' : '--frame-color-light', '#0a0a0a');
-  applyWallColor(site);
+  // Otherwise, try to get values from globals first (they have the config values)
+  const g = getGlobals();
+  const root = document.documentElement;
+  const light = g?.frameColorLight || g?.frameColor || readTokenVar('--frame-color-light', '#0a0a0a');
+  const dark = g?.frameColorDark || g?.frameColor || readTokenVar('--frame-color-dark', '#0a0a0a');
+  root.style.setProperty('--frame-color-light', light);
+  root.style.setProperty('--frame-color-dark', dark);
+  // Wall colors are automatically updated via CSS: --wall-color-light: var(--frame-color-light)
 }
 
 function applyBrowserWallColor(isDark, family) {
   captureSiteFrameColorsIfNeeded();
   // Default uses a Chrome-like Material palette; can be extended per family later.
   // CSS vars allow art-direction without touching JS.
-  const fallback = readCssVar(isDark ? '--wall-color-browser-dark' : '--wall-color-browser-light', isDark ? '#202124' : '#f1f3f4');
+  const fallback = readTokenVar(isDark ? '--wall-color-browser-dark' : '--wall-color-browser-light', isDark ? '#202124' : '#f1f3f4');
   applyWallColor(fallback);
 }
 
@@ -119,5 +123,4 @@ export function applyChromeHarmony(isDark) {
   restoreSiteWallColor(isDark);
   return { mode, family, themeColorLikelyApplied };
 }
-
 

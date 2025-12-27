@@ -5,33 +5,232 @@
 
 import { getGlobals } from '../core/state.js';
 
-export const COLOR_TEMPLATES = {
-  industrialTeal: { 
+function clamp01(t) {
+  const n = Number(t);
+  if (!Number.isFinite(n)) return 0;
+  return n < 0 ? 0 : n > 1 ? 1 : n;
+}
+
+function hexToRgb255(hex) {
+  const h = String(hex || '').trim();
+  if (!h) return null;
+  const s = h[0] === '#' ? h.slice(1) : h;
+  if (!(s.length === 3 || s.length === 6)) return null;
+  const full = s.length === 3
+    ? (s[0] + s[0] + s[1] + s[1] + s[2] + s[2])
+    : s;
+  const n = parseInt(full, 16);
+  if (!Number.isFinite(n)) return null;
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function rgb255ToHex({ r, g, b }) {
+  const rr = (r | 0) & 255;
+  const gg = (g | 0) & 255;
+  const bb = (b | 0) & 255;
+  const n = (rr << 16) | (gg << 8) | bb;
+  return `#${n.toString(16).padStart(6, '0')}`;
+}
+
+function lerp255(a, b, t) {
+  return Math.round(a + (b - a) * t);
+}
+
+function mixHex(a, b, t) {
+  const tt = clamp01(t);
+  const ra = hexToRgb255(a);
+  const rb = hexToRgb255(b);
+  if (!ra && !rb) return '#ffffff';
+  if (!ra) return String(b);
+  if (!rb) return String(a);
+  const r = lerp255(ra.r, rb.r, tt);
+  const g = lerp255(ra.g, rb.g, tt);
+  const bb = lerp255(ra.b, rb.b, tt);
+  return rgb255ToHex({ r, g, b: bb });
+}
+
+function clamp255(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return 0;
+  return x < 0 ? 0 : x > 255 ? 255 : x;
+}
+
+/**
+ * Push a color away from an anchor by a factor (>= 1).
+ * Example: factor=1.25 makes the color 25% more "radical" vs the anchor.
+ * This is used only at palette-build time (not in hot paths).
+ */
+function pushAwayHex(anchorHex, colorHex, factor = 1) {
+  const f = Math.max(1, Number(factor) || 1);
+  const a = hexToRgb255(anchorHex);
+  const c = hexToRgb255(colorHex);
+  if (!a && !c) return '#ffffff';
+  if (!a) return String(colorHex);
+  if (!c) return String(colorHex);
+  const r = clamp255(a.r + (c.r - a.r) * f);
+  const g = clamp255(a.g + (c.g - a.g) * f);
+  const b = clamp255(a.b + (c.b - a.b) * f);
+  return rgb255ToHex({ r, g, b });
+}
+
+function blendPalette(base, variant, variantWeight = 0.5) {
+  const t = clamp01(variantWeight);
+  const out = new Array(8);
+  for (let i = 0; i < 8; i++) {
+    out[i] = mixHex(base?.[i], variant?.[i], t);
+  }
+  return out;
+}
+
+function radicalizeVariant(tealBase, variant, factor = 1.25) {
+  const out = new Array(8);
+  for (let i = 0; i < 8; i++) out[i] = variant?.[i];
+  // Only push the "character" slots: primary + accents.
+  // Keep neutrals/white/black stable so overall contrast stays familiar.
+  const idx = [3, 5, 6, 7];
+  for (let k = 0; k < idx.length; k++) {
+    const i = idx[k];
+    out[i] = pushAwayHex(tealBase?.[i], variant?.[i], factor);
+  }
+  return out;
+}
+
+const BASE_PALETTES = {
+  industrialTeal: {
     label: 'Industrial Teal',
-    light: ['#b7bcb7', '#d0d0d0', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
-    dark: ['#6b726b', '#3d453d', '#8a928a', '#00e6c3', '#d5d5d5', '#ff6b47', '#5b9aff', '#ffb84d']
+    light: ['#9cb0a9', '#b1c1bf', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
+    dark: ['#5b8378', '#345d51', '#8a928a', '#00e6c3', '#d5d5d5', '#ff6b47', '#5b9aff', '#ffb84d']
   },
-  sunsetCoral: { 
-    label: 'Sunset Coral', 
-    light: ['#bdbbb8', '#e8e6e3', '#ffffff', '#ff3b3b', '#000000', '#00f5d4', '#1e40af', '#fb923c'],
-    dark: ['#716f6b', '#3f3d3a', '#8e8c88', '#ff6b6b', '#d8d8d8', '#00ffe7', '#6ba3ff', '#ffb570']
+  industrialRust: {
+    label: 'Industrial Rust',
+    light: ['#b0a49b', '#c6bbb4', '#ffffff', '#8B4513', '#000000', '#00695c', '#FF8C42', '#D4A574'],
+    dark: ['#81695f', '#5a4238', '#8a8886', '#FF6B35', '#d5d5d5', '#00e6c3', '#FFA366', '#E8C4A0']
   },
-  violetPunch: { 
-    label: 'Violet Punch', 
-    light: ['#b8b7c2', '#e6e5ed', '#ffffff', '#9333ea', '#000000', '#dc2626', '#0ea5e9', '#facc15'],
-    dark: ['#6d6c7a', '#3a3845', '#8b8a98', '#c266ff', '#dad6e8', '#ff5c5c', '#42d4ff', '#fff066']
+  industrialSlate: {
+    label: 'Industrial Slate',
+    light: ['#a5a8ae', '#bcbec0', '#ffffff', '#4A5568', '#000000', '#00A8CC', '#718096', '#2D3748'],
+    dark: ['#6d7880', '#46525a', '#86888b', '#90CDF4', '#d5d5d5', '#00D4FF', '#A0AEC0', '#4A5568']
   },
-  citrusBlast: { 
-    label: 'Citrus Blast', 
-    light: ['#bfbdb5', '#eae8df', '#ffffff', '#ea580c', '#000000', '#e11d48', '#2563eb', '#059669'],
-    dark: ['#74726a', '#403e38', '#918f87', '#ff8c4d', '#dbd9d1', '#ff5c7a', '#6ba3ff', '#00d699']
+  industrialAmber: {
+    label: 'Industrial Amber',
+    light: ['#bcab96', '#d1c3b2', '#ffffff', '#D97706', '#000000', '#00695c', '#F59E0B', '#FCD34D'],
+    dark: ['#80755a', '#594e33', '#8a8883', '#FBBF24', '#d5d5d5', '#00e6c3', '#FCD34D', '#FDE68A']
   },
-  cobaltSpark: { 
-    label: 'Cobalt Spark', 
-    light: ['#b5b8be', '#e3e6eb', '#ffffff', '#1d4ed8', '#000000', '#ea580c', '#db2777', '#d97706'],
-    dark: ['#696d75', '#3a3e45', '#878b93', '#6b9dff', '#d6dae2', '#ff8c5c', '#ff66b3', '#ffc266']
+  industrialViolet: {
+    label: 'Industrial Violet',
+    light: ['#aba4bb', '#c0bbcd', '#ffffff', '#6B46C1', '#000000', '#00A8CC', '#9333EA', '#A78BFA'],
+    dark: ['#776d85', '#50465d', '#8a888f', '#C084FC', '#d5d5d5', '#00D4FF', '#A78BFA', '#C4B5FD']
+  },
+  industrialForest: {
+    label: 'Industrial Forest',
+    light: ['#9daba0', '#b4c0b8', '#ffffff', '#166534', '#000000', '#00695c', '#22C55E', '#4ADE80'],
+    dark: ['#627a68', '#3c5441', '#868883', '#4ADE80', '#d5d5d5', '#00e6c3', '#86EFAC', '#BBF7D0']
+  },
+  industrialSteel: {
+    label: 'Industrial Steel',
+    light: ['#a4a8ad', '#bbbdc0', '#ffffff', '#475569', '#000000', '#0EA5E9', '#64748B', '#334155'],
+    dark: ['#6d7177', '#474b51', '#86888b', '#94A3B8', '#d5d5d5', '#38BDF8', '#94A3B8', '#CBD5E1']
   }
 };
+
+const TEAL_ANCHOR_WEIGHT_VARIANT = 0.6; // variant may differ, but must retain >=60% Industrial Teal spirit
+const TEAL_BASE = BASE_PALETTES.industrialTeal;
+const RADICAL_FACTOR = 1.2; // 20% more character to maintain color variety while staying teal-anchored
+
+export const COLOR_TEMPLATES = {
+  industrialTeal: TEAL_BASE,
+  industrialRust: {
+    label: BASE_PALETTES.industrialRust.label,
+    light: blendPalette(
+      TEAL_BASE.light,
+      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialRust.light, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    ),
+    dark: blendPalette(
+      TEAL_BASE.dark,
+      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialRust.dark, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    )
+  },
+  industrialSlate: {
+    label: BASE_PALETTES.industrialSlate.label,
+    light: blendPalette(
+      TEAL_BASE.light,
+      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialSlate.light, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    ),
+    dark: blendPalette(
+      TEAL_BASE.dark,
+      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialSlate.dark, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    )
+  },
+  industrialAmber: {
+    label: BASE_PALETTES.industrialAmber.label,
+    light: blendPalette(
+      TEAL_BASE.light,
+      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialAmber.light, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    ),
+    dark: blendPalette(
+      TEAL_BASE.dark,
+      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialAmber.dark, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    )
+  },
+  industrialViolet: {
+    label: BASE_PALETTES.industrialViolet.label,
+    light: blendPalette(
+      TEAL_BASE.light,
+      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialViolet.light, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    ),
+    dark: blendPalette(
+      TEAL_BASE.dark,
+      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialViolet.dark, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    )
+  },
+  industrialForest: {
+    label: BASE_PALETTES.industrialForest.label,
+    light: blendPalette(
+      TEAL_BASE.light,
+      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialForest.light, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    ),
+    dark: blendPalette(
+      TEAL_BASE.dark,
+      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialForest.dark, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    )
+  },
+  industrialSteel: {
+    label: BASE_PALETTES.industrialSteel.label,
+    light: blendPalette(
+      TEAL_BASE.light,
+      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialSteel.light, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    ),
+    dark: blendPalette(
+      TEAL_BASE.dark,
+      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialSteel.dark, RADICAL_FACTOR),
+      TEAL_ANCHOR_WEIGHT_VARIANT
+    )
+  }
+};
+
+// Story order for "chapters" (used by the template select + reload rotation).
+export const PALETTE_CHAPTER_ORDER = [
+  'industrialTeal',
+  'industrialRust',
+  'industrialSlate',
+  'industrialAmber',
+  'industrialViolet',
+  'industrialForest',
+  'industrialSteel'
+];
+
+const PALETTE_ROTATION_STORAGE_KEY = 'abs_palette_chapter';
 
 // Legacy fallback weights (only used if no valid `colorDistribution` is present).
 const LEGACY_COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
@@ -283,6 +482,15 @@ export function applyColorTemplate(templateName) {
   const globals = getGlobals();
   globals.currentTemplate = templateName;
   globals.currentColors = getCurrentPalette(templateName);
+
+  // Persist for chapter rotation and keep any UI selects in sync.
+  try {
+    localStorage.setItem(PALETTE_ROTATION_STORAGE_KEY, String(templateName || ''));
+  } catch (_) { /* no-op */ }
+  try {
+    const select = document.getElementById('colorSelect');
+    if (select) select.value = templateName;
+  } catch (_) { /* no-op */ }
   
   // Cursor color must remain valid across template + theme changes.
   // Do NOT auto-rotate here; only re-resolve to the new palette variant (or snap if invalid).
@@ -346,7 +554,9 @@ export function populateColorSelect() {
   if (!select) return;
   
   select.innerHTML = '';
-  for (const [key, template] of Object.entries(COLOR_TEMPLATES)) {
+  for (const key of PALETTE_CHAPTER_ORDER) {
+    const template = COLOR_TEMPLATES[key];
+    if (!template) continue;
     const option = document.createElement('option');
     option.value = key;
     option.textContent = template.label;
@@ -357,4 +567,30 @@ export function populateColorSelect() {
   select.value = globals.currentTemplate;
 }
 
+/**
+ * Rotate to the next palette chapter.
+ * - Intended to be called once on each page load (before initializeDarkMode()).
+ * - Applies only to cursor + balls (via applyColorTemplate in dark-mode init).
+ */
+export function rotatePaletteChapterOnReload() {
+  const globals = getGlobals();
+  const order = Array.isArray(PALETTE_CHAPTER_ORDER) && PALETTE_CHAPTER_ORDER.length
+    ? PALETTE_CHAPTER_ORDER
+    : Object.keys(COLOR_TEMPLATES);
+  if (!order.length) return null;
 
+  let lastKey = null;
+  try { lastKey = localStorage.getItem(PALETTE_ROTATION_STORAGE_KEY); } catch (_) {}
+
+  const lastIndex = typeof lastKey === 'string' ? order.indexOf(lastKey) : -1;
+  // First visit (or invalid stored key): start on a random chapter for surprise,
+  // then continue rotating in story order on subsequent reloads.
+  const nextIndex = lastIndex >= 0
+    ? (lastIndex + 1) % order.length
+    : ((Math.random() * order.length) | 0);
+  const nextKey = order[nextIndex];
+
+  globals.currentTemplate = nextKey;
+  try { localStorage.setItem(PALETTE_ROTATION_STORAGE_KEY, nextKey); } catch (_) {}
+  return nextKey;
+}

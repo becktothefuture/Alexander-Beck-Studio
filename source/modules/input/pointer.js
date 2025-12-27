@@ -193,9 +193,23 @@ export function setupPointer() {
    * is the canonical cross-input signal.
    */
   function handleMove(clientX, clientY, target, { isMouseLike } = { isMouseLike: true }) {
+    const pos = getCanvasPosition(clientX, clientY);
+    
+    // Calculate mouse velocity early (for cursor effects and water ripples)
+    const now = performance.now();
+    const dt = now - lastMoveTime;
+    let currentVelocity = 0;
+    if (dt > 0 && lastMoveTime > 0) {
+      const dx = pos.x - lastMouseX;
+      const dy = pos.y - lastMouseY;
+      currentVelocity = Math.sqrt(dx * dx + dy * dy) / dt;
+      mouseVelocity = currentVelocity;
+    }
+    
     // Update custom cursor position only for mouse-like pointers.
+    // Pass velocity for speed-based color effects
     if (isMouseLike) {
-      updateCursorPosition(clientX, clientY);
+      updateCursorPosition(clientX, clientY, currentVelocity);
     } else {
       // Ensure cursor is hidden for touch/pen inputs that aren't mouse-like
       hideCursor();
@@ -208,17 +222,6 @@ export function setupPointer() {
     
     // Don't track simulation interactions when gates/overlay are active
     if (isOverlayActive()) return;
-
-    const pos = getCanvasPosition(clientX, clientY);
-
-    // Calculate mouse velocity for water ripples
-    const now = performance.now();
-    const dt = now - lastMoveTime;
-    if (dt > 0 && lastMoveTime > 0) {
-      const dx = pos.x - lastMouseX;
-      const dy = pos.y - lastMouseY;
-      mouseVelocity = Math.sqrt(dx * dx + dy * dy) / dt;
-    }
 
     // Update globals with 1:1 mouse position
     globals.mouseX = pos.x;

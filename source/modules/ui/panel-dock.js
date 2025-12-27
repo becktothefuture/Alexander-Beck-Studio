@@ -3,9 +3,14 @@
 // ║           Single panel with collapsible sections                             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { PANEL_HTML } from './panel-html.js';
-import { setupControls } from './controls.js';
+import { HOME_PANEL_HTML } from './panel-html.js';
+import { setupIndexControls, setupMasterControls } from './controls.js';
 import { setupBuildControls } from './build-controls.js';
+import {
+  generateThemeSectionHTML,
+  generateMasterSectionsHTML,
+  generateColorTemplateSectionHTML,
+} from './control-registry.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
 import {
   SOUND_PRESETS,
@@ -59,14 +64,13 @@ function savePanelCollapsed(collapsed) {
   } catch (e) {}
 }
 
-function loadDockHiddenState() {
+function loadDockHiddenState({ defaultHidden = true } = {}) {
   try {
     const v = localStorage.getItem(STORAGE_KEYS.dockHidden);
-    // Default: hidden (debug panel should not obstruct first visit)
-    if (v === null) return true;
+    if (v === null) return !!defaultHidden;
     return v === 'true';
   } catch (e) {
-    return true;
+    return !!defaultHidden;
   }
 }
 
@@ -122,11 +126,16 @@ let elementStartY = 0;
 // MASTER PANEL HTML
 // ════════════════════════════════════════════════════════════════════════════════
 
-function getMasterPanelContent() {
+function getMasterPanelContent({
+  pageLabel = 'Home',
+  pageHTML = HOME_PANEL_HTML,
+  includePageSaveButton = false,
+  pageSaveButtonId = 'savePortfolioConfigBtn',
+  footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters + Throws have no key (yet)',
+} = {}) {
   const g = getGlobals();
   // Values are vw-native in state; px values are derived once and kept in sync.
   const frameVw = Number(g.containerBorderVw || 0);
-  const radiusVw = Number(g.wallRadiusVw || 0);
   const contentPadVw = Number(g.contentPaddingVw || 0);
   const viewportWidthPx = getLayoutViewportWidthPx();
   const viewportWidthLabel = g.layoutViewportWidthPx > 0
@@ -134,17 +143,12 @@ function getMasterPanelContent() {
     : `Auto (${Math.round(viewportWidthPx)}px)`;
 
   const framePx = Math.max(0, Math.round(g.containerBorder ?? 0));
-  const radiusPx = Math.max(0, Math.round(g.wallRadius ?? g.cornerRadius ?? 0));
   const contentPadPx = Math.max(0, Math.round(g.contentPadding ?? 0));
   const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
   const minContentPadPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
   const contentPadHorizRatio = Number(g.contentPaddingHorizontalRatio || 1.0);
-  const minRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
 
-  return `
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         LAYOUT SECTION - Frame & Content Spacing
-         ═══════════════════════════════════════════════════════════════════════ -->
+  const layoutSectionHTML = `
     <details class="panel-section-accordion" id="layoutSection">
       <summary class="panel-section-header">
         <span class="section-icon">📐</span>
@@ -153,17 +157,11 @@ function getMasterPanelContent() {
       <div class="panel-section-content">
         <label class="control-row">
           <div class="control-row-header">
-            <span class="control-label">Frame</span>
-            <span class="control-value" id="frameValue">${frameVw.toFixed(2)}vw · ${framePx}px</span>
-          </div>
-          <input type="range" id="layoutFrame" min="0" max="8" step="0.05" value="${frameVw || 0}" />
-        </label>
-        <label class="control-row">
-          <div class="control-row-header">
             <span class="control-label">Content Padding</span>
             <span class="control-value" id="contentPadValue">${contentPadVw.toFixed(2)}vw · ${contentPadPx}px (min ${minContentPadPx}px)</span>
           </div>
           <input type="range" id="contentPadding" min="0" max="12" step="0.05" value="${contentPadVw || 0}" />
+          <div class="control-hint">Layout-only spacing between wall and content</div>
         </label>
         <label class="control-row">
           <div class="control-row-header">
@@ -183,21 +181,6 @@ function getMasterPanelContent() {
         </label>
         <label class="control-row">
           <div class="control-row-header">
-            <span class="control-label">Radius</span>
-            <span class="control-value" id="radiusValue">${radiusVw.toFixed(2)}vw · ${radiusPx}px (min ${minRadiusPx}px)</span>
-          </div>
-          <input type="range" id="layoutRadius" min="0" max="20" step="0.05" value="${radiusVw || 0}" />
-        </label>
-        <label class="control-row">
-          <div class="control-row-header">
-            <span class="control-label">Min Radius</span>
-            <span class="control-value" id="minRadiusValue">${minRadiusPx}px</span>
-          </div>
-          <input type="range" id="layoutMinWallRadiusPx" min="0" max="120" step="1" value="${minRadiusPx}" />
-          <div class="control-hint">Clamp target on smallest viewports (px).</div>
-        </label>
-        <label class="control-row">
-          <div class="control-row-header">
             <span class="control-label">Viewport Width</span>
             <span class="control-value" id="viewportWidthValue">${viewportWidthLabel}</span>
           </div>
@@ -213,10 +196,9 @@ function getMasterPanelContent() {
         </label>
       </div>
     </details>
+  `;
 
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         SOUND SECTION
-         ═══════════════════════════════════════════════════════════════════════ -->
+  const soundSectionHTML = `
     <details class="panel-section-accordion" id="soundSection">
       <summary class="panel-section-header">
         <span class="section-icon">🔊</span>
@@ -242,19 +224,36 @@ function getMasterPanelContent() {
         </div>
       </div>
     </details>
+  `;
 
-    <!-- ═══════════════════════════════════════════════════════════════════════
-         CONTROLS SECTION - Theme & Mode
-         ═══════════════════════════════════════════════════════════════════════ -->
-    <details class="panel-section-accordion" id="controlsSection" open>
+  const pageSectionHTML = `
+    <details class="panel-section-accordion" id="pageSection" open>
       <summary class="panel-section-header">
         <span class="section-icon">⚙️</span>
-        <span class="section-label">Controls</span>
+        <span class="section-label">${pageLabel}</span>
       </summary>
       <div class="panel-section-content">
-        ${PANEL_HTML}
+        ${pageHTML}
       </div>
     </details>
+  `;
+
+  const actionsHTML = `
+    <div class="panel-section panel-section--action">
+      <button id="saveRuntimeConfigBtn" class="primary">💾 Save Config</button>
+      ${includePageSaveButton ? `<button id="${pageSaveButtonId}" class="primary">💾 Save ${pageLabel} Config</button>` : ''}
+    </div>
+    <div class="panel-footer">${footerHint}</div>
+  `;
+
+  return `
+    ${generateThemeSectionHTML({ open: true })}
+    ${generateMasterSectionsHTML()}
+    ${layoutSectionHTML}
+    ${soundSectionHTML}
+    ${generateColorTemplateSectionHTML({ open: false })}
+    ${pageSectionHTML}
+    ${actionsHTML}
   `;
 }
 
@@ -262,7 +261,20 @@ function getMasterPanelContent() {
 // DOCK CREATION
 // ════════════════════════════════════════════════════════════════════════════════
 
-export function createPanelDock() {
+export function createPanelDock(options = {}) {
+  const page = options.page || 'home';
+  const pageLabel = options.pageLabel || (page === 'portfolio' ? 'Portfolio' : 'Home');
+  const pageHTML = options.pageHTML || HOME_PANEL_HTML;
+  const includePageSaveButton = !!options.includePageSaveButton;
+  const pageSaveButtonId = options.pageSaveButtonId || 'savePortfolioConfigBtn';
+  const footerHint = options.footerHint || (page === 'portfolio'
+    ? '<kbd>/</kbd> panel'
+    : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters + Throws have no key (yet)');
+  const panelTitle = options.panelTitle || 'Settings';
+  const modeLabel = options.modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
+  const bindShortcut = !!options.bindShortcut;
+  const setupPageControls = typeof options.setupPageControls === 'function' ? options.setupPageControls : null;
+
   // Remove any legacy placeholders
   try {
     const existingControl = document.getElementById('controlPanel');
@@ -275,13 +287,31 @@ export function createPanelDock() {
   dockElement = document.createElement('div');
   dockElement.className = 'panel-dock';
   dockElement.id = 'panelDock';
-  
-  // Always start hidden on load (user summons with `/`)
-  dockElement.classList.add('hidden');
-  saveDockHiddenState(true);
+
+  // Default visibility:
+  // - Home: visible in dev, hidden in prod (unless user previously toggled it)
+  // - Portfolio: hidden by default (panel is a dev tool, summoned with `/`)
+  let defaultHidden = page === 'portfolio' ? true : !isDev();
+  let isHidden = loadDockHiddenState({ defaultHidden });
+  try {
+    if (typeof __PANEL_INITIALLY_VISIBLE__ === 'boolean') isHidden = !__PANEL_INITIALLY_VISIBLE__;
+  } catch (e) {}
+
+  dockElement.classList.toggle('hidden', !!isHidden);
+  saveDockHiddenState(!!isHidden);
   
   // Create master panel
-  masterPanelElement = createMasterPanel();
+  masterPanelElement = createMasterPanel({
+    page,
+    panelTitle,
+    modeLabel,
+    pageLabel,
+    pageHTML,
+    includePageSaveButton,
+    pageSaveButtonId,
+    footerHint,
+    setupPageControls,
+  });
   dockElement.appendChild(masterPanelElement);
 
   // Append to body as first child for maximum z-index stacking
@@ -291,10 +321,41 @@ export function createPanelDock() {
   setupDragging();
   setupResizePersistence();
 
+  // Setup keyboard toggle for non-index pages (index has its own keyboard system).
+  if (bindShortcut) bindDockToggleShortcut();
+
   return dockElement;
 }
 
-function createMasterPanel() {
+let shortcutBound = false;
+function bindDockToggleShortcut() {
+  if (shortcutBound) return;
+  shortcutBound = true;
+  window.addEventListener('keydown', (event) => {
+    try {
+      const tag = event.target?.tagName;
+      const isFormField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
+      const inDock = !!event.target?.closest?.('.panel-dock');
+      if (isFormField && !inDock) return;
+    } catch (e) {}
+    const key = event.key?.toLowerCase?.() || '';
+    if (key !== '/' && event.code !== 'Slash') return;
+    event.preventDefault();
+    toggleDock();
+  });
+}
+
+function createMasterPanel({
+  page,
+  panelTitle,
+  modeLabel,
+  pageLabel,
+  pageHTML,
+  includePageSaveButton,
+  pageSaveButtonId,
+  footerHint,
+  setupPageControls,
+} = {}) {
   const panel = document.createElement('div');
   panel.id = 'masterPanel';
   panel.className = loadPanelCollapsed() ? 'panel collapsed' : 'panel';
@@ -304,7 +365,6 @@ function createMasterPanel() {
   // Header
   const header = document.createElement('div');
   header.className = 'panel-header';
-  const modeLabel = isDev() ? 'DEV MODE' : 'BUILD MODE';
   header.innerHTML = `
     <div class="mac-titlebar">
       <div class="mac-traffic" aria-hidden="true">
@@ -312,7 +372,7 @@ function createMasterPanel() {
         <span class="mac-dot mac-dot--yellow"></span>
         <span class="mac-dot mac-dot--green"></span>
       </div>
-      <div class="panel-title mac-title">Settings</div>
+      <div class="panel-title mac-title">${panelTitle}</div>
       <div class="mac-right">
         <span class="panel-mode-pill" role="status" aria-label="Runtime mode">${modeLabel}</span>
         <button class="collapse-btn mac-collapse" aria-label="Collapse panel" title="Collapse">▾</button>
@@ -323,17 +383,34 @@ function createMasterPanel() {
   // Content
   const content = document.createElement('div');
   content.className = 'panel-content';
-  content.innerHTML = getMasterPanelContent();
+  content.innerHTML = getMasterPanelContent({
+    pageLabel,
+    pageHTML,
+    includePageSaveButton,
+    pageSaveButtonId,
+    footerHint,
+  });
   
   panel.appendChild(header);
   panel.appendChild(content);
 
-  // Restore size (if previously resized)
+  // Restore size (only if user has manually resized - i.e., significantly different from CSS defaults)
   const savedSize = loadPanelSize();
   if (savedSize) {
-    panel.style.width = `${savedSize.width}px`;
-    panel.style.height = `${savedSize.height}px`;
-    panel.style.maxHeight = 'none';
+    // CSS defaults: width = 23rem (368px), height = 80vh
+    // Only apply saved size if it's meaningfully different (user actually resized)
+    const cssDefaultWidth = 368; // 23rem
+    const cssDefaultHeight = window.innerHeight * 0.8; // 80vh
+    const widthDiff = Math.abs(savedSize.width - cssDefaultWidth);
+    const heightDiff = Math.abs(savedSize.height - cssDefaultHeight);
+    
+    // Only restore if difference is significant (> 5px) - means user manually resized
+    if (widthDiff > 5 || heightDiff > 5) {
+      panel.style.width = `${savedSize.width}px`;
+      panel.style.height = `${savedSize.height}px`;
+      panel.style.maxHeight = 'none';
+    }
+    // Otherwise, let CSS defaults apply
   }
   
   // Collapse button
@@ -350,10 +427,19 @@ function createMasterPanel() {
   
   // Initialize controls
   setTimeout(() => {
-    setupControls();
+    // Shared (master) controls are safe on all pages.
+    if (page === 'home') {
+      setupIndexControls();
+    } else {
+      setupMasterControls();
+    }
+
     setupBuildControls();
     setupSoundControls(panel);
     setupLayoutControls(panel);
+
+    // Page-specific bindings (portfolio carousel, etc).
+    try { setupPageControls?.(panel); } catch (e) {}
   }, 0);
   
   return panel;
@@ -387,11 +473,23 @@ function setupResizePersistence() {
 function setupDragging() {
   if (!masterPanelElement) return;
   
-  const header = masterPanelElement.querySelector('.panel-header');
-  if (!header) return;
-  
-  header.addEventListener('mousedown', handleDragStart);
-  header.addEventListener('touchstart', handleDragStart, { passive: false });
+  // Make panel draggable from top border area (orange line)
+  masterPanelElement.addEventListener('mousedown', (e) => {
+    // Only start drag from top 12px area (where orange line is)
+    const rect = masterPanelElement.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    if (y <= 12 && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+      handleDragStart(e);
+    }
+  });
+  masterPanelElement.addEventListener('touchstart', (e) => {
+    const rect = masterPanelElement.getBoundingClientRect();
+    const touch = e.touches[0];
+    const y = touch.clientY - rect.top;
+    if (y <= 12 && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+      handleDragStart(e);
+    }
+  }, { passive: false });
   
   document.addEventListener('mousemove', handleDragMove);
   document.addEventListener('mouseup', handleDragEnd);
@@ -728,18 +826,12 @@ function setupSoundControls(panel) {
 // ════════════════════════════════════════════════════════════════════════════════
 
 function setupLayoutControls(panel) {
-  const frameSlider = panel.querySelector('#layoutFrame');
-  const frameValue = panel.querySelector('#frameValue');
   const contentPadSlider = panel.querySelector('#contentPadding');
   const contentPadValue = panel.querySelector('#contentPadValue');
   const contentPadHorizRatioSlider = panel.querySelector('#contentPadHorizRatio');
   const contentPadHorizRatioValue = panel.querySelector('#contentPadHorizRatioValue');
   const minContentPadSlider = panel.querySelector('#layoutMinContentPaddingPx');
   const minContentPadValue = panel.querySelector('#minContentPadValue');
-  const radiusSlider = panel.querySelector('#layoutRadius');
-  const radiusValue = panel.querySelector('#radiusValue');
-  const minRadiusSlider = panel.querySelector('#layoutMinWallRadiusPx');
-  const minRadiusValue = panel.querySelector('#minRadiusValue');
   const viewportWidthSlider = panel.querySelector('#layoutViewportWidth');
   const viewportWidthValue = panel.querySelector('#viewportWidthValue');
   const wallInsetSlider = panel.querySelector('#layoutWallInset');
@@ -749,7 +841,6 @@ function setupLayoutControls(panel) {
   const syncDerivedLayout = ({ triggerResize = false } = {}) => {
     applyLayoutFromVwToPx();
     applyLayoutCSSVars();
-    if (frameValue) frameValue.textContent = `${(g.containerBorderVw || 0).toFixed(2)}vw · ${Math.round(g.containerBorder || 0)}px`;
     if (contentPadValue) {
       const minPad = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
       contentPadValue.textContent = `${(g.contentPaddingVw || 0).toFixed(2)}vw · ${Math.round(g.contentPadding || 0)}px (min ${minPad}px)`;
@@ -758,41 +849,26 @@ function setupLayoutControls(panel) {
       const ratio = g.contentPaddingHorizontalRatio || 1.0;
       contentPadHorizRatioValue.textContent = `${ratio.toFixed(2)}× → ${Math.round(g.contentPaddingX || g.contentPadding)}px`;
     }
-    if (radiusValue) {
-      const minR = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
-      radiusValue.textContent = `${(g.wallRadiusVw || 0).toFixed(2)}vw · ${Math.round(g.wallRadius || 0)}px (min ${minR}px)`;
-    }
     if (minContentPadValue) minContentPadValue.textContent = `${Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0))}px`;
-    if (minRadiusValue) minRadiusValue.textContent = `${Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0))}px`;
     if (viewportWidthValue) {
       const w = getLayoutViewportWidthPx();
       viewportWidthValue.textContent = g.layoutViewportWidthPx > 0 ? `${Math.round(g.layoutViewportWidthPx)}px` : `Auto (${Math.round(w)}px)`;
     }
-    if (triggerResize) resize();
+    if (triggerResize) {
+      try { resize(); } catch (e) {}
+    }
     
     // Notify overlay system that layout changed (blur needs recalculation)
     document.dispatchEvent(new CustomEvent('layout-updated'));
   };
   
-  // Frame (outer dark border around content + wall thickness)
-  if (frameSlider && frameValue) {
-    frameSlider.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      if (!Number.isFinite(val)) return;
-      g.containerBorderVw = val;
-      // Keep the legacy “frame links thickness + border” behavior:
-      g.wallThicknessVw = val;
-      syncDerivedLayout({ triggerResize: true });
-    });
-  }
-  
-  // Content padding (space between frame edge and content elements)
+  // Content padding (vw). Layout-only: must not affect wall geometry or collisions.
   if (contentPadSlider && contentPadValue) {
     contentPadSlider.addEventListener('input', (e) => {
       const val = parseFloat(e.target.value);
       if (!Number.isFinite(val)) return;
       g.contentPaddingVw = val;
-      syncDerivedLayout();
+      syncDerivedLayout({ triggerResize: true });
     });
   }
   
@@ -812,26 +888,6 @@ function setupLayoutControls(panel) {
       const val = parseInt(e.target.value, 10);
       if (!Number.isFinite(val)) return;
       g.layoutMinContentPaddingPx = Math.max(0, val);
-      syncDerivedLayout({ triggerResize: true });
-    });
-  }
-  
-  // Corner radius (syncs wallRadius + cornerRadius)
-  if (radiusSlider && radiusValue) {
-    radiusSlider.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      if (!Number.isFinite(val)) return;
-      g.wallRadiusVw = val;
-      syncDerivedLayout();
-    });
-  }
-
-  // Minimum wall radius clamp (px)
-  if (minRadiusSlider && minRadiusValue) {
-    minRadiusSlider.addEventListener('input', (e) => {
-      const val = parseInt(e.target.value, 10);
-      if (!Number.isFinite(val)) return;
-      g.layoutMinWallRadiusPx = Math.max(0, val);
       syncDerivedLayout({ triggerResize: true });
     });
   }

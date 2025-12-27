@@ -4,6 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { CONSTANTS, MODES } from './constants.js';
+import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PERFORMANCE: Dynamic DPR getter - allows runtime adaptation
@@ -60,10 +61,11 @@ const state = {
   pitThrowPairStaggerMs: 18,   // ms (delay for the paired throw)
   pitThrowSpeedVar: 0.18,      // 0..1 (per-throw speed multiplier variance)
   pitThrowSpreadVar: 0.25,     // 0..1 (per-throw spread multiplier variance)
-  REST: 0.69,
-  FRICTION: 0.0060,
-  ballMassKg: 129,
-  MASS_BASELINE_KG: 129,
+  // Global “material world” defaults (snooker-ish balls + thick boundary)
+  REST: 0.31,
+  FRICTION: 0.011,
+  ballMassKg: 240,
+  MASS_BASELINE_KG: 240,
   MASS_REST_EXP: 0.15,
   MASS_GRAVITY_EXP: 0.35,
   
@@ -168,6 +170,32 @@ const state = {
   sleepAngularThreshold: 0.18,  // rad/s
   timeToSleep: 0.25,            // seconds
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Physics Performance (Global)
+  // These controls are intended to apply across physics-based modes.
+  // Defaults are conservative and should preserve the current feel.
+  // ─────────────────────────────────────────────────────────────────────────────
+  physicsCollisionIterations: 10,        // solver iterations for ball-ball collisions
+  physicsSkipSleepingCollisions: true,   // skip non-positional work for sleeping pairs
+  physicsSleepThreshold: 12.0,           // px/s (global sleep threshold for non-pit modes)
+  physicsSleepTime: 0.25,                // seconds (global sleep delay for non-pit modes)
+  physicsSkipSleepingSteps: true,        // skip Ball.step() work when sleeping
+  physicsSpatialGridOptimization: true,  // reuse spatial grid storage to reduce allocations
+
+  // Wall performance tuning (visual-only wobble system)
+  wallPhysicsSamples: 48,        // sample count for wall wobble physics (visual-only)
+  wallPhysicsSkipInactive: true, // skip wall wobble integration when inactive
+  wallPhysicsUpdateHz: 30,       // Tier 1: Physics update frequency (10-60 Hz, default 30)
+  wallPhysicsMaxSubstepHz: 60,   // Stability: substep integration to avoid large dt
+  wallPhysicsInterpolation: true, // Tier 1: Smooth interpolation between physics updates
+  wallPhysicsAdaptiveSamples: true, // Tier 2: Dynamically reduce samples when inactive
+  wallPhysicsMinSamples: 24,     // Tier 2: Minimum samples when inactive (8-48)
+  wallVisualDeformMul: 1.0,      // Debug/visual: multiply wall deformation (1 = normal)
+  wallRenderDecimation: 2,       // render every Nth sample (1=full, 2=half, 4=quarter, 12≈8-sided)
+
+  // Wall color: removed - use frameColor as single master (all wall colors point to frameColor)
+  // wallColorLight and wallColorDark are deprecated - frameColor is the single source of truth
+
   // Critters (Simulation 11) — ball-only “little creatures”
   critterCount: 90,
   critterSpeed: 680,          // thrust scale (px/s-ish)
@@ -210,11 +238,35 @@ const state = {
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
 
-  // Noise texture opacity (visual overlay)
-  noiseBackOpacity: 0.025,        // back layer opacity (light mode)
-  noiseFrontOpacity: 0.055,       // front layer opacity (light mode)
-  noiseBackOpacityDark: 0.12,     // back layer opacity (dark mode)
-  noiseFrontOpacityDark: 0.08,    // front layer opacity (dark mode)
+  // Noise texture opacity (visual overlay) - lighter for subtle effect
+  noiseBackOpacity: 0.015,        // back layer opacity (light mode) - lighter
+  noiseFrontOpacity: 0.045,       // front layer opacity (light mode) - lighter
+  noiseBackOpacityDark: 0.06,     // back layer opacity (dark mode) - lighter
+  noiseFrontOpacityDark: 0.08,    // front layer opacity (dark mode) - lighter
+
+  // Procedural noise (no GIF): texture + cinematic controls
+  noiseEnabled: true,
+  noiseSeed: 1337,
+  noiseTextureSize: 256,
+  noiseDistribution: 'gaussian', // 'uniform' | 'gaussian'
+  noiseMonochrome: true,
+  noiseChroma: 0.35, // 0..1 (ignored when monochrome)
+  noiseMotion: 'jitter', // 'jitter' | 'drift' | 'static'
+  noiseMotionAmount: 1.2, // Increased for more alive movement
+  noiseSpeedBackMs: 1400, // Faster for more alive feel
+  noiseSpeedFrontMs: 900,  // Faster for more alive feel
+  noiseFlicker: 0.08, // Lighter flicker
+  noiseFlickerSpeedMs: 180, // Faster flicker for more alive feel
+  noiseBlurPx: 0,
+  noiseContrast: 1.2, // Slightly reduced for lighter look
+  noiseBrightness: 1.15, // Increased brightness for lighter look
+  noiseSaturation: 1.0,
+  noiseHue: 0,
+  // Layer scale (noise-3 removed, so noiseTopOpacity no longer used) - finer grain
+  noiseSizeBase: 65,  // Finer grain (smaller size)
+  noiseSizeTop: 85,   // Finer grain (smaller size)
+  noiseTopOpacity: 0, // Disabled: noise-3 layer removed to prevent covering cards
+  detailNoiseOpacity: 1, // Overall opacity multiplier for detail page noise (0-1)
 
   // Minimum clamp targets (px)
   // These define the “clamp down towards” values on small viewports, where vw-derived
@@ -523,16 +575,18 @@ const state = {
   // Unified Color System (backgrounds, frame, walls)
   bgLight: '#f5f5f5',       // Light mode background color
   bgDark: '#0a0a0a',        // Dark mode background color
-  frameColor: '#0a0a0a',    // Frame color (browser chrome + walls + border)
+  frameColor: '#0a0a0a',    // Frame color (legacy - use frameColorLight/frameColorDark)
+  frameColorLight: '#0a0a0a',  // Frame/wall color in light mode (browser chrome + walls + border)
+  frameColorDark: '#0a0a0a',   // Frame/wall color in dark mode (browser chrome + walls + border)
   
   // Text Colors
   textColorLight: '#161616',          // Primary text (light mode)
   textColorLightMuted: '#2f2f2f',     // Secondary/muted text (light mode)
-  textColorDark: 'rgba(255,255,255,0.7)',  // Primary text (dark mode)
-  textColorDarkMuted: 'rgba(255,255,255,0.5)', // Secondary/muted text (dark mode)
+  textColorDark: '#7a8fa3',  // Primary text (dark mode) — harmonized blue-gray to match dark blue/green background
+  textColorDarkMuted: '#9db0c4', // Secondary/muted text (dark mode) — harmonized light blue-gray
   // Edge labels (vertical chapter/copyright) — independently tunable from body text
   edgeLabelColorLight: '#2f2f2f',
-  edgeLabelColorDark: '#b3b3b3',
+  edgeLabelColorDark: '#8a9ba8', // Harmonized blue-gray for edge labels
   edgeLabelInsetAdjustPx: 0,
   
   // Link Colors
@@ -540,27 +594,40 @@ const state = {
   
   // Logo Colors
   logoColorLight: '#161616',          // Logo color (light mode)
-  logoColorDark: '#d5d5d5',           // Logo color (dark mode)
+  logoColorDark: '#b8c5d3',           // Logo color (dark mode) — harmonized blue-gray to match dark blue/green background
+  // Portfolio Logo Colors (separate from index)
+  portfolioLogoColorLight: '#161616', // Portfolio logo color (light mode)
+  portfolioLogoColorDark: '#374862',  // Portfolio logo color (dark mode) — darker blue-gray for portfolio
+  // Logo sizing + index main link placement (CSS vars)
+  topLogoWidthVw: 35,                 // Sets `--top-logo-width-vw` (clamped by CSS min/max tokens)
+  homeMainLinksBelowLogoPx: 40,       // Sets `--home-main-links-below-logo-px` (index only)
   wallThickness: 12,        // Unified: wall tubes + body border (px)
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
   wallInset: 3,             // Physics-only inset from edges (px at DPR 1)
 
   // Rubber wall wobble tuning (visual-only deformation, no collision changes)
   // High-level controls (0-100)
-  wallPreset: 'rubber',             // Preset name: rubber, trampoline, jelly, stiff
+  wallPreset: 'pudding',            // Preset name: rubber, pudding, trampoline, jelly, stiff
   wallSoftness: 50,                 // Legacy support / manual tweak
   wallBounciness: 50,               // Legacy support / manual tweak
   
   // Low-level parameters (derived from above or set manually)
-  wallWobbleMaxDeform: 45,          // Max inward deformation (px at DPR 1)
-  wallWobbleStiffness: 2200,        // Spring stiffness (higher = snappier)
-  wallWobbleDamping: 35,            // Spring damping (higher = less oscillation)
-  wallWobbleSigma: 2.0,             // Impact spread (gaussian sigma in segment units)
-  wallWobbleCornerClamp: 0.60,      // Corner stickiness (0 = free, 1 = fully pinned)
+  // Pudding baseline: broad, overdamped blobs (soft boundary, minimal “rubber band” ripple)
+  wallWobbleMaxDeform: 70,          // Max inward deformation (px at DPR 1)
+  wallWobbleStiffness: 420,         // Spring stiffness (lower = softer)
+  wallWobbleDamping: 92,            // Damping (higher = more viscous)
+  wallWobbleSigma: 5.5,             // Impact spread (higher = larger blobs)
+  wallWobbleCornerClamp: 0.25,      // Corner grip (lower = more flow around corners)
+  wallWobbleMaxVel: 620,            // Clamp: max wall deformation velocity (prevents erratic spikes)
+  wallWobbleMaxImpulse: 160,        // Clamp: max per-sample impulse injection (prevents runaway)
+  wallWobbleMaxEnergyPerStep: 20000, // Clamp: total impact energy budget per physics tick
   
   // Settling parameters (Advanced)
-  wallWobbleImpactThreshold: 140,   // Min velocity (px/s) to trigger wobble
-  wallWobbleSettlingSpeed: 75,      // Controls snap-to-zero aggression (0-100)
+  wallWobbleImpactThreshold: 60,    // Min velocity (px/s) to trigger wobble
+  wallWobbleSettlingSpeed: 94,      // Controls snap-to-zero aggression (0-100)
+  
+  // Wall deformation physics interaction
+  wallDeformPhysicsPrecision: 50,   // Precision for wall-ball interaction (0-100, higher = more accurate but slower)
   
   // Gate overlay (blur backdrop for dialogs)
   gateOverlayEnabled: true,         // Enable/disable overlay
@@ -575,6 +642,28 @@ const state = {
   logoOpacityActive: 0.2,           // Logo opacity when gate is active (0-1)
   logoBlurInactive: 0,              // Logo blur when gate is closed (px)
   logoBlurActive: 12,               // Logo blur when gate is active (px)
+  
+  // Entrance Animation (browser default → wall-state)
+  entranceEnabled: true,            // Enable dramatic entrance animation
+  entranceWallTransitionDelay: 300,  // Delay before wall-state transition starts (ms)
+  entranceWallTransitionDuration: 800, // Wall growth animation duration (ms)
+  entranceWallInitialScale: 1.1,    // Initial scale (wall starts slightly larger, scales down to 1.0)
+  entranceWallEasing: 'cubic-bezier(0.16, 1, 0.3, 1)', // Easing for wall growth (organic ease-out)
+  entranceElementDuration: 200,     // Individual element fade duration (ms)
+  entranceElementScaleStart: 0.95,  // Initial scale for elements (0-1)
+  entranceElementTranslateZStart: -20, // Initial z-axis position (px, negative = back)
+  entranceElementEasing: 'ease-out', // Easing function for element animations
+  entrancePerspectiveLandscape: 1200, // Perspective for landscape aspect ratio (px)
+  entrancePerspectiveSquare: 1000,   // Perspective for square aspect ratio (px)
+  entrancePerspectivePortrait: 800,  // Perspective for portrait aspect ratio (px)
+  
+  // Link Controls (Panel Tunable)
+  linkTextPadding: 30,               // Padding for text links (px)
+  linkIconPadding: 24,               // Padding for icon links (px)
+  linkColorInfluence: 1,            // How much cursor color affects link colors (0-1)
+  linkImpactScale: 0.95,             // Scale when link is pressed (0.7-1.0)
+  linkImpactBlur: 10,                // Blur amount when link is pressed (px)
+  linkImpactDuration: 150,           // Duration of press animation (ms)
   
   // Helpers
   getSquashMax() {
@@ -626,7 +715,20 @@ export function applyLayoutFromVwToPx() {
   // Derive px values once, then everything downstream remains px-based.
   const w = getLayoutViewportWidthPx();
 
-  const borderPx = vwToPx(state.containerBorderVw, w);
+  // Wall thickness defines the wall inset / frame thickness.
+  // Content padding is layout-only (space between wall and content), and MUST NOT
+  // change the wall geometry or collisions.
+  const wallThicknessVw = (Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)
+    ? state.wallThicknessVw
+    : 0;
+  // Legacy fallback: if wallThicknessVw is unset, keep using containerBorderVw.
+  const derivedBorderVw = (wallThicknessVw > 0)
+    ? wallThicknessVw
+    : (Number.isFinite(state.containerBorderVw) ? state.containerBorderVw : 0);
+  // Keep legacy value in sync so UI readbacks + exports remain consistent.
+  state.containerBorderVw = derivedBorderVw;
+
+  const borderPx = vwToPx(derivedBorderVw, w);
   const simPadPx = vwToPx(state.simulationPaddingVw, w);
   const contentPadPx = vwToPx(state.contentPaddingVw, w);
   const radiusPx = vwToPx(state.wallRadiusVw, w);
@@ -634,11 +736,8 @@ export function applyLayoutFromVwToPx() {
   const minContentPaddingPx = Math.max(0, Math.round(state.layoutMinContentPaddingPx || 0));
   const minWallRadiusPx = Math.max(0, Math.round(state.layoutMinWallRadiusPx || 0));
 
-  // If wallThicknessVw is not set, default it to containerBorderVw (keeps “frame”
-  // control behavior consistent with the current panel’s linked thickness).
-  const thicknessVw = (Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)
-    ? state.wallThicknessVw
-    : state.containerBorderVw;
+  // Wall thickness (vw). Legacy fallback: if unset, treat the derived border as thickness.
+  const thicknessVw = (wallThicknessVw > 0) ? wallThicknessVw : derivedBorderVw;
   const thicknessPx = vwToPx(thicknessVw, w);
 
   const isMobileLayout = state.isMobile || state.isMobileViewport;
@@ -742,6 +841,9 @@ export function initState(config) {
   // Global variation multiplier
   if (config.sizeVariationGlobalMul !== undefined) {
     state.sizeVariationGlobalMul = clampNumber(config.sizeVariationGlobalMul, 0, 2, state.sizeVariationGlobalMul);
+  }
+  if (config.sizeVariationCap !== undefined) {
+    state.sizeVariationCap = clampNumber(config.sizeVariationCap, 0, 0.2, state.sizeVariationCap);
   }
   // Per-mode variation sliders (0..1)
   if (config.sizeVariationPit !== undefined) state.sizeVariationPit = clampNumber(config.sizeVariationPit, 0, 1, state.sizeVariationPit);
@@ -915,9 +1017,13 @@ export function initState(config) {
   // These define the minimum padding/radius we clamp down towards on small viewports.
   if (config.layoutMinContentPaddingPx !== undefined) {
     state.layoutMinContentPaddingPx = clampNumber(config.layoutMinContentPaddingPx, 0, 200, state.layoutMinContentPaddingPx);
+  } else {
+    state.layoutMinContentPaddingPx = readTokenPx('--layout-min-content-padding', state.layoutMinContentPaddingPx);
   }
   if (config.layoutMinWallRadiusPx !== undefined) {
     state.layoutMinWallRadiusPx = clampNumber(config.layoutMinWallRadiusPx, 0, 400, state.layoutMinWallRadiusPx);
+  } else {
+    state.layoutMinWallRadiusPx = readTokenPx('--layout-min-wall-radius', state.layoutMinWallRadiusPx);
   }
   if (config.critterMouseRadiusVw !== undefined) state.critterMouseRadiusVw = config.critterMouseRadiusVw;
   if (config.critterRestitution !== undefined) state.critterRestitution = config.critterRestitution;
@@ -1046,32 +1152,97 @@ export function initState(config) {
   
   // Unified color system (backgrounds + frame)
   if (config.bgLight !== undefined) state.bgLight = config.bgLight;
+  else state.bgLight = readTokenVar('--bg-light', state.bgLight);
   if (config.bgDark !== undefined) state.bgDark = config.bgDark;
-  if (config.frameColor !== undefined) state.frameColor = config.frameColor;
+  else state.bgDark = readTokenVar('--bg-dark', state.bgDark);
+  // Frame colors (wall + browser chrome)
+  if (config.frameColorLight !== undefined) {
+    state.frameColorLight = config.frameColorLight;
+  } else {
+    state.frameColorLight = readTokenVar('--frame-color-light', state.frameColorLight);
+  }
+  if (config.frameColorDark !== undefined) {
+    state.frameColorDark = config.frameColorDark;
+  } else {
+    state.frameColorDark = readTokenVar('--frame-color-dark', state.frameColorDark);
+  }
+  // Backward compatibility: if frameColor is set, use it for both light and dark
+  if (config.frameColor !== undefined) {
+    state.frameColor = config.frameColor;
+    state.frameColorLight = config.frameColor;
+    state.frameColorDark = config.frameColor;
+  } else {
+    // If not set, use light mode value as fallback for legacy frameColor
+    state.frameColor = state.frameColorLight;
+  }
   
   // Text colors
   if (config.textColorLight !== undefined) state.textColorLight = config.textColorLight;
+  else state.textColorLight = readTokenVar('--text-color-light', state.textColorLight);
   if (config.textColorLightMuted !== undefined) state.textColorLightMuted = config.textColorLightMuted;
+  else state.textColorLightMuted = readTokenVar('--text-color-light-muted', state.textColorLightMuted);
   if (config.textColorDark !== undefined) state.textColorDark = config.textColorDark;
+  else state.textColorDark = readTokenVar('--text-color-dark', state.textColorDark);
   if (config.textColorDarkMuted !== undefined) state.textColorDarkMuted = config.textColorDarkMuted;
+  else state.textColorDarkMuted = readTokenVar('--text-color-dark-muted', state.textColorDarkMuted);
   if (config.edgeLabelColorLight !== undefined) state.edgeLabelColorLight = config.edgeLabelColorLight;
+  else state.edgeLabelColorLight = readTokenVar('--edge-label-color-light', state.edgeLabelColorLight);
   if (config.edgeLabelColorDark !== undefined) state.edgeLabelColorDark = config.edgeLabelColorDark;
+  else state.edgeLabelColorDark = readTokenVar('--edge-label-color-dark', state.edgeLabelColorDark);
   if (config.edgeLabelInsetAdjustPx !== undefined) {
     state.edgeLabelInsetAdjustPx = clampNumber(config.edgeLabelInsetAdjustPx, -500, 500, state.edgeLabelInsetAdjustPx);
   }
   
   // Link colors
   if (config.linkHoverColor !== undefined) state.linkHoverColor = config.linkHoverColor;
+  else state.linkHoverColor = readTokenVar('--link-hover-color', state.linkHoverColor);
   
   // Logo colors
   if (config.logoColorLight !== undefined) state.logoColorLight = config.logoColorLight;
+  else state.logoColorLight = readTokenVar('--logo-color-light', state.logoColorLight);
   if (config.logoColorDark !== undefined) state.logoColorDark = config.logoColorDark;
+  else state.logoColorDark = readTokenVar('--logo-color-dark', state.logoColorDark);
+  
+  // Portfolio logo colors (separate from index)
+  if (config.portfolioLogoColorLight !== undefined) state.portfolioLogoColorLight = config.portfolioLogoColorLight;
+  else state.portfolioLogoColorLight = readTokenVar('--portfolio-logo-color-light', state.portfolioLogoColorLight);
+  if (config.portfolioLogoColorDark !== undefined) state.portfolioLogoColorDark = config.portfolioLogoColorDark;
+  else state.portfolioLogoColorDark = readTokenVar('--portfolio-logo-color-dark', state.portfolioLogoColorDark);
   
   // Noise texture opacity (visual overlay)
   if (config.noiseBackOpacity !== undefined) state.noiseBackOpacity = clampNumber(config.noiseBackOpacity, 0, 0.3, state.noiseBackOpacity);
   if (config.noiseFrontOpacity !== undefined) state.noiseFrontOpacity = clampNumber(config.noiseFrontOpacity, 0, 0.3, state.noiseFrontOpacity);
   if (config.noiseBackOpacityDark !== undefined) state.noiseBackOpacityDark = clampNumber(config.noiseBackOpacityDark, 0, 0.5, state.noiseBackOpacityDark);
   if (config.noiseFrontOpacityDark !== undefined) state.noiseFrontOpacityDark = clampNumber(config.noiseFrontOpacityDark, 0, 0.5, state.noiseFrontOpacityDark);
+
+  // Procedural noise (no GIF): texture + motion + look
+  if (config.noiseEnabled !== undefined) state.noiseEnabled = Boolean(config.noiseEnabled);
+  if (config.noiseSeed !== undefined) state.noiseSeed = clampInt(config.noiseSeed, 0, 999999, state.noiseSeed);
+  if (config.noiseTextureSize !== undefined) state.noiseTextureSize = clampInt(config.noiseTextureSize, 64, 512, state.noiseTextureSize);
+  if (config.noiseDistribution !== undefined) {
+    const v = String(config.noiseDistribution);
+    state.noiseDistribution = (v === 'uniform' || v === 'gaussian') ? v : state.noiseDistribution;
+  }
+  if (config.noiseMonochrome !== undefined) state.noiseMonochrome = Boolean(config.noiseMonochrome);
+  if (config.noiseChroma !== undefined) state.noiseChroma = clampNumber(config.noiseChroma, 0, 1, state.noiseChroma);
+  if (config.noiseMotion !== undefined) {
+    const v = String(config.noiseMotion);
+    state.noiseMotion = (v === 'jitter' || v === 'drift' || v === 'static') ? v : state.noiseMotion;
+  }
+  if (config.noiseMotionAmount !== undefined) state.noiseMotionAmount = clampNumber(config.noiseMotionAmount, 0, 2.5, state.noiseMotionAmount);
+  if (config.noiseSpeedBackMs !== undefined) state.noiseSpeedBackMs = clampInt(config.noiseSpeedBackMs, 0, 10000, state.noiseSpeedBackMs);
+  if (config.noiseSpeedFrontMs !== undefined) state.noiseSpeedFrontMs = clampInt(config.noiseSpeedFrontMs, 0, 10000, state.noiseSpeedFrontMs);
+  if (config.noiseFlicker !== undefined) state.noiseFlicker = clampNumber(config.noiseFlicker, 0, 1, state.noiseFlicker);
+  if (config.noiseFlickerSpeedMs !== undefined) state.noiseFlickerSpeedMs = clampInt(config.noiseFlickerSpeedMs, 0, 5000, state.noiseFlickerSpeedMs);
+  if (config.noiseBlurPx !== undefined) state.noiseBlurPx = clampNumber(config.noiseBlurPx, 0, 6, state.noiseBlurPx);
+  if (config.noiseContrast !== undefined) state.noiseContrast = clampNumber(config.noiseContrast, 0.25, 5, state.noiseContrast);
+  if (config.noiseBrightness !== undefined) state.noiseBrightness = clampNumber(config.noiseBrightness, 0.25, 3, state.noiseBrightness);
+  if (config.noiseSaturation !== undefined) state.noiseSaturation = clampNumber(config.noiseSaturation, 0, 3, state.noiseSaturation);
+  if (config.noiseHue !== undefined) state.noiseHue = clampNumber(config.noiseHue, 0, 360, state.noiseHue);
+  if (config.noiseSizeBase !== undefined) state.noiseSizeBase = clampNumber(config.noiseSizeBase, 20, 400, state.noiseSizeBase);
+  if (config.noiseSizeTop !== undefined) state.noiseSizeTop = clampNumber(config.noiseSizeTop, 20, 600, state.noiseSizeTop);
+  if (config.noiseTopOpacity !== undefined) state.noiseTopOpacity = clampNumber(config.noiseTopOpacity, 0, 0.25, state.noiseTopOpacity);
+  if (config.detailNoiseOpacity !== undefined) state.detailNoiseOpacity = clampNumber(config.detailNoiseOpacity, 0, 1, state.detailNoiseOpacity);
   
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;
   if (config.wallRadius !== undefined) {
@@ -1095,9 +1266,39 @@ export function initState(config) {
   if (config.wallWobbleDamping !== undefined) state.wallWobbleDamping = config.wallWobbleDamping;
   if (config.wallWobbleSigma !== undefined) state.wallWobbleSigma = config.wallWobbleSigma;
   if (config.wallWobbleCornerClamp !== undefined) state.wallWobbleCornerClamp = config.wallWobbleCornerClamp;
+  if (config.wallWobbleMaxVel !== undefined) state.wallWobbleMaxVel = config.wallWobbleMaxVel;
+  if (config.wallWobbleMaxImpulse !== undefined) state.wallWobbleMaxImpulse = config.wallWobbleMaxImpulse;
+  if (config.wallWobbleMaxEnergyPerStep !== undefined) state.wallWobbleMaxEnergyPerStep = config.wallWobbleMaxEnergyPerStep;
   
   if (config.wallWobbleImpactThreshold !== undefined) state.wallWobbleImpactThreshold = config.wallWobbleImpactThreshold;
   if (config.wallWobbleSettlingSpeed !== undefined) state.wallWobbleSettlingSpeed = config.wallWobbleSettlingSpeed;
+  
+  if (config.wallDeformPhysicsPrecision !== undefined) state.wallDeformPhysicsPrecision = config.wallDeformPhysicsPrecision;
+  
+  // Wall performance tuning (Tier 1 & 2 optimizations)
+  if (config.wallPhysicsSamples !== undefined) state.wallPhysicsSamples = config.wallPhysicsSamples;
+  if (config.wallPhysicsSkipInactive !== undefined) state.wallPhysicsSkipInactive = config.wallPhysicsSkipInactive;
+  if (config.wallPhysicsUpdateHz !== undefined) state.wallPhysicsUpdateHz = config.wallPhysicsUpdateHz;
+  if (config.wallPhysicsMaxSubstepHz !== undefined) state.wallPhysicsMaxSubstepHz = config.wallPhysicsMaxSubstepHz;
+  if (config.wallPhysicsInterpolation !== undefined) state.wallPhysicsInterpolation = config.wallPhysicsInterpolation;
+  if (config.wallPhysicsAdaptiveSamples !== undefined) state.wallPhysicsAdaptiveSamples = config.wallPhysicsAdaptiveSamples;
+  if (config.wallPhysicsMinSamples !== undefined) state.wallPhysicsMinSamples = config.wallPhysicsMinSamples;
+  if (config.wallVisualDeformMul !== undefined) state.wallVisualDeformMul = config.wallVisualDeformMul;
+  if (config.wallRenderDecimation !== undefined) state.wallRenderDecimation = config.wallRenderDecimation;
+
+  // Wall colors: use frameColorLight/frameColorDark (all wall colors point to frameColor via CSS)
+  // Legacy config support: if wallColorLight/wallColorDark are set, update frame colors
+  if (config.wallColorLight !== undefined) {
+    state.frameColorLight = config.wallColorLight;
+    state.frameColor = config.wallColorLight; // Legacy compatibility
+  }
+  if (config.wallColorDark !== undefined) {
+    state.frameColorDark = config.wallColorDark;
+    if (!config.wallColorLight) {
+      // Only update legacy frameColor if light wasn't set
+      state.frameColor = config.wallColorDark;
+    }
+  }
   
   // Gate overlay settings
   if (config.gateOverlayEnabled !== undefined) state.gateOverlayEnabled = config.gateOverlayEnabled;
@@ -1145,6 +1346,19 @@ export function initState(config) {
   if (config.mobileEdgeLabelsVisible !== undefined) state.mobileEdgeLabelsVisible = !!config.mobileEdgeLabelsVisible;
   if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);
   if (config.wallThicknessVw !== undefined) state.wallThicknessVw = clampNumber(config.wallThicknessVw, 0, 20, state.wallThicknessVw);
+
+  if (!(Number.isFinite(state.containerBorderVw) && state.containerBorderVw > 0)) {
+    const tokenBorderVw = readTokenNumber('--container-border-vw', null);
+    if (Number.isFinite(tokenBorderVw) && tokenBorderVw > 0) state.containerBorderVw = tokenBorderVw;
+  }
+  if (!(Number.isFinite(state.wallRadiusVw) && state.wallRadiusVw > 0)) {
+    const tokenRadiusVw = readTokenNumber('--wall-radius-vw', null);
+    if (Number.isFinite(tokenRadiusVw) && tokenRadiusVw > 0) state.wallRadiusVw = tokenRadiusVw;
+  }
+  if (!(Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)) {
+    const tokenThicknessVw = readTokenNumber('--wall-thickness-vw', null);
+    if (Number.isFinite(tokenThicknessVw) && tokenThicknessVw > 0) state.wallThicknessVw = tokenThicknessVw;
+  }
 
   // If vw values are missing, migrate from px so the current look is preserved at
   // the current (or virtual) viewport width.
@@ -1273,9 +1487,10 @@ export function updateBallSizes() {
   state.R_MED = Math.max(1, medium);
   // R_MIN/R_MAX are the absolute cap for “max variation” (per-mode=1, globalMul=1).
   // Individual modes scale within this cap using their own 0..1 slider.
-  const cap = clampNumber(state.sizeVariationCap, 0, 0.5, 0.12);
+  const capMax = 0.2;
+  const cap = clampNumber(state.sizeVariationCap, 0, capMax, 0.12);
   const mul = clampNumber(state.sizeVariationGlobalMul, 0, 2, 1.0);
-  const v = clampNumber(cap * mul, 0, 0.5, cap);
+  const v = clampNumber(cap * mul, 0, capMax, cap);
   state.R_MIN = Math.max(1, state.R_MED * (1 - v));
   state.R_MAX = Math.max(state.R_MIN, state.R_MED * (1 + v));
 }

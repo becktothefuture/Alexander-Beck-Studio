@@ -166,6 +166,26 @@ function isValidThemeColor(value) {
   return true;
 }
 
+function pickTokenValue(snapshot, name, fallback) {
+  if (!snapshot) return fallback;
+  const resolved = snapshot.resolved?.[name];
+  if (isValidThemeColor(resolved)) return String(resolved).trim();
+  const raw = snapshot.cssVars?.[name];
+  if (isValidThemeColor(raw)) return String(raw).trim();
+  return fallback;
+}
+
+function buildThemeColorTags(light, dark) {
+  const lightColor = String(light).trim();
+  const darkColor = String(dark).trim();
+  return `
+  <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
+  <meta name="theme-color" content="${lightColor}">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="${lightColor}">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="${darkColor}">
+`;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN BUILD FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -233,6 +253,14 @@ async function buildProduction() {
       .filter(p => fs.existsSync(p))
       .map(p => fs.readFileSync(p, 'utf-8'))
       .join('\n');
+
+    let tokensSnapshot = null;
+    if (fs.existsSync(cssTokensPath)) {
+      try {
+        const tokensSource = fs.readFileSync(cssTokensPath, 'utf-8');
+        tokensSnapshot = buildTokensSnapshot(tokensSource);
+      } catch (e) {}
+    }
     
     // Minify CSS in production builds
     const cssCombined = isProd ? minifyCSS(cssRaw) : cssRaw;
@@ -324,6 +352,19 @@ async function buildProduction() {
       console.log(`✅ ${isProd ? 'Minified' : 'Copied'} portfolio contents (${isProd ? `-${savedBytes}B` : 'unminified'})`);
     }
 
+    // 2c.5 Tokens snapshot (resolved CSS vars for JS consumers)
+    if (tokensSnapshot) {
+      const tokensOut = isProd ? JSON.stringify(tokensSnapshot) : JSON.stringify(tokensSnapshot, null, 2);
+      const tokensDstJs = path.join(jsDir, 'tokens.json');
+      const tokensDstCfg = path.join(CONFIG.publicDestination, 'config', 'tokens.json');
+      fs.writeFileSync(tokensDstJs, tokensOut);
+      if (!fs.existsSync(path.dirname(tokensDstCfg))) {
+        fs.mkdirSync(path.dirname(tokensDstCfg), { recursive: true });
+      }
+      fs.writeFileSync(tokensDstCfg, tokensOut);
+      console.log(`✅ ${isProd ? 'Minified' : 'Copied'} tokens snapshot (${isProd ? 'minified' : 'unminified'})`);
+    }
+
     // 2d. Run Rollup via dynamic import to avoid ESM/CJS friction
     const { rollup } = await import('rollup');
     const rollupConfig = await import(path.resolve('rollup.config.mjs'));
@@ -340,6 +381,13 @@ async function buildProduction() {
     const template = safeReadFile(CONFIG.sourceIndexTemplate);
     if (!template) throw new Error('Missing source index template at ' + CONFIG.sourceIndexTemplate);
     let html = template;
+
+    const themeLight = pickTokenValue(tokensSnapshot, '--bg-light', '#f5f5f5');
+    const themeDark = pickTokenValue(tokensSnapshot, '--bg-dark', '#0a0a0a');
+    const themeColorTags = buildThemeColorTags(themeLight, themeDark);
+    const tokensInline = tokensSnapshot
+      ? `<script>window.__TOKENS__=${sanitizeInlineJson(JSON.stringify(tokensSnapshot))};</script>`
+      : '';
 
     // ... (index.html processing logic) ...
 
@@ -386,6 +434,33 @@ async function buildProduction() {
             console.log('✅ Inlined portfolio config into public/portfolio.html (hardcoded)');
           } catch (e) {}
         }
+        
+        // CONFIG: Inline runtime config into portfolio.html (same as index.html)
+        // Portfolio page needs runtime config for wall colors and other global parameters
+        if (isProd && fs.existsSync(runtimeConfigSrc) && !pHtml.includes('__RUNTIME_CONFIG__')) {
+          try {
+            const raw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
+            // Prevent accidental </script> termination and keep HTML safe.
+            const safe = raw.replace(/</g, '\\u003c');
+            const inline = `<script>window.__RUNTIME_CONFIG__=${safe};</script>`;
+            pHtml = pHtml.replace('</head>', `${inline}\n</head>`);
+            console.log('✅ Inlined runtime config into public/portfolio.html (hardcoded)');
+          } catch (e) {}
+        }
+
+        // Inject build timestamp for cache-busting images
+        if (!pHtml.includes('__BUILD_TIMESTAMP__')) {
+          const buildTimestampInline = `<script>window.__BUILD_TIMESTAMP__=${buildStamp};</script>`;
+          pHtml = pHtml.replace('</head>', `${buildTimestampInline}\n</head>`);
+        }
+
+        if (tokensInline && !pHtml.includes('__TOKENS__')) {
+          pHtml = pHtml.replace('</head>', `${tokensInline}\n</head>`);
+        }
+
+        // Ensure theme-color tags match tokens (remove any existing ones first).
+        pHtml = pHtml.replace(/^\s*<meta\s+name="theme-color"[^>]*>\s*$/gm, '');
+        pHtml = pHtml.replace('</head>', `${themeColorTags}\n</head>`);
 
         fs.writeFileSync(publicPortfolioPath, pHtml);
         console.log('✅ Injected production assets into public/portfolio.html');
@@ -465,18 +540,14 @@ const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</sty
       } catch (e) {}
     }
     
+    if (tokensInline && !html.includes('__TOKENS__')) {
+      html = html.replace('</head>', `${tokensInline}\n</head>`);
+    }
+
     // Inject theme-color meta tags for mobile browsers (Safari iOS, Chrome Android, Edge).
-    // These SHOULD match --bg-light / --bg-dark in source/css/main.css for first paint.
-    const themeColorTags = `
-  <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
-  <meta name="theme-color" content="#f5f5f5">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
-  <!-- PWA: Mobile web app capable (modern + legacy) -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-`;
-    if (!html.includes('name="theme-color"')) html = html.replace('</head>', `${themeColorTags}</head>`);
+    // These SHOULD match --bg-light / --bg-dark in tokens for first paint.
+    html = html.replace(/^\s*<meta\s+name="theme-color"[^>]*>\s*$/gm, '');
+    html = html.replace('</head>', `${themeColorTags}\n</head>`);
     
     // Inject resource hints for critical assets (preload fonts, preconnect Google Fonts)
     // Note: CSS/JS preloads removed as they're loaded with cache-bust query strings

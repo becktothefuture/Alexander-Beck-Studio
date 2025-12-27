@@ -3,6 +3,8 @@
 // ║            Dev: structured, ordered logs | Prod: banner only                  ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
+import { getGlobals } from '../core/state.js';
+
 /**
  * Design goals:
  * - DEV: make initialization legible + provable (sequence + timings)
@@ -76,9 +78,9 @@ export function isDev() {
   return devMode;
 }
 
-// Color palette matching ball distribution (Industrial Teal light mode)
+// Fallback color palette (Industrial Teal light mode) - used if currentColors not available
 // Weights: 50%, 25%, 12%, 6%, 3%, 2%, 1%, 1%
-const CONSOLE_COLORS = [
+const FALLBACK_CONSOLE_COLORS = [
   '#b7bcb7', // gray (dominant)
   '#d0d0d0', // light gray
   '#ffffff', // white
@@ -90,14 +92,31 @@ const CONSOLE_COLORS = [
 ];
 const COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
 
-function pickWeightedColor() {
+/**
+ * Get current color scheme colors from globals, with fallback to hardcoded palette
+ * This ensures terminal text matches the ball colors
+ */
+function getConsoleColors() {
+  try {
+    const globals = getGlobals();
+    const colors = globals?.currentColors;
+    if (Array.isArray(colors) && colors.length >= 8) {
+      return colors.slice(0, 8);
+    }
+  } catch (e) {
+    // If getGlobals fails or colors not available, use fallback
+  }
+  return FALLBACK_CONSOLE_COLORS;
+}
+
+function pickWeightedColor(colors) {
   const r = Math.random();
   let cumulative = 0;
   for (let i = 0; i < COLOR_WEIGHTS.length; i++) {
     cumulative += COLOR_WEIGHTS[i];
-    if (r <= cumulative) return CONSOLE_COLORS[i];
+    if (r <= cumulative) return colors[i];
   }
-  return CONSOLE_COLORS[0];
+  return colors[0];
 }
 
 function shuffle(arr) {
@@ -109,6 +128,19 @@ function shuffle(arr) {
 }
 
 function buildColorMap(ascii, clusterSize = 3) {
+  // Get current color scheme (matches ball colors)
+  // Wrap in try-catch to ensure we always have valid colors
+  let colors;
+  try {
+    colors = getConsoleColors();
+    // Ensure we have exactly 8 colors
+    if (!Array.isArray(colors) || colors.length < 8) {
+      colors = FALLBACK_CONSOLE_COLORS;
+    }
+  } catch (e) {
+    colors = FALLBACK_CONSOLE_COLORS;
+  }
+  
   // Count total visible clusters (non-whitespace-only)
   const clusters = [];
   for (let row = 0; row < ascii.length; row++) {
@@ -129,13 +161,14 @@ function buildColorMap(ascii, clusterSize = 3) {
   
   // Assign one of each color to the first 8 visible clusters
   for (let i = 0; i < Math.min(8, shuffledVisible.length); i++) {
-    colorAssignments[shuffledVisible[i]] = CONSOLE_COLORS[i];
+    const colorIndex = Math.min(i, colors.length - 1);
+    colorAssignments[shuffledVisible[i]] = colors[colorIndex] || FALLBACK_CONSOLE_COLORS[colorIndex];
   }
   
   // Fill remaining visible clusters with weighted random
   for (const idx of visibleIndices) {
     if (colorAssignments[idx] === null) {
-      colorAssignments[idx] = pickWeightedColor();
+      colorAssignments[idx] = pickWeightedColor(colors);
     }
   }
   
@@ -154,6 +187,9 @@ function colorizeAsciiLines(ascii, clusterSize = 3) {
   const results = [];
   let clusterIdx = 0;
   
+  // Base style applied to all chunks to ensure consistent width
+  const baseStyle = 'font-family: monospace; font-weight: bold; font-size: 12px; letter-spacing: 0;';
+  
   for (const line of ascii) {
     let format = '';
     const styles = [];
@@ -161,7 +197,7 @@ function colorizeAsciiLines(ascii, clusterSize = 3) {
       const chunk = line.slice(i, i + clusterSize);
       format += '%c' + chunk;
       const color = colorAssignments[clusterIdx];
-      styles.push(`color: ${color}; font-family: monospace; font-weight: bold;`);
+      styles.push(`color: ${color}; ${baseStyle}`);
       clusterIdx++;
     }
     results.push([format, ...styles]);
@@ -191,8 +227,16 @@ export function printConsoleBanner({
     rawConsole.log(''); // spacer
 
     // ASCII (distributed colors; all 8 guaranteed to appear)
-    const coloredLines = colorizeAsciiLines(ascii, 3);
-    for (const args of coloredLines) rawConsole.log(...args);
+    // Wrap in try-catch to ensure banner always prints even if colorization fails
+    try {
+      const coloredLines = colorizeAsciiLines(ascii, 3);
+      for (const args of coloredLines) rawConsole.log(...args);
+    } catch (colorError) {
+      // Fallback: print ASCII without colors if colorization fails
+      for (const line of ascii) {
+        rawConsole.log(line);
+      }
+    }
     rawConsole.log(''); // spacer
 
     // Copyright notice

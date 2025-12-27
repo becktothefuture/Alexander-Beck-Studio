@@ -8,8 +8,13 @@ import {
   detectResponsiveScale,
 } from '../core/state.js';
 
-function syncWallFrameColors(config) {
+export function syncWallFrameColors(config) {
   const root = document.documentElement;
+
+  // Brand logo sizing (shared across pages).
+  if (config.topLogoWidthVw !== undefined) {
+    root.style.setProperty('--top-logo-width-vw', String(config.topLogoWidthVw));
+  }
 
   // Backgrounds (inner surface uses --bg-light / --bg-dark like the studio index).
   if (config.bgLight) {
@@ -21,12 +26,18 @@ function syncWallFrameColors(config) {
     root.style.setProperty('--chrome-bg-dark', config.bgDark);
   }
 
-  // Frame + wall color (single source of truth on the index page).
-  if (config.frameColor) {
-    root.style.setProperty('--frame-color-light', config.frameColor);
-    root.style.setProperty('--frame-color-dark', config.frameColor);
-    root.style.setProperty('--wall-color', config.frameColor);
+  // Frame colors: separate light and dark mode wall colors
+  // --wall-color-light and --wall-color-dark point to frameColorLight/frameColorDark via CSS tokens
+  // Always set both light and dark colors (use frameColor as fallback if separate values not provided)
+  const frameLight = config.frameColorLight || config.frameColor;
+  const frameDark = config.frameColorDark || config.frameColor;
+  if (frameLight) {
+    root.style.setProperty('--frame-color-light', frameLight);
   }
+  if (frameDark) {
+    root.style.setProperty('--frame-color-dark', frameDark);
+  }
+  // Wall colors automatically point to frameColor via CSS (--wall-color-light: var(--frame-color-light))
 }
 
 export function applyWallFrameFromConfig(config) {

@@ -87,6 +87,13 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   
   acc += dtSeconds;
   let physicsSteps = 0;
+
+  // Wall input accumulation:
+  // The wall ring integrates at a configurable cadence (Tier 1), but impacts/pressure
+  // are registered during the fixed-timestep loop. If we clear pressure inside the
+  // 120Hz loop, the wall never sees stable "resting pressure" and can become overly wobbly.
+  // Clear pressure ONCE per render-frame, then accumulate across physics substeps.
+  wallState.clearPressureFrame();
   
   while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
     // Integrate physics for all modes
@@ -95,6 +102,12 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         balls[i].step(DT, applyForcesFunc);
       }
     
+    // Collision solver iterations (performance tuning)
+    const collisionIterations = Math.max(
+      1,
+      Math.min(20, Math.round(Number(globals.physicsCollisionIterations ?? 10) || 10))
+    );
+
     // Ball-to-ball collisions:
     // - Disabled for Flies (swarm aesthetic)
     // - Disabled for Orbit 3D (clean swirl aesthetic)
@@ -104,16 +117,16 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         globals.currentMode === MODES.KALEIDOSCOPE_1 ||
         globals.currentMode === MODES.KALEIDOSCOPE_2 ||
         globals.currentMode === MODES.KALEIDOSCOPE_3) {
-      resolveCollisions(6); // fewer iterations than heavy modes; enough to prevent overlap
+      resolveCollisions(6); // handled by kaleidoscope early-return, kept for safety
     } else if (globals.currentMode !== MODES.FLIES && 
                globals.currentMode !== MODES.ORBIT_3D &&
                globals.currentMode !== MODES.PARALLAX_LINEAR &&
                globals.currentMode !== MODES.PARALLAX_PERSPECTIVE) {
-      resolveCollisions(10); // standard solver iterations for stability
+      resolveCollisions(collisionIterations); // configurable solver iterations
     }
 
-    // Clear wall pressure before re-accumulating (called each physics step)
-    wallState.clearAllPressure();
+    // Reset per-step caps/counters (impacts + pressure-event budget)
+    wallState.resetStepBudgets();
     
     // Wall collisions + corner repellers
     // Skip for Orbit modes (they orbit freely without wall constraints)
@@ -158,8 +171,8 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       const DPR = globals.DPR || 1;
       // Thresholds must be DPR-scaled: physics runs in canvas pixels (displayPx * DPR)
       // Same apparent motion = DPRx higher velocity in canvas space
-      const STABLE_VEL_THRESHOLD = 8 * DPR; // px/s - very low; balls moving slower are "settled"
-      const STABLE_ANGULAR_THRESHOLD = 0.1; // rad/s (rotation not DPR-affected)
+      const vThresh = (Number.isFinite(globals.sleepVelocityThreshold) ? globals.sleepVelocityThreshold : 12.0) * DPR;
+      const wThresh = Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18;
       const tSleep = globals.timeToSleep ?? 0.25;
       
       for (let i = 0; i < lenClamp; i++) {
@@ -172,7 +185,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         // Aggressive stabilization: if grounded OR supported with tiny velocity, zero it
         // hasSupport = resting on another ball; isGrounded = touching floor
         const isSettled = b.isGrounded || b.hasSupport;
-        if (isSettled && speed < STABLE_VEL_THRESHOLD && angSpeed < STABLE_ANGULAR_THRESHOLD) {
+        if (isSettled && speed < vThresh && angSpeed < wThresh) {
           // Aggressively dampen toward zero (static friction simulation)
           b.vx *= 0.5;
           b.vy *= 0.5;
@@ -198,6 +211,54 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         } else {
           // Moving too fast - reset sleep timer
           b.sleepTimer = 0;
+        }
+      }
+    }
+
+    // Global sleep (non-pit physics modes):
+    // If enabled, allow truly-stationary balls to sleep to reduce per-ball work.
+    // Uses physicsSleepThreshold/physicsSleepTime (DPR-scaled) and the shared angular threshold.
+    if (globals.physicsSkipSleepingSteps !== false) {
+      const mode = globals.currentMode;
+      const eligible =
+        mode !== MODES.FLIES &&
+        mode !== MODES.ORBIT_3D &&
+        mode !== MODES.ORBIT_3D_2 &&
+        mode !== MODES.PARALLAX_LINEAR &&
+        mode !== MODES.PARALLAX_PERSPECTIVE &&
+        mode !== MODES.KALEIDOSCOPE &&
+        mode !== MODES.KALEIDOSCOPE_1 &&
+        mode !== MODES.KALEIDOSCOPE_2 &&
+        mode !== MODES.KALEIDOSCOPE_3 &&
+        mode !== MODES.PIT &&
+        mode !== MODES.PIT_THROWS;
+
+      if (eligible) {
+        const DPR = globals.DPR || 1;
+        const vThresh = Math.max(0, Number(globals.physicsSleepThreshold ?? 12.0) || 0) * DPR;
+        const tSleep = Math.max(0, Number(globals.physicsSleepTime ?? 0.25) || 0);
+        const wThresh = Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18;
+
+        if (vThresh > 0 && tSleep > 0) {
+          const lenSleep = balls.length;
+          for (let i = 0; i < lenSleep; i++) {
+            const b = balls[i];
+            if (!b || b.isSleeping) continue;
+
+            const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+            const angSpeed = Math.abs(b.omega);
+            if (speed < vThresh && angSpeed < wThresh) {
+              b.sleepTimer += DT;
+              if (b.sleepTimer >= tSleep) {
+                b.vx = 0;
+                b.vy = 0;
+                b.omega = 0;
+                b.isSleeping = true;
+              }
+            } else {
+              b.sleepTimer = 0;
+            }
+          }
         }
       }
     }

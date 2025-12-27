@@ -3,6 +3,10 @@
   /* --- Studio Wall / Frame (index-parity) ---
      IMPORTANT: `source/portfolio.html` loads `css/main.css` first in dev.
      We do NOT override shared chrome tokens here, otherwise sizes drift vs index. */
+  
+  /* Restore corner radius for portfolio page (simulation page uses 0) */
+  --abs-radius-wall-min: 32px;
+  --abs-wall-radius-vw: 3.7;
 
   /* --- Wheel Layout --- */
   --slider-max-height: 100dvh;
@@ -40,24 +44,31 @@
   --card-aspect-w: 5;
   --card-aspect-h: 4;
   /* Absolute floor so cards never get too small (keeps carousel spacing/readability). */
-  --card-height-floor: 240px;
-  --card-height-min: 30vh;
-  --card-height-ideal: 44vh;
-  --card-height-max: 60vh;
+  --card-height-floor: 216px;
+  --card-height-min: 27vh;
+  --card-height-ideal: 45vh;
+  --card-height-max: 55vh;
   --card-height: max(var(--card-height-floor), clamp(var(--card-height-min), var(--card-height-ideal), var(--card-height-max)));
   --card-width: calc(var(--card-height) * var(--card-aspect-w) / var(--card-aspect-h));
-  --corner-radius: var(--abs-radius-card);
+  --corner-radius: 1.9vmin;
   --border-width: 0.6vmin;
   --card-content-inset: clamp(6px, 1vw, 12px);
 
   /* --- Appearance --- */
   --active-shadow-intensity: 0.2;
   --img-saturation: 100%;
-  --border-color: var(--abs-neutral-50);
+  /* Light mode: dark borders on light background */
+  --border-color: rgba(var(--abs-rgb-black), 0.2) !important;
+  --border-color-hover: rgba(var(--abs-rgb-black), 0.7) !important;
+  --card-hover-scale: 1.025; /* Scale increase on hover (2.5%) */
+  --card-hover-lift: 0.6vmin; /* Z-axis movement towards user on hover (reduced by 92.5% total) */
+  --card-press-lift: -0.6vmin; /* Z-axis movement away from user on press (opposite of hover) */
+  --card-hover-shadow-intensity: 0.28;
   /* Map legacy background token to studio background for a matching inner surface. */
   --bg-color: var(--bg-light);
   --accent-color: var(--text-color-light);
   --cursor-color: var(--accent-color);
+  --cursor-color-card-hover: rgba(var(--abs-rgb-white), 0.4);
 
   /* --- Typography --- */
   --text-client-size: 1.1vw;
@@ -69,13 +80,16 @@
   --text-title-max: 56px;
   --text-tags-min: 14px;
   --text-tags-max: 18px;
-  --content-offset: 12vh;
+  --content-offset: 23.5vh;
+  --meta-lift: 0vh;            /* Raise meta block toward cards (relative to content-offset) */
+  --meta-padding: 0vmin;       /* Inner padding for the meta text block */
+  --stage-offset-y: 10vh;      /* Push carousel rig downward */
   --text-align: center;
   --meta-transition-speed: 360ms;
 
   /* --- Motion --- */
   --transition-speed: 600ms;
-  --transition-ease: cubic-bezier(0.25, 0.1, 0.25, 1.0); /* Ease-in-outish */
+  --transition-ease: var(--ease-organic);
   --perspective: 1000px;
   --detail-max-width: 720px;
   --detail-transition-ms: 700ms;
@@ -83,21 +97,20 @@
   --detail-transition-fade-delay: 60ms;
   --detail-transition-blur: 8px;
   --detail-transition-cross-blur: 0.9vmin;
-  --detail-transition-ease: cubic-bezier(0.16, 1, 0.3, 1); /* Smooth ease-out, no overshoot */
-  --detail-transition-ease-in: cubic-bezier(0.4, 0, 0.6, 1);
-  --detail-transition-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --detail-transition-ease: var(--ease-gate);
+  --detail-transition-ease-in: var(--ease-hesitant);
+  --detail-transition-ease-out: var(--ease-gate);
   --detail-transition-shadow-opacity: 0.18;
   --detail-surface: var(--abs-surface-contrast);
   /* Detail content motion (scale + fade, no overshoot). */
   --detail-content-pop-duration: 360ms;
+  --detail-content-pop-delay: 80ms;
   --detail-content-pop-delay-hero: 60ms;
   --detail-content-pop-delay-body: 90ms;
   --detail-content-pop-start-scale: 0.96;
   --detail-content-pop-overshoot-scale: 1;
-  --detail-content-pop-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --detail-card-swing-deg: -6;
-  --detail-card-swing-scale: 1.05;
-  --detail-card-pop-scale: 1.12;
+  --detail-content-pop-ease: var(--ease-bounce);
+  --detail-overlay-start-scale: 0.98;
   --detail-hero-height: 75vh;
   --detail-hero-width: 100%;
   --detail-hero-offset: 0%;
@@ -130,7 +143,9 @@ html {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: var(--wall-color);
+  /* Single source of truth: wall/frame uses the same token in all themes. */
+  background: var(--frame-color-light);
+  background-color: var(--frame-color-light);
 }
 
 body {
@@ -143,17 +158,58 @@ body {
   background: transparent;
   font-family: var(--abs-font-sans);
   color: var(--accent-color);
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s var(--ease-settle);
   cursor: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 
 body.dark-mode {
   --bg-color: var(--bg-dark);
   --accent-color: var(--abs-neutral-100);
-  --border-color: rgba(var(--abs-rgb-white), 0.85);
+  /* Dark mode: light borders on dark background (inverted from light mode) - must be light by default */
+  --border-color: rgba(var(--abs-rgb-white), 0.3) !important;
+  --border-color-hover: rgba(var(--abs-rgb-white), 1) !important;
   --text-color-light-muted: var(--text-color-dark-muted);
   --text-color-light-base: var(--text-color-dark);
+  --cursor-color-card-hover: rgba(var(--abs-rgb-white), 0.35);
+}
+
+/* Ensure dark mode borders are light by default */
+body.dark-mode .slide-image-container {
+  border-color: rgba(var(--abs-rgb-white), 0.3) !important;
+}
+
+/* Ensure dark mode hover borders are properly white */
+body.dark-mode .slide:hover .slide-image-container {
+  border-color: rgba(var(--abs-rgb-white), 1) !important;
+}
+
+body.dark-mode .slide:hover .slide-image-container::before {
+  background: rgba(var(--abs-rgb-white), 1) !important;
+  box-shadow: 0 0 0 var(--border-width) rgba(var(--abs-rgb-white), 1), 0 0 calc(var(--border-width) * 2) rgba(var(--abs-rgb-white), 0.9) !important;
+}
+
+/* Portfolio-specific logo colors and blur control (separate from index) */
+body.portfolio-page #brand-logo {
+  color: var(--portfolio-logo-color-light);
+  /* Portfolio-specific logo blur control */
+  filter: blur(var(--portfolio-logo-blur, 0px));
+  /* Add filter transition to existing logo transitions */
+  transition: 
+    transform var(--abs-scene-impact-dur, 100ms) var(--abs-scene-impact-ease, var(--ease-gate)),
+    opacity var(--gate-depth-out-duration, 250ms) var(--ease-gate),
+    filter var(--gate-depth-out-duration, 250ms) var(--ease-gate);
+}
+
+body.portfolio-page.dark-mode #brand-logo {
+  color: var(--portfolio-logo-color-dark);
+}
+
+/* Portfolio background text (edge-chapter, edge-copyright) - 20% transparent (80% opacity) */
+body.portfolio-page .edge-chapter__text,
+body.portfolio-page .edge-copyright__text {
+  opacity: 0.8;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -194,13 +250,64 @@ body.dark-mode {
   height: clamp(32px, 5vw, 44px);
   color: var(--accent-color);
   opacity: 0.7;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.2s var(--ease-organic), 
+              transform 0.2s var(--ease-organic),
+              filter 0.15s var(--ease-organic),
+              color 0.2s var(--ease-organic);
   text-decoration: none;
+  position: relative;
+  overflow: visible;
+}
+
+/* Light-up effect with gradient overlay */
+.top-nav__link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    transparent 0%,
+    transparent 50%,
+    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 20%, transparent 80%) 70%,
+    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 35%, transparent 65%) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.2s var(--ease-organic);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.dark-mode .top-nav__link::before {
+  background: radial-gradient(
+    circle at center,
+    transparent 0%,
+    transparent 50%,
+    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 15%, transparent 85%) 70%,
+    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 30%, transparent 70%) 100%
+  );
 }
 
 .top-nav__link:hover {
   opacity: 1;
   transform: scale(1.05);
+  color: var(--cursor-color, var(--link-hover-color));
+}
+
+.top-nav__link:hover::before {
+  opacity: 1;
+}
+
+.top-nav__link:active {
+  transform: scale(0.95);
+  filter: blur(10px);
+}
+
+/* Keep icon above gradient */
+.top-nav__link .top-nav__icon,
+.top-nav__link svg {
+  position: relative;
+  z-index: 1;
 }
 
 .top-nav__icon {
@@ -224,22 +331,31 @@ body.dark-mode {
   font-family: 'Geist', sans-serif;
   font-size: clamp(13px, 1.8vw, 15px);
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--letter-spacing-normal);
   text-transform: uppercase;
   color: var(--accent-color);
   text-decoration: none;
   border: 1.5px solid var(--abs-stroke-subtle);
   border-radius: var(--abs-radius-pill);
   background: var(--abs-surface-glass-balanced);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   opacity: 0.85;
-  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+  transition: opacity 0.2s var(--ease-organic), 
+              transform 0.2s var(--ease-organic), 
+              background-color 0.2s var(--ease-settle),
+              filter 0.15s var(--ease-organic);
 }
 
 .top-nav__cv:hover {
   opacity: 1;
   transform: scale(1.02);
   background: var(--abs-surface-glass-strong);
+}
+
+.top-nav__cv:active {
+  transform: scale(0.95);
+  filter: blur(10px);
 }
 
 body.dark-mode .top-nav__cv {
@@ -297,6 +413,7 @@ body.dark-mode .top-nav__cv:hover {
 
 body * {
   cursor: none !important;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -320,52 +437,41 @@ body * {
   right: var(--container-border-x, var(--container-border));
   bottom: var(--container-border-y, var(--container-border));
   border-radius: var(--container-radius);
-  background-color: var(--bg-color);
+  background-color: var(--bg-color, var(--bg-light, #f5f5f5));
+  background: var(--bg-color, var(--bg-light, #f5f5f5));
   overflow: hidden;
   box-sizing: border-box;
   z-index: 0;
   isolation: isolate;
   touch-action: none;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body.dark-mode .wall-frame {
+  background-color: var(--bg-color, var(--bg-dark, #0a0a0a));
+  background: var(--bg-color, var(--bg-dark, #0a0a0a));
 }
 
 body.detail-open .wall-frame {
   touch-action: pan-y;
 }
 
-.portfolio-noise {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  background-image: url(../../images/realistic_noise.gif);
-  background-repeat: repeat;
-  background-attachment: scroll;
-  background-size: calc(var(--noise-size-base) * var(--noise-size-scale)) calc(var(--noise-size-base) * var(--noise-size-scale));
-  mix-blend-mode: multiply;
-  pointer-events: none;
-}
-
-.portfolio-noise--back {
-  z-index: 1;
-  opacity: var(--noise-back-opacity-light);
-}
-
-body.dark-mode .portfolio-noise--back {
-  opacity: var(--noise-back-opacity-dark);
-}
-
 /* --- Slider Stage --- */
 .portfolio-stage {
   position: absolute;
   /* Match index: fill the padded interior of #fade-content */
-  inset: 0;
-  padding: 0;
+  left: 0;
+  right: 0;
   top: 50%;
-  transform: translateY(-50%);
-  height: min(100%, var(--slider-max-height));
+  bottom: 0;
+  padding: 0;
+  transform: translateY(calc(-50% + var(--stage-offset-y, 0vh)));
+  height: min(100%, var(--slider-max-height, 100dvh));
   width: 100%;
-  z-index: 2;
+  z-index: 5; /* Above the centered brand logo (background), below UI (#fade-content). */
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* --- Viewport & Track --- */
@@ -375,6 +481,7 @@ body.dark-mode .portfolio-noise--back {
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  padding-bottom: clamp(96px, 12vh, 160px);
   display: flex;
   align-items: center;
   perspective: var(--perspective);
@@ -390,6 +497,7 @@ body.dark-mode .portfolio-noise--back {
 
 .portfolio-viewport.is-dragging {
   cursor: grabbing;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -412,6 +520,27 @@ body.dark-mode .portfolio-noise--back {
   overflow: visible;
   transform-style: preserve-3d;
   will-change: transform;
+}
+
+/* Cylinder dots container - shares same 3D space as carousel */
+.cylinder-dots-container {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+/* Individual cylinder dot */
+.cylinder-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
 }
 
 /* --- Slides --- */
@@ -439,6 +568,27 @@ body.dark-mode .portfolio-noise--back {
     scale(var(--slide-scale));
   filter: blur(var(--slide-blur));
   will-change: transform, filter, opacity;
+  /* Smooth transition for hover scale effect - only when not actively animating */
+  transition: transform 0.3s var(--ease-organic);
+}
+
+/* Base transition for card press effect (same as links) - only when not active */
+.slide:not(:active) {
+  transition: transform var(--link-impact-duration) var(--ease-organic),
+              filter var(--link-impact-duration) var(--ease-organic);
+}
+
+/* Card press effect: scale down, blur, and move backward (opposite direction of hover) */
+/* Preserves all transform values but adds backward Z movement and applies scale/blur */
+.slide:active {
+  transform: 
+    translate3d(var(--slide-x), var(--slide-y), calc(var(--slide-z) + var(--card-press-lift, -0.6vmin)))
+    translate(-50%, -50%)
+    rotate(var(--slide-rotate))
+    scale(calc(var(--slide-scale) * var(--link-impact-scale))) !important;
+  filter: blur(var(--link-impact-blur)) !important;
+  transition: transform var(--link-impact-duration) var(--ease-organic),
+              filter var(--link-impact-duration) var(--ease-organic) !important;
 }
 
 .slide:focus-visible {
@@ -451,8 +601,10 @@ body.dark-mode .portfolio-noise--back {
 }
 
 /* Slide scales up when clicked (before detail overlay fully covers it) */
+/* Only animates Z-axis forward and scale - X/Y are frozen by JS */
 .slide.is-expanding {
   z-index: 11;
+  pointer-events: auto; /* Ensure card remains clickable during expansion */
   transition:
     transform var(--detail-transition-ms) var(--detail-transition-ease),
     opacity var(--detail-transition-ms) var(--detail-transition-ease),
@@ -473,32 +625,75 @@ body.dark-mode .portfolio-noise--back {
   width: 100%;
   height: 100%;
   border-radius: var(--corner-radius);
-  border: var(--border-width) solid var(--border-color);
+  border: var(--border-width) solid var(--border-color) !important;
   overflow: hidden;
   position: relative;
-  background: transparent;
-  box-shadow: 0 3vmin 6vmin rgba(var(--abs-rgb-black), var(--active-shadow-intensity));
-  transition: border-width var(--transition-speed) var(--transition-ease), border-color 0.3s ease, border-radius 0.3s ease, opacity 140ms ease;
+  background: var(--bg-color);
+  box-shadow: none;
+  transition: 
+    border-width var(--transition-speed) var(--transition-ease), 
+    border-color 0.35s var(--ease-organic), 
+    border-radius 0.3s var(--ease-organic), 
+    opacity 140ms var(--ease-settle);
   opacity: 1;
   transform-origin: center;
-  will-change: transform, opacity;
+  will-change: transform, opacity, filter;
+  isolation: isolate;
 }
 
-.slide-image-container::after {
+/* Glowing border on hover using pseudo-element - transparent light effect */
+.slide-image-container::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background-image: url(../../images/realistic_noise.gif);
-  background-repeat: repeat;
-  background-attachment: scroll;
-  background-size: calc(var(--noise-size-top) * var(--noise-size-scale)) calc(var(--noise-size-top) * var(--noise-size-scale));
-  opacity: var(--noise-front-opacity-light);
-  mix-blend-mode: multiply;
+  inset: calc(-1 * var(--border-width));
+  border-radius: var(--corner-radius);
+  background: var(--border-color-hover) !important;
+  opacity: 0;
+  z-index: 0;
+  transition: opacity 0.35s var(--ease-organic);
   pointer-events: none;
+  /* Add subtle glow effect */
+  box-shadow: 0 0 0 var(--border-width) var(--border-color-hover), 0 0 calc(var(--border-width) * 2) var(--border-color-hover) !important;
 }
 
-body.dark-mode .slide-image-container::after {
-  opacity: var(--noise-front-opacity-dark);
+.slide-image-container .slide-image {
+  position: relative;
+  z-index: 1;
+}
+
+.slide:hover .slide-image-container::before {
+  opacity: 1;
+}
+
+@keyframes slide-gradient-move {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
+/* Card hover effect: pull towards user with accent border */
+.slide:hover {
+  z-index: 12;
+  /* Override any blur effect when hovering - always show sharp on hover */
+  --slide-blur: 0vmin !important;
+  filter: blur(0) !important;
+}
+
+.slide:hover .slide-image-container {
+  border-color: var(--border-color-hover) !important;
+  box-shadow: none;
+}
+
+.slide:hover .slide-image {
+  filter: saturate(calc(var(--img-saturation) * 1.08));
+}
+
+/* Noise removed from cards - noise only appears on wall-frame background (behind and in front of cards) */
+.slide-image-container::after {
+  display: none;
 }
 
 .slide-image {
@@ -514,10 +709,11 @@ body.dark-mode .slide-image-container::after {
 .portfolio-meta {
   position: absolute;
   left: 50%;
-  bottom: var(--content-offset);
+  bottom: calc(var(--content-offset) - var(--meta-lift));
   --meta-shift: 0vh;
   transform: translateX(-50%) translateY(var(--meta-shift));
-  width: min(82vw, 70vmin);
+  width: 100%;
+  max-width: clamp(280px, 82vw, 720px);
   text-align: var(--text-align);
   opacity: 1;
   filter: blur(0);
@@ -531,6 +727,7 @@ body.dark-mode .slide-image-container::after {
 .portfolio-meta__inner {
   display: grid;
   gap: 12px;
+  padding: var(--meta-padding);
 }
 
 .portfolio-meta.is-switching {
@@ -542,27 +739,32 @@ body.dark-mode .slide-image-container::after {
 .meta-client {
   display: block;
   font-family: 'Geist', sans-serif;
-  font-weight: 400;
-  font-size: clamp(var(--text-client-min), var(--text-client-size), var(--text-client-max));
+  font-weight: 500;
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--letter-spacing-loose);
+  color: var(--text-muted);
 }
 
 .meta-title {
   display: block;
   font-family: 'Geist', sans-serif;
-  font-weight: 700;
-  font-size: clamp(var(--text-title-min), var(--text-title-size), var(--text-title-max));
-  line-height: 1.1;
-  text-transform: uppercase;
+  font-weight: 400;
+  font-size: var(--text-xl);
+  line-height: var(--line-height-title);
+  letter-spacing: var(--letter-spacing-normal);
+  text-transform: none;
+  color: var(--text-primary);
 }
 
 .meta-summary {
   display: block;
   font-family: 'Geist', sans-serif;
   font-size: clamp(var(--text-tags-min), var(--text-tags-size), var(--text-tags-max));
-  line-height: 1.6;
-  opacity: 0.7;
+  line-height: var(--line-height-summary);
+  letter-spacing: var(--letter-spacing-normal);
+  opacity: 0.9;
+  color: var(--text-primary);
 }
 
 /* --- Project Detail --- */
@@ -572,39 +774,28 @@ body.dark-mode .slide-image-container::after {
   z-index: 50; /* Force above everything including 3D carousel */
   opacity: 0;
   pointer-events: none;
-  background: var(--detail-surface);
+  background: var(--bg-light);
   will-change: opacity, transform;
-  transform: translateZ(0); /* Force stacking context */
+  transform: scale(var(--detail-overlay-start-scale));
+  transition:
+    opacity var(--detail-transition-ms) var(--detail-transition-ease),
+    transform var(--detail-transition-ms) var(--detail-transition-ease);
+}
+
+body.dark-mode .project-detail {
+  background: var(--bg-dark);
 }
 
 .project-detail.is-open {
   opacity: 1;
+  transform: scale(1);
   pointer-events: auto;
-}
-
-/* EXPANDING: Fade in only */
-.project-detail.is-expanding {
-  pointer-events: none;
-  transition: opacity var(--detail-transition-ms) var(--detail-transition-ease);
-}
-
-/* COLLAPSING: Fade out only */
-.project-detail.is-collapsing {
-  pointer-events: none;
-  transition: opacity var(--detail-transition-ms) var(--detail-transition-ease);
-}
-
-/* Cross-blur the hero media during the crossfade (filter values are applied inline in JS). */
-.project-detail.is-expanding .project-detail__media,
-.project-detail.is-collapsing .project-detail__media {
-  transition: filter var(--detail-transition-ms) var(--detail-transition-ease);
-  will-change: filter;
 }
 
 .project-detail__card {
   position: absolute;
   inset: 0;
-  background: var(--detail-surface);
+  background: transparent;
   border-radius: 0;
   box-shadow: none;
   overflow: hidden;
@@ -612,36 +803,66 @@ body.dark-mode .slide-image-container::after {
 
 .project-detail__close {
   position: fixed;
-  top: var(--close-button-top);
-  left: var(--close-button-left);
-  width: var(--close-button-width);
-  height: var(--close-button-height);
+  top: clamp(16px, 2vw, 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: clamp(52px, 5vw, 72px);
+  height: clamp(52px, 5vw, 72px);
   z-index: 15;
-  background: transparent;
+  background: rgba(var(--abs-rgb-white), 0.1);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: none;
-  color: var(--accent-color);
-  padding: 0;
-  font-size: var(--close-button-font-size);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  border-radius: 50%;
+  color: var(--text-soft);
+  padding: clamp(18px, 2.2vw, 28px);
+  font-weight: 500;
   cursor: pointer;
   display: none;
   align-items: center;
   justify-content: center;
-  gap: 0.4em;
-  transition: opacity 200ms ease;
+  transition:
+    opacity 200ms var(--ease-settle),
+    color 200ms var(--ease-settle),
+    transform var(--link-impact-duration) var(--ease-organic),
+    filter var(--link-impact-duration) var(--ease-organic);
+}
+
+/* Prevent `link-cursor-hop` (abs-hover-mode-ui) from overriding fixed positioning.
+   Without this, hovering the close/back button can switch it to `position:relative`,
+   forcing layout reflow and creating a visible “gap” at the top. */
+body.abs-hover-mode-ui .project-detail__close.abs-hover-target--ui {
+  position: fixed;
+  z-index: 15;
+}
+
+/* Match other icon controls: circular cursor-color background on hover (UI mode). */
+body.abs-hover-mode-ui .project-detail__close.abs-hover-target--ui::before {
+  border-radius: 50%;
+  opacity: 1 !important;
+}
+
+/* Press effect (must preserve translateX(-50%)).
+   Global `button:active { transform: scale(...) !important; }` would otherwise overwrite
+   our centering transform and make the button jump right on click. */
+.project-detail__close:active {
+  transform: translateX(-50%) scale(var(--link-impact-scale)) !important;
+  filter: blur(var(--link-impact-blur)) !important;
+}
+
+/* Keep press effect consistent even while hovered in UI hover-mode. */
+body.abs-hover-mode-ui .project-detail__close.abs-hover-target--ui:active {
+  transform: translateX(-50%) scale(var(--link-impact-scale)) !important;
+  filter: blur(var(--link-impact-blur)) !important;
 }
 
 .close-icon {
-  font-size: var(--close-button-icon-size);
+  font-size: var(--icon-size-base);
   width: 1em;
   height: 1em;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease-out;
-  will-change: transform, opacity;
 }
 
 .project-detail.is-open .project-detail__close {
@@ -649,30 +870,15 @@ body.dark-mode .slide-image-container::after {
 }
 
 .project-detail__close:hover {
-  opacity: 0.8;
+  color: var(--text-strong);
 }
 
-.project-detail.is-animating .project-detail__close {
-  opacity: 0;
-  pointer-events: none;
-  transition: none;
-}
-
-.close-letter {
-  display: inline-block;
-  transition: transform 0.1s ease-out, opacity 0.1s ease-out;
-  will-change: transform, opacity;
-}
-
-.project-detail.is-open .close-letter {
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease-out;
-}
+/* Dark-mode close button colors are token-driven via `--text-*` variables. */
 
 .project-detail__scroller {
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
 
@@ -684,6 +890,16 @@ body.dark-mode .slide-image-container::after {
   gap: 32px;
   transform-origin: center top;
   will-change: transform, opacity;
+  opacity: 0;
+  transform: scale(var(--detail-content-pop-start-scale));
+  transition:
+    opacity var(--detail-content-pop-duration) var(--detail-content-pop-ease) var(--detail-content-pop-delay),
+    transform var(--detail-content-pop-duration) var(--detail-content-pop-ease) var(--detail-content-pop-delay);
+}
+
+.project-detail.is-open .project-detail__inner {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .project-detail__content {
@@ -717,7 +933,7 @@ body.dark-mode .slide-image-container::after {
   width: var(--detail-hero-width);
   margin-left: var(--detail-hero-offset);
   max-width: none;
-  border-radius: var(--corner-radius);
+  border-radius: 0;
   border: none;
   overflow: hidden;
   background: transparent;
@@ -729,20 +945,88 @@ body.dark-mode .slide-image-container::after {
 .project-detail__media::after {
   /* Match slide/transition noise treatment to avoid a perceptual "brightening pulse"
      when the transition layer fades out and the detail hero becomes visible. */
-  content: '';
+  content: none;
   position: absolute;
-  inset: 0;
-  background-image: url(../../images/realistic_noise.gif);
+  inset: var(--abs-noise-overscan);
+  background-image: var(--abs-noise-texture);
   background-repeat: repeat;
   background-attachment: scroll;
   background-size: calc(var(--noise-size-top) * var(--noise-size-scale)) calc(var(--noise-size-top) * var(--noise-size-scale));
-  opacity: var(--noise-front-opacity-light);
+  /* Detail view already has back/front noise layers. Keeping this hero-only layer at 0
+     prevents stacking noise (too dark/prominent) and matches index/portfolio exactly. */
+  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled) * var(--detail-media-noise-opacity, 0));
   mix-blend-mode: multiply;
   pointer-events: none;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+  filter: var(--abs-noise-filter);
+  animation-name: var(--abs-noise-keyframes), abs-noise-flicker;
+  animation-duration: var(--abs-noise-speed-front), var(--abs-noise-flicker-speed);
+  animation-timing-function: var(--abs-noise-timing), steps(2);
+  animation-iteration-count: infinite, infinite;
 }
 
 body.dark-mode .project-detail__media::after {
-  opacity: var(--noise-front-opacity-dark);
+  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled) * var(--detail-media-noise-opacity, 0));
+  mix-blend-mode: overlay;
+}
+
+/* Detail noise layers (background → content → front) */
+.project-detail__noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none !important;
+  overflow: hidden;
+  z-index: 1; /* Behind content */
+}
+
+.project-detail__noise--back {
+  z-index: 1;
+  opacity: calc(var(--noise-back-opacity-light) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
+  mix-blend-mode: multiply;
+}
+
+.project-detail__noise--front {
+  z-index: 51; /* Above content (z:50) */
+  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
+  mix-blend-mode: multiply;
+}
+
+body.dark-mode .project-detail__noise--back {
+  opacity: calc(var(--noise-back-opacity-dark) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
+  mix-blend-mode: overlay;
+}
+
+body.dark-mode .project-detail__noise--front {
+  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
+  mix-blend-mode: overlay;
+}
+
+.project-detail__noise::before {
+  content: '';
+  position: absolute;
+  inset: var(--abs-noise-overscan);
+  background-image: var(--abs-noise-texture);
+  background-repeat: repeat;
+  background-attachment: scroll;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+  filter: var(--abs-noise-filter);
+  animation-name: var(--abs-noise-keyframes), abs-noise-flicker;
+  animation-duration: var(--abs-noise-speed-back), var(--abs-noise-flicker-speed);
+  animation-timing-function: var(--abs-noise-timing), steps(1, end);
+  animation-iteration-count: infinite, infinite;
+}
+
+.project-detail__noise--back::before {
+  background-size: calc(var(--noise-size-base) * var(--noise-size-scale)) calc(var(--noise-size-base) * var(--noise-size-scale));
+  animation-duration: var(--abs-noise-speed-back), var(--abs-noise-flicker-speed);
+}
+
+.project-detail__noise--front::before {
+  background-size: calc(var(--noise-size-top) * var(--noise-size-scale)) calc(var(--noise-size-top) * var(--noise-size-scale));
+  animation-duration: var(--abs-noise-speed-front), var(--abs-noise-flicker-speed);
 }
 
 .project-detail__image {
@@ -765,27 +1049,35 @@ body.dark-mode .project-detail__media::after {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding-top: 40px;
+  padding-bottom: 40px;
 }
 
 .project-detail__eyebrow {
   font-size: clamp(11px, 1vw, 13px);
-  letter-spacing: 0.28em;
+  letter-spacing: var(--letter-spacing-loose);
   text-transform: uppercase;
-  opacity: 0.6;
+  opacity: 1;
+  color: var(--text-primary);
+  text-align: center;
 }
 
 .project-detail__title {
-  font-size: clamp(42px, 9vw, 120px);
-  line-height: 0.95;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 80px;
+  line-height: var(--line-height-display);
+  font-weight: 400;
+  letter-spacing: var(--letter-spacing-tight);
+  vertical-align: middle;
+  text-align: center;
+  color: var(--text-primary);
 }
 
 .project-detail__summary {
   font-size: clamp(16px, 1.7vw, 20px);
-  line-height: 1.7;
+  line-height: var(--line-height-body-relaxed);
   opacity: 0.75;
   max-width: 62ch;
+  color: var(--text-primary);
 }
 
 .project-detail__meta {
@@ -793,19 +1085,23 @@ body.dark-mode .project-detail__media::after {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 16px;
   margin-top: 6px;
+  text-align: center;
 }
 
 .project-detail__meta-item dt {
   font-size: 10px;
-  letter-spacing: 0.2em;
+  letter-spacing: var(--letter-spacing-loose);
   text-transform: uppercase;
-  opacity: 0.5;
+  opacity: 1;
+  color: var(--text-muted);
+  font-weight: 500;
   margin-bottom: 6px;
 }
 
 .project-detail__meta-item dd {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
+  color: var(--text-primary);
 }
 
 .project-detail__body {
@@ -818,14 +1114,16 @@ body.dark-mode .project-detail__media::after {
 .project-detail__takeaways h2 {
   font-size: 18px;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: var(--letter-spacing-loose);
   margin-bottom: 12px;
+  color: var(--text-primary);
 }
 
 .project-detail__overview p {
   font-size: 16px;
-  line-height: 1.7;
+  line-height: var(--line-height-body-relaxed);
   opacity: 0.8;
+  color: var(--text-primary);
 }
 
 .project-detail__links {
@@ -843,7 +1141,7 @@ body.dark-mode .project-detail__media::after {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--letter-spacing-loose);
   background: rgba(var(--abs-rgb-white), 0.8);
 }
 
@@ -864,12 +1162,13 @@ body.dark-mode .project-detail__media::after {
   border-radius: 22px;
   display: block;
   background: transparent;
-  box-shadow: var(--abs-shadow-lift);
+  box-shadow: none;
 }
 
 .project-detail__caption {
   font-size: 13px;
   opacity: 0.6;
+  color: var(--text-muted);
 }
 
 .project-detail__takeaways ul {
@@ -878,31 +1177,17 @@ body.dark-mode .project-detail__media::after {
   display: grid;
   gap: 10px;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: var(--line-height-body);
   opacity: 0.8;
+  color: var(--text-primary);
 }
 
 /* Keep index-style chrome visible while a project detail is open.
    (Index never hides header/footer; portfolio should match that UX.) */
-body.detail-open .portfolio-header,
+body.detail-open .ui-top,
 body.detail-open .portfolio-footer {
   opacity: 1;
   pointer-events: auto;
-}
-
-/* --- Header --- */
-
-.portfolio-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  padding: clamp(16px, 2.5vmin, 28px);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 6;
-  pointer-events: none;
 }
 
 .portfolio-header__actions {
@@ -910,6 +1195,7 @@ body.detail-open .portfolio-footer {
   align-items: center;
   gap: var(--gap-lg);
   pointer-events: auto;
+  flex-wrap: wrap;
 }
 
 .portfolio-sound-slot {
@@ -919,34 +1205,43 @@ body.detail-open .portfolio-footer {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    INDEX CHROME PARITY (PORTFOLIO TOP OVERRIDES)
-   Goal: match index sizing/spacing exactly while keeping portfolio-specific top content:
-   - No center logo
-   - Left: blurb (constrained)
-   - Right: Bio/CV + sound
+   Goal: match the index sizing/spacing while swapping the layout to:
+   - Left: back arrow only
+   - Right: Bio/CV link + philosophy text (same look as index) with the sound toggle
    ───────────────────────────────────────────────────────────────────────────── */
 
 body.portfolio-page .ui-top-main {
   align-items: flex-start !important;
 }
 
-/* Prevent the left column from becoming a full-width block (which pushes actions away). */
 body.portfolio-page .ui-top-left {
   width: auto !important;
-  flex: 0 1 auto !important;
+  flex: 0 0 auto !important;
   min-width: 0 !important;
+  display: inline-flex;
+  align-items: flex-start;
+  pointer-events: auto !important;
+  gap: calc(var(--gap-sm) * 2);
 }
 
-/* Constrain blurb exactly like index (same max-width token). */
 body.portfolio-page .ui-top-left .decorative-script {
   max-width: var(--decorative-script-max-width) !important;
+  margin: 0;
 }
 
-/* Actions should sit in the top-right corner, not occupy the entire row width. */
+#portfolio-blurb {
+  padding-top: var(--gap-sm);
+  padding-bottom: var(--gap-sm);
+}
+
 body.portfolio-page .ui-top-right {
   width: auto !important;
-  max-width: none !important;
-  flex: 0 0 auto !important;
+  max-width: 60vw !important;
+  flex: 1 1 auto !important;
   justify-content: flex-end !important;
+  align-items: center !important;
+  pointer-events: auto !important;
+  gap: var(--gap-lg) !important;
 }
 
 @media (max-width: 600px) {
@@ -969,11 +1264,12 @@ body.portfolio-page .ui-top-right {
   font-weight: 400;
   letter-spacing: var(--footer-links-letter-spacing);
   text-decoration: none;
-  color: var(--text-color-light-muted);
+  color: var(--text-primary);
   opacity: var(--text-opacity-base);
   pointer-events: auto;
   cursor: none;
-  transition: color var(--duration-link-hover) ease;
+  transition: transform 0.15s var(--ease-organic),
+              filter 0.15s var(--ease-organic);
 }
 
 .gate-back {
@@ -985,10 +1281,35 @@ body.portfolio-page .ui-top-right {
   display: inline-flex;
   justify-content: center;
   align-items: center;
+  position: relative;
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
-  color: var(--text-color-light-muted);
+  color: var(--text-quiet);
   pointer-events: auto;
+  width: auto;
+  height: auto;
+  text-decoration: none;
+}
+
+.gate-back::after {
+  content: '';
+  position: absolute;
+  bottom: calc(var(--dot-indicator-offset) * -1);
+  left: 50%;
+  transform: translate3d(-50%, 0, 0) scaleY(0);
+  transform-origin: 50% 50%;
+  width: var(--abs-cursor-hop-dot-size, var(--dot-indicator-size));
+  height: var(--abs-cursor-hop-dot-size, var(--dot-indicator-size));
+  border-radius: 50%;
+  background: var(--cursor-color, var(--link-hover-color));
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.gate-back:hover::after {
+  opacity: 1;
+  animation: braviaDotBounceIn var(--dot-bounce-duration) var(--ease-bounce) both;
 }
 
 .gate-back span {
@@ -1000,22 +1321,14 @@ body.portfolio-page .ui-top-right {
   font-size: var(--icon-size-base);
 }
 
-.gate-back:hover {
-  color: var(--link-hover-color);
-}
-
 .gate-back:focus-visible {
   outline: 0.2vmin solid rgba(var(--abs-rgb-black), 0.35);
   outline-offset: 0.4vmin;
   border-radius: 0.6vmin;
 }
 
-body.dark-mode .gate-back {
-  color: var(--text-quiet-inverse);
-}
-
-body.dark-mode .gate-back:hover {
-  color: var(--link-hover-color);
+body.dark-mode .gate-back:focus-visible {
+  outline-color: rgba(var(--abs-rgb-white), 0.35);
 }
 
 .footer_link {
@@ -1026,13 +1339,14 @@ body.dark-mode .gate-back:hover {
   margin-block: calc(var(--hit-area-lg) * -1);
   margin-inline: calc(var(--hit-area-lg) * -1);
   display: inline-block;
-  color: var(--text-color-light-muted);
+  color: var(--text-muted);
   font-size: var(--footer-links-font-size);
   font-weight: 400;
   letter-spacing: var(--footer-links-letter-spacing);
   text-decoration: none;
   opacity: var(--text-opacity-base);
-  transition: color var(--duration-link-hover) ease;
+  transition: transform 0.15s var(--ease-organic),
+              filter 0.15s var(--ease-organic);
   cursor: none;
   pointer-events: auto;
 }
@@ -1044,30 +1358,22 @@ body.dark-mode .gate-back:hover {
   left: 50%;
   transform: translate3d(-50%, 0, 0) scaleY(0);
   transform-origin: 50% 50%;
-  width: var(--footer-link-dot-size);
-  height: var(--footer-link-dot-size);
+  width: var(--abs-cursor-hop-dot-size, var(--footer-link-dot-size));
+  height: var(--abs-cursor-hop-dot-size, var(--footer-link-dot-size));
   border-radius: 50%;
-  background: var(--link-hover-color);
+  background: var(--cursor-color, var(--link-hover-color));
   opacity: 0;
   will-change: transform, opacity;
 }
 
 .footer_link:hover {
-  color: var(--link-hover-color);
+  /* No color change - keep colors as-is */
   opacity: 1;
 }
 
 .footer_link:hover::after {
   opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) ease-out both;
-}
-
-body.dark-mode .footer_link {
-  color: var(--text-color-dark-muted);
-}
-
-body.dark-mode .footer_link:hover {
-  color: var(--link-hover-color);
+  animation: braviaDotBounceIn var(--dot-bounce-duration) var(--ease-bounce) both;
 }
 
 .sound-toggle {
@@ -1077,7 +1383,7 @@ body.dark-mode .footer_link:hover {
   transform: none;
   margin: 0;
   padding: var(--hit-area-sm);
-  color: var(--text-color-light-muted);
+  color: var(--text-quiet);
   font-family: 'Geist', sans-serif;
   cursor: none;
   background: none;
@@ -1097,10 +1403,6 @@ body.dark-mode .footer_link:hover {
   color: var(--link-hover-color);
 }
 
-body.dark-mode .sound-toggle {
-  color: var(--text-quiet-inverse);
-}
-
 body.dark-mode .sound-toggle[data-enabled="true"] {
   color: var(--link-hover-color);
 }
@@ -1118,6 +1420,7 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
   display: flex;
   gap: 5px;
   pointer-events: auto;
+  -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
 }
 
@@ -1129,13 +1432,13 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
   font-weight: 600;
   color: var(--accent-color);
   opacity: 0.5;
-  transition: all 0.2s ease;
+  transition: all 0.2s var(--ease-organic);
 }
 
 .pill-link.active {
   background: var(--abs-surface-contrast);
   opacity: 1;
-  box-shadow: var(--abs-shadow-soft);
+  box-shadow: none;
 }
 
 /* Mobile Responsive */
@@ -1144,9 +1447,9 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
     /* Mobile: allow smaller floor so cards still fit vertically. */
     --card-height-floor: 180px;
     --text-title-max: 42px;
-    --card-height-min: 34vh;
-    --card-height-ideal: 50vh;
-    --card-height-max: 68vh;
+    --card-height-min: 31vh;
+    --card-height-ideal: 45vh;
+    --card-height-max: 55vh;
     --wheel-radius-x: 46vw;
     --wheel-radius-y: 18vh;
     /* Mobile: tighter spacing ratio to prevent overlap on small screens */
@@ -1158,7 +1461,9 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
     --text-client-size: 3vw;
     --text-title-size: 6vw;
     --text-tags-size: 2.5vw;
-    --content-offset: 10vh;
+    --content-offset: 23.5vh;
+    --meta-lift: 0vh;
+    --stage-offset-y: 10vh;
     --detail-hero-width: 100%;
     --detail-hero-offset: 0%;
     --detail-hero-top-pad: 0px;
@@ -1183,10 +1488,6 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
   .project-detail__meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .project-detail__close {
-    /* Mobile uses same CSS variables, no override needed */
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1194,6 +1495,7 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
 .portfolio-meta,
 .project-detail,
 .project-detail__card,
+.project-detail__inner,
 .project-detail__hero,
 .project-detail__body,
 .project-transition,
@@ -1202,7 +1504,8 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
 }
 
 .project-detail__hero,
-.project-detail__body {
+.project-detail__body,
+.project-detail__inner {
   animation: none !important;
 }
 }
@@ -1222,11 +1525,11 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
     scaleX(var(--cursor-stretch-x, 1))
     scaleY(var(--cursor-stretch-y, 1));
   opacity: 0.85;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              background 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.35s var(--ease-hesitant),
+              opacity 0.35s var(--ease-hesitant),
+              width 0.35s var(--ease-hesitant),
+              height 0.35s var(--ease-hesitant),
+              background 0.35s var(--ease-hesitant);
   will-change: transform, opacity, width, height, background;
   width: 20px;
   height: 20px;
@@ -1247,3 +1550,14 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
     scaleY(var(--cursor-stretch-y, 1)) !important;
   opacity: 1 !important;
 }
+
+/* Subtle cursor change when hovering portfolio cards - transparency only, no orange */
+body.portfolio-card-hovering #custom-cursor {
+  background: var(--cursor-color-card-hover) !important;
+  width: 24px !important;
+  height: 24px !important;
+  opacity: 0.6 !important;
+}
+
+/* Link hover behavior is centralized in `css/main.css` and toggled by
+   `body.abs-hover-mode-index` / `body.abs-hover-mode-ui` (set by JS). */

@@ -261,9 +261,9 @@
       "noise-size-top": { "value": "150px", "type": "dimension" },
       "noise-size-scale": { "value": "1", "type": "number" },
       "noise-back-opacity-light": { "value": "0.025", "type": "opacity" },
-      "noise-front-opacity-light": { "value": "0.055", "type": "opacity" },
+      "noise-front-opacity-light": { "value": "0.12", "type": "opacity" },
       "noise-back-opacity-dark": { "value": "0.12", "type": "opacity" },
-      "noise-front-opacity-dark": { "value": "0.08", "type": "opacity" },
+      "noise-front-opacity-dark": { "value": "0.18", "type": "opacity" },
       "noise-top-opacity": { "value": "0.01", "type": "opacity" }
     },
 
@@ -272,9 +272,12 @@
       "edge-label-inset-adjust": { "value": "0px", "type": "dimension" },
       "edge-label-inset": { "value": "calc({interactionMotion.edge-label-inset-base} + {interactionMotion.edge-label-inset-adjust})", "type": "dimension" },
 
-      "ease-organic": { "value": "cubic-bezier(0.22, 1, 0.36, 1)", "type": "text" },
+      "ease-organic": { "value": "cubic-bezier(0.22, 1.28, 0.36, 1)", "type": "text" },
       "ease-settle": { "value": "cubic-bezier(0.16, 1, 0.3, 1)", "type": "text" },
       "ease-hesitant": { "value": "cubic-bezier(0.4, 0, 0.2, 1)", "type": "text" },
+      "ease-gate": { "value": "{interactionMotion.ease-organic}", "type": "text" },
+      "ease-fade": { "value": "{interactionMotion.ease-settle}", "type": "text" },
+      "ease-bounce": { "value": "cubic-bezier(0.34, 1.56, 0.64, 1)", "type": "text" },
       "duration-resize": { "value": "600ms", "type": "text" },
       "duration-settle": { "value": "400ms", "type": "text" },
       "duration-quick": { "value": "200ms", "type": "text" },
@@ -284,7 +287,7 @@
       "hit-area-padding-neg": { "value": "calc({interactionMotion.hit-area-padding} * -1)", "type": "dimension" }
     },
 
-    "brandLogoMotion": {
+	    "brandLogoMotion": {
       "abs-brand-logo-impact": { "value": "0", "type": "number" },
       "abs-brand-logo-squash": { "value": "0", "type": "number" },
       "abs-brand-logo-impact-dur": { "value": "100ms", "type": "text" },
@@ -294,17 +297,20 @@
       "abs-brand-logo-tilt-deg": { "value": "0", "type": "number" },
       "abs-brand-logo-skew-deg": { "value": "0", "type": "number" },
 
-      "brand-logo-user-scale": { "value": "1", "type": "number" }
-    },
+	      "top-logo-width-vw": { "value": "35", "type": "number" },
+	      "brand-logo-width-min": { "value": "300px", "type": "dimension" },
+	      "brand-logo-width-max": { "value": "600px", "type": "dimension" },
+	      "brand-logo-user-scale": { "value": "1", "type": "number" }
+	    },
 
-    "sceneImpact": {
+	    "sceneImpact": {
       "abs-scene-impact": { "value": "0", "type": "number" },
       "abs-scene-impact-dur": { "value": "100ms", "type": "text" },
       "abs-scene-impact-logo-scale": { "value": "1", "type": "number" },
-      "abs-scene-impact-ease": { "value": "cubic-bezier(0.78, 0.00, 0.22, 1.00)", "type": "text" },
-      "abs-scene-impact-mul": { "value": "0.005", "type": "number" },
-      "abs-scene-impact-logo-comp-mul": { "value": "1.0", "type": "number" }
-    },
+	      "abs-scene-impact-ease": { "value": "{interactionMotion.ease-gate}", "type": "text" },
+	      "abs-scene-impact-mul": { "value": "0.005", "type": "number" },
+	      "abs-scene-impact-logo-comp-mul": { "value": "1.0", "type": "number" }
+	    },
 
     "gateDefaults": {
       "abs-gate-mobile-pad-x": { "value": "20px", "type": "dimension" },
@@ -414,5 +420,4 @@
     "tokenSetOrder": ["global", "light", "dark"]
   }
 }
-
 

@@ -7,7 +7,7 @@ import { getAllControls } from './control-registry.js';
 import { getSoundConfig, getCurrentPreset } from '../audio/sound-engine.js';
 
 export function setupBuildControls() {
-  const btn = document.getElementById('saveConfigBtn');
+  const btn = document.getElementById('saveRuntimeConfigBtn');
   if (!btn) return;
   btn.addEventListener('click', () => {
     const g = getGlobals();
@@ -78,6 +78,5 @@ export function setupBuildControls() {
     document.body.removeChild(a);
   });
 }
-
 
 

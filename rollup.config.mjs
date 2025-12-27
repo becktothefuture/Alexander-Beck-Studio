@@ -117,6 +117,9 @@ export default [{
     sourcemap: !isProd,
     banner: `/* Alexander Beck Studio | ${new Date().toISOString().split('T')[0]} */`,  // Shorter banner
     compact: isProd,  // Compact output in production
+    // This codebase uses `import()` for optional subsystems (e.g. entrance animation).
+    // For IIFE builds we must inline dynamic imports to avoid code-splitting.
+    inlineDynamicImports: true,
   },
   treeshake: {
     moduleSideEffects: false,  // Assume modules have no side effects

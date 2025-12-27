@@ -6,6 +6,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
+import { getCursorBrightenedColor } from '../rendering/cursor.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INTERNAL STATE (pooled ring buffer)
@@ -17,6 +18,26 @@ let ys = null;
 let ts = null; // timestamps (ms)
 let head = 0; // next write index
 let size = 0; // number of valid samples (<= cap)
+let lastSuppressed = false;
+
+function isSuppressedByLinkHover() {
+  try {
+    return Boolean(document?.body?.classList?.contains?.('abs-link-hovering'));
+  } catch (e) {
+    return false;
+  }
+}
+
+function syncSuppressedState() {
+  const suppressed = isSuppressedByLinkHover();
+  if (suppressed && !lastSuppressed) {
+    // Drop all samples so the trail never “pops back” when leaving a link quickly.
+    head = 0;
+    size = 0;
+  }
+  lastSuppressed = suppressed;
+  return suppressed;
+}
 
 function prefersReducedMotion() {
   try {
@@ -40,10 +61,9 @@ function ensureCapacity(nextCap) {
 }
 
 function getStrokeStyle() {
-  // Unified cursor color: matches the dot (CSS var --cursor-color).
-  // Keep this O(1): a single string read, no parsing/allocation.
-  const g = getGlobals();
-  return (g && typeof g.cursorColorHex === 'string' && g.cursorColorHex) ? g.cursorColorHex : '#000000';
+  // Use the same brightened color as the cursor dot
+  // This ensures perfect synchronization between cursor and trail
+  return getCursorBrightenedColor();
 }
 
 function clamp(v, min, max) {
@@ -65,6 +85,8 @@ function distSq(ax, ay, bx, by) {
  * Called only for mouse-like pointers, and only when not over UI.
  */
 export function notifyMouseTrailMove(x, y, nowMs, inBounds) {
+  if (syncSuppressedState()) return;
+
   const g = getGlobals();
   if (!g?.mouseTrailEnabled) return;
   if (!inBounds) return;
@@ -107,6 +129,8 @@ export function notifyMouseTrailLeave() {
  * Draw the current trail. Call from the main render loop.
  */
 export function drawMouseTrail(ctx) {
+  if (syncSuppressedState()) return;
+
   const g = getGlobals();
   if (!g?.mouseTrailEnabled) return;
   if (prefersReducedMotion()) return;

@@ -9,6 +9,7 @@ import { autoSaveSettings } from '../utils/storage.js';
 import { deriveWallParamsFromHighLevel, applyWallPreset } from '../physics/wall-state.js';
 import { WALL_PRESETS, ORBIT3D_PRESETS, PARALLAX_LINEAR_PRESETS, PARALLAX_PERSPECTIVE_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyOrbit3DPreset } from '../modes/orbit-3d.js';
+import { applyNoiseSystem } from '../visual/noise-system.js';
 
 // Will be set by main.js to avoid circular dependency
 let applyVisualCSSVars = null;
@@ -61,6 +62,51 @@ export function resetVisibility() {
 
 // Initialize visibility state
 loadVisibility();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PANEL SCOPES (MASTER vs HOME)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const MASTER_SECTION_KEYS = [
+  // Artist-first order: start with the physical world, then look/texture, then interaction.
+  'physics',            // global material world (mass, bounce, drag, perf)
+  'wall',               // boundary feel + wobble
+  'balls',              // ball material + spacing
+  'colorDistribution',  // what's inside (palette mix)
+  'colors',             // surface + text + frame
+  'noise',              // grain/texture
+  'cursor',             // interaction feel
+  'trail',              // motion styling
+  'links',              // link styling, padding, color, impact motion
+  'scene',              // global scene motion
+  'overlay',            // gate/overlays
+  'entrance',           // dramatic page entrance animation
+  'environment'         // browser/theme behavior
+];
+
+// Category groupings for visual chunking in the panel
+const SECTION_CATEGORIES = {
+  'physics': 'MATERIAL WORLD',
+  'wall': 'MATERIAL WORLD',
+  'balls': 'MATERIAL WORLD',
+
+  'colorDistribution': 'LOOK & PALETTE',
+  'colors': 'LOOK & PALETTE',
+  'noise': 'LOOK & PALETTE',
+
+  'cursor': 'INTERACTION',
+  'trail': 'INTERACTION',
+  'links': 'INTERACTION',
+
+  'scene': 'MOTION',
+  'entrance': 'MOTION',
+
+  'overlay': 'DEPTH & LAYOUT',
+  'layout': 'DEPTH & LAYOUT',
+
+  'sound': 'SOUND',
+  'environment': 'ENVIRONMENT'
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PRESET APPLIERS (avoid circular dependencies by keeping them here)
@@ -226,6 +272,123 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // PHYSICS (GLOBAL) — shared material world across physics-based simulations
+  // ═══════════════════════════════════════════════════════════════════════════
+  physics: {
+    title: 'Material World',
+    icon: '⚖️',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'ballMassKg',
+        label: 'Ball Mass',
+        stateKey: 'ballMassKg',
+        type: 'range',
+        min: 20, max: 400, step: 1,
+        default: 91,
+        format: v => `${Math.round(v)} kg`,
+        parse: v => parseInt(v, 10),
+        hint: 'Heavier = snooker feel (more inertia, less jitter).',
+        onChange: (g, val) => {
+          // Apply immediately to existing balls
+          const m = Number(val);
+          if (!Number.isFinite(m)) return;
+          if (Array.isArray(g.balls)) {
+            for (let i = 0; i < g.balls.length; i++) {
+              const b = g.balls[i];
+              if (b) b.m = m;
+            }
+          }
+        }
+      },
+      {
+        id: 'REST',
+        label: 'Restitution',
+        stateKey: 'REST',
+        type: 'range',
+        min: 0, max: 0.95, step: 0.01,
+        default: 0.42,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Global bounciness for collisions (modes may override).'
+      },
+      {
+        id: 'FRICTION',
+        label: 'Friction',
+        stateKey: 'FRICTION',
+        type: 'range',
+        min: 0, max: 0.06, step: 0.001,
+        default: 0.018,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        hint: 'Global drag/energy loss (modes may override).'
+      },
+
+      // Performance + stability controls
+      {
+        id: 'physicsCollisionIterations',
+        label: 'Collision Iterations',
+        stateKey: 'physicsCollisionIterations',
+        type: 'range',
+        min: 3, max: 20, step: 1,
+        default: 10,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        group: 'Performance',
+        groupCollapsed: true,
+        hint: 'Lower = faster, higher = tighter stacks.'
+      },
+      {
+        id: 'physicsSkipSleepingCollisions',
+        label: 'Skip Sleeping Pairs',
+        stateKey: 'physicsSkipSleepingCollisions',
+        type: 'toggle',
+        default: true,
+        group: 'Performance'
+      },
+      {
+        id: 'physicsSpatialGridOptimization',
+        label: 'Grid Reuse',
+        stateKey: 'physicsSpatialGridOptimization',
+        type: 'toggle',
+        default: true,
+        group: 'Performance'
+      },
+      {
+        id: 'physicsSleepThreshold',
+        label: 'Sleep Threshold',
+        stateKey: 'physicsSleepThreshold',
+        type: 'range',
+        min: 0, max: 30, step: 1,
+        default: 12,
+        format: v => `${Math.round(v)} px/s`,
+        parse: v => parseInt(v, 10),
+        group: 'Performance',
+        hint: 'Global sleep threshold for non-Pit physics modes. 0 disables.'
+      },
+      {
+        id: 'physicsSleepTime',
+        label: 'Sleep Time',
+        stateKey: 'physicsSleepTime',
+        type: 'range',
+        min: 0, max: 1.0, step: 0.05,
+        default: 0.25,
+        format: v => `${v.toFixed(2)}s`,
+        parse: parseFloat,
+        group: 'Performance'
+      },
+      {
+        id: 'physicsSkipSleepingSteps',
+        label: 'Skip Sleeping Steps',
+        stateKey: 'physicsSkipSleepingSteps',
+        type: 'toggle',
+        default: true,
+        group: 'Performance'
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // BALLS - Size, softness, spacing
   // ═══════════════════════════════════════════════════════════════════════════
   balls: {
@@ -331,11 +494,11 @@ export const CONTROL_SECTIONS = {
         label: 'Variation Cap',
         stateKey: 'sizeVariationCap',
         type: 'range',
-        min: 0, max: 0.5, step: 0.01,
-        default: 0.12,
+        min: 0, max: 0.2, step: 0.01,
+        default: 0.2,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat,
-        hint: 'Max radius deviation from medium (12% = ±12%)',
+        hint: 'Max radius deviation from medium (20% = ±20%)',
         onChange: (g, _val) => {
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
@@ -349,8 +512,8 @@ export const CONTROL_SECTIONS = {
   // CURSOR
   // ═══════════════════════════════════════════════════════════════════════════
   cursor: {
-    title: 'Cursor',
-    icon: '👆',
+    title: 'Hand',
+    icon: '🖐️',
     defaultOpen: false,
     controls: [
       {
@@ -386,8 +549,8 @@ export const CONTROL_SECTIONS = {
   // TRAIL - Mouse trail tuning (performance-first)
   // ═══════════════════════════════════════════════════════════════════════════
   trail: {
-    title: 'Trail',
-    icon: '✨',
+    title: 'Motion Trail',
+    icon: '💨',
     defaultOpen: false,
     controls: [
       {
@@ -442,11 +605,108 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SCENE - Mode change “click-in” micro-interaction tuning
+  // LINKS - Text and icon link styling, padding, color influence, impact motion
+  // ═══════════════════════════════════════════════════════════════════════════
+  links: {
+    title: 'Links',
+    icon: '🔗',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'linkTextPadding',
+        label: 'Text Link Padding',
+        stateKey: 'linkTextPadding',
+        type: 'range',
+        min: 4, max: 40, step: 1,
+        default: 30,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Padding for text links (footer links, CV links)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--link-text-padding', `${val}px`);
+          document.documentElement.style.setProperty('--link-text-margin', `${-val}px`);
+        }
+      },
+      {
+        id: 'linkIconPadding',
+        label: 'Icon Link Padding',
+        stateKey: 'linkIconPadding',
+        type: 'range',
+        min: 4, max: 40, step: 1,
+        default: 24,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Padding for icon links (social media icons)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--link-icon-padding', `${val}px`);
+          document.documentElement.style.setProperty('--link-icon-margin', `${-val}px`);
+        }
+      },
+      {
+        id: 'linkColorInfluence',
+        label: 'Color Influence',
+        stateKey: 'linkColorInfluence',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 1,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'How much cursor color affects link colors (0 = none, 1 = full)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--link-color-influence', String(val));
+        }
+      },
+      {
+        id: 'linkImpactScale',
+        label: 'Impact Scale',
+        stateKey: 'linkImpactScale',
+        type: 'range',
+        min: 0.7, max: 1.0, step: 0.01,
+        default: 0.95,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Scale when link is pressed (lower = more dramatic press)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--link-impact-scale', String(val));
+        }
+      },
+      {
+        id: 'linkImpactBlur',
+        label: 'Impact Blur',
+        stateKey: 'linkImpactBlur',
+        type: 'range',
+        min: 0, max: 20, step: 0.5,
+        default: 10,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Blur amount when link is pressed (creates depth effect)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--link-impact-blur', `${val}px`);
+        }
+      },
+      {
+        id: 'linkImpactDuration',
+        label: 'Impact Duration',
+        stateKey: 'linkImpactDuration',
+        type: 'range',
+        min: 50, max: 300, step: 10,
+        default: 150,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Duration of press animation (fast and subtle)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--link-impact-duration', `${val}ms`);
+        }
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SCENE - Mode change "click-in" micro-interaction tuning
   // ═══════════════════════════════════════════════════════════════════════════
   scene: {
-    title: 'Scene',
-    icon: '⬚',
+    title: 'Scene Impact',
+    icon: '🎬',
     defaultOpen: false,
     controls: [
       {
@@ -588,7 +848,7 @@ export const CONTROL_SECTIONS = {
   // OVERLAY - Blur, Depth Effect
   // ═══════════════════════════════════════════════════════════════════════════
   overlay: {
-    title: 'Overlay',
+    title: 'Depth & Blur',
     icon: '🌫️',
     defaultOpen: false,
     controls: [
@@ -765,7 +1025,7 @@ export const CONTROL_SECTIONS = {
   // COLORS - Full color system (backgrounds, text, links, logo)
   // ═══════════════════════════════════════════════════════════════════════════
   colors: {
-    title: 'Colors',
+    title: 'Color & Surface',
     icon: '🎨',
     defaultOpen: false,
     controls: [
@@ -805,21 +1065,6 @@ export const CONTROL_SECTIONS = {
           }
         }
       },
-      {
-        id: 'frameColor',
-        label: 'Frame/Wall',
-        stateKey: 'frameColor',
-        type: 'color',
-        default: '#0a0a0a',
-        hint: 'Color for the wall/frame border',
-        onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--frame-color-light', val);
-          root.style.setProperty('--frame-color-dark', val);
-          root.style.setProperty('--wall-color', val);
-        }
-      },
-      
       // ─── TEXT (LIGHT MODE) ───────────────────────────────────────────────
       { type: 'divider', label: 'Text · Light Mode' },
       {
@@ -832,7 +1077,6 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--text-color-light', val);
-          root.style.setProperty('--text-color-light-base', val);
         }
       },
       {
@@ -860,7 +1104,6 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--text-color-dark', val);
-          root.style.setProperty('--text-color-dark-base', val);
         }
       },
       {
@@ -964,13 +1207,50 @@ export const CONTROL_SECTIONS = {
         label: 'Logo Size',
         stateKey: 'topLogoWidthVw',
         type: 'range',
-        min: 4, max: 30, step: 0.25,
-        default: 12,
+        min: 15, max: 45, step: 0.25,
+        default: 35,
         format: (v) => `${parseFloat(v).toFixed(2)}vw`,
         parse: parseFloat,
         hint: 'Top-center logo width (clamped by min/max tokens).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--top-logo-width-vw', String(val));
+        }
+      },
+      {
+        id: 'homeMainLinksBelowLogoPx',
+        label: 'Links Offset',
+        stateKey: 'homeMainLinksBelowLogoPx',
+        type: 'range',
+        min: -120, max: 240, step: 1,
+        default: 40,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Index: move the main links up/down below the logo.',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--home-main-links-below-logo-px', String(val));
+        }
+      },
+      { type: 'divider', label: 'Portfolio Logo' },
+      {
+        id: 'portfolioLogoColorLight',
+        label: 'Light Mode',
+        stateKey: 'portfolioLogoColorLight',
+        type: 'color',
+        default: '#161616',
+        hint: 'Portfolio logo color in light mode (separate from index)',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--portfolio-logo-color-light', val);
+        }
+      },
+      {
+        id: 'portfolioLogoColorDark',
+        label: 'Dark Mode',
+        stateKey: 'portfolioLogoColorDark',
+        type: 'color',
+        default: '#d5d5d5',
+        hint: 'Portfolio logo color in dark mode (separate from index)',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--portfolio-logo-color-dark', val);
         }
       }
     ]
@@ -989,13 +1269,13 @@ export const CONTROL_SECTIONS = {
 
   // ═══════════════════════════════════════════════════════════════════════════
   colorDistribution: {
-    title: 'Color Distribution',
+    title: 'Palette Mix',
     icon: '🧩',
     defaultOpen: false,
     controls: [
       {
         id: 'colorDistribution',
-        label: 'Discipline Colors',
+        label: 'Disciplines',
         stateKey: 'colorDistribution',
         type: 'colorDistribution',
         // Labels are fixed; you assign which palette slot + weight each label gets.
@@ -1008,7 +1288,7 @@ export const CONTROL_SECTIONS = {
           '3D Design',
           'Art Direction'
         ],
-        hint: 'Assign each discipline to one palette color (unique) and set weights that must sum to 100%. This distribution is used for ALL ball spawns across modes.'
+        hint: 'Assign each discipline to a palette color, then set weights that sum to 100%. Used for all ball spawns across modes.'
       }
     ]
   },
@@ -1019,49 +1299,87 @@ export const CONTROL_SECTIONS = {
   // WALL - Unified Frame & Physics
   // ═══════════════════════════════════════════════════════════════════════════
   wall: {
-    title: 'Wall',
-    icon: '🏗️',
+    title: 'WALL',
+    icon: '🫧',
     defaultOpen: false,
     controls: [
+      {
+        id: 'frameColorLight',
+        label: 'Color · Light Mode',
+        stateKey: 'frameColorLight',
+        type: 'color',
+        default: '#0a0a0a',
+        hint: 'Wall color in light mode (also used for browser chrome)',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--frame-color-light', val);
+          // Wall colors automatically updated via CSS: --wall-color-light: var(--frame-color-light)
+          // Update browser chrome if in light mode
+          if (!g.isDarkMode) {
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.content = val;
+            root.style.setProperty('--chrome-bg', val);
+          }
+          // Invalidate wall color cache so it picks up the new color immediately
+          import('../physics/engine.js').then(mod => {
+            mod.syncChromeColor();
+          });
+        }
+      },
+      {
+        id: 'frameColorDark',
+        label: 'Color · Dark Mode',
+        stateKey: 'frameColorDark',
+        type: 'color',
+        default: '#0a0a0a',
+        hint: 'Wall color in dark mode (also used for browser chrome)',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--frame-color-dark', val);
+          // Wall colors automatically updated via CSS: --wall-color-dark: var(--frame-color-dark)
+          // Update browser chrome if in dark mode
+          if (g.isDarkMode) {
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.content = val;
+            root.style.setProperty('--chrome-bg', val);
+          }
+          // Invalidate wall color cache so it picks up the new color immediately
+          import('../physics/engine.js').then(mod => {
+            mod.syncChromeColor();
+          });
+        }
+      },
       {
         id: 'wallPreset',
         label: 'Material',
         stateKey: 'wallPreset',
         type: 'select',
-        options: Object.keys(WALL_PRESETS).map(k => ({ value: k, label: k.charAt(0).toUpperCase() + k.slice(1) })),
-        default: 'rubber',
-        format: v => v.charAt(0).toUpperCase() + v.slice(1),
+        // Explicit order + artist-facing copy (don't rely on Object.keys order).
+        options: [
+          { value: 'pudding', label: 'Pudding (thick, soft)' },
+          { value: 'rubber', label: 'Rubber (balanced)' },
+          { value: 'jelly', label: 'Jelly (soft, wobbly)' },
+          { value: 'trampoline', label: 'Trampoline (bouncy)' },
+          { value: 'stiff', label: 'Stiff (rigid)' }
+        ],
+        default: 'pudding',
+        format: v => String(v),
         onChange: (g, val) => {
           applyWallPreset(val, g);
           syncSlidersToState();
         }
       },
       {
-        id: 'frameColor',
-        label: 'Color',
-        stateKey: 'frameColor',
-        type: 'color',
-        default: '#0a0a0a',
-        hint: 'Wall/frame border color (same as Colors → Frame Color)',
-        onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--frame-color-light', val);
-          root.style.setProperty('--frame-color-dark', val);
-          root.style.setProperty('--wall-color', val);
-        }
-      },
-      {
         id: 'wallThicknessVw',
-        label: 'Thickness',
+        label: 'Wall Thickness',
         stateKey: 'wallThicknessVw',
         type: 'range',
         min: 0, max: 8, step: 0.1,
         default: 1.3,
         format: v => `${v.toFixed(1)}vw`,
         parse: parseFloat,
+        hint: 'Wall tube thickness (content padding is layout-only)',
         onChange: (g, val) => {
-          // Sync containerBorderVw with wallThicknessVw (they control the same visual frame)
-          g.containerBorderVw = val;
           import('../core/state.js').then(mod => {
             mod.applyLayoutFromVwToPx();
             mod.applyLayoutCSSVars();
@@ -1162,86 +1480,171 @@ export const CONTROL_SECTIONS = {
         }
       },
       
-      // Advanced Wobble Settings
+      // Wall Material (Advanced)
       {
         id: 'wallWobbleMaxDeform',
-        label: 'Strength (Max Deform)',
+        label: 'Softness (Max Deform)',
         stateKey: 'wallWobbleMaxDeform',
         type: 'range',
         min: 0, max: 150, step: 1,
         default: 45,
         format: v => `${v}px`,
         parse: v => parseInt(v, 10),
-        group: 'Advanced Physics',
+        group: 'Material (Advanced)',
         groupCollapsed: true
       },
       {
         id: 'wallWobbleStiffness',
-        label: 'Stiffness',
+        label: 'Elasticity (Stiffness)',
         stateKey: 'wallWobbleStiffness',
         type: 'range',
         min: 50, max: 3000, step: 10,
         default: 2200,
         format: v => String(v),
         parse: v => parseInt(v, 10),
-        group: 'Advanced Physics'
+        group: 'Material (Advanced)'
       },
       {
         id: 'wallWobbleDamping',
-        label: 'Damping',
+        label: 'Damping (Viscosity)',
         stateKey: 'wallWobbleDamping',
         type: 'range',
         min: 0, max: 80, step: 1,
         default: 35,
         format: v => String(v),
         parse: v => parseInt(v, 10),
-        group: 'Advanced Physics'
+        group: 'Material (Advanced)'
       },
       {
         id: 'wallWobbleSigma',
-        label: 'Impact Spread',
+        label: 'Blob Size (Spread)',
         stateKey: 'wallWobbleSigma',
         type: 'range',
-        min: 0.5, max: 4.0, step: 0.1,
+        min: 0.5, max: 6.0, step: 0.1,
         default: 2.0,
         format: v => v.toFixed(1),
         parse: parseFloat,
-        group: 'Advanced Physics'
+        group: 'Material (Advanced)',
+        hint: 'Higher = larger, slower blobs (pudding/cloth). Lower = sharp ripples (rubber).'
       },
       {
         id: 'wallWobbleCornerClamp',
-        label: 'Corner Stickiness',
+        label: 'Corner Grip',
         stateKey: 'wallWobbleCornerClamp',
         type: 'range',
         min: 0.0, max: 1.0, step: 0.01,
         default: 0.6,
         format: v => v.toFixed(2),
         parse: parseFloat,
-        group: 'Advanced Physics'
+        group: 'Material (Advanced)'
       },
       {
         id: 'wallWobbleImpactThreshold',
-        label: 'Impact Threshold',
+        label: 'Impact Gate',
         stateKey: 'wallWobbleImpactThreshold',
         type: 'range',
         min: 20, max: 200, step: 1,
         default: 140,
         format: v => `${v} px/s`,
         parse: v => parseInt(v, 10),
-        group: 'Advanced Physics',
-        hint: 'Minimum velocity to trigger wall wobble'
+        group: 'Material (Advanced)',
+        hint: 'Minimum impact speed to move the wall.'
       },
       {
         id: 'wallWobbleSettlingSpeed',
-        label: 'Settling Speed',
+        label: 'Settle Speed',
         stateKey: 'wallWobbleSettlingSpeed',
         type: 'range',
         min: 0, max: 100, step: 1,
         default: 75,
         format: v => `${v}%`,
         parse: v => parseInt(v, 10),
-        group: 'Advanced Physics',
-        hint: 'How aggressively walls stop moving'
+        group: 'Material (Advanced)',
+        hint: 'How quickly the wall comes to rest (higher = more "thick").'
+      },
+      {
+        id: 'wallDeformPhysicsPrecision',
+        label: 'Deformation Physics',
+        stateKey: 'wallDeformPhysicsPrecision',
+        type: 'range',
+        min: 0, max: 100, step: 5,
+        default: 50,
+        format: v => `${v}%`,
+        parse: v => parseInt(v, 10),
+        group: 'Material (Advanced)',
+        hint: 'How precisely balls interact with deformed wall (0=off, 100=most accurate but slower).'
+      },
+      {
+        id: 'wallWobbleMaxVel',
+        label: 'Max Wall Speed (Clamp)',
+        stateKey: 'wallWobbleMaxVel',
+        type: 'range',
+        min: 100, max: 2000, step: 10,
+        default: 800,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        group: 'Material (Advanced)',
+        hint: 'Caps wobble velocity to prevent erratic spikes (lower = heavier goo).'
+      },
+      {
+        id: 'wallWobbleMaxImpulse',
+        label: 'Max Impulse (Clamp)',
+        stateKey: 'wallWobbleMaxImpulse',
+        type: 'range',
+        min: 20, max: 600, step: 5,
+        default: 220,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        group: 'Material (Advanced)',
+        hint: 'Caps per-sample impact injection (lower = smoother, less bottom chaos).'
+      },
+      {
+        id: 'wallWobbleMaxEnergyPerStep',
+        label: 'Max Energy / Tick',
+        stateKey: 'wallWobbleMaxEnergyPerStep',
+        type: 'range',
+        min: 1000, max: 80000, step: 500,
+        default: 20000,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        group: 'Material (Advanced)',
+        hint: 'Last-resort safety budget to prevent rare runaway spikes (higher = less limiting).'
+      },
+
+      // Wall Performance
+      {
+        id: 'wallPhysicsSamples',
+        label: 'Physics Samples',
+        stateKey: 'wallPhysicsSamples',
+        type: 'range',
+        min: 8, max: 96, step: 1,
+        default: 48,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        group: 'Performance',
+        groupCollapsed: true,
+        hint: 'Visual-only. Lower = faster, higher = smoother blobs.'
+      },
+      {
+        id: 'wallPhysicsSkipInactive',
+        label: 'Skip When Still',
+        stateKey: 'wallPhysicsSkipInactive',
+        type: 'toggle',
+        default: true,
+        group: 'Performance',
+        hint: 'Stops integrating the wall when it\'s already at rest.'
+      },
+      {
+        id: 'wallRenderDecimation',
+        label: 'Render Detail',
+        stateKey: 'wallRenderDecimation',
+        type: 'range',
+        min: 1, max: 12, step: 1,
+        default: 2,
+        format: v => `${Math.round(v)}`,
+        parse: v => parseInt(v, 10),
+        group: 'Performance',
+        hint: '1=ultra smooth, 2=default, 4=faster, 12=very fast/polygonal (rendering only).'
       }
     ]
   },
@@ -1250,31 +1653,124 @@ export const CONTROL_SECTIONS = {
   // NOISE - Texture overlay
   // ═══════════════════════════════════════════════════════════════════════════
   noise: {
-    title: 'Noise',
-    icon: '📺',
+    title: 'Grain',
+    icon: '🧂',
     defaultOpen: false,
     controls: [
       {
+        id: 'noiseEnabled',
+        label: 'Enabled',
+        stateKey: 'noiseEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        group: 'Render',
+        hint: 'Procedural noise texture (no GIF).',
+        onChange: (_g, val) => applyNoiseSystem({ noiseEnabled: val })
+      },
+      {
+        id: 'noiseSeed',
+        label: 'Seed',
+        stateKey: 'noiseSeed',
+        type: 'range',
+        min: 0, max: 999999, step: 1,
+        default: 1337,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        group: 'Texture',
+        hint: 'Changes the generated grain pattern.',
+        onChange: (_g, val) => applyNoiseSystem({ noiseSeed: val })
+      },
+      {
+        id: 'noiseTextureSize',
+        label: 'Tile Size',
+        stateKey: 'noiseTextureSize',
+        type: 'range',
+        min: 64, max: 512, step: 32,
+        default: 256,
+        format: v => `${Math.round(v)} px`,
+        parse: v => parseInt(v, 10),
+        group: 'Texture',
+        hint: 'Bigger tiles reduce repetition but cost more memory.',
+        onChange: (_g, val) => applyNoiseSystem({ noiseTextureSize: val })
+      },
+      {
+        id: 'noiseDistribution',
+        label: 'Distribution',
+        stateKey: 'noiseDistribution',
+        type: 'select',
+        options: [
+          { value: 'gaussian', label: 'Gaussian (filmic)' },
+          { value: 'uniform', label: 'Uniform (flat)' }
+        ],
+        default: 'gaussian',
+        format: v => String(v),
+        parse: v => String(v),
+        group: 'Texture',
+        onChange: (_g, val) => applyNoiseSystem({ noiseDistribution: val })
+      },
+      {
+        id: 'noiseMonochrome',
+        label: 'Monochrome',
+        stateKey: 'noiseMonochrome',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        group: 'Texture',
+        hint: 'Off = subtle RGB grain.',
+        onChange: (_g, val) => applyNoiseSystem({ noiseMonochrome: val })
+      },
+      {
+        id: 'noiseChroma',
+        label: 'Chroma',
+        stateKey: 'noiseChroma',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.35,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Texture',
+        hint: 'How different R/G/B channels are (ignored when Monochrome is on).',
+        onChange: (_g, val) => applyNoiseSystem({ noiseChroma: val })
+      },
+      {
         id: 'noiseSizeBase',
-        label: 'Back Size',
+        label: 'Back Scale',
         stateKey: 'noiseSizeBase',
         type: 'range',
-        min: 50, max: 200, step: 5,
+        min: 20, max: 400, step: 5,
         default: 100,
-        format: v => String(v),
+        format: v => `${Math.round(v)} px`,
         parse: v => parseInt(v, 10),
-        cssVar: '--noise-size-base'
+        group: 'Layers',
+        onChange: (_g, val) => applyNoiseSystem({ noiseSizeBase: val })
       },
       {
         id: 'noiseSizeTop',
-        label: 'Front Size',
+        label: 'Front Scale',
         stateKey: 'noiseSizeTop',
         type: 'range',
-        min: 40, max: 150, step: 5,
-        default: 80,
-        format: v => String(v),
+        min: 20, max: 600, step: 5,
+        default: 150,
+        format: v => `${Math.round(v)} px`,
         parse: v => parseInt(v, 10),
-        cssVar: '--noise-size-top'
+        group: 'Layers',
+        onChange: (_g, val) => applyNoiseSystem({ noiseSizeTop: val })
+      },
+      {
+        id: 'noiseTopOpacity',
+        label: 'Top Opacity',
+        stateKey: 'noiseTopOpacity',
+        type: 'range',
+        min: 0, max: 0.25, step: 0.005,
+        default: 0.01,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        group: 'Layers',
+        hint: 'Extra subtle layer (used by .noise-3).',
+        onChange: (_g, val) => applyNoiseSystem({ noiseTopOpacity: val })
       },
       {
         id: 'noiseBackOpacity',
@@ -1285,7 +1781,8 @@ export const CONTROL_SECTIONS = {
         default: 0.025,
         format: v => v.toFixed(3),
         parse: parseFloat,
-        cssVar: '--noise-back-opacity'
+        group: 'Layers',
+        onChange: (_g, val) => applyNoiseSystem({ noiseBackOpacity: val })
       },
       {
         id: 'noiseFrontOpacity',
@@ -1296,7 +1793,8 @@ export const CONTROL_SECTIONS = {
         default: 0.055,
         format: v => v.toFixed(3),
         parse: parseFloat,
-        cssVar: '--noise-front-opacity'
+        group: 'Layers',
+        onChange: (_g, val) => applyNoiseSystem({ noiseFrontOpacity: val })
       },
       {
         id: 'noiseBackOpacityDark',
@@ -1307,7 +1805,8 @@ export const CONTROL_SECTIONS = {
         default: 0.12,
         format: v => v.toFixed(3),
         parse: parseFloat,
-        cssVar: '--noise-back-opacity-dark'
+        group: 'Layers',
+        onChange: (_g, val) => applyNoiseSystem({ noiseBackOpacityDark: val })
       },
       {
         id: 'noiseFrontOpacityDark',
@@ -1318,7 +1817,144 @@ export const CONTROL_SECTIONS = {
         default: 0.08,
         format: v => v.toFixed(3),
         parse: parseFloat,
-        cssVar: '--noise-front-opacity-dark'
+        group: 'Layers',
+        onChange: (_g, val) => applyNoiseSystem({ noiseFrontOpacityDark: val })
+      },
+      {
+        id: 'noiseMotion',
+        label: 'Motion',
+        stateKey: 'noiseMotion',
+        type: 'select',
+        options: [
+          { value: 'jitter', label: 'Jitter (film grain)' },
+          { value: 'drift', label: 'Drift (slow pan)' },
+          { value: 'static', label: 'Static' }
+        ],
+        default: 'jitter',
+        format: v => String(v),
+        parse: v => String(v),
+        group: 'Motion',
+        onChange: (_g, val) => applyNoiseSystem({ noiseMotion: val })
+      },
+      {
+        id: 'noiseMotionAmount',
+        label: 'Motion Amount',
+        stateKey: 'noiseMotionAmount',
+        type: 'range',
+        min: 0, max: 2.5, step: 0.01,
+        default: 1.0,
+        format: v => `${v.toFixed(2)}x`,
+        parse: parseFloat,
+        group: 'Motion',
+        onChange: (_g, val) => applyNoiseSystem({ noiseMotionAmount: val })
+      },
+      {
+        id: 'noiseSpeedBackMs',
+        label: 'Back Speed',
+        stateKey: 'noiseSpeedBackMs',
+        type: 'range',
+        min: 0, max: 10000, step: 50,
+        default: 1800,
+        format: v => `${Math.round(v)} ms`,
+        parse: v => parseInt(v, 10),
+        group: 'Motion',
+        onChange: (_g, val) => applyNoiseSystem({ noiseSpeedBackMs: val })
+      },
+      {
+        id: 'noiseSpeedFrontMs',
+        label: 'Front Speed',
+        stateKey: 'noiseSpeedFrontMs',
+        type: 'range',
+        min: 0, max: 10000, step: 50,
+        default: 1100,
+        format: v => `${Math.round(v)} ms`,
+        parse: v => parseInt(v, 10),
+        group: 'Motion',
+        onChange: (_g, val) => applyNoiseSystem({ noiseSpeedFrontMs: val })
+      },
+      {
+        id: 'noiseFlicker',
+        label: 'Flicker',
+        stateKey: 'noiseFlicker',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.12,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Motion',
+        onChange: (_g, val) => applyNoiseSystem({ noiseFlicker: val })
+      },
+      {
+        id: 'noiseFlickerSpeedMs',
+        label: 'Flicker Speed',
+        stateKey: 'noiseFlickerSpeedMs',
+        type: 'range',
+        min: 0, max: 5000, step: 20,
+        default: 220,
+        format: v => `${Math.round(v)} ms`,
+        parse: v => parseInt(v, 10),
+        group: 'Motion',
+        onChange: (_g, val) => applyNoiseSystem({ noiseFlickerSpeedMs: val })
+      },
+      {
+        id: 'noiseBlurPx',
+        label: 'Blur',
+        stateKey: 'noiseBlurPx',
+        type: 'range',
+        min: 0, max: 6, step: 0.05,
+        default: 0,
+        format: v => `${v.toFixed(2)} px`,
+        parse: parseFloat,
+        group: 'Look',
+        onChange: (_g, val) => applyNoiseSystem({ noiseBlurPx: val })
+      },
+      {
+        id: 'noiseContrast',
+        label: 'Contrast',
+        stateKey: 'noiseContrast',
+        type: 'range',
+        min: 0.25, max: 3, step: 0.05,
+        default: 1.35,
+        format: v => `${v.toFixed(2)}x`,
+        parse: parseFloat,
+        group: 'Look',
+        onChange: (_g, val) => applyNoiseSystem({ noiseContrast: val })
+      },
+      {
+        id: 'noiseBrightness',
+        label: 'Brightness',
+        stateKey: 'noiseBrightness',
+        type: 'range',
+        min: 0.25, max: 2.0, step: 0.01,
+        default: 1.0,
+        format: v => `${v.toFixed(2)}x`,
+        parse: parseFloat,
+        group: 'Look',
+        onChange: (_g, val) => applyNoiseSystem({ noiseBrightness: val })
+      },
+      {
+        id: 'noiseSaturation',
+        label: 'Saturation',
+        stateKey: 'noiseSaturation',
+        type: 'range',
+        min: 0, max: 3, step: 0.01,
+        default: 1.0,
+        format: v => `${v.toFixed(2)}x`,
+        parse: parseFloat,
+        group: 'Look',
+        onChange: (_g, val) => applyNoiseSystem({ noiseSaturation: val })
+      },
+      {
+        id: 'noiseHue',
+        label: 'Hue Rotate',
+        stateKey: 'noiseHue',
+        type: 'range',
+        min: 0, max: 360, step: 1,
+        default: 0,
+        format: v => `${Math.round(v)}°`,
+        parse: v => parseInt(v, 10),
+        group: 'Look',
+        onChange: (_g, val) => applyNoiseSystem({ noiseHue: val })
       }
     ]
   },
@@ -1517,39 +2153,8 @@ export const CONTROL_SECTIONS = {
           if (g.currentMode === 'pit') g.G = g.GE * val;
         }
       },
-      {
-        id: 'weightPit',
-        label: 'Weight',
-        stateKey: 'ballMassKg',
-        type: 'range',
-        min: 10, max: 200, step: 1,
-        default: 129,
-        format: v => v.toFixed(0),
-        parse: parseFloat,
-        onChange: (g, val) => {
-          g.balls.forEach(b => { b.m = val; });
-        }
-      },
-      {
-        id: 'restitution',
-        label: 'Bounciness',
-        stateKey: 'REST',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.69,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'friction',
-        label: 'Air Friction',
-        stateKey: 'FRICTION',
-        type: 'range',
-        min: 0, max: 0.01, step: 0.0005,
-        default: 0.006,
-        format: v => v.toFixed(4),
-        parse: parseFloat
-      },
+      // NOTE: Ball mass / restitution / friction are global now (see Physics section).
+      // Pit remains responsible for gravity + interaction tuning.
       {
         id: 'repelPower',
         label: 'Repel Power',
@@ -3325,6 +3930,164 @@ export const CONTROL_SECTIONS = {
       },
       warmupFramesControl('parallaxPerspectiveWarmupFrames')
     ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ENTRANCE ANIMATION — Dramatic page entrance orchestration
+  // ═══════════════════════════════════════════════════════════════════════════
+  entrance: {
+    title: 'Entrance',
+    icon: '🎭',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'entranceEnabled',
+        label: 'Enabled',
+        stateKey: 'entranceEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'Enable dramatic entrance animation (browser default → wall-state)',
+        onChange: () => {
+          // Reload page to apply changes
+          if (typeof window !== 'undefined') {
+            setTimeout(() => window.location.reload(), 300);
+          }
+        }
+      },
+      {
+        id: 'entranceWallTransitionDelay',
+        label: 'Wall Transition Delay',
+        stateKey: 'entranceWallTransitionDelay',
+        type: 'range',
+        min: 0, max: 2000, step: 50,
+        default: 300,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Delay before wall background transition starts'
+      },
+      {
+        id: 'entranceWallTransitionDuration',
+        label: 'Wall Growth Duration',
+        stateKey: 'entranceWallTransitionDuration',
+        type: 'range',
+        min: 200, max: 2000, step: 50,
+        default: 800,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Duration of wall scaling down into viewport animation'
+      },
+      {
+        id: 'entranceWallInitialScale',
+        label: 'Initial Scale',
+        stateKey: 'entranceWallInitialScale',
+        type: 'range',
+        min: 1.05, max: 1.5, step: 0.05,
+        default: 1.1,
+        format: v => v.toFixed(2),
+        parse: v => parseFloat(v),
+        hint: 'Starting scale (wall starts slightly larger, scales down to 1.0)'
+      },
+      {
+        id: 'entranceWallEasing',
+        label: 'Wall Growth Easing',
+        stateKey: 'entranceWallEasing',
+        type: 'select',
+        options: [
+          { value: 'cubic-bezier(0.16, 1, 0.3, 1)', label: 'Organic (default)' },
+          { value: 'ease-out', label: 'Ease Out' },
+          { value: 'ease-in-out', label: 'Ease In Out' },
+          { value: 'cubic-bezier(0.34, 1.56, 0.64, 1)', label: 'Bounce' },
+          { value: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)', label: 'Overshoot' }
+        ],
+        default: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        format: v => String(v),
+        parse: v => String(v),
+        hint: 'Easing function for wall growth animation'
+      },
+      {
+        id: 'entranceElementDuration',
+        label: 'Element Duration',
+        stateKey: 'entranceElementDuration',
+        type: 'range',
+        min: 100, max: 1000, step: 50,
+        default: 200,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Duration for individual element animations'
+      },
+      {
+        id: 'entranceElementScaleStart',
+        label: 'Element Scale Start',
+        stateKey: 'entranceElementScaleStart',
+        type: 'range',
+        min: 0.5, max: 1.0, step: 0.01,
+        default: 0.95,
+        format: v => v.toFixed(2),
+        parse: v => parseFloat(v),
+        hint: 'Initial scale for elements (0-1)'
+      },
+      {
+        id: 'entranceElementTranslateZStart',
+        label: 'Element Z Start',
+        stateKey: 'entranceElementTranslateZStart',
+        type: 'range',
+        min: -100, max: 0, step: 5,
+        default: -20,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Initial z-axis position (negative = back in 3D space)'
+      },
+      {
+        id: 'entrancePerspectiveLandscape',
+        label: 'Perspective (Landscape)',
+        stateKey: 'entrancePerspectiveLandscape',
+        type: 'range',
+        min: 500, max: 3000, step: 50,
+        default: 1200,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: '3D perspective for landscape aspect ratio',
+        onChange: () => {
+          import('../visual/entrance-animation.js').then(({ applyPerspectiveCSS }) => {
+            applyPerspectiveCSS();
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'entrancePerspectiveSquare',
+        label: 'Perspective (Square)',
+        stateKey: 'entrancePerspectiveSquare',
+        type: 'range',
+        min: 500, max: 3000, step: 50,
+        default: 1000,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: '3D perspective for square aspect ratio',
+        onChange: () => {
+          import('../visual/entrance-animation.js').then(({ applyPerspectiveCSS }) => {
+            applyPerspectiveCSS();
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'entrancePerspectivePortrait',
+        label: 'Perspective (Portrait)',
+        stateKey: 'entrancePerspectivePortrait',
+        type: 'range',
+        min: 500, max: 3000, step: 50,
+        default: 800,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: '3D perspective for portrait aspect ratio',
+        onChange: () => {
+          import('../visual/entrance-animation.js').then(({ applyPerspectiveCSS }) => {
+            applyPerspectiveCSS();
+          }).catch(() => {});
+        }
+      }
+    ]
   }
 };
 
@@ -3518,31 +4281,9 @@ function generateSectionHTML(key, section) {
     </details>`;
 }
 
-export function generatePanelHTML() {
-  // NOTE: Don't wrap in .panel-content here - panel-dock.js creates that wrapper
-
-  // Rule: every simulation must have at least 4 configurable parameters.
-  // We enforce this in dev as a warning to keep production resilient.
-  try {
-    for (const [, section] of Object.entries(CONTROL_SECTIONS)) {
-      if (!section?.mode) continue;
-      const n = Array.isArray(section.controls) ? section.controls.length : 0;
-      if (n < 4) console.warn(`[panel] Mode \"${section.mode}\" has only ${n} controls; add at least 4 parameters.`);
-    }
-  } catch (e) {}
-
-  // Mode-specific options should appear directly under the mode selector.
-  const modeControlsHtml = Object.entries(CONTROL_SECTIONS)
-    .filter(([, section]) => section?.mode)
-    .map(([key, section]) => generateSectionHTML(key, section))
-    .join('');
-
-  let html = `
-    <!-- Screen reader announcements -->
-    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only" id="announcer"></div>
-
-    <!-- Theme -->
-    <details class="panel-section-accordion" open>
+export function generateThemeSectionHTML({ open = true } = {}) {
+  return `
+    <details class="panel-section-accordion" ${open ? 'open' : ''}>
       <summary class="panel-section-header">
         <span class="section-icon">🎨</span>
         <span class="section-label">Theme</span>
@@ -3555,9 +4296,73 @@ export function generatePanelHTML() {
         </div>
         <div id="themeStatus" class="panel-status">☀️ Light Mode</div>
       </div>
-    </details>
+    </details>`;
+}
 
-    <!-- Mode -->
+export function generateColorTemplateSectionHTML({ open = false } = {}) {
+  return `
+    <details class="panel-section-accordion" ${open ? 'open' : ''}>
+      <summary class="panel-section-header">
+        <span class="section-icon">🌈</span>
+        <span class="section-label">Palette</span>
+      </summary>
+      <div class="panel-section-content">
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Color Template</span>
+            <span class="control-value"></span>
+          </div>
+          <select id="colorSelect"></select>
+        </label>
+      </div>
+    </details>`;
+}
+
+export function generateMasterSectionsHTML() {
+  let html = '';
+  let lastCategory = null;
+  
+  for (const key of MASTER_SECTION_KEYS) {
+    if (!CONTROL_SECTIONS[key]) continue;
+    
+    const currentCategory = SECTION_CATEGORIES[key] || null;
+    
+    // Add category label and separator if category changed
+    if (currentCategory && currentCategory !== lastCategory) {
+      if (lastCategory !== null) {
+        // Close previous category group with separator
+        html += '</div>';
+      }
+      // Open new category group with label
+      html += `
+        <div class="panel-category-group">
+          <div class="panel-category-label">${currentCategory}</div>`;
+      lastCategory = currentCategory;
+    } else if (!currentCategory && lastCategory !== null) {
+      // Close category group if transitioning to uncategorized
+      html += '</div>';
+      lastCategory = null;
+    }
+    
+    html += generateSectionHTML(key, CONTROL_SECTIONS[key]);
+  }
+  
+  // Close final category group if open
+  if (lastCategory !== null) {
+    html += '</div>';
+  }
+  
+  return html;
+}
+
+function generateHomeModeSectionHTML() {
+  // Mode-specific options should appear directly under the mode selector.
+  const modeControlsHtml = Object.entries(CONTROL_SECTIONS)
+    .filter(([, section]) => section?.mode)
+    .map(([key, section]) => generateSectionHTML(key, section))
+    .join('');
+
+  return `
     <details class="panel-section-accordion" open>
       <summary class="panel-section-header">
         <span class="section-icon">🎛️</span>
@@ -3619,44 +4424,50 @@ export function generatePanelHTML() {
         ${modeControlsHtml}
       </div>
     </details>`;
+}
 
-  // Non-mode sections
+export function generateHomePanelHTML() {
+  // NOTE: Don't wrap in .panel-content here - panel-dock.js creates that wrapper
+  let html = `
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only" id="announcer"></div>
+    ${generateHomeModeSectionHTML()}
+  `;
+
   for (const [key, section] of Object.entries(CONTROL_SECTIONS)) {
-    if (!section.mode) {
-      html += generateSectionHTML(key, section);
-    }
+    if (section?.mode) continue;
+    if (MASTER_SECTION_KEYS.includes(key)) continue;
+    html += generateSectionHTML(key, section);
   }
-  
-  // Colors (special handling)
-  html += `
-    <details class="panel-section-accordion">
-      <summary class="panel-section-header">
-        <span class="section-icon">🌈</span>
-        <span class="section-label">Colors</span>
-      </summary>
-      <div class="panel-section-content">
-        <label class="control-row">
-          <div class="control-row-header">
-            <span class="control-label">Color Template</span>
-            <span class="control-value"></span>
-          </div>
-          <select id="colorSelect"></select>
-        </label>
-      </div>
-    </details>`;
-  
-  // Mode-specific sections are injected directly under the Mode selector (above).
-  
-  // Footer
-  html += `
+
+  return html;
+}
+
+export function generatePanelHTML() {
+  // NOTE: Don't wrap in .panel-content here - panel-dock.js creates that wrapper
+
+  // Rule: every simulation must have at least 4 configurable parameters.
+  // We enforce this in dev as a warning to keep production resilient.
+  try {
+    for (const [, section] of Object.entries(CONTROL_SECTIONS)) {
+      if (!section?.mode) continue;
+      const n = Array.isArray(section.controls) ? section.controls.length : 0;
+      if (n < 4) console.warn(`[panel] Mode \"${section.mode}\" has only ${n} controls; add at least 4 parameters.`);
+    }
+  } catch (e) {}
+
+  // Backwards compatibility: preserve the original full-panel HTML for any legacy code paths.
+  return `
+    ${generateThemeSectionHTML({ open: true })}
+    ${generateMasterSectionsHTML()}
+    ${generateHomePanelHTML()}
+    ${generateColorTemplateSectionHTML({ open: false })}
     <div class="panel-section panel-section--action">
-      <button id="saveConfigBtn" class="primary">💾 Save Config</button>
+      <button id="saveRuntimeConfigBtn" class="primary">💾 Save Config</button>
     </div>
     <div class="panel-footer">
       <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters + Throws have no key (yet)
-    </div>`;
-  
-  return html;
+    </div>
+  `;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -4087,14 +4898,16 @@ export function syncSlidersToState() {
   
   for (const section of Object.values(CONTROL_SECTIONS)) {
     for (const control of section.controls) {
-      const sliderId = control.id + 'Slider';
-      const valId = control.id + 'Val';
       // Custom: color distribution UI is synced in bindRegisteredControls (it needs to build options).
       if (control.type === 'colorDistribution') {
         // No-op here.
         continue;
       }
-      const el = document.getElementById(sliderId);
+      
+      // Color pickers use 'Picker' suffix, others use 'Slider'
+      const elementId = control.type === 'color' ? (control.id + 'Picker') : (control.id + 'Slider');
+      const valId = control.id + 'Val';
+      const el = document.getElementById(elementId);
       const valEl = document.getElementById(valId);
       
       if (!el || !control.stateKey) continue;
@@ -4104,9 +4917,17 @@ export function syncSlidersToState() {
         if (control.type === 'checkbox') {
           el.checked = !!stateVal;
           if (valEl) valEl.textContent = stateVal ? 'On' : 'Off';
+        } else if (control.type === 'color') {
+          el.value = stateVal;
+          if (valEl) valEl.textContent = stateVal;
         } else {
           el.value = stateVal;
-          if (valEl) valEl.textContent = control.format(stateVal);
+          if (valEl) valEl.textContent = control.format ? control.format(stateVal) : String(stateVal);
+        }
+        
+        // Call onChange handler to initialize CSS variables
+        if (control.onChange) {
+          control.onChange(g, stateVal);
         }
       }
     }
