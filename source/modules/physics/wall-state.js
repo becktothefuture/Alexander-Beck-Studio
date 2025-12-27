@@ -1113,7 +1113,7 @@ export const wallState = {
 
   /**
    * Get wall deformation at a specific point (canvas px coordinates).
-   * Returns deformation in canvas pixels (already scaled by DPR).
+   * Returns deformation in canvas pixels (scaled by DPR).
    * Used by ball collision to adjust boundaries dynamically.
    */
   getDeformationAtPoint(x, y) {
@@ -1131,8 +1131,12 @@ export const wallState = {
     const innerX = x - insetPx;
     const innerY = y - insetPx;
     
-    // ring geometry + deformations are already in CANVAS PX units (we pass canvas sizes into ensureGeometry).
-    return ring.getDeformationAtPoint(innerX, innerY);
+    // IMPORTANT UNIT NOTE:
+    // `RubberRingWall.deformations[]` are authored/stepped in CSS px @ DPR=1
+    // (see wallWobbleMaxDeform in state/config). Rendering scales by DPR.
+    // Collisions operate in canvas px, so we scale the sampled deformation by DPR here.
+    const dCssPx = ring.getDeformationAtPoint(innerX, innerY);
+    return (dCssPx > 0) ? (dCssPx * DPR) : 0;
   }
 };
 
