@@ -9,7 +9,7 @@ import { autoSaveSettings } from '../utils/storage.js';
 import { WALL_PRESETS, ORBIT3D_PRESETS, PARALLAX_LINEAR_PRESETS, PARALLAX_PERSPECTIVE_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyOrbit3DPreset } from '../modes/orbit-3d.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
-import { applyWallPreset } from '../physics/wall-state.js';
+import { applyWallPreset, wallState } from '../physics/wall-state.js';
 
 // Will be set by main.js to avoid circular dependency
 let applyVisualCSSVars = null;
@@ -1366,17 +1366,21 @@ export const CONTROL_SECTIONS = {
           // UI sync only (no control side-effects like full page reloads).
           syncSlidersToState({ runOnChange: false });
 
-          // Re-init the simulation so the new wall parameters take effect immediately.
-          // This resets the current mode without navigating/reloading the page.
-          import('../modes/mode-controller.js')
-            .then(({ resetCurrentMode }) => resetCurrentMode?.())
-            .catch(() => {});
+          // Reload ONLY the simulation state (not the page, not the panel DOM).
+          // Preset values are read live by the physics/render loops, so we mainly want to:
+          // - clear existing wall deformation so the new material starts clean
+          // - wake balls so changes are obvious immediately
+          try { wallState?.reset?.(); } catch (e) {}
+          try {
+            const balls = Array.isArray(g?.balls) ? g.balls : [];
+            for (let i = 0; i < balls.length; i++) balls[i]?.wake?.();
+          } catch (e) {}
 
           // IMPORTANT UX: After interacting with a <select>, keyboard mode switching (ArrowLeft/ArrowRight)
           // is intentionally ignored because the key handler skips INPUT/TEXTAREA/SELECT targets.
           // Blur so mode switching resumes immediately after choosing a preset.
           try {
-            const el = document.getElementById('wallPresetSelect');
+            const el = document.getElementById('wallPresetSlider');
             if (el && typeof el.blur === 'function') el.blur();
             else if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
           } catch (e) {}
