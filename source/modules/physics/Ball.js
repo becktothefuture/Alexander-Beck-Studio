@@ -272,9 +272,15 @@ export class Ball {
     const cx = insetPx + hx;  // center x in canvas coords
     const cy = insetPx + hy;  // center y in canvas coords
     
-    // Wall deformation: sample at contact point
+    // Wall deformation (collision surface):
+    // We treat the rubber wall deformation as an INWARD displacement of the boundary.
+    // Precision controls how many deformation samples we take near contact.
     const precision = Math.max(0, Math.min(100, globals.wallDeformPhysicsPrecision ?? 50));
-    const useDeformation = precision > 0 && typeof wallState?.getDeformationAtPoint === 'function';
+    const ring = wallState?.ringPhysics;
+    const wallHasDeform = !!(ring && typeof ring.hasDeformation === 'function' && ring.hasDeformation());
+    const useDeformation = precision > 0 && wallHasDeform && typeof wallState?.getDeformationAtPoint === 'function';
+    // Max inward deform is authored in CSS px @ DPR=1; convert to canvas px.
+    const maxDeformCanvasPx = Math.max(0, (Number(globals.wallWobbleMaxDeform) || 0) * (DPR || 1));
     
     // Rounded-rect SDF: returns (distance, outward normal)
     // Negative = inside, Positive = outside (in wall)
@@ -318,18 +324,43 @@ export class Ball {
       nx *= lx < 0 ? -1 : 1;
       ny *= ly < 0 ? -1 : 1;
       
-      // Sample deformation at closest boundary point (if enabled)
+      // Deformation is only relevant when a ball is close enough that the inward
+      // wall shift could matter. Far-inside balls should not pay the sampling cost.
       let deform = 0;
       if (useDeformation) {
-        // Find closest point on base boundary
-        const bx = px - nx * baseDist;
-        const by = py - ny * baseDist;
-        deform = wallState.getDeformationAtPoint(bx, by);
+        // If baseDist is more negative than -(margin + maxDeform), even max inward
+        // shift can't reach the ball, so we can skip sampling.
+        const nearThreshold = (effectiveRadius + borderInset) + maxDeformCanvasPx;
+        if (baseDist > -nearThreshold) {
+          // Find closest point on base boundary
+          const bx = px - nx * baseDist;
+          const by = py - ny * baseDist;
+
+          // Precision-driven sampling along tangent (cheap, improves stability around corners)
+          const sampleCount = Math.max(1, Math.min(6, 1 + Math.floor(precision / 20))); // 1..6
+          const tx = -ny;
+          const ty = nx;
+          const amp = effectiveRadius * 0.35;
+          let maxD = 0;
+          if (sampleCount === 1) {
+            maxD = wallState.getDeformationAtPoint(bx, by);
+          } else {
+            for (let s = 0; s < sampleCount; s++) {
+              const t = (s / (sampleCount - 1)) - 0.5; // -0.5..0.5
+              const sx = bx + tx * (t * amp);
+              const sy = by + ty * (t * amp);
+              const d = wallState.getDeformationAtPoint(sx, sy);
+              if (d > maxD) maxD = d;
+            }
+          }
+          deform = maxD;
+        }
       }
       
-      // Deformation pushes boundary INWARD (reduces distance to boundary)
-      // Positive deformation = wall pushed in = smaller playable area
-      const deformedDist = baseDist - deform;
+      // Deformation is INWARD displacement of the boundary.
+      // For an SDF where inside is negative, inward displacement increases the distance
+      // (makes points "more outside" relative to the moved-in wall).
+      const deformedDist = baseDist + deform;
       
       return { dist: deformedDist, nx, ny };
     };
