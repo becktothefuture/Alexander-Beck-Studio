@@ -1363,7 +1363,14 @@ export const CONTROL_SECTIONS = {
         format: v => String(v),
         onChange: (g, val) => {
           applyWallPreset(String(val), g);
-          syncSlidersToState();
+          // UI sync only (no control side-effects like full page reloads).
+          syncSlidersToState({ runOnChange: false });
+
+          // Re-init the simulation so the new wall parameters take effect immediately.
+          // This resets the current mode without navigating/reloading the page.
+          import('../modes/mode-controller.js')
+            .then(({ resetCurrentMode }) => resetCurrentMode?.())
+            .catch(() => {});
         },
         hint: 'Curated wall “types” that set multiple wall sliders at once.'
       },
@@ -4898,8 +4905,9 @@ export function bindRegisteredControls() {
 // SYNC SLIDERS TO STATE (after loading saved settings)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function syncSlidersToState() {
+export function syncSlidersToState(options = {}) {
   const g = getGlobals();
+  const runOnChange = options.runOnChange !== false;
   
   for (const section of Object.values(CONTROL_SECTIONS)) {
     for (const control of section.controls) {
@@ -4933,7 +4941,7 @@ export function syncSlidersToState() {
         // Call onChange handler to initialize CSS variables / apply side effects.
         // IMPORTANT: Avoid re-entrant loops for preset selectors that themselves call `syncSlidersToState()`.
         // (e.g. wallPreset → applyWallPreset → syncSlidersToState → wallPreset.onChange → ...)
-        if (control.onChange && control.id !== 'wallPreset') {
+        if (runOnChange && control.onChange && control.id !== 'wallPreset') {
           control.onChange(g, stateVal);
         }
       }
