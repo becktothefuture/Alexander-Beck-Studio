@@ -1371,6 +1371,15 @@ export const CONTROL_SECTIONS = {
           import('../modes/mode-controller.js')
             .then(({ resetCurrentMode }) => resetCurrentMode?.())
             .catch(() => {});
+
+          // IMPORTANT UX: After interacting with a <select>, keyboard mode switching (ArrowLeft/ArrowRight)
+          // is intentionally ignored because the key handler skips INPUT/TEXTAREA/SELECT targets.
+          // Blur so mode switching resumes immediately after choosing a preset.
+          try {
+            const el = document.getElementById('wallPresetSelect');
+            if (el && typeof el.blur === 'function') el.blur();
+            else if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
+          } catch (e) {}
         },
         hint: 'Curated wall “types” that set multiple wall sliders at once.'
       },
