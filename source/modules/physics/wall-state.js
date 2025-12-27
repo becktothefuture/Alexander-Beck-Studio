@@ -62,7 +62,9 @@ export { WALL_PRESETS }; // Re-export for convenience if needed, but prefer dire
 export function applyWallPreset(presetName, g) {
   const preset = WALL_PRESETS[presetName];
   if (!preset) return;
-  Object.assign(g, preset);
+  // Presets may be either a plain values object or a { label, description, values } record.
+  const values = preset?.values ? preset.values : preset;
+  Object.assign(g, values);
   g.wallPreset = presetName;
 }
 
@@ -438,19 +440,16 @@ class RubberRingWall {
   }
 
   /**
-   * Get deformation at a specific x,y position (canvas px space).
-   * Returns the inward deformation amount in canvas pixels.
-   * Used for physics collision with deformed wall.
+   * Map a point in inner-wall space to ring t (0..1).
+   * Used for sampling deformation AND for injecting impacts/pressure at the true contact point.
    */
-  getDeformationAtPoint(x, y) {
+  tFromPoint(x, y) {
     const w = this._w;
     const h = this._h;
     const r = this._r;
     const n = this.n;
     if (n === 0 || !(w > 0 && h > 0)) return 0;
 
-    // Find which wall segment this point is closest to
-    const wallThickness = 0; // Already in inner coordinates
     const innerW = w;
     const innerH = h;
     const innerR = r;
@@ -561,14 +560,42 @@ class RubberRingWall {
       }
     }
 
+    return ((t % 1 + 1) % 1);
+  }
+
+  /**
+   * Get deformation at a specific x,y position (inner-wall space).
+   * Returns the inward deformation amount in CSS px (authored at DPR 1).
+   */
+  getDeformationAtPoint(x, y) {
+    const n = this.n;
+    if (n === 0) return 0;
+    const t = this.tFromPoint(x, y);
+
     // Interpolate deformation at this t value
-    const idx = ((t % 1 + 1) % 1) * n;
+    const idx = t * n;
     const i0 = Math.floor(idx) % n;
     const i1 = (i0 + 1) % n;
     const frac = idx - i0;
     const def0 = this.deformations[i0];
     const def1 = this.deformations[i1];
     return (1 - frac) * def0 + frac * def1;
+  }
+
+  /**
+   * Inject an impact at a point (inner-wall space).
+   */
+  impactAtPoint(x, y, intensity) {
+    const t = this.tFromPoint(x, y);
+    this.impactAtT(t, intensity);
+  }
+
+  /**
+   * Add pressure at a point (inner-wall space).
+   */
+  addPressureAtPoint(x, y, amount, options = {}) {
+    const t = this.tFromPoint(x, y);
+    this.addPressureAtT(t, amount, options);
   }
 
   /**
@@ -1191,6 +1218,53 @@ export function registerWallImpact(wall, normalizedPos, intensity) {
 }
 
 /**
+ * Register an impact by contact point (canvas px space).
+ * This is preferred for SDF collisions because it correctly drives corners/arcs.
+ */
+export function registerWallImpactAtPoint(x, y, intensity) {
+  const g = getGlobals();
+  const canvas = g.canvas;
+  if (!canvas) return;
+
+  const rCssPx = (typeof g.getCanvasCornerRadius === 'function')
+    ? g.getCanvasCornerRadius()
+    : (g.cornerRadius ?? g.wallRadius ?? 0);
+  const rCanvasPx = Math.max(0, (Number(rCssPx) || 0) * (g.DPR || 1));
+
+  // Ensure geometry matches drawWalls() / Ball.walls():
+  // inner dims are inset by wallThickness only, radius is clamped to inner dims.
+  const DPR = g.DPR || 1;
+  const wallThicknessPx = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
+  const insetPx = wallThicknessPx;
+  const innerW = Math.max(1, canvas.width - insetPx * 2);
+  const innerH = Math.max(1, canvas.height - insetPx * 2);
+  const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
+  wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
+
+  const ix = x - insetPx;
+  const iy = y - insetPx;
+
+  // Cap work in pathological cases (tons of impacts in a single physics step).
+  if (wallState._impactsThisStep < MAX_RING_IMPACTS_PER_PHYSICS_STEP) {
+    wallState.ringPhysics.impactAtPoint(ix, iy, intensity);
+  } else {
+    // Cheap fallback: keep responsiveness without the gaussian loop.
+    const n = wallState.ringPhysics.n;
+    if (n > 0) {
+      const t = wallState.ringPhysics.tFromPoint(ix, iy);
+      const idx = ((Number(t) || 0) % 1 + 1) % 1 * n;
+      const i = Math.round(idx) % n;
+      const maxDeform = Math.max(0, g.wallWobbleMaxDeform ?? DEFAULT_MAX_DEFORM);
+      const impulse = maxDeform * Math.max(0, Math.min(1, Number(intensity) || 0));
+      wallState.ringPhysics.velocities[i] += impulse;
+      wallState.ringPhysics._active = true;
+    }
+  }
+
+  wallState._impactsThisStep++;
+}
+
+/**
  * Register resting pressure (balls touching wall but not impacting)
  * This applies extra damping to stop wobble when balls settle
  */
@@ -1221,6 +1295,37 @@ export function registerWallPressure(wall, normalizedPos, amount = 1.0) {
   const t = wallState.ringPhysics.tFromWall(wall, pos);
   const fast = wallState._pressureEventsThisStep >= MAX_RING_PRESSURE_EVENTS_PER_PHYSICS_STEP;
   wallState.ringPhysics.addPressureAtT(t, amount, { fast });
+  wallState._pressureEventsThisStep++;
+}
+
+/**
+ * Register resting pressure by contact point (canvas px space).
+ * Preferred for SDF collisions because it works consistently at corners.
+ */
+export function registerWallPressureAtPoint(x, y, amount = 1.0) {
+  const g = getGlobals();
+  const canvas = g.canvas;
+  if (!canvas) return;
+
+  const rCssPx = (typeof g.getCanvasCornerRadius === 'function')
+    ? g.getCanvasCornerRadius()
+    : (g.cornerRadius ?? g.wallRadius ?? 0);
+  const rCanvasPx = Math.max(0, (Number(rCssPx) || 0) * (g.DPR || 1));
+
+  // Ensure geometry matches drawWalls() / Ball.walls():
+  const DPR = g.DPR || 1;
+  const wallThicknessPx = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
+  const insetPx = wallThicknessPx;
+  const innerW = Math.max(1, canvas.width - insetPx * 2);
+  const innerH = Math.max(1, canvas.height - insetPx * 2);
+  const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
+  wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
+
+  const ix = x - insetPx;
+  const iy = y - insetPx;
+
+  const fast = wallState._pressureEventsThisStep >= MAX_RING_PRESSURE_EVENTS_PER_PHYSICS_STEP;
+  wallState.ringPhysics.addPressureAtPoint(ix, iy, amount, { fast });
   wallState._pressureEventsThisStep++;
 }
 

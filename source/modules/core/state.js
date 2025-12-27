@@ -3,7 +3,7 @@
 // ║               All global state - extracted from balls-source.html            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { CONSTANTS, MODES } from './constants.js';
+import { CONSTANTS, MODES, WALL_PRESETS } from './constants.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -316,8 +316,15 @@ const state = {
   pingPongCursorRadius: 0,
   
   // Colors
-  currentColors: ['#b7bcb7', '#e4e9e4', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
+  // Palette chapters ("colour schemes") — see `source/modules/visual/colors.js`
+  // Keep these aligned with the Industrial Teal base palette so:
+  // - CSS fallback matches JS-driven palette chapters
+  // - early paints (before JS applies templates) look correct
+  currentColors: ['#b7bcb7', '#d0d0d0', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
   currentTemplate: 'industrialTeal',
+  // If true, rotate to the next palette chapter on each reload.
+  // If false, respect `currentTemplate` from runtime config.
+  paletteRotateOnReload: false,
   // Color Distribution (labels ↔ palette indices ↔ weights)
   // Used by `pickRandomColor()` for ALL modes.
   // NOTE: 7 disciplines choose 7 distinct palette indices (0..7). One palette color may remain unused.
@@ -1258,6 +1265,15 @@ export function initState(config) {
 
   // Rubber wall wobble tuning
   if (config.wallPreset !== undefined) state.wallPreset = config.wallPreset;
+
+  // If a preset is specified, apply it as a baseline BEFORE reading any explicit low-level keys.
+  // This ensures presets actually do something from config/load (and per-key overrides still win).
+  if (state.wallPreset) {
+    const preset = WALL_PRESETS?.[state.wallPreset];
+    const values = preset?.values ? preset.values : preset;
+    if (values) Object.assign(state, values);
+  }
+
   if (config.wallSoftness !== undefined) state.wallSoftness = config.wallSoftness;
   if (config.wallBounciness !== undefined) state.wallBounciness = config.wallBounciness;
   

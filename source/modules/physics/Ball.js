@@ -6,7 +6,7 @@
 import { getConfig, getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
-import { registerWallImpact, registerWallPressure, wallState } from './wall-state.js';
+import { registerWallImpactAtPoint, registerWallPressureAtPoint, wallState } from './wall-state.js';
 
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;
@@ -323,6 +323,12 @@ export class Ball {
       // Apply sign based on quadrant
       nx *= lx < 0 ? -1 : 1;
       ny *= ly < 0 ? -1 : 1;
+
+      // Closest point on BASE (non-deformed) boundary in canvas space.
+      // This is the correct place to sample + inject deformation because the ring is parameterized
+      // along the rounded-rect perimeter.
+      const bx = px - nx * baseDist;
+      const by = py - ny * baseDist;
       
       // Deformation is only relevant when a ball is close enough that the inward
       // wall shift could matter. Far-inside balls should not pay the sampling cost.
@@ -332,10 +338,6 @@ export class Ball {
         // shift can't reach the ball, so we can skip sampling.
         const nearThreshold = (effectiveRadius + borderInset) + maxDeformCanvasPx;
         if (baseDist > -nearThreshold) {
-          // Find closest point on base boundary
-          const bx = px - nx * baseDist;
-          const by = py - ny * baseDist;
-
           // Precision-driven sampling along tangent (cheap, improves stability around corners)
           const sampleCount = Math.max(1, Math.min(6, 1 + Math.floor(precision / 20))); // 1..6
           const tx = -ny;
@@ -354,19 +356,19 @@ export class Ball {
             }
           }
           deform = maxD;
-        }
       }
-      
+    }
+    
       // Deformation is INWARD displacement of the boundary.
       // For an SDF where inside is negative, inward displacement increases the distance
       // (makes points "more outside" relative to the moved-in wall).
       const deformedDist = baseDist + deform;
       
-      return { dist: deformedDist, nx, ny };
+      return { dist: deformedDist, nx, ny, bx, by, baseDist, deform };
     };
     
     // Compute deformed SDF and check for collision
-    const { dist: sdfDist, nx, ny } = computeSDF(this.x, this.y);
+    const { dist: sdfDist, nx, ny, bx, by } = computeSDF(this.x, this.y);
     
     // Ball Pit mode: skip collision if normal points upward (allow entry from top)
     const skipForPit = isPitMode && ny < -0.5;
@@ -409,14 +411,14 @@ export class Ball {
         
         // Rolling friction
         const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
-        const groundSpeed = Math.abs(this.vx);
+      const groundSpeed = Math.abs(this.vx);
         const frictionMul = Math.max(0, Math.min(1, 1 - groundSpeed / (80 * DPR)));
         const rollFriction = CONSTANTS.ROLL_FRICTION_PER_S * (1 + frictionMul);
         const rollDamp = Math.max(0, 1 - rollFriction * dt / massScale);
-        this.vx *= rollDamp;
-        
-        if (Math.abs(this.vx) < 3.0 * DPR) this.vx = 0;
-        
+      this.vx *= rollDamp;
+      
+      if (Math.abs(this.vx) < 3.0 * DPR) this.vx = 0;
+      
         // Spin coupling
         const slip = this.vx - this.omega * this.r;
         this.omega += (slip / this.r) * CONSTANTS.SPIN_GAIN / massScale;
@@ -435,54 +437,21 @@ export class Ball {
         const pan = this.x / Math.max(1, w);
         playCollisionSound(this.r, impact * 0.65, pan, this._soundId);
         
-        // Wobble registration
-        if (!this.isSleeping && impactSpeed >= wobbleThreshold) {
-          // Determine wall name and position for wobble
-          let wall = null;
-          let pos = 0;
-          
-          if (isFloor) {
-            wall = 'bottom';
-            pos = innerW > 1 ? (this.x - insetPx) / innerW : 0.5;
-          } else if (isCeiling && !isPitMode) {
-            wall = 'top';
-            pos = innerW > 1 ? (this.x - insetPx) / innerW : 0.5;
-          } else if (isLeftWall) {
-            wall = 'left';
-            pos = innerH > 1 ? (this.y - insetPx) / innerH : 0.5;
-          } else if (isRightWall) {
-            wall = 'right';
-            pos = innerH > 1 ? (this.y - insetPx) / innerH : 0.5;
-          }
-          
-          if (wall) {
-            registerWallImpact(wall, Math.max(0, Math.min(1, pos)), impact);
-          }
+        // Wobble registration (drive the wall at the TRUE rounded-rect contact point).
+        // This is critical for corners: SDF collision normal is diagonal there, which previously
+        // failed the "which side?" test and resulted in missing wobble.
+        //
+        // Use normal velocity into the wall (preVn) to scale intensity: better tied to bounce.
+        const impactSpeedN = Math.max(0, preVn);
+        if (!this.isSleeping && impactSpeedN >= wobbleThreshold) {
+          const impactN = Math.min(1, impactSpeedN / (this.r * 80));
+          registerWallImpactAtPoint(bx, by, impactN);
         }
         
         // Pressure registration (dampens wobble from resting contact)
         const pressureAmount = this.isSleeping ? 1.0 : Math.max(0, (wobbleThreshold - impactSpeed) / wobbleThreshold);
         if (pressureAmount > 0.1) {
-          let wall = null;
-          let pos = 0;
-          
-          if (isFloor) {
-            wall = 'bottom';
-            pos = innerW > 1 ? (this.x - insetPx) / innerW : 0.5;
-          } else if (isCeiling && !isPitMode) {
-            wall = 'top';
-            pos = innerW > 1 ? (this.x - insetPx) / innerW : 0.5;
-          } else if (isLeftWall) {
-            wall = 'left';
-            pos = innerH > 1 ? (this.y - insetPx) / innerH : 0.5;
-          } else if (isRightWall) {
-            wall = 'right';
-            pos = innerH > 1 ? (this.y - insetPx) / innerH : 0.5;
-          }
-          
-          if (wall) {
-            registerWallPressure(wall, Math.max(0, Math.min(1, pos)), pressureAmount);
-          }
+          registerWallPressureAtPoint(bx, by, pressureAmount);
         }
       }
     }

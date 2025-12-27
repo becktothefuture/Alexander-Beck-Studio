@@ -9,6 +9,7 @@ import { autoSaveSettings } from '../utils/storage.js';
 import { WALL_PRESETS, ORBIT3D_PRESETS, PARALLAX_LINEAR_PRESETS, PARALLAX_PERSPECTIVE_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyOrbit3DPreset } from '../modes/orbit-3d.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
+import { applyWallPreset } from '../physics/wall-state.js';
 
 // Will be set by main.js to avoid circular dependency
 let applyVisualCSSVars = null;
@@ -1347,6 +1348,24 @@ export const CONTROL_SECTIONS = {
             mod.syncChromeColor();
           });
         }
+      },
+      {
+        id: 'wallPreset',
+        label: 'Wall Preset',
+        stateKey: 'wallPreset',
+        type: 'select',
+        // Preserve insertion order from WALL_PRESETS (curated order in constants.js)
+        options: Object.entries(WALL_PRESETS).map(([key, preset]) => ({
+          value: key,
+          label: preset?.label ? preset.label : key
+        })),
+        default: 'pudding',
+        format: v => String(v),
+        onChange: (g, val) => {
+          applyWallPreset(String(val), g);
+          syncSlidersToState();
+        },
+        hint: 'Curated wall “types” that set multiple wall sliders at once.'
       },
       {
         id: 'wallThicknessVw',
@@ -4292,6 +4311,13 @@ export function generateColorTemplateSectionHTML({ open = false } = {}) {
             <span class="control-value"></span>
           </div>
           <select id="colorSelect"></select>
+        </label>
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Rotate on Reload</span>
+            <span class="control-value"></span>
+          </div>
+          <input id="paletteRotateOnReload" type="checkbox" />
         </label>
       </div>
     </details>`;

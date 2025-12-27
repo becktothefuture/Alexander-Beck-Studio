@@ -125,50 +125,187 @@ export const CONSTANTS = {
 // WALL PRESETS
 // ═══════════════════════════════════════════════════════════════════════════════
 export const WALL_PRESETS = {
-  rubber: {    // DEFAULT - balanced, natural
-    wallWobbleMaxDeform: 45,
-    wallWobbleStiffness: 2200,
-    wallWobbleDamping: 35,
-    wallWobbleImpactThreshold: 140,
-    wallWobbleSettlingSpeed: 75,
-    wallWobbleSigma: 2.0,
-    wallWobbleCornerClamp: 0.6
+  // NOTE: These are intended to be "wall types" and should update the wall sliders in real time.
+  // Keep values explicit for all key wall params so switching presets resets everything consistently.
+  rubber: {
+    label: 'Rubber (balanced)',
+    description: 'Balanced rubber ring with clear bounce and crisp ripples.',
+    values: {
+      wallWobbleMaxDeform: 50,
+      wallWobbleStiffness: 2100,
+      wallWobbleDamping: 34,
+      wallWobbleSigma: 2.2,
+      wallWobbleCornerClamp: 0.6,
+      wallWobbleImpactThreshold: 110,
+      wallWobbleSettlingSpeed: 70,
+      wallWobbleMaxVel: 900,
+      wallWobbleMaxImpulse: 240,
+      wallWobbleMaxEnergyPerStep: 24000,
+      wallDeformPhysicsPrecision: 70,
+      wallInset: 3
+    }
   },
-  pudding: {   // Thick, soft, overdamped blobs (cloth/pudding feel)
-    wallWobbleMaxDeform: 70,
-    wallWobbleStiffness: 520,
-    wallWobbleDamping: 78,
-    wallWobbleImpactThreshold: 60,
-    wallWobbleSettlingSpeed: 92,
-    wallWobbleSigma: 5.0,
-    wallWobbleCornerClamp: 0.25
+  pudding: {
+    label: 'Pudding (thick, soft)',
+    description: 'Overdamped, broad blobs. Big squish, quick settling, minimal ringing.',
+    values: {
+      wallWobbleMaxDeform: 85,
+      wallWobbleStiffness: 520,
+      wallWobbleDamping: 82,
+      wallWobbleSigma: 5.2,
+      wallWobbleCornerClamp: 0.25,
+      wallWobbleImpactThreshold: 55,
+      wallWobbleSettlingSpeed: 94,
+      wallWobbleMaxVel: 650,
+      wallWobbleMaxImpulse: 180,
+      wallWobbleMaxEnergyPerStep: 22000,
+      wallDeformPhysicsPrecision: 60,
+      wallInset: 3
+    }
   },
-  trampoline: { // Very bouncy, quick response
-    wallWobbleMaxDeform: 55,
-    wallWobbleStiffness: 2800,
-    wallWobbleDamping: 15,
-    wallWobbleImpactThreshold: 100,
-    wallWobbleSettlingSpeed: 40,
-    wallWobbleSigma: 2.5,
-    wallWobbleCornerClamp: 0.5
+  trampoline: {
+    label: 'Trampoline (snappy)',
+    description: 'High elasticity and low viscosity. Fast rebound with lively oscillation.',
+    values: {
+      wallWobbleMaxDeform: 60,
+      wallWobbleStiffness: 2900,
+      wallWobbleDamping: 14,
+      wallWobbleSigma: 2.4,
+      wallWobbleCornerClamp: 0.55,
+      wallWobbleImpactThreshold: 95,
+      wallWobbleSettlingSpeed: 35,
+      wallWobbleMaxVel: 1200,
+      wallWobbleMaxImpulse: 320,
+      wallWobbleMaxEnergyPerStep: 30000,
+      wallDeformPhysicsPrecision: 75,
+      wallInset: 3
+    }
   },
-  jelly: {      // Soft, slow, wobbly
-    wallWobbleMaxDeform: 80,
-    wallWobbleStiffness: 800,
-    wallWobbleDamping: 12,
-    wallWobbleImpactThreshold: 80,
-    wallWobbleSettlingSpeed: 30,
-    wallWobbleSigma: 3.5,
-    wallWobbleCornerClamp: 0.4
+  jelly: {
+    label: 'Jelly (slow wobble)',
+    description: 'Soft and springy with slow, smooth undulation. More “gel sheet”.',
+    values: {
+      wallWobbleMaxDeform: 95,
+      wallWobbleStiffness: 820,
+      wallWobbleDamping: 16,
+      wallWobbleSigma: 3.6,
+      wallWobbleCornerClamp: 0.4,
+      wallWobbleImpactThreshold: 75,
+      wallWobbleSettlingSpeed: 28,
+      wallWobbleMaxVel: 900,
+      wallWobbleMaxImpulse: 260,
+      wallWobbleMaxEnergyPerStep: 26000,
+      wallDeformPhysicsPrecision: 70,
+      wallInset: 3
+    }
   },
-  stiff: {      // Minimal deformation
-    wallWobbleMaxDeform: 20,
-    wallWobbleStiffness: 3000,
-    wallWobbleDamping: 60,
-    wallWobbleImpactThreshold: 180,
-    wallWobbleSettlingSpeed: 90,
-    wallWobbleSigma: 1.5,
-    wallWobbleCornerClamp: 0.8
+  stiff: {
+    label: 'Stiff (rigid-ish)',
+    description: 'Small deformation with heavy damping: feels like thick industrial gasket.',
+    values: {
+      wallWobbleMaxDeform: 28,
+      wallWobbleStiffness: 3200,
+      wallWobbleDamping: 62,
+      wallWobbleSigma: 1.7,
+      wallWobbleCornerClamp: 0.8,
+      wallWobbleImpactThreshold: 160,
+      wallWobbleSettlingSpeed: 92,
+      wallWobbleMaxVel: 700,
+      wallWobbleMaxImpulse: 160,
+      wallWobbleMaxEnergyPerStep: 20000,
+      wallDeformPhysicsPrecision: 55,
+      wallInset: 3
+    }
+  },
+  steel: {
+    label: 'Steel (almost solid)',
+    description: 'Barely moves; impact gating high. Useful as a near-static control case.',
+    values: {
+      wallWobbleMaxDeform: 10,
+      wallWobbleStiffness: 3600,
+      wallWobbleDamping: 75,
+      wallWobbleSigma: 1.2,
+      wallWobbleCornerClamp: 0.9,
+      wallWobbleImpactThreshold: 190,
+      wallWobbleSettlingSpeed: 98,
+      wallWobbleMaxVel: 500,
+      wallWobbleMaxImpulse: 90,
+      wallWobbleMaxEnergyPerStep: 16000,
+      wallDeformPhysicsPrecision: 40,
+      wallInset: 3
+    }
+  },
+  latex: {
+    label: 'Latex (tight snap)',
+    description: 'Taut membrane: smaller blobs, higher tension, crisp rebounds.',
+    values: {
+      wallWobbleMaxDeform: 55,
+      wallWobbleStiffness: 2600,
+      wallWobbleDamping: 22,
+      wallWobbleSigma: 1.8,
+      wallWobbleCornerClamp: 0.7,
+      wallWobbleImpactThreshold: 105,
+      wallWobbleSettlingSpeed: 55,
+      wallWobbleMaxVel: 1100,
+      wallWobbleMaxImpulse: 300,
+      wallWobbleMaxEnergyPerStep: 28000,
+      wallDeformPhysicsPrecision: 75,
+      wallInset: 3
+    }
+  },
+  memoryFoam: {
+    label: 'Memory Foam (slow sink)',
+    description: 'Very soft with heavy damping: sinks in and slowly recovers.',
+    values: {
+      wallWobbleMaxDeform: 120,
+      wallWobbleStiffness: 420,
+      wallWobbleDamping: 88,
+      wallWobbleSigma: 6.0,
+      wallWobbleCornerClamp: 0.2,
+      wallWobbleImpactThreshold: 45,
+      wallWobbleSettlingSpeed: 96,
+      wallWobbleMaxVel: 520,
+      wallWobbleMaxImpulse: 150,
+      wallWobbleMaxEnergyPerStep: 22000,
+      wallDeformPhysicsPrecision: 65,
+      wallInset: 3
+    }
+  },
+  hydraulic: {
+    label: 'Hydraulic (damped)',
+    description: 'Medium squish with very high viscosity: controlled, “mechanical” response.',
+    values: {
+      wallWobbleMaxDeform: 70,
+      wallWobbleStiffness: 1400,
+      wallWobbleDamping: 78,
+      wallWobbleSigma: 3.0,
+      wallWobbleCornerClamp: 0.55,
+      wallWobbleImpactThreshold: 85,
+      wallWobbleSettlingSpeed: 90,
+      wallWobbleMaxVel: 650,
+      wallWobbleMaxImpulse: 200,
+      wallWobbleMaxEnergyPerStep: 24000,
+      wallDeformPhysicsPrecision: 70,
+      wallInset: 3
+    }
+  },
+  gelSheet: {
+    label: 'Gel Sheet (wide ripples)',
+    description: 'Wide, slow waves with moderate bounce. Feels like a gel panel.',
+    values: {
+      wallWobbleMaxDeform: 95,
+      wallWobbleStiffness: 1000,
+      wallWobbleDamping: 28,
+      wallWobbleSigma: 4.8,
+      wallWobbleCornerClamp: 0.35,
+      wallWobbleImpactThreshold: 70,
+      wallWobbleSettlingSpeed: 45,
+      wallWobbleMaxVel: 900,
+      wallWobbleMaxImpulse: 260,
+      wallWobbleMaxEnergyPerStep: 26000,
+      wallDeformPhysicsPrecision: 75,
+      wallInset: 3
+    }
   }
 };
 
