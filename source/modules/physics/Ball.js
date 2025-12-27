@@ -272,8 +272,13 @@ export class Ball {
     const cx = insetPx + hx;  // center x in canvas coords
     const cy = insetPx + hy;  // center y in canvas coords
     
+    // Wall deformation: sample at contact point
+    const precision = Math.max(0, Math.min(100, globals.wallDeformPhysicsPrecision ?? 50));
+    const useDeformation = precision > 0 && typeof wallState?.getDeformationAtPoint === 'function';
+    
     // Rounded-rect SDF: returns (distance, outward normal)
     // Negative = inside, Positive = outside (in wall)
+    // Now accounts for wall deformation: deformation pushes boundary inward
     const computeSDF = (px, py) => {
       // Local coords relative to center
       const lx = px - cx;
@@ -285,10 +290,10 @@ export class Ball {
       const dx = ax - (hx - rr);
       const dy = ay - (hy - rr);
       
-      // SDF formula for rounded rect
+      // SDF formula for rounded rect (base static boundary)
       const outsideCorner = Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
       const insideRect = Math.min(Math.max(dx, dy), 0);
-      const dist = outsideCorner + insideRect - rr;
+      const baseDist = outsideCorner + insideRect - rr;
       
       // Compute outward normal (gradient direction)
       let nx = 0, ny = 0;
@@ -313,29 +318,30 @@ export class Ball {
       nx *= lx < 0 ? -1 : 1;
       ny *= ly < 0 ? -1 : 1;
       
-      return { dist, nx, ny };
+      // Sample deformation at closest boundary point (if enabled)
+      let deform = 0;
+      if (useDeformation) {
+        // Find closest point on base boundary
+        const bx = px - nx * baseDist;
+        const by = py - ny * baseDist;
+        deform = wallState.getDeformationAtPoint(bx, by);
+      }
+      
+      // Deformation pushes boundary INWARD (reduces distance to boundary)
+      // Positive deformation = wall pushed in = smaller playable area
+      const deformedDist = baseDist - deform;
+      
+      return { dist: deformedDist, nx, ny };
     };
     
-    // Wall deformation: sample at contact point
-    const precision = Math.max(0, Math.min(100, globals.wallDeformPhysicsPrecision ?? 50));
-    const useDeformation = precision > 0 && typeof wallState?.getDeformationAtPoint === 'function';
-    
-    // Compute SDF and check for collision
+    // Compute deformed SDF and check for collision
     const { dist: sdfDist, nx, ny } = computeSDF(this.x, this.y);
     
     // Ball Pit mode: skip collision if normal points upward (allow entry from top)
     const skipForPit = isPitMode && ny < -0.5;
     
-    // Total margin: ball radius + physics padding + deformation
-    let deform = 0;
-    if (useDeformation && !skipForPit) {
-      // Sample deformation at the closest boundary point
-      const bx = this.x - nx * sdfDist;
-      const by = this.y - ny * sdfDist;
-      deform = wallState.getDeformationAtPoint(bx, by);
-    }
-    
-    const margin = effectiveRadius + borderInset + deform;
+    // Margin: ball radius + physics padding (deformation already accounted in SDF)
+    const margin = effectiveRadius + borderInset;
     const penetration = sdfDist + margin;
     
     if (penetration > 0 && !skipForPit) {
