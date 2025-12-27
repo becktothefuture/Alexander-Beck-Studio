@@ -4930,8 +4930,10 @@ export function syncSlidersToState() {
           if (valEl) valEl.textContent = control.format ? control.format(stateVal) : String(stateVal);
         }
         
-        // Call onChange handler to initialize CSS variables
-        if (control.onChange) {
+        // Call onChange handler to initialize CSS variables / apply side effects.
+        // IMPORTANT: Avoid re-entrant loops for preset selectors that themselves call `syncSlidersToState()`.
+        // (e.g. wallPreset → applyWallPreset → syncSlidersToState → wallPreset.onChange → ...)
+        if (control.onChange && control.id !== 'wallPreset') {
           control.onChange(g, stateVal);
         }
       }
