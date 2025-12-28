@@ -271,8 +271,9 @@ async function buildProduction() {
     fs.writeFileSync(path.join(cssDir, 'bouncy-balls.css'), cssCombined);
     console.log(`✅ Wrote CSS bundle (${isProd ? `minified: ${Math.round(cssMinSize/1024)}KB, ${cssReduction}% smaller` : 'unminified'})`);
 
-    // Standalone panel styles (used by portfolio page)
-    if (fs.existsSync(cssPanelPath)) {
+    // Standalone panel styles (DEV-ONLY: panel dock is a config-authoring tool)
+    // In production builds we omit panel.css entirely so it cannot leak into deploy artifacts.
+    if (!isProd && fs.existsSync(cssPanelPath)) {
       fs.copyFileSync(cssPanelPath, path.join(cssDir, 'panel.css'));
     }
     // Portfolio page styles (kept separate from main bundle)

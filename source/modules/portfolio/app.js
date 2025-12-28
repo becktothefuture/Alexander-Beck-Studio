@@ -1836,33 +1836,37 @@ async function bootstrapPortfolio() {
   const normalizedPortfolioConfig = applyPortfolioConfig(portfolioConfig);
   const app = new PortfolioApp({ runtimeConfig: normalizedPortfolioConfig.runtime });
 
-  // Index parity: the config panel exists in all builds, starts hidden, and is summoned with `/`.
-  try {
-    const { createPanelDock } = await import('../ui/panel-dock.js');
-    const { generatePanelSectionsHTML } = await import('./panel/control-registry.js');
-    const { setupControls } = await import('./panel/controls.js');
-    const { setupBuildControls } = await import('./panel/build-controls.js');
+  // DEV-ONLY: config/debug panel dock. Never ship this UI in production.
+  // (Production site must not show panel icons/handles on mobile.)
+  const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : isPortfolioDev();
+  if (ABS_DEV) {
+    try {
+      const { createPanelDock } = await import('../ui/panel-dock.js');
+      const { generatePanelSectionsHTML } = await import('./panel/control-registry.js');
+      const { setupControls } = await import('./panel/controls.js');
+      const { setupBuildControls } = await import('./panel/build-controls.js');
 
-    const pageHTML = generatePanelSectionsHTML(normalizedPortfolioConfig);
+      const pageHTML = generatePanelSectionsHTML(normalizedPortfolioConfig);
 
-    createPanelDock({
-      page: 'portfolio',
-      pageLabel: 'Portfolio',
-      pageHTML,
-      includePageSaveButton: true,
-      pageSaveButtonId: 'savePortfolioConfigBtn',
-      bindShortcut: true,
-      panelTitle: 'Settings',
-      modeLabel: isPortfolioDev() ? 'DEV MODE' : 'BUILD MODE',
-      setupPageControls: () => {
-        setupControls(normalizedPortfolioConfig, {
-          onMetricsChange: () => app.updateWheelConfig(),
-          onRuntimeChange: (runtime) => app.applyRuntimeConfig(runtime),
-        });
-        setupBuildControls(normalizedPortfolioConfig);
-      },
-    });
-  } catch (e) {}
+      createPanelDock({
+        page: 'portfolio',
+        pageLabel: 'Portfolio',
+        pageHTML,
+        includePageSaveButton: true,
+        pageSaveButtonId: 'savePortfolioConfigBtn',
+        bindShortcut: true,
+        panelTitle: 'Settings',
+        modeLabel: 'DEV MODE',
+        setupPageControls: () => {
+          setupControls(normalizedPortfolioConfig, {
+            onMetricsChange: () => app.updateWheelConfig(),
+            onRuntimeChange: (runtime) => app.applyRuntimeConfig(runtime),
+          });
+          setupBuildControls(normalizedPortfolioConfig);
+        },
+      });
+    } catch (e) {}
+  }
 }
 
 // Start

@@ -262,6 +262,16 @@ function getMasterPanelContent({
 // ════════════════════════════════════════════════════════════════════════════════
 
 export function createPanelDock(options = {}) {
+  // DEV-only: dynamically inject panel.css if not already present
+  // (Production builds don't include panel.css, so we inject it on-demand)
+  if (!document.querySelector('link[href*="panel.css"]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    // Detect base path (dev: css/panel.css, prod: would not reach here)
+    link.href = 'css/panel.css';
+    document.head.appendChild(link);
+  }
+
   const page = options.page || 'home';
   const pageLabel = options.pageLabel || (page === 'portfolio' ? 'Portfolio' : 'Home');
   const pageHTML = options.pageHTML || HOME_PANEL_HTML;

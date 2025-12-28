@@ -144,8 +144,8 @@ html {
   height: 100%;
   overflow: hidden;
   /* Single source of truth: wall/frame uses the same token in all themes. */
-  background: var(--frame-color-light);
-  background-color: var(--frame-color-light);
+  background: var(--wall-color) !important;
+  background-color: var(--wall-color) !important;
 }
 
 body {
@@ -155,7 +155,9 @@ body {
   margin: 0;
   box-sizing: border-box;
   position: relative;
-  background: transparent;
+  /* Prevent iOS Safari from flashing browser-white during viewport UI changes. */
+  background: var(--wall-color) !important;
+  background-color: var(--wall-color) !important;
   font-family: var(--abs-font-sans);
   color: var(--accent-color);
   transition: background-color 0.3s var(--ease-settle);
@@ -1204,29 +1206,56 @@ body.detail-open .portfolio-footer {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   INDEX CHROME PARITY (PORTFOLIO TOP OVERRIDES)
-   Goal: match the index sizing/spacing while swapping the layout to:
-   - Left: back arrow only
-   - Right: Bio/CV link + philosophy text (same look as index) with the sound toggle
+   INDEX CHROME PARITY (PORTFOLIO)
+   Ensure portfolio uses the same tokens, padding, and positioning as index.
    ───────────────────────────────────────────────────────────────────────────── */
 
+/* Portfolio #fade-content: use same layout structure as index */
+body.portfolio-page #fade-content {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  padding: var(--content-padding) !important;
+  pointer-events: none !important;
+  z-index: 20 !important;
+  overflow: hidden !important;
+}
+
+/* Enable pointer events on interactive elements only */
+body.portfolio-page #fade-content a,
+body.portfolio-page #fade-content button,
+body.portfolio-page #fade-content [role="button"] {
+  pointer-events: auto !important;
+}
+
 body.portfolio-page .ui-top-main {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
   align-items: flex-start !important;
+  width: 100% !important;
+  gap: var(--gap-lg) !important;
 }
 
 body.portfolio-page .ui-top-left {
-  width: auto !important;
-  flex: 0 0 auto !important;
+  flex: 1 1 auto !important;
   min-width: 0 !important;
-  display: inline-flex;
-  align-items: flex-start;
-  pointer-events: auto !important;
-  gap: calc(var(--gap-sm) * 2);
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: var(--gap-sm) !important;
 }
 
 body.portfolio-page .ui-top-left .decorative-script {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
   max-width: var(--decorative-script-max-width) !important;
-  margin: 0;
+  margin: 0 !important;
 }
 
 #portfolio-blurb {
@@ -1235,13 +1264,67 @@ body.portfolio-page .ui-top-left .decorative-script {
 }
 
 body.portfolio-page .ui-top-right {
-  width: auto !important;
-  max-width: 60vw !important;
-  flex: 1 1 auto !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  flex-direction: row !important;
   justify-content: flex-end !important;
   align-items: center !important;
-  pointer-events: auto !important;
   gap: var(--gap-lg) !important;
+}
+
+/* Footer: match index layout exactly */
+body.portfolio-page .ui-bottom.portfolio-footer {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: var(--gap-24) !important;
+  pointer-events: none !important;
+}
+
+body.portfolio-page .ui-meta-row {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+body.portfolio-page .ui-meta-left,
+body.portfolio-page .ui-meta-right {
+  flex: 0 0 auto !important;
+  pointer-events: auto !important;
+}
+
+/* Social icons: use index tokens */
+body.portfolio-page .footer_icon-group {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: var(--footer-icon-gap) !important;
+  align-items: center !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.portfolio-page .footer_icon-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: var(--link-icon-padding) !important;
+  margin: var(--link-icon-margin) !important;
+  color: var(--text-muted) !important;
+  text-decoration: none !important;
+  transition: color var(--duration-link-hover) var(--ease-organic) !important;
+}
+
+body.portfolio-page .footer_icon-link:hover {
+  color: var(--text-primary) !important;
+}
+
+body.portfolio-page .footer_icon-link .ti {
+  font-size: var(--footer-icon-size) !important;
+  width: var(--footer-icon-size) !important;
+  height: var(--footer-icon-size) !important;
 }
 
 @media (max-width: 600px) {
@@ -1276,7 +1359,10 @@ body.portfolio-page .ui-top-right {
   appearance: none;
   border: 0;
   background: transparent;
-  padding: var(--hit-area-sm);
+  /* Match the primary icon-link hit-area sizing (e.g. footer socials). */
+  width: var(--footer-icon-size);
+  height: var(--footer-icon-size);
+  padding: var(--link-icon-padding);
   margin: 0;
   display: inline-flex;
   justify-content: center;
@@ -1287,9 +1373,9 @@ body.portfolio-page .ui-top-right {
   user-select: none;
   color: var(--text-quiet);
   pointer-events: auto;
-  width: auto;
-  height: auto;
+  flex: 0 0 var(--footer-icon-size);
   text-decoration: none;
+  overflow: visible;
 }
 
 .gate-back::after {
@@ -1441,32 +1527,170 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
   box-shadow: none;
 }
 
-/* Mobile Responsive */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — Portfolio
+   Fixes: card sizing, text overflow, header wrapping, footer alignment
+   ═══════════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   :root {
-    /* Mobile: allow smaller floor so cards still fit vertically. */
-    --card-height-floor: 180px;
-    --text-title-max: 42px;
-    --card-height-min: 31vh;
-    --card-height-ideal: 45vh;
-    --card-height-max: 55vh;
-    --wheel-radius-x: 46vw;
-    --wheel-radius-y: 18vh;
+    /* Mobile: significantly smaller cards to fit on screen */
+    --card-height-floor: 140px;
+    --card-height-min: 22vh;
+    --card-height-ideal: 28vh;
+    --card-height-max: 32vh;
+    --wheel-radius-x: 42vw;
+    --wheel-radius-y: 14vh;
     /* Mobile: tighter spacing ratio to prevent overlap on small screens */
-    --wheel-spacing-ratio: 0.16;
-    --wheel-spacing: max(calc(var(--card-width) * var(--wheel-spacing-ratio)), 6vw);
-    --wheel-center-y: -4vh;
-    --wheel-tilt: 55deg;
-    --wheel-active-lift: 2vh;
-    --text-client-size: 3vw;
-    --text-title-size: 6vw;
-    --text-tags-size: 2.5vw;
-    --content-offset: 23.5vh;
+    --wheel-spacing-ratio: 0.14;
+    --wheel-spacing: max(calc(var(--card-width) * var(--wheel-spacing-ratio)), 5vw);
+    --wheel-center-y: -2vh;
+    --wheel-tilt: 50deg;
+    --wheel-active-lift: 1.5vh;
+    /* Mobile meta text: use clamp with absolute limits */
+    --text-client-size: clamp(10px, 2.5vw, 14px);
+    --text-title-size: clamp(18px, 5vw, 28px);
+    --text-tags-size: clamp(11px, 2vw, 14px);
+    --text-title-max: 28px;
+    --content-offset: 20vh;
     --meta-lift: 0vh;
-    --stage-offset-y: 10vh;
+    --stage-offset-y: 6vh;
     --detail-hero-width: 100%;
     --detail-hero-offset: 0%;
     --detail-hero-top-pad: 0px;
+  }
+
+  /* Prevent horizontal overflow */
+  .wall-frame {
+    overflow: hidden !important;
+    max-width: 100vw !important;
+  }
+
+  /* Portfolio #fade-content: match index padding + prevent overflow */
+  body.portfolio-page #fade-content {
+    padding: var(--content-padding) !important;
+    overflow: hidden !important;
+    max-width: 100% !important;
+  }
+
+  /* Header: stack vertically on narrow screens */
+  body.portfolio-page .ui-top-main {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--gap-sm) !important;
+  }
+
+  body.portfolio-page .ui-top-left {
+    flex: none !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: var(--gap-sm) !important;
+  }
+
+  body.portfolio-page .ui-top-right {
+    flex: none !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  /* Blurb text: allow wrapping, constrain width */
+  body.portfolio-page .decorative-script {
+    max-width: none !important;
+    flex: 1 1 auto !important;
+  }
+
+  body.portfolio-page .decorative-script p {
+    font-size: var(--text-sm) !important;
+    line-height: var(--line-height-body) !important;
+  }
+
+  /* Bio/CV link: ensure visible, use index token sizing */
+  body.portfolio-page .portfolio-cv-link {
+    white-space: nowrap !important;
+    font-size: var(--footer-links-font-size) !important;
+    padding: var(--hit-area-sm) !important;
+    margin: calc(var(--hit-area-sm) * -1) !important;
+  }
+
+  /* Footer: match index alignment exactly */
+  body.portfolio-page .ui-bottom.portfolio-footer {
+    padding: 0 !important;
+  }
+
+  body.portfolio-page .ui-meta-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  body.portfolio-page .ui-meta-left {
+    flex: 0 0 auto !important;
+  }
+
+  body.portfolio-page .ui-meta-right {
+    flex: 0 0 auto !important;
+  }
+
+  /* Social icons: same size/gap as index */
+  body.portfolio-page .footer_icon-group {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: var(--footer-icon-gap) !important;
+    align-items: center !important;
+  }
+
+  body.portfolio-page .footer_icon-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    height: auto !important;
+    padding: var(--hit-area-md) !important;
+    margin: calc(var(--hit-area-md) * -1) !important;
+  }
+
+  body.portfolio-page .footer_icon-link .ti {
+    font-size: var(--footer-icon-size) !important;
+    width: var(--footer-icon-size) !important;
+    height: var(--footer-icon-size) !important;
+  }
+
+  /* Meta text: on mobile, use fixed positioning to break out of stage transforms */
+  .portfolio-meta {
+    position: fixed !important;
+    left: var(--content-padding) !important;
+    right: var(--content-padding) !important;
+    /* Position from top instead: place ~65% down the viewport (above footer) */
+    top: 62vh !important;
+    bottom: auto !important;
+    transform: translateX(0) !important;
+    width: auto !important;
+    max-width: none !important;
+    text-align: center !important;
+    z-index: 100 !important;
+  }
+
+  .portfolio-meta__inner {
+    gap: var(--gap-xs) !important;
+  }
+
+  .meta-client {
+    font-size: var(--text-client-size) !important;
+  }
+
+  .meta-title {
+    font-size: var(--text-title-size) !important;
+    line-height: var(--line-height-title) !important;
+  }
+
+  .meta-summary {
+    /* Hide summary on mobile to reduce clutter */
+    display: none !important;
   }
 
   .project-detail__inner {
@@ -1487,6 +1711,58 @@ body.dark-mode .sound-toggle[data-enabled="true"] {
 
   .project-detail__meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* iPhone Safari: further reduce sizes for smaller phones */
+@media (max-width: 600px) {
+  :root {
+    --wheel-center-y: 0vh;
+    /* Even smaller cards for phones */
+    --card-height-floor: 100px;
+    --card-height-min: 16vh;
+    --card-height-ideal: 22vh;
+    --card-height-max: 26vh;
+    --wheel-radius-x: 36vw;
+    --wheel-radius-y: 10vh;
+    --wheel-tilt: 45deg;
+    --stage-offset-y: 0vh;
+    /* Smaller meta text on phones */
+    --text-client-size: clamp(8px, 2vw, 11px);
+    --text-title-size: clamp(14px, 4vw, 18px);
+    --text-tags-size: clamp(9px, 1.6vw, 12px);
+    --content-offset: 14vh;
+  }
+
+  .portfolio-stage {
+    transform: translateY(-50%);
+  }
+
+  /* Compact header on small phones: hide blurb, show only essentials */
+  body.portfolio-page .ui-top-main {
+    gap: var(--gap-xs) !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* Hide the blurb on very small screens to make room */
+  body.portfolio-page .decorative-script {
+    display: none !important;
+  }
+
+  /* Just show back arrow + Bio/CV on narrow phones */
+  body.portfolio-page .ui-top-left {
+    flex: 0 0 auto !important;
+  }
+
+  body.portfolio-page .ui-top-right {
+    flex: 1 1 auto !important;
+    justify-content: flex-end !important;
+  }
+
+  /* Portfolio meta: adjust position on small phones */
+  .portfolio-meta {
+    top: 60vh !important;
   }
 }
 

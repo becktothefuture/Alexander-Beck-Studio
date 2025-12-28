@@ -48,6 +48,10 @@ import {
   table
 } from './modules/utils/logger.js';
 
+// Compile-time dev flag (Rollup `replace()` sets __DEV__ in bundled builds).
+// In source/dev mode (unbundled), `__DEV__` is undefined and we fall back to runtime detection.
+const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : isDev();
+
 function pickStartupMode() {
   // Narrative opening: start with Ball Pit.
   return MODES.PIT;
@@ -194,7 +198,7 @@ function enhanceFooterLinksForMobile() {
   
   // DEV-only: wire control registry to use CSS vars function (avoids circular dependency).
   // In production we ship no config panel, so the registry is not loaded.
-  if (isDev()) {
+  if (ABS_DEV) {
     try {
       const mod = await import('./modules/ui/control-registry.js');
       mod.setApplyVisualCSSVars?.(applyVisualCSSVars);
@@ -334,7 +338,7 @@ function enhanceFooterLinksForMobile() {
     
     // DEV-only: setup configuration panel UI.
     // Production builds must ship without the panel (config is hardcoded during build).
-    if (isDev()) {
+    if (ABS_DEV) {
       try {
         const panelDock = await import('./modules/ui/panel-dock.js');
         panelDock.createPanelDock?.();
@@ -343,7 +347,7 @@ function enhanceFooterLinksForMobile() {
       } catch (e) {}
     }
     mark('bb:ui');
-    log(isDev() ? '✓ Panel dock created (Sound + Controls)' : '✓ UI initialized (panel disabled in production)');
+    log(ABS_DEV ? '✓ Panel dock created (Sound + Controls)' : '✓ UI initialized (panel disabled in production)');
 
     // Initialize dark mode AFTER panel creation (theme buttons exist now)
     initializeDarkMode();
