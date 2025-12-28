@@ -316,8 +316,14 @@ function enhanceFooterLinksForMobile() {
     // Link hover: hide cursor + trail; let hover dot “become” the cursor.
     initLinkCursorHop();
 
-    // Scene micro-interaction: subtle “clicked-in” response on simulation changes
+    // Scene micro-interaction: subtle "clicked-in" response on simulation changes
     initSceneImpactReact();
+    
+    // Cursor pulse effect on mode change
+    import('./modules/ui/cursor-pulse.js').then(({ initCursorPulse }) => {
+      initCursorPulse();
+      log('✓ Cursor pulse system initialized');
+    }).catch(() => {});
     
     // Load any saved settings
     loadSettings();

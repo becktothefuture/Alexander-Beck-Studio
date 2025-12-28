@@ -26,7 +26,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 - `AI-AGENT-GUIDE.md` – instructions for AI operators.
 
 ### source/ (authoritative code)
-- `index.html` / `index-annotated.html` – dev/demo entry pages.
+- `index.html` – dev/demo entry page.
 - `main.js` – bootstrap: load config → set layout vars → renderer → modes → UI → loop → randomized startup mode.
 - `config/default-config.json` – runtime physics/visual defaults copied into build.
 - `css/` – styles scoped to the simulation/panel:
@@ -41,7 +41,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
   - **input/** `pointer.js` (mouse/touch), keyboard handled in `ui/keyboard.js`.
   - **audio/** `sound-engine.js`, `sound-control-registry.js` (collision/ambient hooks).
   - **utils/** `logger.js`, `performance.js`, `storage.js` (localStorage off by default for physics), `accessibility.js`.
-  - **visual/** `colors.js`, `dark-mode-v2.js` (active dark-mode implementation), `mouse-trail.js`; `dark-mode.js` (legacy; see deprecated list).
+  - **visual/** `colors.js`, `dark-mode-v2.js` (dark-mode implementation), `mouse-trail.js`, `chrome-harmony.js`, `entrance-animation.js`, `noise-system.js`, `wall-frame.js`.
   - **ui/html helpers**: `panel-controller.js`, `panel-dock.js` create the right-floating, collapsible panel (summoned by `/`).
 - (Removed) legacy export asset copies (no longer used).
 
@@ -52,7 +52,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 - `core/` (PROJECT-OVERVIEW, QUICK-START), `development/` (ARCHITECTURE, DEV-WORKFLOW, DEVELOPMENT-GUIDE, OPTIMIZATION-SUMMARY, FIGMA setup), `reference/` (MODES, CONFIGURATION, BUILD-SYSTEM, INTEGRATION, SOUND), `operations/` (DEPLOYMENT, PROJECT-ASSESSMENT), `SIMULATION_RULES.md`, `DOCUMENTATION-INDEX.md`, `DOCUMENTATION-PRINCIPLE.md`.
 
 ### scripts/
-- Automation/support: `dev-startup.js`, `check-figma-mcp-status.js`, `setup-figma-mcp-config.js`, `figma-websocket-server.js`, plus docs for Figma rebuild/test.
+- Automation/support: `dev-startup.js`, `check-figma-mcp-status.js`, `setup-figma-mcp-config.js`, `figma-websocket-server.js`, `execute-figma-rebuild.txt` (Figma rebuild instructions).
 
 ### tests/ and reports
 - `tests/top-elements.spec.js` – Playwright smoke.
@@ -85,11 +85,13 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 
 ---
 
-## Probable deprecated / unused
-- `source/modules/visual/dark-mode.js` – legacy dark-mode implementation; not imported (replaced by `dark-mode-v2.js`). Safe to remove once verified no external references.
-- `source/index-annotated.html` – annotated dev HTML; keep if useful for onboarding, otherwise consider pruning.
+## Deprecated / Removed
+- ~~`source/modules/visual/dark-mode.js`~~ – **REMOVED** (replaced by `dark-mode-v2.js`).
+- ~~`source/index-annotated.html`~~ – **REMOVED** (documentation file, not used in runtime).
+
+## Test Artifacts (not committed)
 - `playwright-report/` zips/webms/pngs – test artifacts; keep out of commits if not needed.
-- Legacy duplicate assets removed; not used by runtime/build.
+- `test-results/` – Playwright test output (auxiliary).
 
 ---
 
@@ -108,8 +110,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 
 ---
 
-## Candidate cleanups (actionable)
-- Delete/retire `source/modules/visual/dark-mode.js` after confirming no downstream consumers.
-- Consider trimming `index-annotated.html` if duplicate of `index.html`.
-- Keep test artifacts (`playwright-report/`, `test-results/`) out of release packages.
-- No external export resync required.
+## Cleanup Status
+- ✅ **Completed**: Removed deprecated `dark-mode.js` and `index-annotated.html`.
+- ✅ **Verified**: No broken imports or references.
+- 📝 **Note**: Keep test artifacts (`playwright-report/`, `test-results/`) out of release packages.

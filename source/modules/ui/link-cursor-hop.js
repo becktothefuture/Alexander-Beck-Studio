@@ -164,17 +164,15 @@ function getCursorRenderedSizePx() {
   const cursor = document.getElementById('custom-cursor');
   if (!cursor) return 0;
 
-  // Best: actual rendered box (includes CSS transforms like scale()).
-  const rect = cursor.getBoundingClientRect?.();
-  const rectSize = rect ? Math.max(rect.width, rect.height) : 0;
-  if (rectSize > 0.5) return rectSize;
-
-  // Fallback: computed size × computed scale.
+  // Get the base cursor size (before any transforms)
   const cs = window.getComputedStyle(cursor);
   const base = Math.max(parseNum(cs.width), parseNum(cs.height));
   if (!(base > 0)) return 0;
-  const scale = parseScaleFromTransform(cs.transform || cursor.style.transform);
-  return base * (scale || 1);
+
+  // Return the dot size (cursor dot is scaled to 0.25 in simulation mode)
+  // This matches the DOT_SCALE factor from cursor.js: 'translate(-50%, -50%) scale(0.25)'
+  const DOT_SCALE_FACTOR = 0.25;
+  return base * DOT_SCALE_FACTOR;
 }
 
 function isEventOnPanelUI(target) {

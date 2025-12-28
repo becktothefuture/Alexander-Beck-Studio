@@ -84,6 +84,10 @@ export function initBrandLogoReact() {
 
   // Mode change pulse (dispatched from mode-controller.js).
   window.addEventListener('bb:modeChanged', (e) => {
+    // Check if scene impact is disabled (which also disables logo counter animation)
+    const g = getGlobals();
+    if (g?.sceneImpactEnabled === false) return;
+    
     // A bit stronger when explicitly changing modes (not on redundant setMode calls).
     // Detail is { prevMode, mode }.
     const detail = e?.detail || {};
@@ -103,6 +107,8 @@ export function pulseBrandLogoImpact(strength = 1) {
   if (!enabled || !el) return;
   let g = null;
   try { g = getGlobals(); } catch (e) {}
+  // Disable logo counter animation when scene impact is disabled
+  if (g?.sceneImpactEnabled === false) return;
 
   const s = Math.max(0, Math.min(1, Number(strength) || 0));
   const token = ++impactToken;

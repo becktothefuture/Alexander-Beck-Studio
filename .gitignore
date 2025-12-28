@@ -8,6 +8,7 @@ package-lock.json
 # Test artifacts
 test-results/
 playwright-report/
+.playwright-mcp/
 *.webm
 
 # OS files

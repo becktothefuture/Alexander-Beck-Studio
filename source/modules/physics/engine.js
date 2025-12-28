@@ -352,14 +352,14 @@ export function render() {
   if (modeRenderer && modeRenderer.postRender) {
     modeRenderer.postRender(ctx);
   }
-
-  // Mouse trail: lightweight overlay pass (kept behind the wall/frame draw)
-  drawMouseTrail(ctx);
   
   // Restore clip BEFORE drawing walls (walls extend beyond canvas edges)
   if (clipPath) {
     ctx.restore();
   }
+  
+  // Mouse trail: draw after clip restore so it's always visible
+  drawMouseTrail(ctx);
   
   // Draw rubber walls LAST (in front of balls, outside clip path)
   drawWalls(ctx, canvas.width, canvas.height);

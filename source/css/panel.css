@@ -8,7 +8,7 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 :root {
   /* Base colors - Dark mode (default for panel) */
-  --panel-background: hsl(240 10% 3.9%);
+  --panel-background: hsl(240 10% 3.9% / 1.0); /* Fully opaque */
   --panel-foreground: hsl(0 0% 98%);
   --panel-card: hsl(240 10% 3.9%);
   --panel-card-foreground: hsl(0 0% 98%);
@@ -68,7 +68,7 @@
 
 /* Light mode tokens */
 body:not(.dark-mode) {
-  --panel-background: hsl(0 0% 100%);
+  --panel-background: hsl(0 0% 100% / 1.0); /* Fully opaque */
   --panel-foreground: hsl(240 10% 10%);
   --panel-card: hsl(0 0% 100%);
   --panel-card-foreground: hsl(240 10% 3.9%);
@@ -249,6 +249,24 @@ body:not(.dark-mode) {
   margin-bottom: var(--panel-pad-6);
   padding-left: var(--panel-pad);
   opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   2-COLUMN GRID LAYOUT — For compact control groups
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel-section-content.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--panel-control-gap) var(--panel-pad-8);
+}
+
+.panel-section-content.grid-2col .control-item {
+  margin-bottom: 0; /* Grid gap handles spacing */
+}
+
+/* Full-width controls span both columns */
+.panel-section-content.grid-2col .control-item.span-2 {
+  grid-column: 1 / -1;
 }
 
 .panel-section-accordion {
@@ -509,7 +527,6 @@ body:not(.dark-mode) {
 
 .panel button:active {
   transform: scale(0.95);
-  filter: blur(10px);
 }
 
 .panel button:focus-visible {
@@ -611,7 +628,6 @@ body:not(.dark-mode) {
 
 .mode-button:active {
   transform: scale(0.95);
-  filter: blur(10px);
 }
 
 .mode-controls { 
@@ -722,6 +738,7 @@ body:not(.dark-mode) {
   position: sticky;
   bottom: 0;
   z-index: 2;
+  margin-top: auto;
   padding-bottom: var(--panel-pad-6);
   /* soft fade so it reads as “anchored” without a hard edge */
   background: linear-gradient(
@@ -1195,6 +1212,7 @@ body:not(.dark-mode) .panel-section--action {
   top: var(--dock-top);
   right: var(--dock-right);
   z-index: 2147483000;
+  height: var(--dock-panel-height);
   
 	  transition: 
 	    top var(--duration-resize, 600ms) var(--ease-organic, var(--ease-settle)),
@@ -1203,14 +1221,15 @@ body:not(.dark-mode) .panel-section--action {
 	    transform 0.32s var(--ease-organic);
   
   pointer-events: none;
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
-  backdrop-filter: blur(10px) saturate(1.2);
+  /* Simplify: no dock-level blur layers (they can blur the panel itself). */
 }
 
 
 .panel-dock > * {
   pointer-events: auto;
 }
+
+/* Removed dock blur overlay (::before) to keep panel content crisp. */
 
 .panel-dock,
 .panel-dock *,
@@ -1268,10 +1287,9 @@ body:not(.dark-mode) .panel-section--action {
   
   width: var(--panel-width, 368px);
   height: var(--dock-panel-height);
-  max-height: var(--dock-panel-max-height);
   max-width: calc(100vw - (var(--dock-edge) * 2) - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
   min-width: 280px;
-  min-height: 240px;
+  /* Avoid conflicting heights; dock already defines the available height. */
 
   resize: both;
   overflow: hidden;
@@ -1283,15 +1301,7 @@ body:not(.dark-mode) .panel-section--action {
 }
 
 .panel-dock .panel::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 12px;
-  cursor: grab;
-  z-index: 1;
-  pointer-events: none;
+  display: none;
 }
 
 .panel-dock .panel.dragging::before {
@@ -1299,15 +1309,21 @@ body:not(.dark-mode) .panel-section--action {
 }
 
 body.dark-mode .panel-dock .panel {
-  background: rgba(18, 18, 22, 0.9);
+  background: rgba(18, 18, 22, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  filter: none;
 }
 
 body:not(.dark-mode) .panel-dock .panel {
-  background: rgba(250, 250, 252, 0.40);
+  background: rgba(250, 250, 252, 0.92);
   border: 1px solid rgba(0, 0, 0, 0.10);
   box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  filter: none;
 }
 
 body:not(.dark-mode) #portfolioPanel {
@@ -1321,6 +1337,7 @@ body:not(.dark-mode) #portfolioPanel {
 }
 
 .panel-dock .panel-header {
+  display: block;
   padding: var(--panel-pad-7) var(--panel-pad-10);
   cursor: grab !important;
 }
@@ -1410,7 +1427,6 @@ body:not(.dark-mode) .panel-dock .panel-mode-pill {
   min-height: 0;
   overflow-y: auto !important;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
 }
 
 .panel-dock .panel.collapsed {
@@ -1420,7 +1436,7 @@ body:not(.dark-mode) .panel-dock .panel-mode-pill {
 }
 
 .panel-dock .panel.collapsed .panel-content {
-  display: flex;
+  display: none;
 }
 
 .panel-dock .panel.collapsed .collapse-btn {

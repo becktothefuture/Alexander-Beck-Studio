@@ -633,9 +633,6 @@ const state = {
   wallWobbleImpactThreshold: 60,    // Min velocity (px/s) to trigger wobble
   wallWobbleSettlingSpeed: 94,      // Controls snap-to-zero aggression (0-100)
   
-  // Wall deformation physics interaction
-  wallDeformPhysicsPrecision: 50,   // Precision for wall-ball interaction (0-100, higher = more accurate but slower)
-  
   // Gate overlay (blur backdrop for dialogs)
   gateOverlayEnabled: true,         // Enable/disable overlay
   gateOverlayOpacity: 0.01,          // White wash opacity (0-1)
@@ -1288,8 +1285,6 @@ export function initState(config) {
   
   if (config.wallWobbleImpactThreshold !== undefined) state.wallWobbleImpactThreshold = config.wallWobbleImpactThreshold;
   if (config.wallWobbleSettlingSpeed !== undefined) state.wallWobbleSettlingSpeed = config.wallWobbleSettlingSpeed;
-  
-  if (config.wallDeformPhysicsPrecision !== undefined) state.wallDeformPhysicsPrecision = config.wallDeformPhysicsPrecision;
   
   // Wall performance tuning (Tier 1 & 2 optimizations)
   if (config.wallPhysicsSamples !== undefined) state.wallPhysicsSamples = config.wallPhysicsSamples;

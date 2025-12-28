@@ -6,7 +6,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { getCursorBrightenedColor } from '../rendering/cursor.js';
+import { getCursorColor } from '../rendering/cursor.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INTERNAL STATE (pooled ring buffer)
@@ -61,9 +61,9 @@ function ensureCapacity(nextCap) {
 }
 
 function getStrokeStyle() {
-  // Use the same brightened color as the cursor dot
+  // Use the same color as the cursor dot
   // This ensures perfect synchronization between cursor and trail
-  return getCursorBrightenedColor();
+  return getCursorColor();
 }
 
 function clamp(v, min, max) {

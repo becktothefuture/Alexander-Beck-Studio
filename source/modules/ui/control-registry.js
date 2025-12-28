@@ -517,21 +517,6 @@ export const CONTROL_SECTIONS = {
     defaultOpen: false,
     controls: [
       {
-        id: 'cursorSize',
-        label: 'Size',
-        stateKey: 'cursorSize',
-        type: 'range',
-        min: 0.1, max: 3.0, step: 0.05,
-        default: 1.0,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        onChange: (g, val) => {
-          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
-            updateCursorSize();
-          });
-        }
-      },
-      {
         id: 'cursorInfluenceRadiusVw',
         label: 'Influence Radius',
         stateKey: 'cursorInfluenceRadiusVw',
@@ -546,23 +531,38 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TRAIL - Mouse trail tuning (performance-first)
+  // TRAIL - Mouse cursor and trail controls (consolidated)
   // ═══════════════════════════════════════════════════════════════════════════
   trail: {
-    title: 'Motion Trail',
-    icon: '💨',
+    title: 'Mouse & Trail',
+    icon: '🖐️',
     defaultOpen: false,
     controls: [
       {
+        id: 'cursorSize',
+        label: 'Cursor Size',
+        stateKey: 'cursorSize',
+        type: 'range',
+        min: 0.1, max: 3.0, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        onChange: (g, val) => {
+          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
+            updateCursorSize();
+          });
+        }
+      },
+      {
         id: 'mouseTrailEnabled',
-        label: 'Enabled',
+        label: 'Trail Enabled',
         stateKey: 'mouseTrailEnabled',
         type: 'checkbox',
         default: true
       },
       {
         id: 'mouseTrailLength',
-        label: 'Length',
+        label: 'Trail Length',
         stateKey: 'mouseTrailLength',
         type: 'range',
         min: 4, max: 96, step: 1,
@@ -573,7 +573,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'mouseTrailSize',
-        label: 'Size',
+        label: 'Trail Size',
         stateKey: 'mouseTrailSize',
         type: 'range',
         min: 0.5, max: 10, step: 0.1,
@@ -583,7 +583,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'mouseTrailFadeMs',
-        label: 'Fade',
+        label: 'Trail Fade',
         stateKey: 'mouseTrailFadeMs',
         type: 'range',
         min: 40, max: 1200, step: 10,
@@ -593,7 +593,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'mouseTrailOpacity',
-        label: 'Opacity',
+        label: 'Trail Opacity',
         stateKey: 'mouseTrailOpacity',
         type: 'range',
         min: 0, max: 1, step: 0.01,
@@ -1498,75 +1498,70 @@ export const CONTROL_SECTIONS = {
         }
       },
       
-      // Wall Material (Advanced)
+      // ═══════════════════════════════════════════════════════════════════
+      // WALL PHYSICS & MATERIAL
+      // 2-column grid layout for compact organization
+      // ═══════════════════════════════════════════════════════════════════
       {
         id: 'wallWobbleMaxDeform',
-        label: 'Softness (Max Deform)',
+        label: 'Deformation',
         stateKey: 'wallWobbleMaxDeform',
         type: 'range',
-        min: 0, max: 150, step: 1,
-        default: 45,
+        min: 10, max: 150, step: 5,
+        default: 60,
         format: v => `${v}px`,
         parse: v => parseInt(v, 10),
-        group: 'Material (Advanced)',
-        groupCollapsed: true
+        group: 'Wall Material',
+        groupLayout: 'grid-2col',
+        hint: 'Max flex distance. Low = rigid, High = soft'
       },
       {
         id: 'wallWobbleStiffness',
-        label: 'Elasticity (Stiffness)',
+        label: 'Stiffness',
         stateKey: 'wallWobbleStiffness',
         type: 'range',
         min: 50, max: 3000, step: 10,
-        default: 2200,
+        default: 120,
         format: v => String(v),
         parse: v => parseInt(v, 10),
-        group: 'Material (Advanced)'
+        group: 'Wall Material',
+        hint: 'Spring strength. Low = soft, High = firm'
+      },
+      {
+        id: 'restitution',
+        label: 'Bounce',
+        stateKey: 'restitution',
+        type: 'range',
+        min: 0.3, max: 0.95, step: 0.05,
+        default: 0.70,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Material',
+        hint: 'Energy kept on bounce. 100% = elastic, 30% = soft'
       },
       {
         id: 'wallWobbleDamping',
-        label: 'Damping (Viscosity)',
+        label: 'Damping',
         stateKey: 'wallWobbleDamping',
         type: 'range',
         min: 0, max: 80, step: 1,
         default: 35,
         format: v => String(v),
         parse: v => parseInt(v, 10),
-        group: 'Material (Advanced)'
+        group: 'Wall Material',
+        hint: 'Oscillation decay. High = viscous/slow'
       },
       {
         id: 'wallWobbleSigma',
-        label: 'Blob Size (Spread)',
+        label: 'Impact Spread',
         stateKey: 'wallWobbleSigma',
         type: 'range',
         min: 0.5, max: 6.0, step: 0.1,
         default: 2.0,
         format: v => v.toFixed(1),
         parse: parseFloat,
-        group: 'Material (Advanced)',
-        hint: 'Higher = larger, slower blobs (pudding/cloth). Lower = sharp ripples (rubber).'
-      },
-      {
-        id: 'wallWobbleCornerClamp',
-        label: 'Corner Grip',
-        stateKey: 'wallWobbleCornerClamp',
-        type: 'range',
-        min: 0.0, max: 1.0, step: 0.01,
-        default: 0.6,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        group: 'Material (Advanced)'
-      },
-      {
-        id: 'wallWobbleImpactThreshold',
-        label: 'Impact Gate',
-        stateKey: 'wallWobbleImpactThreshold',
-        type: 'range',
-        min: 20, max: 200, step: 1,
-        default: 140,
-        format: v => `${v} px/s`,
-        parse: v => parseInt(v, 10),
-        group: 'Material (Advanced)',
-        hint: 'Minimum impact speed to move the wall.'
+        group: 'Wall Material',
+        hint: 'Blob size. High = pudding, Low = rubber'
       },
       {
         id: 'wallWobbleSettlingSpeed',
@@ -1577,56 +1572,72 @@ export const CONTROL_SECTIONS = {
         default: 75,
         format: v => `${v}%`,
         parse: v => parseInt(v, 10),
-        group: 'Material (Advanced)',
-        hint: 'How quickly the wall comes to rest (higher = more "thick").'
+        group: 'Wall Material',
+        hint: 'Snap-to-flat aggression when still'
       },
       {
-        id: 'wallDeformPhysicsPrecision',
-        label: 'Deformation Physics',
-        stateKey: 'wallDeformPhysicsPrecision',
+        id: 'wallWobbleCornerClamp',
+        label: 'Corner Stiffness',
+        stateKey: 'wallWobbleCornerClamp',
         type: 'range',
-        min: 0, max: 100, step: 5,
-        default: 50,
-        format: v => `${v}%`,
+        min: 0.0, max: 1.0, step: 0.01,
+        default: 0.6,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        group: 'Wall Behavior',
+        groupLayout: 'grid-2col',
+        groupCollapsed: true,
+        hint: '1.0 = locked corners, 0 = flexible corners'
+      },
+      {
+        id: 'wallWobbleImpactThreshold',
+        label: 'Impact Gate',
+        stateKey: 'wallWobbleImpactThreshold',
+        type: 'range',
+        min: 20, max: 200, step: 1,
+        default: 140,
+        format: v => `${v} px/s`,
         parse: v => parseInt(v, 10),
-        group: 'Material (Advanced)',
-        hint: 'How precisely balls interact with deformed wall (0=off, 100=most accurate but slower).'
+        group: 'Wall Behavior',
+        hint: 'Min impact speed to trigger deformation'
       },
       {
         id: 'wallWobbleMaxVel',
-        label: 'Max Wall Speed (Clamp)',
+        label: 'Max Wall Speed',
         stateKey: 'wallWobbleMaxVel',
         type: 'range',
         min: 100, max: 2000, step: 10,
         default: 800,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
-        group: 'Material (Advanced)',
-        hint: 'Caps wobble velocity to prevent erratic spikes (lower = heavier goo).'
+        group: 'Performance Caps',
+        groupLayout: 'grid-2col',
+        groupCollapsed: true,
+        hint: 'Velocity cap to prevent erratic spikes'
       },
       {
         id: 'wallWobbleMaxImpulse',
-        label: 'Max Impulse (Clamp)',
+        label: 'Max Impulse',
         stateKey: 'wallWobbleMaxImpulse',
         type: 'range',
         min: 20, max: 600, step: 5,
         default: 220,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
-        group: 'Material (Advanced)',
-        hint: 'Caps per-sample impact injection (lower = smoother, less bottom chaos).'
+        group: 'Performance Caps',
+        hint: 'Per-sample impact cap for smoother behavior'
       },
       {
         id: 'wallWobbleMaxEnergyPerStep',
-        label: 'Max Energy / Tick',
+        label: 'Max Energy/Tick',
         stateKey: 'wallWobbleMaxEnergyPerStep',
         type: 'range',
         min: 1000, max: 80000, step: 500,
         default: 20000,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
-        group: 'Material (Advanced)',
-        hint: 'Last-resort safety budget to prevent rare runaway spikes (higher = less limiting).'
+        group: 'Performance Caps',
+        hint: 'Safety budget to prevent runaway spikes'
       },
 
       // Wall Performance
@@ -4253,17 +4264,21 @@ function generateSectionHTML(key, section) {
   
   // Group controls by 'group' property
   let currentGroup = null;
+  let currentGroupLayout = null;
   let html = '';
   
   for (const control of visibleControls) {
     // Insert group header if new group
     if (control.group && control.group !== currentGroup) {
-      if (currentGroup !== null) html += '</div>'; // Close previous group
-      html += `<div class="section-title" style="margin-top: 12px;">${control.group}</div><div class="group">`;
+      if (currentGroup !== null) html += '</div>'; // Close previous group content
+      const groupLayout = control.groupLayout || '';
+      html += `<div class="section-title" style="margin-top: 12px;">${control.group}</div><div class="group ${groupLayout}">`;
       currentGroup = control.group;
+      currentGroupLayout = groupLayout;
     } else if (!control.group && currentGroup !== null) {
-      html += '</div>'; // Close group, back to ungrouped
+      html += '</div>'; // Close group content
       currentGroup = null;
+      currentGroupLayout = null;
     }
     
     html += generateControlHTML(control);

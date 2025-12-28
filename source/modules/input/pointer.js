@@ -10,6 +10,7 @@ import { updateCursorPosition, hideCursor, showCursor } from '../rendering/curso
 import { notifyMouseTrailMove } from '../visual/mouse-trail.js';
 import { isOverlayActive } from '../ui/gate-overlay.js';
 import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
+import { emitCursorPulse, getCurrentCursorPosition } from '../ui/cursor-pulse.js';
 
 // Mouse velocity tracking for water ripples
 let lastMouseX = 0;
@@ -17,6 +18,9 @@ let lastMouseY = 0;
 let lastMoveTime = 0;
 let mouseVelocity = 0;
 let lastTapTime = 0;
+// Track last cursor position for pulse effect
+let lastCursorX = 0;
+let lastCursorY = 0;
 // Click/tap cycles through modes (value stored on globals; avoid caching so modes can override).
 let pressCycleActive = false;
 let pressCyclePointerId = null;
@@ -35,6 +39,14 @@ function cycleMode() {
   const idx = seq.indexOf(current);
   const base = idx >= 0 ? idx : 0;
   const next = seq[(base + 1) % seq.length];
+
+  // Cursor pulse effect disabled
+  // const cursorPos = getCurrentCursorPosition();
+  // if (cursorPos) {
+  //   emitCursorPulse(cursorPos.x, cursorPos.y);
+  // } else if (lastCursorX > 0 || lastCursorY > 0) {
+  //   emitCursorPulse(lastCursorX, lastCursorY);
+  // }
 
   import('../modes/mode-controller.js').then(({ setMode }) => {
     setMode(next);
@@ -71,6 +83,28 @@ export function setupPointer() {
   // Invalidate on resize (and on first use).
   let cachedCanvasRect = null;
   let rectInvalidated = true;
+  
+  // Initialize canvas rect immediately to ensure cursor and trail alignment from the start
+  // This prevents misalignment on page load where cursor updates before trail gets accurate rect
+  try {
+    cachedCanvasRect = canvas.getBoundingClientRect();
+    rectInvalidated = false;
+  } catch (e) {
+    // Fallback: will be calculated on first mouse move
+    rectInvalidated = true;
+  }
+  
+  // Force rect recalculation after initial layout settles (catches any delayed layout shifts)
+  // This ensures cursor and trail stay aligned even if canvas position shifts slightly after load
+  try {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // Double rAF ensures layout has settled
+        cachedCanvasRect = canvas.getBoundingClientRect();
+        rectInvalidated = false;
+      });
+    });
+  } catch (e) {}
 
   // During layout/transform transitions (scene depth + frame inset), the canvas'
   // bounding rect changes continuously. If we cache a single rect through that
@@ -198,18 +232,18 @@ export function setupPointer() {
     // Calculate mouse velocity early (for cursor effects and water ripples)
     const now = performance.now();
     const dt = now - lastMoveTime;
-    let currentVelocity = 0;
     if (dt > 0 && lastMoveTime > 0) {
       const dx = pos.x - lastMouseX;
       const dy = pos.y - lastMouseY;
-      currentVelocity = Math.sqrt(dx * dx + dy * dy) / dt;
-      mouseVelocity = currentVelocity;
+      mouseVelocity = Math.sqrt(dx * dx + dy * dy) / dt;
     }
     
-    // Update custom cursor position only for mouse-like pointers.
-    // Pass velocity for speed-based color effects
+    // Update custom cursor position only for mouse-like pointers
     if (isMouseLike) {
-      updateCursorPosition(clientX, clientY, currentVelocity);
+      updateCursorPosition(clientX, clientY);
+      // Track cursor position for pulse effect
+      lastCursorX = clientX;
+      lastCursorY = clientY;
     } else {
       // Ensure cursor is hidden for touch/pen inputs that aren't mouse-like
       hideCursor();
@@ -360,6 +394,11 @@ export function setupPointer() {
     // Mobile: click/tap triggers BOTH parts (press then return) in sequence.
     // Mode changes when the return begins.
     if (isMobileViewportNow()) {
+      // Track touch position for pulse effect
+      if (pressCycleStartX > 0 || pressCycleStartY > 0) {
+        lastCursorX = pressCycleStartX;
+        lastCursorY = pressCycleStartY;
+      }
       sceneImpactPress(1, { armManual: true, scheduleRelease: false });
       const pressMsBase = globals.sceneImpactPressMs ?? 75;
       const pressMs = Math.max(1, Math.round((Number(pressMsBase) || 0) * 0.8)); // must match scene-impact-react

@@ -15,7 +15,7 @@ import { WALL_PRESETS } from '../core/constants.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS (kept small + fixed for perf)
 // ═══════════════════════════════════════════════════════════════════════════════
-const RING_SAMPLES = 96; // Higher than old (4*12) to keep corners smooth
+const RING_SAMPLES = 384; // Very high density for ultra-smooth corners (still performant on modern hardware)
 // Rendering decimation: render every Nth sample for performance (1 = all samples, 2 = half, etc.)
 // Physics still uses all RING_SAMPLES for accuracy
 // Performance vs Quality:
@@ -752,14 +752,18 @@ class RubberRingWall {
             ? RESTORE_FORCE * TOP_EDGE_BOOST * TOP_LEFT_BOOST 
             : ((isTopEdge || isNearTopCorner || isTopCorner) ? RESTORE_FORCE * TOP_EDGE_BOOST : RESTORE_FORCE);
           
-          // Very strong restoring force: pull deformation to zero
+          // Strong restoring force: pull deformation to zero
           const restoreAccel = -forceMultiplier * this.deformations[i] - 20.0 * this.velocities[i];
           this.velocities[i] += restoreAccel * dtSafe;
           this.deformations[i] += this.velocities[i] * dtSafe;
           
-          // Clamp to zero
-          if (this.deformations[i] < 0) {
-            this.deformations[i] = 0;
+          // Clamp to [-maxDeform, +maxDeform] range (allow outward bulge)
+          const maxDeform = Math.max(0, g.wallWobbleMaxDeform ?? DEFAULT_MAX_DEFORM);
+          if (this.deformations[i] < -maxDeform) {
+            this.deformations[i] = -maxDeform;
+            this.velocities[i] = 0;
+          } else if (this.deformations[i] > maxDeform) {
+            this.deformations[i] = maxDeform;
             this.velocities[i] = 0;
           }
           
@@ -870,10 +874,11 @@ class RubberRingWall {
       }
       let dNext = def + vNext * dtSafe;
 
-      // Clamp to inward-only deformation (match current look).
+      // Clamp deformation: allow outward bulge (negative) for realistic bounce-back
+      // Range: -maxDeform (outward bulge) to +maxDeform (inward dent)
       let clampedLow = false;
       let clampedHigh = false;
-      if (dNext < 0) { dNext = 0; clampedLow = true; }
+      if (dNext < -maxDeform) { dNext = -maxDeform; clampedLow = true; }
       if (dNext > maxDeform) { dNext = maxDeform; clampedHigh = true; }
 
       // Stability: prevent "bouncing" against hard deformation clamps.
@@ -1339,8 +1344,8 @@ export function drawWalls(ctx, w, h) {
 
   const chromeColor = CACHED_WALL_COLOR || getChromeColorFromCSS();
   const DPR = g.DPR || 1;
-  // DEBUG/TEST: allow exaggerating deformation to verify the wall is actually moving.
-  // (keep default at 1.0 in config for normal look)
+  // DEBUG/TEST: allow exaggerating deformation (visual-only).
+  // Default should remain 1.0 in config.
   const visualMul = Math.max(0, Math.min(10, Number(g.wallVisualDeformMul ?? 1.0) || 1.0));
 
   const rCssPx = (typeof g.getCanvasCornerRadius === 'function')
@@ -1398,12 +1403,12 @@ export function drawWalls(ctx, w, h) {
   const nPhys = ringPhysics.n;
   const n = ringRender.n;
   if (n > 0 && nPhys > 0) {
-    // Tier 1: Interpolation between physics updates for smooth visuals
+    // Smooth look:
+    // Use the cached smoothed deformation field (updated only on wall physics ticks),
+    // then interpolate across ticks for a continuous render.
     const enableInterpolation = g.wallPhysicsInterpolation !== false;
     const alpha = enableInterpolation ? Math.max(0, Math.min(1, wallState._interpolationAlpha || 0)) : 1.0;
 
-    // PERF: use cached, already-smoothed render deformation fields when available.
-    // This avoids per-frame remap + low-pass filtering cost.
     const sm = ringRender.renderDeformations; // scratch buffer for interpolated sm
     const prevSm = wallState._renderSmPrev;
     const currSm = wallState._renderSmCurr;
@@ -1415,7 +1420,7 @@ export function drawWalls(ctx, w, h) {
         sm[i] = pv + (currSm[i] - pv) * alpha;
       }
     } else {
-      // Fallback (should be rare): old path (map + smooth) if cache not ready.
+      // Fallback: map + smooth if cache isn't ready.
       const srcPhys = ringPhysics.deformations;
       const src = ringRender.deformations;
       for (let i = 0; i < n; i++) {
@@ -1439,11 +1444,11 @@ export function drawWalls(ctx, w, h) {
     const normX = ringRender.normX;
     const normY = ringRender.normY;
 
-    // SAFETY CLAMP (render-only):
-    // Prevent self-intersection / fold-over when deformation gets too large.
+    // Render-only safety clamp:
+    // - still respects configured max deform
+    // - also prevents self-intersection on extreme configs
     const minDim = Math.max(1, Math.min(w, h));
-    // Safety: respect BOTH a geometric cap and the configured max deform.
-    const maxDispGeomPx = Math.max(0, minDim * 0.18); // geometric fold-over cap
+    const maxDispGeomPx = Math.max(0, minDim * 0.18);
     const maxDeformCfg = Math.max(0, Number(g.wallWobbleMaxDeform ?? DEFAULT_MAX_DEFORM) || DEFAULT_MAX_DEFORM);
     const maxDispCfgPx = maxDeformCfg * DPR * WALL_VISUAL_TEST_DEFORM_MUL * visualMul;
     const maxDispCanvasPx = Math.min(maxDispGeomPx, maxDispCfgPx);
@@ -1457,33 +1462,17 @@ export function drawWalls(ctx, w, h) {
     const pointX = (idx) => (baseX[idx] + normX[idx] * dispCanvasPx(idx)) + insetPx;
     const pointY = (idx) => (baseY[idx] + normY[idx] * dispCanvasPx(idx)) + insetPx;
 
-    // SMOOTH RUBBER RING: Use existing physics samples directly
-    // The ring has 96 evenly-distributed samples that already move smoothly
-    // Draw through them with curves - treating the wall as ONE continuous rubber piece
+    // ════════════════════════════════════════════════════════════════════════════
+    // SIMPLE LINEAR PATH with high sample density
+    // Draws straight lines between closely-spaced samples for smooth appearance
+    // ════════════════════════════════════════════════════════════════════════════
     
-    // Draw in CCW for even-odd fill
-    const mapIdx = (k) => (n - 1 - k);
+    // Start at first point (draw CCW for even-odd fill)
+    ctx.moveTo(pointX(n - 1), pointY(n - 1));
     
-    // Use all samples for smooth wobble (no decimation - we want fluid rubber movement)
-    // Curve construction (stable + smooth closed loop):
-    // - Start at midpoint(last, first)
-    // - For each point i: quadraticCurveTo(control=i, end=midpoint(i, iNext))
-    const i0 = mapIdx(0);
-    const iLast = mapIdx(n - 1);
-    const x0 = pointX(i0);
-    const y0 = pointY(i0);
-    const xLast = pointX(iLast);
-    const yLast = pointY(iLast);
-    ctx.moveTo((xLast + x0) * 0.5, (yLast + y0) * 0.5);
-    
-    for (let k = 0; k < n; k++) {
-      const i = mapIdx(k);
-      const iNext = mapIdx((k + 1) % n);
-      const x = pointX(i);
-      const y = pointY(i);
-      const xNext = pointX(iNext);
-      const yNext = pointY(iNext);
-      ctx.quadraticCurveTo(x, y, (x + xNext) * 0.5, (y + yNext) * 0.5);
+    // Draw lines through all samples in reverse order (CCW)
+    for (let i = n - 2; i >= 0; i--) {
+      ctx.lineTo(pointX(i), pointY(i));
     }
     
     ctx.closePath();

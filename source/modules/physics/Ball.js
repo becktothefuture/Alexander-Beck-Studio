@@ -258,8 +258,7 @@ export class Ball {
     // Note: isGrounded is cleared at start of step() and re-set here if touching floor
     
     // ════════════════════════════════════════════════════════════════════════
-    // UNIFIED ROUNDED-RECT SDF COLLISION
-    // Single continuous distance field - no corner/edge transitions = no swirls
+    // SIMPLE ROUNDED-RECT SDF COLLISION
     // ════════════════════════════════════════════════════════════════════════
     const isPitMode = currentMode === MODES.PIT || currentMode === MODES.PIT_THROWS;
     
@@ -272,108 +271,48 @@ export class Ball {
     const cx = insetPx + hx;  // center x in canvas coords
     const cy = insetPx + hy;  // center y in canvas coords
     
-    // Wall deformation (collision surface):
-    // We treat the rubber wall deformation as an INWARD displacement of the boundary.
-    // Precision controls how many deformation samples we take near contact.
-    const precision = Math.max(0, Math.min(100, globals.wallDeformPhysicsPrecision ?? 50));
-    const ring = wallState?.ringPhysics;
-    const wallHasDeform = !!(ring && typeof ring.hasDeformation === 'function' && ring.hasDeformation());
-    const useDeformation = precision > 0 && wallHasDeform && typeof wallState?.getDeformationAtPoint === 'function';
-    // Max inward deform is authored in CSS px @ DPR=1; convert to canvas px.
-    const maxDeformCanvasPx = Math.max(0, (Number(globals.wallWobbleMaxDeform) || 0) * (DPR || 1));
+    // Local coords relative to center
+    const lx = this.x - cx;
+    const ly = this.y - cy;
+    const ax = Math.abs(lx);
+    const ay = Math.abs(ly);
     
-    // Rounded-rect SDF: returns (distance, outward normal)
-    // Negative = inside, Positive = outside (in wall)
-    // Now accounts for wall deformation: deformation pushes boundary inward
-    const computeSDF = (px, py) => {
-      // Local coords relative to center
-      const lx = px - cx;
-      const ly = py - cy;
-      const ax = Math.abs(lx);
-      const ay = Math.abs(ly);
-      
-      // Distance to inner rect (shrunk by corner radius)
-      const dx = ax - (hx - rr);
-      const dy = ay - (hy - rr);
-      
-      // SDF formula for rounded rect (base static boundary)
-      const outsideCorner = Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
-      const insideRect = Math.min(Math.max(dx, dy), 0);
-      const baseDist = outsideCorner + insideRect - rr;
-      
-      // Compute outward normal (gradient direction)
-      let nx = 0, ny = 0;
-      if (dx > 0 && dy > 0) {
-        // In corner region: normal points away from corner center
-        const len = Math.hypot(dx, dy);
-        if (len > 1e-6) {
-          nx = dx / len;
-          ny = dy / len;
-        }
-      } else if (dx > dy) {
-        // Closer to vertical edge
-        nx = 1;
-        ny = 0;
-      } else {
-        // Closer to horizontal edge
-        nx = 0;
-        ny = 1;
+    // Distance to inner rect (shrunk by corner radius)
+    const dx = ax - (hx - rr);
+    const dy = ay - (hy - rr);
+    
+    // SDF formula for rounded rect
+    const outsideCorner = Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
+    const insideRect = Math.min(Math.max(dx, dy), 0);
+    const sdfDist = outsideCorner + insideRect - rr;
+    
+    // Compute outward normal (gradient direction)
+    let nx = 0, ny = 0;
+    if (dx > 0 && dy > 0) {
+      // In corner region: normal points away from corner center
+      const len = Math.hypot(dx, dy);
+      if (len > 1e-6) {
+        nx = dx / len;
+        ny = dy / len;
       }
-      
-      // Apply sign based on quadrant
-      nx *= lx < 0 ? -1 : 1;
-      ny *= ly < 0 ? -1 : 1;
-
-      // Closest point on BASE (non-deformed) boundary in canvas space.
-      // This is the correct place to sample + inject deformation because the ring is parameterized
-      // along the rounded-rect perimeter.
-      const bx = px - nx * baseDist;
-      const by = py - ny * baseDist;
-      
-      // Deformation is only relevant when a ball is close enough that the inward
-      // wall shift could matter. Far-inside balls should not pay the sampling cost.
-      let deform = 0;
-      if (useDeformation) {
-        // If baseDist is more negative than -(margin + maxDeform), even max inward
-        // shift can't reach the ball, so we can skip sampling.
-        const nearThreshold = (effectiveRadius + borderInset) + maxDeformCanvasPx;
-        if (baseDist > -nearThreshold) {
-          // Precision-driven sampling along tangent (cheap, improves stability around corners)
-          const sampleCount = Math.max(1, Math.min(6, 1 + Math.floor(precision / 20))); // 1..6
-          const tx = -ny;
-          const ty = nx;
-          const amp = effectiveRadius * 0.35;
-          let maxD = 0;
-          if (sampleCount === 1) {
-            maxD = wallState.getDeformationAtPoint(bx, by);
-          } else {
-            for (let s = 0; s < sampleCount; s++) {
-              const t = (s / (sampleCount - 1)) - 0.5; // -0.5..0.5
-              const sx = bx + tx * (t * amp);
-              const sy = by + ty * (t * amp);
-              const d = wallState.getDeformationAtPoint(sx, sy);
-              if (d > maxD) maxD = d;
-            }
-          }
-          deform = maxD;
-      }
+    } else if (dx > dy) {
+      // Closer to vertical edge
+      nx = 1;
+      ny = 0;
+    } else {
+      // Closer to horizontal edge
+      nx = 0;
+      ny = 1;
     }
     
-      // Deformation is INWARD displacement of the boundary.
-      // For an SDF where inside is negative, inward displacement increases the distance
-      // (makes points "more outside" relative to the moved-in wall).
-      const deformedDist = baseDist + deform;
-      
-      return { dist: deformedDist, nx, ny, bx, by, baseDist, deform };
-    };
-    
-    // Compute deformed SDF and check for collision
-    const { dist: sdfDist, nx, ny, bx, by } = computeSDF(this.x, this.y);
+    // Apply sign based on quadrant
+    nx *= lx < 0 ? -1 : 1;
+    ny *= ly < 0 ? -1 : 1;
     
     // Ball Pit mode: skip collision if normal points upward (allow entry from top)
     const skipForPit = isPitMode && ny < -0.5;
     
-    // Margin: ball radius + physics padding (deformation already accounted in SDF)
+    // Margin: ball radius + physics padding
     const margin = effectiveRadius + borderInset;
     const penetration = sdfDist + margin;
     
@@ -394,8 +333,6 @@ export class Ball {
       }
       
       // Determine wall classification for effects
-      const absNx = Math.abs(nx);
-      const absNy = Math.abs(ny);
       const isFloor = ny > 0.7;  // Mostly downward-facing = floor
       const isCeiling = ny < -0.7;
       const isLeftWall = nx < -0.7;
@@ -411,14 +348,14 @@ export class Ball {
         
         // Rolling friction
         const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
-      const groundSpeed = Math.abs(this.vx);
+        const groundSpeed = Math.abs(this.vx);
         const frictionMul = Math.max(0, Math.min(1, 1 - groundSpeed / (80 * DPR)));
         const rollFriction = CONSTANTS.ROLL_FRICTION_PER_S * (1 + frictionMul);
         const rollDamp = Math.max(0, 1 - rollFriction * dt / massScale);
-      this.vx *= rollDamp;
-      
-      if (Math.abs(this.vx) < 3.0 * DPR) this.vx = 0;
-      
+        this.vx *= rollDamp;
+        
+        if (Math.abs(this.vx) < 3.0 * DPR) this.vx = 0;
+        
         // Spin coupling
         const slip = this.vx - this.omega * this.r;
         this.omega += (slip / this.r) * CONSTANTS.SPIN_GAIN / massScale;
@@ -437,21 +374,21 @@ export class Ball {
         const pan = this.x / Math.max(1, w);
         playCollisionSound(this.r, impact * 0.65, pan, this._soundId);
         
-        // Wobble registration (drive the wall at the TRUE rounded-rect contact point).
-        // This is critical for corners: SDF collision normal is diagonal there, which previously
-        // failed the "which side?" test and resulted in missing wobble.
-        //
-        // Use normal velocity into the wall (preVn) to scale intensity: better tied to bounce.
+        // Wobble registration - use ball position for impact point
         const impactSpeedN = Math.max(0, preVn);
         if (!this.isSleeping && impactSpeedN >= wobbleThreshold) {
           const impactN = Math.min(1, impactSpeedN / (this.r * 80));
-          registerWallImpactAtPoint(bx, by, impactN);
+          const contactX = this.x - nx * effectiveRadius;
+          const contactY = this.y - ny * effectiveRadius;
+          registerWallImpactAtPoint(contactX, contactY, impactN);
         }
         
         // Pressure registration (dampens wobble from resting contact)
         const pressureAmount = this.isSleeping ? 1.0 : Math.max(0, (wobbleThreshold - impactSpeed) / wobbleThreshold);
         if (pressureAmount > 0.1) {
-          registerWallPressureAtPoint(bx, by, pressureAmount);
+          const contactX = this.x - nx * effectiveRadius;
+          const contactY = this.y - ny * effectiveRadius;
+          registerWallPressureAtPoint(contactX, contactY, pressureAmount);
         }
       }
     }

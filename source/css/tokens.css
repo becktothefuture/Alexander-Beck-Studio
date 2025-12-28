@@ -46,7 +46,7 @@
   --abs-text-sm: clamp(11px, 1.2vw, 14px);
   --abs-text-md: clamp(12px, 1.4vw, 16px);
   --abs-text-lg: clamp(0.85rem, 1.5vw, 1.05rem);
-  --abs-text-xl: 24px;
+  --abs-text-xl: clamp(1.2rem, 1.8vw, 1.35rem);;
 
   --abs-line-display: 0.95;
   --abs-line-title: 1.1;
@@ -59,9 +59,9 @@
   --abs-line-summary: 1.2;
 
   /* Letter spacing relative to font height (em-based) */
-  --abs-letter-spacing-tight: -0.02em;
+  --abs-letter-spacing-tight: -0.01em;
   --abs-letter-spacing-normal: 0.05em;
-  --abs-letter-spacing-loose: 0.12em;
+  --abs-letter-spacing-loose: 0.1em;
 
   /* Spacing & Sizing */
   --abs-space-unit: 1vmin;
@@ -377,11 +377,11 @@
   --legend-gap-col: var(--gap-lg);
   --legend-item-gap: var(--gap-sm);
   --legend-circle-size: var(--gap-sm);
-  --legend-font-size: 10px;
-  --legend-font-weight: 600;
+  --legend-font-size: 9px;
+  --legend-font-weight: 500;
   --legend-letter-spacing: var(--letter-spacing-loose);
   --legend-line-height: var(--line-height-loose);
-  --legend-opacity: 0.9;
+  --legend-opacity: 1;
 
   --decorative-script-max-width: clamp(288px, 30vw, 403px);
   --decorative-script-font-size: var(--text-sm);

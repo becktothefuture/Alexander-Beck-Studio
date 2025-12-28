@@ -32,6 +32,70 @@ function rgb255ToHex({ r, g, b }) {
   return `#${n.toString(16).padStart(6, '0')}`;
 }
 
+function rgb01ToHsv({ r, g, b }) {
+  const rr = clamp01(r);
+  const gg = clamp01(g);
+  const bb = clamp01(b);
+
+  const max = Math.max(rr, gg, bb);
+  const min = Math.min(rr, gg, bb);
+  const d = max - min;
+
+  let h = 0;
+  if (d > 0) {
+    if (max === rr) h = ((gg - bb) / d) % 6;
+    else if (max === gg) h = (bb - rr) / d + 2;
+    else h = (rr - gg) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+
+  const s = max <= 0 ? 0 : (d / max);
+  const v = max;
+  return { h, s, v };
+}
+
+function hsvToRgb01({ h, s, v }) {
+  const hh = ((Number(h) % 360) + 360) % 360;
+  const ss = clamp01(s);
+  const vv = clamp01(v);
+
+  const c = vv * ss;
+  const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+  const m = vv - c;
+
+  let rr = 0, gg = 0, bb = 0;
+  if (hh < 60) { rr = c; gg = x; bb = 0; }
+  else if (hh < 120) { rr = x; gg = c; bb = 0; }
+  else if (hh < 180) { rr = 0; gg = c; bb = x; }
+  else if (hh < 240) { rr = 0; gg = x; bb = c; }
+  else if (hh < 300) { rr = x; gg = 0; bb = c; }
+  else { rr = c; gg = 0; bb = x; }
+
+  return { r: rr + m, g: gg + m, b: bb + m };
+}
+
+function clampHsvSat(s) {
+  // Keep "alive" but still industrial (no neon).
+  return Math.max(0, Math.min(0.88, Number(s) || 0));
+}
+
+function energizeHex(hex, { satMul = 0, valMul = 0 } = {}) {
+  const rgb = hexToRgb255(hex);
+  if (!rgb) return String(hex || '').trim() || '#ffffff';
+
+  const hsv = rgb01ToHsv({ r: rgb.r / 255, g: rgb.g / 255, b: rgb.b / 255 });
+  const s = clampHsvSat(hsv.s * (1 + (Number(satMul) || 0)));
+  const v = clamp01(hsv.v * (1 + (Number(valMul) || 0)));
+  const out = hsvToRgb01({ h: hsv.h, s, v });
+
+  return rgb255ToHex({
+    r: Math.round(out.r * 255),
+    g: Math.round(out.g * 255),
+    b: Math.round(out.b * 255)
+  });
+}
+
 function lerp255(a, b, t) {
   return Math.round(a + (b - a) * t);
 }
@@ -95,6 +159,19 @@ function radicalizeVariant(tealBase, variant, factor = 1.25) {
   return out;
 }
 
+function energizePalette(palette, energizeOpts) {
+  const out = new Array(8);
+  for (let i = 0; i < 8; i++) out[i] = palette?.[i];
+
+  // Accent-only: keep neutrals stable so UI + contrast remains consistent.
+  const idx = [3, 5, 6, 7];
+  for (let k = 0; k < idx.length; k++) {
+    const i = idx[k];
+    out[i] = energizeHex(out[i], energizeOpts);
+  }
+  return out;
+}
+
 const BASE_PALETTES = {
   industrialTeal: {
     label: 'Industrial Teal',
@@ -103,118 +180,169 @@ const BASE_PALETTES = {
   },
   industrialRust: {
     label: 'Industrial Rust',
-    light: ['#b0a49b', '#c6bbb4', '#ffffff', '#8B4513', '#000000', '#00695c', '#FF8C42', '#D4A574'],
-    dark: ['#81695f', '#5a4238', '#8a8886', '#FF6B35', '#d5d5d5', '#00e6c3', '#FFA366', '#E8C4A0']
+    // Warm copper + cobalt: distinct from teal chapter while still “industrial”.
+    light: ['#b7aaa0', '#d0c5be', '#ffffff', '#a33a22', '#000000', '#00695c', '#1f4bb8', '#ff8a1f'],
+    dark: ['#7f6f64', '#54433a', '#b6b1aa', '#ff6a3d', '#d5d5d5', '#00e6c3', '#6aa0ff', '#ffb15a']
   },
   industrialSlate: {
     label: 'Industrial Slate',
-    light: ['#a5a8ae', '#bcbec0', '#ffffff', '#4A5568', '#000000', '#00A8CC', '#718096', '#2D3748'],
-    dark: ['#6d7880', '#46525a', '#86888b', '#90CDF4', '#d5d5d5', '#00D4FF', '#A0AEC0', '#4A5568']
+    // Cold slate + cyan/violet/orange: more chromatic “chapter” separation.
+    light: ['#a9adb3', '#c6c9cd', '#ffffff', '#1f2937', '#000000', '#00a8cc', '#7c3aed', '#ff5d2e'],
+    dark: ['#6f7780', '#3f4851', '#98a2b3', '#7dd3fc', '#d5d5d5', '#22d3ee', '#c084fc', '#ff7a45']
   },
   industrialAmber: {
     label: 'Industrial Amber',
-    light: ['#bcab96', '#d1c3b2', '#ffffff', '#D97706', '#000000', '#00695c', '#F59E0B', '#FCD34D'],
-    dark: ['#80755a', '#594e33', '#8a8883', '#FBBF24', '#d5d5d5', '#00e6c3', '#FCD34D', '#FDE68A']
+    // Amber + violet + red: keeps industrial warmth but avoids “all teal-adjacent”.
+    light: ['#bdb1a1', '#d6cdc2', '#ffffff', '#d97706', '#000000', '#00695c', '#6b46c1', '#ff4013'],
+    dark: ['#82745d', '#5a4b35', '#a9a193', '#fbbf24', '#d5d5d5', '#00e6c3', '#c4b5fd', '#ff6b47']
   },
   industrialViolet: {
     label: 'Industrial Violet',
-    light: ['#aba4bb', '#c0bbcd', '#ffffff', '#6B46C1', '#000000', '#00A8CC', '#9333EA', '#A78BFA'],
-    dark: ['#776d85', '#50465d', '#8a888f', '#C084FC', '#d5d5d5', '#00D4FF', '#A78BFA', '#C4B5FD']
+    // Violet + muted chartreuse + rose: a clear “alt chapter” while staying restrained.
+    light: ['#b0a7b8', '#cec7d6', '#ffffff', '#6b46c1', '#000000', '#00695c', '#7fbf2a', '#d94666'],
+    dark: ['#7a6f83', '#52475b', '#a7a0b0', '#c084fc', '#d5d5d5', '#00e6c3', '#bef264', '#fb7185']
   },
   industrialForest: {
     label: 'Industrial Forest',
-    light: ['#9daba0', '#b4c0b8', '#ffffff', '#166534', '#000000', '#00695c', '#22C55E', '#4ADE80'],
-    dark: ['#627a68', '#3c5441', '#868883', '#4ADE80', '#d5d5d5', '#00e6c3', '#86EFAC', '#BBF7D0']
+    // Forest + amber + violet: richer, less monotone “green-on-green”.
+    light: ['#a4b0a2', '#c0c9bd', '#ffffff', '#166534', '#000000', '#00695c', '#f59e0b', '#7c3aed'],
+    dark: ['#637563', '#3d4f3f', '#98a593', '#4ade80', '#d5d5d5', '#00e6c3', '#fcd34d', '#c4b5fd']
   },
   industrialSteel: {
     label: 'Industrial Steel',
-    light: ['#a4a8ad', '#bbbdc0', '#ffffff', '#475569', '#000000', '#0EA5E9', '#64748B', '#334155'],
-    dark: ['#6d7177', '#474b51', '#86888b', '#94A3B8', '#d5d5d5', '#38BDF8', '#94A3B8', '#CBD5E1']
+    // Steel + cyan + copper + olive: more contrast vs slate/teal.
+    light: ['#a6a9af', '#c3c6cc', '#ffffff', '#334155', '#000000', '#0ea5e9', '#c2410c', '#65a30d'],
+    dark: ['#6f737a', '#464a52', '#98a2ab', '#94a3b8', '#d5d5d5', '#38bdf8', '#fb923c', '#a3e635']
   }
 };
 
-const TEAL_ANCHOR_WEIGHT_VARIANT = 0.6; // variant may differ, but must retain >=60% Industrial Teal spirit
+// NOTE: The base palettes carry the “industrial teal psychology” via:
+// - shared neutral roles (grey/white/black slots)
+// - a recurring teal accent slot (index 5)
+// We still add a *small* teal bias to keep chapters related, but let each chapter read clearly.
+const TEAL_ANCHOR_WEIGHT_VARIANT = 0.85;
 const TEAL_BASE = BASE_PALETTES.industrialTeal;
-const RADICAL_FACTOR = 1.2; // 20% more character to maintain color variety while staying teal-anchored
+const RADICAL_FACTOR = 1.35; // push accents further from teal so chapters don’t collapse into the same hue band
+
+// Make all chapters feel as "alive" (variance + vibrance) as Industrial Teal without shifting the core palette roles.
+// Applied only at palette-build time (not hot paths).
+const VARIANT_ENERGIZE_LIGHT = { satMul: 0.10, valMul: 0.03 };
+const VARIANT_ENERGIZE_DARK = { satMul: 0.14, valMul: 0.07 };
 
 export const COLOR_TEMPLATES = {
   industrialTeal: TEAL_BASE,
   industrialRust: {
     label: BASE_PALETTES.industrialRust.label,
-    light: blendPalette(
-      TEAL_BASE.light,
-      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialRust.light, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    light: energizePalette(
+      blendPalette(
+        TEAL_BASE.light,
+        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialRust.light, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_LIGHT
     ),
-    dark: blendPalette(
-      TEAL_BASE.dark,
-      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialRust.dark, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: energizePalette(
+      blendPalette(
+        TEAL_BASE.dark,
+        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialRust.dark, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_DARK
     )
   },
   industrialSlate: {
     label: BASE_PALETTES.industrialSlate.label,
-    light: blendPalette(
-      TEAL_BASE.light,
-      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialSlate.light, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    light: energizePalette(
+      blendPalette(
+        TEAL_BASE.light,
+        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialSlate.light, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_LIGHT
     ),
-    dark: blendPalette(
-      TEAL_BASE.dark,
-      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialSlate.dark, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: energizePalette(
+      blendPalette(
+        TEAL_BASE.dark,
+        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialSlate.dark, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_DARK
     )
   },
   industrialAmber: {
     label: BASE_PALETTES.industrialAmber.label,
-    light: blendPalette(
-      TEAL_BASE.light,
-      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialAmber.light, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    light: energizePalette(
+      blendPalette(
+        TEAL_BASE.light,
+        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialAmber.light, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_LIGHT
     ),
-    dark: blendPalette(
-      TEAL_BASE.dark,
-      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialAmber.dark, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: energizePalette(
+      blendPalette(
+        TEAL_BASE.dark,
+        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialAmber.dark, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_DARK
     )
   },
   industrialViolet: {
     label: BASE_PALETTES.industrialViolet.label,
-    light: blendPalette(
-      TEAL_BASE.light,
-      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialViolet.light, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    light: energizePalette(
+      blendPalette(
+        TEAL_BASE.light,
+        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialViolet.light, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_LIGHT
     ),
-    dark: blendPalette(
-      TEAL_BASE.dark,
-      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialViolet.dark, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: energizePalette(
+      blendPalette(
+        TEAL_BASE.dark,
+        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialViolet.dark, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_DARK
     )
   },
   industrialForest: {
     label: BASE_PALETTES.industrialForest.label,
-    light: blendPalette(
-      TEAL_BASE.light,
-      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialForest.light, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    light: energizePalette(
+      blendPalette(
+        TEAL_BASE.light,
+        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialForest.light, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_LIGHT
     ),
-    dark: blendPalette(
-      TEAL_BASE.dark,
-      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialForest.dark, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: energizePalette(
+      blendPalette(
+        TEAL_BASE.dark,
+        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialForest.dark, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_DARK
     )
   },
   industrialSteel: {
     label: BASE_PALETTES.industrialSteel.label,
-    light: blendPalette(
-      TEAL_BASE.light,
-      radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialSteel.light, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    light: energizePalette(
+      blendPalette(
+        TEAL_BASE.light,
+        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialSteel.light, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_LIGHT
     ),
-    dark: blendPalette(
-      TEAL_BASE.dark,
-      radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialSteel.dark, RADICAL_FACTOR),
-      TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: energizePalette(
+      blendPalette(
+        TEAL_BASE.dark,
+        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialSteel.dark, RADICAL_FACTOR),
+        TEAL_ANCHOR_WEIGHT_VARIANT
+      ),
+      VARIANT_ENERGIZE_DARK
     )
   }
 };

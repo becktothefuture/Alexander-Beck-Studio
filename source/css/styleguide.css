@@ -111,6 +111,23 @@
   background: transparent;
 }
 
+/* Responsive iframe widths for styleguide previews */
+.sg-frame--mobile iframe {
+  width: 360px;
+}
+
+.sg-frame--tablet-small iframe {
+  width: 600px;
+}
+
+.sg-frame--tablet iframe {
+  width: 768px;
+}
+
+.sg-frame--desktop iframe {
+  width: 1200px;
+}
+
 @media (min-width: 980px) {
   .sg-grid {
     grid-template-columns: 1fr 1fr;

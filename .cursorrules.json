@@ -76,7 +76,8 @@
       "entry": "source/main.js",
       "config": "source/config/default-config.json",
       "styles": "source/css/main.css",
-      "html": "source/index.html"
+      "html": "source/index.html",
+      "portfolioHtml": "source/portfolio.html"
     },
     "modules": {
       "core": "source/modules/core/",
@@ -84,19 +85,121 @@
       "rendering": "source/modules/rendering/",
       "ui": "source/modules/ui/",
       "modes": "source/modules/modes/",
-      "input": "source/modules/input/"
+      "input": "source/modules/input/",
+      "audio": "source/modules/audio/",
+      "visual": "source/modules/visual/",
+      "utils": "source/modules/utils/",
+      "portfolio": "source/modules/portfolio/"
     },
     "documentation": {
       "modes": "docs/reference/MODES.md",
       "architecture": "docs/development/ARCHITECTURE.md",
       "configuration": "docs/reference/CONFIGURATION.md",
-      "aiGuide": "AI-AGENT-GUIDE.md"
+      "devWorkflow": "docs/development/DEV-WORKFLOW.md",
+      "aiGuide": "AI-AGENT-GUIDE.md",
+      "websiteIndex": "WEBSITE INDEX.md"
     },
     "build": {
       "output": "public/",
       "bundle": "public/js/bouncy-balls-embed.js",
-      "command": "npm run build"
+      "portfolioBundle": "public/js/portfolio-bundle.js",
+      "css": "public/css/bouncy-balls.css",
+      "command": "npm run build",
+      "devCommand": "npm run build:dev",
+      "watchCommand": "npm run watch"
+    },
+    "deprecated": {
+      "note": "DO NOT REFERENCE",
+      "removed": [
+        "source/modules/visual/dark-mode.js → Use dark-mode-v2.js",
+        "source/index-annotated.html → Use index.html"
+      ]
     }
+  },
+  "moduleSystem": {
+    "type": "ES6 Modules",
+    "importPattern": "Relative paths with .js extension",
+    "example": "import { CONSTANTS } from './modules/core/constants.js'",
+    "categories": {
+      "core": "State, constants, lifecycle",
+      "physics": "Physics engine, collisions, spawning",
+      "rendering": "Canvas, rendering loop, visual effects",
+      "modes": "Simulation mode implementations",
+      "ui": "User interface, panels, controls, gates",
+      "input": "Mouse/touch input handling",
+      "audio": "Sound system",
+      "visual": "Colors, themes, visual effects",
+      "utils": "Utility functions",
+      "portfolio": "Portfolio-specific code"
+    },
+    "namingConventions": {
+      "modules": "kebab-case.js",
+      "classes": "PascalCase.js",
+      "constants": "UPPER_SNAKE_CASE",
+      "functions": "camelCase"
+    }
+  },
+  "configSystem": {
+    "source": "source/config/default-config.json",
+    "buildOutputs": [
+      "public/config/default-config.json",
+      "public/js/config.json"
+    ],
+    "runtimeLoader": "source/modules/utils/runtime-config.js",
+    "productionInjection": "window.__CONFIG__",
+    "loadingOrder": [
+      "config/default-config.json (dev)",
+      "js/config.json (production)",
+      "window.__CONFIG__ (production fallback)",
+      "Minimal defaults (last resort)"
+    ],
+    "portfolioConfig": {
+      "source": "source/config/portfolio-config.json",
+      "loader": "source/modules/portfolio/portfolio-config.js",
+      "note": "Separate from main simulation config"
+    }
+  },
+  "devVsProduction": {
+    "detection": {
+      "method": "Port check (8001 = dev) or script type check",
+      "code": "window.location.port === '8001' || document.querySelector('script[type=\"module\"][src=\"main.js\"]')"
+    },
+    "devMode": {
+      "port": 8001,
+      "panelVisible": true,
+      "consoleLogging": "enabled",
+      "badge": "Green: DEV MODE — Instant Reload",
+      "modules": "ES modules directly (no bundling)"
+    },
+    "productionMode": {
+      "port": 8000,
+      "panelVisible": false,
+      "consoleLogging": "silenced (errors only)",
+      "badge": "Orange: PRODUCTION BUILD — Bundled",
+      "modules": "Bundled bouncy-balls-embed.js"
+    }
+  },
+  "commonErrors": {
+    "importErrors": [
+      "Missing .js extension",
+      "Wrong relative path",
+      "Circular dependencies"
+    ],
+    "buildErrors": [
+      "Editing public/ directly",
+      "Missing config keys",
+      "Rollup/ES module syntax errors"
+    ],
+    "runtimeErrors": [
+      "Config not loading",
+      "Module not found",
+      "isDev() undefined"
+    ],
+    "performanceIssues": [
+      "Allocations in hot paths",
+      "O(n²) collision detection",
+      "Excessive canvas state changes"
+    ]
   },
   "searchStrategies": {
     "grep": {
@@ -349,5 +452,57 @@
     "Changing file structure",
     "Adding config options",
     "Changing physics behavior"
-  ]
+  ],
+  "quickTaskReference": {
+    "addingNewMode": [
+      "Create source/modules/modes/new-mode.js",
+      "Register in mode-controller.js",
+      "Add to MODES constant",
+      "Add to NARRATIVE_MODE_SEQUENCE",
+      "Add controls to control-registry.js",
+      "Document in MODES.md",
+      "Test all modes still work"
+    ],
+    "addingConfigParameter": [
+      "Add to default-config.json",
+      "Document in CONFIGURATION.md",
+      "Add to control registry if tunable",
+      "Use via getGlobals() or state",
+      "Rebuild to test"
+    ],
+    "addingUIComponent": [
+      "Create in source/modules/ui/",
+      "Import in main.js if needed",
+      "Add styles with design tokens",
+      "Test in dev and production"
+    ],
+    "fixingBug": [
+      "Reproduce in browser",
+      "Check console errors",
+      "Use grep/codebase_search",
+      "Read relevant docs",
+      "Fix following patterns",
+      "Test affected features",
+      "Verify 60 FPS"
+    ]
+  },
+  "buildVerification": {
+    "beforeCommit": [
+      "npm run build succeeds",
+      "public/ contains expected files",
+      "Bundle sizes reasonable",
+      "No deprecated file references",
+      "Config files copied",
+      "HTML templates have injected assets",
+      "Production mode works"
+    ],
+    "afterBuild": [
+      "Test production bundle",
+      "Verify panel visibility",
+      "Check console for errors",
+      "Verify 60 FPS",
+      "Test all modes",
+      "Mobile responsive check"
+    ]
+  }
 }

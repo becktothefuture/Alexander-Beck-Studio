@@ -20,7 +20,7 @@
 }
 
 .ti {
-  font-family: "tabler-icons" !important;
+  font-family: "tabler-icons";
   font-style: normal;
   font-weight: normal;
   font-variant: normal;
@@ -63,8 +63,8 @@ html {
   width: 100%;
   height: 100%;
   /* Wall background (theme-aware via tokens.css). */
-  background: var(--wall-color) !important;
-  background-color: var(--wall-color) !important;
+  background: var(--wall-color);
+  background-color: var(--wall-color);
   /* 3D perspective for entrance animations */
   perspective: var(--entrance-perspective, 1000px);
   perspective-origin: center center;
@@ -88,21 +88,21 @@ html.aspect-portrait {
 
 /* Initial browser-default state (before entrance animation) */
 html.entrance-pre-transition {
-  background: #ffffff !important;
-  background-color: #ffffff !important;
+  background: #ffffff;
+  background-color: #ffffff;
 }
 
 /* Dark mode override: prevent white flash on load */
 html.entrance-pre-transition.dark-mode {
-  background: var(--wall-color, #0a0a0a) !important;
-  background-color: var(--wall-color, #0a0a0a) !important;
+  background: var(--wall-color, #0a0a0a);
+  background-color: var(--wall-color, #0a0a0a);
 }
 
 html.entrance-pre-transition body,
 /* Background elements are visible immediately (no fade-in) */
 html.entrance-pre-transition #fade-content {
-  opacity: 0 !important;
-  visibility: hidden !important;
+  opacity: 0;
+  visibility: hidden;
 }
 
 /* Background elements (#bravia-balls, #abs-scene, #edge-chapter, #edge-copyright, #brand-logo)
@@ -112,20 +112,20 @@ html.entrance-pre-transition #abs-scene,
 html.entrance-pre-transition #edge-chapter,
 html.entrance-pre-transition #edge-copyright,
 html.entrance-pre-transition #brand-logo {
-  opacity: 1 !important;
-  visibility: visible !important;
+  opacity: 1;
+  visibility: visible;
 }
 
 /* During transition - wall container becomes visible and grows */
 html.entrance-transitioning #bravia-balls {
-  visibility: visible !important;
-  opacity: 1 !important;
+  visibility: visible;
+  opacity: 1;
   /* Will be animated via JS: scale(0) → scale(1), border-radius 0 → full */
 }
 
 /* During transition - UI content wrapper becomes visible (background elements already visible) */
 html.entrance-transitioning #fade-content {
-  visibility: visible !important;
+  visibility: visible;
 }
 
 /* Background elements remain visible during transition (no fade-in) */
@@ -133,8 +133,8 @@ html.entrance-transitioning #abs-scene,
 html.entrance-transitioning #edge-chapter,
 html.entrance-transitioning #edge-copyright,
 html.entrance-transitioning #brand-logo {
-  visibility: visible !important;
-  opacity: 1 !important;
+  visibility: visible;
+  opacity: 1;
 }
 
 body,
@@ -147,12 +147,14 @@ body.body {
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  cursor: none !important;
+  cursor: none;
   -webkit-user-select: none;
   user-select: none;
   font-family: var(--abs-font-sans);
-  background: transparent !important;
-  background-color: transparent !important;
+  /* iOS Safari can reveal the body background during rubber-band/viewport UI changes.
+     Keep body aligned to the wall color so no browser-white edges appear. */
+  background: var(--wall-color);
+  background-color: var(--wall-color);
   color: var(--text-primary);
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
@@ -169,19 +171,19 @@ body.body {
 
 body *,
 body.body * {
-  cursor: none !important;
+  cursor: none;
 }
 
 body.dark-mode,
 body.body.dark-mode { 
-  background: transparent !important;
-  background-color: transparent !important;
+  background: var(--wall-color);
+  background-color: var(--wall-color);
   color: var(--text-primary);
   /* Inner shadow removed */
 }
 
 body.dark-mode .content-background-layer {
-  background: transparent !important;
+  background: transparent;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -308,30 +310,38 @@ html.fonts-loading .project-detail {
 #fade-content,
 #fade-content.viewport.viewport--content {
   /* Layout: Full height flex column inside the frame */
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: space-between !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   
   /* Positioning: No outer border on index page - fills viewport */
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  height: 100vh !important;
-  height: 100svh !important;
-  width: auto !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* iOS Safari viewport units:
+     - dvh: dynamic viewport (best)
+     - svh: small viewport (fallback)
+     - vh: legacy fallback */
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  width: auto;
   /* Height is explicitly controlled above to avoid iOS Safari 100vh cut-off. */
   
   /* Reset */
-  box-sizing: border-box !important;
-  margin: 0 !important;
-  padding: var(--content-padding-y) var(--content-padding-x) !important; /* Apply organic padding here */
+  box-sizing: border-box;
+  margin: 0;
+  /* Apply organic padding here (allow mobile multiplier without touching runtime config). */
+  padding:
+    calc(var(--content-padding-y) * var(--abs-content-pad-mul-y, 1))
+    calc(var(--content-padding-x) * var(--abs-content-pad-mul-x, 1));
   
   /* Visuals */
-  background: transparent !important;
+  background: transparent;
   /* No border-radius - only simulation (#bravia-balls) has rounded corners */
-  z-index: 20 !important; /* Above canvas */
-  pointer-events: none !important; /* Let clicks pass through to canvas in empty areas */
+  z-index: 20; /* Above canvas */
+  pointer-events: none; /* Let clicks pass through to canvas in empty areas */
   /* Smooth layout updates (resize + config). Avoid overriding other timings by only setting this where none exists. */
   transition:
     top var(--duration-resize) var(--ease-organic),
@@ -374,13 +384,13 @@ html.fonts-loading .project-detail {
 #footer-links-container,
 .socials_list {
   pointer-events: auto;
-  cursor: none !important;
+  cursor: none;
 }
 
 /* Sound toggle is a button-like element - maintain custom cursor experience */
 .sound-toggle {
   pointer-events: auto;
-  cursor: none !important;
+  cursor: none;
 }
 
 /* UI Wrapper Frame */
@@ -423,21 +433,21 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
    TOP SECTION
    ───────────────────────────────────────────────────────────────────────────── */
 .ui-top {
-  display: flex !important;
-  flex-direction: column !important;
-  width: 100% !important;
-  z-index: 20 !important;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  z-index: 20;
   pointer-events: none;
 }
 
 /* Desktop/Tablet: main top row (legend + blurb + optional sound icon in top-right slot) */
 .ui-top-main {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: flex-start !important;
-  flex-wrap: nowrap !important;
-  width: 100% !important;
-  gap: var(--gap-24) !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  width: 100%;
+  gap: var(--gap-24);
   pointer-events: none;
 }
 
@@ -449,41 +459,41 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
 }
 
 .ui-top-left {
-  width: 100% !important;
+  width: 100%;
 }
 
 /* Legend - Left */
 .legend {
-  position: relative !important; /* Remove fixed */
-  top: auto !important;
-  left: auto !important;
+  position: relative; /* Remove fixed */
+  top: auto;
+  left: auto;
   /* Switch to GRID for 4x2 layout */
-  display: grid !important;
-  grid-template-columns: repeat(4, auto) !important;
-  gap: var(--legend-gap-row) var(--legend-gap-col) !important;
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: var(--legend-gap-row) var(--legend-gap-col);
   /* max-width is handled by grid columns/content */
-  max-width: none !important; 
-  width: 100% !important;
-  font-family: 'Geist', sans-serif !important;
-  color: var(--text-muted) !important;
-  opacity: var(--legend-opacity) !important;
+  max-width: none; 
+  width: 100%;
+  font-family: 'Geist', sans-serif;
+  color: var(--text-muted);
+  opacity: var(--legend-opacity);
   pointer-events: auto;
 }
 
 .legend:hover {
-  opacity: var(--legend-opacity) !important;
+  opacity: var(--legend-opacity);
 }
 
 .legend__item {
-  font-family: 'Geist', sans-serif !important;
-  font-weight: var(--legend-font-weight) !important;
-  letter-spacing: var(--legend-letter-spacing) !important;
+  font-family: 'Geist', sans-serif;
+  font-weight: var(--legend-font-weight);
+  letter-spacing: var(--legend-letter-spacing);
   text-transform: uppercase;
-  font-size: var(--legend-font-size) !important;
-  line-height: var(--legend-line-height) !important;
-  color: inherit !important;
+  font-size: var(--legend-font-size);
+  line-height: var(--legend-line-height);
+  color: inherit;
   opacity: var(--text-opacity-base);
-  white-space: nowrap !important;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: var(--legend-item-gap);
@@ -500,15 +510,15 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
 
 /* Visually hidden helper (used by social icons and other a11y-only labels) */
 .screen-reader {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  padding: 0 !important;
-  margin: -1px !important;
-  overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Philosophy Text - Right */
@@ -517,25 +527,25 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   align-items: flex-start; /* Align top */
   justify-content: flex-end;
   max-width: 60vw; /* +20% */
-  width: 100% !important;
+  width: 100%;
   pointer-events: none;
   gap: var(--gap-lg); /* Gap between text and sound button */
 }
 
 .decorative-script {
-  position: relative !important; /* Remove fixed */
-  top: auto !important;
-  right: auto !important;
-  max-width: var(--decorative-script-max-width) !important;
+  position: relative; /* Remove fixed */
+  top: auto;
+  right: auto;
+  max-width: var(--decorative-script-max-width);
   font-family: 'Geist', sans-serif;
   font-size: var(--decorative-script-font-size);
   font-weight: 400;
   line-height: var(--decorative-script-line-height);
   letter-spacing: var(--decorative-script-letter-spacing);
   color: var(--text-primary);
-  border: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
+  border: none;
+  padding: 0;
+  margin: 0;
   pointer-events: auto;
 }
 
@@ -568,10 +578,10 @@ p {
 }
 
 .decorative-script p a {
-  text-decoration: underline !important;
+  text-decoration: underline;
   color: inherit;
   pointer-events: auto;
-  cursor: none !important; /* Maintain custom cursor experience */
+  cursor: none; /* Maintain custom cursor experience */
   position: relative;
   opacity: var(--text-opacity-base);
   transition: transform 0.15s var(--ease-organic),
@@ -602,7 +612,7 @@ p {
 
 .decorative-script p a:hover {
   /* No color change - keep colors as-is */
-  opacity: 1 !important; /* Remove opacity on hover - full strength color */
+  opacity: 1; /* Remove opacity on hover - full strength color */
 }
 
 .decorative-script p a:hover::after {
@@ -614,64 +624,64 @@ p {
    BOTTOM SECTION
    ───────────────────────────────────────────────────────────────────────────── */
 .ui-bottom {
-  display: flex !important;
-  flex-direction: column !important;
-  width: 100% !important;
-  gap: var(--gap-24) !important; /* Spacing between Links Row and Meta Row */
-  z-index: 20 !important;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: var(--gap-24); /* Spacing between Links Row and Meta Row */
+  z-index: 20;
   pointer-events: none;
 }
 
 /* Row 1: Links (Centered) */
 .ui-nav-row {
-  display: flex !important;
-  justify-content: center !important;
-  width: 100% !important;
+  display: flex;
+  justify-content: center;
+  width: 100%;
   pointer-events: auto;
 }
 
 #footer-links-container {
   /* Index: place the primary links under the centered logo (position is configurable). */
-  position: absolute !important;
+  position: absolute;
   top: calc(
     50% + (var(--abs-brand-logo-height, 0px) / 2) + (var(--home-main-links-below-logo-px, 40) * 1px)
-  ) !important;
-  left: 50% !important;
-  transform: translate3d(calc(-50% + (var(--abs-brand-logo-width, 0px) * 0.025)), 0, 0) !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  display: inline-flex !important;
-  gap: var(--gap-xl) !important;
-  row-gap: var(--gap-sm) !important;
-  width: auto !important;
-  max-width: 100% !important;
-  height: fit-content !important;
-  flex-wrap: wrap !important;
-  justify-content: center !important;
-  align-items: center !important;
-  pointer-events: auto !important;
+  );
+  left: 50%;
+  transform: translate3d(calc(-50% + (var(--abs-brand-logo-width, 0px) * 0.025)), 0, 0);
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  gap: var(--gap-xl);
+  row-gap: var(--gap-sm);
+  width: auto;
+  max-width: 100%;
+  height: fit-content;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
 }
 
 .footer_link,
 .portfolio-cv-link,
 #header-cv-link {
-  position: relative !important;
-  transform: none !important;
-  padding-block: var(--link-text-padding) !important;
-  padding-inline: var(--link-text-padding) !important;
-  margin-block: var(--link-text-margin) !important;
-  margin-inline: var(--link-text-margin) !important;
-  display: inline-block !important;
-  pointer-events: auto !important;
-  color: var(--text-muted) !important;
-  font-size: var(--footer-links-font-size) !important;
-  font-weight: 400 !important;
-  letter-spacing: var(--footer-links-letter-spacing) !important;
-  text-decoration: none !important; /* No underline */
+  position: relative;
+  transform: none;
+  padding-block: var(--link-text-padding);
+  padding-inline: var(--link-text-padding);
+  margin-block: var(--link-text-margin);
+  margin-inline: var(--link-text-margin);
+  display: inline-block;
+  pointer-events: auto;
+  color: var(--text-muted);
+  font-size: var(--footer-links-font-size);
+  font-weight: 400;
+  letter-spacing: var(--footer-links-letter-spacing);
+  text-decoration: none; /* No underline */
   opacity: var(--text-opacity-base);
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic);
-  cursor: none !important; /* Maintain custom cursor experience */
+  cursor: none; /* Maintain custom cursor experience */
 }
 
 .footer_link::after,
@@ -692,14 +702,14 @@ p {
 }
 
 .portfolio-cv-link {
-  color: var(--text-primary) !important;
+  color: var(--text-primary);
 }
 
 .footer_link:hover,
 .portfolio-cv-link:hover,
 #header-cv-link:hover {
   /* No color change - keep colors as-is */
-  opacity: 1 !important; /* Remove opacity on hover - full strength color */
+  opacity: 1; /* Remove opacity on hover - full strength color */
 }
 
 .footer_link:hover::after,
@@ -713,15 +723,15 @@ p {
 #contact-email,
 #portfolio-gate-trigger,
 #cv-gate-trigger {
-  margin: 0 !important;
+  margin: 0;
 }
 
 /* Row 2: Socials + Meta (Space Between) */
 .ui-meta-row {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: flex-end !important;
-  width: 100% !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
   pointer-events: none;
 }
 
@@ -732,22 +742,22 @@ p {
 /* Left: Socials */
 #social-links,
 .footer_icon-group {
-  position: relative !important; /* Remove fixed */
-  bottom: auto !important;
-  left: auto !important;
-  display: flex !important;
-  gap: var(--footer-icon-gap) !important;
-  margin: var(--link-icon-margin) !important; /* Counterbalance icon link padding */
-  padding: 0 !important;
-  list-style: none !important;
+  position: relative; /* Remove fixed */
+  bottom: auto;
+  left: auto;
+  display: flex;
+  gap: var(--footer-icon-gap);
+  margin: var(--link-icon-margin); /* Counterbalance icon link padding */
+  padding: 0;
+  list-style: none;
 }
 
 #social-links {
-  gap: 0px !important;
+  gap: 0px;
 }
 
 .footer_icon-link {
-  color: var(--text-quiet) !important;
+  color: var(--text-quiet);
   opacity: 0.9;
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic),
@@ -760,9 +770,9 @@ p {
   width: var(--footer-icon-size);
   height: var(--footer-icon-size);
   position: relative;
-  text-decoration: none !important;
-  padding: var(--link-icon-padding) !important;
-  cursor: none !important; /* Maintain custom cursor experience */
+  text-decoration: none;
+  padding: var(--link-icon-padding);
+  cursor: none; /* Maintain custom cursor experience */
   overflow: visible;
 }
 
@@ -801,8 +811,8 @@ body.dark-mode .footer_icon-link::before {
 }
 
 .footer_icon-link:hover {
-  color: var(--cursor-color, var(--link-hover-color)) !important;
-  opacity: 1 !important;
+  color: var(--cursor-color, var(--link-hover-color));
+  opacity: 1;
 }
 
 .footer_icon-link:hover::before {
@@ -818,28 +828,28 @@ body.dark-mode .footer_icon-link::before {
 
 /* Right: Meta (Time + Sound) */
 .ui-meta-right {
-  display: flex !important;
-  align-items: center !important;
-  gap: var(--gap-lg) !important;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-lg);
 }
 
 /* Sound Toggle in Top or Footer */
 .sound-toggle {
-  position: relative !important; /* Remove fixed */
-  top: auto !important;
-  left: auto !important;
-  transform: none !important;
-  margin: 0 !important;
+  position: relative; /* Remove fixed */
+  top: auto;
+  left: auto;
+  transform: none;
+  margin: 0;
   /* Keep standard button padding but ensure alignment */
   padding: var(--hit-area-lg);
   margin: calc(var(--hit-area-lg) * -1);
-  color: var(--text-quiet) !important;
-  font-family: 'Geist', sans-serif !important;
-  cursor: none !important; /* Maintain custom cursor experience */
+  color: var(--text-quiet);
+  font-family: 'Geist', sans-serif;
+  cursor: none; /* Maintain custom cursor experience */
   background: none;
   border: none;
   cursor: pointer;
-  pointer-events: auto !important;
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -848,41 +858,41 @@ body.dark-mode .footer_icon-link::before {
 }
 
 .sound-toggle:active {
-  transform: scale(var(--link-impact-scale)) !important;
+  transform: scale(var(--link-impact-scale));
   filter: blur(var(--link-impact-blur));
 }
 
 .sound-toggle[data-enabled="true"] {
-  /* Persistent “sound ON” signal (orange) */
-  color: var(--link-hover-color) !important;
+  /* Persistent "sound ON" signal (orange) */
+  color: var(--link-hover-color);
 }
 
 /* No hover dot for sound toggle (two-state only) */
-.sound-toggle::after { content: none !important; }
+.sound-toggle::after { content: none; }
 
 /* Sound Toggle in Top-Right specifically */
 .ui-top-right .sound-toggle {
   /* No special margin needed if gap handles it, but check hit area */
   /* Remove negative margin to respect gap */
-  margin: 0 !important;
-  padding: var(--hit-area-sm) !important; /* Smaller hit area padding for top */
+  margin: 0;
+  padding: var(--hit-area-sm); /* Smaller hit area padding for top */
 }
 
 /* No hover styling for sound toggle (two-state only) */
 
 /* Time/Caption */
 .caption {
-  position: relative !important; /* Remove fixed */
-  bottom: auto !important;
-  right: auto !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  height: auto !important;
-  font-family: var(--abs-font-display) !important;
-  font-style: normal !important; /* Sarina ships in regular only */
-  font-size: var(--caption-font-size) !important;
-  font-weight: var(--abs-weight-regular) !important; /* Sarina only has one weight */
-  line-height: 1 !important;
+  position: relative; /* Remove fixed */
+  bottom: auto;
+  right: auto;
+  margin: 0;
+  padding: 0;
+  height: auto;
+  font-family: var(--abs-font-display);
+  font-style: normal; /* Sarina ships in regular only */
+  font-size: var(--caption-font-size);
+  font-weight: var(--abs-weight-regular); /* Sarina only has one weight */
+  line-height: 1;
   opacity: var(--text-opacity-base);
   color: var(--text-muted);
 }
@@ -892,24 +902,24 @@ body.dark-mode .footer_icon-link::before {
 }
 
 .caption:hover {
-  color: var(--text-primary) !important;
+  color: var(--text-primary);
 }
 
 /* Location name (London) - Sarina (script font) */
 .location-name {
-  font-family: var(--abs-font-display) !important;
-  font-style: normal !important;
-  font-weight: var(--abs-weight-regular) !important;
+  font-family: var(--abs-font-display);
+  font-style: normal;
+  font-weight: var(--abs-weight-regular);
 }
 
 /* Time Display - Geist font (not Sarina) */
 #time-display {
-  font-family: 'Geist', sans-serif !important;
-  font-style: normal !important;
-  font-size: inherit !important;
-  font-weight: 400 !important;
-  font-variant-numeric: tabular-nums !important;
-  font-feature-settings: 'tnum' 1 !important;
+  font-family: 'Geist', sans-serif;
+  font-style: normal;
+  font-size: inherit;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -924,6 +934,7 @@ body.dark-mode .footer_icon-link::before {
      Use small viewport units when available (iOS Safari UI-safe), fallback to vh. */
   height: 100vh;
   height: 100svh;
+  height: 100dvh;
   z-index: 0;
   pointer-events: auto;
   transform-origin: center center;
@@ -965,15 +976,14 @@ body.dark-mode .footer_icon-link::before {
 /* Note: #brand-logo is separate from #fade-content structure to maintain z-index: 3 */
 #brand-logo {
   color: var(--logo-color-light);
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
+  position: fixed;
+  top: 50%;
+  left: 50%;
   /* Counter-scale the scene "press-in" so the logo stays visually stable.
      #brand-logo lives inside #abs-scene, so it inherits the scene's transform scale. */
   transform:
     translate3d(-47.5%, -50%, 0)
-    scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)))
-    !important;
+    scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)));
   transform-origin: center center;
   /* Fade opacity when gate opens (subtle, not full disappear) */
   opacity: var(--logo-opacity-active, 1);
@@ -981,12 +991,12 @@ body.dark-mode .footer_icon-link::before {
   transition: 
     transform var(--abs-scene-impact-dur, 100ms) var(--abs-scene-impact-ease, var(--ease-gate)),
     opacity var(--gate-depth-out-duration, 250ms) var(--ease-gate);
-  z-index: 3 !important; /* Behind balls (z:5) */
-  pointer-events: none !important;
-  width: auto !important;
-  height: auto !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  z-index: 3; /* Behind balls (z:5) */
+  pointer-events: none;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
   /* Subpixel/compositing hints: keeps tiny transform animations smooth */
   backface-visibility: hidden;
   transform-style: preserve-3d;
@@ -1021,6 +1031,7 @@ body.dark-mode #brand-logo {
   right: 0;
   height: 100vh;
   height: 100svh;
+  height: 100dvh;
   /* No border-radius - only simulation (#bravia-balls) has rounded corners */
   /* Background is owned by #bravia-balls (single rounded surface) to prevent
      multi-layer rounded-edge re-rasterization "snaps" at the end of scene scaling. */
@@ -1039,22 +1050,23 @@ body.dark-mode #brand-logo {
 #bravia-balls {
   position: fixed;
   /* Container fills entire viewport - wall is inset inside via wall thickness parameter */
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: 100vh !important;
-  height: 100svh !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-sizing: border-box !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
   /* Border-radius removed on simulation page (index.html) - kept on portfolio page */
   border-radius: 0;
-  background: var(--bg-light) !important;
-  background-color: var(--bg-light) !important;
+  background: var(--bg-light);
+  background-color: var(--bg-light);
   z-index: 5;
-  pointer-events: none !important;
+  pointer-events: none;
   overflow: hidden;
   transform: translateZ(0);
   transform-origin: center center;
@@ -1078,12 +1090,12 @@ html.entrance-transitioning #bravia-balls {
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic),
     right var(--duration-resize) var(--ease-organic),
-    height var(--duration-resize) var(--ease-organic) !important;
+    height var(--duration-resize) var(--ease-organic);
 }
 
 body.dark-mode #bravia-balls {
-  background: var(--bg-dark, #0a0a0a) !important;
-  background-color: var(--bg-dark, #0a0a0a) !important;
+  background: var(--bg-dark, #0a0a0a);
+  background-color: var(--bg-dark, #0a0a0a);
 }
 
 /* Inner shadow removed */
@@ -1096,36 +1108,36 @@ body.dark-mode #bravia-balls {
   width: 100%;
   height: 100%;
   z-index: 5;
-  pointer-events: auto !important; /* Interactions enabled */
+  pointer-events: auto; /* Interactions enabled */
   touch-action: none;
-  border-radius: 0 !important; /* Radius controlled entirely by rubber wall system */
+  border-radius: 0; /* Radius controlled entirely by rubber wall system */
 }
 
 .noise,
 .noise-2,
 .noise-3 {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  pointer-events: none !important;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
   overflow: hidden;
 }
 
 .noise {
-  z-index: 2 !important;
-  opacity: calc(var(--noise-back-opacity-light) * var(--abs-noise-enabled)) !important;
-  mix-blend-mode: multiply !important;
+  z-index: 2;
+  opacity: calc(var(--noise-back-opacity-light) * var(--abs-noise-enabled));
+  mix-blend-mode: multiply;
 }
 
 .noise-2 {
-  z-index: 12 !important; /* Above cards (z:10-11) to ensure noise is always in front */
-  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled)) !important;
-  mix-blend-mode: multiply !important;
+  z-index: 12; /* Above cards (z:10-11) to ensure noise is always in front */
+  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled));
+  mix-blend-mode: multiply;
 }
 
 .noise-3 {
-  display: none !important; /* Disabled: removed top noise layer to prevent covering cards */
+  display: none; /* Disabled: removed top noise layer to prevent covering cards */
 }
 
 .noise::before,
@@ -1156,16 +1168,16 @@ body.dark-mode #bravia-balls {
 }
 
 body.dark-mode .noise {
-  opacity: calc(var(--noise-back-opacity-dark) * var(--abs-noise-enabled)) !important;
+  opacity: calc(var(--noise-back-opacity-dark) * var(--abs-noise-enabled));
 }
 
 body.dark-mode .noise-2 {
-  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled)) !important;
+  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled));
 }
 
 body.dark-mode .noise,
 body.dark-mode .noise-2 {
-  mix-blend-mode: overlay !important;
+  mix-blend-mode: overlay;
 }
 
 @keyframes abs-noise-jitter {
@@ -1236,8 +1248,8 @@ body.dark-mode .noise-2 {
    ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 991px) { /* Tablet */
   .legend {
-    grid-template-columns: repeat(3, auto) !important; /* 3x3 layout */
-    gap: clamp(3px, 0.4vmin, 6px) clamp(12px, 1.5vw, 20px) !important;
+    grid-template-columns: repeat(3, auto); /* 3x3 layout */
+    gap: clamp(3px, 0.4vmin, 6px) clamp(12px, 1.5vw, 20px);
   }
 }
 
@@ -1245,8 +1257,8 @@ body.dark-mode .noise-2 {
    Switch to 2 columns so the right blurb can breathe. */
 @media (max-width: 820px) {
   .legend {
-    grid-template-columns: repeat(2, auto) !important;
-    gap: clamp(3px, 0.4vmin, 6px) clamp(10px, 1.2vw, 16px) !important;
+    grid-template-columns: repeat(2, auto);
+    gap: clamp(3px, 0.4vmin, 6px) clamp(10px, 1.2vw, 16px);
   }
 }
 
@@ -1255,6 +1267,9 @@ body.dark-mode .noise-2 {
     /* Horizontal ratio is now handled by JS (contentPaddingHorizontalRatio).
        CSS fallback kept for graceful degradation if JS hasn't stamped values yet. */
     --noise-size-scale: 0.8;
+    /* Mobile-first: increase content padding ~2× without affecting desktop config. */
+    --abs-content-pad-mul-x: 2;
+    --abs-content-pad-mul-y: 2;
   }
 
   .ui-top {
@@ -1262,18 +1277,18 @@ body.dark-mode .noise-2 {
   }
 
   .ui-top-main {
-    flex-direction: row !important;
-    align-items: flex-start !important;
+    flex-direction: row;
+    align-items: flex-start;
   }
 
   .ui-top-left,
   .ui-top-right {
-    flex: 1 1 0 !important;
-    min-width: 0 !important; /* allow text/grid to shrink instead of forcing overflow */
+    flex: 1 1 0;
+    min-width: 0; /* allow text/grid to shrink instead of forcing overflow */
   }
 
   .ui-top-right {
-    max-width: none !important;
+    max-width: none;
   }
 
   #top-elements-soundRow.ui-top-soundRow {
@@ -1285,79 +1300,86 @@ body.dark-mode .noise-2 {
 
   #top-elements-soundRow.ui-top-soundRow .sound-toggle {
     /* Avoid the global negative margin expanding the row/hit-area offscreen on mobile */
-    margin: 0 !important;
-    padding: var(--hit-area-sm) !important;
+    margin: 0;
+    padding: var(--hit-area-sm);
   }
   
   .legend {
-    max-width: 100% !important;
-    grid-template-columns: 1fr !important; /* 1x7 layout */
-    gap: 4px !important;
+    max-width: 100%;
+    grid-template-columns: 1fr; /* 1x7 layout */
+    gap: 4px;
   }
   
   .ui-top-right {
-    max-width: 100% !important;
+    max-width: 100%;
     justify-content: flex-start;
   }
   
   .ui-bottom {
-    gap: var(--gap-24) !important;
+    gap: var(--gap-24);
   }
   
   .ui-nav-row {
-    justify-content: center !important;
+    justify-content: center;
   }
   
   #footer-links-container {
-    width: auto !important;
-    max-width: 100% !important;
-    justify-content: center !important;
-    align-items: center !important;
-    flex-wrap: wrap !important;
-    gap: var(--gap-md) !important;
-    row-gap: var(--gap-sm) !important;
+    /* Use viewport units instead of parent percentage to avoid iOS Safari fixed-height quirks. */
+    top: calc(
+      50svh + (var(--abs-brand-logo-height, 0px) / 2) + (var(--home-main-links-below-logo-px, 40) * 1px)
+    );
+    top: calc(
+      50dvh + (var(--abs-brand-logo-height, 0px) / 2) + (var(--home-main-links-below-logo-px, 40) * 1px)
+    );
+    width: auto;
+    max-width: 100%;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: var(--gap-md);
+    row-gap: var(--gap-sm);
   }
   
   .footer_link {
-    /* Mobile sizing: +10% on “main links” */
-    font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 1.1) !important;
+    /* Mobile sizing: +10% on "main links" */
+    font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 1.1);
 
     /* Mobile UX: +10% vertical padding */
     --abs-footer-link-pad-mobile: calc(var(--hit-area-sm) * 1.1);
-    padding-block: var(--abs-footer-link-pad-mobile) !important;
-    padding-inline: var(--hit-area-sm) !important;
-    margin-block: calc(var(--abs-footer-link-pad-mobile) * -1) !important;
-    margin-inline: calc(var(--hit-area-sm) * -1) !important;
-    text-align: center !important;
+    padding-block: var(--abs-footer-link-pad-mobile);
+    padding-inline: var(--hit-area-sm);
+    margin-block: calc(var(--abs-footer-link-pad-mobile) * -1);
+    margin-inline: calc(var(--hit-area-sm) * -1);
+    text-align: center;
     /* Make the hover dot sit under the text (measured from text bottom) */
-    display: inline-flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .footer_link::after {
-    position: static !important;
-    left: auto !important;
-    bottom: auto !important;
-    margin-top: var(--gap-xs) !important;
-    opacity: 0 !important;
-    transform: scaleY(0) !important;
+    position: static;
+    left: auto;
+    bottom: auto;
+    margin-top: var(--gap-xs);
+    opacity: 0;
+    transform: scaleY(0);
   }
 
   /* Focus states intentionally disabled (per request). */
   .footer_link:active::after {
-    opacity: 1 !important;
-    transform: scaleY(1) !important;
+    opacity: 1;
+    transform: scaleY(1);
     animation: braviaDotBounceIn var(--dot-bounce-duration) var(--ease-bounce) both;
   }
   
   .ui-meta-row {
-    align-items: center !important;
+    align-items: center;
   }
   
   .ui-meta-right {
     flex-direction: row;
-    gap: var(--gap-md) !important;
+    gap: var(--gap-md);
   }
 }
 
@@ -1378,8 +1400,8 @@ a:not(:active) {
 button:active,
 [role="button"]:active,
 a:active {
-  transform: scale(var(--link-impact-scale)) !important;
-  filter: blur(var(--link-impact-blur)) !important;
+  transform: scale(var(--link-impact-scale));
+  filter: blur(var(--link-impact-blur));
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic);
 }
@@ -1390,8 +1412,8 @@ a:active {
    ═══════════════════════════════════════════════════════════════════════════════ */
 *:focus,
 *:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
+  outline: none;
+  box-shadow: none;
 }
 
 /* Custom Cursor */
@@ -1416,10 +1438,10 @@ a:active {
   /* Blend mode is applied via overlay element, not here */
 }
 
-/* Link hover: hide the cursor so the hover dot reads as the cursor “hopping” under the link. */
+/* Link hover: hide the cursor so the hover dot reads as the cursor "hopping" under the link. */
 body.abs-link-hovering #custom-cursor {
-  opacity: 0 !important;
-  transition: opacity 90ms linear !important;
+  opacity: 0;
+  transition: opacity 90ms linear;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1460,12 +1482,9 @@ body.abs-hover-mode-index .abs-hover-target--index::before {
 
 body.abs-hover-mode-index .abs-hover-target--index {
   /* No color change - keep colors as-is */
-  opacity: 1 !important;
+  opacity: 1;
 }
 
-body.abs-hover-mode-index .abs-hover-target--index.abs-cursor-pulse::before {
-  /* legacy (pulse is handled by `.abs-hover-pulse-ring`) */
-}
 
 /* UI mode: background-only circle (no dot); tone shift is applied per-control below. */
 body.abs-hover-mode-ui .abs-hover-target--ui {
@@ -1500,59 +1519,59 @@ body.abs-hover-mode-ui .portfolio-cv-link::after,
 body.abs-hover-mode-ui #header-cv-link::after,
 body.abs-hover-mode-ui .decorative-script p a::after,
 body.abs-hover-mode-ui .gate-back::after {
-  opacity: 0 !important;
-  animation: none !important;
-  transform: translate3d(-50%, 0, 0) scaleY(0) !important;
+  opacity: 0;
+  animation: none;
+  transform: translate3d(-50%, 0, 0) scaleY(0);
 }
 
 /* Icon links already have ::after disabled, but ensure it stays hidden */
 body.abs-hover-mode-ui .footer_icon-link::after {
-  display: none !important;
+  display: none;
 }
 
-/* UI mode: slight label/icon tone shift (avoid “turning orange”; keep base hue). */
+/* UI mode: slight label/icon tone shift (avoid "turning orange"; keep base hue). */
 body.abs-hover-mode-ui .footer_link.abs-hover-target--ui {
-  color: var(--text-muted) !important;
-  color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-black), 1) 14%) !important;
+  color: var(--text-muted); /* Fallback for browsers without color-mix support */
+  color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-black), 1) 14%);
 }
 body.dark-mode.abs-hover-mode-ui .footer_link.abs-hover-target--ui {
-  color: var(--text-muted) !important;
-  color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-white), 1) 14%) !important;
+  color: var(--text-muted); /* Fallback for browsers without color-mix support */
+  color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-white), 1) 14%);
 }
 
 body.abs-hover-mode-ui .portfolio-cv-link.abs-hover-target--ui,
 body.abs-hover-mode-ui #header-cv-link.abs-hover-target--ui {
-  color: var(--text-primary) !important;
-  color: color-mix(in srgb, var(--text-primary) 86%, rgba(var(--abs-rgb-black), 1) 14%) !important;
+  color: var(--text-primary); /* Fallback for browsers without color-mix support */
+  color: color-mix(in srgb, var(--text-primary) 86%, rgba(var(--abs-rgb-black), 1) 14%);
 }
 body.dark-mode.abs-hover-mode-ui .portfolio-cv-link.abs-hover-target--ui,
 body.dark-mode.abs-hover-mode-ui #header-cv-link.abs-hover-target--ui {
-  color: var(--text-primary) !important;
-  color: color-mix(in srgb, var(--text-primary) 86%, rgba(var(--abs-rgb-white), 1) 14%) !important;
+  color: var(--text-primary); /* Fallback for browsers without color-mix support */
+  color: color-mix(in srgb, var(--text-primary) 86%, rgba(var(--abs-rgb-white), 1) 14%);
 }
 
 /* UI mode: icon links use light-up effect, not color-mix */
 body.abs-hover-mode-ui .footer_icon-link.abs-hover-target--ui::before,
 body.abs-hover-mode-ui .top-nav__link.abs-hover-target--ui::before {
-  opacity: 1 !important;
+  opacity: 1;
 }
 
 body.abs-hover-mode-ui .footer_icon-link.abs-hover-target--ui,
 body.abs-hover-mode-ui .top-nav__link.abs-hover-target--ui {
-  color: var(--cursor-color, var(--link-hover-color)) !important;
+  color: var(--cursor-color, var(--link-hover-color));
 }
 
 body.abs-hover-mode-ui .sound-toggle.abs-hover-target--ui,
 body.abs-hover-mode-ui .gate-back.abs-hover-target--ui,
 body.abs-hover-mode-ui .top-nav__cv.abs-hover-target--ui {
-  color: var(--text-quiet) !important;
-  color: color-mix(in srgb, var(--text-quiet) 86%, rgba(var(--abs-rgb-black), 1) 14%) !important;
+  color: var(--text-quiet); /* Fallback for browsers without color-mix support */
+  color: color-mix(in srgb, var(--text-quiet) 86%, rgba(var(--abs-rgb-black), 1) 14%);
 }
 body.dark-mode.abs-hover-mode-ui .sound-toggle.abs-hover-target--ui,
 body.dark-mode.abs-hover-mode-ui .gate-back.abs-hover-target--ui,
 body.dark-mode.abs-hover-mode-ui .top-nav__cv.abs-hover-target--ui {
-  color: var(--text-quiet) !important;
-  color: color-mix(in srgb, var(--text-quiet) 86%, rgba(var(--abs-rgb-white), 1) 14%) !important;
+  color: var(--text-quiet); /* Fallback for browsers without color-mix support */
+  color: color-mix(in srgb, var(--text-quiet) 86%, rgba(var(--abs-rgb-white), 1) 14%);
 }
 
 /* Focus visibility (WCAG priority): restore a clear focus ring for primary interactive targets.
@@ -1566,7 +1585,7 @@ body.dark-mode.abs-hover-mode-ui .top-nav__cv.abs-hover-target--ui {
 .sound-toggle:focus-visible,
 .top-nav__link:focus-visible,
 .top-nav__cv:focus-visible {
-  box-shadow: none !important;
+  box-shadow: none;
   border-radius: var(--abs-radius-pill);
 }
 
@@ -1605,37 +1624,37 @@ body.abs-hover-mode-ui .gate-back .abs-hover-pulse-ring {
 /* Reduce motion: keep states, remove pulses. */
 @media (prefers-reduced-motion: reduce) {
   .abs-hover-target .abs-hover-pulse-ring {
-    animation: none !important;
-    opacity: 0 !important;
+    animation: none;
+    opacity: 0;
   }
 }
 
 /* Cursor transforms to larger transparent circle when gates are open */
 #custom-cursor.gate-active {
-  display: block !important;
-  width: 48px !important;
-  height: 48px !important;
-  background: var(--abs-surface-glass-medium) !important; /* Transparent but visible */
-  border: 1.5px solid var(--abs-stroke-strong-inverse) !important; /* Visible border */
-  transform: translate(-50%, -50%) scale(1) !important;
-  opacity: 1 !important;
+  display: block;
+  width: 48px;
+  height: 48px;
+  background: var(--abs-surface-glass-medium); /* Transparent but visible */
+  border: 1.5px solid var(--abs-stroke-strong-inverse); /* Visible border */
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
 }
 
 /* Cursor color is palette-driven via --cursor-color (no dark-mode override). */
 
 /* Circle Colors */
-.circle.bg-ball-1 { background-color: var(--ball-1) !important; }
-.circle.bg-ball-2 { background-color: var(--ball-2) !important; }
-.circle.bg-ball-3 { background-color: var(--ball-3) !important; }
-.circle.bg-ball-4 { background-color: var(--ball-4) !important; }
-.circle.bg-ball-5 { background-color: var(--ball-5) !important; }
-.circle.bg-ball-6 { background-color: var(--ball-6) !important; }
-.circle.bg-ball-7 { background-color: var(--ball-7) !important; }
-.circle.bg-ball-8 { background-color: var(--ball-8) !important; }
+.circle.bg-ball-1 { background-color: var(--ball-1); }
+.circle.bg-ball-2 { background-color: var(--ball-2); }
+.circle.bg-ball-3 { background-color: var(--ball-3); }
+.circle.bg-ball-4 { background-color: var(--ball-4); }
+.circle.bg-ball-5 { background-color: var(--ball-5); }
+.circle.bg-ball-6 { background-color: var(--ball-6); }
+.circle.bg-ball-7 { background-color: var(--ball-7); }
+.circle.bg-ball-8 { background-color: var(--ball-8); }
 
 /* Story-specific legend color: Creative Strategy = darker grey */
-.circle.bg-story-grey { background-color: var(--text-color-light-muted) !important; }
-body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass-soft) !important; }
+.circle.bg-story-grey { background-color: var(--text-color-light-muted); }
+body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass-soft); }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    GATE DEPTH EFFECT
@@ -1766,7 +1785,7 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
 .gate-nav {
   width: 100%;
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   margin: 0 0 0.75rem 0;
 }
@@ -1776,12 +1795,18 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
   border: 0;
   background: transparent;
   background-color: transparent;
-  padding: var(--gate-pad-xs);
+  /* Match the primary icon-link hit-area sizing (e.g. footer socials). */
+  width: var(--footer-icon-size);
+  height: var(--footer-icon-size);
+  padding: var(--link-icon-padding);
   margin: 0;
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
+  flex: 0 0 var(--footer-icon-size);
+  position: relative;
+  text-decoration: none;
+  overflow: visible;
   cursor: pointer;
   -webkit-user-select: none;
   user-select: none;
@@ -1804,9 +1829,6 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
   font-weight: 500;
 }
 
-.gate-back:hover {
-  /* No color change - keep colors as-is */
-}
 
 .gate-back:focus-visible {
   outline: none;
@@ -1896,7 +1918,7 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
   border: 0;
   border-left: 1px solid var(--abs-stroke-soft);
   background: transparent;
-  padding: var(--gate-pad-sm-y) var(--gate-pad-sm-x);
+  padding: var(--hit-area-sm);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -2194,11 +2216,11 @@ body.dark-mode .portfolio-digit:focus {
   .contact-email-button,
   .contact-email-row,
   .gate-overlay {
-    transition: none !important;
+    transition: none;
   }
   
   .gate-overlay.active {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }

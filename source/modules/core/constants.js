@@ -141,7 +141,6 @@ export const WALL_PRESETS = {
       wallWobbleMaxVel: 900,
       wallWobbleMaxImpulse: 240,
       wallWobbleMaxEnergyPerStep: 24000,
-      wallDeformPhysicsPrecision: 70,
       wallInset: 3
     }
   },
@@ -159,7 +158,6 @@ export const WALL_PRESETS = {
       wallWobbleMaxVel: 650,
       wallWobbleMaxImpulse: 180,
       wallWobbleMaxEnergyPerStep: 22000,
-      wallDeformPhysicsPrecision: 60,
       wallInset: 3
     }
   },
@@ -177,7 +175,6 @@ export const WALL_PRESETS = {
       wallWobbleMaxVel: 1200,
       wallWobbleMaxImpulse: 320,
       wallWobbleMaxEnergyPerStep: 30000,
-      wallDeformPhysicsPrecision: 75,
       wallInset: 3
     }
   },
@@ -195,7 +192,6 @@ export const WALL_PRESETS = {
       wallWobbleMaxVel: 900,
       wallWobbleMaxImpulse: 260,
       wallWobbleMaxEnergyPerStep: 26000,
-      wallDeformPhysicsPrecision: 70,
       wallInset: 3
     }
   },
@@ -213,7 +209,6 @@ export const WALL_PRESETS = {
       wallWobbleMaxVel: 700,
       wallWobbleMaxImpulse: 160,
       wallWobbleMaxEnergyPerStep: 20000,
-      wallDeformPhysicsPrecision: 55,
       wallInset: 3
     }
   },
@@ -231,7 +226,6 @@ export const WALL_PRESETS = {
       wallWobbleMaxVel: 500,
       wallWobbleMaxImpulse: 90,
       wallWobbleMaxEnergyPerStep: 16000,
-      wallDeformPhysicsPrecision: 40,
       wallInset: 3
     }
   },
@@ -249,7 +243,6 @@ export const WALL_PRESETS = {
       wallWobbleMaxVel: 1100,
       wallWobbleMaxImpulse: 300,
       wallWobbleMaxEnergyPerStep: 28000,
-      wallDeformPhysicsPrecision: 75,
       wallInset: 3
     }
   },
@@ -267,7 +260,6 @@ export const WALL_PRESETS = {
       wallWobbleMaxVel: 520,
       wallWobbleMaxImpulse: 150,
       wallWobbleMaxEnergyPerStep: 22000,
-      wallDeformPhysicsPrecision: 65,
       wallInset: 3
     }
   },
@@ -285,7 +277,6 @@ export const WALL_PRESETS = {
       wallWobbleMaxVel: 650,
       wallWobbleMaxImpulse: 200,
       wallWobbleMaxEnergyPerStep: 24000,
-      wallDeformPhysicsPrecision: 70,
       wallInset: 3
     }
   },
