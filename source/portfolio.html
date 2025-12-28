@@ -3,12 +3,27 @@
 <html lang="en" class="fonts-loading">
 <head>
   <style id="fade-blocking">#fade-content{opacity:0}</style>
+  <!-- Browser Chrome Color -->
+  <meta name="theme-color" content="#242529">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#242529">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1a1a">
   <!-- CRITICAL: Dark mode detection BEFORE first paint to prevent white flash -->
   <script>
     (function() {
       'use strict';
       // Detect dark mode preference synchronously before any rendering
       let shouldBeDark = false;
+      const THEME_COLOR_LIGHT = '#242529';
+      const THEME_COLOR_DARK = '#1a1a1a';
+
+      function setBrowserChromeColors(isDark) {
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = isDark ? THEME_COLOR_DARK : THEME_COLOR_LIGHT;
+        const metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
+        if (metaLight) metaLight.content = THEME_COLOR_LIGHT;
+        const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
+        if (metaDark) metaDark.content = THEME_COLOR_DARK;
+      }
       
       // Get saved theme preference
       let themePreference = 'auto';
@@ -41,8 +56,8 @@
         document.documentElement.classList.add('dark-mode');
         document.documentElement.style.colorScheme = 'dark';
         // Set background color immediately to prevent white flash (use !important to override CSS)
-        document.documentElement.style.setProperty('background', '#0a0a0a', 'important');
-        document.documentElement.style.setProperty('background-color', '#0a0a0a', 'important');
+        document.documentElement.style.setProperty('background', THEME_COLOR_DARK, 'important');
+        document.documentElement.style.setProperty('background-color', THEME_COLOR_DARK, 'important');
         // Apply to body as well (will be set properly when body exists)
         if (document.body) {
           document.body.classList.add('dark-mode');
@@ -52,10 +67,8 @@
             document.body.classList.add('dark-mode');
           }, { once: true });
         }
-        // Update theme-color meta tag for browser chrome
-        const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
-        if (metaDark) metaDark.content = '#0a0a0a';
       }
+      setBrowserChromeColors(shouldBeDark);
     })();
   </script>
   <meta charset="UTF-8">
