@@ -247,6 +247,51 @@ function enhanceFooterLinksForMobile() {
       if (Number.isFinite(g?.homeMainLinksBelowLogoPx)) {
         root.style.setProperty('--home-main-links-below-logo-px', String(g.homeMainLinksBelowLogoPx));
       }
+      if (Number.isFinite(g?.footerNavBarTopVh)) {
+        root.style.setProperty('--footer-nav-bar-top', `${g.footerNavBarTopVh}vh`);
+        root.style.setProperty('--footer-nav-bar-top-svh', `${g.footerNavBarTopVh}svh`);
+        root.style.setProperty('--footer-nav-bar-top-dvh', `${g.footerNavBarTopVh}dvh`);
+      }
+      if (Number.isFinite(g?.footerNavBarGapVw)) {
+        /* Convert vw to clamp() pattern: min scales with vw, max = min * 1.67 (matching --gap-xl ratio) */
+        const minPx = Math.round(g.footerNavBarGapVw * 9.6); // ~24px at 2.5vw base
+        const maxPx = Math.round(minPx * 1.67); // ~40px at 2.5vw base (maintains ratio)
+        root.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${g.footerNavBarGapVw}vw, ${maxPx}px)`);
+      }
+      if (Number.isFinite(g?.uiHitAreaMul)) {
+        root.style.setProperty('--ui-hit-area-mul', String(g.uiHitAreaMul));
+      }
+      if (Number.isFinite(g?.uiIconCornerRadiusMul)) {
+        root.style.setProperty('--ui-icon-corner-radius-mul', String(g.uiIconCornerRadiusMul));
+      }
+      // Unified icon button geometry: frame size + glyph size (px)
+      // 0 = use token-derived defaults (do not override CSS).
+      if (Number.isFinite(g?.uiIconFramePx) && Math.round(g.uiIconFramePx) > 0) {
+        root.style.setProperty('--ui-icon-frame-size', `${Math.round(g.uiIconFramePx)}px`);
+      }
+      if (Number.isFinite(g?.uiIconGlyphPx) && Math.round(g.uiIconGlyphPx) > 0) {
+        root.style.setProperty('--ui-icon-glyph-size', `${Math.round(g.uiIconGlyphPx)}px`);
+      }
+      if (Number.isFinite(g?.linkTextPadding)) {
+        root.style.setProperty('--link-text-padding', `${Math.round(g.linkTextPadding)}px`);
+        root.style.setProperty('--link-text-margin', `${-Math.round(g.linkTextPadding)}px`);
+      }
+      if (Number.isFinite(g?.linkIconPadding)) {
+        root.style.setProperty('--link-icon-padding', `${Math.round(g.linkIconPadding)}px`);
+        root.style.setProperty('--link-icon-margin', `${-Math.round(g.linkIconPadding)}px`);
+      }
+      if (Number.isFinite(g?.linkColorInfluence)) {
+        root.style.setProperty('--link-color-influence', String(g.linkColorInfluence));
+      }
+      if (Number.isFinite(g?.linkImpactScale)) {
+        root.style.setProperty('--link-impact-scale', String(g.linkImpactScale));
+      }
+      if (Number.isFinite(g?.linkImpactBlur)) {
+        root.style.setProperty('--link-impact-blur', `${g.linkImpactBlur}px`);
+      }
+      if (Number.isFinite(g?.linkImpactDuration)) {
+        root.style.setProperty('--link-impact-duration', `${Math.round(g.linkImpactDuration)}ms`);
+      }
     } catch (e) {}
     
     // Ensure noise-2 and noise-3 elements exist (for modular dev environments)
@@ -318,12 +363,6 @@ function enhanceFooterLinksForMobile() {
 
     // Scene micro-interaction: subtle "clicked-in" response on simulation changes
     initSceneImpactReact();
-    
-    // Cursor pulse effect on mode change
-    import('./modules/ui/cursor-pulse.js').then(({ initCursorPulse }) => {
-      initCursorPulse();
-      log('✓ Cursor pulse system initialized');
-    }).catch(() => {});
     
     // Load any saved settings
     loadSettings();

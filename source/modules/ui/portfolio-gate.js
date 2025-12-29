@@ -71,7 +71,7 @@ export function initPortfolioGate() {
     if (gateLabel) {
         gateLabel.innerHTML = `
             <div class="gate-nav">
-                <button type="button" class="gate-back" data-gate-back aria-label="${BACK_ARIA}">
+                <button type="button" class="gate-back abs-icon-btn" data-gate-back aria-label="${BACK_ARIA}">
                     <i class="ti ti-arrow-left" aria-hidden="true"></i>
                     <span>${BACK_TEXT}</span>
                 </button>

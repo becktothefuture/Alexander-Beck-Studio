@@ -1397,6 +1397,29 @@ body:not(.dark-mode) #portfolioPanel {
   gap: 8px;
 }
 
+.panel-dock .panel-save-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--panel-brand-foreground);
+  background: var(--panel-brand);
+  border: none;
+  border-radius: var(--panel-radius-sm);
+  cursor: pointer;
+  transition: opacity 0.2s, background 0.2s;
+  white-space: nowrap;
+  margin-right: var(--panel-pad-4);
+}
+
+.panel-dock .panel-save-btn:hover {
+  opacity: 0.9;
+}
+
+.panel-dock .panel-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .panel-dock .panel-mode-pill {
   height: 20px;
   padding: 0 var(--panel-pad-10);

@@ -172,46 +172,68 @@ function energizePalette(palette, energizeOpts) {
   return out;
 }
 
+function boostMostSaturatedInPalette(palette, satMul = 0.2) {
+  const out = new Array(8);
+  for (let i = 0; i < 8; i++) out[i] = palette?.[i];
+
+  let bestIdx = -1;
+  let bestSat = -1;
+  for (let i = 0; i < 8; i++) {
+    const hex = out[i];
+    if (!hex) continue;
+    const s = hsvSaturation(hex);
+    if (s > bestSat) {
+      bestSat = s;
+      bestIdx = i;
+    }
+  }
+
+  if (bestIdx >= 0) {
+    out[bestIdx] = energizeHex(out[bestIdx], { satMul, valMul: 0 });
+  }
+  return out;
+}
+
 const BASE_PALETTES = {
   industrialTeal: {
     label: 'Industrial Teal',
-    light: ['#9cb0a9', '#b1c1bf', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
+    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
     dark: ['#5b8378', '#345d51', '#8a928a', '#00e6c3', '#d5d5d5', '#ff6b47', '#5b9aff', '#ffb84d']
   },
   industrialRust: {
     label: 'Industrial Rust',
     // Warm copper + cobalt: distinct from teal chapter while still “industrial”.
-    light: ['#b7aaa0', '#d0c5be', '#ffffff', '#a33a22', '#000000', '#00695c', '#1f4bb8', '#ff8a1f'],
+    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#a33a22', '#000000', '#00695c', '#1f4bb8', '#ff8a1f'],
     dark: ['#7f6f64', '#54433a', '#b6b1aa', '#ff6a3d', '#d5d5d5', '#00e6c3', '#6aa0ff', '#ffb15a']
   },
   industrialSlate: {
     label: 'Industrial Slate',
     // Cold slate + cyan/violet/orange: more chromatic “chapter” separation.
-    light: ['#a9adb3', '#c6c9cd', '#ffffff', '#1f2937', '#000000', '#00a8cc', '#7c3aed', '#ff5d2e'],
+    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#1f2937', '#000000', '#00a8cc', '#7c3aed', '#ff5d2e'],
     dark: ['#6f7780', '#3f4851', '#98a2b3', '#7dd3fc', '#d5d5d5', '#22d3ee', '#c084fc', '#ff7a45']
   },
   industrialAmber: {
     label: 'Industrial Amber',
     // Amber + violet + red: keeps industrial warmth but avoids “all teal-adjacent”.
-    light: ['#bdb1a1', '#d6cdc2', '#ffffff', '#d97706', '#000000', '#00695c', '#6b46c1', '#ff4013'],
+    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#d97706', '#000000', '#00695c', '#6b46c1', '#ff4013'],
     dark: ['#82745d', '#5a4b35', '#a9a193', '#fbbf24', '#d5d5d5', '#00e6c3', '#c4b5fd', '#ff6b47']
   },
   industrialViolet: {
     label: 'Industrial Violet',
     // Violet + muted chartreuse + rose: a clear “alt chapter” while staying restrained.
-    light: ['#b0a7b8', '#cec7d6', '#ffffff', '#6b46c1', '#000000', '#00695c', '#7fbf2a', '#d94666'],
+    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#6b46c1', '#000000', '#00695c', '#7fbf2a', '#d94666'],
     dark: ['#7a6f83', '#52475b', '#a7a0b0', '#c084fc', '#d5d5d5', '#00e6c3', '#bef264', '#fb7185']
   },
   industrialForest: {
     label: 'Industrial Forest',
     // Forest + amber + violet: richer, less monotone “green-on-green”.
-    light: ['#a4b0a2', '#c0c9bd', '#ffffff', '#166534', '#000000', '#00695c', '#f59e0b', '#7c3aed'],
+    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#166534', '#000000', '#00695c', '#f59e0b', '#7c3aed'],
     dark: ['#637563', '#3d4f3f', '#98a593', '#4ade80', '#d5d5d5', '#00e6c3', '#fcd34d', '#c4b5fd']
   },
   industrialSteel: {
     label: 'Industrial Steel',
     // Steel + cyan + copper + olive: more contrast vs slate/teal.
-    light: ['#a6a9af', '#c3c6cc', '#ffffff', '#334155', '#000000', '#0ea5e9', '#c2410c', '#65a30d'],
+    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#334155', '#000000', '#0ea5e9', '#c2410c', '#65a30d'],
     dark: ['#6f737a', '#464a52', '#98a2ab', '#94a3b8', '#d5d5d5', '#38bdf8', '#fb923c', '#a3e635']
   }
 };
@@ -230,119 +252,159 @@ const VARIANT_ENERGIZE_LIGHT = { satMul: 0.10, valMul: 0.03 };
 const VARIANT_ENERGIZE_DARK = { satMul: 0.14, valMul: 0.07 };
 
 export const COLOR_TEMPLATES = {
-  industrialTeal: TEAL_BASE,
+  industrialTeal: {
+    label: TEAL_BASE.label,
+    light: boostMostSaturatedInPalette(TEAL_BASE.light, 0.2),
+    dark: boostMostSaturatedInPalette(TEAL_BASE.dark, 0.2)
+  },
   industrialRust: {
     label: BASE_PALETTES.industrialRust.label,
-    light: energizePalette(
-      blendPalette(
-        TEAL_BASE.light,
-        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialRust.light, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    light: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.light,
+          radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialRust.light, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_LIGHT
       ),
-      VARIANT_ENERGIZE_LIGHT
+      0.2
     ),
-    dark: energizePalette(
-      blendPalette(
-        TEAL_BASE.dark,
-        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialRust.dark, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.dark,
+          radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialRust.dark, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_DARK
       ),
-      VARIANT_ENERGIZE_DARK
+      0.2
     )
   },
   industrialSlate: {
     label: BASE_PALETTES.industrialSlate.label,
-    light: energizePalette(
-      blendPalette(
-        TEAL_BASE.light,
-        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialSlate.light, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    light: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.light,
+          radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialSlate.light, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_LIGHT
       ),
-      VARIANT_ENERGIZE_LIGHT
+      0.2
     ),
-    dark: energizePalette(
-      blendPalette(
-        TEAL_BASE.dark,
-        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialSlate.dark, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.dark,
+          radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialSlate.dark, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_DARK
       ),
-      VARIANT_ENERGIZE_DARK
+      0.2
     )
   },
   industrialAmber: {
     label: BASE_PALETTES.industrialAmber.label,
-    light: energizePalette(
-      blendPalette(
-        TEAL_BASE.light,
-        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialAmber.light, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    light: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.light,
+          radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialAmber.light, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_LIGHT
       ),
-      VARIANT_ENERGIZE_LIGHT
+      0.2
     ),
-    dark: energizePalette(
-      blendPalette(
-        TEAL_BASE.dark,
-        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialAmber.dark, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.dark,
+          radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialAmber.dark, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_DARK
       ),
-      VARIANT_ENERGIZE_DARK
+      0.2
     )
   },
   industrialViolet: {
     label: BASE_PALETTES.industrialViolet.label,
-    light: energizePalette(
-      blendPalette(
-        TEAL_BASE.light,
-        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialViolet.light, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    light: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.light,
+          radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialViolet.light, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_LIGHT
       ),
-      VARIANT_ENERGIZE_LIGHT
+      0.2
     ),
-    dark: energizePalette(
-      blendPalette(
-        TEAL_BASE.dark,
-        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialViolet.dark, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.dark,
+          radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialViolet.dark, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_DARK
       ),
-      VARIANT_ENERGIZE_DARK
+      0.2
     )
   },
   industrialForest: {
     label: BASE_PALETTES.industrialForest.label,
-    light: energizePalette(
-      blendPalette(
-        TEAL_BASE.light,
-        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialForest.light, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    light: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.light,
+          radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialForest.light, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_LIGHT
       ),
-      VARIANT_ENERGIZE_LIGHT
+      0.2
     ),
-    dark: energizePalette(
-      blendPalette(
-        TEAL_BASE.dark,
-        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialForest.dark, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.dark,
+          radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialForest.dark, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_DARK
       ),
-      VARIANT_ENERGIZE_DARK
+      0.2
     )
   },
   industrialSteel: {
     label: BASE_PALETTES.industrialSteel.label,
-    light: energizePalette(
-      blendPalette(
-        TEAL_BASE.light,
-        radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialSteel.light, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    light: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.light,
+          radicalizeVariant(TEAL_BASE.light, BASE_PALETTES.industrialSteel.light, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_LIGHT
       ),
-      VARIANT_ENERGIZE_LIGHT
+      0.2
     ),
-    dark: energizePalette(
-      blendPalette(
-        TEAL_BASE.dark,
-        radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialSteel.dark, RADICAL_FACTOR),
-        TEAL_ANCHOR_WEIGHT_VARIANT
+    dark: boostMostSaturatedInPalette(
+      energizePalette(
+        blendPalette(
+          TEAL_BASE.dark,
+          radicalizeVariant(TEAL_BASE.dark, BASE_PALETTES.industrialSteel.dark, RADICAL_FACTOR),
+          TEAL_ANCHOR_WEIGHT_VARIANT
+        ),
+        VARIANT_ENERGIZE_DARK
       ),
-      VARIANT_ENERGIZE_DARK
+      0.2
     )
   }
 };

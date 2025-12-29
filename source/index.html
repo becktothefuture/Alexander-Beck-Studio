@@ -184,31 +184,26 @@
       
       <!-- BOTTOM SECTION -->
       <footer class="ui-bottom">
-        <!-- Row 1: Nav Links (Centered) -->
-        <nav id="footer-links-container" class="ui-nav-row" aria-label="Footer navigation links">
-          <a id="contact-email" href="#" class="footer_link">Contact</a>
-          <a id="portfolio-gate-trigger" href="#" class="footer_link">Portfolio</a>
-          <a id="cv-gate-trigger" href="#" class="footer_link">Bio/CV</a>
-        </nav>
+        <!-- Row 1: Nav Links (Centered) - Moved outside #fade-content for proper fixed positioning -->
         
         <!-- Row 2: Socials (Left) & Meta (Right) -->
         <div class="ui-meta-row">
           <div class="ui-meta-left">
             <ul id="social-links" role="list" aria-label="Social media links" class="footer_icon-group w-list-unstyled">
               <li class="margin-bottom_none">
-                <a href="https://music.apple.com/profile/beckandeggs" class="footer_icon-link w-inline-block" aria-label="Apple Music">
+                <a href="https://music.apple.com/profile/beckandeggs" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="Apple Music">
                   <i class="ti ti-brand-apple" aria-hidden="true"></i>
                   <span class="screen-reader">Apple Music</span>
                 </a>
               </li>
               <li class="margin-bottom_none">
-                <a href="https://x.com/alex40939195" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block" aria-label="X">
+                <a href="https://x.com/alex40939195" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="X">
                   <i class="ti ti-brand-x" aria-hidden="true"></i>
                   <span class="screen-reader">X</span>
                 </a>
               </li>
               <li class="margin-bottom_none">
-                <a href="https://www.linkedin.com/in/thisisbeck/" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block" aria-label="LinkedIn">
+                <a href="https://www.linkedin.com/in/thisisbeck/" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="LinkedIn">
                   <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
                   <span class="screen-reader">LinkedIn</span>
                 </a>
@@ -218,9 +213,9 @@
           
           <div class="ui-meta-right">
              <!-- Sound Toggle will be injected here by JS -->
-             <time id="site-year" class="w-layout-hflex caption">
+             <button id="site-year" type="button" class="w-layout-hflex caption abs-meta-btn abs-hover-target abs-hover-target--index" aria-label="Toggle theme">
               <span><strong class="location-name">London</strong> · <span id="time-display"></span></span>
-            </time>
+            </button>
           </div>
         </div>
       </footer>
@@ -228,6 +223,13 @@
     </div>
   </div>
   </div>
+
+  <!-- Footer Links Container - Outside #fade-content for proper fixed positioning relative to viewport -->
+  <nav id="footer-links-container" class="ui-nav-row" aria-label="Footer navigation links">
+    <button id="contact-email" type="button" class="footer_link">Contact</button>
+    <button id="portfolio-gate-trigger" type="button" class="footer_link">Portfolio</button>
+    <button id="cv-gate-trigger" type="button" class="footer_link">Bio/CV</button>
+  </nav>
 
   <!-- Gate Blur Overlay - Backdrop blur when gates are active (z:15) -->
   <div id="gate-overlay" class="gate-overlay" aria-hidden="true"></div>
@@ -265,5 +267,89 @@
 
   <!-- Use ES module for dev (instant reload) -->
   <script type="module" src="main.js"></script>
+
+  <!-- DEV TOOLING: Local hot reload (no external calls). -->
+  <!-- This is stripped from production builds. -->
+  <!-- ABS_LIVE_RELOAD_START -->
+  <script>
+    (function() {
+      'use strict';
+
+      // Dev-only: ports 8001 (source) and 8000 (local build preview).
+      const p = String(window.location.port || '');
+      if (p !== '8001' && p !== '8000') return;
+
+      // Allow easy opt-out if needed while debugging input flows.
+      try {
+        const flag = localStorage.getItem('abs_live_reload');
+        if (flag === '0') return;
+      } catch (e) {}
+
+      const ENDPOINT = 'http://localhost:8003/events';
+      let retryMs = 500;
+      let es = null;
+
+      function isUnsafeToReloadNow() {
+        const el = document.activeElement;
+        if (!el) return false;
+        const tag = (el.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+        // Respect contenteditable areas too.
+        return !!el.isContentEditable;
+      }
+
+      function requestReload() {
+        const start = Date.now();
+        const MAX_WAIT_MS = 8000;
+
+        (function tick() {
+          if (!isUnsafeToReloadNow()) {
+            window.location.reload();
+            return;
+          }
+          if (Date.now() - start > MAX_WAIT_MS) {
+            // Failsafe: if the user is actively typing for a long time, don't trap.
+            window.location.reload();
+            return;
+          }
+          window.setTimeout(tick, 250);
+        })();
+      }
+
+      function connect() {
+        try {
+          es = new EventSource(ENDPOINT);
+        } catch (e) {
+          scheduleReconnect();
+          return;
+        }
+
+        es.onmessage = function(ev) {
+          retryMs = 500;
+          let msg = null;
+          try {
+            msg = JSON.parse(String(ev.data || ''));
+          } catch (e) {
+            return;
+          }
+          if (msg && msg.type === 'reload') requestReload();
+        };
+
+        es.onerror = function() {
+          try { es.close(); } catch (e) {}
+          scheduleReconnect();
+        };
+      }
+
+      function scheduleReconnect() {
+        const wait = Math.min(6000, retryMs);
+        retryMs = Math.min(6000, Math.round(retryMs * 1.5));
+        window.setTimeout(connect, wait);
+      }
+
+      connect();
+    })();
+  </script>
+  <!-- ABS_LIVE_RELOAD_END -->
 </body>
 </html>

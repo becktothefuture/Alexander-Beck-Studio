@@ -231,12 +231,17 @@ const state = {
   // Canonical layout knobs (vw units)
   containerBorderVw: 0,     // outer inset from viewport (vw)
   simulationPaddingVw: 0,   // inner inset around canvas (vw)
-  contentPaddingVw: 0,      // padding for content blocks inside frame (vw)
+  // Additive content padding as a fraction of the viewport-size metric:
+  //   viewportSizePx = sqrt(viewportWidthPx * viewportHeightPx)
+  //   contentPaddingAddPx = viewportSizePx * contentPaddingRatio
+  // (Back-compat: if config provides a large value (|v| > 1), we treat it as legacy px.)
+  contentPaddingRatio: 0.0,
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
   mobileWallThicknessXFactor: 1.4,    // wall thickness multiplier for LEFT/RIGHT on mobile (1.0 = same as desktop)
   mobileEdgeLabelsVisible: true,     // whether to show edge labels on mobile (default: visible)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
+  wallThicknessAreaMultiplier: 1.0,  // multiplier for area-based wall thickness scaling (1.0 = no area scaling)
 
   // Noise texture opacity (visual overlay) - lighter for subtle effect
   noiseBackOpacity: 0.015,        // back layer opacity (light mode) - lighter
@@ -273,7 +278,6 @@ const state = {
   // padding/radius can become too tight. Kept here so:
   // - The clamp logic uses the same source of truth
   // - The control panel can display the effective minimums
-  layoutMinContentPaddingPx: 16,
   layoutMinWallRadiusPx: 28,
   
   // Wall collision inset (px). Helps prevent visual overlap with the wall edge.
@@ -320,7 +324,7 @@ const state = {
   // Keep these aligned with the Industrial Teal base palette so:
   // - CSS fallback matches JS-driven palette chapters
   // - early paints (before JS applies templates) look correct
-  currentColors: ['#b7bcb7', '#d0d0d0', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
+  currentColors: ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
   currentTemplate: 'industrialTeal',
   // If true, rotate to the next palette chapter on each reload.
   // If false, respect `currentTemplate` from runtime config.
@@ -573,7 +577,8 @@ const state = {
   simulationPadding: 0,  // Inner: padding inside container around canvas
 
   // Text wrapper padding (in pixels) for UI text blocks (legend, top-right statement)
-  contentPadding: 40,    // Space between frame edge and content elements (base)
+  // Content padding is a ratio of wall thickness
+  contentPadding: 40,    // Space between frame edge and content elements (base = wallThickness × ratio)
   contentPaddingX: 40,   // Horizontal padding (derived: base × horizontalRatio)
   contentPaddingY: 40,   // Vertical padding (always = base)
 
@@ -608,6 +613,8 @@ const state = {
   // Logo sizing + index main link placement (CSS vars)
   topLogoWidthVw: 35,                 // Sets `--top-logo-width-vw` (clamped by CSS min/max tokens)
   homeMainLinksBelowLogoPx: 40,       // Sets `--home-main-links-below-logo-px` (index only)
+  footerNavBarTopVh: 50,              // Sets `--footer-nav-bar-top-*` (viewport units)
+  footerNavBarGapVw: 2.5,             // Sets `--footer-nav-bar-gap` (viewport units)
   wallThickness: 12,        // Unified: wall tubes + body border (px)
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
   wallInset: 3,             // Physics-only inset from edges (px at DPR 1)
@@ -662,6 +669,11 @@ const state = {
   entrancePerspectivePortrait: 800,  // Perspective for portrait aspect ratio (px)
   
   // Link Controls (Panel Tunable)
+  uiHitAreaMul: 1,                    // Multiplier for most UI hit areas (links/buttons); drives `--ui-hit-area-mul`
+  uiIconCornerRadiusMul: 0.4,         // Icon button corner radius as a fraction of wall radius; drives `--ui-icon-corner-radius-mul`
+  uiIconFramePx: 0,                  // Icon button square frame size (px). 0 = use token-derived default
+  uiIconGlyphPx: 0,                  // Icon glyph size (px). 0 = use token-derived default
+  uiIconGroupMarginPx: 0,            // Social icon group margin (px). Can be negative to push icons outward.
   linkTextPadding: 30,               // Padding for text links (px)
   linkIconPadding: 24,               // Padding for icon links (px)
   linkColorInfluence: 1,            // How much cursor color affects link colors (0-1)
@@ -701,6 +713,40 @@ export function getLayoutViewportWidthPx() {
   return Math.max(1, window.innerWidth || 1);
 }
 
+export function getLayoutViewportHeightPx() {
+  // Get viewport height, respecting visual viewport on mobile (keyboard-aware).
+  // IMPORTANT: keep this O(1) and allocation-free.
+  try {
+    const vv = window.visualViewport;
+    if (vv && typeof vv.height === 'number' && vv.height > 0) {
+      return Math.max(1, vv.height);
+    }
+  } catch (e) {}
+  return Math.max(1, window.innerHeight || 1);
+}
+
+/**
+ * Calculate screen area (width × height) in pixels
+ * @returns {number} Screen area in square pixels
+ */
+export function getScreenAreaPx() {
+  const w = getLayoutViewportWidthPx();
+  const h = getLayoutViewportHeightPx();
+  return w * h;
+}
+
+/**
+ * Calculate normalized screen area relative to a reference size (800×800 = 640,000)
+ * Returns 1.0 at reference size, <1.0 for smaller screens, >1.0 for larger screens
+ * @param {number} referenceAreaPx - Reference area in square pixels (default: 800×800)
+ * @returns {number} Normalized area multiplier (0.0 to ~infinity)
+ */
+export function getNormalizedScreenArea(referenceAreaPx = 640000) {
+  const area = getScreenAreaPx();
+  if (area <= 0 || referenceAreaPx <= 0) return 1.0;
+  return area / referenceAreaPx;
+}
+
 export function pxToVw(px, viewportWidthPx) {
   const w = Math.max(1, viewportWidthPx || getLayoutViewportWidthPx());
   const p = Number(px);
@@ -718,6 +764,7 @@ export function vwToPx(vw, viewportWidthPx) {
 export function applyLayoutFromVwToPx() {
   // Derive px values once, then everything downstream remains px-based.
   const w = getLayoutViewportWidthPx();
+  const h = getLayoutViewportHeightPx();
 
   // Wall thickness defines the wall inset / frame thickness.
   // Content padding is layout-only (space between wall and content), and MUST NOT
@@ -734,15 +781,25 @@ export function applyLayoutFromVwToPx() {
 
   const borderPx = vwToPx(derivedBorderVw, w);
   const simPadPx = vwToPx(state.simulationPaddingVw, w);
-  const contentPadPx = vwToPx(state.contentPaddingVw, w);
   const radiusPx = vwToPx(state.wallRadiusVw, w);
 
-  const minContentPaddingPx = Math.max(0, Math.round(state.layoutMinContentPaddingPx || 0));
   const minWallRadiusPx = Math.max(0, Math.round(state.layoutMinWallRadiusPx || 0));
 
   // Wall thickness (vw). Legacy fallback: if unset, treat the derived border as thickness.
   const thicknessVw = (wallThicknessVw > 0) ? wallThicknessVw : derivedBorderVw;
-  const thicknessPx = vwToPx(thicknessVw, w);
+  const baseThicknessPx = vwToPx(thicknessVw, w);
+
+  // Apply area-based scaling: normalize screen area and blend with user-controlled multiplier
+  // Formula: base × (1.0 + (normalizedArea - 1.0) × multiplier)
+  // - multiplier = 0.0: no area scaling (pure vw-based, matches current behavior)
+  // - multiplier = 1.0: full area scaling (scales linearly with viewport area)
+  // - multiplier > 1.0: exaggerated area scaling
+  const normalizedArea = getNormalizedScreenArea();
+  const areaMultiplier = Number.isFinite(state.wallThicknessAreaMultiplier) && state.wallThicknessAreaMultiplier >= 0
+    ? state.wallThicknessAreaMultiplier
+    : 0.0;
+  const areaBlend = 1.0 + (normalizedArea - 1.0) * areaMultiplier;
+  const areaScaledThicknessPx = baseThicknessPx * areaBlend;
 
   const isMobileLayout = state.isMobile || state.isMobileViewport;
   
@@ -755,7 +812,17 @@ export function applyLayoutFromVwToPx() {
   state.containerBorder = Math.round(borderPx); // Y (top/bottom)
   state.containerBorderX = Math.round(borderPx * mobileWallXFactor); // X (left/right)
   state.simulationPadding = Math.round(simPadPx);
-  state.contentPadding = Math.max(minContentPaddingPx, Math.round(contentPadPx));
+  
+  // Wall thickness: area-scaled base × mobile factor (matches left/right border)
+  state.wallThickness = Math.round(areaScaledThicknessPx * mobileWallXFactor);
+  
+  // Content padding: additive to wall thickness (viewport-size fraction)
+  const viewportSizePx = Math.max(1, Math.sqrt(w * h));
+  const raw = Number.isFinite(state.contentPaddingRatio) ? state.contentPaddingRatio : 0;
+  // Back-compat: if the value looks like legacy px, convert to fraction on the fly.
+  const frac = (Math.abs(raw) > 1) ? (raw / viewportSizePx) : raw;
+  const contentPaddingAdditivePx = viewportSizePx * frac;
+  state.contentPadding = Math.round(state.wallThickness + contentPaddingAdditivePx);
   
   // Derive directional padding: horizontal = base × ratio, vertical = base
   const horizRatio = Math.max(0.1, state.contentPaddingHorizontalRatio || 1.0);
@@ -764,9 +831,6 @@ export function applyLayoutFromVwToPx() {
   
   state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
-  
-  // Wall thickness uses horizontal factor on mobile (matches left/right border)
-  state.wallThickness = Math.round(thicknessPx * mobileWallXFactor);
 
   // Cursor influence radius (vw → px), then apply mode multipliers.
   // This keeps a single “interaction zone” definition that naturally scales on mobile.
@@ -802,6 +866,16 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--content-padding-y', `${state.contentPaddingY}px`);
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
+
+  // Viewport metrics (used for debugging + CSS-only sizing when needed)
+  try {
+    const w = getLayoutViewportWidthPx();
+    const h = getLayoutViewportHeightPx();
+    const area = Math.max(0, w * h);
+    const size = Math.sqrt(area);
+    root.style.setProperty('--layout-viewport-area-px', String(Math.round(area)));
+    root.style.setProperty('--layout-viewport-size-px', `${Math.round(size)}px`);
+  } catch (e) {}
   
   // Also update vw-based vars for CSS calc fallbacks
   const baseContainerVw = state.containerBorderVw || 1.3;
@@ -813,16 +887,44 @@ export function applyLayoutCSSVars() {
     : state.containerBorderVw;
   root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * mobileWallXFactor}`);
   
-  // Edge label inset: relative to wall (containerBorder) + small gap + user adjustment
+  // Edge label inset: relative to wall (wallThickness) + small gap + user adjustment
   const edgeLabelGap = 8; // Base gap between wall and label (px)
   const edgeLabelAdjust = state.edgeLabelInsetAdjustPx || 0;
-  const edgeLabelInset = state.containerBorder + edgeLabelGap + edgeLabelAdjust;
+  const edgeLabelInset = state.wallThickness + edgeLabelGap + edgeLabelAdjust;
   root.style.setProperty('--edge-label-inset', `${edgeLabelInset}px`);
   root.style.setProperty('--edge-label-inset-adjust', `${edgeLabelAdjust}px`);
+  
+  // True inner offset: wall thickness + content padding (for edge-inset CSS var)
+  const edgeInset = state.wallThickness + state.contentPadding;
+  root.style.setProperty('--edge-inset', `${edgeInset}px`);
+  root.style.setProperty('--edge-inset-lg', `${edgeInset}px`);
   
   // Mobile edge label visibility (CSS only applies this var on mobile via @media)
   const displayValue = (isMobileLayout && state.mobileEdgeLabelsVisible) ? 'flex' : 'none';
   root.style.setProperty('--edge-label-mobile-display', displayValue);
+
+  // UI sizing vars (panel-tunable, but also needed in production without the panel)
+  root.style.setProperty('--ui-hit-area-mul', String(state.uiHitAreaMul ?? 1));
+  root.style.setProperty('--ui-icon-corner-radius-mul', String(state.uiIconCornerRadiusMul ?? 0.4));
+
+  // Optional explicit overrides (0 = use token-derived defaults)
+  if (Number.isFinite(state.uiIconFramePx) && state.uiIconFramePx > 0) {
+    root.style.setProperty('--ui-icon-frame-size', `${Math.round(state.uiIconFramePx)}px`);
+  } else {
+    root.style.removeProperty('--ui-icon-frame-size');
+  }
+  if (Number.isFinite(state.uiIconGlyphPx) && state.uiIconGlyphPx > 0) {
+    root.style.setProperty('--ui-icon-glyph-size', `${Math.round(state.uiIconGlyphPx)}px`);
+  } else {
+    root.style.removeProperty('--ui-icon-glyph-size');
+  }
+
+  // Social icon group margin (allows negative to push outward)
+  if (Number.isFinite(state.uiIconGroupMarginPx) && state.uiIconGroupMarginPx !== 0) {
+    root.style.setProperty('--ui-icon-group-margin', `${Math.round(state.uiIconGroupMarginPx)}px`);
+  } else {
+    root.style.removeProperty('--ui-icon-group-margin');
+  }
 }
 
 export function initState(config) {
@@ -1019,11 +1121,6 @@ export function initState(config) {
   
   // Layout min clamp targets (px)
   // These define the minimum padding/radius we clamp down towards on small viewports.
-  if (config.layoutMinContentPaddingPx !== undefined) {
-    state.layoutMinContentPaddingPx = clampNumber(config.layoutMinContentPaddingPx, 0, 200, state.layoutMinContentPaddingPx);
-  } else {
-    state.layoutMinContentPaddingPx = readTokenPx('--layout-min-content-padding', state.layoutMinContentPaddingPx);
-  }
   if (config.layoutMinWallRadiusPx !== undefined) {
     state.layoutMinWallRadiusPx = clampNumber(config.layoutMinWallRadiusPx, 0, 400, state.layoutMinWallRadiusPx);
   } else {
@@ -1197,9 +1294,66 @@ export function initState(config) {
     state.edgeLabelInsetAdjustPx = clampNumber(config.edgeLabelInsetAdjustPx, -500, 500, state.edgeLabelInsetAdjustPx);
   }
   
+  // UI layout knobs (CSS var driven)
+  if (config.topLogoWidthVw !== undefined) {
+    state.topLogoWidthVw = clampNumber(config.topLogoWidthVw, 0, 120, state.topLogoWidthVw);
+  }
+  if (config.homeMainLinksBelowLogoPx !== undefined) {
+    state.homeMainLinksBelowLogoPx = clampNumber(config.homeMainLinksBelowLogoPx, -500, 500, state.homeMainLinksBelowLogoPx);
+  }
+  if (config.footerNavBarTopVh !== undefined) {
+    state.footerNavBarTopVh = clampNumber(config.footerNavBarTopVh, 0, 100, state.footerNavBarTopVh);
+  }
+  if (config.footerNavBarGapVw !== undefined) {
+    state.footerNavBarGapVw = clampNumber(config.footerNavBarGapVw, 0, 30, state.footerNavBarGapVw);
+  }
+
   // Link colors
   if (config.linkHoverColor !== undefined) state.linkHoverColor = config.linkHoverColor;
   else state.linkHoverColor = readTokenVar('--link-hover-color', state.linkHoverColor);
+
+  // Link controls (hit areas + interaction)
+  if (config.uiHitAreaMul !== undefined) {
+    state.uiHitAreaMul = clampNumber(config.uiHitAreaMul, 0.5, 3.0, state.uiHitAreaMul);
+  }
+  if (config.uiIconCornerRadiusMul !== undefined) {
+    state.uiIconCornerRadiusMul = clampNumber(config.uiIconCornerRadiusMul, 0.0, 1.0, state.uiIconCornerRadiusMul);
+  }
+  if (config.uiIconFramePx !== undefined) {
+    state.uiIconFramePx = clampInt(config.uiIconFramePx, 0, 240, state.uiIconFramePx);
+  } else {
+    state.uiIconFramePx = clampInt(readTokenPx('--ui-icon-frame-size', state.uiIconFramePx), 0, 240, state.uiIconFramePx);
+  }
+  if (config.uiIconGlyphPx !== undefined) {
+    state.uiIconGlyphPx = clampInt(config.uiIconGlyphPx, 0, 120, state.uiIconGlyphPx);
+  } else {
+    state.uiIconGlyphPx = clampInt(readTokenPx('--ui-icon-glyph-size', state.uiIconGlyphPx), 0, 120, state.uiIconGlyphPx);
+  }
+  if (config.uiIconGroupMarginPx !== undefined) {
+    state.uiIconGroupMarginPx = clampInt(config.uiIconGroupMarginPx, -200, 200, state.uiIconGroupMarginPx);
+  } else {
+    state.uiIconGroupMarginPx = clampInt(readTokenPx('--ui-icon-group-margin', state.uiIconGroupMarginPx), -200, 200, state.uiIconGroupMarginPx);
+  }
+
+  // Layout: content padding clamp mode (area-based)
+  if (config.linkTextPadding !== undefined) {
+    state.linkTextPadding = clampNumber(config.linkTextPadding, 0, 200, state.linkTextPadding);
+  }
+  if (config.linkIconPadding !== undefined) {
+    state.linkIconPadding = clampNumber(config.linkIconPadding, 0, 200, state.linkIconPadding);
+  }
+  if (config.linkColorInfluence !== undefined) {
+    state.linkColorInfluence = clampNumber(config.linkColorInfluence, 0, 1, state.linkColorInfluence);
+  }
+  if (config.linkImpactScale !== undefined) {
+    state.linkImpactScale = clampNumber(config.linkImpactScale, 0.5, 1.0, state.linkImpactScale);
+  }
+  if (config.linkImpactBlur !== undefined) {
+    state.linkImpactBlur = clampNumber(config.linkImpactBlur, 0, 40, state.linkImpactBlur);
+  }
+  if (config.linkImpactDuration !== undefined) {
+    state.linkImpactDuration = clampInt(config.linkImpactDuration, 0, 3000, state.linkImpactDuration);
+  }
   
   // Logo colors
   if (config.logoColorLight !== undefined) state.logoColorLight = config.logoColorLight;
@@ -1351,12 +1505,21 @@ export function initState(config) {
   // Canonical vw keys (preferred)
   if (config.containerBorderVw !== undefined) state.containerBorderVw = clampNumber(config.containerBorderVw, 0, 20, state.containerBorderVw);
   if (config.simulationPaddingVw !== undefined) state.simulationPaddingVw = clampNumber(config.simulationPaddingVw, 0, 20, state.simulationPaddingVw);
-  if (config.contentPaddingVw !== undefined) state.contentPaddingVw = clampNumber(config.contentPaddingVw, 0, 40, state.contentPaddingVw);
+  if (config.contentPaddingRatio !== undefined) {
+    const v = Number(config.contentPaddingRatio);
+    if (Number.isFinite(v)) {
+      // Back-compat: treat large values as legacy px (allow negatives), otherwise clamp as fraction.
+      state.contentPaddingRatio = (Math.abs(v) > 1)
+        ? clampNumber(v, -500, 500, state.contentPaddingRatio)
+        : clampNumber(v, -0.2, 0.2, state.contentPaddingRatio);
+    }
+  }
   if (config.contentPaddingHorizontalRatio !== undefined) state.contentPaddingHorizontalRatio = clampNumber(config.contentPaddingHorizontalRatio, 0.1, 3.0, state.contentPaddingHorizontalRatio);
   if (config.mobileWallThicknessXFactor !== undefined) state.mobileWallThicknessXFactor = clampNumber(config.mobileWallThicknessXFactor, 0.5, 3.0, state.mobileWallThicknessXFactor);
   if (config.mobileEdgeLabelsVisible !== undefined) state.mobileEdgeLabelsVisible = !!config.mobileEdgeLabelsVisible;
   if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);
   if (config.wallThicknessVw !== undefined) state.wallThicknessVw = clampNumber(config.wallThicknessVw, 0, 20, state.wallThicknessVw);
+  if (config.wallThicknessAreaMultiplier !== undefined) state.wallThicknessAreaMultiplier = clampNumber(config.wallThicknessAreaMultiplier, 0, 10, state.wallThicknessAreaMultiplier);
 
   if (!(Number.isFinite(state.containerBorderVw) && state.containerBorderVw > 0)) {
     const tokenBorderVw = readTokenNumber('--container-border-vw', null);
@@ -1378,9 +1541,6 @@ export function initState(config) {
   }
   if (!(Number.isFinite(state.simulationPaddingVw) && state.simulationPaddingVw >= 0)) {
     state.simulationPaddingVw = pxToVw(state.simulationPadding, basisW);
-  }
-  if (!(Number.isFinite(state.contentPaddingVw) && state.contentPaddingVw > 0)) {
-    state.contentPaddingVw = pxToVw(state.contentPadding, basisW);
   }
   if (!(Number.isFinite(state.wallRadiusVw) && state.wallRadiusVw > 0)) {
     state.wallRadiusVw = pxToVw(state.wallRadius, basisW);

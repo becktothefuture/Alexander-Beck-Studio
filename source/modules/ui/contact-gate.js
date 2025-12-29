@@ -84,7 +84,7 @@ export function initContactGate() {
   // - gateInputs: “field” row (arrives with the gate transition like the digit inputs)
   gateLabel.innerHTML = `
     <div class="gate-nav">
-      <button type="button" class="gate-back" data-gate-back aria-label="${BACK_ARIA}">
+      <button type="button" class="gate-back abs-icon-btn" data-gate-back aria-label="${BACK_ARIA}">
         <i class="ti ti-arrow-left" aria-hidden="true"></i>
         <span>${BACK_TEXT}</span>
       </button>
@@ -100,7 +100,7 @@ export function initContactGate() {
       <button type="button" class="contact-email-value" data-copy-email aria-label="${COPY_ARIA}">
         <span class="contact-email-text">${CONTACT_EMAIL}</span>
       </button>
-      <button type="button" class="contact-email-copy" data-copy-email-icon aria-label="${COPY_ARIA}">
+      <button type="button" class="contact-email-copy abs-icon-btn" data-copy-email-icon aria-label="${COPY_ARIA}">
         <i class="ti ti-copy" aria-hidden="true"></i>
       </button>
     </div>

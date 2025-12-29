@@ -583,6 +583,29 @@ All vw-native layout keys are converted to **derived px** at runtime and applied
 - **Meaning**: Padding for fixed content elements inside the frame (legend/statement blocks).
 - **Applied to**: CSS var `--content-padding` (derived px)
 
+### Area clamp mode (recommended)
+Instead of using `contentPaddingVw` (width-driven), you can enable an **area-based clamp** that uses an effective viewport size:
+\[
+\text{viewportSizePx} = \sqrt{\text{viewportWidthPx} \cdot \text{viewportHeightPx}}
+\]
+
+Then content padding becomes:
+\[
+\text{contentPadPx} = \text{lerp}(\text{minPx}, \text{maxPx}, \text{clamp}(\frac{\text{viewportSizePx}}{\text{capPx}}, 0, 1))
+\]
+
+At `capPx = 2200`, content padding is a **fixed** `maxPx` for larger viewports.
+
+- **`layoutContentPaddingUseAreaClamp`** (boolean)
+  - **Meaning**: Enables area-based clamping for content padding.
+- **`layoutMinContentPaddingPx`** (number, px)
+  - **Meaning**: Minimum content padding (also used as the legacy clamp floor).
+- **`layoutMaxContentPaddingPx`** (number, px)
+  - **Meaning**: Maximum content padding used by area clamp.
+- **`layoutContentPaddingMaxViewportPx`** (number, px)
+  - **Meaning**: Cap effective viewport size where padding becomes fixed at `layoutMaxContentPaddingPx`.
+  - **Default**: `2200`
+
 ### Legacy compatibility (px keys)
 The following legacy keys are still accepted and will be converted to vw at startup (using `layoutViewportWidthPx` if set, otherwise `window.innerWidth`):
 - `containerBorder` (px)
@@ -620,6 +643,64 @@ They’re intentionally **independent** from the global text colors so you can t
   - **Higher** = further inward
   - **Lower / negative** = further outward
 - **Applied to**: CSS var `--edge-label-inset-adjust` (added on top of the base inset)
+
+---
+
+## UI Spacing (Text + Controls)
+
+These keys control **spacing/padding/positioning** for most UI text elements and are applied as **CSS variables** at runtime (and exposed in the dev panel under **UI Spacing**).
+
+### `uiHitAreaMul` (number, 0.5..2.5)
+- **Meaning**: Multiplier for most UI hit areas (buttons/links), scaling the `--hit-area-*` tokens.
+- **Applied to**: CSS var `--ui-hit-area-mul`
+
+### `uiIconCornerRadiusMul` (number, 0..1)
+- **Meaning**: Icon button corner radius as a **fraction of the wall radius**. Default `0.4` ≈ “40% of the wall”.
+- **Applied to**: CSS var `--ui-icon-corner-radius-mul` (derived px var: `--ui-icon-corner-radius`)
+
+### `uiIconFramePx` (number, px; 0 = auto)
+- **Meaning**: Square icon button frame size (height/width). If `0`, uses token-derived default (`--ui-icon-frame-size`).
+- **Applied to**: CSS var `--ui-icon-frame-size`
+
+### `uiIconGlyphPx` (number, px; 0 = auto)
+- **Meaning**: Icon glyph size. If `0`, uses token-derived default (`--ui-icon-glyph-size`).
+- **Applied to**: CSS var `--ui-icon-glyph-size`
+
+### `uiIconGroupMarginPx` (number, px; can be negative)
+- **Meaning**: Margin applied to the social icon group (Apple/X/LinkedIn). Use negative values to push the icons outward.
+- **Applied to**: CSS var `--ui-icon-group-margin`
+
+### `contentPaddingRatio` (number; viewport fraction, legacy px supported)
+- **Meaning**: Additive content padding applied on top of wall thickness, expressed as a fraction of:
+  \[
+  \text{viewportSizePx} = \sqrt{\text{viewportWidthPx} \cdot \text{viewportHeightPx}}
+  \]
+  So additive padding is:
+  \[
+  \text{addPx} = \text{viewportSizePx} \cdot \text{contentPaddingRatio}
+  \]
+  **Back-compat**: if `|contentPaddingRatio| > 1`, it is treated as a legacy px value and converted to a fraction at runtime.
+- **Applied to**: Derived layout value `contentPadding` → CSS var `--content-padding`
+
+### `linkTextPadding` (number, px)
+- **Meaning**: Padding applied to text links (footer links, CV links).
+- **Applied to**: CSS vars `--link-text-padding`, `--link-text-margin`
+
+### `linkIconPadding` (number, px)
+- **Meaning**: Legacy icon padding token. When `uiIconFramePx` is `0` (auto), this contributes to the derived icon button frame size via `--ui-icon-frame-size`.
+- **Applied to**: CSS vars `--link-icon-padding`, `--link-icon-margin`
+
+### `homeMainLinksBelowLogoPx` (number, px)
+- **Meaning**: Index-only vertical offset for the main links cluster below the logo.
+- **Applied to**: CSS var `--home-main-links-below-logo-px`
+
+### `footerNavBarTopVh` (number, vh)
+- **Meaning**: Vertical placement of the full-width footer nav bar (0..100).
+- **Applied to**: CSS vars `--footer-nav-bar-top`, `--footer-nav-bar-top-svh`, `--footer-nav-bar-top-dvh`
+
+### `footerNavBarGapVw` (number, vw)
+- **Meaning**: Gap between footer nav bar links (expressed in vw; applied as a `clamp()` for a stable min/max).
+- **Applied to**: CSS var `--footer-nav-bar-gap`
 
 ---
 

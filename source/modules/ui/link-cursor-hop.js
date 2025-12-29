@@ -284,7 +284,7 @@ function getBaseBackgroundRgb() {
   return { r: 245, g: 245, b: 245 };
 }
 
-function pickAccessibleIlluminatedText(cursorRgb, bgEffectiveRgb) {
+function pickAccessibleIlluminatedText(cursorRgb, bgEffectiveRgb, preferDirection = null) {
   // WCAG 2.2 AA target for normal text.
   const target = 4.5;
 
@@ -310,7 +310,11 @@ function pickAccessibleIlluminatedText(cursorRgb, bgEffectiveRgb) {
   const towardBlack = tryDirection(black);
 
   if (towardWhite && towardBlack) {
-    // Prefer smallest adjustment (keeps hue closer to cursor color).
+    // For light backgrounds we want an "activated" label that reads as a DARK, intense
+    // version of the cursor color (not a faint pastel). Prefer the black direction.
+    if (preferDirection === 'black') return towardBlack.rgb;
+    if (preferDirection === 'white') return towardWhite.rgb;
+    // Default: prefer smallest adjustment (keeps hue closer to cursor color).
     return towardWhite.t <= towardBlack.t ? towardWhite.rgb : towardBlack.rgb;
   }
   if (towardWhite) return towardWhite.rgb;
@@ -360,7 +364,11 @@ function activate(link) {
     if (cursorRgb) {
       const bgAlpha = 0.12;
       const bgEffective = mixRgb(baseBg, cursorRgb, bgAlpha);
-      const fg = pickAccessibleIlluminatedText(cursorRgb, bgEffective);
+      // Choose a direction that matches the UI intent:
+      // - light background → darker "activated" label (intense)
+      // - dark background  → lighter "activated" label
+      const prefer = (relativeLuminance(bgEffective) > 0.45) ? 'black' : 'white';
+      const fg = pickAccessibleIlluminatedText(cursorRgb, bgEffective, prefer);
       try {
         activeLink.style.setProperty(INDEX_BG_VAR, rgbaToCss(cursorRgb, bgAlpha));
         activeLink.style.setProperty(INDEX_FG_VAR, rgbToCss(fg));

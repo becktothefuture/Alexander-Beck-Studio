@@ -6,6 +6,7 @@
 
 import { getGlobals } from '../core/state.js';
 import { autoSaveSettings } from '../utils/storage.js';
+import { syncConfigToFile } from '../utils/config-sync.js';
 import { WALL_PRESETS, ORBIT3D_PRESETS, PARALLAX_LINEAR_PRESETS, PARALLAX_PERSPECTIVE_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyOrbit3DPreset } from '../modes/orbit-3d.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
@@ -74,6 +75,7 @@ export const MASTER_SECTION_KEYS = [
   'balls',              // ball material + spacing
   'colorDistribution',  // what's inside (palette mix)
   'colors',             // surface + text + frame
+  'uiSpacing',          // content padding + hit areas + link/footer spacing
   'noise',              // grain/texture
   'cursor',             // interaction feel
   'trail',              // motion styling
@@ -103,6 +105,7 @@ const SECTION_CATEGORIES = {
 
   'overlay': 'DEPTH & LAYOUT',
   'layout': 'DEPTH & LAYOUT',
+  'uiSpacing': 'DEPTH & LAYOUT',
 
   'sound': 'SOUND',
   'environment': 'ENVIRONMENT'
@@ -172,6 +175,17 @@ function safeFormat(control, value) {
   return String(value ?? '');
 }
 
+function escapeAttr(value) {
+  // Minimal attribute escaping for safe HTML string generation.
+  // (We only use this for titles/tooltips coming from known strings.)
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONTROL REGISTRY
 // Complete definition of ALL controls with metadata
@@ -183,7 +197,7 @@ function safeFormat(control, value) {
  *   id: string,           // Unique identifier (matches slider ID without 'Slider' suffix)
  *   label: string,        // Display label
  *   stateKey: string,     // Key in global state to read/write
- *   type: 'range' | 'checkbox' | 'select',
+ *   type: 'range' | 'checkbox' | 'toggle' | 'select',
  *   min?: number,         // For range inputs
  *   max?: number,
  *   step?: number,
@@ -336,7 +350,7 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10),
         group: 'Performance',
         groupCollapsed: true,
-        hint: 'Lower = faster, higher = tighter stacks.'
+        hint: 'How many times per frame we resolve collisions. Lower = faster, higher = tighter stacks.'
       },
       {
         id: 'physicsSkipSleepingCollisions',
@@ -344,7 +358,8 @@ export const CONTROL_SECTIONS = {
         stateKey: 'physicsSkipSleepingCollisions',
         type: 'toggle',
         default: true,
-        group: 'Performance'
+        group: 'Performance',
+        hint: 'When enabled, collisions between two sleeping balls are skipped until something wakes them. Big CPU win with piles.'
       },
       {
         id: 'physicsSpatialGridOptimization',
@@ -352,7 +367,8 @@ export const CONTROL_SECTIONS = {
         stateKey: 'physicsSpatialGridOptimization',
         type: 'toggle',
         default: true,
-        group: 'Performance'
+        group: 'Performance',
+        hint: 'Reuses the spatial grid data structures to reduce allocations/GC. Keep on unless debugging.'
       },
       {
         id: 'physicsSleepThreshold',
@@ -364,7 +380,7 @@ export const CONTROL_SECTIONS = {
         format: v => `${Math.round(v)} px/s`,
         parse: v => parseInt(v, 10),
         group: 'Performance',
-        hint: 'Global sleep threshold for non-Pit physics modes. 0 disables.'
+        hint: 'Velocity below which a ball is considered “at rest” (non‑Pit modes). 0 disables sleeping.'
       },
       {
         id: 'physicsSleepTime',
@@ -375,7 +391,8 @@ export const CONTROL_SECTIONS = {
         default: 0.25,
         format: v => `${v.toFixed(2)}s`,
         parse: parseFloat,
-        group: 'Performance'
+        group: 'Performance',
+        hint: 'How long a ball must stay under the Sleep Threshold before it sleeps. Higher = more stability + more performance.'
       },
       {
         id: 'physicsSkipSleepingSteps',
@@ -383,7 +400,8 @@ export const CONTROL_SECTIONS = {
         stateKey: 'physicsSkipSleepingSteps',
         type: 'toggle',
         default: true,
-        group: 'Performance'
+        group: 'Performance',
+        hint: 'When enabled, sleeping balls don’t run physics integration each tick. Improves performance; tiny motions may be delayed until wake.'
       }
     ]
   },
@@ -605,13 +623,198 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LINKS - Text and icon link styling, padding, color influence, impact motion
+  // UI SPACING - Consolidated spacing/padding for most text UI (no duplicates)
   // ═══════════════════════════════════════════════════════════════════════════
-  links: {
-    title: 'Links',
-    icon: '🔗',
+  uiSpacing: {
+    title: 'UI Spacing',
+    icon: '📏',
     defaultOpen: false,
     controls: [
+      { type: 'divider', label: 'Content' },
+       {
+         id: 'contentPaddingRatio',
+         label: 'Padding Additive',
+         stateKey: 'contentPaddingRatio',
+         type: 'range',
+         min: -0.05, max: 0.10, step: 0.001,
+         default: 0,
+         format: v => `${(Number(v) * 100).toFixed(1)}%`,
+         parse: parseFloat,
+         hint: 'Additive padding as a fraction of viewport size (sqrt(w*h)). Back-compat: old px values are auto-converted.',
+         onChange: (g, val) => {
+           const valueToSync = val !== undefined ? val : (g.contentPaddingRatio !== undefined ? g.contentPaddingRatio : 0);
+           // Sync to config file (dev mode only) - do this first to ensure it happens
+           syncConfigToFile('default', 'contentPaddingRatio', valueToSync);
+           
+           import('../core/state.js').then(({ applyLayoutFromVwToPx, applyLayoutCSSVars }) => {
+             applyLayoutFromVwToPx();
+             applyLayoutCSSVars();
+             try {
+               const el = document.getElementById('contentPaddingRatioVal');
+               if (el) {
+                 const frac = Number(valueToSync) || 0;
+                 const viewportSize = (() => {
+                   try {
+                     const v = getComputedStyle(document.documentElement).getPropertyValue('--layout-viewport-size-px').trim();
+                     const n = parseFloat(v);
+                     return Number.isFinite(n) ? n : 0;
+                   } catch (e) { return 0; }
+                 })();
+                 const addPx = Math.round(viewportSize * frac);
+                 const total = Math.round(g.contentPadding || 0);
+                 el.textContent = `${(frac >= 0 ? '+' : '')}${(frac * 100).toFixed(1)}% (${addPx >= 0 ? '+' : ''}${addPx}px) → ${total}px`;
+               }
+             } catch (e) {}
+             try { document.dispatchEvent(new CustomEvent('layout-updated')); } catch (e) {}
+           }).catch(() => {});
+           import('../rendering/renderer.js').then(({ resize }) => { try { resize(); } catch (e) {} }).catch(() => {});
+         }
+       },
+       {
+         id: 'contentPaddingHorizontalRatio',
+         label: 'Horizontal Ratio',
+         stateKey: 'contentPaddingHorizontalRatio',
+         type: 'range',
+         min: 0.5, max: 2.5, step: 0.05,
+         default: 1.0,
+         format: v => `${Number(v).toFixed(2)}×`,
+         parse: parseFloat,
+         hint: 'Horizontal padding = base × ratio.',
+         onChange: (g) => {
+           import('../core/state.js').then(({ applyLayoutFromVwToPx, applyLayoutCSSVars }) => {
+             applyLayoutFromVwToPx();
+             applyLayoutCSSVars();
+             try {
+               const el = document.getElementById('contentPaddingHorizontalRatioVal');
+               if (el) {
+                 const ratio = Number(g.contentPaddingHorizontalRatio || 1.0);
+                 el.textContent = `${ratio.toFixed(2)}× → ${Math.round(g.contentPaddingX || g.contentPadding)}px`;
+               }
+             } catch (e) {}
+           }).catch(() => {});
+         }
+       },
+
+      { type: 'divider', label: 'Hit Areas' },
+      {
+        id: 'uiHitAreaMul',
+        label: 'Hit Area Mul',
+        stateKey: 'uiHitAreaMul',
+        type: 'range',
+        min: 0.5, max: 2.5, step: 0.05,
+        default: 1,
+        format: v => `${Number(v).toFixed(2)}×`,
+        parse: parseFloat,
+        hint: 'Scales most UI button/link hit areas (drives --ui-hit-area-mul).',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--ui-hit-area-mul', String(val));
+        }
+      },
+
+      { type: 'divider', label: 'Icon Buttons' },
+      {
+        id: 'uiIconFramePx',
+        label: 'Icon Frame Size',
+        stateKey: 'uiIconFramePx',
+        type: 'range',
+        min: 0, max: 120, step: 1,
+        default: 0,
+        format: v => (Number(v) <= 0 ? 'Auto' : `${Math.round(v)}px`),
+        parse: v => parseInt(v, 10),
+        hint: 'Square icon button frame size (height/width). 0 = auto (derived from icon padding tokens).',
+        onChange: (_g, val) => {
+          const root = document.documentElement;
+          if (Number(val) <= 0) root.style.removeProperty('--ui-icon-frame-size');
+          else root.style.setProperty('--ui-icon-frame-size', `${Math.round(val)}px`);
+        }
+      },
+      {
+        id: 'uiIconGlyphPx',
+        label: 'Icon Glyph Size',
+        stateKey: 'uiIconGlyphPx',
+        type: 'range',
+        min: 0, max: 64, step: 1,
+        default: 0,
+        format: v => (Number(v) <= 0 ? 'Auto' : `${Math.round(v)}px`),
+        parse: v => parseInt(v, 10),
+        hint: 'Icon glyph size inside the square frame. 0 = auto (uses token defaults).',
+        onChange: (_g, val) => {
+          const root = document.documentElement;
+          if (Number(val) <= 0) root.style.removeProperty('--ui-icon-glyph-size');
+          else root.style.setProperty('--ui-icon-glyph-size', `${Math.round(val)}px`);
+        }
+      },
+      {
+        id: 'uiIconGroupMarginPx',
+        label: 'Icon Group Margin',
+        stateKey: 'uiIconGroupMarginPx',
+        type: 'range',
+        min: -60, max: 60, step: 1,
+        default: 0,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Margin applied to the social icon group. Use negative values to push icons outward.',
+        onChange: (_g, val) => {
+          const root = document.documentElement;
+          if (Number(val) === 0) root.style.removeProperty('--ui-icon-group-margin');
+          else root.style.setProperty('--ui-icon-group-margin', `${Math.round(val)}px`);
+        }
+      },
+      {
+        id: 'uiIconCornerRadiusMul',
+        label: 'Corner Radius',
+        stateKey: 'uiIconCornerRadiusMul',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.4,
+        format: v => `${Math.round(Number(v) * 100)}% of wall`,
+        parse: parseFloat,
+        hint: 'Icon button corner radius as a fraction of wall radius (drives --ui-icon-corner-radius-mul).',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--ui-icon-corner-radius-mul', String(val));
+        }
+      },
+
+      {
+        id: 'uiIconFramePx',
+        label: 'Frame Size',
+        stateKey: 'uiIconFramePx',
+        type: 'range',
+        min: 0, max: 140, step: 1,
+        default: 0,
+        format: v => (Math.round(Number(v)) <= 0 ? 'Auto' : `${Math.round(Number(v))}px`),
+        parse: v => parseInt(v, 10),
+        hint: 'Square icon button frame size (px). 0 = use token-derived default (--ui-icon-frame-size).',
+        onChange: (_g, val) => {
+          try {
+            const root = document.documentElement;
+            const n = Math.round(Number(val || 0));
+            if (n > 0) root.style.setProperty('--ui-icon-frame-size', `${n}px`);
+            else root.style.removeProperty('--ui-icon-frame-size');
+          } catch (e) {}
+        }
+      },
+      {
+        id: 'uiIconGlyphPx',
+        label: 'Glyph Size',
+        stateKey: 'uiIconGlyphPx',
+        type: 'range',
+        min: 0, max: 80, step: 1,
+        default: 0,
+        format: v => (Math.round(Number(v)) <= 0 ? 'Auto' : `${Math.round(Number(v))}px`),
+        parse: v => parseInt(v, 10),
+        hint: 'Icon glyph size (px). 0 = use token-derived default (--ui-icon-glyph-size).',
+        onChange: (_g, val) => {
+          try {
+            const root = document.documentElement;
+            const n = Math.round(Number(val || 0));
+            if (n > 0) root.style.setProperty('--ui-icon-glyph-size', `${n}px`);
+            else root.style.removeProperty('--ui-icon-glyph-size');
+          } catch (e) {}
+        }
+      },
+
+      { type: 'divider', label: 'Links' },
       {
         id: 'linkTextPadding',
         label: 'Text Link Padding',
@@ -621,8 +824,8 @@ export const CONTROL_SECTIONS = {
         default: 30,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
-        hint: 'Padding for text links (footer links, CV links)',
-        onChange: (g, val) => {
+        hint: 'Padding for text links (footer links, CV links).',
+        onChange: (_g, val) => {
           document.documentElement.style.setProperty('--link-text-padding', `${val}px`);
           document.documentElement.style.setProperty('--link-text-margin', `${-val}px`);
         }
@@ -636,12 +839,90 @@ export const CONTROL_SECTIONS = {
         default: 24,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
-        hint: 'Padding for icon links (social media icons)',
-        onChange: (g, val) => {
+        hint: 'Legacy: used to derive auto icon button sizing when Icon Frame Size is set to Auto.',
+        onChange: (_g, val) => {
           document.documentElement.style.setProperty('--link-icon-padding', `${val}px`);
           document.documentElement.style.setProperty('--link-icon-margin', `${-val}px`);
         }
       },
+
+      { type: 'divider', label: 'Footer + Labels' },
+      {
+        id: 'footerNavBarTopVh',
+        label: 'Nav Bar Position',
+        stateKey: 'footerNavBarTopVh',
+        type: 'range',
+        min: 0, max: 100, step: 0.5,
+        default: 50,
+        format: v => `${Number(v).toFixed(1)}vh`,
+        parse: v => parseFloat(v),
+        hint: 'Vertical position of footer nav bar from top of viewport.',
+        onChange: (_g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--footer-nav-bar-top', `${val}vh`);
+          root.style.setProperty('--footer-nav-bar-top-svh', `${val}svh`);
+          root.style.setProperty('--footer-nav-bar-top-dvh', `${val}dvh`);
+        }
+      },
+      {
+        id: 'footerNavBarGapVw',
+        label: 'Nav Link Gap',
+        stateKey: 'footerNavBarGapVw',
+        type: 'range',
+        min: 0, max: 10, step: 0.1,
+        default: 2.5,
+        format: v => `${Number(v).toFixed(1)}vw`,
+        parse: v => parseFloat(v),
+        hint: 'Horizontal gap between nav bar links (vw → clamp).',
+        onChange: (_g, val) => {
+          const vw = Number(val);
+          if (!Number.isFinite(vw)) return;
+          const minPx = Math.round(vw * 9.6);
+          const maxPx = Math.round(minPx * 1.67);
+          document.documentElement.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${vw}vw, ${maxPx}px)`);
+        }
+      },
+      {
+        id: 'homeMainLinksBelowLogoPx',
+        label: 'Links Offset',
+        stateKey: 'homeMainLinksBelowLogoPx',
+        type: 'range',
+        min: -120, max: 240, step: 1,
+        default: 40,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Index: move the main links up/down below the logo.',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--home-main-links-below-logo-px', String(val));
+        }
+      },
+      {
+        id: 'edgeLabelInsetAdjustPx',
+        label: 'Edge Label Inset',
+        stateKey: 'edgeLabelInsetAdjustPx',
+        type: 'range',
+        min: -120, max: 240, step: 1,
+        default: 0,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Adjusts edge label inset relative to wall. Higher = inward; lower = outward.',
+        onChange: () => {
+          import('../core/state.js').then(mod => {
+            mod.applyLayoutCSSVars();
+          }).catch(() => {});
+        }
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LINKS - Link styling (color influence + impact motion)
+  // ═══════════════════════════════════════════════════════════════════════════
+  links: {
+    title: 'Links',
+    icon: '🔗',
+    defaultOpen: false,
+    controls: [
       {
         id: 'linkColorInfluence',
         label: 'Color Influence',
@@ -1143,23 +1424,7 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--edge-label-color-dark', val);
         }
       },
-      {
-        id: 'edgeLabelInsetAdjustPx',
-        label: 'Inset',
-        stateKey: 'edgeLabelInsetAdjustPx',
-        type: 'range',
-        min: -120, max: 240, step: 1,
-        default: 0,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Adjusts edge label inset relative to wall. Higher = inward; lower = outward.',
-        onChange: (_g, val) => {
-          // Recalculate edge label inset (relative to wall)
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutCSSVars();
-          });
-        }
-      },
+      
       
       // ─── LINKS ───────────────────────────────────────────────────────────
       { type: 'divider', label: 'Links' },
@@ -1214,20 +1479,6 @@ export const CONTROL_SECTIONS = {
         hint: 'Top-center logo width (clamped by min/max tokens).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--top-logo-width-vw', String(val));
-        }
-      },
-      {
-        id: 'homeMainLinksBelowLogoPx',
-        label: 'Links Offset',
-        stateKey: 'homeMainLinksBelowLogoPx',
-        type: 'range',
-        min: -120, max: 240, step: 1,
-        default: 40,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Index: move the main links up/down below the logo.',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--home-main-links-below-logo-px', String(val));
         }
       },
       { type: 'divider', label: 'Portfolio Logo' },
@@ -1397,6 +1648,27 @@ export const CONTROL_SECTIONS = {
         format: v => `${v.toFixed(1)}vw`,
         parse: parseFloat,
         hint: 'Wall tube thickness (content padding is layout-only)',
+        onChange: (g, val) => {
+          import('../core/state.js').then(mod => {
+            mod.applyLayoutFromVwToPx();
+            mod.applyLayoutCSSVars();
+            // Update overlay blur which depends on wall thickness
+            import('./gate-overlay.js').then(({ updateBlurFromWallThickness }) => {
+              updateBlurFromWallThickness();
+            });
+          });
+        }
+      },
+      {
+        id: 'wallThicknessAreaMultiplier',
+        label: 'Area Scaling',
+        stateKey: 'wallThicknessAreaMultiplier',
+        type: 'range',
+        min: 0, max: 2, step: 0.01,
+        default: 0.0,
+        format: v => `${v.toFixed(2)}×`,
+        parse: parseFloat,
+        hint: 'Area-based scaling multiplier (0.0 = vw-only, 1.0 = full area scaling, >1.0 = exaggerated)',
         onChange: (g, val) => {
           import('../core/state.js').then(mod => {
             mod.applyLayoutFromVwToPx();
@@ -4157,6 +4429,7 @@ function generateControlHTML(control) {
   const sliderId = control.id + 'Slider';
   const valId = control.id + 'Val';
   const pickerId = control.id + 'Picker';
+  const hintTitleAttr = control.hint ? ` title="${escapeAttr(control.hint)}"` : '';
 
   // Color distribution (custom control)
   if (control.type === 'colorDistribution') {
@@ -4199,7 +4472,7 @@ function generateControlHTML(control) {
     return `
       <label class="control-row" data-control-id="${control.id}">
         <div class="control-row-header">
-          <span class="control-label">${control.label}</span>
+          <span class="control-label"${hintTitleAttr}>${control.label}</span>
           <span class="control-value" id="${valId}">${control.default}</span>
         </div>
         <input type="color" id="${pickerId}" value="${control.default}" aria-label="${control.label}" />
@@ -4220,7 +4493,7 @@ function generateControlHTML(control) {
     return `
       <label class="control-row" data-control-id="${control.id}">
         <div class="control-row-header">
-          <span class="control-label">${control.label}</span>
+          <span class="control-label"${hintTitleAttr}>${control.label}</span>
           <span class="control-value" id="${valId}">${safeFormat(control, control.default)}</span>
         </div>
         <select id="${sliderId}" class="control-select" aria-label="${control.label}">
@@ -4230,13 +4503,13 @@ function generateControlHTML(control) {
       ${hintHtml}`;
   }
 
-  // Checkbox type
-  if (control.type === 'checkbox') {
+  // Boolean type (checkbox / toggle alias)
+  if (control.type === 'checkbox' || control.type === 'toggle') {
     const checkedAttr = control.default ? 'checked' : '';
     return `
       <label class="control-row" data-control-id="${control.id}">
         <div class="control-row-header">
-          <span class="control-label">${control.label}</span>
+          <span class="control-label"${hintTitleAttr}>${control.label}</span>
           <span class="control-value" id="${valId}">${control.default ? 'On' : 'Off'}</span>
         </div>
         <input type="checkbox" id="${sliderId}" ${checkedAttr} aria-label="${control.label}">
@@ -4250,7 +4523,7 @@ function generateControlHTML(control) {
   return `
       <label class="control-row" data-control-id="${control.id}">
         <div class="control-row-header">
-          <span class="control-label">${control.label}</span>
+          <span class="control-label"${hintTitleAttr}>${control.label}</span>
           <span class="control-value" id="${valId}">${safeFormat(control, control.default)}</span>
         </div>
         <input type="range" id="${sliderId}" min="${control.min}" max="${control.max}" step="${control.step}" value="${control.default}">
@@ -4812,6 +5085,11 @@ export function bindRegisteredControls() {
             valEl.textContent = colorVal;
           }
           
+          // Sync to source config file (dev mode only)
+          if (control.stateKey) {
+            syncConfigToFile('default', control.stateKey, colorVal);
+          }
+          
           autoSaveSettings();
         });
         
@@ -4840,14 +5118,19 @@ export function bindRegisteredControls() {
             valEl.textContent = control.format ? control.format(displayVal) : String(displayVal);
           }
           
+          // Sync to source config file (dev mode only)
+          if (control.stateKey) {
+            syncConfigToFile('default', control.stateKey, rawVal);
+          }
+          
           autoSaveSettings();
         });
         
         continue;
       }
 
-      // Checkbox binding
-      if (control.type === 'checkbox') {
+      // Boolean binding (checkbox / toggle alias)
+      if (control.type === 'checkbox' || control.type === 'toggle') {
         const checkboxId = control.id + 'Slider';
         const el = document.getElementById(checkboxId);
         if (!el) continue;
@@ -4876,6 +5159,11 @@ export function bindRegisteredControls() {
               .catch(() => {});
           }
 
+          // Sync to source config file (dev mode only)
+          if (control.stateKey) {
+            syncConfigToFile('default', control.stateKey, rawVal);
+          }
+
           autoSaveSettings();
         });
 
@@ -4889,7 +5177,8 @@ export function bindRegisteredControls() {
       if (!el) continue;
       
       el.addEventListener('input', () => {
-        const rawVal = control.parse(el.value);
+        const hasParse = typeof control?.parse === 'function';
+        const rawVal = hasParse ? control.parse(el.value) : Number.parseFloat(el.value);
         
         // Update state (ALWAYS if stateKey exists)
         if (control.stateKey) {
@@ -4921,6 +5210,11 @@ export function bindRegisteredControls() {
           import('../modes/mode-controller.js')
             .then(({ resetCurrentMode }) => resetCurrentMode?.())
             .catch(() => {});
+        }
+        
+        // Sync to source config file (dev mode only)
+        if (control.stateKey) {
+          syncConfigToFile('default', control.stateKey, rawVal);
         }
         
         autoSaveSettings();
@@ -4955,7 +5249,7 @@ export function syncSlidersToState(options = {}) {
       
       const stateVal = g[control.stateKey];
       if (stateVal !== undefined) {
-        if (control.type === 'checkbox') {
+        if (control.type === 'checkbox' || control.type === 'toggle') {
           el.checked = !!stateVal;
           if (valEl) valEl.textContent = stateVal ? 'On' : 'Off';
         } else if (control.type === 'color') {

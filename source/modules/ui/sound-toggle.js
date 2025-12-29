@@ -38,7 +38,7 @@ export function createSoundToggle() {
   
   // Create button element
   buttonElement = document.createElement('button');
-  buttonElement.className = 'sound-toggle';
+  buttonElement.className = 'sound-toggle abs-icon-btn';
   buttonElement.id = 'sound-toggle';
   buttonElement.type = 'button';
   buttonElement.setAttribute('aria-label', 'Toggle collision sounds');

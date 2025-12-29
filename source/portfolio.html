@@ -159,19 +159,19 @@
             <div class="ui-meta-left">
               <ul id="social-links" role="list" aria-label="Social media links" class="footer_icon-group w-list-unstyled">
                 <li class="margin-bottom_none">
-                  <a href="https://music.apple.com/profile/beckandeggs" class="footer_icon-link w-inline-block" aria-label="Apple Music">
+                  <a href="https://music.apple.com/profile/beckandeggs" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="Apple Music">
                     <i class="ti ti-brand-apple" aria-hidden="true"></i>
                     <span class="screen-reader">Apple Music</span>
                   </a>
                 </li>
                 <li class="margin-bottom_none">
-                  <a href="https://x.com/alex40939195" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block" aria-label="X">
+                  <a href="https://x.com/alex40939195" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="X">
                     <i class="ti ti-brand-x" aria-hidden="true"></i>
                     <span class="screen-reader">X</span>
                   </a>
                 </li>
                 <li class="margin-bottom_none">
-                  <a href="https://www.linkedin.com/in/thisisbeck/" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block" aria-label="LinkedIn">
+                  <a href="https://www.linkedin.com/in/thisisbeck/" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="LinkedIn">
                     <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
                     <span class="screen-reader">LinkedIn</span>
                   </a>
@@ -180,9 +180,9 @@
             </div>
             
             <div class="ui-meta-right">
-               <time id="site-year" class="w-layout-hflex caption">
+               <button id="site-year" type="button" class="w-layout-hflex caption abs-meta-btn abs-hover-target abs-hover-target--index" aria-label="Toggle theme">
                 <span><strong class="location-name">London</strong> &middot; <span id="time-display"></span></span>
-              </time>
+              </button>
             </div>
           </div>
         </footer>
@@ -202,5 +202,87 @@
   <!-- Panel dock is injected in dev only (mirrors index behavior). -->
 
   <script type="module" src="modules/portfolio/app.js"></script>
+
+  <!-- DEV TOOLING: Local hot reload (no external calls). -->
+  <!-- This is stripped from production builds. -->
+  <!-- ABS_LIVE_RELOAD_START -->
+  <script>
+    (function() {
+      'use strict';
+
+      // Dev-only: ports 8001 (source) and 8000 (local build preview).
+      const p = String(window.location.port || '');
+      if (p !== '8001' && p !== '8000') return;
+
+      // Allow easy opt-out if needed while debugging input flows.
+      try {
+        const flag = localStorage.getItem('abs_live_reload');
+        if (flag === '0') return;
+      } catch (e) {}
+
+      const ENDPOINT = 'http://localhost:8003/events';
+      let retryMs = 500;
+      let es = null;
+
+      function isUnsafeToReloadNow() {
+        const el = document.activeElement;
+        if (!el) return false;
+        const tag = (el.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+        return !!el.isContentEditable;
+      }
+
+      function requestReload() {
+        const start = Date.now();
+        const MAX_WAIT_MS = 8000;
+
+        (function tick() {
+          if (!isUnsafeToReloadNow()) {
+            window.location.reload();
+            return;
+          }
+          if (Date.now() - start > MAX_WAIT_MS) {
+            window.location.reload();
+            return;
+          }
+          window.setTimeout(tick, 250);
+        })();
+      }
+
+      function connect() {
+        try {
+          es = new EventSource(ENDPOINT);
+        } catch (e) {
+          scheduleReconnect();
+          return;
+        }
+
+        es.onmessage = function(ev) {
+          retryMs = 500;
+          let msg = null;
+          try {
+            msg = JSON.parse(String(ev.data || ''));
+          } catch (e) {
+            return;
+          }
+          if (msg && msg.type === 'reload') requestReload();
+        };
+
+        es.onerror = function() {
+          try { es.close(); } catch (e) {}
+          scheduleReconnect();
+        };
+      }
+
+      function scheduleReconnect() {
+        const wait = Math.min(6000, retryMs);
+        retryMs = Math.min(6000, Math.round(retryMs * 1.5));
+        window.setTimeout(connect, wait);
+      }
+
+      connect();
+    })();
+  </script>
+  <!-- ABS_LIVE_RELOAD_END -->
 </body>
 </html>

@@ -43,7 +43,7 @@ npm run startup → option 1
 - Serves `source/` directory directly
 - Uses native ES modules (no bundling)
 - **Visually identical to production** (uses same HTML structure)
-- Changes reflect instantly on browser refresh
+- Changes reflect instantly on browser refresh (and live reload can auto-refresh if enabled)
 
 **Visual indicator:**
 - 🚀 **Green badge** in control panel: "DEV MODE — Instant Reload"
@@ -57,7 +57,7 @@ npm run startup → option 1
 **Workflow:**
 1. Edit any file in `source/`
 2. Save file
-3. Refresh browser (Cmd+R / Ctrl+R)
+3. Refresh browser (Cmd+R / Ctrl+R) — or let live reload refresh automatically
 4. See changes immediately
 
 **Best for:**
@@ -115,6 +115,7 @@ npm run startup
 - Runs file watcher in background
 - Auto-rebuilds `public/` when `source/` changes
 - Keeps both environments in sync
+- Starts a local live reload server (port 8003) so the browser can auto-refresh
 
 **Visual indicator:**
 - 🚀 Green badge on port 8001 (dev)
@@ -126,6 +127,10 @@ npm run startup
 3. Port 8001: refresh → instant changes
 4. Port 8000: refresh → see rebuilt version
 5. Watcher automatically rebuilds in background
+
+**Implementation note (reliability):**
+- The watcher uses a small polling-based scanner (`scripts/build-watch.js`) to avoid silent fs-event failures on some Node versions.
+- Tuning (optional): `ABS_WATCH_POLL_MS=350 ABS_WATCH_DEBOUNCE_MS=150 npm run watch`
 
 **Best for:**
 - When you need both instant dev feedback AND production build testing
@@ -367,6 +372,7 @@ You can bypass the interactive menu:
 ```bash
 # Direct commands
 npm run dev           # Quick dev only
+npm run live-reload   # Browser auto-refresh server (port 8003)
 npm run preview       # Build + preview
 npm start             # Build preview only (manual)
 npm run start:source  # Dev server only (manual)

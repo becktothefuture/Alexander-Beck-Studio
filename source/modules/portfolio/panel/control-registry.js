@@ -660,6 +660,27 @@ export function bindRegisteredControls(config, options = {}) {
       if (control.configKey && control.configKey.startsWith('runtime.') && typeof onRuntimeChange === 'function') {
         onRuntimeChange(config.runtime);
       }
+
+      // Sync to source config file (dev mode only)
+      if (control.configKey) {
+        // Use the actual value that was set in config (not raw input)
+        let syncValue;
+        if (control.type === 'select') {
+          syncValue = nextValue;
+        } else if (control.type === 'checkbox') {
+          syncValue = Boolean(nextValue);
+        } else {
+          // For range inputs, use the numeric value that was set
+          syncValue = parseNumeric(nextValue, control.default);
+        }
+        
+        console.log('[portfolio-control-registry] Triggering sync:', { configKey: control.configKey, value: syncValue, type: control.type });
+        import('../../utils/config-sync.js').then(({ syncConfigToFile }) => {
+          syncConfigToFile('portfolio', control.configKey, syncValue);
+        }).catch((e) => {
+          console.error('[portfolio-control-registry] Failed to import config-sync:', e);
+        });
+      }
     });
   }
 }

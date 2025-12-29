@@ -101,15 +101,17 @@ function startServer(name, command, port, description) {
     let cmd, args, cwd;
     
     if (command === 'npm run start:source') {
-      // Run Python HTTP server directly in source/ directory
+      // Run Python HTTP server serving source/ from project root.
+      // Important: build/watch can delete/recreate folders; --directory avoids CWD inode issues.
       cmd = 'python3';
-      args = ['-m', 'http.server', '8001'];
-      cwd = path.join(process.cwd(), 'source');
+      args = ['-m', 'http.server', '8001', '--directory', 'source'];
+      cwd = process.cwd();
     } else if (command === 'npm run start') {
-      // Run Python HTTP server directly in public/ directory
+      // Run Python HTTP server serving public/ from project root.
+      // Important: build/watch deletes/recreates public/; --directory keeps serving the new output.
       cmd = 'python3';
-      args = ['-m', 'http.server', '8000'];
-      cwd = path.join(process.cwd(), 'public');
+      args = ['-m', 'http.server', '8000', '--directory', 'public'];
+      cwd = process.cwd();
     } else {
       // Fallback for other commands
       [cmd, ...args] = command.split(' ');
@@ -253,17 +255,32 @@ async function quickDevMode() {
 
   // No-op: legacy asset sync removed.
   
-  await startServer(
-    'Dev Server',
-    'npm run start:source',
-    8001,
-    'Edit source files and refresh browser to see changes'
-  );
+  await Promise.all([
+    startServer(
+      'Dev Server',
+      'npm run start:source',
+      8001,
+      'Edit source files and refresh browser to see changes'
+    ),
+    startServer(
+      'Live Reload Server',
+      'node scripts/live-reload-server.js',
+      8003,
+      'Auto-refreshes the browser on file changes (local-only)'
+    ),
+    startServer(
+      'Config Sync Server',
+      'node scripts/config-sync-server.js',
+      8002,
+      'Syncs config slider changes to source files'
+    )
+  ]);
   
   console.log();
   log('🎯 READY TO CODE!', 'bright');
   log(`   Open: ${colors.bright}${colors.cyan}http://localhost:8001${colors.reset}`, 'green');
   log('   Look for the 🚀 GREEN badge in the control panel', 'dim');
+  log('   Config changes will auto-sync to source files', 'dim');
   log('\n   Press Ctrl+C to stop\n', 'yellow');
 }
 
@@ -325,6 +342,18 @@ async function dualMode() {
       8000,
       '📦 ORANGE badge - Production bundle'
     ),
+    startServer(
+      'Live Reload Server',
+      'node scripts/live-reload-server.js',
+      8003,
+      'Auto-refreshes the browser on file changes (local-only)'
+    ),
+    startServer(
+      'Config Sync Server',
+      'node scripts/config-sync-server.js',
+      8002,
+      'Syncs config slider changes to source files'
+    )
   ]);
   
   console.log();
@@ -345,6 +374,8 @@ async function watchMode() {
   await Promise.all([
     startServer('Dev Server', 'npm run start:source', 8001, '🚀 Instant reload for source changes'),
     startServer('Build Preview', 'npm run start', 8000, '📦 Production preview (refresh to see rebuilds)'),
+    startServer('Live Reload Server', 'node scripts/live-reload-server.js', 8003, 'Auto-refreshes the browser on file changes (local-only)'),
+    startServer('Config Sync Server', 'node scripts/config-sync-server.js', 8002, 'Syncs config slider changes to source files'),
     (async () => {
       log('👁️  Starting file watcher...', 'cyan');
       const watcher = spawn('npm', ['run', 'watch'], { stdio: 'inherit', shell: true });

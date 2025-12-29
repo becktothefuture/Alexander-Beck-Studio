@@ -70,7 +70,7 @@ function getWallThickness() {
 /**
  * Calculate and update blur based on wall thickness
  */
-function updateBlurFromWallThickness() {
+export function updateBlurFromWallThickness() {
     if (!overlayElement) return;
     const wallThickness = getWallThickness();
     const blurPx = wallThickness / 2;

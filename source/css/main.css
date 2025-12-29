@@ -471,6 +471,7 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   display: grid;
   grid-template-columns: repeat(4, auto);
   gap: var(--legend-gap-row) var(--legend-gap-col);
+  padding: var(--gap-xs);
   /* max-width is handled by grid columns/content */
   max-width: none; 
   width: 100%;
@@ -497,6 +498,7 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   display: inline-flex;
   align-items: center;
   gap: var(--legend-item-gap);
+  padding: calc(var(--gap-xs) * 0.5) var(--gap-xs);
 }
 
 /* Legend dots (restored; Webflow previously provided base circle sizing) */
@@ -544,7 +546,7 @@ body.dark-mode #fade-content.viewport.viewport--content::before {
   letter-spacing: var(--decorative-script-letter-spacing);
   color: var(--text-primary);
   border: none;
-  padding: 0;
+  padding: var(--decorative-script-padding-vertical) 0 var(--decorative-script-padding-vertical) var(--decorative-script-padding-left);
   margin: 0;
   pointer-events: auto;
 }
@@ -598,7 +600,8 @@ p {
 .decorative-script p a::after {
   content: '';
   position: absolute;
-  bottom: calc(var(--dot-indicator-offset) * -1);
+  /* Dot closer to label (50% closer) */
+  bottom: calc(var(--dot-indicator-offset) * -0.5);
   left: 50%;
   transform: translateX(-50%) scaleY(0);
   transform-origin: 50% 50%;
@@ -632,7 +635,7 @@ p {
   pointer-events: none;
 }
 
-/* Row 1: Links (Centered) */
+/* Row 1: Links (Centered) - Used by footer meta row, not nav bar */
 .ui-nav-row {
   display: flex;
   justify-content: center;
@@ -640,26 +643,43 @@ p {
   pointer-events: auto;
 }
 
-#footer-links-container {
-  /* Index: place the primary links under the centered logo (position is configurable). */
-  position: absolute;
-  top: calc(
-    50% + (var(--abs-brand-logo-height, 0px) / 2) + (var(--home-main-links-below-logo-px, 40) * 1px)
-  );
-  left: 50%;
-  transform: translate3d(calc(-50% + (var(--abs-brand-logo-width, 0px) * 0.025)), 0, 0);
-  margin: 0;
-  padding: 0;
-  display: inline-flex;
-  gap: var(--gap-xl);
-  row-gap: var(--gap-sm);
-  width: auto;
-  max-width: 100%;
-  height: fit-content;
-  flex-wrap: nowrap;
+/* Override .ui-nav-row defaults for #footer-links-container (nav bar) */
+#footer-links-container.ui-nav-row {
+  /* Nav bar uses its own layout, not .ui-nav-row defaults */
+  width: 100%;
   justify-content: center;
-  align-items: center;
+}
+
+/* Footer Navigation Bar - Full-width nav bar positioned relative to viewport */
+#footer-links-container {
+  /* Position relative to viewport (outside #fade-content to avoid transform containing block) */
+  position: fixed;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  /* Position from top (configurable via --footer-nav-bar-top) */
+  top: var(--footer-nav-bar-top, 50vh);
+  top: var(--footer-nav-bar-top-svh, 50svh);
+  top: var(--footer-nav-bar-top-dvh, 50dvh);
+  /* Height auto - determined by button padding + content */
+  height: auto;
+  min-height: auto;
+  /* Horizontal flexbox layout - center aligned */
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center; /* Center align buttons horizontally */
+  align-items: center; /* Center align buttons vertically */
+  /* Gap between buttons (configurable via token) */
+  gap: var(--footer-nav-bar-gap, var(--gap-xl));
+  /* Content-width container, centered */
+  width: max-content;
+  max-width: calc(100vw - (var(--content-padding-x) * 2));
+  padding-inline: 0;
+  padding-block: 0;
+  margin: 0;
   pointer-events: auto;
+  z-index: 21; /* Above #fade-content (z-index: 20) */
 }
 
 .footer_link,
@@ -684,12 +704,33 @@ p {
   cursor: none; /* Maintain custom cursor experience */
 }
 
+/* Nav bar specific overrides for footer buttons */
+#footer-links-container .footer_link {
+  /* Nav bar buttons: substantial padding matching other page links */
+  /* Minimum 14px top/bottom, 18px left/right as requested */
+  padding-block: clamp(14px, 2.4vmin, 28px);
+  padding-inline: clamp(18px, 3.6vmin, 36px);
+  margin: 0; /* No negative margin in nav bar */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Button-specific resets */
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  cursor: none; /* Maintain custom cursor experience */
+  text-align: center;
+}
+
 .footer_link::after,
 .portfolio-cv-link::after,
 #header-cv-link::after {
   content: '';
   position: absolute;
-  bottom: var(--footer-link-dot-offset);
+  /* Dot closer to label (50% closer) */
+  bottom: calc(var(--footer-link-dot-offset) * 1.5);
   left: 50%;
   transform: translate3d(-50%, 0, 0) scaleY(0);
   transform-origin: 50% 50%;
@@ -712,6 +753,12 @@ p {
   opacity: 1; /* Remove opacity on hover - full strength color */
 }
 
+/* Middle nav bar buttons (Contact / Portfolio / Bio/CV): match icon button corner radius on hover */
+body.abs-hover-mode-index .footer_link.abs-hover-target--index::before,
+body.abs-hover-mode-ui .footer_link.abs-hover-target--ui::before {
+  border-radius: var(--ui-icon-corner-radius);
+}
+
 .footer_link:hover::after,
 .portfolio-cv-link:hover::after,
 #header-cv-link:hover::after {
@@ -719,10 +766,10 @@ p {
   animation: braviaDotBounceIn var(--dot-bounce-duration) var(--ease-bounce) both;
 }
 
-/* Footer link ID overrides - reset margins to 0 */
-#contact-email,
-#portfolio-gate-trigger,
-#cv-gate-trigger {
+/* Footer link ID overrides - reset margins to 0 (only when NOT in nav bar) */
+#footer-links-container #contact-email,
+#footer-links-container #portfolio-gate-trigger,
+#footer-links-container #cv-gate-trigger {
   margin: 0;
 }
 
@@ -739,6 +786,33 @@ p {
   pointer-events: auto;
 }
 
+/* Bottom-right meta button (London · time): text stays identical, hit-area matches icon buttons */
+.abs-meta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  block-size: var(--ui-icon-frame-size);
+  margin: 0;
+  background: none;
+  border: none;
+  cursor: none;
+  position: relative;
+  overflow: visible;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+}
+
+/* Use the same icon-corner radius on hover background for meta button */
+body.abs-hover-mode-index .abs-meta-btn.abs-hover-target--index::before {
+  border-radius: var(--ui-icon-corner-radius);
+}
+
+body.abs-hover-mode-index .abs-meta-btn.abs-hover-target--index {
+  color: var(--cursor-color, var(--link-hover-color));
+  opacity: 1;
+}
+
 /* Left: Socials */
 #social-links,
 .footer_icon-group {
@@ -747,9 +821,36 @@ p {
   left: auto;
   display: flex;
   gap: var(--footer-icon-gap);
-  margin: var(--link-icon-margin); /* Counterbalance icon link padding */
+  /* Icon buttons are now sized by frame height (square), so no margin counterbalance needed. */
+  margin: var(--ui-icon-group-margin, 0px);
   padding: 0;
   list-style: none;
+}
+
+.abs-icon-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: visible;
+  text-decoration: none;
+
+  /* Size by frame height (square). Defaults are derived from tokens. */
+  inline-size: var(--ui-icon-frame-size);
+  block-size: var(--ui-icon-frame-size);
+  aspect-ratio: 1 / 1;
+  padding: 0;
+
+  border-radius: var(--ui-icon-corner-radius);
+  font-size: var(--ui-icon-glyph-size);
+  line-height: 1;
+}
+
+.abs-icon-btn > i,
+.abs-icon-btn > svg {
+  width: var(--ui-icon-glyph-size);
+  height: var(--ui-icon-glyph-size);
 }
 
 #social-links {
@@ -762,18 +863,8 @@ p {
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic),
               color 0.2s var(--ease-organic);
-  /* Keep the link box aligned to the icon box so the hover dot centers correctly.
-     (Legacy export set a smaller fixed width; our Tabler icons are 24px.) */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--footer-icon-size);
-  height: var(--footer-icon-size);
-  position: relative;
   text-decoration: none;
-  padding: var(--link-icon-padding);
   cursor: none; /* Maintain custom cursor experience */
-  overflow: visible;
 }
 
 /* Remove dot from icon links */
@@ -781,41 +872,8 @@ p {
   display: none;
 }
 
-/* Light-up effect with gradient overlay */
-.footer_icon-link::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at center,
-    transparent 0%,
-    transparent 50%,
-    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 20%, transparent 80%) 70%,
-    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 35%, transparent 65%) 100%
-  );
-  opacity: 0;
-  transition: opacity 0.2s var(--ease-organic);
-  pointer-events: none;
-  z-index: 0;
-}
-
-body.dark-mode .footer_icon-link::before {
-  background: radial-gradient(
-    circle at center,
-    transparent 0%,
-    transparent 50%,
-    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 15%, transparent 85%) 70%,
-    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 30%, transparent 70%) 100%
-  );
-}
-
 .footer_icon-link:hover {
   color: var(--cursor-color, var(--link-hover-color));
-  opacity: 1;
-}
-
-.footer_icon-link:hover::before {
   opacity: 1;
 }
 
@@ -840,19 +898,12 @@ body.dark-mode .footer_icon-link::before {
   left: auto;
   transform: none;
   margin: 0;
-  /* Keep standard button padding but ensure alignment */
-  padding: var(--hit-area-lg);
-  margin: calc(var(--hit-area-lg) * -1);
   color: var(--text-quiet);
   font-family: 'Geist', sans-serif;
   cursor: none; /* Maintain custom cursor experience */
   background: none;
   border: none;
-  cursor: pointer;
   pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   transition: transform 0.15s var(--ease-organic),
               filter 0.15s var(--ease-organic);
 }
@@ -870,13 +921,7 @@ body.dark-mode .footer_icon-link::before {
 /* No hover dot for sound toggle (two-state only) */
 .sound-toggle::after { content: none; }
 
-/* Sound Toggle in Top-Right specifically */
-.ui-top-right .sound-toggle {
-  /* No special margin needed if gap handles it, but check hit area */
-  /* Remove negative margin to respect gap */
-  margin: 0;
-  padding: var(--hit-area-sm); /* Smaller hit area padding for top */
-}
+/* Sound toggle uses the shared icon button geometry via `.abs-icon-btn`. */
 
 /* No hover styling for sound toggle (two-state only) */
 
@@ -897,12 +942,12 @@ body.dark-mode .footer_icon-link::before {
   color: var(--text-muted);
 }
 
-.caption {
-  cursor: pointer;
-}
-
-.caption:hover {
-  color: var(--text-primary);
+/* Meta (London · time) is a button using `.abs-meta-btn` while keeping `.caption` text styling. */
+/* Ensure this wins over `.caption { height:auto; }` so it matches icon button height. */
+.abs-meta-btn {
+  height: var(--ui-icon-frame-size);
+  min-height: var(--ui-icon-frame-size);
+  padding: var(--abs-space-xs);
 }
 
 /* Location name (London) - Sarina (script font) */
@@ -1324,53 +1369,32 @@ body.dark-mode .noise-2 {
   }
   
   #footer-links-container {
-    /* Use viewport units instead of parent percentage to avoid iOS Safari fixed-height quirks. */
-    top: calc(
-      50svh + (var(--abs-brand-logo-height, 0px) / 2) + (var(--home-main-links-below-logo-px, 40) * 1px)
-    );
-    top: calc(
-      50dvh + (var(--abs-brand-logo-height, 0px) / 2) + (var(--home-main-links-below-logo-px, 40) * 1px)
-    );
-    width: auto;
-    max-width: 100%;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: nowrap;
-    gap: var(--gap-md);
-    row-gap: var(--gap-sm);
+    /* Mobile: maintain full-width nav bar, adjust padding */
+    padding-inline: 0;
+    gap: var(--footer-nav-bar-gap, var(--gap-md));
   }
   
   .footer_link {
     /* Mobile sizing: +10% on "main links" */
     font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 1.1);
+  }
 
-    /* Mobile UX: +10% vertical padding */
-    --abs-footer-link-pad-mobile: calc(var(--hit-area-sm) * 1.1);
-    padding-block: var(--abs-footer-link-pad-mobile);
-    padding-inline: var(--hit-area-sm);
-    margin-block: calc(var(--abs-footer-link-pad-mobile) * -1);
-    margin-inline: calc(var(--hit-area-sm) * -1);
-    text-align: center;
-    /* Make the hover dot sit under the text (measured from text bottom) */
+  /* Nav bar links: substantial padding on mobile too */
+  #footer-links-container .footer_link {
+    padding-block: clamp(14px, 2.4vmin, 28px);
+    padding-inline: clamp(18px, 3.6vmin, 36px);
+    margin: 0;
     display: inline-flex;
-    flex-direction: column;
     align-items: center;
-  }
-
-  .footer_link::after {
-    position: static;
-    left: auto;
-    bottom: auto;
-    margin-top: var(--gap-xs);
-    opacity: 0;
-    transform: scaleY(0);
-  }
-
-  /* Focus states intentionally disabled (per request). */
-  .footer_link:active::after {
-    opacity: 1;
-    transform: scaleY(1);
-    animation: braviaDotBounceIn var(--dot-bounce-duration) var(--ease-bounce) both;
+    justify-content: center;
+    /* Button resets for mobile */
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    cursor: none;
+    text-align: center;
   }
   
   .ui-meta-row {
@@ -1480,8 +1504,58 @@ body.abs-hover-mode-index .abs-hover-target--index::before {
   will-change: opacity, box-shadow;
 }
 
+/* Icon buttons (index mode): use the shared icon radius + index tint background */
+body.abs-hover-mode-index .abs-icon-btn.abs-hover-target--index::before {
+  border-radius: var(--ui-icon-corner-radius);
+}
+
+/* Footer main nav bar (middle buttons): use the same corner radius as icon buttons when hovered */
+body.abs-hover-mode-index #footer-links-container .footer_link.abs-hover-target--index::before {
+  border-radius: var(--ui-icon-corner-radius);
+}
+
+body.abs-hover-mode-ui #footer-links-container .footer_link.abs-hover-target--ui::before {
+  border-radius: var(--ui-icon-corner-radius);
+}
+
+body.abs-hover-mode-index .abs-icon-btn.abs-hover-target--index {
+  color: var(--abs-hover-index-fg, currentColor);
+}
+
 body.abs-hover-mode-index .abs-hover-target--index {
   /* No color change - keep colors as-is */
+  opacity: 1;
+}
+
+/* Light mode: ensure text links "activate" with a dark, intense cursor-tinted label color. */
+body:not(.dark-mode).abs-hover-mode-index .footer_link.abs-hover-target--index,
+body:not(.dark-mode).abs-hover-mode-index .portfolio-cv-link.abs-hover-target--index,
+body:not(.dark-mode).abs-hover-mode-index #header-cv-link.abs-hover-target--index,
+body:not(.dark-mode).abs-hover-mode-index .decorative-script p a.abs-hover-target--index {
+  color: var(--cursor-color, var(--link-hover-color)); /* Fallback */
+  /* Prefer the JS-computed “activated” label color when available (per-link). */
+  color: var(--abs-hover-index-fg, var(--cursor-color, var(--link-hover-color)));
+  opacity: 1;
+}
+
+/* More robust: if a hover target is a text link (not an icon button), activate the whole label. */
+body:not(.dark-mode).abs-hover-mode-index .abs-hover-target--index:not(.abs-icon-btn) {
+  color: var(--cursor-color, var(--link-hover-color)); /* Fallback */
+  color: var(--abs-hover-index-fg, var(--cursor-color, var(--link-hover-color)));
+}
+
+/* Keep icon buttons on their dedicated index hover color (wins by order). */
+body.abs-hover-mode-index .abs-icon-btn.abs-hover-target--index {
+  color: var(--abs-hover-index-fg, currentColor);
+}
+
+/* Footer nav (middle buttons): match icon hover foreground exactly (including injected nowrap span). */
+body.abs-hover-mode-index #footer-links-container .footer_link.abs-hover-target--index {
+  color: var(--abs-hover-index-fg, currentColor);
+  opacity: 1;
+}
+body.abs-hover-mode-index #footer-links-container .footer_link.abs-hover-target--index .footer-link-nowrap {
+  color: inherit;
   opacity: 1;
 }
 
@@ -1506,11 +1580,27 @@ body.abs-hover-mode-ui .abs-hover-target--ui::before {
 
 body.dark-mode.abs-hover-mode-ui .abs-hover-target--ui::before { opacity: 0.16; }
 
-/* Icon-only controls: keep circular “cursor background” */
-body.abs-hover-mode-ui .footer_icon-link.abs-hover-target--ui::before,
-body.abs-hover-mode-ui .sound-toggle.abs-hover-target--ui::before,
-body.abs-hover-mode-ui .gate-back.abs-hover-target--ui::before {
-  border-radius: 50%;
+/* Icon button controls: unified radius + unified hover background */
+body.abs-hover-mode-ui .abs-icon-btn.abs-hover-target--ui::before {
+  border-radius: var(--ui-icon-corner-radius);
+  background: radial-gradient(
+    circle at center,
+    transparent 0%,
+    transparent 50%,
+    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 20%, transparent 80%) 70%,
+    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 35%, transparent 65%) 100%
+  );
+  opacity: 1;
+}
+
+body.dark-mode.abs-hover-mode-ui .abs-icon-btn.abs-hover-target--ui::before {
+  background: radial-gradient(
+    circle at center,
+    transparent 0%,
+    transparent 50%,
+    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 15%, transparent 85%) 70%,
+    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 30%, transparent 70%) 100%
+  );
 }
 
 /* UI mode: suppress the "dot under label" (portfolio + dialogs) - text links only. */
@@ -1534,6 +1624,16 @@ body.abs-hover-mode-ui .footer_link.abs-hover-target--ui {
   color: var(--text-muted); /* Fallback for browsers without color-mix support */
   color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-black), 1) 14%);
 }
+
+/* Light mode: on-hover text links should read as clearly "active" (not faint). */
+body:not(.dark-mode).abs-hover-mode-ui .footer_link.abs-hover-target--ui,
+body:not(.dark-mode).abs-hover-mode-ui .portfolio-cv-link.abs-hover-target--ui,
+body:not(.dark-mode).abs-hover-mode-ui #header-cv-link.abs-hover-target--ui,
+body:not(.dark-mode).abs-hover-mode-ui .decorative-script p a.abs-hover-target--ui {
+  color: var(--cursor-color, var(--link-hover-color)); /* Fallback */
+  color: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 40%, rgba(var(--abs-rgb-black), 1) 60%);
+  opacity: 1;
+}
 body.dark-mode.abs-hover-mode-ui .footer_link.abs-hover-target--ui {
   color: var(--text-muted); /* Fallback for browsers without color-mix support */
   color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-white), 1) 14%);
@@ -1550,25 +1650,17 @@ body.dark-mode.abs-hover-mode-ui #header-cv-link.abs-hover-target--ui {
   color: color-mix(in srgb, var(--text-primary) 86%, rgba(var(--abs-rgb-white), 1) 14%);
 }
 
-/* UI mode: icon links use light-up effect, not color-mix */
-body.abs-hover-mode-ui .footer_icon-link.abs-hover-target--ui::before,
-body.abs-hover-mode-ui .top-nav__link.abs-hover-target--ui::before {
+/* UI mode: icon buttons (footer icons, sound, gate back) all illuminate to cursor color */
+body.abs-hover-mode-ui .abs-icon-btn.abs-hover-target--ui {
+  color: var(--cursor-color, var(--link-hover-color));
   opacity: 1;
 }
 
-body.abs-hover-mode-ui .footer_icon-link.abs-hover-target--ui,
-body.abs-hover-mode-ui .top-nav__link.abs-hover-target--ui {
-  color: var(--cursor-color, var(--link-hover-color));
-}
-
-body.abs-hover-mode-ui .sound-toggle.abs-hover-target--ui,
-body.abs-hover-mode-ui .gate-back.abs-hover-target--ui,
+/* Keep non-icon UI targets on the softer tone-shift behavior */
 body.abs-hover-mode-ui .top-nav__cv.abs-hover-target--ui {
   color: var(--text-quiet); /* Fallback for browsers without color-mix support */
   color: color-mix(in srgb, var(--text-quiet) 86%, rgba(var(--abs-rgb-black), 1) 14%);
 }
-body.dark-mode.abs-hover-mode-ui .sound-toggle.abs-hover-target--ui,
-body.dark-mode.abs-hover-mode-ui .gate-back.abs-hover-target--ui,
 body.dark-mode.abs-hover-mode-ui .top-nav__cv.abs-hover-target--ui {
   color: var(--text-quiet); /* Fallback for browsers without color-mix support */
   color: color-mix(in srgb, var(--text-quiet) 86%, rgba(var(--abs-rgb-white), 1) 14%);
@@ -1587,6 +1679,10 @@ body.dark-mode.abs-hover-mode-ui .top-nav__cv.abs-hover-target--ui {
 .top-nav__cv:focus-visible {
   box-shadow: none;
   border-radius: var(--abs-radius-pill);
+}
+
+.abs-icon-btn:focus-visible {
+  border-radius: var(--ui-icon-corner-radius);
 }
 
 /* Pulse ring node (created on press; avoids ::after conflicts with “dot under label”). */
@@ -1795,15 +1891,7 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
   border: 0;
   background: transparent;
   background-color: transparent;
-  /* Match the primary icon-link hit-area sizing (e.g. footer socials). */
-  width: var(--footer-icon-size);
-  height: var(--footer-icon-size);
-  padding: var(--link-icon-padding);
   margin: 0;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  flex: 0 0 var(--footer-icon-size);
   position: relative;
   text-decoration: none;
   overflow: visible;
@@ -1918,11 +2006,7 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
   border: 0;
   border-left: 1px solid var(--abs-stroke-soft);
   background: transparent;
-  padding: var(--hit-area-sm);
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   color: var(--text-quiet);
   transition: transform 0.15s var(--ease-organic),
               filter 0.15s var(--ease-organic);

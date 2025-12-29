@@ -173,8 +173,9 @@
   --content-padding: var(--abs-content-padding);
   --content-padding-x: var(--abs-content-padding);
   --content-padding-y: var(--abs-content-padding);
-  --edge-inset: calc(var(--container-border) + var(--content-padding));
-  --edge-inset-lg: calc(var(--container-border) + var(--content-padding));
+  /* Edge inset: wall thickness + content padding (set via JS in applyLayoutCSSVars) */
+  --edge-inset: 0px;
+  --edge-inset-lg: 0px;
 
   --gap-xs: var(--abs-gap-xs);
   --gap-sm: var(--abs-gap-sm);
@@ -309,7 +310,7 @@
   --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
 
   /* Interaction + Motion Tokens */
-  --edge-label-inset-base: calc(var(--container-border) + var(--gap-sm));
+  --edge-label-inset-base: calc(var(--wall-thickness) + var(--gap-sm));
   --edge-label-inset-adjust: 0px;
   --edge-label-inset: calc(var(--edge-label-inset-base) + var(--edge-label-inset-adjust));
   /* Core easings (tokenized everywhere). */
@@ -363,8 +364,8 @@
   --logo-blur-active: 0px;
 
   /* Accent Palette (Legend / Balls) */
-  --ball-1: var(--abs-accent-silver);
-  --ball-2: var(--abs-accent-ash);
+  --ball-1: #b5b7b6;
+  --ball-2: #bbbdbd;
   --ball-3: var(--abs-neutral-50);
   --ball-4: var(--abs-accent-emerald);
   --ball-5: var(--abs-neutral-1000);
@@ -408,23 +409,40 @@
   --link-impact-blur: 10px;
   --link-impact-duration: 0.15s;
 
+  /* Icon buttons (square): frame size + glyph size are separate, with a computed default */
+  --ui-icon-glyph-size: var(--footer-icon-size);
+  --ui-icon-frame-size: calc(var(--ui-icon-glyph-size) + (var(--link-icon-padding) * 2));
+
   --caption-font-size: var(--text-lg);
   --caption-font-weight: 400;
   --caption-line-height: var(--line-height-tight);
   --caption-letter-spacing: var(--letter-spacing-normal);
   --caption-offset: var(--gap-sm);
 
-  --hit-area-sm: var(--gap-sm);
-  --hit-area-md: var(--gap-md);
-  --hit-area-lg: var(--tap-target);
-  --dot-indicator-size: var(--size-dot);
-  --dot-indicator-offset: var(--gap-sm);
-
-  /* UI hit areas (links + icon links) */
+  /* UI hit areas (links/buttons) */
   --ui-hit-area-mul: 1;
-  --ui-icon-tighten-px: 4;
-  --ui-link-hit-pad: calc(var(--hit-area-lg) * var(--ui-hit-area-mul, 1));
-  --ui-icon-hit-pad: calc(var(--hit-area-md) * var(--ui-hit-area-mul, 1));
+  --hit-area-sm-base: var(--gap-sm);
+  --hit-area-md-base: var(--gap-md);
+  --hit-area-lg-base: var(--tap-target);
+  --hit-area-sm: calc(var(--hit-area-sm-base) * var(--ui-hit-area-mul, 1));
+  --hit-area-md: calc(var(--hit-area-md-base) * var(--ui-hit-area-mul, 1));
+  --hit-area-lg: calc(var(--hit-area-lg-base) * var(--ui-hit-area-mul, 1));
+  --dot-indicator-size: var(--size-dot);
+  --dot-indicator-offset: var(--gap-xs);
+
+  /* Unified icon button geometry (used across header/footer/dialogs). */
+  --ui-icon-frame-size: calc(var(--footer-icon-size) + (var(--link-icon-padding) * 2));
+  --ui-icon-glyph-size: var(--footer-icon-size);
+  --ui-icon-corner-radius-mul: 0.4; /* fraction of wall radius */
+  --ui-icon-corner-radius: clamp(
+    calc(var(--hit-area-sm-base) * 0.75),
+    calc(var(--wall-radius) * var(--ui-icon-corner-radius-mul, 0.4)),
+    999px
+  );
+
+  /* Legacy aliases (kept): these now just mirror the derived hit areas above. */
+  --ui-link-hit-pad: var(--hit-area-lg);
+  --ui-icon-hit-pad: var(--hit-area-md);
 
 
   --z-ui-base: 10;
@@ -446,6 +464,14 @@
 
   /* Index: primary (footer) links positioned under logo. */
   --home-main-links-below-logo-px: 40;
+
+  /* Footer Navigation Bar - Full-width nav bar positioning */
+  --footer-nav-bar-top: 50vh;
+  --footer-nav-bar-top-svh: 50svh;
+  --footer-nav-bar-top-dvh: 50dvh;
+  --footer-nav-bar-height: var(--hit-area-lg);
+  /* Gap between nav bar links (configurable, defaults to --gap-xl) */
+  --footer-nav-bar-gap: var(--gap-xl);
 
   --brand-logo-user-scale: 1;
 

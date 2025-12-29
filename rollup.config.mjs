@@ -109,7 +109,7 @@ const terserConfig = {
 };
 
 export default [{
-  input: 'source/main.js',
+  input: isProd ? 'source/main-prod.js' : 'source/main.js',
   output: {
     file: 'public/js/bouncy-balls-embed.js',
     format: 'iife',

@@ -276,6 +276,10 @@ async function buildProduction() {
     if (!isProd && fs.existsSync(cssPanelPath)) {
       fs.copyFileSync(cssPanelPath, path.join(cssDir, 'panel.css'));
     }
+    // Safety: ensure panel.css is never present in production output (even if a prior build leaked it).
+    if (isProd) {
+      try { fs.rmSync(path.join(cssDir, 'panel.css'), { force: true }); } catch (e) {}
+    }
     // Portfolio page styles (kept separate from main bundle)
     const portfolioCssPath = path.join('source', 'css', 'portfolio.css');
     if (fs.existsSync(portfolioCssPath)) {
@@ -296,11 +300,15 @@ async function buildProduction() {
     if (fs.existsSync(runtimeConfigSrc)) {
       const configRaw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
       const configOut = isProd ? JSON.stringify(JSON.parse(configRaw)) : configRaw;
-      fs.writeFileSync(runtimeConfigDstJs, configOut);
-      if (!fs.existsSync(path.dirname(runtimeConfigDstCfg))) {
-        fs.mkdirSync(path.dirname(runtimeConfigDstCfg), { recursive: true });
+      // Production: config is hardcoded into HTML as window.__RUNTIME_CONFIG__ (no external config files).
+      // Dev/preview tooling may still want the raw JSON files.
+      if (!isProd) {
+        fs.writeFileSync(runtimeConfigDstJs, configOut);
+        if (!fs.existsSync(path.dirname(runtimeConfigDstCfg))) {
+          fs.mkdirSync(path.dirname(runtimeConfigDstCfg), { recursive: true });
+        }
+        fs.writeFileSync(runtimeConfigDstCfg, configOut);
       }
-      fs.writeFileSync(runtimeConfigDstCfg, configOut);
       const savedBytes = Buffer.byteLength(configRaw) - Buffer.byteLength(configOut);
       console.log(`✅ ${isProd ? 'Minified' : 'Copied'} runtime config (${isProd ? `-${savedBytes}B` : 'unminified'})`);
     }
@@ -312,11 +320,15 @@ async function buildProduction() {
     if (fs.existsSync(runtimeTextSrc)) {
       const textRaw = fs.readFileSync(runtimeTextSrc, 'utf-8');
       const textOut = isProd ? JSON.stringify(JSON.parse(textRaw)) : textRaw;
-      fs.writeFileSync(runtimeTextDstJs, textOut);
-      if (!fs.existsSync(path.dirname(runtimeTextDstCfg))) {
-        fs.mkdirSync(path.dirname(runtimeTextDstCfg), { recursive: true });
+      // Production: home contents are inlined into public/index.html as window.__TEXT__.
+      // Keep JSON artifacts only in dev/non-prod builds for inspection.
+      if (!isProd) {
+        fs.writeFileSync(runtimeTextDstJs, textOut);
+        if (!fs.existsSync(path.dirname(runtimeTextDstCfg))) {
+          fs.mkdirSync(path.dirname(runtimeTextDstCfg), { recursive: true });
+        }
+        fs.writeFileSync(runtimeTextDstCfg, textOut);
       }
-      fs.writeFileSync(runtimeTextDstCfg, textOut);
       const savedBytes = Buffer.byteLength(textRaw) - Buffer.byteLength(textOut);
       console.log(`✅ ${isProd ? 'Minified' : 'Copied'} home contents (${isProd ? `-${savedBytes}B` : 'unminified'})`);
     }
@@ -328,11 +340,14 @@ async function buildProduction() {
     if (fs.existsSync(portfolioConfigSrc)) {
       const configRaw = fs.readFileSync(portfolioConfigSrc, 'utf-8');
       const configOut = isProd ? JSON.stringify(JSON.parse(configRaw)) : configRaw;
-      fs.writeFileSync(portfolioConfigDstJs, configOut);
-      if (!fs.existsSync(path.dirname(portfolioConfigDstCfg))) {
-        fs.mkdirSync(path.dirname(portfolioConfigDstCfg), { recursive: true });
+      // Production: portfolio config is inlined into public/portfolio.html as window.__PORTFOLIO_CONFIG__.
+      if (!isProd) {
+        fs.writeFileSync(portfolioConfigDstJs, configOut);
+        if (!fs.existsSync(path.dirname(portfolioConfigDstCfg))) {
+          fs.mkdirSync(path.dirname(portfolioConfigDstCfg), { recursive: true });
+        }
+        fs.writeFileSync(portfolioConfigDstCfg, configOut);
       }
-      fs.writeFileSync(portfolioConfigDstCfg, configOut);
       const savedBytes = Buffer.byteLength(configRaw) - Buffer.byteLength(configOut);
       console.log(`✅ ${isProd ? 'Minified' : 'Copied'} portfolio config (${isProd ? `-${savedBytes}B` : 'unminified'})`);
     }
@@ -344,11 +359,14 @@ async function buildProduction() {
     if (fs.existsSync(portfolioDataSrc)) {
       const dataRaw = fs.readFileSync(portfolioDataSrc, 'utf-8');
       const dataOut = isProd ? JSON.stringify(JSON.parse(dataRaw)) : dataRaw;
-      fs.writeFileSync(portfolioDataDstJs, dataOut);
-      if (!fs.existsSync(path.dirname(portfolioDataDstCfg))) {
-        fs.mkdirSync(path.dirname(portfolioDataDstCfg), { recursive: true });
+      // Production: portfolio page uses inlined configs and does not need JSON artifacts.
+      if (!isProd) {
+        fs.writeFileSync(portfolioDataDstJs, dataOut);
+        if (!fs.existsSync(path.dirname(portfolioDataDstCfg))) {
+          fs.mkdirSync(path.dirname(portfolioDataDstCfg), { recursive: true });
+        }
+        fs.writeFileSync(portfolioDataDstCfg, dataOut);
       }
-      fs.writeFileSync(portfolioDataDstCfg, dataOut);
       const savedBytes = Buffer.byteLength(dataRaw) - Buffer.byteLength(dataOut);
       console.log(`✅ ${isProd ? 'Minified' : 'Copied'} portfolio contents (${isProd ? `-${savedBytes}B` : 'unminified'})`);
     }
@@ -358,11 +376,14 @@ async function buildProduction() {
       const tokensOut = isProd ? JSON.stringify(tokensSnapshot) : JSON.stringify(tokensSnapshot, null, 2);
       const tokensDstJs = path.join(jsDir, 'tokens.json');
       const tokensDstCfg = path.join(CONFIG.publicDestination, 'config', 'tokens.json');
-      fs.writeFileSync(tokensDstJs, tokensOut);
-      if (!fs.existsSync(path.dirname(tokensDstCfg))) {
-        fs.mkdirSync(path.dirname(tokensDstCfg), { recursive: true });
+      // Production: tokens snapshot is inlined as window.__TOKENS__.
+      if (!isProd) {
+        fs.writeFileSync(tokensDstJs, tokensOut);
+        if (!fs.existsSync(path.dirname(tokensDstCfg))) {
+          fs.mkdirSync(path.dirname(tokensDstCfg), { recursive: true });
+        }
+        fs.writeFileSync(tokensDstCfg, tokensOut);
       }
-      fs.writeFileSync(tokensDstCfg, tokensOut);
       console.log(`✅ ${isProd ? 'Minified' : 'Copied'} tokens snapshot (${isProd ? 'minified' : 'unminified'})`);
     }
 
@@ -400,6 +421,9 @@ async function buildProduction() {
     if (portfolioTemplate) {
         let pHtml = portfolioTemplate;
         
+        // Strip dev-only tooling blocks (keeps production HTML clean).
+        pHtml = pHtml.replace(/<!--\s*ABS_LIVE_RELOAD_START\s*-->[\s\S]*?<!--\s*ABS_LIVE_RELOAD_END\s*-->\s*/g, '');
+        
         // Strip dev-only module script / css (will be re-injected for prod)
         pHtml = pHtml.replace(/^\s*<script\s+type="module"\s+src="[^"]+"><\/script>\s*$/gm, '');
         pHtml = pHtml.replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/portfolio\.css">\s*$/gm, '');
@@ -416,47 +440,72 @@ async function buildProduction() {
           pHtml = pHtml.replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/panel\.css">\s*$/gm, '');
         }
         
-        // Inject production assets (cache-busted)
+        // Inject production assets (cache-busted with build timestamp)
         const bundledCssTag = `<link rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
         const portfolioCssTag = `<link rel="stylesheet" href="css/portfolio.css?v=${buildStamp}">`;
         const portfolioJsTag = `<script src="js/portfolio-bundle.js?v=${buildStamp}" defer></script>`;
+        // Always replace existing tags to ensure fresh cache-busting
+        pHtml = pHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="css\/bouncy-balls\.css[^"]*"[^>]*>/g, bundledCssTag);
+        pHtml = pHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="css\/portfolio\.css[^"]*"[^>]*>/g, portfolioCssTag);
+        pHtml = pHtml.replace(/<script[^>]*src="js\/portfolio-bundle\.js[^"]*"[^>]*><\/script>/g, portfolioJsTag);
         
-        // Insert in head/body
-        pHtml = pHtml.replace('</head>', `${bundledCssTag}\n${portfolioCssTag}\n</head>`);
-        pHtml = pHtml.replace('</body>', `${portfolioJsTag}\n</body>`);
+        // Insert in head/body only if not already present (after replacement above)
+        if (!pHtml.includes('id="bravia-balls-css"') && !pHtml.includes('href="css/bouncy-balls.css')) {
+          pHtml = pHtml.replace('</head>', `${bundledCssTag}\n</head>`);
+        }
+        if (!pHtml.includes('href="css/portfolio.css')) {
+          pHtml = pHtml.replace('</head>', `${portfolioCssTag}\n</head>`);
+        }
+        if (!pHtml.includes('src="js/portfolio-bundle.js')) {
+          pHtml = pHtml.replace('</body>', `${portfolioJsTag}\n</body>`);
+        }
         
-        if (isProd && fs.existsSync(portfolioConfigSrc) && !pHtml.includes('__PORTFOLIO_CONFIG__')) {
+        // Always replace existing inline scripts to ensure fresh configs
+        if (isProd && fs.existsSync(portfolioConfigSrc)) {
           try {
             const raw = fs.readFileSync(portfolioConfigSrc, 'utf-8');
             const min = JSON.stringify(JSON.parse(raw));
             const safe = min.replace(/</g, '\\u003c');
             const inline = `<script>window.__PORTFOLIO_CONFIG__=${safe};</script>`;
-            pHtml = pHtml.replace('</head>', `${inline}\n</head>`);
+            // Replace existing or add new
+            pHtml = pHtml.replace(/<script>window\.__PORTFOLIO_CONFIG__=[^<]+<\/script>/g, inline);
+            if (!pHtml.includes('__PORTFOLIO_CONFIG__')) {
+              pHtml = pHtml.replace('</head>', `${inline}\n</head>`);
+            }
             console.log('✅ Inlined portfolio config into public/portfolio.html (hardcoded)');
           } catch (e) {}
         }
         
         // CONFIG: Inline runtime config into portfolio.html (same as index.html)
         // Portfolio page needs runtime config for wall colors and other global parameters
-        if (isProd && fs.existsSync(runtimeConfigSrc) && !pHtml.includes('__RUNTIME_CONFIG__')) {
+        if (isProd && fs.existsSync(runtimeConfigSrc)) {
           try {
             const raw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
             // Prevent accidental </script> termination and keep HTML safe.
             const safe = raw.replace(/</g, '\\u003c');
             const inline = `<script>window.__RUNTIME_CONFIG__=${safe};</script>`;
-            pHtml = pHtml.replace('</head>', `${inline}\n</head>`);
+            // Replace existing or add new
+            pHtml = pHtml.replace(/<script>window\.__RUNTIME_CONFIG__=[^<]+<\/script>/g, inline);
+            if (!pHtml.includes('__RUNTIME_CONFIG__')) {
+              pHtml = pHtml.replace('</head>', `${inline}\n</head>`);
+            }
             console.log('✅ Inlined runtime config into public/portfolio.html (hardcoded)');
           } catch (e) {}
         }
 
-        // Inject build timestamp for cache-busting images
+        // Inject build timestamp for cache-busting images (always replace)
+        const buildTimestampInline = `<script>window.__BUILD_TIMESTAMP__=${buildStamp};</script>`;
+        pHtml = pHtml.replace(/<script>window\.__BUILD_TIMESTAMP__=[^<]+<\/script>/g, buildTimestampInline);
         if (!pHtml.includes('__BUILD_TIMESTAMP__')) {
-          const buildTimestampInline = `<script>window.__BUILD_TIMESTAMP__=${buildStamp};</script>`;
           pHtml = pHtml.replace('</head>', `${buildTimestampInline}\n</head>`);
         }
 
-        if (tokensInline && !pHtml.includes('__TOKENS__')) {
-          pHtml = pHtml.replace('</head>', `${tokensInline}\n</head>`);
+        if (tokensInline) {
+          // Replace existing or add new
+          pHtml = pHtml.replace(/<script>window\.__TOKENS__=[^<]+<\/script>/g, tokensInline);
+          if (!pHtml.includes('__TOKENS__')) {
+            pHtml = pHtml.replace('</head>', `${tokensInline}\n</head>`);
+          }
         }
 
         // Ensure theme-color tags match tokens (remove any existing ones first).
@@ -466,6 +515,9 @@ async function buildProduction() {
         fs.writeFileSync(publicPortfolioPath, pHtml);
         console.log('✅ Injected production assets into public/portfolio.html');
     }
+
+    // Strip dev-only tooling blocks (keeps production HTML clean).
+    html = html.replace(/<!--\s*ABS_LIVE_RELOAD_START\s*-->[\s\S]*?<!--\s*ABS_LIVE_RELOAD_END\s*-->\s*/g, '');
 
     // Production template composition:
     // - Remove dev-only CSS links (we ship a single bundled CSS in production)
@@ -510,6 +562,8 @@ async function buildProduction() {
     // Blocking style: Hide content immediately, animation handles the reveal
 // No transition needed - keyframe animation in main.css handles the fade
 const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</style>`;
+    // Replace existing or add new
+    html = html.replace(/<style[^>]*id="fade-blocking"[^>]*>[^<]*<\/style>/g, fadeBlockingCSS);
     if (!html.includes('id="fade-blocking"')) {
       html = html.replace('<head>', '<head>\n' + fadeBlockingCSS);
     }
@@ -517,32 +571,44 @@ const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</sty
     // CONFIG: Inline runtime config into HTML for production (hardcoded at build-time).
     // This allows the JS to boot without fetching any config, while still using the
     // config file as the single source of truth (read here, injected into HTML).
-    if (isProd && fs.existsSync(runtimeConfigSrc) && !html.includes('__RUNTIME_CONFIG__')) {
+    if (isProd && fs.existsSync(runtimeConfigSrc)) {
       try {
         const raw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
         // Prevent accidental </script> termination and keep HTML safe.
         const safe = raw.replace(/</g, '\\u003c');
         const inline = `<script>window.__RUNTIME_CONFIG__=${safe};</script>`;
-        html = html.replace('</head>', `${inline}\n</head>`);
+        // Replace existing or add new
+        html = html.replace(/<script>window\.__RUNTIME_CONFIG__=[^<]+<\/script>/g, inline);
+        if (!html.includes('__RUNTIME_CONFIG__')) {
+          html = html.replace('</head>', `${inline}\n</head>`);
+        }
         console.log('✅ Inlined runtime config into public/index.html (hardcoded)');
       } catch (e) {}
     }
 
     // TEXT: Inline runtime text dictionary into HTML for production (hardcoded + minified).
     // Guarantees: zero fetch, no copy pop-in, and a single authoring surface.
-    if (isProd && fs.existsSync(runtimeTextSrc) && !html.includes('__TEXT__')) {
+    if (isProd && fs.existsSync(runtimeTextSrc)) {
       try {
         const raw = fs.readFileSync(runtimeTextSrc, 'utf-8');
         const min = JSON.stringify(JSON.parse(raw));
         const safe = min.replace(/</g, '\\u003c');
         const inline = `<script>window.__TEXT__=${safe};</script>`;
-        html = html.replace('</head>', `${inline}\n</head>`);
+        // Replace existing or add new
+        html = html.replace(/<script>window\.__TEXT__=[^<]+<\/script>/g, inline);
+        if (!html.includes('__TEXT__')) {
+          html = html.replace('</head>', `${inline}\n</head>`);
+        }
         console.log('✅ Inlined runtime text into public/index.html as window.__TEXT__ (minified)');
       } catch (e) {}
     }
     
-    if (tokensInline && !html.includes('__TOKENS__')) {
-      html = html.replace('</head>', `${tokensInline}\n</head>`);
+    if (tokensInline) {
+      // Replace existing or add new
+      html = html.replace(/<script>window\.__TOKENS__=[^<]+<\/script>/g, tokensInline);
+      if (!html.includes('__TOKENS__')) {
+        html = html.replace('</head>', `${tokensInline}\n</head>`);
+      }
     }
 
     // Inject theme-color meta tags for mobile browsers (Safari iOS, Chrome Android, Edge).
@@ -552,17 +618,29 @@ const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</sty
     
     // Inject resource hints for critical assets (preload fonts, preconnect Google Fonts)
     // Note: CSS/JS preloads removed as they're loaded with cache-bust query strings
-    const resourceHints = `
+    if (isProd) {
+      const resourceHints = `
   <!-- Resource Hints: Font Preloading + Connection Hints -->
   <link rel="preload" href="fonts/tabler-icons-outline.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 `;
-    if (!html.includes('rel="preload"') && isProd) html = html.replace('<meta charset', `${resourceHints}<meta charset`);
+      // Remove existing resource hints and add fresh ones
+      html = html.replace(/<link[^>]*rel="preload"[^>]*>/g, '');
+      html = html.replace(/<link[^>]*rel="preconnect"[^>]*>/g, '');
+      if (!html.includes('rel="preload"')) {
+        html = html.replace('<meta charset', `${resourceHints}<meta charset`);
+      }
+    }
     
-    const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css?v=' + Date.now() + '">';
+    // Use build timestamp for consistent cache-busting (same timestamp used earlier)
+    const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css?v=' + buildStamp + '">';
+    // Always replace existing CSS tag to ensure fresh cache-busting
+    html = html.replace(/<link[^>]*id="bravia-balls-css"[^>]*>/g, cssTag);
     if (!html.includes('id="bravia-balls-css"')) html = html.replace('</head>', `${cssTag}\n</head>`);
-    const jsTag = '<script id="bravia-balls-js" src="js/bouncy-balls-embed.js?v=' + Date.now() + '" defer></script>';
+    const jsTag = '<script id="bravia-balls-js" src="js/bouncy-balls-embed.js?v=' + buildStamp + '" defer></script>';
+    // Always replace existing JS tag to ensure fresh cache-busting
+    html = html.replace(/<script[^>]*id="bravia-balls-js"[^>]*><\/script>/g, jsTag);
     if (!html.includes('id="bravia-balls-js"')) html = html.replace('</body>', `${jsTag}\n</body>`);
     fs.writeFileSync(publicIndexPath, html);
     console.log('✅ Injected modular assets into public/index.html');

@@ -10,7 +10,6 @@ import { updateCursorPosition, hideCursor, showCursor } from '../rendering/curso
 import { notifyMouseTrailMove } from '../visual/mouse-trail.js';
 import { isOverlayActive } from '../ui/gate-overlay.js';
 import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
-import { emitCursorPulse, getCurrentCursorPosition } from '../ui/cursor-pulse.js';
 
 // Mouse velocity tracking for water ripples
 let lastMouseX = 0;
@@ -18,9 +17,6 @@ let lastMouseY = 0;
 let lastMoveTime = 0;
 let mouseVelocity = 0;
 let lastTapTime = 0;
-// Track last cursor position for pulse effect
-let lastCursorX = 0;
-let lastCursorY = 0;
 // Click/tap cycles through modes (value stored on globals; avoid caching so modes can override).
 let pressCycleActive = false;
 let pressCyclePointerId = null;
@@ -39,14 +35,6 @@ function cycleMode() {
   const idx = seq.indexOf(current);
   const base = idx >= 0 ? idx : 0;
   const next = seq[(base + 1) % seq.length];
-
-  // Cursor pulse effect disabled
-  // const cursorPos = getCurrentCursorPosition();
-  // if (cursorPos) {
-  //   emitCursorPulse(cursorPos.x, cursorPos.y);
-  // } else if (lastCursorX > 0 || lastCursorY > 0) {
-  //   emitCursorPulse(lastCursorX, lastCursorY);
-  // }
 
   import('../modes/mode-controller.js').then(({ setMode }) => {
     setMode(next);
@@ -76,107 +64,6 @@ export function setupPointer() {
     console.error('Canvas not available for pointer setup');
     return;
   }
-  
-  const DPR = globals.DPR;
-
-  // Cache canvas rect to avoid layout reads on every pointermove.
-  // Invalidate on resize (and on first use).
-  let cachedCanvasRect = null;
-  let rectInvalidated = true;
-  
-  // Initialize canvas rect immediately to ensure cursor and trail alignment from the start
-  // This prevents misalignment on page load where cursor updates before trail gets accurate rect
-  try {
-    cachedCanvasRect = canvas.getBoundingClientRect();
-    rectInvalidated = false;
-  } catch (e) {
-    // Fallback: will be calculated on first mouse move
-    rectInvalidated = true;
-  }
-  
-  // Force rect recalculation after initial layout settles (catches any delayed layout shifts)
-  // This ensures cursor and trail stay aligned even if canvas position shifts slightly after load
-  try {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        // Double rAF ensures layout has settled
-        cachedCanvasRect = canvas.getBoundingClientRect();
-        rectInvalidated = false;
-      });
-    });
-  } catch (e) {}
-
-  // During layout/transform transitions (scene depth + frame inset), the canvas'
-  // bounding rect changes continuously. If we cache a single rect through that
-  // window, the canvas-space cursor (and trail) will be offset until the
-  // transition ends. Keep caching for steady-state perf, but disable caching
-  // while relevant transitions are active.
-  let rectTransitionActive = 0;
-  let rectDynamicUntilMs = 0;
-  function markRectDynamicForAWhile(ms = 1200) {
-    rectInvalidated = true;
-    const now = performance.now();
-    rectDynamicUntilMs = Math.max(rectDynamicUntilMs, now + ms);
-  }
-  function shouldUseDynamicRect() {
-    if (rectTransitionActive > 0) return true;
-    return performance.now() < rectDynamicUntilMs;
-  }
-
-  try {
-    window.addEventListener('resize', () => {
-      rectInvalidated = true;
-    }, { passive: true });
-  } catch (e) {}
-
-  // IMPORTANT:
-  // The index page applies scene-level transforms on `#abs-scene` (gate depth + click-in impact).
-  // Those transforms change the canvas' bounding rect WITHOUT a window resize event.
-  // If we cache the rect through a transform transition, the simulation-space mouse (and trail)
-  // will drift relative to the viewport-space cursor dot until the next resize.
-  //
-  // Fix: invalidate cached rect whenever the scene transform transitions, and
-  // disable rect caching while the transition is running.
-  try {
-    const wantsDynamicProp = (p) => {
-      // Properties that can affect canvas rect / coordinate mapping.
-      // - abs-scene: transform
-      // - bravia-balls: top/left/right/bottom/width/height (inset + responsive frame)
-      // If propertyName is missing, be conservative and assume it matters.
-      if (!p) return true;
-      return (
-        p === 'transform' ||
-        p === 'top' ||
-        p === 'left' ||
-        p === 'right' ||
-        p === 'bottom' ||
-        p === 'width' ||
-        p === 'height'
-      );
-    };
-
-    const attachTransitionRectWatcher = (el, dynamicMs) => {
-      if (!el || !el.addEventListener) return;
-
-      el.addEventListener('transitionrun', (e) => {
-        if (!wantsDynamicProp(e?.propertyName)) return;
-        rectTransitionActive++;
-        markRectDynamicForAWhile(dynamicMs);
-      });
-
-      const onEnd = (e) => {
-        if (!wantsDynamicProp(e?.propertyName)) return;
-        rectTransitionActive = Math.max(0, rectTransitionActive - 1);
-        markRectDynamicForAWhile(120); // ensure we snap to the final rect
-      };
-      el.addEventListener('transitionend', onEnd);
-      el.addEventListener('transitioncancel', onEnd);
-    };
-
-    attachTransitionRectWatcher(document.getElementById('abs-scene'), 600);
-    // #bravia-balls transitions inset geometry with --duration-resize (600ms default).
-    attachTransitionRectWatcher(document.getElementById('bravia-balls'), 1200);
-  } catch (e) {}
 
   /**
    * Panel/UI hit-test: when interacting with the settings UI, we must NOT
@@ -198,24 +85,18 @@ export function setupPointer() {
    * Get mouse position relative to canvas from any event
    */
   function getCanvasPosition(clientX, clientY) {
-    if (shouldUseDynamicRect()) {
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: (clientX - rect.left) * DPR,
-        y: (clientY - rect.top) * DPR,
-        inBounds: clientX >= rect.left && clientX <= rect.right && 
-                  clientY >= rect.top && clientY <= rect.bottom
-      };
-    }
-
-    if (rectInvalidated || !cachedCanvasRect) {
-      cachedCanvasRect = canvas.getBoundingClientRect();
-      rectInvalidated = false;
-    }
-    const rect = cachedCanvasRect;
+    // SIMPLICITY > cleverness:
+    // Always compute the rect at the time of the event, then map into the canvas buffer.
+    // This guarantees cursor + trail alignment even during fast motion and scene transforms
+    // (gate depth, impact reactions, etc.) that change rect dimensions without resize events.
+    const rect = canvas.getBoundingClientRect();
+    const rw = rect.width || 1;
+    const rh = rect.height || 1;
+    const sx = canvas.width / rw;
+    const sy = canvas.height / rh;
     return {
-      x: (clientX - rect.left) * DPR,
-      y: (clientY - rect.top) * DPR,
+      x: (clientX - rect.left) * sx,
+      y: (clientY - rect.top) * sy,
       inBounds: clientX >= rect.left && clientX <= rect.right && 
                 clientY >= rect.top && clientY <= rect.bottom
     };
@@ -241,9 +122,6 @@ export function setupPointer() {
     // Update custom cursor position only for mouse-like pointers
     if (isMouseLike) {
       updateCursorPosition(clientX, clientY);
-      // Track cursor position for pulse effect
-      lastCursorX = clientX;
-      lastCursorY = clientY;
     } else {
       // Ensure cursor is hidden for touch/pen inputs that aren't mouse-like
       hideCursor();
@@ -394,11 +272,6 @@ export function setupPointer() {
     // Mobile: click/tap triggers BOTH parts (press then return) in sequence.
     // Mode changes when the return begins.
     if (isMobileViewportNow()) {
-      // Track touch position for pulse effect
-      if (pressCycleStartX > 0 || pressCycleStartY > 0) {
-        lastCursorX = pressCycleStartX;
-        lastCursorY = pressCycleStartY;
-      }
       sceneImpactPress(1, { armManual: true, scheduleRelease: false });
       const pressMsBase = globals.sceneImpactPressMs ?? 75;
       const pressMs = Math.max(1, Math.round((Number(pressMsBase) || 0) * 0.8)); // must match scene-impact-react

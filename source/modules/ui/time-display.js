@@ -31,7 +31,6 @@ export function initTimeDisplay() {
 
   // Click on time element toggles dark/light mode
   if (siteYear) {
-    siteYear.style.cursor = 'pointer';
     siteYear.addEventListener('click', toggleDarkMode);
   }
 }

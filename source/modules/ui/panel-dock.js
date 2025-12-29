@@ -12,6 +12,9 @@ import {
   generateColorTemplateSectionHTML,
 } from './control-registry.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
+import { getAllControls } from './control-registry.js';
+import { isDev } from '../utils/logger.js';
+import { saveConfigBulk } from '../utils/config-sync.js';
 import {
   SOUND_PRESETS,
   getSoundConfig,
@@ -30,7 +33,6 @@ import {
   syncSoundControlsToConfig
 } from '../audio/sound-control-registry.js';
 import { resize } from '../rendering/renderer.js';
-import { isDev } from '../utils/logger.js';
 
 let dockElement = null;
 let masterPanelElement = null;
@@ -40,11 +42,12 @@ let masterPanelElement = null;
 // ════════════════════════════════════════════════════════════════════════════════
 
 const STORAGE_KEYS = {
-  // v2: avoid inheriting old “too low” positions
+  // v2: avoid inheriting old "too low" positions
   position: 'panel_dock_position_v2',
   dockHidden: 'panel_dock_hidden',
   panelCollapsed: 'master_panel_collapsed',
-  panelSize: 'panel_dock_size'
+  // v3: separate dev/prod panel sizes (they have different contexts)
+  panelSize: isDev() ? 'panel_dock_size_dev_v3' : 'panel_dock_size_prod_v3'
 };
 
 function loadPanelCollapsed() {
@@ -136,17 +139,13 @@ function getMasterPanelContent({
   const g = getGlobals();
   // Values are vw-native in state; px values are derived once and kept in sync.
   const frameVw = Number(g.containerBorderVw || 0);
-  const contentPadVw = Number(g.contentPaddingVw || 0);
   const viewportWidthPx = getLayoutViewportWidthPx();
   const viewportWidthLabel = g.layoutViewportWidthPx > 0
     ? `${Math.round(g.layoutViewportWidthPx)}px`
     : `Auto (${Math.round(viewportWidthPx)}px)`;
 
   const framePx = Math.max(0, Math.round(g.containerBorder ?? 0));
-  const contentPadPx = Math.max(0, Math.round(g.contentPadding ?? 0));
   const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
-  const minContentPadPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
-  const contentPadHorizRatio = Number(g.contentPaddingHorizontalRatio || 1.0);
 
   const layoutSectionHTML = `
     <details class="panel-section-accordion" id="layoutSection">
@@ -155,30 +154,6 @@ function getMasterPanelContent({
         <span class="section-label">Layout</span>
       </summary>
       <div class="panel-section-content">
-        <label class="control-row">
-          <div class="control-row-header">
-            <span class="control-label">Content Padding</span>
-            <span class="control-value" id="contentPadValue">${contentPadVw.toFixed(2)}vw · ${contentPadPx}px (min ${minContentPadPx}px)</span>
-          </div>
-          <input type="range" id="contentPadding" min="0" max="12" step="0.05" value="${contentPadVw || 0}" />
-          <div class="control-hint">Layout-only spacing between wall and content</div>
-        </label>
-        <label class="control-row">
-          <div class="control-row-header">
-            <span class="control-label">Horizontal Ratio</span>
-            <span class="control-value" id="contentPadHorizRatioValue">${contentPadHorizRatio.toFixed(2)}× → ${Math.round(contentPadPx * contentPadHorizRatio)}px</span>
-          </div>
-          <input type="range" id="contentPadHorizRatio" min="0.5" max="2.5" step="0.05" value="${contentPadHorizRatio}" />
-          <div class="control-hint">Horizontal padding = base × ratio</div>
-        </label>
-        <label class="control-row">
-          <div class="control-row-header">
-            <span class="control-label">Min Content Padding</span>
-            <span class="control-value" id="minContentPadValue">${minContentPadPx}px</span>
-          </div>
-          <input type="range" id="layoutMinContentPaddingPx" min="0" max="64" step="1" value="${minContentPadPx}" />
-          <div class="control-hint">Clamp target on smallest viewports (px).</div>
-        </label>
         <label class="control-row">
           <div class="control-row-header">
             <span class="control-label">Viewport Width</span>
@@ -384,7 +359,7 @@ function createMasterPanel({
       </div>
       <div class="panel-title mac-title">${panelTitle}</div>
       <div class="mac-right">
-        <span class="panel-mode-pill" role="status" aria-label="Runtime mode">${modeLabel}</span>
+        ${isDev() ? `<button id="saveConfigBtn" class="panel-save-btn" aria-label="Save config" title="Save config to file">Save</button>` : ''}
         <button class="collapse-btn mac-collapse" aria-label="Collapse panel" title="Collapse">▾</button>
       </div>
     </div>
@@ -423,6 +398,16 @@ function createMasterPanel({
     // Otherwise, let CSS defaults apply
   }
   
+  // Save config button (dev mode only)
+  const saveBtn = header.querySelector('#saveConfigBtn');
+  if (saveBtn && isDev()) {
+    saveBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      await saveAllConfigToFile();
+    });
+  }
+  
   // Collapse button
   const collapseBtn = header.querySelector('.collapse-btn');
   if (collapseBtn) {
@@ -453,6 +438,287 @@ function createMasterPanel({
   }, 0);
   
   return panel;
+}
+
+/**
+ * Save all current config values to default-config.json via sync server
+ */
+async function saveAllConfigToFile() {
+  if (!isDev()) return;
+  
+  const g = getGlobals();
+  const saveBtn = document.getElementById('saveConfigBtn');
+  const originalText = saveBtn?.textContent || 'Save';
+  
+  // Show saving state
+  if (saveBtn) {
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+  }
+  
+  try {
+    // Build organized config snapshot matching original config file structure
+    // This ensures a clean, readable config file when saved
+    
+    // STEP 1: Collect ALL controls first (ensures nothing is missed)
+    const config = {};
+    try {
+      const controls = getAllControls();
+      for (const c of controls) {
+        if (!c || !c.stateKey) continue;
+        const v = g[c.stateKey];
+        if (v === undefined) continue;
+        config[c.stateKey] = v;
+      }
+    } catch (e) {
+      console.warn('[save-config] Error collecting controls:', e);
+    }
+    
+    // STEP 2: Add/override in organized order for clean file structure
+    // (This doesn't add new keys, just ensures they're written in logical order)
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 1) BROWSER / THEME ENVIRONMENT (top of file)
+    // ═══════════════════════════════════════════════════════════════════════════
+    config.chromeHarmonyMode = g.chromeHarmonyMode;
+    config.autoDarkModeEnabled = g.autoDarkModeEnabled;
+    config.autoDarkNightStartHour = g.autoDarkNightStartHour;
+    config.autoDarkNightEndHour = g.autoDarkNightEndHour;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 2) MATERIAL WORLD — Physics
+    // ═══════════════════════════════════════════════════════════════════════════
+    config.ballMassKg = g.ballMassKg;
+    config.REST = g.REST;
+    config.FRICTION = g.FRICTION;
+    config.physicsCollisionIterations = g.physicsCollisionIterations;
+    config.physicsSkipSleepingCollisions = g.physicsSkipSleepingCollisions;
+    config.physicsSpatialGridOptimization = g.physicsSpatialGridOptimization;
+    config.physicsSleepThreshold = g.physicsSleepThreshold;
+    config.physicsSleepTime = g.physicsSleepTime;
+    config.physicsSkipSleepingSteps = g.physicsSkipSleepingSteps;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 3) MATERIAL WORLD — Ball Material
+    // ═══════════════════════════════════════════════════════════════════════════
+    config.sizeScale = g.sizeScale;
+    config.responsiveScaleMobile = g.responsiveScaleMobile;
+    config.mobileObjectReductionFactor = g.mobileObjectReductionFactor;
+    config.ballSoftness = g.ballSoftness;
+    config.ballSpacing = g.ballSpacing;
+    config.sizeVariationGlobalMul = g.sizeVariationGlobalMul;
+    config.sizeVariationCap = g.sizeVariationCap;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 4) INTERACTION — Cursor, Trail, Links
+    // ═══════════════════════════════════════════════════════════════════════════
+    config.cursorInfluenceRadiusVw = g.cursorInfluenceRadiusVw;
+    config.cursorSize = g.cursorSize;
+    config.mouseTrailEnabled = g.mouseTrailEnabled;
+    config.mouseTrailLength = g.mouseTrailLength;
+    config.mouseTrailSize = g.mouseTrailSize;
+    config.mouseTrailFadeMs = g.mouseTrailFadeMs;
+    config.mouseTrailOpacity = g.mouseTrailOpacity;
+    
+    config.contentPaddingRatio = g.contentPaddingRatio;
+    config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;
+    if (g.uiHitAreaMul !== undefined) config.uiHitAreaMul = g.uiHitAreaMul;
+    if (g.uiIconCornerRadiusMul !== undefined) config.uiIconCornerRadiusMul = g.uiIconCornerRadiusMul;
+    if (g.uiIconFramePx) config.uiIconFramePx = g.uiIconFramePx;
+    if (g.uiIconGlyphPx) config.uiIconGlyphPx = g.uiIconGlyphPx;
+    if (g.uiIconGroupMarginPx !== undefined) config.uiIconGroupMarginPx = g.uiIconGroupMarginPx;
+    config.linkTextPadding = g.linkTextPadding;
+    config.linkIconPadding = g.linkIconPadding;
+    if (g.footerNavBarTopVh !== undefined) config.footerNavBarTopVh = g.footerNavBarTopVh;
+    if (g.footerNavBarGapVw !== undefined) config.footerNavBarGapVw = g.footerNavBarGapVw;
+    if (g.homeMainLinksBelowLogoPx !== undefined) config.homeMainLinksBelowLogoPx = g.homeMainLinksBelowLogoPx;
+    if (g.edgeLabelInsetAdjustPx !== undefined) config.edgeLabelInsetAdjustPx = g.edgeLabelInsetAdjustPx;
+    config.linkColorInfluence = g.linkColorInfluence;
+    config.linkImpactScale = g.linkImpactScale;
+    config.linkImpactBlur = g.linkImpactBlur;
+    config.linkImpactDuration = g.linkImpactDuration;
+    
+    config.sceneImpactEnabled = g.sceneImpactEnabled;
+    config.sceneImpactMul = g.sceneImpactMul;
+    config.sceneImpactLogoCompMul = g.sceneImpactLogoCompMul;
+    config.sceneImpactMobileMulFactor = g.sceneImpactMobileMulFactor;
+    config.sceneImpactPressMs = g.sceneImpactPressMs;
+    config.sceneImpactReleaseMs = g.sceneImpactReleaseMs;
+    config.sceneImpactAnticipation = g.sceneImpactAnticipation;
+    config.sceneChangeSoundEnabled = g.sceneChangeSoundEnabled;
+    config.sceneChangeSoundIntensity = g.sceneChangeSoundIntensity;
+    config.sceneChangeSoundRadius = g.sceneChangeSoundRadius;
+    
+    config.gateOverlayEnabled = g.gateOverlayEnabled;
+    config.gateOverlayOpacity = g.gateOverlayOpacity;
+    config.gateOverlayTransitionMs = g.gateOverlayTransitionMs;
+    config.gateOverlayTransitionOutMs = g.gateOverlayTransitionOutMs;
+    config.gateOverlayContentDelayMs = g.gateOverlayContentDelayMs;
+    config.gateDepthScale = g.gateDepthScale;
+    config.gateDepthTranslateY = g.gateDepthTranslateY;
+    
+    config.logoOpacityInactive = g.logoOpacityInactive;
+    config.logoOpacityActive = g.logoOpacityActive;
+    config.logoBlurInactive = g.logoBlurInactive;
+    config.logoBlurActive = g.logoBlurActive;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 5) LOOK & PALETTE — Colors
+    // ═══════════════════════════════════════════════════════════════════════════
+    config.bgLight = g.bgLight;
+    config.bgDark = g.bgDark;
+    config.textColorLight = g.textColorLight;
+    config.textColorLightMuted = g.textColorLightMuted;
+    config.textColorDark = g.textColorDark;
+    config.textColorDarkMuted = g.textColorDarkMuted;
+    config.edgeLabelColorLight = g.edgeLabelColorLight;
+    config.edgeLabelColorDark = g.edgeLabelColorDark;
+    config.linkHoverColor = g.linkHoverColor;
+    config.logoColorLight = g.logoColorLight;
+    config.logoColorDark = g.logoColorDark;
+    config.topLogoWidthVw = g.topLogoWidthVw;
+    config.portfolioLogoColorLight = g.portfolioLogoColorLight;
+    config.portfolioLogoColorDark = g.portfolioLogoColorDark;
+    
+    config.colorDistribution = g.colorDistribution;
+    config.frameColorLight = g.frameColorLight;
+    config.frameColorDark = g.frameColorDark;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 6) MATERIAL WORLD — Wall
+    // ═══════════════════════════════════════════════════════════════════════════
+    config.wallPreset = g.wallPreset;
+    config.wallThicknessVw = g.wallThicknessVw;
+    config.wallThicknessAreaMultiplier = g.wallThicknessAreaMultiplier;
+    config.wallRadiusVw = g.wallRadiusVw;
+    config.wallInset = g.wallInset;
+    config.mobileWallThicknessXFactor = g.mobileWallThicknessXFactor;
+    config.mobileEdgeLabelsVisible = g.mobileEdgeLabelsVisible;
+    config.wallWobbleMaxDeform = g.wallWobbleMaxDeform;
+    config.wallWobbleStiffness = g.wallWobbleStiffness;
+    config.wallWobbleDamping = g.wallWobbleDamping;
+    config.wallWobbleSigma = g.wallWobbleSigma;
+    config.wallWobbleSettlingSpeed = g.wallWobbleSettlingSpeed;
+    config.wallWobbleCornerClamp = g.wallWobbleCornerClamp;
+    config.wallWobbleImpactThreshold = g.wallWobbleImpactThreshold;
+    config.wallWobbleMaxVel = g.wallWobbleMaxVel;
+    config.wallWobbleMaxImpulse = g.wallWobbleMaxImpulse;
+    config.wallWobbleMaxEnergyPerStep = g.wallWobbleMaxEnergyPerStep;
+    config.wallPhysicsSamples = g.wallPhysicsSamples;
+    config.wallPhysicsSkipInactive = g.wallPhysicsSkipInactive;
+    config.wallRenderDecimation = g.wallRenderDecimation;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 7) LOOK & PALETTE — Noise/Grain
+    // ═══════════════════════════════════════════════════════════════════════════
+    config.noiseEnabled = g.noiseEnabled;
+    config.noiseSeed = g.noiseSeed;
+    config.noiseTextureSize = g.noiseTextureSize;
+    config.noiseDistribution = g.noiseDistribution;
+    config.noiseMonochrome = g.noiseMonochrome;
+    config.noiseChroma = g.noiseChroma;
+    config.noiseSizeBase = g.noiseSizeBase;
+    config.noiseSizeTop = g.noiseSizeTop;
+    config.noiseTopOpacity = g.noiseTopOpacity;
+    config.noiseBackOpacity = g.noiseBackOpacity;
+    config.noiseFrontOpacity = g.noiseFrontOpacity;
+    config.noiseBackOpacityDark = g.noiseBackOpacityDark;
+    config.noiseFrontOpacityDark = g.noiseFrontOpacityDark;
+    config.noiseMotion = g.noiseMotion;
+    config.noiseMotionAmount = g.noiseMotionAmount;
+    config.noiseSpeedBackMs = g.noiseSpeedBackMs;
+    config.noiseSpeedFrontMs = g.noiseSpeedFrontMs;
+    config.noiseFlicker = g.noiseFlicker;
+    config.noiseFlickerSpeedMs = g.noiseFlickerSpeedMs;
+    config.noiseBlurPx = g.noiseBlurPx;
+    config.noiseContrast = g.noiseContrast;
+    config.noiseBrightness = g.noiseBrightness;
+    config.noiseSaturation = g.noiseSaturation;
+    config.noiseHue = g.noiseHue;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 8) MODE-SPECIFIC CONTROLS — Already collected in STEP 1
+    // ═══════════════════════════════════════════════════════════════════════════
+    // All mode parameters (critters, flies, pit, weightless, water, vortex, etc.)
+    // are already in config from getAllControls() in STEP 1 above
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 9) MOTION — Entrance Animation
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (g.entranceEnabled !== undefined) config.entranceEnabled = g.entranceEnabled;
+    if (g.entranceWallTransitionDelay !== undefined) config.entranceWallTransitionDelay = g.entranceWallTransitionDelay;
+    if (g.entranceWallTransitionDuration !== undefined) config.entranceWallTransitionDuration = g.entranceWallTransitionDuration;
+    if (g.entranceWallInitialScale !== undefined) config.entranceWallInitialScale = g.entranceWallInitialScale;
+    if (g.entranceWallEasing !== undefined) config.entranceWallEasing = g.entranceWallEasing;
+    if (g.entranceElementDuration !== undefined) config.entranceElementDuration = g.entranceElementDuration;
+    if (g.entranceElementScaleStart !== undefined) config.entranceElementScaleStart = g.entranceElementScaleStart;
+    if (g.entranceElementTranslateZStart !== undefined) config.entranceElementTranslateZStart = g.entranceElementTranslateZStart;
+    if (g.entrancePerspectiveLandscape !== undefined) config.entrancePerspectiveLandscape = g.entrancePerspectiveLandscape;
+    if (g.entrancePerspectiveSquare !== undefined) config.entrancePerspectiveSquare = g.entrancePerspectiveSquare;
+    if (g.entrancePerspectivePortrait !== undefined) config.entrancePerspectivePortrait = g.entrancePerspectivePortrait;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 10) LEGACY ALIASES (keep for compatibility)
+    // ═══════════════════════════════════════════════════════════════════════════
+    config.gravityMultiplier = g.gravityMultiplierPit;
+    config.restitution = g.REST;
+    config.friction = g.FRICTION;
+    config.ballMass = g.ballMassKg;
+    config.ballScale = g.sizeScale;
+    config.sizeVariation = g.sizeVariation;
+    config.repelSoft = g.repelSoft;
+    config.repelSoftness = g.repelSoft;
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 11) LAYOUT (vw-based values + derived)
+    // ═══════════════════════════════════════════════════════════════════════════
+    config.layoutViewportWidthPx = g.layoutViewportWidthPx || 0;
+    config.containerBorderVw = g.containerBorderVw;
+    config.simulationPaddingVw = g.simulationPaddingVw;
+    config.layoutMinWallRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 12) SOUND
+    // ═══════════════════════════════════════════════════════════════════════════
+    try {
+      config.soundPreset = getCurrentPreset();
+      config.soundConfig = getSoundConfig();
+    } catch (e) {}
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 13) HOUSEKEEPING
+    // ═══════════════════════════════════════════════════════════════════════════
+    config.enableLOD = false;
+    
+    // Save entire config object at once (bulk save - avoids race conditions)
+    const success = await saveConfigBulk('default', config);
+    
+    if (saveBtn) {
+      if (success) {
+        saveBtn.textContent = 'Saved!';
+        setTimeout(() => {
+          saveBtn.textContent = originalText;
+          saveBtn.disabled = false;
+        }, 1500);
+      } else {
+        saveBtn.textContent = 'Error';
+        setTimeout(() => {
+          saveBtn.textContent = originalText;
+          saveBtn.disabled = false;
+        }, 2000);
+        console.warn(`[save-config] Failed to save config`);
+      }
+    }
+  } catch (e) {
+    console.error('[save-config] Error saving config:', e);
+    if (saveBtn) {
+      saveBtn.textContent = 'Error';
+      setTimeout(() => {
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+      }, 2000);
+    }
+  }
 }
 
 function setupResizePersistence() {
@@ -836,12 +1102,6 @@ function setupSoundControls(panel) {
 // ════════════════════════════════════════════════════════════════════════════════
 
 function setupLayoutControls(panel) {
-  const contentPadSlider = panel.querySelector('#contentPadding');
-  const contentPadValue = panel.querySelector('#contentPadValue');
-  const contentPadHorizRatioSlider = panel.querySelector('#contentPadHorizRatio');
-  const contentPadHorizRatioValue = panel.querySelector('#contentPadHorizRatioValue');
-  const minContentPadSlider = panel.querySelector('#layoutMinContentPaddingPx');
-  const minContentPadValue = panel.querySelector('#minContentPadValue');
   const viewportWidthSlider = panel.querySelector('#layoutViewportWidth');
   const viewportWidthValue = panel.querySelector('#viewportWidthValue');
   const wallInsetSlider = panel.querySelector('#layoutWallInset');
@@ -851,15 +1111,6 @@ function setupLayoutControls(panel) {
   const syncDerivedLayout = ({ triggerResize = false } = {}) => {
     applyLayoutFromVwToPx();
     applyLayoutCSSVars();
-    if (contentPadValue) {
-      const minPad = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
-      contentPadValue.textContent = `${(g.contentPaddingVw || 0).toFixed(2)}vw · ${Math.round(g.contentPadding || 0)}px (min ${minPad}px)`;
-    }
-    if (contentPadHorizRatioValue) {
-      const ratio = g.contentPaddingHorizontalRatio || 1.0;
-      contentPadHorizRatioValue.textContent = `${ratio.toFixed(2)}× → ${Math.round(g.contentPaddingX || g.contentPadding)}px`;
-    }
-    if (minContentPadValue) minContentPadValue.textContent = `${Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0))}px`;
     if (viewportWidthValue) {
       const w = getLayoutViewportWidthPx();
       viewportWidthValue.textContent = g.layoutViewportWidthPx > 0 ? `${Math.round(g.layoutViewportWidthPx)}px` : `Auto (${Math.round(w)}px)`;
@@ -872,36 +1123,6 @@ function setupLayoutControls(panel) {
     document.dispatchEvent(new CustomEvent('layout-updated'));
   };
   
-  // Content padding (vw). Layout-only: must not affect wall geometry or collisions.
-  if (contentPadSlider && contentPadValue) {
-    contentPadSlider.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      if (!Number.isFinite(val)) return;
-      g.contentPaddingVw = val;
-      syncDerivedLayout({ triggerResize: true });
-    });
-  }
-  
-  // Horizontal ratio: contentPaddingX = contentPadding × ratio
-  if (contentPadHorizRatioSlider && contentPadHorizRatioValue) {
-    contentPadHorizRatioSlider.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      if (!Number.isFinite(val)) return;
-      g.contentPaddingHorizontalRatio = Math.max(0.1, val);
-      syncDerivedLayout();
-    });
-  }
-
-  // Minimum content padding clamp (px)
-  if (minContentPadSlider && minContentPadValue) {
-    minContentPadSlider.addEventListener('input', (e) => {
-      const val = parseInt(e.target.value, 10);
-      if (!Number.isFinite(val)) return;
-      g.layoutMinContentPaddingPx = Math.max(0, val);
-      syncDerivedLayout({ triggerResize: true });
-    });
-  }
-
   // Virtual viewport width (debug): changes the vw→px conversion basis
   if (viewportWidthSlider && viewportWidthValue) {
     viewportWidthSlider.addEventListener('input', (e) => {
