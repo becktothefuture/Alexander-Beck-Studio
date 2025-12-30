@@ -50,6 +50,69 @@ function pickStartupMode() {
   return MODES.PIT;
 }
 
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                             PAGE FADE-IN (PROD)                              ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+// Production uses `source/index.html` as a template, which includes a blocking rule:
+//   <style id="fade-blocking">#fade-content{opacity:0}</style>
+// In dev (`main.js`) and on other pages (portfolio/cv), JS always reveals the content.
+// `main-prod.js` previously never did, which makes production look “blank” except for
+// the footer buttons that live outside `#fade-content`.
+function startIndexFadeIn() {
+  const FADE_DELAY_MS = 400;
+  const FADE_DURATION_MS = 260;
+  const FADE_EASING = readTokenVar('--ease-fade', 'cubic-bezier(0.16, 1, 0.3, 1)');
+  const FADE_FAILSAFE_MS = FADE_DELAY_MS + FADE_DURATION_MS + 750;
+
+  const forceFadeVisible = (fadeEl, reason) => {
+    fadeEl.style.opacity = '1';
+    fadeEl.style.transform = 'translateZ(0)';
+    console.warn(`⚠️ Fade failsafe: forcing #fade-content visible (${reason})`);
+  };
+
+  window.setTimeout(() => {
+    const fadeContent = document.getElementById('fade-content');
+    if (!fadeContent) {
+      console.warn('⚠️ #fade-content not found (fade skipped)');
+      return;
+    }
+
+    // Accessibility: respect reduced motion by skipping animation entirely.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+      fadeContent.style.opacity = '1';
+      fadeContent.style.transform = 'translateZ(0)';
+      return;
+    }
+
+    // If WAAPI is missing, fall back to inline style.
+    if (typeof fadeContent.animate !== 'function') {
+      forceFadeVisible(fadeContent, 'WAAPI unsupported');
+      return;
+    }
+
+    const anim = fadeContent.animate(
+      [{ opacity: 0 }, { opacity: 1 }],
+      { duration: FADE_DURATION_MS, easing: FADE_EASING, fill: 'forwards' }
+    );
+
+    // Stamp final opacity so it can't get stuck hidden.
+    anim?.addEventListener?.('finish', () => {
+      fadeContent.style.opacity = '1';
+      fadeContent.style.transform = 'translateZ(0)';
+    });
+
+    anim?.addEventListener?.('cancel', () => {
+      forceFadeVisible(fadeContent, 'animation canceled');
+    });
+
+    // Ultimate failsafe: never allow permanent hidden UI.
+    window.setTimeout(() => {
+      const opacity = window.getComputedStyle(fadeContent).opacity;
+      if (opacity === '0') forceFadeVisible(fadeContent, 'opacity still 0 after failsafe window');
+    }, FADE_FAILSAFE_MS);
+  }, FADE_DELAY_MS);
+}
+
 /**
  * Apply two-level padding CSS variables from global state to :root
  */
@@ -211,6 +274,11 @@ function enhanceFooterLinksForMobile() {
 
     createSoundToggle();
     createThemeToggle();
+
+    // Reveal UI content that starts blocked at first paint.
+    // Fonts are awaited in the background so copy doesn't “pop”.
+    try { await waitForFonts(); } catch (e) {}
+    startIndexFadeIn();
 
     // Start simulation
     const startupMode = pickStartupMode();
