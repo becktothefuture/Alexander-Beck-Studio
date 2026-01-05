@@ -53,8 +53,71 @@ function pickStartupMode() {
   return MODES.PIT;
 }
 
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                             PAGE FADE-IN (PROD)                              ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+// Production uses `source/index.html` as a template, which includes a blocking rule:
+//   <style id="fade-blocking">#fade-content{opacity:0}</style>
+// In dev (`main.js`) and on other pages (portfolio/cv), JS always reveals the content.
+// `main-prod.js` previously never did, which makes production look "blank" except for
+// the footer buttons that live outside `#fade-content`.
+function startIndexFadeIn() {
+  const FADE_DELAY_MS = 400;
+  const FADE_DURATION_MS = 260;
+  const FADE_EASING = readTokenVar('--ease-fade', 'cubic-bezier(0.16, 1, 0.3, 1)');
+  const FADE_FAILSAFE_MS = FADE_DELAY_MS + FADE_DURATION_MS + 750;
+
+  const forceFadeVisible = (fadeEl, reason) => {
+    fadeEl.style.opacity = '1';
+    fadeEl.style.transform = 'translateZ(0)';
+    console.warn(`⚠️ Fade failsafe: forcing #fade-content visible (${reason})`);
+  };
+
+  window.setTimeout(() => {
+    const fadeContent = document.getElementById('fade-content');
+    if (!fadeContent) {
+      console.warn('⚠️ #fade-content not found (fade skipped)');
+      return;
+    }
+
+    // Accessibility: respect reduced motion by skipping animation entirely.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+      fadeContent.style.opacity = '1';
+      fadeContent.style.transform = 'translateZ(0)';
+      return;
+    }
+
+    // If WAAPI is missing, fall back to inline style.
+    if (typeof fadeContent.animate !== 'function') {
+      forceFadeVisible(fadeContent, 'WAAPI unsupported');
+      return;
+    }
+
+    const anim = fadeContent.animate(
+      [{ opacity: 0 }, { opacity: 1 }],
+      { duration: FADE_DURATION_MS, easing: FADE_EASING, fill: 'forwards' }
+    );
+
+    // Stamp final opacity so it can't get stuck hidden.
+    anim?.addEventListener?.('finish', () => {
+      fadeContent.style.opacity = '1';
+      fadeContent.style.transform = 'translateZ(0)';
+    });
+
+    anim?.addEventListener?.('cancel', () => {
+      forceFadeVisible(fadeContent, 'animation canceled');
+    });
+
+    // Ultimate failsafe: never allow permanent hidden UI.
+    window.setTimeout(() => {
+      const opacity = window.getComputedStyle(fadeContent).opacity;
+      if (opacity === '0') forceFadeVisible(fadeContent, 'opacity still 0 after failsafe window');
+    }, FADE_FAILSAFE_MS);
+  }, FADE_DELAY_MS);
+}
+
 // ════════════════════════════════════════════════════════════════════════════════
-// PAGE FADE-IN (PRODUCTION)
+// APP-FRAME FADE-IN (PRODUCTION)
 // ════════════════════════════════════════════════════════════════════════════════
 // The HTML template starts with `#app-frame { opacity: 0 }` (see `source/index.html`).
 // In dev (`source/main.js`) this is released as part of the entrance animation pipeline.
@@ -285,6 +348,61 @@ function enhanceFooterLinksForMobile() {
 
     applyFramePaddingCSSVars();
     mark('bb:layout');
+    applyVisualCSSVars(config);
+
+    // Apply config-driven UI CSS variables (layout + interactions)
+    try {
+      const globals = getGlobals();
+      const root = document.documentElement;
+      if (Number.isFinite(globals?.topLogoWidthVw)) {
+        root.style.setProperty('--top-logo-width-vw', String(globals.topLogoWidthVw));
+      }
+      if (Number.isFinite(globals?.homeMainLinksBelowLogoPx)) {
+        root.style.setProperty('--home-main-links-below-logo-px', String(globals.homeMainLinksBelowLogoPx));
+      }
+      if (Number.isFinite(globals?.footerNavBarTopVh)) {
+        root.style.setProperty('--footer-nav-bar-top', `${globals.footerNavBarTopVh}vh`);
+        root.style.setProperty('--footer-nav-bar-top-svh', `${globals.footerNavBarTopVh}svh`);
+        root.style.setProperty('--footer-nav-bar-top-dvh', `${globals.footerNavBarTopVh}dvh`);
+      }
+      if (Number.isFinite(globals?.footerNavBarGapVw)) {
+        const minPx = Math.round(globals.footerNavBarGapVw * 9.6);
+        const maxPx = Math.round(minPx * 1.67);
+        root.style.setProperty('--footer-nav-bar-gap', `clamp(${minPx}px, ${globals.footerNavBarGapVw}vw, ${maxPx}px)`);
+      }
+      if (Number.isFinite(globals?.uiHitAreaMul)) {
+        root.style.setProperty('--ui-hit-area-mul', String(globals.uiHitAreaMul));
+      }
+      if (Number.isFinite(globals?.uiIconCornerRadiusMul)) {
+        root.style.setProperty('--ui-icon-corner-radius-mul', String(globals.uiIconCornerRadiusMul));
+      }
+      if (Number.isFinite(globals?.uiIconFramePx) && Math.round(globals.uiIconFramePx) > 0) {
+        root.style.setProperty('--ui-icon-frame-size', `${Math.round(globals.uiIconFramePx)}px`);
+      }
+      if (Number.isFinite(globals?.uiIconGlyphPx) && Math.round(globals.uiIconGlyphPx) > 0) {
+        root.style.setProperty('--ui-icon-glyph-size', `${Math.round(globals.uiIconGlyphPx)}px`);
+      }
+      if (Number.isFinite(globals?.linkTextPadding)) {
+        root.style.setProperty('--link-text-padding', `${Math.round(globals.linkTextPadding)}px`);
+        root.style.setProperty('--link-text-margin', `${-Math.round(globals.linkTextPadding)}px`);
+      }
+      if (Number.isFinite(globals?.linkIconPadding)) {
+        root.style.setProperty('--link-icon-padding', `${Math.round(globals.linkIconPadding)}px`);
+        root.style.setProperty('--link-icon-margin', `${-Math.round(globals.linkIconPadding)}px`);
+      }
+      if (Number.isFinite(globals?.linkColorInfluence)) {
+        root.style.setProperty('--link-color-influence', String(globals.linkColorInfluence));
+      }
+      if (Number.isFinite(globals?.linkImpactScale)) {
+        root.style.setProperty('--link-impact-scale', String(globals.linkImpactScale));
+      }
+      if (Number.isFinite(globals?.linkImpactBlur)) {
+        root.style.setProperty('--link-impact-blur', `${globals.linkImpactBlur}px`);
+      }
+      if (Number.isFinite(globals?.linkImpactDuration)) {
+        root.style.setProperty('--link-impact-duration', `${Math.round(globals.linkImpactDuration)}ms`);
+      }
+    } catch (e) {}
 
     // Visual system
     try {
@@ -297,7 +415,29 @@ function enhanceFooterLinksForMobile() {
 
     // Renderer + canvas boot
     setupRenderer();
-    setCanvas(getCanvas());
+    const canvas = getCanvas();
+    const ctx = getContext();
+    const container = document.getElementById('bravia-balls');
+
+    if (!canvas || !ctx || !container) {
+      throw new Error('Missing DOM elements');
+    }
+
+    try {
+      const logo = document.getElementById('brand-logo');
+      if (logo && logo.parentElement !== container) {
+        container.prepend(logo);
+      }
+    } catch (e) {}
+
+    try {
+      canvas.setAttribute('role', 'application');
+      if (!canvas.getAttribute('aria-label')) {
+        canvas.setAttribute('aria-label', 'Interactive bouncy balls physics simulation');
+      }
+    } catch (e) {}
+
+    setCanvas(canvas, ctx, container);
     setForceRenderCallback(render);
     resize();
     mark('bb:renderer');
@@ -341,6 +481,11 @@ function enhanceFooterLinksForMobile() {
 
     createSoundToggle();
     createThemeToggle();
+
+    // Reveal UI content that starts blocked at first paint.
+    // Fonts are awaited in the background so copy doesn't “pop”.
+    try { await waitForFonts(); } catch (e) {}
+    startIndexFadeIn();
 
     // Start simulation
     const startupMode = pickStartupMode();
