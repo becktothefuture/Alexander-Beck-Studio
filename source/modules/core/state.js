@@ -660,10 +660,10 @@ const state = {
   entranceWallTransitionDuration: 800, // Wall growth animation duration (ms)
   entranceWallInitialScale: 1.1,    // Initial scale (wall starts slightly larger, scales down to 1.0)
   entranceWallEasing: 'cubic-bezier(0.16, 1, 0.3, 1)', // Easing for wall growth (organic ease-out)
-  entranceElementDuration: 200,     // Individual element fade duration (ms)
+  entranceElementDuration: 800,     // Individual element fade duration (ms)
   entranceElementScaleStart: 0.95,  // Initial scale for elements (0-1)
   entranceElementTranslateZStart: -20, // Initial z-axis position (px, negative = back)
-  entranceElementEasing: 'ease-out', // Easing function for element animations
+  entranceElementEasing: 'cubic-bezier(0.16, 1, 0.3, 1)', // Easing function for element animations
   entrancePerspectiveLandscape: 1200, // Perspective for landscape aspect ratio (px)
   entrancePerspectiveSquare: 1000,   // Perspective for square aspect ratio (px)
   entrancePerspectivePortrait: 800,  // Perspective for portrait aspect ratio (px)

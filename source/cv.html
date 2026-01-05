@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<style id="fade-blocking">#fade-content{opacity:0}</style>
+<style id="fade-blocking">#app-frame{opacity:0}</style>
   <!-- Browser Chrome Color -->
   <meta name="theme-color" content="#242529">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#242529">
@@ -10,10 +10,30 @@
   <script>
     (function() {
       'use strict';
-      // Detect dark mode preference synchronously before any rendering
-      let shouldBeDark = false;
-      const THEME_COLOR_LIGHT = '#242529';
-      const THEME_COLOR_DARK = '#1a1a1a';
+      function getMetaThemeColor(selector) {
+        const node = document.querySelector(selector);
+        return node && node.content ? node.content.trim() : '';
+      }
+      const fallbackLight = '#242529';
+      const fallbackDark = '#1a1a1a';
+      const primaryMeta = getMetaThemeColor('meta[name="theme-color"]:not([media])');
+      const THEME_COLOR_LIGHT = getMetaThemeColor('meta[name="theme-color"][media="(prefers-color-scheme: light)"]') || primaryMeta || fallbackLight;
+      const THEME_COLOR_DARK = getMetaThemeColor('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]') || primaryMeta || fallbackDark;
+
+      const THEME_KEY = 'theme-preference-v2';
+      const LEGACY_THEME_KEY = 'theme-preference';
+      function readThemePreference() {
+        try {
+          const v2 = localStorage.getItem(THEME_KEY);
+          if (v2 === 'auto' || v2 === 'light' || v2 === 'dark') return v2;
+          const legacy = localStorage.getItem(LEGACY_THEME_KEY);
+          if (legacy === 'auto' || legacy === 'light' || legacy === 'dark') {
+            localStorage.removeItem(LEGACY_THEME_KEY);
+            localStorage.setItem(THEME_KEY, 'auto');
+          }
+        } catch (e) {}
+        return 'auto';
+      }
 
       function setBrowserChromeColors(isDark) {
         const meta = document.querySelector('meta[name="theme-color"]');
@@ -25,14 +45,9 @@
       }
       
       // Get saved theme preference
-      let themePreference = 'auto';
-      try {
-        const saved = localStorage.getItem('theme-preference');
-        if (saved === 'auto' || saved === 'light' || saved === 'dark') {
-          themePreference = saved;
-        }
-      } catch (e) {}
+      let themePreference = readThemePreference();
       
+      let shouldBeDark = false;
       if (themePreference === 'dark') {
         shouldBeDark = true;
       } else if (themePreference === 'light') {
@@ -57,11 +72,9 @@
         // Set background color immediately to prevent white flash (use !important to override CSS)
         document.documentElement.style.setProperty('background', THEME_COLOR_DARK, 'important');
         document.documentElement.style.setProperty('background-color', THEME_COLOR_DARK, 'important');
-        // Apply to body as well (will be set properly when body exists)
         if (document.body) {
           document.body.classList.add('dark-mode');
         } else {
-          // If body doesn't exist yet, set it when DOMContentLoaded fires
           document.addEventListener('DOMContentLoaded', function() {
             document.body.classList.add('dark-mode');
           }, { once: true });
@@ -107,7 +120,7 @@
     </div>
     
     <!-- UI LAYER: Flexbox Layout -->
-    <div id="fade-content">
+    <div class="fade-content">
       <div id="app-frame" class="ui-layer-wrapper">
         
         <!-- TOP SECTION -->

@@ -46,8 +46,138 @@ import {
   table
 } from './modules/utils/logger.js';
 
+const CONTENT_FADE_DURATION_MS = 800;
+const CONTENT_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
+
 function pickStartupMode() {
   return MODES.PIT;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PAGE FADE-IN (PRODUCTION)
+// ════════════════════════════════════════════════════════════════════════════════
+// The HTML template starts with `#app-frame { opacity: 0 }` (see `source/index.html`).
+// In dev (`source/main.js`) this is released as part of the entrance animation pipeline.
+// Production must also release it, otherwise the page looks "blank" except for elements
+// outside `#app-frame` (e.g. fixed footer links).
+function fadeInContentLayer(options = {}) {
+  const fadeTarget = document.getElementById('app-frame');
+  if (!fadeTarget) return Promise.resolve();
+
+  const duration = options.duration ?? CONTENT_FADE_DURATION_MS;
+  const easing = options.easing ?? CONTENT_FADE_EASING;
+  const externalFinalize = typeof options.finalize === 'function' ? options.finalize : null;
+
+  return new Promise((resolve) => {
+    let finished = false;
+    const finalize = () => {
+      if (finished) return;
+      finished = true;
+      if (externalFinalize) {
+        try { externalFinalize(); } catch (e) {}
+      } else {
+        try {
+          fadeTarget.style.opacity = '1';
+          fadeTarget.style.transform = 'translateZ(0)';
+          fadeTarget.style.visibility = 'visible';
+          fadeTarget.style.willChange = 'auto';
+          const blocker = document.getElementById('fade-blocking');
+          if (blocker) blocker.remove();
+        } catch (e) {}
+      }
+      resolve();
+    };
+
+    fadeTarget.style.visibility = 'visible';
+    fadeTarget.style.willChange = 'opacity, transform';
+
+    if (typeof fadeTarget.animate === 'function') {
+      const anim = fadeTarget.animate(
+        [
+          { opacity: 0, transform: 'translateZ(0)' },
+          { opacity: 1, transform: 'translateZ(0)' }
+        ],
+        { duration, easing, fill: 'forwards' }
+      );
+      anim.addEventListener('finish', finalize);
+      anim.addEventListener('cancel', finalize);
+    } else {
+      fadeTarget.style.transition = `opacity ${duration}ms ${easing}`;
+      requestAnimationFrame(() => {
+        fadeTarget.style.opacity = '1';
+        fadeTarget.style.transform = 'translateZ(0)';
+      });
+      window.setTimeout(finalize, duration + 50);
+    }
+  });
+}
+
+async function revealFadeContentWithFailsafe() {
+  const fadeTarget = document.getElementById('app-frame');
+  if (!fadeTarget) return;
+
+  const g = (() => { try { return getGlobals(); } catch (e) { return {}; } })();
+  const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const elementDuration = g?.entranceElementDuration ?? CONTENT_FADE_DURATION_MS;
+  const elementEasing = g?.entranceElementEasing ?? CONTENT_FADE_EASING;
+
+  let finalized = false;
+  const finalize = () => {
+    if (finalized) return;
+    finalized = true;
+    try {
+      fadeTarget.style.opacity = '1';
+      fadeTarget.style.transform = 'translateZ(0)';
+      fadeTarget.style.visibility = 'visible';
+      fadeTarget.style.willChange = 'auto';
+      const blocker = document.getElementById('fade-blocking');
+      if (blocker) blocker.remove();
+    } catch (e) {}
+  };
+
+  // Failsafe: never allow a stuck hidden page.
+  const watchdog = window.setTimeout(finalize, Math.max(2500, elementDuration + 200));
+  let settleTimer = null;
+
+  try {
+    // Prefer no "pop-in": wait for fonts, but don't let it stall the reveal.
+    try { await waitForFonts(); } catch (e) {}
+
+    // Optional: run the same entrance orchestration as dev when enabled.
+    if (g?.entranceEnabled && !reduceMotion) {
+      try {
+        const { orchestrateEntrance } = await import('./modules/visual/entrance-animation.js');
+        await orchestrateEntrance({
+          waitForFonts: async () => {
+            try { await waitForFonts(); } catch (e) {}
+          }
+        });
+        const wallDelay = g?.entranceWallTransitionDelay ?? 300;
+        const wallDuration = g?.entranceWallTransitionDuration ?? 800;
+        const elementDelay = wallDelay + (wallDuration * 0.3);
+        settleTimer = window.setTimeout(finalize, elementDelay + elementDuration + 50);
+      } catch (e) {
+        await fadeInContentLayer({
+          duration: elementDuration,
+          easing: elementEasing,
+          finalize
+        });
+      }
+    } else {
+      await fadeInContentLayer({
+        duration: elementDuration,
+        easing: elementEasing,
+        finalize
+      });
+    }
+  } finally {
+    window.clearTimeout(watchdog);
+    if (!finalized) {
+      if (!settleTimer) {
+        window.setTimeout(finalize, 0);
+      }
+    }
+  }
 }
 
 /**
@@ -217,6 +347,10 @@ function enhanceFooterLinksForMobile() {
     setMode(startupMode);
     startMainLoop();
 
+    // Release initial `#app-frame` opacity lock in production (with failsafe)
+    // so the UI layer can't get stuck hidden.
+    try { await revealFadeContentWithFailsafe(); } catch (e) {}
+
     // Console policy (production)
     initConsolePolicy();
     try { printConsoleBanner(readTokenVar('--panel-brand', '#f59e0b')); } catch (e) {}
@@ -232,4 +366,3 @@ function enhanceFooterLinksForMobile() {
     console.error(e);
   }
 })();
-

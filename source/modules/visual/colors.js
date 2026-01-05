@@ -496,6 +496,65 @@ function hsvSaturation(hex) {
   return d / max;
 }
 
+/**
+ * Desaturate greys (indices 0, 1) and align them with background hue
+ * This makes greys less colored and more harmonious with the background
+ * In dark mode, also darkens the greys for better contrast
+ */
+function desaturateGreysToBackground(palette, bgHex, isDarkMode = false) {
+  if (!palette || !Array.isArray(palette)) return palette;
+  const out = [...palette];
+  
+  // Extract hue from background color
+  const bgRgb = hexToRgb01(bgHex);
+  if (!bgRgb) return out;
+  const bgHsv = rgb01ToHsv(bgRgb);
+  
+  // If background is too desaturated (pure grey), use a neutral hue (0)
+  // Otherwise use the background's hue for harmony
+  const bgHue = bgHsv.s < 0.05 ? 0 : bgHsv.h;
+  
+  // Process grey indices (0, 1) - skip neutrals (2 = white, 4 = black)
+  const greyIndices = [0, 1];
+  for (const idx of greyIndices) {
+    const greyHex = out[idx];
+    if (!greyHex) continue;
+    
+    const greyRgb = hexToRgb01(greyHex);
+    if (!greyRgb) continue;
+    const greyHsv = rgb01ToHsv(greyRgb);
+    
+    // Desaturate significantly (reduce to 5-10% of original saturation)
+    // but shift hue to match background for harmony
+    const desaturatedSat = Math.max(0, Math.min(0.15, greyHsv.s * 0.1));
+    
+    // In dark mode, darken the greys (reduce value/lightness by ~40-45%)
+    // This makes them more subtle and better integrated with dark backgrounds
+    let adjustedValue = greyHsv.v;
+    if (isDarkMode) {
+      // Darken: reduce value by ~45% (multiply by 0.55)
+      // Keep a minimum value to ensure they're still visible
+      adjustedValue = Math.max(0.15, greyHsv.v * 0.55);
+    }
+    
+    // Convert back to RGB with desaturated saturation and background hue
+    const desaturatedHsv = {
+      h: bgHue,
+      s: desaturatedSat,
+      v: adjustedValue
+    };
+    
+    const desaturatedRgb = hsvToRgb01(desaturatedHsv);
+    out[idx] = rgb255ToHex({
+      r: Math.round(desaturatedRgb.r * 255),
+      g: Math.round(desaturatedRgb.g * 255),
+      b: Math.round(desaturatedRgb.b * 255)
+    });
+  }
+  
+  return out;
+}
+
 function stampCursorCSSVar(hex) {
   try {
     document.documentElement.style.setProperty('--cursor-color', String(hex || '').trim() || '#000000');
@@ -600,16 +659,27 @@ export function getCurrentPalette(templateName) {
   const globals = getGlobals();
   const template = COLOR_TEMPLATES[templateName];
   if (!template) return COLOR_TEMPLATES.industrialTeal.light;
-  return globals.isDarkMode ? template.dark : template.light;
+  
+  const rawPalette = globals.isDarkMode ? template.dark : template.light;
+  const isDarkMode = globals.isDarkMode || false;
+  
+  // Desaturate greys to align with background hue (all palettes)
+  // In dark mode, also darken the greys for better contrast
+  const bgColor = isDarkMode ? (globals.bgDark || '#0a0a0a') : (globals.bgLight || '#f5f5f5');
+  return desaturateGreysToBackground(rawPalette, bgColor, isDarkMode);
 }
 
-export function pickRandomColor() {
+/**
+ * Pick a random color and return both the color hex and the distribution index
+ * @returns {{ color: string, distributionIndex: number }} Color and its distribution index (0-6)
+ */
+export function pickRandomColorWithIndex() {
   const globals = getGlobals();
   const colors = globals.currentColors;
   
   if (!colors || colors.length === 0) {
     console.warn('No colors available, using fallback');
-    return '#ffffff';
+    return { color: '#ffffff', distributionIndex: 0 };
   }
   
   // Primary: use the runtime color distribution (7 labels → 7 distinct palette indices).
@@ -630,13 +700,13 @@ export function pickRandomColor() {
         r -= w;
         if (r <= 0) {
           const idx = clampIntFallback(row?.colorIndex, 0, 7, 0);
-          return colors[idx] || colors[0] || '#ffffff';
+          return { color: colors[idx] || colors[0] || '#ffffff', distributionIndex: i };
         }
       }
       // Numeric edge case: fall through to a deterministic row.
       const last = dist[dist.length - 1];
       const idx = clampIntFallback(last?.colorIndex, 0, 7, 0);
-      return colors[idx] || colors[0] || '#ffffff';
+      return { color: colors[idx] || colors[0] || '#ffffff', distributionIndex: dist.length - 1 };
     }
   }
 
@@ -646,9 +716,13 @@ export function pickRandomColor() {
   const maxIdx = Math.min(colors.length, LEGACY_COLOR_WEIGHTS.length, 8);
   for (let i = 0; i < maxIdx; i++) {
     cumulativeWeight += LEGACY_COLOR_WEIGHTS[i];
-    if (random <= cumulativeWeight) return colors[i];
+    if (random <= cumulativeWeight) return { color: colors[i], distributionIndex: i };
   }
-  return colors[Math.min(colors.length - 1, 7)] || '#ffffff';
+  return { color: colors[Math.min(colors.length - 1, 7)] || '#ffffff', distributionIndex: 0 };
+}
+
+export function pickRandomColor() {
+  return pickRandomColorWithIndex().color;
 }
 
 /**

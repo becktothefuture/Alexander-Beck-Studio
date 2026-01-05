@@ -7,7 +7,7 @@ import { setMode, MODES, resetCurrentMode } from '../modes/mode-controller.js';
 import { NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { updateModeButtonsUI } from './controls.js';
-import { toggleDock } from './panel-dock.js';
+import { isDev } from '../utils/logger.js';
 
 let isKeyboardWired = false;
 
@@ -37,7 +37,14 @@ export function setupKeyboardShortcuts() {
     // Toggle dock with /
     if (k === '/' || e.code === 'Slash') {
       e.preventDefault();
-      toggleDock();
+      // DEV-ONLY: The config panel is a dev tool and must never ship/appear in production.
+      // Avoid a static import so Rollup can drop panel-dock from production bundles.
+      if (!isDev()) return;
+      import('./panel-dock.js')
+        .then((mod) => {
+          try { mod.toggleDock?.(); } catch (err) {}
+        })
+        .catch(() => {});
       return;
     }
 

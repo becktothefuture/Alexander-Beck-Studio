@@ -34,7 +34,7 @@
   --panel-radius-lg: 1rem;
   /* Panel width */
   --panel-width: 23rem;
-  --panel-height: 80vh;
+  --panel-height: 90vh;
 
   /* Density (DAW-style compact spacing) - 30% more compact */
   --panel-pad: 7px;
@@ -105,7 +105,7 @@ body:not(.dark-mode) {
   
   width: var(--panel-width);
   height: var(--panel-height);
-  max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -149,7 +149,6 @@ body:not(.dark-mode) {
 
 .panel .panel-header .panel-icon {
   font-size: 16px;
-  opacity: 0.8;
 }
 
 .panel .panel-header .collapse-btn {
@@ -231,7 +230,7 @@ body:not(.dark-mode) {
   margin-top: var(--panel-pad-8);
   padding-top: var(--panel-pad-6);
   border-top: 1px solid var(--panel-border);
-  opacity: 0.6;
+  opacity: 1;
 }
 
 .panel-category-group:first-child {
@@ -248,7 +247,7 @@ body:not(.dark-mode) {
   color: var(--panel-muted-foreground);
   margin-bottom: var(--panel-pad-6);
   padding-left: var(--panel-pad);
-  opacity: 0.7;
+  opacity: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

@@ -10,10 +10,36 @@ import { log as devLog } from '../utils/logger.js';
 import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
 
+const THEME_STORAGE_KEY = 'theme-preference-v2';
+const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
+
 // Theme states: 'auto', 'light', 'dark'
 let currentTheme = 'auto'; // Default to auto (system + night heuristic)
 let systemPreference = 'light';
 let isDarkModeInitialized = false;
+
+function readStoredThemePreference() {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    if (saved === 'auto' || saved === 'light' || saved === 'dark') return saved;
+    // Legacy key: treat any stored value as stale and migrate to auto.
+    const legacy = localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+    if (legacy === 'auto' || legacy === 'light' || legacy === 'dark') {
+      localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+      localStorage.setItem(THEME_STORAGE_KEY, 'auto');
+    }
+  } catch (e) {}
+  return 'auto';
+}
+
+function writeStoredThemePreference(theme) {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+  } catch (e) {
+    // localStorage unavailable
+  }
+}
 
 /**
  * Get background colors from globals (config-driven) with CSS fallback
@@ -261,11 +287,7 @@ export function setTheme(theme) {
   applyDarkModeToDOM(shouldBeDark);
   
   // Save preference
-  try {
-    localStorage.setItem('theme-preference', theme);
-  } catch (e) {
-    // localStorage unavailable
-  }
+  writeStoredThemePreference(theme);
   
   devLog(`🎨 Theme set to: ${theme} (rendering: ${shouldBeDark ? 'dark' : 'light'})`);
 }
@@ -285,11 +307,7 @@ export function initializeDarkMode() {
   devLog(`🖥️ System prefers: ${systemPreference}`);
   
   // Restore saved preference if available; otherwise default to Auto.
-  let initial = 'auto';
-  try {
-    const saved = localStorage.getItem('theme-preference');
-    if (saved === 'auto' || saved === 'light' || saved === 'dark') initial = saved;
-  } catch (e) {}
+  const initial = readStoredThemePreference();
   setTheme(initial);
   
   // Setup segment control listeners

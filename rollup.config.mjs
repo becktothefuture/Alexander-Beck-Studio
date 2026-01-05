@@ -10,7 +10,8 @@ import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
 import terserPlugin from '@rollup/plugin-terser';
 
-const isProd = process.env.NODE_ENV === 'production';
+// Normalize to match build pipeline conventions (case/whitespace safe).
+const isProd = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TERSER CONFIGURATION (Production Only)

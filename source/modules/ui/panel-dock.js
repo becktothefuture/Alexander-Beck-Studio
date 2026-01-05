@@ -382,18 +382,20 @@ function createMasterPanel({
   // Restore size (only if user has manually resized - i.e., significantly different from CSS defaults)
   const savedSize = loadPanelSize();
   if (savedSize) {
-    // CSS defaults: width = 23rem (368px), height = 80vh
+    // CSS defaults: width = 23rem (368px), height = 90vh
     // Only apply saved size if it's meaningfully different (user actually resized)
     const cssDefaultWidth = 368; // 23rem
-    const cssDefaultHeight = window.innerHeight * 0.8; // 80vh
+    const cssDefaultHeight = window.innerHeight * 0.9; // 90vh
     const widthDiff = Math.abs(savedSize.width - cssDefaultWidth);
     const heightDiff = Math.abs(savedSize.height - cssDefaultHeight);
     
     // Only restore if difference is significant (> 5px) - means user manually resized
     if (widthDiff > 5 || heightDiff > 5) {
       panel.style.width = `${savedSize.width}px`;
-      panel.style.height = `${savedSize.height}px`;
-      panel.style.maxHeight = 'none';
+      // Clamp restored height to 90vh max
+      const maxHeight = window.innerHeight * 0.9;
+      panel.style.height = `${Math.min(savedSize.height, maxHeight)}px`;
+      panel.style.maxHeight = '90vh';
     }
     // Otherwise, let CSS defaults apply
   }

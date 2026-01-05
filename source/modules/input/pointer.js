@@ -77,7 +77,9 @@ export function setupPointer() {
       target.closest('#masterPanel') ||
       target.closest('#dockToggle') ||
       target.closest('.panel-dock') ||
-      target.closest('.panel')
+      target.closest('.panel') ||
+      target.closest('#expertise-legend') ||  // Legend area is UI
+      target.closest('.legend__item')  // Individual legend items
     );
   }
   
@@ -200,7 +202,9 @@ export function setupPointer() {
       el.closest('button') ||
       el.closest('input') ||
       el.closest('select') ||
-      el.closest('textarea')
+      el.closest('textarea') ||
+      el.closest('[role="button"]') ||  // ARIA buttons (e.g., legend items)
+      el.closest('.legend__item--interactive')  // Interactive legend items
     );
   }
 

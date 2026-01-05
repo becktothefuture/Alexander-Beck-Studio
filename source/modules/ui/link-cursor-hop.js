@@ -192,12 +192,15 @@ function getNearestAction(target) {
   if (!el) return null;
 
   // Portfolio carousel cards are `div[role="button"].slide` (drag surface).
-  // We intentionally exclude them from cursor-hover so hover doesn’t add noise
+  // We intentionally exclude them from cursor-hover so hover doesn't add noise
   // while the user is browsing/dragging the wheel.
   try {
     if (el.classList?.contains?.('slide')) return null;
     if (el.closest?.('.slide')) return null;
   } catch (e) {}
+
+  // Legend items now use the same hover system as other interactive elements.
+  // Removed exclusion to allow legend items to use abs-hover-target system.
 
   return el;
 }
@@ -265,7 +268,7 @@ function getBaseBackgroundRgb() {
   const candidates = [
     document.querySelector('.wall-frame'),
     document.getElementById('bravia-balls'),
-    document.getElementById('fade-content'),
+    document.getElementById('app-frame'),
     document.body,
     document.documentElement,
   ].filter(Boolean);

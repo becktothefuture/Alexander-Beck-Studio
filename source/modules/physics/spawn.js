@@ -5,7 +5,7 @@
 
 import { Ball } from './Ball.js';
 import { getGlobals } from '../core/state.js';
-import { pickRandomColor } from '../visual/colors.js';
+import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 import { MODES } from '../core/constants.js';
 
@@ -17,15 +17,25 @@ function randBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
-export function spawnBall(x, y, color) {
-  if (!color) color = pickRandomColor();
+export function spawnBall(x, y, color, distributionIndex) {
   const globals = getGlobals();
   
+  // If no color provided, pick one with its distribution index
+  if (!color) {
+    const picked = pickRandomColorWithIndex();
+    color = picked.color;
+    distributionIndex = picked.distributionIndex;
+  }
+  
   // Per-mode sizing rule:
-  // Radius depends on the current mode’s 0..1 variation slider, scaled by global multiplier.
+  // Radius depends on the current mode's 0..1 variation slider, scaled by global multiplier.
   const r = randomRadiusForMode(globals, globals.currentMode || MODES.PIT);
   
   const ball = new Ball(x, y, r, color);
+  
+  // Store the distribution index for legend filtering
+  // This maps to the colorDistribution array (0-6 for 7 labels)
+  ball.distributionIndex = (distributionIndex !== undefined) ? distributionIndex : -1;
   
   const centerX = globals.canvas.width * 0.5;
   const dir = (x < centerX) ? 1 : -1;

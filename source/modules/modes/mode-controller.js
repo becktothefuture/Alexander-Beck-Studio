@@ -253,6 +253,15 @@ export function setMode(mode) {
   
   console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
 
+  // Sync legend filter system with new balls
+  if (typeof window !== 'undefined' && window.legendFilter && window.legendFilter.syncAllBalls) {
+    try {
+      window.legendFilter.syncAllBalls();
+    } catch (e) {
+      console.warn('Legend filter sync failed:', e);
+    }
+  }
+
   // Schedule warmup consumption (no rendering during warmup).
   // The physics engine will consume this before the first render after mode init.
   const warmupFrames = Math.max(0, Math.round(getWarmupFramesForMode(mode, globals) || 0));

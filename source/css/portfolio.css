@@ -148,7 +148,7 @@ html {
   background-color: var(--wall-color);
 }
 
-body {
+body.portfolio-page {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -159,14 +159,20 @@ body {
   background: var(--wall-color);
   background-color: var(--wall-color);
   font-family: var(--abs-font-sans);
-  color: var(--accent-color);
+  color: var(--text-color-dark);
+  --text-primary: var(--text-color-dark);
+  --text-muted: var(--text-color-dark-muted);
   transition: background-color 0.3s var(--ease-settle);
   cursor: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
-body.dark-mode {
+body.portfolio-page .decorative-script {
+  color: var(--text-color-light);
+}
+
+body.portfolio-page.dark-mode {
   --bg-color: var(--bg-dark);
   --accent-color: var(--abs-neutral-100);
   /* Dark mode: light borders on dark background (inverted from light mode) */
@@ -178,15 +184,15 @@ body.dark-mode {
 }
 
 /* Dark mode borders inherit from CSS variable (no !important needed) */
-body.dark-mode .slide-image-container {
+body.portfolio-page.dark-mode .slide-image-container {
   border-color: var(--border-color);
 }
 
-body.dark-mode .slide:hover .slide-image-container {
+body.portfolio-page.dark-mode .slide:hover .slide-image-container {
   border-color: var(--border-color-hover);
 }
 
-body.dark-mode .slide:hover .slide-image-container::before {
+body.portfolio-page.dark-mode .slide:hover .slide-image-container::before {
   background: var(--border-color-hover);
   box-shadow: 0 0 0 var(--border-width) var(--border-color-hover), 0 0 calc(var(--border-width) * 2) rgba(var(--abs-rgb-white), 0.9);
 }
@@ -279,7 +285,7 @@ body.portfolio-page .edge-copyright__text {
   z-index: 0;
 }
 
-body.dark-mode .top-nav__link::before {
+body.portfolio-page.dark-mode .top-nav__link::before {
   background: radial-gradient(
     circle at center,
     transparent 0%,
@@ -359,12 +365,12 @@ body.dark-mode .top-nav__link::before {
   filter: blur(10px);
 }
 
-body.dark-mode .top-nav__cv {
+body.portfolio-page.dark-mode .top-nav__cv {
   border-color: var(--abs-stroke-medium-inverse);
   background: var(--abs-surface-glass-ghost);
 }
 
-body.dark-mode .top-nav__cv:hover {
+body.portfolio-page.dark-mode .top-nav__cv:hover {
   background: var(--abs-surface-glass-soft);
 }
 
@@ -450,7 +456,7 @@ body.portfolio-page * {
   visibility: visible;
 }
 
-body.dark-mode .wall-frame {
+body.portfolio-page.dark-mode .wall-frame {
   background-color: var(--bg-color, var(--bg-dark, #0a0a0a));
   background: var(--bg-color, var(--bg-dark, #0a0a0a));
 }
@@ -462,7 +468,7 @@ body.detail-open .wall-frame {
 /* --- Slider Stage --- */
 .portfolio-stage {
   position: absolute;
-  /* Fill the padded interior of #fade-content, centered vertically */
+  /* Fill the padded interior of .fade-content, centered vertically */
   left: 0;
   right: 0;
   top: 0;
@@ -473,7 +479,7 @@ body.detail-open .wall-frame {
   justify-content: center;
   height: 100%;
   width: 100%;
-  z-index: 5; /* Above the centered brand logo (background), below UI (#fade-content). */
+  z-index: 5; /* Above the centered brand logo (background), below UI (.fade-content). */
   opacity: 1;
   visibility: visible;
 }
@@ -790,7 +796,7 @@ body.detail-open .wall-frame {
     transform var(--detail-transition-ms) var(--detail-transition-ease);
 }
 
-body.dark-mode .project-detail {
+body.portfolio-page.dark-mode .project-detail {
   background: var(--bg-dark);
 }
 
@@ -973,7 +979,7 @@ body.portfolio-page.abs-hover-mode-ui .project-detail__close.abs-hover-target--u
   animation-iteration-count: infinite, infinite;
 }
 
-body.dark-mode .project-detail__media::after {
+body.portfolio-page.dark-mode .project-detail__media::after {
   opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled) * var(--detail-media-noise-opacity, 0));
   mix-blend-mode: overlay;
 }
@@ -999,12 +1005,12 @@ body.dark-mode .project-detail__media::after {
   mix-blend-mode: multiply;
 }
 
-body.dark-mode .project-detail__noise--back {
+body.portfolio-page.dark-mode .project-detail__noise--back {
   opacity: calc(var(--noise-back-opacity-dark) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
   mix-blend-mode: overlay;
 }
 
-body.dark-mode .project-detail__noise--front {
+body.portfolio-page.dark-mode .project-detail__noise--front {
   opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
   mix-blend-mode: overlay;
 }
@@ -1216,8 +1222,8 @@ body.detail-open .portfolio-footer {
    Only portfolio-specific positioning tweaks are defined here.
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* Portfolio #fade-content: flex container for header/footer with content area */
-body.portfolio-page #fade-content {
+/* Portfolio .fade-content: flex container for header/footer with content area */
+body.portfolio-page .fade-content {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1226,24 +1232,40 @@ body.portfolio-page #fade-content {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: var(--content-padding);
+  padding:
+    calc(var(--content-padding-y) * var(--abs-content-pad-mul-y, 1))
+    calc(var(--content-padding-x) * var(--abs-content-pad-mul-x, 1));
   pointer-events: none;
   z-index: 20;
 }
 
 /* Re-enable pointer events on interactive elements */
-body.portfolio-page #fade-content a,
-body.portfolio-page #fade-content button,
-body.portfolio-page #fade-content [role="button"] {
+body.portfolio-page .fade-content a,
+body.portfolio-page .fade-content button,
+body.portfolio-page .fade-content [role="button"] {
   pointer-events: auto;
 }
 
-/* Portfolio header: back arrow on left, Bio/CV + sound on right */
+/* Portfolio header: back arrow + Bio/CV on left, blurb + sound on right */
 body.portfolio-page .ui-top-left {
   display: flex;
   flex-direction: row;
+  align-items: center;
+  gap: var(--gap-md);
+}
+
+/* Portfolio right side: blurb text + sound toggle */
+body.portfolio-page .ui-top-right {
+  display: flex;
+  flex-direction: row;
   align-items: flex-start;
-  gap: var(--gap-sm);
+  gap: var(--gap-md);
+}
+
+/* Blurb wrapper: constrain width for right column */
+.portfolio-blurb-wrapper {
+  max-width: 420px;
+  text-align: left;
 }
 
 /* Blurb: same styling as index decorative-script */
@@ -1280,10 +1302,6 @@ body.portfolio-page .ui-top-left {
   appearance: none;
   border: 0;
   background: transparent;
-  /* Match the primary icon-link hit-area sizing (e.g. footer socials). */
-  width: var(--footer-icon-size);
-  height: var(--footer-icon-size);
-  padding: var(--link-icon-padding);
   margin: 0;
   display: inline-flex;
   justify-content: center;
@@ -1294,7 +1312,7 @@ body.portfolio-page .ui-top-left {
   user-select: none;
   color: var(--text-quiet);
   pointer-events: auto;
-  flex: 0 0 var(--footer-icon-size);
+  flex: 0 0 var(--ui-icon-frame-size);
   text-decoration: none;
   overflow: visible;
 }
@@ -1325,7 +1343,8 @@ body.portfolio-page .ui-top-left {
 
 .gate-back i.ti {
   font-weight: 500;
-  font-size: var(--icon-size-base);
+  font-size: var(--ui-icon-glyph-size);
+  line-height: 1;
 }
 
 .gate-back:focus-visible {
@@ -1334,7 +1353,7 @@ body.portfolio-page .ui-top-left {
   border-radius: 0.6vmin;
 }
 
-body.dark-mode .gate-back:focus-visible {
+body.portfolio-page.dark-mode .gate-back:focus-visible {
   outline-color: rgba(var(--abs-rgb-white), 0.35);
 }
 
@@ -1410,7 +1429,7 @@ body.dark-mode .gate-back:focus-visible {
   color: var(--link-hover-color);
 }
 
-body.dark-mode .sound-toggle[data-enabled="true"] {
+body.portfolio-page.dark-mode .sound-toggle[data-enabled="true"] {
   color: var(--link-hover-color);
 }
 

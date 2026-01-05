@@ -5,10 +5,6 @@
 		}
 	],
 	"settings": {
-		"piny.project_settings": {
-			"open-pages": [
-				"pinyfakepage.html"
-			]
-		}
+		"folder-color.pathColors": []
 	}
 }

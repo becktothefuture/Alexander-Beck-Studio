@@ -2,7 +2,7 @@
 <!-- Portfolio carousel page (shares chrome + gates with index) -->
 <html lang="en" class="fonts-loading">
 <head>
-  <style id="fade-blocking">#fade-content{opacity:0}</style>
+  <style id="fade-blocking">#app-frame{opacity:0}</style>
   <!-- Browser Chrome Color -->
   <meta name="theme-color" content="#242529">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#242529">
@@ -11,10 +11,32 @@
   <script>
     (function() {
       'use strict';
+      function getMetaThemeColor(selector) {
+        const node = document.querySelector(selector);
+        return node && node.content ? node.content.trim() : '';
+      }
+      const fallbackLight = '#242529';
+      const fallbackDark = '#1a1a1a';
+      const primaryMeta = getMetaThemeColor('meta[name="theme-color"]:not([media])');
+      const THEME_COLOR_LIGHT = getMetaThemeColor('meta[name="theme-color"][media="(prefers-color-scheme: light)"]') || primaryMeta || fallbackLight;
+      const THEME_COLOR_DARK = getMetaThemeColor('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]') || primaryMeta || fallbackDark;
       // Detect dark mode preference synchronously before any rendering
       let shouldBeDark = false;
-      const THEME_COLOR_LIGHT = '#242529';
-      const THEME_COLOR_DARK = '#1a1a1a';
+
+      const THEME_KEY = 'theme-preference-v2';
+      const LEGACY_THEME_KEY = 'theme-preference';
+      function readThemePreference() {
+        try {
+          const v2 = localStorage.getItem(THEME_KEY);
+          if (v2 === 'auto' || v2 === 'light' || v2 === 'dark') return v2;
+          const legacy = localStorage.getItem(LEGACY_THEME_KEY);
+          if (legacy === 'auto' || legacy === 'light' || legacy === 'dark') {
+            localStorage.removeItem(LEGACY_THEME_KEY);
+            localStorage.setItem(THEME_KEY, 'auto');
+          }
+        } catch (e) {}
+        return 'auto';
+      }
 
       function setBrowserChromeColors(isDark) {
         const meta = document.querySelector('meta[name="theme-color"]');
@@ -26,13 +48,7 @@
       }
       
       // Get saved theme preference
-      let themePreference = 'auto';
-      try {
-        const saved = localStorage.getItem('theme-preference');
-        if (saved === 'auto' || saved === 'light' || saved === 'dark') {
-          themePreference = saved;
-        }
-      } catch (e) {}
+      let themePreference = readThemePreference();
       
       if (themePreference === 'dark') {
         shouldBeDark = true;
@@ -131,23 +147,21 @@
       </div>
     </div>
     
-    <div id="fade-content">
+    <div class="fade-content">
       <div id="app-frame" class="ui-layer-wrapper">
         <!-- Header (index-parity chrome) -->
         <header class="ui-top" data-portfolio-ui>
           <div class="ui-top-main">
             <div class="ui-top-left">
-              <a href="index.html" class="gate-back" aria-label="Back to home">
+              <a href="index.html" class="gate-back abs-icon-btn" aria-label="Back to home">
                 <i class="ti ti-arrow-left" aria-hidden="true"></i>
               </a>
-              <blockquote class="decorative-script">
-                <p id="portfolio-blurb">Selected collaborations across finance, luxury, digital identity, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently building my own app; check the final project in the slider. <a id="contact-email-inline" href="#">Let's chat.</a></p>
-              </blockquote>
+              <a id="portfolio-cv-trigger" class="portfolio-cv-link" href="#" aria-label="Bio/CV">Bio/CV</a>
             </div>
             <div class="ui-top-right">
-              <div class="portfolio-header__actions" aria-label="Portfolio header actions">
-                <a id="portfolio-cv-trigger" class="portfolio-cv-link" href="#" aria-label="Bio/CV">Bio/CV</a>
-              </div>
+              <blockquote class="decorative-script portfolio-blurb-wrapper">
+                <p id="portfolio-blurb">Selected collaborations across finance, luxury, digital identity, and frontier tech—things I've directed, mentored, executed, or co-built with global leaders. Currently building my own app; check the final project in the slider. <a id="contact-email-inline" href="#">Let's chat.</a></p>
+              </blockquote>
               <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>
             </div>
           </div>
@@ -222,6 +236,8 @@
 
       const ENDPOINT = 'http://localhost:8003/events';
       let retryMs = 500;
+      let retryCount = 0;
+      const MAX_RETRIES = 3; // Stop after 3 failed attempts
       let es = null;
 
       function isUnsafeToReloadNow() {
@@ -275,6 +291,11 @@
       }
 
       function scheduleReconnect() {
+        retryCount++;
+        if (retryCount > MAX_RETRIES) {
+          // Silently give up - live reload server isn't running
+          return;
+        }
         const wait = Math.min(6000, retryMs);
         retryMs = Math.min(6000, Math.round(retryMs * 1.5));
         window.setTimeout(connect, wait);

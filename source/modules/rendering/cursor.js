@@ -1,9 +1,11 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                          CUSTOM CURSOR RENDERER                              ║
 // ║     Border area: default cursor | Simulation: cursor scales down to dot      ║
+// ║     Gate overlays: cursor shows at full size (round button)                  ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
+import { isOverlayActive } from '../ui/gate-overlay.js';
 
 let cursorElement = null;
 let isInitialized = false;
@@ -149,9 +151,19 @@ export function updateCursorPosition(clientX, clientY) {
   const wasInSimulation = isInSimulation;
   isInSimulation = isMouseInSimulation(clientX, clientY);
   
+  // Check if gate overlay is active - cursor should show at full size
+  const overlayIsActive = isOverlayActive();
+  
   cursorElement.style.left = `${clientX}px`;
   cursorElement.style.top = `${clientY}px`;
   document.body.style.cursor = 'none';
+  
+  // When gate overlay is active, show cursor at full size (round button)
+  if (overlayIsActive) {
+    cursorElement.style.display = 'block';
+    cursorElement.style.transform = FULL_SCALE;
+    return;
+  }
   
   if (isInSimulation) {
     cursorElement.style.display = 'block';
@@ -213,12 +225,12 @@ function startCursorFadeIn() {
   fadeInStarted = true;
   
   // Calculate timing based on entrance animation
-  // Page fade-in completes around: wallDelay (300ms) + wallDuration*0.3 (240ms) + elementDuration (200ms) = ~740ms
+  // Page fade-in completes around: wallDelay (300ms) + wallDuration*0.3 (240ms) + elementDuration (500ms) = ~1040ms
   // Start cursor fade-in after page fade-in completes, with additional delay for alignment
   const globals = getGlobals();
-  const wallDelay = globals.entranceWallTransitionDelay || 300;
-  const wallDuration = globals.entranceWallTransitionDuration || 800;
-  const elementDuration = globals.entranceElementDuration || 200;
+  const wallDelay = globals.entranceWallTransitionDelay ?? 300;
+  const wallDuration = globals.entranceWallTransitionDuration ?? 800;
+  const elementDuration = globals.entranceElementDuration ?? 500;
   const pageFadeComplete = wallDelay + (wallDuration * 0.3) + elementDuration;
   
   // Cursor fade-in starts after page fade-in completes + extra delay for alignment

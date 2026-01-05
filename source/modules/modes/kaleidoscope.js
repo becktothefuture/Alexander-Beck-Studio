@@ -6,7 +6,7 @@
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { MODES } from '../core/constants.js';
 import { Ball } from '../physics/Ball.js';
-import { pickRandomColor } from '../visual/colors.js';
+import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
 import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
 
 const TAU = Math.PI * 2;
@@ -172,7 +172,7 @@ function initializeKaleidoscopeWithCount(count, mode) {
   const maxAttemptsPerBall = 90;
   const margin = Math.max(2, g.wallInset || 3) * g.DPR;
 
-  function spawnOne(color) {
+  function spawnOne(color, distributionIndex) {
     const radius = randomRadiusForKaleidoscopeVh(g, mode);
     // Allow spawning well beyond viewport bounds (for 200% more surface area)
     const spawnMargin = ringMax * 1.2; // Extra margin beyond max radius
@@ -191,8 +191,9 @@ function initializeKaleidoscopeWithCount(count, mode) {
       if (!isOverlapping(placed, x, y, spacedRadius)) {
         placed.push({ x, y, r: spacedRadius });
         const b = new Ball(x, y, radius, color);
+        b.distributionIndex = distributionIndex;
         b._kaleiSeed = Math.random() * TAU;
-        // Lock in an individual “orbit band” so the system stays distributed
+        // Lock in an individual "orbit band" so the system stays distributed
         // (prevents everything collapsing into a single ring).
         const ddx = x - centerX;
         const ddy = y - centerY;
@@ -214,6 +215,7 @@ function initializeKaleidoscopeWithCount(count, mode) {
     const x = centerX + Math.cos(a) * rr;
     const y = centerY + Math.sin(a) * rr;
     const b = new Ball(x, y, radius, color);
+    b.distributionIndex = distributionIndex;
     b._kaleiSeed = Math.random() * TAU;
     const ddx = x - centerX;
     const ddy = y - centerY;
@@ -229,11 +231,13 @@ function initializeKaleidoscopeWithCount(count, mode) {
   // Ensure at least one of each palette color (if we have enough balls)
   const colorCount = Math.min(8, clampedCount);
   for (let colorIndex = 0; colorIndex < colorCount; colorIndex++) {
-    spawnOne(pickRandomColor());
+    const { color, distributionIndex } = pickRandomColorWithIndex();
+    spawnOne(color, distributionIndex);
   }
 
   for (let i = colorCount; i < clampedCount; i++) {
-    spawnOne(pickRandomColor());
+    const { color, distributionIndex } = pickRandomColorWithIndex();
+    spawnOne(color, distributionIndex);
   }
 }
 

@@ -6,7 +6,7 @@
 
 import { getGlobals, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
-import { pickRandomColor } from '../visual/colors.js';
+import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
@@ -28,14 +28,16 @@ export function initializeBubbles() {
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
     const y = Math.random() * h; // Full screen height
-    createBubble(x, y, pickRandomColor(), true); // Already scaled in
+    const { color, distributionIndex } = pickRandomColorWithIndex();
+    createBubble(x, y, color, distributionIndex, true); // Already scaled in
   }
   
   // Fill rest with random colors across full height
   for (let i = 8; i < count; i++) {
     const x = Math.random() * w;
     const y = Math.random() * h; // Full screen height
-    createBubble(x, y, pickRandomColor(), true); // Already scaled in
+    const { color, distributionIndex } = pickRandomColorWithIndex();
+    createBubble(x, y, color, distributionIndex, true); // Already scaled in
   }
 }
 
@@ -43,7 +45,7 @@ export function initializeBubbles() {
  * Create a bubble ball at position (x, y) with given color
  * @param {boolean} alreadyVisible - If true, skip spawn animation (for initial setup)
  */
-function createBubble(x, y, color, alreadyVisible = false) {
+function createBubble(x, y, color, distributionIndex, alreadyVisible = false) {
   const g = getGlobals();
   const DPR = g.DPR || 1;
   
@@ -51,6 +53,7 @@ function createBubble(x, y, color, alreadyVisible = false) {
   const targetRadius = randomRadiusForMode(g, MODES.BUBBLES);
   
   const b = new Ball(x, y, alreadyVisible ? targetRadius : 0.1, color);
+  b.distributionIndex = distributionIndex;
   b.isBubble = true;
   b.baseRadius = targetRadius;
   b.targetRadius = targetRadius;

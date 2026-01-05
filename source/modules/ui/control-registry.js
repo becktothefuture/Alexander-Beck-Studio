@@ -4313,7 +4313,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'entranceElementDuration',
         type: 'range',
         min: 100, max: 1000, step: 50,
-        default: 200,
+        default: 800,
         format: v => `${Math.round(v)}ms`,
         parse: v => parseInt(v, 10),
         hint: 'Duration for individual element animations'

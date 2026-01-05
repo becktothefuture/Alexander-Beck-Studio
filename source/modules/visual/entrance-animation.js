@@ -5,6 +5,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
+import { readTokenVar } from '../utils/tokens.js';
 
 /**
  * Detects aspect ratio category (landscape, square, portrait)
@@ -78,19 +79,27 @@ export function setInitialBrowserDefaultState() {
   
   // Get original wall color from config or CSS
   const root = getComputedStyle(html);
-  let originalWallColor = root.getPropertyValue('--wall-color').trim();
-  if (!originalWallColor || originalWallColor === '#ffffff') {
-    // Fallback to config or default
-    originalWallColor = g.frameColor || '#0a0a0a';
-  }
+  const resolvedWallColor = root.getPropertyValue('--wall-color').trim();
+  const hasBodyDark = document.body && document.body.classList.contains('dark-mode');
+  const isDarkMode = html.classList.contains('dark-mode') || hasBodyDark || g.isDarkMode;
+
+  // Respect theme-aware colors from config/tokens rather than hard-coded white
+  const wallColorLight = g.frameColorLight || readTokenVar('--wall-color-light', '#ffffff');
+  const wallColorDark = g.frameColorDark || readTokenVar('--wall-color-dark', '#0a0a0a');
+
+  const originalWallColor = resolvedWallColor || (isDarkMode ? wallColorDark : wallColorLight);
   
   // Store original color for transition
   html.dataset.originalWallColor = originalWallColor;
   
-  // Set browser default background (white) - this happens before wall-state transition
-  html.style.setProperty('--wall-color', '#ffffff', 'important');
-  html.style.setProperty('background', '#ffffff', 'important');
-  html.style.setProperty('background-color', '#ffffff', 'important');
+  // Set browser default background based on current theme (prevents white flash in dark mode)
+  const browserDefaultBg = isDarkMode
+    ? (g.browserDefaultBgDark || wallColorDark || originalWallColor || '#0a0a0a')
+    : (g.browserDefaultBgLight || wallColorLight || originalWallColor || '#ffffff');
+
+  html.style.setProperty('--wall-color', browserDefaultBg, 'important');
+  html.style.setProperty('background', browserDefaultBg, 'important');
+  html.style.setProperty('background-color', browserDefaultBg, 'important');
   
   // Hide all custom-styled elements initially
   html.classList.add('entrance-pre-transition');
@@ -297,13 +306,13 @@ export function animateElementEntrance(element, options = {}) {
     return null;
   }
   
-  const delay = options.delay || 0;
-  const duration = options.duration || (g.entranceElementDuration || 200);
-  const scaleStart = options.scaleStart || (g.entranceElementScaleStart || 0.95);
-  const scaleEnd = options.scaleEnd || 1;
-  const translateZStart = options.translateZStart || (g.entranceElementTranslateZStart || -20);
-  const translateZEnd = options.translateZEnd || 0;
-  const easing = options.easing || (g.entranceElementEasing || 'ease-out');
+  const delay = options.delay ?? 0;
+  const duration = options.duration ?? g.entranceElementDuration ?? 800;
+  const scaleStart = options.scaleStart ?? g.entranceElementScaleStart ?? 0.95;
+  const scaleEnd = options.scaleEnd ?? 1;
+  const translateZStart = options.translateZStart ?? g.entranceElementTranslateZStart ?? -20;
+  const translateZEnd = options.translateZEnd ?? 0;
+  const easing = options.easing ?? g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
   
   // Set initial state
   element.style.opacity = '0';
@@ -352,40 +361,48 @@ export function animateElementEntrance(element, options = {}) {
  */
 export async function orchestrateEntrance(options = {}) {
   const g = getGlobals();
+  const skipWallAnimation = Boolean(options.skipWallAnimation);
   
   // Apply aspect ratio detection
   applyAspectRatioClass();
   applyPerspectiveCSS();
   
-  // Set initial browser default state
-  setInitialBrowserDefaultState();
+  // Set initial browser default state unless caller wants the wall already present
+  if (!skipWallAnimation) {
+    setInitialBrowserDefaultState();
+  } else {
+    document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
+    document.documentElement.classList.add('entrance-complete');
+  }
   
   // Wait for fonts to load
   if (options.waitForFonts) {
     await options.waitForFonts();
   }
   
-  // Start wall-state transition
-  transitionToWallState();
+  // Start wall-state transition (optional)
+  if (!skipWallAnimation) {
+    transitionToWallState();
+  }
   
   // Animate UI content wrapper (smaller elements inside will fade with it)
   // Background elements (#bravia-balls, #abs-scene, #edge-chapter, #edge-copyright, #brand-logo)
   // are now visible immediately - no fade-in animation
-  const fadeContent = document.getElementById('fade-content');
-  if (fadeContent) {
-    const wallDelay = g.entranceWallTransitionDelay || 300;
-    const wallDuration = g.entranceWallTransitionDuration || 800;
-    const elementDelay = wallDelay + (wallDuration * 0.3); // Start elements during wall transition
+  const fadeTarget = document.getElementById('app-frame');
+  if (fadeTarget) {
+    const wallDelay = g.entranceWallTransitionDelay ?? 300;
+    const wallDuration = g.entranceWallTransitionDuration ?? 800;
+    const elementDelay = skipWallAnimation ? 0 : (wallDelay + (wallDuration * 0.3)); // Start elements during wall transition
     
-    animateElementEntrance(fadeContent, {
+    animateElementEntrance(fadeTarget, {
       delay: elementDelay,
-      duration: g.entranceElementDuration || 200,
-      scaleStart: g.entranceElementScaleStart || 0.95,
-      translateZStart: g.entranceElementTranslateZStart || -20
+      duration: g.entranceElementDuration ?? 500,
+      scaleStart: g.entranceElementScaleStart ?? 0.95,
+      translateZStart: g.entranceElementTranslateZStart ?? -20,
+      easing: g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)'
     });
   }
   
   // Background elements (#edge-chapter, #edge-copyright, #brand-logo) are now
   // visible immediately - removed from fade-in animation
 }
-

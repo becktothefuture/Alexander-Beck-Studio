@@ -6,7 +6,7 @@
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
-import { pickRandomColor } from '../visual/colors.js';
+import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
@@ -39,8 +39,9 @@ export function initializeMagnetic() {
     const x = Math.random() * w;
     const y = Math.random() * h;
     const r = randomRadiusForMode(g, MODES.MAGNETIC);
-    const c = pickRandomColor();
-    const b = new Ball(x, y, r, c);
+    const { color, distributionIndex } = pickRandomColorWithIndex();
+    const b = new Ball(x, y, r, color);
+    b.distributionIndex = distributionIndex;
     b.vx = (Math.random() - 0.5) * initSpeed;
     b.vy = (Math.random() - 0.5) * initSpeed;
     // Assign magnetic charge: positive (attracted) or negative (repelled)
@@ -53,8 +54,9 @@ export function initializeMagnetic() {
     const x = Math.random() * w;
     const y = Math.random() * h;
     const r = randomRadiusForMode(g, MODES.MAGNETIC);
-    const c = pickRandomColor();
-    const b = new Ball(x, y, r, c);
+    const { color, distributionIndex } = pickRandomColorWithIndex();
+    const b = new Ball(x, y, r, color);
+    b.distributionIndex = distributionIndex;
     b.vx = (Math.random() - 0.5) * initSpeed;
     b.vy = (Math.random() - 0.5) * initSpeed;
     b.charge = Math.random() > 0.5 ? 1 : -1;

@@ -42,7 +42,6 @@ export const MODES = {
 export const NARRATIVE_MODE_SEQUENCE = [
   MODES.PIT,
   MODES.FLIES,
-  MODES.LATTICE,
   MODES.BUBBLES,
   MODES.PIT_THROWS,
   MODES.MAGNETIC,
@@ -60,7 +59,8 @@ export const NARRATIVE_MODE_SEQUENCE = [
   MODES.KALEIDOSCOPE_1,
   MODES.KALEIDOSCOPE_2,
   MODES.KALEIDOSCOPE_3,
-  MODES.KALEIDOSCOPE
+  MODES.KALEIDOSCOPE,
+  MODES.LATTICE
 ];
 
 // Short chapter titles (no numbers) — used by the left-edge narrative label.

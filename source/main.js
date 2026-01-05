@@ -27,6 +27,7 @@ import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/au
 import { upgradeSocialIcons } from './modules/ui/social-icons.js';
 import { initTimeDisplay } from './modules/ui/time-display.js';
 import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
+// Note: Legend interactivity is now inlined in main.js for reliability
 import { initLinkCursorHop } from './modules/ui/link-cursor-hop.js';
 // Layout controls now integrated into master panel
 import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
@@ -51,6 +52,8 @@ import {
 // Compile-time dev flag (Rollup `replace()` sets __DEV__ in bundled builds).
 // In source/dev mode (unbundled), `__DEV__` is undefined and we fall back to runtime detection.
 const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : isDev();
+const CONTENT_FADE_DURATION_MS = 800;
+const CONTENT_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 function pickStartupMode() {
   // Narrative opening: start with Ball Pit.
@@ -114,6 +117,57 @@ export function applyVisualCSSVars(config) {
   if (config.noiseFrontOpacityDark !== undefined) {
     root.style.setProperty('--noise-front-opacity-dark', String(config.noiseFrontOpacityDark));
   }
+}
+
+/**
+ * Fade in the primary content wrapper with a gentle ease-out.
+ * Uses WAAPI when available, falling back to a CSS transition.
+ */
+function fadeInContentLayer(options = {}) {
+  const fadeTarget = document.getElementById('app-frame');
+  if (!fadeTarget) return Promise.resolve();
+  
+  const duration = options.duration ?? CONTENT_FADE_DURATION_MS;
+  const easing = options.easing ?? CONTENT_FADE_EASING;
+  
+  return new Promise((resolve) => {
+    let finished = false;
+    const finalize = () => {
+      if (finished) return;
+      finished = true;
+      try {
+        fadeTarget.style.opacity = '1';
+        fadeTarget.style.transform = 'translateZ(0)';
+        fadeTarget.style.visibility = 'visible';
+        fadeTarget.style.willChange = 'auto';
+        const blocker = document.getElementById('fade-blocking');
+        if (blocker) blocker.remove();
+      } catch (e) {}
+      resolve();
+    };
+
+    fadeTarget.style.visibility = 'visible';
+    fadeTarget.style.willChange = 'opacity, transform';
+
+    if (typeof fadeTarget.animate === 'function') {
+      const anim = fadeTarget.animate(
+        [
+          { opacity: 0, transform: 'translateZ(0)' },
+          { opacity: 1, transform: 'translateZ(0)' }
+        ],
+        { duration, easing, fill: 'forwards' }
+      );
+      anim.addEventListener('finish', finalize);
+      anim.addEventListener('cancel', finalize);
+    } else {
+      fadeTarget.style.transition = `opacity ${duration}ms ${easing}`;
+      requestAnimationFrame(() => {
+        fadeTarget.style.opacity = '1';
+        fadeTarget.style.transform = 'translateZ(0)';
+      });
+      window.setTimeout(finalize, duration + 50);
+    }
+  });
 }
 
 /**
@@ -401,6 +455,137 @@ function enhanceFooterLinksForMobile() {
     // Legend dots: assign discipline colors (palette-driven + story overrides)
     applyExpertiseLegendColors();
     
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // INTERACTIVE LEGEND FILTER SYSTEM
+    // - By default, all labels are considered "active" (showing all balls equally)
+    // - When a label is clicked, it toggles its active state
+    // - Active labels stay at full opacity, inactive labels fade to 0.35
+    // - Balls corresponding to active labels grow larger and stay at full opacity
+    // - Balls not matching active labels fade to 0.35 opacity
+    // - Ball size scales inversely with number of active labels (max size = 1 active)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    
+    // Track active legend indices (all active by default)
+    const legendActiveSet = new Set(); // Empty = all active, non-empty = only specified are active
+    let legendItems = [];
+    const INACTIVE_OPACITY = 0.35;
+    
+    // Store all balls (for show/hide filtering)
+    let allBalls = []; // Complete set of balls
+    
+    /**
+     * Sync allBalls with current balls (called after mode changes spawn new balls)
+     */
+    function syncAllBalls() {
+      const g = getGlobals();
+      if (!g.balls) return;
+      allBalls = [...g.balls];
+      // Reapply filter if active
+      if (legendActiveSet.size > 0) {
+        updateBallsForFilter();
+      }
+    }
+    
+    /**
+     * Update which balls are visible based on active filter state
+     * Simple show/hide like data visualization filtering
+     */
+    function updateBallsForFilter() {
+      const g = getGlobals();
+      
+      // Safety check
+      if (!allBalls || allBalls.length === 0) {
+        allBalls = [...(g.balls || [])];
+        return;
+      }
+      
+      const allActive = legendActiveSet.size === 0;
+      
+      if (allActive) {
+        // Show all balls
+        g.balls = [...allBalls];
+      } else {
+        // Show only balls matching active filters
+        g.balls = allBalls.filter(ball => {
+          if (!ball) return false;
+          const idx = ball.distributionIndex ?? -1;
+          return idx >= 0 && legendActiveSet.has(idx);
+        });
+      }
+    }
+    
+    // Expose syncAllBalls globally so mode controller can call it
+    if (!window.legendFilter) window.legendFilter = {};
+    window.legendFilter.syncAllBalls = syncAllBalls;
+    
+    /**
+     * Update legend item visual states
+     */
+    function updateLegendVisuals() {
+      const allActive = legendActiveSet.size === 0;
+      
+      legendItems.forEach((item, idx) => {
+        if (allActive) {
+          // All active: all labels at full opacity
+          item.classList.remove('legend__item--active', 'legend__item--dimmed');
+          item.style.opacity = '';
+        } else if (legendActiveSet.has(idx)) {
+          // This label is active
+          item.classList.add('legend__item--active');
+          item.classList.remove('legend__item--dimmed');
+          item.style.opacity = '';
+        } else {
+          // This label is not active (dimmed)
+          item.classList.remove('legend__item--active');
+          item.classList.add('legend__item--dimmed');
+          item.style.opacity = String(INACTIVE_OPACITY);
+        }
+      });
+    }
+    
+    /**
+     * Toggle a legend item's active state
+     * @param {number} index - Legend item index
+     */
+    function toggleLegendItem(index) {
+      if (legendActiveSet.size === 0) {
+        // Was "all active" mode - now activating just this one
+        legendActiveSet.add(index);
+      } else if (legendActiveSet.has(index)) {
+        // This one was active - deactivate it
+        legendActiveSet.delete(index);
+        // If none left active, revert to "all active" mode
+        if (legendActiveSet.size === 0) {
+          // All deactivated = all active (default state)
+        }
+      } else {
+        // This one was not active - activate it
+        legendActiveSet.add(index);
+      }
+      
+      updateLegendVisuals();
+      updateBallsForFilter();
+    }
+    
+    // Initialize legend styling (display only, no filtering)
+    try {
+      const legend = document.getElementById('expertise-legend');
+      if (legend) {
+        legendItems = Array.from(legend.querySelectorAll('.legend__item'));
+        legendItems.forEach((item) => {
+          item.classList.add('legend__item--interactive');
+          // Stop clicks from propagating to prevent mode cycling
+          item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          });
+        });
+      }
+    } catch (e) {
+      // Silent fail for legend setup
+    }
+    log('✓ Legend display configured');
+    
     setupKeyboardShortcuts();
     log('✓ Keyboard shortcuts registered');
     
@@ -505,13 +690,13 @@ function enhanceFooterLinksForMobile() {
     // ╔══════════════════════════════════════════════════════════════════════════════╗
     // ║                             PAGE FADE-IN                                    ║
     // ╚══════════════════════════════════════════════════════════════════════════════╝
-    // Goal: fade ALL UI content (inside #fade-content) from 0 → 1 on reload.
+    // Goal: fade ALL UI content (inside #app-frame) from 0 → 1 on reload.
     //
     // Why this is tricky in this project:
     // - Much of the UI is `position: fixed` (exported layout + our overrides).
     // - Fixed descendants can be composited outside a normal wrapper, so fading
     //   a parent via CSS can appear “broken”.
-    // - We solve this with a fixed + transformed `#fade-content` (CSS) and we
+    // - We solve this with a fixed + transformed `#app-frame` (CSS) and we
     //   run the fade using Web Animations API (WAAPI) for maximum robustness.
     //
     // Failsafe:
@@ -526,19 +711,14 @@ function enhanceFooterLinksForMobile() {
     try {
       const { orchestrateEntrance } = await import('./modules/visual/entrance-animation.js');
       const g = getGlobals();
-      
-      // Skip entrance animation if disabled or reduced motion preferred
-      if (!g.entranceEnabled || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-        // Fallback: simple fade-in
-    try {
-      await waitForFonts();
-    } catch (e) {}
+      const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+      const elementDuration = g.entranceElementDuration ?? CONTENT_FADE_DURATION_MS;
+      const elementEasing = g.entranceElementEasing ?? CONTENT_FADE_EASING;
 
-      const fadeContent = document.getElementById('fade-content');
-        if (fadeContent) {
-          fadeContent.style.opacity = '1';
-          fadeContent.style.transform = 'translateZ(0)';
-        }
+      // Skip entrance animation if disabled or reduced motion preferred
+      if (!g.entranceEnabled || reduceMotion) {
+        try { await waitForFonts(); } catch (e) {}
+        await fadeInContentLayer({ duration: elementDuration, easing: elementEasing });
         console.log('✓ Entrance animation skipped (disabled or reduced motion)');
       } else {
         // Orchestrate dramatic entrance
@@ -553,16 +733,12 @@ function enhanceFooterLinksForMobile() {
       }
     } catch (e) {
       console.warn('⚠️ Entrance animation failed, falling back to simple fade:', e);
-      // Fallback: simple fade-in
-      try {
-        await waitForFonts();
-      } catch (e) {}
-      
-      const fadeContent = document.getElementById('fade-content');
-        if (fadeContent) {
-          fadeContent.style.opacity = '1';
-          fadeContent.style.transform = 'translateZ(0)';
-        }
+      try { await waitForFonts(); } catch (e) {}
+      const g = (() => { try { return getGlobals(); } catch (err) { return {}; } })();
+      await fadeInContentLayer({
+        duration: g.entranceElementDuration ?? CONTENT_FADE_DURATION_MS,
+        easing: g.entranceElementEasing ?? CONTENT_FADE_EASING
+      });
     }
     
   } catch (error) {

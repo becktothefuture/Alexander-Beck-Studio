@@ -10,6 +10,8 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const pkg = require('./package.json');
+const PROJECT_VERSION = (pkg && pkg.version) ? pkg.version : '0.0.0';
 
 console.log('\n🏗️  SIMPLE BUILD PIPELINE STARTING...\n');
 
@@ -175,6 +177,21 @@ function pickTokenValue(snapshot, name, fallback) {
   return fallback;
 }
 
+function readFrameColorsFromConfig(configPath) {
+  const fallback = { light: '#242529', dark: '#1a1a1a' };
+  const raw = safeReadFile(configPath);
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw);
+    const base = String(parsed.frameColor || '').trim();
+    const light = String(parsed.frameColorLight || base || fallback.light).trim() || fallback.light;
+    const dark = String(parsed.frameColorDark || parsed.frameColor || base || fallback.dark).trim() || fallback.dark;
+    return { light, dark };
+  } catch (e) {
+    return fallback;
+  }
+}
+
 function buildThemeColorTags(light, dark) {
   const lightColor = String(light).trim();
   const darkColor = String(dark).trim();
@@ -243,7 +260,8 @@ async function buildProduction() {
     const cssMainPath = path.join('source', 'css', 'main.css');
     const cssPanelPath = path.join('source', 'css', 'panel.css');
     const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-    const includePanelCSS = !(isProd && CONFIG.panelVisibleInProduction === false);
+    // Panel CSS: only include in production if explicitly enabled, always include in dev
+    const includePanelCSS = isProd ? CONFIG.panelVisibleInProduction : true;
     const cssRaw = [
       cssTokensPath,
       cssNormalizePath,
@@ -295,6 +313,7 @@ async function buildProduction() {
 
     // 2c. Copy runtime config for prod (minified in production)
     const runtimeConfigSrc = path.join('source', 'config', 'default-config.json');
+    const runtimeConfigFrameColors = readFrameColorsFromConfig(runtimeConfigSrc);
     const runtimeConfigDstJs = path.join(jsDir, 'config.json');
     const runtimeConfigDstCfg = path.join(CONFIG.publicDestination, 'config', 'default-config.json');
     if (fs.existsSync(runtimeConfigSrc)) {
@@ -404,12 +423,25 @@ async function buildProduction() {
     if (!template) throw new Error('Missing source index template at ' + CONFIG.sourceIndexTemplate);
     let html = template;
 
-    const themeLight = pickTokenValue(tokensSnapshot, '--bg-light', '#f5f5f5');
-    const themeDark = pickTokenValue(tokensSnapshot, '--bg-dark', '#0a0a0a');
+    const themeLight = pickTokenValue(tokensSnapshot, '--wall-color-light', runtimeConfigFrameColors.light);
+    const themeDark = pickTokenValue(tokensSnapshot, '--wall-color-dark', runtimeConfigFrameColors.dark);
     const themeColorTags = buildThemeColorTags(themeLight, themeDark);
     const tokensInline = tokensSnapshot
       ? `<script>window.__TOKENS__=${sanitizeInlineJson(JSON.stringify(tokensSnapshot))};</script>`
       : '';
+    const frameVarsStyle = `<style id="frame-config-vars">:root{--frame-color-light:${runtimeConfigFrameColors.light};--frame-color-dark:${runtimeConfigFrameColors.dark};}</style>`;
+
+    const buildMeta = {
+      version: PROJECT_VERSION,
+      timestamp: buildStamp,
+      themeColor: {
+        light: themeLight,
+        dark: themeDark
+      }
+    };
+
+    fs.writeFileSync(path.join(CONFIG.publicDestination, 'build-meta.json'), JSON.stringify(buildMeta, null, 2));
+    console.log(`✅ Recorded build metadata (v${PROJECT_VERSION} @ ${buildStamp})`);
 
     // ... (index.html processing logic) ...
 
@@ -512,6 +544,11 @@ async function buildProduction() {
         pHtml = pHtml.replace(/^\s*<meta\s+name="theme-color"[^>]*>\s*$/gm, '');
         pHtml = pHtml.replace('</head>', `${themeColorTags}\n</head>`);
 
+        // Inject config-driven frame colors so CSS tokens inherit config values
+        if (!pHtml.includes('id="frame-config-vars"')) {
+          pHtml = pHtml.replace('<head>', `<head>\n${frameVarsStyle}`);
+        }
+
         fs.writeFileSync(publicPortfolioPath, pHtml);
         console.log('✅ Injected production assets into public/portfolio.html');
     }
@@ -535,8 +572,14 @@ async function buildProduction() {
       .replace(/^\s*<!-- Use ES module for dev \(instant reload\) -->\s*$/gm, '')
       .replace(/^\s*<script\s+type="module"\s+src="main\.js"><\/script>\s*$/gm, '');
 
-    if (includePanelCSS === false) {
+    // Always remove panel elements in production (panel is dev-only)
+    if (isProd) {
+      // Remove legacy panel div (if it exists)
       html = html.replace(/\s*<div class="panel" id="controlPanel"[^>]*><\/div>\s*/m, '\n');
+      // Remove panel dock (if it exists)
+      html = html.replace(/\s*<div[^>]*id="panelDock"[^>]*>[\s\S]*?<\/div>\s*/m, '\n');
+      // Remove master panel (if it exists)
+      html = html.replace(/\s*<div[^>]*id="masterPanel"[^>]*>[\s\S]*?<\/div>\s*/m, '\n');
     }
     
     // FADE SYSTEM: Wrap content elements in #fade-content for single-element fade
@@ -561,7 +604,7 @@ async function buildProduction() {
     // Include transition here so it's defined from the start (no delay, JS handles timing)
     // Blocking style: Hide content immediately, animation handles the reveal
 // No transition needed - keyframe animation in main.css handles the fade
-const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</style>`;
+const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>`;
     // Replace existing or add new
     html = html.replace(/<style[^>]*id="fade-blocking"[^>]*>[^<]*<\/style>/g, fadeBlockingCSS);
     if (!html.includes('id="fade-blocking"')) {
@@ -615,6 +658,11 @@ const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</sty
     // These SHOULD match --bg-light / --bg-dark in tokens for first paint.
     html = html.replace(/^\s*<meta\s+name="theme-color"[^>]*>\s*$/gm, '');
     html = html.replace('</head>', `${themeColorTags}\n</head>`);
+
+    // Inject config-driven frame colors so CSS tokens inherit config values
+    if (!html.includes('id="frame-config-vars"')) {
+      html = html.replace('<head>', `<head>\n${frameVarsStyle}`);
+    }
     
     // Inject resource hints for critical assets (preload fonts, preconnect Google Fonts)
     // Note: CSS/JS preloads removed as they're loaded with cache-bust query strings
@@ -644,6 +692,25 @@ const fadeBlockingCSS = `<style id="fade-blocking">#fade-content{opacity:0}</sty
     if (!html.includes('id="bravia-balls-js"')) html = html.replace('</body>', `${jsTag}\n</body>`);
     fs.writeFileSync(publicIndexPath, html);
     console.log('✅ Injected modular assets into public/index.html');
+
+    // 2g. Inject config frame vars + theme-color into public/cv.html (standalone copy)
+    const publicCvPath = path.join(CONFIG.publicDestination, 'cv.html');
+    if (fs.existsSync(publicCvPath)) {
+      try {
+        let cvHtml = fs.readFileSync(publicCvPath, 'utf-8');
+        // Ensure theme-color tags match tokens (remove any existing ones first).
+        cvHtml = cvHtml.replace(/^\s*<meta\s+name="theme-color"[^>]*>\s*$/gm, '');
+        cvHtml = cvHtml.replace('</head>', `${themeColorTags}\n</head>`);
+        // Inject config-driven frame colors so CSS tokens inherit config values
+        if (!cvHtml.includes('id="frame-config-vars"')) {
+          cvHtml = cvHtml.replace('<head>', `<head>\n${frameVarsStyle}`);
+        }
+        fs.writeFileSync(publicCvPath, cvHtml);
+        console.log('✅ Injected config frame vars into public/cv.html');
+      } catch (e) {
+        console.warn('⚠️ Could not inject frame vars into cv.html:', e);
+      }
+    }
 
     // Report final bundle sizes (including gzip estimates)
     const jsPath = path.join(jsDir, 'bouncy-balls-embed.js');

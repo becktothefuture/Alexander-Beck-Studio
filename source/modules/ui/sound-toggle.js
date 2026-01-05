@@ -57,8 +57,8 @@ export function createSoundToggle() {
   // Preferred mounts:
   // - Mobile: a full-width row under legend + description (#top-elements-soundRow)
   // - Desktop: top-right row next to the decorative text (#top-elements-rightRow)
-  // Fallback: append to #fade-content so it fades with other content.
-  const fadeContent = document.getElementById('fade-content');
+  // Fallback: append to #app-frame so it fades with other content.
+  const fadeContent = document.getElementById('app-frame');
   const topSlot = document.getElementById('sound-toggle-slot');
   const soundRow = document.getElementById('top-elements-soundRow');
   const socialLinks = document.getElementById('social-links');
@@ -226,4 +226,3 @@ export function getSoundToggleElement() {
 export function setSoundToggleState(enabled) {
   updateButtonState(enabled);
 }
-

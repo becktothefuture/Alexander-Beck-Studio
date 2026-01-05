@@ -1650,90 +1650,58 @@ async function bootstrapPortfolio() {
   } catch (e) {}
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
-  // ║                             PAGE FADE-IN (INDEX PARITY)                     ║
+  // ║                    DRAMATIC ENTRANCE (INDEX PARITY)                          ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
-  // Match the index page fade-in behavior: #fade-content starts at opacity:0
-  // (via <style id="fade-blocking">) and is animated to 1 with WAAPI + failsafes.
   try {
-    const FADE_DELAY_MS = 400;
-    const FADE_DURATION_MS = 3000;
-    const FADE_EASING = readTokenVar('--ease-fade', 'cubic-bezier(0.16, 1, 0.3, 1)');
-    const FADE_FAILSAFE_MS = FADE_DELAY_MS + FADE_DURATION_MS + 750;
-
-    const forceFadeVisible = (fadeEl, reason) => {
-      fadeEl.style.opacity = '1';
-      fadeEl.style.transform = 'translateZ(0)';
-      console.warn(`⚠️ Fade failsafe: forcing #fade-content visible (${reason})`);
+    const g = getGlobals();
+    const fadeContent = document.getElementById('app-frame');
+    const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const removeBlocker = () => {
+      try {
+        const blocker = document.getElementById('fade-blocking');
+        if (blocker) blocker.remove();
+      } catch (e) {}
+    };
+    const forceVisible = (reason) => {
+      if (!fadeContent) return;
+      fadeContent.style.opacity = '1';
+      fadeContent.style.transform = 'translateZ(0)';
+      removeBlocker();
+      console.warn(`⚠️ Portfolio entrance fallback (${reason})`);
     };
 
-    window.setTimeout(() => {
-      const fadeContent = document.getElementById('fade-content');
-      if (!fadeContent) {
-        console.warn('⚠️ #fade-content not found (fade skipped)');
-        return;
-      }
-
-      // Accessibility: respect reduced motion by skipping animation entirely.
-      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+    if (!g.entranceEnabled || reduceMotion) {
+      if (fadeContent) {
         fadeContent.style.opacity = '1';
         fadeContent.style.transform = 'translateZ(0)';
-        console.log('✓ Page fade-in skipped (prefers-reduced-motion)');
-        return;
       }
-
-      // If WAAPI is missing, fall back to inline style.
-      if (typeof fadeContent.animate !== 'function') {
-        forceFadeVisible(fadeContent, 'WAAPI unsupported');
-        return;
-      }
-
-      const anim = fadeContent.animate(
-        [
-          { opacity: 0, transform: 'translateZ(0) scale(1.1)' },
-          { opacity: 1, transform: 'translateZ(0) scale(1)' },
-        ],
-        { duration: FADE_DURATION_MS, easing: FADE_EASING, fill: 'forwards' }
-      );
-
-      // Stamp final opacity so it can't get stuck hidden.
-      anim?.addEventListener?.('finish', () => {
-        fadeContent.style.opacity = '1';
-        fadeContent.style.transform = 'translateZ(0)';
-        console.log('✓ Page fade-in finished');
-      });
-
-      anim?.addEventListener?.('cancel', () => {
-        forceFadeVisible(fadeContent, 'animation canceled');
-      });
-
-      console.log('✓ Page fade-in started (WAAPI)');
-
-      // Ultimate failsafe: never allow permanent hidden UI.
-      window.setTimeout(() => {
-        const opacity = window.getComputedStyle(fadeContent).opacity;
-        if (opacity === '0') forceFadeVisible(fadeContent, 'opacity still 0 after failsafe window');
-      }, FADE_FAILSAFE_MS);
-    }, FADE_DELAY_MS);
-  } catch (e) {
-    // Fallback: use new entrance animation system
-    try {
+      removeBlocker();
+      console.log('✓ Entrance animation skipped (disabled or reduced motion)');
+    } else {
       const { orchestrateEntrance } = await import('../visual/entrance-animation.js');
-      const { getGlobals } = await import('../core/state.js');
-      const g = getGlobals();
-      
-      if (g.entranceEnabled && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-        await orchestrateEntrance({
-          waitForFonts: async () => {
-            try {
-              const { waitForFonts } = await import('../utils/font-loader.js');
-              await waitForFonts();
-            } catch (e) {}
-          }
-        });
-      }
-    } catch (err) {
-      console.warn('⚠️ Entrance animation fallback failed:', err);
+      await orchestrateEntrance({
+        waitForFonts: async () => {
+          try { await waitForFonts(); } catch (e) {}
+        },
+        skipWallAnimation: true
+      });
+      removeBlocker();
+      console.log('✓ Dramatic entrance animation orchestrated (portfolio)');
     }
+
+    // Failsafe watchdog: never allow a stuck hidden page.
+    window.setTimeout(() => {
+      if (!fadeContent) return;
+      const opacity = window.getComputedStyle(fadeContent).opacity;
+      if (opacity === '0') forceVisible('watchdog');
+    }, 2500);
+  } catch (e) {
+    const fadeContent = document.getElementById('app-frame');
+    if (fadeContent) {
+      fadeContent.style.opacity = '1';
+      fadeContent.style.transform = 'translateZ(0)';
+    }
+    console.warn('⚠️ Portfolio entrance animation failed, forcing content visible', e);
   }
 
   // Background elements (including #brand-logo) are now visible immediately - no fade-in

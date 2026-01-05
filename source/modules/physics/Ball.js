@@ -399,6 +399,15 @@ export class Ball {
     }
   }
 
+  /**
+   * Get effective radius considering filter size multiplier
+   * @returns {number} The radius to use for rendering (physics uses this.r)
+   */
+  getDisplayRadius() {
+    const filterSizeMul = this.filterSizeMultiplier ?? 1;
+    return this.r * filterSizeMul;
+  }
+
   draw(ctx) {
     // ══════════════════════════════════════════════════════════════════════════════
     // PERFORMANCE: Optimized draw with minimal state changes
@@ -408,38 +417,49 @@ export class Ball {
     // ══════════════════════════════════════════════════════════════════════════════
     
     const hasSquash = this.squashAmount > 0.001;
-    const hasAlpha = this.alpha < 1.0;
+    // Combine alpha with filter opacity (for legend filtering)
+    const filterOpacity = this.filterOpacity ?? 1;
+    const effectiveAlpha = this.alpha * filterOpacity;
+    const hasAlpha = effectiveAlpha < 1.0;
+    
+    // Get display radius (may be scaled by legend filter)
+    const displayRadius = this.getDisplayRadius();
     
     // Only use save/restore when we have transforms that need cleanup
-    if (hasSquash || hasAlpha) {
+    const needsSaveRestore = hasSquash || hasAlpha;
+    
+    if (needsSaveRestore) {
       ctx.save();
-      ctx.translate(this.x, this.y);
       
-      if (hasSquash) {
-        ctx.rotate(this.theta + this.squashNormalAngle);
-        const squashX = 1 - this.squashAmount * 0.3;
-        const squashY = 1 + this.squashAmount * 0.3;
-        ctx.scale(squashX, squashY);
-        ctx.rotate(-this.squashNormalAngle);
-      } else {
-        ctx.rotate(this.theta);
+      if (hasSquash || hasAlpha) {
+        ctx.translate(this.x, this.y);
+        
+        if (hasSquash) {
+          ctx.rotate(this.theta + this.squashNormalAngle);
+          const squashX = 1 - this.squashAmount * 0.3;
+          const squashY = 1 + this.squashAmount * 0.3;
+          ctx.scale(squashX, squashY);
+          ctx.rotate(-this.squashNormalAngle);
+        } else {
+          ctx.rotate(this.theta);
+        }
+        
+        if (hasAlpha) {
+          ctx.globalAlpha = effectiveAlpha;
+        }
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, displayRadius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
       }
-      
-      if (hasAlpha) {
-        ctx.globalAlpha = this.alpha;
-      }
-      
-      ctx.beginPath();
-      ctx.arc(0, 0, this.r, 0, Math.PI * 2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
       
       ctx.restore();
     } else {
       // Fast path: no squash, no alpha - draw directly without save/restore
       ctx.fillStyle = this.color;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.arc(this.x, this.y, displayRadius, 0, Math.PI * 2);
       ctx.fill();
     }
   }

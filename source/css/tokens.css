@@ -86,6 +86,8 @@
   --abs-tap-target: clamp(12px, 2.5vmin, 30px);
 
   /* Radii & Layout Metrics */
+  --abs-radius-1: 1px;
+  --abs-radius-9: 9px;
   --abs-radius-wall-min: 32px;
   --abs-radius-card: 3vmin;
   --abs-radius-input: 8px;
@@ -378,6 +380,7 @@
   --legend-gap-col: var(--gap-lg);
   --legend-item-gap: var(--gap-sm);
   --legend-circle-size: var(--gap-sm);
+  --legend-item-radius: var(--abs-radius-9);
   --legend-font-size: 9px;
   --legend-font-weight: 500;
   --legend-letter-spacing: var(--letter-spacing-loose);
