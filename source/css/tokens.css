@@ -379,7 +379,7 @@
   --legend-gap-row: var(--gap-xs);
   --legend-gap-col: var(--gap-lg);
   --legend-item-gap: var(--gap-sm);
-  --legend-circle-size: var(--gap-sm);
+  --legend-circle-size: calc(var(--gap-sm) * 0.8);
   --legend-item-radius: var(--abs-radius-9);
   --legend-font-size: 9px;
   --legend-font-weight: 500;

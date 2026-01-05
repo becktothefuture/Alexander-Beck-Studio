@@ -598,6 +598,20 @@ body.dark-mode .legend .legend__item--interactive:hover span {
   border-radius: 999px;
   flex-shrink: 0;
   /* Circle aligns naturally with text via align-items: center since text line-height = cap height */
+  transition: transform 0.15s var(--ease-bounce);
+  transform-origin: center;
+}
+
+/* Circle bounce animation on legend item hover */
+@keyframes legendCircleBounce {
+  0%   { transform: scale(1); }
+  60%  { transform: scale(1.4); }
+  100% { transform: scale(1.3); }
+}
+
+.legend__item:hover .circle,
+.legend__item--interactive:hover .circle {
+  animation: legendCircleBounce 0.2s var(--ease-bounce) both;
 }
 
 /* Visually hidden helper (used by social icons and other a11y-only labels) */
@@ -862,6 +876,11 @@ body.abs-hover-mode-ui .footer_link.abs-hover-target--ui::before {
 #footer-links-container #portfolio-gate-trigger,
 #footer-links-container #cv-gate-trigger {
   margin: 0;
+}
+
+/* Dark mode: footer links need light color for visibility */
+body.dark-mode #footer-links-container .footer_link {
+  color: var(--text-primary);
 }
 
 /* Row 2: Socials + Meta (Space Between) */
@@ -1660,6 +1679,12 @@ body.abs-hover-mode-index .abs-icon-btn.abs-hover-target--index {
 /* Footer nav base state: ensure dark text when NOT being hovered */
 body:not(.abs-hover-mode-index) #footer-links-container .footer_link {
   color: var(--abs-neutral-1000); /* Pure black for maximum contrast */
+  opacity: 1;
+}
+
+/* Dark mode: footer links need light color for visibility when not hovering */
+body.dark-mode:not(.abs-hover-mode-index) #footer-links-container .footer_link {
+  color: var(--text-primary);
   opacity: 1;
 }
 
