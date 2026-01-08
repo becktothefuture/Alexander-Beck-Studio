@@ -5,7 +5,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 ---
 
 ## High-level map
-- **Purpose:** Kinetic homepage with 11 simulations, right-docked control panel, privacy-first runtime, 60fps target.
+- **Purpose:** Kinetic homepage with **20 simulations** (8 categories), right-docked control panel, privacy-first runtime, 60fps target.
 - **Edit here:** `source/` only.  
 - **Build output:** `public/` (generated).  
 - **Docs:** `docs/` (authoritative specs).  
@@ -36,7 +36,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
   - **core/** `constants.js`, `state.js` (mode registry, globals, layout vars).
   - **physics/** `Ball.js`, `collision.js`, `engine.js`, `spawn.js`, `text-colliders.js`, `wall-state.js` (collision grid, wall wobble).
   - **rendering/** `renderer.js` (canvas, resize), `loop.js` (fixed timestep + render), `cursor.js`, `effects.js`, `theme.js`.
-  - **modes/** `mode-controller.js` plus per-mode implementations: `ball-pit.js`, `pit-throws.js`, `flies.js`, `weightless.js` (Zero-G), `water.js`, `vortex.js`, `ping-pong.js`, `magnetic.js`, `bubbles.js`, `kaleidoscope.js`, `critters.js`.
+  - **modes/** `mode-controller.js` plus 20 per-mode implementations: `ball-pit.js`, `pit-throws.js`, `flies.js`, `weightless.js` (Zero-G), `water.js`, `vortex.js`, `ping-pong.js`, `magnetic.js`, `bubbles.js`, `kaleidoscope.js`, `critters.js`, `orbit-3d.js`, `orbit-3d-2.js`, `lattice.js`, `neural.js`, `parallax-linear.js`, `parallax-perspective.js`.
   - **ui/** panel + controls: `panel-dock.js`, `panel-html.js`, `control-registry.js`, `controls.js`, `build-controls.js`, `layout-panel.js`, `sound-panel.js`; brand/UI chrome: `brand-logo-*`, `gate-overlay.js`, `cv-gate.js`, `portfolio-gate.js`, `contact-gate.js`, `time-display.js`, `sound-toggle.js`, `theme-toggle.js`, `social-icons.js`, `keyboard.js`, `controls.js`, `control-registry.js`.
   - **input/** `pointer.js` (mouse/touch), keyboard handled in `ui/keyboard.js`.
   - **audio/** `sound-engine.js`, `sound-control-registry.js` (collision/ambient hooks).
@@ -49,7 +49,8 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 - `index.html`, `css/`, `js/bouncy-balls-embed.js`, `images/`, `fonts/`. Served by `npm start` / `npm run preview`.
 
 ### docs/ (source of truth)
-- `core/` (PROJECT-OVERVIEW, QUICK-START), `development/` (ARCHITECTURE, DEV-WORKFLOW, DEVELOPMENT-GUIDE, OPTIMIZATION-SUMMARY, FIGMA setup), `reference/` (MODES, CONFIGURATION, BUILD-SYSTEM, INTEGRATION, SOUND), `operations/` (DEPLOYMENT, PROJECT-ASSESSMENT), `SIMULATION_RULES.md`, `DOCUMENTATION-INDEX.md`, `DOCUMENTATION-PRINCIPLE.md`.
+- `development/` (DEV-WORKFLOW, CONFIG-SYNC-PLAN, CONFIG-SYNC-USAGE)
+- `reference/` (MODES, CONFIGURATION, INTEGRATION, PORTFOLIO)
 
 ### scripts/
 - Automation/support: `dev-startup.js`, `check-figma-mcp-status.js`, `setup-figma-mcp-config.js`, `figma-websocket-server.js`, `execute-figma-rebuild.txt` (Figma rebuild instructions).
@@ -65,13 +66,17 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 
 ---
 
-## Simulation catalogue (current code)
-- Gravity: `ball-pit`, `pit-throws`.
-- Swarm/flow: `flies`, `vortex`, `magnetic`, `critters`.
-- Elastic: `weightless` (Zero-G), `ping-pong`.
-- Fluid-ish: `water`, `bubbles`.
-- Optical: `kaleidoscope`.
-- Modes 1–9 mapped to keys; Critters and Ball Pit (Throws) via panel.
+## Simulation catalogue (20 modes)
+- **Gravity:** `ball-pit`, `pit-throws`
+- **Swarm/Flow:** `flies`, `vortex`, `magnetic`, `critters`
+- **Elastic:** `weightless` (Zero-G), `ping-pong`
+- **Fluid:** `water`, `bubbles`
+- **Optical:** `kaleidoscope`, `kaleidoscope-1`, `kaleidoscope-2`, `kaleidoscope-3`
+- **Orbital:** `orbit-3d`, `orbit-3d-2`
+- **Lattice:** `lattice` (Crystal Lattice), `neural` (Neural Network)
+- **Parallax:** `parallax-linear`, `parallax-perspective`
+
+**Navigation:** Arrow keys (← / →) cycle through narrative sequence. Direct number keys (1-9) intentionally disabled.
 
 ---
 
@@ -105,7 +110,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 ## Quick dev workflow
 1. `npm run startup` → choose dev/preview/watch.
 2. Work in `source/`.
-3. `/` toggles the panel; keys `1–9`, `R` for modes/reset.
+3. `/` toggles the panel; arrow keys (← / →) cycle modes; `R` resets.
 4. `npm run build` before publishing; `npm start` to serve built bundle on port 8000.
 
 ---

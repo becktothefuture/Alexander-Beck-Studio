@@ -150,6 +150,8 @@ body.body {
   cursor: none;
   -webkit-user-select: none;
   user-select: none;
+  /* Prevent double-tap zoom on mobile while preserving pinch-zoom */
+  touch-action: manipulation;
   font-family: var(--abs-font-sans);
   /* iOS Safari can reveal the body background during rubber-band/viewport UI changes.
      Keep body aligned to the wall color so no browser-white edges appear. */
@@ -497,7 +499,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   font-size: var(--legend-font-size);
   white-space: nowrap;
   transition: opacity 0.2s var(--ease-organic), transform 0.15s var(--ease-organic);
-  position: relative; /* Required for abs-hover-target ::before positioning */
+  position: relative;
   cursor: none; /* Maintain custom cursor experience */
   display: flex;
   align-items: center; /* Center aligns with text container height (cap height) */
@@ -544,11 +546,11 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
 }
 
 .legend__item--interactive:hover::before {
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 12%, transparent 88%);
+  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-light), transparent calc(100% - var(--abs-hover-intensity-light)));
 }
 
 body.dark-mode .legend__item--interactive:hover::before {
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 16%, transparent 84%);
+  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-dark), transparent calc(100% - var(--abs-hover-intensity-dark)));
 }
 
 .legend__item--interactive:hover {
@@ -560,7 +562,7 @@ body.dark-mode .legend__item--interactive:hover::before {
 }
 
 body.dark-mode .legend .legend__item--interactive:hover span {
-  color: var(--abs-neutral-50);
+  color: var(--text-strong);
 }
 
 /* Active filter state */
@@ -574,7 +576,7 @@ body.dark-mode .legend .legend__item--interactive:hover span {
 }
 
 .legend__item--active::before {
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 10%, transparent 90%);
+  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-active), transparent calc(100% - var(--abs-hover-intensity-active)));
 }
 
 /* Dimmed state (when another filter is active) */
@@ -674,6 +676,15 @@ h3 {
   color: var(--text-primary);
 }
 
+/* Ensure all headlines are dark on light backgrounds */
+body:not(.dark-mode) h1,
+body:not(.dark-mode) h2,
+body:not(.dark-mode) h3,
+body:not(.dark-mode) .gate-title,
+body:not(.dark-mode) #header-cv-link {
+  color: var(--text-color-light);
+}
+
 p {
   color: var(--text-primary);
 }
@@ -718,8 +729,9 @@ p {
 }
 
 .decorative-script p a:hover {
-  /* No color change - keep colors as-is */
   opacity: 1; /* Remove opacity on hover - full strength color */
+  color: var(--cursor-hover-fg, var(--cursor-color));
+  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
 }
 
 .decorative-script p a:hover::after {
@@ -808,6 +820,11 @@ p {
   cursor: none; /* Maintain custom cursor experience */
 }
 
+/* Ensure header CV link is dark on light backgrounds */
+body:not(.dark-mode) #header-cv-link {
+  color: var(--text-color-light);
+}
+
 /* Nav bar specific overrides for footer buttons */
 #footer-links-container .footer_link {
   /* Nav bar buttons: substantial padding matching other page links */
@@ -829,24 +846,6 @@ p {
   text-align: center;
 }
 
-.footer_link::after,
-.portfolio-cv-link::after,
-#header-cv-link::after {
-  content: '';
-  position: absolute;
-  /* Dot closer to label (50% closer) */
-  bottom: calc(var(--footer-link-dot-offset) * 1.5);
-  left: 50%;
-  transform: translate3d(-50%, 0, 0) scaleY(0);
-  transform-origin: 50% 50%;
-  width: var(--abs-cursor-hop-dot-size, var(--footer-link-dot-size));
-  height: var(--abs-cursor-hop-dot-size, var(--footer-link-dot-size));
-  border-radius: 50%;
-  background: var(--cursor-color, var(--link-hover-color)); /* Match cursor */
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
 .portfolio-cv-link {
   color: var(--text-primary);
 }
@@ -859,16 +858,8 @@ p {
 }
 
 /* Middle nav bar buttons (Contact / Portfolio / Bio/CV): match icon button corner radius on hover */
-body.abs-hover-mode-index .footer_link.abs-hover-target--index::before,
-body.abs-hover-mode-ui .footer_link.abs-hover-target--ui::before {
+.footer_link:hover {
   border-radius: var(--ui-icon-corner-radius);
-}
-
-.footer_link:hover::after,
-.portfolio-cv-link:hover::after,
-#header-cv-link:hover::after {
-  opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) var(--ease-bounce) both;
 }
 
 /* Footer link ID overrides - reset margins to 0 (only when NOT in nav bar) */
@@ -897,7 +888,9 @@ body.dark-mode #footer-links-container .footer_link {
 }
 
 /* Bottom-right meta button (London · time): text stays identical, hit-area matches icon buttons */
-.abs-meta-btn {
+.abs-meta-btn,
+button.abs-meta-btn,
+#site-year {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
@@ -910,19 +903,18 @@ body.dark-mode #footer-links-container .footer_link {
   cursor: none;
   position: relative;
   overflow: visible;
-  padding: var(--abs-space-xs);
+  padding: var(--abs-space-xs) var(--abs-space-sm);
   color: inherit;
   font: inherit;
   text-decoration: none;
 }
 
-/* Use the same icon-corner radius on hover background for meta button */
-body.abs-hover-mode-index .abs-meta-btn.abs-hover-target--index::before {
+/* Meta button hover */
+.abs-meta-btn:hover,
+#site-year:hover {
+  color: var(--cursor-hover-fg, var(--cursor-color));
+  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
   border-radius: var(--ui-icon-corner-radius);
-}
-
-body.abs-hover-mode-index .abs-meta-btn.abs-hover-target--index {
-  color: var(--cursor-color, var(--link-hover-color));
   opacity: 1;
 }
 
@@ -1460,6 +1452,11 @@ body.dark-mode .noise-2 {
     gap: var(--gap-xs);
   }
   
+  /* Reduce vertical padding on legend items for tighter mobile spacing */
+  .legend__item {
+    padding: var(--gap-xs) var(--gap-sm);
+  }
+  
   .ui-top-right {
     max-width: 100%;
     justify-content: flex-start;
@@ -1593,204 +1590,143 @@ body.abs-link-hovering #custom-cursor {
   100% { transform: scale(1.6); opacity: 0; }
 }
 
-body.abs-hover-mode-index .abs-hover-target--index {
-  position: relative;
-  z-index: 0;
-  --abs-cursor-pulse-ms: 520ms;
+@keyframes absHoverSnap {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(var(--abs-hover-snap-overshoot, 1.08)); }
+  70%  { transform: scale(var(--abs-hover-snap-undershoot, 0.98)); }
+  100% { transform: scale(1); }
 }
 
-body.abs-hover-mode-index .abs-hover-target--index::before {
+/* INDEX MODE HOVER: Snap animation (native :hover) */
+body:not(.portfolio-page):not(.detail-open) a:hover,
+body:not(.portfolio-page):not(.detail-open) button:hover,
+body:not(.portfolio-page):not(.detail-open) .legend__item--interactive:hover {
+  --abs-cursor-pulse-ms: 520ms;
+  will-change: transform;
+  transform-origin: center;
+  animation-name: absHoverSnap;
+  animation-duration: calc(var(--abs-hover-snap-enabled, 1) * var(--abs-hover-snap-duration, 450ms));
+  animation-timing-function: var(--ease-bounce);
+  animation-fill-mode: both;
+}
+
+/* Icon buttons get cursor color on hover */
+body:not(.portfolio-page):not(.detail-open) .abs-icon-btn:hover {
+  color: var(--cursor-hover-fg, var(--cursor-color));
+  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
+  border-radius: var(--ui-icon-corner-radius);
+}
+
+/* INDEX MODE HOVER (native CSS - no JS classes needed) */
+/* Only apply when NOT on portfolio page or in detail view */
+body:not(.portfolio-page):not(.detail-open) .footer_link:hover,
+body:not(.portfolio-page):not(.detail-open) .portfolio-cv-link:hover,
+body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover {
+  color: var(--cursor-hover-fg, var(--cursor-color));
+  opacity: 1;
+  position: relative;
+}
+
+/* Subtle pill background on footer link hover */
+body:not(.portfolio-page):not(.detail-open) .footer_link:hover::before,
+body:not(.portfolio-page):not(.detail-open) .portfolio-cv-link:hover::before,
+body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: var(--abs-radius-pill);
-  background: var(--abs-hover-index-bg, rgb(var(--abs-rgb-black) / 0.06));
+  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
   pointer-events: none;
-  will-change: opacity, box-shadow;
+  z-index: -1;
 }
 
-/* Icon buttons (index mode): use the shared icon radius + index tint background */
-body.abs-hover-mode-index .abs-icon-btn.abs-hover-target--index::before {
-  border-radius: var(--ui-icon-corner-radius);
-}
-
-/* Legend items (index mode): use pill radius + index tint background */
-body.abs-hover-mode-index .legend__item.abs-hover-target--index::before {
-  border-radius: var(--abs-radius-pill);
-}
-
-/* Expertise legend: never show rounded hover backgrounds (keep this grid crisp). */
-body.abs-hover-mode-index #expertise-legend .legend__item.abs-hover-target--index::before,
-body.abs-hover-mode-ui #expertise-legend .legend__item.abs-hover-target--ui::before {
-  border-radius: var(--legend-item-radius);
-}
-
-
-
-body.abs-hover-mode-index .abs-icon-btn.abs-hover-target--index {
-  color: var(--abs-hover-index-fg, currentColor);
-}
-
-body.abs-hover-mode-index .abs-hover-target--index {
-  /* No color change - keep colors as-is */
-  opacity: 1;
-}
-
-/* Light mode: ensure text links "activate" with a dark, intense cursor-tinted label color. */
-body:not(.dark-mode).abs-hover-mode-index .footer_link.abs-hover-target--index,
-body:not(.dark-mode).abs-hover-mode-index .portfolio-cv-link.abs-hover-target--index,
-body:not(.dark-mode).abs-hover-mode-index #header-cv-link.abs-hover-target--index,
-body:not(.dark-mode).abs-hover-mode-index .decorative-script p a.abs-hover-target--index {
-  color: var(--cursor-color, var(--link-hover-color)); /* Fallback */
-  /* Prefer the JS-computed “activated” label color when available (per-link). */
-  color: var(--abs-hover-index-fg, var(--cursor-color, var(--link-hover-color)));
-  opacity: 1;
-}
-
-/* More robust: if a hover target is a text link (not an icon button), activate the whole label. */
-body:not(.dark-mode).abs-hover-mode-index .abs-hover-target--index:not(.abs-icon-btn) {
-  color: var(--cursor-color, var(--link-hover-color)); /* Fallback */
-  color: var(--abs-hover-index-fg, var(--cursor-color, var(--link-hover-color)));
-}
-
-/* Legend items: ensure hover system styles take precedence over legend-specific hover styles */
-body.abs-hover-mode-index .legend__item.abs-hover-target--index {
-  opacity: 1;
-}
-
-body.abs-hover-mode-index .legend__item.abs-hover-target--index span {
-  color: var(--abs-hover-index-fg, var(--cursor-color, var(--link-hover-color)));
-}
-
-/* Override legend-specific hover styles when hover system is active */
-body.abs-hover-mode-index .legend__item--interactive.abs-hover-target--index:hover::before {
-  background: var(--abs-hover-index-bg, rgb(var(--abs-rgb-black) / 0.06));
-}
-
-body.abs-hover-mode-index .legend__item--interactive.abs-hover-target--index:hover span {
-  color: var(--abs-hover-index-fg, var(--cursor-color, var(--link-hover-color)));
-}
-
-/* Keep icon buttons on their dedicated index hover color (wins by order). */
-body.abs-hover-mode-index .abs-icon-btn.abs-hover-target--index {
-  color: var(--abs-hover-index-fg, currentColor);
-}
-
-/* Footer nav base state: ensure dark text when NOT being hovered */
-body:not(.abs-hover-mode-index) #footer-links-container .footer_link {
-  color: var(--abs-neutral-1000); /* Pure black for maximum contrast */
-  opacity: 1;
-}
-
-/* Dark mode: footer links need light color for visibility when not hovering */
-body.dark-mode:not(.abs-hover-mode-index) #footer-links-container .footer_link {
+/* Footer nav base state: ensure proper contrast when not hovering */
+#footer-links-container .footer_link {
   color: var(--text-primary);
   opacity: 1;
 }
 
-/* Footer nav (middle buttons): match icon hover foreground exactly (including injected nowrap span). */
-body.abs-hover-mode-index #footer-links-container .footer_link.abs-hover-target--index {
-  color: var(--abs-hover-index-fg, currentColor);
+/* Footer nav hover state */
+body:not(.portfolio-page):not(.detail-open) #footer-links-container .footer_link:hover {
+  color: var(--cursor-hover-fg, var(--cursor-color));
   opacity: 1;
 }
-body.abs-hover-mode-index #footer-links-container .footer_link.abs-hover-target--index .footer-link-nowrap {
+
+body:not(.portfolio-page):not(.detail-open) #footer-links-container .footer_link:hover .footer-link-nowrap {
   color: inherit;
   opacity: 1;
 }
 
 
-/* UI mode: background-only circle (no dot); tone shift is applied per-control below. */
-body.abs-hover-mode-ui .abs-hover-target--ui {
-  position: relative;
-  z-index: 0;
+/* UI MODE HOVER (portfolio page, detail views, gates) - native CSS */
+/* Snap animation for UI mode */
+body.portfolio-page a:hover,
+body.portfolio-page button:hover,
+body.detail-open a:hover,
+body.detail-open button:hover,
+#gate-overlay.active a:hover,
+#gate-overlay.active button:hover {
   --abs-cursor-pulse-ms: 520ms;
+  will-change: transform;
+  transform-origin: center;
+  animation-name: absHoverSnap;
+  animation-duration: calc(var(--abs-hover-snap-enabled, 1) * var(--abs-hover-snap-duration, 450ms));
+  animation-timing-function: var(--ease-bounce);
+  animation-fill-mode: both;
 }
 
-body.abs-hover-mode-ui .abs-hover-target--ui::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: var(--abs-radius-pill);
-  background: var(--cursor-color, rgb(var(--abs-rgb-black) / 0.08));
-  opacity: 0.12;
-  pointer-events: none;
-  will-change: opacity;
-}
-
-body.dark-mode.abs-hover-mode-ui .abs-hover-target--ui::before { opacity: 0.16; }
-
-/* Icon button controls: unified radius + solid fill hover (same as index mode) */
-body.abs-hover-mode-ui .abs-icon-btn.abs-hover-target--ui::before {
-  border-radius: var(--ui-icon-corner-radius);
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 12%, transparent 88%);
-  opacity: 1;
-}
-
-body.dark-mode.abs-hover-mode-ui .abs-icon-btn.abs-hover-target--ui::before {
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 16%, transparent 84%);
-}
-
-/* UI mode: suppress the "dot under label" (portfolio + dialogs) - text links only. */
-body.abs-hover-mode-ui .footer_link::after,
-body.abs-hover-mode-ui .portfolio-cv-link::after,
-body.abs-hover-mode-ui #header-cv-link::after,
-body.abs-hover-mode-ui .decorative-script p a::after,
-body.abs-hover-mode-ui .gate-back::after {
+/* UI mode: suppress dot-under-label for decorative text links */
+body.portfolio-page .decorative-script p a::after,
+body.portfolio-page .gate-back::after,
+body.detail-open .decorative-script p a::after,
+body.detail-open .gate-back::after,
+#gate-overlay.active .gate-back::after {
   opacity: 0;
   animation: none;
   transform: translate3d(-50%, 0, 0) scaleY(0);
 }
 
-/* Icon links already have ::after disabled, but ensure it stays hidden */
-body.abs-hover-mode-ui .footer_icon-link::after {
-  display: none;
-}
-
-/* UI mode: slight label/icon tone shift (avoid "turning orange"; keep base hue). */
-body.abs-hover-mode-ui .footer_link.abs-hover-target--ui {
-  color: var(--text-muted); /* Fallback for browsers without color-mix support */
+/* UI mode: text link hover (subtle tone shift + cursor background) */
+body.portfolio-page .footer_link:hover,
+body.detail-open .footer_link:hover {
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+  color: var(--text-muted);
   color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-black), 1) 14%);
 }
 
-/* Light mode: on-hover text links should read as clearly "active" (not faint). */
-body:not(.dark-mode).abs-hover-mode-ui .footer_link.abs-hover-target--ui,
-body:not(.dark-mode).abs-hover-mode-ui .portfolio-cv-link.abs-hover-target--ui,
-body:not(.dark-mode).abs-hover-mode-ui #header-cv-link.abs-hover-target--ui,
-body:not(.dark-mode).abs-hover-mode-ui .decorative-script p a.abs-hover-target--ui {
-  color: var(--cursor-color, var(--link-hover-color)); /* Fallback */
-  color: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 40%, rgba(var(--abs-rgb-black), 1) 60%);
-  opacity: 1;
-}
-body.dark-mode.abs-hover-mode-ui .footer_link.abs-hover-target--ui {
-  color: var(--text-muted); /* Fallback for browsers without color-mix support */
+body.dark-mode.portfolio-page .footer_link:hover,
+body.dark-mode.detail-open .footer_link:hover {
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
   color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-white), 1) 14%);
 }
 
-body.abs-hover-mode-ui .portfolio-cv-link.abs-hover-target--ui,
-body.abs-hover-mode-ui #header-cv-link.abs-hover-target--ui {
-  color: var(--text-primary); /* Fallback for browsers without color-mix support */
-  color: color-mix(in srgb, var(--text-primary) 86%, rgba(var(--abs-rgb-black), 1) 14%);
-}
-body.dark-mode.abs-hover-mode-ui .portfolio-cv-link.abs-hover-target--ui,
-body.dark-mode.abs-hover-mode-ui #header-cv-link.abs-hover-target--ui {
-  color: var(--text-primary); /* Fallback for browsers without color-mix support */
-  color: color-mix(in srgb, var(--text-primary) 86%, rgba(var(--abs-rgb-white), 1) 14%);
-}
-
-/* UI mode: icon buttons (footer icons, sound, gate back) all illuminate to cursor color */
-body.abs-hover-mode-ui .abs-icon-btn.abs-hover-target--ui {
-  color: var(--cursor-color, var(--link-hover-color));
+/* Light mode: active text links use cursor color blend */
+body:not(.dark-mode).portfolio-page .footer_link:hover,
+body:not(.dark-mode).portfolio-page .portfolio-cv-link:hover,
+body:not(.dark-mode).portfolio-page #header-cv-link:hover,
+body:not(.dark-mode).portfolio-page .decorative-script p a:hover,
+body:not(.dark-mode).detail-open .footer_link:hover,
+body:not(.dark-mode).detail-open .portfolio-cv-link:hover,
+body:not(.dark-mode).detail-open #header-cv-link:hover {
+  color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-black), 1) 60%);
+  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
   opacity: 1;
 }
 
-/* Keep non-icon UI targets on the softer tone-shift behavior */
-body.abs-hover-mode-ui .top-nav__cv.abs-hover-target--ui {
-  color: var(--text-quiet); /* Fallback for browsers without color-mix support */
-  color: color-mix(in srgb, var(--text-quiet) 86%, rgba(var(--abs-rgb-black), 1) 14%);
+/* UI mode: icon buttons get full cursor color */
+body.portfolio-page .abs-icon-btn:hover,
+body.detail-open .abs-icon-btn:hover,
+#gate-overlay.active .abs-icon-btn:hover {
+  color: var(--cursor-color);
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+  border-radius: var(--ui-icon-corner-radius);
+  opacity: 1;
 }
-body.dark-mode.abs-hover-mode-ui .top-nav__cv.abs-hover-target--ui {
-  color: var(--text-quiet); /* Fallback for browsers without color-mix support */
-  color: color-mix(in srgb, var(--text-quiet) 86%, rgba(var(--abs-rgb-white), 1) 14%);
+
+body.dark-mode.portfolio-page .abs-icon-btn:hover,
+body.dark-mode.detail-open .abs-icon-btn:hover,
+body.dark-mode #gate-overlay.active .abs-icon-btn:hover {
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
 }
 
 /* Focus visibility (WCAG priority): restore a clear focus ring for primary interactive targets.
@@ -1812,43 +1748,18 @@ body.dark-mode.abs-hover-mode-ui .top-nav__cv.abs-hover-target--ui {
   border-radius: var(--ui-icon-corner-radius);
 }
 
-/* Pulse ring node (created on press; avoids ::after conflicts with “dot under label”). */
-.abs-hover-target { position: relative; }
-.abs-hover-target .abs-hover-pulse-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--abs-radius-pill);
-  pointer-events: none;
-  border: 0.2vmin solid var(--abs-pulse-color, rgb(var(--abs-rgb-black) / 0.18));
-  opacity: 0;
-  transform: scale(1);
-  animation: absHoverPulse var(--abs-pulse-ms, 520ms) var(--ease-organic) both;
-}
+/* Pulse animation removed - no longer needed with native CSS hover */
 
-/* UI mode pulse:
-   - Default: pulse follows the control shape (pill/rect)
-   - Icon-only: centered circular pulse at cursor size */
-body.abs-hover-mode-ui .abs-hover-target .abs-hover-pulse-ring {
-  border-radius: var(--abs-radius-pill);
-}
-
-body.abs-hover-mode-ui .footer_icon-link .abs-hover-pulse-ring,
-body.abs-hover-mode-ui .sound-toggle .abs-hover-pulse-ring,
-body.abs-hover-mode-ui .gate-back .abs-hover-pulse-ring {
-  inset: auto;
-  left: 50%;
-  top: 50%;
-  width: var(--abs-pulse-size, 24px);
-  height: var(--abs-pulse-size, 24px);
-  transform: translate3d(-50%, -50%, 0) scale(1);
-  border-radius: 50%;
-}
-
-/* Reduce motion: keep states, remove pulses. */
+/* Reduce motion: disable hover snap animation */
 @media (prefers-reduced-motion: reduce) {
-  .abs-hover-target .abs-hover-pulse-ring {
+  body:not(.portfolio-page):not(.detail-open) a:hover,
+  body:not(.portfolio-page):not(.detail-open) button:hover,
+  body:not(.portfolio-page):not(.detail-open) .legend__item--interactive:hover,
+  body.portfolio-page a:hover,
+  body.portfolio-page button:hover,
+  body.detail-open a:hover,
+  body.detail-open button:hover {
     animation: none;
-    opacity: 0;
   }
 }
 
@@ -1946,8 +1857,9 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
 
 @media (max-width: 768px) {
   .cv-gate,
-  .portfolio-gate {
-    padding-inline: 10vw;
+  .portfolio-gate,
+  .contact-gate {
+    padding-inline: 15vw;
   }
 }
 
@@ -2070,76 +1982,113 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
 
 /* Dark-mode gate text is token-driven via `--text-*` variables. */
 
-.contact-email-button {
-  width: 100%;
-  max-width: clamp(320px, 80vw, 520px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-
-  padding: var(--gate-pad-md-y) var(--gate-pad-md-x);
-  border: 2px solid var(--abs-stroke-ghost);
-  border-radius: var(--abs-radius-cta);
-  background: var(--abs-surface-glass-medium);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-
-  cursor: pointer;
-  transition: border-color 0.2s var(--ease-gate), 
-              background-color 0.2s var(--ease-gate), 
-              transform 0.15s var(--ease-organic),
-              filter 0.15s var(--ease-organic);
-}
 
 .contact-email-row {
-  width: 100%;
+  width: auto;
   max-width: clamp(320px, 80vw, 520px);
   display: flex;
   align-items: stretch;
+  justify-content: space-between;
   margin: 0;
+  padding: 0;
+
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  color: inherit;
+
   border: 1px solid var(--abs-stroke-medium);
   border-radius: var(--abs-radius-cta);
-  background: var(--abs-surface-glass-medium);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  background: var(--abs-surface-contrast);
+  background-color: var(--abs-surface-contrast);
+  -webkit-tap-highlight-color: transparent;
   overflow: hidden;
-  transition: border-color 0.2s var(--ease-gate), background-color 0.2s var(--ease-gate);
+
+  transition: border-color 0.2s var(--ease-gate), 
+              transform 0.15s var(--ease-organic);
 }
 
 .contact-email-row:hover {
   border-color: var(--abs-stroke-strong);
-  background: var(--abs-surface-glass-strong);
 }
 
+.contact-email-row:hover .contact-email-copy {
+  color: var(--text-strong);
+}
+
+.contact-email-row:active {
+  transform: scale(var(--link-impact-scale));
+}
+
+.contact-email-row:focus,
+.contact-email-row:focus-visible,
 .contact-email-row:focus-within {
-  border-color: var(--abs-stroke-medium);
+  outline: none;
+  border-color: var(--abs-stroke-strong);
+  box-shadow: none;
 }
 
-.contact-email-value {
+.contact-email-row:focus .contact-email-text,
+.contact-email-row:focus-visible .contact-email-text,
+.contact-email-row:focus-within .contact-email-text,
+.contact-email-row:focus .contact-email-copy,
+.contact-email-row:focus-visible .contact-email-copy,
+.contact-email-row:focus-within .contact-email-copy {
+  box-shadow: none;
+  outline: none;
+}
+
+.contact-email-text {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
   border: 0;
   background: transparent;
+  background-color: transparent;
+  -webkit-tap-highlight-color: transparent;
   padding: var(--gate-pad-md-y) var(--gate-pad-md-x);
-  flex: 1 1 auto;
-  cursor: pointer;
   text-align: left;
+  
+  font-family: 'Geist Mono', monospace;
+  font-size: clamp(1.15rem, 3vw, 1.9rem);
+  font-weight: 400;
+  letter-spacing: var(--letter-spacing-normal);
+  color: var(--text-action);
 }
 
+
 .contact-email-copy {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   appearance: none;
   border: 0;
   border-left: 1px solid var(--abs-stroke-soft);
   background: transparent;
-  cursor: pointer;
+  padding: var(--gate-pad-md-y) var(--gate-pad-md-x);
   color: var(--text-quiet);
-  transition: transform 0.15s var(--ease-organic),
-              filter 0.15s var(--ease-organic);
+  transition: color 0.2s var(--ease-organic);
 }
 
-.contact-email-copy:active {
-  transform: scale(var(--link-impact-scale));
-  filter: blur(var(--link-impact-blur));
+.contact-email-copy i {
+  will-change: transform;
+  transition: transform 0.4s var(--ease-bounce);
+}
+
+.contact-email-copy.is-active i {
+  transform: scale(1.3);
+}
+
+.contact-email-copy .ti-check {
+  color: var(--abs-state-success-strong);
 }
 
 .contact-email-row.is-copied {
@@ -2152,44 +2101,16 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
 
 body.dark-mode .contact-email-row {
   border-color: var(--abs-stroke-strong-inverse);
-  background: var(--abs-surface-glass-ghost);
+  background: var(--abs-surface-contrast-dark);
+  background-color: var(--abs-surface-contrast-dark);
 }
 
 body.dark-mode .contact-email-row:hover {
   border-color: var(--abs-stroke-strong-inverse);
-  background: var(--abs-surface-glass-soft);
 }
 
 body.dark-mode .contact-email-copy {
   border-left-color: var(--abs-stroke-ghost-inverse);
-  color: var(--text-quiet);
-}
-
-body.dark-mode .contact-email-row:focus-within {
-  border-color: var(--abs-stroke-soft-inverse);
-}
-
-.contact-email-button:hover {
-  border-color: var(--abs-stroke-strong);
-  background: var(--abs-surface-glass-strong);
-}
-
-.contact-email-button:active {
-  transform: scale(var(--link-impact-scale));
-  filter: blur(var(--link-impact-blur));
-}
-
-.contact-email-button:focus-visible {
-  outline: none;
-  box-shadow: none;
-}
-
-.contact-email-text {
-  font-family: 'Geist Mono', monospace;
-  font-size: clamp(1.15rem, 3vw, 1.9rem);
-  font-weight: 400;
-  letter-spacing: var(--letter-spacing-normal);
-  color: var(--text-action);
 }
 
 .contact-email-icon {
@@ -2211,36 +2132,6 @@ body.dark-mode .contact-email-row:focus-within {
   pointer-events: none;
   font-family: 'Geist', sans-serif;
   font-size: 0.9rem;
-  color: var(--text-quiet);
-}
-
-.contact-email-button.is-copied {
-  border-color: var(--abs-state-success-strong);
-}
-
-.contact-email-button.is-error {
-  border-color: var(--abs-state-error-strong);
-}
-
-body.dark-mode .contact-email-button {
-  border-color: var(--abs-stroke-soft-inverse);
-  background: var(--abs-surface-glass-ghost);
-}
-
-body.dark-mode .contact-email-button:hover {
-  border-color: var(--abs-stroke-strong-inverse);
-  background: var(--abs-surface-glass-soft);
-}
-
-body.dark-mode .contact-email-text {
-  color: var(--text-action);
-}
-
-body.dark-mode .contact-email-icon {
-  color: var(--text-quiet);
-}
-
-body.dark-mode .contact-copy-status {
   color: var(--text-quiet);
 }
 
@@ -2367,15 +2258,22 @@ body.dark-mode .portfolio-digit:focus {
 
 .gate-overlay {
   position: fixed;
-  top: var(--abs-vv-offset-top, 0px);
-  left: var(--abs-vv-offset-left, 0px);
-  width: var(--abs-vv-w, 100vw);
-  height: var(--abs-vv-h, 100vh);
+  /* Cover full viewport including safe areas */
+  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
   z-index: 19999;
   pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Padding respects safe areas for content positioning */
   padding: calc(env(safe-area-inset-top, 0px) + var(--gap-sm))
            calc(env(safe-area-inset-right, 0px) + var(--gap-sm))
            calc(env(safe-area-inset-bottom, 0px) + var(--gap-sm))
@@ -2422,7 +2320,6 @@ body.dark-mode .portfolio-digit:focus {
   .contact-gate,
   #brand-logo,
   .gate-label,
-  .contact-email-button,
   .contact-email-row,
   .gate-overlay {
     transition: none;

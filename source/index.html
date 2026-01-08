@@ -3,22 +3,72 @@
 <head>
 <style id="fade-blocking">#app-frame{opacity:0}</style>
   <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
-  <meta name="theme-color" content="#242529">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#242529">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1a1a">
+  <!-- Values will be set dynamically from CSS wall-color tokens -->
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0a0a">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
   <!-- CRITICAL: Dark mode detection BEFORE first paint to prevent white flash -->
   <script>
     (function() {
       'use strict';
+      
+      // Read wall color from CSS tokens (single source of truth)
+      function getWallColorFromCSS(isDark) {
+        try {
+          // Temporarily set dark mode class to read correct value
+          const hadDarkMode = document.documentElement.classList.contains('dark-mode');
+          if (isDark && !hadDarkMode) {
+            document.documentElement.classList.add('dark-mode');
+          } else if (!isDark && hadDarkMode) {
+            document.documentElement.classList.remove('dark-mode');
+          }
+          
+          // Read computed wall-color value from :root
+          const computedStyle = window.getComputedStyle(document.documentElement);
+          let wallColor = computedStyle.getPropertyValue('--wall-color').trim();
+          
+          // Restore original class state
+          if (isDark && !hadDarkMode) {
+            document.documentElement.classList.remove('dark-mode');
+          } else if (!isDark && hadDarkMode) {
+            document.documentElement.classList.add('dark-mode');
+          }
+          
+          // If we got a valid color value, return it
+          if (wallColor && (wallColor.startsWith('#') || wallColor.startsWith('rgb'))) {
+            return wallColor;
+          }
+        } catch (e) {
+          // CSS not ready or error reading
+        }
+        
+        // Fallback to token default (#0a0a0a from --abs-neutral-950)
+        return '#0a0a0a';
+      }
+      
       function getMetaThemeColor(selector) {
         const node = document.querySelector(selector);
         return node && node.content ? node.content.trim() : '';
       }
-      const fallbackLight = '#242529';
-      const fallbackDark = '#1a1a1a';
+      
+      // Get wall colors from CSS (fallback to #0a0a0a if CSS not loaded yet)
+      const fallbackWall = '#0a0a0a';
+      let THEME_COLOR_LIGHT = fallbackWall;
+      let THEME_COLOR_DARK = fallbackWall;
+      
+      // Try to read from CSS (may fail if stylesheets not loaded)
+      try {
+        THEME_COLOR_LIGHT = getWallColorFromCSS(false) || fallbackWall;
+        THEME_COLOR_DARK = getWallColorFromCSS(true) || fallbackWall;
+      } catch (e) {
+        // CSS not ready, use fallback
+        THEME_COLOR_LIGHT = fallbackWall;
+        THEME_COLOR_DARK = fallbackWall;
+      }
+      
       const primaryMeta = getMetaThemeColor('meta[name="theme-color"]:not([media])');
-      const THEME_COLOR_LIGHT = getMetaThemeColor('meta[name="theme-color"][media="(prefers-color-scheme: light)"]') || primaryMeta || fallbackLight;
-      const THEME_COLOR_DARK = getMetaThemeColor('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]') || primaryMeta || fallbackDark;
+      THEME_COLOR_LIGHT = getMetaThemeColor('meta[name="theme-color"][media="(prefers-color-scheme: light)"]') || primaryMeta || THEME_COLOR_LIGHT;
+      THEME_COLOR_DARK = getMetaThemeColor('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]') || primaryMeta || THEME_COLOR_DARK;
       // Detect dark mode preference synchronously before any rendering
       let shouldBeDark = false;
 
@@ -38,12 +88,16 @@
       }
 
       function setBrowserChromeColors(isDark) {
+        // Re-read wall colors from CSS to ensure sync (wall color is single source of truth)
+        const wallColorLight = getWallColorFromCSS(false) || fallbackWall;
+        const wallColorDark = getWallColorFromCSS(true) || fallbackWall;
+        
         const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.content = isDark ? THEME_COLOR_DARK : THEME_COLOR_LIGHT;
+        if (meta) meta.content = isDark ? wallColorDark : wallColorLight;
         const metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
-        if (metaLight) metaLight.content = THEME_COLOR_LIGHT;
+        if (metaLight) metaLight.content = wallColorLight;
         const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
-        if (metaDark) metaDark.content = THEME_COLOR_DARK;
+        if (metaDark) metaDark.content = wallColorDark;
       }
       
       // Get saved theme preference
@@ -228,7 +282,7 @@
           
           <div class="ui-meta-right">
              <!-- Sound Toggle will be injected here by JS -->
-             <button id="site-year" type="button" class="w-layout-hflex caption abs-meta-btn abs-hover-target abs-hover-target--index" aria-label="Toggle theme">
+             <button id="site-year" type="button" class="caption abs-meta-btn abs-hover-target abs-hover-target--index" aria-label="Toggle theme">
               <span><strong class="location-name">London</strong> · <span id="time-display"></span></span>
             </button>
           </div>

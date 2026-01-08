@@ -539,6 +539,10 @@ async function saveAllConfigToFile() {
     config.linkImpactScale = g.linkImpactScale;
     config.linkImpactBlur = g.linkImpactBlur;
     config.linkImpactDuration = g.linkImpactDuration;
+    config.hoverSnapEnabled = g.hoverSnapEnabled;
+    config.hoverSnapDuration = g.hoverSnapDuration;
+    config.hoverSnapOvershoot = g.hoverSnapOvershoot;
+    config.hoverSnapUndershoot = g.hoverSnapUndershoot;
     
     config.sceneImpactEnabled = g.sceneImpactEnabled;
     config.sceneImpactMul = g.sceneImpactMul;

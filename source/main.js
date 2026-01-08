@@ -346,6 +346,20 @@ function enhanceFooterLinksForMobile() {
       if (Number.isFinite(g?.linkImpactDuration)) {
         root.style.setProperty('--link-impact-duration', `${Math.round(g.linkImpactDuration)}ms`);
       }
+
+      // Hover target "snap" bounce (scale-only; color stays instant)
+      if (g?.hoverSnapEnabled !== undefined) {
+        root.style.setProperty('--abs-hover-snap-enabled', g.hoverSnapEnabled ? '1' : '0');
+      }
+      if (Number.isFinite(g?.hoverSnapDuration)) {
+        root.style.setProperty('--abs-hover-snap-duration', `${Math.max(0, Math.round(g.hoverSnapDuration))}ms`);
+      }
+      if (Number.isFinite(g?.hoverSnapOvershoot)) {
+        root.style.setProperty('--abs-hover-snap-overshoot', String(g.hoverSnapOvershoot));
+      }
+      if (Number.isFinite(g?.hoverSnapUndershoot)) {
+        root.style.setProperty('--abs-hover-snap-undershoot', String(g.hoverSnapUndershoot));
+      }
     } catch (e) {}
     
     // Ensure noise-2 and noise-3 elements exist (for modular dev environments)
@@ -567,24 +581,36 @@ function enhanceFooterLinksForMobile() {
       updateBallsForFilter();
     }
     
-    // Initialize legend styling (display only, no filtering)
+    // Initialize legend interactivity and filtering
     try {
       const legend = document.getElementById('expertise-legend');
       if (legend) {
         legendItems = Array.from(legend.querySelectorAll('.legend__item'));
-        legendItems.forEach((item) => {
+        legendItems.forEach((item, index) => {
+          item.setAttribute('role', 'button');
+          item.setAttribute('tabindex', '0');
+          item.style.cursor = 'pointer';
           item.classList.add('legend__item--interactive');
-          // Stop clicks from propagating to prevent mode cycling
+          
           item.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
+            toggleLegendItem(index);
+          });
+          
+          item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleLegendItem(index);
+            }
           });
         });
       }
     } catch (e) {
       // Silent fail for legend setup
     }
-    log('✓ Legend display configured');
+    log('✓ Legend filter system configured');
     
     setupKeyboardShortcuts();
     log('✓ Keyboard shortcuts registered');

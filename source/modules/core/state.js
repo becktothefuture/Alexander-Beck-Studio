@@ -680,6 +680,10 @@ const state = {
   linkImpactScale: 0.95,             // Scale when link is pressed (0.7-1.0)
   linkImpactBlur: 10,                // Blur amount when link is pressed (px)
   linkImpactDuration: 150,           // Duration of press animation (ms)
+  hoverSnapEnabled: true,            // Hover targets: scale-only bounce on hover entry (no color delay)
+  hoverSnapDuration: 450,            // Hover snap duration (ms)
+  hoverSnapOvershoot: 1.08,          // Hover snap peak scale (>= 1.0)
+  hoverSnapUndershoot: 0.98,         // Hover snap recoil scale (<= 1.0)
   
   // Helpers
   getSquashMax() {
@@ -1353,6 +1357,20 @@ export function initState(config) {
   }
   if (config.linkImpactDuration !== undefined) {
     state.linkImpactDuration = clampInt(config.linkImpactDuration, 0, 3000, state.linkImpactDuration);
+  }
+
+  // Hover target snap/bounce (scale-only; colors remain instant)
+  if (config.hoverSnapEnabled !== undefined) {
+    state.hoverSnapEnabled = Boolean(config.hoverSnapEnabled);
+  }
+  if (config.hoverSnapDuration !== undefined) {
+    state.hoverSnapDuration = clampInt(config.hoverSnapDuration, 0, 2000, state.hoverSnapDuration);
+  }
+  if (config.hoverSnapOvershoot !== undefined) {
+    state.hoverSnapOvershoot = clampNumber(config.hoverSnapOvershoot, 1.0, 1.35, state.hoverSnapOvershoot);
+  }
+  if (config.hoverSnapUndershoot !== undefined) {
+    state.hoverSnapUndershoot = clampNumber(config.hoverSnapUndershoot, 0.7, 1.0, state.hoverSnapUndershoot);
   }
   
   // Logo colors

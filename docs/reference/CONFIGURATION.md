@@ -690,6 +690,34 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 - **Meaning**: Legacy icon padding token. When `uiIconFramePx` is `0` (auto), this contributes to the derived icon button frame size via `--ui-icon-frame-size`.
 - **Applied to**: CSS vars `--link-icon-padding`, `--link-icon-margin`
 
+### `linkImpactScale` (number, 0.5..1.0)
+- **Meaning**: Press depth scale for interactive elements (links/buttons).
+- **Applied to**: CSS var `--link-impact-scale`
+
+### `linkImpactBlur` (number, px)
+- **Meaning**: Blur amount during press (adds “depth”).
+- **Applied to**: CSS var `--link-impact-blur`
+
+### `linkImpactDuration` (number, ms)
+- **Meaning**: Duration of the press animation.
+- **Applied to**: CSS var `--link-impact-duration`
+
+### `hoverSnapEnabled` (boolean)
+- **Meaning**: Enables the hover-target “snap” bounce on hover entry.
+- **Applied to**: CSS var `--abs-hover-snap-enabled` (`1` or `0`)
+
+### `hoverSnapDuration` (number, ms)
+- **Meaning**: Total duration of the hover snap bounce.
+- **Applied to**: CSS var `--abs-hover-snap-duration`
+
+### `hoverSnapOvershoot` (number, scale; >= 1.0)
+- **Meaning**: Peak scale during hover snap.
+- **Applied to**: CSS var `--abs-hover-snap-overshoot`
+
+### `hoverSnapUndershoot` (number, scale; <= 1.0)
+- **Meaning**: Recoil scale before settling back to `1.0`.
+- **Applied to**: CSS var `--abs-hover-snap-undershoot`
+
 ### `homeMainLinksBelowLogoPx` (number, px)
 - **Meaning**: Index-only vertical offset for the main links cluster below the logo.
 - **Applied to**: CSS var `--home-main-links-below-logo-px`

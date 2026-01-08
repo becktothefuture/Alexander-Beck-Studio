@@ -159,9 +159,7 @@ body.portfolio-page {
   background: var(--wall-color);
   background-color: var(--wall-color);
   font-family: var(--abs-font-sans);
-  color: var(--text-color-dark);
-  --text-primary: var(--text-color-dark);
-  --text-muted: var(--text-color-dark-muted);
+  color: var(--text-primary);
   transition: background-color 0.3s var(--ease-settle);
   cursor: none;
   -webkit-user-select: none;
@@ -771,6 +769,16 @@ body.detail-open .wall-frame {
   color: var(--text-primary);
 }
 
+/* Ensure portfolio headlines are dark on light backgrounds */
+body.portfolio-page:not(.dark-mode) .meta-title,
+body.portfolio-page:not(.dark-mode) .project-detail__title,
+body.portfolio-page:not(.dark-mode) .project-detail__eyebrow,
+body.portfolio-page:not(.dark-mode) h1,
+body.portfolio-page:not(.dark-mode) h2,
+body.portfolio-page:not(.dark-mode) h3 {
+  color: var(--text-color-light);
+}
+
 .meta-summary {
   display: block;
   font-family: 'Geist', sans-serif;
@@ -842,29 +850,21 @@ body.portfolio-page.dark-mode .project-detail {
     filter var(--link-impact-duration) var(--ease-organic);
 }
 
-/* Prevent `link-cursor-hop` (abs-hover-mode-ui) from overriding fixed positioning.
-   Without this, hovering the close/back button can switch it to `position:relative`,
-   forcing layout reflow and creating a visible “gap” at the top. */
-body.abs-hover-mode-ui .project-detail__close.abs-hover-target--ui {
+/* Close button hover (native CSS) - preserve fixed positioning */
+.project-detail__close:hover {
+  color: var(--cursor-color);
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+  border-radius: 50%;
   position: fixed;
   z-index: 15;
 }
 
-/* Match other icon controls: circular cursor-color background on hover (UI mode). */
-body.abs-hover-mode-ui .project-detail__close.abs-hover-target--ui::before {
-  border-radius: 50%;
-  opacity: 1;
+body.dark-mode .project-detail__close:hover {
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
 }
 
-/* Press effect (must preserve translateX(-50%)).
-   Use higher specificity to override global button:active styles. */
+/* Press effect (must preserve translateX(-50%)) */
 body.portfolio-page .project-detail__close:active {
-  transform: translateX(-50%) scale(var(--link-impact-scale));
-  filter: blur(var(--link-impact-blur));
-}
-
-/* Keep press effect consistent even while hovered in UI hover-mode. */
-body.portfolio-page.abs-hover-mode-ui .project-detail__close.abs-hover-target--ui:active {
   transform: translateX(-50%) scale(var(--link-impact-scale));
   filter: blur(var(--link-impact-blur));
 }
@@ -1377,29 +1377,9 @@ body.portfolio-page.dark-mode .gate-back:focus-visible {
   pointer-events: auto;
 }
 
-.footer_link::after {
-  content: '';
-  position: absolute;
-  bottom: var(--footer-link-dot-offset);
-  left: 50%;
-  transform: translate3d(-50%, 0, 0) scaleY(0);
-  transform-origin: 50% 50%;
-  width: var(--abs-cursor-hop-dot-size, var(--footer-link-dot-size));
-  height: var(--abs-cursor-hop-dot-size, var(--footer-link-dot-size));
-  border-radius: 50%;
-  background: var(--cursor-color, var(--link-hover-color));
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-.footer_link:hover {
-  /* No color change - keep colors as-is */
+/* Footer link text (middle row, e.g. "Contact") base state */
+.footer_link {
   opacity: 1;
-}
-
-.footer_link:hover::after {
-  opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) var(--ease-bounce) both;
 }
 
 .sound-toggle {
@@ -1600,5 +1580,4 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
   opacity: 0.6;
 }
 
-/* Link hover behavior is centralized in `css/main.css` and toggled by
-   `body.abs-hover-mode-index` / `body.abs-hover-mode-ui` (set by JS). */
+/* Link hover behavior is now pure CSS using native :hover selectors in main.css */

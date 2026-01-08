@@ -5,13 +5,20 @@ Minimal, high-speed kinetic canvas built with vanilla JS + Canvas 2D. A **curate
 ---
 
 ## What this site does
-- Kinetic homepage: particles, walls, and light fields living inside `#bravia-balls` so the rest of the page stays untouched.
-- Multiple simulations (core + experimental), documented in `docs/reference/MODES.md` (Ball Pit, Flies, Zero‑G, Water, Vortex, Ping Pong, Magnetic, Bubbles, Kaleidoscope variants, Critters, Orbit 3D variants, Lattice, Neural, Parallax variants, Ball Pit (Throws), and more).
-- Visual finesse: rubber wall wobble, browser-colored wall/frame, layered film grain, adaptive dark/light palettes, brand-logo micro-interactions, and an optional motion-respect path for `prefers-reduced-motion`.
-- Interaction model: cursor can repel/attract/reshape; touch maps to the same forces; keyboard for **narrative cycling + reset** (see below).
-- Dev control surface: a single master panel docked right with collapsible sections (port **8001** dev only).
-- Privacy + perf: no external calls; localStorage only for settings (no user text); spatial hashing + fixed timestep keep loops O(1) per entity.
-- Mobile fidelity: responsive scaling + **canvas-level rounded-corner clipping** (prevents “corner bleed” in non-wall modes like Kaleidoscope on iOS).
+- **Kinetic homepage:** Particles, walls, and light fields living inside `#bravia-balls` container — rest of page stays untouched.
+- **20 simulation modes** across 8 categories (gravity, swarm/flow, elastic, fluid, optical, orbital, lattice, parallax) — see `docs/reference/MODES.md` for complete specifications.
+- **Visual systems:** 
+  - Rubber wall wobble (10 material presets: rubber, pudding, trampoline, jelly, stiff, steel, latex, memory foam, hydraulic, gel sheet)
+  - Browser-colored wall/frame sync (meta tag harmony)
+  - Procedural film grain (no external assets)
+  - Adaptive dark/light palettes with auto/manual theme switching
+  - Entrance animation system (wall + element transitions)
+  - Brand logo micro-interactions (ball-space yield, cursor scaling)
+  - Mouse cursor trail with palette-driven colors
+- **Interaction model:** Cursor repel/attract/reshape forces; touch parity; keyboard narrative cycling (arrow keys) + reset (`R`).
+- **Dev control surface:** Master panel (port **8001** only) with collapsible sections, real-time tuning, wall/sound/color presets.
+- **Privacy + performance:** No external calls; localStorage for settings only (no user text); spatial hashing + fixed 120Hz timestep = O(1) per entity.
+- **Mobile fidelity:** Responsive scaling (60% balls), touch support, canvas-level rounded-corner clipping (prevents "corner bleed" on iOS).
 
 ---
 
@@ -48,17 +55,50 @@ See `docs/reference/MODES.md` for the authoritative mode list + narrative orderi
 
 ---
 
-## Feature roundup (at-a-glance)
-- **Core features:** physics engine (fixed 120Hz), spatial hash collisions, mode controller, Canvas renderer, adaptive dark/light theme, palette-driven color system, master control panel, keyboard/touch input, runtime config loader, audio hooks (collision/ambient ready), password gates for CV/Portfolio/Contact, social/time widgets, brand micro-interactions.
-- **Bonus behaviors:** wall wobble deformation, browser-colored wall/frame sync, layered film grain, cursor morph (ball-sized), noise overlays, mode-aware canvas height (150vh for Ball Pit, 100svh elsewhere), randomized startup mode, mobile-friendly footer link wrapping, iOS-safe rounded-corner canvas clipping.
-- **Links & gates:** CV gate, Portfolio gate, Contact gate overlays; social icons normalized at runtime; sound/theme toggles in corners; panel lives on the right and can be minimized and reopened with `/`.
-- **Visual finesse features:** rubber wall wobble, browser-tinted frame, grain stack (`.noise`, `.noise-2`, `.noise-3`), brand logo yield-to-crowd, cursor-synchronized halo.
-- **Simulations:** 
-  - Gravity: Ball Pit, Ball Pit (Throws)
-  - Swarm/flow: Flies, Vortex, Magnetic, Critters
-  - Elastic: Zero-G, Ping Pong
-  - Fluid-ish: Water, Bubbles
-  - Optical: Kaleidoscope
+## Systems Overview
+
+### Physics Engine
+- **Fixed timestep:** 120Hz physics (DT = 1/120s)
+- **Spatial hashing:** O(n) collision detection with grid optimization
+- **Sleep system:** Ball Pit modes use Box2D-inspired sleep for jitter reduction
+- **Wall collision:** Rounded-rectangle bounds with rubber deformation feedback
+- **Performance:** Optimized allocations, reusable buffers, sleeping ball skip
+
+### Visual Systems
+- **Dark mode:** Auto (system + time heuristic), light, dark with localStorage persistence
+- **Color system:** 8-slot palette with weighted distribution (AI Integration 75%, Frontend Dev 10%, etc.)
+- **Wall wobble:** 10 material presets with per-sample physics (stiffness, damping, sigma blur)
+- **Noise/grain:** Procedural texture generation (no external GIF), CSS animation, theme-aware opacity
+- **Entrance animation:** Coordinated wall + element transitions with perspective + scale
+- **Chrome harmony:** Browser UI color sync via meta tags (frame color → address bar)
+- **Cursor system:** Palette-driven dot + canvas trail, auto-contrast selection
+
+### Audio System
+- **Collision SFX:** Synthesized pebble/crystal sounds (no external audio files)
+- **Sound presets:** Pebbles, crystals, glass, wood, soft, digital
+- **Velocity mapping:** Pitch, brightness, decay scaled by impact intensity
+- **Reverb + filtering:** Convolution reverb, bandpass filters, stereo panning
+
+### UI Chrome
+- **Gates:** CV, Portfolio, Contact overlays with password protection
+- **Legend:** Interactive color legend with discipline labels
+- **Panel dock:** Collapsible dev panel (port 8001 only) with preset management
+- **Social icons:** Apple, X (Twitter), LinkedIn with hover effects
+- **Time display:** Live clock with timezone
+- **Theme toggle:** Auto/Light/Dark switching
+- **Sound toggle:** Global audio enable/disable
+
+### 20 Simulation Modes
+- **Gravity:** Ball Pit, Ball Pit (Throws)
+- **Swarm/Flow:** Flies, Vortex, Magnetic, Critters
+- **Elastic:** Zero-G (Weightless), Ping Pong
+- **Fluid:** Water, Bubbles
+- **Optical:** Kaleidoscope, Kaleidoscope I, Kaleidoscope II, Kaleidoscope III
+- **Orbital:** Orbit 3D, Orbit 3D (Tight Swarm)
+- **Lattice:** Crystal Lattice, Neural Network
+- **Parallax:** Parallax Linear, Parallax Perspective
+
+See `docs/reference/MODES.md` for physics specifications and narrative sequence.
 
 ---
 
@@ -77,24 +117,43 @@ See `docs/reference/MODES.md` for the authoritative mode list + narrative orderi
 ```
 source/
   main.js            # bootstrap: config → layout vars → renderer → modes → UI
-  css/               # base, panel, gates, sound panel
-    portfolio.css    # portfolio carousel styling (shares chrome with index)
-  images/portfolio/  # portfolio covers, slides, and videos (shared by both dev/prod)
+  css/               # base styles, panel, gates, tokens, portfolio
+    main.css         # core site styles + gates
+    panel.css        # panel dock + sound controls
+    tokens.css       # design token definitions
+    portfolio.css    # portfolio carousel styling
+  images/portfolio/  # portfolio covers, slides, videos (dev + prod)
   modules/
-    core/            # constants, global state
-    physics/         # Ball class, collision, engine, spawn, wall state, text colliders
-    rendering/       # renderer, loop, cursor, effects, theme
-    modes/           # ball-pit, pit-throws, flies, weightless, water, vortex, ping-pong, magnetic, bubbles, kaleidoscope, critters, controller
-    ui/              # panel dock, control registry, gates, toggles, brand interactions, time/social
-    portfolio/       # portfolio carousel entry + panel (mirrors the index chrome)
-    input/           # pointer tracking
-    audio/           # sound engine + control registry
-    utils/           # accessibility, logger, performance, storage
-    visual/          # colors, dark-mode-v2 (active), mouse trail
-  config/            # default-config.json, text.json, portfolio-config.json, portfolio-data.json
-  portfolio.html     # gated portfolio page that consumes modules/portfolio/app.js
-public/              # generated bundle + css/images (do not edit)
-docs/                # lean docs: dev workflow + reference (config, integration, modes, portfolio)
+    core/            # constants (MODES, narrative sequence), state management
+    physics/         # Ball.js, collision.js, engine.js, spawn.js, wall-state.js, text-colliders.js
+    rendering/       # renderer.js, loop.js, cursor.js, effects.js, theme.js
+    modes/           # 20 mode files:
+                     #   ball-pit, pit-throws, flies, weightless, water, vortex, 
+                     #   ping-pong, magnetic, bubbles, kaleidoscope, critters,
+                     #   orbit-3d, orbit-3d-2, lattice, neural,
+                     #   parallax-linear, parallax-perspective
+                     #   + mode-controller.js
+    ui/              # 27 files:
+                     #   panel-dock, panel-html, control-registry, controls, keyboard,
+                     #   cv-gate, portfolio-gate, contact-gate, gate-overlay,
+                     #   legend-colors, legend-interactive,
+                     #   brand-logo-*, social-icons, time-display,
+                     #   sound-toggle, theme-toggle, scene-*, link-*, apply-text
+    portfolio/       # app.js, portfolio-config.js, cylinder-background.js, panel/
+    input/           # pointer.js (mouse/touch), overscroll-lock.js
+    audio/           # sound-engine.js, sound-control-registry.js
+    utils/           # accessibility, logger, performance, storage, runtime-config, 
+                     #   text-loader, font-loader, ball-sizing, config-sync, tokens
+    visual/          # colors.js, dark-mode-v2.js, mouse-trail.js,
+                     #   chrome-harmony.js, entrance-animation.js,
+                     #   noise-system.js, wall-frame.js
+  config/            # default-config.json (420 lines), text.json, 
+                     #   portfolio-config.json, portfolio-data.json
+  portfolio.html     # gated portfolio page
+public/              # generated bundle + css/images (never edit directly)
+docs/
+  development/       # DEV-WORKFLOW.md, CONFIG-SYNC-*.md
+  reference/         # MODES.md, CONFIGURATION.md, INTEGRATION.md, PORTFOLIO.md
 ```
 
 ---

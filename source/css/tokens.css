@@ -107,6 +107,19 @@
   --abs-opacity-faint: 0.25;
   --abs-opacity-ghost: 0.12;
 
+  /* Hover Target Effect Intensities (color-mix percentages) */
+  --abs-hover-intensity-light: 20%;      /* Light mode: more pronounced hover background */
+  --abs-hover-intensity-dark: 24%;     /* Dark mode: higher intensity for visibility */
+  --abs-hover-intensity-active: 18%;   /* Active/pressed state: slightly less than hover */
+  --abs-hover-opacity-ui-light: 0.18;   /* UI mode opacity (light mode) */
+  --abs-hover-opacity-ui-dark: 0.22;   /* UI mode opacity (dark mode) */
+
+  /* Hover Target "Snap" Bounce (scale-only; color remains instant) */
+  --abs-hover-snap-enabled: 1;           /* 1 = on, 0 = off */
+  --abs-hover-snap-duration: 450ms;      /* Total bounce duration */
+  --abs-hover-snap-overshoot: 1.08;      /* Peak scale */
+  --abs-hover-snap-undershoot: 0.98;     /* Small recoil before settling */
+
   /* Surface + Stroke System */
   --abs-surface-page: var(--abs-neutral-100);
   --abs-surface-page-dark: var(--abs-neutral-950);
@@ -489,14 +502,13 @@
   --wall-color: var(--wall-color-dark);
 
   /* Text — Dark mode overrides */
-  --text-color-dark: var(--abs-moonlight-text-primary);
-  --text-color-dark-muted: var(--abs-moonlight-text-muted);
+  /* Note: --text-color-dark and --text-color-dark-muted are set by JS from config */
   --text-primary: var(--text-color-dark);
   --text-muted: var(--text-color-dark-muted);
-  --text-soft: rgba(var(--abs-rgb-white), 0.9);
+  --text-soft: rgba(var(--abs-rgb-white), 0.85);
   --text-strong: rgba(var(--abs-rgb-white), 1);
   --text-action: var(--abs-neutral-350);
   --text-input: var(--abs-neutral-350);
-  --text-quiet: rgba(var(--abs-rgb-white), 0.72);
+  --text-quiet: rgba(var(--abs-rgb-white), 0.55);
   --text-placeholder: rgba(var(--abs-rgb-white), 0.3);
 }

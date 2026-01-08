@@ -17,7 +17,7 @@ import { showOverlay, hideOverlay, mountGateIntoOverlay, unmountGateFromOverlay 
 import { getText } from '../utils/text-loader.js';
 
 const TRANSITION_MS = 400; // Must match gate transitions defined in main.css
-const COPY_FEEDBACK_MS = 1200;
+const COPY_FEEDBACK_MS = 3000;
 
 async function copyToClipboard(text) {
   // Preferred API (secure contexts)
@@ -96,21 +96,18 @@ export function initContactGate() {
   `;
 
   gateInputs.innerHTML = `
-    <div class="contact-email-row" data-email-row>
-      <button type="button" class="contact-email-value" data-copy-email aria-label="${COPY_ARIA}">
-        <span class="contact-email-text">${CONTACT_EMAIL}</span>
-      </button>
-      <button type="button" class="contact-email-copy abs-icon-btn" data-copy-email-icon aria-label="${COPY_ARIA}">
+    <button type="button" class="contact-email-row" data-copy-email aria-label="${COPY_ARIA}">
+      <span class="contact-email-text">${CONTACT_EMAIL}</span>
+      <span class="contact-email-copy" data-copy-icon-container>
         <i class="ti ti-copy" aria-hidden="true"></i>
-      </button>
-    </div>
+      </span>
+    </button>
     <div class="contact-copy-status" data-copy-status aria-live="polite"></div>
   `;
 
   const backBtn = gateLabel.querySelector('[data-gate-back]');
-  const emailValueBtn = gateInputs.querySelector('[data-copy-email]');
-  const emailCopyBtn = gateInputs.querySelector('[data-copy-email-icon]');
-  const emailRow = gateInputs.querySelector('[data-email-row]');
+  const emailRowBtn = gateInputs.querySelector('[data-copy-email]');
+  const iconContainer = gateInputs.querySelector('[data-copy-icon-container]');
   const statusEl = gateInputs.querySelector('[data-copy-status]');
   const iconI = gateInputs.querySelector('.contact-email-copy i');
 
@@ -126,31 +123,40 @@ export function initContactGate() {
   };
 
   const setCopyUI = (state) => {
-    if (!emailValueBtn || !emailCopyBtn || !statusEl) return;
+    if (!emailRowBtn || !statusEl) return;
     if (copyTimer) window.clearTimeout(copyTimer);
 
     if (state === 'copied') {
-      emailRow?.classList?.add?.('is-copied');
-      emailRow?.classList?.remove?.('is-error');
+      emailRowBtn.classList.add('is-copied');
+      emailRowBtn.classList.remove('is-error');
       statusEl.textContent = COPIED_TEXT;
-      if (iconI) iconI.className = 'ti ti-check';
+      if (iconI) {
+        iconI.className = 'ti ti-check';
+        iconI.parentElement.classList.add('is-active'); // For pop up
+      }
       copyTimer = window.setTimeout(() => setCopyUI('idle'), COPY_FEEDBACK_MS);
       return;
     }
 
     if (state === 'error') {
-      emailRow?.classList?.add?.('is-error');
-      emailRow?.classList?.remove?.('is-copied');
+      emailRowBtn.classList.add('is-error');
+      emailRowBtn.classList.remove('is-copied');
       statusEl.textContent = ERROR_TEXT;
-      if (iconI) iconI.className = 'ti ti-alert-triangle';
+      if (iconI) {
+        iconI.className = 'ti ti-alert-triangle';
+        iconI.parentElement.classList.add('is-active');
+      }
       copyTimer = window.setTimeout(() => setCopyUI('idle'), COPY_FEEDBACK_MS);
       return;
     }
 
     // idle
-    emailRow?.classList?.remove?.('is-copied', 'is-error');
+    emailRowBtn.classList.remove('is-copied', 'is-error');
     statusEl.textContent = '';
-    if (iconI) iconI.className = 'ti ti-copy';
+    if (iconI) {
+      iconI.className = 'ti ti-copy';
+      iconI.parentElement.classList.remove('is-active');
+    }
   };
 
   const openGate = (e) => {
@@ -198,7 +204,7 @@ export function initContactGate() {
     gate.classList.add('active');
 
     // Focus email button for keyboard users
-    emailValueBtn?.focus?.();
+    emailRowBtn?.focus?.();
   };
 
   const closeGate = (instant = false) => {
@@ -266,8 +272,7 @@ export function initContactGate() {
     const ok = await copyToClipboard(CONTACT_EMAIL);
     setCopyUI(ok ? 'copied' : 'error');
   };
-  emailValueBtn?.addEventListener('click', onCopy);
-  emailCopyBtn?.addEventListener('click', onCopy);
+  emailRowBtn?.addEventListener('click', onCopy);
 
   // Escape closes (consistent with other gates)
   document.addEventListener('keydown', (e) => {

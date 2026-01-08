@@ -978,6 +978,59 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           document.documentElement.style.setProperty('--link-impact-duration', `${val}ms`);
         }
+      },
+      {
+        id: 'hoverSnapEnabled',
+        label: 'Hover Snap',
+        stateKey: 'hoverSnapEnabled',
+        type: 'checkbox',
+        default: true,
+        hint: 'Hover targets: a tiny “snap onto” bounce on hover entry (scale-only; color stays instant).',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-snap-enabled', val ? '1' : '0');
+        }
+      },
+      {
+        id: 'hoverSnapDuration',
+        label: 'Snap Duration',
+        stateKey: 'hoverSnapDuration',
+        type: 'range',
+        min: 0, max: 1200, step: 10,
+        default: 450,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Total duration of the hover snap bounce (ms).',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-snap-duration', `${Math.max(0, Math.round(val))}ms`);
+        }
+      },
+      {
+        id: 'hoverSnapOvershoot',
+        label: 'Snap Overshoot',
+        stateKey: 'hoverSnapOvershoot',
+        type: 'range',
+        min: 1.0, max: 1.25, step: 0.005,
+        default: 1.08,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        hint: 'Peak scale during hover snap (>= 1.0).',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-snap-overshoot', String(val));
+        }
+      },
+      {
+        id: 'hoverSnapUndershoot',
+        label: 'Snap Recoil',
+        stateKey: 'hoverSnapUndershoot',
+        type: 'range',
+        min: 0.8, max: 1.0, step: 0.005,
+        default: 0.98,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        hint: 'Small recoil scale before settling back to 1.0 (<= 1.0).',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-snap-undershoot', String(val));
+        }
       }
     ]
   },

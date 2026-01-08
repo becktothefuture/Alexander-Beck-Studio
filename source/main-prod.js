@@ -490,7 +490,13 @@ function enhanceFooterLinksForMobile() {
     // Start simulation
     const startupMode = pickStartupMode();
     setMode(startupMode);
-    startMainLoop();
+    
+    // Apply mode-specific forces to each ball during physics step
+    const getForces = () => getForceApplicator();
+    startMainLoop((ball, dt) => {
+      const forceFn = getForces();
+      if (forceFn) forceFn(ball, dt);
+    });
 
     // Release initial `#app-frame` opacity lock in production (with failsafe)
     // so the UI layer can't get stuck hidden.

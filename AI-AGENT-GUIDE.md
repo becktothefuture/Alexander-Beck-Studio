@@ -4,12 +4,17 @@
 
 ## 🎯 Project Context
 
-**High-performance particle physics simulation** with 4 modes:
-- Ball Pit (gravity + collisions)
-- Flies (swarm behavior)
-- Zero-G (weightless bounce)
-- Pulse Grid (synchronized grid motion)
-<!-- Vortex removed in canonical 4-mode spec -->
+**High-performance particle physics simulation** with 20 modes across 8 categories:
+- **Gravity:** Ball Pit, Ball Pit (Throws)
+- **Swarm/Flow:** Flies, Vortex, Magnetic, Critters
+- **Elastic:** Zero-G (Weightless), Ping Pong
+- **Fluid:** Water, Bubbles
+- **Optical:** Kaleidoscope (+ 3 variants)
+- **Orbital:** Orbit 3D, Orbit 3D (Tight Swarm)
+- **Lattice:** Crystal Lattice, Neural Network
+- **Parallax:** Parallax Linear, Parallax Perspective
+
+See `docs/reference/MODES.md` for complete specifications.
 
 ## ⚠️ CRITICAL: Documentation is Source of Truth
 
@@ -29,19 +34,15 @@
 
 ```
 docs/
-├── core/              # Start here
-│   ├── QUICK-START.md
-│   └── PROJECT-OVERVIEW.md
-├── development/       # Code & architecture
-│   ├── ARCHITECTURE.md
-│   └── DEVELOPMENT-GUIDE.md
-├── reference/         # Specs & integration
-│   ├── MODES.md
-│   ├── CONFIGURATION.md
-│   └── INTEGRATION.md
-└── operations/        # Deployment & reviews
-    ├── DEPLOYMENT.md
-    └── PROJECT-ASSESSMENT.md
+├── development/       # Development workflow & config
+│   ├── DEV-WORKFLOW.md
+│   ├── CONFIG-SYNC-PLAN.md
+│   └── CONFIG-SYNC-USAGE.md
+└── reference/         # Specs & integration
+    ├── MODES.md
+    ├── CONFIGURATION.md
+    ├── INTEGRATION.md
+    └── PORTFOLIO.md
 ```
 
 ## 🚀 Quick Commands
@@ -61,34 +62,33 @@ npm run help           # Show all commands
 ## 🎯 Common Tasks
 
 ### Understanding the Codebase
-1. Read [`docs/core/PROJECT-OVERVIEW.md`](./docs/core/PROJECT-OVERVIEW.md)
-2. Study [`docs/development/ARCHITECTURE.md`](./docs/development/ARCHITECTURE.md)
-3. Review [`docs/reference/MODES.md`](./docs/reference/MODES.md)
+1. Read [README.md](./README.md) for project overview
+2. Study [`docs/development/DEV-WORKFLOW.md`](./docs/development/DEV-WORKFLOW.md) for architecture
+3. Review [`docs/reference/MODES.md`](./docs/reference/MODES.md) for mode specifications
 
 ### Making Changes
 1. Edit `source/main.js` + modules or `source/config/default-config.json`
-2. Test changes in browser (open `source/index.html` directly)
+2. Test changes in browser (open `source/index.html` directly or use `npm run dev`)
 3. Run `npm run build` to generate production site in `public/`
 4. Test `public/index.html` via `npm start` (http://localhost:8000)
-5. Follow [`docs/development/DEVELOPMENT-GUIDE.md`](./docs/development/DEVELOPMENT-GUIDE.md)
+5. Follow [`docs/development/DEV-WORKFLOW.md`](./docs/development/DEV-WORKFLOW.md)
 
 ### Adding Features
-1. Check [`docs/development/ARCHITECTURE.md`](./docs/development/ARCHITECTURE.md) for patterns
+1. Check [README.md](./README.md) and existing modules for patterns
 2. Review [`docs/reference/CONFIGURATION.md`](./docs/reference/CONFIGURATION.md) for settings
 3. Update relevant documentation
 4. **Important**: When adding a new simulation mode:
    - Add to `MODES` in `source/modules/core/constants.js`
-   - Add to `NARRATIVE_MODE_SEQUENCE` in `source/modules/core/constants.js` (for keyboard/click cycling)
+   - Add to `NARRATIVE_MODE_SEQUENCE` in `source/modules/core/constants.js` (for arrow key cycling)
    - Add to `NARRATIVE_CHAPTER_TITLES` in `source/modules/core/constants.js`
-   - Add to `modeNames` in `source/modules/ui/controls.js` and `source/modules/modes/mode-controller.js`
+   - Create mode file in `source/modules/modes/`
    - Add UI controls in `source/modules/ui/control-registry.js`
    - Register in `source/modules/modes/mode-controller.js` (init logic, force applicator)
-   - Add to keyboard shortcuts in `source/modules/ui/keyboard.js`
    - Document in `docs/reference/MODES.md`
 
 ### Debugging
-1. Check [`docs/development/DEVELOPMENT-GUIDE.md`](./docs/development/DEVELOPMENT-GUIDE.md) troubleshooting
-2. Enable FPS counter (press `/` key)
+1. Check [`docs/development/DEV-WORKFLOW.md`](./docs/development/DEV-WORKFLOW.md) for troubleshooting
+2. Enable FPS counter (press `/` key to open panel)
 3. Use browser DevTools Performance tab
 
 ## ⚠️ Critical Constraints
@@ -102,14 +102,22 @@ npm run help           # Show all commands
 6. **Zero npm dependencies** - Core is vanilla JS
 7. **Accessibility** - Respect `prefers-reduced-motion`
 8. **Edit source/**, never edit `public/` directly
-9. **4 modes** - Ball Pit, Flies, Zero-G, Pulse Grid
+9. **20 modes** - See `docs/reference/MODES.md` for complete list
 
 ## 🔧 Architecture Quick Reference
 
 **Key Files:**
-- `source/main.js` - Modular entry
-- `source/modules/**` - Implementation
-- `source/config/default-config.json` - Runtime defaults
+- `source/main.js` - Bootstrap entry point
+- `source/modules/core/` - Constants, state management
+- `source/modules/physics/` - Ball class, collision, engine, spawn, text colliders, wall state
+- `source/modules/rendering/` - Renderer, loop, cursor, effects, theme
+- `source/modules/modes/` - 20 mode implementations (ball-pit.js, flies.js, etc.)
+- `source/modules/ui/` - Panel, gates, controls, brand interactions
+- `source/modules/visual/` - Colors, dark mode, entrance animation, noise, wall frame
+- `source/modules/audio/` - Sound engine and control registry
+- `source/modules/input/` - Pointer tracking, overscroll lock
+- `source/modules/utils/` - Accessibility, config, logger, performance, storage
+- `source/config/default-config.json` - Runtime configuration
 - `public/js/bouncy-balls-embed.js` - Production bundle
 
 **Core Classes:**
@@ -131,13 +139,25 @@ class Ball {
 - Elastic collisions with angular momentum
 
 **Mode System:**
-```javascript
-const MODES = {
-  PIT: 'pit',               // 150vh, collisions, gravity
-  FLIES: 'flies',           // 100svh, no collisions, attraction
-  WEIGHTLESS: 'weightless', // 100svh, collisions, no gravity
-  PULSE_GRID: 'pulse-grid'  // 100svh, grid choreography
-};
+20 modes defined in `source/modules/core/constants.js`:
+- Narrative sequence controlled by arrow keys (← / →)
+- Each mode has unique physics, rendering, and interaction
+- Mode switching preserved in narrative order (looping)
+- See `docs/reference/MODES.md` for complete specifications
+
+**Module Categories:**
+```
+source/modules/
+├── core/          # Constants (MODES, NARRATIVE_MODE_SEQUENCE), state
+├── physics/       # Ball.js, collision.js, engine.js, spawn.js
+├── rendering/     # renderer.js, loop.js, cursor.js, effects.js
+├── modes/         # 20 mode files (ball-pit.js, flies.js, etc.)
+├── ui/            # Panel, gates, controls, keyboard, legends
+├── visual/        # colors.js, dark-mode-v2.js, noise-system.js
+├── audio/         # sound-engine.js, sound-control-registry.js
+├── input/         # pointer.js, overscroll-lock.js
+├── utils/         # Config, logger, performance, storage
+└── portfolio/     # Portfolio carousel system (separate runtime)
 ```
 
 ## 📊 Performance Targets
@@ -190,13 +210,15 @@ const MODES = {
 ## 🧪 Testing Checklist
 
 Manual testing required:
-- [ ] All 4 modes work (keys 1, 2, 3, 4)
-- [ ] 60 FPS stable
-- [ ] Mouse/touch interaction
-- [ ] Panel controls (key `/`)
-- [ ] Mobile responsive
+- [ ] All 20 modes accessible via arrow keys (← / →)
+- [ ] 60 FPS stable across modes
+- [ ] Mouse/touch interaction works
+- [ ] Panel controls (key `/` to toggle)
+- [ ] Mobile responsive (60% ball scaling, touch support)
 - [ ] No console errors
 - [ ] `prefers-reduced-motion` support
+- [ ] Dark mode toggle works (auto/light/dark)
+- [ ] Wall wobble system active (visual feedback on impacts)
 
 ## 🎓 Evidence-Based Reasoning
 
@@ -233,9 +255,11 @@ CONFIDENCE: 95% (primary source)
 ---
 
 **Read Next:**
-- New to project? → [`docs/core/PROJECT-OVERVIEW.md`](./docs/core/PROJECT-OVERVIEW.md)
-- Making changes? → [`docs/development/DEVELOPMENT-GUIDE.md`](./docs/development/DEVELOPMENT-GUIDE.md)
-- Need technical details? → [`docs/development/ARCHITECTURE.md`](./docs/development/ARCHITECTURE.md)
+- New to project? → [README.md](./README.md)
+- Development workflow? → [`docs/development/DEV-WORKFLOW.md`](./docs/development/DEV-WORKFLOW.md)
+- Mode specifications? → [`docs/reference/MODES.md`](./docs/reference/MODES.md)
+- Configuration options? → [`docs/reference/CONFIGURATION.md`](./docs/reference/CONFIGURATION.md)
+- Integration guide? → [`docs/reference/INTEGRATION.md`](./docs/reference/INTEGRATION.md)
 
-**Last Updated:** October 1, 2025
+**Last Updated:** January 6, 2025
 
