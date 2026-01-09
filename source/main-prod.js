@@ -17,10 +17,10 @@ import { setupCustomCursor } from './modules/rendering/cursor.js';
 import { setMode, MODES, getForceApplicator } from './modules/modes/mode-controller.js';
 import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
-import { initCVGate } from './modules/ui/cv-gate.js';
-import { initPortfolioGate } from './modules/ui/portfolio-gate.js';
-import { initContactGate } from './modules/ui/contact-gate.js';
-import { initGateOverlay } from './modules/ui/gate-overlay.js';
+import { initCVModal } from './modules/ui/cv-modal.js';
+import { initPortfolioModal } from './modules/ui/portfolio-modal.js';
+import { initContactModal } from './modules/ui/contact-modal.js';
+import { initModalOverlay } from './modules/ui/modal-overlay.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
@@ -122,7 +122,7 @@ function startIndexFadeIn() {
 // The HTML template starts with `#app-frame { opacity: 0 }` (see `source/index.html`).
 // In dev (`source/main.js`) this is released as part of the entrance animation pipeline.
 // Production must also release it, otherwise the page looks "blank" except for elements
-// outside `#app-frame` (e.g. fixed footer links).
+// outside `#app-frame` (e.g. fixed main links).
 function fadeInContentLayer(options = {}) {
   const fadeTarget = document.getElementById('app-frame');
   if (!fadeTarget) return Promise.resolve();
@@ -470,10 +470,10 @@ function enhanceFooterLinksForMobile() {
     applyExpertiseLegendColors();
     setupKeyboardShortcuts();
 
-    initGateOverlay(config);
-    initCVGate();
-    initPortfolioGate();
-    initContactGate();
+    initModalOverlay(config);
+    initCVModal();
+    initPortfolioModal();
+    initContactModal();
 
     upgradeSocialIcons();
     initTimeDisplay();

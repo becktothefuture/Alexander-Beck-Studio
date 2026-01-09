@@ -1,18 +1,17 @@
-/* Portfolio carousel styles (shared chrome with index) */
-:root {
-  /* --- Studio Wall / Frame (index-parity) ---
-     IMPORTANT: `source/portfolio.html` loads `css/main.css` first in dev.
-     We do NOT override shared chrome tokens here, otherwise sizes drift vs index. */
-  
-  /* Restore corner radius for portfolio page (simulation page uses 0) */
-  --abs-radius-wall-min: 32px;
-  --abs-wall-radius-vw: 3.7;
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+   ║                    PORTFOLIO PAGE - CAROUSEL STYLES                          ║
+   ║     Extends main.css (wall, chrome, typography inherited from index)         ║
+   ╚══════════════════════════════════════════════════════════════════════════════╝ */
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PORTFOLIO-SPECIFIC TOKENS
+   Only override what differs from index - wall/chrome inherited from main.css
+   ═══════════════════════════════════════════════════════════════════════════════ */
+:root {
   /* --- Wheel Layout --- */
   --slider-max-height: 100dvh;
   --wheel-radius-x: 36vw;
   --wheel-radius-y: 14vh;
-  /* Card spacing as ratio of card width (prevents overlap on small screens) */
   --wheel-spacing-ratio: 0.22;
   --wheel-spacing: max(calc(var(--card-width) * var(--wheel-spacing-ratio)), 7vw);
   --wheel-center-x: 0vw;
@@ -40,10 +39,8 @@
   --mouse-tilt-pivot-z: 0vmin;
 
   /* --- Card Dimensions --- */
-  /* Card width is derived from height + a locked aspect ratio (no vw-based resizing). */
   --card-aspect-w: 5;
   --card-aspect-h: 4;
-  /* Absolute floor so cards never get too small (keeps carousel spacing/readability). */
   --card-height-floor: 216px;
   --card-height-min: 27vh;
   --card-height-ideal: 45vh;
@@ -54,20 +51,15 @@
   --border-width: 0.6vmin;
   --card-content-inset: clamp(6px, 1vw, 12px);
 
-  /* --- Appearance --- */
+  /* --- Card Appearance --- */
   --active-shadow-intensity: 0.2;
   --img-saturation: 100%;
-  /* Light mode: dark borders on light background */
   --border-color: rgba(var(--abs-rgb-black), 0.2);
   --border-color-hover: rgba(var(--abs-rgb-black), 0.7);
-  --card-hover-scale: 1.025; /* Scale increase on hover (2.5%) */
-  --card-hover-lift: 0.6vmin; /* Z-axis movement towards user on hover (reduced by 92.5% total) */
-  --card-press-lift: -0.6vmin; /* Z-axis movement away from user on press (opposite of hover) */
+  --card-hover-scale: 1.025;
+  --card-hover-lift: 0.6vmin;
+  --card-press-lift: -0.6vmin;
   --card-hover-shadow-intensity: 0.28;
-  /* Map legacy background token to studio background for a matching inner surface. */
-  --bg-color: var(--bg-light);
-  --accent-color: var(--text-color-light);
-  --cursor-color: var(--accent-color);
   --cursor-color-card-hover: rgba(var(--abs-rgb-white), 0.4);
 
   /* --- Typography --- */
@@ -80,10 +72,9 @@
   --text-title-max: 56px;
   --text-tags-min: 14px;
   --text-tags-max: 18px;
-  /* Position meta in the bottom third of the viewport, centered in white space below cards */
   --content-offset: 8vh;
   --meta-lift: 0vh;
-  --meta-padding: 0vmin;       /* Inner padding for the meta text block */
+  --meta-padding: 0vmin;
   --text-align: center;
   --meta-transition-speed: 360ms;
 
@@ -102,7 +93,6 @@
   --detail-transition-ease-out: var(--ease-gate);
   --detail-transition-shadow-opacity: 0.18;
   --detail-surface: var(--abs-surface-contrast);
-  /* Detail content motion (scale + fade, no overshoot). */
   --detail-content-pop-duration: 360ms;
   --detail-content-pop-delay: 80ms;
   --detail-content-pop-delay-hero: 60ms;
@@ -123,84 +113,31 @@
   --close-button-icon-size: clamp(14px, 1.5vw, 16px);
 }
 
-/* Icons + base UI chrome are inherited from `css/main.css` (index parity). */
-
-@keyframes braviaDotBounceIn {
-  0% { transform: translate3d(-50%, 0, 0) scaleY(0); }
-  60% { transform: translate3d(-50%, 0, 0) scaleY(1.2); }
-  100% { transform: translate3d(-50%, 0, 0) scaleY(1); }
-}
-
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-html {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  /* Single source of truth: wall/frame uses the same token in all themes. */
-  background: var(--wall-color);
-  background-color: var(--wall-color);
-}
-
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PORTFOLIO PAGE BODY
+   Inherits wall styling from main.css - only add portfolio-specific overrides
+   ═══════════════════════════════════════════════════════════════════════════════ */
 body.portfolio-page {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  margin: 0;
-  box-sizing: border-box;
-  position: relative;
-  /* Prevent iOS Safari from flashing browser-white during viewport UI changes. */
-  background: var(--wall-color);
-  background-color: var(--wall-color);
-  font-family: var(--abs-font-sans);
-  color: var(--text-primary);
-  transition: background-color 0.3s var(--ease-settle);
   cursor: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
-body.portfolio-page .decorative-script {
-  color: var(--text-color-light);
+body.portfolio-page * {
+  cursor: none;
 }
 
+/* Dark mode card border overrides */
 body.portfolio-page.dark-mode {
-  --bg-color: var(--bg-dark);
-  --accent-color: var(--abs-neutral-100);
-  /* Dark mode: light borders on dark background (inverted from light mode) */
   --border-color: rgba(var(--abs-rgb-white), 0.3);
   --border-color-hover: rgba(var(--abs-rgb-white), 1);
-  --text-color-light-muted: var(--text-color-dark-muted);
-  --text-color-light-base: var(--text-color-dark);
   --cursor-color-card-hover: rgba(var(--abs-rgb-white), 0.35);
 }
 
-/* Dark mode borders inherit from CSS variable (no !important needed) */
-body.portfolio-page.dark-mode .slide-image-container {
-  border-color: var(--border-color);
-}
-
-body.portfolio-page.dark-mode .slide:hover .slide-image-container {
-  border-color: var(--border-color-hover);
-}
-
-body.portfolio-page.dark-mode .slide:hover .slide-image-container::before {
-  background: var(--border-color-hover);
-  box-shadow: 0 0 0 var(--border-width) var(--border-color-hover), 0 0 calc(var(--border-width) * 2) rgba(var(--abs-rgb-white), 0.9);
-}
-
-/* Portfolio-specific logo colors and blur control (separate from index) */
+/* Portfolio-specific logo colors (may differ from index) */
 body.portfolio-page #brand-logo {
   color: var(--portfolio-logo-color-light);
-  /* Portfolio-specific logo blur control */
   filter: blur(var(--portfolio-logo-blur, 0px));
-  /* Add filter transition to existing logo transitions */
   transition: 
     transform var(--abs-scene-impact-dur, 100ms) var(--abs-scene-impact-ease, var(--ease-gate)),
     opacity var(--gate-depth-out-duration, 250ms) var(--ease-gate),
@@ -211,262 +148,41 @@ body.portfolio-page.dark-mode #brand-logo {
   color: var(--portfolio-logo-color-dark);
 }
 
-/* Portfolio background text (edge-chapter, edge-copyright) - 20% transparent (80% opacity) */
+/* Edge labels: slightly different opacity for portfolio */
 body.portfolio-page .edge-chapter__text,
 body.portfolio-page .edge-copyright__text {
   opacity: 0.8;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   TOP NAVIGATION BAR
-   Alexander Beck branding header with social icons, CV link, and title
+   PORTFOLIO SIMULATION CONTAINER
+   Uses same #bravia-balls ID with .portfolio-simulation class
    ═══════════════════════════════════════════════════════════════════════════════ */
-
-.top-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 9000;
-  background: transparent;
-  padding: clamp(14px, 2.4vmin, 28px) clamp(18px, 3.6vmin, 36px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  column-gap: clamp(18px, 3.2vw, 36px);
-  pointer-events: none;
+#bravia-balls.portfolio-simulation {
+  /* Inherits position, inset, background from main.css #bravia-balls */
+  /* Index wall master: no rounded container corners */
+  border-radius: 0;
+  /* main.css already sets overflow:hidden on #bravia-balls; keep no extra layering here */
+  touch-action: none;
 }
 
-.top-nav * {
-  pointer-events: auto;
-}
-
-.top-nav__left {
-  display: flex;
-  align-items: center;
-  gap: clamp(8px, 1.5vw, 16px);
-}
-
-.top-nav__link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: clamp(32px, 5vw, 44px);
-  height: clamp(32px, 5vw, 44px);
-  color: var(--accent-color);
-  opacity: 0.7;
-  transition: opacity 0.2s var(--ease-organic), 
-              transform 0.2s var(--ease-organic),
-              filter 0.15s var(--ease-organic),
-              color 0.2s var(--ease-organic);
-  text-decoration: none;
-  position: relative;
-  overflow: visible;
-}
-
-/* Light-up effect with gradient overlay */
-.top-nav__link::before {
-  content: '';
+/* Wall-only canvas overlays the carousel so the wall is visible (matches index wall ring).
+   Critical: pointer-events must stay NONE so dragging the carousel still works. */
+#bravia-balls.portfolio-simulation .portfolio-wall-canvas {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at center,
-    transparent 0%,
-    transparent 50%,
-    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 20%, transparent 80%) 70%,
-    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 35%, transparent 65%) 100%
-  );
-  opacity: 0;
-  transition: opacity 0.2s var(--ease-organic);
-  pointer-events: none;
-  z-index: 0;
-}
-
-body.portfolio-page.dark-mode .top-nav__link::before {
-  background: radial-gradient(
-    circle at center,
-    transparent 0%,
-    transparent 50%,
-    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 15%, transparent 85%) 70%,
-    color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) 30%, transparent 70%) 100%
-  );
-}
-
-.top-nav__link:hover {
-  opacity: 1;
-  transform: scale(1.05);
-  color: var(--cursor-color, var(--link-hover-color));
-}
-
-.top-nav__link:hover::before {
-  opacity: 1;
-}
-
-.top-nav__link:active {
-  transform: scale(0.95);
-  filter: blur(10px);
-}
-
-/* Keep icon above gradient */
-.top-nav__link .top-nav__icon,
-.top-nav__link svg {
-  position: relative;
-  z-index: 1;
-}
-
-.top-nav__icon {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.top-nav__icon svg {
-  width: 60%;
-  height: 60%;
-}
-
-.top-nav__cv {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(8px, 1.5vw, 12px) clamp(16px, 3vw, 24px);
-  font-family: 'Geist', sans-serif;
-  font-size: clamp(13px, 1.8vw, 15px);
-  font-weight: 600;
-  letter-spacing: var(--letter-spacing-normal);
-  text-transform: uppercase;
-  color: var(--accent-color);
-  text-decoration: none;
-  border: 1.5px solid var(--abs-stroke-subtle);
-  border-radius: var(--abs-radius-pill);
-  background: var(--abs-surface-glass-balanced);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  opacity: 0.85;
-  transition: opacity 0.2s var(--ease-organic), 
-              transform 0.2s var(--ease-organic), 
-              background-color 0.2s var(--ease-settle),
-              filter 0.15s var(--ease-organic);
-}
-
-.top-nav__cv:hover {
-  opacity: 1;
-  transform: scale(1.02);
-  background: var(--abs-surface-glass-strong);
-}
-
-.top-nav__cv:active {
-  transform: scale(0.95);
-  filter: blur(10px);
-}
-
-body.portfolio-page.dark-mode .top-nav__cv {
-  border-color: var(--abs-stroke-medium-inverse);
-  background: var(--abs-surface-glass-ghost);
-}
-
-body.portfolio-page.dark-mode .top-nav__cv:hover {
-  background: var(--abs-surface-glass-soft);
+  z-index: 15; /* Above stage (5) and viewport (1), below UI layers */
+  pointer-events: none;
+  display: block;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   HEADING WRAPPER (Alexander Beck logo/title)
-   Max 250px desktop, clamps down to 120px mobile, clickable to return to index
+   PORTFOLIO STAGE & CAROUSEL
    ═══════════════════════════════════════════════════════════════════════════════ */
-
-.heading-wrapper {
-  display: none;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   TEXT ANIMATIONS (40% faster with light overshoot)
-   Original: 600-700ms → New: 360-420ms with overshoot easing
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-@keyframes heading-pop-in {
-  0% {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.96);
-  }
-  60% {
-    opacity: 1;
-    transform: translateY(0) scale(1.03);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes divider-grow {
-  0% {
-    opacity: 0;
-    transform: scaleX(0);
-  }
-  60% {
-    opacity: 1;
-    transform: scaleX(1.06);
-  }
-  100% {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
-/* Cursor override: portfolio page uses custom cursor */
-body.portfolio-page * {
-  cursor: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.screen-reader {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Frame container that mimics the index page wall inset. */
-.wall-frame {
-  position: fixed;
-  top: var(--container-border-y, var(--container-border));
-  left: var(--container-border-x, var(--container-border));
-  right: var(--container-border-x, var(--container-border));
-  bottom: var(--container-border-y, var(--container-border));
-  border-radius: var(--container-radius);
-  background-color: var(--bg-color, var(--bg-light, #f5f5f5));
-  background: var(--bg-color, var(--bg-light, #f5f5f5));
-  overflow: hidden;
-  box-sizing: border-box;
-  z-index: 0;
-  isolation: isolate;
-  touch-action: none;
-  opacity: 1;
-  visibility: visible;
-}
-
-body.portfolio-page.dark-mode .wall-frame {
-  background-color: var(--bg-color, var(--bg-dark, #0a0a0a));
-  background: var(--bg-color, var(--bg-dark, #0a0a0a));
-}
-
-body.detail-open .wall-frame {
-  touch-action: pan-y;
-}
-
-/* --- Slider Stage --- */
 .portfolio-stage {
   position: absolute;
-  /* Fill the padded interior of .fade-content, centered vertically */
   left: 0;
   right: 0;
   top: 0;
@@ -477,14 +193,12 @@ body.detail-open .wall-frame {
   justify-content: center;
   height: 100%;
   width: 100%;
-  z-index: 5; /* Above the centered brand logo (background), below UI (.fade-content). */
+  z-index: 5;
   opacity: 1;
   visibility: visible;
 }
 
-/* --- Viewport & Track --- */
 .portfolio-viewport {
-  /* Fill the stage container */
   position: relative;
   width: 100%;
   height: 100%;
@@ -494,8 +208,8 @@ body.detail-open .wall-frame {
   align-items: center;
   perspective: var(--perspective);
   background-color: transparent;
-  border-radius: var(--container-radius); /* clip to wall shape so walls sit in front */
-  overflow: hidden; /* keep carousel behind the wall edges */
+  border-radius: var(--container-radius);
+  overflow: hidden;
   z-index: 1;
   cursor: grab;
   touch-action: none;
@@ -509,7 +223,6 @@ body.detail-open .wall-frame {
   user-select: none;
 }
 
-
 .slider-track {
   position: relative;
   width: 100%;
@@ -518,7 +231,6 @@ body.detail-open .wall-frame {
   transform-style: preserve-3d;
 }
 
-/* Centered 3D rig: this is the actual carousel "object" that we tilt. */
 .slider-rig {
   position: absolute;
   left: 50%;
@@ -530,7 +242,7 @@ body.detail-open .wall-frame {
   will-change: transform;
 }
 
-/* Cylinder dots container - shares same 3D space as carousel */
+/* Cylinder dots container */
 .cylinder-dots-container {
   position: absolute;
   left: 50%;
@@ -542,7 +254,6 @@ body.detail-open .wall-frame {
   pointer-events: none;
 }
 
-/* Individual cylinder dot */
 .cylinder-dot {
   position: absolute;
   left: 0;
@@ -551,7 +262,9 @@ body.detail-open .wall-frame {
   backface-visibility: hidden;
 }
 
-/* --- Slides --- */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SLIDES
+   ═══════════════════════════════════════════════════════════════════════════════ */
 .slide {
   --slide-x: 0vw;
   --slide-y: 0vh;
@@ -576,18 +289,14 @@ body.detail-open .wall-frame {
     scale(var(--slide-scale));
   filter: blur(var(--slide-blur));
   will-change: transform, filter, opacity;
-  /* Smooth transition for hover scale effect - only when not actively animating */
   transition: transform 0.3s var(--ease-organic);
 }
 
-/* Base transition for card press effect (same as links) - only when not active */
 .slide:not(:active) {
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic);
 }
 
-/* Card press effect: scale down, blur, and move backward (opposite direction of hover) */
-/* Preserves all transform values but adds backward Z movement and applies scale/blur */
 .slide:active {
   transform: 
     translate3d(var(--slide-x), var(--slide-y), calc(var(--slide-z) + var(--card-press-lift, -0.6vmin)))
@@ -600,7 +309,7 @@ body.detail-open .wall-frame {
 }
 
 .slide:focus-visible {
-  outline: 0.3vmin solid var(--accent-color);
+  outline: 0.3vmin solid var(--text-primary);
   outline-offset: 0.6vmin;
 }
 
@@ -608,11 +317,9 @@ body.detail-open .wall-frame {
   z-index: 10;
 }
 
-/* Slide scales up when clicked (before detail overlay fully covers it) */
-/* Only animates Z-axis forward and scale - X/Y are frozen by JS */
 .slide.is-expanding {
   z-index: 11;
-  pointer-events: auto; /* Ensure card remains clickable during expansion */
+  pointer-events: auto;
   transition:
     transform var(--detail-transition-ms) var(--detail-transition-ease),
     opacity var(--detail-transition-ms) var(--detail-transition-ease),
@@ -636,7 +343,7 @@ body.detail-open .wall-frame {
   border: var(--border-width) solid var(--border-color);
   overflow: hidden;
   position: relative;
-  background: var(--bg-color);
+  background: var(--bg-light);
   box-shadow: none;
   transition: 
     border-width var(--transition-speed) var(--transition-ease), 
@@ -649,7 +356,11 @@ body.detail-open .wall-frame {
   isolation: isolate;
 }
 
-/* Glowing border on hover using pseudo-element - transparent light effect */
+body.portfolio-page.dark-mode .slide-image-container {
+  background: var(--bg-dark);
+}
+
+/* Glowing border on hover */
 .slide-image-container::before {
   content: '';
   position: absolute;
@@ -660,7 +371,6 @@ body.detail-open .wall-frame {
   z-index: 0;
   transition: opacity 0.35s var(--ease-organic);
   pointer-events: none;
-  /* Add subtle glow effect */
   box-shadow: 0 0 0 var(--border-width) var(--border-color-hover), 0 0 calc(var(--border-width) * 2) var(--border-color-hover);
 }
 
@@ -673,19 +383,8 @@ body.detail-open .wall-frame {
   opacity: 1;
 }
 
-@keyframes slide-gradient-move {
-  0% {
-    background-position: 0% 0%;
-  }
-  100% {
-    background-position: 200% 0%;
-  }
-}
-
-/* Card hover effect: pull towards user with accent border */
 .slide:hover {
   z-index: 12;
-  /* Override any blur effect when hovering - always show sharp on hover */
   --slide-blur: 0vmin;
   filter: blur(0);
 }
@@ -699,11 +398,6 @@ body.detail-open .wall-frame {
   filter: saturate(calc(var(--img-saturation) * 1.08));
 }
 
-/* Noise removed from cards - noise only appears on wall-frame background (behind and in front of cards) */
-.slide-image-container::after {
-  display: none;
-}
-
 .slide-image {
   width: 100%;
   height: 100%;
@@ -713,14 +407,13 @@ body.detail-open .wall-frame {
   filter: saturate(var(--img-saturation));
 }
 
-/* --- Fixed Metadata --- 
-   Positioned in the white space below the carousel, above the footer.
-   Uses absolute positioning within wall-frame. */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PORTFOLIO META (Project title/description below carousel)
+   ═══════════════════════════════════════════════════════════════════════════════ */
 .portfolio-meta {
   position: absolute;
   left: 50%;
   top: auto;
-  /* Position from bottom of wall-frame: above footer content */
   bottom: 80px;
   --meta-shift: 0vh;
   transform: translateX(-50%) translateY(var(--meta-shift));
@@ -729,7 +422,12 @@ body.detail-open .wall-frame {
   text-align: var(--text-align);
   opacity: 1;
   filter: blur(0);
-  transition: opacity var(--meta-transition-speed) var(--transition-ease),
+  /* Smooth layout updates on resize */
+  transition: 
+    left var(--duration-resize) var(--ease-organic),
+    bottom var(--duration-resize) var(--ease-organic),
+    max-width var(--duration-resize) var(--ease-organic),
+    opacity var(--meta-transition-speed) var(--transition-ease),
     transform var(--meta-transition-speed) var(--transition-ease),
     filter var(--meta-transition-speed) var(--transition-ease);
   pointer-events: none;
@@ -769,16 +467,6 @@ body.detail-open .wall-frame {
   color: var(--text-primary);
 }
 
-/* Ensure portfolio headlines are dark on light backgrounds */
-body.portfolio-page:not(.dark-mode) .meta-title,
-body.portfolio-page:not(.dark-mode) .project-detail__title,
-body.portfolio-page:not(.dark-mode) .project-detail__eyebrow,
-body.portfolio-page:not(.dark-mode) h1,
-body.portfolio-page:not(.dark-mode) h2,
-body.portfolio-page:not(.dark-mode) h3 {
-  color: var(--text-color-light);
-}
-
 .meta-summary {
   display: block;
   font-family: 'Geist', sans-serif;
@@ -789,11 +477,13 @@ body.portfolio-page:not(.dark-mode) h3 {
   color: var(--text-primary);
 }
 
-/* --- Project Detail --- */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PROJECT DETAIL OVERLAY
+   ═══════════════════════════════════════════════════════════════════════════════ */
 .project-detail {
   position: absolute;
   inset: 0;
-  z-index: 50; /* Force above everything including 3D carousel */
+  z-index: 50;
   opacity: 0;
   pointer-events: none;
   background: var(--bg-light);
@@ -850,7 +540,6 @@ body.portfolio-page.dark-mode .project-detail {
     filter var(--link-impact-duration) var(--ease-organic);
 }
 
-/* Close button hover (native CSS) - preserve fixed positioning */
 .project-detail__close:hover {
   color: var(--cursor-color);
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
@@ -859,11 +548,10 @@ body.portfolio-page.dark-mode .project-detail {
   z-index: 15;
 }
 
-body.dark-mode .project-detail__close:hover {
+body.portfolio-page.dark-mode .project-detail__close:hover {
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
 }
 
-/* Press effect (must preserve translateX(-50%)) */
 body.portfolio-page .project-detail__close:active {
   transform: translateX(-50%) scale(var(--link-impact-scale));
   filter: blur(var(--link-impact-blur));
@@ -885,8 +573,6 @@ body.portfolio-page .project-detail__close:active {
 .project-detail__close:hover {
   color: var(--text-strong);
 }
-
-/* Dark-mode close button colors are token-driven via `--text-*` variables. */
 
 .project-detail__scroller {
   height: 100%;
@@ -953,93 +639,6 @@ body.portfolio-page .project-detail__close:active {
   position: relative;
   height: var(--detail-hero-height);
   box-shadow: none;
-}
-
-.project-detail__media::after {
-  /* Match slide/transition noise treatment to avoid a perceptual "brightening pulse"
-     when the transition layer fades out and the detail hero becomes visible. */
-  content: none;
-  position: absolute;
-  inset: var(--abs-noise-overscan);
-  background-image: var(--abs-noise-texture);
-  background-repeat: repeat;
-  background-attachment: scroll;
-  background-size: calc(var(--noise-size-top) * var(--noise-size-scale)) calc(var(--noise-size-top) * var(--noise-size-scale));
-  /* Detail view already has back/front noise layers. Keeping this hero-only layer at 0
-     prevents stacking noise (too dark/prominent) and matches index/portfolio exactly. */
-  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled) * var(--detail-media-noise-opacity, 0));
-  mix-blend-mode: multiply;
-  pointer-events: none;
-  will-change: transform, opacity;
-  transform: translate3d(0, 0, 0);
-  filter: var(--abs-noise-filter);
-  animation-name: var(--abs-noise-keyframes), abs-noise-flicker;
-  animation-duration: var(--abs-noise-speed-front), var(--abs-noise-flicker-speed);
-  animation-timing-function: var(--abs-noise-timing), steps(2);
-  animation-iteration-count: infinite, infinite;
-}
-
-body.portfolio-page.dark-mode .project-detail__media::after {
-  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled) * var(--detail-media-noise-opacity, 0));
-  mix-blend-mode: overlay;
-}
-
-/* Detail noise layers (background → content → front) */
-.project-detail__noise {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 1; /* Behind content */
-}
-
-.project-detail__noise--back {
-  z-index: 1;
-  opacity: calc(var(--noise-back-opacity-light) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
-  mix-blend-mode: multiply;
-}
-
-.project-detail__noise--front {
-  z-index: 51; /* Above content (z:50) */
-  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
-  mix-blend-mode: multiply;
-}
-
-body.portfolio-page.dark-mode .project-detail__noise--back {
-  opacity: calc(var(--noise-back-opacity-dark) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
-  mix-blend-mode: overlay;
-}
-
-body.portfolio-page.dark-mode .project-detail__noise--front {
-  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
-  mix-blend-mode: overlay;
-}
-
-.project-detail__noise::before {
-  content: '';
-  position: absolute;
-  inset: var(--abs-noise-overscan);
-  background-image: var(--abs-noise-texture);
-  background-repeat: repeat;
-  background-attachment: scroll;
-  pointer-events: none;
-  will-change: transform, opacity;
-  transform: translate3d(0, 0, 0);
-  filter: var(--abs-noise-filter);
-  animation-name: var(--abs-noise-keyframes), abs-noise-flicker;
-  animation-duration: var(--abs-noise-speed-back), var(--abs-noise-flicker-speed);
-  animation-timing-function: var(--abs-noise-timing), steps(1, end);
-  animation-iteration-count: infinite, infinite;
-}
-
-.project-detail__noise--back::before {
-  background-size: calc(var(--noise-size-base) * var(--noise-size-scale)) calc(var(--noise-size-base) * var(--noise-size-scale));
-  animation-duration: var(--abs-noise-speed-back), var(--abs-noise-flicker-speed);
-}
-
-.project-detail__noise--front::before {
-  background-size: calc(var(--noise-size-top) * var(--noise-size-scale)) calc(var(--noise-size-top) * var(--noise-size-scale));
-  animation-duration: var(--abs-noise-speed-front), var(--abs-noise-flicker-speed);
 }
 
 .project-detail__image {
@@ -1122,7 +721,6 @@ body.portfolio-page.dark-mode .project-detail__noise--front {
   transform: none;
 }
 
-
 .project-detail__overview h2,
 .project-detail__takeaways h2 {
   font-size: 18px;
@@ -1150,7 +748,7 @@ body.portfolio-page.dark-mode .project-detail__noise--front {
   border-radius: var(--abs-radius-pill);
   border: 1px solid var(--abs-stroke-hairline);
   text-decoration: none;
-  color: var(--accent-color);
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -1195,58 +793,75 @@ body.portfolio-page.dark-mode .project-detail__noise--front {
   color: var(--text-primary);
 }
 
-/* Keep index-style chrome visible while a project detail is open.
-   (Index never hides header/footer; portfolio should match that UX.) */
+/* Detail noise layers */
+.project-detail__noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.project-detail__noise--back {
+  z-index: 1;
+  opacity: calc(var(--noise-back-opacity-light) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
+  mix-blend-mode: multiply;
+}
+
+.project-detail__noise--front {
+  z-index: 51;
+  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
+  mix-blend-mode: multiply;
+}
+
+body.portfolio-page.dark-mode .project-detail__noise--back {
+  opacity: calc(var(--noise-back-opacity-dark) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
+  mix-blend-mode: overlay;
+}
+
+body.portfolio-page.dark-mode .project-detail__noise--front {
+  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
+  mix-blend-mode: overlay;
+}
+
+.project-detail__noise::before {
+  content: '';
+  position: absolute;
+  inset: var(--abs-noise-overscan);
+  background-image: var(--abs-noise-texture);
+  background-repeat: repeat;
+  background-attachment: scroll;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+  filter: var(--abs-noise-filter);
+  animation-name: var(--abs-noise-keyframes), abs-noise-flicker;
+  animation-duration: var(--abs-noise-speed-back), var(--abs-noise-flicker-speed);
+  animation-timing-function: var(--abs-noise-timing), steps(1, end);
+  animation-iteration-count: infinite, infinite;
+}
+
+.project-detail__noise--back::before {
+  background-size: calc(var(--noise-size-base) * var(--noise-size-scale)) calc(var(--noise-size-base) * var(--noise-size-scale));
+  animation-duration: var(--abs-noise-speed-back), var(--abs-noise-flicker-speed);
+}
+
+.project-detail__noise--front::before {
+  background-size: calc(var(--noise-size-top) * var(--noise-size-scale)) calc(var(--noise-size-top) * var(--noise-size-scale));
+  animation-duration: var(--abs-noise-speed-front), var(--abs-noise-flicker-speed);
+}
+
+/* Keep index-style chrome visible while project detail is open */
 body.detail-open .ui-top,
 body.detail-open .portfolio-footer {
   opacity: 1;
   pointer-events: auto;
 }
 
-.portfolio-header__actions {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-lg);
-  pointer-events: auto;
-  flex-wrap: wrap;
-}
-
-.portfolio-sound-slot {
-  display: inline-flex;
-  align-items: center;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   PORTFOLIO CHROME
-   Portfolio uses the SAME header/footer chrome as index (inherited from main.css).
-   Only portfolio-specific positioning tweaks are defined here.
-   ───────────────────────────────────────────────────────────────────────────── */
-
-/* Portfolio .fade-content: flex container for header/footer with content area */
-body.portfolio-page .fade-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  padding:
-    calc(var(--content-padding-y) * var(--abs-content-pad-mul-y, 1))
-    calc(var(--content-padding-x) * var(--abs-content-pad-mul-x, 1));
-  pointer-events: none;
-  z-index: 20;
-}
-
-/* Re-enable pointer events on interactive elements */
-body.portfolio-page .fade-content a,
-body.portfolio-page .fade-content button,
-body.portfolio-page .fade-content [role="button"] {
-  pointer-events: auto;
-}
-
-/* Portfolio header: back arrow + Bio/CV on left, blurb + sound on right */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PORTFOLIO CHROME OVERRIDES
+   Most chrome inherited from main.css - only portfolio-specific tweaks here
+   ═══════════════════════════════════════════════════════════════════════════════ */
 body.portfolio-page .ui-top-left {
   display: flex;
   flex-direction: row;
@@ -1254,7 +869,6 @@ body.portfolio-page .ui-top-left {
   gap: var(--gap-md);
 }
 
-/* Portfolio right side: blurb text + sound toggle */
 body.portfolio-page .ui-top-right {
   display: flex;
   flex-direction: row;
@@ -1262,21 +876,22 @@ body.portfolio-page .ui-top-right {
   gap: var(--gap-md);
 }
 
-/* Blurb wrapper: constrain width for right column */
 .portfolio-blurb-wrapper {
   max-width: 420px;
   text-align: left;
 }
 
-/* Blurb: same styling as index decorative-script */
 #portfolio-blurb {
   padding-top: 0;
   padding-bottom: 0;
 }
 
-/* Portfolio footer inherits index footer styles via main.css */
+.portfolio-sound-slot {
+  display: inline-flex;
+  align-items: center;
+}
 
-/* Bio/CV link next to sound icon (portfolio header) */
+/* Bio/CV link styling */
 .portfolio-cv-link {
   position: relative;
   display: inline-block;
@@ -1291,13 +906,14 @@ body.portfolio-page .ui-top-right {
   letter-spacing: var(--footer-links-letter-spacing);
   text-decoration: none;
   color: var(--text-primary);
-  opacity: var(--text-opacity-base);
+  opacity: var(--text-opacity-base, 0.9);
   pointer-events: auto;
   cursor: none;
   transition: transform 0.15s var(--ease-organic),
               filter 0.15s var(--ease-organic);
 }
 
+/* Gate back button */
 .gate-back {
   appearance: none;
   border: 0;
@@ -1347,114 +963,67 @@ body.portfolio-page .ui-top-right {
   line-height: 1;
 }
 
-.gate-back:focus-visible {
-  outline: 0.2vmin solid rgba(var(--abs-rgb-black), 0.35);
-  outline-offset: 0.4vmin;
-  border-radius: 0.6vmin;
-}
-
-body.portfolio-page.dark-mode .gate-back:focus-visible {
-  outline-color: rgba(var(--abs-rgb-white), 0.35);
-}
-
-.footer_link {
-  position: relative;
-  transform: none;
-  padding-block: var(--hit-area-lg);
-  padding-inline: var(--hit-area-lg);
-  margin-block: calc(var(--hit-area-lg) * -1);
-  margin-inline: calc(var(--hit-area-lg) * -1);
-  display: inline-block;
-  color: var(--text-muted);
-  font-size: var(--footer-links-font-size);
-  font-weight: 400;
-  letter-spacing: var(--footer-links-letter-spacing);
-  text-decoration: none;
-  opacity: var(--text-opacity-base);
-  transition: transform 0.15s var(--ease-organic),
-              filter 0.15s var(--ease-organic);
-  cursor: none;
-  pointer-events: auto;
-}
-
-/* Footer link text (middle row, e.g. "Contact") base state */
-.footer_link {
-  opacity: 1;
-}
-
-.sound-toggle {
-  position: relative;
-  top: auto;
-  left: auto;
-  transform: none;
-  margin: 0;
-  padding: var(--hit-area-sm);
-  color: var(--text-quiet);
-  font-family: 'Geist', sans-serif;
-  cursor: none;
-  background: none;
-  border: none;
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--icon-size-base);
-}
-
-.sound-toggle::after {
-  content: none;
-}
-
-.sound-toggle[data-enabled="true"] {
-  color: var(--link-hover-color);
-}
-
-body.portfolio-page.dark-mode .sound-toggle[data-enabled="true"] {
-  color: var(--link-hover-color);
-}
-
-/* Footer chrome is inherited from `css/main.css` (index parity).
-   Keep only the portfolio-specific hide behavior when detail is open. */
-
-.pill-nav {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(var(--abs-rgb-black), 0.05);
-  padding: 5px;
-  border-radius: var(--abs-radius-pill);
-  display: flex;
-  gap: 5px;
-  pointer-events: auto;
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
-}
-
-.pill-link {
-  padding: 8px 24px;
-  border-radius: 100px;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent-color);
-  opacity: 0.5;
-  transition: all 0.2s var(--ease-organic);
-}
-
-.pill-link.active {
-  background: var(--abs-surface-contrast);
-  opacity: 1;
-  box-shadow: none;
+@keyframes braviaDotBounceIn {
+  0% { transform: translate3d(-50%, 0, 0) scaleY(0); }
+  60% { transform: translate3d(-50%, 0, 0) scaleY(1.2); }
+  100% { transform: translate3d(-50%, 0, 0) scaleY(1); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVE — Portfolio
-   Minimal overrides for card sizing and layout on smaller screens.
-   Header/footer chrome inherits from main.css (index parity).
+   PORTFOLIO CURSOR
+   ═══════════════════════════════════════════════════════════════════════════════ */
+body.portfolio-page #custom-cursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 30000;
+  border: none;
+  background: var(--cursor-color);
+  transform-origin: center center;
+  transform:
+    translate(-50%, -50%)
+    translate(var(--cursor-jitter-x, 0px), var(--cursor-jitter-y, 0px))
+    scale(var(--cursor-scale, 1))
+    scaleX(var(--cursor-stretch-x, 1))
+    scaleY(var(--cursor-stretch-y, 1));
+  opacity: 0.85;
+  transition: transform 0.35s var(--ease-hesitant),
+              opacity 0.35s var(--ease-hesitant),
+              width 0.35s var(--ease-hesitant),
+              height 0.35s var(--ease-hesitant),
+              background 0.35s var(--ease-hesitant);
+  will-change: transform, opacity, width, height, background;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+body.portfolio-page #custom-cursor.gate-active {
+  display: block;
+  width: 48px;
+  height: 48px;
+  background: var(--abs-surface-glass-balanced);
+  border: 1.5px solid var(--abs-stroke-highlight-inverse);
+  transform:
+    translate(-50%, -50%)
+    translate(var(--cursor-jitter-x, 0px), var(--cursor-jitter-y, 0px))
+    scale(var(--cursor-scale, 1))
+    scaleX(var(--cursor-stretch-x, 1))
+    scaleY(var(--cursor-stretch-y, 1));
+  opacity: 1;
+}
+
+body.portfolio-page.portfolio-card-hovering #custom-cursor {
+  background: var(--cursor-color-card-hover);
+  width: 24px;
+  height: 24px;
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE
    ═══════════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   :root {
-    /* Mobile: smaller cards to fit on screen */
     --card-height-floor: 180px;
     --card-height-min: 28vh;
     --card-height-ideal: 38vh;
@@ -1490,7 +1059,6 @@ body.portfolio-page.dark-mode .sound-toggle[data-enabled="true"] {
   }
 }
 
-/* Small phones: hide blurb, keep layout minimal */
 @media (max-width: 480px) {
   :root {
     --card-height-floor: 150px;
@@ -1503,7 +1071,6 @@ body.portfolio-page.dark-mode .sound-toggle[data-enabled="true"] {
     --wheel-center-y: -2vh;
   }
 
-  /* Hide blurb on very small phones */
   body.portfolio-page .decorative-script {
     display: none;
   }
@@ -1511,73 +1078,20 @@ body.portfolio-page.dark-mode .sound-toggle[data-enabled="true"] {
 
 @media (prefers-reduced-motion: reduce) {
   .slide,
-.portfolio-meta,
-.project-detail,
-/* Disable transitions/animations during detail transitions for performance */
-body.detail-transitioning .project-detail__card,
-body.detail-transitioning .project-detail__inner,
-body.detail-transitioning .project-detail__hero,
-body.detail-transitioning .project-detail__body,
-body.detail-transitioning .project-transition,
-body.detail-transitioning .slide-image-container {
-  transition: none;
-}
+  .portfolio-meta,
+  .project-detail,
+  body.detail-transitioning .project-detail__card,
+  body.detail-transitioning .project-detail__inner,
+  body.detail-transitioning .project-detail__hero,
+  body.detail-transitioning .project-detail__body,
+  body.detail-transitioning .project-transition,
+  body.detail-transitioning .slide-image-container {
+    transition: none;
+  }
 
-body.detail-transitioning .project-detail__hero,
-body.detail-transitioning .project-detail__body,
-body.detail-transitioning .project-detail__inner {
-  animation: none;
+  body.detail-transitioning .project-detail__hero,
+  body.detail-transitioning .project-detail__body,
+  body.detail-transitioning .project-detail__inner {
+    animation: none;
+  }
 }
-}
-
-/* Custom Cursor (portfolio uses dialog cursor from index) */
-#custom-cursor {
-  position: fixed;
-  pointer-events: none;
-  z-index: 30000;
-  border: none;
-  background: var(--cursor-color);
-  transform-origin: center center;
-  transform:
-    translate(-50%, -50%)
-    translate(var(--cursor-jitter-x, 0px), var(--cursor-jitter-y, 0px))
-    scale(var(--cursor-scale, 1))
-    scaleX(var(--cursor-stretch-x, 1))
-    scaleY(var(--cursor-stretch-y, 1));
-  opacity: 0.85;
-  transition: transform 0.35s var(--ease-hesitant),
-              opacity 0.35s var(--ease-hesitant),
-              width 0.35s var(--ease-hesitant),
-              height 0.35s var(--ease-hesitant),
-              background 0.35s var(--ease-hesitant);
-  will-change: transform, opacity, width, height, background;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-}
-
-/* Gate active cursor: larger, glassy appearance */
-body.portfolio-page #custom-cursor.gate-active {
-  display: block;
-  width: 48px;
-  height: 48px;
-  background: var(--abs-surface-glass-balanced);
-  border: 1.5px solid var(--abs-stroke-highlight-inverse);
-  transform:
-    translate(-50%, -50%)
-    translate(var(--cursor-jitter-x, 0px), var(--cursor-jitter-y, 0px))
-    scale(var(--cursor-scale, 1))
-    scaleX(var(--cursor-stretch-x, 1))
-    scaleY(var(--cursor-stretch-y, 1));
-  opacity: 1;
-}
-
-/* Subtle cursor change when hovering portfolio cards - transparency only, no orange */
-body.portfolio-page.portfolio-card-hovering #custom-cursor {
-  background: var(--cursor-color-card-hover);
-  width: 24px;
-  height: 24px;
-  opacity: 0.6;
-}
-
-/* Link hover behavior is now pure CSS using native :hover selectors in main.css */

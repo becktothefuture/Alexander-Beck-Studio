@@ -11,6 +11,7 @@ window.__LEGEND_MODULE_LOADED__ = Date.now();
 
 let activeFilter = null; // Currently active legend label (or null for "all")
 let legendItems = [];
+let tooltipOutput = null;
 
 /**
  * Normalize label text for comparison
@@ -138,6 +139,41 @@ function handleItemKeydown(e) {
 }
 
 /**
+ * Handle mouse enter on legend item
+ * @param {Event} e - Mouse enter event
+ */
+function handleItemMouseEnter(e) {
+  if (!tooltipOutput) {
+    console.warn('Tooltip output element not found');
+    return;
+  }
+  
+  const item = e.currentTarget;
+  const tooltipText = item.getAttribute('data-tooltip');
+  
+  if (tooltipText) {
+    tooltipOutput.textContent = tooltipText;
+    tooltipOutput.style.opacity = '1';
+    tooltipOutput.style.visibility = 'visible';
+    console.log('Showing tooltip:', tooltipText);
+  }
+}
+
+/**
+ * Handle mouse leave on legend item
+ * @param {Event} e - Mouse leave event
+ */
+function handleItemMouseLeave(e) {
+  if (!tooltipOutput) return;
+  tooltipOutput.style.opacity = '0';
+  setTimeout(() => {
+    if (tooltipOutput.style.opacity === '0') {
+      tooltipOutput.style.visibility = 'hidden';
+    }
+  }, 50);
+}
+
+/**
  * Initialize interactive legend system
  */
 export function initLegendInteractive() {
@@ -164,6 +200,17 @@ export function initLegendInteractive() {
     return;
   }
   
+  // Get tooltip output container
+  tooltipOutput = document.getElementById('legend-tooltip-output');
+  
+  if (tooltipOutput) {
+    console.log('Tooltip output element found:', tooltipOutput);
+    // Ensure initial state
+    tooltipOutput.style.visibility = 'hidden';
+  } else {
+    console.error('Tooltip output element NOT found!');
+  }
+  
   legendItems = Array.from(legend.querySelectorAll('.legend__item'));
   if (legendItems.length === 0) {
     return;
@@ -182,6 +229,10 @@ export function initLegendInteractive() {
       handleItemClick(e);
     });
     item.addEventListener('keydown', handleItemKeydown);
+    
+    // Add hover listeners for tooltips
+    item.addEventListener('mouseenter', handleItemMouseEnter);
+    item.addEventListener('mouseleave', handleItemMouseLeave);
     
     // Add class for CSS targeting
     item.classList.add('legend__item--interactive');

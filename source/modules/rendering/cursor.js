@@ -5,7 +5,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { isOverlayActive } from '../ui/gate-overlay.js';
+import { isOverlayActive } from '../ui/modal-overlay.js';
 
 let cursorElement = null;
 let isInitialized = false;

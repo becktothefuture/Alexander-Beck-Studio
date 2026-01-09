@@ -59,9 +59,9 @@
   --abs-line-summary: 1.2;
 
   /* Letter spacing relative to font height (em-based) */
-  --abs-letter-spacing-tight: -0.01em;
-  --abs-letter-spacing-normal: 0.05em;
-  --abs-letter-spacing-loose: 0.1em;
+  --abs-letter-spacing-tight: -0.01ch;
+  --abs-letter-spacing-normal: 0.05ch;
+  --abs-letter-spacing-loose: 0.01ch;
 
   /* Spacing & Sizing */
   --abs-space-unit: 1vmin;
@@ -243,8 +243,8 @@
   --portfolio-logo-color-dark: var(--abs-neutral-350);
 
   /* Surface Tokens Mapped to Legacy Names */
-  --frame-color-light: var(--abs-surface-frame);
-  --frame-color-dark: var(--abs-surface-frame);
+  --frame-color-light: var(--abs-surface-page);
+  --frame-color-dark: var(--abs-surface-page-dark);
   --bg-light: var(--abs-surface-page);
   --bg-dark: var(--abs-surface-page-dark);
   --chrome-bg-light: var(--abs-surface-chrome);
@@ -332,9 +332,10 @@
   --ease-organic: cubic-bezier(0.22, 1.28, 0.36, 1);
   --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-hesitant: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-gate: var(--ease-organic);
-  --ease-fade: var(--ease-settle);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-magnetic: cubic-bezier(0.25, 1.4, 0.3, 1);
+  --ease-gate: var(--ease-magnetic);
+  --ease-fade: var(--ease-settle);
   --duration-resize: 600ms;
   --duration-settle: 400ms;
   --duration-quick: 200ms;
@@ -360,15 +361,15 @@
 
   /* Gate Defaults */
   --abs-gate-mobile-pad-x: 20px;
-  --gate-overlay-opacity: 0.01;
-  --gate-overlay-transition-duration: 800ms;
-  --gate-overlay-transition-out-duration: 600ms;
-  --gate-content-delay: 200ms;
-  --gate-overlay-blur: calc(var(--wall-thickness) / 2);
-  --gate-depth-scale: 0.96;
-  --gate-depth-translate-y: 8px;
-  --gate-depth-duration: 800ms;
-  --gate-depth-out-duration: 600ms;
+  --modal-overlay-opacity: 0.01;
+  --modal-overlay-transition-duration: 800ms;
+  --modal-overlay-transition-out-duration: 600ms;
+  --modal-content-delay: 200ms;
+  --modal-overlay-blur: 8px;
+  --modal-depth-scale: 0.96;
+  --modal-depth-translate-y: 8px;
+  --modal-depth-duration: 800ms;
+  --modal-depth-out-duration: 600ms;
 
   --logo-opacity-inactive: 1;
   --logo-opacity-active-target: 0.2;
@@ -394,13 +395,13 @@
   --legend-item-gap: var(--gap-sm);
   --legend-circle-size: calc(var(--gap-sm) * 0.8);
   --legend-item-radius: var(--abs-radius-9);
-  --legend-font-size: 9px;
-  --legend-font-weight: 500;
-  --legend-letter-spacing: var(--letter-spacing-loose);
+  --legend-font-size: clamp(11px, 2vw, 12px);
+  --legend-font-weight: 400;
+  --legend-letter-spacing: 0.035ch;
   --legend-line-height: var(--line-height-loose);
   --legend-opacity: 1;
 
-  --decorative-script-max-width: clamp(288px, 30vw, 403px);
+  --decorative-script-max-width: clamp(317px, 33vw, 444px);
   --decorative-script-font-size: var(--text-sm);
   --decorative-script-line-height: var(--line-height-base);
   --decorative-script-letter-spacing: var(--letter-spacing-normal);
@@ -478,10 +479,10 @@
   /* Index/portfolio logo SVG viewBox: 919×66. */
   --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 66 / 919);
 
-  /* Index: primary (footer) links positioned under logo. */
+  /* Index: primary (main) links positioned under logo. */
   --home-main-links-below-logo-px: 40;
 
-  /* Footer Navigation Bar - Full-width nav bar positioning */
+  /* Main Links Navigation Bar - Full-width nav bar positioning */
   --footer-nav-bar-top: 50vh;
   --footer-nav-bar-top-svh: 50svh;
   --footer-nav-bar-top-dvh: 50dvh;

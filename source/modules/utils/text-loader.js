@@ -24,9 +24,6 @@ async function fetchTextJSON() {
     'config/contents-home.json',
     'js/contents-home.json',
     '../public/js/contents-home.json',
-    'config/text.json',
-    'js/text.json',
-    '../public/js/text.json',
   ];
 
   for (const path of paths) {

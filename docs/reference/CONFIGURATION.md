@@ -541,22 +541,74 @@ These keys control the ball-only Critters simulation (mode `critters`).
 
 ---
 
-## Orbit 3D (Mode 12)
+## Orbit 3D: Planetary Rings (Mode 12)
 
-These keys control the Orbit 3D simulation (mode `orbit-3d`):
+These keys control the Orbit 3D simulation (mode `orbit-3d`). Multi-layer orbital ring system with 3D perspective projection and rotation (camera-locked like sphere/cube).
 
-- `orbit3dBallCount` (number): number of orbiting balls (re-init on change)
-- `orbit3dMinRadiusVw` (number, vw): inner orbit radius bound (vw → px at init)
-- `orbit3dMaxRadiusVw` (number, vw): outer orbit radius bound (vw → px at init)
-- `orbit3dAngularSpeed` (number, rad/s): base angular speed (inner orbits run faster via Kepler-ish scaling)
-- `orbit3dFollowStrength` (number): spring strength pulling balls toward their orbit target (higher = tighter, less lag)
-- `orbit3dFollowDamping` (number): damping applied during target following (higher = heavier, less overshoot)
-- `orbit3dMaxSpeed` (number, px/s): velocity clamp to prevent spikes on fast cursor movement
-- `orbit3dDepthScale` (number, 0..1): faux-3D depth strength (size scaling based on orbital angle)
+- `orbit3dDensity` (number): total point count across all rings (re-init on change) — default: 120
+- `orbit3dRadiusVw` (number, vw): maximum orbital radius (vw → px at init) — default: 22
+- `orbit3dShellCount` (number): number of concentric ring layers (re-init on change) — default: 4
+- `orbit3dDotSizeMul` (number, multiplier): relative dot size (combined with depth scaling) — default: 1.2
+- `orbit3dIdleSpeed` (number, rad/s): baseline system rotation speed — default: 0.25
+- `orbit3dOrbitalSpeed` (number, multiplier): orbital rotation speed per layer — default: 0.8
+- `orbit3dTumbleSpeed` (number): mouse dragging spin sensitivity — default: 2.0
+- `orbit3dTumbleDamping` (number, 0-0.99): decay of spin impulse from mouse interaction — default: 0.93
+- `orbit3dWobbleStrength` (number, 0-1): perpendicular oscillation amount — default: 0.15
+- `orbit3dInclinationMix` (number, 0-1): ring tilt/inclination variation between layers — default: 0.7
+- `orbit3dFocalLength` (number, px): perspective projection focal length — default: 600
 
 Notes:
-- Orbit 3D uses a **spring-damper anchor** to preserve “weight” and inertia; it does not snap balls to the cursor.
-- Collisions are disabled between balls (for clarity), but wall collisions still apply.
+- Uses 3D point cloud architecture (like sphere/cube) with deterministic positioning
+- No physics forces—pure rotation-based animation
+- Mouse dragging over the rings spins the entire orbital system (tumble impulse)
+- Each ring layer rotates at different speeds with staggered phase offsets
+- Collisions are disabled; camera-locked orbital structure
+- Includes slight eccentricity and wobble for organic movement
+
+---
+
+## 3D Sphere (Mode 16)
+
+These keys control the 3D Sphere simulation (mode `3d-sphere`). Rotating sphere point cloud, camera-locked like 3D Cube.
+
+- `sphere3dRadiusVw` (number, vw): sphere radius (vw → px at init) — default: 18
+- `sphere3dDensity` (number): number of surface points (re-init on change) — default: 140
+- `sphere3dFocalLength` (number, px): perspective focal length — default: 600
+- `sphere3dDotSizeMul` (number): dot size multiplier — default: 1.5
+- `sphere3dIdleSpeed` (number, rad/s): idle rotation speed — default: 0.15
+- `sphere3dTumbleSpeed` (number): spin sensitivity when mouse drags over sphere — default: 2.5
+- `sphere3dTumbleDamping` (number): decay factor for spin impulse — default: 0.94
+- `sphere3dWarmupFrames` (number): physics warmup frames on mode init — default: 10
+
+Notes:
+- Uses a Fibonacci sphere distribution (surface-only).
+- Ball-to-ball collisions are disabled; sphere is camera-locked (no movement, only rotation).
+- No physics: sphere spins when mouse drags over it (like pushing a globe with your finger).
+- Mouse movement over the sphere surface creates rotation; movement away from sphere has no effect.
+- Rotational damping prevents endless spinning; idle rotation provides gentle drift.
+- Heavy gravity (1400 px/s²) and low restitution (0.35) for weighted, squishy feel.
+- Very high squash max (0.75) with slow decay (3.5/s) for soft, organic deformation.
+
+---
+
+## 3D Cube (Mode 17)
+
+These keys control the 3D Cube simulation (mode `3d-cube`):
+
+- `cube3dSizeVw` (number, vw): cube edge length (vw → px at init)
+- `cube3dEdgeDensity` (number): points per edge (re-init on change)
+- `cube3dFaceGrid` (number): face subdivision count (0 = edges only)
+- `cube3dIdleSpeed` (number, rad/s): idle rotation speed
+- `cube3dCursorInfluence` (number): cursor-to-rotation sensitivity
+- `cube3dTumbleSpeed` (number): impulse added from mouse movement
+- `cube3dTumbleDamping` (number): decay factor for tumble impulse
+- `cube3dFocalLength` (number, px): perspective focal length
+- `cube3dDotSizeMul` (number): dot size multiplier
+- `cube3dWarmupFrames` (number): physics warmup frames on mode init
+
+Notes:
+- Points stay camera-centered; ball-to-ball collisions are disabled.
+- Cursor offset changes yaw/pitch; mouse movement adds a tumble impulse.
 
 ---
 
@@ -683,7 +735,7 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 - **Applied to**: Derived layout value `contentPadding` → CSS var `--content-padding`
 
 ### `linkTextPadding` (number, px)
-- **Meaning**: Padding applied to text links (footer links, CV links).
+- **Meaning**: Padding applied to text links (main links, CV links).
 - **Applied to**: CSS vars `--link-text-padding`, `--link-text-margin`
 
 ### `linkIconPadding` (number, px)
@@ -723,11 +775,11 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 - **Applied to**: CSS var `--home-main-links-below-logo-px`
 
 ### `footerNavBarTopVh` (number, vh)
-- **Meaning**: Vertical placement of the full-width footer nav bar (0..100).
+- **Meaning**: Vertical placement of the full-width main links nav bar (0..100).
 - **Applied to**: CSS vars `--footer-nav-bar-top`, `--footer-nav-bar-top-svh`, `--footer-nav-bar-top-dvh`
 
 ### `footerNavBarGapVw` (number, vw)
-- **Meaning**: Gap between footer nav bar links (expressed in vw; applied as a `clamp()` for a stable min/max).
+- **Meaning**: Gap between main links nav bar links (expressed in vw; applied as a `clamp()` for a stable min/max).
 - **Applied to**: CSS var `--footer-nav-bar-gap`
 
 ---

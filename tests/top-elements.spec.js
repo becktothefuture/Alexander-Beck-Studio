@@ -136,11 +136,11 @@ test.describe('Top elements layout (legend + text + sound)', () => {
   test('hover turns orange and dots appear (links, icons, sound toggle)', async ({ page }) => {
     await page.goto(BUILD_URL);
     await expect(page.locator('#top-elements')).toHaveCount(1, { timeout: 15000 });
-    await expect(page.locator('#footer-links-container')).toHaveCount(1, { timeout: 15000 });
+    await expect(page.locator('#main-links')).toHaveCount(1, { timeout: 15000 });
     await expect(page.locator('#social-links')).toHaveCount(1, { timeout: 15000 });
     await expect(page.locator('#sound-toggle')).toHaveCount(1, { timeout: 15000 });
 
-    await expectHoverOrangeAndDot(page, '#footer-links-container #contact-email');
+    await expectHoverOrangeAndDot(page, '#main-links #contact-email');
     await expectHoverOrangeAndDot(page, '.decorative-script a');
     await expectHoverOrangeAndDot(page, '#social-links .footer_icon-link');
     await expectHoverOrangeAndDot(page, '#sound-toggle');

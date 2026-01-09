@@ -584,8 +584,8 @@ body:not(.dark-mode) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .mode-switcher {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--panel-gap);
 }
 
 .mode-button {
@@ -606,6 +606,23 @@ body:not(.dark-mode) {
   transition: all 0.15s var(--ease-organic),
               transform 0.15s var(--ease-organic),
               filter 0.15s var(--ease-organic);
+}
+
+.mode-button-number {
+  font-weight: 700;
+  color: var(--panel-muted-foreground);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.mode-button-label {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.mode-button.active .mode-button-number {
+  color: inherit;
 }
 
 .mode-button:hover {

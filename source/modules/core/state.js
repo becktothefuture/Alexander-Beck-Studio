@@ -109,9 +109,6 @@ const state = {
   pingPongWarmupFrames: 10,
   magneticWarmupFrames: 10,
   bubblesWarmupFrames: 10,
-  kaleidoscopeWarmupFrames: 10,
-  kaleidoscope1WarmupFrames: 10,
-  kaleidoscope2WarmupFrames: 10,
   kaleidoscope3WarmupFrames: 10,
   orbit3dWarmupFrames: 10,
   orbit3d2WarmupFrames: 10,
@@ -120,6 +117,27 @@ const state = {
   latticeWarmupFrames: 10,
   parallaxLinearWarmupFrames: 10,
   parallaxPerspectiveWarmupFrames: 10,
+  // 3D Sphere (Mode 16)
+  sphere3dRadiusVw: 18,
+  sphere3dDensity: 140,
+  sphere3dFocalLength: 600,
+  sphere3dDotSizeMul: 1.5,
+  sphere3dIdleSpeed: 0.15,
+  sphere3dCursorInfluence: 1.2,
+  sphere3dTumbleSpeed: 2.5,
+  sphere3dTumbleDamping: 0.94,
+  sphere3dWarmupFrames: 10,
+  // 3D Cube (Mode 17)
+  cube3dSizeVw: 50,
+  cube3dEdgeDensity: 8,
+  cube3dFaceGrid: 0,
+  cube3dIdleSpeed: 0.2,
+  cube3dCursorInfluence: 1.5,
+  cube3dTumbleSpeed: 3,
+  cube3dTumbleDamping: 0.95,
+  cube3dFocalLength: 500,
+  cube3dDotSizeMul: 1.5,
+  cube3dWarmupFrames: 10,
   // Legacy (pre per-mode system) — kept for back-compat; prefer the per-mode keys above.
   sizeVariation: 0,
   responsiveScale: 1.0,       // Runtime responsive scale (calculated on init)
@@ -237,6 +255,7 @@ const state = {
   // (Back-compat: if config provides a large value (|v| > 1), we treat it as legacy px.)
   contentPaddingRatio: 0.0,
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
+  contentPaddingBottomRatio: 1.3,     // bottom padding multiplier (applied to vertical padding)
   mobileWallThicknessXFactor: 1.4,    // wall thickness multiplier for LEFT/RIGHT on mobile (1.0 = same as desktop)
   mobileEdgeLabelsVisible: true,     // whether to show edge labels on mobile (default: visible)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
@@ -333,13 +352,13 @@ const state = {
   // Used by `pickRandomColor()` for ALL modes.
   // NOTE: 7 disciplines choose 7 distinct palette indices (0..7). One palette color may remain unused.
   colorDistribution: [
-    { label: 'AI Integration', colorIndex: 0, weight: 30 },
-    { label: 'UI/UX Design', colorIndex: 4, weight: 18 },
-    { label: 'Creative Strategy', colorIndex: 3, weight: 15 },
-    { label: 'Frontend Development', colorIndex: 2, weight: 12 },
-    { label: 'Brand Identity', colorIndex: 5, weight: 10 },
-    { label: '3D Design', colorIndex: 6, weight: 10 },
-    { label: 'Art Direction', colorIndex: 7, weight: 5 }
+    { label: 'Product & Systems', colorIndex: 0, weight: 30 },
+    { label: 'Interaction & Motion', colorIndex: 4, weight: 18 },
+    { label: 'Creative Technology', colorIndex: 3, weight: 15 },
+    { label: 'AI-Driven Design', colorIndex: 2, weight: 12 },
+    { label: 'Experience Direction', colorIndex: 5, weight: 10 },
+    { label: 'Art & Visual Direction', colorIndex: 6, weight: 10 },
+    { label: 'Prototyping', colorIndex: 7, weight: 5 }
   ],
   
   // Flies mode
@@ -357,45 +376,19 @@ const state = {
   weightlessRepelPower: 220000,
   weightlessRepelSoft: 2.2,
   
-  // Kaleidoscope mode (mouse-driven mirrored wedges)
-  kaleidoscopeBallCount: 23,
-  // Number of mirrored wedges/segments in the kaleidoscope render.
-  kaleidoscopeWedges: 12,
+  // Kaleidoscope mode (mouse-driven mirrored wedges) - using KALEIDOSCOPE_3 parameters
   kaleidoscopeMirror: 1,
-  // Normalized swirl speed (0.2..2.0). Higher = faster orbiting.
-  kaleidoscopeSpeed: 1.0,
-  // Kaleidoscope dot sizing (vh-driven, ~30% smaller area by default)
-  kaleidoscopeDotSizeVh: 0.95,
-  kaleidoscopeDotAreaMul: 0.7,
-  // Spawn area multiplier: smaller = denser, larger = more spread out (0.2..2.0)
-  kaleidoscopeSpawnAreaMul: 1.0,
-  // Size variance (0..1): higher = more variety in ball sizes
-  kaleidoscopeSizeVariance: 0.3,
-
-  // Kaleidoscope variants (I/II/III) — treated as variants of the same sim
-  kaleidoscope1BallCount: 18,
-  kaleidoscope1Wedges: 8,
-  kaleidoscope1Speed: 0.8,
-  kaleidoscope1DotSizeVh: 0.95,
-  kaleidoscope1DotAreaMul: 0.7,
-  kaleidoscope1SpawnAreaMul: 1.0,
-  kaleidoscope1SizeVariance: 0.3,
-
-  kaleidoscope2BallCount: 36,
-  kaleidoscope2Wedges: 8,
-  kaleidoscope2Speed: 1.15,
-  kaleidoscope2DotSizeVh: 0.95,
-  kaleidoscope2DotAreaMul: 0.7,
-  kaleidoscope2SpawnAreaMul: 1.0,
-  kaleidoscope2SizeVariance: 0.3,
-
-  kaleidoscope3BallCount: 54,
-  kaleidoscope3Wedges: 8,
-  kaleidoscope3Speed: 1.55,
-  kaleidoscope3DotSizeVh: 0.95,
-  kaleidoscope3DotAreaMul: 0.7,
-  kaleidoscope3SpawnAreaMul: 1.0,
-  kaleidoscope3SizeVariance: 0.3,
+  // Normalized idle drift (0..0.05). Subtle movement when idle.
+  kaleidoscopeIdleDrift: 0.012,
+  // Kaleidoscope III parameters (now the only kaleidoscope mode)
+  kaleidoscope3BallCount: 150,
+  kaleidoscope3Wedges: 10,
+  kaleidoscope3Speed: 1.2,
+  kaleidoscope3DotSizeVh: 1.05,
+  kaleidoscope3DotAreaMul: 0.75,
+  kaleidoscope3SpawnAreaMul: 1.05,
+  kaleidoscope3SizeVariance: 0.5,
+  kaleidoscope3WarmupFrames: 65,
 
   // Orbit 3D mode (real gravitational physics)
   orbit3dPreset: 'serene',     // active preset name
@@ -641,14 +634,14 @@ const state = {
   wallWobbleSettlingSpeed: 94,      // Controls snap-to-zero aggression (0-100)
   
   // Gate overlay (blur backdrop for dialogs)
-  gateOverlayEnabled: true,         // Enable/disable overlay
-  gateOverlayOpacity: 0.01,          // White wash opacity (0-1)
-  gateOverlayBlurPx: 16,            // Backdrop blur amount (px)
-  gateOverlayTransitionMs: 800,     // Blur-in transition duration (ms)
-  gateOverlayTransitionOutMs: 600,  // Blur-out transition duration (ms)
-  gateOverlayContentDelayMs: 200,   // Delay before dialog content appears (ms)
-  gateDepthScale: 0.96,             // Scene scale when gate is open (0.9-1.0)
-  gateDepthTranslateY: 8,           // Scene Y translation when gate is open (px)
+  modalOverlayEnabled: true,         // Enable/disable overlay
+  modalOverlayOpacity: 0.01,          // White wash opacity (0-1)
+  modalOverlayBlurPx: 8,             // Backdrop blur amount (px)
+  modalOverlayTransitionMs: 800,     // Blur-in transition duration (ms)
+  modalOverlayTransitionOutMs: 600,  // Blur-out transition duration (ms)
+  modalOverlayContentDelayMs: 200,   // Delay before dialog content appears (ms)
+  modalDepthScale: 0.96,             // Scene scale when gate is open (0.9-1.0)
+  modalDepthTranslateY: 8,           // Scene Y translation when gate is open (px)
   logoOpacityInactive: 1,           // Logo opacity when gate is closed (0-1)
   logoOpacityActive: 0.2,           // Logo opacity when gate is active (0-1)
   logoBlurInactive: 0,              // Logo blur when gate is closed (px)
@@ -664,6 +657,9 @@ const state = {
   entranceElementScaleStart: 0.95,  // Initial scale for elements (0-1)
   entranceElementTranslateZStart: -20, // Initial z-axis position (px, negative = back)
   entranceElementEasing: 'cubic-bezier(0.16, 1, 0.3, 1)', // Easing function for element animations
+  entranceLateElementDuration: 600, // Duration for late elements (logo + links) animation (ms)
+  entranceLateElementStagger: 250,  // Stagger delay between late elements (ms)
+  entranceLateElementScaleFrom: 0.92, // Starting scale for late elements (logo + links)
   entrancePerspectiveLandscape: 1200, // Perspective for landscape aspect ratio (px)
   entrancePerspectiveSquare: 1000,   // Perspective for square aspect ratio (px)
   entrancePerspectivePortrait: 800,  // Perspective for portrait aspect ratio (px)
@@ -987,9 +983,13 @@ export function initState(config) {
     for (let i = 0; i < 7; i++) {
       const b = base[i] || {};
       const s = src[i] || {};
-      const label = (typeof s.label === 'string' && s.label.trim())
+      let label = (typeof s.label === 'string' && s.label.trim())
         ? s.label.trim()
         : (typeof b.label === 'string' ? b.label : `Discipline ${i + 1}`);
+      // Backward compat: rename "Frontend Craft" → "Art & Visual Direction"
+      if (String(label).trim().toLowerCase() === 'frontend craft') {
+        label = 'Art & Visual Direction';
+      }
       const colorIndex = clampInt(s.colorIndex, 0, 7, clampInt(b.colorIndex, 0, 7, 0));
       const weight = clampInt(s.weight, 0, 100, clampInt(b.weight, 0, 100, 0));
       out.push({ label, colorIndex, weight });
@@ -1007,9 +1007,6 @@ export function initState(config) {
   if (config.pingPongWarmupFrames !== undefined) state.pingPongWarmupFrames = clampInt(config.pingPongWarmupFrames, 0, 240, state.pingPongWarmupFrames);
   if (config.magneticWarmupFrames !== undefined) state.magneticWarmupFrames = clampInt(config.magneticWarmupFrames, 0, 240, state.magneticWarmupFrames);
   if (config.bubblesWarmupFrames !== undefined) state.bubblesWarmupFrames = clampInt(config.bubblesWarmupFrames, 0, 240, state.bubblesWarmupFrames);
-  if (config.kaleidoscopeWarmupFrames !== undefined) state.kaleidoscopeWarmupFrames = clampInt(config.kaleidoscopeWarmupFrames, 0, 240, state.kaleidoscopeWarmupFrames);
-  if (config.kaleidoscope1WarmupFrames !== undefined) state.kaleidoscope1WarmupFrames = clampInt(config.kaleidoscope1WarmupFrames, 0, 240, state.kaleidoscope1WarmupFrames);
-  if (config.kaleidoscope2WarmupFrames !== undefined) state.kaleidoscope2WarmupFrames = clampInt(config.kaleidoscope2WarmupFrames, 0, 240, state.kaleidoscope2WarmupFrames);
   if (config.kaleidoscope3WarmupFrames !== undefined) state.kaleidoscope3WarmupFrames = clampInt(config.kaleidoscope3WarmupFrames, 0, 240, state.kaleidoscope3WarmupFrames);
   if (config.orbit3dWarmupFrames !== undefined) state.orbit3dWarmupFrames = clampInt(config.orbit3dWarmupFrames, 0, 240, state.orbit3dWarmupFrames);
   if (config.orbit3d2WarmupFrames !== undefined) state.orbit3d2WarmupFrames = clampInt(config.orbit3d2WarmupFrames, 0, 240, state.orbit3d2WarmupFrames);
@@ -1067,23 +1064,7 @@ export function initState(config) {
     state.kaleidoscopeSizeVariance = clampNumber(config.kaleidoscopeSizeVariance, 0, 1, state.kaleidoscopeSizeVariance);
   }
 
-  // Kaleidoscope I/II/III overrides (variants)
-  if (config.kaleidoscope1BallCount !== undefined) state.kaleidoscope1BallCount = clampNumber(config.kaleidoscope1BallCount, 3, 300, state.kaleidoscope1BallCount);
-  if (config.kaleidoscope1Wedges !== undefined) state.kaleidoscope1Wedges = clampNumber(config.kaleidoscope1Wedges, 3, 24, state.kaleidoscope1Wedges);
-  if (config.kaleidoscope1Speed !== undefined) state.kaleidoscope1Speed = clampNumber(config.kaleidoscope1Speed, 0.2, 2.0, state.kaleidoscope1Speed);
-  if (config.kaleidoscope1DotSizeVh !== undefined) state.kaleidoscope1DotSizeVh = clampNumber(config.kaleidoscope1DotSizeVh, 0.1, 6.0, state.kaleidoscope1DotSizeVh);
-  if (config.kaleidoscope1DotAreaMul !== undefined) state.kaleidoscope1DotAreaMul = clampNumber(config.kaleidoscope1DotAreaMul, 0.1, 2.0, state.kaleidoscope1DotAreaMul);
-  if (config.kaleidoscope1SpawnAreaMul !== undefined) state.kaleidoscope1SpawnAreaMul = clampNumber(config.kaleidoscope1SpawnAreaMul, 0.2, 2.0, state.kaleidoscope1SpawnAreaMul);
-  if (config.kaleidoscope1SizeVariance !== undefined) state.kaleidoscope1SizeVariance = clampNumber(config.kaleidoscope1SizeVariance, 0, 1, state.kaleidoscope1SizeVariance);
-
-  if (config.kaleidoscope2BallCount !== undefined) state.kaleidoscope2BallCount = clampNumber(config.kaleidoscope2BallCount, 3, 300, state.kaleidoscope2BallCount);
-  if (config.kaleidoscope2Wedges !== undefined) state.kaleidoscope2Wedges = clampNumber(config.kaleidoscope2Wedges, 3, 24, state.kaleidoscope2Wedges);
-  if (config.kaleidoscope2Speed !== undefined) state.kaleidoscope2Speed = clampNumber(config.kaleidoscope2Speed, 0.2, 2.0, state.kaleidoscope2Speed);
-  if (config.kaleidoscope2DotSizeVh !== undefined) state.kaleidoscope2DotSizeVh = clampNumber(config.kaleidoscope2DotSizeVh, 0.1, 6.0, state.kaleidoscope2DotSizeVh);
-  if (config.kaleidoscope2DotAreaMul !== undefined) state.kaleidoscope2DotAreaMul = clampNumber(config.kaleidoscope2DotAreaMul, 0.1, 2.0, state.kaleidoscope2DotAreaMul);
-  if (config.kaleidoscope2SpawnAreaMul !== undefined) state.kaleidoscope2SpawnAreaMul = clampNumber(config.kaleidoscope2SpawnAreaMul, 0.2, 2.0, state.kaleidoscope2SpawnAreaMul);
-  if (config.kaleidoscope2SizeVariance !== undefined) state.kaleidoscope2SizeVariance = clampNumber(config.kaleidoscope2SizeVariance, 0, 1, state.kaleidoscope2SizeVariance);
-
+  // Kaleidoscope III parameters (now the only kaleidoscope mode)
   if (config.kaleidoscope3BallCount !== undefined) state.kaleidoscope3BallCount = clampNumber(config.kaleidoscope3BallCount, 3, 300, state.kaleidoscope3BallCount);
   if (config.kaleidoscope3Wedges !== undefined) state.kaleidoscope3Wedges = clampNumber(config.kaleidoscope3Wedges, 3, 24, state.kaleidoscope3Wedges);
   if (config.kaleidoscope3Speed !== undefined) state.kaleidoscope3Speed = clampNumber(config.kaleidoscope3Speed, 0.2, 2.0, state.kaleidoscope3Speed);
@@ -1206,6 +1187,29 @@ export function initState(config) {
     if (val === undefined) continue;
     state[key] = val;
   }
+
+  // 3D Sphere (Mode 16)
+  if (config.sphere3dRadiusVw !== undefined) state.sphere3dRadiusVw = clampNumber(config.sphere3dRadiusVw, 5, 40, state.sphere3dRadiusVw);
+  if (config.sphere3dDensity !== undefined) state.sphere3dDensity = clampInt(config.sphere3dDensity, 30, 600, state.sphere3dDensity);
+  if (config.sphere3dFocalLength !== undefined) state.sphere3dFocalLength = clampInt(config.sphere3dFocalLength, 80, 2000, state.sphere3dFocalLength);
+  if (config.sphere3dDotSizeMul !== undefined) state.sphere3dDotSizeMul = clampNumber(config.sphere3dDotSizeMul, 0.2, 4.0, state.sphere3dDotSizeMul);
+  if (config.sphere3dIdleSpeed !== undefined) state.sphere3dIdleSpeed = clampNumber(config.sphere3dIdleSpeed, 0, 1, state.sphere3dIdleSpeed);
+  if (config.sphere3dCursorInfluence !== undefined) state.sphere3dCursorInfluence = clampNumber(config.sphere3dCursorInfluence, 0, 4, state.sphere3dCursorInfluence);
+  if (config.sphere3dTumbleSpeed !== undefined) state.sphere3dTumbleSpeed = clampNumber(config.sphere3dTumbleSpeed, 0, 10, state.sphere3dTumbleSpeed);
+  if (config.sphere3dTumbleDamping !== undefined) state.sphere3dTumbleDamping = clampNumber(config.sphere3dTumbleDamping, 0.8, 0.99, state.sphere3dTumbleDamping);
+  if (config.sphere3dWarmupFrames !== undefined) state.sphere3dWarmupFrames = clampInt(config.sphere3dWarmupFrames, 0, 240, state.sphere3dWarmupFrames);
+
+  // 3D Cube (Mode 17)
+  if (config.cube3dSizeVw !== undefined) state.cube3dSizeVw = clampNumber(config.cube3dSizeVw, 10, 50, state.cube3dSizeVw);
+  if (config.cube3dEdgeDensity !== undefined) state.cube3dEdgeDensity = clampInt(config.cube3dEdgeDensity, 2, 30, state.cube3dEdgeDensity);
+  if (config.cube3dFaceGrid !== undefined) state.cube3dFaceGrid = clampInt(config.cube3dFaceGrid, 0, 10, state.cube3dFaceGrid);
+  if (config.cube3dIdleSpeed !== undefined) state.cube3dIdleSpeed = clampNumber(config.cube3dIdleSpeed, 0, 1, state.cube3dIdleSpeed);
+  if (config.cube3dCursorInfluence !== undefined) state.cube3dCursorInfluence = clampNumber(config.cube3dCursorInfluence, 0, 4, state.cube3dCursorInfluence);
+  if (config.cube3dTumbleSpeed !== undefined) state.cube3dTumbleSpeed = clampNumber(config.cube3dTumbleSpeed, 0, 10, state.cube3dTumbleSpeed);
+  if (config.cube3dTumbleDamping !== undefined) state.cube3dTumbleDamping = clampNumber(config.cube3dTumbleDamping, 0.8, 0.99, state.cube3dTumbleDamping);
+  if (config.cube3dFocalLength !== undefined) state.cube3dFocalLength = clampInt(config.cube3dFocalLength, 80, 2000, state.cube3dFocalLength);
+  if (config.cube3dDotSizeMul !== undefined) state.cube3dDotSizeMul = clampNumber(config.cube3dDotSizeMul, 0.2, 4.0, state.cube3dDotSizeMul);
+  if (config.cube3dWarmupFrames !== undefined) state.cube3dWarmupFrames = clampInt(config.cube3dWarmupFrames, 0, 240, state.cube3dWarmupFrames);
 
   // Clamp scene micro-reaction tuning (defensive; UI-only)
   if (config.sceneImpactEnabled !== undefined) {
@@ -1484,11 +1488,11 @@ export function initState(config) {
   }
   
   // Gate overlay settings
-  if (config.gateOverlayEnabled !== undefined) state.gateOverlayEnabled = config.gateOverlayEnabled;
-  if (config.gateOverlayOpacity !== undefined) state.gateOverlayOpacity = config.gateOverlayOpacity;
-  if (config.gateOverlayBlurPx !== undefined) state.gateOverlayBlurPx = config.gateOverlayBlurPx;
-  if (config.gateOverlayTransitionMs !== undefined) state.gateOverlayTransitionMs = config.gateOverlayTransitionMs;
-  if (config.gateOverlayTransitionOutMs !== undefined) state.gateOverlayTransitionOutMs = config.gateOverlayTransitionOutMs;
+  if (config.modalOverlayEnabled !== undefined) state.modalOverlayEnabled = config.modalOverlayEnabled;
+  if (config.modalOverlayOpacity !== undefined) state.modalOverlayOpacity = config.modalOverlayOpacity;
+  if (config.modalOverlayBlurPx !== undefined) state.modalOverlayBlurPx = config.modalOverlayBlurPx;
+  if (config.modalOverlayTransitionMs !== undefined) state.modalOverlayTransitionMs = config.modalOverlayTransitionMs;
+  if (config.modalOverlayTransitionOutMs !== undefined) state.modalOverlayTransitionOutMs = config.modalOverlayTransitionOutMs;
   
   // Orbit 3D mode (simplified energetic physics)
   if (config.orbit3dMoonCount !== undefined) state.orbit3dMoonCount = clampNumber(config.orbit3dMoonCount, 1, 1000, state.orbit3dMoonCount);
@@ -1533,6 +1537,10 @@ export function initState(config) {
     }
   }
   if (config.contentPaddingHorizontalRatio !== undefined) state.contentPaddingHorizontalRatio = clampNumber(config.contentPaddingHorizontalRatio, 0.1, 3.0, state.contentPaddingHorizontalRatio);
+  if (config.contentPaddingBottomRatio !== undefined) {
+    state.contentPaddingBottomRatio = clampNumber(config.contentPaddingBottomRatio, 0.5, 2.5, 1.3);
+    document.documentElement.style.setProperty('--abs-content-pad-mul-bottom', String(state.contentPaddingBottomRatio));
+  }
   if (config.mobileWallThicknessXFactor !== undefined) state.mobileWallThicknessXFactor = clampNumber(config.mobileWallThicknessXFactor, 0.5, 3.0, state.mobileWallThicknessXFactor);
   if (config.mobileEdgeLabelsVisible !== undefined) state.mobileEdgeLabelsVisible = !!config.mobileEdgeLabelsVisible;
   if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);

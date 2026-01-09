@@ -14,29 +14,30 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 6. **Ping Pong** (`ping-pong`)
 7. **Magnetic** (`magnetic`)
 8. **Carbonated Bubbles** (`bubbles`)
-9. **Kaleidoscope I** (`kaleidoscope-1`)
-10. **Kaleidoscope II** (`kaleidoscope-2`)
-11. **Kaleidoscope III** (`kaleidoscope-3`)
-12. **Kaleidoscope** (`kaleidoscope`)
-13. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
+9. **Kaleidoscope** (`kaleidoscope-3`)
+10. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
 14. **Ball Pit (Throws)** (`pit-throws`) — **no keyboard shortcut yet**
 15. **Orbit 3D** (`orbit-3d`)
 16. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`)
-17. **Crystal Lattice** (`lattice`)
-18. **Neural Network** (`neural`)
-19. **Parallax (Linear)** (`parallax-linear`)
-20. **Parallax (Perspective)** (`parallax-perspective`)
+17. **3D Sphere** (`3d-sphere`)
+18. **3D Cube** (`3d-cube`)
+19. **Crystal Lattice** (`lattice`)
+20. **Neural Network** (`neural`)
+21. **Parallax (Linear)** (`parallax-linear`)
+22. **Parallax (Perspective)** (`parallax-perspective`)
+23. **3D Starfield** (`starfield-3d`)
 
 ---
 
-## Keyboard Shortcuts
+## Keyboard & Mouse Shortcuts
 
-| Key | Action |
-|-----|--------|
+| Key/Action | Function |
+|------------|----------|
 | `/` | Toggle Settings panel dock |
 | `R` | Reset current simulation |
 | `←` (Left Arrow) | Previous simulation in narrative sequence |
 | `→` (Right Arrow) | Next simulation in narrative sequence |
+| Right-click | Previous simulation (same as Left Arrow) |
 
 ---
 
@@ -46,7 +47,7 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 
 1. **Ball Pit** (`pit`) — **SOURCE MATERIAL**
 2. **Flies to Light** (`flies`) — **IDEA SPARK**
-3. **Crystal Lattice** (`lattice`) — **SYSTEM FRAME**
+3. **3D Cube** (`3d-cube`) — **3D FRAME**
 4. **Carbonated Bubbles** (`bubbles`) — **NOISE SIGNAL**
 5. **Ball Pit (Throws)** (`pit-throws`) — **PROTOTYPE LOOP**
 6. **Magnetic** (`magnetic`) — **DESIGN FORCES**
@@ -54,40 +55,90 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 8. **Ping Pong** (`ping-pong`) — **FEEDBACK CYCLE**
 9. **Neural Network** (`neural`) — **CONNECTION MAP**
 10. **Vortex Sheets** (`vortex`) — **EMERGENT ORDER**
-11. **Orbit 3D** (`orbit-3d`) — **SYSTEM DYNAMICS**
-12. **Zero Gravity** (`weightless`) — **OPEN SPACE**
-13. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
-14. **Critters** (`critters`) — **BEHAVIOR MODEL**
-15. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`) — **EDGE CASES**
-16. **Parallax (Perspective)** (`parallax-perspective`) — **CONTEXT FIELD**
-17. **Kaleidoscope I** (`kaleidoscope-1`) — **VOCAB SEED**
-18. **Kaleidoscope II** (`kaleidoscope-2`) — **VOCAB FLOW**
-19. **Kaleidoscope III** (`kaleidoscope-3`) — **VOCAB BLOOM**
-20. **Kaleidoscope** (`kaleidoscope`) — **VISUAL LANGUAGE**
+11. **3D Sphere** (`3d-sphere`) — **3D SHELL**
+12. **Orbit 3D** (`orbit-3d`) — **SYSTEM DYNAMICS**
+13. **Zero Gravity** (`weightless`) — **OPEN SPACE**
+14. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
+15. **Critters** (`critters`) — **BEHAVIOR MODEL**
+16. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`) — **EDGE CASES**
+17. **Parallax (Perspective)** (`parallax-perspective`) — **CONTEXT FIELD**
+18. **Kaleidoscope** (`kaleidoscope-3`) — **VOCAB BLOOM**
+19. **3D Starfield** (`starfield-3d`) — **DEPTH FIELD**
+23. **Crystal Lattice** (`lattice`) — **SYSTEM FRAME**
 
 ---
 
 ## Mode Details
 
-## Mode 15: Orbit 3D 🌪️ (Zero Gravity)
+## Mode 15: Orbit 3D 🪐 (Planetary Rings)
 
-**Purpose:** Bodies orbit the mouse cursor in zero gravity with true depth scaling. Each body maintains stable orbital motion around the cursor as the center of gravity, creating a beautiful celestial dance.
+**Purpose:** Multi-layer orbital ring system with true 3D perspective projection and rotation. Like Saturn's rings, multiple concentric layers rotate at different speeds with varying inclinations, creating a mesmerizing celestial structure you can spin with your cursor.
 
-- **Gravity:** Zero gravity (orbital mechanics only)
-- **Collisions:** Disabled for clean orbital motion
-- **Interaction:** Mouse cursor acts as the gravitational center
-- **Depth:** True 3D depth effect through size scaling (0-1 depth range)
-- **Motion model:** Tangential velocity for stable orbits + weak radial pull
-- **Visual effect:** Depth oscillation creates dynamic size changes
+- **Architecture:** 3D point cloud (like sphere/cube modes) with deterministic orbital positioning
+- **Gravity:** None (pure rotation-based animation)
+- **Collisions:** Disabled; camera-locked orbital structure
+- **Interaction:** Mouse dragging spins the entire ring system; idle drift present
+- **Depth:** Perspective projection with per-dot depth scaling
+- **Distribution:** Multi-shell orbital rings with staggered phases and speeds
 - **Accessibility:** Respects `prefers-reduced-motion`
 - **Settings (panel):**
-  - `Body Count` (10-200) - number of orbiting bodies
-  - `Gravity Pull` (1000-10000) - strength of radial attraction
-  - `Orbital Speed` (50-300) - tangential velocity for orbits
-  - `Depth Effect` (0-1.5) - size scaling strength
-  - `Stability` (0.005-0.05) - velocity damping factor
+  - `Point Count` (30-600) - total points across all rings
+  - `Orbital Radius` (10-40 vw) - maximum radius of ring system
+  - `Ring Layers` (2-8) - number of concentric orbital shells
+  - `Orbital Speed` (0-2) - speed of orbital rotation per layer
+  - `Idle Rotation` (0-1 rad/s) - baseline system spin
+  - `Spin Sensitivity` (0-10) - how much mouse dragging spins the rings
+  - `Tumble Damping` (0.8-0.99) - decay of spin impulse
+  - `Ring Tilt` (0-1) - inclination variation between layers
+  - `Wobble Amount` (0-0.4) - perpendicular oscillation strength
+  - `Focal Length` (80-2000 px) - perspective strength
+  - `Dot Size` (0.2-4×) - relative dot radius
 
-## Mode 17: Crystal Lattice 💎
+## Mode 16: Orbit 3D (Tight Swarm) 🌀
+
+- Same as Orbit 3D but with tighter spawn radius and stronger spiral/tangential forces.
+- Collisions disabled for a clean swirl aesthetic.
+
+## Mode 17: 3D Sphere 🌐
+
+**Purpose:** Rotating sphere point cloud. Hollow spherical point cloud (surface-only) that rotates with cursor movement and gently tumbles. Camera-locked like 3D Cube. Dots always face the viewer and scale with depth.
+
+- **Gravity:** Disabled
+- **Collisions:** Ball-to-ball collisions disabled; sphere stays centered (camera-locked)
+- **Physics:** None—pure rotation-based animation
+- **Interaction:** Mouse dragging OVER the sphere spins it (like pushing a globe with your finger); idle drift when mouse is away
+- **Depth:** Perspective projection with per-dot depth scaling
+- **Distribution:** Fibonacci sphere (uniform surface sampling)
+- **Settings (panel):**
+  - `Radius` (5-40 vw) — sphere radius
+  - `Point Count` (30-600) — surface density
+  - `Focal Length` (80-2000 px) — perspective strength
+  - `Dot Size` (0.2-4×) — relative dot radius
+  - `Idle Rotation` (0-1 rad/s) — baseline spin
+  - `Spin Sensitivity` (0-10) — how much mouse dragging spins the sphere
+  - `Tumble Damping` (0.8-0.99) — decay of spin impulse
+
+## Mode 18: 3D Cube 🧊
+
+**Purpose:** A 3D cube made of points (edges + optional face grids) that rotates with cursor motion and gently tumbles at idle.
+
+- **Gravity:** Disabled
+- **Collisions:** Ball-to-ball collisions disabled; cube stays centered (camera-locked)
+- **Interaction:** Cursor offsets yaw/pitch; cursor motion adds tumble impulse; idle drift present
+- **Depth:** Perspective projection with per-dot depth scaling
+- **Distribution:** Edge lattice (12 edges) plus optional face grids
+- **Settings (panel):**
+  - `Size` (10-50 vw) — cube edge length
+  - `Edge Density` (2-30) — points per edge
+  - `Face Grid` (0-10) — subdivisions per face (0 = edges only)
+  - `Idle Rotation` (0-1 rad/s) — baseline spin
+  - `Cursor Influence` (0-4) — sensitivity to mouse offset
+  - `Tumble Speed` (0-10) — impulse from mouse movement
+  - `Tumble Damping` (0.8-0.99) — decay of tumble impulse
+  - `Focal Length` (80-2000 px) — perspective strength
+  - `Dot Size` (0.2-4×) — relative dot radius
+
+## Mode 19: Crystal Lattice 💎
 
 **Purpose:** "Crystallization" narrative. Balls are pulled towards a hexagonal grid, forming a solid structure out of chaos.
 - **Gravity:** Disabled
@@ -229,6 +280,7 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
   - `kaleidoscopeEase`
   - `kaleidoscopeWander`
   - `kaleidoscopeIdleMotion` (idle baseline; default is intentionally tiny)
+  - `kaleidoscopeIdleDrift` (subtle per-ball drift to keep the scene alive; honors prefers-reduced-motion)
   - `kaleidoscopeMaxSpeed`
 
 ### Implementation Lessons (Kaleidoscope)
@@ -236,6 +288,28 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 - **Separate physics from mapping**: keep the simulation stable and use mouse-driven *mapping* changes (pan/phase) for the kaleidoscope “image shift”.
 - **Use an activity envelope**: ramp forces in/out smoothly based on recent pointer movement so idle stays calm and interaction feels organic.
 - **Mode-local overrides**: spacing/collisions/bounds behavior should be scoped to Kaleidoscope so other modes keep their identity.
+
+---
+
+## Mode 23: 3D Starfield ✨
+
+**Purpose:** Depth-projected starfield with parallax and recycled points. Dots start tiny in the distance, grow toward standard ball size as they approach the camera, then recycle back to depth to maintain density.
+
+- **Gravity:** Disabled
+- **Collisions:** Disabled; pooled points with no physics collisions
+- **Interaction:** Cursor parallax offsets the projection
+- **Depth:** Perspective projection with configurable near/far planes and focal length
+- **Idle:** Subtle twinkle/drift when idle; respects `prefers-reduced-motion`
+- **Settings (panel):**
+  - `starfieldCount`
+  - `starfieldSpanX`, `starfieldSpanY`
+  - `starfieldZNear`, `starfieldZFar`
+  - `starfieldFocalLength`
+  - `starfieldParallaxStrength`
+  - `starfieldSpeed`
+  - `starfieldDotSizeMul` (capped at normal ball size)
+  - `starfieldIdleJitter`
+  - `starfield3dWarmupFrames`
 
 ---
 

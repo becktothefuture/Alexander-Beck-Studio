@@ -258,10 +258,11 @@ export function resize() {
     return;
   }
   
-  // Canvas fills container completely - wall is drawn inset within canvas via wall rendering
-  // Container fills viewport, canvas fills container, wall is drawn inside canvas
-  const canvasWidth = containerWidth;
-  const canvasHeight = containerHeight;
+  // Canvas CSS is calc(100% + 2px) for edge coverage, so buffer should be container + 2px.
+  // This ensures the wall drawing fills to the actual CSS edges.
+  const CSS_EDGE_OVERFLOW = 2;
+  const canvasWidth = containerWidth + CSS_EDGE_OVERFLOW;
+  const canvasHeight = containerHeight + CSS_EDGE_OVERFLOW;
   
   // Canvas fills container - CSS handles mode-specific heights
   // Ball Pit: CSS sets 150vh, Other modes: CSS sets 100%
@@ -270,9 +271,9 @@ export function resize() {
   // Use adaptive DPR for performance (may be lower than device DPR on weak hardware)
   const DPR = effectiveDPR;
   
-  // Calculate new buffer dimensions
-  const newWidth = Math.floor(canvasWidth * DPR);
-  const newHeight = Math.floor(simHeight * DPR);
+  // Calculate new buffer dimensions (ceil to prevent sub-pixel gaps at edges)
+  const newWidth = Math.ceil(canvasWidth * DPR);
+  const newHeight = Math.ceil(simHeight * DPR);
   
   // Safety: ensure we have valid positive dimensions after DPR scaling
   if (newWidth <= 0 || newHeight <= 0) {

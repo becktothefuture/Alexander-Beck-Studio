@@ -17,10 +17,10 @@ import { setupCustomCursor } from './modules/rendering/cursor.js';
 import { setMode, MODES, getForceApplicator } from './modules/modes/mode-controller.js';
 import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
-import { initCVGate } from './modules/ui/cv-gate.js';
-import { initPortfolioGate } from './modules/ui/portfolio-gate.js';
-import { initContactGate } from './modules/ui/contact-gate.js';
-import { initGateOverlay } from './modules/ui/gate-overlay.js';
+import { initCVModal } from './modules/ui/cv-modal.js';
+import { initPortfolioModal } from './modules/ui/portfolio-modal.js';
+import { initContactModal } from './modules/ui/contact-modal.js';
+import { initModalOverlay } from './modules/ui/modal-overlay.js';
 import { createSoundToggle } from './modules/ui/sound-toggle.js';
 import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
@@ -219,7 +219,7 @@ function ensureNoiseElements() {
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                    FOOTER LINKS — MOBILE WRAP ENHANCEMENTS                    ║
+// ║                    MAIN LINKS — MOBILE WRAP ENHANCEMENTS                    ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 // We avoid editing exported HTML directly by enhancing at runtime.
 function enhanceFooterLinksForMobile() {
@@ -236,6 +236,21 @@ function enhanceFooterLinksForMobile() {
     }
   } catch (e) {}
 }
+
+// Global error handler for unhandled rejections and errors
+window.addEventListener('error', (event) => {
+  // Silently ignore fetch errors - they're handled locally
+  if (event.message && event.message.includes('Failed to fetch')) {
+    event.preventDefault();
+  }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  // Silently ignore fetch errors - they're handled locally
+  if (event.reason?.message && event.reason.message.includes('Failed to fetch')) {
+    event.preventDefault();
+  }
+});
 
 (async function init() {
   // Mark JS as enabled (for CSS fallback detection)
@@ -584,6 +599,8 @@ function enhanceFooterLinksForMobile() {
     // Initialize legend interactivity and filtering
     try {
       const legend = document.getElementById('expertise-legend');
+      const tooltipOutput = document.getElementById('legend-tooltip-output');
+      
       if (legend) {
         legendItems = Array.from(legend.querySelectorAll('.legend__item'));
         legendItems.forEach((item, index) => {
@@ -605,7 +622,34 @@ function enhanceFooterLinksForMobile() {
               toggleLegendItem(index);
             }
           });
+          
+          // Tooltip hover handlers
+          if (tooltipOutput) {
+            item.addEventListener('mouseenter', (e) => {
+              const tooltipText = item.getAttribute('data-tooltip');
+              if (tooltipText) {
+                tooltipOutput.textContent = tooltipText;
+                tooltipOutput.style.opacity = '1';
+                tooltipOutput.style.visibility = 'visible';
+              }
+            });
+            
+            item.addEventListener('mouseleave', () => {
+              tooltipOutput.style.opacity = '0';
+              setTimeout(() => {
+                if (tooltipOutput.style.opacity === '0') {
+                  tooltipOutput.style.visibility = 'hidden';
+                }
+              }, 50);
+            });
+          }
         });
+      }
+      
+      // Initialize tooltip output element
+      if (tooltipOutput) {
+        tooltipOutput.style.visibility = 'hidden';
+        tooltipOutput.style.opacity = '0';
       }
     } catch (e) {
       // Silent fail for legend setup
@@ -615,19 +659,35 @@ function enhanceFooterLinksForMobile() {
     setupKeyboardShortcuts();
     log('✓ Keyboard shortcuts registered');
     
-    // Initialize gate blur overlay system
-    initGateOverlay(config);
-    log('✓ Gate overlay system initialized');
-    
-    // Initialize password gates (CV and Portfolio protection)
-    initCVGate();
-    log('✓ CV password gate initialized');
-    
-    initPortfolioGate();
-    log('✓ Portfolio password gate initialized');
+    // Initialize modal blur overlay system
+    try {
+      initModalOverlay(config);
+      log('✓ Modal overlay system initialized');
+    } catch (e) {
+      console.warn('Modal overlay initialization error:', e?.message);
+    }
 
-    initContactGate();
-    log('✓ Contact gate initialized');
+    // Initialize password gates (CV and Portfolio protection)
+    try {
+      initCVModal();
+      log('✓ CV password gate initialized');
+    } catch (e) {
+      console.warn('CV gate initialization error:', e?.message);
+    }
+
+    try {
+      initPortfolioModal();
+      log('✓ Portfolio password gate initialized');
+    } catch (e) {
+      console.warn('Portfolio gate initialization error:', e?.message);
+    }
+
+    try {
+      initContactModal();
+      log('✓ Contact gate initialized');
+    } catch (e) {
+      console.warn('Contact gate initialization error:', e?.message);
+    }
 
     // Compose the top UI (LEGACY FUNCTION REMOVED - NOW IN DOM)
     // setupTopElementsLayout();
@@ -735,7 +795,7 @@ function enhanceFooterLinksForMobile() {
     // ╚══════════════════════════════════════════════════════════════════════════════╝
     
     try {
-      const { orchestrateEntrance } = await import('./modules/visual/entrance-animation.js');
+      const { orchestrateEntrance, revealAllLateElements } = await import('./modules/visual/entrance-animation.js');
       const g = getGlobals();
       const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
       const elementDuration = g.entranceElementDuration ?? CONTENT_FADE_DURATION_MS;
@@ -745,6 +805,8 @@ function enhanceFooterLinksForMobile() {
       if (!g.entranceEnabled || reduceMotion) {
         try { await waitForFonts(); } catch (e) {}
         await fadeInContentLayer({ duration: elementDuration, easing: elementEasing });
+        // Also reveal late elements (logo + main links) that have inline hidden styles
+        revealAllLateElements();
         console.log('✓ Entrance animation skipped (disabled or reduced motion)');
       } else {
         // Orchestrate dramatic entrance
@@ -765,6 +827,23 @@ function enhanceFooterLinksForMobile() {
         duration: g.entranceElementDuration ?? CONTENT_FADE_DURATION_MS,
         easing: g.entranceElementEasing ?? CONTENT_FADE_EASING
       });
+      // Fallback: also reveal late elements so nothing stays hidden
+      try {
+        const { revealAllLateElements } = await import('./modules/visual/entrance-animation.js');
+        revealAllLateElements();
+      } catch (err) {
+        // Manual fallback if module import fails
+        // NOTE: Do NOT clear transform - CSS may rely on it for positioning
+        ['main-links', 'brand-logo'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.style.opacity = '1';
+            el.style.visibility = 'visible';
+          }
+        });
+        const blocker = document.getElementById('fade-blocking');
+        if (blocker) blocker.remove();
+      }
     }
     
   } catch (error) {

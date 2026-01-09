@@ -27,6 +27,42 @@ schema: ".cursorrules.json"
 7. **O(1) hot paths** - Constant time per entity in loops
 8. **Mobile support** - Test on device emulation, 60% ball scaling
 9. **Accessibility** - ARIA labels, keyboard nav, prefers-reduced-motion
+10. **Modal Blur Two-Layer Architecture** - NEVER CHANGE (see below)
+
+## Modal Blur Architecture (LOCKED - DO NOT MODIFY)
+
+**This architecture prevents blur compositing flicker and edge flashing. Do not change these relationships.**
+
+### Two-Layer Blur System
+- `#modal-blur-layer` - Handles ONLY `backdrop-filter` blur, has NO children, isolated GPU layer
+- `#modal-content-layer` - Holds all modal UI, NO blur, animates freely
+- **Why:** Children animating inside a `backdrop-filter` element cause browser recompositing, making blur "restart" visually
+
+### Background Color Token Chain (CRITICAL)
+| Layer | Token | Purpose |
+|-------|-------|---------|
+| `html` | `--wall-color` | Matches wall when scene scales down |
+| `#bravia-balls` | `--bg-light` / `--bg-dark` | Scene interior background |
+| Wall (canvas) | `--wall-color` | Drawn wall frame |
+
+### Token Resolution (Must Stay Equal)
+```
+Light Mode:
+  --wall-color → --wall-color-light → --frame-color-light → --abs-surface-page (neutral-100)
+  --bg-light → --abs-surface-page (neutral-100)
+  
+Dark Mode:
+  --wall-color → --wall-color-dark → --frame-color-dark → --abs-surface-page-dark (neutral-950)
+  --bg-dark → --abs-surface-page-dark (neutral-950)
+```
+
+**Result:** HTML background = Wall color = Scene interior background (per theme), so NO visible edge when scene scales.
+
+### Files Involved
+- `source/index.html` - Two-layer DOM structure (`#modal-blur-layer`, `#modal-content-layer`)
+- `source/css/main.css` - `.modal-blur-layer`, `.modal-content-layer`, `#bravia-balls` backgrounds
+- `source/css/tokens.css` - Token definitions (`--wall-color-*`, `--frame-color-*`, `--bg-*`)
+- `source/modules/ui/modal-overlay.js` - Toggles both layers in sync
 
 ## Industrial Color System Psychology
 
@@ -63,6 +99,36 @@ If additional palettes are introduced, they should feel like different “chapte
    - Critical accessibility fixes that must override inaccessible defaults
    - Font-family declarations for icon fonts (e.g., `.ti` class) where specificity conflicts are unavoidable
 4. **Before using `!important`**: Document the underlying issue and propose a proper fix. The `!important` is a temporary workaround until the root cause is addressed.
+
+## CSS Smooth Resize Transitions (Project Rule)
+
+**CRITICAL PRINCIPLE:** All DOM elements that use positioning properties (`top`, `left`, `right`, `bottom`, `transform`, `width`, `height`, `max-width`, `max-height`, `padding`, `margin`, `gap`) must include CSS transitions to ensure smooth movement when the window resizes.
+
+**Standard Pattern:**
+```css
+/* Smooth layout updates on resize (matches .fade-content pattern) */
+transition:
+  top var(--duration-resize) var(--ease-organic),
+  left var(--duration-resize) var(--ease-organic),
+  right var(--duration-resize) var(--ease-organic),
+  transform var(--duration-resize) var(--ease-organic),
+  max-width var(--duration-resize) var(--ease-organic),
+  gap var(--duration-resize) var(--ease-organic);
+```
+
+**Guidelines:**
+1. **Apply to all positioned elements** - Any element using `position: fixed`, `position: absolute`, or viewport-relative units (`vh`, `vw`, `dvh`, `svh`) needs transitions
+2. **Include all relevant properties** - Transition all properties that change on resize (not just `top`/`left`, but also `transform`, `max-width`, `gap`, etc.)
+3. **Use standard tokens** - Always use `var(--duration-resize)` (600ms) and `var(--ease-organic)` for consistency
+4. **Check on new elements** - When adding new UI elements, verify they have resize transitions before committing
+5. **Test on resize** - Manually resize the browser window to verify smooth movement without lag
+
+**Elements that MUST have transitions:**
+- Fixed/absolute positioned elements (`.fade-content`, `#main-links`, `#brand-logo`, `.edge-chapter`, `.edge-copyright`)
+- Modal/gate overlays and content layers
+- Portfolio page elements (`.portfolio-meta`, `.portfolio-stage`)
+- CV page elements (`.cv-scroll-container`, `.cv-hero`)
+- Any element using viewport units or calc() with viewport units
 
 ## Files & Build System
 

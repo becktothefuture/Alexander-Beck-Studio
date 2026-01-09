@@ -12,36 +12,43 @@
     "items": [
       {
         "colorClass": "bg-ball-1",
-        "label": "AI Integration"
+        "label": "Product & Systems",
+        "tooltip": "I structure systems at scale and guide outcome-driven decisions."
       },
       {
         "colorClass": "bg-ball-5",
-        "label": "UI/UX Design"
+        "label": "Interaction & Motion",
+        "tooltip": "I design interactions and motion that communicate through behaviour."
       },
       {
         "colorClass": "bg-ball-4",
-        "label": "Creative Strategy"
+        "label": "Creative Technology",
+        "tooltip": "I build products, websites, and emerging digital experiences using code and prototypes."
       },
       {
         "colorClass": "bg-ball-3",
-        "label": "Frontend Development"
+        "label": "AI-Driven Design",
+        "tooltip": "I treat AI as a design material to explore and extrapolate ideas."
       },
       {
         "colorClass": "bg-ball-6",
-        "label": "Brand Identity"
+        "label": "Experience Direction",
+        "tooltip": "I shape cohesive product and web experiences through structure, craft, and vision."
       },
       {
         "colorClass": "bg-ball-7",
-        "label": "3D Design"
+        "label": "Art & Visual Direction",
+        "tooltip": "I define visual and spatial direction across product, motion, and form."
       },
       {
         "colorClass": "bg-ball-8",
-        "label": "Art Direction"
+        "label": "Prototyping + R&D",
+        "tooltip": "I prototype to think, test, and bring ideas into focus."
       }
     ]
   },
   "philosophy": {
-    "textBeforeLink": "Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity. ",
+    "textBeforeLink": "The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. ",
     "link": {
       "id": "contact-email-inline",
       "href": "#",
@@ -49,7 +56,7 @@
     }
   },
   "footer": {
-    "navAriaLabel": "Footer navigation links",
+    "navAriaLabel": "Main navigation links",
     "links": {
       "contact": {
         "id": "contact-email",

@@ -15,7 +15,7 @@ import { initializeVortex, applyVortexForces } from './vortex.js';
 import { initializePingPong, applyPingPongForces } from './ping-pong.js';
 import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magnetic.js';
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
-import { initializeKaleidoscope, initializeKaleidoscope1, initializeKaleidoscope2, initializeKaleidoscope3, applyKaleidoscopeForces } from './kaleidoscope.js';
+import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
 import { initializeOrbit3D, applyOrbit3DForces } from './orbit-3d.js';
 import { initializeOrbit3D2, applyOrbit3D2Forces } from './orbit-3d-2.js';
 import { initializeCritters, applyCrittersForces } from './critters.js';
@@ -23,6 +23,9 @@ import { initializeNeural, applyNeuralForces, preRenderNeural } from './neural.j
 import { initializeLattice, applyLatticeForces } from './lattice.js';
 import { initializeParallaxLinear, applyParallaxLinearForces } from './parallax-linear.js';
 import { initializeParallaxPerspective, applyParallaxPerspectiveForces } from './parallax-perspective.js';
+import { initialize3DSphere, apply3DSphereForces } from './3d-sphere.js';
+import { initialize3DCube, apply3DCubeForces } from './3d-cube.js';
+import { initializeStarfield3D, applyStarfield3DForces, updateStarfield3D, renderStarfield3D } from './starfield-3d.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor } from '../visual/colors.js';
 
@@ -45,17 +48,17 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.PING_PONG: return globals.pingPongWarmupFrames ?? 10;
     case MODES.MAGNETIC: return globals.magneticWarmupFrames ?? 10;
     case MODES.BUBBLES: return globals.bubblesWarmupFrames ?? 10;
-    case MODES.KALEIDOSCOPE: return globals.kaleidoscopeWarmupFrames ?? 10;
-    case MODES.KALEIDOSCOPE_1: return globals.kaleidoscope1WarmupFrames ?? 10;
-    case MODES.KALEIDOSCOPE_2: return globals.kaleidoscope2WarmupFrames ?? 10;
-    case MODES.KALEIDOSCOPE_3: return globals.kaleidoscope3WarmupFrames ?? 10;
+    case MODES.KALEIDOSCOPE: return globals.kaleidoscope3WarmupFrames ?? globals.kaleidoscopeWarmupFrames ?? 10;
     case MODES.ORBIT_3D: return globals.orbit3dWarmupFrames ?? 10;
     case MODES.ORBIT_3D_2: return globals.orbit3d2WarmupFrames ?? 10;
     case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
     case MODES.NEURAL: return globals.neuralWarmupFrames ?? 10;
     case MODES.LATTICE: return globals.latticeWarmupFrames ?? 10;
+    case MODES.SPHERE_3D: return globals.sphere3dWarmupFrames ?? 10;
+    case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
     case MODES.PARALLAX_LINEAR: return globals.parallaxLinearWarmupFrames ?? 10;
     case MODES.PARALLAX_PERSPECTIVE: return globals.parallaxPerspectiveWarmupFrames ?? 10;
+    case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     default: return 10;
   }
 }
@@ -100,17 +103,17 @@ export function setMode(mode) {
     'ping-pong': 'Ping Pong',
     magnetic: 'Magnetic',
     bubbles: 'Carbonated Bubbles',
-    kaleidoscope: 'Kaleidoscope',
-    'kaleidoscope-1': 'Kaleidoscope I',
-    'kaleidoscope-2': 'Kaleidoscope II',
-    'kaleidoscope-3': 'Kaleidoscope III',
+    'kaleidoscope-3': 'Kaleidoscope',
     'orbit-3d': 'Orbit 3D',
     'orbit-3d-2': 'Orbit 3D (Tight Swarm)',
     critters: 'Critters',
     neural: 'Neural Network',
     lattice: 'Crystal Lattice',
     'parallax-linear': 'Parallax (Linear)',
-    'parallax-perspective': 'Parallax (Perspective)'
+    'parallax-perspective': 'Parallax (Perspective)',
+    '3d-sphere': '3D Sphere',
+    '3d-cube': '3D Cube',
+    'starfield-3d': '3D Starfield'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
   
@@ -185,21 +188,6 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeKaleidoscope();
-  } else if (mode === MODES.KALEIDOSCOPE_1) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeKaleidoscope1();
-  } else if (mode === MODES.KALEIDOSCOPE_2) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeKaleidoscope2();
-  } else if (mode === MODES.KALEIDOSCOPE_3) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeKaleidoscope3();
   } else if (mode === MODES.ORBIT_3D) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -210,6 +198,16 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeOrbit3D2();
+  } else if (mode === MODES.SPHERE_3D) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initialize3DSphere();
+  } else if (mode === MODES.CUBE_3D) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initialize3DCube();
   } else if (mode === MODES.CRITTERS) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -249,6 +247,11 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeParallaxPerspective();
+  } else if (mode === MODES.STARFIELD_3D) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeStarfield3D();
   }
   
   console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
@@ -301,15 +304,16 @@ export function getForceApplicator() {
     return applyMagneticForces;
   } else if (globals.currentMode === MODES.BUBBLES) {
     return applyBubblesForces;
-  } else if (globals.currentMode === MODES.KALEIDOSCOPE || 
-             globals.currentMode === MODES.KALEIDOSCOPE_1 ||
-             globals.currentMode === MODES.KALEIDOSCOPE_2 ||
-             globals.currentMode === MODES.KALEIDOSCOPE_3) {
+  } else if (globals.currentMode === MODES.KALEIDOSCOPE) {
     return applyKaleidoscopeForces;
   } else if (globals.currentMode === MODES.ORBIT_3D) {
     return applyOrbit3DForces;
   } else if (globals.currentMode === MODES.ORBIT_3D_2) {
     return applyOrbit3D2Forces;
+  } else if (globals.currentMode === MODES.SPHERE_3D) {
+    return apply3DSphereForces;
+  } else if (globals.currentMode === MODES.CUBE_3D) {
+    return apply3DCubeForces;
   } else if (globals.currentMode === MODES.CRITTERS) {
     return applyCrittersForces;
   } else if (globals.currentMode === MODES.NEURAL) {
@@ -320,6 +324,8 @@ export function getForceApplicator() {
     return applyParallaxLinearForces;
   } else if (globals.currentMode === MODES.PARALLAX_PERSPECTIVE) {
     return applyParallaxPerspectiveForces;
+  } else if (globals.currentMode === MODES.STARFIELD_3D) {
+    return applyStarfield3DForces;
   }
   return null;
 }
@@ -334,6 +340,8 @@ export function getModeUpdater() {
     return updateMagnetic;
   } else if (globals.currentMode === MODES.BUBBLES) {
     return updateBubbles;
+  } else if (globals.currentMode === MODES.STARFIELD_3D) {
+    return updateStarfield3D;
   }
   return null;
 }
@@ -343,6 +351,10 @@ export function getModeRenderer() {
   if (globals.currentMode === MODES.NEURAL) {
     return {
       preRender: preRenderNeural
+    };
+  } else if (globals.currentMode === MODES.STARFIELD_3D) {
+    return {
+      preRender: renderStarfield3D
     };
   }
   return null;

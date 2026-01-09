@@ -1,3 +1,8 @@
 {
-    "folder-color.pathColors": []
+    "folder-color.pathColors": [],
+    "builder.serverUrl": "",
+    "builder.command": "npm run startup",
+    "builder.runDevServer": true,
+    "builder.autoDetectDevServer": true,
+    "builder.launchType": "browser"
 }

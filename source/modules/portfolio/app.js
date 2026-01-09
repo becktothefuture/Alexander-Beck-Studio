@@ -3,6 +3,7 @@
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
 import { applyWallFrameFromConfig, applyWallFrameLayout, syncWallFrameColors } from '../visual/wall-frame.js';
 import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioRuntime } from './portfolio-config.js';
+import { initPortfolioWallCanvas } from './wall-only-canvas.js';
 import { createSoundToggle } from '../ui/sound-toggle.js';
 import { initializeDarkMode } from '../visual/dark-mode-v2.js';
 import { maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
@@ -15,8 +16,8 @@ import { applyRuntimeTextToDOM } from '../ui/apply-text.js';
 import { waitForFonts } from '../utils/font-loader.js';
 import { readTokenVar } from '../utils/tokens.js';
 import * as SoundEngine from '../audio/sound-engine.js';
-import { initGateOverlay } from '../ui/gate-overlay.js';
-import { initContactGate } from '../ui/contact-gate.js';
+import { initModalOverlay } from '../ui/modal-overlay.js';
+import { initContactModal } from '../ui/contact-modal.js';
 import { initLinkCursorHop } from '../ui/link-cursor-hop.js';
 
 const BASE_PATH = (() => {
@@ -1675,6 +1676,17 @@ async function bootstrapPortfolio() {
         fadeContent.style.opacity = '1';
         fadeContent.style.transform = 'translateZ(0)';
       }
+      // Also reveal central content elements
+      const portfolioMeta = document.querySelector('.portfolio-meta');
+      const portfolioStage = document.querySelector('.portfolio-stage');
+      if (portfolioMeta) {
+        portfolioMeta.style.opacity = '1';
+        portfolioMeta.style.visibility = 'visible';
+      }
+      if (portfolioStage) {
+        portfolioStage.style.opacity = '1';
+        portfolioStage.style.visibility = 'visible';
+      }
       removeBlocker();
       console.log('✓ Entrance animation skipped (disabled or reduced motion)');
     } else {
@@ -1683,7 +1695,11 @@ async function bootstrapPortfolio() {
         waitForFonts: async () => {
           try { await waitForFonts(); } catch (e) {}
         },
-        skipWallAnimation: true
+        skipWallAnimation: true,
+        centralContent: [
+          '.portfolio-meta',
+          '.portfolio-stage'
+        ]
       });
       removeBlocker();
       console.log('✓ Dramatic entrance animation orchestrated (portfolio)');
@@ -1730,6 +1746,9 @@ async function bootstrapPortfolio() {
     runtimeConfig = await loadRuntimeConfig();
     // Initialize state with runtime config so all global parameters are available
     applyWallFrameFromConfig(runtimeConfig);
+    // Portfolio needs the same visible rubber wall as index, but without running the balls simulation.
+    // Draw the wall ring onto a dedicated canvas layered above the carousel.
+    try { initPortfolioWallCanvas(); } catch (e) {}
     SoundEngine.initSoundEngine();
     SoundEngine.applySoundConfigFromRuntimeConfig(runtimeConfig);
     // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.
@@ -1748,8 +1767,8 @@ async function bootstrapPortfolio() {
 
   // Gates should work even if runtime config fails to load (use defaults).
   try {
-    initGateOverlay(runtimeConfig || {});
-    initContactGate();
+    initModalOverlay(runtimeConfig || {});
+    initContactModal();
   } catch (e) {}
 
   // Palette chapters: rotate on each reload (applies only to cursor + palette-driven dots).

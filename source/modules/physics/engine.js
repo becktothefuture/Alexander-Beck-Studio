@@ -52,15 +52,12 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
 
   if (balls.length === 0) return;
 
-  // Kaleidoscope modes have their own lightweight physics path:
+  // Kaleidoscope mode has its own lightweight physics path:
   // - Smooth (per-frame), not fixed-timestep accumulator
   // - Collisions on (prevents overlap)
   // - NO rubber wall deformation / impacts
   // - Simple bounds handling (no corner repellers, no wall wobble)
-  if (globals.currentMode === MODES.KALEIDOSCOPE ||
-      globals.currentMode === MODES.KALEIDOSCOPE_1 ||
-      globals.currentMode === MODES.KALEIDOSCOPE_2 ||
-      globals.currentMode === MODES.KALEIDOSCOPE_3) {
+  if (globals.currentMode === MODES.KALEIDOSCOPE) {
     const dt = Math.min(0.033, Math.max(0, dtSeconds));
     const len = balls.length;
     for (let i = 0; i < len; i++) {
@@ -111,17 +108,17 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     // Ball-to-ball collisions:
     // - Disabled for Flies (swarm aesthetic)
     // - Disabled for Orbit 3D (clean swirl aesthetic)
-    // - Reduced for Kaleidoscope modes (performance)
+    // - Reduced for Kaleidoscope mode (performance)
     // - Standard for Tilt (many light balls flow like water)
-    if (globals.currentMode === MODES.KALEIDOSCOPE ||
-        globals.currentMode === MODES.KALEIDOSCOPE_1 ||
-        globals.currentMode === MODES.KALEIDOSCOPE_2 ||
-        globals.currentMode === MODES.KALEIDOSCOPE_3) {
+    if (globals.currentMode === MODES.KALEIDOSCOPE) {
       resolveCollisions(6); // handled by kaleidoscope early-return, kept for safety
     } else if (globals.currentMode !== MODES.FLIES && 
                globals.currentMode !== MODES.ORBIT_3D &&
+               globals.currentMode !== MODES.SPHERE_3D &&
+               globals.currentMode !== MODES.CUBE_3D &&
                globals.currentMode !== MODES.PARALLAX_LINEAR &&
-               globals.currentMode !== MODES.PARALLAX_PERSPECTIVE) {
+               globals.currentMode !== MODES.PARALLAX_PERSPECTIVE &&
+               globals.currentMode !== MODES.STARFIELD_3D) {
       resolveCollisions(collisionIterations); // configurable solver iterations
     }
 
@@ -134,8 +131,11 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     // Skip for Lattice mode (infinite mesh extends beyond viewport, no wall physics needed)
     if (globals.currentMode !== MODES.ORBIT_3D && 
         globals.currentMode !== MODES.ORBIT_3D_2 &&
+        globals.currentMode !== MODES.SPHERE_3D &&
+        globals.currentMode !== MODES.CUBE_3D &&
         globals.currentMode !== MODES.PARALLAX_LINEAR &&
         globals.currentMode !== MODES.PARALLAX_PERSPECTIVE &&
+        globals.currentMode !== MODES.STARFIELD_3D &&
         globals.currentMode !== MODES.LATTICE) {
       const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
       const isPitLike = (globals.currentMode === MODES.PIT || globals.currentMode === MODES.PIT_THROWS);
@@ -224,12 +224,11 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.FLIES &&
         mode !== MODES.ORBIT_3D &&
         mode !== MODES.ORBIT_3D_2 &&
+        mode !== MODES.SPHERE_3D &&
+        mode !== MODES.CUBE_3D &&
         mode !== MODES.PARALLAX_LINEAR &&
         mode !== MODES.PARALLAX_PERSPECTIVE &&
         mode !== MODES.KALEIDOSCOPE &&
-        mode !== MODES.KALEIDOSCOPE_1 &&
-        mode !== MODES.KALEIDOSCOPE_2 &&
-        mode !== MODES.KALEIDOSCOPE_3 &&
         mode !== MODES.PIT &&
         mode !== MODES.PIT_THROWS;
 
@@ -338,10 +337,7 @@ export function render() {
   }
   
   // Draw balls (or mode-specific renderer)
-  if (globals.currentMode === MODES.KALEIDOSCOPE ||
-      globals.currentMode === MODES.KALEIDOSCOPE_1 ||
-      globals.currentMode === MODES.KALEIDOSCOPE_2 ||
-      globals.currentMode === MODES.KALEIDOSCOPE_3) {
+  if (globals.currentMode === MODES.KALEIDOSCOPE) {
     renderKaleidoscope(ctx);
   } else {
   for (let i = 0; i < balls.length; i++) {

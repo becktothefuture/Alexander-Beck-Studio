@@ -27,9 +27,6 @@ export function getModeSizeVariation01(g, mode) {
     case MODES.MAGNETIC: return g.sizeVariationMagnetic ?? 0;
     case MODES.BUBBLES: return g.sizeVariationBubbles ?? 0;
     case MODES.KALEIDOSCOPE: return g.sizeVariationKaleidoscope ?? 0;
-    case MODES.KALEIDOSCOPE_1: return g.sizeVariationKaleidoscope ?? 0;
-    case MODES.KALEIDOSCOPE_2: return g.sizeVariationKaleidoscope ?? 0;
-    case MODES.KALEIDOSCOPE_3: return g.sizeVariationKaleidoscope ?? 0;
     case MODES.ORBIT_3D: return g.sizeVariationOrbit3d ?? 0;
     case MODES.ORBIT_3D_2: return g.sizeVariationOrbit3d2 ?? 0;
     case MODES.CRITTERS: return g.sizeVariationCritters ?? 0;
@@ -89,23 +86,14 @@ export function randomRadiusForKaleidoscopeVh(g, mode) {
   if (!h) return randomRadiusForMode(g, mode);
 
   const getVh = () => {
-    if (mode === MODES.KALEIDOSCOPE_1) return Number(g.kaleidoscope1DotSizeVh ?? g.kaleidoscopeDotSizeVh ?? 0.95);
-    if (mode === MODES.KALEIDOSCOPE_2) return Number(g.kaleidoscope2DotSizeVh ?? g.kaleidoscopeDotSizeVh ?? 0.95);
-    if (mode === MODES.KALEIDOSCOPE_3) return Number(g.kaleidoscope3DotSizeVh ?? g.kaleidoscopeDotSizeVh ?? 0.95);
-    return Number(g.kaleidoscopeDotSizeVh ?? 0.95);
+    return Number(g.kaleidoscope3DotSizeVh ?? g.kaleidoscopeDotSizeVh ?? 1.05);
   };
   const getAreaMul = () => {
-    if (mode === MODES.KALEIDOSCOPE_1) return Number(g.kaleidoscope1DotAreaMul ?? g.kaleidoscopeDotAreaMul ?? 0.7);
-    if (mode === MODES.KALEIDOSCOPE_2) return Number(g.kaleidoscope2DotAreaMul ?? g.kaleidoscopeDotAreaMul ?? 0.7);
-    if (mode === MODES.KALEIDOSCOPE_3) return Number(g.kaleidoscope3DotAreaMul ?? g.kaleidoscopeDotAreaMul ?? 0.7);
-    return Number(g.kaleidoscopeDotAreaMul ?? 0.7);
+    return Number(g.kaleidoscope3DotAreaMul ?? g.kaleidoscopeDotAreaMul ?? 0.75);
   };
-  // Per-variant size variance (0..1) - controls how much ball sizes differ
+  // Size variance (0..1) - controls how much ball sizes differ
   const getSizeVariance = () => {
-    if (mode === MODES.KALEIDOSCOPE_1) return Number(g.kaleidoscope1SizeVariance ?? g.kaleidoscopeSizeVariance ?? 0.3);
-    if (mode === MODES.KALEIDOSCOPE_2) return Number(g.kaleidoscope2SizeVariance ?? g.kaleidoscopeSizeVariance ?? 0.3);
-    if (mode === MODES.KALEIDOSCOPE_3) return Number(g.kaleidoscope3SizeVariance ?? g.kaleidoscopeSizeVariance ?? 0.3);
-    return Number(g.kaleidoscopeSizeVariance ?? 0.3);
+    return Number(g.kaleidoscope3SizeVariance ?? g.kaleidoscopeSizeVariance ?? 0.5);
   };
 
   const vh = clamp(getVh(), 0.1, 6.0);

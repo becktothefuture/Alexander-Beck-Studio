@@ -71,7 +71,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 - **Swarm/Flow:** `flies`, `vortex`, `magnetic`, `critters`
 - **Elastic:** `weightless` (Zero-G), `ping-pong`
 - **Fluid:** `water`, `bubbles`
-- **Optical:** `kaleidoscope`, `kaleidoscope-1`, `kaleidoscope-2`, `kaleidoscope-3`
+- **Optical:** `kaleidoscope-3` (Kaleidoscope)
 - **Orbital:** `orbit-3d`, `orbit-3d-2`
 - **Lattice:** `lattice` (Crystal Lattice), `neural` (Neural Network)
 - **Parallax:** `parallax-linear`, `parallax-perspective`

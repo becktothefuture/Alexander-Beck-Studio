@@ -1,135 +1,221 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                      ORBIT 3D: TIGHT & FAST SPIRAL                          ║
-// ║          Same physics as Orbit 2, configured for tight fast motion          ║
+// ║                    ORBIT 3D: PLANETARY RING SYSTEM                          ║
+// ║   3D orbital rings with true perspective, multi-layer rotation, tumble      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { spawnBall } from '../physics/spawn.js';
 import { pickRandomColor } from '../visual/colors.js';
-import { ORBIT3D_PRESETS } from '../core/constants.js';
 import { clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 
+function clamp01(v) {
+  return Math.max(-1, Math.min(1, v));
+}
+
+function rotateXYZ(x, y, z, rx, ry, rz) {
+  // Yaw (Y)
+  const cosY = Math.cos(ry);
+  const sinY = Math.sin(ry);
+  const x1 = x * cosY - z * sinY;
+  const z1 = x * sinY + z * cosY;
+
+  // Pitch (X)
+  const cosX = Math.cos(rx);
+  const sinX = Math.sin(rx);
+  const y2 = y * cosX - z1 * sinX;
+  const z2 = y * sinX + z1 * cosX;
+
+  // Roll (Z)
+  const cosZ = Math.cos(rz);
+  const sinZ = Math.sin(rz);
+  const x3 = x1 * cosZ - y2 * sinZ;
+  const y3 = x1 * sinZ + y2 * cosZ;
+
+  return { x: x3, y: y3, z: z2 };
+}
+
+function generateOrbitalRings(count, radiusVw, canvasWidth, shellCount) {
+  const pts = [];
+  const radiusPx = Math.max(10, (radiusVw / 100) * canvasWidth);
+  const shells = Math.max(2, Math.min(8, shellCount | 0));
+  
+  const pointsPerShell = Math.ceil(count / shells);
+  
+  for (let shell = 0; shell < shells; shell++) {
+    const shellRadius = radiusPx * (0.4 + (shell / (shells - 1)) * 0.6); // 40% to 100% radius
+    const shellInclination = (shell / shells) * Math.PI * 0.25; // 0 to 45 degrees
+    const shellPhaseOffset = (shell / shells) * Math.PI * 2; // Stagger starting positions
+    const shellSpeed = 0.3 + (shell % 2) * 0.4; // Alternating speeds (0.3 or 0.7)
+    
+    const pointsInShell = Math.min(pointsPerShell, count - pts.length);
+    
+    for (let i = 0; i < pointsInShell; i++) {
+      const angle = (i / pointsInShell) * Math.PI * 2 + shellPhaseOffset;
+      const eccentricity = 0.1 + Math.random() * 0.1; // Slight elliptical variation
+      
+      pts.push({
+        shell,
+        angle,
+        radius: shellRadius,
+        inclination: shellInclination,
+        speed: shellSpeed,
+        eccentricity,
+        wobblePhase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+  
+  return pts;
+}
+
 export function initializeOrbit3D() {
-  const globals = getGlobals();
+  const g = getGlobals();
+  const canvas = g.canvas;
+  if (!canvas) return;
+
   clearBalls();
 
-  const baseCount = Math.max(0, (globals.orbit3dMoonCount ?? 80) | 0);
-  const count = getMobileAdjustedCount(baseCount);
+  const densityBase = Math.max(10, Math.round(g.orbit3dDensity ?? 120));
+  const count = getMobileAdjustedCount(densityBase);
   if (count <= 0) return;
-  const w = globals.canvas.width;
-  const h = globals.canvas.height;
 
-  // TIGHT: Spawn closer to center
-  for (let i = 0; i < count; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const radius = Math.min(w, h) * 0.15 + Math.random() * Math.min(w, h) * 0.1; // Tight spawn
-    const x = w * 0.5 + Math.cos(angle) * radius;
-    const y = h * 0.5 + Math.sin(angle) * radius;
+  const radiusVw = g.orbit3dRadiusVw ?? 22;
+  const shellCount = g.orbit3dShellCount ?? 4;
+  const baseR = (g.R_MED || 20) * 0.30 * 2.0 * (g.DPR || 1);
+  const dotSizeMul = Math.max(0.1, g.orbit3dDotSizeMul ?? 1.2);
 
-    const ball = spawnBall(x, y, pickRandomColor());
+  g.orbit3dState = {
+    cx: canvas.width * 0.5,
+    cy: canvas.height * 0.5,
+    rotX: 0,
+    rotY: 0,
+    rotZ: 0,
+    tumbleX: 0,
+    tumbleY: 0,
+    dotSizeMul,
+    time: 0
+  };
+
+  const pts = generateOrbitalRings(count, radiusVw, canvas.width, shellCount);
+  
+  for (let i = 0; i < pts.length; i++) {
+    const ball = spawnBall(0, 0, pickRandomColor());
     if (!ball) continue;
-
-    // FAST: Initial tangential velocity (DPR-scaled)
-    const DPR = globals.DPR || 1;
-    const speed = (globals.orbit3dVelocityMult ?? 150) * (0.9 + Math.random() * 0.2) * DPR;
-    ball.vx = -Math.sin(angle) * speed;
-    ball.vy = Math.cos(angle) * speed;
-    ball.orbitDepth = Math.random();
+    
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.omega = 0;
+    ball.r = clampRadiusToGlobalBounds(g, baseR * dotSizeMul);
+    ball._cloudBaseR = baseR;
+    ball._orbit3d = pts[i];
+    ball._cloudMode = 'orbit';
+    ball.isSleeping = false;
   }
 }
 
 export function applyOrbit3DForces(ball, dt) {
   const g = getGlobals();
+  const canvas = g.canvas;
+  const state = g.orbit3dState;
+  if (!canvas || !state || !ball || !ball._orbit3d) return;
 
-  // Mouse is attractor
-  const cx = (g.mouseX === -1e9) ? g.canvas.width * 0.5 : g.mouseX;
-  const cy = (g.mouseY === -1e9) ? g.canvas.height * 0.5 : g.mouseY;
+  // Read runtime params for real-time updates
+  const idleSpeed = g.orbit3dIdleSpeed ?? 0.25;
+  const orbitalSpeed = g.orbit3dOrbitalSpeed ?? 0.8;
+  const tumbleSpeed = g.orbit3dTumbleSpeed ?? 2.0;
+  const tumbleDamping = Math.max(0, Math.min(0.999, g.orbit3dTumbleDamping ?? 0.93));
+  const dotSizeMul = Math.max(0.1, g.orbit3dDotSizeMul ?? 1.2);
+  const wobbleStrength = g.orbit3dWobbleStrength ?? 0.15;
+  const inclinationMix = g.orbit3dInclinationMix ?? 0.7;
 
-  const dx = cx - ball.x;
-  const dy = cy - ball.y;
-  const dist = Math.sqrt(dx * dx + dy * dy + 1);
+  // Update shared rotation once per frame (first ball)
+  if (ball === g.balls[0]) {
+    const cx = canvas.width * 0.5;
+    const cy = canvas.height * 0.5;
+    
+    state.time += dt;
+    
+    // Mouse interaction: dragging spins the orbital system
+    if (g.mouseInCanvas) {
+      const prevMouseX = state.prevMouseX ?? g.mouseX;
+      const prevMouseY = state.prevMouseY ?? g.mouseY;
+      
+      const rawDx = g.mouseX - prevMouseX;
+      const rawDy = g.mouseY - prevMouseY;
+      const maxDelta = 100 * (g.DPR || 1);
+      const mouseDx = Math.max(-maxDelta, Math.min(maxDelta, rawDx));
+      const mouseDy = Math.max(-maxDelta, Math.min(maxDelta, rawDy));
+      
+      state.prevMouseX = g.mouseX;
+      state.prevMouseY = g.mouseY;
 
-  const radialX = dx / dist;
-  const radialY = dy / dist;
-  const tangentX = -dy / dist;
-  const tangentY = dx / dist;
-
-  // GUARDRAIL 1: Minimum distance repulsion
-  // DPR-scaled: physics runs in canvas pixels
-  const DPR = g.DPR || 1;
-  const minRadius = 40 * DPR; // TIGHT: Smaller min radius
-  if (dist < minRadius) {
-    const repulsionStrength = (minRadius - dist) * 100;
-    ball.vx -= radialX * repulsionStrength * dt;
-    ball.vy -= radialY * repulsionStrength * dt;
-  }
-
-  // Gentle spiral forces
-  const gravity = g.orbit3dGravity ?? 5000;
-  
-  // Strong tangential for spinning
-  const tangentForce = gravity * 0.015;
-  ball.vx += tangentX * tangentForce * dt;
-  ball.vy += tangentY * tangentForce * dt;
-
-  // Weak inward pull for slow spiral (softened)
-  const softening = 100 * DPR;
-  const radialForce = (gravity * 0.003) / (1 + dist / softening);
-  ball.vx += radialX * radialForce * dt;
-  ball.vy += radialY * radialForce * dt;
-
-  // GUARDRAIL 2: Separation force
-  const separationRadius = 60 * g.DPR; // TIGHT: Smaller separation
-  let sepX = 0, sepY = 0, neighborCount = 0;
-  for (let i = 0; i < g.balls.length; i++) {
-    const other = g.balls[i];
-    if (other === ball) continue;
-    const dx2 = ball.x - other.x;
-    const dy2 = ball.y - other.y;
-    const d2 = dx2 * dx2 + dy2 * dy2;
-    if (d2 < separationRadius * separationRadius && d2 > 0) {
-      const d_other = Math.sqrt(d2);
-      const strength = 1 - (d_other / separationRadius);
-      sepX += (dx2 / d_other) * strength;
-      sepY += (dy2 / d_other) * strength;
-      neighborCount++;
+      // Calculate distance from center for interaction scaling
+      const relX = g.mouseX - cx;
+      const relY = g.mouseY - cy;
+      const distFromCenter = Math.sqrt(relX * relX + relY * relY);
+      const visualRadius = canvas.width * 0.3;
+      
+      if (distFromCenter < visualRadius * 1.5) {
+        const spinGain = tumbleSpeed * 0.015;
+        state.tumbleY += mouseDx * spinGain;
+        state.tumbleX += -mouseDy * spinGain;
+      }
+    } else {
+      state.prevMouseX = undefined;
+      state.prevMouseY = undefined;
     }
-  }
-  if (neighborCount > 0) {
-    const separationForce = 8000;
-    ball.vx += (sepX / neighborCount) * separationForce * dt;
-    ball.vy += (sepY / neighborCount) * separationForce * dt;
-  }
 
-  // GUARDRAIL 3: Speed limiting (DPR-scaled)
-  const maxSpeed = (g.orbit3dVelocityMult ?? 150) * 2 * DPR;
-  const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-  if (speed > maxSpeed) {
-    ball.vx = (ball.vx / speed) * maxSpeed;
-    ball.vy = (ball.vy / speed) * maxSpeed;
+    // Damping
+    state.tumbleX *= tumbleDamping;
+    state.tumbleY *= tumbleDamping;
+
+    // Apply rotation: idle + tumble
+    state.rotY += (idleSpeed + state.tumbleY) * dt;
+    state.rotX += (idleSpeed * 0.5 + state.tumbleX) * dt;
+    state.rotZ += idleSpeed * 0.15 * dt;
   }
 
-  // Light damping
-  const damp = 1 - (g.orbit3dDamping ?? 0.02);
-  ball.vx *= damp;
-  ball.vy *= damp;
+  const orbit = ball._orbit3d;
+  
+  // Update orbital angle based on shell speed
+  orbit.angle += orbitalSpeed * orbit.speed * dt;
+  
+  // Calculate position in orbital ring with slight eccentricity
+  const r = orbit.radius * (1 + orbit.eccentricity * Math.cos(orbit.angle));
+  const wobble = Math.sin(state.time * 2 + orbit.wobblePhase) * wobbleStrength * orbit.radius;
+  
+  // Local coordinates in tilted ring plane
+  const x = r * Math.cos(orbit.angle);
+  const y = wobble; // Slight wobble perpendicular to ring
+  const z = r * Math.sin(orbit.angle);
+  
+  // Apply ring inclination
+  const inclinationAngle = orbit.inclination * inclinationMix;
+  const cosInc = Math.cos(inclinationAngle);
+  const sinInc = Math.sin(inclinationAngle);
+  
+  const x2 = x;
+  const y2 = y * cosInc - z * sinInc;
+  const z2 = y * sinInc + z * cosInc;
+  
+  // Apply global rotation
+  const rotated = rotateXYZ(x2, y2, z2, state.rotX, state.rotY, state.rotZ);
+  
+  // Perspective projection
+  const focal = Math.max(80, g.orbit3dFocalLength ?? 600);
+  const maxRadius = orbit.radius * 1.5;
+  const zShift = rotated.z + maxRadius; // Keep positive
+  const scale = focal / (focal + zShift);
 
-  // Depth effect for size
-  const angle = Math.atan2(dy, dx);
-  const depthScale = g.orbit3dDepthScale ?? 0.8;
-  ball.z = ball.orbitDepth + Math.sin(angle * 2) * 0.2;
-  ball.z = Math.max(0, Math.min(1, ball.z));
-  const rawR = Math.max(2, ball.rBase * (0.5 + ball.z * depthScale));
+  const targetX = state.cx + rotated.x * scale;
+  const targetY = state.cy + rotated.y * scale;
+  const rawR = ball._cloudBaseR * dotSizeMul * scale;
+
   ball.r = clampRadiusToGlobalBounds(g, rawR);
-}
-
-export function applyOrbit3DPreset(presetName, reinit = true) {
-  const preset = ORBIT3D_PRESETS[presetName];
-  if (!preset) return false;
-  const g = getGlobals();
-  const { label, ...values } = preset;
-  Object.assign(g, values);
-  g.orbit3dPreset = presetName;
-  if (reinit) initializeOrbit3D();
-  return true;
+  ball.x = targetX;
+  ball.y = targetY;
+  ball.vx = 0;
+  ball.vy = 0;
+  ball.omega = 0;
+  ball.isSleeping = false;
 }

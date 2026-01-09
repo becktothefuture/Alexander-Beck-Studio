@@ -236,6 +236,31 @@ function getMasterPanelContent({
 // DOCK CREATION
 // ════════════════════════════════════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════════════════════════
+// PANEL TOGGLE BUTTON (GEAR ICON)
+// ════════════════════════════════════════════════════════════════════════════════
+
+function createPanelToggleButton() {
+  // Check if button already exists
+  if (document.querySelector('.panel-toggle-btn')) return;
+  
+  const toggleBtn = document.createElement('button');
+  toggleBtn.className = 'panel-toggle-btn';
+  toggleBtn.setAttribute('aria-label', 'Toggle config panel');
+  toggleBtn.innerHTML = '⚙';
+  toggleBtn.style.display = 'flex';
+  
+  toggleBtn.addEventListener('click', () => {
+    toggleDock();
+  });
+  
+  document.body.appendChild(toggleBtn);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// MAIN PANEL DOCK CREATION
+// ════════════════════════════════════════════════════════════════════════════════
+
 export function createPanelDock(options = {}) {
   // DEV-only: dynamically inject panel.css if not already present
   // (Production builds don't include panel.css, so we inject it on-demand)
@@ -274,9 +299,8 @@ export function createPanelDock(options = {}) {
   dockElement.id = 'panelDock';
 
   // Default visibility:
-  // - Home: visible in dev, hidden in prod (unless user previously toggled it)
-  // - Portfolio: hidden by default (panel is a dev tool, summoned with `/`)
-  let defaultHidden = page === 'portfolio' ? true : !isDev();
+  // - All pages: hidden by default, use gear button to open
+  let defaultHidden = true; // Always start hidden, use gear button to open
   let isHidden = loadDockHiddenState({ defaultHidden });
   try {
     if (typeof __PANEL_INITIALLY_VISIBLE__ === 'boolean') isHidden = !__PANEL_INITIALLY_VISIBLE__;
@@ -301,6 +325,11 @@ export function createPanelDock(options = {}) {
 
   // Append to body as first child for maximum z-index stacking
   document.body.insertBefore(dockElement, document.body.firstChild);
+  
+  // Create gear button toggle (dev-only)
+  if (isDev()) {
+    createPanelToggleButton();
+  }
   
   // Setup interactions
   setupDragging();

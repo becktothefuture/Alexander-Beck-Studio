@@ -337,6 +337,8 @@ html.fonts-loading .project-detail {
   /* Apply organic padding here (allow mobile multiplier without touching runtime config). */
   padding:
     calc(var(--content-padding-y) * var(--abs-content-pad-mul-y, 1))
+    calc(var(--content-padding-x) * var(--abs-content-pad-mul-x, 1))
+    calc(var(--content-padding-y) * var(--abs-content-pad-mul-y, 1) * var(--abs-content-pad-mul-bottom, 1.3))
     calc(var(--content-padding-x) * var(--abs-content-pad-mul-x, 1));
   
   /* Visuals */
@@ -381,7 +383,7 @@ html.fonts-loading .project-detail {
    Links/buttons inside will inherit from specific rules below. */
 .legend,
 .decorative-script,
-#footer-links-container,
+#main-links,
 .socials_list {
   pointer-events: auto;
   cursor: none;
@@ -485,6 +487,8 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
 #expertise-legend {
   border-radius: 0;
   background: transparent;
+  column-gap: 0;
+  row-gap: 0;
 }
 
 .legend:hover {
@@ -495,7 +499,6 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   font-family: 'Geist', sans-serif;
   font-weight: var(--legend-font-weight);
   letter-spacing: var(--legend-letter-spacing);
-  text-transform: uppercase;
   font-size: var(--legend-font-size);
   white-space: nowrap;
   transition: opacity 0.2s var(--ease-organic), transform 0.15s var(--ease-organic);
@@ -558,7 +561,7 @@ body.dark-mode .legend__item--interactive:hover::before {
 }
 
 .legend .legend__item--interactive:hover span {
-  color: var(--abs-neutral-1000);
+  color: var(--text-muted);
 }
 
 body.dark-mode .legend .legend__item--interactive:hover span {
@@ -572,7 +575,6 @@ body.dark-mode .legend .legend__item--interactive:hover span {
 
 .legend__item--active span {
   color: var(--cursor-color, var(--link-hover-color));
-  font-weight: 500;
 }
 
 .legend__item--active::before {
@@ -591,6 +593,45 @@ body.dark-mode .legend .legend__item--interactive:hover span {
 
 .legend__item--dimmed span {
   color: inherit;
+}
+
+/* Legend tooltip output container */
+.legend-tooltip-output {
+  display: block;
+  width: 100%;
+  /* Position: 50% lower than the previous spacing (var(--gap-md)) */
+  margin-top: calc(var(--gap-md) * 1.5);
+  padding-left: calc(var(--legend-circle-size) + var(--legend-item-gap, var(--gap-xs)));
+  background: none;
+  color: var(--text-muted);
+  font-family: 'Geist', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: var(--line-height-base);
+  letter-spacing: var(--letter-spacing-normal);
+  text-transform: none;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 45ms ease;
+  min-height: 1em;
+  z-index: 9999;
+  position: relative;
+}
+
+.legend-tooltip-output::before {
+  content: '↳ ';
+}
+
+body.dark-mode .legend-tooltip-output {
+  color: var(--text-muted);
+}
+
+/* Hide tooltip on mobile */
+@media (max-width: 600px) {
+  .legend-tooltip-output {
+    display: none;
+  }
 }
 
 /* Legend dots (restored; Webflow previously provided base circle sizing) */
@@ -650,7 +691,7 @@ body.dark-mode .legend .legend__item--interactive:hover span {
   font-weight: 400;
   line-height: var(--decorative-script-line-height);
   letter-spacing: var(--decorative-script-letter-spacing);
-  color: var(--text-primary);
+  color: var(--text-muted);
   border: none;
   padding: var(--decorative-script-padding-vertical) 0 var(--decorative-script-padding-vertical) var(--decorative-script-padding-left);
   margin: 0;
@@ -692,6 +733,7 @@ p {
 .decorative-script p {
   margin: 0;
   text-align: left; /* Keep left aligned within the block */
+  color: var(--text-muted);
 }
 
 .decorative-script p a {
@@ -759,15 +801,15 @@ p {
   pointer-events: auto;
 }
 
-/* Override .ui-nav-row defaults for #footer-links-container (nav bar) */
-#footer-links-container.ui-nav-row {
+/* Override .ui-nav-row defaults for #main-links (nav bar) */
+#main-links.ui-nav-row {
   /* Nav bar uses its own layout, not .ui-nav-row defaults */
   width: 100%;
   justify-content: center;
 }
 
-/* Footer Navigation Bar - Full-width nav bar positioned relative to viewport */
-#footer-links-container {
+/* Main Links Navigation Bar - Full-width nav bar positioned relative to viewport */
+#main-links {
   /* Position relative to viewport (outside .fade-content to avoid transform containing block) */
   position: fixed;
   left: 50%;
@@ -796,6 +838,13 @@ p {
   margin: 0;
   pointer-events: auto;
   z-index: 21; /* Above .fade-content (z-index: 20) */
+  /* Smooth layout updates on resize (matches .fade-content pattern) */
+  transition:
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
+    transform var(--duration-resize) var(--ease-organic),
+    max-width var(--duration-resize) var(--ease-organic),
+    gap var(--duration-resize) var(--ease-organic);
 }
 
 .footer_link,
@@ -825,8 +874,8 @@ body:not(.dark-mode) #header-cv-link {
   color: var(--text-color-light);
 }
 
-/* Nav bar specific overrides for footer buttons */
-#footer-links-container .footer_link {
+/* Nav bar specific overrides for main link buttons */
+#main-links .footer_link {
   /* Nav bar buttons: substantial padding matching other page links */
   /* Minimum 14px top/bottom, 18px left/right as requested */
   padding-block: clamp(14px, 2.4vmin, 28px);
@@ -862,15 +911,15 @@ body:not(.dark-mode) #header-cv-link {
   border-radius: var(--ui-icon-corner-radius);
 }
 
-/* Footer link ID overrides - reset margins to 0 (only when NOT in nav bar) */
-#footer-links-container #contact-email,
-#footer-links-container #portfolio-gate-trigger,
-#footer-links-container #cv-gate-trigger {
+/* Main link ID overrides - reset margins to 0 (only when NOT in nav bar) */
+#main-links #contact-email,
+#main-links #portfolio-modal-trigger,
+#main-links #cv-modal-trigger {
   margin: 0;
 }
 
-/* Dark mode: footer links need light color for visibility */
-body.dark-mode #footer-links-container .footer_link {
+/* Dark mode: main links need light color for visibility */
+body.dark-mode #main-links .footer_link {
   color: var(--text-primary);
 }
 
@@ -1082,14 +1131,14 @@ button.abs-meta-btn,
   z-index: 0;
   pointer-events: auto;
   transform-origin: center center;
-  /* Compose: gate depth (dialog push-back) + micro-impact (mode change click-in) */
+  /* Compose: modal depth (dialog push-back) + micro-impact (mode change click-in) */
   transform:
-    scale(var(--gate-depth-scale-active, 1))
-    translateY(var(--gate-depth-ty-active, 0px))
+    scale(var(--modal-depth-scale-active, 1))
+    translateY(var(--modal-depth-ty-active, 0px))
     scale(calc(1 - (var(--abs-scene-impact, 0) * var(--abs-scene-impact-mul, 0.008))))
     translateZ(0);
   transition:
-    transform var(--gate-depth-out-duration, 250ms) var(--ease-gate);
+    transform var(--modal-depth-out-duration, 1700ms) var(--ease-gate);
   /* Keep the transform layer stable across the whole session to prevent
      1-frame corner "snaps" when the scene settles and the browser demotes layers. */
   will-change: transform;
@@ -1098,9 +1147,11 @@ button.abs-meta-btn,
   perspective: inherit;
 }
 
-#abs-scene.abs-scene--impact {
-  /* Use non-overshooting easing to prevent "pop" past rest on release.
-     Smooth ease-out-quint: fast start, gentle deceleration, no overshoot. */
+#abs-scene.abs-scene--impact.abs-scene--animating {
+  /* Impact transition should ONLY apply during the impact pulse.
+     Keeping `.abs-scene--impact` on permanently (JS) is fine, but if it defines the
+     transition at rest it will override the gate depth return transition and cause
+     an instant snap-back on close. */
   transition:
     transform var(--abs-scene-impact-dur, 100ms) var(--abs-scene-impact-ease, var(--ease-gate));
 }
@@ -1111,7 +1162,7 @@ button.abs-meta-btn,
 
 #abs-scene.gate-depth-active {
   transition:
-    transform var(--gate-depth-duration, 400ms) var(--ease-gate);
+    transform var(--modal-depth-duration, 850ms) var(--ease-gate);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1132,9 +1183,12 @@ button.abs-meta-btn,
   /* Fade opacity when gate opens (subtle, not full disappear) */
   opacity: var(--logo-opacity-active, 1);
   /* Sync all transitions: transform + opacity with OUT duration by default */
+  /* Smooth layout updates on resize */
   transition: 
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
     transform var(--abs-scene-impact-dur, 100ms) var(--abs-scene-impact-ease, var(--ease-gate)),
-    opacity var(--gate-depth-out-duration, 250ms) var(--ease-gate);
+    opacity var(--modal-depth-out-duration, 1700ms) var(--ease-gate);
   z-index: 3; /* Behind balls (z:5) */
   pointer-events: none;
   width: auto;
@@ -1207,11 +1261,12 @@ body.dark-mode #brand-logo {
   box-sizing: border-box;
   /* Border-radius removed on simulation page (index.html) - kept on portfolio page */
   border-radius: 0;
+  /* Scene interior uses page background (light in light mode, dark in dark mode) */
   background: var(--bg-light);
   background-color: var(--bg-light);
   z-index: 5;
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible; /* Canvas extends 1px beyond for edge coverage; balls are physics-contained */
   transform: translateZ(0);
   transform-origin: center center;
   /* Smooth resize-driven geometry changes (inset + radius). */
@@ -1223,10 +1278,8 @@ body.dark-mode #brand-logo {
     height var(--duration-resize) var(--ease-organic);
 }
 
-/* Portfolio page: restore border-radius for #bravia-balls */
-body.portfolio-page #bravia-balls {
-  border-radius: var(--container-radius);
-}
+/* Portfolio page intentionally inherits the index wall master:
+   keep #bravia-balls border-radius at 0 (no portfolio-only override). */
 
 /* During entrance animation, border-radius is controlled by JS (no CSS transition) */
 html.entrance-transitioning #bravia-balls {
@@ -1246,11 +1299,12 @@ body.dark-mode #bravia-balls {
 
 #bravia-balls canvas {
   position: absolute;
-  /* Canvas fills container completely - wall is drawn inset within canvas via wall rendering */
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  /* Canvas extends 1px beyond container on all sides to prevent edge gaps.
+     Wall fill reaches canvas edges, so this ensures complete coverage. */
+  top: -1px;
+  left: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
   z-index: 5;
   pointer-events: auto; /* Interactions enabled */
   touch-action: none;
@@ -1457,6 +1511,11 @@ body.dark-mode .noise-2 {
     padding: var(--gap-xs) var(--gap-sm);
   }
   
+  /* Interactive legend items get 2x vertical padding on mobile for better touch targets */
+  .legend__item--interactive {
+    padding: calc(var(--gap-xs) * 2) var(--gap-sm);
+  }
+  
   .ui-top-right {
     max-width: 100%;
     justify-content: flex-start;
@@ -1470,7 +1529,7 @@ body.dark-mode .noise-2 {
     justify-content: center;
   }
   
-  #footer-links-container {
+  #main-links {
     /* Mobile: maintain full-width nav bar, adjust padding */
     padding-inline: 0;
     gap: var(--footer-nav-bar-gap, var(--gap-md));
@@ -1482,7 +1541,7 @@ body.dark-mode .noise-2 {
   }
 
   /* Nav bar links: substantial padding on mobile too */
-  #footer-links-container .footer_link {
+  #main-links .footer_link {
     padding-block: clamp(14px, 2.4vmin, 28px);
     padding-inline: clamp(18px, 3.6vmin, 36px);
     margin: 0;
@@ -1640,32 +1699,32 @@ body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover::before {
   z-index: -1;
 }
 
-/* Footer nav base state: ensure proper contrast when not hovering */
-#footer-links-container .footer_link {
+/* Main nav base state: ensure proper contrast when not hovering */
+#main-links .footer_link {
   color: var(--text-primary);
   opacity: 1;
 }
 
-/* Footer nav hover state */
-body:not(.portfolio-page):not(.detail-open) #footer-links-container .footer_link:hover {
+/* Main nav hover state */
+body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover {
   color: var(--cursor-hover-fg, var(--cursor-color));
   opacity: 1;
 }
 
-body:not(.portfolio-page):not(.detail-open) #footer-links-container .footer_link:hover .footer-link-nowrap {
+body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover .footer-link-nowrap {
   color: inherit;
   opacity: 1;
 }
 
 
-/* UI MODE HOVER (portfolio page, detail views, gates) - native CSS */
+/* UI MODE HOVER (portfolio page, detail views, modals) - native CSS */
 /* Snap animation for UI mode */
 body.portfolio-page a:hover,
 body.portfolio-page button:hover,
 body.detail-open a:hover,
 body.detail-open button:hover,
-#gate-overlay.active a:hover,
-#gate-overlay.active button:hover {
+#modal-overlay.active a:hover,
+#modal-overlay.active button:hover {
   --abs-cursor-pulse-ms: 520ms;
   will-change: transform;
   transform-origin: center;
@@ -1680,7 +1739,7 @@ body.portfolio-page .decorative-script p a::after,
 body.portfolio-page .gate-back::after,
 body.detail-open .decorative-script p a::after,
 body.detail-open .gate-back::after,
-#gate-overlay.active .gate-back::after {
+#modal-overlay.active .gate-back::after {
   opacity: 0;
   animation: none;
   transform: translate3d(-50%, 0, 0) scaleY(0);
@@ -1716,7 +1775,7 @@ body:not(.dark-mode).detail-open #header-cv-link:hover {
 /* UI mode: icon buttons get full cursor color */
 body.portfolio-page .abs-icon-btn:hover,
 body.detail-open .abs-icon-btn:hover,
-#gate-overlay.active .abs-icon-btn:hover {
+#modal-overlay.active .abs-icon-btn:hover {
   color: var(--cursor-color);
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
   border-radius: var(--ui-icon-corner-radius);
@@ -1725,7 +1784,7 @@ body.detail-open .abs-icon-btn:hover,
 
 body.dark-mode.portfolio-page .abs-icon-btn:hover,
 body.dark-mode.detail-open .abs-icon-btn:hover,
-body.dark-mode #gate-overlay.active .abs-icon-btn:hover {
+body.dark-mode #modal-overlay.active .abs-icon-btn:hover {
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
 }
 
@@ -1766,10 +1825,10 @@ body.dark-mode #gate-overlay.active .abs-icon-btn:hover {
 /* Cursor transforms to larger transparent circle when gates are open */
 #custom-cursor.gate-active {
   display: block;
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   background: var(--abs-surface-glass-medium); /* Transparent but visible */
-  border: 1.5px solid var(--abs-stroke-strong-inverse); /* Visible border */
+  border: 2px solid var(--abs-stroke-strong-inverse); /* Visible border (increased thickness for larger size) */
   transform: translate(-50%, -50%) scale(1);
   opacity: 1;
 }
@@ -1786,7 +1845,7 @@ body.dark-mode #gate-overlay.active .abs-icon-btn:hover {
 .circle.bg-ball-7 { background-color: var(--ball-7); }
 .circle.bg-ball-8 { background-color: var(--ball-8); }
 
-/* Story-specific legend color: Creative Strategy = darker grey */
+/* Story-specific legend color: Creative Technology = darker grey */
 .circle.bg-story-grey { background-color: var(--text-color-light-muted); }
 body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass-soft); }
 
@@ -1794,44 +1853,47 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
    GATE DEPTH EFFECT
    Scene "pulls back" when dialogs open.
    Uses CSS variables so each element can include depth in its own transform chain.
-   JS sets --gate-depth-scale-active and --gate-depth-ty-active on :root.
+   JS sets --modal-depth-scale-active and --modal-depth-ty-active on :root.
    ───────────────────────────────────────────────────────────────────────────── */
 
 /* Depth variables - defaults to no effect */
 :root {
-  --gate-depth-scale-active: 1;
-  --gate-depth-ty-active: 0px;
+  --modal-depth-scale-active: 1;
+  --modal-depth-ty-active: 0px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   PASSWORD GATE — CV & PORTFOLIO PROTECTION SYSTEM (merged from password-gate.css)
+   PASSWORD-GATED MODALS — CV & PORTFOLIO PROTECTION SYSTEM (merged from password-gate.css)
    4-digit input that swaps position with logo, validates code
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.cv-gate,
-.portfolio-gate,
-.contact-gate {
+.cv-modal,
+.portfolio-modal,
+.contact-modal {
   /* CSS custom properties for gate spacing */
-  --gate-pad-3xs: 0.25rem;
-  --gate-pad-xs: 0.45rem;
-  --gate-pad-sm-y: 0.75rem;
-  --gate-pad-sm-x: 0.85rem;
-  --gate-pad-md-y: 0.9rem;
-  --gate-pad-md-x: 1.05rem;
-  --gate-pad-nav-right: 6px;
-  --gate-shift-y: 0%;
+  --modal-pad-3xs: 0.25rem;
+  --modal-pad-xs: 0.45rem;
+  --modal-pad-sm-y: 0.75rem;
+  --modal-pad-sm-x: 0.85rem;
+  --modal-pad-md-y: 0.9rem;
+  --modal-pad-md-x: 1.05rem;
+  --modal-pad-nav-right: 6px;
+  --modal-shift-y: 0%;
   
-  /* Gate overlay positioning and animation */
-  position: relative;
-  top: auto;
-  left: auto;
-  transform: scale(1.05);
+  /* Gate overlay positioning and animation
+     IMPORTANT: gates must NOT affect each other's layout during gate-to-gate switching.
+     We center each gate absolutely inside #modal-modal-host so a fading-out gate cannot
+     push the incoming gate off-viewport (prevents visible "snap into place"). */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate3d(-50%, -50%, 0) scale(1.05);
   z-index: 1;
   pointer-events: none;
   
   opacity: 0;
-  transition: opacity var(--gate-overlay-transition-out-duration, 250ms) var(--ease-gate),
-              transform var(--gate-overlay-transition-out-duration, 250ms) var(--ease-gate);
+  transition: opacity var(--modal-overlay-transition-out-duration, 1700ms) var(--ease-gate),
+              transform var(--modal-overlay-transition-out-duration, 1700ms) var(--ease-gate);
   
   display: flex;
   flex-direction: column;
@@ -1841,7 +1903,7 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
 
   width: min(80vw, 480px);
   max-width: min(80vw, 480px);
-  padding-inline: var(--abs-gate-mobile-pad-x, 20px);
+  padding-inline: var(--abs-modal-mobile-pad-x, 20px);
   padding-block: clamp(20px, 10vw, 64px);
   max-height: none;
   overflow: visible;
@@ -1850,56 +1912,57 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
   -ms-overflow-style: none;
 }
 
-.cv-gate,
-.portfolio-gate {
-  padding-inline: calc(var(--abs-gate-mobile-pad-x, 20px) + var(--gate-pad-md-x));
+.cv-modal,
+.portfolio-modal {
+  padding-inline: calc(var(--abs-modal-mobile-pad-x, 20px) + var(--modal-pad-md-x));
 }
 
 @media (max-width: 768px) {
-  .cv-gate,
-  .portfolio-gate,
-  .contact-gate {
+  .cv-modal,
+  .portfolio-modal,
+  .contact-modal {
     padding-inline: 15vw;
   }
 }
 
 @media (min-width: 769px) {
-  .cv-gate,
-  .portfolio-gate {
-    padding-inline: calc(var(--abs-gate-mobile-pad-x, 20px) + var(--gate-pad-md-x));
+  .cv-modal,
+  .portfolio-modal {
+    padding-inline: calc(var(--abs-modal-mobile-pad-x, 20px) + var(--modal-pad-md-x));
   }
 }
 
-.cv-gate::-webkit-scrollbar,
-.portfolio-gate::-webkit-scrollbar,
-.contact-gate::-webkit-scrollbar {
+.cv-modal::-webkit-scrollbar,
+.portfolio-modal::-webkit-scrollbar,
+.contact-modal::-webkit-scrollbar {
   width: 0;
   height: 0;
   display: none;
 }
 
-.cv-gate.hidden,
-.portfolio-gate.hidden,
-.contact-gate.hidden {
+.cv-modal.hidden,
+.portfolio-modal.hidden,
+.contact-modal.hidden {
   display: none;
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
 }
 
-.cv-gate.active,
-.portfolio-gate.active,
-.contact-gate.active {
+.cv-modal.active,
+.portfolio-modal.active,
+.contact-modal.active {
   opacity: 1;
-  transform: scale(1);
+  transform: translate3d(-50%, -50%, 0) scale(1);
   pointer-events: auto;
   visibility: visible;
   
-  transition: opacity var(--gate-overlay-transition-duration, 400ms) var(--ease-gate) var(--gate-content-delay, 200ms),
-              transform var(--gate-overlay-transition-duration, 400ms) var(--ease-gate) var(--gate-content-delay, 200ms);
+  /* Magnetic snap with slight delay after blur - gate content pops in after blur snaps */
+  transition: opacity var(--modal-overlay-transition-duration, 850ms) var(--ease-gate) var(--modal-content-delay, 150ms),
+              transform var(--modal-overlay-transition-duration, 850ms) var(--ease-gate) var(--modal-content-delay, 150ms);
 }
 
-.gate-label {
+.modal-label {
   text-align: center;
   width: 100%;
   max-width: clamp(300px, 80vw, 480px);
@@ -1908,9 +1971,9 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
   transition: opacity 0.3s var(--ease-gate) 0.2s, transform 0.3s var(--ease-gate) 0.2s;
 }
 
-.cv-gate.active .gate-label,
-.portfolio-gate.active .gate-label,
-.contact-gate.active .gate-label {
+.cv-modal.active .modal-label,
+.portfolio-modal.active .modal-label,
+.contact-modal.active .modal-label {
   opacity: 1;
   transform: translateY(0);
 }
@@ -1999,29 +2062,86 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
   font-size: inherit;
   line-height: inherit;
   cursor: pointer;
-  color: inherit;
+  /* Single source of truth: children inherit this for simpler styling. */
+  color: var(--text-quiet);
 
   border: 1px solid var(--abs-stroke-medium);
   border-radius: var(--abs-radius-cta);
   background: var(--abs-surface-contrast);
   background-color: var(--abs-surface-contrast);
   -webkit-tap-highlight-color: transparent;
-  overflow: hidden;
+  overflow: visible; /* CHANGED: was hidden - allows pulse to expand */
+  position: relative;
+  z-index: 1;
+  /* Keep text stable: avoid layer promotion / subpixel re-rasterization on hover.
+     (Global UI hover system uses `will-change: transform` on buttons; we opt out here.) */
+  transform: none;
+  will-change: auto;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 
-  transition: border-color 0.2s var(--ease-gate), 
-              transform 0.15s var(--ease-organic);
+  transition:
+    border-color 0.25s var(--ease-gate),
+    background-color 0.25s var(--ease-gate),
+    box-shadow 0.35s var(--ease-gate),
+    color 0.35s var(--ease-gate),
+    transform 0.15s var(--ease-organic);
 }
 
-.contact-email-row:hover {
-  border-color: var(--abs-stroke-strong);
+/* Global UI hover system applies `button:hover { will-change: transform; animation: absHoverSnap; }`.
+   Explicitly opt this control out to prevent bounce + 1px text jitter.
+   IMPORTANT: Do NOT cancel `.pulse-energy` (click) animations while hovered. */
+.contact-email-row:hover,
+.contact-email-row:focus,
+.contact-email-row:focus-visible,
+.contact-email-row:focus-within {
+  will-change: auto;
 }
 
-.contact-email-row:hover .contact-email-copy {
+.contact-email-row:not(.pulse-energy):hover,
+.contact-email-row:not(.pulse-energy):focus,
+.contact-email-row:not(.pulse-energy):focus-visible,
+.contact-email-row:not(.pulse-energy):focus-within {
+  animation-name: none;
+  animation-duration: 0s;
+  transform: none;
+}
+
+/* IMPORTANT: The index page has a global hover snap on `body:not(.portfolio-page):not(.detail-open) button:hover`.
+   That selector is more specific than `.contact-email-row.pulse-energy`, so it can override our green pulse
+   while the mouse is over the field. We counter it using the same prefix for higher specificity. */
+body:not(.portfolio-page):not(.detail-open) .contact-email-row:not(.pulse-energy):hover,
+body:not(.portfolio-page):not(.detail-open) .contact-email-row:not(.pulse-energy):focus,
+body:not(.portfolio-page):not(.detail-open) .contact-email-row:not(.pulse-energy):focus-visible,
+body:not(.portfolio-page):not(.detail-open) .contact-email-row:not(.pulse-energy):focus-within {
+  animation-name: none;
+  animation-duration: 0s;
+  transform: none;
+  will-change: auto;
+}
+
+body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy,
+body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:hover,
+body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus,
+body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus-visible,
+body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus-within {
+  animation: contactPulseField 0.8s ease-out both;
+}
+
+.contact-email-row:not(.pulse-energy):hover {
+  /* Hover: high-contrast foreground + stronger outline + tinted background (theme-aware). */
   color: var(--text-strong);
+  border-color: var(--abs-stroke-strong);
+  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-light), transparent calc(100% - var(--abs-hover-intensity-light)));
+  background-color: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-light), transparent calc(100% - var(--abs-hover-intensity-light)));
+  /* Avoid hover-only shadow spreads that can trigger subpixel raster differences. */
+  box-shadow: none;
 }
 
 .contact-email-row:active {
-  transform: scale(var(--link-impact-scale));
+  /* No click bounce (requested). */
+  transform: none;
 }
 
 .contact-email-row:focus,
@@ -2053,14 +2173,15 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
   background: transparent;
   background-color: transparent;
   -webkit-tap-highlight-color: transparent;
-  padding: var(--gate-pad-md-y) var(--gate-pad-md-x);
+  padding: var(--modal-pad-md-y) var(--modal-pad-md-x);
   text-align: left;
   
   font-family: 'Geist Mono', monospace;
   font-size: clamp(1.15rem, 3vw, 1.9rem);
   font-weight: 400;
   letter-spacing: var(--letter-spacing-normal);
-  color: var(--text-action);
+  color: inherit;
+  transition: inherit;
 }
 
 
@@ -2073,44 +2194,75 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
   border: 0;
   border-left: 1px solid var(--abs-stroke-soft);
   background: transparent;
-  padding: var(--gate-pad-md-y) var(--gate-pad-md-x);
-  color: var(--text-quiet);
-  transition: color 0.2s var(--ease-organic);
+  padding: var(--modal-pad-md-y) var(--modal-pad-md-x);
+  color: inherit;
+  border-left-color: color-mix(in srgb, currentColor 18%, transparent);
+  transition: inherit;
 }
 
 .contact-email-copy i {
-  will-change: transform;
-  transition: transform 0.4s var(--ease-bounce);
+  color: inherit;
 }
 
-.contact-email-copy.is-active i {
-  transform: scale(1.3);
-}
-
-.contact-email-copy .ti-check {
-  color: var(--abs-state-success-strong);
-}
-
-.contact-email-row.is-copied {
-  border-color: var(--abs-state-success-strong);
-}
+/* (Intentionally no “copied” border override; click pulse handles feedback.) */
 
 .contact-email-row.is-error {
   border-color: var(--abs-state-error-strong);
+}
+
+/* Energy pulse pseudo-element - DISABLED (we keep only color activation now) */
+.contact-email-row::after {
+  content: '';
+  display: none;
+}
+
+/* Pulse trigger - keep ONLY color activation (no expanding pulse) */
+.contact-email-row.pulse-energy {
+  animation: contactPulseField 0.8s ease-out both;
+}
+
+.contact-email-row.pulse-energy .contact-email-text {
+  /* Inherit from parent; no extra animation needed. */
+  animation: none;
+}
+
+.contact-email-row.pulse-energy .contact-email-copy {
+  animation: contactPulseDivider 0.8s ease-out both;
+}
+
+.contact-email-row.pulse-energy .contact-email-copy i {
+  animation: none;
 }
 
 body.dark-mode .contact-email-row {
   border-color: var(--abs-stroke-strong-inverse);
   background: var(--abs-surface-contrast-dark);
   background-color: var(--abs-surface-contrast-dark);
+  color: var(--text-quiet);
 }
 
-body.dark-mode .contact-email-row:hover {
+body.dark-mode .contact-email-row.pulse-energy {
+  animation: contactPulseFieldDark 0.8s ease-out both;
+}
+
+body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy,
+body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:hover,
+body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus,
+body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus-visible,
+body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focus-within {
+  animation: contactPulseFieldDark 0.8s ease-out both;
+}
+
+body.dark-mode .contact-email-row:not(.pulse-energy):hover {
+  color: var(--text-strong);
   border-color: var(--abs-stroke-strong-inverse);
+  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-dark), transparent calc(100% - var(--abs-hover-intensity-dark)));
+  background-color: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-dark), transparent calc(100% - var(--abs-hover-intensity-dark)));
+  box-shadow: none;
 }
 
 body.dark-mode .contact-email-copy {
-  border-left-color: var(--abs-stroke-ghost-inverse);
+  border-left-color: color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .contact-email-icon {
@@ -2135,21 +2287,52 @@ body.dark-mode .contact-email-copy {
   color: var(--text-quiet);
 }
 
-.cv-gate-inputs,
-.portfolio-gate-inputs {
+.cv-modal-inputs,
+.portfolio-modal-inputs {
   display: flex;
   gap: clamp(0.8rem, 1.5vw, 1.2rem);
   align-items: center;
   justify-content: flex-start;
+  position: relative; /* For pulse effect */
 }
 
-.contact-gate-inputs {
+.contact-modal-inputs {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
   position: relative;
+}
+
+/* Pulse wrapper for all digit inputs - pure shadow */
+.cv-modal-inputs::after,
+.portfolio-modal-inputs::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: var(--abs-radius-input);
+  border: 1px solid var(--cursor-color);
+  box-shadow: 
+    0 0 20px var(--cursor-color),
+    inset 0 0 30px rgba(var(--abs-rgb-white), 0.6);
+  background: transparent;
+  z-index: -1;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(1, 1);
+}
+
+.cv-modal-inputs.pulse-energy::after,
+.portfolio-modal-inputs.pulse-energy::after {
+  animation: energy-pulse 0.8s ease-out;
+}
+
+.cv-modal-inputs.pulse-energy .cv-digit,
+.portfolio-modal-inputs.pulse-energy .portfolio-digit {
+  animation: 
+    energy-activate 0.8s ease-out,
+    text-activate 0.8s ease-out;
 }
 
 .cv-digit,
@@ -2169,8 +2352,6 @@ body.dark-mode .contact-email-copy {
   caret-color: var(--text-input);
   outline: none;
   box-shadow: none;
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
   overflow: hidden;
 }
 
@@ -2235,8 +2416,8 @@ body.dark-mode .portfolio-digit:focus {
 }
 
 .page-flash--success {
-  background: var(--abs-overlay-success);
-  animation: flash-success 0.6s var(--ease-gate);
+  /* REMOVED - no longer needed, pulse handles success feedback */
+  display: none;
 }
 
 @keyframes flash-success {
@@ -2256,7 +2437,228 @@ body.dark-mode .portfolio-digit:focus {
   100% { opacity: 0; }
 }
 
-.gate-overlay {
+/* Shared fixed pulse color (green) for copy field energy wave. */
+:root {
+  --abs-energy-green-rgb: 34, 197, 94;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ENERGY PULSE ANIMATION - Shared by Contact, CV, Portfolio gates
+   ═══════════════════════════════════════════════════════════════════════════════ */
+@keyframes energy-pulse {
+  /* Keep this animation smooth: transform + opacity only.
+     Glow intensity is defined on the pseudo-element (no shadow interpolation pops). */
+  0%   { transform: scale(1, 1); opacity: 0.9; }
+  100% { transform: scale(1.18, 1.32); opacity: 0; }
+}
+
+/* Contact copy field: saturated green -> fade back to LOW contrast (800ms). */
+@keyframes contactPulseField {
+  0% {
+    color: rgba(var(--abs-energy-green-rgb), 1);
+    background-color: color-mix(in srgb, rgba(var(--abs-energy-green-rgb), 1) 30%, var(--abs-surface-contrast));
+    border-color: rgba(var(--abs-energy-green-rgb), 0.85);
+    box-shadow:
+      0 0 0 1px rgba(var(--abs-energy-green-rgb), 0.40),
+      0 0 28px rgba(var(--abs-energy-green-rgb), 0.32),
+      0 0 56px rgba(var(--abs-energy-green-rgb), 0.16),
+      inset 0 0 22px rgba(var(--abs-rgb-white), 0.16);
+  }
+  100% {
+    color: var(--text-quiet);
+    background-color: var(--abs-surface-contrast);
+    border-color: var(--abs-stroke-medium);
+    box-shadow: none;
+  }
+}
+
+@keyframes contactPulseFieldDark {
+  0% {
+    color: rgba(var(--abs-energy-green-rgb), 1);
+    background-color: color-mix(in srgb, rgba(var(--abs-energy-green-rgb), 1) 34%, var(--abs-surface-contrast-dark));
+    border-color: rgba(var(--abs-energy-green-rgb), 0.75);
+    box-shadow:
+      0 0 0 1px rgba(var(--abs-energy-green-rgb), 0.34),
+      0 0 32px rgba(var(--abs-energy-green-rgb), 0.26),
+      0 0 64px rgba(var(--abs-energy-green-rgb), 0.14),
+      inset 0 0 20px rgba(var(--abs-rgb-white), 0.10);
+  }
+  100% {
+    color: var(--text-quiet);
+    background-color: var(--abs-surface-contrast-dark);
+    border-color: var(--abs-stroke-strong-inverse);
+    box-shadow: none;
+  }
+}
+
+@keyframes contactPulseDivider {
+  0% { border-left-color: rgba(var(--abs-energy-green-rgb), 0.35); }
+  100% { border-left-color: color-mix(in srgb, currentColor 18%, transparent); }
+}
+
+@keyframes energy-shine {
+  0% {
+    box-shadow: inset 0 0 0px rgba(var(--abs-rgb-white), 0);
+  }
+  30% {
+    box-shadow: inset 0 0 50px rgba(var(--abs-rgb-white), 0.95);
+  }
+  100% {
+    box-shadow: inset 0 0 0px rgba(var(--abs-rgb-white), 0);
+  }
+}
+
+@keyframes energy-activate {
+  0% {
+    background-color: var(--abs-surface-contrast);
+    border-color: var(--abs-stroke-medium);
+  }
+  10% {
+    background-color: color-mix(in srgb, var(--cursor-color) 20%, var(--abs-surface-contrast));
+    border-color: var(--cursor-color);
+  }
+  100% {
+    background-color: var(--abs-surface-contrast);
+    border-color: var(--abs-stroke-medium);
+  }
+}
+
+@keyframes text-activate {
+  0% { color: var(--text-action); }
+  10% { color: var(--cursor-color); }
+  100% { color: var(--text-action); }
+}
+
+@keyframes icon-activate {
+  0% { color: var(--text-quiet); }
+  10% { color: var(--cursor-color); }
+  100% { color: var(--text-quiet); }
+}
+
+/* Add smooth page fade-out for transitions */
+@keyframes page-fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+body.page-transitioning {
+  animation: page-fade-out 300ms ease-out forwards;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TWO-LAYER GATE OVERLAY ARCHITECTURE
+   Layer 1 (#modal-blur-layer): Handles ONLY backdrop-filter blur, no children
+   Layer 2 (#modal-content-layer): Holds gate UI content, no blur
+   This separation prevents blur compositing flicker during animations.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Layer 1: Blur only - isolated GPU layer for backdrop-filter */
+#modal-blur-layer,
+.modal-blur-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 19998;
+  pointer-events: none;
+  
+  /* Initial state: no blur */
+  -webkit-backdrop-filter: blur(0px);
+  backdrop-filter: blur(0px);
+  background-color: transparent;
+  
+  /* Animate blur OUT - magnetic snap backwards */
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-out-duration, 850ms) var(--ease-gate),
+              backdrop-filter var(--modal-overlay-transition-out-duration, 850ms) var(--ease-gate),
+              background-color var(--modal-overlay-transition-out-duration, 850ms) var(--ease-gate);
+}
+
+#modal-blur-layer.active,
+.modal-blur-layer.active {
+  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 12px));
+  backdrop-filter: blur(var(--modal-overlay-blur, 12px));
+  background-color: rgba(var(--abs-rgb-white), var(--modal-overlay-opacity, 0.01));
+  pointer-events: auto;
+  
+  /* Animate blur IN - magnetic snap forward with overshoot */
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-gate),
+              backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-gate),
+              background-color var(--modal-overlay-transition-duration, 850ms) var(--ease-gate);
+}
+
+/* Layer 2: Content only - holds gates, centers them vertically */
+#modal-content-layer,
+.modal-content-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 19999;
+  pointer-events: none;
+  
+  /* Center gate content vertically and horizontally */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Padding respects safe areas for content positioning */
+  padding: calc(env(safe-area-inset-top, 0px) + var(--gap-lg))
+           calc(env(safe-area-inset-right, 0px) + var(--gap-lg))
+           calc(env(safe-area-inset-bottom, 0px) + var(--gap-lg))
+           calc(env(safe-area-inset-left, 0px) + var(--gap-lg));
+  
+  /* Smooth layout updates on resize */
+  transition:
+    padding var(--duration-resize) var(--ease-organic);
+}
+
+#modal-content-layer.active,
+.modal-content-layer.active {
+  pointer-events: auto;
+}
+
+/* Modal host centers gate content */
+#modal-modal-host,
+.modal-modal-host {
+  /* Fill the (padded) overlay so gates can absolute-center reliably */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+#modal-content-layer.active #modal-modal-host,
+.modal-content-layer.active .modal-modal-host {
+  pointer-events: auto;
+}
+
+/* Dark mode: slightly darker blur background */
+body.dark-mode #modal-blur-layer.active,
+body.dark-mode .modal-blur-layer.active {
+  background-color: rgba(var(--abs-rgb-black), var(--modal-overlay-opacity, 0.15));
+}
+
+@supports not (backdrop-filter: blur(10px)) {
+  #modal-blur-layer.active,
+  .modal-blur-layer.active {
+    background-color: var(--abs-overlay-veil);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #modal-blur-layer,
+  .modal-blur-layer,
+  #modal-content-layer,
+  .modal-content-layer {
+    transition: none;
+  }
+  
+  #modal-blur-layer.active,
+  .modal-blur-layer.active {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Legacy .modal-overlay fallback (kept for compatibility) */
+.modal-overlay {
   position: fixed;
   /* Cover full viewport including safe areas */
   inset: 0;
@@ -2283,50 +2685,758 @@ body.dark-mode .portfolio-digit:focus {
   backdrop-filter: blur(0px);
   background-color: transparent;
   
-  transition: -webkit-backdrop-filter var(--gate-overlay-transition-out-duration, 250ms) var(--ease-gate),
-              backdrop-filter var(--gate-overlay-transition-out-duration, 250ms) var(--ease-gate),
-              background-color var(--gate-overlay-transition-out-duration, 250ms) var(--ease-gate);
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-out-duration, 250ms) var(--ease-gate),
+              backdrop-filter var(--modal-overlay-transition-out-duration, 250ms) var(--ease-gate),
+              background-color var(--modal-overlay-transition-out-duration, 250ms) var(--ease-gate);
 }
 
-.gate-modal-host {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.gate-overlay.active {
-  -webkit-backdrop-filter: blur(var(--gate-overlay-blur, 16px));
-  backdrop-filter: blur(var(--gate-overlay-blur, 16px));
-  background-color: rgba(var(--abs-rgb-white), var(--gate-overlay-opacity, 0.01));
+.modal-overlay.active {
+  -webkit-backdrop-filter: blur(var(--modal-overlay-blur, 8px));
+  backdrop-filter: blur(var(--modal-overlay-blur, 8px));
+  background-color: rgba(var(--abs-rgb-white), var(--modal-overlay-opacity, 0.01));
   pointer-events: auto;
   
-  transition: -webkit-backdrop-filter var(--gate-overlay-transition-duration, 400ms) var(--ease-gate),
-              backdrop-filter var(--gate-overlay-transition-duration, 400ms) var(--ease-gate),
-              background-color var(--gate-overlay-transition-duration, 400ms) var(--ease-gate);
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-duration, 400ms) var(--ease-gate),
+              backdrop-filter var(--modal-overlay-transition-duration, 400ms) var(--ease-gate),
+              background-color var(--modal-overlay-transition-duration, 400ms) var(--ease-gate);
 }
 
 @supports not (backdrop-filter: blur(10px)) {
-  .gate-overlay.active {
+  .modal-overlay.active {
     background-color: var(--abs-overlay-veil);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cv-gate,
-  .portfolio-gate,
-  .contact-gate,
+  .cv-modal,
+  .portfolio-modal,
+  .contact-modal,
   #brand-logo,
-  .gate-label,
+  .modal-label,
   .contact-email-row,
-  .gate-overlay {
+  .modal-overlay {
     transition: none;
   }
   
-  .gate-overlay.active {
+  .modal-overlay.active {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════
+ * CV PAGE STYLES
+ * Scrolling content container for CV/Bio page
+ * ════════════════════════════════════════════════════════════════════════════════ */
+
+body.cv-page #bravia-balls {
+  /* Match index: scene interior background is theme-driven via bg-light/bg-dark. */
+  background: var(--bg-light);
+  background-color: var(--bg-light);
+  border-radius: var(--wall-radius);
+  overflow: hidden;
+  /* CV needs an interactive scroll surface; index keeps pointer-events off to route to canvas. */
+  pointer-events: auto;
+  height: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.cv-simulation {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* CV should behave like a document: show cursor + allow selecting/copying text. */
+body.cv-page,
+body.cv-page * {
+  cursor: auto;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+body.cv-page a,
+body.cv-page button {
+  cursor: pointer;
+}
+
+/* Wall-only canvas: must NOT capture wheel/touch, or it will block scrolling. */
+body.cv-page #bravia-balls .cv-wall-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Above scroll text so the text feels "behind the wall ring". */
+  z-index: 15;
+  pointer-events: none;
+  display: block;
+}
+
+.cv-scroll-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  padding: clamp(2rem, 4vw, 3.5rem) clamp(1.5rem, 3vw, 2.5rem);
+  /* Below the wall canvas, above noise/background. */
+  z-index: 10;
+  /* Smooth layout updates on resize */
+  transition:
+    padding var(--duration-resize) var(--ease-organic);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Two-column layout: Left (fixed) + Right (scrollable) */
+.cv-content {
+  display: flex;
+  flex-direction: row;
+  gap: clamp(1.5rem, 3.5vw, 3rem);
+  align-items: flex-start;
+  color: var(--abs-fg-primary);
+  font-family: var(--abs-font-sans);
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  position: relative;
+  opacity: 1;
+}
+
+/* Left Area: Fixed/Pinned (Photo + Intro) */
+.cv-left {
+  flex: 0 0 auto;
+  width: var(--cv-left-width, clamp(20rem, 32vw, 28rem));
+  position: sticky;
+  top: clamp(2rem, 4vw, 3.5rem);
+  align-self: flex-start;
+  max-height: calc(100vh - clamp(4rem, 8vw, 7rem));
+  height: 100%;
+  /* NEVER scroll - content is fixed */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  box-sizing: border-box;
+  opacity: 0;
+}
+
+.cv-left__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-left-gap, clamp(1.5rem, 3vw, 2.5rem));
+  align-items: stretch;
+  justify-content: flex-start;
+  width: 100%;
+  padding: var(--cv-left-padding-top, clamp(6vh, 10vh, 15vh)) clamp(1.5rem, 3vw, 2.5rem) var(--cv-left-padding-bottom, clamp(6vh, 10vh, 15vh)) clamp(1.5rem, 3vw, 2.5rem);
+  box-sizing: border-box;
+  min-height: min-content;
+  flex: 1 1 auto;
+}
+
+/* Photo */
+.cv-photo {
+  width: 100%;
+  aspect-ratio: var(--cv-photo-aspect-ratio, 0.75);
+  border-radius: var(--cv-photo-border-radius, clamp(0.5rem, 1.2vw, 1rem));
+  overflow: hidden;
+  background: var(--abs-surface-contrast);
+  align-self: stretch;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.cv-photo__image {
+  width: 115%;
+  height: 115%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* No transition - abrupt position jumps controlled by JS */
+  transition: none;
+  will-change: transform;
+}
+
+/* Intro Text */
+.cv-intro {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-items: stretch;
+  text-align: left;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.cv-name {
+  font-family: var(--abs-font-sans);
+  font-size: var(--cv-name-size, clamp(1.8rem, 3.5vw, 2.5rem));
+  font-weight: 600;
+  line-height: 1;
+  margin: 0;
+  color: var(--abs-fg-primary);
+  letter-spacing: -0.015em;
+  text-align: left;
+  width: 100%;
+}
+
+.cv-title {
+  font-size: var(--cv-title-size, clamp(0.75rem, 1.2vw, 0.9rem));
+  line-height: 1.4;
+  color: var(--abs-fg-secondary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 400;
+  text-align: left;
+  width: 100%;
+}
+
+.cv-intro-text {
+  font-size: clamp(0.7rem, 1vw, 0.85rem);
+  line-height: 1.5;
+  color: var(--abs-fg-secondary);
+  margin: 0;
+  text-align: left;
+  width: 100%;
+}
+
+/* Right Area: Scrollable (All Main Content) */
+.cv-right {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--abs-fg-muted) transparent;
+  height: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
+  position: relative; /* For gradient overlays */
+  /* Ensure scroll starts at top */
+  scroll-behavior: smooth;
+  /* Remove any visible borders/outlines */
+  border: none;
+  outline: none;
+  box-shadow: none;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Gradient fade overlays - DOM elements with explicit z-index stacking */
+/* Stacking order: text (z:10) < gradients (z:11) < noise-2 (z:12) < wall (z:15) */
+.cv-gradient-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 20vh;
+  pointer-events: none;
+  z-index: 11; /* Above text (z:10) but below noise-2 (z:12) */
+}
+
+/* Top gradient: background color → transparent */
+.cv-gradient-overlay--top {
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    var(--abs-surface-page) 0%,
+    transparent 100%
+  );
+}
+
+/* Bottom gradient: transparent → background color */
+.cv-gradient-overlay--bottom {
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    var(--abs-surface-page) 0%,
+    transparent 100%
+  );
+}
+
+/* Dark mode gradients */
+.dark-mode .cv-gradient-overlay--top {
+  background: linear-gradient(
+    to bottom,
+    var(--abs-surface-page-dark, #0a0a0a) 0%,
+    transparent 100%
+  );
+}
+
+.dark-mode .cv-gradient-overlay--bottom {
+  background: linear-gradient(
+    to top,
+    var(--abs-surface-page-dark, #0a0a0a) 0%,
+    transparent 100%
+  );
+}
+
+.cv-right::-webkit-scrollbar {
+  width: clamp(4px, 0.5vw, 6px);
+}
+
+.cv-right::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cv-right::-webkit-scrollbar-thumb {
+  background: var(--abs-fg-muted);
+  border-radius: clamp(2px, 0.3vw, 3px);
+}
+
+.cv-right::-webkit-scrollbar-thumb:hover {
+  background: var(--abs-fg-secondary);
+}
+
+.cv-right__inner {
+  padding: var(--cv-right-padding-top, clamp(15vh, 20vh, 25vh)) var(--cv-right-padding-x, clamp(1.5rem, 3vw, 2.5rem)) var(--cv-right-padding-bottom, clamp(15vh, 20vh, 25vh)) var(--cv-right-padding-x, clamp(1.5rem, 3vw, 2.5rem));
+  max-width: var(--cv-right-max-width, clamp(36rem, 42rem, 48rem));
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+  z-index: 10; /* Below gradients (z:11) to allow fade effect */
+  height: fit-content;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* UNIFIED PANEL TOGGLE BUTTON (ALL PAGES)                                     */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.panel-toggle-btn,
+.cv-panel-toggle {
+  position: fixed;
+  bottom: clamp(1.5rem, 3vh, 2.5rem);
+  right: clamp(1.5rem, 3vh, 2.5rem);
+  width: clamp(3rem, 5vmin, 4rem);
+  height: clamp(3rem, 5vmin, 4rem);
+  border-radius: 50%;
+  background: var(--panel-background, var(--abs-surface-contrast));
+  border: 1px solid var(--panel-border, var(--abs-border-primary));
+  color: var(--panel-foreground, var(--abs-fg-primary));
+  font-size: clamp(1.2rem, 2vmin, 1.6rem);
+  cursor: pointer;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--panel-shadow, 0 2px 8px rgba(0,0,0,0.2));
+  transition: all 0.2s ease;
+}
+
+.panel-toggle-btn:hover,
+.cv-panel-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: var(--panel-shadow-lg, 0 4px 12px rgba(0,0,0,0.3));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* CV CONFIG PANEL (MATCHES MAIN PANEL STYLE)                                  */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+.cv-config-panel {
+  position: fixed;
+  top: 50%;
+  right: 2rem;
+  transform: translateY(-50%) translateX(calc(100% + 2rem));
+  
+  /* Match main panel dimensions */
+  width: var(--panel-width, 23rem);
+  max-height: var(--panel-height, 90vh);
+  
+  /* Match main panel styling */
+  font-family: var(--panel-font, 'Geist', sans-serif);
+  font-size: 12.5px;
+  line-height: 1.35;
+  background: var(--panel-background);
+  color: var(--panel-foreground);
+  border: 1px solid var(--panel-border);
+  border-top: 4px solid var(--panel-brand, hsl(32 95% 44%));
+  border-radius: var(--panel-radius-lg, 0.75rem);
+  box-shadow: var(--panel-shadow-lg);
+  
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+  overflow: hidden;
+}
+
+.cv-config-panel.cv-panel--visible {
+  transform: translateY(-50%) translateX(0);
+}
+
+.cv-panel-header {
+  padding: var(--panel-pad, 7px) var(--panel-pad-12, 12px);
+  border-bottom: 1px solid var(--panel-border);
+  display: none; /* Hidden like main panel */
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel-muted);
+}
+
+.cv-panel-header h3 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--panel-foreground);
+}
+
+.cv-panel-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--panel-muted-foreground);
+  cursor: pointer;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cv-panel-close:hover {
+  color: var(--panel-foreground);
+}
+
+.cv-panel-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  padding: var(--panel-section-gap, 4px);
+}
+
+.cv-panel-section {
+  margin-bottom: var(--panel-section-gap, 4px);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm, 0.5rem);
+  background: var(--panel-card);
+}
+
+.cv-panel-section summary {
+  padding: var(--panel-pad, 7px) var(--panel-pad-10, 10px);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--panel-foreground);
+  -webkit-user-select: none;
+  user-select: none;
+  background: var(--panel-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cv-panel-section summary:hover {
+  background: var(--panel-accent);
+}
+
+.cv-panel-controls {
+  padding: var(--panel-pad, 7px) var(--panel-pad-10, 10px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-control-gap, 2px);
+}
+
+.cv-panel-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-pad-2, 2px);
+  font-size: 11px;
+  color: var(--panel-muted-foreground);
+}
+
+.cv-panel-controls label span {
+  font-weight: 500;
+}
+
+.cv-panel-controls input[type="range"] {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--panel-input);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.cv-panel-controls input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--panel-foreground);
+  cursor: pointer;
+}
+
+.cv-panel-controls input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--panel-foreground);
+  cursor: pointer;
+  border: none;
+}
+
+.cv-panel-controls output {
+  font-size: 10px;
+  color: var(--panel-muted-foreground);
+  text-align: right;
+}
+
+.cv-panel-actions {
+  padding: var(--panel-pad, 7px);
+  border-top: 1px solid var(--panel-border);
+}
+
+.cv-panel-btn {
+  width: 100%;
+  padding: var(--panel-pad, 7px) var(--panel-pad-10, 10px);
+  border-radius: var(--panel-radius-sm, 0.5rem);
+  border: 1px solid var(--panel-border);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cv-panel-btn--secondary {
+  background: var(--panel-muted);
+  color: var(--panel-foreground);
+}
+
+.cv-panel-btn--secondary:hover {
+  background: var(--panel-accent);
+}
+
+/* Typography: Stefan Sagmeister-esque - Elegant, boutique, refined */
+.cv-section {
+  margin-bottom: var(--cv-section-gap, clamp(2rem, 4vw, 3.5rem));
+  width: 100%;
+  overflow: visible;
+  position: relative;
+}
+
+.cv-section-title {
+  font-family: var(--abs-font-sans);
+  font-size: var(--cv-section-title-size, clamp(0.65rem, 0.9vw, 0.75rem));
+  font-weight: 600;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--abs-fg-muted);
+  margin: 0 0 clamp(1rem, 2vw, 1.5rem) 0;
+  padding-bottom: clamp(0.5rem, 1vw, 0.75rem);
+  border-bottom: 1px solid var(--abs-fg-muted);
+  opacity: var(--cv-muted-opacity, 1);
+  width: 100%;
+}
+
+.cv-section p {
+  font-size: var(--cv-body-size, clamp(0.75rem, 1vw, 0.9rem));
+  line-height: 1.55;
+  margin: 0 0 var(--cv-paragraph-gap, clamp(1rem, 2vw, 1.5rem)) 0;
+  color: var(--abs-fg-primary);
+  width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.cv-section p:last-child {
+  margin-bottom: 0;
+}
+
+.cv-entry {
+  margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+  width: 100%;
+}
+
+.cv-entry:last-child {
+  margin-bottom: 0;
+}
+
+.cv-entry-title {
+  font-family: var(--abs-font-sans);
+  font-size: clamp(0.85rem, 1.2vw, 1rem);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0 0 var(--gap-xs) 0;
+  color: var(--abs-fg-primary);
+  letter-spacing: -0.01em;
+}
+
+.cv-entry-meta {
+  font-size: clamp(0.7rem, 0.95vw, 0.8rem);
+  line-height: 1.4;
+  color: var(--abs-fg-secondary);
+  margin: 0 0 var(--gap-md) 0;
+  letter-spacing: 0.02em;
+}
+
+.cv-entry p {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.cv-entry p:last-child {
+  margin-bottom: 0;
+}
+
+.cv-skills,
+.cv-projects {
+  list-style: none;
+  padding: 0;
+  margin: var(--gap-md) 0 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--gap-xs) var(--gap-lg);
+}
+
+.cv-skills li,
+.cv-projects li {
+  position: relative;
+  padding-left: var(--gap-md);
+  font-size: clamp(0.7rem, 0.95vw, 0.85rem);
+  line-height: 1.5;
+  color: var(--abs-fg-secondary);
+}
+
+.cv-skills li::before,
+.cv-projects li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 4px;
+  height: 4px;
+  background: var(--abs-fg-muted);
+  border-radius: 50%;
+}
+
+.cv-projects {
+  grid-template-columns: 1fr;
+}
+
+.cv-projects li strong {
+  color: var(--abs-fg-primary);
+  font-weight: 600;
+}
+
+.cv-recognition {
+  margin-top: var(--gap-md);
+  font-size: clamp(0.7rem, 0.95vw, 0.85rem);
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--abs-fg-secondary);
+}
+
+.cv-footer {
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+  padding-top: clamp(1.5rem, 3vw, 2.5rem);
+  border-top: 1px solid var(--abs-fg-muted);
+  text-align: center;
+  width: 100%;
+}
+
+.cv-contact {
+  font-size: clamp(0.85rem, 1.2vw, 1rem);
+  line-height: 1.2;
+  color: var(--abs-fg-primary);
+  margin: 0 0 var(--gap-md) 0;
+  letter-spacing: -0.01em;
+}
+
+.cv-copyright {
+  font-size: clamp(0.65rem, 0.85vw, 0.75rem);
+  line-height: 1.4;
+  color: var(--abs-fg-muted);
+  margin: 0;
+}
+
+/* CV Page Dark Mode */
+body.cv-page.dark-mode #bravia-balls {
+  background: var(--bg-dark);
+  background-color: var(--bg-dark);
+}
+
+/* CV Page Responsive: Stack vertically on mobile */
+@media (max-width: 768px) {
+  .cv-scroll-container {
+    padding: clamp(1rem, 3vw, 1.5rem) clamp(1rem, 2.5vw, 1.25rem);
+  }
+  
+  .cv-content {
+    flex-direction: column;
+    gap: clamp(1.5rem, 4vw, 2.5rem);
+  }
+  
+  .cv-left {
+    width: 100%;
+    position: static;
+    max-height: none;
+    height: auto;
+    overflow-y: visible;
+    justify-content: flex-start;
+    align-items: center;
+    top: 0;
+  }
+  
+  .cv-left__inner {
+    gap: clamp(1.25rem, 3.5vw, 2rem);
+    align-items: center;
+    padding: 10vh 5vh 10vh 5vh;
+    max-width: clamp(20rem, 28rem, 32rem);
+    width: 100%;
+  }
+  
+  .cv-photo {
+    max-width: clamp(14rem, 18rem, 22rem);
+    margin: 0 auto;
+    align-self: center;
+  }
+  
+  .cv-intro {
+    text-align: center;
+    align-items: center;
+    width: 100%;
+  }
+  
+  .cv-name,
+  .cv-title,
+  .cv-intro-text {
+    text-align: center;
+  }
+  
+  .cv-right {
+    overflow-y: visible;
+    height: auto;
+    max-height: none;
+  }
+  
+  .cv-right__inner {
+    padding: clamp(2rem, 5vw, 3rem) 0;
+    max-width: 100%;
+  }
+  
+  .cv-skills {
+    grid-template-columns: 1fr;
   }
 }

@@ -1383,7 +1383,7 @@ export function drawWalls(ctx, w, h) {
   wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
   wallState.ringRender.ensureGeometry(innerW, innerH, innerR);
 
-  // Small padding beyond canvas edges to avoid AA gaps (clipped by canvas)
+  // Small padding beyond canvas edges for sub-pixel path rounding safety (clipped by canvas anyway)
   const pad = Math.max(2, 2 * DPR);
 
   ctx.save();

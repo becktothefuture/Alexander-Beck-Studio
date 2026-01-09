@@ -89,8 +89,7 @@ export async function syncConfigToFile(configType, path, value) {
       await response.json().catch(() => null);
     } catch (e) {
       // Fail silently if server unavailable (doesn't break UI)
-      // Only log if it's not a typical network failure.
-      if (e?.name !== 'TypeError') console.warn('[config-sync] Sync error:', e?.message);
+      // Network errors are expected and should not be logged
     }
   }, DEBOUNCE_MS);
 
@@ -129,9 +128,7 @@ export async function syncConfigToFileImmediate(configType, path, value) {
     const result = await response.json();
     return result.success;
   } catch (e) {
-    if (e.name !== 'TypeError' || !e.message.includes('fetch')) {
-      console.warn('[config-sync] Immediate sync error:', e.message);
-    }
+    // Fail silently - network errors are expected
     return false;
   }
 }
@@ -162,9 +159,7 @@ export async function saveConfigBulk(configType, configObject) {
     const result = await response.json();
     return result.success;
   } catch (e) {
-    if (e.name !== 'TypeError' || !e.message.includes('fetch')) {
-      console.warn('[config-sync] Bulk save error:', e.message);
-    }
+    // Fail silently - network errors are expected
     return false;
   }
 }

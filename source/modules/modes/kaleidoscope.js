@@ -97,44 +97,14 @@ export function applyKaleidoscopeBounds(ball, w, h, dt) {
 }
 
 function getKaleidoscopeParams(g) {
-  // Each variant has its own parameters; base Kaleidoscope uses the original keys.
-  if (g.currentMode === MODES.KALEIDOSCOPE_1) {
-    return {
-      count: g.kaleidoscope1BallCount ?? 18,
-      wedges: g.kaleidoscope1Wedges ?? g.kaleidoscopeWedges ?? 12,
-      speed: g.kaleidoscope1Speed ?? 0.8,
-      complexity: 0.55,
-      spawnAreaMul: g.kaleidoscope1SpawnAreaMul ?? 1.0,
-      sizeVariance: g.kaleidoscope1SizeVariance ?? 0.3
-    };
-  }
-  if (g.currentMode === MODES.KALEIDOSCOPE_2) {
-    return {
-      count: g.kaleidoscope2BallCount ?? 36,
-      wedges: g.kaleidoscope2Wedges ?? g.kaleidoscopeWedges ?? 12,
-      speed: g.kaleidoscope2Speed ?? 1.15,
-      complexity: 0.95,
-      spawnAreaMul: g.kaleidoscope2SpawnAreaMul ?? 1.0,
-      sizeVariance: g.kaleidoscope2SizeVariance ?? 0.3
-    };
-  }
-  if (g.currentMode === MODES.KALEIDOSCOPE_3) {
-    return {
-      count: g.kaleidoscope3BallCount ?? 54,
-      wedges: g.kaleidoscope3Wedges ?? g.kaleidoscopeWedges ?? 12,
-      speed: g.kaleidoscope3Speed ?? 1.55,
-      complexity: 1.35,
-      spawnAreaMul: g.kaleidoscope3SpawnAreaMul ?? 1.0,
-      sizeVariance: g.kaleidoscope3SizeVariance ?? 0.3
-    };
-  }
+  // Use KALEIDOSCOPE_3 parameters (now the only kaleidoscope mode)
   return {
-    count: g.kaleidoscopeBallCount ?? 23,
-    wedges: g.kaleidoscopeWedges ?? g.kaleidoscopeSegments ?? 12,
-    speed: g.kaleidoscopeSpeed ?? 1.0,
-    complexity: 0.75,
-    spawnAreaMul: g.kaleidoscopeSpawnAreaMul ?? 1.0,
-    sizeVariance: g.kaleidoscopeSizeVariance ?? 0.3
+    count: g.kaleidoscope3BallCount ?? g.kaleidoscopeBallCount ?? 150,
+    wedges: g.kaleidoscope3Wedges ?? g.kaleidoscopeWedges ?? 10,
+    speed: g.kaleidoscope3Speed ?? g.kaleidoscopeSpeed ?? 1.2,
+    complexity: 1.35,
+    spawnAreaMul: g.kaleidoscope3SpawnAreaMul ?? g.kaleidoscopeSpawnAreaMul ?? 1.05,
+    sizeVariance: g.kaleidoscope3SizeVariance ?? g.kaleidoscopeSizeVariance ?? 0.5
   };
 }
 
@@ -243,41 +213,17 @@ function initializeKaleidoscopeWithCount(count, mode) {
 
 export function initializeKaleidoscope() {
   const g = getGlobals();
-  const count = getMobileAdjustedCount(g.kaleidoscopeBallCount ?? 23);
+  const count = getMobileAdjustedCount(g.kaleidoscope3BallCount ?? g.kaleidoscopeBallCount ?? 150);
   initializeKaleidoscopeWithCount(count, MODES.KALEIDOSCOPE);
 }
 
-export function initializeKaleidoscope1() {
-  const g = getGlobals();
-  const count = getMobileAdjustedCount(g.kaleidoscope1BallCount ?? 18);
-  initializeKaleidoscopeWithCount(count, MODES.KALEIDOSCOPE_1);
-}
-
-export function initializeKaleidoscope2() {
-  const g = getGlobals();
-  const count = getMobileAdjustedCount(g.kaleidoscope2BallCount ?? 36);
-  initializeKaleidoscopeWithCount(count, MODES.KALEIDOSCOPE_2);
-}
-
-export function initializeKaleidoscope3() {
-  const g = getGlobals();
-  const count = getMobileAdjustedCount(g.kaleidoscope3BallCount ?? 54);
-  initializeKaleidoscopeWithCount(count, MODES.KALEIDOSCOPE_3);
-}
-
-// Helper to check if we're in any kaleidoscope mode
+// Helper to check if we're in kaleidoscope mode
 function isKaleidoscopeMode(mode) {
-  return mode === MODES.KALEIDOSCOPE || 
-         mode === MODES.KALEIDOSCOPE_1 || 
-         mode === MODES.KALEIDOSCOPE_2 || 
-         mode === MODES.KALEIDOSCOPE_3;
+  return mode === MODES.KALEIDOSCOPE;
 }
 
 // Get complexity level for current mode (affects morph intensity)
 function getKaleidoscopeComplexity(g) {
-  // This is the “intensity ladder” (I → II → III), tunable via per-variant params:
-  // - density: ball counts (III defaults to 3× I)
-  // - movement: per-variant speed, plus this complexity multiplier
   return getKaleidoscopeParams(g).complexity;
 }
 
@@ -318,24 +264,18 @@ export function applyKaleidoscopeForces(ball, dt) {
   const activity = g._kaleiActivity;
   const complexity = getKaleidoscopeComplexity(g);
 
-  // Very subtle idle movement: gentle drift when activity is low (but not zero)
-  // This keeps the kaleidoscope "alive" even when mouse isn't moving.
-  const idleDriftStrength = 0.008 * complexity; // Very subtle
-  const idleDrift = activity < 0.15 ? idleDriftStrength : 0;
+  // Very subtle idle movement: gentle drift keeps scene alive when pointer rests.
+  const idleBase = Math.max(0, g.kaleidoscopeIdleDrift ?? 0.012);
+  const idleStrength = g.prefersReducedMotion ? 0 : idleBase * complexity * (1 - Math.min(1, activity * 0.7));
 
-  // When completely idle (activity ≈ 0), apply subtle drift + damping
-  if (activity < 0.01) {
-    // Very gentle per-ball drift (uses seed for organic variation)
-    const t = nowMs * 0.0003; // Slow time scale
+  if (idleStrength > 0) {
+    const t = nowMs * 0.00035;
     const seed = (ball._kaleiSeed ?? 0) + ball.age * 0.02;
     const driftAngle = seed + t;
-    const driftX = Math.cos(driftAngle) * idleDriftStrength * 8;
-    const driftY = Math.sin(driftAngle) * idleDriftStrength * 8;
+    const driftX = Math.cos(driftAngle) * idleStrength * 9;
+    const driftY = Math.sin(driftAngle * 1.1) * idleStrength * 9;
     ball.vx += driftX * dt;
     ball.vy += driftY * dt;
-    ball.vx *= 0.96; // Lighter damping when idle (allows subtle drift)
-    ball.vy *= 0.96;
-    return;
   }
 
   const dx = ball.x - cx;
@@ -443,6 +383,11 @@ export function renderKaleidoscope(ctx) {
   const panYTarget = mdy * panStrength * (g.mouseInCanvas ? 1 : 0);
   const phaseTarget = mouseAngle * (0.7 * complexity) * (g.mouseInCanvas ? 1 : 0); // Increased from 0.4 for more rotation
 
+  // Idle evolution: slow continuous rotation when mouse isn't moving
+  // This keeps the kaleidoscope "alive" and mesmerizing even when idle
+  const idleSpeed = g.kaleidoscopeIdleSpeed ?? 0.08; // radians per second base
+  const idleSpeedScaled = idleSpeed * complexity * (g.prefersReducedMotion ? 0 : 1);
+  
   if (moved) {
     morph.lastMouseX = mx;
     morph.lastMouseY = my;
@@ -451,6 +396,14 @@ export function renderKaleidoscope(ctx) {
     springTo(morph.panX, panXTarget, dt, 5.0);   // Slow eased pan X
     springTo(morph.panY, panYTarget, dt, 5.0);   // Slow eased pan Y
   } else {
+    // When idle, slowly evolve the phase for continuous gentle rotation
+    if (idleSpeedScaled > 0) {
+      morph.phase.x += idleSpeedScaled * dt;
+      // Keep phase in reasonable range to avoid floating point issues
+      const twoPi = Math.PI * 2;
+      if (morph.phase.x > twoPi) morph.phase.x -= twoPi;
+      if (morph.phase.x < -twoPi) morph.phase.x += twoPi;
+    }
     morph.phase.v = 0;
     morph.panX.v = 0;
     morph.panY.v = 0;

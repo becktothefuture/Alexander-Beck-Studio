@@ -92,6 +92,8 @@ export function initializeParallaxPerspective() {
         ball._parallax3D = { x: x3d, y: y3d, z: z3d, baseScale: scale };
         ball._parallaxSizeMul = (varFrac <= 1e-6) ? 1.0 : (1 + (Math.random() * 2 - 1) * varFrac);
         ball._isParallax = true; // Skip all standard physics
+        ball._idlePhase = Math.random() * TAU;
+        ball._idleSpeed = 0.35 + Math.random() * 0.25;
         idx++;
       }
     }
@@ -118,16 +120,23 @@ export function applyParallaxPerspectiveForces(ball, dt) {
   // Camera
   const focalLength = Math.max(100, g.parallaxPerspectiveFocalLength ?? 400);
   const parallaxStrength = Math.max(0, g.parallaxPerspectiveParallaxStrength ?? 150);
+  const idleJitter = g.prefersReducedMotion ? 0 : Math.max(0, g.parallaxPerspectiveIdleJitter ?? 0);
 
   // Parallax offset
   const { x, y, z } = ball._parallax3D;
   const offsetX = mx * parallaxStrength;
   const offsetY = my * parallaxStrength;
 
+  const now = performance.now() * 0.001;
+  const idleSpeed = Number.isFinite(ball._idleSpeed) ? ball._idleSpeed : 0.4;
+  const phase = ball._idlePhase || 0;
+  const idleX = idleJitter ? Math.cos(now * idleSpeed + phase) * idleJitter : 0;
+  const idleY = idleJitter ? Math.sin(now * (idleSpeed * 0.9) + phase * 1.3) * idleJitter * 0.85 : 0;
+
   // Project with parallax
   const scale = focalLength / (focalLength + z);
-  const targetX = cx + (x + offsetX) * scale;
-  const targetY = cy + (y + offsetY) * scale;
+  const targetX = cx + (x + offsetX + idleX) * scale;
+  const targetY = cy + (y + offsetY + idleY) * scale;
 
   // Update size
   const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxPerspectiveDotSizeMul ?? 1.8));

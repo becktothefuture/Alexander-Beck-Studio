@@ -13,10 +13,7 @@ export const MODES = {
   PING_PONG: 'ping-pong',
   MAGNETIC: 'magnetic',
   BUBBLES: 'bubbles',
-  KALEIDOSCOPE: 'kaleidoscope',
-  KALEIDOSCOPE_1: 'kaleidoscope-1', // Minimal: 5 balls, simple morph
-  KALEIDOSCOPE_2: 'kaleidoscope-2', // Medium: 15-20 balls, medium complexity
-  KALEIDOSCOPE_3: 'kaleidoscope-3', // Glorious: 40-50 balls, complex morph
+  KALEIDOSCOPE: 'kaleidoscope-3', // Glorious: 40-50 balls, complex morph
   // Simulation 11: ball-only "critters" (no keyboard shortcut yet)
   CRITTERS: 'critters',
   ORBIT_3D: 'orbit-3d',
@@ -25,7 +22,10 @@ export const MODES = {
   LATTICE: 'lattice',
   // Parallax (depth perception) simulations
   PARALLAX_LINEAR: 'parallax-linear',
-  PARALLAX_PERSPECTIVE: 'parallax-perspective'
+  PARALLAX_PERSPECTIVE: 'parallax-perspective',
+  SPHERE_3D: '3d-sphere',
+  CUBE_3D: '3d-cube',
+  STARFIELD_3D: 'starfield-3d'
 };
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -42,6 +42,7 @@ export const MODES = {
 export const NARRATIVE_MODE_SEQUENCE = [
   MODES.PIT,
   MODES.FLIES,
+  MODES.CUBE_3D,
   MODES.BUBBLES,
   MODES.PIT_THROWS,
   MODES.MAGNETIC,
@@ -49,17 +50,15 @@ export const NARRATIVE_MODE_SEQUENCE = [
   MODES.PING_PONG,
   MODES.NEURAL,
   MODES.VORTEX,
+  MODES.SPHERE_3D,
   MODES.ORBIT_3D,
   MODES.WEIGHTLESS,
   MODES.PARALLAX_LINEAR,
   MODES.CRITTERS,
   MODES.ORBIT_3D_2,
   MODES.PARALLAX_PERSPECTIVE,
-  // Kaleidoscope variants (treated as variants; kept consecutive, increasing complexity)
-  MODES.KALEIDOSCOPE_1,
-  MODES.KALEIDOSCOPE_2,
-  MODES.KALEIDOSCOPE_3,
   MODES.KALEIDOSCOPE,
+  MODES.STARFIELD_3D,
   MODES.LATTICE
 ];
 
@@ -82,11 +81,11 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.PARALLAX_LINEAR]: 'PERSPECTIVE SHIFT',
   [MODES.CRITTERS]: 'BEHAVIOR MODEL',
   [MODES.ORBIT_3D_2]: 'EDGE CASES',
+  [MODES.SPHERE_3D]: '3D SHELL',
+  [MODES.CUBE_3D]: '3D FRAME',
   [MODES.PARALLAX_PERSPECTIVE]: 'CONTEXT FIELD',
-  [MODES.KALEIDOSCOPE_1]: 'VOCAB SEED',
-  [MODES.KALEIDOSCOPE_2]: 'VOCAB FLOW',
-  [MODES.KALEIDOSCOPE_3]: 'VOCAB BLOOM',
-  [MODES.KALEIDOSCOPE]: 'VISUAL LANGUAGE'
+  [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',
+  [MODES.STARFIELD_3D]: 'DEPTH FIELD'
 };
 
 export const CONSTANTS = {
@@ -458,57 +457,7 @@ export const PARALLAX_PERSPECTIVE_PRESETS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ORBIT 3D PRESETS (real gravitational physics)
+// ORBIT 3D — Removed presets (now uses direct parameter controls)
 // ═══════════════════════════════════════════════════════════════════════════════
-export const ORBIT3D_PRESETS = {
-  serene: {      // DEFAULT - calm, stable circular orbits
-    label: 'Serene',
-    orbit3dMoonCount: 50,
-    orbit3dGravity: 40000,
-    orbit3dVelocityMult: 1.0,    // exactly circular
-    orbit3dMinOrbit: 10,
-    orbit3dMaxOrbit: 22,
-    orbit3dDepthScale: 0.5,
-    orbit3dDamping: 0.01
-  },
-  swarm: {       // Many fast-moving moons, tight orbits
-    label: 'Swarm',
-    orbit3dMoonCount: 100,
-    orbit3dGravity: 80000,
-    orbit3dVelocityMult: 1.1,    // slightly elliptical outward
-    orbit3dMinOrbit: 5,
-    orbit3dMaxOrbit: 14,
-    orbit3dDepthScale: 0.4,
-    orbit3dDamping: 0
-  },
-  halo: {        // Wide ring, slow majestic orbits
-    label: 'Halo',
-    orbit3dMoonCount: 35,
-    orbit3dGravity: 25000,
-    orbit3dVelocityMult: 1.0,
-    orbit3dMinOrbit: 14,
-    orbit3dMaxOrbit: 28,
-    orbit3dDepthScale: 0.65,
-    orbit3dDamping: 0.02
-  },
-  elliptical: {  // Comet-like elongated orbits
-    label: 'Elliptical',
-    orbit3dMoonCount: 40,
-    orbit3dGravity: 60000,
-    orbit3dVelocityMult: 0.7,    // sub-circular = falls inward then slingshots
-    orbit3dMinOrbit: 8,
-    orbit3dMaxOrbit: 24,
-    orbit3dDepthScale: 0.55,
-    orbit3dDamping: 0
-  },
-  dense: {       // Tight cluster, strong gravity
-    label: 'Dense',
-    orbit3dMoonCount: 80,
-    orbit3dGravity: 120000,
-    orbit3dVelocityMult: 1.0,
-    orbit3dMinOrbit: 6,
-    orbit3dMaxOrbit: 12,
-    orbit3dDepthScale: 0.45,
-    orbit3dDamping: 0.005
-  }
-};
+// The new orbit-3d uses 3D point cloud architecture (like sphere/cube)
+// with configurable orbital rings, rotation, and tumble via control panel

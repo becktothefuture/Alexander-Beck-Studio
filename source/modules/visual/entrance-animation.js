@@ -83,8 +83,9 @@ export function setInitialBrowserDefaultState() {
   const hasBodyDark = document.body && document.body.classList.contains('dark-mode');
   const isDarkMode = html.classList.contains('dark-mode') || hasBodyDark || g.isDarkMode;
 
-  // Respect theme-aware colors from config/tokens rather than hard-coded white
-  const wallColorLight = g.frameColorLight || readTokenVar('--wall-color-light', '#ffffff');
+  // Theme-aware wall colors with safe fallbacks (never white)
+  // Use #f5f5f5 for light (matches --abs-neutral-100) and #0a0a0a for dark (matches --abs-neutral-950)
+  const wallColorLight = g.frameColorLight || readTokenVar('--wall-color-light', '#f5f5f5');
   const wallColorDark = g.frameColorDark || readTokenVar('--wall-color-dark', '#0a0a0a');
 
   const originalWallColor = resolvedWallColor || (isDarkMode ? wallColorDark : wallColorLight);
@@ -92,10 +93,11 @@ export function setInitialBrowserDefaultState() {
   // Store original color for transition
   html.dataset.originalWallColor = originalWallColor;
   
-  // Set browser default background based on current theme (prevents white flash in dark mode)
+  // Set browser default background based on current theme
+  // IMPORTANT: Never fallback to #ffffff - use theme-correct wall colors throughout
   const browserDefaultBg = isDarkMode
     ? (g.browserDefaultBgDark || wallColorDark || originalWallColor || '#0a0a0a')
-    : (g.browserDefaultBgLight || wallColorLight || originalWallColor || '#ffffff');
+    : (g.browserDefaultBgLight || wallColorLight || originalWallColor || '#f5f5f5');
 
   html.style.setProperty('--wall-color', browserDefaultBg, 'important');
   html.style.setProperty('background', browserDefaultBg, 'important');
@@ -356,12 +358,147 @@ export function animateElementEntrance(element, options = {}) {
 }
 
 /**
+ * Reveals a late element by clearing its inline hidden styles and optionally animating
+ * @param {HTMLElement} element - Element to reveal
+ * @param {Object} options - Animation options
+ *   - delay: ms before animation starts
+ *   - duration: animation duration in ms
+ *   - easing: CSS easing function
+ *   - scaleFrom: starting scale (e.g. 0.9 = 90%)
+ *   - scaleTo: ending scale (default 1)
+ * @returns {Promise} Resolves when animation completes
+ */
+export function revealLateElement(element, options = {}) {
+  return new Promise((resolve) => {
+    if (!element) {
+      resolve();
+      return;
+    }
+    
+    const g = getGlobals();
+    const delay = options.delay ?? 0;
+    // Double the duration for more dramatic effect
+    const baseDuration = options.duration ?? g.entranceLateElementDuration ?? 600;
+    const duration = baseDuration * 2;
+    const easing = options.easing ?? g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
+    const scaleFrom = options.scaleFrom ?? g.entranceLateElementScaleFrom ?? 0.92;
+    const scaleTo = options.scaleTo ?? 1;
+    const blurFrom = options.blurFrom ?? 8; // Start with blur
+    const blurTo = options.blurTo ?? 0; // End with no blur
+    const animate = options.animate !== false && typeof element.animate === 'function';
+    
+    let finalized = false;
+    const finalize = () => {
+      if (finalized) return;
+      finalized = true;
+      // Clear inline hidden styles so CSS can take over
+      // NOTE: Do NOT clear transform - elements may have CSS transforms (e.g. translateX(-50%))
+      element.style.opacity = '1';
+      element.style.visibility = 'visible';
+      element.style.filter = 'blur(0px)';
+      element.style.willChange = 'auto';
+      resolve();
+    };
+    
+    setTimeout(() => {
+      if (animate) {
+        element.style.visibility = 'visible';
+        element.style.willChange = 'opacity, transform, filter';
+        
+        // Get existing CSS transform (e.g. translateX(-50%) for centering)
+        // We'll combine it with scale so both transforms work together
+        const computedStyle = window.getComputedStyle(element);
+        const existingTransform = computedStyle.transform;
+        
+        // Set transform-origin to center so scaling happens from the middle
+        element.style.transformOrigin = 'center center';
+        
+        // Parse existing transform to extract translate values
+        // If transform is "none" or empty, we'll just use scale
+        let translateX = 0;
+        let translateY = 0;
+        
+        if (existingTransform && existingTransform !== 'none') {
+          // Try to extract translateX from matrix or translate
+          const matrixMatch = existingTransform.match(/matrix\([^)]+\)/);
+          if (matrixMatch) {
+            const matrix = matrixMatch[0].match(/[-+]?[0-9]*\.?[0-9]+/g);
+            if (matrix && matrix.length >= 4) {
+              translateX = parseFloat(matrix[4]) || 0;
+              translateY = parseFloat(matrix[5]) || 0;
+            }
+          } else {
+            const translateMatch = existingTransform.match(/translateX\(([^)]+)\)/);
+            if (translateMatch) {
+              translateX = parseFloat(translateMatch[1]) || 0;
+            }
+          }
+        }
+        
+        // Animate opacity + scale + blur, preserving existing translate
+        const anim = element.animate(
+          [
+            { 
+              opacity: 0, 
+              transform: `translate(${translateX}px, ${translateY}px) scale(${scaleFrom})`,
+              filter: `blur(${blurFrom}px)`
+            },
+            { 
+              opacity: 1, 
+              transform: `translate(${translateX}px, ${translateY}px) scale(${scaleTo})`,
+              filter: `blur(${blurTo}px)`
+            }
+          ],
+          { duration, easing, fill: 'forwards' }
+        );
+        
+        anim.addEventListener('finish', finalize);
+        anim.addEventListener('cancel', finalize);
+        
+        // Safety timeout: ensure element is revealed even if animation fails
+        setTimeout(finalize, duration + 100);
+      } else {
+        finalize();
+      }
+    }, delay);
+  });
+}
+
+/**
+ * Clears inline hidden styles from late elements (for reduced-motion / fallback paths)
+ * Call this to ensure nothing stays stuck hidden
+ * NOTE: Does NOT clear transform - elements may have CSS transforms (e.g. translateX(-50%))
+ */
+export function revealAllLateElements() {
+  const lateElements = [
+    document.getElementById('main-links'),
+    document.getElementById('brand-logo')
+  ];
+  
+  lateElements.forEach((el) => {
+    if (el) {
+      el.style.opacity = '1';
+      el.style.visibility = 'visible';
+      // Do NOT clear transform - CSS may rely on it for positioning
+    }
+  });
+  
+  // Also remove the fade-blocking style tag
+  const fadeBlocking = document.getElementById('fade-blocking');
+  if (fadeBlocking) fadeBlocking.remove();
+}
+
+/**
  * Orchestrates the complete entrance sequence
  * @param {Object} options - Configuration options
+ *   - waitForFonts: async function to wait for fonts
+ *   - skipWallAnimation: boolean to skip wall growth animation
+ *   - centralContent: array of selectors/elements for page-specific central content
  */
 export async function orchestrateEntrance(options = {}) {
   const g = getGlobals();
   const skipWallAnimation = Boolean(options.skipWallAnimation);
+  const centralContent = options.centralContent || [];
   
   // Apply aspect ratio detection
   applyAspectRatioClass();
@@ -385,24 +522,81 @@ export async function orchestrateEntrance(options = {}) {
     transitionToWallState();
   }
   
-  // Animate UI content wrapper (smaller elements inside will fade with it)
-  // Background elements (#bravia-balls, #abs-scene, #edge-chapter, #edge-copyright, #brand-logo)
-  // are now visible immediately - no fade-in animation
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // STAGED ELEMENT REVEAL SEQUENCE
+  // Order: #app-frame (main UI) → #brand-logo → centralContent → #main-links (last)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  
+  const wallDelay = g.entranceWallTransitionDelay ?? 300;
+  const wallDuration = g.entranceWallTransitionDuration ?? 800;
+  const elementDuration = g.entranceElementDuration ?? 500;
+  const elementEasing = g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
+  
+  // Late element timing (logo + main links + central content) - slower and more dramatic
+  const lateElementDuration = g.entranceLateElementDuration ?? 600;
+  const lateStagger = g.entranceLateElementStagger ?? 250; // Stagger between late elements
+  
+  // Calculate timing
+  const appFrameDelay = skipWallAnimation ? 0 : (wallDelay + (wallDuration * 0.3));
+  let currentDelay = appFrameDelay + elementDuration + lateStagger;
+  
+  // 1. Animate main UI wrapper (#app-frame)
   const fadeTarget = document.getElementById('app-frame');
   if (fadeTarget) {
-    const wallDelay = g.entranceWallTransitionDelay ?? 300;
-    const wallDuration = g.entranceWallTransitionDuration ?? 800;
-    const elementDelay = skipWallAnimation ? 0 : (wallDelay + (wallDuration * 0.3)); // Start elements during wall transition
-    
     animateElementEntrance(fadeTarget, {
-      delay: elementDelay,
-      duration: g.entranceElementDuration ?? 500,
+      delay: appFrameDelay,
+      duration: elementDuration,
       scaleStart: g.entranceElementScaleStart ?? 0.95,
       translateZStart: g.entranceElementTranslateZStart ?? -20,
-      easing: g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)'
+      easing: elementEasing
     });
   }
   
-  // Background elements (#edge-chapter, #edge-copyright, #brand-logo) are now
-  // visible immediately - removed from fade-in animation
+  // 2. Reveal brand logo (after main UI)
+  const brandLogo = document.getElementById('brand-logo');
+  if (brandLogo) {
+    const brandLogoDelay = currentDelay;
+    revealLateElement(brandLogo, {
+      delay: brandLogoDelay,
+      duration: lateElementDuration,
+      easing: elementEasing,
+      scaleFrom: g.entranceLateElementScaleFrom ?? 0.92
+    });
+    currentDelay += lateStagger;
+  }
+  
+  // 3. Reveal central content (page-specific: portfolio stage/meta, CV content, etc.)
+  const contentElements = [];
+  for (const item of centralContent) {
+    const el = typeof item === 'string' ? document.querySelector(item) : item;
+    if (el) contentElements.push(el);
+  }
+  
+  for (const el of contentElements) {
+    revealLateElement(el, {
+      delay: currentDelay,
+      duration: lateElementDuration,
+      easing: elementEasing,
+      scaleFrom: g.entranceLateElementScaleFrom ?? 0.92
+    });
+    currentDelay += lateStagger;
+  }
+  
+  // 4. Reveal main links LAST (if present)
+  const mainLinks = document.getElementById('main-links');
+  if (mainLinks) {
+    revealLateElement(mainLinks, {
+      delay: currentDelay,
+      duration: lateElementDuration,
+      easing: elementEasing,
+      scaleFrom: g.entranceLateElementScaleFrom ?? 0.92
+    });
+    currentDelay += lateStagger;
+  }
+  
+  // Remove fade-blocking style tag after all animations start
+  setTimeout(() => {
+    const fadeBlocking = document.getElementById('fade-blocking');
+    if (fadeBlocking) fadeBlocking.remove();
+  }, currentDelay + 100);
 }

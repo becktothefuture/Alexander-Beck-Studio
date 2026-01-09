@@ -73,6 +73,26 @@ export function setupKeyboardShortcuts() {
     // Direct simulation key mappings are intentionally disabled.
     // Switch simulations using:
     // - ArrowLeft / ArrowRight (narrative sequence)
+    // - Right-click (previous simulation)
     // - Panel mode buttons
+  });
+
+  // Right-click navigation: go to previous simulation
+  window.addEventListener('contextmenu', (e) => {
+    // Only prevent default and navigate if not on an interactive element
+    const target = e.target;
+    const isInteractive = target.tagName === 'A' || 
+                          target.tagName === 'BUTTON' || 
+                          target.closest('a') || 
+                          target.closest('button') ||
+                          target.closest('.panel') ||
+                          target.id === 'panelDock' ||
+                          target.id === 'masterPanel' ||
+                          target.id === 'dockToggle';
+    
+    if (!isInteractive) {
+      e.preventDefault();
+      navigateNarrative(-1); // Go to previous simulation
+    }
   });
 }

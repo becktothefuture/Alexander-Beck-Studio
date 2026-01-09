@@ -7,8 +7,7 @@
 import { getGlobals } from '../core/state.js';
 import { autoSaveSettings } from '../utils/storage.js';
 import { syncConfigToFile } from '../utils/config-sync.js';
-import { WALL_PRESETS, ORBIT3D_PRESETS, PARALLAX_LINEAR_PRESETS, PARALLAX_PERSPECTIVE_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
-import { applyOrbit3DPreset } from '../modes/orbit-3d.js';
+import { WALL_PRESETS, PARALLAX_LINEAR_PRESETS, PARALLAX_PERSPECTIVE_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { applyWallPreset, wallState } from '../physics/wall-state.js';
 
@@ -101,6 +100,10 @@ const SECTION_CATEGORIES = {
   'links': 'INTERACTION',
 
   'scene': 'MOTION',
+  'sphere3d': 'MOTION',
+  'cube3d': 'MOTION',
+  'starfield3d': 'MOTION',
+  'cloudHelix': 'MOTION',
   'entrance': 'MOTION',
 
   'overlay': 'DEPTH & LAYOUT',
@@ -694,6 +697,25 @@ export const CONTROL_SECTIONS = {
            }).catch(() => {});
          }
        },
+       {
+         id: 'contentPaddingBottomRatio',
+         label: 'Bottom Padding Ratio',
+         stateKey: 'contentPaddingBottomRatio',
+         type: 'range',
+         min: 0.5, max: 2.5, step: 0.05,
+         default: 1.3,
+         format: v => `${Number(v).toFixed(2)}×`,
+         parse: parseFloat,
+         hint: 'Bottom padding multiplier (applied to vertical padding).',
+         onChange: (_g, val) => {
+           const ratio = Number(val) || 1.3;
+           document.documentElement.style.setProperty('--abs-content-pad-mul-bottom', String(ratio));
+          // Sync to config file (dev mode only)
+          import('../utils/config-sync.js').then(({ syncConfigToFile }) => {
+            syncConfigToFile('default', 'contentPaddingBottomRatio', ratio);
+          }).catch(() => {});
+         }
+       },
 
       { type: 'divider', label: 'Hit Areas' },
       {
@@ -824,7 +846,7 @@ export const CONTROL_SECTIONS = {
         default: 30,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
-        hint: 'Padding for text links (footer links, CV links).',
+        hint: 'Padding for text links (main links, CV links).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--link-text-padding', `${val}px`);
           document.documentElement.style.setProperty('--link-text-margin', `${-val}px`);
@@ -846,7 +868,7 @@ export const CONTROL_SECTIONS = {
         }
       },
 
-      { type: 'divider', label: 'Footer + Labels' },
+      { type: 'divider', label: 'Main Links + Labels' },
       {
         id: 'footerNavBarTopVh',
         label: 'Nav Bar Position',
@@ -856,7 +878,7 @@ export const CONTROL_SECTIONS = {
         default: 50,
         format: v => `${Number(v).toFixed(1)}vh`,
         parse: v => parseFloat(v),
-        hint: 'Vertical position of footer nav bar from top of viewport.',
+        hint: 'Vertical position of main links nav bar from top of viewport.',
         onChange: (_g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--footer-nav-bar-top', `${val}vh`);
@@ -1187,31 +1209,47 @@ export const CONTROL_SECTIONS = {
     defaultOpen: false,
     controls: [
       {
-        id: 'gateOverlayEnabled',
+        id: 'modalOverlayEnabled',
         label: 'Enabled',
-        stateKey: 'gateOverlayEnabled',
+        stateKey: 'modalOverlayEnabled',
         type: 'checkbox',
         default: true
       },
       {
-        id: 'gateOverlayOpacity',
+        id: 'modalOverlayOpacity',
         label: 'White Wash',
-        stateKey: 'gateOverlayOpacity',
+        stateKey: 'modalOverlayOpacity',
         type: 'range',
         min: 0, max: 0.1, step: 0.001,
         default: 0.01,
         format: v => v.toFixed(3),
         parse: parseFloat,
         onChange: (g, val) => {
-          import('./gate-overlay.js').then(({ updateOverlayOpacity }) => {
+          import('./modal-overlay.js').then(({ updateOverlayOpacity }) => {
             updateOverlayOpacity(val);
           });
         }
       },
       {
-        id: 'gateOverlayTransitionMs',
+        id: 'modalOverlayBlurPx',
+        label: 'Blur Amount',
+        stateKey: 'modalOverlayBlurPx',
+        type: 'range',
+        min: 0, max: 30, step: 0.5,
+        default: 8,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Backdrop blur strength (0 = off)',
+        onChange: (g, val) => {
+          import('./modal-overlay.js').then(({ updateOverlayBlur }) => {
+            updateOverlayBlur(val);
+          });
+        }
+      },
+      {
+        id: 'modalOverlayTransitionMs',
         label: 'Anim In Speed',
-        stateKey: 'gateOverlayTransitionMs',
+        stateKey: 'modalOverlayTransitionMs',
         type: 'range',
         min: 200, max: 1500, step: 50,
         default: 800,
@@ -1219,15 +1257,15 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10),
         hint: 'Duration for blur & depth zoom when opening',
         onChange: (g, val) => {
-          import('./gate-overlay.js').then(({ updateOverlayTransition }) => {
+          import('./modal-overlay.js').then(({ updateOverlayTransition }) => {
             updateOverlayTransition(val);
           });
         }
       },
       {
-        id: 'gateOverlayTransitionOutMs',
+        id: 'modalOverlayTransitionOutMs',
         label: 'Anim Out Speed',
-        stateKey: 'gateOverlayTransitionOutMs',
+        stateKey: 'modalOverlayTransitionOutMs',
         type: 'range',
         min: 200, max: 1200, step: 50,
         default: 600,
@@ -1235,15 +1273,15 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10),
         hint: 'Duration for blur & depth zoom when closing',
         onChange: (g, val) => {
-          import('./gate-overlay.js').then(({ updateOverlayTransitionOut }) => {
+          import('./modal-overlay.js').then(({ updateOverlayTransitionOut }) => {
             updateOverlayTransitionOut(val);
           });
         }
       },
       {
-        id: 'gateOverlayContentDelayMs',
+        id: 'modalOverlayContentDelayMs',
         label: 'Content Delay',
-        stateKey: 'gateOverlayContentDelayMs',
+        stateKey: 'modalOverlayContentDelayMs',
         type: 'range',
         min: 0, max: 1000, step: 50,
         default: 200,
@@ -1251,15 +1289,15 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10),
         hint: 'Wait before showing dialog content',
         onChange: (g, val) => {
-          import('./gate-overlay.js').then(({ updateGateContentDelay }) => {
-            updateGateContentDelay(val);
+          import('./modal-overlay.js').then(({ updateModalContentDelay }) => {
+            updateModalContentDelay(val);
           });
         }
       },
       {
-        id: 'gateDepthScale',
+        id: 'modalDepthScale',
         label: 'Depth Scale',
-        stateKey: 'gateDepthScale',
+        stateKey: 'modalDepthScale',
         type: 'range',
         min: 0.9, max: 1.0, step: 0.001,
         default: 0.96,
@@ -1267,8 +1305,8 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Scene scale when gate opens (0.9-1.0)',
         onChange: (g, val) => {
-          import('./gate-overlay.js').then(({ updateGateDepthScale }) => {
-            updateGateDepthScale(val);
+          import('./modal-overlay.js').then(({ updateModalDepthScale }) => {
+            updateModalDepthScale(val);
           });
         }
       },
@@ -1283,8 +1321,8 @@ export const CONTROL_SECTIONS = {
         parse: parseInt,
         hint: 'Vertical shift when gate opens',
         onChange: (g, val) => {
-          import('./gate-overlay.js').then(({ updateGateDepthTranslateY }) => {
-            updateGateDepthTranslateY(val);
+          import('./modal-overlay.js').then(({ updateModalDepthTranslateY }) => {
+            updateModalDepthTranslateY(val);
           });
         }
       },
@@ -1299,7 +1337,7 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Logo opacity when gate is closed (1 = fully visible)',
         onChange: (g, val) => {
-          import('./gate-overlay.js').then(({ updateLogoOpacityInactive }) => {
+          import('./modal-overlay.js').then(({ updateLogoOpacityInactive }) => {
             updateLogoOpacityInactive(val);
           });
         }
@@ -1315,7 +1353,7 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Logo opacity when gate is active (0.2 = more faded)',
         onChange: (g, val) => {
-          import('./gate-overlay.js').then(({ updateLogoOpacityActive }) => {
+          import('./modal-overlay.js').then(({ updateLogoOpacityActive }) => {
             updateLogoOpacityActive(val);
           });
         }
@@ -1331,7 +1369,7 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Logo blur when gate is closed (0 = sharp)',
         onChange: (g, val) => {
-          import('./gate-overlay.js').then(({ updateLogoBlurInactive }) => {
+          import('./modal-overlay.js').then(({ updateLogoBlurInactive }) => {
             updateLogoBlurInactive(val);
           });
         }
@@ -1347,7 +1385,7 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Logo blur when gate is active (12px = soft blur)',
         onChange: (g, val) => {
-          import('./gate-overlay.js').then(({ updateLogoBlurActive }) => {
+          import('./modal-overlay.js').then(({ updateLogoBlurActive }) => {
             updateLogoBlurActive(val);
           });
         }
@@ -1584,13 +1622,13 @@ export const CONTROL_SECTIONS = {
         type: 'colorDistribution',
         // Labels are fixed; you assign which palette slot + weight each label gets.
         labels: [
-          'AI Integration',
-          'UI/UX Design',
-          'Creative Strategy',
-          'Frontend Development',
-          'Brand Identity',
-          '3D Design',
-          'Art Direction'
+          'Product & Systems',
+          'Interaction & Motion',
+          'Creative Technology',
+          'AI-Driven Design',
+          'Experience Direction',
+          'Art & Visual Direction',
+          'Prototyping'
         ],
         hint: 'Assign each discipline to a palette color, then set weights that sum to 100%. Used for all ball spawns across modes.'
       }
@@ -1706,7 +1744,7 @@ export const CONTROL_SECTIONS = {
             mod.applyLayoutFromVwToPx();
             mod.applyLayoutCSSVars();
             // Update overlay blur which depends on wall thickness
-            import('./gate-overlay.js').then(({ updateBlurFromWallThickness }) => {
+            import('./modal-overlay.js').then(({ updateBlurFromWallThickness }) => {
               updateBlurFromWallThickness();
             });
           });
@@ -1727,7 +1765,7 @@ export const CONTROL_SECTIONS = {
             mod.applyLayoutFromVwToPx();
             mod.applyLayoutCSSVars();
             // Update overlay blur which depends on wall thickness
-            import('./gate-overlay.js').then(({ updateBlurFromWallThickness }) => {
+            import('./modal-overlay.js').then(({ updateBlurFromWallThickness }) => {
               updateBlurFromWallThickness();
             });
           });
@@ -2898,8 +2936,8 @@ export const CONTROL_SECTIONS = {
         label: 'Ball Count',
         stateKey: 'waterBallCount',
         type: 'range',
-        min: 50, max: 400, step: 10,
-        default: 300,
+        min: 200, max: 1800, step: 10,
+        default: 1000,
         format: v => String(v),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -2909,8 +2947,8 @@ export const CONTROL_SECTIONS = {
         label: 'Water Resistance',
         stateKey: 'waterDrag',
         type: 'range',
-        min: 0.001, max: 0.05, step: 0.001,
-        default: 0.015,
+        min: 0.001, max: 0.15, step: 0.001,
+        default: 0.12,
         format: v => v.toFixed(3),
         parse: parseFloat
       },
@@ -2919,8 +2957,8 @@ export const CONTROL_SECTIONS = {
         label: 'Ripple Strength',
         stateKey: 'waterRippleStrength',
         type: 'range',
-        min: 5000, max: 30000, step: 1000,
-        default: 18000,
+        min: 1000, max: 15000, step: 500,
+        default: 6000,
         format: v => v.toFixed(0),
         parse: parseFloat
       },
@@ -3275,16 +3313,16 @@ export const CONTROL_SECTIONS = {
   kaleidoscope: {
     title: 'Kaleidoscope',
     icon: '🪞',
-    mode: 'kaleidoscope',
+    mode: 'kaleidoscope-3',
     defaultOpen: false,
     controls: [
       {
         id: 'kaleiBallCount',
         label: 'Ball Count',
-        stateKey: 'kaleidoscopeBallCount',
+        stateKey: 'kaleidoscope3BallCount',
         type: 'range',
-        min: 15, max: 120, step: 1,
-        default: 23,
+        min: 12, max: 300, step: 3,
+        default: 150,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -3292,10 +3330,10 @@ export const CONTROL_SECTIONS = {
       {
         id: 'kaleiWedges',
         label: 'Wedges',
-        stateKey: 'kaleidoscopeWedges',
+        stateKey: 'kaleidoscope3Wedges',
         type: 'range',
-        min: 4, max: 16, step: 1,
-        default: 12,
+        min: 3, max: 24, step: 1,
+        default: 10,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10)
       },
@@ -3311,20 +3349,31 @@ export const CONTROL_SECTIONS = {
       {
         id: 'kaleiSpeed',
         label: 'Speed',
-        stateKey: 'kaleidoscopeSpeed',
+        stateKey: 'kaleidoscope3Speed',
         type: 'range',
         min: 0.2, max: 2.0, step: 0.05,
-        default: 1.0,
+        default: 1.2,
         format: v => v.toFixed(2),
         parse: parseFloat
       },
       {
+        id: 'kaleiIdleDrift',
+        label: 'Idle Drift',
+        stateKey: 'kaleidoscopeIdleDrift',
+        type: 'range',
+        min: 0, max: 0.05, step: 0.002,
+        default: 0.012,
+        format: v => (v * 1000).toFixed(0) + '‰',
+        parse: parseFloat,
+        hint: 'Subtle movement when idle; respects prefers-reduced-motion.'
+      },
+      {
         id: 'kaleiDotSizeVh',
         label: 'Dot Size (vh)',
-        stateKey: 'kaleidoscopeDotSizeVh',
+        stateKey: 'kaleidoscope3DotSizeVh',
         type: 'range',
         min: 0.2, max: 2.5, step: 0.05,
-        default: 0.95,
+        default: 1.05,
         format: v => v.toFixed(2) + 'vh',
         parse: parseFloat,
         reinitMode: true
@@ -3332,10 +3381,10 @@ export const CONTROL_SECTIONS = {
       {
         id: 'kaleiDotAreaMul',
         label: 'Dot Area',
-        stateKey: 'kaleidoscopeDotAreaMul',
+        stateKey: 'kaleidoscope3DotAreaMul',
         type: 'range',
         min: 0.3, max: 1.5, step: 0.05,
-        default: 0.7,
+        default: 0.75,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true
@@ -3343,10 +3392,10 @@ export const CONTROL_SECTIONS = {
       {
         id: 'kaleiSpawnArea',
         label: 'Spawn Density',
-        stateKey: 'kaleidoscopeSpawnAreaMul',
+        stateKey: 'kaleidoscope3SpawnAreaMul',
         type: 'range',
         min: 0.2, max: 2.0, step: 0.05,
-        default: 1.0,
+        default: 1.05,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true
@@ -3354,265 +3403,10 @@ export const CONTROL_SECTIONS = {
       {
         id: 'kaleiSizeVar',
         label: 'Size Variance',
-        stateKey: 'kaleidoscopeSizeVariance',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.3,
-        format: v => (v * 100).toFixed(0) + '%',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      warmupFramesControl('kaleidoscopeWarmupFrames')
-    ]
-  },
-
-  kaleidoscope1: {
-    title: 'Kaleidoscope I (Variant)',
-    icon: '🪞',
-    mode: 'kaleidoscope-1',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'kalei1BallCount',
-        label: 'Ball Count',
-        stateKey: 'kaleidoscope1BallCount',
-        type: 'range',
-        min: 6, max: 180, step: 1,
-        default: 18,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'kalei1Wedges',
-        label: 'Wedges',
-        stateKey: 'kaleidoscope1Wedges',
-        type: 'range',
-        min: 3, max: 24, step: 1,
-        default: 8,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'kalei1Speed',
-        label: 'Speed',
-        stateKey: 'kaleidoscope1Speed',
-        type: 'range',
-        min: 0.2, max: 2.0, step: 0.05,
-        default: 0.8,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'kalei1DotSizeVh',
-        label: 'Dot Size (vh)',
-        stateKey: 'kaleidoscope1DotSizeVh',
-        type: 'range',
-        min: 0.2, max: 2.5, step: 0.05,
-        default: 0.95,
-        format: v => v.toFixed(2) + 'vh',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kalei1DotAreaMul',
-        label: 'Dot Area',
-        stateKey: 'kaleidoscope1DotAreaMul',
-        type: 'range',
-        min: 0.3, max: 1.5, step: 0.05,
-        default: 0.7,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kalei1SpawnArea',
-        label: 'Spawn Density',
-        stateKey: 'kaleidoscope1SpawnAreaMul',
-        type: 'range',
-        min: 0.2, max: 2.0, step: 0.05,
-        default: 1.0,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kalei1SizeVar',
-        label: 'Size Variance',
-        stateKey: 'kaleidoscope1SizeVariance',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.3,
-        format: v => (v * 100).toFixed(0) + '%',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      warmupFramesControl('kaleidoscope1WarmupFrames')
-    ]
-  },
-
-  kaleidoscope2: {
-    title: 'Kaleidoscope II (Variant)',
-    icon: '🪞',
-    mode: 'kaleidoscope-2',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'kalei2BallCount',
-        label: 'Ball Count',
-        stateKey: 'kaleidoscope2BallCount',
-        type: 'range',
-        min: 10, max: 260, step: 2,
-        default: 36,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'kalei2Wedges',
-        label: 'Wedges',
-        stateKey: 'kaleidoscope2Wedges',
-        type: 'range',
-        min: 3, max: 24, step: 1,
-        default: 8,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'kalei2Speed',
-        label: 'Speed',
-        stateKey: 'kaleidoscope2Speed',
-        type: 'range',
-        min: 0.2, max: 2.0, step: 0.05,
-        default: 1.15,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'kalei2DotSizeVh',
-        label: 'Dot Size (vh)',
-        stateKey: 'kaleidoscope2DotSizeVh',
-        type: 'range',
-        min: 0.2, max: 2.5, step: 0.05,
-        default: 0.95,
-        format: v => v.toFixed(2) + 'vh',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kalei2DotAreaMul',
-        label: 'Dot Area',
-        stateKey: 'kaleidoscope2DotAreaMul',
-        type: 'range',
-        min: 0.3, max: 1.5, step: 0.05,
-        default: 0.7,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kalei2SpawnArea',
-        label: 'Spawn Density',
-        stateKey: 'kaleidoscope2SpawnAreaMul',
-        type: 'range',
-        min: 0.2, max: 2.0, step: 0.05,
-        default: 1.0,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kalei2SizeVar',
-        label: 'Size Variance',
-        stateKey: 'kaleidoscope2SizeVariance',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.3,
-        format: v => (v * 100).toFixed(0) + '%',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      warmupFramesControl('kaleidoscope2WarmupFrames')
-    ]
-  },
-
-  kaleidoscope3: {
-    title: 'Kaleidoscope III (Variant)',
-    icon: '🪞',
-    mode: 'kaleidoscope-3',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'kalei3BallCount',
-        label: 'Ball Count',
-        stateKey: 'kaleidoscope3BallCount',
-        type: 'range',
-        min: 12, max: 300, step: 3,
-        default: 54,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'kalei3Wedges',
-        label: 'Wedges',
-        stateKey: 'kaleidoscope3Wedges',
-        type: 'range',
-        min: 3, max: 24, step: 1,
-        default: 8,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'kalei3Speed',
-        label: 'Speed',
-        stateKey: 'kaleidoscope3Speed',
-        type: 'range',
-        min: 0.2, max: 2.0, step: 0.05,
-        default: 1.55,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'kalei3DotSizeVh',
-        label: 'Dot Size (vh)',
-        stateKey: 'kaleidoscope3DotSizeVh',
-        type: 'range',
-        min: 0.2, max: 2.5, step: 0.05,
-        default: 0.95,
-        format: v => v.toFixed(2) + 'vh',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kalei3DotAreaMul',
-        label: 'Dot Area',
-        stateKey: 'kaleidoscope3DotAreaMul',
-        type: 'range',
-        min: 0.3, max: 1.5, step: 0.05,
-        default: 0.7,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kalei3SpawnArea',
-        label: 'Spawn Density',
-        stateKey: 'kaleidoscope3SpawnAreaMul',
-        type: 'range',
-        min: 0.2, max: 2.0, step: 0.05,
-        default: 1.0,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'kalei3SizeVar',
-        label: 'Size Variance',
         stateKey: 'kaleidoscope3SizeVariance',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.3,
+        default: 0.5,
         format: v => (v * 100).toFixed(0) + '%',
         parse: parseFloat,
         reinitMode: true
@@ -3621,61 +3415,124 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
+
   orbit3d: {
-    title: 'Orbit 3D: Zero Gravity',
-    icon: '🌪️',
+    title: 'Orbit 3D: Planetary Rings',
+    icon: '🪐',
     mode: 'orbit-3d',
     defaultOpen: false,
     controls: [
       {
-        id: 'orbit3dMoonCount',
-        label: 'Body Count',
-        stateKey: 'orbit3dMoonCount',
+        id: 'orbit3dDensity',
+        label: 'Point Count',
+        stateKey: 'orbit3dDensity',
         type: 'range',
-        min: 10, max: 200, step: 10,
-        default: 80,
+        min: 30, max: 600, step: 10,
+        default: 120,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
       },
       {
-        id: 'orbit3dGravity',
-        label: 'Gravity Pull',
-        stateKey: 'orbit3dGravity',
+        id: 'orbit3dRadiusVw',
+        label: 'Orbital Radius',
+        stateKey: 'orbit3dRadiusVw',
         type: 'range',
-        min: 1000, max: 10000, step: 500,
-        default: 5000,
-        format: v => Math.round(v),
-        parse: parseFloat
+        min: 10, max: 40, step: 1,
+        default: 22,
+        format: v => v + 'vw',
+        parse: parseFloat,
+        reinitMode: true
       },
       {
-        id: 'orbit3dVelocityMult',
+        id: 'orbit3dShellCount',
+        label: 'Ring Layers',
+        stateKey: 'orbit3dShellCount',
+        type: 'range',
+        min: 2, max: 8, step: 1,
+        default: 4,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'orbit3dOrbitalSpeed',
         label: 'Orbital Speed',
-        stateKey: 'orbit3dVelocityMult',
+        stateKey: 'orbit3dOrbitalSpeed',
         type: 'range',
-        min: 50, max: 300, step: 10,
-        default: 150,
-        format: v => Math.round(v),
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3dDepthScale',
-        label: 'Depth Effect',
-        stateKey: 'orbit3dDepthScale',
-        type: 'range',
-        min: 0, max: 1.5, step: 0.1,
+        min: 0, max: 2, step: 0.1,
         default: 0.8,
         format: v => v.toFixed(1),
         parse: parseFloat
       },
       {
-        id: 'orbit3dDamping',
-        label: 'Stability',
-        stateKey: 'orbit3dDamping',
+        id: 'orbit3dIdleSpeed',
+        label: 'Idle Rotation',
+        stateKey: 'orbit3dIdleSpeed',
         type: 'range',
-        min: 0.005, max: 0.05, step: 0.005,
-        default: 0.02,
-        format: v => v.toFixed(3),
+        min: 0, max: 1, step: 0.05,
+        default: 0.25,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3dTumbleSpeed',
+        label: 'Spin Sensitivity',
+        stateKey: 'orbit3dTumbleSpeed',
+        type: 'range',
+        min: 0, max: 10, step: 0.5,
+        default: 2.0,
+        format: v => v.toFixed(1),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3dTumbleDamping',
+        label: 'Tumble Damping',
+        stateKey: 'orbit3dTumbleDamping',
+        type: 'range',
+        min: 0.8, max: 0.99, step: 0.01,
+        default: 0.93,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3dInclinationMix',
+        label: 'Ring Tilt',
+        stateKey: 'orbit3dInclinationMix',
+        type: 'range',
+        min: 0, max: 1, step: 0.1,
+        default: 0.7,
+        format: v => v.toFixed(1),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3dWobbleStrength',
+        label: 'Wobble Amount',
+        stateKey: 'orbit3dWobbleStrength',
+        type: 'range',
+        min: 0, max: 0.4, step: 0.05,
+        default: 0.15,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3dFocalLength',
+        label: 'Focal Length',
+        stateKey: 'orbit3dFocalLength',
+        type: 'range',
+        min: 80, max: 2000, step: 20,
+        default: 600,
+        format: v => Math.round(v) + 'px',
+        parse: parseFloat
+      },
+      {
+        id: 'orbit3dDotSizeMul',
+        label: 'Dot Size',
+        stateKey: 'orbit3dDotSizeMul',
+        type: 'range',
+        min: 0.2, max: 4, step: 0.1,
+        default: 1.2,
+        format: v => v.toFixed(1) + '×',
         parse: parseFloat
       },
       {
@@ -4135,7 +3992,7 @@ export const CONTROL_SECTIONS = {
 
   parallaxPerspective: {
     title: 'Parallax (Perspective)',
-    icon: '🫧',
+    icon: '🪐',
     mode: 'parallax-perspective',
     defaultOpen: false,
     controls: [
@@ -4282,7 +4139,321 @@ export const CONTROL_SECTIONS = {
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10)
       },
+      {
+        id: 'parallaxPerspectiveIdleJitter',
+        label: 'Idle Jitter',
+        stateKey: 'parallaxPerspectiveIdleJitter',
+        type: 'range',
+        min: 0, max: 25, step: 0.5,
+        default: 9,
+        format: v => v.toFixed(1) + 'px',
+        parse: parseFloat,
+        hint: 'Small drift so the grid stays alive when idle.'
+      },
       warmupFramesControl('parallaxPerspectiveWarmupFrames')
+    ]
+  },
+
+  starfield3d: {
+    title: '3D Starfield',
+    icon: '✨',
+    mode: 'starfield-3d',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'starfieldCount',
+        label: 'Star Count',
+        stateKey: 'starfieldCount',
+        type: 'range',
+        min: 20, max: 320, step: 2,
+        default: 150,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'starfieldSpanX',
+        label: 'Span X',
+        stateKey: 'starfieldSpanX',
+        type: 'range',
+        min: 0.4, max: 3.5, step: 0.05,
+        default: 1.35,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'starfieldSpanY',
+        label: 'Span Y',
+        stateKey: 'starfieldSpanY',
+        type: 'range',
+        min: 0.4, max: 3.5, step: 0.05,
+        default: 1.1,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'starfieldZNear',
+        label: 'Z Near',
+        stateKey: 'starfieldZNear',
+        type: 'range',
+        min: 40, max: 800, step: 10,
+        default: 180,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'starfieldZFar',
+        label: 'Z Far',
+        stateKey: 'starfieldZFar',
+        type: 'range',
+        min: 400, max: 4000, step: 50,
+        default: 2600,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'starfieldFocalLength',
+        label: 'Focal Length',
+        stateKey: 'starfieldFocalLength',
+        type: 'range',
+        min: 120, max: 2000, step: 10,
+        default: 580,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'starfieldParallaxStrength',
+        label: 'Parallax Strength',
+        stateKey: 'starfieldParallaxStrength',
+        type: 'range',
+        min: 0, max: 1200, step: 10,
+        default: 320,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'starfieldSpeed',
+        label: 'Flow Speed',
+        stateKey: 'starfieldSpeed',
+        type: 'range',
+        min: 60, max: 1600, step: 10,
+        default: 620,
+        format: v => `${Math.round(v)}px/s`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'starfieldDotSizeMul',
+        label: 'Dot Size',
+        stateKey: 'starfieldDotSizeMul',
+        type: 'range',
+        min: 0.2, max: 2.2, step: 0.05,
+        default: 0.9,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat
+      },
+      {
+        id: 'starfieldIdleJitter',
+        label: 'Idle Drift',
+        stateKey: 'starfieldIdleJitter',
+        type: 'range',
+        min: 0, max: 20, step: 0.5,
+        default: 6,
+        format: v => v.toFixed(1) + 'px',
+        parse: parseFloat,
+        hint: 'Subtle twinkle when idle; disabled for reduced-motion.'
+      },
+      warmupFramesControl('starfield3dWarmupFrames')
+    ]
+  },
+
+  sphere3d: {
+    title: '3D Sphere',
+    icon: '🌐',
+    mode: '3d-sphere',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'sphere3dRadiusVw',
+        label: 'Radius',
+        stateKey: 'sphere3dRadiusVw',
+        type: 'range',
+        min: 5, max: 40, step: 0.5,
+        default: 18,
+        format: v => v.toFixed(1) + 'vw',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'sphere3dDensity',
+        label: 'Point Count',
+        stateKey: 'sphere3dDensity',
+        type: 'range',
+        min: 30, max: 600, step: 10,
+        default: 140,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'sphere3dFocalLength',
+        label: 'Focal Length',
+        stateKey: 'sphere3dFocalLength',
+        type: 'range',
+        min: 80, max: 2000, step: 10,
+        default: 600,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'sphere3dDotSizeMul',
+        label: 'Dot Size',
+        stateKey: 'sphere3dDotSizeMul',
+        type: 'range',
+        min: 0.2, max: 4.0, step: 0.05,
+        default: 1.5,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat
+      },
+      {
+        id: 'sphere3dIdleSpeed',
+        label: 'Idle Rotation',
+        stateKey: 'sphere3dIdleSpeed',
+        type: 'range',
+        min: 0, max: 1, step: 0.02,
+        default: 0.15,
+        format: v => v.toFixed(2) + ' rad/s',
+        parse: parseFloat
+      },
+      {
+        id: 'sphere3dTumbleSpeed',
+        label: 'Spin Sensitivity',
+        stateKey: 'sphere3dTumbleSpeed',
+        type: 'range',
+        min: 0, max: 10, step: 0.1,
+        default: 2.5,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        hint: 'How much dragging the mouse over the sphere spins it. Higher = more sensitive.'
+      },
+      {
+        id: 'sphere3dTumbleDamping',
+        label: 'Tumble Damping',
+        stateKey: 'sphere3dTumbleDamping',
+        type: 'range',
+        min: 0.8, max: 0.99, step: 0.005,
+        default: 0.94,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      warmupFramesControl('sphere3dWarmupFrames')
+    ]
+  },
+
+  cube3d: {
+    title: '3D Cube',
+    icon: '🧊',
+    mode: '3d-cube',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'cube3dSizeVw',
+        label: 'Size',
+        stateKey: 'cube3dSizeVw',
+        type: 'range',
+        min: 10, max: 50, step: 0.5,
+        default: 50,
+        format: v => v.toFixed(1) + 'vw',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'cube3dEdgeDensity',
+        label: 'Edge Density',
+        stateKey: 'cube3dEdgeDensity',
+        type: 'range',
+        min: 2, max: 30, step: 1,
+        default: 8,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'cube3dFaceGrid',
+        label: 'Face Grid',
+        stateKey: 'cube3dFaceGrid',
+        type: 'range',
+        min: 0, max: 10, step: 1,
+        default: 0,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true,
+        hint: '0 = edges only. >0 adds face lattice points.'
+      },
+      {
+        id: 'cube3dIdleSpeed',
+        label: 'Idle Rotation',
+        stateKey: 'cube3dIdleSpeed',
+        type: 'range',
+        min: 0, max: 1, step: 0.02,
+        default: 0.2,
+        format: v => v.toFixed(2) + ' rad/s',
+        parse: parseFloat
+      },
+      {
+        id: 'cube3dCursorInfluence',
+        label: 'Cursor Influence',
+        stateKey: 'cube3dCursorInfluence',
+        type: 'range',
+        min: 0, max: 4, step: 0.05,
+        default: 1.5,
+        format: v => v.toFixed(2),
+        parse: parseFloat
+      },
+      {
+        id: 'cube3dTumbleSpeed',
+        label: 'Tumble Speed',
+        stateKey: 'cube3dTumbleSpeed',
+        type: 'range',
+        min: 0, max: 10, step: 0.1,
+        default: 3,
+        format: v => v.toFixed(1),
+        parse: parseFloat
+      },
+      {
+        id: 'cube3dTumbleDamping',
+        label: 'Tumble Damping',
+        stateKey: 'cube3dTumbleDamping',
+        type: 'range',
+        min: 0.8, max: 0.99, step: 0.005,
+        default: 0.95,
+        format: v => v.toFixed(3),
+        parse: parseFloat
+      },
+      {
+        id: 'cube3dFocalLength',
+        label: 'Focal Length',
+        stateKey: 'cube3dFocalLength',
+        type: 'range',
+        min: 80, max: 2000, step: 10,
+        default: 500,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'cube3dDotSizeMul',
+        label: 'Dot Size',
+        stateKey: 'cube3dDotSizeMul',
+        type: 'range',
+        min: 0.2, max: 4.0, step: 0.05,
+        default: 1.5,
+        format: v => v.toFixed(2) + '×',
+        parse: parseFloat
+      },
+      warmupFramesControl('cube3dWarmupFrames')
     ]
   },
 
@@ -4748,14 +4919,16 @@ function generateHomeModeSectionHTML() {
               'magnetic': '🧲',
               'ping-pong': '🏓',
               'weightless': '🌌',
-              'kaleidoscope': '🪞',
-              'kaleidoscope-1': '🪞',
-              'kaleidoscope-2': '🪞',
               'kaleidoscope-3': '🪞',
               'orbit-3d': '🌪️',
               'orbit-3d-2': '🌪️',
               'lattice': '💎',
-              'neural': '🧠'
+              'neural': '🧠',
+              'parallax-linear': '🎚️',
+              'parallax-perspective': '🪐',
+              '3d-sphere': '🌐',
+              '3d-cube': '🧊',
+              'starfield-3d': '✨'
             };
             const modeLabels = {
               'pit': 'Pit',
@@ -4768,21 +4941,25 @@ function generateHomeModeSectionHTML() {
               'magnetic': 'Magnet',
               'ping-pong': 'Pong',
               'weightless': 'Zero-G',
-              'kaleidoscope': 'Kalei',
-              'kaleidoscope-1': 'Kalei I',
-              'kaleidoscope-2': 'Kalei II',
-              'kaleidoscope-3': 'Kalei III',
+              'kaleidoscope-3': 'Kalei',
               'orbit-3d': 'Orbit',
               'orbit-3d-2': 'Swarm',
               'lattice': 'Lattice',
-              'neural': 'Neural'
+              'neural': 'Neural',
+              'parallax-linear': 'Parallax Lin',
+              'parallax-perspective': 'Parallax Per',
+              '3d-sphere': 'Sphere 3D',
+              '3d-cube': 'Cube 3D',
+              'starfield-3d': 'Starfield 3D'
             };
             let buttons = '';
-            NARRATIVE_MODE_SEQUENCE.forEach((mode) => {
+            NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {
               const modeKey = mode;
               const icon = modeIcons[modeKey] || '⚪';
               const label = modeLabels[modeKey] || modeKey;
-              buttons += `<button class="mode-button" data-mode="${modeKey}" aria-label="${NARRATIVE_CHAPTER_TITLES[mode] || label} mode">${icon} ${label}</button>`;
+              const number = String(idx + 1).padStart(2, '0');
+              const ariaLabel = `${number} · ${(NARRATIVE_CHAPTER_TITLES[mode] || label)} mode`;
+              buttons += `<button class="mode-button" data-mode="${modeKey}" aria-label="${ariaLabel}"><span class="mode-button-number">${number}</span><span class="mode-button-label">${icon} ${label}</span></button>`;
             });
             return buttons;
           })()}
@@ -4880,6 +5057,10 @@ export function bindRegisteredControls() {
           for (const row of base) {
             map.set(normalizeLabel(row?.label), row);
           }
+          // Backward compat: label rename(s). Key is the NEW label, value is the LEGACY label.
+          const legacyLabelFor = new Map([
+            ['art & visual direction', 'frontend craft'],
+          ]);
           // Start from src if valid, otherwise base.
           const raw = Array.isArray(src) ? src : base;
           const out = [];
@@ -4889,7 +5070,12 @@ export function bindRegisteredControls() {
           for (let i = 0; i < labels.length; i++) {
             const label = String(labels[i] || '').trim();
             const key = normalizeLabel(label);
-            const incoming = raw.find(r => normalizeLabel(r?.label) === key) || map.get(key) || { label };
+            const legacyKey = legacyLabelFor.get(key);
+            const incoming = raw.find(r => normalizeLabel(r?.label) === key)
+              || (legacyKey ? raw.find(r => normalizeLabel(r?.label) === legacyKey) : null)
+              || map.get(key)
+              || (legacyKey ? map.get(legacyKey) : null)
+              || { label };
             let idx = clampIntLocal(incoming?.colorIndex, 0, 7, clampIntLocal(map.get(key)?.colorIndex, 0, 7, 0));
             // Enforce uniqueness: if already used, pick the first free palette slot.
             if (used.has(idx)) {
@@ -4969,15 +5155,12 @@ export function bindRegisteredControls() {
             'ping-pong': g.pingPongBallCount,
             magnetic: g.magneticBallCount,
             bubbles: g.bubblesMaxCount,
-            kaleidoscope: g.kaleidoscopeBallCount,
-            'kaleidoscope-1': g.kaleidoscope1BallCount,
-            'kaleidoscope-2': g.kaleidoscope2BallCount,
             'kaleidoscope-3': g.kaleidoscope3BallCount,
             critters: g.critterCount,
             neural: g.neuralBallCount,
             lattice: g.latticeBallCount,
-            orbit3d: g.orbit3dMoonCount,
-            orbit3d2: g.orbit3d2MoonCount
+            'orbit-3d': g.orbit3dDensity,
+            'orbit-3d-2': g.orbit3d2MoonCount
           };
           const v = map[mode];
           return Number.isFinite(Number(v)) ? Number(v) : null;

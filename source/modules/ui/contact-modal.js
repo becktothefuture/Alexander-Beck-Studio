@@ -1,22 +1,22 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                          CONTACT GATE CONTROLLER                             ║
-// ║                  Same transition as CV/Portfolio gates                        ║
+// ║                         CONTACT MODAL CONTROLLER                             ║
+// ║                  Same transition as CV/Portfolio modals                      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 //
 // Goals:
-// - Clicking "Contact" (and inline "Let's chat.") opens a gate overlay
-// - Gate uses the same logo ↔ gate swap transition as CV/Portfolio
+// - Clicking "Contact" (and inline "Let's chat.") opens a modal overlay
+// - Modal uses the same logo ↔ modal swap transition as CV/Portfolio
 // - Email row copies the email to clipboard (no mailto)
-// - Gate includes a small BACK button (arrow + BACK) to close
+// - Modal includes a small BACK button (arrow + BACK) to close
 //
 // Privacy:
 // - No network calls
 // - No user text stored (clipboard copy is a single fixed string)
 
-import { showOverlay, hideOverlay, mountGateIntoOverlay, unmountGateFromOverlay } from './gate-overlay.js';
+import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';
 import { getText } from '../utils/text-loader.js';
 
-const TRANSITION_MS = 400; // Must match gate transitions defined in main.css
+const TRANSITION_MS = 1700; // Must match modal transitions defined in main.css
 const COPY_FEEDBACK_MS = 3000;
 
 async function copyToClipboard(text) {
@@ -48,13 +48,13 @@ async function copyToClipboard(text) {
   }
 }
 
-export function initContactGate() {
+export function initContactModal() {
   const CONTACT_EMAIL = getText('contact.email', 'alexander@beck.fyi');
-  const BACK_TEXT = getText('gates.common.backText', 'BACK');
-  const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
-  const TITLE = getText('gates.contact.title', 'Contact');
+  const BACK_TEXT = getText('modals.common.backText', 'BACK');
+  const BACK_ARIA = getText('modals.common.backAriaLabel', 'Back');
+  const TITLE = getText('modals.contact.title', 'Contact');
   const DESC = getText(
-    'gates.contact.description',
+    'modals.contact.description',
     'For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain.'
   );
   const COPY_ARIA = getText('contact.copy.buttonAriaLabel', 'Copy email address');
@@ -67,35 +67,39 @@ export function initContactGate() {
   ].filter(Boolean);
 
   const logo = document.getElementById('brand-logo');
-  const gate = document.getElementById('contact-gate');
-  const gateLabel = document.getElementById('contact-gate-label');
-  const gateInputs = document.getElementById('contact-gate-inputs');
+  const modal = document.getElementById('contact-modal');
+  const modalLabel = document.getElementById('contact-modal-label');
+  const modalInputs = document.getElementById('contact-modal-inputs');
 
-  const cvGate = document.getElementById('cv-gate');
-  const portfolioGate = document.getElementById('portfolio-gate');
+  const cvGate = document.getElementById('cv-modal');
+  const portfolioGate = document.getElementById('portfolio-modal');
 
-  if (!triggers.length || !logo || !gate || !gateLabel || !gateInputs) {
+  if (!triggers.length || !logo || !modal || !modalLabel || !modalInputs) {
     console.warn('Contact Gate: Missing required elements');
     return;
   }
 
+  // Idempotency check: prevent duplicate listeners if initialized multiple times
+  if (modal.dataset.modalInitialized === 'true') return;
+  modal.dataset.modalInitialized = 'true';
+
   // Match CV/Portfolio structure:
-  // - gateLabel: back + title + description (fades in with slight delay)
-  // - gateInputs: “field” row (arrives with the gate transition like the digit inputs)
-  gateLabel.innerHTML = `
-    <div class="gate-nav">
-      <button type="button" class="gate-back abs-icon-btn" data-gate-back aria-label="${BACK_ARIA}">
+  // - modalLabel: back + title + description (fades in with slight delay)
+  // - modalInputs: “field” row (arrives with the modal transition like the digit inputs)
+  modalLabel.innerHTML = `
+    <div class="modal-nav">
+      <button type="button" class="gate-back abs-icon-btn" data-modal-back aria-label="${BACK_ARIA}">
         <i class="ti ti-arrow-left" aria-hidden="true"></i>
         <span>${BACK_TEXT}</span>
       </button>
     </div>
-    <h2 class="gate-title">${TITLE}</h2>
-    <p class="gate-description">
+    <h2 class="modal-title">${TITLE}</h2>
+    <p class="modal-description">
       ${DESC}
     </p>
   `;
 
-  gateInputs.innerHTML = `
+  modalInputs.innerHTML = `
     <button type="button" class="contact-email-row" data-copy-email aria-label="${COPY_ARIA}">
       <span class="contact-email-text">${CONTACT_EMAIL}</span>
       <span class="contact-email-copy" data-copy-icon-container>
@@ -105,19 +109,20 @@ export function initContactGate() {
     <div class="contact-copy-status" data-copy-status aria-live="polite"></div>
   `;
 
-  const backBtn = gateLabel.querySelector('[data-gate-back]');
-  const emailRowBtn = gateInputs.querySelector('[data-copy-email]');
-  const iconContainer = gateInputs.querySelector('[data-copy-icon-container]');
-  const statusEl = gateInputs.querySelector('[data-copy-status]');
-  const iconI = gateInputs.querySelector('.contact-email-copy i');
+  const backBtn = modalLabel.querySelector('[data-modal-back]');
+  const emailRowBtn = modalInputs.querySelector('[data-copy-email]');
+  const iconContainer = modalInputs.querySelector('[data-copy-icon-container]');
+  const statusEl = modalInputs.querySelector('[data-copy-status]');
+  const iconI = modalInputs.querySelector('.contact-email-copy i');
 
   // State
   let isOpen = false;
   let copyTimer = null;
+  let lastOpenTime = 0;
 
-  // Helper to check if any gate is currently active
+  // Helper to check if any modal is currently active
   const isAnyGateActive = () => {
-    return (gate && gate.classList.contains('active')) ||
+    return (modal && modal.classList.contains('active')) ||
            (cvGate && cvGate.classList.contains('active')) ||
            (portfolioGate && portfolioGate.classList.contains('active'));
   };
@@ -161,17 +166,18 @@ export function initContactGate() {
 
   const openGate = (e) => {
     e?.preventDefault?.();
+    lastOpenTime = Date.now();
 
-    // Check if any other gate is currently open
+    // Check if any other modal is currently open
     const wasAnyGateActive = isAnyGateActive();
 
-    // Close other gates if open (match existing behavior)
+    // Close other modals if open (match existing behavior)
     if (cvGate && cvGate.classList.contains('active')) {
       cvGate.classList.remove('active');
       cvGate.setAttribute('aria-hidden', 'true');
       setTimeout(() => {
         cvGate.classList.add('hidden');
-        unmountGateFromOverlay(cvGate);
+        unmountModalFromOverlay(cvGate);
       }, TRANSITION_MS);
     }
     if (portfolioGate && portfolioGate.classList.contains('active')) {
@@ -179,13 +185,13 @@ export function initContactGate() {
       portfolioGate.setAttribute('aria-hidden', 'true');
       setTimeout(() => {
         portfolioGate.classList.add('hidden');
-        unmountGateFromOverlay(portfolioGate);
+        unmountModalFromOverlay(portfolioGate);
       }, TRANSITION_MS);
     }
 
     isOpen = true;
     
-    // Show overlay only if no gate was previously active
+    // Show overlay only if no modal was previously active
     if (!wasAnyGateActive) {
       showOverlay();
     }
@@ -194,103 +200,121 @@ export function initContactGate() {
     // Animate Logo Out (Up)
     logo.classList.add('fade-out-up');
 
-    // Modal: mount gate inside overlay flex container
-    mountGateIntoOverlay(gate);
+    // Defer modal DOM operations to next frame to avoid interrupting overlay's backdrop-filter transition
+    requestAnimationFrame(() => {
+      // Modal: mount modal inside overlay flex container
+      mountModalIntoOverlay(modal);
 
-    // Animate Gate In (Up)
-    gate.classList.remove('hidden');
-    gate.setAttribute('aria-hidden', 'false');
-    void gate.offsetWidth;
-    gate.classList.add('active');
+      // Animate Modal In (Up)
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      void modal.offsetWidth;
+      modal.classList.add('active');
 
-    // Focus email button for keyboard users
-    emailRowBtn?.focus?.();
+      // Focus email button for keyboard users
+      emailRowBtn?.focus?.();
+    });
   };
 
   const closeGate = (instant = false) => {
+    // Close must be responsive immediately (Back/background/Escape).
+    // Any “ghost click” prevention should be handled via pointer routing, not time blocks.
     isOpen = false;
     setCopyUI('idle');
 
     if (instant) {
       // Instant close: disable transition, remove active, then re-enable
-      gate.style.transition = 'none';
+      modal.style.transition = 'none';
       logo.style.transition = 'none';
 
-    gate.classList.remove('active');
-    gate.setAttribute('aria-hidden', 'true');
-      gate.classList.add('hidden');
-      unmountGateFromOverlay(gate);
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+      modal.classList.add('hidden');
+      unmountModalFromOverlay(modal);
       logo.classList.remove('fade-out-up');
       
-      // Hide overlay immediately if no other gate is active
+      // Hide overlay immediately if no other modal is active
       if (!isAnyGateActive()) {
         hideOverlay();
       }
       
       // Re-enable transitions after a frame
       requestAnimationFrame(() => {
-        gate.style.removeProperty('transition');
+        modal.style.removeProperty('transition');
         logo.style.removeProperty('transition');
       });
     } else {
       // Smooth close: use CSS transition
-      gate.classList.remove('active');
-      gate.setAttribute('aria-hidden', 'true');
-    logo.classList.remove('fade-out-up');
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+      logo.classList.remove('fade-out-up');
 
-    setTimeout(() => {
-      if (!isOpen) {
-        gate.classList.add('hidden');
-        unmountGateFromOverlay(gate);
+      // Hide overlay immediately to animate blur in parallel with content
+      if (!isAnyGateActive()) {
+        hideOverlay();
       }
-      
-        // Hide overlay if no other gate is now active
-        if (!isAnyGateActive()) {
-          hideOverlay();
+
+      setTimeout(() => {
+        if (!isOpen) {
+          modal.classList.add('hidden');
+          unmountModalFromOverlay(modal);
         }
-    }, TRANSITION_MS);
+      }, TRANSITION_MS);
     }
   };
 
   // Triggers
   // Capture phase so we win against any legacy exported interactions on these links.
   triggers.forEach((t) => t.addEventListener('click', openGate, { capture: true }));
-  backBtn?.addEventListener('click', closeGate);
+  backBtn?.addEventListener('click', () => closeGate(false));
   
-  // Click on gate background (not on buttons) also closes instantly
-  gate.addEventListener('click', (e) => {
-    // Only close if clicking the gate container itself or non-interactive areas
-    if (e.target === gate || e.target.classList.contains('gate-label') || 
-        e.target.classList.contains('gate-description') || e.target.tagName === 'H2' ||
+  // Click on modal background (not on buttons) also closes instantly
+  modal.addEventListener('click', (e) => {
+    // Only close if clicking the modal container itself or non-interactive areas
+    if (e.target === modal || e.target.classList.contains('modal-label') || 
+        e.target.classList.contains('modal-description') || e.target.tagName === 'H2' ||
         e.target.tagName === 'P') {
-      closeGate(true);
+      closeGate(false);
     }
   });
 
   // Copy interaction
   const onCopy = async (e) => {
     const ok = await copyToClipboard(CONTACT_EMAIL);
+    
+    if (ok) {
+      // Trigger pulse animation
+      emailRowBtn.classList.remove('pulse-energy');
+      void emailRowBtn.offsetWidth; // Force reflow
+      emailRowBtn.classList.add('pulse-energy');
+      
+      // Cleanup class after animation
+      setTimeout(() => {
+        emailRowBtn.classList.remove('pulse-energy');
+      }, 800);
+    }
+    
     setCopyUI(ok ? 'copied' : 'error');
   };
   emailRowBtn?.addEventListener('click', onCopy);
 
-  // Escape closes (consistent with other gates)
+  // Escape closes (consistent with other modals)
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isOpen) closeGate();
   });
   
-  // Close when overlay is clicked (dismiss event from gate-overlay.js)
-  document.addEventListener('gate-overlay-dismiss', (e) => {
+  // Close when overlay is clicked (dismiss event from modal-overlay.js)
+  document.addEventListener('modal-overlay-dismiss', (e) => {
     if (isOpen) {
       const instant = e.detail?.instant || false;
       closeGate(instant);
     }
   });
 
-  // Allow other pages (e.g. portfolio) to route via index and auto-open Contact gate.
+  // Allow other pages (e.g. portfolio) to route via index and auto-open Contact modal.
   try {
-    if (sessionStorage.getItem('abs_open_contact_gate')) {
-      sessionStorage.removeItem('abs_open_contact_gate');
+    if (sessionStorage.getItem('abs_open_contact_modal')) {
+      sessionStorage.removeItem('abs_open_contact_modal');
       // Defer one frame so other init steps (overlay, layout) are fully settled.
       requestAnimationFrame(() => openGate());
     }

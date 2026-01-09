@@ -43,10 +43,32 @@ function applyLegend() {
   const items = getText('legend.items', null);
   if (!Array.isArray(items) || !nav) return;
 
-  const labelSpans = nav.querySelectorAll('.legend__item span');
-  for (let i = 0; i < labelSpans.length && i < items.length; i++) {
+  const itemEls = nav.querySelectorAll('.legend__item');
+  for (let i = 0; i < itemEls.length && i < items.length; i++) {
+    const itemEl = itemEls[i];
     const label = items?.[i]?.label;
-    if (label) labelSpans[i].textContent = label;
+    const tooltip = items?.[i]?.tooltip;
+    const colorClass = items?.[i]?.colorClass;
+
+    const labelSpan = itemEl.querySelector('span');
+    if (label && labelSpan) labelSpan.textContent = label;
+
+    // Tooltips are driven by the data-tooltip attribute (used by legend-interactive.js).
+    if (tooltip) itemEl.setAttribute('data-tooltip', tooltip);
+
+    // Keep the legend dot color in sync with config (fallback HTML should still match).
+    if (colorClass) {
+      const dot = itemEl.querySelector('.circle');
+      if (dot) {
+        // Remove any existing bg-ball-* classes, then apply the configured one.
+        const next = [];
+        for (const cls of String(dot.className || '').split(/\s+/).filter(Boolean)) {
+          if (!cls.startsWith('bg-ball-')) next.push(cls);
+        }
+        next.push(colorClass);
+        dot.className = next.join(' ');
+      }
+    }
   }
 }
 
@@ -85,7 +107,7 @@ function applyPhilosophy() {
 }
 
 function applyFooter() {
-  const nav = document.getElementById('footer-links-container');
+  const nav = document.getElementById('main-links');
   setAttr(nav, 'aria-label', getText('footer.navAriaLabel', ''));
 
   const links = getText('footer.links', null);

@@ -8,7 +8,7 @@ import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from '../core/constants.js'
 import { createWaterRipple } from '../modes/water.js';
 import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
 import { notifyMouseTrailMove } from '../visual/mouse-trail.js';
-import { isOverlayActive } from '../ui/gate-overlay.js';
+import { isOverlayActive } from '../ui/modal-overlay.js';
 import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
 
 // Mouse velocity tracking for water ripples

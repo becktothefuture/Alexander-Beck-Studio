@@ -231,6 +231,11 @@ async function buildProduction() {
     const publicImagesDir = path.join(CONFIG.publicDestination, 'images');
     if (fs.existsSync(sourceImagesDir)) copyDir(sourceImagesDir, publicImagesDir);
 
+    // Copy modules/ for CV page (not bundled yet)
+    const sourceModulesDir = path.join('source', 'modules');
+    const publicModulesDir = path.join(CONFIG.publicDestination, 'modules');
+    if (fs.existsSync(sourceModulesDir)) copyDir(sourceModulesDir, publicModulesDir);
+
     // Copy standalone HTML pages from source/ (cv.html, portfolio.html, etc.)
     const standalonePages = ['cv.html', 'portfolio.html'];
     for (const page of standalonePages) {
@@ -404,6 +409,32 @@ async function buildProduction() {
         fs.writeFileSync(tokensDstCfg, tokensOut);
       }
       console.log(`✅ ${isProd ? 'Minified' : 'Copied'} tokens snapshot (${isProd ? 'minified' : 'unminified'})`);
+    }
+
+    // 2c.6 Generate CV images list (scans cv-images folder at build time)
+    const cvImagesDir = path.join('source', 'images', 'cv-images');
+    const cvImagesConfigDst = path.join(CONFIG.publicDestination, 'config', 'cv-images.json');
+    if (fs.existsSync(cvImagesDir)) {
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+      const files = fs.readdirSync(cvImagesDir);
+      const imageFiles = files.filter((file) => {
+        const ext = path.extname(file).toLowerCase();
+        return imageExtensions.includes(ext);
+      }).sort();
+      
+      const cvImagesData = {
+        folder: 'images/cv-images/',
+        images: imageFiles,
+        count: imageFiles.length,
+        generated: new Date().toISOString(),
+      };
+      
+      const cvImagesOut = isProd ? JSON.stringify(cvImagesData) : JSON.stringify(cvImagesData, null, 2);
+      if (!fs.existsSync(path.dirname(cvImagesConfigDst))) {
+        fs.mkdirSync(path.dirname(cvImagesConfigDst), { recursive: true });
+      }
+      fs.writeFileSync(cvImagesConfigDst, cvImagesOut);
+      console.log(`✅ Generated CV images list (${imageFiles.length} image${imageFiles.length !== 1 ? 's' : ''})`);
     }
 
     // 2d. Run Rollup via dynamic import to avoid ESM/CJS friction
@@ -693,11 +724,25 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
     fs.writeFileSync(publicIndexPath, html);
     console.log('✅ Injected modular assets into public/index.html');
 
-    // 2g. Inject config frame vars + theme-color into public/cv.html (standalone copy)
+    // 2g. Inject config frame vars + theme-color + production CSS into public/cv.html
     const publicCvPath = path.join(CONFIG.publicDestination, 'cv.html');
     if (fs.existsSync(publicCvPath)) {
       try {
         let cvHtml = fs.readFileSync(publicCvPath, 'utf-8');
+        
+        // Strip unbundled dev CSS links (will be replaced with bundled CSS)
+        cvHtml = cvHtml
+          .replace(/^\s*<!-- Dev Modules CSS \(unbundled\).*-->\s*$/gm, '')
+          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/tokens\.css">\s*$/gm, '')
+          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/normalize\.css">\s*$/gm, '')
+          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/main\.css">\s*$/gm, '');
+        
+        // Inject production CSS bundle
+        const bundledCvCssTag = `<link rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
+        if (!cvHtml.includes('href="css/bouncy-balls.css')) {
+          cvHtml = cvHtml.replace('</head>', `${bundledCvCssTag}\n</head>`);
+        }
+        
         // Ensure theme-color tags match tokens (remove any existing ones first).
         cvHtml = cvHtml.replace(/^\s*<meta\s+name="theme-color"[^>]*>\s*$/gm, '');
         cvHtml = cvHtml.replace('</head>', `${themeColorTags}\n</head>`);
@@ -706,9 +751,9 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
           cvHtml = cvHtml.replace('<head>', `<head>\n${frameVarsStyle}`);
         }
         fs.writeFileSync(publicCvPath, cvHtml);
-        console.log('✅ Injected config frame vars into public/cv.html');
+        console.log('✅ Injected production CSS + frame vars into public/cv.html');
       } catch (e) {
-        console.warn('⚠️ Could not inject frame vars into cv.html:', e);
+        console.warn('⚠️ Could not process cv.html:', e);
       }
     }
 

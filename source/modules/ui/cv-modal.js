@@ -1,9 +1,9 @@
 /**
- * CV Gate Controller
- * Handles the password protection UI for the CV download.
+ * CV Modal Controller
+ * Handles the password-gating UI for the CV download.
  */
 
-import { showOverlay, hideOverlay, mountGateIntoOverlay, unmountGateFromOverlay } from './gate-overlay.js';
+import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';
 import { getText } from '../utils/text-loader.js';
 
 /**
@@ -40,43 +40,46 @@ function triggerFlash(flashEl, type) {
     }, duration);
 }
 
-export function initCVGate() {
-    const trigger = document.getElementById('cv-gate-trigger');
+export function initCVModal() {
+    const trigger = document.getElementById('cv-modal-trigger');
     const logo = document.getElementById('brand-logo');
-    const gate = document.getElementById('cv-gate');
-    const portfolioGate = document.getElementById('portfolio-gate'); // Get portfolio gate to check/close if open
-    const contactGate = document.getElementById('contact-gate'); // Get contact gate to check/close if open
+    const modal = document.getElementById('cv-modal');
+    const portfolioGate = document.getElementById('portfolio-modal'); // Get portfolio modal to check/close if open
+    const contactGate = document.getElementById('contact-modal'); // Get contact modal to check/close if open
     const inputs = Array.from(document.querySelectorAll('.cv-digit'));
     const pageFlash = document.getElementById('page-flash');
-    const gateLabel = document.getElementById('cv-gate-label');
+    const modalLabel = document.getElementById('cv-modal-label');
     
     // Correct Code
     const CODE = '1111';
     
-    if (!trigger || !logo || !gate || inputs.length === 0) {
+    if (!trigger || !logo || !modal || inputs.length === 0) {
         console.warn('CV Gate: Missing required elements');
         return;
     }
+
+    if (modal.dataset.modalInitialized === 'true') return;
+    modal.dataset.modalInitialized = 'true';
     
-    const BACK_TEXT = getText('gates.common.backText', 'BACK');
-    const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
-    const TITLE = getText('gates.cv.title', 'Bio/CV');
+    const BACK_TEXT = getText('modals.common.backText', 'BACK');
+    const BACK_ARIA = getText('modals.common.backAriaLabel', 'Back');
+    const TITLE = getText('modals.cv.title', 'Bio/CV');
     const DESC = getText(
-        'gates.cv.description',
+        'modals.cv.description',
         "Because spam bots don't deserve nice things—and neither do recruiters who don't read portfolios. This keeps my inbox slightly more civilized."
     );
 
     // Set label text if element exists
-    if (gateLabel) {
-        gateLabel.innerHTML = `
-            <div class="gate-nav">
-                <button type="button" class="gate-back abs-icon-btn" data-gate-back aria-label="${BACK_ARIA}">
+    if (modalLabel) {
+        modalLabel.innerHTML = `
+            <div class="modal-nav">
+                <button type="button" class="gate-back abs-icon-btn" data-modal-back aria-label="${BACK_ARIA}">
                     <i class="ti ti-arrow-left" aria-hidden="true"></i>
                     <span>${BACK_TEXT}</span>
                 </button>
             </div>
-            <h2 class="gate-title">${TITLE}</h2>
-            <p class="gate-description">${DESC}</p>
+            <h2 class="modal-title">${TITLE}</h2>
+            <p class="modal-description">${DESC}</p>
         `;
     }
     
@@ -85,10 +88,11 @@ export function initCVGate() {
 
     // State
     let isOpen = false;
+    let lastOpenTime = 0;
 
-    // Helper to check if any gate is currently active
+    // Helper to check if any modal is currently active
     const isAnyGateActive = () => {
-        return (gate && gate.classList.contains('active')) ||
+        return (modal && modal.classList.contains('active')) ||
                (portfolioGate && portfolioGate.classList.contains('active')) ||
                (contactGate && contactGate.classList.contains('active'));
     };
@@ -98,32 +102,33 @@ export function initCVGate() {
     const openGate = (e) => {
         e?.preventDefault?.();
         
-        // Check if any other gate is currently open
+        // Check if any other modal is currently open
         const wasAnyGateActive = isAnyGateActive();
         
-        // Close portfolio gate if it's open
+        // Close portfolio modal if it's open
         if (portfolioGate && portfolioGate.classList.contains('active')) {
             portfolioGate.classList.remove('active');
             portfolioGate.setAttribute('aria-hidden', 'true');
             setTimeout(() => {
                 portfolioGate.classList.add('hidden');
-                unmountGateFromOverlay(portfolioGate);
+                unmountModalFromOverlay(portfolioGate);
             }, 400);
         }
 
-        // Close contact gate if it's open (keep gates mutually exclusive)
+        // Close contact modal if it's open (keep modals mutually exclusive)
         if (contactGate && contactGate.classList.contains('active')) {
             contactGate.classList.remove('active');
             contactGate.setAttribute('aria-hidden', 'true');
             setTimeout(() => {
                 contactGate.classList.add('hidden');
-                unmountGateFromOverlay(contactGate);
+                unmountModalFromOverlay(contactGate);
             }, 400);
         }
         
         isOpen = true;
+        lastOpenTime = Date.now();
         
-        // Show overlay only if no gate was previously active
+        // Show overlay only if no modal was previously active
         if (!wasAnyGateActive) {
             showOverlay();
         }
@@ -131,21 +136,25 @@ export function initCVGate() {
         // Animate Logo Out (Up)
         logo.classList.add('fade-out-up');
 
-        // Modal: mount gate inside overlay flex container
-        mountGateIntoOverlay(gate);
+        // Defer modal DOM operations to next frame to avoid interrupting overlay's backdrop-filter transition
+        requestAnimationFrame(() => {
+            // Modal: mount modal inside overlay flex container
+            mountModalIntoOverlay(modal);
 
-        // Animate Gate In (Up)
-        gate.classList.remove('hidden');
-        gate.setAttribute('aria-hidden', 'false');
-        // Force reflow
-        void gate.offsetWidth; 
-        gate.classList.add('active');
-        
-        // Focus first input
-        inputs[0].focus();
+            // Animate Modal In (Up)
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            // Force reflow
+            void modal.offsetWidth; 
+            modal.classList.add('active');
+            
+            // Focus first input
+            inputs[0].focus();
+        });
     };
 
     const closeGate = (instant = false) => {
+        // Close must be responsive immediately (Back/background/Escape).
         isOpen = false;
         
         // Clear inputs
@@ -153,58 +162,58 @@ export function initCVGate() {
         
         if (instant) {
             // Instant close: disable transition, remove active, then re-enable
-            gate.style.transition = 'none';
+            modal.style.transition = 'none';
             logo.style.transition = 'none';
             
-        gate.classList.remove('active');
-        gate.setAttribute('aria-hidden', 'true');
-            gate.classList.add('hidden');
-            unmountGateFromOverlay(gate);
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+            modal.classList.add('hidden');
+            unmountModalFromOverlay(modal);
             logo.classList.remove('fade-out-up');
             
-            // Hide overlay immediately if no other gate is active
+            // Hide overlay immediately if no other modal is active
             if (!isAnyGateActive()) {
                 hideOverlay();
             }
             
             // Re-enable transitions after a frame
             requestAnimationFrame(() => {
-                gate.style.removeProperty('transition');
+                modal.style.removeProperty('transition');
                 logo.style.removeProperty('transition');
             });
         } else {
             // Smooth close: use CSS transition
-            gate.classList.remove('active');
-            gate.setAttribute('aria-hidden', 'true');
-        logo.classList.remove('fade-out-up');
-        
-        setTimeout(() => {
-            if (!isOpen) {
-                gate.classList.add('hidden');
-                unmountGateFromOverlay(gate);
-            }
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            logo.classList.remove('fade-out-up');
             
-                // Hide overlay if no other gate is now active
-                if (!isAnyGateActive()) {
-                    hideOverlay();
+            // Hide overlay immediately to animate blur in parallel with content
+            if (!isAnyGateActive()) {
+                hideOverlay();
+            }
+        
+            setTimeout(() => {
+                if (!isOpen) {
+                    modal.classList.add('hidden');
+                    unmountModalFromOverlay(modal);
                 }
-        }, 400); // Match transition time
+            }, 1700); // Match transition time
         }
     };
 
-    // Back button closes gate (matches new UI pattern)
+    // Back button closes modal (matches new UI pattern)
     try {
-        const backBtn = gateLabel?.querySelector?.('[data-gate-back]');
-        if (backBtn) backBtn.addEventListener('click', closeGate);
+        const backBtn = modalLabel?.querySelector?.('[data-modal-back]');
+        if (backBtn) backBtn.addEventListener('click', () => closeGate(false));
     } catch (e) {}
     
-    // Click on gate background (not on inputs) also closes instantly
-    gate.addEventListener('click', (e) => {
-        // Only close if clicking the gate container itself or non-interactive areas
-        if (e.target === gate || e.target.classList.contains('gate-label') || 
-            e.target.classList.contains('gate-description') || e.target.tagName === 'H2' ||
+    // Click on modal background (not on inputs) also closes instantly
+    modal.addEventListener('click', (e) => {
+        // Only close if clicking the modal container itself or non-interactive areas
+        if (e.target === modal || e.target.classList.contains('modal-label') || 
+            e.target.classList.contains('modal-description') || e.target.tagName === 'H2' ||
             e.target.tagName === 'P') {
-            closeGate(true);
+            closeGate(false);
         }
     });
 
@@ -213,11 +222,26 @@ export function initCVGate() {
         
         if (enteredCode.length === 4) {
             if (enteredCode === CODE) {
-                // Success - Green flash, then redirect
-                triggerFlash(flash, 'success');
+                // Success - Pulse on inputs container
+                const inputsContainer = document.querySelector('.cv-modal-inputs');
+                if (inputsContainer) {
+                    inputsContainer.classList.remove('pulse-energy');
+                    void inputsContainer.offsetWidth;
+                    inputsContainer.classList.add('pulse-energy');
+                    
+                    setTimeout(() => {
+                        inputsContainer.classList.remove('pulse-energy');
+                    }, 600);
+                }
+                
+                // Smooth page fade-out + redirect
                 setTimeout(() => {
-                    window.location.href = 'cv.html';
-                }, 500);
+                    document.body.classList.add('page-transitioning');
+                    setTimeout(() => {
+                        window.location.href = 'cv.html';
+                    }, 300); // Fade-out duration
+                }, 200); // Brief delay after pulse starts
+                
             } else {
                 // Failure - Red flash, clear inputs
                 triggerFlash(flash, 'error');
@@ -233,10 +257,10 @@ export function initCVGate() {
 
     trigger.addEventListener('click', openGate);
 
-    // Auto-open check (e.g. navigated from portfolio page)
+    // Auto-open check (e.g. navimodald from portfolio page)
     try {
-        if (sessionStorage.getItem('abs_open_cv_gate')) {
-            sessionStorage.removeItem('abs_open_cv_gate');
+        if (sessionStorage.getItem('abs_open_cv_modal')) {
+            sessionStorage.removeItem('abs_open_cv_modal');
             // Small delay to allow page init
             setTimeout(() => openGate(), 300);
         }
@@ -249,8 +273,8 @@ export function initCVGate() {
         }
     });
     
-    // Close when overlay is clicked (dismiss event from gate-overlay.js)
-    document.addEventListener('gate-overlay-dismiss', (e) => {
+    // Close when overlay is clicked (dismiss event from modal-overlay.js)
+    document.addEventListener('modal-overlay-dismiss', (e) => {
         if (isOpen) {
             const instant = e.detail?.instant || false;
             closeGate(instant);
@@ -264,7 +288,7 @@ export function initCVGate() {
                     if (index > 0) {
                         inputs[index - 1].focus();
                     } else {
-                        // Backspace on empty first input closes gate
+                        // Backspace on empty first input closes modal
                         closeGate();
                     }
                 }
@@ -311,6 +335,3 @@ export function initCVGate() {
         });
     });
 }
-
-
-
