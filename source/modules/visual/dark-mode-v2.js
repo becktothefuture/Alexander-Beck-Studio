@@ -102,12 +102,6 @@ function syncCssVarsFromConfig() {
   }
 
   // Edge labels (vertical chapter/copyright)
-  if (g?.edgeLabelColorLight) {
-    root.style.setProperty('--edge-label-color-light', g.edgeLabelColorLight);
-  }
-  if (g?.edgeLabelColorDark) {
-    root.style.setProperty('--edge-label-color-dark', g.edgeLabelColorDark);
-  }
   if (Number.isFinite(g?.edgeLabelInsetAdjustPx)) {
     root.style.setProperty('--edge-label-inset-adjust', `${g.edgeLabelInsetAdjustPx}px`);
   }
@@ -117,21 +111,7 @@ function syncCssVarsFromConfig() {
     root.style.setProperty('--link-hover-color', g.linkHoverColor);
   }
   
-  // Logo colors
-  if (g?.logoColorLight) {
-    root.style.setProperty('--logo-color-light', g.logoColorLight);
-  }
-  if (g?.logoColorDark) {
-    root.style.setProperty('--logo-color-dark', g.logoColorDark);
-  }
-  
-  // Portfolio logo colors (separate from index)
-  if (g?.portfolioLogoColorLight) {
-    root.style.setProperty('--portfolio-logo-color-light', g.portfolioLogoColorLight);
-  }
-  if (g?.portfolioLogoColorDark) {
-    root.style.setProperty('--portfolio-logo-color-dark', g.portfolioLogoColorDark);
-  }
+  // Logo + edge label colors are now derived from the core text tokens in CSS.
 }
 
 /**

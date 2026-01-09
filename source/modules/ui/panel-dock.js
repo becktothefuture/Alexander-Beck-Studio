@@ -606,14 +606,8 @@ async function saveAllConfigToFile() {
     config.textColorLightMuted = g.textColorLightMuted;
     config.textColorDark = g.textColorDark;
     config.textColorDarkMuted = g.textColorDarkMuted;
-    config.edgeLabelColorLight = g.edgeLabelColorLight;
-    config.edgeLabelColorDark = g.edgeLabelColorDark;
     config.linkHoverColor = g.linkHoverColor;
-    config.logoColorLight = g.logoColorLight;
-    config.logoColorDark = g.logoColorDark;
     config.topLogoWidthVw = g.topLogoWidthVw;
-    config.portfolioLogoColorLight = g.portfolioLogoColorLight;
-    config.portfolioLogoColorDark = g.portfolioLogoColorDark;
     
     config.colorDistribution = g.colorDistribution;
     config.frameColorLight = g.frameColorLight;

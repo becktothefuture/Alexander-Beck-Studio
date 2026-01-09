@@ -119,8 +119,8 @@ h1 {
  * Address styling not present in IE 8/9.
  */
 mark {
-  background: var(--abs-accent-gold);
-  color: var(--abs-neutral-1000);
+  background: var(--ball-8);
+  color: #000000;
 }
 /**
  * Address inconsistent and variable font size in all browsers.

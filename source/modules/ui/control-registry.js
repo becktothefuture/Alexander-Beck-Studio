@@ -1491,32 +1491,6 @@ export const CONTROL_SECTIONS = {
         }
       },
 
-      // ─── EDGE LABELS (CHAPTER + COPYRIGHT) ─────────────────────────────────
-      { type: 'divider', label: 'Edge Labels' },
-      {
-        id: 'edgeLabelColorLight',
-        label: 'Light Mode',
-        stateKey: 'edgeLabelColorLight',
-        type: 'color',
-        default: '#2f2f2f',
-        hint: 'Color for the vertical edge labels in light mode',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--edge-label-color-light', val);
-        }
-      },
-      {
-        id: 'edgeLabelColorDark',
-        label: 'Dark Mode',
-        stateKey: 'edgeLabelColorDark',
-        type: 'color',
-        default: '#b3b3b3',
-        hint: 'Color for the vertical edge labels in dark mode',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--edge-label-color-dark', val);
-        }
-      },
-      
-      
       // ─── LINKS ───────────────────────────────────────────────────────────
       { type: 'divider', label: 'Links' },
       {
@@ -1535,30 +1509,6 @@ export const CONTROL_SECTIONS = {
       // ─── LOGO ────────────────────────────────────────────────────────────
       { type: 'divider', label: 'Logo' },
       {
-        id: 'logoColorLight',
-        label: 'Light Mode',
-        stateKey: 'logoColorLight',
-        type: 'color',
-        default: '#161616',
-        hint: 'Logo color in light mode',
-        onChange: (_g, val) => {
-          // Only set CSS variable - let CSS handle mode switching
-          document.documentElement.style.setProperty('--logo-color-light', val);
-        }
-      },
-      {
-        id: 'logoColorDark',
-        label: 'Dark Mode',
-        stateKey: 'logoColorDark',
-        type: 'color',
-        default: '#d5d5d5',
-        hint: 'Logo color in dark mode',
-        onChange: (_g, val) => {
-          // Only set CSS variable - let CSS handle mode switching
-          document.documentElement.style.setProperty('--logo-color-dark', val);
-        }
-      },
-      {
         id: 'topLogoWidthVw',
         label: 'Logo Size',
         stateKey: 'topLogoWidthVw',
@@ -1572,29 +1522,6 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--top-logo-width-vw', String(val));
         }
       },
-      { type: 'divider', label: 'Portfolio Logo' },
-      {
-        id: 'portfolioLogoColorLight',
-        label: 'Light Mode',
-        stateKey: 'portfolioLogoColorLight',
-        type: 'color',
-        default: '#161616',
-        hint: 'Portfolio logo color in light mode (separate from index)',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--portfolio-logo-color-light', val);
-        }
-      },
-      {
-        id: 'portfolioLogoColorDark',
-        label: 'Dark Mode',
-        stateKey: 'portfolioLogoColorDark',
-        type: 'color',
-        default: '#d5d5d5',
-        hint: 'Portfolio logo color in dark mode (separate from index)',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--portfolio-logo-color-dark', val);
-        }
-      }
     ]
   },
 

@@ -84,7 +84,7 @@ export function setInitialBrowserDefaultState() {
   const isDarkMode = html.classList.contains('dark-mode') || hasBodyDark || g.isDarkMode;
 
   // Theme-aware wall colors with safe fallbacks (never white)
-  // Use #f5f5f5 for light (matches --abs-neutral-100) and #0a0a0a for dark (matches --abs-neutral-950)
+  // Use #f5f5f5 for light and #0a0a0a for dark (safe fallbacks; never white)
   const wallColorLight = g.frameColorLight || readTokenVar('--wall-color-light', '#f5f5f5');
   const wallColorDark = g.frameColorDark || readTokenVar('--wall-color-dark', '#0a0a0a');
 

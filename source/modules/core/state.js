@@ -589,20 +589,13 @@ const state = {
   textColorLightMuted: '#2f2f2f',     // Secondary/muted text (light mode)
   textColorDark: '#7a8fa3',  // Primary text (dark mode) — harmonized blue-gray to match dark blue/green background
   textColorDarkMuted: '#9db0c4', // Secondary/muted text (dark mode) — harmonized light blue-gray
-  // Edge labels (vertical chapter/copyright) — independently tunable from body text
-  edgeLabelColorLight: '#2f2f2f',
-  edgeLabelColorDark: '#8a9ba8', // Harmonized blue-gray for edge labels
+  // Edge labels now derive from `--text-muted` in CSS (not independently tunable).
   edgeLabelInsetAdjustPx: 0,
   
   // Link Colors
   linkHoverColor: '#ff4013',          // Link hover accent (shared)
-  
-  // Logo Colors
-  logoColorLight: '#161616',          // Logo color (light mode)
-  logoColorDark: '#b8c5d3',           // Logo color (dark mode) — harmonized blue-gray to match dark blue/green background
-  // Portfolio Logo Colors (separate from index)
-  portfolioLogoColorLight: '#161616', // Portfolio logo color (light mode)
-  portfolioLogoColorDark: '#374862',  // Portfolio logo color (dark mode) — darker blue-gray for portfolio
+
+  // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)
   topLogoWidthVw: 35,                 // Sets `--top-logo-width-vw` (clamped by CSS min/max tokens)
   homeMainLinksBelowLogoPx: 40,       // Sets `--home-main-links-below-logo-px` (index only)
@@ -1294,10 +1287,6 @@ export function initState(config) {
   else state.textColorDark = readTokenVar('--text-color-dark', state.textColorDark);
   if (config.textColorDarkMuted !== undefined) state.textColorDarkMuted = config.textColorDarkMuted;
   else state.textColorDarkMuted = readTokenVar('--text-color-dark-muted', state.textColorDarkMuted);
-  if (config.edgeLabelColorLight !== undefined) state.edgeLabelColorLight = config.edgeLabelColorLight;
-  else state.edgeLabelColorLight = readTokenVar('--edge-label-color-light', state.edgeLabelColorLight);
-  if (config.edgeLabelColorDark !== undefined) state.edgeLabelColorDark = config.edgeLabelColorDark;
-  else state.edgeLabelColorDark = readTokenVar('--edge-label-color-dark', state.edgeLabelColorDark);
   if (config.edgeLabelInsetAdjustPx !== undefined) {
     state.edgeLabelInsetAdjustPx = clampNumber(config.edgeLabelInsetAdjustPx, -500, 500, state.edgeLabelInsetAdjustPx);
   }
@@ -1377,18 +1366,8 @@ export function initState(config) {
     state.hoverSnapUndershoot = clampNumber(config.hoverSnapUndershoot, 0.7, 1.0, state.hoverSnapUndershoot);
   }
   
-  // Logo colors
-  if (config.logoColorLight !== undefined) state.logoColorLight = config.logoColorLight;
-  else state.logoColorLight = readTokenVar('--logo-color-light', state.logoColorLight);
-  if (config.logoColorDark !== undefined) state.logoColorDark = config.logoColorDark;
-  else state.logoColorDark = readTokenVar('--logo-color-dark', state.logoColorDark);
-  
-  // Portfolio logo colors (separate from index)
-  if (config.portfolioLogoColorLight !== undefined) state.portfolioLogoColorLight = config.portfolioLogoColorLight;
-  else state.portfolioLogoColorLight = readTokenVar('--portfolio-logo-color-light', state.portfolioLogoColorLight);
-  if (config.portfolioLogoColorDark !== undefined) state.portfolioLogoColorDark = config.portfolioLogoColorDark;
-  else state.portfolioLogoColorDark = readTokenVar('--portfolio-logo-color-dark', state.portfolioLogoColorDark);
-  
+  // Logo colors derive from CSS (`--text-primary`) now; no config wiring needed.
+
   // Noise texture opacity (visual overlay)
   if (config.noiseBackOpacity !== undefined) state.noiseBackOpacity = clampNumber(config.noiseBackOpacity, 0, 0.3, state.noiseBackOpacity);
   if (config.noiseFrontOpacity !== undefined) state.noiseFrontOpacity = clampNumber(config.noiseFrontOpacity, 0, 0.3, state.noiseFrontOpacity);

@@ -215,7 +215,7 @@ body.dark-mode .content-background-layer {
   text-transform: uppercase;
   white-space: nowrap;
 
-  color: var(--edge-label-color-light);
+  color: var(--text-muted);
   opacity: var(--edge-label-opacity);
 
   writing-mode: vertical-rl;
@@ -225,7 +225,7 @@ body.dark-mode .content-background-layer {
 }
 
 body.dark-mode .edge-copyright__text {
-  color: var(--edge-label-color-dark);
+  color: var(--text-muted);
   opacity: var(--edge-label-opacity);
 }
 
@@ -269,7 +269,7 @@ body.dark-mode .edge-copyright__text {
   text-transform: uppercase;
   white-space: nowrap;
 
-  color: var(--edge-label-color-light);
+  color: var(--text-muted);
   opacity: var(--edge-label-opacity);
 
   writing-mode: vertical-lr;
@@ -279,7 +279,7 @@ body.dark-mode .edge-copyright__text {
 }
 
 body.dark-mode .edge-chapter__text {
-  color: var(--edge-label-color-dark);
+  color: var(--text-muted);
   opacity: var(--edge-label-opacity);
 }
 
@@ -425,7 +425,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   background: radial-gradient(
     ellipse 100% 100% at 50% 50%,
     transparent 40%,
-    var(--abs-surface-glass-ghost) 100%
+    rgba(var(--abs-rgb-white), 0.12) 100%
   );
 }
 
@@ -889,7 +889,7 @@ body:not(.dark-mode) #header-cv-link {
   border: none;
   font-family: inherit;
   font-size: inherit;
-  color: var(--abs-neutral-1000); /* Pure black for maximum visibility */
+  color: #000000; /* Pure black for maximum visibility */
   opacity: 1; /* Full strength */
   cursor: none; /* Maintain custom cursor experience */
   text-align: center;
@@ -1170,7 +1170,7 @@ button.abs-meta-btn,
    ───────────────────────────────────────────────────────────────────────────── */
 /* Note: #brand-logo is separate from .fade-content structure to maintain z-index: 3 */
 #brand-logo {
-  color: var(--logo-color-light);
+  color: var(--text-primary);
   position: fixed;
   top: 50%;
   left: 50%;
@@ -1202,7 +1202,7 @@ button.abs-meta-btn,
 }
 
 body.dark-mode #brand-logo {
-  color: var(--logo-color-dark);
+  color: var(--text-primary);
 }
 
 #brand-logo .brand-logo-svg {
@@ -1827,8 +1827,8 @@ body.dark-mode #modal-overlay.active .abs-icon-btn:hover {
   display: block;
   width: 64px;
   height: 64px;
-  background: var(--abs-surface-glass-medium); /* Transparent but visible */
-  border: 2px solid var(--abs-stroke-strong-inverse); /* Visible border (increased thickness for larger size) */
+  background: rgba(var(--abs-rgb-white), 0.5); /* Transparent but visible */
+  border: 2px solid rgba(var(--abs-rgb-white), 0.34); /* Visible border (increased thickness for larger size) */
   transform: translate(-50%, -50%) scale(1);
   opacity: 1;
 }
@@ -1847,7 +1847,7 @@ body.dark-mode #modal-overlay.active .abs-icon-btn:hover {
 
 /* Story-specific legend color: Creative Technology = darker grey */
 .circle.bg-story-grey { background-color: var(--text-color-light-muted); }
-body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass-soft); }
+body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-white), 0.18); }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    GATE DEPTH EFFECT
@@ -2067,8 +2067,8 @@ body.dark-mode .circle.bg-story-grey { background-color: var(--abs-surface-glass
 
   border: 1px solid var(--abs-stroke-medium);
   border-radius: var(--abs-radius-cta);
-  background: var(--abs-surface-contrast);
-  background-color: var(--abs-surface-contrast);
+  background: #ffffff;
+  background-color: #ffffff;
   -webkit-tap-highlight-color: transparent;
   overflow: visible; /* CHANGED: was hidden - allows pulse to expand */
   position: relative;
@@ -2131,8 +2131,8 @@ body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focu
 
 .contact-email-row:not(.pulse-energy):hover {
   /* Hover: high-contrast foreground + stronger outline + tinted background (theme-aware). */
-  color: var(--text-strong);
-  border-color: var(--abs-stroke-strong);
+  color: var(--text-primary);
+  border-color: var(--abs-stroke-medium);
   background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-light), transparent calc(100% - var(--abs-hover-intensity-light)));
   background-color: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-light), transparent calc(100% - var(--abs-hover-intensity-light)));
   /* Avoid hover-only shadow spreads that can trigger subpixel raster differences. */
@@ -2148,7 +2148,7 @@ body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focu
 .contact-email-row:focus-visible,
 .contact-email-row:focus-within {
   outline: none;
-  border-color: var(--abs-stroke-strong);
+  border-color: var(--abs-stroke-medium);
   box-shadow: none;
 }
 
@@ -2192,7 +2192,7 @@ body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focu
   justify-content: center;
   appearance: none;
   border: 0;
-  border-left: 1px solid var(--abs-stroke-soft);
+  border-left: 1px solid rgba(var(--abs-rgb-black), 0.12);
   background: transparent;
   padding: var(--modal-pad-md-y) var(--modal-pad-md-x);
   color: inherit;
@@ -2207,7 +2207,7 @@ body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focu
 /* (Intentionally no “copied” border override; click pulse handles feedback.) */
 
 .contact-email-row.is-error {
-  border-color: var(--abs-state-error-strong);
+  border-color: rgba(var(--color-error-rgb), 0.45);
 }
 
 /* Energy pulse pseudo-element - DISABLED (we keep only color activation now) */
@@ -2235,9 +2235,9 @@ body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focu
 }
 
 body.dark-mode .contact-email-row {
-  border-color: var(--abs-stroke-strong-inverse);
-  background: var(--abs-surface-contrast-dark);
-  background-color: var(--abs-surface-contrast-dark);
+  border-color: rgba(var(--abs-rgb-white), 0.34);
+  background: #161616;
+  background-color: #161616;
   color: var(--text-quiet);
 }
 
@@ -2254,8 +2254,8 @@ body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-e
 }
 
 body.dark-mode .contact-email-row:not(.pulse-energy):hover {
-  color: var(--text-strong);
-  border-color: var(--abs-stroke-strong-inverse);
+  color: var(--text-primary);
+  border-color: rgba(var(--abs-rgb-white), 0.34);
   background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-dark), transparent calc(100% - var(--abs-hover-intensity-dark)));
   background-color: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-dark), transparent calc(100% - var(--abs-hover-intensity-dark)));
   box-shadow: none;
@@ -2345,8 +2345,8 @@ body.dark-mode .contact-email-copy {
   text-align: center;
   border: 2px solid var(--abs-stroke-medium);
   border-radius: var(--abs-radius-input);
-  background: var(--abs-surface-glass-medium);
-  background-color: var(--abs-surface-glass-medium);
+  background: rgba(var(--abs-rgb-white), 0.5);
+  background-color: rgba(var(--abs-rgb-white), 0.5);
   color: var(--text-input);
   transition: border-color 0.2s var(--ease-gate), background-color 0.2s var(--ease-gate), transform 0.15s var(--ease-gate);
   caret-color: var(--text-input);
@@ -2364,8 +2364,8 @@ body.dark-mode .contact-email-copy {
 
 .cv-digit:focus,
 .portfolio-digit:focus {
-  border-color: var(--abs-stroke-ghost);
-  background: var(--abs-surface-glass-medium);
+  border-color: rgba(var(--abs-rgb-black), 0.1);
+  background: rgba(var(--abs-rgb-white), 0.5);
   transform: none;
 }
 
@@ -2376,8 +2376,8 @@ body.dark-mode .contact-email-copy {
 
 body.dark-mode .cv-digit,
 body.dark-mode .portfolio-digit {
-  background: var(--abs-surface-glass-ghost);
-  border-color: var(--abs-stroke-medium-inverse);
+  background: rgba(var(--abs-rgb-white), 0.12);
+  border-color: var(--abs-stroke-medium);
   color: var(--text-input);
   caret-color: var(--text-input);
   box-shadow: none;
@@ -2385,8 +2385,8 @@ body.dark-mode .portfolio-digit {
 
 body.dark-mode .cv-digit:focus,
 body.dark-mode .portfolio-digit:focus {
-  border-color: var(--abs-stroke-medium-inverse);
-  background: var(--abs-surface-glass-ghost);
+  border-color: var(--abs-stroke-medium);
+  background: rgba(var(--abs-rgb-white), 0.12);
 }
 
 /* Dark-mode placeholders are token-driven via `--text-placeholder`. */
@@ -2427,7 +2427,7 @@ body.dark-mode .portfolio-digit:focus {
 }
 
 .page-flash--error {
-  background: var(--abs-overlay-error);
+  background: rgba(var(--color-error-rgb), 0.3);
   animation: flash-error 0.3s var(--ease-gate);
 }
 
@@ -2456,7 +2456,7 @@ body.dark-mode .portfolio-digit:focus {
 @keyframes contactPulseField {
   0% {
     color: rgba(var(--abs-energy-green-rgb), 1);
-    background-color: color-mix(in srgb, rgba(var(--abs-energy-green-rgb), 1) 30%, var(--abs-surface-contrast));
+    background-color: color-mix(in srgb, rgba(var(--abs-energy-green-rgb), 1) 30%, #ffffff);
     border-color: rgba(var(--abs-energy-green-rgb), 0.85);
     box-shadow:
       0 0 0 1px rgba(var(--abs-energy-green-rgb), 0.40),
@@ -2466,7 +2466,7 @@ body.dark-mode .portfolio-digit:focus {
   }
   100% {
     color: var(--text-quiet);
-    background-color: var(--abs-surface-contrast);
+    background-color: #ffffff;
     border-color: var(--abs-stroke-medium);
     box-shadow: none;
   }
@@ -2475,7 +2475,7 @@ body.dark-mode .portfolio-digit:focus {
 @keyframes contactPulseFieldDark {
   0% {
     color: rgba(var(--abs-energy-green-rgb), 1);
-    background-color: color-mix(in srgb, rgba(var(--abs-energy-green-rgb), 1) 34%, var(--abs-surface-contrast-dark));
+    background-color: color-mix(in srgb, rgba(var(--abs-energy-green-rgb), 1) 34%, #161616);
     border-color: rgba(var(--abs-energy-green-rgb), 0.75);
     box-shadow:
       0 0 0 1px rgba(var(--abs-energy-green-rgb), 0.34),
@@ -2485,8 +2485,8 @@ body.dark-mode .portfolio-digit:focus {
   }
   100% {
     color: var(--text-quiet);
-    background-color: var(--abs-surface-contrast-dark);
-    border-color: var(--abs-stroke-strong-inverse);
+    background-color: #161616;
+    border-color: rgba(var(--abs-rgb-white), 0.34);
     box-shadow: none;
   }
 }
@@ -2510,15 +2510,15 @@ body.dark-mode .portfolio-digit:focus {
 
 @keyframes energy-activate {
   0% {
-    background-color: var(--abs-surface-contrast);
+    background-color: #ffffff;
     border-color: var(--abs-stroke-medium);
   }
   10% {
-    background-color: color-mix(in srgb, var(--cursor-color) 20%, var(--abs-surface-contrast));
+    background-color: color-mix(in srgb, var(--cursor-color) 20%, #ffffff);
     border-color: var(--cursor-color);
   }
   100% {
-    background-color: var(--abs-surface-contrast);
+    background-color: #ffffff;
     border-color: var(--abs-stroke-medium);
   }
 }
@@ -2638,7 +2638,7 @@ body.dark-mode .modal-blur-layer.active {
 @supports not (backdrop-filter: blur(10px)) {
   #modal-blur-layer.active,
   .modal-blur-layer.active {
-    background-color: var(--abs-overlay-veil);
+    background-color: rgba(var(--abs-rgb-white), 0.5);
   }
 }
 
@@ -2703,7 +2703,7 @@ body.dark-mode .modal-blur-layer.active {
 
 @supports not (backdrop-filter: blur(10px)) {
   .modal-overlay.active {
-    background-color: var(--abs-overlay-veil);
+    background-color: rgba(var(--abs-rgb-white), 0.5);
   }
 }
 
@@ -2765,6 +2765,25 @@ body.cv-page button {
   cursor: pointer;
 }
 
+/* CV Page Paragraphs - Use muted text color */
+body.cv-page .cv-right p {
+  color: var(--text-muted);
+}
+
+/* CV Page Top Left - Match portfolio page styling for links */
+body.cv-page .ui-top-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+}
+
+/* CV page: reset negative margins on nav links to align tightly with back button */
+body.cv-page .ui-top-left #contact-email,
+body.cv-page .ui-top-left #portfolio-modal-trigger {
+  margin: 0;
+}
+
 /* Wall-only canvas: must NOT capture wheel/touch, or it will block scrolling. */
 body.cv-page #bravia-balls .cv-wall-canvas {
   position: absolute;
@@ -2805,7 +2824,6 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   min-height: 0;
   box-sizing: border-box;
   position: relative;
-  opacity: 1;
 }
 
 /* Left Area: Fixed/Pinned (Photo + Intro) */
@@ -2824,20 +2842,20 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   justify-content: flex-start;
   align-items: stretch;
   box-sizing: border-box;
-  opacity: 0;
 }
 
 .cv-left__inner {
   display: flex;
   flex-direction: column;
   gap: var(--cv-left-gap, clamp(1.5rem, 3vw, 2.5rem));
-  align-items: stretch;
-  justify-content: flex-start;
+  align-items: flex-start;
+  justify-content: center;
   width: 100%;
   padding: var(--cv-left-padding-top, clamp(6vh, 10vh, 15vh)) clamp(1.5rem, 3vw, 2.5rem) var(--cv-left-padding-bottom, clamp(6vh, 10vh, 15vh)) clamp(1.5rem, 3vw, 2.5rem);
   box-sizing: border-box;
   min-height: min-content;
   flex: 1 1 auto;
+  height: 100%;
 }
 
 /* Photo */
@@ -2846,11 +2864,12 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   aspect-ratio: var(--cv-photo-aspect-ratio, 0.75);
   border-radius: var(--cv-photo-border-radius, clamp(0.5rem, 1.2vw, 1rem));
   overflow: hidden;
-  background: var(--abs-surface-contrast);
+  background: #ffffff;
   align-self: stretch;
   flex-shrink: 0;
   box-sizing: border-box;
   position: relative;
+  height: 360px;
 }
 
 .cv-photo__image {
@@ -2952,7 +2971,7 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   top: 0;
   background: linear-gradient(
     to bottom,
-    var(--abs-surface-page) 0%,
+    var(--bg-light) 0%,
     transparent 100%
   );
 }
@@ -2962,7 +2981,7 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   bottom: 0;
   background: linear-gradient(
     to top,
-    var(--abs-surface-page) 0%,
+    var(--bg-light) 0%,
     transparent 100%
   );
 }
@@ -2971,7 +2990,7 @@ body.cv-page #bravia-balls .cv-wall-canvas {
 .dark-mode .cv-gradient-overlay--top {
   background: linear-gradient(
     to bottom,
-    var(--abs-surface-page-dark, #0a0a0a) 0%,
+    var(--bg-dark, #0a0a0a) 0%,
     transparent 100%
   );
 }
@@ -2979,7 +2998,7 @@ body.cv-page #bravia-balls .cv-wall-canvas {
 .dark-mode .cv-gradient-overlay--bottom {
   background: linear-gradient(
     to top,
-    var(--abs-surface-page-dark, #0a0a0a) 0%,
+    var(--bg-dark, #0a0a0a) 0%,
     transparent 100%
   );
 }
@@ -3026,7 +3045,7 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   width: clamp(3rem, 5vmin, 4rem);
   height: clamp(3rem, 5vmin, 4rem);
   border-radius: 50%;
-  background: var(--panel-background, var(--abs-surface-contrast));
+  background: var(--panel-background, #ffffff);
   border: 1px solid var(--panel-border, var(--abs-border-primary));
   color: var(--panel-foreground, var(--abs-fg-primary));
   font-size: clamp(1.2rem, 2vmin, 1.6rem);
