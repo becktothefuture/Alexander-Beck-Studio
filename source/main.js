@@ -707,11 +707,8 @@ window.addEventListener('unhandledrejection', (event) => {
         ['main-links', 'brand-logo'].forEach((id) => {
           const el = document.getElementById(id);
           if (el) {
-            el.style.removeProperty('opacity');
-            if (id === 'brand-logo') {
-              el.style.removeProperty('filter');
-            }
-            el.style.visibility = 'visible';
+            el.classList.remove('late-hidden', 'late-animating');
+            el.classList.add('late-visible');
           }
         });
         const blocker = document.getElementById('fade-blocking');
