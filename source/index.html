@@ -11,8 +11,9 @@
   </style>
   <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
   <!-- Values will be set dynamically from CSS wall-color tokens -->
-  <meta name="theme-color" content="#0a0a0a">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0a0a">
+  <!-- Initial fallback colors match wall-color tokens: light=#f5f5f5 (neutral-100), dark=#0a0a0a (neutral-950) -->
+  <meta name="theme-color" content="#f5f5f5">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
   <!-- CRITICAL: Dark mode detection BEFORE first paint to prevent white flash -->
   <script>
@@ -99,13 +100,48 @@
         // Re-read wall colors from CSS to ensure sync (wall color is single source of truth)
         const wallColorLight = getWallColorFromCSS(false) || fallbackWallLight;
         const wallColorDark = getWallColorFromCSS(true) || fallbackWallDark;
+        const currentColor = isDark ? wallColorDark : wallColorLight;
         
-        const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.content = isDark ? wallColorDark : wallColorLight;
-        const metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
-        if (metaLight) metaLight.content = wallColorLight;
-        const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
-        if (metaDark) metaDark.content = wallColorDark;
+        // Update primary theme-color meta tag (no media query - used as fallback)
+        let meta = document.querySelector('meta[name="theme-color"]:not([media])');
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.name = 'theme-color';
+          document.head.appendChild(meta);
+        }
+        meta.content = currentColor;
+        
+        // Safari iOS: Update media-query-specific meta tags for prefers-color-scheme
+        let metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
+        if (!metaLight) {
+          metaLight = document.createElement('meta');
+          metaLight.name = 'theme-color';
+          metaLight.media = '(prefers-color-scheme: light)';
+          document.head.appendChild(metaLight);
+        }
+        metaLight.content = wallColorLight;
+        
+        let metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
+        if (!metaDark) {
+          metaDark = document.createElement('meta');
+          metaDark.name = 'theme-color';
+          metaDark.media = '(prefers-color-scheme: dark)';
+          document.head.appendChild(metaDark);
+        }
+        metaDark.content = wallColorDark;
+        
+        // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style based on theme
+        // black-translucent: transparent status bar with dark content (light mode)
+        // black: black status bar with light content (dark mode)
+        let appleStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+        if (!appleStatusBar) {
+          appleStatusBar = document.createElement('meta');
+          appleStatusBar.name = 'apple-mobile-web-app-status-bar-style';
+          document.head.appendChild(appleStatusBar);
+        }
+        // Use black-translucent for light mode (allows wall color to show through)
+        // Use black for dark mode (dark status bar on dark wall)
+        appleStatusBar.content = isDark ? 'black' : 'black-translucent';
       }
       
       // Get saved theme preference
@@ -143,12 +179,31 @@
         }
       }
       setBrowserChromeColors(shouldBeDark);
+      
+      // Safari iOS: Update theme-color on page visibility changes (page suspend/resume)
+      // This ensures browser chrome color stays in sync when Safari resumes the page
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          // Page became visible: re-sync theme-color in case Safari needs refresh
+          const isCurrentlyDark = document.documentElement.classList.contains('dark-mode');
+          setBrowserChromeColors(isCurrentlyDark);
+        }
+      });
+      
+      // Safari iOS: Also update on pageshow event (back/forward navigation)
+      window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+          // Page was restored from back/forward cache
+          const isCurrentlyDark = document.documentElement.classList.contains('dark-mode');
+          setBrowserChromeColors(isCurrentlyDark);
+        }
+      });
     })();
   </script>
   <meta charset="utf-8">
   <title>Alexander Beck Studio :: Al Creative :: User Experience :: Product Design</title>
   <meta content="c366" name="description">
-  <meta content="width=device-width, initial-scale=1" name="viewport">
+  <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
   <!-- ABS_BUILD_MARKER:CSS_DEV_START -->
   <!-- Dev Modules CSS (unbundled) -->

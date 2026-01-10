@@ -143,7 +143,8 @@ function isNightByLocalClock() {
 function updateThemeColor(isDark) {
   const g = getGlobals();
   // Use wall colors (frame colors) for browser chrome - matches the wall appearance
-  const lightColor = g?.frameColorLight || readTokenVar('--frame-color-light', '#0a0a0a');
+  // Fallback colors match wall-color tokens: light=#f5f5f5 (neutral-100), dark=#0a0a0a (neutral-950)
+  const lightColor = g?.frameColorLight || readTokenVar('--frame-color-light', '#f5f5f5');
   const darkColor = g?.frameColorDark || readTokenVar('--frame-color-dark', '#0a0a0a');
   const currentColor = isDark ? darkColor : lightColor;
   
@@ -174,6 +175,17 @@ function updateThemeColor(isDark) {
     document.head.appendChild(metaThemeDark);
   }
   metaThemeDark.content = darkColor;
+  
+  // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style based on theme
+  // black-translucent: transparent status bar with dark content (light mode - allows wall color to show)
+  // black: black status bar with light content (dark mode - dark status bar on dark wall)
+  let appleStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  if (!appleStatusBar) {
+    appleStatusBar = document.createElement('meta');
+    appleStatusBar.name = 'apple-mobile-web-app-status-bar-style';
+    document.head.appendChild(appleStatusBar);
+  }
+  appleStatusBar.content = isDark ? 'black' : 'black-translucent';
 }
 
 /**
