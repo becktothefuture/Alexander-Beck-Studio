@@ -28,8 +28,9 @@
   /* Theme bridge (JS writes these; keep names stable) */
   --bg-light: var(--color-bg-light);
   --bg-dark: var(--color-bg-dark);
-  --frame-color-light: var(--bg-light);
-  --frame-color-dark: var(--bg-dark);
+  --frame-color: #242529;
+  --frame-color-light: var(--frame-color);
+  --frame-color-dark: var(--frame-color);
   --chrome-bg-light: var(--bg-light);
   --chrome-bg-dark: var(--bg-dark);
   --chrome-bg: var(--chrome-bg-light);

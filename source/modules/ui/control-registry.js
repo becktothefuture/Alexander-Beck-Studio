@@ -1362,11 +1362,6 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--bg-light', val);
-          if (!g.isDarkMode) {
-            root.style.setProperty('--chrome-bg', val);
-            const meta = document.querySelector('meta[name="theme-color"]');
-            if (meta) meta.content = val;
-          }
         }
       },
       {
@@ -1379,11 +1374,6 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--bg-dark', val);
-          if (g.isDarkMode) {
-            root.style.setProperty('--chrome-bg', val);
-            const meta = document.querySelector('meta[name="theme-color"]');
-            if (meta) meta.content = val;
-          }
         }
       },
       // ─── TEXT (LIGHT MODE) ───────────────────────────────────────────────
@@ -1531,6 +1521,10 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--frame-color-light', val);
+          root.style.setProperty('--frame-color-dark', val);
+          g.frameColorLight = val;
+          g.frameColorDark = val;
+          g.frameColor = val;
           // Wall colors automatically updated via CSS: --wall-color-light: var(--frame-color-light)
           // Update browser chrome if in light mode
           if (!g.isDarkMode) {
@@ -1554,6 +1548,10 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--frame-color-dark', val);
+          root.style.setProperty('--frame-color-light', val);
+          g.frameColorDark = val;
+          g.frameColorLight = val;
+          g.frameColor = val;
           // Wall colors automatically updated via CSS: --wall-color-dark: var(--frame-color-dark)
           // Update browser chrome if in dark mode
           if (g.isDarkMode) {

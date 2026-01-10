@@ -5,16 +5,16 @@
   <style id="fade-blocking">#app-frame{opacity:0}</style>
   <!-- Critical first-paint wall background (no JS + no !important). -->
   <!-- Uses frameColorLight/Dark (master wall colors) so changing the wall updates every page. -->
-  <!-- Fallback colors: light=#f5f5f5 (neutral-100), dark=#0a0a0a (neutral-950) -->
+  <!-- Fallback colors: light/dark=#242529 (wall frame) -->
   <style id="abs-critical-wall-bg">
-    html { background: var(--frame-color-light, #f5f5f5); background-color: var(--frame-color-light, #f5f5f5); }
-    html.dark-mode { background: var(--frame-color-dark, #0a0a0a); background-color: var(--frame-color-dark, #0a0a0a); }
+    html { background: var(--frame-color-light, #242529); background-color: var(--frame-color-light, #242529); }
+    html.dark-mode { background: var(--frame-color-dark, #242529); background-color: var(--frame-color-dark, #242529); }
   </style>
   <!-- Browser Chrome Color -->
-  <!-- Initial fallback colors match wall-color tokens: light=#f5f5f5 (neutral-100), dark=#0a0a0a (neutral-950) -->
-  <meta name="theme-color" content="#f5f5f5">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
+  <!-- Initial fallback colors match wall/frame defaults: #242529 -->
+  <meta name="theme-color" content="#242529">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#242529">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#242529">
   <!-- CRITICAL: Dark mode detection BEFORE first paint to prevent white flash -->
   <script>
     (function() {
@@ -41,7 +41,7 @@
           }
         } catch (e) {}
         // Fallback to token defaults (theme-aware)
-        return isDark ? '#0a0a0a' : '#f5f5f5';
+        return '#242529';
       }
       
       function getMetaThemeColor(selector) {
@@ -49,9 +49,9 @@
         return node && node.content ? node.content.trim() : '';
       }
       
-      // Theme-aware fallback colors (neutral-100 light, neutral-950 dark)
-      const fallbackWallLight = '#f5f5f5';
-      const fallbackWallDark = '#0a0a0a';
+      // Theme-aware fallback colors (wall/frame defaults)
+      const fallbackWallLight = '#242529';
+      const fallbackWallDark = '#242529';
       let THEME_COLOR_LIGHT = fallbackWallLight;
       let THEME_COLOR_DARK = fallbackWallDark;
       
