@@ -211,6 +211,8 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 - **Gravity:** Disabled (buoyancy-style rise forces)
 - **Collisions:** Mode-specific deflection/rise logic
 - **Interaction:** Cursor deflect radius
+- **Spawn:** Recycles always from below the viewport with a 0→1 scale-in; initial fill is height-distributed with staggered scale-in to avoid clumping
+- **Top edge:** Instant pop (no fade) and immediate recycle back to the bottom
 
 ---
 

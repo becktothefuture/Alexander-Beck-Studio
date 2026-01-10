@@ -308,12 +308,14 @@ export class Ball {
     
     // Ball Pit mode: skip collision if normal points upward (allow entry from top)
     const skipForPit = isPitMode && ny < -0.5;
+    // Bubbles mode: skip ceiling collision so bubbles can exit/pop without getting pinned
+    const skipForBubbles = currentMode === MODES.BUBBLES && ny < -0.5;
     
     // Margin: ball radius + physics padding
     const margin = effectiveRadius + borderInset;
     const penetration = sdfDist + margin;
     
-    if (penetration > 0 && !skipForPit) {
+    if (penetration > 0 && !skipForPit && !skipForBubbles) {
       hasWallCollision = true;
       
       // Capture pre-collision velocity

@@ -258,6 +258,7 @@
   --dot-bounce-duration: 500ms;
   --hit-area-padding: clamp(20px, 3vmin, 30px);
   --hit-area-padding-neg: calc(var(--hit-area-padding) * -1);
+  --link-nudge: 1px; /* Subtle downward shift on hover/focus/active for corner links */
 
   --abs-brand-logo-impact: 0;
   --abs-brand-logo-squash: 0;
@@ -379,8 +380,8 @@
   --z-panel: 9999;
 
   /* Brand logo sizing (driven by the dev panel slider via `--top-logo-width-vw`). */
-  --top-logo-width-vw: 35;
-  --brand-logo-width-min: 300px;
+  --top-logo-width-vw: 42;
+  --brand-logo-width-min: 360px;
   --brand-logo-width-max: 600px;
   --abs-brand-logo-width: clamp(
     var(--brand-logo-width-min),

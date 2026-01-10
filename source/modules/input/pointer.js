@@ -17,16 +17,9 @@ let lastMouseY = 0;
 let lastMoveTime = 0;
 let mouseVelocity = 0;
 let lastTapTime = 0;
-// Click/tap cycles through modes (value stored on globals; avoid caching so modes can override).
-let pressCycleActive = false;
-let pressCyclePointerId = null;
-// Touch drag detection: track start position and total movement to distinguish tap vs drag
-let pressCycleStartX = 0;
-let pressCycleStartY = 0;
-let pressCycleTotalMove = 0;
-const TAP_MOVE_THRESHOLD = 15; // px: movement below this is considered a tap, above is a drag
-let pressCycleDidPress = false;
-let mobilePulseTimeoutId = 0;
+// Simple click tracking - just debounce to prevent rapid clicks
+let lastClickTime = 0;
+const CLICK_DEBOUNCE_MS = 150; // Prevent duplicate clicks within 150ms
 
 function cycleMode() {
   const globals = getGlobals();
@@ -206,134 +199,36 @@ export function setupPointer() {
     );
   }
 
-  function isMobileViewportNow() {
-    // Prefer state flags (kept current by renderer.resize()).
-    if (globals?.isMobile || globals?.isMobileViewport) return true;
-    // Fallback for edge cases / devtools emulation.
-    try {
-      return Boolean(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function clearMobilePulseTimeout() {
-    if (!mobilePulseTimeoutId) return;
-    try { window.clearTimeout(mobilePulseTimeoutId); } catch (e) {}
-    mobilePulseTimeoutId = 0;
-  }
-
-  function tryPressCycleStart(clientX, clientY, target, pointerId = null, pointerType = 'mouse') {
-    if (pressCycleActive) return;
-    if (isEventOnUI(target)) return;
-    if (isTargetInteractive(target)) return;
-    if (isOverlayActive()) return;
+  /**
+   * Simple click handler for mode cycling - forward only
+   * Left click = next mode
+   */
+  document.addEventListener('click', (e) => {
+    // Skip if cycling is disabled
     if (!globals.clickCycleEnabled) return;
-
-    const pos = getCanvasPosition(clientX, clientY);
+    
+    // Skip if clicking on UI elements
+    if (isEventOnUI(e.target)) return;
+    if (isTargetInteractive(e.target)) return;
+    if (isOverlayActive()) return;
+    
+    // Check if click is within canvas bounds
+    const pos = getCanvasPosition(e.clientX, e.clientY);
     if (!pos.inBounds) return;
-
-    pressCycleActive = true;
-    pressCyclePointerId = pointerId;
-    // Record start position for drag detection (touch only)
-    pressCycleStartX = clientX;
-    pressCycleStartY = clientY;
-    pressCycleTotalMove = 0;
-    pressCycleDidPress = false;
-
-    // Desktop behavior: press-in immediately on down, hold until release.
-    // Mobile behavior: do NOT press on down (scroll/drag should never push the scene).
-    clearMobilePulseTimeout();
-    if (!isMobileViewportNow()) {
-      pressCycleDidPress = true;
-      sceneImpactPress(1, { armManual: true, scheduleRelease: false });
-    }
-  }
-
-  function tryPressCycleEnd(pointerId = null, pointerType = 'mouse') {
-    if (!pressCycleActive) return;
-    if (pressCyclePointerId !== null && pointerId !== null && pointerId !== pressCyclePointerId) return;
     
-    const wasActive = pressCycleActive;
-    const totalMove = pressCycleTotalMove;
-    pressCycleActive = false;
-    pressCyclePointerId = null;
-    pressCycleTotalMove = 0;
-    const didPress = pressCycleDidPress;
-    pressCycleDidPress = false;
+    // Debounce to prevent rapid clicks
+    const now = performance.now();
+    if (now - lastClickTime < CLICK_DEBOUNCE_MS) return;
+    lastClickTime = now;
     
-    // On touch devices: only cycle mode if it was a tap (minimal movement), not a drag
-    const isTouch = pointerType === 'touch' || pointerType === 'pen';
-    if (isTouch && totalMove > TAP_MOVE_THRESHOLD) {
-      // It was a drag, not a tap - do not change modes.
-      // If we were in a desktop press-hold path, ensure we release the scene.
-      if (didPress) sceneImpactRelease(1);
-      return;
+    // Only handle left clicks (button 0) - forward only
+    // Ignore right clicks (button 2) and middle clicks (button 1)
+    const button = e.button !== undefined ? e.button : (e.which === 3 ? 2 : e.which === 2 ? 1 : 0);
+    if (button === 0) {
+      // Left button: go forward
+      cycleMode();
     }
-
-    // Mobile: click/tap triggers BOTH parts (press then return) in sequence.
-    // Mode changes when the return begins.
-    if (isMobileViewportNow()) {
-      sceneImpactPress(1, { armManual: true, scheduleRelease: false });
-      const pressMsBase = globals.sceneImpactPressMs ?? 75;
-      const pressMs = Math.max(1, Math.round((Number(pressMsBase) || 0) * 0.8)); // must match scene-impact-react
-      const holdMs = Math.round(Math.min(80, Math.max(0, (Number(pressMs) || 0) * 0.4)));
-      clearMobilePulseTimeout();
-      mobilePulseTimeoutId = window.setTimeout(() => {
-        mobilePulseTimeoutId = 0;
-        cycleMode();
-        sceneImpactRelease(1);
-      }, Math.max(0, Math.round(pressMs) + holdMs));
-      return;
-    }
-
-    // Desktop: mode changes on release while the scene returns.
-    cycleMode();
-    sceneImpactRelease(1);
-  }
-
-  function tryPressCycleCancel(pointerId = null) {
-    if (!pressCycleActive) return;
-    if (pressCyclePointerId !== null && pointerId !== null && pointerId !== pressCyclePointerId) return;
-    pressCycleActive = false;
-    pressCyclePointerId = null;
-    pressCycleTotalMove = 0;
-    clearMobilePulseTimeout();
-    if (pressCycleDidPress) sceneImpactRelease(1);
-    pressCycleDidPress = false;
-  }
-
-  if (window.PointerEvent) {
-    document.addEventListener('pointerdown', (e) => {
-      tryPressCycleStart(e.clientX, e.clientY, e.target, e.pointerId, e.pointerType);
-    }, { passive: true });
-
-    document.addEventListener('pointermove', (e) => {
-      // Track movement during active press cycle (for tap vs drag detection)
-      if (pressCycleActive && pressCyclePointerId === e.pointerId) {
-        const dx = e.clientX - pressCycleStartX;
-        const dy = e.clientY - pressCycleStartY;
-        pressCycleTotalMove = Math.max(pressCycleTotalMove, Math.hypot(dx, dy));
-      }
-    }, { passive: true });
-
-    document.addEventListener('pointerup', (e) => {
-      tryPressCycleEnd(e.pointerId, e.pointerType);
-    }, { passive: true });
-
-    document.addEventListener('pointercancel', (e) => {
-      tryPressCycleCancel(e.pointerId);
-    }, { passive: true });
-  } else {
-    // Fallbacks for older browsers without Pointer Events
-    document.addEventListener('mousedown', (e) => {
-      tryPressCycleStart(e.clientX, e.clientY, e.target, null, 'mouse');
-    }, { passive: true });
-
-    document.addEventListener('mouseup', () => {
-      tryPressCycleEnd(null, 'mouse');
-    }, { passive: true });
-  }
+  }, { passive: true });
   
   /**
    * Touch move tracking for mobile
@@ -366,65 +261,22 @@ export function setupPointer() {
   }, { passive: true });
   
   /**
-   * Touch tap handler for mobile interactions
-   * Water creates ripple on tap
+   * Touch tap handler for mobile - simple tap to cycle forward
+   * Touch events fire click events, so they're already handled by handleModeCycleClick
+   * This just handles cursor hiding for touch
    */
   document.addEventListener('touchstart', (e) => {
-    // If Pointer Events are supported, touch is handled by pointerdown/up above.
-    if (window.PointerEvent) return;
-    // Ignore touches on panel
+    if (window.PointerEvent) return; // Pointer events handle this
     if (isEventOnUI(e.target)) return;
-    
-    // Ignore touches when gates/overlay are active
     if (isOverlayActive()) return;
     
-    // Explicitly hide cursor on touch start to prevent it getting stuck
+    // Hide cursor on touch
     hideCursor();
-
-    if (e.target.closest('a')) return;
-    if (e.target.closest('button')) return;
-    if (e.target.closest('input')) return;
-    if (e.target.closest('select')) return;
-    if (e.target.closest('textarea')) return;
     
-    if (e.touches && e.touches[0]) {
-      const touch = e.touches[0];
-      const pos = getCanvasPosition(touch.clientX, touch.clientY);
-      
-      if (!pos.inBounds) return;
-
-      if (globals.clickCycleEnabled) {
-        pressCycleActive = true;
-        pressCyclePointerId = null;
-        // Record start position for drag detection
-        pressCycleStartX = touch.clientX;
-        pressCycleStartY = touch.clientY;
-        pressCycleTotalMove = 0;
-      }
-    }
+    // Touch taps will fire click events which are handled by handleModeCycleClick
+    // For touch, click events have button === 0 (left), so they'll go forward
   }, { passive: true });
 
-  // Track touch movement for tap vs drag detection (fallback for no PointerEvent)
-  document.addEventListener('touchmove', (e) => {
-    if (window.PointerEvent) return;
-    if (pressCycleActive && e.touches && e.touches[0]) {
-      const touch = e.touches[0];
-      const dx = touch.clientX - pressCycleStartX;
-      const dy = touch.clientY - pressCycleStartY;
-      pressCycleTotalMove = Math.max(pressCycleTotalMove, Math.hypot(dx, dy));
-    }
-  }, { passive: true });
-
-  document.addEventListener('touchend', () => {
-    if (window.PointerEvent) return;
-    tryPressCycleEnd(null, 'touch');
-  }, { passive: true });
-
-  document.addEventListener('touchcancel', () => {
-    if (window.PointerEvent) return;
-    tryPressCycleCancel(null);
-  }, { passive: true });
-  
   /**
    * Reset mouse when leaving window
    */

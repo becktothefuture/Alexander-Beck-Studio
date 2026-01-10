@@ -3087,7 +3087,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'bubblesSpawnRate',
         type: 'range',
         min: 1, max: 20, step: 1,
-        default: 8,
+        default: 16,
         format: v => String(v),
         parse: v => parseInt(v, 10)
       },
@@ -3096,8 +3096,8 @@ export const CONTROL_SECTIONS = {
         label: 'Rise Speed',
         stateKey: 'bubblesRiseSpeed',
         type: 'range',
-        min: 50, max: 400, step: 25,
-        default: 150,
+        min: 50, max: 900, step: 25,
+        default: 650,
         format: v => v.toFixed(0),
         parse: parseFloat
       },
@@ -3107,7 +3107,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'bubblesWobble',
         type: 'range',
         min: 0, max: 100, step: 5,
-        default: 40,
+        default: 65,
         format: v => v.toFixed(0),
         parse: parseFloat
       },

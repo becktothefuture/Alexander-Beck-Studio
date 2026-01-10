@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                         CARBONATED BUBBLES MODE                              ║
-// ║    Bubbles rise from bottom with wobble, dissipate at top, then recycle      ║
-// ║    Scale up from 0 on spawn, scale down to 0 on dissipate                    ║
+// ║    Bubbles rise from bottom with wobble, pop instantly at top, then recycle  ║
+// ║    Scale up from 0 on every spawn for a clean entrance                       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals, getMobileAdjustedCount } from '../core/state.js';
@@ -20,39 +20,48 @@ export function initializeBubbles() {
   
   const w = canvas.width;
   const h = canvas.height;
+  const DPR = g.DPR || 1;
   const count = getMobileAdjustedCount(g.bubblesMaxCount || 200); // Increased for continuous coverage
   if (count <= 0) return;
   
-  // Spawn bubbles distributed across entire screen height for continuous flow
+  // Initial distribution: spread across the entire height with staggered spawn progress
+  // to avoid clumping at the bottom on first frame. Recycles still come from below.
   // First ensure one of each color
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
-    const y = Math.random() * h; // Full screen height
+    const y = Math.random() * h;
     const { color, distributionIndex } = pickRandomColorWithIndex();
-    createBubble(x, y, color, distributionIndex, true); // Already scaled in
+    const seededProgress = Math.random(); // staggered scale-in phase
+    createBubble(x, y, color, distributionIndex, false, seededProgress);
   }
   
-  // Fill rest with random colors across full height
+  // Fill rest with random colors across height, staggered progress
   for (let i = 8; i < count; i++) {
     const x = Math.random() * w;
-    const y = Math.random() * h; // Full screen height
+    const y = Math.random() * h;
     const { color, distributionIndex } = pickRandomColorWithIndex();
-    createBubble(x, y, color, distributionIndex, true); // Already scaled in
+    const seededProgress = Math.random();
+    createBubble(x, y, color, distributionIndex, false, seededProgress);
   }
 }
 
 /**
  * Create a bubble ball at position (x, y) with given color
  * @param {boolean} alreadyVisible - If true, skip spawn animation (for initial setup)
+ * @param {number} [spawnProgressSeed] - Optional 0..1 seed to stagger initial spawn
  */
-function createBubble(x, y, color, distributionIndex, alreadyVisible = false) {
+function createBubble(x, y, color, distributionIndex, alreadyVisible = false, spawnProgressSeed) {
   const g = getGlobals();
   const DPR = g.DPR || 1;
   
   // Per-mode sizing system: bubbles vary only according to the Bubbles variation slider.
-  const targetRadius = randomRadiusForMode(g, MODES.BUBBLES);
+  const sizeBias = 0.9 + Math.random() * 0.2; // Tight spread: ~0.9–1.1 for similar sizes
+  const targetRadius = randomRadiusForMode(g, MODES.BUBBLES) * sizeBias;
   
-  const b = new Ball(x, y, alreadyVisible ? targetRadius : 0.1, color);
+  const baseProgress = Number.isFinite(spawnProgressSeed) ? Math.max(0, Math.min(1, spawnProgressSeed)) : (alreadyVisible ? 1 : 0);
+  const initialEase = 1 - Math.pow(1 - baseProgress, 3);
+  const initialRadius = targetRadius * initialEase;
+  const b = new Ball(x, y, initialRadius, color);
   b.distributionIndex = distributionIndex;
   b.isBubble = true;
   b.baseRadius = targetRadius;
@@ -60,15 +69,20 @@ function createBubble(x, y, color, distributionIndex, alreadyVisible = false) {
   b.wobblePhase = Math.random() * Math.PI * 2;
   b.wobbleFreq = 2 + Math.random() * 3;
   // Initial velocity (DPR-scaled)
-  b.vx = (Math.random() - 0.5) * 20 * DPR;
-  b.vy = (-50 - Math.random() * 50) * DPR;
+  b.vx = (Math.random() - 0.5) * 28 * DPR;
+  b.vy = (-160 - Math.random() * 140) * DPR;
   
   // Animation states
-  b.spawning = !alreadyVisible;
-  b.spawnProgress = alreadyVisible ? 1 : 0;
+  b.spawning = baseProgress < 1 && !alreadyVisible;
+  b.spawnProgress = baseProgress;
   b.dissipating = false;
   b.dissipateProgress = 0;
   b.alpha = 1;
+  b.microBurst = false;
+  b.microTime = 0;
+  b.microLife = 0;
+  b.microStartRadius = 0;
+  b.wobbleMul = 0.6 + Math.random() * 0.8; // Per-bubble wobble strength
   
   g.balls.push(b);
   return b;
@@ -103,18 +117,24 @@ function recycleBubble(ball) {
   // New random color from full palette (using weighted distribution)
   ball.color = pickRandomColor();
   
-  // New target size
-  ball.targetRadius = randomRadiusForMode(g, MODES.BUBBLES);
+  // New target size (bias toward smaller)
+  const sizeBias = 0.9 + Math.random() * 0.2;
+  ball.targetRadius = randomRadiusForMode(g, MODES.BUBBLES) * sizeBias;
   ball.baseRadius = ball.targetRadius;
   
   // Start spawn animation (scale up from 0 to full size)
-  ball.r = 0.1;
-  ball.rBase = 0.1;
+  ball.r = 0;
+  ball.rBase = 0;
   ball.spawning = true;
   ball.spawnProgress = 0;
   ball.dissipating = false;
   ball.dissipateProgress = 0;
   ball.alpha = 1;
+  ball.microBurst = false;
+  ball.microTime = 0;
+  ball.microLife = 0;
+  ball.microStartRadius = 0;
+  ball.wobbleMul = 0.6 + Math.random() * 0.8;
 }
 
 export function applyBubblesForces(ball, dt) {
@@ -124,6 +144,24 @@ export function applyBubblesForces(ball, dt) {
   
   const canvas = g.canvas;
   if (!canvas) return;
+
+  // Micro-burst phase: tiny burst that fades quickly, then recycle
+  if (ball.microBurst) {
+    ball.microTime += dt;
+    const life = ball.microLife || 0.18;
+    const t = Math.min(1, life > 0 ? ball.microTime / life : 1);
+    const shrink = Math.max(0, 1 - t);
+    ball.vx *= 0.94;
+    ball.vy *= 0.90;
+    ball.r = ball.microStartRadius * shrink;
+    ball.rBase = ball.r;
+    ball.alpha = Math.max(0, 1 - t);
+    if (t >= 1) {
+      ball.microBurst = false;
+      recycleBubble(ball);
+    }
+    return;
+  }
   
   // Handle spawn animation (scale up from 0)
   if (ball.spawning) {
@@ -141,29 +179,8 @@ export function applyBubblesForces(ball, dt) {
     }
   }
   
-  // Handle dissipation animation (scale down to 0)
-  if (ball.dissipating) {
-    ball.dissipateProgress += dt * 3; // Scale down over ~0.33s
-    
-    // Ease in for smooth disappearance
-    const ease = Math.pow(ball.dissipateProgress, 2);
-    ball.r = ball.targetRadius * Math.max(0, 1 - ease);
-    ball.rBase = ball.r;
-    ball.alpha = Math.max(0, 1 - ease * 0.5); // Slight fade
-    
-    // Slow down during dissipation
-    ball.vy *= 0.92;
-    ball.vx *= 0.92;
-    
-    // When fully dissipated, recycle
-    if (ball.dissipateProgress >= 1) {
-      recycleBubble(ball);
-    }
-    return;
-  }
-  
   const riseSpeed = g.bubblesRiseSpeed || 150;
-  const wobbleStrength = (g.bubblesWobble || 40) * 0.01;
+  const wobbleStrength = ((g.bubblesWobble || 40) * 0.01) * (ball.wobbleMul || 1);
   
   // Buoyancy force (rise upward)
   const buoyancy = riseSpeed * g.DPR;
@@ -215,12 +232,21 @@ export function applyBubblesForces(ball, dt) {
     }
   }
   
-  // Check if bubble reached very top - start dissipating
+  // Check if bubble reached very top - instantly pop and recycle
   const topThreshold = ball.targetRadius * 2; // Very close to top edge
   
-  if (ball.y < topThreshold && !ball.dissipating && !ball.spawning) {
-    ball.dissipating = true;
-    ball.dissipateProgress = 0;
+  if (ball.y < topThreshold && !ball.spawning && !ball.microBurst) {
+    // Start micro-burst pop: quick fade/shrink, then recycle to bottom
+    ball.microBurst = true;
+    ball.microTime = 0;
+    ball.microLife = 0.18;
+    ball.microStartRadius = Math.max(0.2, ball.targetRadius * 0.5);
+    ball.r = ball.microStartRadius;
+    ball.rBase = ball.r;
+    ball.alpha = 1;
+    ball.vx = (Math.random() - 0.5) * 40 * g.DPR;
+    ball.vy = -(260 + Math.random() * 140) * g.DPR;
+    return;
   }
   
   // Safety: recycle if bubble goes off sides

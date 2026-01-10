@@ -317,9 +317,9 @@ const state = {
   magneticExplosionInterval: 5,
   
   // Bubbles mode params
-  bubblesSpawnRate: 8,
-  bubblesRiseSpeed: 150,
-  bubblesWobble: 40,
+  bubblesSpawnRate: 16,
+  bubblesRiseSpeed: 650,
+  bubblesWobble: 65,
   bubblesMaxCount: 200,
   // Derived (px): set in `applyLayoutFromVwToPx()` from `cursorInfluenceRadiusVw`.
   bubblesDeflectRadius: 0,

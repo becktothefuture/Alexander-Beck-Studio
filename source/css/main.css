@@ -304,6 +304,19 @@ html.fonts-loading .project-detail {
   visibility: hidden;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   CORNER DOCK PATTERN — Unified visual treatment for corner UI elements
+   Note: Elements stay in normal flow within .fade-content to inherit padding
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Base corner dock: ensures smooth transitions and consistent pointer events */
+.corner-dock {
+  pointer-events: auto;
+  transition:
+    transform var(--duration-resize) var(--ease-organic),
+    gap var(--duration-resize) var(--ease-organic);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    DOM REWORK: FLEXBOX UI LAYOUT (FIGMA ALIGNMENT)
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -675,7 +688,6 @@ body.dark-mode .legend-tooltip-output {
   display: flex;
   align-items: flex-start; /* Align top */
   justify-content: flex-end;
-  max-width: 60vw; /* +20% */
   width: 100%;
   pointer-events: none;
   gap: var(--gap-lg); /* Gap between text and sound button */
@@ -685,7 +697,8 @@ body.dark-mode .legend-tooltip-output {
   position: relative; /* Remove fixed */
   top: auto;
   right: auto;
-  max-width: var(--decorative-script-max-width);
+  /* Constrain text width for readability, but don't constrain parent container */
+  max-width: min(60vw, var(--decorative-script-max-width));
   font-family: 'Geist', sans-serif;
   font-size: var(--decorative-script-font-size);
   font-weight: 400;
@@ -994,6 +1007,10 @@ button.abs-meta-btn,
   list-style: none;
 }
 
+#social-links {
+  gap: 0px;
+}
+
 .abs-icon-btn {
   box-sizing: border-box;
   display: inline-flex;
@@ -1036,9 +1053,7 @@ button.abs-meta-btn,
   height: var(--ui-icon-glyph-size);
 }
 
-#social-links {
-  gap: 0;
-}
+/* Social links use gap from parent .footer_icon-group (tokenized via --footer-icon-gap) */
 
 .footer_icon-link {
   color: var(--text-quiet);
@@ -1076,7 +1091,7 @@ button.abs-meta-btn,
 
 /* Sound Toggle in Top or Footer */
 .sound-toggle {
-  position: relative; /* Remove fixed */
+  position: relative;
   top: auto;
   left: auto;
   transform: none;
@@ -1087,9 +1102,10 @@ button.abs-meta-btn,
   pointer-events: auto;
   background: none;
   border: none;
-  pointer-events: auto;
-  transition: transform 0.15s var(--ease-organic),
-              filter 0.15s var(--ease-organic);
+  transition:
+    transform 0.15s var(--ease-organic),
+    filter 0.15s var(--ease-organic),
+    color var(--duration-link-hover) var(--ease-organic);
 }
 
 .sound-toggle:active {
@@ -1207,7 +1223,7 @@ button.abs-meta-btn,
   /* Counter-scale the scene "press-in" so the logo stays visually stable.
      #brand-logo lives inside #abs-scene, so it inherits the scene's transform scale. */
   transform:
-    translate3d(3.5%, -50%, 0)
+    translateY(-50%)
     scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)));
   transform-origin: center center;
   opacity: 1;
@@ -1259,8 +1275,6 @@ html.entrance-complete #brand-logo {
     100%
   );
   height: auto;
-  /* Slight visual offset to balance perceived center */
-  transform: translateX(-3%);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1768,6 +1782,59 @@ body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover .foot
   opacity: 1;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   CORNER LINK NUDGE — Intentional 1px downward shift on interaction
+   Note: Works alongside absHoverSnap animation by setting transform-origin
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Update absHoverSnap keyframe to include nudge */
+@keyframes absHoverSnapNudge {
+  0%   { transform: translateY(var(--link-nudge)) scale(1); }
+  40%  { transform: translateY(var(--link-nudge)) scale(var(--abs-hover-snap-overshoot, 1.08)); }
+  70%  { transform: translateY(var(--link-nudge)) scale(var(--abs-hover-snap-undershoot, 0.98)); }
+  100% { transform: translateY(var(--link-nudge)) scale(1); }
+}
+
+/* Apply nudge animation to corner and main links on hover */
+body:not(.portfolio-page):not(.detail-open) .footer_icon-link.abs-icon-btn:hover,
+body:not(.portfolio-page):not(.detail-open) .abs-meta-btn:hover,
+body:not(.portfolio-page):not(.detail-open) .sound-toggle:hover,
+body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover {
+  animation-name: absHoverSnapNudge;
+}
+
+/* Focus-visible and active states get static nudge without bounce */
+.footer_icon-link.abs-icon-btn:focus-visible,
+.footer_icon-link.abs-icon-btn:active,
+.abs-meta-btn:focus-visible,
+.abs-meta-btn:active,
+.sound-toggle:focus-visible,
+.sound-toggle:active,
+#main-links .footer_link:focus-visible,
+#main-links .footer_link:active {
+  transform: translateY(var(--link-nudge));
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  body:not(.portfolio-page):not(.detail-open) .footer_icon-link.abs-icon-btn:hover,
+  body:not(.portfolio-page):not(.detail-open) .abs-meta-btn:hover,
+  body:not(.portfolio-page):not(.detail-open) .sound-toggle:hover,
+  body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover {
+    animation-name: none;
+  }
+  
+  .footer_icon-link.abs-icon-btn:focus-visible,
+  .footer_icon-link.abs-icon-btn:active,
+  .abs-meta-btn:focus-visible,
+  .abs-meta-btn:active,
+  .sound-toggle:focus-visible,
+  .sound-toggle:active,
+  #main-links .footer_link:focus-visible,
+  #main-links .footer_link:active {
+    transform: none;
+  }
+}
 
 /* UI MODE HOVER (portfolio page, detail views, modals) - native CSS */
 /* Snap animation for UI mode */
@@ -2859,11 +2926,26 @@ body.cv-page .cv-right p {
 }
 
 /* CV Page Top Left - Match portfolio page styling for links */
+/* Portfolio and CV pages: top-left nav items aligned to left edge */
+body.portfolio-page .ui-top-left,
 body.cv-page .ui-top-left {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 0;
+  gap: var(--gap-lg);
+  width: auto; /* Override base width: 100% to shrink to fit content */
+  flex-shrink: 0; /* Don't shrink when space is tight */
+}
+
+/* Portfolio page: reset margins and padding on portfolio-cv-link to match meta button padding */
+body.portfolio-page .ui-top-left .portfolio-cv-link {
+  margin: 0;
+  padding: var(--abs-space-xs) var(--abs-space-sm); /* Match .abs-meta-btn padding */
+  block-size: auto;
+  height: auto;
+  min-height: var(--ui-icon-frame-size); /* Match meta button min-height for alignment */
+  display: inline-flex;
+  align-items: center;
 }
 
 /* CV page: reset negative margins on nav links to align tightly with back button */
