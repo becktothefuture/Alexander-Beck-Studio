@@ -1362,11 +1362,6 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--bg-light', val);
-          if (!g.isDarkMode) {
-            root.style.setProperty('--chrome-bg', val);
-            const meta = document.querySelector('meta[name="theme-color"]');
-            if (meta) meta.content = val;
-          }
         }
       },
       {
@@ -1379,11 +1374,6 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           const root = document.documentElement;
           root.style.setProperty('--bg-dark', val);
-          if (g.isDarkMode) {
-            root.style.setProperty('--chrome-bg', val);
-            const meta = document.querySelector('meta[name="theme-color"]');
-            if (meta) meta.content = val;
-          }
         }
       },
       // ─── TEXT (LIGHT MODE) ───────────────────────────────────────────────
