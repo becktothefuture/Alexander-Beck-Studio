@@ -517,9 +517,9 @@ const state = {
   // Unified Color System (backgrounds, frame, walls)
   bgLight: '#f5f5f5',       // Light mode background color
   bgDark: '#0a0a0a',        // Dark mode background color
-  frameColor: '#0a0a0a',    // Frame color (legacy - use frameColorLight/frameColorDark)
-  frameColorLight: '#0a0a0a',  // Frame/wall color in light mode (browser chrome + walls + border)
-  frameColorDark: '#0a0a0a',   // Frame/wall color in dark mode (browser chrome + walls + border)
+  frameColor: '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
+  frameColorLight: '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
+  frameColorDark: '#242529',   // Frame/wall color in dark mode (browser chrome + walls + border)
   
   // Text Colors
   textColorLight: '#161616',          // Primary text (light mode)
@@ -1175,6 +1175,9 @@ export function initState(config) {
     // If not set, use light mode value as fallback for legacy frameColor
     state.frameColor = state.frameColorLight;
   }
+  // Enforce a single wall/chrome color across light and dark modes.
+  state.frameColorLight = state.frameColor;
+  state.frameColorDark = state.frameColor;
   
   // Text colors
   if (config.textColorLight !== undefined) state.textColorLight = config.textColorLight;

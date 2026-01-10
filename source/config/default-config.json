@@ -114,7 +114,7 @@
     }
   ],
   "frameColorLight": "#242529",
-  "frameColorDark": "#1a1a1a",
+  "frameColorDark": "#242529",
   "wallPreset": "pudding",
   "wallThicknessVw": 1.4,
   "wallThicknessAreaMultiplier": 0.34,
