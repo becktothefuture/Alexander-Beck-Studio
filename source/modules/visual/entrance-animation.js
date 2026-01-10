@@ -356,16 +356,21 @@ export function revealLateElement(element, options = {}) {
     const finalize = () => {
       if (finalized) return;
       finalized = true;
-      element.classList.remove('late-hidden', 'late-animating');
-      element.classList.add('late-visible');
+      // Clear ALL inline styles so CSS takes over completely
+      element.style.removeProperty('opacity');
+      element.style.removeProperty('transform');
+      element.style.removeProperty('filter');
+      element.style.removeProperty('scale');
+      element.style.visibility = 'visible';
+      element.style.willChange = 'auto';
       resolve();
     };
     
     setTimeout(() => {
-      element.classList.remove('late-hidden');
-      element.classList.add('late-visible');
       if (animate) {
-        element.classList.add('late-animating');
+        element.style.visibility = 'visible';
+        element.style.willChange = 'opacity, scale';
+        
         // Simple animation: opacity + scale only. No transform manipulation.
         // CSS handles positioning (including logo's --logo-offset-x).
         const anim = element.animate(
@@ -406,8 +411,10 @@ export function revealAllLateElements() {
   
   lateElements.forEach((el) => {
     if (el) {
-      el.classList.remove('late-hidden', 'late-animating');
-      el.classList.add('late-visible');
+      // REMOVE inline opacity so CSS controls it (enables modal fade transitions)
+      el.style.removeProperty('opacity');
+      el.style.visibility = 'visible';
+      // Do NOT clear transform - CSS may rely on it for positioning
     }
   });
   

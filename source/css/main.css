@@ -92,23 +92,6 @@ html.entrance-pre-transition {
   background-color: var(--wall-color, #f5f5f5);
 }
 
-/* Utility: hide late-reveal elements until JS reveals them */
-.late-hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-/* Utility: mark late-reveal elements once visible */
-.late-visible {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Utility: hint compositor during entrance animation */
-.late-animating {
-  will-change: opacity, scale;
-}
-
 /* Dark mode override: prevent white flash on load */
 html.entrance-pre-transition.dark-mode {
   background: var(--wall-color, #0a0a0a);
@@ -1224,7 +1207,7 @@ button.abs-meta-btn,
   /* Counter-scale the scene "press-in" so the logo stays visually stable.
      #brand-logo lives inside #abs-scene, so it inherits the scene's transform scale. */
   transform:
-    translate3d(0, -50%, 0)
+    translate3d(3.5%, -50%, 0)
     scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)));
   transform-origin: center center;
   opacity: 1;
@@ -1277,7 +1260,7 @@ html.entrance-complete #brand-logo {
   );
   height: auto;
   /* Slight visual offset to balance perceived center */
-  transform: translateX(1%);
+  transform: translateX(-3%);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
