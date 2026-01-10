@@ -114,9 +114,6 @@ export function updateModeButtonsUI(activeMode) {
       'magnetic': 'Magnetic',
       'bubbles': 'Carbonated Bubbles',
       'kaleidoscope-3': 'Kaleidoscope',
-      'orbit-3d': 'Orbit 3D',
-      'orbit-3d-2': 'Orbit 3D (Tight Swarm)',
-      'lattice': 'Crystal Lattice',
       'neural': 'Neural Network'
     };
     announcer.textContent = `Switched to ${modeNames[activeMode] || activeMode} mode`;

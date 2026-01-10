@@ -8,7 +8,6 @@
 const SLIDESHOW_CONFIG = {
   imageFolder: 'images/cv-images/',
   images: [
-    'profile-photo.jpg',
     'profile-image-01.jpg',
     'profile-image-02.jpg',
     'profile-image-03.jpg',
@@ -23,18 +22,9 @@ const SLIDESHOW_CONFIG = {
   jitterInterval: 150, // milliseconds between position changes
 };
 
-// Predefined jitter positions for abrupt jumps (no smooth transitions)
+// Static centered position (no jitter, no rotation)
 const JITTER_POSITIONS = [
   { x: -50, y: -50, rotate: 0 },
-  { x: -52, y: -48, rotate: 1.5 },
-  { x: -48, y: -51, rotate: -1.2 },
-  { x: -51, y: -49, rotate: 0.8 },
-  { x: -49, y: -52, rotate: -1.8 },
-  { x: -52, y: -50, rotate: 1.2 },
-  { x: -48, y: -48, rotate: -0.5 },
-  { x: -50, y: -51, rotate: 1.8 },
-  { x: -51, y: -48, rotate: -1.5 },
-  { x: -49, y: -50, rotate: 0.6 },
 ];
 
 export function initCvPhotoSlideshow() {
@@ -68,38 +58,47 @@ export function initCvPhotoSlideshow() {
   // Set image based on scroll progress
   function updateImageFromScroll() {
     const scrollTop = scrollContainer.scrollTop;
-    const scrollHeight = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+    const scrollHeight = scrollContainer.scrollHeight;
+    const clientHeight = scrollContainer.clientHeight;
+    const maxScroll = scrollHeight - clientHeight;
     
     // Calculate scroll progress (0 to 1)
-    const scrollProgress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
+    const scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
     
-    // Map scroll progress to image index
-    const targetIndex = Math.floor(scrollProgress * (imageUrls.length - 1));
-    const clampedIndex = Math.max(0, Math.min(imageUrls.length - 1, targetIndex));
+    // Map scroll progress to image index (evenly distributed across all 10 images)
+    // Each image gets an equal slice of the scroll range (0-10%, 10-20%, etc.)
+    const targetIndex = Math.min(
+      Math.floor(scrollProgress * imageUrls.length),
+      imageUrls.length - 1
+    );
     
-    // Only update if image changed
-    if (clampedIndex !== currentImageIndex) {
-      currentImageIndex = clampedIndex;
+    // Debug logging
+    console.log(`[CV Scroll Debug] top:${scrollTop.toFixed(0)} max:${maxScroll.toFixed(0)} progress:${(scrollProgress * 100).toFixed(1)}% → img ${targetIndex + 1}/${imageUrls.length}`);
+    
+    // Update image (even if same index, to ensure it's set)
+    if (targetIndex !== currentImageIndex) {
+      currentImageIndex = targetIndex;
       photoImg.src = imageUrls[currentImageIndex];
+      console.log(`[CV Photo] ✓ Changed to image ${targetIndex + 1}`);
     }
   }
 
-  // Set initial image and position
+  // Set initial image and position (static, no animation)
   photoImg.src = imageUrls[0];
   applyJitterPosition();
 
-  // Start position jitter animation (runs continuously)
-  jitterIntervalId = setInterval(applyJitterPosition, SLIDESHOW_CONFIG.jitterInterval);
+  // Jitter animation disabled - image stays centered
+  // jitterIntervalId = setInterval(applyJitterPosition, SLIDESHOW_CONFIG.jitterInterval);
 
-  // Listen to scroll events
-  let scrollTimeout = null;
+  // Listen to scroll events (immediate, no debounce for testing)
   scrollContainer.addEventListener('scroll', () => {
-    // Debounce scroll updates for performance
-    if (scrollTimeout) clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-      updateImageFromScroll();
-    }, 50);
+    updateImageFromScroll();
   }, { passive: true });
+  
+  // Also update on initial load
+  setTimeout(() => {
+    updateImageFromScroll();
+  }, 500);
 
   // Click handler: advance to next image manually
   photoContainer.style.cursor = 'pointer';

@@ -6,7 +6,7 @@ Minimal, high-speed kinetic canvas built with vanilla JS + Canvas 2D. A **curate
 
 ## What this site does
 - **Kinetic homepage:** Particles, walls, and light fields living inside `#bravia-balls` container — rest of page stays untouched.
-- **20 simulation modes** across 8 categories (gravity, swarm/flow, elastic, fluid, optical, orbital, lattice, parallax) — see `docs/reference/MODES.md` for complete specifications.
+- **16 simulation modes** across 7 categories (gravity, swarm/flow, elastic, fluid, optical, parallax, 3D point-cloud) — see `docs/reference/MODES.md` for complete specifications.
 - **Visual systems:** 
   - Rubber wall wobble (10 material presets: rubber, pudding, trampoline, jelly, stiff, steel, latex, memory foam, hydraulic, gel sheet)
   - Browser-colored wall/frame sync (meta tag harmony)
@@ -127,12 +127,11 @@ source/
     core/            # constants (MODES, narrative sequence), state management
     physics/         # Ball.js, collision.js, engine.js, spawn.js, wall-state.js, text-colliders.js
     rendering/       # renderer.js, loop.js, cursor.js, effects.js, theme.js
-    modes/           # 20 mode files:
-                     #   ball-pit, pit-throws, flies, weightless, water, vortex, 
-                     #   ping-pong, magnetic, bubbles, kaleidoscope, critters,
-                     #   orbit-3d, orbit-3d-2, lattice, neural,
-                     #   parallax-linear, parallax-perspective
-                     #   + mode-controller.js
+  modes/           # 16 mode files:
+                    #   ball-pit, pit-throws, flies, weightless, water, vortex,
+                    #   ping-pong, magnetic, bubbles, kaleidoscope, critters,
+                    #   neural, parallax-linear, 3d-sphere, 3d-cube, starfield-3d
+                    #   + mode-controller.js
     ui/              # 27 files:
                      #   panel-dock, panel-html, control-registry, controls, keyboard,
                      #   cv-gate, portfolio-gate, contact-gate, gate-overlay,

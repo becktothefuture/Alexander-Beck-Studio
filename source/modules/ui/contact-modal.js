@@ -50,12 +50,12 @@ async function copyToClipboard(text) {
 
 export function initContactModal() {
   const CONTACT_EMAIL = getText('contact.email', 'alexander@beck.fyi');
-  const BACK_TEXT = getText('modals.common.backText', 'BACK');
-  const BACK_ARIA = getText('modals.common.backAriaLabel', 'Back');
-  const TITLE = getText('modals.contact.title', 'Contact');
+  const BACK_TEXT = getText('gates.common.backText', 'BACK');
+  const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
+  const TITLE = getText('gates.contact.title', 'Contact');
   const DESC = getText(
-    'modals.contact.description',
-    'For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain.'
+    'gates.contact.description',
+    'For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain. For job opportunities, drop me a note.'
   );
   const COPY_ARIA = getText('contact.copy.buttonAriaLabel', 'Copy email address');
   const COPIED_TEXT = getText('contact.copy.statusCopied', 'Copied');

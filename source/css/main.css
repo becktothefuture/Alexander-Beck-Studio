@@ -220,7 +220,7 @@ body.dark-mode .content-background-layer {
 
   writing-mode: vertical-rl;
   text-orientation: mixed;
-  transform: rotate(180deg); /* Keeps reading direction feeling “upright” */
+  transform: rotate(180deg); /* Keeps reading direction feeling "upright" */
   transform-origin: center;
 }
 
@@ -755,30 +755,13 @@ p {
 }
 
 .decorative-script p a::after {
-  content: '';
-  position: absolute;
-  /* Dot closer to label (50% closer) */
-  bottom: calc(var(--dot-indicator-offset) * -0.5);
-  left: 50%;
-  transform: translateX(-50%) scaleY(0);
-  transform-origin: 50% 50%;
-  width: var(--abs-cursor-hop-dot-size, var(--dot-indicator-size));
-  height: var(--abs-cursor-hop-dot-size, var(--dot-indicator-size));
-  border-radius: 50%;
-  background: var(--cursor-color, var(--link-hover-color)); /* Match cursor */
-  opacity: 0;
-  will-change: transform, opacity;
+  content: none; /* Dot removed */
 }
 
 .decorative-script p a:hover {
   opacity: 1; /* Remove opacity on hover - full strength color */
   color: var(--cursor-hover-fg, var(--cursor-color));
   background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
-}
-
-.decorative-script p a:hover::after {
-  opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) var(--ease-bounce) both;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -812,16 +795,17 @@ p {
 #main-links {
   /* Position relative to viewport (outside .fade-content to avoid transform containing block) */
   position: fixed;
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  transform: translateX(0) scale(1);
+  transform-origin: center center;
   /* Position from top (configurable via --footer-nav-bar-top) */
   top: var(--footer-nav-bar-top, 50vh);
   top: var(--footer-nav-bar-top-svh, 50svh);
   top: var(--footer-nav-bar-top-dvh, 50dvh);
   /* Height auto - determined by button padding + content */
   height: auto;
-  min-height: auto;
+  min-height: 0;
   /* Horizontal flexbox layout - center aligned */
   display: flex;
   flex-direction: row;
@@ -830,21 +814,25 @@ p {
   align-items: center; /* Center align buttons vertically */
   /* Gap between buttons (configurable via token) */
   gap: var(--footer-nav-bar-gap, var(--gap-xl));
-  /* Content-width container, centered */
-  width: max-content;
-  max-width: calc(100vw - (var(--content-padding-x) * 2));
+  /* Full-width bar; content centered */
+  width: 100%;
+  max-width: 100%;
   padding-inline: 0;
   padding-block: 0;
   margin: 0;
   pointer-events: auto;
+  opacity: 1;
   z-index: 21; /* Above .fade-content (z-index: 20) */
-  /* Smooth layout updates on resize (matches .fade-content pattern) */
+  /* Modal show transition (when modal closes, nav fades back in) */
   transition:
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic),
-    transform var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic),
     max-width var(--duration-resize) var(--ease-organic),
-    gap var(--duration-resize) var(--ease-organic);
+    gap var(--duration-resize) var(--ease-organic),
+    padding var(--duration-resize) var(--ease-organic),
+    transform var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms),
+    opacity var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms);
 }
 
 .footer_link,
@@ -864,6 +852,8 @@ p {
   letter-spacing: var(--footer-links-letter-spacing);
   text-decoration: none; /* No underline */
   opacity: var(--text-opacity-base);
+  /* Unified button corner radius (native CSS, no JS/inline) */
+  border-radius: var(--ui-icon-corner-radius);
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic);
   cursor: none; /* Maintain custom cursor experience */
@@ -906,7 +896,7 @@ body:not(.dark-mode) #header-cv-link {
   opacity: 1; /* Remove opacity on hover - full strength color */
 }
 
-/* Middle nav bar buttons (Contact / Portfolio / Bio/CV): match icon button corner radius on hover */
+/* Middle nav bar buttons (Contact / Portfolio / Bio/CV): keep radius consistent on hover */
 .footer_link:hover {
   border-radius: var(--ui-icon-corner-radius);
 }
@@ -927,7 +917,8 @@ body.dark-mode #main-links .footer_link {
 .ui-meta-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
+  gap: 0px;
   width: 100%;
   pointer-events: none;
 }
@@ -952,19 +943,41 @@ button.abs-meta-btn,
   cursor: none;
   position: relative;
   overflow: visible;
+  isolation: isolate;
   padding: var(--abs-space-xs) var(--abs-space-sm);
   color: inherit;
   font: inherit;
   text-decoration: none;
+  /* Unified button corner radius (native CSS, no JS/inline) */
+  border-radius: var(--ui-icon-corner-radius);
+}
+
+/* Hover background pseudo-element (same pattern as .abs-icon-btn) */
+.abs-meta-btn::before,
+#site-year::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--ui-icon-corner-radius);
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--duration-link-hover) var(--ease-organic),
+    background var(--duration-link-hover) var(--ease-organic);
 }
 
 /* Meta button hover */
 .abs-meta-btn:hover,
 #site-year:hover {
   color: var(--cursor-hover-fg, var(--cursor-color));
-  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
-  border-radius: var(--ui-icon-corner-radius);
+}
+
+.abs-meta-btn:hover::before,
+#site-year:hover::before {
   opacity: 1;
+  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
 }
 
 /* Left: Socials */
@@ -989,6 +1002,7 @@ button.abs-meta-btn,
   position: relative;
   overflow: visible;
   text-decoration: none;
+  isolation: isolate;
 
   /* Size by frame height (square). Defaults are derived from tokens. */
   inline-size: var(--ui-icon-frame-size);
@@ -996,9 +1010,24 @@ button.abs-meta-btn,
   aspect-ratio: 1 / 1;
   padding: 0;
 
+  /* Unified button corner radius (native CSS, no JS/inline) */
   border-radius: var(--ui-icon-corner-radius);
   font-size: var(--ui-icon-glyph-size);
   line-height: 1;
+}
+
+.abs-icon-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--ui-icon-corner-radius);
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--duration-link-hover) var(--ease-organic),
+    background var(--duration-link-hover) var(--ease-organic);
 }
 
 .abs-icon-btn > i,
@@ -1173,28 +1202,34 @@ button.abs-meta-btn,
   color: var(--text-primary);
   position: fixed;
   top: 50%;
-  left: 50%;
+  left: 0;
+  right: 0;
   /* Counter-scale the scene "press-in" so the logo stays visually stable.
      #brand-logo lives inside #abs-scene, so it inherits the scene's transform scale. */
   transform:
-    translate3d(-47.5%, -50%, 0)
+    translate3d(3.5%, -50%, 0)
     scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)));
   transform-origin: center center;
-  /* Fade opacity when gate opens (subtle, not full disappear) */
-  opacity: var(--logo-opacity-active, 1);
-  /* Sync all transitions: transform + opacity with OUT duration by default */
-  /* Smooth layout updates on resize */
+  opacity: 1;
+  /* Modal show transition (when modal closes, logo fades back in) */
   transition: 
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic),
-    transform var(--abs-scene-impact-dur, 100ms) var(--abs-scene-impact-ease, var(--ease-gate)),
-    opacity var(--modal-depth-out-duration, 1700ms) var(--ease-gate);
+    right var(--duration-resize) var(--ease-organic),
+    transform var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms),
+    opacity var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms),
+    filter var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms),
+    padding var(--duration-resize) var(--ease-organic);
   z-index: 3; /* Behind balls (z:5) */
   pointer-events: none;
-  width: auto;
+  width: 100%;
   height: auto;
   margin: 0;
-  padding: 0;
+  padding-inline: 0;
+  padding-block: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   /* Subpixel/compositing hints: keeps tiny transform animations smooth */
   backface-visibility: hidden;
   transform-style: preserve-3d;
@@ -1205,22 +1240,34 @@ body.dark-mode #brand-logo {
   color: var(--text-primary);
 }
 
+/* Override entrance animation opacity after entrance completes */
+html.entrance-complete #brand-logo {
+  opacity: 1;
+}
+
 #brand-logo .brand-logo-svg {
   display: block;
-  width: var(
-    --abs-brand-logo-width,
-    clamp(
-      var(--brand-logo-width-min),
-      calc(var(--top-logo-width-vw, 35) * 1vw),
-      var(--brand-logo-width-max)
-    )
+  width: min(
+    var(
+      --abs-brand-logo-width,
+      clamp(
+        var(--brand-logo-width-min),
+        calc(var(--top-logo-width-vw, 35) * 1vw),
+        var(--brand-logo-width-max)
+      )
+    ),
+    100%
   );
   height: auto;
+  /* Slight visual offset to balance perceived center */
+  transform: translateX(-3%);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   OTHER LAYERS
+   Note: Logo & Nav fade on modal open/close is handled by JavaScript in 
+   modal-overlay.js (fadeLogoNav function) for reliable cross-browser transitions
    ───────────────────────────────────────────────────────────────────────────── */
+
 .content-background-layer {
   position: fixed;
   /* No outer border on index page - fills viewport */
@@ -1530,7 +1577,7 @@ body.dark-mode .noise-2 {
   }
   
   #main-links {
-    /* Mobile: maintain full-width nav bar, adjust padding */
+    /* Mobile: maintain full-width nav bar, no horizontal padding */
     padding-inline: 0;
     gap: var(--footer-nav-bar-gap, var(--gap-md));
   }
@@ -1672,8 +1719,13 @@ body:not(.portfolio-page):not(.detail-open) .legend__item--interactive:hover {
 /* Icon buttons get cursor color on hover */
 body:not(.portfolio-page):not(.detail-open) .abs-icon-btn:hover {
   color: var(--cursor-hover-fg, var(--cursor-color));
+  background: transparent;
+  border-radius: inherit;
+}
+
+body:not(.portfolio-page):not(.detail-open) .abs-icon-btn:hover::before {
+  opacity: 1;
   background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
-  border-radius: var(--ui-icon-corner-radius);
 }
 
 /* INDEX MODE HOVER (native CSS - no JS classes needed) */
@@ -1693,7 +1745,7 @@ body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover::before {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: var(--abs-radius-pill);
+  border-radius: inherit;
   background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
   pointer-events: none;
   z-index: -1;
@@ -1777,9 +1829,16 @@ body.portfolio-page .abs-icon-btn:hover,
 body.detail-open .abs-icon-btn:hover,
 #modal-overlay.active .abs-icon-btn:hover {
   color: var(--cursor-color);
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
-  border-radius: var(--ui-icon-corner-radius);
+  background: transparent;
+  border-radius: inherit;
   opacity: 1;
+}
+
+body.portfolio-page .abs-icon-btn:hover::before,
+body.detail-open .abs-icon-btn:hover::before,
+#modal-overlay.active .abs-icon-btn:hover::before {
+  opacity: 1;
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
 }
 
 body.dark-mode.portfolio-page .abs-icon-btn:hover,
@@ -1800,11 +1859,11 @@ body.dark-mode #modal-overlay.active .abs-icon-btn:hover {
 .top-nav__link:focus-visible,
 .top-nav__cv:focus-visible {
   box-shadow: none;
-  border-radius: var(--abs-radius-pill);
+  border-radius: var(--ui-icon-corner-radius);
 }
 
 .abs-icon-btn:focus-visible {
-  border-radius: var(--ui-icon-corner-radius);
+  border-radius: inherit;
 }
 
 /* Pulse animation removed - no longer needed with native CSS hover */
@@ -1995,6 +2054,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   position: relative;
   text-decoration: none;
   overflow: visible;
+  /* Unified button corner radius (native CSS, no JS/inline) */
+  border-radius: var(--ui-icon-corner-radius);
   cursor: pointer;
   -webkit-user-select: none;
   user-select: none;
@@ -2535,14 +2596,39 @@ body.dark-mode .portfolio-digit:focus {
   100% { color: var(--text-quiet); }
 }
 
-/* Add smooth page fade-out for transitions */
+/* ─────────────────────────────────────────────────────────────────────────────
+   SMOOTH PAGE TRANSITIONS
+   Unified system for cross-page navigation animations.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Page fade-out animation for navigation transitions */
 @keyframes page-fade-out {
-  0% { opacity: 1; }
-  100% { opacity: 0; }
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
+/* Page fade-in animation (used by entrance system) */
+@keyframes page-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Body class applied during page navigation */
 body.page-transitioning {
   animation: page-fade-out 300ms ease-out forwards;
+  pointer-events: none; /* Prevent clicks during transition */
+}
+
+/* Reduced motion: faster, simpler fade */
+@media (prefers-reduced-motion: reduce) {
+  body.page-transitioning {
+    animation-duration: 200ms;
+  }
+  
+  /* Simpler entrance animation */
+  #app-frame {
+    transition: opacity 200ms ease-out;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -2730,11 +2816,13 @@ body.dark-mode .modal-blur-layer.active {
  * ════════════════════════════════════════════════════════════════════════════════ */
 
 body.cv-page #bravia-balls {
-  /* Match index: scene interior background is theme-driven via bg-light/bg-dark. */
+  /* Match index exactly: NO CSS border-radius on #bravia-balls.
+     Wall appearance is drawn by .cv-wall-canvas (same as index uses canvas for wall).
+     This prevents anti-aliasing artifacts at rounded edges. */
   background: var(--bg-light);
   background-color: var(--bg-light);
-  border-radius: var(--wall-radius);
-  overflow: hidden;
+  border-radius: 0; /* Match index: wall drawn by canvas, not CSS */
+  overflow: visible; /* Match index: no CSS clipping on container */
   /* CV needs an interactive scroll surface; index keeps pointer-events off to route to canvas. */
   pointer-events: auto;
   height: 100%;
@@ -2799,13 +2887,20 @@ body.cv-page #bravia-balls .cv-wall-canvas {
 .cv-scroll-container {
   position: absolute;
   inset: 0;
+  /* Desktop: clip at rounded edges, .cv-right handles its own scroll */
   overflow: hidden;
-  padding: clamp(2rem, 4vw, 3.5rem) clamp(1.5rem, 3vw, 2.5rem);
+  /* Border-radius on inner scroll container (not #bravia-balls) to clip CV content 
+     inside the rounded wall area. This avoids anti-aliasing artifacts. */
+  border-radius: var(--wall-radius);
+  /* Minimal padding - content handles its own spacing */
+  padding: 0;
   /* Below the wall canvas, above noise/background. */
   z-index: 10;
+  /* Background matches interior to ensure clean edges */
+  background: var(--bg-light);
   /* Smooth layout updates on resize */
   transition:
-    padding var(--duration-resize) var(--ease-organic);
+    border-radius var(--duration-resize) var(--ease-organic);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -2815,8 +2910,8 @@ body.cv-page #bravia-balls .cv-wall-canvas {
 .cv-content {
   display: flex;
   flex-direction: row;
-  gap: clamp(1.5rem, 3.5vw, 3rem);
-  align-items: flex-start;
+  gap: 0; /* No gap - sections handle their own padding */
+  align-items: stretch;
   color: var(--abs-fg-primary);
   font-family: var(--abs-font-sans);
   height: 100%;
@@ -2826,36 +2921,40 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   position: relative;
 }
 
-/* Left Area: Fixed/Pinned (Photo + Intro) */
+/* Left Area: 40% width (Photo + Intro) */
 .cv-left {
-  flex: 0 0 auto;
-  width: var(--cv-left-width, clamp(20rem, 32vw, 28rem));
+  flex: 0 0 40%;
+  width: 40%;
+  max-width: 40%;
   position: sticky;
-  top: clamp(2rem, 4vw, 3.5rem);
+  top: 0;
   align-self: flex-start;
-  max-height: calc(100vh - clamp(4rem, 8vw, 7rem));
-  height: 100%;
+  height: 100vh;
+  height: 100dvh;
   /* NEVER scroll - content is fixed */
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: stretch;
   box-sizing: border-box;
+  /* Horizontal padding matches .cv-right for visual balance */
+  padding-left: max(5vw, 2rem);
+  padding-right: max(5vw, 2rem);
 }
 
 .cv-left__inner {
   display: flex;
   flex-direction: column;
-  gap: var(--cv-left-gap, clamp(1.5rem, 3vw, 2.5rem));
+  gap: clamp(1.5rem, 2.5vw, 2rem);
   align-items: flex-start;
   justify-content: center;
   width: 100%;
-  padding: var(--cv-left-padding-top, clamp(6vh, 10vh, 15vh)) clamp(1.5rem, 3vw, 2.5rem) var(--cv-left-padding-bottom, clamp(6vh, 10vh, 15vh)) clamp(1.5rem, 3vw, 2.5rem);
-  box-sizing: border-box;
-  min-height: min-content;
-  flex: 1 1 auto;
   height: 100%;
+  /* Vertical padding only - horizontal handled by parent */
+  padding-top: clamp(2rem, 4vw, 3rem);
+  padding-bottom: clamp(2rem, 4vw, 3rem);
+  box-sizing: border-box;
 }
 
 /* Photo */
@@ -2864,12 +2963,18 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   aspect-ratio: var(--cv-photo-aspect-ratio, 0.75);
   border-radius: var(--cv-photo-border-radius, clamp(0.5rem, 1.2vw, 1rem));
   overflow: hidden;
-  background: #ffffff;
+  /* Use theme-aware background to prevent white outline artifacts at rounded corners.
+     The overflow:hidden + border-radius clip causes anti-aliasing that reveals background. */
+  background: var(--bg-light, #f5f5f5);
   align-self: stretch;
   flex-shrink: 0;
   box-sizing: border-box;
   position: relative;
   height: 360px;
+}
+
+body.dark-mode .cv-photo {
+  background: var(--bg-dark, #0a0a0a);
 }
 
 .cv-photo__image {
@@ -2933,7 +3038,9 @@ body.cv-page #bravia-balls .cv-wall-canvas {
 
 /* Right Area: Scrollable (All Main Content) */
 .cv-right {
-  flex: 1 1 auto;
+  flex: 0 0 60%;
+  width: 60%;
+  max-width: 60%;
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -2941,13 +3048,13 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   scrollbar-width: thin;
   scrollbar-color: var(--abs-fg-muted) transparent;
   height: 100%;
-  max-height: 100%;
   box-sizing: border-box;
-  position: relative; /* For gradient overlays */
-  /* Ensure scroll starts at top */
+  position: relative;
   scroll-behavior: smooth;
-  /* Remove any visible borders/outlines */
   border: none;
+  /* Horizontal padding matches .cv-left for visual balance */
+  padding-left: max(5vw, 2rem);
+  padding-right: max(5vw, 2rem);
   outline: none;
   box-shadow: none;
   margin-top: 0;
@@ -3021,16 +3128,16 @@ body.cv-page #bravia-balls .cv-wall-canvas {
 }
 
 .cv-right__inner {
-  padding: var(--cv-right-padding-top, clamp(15vh, 20vh, 25vh)) var(--cv-right-padding-x, clamp(1.5rem, 3vw, 2.5rem)) var(--cv-right-padding-bottom, clamp(15vh, 20vh, 25vh)) var(--cv-right-padding-x, clamp(1.5rem, 3vw, 2.5rem));
-  max-width: var(--cv-right-max-width, clamp(36rem, 42rem, 48rem));
-  margin: 0 auto;
+  /* Vertical padding only - horizontal handled by parent */
+  padding-top: clamp(3rem, 8vh, 5rem);
+  padding-bottom: clamp(3rem, 8vh, 5rem);
+  max-width: 48rem;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   width: 100%;
   position: relative;
-  z-index: 10; /* Below gradients (z:11) to allow fade effect */
-  height: fit-content;
+  z-index: 10;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -3396,38 +3503,52 @@ body.cv-page.dark-mode #bravia-balls {
   background-color: var(--bg-dark);
 }
 
+body.cv-page.dark-mode .cv-scroll-container {
+  background: var(--bg-dark);
+}
+
 /* CV Page Responsive: Stack vertically on mobile */
 @media (max-width: 768px) {
   .cv-scroll-container {
-    padding: clamp(1rem, 3vw, 1.5rem) clamp(1rem, 2.5vw, 1.25rem);
+    /* Mobile: enable scrolling on container since content stacks */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: clamp(1rem, 3vw, 1.5rem);
   }
   
   .cv-content {
     flex-direction: column;
-    gap: clamp(1.5rem, 4vw, 2.5rem);
+    gap: 0;
   }
   
   .cv-left {
+    flex: 0 0 auto;
     width: 100%;
+    max-width: 100%;
     position: static;
-    max-height: none;
     height: auto;
-    overflow-y: visible;
+    overflow: visible;
     justify-content: flex-start;
     align-items: center;
-    top: 0;
+    /* Mobile: consistent horizontal padding */
+    padding-left: max(5vw, 1.5rem);
+    padding-right: max(5vw, 1.5rem);
   }
   
   .cv-left__inner {
-    gap: clamp(1.25rem, 3.5vw, 2rem);
+    gap: clamp(1.25rem, 3vw, 1.75rem);
     align-items: center;
-    padding: 10vh 5vh 10vh 5vh;
-    max-width: clamp(20rem, 28rem, 32rem);
+    /* Mobile: vertical padding only */
+    padding-top: clamp(2rem, 6vw, 3rem);
+    padding-bottom: clamp(2rem, 6vw, 3rem);
+    max-width: 32rem;
     width: 100%;
+    margin: 0 auto;
   }
   
   .cv-photo {
-    max-width: clamp(14rem, 18rem, 22rem);
+    max-width: 18rem;
     margin: 0 auto;
     align-self: center;
   }
@@ -3445,13 +3566,20 @@ body.cv-page.dark-mode #bravia-balls {
   }
   
   .cv-right {
-    overflow-y: visible;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    overflow: visible; /* No separate scroll - part of parent scroll */
     height: auto;
-    max-height: none;
+    /* Mobile: consistent horizontal padding */
+    padding-left: max(5vw, 1.5rem);
+    padding-right: max(5vw, 1.5rem);
   }
   
   .cv-right__inner {
-    padding: clamp(2rem, 5vw, 3rem) 0;
+    /* Mobile: vertical padding only */
+    padding-top: clamp(2rem, 5vw, 3rem);
+    padding-bottom: clamp(2rem, 5vw, 3rem);
     max-width: 100%;
   }
   

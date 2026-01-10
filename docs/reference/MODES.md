@@ -17,14 +17,10 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 9. **Kaleidoscope** (`kaleidoscope-3`)
 10. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
 14. **Ball Pit (Throws)** (`pit-throws`) — **no keyboard shortcut yet**
-15. **Orbit 3D** (`orbit-3d`)
-16. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`)
 17. **3D Sphere** (`3d-sphere`)
 18. **3D Cube** (`3d-cube`)
-19. **Crystal Lattice** (`lattice`)
 20. **Neural Network** (`neural`)
 21. **Parallax (Linear)** (`parallax-linear`)
-22. **Parallax (Perspective)** (`parallax-perspective`)
 23. **3D Starfield** (`starfield-3d`)
 
 ---
@@ -56,48 +52,15 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 9. **Neural Network** (`neural`) — **CONNECTION MAP**
 10. **Vortex Sheets** (`vortex`) — **EMERGENT ORDER**
 11. **3D Sphere** (`3d-sphere`) — **3D SHELL**
-12. **Orbit 3D** (`orbit-3d`) — **SYSTEM DYNAMICS**
-13. **Zero Gravity** (`weightless`) — **OPEN SPACE**
-14. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
-15. **Critters** (`critters`) — **BEHAVIOR MODEL**
-16. **Orbit 3D (Tight Swarm)** (`orbit-3d-2`) — **EDGE CASES**
-17. **Parallax (Perspective)** (`parallax-perspective`) — **CONTEXT FIELD**
-18. **Kaleidoscope** (`kaleidoscope-3`) — **VOCAB BLOOM**
-19. **3D Starfield** (`starfield-3d`) — **DEPTH FIELD**
-23. **Crystal Lattice** (`lattice`) — **SYSTEM FRAME**
+12. **Zero Gravity** (`weightless`) — **OPEN SPACE**
+13. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
+14. **Critters** (`critters`) — **BEHAVIOR MODEL**
+15. **Kaleidoscope** (`kaleidoscope-3`) — **VOCAB BLOOM**
+16. **3D Starfield** (`starfield-3d`) — **DEPTH FIELD**
 
 ---
 
 ## Mode Details
-
-## Mode 15: Orbit 3D 🪐 (Planetary Rings)
-
-**Purpose:** Multi-layer orbital ring system with true 3D perspective projection and rotation. Like Saturn's rings, multiple concentric layers rotate at different speeds with varying inclinations, creating a mesmerizing celestial structure you can spin with your cursor.
-
-- **Architecture:** 3D point cloud (like sphere/cube modes) with deterministic orbital positioning
-- **Gravity:** None (pure rotation-based animation)
-- **Collisions:** Disabled; camera-locked orbital structure
-- **Interaction:** Mouse dragging spins the entire ring system; idle drift present
-- **Depth:** Perspective projection with per-dot depth scaling
-- **Distribution:** Multi-shell orbital rings with staggered phases and speeds
-- **Accessibility:** Respects `prefers-reduced-motion`
-- **Settings (panel):**
-  - `Point Count` (30-600) - total points across all rings
-  - `Orbital Radius` (10-40 vw) - maximum radius of ring system
-  - `Ring Layers` (2-8) - number of concentric orbital shells
-  - `Orbital Speed` (0-2) - speed of orbital rotation per layer
-  - `Idle Rotation` (0-1 rad/s) - baseline system spin
-  - `Spin Sensitivity` (0-10) - how much mouse dragging spins the rings
-  - `Tumble Damping` (0.8-0.99) - decay of spin impulse
-  - `Ring Tilt` (0-1) - inclination variation between layers
-  - `Wobble Amount` (0-0.4) - perpendicular oscillation strength
-  - `Focal Length` (80-2000 px) - perspective strength
-  - `Dot Size` (0.2-4×) - relative dot radius
-
-## Mode 16: Orbit 3D (Tight Swarm) 🌀
-
-- Same as Orbit 3D but with tighter spawn radius and stronger spiral/tangential forces.
-- Collisions disabled for a clean swirl aesthetic.
 
 ## Mode 17: 3D Sphere 🌐
 
@@ -137,14 +100,6 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
   - `Tumble Damping` (0.8-0.99) — decay of tumble impulse
   - `Focal Length` (80-2000 px) — perspective strength
   - `Dot Size` (0.2-4×) — relative dot radius
-
-## Mode 19: Crystal Lattice 💎
-
-**Purpose:** "Crystallization" narrative. Balls are pulled towards a hexagonal grid, forming a solid structure out of chaos.
-- **Gravity:** Disabled
-- **Collisions:** Enabled
-- **Interaction:** Repeller enabled (disrupts the lattice)
-- **Forces:** Strong spring force towards nearest hex grid vertex.
 
 ## Mode 18: Neural Network 🧠
 
@@ -297,15 +252,16 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 
 - **Gravity:** Disabled
 - **Collisions:** Disabled; pooled points with no physics collisions
-- **Interaction:** Cursor parallax offsets the projection
+- **Interaction:** None; cursor is ignored (no parallax/offset)
 - **Depth:** Perspective projection with configurable near/far planes and focal length
+- **Extent:** Star positions use `starfieldSpanX`/`starfieldSpanY` multiplied by 4× along X/Y for a wider field
 - **Idle:** Subtle twinkle/drift when idle; respects `prefers-reduced-motion`
 - **Settings (panel):**
   - `starfieldCount`
   - `starfieldSpanX`, `starfieldSpanY`
   - `starfieldZNear`, `starfieldZFar`
   - `starfieldFocalLength`
-  - `starfieldParallaxStrength`
+  - `starfieldParallaxStrength` (currently ignored; cursor influence disabled)
   - `starfieldSpeed`
   - `starfieldDotSizeMul` (capped at normal ball size)
   - `starfieldIdleJitter`

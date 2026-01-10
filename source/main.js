@@ -28,6 +28,7 @@ import { upgradeSocialIcons } from './modules/ui/social-icons.js';
 import { initTimeDisplay } from './modules/ui/time-display.js';
 import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 // Note: Legend interactivity is now inlined in main.js for reliability
+import { initLegendFilterSystem } from './modules/ui/legend-filter.js';
 import { initLinkCursorHop } from './modules/ui/link-cursor-hop.js';
 // Layout controls now integrated into master panel
 import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
@@ -483,177 +484,8 @@ window.addEventListener('unhandledrejection', (event) => {
 
     // Legend dots: assign discipline colors (palette-driven + story overrides)
     applyExpertiseLegendColors();
-    
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // INTERACTIVE LEGEND FILTER SYSTEM
-    // - By default, all labels are considered "active" (showing all balls equally)
-    // - When a label is clicked, it toggles its active state
-    // - Active labels stay at full opacity, inactive labels fade to 0.35
-    // - Balls corresponding to active labels grow larger and stay at full opacity
-    // - Balls not matching active labels fade to 0.35 opacity
-    // - Ball size scales inversely with number of active labels (max size = 1 active)
-    // ═══════════════════════════════════════════════════════════════════════════════
-    
-    // Track active legend indices (all active by default)
-    const legendActiveSet = new Set(); // Empty = all active, non-empty = only specified are active
-    let legendItems = [];
-    const INACTIVE_OPACITY = 0.35;
-    
-    // Store all balls (for show/hide filtering)
-    let allBalls = []; // Complete set of balls
-    
-    /**
-     * Sync allBalls with current balls (called after mode changes spawn new balls)
-     */
-    function syncAllBalls() {
-      const g = getGlobals();
-      if (!g.balls) return;
-      allBalls = [...g.balls];
-      // Reapply filter if active
-      if (legendActiveSet.size > 0) {
-        updateBallsForFilter();
-      }
-    }
-    
-    /**
-     * Update which balls are visible based on active filter state
-     * Simple show/hide like data visualization filtering
-     */
-    function updateBallsForFilter() {
-      const g = getGlobals();
-      
-      // Safety check
-      if (!allBalls || allBalls.length === 0) {
-        allBalls = [...(g.balls || [])];
-        return;
-      }
-      
-      const allActive = legendActiveSet.size === 0;
-      
-      if (allActive) {
-        // Show all balls
-        g.balls = [...allBalls];
-      } else {
-        // Show only balls matching active filters
-        g.balls = allBalls.filter(ball => {
-          if (!ball) return false;
-          const idx = ball.distributionIndex ?? -1;
-          return idx >= 0 && legendActiveSet.has(idx);
-        });
-      }
-    }
-    
-    // Expose syncAllBalls globally so mode controller can call it
-    if (!window.legendFilter) window.legendFilter = {};
-    window.legendFilter.syncAllBalls = syncAllBalls;
-    
-    /**
-     * Update legend item visual states
-     */
-    function updateLegendVisuals() {
-      const allActive = legendActiveSet.size === 0;
-      
-      legendItems.forEach((item, idx) => {
-        if (allActive) {
-          // All active: all labels at full opacity
-          item.classList.remove('legend__item--active', 'legend__item--dimmed');
-          item.style.opacity = '';
-        } else if (legendActiveSet.has(idx)) {
-          // This label is active
-          item.classList.add('legend__item--active');
-          item.classList.remove('legend__item--dimmed');
-          item.style.opacity = '';
-        } else {
-          // This label is not active (dimmed)
-          item.classList.remove('legend__item--active');
-          item.classList.add('legend__item--dimmed');
-          item.style.opacity = String(INACTIVE_OPACITY);
-        }
-      });
-    }
-    
-    /**
-     * Toggle a legend item's active state
-     * @param {number} index - Legend item index
-     */
-    function toggleLegendItem(index) {
-      if (legendActiveSet.size === 0) {
-        // Was "all active" mode - now activating just this one
-        legendActiveSet.add(index);
-      } else if (legendActiveSet.has(index)) {
-        // This one was active - deactivate it
-        legendActiveSet.delete(index);
-        // If none left active, revert to "all active" mode
-        if (legendActiveSet.size === 0) {
-          // All deactivated = all active (default state)
-        }
-      } else {
-        // This one was not active - activate it
-        legendActiveSet.add(index);
-      }
-      
-      updateLegendVisuals();
-      updateBallsForFilter();
-    }
-    
-    // Initialize legend interactivity and filtering
-    try {
-      const legend = document.getElementById('expertise-legend');
-      const tooltipOutput = document.getElementById('legend-tooltip-output');
-      
-      if (legend) {
-        legendItems = Array.from(legend.querySelectorAll('.legend__item'));
-        legendItems.forEach((item, index) => {
-          item.setAttribute('role', 'button');
-          item.setAttribute('tabindex', '0');
-          item.style.cursor = 'pointer';
-          item.classList.add('legend__item--interactive');
-          
-          item.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            toggleLegendItem(index);
-          });
-          
-          item.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              e.stopPropagation();
-              toggleLegendItem(index);
-            }
-          });
-          
-          // Tooltip hover handlers
-          if (tooltipOutput) {
-            item.addEventListener('mouseenter', (e) => {
-              const tooltipText = item.getAttribute('data-tooltip');
-              if (tooltipText) {
-                tooltipOutput.textContent = tooltipText;
-                tooltipOutput.style.opacity = '1';
-                tooltipOutput.style.visibility = 'visible';
-              }
-            });
-            
-            item.addEventListener('mouseleave', () => {
-              tooltipOutput.style.opacity = '0';
-              setTimeout(() => {
-                if (tooltipOutput.style.opacity === '0') {
-                  tooltipOutput.style.visibility = 'hidden';
-                }
-              }, 50);
-            });
-          }
-        });
-      }
-      
-      // Initialize tooltip output element
-      if (tooltipOutput) {
-        tooltipOutput.style.visibility = 'hidden';
-        tooltipOutput.style.opacity = '0';
-      }
-    } catch (e) {
-      // Silent fail for legend setup
-    }
+    // Interactive legend: hover + click filtering (shared module; must run in prod too)
+    initLegendFilterSystem();
     log('✓ Legend filter system configured');
     
     setupKeyboardShortcuts();
@@ -774,32 +606,50 @@ window.addEventListener('unhandledrejection', (event) => {
     }
     
     // ╔══════════════════════════════════════════════════════════════════════════════╗
-    // ║                             PAGE FADE-IN                                    ║
-    // ╚══════════════════════════════════════════════════════════════════════════════╝
-    // Goal: fade ALL UI content (inside #app-frame) from 0 → 1 on reload.
-    //
-    // Why this is tricky in this project:
-    // - Much of the UI is `position: fixed` (exported layout + our overrides).
-    // - Fixed descendants can be composited outside a normal wrapper, so fading
-    //   a parent via CSS can appear “broken”.
-    // - We solve this with a fixed + transformed `#app-frame` (CSS) and we
-    //   run the fade using Web Animations API (WAAPI) for maximum robustness.
-    //
-    // Failsafe:
-    // If, for any reason, the animation gets canceled or never runs, we force
-    // the content visible after a short timeout so the page never “sticks” hidden.
-
-    // ╔══════════════════════════════════════════════════════════════════════════════╗
     // ║                    DRAMATIC ENTRANCE ANIMATION                               ║
     // ║        Browser default → wall-state with 3D perspective orchestration        ║
+    // ║                                                                              ║
+    // ║  Uses unified navigation state to determine if wall animation should play:   ║
+    // ║  - Fresh session visit: Full wall grow animation                             ║
+    // ║  - Return from portfolio/CV: Quick fade-in only (skip wall animation)        ║
+    // ║  - Browser back/forward: Quick fade-in only (skip wall animation)            ║
     // ╚══════════════════════════════════════════════════════════════════════════════╝
     
     try {
       const { orchestrateEntrance, revealAllLateElements } = await import('./modules/visual/entrance-animation.js');
+      const { 
+        getModalToAutoOpen, 
+        shouldSkipWallAnimation, 
+        resetTransitionState,
+        setupPrefetchOnHover 
+      } = await import('./modules/utils/page-nav.js');
+      
       const g = getGlobals();
       const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
       const elementDuration = g.entranceElementDuration ?? CONTENT_FADE_DURATION_MS;
       const elementEasing = g.entranceElementEasing ?? CONTENT_FADE_EASING;
+
+      // Check navigation state BEFORE consuming it (getModalToAutoOpen reads but doesn't clear)
+      const autoOpenModal = getModalToAutoOpen();
+      
+      // Check if we should skip wall animation (internal nav or browser back/forward)
+      // Note: shouldSkipWallAnimation() consumes the navigation state
+      const skipWall = shouldSkipWallAnimation();
+      
+      // Handle bfcache restore (browser back/forward with cached page)
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+          resetTransitionState();
+          const appFrame = document.getElementById('app-frame');
+          if (appFrame) appFrame.style.opacity = '1';
+        }
+      });
+      
+      // Setup prefetch on hover for gate triggers
+      const cvTrigger = document.getElementById('cv-gate-trigger');
+      const portfolioTrigger = document.getElementById('portfolio-gate-trigger');
+      if (cvTrigger) setupPrefetchOnHover(cvTrigger, 'cv.html');
+      if (portfolioTrigger) setupPrefetchOnHover(portfolioTrigger, 'portfolio.html');
 
       // Skip entrance animation if disabled or reduced motion preferred
       if (!g.entranceEnabled || reduceMotion) {
@@ -809,16 +659,35 @@ window.addEventListener('unhandledrejection', (event) => {
         revealAllLateElements();
         console.log('✓ Entrance animation skipped (disabled or reduced motion)');
       } else {
-        // Orchestrate dramatic entrance
+        // Orchestrate entrance (wall animation conditional on navigation state)
         await orchestrateEntrance({
           waitForFonts: async () => {
             try {
               await waitForFonts();
             } catch (e) {}
-          }
+          },
+          skipWallAnimation: skipWall
         });
-        console.log('✓ Dramatic entrance animation orchestrated');
+        console.log(skipWall 
+          ? '✓ Quick entrance (returning from internal page)' 
+          : '✓ Dramatic entrance animation orchestrated');
       }
+      
+      // Auto-open modal if requested via navigation state
+      if (autoOpenModal === 'cv') {
+        // CV modal - trigger the gate open
+        setTimeout(() => {
+          const cvTriggerEl = document.getElementById('cv-gate-trigger');
+          if (cvTriggerEl) cvTriggerEl.click();
+        }, 400);
+      } else if (autoOpenModal === 'contact') {
+        // Contact modal - trigger the gate open
+        setTimeout(() => {
+          const contactTriggerEl = document.getElementById('contact-trigger');
+          if (contactTriggerEl) contactTriggerEl.click();
+        }, 400);
+      }
+      
     } catch (e) {
       console.warn('⚠️ Entrance animation failed, falling back to simple fade:', e);
       try { await waitForFonts(); } catch (e) {}
@@ -834,10 +703,14 @@ window.addEventListener('unhandledrejection', (event) => {
       } catch (err) {
         // Manual fallback if module import fails
         // NOTE: Do NOT clear transform - CSS may rely on it for positioning
+        // REMOVE inline opacity so CSS controls it (enables modal fade transitions)
         ['main-links', 'brand-logo'].forEach((id) => {
           const el = document.getElementById(id);
           if (el) {
-            el.style.opacity = '1';
+            el.style.removeProperty('opacity');
+            if (id === 'brand-logo') {
+              el.style.removeProperty('filter');
+            }
             el.style.visibility = 'visible';
           }
         });

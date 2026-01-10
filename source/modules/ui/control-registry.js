@@ -7,7 +7,7 @@
 import { getGlobals } from '../core/state.js';
 import { autoSaveSettings } from '../utils/storage.js';
 import { syncConfigToFile } from '../utils/config-sync.js';
-import { WALL_PRESETS, PARALLAX_LINEAR_PRESETS, PARALLAX_PERSPECTIVE_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
+import { WALL_PRESETS, PARALLAX_LINEAR_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { applyWallPreset, wallState } from '../physics/wall-state.js';
 
@@ -135,25 +135,6 @@ export function applyParallaxLinearPreset(presetName, reinit = true) {
 
   try { syncSlidersToState(); } catch (e) {}
   console.log(`Applied parallax linear preset: ${preset.label}`);
-}
-
-export function applyParallaxPerspectivePreset(presetName, reinit = true) {
-  const preset = PARALLAX_PERSPECTIVE_PRESETS[presetName];
-  if (!preset) return;
-
-  const g = getGlobals();
-  for (const [key, val] of Object.entries(preset)) {
-    if (key === 'label') continue;
-    if (g[key] !== undefined) g[key] = val;
-  }
-  g.parallaxPerspectivePreset = presetName;
-
-  if (reinit) {
-    import('../modes/mode-controller.js').then(({ resetCurrentMode }) => resetCurrentMode());
-  }
-
-  try { syncSlidersToState(); } catch (e) {}
-  console.log(`Applied parallax perspective preset: ${preset.label}`);
 }
 
 function warmupFramesControl(stateKey) {
@@ -724,7 +705,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'uiHitAreaMul',
         type: 'range',
         min: 0.5, max: 2.5, step: 0.05,
-        default: 1,
+        default: 0.7,
         format: v => `${Number(v).toFixed(2)}×`,
         parse: parseFloat,
         hint: 'Scales most UI button/link hit areas (drives --ui-hit-area-mul).',
@@ -1103,7 +1084,7 @@ export const CONTROL_SECTIONS = {
         default: 3.6,
         format: (v) => v.toFixed(2) + 'x',
         parse: parseFloat,
-        hint: 'How strongly the logo counter-scales against the scene press (higher = logo feels more “anchored”).',
+        hint: 'How strongly the logo counter-scales against the scene press (higher = logo feels more "anchored").',
         onChange: (_g, val) => {
           const el = document.getElementById('abs-scene');
           if (!el) return;
@@ -1289,8 +1270,8 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10),
         hint: 'Wait before showing dialog content',
         onChange: (g, val) => {
-          import('./modal-overlay.js').then(({ updateModalContentDelay }) => {
-            updateModalContentDelay(val);
+          import('./modal-overlay.js').then(({ updateGateContentDelay }) => {
+            updateGateContentDelay(val);
           });
         }
       },
@@ -1305,15 +1286,15 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Scene scale when gate opens (0.9-1.0)',
         onChange: (g, val) => {
-          import('./modal-overlay.js').then(({ updateModalDepthScale }) => {
-            updateModalDepthScale(val);
+          import('./modal-overlay.js').then(({ updateGateDepthScale }) => {
+            updateGateDepthScale(val);
           });
         }
       },
       {
         id: 'gateDepthTranslateY',
         label: 'Depth Shift',
-        stateKey: 'gateDepthTranslateY',
+        stateKey: 'modalDepthTranslateY',
         type: 'range',
         min: 0, max: 30, step: 1,
         default: 8,
@@ -1321,40 +1302,8 @@ export const CONTROL_SECTIONS = {
         parse: parseInt,
         hint: 'Vertical shift when gate opens',
         onChange: (g, val) => {
-          import('./modal-overlay.js').then(({ updateModalDepthTranslateY }) => {
-            updateModalDepthTranslateY(val);
-          });
-        }
-      },
-      {
-        id: 'logoOpacityInactive',
-        label: 'Logo Opacity Closed',
-        stateKey: 'logoOpacityInactive',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 1,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Logo opacity when gate is closed (1 = fully visible)',
-        onChange: (g, val) => {
-          import('./modal-overlay.js').then(({ updateLogoOpacityInactive }) => {
-            updateLogoOpacityInactive(val);
-          });
-        }
-      },
-      {
-        id: 'logoOpacityActive',
-        label: 'Logo Opacity Open',
-        stateKey: 'logoOpacityActive',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.2,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Logo opacity when gate is active (0.2 = more faded)',
-        onChange: (g, val) => {
-          import('./modal-overlay.js').then(({ updateLogoOpacityActive }) => {
-            updateLogoOpacityActive(val);
+          import('./modal-overlay.js').then(({ updateGateDepthTranslateY }) => {
+            updateGateDepthTranslateY(val);
           });
         }
       },
@@ -3343,366 +3292,6 @@ export const CONTROL_SECTIONS = {
   },
 
 
-  orbit3d: {
-    title: 'Orbit 3D: Planetary Rings',
-    icon: '🪐',
-    mode: 'orbit-3d',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'orbit3dDensity',
-        label: 'Point Count',
-        stateKey: 'orbit3dDensity',
-        type: 'range',
-        min: 30, max: 600, step: 10,
-        default: 120,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'orbit3dRadiusVw',
-        label: 'Orbital Radius',
-        stateKey: 'orbit3dRadiusVw',
-        type: 'range',
-        min: 10, max: 40, step: 1,
-        default: 22,
-        format: v => v + 'vw',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'orbit3dShellCount',
-        label: 'Ring Layers',
-        stateKey: 'orbit3dShellCount',
-        type: 'range',
-        min: 2, max: 8, step: 1,
-        default: 4,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'orbit3dOrbitalSpeed',
-        label: 'Orbital Speed',
-        stateKey: 'orbit3dOrbitalSpeed',
-        type: 'range',
-        min: 0, max: 2, step: 0.1,
-        default: 0.8,
-        format: v => v.toFixed(1),
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3dIdleSpeed',
-        label: 'Idle Rotation',
-        stateKey: 'orbit3dIdleSpeed',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.25,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3dTumbleSpeed',
-        label: 'Spin Sensitivity',
-        stateKey: 'orbit3dTumbleSpeed',
-        type: 'range',
-        min: 0, max: 10, step: 0.5,
-        default: 2.0,
-        format: v => v.toFixed(1),
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3dTumbleDamping',
-        label: 'Tumble Damping',
-        stateKey: 'orbit3dTumbleDamping',
-        type: 'range',
-        min: 0.8, max: 0.99, step: 0.01,
-        default: 0.93,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3dInclinationMix',
-        label: 'Ring Tilt',
-        stateKey: 'orbit3dInclinationMix',
-        type: 'range',
-        min: 0, max: 1, step: 0.1,
-        default: 0.7,
-        format: v => v.toFixed(1),
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3dWobbleStrength',
-        label: 'Wobble Amount',
-        stateKey: 'orbit3dWobbleStrength',
-        type: 'range',
-        min: 0, max: 0.4, step: 0.05,
-        default: 0.15,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3dFocalLength',
-        label: 'Focal Length',
-        stateKey: 'orbit3dFocalLength',
-        type: 'range',
-        min: 80, max: 2000, step: 20,
-        default: 600,
-        format: v => Math.round(v) + 'px',
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3dDotSizeMul',
-        label: 'Dot Size',
-        stateKey: 'orbit3dDotSizeMul',
-        type: 'range',
-        min: 0.2, max: 4, step: 0.1,
-        default: 1.2,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat
-      },
-      {
-        id: 'sizeVariationOrbit3d',
-        label: 'Size Variation',
-        stateKey: 'sizeVariationOrbit3d',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      warmupFramesControl('orbit3dWarmupFrames')
-    ]
-  },
-  orbit3d2: {
-    title: 'Orbit 3D (Tight Swarm)',
-    icon: '🌪️',
-    mode: 'orbit-3d-2',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'orbit3d2MoonCount',
-        label: 'Moon Count',
-        stateKey: 'orbit3d2MoonCount',
-        type: 'range',
-        min: 20, max: 200, step: 10,
-        default: 100,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'orbit3d2Gravity',
-        label: 'Gravity (G×M)',
-        stateKey: 'orbit3d2Gravity',
-        type: 'range',
-        min: 10000, max: 300000, step: 10000,
-        default: 80000,
-        format: v => `${Math.round(v / 1000)}k`,
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'orbit3d2VelocityMult',
-        label: 'Initial Velocity',
-        stateKey: 'orbit3d2VelocityMult',
-        type: 'range',
-        min: 0.5, max: 1.5, step: 0.05,
-        default: 1.1,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'orbit3d2MinOrbit',
-        label: 'Min Orbit (vw)',
-        stateKey: 'orbit3d2MinOrbit',
-        type: 'range',
-        min: 2, max: 15, step: 1,
-        default: 4,
-        format: v => v + 'vw',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'orbit3d2MaxOrbit',
-        label: 'Max Orbit (vw)',
-        stateKey: 'orbit3d2MaxOrbit',
-        type: 'range',
-        min: 3, max: 25, step: 1,
-        default: 12,
-        format: v => v + 'vw',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'orbit3d2DepthScale',
-        label: 'Depth Effect',
-        stateKey: 'orbit3d2DepthScale',
-        type: 'range',
-        min: 0, max: 0.8, step: 0.05,
-        default: 0.6,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3d2Damping',
-        label: 'Damping',
-        stateKey: 'orbit3d2Damping',
-        type: 'range',
-        min: 0, max: 0.2, step: 0.005,
-        default: 0.01,
-        format: v => v.toFixed(3),
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3d2FollowSmoothing',
-        label: 'Cursor Follow Speed',
-        stateKey: 'orbit3d2FollowSmoothing',
-        type: 'range',
-        min: 1, max: 200, step: 1,
-        default: 40,
-        format: v => Math.round(v),
-        parse: parseFloat
-      },
-      {
-        id: 'orbit3d2Softening',
-        label: 'Gravity Softening',
-        stateKey: 'orbit3d2Softening',
-        type: 'range',
-        min: 1, max: 100, step: 1,
-        default: 15,
-        format: v => Math.round(v),
-        parse: parseFloat
-      },
-      {
-        id: 'sizeVariationOrbit3d2',
-        label: 'Size Variation',
-        stateKey: 'sizeVariationOrbit3d2',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      warmupFramesControl('orbit3d2WarmupFrames')
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LATTICE — Crystal structure from chaos
-  // ═══════════════════════════════════════════════════════════════════════════
-  lattice: {
-    title: 'Crystal Lattice',
-    icon: '💎',
-    mode: 'lattice',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'sizeVariationLattice',
-        label: 'Size Variation',
-        stateKey: 'sizeVariationLattice',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'latticeSpacingVw',
-        label: 'Spacing (vw)',
-        stateKey: 'latticeSpacingVw',
-        type: 'range',
-        min: 1, max: 20, step: 0.25,
-        default: 8.5,
-        format: v => v.toFixed(2) + 'vw',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'latticeStiffness',
-        label: 'Stiffness',
-        stateKey: 'latticeStiffness',
-        type: 'range',
-        min: 0, max: 10, step: 0.1,
-        default: 2.2,
-        format: v => v.toFixed(1),
-        parse: parseFloat
-      },
-      {
-        id: 'latticeDamping',
-        label: 'Damping',
-        stateKey: 'latticeDamping',
-        type: 'range',
-        min: 0.5, max: 1.0, step: 0.01,
-        default: 0.92,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'latticeDisruptRadius',
-        label: 'Mesh Stretch Radius',
-        stateKey: 'latticeDisruptRadius',
-        type: 'range',
-        min: 50, max: 1000, step: 25,
-        default: 600,
-        format: v => String(Math.round(v)) + 'px',
-        parse: parseFloat
-      },
-      {
-        id: 'latticeDisruptPower',
-        label: 'Mesh Stretch Power',
-        stateKey: 'latticeDisruptPower',
-        type: 'range',
-        min: 0, max: 50, step: 1,
-        default: 25.0,
-        format: v => v.toFixed(1),
-        parse: parseFloat
-      },
-      {
-        id: 'latticeMeshWaveStrength',
-        label: 'Wave Amplitude',
-        stateKey: 'latticeMeshWaveStrength',
-        type: 'range',
-        min: 0, max: 50, step: 1,
-        default: 12.0,
-        format: v => String(Math.round(v)) + 'px',
-        parse: parseFloat
-      },
-      {
-        id: 'latticeMeshWaveSpeed',
-        label: 'Wave Speed',
-        stateKey: 'latticeMeshWaveSpeed',
-        type: 'range',
-        min: 0, max: 3.0, step: 0.1,
-        default: 0.8,
-        format: v => v.toFixed(1) + 'x',
-        parse: parseFloat
-      },
-      {
-        id: 'latticeAlignment',
-        label: 'Grid Alignment',
-        stateKey: 'latticeAlignment',
-        type: 'select',
-        options: [
-          { value: 'center', label: 'Center (Fill)' },
-          { value: 'top-left', label: 'Top-Left' },
-          { value: 'top-center', label: 'Top-Center' },
-          { value: 'top-right', label: 'Top-Right' }
-        ],
-        default: 'center',
-        format: v => String(v),
-        parse: v => String(v),
-        reinitMode: true
-      },
-      warmupFramesControl('latticeWarmupFrames')
-    ]
-  },
-
   // ═══════════════════════════════════════════════════════════════════════════
   // NEURAL — Connectivity expressed through motion only (no lines)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -3852,8 +3441,8 @@ export const CONTROL_SECTIONS = {
         label: 'Span X',
         stateKey: 'parallaxLinearSpanX',
         type: 'range',
-        min: 0.2, max: 3.0, step: 0.05,
-        default: 1.35,
+        min: 0.2, max: 8.0, step: 0.05,
+        default: 5,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true,
@@ -3865,7 +3454,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'parallaxLinearSpanY',
         type: 'range',
         min: 0.2, max: 3.0, step: 0.05,
-        default: 1.35,
+        default: 2.6,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true,
@@ -3917,169 +3506,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  parallaxPerspective: {
-    title: 'Parallax (Perspective)',
-    icon: '🪐',
-    mode: 'parallax-perspective',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'parallaxPerspectivePreset',
-        label: 'Preset',
-        stateKey: 'parallaxPerspectivePreset',
-        type: 'select',
-        options: Object.keys(PARALLAX_PERSPECTIVE_PRESETS).map(k => ({ value: k, label: PARALLAX_PERSPECTIVE_PRESETS[k].label })),
-        default: 'default',
-        format: v => PARALLAX_PERSPECTIVE_PRESETS[v]?.label || v,
-        onChange: (value) => {
-          applyParallaxPerspectivePreset(value, true);
-        }
-      },
-      {
-        id: 'parallaxPerspectiveRandomness',
-        label: 'Randomness',
-        stateKey: 'parallaxPerspectiveRandomness',
-        type: 'range',
-        min: 0, max: 1.0, step: 0.05,
-        default: 0.6,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true,
-        hint: '0 = perfect grid. 1 = full jitter from grid vertices.'
-      },
-      {
-        id: 'parallaxPerspectiveDotSizeMul',
-        label: 'Dot Size',
-        stateKey: 'parallaxPerspectiveDotSizeMul',
-        type: 'range',
-        min: 0.2, max: 6.0, step: 0.1,
-        default: 1.8,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'sizeVariationParallaxPerspective',
-        label: 'Size Variation',
-        stateKey: 'sizeVariationParallaxPerspective',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'parallaxPerspectiveGridX',
-        label: 'Grid X (Cols)',
-        stateKey: 'parallaxPerspectiveGridX',
-        type: 'range',
-        min: 3, max: 50, step: 1,
-        default: 16,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxPerspectiveGridY',
-        label: 'Grid Y (Rows)',
-        stateKey: 'parallaxPerspectiveGridY',
-        type: 'range',
-        min: 3, max: 50, step: 1,
-        default: 12,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxPerspectiveGridZ',
-        label: 'Grid Z (Layers)',
-        stateKey: 'parallaxPerspectiveGridZ',
-        type: 'range',
-        min: 2, max: 25, step: 1,
-        default: 8,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxPerspectiveSpanX',
-        label: 'Span X',
-        stateKey: 'parallaxPerspectiveSpanX',
-        type: 'range',
-        min: 0.2, max: 3.0, step: 0.05,
-        default: 1.45,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'parallaxPerspectiveSpanY',
-        label: 'Span Y',
-        stateKey: 'parallaxPerspectiveSpanY',
-        type: 'range',
-        min: 0.2, max: 3.0, step: 0.05,
-        default: 1.45,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'parallaxPerspectiveZNear',
-        label: 'Z Near',
-        stateKey: 'parallaxPerspectiveZNear',
-        type: 'range',
-        min: 10, max: 1200, step: 10,
-        default: 40,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxPerspectiveZFar',
-        label: 'Z Far',
-        stateKey: 'parallaxPerspectiveZFar',
-        type: 'range',
-        min: 50, max: 4000, step: 50,
-        default: 1200,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxPerspectiveFocalLength',
-        label: 'Focal Length',
-        stateKey: 'parallaxPerspectiveFocalLength',
-        type: 'range',
-        min: 80, max: 2000, step: 10,
-        default: 420,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'parallaxPerspectiveParallaxStrength',
-        label: 'Parallax Strength',
-        stateKey: 'parallaxPerspectiveParallaxStrength',
-        type: 'range',
-        min: 0, max: 2000, step: 10,
-        default: 280,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'parallaxPerspectiveIdleJitter',
-        label: 'Idle Jitter',
-        stateKey: 'parallaxPerspectiveIdleJitter',
-        type: 'range',
-        min: 0, max: 25, step: 0.5,
-        default: 9,
-        format: v => v.toFixed(1) + 'px',
-        parse: parseFloat,
-        hint: 'Small drift so the grid stays alive when idle.'
-      },
-      warmupFramesControl('parallaxPerspectiveWarmupFrames')
-    ]
-  },
 
   starfield3d: {
     title: '3D Starfield',
@@ -4177,8 +3603,8 @@ export const CONTROL_SECTIONS = {
         label: 'Dot Size',
         stateKey: 'starfieldDotSizeMul',
         type: 'range',
-        min: 0.2, max: 2.2, step: 0.05,
-        default: 0.9,
+        min: 0.2, max: 4.0, step: 0.05,
+        default: 1.85,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat
       },
@@ -4847,12 +4273,8 @@ function generateHomeModeSectionHTML() {
               'ping-pong': '🏓',
               'weightless': '🌌',
               'kaleidoscope-3': '🪞',
-              'orbit-3d': '🌪️',
-              'orbit-3d-2': '🌪️',
-              'lattice': '💎',
               'neural': '🧠',
-              'parallax-linear': '🎚️',
-              'parallax-perspective': '🪐',
+            'parallax-linear': '🎚️',
               '3d-sphere': '🌐',
               '3d-cube': '🧊',
               'starfield-3d': '✨'
@@ -4869,12 +4291,8 @@ function generateHomeModeSectionHTML() {
               'ping-pong': 'Pong',
               'weightless': 'Zero-G',
               'kaleidoscope-3': 'Kalei',
-              'orbit-3d': 'Orbit',
-              'orbit-3d-2': 'Swarm',
-              'lattice': 'Lattice',
               'neural': 'Neural',
-              'parallax-linear': 'Parallax Lin',
-              'parallax-perspective': 'Parallax Per',
+            'parallax-linear': 'Parallax Lin',
               '3d-sphere': 'Sphere 3D',
               '3d-cube': 'Cube 3D',
               'starfield-3d': 'Starfield 3D'
@@ -5084,10 +4502,7 @@ export function bindRegisteredControls() {
             bubbles: g.bubblesMaxCount,
             'kaleidoscope-3': g.kaleidoscope3BallCount,
             critters: g.critterCount,
-            neural: g.neuralBallCount,
-            lattice: g.latticeBallCount,
-            'orbit-3d': g.orbit3dDensity,
-            'orbit-3d-2': g.orbit3d2MoonCount
+            neural: g.neuralBallCount
           };
           const v = map[mode];
           return Number.isFinite(Number(v)) ? Number(v) : null;

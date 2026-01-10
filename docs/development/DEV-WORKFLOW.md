@@ -12,7 +12,9 @@ This launches an interactive menu that guides you through all available developm
 
 Note: The project no longer syncs external exports into `source/`. Dev and production both use the canonical `source/` layout/assets.
 
-Portfolio follows the same pattern: in dev (`npm run dev`) `source/portfolio.html` loads `modules/portfolio/app.js` directly; in preview/build it loads the bundled `public/js/portfolio-bundle.js` plus `public/css/portfolio.css` with data/config copied to `public/config/`.
+Portfolio + CV follow the same pattern:
+- **Dev** (`npm run dev`): HTML loads ES modules directly (e.g. `modules/portfolio/app.js`, `modules/cv-init.js`)
+- **Preview/Build** (`npm run preview` / `npm run build`): HTML loads bundled scripts (`public/js/portfolio-bundle.js`, `public/js/cv-bundle.js`) and the runtime config/text are **inlined into the HTML** (no config fetch, no `public/modules/` module graph).
 
 ---
 
@@ -241,9 +243,12 @@ source/
 public/
 ├── index.html                    → Production HTML (from source/index.html)
 ├── js/
-│   └── bouncy-balls-embed.js    → Bundled JS (Rollup output)
+│   ├── bouncy-balls-embed.js    → Bundled JS (Rollup output)
+│   ├── portfolio-bundle.js      → Portfolio JS bundle
+│   └── cv-bundle.js             → CV JS bundle
 ├── css/
-│   └── bouncy-balls.css         → Concatenated styles
+│   ├── bouncy-balls.css         → Concatenated styles
+│   └── portfolio.css            → Portfolio styles
 └── ...
 ```
 

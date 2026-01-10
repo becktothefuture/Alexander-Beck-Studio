@@ -1,6 +1,7 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                               CV PAGE BOOTSTRAP                               ║
 // ║     Loads runtime text + shared chrome (dark mode, time, socials, sound)      ║
+// ║                     PORTFOLIO PARITY: Matching bootstrap sequence             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from './core/state.js';
@@ -13,15 +14,26 @@ import { initTimeDisplay } from './ui/time-display.js';
 import { upgradeSocialIcons } from './ui/social-icons.js';
 import { createSoundToggle } from './ui/sound-toggle.js';
 import { waitForFonts } from './utils/font-loader.js';
-import { orchestrateEntrance } from './visual/entrance-animation.js';
 import { applyWallFrameFromConfig, applyWallFrameLayout, syncWallFrameColors } from './visual/wall-frame.js';
 import { initNoiseSystem } from './visual/noise-system.js';
 import { initPortfolioWallCanvas } from './portfolio/wall-only-canvas.js';
 import { initCvScrollTypography } from './cv/cv-scroll-typography.js';
 import { initCvPhotoSlideshow } from './cv/cv-photo-slideshow.js';
 import { initCvPanel } from './cv/cv-panel.js';
+import { initModalOverlay } from './ui/modal-overlay.js';
+import { initContactModal } from './ui/contact-modal.js';
+import { initLinkCursorHop } from './ui/link-cursor-hop.js';
+import { 
+  navigateWithTransition, 
+  resetTransitionState, 
+  setupPrefetchOnHover,
+  NAV_STATES 
+} from './utils/page-nav.js';
 
 async function bootstrapCvPage() {
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                    STEP 1: LOAD RUNTIME TEXT                                 ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
   try {
     await loadRuntimeText();
     applyRuntimeTextToDOM();
@@ -29,38 +41,45 @@ async function bootstrapCvPage() {
     // Non-fatal: continue with defaults.
   }
 
-  let runtimeConfig = null;
-  try {
-    runtimeConfig = await loadRuntimeConfig();
-    applyWallFrameFromConfig(runtimeConfig);
-    try { initPortfolioWallCanvas({ canvasSelector: '.cv-wall-canvas' }); } catch (e) {}
-    try { initNoiseSystem(getGlobals()); } catch (e) {}
-    window.addEventListener('resize', applyWallFrameLayout, { passive: true });
-  } catch (e) {
-    // Safe fallback: keep the page readable if config loading fails.
-    try { initNoiseSystem(); } catch (e2) {}
-  }
-
-  // Palette chapters: rotate on each reload (cursor + ball palette vars only).
-  rotatePaletteChapterOnReload();
-  initializeDarkMode();
-  // Dark mode init can re-sync CSS vars; ensure runtime config remains the source of truth.
-  try { if (runtimeConfig) syncWallFrameColors(runtimeConfig); } catch (e) {}
-  maybeAutoPickCursorColor?.('startup');
-  initTimeDisplay();
-  upgradeSocialIcons();
-  createSoundToggle();
-
   // ╔══════════════════════════════════════════════════════════════════════════════╗
-  // ║                    SHARED ENTRANCE (STATIC WALL)                             ║
+  // ║                    STEP 2: WAIT FOR FONTS (Portfolio parity)                 ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
   try {
+    await waitForFonts();
+  } catch (e) {}
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                    STEP 3: DRAMATIC ENTRANCE (Portfolio parity)              ║
+  // ║        Runs BEFORE config/dark mode - matches Portfolio bootstrap order      ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+  try {
+    const g = getGlobals();
+    const fadeContent = document.getElementById('app-frame');
     const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    if (reduceMotion) {
-      const fadeTarget = document.getElementById('app-frame');
-      if (fadeTarget) {
-        fadeTarget.style.opacity = '1';
-        fadeTarget.style.transform = 'translateZ(0)';
+    const removeBlocker = () => {
+      try {
+        const blocker = document.getElementById('fade-blocking');
+        if (blocker) blocker.remove();
+      } catch (e) {}
+    };
+    const forceVisible = (reason) => {
+      if (!fadeContent) return;
+      fadeContent.style.opacity = '1';
+      fadeContent.style.transform = 'translateZ(0)';
+      removeBlocker();
+      // Also reveal central content elements
+      const cvContainer = document.querySelector('.cv-scroll-container');
+      if (cvContainer) {
+        cvContainer.style.opacity = '1';
+        cvContainer.style.visibility = 'visible';
+      }
+      console.warn(`⚠️ CV entrance fallback (${reason})`);
+    };
+
+    if (!g.entranceEnabled || reduceMotion) {
+      if (fadeContent) {
+        fadeContent.style.opacity = '1';
+        fadeContent.style.transform = 'translateZ(0)';
       }
       // Also reveal central content elements
       const cvContainer = document.querySelector('.cv-scroll-container');
@@ -68,7 +87,10 @@ async function bootstrapCvPage() {
         cvContainer.style.opacity = '1';
         cvContainer.style.visibility = 'visible';
       }
+      removeBlocker();
+      console.log('✓ CV entrance animation skipped (disabled or reduced motion)');
     } else {
+      const { orchestrateEntrance } = await import('./visual/entrance-animation.js');
       await orchestrateEntrance({
         waitForFonts: async () => {
           try { await waitForFonts(); } catch (e) {}
@@ -78,12 +100,21 @@ async function bootstrapCvPage() {
           '.cv-scroll-container'
         ]
       });
+      removeBlocker();
+      console.log('✓ Dramatic entrance animation orchestrated (CV)');
     }
+
+    // Failsafe watchdog: never allow a stuck hidden page (Portfolio parity)
+    window.setTimeout(() => {
+      if (!fadeContent) return;
+      const opacity = window.getComputedStyle(fadeContent).opacity;
+      if (opacity === '0') forceVisible('watchdog');
+    }, 2500);
   } catch (e) {
-    const fadeTarget = document.getElementById('app-frame');
-    if (fadeTarget) {
-      fadeTarget.style.opacity = '1';
-      fadeTarget.style.transform = 'translateZ(0)';
+    const fadeContent = document.getElementById('app-frame');
+    if (fadeContent) {
+      fadeContent.style.opacity = '1';
+      fadeContent.style.transform = 'translateZ(0)';
     }
     // Failsafe: reveal CV content
     const cvContainer = document.querySelector('.cv-scroll-container');
@@ -95,7 +126,88 @@ async function bootstrapCvPage() {
   }
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
-  // ║                       SCROLL TYPOGRAPHY (CV ONLY)                           ║
+  // ║                    STEP 4: LOAD CONFIG + WALL FRAME                          ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+  let runtimeConfig = null;
+  try {
+    runtimeConfig = await loadRuntimeConfig();
+    // Initialize state with runtime config so all global parameters are available
+    applyWallFrameFromConfig(runtimeConfig);
+    // CV needs the same visible rubber wall as index, but without running the balls simulation.
+    // Draw the wall ring onto a dedicated canvas layered above the content.
+    try { initPortfolioWallCanvas({ canvasSelector: '.cv-wall-canvas' }); } catch (e) {}
+    // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.
+    try { initNoiseSystem(getGlobals()); } catch (e) {}
+    // Keep the frame responsive to viewport changes (same behavior as index).
+    window.addEventListener('resize', applyWallFrameLayout, { passive: true });
+  } catch (e) {
+    // Safe fallback: keep the page readable if config loading fails.
+    // Still try to initialize noise with defaults
+    try { initNoiseSystem(); } catch (e2) {}
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                    STEP 5: MODAL/GATE SYSTEM (Portfolio parity)              ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+  // Gates should work even if runtime config fails to load (use defaults).
+  try {
+    initModalOverlay(runtimeConfig || {});
+    initContactModal();
+  } catch (e) {}
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                    STEP 6: PALETTE + DARK MODE                               ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+  // Palette chapters: rotate on each reload (applies only to cursor + palette-driven dots).
+  rotatePaletteChapterOnReload();
+
+  initializeDarkMode();
+  
+  // Ensure wall colors are applied after dark mode initialization
+  // (dark mode syncCssVarsFromConfig might override them, so re-apply from config/globals)
+  const g = getGlobals();
+  const root = document.documentElement;
+  
+  if (runtimeConfig) {
+    // Re-apply wall colors to ensure they match index page
+    syncWallFrameColors(runtimeConfig);
+  } else {
+    // Fallback: use globals if config not available
+    const frameLight = g?.frameColorLight || g?.frameColor;
+    const frameDark = g?.frameColorDark || g?.frameColor;
+    if (frameLight) root.style.setProperty('--frame-color-light', frameLight);
+    if (frameDark) root.style.setProperty('--frame-color-dark', frameDark);
+  }
+  
+  // Force update from globals to ensure values are correct (globals have processed values from initState)
+  const frameLight = g?.frameColorLight || g?.frameColor;
+  const frameDark = g?.frameColorDark || g?.frameColor;
+  if (frameLight) {
+    root.style.setProperty('--frame-color-light', frameLight);
+  }
+  if (frameDark) {
+    root.style.setProperty('--frame-color-dark', frameDark);
+  }
+  
+  // Also update theme-color meta tag with the correct wall color for browser chrome
+  const currentWallColor = g.isDarkMode ? frameDark : frameLight;
+  if (currentWallColor) {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = currentWallColor;
+    root.style.setProperty('--chrome-bg', currentWallColor);
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                    STEP 7: SHARED UI CHROME                                  ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+  maybeAutoPickCursorColor?.('startup');
+  initTimeDisplay();
+  upgradeSocialIcons();
+  initLinkCursorHop();
+  createSoundToggle();
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                       CV-SPECIFIC: SCROLL TYPOGRAPHY                         ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
   try {
     // Ensure fonts are settled so line breaking is stable.
@@ -107,21 +219,51 @@ async function bootstrapCvPage() {
   } catch (e) {}
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
-  // ║                       PHOTO JITTER (CV ONLY)                                ║
+  // ║                       CV-SPECIFIC: PHOTO SLIDESHOW                           ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
   try {
     initCvPhotoSlideshow();
   } catch (e) {
-    console.warn('CV photo jitter failed to initialize', e);
+    console.warn('CV photo slideshow failed to initialize', e);
   }
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
-  // ║                       CONFIG PANEL (CV ONLY)                                ║
+  // ║                       CV-SPECIFIC: CONFIG PANEL (DEV ONLY)                   ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
   try {
-    initCvPanel();
+    // Production builds intentionally ship with baked-in config (no tuning UI).
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      initCvPanel();
+    }
   } catch (e) {
     console.warn('CV config panel failed to initialize', e);
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║              SMOOTH PAGE TRANSITIONS (Unified Navigation System)             ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+  
+  // Handle back navigation with smooth transition
+  document.querySelectorAll('[data-nav-transition]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigateWithTransition(link.href, NAV_STATES.INTERNAL);
+    });
+  });
+  
+  // Handle bfcache restore (browser back/forward with cached page)
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      resetTransitionState();
+      const appFrame = document.getElementById('app-frame');
+      if (appFrame) appFrame.style.opacity = '1';
+    }
+  });
+  
+  // Prefetch index on back link hover
+  const backLink = document.querySelector('[data-nav-transition][href*="index"]');
+  if (backLink) {
+    setupPrefetchOnHover(backLink, 'index.html');
   }
 }
 

@@ -27,13 +27,9 @@ export function getModeSizeVariation01(g, mode) {
     case MODES.MAGNETIC: return g.sizeVariationMagnetic ?? 0;
     case MODES.BUBBLES: return g.sizeVariationBubbles ?? 0;
     case MODES.KALEIDOSCOPE: return g.sizeVariationKaleidoscope ?? 0;
-    case MODES.ORBIT_3D: return g.sizeVariationOrbit3d ?? 0;
-    case MODES.ORBIT_3D_2: return g.sizeVariationOrbit3d2 ?? 0;
     case MODES.CRITTERS: return g.sizeVariationCritters ?? 0;
     case MODES.NEURAL: return g.sizeVariationNeural ?? 0;
-    case MODES.LATTICE: return g.sizeVariationLattice ?? 0;
     case MODES.PARALLAX_LINEAR: return g.sizeVariationParallaxLinear ?? 0;
-    case MODES.PARALLAX_PERSPECTIVE: return g.sizeVariationParallaxPerspective ?? 0;
     default: return 0;
   }
 }

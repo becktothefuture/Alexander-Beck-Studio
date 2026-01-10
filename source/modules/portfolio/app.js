@@ -19,6 +19,12 @@ import * as SoundEngine from '../audio/sound-engine.js';
 import { initModalOverlay } from '../ui/modal-overlay.js';
 import { initContactModal } from '../ui/contact-modal.js';
 import { initLinkCursorHop } from '../ui/link-cursor-hop.js';
+import { 
+  navigateWithTransition, 
+  resetTransitionState, 
+  setupPrefetchOnHover,
+  NAV_STATES 
+} from '../utils/page-nav.js';
 
 const BASE_PATH = (() => {
   try {
@@ -763,15 +769,12 @@ class PortfolioApp {
     if (!cv) return;
 
     // Route through index so CV remains protected behind the gate.
-    // We set a session flag so index auto-opens the CV gate.
+    // Use unified navigation state to auto-open CV modal on arrival.
     cv.addEventListener(
       'click',
       (e) => {
         e?.preventDefault?.();
-        try {
-          sessionStorage.setItem('abs_open_cv_gate', '1');
-        } catch (err) {}
-        window.location.href = 'index.html';
+        navigateWithTransition('index.html', NAV_STATES.OPEN_CV_MODAL);
       },
       { capture: true }
     );
@@ -1853,6 +1856,33 @@ async function bootstrapPortfolio() {
         },
       });
     } catch (e) {}
+  }
+
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║              SMOOTH PAGE TRANSITIONS (Unified Navigation System)             ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+  
+  // Handle back navigation with smooth transition
+  document.querySelectorAll('[data-nav-transition]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigateWithTransition(link.href, NAV_STATES.INTERNAL);
+    });
+  });
+  
+  // Handle bfcache restore (browser back/forward with cached page)
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      resetTransitionState();
+      const appFrame = document.getElementById('app-frame');
+      if (appFrame) appFrame.style.opacity = '1';
+    }
+  });
+  
+  // Prefetch index on back link hover
+  const backLink = document.querySelector('[data-nav-transition][href*="index"]');
+  if (backLink) {
+    setupPrefetchOnHover(backLink, 'index.html');
   }
 }
 

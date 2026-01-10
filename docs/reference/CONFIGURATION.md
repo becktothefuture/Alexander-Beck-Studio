@@ -541,32 +541,6 @@ These keys control the ball-only Critters simulation (mode `critters`).
 
 ---
 
-## Orbit 3D: Planetary Rings (Mode 12)
-
-These keys control the Orbit 3D simulation (mode `orbit-3d`). Multi-layer orbital ring system with 3D perspective projection and rotation (camera-locked like sphere/cube).
-
-- `orbit3dDensity` (number): total point count across all rings (re-init on change) — default: 120
-- `orbit3dRadiusVw` (number, vw): maximum orbital radius (vw → px at init) — default: 22
-- `orbit3dShellCount` (number): number of concentric ring layers (re-init on change) — default: 4
-- `orbit3dDotSizeMul` (number, multiplier): relative dot size (combined with depth scaling) — default: 1.2
-- `orbit3dIdleSpeed` (number, rad/s): baseline system rotation speed — default: 0.25
-- `orbit3dOrbitalSpeed` (number, multiplier): orbital rotation speed per layer — default: 0.8
-- `orbit3dTumbleSpeed` (number): mouse dragging spin sensitivity — default: 2.0
-- `orbit3dTumbleDamping` (number, 0-0.99): decay of spin impulse from mouse interaction — default: 0.93
-- `orbit3dWobbleStrength` (number, 0-1): perpendicular oscillation amount — default: 0.15
-- `orbit3dInclinationMix` (number, 0-1): ring tilt/inclination variation between layers — default: 0.7
-- `orbit3dFocalLength` (number, px): perspective projection focal length — default: 600
-
-Notes:
-- Uses 3D point cloud architecture (like sphere/cube) with deterministic positioning
-- No physics forces—pure rotation-based animation
-- Mouse dragging over the rings spins the entire orbital system (tumble impulse)
-- Each ring layer rotates at different speeds with staggered phase offsets
-- Collisions are disabled; camera-locked orbital structure
-- Includes slight eccentricity and wobble for organic movement
-
----
-
 ## 3D Sphere (Mode 16)
 
 These keys control the 3D Sphere simulation (mode `3d-sphere`). Rotating sphere point cloud, camera-locked like 3D Cube.

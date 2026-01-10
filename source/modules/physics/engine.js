@@ -107,17 +107,14 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
 
     // Ball-to-ball collisions:
     // - Disabled for Flies (swarm aesthetic)
-    // - Disabled for Orbit 3D (clean swirl aesthetic)
     // - Reduced for Kaleidoscope mode (performance)
-    // - Standard for Tilt (many light balls flow like water)
+    // - Standard for remaining physics modes
     if (globals.currentMode === MODES.KALEIDOSCOPE) {
       resolveCollisions(6); // handled by kaleidoscope early-return, kept for safety
     } else if (globals.currentMode !== MODES.FLIES && 
-               globals.currentMode !== MODES.ORBIT_3D &&
                globals.currentMode !== MODES.SPHERE_3D &&
                globals.currentMode !== MODES.CUBE_3D &&
                globals.currentMode !== MODES.PARALLAX_LINEAR &&
-               globals.currentMode !== MODES.PARALLAX_PERSPECTIVE &&
                globals.currentMode !== MODES.STARFIELD_3D) {
       resolveCollisions(collisionIterations); // configurable solver iterations
     }
@@ -126,17 +123,11 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     wallState.resetStepBudgets();
     
     // Wall collisions + corner repellers
-    // Skip for Orbit modes (they orbit freely without wall constraints)
-    // Skip for Parallax modes (they have internal wrap logic, no wall physics)
-    // Skip for Lattice mode (infinite mesh extends beyond viewport, no wall physics needed)
-    if (globals.currentMode !== MODES.ORBIT_3D && 
-        globals.currentMode !== MODES.ORBIT_3D_2 &&
-        globals.currentMode !== MODES.SPHERE_3D &&
+    // Skip for Parallax modes (internal wrap logic, no wall physics)
+    if (globals.currentMode !== MODES.SPHERE_3D &&
         globals.currentMode !== MODES.CUBE_3D &&
         globals.currentMode !== MODES.PARALLAX_LINEAR &&
-        globals.currentMode !== MODES.PARALLAX_PERSPECTIVE &&
-        globals.currentMode !== MODES.STARFIELD_3D &&
-        globals.currentMode !== MODES.LATTICE) {
+        globals.currentMode !== MODES.STARFIELD_3D) {
       const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
       const isPitLike = (globals.currentMode === MODES.PIT || globals.currentMode === MODES.PIT_THROWS);
       const lenWalls = balls.length;
@@ -222,12 +213,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       const mode = globals.currentMode;
       const eligible =
         mode !== MODES.FLIES &&
-        mode !== MODES.ORBIT_3D &&
-        mode !== MODES.ORBIT_3D_2 &&
         mode !== MODES.SPHERE_3D &&
         mode !== MODES.CUBE_3D &&
         mode !== MODES.PARALLAX_LINEAR &&
-        mode !== MODES.PARALLAX_PERSPECTIVE &&
         mode !== MODES.KALEIDOSCOPE &&
         mode !== MODES.PIT &&
         mode !== MODES.PIT_THROWS;

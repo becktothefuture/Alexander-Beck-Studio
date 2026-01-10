@@ -16,13 +16,9 @@ import { initializePingPong, applyPingPongForces } from './ping-pong.js';
 import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magnetic.js';
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
 import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
-import { initializeOrbit3D, applyOrbit3DForces } from './orbit-3d.js';
-import { initializeOrbit3D2, applyOrbit3D2Forces } from './orbit-3d-2.js';
 import { initializeCritters, applyCrittersForces } from './critters.js';
 import { initializeNeural, applyNeuralForces, preRenderNeural } from './neural.js';
-import { initializeLattice, applyLatticeForces } from './lattice.js';
 import { initializeParallaxLinear, applyParallaxLinearForces } from './parallax-linear.js';
-import { initializeParallaxPerspective, applyParallaxPerspectiveForces } from './parallax-perspective.js';
 import { initialize3DSphere, apply3DSphereForces } from './3d-sphere.js';
 import { initialize3DCube, apply3DCubeForces } from './3d-cube.js';
 import { initializeStarfield3D, applyStarfield3DForces, updateStarfield3D, renderStarfield3D } from './starfield-3d.js';
@@ -49,15 +45,11 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.MAGNETIC: return globals.magneticWarmupFrames ?? 10;
     case MODES.BUBBLES: return globals.bubblesWarmupFrames ?? 10;
     case MODES.KALEIDOSCOPE: return globals.kaleidoscope3WarmupFrames ?? globals.kaleidoscopeWarmupFrames ?? 10;
-    case MODES.ORBIT_3D: return globals.orbit3dWarmupFrames ?? 10;
-    case MODES.ORBIT_3D_2: return globals.orbit3d2WarmupFrames ?? 10;
     case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
     case MODES.NEURAL: return globals.neuralWarmupFrames ?? 10;
-    case MODES.LATTICE: return globals.latticeWarmupFrames ?? 10;
     case MODES.SPHERE_3D: return globals.sphere3dWarmupFrames ?? 10;
     case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
     case MODES.PARALLAX_LINEAR: return globals.parallaxLinearWarmupFrames ?? 10;
-    case MODES.PARALLAX_PERSPECTIVE: return globals.parallaxPerspectiveWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     default: return 10;
   }
@@ -104,13 +96,9 @@ export function setMode(mode) {
     magnetic: 'Magnetic',
     bubbles: 'Carbonated Bubbles',
     'kaleidoscope-3': 'Kaleidoscope',
-    'orbit-3d': 'Orbit 3D',
-    'orbit-3d-2': 'Orbit 3D (Tight Swarm)',
     critters: 'Critters',
     neural: 'Neural Network',
-    lattice: 'Crystal Lattice',
     'parallax-linear': 'Parallax (Linear)',
-    'parallax-perspective': 'Parallax (Perspective)',
     '3d-sphere': '3D Sphere',
     '3d-cube': '3D Cube',
     'starfield-3d': '3D Starfield'
@@ -188,16 +176,6 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeKaleidoscope();
-  } else if (mode === MODES.ORBIT_3D) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeOrbit3D();
-  } else if (mode === MODES.ORBIT_3D_2) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeOrbit3D2();
   } else if (mode === MODES.SPHERE_3D) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -232,21 +210,11 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = true;
     initializeNeural();
-  } else if (mode === MODES.LATTICE) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = true;
-    initializeLattice();
   } else if (mode === MODES.PARALLAX_LINEAR) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeParallaxLinear();
-  } else if (mode === MODES.PARALLAX_PERSPECTIVE) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeParallaxPerspective();
   } else if (mode === MODES.STARFIELD_3D) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -306,10 +274,6 @@ export function getForceApplicator() {
     return applyBubblesForces;
   } else if (globals.currentMode === MODES.KALEIDOSCOPE) {
     return applyKaleidoscopeForces;
-  } else if (globals.currentMode === MODES.ORBIT_3D) {
-    return applyOrbit3DForces;
-  } else if (globals.currentMode === MODES.ORBIT_3D_2) {
-    return applyOrbit3D2Forces;
   } else if (globals.currentMode === MODES.SPHERE_3D) {
     return apply3DSphereForces;
   } else if (globals.currentMode === MODES.CUBE_3D) {
@@ -318,12 +282,8 @@ export function getForceApplicator() {
     return applyCrittersForces;
   } else if (globals.currentMode === MODES.NEURAL) {
     return applyNeuralForces;
-  } else if (globals.currentMode === MODES.LATTICE) {
-    return applyLatticeForces;
   } else if (globals.currentMode === MODES.PARALLAX_LINEAR) {
     return applyParallaxLinearForces;
-  } else if (globals.currentMode === MODES.PARALLAX_PERSPECTIVE) {
-    return applyParallaxPerspectiveForces;
   } else if (globals.currentMode === MODES.STARFIELD_3D) {
     return applyStarfield3DForces;
   }

@@ -77,7 +77,7 @@
   /* Letter spacing relative to font height (em-based) */
   --abs-letter-spacing-tight: -0.01ch;
   --abs-letter-spacing-normal: 0.05ch;
-  --abs-letter-spacing-loose: 0.01ch;
+  --abs-letter-spacing-loose: 0.4ch;
 
   /* Spacing & Sizing */
   --abs-space-unit: 1vmin;
@@ -240,9 +240,9 @@
   --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
 
   /* Interaction + Motion Tokens */
-  --edge-label-inset-base: calc(var(--wall-thickness) + var(--gap-sm));
+  --edge-label-inset-gap: 8px; /* Gap between wall and label */
   --edge-label-inset-adjust: 0px;
-  --edge-label-inset: calc(var(--edge-label-inset-base) + var(--edge-label-inset-adjust));
+  --edge-label-inset: calc(var(--wall-thickness) + var(--edge-label-inset-gap) + var(--edge-label-inset-adjust));
   /* Core easings (tokenized everywhere). */
   --ease-organic: cubic-bezier(0.22, 1.28, 0.36, 1);
   --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
@@ -286,13 +286,16 @@
   --modal-depth-duration: 800ms;
   --modal-depth-out-duration: 600ms;
 
-  --logo-opacity-inactive: 1;
-  --logo-opacity-active-target: 0.2;
-  --logo-opacity-active: 1;
-
   --logo-blur-inactive: 0px;
   --logo-blur-active-target: 12px;
   --logo-blur-active: 0px;
+
+  /* Modal hide effect for logo/nav (inverse of entrance animation) */
+  --modal-hide-scale: 0.92;
+  --modal-hide-duration: 500ms;
+  --modal-hide-delay: 150ms;
+  --modal-show-duration: 400ms;
+  --modal-show-delay: 100ms;
 
   /* Accent Palette (Legend / Balls) */
   /* Defined earlier in this file as part of the minimal color system. */
@@ -335,7 +338,7 @@
   --link-impact-duration: 0.15s;
 
   /* Icon buttons (square): frame size + glyph size are separate, with a computed default */
-  --ui-icon-glyph-size: var(--footer-icon-size);
+  --ui-icon-glyph-size: var(--abs-size-icon-lg);
   --ui-icon-frame-size: calc(var(--ui-icon-glyph-size) + (var(--link-icon-padding) * 2));
 
   --caption-font-size: var(--text-lg);
@@ -356,8 +359,8 @@
   --dot-indicator-offset: var(--gap-xs);
 
   /* Unified icon button geometry (used across header/footer/dialogs). */
-  --ui-icon-frame-size: calc(var(--footer-icon-size) + (var(--link-icon-padding) * 2));
-  --ui-icon-glyph-size: var(--footer-icon-size);
+  --ui-icon-frame-size: calc(var(--abs-size-icon-lg) + (var(--link-icon-padding) * 2));
+  --ui-icon-glyph-size: var(--abs-size-icon-lg);
   --ui-icon-corner-radius-mul: 0.4; /* fraction of wall radius */
   --ui-icon-corner-radius: clamp(
     calc(var(--hit-area-sm-base) * 0.75),

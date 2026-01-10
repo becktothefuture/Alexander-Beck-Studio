@@ -5,6 +5,7 @@
 
 import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';
 import { getText } from '../utils/text-loader.js';
+import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
 
 /**
  * Create the page flash overlay element if it doesn't exist
@@ -61,12 +62,12 @@ export function initCVModal() {
     if (modal.dataset.modalInitialized === 'true') return;
     modal.dataset.modalInitialized = 'true';
     
-    const BACK_TEXT = getText('modals.common.backText', 'BACK');
-    const BACK_ARIA = getText('modals.common.backAriaLabel', 'Back');
-    const TITLE = getText('modals.cv.title', 'Bio/CV');
+    const BACK_TEXT = getText('gates.common.backText', 'BACK');
+    const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
+    const TITLE = getText('gates.cv.title', 'Bio/CV');
     const DESC = getText(
-        'modals.cv.description',
-        "Because spam bots don't deserve nice things—and neither do recruiters who don't read portfolios. This keeps my inbox slightly more civilized."
+        'gates.cv.description',
+        "Because spam bots don't deserve nice things. This keeps my inbox a little more civilised. Need access? Get in touch for the code."
     );
 
     // Set label text if element exists
@@ -234,12 +235,9 @@ export function initCVModal() {
                     }, 600);
                 }
                 
-                // Smooth page fade-out + redirect
+                // Smooth page fade-out + redirect using unified navigation
                 setTimeout(() => {
-                    document.body.classList.add('page-transitioning');
-                    setTimeout(() => {
-                        window.location.href = 'cv.html';
-                    }, 300); // Fade-out duration
+                    navigateWithTransition('cv.html', NAV_STATES.INTERNAL);
                 }, 200); // Brief delay after pulse starts
                 
             } else {

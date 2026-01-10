@@ -5,8 +5,9 @@
   <style id="fade-blocking">#app-frame{opacity:0}</style>
   <!-- Critical first-paint wall background (no JS + no !important). -->
   <!-- Uses frameColorLight/Dark (master wall colors) so changing the wall updates every page. -->
+  <!-- Fallback colors: light=#f5f5f5 (neutral-100), dark=#0a0a0a (neutral-950) -->
   <style id="abs-critical-wall-bg">
-    html { background: var(--frame-color-light, #0a0a0a); background-color: var(--frame-color-light, #0a0a0a); }
+    html { background: var(--frame-color-light, #f5f5f5); background-color: var(--frame-color-light, #f5f5f5); }
     html.dark-mode { background: var(--frame-color-dark, #0a0a0a); background-color: var(--frame-color-dark, #0a0a0a); }
   </style>
   <!-- Browser Chrome Color -->
@@ -38,7 +39,8 @@
             return wallColor;
           }
         } catch (e) {}
-        return '#0a0a0a';
+        // Fallback to token defaults (theme-aware)
+        return isDark ? '#0a0a0a' : '#f5f5f5';
       }
       
       function getMetaThemeColor(selector) {
@@ -46,16 +48,18 @@
         return node && node.content ? node.content.trim() : '';
       }
       
-      const fallbackWall = '#0a0a0a';
-      let THEME_COLOR_LIGHT = fallbackWall;
-      let THEME_COLOR_DARK = fallbackWall;
+      // Theme-aware fallback colors (neutral-100 light, neutral-950 dark)
+      const fallbackWallLight = '#f5f5f5';
+      const fallbackWallDark = '#0a0a0a';
+      let THEME_COLOR_LIGHT = fallbackWallLight;
+      let THEME_COLOR_DARK = fallbackWallDark;
       
       try {
-        THEME_COLOR_LIGHT = getWallColorFromCSS(false) || fallbackWall;
-        THEME_COLOR_DARK = getWallColorFromCSS(true) || fallbackWall;
+        THEME_COLOR_LIGHT = getWallColorFromCSS(false) || fallbackWallLight;
+        THEME_COLOR_DARK = getWallColorFromCSS(true) || fallbackWallDark;
       } catch (e) {
-        THEME_COLOR_LIGHT = fallbackWall;
-        THEME_COLOR_DARK = fallbackWall;
+        THEME_COLOR_LIGHT = fallbackWallLight;
+        THEME_COLOR_DARK = fallbackWallDark;
       }
       
       const primaryMeta = getMetaThemeColor('meta[name="theme-color"]:not([media])');
@@ -78,8 +82,8 @@
       }
 
       function setBrowserChromeColors(isDark) {
-        const wallColorLight = getWallColorFromCSS(false) || fallbackWall;
-        const wallColorDark = getWallColorFromCSS(true) || fallbackWall;
+        const wallColorLight = getWallColorFromCSS(false) || fallbackWallLight;
+        const wallColorDark = getWallColorFromCSS(true) || fallbackWallDark;
         const meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.content = isDark ? wallColorDark : wallColorLight;
         const metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
@@ -119,14 +123,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portfolio - Alexander Beck</title>
+  <!-- ABS_BUILD_MARKER:CSS_DEV_START -->
   <!-- Dev/source: mirror index chrome so typography + UI sizing match exactly. -->
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/normalize.css">
   <link rel="stylesheet" href="css/main.css">
+  <!-- ABS_BUILD_MARKER:CSS_DEV_END -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400&family=Sarina&display=swap" rel="stylesheet">
   <!-- panel.css is DEV-only; injected dynamically by panel-dock.js when needed -->
+  <!-- ABS_BUILD_MARKER:CSS_PROD -->
   <link rel="stylesheet" href="css/portfolio.css">
   <script>
     // Soft gate: if no token, bounce back and auto-open the gate.
@@ -197,7 +204,7 @@
       <header class="ui-top" data-portfolio-ui>
         <div class="ui-top-main">
           <div class="ui-top-left">
-            <a href="index.html" class="gate-back abs-icon-btn" aria-label="Back to home">
+            <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition aria-label="Back to home">
               <i class="ti ti-arrow-left" aria-hidden="true"></i>
             </a>
             <a id="portfolio-cv-trigger" class="portfolio-cv-link" href="#" aria-label="Bio/CV">Bio/CV</a>
@@ -262,7 +269,11 @@
 
   <!-- Panel dock is injected in dev only (mirrors index behavior). -->
 
+  <!-- ABS_BUILD_MARKER:JS_DEV_START -->
   <script type="module" src="modules/portfolio/app.js"></script>
+  <!-- ABS_BUILD_MARKER:JS_DEV_END -->
+
+  <!-- ABS_BUILD_MARKER:JS_PROD -->
 
   <!-- DEV TOOLING: Local hot reload (no external calls). -->
   <!-- ABS_LIVE_RELOAD_START -->

@@ -72,44 +72,26 @@ export function applyPerspectiveCSS() {
 /**
  * Sets initial browser-default state
  * Page starts looking like a normal browser page (white background, default styling)
+ * 
+ * NOTE: Wall color is NOT set here - it's already set by the critical inline script
+ * in <head> which runs before CSS loads. Manipulating wall color here would cause
+ * flashing by fighting with the early script. Trust the early script to have set
+ * the correct theme-aware background.
  */
 export function setInitialBrowserDefaultState() {
   const html = document.documentElement;
-  const g = getGlobals();
   
-  // Get original wall color from config or CSS
-  const root = getComputedStyle(html);
-  const resolvedWallColor = root.getPropertyValue('--wall-color').trim();
-  const hasBodyDark = document.body && document.body.classList.contains('dark-mode');
-  const isDarkMode = html.classList.contains('dark-mode') || hasBodyDark || g.isDarkMode;
-
-  // Theme-aware wall colors with safe fallbacks (never white)
-  // Use #f5f5f5 for light and #0a0a0a for dark (safe fallbacks; never white)
-  const wallColorLight = g.frameColorLight || readTokenVar('--wall-color-light', '#f5f5f5');
-  const wallColorDark = g.frameColorDark || readTokenVar('--wall-color-dark', '#0a0a0a');
-
-  const originalWallColor = resolvedWallColor || (isDarkMode ? wallColorDark : wallColorLight);
-  
-  // Store original color for transition
-  html.dataset.originalWallColor = originalWallColor;
-  
-  // Set browser default background based on current theme
-  // IMPORTANT: Never fallback to #ffffff - use theme-correct wall colors throughout
-  const browserDefaultBg = isDarkMode
-    ? (g.browserDefaultBgDark || wallColorDark || originalWallColor || '#0a0a0a')
-    : (g.browserDefaultBgLight || wallColorLight || originalWallColor || '#f5f5f5');
-
-  html.style.setProperty('--wall-color', browserDefaultBg, 'important');
-  html.style.setProperty('background', browserDefaultBg, 'important');
-  html.style.setProperty('background-color', browserDefaultBg, 'important');
-  
-  // Hide all custom-styled elements initially
+  // Hide all custom-styled elements initially (entrance animation will reveal them)
   html.classList.add('entrance-pre-transition');
 }
 
 /**
  * Transitions from browser default to wall-state
  * Wall "grows" from beyond the viewport with synchronized scale and corner rounding
+ * 
+ * NOTE: Wall color is controlled by the early inline script and CSS tokens.
+ * This function only manages the wall ANIMATION (scale + border-radius),
+ * not the color transitions.
  */
 export function transitionToWallState() {
   const g = getGlobals();
@@ -121,20 +103,14 @@ export function transitionToWallState() {
   const wallContainer = document.getElementById('bravia-balls');
   if (!wallContainer) {
     console.warn('⚠️ #bravia-balls not found, falling back to simple transition');
+    setTimeout(() => {
+      html.classList.remove('entrance-pre-transition');
+      html.classList.add('entrance-transitioning');
       setTimeout(() => {
-        html.classList.remove('entrance-pre-transition');
-        html.classList.add('entrance-transitioning');
-        const originalColor = html.dataset.originalWallColor || g.frameColor || '#0a0a0a';
-        html.style.setProperty('--wall-color', originalColor);
-        html.style.setProperty('background', originalColor);
-        html.style.setProperty('background-color', originalColor);
-        setTimeout(() => {
-          html.classList.remove('entrance-transitioning');
-          html.classList.add('entrance-complete');
-          // Remove inline --wall-color override so CSS can control it based on theme
-          html.style.removeProperty('--wall-color');
-        }, duration);
-      }, delay);
+        html.classList.remove('entrance-transitioning');
+        html.classList.add('entrance-complete');
+      }, duration);
+    }, delay);
     return;
   }
   
@@ -163,17 +139,11 @@ export function transitionToWallState() {
   
   setTimeout(() => {
     // ═══════════════════════════════════════════════════════════════════════════════
-    // PHASE 2: REVEAL (remove browser default, show wall)
+    // PHASE 2: REVEAL (remove browser default class, show wall)
     // ═══════════════════════════════════════════════════════════════════════════════
     
     html.classList.remove('entrance-pre-transition');
     html.classList.add('entrance-transitioning');
-    
-    // Restore wall color immediately
-    const originalColor = html.dataset.originalWallColor || g.frameColor || '#0a0a0a';
-    html.style.setProperty('--wall-color', originalColor);
-    html.style.setProperty('background', originalColor);
-    html.style.setProperty('background-color', originalColor);
     
     // ═══════════════════════════════════════════════════════════════════════════════
     // PHASE 3: SET INITIAL STATE (no transitions, instant values)
@@ -247,8 +217,6 @@ export function transitionToWallState() {
             wallContainer.style.transition = originalTransition || '';
             html.classList.remove('entrance-transitioning');
             html.classList.add('entrance-complete');
-            // Remove inline --wall-color override so CSS can control it based on theme
-            html.style.removeProperty('--wall-color');
           }, 50);
         }
       };
@@ -287,8 +255,6 @@ export function transitionToWallState() {
         wallContainer.style.transition = originalTransition || '';
         html.classList.remove('entrance-transitioning');
         html.classList.add('entrance-complete');
-        // Remove inline --wall-color override so CSS can control it based on theme
-        html.style.removeProperty('--wall-color');
       }, duration + 50);
     }
   }, delay);
@@ -383,19 +349,19 @@ export function revealLateElement(element, options = {}) {
     const easing = options.easing ?? g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
     const scaleFrom = options.scaleFrom ?? g.entranceLateElementScaleFrom ?? 0.92;
     const scaleTo = options.scaleTo ?? 1;
-    const blurFrom = options.blurFrom ?? 8; // Start with blur
-    const blurTo = options.blurTo ?? 0; // End with no blur
     const animate = options.animate !== false && typeof element.animate === 'function';
     
     let finalized = false;
+    
     const finalize = () => {
       if (finalized) return;
       finalized = true;
-      // Clear inline hidden styles so CSS can take over
-      // NOTE: Do NOT clear transform - elements may have CSS transforms (e.g. translateX(-50%))
-      element.style.opacity = '1';
+      // Clear ALL inline styles so CSS takes over completely
+      element.style.removeProperty('opacity');
+      element.style.removeProperty('transform');
+      element.style.removeProperty('filter');
+      element.style.removeProperty('scale');
       element.style.visibility = 'visible';
-      element.style.filter = 'blur(0px)';
       element.style.willChange = 'auto';
       resolve();
     };
@@ -403,59 +369,27 @@ export function revealLateElement(element, options = {}) {
     setTimeout(() => {
       if (animate) {
         element.style.visibility = 'visible';
-        element.style.willChange = 'opacity, transform, filter';
+        element.style.willChange = 'opacity, scale';
         
-        // Get existing CSS transform (e.g. translateX(-50%) for centering)
-        // We'll combine it with scale so both transforms work together
-        const computedStyle = window.getComputedStyle(element);
-        const existingTransform = computedStyle.transform;
-        
-        // Set transform-origin to center so scaling happens from the middle
-        element.style.transformOrigin = 'center center';
-        
-        // Parse existing transform to extract translate values
-        // If transform is "none" or empty, we'll just use scale
-        let translateX = 0;
-        let translateY = 0;
-        
-        if (existingTransform && existingTransform !== 'none') {
-          // Try to extract translateX from matrix or translate
-          const matrixMatch = existingTransform.match(/matrix\([^)]+\)/);
-          if (matrixMatch) {
-            const matrix = matrixMatch[0].match(/[-+]?[0-9]*\.?[0-9]+/g);
-            if (matrix && matrix.length >= 4) {
-              translateX = parseFloat(matrix[4]) || 0;
-              translateY = parseFloat(matrix[5]) || 0;
-            }
-          } else {
-            const translateMatch = existingTransform.match(/translateX\(([^)]+)\)/);
-            if (translateMatch) {
-              translateX = parseFloat(translateMatch[1]) || 0;
-            }
-          }
-        }
-        
-        // Animate opacity + scale + blur, preserving existing translate
+        // Simple animation: opacity + scale only. No transform manipulation.
+        // CSS handles positioning (including logo's --logo-offset-x).
         const anim = element.animate(
           [
-            { 
-              opacity: 0, 
-              transform: `translate(${translateX}px, ${translateY}px) scale(${scaleFrom})`,
-              filter: `blur(${blurFrom}px)`
-            },
-            { 
-              opacity: 1, 
-              transform: `translate(${translateX}px, ${translateY}px) scale(${scaleTo})`,
-              filter: `blur(${blurTo}px)`
-            }
+            { opacity: 0, scale: scaleFrom },
+            { opacity: 1, scale: scaleTo }
           ],
           { duration, easing, fill: 'forwards' }
         );
         
-        anim.addEventListener('finish', finalize);
+        anim.addEventListener('finish', () => {
+          // Commit final state, cancel animation layer, then clear inline styles
+          try { anim.commitStyles(); } catch (e) {}
+          anim.cancel();
+          finalize();
+        });
         anim.addEventListener('cancel', finalize);
         
-        // Safety timeout: ensure element is revealed even if animation fails
+        // Safety timeout
         setTimeout(finalize, duration + 100);
       } else {
         finalize();
@@ -477,7 +411,8 @@ export function revealAllLateElements() {
   
   lateElements.forEach((el) => {
     if (el) {
-      el.style.opacity = '1';
+      // REMOVE inline opacity so CSS controls it (enables modal fade transitions)
+      el.style.removeProperty('opacity');
       el.style.visibility = 'visible';
       // Do NOT clear transform - CSS may rely on it for positioning
     }
@@ -489,20 +424,80 @@ export function revealAllLateElements() {
 }
 
 /**
+ * Simple 200ms fade-in for reduced motion users.
+ * Shows content quickly without jarring instant appearance.
+ */
+function performReducedMotionFade() {
+  const fadeTarget = document.getElementById('app-frame');
+  const brandLogo = document.getElementById('brand-logo');
+  const mainLinks = document.getElementById('main-links');
+  const html = document.documentElement;
+  
+  // Mark entrance as complete immediately
+  html.classList.remove('entrance-pre-transition', 'entrance-transitioning');
+  html.classList.add('entrance-complete');
+  
+  // Simple 200ms fade for all elements
+  const elements = [fadeTarget, brandLogo, mainLinks].filter(Boolean);
+  elements.forEach(el => {
+    el.style.transition = 'opacity 200ms ease-out';
+    el.style.opacity = '0';
+    el.style.visibility = 'visible';
+  });
+  
+  // Trigger reflow then fade in
+  fadeTarget?.offsetHeight;
+  
+  requestAnimationFrame(() => {
+    elements.forEach(el => {
+      el.style.opacity = '1';
+    });
+    
+    // Cleanup after animation
+    setTimeout(() => {
+      elements.forEach(el => {
+        el.style.removeProperty('transition');
+        el.style.removeProperty('opacity');
+      });
+      
+      // Remove fade-blocking
+      const fadeBlocking = document.getElementById('fade-blocking');
+      if (fadeBlocking) fadeBlocking.remove();
+    }, 250);
+  });
+}
+
+/**
  * Orchestrates the complete entrance sequence
  * @param {Object} options - Configuration options
  *   - waitForFonts: async function to wait for fonts
  *   - skipWallAnimation: boolean to skip wall growth animation
  *   - centralContent: array of selectors/elements for page-specific central content
+ *   - reducedMotion: boolean to use simple 200ms fade (auto-detected if not provided)
  */
 export async function orchestrateEntrance(options = {}) {
   const g = getGlobals();
   const skipWallAnimation = Boolean(options.skipWallAnimation);
   const centralContent = options.centralContent || [];
   
-  // Apply aspect ratio detection
+  // Check for reduced motion preference
+  const reducedMotion = options.reducedMotion ?? 
+    !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  
+  // Apply aspect ratio detection (always needed for layout)
   applyAspectRatioClass();
   applyPerspectiveCSS();
+  
+  // Wait for fonts to load
+  if (options.waitForFonts) {
+    await options.waitForFonts();
+  }
+  
+  // Reduced motion: simple 200ms fade (not instant, not jarring)
+  if (reducedMotion) {
+    performReducedMotionFade();
+    return;
+  }
   
   // Set initial browser default state unless caller wants the wall already present
   if (!skipWallAnimation) {
@@ -510,11 +505,6 @@ export async function orchestrateEntrance(options = {}) {
   } else {
     document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
     document.documentElement.classList.add('entrance-complete');
-  }
-  
-  // Wait for fonts to load
-  if (options.waitForFonts) {
-    await options.waitForFonts();
   }
   
   // Start wall-state transition (optional)

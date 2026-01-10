@@ -110,7 +110,10 @@ const terserConfig = {
 };
 
 export default [{
-  input: isProd ? 'source/main-prod.js' : 'source/main.js',
+  // Parity guarantee: use a single bootstrap in dev + prod.
+  // Prod-only differences (no config panel, reduced console noise, baked config) are gated
+  // behind compile-time flags (e.g. `__DEV__`) and runtime config.
+  input: 'source/main.js',
   output: {
     file: 'public/js/bouncy-balls-embed.js',
     format: 'iife',
@@ -179,6 +182,37 @@ export default [{
         include: /node_modules/, 
     }),
     */
+    json(),
+    isProd && terserPlugin(terserConfig),
+  ]
+}, {
+  // CV Page Bundle
+  input: 'source/modules/cv-init.js',
+  output: {
+    file: 'public/js/cv-bundle.js',
+    format: 'iife',
+    name: 'CVPage',
+    sourcemap: !isProd,
+    banner: `/* CV Page | Alexander Beck Studio | ${new Date().toISOString().split('T')[0]} */`,
+    compact: isProd,
+    extend: true,
+    inlineDynamicImports: true,
+  },
+  treeshake: {
+    moduleSideEffects: false,
+    propertyReadSideEffects: false,
+    tryCatchDeoptimization: false,
+  },
+  plugins: [
+    replace({
+      preventAssignment: true,
+      values: {
+        __DEV__: JSON.stringify(!isProd),
+        'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
+      }
+    }),
+    nodeResolve({ browser: true }),
+    commonjs(),
     json(),
     isProd && terserPlugin(terserConfig),
   ]

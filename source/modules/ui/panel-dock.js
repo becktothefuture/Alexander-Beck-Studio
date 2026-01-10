@@ -591,12 +591,6 @@ async function saveAllConfigToFile() {
     config.gateOverlayContentDelayMs = g.gateOverlayContentDelayMs;
     config.gateDepthScale = g.gateDepthScale;
     config.gateDepthTranslateY = g.gateDepthTranslateY;
-    
-    config.logoOpacityInactive = g.logoOpacityInactive;
-    config.logoOpacityActive = g.logoOpacityActive;
-    config.logoBlurInactive = g.logoBlurInactive;
-    config.logoBlurActive = g.logoBlurActive;
-    
     // ═══════════════════════════════════════════════════════════════════════════
     // 5) LOOK & PALETTE — Colors
     // ═══════════════════════════════════════════════════════════════════════════

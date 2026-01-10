@@ -36,7 +36,7 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
   - **core/** `constants.js`, `state.js` (mode registry, globals, layout vars).
   - **physics/** `Ball.js`, `collision.js`, `engine.js`, `spawn.js`, `text-colliders.js`, `wall-state.js` (collision grid, wall wobble).
   - **rendering/** `renderer.js` (canvas, resize), `loop.js` (fixed timestep + render), `cursor.js`, `effects.js`, `theme.js`.
-  - **modes/** `mode-controller.js` plus 20 per-mode implementations: `ball-pit.js`, `pit-throws.js`, `flies.js`, `weightless.js` (Zero-G), `water.js`, `vortex.js`, `ping-pong.js`, `magnetic.js`, `bubbles.js`, `kaleidoscope.js`, `critters.js`, `orbit-3d.js`, `orbit-3d-2.js`, `lattice.js`, `neural.js`, `parallax-linear.js`, `parallax-perspective.js`.
+  - **modes/** `mode-controller.js` plus 16 per-mode implementations: `ball-pit.js`, `pit-throws.js`, `flies.js`, `weightless.js` (Zero-G), `water.js`, `vortex.js`, `ping-pong.js`, `magnetic.js`, `bubbles.js`, `kaleidoscope.js`, `critters.js`, `neural.js`, `parallax-linear.js`, `3d-sphere.js`, `3d-cube.js`, `starfield-3d.js`.
   - **ui/** panel + controls: `panel-dock.js`, `panel-html.js`, `control-registry.js`, `controls.js`, `build-controls.js`, `layout-panel.js`, `sound-panel.js`; brand/UI chrome: `brand-logo-*`, `gate-overlay.js`, `cv-gate.js`, `portfolio-gate.js`, `contact-gate.js`, `time-display.js`, `sound-toggle.js`, `theme-toggle.js`, `social-icons.js`, `keyboard.js`, `controls.js`, `control-registry.js`.
   - **input/** `pointer.js` (mouse/touch), keyboard handled in `ui/keyboard.js`.
   - **audio/** `sound-engine.js`, `sound-control-registry.js` (collision/ambient hooks).
@@ -66,15 +66,14 @@ Compact map of the project: what every folder/file is for, how the pieces fit, a
 
 ---
 
-## Simulation catalogue (20 modes)
+## Simulation catalogue (16 modes)
 - **Gravity:** `ball-pit`, `pit-throws`
-- **Swarm/Flow:** `flies`, `vortex`, `magnetic`, `critters`
+- **Swarm/Flow:** `flies`, `vortex`, `magnetic`, `critters`, `neural`
 - **Elastic:** `weightless` (Zero-G), `ping-pong`
 - **Fluid:** `water`, `bubbles`
 - **Optical:** `kaleidoscope-3` (Kaleidoscope)
-- **Orbital:** `orbit-3d`, `orbit-3d-2`
-- **Lattice:** `lattice` (Crystal Lattice), `neural` (Neural Network)
-- **Parallax:** `parallax-linear`, `parallax-perspective`
+- **Parallax:** `parallax-linear`
+- **3D Depth:** `3d-sphere`, `3d-cube`, `starfield-3d`
 
 **Navigation:** Arrow keys (← / →) cycle through narrative sequence. Direct number keys (1-9) intentionally disabled.
 

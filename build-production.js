@@ -62,6 +62,23 @@ function safeReadFile(filePath) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// HELPER: Marker-based HTML edits (safe + deterministic)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function stripBlockBetweenMarkers(html, startMarker, endMarker) {
+  const re = new RegExp(
+    `<!--\\s*${startMarker}\\s*-->[\\s\\S]*?<!--\\s*${endMarker}\\s*-->\\s*`,
+    'g'
+  );
+  return String(html || '').replace(re, '');
+}
+
+function replaceMarker(html, marker, replacement) {
+  const re = new RegExp(`<!--\\s*${marker}\\s*-->`, 'g');
+  return String(html || '').replace(re, String(replacement ?? ''));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // HELPER: CSS Minification (enhanced cssnano-lite patterns, no dependencies)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -231,10 +248,9 @@ async function buildProduction() {
     const publicImagesDir = path.join(CONFIG.publicDestination, 'images');
     if (fs.existsSync(sourceImagesDir)) copyDir(sourceImagesDir, publicImagesDir);
 
-    // Copy modules/ for CV page (not bundled yet)
-    const sourceModulesDir = path.join('source', 'modules');
-    const publicModulesDir = path.join(CONFIG.publicDestination, 'modules');
-    if (fs.existsSync(sourceModulesDir)) copyDir(sourceModulesDir, publicModulesDir);
+    // NOTE: We no longer copy `source/modules` into `public/`.
+    // - Main site and portfolio are bundled via Rollup.
+    // - CV page is bundled via Rollup (public/js/cv-bundle.js).
 
     // Copy standalone HTML pages from source/ (cv.html, portfolio.html, etc.)
     const standalonePages = ['cv.html', 'portfolio.html'];
@@ -486,42 +502,23 @@ async function buildProduction() {
         
         // Strip dev-only tooling blocks (keeps production HTML clean).
         pHtml = pHtml.replace(/<!--\s*ABS_LIVE_RELOAD_START\s*-->[\s\S]*?<!--\s*ABS_LIVE_RELOAD_END\s*-->\s*/g, '');
-        
-        // Strip dev-only module script / css (will be re-injected for prod)
-        pHtml = pHtml.replace(/^\s*<script\s+type="module"\s+src="[^"]+"><\/script>\s*$/gm, '');
-        pHtml = pHtml.replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/portfolio\.css">\s*$/gm, '');
 
-        // Strip unbundled CSS links (portfolio should mirror index build behavior)
-        pHtml = pHtml
-          .replace(/^\s*<!-- Dev Modules CSS \(unbundled\) -->\s*$/gm, '')
-          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/tokens\.css">\s*$/gm, '')
-          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/normalize\.css">\s*$/gm, '')
-          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/main\.css">\s*$/gm, '')
-          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/panel\.css">\s*$/gm, '');
-
-        if (isProd) {
-          pHtml = pHtml.replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/panel\.css">\s*$/gm, '');
-        }
+        // Marker-based strip: remove dev blocks, then inject prod assets at explicit markers.
+        pHtml = stripBlockBetweenMarkers(pHtml, 'ABS_BUILD_MARKER:CSS_DEV_START', 'ABS_BUILD_MARKER:CSS_DEV_END');
+        pHtml = stripBlockBetweenMarkers(pHtml, 'ABS_BUILD_MARKER:JS_DEV_START', 'ABS_BUILD_MARKER:JS_DEV_END');
         
         // Inject production assets (cache-busted with build timestamp)
         const bundledCssTag = `<link rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
         const portfolioCssTag = `<link rel="stylesheet" href="css/portfolio.css?v=${buildStamp}">`;
         const portfolioJsTag = `<script src="js/portfolio-bundle.js?v=${buildStamp}" defer></script>`;
-        // Always replace existing tags to ensure fresh cache-busting
-        pHtml = pHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="css\/bouncy-balls\.css[^"]*"[^>]*>/g, bundledCssTag);
+
+        // Deterministic injection points:
+        pHtml = replaceMarker(pHtml, 'ABS_BUILD_MARKER:CSS_PROD', `${bundledCssTag}\n${portfolioCssTag}`);
+        pHtml = replaceMarker(pHtml, 'ABS_BUILD_MARKER:JS_PROD', portfolioJsTag);
+
+        // Safety: also update any existing portfolio.css/script tags (in case of template drift)
         pHtml = pHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="css\/portfolio\.css[^"]*"[^>]*>/g, portfolioCssTag);
         pHtml = pHtml.replace(/<script[^>]*src="js\/portfolio-bundle\.js[^"]*"[^>]*><\/script>/g, portfolioJsTag);
-        
-        // Insert in head/body only if not already present (after replacement above)
-        if (!pHtml.includes('id="bravia-balls-css"') && !pHtml.includes('href="css/bouncy-balls.css')) {
-          pHtml = pHtml.replace('</head>', `${bundledCssTag}\n</head>`);
-        }
-        if (!pHtml.includes('href="css/portfolio.css')) {
-          pHtml = pHtml.replace('</head>', `${portfolioCssTag}\n</head>`);
-        }
-        if (!pHtml.includes('src="js/portfolio-bundle.js')) {
-          pHtml = pHtml.replace('</body>', `${portfolioJsTag}\n</body>`);
-        }
         
         // Always replace existing inline scripts to ensure fresh configs
         if (isProd && fs.existsSync(portfolioConfigSrc)) {
@@ -587,49 +584,11 @@ async function buildProduction() {
     // Strip dev-only tooling blocks (keeps production HTML clean).
     html = html.replace(/<!--\s*ABS_LIVE_RELOAD_START\s*-->[\s\S]*?<!--\s*ABS_LIVE_RELOAD_END\s*-->\s*/g, '');
 
-    // Production template composition:
-    // - Remove dev-only CSS links (we ship a single bundled CSS in production)
-    // - Remove dev module entry (we ship a single bundled JS in production)
-    // - If panel is disabled in production, remove the panel container to avoid
-    //   unstyled layout shifts (panel CSS is excluded from the prod bundle).
-    html = html
-      // Strip unbundled CSS links
-      .replace(/^\s*<!-- Dev Modules CSS \(unbundled\) -->\s*$/gm, '')
-      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/tokens\.css">\s*$/gm, '')
-      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/normalize\.css">\s*$/gm, '')
-      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/main\.css">\s*$/gm, '')
-      .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/panel\.css">\s*$/gm, '')
-      // Strip dev ES module entrypoint
-      .replace(/^\s*<!-- Use ES module for dev \(instant reload\) -->\s*$/gm, '')
-      .replace(/^\s*<script\s+type="module"\s+src="main\.js"><\/script>\s*$/gm, '');
-
-    // Always remove panel elements in production (panel is dev-only)
-    if (isProd) {
-      // Remove legacy panel div (if it exists)
-      html = html.replace(/\s*<div class="panel" id="controlPanel"[^>]*><\/div>\s*/m, '\n');
-      // Remove panel dock (if it exists)
-      html = html.replace(/\s*<div[^>]*id="panelDock"[^>]*>[\s\S]*?<\/div>\s*/m, '\n');
-      // Remove master panel (if it exists)
-      html = html.replace(/\s*<div[^>]*id="masterPanel"[^>]*>[\s\S]*?<\/div>\s*/m, '\n');
-    }
-    
-    // FADE SYSTEM: Wrap content elements in #fade-content for single-element fade
-    // Logo and balls stay outside (always visible), content fades in
-    if (!html.includes('id="fade-content"')) {
-      // Insert opening wrapper before header.viewport--content
-      html = html.replace(
-        '<header class="viewport viewport--content">',
-        '<div id="fade-content">\n  <header class="viewport viewport--content">'
-      );
-      
-      // Insert closing wrapper after aside.viewport--corners
-      html = html.replace(
-        /<\/aside>\s*(<script)/,
-        '</aside>\n</div>\n$1'
-      );
-      
-      console.log('✅ Wrapped content in #fade-content for fade system');
-    }
+    // Production template composition (marker-based; avoids regex drift):
+    // - Remove dev-only blocks
+    // - Inject production CSS/JS at explicit markers in the template
+    html = stripBlockBetweenMarkers(html, 'ABS_BUILD_MARKER:CSS_DEV_START', 'ABS_BUILD_MARKER:CSS_DEV_END');
+    html = stripBlockBetweenMarkers(html, 'ABS_BUILD_MARKER:JS_DEV_START', 'ABS_BUILD_MARKER:JS_DEV_END');
     
     // FADE SYSTEM: Inject blocking CSS in <head> to prevent FOUC
     // Include transition here so it's defined from the start (no delay, JS handles timing)
@@ -712,15 +671,11 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
       }
     }
     
-    // Use build timestamp for consistent cache-busting (same timestamp used earlier)
-    const cssTag = '<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css?v=' + buildStamp + '">';
-    // Always replace existing CSS tag to ensure fresh cache-busting
-    html = html.replace(/<link[^>]*id="bravia-balls-css"[^>]*>/g, cssTag);
-    if (!html.includes('id="bravia-balls-css"')) html = html.replace('</head>', `${cssTag}\n</head>`);
-    const jsTag = '<script id="bravia-balls-js" src="js/bouncy-balls-embed.js?v=' + buildStamp + '" defer></script>';
-    // Always replace existing JS tag to ensure fresh cache-busting
-    html = html.replace(/<script[^>]*id="bravia-balls-js"[^>]*><\/script>/g, jsTag);
-    if (!html.includes('id="bravia-balls-js"')) html = html.replace('</body>', `${jsTag}\n</body>`);
+    // Inject production assets at explicit markers (single source of truth).
+    const cssTag = `<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
+    const jsTag = `<script id="bravia-balls-js" src="js/bouncy-balls-embed.js?v=${buildStamp}" defer></script>`;
+    html = replaceMarker(html, 'ABS_BUILD_MARKER:CSS_PROD', cssTag);
+    html = replaceMarker(html, 'ABS_BUILD_MARKER:JS_PROD', jsTag);
     fs.writeFileSync(publicIndexPath, html);
     console.log('✅ Injected modular assets into public/index.html');
 
@@ -730,17 +685,43 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
       try {
         let cvHtml = fs.readFileSync(publicCvPath, 'utf-8');
         
-        // Strip unbundled dev CSS links (will be replaced with bundled CSS)
-        cvHtml = cvHtml
-          .replace(/^\s*<!-- Dev Modules CSS \(unbundled\).*-->\s*$/gm, '')
-          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/tokens\.css">\s*$/gm, '')
-          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/normalize\.css">\s*$/gm, '')
-          .replace(/^\s*<link\s+rel="stylesheet"\s+href="css\/main\.css">\s*$/gm, '');
+        // Marker-based: remove dev CSS block and inject bundled CSS.
+        cvHtml = stripBlockBetweenMarkers(cvHtml, 'ABS_BUILD_MARKER:CSS_DEV_START', 'ABS_BUILD_MARKER:CSS_DEV_END');
         
         // Inject production CSS bundle
         const bundledCvCssTag = `<link rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
-        if (!cvHtml.includes('href="css/bouncy-balls.css')) {
-          cvHtml = cvHtml.replace('</head>', `${bundledCvCssTag}\n</head>`);
+        cvHtml = replaceMarker(cvHtml, 'ABS_BUILD_MARKER:CSS_PROD', bundledCvCssTag);
+
+        // Marker-based: remove dev JS block and inject bundled CV JS (no module graph in public/).
+        cvHtml = stripBlockBetweenMarkers(cvHtml, 'ABS_BUILD_MARKER:JS_DEV_START', 'ABS_BUILD_MARKER:JS_DEV_END');
+        const cvJsTag = `<script src="js/cv-bundle.js?v=${buildStamp}" defer></script>`;
+        cvHtml = replaceMarker(cvHtml, 'ABS_BUILD_MARKER:JS_PROD', cvJsTag);
+
+        // CONFIG: Inline runtime config into cv.html for production (hardcoded at build-time).
+        if (isProd && fs.existsSync(runtimeConfigSrc)) {
+          try {
+            const raw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
+            const safe = raw.replace(/</g, '\\u003c');
+            const inline = `<script>window.__RUNTIME_CONFIG__=${safe};</script>`;
+            cvHtml = cvHtml.replace(/<script>window\.__RUNTIME_CONFIG__=[^<]+<\/script>/g, inline);
+            if (!cvHtml.includes('__RUNTIME_CONFIG__')) {
+              cvHtml = cvHtml.replace('</head>', `${inline}\n</head>`);
+            }
+          } catch (e) {}
+        }
+
+        // TEXT: Inline runtime text dictionary to avoid fetch attempts on CV page.
+        if (isProd && fs.existsSync(runtimeTextSrc)) {
+          try {
+            const raw = fs.readFileSync(runtimeTextSrc, 'utf-8');
+            const min = JSON.stringify(JSON.parse(raw));
+            const safe = min.replace(/</g, '\\u003c');
+            const inline = `<script>window.__TEXT__=${safe};</script>`;
+            cvHtml = cvHtml.replace(/<script>window\.__TEXT__=[^<]+<\/script>/g, inline);
+            if (!cvHtml.includes('__TEXT__')) {
+              cvHtml = cvHtml.replace('</head>', `${inline}\n</head>`);
+            }
+          } catch (e) {}
         }
         
         // Ensure theme-color tags match tokens (remove any existing ones first).
@@ -755,6 +736,15 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
       } catch (e) {
         console.warn('⚠️ Could not process cv.html:', e);
       }
+    }
+
+    // 2h. Verify build parity (fail fast on drift-prone surfaces)
+    try {
+      const { verifyBuildParity } = require('./scripts/verify-build-parity.js');
+      verifyBuildParity({ publicDir: path.resolve(CONFIG.publicDestination) });
+    } catch (e) {
+      console.error('❌ Build parity verifier crashed:', e);
+      process.exit(1);
     }
 
     // Report final bundle sizes (including gzip estimates)

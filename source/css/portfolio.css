@@ -525,7 +525,7 @@ body.portfolio-page.dark-mode .project-detail {
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: none;
-  border-radius: 50%;
+  border-radius: var(--ui-icon-corner-radius);
   color: var(--text-soft);
   padding: clamp(18px, 2.2vw, 28px);
   font-weight: 500;
@@ -543,7 +543,7 @@ body.portfolio-page.dark-mode .project-detail {
 .project-detail__close:hover {
   color: var(--cursor-color);
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
-  border-radius: 50%;
+  border-radius: inherit;
   position: fixed;
   z-index: 15;
 }
@@ -745,7 +745,7 @@ body.portfolio-page .project-detail__close:active {
 
 .project-detail__links a {
   padding: 8px 16px;
-  border-radius: var(--abs-radius-pill);
+  border-radius: var(--ui-icon-corner-radius);
   border: 1px solid rgba(var(--abs-rgb-black), 0.1);
   text-decoration: none;
   color: var(--text-primary);
@@ -913,55 +913,7 @@ body.portfolio-page .ui-top-right {
               filter 0.15s var(--ease-organic);
 }
 
-/* Gate back button */
-.gate-back {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  margin: 0;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  cursor: pointer;
-  -webkit-user-select: none;
-  user-select: none;
-  color: var(--text-quiet);
-  pointer-events: auto;
-  flex: 0 0 var(--ui-icon-frame-size);
-  text-decoration: none;
-  overflow: visible;
-}
-
-.gate-back::after {
-  content: '';
-  position: absolute;
-  bottom: calc(var(--dot-indicator-offset) * -1);
-  left: 50%;
-  transform: translate3d(-50%, 0, 0) scaleY(0);
-  transform-origin: 50% 50%;
-  width: var(--abs-cursor-hop-dot-size, var(--dot-indicator-size));
-  height: var(--abs-cursor-hop-dot-size, var(--dot-indicator-size));
-  border-radius: 50%;
-  background: var(--cursor-color, var(--link-hover-color));
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-.gate-back:hover::after {
-  opacity: 1;
-  animation: braviaDotBounceIn var(--dot-bounce-duration) var(--ease-bounce) both;
-}
-
-.gate-back span {
-  display: none;
-}
-
-.gate-back i.ti {
-  font-weight: 500;
-  font-size: var(--ui-icon-glyph-size);
-  line-height: 1;
-}
+/* Gate back button - inherits from main.css (same as CV page) */
 
 @keyframes braviaDotBounceIn {
   0% { transform: translate3d(-50%, 0, 0) scaleY(0); }

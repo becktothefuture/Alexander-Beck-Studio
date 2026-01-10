@@ -27,8 +27,8 @@ export function initializeParallaxLinear() {
 
   // Grid span: how much of the viewport the grid occupies in world space.
   // Use >1 to counter perspective shrink and visually reach the edges.
-  const spanX = Math.max(0.2, Math.min(3.0, g.parallaxLinearSpanX ?? 1.35));
-  const spanY = Math.max(0.2, Math.min(3.0, g.parallaxLinearSpanY ?? 1.35));
+  const spanX = Math.max(0.2, Math.min(8.0, g.parallaxLinearSpanX ?? 1.35));
+  const spanY = Math.max(0.2, Math.min(8.0, g.parallaxLinearSpanY ?? 1.35));
   const xMin = -0.5 * w * spanX;
   const yMin = -0.5 * h * spanY;
   const xStep = (w * spanX) / Math.max(1, gridX - 1);

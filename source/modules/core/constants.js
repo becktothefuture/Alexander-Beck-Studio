@@ -16,13 +16,9 @@ export const MODES = {
   KALEIDOSCOPE: 'kaleidoscope-3', // Glorious: 40-50 balls, complex morph
   // Simulation 11: ball-only "critters" (no keyboard shortcut yet)
   CRITTERS: 'critters',
-  ORBIT_3D: 'orbit-3d',
-  ORBIT_3D_2: 'orbit-3d-2',
   NEURAL: 'neural',
-  LATTICE: 'lattice',
   // Parallax (depth perception) simulations
   PARALLAX_LINEAR: 'parallax-linear',
-  PARALLAX_PERSPECTIVE: 'parallax-perspective',
   SPHERE_3D: '3d-sphere',
   CUBE_3D: '3d-cube',
   STARFIELD_3D: 'starfield-3d'
@@ -38,7 +34,6 @@ export const MODES = {
 // - Ball Pit opens the story
 // - Ball Pit (Throws) lands mid-story (the “filling up” iteration beat)
 // - Kaleidoscopes are contiguous and increase complexity
-// - Keep orbit and parallax variants separated
 export const NARRATIVE_MODE_SEQUENCE = [
   MODES.PIT,
   MODES.FLIES,
@@ -51,15 +46,11 @@ export const NARRATIVE_MODE_SEQUENCE = [
   MODES.NEURAL,
   MODES.VORTEX,
   MODES.SPHERE_3D,
-  MODES.ORBIT_3D,
   MODES.WEIGHTLESS,
   MODES.PARALLAX_LINEAR,
   MODES.CRITTERS,
-  MODES.ORBIT_3D_2,
-  MODES.PARALLAX_PERSPECTIVE,
   MODES.KALEIDOSCOPE,
-  MODES.STARFIELD_3D,
-  MODES.LATTICE
+  MODES.STARFIELD_3D
 ];
 
 // Short chapter titles (no numbers) — used by the left-edge narrative label.
@@ -68,7 +59,6 @@ export const NARRATIVE_MODE_SEQUENCE = [
 export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.PIT]: 'SOURCE MATERIAL',
   [MODES.FLIES]: 'IDEA SPARK',
-  [MODES.LATTICE]: 'SYSTEM FRAME',
   [MODES.BUBBLES]: 'NOISE SIGNAL',
   [MODES.PIT_THROWS]: 'PROTOTYPE LOOP',
   [MODES.MAGNETIC]: 'DESIGN FORCES',
@@ -76,14 +66,11 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.PING_PONG]: 'FEEDBACK CYCLE',
   [MODES.NEURAL]: 'CONNECTION MAP',
   [MODES.VORTEX]: 'EMERGENT ORDER',
-  [MODES.ORBIT_3D]: 'SYSTEM DYNAMICS',
   [MODES.WEIGHTLESS]: 'OPEN SPACE',
   [MODES.PARALLAX_LINEAR]: 'PERSPECTIVE SHIFT',
   [MODES.CRITTERS]: 'BEHAVIOR MODEL',
-  [MODES.ORBIT_3D_2]: 'EDGE CASES',
   [MODES.SPHERE_3D]: '3D SHELL',
   [MODES.CUBE_3D]: '3D FRAME',
-  [MODES.PARALLAX_PERSPECTIVE]: 'CONTEXT FIELD',
   [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',
   [MODES.STARFIELD_3D]: 'DEPTH FIELD'
 };
@@ -340,8 +327,8 @@ export const PARALLAX_LINEAR_PRESETS = {
     parallaxLinearGridX: 14,
     parallaxLinearGridY: 10,
     parallaxLinearGridZ: 10,
-    parallaxLinearSpanX: 1.45,
-    parallaxLinearSpanY: 1.45,
+    parallaxLinearSpanX: 2.2,
+    parallaxLinearSpanY: 2.2,
     parallaxLinearZNear: 30,
     parallaxLinearZFar: 1500,
     parallaxLinearFocalLength: 520,
@@ -354,8 +341,8 @@ export const PARALLAX_LINEAR_PRESETS = {
     parallaxLinearGridX: 12,
     parallaxLinearGridY: 9,
     parallaxLinearGridZ: 6,
-    parallaxLinearSpanX: 1.35,
-    parallaxLinearSpanY: 1.35,
+    parallaxLinearSpanX: 2.0,
+    parallaxLinearSpanY: 2.0,
     parallaxLinearZNear: 60,
     parallaxLinearZFar: 900,
     parallaxLinearFocalLength: 420,
@@ -368,96 +355,12 @@ export const PARALLAX_LINEAR_PRESETS = {
     parallaxLinearGridX: 10,
     parallaxLinearGridY: 7,
     parallaxLinearGridZ: 4,
-    parallaxLinearSpanX: 1.6,
-    parallaxLinearSpanY: 1.6,
+    parallaxLinearSpanX: 2.6,
+    parallaxLinearSpanY: 2.6,
     parallaxLinearZNear: 70,
     parallaxLinearZFar: 800,
     parallaxLinearFocalLength: 380,
     parallaxLinearParallaxStrength: 220
   }
 };
-
-// Parallax Perspective (3D grid + jitter)
-export const PARALLAX_PERSPECTIVE_PRESETS = {
-  default: {
-    label: 'Default (Nebula Grid)',
-    parallaxPerspectiveDotSizeMul: 1.8,
-    sizeVariationParallaxPerspective: 0,
-    parallaxPerspectiveGridX: 16,
-    parallaxPerspectiveGridY: 12,
-    parallaxPerspectiveGridZ: 8,
-    parallaxPerspectiveSpanX: 1.45,
-    parallaxPerspectiveSpanY: 1.45,
-    parallaxPerspectiveZNear: 40,
-    parallaxPerspectiveZFar: 1200,
-    parallaxPerspectiveFocalLength: 420,
-    parallaxPerspectiveParallaxStrength: 280,
-    parallaxPerspectiveRandomness: 0.6
-  },
-  calm: {
-    label: 'Calm Mist',
-    parallaxPerspectiveDotSizeMul: 1.9,
-    sizeVariationParallaxPerspective: 0.08,
-    parallaxPerspectiveGridX: 14,
-    parallaxPerspectiveGridY: 10,
-    parallaxPerspectiveGridZ: 6,
-    parallaxPerspectiveSpanX: 1.4,
-    parallaxPerspectiveSpanY: 1.4,
-    parallaxPerspectiveZNear: 60,
-    parallaxPerspectiveZFar: 900,
-    parallaxPerspectiveFocalLength: 420,
-    parallaxPerspectiveParallaxStrength: 180,
-    parallaxPerspectiveRandomness: 0.25
-  },
-  deep: {
-    label: 'Deep Space',
-    parallaxPerspectiveDotSizeMul: 1.6,
-    sizeVariationParallaxPerspective: 0.06,
-    parallaxPerspectiveGridX: 18,
-    parallaxPerspectiveGridY: 13,
-    parallaxPerspectiveGridZ: 12,
-    parallaxPerspectiveSpanX: 1.55,
-    parallaxPerspectiveSpanY: 1.55,
-    parallaxPerspectiveZNear: 30,
-    parallaxPerspectiveZFar: 2200,
-    parallaxPerspectiveFocalLength: 520,
-    parallaxPerspectiveParallaxStrength: 340,
-    parallaxPerspectiveRandomness: 0.55
-  },
-  wild: {
-    label: 'Wild Nebula',
-    parallaxPerspectiveDotSizeMul: 1.7,
-    sizeVariationParallaxPerspective: 0.18,
-    parallaxPerspectiveGridX: 16,
-    parallaxPerspectiveGridY: 12,
-    parallaxPerspectiveGridZ: 10,
-    parallaxPerspectiveSpanX: 1.6,
-    parallaxPerspectiveSpanY: 1.6,
-    parallaxPerspectiveZNear: 20,
-    parallaxPerspectiveZFar: 1600,
-    parallaxPerspectiveFocalLength: 420,
-    parallaxPerspectiveParallaxStrength: 360,
-    parallaxPerspectiveRandomness: 0.9
-  },
-  minimal: {
-    label: 'Minimal Stars',
-    parallaxPerspectiveDotSizeMul: 2.6,
-    sizeVariationParallaxPerspective: 0.22,
-    parallaxPerspectiveGridX: 10,
-    parallaxPerspectiveGridY: 7,
-    parallaxPerspectiveGridZ: 5,
-    parallaxPerspectiveSpanX: 1.75,
-    parallaxPerspectiveSpanY: 1.75,
-    parallaxPerspectiveZNear: 70,
-    parallaxPerspectiveZFar: 1100,
-    parallaxPerspectiveFocalLength: 380,
-    parallaxPerspectiveParallaxStrength: 220,
-    parallaxPerspectiveRandomness: 0.35
-  }
-};
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ORBIT 3D — Removed presets (now uses direct parameter controls)
-// ═══════════════════════════════════════════════════════════════════════════════
-// The new orbit-3d uses 3D point cloud architecture (like sphere/cube)
 // with configurable orbital rings, rotation, and tumble via control panel

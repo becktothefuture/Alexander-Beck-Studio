@@ -102,8 +102,8 @@ export class Ball {
     const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
     const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
     
-    // Base drag from config (skip for WEIGHTLESS and ORBIT modes - they manage their own damping)
-    const baseDrag = (currentMode === MODES.WEIGHTLESS || currentMode === MODES.ORBIT_3D || currentMode === MODES.ORBIT_3D_2) ? 0 : FRICTION;
+    // Base drag from config (skip for WEIGHTLESS; managed separately)
+    const baseDrag = currentMode === MODES.WEIGHTLESS ? 0 : FRICTION;
     
     // Progressive drag: multiply instead of divide for stability
     // At high speed (>100 px/s * DPR): base drag only (multiplier = 0)
@@ -118,15 +118,12 @@ export class Ball {
     // ════════════════════════════════════════════════════════════════════════════
     // MICRO-JITTER PREVENTION - Snap tiny velocities to zero
     // Below this threshold, friction would dominate anyway
-    // Skip for ORBIT modes (orbital velocities need to persist)
     // ════════════════════════════════════════════════════════════════════════════
-    if (currentMode !== MODES.ORBIT_3D && currentMode !== MODES.ORBIT_3D_2) {
     const MICRO_VEL_THRESHOLD = 2.0 * DPR; // px/s - below this, snap to zero
     if (Math.abs(this.vx) < MICRO_VEL_THRESHOLD) this.vx = 0;
     if (Math.abs(this.vy) < MICRO_VEL_THRESHOLD && currentMode === MODES.WEIGHTLESS) {
       // Only snap vy in weightless (gravity modes need vy to settle naturally)
       this.vy = 0;
-      }
     }
     
     // Drift

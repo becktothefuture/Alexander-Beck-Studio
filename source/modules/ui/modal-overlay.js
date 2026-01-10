@@ -127,10 +127,6 @@ export function initModalOverlay(config) {
     const depthScale = config.modalDepthScale ?? readTokenNumber('--modal-depth-scale', 0.96);
     const depthY = config.modalDepthTranslateY ?? readTokenPx('--modal-depth-translate-y', 8);
     
-    // Logo opacity settings (fade when modal is active)
-    const logoOpacityInactive = config.logoOpacityInactive ?? readTokenNumber('--logo-opacity-inactive', 1);
-    const logoOpacityActive = config.logoOpacityActive ?? readTokenNumber('--logo-opacity-active-target', 0.2);
-    
     // Logo blur settings (blur when modal is active)
     const logoBlurInactive = config.logoBlurInactive ?? readTokenPx('--logo-blur-inactive', 0);
     const logoBlurActive = config.logoBlurActive ?? readTokenPx('--logo-blur-active-target', 12);
@@ -142,11 +138,6 @@ export function initModalOverlay(config) {
     root.style.setProperty('--modal-depth-duration', `${transitionMs}ms`);
     root.style.setProperty('--modal-depth-out-duration', `${transitionOutMs}ms`);
     root.style.setProperty('--modal-content-delay', `${contentDelayMs}ms`);
-    
-    // Set logo opacity variables
-    root.style.setProperty('--logo-opacity-inactive', logoOpacityInactive);
-    root.style.setProperty('--logo-opacity-active-target', logoOpacityActive);
-    root.style.setProperty('--logo-opacity-active', logoOpacityInactive);
     
     // Set logo blur variables
     root.style.setProperty('--logo-blur-inactive', `${logoBlurInactive}px`);
@@ -176,6 +167,9 @@ export function initModalOverlay(config) {
     contentLayerElement.classList.remove('active');
     blurLayerElement.setAttribute('aria-hidden', 'true');
     contentLayerElement.setAttribute('aria-hidden', 'true');
+    
+    // Explicitly ensure blur is cleared on initialization (no modal active)
+    applyDepthEffect(false);
     
     // Click on content layer dismisses active modal
     contentLayerElement.addEventListener('click', handleOverlayClick, { capture: true });
@@ -230,29 +224,51 @@ function applyDepthEffect(active) {
     if (active) {
         const scale = getComputedStyle(root).getPropertyValue('--modal-depth-scale').trim() || '0.96';
         const ty = getComputedStyle(root).getPropertyValue('--modal-depth-translate-y').trim() || '8px';
-        const logoOpacityActive = getComputedStyle(root).getPropertyValue('--logo-opacity-active-target').trim() 
-                                 || root.style.getPropertyValue('--logo-opacity-active-target') 
-                                 || '0.2';
         const logoBlurActive = getComputedStyle(root).getPropertyValue('--logo-blur-active-target').trim() 
                              || root.style.getPropertyValue('--logo-blur-active-target') 
                              || '12px';
         
         root.style.setProperty('--modal-depth-scale-active', scale);
         root.style.setProperty('--modal-depth-ty-active', ty);
-        root.style.setProperty('--logo-opacity-active', logoOpacityActive);
         root.style.setProperty('--logo-blur-active', logoBlurActive);
         
-        if (scene) scene.classList.add('modal-depth-active');
+        if (scene) scene.classList.add('gate-depth-active');
     } else {
-        const logoOpacityInactive = getComputedStyle(root).getPropertyValue('--logo-opacity-inactive').trim() || '1';
         const logoBlurInactive = getComputedStyle(root).getPropertyValue('--logo-blur-inactive').trim() || '0px';
 
         root.style.setProperty('--modal-depth-scale-active', '1');
         root.style.setProperty('--modal-depth-ty-active', '0px');
-        root.style.setProperty('--logo-opacity-active', logoOpacityInactive);
         root.style.setProperty('--logo-blur-active', logoBlurInactive);
 
-        if (scene) scene.classList.remove('modal-depth-active');
+        if (scene) scene.classList.remove('gate-depth-active');
+    }
+}
+
+/**
+ * Fade logo and nav when modal opens/closes
+ * Simple: just opacity transitions, CSS handles positioning
+ */
+function fadeLogoNav(fadeOut = true) {
+    const logo = document.getElementById('brand-logo');
+    const nav = document.getElementById('main-links');
+    const duration = fadeOut ? 500 : 400;
+    const targetOpacity = fadeOut ? '0' : '1';
+    
+    if (logo) {
+        logo.style.transition = `opacity ${duration}ms ease-out`;
+        logo.style.opacity = targetOpacity;
+        if (!fadeOut) {
+            setTimeout(() => logo?.style.removeProperty('opacity'), duration);
+        }
+    }
+    
+    if (nav) {
+        nav.style.transition = `opacity ${duration}ms ease-out`;
+        nav.style.opacity = targetOpacity;
+        nav.style.pointerEvents = fadeOut ? 'none' : '';
+        if (!fadeOut) {
+            setTimeout(() => nav?.style.removeProperty('opacity'), duration);
+        }
     }
 }
 
@@ -264,6 +280,12 @@ export function showOverlay() {
     
     // Ensure blur CSS variable is current
     updateBlurFromWallThickness('showOverlay');
+
+    // Global flag for modal-active styling
+    document.documentElement.classList.add('modal-active');
+    
+    // Fade out logo and nav smoothly
+    fadeLogoNav(true);
     
     // Update aria states
     blurLayerElement.setAttribute('aria-hidden', 'false');
@@ -305,6 +327,10 @@ export function hideOverlay() {
     // Remove active class from BOTH layers
     blurLayerElement.classList.remove('active');
     contentLayerElement.classList.remove('active');
+    document.documentElement.classList.remove('modal-active');
+    
+    // Fade logo and nav back in smoothly
+    fadeLogoNav(false);
     
     blurLayerElement.setAttribute('aria-hidden', 'true');
     contentLayerElement.setAttribute('aria-hidden', 'true');
@@ -356,6 +382,7 @@ export function updateOverlayTransition(transitionMs) {
     if (!blurLayerElement) return;
     blurLayerElement.style.setProperty('--modal-overlay-transition-duration', `${transitionMs}ms`);
     document.documentElement.style.setProperty('--modal-depth-duration', `${transitionMs}ms`);
+    applyDepthEffect(isOverlayActive());
 }
 
 /**
@@ -365,6 +392,7 @@ export function updateOverlayTransitionOut(transitionMs) {
     if (!blurLayerElement) return;
     blurLayerElement.style.setProperty('--modal-overlay-transition-out-duration', `${transitionMs}ms`);
     document.documentElement.style.setProperty('--modal-depth-out-duration', `${transitionMs}ms`);
+    applyDepthEffect(isOverlayActive());
 }
 
 /**
@@ -372,6 +400,7 @@ export function updateOverlayTransitionOut(transitionMs) {
  */
 export function updateGateDepthScale(scale) {
     document.documentElement.style.setProperty('--modal-depth-scale', scale);
+    applyDepthEffect(isOverlayActive());
 }
 
 /**
@@ -387,29 +416,7 @@ export function updateGateContentDelay(ms) {
  */
 export function updateGateDepthTranslateY(px) {
     document.documentElement.style.setProperty('--modal-depth-translate-y', `${px}px`);
-}
-
-/**
- * Update logo opacity when inactive (for live control panel adjustment)
- */
-export function updateLogoOpacityInactive(opacity) {
-    const root = document.documentElement;
-    root.style.setProperty('--logo-opacity-inactive', opacity);
-    if (!isOverlayActive()) {
-        root.style.setProperty('--logo-opacity-active', opacity);
-    }
-}
-
-/**
- * Update logo opacity when active (for live control panel adjustment)
- */
-export function updateLogoOpacityActive(opacity) {
-    const root = document.documentElement;
-    const storedOpacity = opacity;
-    root.style.setProperty('--logo-opacity-active-target', storedOpacity);
-    if (isOverlayActive()) {
-        root.style.setProperty('--logo-opacity-active', storedOpacity);
-    }
+    applyDepthEffect(isOverlayActive());
 }
 
 /**
@@ -421,6 +428,7 @@ export function updateLogoBlurInactive(px) {
     if (!isOverlayActive()) {
         root.style.setProperty('--logo-blur-active', `${px}px`);
     }
+    applyDepthEffect(isOverlayActive());
 }
 
 /**
@@ -432,4 +440,5 @@ export function updateLogoBlurActive(px) {
     if (isOverlayActive()) {
         root.style.setProperty('--logo-blur-active', `${px}px`);
     }
+    applyDepthEffect(isOverlayActive());
 }

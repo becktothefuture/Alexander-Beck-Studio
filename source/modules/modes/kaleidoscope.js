@@ -142,7 +142,32 @@ function initializeKaleidoscopeWithCount(count, mode) {
   const maxAttemptsPerBall = 90;
   const margin = Math.max(2, g.wallInset || 3) * g.DPR;
 
-  function spawnOne(color, distributionIndex) {
+  const palette = Array.isArray(g.currentColors) ? g.currentColors : [];
+  const distribution = Array.isArray(g.colorDistribution) ? g.colorDistribution : [];
+  const ACCENT_INDICES = [5, 6, 7, 3];  // vivid anchors
+  const NEUTRAL_INDICES = [0, 1, 2, 4]; // greys/black
+
+  function findDistributionIndexForPaletteIdx(idx) {
+    const clamped = Math.max(0, Math.min(7, idx | 0));
+    for (let i = 0; i < distribution.length; i++) {
+      const row = distribution[i];
+      if ((row?.colorIndex | 0) === clamped) return i;
+    }
+    return 0;
+  }
+
+  function pickBiasedColor(rr) {
+    const rNorm = Math.max(0, Math.min(1, rr / Math.max(ringMax, 1)));
+    // Inner/mid bands = saturated accents; outer band = neutrals.
+    const useAccents = rNorm <= 0.55 ? true : rNorm >= 0.75 ? false : Math.random() < 0.65;
+    const pool = useAccents ? ACCENT_INDICES : NEUTRAL_INDICES;
+    const paletteIdx = pool[Math.floor(Math.random() * pool.length)] ?? 0;
+    const color = palette[paletteIdx] || palette[0] || '#ffffff';
+    const distributionIndex = findDistributionIndexForPaletteIdx(paletteIdx);
+    return { color, distributionIndex };
+  }
+
+  function spawnOne() {
     const radius = randomRadiusForKaleidoscopeVh(g, mode);
     // Allow spawning well beyond viewport bounds (for 200% more surface area)
     const spawnMargin = ringMax * 1.2; // Extra margin beyond max radius
@@ -160,6 +185,7 @@ function initializeKaleidoscopeWithCount(count, mode) {
       const spacedRadius = radius * (1 + (g.ballSpacing || 0));
       if (!isOverlapping(placed, x, y, spacedRadius)) {
         placed.push({ x, y, r: spacedRadius });
+        const { color, distributionIndex } = pickBiasedColor(rr);
         const b = new Ball(x, y, radius, color);
         b.distributionIndex = distributionIndex;
         b._kaleiSeed = Math.random() * TAU;
@@ -184,6 +210,7 @@ function initializeKaleidoscopeWithCount(count, mode) {
     const rr = ringMin + Math.random() * (ringMax - ringMin);
     const x = centerX + Math.cos(a) * rr;
     const y = centerY + Math.sin(a) * rr;
+    const { color, distributionIndex } = pickBiasedColor(rr);
     const b = new Ball(x, y, radius, color);
     b.distributionIndex = distributionIndex;
     b._kaleiSeed = Math.random() * TAU;
@@ -198,16 +225,8 @@ function initializeKaleidoscopeWithCount(count, mode) {
     g.balls.push(b);
   }
 
-  // Ensure at least one of each palette color (if we have enough balls)
-  const colorCount = Math.min(8, clampedCount);
-  for (let colorIndex = 0; colorIndex < colorCount; colorIndex++) {
-    const { color, distributionIndex } = pickRandomColorWithIndex();
-    spawnOne(color, distributionIndex);
-  }
-
-  for (let i = colorCount; i < clampedCount; i++) {
-    const { color, distributionIndex } = pickRandomColorWithIndex();
-    spawnOne(color, distributionIndex);
+  for (let i = 0; i < clampedCount; i++) {
+    spawnOne();
   }
 }
 

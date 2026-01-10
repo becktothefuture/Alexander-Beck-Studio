@@ -6,6 +6,7 @@
 import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';
 import { getText } from '../utils/text-loader.js';
 import { isDev } from '../utils/logger.js';
+import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
 
 /**
  * Create the page flash overlay element if it doesn't exist
@@ -63,12 +64,12 @@ export function initPortfolioModal() {
     if (modal.dataset.modalInitialized === 'true') return;
     modal.dataset.modalInitialized = 'true';
     
-    const BACK_TEXT = getText('modals.common.backText', 'BACK');
-    const BACK_ARIA = getText('modals.common.backAriaLabel', 'Back');
-    const TITLE = getText('modals.portfolio.title', 'View Portfolio');
+    const BACK_TEXT = getText('gates.common.backText', 'BACK');
+    const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
+    const TITLE = getText('gates.portfolio.title', 'View Portfolio');
     const DESC = getText(
-        'modals.portfolio.description',
-        "Good work deserves good context. This small step ensures you're here with intention, not just browsing. Quality takes time—yours and mine."
+        'gates.portfolio.description',
+        "Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."
     );
 
     // Set label text if element exists
@@ -124,10 +125,12 @@ export function initPortfolioModal() {
         prefetchLink.href = `${basePath}${bundlePath}`;
         document.head.appendChild(prefetchLink);
         
+        // Warm the cache with a lightweight, non-blocking hint.
+        // Use `prefetch` (not `preload`) to avoid “preloaded but not used” console warnings.
         const preloadImg = document.createElement('link');
-        preloadImg.rel = 'preload';
-        preloadImg.as = 'image';
-        preloadImg.href = `${basePath}images/portfolio/pages/chapter-0-1.webp`;
+        preloadImg.rel = 'prefetch';
+        // Note: portfolio page assets are chapter-indexed starting at 1.
+        preloadImg.href = `${basePath}images/portfolio/pages/chapter-1-1.webp`;
         document.head.appendChild(preloadImg);
         
         // Close CV modal if it's open
@@ -262,12 +265,9 @@ export function initPortfolioModal() {
                 // Set session token (soft modal)
                 sessionStorage.setItem('abs_portfolio_ok', Date.now());
                 
-                // Smooth page fade-out + redirect
+                // Smooth page fade-out + redirect using unified navigation
                 setTimeout(() => {
-                    document.body.classList.add('page-transitioning');
-                    setTimeout(() => {
-                        window.location.href = 'portfolio.html';
-                    }, 300); // Fade-out duration
+                    navigateWithTransition('portfolio.html', NAV_STATES.INTERNAL);
                 }, 200); // Brief delay after pulse starts
                 
             } else {

@@ -91,12 +91,9 @@ const state = {
   sizeVariationMagnetic: 0,
   sizeVariationBubbles: 0.2,
   sizeVariationKaleidoscope: 0,
-  sizeVariationOrbit3d: 0,
   sizeVariationCritters: 0.2,
   sizeVariationNeural: 0,
-  sizeVariationLattice: 0,
   sizeVariationParallaxLinear: 0,
-  sizeVariationParallaxPerspective: 0,
   
   // Warmup (per simulation) — how many “startup frames” to pre-run before first render.
   // Default 10 for all modes (quick settle; avoids visible pop-in while testing).
@@ -110,13 +107,9 @@ const state = {
   magneticWarmupFrames: 10,
   bubblesWarmupFrames: 10,
   kaleidoscope3WarmupFrames: 10,
-  orbit3dWarmupFrames: 10,
-  orbit3d2WarmupFrames: 10,
   crittersWarmupFrames: 10,
   neuralWarmupFrames: 10,
-  latticeWarmupFrames: 10,
   parallaxLinearWarmupFrames: 10,
-  parallaxPerspectiveWarmupFrames: 10,
   // 3D Sphere (Mode 16)
   sphere3dRadiusVw: 18,
   sphere3dDensity: 140,
@@ -390,29 +383,6 @@ const state = {
   kaleidoscope3SizeVariance: 0.5,
   kaleidoscope3WarmupFrames: 65,
 
-  // Orbit 3D mode (real gravitational physics)
-  orbit3dPreset: 'serene',     // active preset name
-  orbit3dMoonCount: 80,         // number of moons
-  orbit3dGravity: 5000,        // cursor gravitational force (lower = gentler pull)
-  orbit3dMoonMass: 1.0,         // moon mass (lighter = more responsive, heavier = more stable)
-  orbit3dVelocityMult: 150,     // orbital speed (px/s) - higher = faster orbits
-  orbit3dTargetOrbit: 12,       // target orbit distance (vw) - ideal distance
-  orbit3dMinOrbit: 3,           // min orbit distance (vw) - repulsion boundary
-  orbit3dMaxOrbit: 3,          // max orbit distance (vw) - attraction boundary
-  orbit3dDepthScale: 0.8,       // faux 3D depth effect strength
-  orbit3dDamping: 0.02,         // velocity damping (min 0.01)
-
-  // Orbit 3D Mode 2 (spiral vortex)
-  orbit3d2MoonCount: 60,       // number of spirals
-  orbit3d2Gravity: 3000,       // spiral attraction strength
-  orbit3d2VelocityMult: 200,   // initial tangential speed
-  orbit3d2MinOrbit: 5,         // min orbit distance (vw)
-  orbit3d2MaxOrbit: 30,        // max orbit distance (vw)
-  orbit3d2DepthScale: 0.5,     // faux 3D depth effect
-  orbit3d2Damping: 0.98,       // velocity damping (higher = less damping)
-  orbit3d2MoonMass: 1.0,       // moon mass (affects responsiveness)
-  orbit3d2MaxSpeed: 800,       // speed limit to prevent instability
-
   // Neural mode (emergent "synapses")
   neuralBallCount: 80,
   neuralLinkDistanceVw: 14,
@@ -420,17 +390,6 @@ const state = {
   neuralWanderStrength: 420,
   neuralMaxLinksPerBall: 4,
   neuralDamping: 0.985,
-
-  // Lattice mode (hex crystallization with living mesh animation)
-  latticeBallCount: 90,
-  latticeSpacingVw: 8.5,
-  latticeStiffness: 2.2,
-  latticeDamping: 0.92,
-  latticeDisruptRadius: 600,
-  latticeDisruptPower: 25.0,
-  latticeMeshWaveStrength: 12.0,
-  latticeMeshWaveSpeed: 0.8,
-  latticeAlignment: 'center',
 
   // Parallax modes (mouse-driven depth parallax)
   // NOTE: Older parallax parameters are kept for compatibility with older presets/UI,
@@ -445,17 +404,6 @@ const state = {
   parallaxLinearNearSpeed: 1.0,
   parallaxLinearFollowStrength: 16.0,
   parallaxLinearDamping: 12.0,
-  parallaxPerspectiveDotCount: 240,
-  parallaxPerspectiveDepthMul: 1.6,
-  parallaxPerspectiveFocalLength: 400,
-  parallaxPerspectiveFollowStrength: 16.0,
-  parallaxPerspectiveDamping: 12.0,
-  parallaxPerspectiveZ1: 1200,   // Deepest layer
-  parallaxPerspectiveZ2: 700,
-  parallaxPerspectiveZ3: 350,    // Middle layer
-  parallaxPerspectiveZ4: 120,
-  parallaxPerspectiveZ5: 35,     // Closest layer
-
   // Parallax (3D grid) — fills the viewport and responds to mouse like a camera pan.
   // These are the canonical knobs for the rebuilt Parallax simulations.
   parallaxLinearGridX: 14,
@@ -463,24 +411,13 @@ const state = {
   parallaxLinearGridZ: 7,
   // Grid span in viewport units (multipliers applied to canvas width/height).
   // 1.0 ≈ edge-to-edge in the grid's *world* space; use >1 to counter perspective shrink.
-  parallaxLinearSpanX: 1.35,
-  parallaxLinearSpanY: 1.35,
+  parallaxLinearSpanX: 5.0,
+  parallaxLinearSpanY: 2.6,
   parallaxLinearZNear: 50,
   parallaxLinearZFar: 900,
   parallaxLinearFocalLength: 420,
   parallaxLinearParallaxStrength: 260,
   parallaxLinearDotSizeMul: 1.8,
-
-  parallaxPerspectiveGridX: 16,
-  parallaxPerspectiveGridY: 12,
-  parallaxPerspectiveGridZ: 8,
-  parallaxPerspectiveSpanX: 1.45,
-  parallaxPerspectiveSpanY: 1.45,
-  parallaxPerspectiveZNear: 40,
-  parallaxPerspectiveZFar: 1200,
-  parallaxPerspectiveParallaxStrength: 280,
-  parallaxPerspectiveRandomness: 0.6,
-  parallaxPerspectiveDotSizeMul: 1.8,
   
   // Water mode
   waterBallCount: 300,
@@ -541,7 +478,7 @@ const state = {
   // Mobile-only multiplier applied on top of sceneImpactMul.
   // Allows “more depth” on small screens without re-tuning desktop.
   sceneImpactMobileMulFactor: 1.0,
-  // Logo counter-scale gain (multiplies the compensation so the logo stays “anchored”)
+  // Logo counter-scale gain (multiplies the compensation so the logo stays "anchored")
   sceneImpactLogoCompMul: 1.8,
   sceneImpactOvershoot: 0.22,   // release overshoot amount (unitless)
   sceneImpactAnticipation: 0.0, // micro pre-pop opposite direction; 0 disables
@@ -635,10 +572,8 @@ const state = {
   modalOverlayContentDelayMs: 200,   // Delay before dialog content appears (ms)
   modalDepthScale: 0.96,             // Scene scale when gate is open (0.9-1.0)
   modalDepthTranslateY: 8,           // Scene Y translation when gate is open (px)
-  logoOpacityInactive: 1,           // Logo opacity when gate is closed (0-1)
-  logoOpacityActive: 0.2,           // Logo opacity when gate is active (0-1)
-  logoBlurInactive: 0,              // Logo blur when gate is closed (px)
-  logoBlurActive: 12,               // Logo blur when gate is active (px)
+  logoBlurInactive: 0,               // Logo blur when gate is closed (px)
+  logoBlurActive: 12,                // Logo blur when gate is active (px)
   
   // Entrance Animation (browser default → wall-state)
   entranceEnabled: true,            // Enable dramatic entrance animation
@@ -880,12 +815,11 @@ export function applyLayoutCSSVars() {
     : state.containerBorderVw;
   root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * mobileWallXFactor}`);
   
-  // Edge label inset: relative to wall (wallThickness) + small gap + user adjustment
-  const edgeLabelGap = 8; // Base gap between wall and label (px)
+  // Edge label inset: CSS handles calculation via --wall-thickness + --edge-label-inset-gap + --edge-label-inset-adjust
+  // Just set the adjust variable if needed (CSS will calculate the rest)
   const edgeLabelAdjust = state.edgeLabelInsetAdjustPx || 0;
-  const edgeLabelInset = state.wallThickness + edgeLabelGap + edgeLabelAdjust;
-  root.style.setProperty('--edge-label-inset', `${edgeLabelInset}px`);
   root.style.setProperty('--edge-label-inset-adjust', `${edgeLabelAdjust}px`);
+  // CSS will calculate: --edge-label-inset = calc(--wall-thickness + --edge-label-inset-gap + --edge-label-inset-adjust)
   
   // True inner offset: wall thickness + content padding (for edge-inset CSS var)
   const edgeInset = state.wallThickness + state.contentPadding;
@@ -955,12 +889,9 @@ export function initState(config) {
   if (config.sizeVariationMagnetic !== undefined) state.sizeVariationMagnetic = clampNumber(config.sizeVariationMagnetic, 0, 1, state.sizeVariationMagnetic);
   if (config.sizeVariationBubbles !== undefined) state.sizeVariationBubbles = clampNumber(config.sizeVariationBubbles, 0, 1, state.sizeVariationBubbles);
   if (config.sizeVariationKaleidoscope !== undefined) state.sizeVariationKaleidoscope = clampNumber(config.sizeVariationKaleidoscope, 0, 1, state.sizeVariationKaleidoscope);
-  if (config.sizeVariationOrbit3d !== undefined) state.sizeVariationOrbit3d = clampNumber(config.sizeVariationOrbit3d, 0, 1, state.sizeVariationOrbit3d);
   if (config.sizeVariationCritters !== undefined) state.sizeVariationCritters = clampNumber(config.sizeVariationCritters, 0, 1, state.sizeVariationCritters);
   if (config.sizeVariationNeural !== undefined) state.sizeVariationNeural = clampNumber(config.sizeVariationNeural, 0, 1, state.sizeVariationNeural);
-  if (config.sizeVariationLattice !== undefined) state.sizeVariationLattice = clampNumber(config.sizeVariationLattice, 0, 1, state.sizeVariationLattice);
   if (config.sizeVariationParallaxLinear !== undefined) state.sizeVariationParallaxLinear = clampNumber(config.sizeVariationParallaxLinear, 0, 1, state.sizeVariationParallaxLinear);
-  if (config.sizeVariationParallaxPerspective !== undefined) state.sizeVariationParallaxPerspective = clampNumber(config.sizeVariationParallaxPerspective, 0, 1, state.sizeVariationParallaxPerspective);
   // Legacy key (kept): does not affect per-mode sliders, but we store it.
   if (config.sizeVariation !== undefined) state.sizeVariation = config.sizeVariation;
 
@@ -1001,13 +932,9 @@ export function initState(config) {
   if (config.magneticWarmupFrames !== undefined) state.magneticWarmupFrames = clampInt(config.magneticWarmupFrames, 0, 240, state.magneticWarmupFrames);
   if (config.bubblesWarmupFrames !== undefined) state.bubblesWarmupFrames = clampInt(config.bubblesWarmupFrames, 0, 240, state.bubblesWarmupFrames);
   if (config.kaleidoscope3WarmupFrames !== undefined) state.kaleidoscope3WarmupFrames = clampInt(config.kaleidoscope3WarmupFrames, 0, 240, state.kaleidoscope3WarmupFrames);
-  if (config.orbit3dWarmupFrames !== undefined) state.orbit3dWarmupFrames = clampInt(config.orbit3dWarmupFrames, 0, 240, state.orbit3dWarmupFrames);
-  if (config.orbit3d2WarmupFrames !== undefined) state.orbit3d2WarmupFrames = clampInt(config.orbit3d2WarmupFrames, 0, 240, state.orbit3d2WarmupFrames);
   if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
   if (config.neuralWarmupFrames !== undefined) state.neuralWarmupFrames = clampInt(config.neuralWarmupFrames, 0, 240, state.neuralWarmupFrames);
-  if (config.latticeWarmupFrames !== undefined) state.latticeWarmupFrames = clampInt(config.latticeWarmupFrames, 0, 240, state.latticeWarmupFrames);
   if (config.parallaxLinearWarmupFrames !== undefined) state.parallaxLinearWarmupFrames = clampInt(config.parallaxLinearWarmupFrames, 0, 240, state.parallaxLinearWarmupFrames);
-  if (config.parallaxPerspectiveWarmupFrames !== undefined) state.parallaxPerspectiveWarmupFrames = clampInt(config.parallaxPerspectiveWarmupFrames, 0, 240, state.parallaxPerspectiveWarmupFrames);
 
   // Ensure sizing baselines are computed immediately after config is applied.
   // (Otherwise per-mode sizing falls back to placeholder values and sliders appear “dead”.)
@@ -1117,15 +1044,6 @@ export function initState(config) {
   if (config.neuralDamping !== undefined) state.neuralDamping = clampNumber(config.neuralDamping, 0.8, 1.0, state.neuralDamping);
 
   // Lattice (config overrides)
-  if (config.latticeBallCount !== undefined) state.latticeBallCount = clampNumber(config.latticeBallCount, 8, 260, state.latticeBallCount);
-  if (config.latticeSpacingVw !== undefined) state.latticeSpacingVw = clampNumber(config.latticeSpacingVw, 1, 40, state.latticeSpacingVw);
-  if (config.latticeStiffness !== undefined) state.latticeStiffness = clampNumber(config.latticeStiffness, 0, 20, state.latticeStiffness);
-  if (config.latticeDamping !== undefined) state.latticeDamping = clampNumber(config.latticeDamping, 0.5, 1.0, state.latticeDamping);
-  if (config.latticeDisruptRadius !== undefined) state.latticeDisruptRadius = clampNumber(config.latticeDisruptRadius, 50, 800, state.latticeDisruptRadius);
-  if (config.latticeDisruptPower !== undefined) state.latticeDisruptPower = clampNumber(config.latticeDisruptPower, 0, 20, state.latticeDisruptPower);
-  if (config.latticeMeshWaveStrength !== undefined) state.latticeMeshWaveStrength = clampNumber(config.latticeMeshWaveStrength, 0, 50, state.latticeMeshWaveStrength);
-  if (config.latticeMeshWaveSpeed !== undefined) state.latticeMeshWaveSpeed = clampNumber(config.latticeMeshWaveSpeed, 0, 3.0, state.latticeMeshWaveSpeed);
-  if (config.latticeAlignment !== undefined) state.latticeAlignment = String(config.latticeAlignment);
 
   // Parallax (config overrides)
   if (config.parallaxLinearDotCount !== undefined) state.parallaxLinearDotCount = clampNumber(config.parallaxLinearDotCount, 20, 220, state.parallaxLinearDotCount);
@@ -1145,26 +1063,6 @@ export function initState(config) {
   if (config.parallaxLinearDotSizeMul !== undefined) state.parallaxLinearDotSizeMul = clampNumber(config.parallaxLinearDotSizeMul, 0.1, 6.0, state.parallaxLinearDotSizeMul);
   if (config.parallaxLinearFollowStrength !== undefined) state.parallaxLinearFollowStrength = clampNumber(config.parallaxLinearFollowStrength, 1, 80, state.parallaxLinearFollowStrength);
   if (config.parallaxLinearDamping !== undefined) state.parallaxLinearDamping = clampNumber(config.parallaxLinearDamping, 1, 80, state.parallaxLinearDamping);
-  if (config.parallaxPerspectiveDotCount !== undefined) state.parallaxPerspectiveDotCount = clampNumber(config.parallaxPerspectiveDotCount, 40, 420, state.parallaxPerspectiveDotCount);
-  if (config.parallaxPerspectiveDepthMul !== undefined) state.parallaxPerspectiveDepthMul = clampNumber(config.parallaxPerspectiveDepthMul, 0.5, 3.0, state.parallaxPerspectiveDepthMul);
-  if (config.parallaxPerspectiveFocalLength !== undefined) state.parallaxPerspectiveFocalLength = clampNumber(config.parallaxPerspectiveFocalLength, 80, 1000, state.parallaxPerspectiveFocalLength);
-  if (config.parallaxPerspectiveFollowStrength !== undefined) state.parallaxPerspectiveFollowStrength = clampNumber(config.parallaxPerspectiveFollowStrength, 1, 40, state.parallaxPerspectiveFollowStrength);
-  if (config.parallaxPerspectiveDamping !== undefined) state.parallaxPerspectiveDamping = clampNumber(config.parallaxPerspectiveDamping, 1, 40, state.parallaxPerspectiveDamping);
-  if (config.parallaxPerspectiveZ1 !== undefined) state.parallaxPerspectiveZ1 = clampNumber(config.parallaxPerspectiveZ1, 200, 2000, state.parallaxPerspectiveZ1);
-  if (config.parallaxPerspectiveZ2 !== undefined) state.parallaxPerspectiveZ2 = clampNumber(config.parallaxPerspectiveZ2, 150, 1500, state.parallaxPerspectiveZ2);
-  if (config.parallaxPerspectiveZ3 !== undefined) state.parallaxPerspectiveZ3 = clampNumber(config.parallaxPerspectiveZ3, 100, 1000, state.parallaxPerspectiveZ3);
-  if (config.parallaxPerspectiveZ4 !== undefined) state.parallaxPerspectiveZ4 = clampNumber(config.parallaxPerspectiveZ4, 40, 600, state.parallaxPerspectiveZ4);
-  if (config.parallaxPerspectiveZ5 !== undefined) state.parallaxPerspectiveZ5 = clampNumber(config.parallaxPerspectiveZ5, 10, 300, state.parallaxPerspectiveZ5);
-  if (config.parallaxPerspectiveGridX !== undefined) state.parallaxPerspectiveGridX = clampInt(config.parallaxPerspectiveGridX, 3, 50, state.parallaxPerspectiveGridX);
-  if (config.parallaxPerspectiveGridY !== undefined) state.parallaxPerspectiveGridY = clampInt(config.parallaxPerspectiveGridY, 3, 50, state.parallaxPerspectiveGridY);
-  if (config.parallaxPerspectiveGridZ !== undefined) state.parallaxPerspectiveGridZ = clampInt(config.parallaxPerspectiveGridZ, 2, 25, state.parallaxPerspectiveGridZ);
-  if (config.parallaxPerspectiveSpanX !== undefined) state.parallaxPerspectiveSpanX = clampNumber(config.parallaxPerspectiveSpanX, 0.2, 3.0, state.parallaxPerspectiveSpanX);
-  if (config.parallaxPerspectiveSpanY !== undefined) state.parallaxPerspectiveSpanY = clampNumber(config.parallaxPerspectiveSpanY, 0.2, 3.0, state.parallaxPerspectiveSpanY);
-  if (config.parallaxPerspectiveZNear !== undefined) state.parallaxPerspectiveZNear = clampNumber(config.parallaxPerspectiveZNear, 10, 1200, state.parallaxPerspectiveZNear);
-  if (config.parallaxPerspectiveZFar !== undefined) state.parallaxPerspectiveZFar = clampNumber(config.parallaxPerspectiveZFar, 50, 4000, state.parallaxPerspectiveZFar);
-  if (config.parallaxPerspectiveParallaxStrength !== undefined) state.parallaxPerspectiveParallaxStrength = clampNumber(config.parallaxPerspectiveParallaxStrength, 0, 2000, state.parallaxPerspectiveParallaxStrength);
-  if (config.parallaxPerspectiveRandomness !== undefined) state.parallaxPerspectiveRandomness = clampNumber(config.parallaxPerspectiveRandomness, 0, 1, state.parallaxPerspectiveRandomness);
-  if (config.parallaxPerspectiveDotSizeMul !== undefined) state.parallaxPerspectiveDotSizeMul = clampNumber(config.parallaxPerspectiveDotSizeMul, 0.1, 6.0, state.parallaxPerspectiveDotSizeMul);
 
   // Generic "apply like-for-like" config keys to state
   // This ensures panel-exported config round-trips cleanly across modes.
@@ -1473,28 +1371,6 @@ export function initState(config) {
   if (config.modalOverlayTransitionMs !== undefined) state.modalOverlayTransitionMs = config.modalOverlayTransitionMs;
   if (config.modalOverlayTransitionOutMs !== undefined) state.modalOverlayTransitionOutMs = config.modalOverlayTransitionOutMs;
   
-  // Orbit 3D mode (simplified energetic physics)
-  if (config.orbit3dMoonCount !== undefined) state.orbit3dMoonCount = clampNumber(config.orbit3dMoonCount, 1, 1000, state.orbit3dMoonCount);
-  if (config.orbit3dGravity !== undefined) state.orbit3dGravity = clampNumber(config.orbit3dGravity, 1000, 500000, state.orbit3dGravity);
-  if (config.orbit3dMoonMass !== undefined) state.orbit3dMoonMass = clampNumber(config.orbit3dMoonMass, 0.1, 100, state.orbit3dMoonMass);
-  if (config.orbit3dVelocityMult !== undefined) state.orbit3dVelocityMult = clampNumber(config.orbit3dVelocityMult, 10, 1000, state.orbit3dVelocityMult);
-  if (config.orbit3dTargetOrbit !== undefined) state.orbit3dTargetOrbit = clampNumber(config.orbit3dTargetOrbit, 1, 100, state.orbit3dTargetOrbit);
-  if (config.orbit3dMinOrbit !== undefined) state.orbit3dMinOrbit = clampNumber(config.orbit3dMinOrbit, 1, 100, state.orbit3dMinOrbit);
-  if (config.orbit3dMaxOrbit !== undefined) state.orbit3dMaxOrbit = clampNumber(config.orbit3dMaxOrbit, 1, 200, state.orbit3dMaxOrbit);
-  if (config.orbit3dDepthScale !== undefined) state.orbit3dDepthScale = clampNumber(config.orbit3dDepthScale, 0, 1.5, state.orbit3dDepthScale);
-  if (config.orbit3dDamping !== undefined) state.orbit3dDamping = clampNumber(config.orbit3dDamping, 0.01, 0.2, state.orbit3dDamping);
-
-  // Orbit 3D Mode 2 (tight swarm)
-  if (config.orbit3d2MoonCount !== undefined) state.orbit3d2MoonCount = clampNumber(config.orbit3d2MoonCount, 1, 300, state.orbit3d2MoonCount);
-  if (config.orbit3d2Gravity !== undefined) state.orbit3d2Gravity = clampNumber(config.orbit3d2Gravity, 1000, 500000, state.orbit3d2Gravity);
-  if (config.orbit3d2VelocityMult !== undefined) state.orbit3d2VelocityMult = clampNumber(config.orbit3d2VelocityMult, 0.1, 2.0, state.orbit3d2VelocityMult);
-  if (config.orbit3d2MinOrbit !== undefined) state.orbit3d2MinOrbit = clampNumber(config.orbit3d2MinOrbit, 1, 50, state.orbit3d2MinOrbit);
-  if (config.orbit3d2MaxOrbit !== undefined) state.orbit3d2MaxOrbit = clampNumber(config.orbit3d2MaxOrbit, 1, 50, state.orbit3d2MaxOrbit);
-  if (config.orbit3d2DepthScale !== undefined) state.orbit3d2DepthScale = clampNumber(config.orbit3d2DepthScale, 0, 0.95, state.orbit3d2DepthScale);
-  if (config.orbit3d2Damping !== undefined) state.orbit3d2Damping = clampNumber(config.orbit3d2Damping, 0, 1, state.orbit3d2Damping);
-  if (config.orbit3d2FollowSmoothing !== undefined) state.orbit3d2FollowSmoothing = clampNumber(config.orbit3d2FollowSmoothing, 1, 200, state.orbit3d2FollowSmoothing);
-  if (config.orbit3d2Softening !== undefined) state.orbit3d2Softening = clampNumber(config.orbit3d2Softening, 1, 100, state.orbit3d2Softening);
-
   // Ball sizes are recalculated in detectResponsiveScale (called above)
   // which applies both sizeScale and responsiveScale
 

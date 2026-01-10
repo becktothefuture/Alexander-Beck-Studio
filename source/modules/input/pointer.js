@@ -130,9 +130,7 @@ export function setupPointer() {
     }
 
     // Don't track simulation interactions if the user is over the panel UI.
-    // EXCEPTION: Orbit modes should always follow the cursor, even when UI overlays intercept pointer events.
-    const isOrbitMode = globals.currentMode === MODES.ORBIT_3D || globals.currentMode === MODES.ORBIT_3D_2;
-    if (!isOrbitMode && isEventOnUI(target)) return;
+    if (isEventOnUI(target)) return;
     
     // Don't track simulation interactions when gates/overlay are active
     if (isOverlayActive()) return;

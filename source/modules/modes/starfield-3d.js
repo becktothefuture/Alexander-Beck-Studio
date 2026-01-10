@@ -9,6 +9,7 @@ import { pickRandomColor } from '../visual/colors.js';
 // Module-level star array (not balls, just data)
 let _stars = [];
 let _lastTime = 0;
+const SPAN_MULTIPLIER = 4;
 
 function createStar(w, h, zNear, zFar, spanX, spanY) {
   return {
@@ -30,8 +31,10 @@ export function initializeStarfield3D() {
   const w = canvas.width;
   const h = canvas.height;
   const count = Math.max(50, Math.min(500, Math.round(g.starfieldCount ?? 200)));
-  const spanX = Math.max(0.5, Math.min(4.0, g.starfieldSpanX ?? 1.5));
-  const spanY = Math.max(0.5, Math.min(4.0, g.starfieldSpanY ?? 1.2));
+  const baseSpanX = Math.max(0.5, Math.min(4.0, g.starfieldSpanX ?? 1.5));
+  const baseSpanY = Math.max(0.5, Math.min(4.0, g.starfieldSpanY ?? 1.2));
+  const spanX = baseSpanX * SPAN_MULTIPLIER;
+  const spanY = baseSpanY * SPAN_MULTIPLIER;
   const zNear = Math.max(20, g.starfieldZNear ?? 100);
   const zFar = Math.max(zNear + 200, g.starfieldZFar ?? 2000);
 
@@ -60,25 +63,20 @@ export function renderStarfield3D(ctx) {
   const cy = h * 0.5;
 
   // Config
-  const spanX = Math.max(0.5, Math.min(4.0, g.starfieldSpanX ?? 1.5));
-  const spanY = Math.max(0.5, Math.min(4.0, g.starfieldSpanY ?? 1.2));
+  const baseSpanX = Math.max(0.5, Math.min(4.0, g.starfieldSpanX ?? 1.5));
+  const baseSpanY = Math.max(0.5, Math.min(4.0, g.starfieldSpanY ?? 1.2));
+  const spanX = baseSpanX * SPAN_MULTIPLIER;
+  const spanY = baseSpanY * SPAN_MULTIPLIER;
   const zNear = Math.max(20, g.starfieldZNear ?? 100);
   const zFar = Math.max(zNear + 200, g.starfieldZFar ?? 2000);
   const focalLength = Math.max(100, g.starfieldFocalLength ?? 500);
   const speed = Math.max(10, g.starfieldSpeed ?? 400);
-  const parallaxStrength = Math.max(0, g.starfieldParallaxStrength ?? 200);
-  const dotSizeMul = Math.max(0.2, Math.min(3.0, g.starfieldDotSizeMul ?? 1.0));
-  const baseR = (g.R_MED || 20) * dotSizeMul;
+  const dotSizeMul = Math.max(0.2, Math.min(4.0, g.starfieldDotSizeMul ?? 1.0));
+  const baseR = (g.R_MED || 20) * dotSizeMul * 2; // 2× base size requested
 
-  // Mouse controls vanishing point (from Context7 best practice)
-  let centerX = cx;
-  let centerY = cy;
-  if (g.mouseInCanvas) {
-    const mx = (g.mouseX - cx) / cx; // -1 to 1
-    const my = (g.mouseY - cy) / cy;
-    centerX = cx + mx * parallaxStrength;
-    centerY = cy + my * parallaxStrength;
-  }
+  // Vanishing point stays fixed at center (cursor ignored)
+  const centerX = cx;
+  const centerY = cy;
 
   // Update and draw each star
   for (let i = 0; i < _stars.length; i++) {
@@ -95,7 +93,7 @@ export function renderStarfield3D(ctx) {
       star.color = pickRandomColor();
     }
 
-    // Perspective projection with mouse-controlled center
+    // Perspective projection with fixed center (mouse ignored)
     const scale = focalLength / (focalLength + star.z);
     const x2d = centerX + star.x * scale;
     const y2d = centerY + star.y * scale;
