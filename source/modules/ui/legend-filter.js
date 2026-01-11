@@ -127,7 +127,7 @@ export function initLegendFilterSystem() {
       // Make clickable + keyboard-accessible
       item.setAttribute('role', 'button');
       item.setAttribute('tabindex', '0');
-      item.style.cursor = 'pointer';
+      // Cursor style is handled by CSS (.legend__item--interactive { cursor: none; })
 
       // Critical for CSS hover background and pointer routing
       item.classList.add('legend__item--interactive');
