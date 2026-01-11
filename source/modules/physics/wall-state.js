@@ -15,18 +15,9 @@ import { WALL_PRESETS } from '../core/constants.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS (kept small + fixed for perf)
 // ═══════════════════════════════════════════════════════════════════════════════
-const RING_SAMPLES = 384; // High density physics simulation for accuracy
-
-// ADAPTIVE DECIMATION (corner-preserving):
-// Instead of uniform decimation, we intelligently select samples:
-// - ALL corner samples kept (100% density) → perfectly smooth arcs
-// - Straight edges decimated 6:1 (16% density) → huge performance gain
-// Result: ~140-160 render samples (vs 384) with zero visual quality loss
-// 
-// This gives better performance AND better quality than uniform decimation:
-//   Uniform 128 samples: corners look edgy (not enough samples in curves)
-//   Adaptive ~150 samples: corners perfect (all corner samples preserved)
-const RENDER_DECIMATION = 3; // DEPRECATED - now using adaptive decimation in drawWalls()
+const RING_SAMPLES = 768; // Very high density for perfectly smooth corners
+// Uniform perimeter distribution ensures consistent sample spacing everywhere.
+// All 768 samples are used for rendering (no decimation) for maximum smoothness.
 const DEFAULT_STIFFNESS = 2200;
 const DEFAULT_DAMPING = 35;
 const DEFAULT_MAX_DEFORM = 45; // CSS px at DPR 1
@@ -301,22 +292,50 @@ class RubberRingWall {
     this._Lr = Lr;
     this._La = La;
     this._L = L;
-    // Offsets for new starting point: MIDDLE OF BOTTOM EDGE (least visible seam location)
-    // Segment order: bottom-middle -> bottom-right arc -> right -> top-right arc -> top -> top-left arc -> left -> bottom-left arc -> back to bottom-middle
-    // Start at middle of bottom edge, go clockwise
-    this._offBottom = 0;                  // Start: middle of bottom straight (going right -> left)
-    this._offBottomRight = Lt / 2;        // Start: bottom-right arc
-    this._offRight = Lt / 2 + La;         // Start: right straight
-    this._offTopRight = Lt / 2 + La + Lr; // Start: top-right arc
-    this._offTop = Lt / 2 + La + Lr + La; // Start: top straight
-    this._offTopLeft = Lt / 2 + La + Lr + La + Lt; // Start: top-left arc
-    this._offLeft = Lt / 2 + La + Lr + La + Lt + La; // Start: left straight
-    this._offBottomLeft = Lt / 2 + La + Lr + La + Lt + La + Lr; // Start: bottom-left arc
-    // Bottom straight continues from bottom-left arc back to start (wraps at Lt / 2 + La + Lr + La + Lt + La + Lr + La)
+    
+    // Offsets for legacy compatibility (some code may reference these)
+    this._offBottom = 0;
+    this._offBottomRight = Lt / 2;
+    this._offRight = Lt / 2 + La;
+    this._offTopRight = Lt / 2 + La + Lr;
+    this._offTop = Lt / 2 + La + Lr + La;
+    this._offTopLeft = Lt / 2 + La + Lr + La + Lt;
+    this._offLeft = Lt / 2 + La + Lr + La + Lt + La;
+    this._offBottomLeft = Lt / 2 + La + Lr + La + Lt + La + Lr;
 
-    // Precompute per-sample point + inward normal.
-    // Perimeter order is clockwise, starting at MIDDLE OF BOTTOM EDGE.
-    // This places the seam in the middle of the bottom edge (least visible location).
+    // ════════════════════════════════════════════════════════════════════════════
+    // UNIFORM PERIMETER DISTRIBUTION for perfectly smooth walls
+    // 
+    // Strategy: Distribute samples evenly along the perimeter by arc length.
+    // This ensures consistent spacing everywhere - no density discontinuities
+    // at corner/edge transitions that would create visible edges.
+    // 
+    // The key insight: visible "corners" were caused by sample density changes,
+    // not by the rounded rectangle shape itself. Uniform distribution eliminates this.
+    // ════════════════════════════════════════════════════════════════════════════
+    
+    // Calculate actual segment lengths for proportional distribution
+    const segLengths = [
+      Lt / 2,  // Segment 0: Bottom right half
+      La,      // Segment 1: Bottom-right arc
+      Lr,      // Segment 2: Right straight
+      La,      // Segment 3: Top-right arc
+      Lt,      // Segment 4: Top straight
+      La,      // Segment 5: Top-left arc
+      Lr,      // Segment 6: Left straight
+      La,      // Segment 7: Bottom-left arc
+    ];
+    
+    // Normalize to get segment weights proportional to LENGTH (uniform density)
+    const totalLength = segLengths.reduce((sum, l) => sum + l, 0);
+    const segmentWeights = segLengths.map(l => l / totalLength);
+    
+    // Compute cumulative weights for segment boundary detection
+    const cumulativeWeights = [0];
+    for (let i = 0; i < segmentWeights.length; i++) {
+      cumulativeWeights.push(cumulativeWeights[i] + segmentWeights[i]);
+    }
+
     const w0 = ww;
     const h0 = hh;
     const r0 = rr;
@@ -335,103 +354,100 @@ class RubberRingWall {
       };
     };
 
-    // Define segment boundaries (cumulative distances from start)
-    const seg0_end = Lt / 2;                    // Bottom right half
-    const seg1_end = seg0_end + La;            // Bottom-right arc
-    const seg2_end = seg1_end + Lr;            // Right straight
-    const seg3_end = seg2_end + La;            // Top-right arc
-    const seg4_end = seg3_end + Lt;            // Top straight
-    const seg5_end = seg4_end + La;            // Top-left arc
-    const seg6_end = seg5_end + Lr;            // Left straight
-    const seg7_end = seg6_end + La;            // Bottom-left arc
-    // seg8_end = seg7_end + Lt/2 = L (wraps to start)
-
     // Key positions
-    const middleX = r0 + (Lt / 2); // Middle of bottom edge = w0/2
+    const middleX = r0 + (Lt / 2);
     const rightCornerX = w0 - r0;
     const leftCornerX = r0;
 
     for (let i = 0; i < n; i++) {
-      // Start at MIDDLE OF BOTTOM EDGE, go clockwise
-      let s = ((i / n) * L + (Lt / 2)) % L;
+      // Use NORMALIZED parameter (0-1) instead of absolute perimeter distance
+      // This makes sample distribution independent of viewport size
+      const normalizedT = i / n;
+      
       let x = 0, y = 0, nx = 0, ny = 0;
       let isCorner = 0;
 
-      if (s < seg0_end) {
-        // Segment 0: Bottom right half (middle -> right corner)
-        x = middleX + s;
-        y = h0;
-        nx = 0;
-        ny = -1;
-      } else if (s < seg1_end) {
-        // Segment 1: Bottom-right arc (bottom edge -> right edge)
-        const t = (s - seg0_end) / La;
-        const pt = arcPoint(w0 - r0, h0 - r0, r0, Math.PI / 2, 0, t);
-        x = pt.x;
-        y = pt.y;
-        nx = pt.nx;
-        ny = pt.ny;
-        isCorner = 1;
-      } else if (s < seg2_end) {
-        // Segment 2: Right straight (bottom -> top)
-        // After bottom-right arc ends at (w0, h0-r0), go UP to (w0, r0)
-        const t = s - seg1_end;
-        x = w0;
-        y = (h0 - r0) - t;  // FIXED: y decreases from h0-r0 to r0
-        nx = -1;
-        ny = 0;
-      } else if (s < seg3_end) {
-        // Segment 3: Top-right arc (right edge -> top edge)
-        const t = (s - seg2_end) / La;
-        const pt = arcPoint(w0 - r0, r0, r0, 0, -Math.PI / 2, t);
-        x = pt.x;
-        y = pt.y;
-        nx = pt.nx;
-        ny = pt.ny;
-        isCorner = 1;
-      } else if (s < seg4_end) {
-        // Segment 4: Top straight (right -> left)
-        const t = s - seg3_end;
-        x = rightCornerX - t;
-        y = 0;
-        nx = 0;
-        ny = 1;
-      } else if (s < seg5_end) {
-        // Segment 5: Top-left arc (top edge -> left edge)
-        // Start at (r0, 0) = top edge left point (angle = -π/2 = 3π/2)
-        // End at (0, r0) = left edge top point (angle = π)
-        // Going clockwise in screen coords: angle decreases from 3π/2 to π
-        const t = (s - seg4_end) / La;
-        const pt = arcPoint(r0, r0, r0, 3 * Math.PI / 2, Math.PI, t);  // FIXED: swapped angles
-        x = pt.x;
-        y = pt.y;
-        nx = pt.nx;
-        ny = pt.ny;
-        isCorner = 1;
-      } else if (s < seg6_end) {
-        // Segment 6: Left straight (top -> bottom)
-        // After top-left arc ends at (0, r0), go DOWN to (0, h0-r0)
-        const t = s - seg5_end;
-        x = 0;
-        y = r0 + t;  // FIXED: y increases from r0 to h0-r0
-        nx = 1;
-        ny = 0;
-      } else if (s < seg7_end) {
-        // Segment 7: Bottom-left arc (left edge -> bottom edge)
-        const t = (s - seg6_end) / La;
-        const pt = arcPoint(r0, h0 - r0, r0, Math.PI, Math.PI / 2, t);
-        x = pt.x;
-        y = pt.y;
-        nx = pt.nx;
-        ny = pt.ny;
-        isCorner = 1;
-      } else {
-        // Segment 8: Bottom left half (left corner -> middle, wraps to start)
-        const t = s - seg7_end;
-        x = leftCornerX + t;
-        y = h0;
-        nx = 0;
-        ny = -1;
+      // Find which segment this sample belongs to using normalized weights
+      let segmentIndex = 0;
+      for (let j = 0; j < segmentWeights.length; j++) {
+        if (normalizedT >= cumulativeWeights[j] && normalizedT < cumulativeWeights[j + 1]) {
+          segmentIndex = j;
+          break;
+        }
+      }
+
+      // Handle edge case: last sample (normalizedT = 1.0 or very close)
+      if (normalizedT >= cumulativeWeights[segmentWeights.length]) {
+        segmentIndex = segmentWeights.length - 1;
+      }
+
+      // Normalized position within the segment (0-1)
+      const segmentT = (normalizedT - cumulativeWeights[segmentIndex]) / segmentWeights[segmentIndex];
+
+      switch (segmentIndex) {
+        case 0: // Bottom right half (middle -> right corner)
+          x = middleX + segmentT * (Lt / 2);
+          y = h0;
+          nx = 0;
+          ny = -1;
+          break;
+        
+        case 1: // Bottom-right arc (bottom edge -> right edge)
+          const pt1 = arcPoint(w0 - r0, h0 - r0, r0, Math.PI / 2, 0, segmentT);
+          x = pt1.x;
+          y = pt1.y;
+          nx = pt1.nx;
+          ny = pt1.ny;
+          isCorner = 1;
+          break;
+        
+        case 2: // Right straight (bottom -> top)
+          x = w0;
+          y = (h0 - r0) - segmentT * Lr;
+          nx = -1;
+          ny = 0;
+          break;
+        
+        case 3: // Top-right arc (right edge -> top edge)
+          const pt3 = arcPoint(w0 - r0, r0, r0, 0, -Math.PI / 2, segmentT);
+          x = pt3.x;
+          y = pt3.y;
+          nx = pt3.nx;
+          ny = pt3.ny;
+          isCorner = 1;
+          break;
+        
+        case 4: // Top straight (right -> left)
+          x = rightCornerX - segmentT * Lt;
+          y = 0;
+          nx = 0;
+          ny = 1;
+          break;
+        
+        case 5: // Top-left arc (top edge -> left edge)
+          const pt5 = arcPoint(r0, r0, r0, 3 * Math.PI / 2, Math.PI, segmentT);
+          x = pt5.x;
+          y = pt5.y;
+          nx = pt5.nx;
+          ny = pt5.ny;
+          isCorner = 1;
+          break;
+        
+        case 6: // Left straight (top -> bottom)
+          x = 0;
+          y = r0 + segmentT * Lr;
+          nx = 1;
+          ny = 0;
+          break;
+        
+        case 7: // Bottom-left arc (left edge -> bottom edge)
+          const pt7 = arcPoint(r0, h0 - r0, r0, Math.PI, Math.PI / 2, segmentT);
+          x = pt7.x;
+          y = pt7.y;
+          nx = pt7.nx;
+          ny = pt7.ny;
+          isCorner = 1;
+          break;
       }
 
       this.baseX[i] = x;
@@ -796,10 +812,6 @@ class RubberRingWall {
     const maxDeform = Math.max(0, g.wallWobbleMaxDeform ?? DEFAULT_MAX_DEFORM);
     const maxVelClamp = Math.max(0, Number(g.wallWobbleMaxVel ?? 800) || 0); // deform-vel units
 
-    // Corner "stickiness" now acts as corner stiffness boost (continuous, no hard pins).
-    const cornerClamp = Math.max(0, Math.min(1, Number(g.wallWobbleCornerClamp) || 0));
-    const cornerStiffMul = 1 + 5.0 * cornerClamp;
-
     // Neighbor coupling/tension: makes impacts behave like a single ring.
     const tension = stiffnessBase * DEFAULT_TENSION_MUL;
 
@@ -820,31 +832,14 @@ class RubberRingWall {
       const def = this.deformations[i];
       const vel = this.velocities[i];
 
-      // Local stiffness boost on corner samples (keeps the classic "stable corners" feel).
-      // For straight edges: much stronger base stiffness to prevent sagging and maintain robust rounded rectangle.
-      const isCorner = this.cornerMask[i] ? 1 : 0;
-      // Identify top edge specifically for extra stiffness (including samples near top corners)
-      // Use a more lenient threshold to catch all top edge samples, including near corners
-      // Check both by Y position and normal direction to catch edge cases
-      const isTopEdge = !isCorner && this.baseY[i] < 1.0 && this.normY[i] > 0.7;
-      // Also check if sample is near top corners (within corner radius) - treat them like top edge
-      // Be more lenient for top-left corner area
-      const nearTopLeftCorner = !isCorner && this.baseX[i] < this._r + 2.0 && this.baseY[i] < this._r + 2.0;
-      const nearTopRightCorner = !isCorner && this.baseX[i] > this._w - this._r - 1.0 && this.baseY[i] < this._r + 1.0;
-      const isNearTopCorner = nearTopLeftCorner || nearTopRightCorner;
-      // Check if this IS a top corner sample (actual corner arc)
-      // Use position-based detection for reliability - be more lenient for top-left corner
-      // Top-left corner: near (r, r) with Y < r+3 (more lenient since it's on arc)
-      // Top-right corner: near (w-r, r) with Y < r+2
-      const isTopLeftCorner = isCorner && this.baseX[i] < this._r + 3.0 && this.baseY[i] < this._r + 3.0;
-      const isTopRightCorner = isCorner && this.baseX[i] > this._w - this._r - 2.0 && this.baseY[i] < this._r + 2.0;
-      const isTopCorner = isTopLeftCorner || isTopRightCorner;
-      // Top corners get extra stiffness boost (on top of corner multiplier) to match top edge robustness
-      // Top-left corner gets even more boost since it's at wrap-around point
-      const topCornerStiffBoost = isTopLeftCorner ? 3.0 : (isTopRightCorner ? 2.0 : 1.0);
-      // Top edge (including near corners) gets 4x stiffness, other straight edges get 2x, corners get corner multiplier
-      const straightEdgeStiffMul = isCorner ? topCornerStiffBoost : ((isTopEdge || isNearTopCorner) ? 4.0 : 2.0);
-      const kLocal = stiffnessBase * (isCorner ? (cornerStiffMul * topCornerStiffBoost) : straightEdgeStiffMul);
+      // UNIFIED STIFFNESS: Identical behavior for corners and edges
+      // This eliminates ALL visible discontinuities at corner/edge boundaries
+      // The entire wall behaves as a single continuous elastic membrane
+      const isTopEdge = this.baseY[i] < 1.0 && this.normY[i] > 0.7;
+      
+      // Single uniform stiffness for the entire wall ring
+      // No corner vs edge distinction = no visible spikes or discontinuities
+      const kLocal = stiffnessBase * (isTopEdge ? 1.9 : 1.7);
 
       // Progressive damping: higher at low amplitude to kill micro-jitter.
       const defAbs = Math.abs(def);
@@ -891,26 +886,14 @@ class RubberRingWall {
       if (clampedHigh && vNext > 0) vNext = 0;
 
       // Snap-to-zero thresholds (scaled by pressure + settling).
-      // Much more aggressive snap-to-zero for straight edges, especially top edge.
-      const isStraightEdge = !this.cornerMask[i];
-      // Recompute isTopEdge here with same logic as above for consistency
-      const isTopEdgeSnap = !isCorner && this.baseY[i] < 1.0 && this.normY[i] > 0.7;
-      // Also check if sample is near top corners - treat them like top edge
-      // Be more lenient for top-left corner area
-      const nearTopLeftCornerSnap = !isCorner && this.baseX[i] < this._r + 2.0 && this.baseY[i] < this._r + 2.0;
-      const nearTopRightCornerSnap = !isCorner && this.baseX[i] > this._w - this._r - 1.0 && this.baseY[i] < this._r + 1.0;
-      const isNearTopCornerSnap = nearTopLeftCornerSnap || nearTopRightCornerSnap;
-      // Check if this IS a top corner sample (actual corner arc)
-      // Use position-based detection for reliability - be more lenient for top-left corner
-      const isTopLeftCornerSnap = isCorner && this.baseX[i] < this._r + 3.0 && this.baseY[i] < this._r + 3.0;
-      const isTopRightCornerSnap = isCorner && this.baseX[i] > this._w - this._r - 2.0 && this.baseY[i] < this._r + 2.0;
-      const isTopCornerSnap = isTopLeftCornerSnap || isTopRightCornerSnap;
-      // Top edge and top corners (including nearby samples) get 5x boost, other straight edges get 3x, other corners get 1x
-      const straightEdgeSnapBoost = (isTopEdgeSnap || isNearTopCornerSnap || isTopCornerSnap) ? 5.0 : (isStraightEdge ? 3.0 : 1.0);
+      // UNIFIED snap behavior for entire wall - no corner/edge distinction
+      const isTopEdgeSnap = this.baseY[i] < 1.0 && this.normY[i] > 0.7;
+      // Top edge gets boosted snap-to-zero, all other samples treated uniformly
+      const snapBoost = isTopEdgeSnap ? 4.0 : 2.0;
       const baseDeformThresh = pressure > 0.5 ? 0.3 : (pressure > 0.1 ? 0.8 : 2.0);
       const baseVelThresh = pressure > 0.5 ? 0.5 : (pressure > 0.1 ? 3.0 : 10.0);
-      const deformThresh = baseDeformThresh * snapScale * straightEdgeSnapBoost;
-      const velThresh = baseVelThresh * snapScale * straightEdgeSnapBoost;
+      const deformThresh = baseDeformThresh * snapScale * snapBoost;
+      const velThresh = baseVelThresh * snapScale * snapBoost;
       if (Math.abs(dNext) < deformThresh && velAbs < velThresh) {
         this.deformations[i] = 0;
         this.velocities[i] = 0;
@@ -938,39 +921,28 @@ class RubberRingWall {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ADAPTIVE DECIMATION - Corner-preserving sample selection
+// RENDER INDEX GENERATION - All samples for maximum smoothness
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Create adaptive render sample indices: keep all corner samples for smoothness,
- * heavily decimate straight edges for performance.
+ * Create render sample indices for smooth wall rendering.
  * 
- * Result: ~140-160 samples (vs 384 original) with perfect corner quality
+ * NO DECIMATION: Use all samples for perfectly smooth corners.
+ * With 768 samples and uniform perimeter distribution, corners are buttery smooth.
  * 
- * @param {RubberRingWall} physicsRing - High-res physics ring with cornerMask
- * @returns {number[]} Selected sample indices for rendering
+ * @param {RubberRingWall} physicsRing - High-res physics ring
+ * @returns {number[]} All sample indices for rendering (no decimation)
  */
 function createAdaptiveRenderIndices(physicsRing) {
   const n = physicsRing.n;
-  if (n === 0 || !physicsRing.cornerMask) return [];
+  if (n === 0) return [];
   
   const selected = [];
   
-  // Strategy: Keep ALL corner samples (smooth arcs), decimate straight edges 6:1
-  // Corners need high density to look curved, straight edges don't
+  // NO DECIMATION: Use all samples for maximum smoothness
+  // 768 samples with uniform perimeter distribution = perfectly smooth corners
   for (let i = 0; i < n; i++) {
-    const isCorner = physicsRing.cornerMask[i] > 0.5;
-    
-    if (isCorner) {
-      // ALWAYS include corner samples (no decimation on curves)
-      selected.push(i);
-    } else {
-      // On straight edges, only keep every 6th sample (dramatic reduction)
-      // Safe because straight lines don't need high sample density
-      if (i % 6 === 0) {
-        selected.push(i);
-      }
-    }
+    selected.push(i);
   }
   
   return selected;
@@ -981,8 +953,8 @@ function createAdaptiveRenderIndices(physicsRing) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export const wallState = {
   // Two-ring strategy:
-  // - ringPhysics: high sample count for accurate integration/impulses (384)
-  // - ringRender: same resolution (adaptive decimation happens in drawWalls)
+  // - ringPhysics: high sample count for accurate integration/impulses (768)
+  // - ringRender: same resolution (all samples used for rendering)
   ringPhysics: new RubberRingWall(RING_SAMPLES),
   ringRender: new RubberRingWall(RING_SAMPLES),
   _impactsThisStep: 0,
@@ -994,7 +966,7 @@ export const wallState = {
   _interpolationAlpha: 0, // 0-1 for lerp between states
   _prevDeformations: null, // Previous state for interpolation
 
-  // Adaptive decimation cache (perf): indices selected for rendering
+  // Render index cache (perf): all sample indices for rendering
   _adaptiveIndices: null, // Computed once per geometry change
   
   // Render cache (perf): avoid remapping+filtering every render frame.
@@ -1145,14 +1117,30 @@ export const wallState = {
             tmp[i] = (1 - t) * srcPhys[i0] + t * srcPhys[i1];
           }
 
-          // 5-tap low-pass around the ring (wrap-around).
-          // Kernel: [1, 4, 6, 4, 1] / 16
+          // TWO-PASS 5-tap low-pass around the ring (wrap-around) for ultra-smooth corners.
+          // Each pass uses Kernel: [1, 4, 6, 4, 1] / 16
+          // Two passes create a 9-tap effective filter that eliminates all visible spikes
+          
+          // Pass 1: tmp -> curr
           for (let i = 0; i < nR; i++) {
             const m2 = (i - 2 + nR) % nR;
             const m1 = (i - 1 + nR) % nR;
             const p1 = (i + 1) % nR;
             const p2 = (i + 2) % nR;
             curr[i] = (tmp[m2] + 4 * tmp[m1] + 6 * tmp[i] + 4 * tmp[p1] + tmp[p2]) * (1 / 16);
+          }
+          
+          // Pass 2: curr -> tmp -> curr (reusing tmp as scratch)
+          for (let i = 0; i < nR; i++) {
+            const m2 = (i - 2 + nR) % nR;
+            const m1 = (i - 1 + nR) % nR;
+            const p1 = (i + 1) % nR;
+            const p2 = (i + 2) % nR;
+            tmp[i] = (curr[m2] + 4 * curr[m1] + 6 * curr[i] + 4 * curr[p1] + curr[p2]) * (1 / 16);
+          }
+          // Copy final result back to curr
+          for (let i = 0; i < nR; i++) {
+            curr[i] = tmp[i];
           }
         }
       } catch (e) {}
@@ -1181,7 +1169,7 @@ export const wallState = {
     this._prevDeformations = null;
     this._renderSmPrev = null;
     this._renderSmCurr = null;
-    this._adaptiveIndices = null; // Clear adaptive decimation cache
+    this._adaptiveIndices = null; // Clear render index cache
     this._lastGeometryN = 0;
     this._renderMapTmp = null;
   },
@@ -1245,11 +1233,9 @@ export function registerWallImpact(wall, normalizedPos, intensity) {
   const innerH = Math.max(1, canvas.height - insetPx * 2);
   const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
   wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
-  // Preserve the "stable corners" look from the previous edge-based system:
-  // impacts are clamped away from corners (parameterized by wallWobbleCornerClamp).
-  const clamp = Math.max(0, Math.min(0.45, Number(g.wallWobbleCornerClamp) || 0));
-  const pos = Math.max(clamp, Math.min(1 - clamp, Number(normalizedPos) || 0));
-  const t = wallState.ringPhysics.tFromWall(wall, pos);
+  // NO CLAMPING: Impacts reach corners freely for fully continuous deformation
+  // The wall behaves as a unified elastic surface without edge/corner distinction
+  const t = wallState.ringPhysics.tFromWall(wall, normalizedPos);
 
   // Cap work in pathological cases (tons of impacts in a single physics step).
   if (wallState._impactsThisStep < MAX_RING_IMPACTS_PER_PHYSICS_STEP) {
@@ -1467,7 +1453,7 @@ export function drawWalls(ctx, w, h) {
         sm[i] = pv + (currSm[i] - pv) * alpha;
       }
     } else {
-      // Fallback: map + smooth if cache isn't ready.
+      // Fallback: map + two-pass smooth if cache isn't ready.
       const srcPhys = ringPhysics.deformations;
       const src = ringRender.deformations;
       for (let i = 0; i < n; i++) {
@@ -1477,12 +1463,24 @@ export function drawWalls(ctx, w, h) {
         const i1 = (i0 + 1) % nPhys;
         src[i] = (1 - t) * srcPhys[i0] + t * srcPhys[i1];
       }
+      // Pass 1: src -> sm
       for (let i = 0; i < n; i++) {
         const m2 = (i - 2 + n) % n;
         const m1 = (i - 1 + n) % n;
         const p1 = (i + 1) % n;
         const p2 = (i + 2) % n;
         sm[i] = (src[m2] + 4 * src[m1] + 6 * src[i] + 4 * src[p1] + src[p2]) * (1 / 16);
+      }
+      // Pass 2: sm -> src -> sm (ultra-smooth)
+      for (let i = 0; i < n; i++) {
+        const m2 = (i - 2 + n) % n;
+        const m1 = (i - 1 + n) % n;
+        const p1 = (i + 1) % n;
+        const p2 = (i + 2) % n;
+        src[i] = (sm[m2] + 4 * sm[m1] + 6 * sm[i] + 4 * sm[p1] + sm[p2]) * (1 / 16);
+      }
+      for (let i = 0; i < n; i++) {
+        sm[i] = src[i];
       }
     }
 
@@ -1510,13 +1508,12 @@ export function drawWalls(ctx, w, h) {
     const pointY = (idx) => (baseY[idx] + normY[idx] * dispCanvasPx(idx)) + insetPx;
 
     // ════════════════════════════════════════════════════════════════════════════
-    // ADAPTIVE PATH with corner-preserving decimation
-    // - HIGH density at corners (all samples) for smooth arcs
-    // - LOW density on straight edges (every 6th sample) for performance
-    // - Result: ~140-160 lineTo() calls (vs 384) with perfect corner quality
+    // UNIFORM RENDERING: All samples used for maximum smoothness
+    // - 768 samples with uniform perimeter distribution
+    // - No decimation = perfectly smooth corners everywhere
     // ════════════════════════════════════════════════════════════════════════════
     
-    // Build adaptive index cache (only when geometry changes)
+    // Build render index cache (only when geometry changes)
     if (!wallState._adaptiveIndices || wallState._lastGeometryN !== n) {
       wallState._adaptiveIndices = createAdaptiveRenderIndices(ringRender);
       wallState._lastGeometryN = n;

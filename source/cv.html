@@ -221,8 +221,7 @@
       <!-- CV Scrolling Content -->
       <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
       <div class="cv-scroll-container" style="opacity:0; visibility:hidden">
-        <!-- Gradient fade overlays - inside scroll container -->
-        <div class="cv-gradient-overlay cv-gradient-overlay--top" aria-hidden="true"></div>
+        <!-- Gradient overlays removed - cleaner look without fade -->
         <article class="cv-content">
           <!-- Left Area: Fixed/Pinned (Photo + Intro) -->
           <aside class="cv-left" aria-label="CV introduction">
@@ -351,8 +350,10 @@
           <div class="ui-top-left">
             <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition aria-label="Back to home">
               <i class="ti ti-arrow-left" aria-hidden="true"></i>
-              </a>
-            </div>
+            </a>
+            <a id="portfolio-modal-trigger" class="portfolio-cv-link" href="#" aria-label="Portfolio">Portfolio</a>
+            <a id="contact-email" class="portfolio-cv-link" href="#" aria-label="Contact">Contact</a>
+          </div>
             <div class="ui-top-right">
               <div id="sound-toggle-slot"></div>
             </div>
@@ -403,7 +404,33 @@
     </div>
   </div>
 
-  <div id="modal-overlay" class="modal-overlay" aria-hidden="true"></div>
+  <!-- Modal System: Two-layer architecture for clean compositing -->
+  <!-- Layer 1: Blur Only - No children, isolated backdrop-filter (z:19998) -->
+  <div id="modal-blur-layer" class="modal-blur-layer" aria-hidden="true"></div>
+  
+  <!-- Layer 2: Content Only - Holds modals, no blur (z:19999) -->
+  <div id="modal-content-layer" class="modal-content-layer" aria-hidden="true">
+    <div id="modal-modal-host" class="modal-modal-host"></div>
+  </div>
+
+  <!-- Contact Modal -->
+  <div id="contact-modal" class="contact-modal hidden" aria-hidden="true">
+    <div id="contact-modal-label" class="modal-label"></div>
+    <div id="contact-modal-inputs" class="contact-modal-inputs"></div>
+  </div>
+
+  <!-- Portfolio Modal -->
+  <div id="portfolio-modal" class="portfolio-modal hidden" aria-hidden="true">
+    <div id="portfolio-modal-label" class="modal-label"></div>
+    <div id="portfolio-modal-inputs" class="portfolio-modal-inputs">
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="Digit 1" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="Digit 2" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="Digit 3" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Digit 4" autocomplete="off" />
+    </div>
+  </div>
+
+  <!-- Page Flash Overlay -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
   <!-- ABS_BUILD_MARKER:JS_DEV_START -->

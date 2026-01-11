@@ -957,7 +957,7 @@ button.abs-meta-btn,
   position: relative;
   overflow: visible;
   isolation: isolate;
-  padding: var(--abs-space-xs) var(--abs-space-sm);
+  padding: var(--abs-space-2xs) var(--abs-space-sm);
   color: inherit;
   font: inherit;
   text-decoration: none;
@@ -1689,8 +1689,9 @@ a:active {
 
 /* Link hover: hide the cursor so the hover dot reads as the cursor "hopping" under the link. */
 body.abs-link-hovering #custom-cursor {
+  display: none !important;
   opacity: 0;
-  transition: opacity 90ms linear;
+  transition: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1875,6 +1876,19 @@ body.dark-mode.detail-open .footer_link:hover {
   color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-white), 1) 14%);
 }
 
+/* Dark mode: active text links use cursor color blend */
+body.dark-mode.portfolio-page .portfolio-cv-link:hover,
+body.dark-mode.portfolio-page #header-cv-link:hover,
+body.dark-mode.detail-open .portfolio-cv-link:hover,
+body.dark-mode.detail-open #header-cv-link:hover,
+body.dark-mode.cv-page .portfolio-cv-link:hover,
+body.dark-mode.cv-page #contact-email:hover,
+body.dark-mode.cv-page #portfolio-modal-trigger:hover {
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
+  color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-white), 1) 60%);
+  opacity: 1;
+}
+
 /* Light mode: active text links use cursor color blend */
 body:not(.dark-mode).portfolio-page .footer_link:hover,
 body:not(.dark-mode).portfolio-page .portfolio-cv-link:hover,
@@ -1882,7 +1896,10 @@ body:not(.dark-mode).portfolio-page #header-cv-link:hover,
 body:not(.dark-mode).portfolio-page .decorative-script p a:hover,
 body:not(.dark-mode).detail-open .footer_link:hover,
 body:not(.dark-mode).detail-open .portfolio-cv-link:hover,
-body:not(.dark-mode).detail-open #header-cv-link:hover {
+body:not(.dark-mode).detail-open #header-cv-link:hover,
+body:not(.dark-mode).cv-page .portfolio-cv-link:hover,
+body:not(.dark-mode).cv-page #contact-email:hover,
+body:not(.dark-mode).cv-page #portfolio-modal-trigger:hover {
   color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-black), 1) 60%);
   background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
   opacity: 1;
@@ -2521,6 +2538,11 @@ body.dark-mode .portfolio-digit:focus {
               transform 0.4s var(--ease-hesitant);
 }
 
+.cv-scroll-container.fade-out-up {
+  transition: opacity 0.4s var(--ease-hesitant),
+              transform 0.4s var(--ease-hesitant);
+}
+
 .fade-out-up {
   opacity: 0;
   transform: translateY(-30px) scale(0.95);
@@ -2917,6 +2939,19 @@ body.cv-page button {
   cursor: pointer;
 }
 
+/* Rapid cursor hiding on link hover for CV page */
+body.cv-page.abs-link-hovering a,
+body.cv-page.abs-link-hovering button,
+body.cv-page.abs-link-hovering {
+  cursor: none !important;
+}
+
+body.cv-page.abs-link-hovering #custom-cursor {
+  display: none !important;
+  opacity: 0;
+  transition: none;
+}
+
 /* CV Page Paragraphs - Use muted text color */
 body.cv-page .cv-right p {
   color: var(--text-muted);
@@ -2929,15 +2964,16 @@ body.cv-page .ui-top-left {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: var(--gap-lg);
+  gap: 0;
   width: auto; /* Override base width: 100% to shrink to fit content */
   flex-shrink: 0; /* Don't shrink when space is tight */
 }
 
 /* Portfolio page: reset margins and padding on portfolio-cv-link to match meta button padding */
-body.portfolio-page .ui-top-left .portfolio-cv-link {
+body.portfolio-page .ui-top-left .portfolio-cv-link,
+body.portfolio-page .ui-top-left #contact-email {
   margin: 0;
-  padding: var(--abs-space-xs) var(--abs-space-sm); /* Match .abs-meta-btn padding */
+  padding: var(--abs-space-2xs) var(--abs-space-sm); /* Reduced vertical padding to next smallest token */
   block-size: auto;
   height: auto;
   min-height: var(--ui-icon-frame-size); /* Match meta button min-height for alignment */
@@ -2945,10 +2981,17 @@ body.portfolio-page .ui-top-left .portfolio-cv-link {
   align-items: center;
 }
 
-/* CV page: reset negative margins on nav links to align tightly with back button */
+/* CV page: reset margins and padding on nav links to align tightly */
+body.cv-page .ui-top-left .portfolio-cv-link,
 body.cv-page .ui-top-left #contact-email,
 body.cv-page .ui-top-left #portfolio-modal-trigger {
   margin: 0;
+  padding: var(--abs-space-2xs) var(--abs-space-sm); /* Reduced vertical padding to next smallest token */
+  block-size: auto;
+  height: auto;
+  min-height: var(--ui-icon-frame-size);
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Wall-only canvas: must NOT capture wheel/touch, or it will block scrolling. */
@@ -3018,8 +3061,8 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   align-items: stretch;
   box-sizing: border-box;
   /* Horizontal padding matches .cv-right for visual balance */
-  padding-left: max(5vw, 2rem);
-  padding-right: max(5vw, 2rem);
+  padding-left: max(8vw, 3.5rem);
+  padding-right: max(8vw, 3.5rem);
 }
 
 .cv-left__inner {
@@ -3132,8 +3175,8 @@ body.dark-mode .cv-photo {
   scroll-behavior: smooth;
   border: none;
   /* Horizontal padding matches .cv-left for visual balance */
-  padding-left: max(5vw, 2rem);
-  padding-right: max(5vw, 2rem);
+  padding-left: max(8vw, 3.5rem);
+  padding-right: max(8vw, 3.5rem);
   outline: none;
   box-shadow: none;
   margin-top: 0;

@@ -64,17 +64,20 @@
 
   /* --- Typography --- */
   --text-client-size: 1.1vw;
-  --text-title-size: 2.5vw;
+  --text-title-size: 4.2vw;
   --text-tags-size: 0.9vw;
   --text-client-min: 12px;
   --text-client-max: 18px;
-  --text-title-min: 22px;
-  --text-title-max: 56px;
+  --text-title-min: 36px;
+  --text-title-max: 72px;
   --text-tags-min: 14px;
   --text-tags-max: 18px;
   --content-offset: 8vh;
   --meta-lift: 0vh;
-  --meta-padding: 0vmin;
+  --meta-padding-y: clamp(60px, 8vh, 100px);
+  --meta-gap: clamp(20px, 2.7vmin, 24px);
+  --meta-title-max-width: 25ch;
+  --meta-summary-max-width: 45ch;
   --text-align: center;
   --meta-transition-speed: 360ms;
 
@@ -134,18 +137,13 @@ body.portfolio-page.dark-mode {
   --cursor-color-card-hover: rgba(var(--abs-rgb-white), 0.35);
 }
 
-/* Portfolio-specific logo colors (may differ from index) */
+/* Portfolio-specific: hide logo completely (not visible on this page) */
 body.portfolio-page #brand-logo {
-  color: var(--text-primary);
-  filter: blur(var(--portfolio-logo-blur, 0px));
-  transition: 
-    transform var(--abs-scene-impact-dur, 100ms) var(--abs-scene-impact-ease, var(--ease-gate)),
-    opacity var(--gate-depth-out-duration, 250ms) var(--ease-gate),
-    filter var(--gate-depth-out-duration, 250ms) var(--ease-gate);
-}
-
-body.portfolio-page.dark-mode #brand-logo {
-  color: var(--text-primary);
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  /* Logo is not part of portfolio design - hide completely to prevent
+     entrance animation from wasting time animating an invisible element */
 }
 
 /* Edge labels: slightly different opacity for portfolio */
@@ -194,8 +192,17 @@ body.portfolio-page .edge-copyright__text {
   height: 100%;
   width: 100%;
   z-index: 5;
+  /* Initial visibility controlled by inline style (opacity:0; visibility:hidden) 
+     cleared by entrance-animation.js */
+  /* Modal dimming: fade carousel when modals are active */
   opacity: 1;
-  visibility: visible;
+  transition: opacity var(--modal-depth-duration, 850ms) var(--ease-gate);
+}
+
+/* Dim portfolio stage when any modal is active */
+html.modal-active .portfolio-stage,
+#abs-scene.gate-depth-active .portfolio-stage {
+  opacity: 0.2;
 }
 
 .portfolio-viewport {
@@ -412,38 +419,53 @@ body.portfolio-page.dark-mode .slide-image-container {
    ═══════════════════════════════════════════════════════════════════════════════ */
 .portfolio-meta {
   position: absolute;
-  left: 50%;
-  top: auto;
+  left: 0;
+  right: 0;
   bottom: 80px;
   --meta-shift: 0vh;
-  transform: translateX(-50%) translateY(var(--meta-shift));
+  /* Center using margin instead of transform to avoid entrance animation conflicts */
   width: 100%;
-  max-width: clamp(280px, 82vw, 720px);
+  max-width: clamp(280px, 82vw, 600px);
+  margin: 0 auto;
+  transform: translateY(var(--meta-shift));
   text-align: var(--text-align);
-  opacity: 1;
+  /* Initial visibility controlled by inline style (opacity:0; visibility:hidden) 
+     cleared by entrance-animation.js. Opacity also used for slide transitions. */
   filter: blur(0);
-  /* Smooth layout updates on resize */
-  transition: 
-    left var(--duration-resize) var(--ease-organic),
-    bottom var(--duration-resize) var(--ease-organic),
-    max-width var(--duration-resize) var(--ease-organic),
-    opacity var(--meta-transition-speed) var(--transition-ease),
-    transform var(--meta-transition-speed) var(--transition-ease),
-    filter var(--meta-transition-speed) var(--transition-ease);
+  /* Disable all transitions during entrance to prevent drift */
+  transition: none;
   pointer-events: none;
   z-index: 15;
 }
 
-.portfolio-meta__inner {
-  display: grid;
-  gap: 12px;
-  padding: var(--meta-padding);
+/* Enable smooth layout transitions only after entrance completes */
+html.entrance-complete .portfolio-meta {
+  transition: 
+    bottom var(--duration-resize) var(--ease-organic),
+    max-width var(--duration-resize) var(--ease-organic),
+    opacity var(--meta-transition-speed) var(--transition-ease),
+    filter var(--meta-transition-speed) var(--transition-ease);
 }
 
+.portfolio-meta__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--meta-gap);
+  padding-top: var(--meta-padding-y);
+  padding-bottom: var(--meta-padding-y);
+  justify-content: center;
+  align-items: center;
+}
+
+/* Only transition transform during slide switching (not during entrance) */
 .portfolio-meta.is-switching {
   opacity: 0;
   --meta-shift: 2vh;
   filter: blur(1.2vmin);
+  transition: 
+    opacity var(--meta-transition-speed) var(--transition-ease),
+    transform var(--meta-transition-speed) var(--transition-ease),
+    filter var(--meta-transition-speed) var(--transition-ease);
 }
 
 .meta-client {
@@ -458,23 +480,27 @@ body.portfolio-page.dark-mode .slide-image-container {
 
 .meta-title {
   display: block;
+  width: 100%;
   font-family: 'Geist', sans-serif;
   font-weight: 400;
-  font-size: var(--text-xl);
+  font-size: clamp(var(--text-title-min), var(--text-title-size), var(--text-title-max));
   line-height: var(--line-height-title);
   letter-spacing: var(--letter-spacing-tight);
   text-transform: none;
   color: var(--text-primary);
+  max-width: var(--meta-title-max-width);
 }
 
 .meta-summary {
   display: block;
+  width: 100%;
   font-family: 'Geist', sans-serif;
   font-size: clamp(var(--text-tags-min), var(--text-tags-size), var(--text-tags-max));
   line-height: var(--line-height-summary);
   letter-spacing: var(--letter-spacing-normal);
   opacity: 0.9;
-  color: var(--text-primary);
+  color: var(--text-muted);
+  max-width: var(--meta-summary-max-width);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -513,65 +539,33 @@ body.portfolio-page.dark-mode .project-detail {
   overflow: hidden;
 }
 
+/* Project detail close button - inherits from .gate-back and .abs-icon-btn */
 .project-detail__close {
   position: fixed;
   top: clamp(16px, 2vw, 24px);
   left: 50%;
   transform: translateX(-50%);
-  width: clamp(52px, 5vw, 72px);
-  height: clamp(52px, 5vw, 72px);
   z-index: 15;
+  display: none;
+  /* Blurry background when idle (only difference from standard .gate-back) */
   background: rgba(var(--abs-rgb-white), 0.1);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
-  border: none;
-  border-radius: var(--ui-icon-corner-radius);
-  color: var(--text-soft);
-  padding: clamp(18px, 2.2vw, 28px);
-  font-weight: 500;
-  cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  transition:
-    opacity 200ms var(--ease-settle),
-    color 200ms var(--ease-settle),
-    transform var(--link-impact-duration) var(--ease-organic),
-    filter var(--link-impact-duration) var(--ease-organic);
 }
 
-.project-detail__close:hover {
-  color: var(--cursor-color);
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
-  border-radius: inherit;
-  position: fixed;
-  z-index: 15;
+/* Dark mode blur background */
+body.portfolio-page.dark-mode .project-detail__close {
+  background: rgba(var(--abs-rgb-black), 0.15);
 }
 
-body.portfolio-page.dark-mode .project-detail__close:hover {
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
+/* Show close button when detail is open */
+.project-detail.is-open .project-detail__close {
+  display: inline-flex;
 }
 
+/* Active state: maintain centered position while scaling */
 body.portfolio-page .project-detail__close:active {
   transform: translateX(-50%) scale(var(--link-impact-scale));
-  filter: blur(var(--link-impact-blur));
-}
-
-.close-icon {
-  font-size: var(--icon-size-base);
-  width: 1em;
-  height: 1em;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.project-detail.is-open .project-detail__close {
-  display: flex;
-}
-
-.project-detail__close:hover {
-  color: var(--text-strong);
 }
 
 .project-detail__scroller {
@@ -866,7 +860,7 @@ body.portfolio-page .ui-top-left {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: var(--gap-md);
+  gap: 0;
 }
 
 body.portfolio-page .ui-top-right {
@@ -891,27 +885,8 @@ body.portfolio-page .ui-top-right {
   align-items: center;
 }
 
-/* Bio/CV link styling */
-.portfolio-cv-link {
-  position: relative;
-  display: inline-block;
-  padding-block: var(--hit-area-lg);
-  padding-inline: var(--hit-area-lg);
-  margin-block: calc(var(--hit-area-lg) * -1);
-  margin-inline: calc(var(--hit-area-lg) * -1);
-  margin: 0;
-  font-family: 'Geist', sans-serif;
-  font-size: var(--footer-links-font-size);
-  font-weight: 400;
-  letter-spacing: var(--footer-links-letter-spacing);
-  text-decoration: none;
-  color: var(--text-primary);
-  opacity: var(--text-opacity-base, 0.9);
-  pointer-events: auto;
-  cursor: none;
-  transition: transform 0.15s var(--ease-organic),
-              filter 0.15s var(--ease-organic);
-}
+/* Bio/CV link styling - inherits from main.css, no overrides needed */
+/* Main.css line 2937 sets correct padding to match arrow button height */
 
 /* Gate back button - inherits from main.css (same as CV page) */
 
@@ -947,6 +922,13 @@ body.portfolio-page #custom-cursor {
   width: 20px;
   height: 20px;
   border-radius: 50%;
+}
+
+/* Rapid cursor hiding on link hover for portfolio page */
+body.portfolio-page.abs-link-hovering #custom-cursor {
+  display: none !important;
+  opacity: 0;
+  transition: none;
 }
 
 body.portfolio-page #custom-cursor.gate-active {
@@ -988,6 +970,25 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
     --detail-hero-width: 100%;
     --detail-hero-offset: 0%;
     --detail-hero-top-pad: 0px;
+    /* Meta responsive adjustments */
+    --text-title-size: 5vw;
+    --text-title-min: 28px;
+    --text-title-max: 48px;
+    --meta-padding-y: clamp(40px, 6vh, 60px);
+    --meta-gap: clamp(16px, 2vmin, 20px);
+    --meta-title-max-width: 22ch;
+    --meta-summary-max-width: 40ch;
+  }
+
+  .portfolio-viewport {
+    padding-bottom: clamp(60px, 10vh, 120px);
+  }
+
+  .portfolio-meta {
+    bottom: clamp(40px, 8vh, 60px);
+    max-width: clamp(280px, 90vw, 600px);
+    padding-left: clamp(16px, 4vw, 24px);
+    padding-right: clamp(16px, 4vw, 24px);
   }
 
   .project-detail__inner {
@@ -1021,6 +1022,25 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
     --wheel-radius-y: 14vh;
     --wheel-tilt: 48deg;
     --wheel-center-y: -2vh;
+    /* Meta mobile adjustments */
+    --text-title-size: 6vw;
+    --text-title-min: 24px;
+    --text-title-max: 40px;
+    --meta-padding-y: clamp(32px, 5vh, 48px);
+    --meta-gap: clamp(12px, 1.8vmin, 18px);
+    --meta-title-max-width: 20ch;
+    --meta-summary-max-width: 35ch;
+  }
+
+  .portfolio-viewport {
+    padding-bottom: clamp(48px, 8vh, 96px);
+  }
+
+  .portfolio-meta {
+    bottom: clamp(32px, 6vh, 48px);
+    max-width: clamp(280px, 92vw, 600px);
+    padding-left: clamp(16px, 5vw, 20px);
+    padding-right: clamp(16px, 5vw, 20px);
   }
 
   body.portfolio-page .decorative-script {

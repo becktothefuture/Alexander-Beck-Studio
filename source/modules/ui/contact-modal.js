@@ -74,10 +74,12 @@ export function initContactModal() {
   const cvGate = document.getElementById('cv-modal');
   const portfolioGate = document.getElementById('portfolio-modal');
 
-  if (!triggers.length || !logo || !modal || !modalLabel || !modalInputs) {
+  if (!triggers.length || !modal || !modalLabel || !modalInputs) {
     console.warn('Contact Gate: Missing required elements');
     return;
   }
+  
+  // Logo is optional (not present on CV page)
 
   // Idempotency check: prevent duplicate listeners if initialized multiple times
   if (modal.dataset.modalInitialized === 'true') return;
@@ -197,8 +199,16 @@ export function initContactModal() {
     }
     setCopyUI('idle');
 
-    // Animate Logo Out (Up)
-    logo.classList.add('fade-out-up');
+    // Animate Logo Out (Up) - optional on pages without logo
+    if (logo) {
+      logo.classList.add('fade-out-up');
+    }
+    
+    // Fade out CV content on CV page
+    const cvContainer = document.querySelector('.cv-scroll-container');
+    if (cvContainer) {
+      cvContainer.classList.add('fade-out-up');
+    }
 
     // Defer modal DOM operations to next frame to avoid interrupting overlay's backdrop-filter transition
     requestAnimationFrame(() => {
@@ -225,13 +235,23 @@ export function initContactModal() {
     if (instant) {
       // Instant close: disable transition, remove active, then re-enable
       modal.style.transition = 'none';
-      logo.style.transition = 'none';
+      if (logo) {
+        logo.style.transition = 'none';
+      }
 
     modal.classList.remove('active');
     modal.setAttribute('aria-hidden', 'true');
       modal.classList.add('hidden');
       unmountModalFromOverlay(modal);
-      logo.classList.remove('fade-out-up');
+      if (logo) {
+        logo.classList.remove('fade-out-up');
+      }
+      
+      // Fade CV content back in on CV page
+      const cvContainer = document.querySelector('.cv-scroll-container');
+      if (cvContainer) {
+        cvContainer.classList.remove('fade-out-up');
+      }
       
       // Hide overlay immediately if no other modal is active
       if (!isAnyGateActive()) {
@@ -241,13 +261,23 @@ export function initContactModal() {
       // Re-enable transitions after a frame
       requestAnimationFrame(() => {
         modal.style.removeProperty('transition');
-        logo.style.removeProperty('transition');
+        if (logo) {
+          logo.style.removeProperty('transition');
+        }
       });
     } else {
       // Smooth close: use CSS transition
       modal.classList.remove('active');
       modal.setAttribute('aria-hidden', 'true');
-      logo.classList.remove('fade-out-up');
+      if (logo) {
+        logo.classList.remove('fade-out-up');
+      }
+      
+      // Fade CV content back in on CV page
+      const cvContainer = document.querySelector('.cv-scroll-container');
+      if (cvContainer) {
+        cvContainer.classList.remove('fade-out-up');
+      }
 
       // Hide overlay immediately to animate blur in parallel with content
       if (!isAnyGateActive()) {

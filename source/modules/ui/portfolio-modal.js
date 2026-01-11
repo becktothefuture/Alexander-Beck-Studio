@@ -163,6 +163,12 @@ export function initPortfolioModal() {
         
         // Animate Logo Out (Up)
         if (logo) logo.classList.add('fade-out-up');
+        
+        // Fade out CV content on CV page
+        const cvContainer = document.querySelector('.cv-scroll-container');
+        if (cvContainer) {
+            cvContainer.classList.add('fade-out-up');
+        }
 
         // Defer modal DOM operations to next frame to avoid interrupting overlay's backdrop-filter transition
         requestAnimationFrame(() => {
@@ -199,6 +205,12 @@ export function initPortfolioModal() {
             unmountModalFromOverlay(modal);
             if (logo) logo.classList.remove('fade-out-up');
             
+            // Fade CV content back in on CV page
+            const cvContainer = document.querySelector('.cv-scroll-container');
+            if (cvContainer) {
+                cvContainer.classList.remove('fade-out-up');
+            }
+            
             // Hide overlay immediately if no other modal is active
             if (!isAnyGateActive()) {
                 hideOverlay();
@@ -214,6 +226,12 @@ export function initPortfolioModal() {
             modal.classList.remove('active');
             modal.setAttribute('aria-hidden', 'true');
             if (logo) logo.classList.remove('fade-out-up');
+            
+            // Fade CV content back in on CV page
+            const cvContainer = document.querySelector('.cv-scroll-container');
+            if (cvContainer) {
+                cvContainer.classList.remove('fade-out-up');
+            }
             
             // Hide overlay immediately to animate blur in parallel with content
             if (!isAnyGateActive()) {

@@ -20,9 +20,7 @@ import { initPortfolioWallCanvas } from './portfolio/wall-only-canvas.js';
 import { initCvScrollTypography } from './cv/cv-scroll-typography.js';
 import { initCvPhotoSlideshow } from './cv/cv-photo-slideshow.js';
 import { initCvPanel } from './cv/cv-panel.js';
-import { initModalOverlay } from './ui/modal-overlay.js';
-import { initContactModal } from './ui/contact-modal.js';
-import { initLinkCursorHop } from './ui/link-cursor-hop.js';
+import { initSharedChrome } from './ui/shared-chrome.js';
 import { 
   navigateWithTransition, 
   resetTransitionState, 
@@ -149,11 +147,14 @@ async function bootstrapCvPage() {
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                    STEP 5: MODAL/GATE SYSTEM (Portfolio parity)              ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
-  // Gates should work even if runtime config fails to load (use defaults).
-  try {
-    initModalOverlay(runtimeConfig || {});
-    initContactModal();
-  } catch (e) {}
+  // Initialize shared chrome (modals + cursor hiding) with CV-specific config
+  initSharedChrome({
+    contactModal: true,
+    cvModal: false, // Already on CV page
+    portfolioModal: true,
+    cursorHiding: true,
+    modalOverlayConfig: runtimeConfig || {}
+  });
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                    STEP 6: PALETTE + DARK MODE                               ║
@@ -203,8 +204,8 @@ async function bootstrapCvPage() {
   maybeAutoPickCursorColor?.('startup');
   initTimeDisplay();
   upgradeSocialIcons();
-  initLinkCursorHop();
-  createSoundToggle();
+  // Sound toggle removed from CV page - no sound on this page
+  // createSoundToggle();
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                       CV-SPECIFIC: SCROLL TYPOGRAPHY                         ║

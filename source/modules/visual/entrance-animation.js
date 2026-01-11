@@ -357,12 +357,13 @@ export function revealLateElement(element, options = {}) {
       if (finalized) return;
       finalized = true;
       // Clear ALL inline styles so CSS takes over completely
+      // CRITICAL: Remove opacity so CSS transitions (e.g., modal dimming) can work
       element.style.removeProperty('opacity');
       element.style.removeProperty('transform');
       element.style.removeProperty('filter');
       element.style.removeProperty('scale');
+      element.style.removeProperty('will-change');
       element.style.visibility = 'visible';
-      element.style.willChange = 'auto';
       resolve();
     };
     
@@ -382,8 +383,8 @@ export function revealLateElement(element, options = {}) {
         );
         
         anim.addEventListener('finish', () => {
-          // Commit final state, cancel animation layer, then clear inline styles
-          try { anim.commitStyles(); } catch (e) {}
+          // Don't commit styles - we want CSS to take over for modal transitions
+          // Just cancel animation and clear inline styles
           anim.cancel();
           finalize();
         });

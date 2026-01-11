@@ -16,9 +16,7 @@ import { applyRuntimeTextToDOM } from '../ui/apply-text.js';
 import { waitForFonts } from '../utils/font-loader.js';
 import { readTokenVar } from '../utils/tokens.js';
 import * as SoundEngine from '../audio/sound-engine.js';
-import { initModalOverlay } from '../ui/modal-overlay.js';
-import { initContactModal } from '../ui/contact-modal.js';
-import { initLinkCursorHop } from '../ui/link-cursor-hop.js';
+import { initSharedChrome } from '../ui/shared-chrome.js';
 import { 
   navigateWithTransition, 
   resetTransitionState, 
@@ -178,7 +176,8 @@ class PortfolioApp {
     this.metaSwapTimer = null;
     this.applyRuntimeConfig(runtimeConfig);
     
-    this.init();
+    // Don't auto-init in constructor - let bootstrap call init() after entrance animation
+    // this.init(); // REMOVED: Now called explicitly after entrance animation completes
   }
 
   applyRuntimeConfig(runtimeConfig) {
@@ -230,17 +229,9 @@ class PortfolioApp {
   }
 
   async init() {
-    // Ensure wall-frame and portfolio-stage are visible immediately
-    const wallFrame = document.querySelector('.wall-frame');
-    const portfolioStage = document.querySelector('.portfolio-stage');
-    if (wallFrame) {
-      wallFrame.style.opacity = '1';
-      wallFrame.style.visibility = 'visible';
-    }
-    if (portfolioStage) {
-      portfolioStage.style.opacity = '1';
-      portfolioStage.style.visibility = 'visible';
-    }
+    // Wall-frame visibility is controlled by entrance animation system
+    // portfolio-stage and portfolio-meta visibility controlled by entrance animation
+    // (staggered reveal after brand logo)
 
     await this.loadData();
     this.renderSlides();
@@ -258,7 +249,7 @@ class PortfolioApp {
     this.bindEvents();
     this.setupCustomCursor();
     this.setupSoundToggle();
-    this.setupPortfolioCVLink();
+    // CV modal is now initialized via shared chrome bundle
     // Setup card hover after slides are rendered
     this.setupCardHover();
 
@@ -704,8 +695,26 @@ class PortfolioApp {
     document.body.appendChild(cursor);
     this.customCursor = cursor;
 
+    // Helper to check if hovering over a link
+    const isOverLink = (target) => {
+      if (!target || !target.closest) return false;
+      const link = target.closest('a, button, [role="button"]');
+      if (!link) return false;
+      // Exclude portfolio carousel slides
+      if (link.classList?.contains?.('slide')) return false;
+      if (link.closest?.('.slide')) return false;
+      return true;
+    };
+
     const update = (event) => {
       if (event.pointerType === 'touch') return;
+      
+      // Rapidly hide cursor when hovering over links
+      if (isOverLink(event.target)) {
+        cursor.style.display = 'none';
+        return;
+      }
+      
       cursor.style.display = 'block';
       cursor.style.left = `${event.clientX}px`;
       cursor.style.top = `${event.clientY}px`;
@@ -764,24 +773,8 @@ class PortfolioApp {
     } catch (e) {}
   }
 
-  setupPortfolioCVLink() {
-    const cv = document.getElementById('portfolio-cv-trigger');
-    if (!cv) return;
-
-    // Route through index so CV remains protected behind the gate.
-    // Use unified navigation state to auto-open CV modal on arrival.
-    cv.addEventListener(
-      'click',
-      (e) => {
-        e?.preventDefault?.();
-        navigateWithTransition('index.html', NAV_STATES.OPEN_CV_MODAL);
-      },
-      { capture: true }
-    );
-  }
-
-  // Contact gate is initialized in-place on the portfolio page (index parity),
-  // so no redirect wiring is needed here.
+  // Bio/CV and Contact modals are now initialized via shared chrome bundle
+  // Modal triggers are handled automatically by initCVModal() and initContactModal()
 
   getCssLength(varName, fallback) {
     const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
@@ -1196,8 +1189,8 @@ class PortfolioApp {
     overlay.innerHTML = `
       <div class="project-detail__noise project-detail__noise--back" aria-hidden="true"></div>
       <div class="project-detail__card" role="dialog" aria-modal="true" aria-label="Project detail">
-        <button class="project-detail__close" type="button" aria-label="Close project detail" data-detail-close>
-          <i class="ti ti-arrow-left close-icon" aria-hidden="true"></i>
+        <button class="project-detail__close gate-back abs-icon-btn" type="button" aria-label="Close project detail" data-detail-close>
+          <i class="ti ti-x" aria-hidden="true"></i>
         </button>
         <div class="project-detail__scroller">
           <div class="project-detail__inner" id="projectDetailContent"></div>
@@ -1700,8 +1693,8 @@ async function bootstrapPortfolio() {
         },
         skipWallAnimation: true,
         centralContent: [
-          '.portfolio-meta',
-          '.portfolio-stage'
+          '.portfolio-stage',
+          '.portfolio-meta'
         ]
       });
       removeBlocker();
@@ -1723,26 +1716,11 @@ async function bootstrapPortfolio() {
     console.warn('⚠️ Portfolio entrance animation failed, forcing content visible', e);
   }
 
-  // Background elements (including #brand-logo) are now visible immediately - no fade-in
-  // Keep it isolated so entrance-fallback errors don't break the rest of bootstrap.
-  try {
-      // ╔══════════════════════════════════════════════════════════════════════════════╗
-      // ║                    LOGO VISIBILITY (NO FADE-IN)                              ║
-      // ╚══════════════════════════════════════════════════════════════════════════════╝
-      // Logo is a background element - visible immediately, no fade-in animation
-
-      window.setTimeout(() => {
-        const logo = document.getElementById('brand-logo');
-        if (!logo) {
-          console.warn('⚠️ #brand-logo not found');
-          return;
-        }
-
-        // Make logo visible immediately (background element, no fade-in)
-        logo.style.opacity = '1';
-        console.log('✓ Logo visible immediately (background element, no fade-in)');
-      }, 0);
-  } catch (e) {}
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║         ENTRANCE ANIMATION COMPLETE - NOW INITIALIZE CAROUSEL                ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+  // Logo, stage, and meta are now visible via staggered entrance animation
+  // Safe to initialize carousel app (which manipulates stage elements)
 
   let runtimeConfig = null;
   try {
@@ -1768,11 +1746,14 @@ async function bootstrapPortfolio() {
     try { initNoiseSystem(); } catch (e2) {}
   }
 
-  // Gates should work even if runtime config fails to load (use defaults).
-  try {
-    initModalOverlay(runtimeConfig || {});
-    initContactModal();
-  } catch (e) {}
+  // Initialize shared chrome (modals + cursor hiding) with portfolio-specific config
+  initSharedChrome({
+    contactModal: true,
+    cvModal: true,
+    portfolioModal: false, // Already on portfolio page
+    cursorHiding: true,
+    modalOverlayConfig: runtimeConfig || {}
+  });
 
   // Palette chapters: rotate on each reload (applies only to cursor + palette-driven dots).
   rotatePaletteChapterOnReload();
@@ -1815,7 +1796,6 @@ async function bootstrapPortfolio() {
   maybeAutoPickCursorColor?.('startup');
   initTimeDisplay();
   upgradeSocialIcons();
-  initLinkCursorHop();
 
   let portfolioConfig = null;
   try {
@@ -1825,6 +1805,10 @@ async function bootstrapPortfolio() {
   // Portfolio config is carousel-only; wall tuning stays in default-config.json.
   const normalizedPortfolioConfig = applyPortfolioConfig(portfolioConfig);
   const app = new PortfolioApp({ runtimeConfig: normalizedPortfolioConfig.runtime });
+  
+  // Initialize carousel AFTER entrance animation has revealed the elements
+  // This prevents the carousel from forcing visibility before animations complete
+  await app.init();
 
   // DEV-ONLY: config/debug panel dock. Never ship this UI in production.
   // (Production site must not show panel icons/handles on mobile.)
