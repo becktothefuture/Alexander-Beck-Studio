@@ -105,23 +105,15 @@ html.entrance-pre-transition #app-frame {
   visibility: hidden;
 }
 
-/* Background elements (#bravia-balls, #abs-scene, #edge-chapter, #edge-copyright)
-   are visible immediately (no fade-in) to maintain visual continuity with loading state.
-   
-   NOTE: #brand-logo is NOT included here - it's a late-reveal element animated by JS */
+/* Background elements (#bravia-balls, #abs-scene, #edge-chapter, #edge-copyright, #brand-logo)
+   are now visible immediately - removed from fade-in */
 html.entrance-pre-transition #bravia-balls,
 html.entrance-pre-transition #abs-scene,
 html.entrance-pre-transition #edge-chapter,
-html.entrance-pre-transition #edge-copyright {
+html.entrance-pre-transition #edge-copyright,
+html.entrance-pre-transition #brand-logo {
   opacity: 1;
   visibility: visible;
-}
-
-/* Late-reveal elements (#brand-logo, #main-links) start hidden, revealed by JS animation */
-html.entrance-pre-transition #brand-logo,
-html.entrance-pre-transition #main-links {
-  opacity: 0;
-  visibility: hidden;
 }
 
 /* During transition - wall container becomes visible and grows */
@@ -139,13 +131,11 @@ html.entrance-transitioning #app-frame {
 /* Background elements remain visible during transition (no fade-in) */
 html.entrance-transitioning #abs-scene,
 html.entrance-transitioning #edge-chapter,
-html.entrance-transitioning #edge-copyright {
+html.entrance-transitioning #edge-copyright,
+html.entrance-transitioning #brand-logo {
   visibility: visible;
   opacity: 1;
 }
-
-/* Late-reveal elements stay hidden during transition, revealed by JS animation.
-   Controlled by JS animation - don't override opacity/visibility with CSS */
 
 body,
 body.body {
@@ -1267,11 +1257,8 @@ body.dark-mode #brand-logo {
 }
 
 /* Override entrance animation opacity after entrance completes */
-/* After entrance completes, late elements should be visible (JS animation has finished) */
-html.entrance-complete #brand-logo,
-html.entrance-complete #main-links {
+html.entrance-complete #brand-logo {
   opacity: 1;
-  visibility: visible;
 }
 
 #brand-logo .brand-logo-svg {
