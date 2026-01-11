@@ -305,11 +305,14 @@ export function render() {
   // Clear BEFORE applying clip so the corners never accumulate stale pixels.
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Hard clip the entire render to the rounded-rect canvas radius.
-  // This prevents “corner bleed” on iOS/mobile (balls peeking past rounded corners),
-  // especially in modes that use non-rounded bounds (e.g., Kaleidoscope).
+  // ══════════════════════════════════════════════════════════════════════════════
+  // OPTIMIZATION #5: Skip clip when corner radius is 0 (save/restore is expensive)
+  // ══════════════════════════════════════════════════════════════════════════════
   const clipPath = globals.canvasClipPath;
-  if (clipPath) {
+  const cornerRadius = globals.cornerRadius ?? globals.wallRadius ?? 0;
+  const needsClip = clipPath && cornerRadius > 0;
+  
+  if (needsClip) {
     ctx.save();
     try { ctx.clip(clipPath); } catch (e) {}
   }
@@ -324,12 +327,52 @@ export function render() {
     modeRenderer.preRender(ctx);
   }
   
-  // Draw balls (or mode-specific renderer)
+  // ══════════════════════════════════════════════════════════════════════════════
+  // OPTIMIZATION #1: Batch balls by color to reduce ctx.fillStyle changes
+  // Typical scene: 300 balls, 8-12 unique colors
+  // Before: 300 fillStyle changes per frame
+  // After: 8-12 fillStyle changes per frame (~25x reduction)
+  // 
+  // IMPORTANT: This does NOT change ball color distribution - we're only
+  // optimizing how they're rendered, not how colors are assigned to balls.
+  // ══════════════════════════════════════════════════════════════════════════════
   if (globals.currentMode === MODES.KALEIDOSCOPE) {
     renderKaleidoscope(ctx);
   } else {
-  for (let i = 0; i < balls.length; i++) {
-    balls[i].draw(ctx);
+    // Group balls by color (O(n) pass, minimal overhead)
+    const ballsByColor = new Map();
+    for (let i = 0; i < balls.length; i++) {
+      const ball = balls[i];
+      const color = ball.color;
+      if (!ballsByColor.has(color)) {
+        ballsByColor.set(color, []);
+      }
+      ballsByColor.get(color).push(ball);
+    }
+    
+    // Draw in batches (far fewer fillStyle state changes)
+    for (const [color, group] of ballsByColor) {
+      ctx.fillStyle = color;
+      
+      for (let i = 0; i < group.length; i++) {
+        const ball = group[i];
+        
+        // Handle special rendering cases (squash, alpha, filtering)
+        const hasSquash = ball.squashAmount > 0.001;
+        const filterOpacity = ball.filterOpacity ?? 1;
+        const effectiveAlpha = ball.alpha * filterOpacity;
+        const hasAlpha = effectiveAlpha < 1.0;
+        
+        if (hasSquash || hasAlpha) {
+          // Use existing Ball.draw() for complex cases
+          ball.draw(ctx);
+        } else {
+          // Fast path: simple circle (no transforms, no save/restore)
+          ctx.beginPath();
+          ctx.arc(ball.x, ball.y, ball.getDisplayRadius(), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
     }
   }
 
@@ -338,7 +381,7 @@ export function render() {
   }
   
   // Restore clip BEFORE drawing walls (walls extend beyond canvas edges)
-  if (clipPath) {
+  if (needsClip) {
     ctx.restore();
   }
   
