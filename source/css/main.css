@@ -1708,14 +1708,8 @@ body.abs-link-hovering #custom-cursor {
    - dot under label is suppressed
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-@keyframes absHoverPulse {
-  0%   { transform: scale(0.92); opacity: 0.22; }
-  100% { transform: scale(1.6); opacity: 0; }
-}
-
 @keyframes absHoverSnap {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(var(--abs-hover-snap-overshoot, 1.08)); }
+  0%  { transform: scale(var(--abs-hover-snap-overshoot, 1.08)); }
   70%  { transform: scale(var(--abs-hover-snap-undershoot, 0.98)); }
   100% { transform: scale(1); }
 }

@@ -46,7 +46,7 @@
   "linkImpactDuration": 150,
   "hoverSnapEnabled": true,
   "hoverSnapDuration": 200,
-  "hoverSnapOvershoot": 1.01,
+  "hoverSnapOvershoot": 1.115,
   "hoverSnapUndershoot": 0.98,
   "sceneImpactEnabled": false,
   "sceneImpactMul": 0.005,
