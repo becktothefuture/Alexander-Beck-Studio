@@ -12,7 +12,7 @@
   "physicsSleepThreshold": 6,
   "physicsSleepTime": 0.2,
   "physicsSkipSleepingSteps": true,
-  "sizeScale": 0.55,
+  "sizeScale": 1.05,
   "responsiveScaleMobile": 0.7,
   "mobileObjectReductionFactor": 0.5,
   "ballSoftness": 57,

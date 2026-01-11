@@ -15,15 +15,17 @@ import { WALL_PRESETS } from '../core/constants.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS (kept small + fixed for perf)
 // ═══════════════════════════════════════════════════════════════════════════════
-const RING_SAMPLES = 384; // Very high density for ultra-smooth corners (still performant on modern hardware)
-// Rendering decimation: render every Nth sample for performance (1 = all samples, 2 = half, etc.)
-// Physics still uses all RING_SAMPLES for accuracy
-// Performance vs Quality:
-//   1 = 96 points (smooth, slower) - original quality
-//   2 = 48 points (good quality, ~2x faster) - recommended default
-//   4 = 24 points (acceptable, ~4x faster)
-//   12 = 8 points (angular/polygonal, ~12x faster) - similar to 8-sided polygon
-const RENDER_DECIMATION = 2; // Render every 2nd sample = 48 rendered points (vs 96 physics samples)
+const RING_SAMPLES = 384; // High density physics simulation for accuracy
+// Rendering decimation: separate sample count for rendering vs physics
+// Physics uses RING_SAMPLES (384) for accuracy, rendering uses fewer for performance
+// The 5-tap smoothing filter maintains corner quality even at lower render resolution
+// Performance vs Quality (render samples):
+//   384 = ultra-smooth but slow (~384 lineTo() calls per frame)
+//   192 = very smooth, 2x faster
+//   128 = smooth corners, 3x faster - RECOMMENDED
+//   96 = good corners, 4x faster
+//   64 = acceptable, 6x faster
+const RENDER_DECIMATION = 3; // Render samples = RING_SAMPLES / 3 = 128 points (~3x faster)
 const DEFAULT_STIFFNESS = 2200;
 const DEFAULT_DAMPING = 35;
 const DEFAULT_MAX_DEFORM = 45; // CSS px at DPR 1
@@ -939,10 +941,10 @@ class RubberRingWall {
 // ═══════════════════════════════════════════════════════════════════════════════
 export const wallState = {
   // Two-ring strategy:
-  // - ringPhysics: lower sample count for integration/impulses (visual-only physics)
-  // - ringRender: fixed high sample count for smooth geometry/path building
+  // - ringPhysics: high sample count for accurate integration/impulses
+  // - ringRender: decimated sample count for fast geometry/path building
   ringPhysics: new RubberRingWall(RING_SAMPLES),
-  ringRender: new RubberRingWall(RING_SAMPLES),
+  ringRender: new RubberRingWall(Math.max(8, Math.floor(RING_SAMPLES / RENDER_DECIMATION))),
   _impactsThisStep: 0,
   _pressureEventsThisStep: 0,
   
