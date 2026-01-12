@@ -2,6 +2,28 @@
 <html lang="en" class="fonts-loading">
 <head>
 <style id="fade-blocking">#app-frame{opacity:0}</style>
+  <!-- Failsafe: Remove fade-blocking if JavaScript fails to load/execute -->
+  <script>
+    (function() {
+      'use strict';
+      // Failsafe timeout: remove fade-blocking after 3 seconds if still present
+      // This ensures content becomes visible even if main JS bundle fails
+      setTimeout(function() {
+        try {
+          const blocker = document.getElementById('fade-blocking');
+          const appFrame = document.getElementById('app-frame');
+          // If fade-blocking style tag still exists, remove it and make content visible
+          if (blocker && appFrame) {
+            blocker.remove();
+            appFrame.style.opacity = '1';
+            appFrame.style.visibility = 'visible';
+            appFrame.style.transform = 'translateZ(0)';
+            console.warn('⚠️ Fade-blocking failsafe triggered - main JS may have failed to load');
+          }
+        } catch (e) {}
+      }, 3000);
+    })();
+  </script>
   <!-- Critical first-paint wall background (no JS + no !important). -->
   <!-- Uses unified wall color (#242529) - same for light and dark modes. -->
   <!-- Fallback color: #242529 (unified wall frame) -->
