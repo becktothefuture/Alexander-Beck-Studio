@@ -10,11 +10,12 @@
     html { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
     html.dark-mode { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
   </style>
-  <!-- Browser Chrome Color -->
-  <!-- Initial fallback colors match wall/frame defaults: #242529 -->
-  <meta name="theme-color" content="#242529">
+  <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
+  <!-- Safari requirements: Compact tab layout (macOS), Allow Website Tinting (iOS) -->
+  <!-- Media-query tags MUST come before the fallback for Safari compatibility -->
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#242529">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#242529">
+  <meta name="theme-color" content="#242529">
   <!-- CRITICAL: Dark mode detection BEFORE first paint to prevent white flash -->
   <script>
     (function() {
