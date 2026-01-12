@@ -5,7 +5,6 @@
 
 export const MODES = {
   PIT: 'pit',
-  PIT_THROWS: 'pit-throws',
   FLIES: 'flies',
   WEIGHTLESS: 'weightless',
   WATER: 'water',
@@ -32,14 +31,12 @@ export const MODES = {
 // Story arc (curated alternation):
 // - Keep tonal contrast between adjacent sims (avoid “similar twice in a row”)
 // - Ball Pit opens the story
-// - Ball Pit (Throws) lands mid-story (the “filling up” iteration beat)
 // - Kaleidoscopes are contiguous and increase complexity
 export const NARRATIVE_MODE_SEQUENCE = [
   MODES.PIT,
   MODES.FLIES,
   MODES.CUBE_3D,
   MODES.BUBBLES,
-  MODES.PIT_THROWS,
   MODES.MAGNETIC,
   MODES.WATER,
   MODES.PING_PONG,
@@ -60,7 +57,6 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.PIT]: 'SOURCE MATERIAL',
   [MODES.FLIES]: 'IDEA SPARK',
   [MODES.BUBBLES]: 'NOISE SIGNAL',
-  [MODES.PIT_THROWS]: 'PROTOTYPE LOOP',
   [MODES.MAGNETIC]: 'DESIGN FORCES',
   [MODES.WATER]: 'USER FLOW',
   [MODES.PING_PONG]: 'FEEDBACK CYCLE',

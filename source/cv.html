@@ -3,11 +3,11 @@
 <head>
 <style id="fade-blocking">#app-frame{opacity:0}</style>
   <!-- Critical first-paint wall background (no JS + no !important). -->
-  <!-- Uses frameColorLight/Dark (master wall colors) so changing the wall updates every page. -->
-  <!-- Fallback colors: light/dark=#242529 (wall frame) -->
+  <!-- Uses unified wall color (#242529) - same for light and dark modes. -->
+  <!-- Fallback color: #242529 (unified wall frame) -->
   <style id="abs-critical-wall-bg">
-    html { background: var(--frame-color-light, #242529); background-color: var(--frame-color-light, #242529); }
-    html.dark-mode { background: var(--frame-color-dark, #242529); background-color: var(--frame-color-dark, #242529); }
+    html { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
+    html.dark-mode { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
   </style>
   <!-- Browser Chrome Color -->
   <!-- Initial fallback colors match wall/frame defaults: #242529 -->
@@ -47,23 +47,19 @@
         return node && node.content ? node.content.trim() : '';
       }
       
-      // Theme-aware fallback colors (wall/frame defaults)
-      const fallbackWallLight = '#242529';
-      const fallbackWallDark = '#242529';
-      let THEME_COLOR_LIGHT = fallbackWallLight;
-      let THEME_COLOR_DARK = fallbackWallDark;
+      // Unified wall color (consistent across all modes)
+      const unifiedWallColor = '#242529';
+      let THEME_COLOR = unifiedWallColor;
       
       try {
-        THEME_COLOR_LIGHT = getWallColorFromCSS(false) || fallbackWallLight;
-        THEME_COLOR_DARK = getWallColorFromCSS(true) || fallbackWallDark;
+        THEME_COLOR = getWallColorFromCSS(false) || getWallColorFromCSS(true) || unifiedWallColor;
       } catch (e) {
-        THEME_COLOR_LIGHT = fallbackWallLight;
-        THEME_COLOR_DARK = fallbackWallDark;
+        // CSS not ready, use unified fallback
+        THEME_COLOR = unifiedWallColor;
       }
       
       const primaryMeta = getMetaThemeColor('meta[name="theme-color"]:not([media])');
-      THEME_COLOR_LIGHT = getMetaThemeColor('meta[name="theme-color"][media="(prefers-color-scheme: light)"]') || primaryMeta || THEME_COLOR_LIGHT;
-      THEME_COLOR_DARK = getMetaThemeColor('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]') || primaryMeta || THEME_COLOR_DARK;
+      THEME_COLOR = primaryMeta || THEME_COLOR;
 
       const THEME_KEY = 'theme-preference-v2';
       const LEGACY_THEME_KEY = 'theme-preference';
@@ -81,10 +77,8 @@
       }
 
       function setBrowserChromeColors(isDark) {
-        // Re-read wall colors from CSS to ensure sync (wall color is single source of truth)
-        const wallColorLight = getWallColorFromCSS(false) || fallbackWallLight;
-        const wallColorDark = getWallColorFromCSS(true) || fallbackWallDark;
-        const currentColor = isDark ? wallColorDark : wallColorLight;
+        // Unified wall color (always #242529, no light/dark variants)
+        const unifiedColor = getWallColorFromCSS(false) || getWallColorFromCSS(true) || '#242529';
         
         // Update primary theme-color meta tag (no media query - used as fallback)
         let meta = document.querySelector('meta[name="theme-color"]:not([media])');
@@ -93,9 +87,9 @@
           meta.name = 'theme-color';
           document.head.appendChild(meta);
         }
-        meta.content = currentColor;
+        meta.content = unifiedColor;
         
-        // Safari iOS: Update media-query-specific meta tags for prefers-color-scheme
+        // Safari iOS: Update media-query-specific meta tags (both use unified color)
         let metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
         if (!metaLight) {
           metaLight = document.createElement('meta');
@@ -103,7 +97,7 @@
           metaLight.media = '(prefers-color-scheme: light)';
           document.head.appendChild(metaLight);
         }
-        metaLight.content = wallColorLight;
+        metaLight.content = unifiedColor;
         
         let metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
         if (!metaDark) {
@@ -112,18 +106,17 @@
           metaDark.media = '(prefers-color-scheme: dark)';
           document.head.appendChild(metaDark);
         }
-        metaDark.content = wallColorDark;
+        metaDark.content = unifiedColor;
         
-        // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style based on theme
-        // black-translucent: transparent status bar with dark content (light mode - allows wall color to show)
-        // black: black status bar with light content (dark mode - dark status bar on dark wall)
+        // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style
+        // black-translucent: transparent status bar (allows unified wall color to show)
         let appleStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
         if (!appleStatusBar) {
           appleStatusBar = document.createElement('meta');
           appleStatusBar.name = 'apple-mobile-web-app-status-bar-style';
           document.head.appendChild(appleStatusBar);
         }
-        appleStatusBar.content = isDark ? 'black' : 'black-translucent';
+        appleStatusBar.content = 'black-translucent';
       }
       
       let themePreference = readThemePreference();

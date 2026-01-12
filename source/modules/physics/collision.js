@@ -148,7 +148,7 @@ export function resolveCollisions(iterations = 10) {
       // mark B as "supported" so gravity is balanced by normal force next step.
       // This prevents gravity→collision→bounce jitter in stacked balls.
       // ════════════════════════════════════════════════════════════════════════════
-      const isPitLike = (globals.currentMode === 'pit' || globals.currentMode === 'pit-throws');
+      const isPitLike = (globals.currentMode === 'pit');
       if (isPitLike && ny < -0.3) { // Normal pointing up = B is on top of A
         // B is supported from below by A
         B.hasSupport = true;

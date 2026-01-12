@@ -28,15 +28,17 @@
   /* Theme bridge (JS writes these; keep names stable) */
   --bg-light: var(--color-bg-light);
   --bg-dark: var(--color-bg-dark);
+  /* Unified wall and browser chrome color (consistent across all modes) */
   --frame-color: #242529;
+  --wall-color: #242529;
+  --chrome-bg: #242529;
+  /* Legacy aliases for compatibility (all point to unified color) */
   --frame-color-light: var(--frame-color);
   --frame-color-dark: var(--frame-color);
-  --chrome-bg-light: var(--bg-light);
-  --chrome-bg-dark: var(--bg-dark);
-  --chrome-bg: var(--chrome-bg-light);
-  --wall-color-light: var(--frame-color-light);
-  --wall-color-dark: var(--frame-color-dark);
-  --wall-color: var(--wall-color-light);
+  --wall-color-light: var(--wall-color);
+  --wall-color-dark: var(--wall-color);
+  --chrome-bg-light: var(--chrome-bg);
+  --chrome-bg-dark: var(--chrome-bg);
 
   /* Single stroke color (keep this token; override in :root.dark-mode) */
   --abs-stroke-medium: rgba(var(--abs-rgb-black), 0.18);
@@ -412,8 +414,8 @@
 
 :root.dark-mode {
   color-scheme: dark;
-  --chrome-bg: var(--chrome-bg-dark);
-  --wall-color: var(--wall-color-dark);
+  /* Wall and chrome colors remain unified (#242529) in dark mode */
+  /* Scene interior uses --bg-dark for dark mode */
 
   /* Text — Dark mode overrides (JS may override --text-color-dark* from config) */
   --text-primary: var(--text-color-dark);

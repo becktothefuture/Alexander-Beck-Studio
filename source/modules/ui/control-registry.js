@@ -1516,22 +1516,30 @@ export const CONTROL_SECTIONS = {
         label: 'Color · Light Mode',
         stateKey: 'frameColorLight',
         type: 'color',
-        default: '#0a0a0a',
-        hint: 'Wall color in light mode (also used for browser chrome)',
+        default: '#242529',
+        hint: 'Wall color (unified across all modes, also used for browser chrome)',
         onChange: (g, val) => {
           const root = document.documentElement;
+          // Unified wall color: set all variants to the same value
+          root.style.setProperty('--frame-color', val);
           root.style.setProperty('--frame-color-light', val);
           root.style.setProperty('--frame-color-dark', val);
+          root.style.setProperty('--wall-color', val);
+          root.style.setProperty('--wall-color-light', val);
+          root.style.setProperty('--wall-color-dark', val);
+          root.style.setProperty('--chrome-bg', val);
+          root.style.setProperty('--chrome-bg-light', val);
+          root.style.setProperty('--chrome-bg-dark', val);
+          g.frameColor = val;
           g.frameColorLight = val;
           g.frameColorDark = val;
-          g.frameColor = val;
-          // Wall colors automatically updated via CSS: --wall-color-light: var(--frame-color-light)
-          // Update browser chrome if in light mode
-          if (!g.isDarkMode) {
-            const meta = document.querySelector('meta[name="theme-color"]');
-            if (meta) meta.content = val;
-            root.style.setProperty('--chrome-bg', val);
-          }
+          // Update browser chrome meta tags (all use unified color)
+          const meta = document.querySelector('meta[name="theme-color"]:not([media])');
+          if (meta) meta.content = val;
+          const metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
+          if (metaLight) metaLight.content = val;
+          const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
+          if (metaDark) metaDark.content = val;
           // Invalidate wall color cache so it picks up the new color immediately
           import('../physics/engine.js').then(mod => {
             mod.syncChromeColor();
@@ -1543,22 +1551,30 @@ export const CONTROL_SECTIONS = {
         label: 'Color · Dark Mode',
         stateKey: 'frameColorDark',
         type: 'color',
-        default: '#0a0a0a',
-        hint: 'Wall color in dark mode (also used for browser chrome)',
+        default: '#242529',
+        hint: 'Wall color (unified across all modes, also used for browser chrome)',
         onChange: (g, val) => {
           const root = document.documentElement;
-          root.style.setProperty('--frame-color-dark', val);
+          // Unified wall color: set all variants to the same value
+          root.style.setProperty('--frame-color', val);
           root.style.setProperty('--frame-color-light', val);
-          g.frameColorDark = val;
-          g.frameColorLight = val;
+          root.style.setProperty('--frame-color-dark', val);
+          root.style.setProperty('--wall-color', val);
+          root.style.setProperty('--wall-color-light', val);
+          root.style.setProperty('--wall-color-dark', val);
+          root.style.setProperty('--chrome-bg', val);
+          root.style.setProperty('--chrome-bg-light', val);
+          root.style.setProperty('--chrome-bg-dark', val);
           g.frameColor = val;
-          // Wall colors automatically updated via CSS: --wall-color-dark: var(--frame-color-dark)
-          // Update browser chrome if in dark mode
-          if (g.isDarkMode) {
-            const meta = document.querySelector('meta[name="theme-color"]');
-            if (meta) meta.content = val;
-            root.style.setProperty('--chrome-bg', val);
-          }
+          g.frameColorLight = val;
+          g.frameColorDark = val;
+          // Update browser chrome meta tags (all use unified color)
+          const meta = document.querySelector('meta[name="theme-color"]:not([media])');
+          if (meta) meta.content = val;
+          const metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
+          if (metaLight) metaLight.content = val;
+          const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
+          if (metaDark) metaDark.content = val;
           // Invalidate wall color cache so it picks up the new color immediately
           import('../physics/engine.js').then(mod => {
             mod.syncChromeColor();
@@ -2470,219 +2486,6 @@ export const CONTROL_SECTIONS = {
         hint: 'Pit modes only. Lower = sleeps faster.'
       },
       warmupFramesControl('pitWarmupFrames')
-    ]
-  },
-
-  pitThrows: {
-    title: 'Ball Pit (Throws)',
-    icon: '🎯',
-    mode: 'pit-throws',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'gravityPitThrows',
-        label: 'Gravity',
-        stateKey: 'gravityMultiplierPit',
-        type: 'range',
-        min: 0, max: 2, step: 0.05,
-        default: 1.1,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        onChange: (g, val) => {
-          if (g.currentMode === 'pit-throws') g.G = g.GE * val;
-        }
-      },
-      {
-        id: 'pitThrowsSpeed',
-        label: 'Throw Speed',
-        stateKey: 'pitThrowSpeed',
-        type: 'range',
-        min: 100, max: 2000, step: 25,
-        default: 650,
-        format: v => String(Math.round(v)),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'pitThrowsSpeedVar',
-        label: 'Speed Variance',
-        stateKey: 'pitThrowSpeedVar',
-        type: 'range',
-        min: 0, max: 0.6, step: 0.01,
-        default: 0.18,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'sleepVelocityThresholdThrows',
-        label: 'Sleep Speed',
-        stateKey: 'sleepVelocityThreshold',
-        type: 'range',
-        min: 0, max: 40, step: 0.5,
-        default: 12,
-        format: v => `${Number(v).toFixed(1)} px/s`,
-        parse: parseFloat,
-        hint: 'Pit modes only. Higher = settles sooner.'
-      },
-      {
-        id: 'sleepAngularThresholdThrows',
-        label: 'Sleep Spin',
-        stateKey: 'sleepAngularThreshold',
-        type: 'range',
-        min: 0, max: 1.0, step: 0.01,
-        default: 0.18,
-        format: v => `${Number(v).toFixed(2)} rad/s`,
-        parse: parseFloat,
-        hint: 'Pit modes only. Higher = stops spinning sooner.'
-      },
-      {
-        id: 'timeToSleepThrows',
-        label: 'Sleep Time',
-        stateKey: 'timeToSleep',
-        type: 'range',
-        min: 0.05, max: 2.0, step: 0.05,
-        default: 0.25,
-        format: v => `${Number(v).toFixed(2)}s`,
-        parse: parseFloat,
-        hint: 'Pit modes only. Lower = sleeps faster.'
-      },
-      {
-        id: 'pitThrowsInterval',
-        label: 'Throw Interval',
-        stateKey: 'pitThrowIntervalMs',
-        type: 'range',
-        min: 10, max: 500, step: 5,
-        default: 70,
-        format: v => `${Math.round(v)}ms`,
-        parse: parseFloat
-      },
-      {
-        id: 'pitThrowsColorPause',
-        label: 'Color Pause',
-        stateKey: 'pitThrowColorPauseMs',
-        type: 'range',
-        min: 0, max: 1200, step: 10,
-        default: 180,
-        format: v => `${Math.round(v)}ms`,
-        parse: parseFloat
-      },
-      {
-        id: 'pitThrowsPairChance',
-        label: 'Pair Chance',
-        stateKey: 'pitThrowPairChance',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.35,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'pitThrowsPairStagger',
-        label: 'Pair Stagger',
-        stateKey: 'pitThrowPairStaggerMs',
-        type: 'range',
-        min: 0, max: 120, step: 1,
-        default: 18,
-        format: v => `${Math.round(v)}ms`,
-        parse: parseFloat
-      },
-      {
-        id: 'pitThrowsBatchSize',
-        label: 'Batch Size',
-        stateKey: 'pitThrowBatchSize',
-        type: 'range',
-        min: 1, max: 60, step: 1,
-        default: 18,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'pitThrowsTargetYFrac',
-        label: 'Throw Aim (Y)',
-        stateKey: 'pitThrowTargetYFrac',
-        type: 'range',
-        min: 0.12, max: 0.7, step: 0.01,
-        default: 0.36,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'pitThrowsAngleJitter',
-        label: 'Angle Jitter',
-        stateKey: 'pitThrowAngleJitter',
-        type: 'range',
-        min: 0, max: 0.6, step: 0.01,
-        default: 0.16,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'pitThrowsSpreadVar',
-        label: 'Spread Variance',
-        stateKey: 'pitThrowSpreadVar',
-        type: 'range',
-        min: 0, max: 0.8, step: 0.01,
-        default: 0.25,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      },
-      {
-        id: 'pitThrowsSpeedJitter',
-        label: 'Speed Jitter',
-        stateKey: 'pitThrowSpeedJitter',
-        type: 'range',
-        min: 0, max: 0.8, step: 0.01,
-        default: 0.22,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'pitThrowsInletInset',
-        label: 'Inlet Inset',
-        stateKey: 'pitThrowInletInset',
-        type: 'range',
-        min: 0, max: 0.2, step: 0.005,
-        default: 0.06,
-        format: v => v.toFixed(3),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'pitThrowsSpawnSpread',
-        label: 'Spawn Spread',
-        stateKey: 'pitThrowSpawnSpread',
-        type: 'range',
-        min: 0, max: 0.12, step: 0.0025,
-        default: 0.02,
-        format: v => v.toFixed(4),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'pitThrowsAimJitter',
-        label: 'Aim Jitter',
-        stateKey: 'pitThrowAimJitter',
-        type: 'range',
-        min: 0, max: 0.2, step: 0.005,
-        default: 0.04,
-        format: v => v.toFixed(3),
-        parse: parseFloat
-      },
-      {
-        id: 'pitThrowsCrossBias',
-        label: 'Cross Aim',
-        stateKey: 'pitThrowCrossBias',
-        type: 'range',
-        min: 0, max: 0.3, step: 0.005,
-        default: 0.12,
-        format: v => v.toFixed(3),
-        parse: parseFloat
-      },
-      warmupFramesControl('pitThrowsWarmupFrames')
     ]
   },
 
@@ -4264,7 +4067,6 @@ function generateHomeModeSectionHTML() {
               'bubbles': '🫧',
               'critters': '🪲',
               'flies': '🕊️',
-              'pit-throws': '🎯',
               'water': '🌊',
               'vortex': '🌀',
               'magnetic': '🧲',
@@ -4282,7 +4084,6 @@ function generateHomeModeSectionHTML() {
               'bubbles': 'Bubbles',
               'critters': 'Critters',
               'flies': 'Flies',
-              'pit-throws': 'Throws',
               'water': 'Water',
               'vortex': 'Vortex',
               'magnetic': 'Magnet',
@@ -4490,7 +4291,6 @@ export function bindRegisteredControls() {
           const mode = g.currentMode;
           const map = {
             pit: null,
-            'pit-throws': null,
             flies: g.fliesBallCount,
             weightless: g.weightlessCount,
             water: g.waterBallCount,

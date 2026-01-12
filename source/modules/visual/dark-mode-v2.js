@@ -60,32 +60,30 @@ function syncCssVarsFromConfig() {
   const g = getGlobals();
   const root = document.documentElement;
   
-  // Backgrounds
+  // Scene interior backgrounds (used only for #bravia-balls container, not browser chrome)
   if (g?.bgLight) {
     root.style.setProperty('--bg-light', g.bgLight);
-    root.style.setProperty('--chrome-bg-light', g.bgLight);
   }
   if (g?.bgDark) {
     root.style.setProperty('--bg-dark', g.bgDark);
-    root.style.setProperty('--chrome-bg-dark', g.bgDark);
   }
-  // Frame colors: separate light and dark mode wall colors
-  // IMPORTANT: Only use frameColorLight/frameColorDark - do NOT fallback to frameColor
-  // as it would override the separate light/dark colors set by the control panel
-  if (g?.frameColorLight) {
-    root.style.setProperty('--frame-color-light', g.frameColorLight);
-  }
-  if (g?.frameColorDark) {
-    root.style.setProperty('--frame-color-dark', g.frameColorDark);
-  }
-  // Wall colors automatically point to frameColor via CSS (--wall-color-light: var(--frame-color-light))
-  // Update browser chrome with the appropriate color for current mode
-  const chromeColor = g.isDarkMode ? g?.frameColorDark : g?.frameColorLight;
-  if (chromeColor) {
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.content = chromeColor;
-    root.style.setProperty('--chrome-bg', chromeColor);
-  }
+  // Unified wall and browser chrome color (always #242529, no light/dark variants)
+  // Frame color is now unified - prefer frameColor, then frameColorLight/frameColorDark, then CSS default
+  const unifiedWallColor = g?.frameColor || g?.frameColorLight || g?.frameColorDark || '#242529';
+  root.style.setProperty('--frame-color', unifiedWallColor);
+  root.style.setProperty('--wall-color', unifiedWallColor);
+  root.style.setProperty('--chrome-bg', unifiedWallColor);
+  // Legacy aliases for compatibility
+  root.style.setProperty('--frame-color-light', unifiedWallColor);
+  root.style.setProperty('--frame-color-dark', unifiedWallColor);
+  root.style.setProperty('--wall-color-light', unifiedWallColor);
+  root.style.setProperty('--wall-color-dark', unifiedWallColor);
+  root.style.setProperty('--chrome-bg-light', unifiedWallColor);
+  root.style.setProperty('--chrome-bg-dark', unifiedWallColor);
+  
+  // Update browser chrome meta tag
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = unifiedWallColor;
   
   // Text colors
   if (g?.textColorLight) {
@@ -138,26 +136,24 @@ function isNightByLocalClock() {
 
 /**
  * Update browser chrome/theme color for Safari and Chrome
- * Uses wall colors (frame colors) for browser chrome to match the wall appearance
+ * Uses unified wall color (#242529) for browser chrome - consistent across all modes
  */
 function updateThemeColor(isDark) {
   const g = getGlobals();
-  // Use wall colors (frame colors) for browser chrome - matches the wall appearance
-  // Fallback colors match wall-color tokens: light=#f5f5f5 (neutral-100), dark=#0a0a0a (neutral-950)
-  const lightColor = g?.frameColorLight || readTokenVar('--frame-color-light', '#f5f5f5');
-  const darkColor = g?.frameColorDark || readTokenVar('--frame-color-dark', '#0a0a0a');
-  const currentColor = isDark ? darkColor : lightColor;
+  // Unified wall color (always #242529, no light/dark variants)
+  // Prefer frameColor, then frameColorLight/frameColorDark, then CSS token, then default
+  const unifiedColor = g?.frameColor || g?.frameColorLight || g?.frameColorDark || readTokenVar('--wall-color', '#242529');
   
   // Update existing meta tag or create new one
-  let metaTheme = document.querySelector('meta[name="theme-color"]');
+  let metaTheme = document.querySelector('meta[name="theme-color"]:not([media])');
   if (!metaTheme) {
     metaTheme = document.createElement('meta');
     metaTheme.name = 'theme-color';
     document.head.appendChild(metaTheme);
   }
-  metaTheme.content = currentColor;
+  metaTheme.content = unifiedColor;
   
-  // Safari-specific: Update for both light and dark modes
+  // Safari-specific: Update for both light and dark modes (both use unified color)
   let metaThemeLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
   if (!metaThemeLight) {
     metaThemeLight = document.createElement('meta');
@@ -165,7 +161,7 @@ function updateThemeColor(isDark) {
     metaThemeLight.media = '(prefers-color-scheme: light)';
     document.head.appendChild(metaThemeLight);
   }
-  metaThemeLight.content = lightColor;
+  metaThemeLight.content = unifiedColor;
   
   let metaThemeDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
   if (!metaThemeDark) {
@@ -174,18 +170,17 @@ function updateThemeColor(isDark) {
     metaThemeDark.media = '(prefers-color-scheme: dark)';
     document.head.appendChild(metaThemeDark);
   }
-  metaThemeDark.content = darkColor;
+  metaThemeDark.content = unifiedColor;
   
-  // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style based on theme
-  // black-translucent: transparent status bar with dark content (light mode - allows wall color to show)
-  // black: black status bar with light content (dark mode - dark status bar on dark wall)
+  // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style
+  // black-translucent: transparent status bar (allows unified wall color to show)
   let appleStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
   if (!appleStatusBar) {
     appleStatusBar = document.createElement('meta');
     appleStatusBar.name = 'apple-mobile-web-app-status-bar-style';
     document.head.appendChild(appleStatusBar);
   }
-  appleStatusBar.content = isDark ? 'black' : 'black-translucent';
+  appleStatusBar.content = 'black-translucent';
 }
 
 /**
@@ -285,11 +280,31 @@ export function setTheme(theme) {
 }
 
 /**
+ * Clear color-related localStorage cache
+ * Called when wall color system changes to prevent stale color values
+ */
+function clearColorCache() {
+  try {
+    // Clear theme preferences (will be re-initialized with unified color)
+    localStorage.removeItem(THEME_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+    // Clear palette rotation cache (from colors.js - actual key name)
+    localStorage.removeItem('abs_palette_chapter');
+    devLog('🗑️ Cleared color-related localStorage cache');
+  } catch (e) {
+    // localStorage unavailable or error
+  }
+}
+
+/**
  * Initialize dark mode system
  */
 export function initializeDarkMode() {
   if (isDarkModeInitialized) return;
   isDarkModeInitialized = true;
+
+  // Clear color cache to prevent stale wall color values
+  clearColorCache();
 
   // Sync CSS variables from config FIRST (before theme application)
   syncCssVarsFromConfig();

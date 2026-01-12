@@ -16,7 +16,6 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 8. **Carbonated Bubbles** (`bubbles`)
 9. **Kaleidoscope** (`kaleidoscope-3`)
 10. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
-14. **Ball Pit (Throws)** (`pit-throws`) — **no keyboard shortcut yet**
 17. **3D Sphere** (`3d-sphere`)
 18. **3D Cube** (`3d-cube`)
 20. **Neural Network** (`neural`)
@@ -45,8 +44,7 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 2. **Flies to Light** (`flies`) — **IDEA SPARK**
 3. **3D Cube** (`3d-cube`) — **3D FRAME**
 4. **Carbonated Bubbles** (`bubbles`) — **NOISE SIGNAL**
-5. **Ball Pit (Throws)** (`pit-throws`) — **PROTOTYPE LOOP**
-6. **Magnetic** (`magnetic`) — **DESIGN FORCES**
+5. **Magnetic** (`magnetic`) — **DESIGN FORCES**
 7. **Water Swimming** (`water`) — **USER FLOW**
 8. **Ping Pong** (`ping-pong`) — **FEEDBACK CYCLE**
 9. **Neural Network** (`neural`) — **CONNECTION MAP**
@@ -128,17 +126,6 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 - **Collisions:** Ball-to-ball + wall collision
 - **Interaction:** Cursor repeller enabled
 - **Notes:** Includes sleep logic to reduce jitter when balls settle
-
-## Mode 1b: Ball Pit (Throws) 🎯
-
-**Purpose:** Ball Pit, but seeded by balls thrown in **color-by-color batches** from the **top-left/top-right** into the scene.
-
-- **Gravity:** Enabled (via `gravityMultiplier`)
-- **Collisions:** Ball-to-ball + wall collision
-- **Interaction:** Cursor repeller enabled
-- **Tuning:** See Ball Pit (Throws) keys in `CONFIGURATION.md`
-
----
 
 ## Mode 2: Flies to Light 🕊️
 

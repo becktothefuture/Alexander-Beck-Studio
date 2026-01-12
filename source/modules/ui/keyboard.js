@@ -13,7 +13,7 @@ let isKeyboardWired = false;
 
 function navigateNarrative(delta) {
   const g = getGlobals();
-  const mode = g?.currentMode || MODES.PIT_THROWS;
+  const mode = g?.currentMode || MODES.PIT;
   const seq = NARRATIVE_MODE_SEQUENCE;
   if (!seq || !seq.length) return;
   const idx = seq.indexOf(mode);

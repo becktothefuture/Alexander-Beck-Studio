@@ -89,7 +89,7 @@ See `docs/reference/MODES.md` for the authoritative mode list + narrative orderi
 - **Sound toggle:** Global audio enable/disable
 
 ### 20 Simulation Modes
-- **Gravity:** Ball Pit, Ball Pit (Throws)
+- **Gravity:** Ball Pit
 - **Swarm/Flow:** Flies, Vortex, Magnetic, Critters
 - **Elastic:** Zero-G (Weightless), Ping Pong
 - **Fluid:** Water, Bubbles
@@ -128,7 +128,7 @@ source/
     physics/         # Ball.js, collision.js, engine.js, spawn.js, wall-state.js, text-colliders.js
     rendering/       # renderer.js, loop.js, cursor.js, effects.js, theme.js
   modes/           # 16 mode files:
-                    #   ball-pit, pit-throws, flies, weightless, water, vortex,
+                    #   ball-pit, flies, weightless, water, vortex,
                     #   ping-pong, magnetic, bubbles, kaleidoscope, critters,
                     #   neural, parallax-linear, 3d-sphere, 3d-cube, starfield-3d
                     #   + mode-controller.js

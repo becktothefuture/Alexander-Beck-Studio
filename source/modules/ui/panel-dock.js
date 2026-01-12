@@ -134,7 +134,7 @@ function getMasterPanelContent({
   pageHTML = HOME_PANEL_HTML,
   includePageSaveButton = false,
   pageSaveButtonId = 'savePortfolioConfigBtn',
-  footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters + Throws have no key (yet)',
+  footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters have no key (yet)',
 } = {}) {
   const g = getGlobals();
   // Values are vw-native in state; px values are derived once and kept in sync.
@@ -279,7 +279,7 @@ export function createPanelDock(options = {}) {
   const pageSaveButtonId = options.pageSaveButtonId || 'savePortfolioConfigBtn';
   const footerHint = options.footerHint || (page === 'portfolio'
     ? '<kbd>/</kbd> panel'
-    : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters + Throws have no key (yet)');
+    : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters have no key (yet)');
   const panelTitle = options.panelTitle || 'Settings';
   const modeLabel = options.modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
   const bindShortcut = !!options.bindShortcut;

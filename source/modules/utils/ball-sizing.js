@@ -18,7 +18,6 @@ const SIZE_VARIATION_MAX = 0.2;
 export function getModeSizeVariation01(g, mode) {
   switch (mode) {
     case MODES.PIT: return g.sizeVariationPit ?? 0;
-    case MODES.PIT_THROWS: return g.sizeVariationPitThrows ?? 0;
     case MODES.FLIES: return g.sizeVariationFlies ?? 0;
     case MODES.WEIGHTLESS: return g.sizeVariationWeightless ?? 0;
     case MODES.WATER: return g.sizeVariationWater ?? 0;

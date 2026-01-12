@@ -7,7 +7,6 @@ import { MODES, CONSTANTS } from '../core/constants.js';
 import { setMode as setModeState, getGlobals } from '../core/state.js';
 import { initializeFlies, applyFliesForces } from './flies.js';
 import { initializeBallPit, applyBallPitForces } from './ball-pit.js';
-import { initializePitThrows, updatePitThrows } from './pit-throws.js';
 import { initializeWeightless, applyWeightlessForces } from './weightless.js';
 import { resize } from '../rendering/renderer.js';
 import { initializeWater, applyWaterForces, updateWaterRipples } from './water.js';
@@ -36,7 +35,6 @@ function getWarmupFramesForMode(mode, globals) {
   // Default is 10 everywhere unless overridden via config/panel.
   switch (mode) {
     case MODES.PIT: return globals.pitWarmupFrames ?? 10;
-    case MODES.PIT_THROWS: return globals.pitThrowsWarmupFrames ?? 10;
     case MODES.FLIES: return globals.fliesWarmupFrames ?? 10;
     case MODES.WEIGHTLESS: return globals.weightlessWarmupFrames ?? 10;
     case MODES.WATER: return globals.waterWarmupFrames ?? 10;
@@ -87,7 +85,6 @@ export function setMode(mode) {
   console.log(`Switching to mode: ${mode}`);
   const modeNames = { 
     pit: 'Ball Pit', 
-    'pit-throws': 'Ball Pit (Throws)',
     flies: 'Flies to Light', 
     weightless: 'Zero Gravity', 
     water: 'Water Swimming',
@@ -113,7 +110,7 @@ export function setMode(mode) {
   if (globals.container) {
     const wasDark = globals.container.classList.contains('dark-mode');
     globals.container.className = '';
-    if (mode === MODES.PIT || mode === MODES.PIT_THROWS) {
+    if (mode === MODES.PIT) {
       globals.container.classList.add('mode-pit');
     }
     // Restore dark mode class if it was set
@@ -131,11 +128,6 @@ export function setMode(mode) {
     globals.G = globals.GE * globals.gravityMultiplier;
     globals.repellerEnabled = true;
     initializeBallPit();
-  } else if (mode === MODES.PIT_THROWS) {
-    globals.gravityMultiplier = globals.gravityMultiplierPit;
-    globals.G = globals.GE * globals.gravityMultiplier;
-    globals.repellerEnabled = true;
-    initializePitThrows();
   } else if (mode === MODES.FLIES) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -258,7 +250,7 @@ export function getForceApplicator() {
   const globals = getGlobals();
   if (globals.currentMode === MODES.FLIES) {
     return applyFliesForces;
-  } else if (globals.currentMode === MODES.PIT || globals.currentMode === MODES.PIT_THROWS) {
+  } else if (globals.currentMode === MODES.PIT) {
     return applyBallPitForces;
   } else if (globals.currentMode === MODES.WEIGHTLESS) {
     return applyWeightlessForces;
@@ -294,8 +286,6 @@ export function getModeUpdater() {
   const globals = getGlobals();
   if (globals.currentMode === MODES.WATER) {
     return updateWaterRipples;
-  } else if (globals.currentMode === MODES.PIT_THROWS) {
-    return updatePitThrows;
   } else if (globals.currentMode === MODES.MAGNETIC) {
     return updateMagnetic;
   } else if (globals.currentMode === MODES.BUBBLES) {

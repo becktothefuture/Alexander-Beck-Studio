@@ -50,7 +50,7 @@ export class Ball {
     
     // Wake up if sleeping and mouse is nearby.
     // This is kept cheap (no sqrt) so sleeping can safely be used beyond Pit modes.
-    const isPitLike = currentMode === MODES.PIT || currentMode === MODES.PIT_THROWS;
+    const isPitLike = currentMode === MODES.PIT;
     if (this.isSleeping) {
       const mouseX = globals.mouseX;
       const mouseY = globals.mouseY;
@@ -257,7 +257,7 @@ export class Ball {
     // ════════════════════════════════════════════════════════════════════════
     // SIMPLE ROUNDED-RECT SDF COLLISION
     // ════════════════════════════════════════════════════════════════════════
-    const isPitMode = currentMode === MODES.PIT || currentMode === MODES.PIT_THROWS;
+    const isPitMode = currentMode === MODES.PIT;
     
     // SDF parameters: inner boundary is inset by wallThickness
     const hx = innerW * 0.5;  // half-width

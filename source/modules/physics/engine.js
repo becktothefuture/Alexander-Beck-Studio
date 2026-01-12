@@ -129,7 +129,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         globals.currentMode !== MODES.PARALLAX_LINEAR &&
         globals.currentMode !== MODES.STARFIELD_3D) {
       const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
-      const isPitLike = (globals.currentMode === MODES.PIT || globals.currentMode === MODES.PIT_THROWS);
+      const isPitLike = (globals.currentMode === MODES.PIT);
       const lenWalls = balls.length;
       for (let i = 0; i < lenWalls; i++) {
         // Ball Pit has explicit rounded-corner arc clamping in Ball.walls().
@@ -143,7 +143,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     // Ball Pit stabilization:
     // Wall/corner clamping can re-introduce overlaps in dense stacks (especially near the floor).
     // Run a small post-wall collision pass for Pit-like modes only.
-    if (globals.currentMode === MODES.PIT || globals.currentMode === MODES.PIT_THROWS) {
+    if (globals.currentMode === MODES.PIT) {
       resolveCollisions(3);
 
       // The post-wall collision pass can push bodies slightly outside the inset wall bounds.
@@ -217,8 +217,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.CUBE_3D &&
         mode !== MODES.PARALLAX_LINEAR &&
         mode !== MODES.KALEIDOSCOPE &&
-        mode !== MODES.PIT &&
-        mode !== MODES.PIT_THROWS;
+        mode !== MODES.PIT;
 
       if (eligible) {
         const DPR = globals.DPR || 1;

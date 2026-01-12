@@ -5,7 +5,7 @@
 ## 🎯 Project Context
 
 **High-performance particle physics simulation** with 20 modes across 8 categories:
-- **Gravity:** Ball Pit, Ball Pit (Throws)
+- **Gravity:** Ball Pit
 - **Swarm/Flow:** Flies, Vortex, Magnetic, Critters
 - **Elastic:** Zero-G (Weightless), Ping Pong
 - **Fluid:** Water, Bubbles

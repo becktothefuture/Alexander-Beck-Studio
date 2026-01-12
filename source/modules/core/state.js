@@ -45,23 +45,7 @@ const state = {
   gravityMultiplier: 0,
   gravityMultiplierPit: 1.10,
 
-  // Ball Pit (Throws) spawn tuning (mode: pit-throws)
-  pitThrowSpeed: 650,          // px/s-ish (canvas units)
-  pitThrowSpeedJitter: 0.22,   // 0..1 (multiplier jitter)
-  pitThrowAngleJitter: 0.16,   // 0..1 (radians scaled by π)
-  pitThrowBatchSize: 18,       // balls per color batch
-  pitThrowIntervalMs: 70,      // ms between throws within a color
-  pitThrowColorPauseMs: 180,   // ms pause between colors
-  pitThrowTargetYFrac: 0.36,   // 0..1 (aim point in canvas height)
-  pitThrowInletInset: 0.06,    // 0..1 (fraction of usable width from wall)
-  pitThrowCrossBias: 0.12,     // 0..1 (cross-aim bias: left->right, right->left)
-  pitThrowSpawnSpread: 0.02,   // 0..1 (fraction of usable width)
-  pitThrowAimJitter: 0.04,     // 0..1 (fraction of canvas width)
-  pitThrowPairChance: 0.35,    // 0..1 (chance to schedule a paired throw)
-  pitThrowPairStaggerMs: 18,   // ms (delay for the paired throw)
-  pitThrowSpeedVar: 0.18,      // 0..1 (per-throw speed multiplier variance)
-  pitThrowSpreadVar: 0.25,     // 0..1 (per-throw spread multiplier variance)
-  // Global “material world” defaults (snooker-ish balls + thick boundary)
+  // Global "material world" defaults (snooker-ish balls + thick boundary)
   REST: 0.31,
   FRICTION: 0.011,
   ballMassKg: 240,
@@ -82,7 +66,6 @@ const state = {
   sizeVariationCap: 0.12,
   // Per-mode variation (0..1)
   sizeVariationPit: 0,
-  sizeVariationPitThrows: 0,
   sizeVariationFlies: 0,
   sizeVariationWeightless: 0,
   sizeVariationWater: 0,
@@ -95,10 +78,9 @@ const state = {
   sizeVariationNeural: 0,
   sizeVariationParallaxLinear: 0,
   
-  // Warmup (per simulation) — how many “startup frames” to pre-run before first render.
+  // Warmup (per simulation) — how many "startup frames" to pre-run before first render.
   // Default 10 for all modes (quick settle; avoids visible pop-in while testing).
   pitWarmupFrames: 10,
-  pitThrowsWarmupFrames: 10,
   fliesWarmupFrames: 10,
   weightlessWarmupFrames: 10,
   waterWarmupFrames: 10,
@@ -880,7 +862,6 @@ export function initState(config) {
   }
   // Per-mode variation sliders (0..1)
   if (config.sizeVariationPit !== undefined) state.sizeVariationPit = clampNumber(config.sizeVariationPit, 0, 1, state.sizeVariationPit);
-  if (config.sizeVariationPitThrows !== undefined) state.sizeVariationPitThrows = clampNumber(config.sizeVariationPitThrows, 0, 1, state.sizeVariationPitThrows);
   if (config.sizeVariationFlies !== undefined) state.sizeVariationFlies = clampNumber(config.sizeVariationFlies, 0, 1, state.sizeVariationFlies);
   if (config.sizeVariationWeightless !== undefined) state.sizeVariationWeightless = clampNumber(config.sizeVariationWeightless, 0, 1, state.sizeVariationWeightless);
   if (config.sizeVariationWater !== undefined) state.sizeVariationWater = clampNumber(config.sizeVariationWater, 0, 1, state.sizeVariationWater);
@@ -923,7 +904,6 @@ export function initState(config) {
 
   // Warmup frames (per simulation) — integer 0..240
   if (config.pitWarmupFrames !== undefined) state.pitWarmupFrames = clampInt(config.pitWarmupFrames, 0, 240, state.pitWarmupFrames);
-  if (config.pitThrowsWarmupFrames !== undefined) state.pitThrowsWarmupFrames = clampInt(config.pitThrowsWarmupFrames, 0, 240, state.pitThrowsWarmupFrames);
   if (config.fliesWarmupFrames !== undefined) state.fliesWarmupFrames = clampInt(config.fliesWarmupFrames, 0, 240, state.fliesWarmupFrames);
   if (config.weightlessWarmupFrames !== undefined) state.weightlessWarmupFrames = clampInt(config.weightlessWarmupFrames, 0, 240, state.weightlessWarmupFrames);
   if (config.waterWarmupFrames !== undefined) state.waterWarmupFrames = clampInt(config.waterWarmupFrames, 0, 240, state.waterWarmupFrames);
@@ -1172,10 +1152,14 @@ export function initState(config) {
     state.frameColorLight = config.frameColor;
     state.frameColorDark = config.frameColor;
   } else {
-    // If not set, use light mode value as fallback for legacy frameColor
-    state.frameColor = state.frameColorLight;
+    // Unified wall color: use the first available value (light, dark, or default)
+    // Then enforce it across all variants
+    const unifiedColor = state.frameColorLight || state.frameColorDark || '#242529';
+    state.frameColor = unifiedColor;
+    state.frameColorLight = unifiedColor;
+    state.frameColorDark = unifiedColor;
   }
-  // Enforce a single wall/chrome color across light and dark modes.
+  // Enforce unified wall/chrome color across light and dark modes (always the same)
   state.frameColorLight = state.frameColor;
   state.frameColorDark = state.frameColor;
   

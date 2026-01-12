@@ -87,15 +87,17 @@ html.aspect-portrait {
 }
 
 /* Initial browser-default state (before entrance animation) */
+/* Unified wall color fallback: #242529 (consistent across all modes) */
 html.entrance-pre-transition {
-  background: var(--wall-color, #f5f5f5);
-  background-color: var(--wall-color, #f5f5f5);
+  background: var(--wall-color, #242529);
+  background-color: var(--wall-color, #242529);
 }
 
 /* Dark mode override: prevent white flash on load */
+/* Unified wall color (same as light mode) */
 html.entrance-pre-transition.dark-mode {
-  background: var(--wall-color, #0a0a0a);
-  background-color: var(--wall-color, #0a0a0a);
+  background: var(--wall-color, #242529);
+  background-color: var(--wall-color, #242529);
 }
 
 html.entrance-pre-transition body,

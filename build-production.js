@@ -521,7 +521,7 @@ async function buildProduction() {
         pHtml = pHtml.replace(/<script[^>]*src="js\/portfolio-bundle\.js[^"]*"[^>]*><\/script>/g, portfolioJsTag);
         
         // Always replace existing inline scripts to ensure fresh configs
-        if (isProd && fs.existsSync(portfolioConfigSrc)) {
+        if (fs.existsSync(portfolioConfigSrc)) {
           try {
             const raw = fs.readFileSync(portfolioConfigSrc, 'utf-8');
             const min = JSON.stringify(JSON.parse(raw));
@@ -538,7 +538,7 @@ async function buildProduction() {
         
         // CONFIG: Inline runtime config into portfolio.html (same as index.html)
         // Portfolio page needs runtime config for wall colors and other global parameters
-        if (isProd && fs.existsSync(runtimeConfigSrc)) {
+        if (fs.existsSync(runtimeConfigSrc)) {
           try {
             const raw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
             // Prevent accidental </script> termination and keep HTML safe.
@@ -601,10 +601,10 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
       html = html.replace('<head>', '<head>\n' + fadeBlockingCSS);
     }
 
-    // CONFIG: Inline runtime config into HTML for production (hardcoded at build-time).
+    // CONFIG: Inline runtime config into HTML (hardcoded at build-time).
     // This allows the JS to boot without fetching any config, while still using the
     // config file as the single source of truth (read here, injected into HTML).
-    if (isProd && fs.existsSync(runtimeConfigSrc)) {
+    if (fs.existsSync(runtimeConfigSrc)) {
       try {
         const raw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
         // Prevent accidental </script> termination and keep HTML safe.
@@ -619,9 +619,9 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
       } catch (e) {}
     }
 
-    // TEXT: Inline runtime text dictionary into HTML for production (hardcoded + minified).
+    // TEXT: Inline runtime text dictionary into HTML (hardcoded + minified).
     // Guarantees: zero fetch, no copy pop-in, and a single authoring surface.
-    if (isProd && fs.existsSync(runtimeTextSrc)) {
+    if (fs.existsSync(runtimeTextSrc)) {
       try {
         const raw = fs.readFileSync(runtimeTextSrc, 'utf-8');
         const min = JSON.stringify(JSON.parse(raw));
@@ -697,8 +697,8 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
         const cvJsTag = `<script src="js/cv-bundle.js?v=${buildStamp}" defer></script>`;
         cvHtml = replaceMarker(cvHtml, 'ABS_BUILD_MARKER:JS_PROD', cvJsTag);
 
-        // CONFIG: Inline runtime config into cv.html for production (hardcoded at build-time).
-        if (isProd && fs.existsSync(runtimeConfigSrc)) {
+        // CONFIG: Inline runtime config into cv.html (hardcoded at build-time).
+        if (fs.existsSync(runtimeConfigSrc)) {
           try {
             const raw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
             const safe = raw.replace(/</g, '\\u003c');
@@ -711,7 +711,7 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
         }
 
         // TEXT: Inline runtime text dictionary to avoid fetch attempts on CV page.
-        if (isProd && fs.existsSync(runtimeTextSrc)) {
+        if (fs.existsSync(runtimeTextSrc)) {
           try {
             const raw = fs.readFileSync(runtimeTextSrc, 'utf-8');
             const min = JSON.stringify(JSON.parse(raw));
