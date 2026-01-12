@@ -252,23 +252,21 @@ function fadeLogoNav(fadeOut = true) {
     const logo = document.getElementById('brand-logo');
     const nav = document.getElementById('main-links');
     const duration = fadeOut ? 500 : 400;
-    const targetOpacity = fadeOut ? '0' : '1';
     
     if (logo) {
-        logo.style.transition = `opacity ${duration}ms ease-out`;
-        logo.style.opacity = targetOpacity;
-        if (!fadeOut) {
-            setTimeout(() => logo?.style.removeProperty('opacity'), duration);
-        }
+        // Use Web Animations API to fade - works alongside existing animation
+        logo.animate(
+            [{ opacity: fadeOut ? 1 : 0 }, { opacity: fadeOut ? 0 : 1 }],
+            { duration, easing: 'ease-out', fill: 'forwards' }
+        );
     }
     
     if (nav) {
-        nav.style.transition = `opacity ${duration}ms ease-out`;
-        nav.style.opacity = targetOpacity;
+        nav.animate(
+            [{ opacity: fadeOut ? 1 : 0 }, { opacity: fadeOut ? 0 : 1 }],
+            { duration, easing: 'ease-out', fill: 'forwards' }
+        );
         nav.style.pointerEvents = fadeOut ? 'none' : '';
-        if (!fadeOut) {
-            setTimeout(() => nav?.style.removeProperty('opacity'), duration);
-        }
     }
 }
 

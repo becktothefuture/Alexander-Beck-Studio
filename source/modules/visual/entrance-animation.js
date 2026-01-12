@@ -343,58 +343,37 @@ export function revealLateElement(element, options = {}) {
     
     const g = getGlobals();
     const delay = options.delay ?? 0;
-    // Double the duration for more dramatic effect
-    const baseDuration = options.duration ?? g.entranceLateElementDuration ?? 600;
-    const duration = baseDuration * 2;
-    const easing = options.easing ?? g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
-    const scaleFrom = options.scaleFrom ?? g.entranceLateElementScaleFrom ?? 0.92;
-    const scaleTo = options.scaleTo ?? 1;
-    const animate = options.animate !== false && typeof element.animate === 'function';
-    
-    let finalized = false;
-    
-    const finalize = () => {
-      if (finalized) return;
-      finalized = true;
-      // Clear ALL inline styles so CSS takes over completely
-      // CRITICAL: Remove opacity so CSS transitions (e.g., modal dimming) can work
-      element.style.removeProperty('opacity');
-      element.style.removeProperty('transform');
-      element.style.removeProperty('filter');
-      element.style.removeProperty('scale');
-      element.style.removeProperty('will-change');
-      element.style.visibility = 'visible';
-      resolve();
-    };
+    const duration = (options.duration ?? g.entranceLateElementDuration ?? 600) * 2;
+    const easing = options.easing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
     
     setTimeout(() => {
-      if (animate) {
-        element.style.visibility = 'visible';
-        element.style.willChange = 'opacity, scale';
-        
-        // Simple animation: opacity + scale only. No transform manipulation.
-        // CSS handles positioning (including logo's --logo-offset-x).
-        const anim = element.animate(
-          [
-            { opacity: 0, scale: scaleFrom },
-            { opacity: 1, scale: scaleTo }
-          ],
-          { duration, easing, fill: 'forwards' }
-        );
-        
-        anim.addEventListener('finish', () => {
-          // Don't commit styles - we want CSS to take over for modal transitions
-          // Just cancel animation and clear inline styles
-          anim.cancel();
-          finalize();
+      // Disable ALL transitions to prevent Safari flash
+      element.style.transition = 'none';
+      element.style.visibility = 'visible';
+      
+      // Animate with fill: forwards - never cancel, let it hold the final state
+      const anim = element.animate(
+        [
+          { opacity: 0 },
+          { opacity: 1 }
+        ],
+        { duration, easing, fill: 'forwards' }
+      );
+      
+      // After animation finishes, set final state and re-enable transitions
+      anim.finished.then(() => {
+        // Set inline opacity to match animation end state
+        element.style.opacity = '1';
+        // Wait a frame before re-enabling transitions
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            element.style.removeProperty('transition');
+            document.documentElement.classList.add('entrance-complete');
+          });
         });
-        anim.addEventListener('cancel', finalize);
-        
-        // Safety timeout
-        setTimeout(finalize, duration + 100);
-      } else {
-        finalize();
-      }
+      }).catch(() => {});
+      
+      resolve();
     }, delay);
   });
 }

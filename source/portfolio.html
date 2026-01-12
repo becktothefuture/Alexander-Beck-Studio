@@ -16,6 +16,14 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#242529">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#242529">
   <meta name="theme-color" content="#242529">
+  <!-- CRITICAL: Safari detection for noise layer fixes (must run before CSS) -->
+  <script>
+    (function() {
+      var ua = navigator.userAgent;
+      var isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+      if (isSafari) document.documentElement.classList.add('is-safari');
+    })();
+  </script>
   <!-- CRITICAL: Dark mode detection BEFORE first paint to prevent white flash -->
   <script>
     (function() {

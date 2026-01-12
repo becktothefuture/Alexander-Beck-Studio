@@ -524,6 +524,8 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   gap: var(--legend-item-gap, var(--gap-xs));
   padding: var(--gap-sm);
   border-radius: var(--legend-item-radius);
+  /* Safari fix: create stacking context to prevent noise layer bleeding on hover */
+  isolation: isolate;
 }
 
 .legend__item span {
@@ -872,6 +874,9 @@ p {
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic);
   cursor: none; /* Maintain custom cursor experience */
+  /* Safari fix: create stacking context to prevent noise layer bleeding on hover */
+  isolation: isolate;
+  z-index: 15;
 }
 
 /* Ensure header CV link is dark on light backgrounds */
@@ -1258,8 +1263,20 @@ body.dark-mode #brand-logo {
   color: var(--text-primary);
 }
 
+/* Disable opacity transitions during entrance animation to prevent Safari flash */
+html:not(.entrance-complete) #brand-logo,
+html:not(.entrance-complete) #main-links {
+  transition: 
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic),
+    transform 0s,
+    filter 0s,
+    padding var(--duration-resize) var(--ease-organic);
+}
+
 /* After entrance completes, ensure late-reveal elements stay visible 
-   (fallback in case JS animation was interrupted - won't override inline styles) */
+   and re-enable opacity transitions for modal fade */
 html.entrance-complete #brand-logo,
 html.entrance-complete #main-links {
   opacity: 1;
@@ -1386,18 +1403,37 @@ body.dark-mode #bravia-balls {
   height: 100%;
   pointer-events: none;
   overflow: hidden;
+  /* Safari fix: isolate blend mode to prevent bleeding into other layers */
+  isolation: isolate;
+  /* Fade-in on load: starts hidden via visibility, revealed by .noise-ready class */
+  visibility: hidden;
+  transition: visibility 0s linear 0s, opacity 800ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .noise {
   z-index: 2;
-  opacity: calc(var(--noise-back-opacity-light) * var(--abs-noise-enabled));
+  opacity: 0;
   mix-blend-mode: multiply;
 }
 
 .noise-2 {
   z-index: 12; /* Above cards (z:10-11) to ensure noise is always in front */
-  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled));
+  opacity: 0;
   mix-blend-mode: multiply;
+}
+
+/* Noise layers fade in after page load */
+.noise-ready .noise,
+.noise-ready .noise-2 {
+  visibility: visible;
+}
+
+.noise-ready .noise {
+  opacity: calc(var(--noise-back-opacity-light) * var(--abs-noise-enabled));
+}
+
+.noise-ready .noise-2 {
+  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled));
 }
 
 .noise-3 {
@@ -1413,8 +1449,11 @@ body.dark-mode #bravia-balls {
   background-repeat: repeat;
   background-attachment: scroll;
   pointer-events: none;
-  will-change: transform, opacity;
-  transform: translate3d(0, 0, 0);
+  /* Safari fix: use stable GPU layer without will-change (causes Safari flicker) */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   filter: var(--abs-noise-filter);
   animation-name: var(--abs-noise-keyframes), abs-noise-flicker;
   animation-duration: var(--abs-noise-speed-back), var(--abs-noise-flicker-speed);
@@ -1431,17 +1470,51 @@ body.dark-mode #bravia-balls {
   animation-duration: var(--abs-noise-speed-front), var(--abs-noise-flicker-speed);
 }
 
-body.dark-mode .noise {
-  opacity: calc(var(--noise-back-opacity-dark) * var(--abs-noise-enabled));
-}
-
-body.dark-mode .noise-2 {
-  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled));
-}
-
 body.dark-mode .noise,
 body.dark-mode .noise-2 {
   mix-blend-mode: overlay;
+}
+
+/* Dark mode noise fade-in with correct opacities */
+.noise-ready body.dark-mode .noise,
+body.dark-mode.noise-ready .noise,
+body.dark-mode .noise-ready .noise {
+  opacity: calc(var(--noise-back-opacity-dark) * var(--abs-noise-enabled));
+}
+
+.noise-ready body.dark-mode .noise-2,
+body.dark-mode.noise-ready .noise-2,
+body.dark-mode .noise-ready .noise-2 {
+  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SAFARI FIX: Use background-position animation instead of transform
+   Safari has compositing bugs with mix-blend-mode + translate3d animations that
+   cause rectangular artifacts when other elements repaint (hover, transitions).
+   Background-position animation avoids GPU compositing bugs while keeping motion.
+   The .is-safari class is added by inline script in <head> before CSS loads.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+html.is-safari .noise::before,
+html.is-safari .noise-2::before {
+  /* Remove transform-based animation, use background-position instead */
+  animation-name: abs-noise-bgpos, abs-noise-flicker;
+  transform: none;
+  -webkit-transform: none;
+}
+
+@keyframes abs-noise-bgpos {
+  0% { background-position: 0% 0%; }
+  10% { background-position: -15% 8%; }
+  20% { background-position: 12% -10%; }
+  30% { background-position: -8% 15%; }
+  40% { background-position: 20% -5%; }
+  50% { background-position: -12% -12%; }
+  60% { background-position: 8% 18%; }
+  70% { background-position: -18% 5%; }
+  80% { background-position: 15% -15%; }
+  90% { background-position: -5% 10%; }
+  100% { background-position: 0% 0%; }
 }
 
 @keyframes abs-noise-jitter {

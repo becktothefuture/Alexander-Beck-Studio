@@ -83,18 +83,26 @@ function replaceMarker(html, marker, replacement) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function minifyCSS(css) {
-  return css
+  // Protect calc() expressions: replace with placeholders before minification
+  const calcExpressions = [];
+  let protected = css.replace(/calc\([^)]+\)/gi, (match) => {
+    calcExpressions.push(match);
+    return `__CALC_PLACEHOLDER_${calcExpressions.length - 1}__`;
+  });
+  
+  protected = protected
     // Remove CSS comments (preserve /*! license comments */)
     .replace(/\/\*(?!!)[^*]*\*+([^/*][^*]*\*+)*\//g, '')
     // Remove newlines and carriage returns
     .replace(/[\r\n]+/g, '')
     // Collapse multiple spaces/tabs into single space
     .replace(/[\t ]+/g, ' ')
-    // Remove space around structural chars { } : ; , > + ~ =
-    .replace(/\s*([{};:,>+~=])\s*/g, '$1')
+    // Remove space around structural chars { } : ; , > ~ =
+    // NOTE: Do NOT include + and - here as they need spaces in calc()
+    .replace(/\s*([{};:,>~=])\s*/g, '$1')
     // Remove trailing semicolons before closing braces
     .replace(/;}/g, '}')
-    // Remove space around parens
+    // Remove space around parens (but calc placeholders are already protected)
     .replace(/\(\s+/g, '(')
     .replace(/\s+\)/g, ')')
     // Remove space around brackets
@@ -119,13 +127,22 @@ function minifyCSS(css) {
     .replace(/:0\.(\d)/g, ':.$1')
     .replace(/\s0\.(\d)/g, ' .$1')
     .replace(/,0\.(\d)/g, ',.$1')
-    // Optimize calc(): calc(0px + 10px) → 10px (simple cases)
-    .replace(/calc\(0\s*\+\s*([^)]+)\)/gi, '$1')
-    .replace(/calc\(([^)]+)\s*\+\s*0\)/gi, '$1')
     // Remove empty rules
     .replace(/[^{}]+\{\s*\}/g, '')
     // Final trim
     .trim();
+  
+  // Restore calc() expressions (minify internal whitespace but preserve + - spacing)
+  return protected.replace(/__CALC_PLACEHOLDER_(\d+)__/g, (_, idx) => {
+    const expr = calcExpressions[parseInt(idx, 10)];
+    // Minify calc internals: collapse whitespace but preserve spaces around + and -
+    return expr
+      .replace(/\s+/g, ' ')
+      .replace(/\(\s+/g, '(')
+      .replace(/\s+\)/g, ')')
+      .replace(/\s*\*\s*/g, '*')
+      .replace(/\s*\/\s*/g, '/');
+  });
 }
 
 function extractRootCssVars(css) {
