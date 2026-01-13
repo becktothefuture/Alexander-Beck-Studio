@@ -1615,6 +1615,14 @@ html.is-safari .noise-2::before {
        CSS fallback kept for graceful degradation if JS hasn't stamped values yet. */
     --noise-size-scale: 0.8;
     /* Content padding now uses main responsive scaling (no mobile override multiplier) */
+    
+    /* Side labels closer to the wall */
+    --edge-label-inset-gap: 2px;
+  }
+  
+  /* Mobile logo sizing: 60vw */
+  #brand-logo .brand-logo-svg {
+    width: 60vw;
   }
 
   .ui-top {
@@ -1679,20 +1687,22 @@ html.is-safari .noise-2::before {
   }
   
   #main-links {
-    /* Mobile: maintain full-width nav bar, no horizontal padding */
+    /* Mobile: vertically stacked, no gap, center aligned */
+    flex-direction: column;
+    align-items: center;
     padding-inline: 0;
-    gap: var(--footer-nav-bar-gap, var(--gap-md));
+    gap: 0;
   }
   
   .footer_link {
-    /* Mobile sizing: +10% on "main links" */
-    font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 1.1);
+    /* Mobile sizing: 15% smaller than base */
+    font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 0.85);
   }
 
-  /* Nav bar links: substantial padding on mobile too */
+  /* Nav bar links: proper padding on mobile */
   #main-links .footer_link {
-    padding-block: clamp(14px, 2.4vmin, 28px);
-    padding-inline: clamp(18px, 3.6vmin, 36px);
+    padding-block: 12px;
+    padding-inline: 24px;
     margin: 0;
     display: inline-flex;
     align-items: center;

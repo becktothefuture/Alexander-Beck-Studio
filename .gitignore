@@ -36,3 +36,7 @@ yarn-error.log*
 # Temporary files
 *.tmp
 .cache/
+
+# Dev browser profiles (browser cache)
+.agents/skills/dev-browser/profiles/
+.agents/skills/dev-browser/tmp/

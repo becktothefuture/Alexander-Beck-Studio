@@ -23,6 +23,15 @@ let recentFrameTimes = [];
 const FPS_SAMPLE_SIZE = 30;
 let adaptiveThrottleLevel = 0; // 0 = none, 1 = light, 2 = heavy
 
+/**
+ * Reset adaptive throttle state - call when switching modes
+ * Prevents stale FPS data from affecting new mode performance
+ */
+export function resetAdaptiveThrottle() {
+  recentFrameTimes = [];
+  adaptiveThrottleLevel = 0;
+}
+
 function updateAdaptiveThrottle(frameTime) {
   recentFrameTimes.push(frameTime);
   if (recentFrameTimes.length > FPS_SAMPLE_SIZE) {

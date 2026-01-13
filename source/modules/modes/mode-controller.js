@@ -23,6 +23,9 @@ import { initialize3DCube, apply3DCubeForces } from './3d-cube.js';
 import { initializeStarfield3D, applyStarfield3DForces, updateStarfield3D, renderStarfield3D } from './starfield-3d.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor } from '../visual/colors.js';
+import { resetPhysicsAccumulator } from '../physics/engine.js';
+import { resetAdaptiveThrottle } from '../rendering/loop.js';
+import { wallState } from '../physics/wall-state.js';
 
 export { MODES };
 
@@ -56,6 +59,27 @@ function getWarmupFramesForMode(mode, globals) {
 export function setMode(mode) {
   const globals = getGlobals();
   const prevMode = globals.currentMode;
+  
+  // ════════════════════════════════════════════════════════════════════════════════
+  // PERFORMANCE: Reset all stateful systems on mode switch to prevent accumulation
+  // This fixes the "slower and slower" bug when switching through modes
+  // ════════════════════════════════════════════════════════════════════════════════
+  resetPhysicsAccumulator();
+  resetAdaptiveThrottle();
+  
+  // Reset wall deformation state (physics + render rings, caches)
+  if (wallState?.ringPhysics?.reset) {
+    wallState.ringPhysics.reset();
+  }
+  if (wallState?.ringRender?.reset) {
+    wallState.ringRender.reset();
+  }
+  // Clear interpolation caches
+  wallState._renderSmPrev = null;
+  wallState._renderSmCurr = null;
+  wallState._impactsThisStep = 0;
+  wallState._pressureEventsThisStep = 0;
+  
   // Restore physics overrides when leaving Critters mode
   if (globals.currentMode === MODES.CRITTERS && mode !== MODES.CRITTERS) {
     if (globals._restBeforeCritters !== undefined) {

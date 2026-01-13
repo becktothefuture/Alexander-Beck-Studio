@@ -119,6 +119,9 @@ const state = {
   responsiveScaleMobile: 0.75, // Scale factor for mobile devices (iPad/iPhone)
   isMobile: false,            // Mobile *device* detected? (UA/touch heuristic)
   isMobileViewport: false,    // Mobile viewport detected? (width breakpoint)
+  // Mobile performance: completely disable wall deformation on mobile for 60 FPS
+  // Set during initialization based on isMobile/isMobileViewport
+  wallDeformationEnabled: true,
   // Mobile performance: global multiplier applied to object counts (0..1).
   // 1.0 = no reduction, 0.0 = (effectively) no objects.
   mobileObjectReductionFactor: 0.7,
@@ -1494,9 +1497,13 @@ export function detectResponsiveScale() {
   state.isMobile = nextMobileDevice;
   state.isMobileViewport = nextMobileViewport;
   state.responsiveScale = nextResponsiveScale;
+  
+  // Disable wall deformation on mobile for 60 FPS performance
+  state.wallDeformationEnabled = !(state.isMobile || state.isMobileViewport);
 
   if (state.isMobile || state.isMobileViewport) {
     console.log(`✓ Mobile scaling active - ball scale: ${state.responsiveScale}x (${state.isMobile ? 'device' : 'viewport'})`);
+    console.log(`✓ Wall deformation disabled for mobile performance`);
   }
 
   // Recalculate ball sizes with responsive scale applied

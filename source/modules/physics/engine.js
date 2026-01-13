@@ -19,6 +19,13 @@ const CORNER_RADIUS = 42; // matches rounded container corners
 const CORNER_FORCE = 1800;
 const WARMUP_FRAME_DT = 1 / 60;
 
+/**
+ * Reset physics accumulator - call when switching modes to prevent timing spikes
+ */
+export function resetPhysicsAccumulator() {
+  acc = 0;
+}
+
 // ════════════════════════════════════════════════════════════════════════════════
 // PERF: Reusable color batch cache to eliminate per-frame Map/array allocations
 // ════════════════════════════════════════════════════════════════════════════════
@@ -116,7 +123,11 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   // are registered during the fixed-timestep loop. If we clear pressure inside the
   // 120Hz loop, the wall never sees stable "resting pressure" and can become overly wobbly.
   // Clear pressure ONCE per render-frame, then accumulate across physics substeps.
-  wallState.clearPressureFrame();
+  // Skip entirely on mobile for performance (wallDeformationEnabled = false)
+  const wallDeformEnabled = globals.wallDeformationEnabled !== false;
+  if (wallDeformEnabled) {
+    wallState.clearPressureFrame();
+  }
   
   while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
     // Integrate physics for all modes
@@ -146,7 +157,10 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     }
 
     // Reset per-step caps/counters (impacts + pressure-event budget)
-    wallState.resetStepBudgets();
+    // Skip on mobile for performance
+    if (wallDeformEnabled) {
+      wallState.resetStepBudgets();
+    }
     
     // Wall collisions + corner repellers
     // Skip for Parallax modes (internal wrap logic, no wall physics)
@@ -286,7 +300,10 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   }
   
   // Update rubber wall physics (all non-kaleidoscope modes)
-  wallState.step(dtSeconds);
+  // Skip on mobile for performance (wallDeformationEnabled = false)
+  if (wallDeformEnabled) {
+    wallState.step(dtSeconds);
+  }
 
   // Reset accumulator if falling behind
   if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
