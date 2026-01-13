@@ -6,9 +6,10 @@
   <!-- Critical first-paint wall background (no JS + no !important). -->
   <!-- Uses unified wall color (#242529) - same for light and dark modes. -->
   <!-- Fallback color: #242529 (unified wall frame) -->
+  <!-- iOS 26 Safari: Both html AND body must be opaque for correct chrome tinting. -->
   <style id="abs-critical-wall-bg">
-    html { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
-    html.dark-mode { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
+    html, body { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
+    html.dark-mode, body.dark-mode { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
   </style>
   <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
   <!-- Safari requirements: Compact tab layout (macOS), Allow Website Tinting (iOS) -->
