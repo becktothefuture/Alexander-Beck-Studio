@@ -1725,6 +1725,28 @@ html.is-safari .noise-2::before {
     flex-direction: row;
     gap: var(--gap-md);
   }
+  
+  /* Bottom-left icon buttons: 30% smaller padding on mobile */
+  .abs-icon-btn {
+    --link-icon-padding: calc(var(--gap-lg) * 0.7);
+  }
+  
+  /* London/time: stack vertically, right aligned */
+  #site-year > span {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  
+  #site-year .location-name {
+    display: block;
+  }
+  
+  /* Hide separator dot on mobile */
+  .meta-separator {
+    display: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
