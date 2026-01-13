@@ -19,6 +19,32 @@ const CORNER_RADIUS = 42; // matches rounded container corners
 const CORNER_FORCE = 1800;
 const WARMUP_FRAME_DT = 1 / 60;
 
+// ════════════════════════════════════════════════════════════════════════════════
+// PERF: Reusable color batch cache to eliminate per-frame Map/array allocations
+// ════════════════════════════════════════════════════════════════════════════════
+const colorBatchCache = {
+  map: new Map(),
+  arrays: [],
+  arrayIndex: 0
+};
+
+function getColorArray() {
+  if (colorBatchCache.arrayIndex < colorBatchCache.arrays.length) {
+    const arr = colorBatchCache.arrays[colorBatchCache.arrayIndex++];
+    arr.length = 0;
+    return arr;
+  }
+  const newArr = [];
+  colorBatchCache.arrays.push(newArr);
+  colorBatchCache.arrayIndex++;
+  return newArr;
+}
+
+function resetColorBatchCache() {
+  colorBatchCache.map.clear();
+  colorBatchCache.arrayIndex = 0;
+}
+
 function applyCornerRepellers(ball, canvas) {
   const corners = [
     { x: CORNER_RADIUS, y: CORNER_RADIUS },
@@ -339,12 +365,14 @@ export function render() {
     renderKaleidoscope(ctx);
   } else {
     // Group balls by color (O(n) pass, minimal overhead)
-    const ballsByColor = new Map();
+    // PERF: Reuse cached Map and arrays to eliminate per-frame allocations
+    resetColorBatchCache();
+    const ballsByColor = colorBatchCache.map;
     for (let i = 0; i < balls.length; i++) {
       const ball = balls[i];
       const color = ball.color;
       if (!ballsByColor.has(color)) {
-        ballsByColor.set(color, []);
+        ballsByColor.set(color, getColorArray());
       }
       ballsByColor.get(color).push(ball);
     }

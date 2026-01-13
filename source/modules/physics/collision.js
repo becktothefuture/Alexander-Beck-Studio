@@ -99,7 +99,8 @@ function collectPairsSorted() {
     }
   }
   
-  reusablePairs.sort((a, b) => b.overlap - a.overlap);
+  // PERF: Sort removed - O(n log n) overhead not needed for convergence
+  // Collision resolution works fine without prioritizing by overlap size
   return reusablePairs;
 }
 

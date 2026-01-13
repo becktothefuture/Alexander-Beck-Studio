@@ -1,0 +1,38 @@
+# Ralph Progress Log
+Started: 2026-01-13
+Feature: Performance Bottleneck Fixes
+
+## Codebase Patterns
+- Physics runs in `source/modules/physics/` - engine.js is the main loop, collision.js handles ball-ball collisions
+- `getGlobals()` from `core/state.js` is the standard way to access shared state
+- Wall system (wall-state.js) is FRAGILE - do NOT modify
+- Build with `npm run build`, dev server with `npm run dev`
+- For per-frame caching, use module-level objects with reset functions (see colorBatchCache pattern)
+
+---
+
+## 2026-01-13 - TASK-001: Eliminate Per-Frame Map Allocation
+Thread: https://ampcode.com/threads/T-019bb6e4-9c3c-757f-b709-8b18db3a2d21
+Task ID: TASK-001
+- Added `colorBatchCache` object at module level in engine.js
+- Created `getColorArray()` helper for array pooling
+- Created `resetColorBatchCache()` to clear between frames
+- Updated render() to use cached Map and pooled arrays
+- **Files changed:** source/modules/physics/engine.js
+---
+
+## 2026-01-13 - TASK-002: Remove Collision Pair Sorting
+Thread: https://ampcode.com/threads/T-019bb6e4-9c3c-757f-b709-8b18db3a2d21
+Task ID: TASK-002
+- Removed `reusablePairs.sort()` call from collectPairsSorted()
+- O(n log n) overhead eliminated - collision resolution works fine without sorting by overlap
+- **Files changed:** source/modules/physics/collision.js
+---
+
+## 2026-01-13 - TASK-003 & TASK-004: Cache getGlobals()
+Thread: https://ampcode.com/threads/T-019bb6e4-9c3c-757f-b709-8b18db3a2d21
+Task ID: TASK-003, TASK-004
+- Verified: Both engine.js and collision.js already have optimal pattern
+- Each hot function calls getGlobals() exactly once at the top
+- No changes needed - code was already well-structured
+---
