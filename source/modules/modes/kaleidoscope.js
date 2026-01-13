@@ -351,7 +351,11 @@ export function renderKaleidoscope(ctx) {
   const h = canvas.height;
   const unit = getViewportUnit(g);
 
-  const wedgesRaw = getKaleidoscopeParams(g).wedges ?? 12;
+  // Use reduced wedge count on mobile for performance (50% fewer draw calls)
+  const isMobile = g.isMobile || g.isMobileViewport;
+  const wedgesRaw = isMobile
+    ? (g.kaleidoscope3WedgesMobile ?? 6)
+    : (getKaleidoscopeParams(g).wedges ?? 12);
   const wedges = clamp(Math.round(wedgesRaw), 3, 24);
   const mirror = Boolean(g.kaleidoscopeMirror ?? true);
 
@@ -437,6 +441,15 @@ export function renderKaleidoscope(ctx) {
   const zoomRange = 0.22 + 0.18 * speed01; // 0.22..0.40
   const zoom = 1 - zoomRange + (1 - mDistN) * (2 * zoomRange); // maps to [1-zoomRange, 1+zoomRange]
 
+  // Pre-compute cos/sin lookup table for wedge base angles (avoids trig in hot loop)
+  const wedgeCos = new Float32Array(wedges);
+  const wedgeSin = new Float32Array(wedges);
+  for (let wi = 0; wi < wedges; wi++) {
+    const baseAngle = wi * wedgeAngle;
+    wedgeCos[wi] = Math.cos(baseAngle);
+    wedgeSin[wi] = Math.sin(baseAngle);
+  }
+
   // Draw
   for (let bi = 0; bi < balls.length; bi++) {
     const ball = balls[bi];
@@ -462,12 +475,21 @@ export function renderKaleidoscope(ctx) {
     // Avoid exact seam angles (helps prevent razor-thin discontinuities from float/AA).
     local = clamp(local, seamEps, wedgeAngle - seamEps);
 
-    // Replicate across wedges
+    // Replicate across wedges using precomputed cos/sin + angle addition formula
+    // cos(a+b) = cos(a)cos(b) - sin(a)sin(b)
+    // sin(a+b) = sin(a)cos(b) + cos(a)sin(b)
+    const localCos = Math.cos(local);
+    const localSin = Math.sin(local);
+    
     for (let wi = 0; wi < wedges; wi++) {
-      const outA = (wi * wedgeAngle) + local;
+      // Use angle addition formula instead of Math.cos/sin(outA)
+      const baseCos = wedgeCos[wi];
+      const baseSin = wedgeSin[wi];
+      const outCos = baseCos * localCos - baseSin * localSin;
+      const outSin = baseSin * localCos + baseCos * localSin;
 
-      const x = cx + Math.cos(outA) * r;
-      const y = cy + Math.sin(outA) * r;
+      const x = cx + outCos * r;
+      const y = cy + outSin * r;
 
       // Draw circle (same style)
       if (ball.alpha < 1) ctx.globalAlpha = ball.alpha;

@@ -100,6 +100,7 @@ export const CONSTANTS = {
   TIME_TO_SLEEP: 0.25,                // seconds - faster sleep for quicker settling
   
   PHYSICS_DT: 1/120,
+  PHYSICS_DT_MOBILE: 1/60,  // Lower physics Hz on mobile (60Hz vs 120Hz)
   GE: 1960
 };
 

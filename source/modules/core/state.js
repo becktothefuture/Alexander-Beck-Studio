@@ -361,6 +361,7 @@ const state = {
   // Kaleidoscope III parameters (now the only kaleidoscope mode)
   kaleidoscope3BallCount: 150,
   kaleidoscope3Wedges: 10,
+  kaleidoscope3WedgesMobile: 6,  // Reduced wedges on mobile for performance (50% fewer draw calls)
   kaleidoscope3Speed: 1.2,
   kaleidoscope3DotSizeVh: 1.05,
   kaleidoscope3DotAreaMul: 0.75,
@@ -1500,10 +1501,20 @@ export function detectResponsiveScale() {
   
   // Disable wall deformation on mobile for 60 FPS performance
   state.wallDeformationEnabled = !(state.isMobile || state.isMobileViewport);
+  
+  // Mobile performance optimizations
+  if (state.isMobile || state.isMobileViewport) {
+    // Reduce collision solver iterations (10 → 4) for faster physics
+    state.physicsCollisionIterations = 4;
+    // Disable mouse trail on touch devices (no benefit, saves CPU)
+    state.mouseTrailEnabled = false;
+  }
 
   if (state.isMobile || state.isMobileViewport) {
     console.log(`✓ Mobile scaling active - ball scale: ${state.responsiveScale}x (${state.isMobile ? 'device' : 'viewport'})`);
     console.log(`✓ Wall deformation disabled for mobile performance`);
+    console.log(`✓ Collision iterations reduced to ${state.physicsCollisionIterations}`);
+    console.log(`✓ Mouse trail disabled for touch devices`);
   }
 
   // Recalculate ball sizes with responsive scale applied

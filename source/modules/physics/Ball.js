@@ -415,7 +415,7 @@ export class Ball {
     // - Only use transforms when necessary
     // ══════════════════════════════════════════════════════════════════════════════
     
-    const hasSquash = this.squashAmount > 0.001;
+    const hasSquash = this.squashAmount > 0.01;
     // Combine alpha with filter opacity (for legend filtering)
     const filterOpacity = this.filterOpacity ?? 1;
     const effectiveAlpha = this.alpha * filterOpacity;

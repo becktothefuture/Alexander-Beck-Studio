@@ -13,7 +13,8 @@ import { renderKaleidoscope } from '../modes/kaleidoscope.js';
 import { applyKaleidoscopeBounds } from '../modes/kaleidoscope.js';
 import { drawMouseTrail } from '../visual/mouse-trail.js';
 
-const DT = CONSTANTS.PHYSICS_DT;
+const DT_DESKTOP = CONSTANTS.PHYSICS_DT;
+const DT_MOBILE = CONSTANTS.PHYSICS_DT_MOBILE;
 let acc = 0;
 const CORNER_RADIUS = 42; // matches rounded container corners
 const CORNER_FORCE = 1800;
@@ -52,14 +53,15 @@ function resetColorBatchCache() {
   colorBatchCache.arrayIndex = 0;
 }
 
-function applyCornerRepellers(ball, canvas) {
+function applyCornerRepellers(ball, canvas, dt, mobile = false) {
   const corners = [
     { x: CORNER_RADIUS, y: CORNER_RADIUS },
     { x: canvas.width - CORNER_RADIUS, y: CORNER_RADIUS },
     { x: CORNER_RADIUS, y: canvas.height - CORNER_RADIUS },
     { x: canvas.width - CORNER_RADIUS, y: canvas.height - CORNER_RADIUS }
   ];
-  for (let i = 0; i < corners.length; i++) {
+  const cornerCount = mobile ? 2 : corners.length;
+  for (let i = 0; i < cornerCount; i++) {
     const cx = corners[i].x;
     const cy = corners[i].y;
     const dx = ball.x - cx;
@@ -70,8 +72,8 @@ function applyCornerRepellers(ball, canvas) {
       const strength = (pen / (CORNER_RADIUS + ball.r)) * CORNER_FORCE;
       const nx = dx / dist;
       const ny = dy / dist;
-      ball.vx += nx * strength * DT;
-      ball.vy += ny * strength * DT;
+      ball.vx += nx * strength * dt;
+      ball.vy += ny * strength * dt;
     }
   }
 }
@@ -84,6 +86,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   if (!canvas) return;
 
   if (balls.length === 0) return;
+
+  // Select physics timestep based on device type (60Hz mobile, 120Hz desktop)
+  const DT = (globals.isMobile || globals.isMobileViewport) ? DT_MOBILE : DT_DESKTOP;
 
   // Kaleidoscope mode has its own lightweight physics path:
   // - Smooth (per-frame), not fixed-timestep accumulator
@@ -173,11 +178,12 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       const lenWalls = balls.length;
       // On mobile, disable wall impact/pressure registration for performance
       const wallEffectsOptions = wallDeformEnabled ? {} : { registerEffects: false };
+      const isMobile = globals.isMobile || globals.isMobileViewport;
       for (let i = 0; i < lenWalls; i++) {
         // Ball Pit has explicit rounded-corner arc clamping in Ball.walls().
         // Avoid an additional velocity-based corner repeller there, which can
         // create local compressions in dense corner stacks.
-        if (!isPitLike) applyCornerRepellers(balls[i], canvas);
+        if (!isPitLike) applyCornerRepellers(balls[i], canvas, DT, isMobile);
         balls[i].walls(canvas.width, canvas.height, DT, wallRestitution, wallEffectsOptions);
       }
     }
@@ -404,7 +410,7 @@ export function render() {
         const ball = group[i];
         
         // Handle special rendering cases (squash, alpha, filtering)
-        const hasSquash = ball.squashAmount > 0.001;
+        const hasSquash = ball.squashAmount > 0.01;
         const filterOpacity = ball.filterOpacity ?? 1;
         const effectiveAlpha = ball.alpha * filterOpacity;
         const hasAlpha = effectiveAlpha < 1.0;
