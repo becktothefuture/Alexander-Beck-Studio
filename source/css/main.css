@@ -1340,7 +1340,7 @@ html.entrance-complete #main-links {
   /* iOS 26 Safari fix: 6px inset from viewport edges exposes wall colour (html/body bg)
      so Safari samples the correct colour for browser chrome tinting.
      The 6px gap creates a visible frame and ensures Safari sees wall colour at edges. */
-  --safari-tint-inset: 6px;
+  --safari-tint-inset: 20px;
   top: var(--safari-tint-inset);
   left: var(--safari-tint-inset);
   right: var(--safari-tint-inset);
@@ -2571,7 +2571,7 @@ body.dark-mode .contact-email-copy {
 .cv-modal-inputs,
 .portfolio-modal-inputs {
   display: flex;
-  gap: clamp(0.8rem, 1.5vw, 1.2rem);
+  gap: clamp(0.4rem, 0.8vw, 0.6rem);
   align-items: center;
   justify-content: flex-start;
   position: relative; /* For pulse effect */
@@ -2618,14 +2618,15 @@ body.dark-mode .contact-email-copy {
 
 .cv-digit,
 .portfolio-digit {
-  width: clamp(3.5rem, 8vw, 5rem);
-  height: clamp(3.5rem, 8vw, 5rem);
-  font-size: clamp(2rem, 5vw, 3rem);
+  width: clamp(2.5rem, 5vw, 3.2rem);
+  height: clamp(3.2rem, 7vw, 4.2rem);
+  padding: var(--modal-pad-md-y) var(--modal-pad-md-x);
+  font-size: clamp(1.4rem, 3.5vw, 2rem);
   font-family: 'Geist Mono', monospace;
   font-weight: 600;
   text-align: center;
-  border: 2px solid var(--abs-stroke-medium);
-  border-radius: var(--abs-radius-input);
+  border: 1px solid var(--abs-stroke-medium);
+  border-radius: var(--abs-radius-cta);
   background: rgba(var(--abs-rgb-white), 0.5);
   background-color: rgba(var(--abs-rgb-white), 0.5);
   color: var(--text-input);

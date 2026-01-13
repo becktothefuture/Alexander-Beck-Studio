@@ -115,8 +115,9 @@ const state = {
   cube3dWarmupFrames: 10,
   // Legacy (pre per-mode system) — kept for back-compat; prefer the per-mode keys above.
   sizeVariation: 0,
-  responsiveScale: 1.0,       // Runtime responsive scale (calculated on init)
-  responsiveScaleMobile: 0.75, // Scale factor for mobile devices (iPad/iPhone)
+  // Fixed ball sizes in pixels
+  ballSizeDesktop: 20,        // Ball radius in px for desktop
+  ballSizeMobile: 14,         // Ball radius in px for mobile
   isMobile: false,            // Mobile *device* detected? (UA/touch heuristic)
   isMobileViewport: false,    // Mobile viewport detected? (width breakpoint)
   // Mobile performance: completely disable wall deformation on mobile for 60 FPS
@@ -125,12 +126,10 @@ const state = {
   // Mobile performance: global multiplier applied to object counts (0..1).
   // 1.0 = no reduction, 0.0 = (effectively) no objects.
   mobileObjectReductionFactor: 0.7,
-  R_MIN_BASE: 6,
-  R_MAX_BASE: 24,
-  // Derived by updateBallSizes()
-  R_MED: 0,
-  R_MIN: 0,
-  R_MAX: 0,
+  // Ball sizes (set by updateBallSizes based on device)
+  R_MED: 20,
+  R_MIN: 20,
+  R_MAX: 20,
   
   // Custom cursor
   cursorSize: 1.0,  // Multiplier for cursor size (1.0 = average ball size)
@@ -920,9 +919,6 @@ export function initState(config) {
   if (config.neuralWarmupFrames !== undefined) state.neuralWarmupFrames = clampInt(config.neuralWarmupFrames, 0, 240, state.neuralWarmupFrames);
   if (config.parallaxLinearWarmupFrames !== undefined) state.parallaxLinearWarmupFrames = clampInt(config.parallaxLinearWarmupFrames, 0, 240, state.parallaxLinearWarmupFrames);
 
-  // Ensure sizing baselines are computed immediately after config is applied.
-  // (Otherwise per-mode sizing falls back to placeholder values and sliders appear “dead”.)
-  updateBallSizes();
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
   if (config.repelRadius !== undefined) state.repelRadius = config.repelRadius;
   if (config.repelPower !== undefined) state.repelPower = config.repelPower;
@@ -938,7 +934,8 @@ export function initState(config) {
   } else if (config.repelRadius !== undefined) {
     state.cursorInfluenceRadiusVw = clampNumber(config.repelRadius / 10, 0, 80, state.cursorInfluenceRadiusVw);
   }
-  if (config.responsiveScaleMobile !== undefined) state.responsiveScaleMobile = config.responsiveScaleMobile;
+  if (config.ballSizeDesktop !== undefined) state.ballSizeDesktop = config.ballSizeDesktop;
+  if (config.ballSizeMobile !== undefined) state.ballSizeMobile = config.ballSizeMobile;
   if (config.mobileObjectReductionFactor !== undefined) {
     state.mobileObjectReductionFactor = clampNumber(
       config.mobileObjectReductionFactor,
@@ -948,8 +945,11 @@ export function initState(config) {
     );
   }
   
-  // Detect mobile/tablet devices and apply responsive scaling
+  // Detect mobile/tablet devices and set ball sizes
   detectResponsiveScale();
+  
+  // Always ensure ball sizes are set (detectResponsiveScale may early-out on desktop)
+  updateBallSizes();
   
   // Kaleidoscope (optional config overrides)
   if (config.kaleidoscopeBallCount !== undefined) {
@@ -1469,15 +1469,15 @@ export function clearBalls() {
 }
 
 /**
- * Detect device type and apply responsive ball scaling
- * iPad and iPhone get smaller balls for better visual balance
+ * Detect device type and apply fixed ball sizing
+ * Desktop: 22px, Mobile: 15px
  */
 export function detectResponsiveScale() {
   const ua = navigator.userAgent || '';
   const isIPad = /iPad/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
   const isIPhone = /iPhone/.test(ua);
 
-  // Viewport breakpoint (lets desktop “responsive mode” behave like mobile)
+  // Viewport breakpoint (lets desktop "responsive mode" behave like mobile)
   let isMobileViewport = false;
   try {
     isMobileViewport = Boolean(window.matchMedia && window.matchMedia('(max-width: 600px)').matches);
@@ -1486,43 +1486,31 @@ export function detectResponsiveScale() {
   const isMobileDevice = Boolean(isIPad || isIPhone);
   const nextMobileViewport = isMobileViewport;
   const nextMobileDevice = isMobileDevice;
-  const nextResponsiveScale = (isMobileDevice || isMobileViewport) ? state.responsiveScaleMobile : 1.0;
 
-  // Early-out: avoid work during resize drags unless we actually cross a breakpoint / scale changes.
+  // Early-out: avoid work during resize drags unless we actually cross a breakpoint.
   const didChange =
     state.isMobile !== nextMobileDevice ||
-    state.isMobileViewport !== nextMobileViewport ||
-    Math.abs((state.responsiveScale ?? 1.0) - nextResponsiveScale) > 1e-6;
+    state.isMobileViewport !== nextMobileViewport;
   if (!didChange) return;
 
   state.isMobile = nextMobileDevice;
   state.isMobileViewport = nextMobileViewport;
-  state.responsiveScale = nextResponsiveScale;
   
   // Disable wall deformation on mobile for 60 FPS performance
   state.wallDeformationEnabled = !(state.isMobile || state.isMobileViewport);
   
   // Mobile performance optimizations
   if (state.isMobile || state.isMobileViewport) {
-    // Reduce collision solver iterations (10 → 4) for faster physics
     state.physicsCollisionIterations = 4;
-    // Disable mouse trail on touch devices (no benefit, saves CPU)
     state.mouseTrailEnabled = false;
   }
 
-  if (state.isMobile || state.isMobileViewport) {
-    console.log(`✓ Mobile scaling active - ball scale: ${state.responsiveScale}x (${state.isMobile ? 'device' : 'viewport'})`);
-    console.log(`✓ Wall deformation disabled for mobile performance`);
-    console.log(`✓ Collision iterations reduced to ${state.physicsCollisionIterations}`);
-    console.log(`✓ Mouse trail disabled for touch devices`);
-  }
-
-  // Recalculate ball sizes with responsive scale applied
+  // Update ball sizes based on device type
   updateBallSizes();
 
-  // Update existing balls only when the scale actually changes (resize-safe).
+  // Update existing balls with new size
   try {
-    const newSize = (state.R_MIN + state.R_MAX) / 2;
+    const newSize = state.R_MED;
     if (Number.isFinite(newSize) && newSize > 0 && Array.isArray(state.balls) && state.balls.length) {
       for (let i = 0; i < state.balls.length; i++) {
         const b = state.balls[i];
@@ -1535,19 +1523,13 @@ export function detectResponsiveScale() {
 }
 
 /**
- * Update ball size calculations based on current sizeScale and responsiveScale
+ * Update ball sizes based on device type (fixed pixel sizes)
+ * Desktop: ballSizeDesktop (22px), Mobile: ballSizeMobile (15px)
  */
 export function updateBallSizes() {
-  const baseSize = (state.R_MIN_BASE + state.R_MAX_BASE) / 2;
-  const totalScale = state.sizeScale * state.responsiveScale;
-  const medium = baseSize * totalScale;
-  state.R_MED = Math.max(1, medium);
-  // R_MIN/R_MAX are the absolute cap for “max variation” (per-mode=1, globalMul=1).
-  // Individual modes scale within this cap using their own 0..1 slider.
-  const capMax = 0.2;
-  const cap = clampNumber(state.sizeVariationCap, 0, capMax, 0.12);
-  const mul = clampNumber(state.sizeVariationGlobalMul, 0, 2, 1.0);
-  const v = clampNumber(cap * mul, 0, capMax, cap);
-  state.R_MIN = Math.max(1, state.R_MED * (1 - v));
-  state.R_MAX = Math.max(state.R_MIN, state.R_MED * (1 + v));
+  const isMobileDevice = state.isMobile || state.isMobileViewport;
+  const size = isMobileDevice ? state.ballSizeMobile : state.ballSizeDesktop;
+  state.R_MED = size;
+  state.R_MIN = size;
+  state.R_MAX = size;
 }
