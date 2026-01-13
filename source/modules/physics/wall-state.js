@@ -1370,6 +1370,7 @@ export function registerWallPressureAtPoint(x, y, amount = 1.0) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // WALL RENDERING
 // Draws a continuous, deformed rubber ring (visual-only).
+// On mobile (wallDeformationEnabled = false), draws a simple static rounded rect.
 // ═══════════════════════════════════════════════════════════════════════════════
 export function drawWalls(ctx, w, h) {
   const g = getGlobals();
@@ -1377,9 +1378,6 @@ export function drawWalls(ctx, w, h) {
 
   const chromeColor = CACHED_WALL_COLOR || getChromeColorFromCSS();
   const DPR = g.DPR || 1;
-  // DEBUG/TEST: allow exaggerating deformation (visual-only).
-  // Default should remain 1.0 in config.
-  const visualMul = Math.max(0, Math.min(10, Number(g.wallVisualDeformMul ?? 1.0) || 1.0));
 
   const rCssPx = (typeof g.getCanvasCornerRadius === 'function')
     ? g.getCanvasCornerRadius()
@@ -1392,30 +1390,10 @@ export function drawWalls(ctx, w, h) {
   const wallThicknessPx = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
   const insetPx = wallThicknessPx;
   
-  // COORDINATE SYSTEM CLARIFICATION:
-  // The wall is drawn as a "frame" - it has an outer edge (at canvas boundary) and inner edge.
-  // We draw the INNER edge of the wall as a rounded rectangle path.
-  // The space between outer and inner edge is filled to create the wall "tube".
-  //
-  // The corner radius (from config) should apply to the INNER edge, not the outer edge.
-  // This is because:
-  // 1. The inner edge is where balls collide (physics expects this)
-  // 2. The visual appearance is defined by the inner cutout shape
-  // 3. The outer edge is just the canvas boundary (no control needed)
-  //
-  // So: innerW/innerH = canvas size minus wall thickness inset
-  //     innerR = corner radius clamped to inner dims
-  //     The path is drawn in innerW/innerH space, then offset by insetPx
   const innerW = Math.max(1, w - (insetPx * 2));
   const innerH = Math.max(1, h - (insetPx * 2));
   const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
   
-  // Ensure both rings share the same geometric basis (so t-mapping aligns).
-  // Use inner dimensions for the wall geometry (wall is inset from container edges)
-  // This creates the inner edge of the wall border - outer edge is at canvas boundaries
-  wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
-  wallState.ringRender.ensureGeometry(innerW, innerH, innerR);
-
   // Small padding beyond canvas edges for sub-pixel path rounding safety (clipped by canvas anyway)
   const pad = Math.max(2, 2 * DPR);
 
@@ -1429,6 +1407,52 @@ export function drawWalls(ctx, w, h) {
   ctx.lineTo(w + pad, h + pad);
   ctx.lineTo(-pad, h + pad);
   ctx.closePath();
+
+  // ════════════════════════════════════════════════════════════════════════════════
+  // MOBILE FAST PATH: Draw static rounded rectangle (no deformation)
+  // Eliminates ~46,000 path segments/second on mobile for 60 FPS performance
+  // ════════════════════════════════════════════════════════════════════════════════
+  const wallDeformEnabled = g.wallDeformationEnabled !== false;
+  if (!wallDeformEnabled) {
+    // Draw simple static rounded rect (CCW for even-odd fill)
+    const x = insetPx;
+    const y = insetPx;
+    const r = innerR;
+    
+    // CCW rounded rectangle path
+    ctx.moveTo(x + r, y + innerH);
+    ctx.lineTo(x + innerW - r, y + innerH);
+    ctx.arcTo(x + innerW, y + innerH, x + innerW, y + innerH - r, r);
+    ctx.lineTo(x + innerW, y + r);
+    ctx.arcTo(x + innerW, y, x + innerW - r, y, r);
+    ctx.lineTo(x + r, y);
+    ctx.arcTo(x, y, x, y + r, r);
+    ctx.lineTo(x, y + innerH - r);
+    ctx.arcTo(x, y + innerH, x + r, y + innerH, r);
+    ctx.closePath();
+    
+    try {
+      ctx.fill('evenodd');
+    } catch (e) {
+      ctx.fill();
+    }
+    ctx.restore();
+    return;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════
+  // DESKTOP PATH: Full deformed rubber ring rendering
+  // ════════════════════════════════════════════════════════════════════════════════
+  
+  // DEBUG/TEST: allow exaggerating deformation (visual-only).
+  // Default should remain 1.0 in config.
+  const visualMul = Math.max(0, Math.min(10, Number(g.wallVisualDeformMul ?? 1.0) || 1.0));
+  
+  // Ensure both rings share the same geometric basis (so t-mapping aligns).
+  // Use inner dimensions for the wall geometry (wall is inset from container edges)
+  // This creates the inner edge of the wall border - outer edge is at canvas boundaries
+  wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
+  wallState.ringRender.ensureGeometry(innerW, innerH, innerR);
 
   // Inner path (CCW): deformed rounded-rect perimeter.
   const ringPhysics = wallState.ringPhysics;
