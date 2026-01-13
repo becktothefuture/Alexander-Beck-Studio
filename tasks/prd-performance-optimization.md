@@ -1,5 +1,11 @@
 # PRD: Simulation Performance Optimization
 
+## Status: ✅ COMPLETED
+
+Implementation completed on 2026-01-13. All user stories implemented and verified.
+
+---
+
 ## Introduction
 
 The bouncy balls simulation suffers from significant performance degradation, especially on mobile devices and after repeated mode switching. This PRD addresses three critical issues:
@@ -20,82 +26,82 @@ The goal is to achieve stable 60 FPS on mobile by completely disabling wall defo
 
 ## User Stories
 
-### US-001: Add mobile wall deformation disable flag
+### US-001: Add mobile wall deformation disable flag ✅
 **Description:** As a mobile user, I want wall deformation completely disabled so the simulation runs at 60 FPS.
 
 **Acceptance Criteria:**
-- [ ] Add `wallDeformationEnabled` flag to state.js (default: true on desktop, false on mobile)
-- [ ] Flag is set during initialization based on `isMobile` or `isMobileViewport`
-- [ ] Flag can be read by physics and rendering systems
-- [ ] npm run build passes
+- [x] Add `wallDeformationEnabled` flag to state.js (default: true on desktop, false on mobile)
+- [x] Flag is set during initialization based on `isMobile` or `isMobileViewport`
+- [x] Flag can be read by physics and rendering systems
+- [x] npm run build passes
 
-### US-002: Skip wall physics on mobile
+### US-002: Skip wall physics on mobile ✅
 **Description:** As a developer, I need the wall physics system to be completely bypassed on mobile to save CPU cycles.
 
 **Acceptance Criteria:**
-- [ ] `wallState.step()` is not called when `wallDeformationEnabled` is false
-- [ ] `wallState.clearPressureFrame()` and `resetStepBudgets()` are skipped on mobile
-- [ ] No wall impact/pressure registration occurs on mobile (`registerWallImpactAtPoint`, `registerWallPressureAtPoint`)
-- [ ] Physics loop in engine.js checks flag before any wall-related work
-- [ ] npm run build passes
+- [x] `wallState.step()` is not called when `wallDeformationEnabled` is false
+- [x] `wallState.clearPressureFrame()` and `resetStepBudgets()` are skipped on mobile
+- [x] No wall impact/pressure registration occurs on mobile (`registerWallImpactAtPoint`, `registerWallPressureAtPoint`)
+- [x] Physics loop in engine.js checks flag before any wall-related work
+- [x] npm run build passes
 
-### US-003: Skip wall deformation rendering on mobile
+### US-003: Skip wall deformation rendering on mobile ✅
 **Description:** As a developer, I need wall rendering to draw a simple static rounded rectangle on mobile instead of the deformed path.
 
 **Acceptance Criteria:**
-- [ ] `drawWalls()` in wall-state.js checks `wallDeformationEnabled` flag
-- [ ] When disabled, draw a simple static rounded-rect path (no deformation samples)
-- [ ] No interpolation, smoothing, or sample iteration on mobile
-- [ ] Wall still renders with correct color, inset, and corner radius
-- [ ] npm run build passes
+- [x] `drawWalls()` in wall-state.js checks `wallDeformationEnabled` flag
+- [x] When disabled, draw a simple static rounded-rect path (no deformation samples)
+- [x] No interpolation, smoothing, or sample iteration on mobile
+- [x] Wall still renders with correct color, inset, and corner radius
+- [x] npm run build passes
 
-### US-004: Reset wallState on mode switch
+### US-004: Reset wallState on mode switch ✅
 **Description:** As a user switching modes, I want the simulation to maintain consistent performance without degradation.
 
 **Acceptance Criteria:**
-- [ ] `wallState.ringPhysics.reset()` is called at the start of `setMode()`
-- [ ] `wallState.ringRender.reset()` is called at the start of `setMode()`
-- [ ] Interpolation caches (`_renderSmPrev`, `_renderSmCurr`) are cleared
-- [ ] `_impactsThisStep` and `_pressureEventsThisStep` counters are reset
-- [ ] npm run build passes
+- [x] `wallState.ringPhysics.reset()` is called at the start of `setMode()`
+- [x] `wallState.ringRender.reset()` is called at the start of `setMode()`
+- [x] Interpolation caches (`_renderSmPrev`, `_renderSmCurr`) are cleared
+- [x] `_impactsThisStep` and `_pressureEventsThisStep` counters are reset
+- [x] npm run build passes
 
-### US-005: Clear physics accumulator on mode switch
+### US-005: Clear physics accumulator on mode switch ✅
 **Description:** As a developer, I need physics timing state reset when switching modes to prevent frame spikes.
 
 **Acceptance Criteria:**
-- [ ] Physics accumulator (`acc` in engine.js) is reset to 0 on mode switch
-- [ ] Export a `resetPhysicsAccumulator()` function from engine.js
-- [ ] Call this function from `setMode()` in mode-controller.js
-- [ ] npm run build passes
+- [x] Physics accumulator (`acc` in engine.js) is reset to 0 on mode switch
+- [x] Export a `resetPhysicsAccumulator()` function from engine.js
+- [x] Call this function from `setMode()` in mode-controller.js
+- [x] npm run build passes
 
-### US-006: Skip Ball.walls() wall effects on mobile
+### US-006: Skip Ball.walls() wall effects on mobile ✅
 **Description:** As a developer, I need Ball.js to skip wall effect registration on mobile while keeping collision physics intact.
 
 **Acceptance Criteria:**
-- [ ] Ball.walls() checks `wallDeformationEnabled` before calling `registerWallImpactAtPoint`
-- [ ] Ball.walls() checks `wallDeformationEnabled` before calling `registerWallPressureAtPoint`
-- [ ] Wall collision physics (bounce, clamping) still works normally
-- [ ] npm run build passes
+- [x] Ball.walls() checks `wallDeformationEnabled` before calling `registerWallImpactAtPoint`
+- [x] Ball.walls() checks `wallDeformationEnabled` before calling `registerWallPressureAtPoint`
+- [x] Wall collision physics (bounce, clamping) still works normally
+- [x] npm run build passes
 
-### US-007: Clear adaptive throttle state on mode switch
+### US-007: Clear adaptive throttle state on mode switch ✅
 **Description:** As a developer, I need the adaptive throttle system reset when switching modes so it doesn't carry stale FPS data.
 
 **Acceptance Criteria:**
-- [ ] `recentFrameTimes` array in loop.js is cleared on mode switch
-- [ ] `adaptiveThrottleLevel` is reset to 0 on mode switch
-- [ ] Export a `resetAdaptiveThrottle()` function from loop.js
-- [ ] Call this function from `setMode()` in mode-controller.js
-- [ ] npm run build passes
+- [x] `recentFrameTimes` array in loop.js is cleared on mode switch
+- [x] `adaptiveThrottleLevel` is reset to 0 on mode switch
+- [x] Export a `resetAdaptiveThrottle()` function from loop.js
+- [x] Call this function from `setMode()` in mode-controller.js
+- [x] npm run build passes
 
-### US-008: Verify mobile performance improvement
+### US-008: Verify mobile performance improvement ✅
 **Description:** As a developer, I need to verify the optimizations achieve 60 FPS on mobile.
 
 **Acceptance Criteria:**
-- [ ] Test on mobile viewport (375x667) using dev-browser skill
-- [ ] Switch through at least 5 different modes
-- [ ] Confirm wall is rendered as static rounded rectangle (no wobble)
-- [ ] No visible performance degradation after mode switches
-- [ ] npm run build passes
+- [x] Test on mobile viewport (375x667) using dev-browser skill
+- [x] Switch through at least 5 different modes
+- [x] Confirm wall is rendered as static rounded rectangle (no wobble)
+- [x] No visible performance degradation after mode switches
+- [x] npm run build passes
 
 ## Functional Requirements
 

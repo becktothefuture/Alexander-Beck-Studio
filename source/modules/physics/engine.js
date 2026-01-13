@@ -171,12 +171,14 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
       const isPitLike = (globals.currentMode === MODES.PIT);
       const lenWalls = balls.length;
+      // On mobile, disable wall impact/pressure registration for performance
+      const wallEffectsOptions = wallDeformEnabled ? {} : { registerEffects: false };
       for (let i = 0; i < lenWalls; i++) {
         // Ball Pit has explicit rounded-corner arc clamping in Ball.walls().
         // Avoid an additional velocity-based corner repeller there, which can
         // create local compressions in dense corner stacks.
         if (!isPitLike) applyCornerRepellers(balls[i], canvas);
-        balls[i].walls(canvas.width, canvas.height, DT, wallRestitution);
+        balls[i].walls(canvas.width, canvas.height, DT, wallRestitution, wallEffectsOptions);
       }
     }
 
