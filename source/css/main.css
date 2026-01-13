@@ -1733,6 +1733,12 @@ html.is-safari .noise-2::before {
     --link-icon-padding: calc(var(--gap-lg) * 0.7);
   }
   
+  /* Bottom-left icon group: tighter gap between icons on mobile */
+  .footer_icon-group,
+  #social-links {
+    gap: 0;
+  }
+  
   /* Ensure sound toggle doesn't overlap time on mobile */
   .ui-meta-right .sound-toggle {
     align-self: flex-end;

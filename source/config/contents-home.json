@@ -84,11 +84,7 @@
         "screenReaderText": "Apple Music",
         "url": "https://music.apple.com/profile/beckandeggs"
       },
-      "x": {
-        "ariaLabel": "X",
-        "screenReaderText": "X",
-        "url": "https://x.com/alex40939195"
-      },
+
       "linkedin": {
         "ariaLabel": "LinkedIn",
         "screenReaderText": "LinkedIn",
