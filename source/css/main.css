@@ -1728,9 +1728,11 @@ html.is-safari .noise-2::before {
     gap: var(--gap-sm);
   }
   
-  /* Bottom-left icon buttons: 30% smaller padding on mobile */
+  /* Bottom-left icon buttons: 75% frame size on mobile (icon stays same size) */
   .abs-icon-btn {
     --link-icon-padding: calc(var(--gap-lg) * 0.7);
+    inline-size: calc(var(--ui-icon-frame-size) * 0.75);
+    block-size: calc(var(--ui-icon-frame-size) * 0.75);
   }
   
   /* Bottom-left icon group: tighter gap between icons on mobile */
