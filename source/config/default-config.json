@@ -26,7 +26,7 @@
   "mouseTrailSize": 4.2,
   "mouseTrailFadeMs": 260,
   "mouseTrailOpacity": 1,
-  "contentPaddingRatio": 0.009,
+  "contentPaddingRatio": 0.017,
   "contentPaddingHorizontalRatio": 1.05,
   "contentPaddingBottomRatio": 1,
   "uiHitAreaMul": 2.3,
@@ -342,6 +342,5 @@
     "highShelfFreq": 2200,
     "highShelfGain": -4
   },
-  "enableLOD": false,
-  "neuralCohesion": 0.69
+  "enableLOD": false
 }
