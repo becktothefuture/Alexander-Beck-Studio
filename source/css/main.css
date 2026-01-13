@@ -1330,10 +1330,10 @@ html.entrance-complete #main-links {
 
 #bravia-balls {
   position: fixed;
-  /* iOS 26 Safari fix: 1px inset from viewport edges exposes wall colour (html/body bg)
+  /* iOS 26 Safari fix: 6px inset from viewport edges exposes wall colour (html/body bg)
      so Safari samples the correct colour for browser chrome tinting.
-     The 1px gap is imperceptible but ensures Safari sees wall colour at edges. */
-  --safari-tint-inset: 1px;
+     The 6px gap creates a visible frame and ensures Safari sees wall colour at edges. */
+  --safari-tint-inset: 6px;
   top: var(--safari-tint-inset);
   left: var(--safari-tint-inset);
   right: var(--safari-tint-inset);
@@ -1632,6 +1632,7 @@ html.is-safari .noise-2::before {
   .ui-top-main {
     flex-direction: row;
     align-items: flex-start;
+    gap: var(--gap-lg); /* Increase gutter between left list and right bio */
   }
 
   .ui-top-left,
@@ -1723,12 +1724,18 @@ html.is-safari .noise-2::before {
   
   .ui-meta-right {
     flex-direction: row;
-    gap: var(--gap-md);
+    align-items: flex-end;
+    gap: var(--gap-sm);
   }
   
   /* Bottom-left icon buttons: 30% smaller padding on mobile */
   .abs-icon-btn {
     --link-icon-padding: calc(var(--gap-lg) * 0.7);
+  }
+  
+  /* Ensure sound toggle doesn't overlap time on mobile */
+  .ui-meta-right .sound-toggle {
+    align-self: flex-end;
   }
   
   /* London/time: stack vertically, right aligned */
