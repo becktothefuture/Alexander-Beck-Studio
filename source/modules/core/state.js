@@ -116,8 +116,8 @@ const state = {
   // Legacy (pre per-mode system) — kept for back-compat; prefer the per-mode keys above.
   sizeVariation: 0,
   // Fixed ball sizes in pixels
-  ballSizeDesktop: 20,        // Ball radius in px for desktop
-  ballSizeMobile: 14,         // Ball radius in px for mobile
+  ballSizeDesktop: 18,        // Ball radius in px for desktop
+  ballSizeMobile: 6,          // Ball radius in px for mobile
   isMobile: false,            // Mobile *device* detected? (UA/touch heuristic)
   isMobileViewport: false,    // Mobile viewport detected? (width breakpoint)
   // Mobile performance: completely disable wall deformation on mobile for 60 FPS
@@ -127,9 +127,9 @@ const state = {
   // 1.0 = no reduction, 0.0 = (effectively) no objects.
   mobileObjectReductionFactor: 0.7,
   // Ball sizes (set by updateBallSizes based on device)
-  R_MED: 20,
-  R_MIN: 20,
-  R_MAX: 20,
+  R_MED: 18,
+  R_MIN: 18,
+  R_MAX: 18,
   
   // Custom cursor
   cursorSize: 1.0,  // Multiplier for cursor size (1.0 = average ball size)

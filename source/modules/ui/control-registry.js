@@ -399,19 +399,19 @@ export const CONTROL_SECTIONS = {
     defaultOpen: false,
     controls: [
       {
-        id: 'sizeGlobal',
-        label: 'Size',
-        stateKey: 'sizeScale',
+        id: 'ballSizeDesktop',
+        label: 'Desktop Size',
+        stateKey: 'ballSizeDesktop',
         type: 'range',
-        min: 0.1, max: 6.0, step: 0.05,
-        default: 0.8,
-        format: v => v.toFixed(2),
+        min: 2, max: 40, step: 1,
+        default: 18,
+        format: v => v + 'px',
         parse: parseFloat,
+        hint: 'Ball radius in pixels for desktop',
         onChange: (g, val) => {
-          // Use updateBallSizes to apply both sizeScale and responsiveScale
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
-            const newSize = (g.R_MIN + g.R_MAX) / 2;
+            const newSize = g.R_MED;
             g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
           });
           import('../rendering/cursor.js').then(({ updateCursorSize }) => {
@@ -420,20 +420,19 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
-        id: 'responsiveScaleMobile',
-        label: 'Mobile Scale',
-        stateKey: 'responsiveScaleMobile',
+        id: 'ballSizeMobile',
+        label: 'Mobile Size',
+        stateKey: 'ballSizeMobile',
         type: 'range',
-        min: 0.5, max: 1.5, step: 0.05,
-        default: 0.75,
-        format: v => v.toFixed(2) + 'x',
+        min: 2, max: 30, step: 1,
+        default: 6,
+        format: v => v + 'px',
         parse: parseFloat,
-        hint: 'Ball size multiplier for iPad/iPhone (requires reload)',
+        hint: 'Ball radius in pixels for mobile devices',
         onChange: (g, val) => {
-          // Refresh responsive scale detection
-          import('../core/state.js').then(({ detectResponsiveScale }) => {
-            detectResponsiveScale();
-            const newSize = (g.R_MIN + g.R_MAX) / 2;
+          import('../core/state.js').then(({ updateBallSizes }) => {
+            updateBallSizes();
+            const newSize = g.R_MED;
             g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
           });
         }
