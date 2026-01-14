@@ -246,6 +246,7 @@
   --edge-label-inset-gap: 8px; /* Gap between wall and label */
   --edge-label-inset-adjust: 0px;
   --edge-label-inset: calc(var(--wall-thickness) + var(--edge-label-inset-gap) + var(--edge-label-inset-adjust));
+  --edge-label-opacity: var(--abs-opacity-quiet);
   /* Core easings (tokenized everywhere). */
   --ease-organic: cubic-bezier(0.22, 1.28, 0.36, 1);
   --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
