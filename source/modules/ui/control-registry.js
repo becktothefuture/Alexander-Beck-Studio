@@ -409,10 +409,13 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Ball radius in pixels for desktop',
         onChange: (g, val) => {
+          g.ballSizeDesktop = val;
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
             const newSize = g.R_MED;
-            g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
+            if (g.balls && g.balls.length) {
+              g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
+            }
           });
           import('../rendering/cursor.js').then(({ updateCursorSize }) => {
             updateCursorSize();
@@ -430,10 +433,13 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Ball radius in pixels for mobile devices',
         onChange: (g, val) => {
+          g.ballSizeMobile = val;
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
             const newSize = g.R_MED;
-            g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
+            if (g.balls && g.balls.length) {
+              g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
+            }
           });
         }
       },
