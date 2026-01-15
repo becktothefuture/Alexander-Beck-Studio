@@ -9,6 +9,7 @@ import { syncChromeColor } from '../physics/engine.js';
 import { log as devLog } from '../utils/logger.js';
 import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
+import { invalidateDepthWashCache } from './depth-wash.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
 const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
@@ -211,6 +212,9 @@ function applyDarkModeToDOM(isDark) {
   
   // Sync chrome color for rubbery walls
   syncChromeColor();
+  
+  // Invalidate depth wash cache on theme change
+  invalidateDepthWashCache();
   
   // Switch color palette variant
   applyColorTemplate(globals.currentTemplate);

@@ -216,10 +216,10 @@
   --noise-size-base: 100px;
   --noise-size-top: 150px;
   --noise-size-scale: 1;
-  --noise-back-opacity-light: 0.05;
-  --noise-front-opacity-light: 0.12;
-  --noise-back-opacity-dark: 0.05;
-  --noise-front-opacity-dark: 0.18;
+  --noise-back-opacity-light: 0.055;
+  --noise-front-opacity-light: 0.132;
+  --noise-back-opacity-dark: 0.055;
+  --noise-front-opacity-dark: 0.198;
   --noise-top-opacity: 0; /* Disabled: noise-3 layer removed */
   --detail-noise-opacity: 1; /* Overall opacity multiplier for detail page noise */
   /* Procedural noise (generated at runtime; motion is CSS-only). */

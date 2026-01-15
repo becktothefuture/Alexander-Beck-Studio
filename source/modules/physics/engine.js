@@ -8,6 +8,7 @@ import { getGlobals } from '../core/state.js';
 import { resolveCollisions, resolveCollisionsCustom } from './collision.js';
 import { updateWaterRipples, getWaterRipples } from '../modes/water.js';
 import { wallState, drawWalls, updateChromeColor } from './wall-state.js';
+import { drawDepthWash } from '../visual/depth-wash.js';
 import { getModeUpdater, getModeRenderer } from '../modes/mode-controller.js';
 import { renderKaleidoscope } from '../modes/kaleidoscope.js';
 import { applyKaleidoscopeBounds } from '../modes/kaleidoscope.js';
@@ -439,6 +440,9 @@ export function render() {
   
   // Mouse trail: draw after clip restore so it's always visible
   drawMouseTrail(ctx);
+  
+  // Depth wash: gradient overlay between balls/trail and wall
+  drawDepthWash(ctx, canvas.width, canvas.height);
   
   // Draw rubber walls LAST (in front of balls, outside clip path)
   drawWalls(ctx, canvas.width, canvas.height);
