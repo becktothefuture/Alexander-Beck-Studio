@@ -125,7 +125,11 @@ const state = {
   wallDeformationEnabled: true,
   // Mobile performance: global multiplier applied to object counts (0..1).
   // 1.0 = no reduction, 0.0 = (effectively) no objects.
-  mobileObjectReductionFactor: 0.7,
+  mobileObjectReductionFactor: 0.5,
+  // Lite mode: global multiplier applied to object counts (0..1).
+  // Toggleable at runtime for a low-cost simulation profile.
+  liteModeEnabled: false,
+  liteModeObjectReductionFactor: 0.6,
   // Ball sizes (set by updateBallSizes based on device)
   R_MED: 18,
   R_MIN: 18,
@@ -240,9 +244,9 @@ const state = {
   wallThicknessAreaMultiplier: 1.0,  // multiplier for area-based wall thickness scaling (1.0 = no area scaling)
 
   // Noise texture opacity (visual overlay) - lighter for subtle effect
-  noiseBackOpacity: 0.015,        // back layer opacity (light mode) - lighter
+  noiseBackOpacity: 0.05,         // back layer opacity (light mode)
   noiseFrontOpacity: 0.045,       // front layer opacity (light mode) - lighter
-  noiseBackOpacityDark: 0.06,     // back layer opacity (dark mode) - lighter
+  noiseBackOpacityDark: 0.05,     // back layer opacity (dark mode)
   noiseFrontOpacityDark: 0.08,    // front layer opacity (dark mode) - lighter
 
   // Procedural noise (no GIF): texture + cinematic controls
@@ -936,6 +940,15 @@ export function initState(config) {
   }
   if (config.ballSizeDesktop !== undefined) state.ballSizeDesktop = config.ballSizeDesktop;
   if (config.ballSizeMobile !== undefined) state.ballSizeMobile = config.ballSizeMobile;
+  if (config.liteModeEnabled !== undefined) state.liteModeEnabled = Boolean(config.liteModeEnabled);
+  if (config.liteModeObjectReductionFactor !== undefined) {
+    state.liteModeObjectReductionFactor = clampNumber(
+      config.liteModeObjectReductionFactor,
+      0,
+      1,
+      state.liteModeObjectReductionFactor
+    );
+  }
   if (config.mobileObjectReductionFactor !== undefined) {
     state.mobileObjectReductionFactor = clampNumber(
       config.mobileObjectReductionFactor,
@@ -1441,8 +1454,15 @@ export function getGlobals() {
 export function getMobileAdjustedCount(baseCount) {
   const globals = getGlobals();
   const n = Math.round(Number(baseCount) || 0);
-  if (!globals.isMobile) return Math.max(0, n);
-  const factor = Math.max(0, Math.min(1, Number(globals.mobileObjectReductionFactor ?? 0.7)));
+  let factor = 1;
+  if (globals.isMobile) {
+    const mobileFactor = Math.max(0, Math.min(1, Number(globals.mobileObjectReductionFactor ?? 0.7)));
+    factor *= mobileFactor;
+  }
+  if (globals.liteModeEnabled) {
+    const liteFactor = Math.max(0, Math.min(1, Number(globals.liteModeObjectReductionFactor ?? 0.6)));
+    factor *= liteFactor;
+  }
   return Math.max(0, Math.round(n * factor));
 }
 
@@ -1503,6 +1523,7 @@ export function detectResponsiveScale() {
   if (state.isMobile || state.isMobileViewport) {
     state.physicsCollisionIterations = 4;
     state.mouseTrailEnabled = false;
+    state.mobileObjectReductionFactor = Math.min(state.mobileObjectReductionFactor, 0.5);
   }
 
   // Update ball sizes based on device type

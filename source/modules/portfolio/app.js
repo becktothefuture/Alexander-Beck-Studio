@@ -1196,7 +1196,6 @@ class PortfolioApp {
           <div class="project-detail__inner" id="projectDetailContent"></div>
         </div>
       </div>
-      <div class="project-detail__noise project-detail__noise--front" aria-hidden="true"></div>
     `;
     const mountTarget = document.querySelector('.wall-frame') || document.body;
     this.transitionHost = mountTarget;
