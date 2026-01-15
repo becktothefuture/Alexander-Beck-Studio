@@ -130,6 +130,17 @@ body.portfolio-page * {
   cursor: none;
 }
 
+body.portfolio-page #abs-scene {
+  opacity: 1;
+  transition: opacity var(--modal-show-duration, 400ms) var(--ease-gate);
+}
+
+html.modal-active body.portfolio-page #abs-scene {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: var(--modal-hide-duration, 500ms);
+}
+
 /* Dark mode card border overrides */
 body.portfolio-page.dark-mode {
   --border-color: rgba(var(--abs-rgb-white), 0.3);
@@ -203,6 +214,12 @@ body.portfolio-page .edge-copyright__text {
 html.modal-active .portfolio-stage,
 #abs-scene.gate-depth-active .portfolio-stage {
   opacity: 0.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.portfolio-page #abs-scene {
+    transition: none;
+  }
 }
 
 .portfolio-viewport {
