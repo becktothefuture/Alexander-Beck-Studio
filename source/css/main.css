@@ -412,9 +412,14 @@ html.fonts-loading .project-detail {
 }
 
 /* Fade target */
-#app-frame {
+.fade-content {
   opacity: 1;
   transition: opacity var(--content-fade-duration, 800ms) var(--content-fade-ease, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+html.modal-active .fade-content {
+  opacity: 0.2;
+  transition-duration: var(--modal-hide-duration, 500ms);
 }
 
 /* UI Wrapper Frame */
@@ -3025,6 +3030,8 @@ body.dark-mode .modal-blur-layer.active {
   .contact-modal,
   #brand-logo,
   .modal-label,
+  .fade-content,
+  body.cv-page #abs-scene,
   .contact-email-row,
   .modal-overlay {
     transition: none;
@@ -3072,6 +3079,17 @@ body.cv-page * {
   cursor: auto;
   -webkit-user-select: text;
   user-select: text;
+}
+
+body.cv-page #abs-scene {
+  opacity: 1;
+  transition: opacity var(--modal-show-duration, 400ms) var(--ease-gate);
+}
+
+html.modal-active body.cv-page #abs-scene {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: var(--modal-hide-duration, 500ms);
 }
 
 body.cv-page a,
