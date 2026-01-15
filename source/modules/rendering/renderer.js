@@ -81,9 +81,10 @@ function detectOptimalDPR() {
                      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   
   // Cap DPR more aggressively on mobile/low-power devices
-  if (isLowPower && baseDPR > 1.5) {
-    effectiveDPR = 1.5;
-    console.log('⚡ Adaptive DPR: Reduced to 1.5x for performance');
+  if (isLowPower) {
+    const lowPowerCap = 1.25;
+    effectiveDPR = Math.min(baseDPR, lowPowerCap);
+    console.log(`⚡ Adaptive DPR: Reduced to ${effectiveDPR}x for performance`);
   } else {
     effectiveDPR = Math.min(baseDPR, 2);
   }

@@ -816,23 +816,10 @@ body.portfolio-page .project-detail__close:active {
 .project-detail__noise--back {
   z-index: 1;
   opacity: calc(var(--noise-back-opacity-light) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
-  mix-blend-mode: multiply;
-}
-
-.project-detail__noise--front {
-  z-index: 51;
-  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
-  mix-blend-mode: multiply;
 }
 
 body.portfolio-page.dark-mode .project-detail__noise--back {
   opacity: calc(var(--noise-back-opacity-dark) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
-  mix-blend-mode: overlay;
-}
-
-body.portfolio-page.dark-mode .project-detail__noise--front {
-  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled) * var(--detail-noise-opacity, 1));
-  mix-blend-mode: overlay;
 }
 
 .project-detail__noise::before {
@@ -855,11 +842,6 @@ body.portfolio-page.dark-mode .project-detail__noise--front {
 .project-detail__noise--back::before {
   background-size: calc(var(--noise-size-base) * var(--noise-size-scale)) calc(var(--noise-size-base) * var(--noise-size-scale));
   animation-duration: var(--abs-noise-speed-back), var(--abs-noise-flicker-speed);
-}
-
-.project-detail__noise--front::before {
-  background-size: calc(var(--noise-size-top) * var(--noise-size-scale)) calc(var(--noise-size-top) * var(--noise-size-scale));
-  animation-duration: var(--abs-noise-speed-front), var(--abs-noise-flicker-speed);
 }
 
 /* Keep index-style chrome visible while project detail is open */

@@ -172,8 +172,8 @@ function fadeInContentLayer(options = {}) {
 }
 
 /**
- * Ensure .noise-2 and .noise-3 elements exist (for dev environments where the full exported HTML isn't present).
- * Creates them as siblings to .noise inside the #bravia-balls container.
+ * Ensure the base .noise element exists (for dev environments where the full exported HTML isn't present).
+ * Secondary noise layers are intentionally removed for performance.
  */
 function ensureNoiseElements() {
   // Check if we have a noise texture image to use
@@ -181,41 +181,6 @@ function ensureNoiseElements() {
   if (!existingNoise) {
     // No noise system present (minimal dev markup) - skip
     return;
-  }
-
-  // Keep noise layers scoped to the simulation container (rounded/inset frame),
-  // otherwise `position: fixed` + body-append will blanket the entire viewport.
-  const container =
-    existingNoise.closest('#bravia-balls') ||
-    document.getElementById('bravia-balls') ||
-    existingNoise.parentElement ||
-    document.body;
-  
-  const noiseStyle = getComputedStyle(existingNoise);
-  const bgImage = (noiseStyle.backgroundImage && noiseStyle.backgroundImage !== 'none') 
-    ? noiseStyle.backgroundImage 
-    : null;
-  
-  // Create noise-2 if it doesn't exist
-  if (!document.querySelector('.noise-2')) {
-    const noise2 = document.createElement('div');
-    noise2.className = 'noise-2';
-    if (bgImage) noise2.style.backgroundImage = bgImage;
-
-    // Let CSS own positioning/blend/opacity so it stays in sync with config vars.
-    container.appendChild(noise2);
-    console.log('✓ Created .noise-2 element');
-  }
-  
-  // Create noise-3 if it doesn't exist (on top of noise-2)
-  if (!document.querySelector('.noise-3')) {
-    const noise3 = document.createElement('div');
-    noise3.className = 'noise-3';
-    if (bgImage) noise3.style.backgroundImage = bgImage;
-
-    // Let CSS own positioning/blend/opacity so it stays in sync with config vars.
-    container.appendChild(noise3);
-    console.log('✓ Created .noise-3 element');
   }
 }
 
@@ -378,7 +343,7 @@ window.addEventListener('unhandledrejection', (event) => {
       }
     } catch (e) {}
     
-    // Ensure noise-2 and noise-3 elements exist (for modular dev environments)
+    // Ensure base noise element exists (for modular dev environments)
     ensureNoiseElements();
 
     // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.

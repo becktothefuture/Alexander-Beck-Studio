@@ -160,9 +160,7 @@
   background: var(--bg-dark);
 }
 
-.styleguide-frame .noise,
-.styleguide-frame .noise-2,
-.styleguide-frame .noise-3 {
+.styleguide-frame .noise {
   border-radius: inherit;
 }
 

@@ -69,6 +69,7 @@ loadVisibility();
 
 export const MASTER_SECTION_KEYS = [
   // Artist-first order: start with the physical world, then look/texture, then interaction.
+  'liteMode',           // single performance toggle
   'physics',            // global material world (mass, bounce, drag, perf)
   'wall',               // boundary feel + wobble
   'balls',              // ball material + spacing
@@ -87,6 +88,7 @@ export const MASTER_SECTION_KEYS = [
 
 // Category groupings for visual chunking in the panel
 const SECTION_CATEGORIES = {
+  'liteMode': 'PERFORMANCE',
   'physics': 'MATERIAL WORLD',
   'wall': 'MATERIAL WORLD',
   'balls': 'MATERIAL WORLD',
@@ -193,6 +195,32 @@ function escapeAttr(value) {
  */
 
 export const CONTROL_SECTIONS = {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LITE MODE — Global performance toggle
+  // ═══════════════════════════════════════════════════════════════════════════
+  liteMode: {
+    title: 'Lite Mode',
+    icon: '⚡',
+    defaultOpen: true,
+    controls: [
+      {
+        id: 'liteModeEnabled',
+        label: 'Lite Mode',
+        stateKey: 'liteModeEnabled',
+        type: 'toggle',
+        default: false,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'Reduces simulation density for smoother 90fps targets.',
+        isHero: true,
+        onChange: (g) => {
+          import('../modes/mode-controller.js').then(({ setMode }) => {
+            setMode(g.currentMode);
+          }).catch(() => {});
+        }
+      }
+    ]
+  },
   // ═══════════════════════════════════════════════════════════════════════════
   // BROWSER / THEME ENVIRONMENT
   // ═══════════════════════════════════════════════════════════════════════════
@@ -2056,7 +2084,7 @@ export const CONTROL_SECTIONS = {
         format: v => v.toFixed(3),
         parse: parseFloat,
         group: 'Layers',
-        hint: 'Extra subtle layer (used by .noise-3).',
+        hint: 'Top layer is disabled for performance.',
         onChange: (_g, val) => applyNoiseSystem({ noiseTopOpacity: val })
       },
       {
@@ -3813,6 +3841,7 @@ function generateControlHTML(control) {
   const valId = control.id + 'Val';
   const pickerId = control.id + 'Picker';
   const hintTitleAttr = control.hint ? ` title="${escapeAttr(control.hint)}"` : '';
+  const rowClass = control.isHero ? 'control-row control-row--hero' : 'control-row';
 
   // Color distribution (custom control)
   if (control.type === 'colorDistribution') {
@@ -3835,7 +3864,7 @@ function generateControlHTML(control) {
         </div>`;
     }).join('');
     return `
-      <div class="control-row" data-control-id="${control.id}">
+      <div class="${rowClass}" data-control-id="${control.id}">
         <div class="control-row-header">
           <span class="control-label">${control.label}</span>
           <span class="control-value" id="colorDistTotalVal">100%</span>
@@ -3853,7 +3882,7 @@ function generateControlHTML(control) {
   // Color picker type
   if (control.type === 'color') {
     return `
-      <label class="control-row" data-control-id="${control.id}">
+      <label class="${rowClass}" data-control-id="${control.id}">
         <div class="control-row-header">
           <span class="control-label"${hintTitleAttr}>${control.label}</span>
           <span class="control-value" id="${valId}">${control.default}</span>
@@ -3874,7 +3903,7 @@ function generateControlHTML(control) {
     }).join('');
     const hintHtml = control.hint ? `<p class="control-hint">${control.hint}</p>` : '';
     return `
-      <label class="control-row" data-control-id="${control.id}">
+      <label class="${rowClass}" data-control-id="${control.id}">
         <div class="control-row-header">
           <span class="control-label"${hintTitleAttr}>${control.label}</span>
           <span class="control-value" id="${valId}">${safeFormat(control, control.default)}</span>
@@ -3890,7 +3919,7 @@ function generateControlHTML(control) {
   if (control.type === 'checkbox' || control.type === 'toggle') {
     const checkedAttr = control.default ? 'checked' : '';
     return `
-      <label class="control-row" data-control-id="${control.id}">
+      <label class="${rowClass}" data-control-id="${control.id}">
         <div class="control-row-header">
           <span class="control-label"${hintTitleAttr}>${control.label}</span>
           <span class="control-value" id="${valId}">${control.default ? 'On' : 'Off'}</span>
@@ -3904,7 +3933,7 @@ function generateControlHTML(control) {
   const hintHtml = control.hint ? `<p class="control-hint">${control.hint}</p>` : '';
   
   return `
-      <label class="control-row" data-control-id="${control.id}">
+      <label class="${rowClass}" data-control-id="${control.id}">
         <div class="control-row-header">
           <span class="control-label"${hintTitleAttr}>${control.label}</span>
           <span class="control-value" id="${valId}">${safeFormat(control, control.default)}</span>

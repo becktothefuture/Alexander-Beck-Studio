@@ -216,9 +216,9 @@
   --noise-size-base: 100px;
   --noise-size-top: 150px;
   --noise-size-scale: 1;
-  --noise-back-opacity-light: 0.025;
+  --noise-back-opacity-light: 0.05;
   --noise-front-opacity-light: 0.12;
-  --noise-back-opacity-dark: 0.12;
+  --noise-back-opacity-dark: 0.05;
   --noise-front-opacity-dark: 0.18;
   --noise-top-opacity: 0; /* Disabled: noise-3 layer removed */
   --detail-noise-opacity: 1; /* Overall opacity multiplier for detail page noise */

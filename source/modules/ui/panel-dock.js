@@ -535,6 +535,8 @@ async function saveAllConfigToFile() {
     config.sizeScale = g.sizeScale;
     config.responsiveScaleMobile = g.responsiveScaleMobile;
     config.mobileObjectReductionFactor = g.mobileObjectReductionFactor;
+    config.liteModeEnabled = g.liteModeEnabled;
+    config.liteModeObjectReductionFactor = g.liteModeObjectReductionFactor;
     config.ballSoftness = g.ballSoftness;
     config.ballSpacing = g.ballSpacing;
     config.sizeVariationGlobalMul = g.sizeVariationGlobalMul;

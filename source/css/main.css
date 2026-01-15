@@ -1407,9 +1407,7 @@ body.dark-mode #bravia-balls {
   border-radius: 0; /* Radius controlled entirely by rubber wall system */
 }
 
-.noise,
-.noise-2,
-.noise-3 {
+.noise {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1435,18 +1433,10 @@ body.dark-mode #bravia-balls {
 .noise {
   z-index: 2;
   opacity: 0;
-  mix-blend-mode: multiply;
 }
 
-.noise-2 {
-  z-index: 12; /* Above cards (z:10-11) to ensure noise is always in front */
-  opacity: 0;
-  mix-blend-mode: multiply;
-}
-
-/* Noise layers fade in after page load */
-.noise-ready .noise,
-.noise-ready .noise-2 {
+/* Noise layer fades in after page load */
+.noise-ready .noise {
   visibility: visible;
 }
 
@@ -1454,16 +1444,7 @@ body.dark-mode #bravia-balls {
   opacity: calc(var(--noise-back-opacity-light) * var(--abs-noise-enabled));
 }
 
-.noise-ready .noise-2 {
-  opacity: calc(var(--noise-front-opacity-light) * var(--abs-noise-enabled));
-}
-
-.noise-3 {
-  display: none; /* Disabled: removed top noise layer to prevent covering cards */
-}
-
-.noise::before,
-.noise-2::before {
+.noise::before {
   content: '';
   position: absolute;
   inset: var(--abs-noise-overscan);
@@ -1487,27 +1468,11 @@ body.dark-mode #bravia-balls {
   background-size: calc(var(--noise-size-base) * var(--noise-size-scale)) calc(var(--noise-size-base) * var(--noise-size-scale));
 }
 
-.noise-2::before {
-  background-size: calc(var(--noise-size-top) * var(--noise-size-scale)) calc(var(--noise-size-top) * var(--noise-size-scale));
-  animation-duration: var(--abs-noise-speed-front), var(--abs-noise-flicker-speed);
-}
-
-body.dark-mode .noise,
-body.dark-mode .noise-2 {
-  mix-blend-mode: overlay;
-}
-
 /* Dark mode noise fade-in with correct opacities */
 .noise-ready body.dark-mode .noise,
 body.dark-mode.noise-ready .noise,
 body.dark-mode .noise-ready .noise {
   opacity: calc(var(--noise-back-opacity-dark) * var(--abs-noise-enabled));
-}
-
-.noise-ready body.dark-mode .noise-2,
-body.dark-mode.noise-ready .noise-2,
-body.dark-mode .noise-ready .noise-2 {
-  opacity: calc(var(--noise-front-opacity-dark) * var(--abs-noise-enabled));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1517,8 +1482,7 @@ body.dark-mode .noise-ready .noise-2 {
    Background-position animation avoids GPU compositing bugs while keeping motion.
    The .is-safari class is added by inline script in <head> before CSS loads.
    ═══════════════════════════════════════════════════════════════════════════════ */
-html.is-safari .noise::before,
-html.is-safari .noise-2::before {
+html.is-safari .noise::before {
   /* Remove transform-based animation, use background-position instead */
   animation-name: abs-noise-bgpos, abs-noise-flicker;
   transform: none;
@@ -3342,7 +3306,7 @@ body.dark-mode .cv-photo {
 }
 
 /* Gradient fade overlays - DOM elements with explicit z-index stacking */
-/* Stacking order: text (z:10) < gradients (z:11) < noise-2 (z:12) < wall (z:15) */
+/* Stacking order: text (z:10) < gradients (z:11) < wall (z:15) */
 .cv-gradient-overlay {
   position: absolute;
   left: 0;
@@ -3350,7 +3314,7 @@ body.dark-mode .cv-photo {
   width: 100%;
   height: 20vh;
   pointer-events: none;
-  z-index: 11; /* Above text (z:10) but below noise-2 (z:12) */
+  z-index: 11; /* Above text (z:10) but below wall (z:15) */
 }
 
 /* Top gradient: background color → transparent */

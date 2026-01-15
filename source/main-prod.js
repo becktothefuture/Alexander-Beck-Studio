@@ -287,31 +287,6 @@ export function applyVisualCSSVars(config) {
 function ensureNoiseElements() {
   const existingNoise = document.querySelector('.noise');
   if (!existingNoise) return;
-
-  const container =
-    existingNoise.closest('#bravia-balls') ||
-    document.getElementById('bravia-balls') ||
-    existingNoise.parentElement ||
-    document.body;
-
-  const noiseStyle = getComputedStyle(existingNoise);
-  const bgImage = (noiseStyle.backgroundImage && noiseStyle.backgroundImage !== 'none')
-    ? noiseStyle.backgroundImage
-    : null;
-
-  if (!document.querySelector('.noise-2')) {
-    const noise2 = document.createElement('div');
-    noise2.className = 'noise-2';
-    if (bgImage) noise2.style.backgroundImage = bgImage;
-    container.appendChild(noise2);
-  }
-
-  if (!document.querySelector('.noise-3')) {
-    const noise3 = document.createElement('div');
-    noise3.className = 'noise-3';
-    if (bgImage) noise3.style.backgroundImage = bgImage;
-    container.appendChild(noise3);
-  }
 }
 
 function enhanceFooterLinksForMobile() {

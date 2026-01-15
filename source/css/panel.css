@@ -883,6 +883,34 @@ body:not(.dark-mode) .panel-section--action {
   gap: var(--panel-control-gap);
 }
 
+.control-row--hero {
+  padding: var(--panel-pad-10);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-md);
+  background: var(--panel-muted);
+  box-shadow: none;
+}
+
+.control-row--hero .control-row-header {
+  align-items: flex-start;
+}
+
+.control-row--hero .control-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--panel-foreground);
+}
+
+.control-row--hero .control-value {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.control-row--hero input[type="checkbox"] {
+  width: calc(var(--panel-pad-10) + var(--panel-pad-4));
+  height: calc(var(--panel-pad-10) + var(--panel-pad-4));
+}
+
 .control-row-header {
   display: flex;
   justify-content: space-between;
