@@ -1604,7 +1604,14 @@ html.is-safari .noise::before {
     /* Horizontal ratio is now handled by JS (contentPaddingHorizontalRatio).
        CSS fallback kept for graceful degradation if JS hasn't stamped values yet. */
     --noise-size-scale: 0.8;
-    /* Content padding now uses main responsive scaling (no mobile override multiplier) */
+    /* Content padding uses main responsive scaling + mobile multiplier */
+    --abs-content-pad-mul-x: 1.5;
+    --abs-content-pad-mul-y: 1.5;
+    --text-xs: calc(var(--abs-text-xs) - var(--abs-size-1px));
+    --text-sm: calc(var(--abs-text-sm) - var(--abs-size-1px));
+    --text-md: calc(var(--abs-text-md) - var(--abs-size-1px));
+    --text-lg: calc(var(--abs-text-lg) - var(--abs-size-1px));
+    --text-xl: calc(var(--abs-text-xl) - var(--abs-size-1px));
     
     /* Side labels closer to the wall */
     --edge-label-inset-gap: 2px;

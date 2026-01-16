@@ -103,6 +103,7 @@
   --abs-size-icon-lg: clamp(24px, 2.5vw, 28px);
   --abs-size-dot: clamp(3px, 0.4vmin, 4px);
   --abs-tap-target: clamp(12px, 2.5vmin, 30px);
+  --abs-size-1px: 1px;
 
   /* Radii & Layout Metrics */
   --abs-radius-1: 1px;

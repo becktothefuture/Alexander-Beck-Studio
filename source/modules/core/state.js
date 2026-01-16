@@ -139,6 +139,8 @@ const state = {
   // Mobile performance: global multiplier applied to object counts (0..1).
   // 1.0 = no reduction, 0.0 = (effectively) no objects.
   mobileObjectReductionFactor: 0.5,
+  // Only reduce object counts on mobile when counts exceed this threshold.
+  mobileObjectReductionThreshold: 200,
   // Lite mode: global multiplier applied to object counts (0..1).
   // Toggleable at runtime for a low-cost simulation profile.
   liteModeEnabled: false,
@@ -1032,6 +1034,14 @@ export function initState(config) {
       state.mobileObjectReductionFactor
     );
   }
+  if (config.mobileObjectReductionThreshold !== undefined) {
+    state.mobileObjectReductionThreshold = clampInt(
+      config.mobileObjectReductionThreshold,
+      0,
+      10000,
+      state.mobileObjectReductionThreshold
+    );
+  }
   
   // Detect mobile/tablet devices and set ball sizes
   detectResponsiveScale();
@@ -1602,7 +1612,11 @@ export function getMobileAdjustedCount(baseCount) {
   let factor = 1;
   if (globals.isMobile) {
     const mobileFactor = Math.max(0, Math.min(1, Number(globals.mobileObjectReductionFactor ?? 0.7)));
-    factor *= mobileFactor;
+    const reductionThreshold = Math.max(0, Number(globals.mobileObjectReductionThreshold ?? 0));
+    const shouldReduce = reductionThreshold > 0 ? n >= reductionThreshold : true;
+    if (shouldReduce) {
+      factor *= mobileFactor;
+    }
   }
   if (globals.liteModeEnabled) {
     const liteFactor = Math.max(0, Math.min(1, Number(globals.liteModeObjectReductionFactor ?? 0.6)));
@@ -1668,7 +1682,6 @@ export function detectResponsiveScale() {
   if (state.isMobile || state.isMobileViewport) {
     state.physicsCollisionIterations = 4;
     state.mouseTrailEnabled = false;
-    state.mobileObjectReductionFactor = Math.min(state.mobileObjectReductionFactor, 0.5);
   }
 
   // Update ball sizes based on device type
