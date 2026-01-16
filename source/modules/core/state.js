@@ -130,7 +130,7 @@ const state = {
   sizeVariation: 0,
   // Fixed ball sizes in pixels
   ballSizeDesktop: 18,        // Ball radius in px for desktop
-  ballSizeMobile: 6,          // Ball radius in px for mobile
+  ballSizeMobile: 7.2,        // Ball radius in px for mobile
   isMobile: false,            // Mobile *device* detected? (UA/touch heuristic)
   isMobileViewport: false,    // Mobile viewport detected? (width breakpoint)
   // Mobile performance: completely disable wall deformation on mobile for 60 FPS
