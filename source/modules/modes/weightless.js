@@ -1,10 +1,82 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                            WEIGHTLESS MODE                                   ║
-// ║            Extracted from balls-source.html lines 3559-3585                  ║
+// ║            Snooker-style triangle arrangement in center                      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
+
+/**
+ * Calculate number of rows needed for a triangle arrangement to fit target ball count
+ * Triangle with n rows has n*(n+1)/2 balls
+ */
+function calculateTriangleRows(targetBalls) {
+  let rows = 1;
+  while (rows * (rows + 1) / 2 < targetBalls) {
+    rows++;
+  }
+  return rows;
+}
+
+/**
+ * Arrange balls in a triangle formation (snooker rack style) centered in viewport
+ */
+function arrangeBallsInTriangle(globals, targetBalls) {
+  const canvas = globals.canvas;
+  if (!canvas) return;
+  
+  const w = canvas.width;
+  const h = canvas.height;
+  const DPR = globals.DPR || 1;
+  
+  // Calculate rows needed for triangle
+  const rows = calculateTriangleRows(targetBalls);
+  const actualBalls = Math.min(targetBalls, rows * (rows + 1) / 2);
+  
+  // Get average ball radius for spacing
+  const avgRadius = ((globals.R_MIN || 15) + (globals.R_MAX || 25)) * 0.5 * DPR;
+  const spacing = avgRadius * 2.1; // Slight gap between balls
+  
+  // Center of viewport
+  const centerX = w * 0.5;
+  const centerY = h * 0.5;
+  
+  // Calculate total triangle width and height
+  const triangleWidth = (rows - 1) * spacing;
+  const triangleHeight = (rows - 1) * spacing * Math.sqrt(3) / 2;
+  
+  // Starting position (top of triangle, centered horizontally)
+  const startX = centerX - triangleWidth * 0.5;
+  const startY = centerY - triangleHeight * 0.5;
+  
+  let ballIndex = 0;
+  
+  // Create triangle arrangement: row 1 has 1 ball, row 2 has 2, etc.
+  for (let row = 0; row < rows && ballIndex < actualBalls; row++) {
+    const ballsInRow = row + 1;
+    const rowWidth = (ballsInRow - 1) * spacing;
+    const rowX = startX + (triangleWidth - rowWidth) * 0.5;
+    const rowY = startY + row * spacing * Math.sqrt(3) / 2;
+    
+    for (let col = 0; col < ballsInRow && ballIndex < actualBalls; col++) {
+      const x = rowX + col * spacing;
+      const y = rowY;
+      
+      const ball = spawnBall(x, y);
+      
+      // Start stationary (zero velocity) - will move when mouse interacts
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.omega = 0;
+      ball.driftAx = 0;
+      ball.driftTime = 0;
+      
+      ballIndex++;
+    }
+  }
+  
+  return ballIndex;
+}
 
 export function initializeWeightless() {
   const globals = getGlobals();
@@ -12,27 +84,9 @@ export function initializeWeightless() {
   
   const targetBalls = getMobileAdjustedCount(globals.weightlessCount);
   if (targetBalls <= 0) return;
-  const w = globals.canvas.width;
-  const h = globals.canvas.height;
-  const DPR = globals.DPR || 1;
-  const margin = 40 * DPR;
-  // Initial speed (DPR-scaled)
-  const baseSpeed = globals.weightlessInitialSpeed * DPR;
   
-  // Color distribution is handled by spawnBall() via pickRandomColor().
-  for (let i = 0; i < targetBalls; i++) {
-    const x = margin + Math.random() * (w - 2 * margin);
-    const y = margin + Math.random() * (h - 2 * margin);
-    
-    const ball = spawnBall(x, y);
-    
-    const angle = Math.random() * Math.PI * 2;
-    const speed = baseSpeed * (0.7 + Math.random() * 0.3);
-    ball.vx = Math.cos(angle) * speed;
-    ball.vy = Math.sin(angle) * speed;
-    ball.driftAx = 0;
-    ball.driftTime = 0;
-  }
+  // Arrange balls in triangle formation (snooker rack style)
+  arrangeBallsInTriangle(globals, targetBalls);
 }
 
 export function applyWeightlessForces(ball, dt) {

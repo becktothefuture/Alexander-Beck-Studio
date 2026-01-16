@@ -2043,7 +2043,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'noiseChroma',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.35,
+        default: 0.9,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         group: 'Texture',
@@ -2051,89 +2051,87 @@ export const CONTROL_SECTIONS = {
         onChange: (_g, val) => applyNoiseSystem({ noiseChroma: val })
       },
       {
-        id: 'noiseSizeBase',
-        label: 'Back Scale',
-        stateKey: 'noiseSizeBase',
-        type: 'range',
-        min: 20, max: 400, step: 5,
-        default: 100,
-        format: v => `${Math.round(v)} px`,
-        parse: v => parseInt(v, 10),
-        group: 'Layers',
-        onChange: (_g, val) => applyNoiseSystem({ noiseSizeBase: val })
-      },
-      {
-        id: 'noiseSizeTop',
-        label: 'Front Scale',
-        stateKey: 'noiseSizeTop',
+        id: 'noiseSize',
+        label: 'Grain Size',
+        stateKey: 'noiseSize',
         type: 'range',
         min: 20, max: 600, step: 5,
-        default: 150,
+        default: 85,
         format: v => `${Math.round(v)} px`,
         parse: v => parseInt(v, 10),
-        group: 'Layers',
-        onChange: (_g, val) => applyNoiseSystem({ noiseSizeTop: val })
+        group: 'Layer',
+        onChange: (_g, val) => applyNoiseSystem({ noiseSize: val })
       },
       {
-        id: 'noiseTopOpacity',
-        label: 'Top Opacity',
-        stateKey: 'noiseTopOpacity',
+        id: 'noiseOpacityLight',
+        label: 'Opacity (Light)',
+        stateKey: 'noiseOpacityLight',
         type: 'range',
-        min: 0, max: 0.25, step: 0.005,
-        default: 0.01,
-        format: v => v.toFixed(3),
-        parse: parseFloat,
-        group: 'Layers',
-        hint: 'Top layer is disabled for performance.',
-        onChange: (_g, val) => applyNoiseSystem({ noiseTopOpacity: val })
-      },
-      {
-        id: 'noiseBackOpacity',
-        label: 'Back Opacity (Light)',
-        stateKey: 'noiseBackOpacity',
-        type: 'range',
-        min: 0, max: 0.3, step: 0.005,
-        default: 0.025,
-        format: v => v.toFixed(3),
-        parse: parseFloat,
-        group: 'Layers',
-        onChange: (_g, val) => applyNoiseSystem({ noiseBackOpacity: val })
-      },
-      {
-        id: 'noiseFrontOpacity',
-        label: 'Front Opacity (Light)',
-        stateKey: 'noiseFrontOpacity',
-        type: 'range',
-        min: 0, max: 0.3, step: 0.005,
-        default: 0.055,
-        format: v => v.toFixed(3),
-        parse: parseFloat,
-        group: 'Layers',
-        onChange: (_g, val) => applyNoiseSystem({ noiseFrontOpacity: val })
-      },
-      {
-        id: 'noiseBackOpacityDark',
-        label: 'Back Opacity (Dark)',
-        stateKey: 'noiseBackOpacityDark',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.005,
-        default: 0.12,
-        format: v => v.toFixed(3),
-        parse: parseFloat,
-        group: 'Layers',
-        onChange: (_g, val) => applyNoiseSystem({ noiseBackOpacityDark: val })
-      },
-      {
-        id: 'noiseFrontOpacityDark',
-        label: 'Front Opacity (Dark)',
-        stateKey: 'noiseFrontOpacityDark',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.005,
+        min: 0, max: 1, step: 0.01,
         default: 0.08,
-        format: v => v.toFixed(3),
+        format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        group: 'Layers',
-        onChange: (_g, val) => applyNoiseSystem({ noiseFrontOpacityDark: val })
+        group: 'Layer',
+        onChange: (_g, val) => applyNoiseSystem({ noiseOpacityLight: val })
+      },
+      {
+        id: 'noiseOpacityDark',
+        label: 'Opacity (Dark)',
+        stateKey: 'noiseOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.12,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Layer',
+        onChange: (_g, val) => applyNoiseSystem({ noiseOpacityDark: val })
+      },
+      {
+        id: 'noiseBlendMode',
+        label: 'Blend Mode',
+        stateKey: 'noiseBlendMode',
+        type: 'select',
+        options: [
+          { value: 'normal', label: 'Normal (Off)' },
+          { value: 'multiply', label: 'Multiply' },
+          { value: 'screen', label: 'Screen' },
+          { value: 'overlay', label: 'Overlay' },
+          { value: 'darken', label: 'Darken' },
+          { value: 'lighten', label: 'Lighten' },
+          { value: 'color-dodge', label: 'Color Dodge' },
+          { value: 'color-burn', label: 'Color Burn' },
+          { value: 'hard-light', label: 'Hard Light' },
+          { value: 'soft-light', label: 'Soft Light' },
+          { value: 'difference', label: 'Difference' },
+          { value: 'exclusion', label: 'Exclusion' }
+        ],
+        default: 'normal',
+        format: v => String(v),
+        parse: v => String(v),
+        group: 'Layer',
+        onChange: (_g, val) => applyNoiseSystem({ noiseBlendMode: val })
+      },
+      {
+        id: 'noiseColorLight',
+        label: 'Color (Light)',
+        stateKey: 'noiseColorLight',
+        type: 'color',
+        default: '#ffffff',
+        format: v => String(v),
+        parse: v => String(v),
+        group: 'Layer',
+        onChange: (_g, val) => applyNoiseSystem({ noiseColorLight: val })
+      },
+      {
+        id: 'noiseColorDark',
+        label: 'Color (Dark)',
+        stateKey: 'noiseColorDark',
+        type: 'color',
+        default: '#ffffff',
+        format: v => String(v),
+        parse: v => String(v),
+        group: 'Layer',
+        onChange: (_g, val) => applyNoiseSystem({ noiseColorDark: val })
       },
       {
         id: 'noiseMotion',
@@ -2164,28 +2162,29 @@ export const CONTROL_SECTIONS = {
         onChange: (_g, val) => applyNoiseSystem({ noiseMotionAmount: val })
       },
       {
-        id: 'noiseSpeedBackMs',
-        label: 'Back Speed',
-        stateKey: 'noiseSpeedBackMs',
-        type: 'range',
-        min: 0, max: 10000, step: 50,
-        default: 1800,
-        format: v => `${Math.round(v)} ms`,
-        parse: v => parseInt(v, 10),
-        group: 'Motion',
-        onChange: (_g, val) => applyNoiseSystem({ noiseSpeedBackMs: val })
-      },
-      {
-        id: 'noiseSpeedFrontMs',
-        label: 'Front Speed',
-        stateKey: 'noiseSpeedFrontMs',
+        id: 'noiseSpeedMs',
+        label: 'Speed',
+        stateKey: 'noiseSpeedMs',
         type: 'range',
         min: 0, max: 10000, step: 50,
         default: 1100,
         format: v => `${Math.round(v)} ms`,
         parse: v => parseInt(v, 10),
         group: 'Motion',
-        onChange: (_g, val) => applyNoiseSystem({ noiseSpeedFrontMs: val })
+        onChange: (_g, val) => applyNoiseSystem({ noiseSpeedMs: val })
+      },
+      {
+        id: 'noiseSpeedVariance',
+        label: 'Timing Variance',
+        stateKey: 'noiseSpeedVariance',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Motion',
+        hint: 'Adds randomness to animation timing (0 = no variance, 1 = max variance)',
+        onChange: (_g, val) => applyNoiseSystem({ noiseSpeedVariance: val })
       },
       {
         id: 'noiseFlicker',
@@ -2585,7 +2584,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'weightlessCount',
         type: 'range',
         min: 20, max: 200, step: 10,
-        default: 80,
+        default: 66,
         format: v => String(v),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -2607,7 +2606,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'weightlessBounce',
         type: 'range',
         min: 0.5, max: 1, step: 0.05,
-        default: 0.95,
+        default: 0.70,
         format: v => v.toFixed(2),
         parse: parseFloat
       },
@@ -2617,7 +2616,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'weightlessRepelPower',
         type: 'range',
         min: 0, max: 600000, step: 10000,
-        default: 220000,
+        default: 50000,
         format: v => Math.round(v).toString(),
         parse: parseFloat
       },
@@ -2627,7 +2626,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'weightlessRepelSoft',
         type: 'range',
         min: 0.5, max: 6.0, step: 0.1,
-        default: 2.2,
+        default: 5.4,
         format: v => v.toFixed(1),
         parse: parseFloat
       },
@@ -2691,8 +2690,8 @@ export const CONTROL_SECTIONS = {
   },
 
   vortex: {
-    title: 'Vortex',
-    icon: '🌀',
+    title: 'Electrons',
+    icon: '⚛️',
     mode: 'vortex',
     defaultOpen: false,
     controls: [
@@ -2709,23 +2708,25 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'vortexSwirl',
-        label: 'Swirl Strength',
+        label: 'Orbital Strength',
         stateKey: 'vortexSwirlStrength',
         type: 'range',
         min: 100, max: 3000, step: 50,
         default: 420,
         format: v => v.toFixed(0),
-        parse: parseFloat
+        parse: parseFloat,
+        tooltip: 'Electromagnetic force strength binding electrons to nucleus'
       },
       {
-        id: 'vortexPull',
-        label: 'Radial Pull',
-        stateKey: 'vortexRadialPull',
+        id: 'vortexRadius',
+        label: 'Shell Radius',
+        stateKey: 'vortexRadius',
         type: 'range',
-        min: 0, max: 2000, step: 20,
-        default: 180,
-        format: v => v.toFixed(0),
-        parse: parseFloat
+        min: 0, max: 800, step: 20,
+        default: 300,
+        format: v => v === 0 ? 'Auto-scale' : v.toFixed(0) + 'px',
+        parse: parseFloat,
+        tooltip: 'Base radius for electron orbital shells (like atomic energy levels)'
       },
       {
         id: 'vortexSpeedMultiplier',
@@ -2738,26 +2739,26 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat
       },
       {
-        id: 'vortexRadius',
-        label: 'Vortex Radius',
-        stateKey: 'vortexRadius',
+        id: 'vortexDepthVariation',
+        label: 'Depth Variation',
+        stateKey: 'vortexDepthVariation',
         type: 'range',
-        min: 0, max: 800, step: 20,
-        default: 0,
-        format: v => v === 0 ? 'Unlimited' : v.toFixed(0) + 'px',
+        min: 0, max: 1, step: 0.05,
+        default: 0.6,
+        format: v => (v * 100).toFixed(0) + '%',
         parse: parseFloat,
-        tooltip: 'Maximum effective radius (0 = unlimited, uses distance falloff)'
+        tooltip: 'How much ball size changes with 3D depth (0 = no change, 1 = max variation)'
       },
       {
-        id: 'vortexFalloffCurve',
-        label: 'Falloff Curve',
-        stateKey: 'vortexFalloffCurve',
+        id: 'vortexSpiralTightness',
+        label: 'Spiral Tightness',
+        stateKey: 'vortexSpiralTightness',
         type: 'range',
-        min: 0.3, max: 3.0, step: 0.1,
-        default: 1.0,
-        format: v => v.toFixed(1),
+        min: 0, max: 1, step: 0.05,
+        default: 0.5,
+        format: v => (v * 100).toFixed(0) + '%',
         parse: parseFloat,
-        tooltip: 'Falloff shape: 1.0 = linear, 2.0 = quadratic (sharper), 0.5 = gentle'
+        tooltip: 'How tightly balls spiral in 3D space (0 = flat orbit, 1 = tight spiral)'
       },
       {
         id: 'vortexRotationDirection',
@@ -2770,47 +2771,15 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat
       },
       {
-        id: 'vortexCoreStrength',
-        label: 'Core Strength',
-        stateKey: 'vortexCoreStrength',
-        type: 'range',
-        min: 0.5, max: 3.0, step: 0.1,
-        default: 1.0,
-        format: v => v.toFixed(1) + 'x',
-        parse: parseFloat,
-        tooltip: 'Strength multiplier at vortex center'
-      },
-      {
-        id: 'vortexAccelerationZone',
-        label: 'Acceleration Zone',
-        stateKey: 'vortexAccelerationZone',
-        type: 'range',
-        min: 0, max: 400, step: 20,
-        default: 0,
-        format: v => v === 0 ? 'Disabled' : v.toFixed(0) + 'px',
-        parse: parseFloat,
-        tooltip: 'Radius where extra acceleration occurs (0 = disabled)'
-      },
-      {
-        id: 'vortexOutwardPush',
-        label: 'Outward Push',
-        stateKey: 'vortexOutwardPush',
-        type: 'range',
-        min: 0, max: 1000, step: 20,
-        default: 0,
-        format: v => v === 0 ? 'Disabled' : v.toFixed(0),
-        parse: parseFloat,
-        tooltip: 'Outward force at edges (only when radius is set)'
-      },
-      {
         id: 'vortexDrag',
         label: 'Drag',
         stateKey: 'vortexDrag',
         type: 'range',
         min: 0.001, max: 0.05, step: 0.001,
-        default: 0.005,
+        default: 0.01,
         format: v => v.toFixed(3),
-        parse: parseFloat
+        parse: parseFloat,
+        tooltip: 'Damping to stabilize orbital motion'
       },
       warmupFramesControl('vortexWarmupFrames')
     ]
@@ -2839,7 +2808,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'pingPongSpeed',
         type: 'range',
         min: 200, max: 1600, step: 50,
-        default: 800,
+        default: 400,
         format: v => v.toFixed(0),
         parse: parseFloat,
         reinitMode: true
@@ -2850,7 +2819,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'pingPongVerticalDamp',
         type: 'range',
         min: 0.8, max: 0.999, step: 0.001,
-        default: 0.995,
+        default: 0.911,
         format: v => v.toFixed(3),
         parse: parseFloat
       },
@@ -2883,7 +2852,19 @@ export const CONTROL_SECTIONS = {
         min: 10000, max: 100000, step: 5000,
         default: 65000,
         format: v => v.toFixed(0),
-        parse: parseFloat
+        parse: parseFloat,
+        hint: 'Magnetic attraction strength to cursor'
+      },
+      {
+        id: 'magneticRadius',
+        label: 'Magnetic Radius',
+        stateKey: 'magneticRadius',
+        type: 'range',
+        min: 0, max: 600, step: 20,
+        default: 0,
+        format: v => v === 0 ? 'Unlimited' : Math.round(v) + 'px',
+        parse: parseFloat,
+        hint: 'Maximum distance for magnetic effect (0 = unlimited)'
       },
       {
         id: 'magneticVelocity',
@@ -2901,7 +2882,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'magneticDamping',
         type: 'range',
         min: 0.8, max: 0.999, step: 0.001,
-        default: 0.98,
+        default: 0.998,
         format: v => v.toFixed(3),
         parse: parseFloat
       },
@@ -3140,11 +3121,44 @@ export const CONTROL_SECTIONS = {
         label: 'Ball Count',
         stateKey: 'neuralBallCount',
         type: 'range',
-        min: 8, max: 260, step: 1,
-        default: 80,
+        min: 8, max: 400, step: 1,
+        default: 311,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
+      },
+      {
+        id: 'neuralLinkDistanceVw',
+        label: 'Link Distance',
+        stateKey: 'neuralLinkDistanceVw',
+        type: 'range',
+        min: 5, max: 40, step: 0.5,
+        default: 5.0,
+        format: v => v.toFixed(1) + 'vw',
+        parse: parseFloat,
+        tooltip: 'Maximum distance for connections between nodes'
+      },
+      {
+        id: 'neuralLineOpacity',
+        label: 'Link Opacity',
+        stateKey: 'neuralLineOpacity',
+        type: 'range',
+        min: 0, max: 0.8, step: 0.02,
+        default: 0.06,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        tooltip: 'Opacity of connector balls (legacy - now using connector density)'
+      },
+      {
+        id: 'neuralConnectorDensity',
+        label: 'Connector Density',
+        stateKey: 'neuralConnectorDensity',
+        type: 'range',
+        min: 0, max: 10, step: 1,
+        default: 3,
+        format: v => String(Math.round(v)) + ' balls',
+        parse: v => parseInt(v, 10),
+        tooltip: 'Number of connector balls per connection (0 = no connectors)'
       },
       {
         id: 'sizeVariationNeural',
@@ -3152,7 +3166,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sizeVariationNeural',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0,
+        default: 0.05,
         format: v => v.toFixed(2),
         parse: parseFloat,
         reinitMode: true
@@ -3163,28 +3177,39 @@ export const CONTROL_SECTIONS = {
         stateKey: 'neuralWanderStrength',
         type: 'range',
         min: 0, max: 2000, step: 10,
-        default: 420,
+        default: 1000,
         format: v => String(Math.round(v)),
         parse: parseFloat
+      },
+      {
+        id: 'neuralMouseStrength',
+        label: 'Mouse Attraction',
+        stateKey: 'neuralMouseStrength',
+        type: 'range',
+        min: 0, max: 150000, step: 5000,
+        default: 150000,
+        format: v => String(Math.round(v / 1000)) + 'k',
+        parse: parseFloat
+      },
+      {
+        id: 'neuralSeparationStrength',
+        label: 'Separation',
+        stateKey: 'neuralSeparationStrength',
+        type: 'range',
+        min: 0, max: 30000, step: 500,
+        default: 11000,
+        format: v => String(Math.round(v / 1000)) + 'k',
+        parse: parseFloat,
+        tooltip: 'How strongly balls avoid each other (subtle spacing)'
       },
       {
         id: 'neuralDamping',
         label: 'Damping',
         stateKey: 'neuralDamping',
         type: 'range',
-        min: 0.8, max: 1.0, step: 0.005,
-        default: 0.985,
+        min: 0.9, max: 1.0, step: 0.002,
+        default: 0.900,
         format: v => v.toFixed(3),
-        parse: parseFloat
-      },
-      {
-        id: 'neuralCohesion',
-        label: 'Cohesion',
-        stateKey: 'neuralCohesion',
-        type: 'range',
-        min: 0, max: 1.0, step: 0.01,
-        default: 0.18,
-        format: v => v.toFixed(2),
         parse: parseFloat
       },
       warmupFramesControl('neuralWarmupFrames')
@@ -3364,7 +3389,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldSpanX',
         type: 'range',
         min: 0.4, max: 3.5, step: 0.05,
-        default: 1.35,
+        default: 2.45,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true
@@ -3375,7 +3400,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldSpanY',
         type: 'range',
         min: 0.4, max: 3.5, step: 0.05,
-        default: 1.1,
+        default: 2.05,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat,
         reinitMode: true
@@ -3386,7 +3411,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldZNear',
         type: 'range',
         min: 40, max: 800, step: 10,
-        default: 180,
+        default: 70,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -3397,7 +3422,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldZFar',
         type: 'range',
         min: 400, max: 4000, step: 50,
-        default: 2600,
+        default: 4000,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true
@@ -3408,7 +3433,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldFocalLength',
         type: 'range',
         min: 120, max: 2000, step: 10,
-        default: 580,
+        default: 310,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10)
       },
@@ -3428,7 +3453,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldSpeed',
         type: 'range',
         min: 60, max: 1600, step: 10,
-        default: 620,
+        default: 390,
         format: v => `${Math.round(v)}px/s`,
         parse: v => parseInt(v, 10)
       },
@@ -3438,7 +3463,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldDotSizeMul',
         type: 'range',
         min: 0.2, max: 4.0, step: 0.05,
-        default: 1.85,
+        default: 0.35,
         format: v => v.toFixed(2) + '×',
         parse: parseFloat
       },
@@ -3448,12 +3473,240 @@ export const CONTROL_SECTIONS = {
         stateKey: 'starfieldIdleJitter',
         type: 'range',
         min: 0, max: 20, step: 0.5,
-        default: 6,
+        default: 20.0,
         format: v => v.toFixed(1) + 'px',
         parse: parseFloat,
         hint: 'Subtle twinkle when idle; disabled for reduced-motion.'
       },
+      {
+        id: 'starfieldFadeDuration',
+        label: 'Fade Duration',
+        stateKey: 'starfieldFadeDuration',
+        type: 'range',
+        min: 0, max: 3, step: 0.1,
+        default: 0.5,
+        format: v => v.toFixed(1) + 's',
+        parse: parseFloat,
+        hint: 'Duration of fade in/out when stars appear and disappear.'
+      },
       warmupFramesControl('starfield3dWarmupFrames')
+    ]
+  },
+
+  meteorShower: {
+    title: 'Meteor Shower',
+    icon: '☄️',
+    mode: 'meteor-shower',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'meteorShowerMaxBalls',
+        label: 'Max Balls',
+        stateKey: 'meteorShowerMaxBalls',
+        type: 'range',
+        min: 10, max: 80, step: 5,
+        default: 30,
+        format: v => String(v),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'meteorShowerSpawnMinInterval',
+        label: 'Spawn Min Interval',
+        stateKey: 'meteorShowerSpawnMinInterval',
+        type: 'range',
+        min: 0.1, max: 1.0, step: 0.05,
+        default: 0.3,
+        format: v => v.toFixed(2) + 's',
+        parse: parseFloat
+      },
+      {
+        id: 'meteorShowerSpawnMaxInterval',
+        label: 'Spawn Max Interval',
+        stateKey: 'meteorShowerSpawnMaxInterval',
+        type: 'range',
+        min: 0.5, max: 3.0, step: 0.1,
+        default: 1.2,
+        format: v => v.toFixed(1) + 's',
+        parse: parseFloat
+      },
+      {
+        id: 'meteorShowerInitialVelocity',
+        label: 'Initial Velocity',
+        stateKey: 'meteorShowerInitialVelocity',
+        type: 'range',
+        min: 400, max: 2000, step: 50,
+        default: 1000,
+        format: v => v.toFixed(0) + 'px/s',
+        parse: parseFloat
+      },
+      {
+        id: 'meteorShowerMassMultiplier',
+        label: 'Mass Multiplier',
+        stateKey: 'meteorShowerMassMultiplier',
+        type: 'range',
+        min: 3.0, max: 12.0, step: 0.5,
+        default: 7.0,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        hint: 'Higher mass creates more dramatic wall deformations'
+      },
+      {
+        id: 'meteorShowerGravityMultiplier',
+        label: 'Gravity Multiplier',
+        stateKey: 'meteorShowerGravityMultiplier',
+        type: 'range',
+        min: 0.5, max: 3.0, step: 0.1,
+        default: 1.8,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat
+      },
+      warmupFramesControl('meteorShowerWarmupFrames')
+    ]
+  },
+
+  elasticCenter: {
+    title: 'Elastic Center',
+    icon: '⭕',
+    mode: 'elastic-center',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'elasticCenterBallCount',
+        label: 'Ball Count',
+        stateKey: 'elasticCenterBallCount',
+        type: 'range',
+        min: 20, max: 120, step: 5,
+        default: 60,
+        format: v => String(v),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'elasticCenterMassMultiplier',
+        label: 'Mass Multiplier',
+        stateKey: 'elasticCenterMassMultiplier',
+        type: 'range',
+        min: 0.5, max: 5.0, step: 0.1,
+        default: 2.0,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        hint: 'Mass of individual dots'
+      },
+      {
+        id: 'elasticCenterElasticStrength',
+        label: 'Elastic Strength',
+        stateKey: 'elasticCenterElasticStrength',
+        type: 'range',
+        min: 0, max: 15000, step: 250,
+        default: 2000,
+        format: v => v.toFixed(0) + 'px/s²',
+        parse: parseFloat,
+        hint: 'Force pulling dots back to center position (0 = no elastic force, circle moves freely)'
+      },
+      {
+        id: 'elasticCenterMouseRepelStrength',
+        label: 'Mouse Repel Strength',
+        stateKey: 'elasticCenterMouseRepelStrength',
+        type: 'range',
+        min: 3000, max: 25000, step: 500,
+        default: 12000,
+        format: v => v.toFixed(0) + 'px/s²',
+        parse: parseFloat,
+        hint: 'Force pushing dots away from mouse cursor'
+      },
+      {
+        id: 'elasticCenterMouseRadius',
+        label: 'Mouse Influence Radius',
+        stateKey: 'elasticCenterMouseRadius',
+        type: 'range',
+        min: 50, max: 400, step: 10,
+        default: 200,
+        format: v => v.toFixed(0) + 'px',
+        parse: parseFloat,
+        hint: 'Distance from cursor where mouse affects dots'
+      },
+      {
+        id: 'elasticCenterDamping',
+        label: 'Damping',
+        stateKey: 'elasticCenterDamping',
+        type: 'range',
+        min: 0.85, max: 0.99, step: 0.01,
+        default: 0.94,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Velocity damping for stability (higher = less damping)'
+      },
+      warmupFramesControl('elasticCenterWarmupFrames')
+    ]
+  },
+
+  dvdLogo: {
+    title: 'DVD Logo',
+    icon: '📀',
+    mode: 'dvd-logo',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'dvdLogoSpeed',
+        label: 'Speed',
+        stateKey: 'dvdLogoSpeed',
+        type: 'range',
+        min: 200, max: 800, step: 50,
+        default: 400,
+        format: v => v.toFixed(0) + 'px/s',
+        parse: parseFloat,
+        hint: 'Movement speed of the DVD logo'
+      },
+      {
+        id: 'dvdLogoSize',
+        label: 'Logo Size',
+        stateKey: 'dvdLogoSize',
+        type: 'range',
+        min: 0.5, max: 2.0, step: 0.1,
+        default: 1.0,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        hint: 'Scale multiplier for logo size',
+        reinitMode: true
+      },
+      {
+        id: 'dvdLogoBallCount',
+        label: 'Ball Count',
+        stateKey: 'dvdLogoBallCount',
+        type: 'range',
+        min: 30, max: 120, step: 5,
+        default: 60,
+        format: v => v.toFixed(0) + ' balls',
+        parse: parseFloat,
+        hint: 'Total balls forming the DVD letters',
+        reinitMode: true
+      },
+      {
+        id: 'dvdLogoBallSpacing',
+        label: 'Ball Spacing',
+        stateKey: 'dvdLogoBallSpacing',
+        type: 'range',
+        min: 1.0, max: 2.0, step: 0.1,
+        default: 1.3,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        hint: 'Spacing between balls (higher = larger gaps)',
+        reinitMode: true
+      },
+      {
+        id: 'dvdLogoLetterSpacing',
+        label: 'Letter Spacing',
+        stateKey: 'dvdLogoLetterSpacing',
+        type: 'range',
+        min: 0.5, max: 2.0, step: 0.1,
+        default: 1.0,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        hint: 'Spacing between D-V-D letters',
+        reinitMode: true
+      },
+      warmupFramesControl('dvdLogoWarmupFrames')
     ]
   },
 
@@ -3798,6 +4051,40 @@ export const CONTROL_SECTIONS = {
             applyPerspectiveCSS();
           }).catch(() => {});
         }
+      },
+      {
+        id: 'contentFadeInDelay',
+        label: 'Content Fade-In Delay',
+        stateKey: 'contentFadeInDelay',
+        type: 'range',
+        min: 0, max: 2000, step: 50,
+        default: 500,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Delay before content fade-in animation starts (excludes background/wall color)',
+        onChange: () => {
+          // Reload page to apply changes
+          if (typeof window !== 'undefined') {
+            setTimeout(() => window.location.reload(), 300);
+          }
+        }
+      },
+      {
+        id: 'contentFadeInDuration',
+        label: 'Content Fade-In Duration',
+        stateKey: 'contentFadeInDuration',
+        type: 'range',
+        min: 100, max: 3000, step: 50,
+        default: 1000,
+        format: v => `${Math.round(v)}ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Duration of content fade-in animation (excludes background/wall color)',
+        onChange: () => {
+          // Reload page to apply changes
+          if (typeof window !== 'undefined') {
+            setTimeout(() => window.location.reload(), 300);
+          }
+        }
       }
     ]
   }
@@ -4102,16 +4389,19 @@ function generateHomeModeSectionHTML() {
               'critters': '🪲',
               'flies': '🕊️',
               'water': '🌊',
-              'vortex': '🌀',
+              'vortex': '⚛️',
               'magnetic': '🧲',
               'ping-pong': '🏓',
+              'dvd-logo': '📀',
               'weightless': '🌌',
               'kaleidoscope-3': '🪞',
               'neural': '🧠',
             'parallax-linear': '🎚️',
               '3d-sphere': '🌐',
               '3d-cube': '🧊',
-              'starfield-3d': '✨'
+              'starfield-3d': '✨',
+              'meteor-shower': '☄️',
+              'elastic-center': '⭕'
             };
             const modeLabels = {
               'pit': 'Pit',
@@ -4119,16 +4409,19 @@ function generateHomeModeSectionHTML() {
               'critters': 'Critters',
               'flies': 'Flies',
               'water': 'Water',
-              'vortex': 'Vortex',
+              'vortex': 'Electrons',
               'magnetic': 'Magnet',
               'ping-pong': 'Pong',
+              'dvd-logo': 'DVD',
               'weightless': 'Zero-G',
               'kaleidoscope-3': 'Kalei',
               'neural': 'Neural',
             'parallax-linear': 'Parallax Lin',
               '3d-sphere': 'Sphere 3D',
               '3d-cube': 'Cube 3D',
-              'starfield-3d': 'Starfield 3D'
+              'starfield-3d': 'Starfield 3D',
+              'meteor-shower': 'Meteor Shower',
+              'elastic-center': 'Elastic Center'
             };
             let buttons = '';
             NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {

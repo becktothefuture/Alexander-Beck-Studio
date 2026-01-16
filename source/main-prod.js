@@ -260,27 +260,26 @@ export function applyVisualCSSVars(config) {
     root.style.setProperty('--top-logo-width-vw', String(config.topLogoWidthVw));
   }
 
-  if (config.noiseSizeBase !== undefined) {
-    root.style.setProperty('--noise-size-base', `${config.noiseSizeBase}px`);
-  }
-  if (config.noiseSizeTop !== undefined) {
-    root.style.setProperty('--noise-size-top', `${config.noiseSizeTop}px`);
+  if (config.noiseSize !== undefined) {
+    root.style.setProperty('--noise-size', `${config.noiseSize}px`);
   }
 
-  if (config.noiseBackOpacity !== undefined) {
-    root.style.setProperty('--noise-back-opacity', String(config.noiseBackOpacity));
-    root.style.setProperty('--noise-back-opacity-light', String(config.noiseBackOpacity));
+  if (config.noiseOpacityLight !== undefined) {
+    root.style.setProperty('--noise-opacity-light', String(config.noiseOpacityLight));
   }
-  if (config.noiseFrontOpacity !== undefined) {
-    root.style.setProperty('--noise-front-opacity', String(config.noiseFrontOpacity));
-    root.style.setProperty('--noise-front-opacity-light', String(config.noiseFrontOpacity));
+  if (config.noiseOpacityDark !== undefined) {
+    root.style.setProperty('--noise-opacity-dark', String(config.noiseOpacityDark));
   }
 
-  if (config.noiseBackOpacityDark !== undefined) {
-    root.style.setProperty('--noise-back-opacity-dark', String(config.noiseBackOpacityDark));
+  if (config.noiseBlendMode !== undefined) {
+    root.style.setProperty('--noise-blend-mode', String(config.noiseBlendMode));
   }
-  if (config.noiseFrontOpacityDark !== undefined) {
-    root.style.setProperty('--noise-front-opacity-dark', String(config.noiseFrontOpacityDark));
+
+  if (config.noiseColorLight !== undefined) {
+    root.style.setProperty('--noise-color-light', String(config.noiseColorLight));
+  }
+  if (config.noiseColorDark !== undefined) {
+    root.style.setProperty('--noise-color-dark', String(config.noiseColorDark));
   }
 }
 

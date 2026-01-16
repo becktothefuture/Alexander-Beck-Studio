@@ -75,7 +75,7 @@ const state = {
   sizeVariationBubbles: 0.2,
   sizeVariationKaleidoscope: 0,
   sizeVariationCritters: 0.2,
-  sizeVariationNeural: 0,
+  sizeVariationNeural: 0.05,
   sizeVariationParallaxLinear: 0,
   
   // Warmup (per simulation) — how many "startup frames" to pre-run before first render.
@@ -113,6 +113,19 @@ const state = {
   cube3dFocalLength: 500,
   cube3dDotSizeMul: 1.5,
   cube3dWarmupFrames: 10,
+  // 3D Starfield (Mode 23)
+  starfieldCount: 200,
+  starfieldSpanX: 1.5,
+  starfieldSpanY: 1.2,
+  starfieldZNear: 100,
+  starfieldZFar: 2000,
+  starfieldFocalLength: 500,
+  starfieldParallaxStrength: 320,
+  starfieldSpeed: 400,
+  starfieldDotSizeMul: 1.0,
+  starfieldIdleJitter: 0,
+  starfieldFadeDuration: 0.5,
+  starfield3dWarmupFrames: 10,
   // Legacy (pre per-mode system) — kept for back-compat; prefer the per-mode keys above.
   sizeVariation: 0,
   // Fixed ball sizes in pixels
@@ -243,23 +256,17 @@ const state = {
   wallThicknessVw: 0,       // wall tube thickness (vw)
   wallThicknessAreaMultiplier: 1.0,  // multiplier for area-based wall thickness scaling (1.0 = no area scaling)
 
-  // Noise texture opacity (visual overlay) - lighter for subtle effect
-  noiseBackOpacity: 0.05,         // back layer opacity (light mode)
-  noiseFrontOpacity: 0.045,       // front layer opacity (light mode) - lighter
-  noiseBackOpacityDark: 0.05,     // back layer opacity (dark mode)
-  noiseFrontOpacityDark: 0.08,    // front layer opacity (dark mode) - lighter
-
   // Procedural noise (no GIF): texture + cinematic controls
   noiseEnabled: true,
   noiseSeed: 1337,
   noiseTextureSize: 256,
   noiseDistribution: 'gaussian', // 'uniform' | 'gaussian'
-  noiseMonochrome: true,
-  noiseChroma: 0.35, // 0..1 (ignored when monochrome)
+  noiseMonochrome: false, // Allow multicolored grain by default
+  noiseChroma: 0.9, // 0..1 (color intensity when not monochrome)
   noiseMotion: 'jitter', // 'jitter' | 'drift' | 'static'
   noiseMotionAmount: 1.2, // Increased for more alive movement
-  noiseSpeedBackMs: 1400, // Faster for more alive feel
-  noiseSpeedFrontMs: 900,  // Faster for more alive feel
+  noiseSpeedMs: 1100, // Single speed for unified layer
+  noiseSpeedVariance: 0.3, // 0..1, timing variance (0 = no variance, 1 = max variance)
   noiseFlicker: 0.08, // Lighter flicker
   noiseFlickerSpeedMs: 180, // Faster flicker for more alive feel
   noiseBlurPx: 0,
@@ -267,10 +274,15 @@ const state = {
   noiseBrightness: 1.15, // Increased brightness for lighter look
   noiseSaturation: 1.0,
   noiseHue: 0,
-  // Layer scale (noise-3 removed, so noiseTopOpacity no longer used) - finer grain
-  noiseSizeBase: 65,  // Finer grain (smaller size)
-  noiseSizeTop: 85,   // Finer grain (smaller size)
-  noiseTopOpacity: 0, // Disabled: noise-3 layer removed to prevent covering cards
+  // Single layer controls
+  noiseSize: 85, // Grain size (px)
+  noiseOpacity: 0.08, // Overall opacity (0-1)
+  noiseOpacityLight: 0.08, // Opacity for light mode
+  noiseOpacityDark: 0.12, // Opacity for dark mode
+  noiseBlendMode: 'normal', // CSS mix-blend-mode (normal = off by default)
+  // Color controls (separate for light/dark)
+  noiseColorLight: '#ffffff', // Grain color for light mode (hex)
+  noiseColorDark: '#ffffff', // Grain color for dark mode (hex)
   detailNoiseOpacity: 1, // Overall opacity multiplier for detail page noise (0-1)
 
   // Minimum clamp targets (px)
@@ -284,24 +296,21 @@ const state = {
   // This is distinct from radius: it shrinks the effective collision bounds uniformly.
   wallInset: 3,
 
-  // Vortex mode params
-  vortexSwirlStrength: 420,
-  vortexRadialPull: 180,
-  vortexBallCount: 180,
-  vortexSpeedMultiplier: 1.0,
-  vortexRadius: 0, // 0 = unlimited (uses falloff)
-  vortexFalloffCurve: 1.0, // 1.0 = linear, 2.0 = quadratic, 0.5 = sqrt
+  // Vortex mode params (electron orbital effect)
+  vortexSwirlStrength: 450,
+  vortexBallCount: 90,
+  vortexSpeedMultiplier: 2.6,
+  vortexRadius: 100, // Preferred orbital radius (0 = auto-scale)
   vortexRotationDirection: 1, // 1 = counterclockwise, -1 = clockwise
-  vortexCoreStrength: 1.0, // Multiplier for center strength
-  vortexAccelerationZone: 0, // Radius where acceleration is strongest (0 = disabled)
-  vortexOutwardPush: 0, // Outward force at edges (0 = disabled)
-  vortexFalloffRate: 0.0015, // Distance-based falloff rate (when radius = 0)
+  vortexDepthVariation: 0.95, // How much size changes with z-depth (0-1)
+  vortexSpiralTightness: 0.15, // How tightly balls spiral in 3D (0-1)
   
   
   // Magnetic mode params (updated defaults)
   magneticBallCount: 180,
   magneticStrength: 65000,
   magneticMaxVelocity: 2800,
+  magneticRadius: 0, // 0 = unlimited, otherwise max distance in px
   magneticExplosionInterval: 5,
   
   // Bubbles mode params
@@ -315,7 +324,7 @@ const state = {
   
   // Ping Pong mode params (left-right bounce, cursor obstacle)
   pingPongBallCount: 35,
-  pingPongSpeed: 800,
+  pingPongSpeed: 400,
   // Derived (px): set in `applyLayoutFromVwToPx()` from `cursorInfluenceRadiusVw`.
   pingPongCursorRadius: 0,
   
@@ -350,12 +359,40 @@ const state = {
   fliesSeparation: 15000,
   
   // Weightless mode
-  weightlessCount: 80,
+  weightlessCount: 66, // Triangle with 11 rows = 66 balls
   weightlessInitialSpeed: 250,
-  weightlessBounce: 0.97,
+  weightlessBounce: 0.70,
   weightlessRepelRadius: 220,
-  weightlessRepelPower: 220000,
-  weightlessRepelSoft: 2.2,
+  weightlessRepelPower: 50000,
+  
+  // Meteor Shower mode params
+  meteorShowerMaxBalls: 30,
+  meteorShowerSpawnMinInterval: 0.3, // seconds
+  meteorShowerSpawnMaxInterval: 1.2, // seconds
+  meteorShowerInitialVelocity: 1000, // px/s
+  meteorShowerMassMultiplier: 7.0,
+  meteorShowerGravityMultiplier: 1.8,
+  meteorShowerWarmupFrames: 10,
+
+  // DVD Logo mode params
+  dvdLogoSpeed: 400, // px/s
+  dvdLogoSize: 0.7, // scale multiplier
+  dvdLogoBallCount: 60, // total balls for letters
+  dvdLogoBallSpacing: 1.5, // spacing multiplier between balls
+  dvdLogoLetterSpacing: 1.5, // spacing multiplier between letters
+  dvdLogoMassMultiplier: 2.0,
+  dvdLogoWarmupFrames: 10,
+
+  // Elastic Center mode params
+  elasticCenterBallCount: 93,
+  elasticCenterMassMultiplier: 2.0,
+  elasticCenterSpacingMultiplier: 2.8, // multiplier for spacing between balls (higher = larger gaps)
+  elasticCenterElasticStrength: 2000, // px/s² - force pulling dots back to center (lower = circle moves more)
+  elasticCenterMouseRepelStrength: 12000, // px/s² - force pushing dots away from mouse
+  elasticCenterMouseRadius: 200, // px - distance where mouse affects dots
+  elasticCenterDamping: 0.94, // velocity damping for stability
+  elasticCenterWarmupFrames: 10,
+  weightlessRepelSoft: 5.4,
   
   // Kaleidoscope mode (mouse-driven mirrored wedges) - using KALEIDOSCOPE_3 parameters
   kaleidoscopeMirror: 1,
@@ -373,12 +410,16 @@ const state = {
   kaleidoscope3WarmupFrames: 65,
 
   // Neural mode (emergent "synapses")
-  neuralBallCount: 80,
-  neuralLinkDistanceVw: 14,
-  neuralLineOpacity: 0.22,
-  neuralWanderStrength: 420,
-  neuralMaxLinksPerBall: 4,
-  neuralDamping: 0.985,
+  neuralBallCount: 311,
+  neuralLinkDistanceVw: 5.0,
+  neuralLineOpacity: 0.06,
+  neuralConnectorDensity: 3,
+  neuralWanderStrength: 1000,
+  neuralMouseStrength: 150000,
+  neuralSeparationRadius: 100,
+  neuralSeparationStrength: 11000,
+  neuralMaxLinksPerBall: 6,
+  neuralDamping: 0.900,
 
   // Parallax modes (mouse-driven depth parallax)
   // NOTE: Older parallax parameters are kept for compatibility with older presets/UI,
@@ -420,10 +461,10 @@ const state = {
   vortexDrag: 0.005,
   
   // Ping Pong mode
-  pingPongVerticalDamp: 0.995,
+  pingPongVerticalDamp: 0.911,
   
   // Magnetic mode
-  magneticDamping: 0.98,
+  magneticDamping: 0.998,
   
   // Repeller
   repelRadius: 120,
@@ -573,6 +614,8 @@ const state = {
   entranceElementDuration: 800,     // Individual element fade duration (ms)
   entranceElementScaleStart: 0.95,  // Initial scale for elements (0-1)
   entranceElementTranslateZStart: -20, // Initial z-axis position (px, negative = back)
+  contentFadeInDelay: 500,          // Delay before content fade-in starts (ms)
+  contentFadeInDuration: 1000,       // Duration of content fade-in animation (ms)
   entranceElementEasing: 'cubic-bezier(0.16, 1, 0.3, 1)', // Easing function for element animations
   entranceLateElementDuration: 600, // Duration for late elements (logo + links) animation (ms)
   entranceLateElementStagger: 250,  // Stagger delay between late elements (ms)
@@ -922,6 +965,8 @@ export function initState(config) {
   if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
   if (config.neuralWarmupFrames !== undefined) state.neuralWarmupFrames = clampInt(config.neuralWarmupFrames, 0, 240, state.neuralWarmupFrames);
   if (config.parallaxLinearWarmupFrames !== undefined) state.parallaxLinearWarmupFrames = clampInt(config.parallaxLinearWarmupFrames, 0, 240, state.parallaxLinearWarmupFrames);
+  if (config.meteorShowerWarmupFrames !== undefined) state.meteorShowerWarmupFrames = clampInt(config.meteorShowerWarmupFrames, 0, 240, state.meteorShowerWarmupFrames);
+  if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
 
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
   if (config.repelRadius !== undefined) state.repelRadius = config.repelRadius;
@@ -1033,10 +1078,14 @@ export function initState(config) {
   if (config.critterFriction !== undefined) state.critterFriction = config.critterFriction;
 
   // Neural (config overrides)
-  if (config.neuralBallCount !== undefined) state.neuralBallCount = clampNumber(config.neuralBallCount, 8, 260, state.neuralBallCount);
+  if (config.neuralBallCount !== undefined) state.neuralBallCount = clampNumber(config.neuralBallCount, 8, 400, state.neuralBallCount);
   if (config.neuralLinkDistanceVw !== undefined) state.neuralLinkDistanceVw = clampNumber(config.neuralLinkDistanceVw, 1, 50, state.neuralLinkDistanceVw);
   if (config.neuralLineOpacity !== undefined) state.neuralLineOpacity = clampNumber(config.neuralLineOpacity, 0, 1, state.neuralLineOpacity);
+  if (config.neuralConnectorDensity !== undefined) state.neuralConnectorDensity = clampNumber(config.neuralConnectorDensity, 0, 10, state.neuralConnectorDensity);
   if (config.neuralWanderStrength !== undefined) state.neuralWanderStrength = clampNumber(config.neuralWanderStrength, 0, 4000, state.neuralWanderStrength);
+  if (config.neuralMouseStrength !== undefined) state.neuralMouseStrength = clampNumber(config.neuralMouseStrength, 0, 300000, state.neuralMouseStrength);
+  if (config.neuralSeparationRadius !== undefined) state.neuralSeparationRadius = clampNumber(config.neuralSeparationRadius, 50, 300, state.neuralSeparationRadius);
+  if (config.neuralSeparationStrength !== undefined) state.neuralSeparationStrength = clampNumber(config.neuralSeparationStrength, 0, 30000, state.neuralSeparationStrength);
   if (config.neuralMaxLinksPerBall !== undefined) state.neuralMaxLinksPerBall = clampNumber(config.neuralMaxLinksPerBall, 0, 16, state.neuralMaxLinksPerBall);
   if (config.neuralDamping !== undefined) state.neuralDamping = clampNumber(config.neuralDamping, 0.8, 1.0, state.neuralDamping);
 
@@ -1098,6 +1147,48 @@ export function initState(config) {
   if (config.cube3dFocalLength !== undefined) state.cube3dFocalLength = clampInt(config.cube3dFocalLength, 80, 2000, state.cube3dFocalLength);
   if (config.cube3dDotSizeMul !== undefined) state.cube3dDotSizeMul = clampNumber(config.cube3dDotSizeMul, 0.2, 4.0, state.cube3dDotSizeMul);
   if (config.cube3dWarmupFrames !== undefined) state.cube3dWarmupFrames = clampInt(config.cube3dWarmupFrames, 0, 240, state.cube3dWarmupFrames);
+
+  // 3D Starfield (Mode 23)
+  if (config.starfieldCount !== undefined) state.starfieldCount = clampInt(config.starfieldCount, 20, 500, state.starfieldCount);
+  if (config.starfieldSpanX !== undefined) state.starfieldSpanX = clampNumber(config.starfieldSpanX, 0.4, 4.0, state.starfieldSpanX);
+  if (config.starfieldSpanY !== undefined) state.starfieldSpanY = clampNumber(config.starfieldSpanY, 0.4, 4.0, state.starfieldSpanY);
+  if (config.starfieldZNear !== undefined) state.starfieldZNear = clampInt(config.starfieldZNear, 20, 800, state.starfieldZNear);
+  if (config.starfieldZFar !== undefined) state.starfieldZFar = clampInt(config.starfieldZFar, 400, 4000, state.starfieldZFar);
+  if (config.starfieldFocalLength !== undefined) state.starfieldFocalLength = clampInt(config.starfieldFocalLength, 100, 2000, state.starfieldFocalLength);
+  if (config.starfieldParallaxStrength !== undefined) state.starfieldParallaxStrength = clampInt(config.starfieldParallaxStrength, 0, 1200, state.starfieldParallaxStrength);
+  if (config.starfieldSpeed !== undefined) state.starfieldSpeed = clampInt(config.starfieldSpeed, 10, 1600, state.starfieldSpeed);
+  if (config.starfieldDotSizeMul !== undefined) state.starfieldDotSizeMul = clampNumber(config.starfieldDotSizeMul, 0.2, 4.0, state.starfieldDotSizeMul);
+  if (config.starfieldIdleJitter !== undefined) state.starfieldIdleJitter = clampNumber(config.starfieldIdleJitter, 0, 20, state.starfieldIdleJitter);
+  if (config.starfieldFadeDuration !== undefined) state.starfieldFadeDuration = clampNumber(config.starfieldFadeDuration, 0, 3, state.starfieldFadeDuration);
+  if (config.starfield3dWarmupFrames !== undefined) state.starfield3dWarmupFrames = clampInt(config.starfield3dWarmupFrames, 0, 240, state.starfield3dWarmupFrames);
+  
+  // Meteor Shower mode
+  if (config.meteorShowerMaxBalls !== undefined) state.meteorShowerMaxBalls = clampInt(config.meteorShowerMaxBalls, 10, 80, state.meteorShowerMaxBalls);
+  if (config.meteorShowerSpawnMinInterval !== undefined) state.meteorShowerSpawnMinInterval = clampNumber(config.meteorShowerSpawnMinInterval, 0.1, 1.0, state.meteorShowerSpawnMinInterval);
+  if (config.meteorShowerSpawnMaxInterval !== undefined) state.meteorShowerSpawnMaxInterval = clampNumber(config.meteorShowerSpawnMaxInterval, 0.5, 3.0, state.meteorShowerSpawnMaxInterval);
+  if (config.meteorShowerInitialVelocity !== undefined) state.meteorShowerInitialVelocity = clampInt(config.meteorShowerInitialVelocity, 400, 2000, state.meteorShowerInitialVelocity);
+  if (config.meteorShowerMassMultiplier !== undefined) state.meteorShowerMassMultiplier = clampNumber(config.meteorShowerMassMultiplier, 3.0, 12.0, state.meteorShowerMassMultiplier);
+  if (config.meteorShowerGravityMultiplier !== undefined) state.meteorShowerGravityMultiplier = clampNumber(config.meteorShowerGravityMultiplier, 0.5, 3.0, state.meteorShowerGravityMultiplier);
+  if (config.meteorShowerWarmupFrames !== undefined) state.meteorShowerWarmupFrames = clampInt(config.meteorShowerWarmupFrames, 0, 240, state.meteorShowerWarmupFrames);
+
+  // DVD Logo mode
+  if (config.dvdLogoSpeed !== undefined) state.dvdLogoSpeed = clampInt(config.dvdLogoSpeed, 200, 800, state.dvdLogoSpeed);
+  if (config.dvdLogoSize !== undefined) state.dvdLogoSize = clampNumber(config.dvdLogoSize, 0.5, 2.0, state.dvdLogoSize);
+  if (config.dvdLogoBallCount !== undefined) state.dvdLogoBallCount = clampInt(config.dvdLogoBallCount, 30, 120, state.dvdLogoBallCount);
+  if (config.dvdLogoBallSpacing !== undefined) state.dvdLogoBallSpacing = clampNumber(config.dvdLogoBallSpacing, 1.0, 2.0, state.dvdLogoBallSpacing);
+  if (config.dvdLogoLetterSpacing !== undefined) state.dvdLogoLetterSpacing = clampNumber(config.dvdLogoLetterSpacing, 0.5, 2.0, state.dvdLogoLetterSpacing);
+  if (config.dvdLogoMassMultiplier !== undefined) state.dvdLogoMassMultiplier = clampNumber(config.dvdLogoMassMultiplier, 1.0, 5.0, state.dvdLogoMassMultiplier);
+  if (config.dvdLogoWarmupFrames !== undefined) state.dvdLogoWarmupFrames = clampInt(config.dvdLogoWarmupFrames, 0, 240, state.dvdLogoWarmupFrames);
+
+  // Elastic Center mode
+  if (config.elasticCenterBallCount !== undefined) state.elasticCenterBallCount = clampInt(config.elasticCenterBallCount, 20, 120, state.elasticCenterBallCount);
+  if (config.elasticCenterMassMultiplier !== undefined) state.elasticCenterMassMultiplier = clampNumber(config.elasticCenterMassMultiplier, 0.5, 5.0, state.elasticCenterMassMultiplier);
+  if (config.elasticCenterSpacingMultiplier !== undefined) state.elasticCenterSpacingMultiplier = clampNumber(config.elasticCenterSpacingMultiplier, 2.0, 4.0, state.elasticCenterSpacingMultiplier);
+  if (config.elasticCenterElasticStrength !== undefined) state.elasticCenterElasticStrength = clampInt(config.elasticCenterElasticStrength, 0, 15000, state.elasticCenterElasticStrength);
+  if (config.elasticCenterMouseRepelStrength !== undefined) state.elasticCenterMouseRepelStrength = clampInt(config.elasticCenterMouseRepelStrength, 3000, 25000, state.elasticCenterMouseRepelStrength);
+  if (config.elasticCenterMouseRadius !== undefined) state.elasticCenterMouseRadius = clampInt(config.elasticCenterMouseRadius, 50, 400, state.elasticCenterMouseRadius);
+  if (config.elasticCenterDamping !== undefined) state.elasticCenterDamping = clampNumber(config.elasticCenterDamping, 0.85, 0.99, state.elasticCenterDamping);
+  if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
 
   // Clamp scene micro-reaction tuning (defensive; UI-only)
   if (config.sceneImpactEnabled !== undefined) {
@@ -1270,12 +1361,6 @@ export function initState(config) {
   
   // Logo colors derive from CSS (`--text-primary`) now; no config wiring needed.
 
-  // Noise texture opacity (visual overlay)
-  if (config.noiseBackOpacity !== undefined) state.noiseBackOpacity = clampNumber(config.noiseBackOpacity, 0, 0.3, state.noiseBackOpacity);
-  if (config.noiseFrontOpacity !== undefined) state.noiseFrontOpacity = clampNumber(config.noiseFrontOpacity, 0, 0.3, state.noiseFrontOpacity);
-  if (config.noiseBackOpacityDark !== undefined) state.noiseBackOpacityDark = clampNumber(config.noiseBackOpacityDark, 0, 0.5, state.noiseBackOpacityDark);
-  if (config.noiseFrontOpacityDark !== undefined) state.noiseFrontOpacityDark = clampNumber(config.noiseFrontOpacityDark, 0, 0.5, state.noiseFrontOpacityDark);
-
   // Procedural noise (no GIF): texture + motion + look
   if (config.noiseEnabled !== undefined) state.noiseEnabled = Boolean(config.noiseEnabled);
   if (config.noiseSeed !== undefined) state.noiseSeed = clampInt(config.noiseSeed, 0, 999999, state.noiseSeed);
@@ -1291,8 +1376,8 @@ export function initState(config) {
     state.noiseMotion = (v === 'jitter' || v === 'drift' || v === 'static') ? v : state.noiseMotion;
   }
   if (config.noiseMotionAmount !== undefined) state.noiseMotionAmount = clampNumber(config.noiseMotionAmount, 0, 2.5, state.noiseMotionAmount);
-  if (config.noiseSpeedBackMs !== undefined) state.noiseSpeedBackMs = clampInt(config.noiseSpeedBackMs, 0, 10000, state.noiseSpeedBackMs);
-  if (config.noiseSpeedFrontMs !== undefined) state.noiseSpeedFrontMs = clampInt(config.noiseSpeedFrontMs, 0, 10000, state.noiseSpeedFrontMs);
+  if (config.noiseSpeedMs !== undefined) state.noiseSpeedMs = clampInt(config.noiseSpeedMs, 0, 10000, state.noiseSpeedMs);
+  if (config.noiseSpeedVariance !== undefined) state.noiseSpeedVariance = clampNumber(config.noiseSpeedVariance, 0, 1, state.noiseSpeedVariance);
   if (config.noiseFlicker !== undefined) state.noiseFlicker = clampNumber(config.noiseFlicker, 0, 1, state.noiseFlicker);
   if (config.noiseFlickerSpeedMs !== undefined) state.noiseFlickerSpeedMs = clampInt(config.noiseFlickerSpeedMs, 0, 5000, state.noiseFlickerSpeedMs);
   if (config.noiseBlurPx !== undefined) state.noiseBlurPx = clampNumber(config.noiseBlurPx, 0, 6, state.noiseBlurPx);
@@ -1300,9 +1385,17 @@ export function initState(config) {
   if (config.noiseBrightness !== undefined) state.noiseBrightness = clampNumber(config.noiseBrightness, 0.25, 3, state.noiseBrightness);
   if (config.noiseSaturation !== undefined) state.noiseSaturation = clampNumber(config.noiseSaturation, 0, 3, state.noiseSaturation);
   if (config.noiseHue !== undefined) state.noiseHue = clampNumber(config.noiseHue, 0, 360, state.noiseHue);
-  if (config.noiseSizeBase !== undefined) state.noiseSizeBase = clampNumber(config.noiseSizeBase, 20, 400, state.noiseSizeBase);
-  if (config.noiseSizeTop !== undefined) state.noiseSizeTop = clampNumber(config.noiseSizeTop, 20, 600, state.noiseSizeTop);
-  if (config.noiseTopOpacity !== undefined) state.noiseTopOpacity = clampNumber(config.noiseTopOpacity, 0, 0.25, state.noiseTopOpacity);
+  if (config.noiseSize !== undefined) state.noiseSize = clampNumber(config.noiseSize, 20, 600, state.noiseSize);
+  if (config.noiseOpacity !== undefined) state.noiseOpacity = clampNumber(config.noiseOpacity, 0, 1, state.noiseOpacity);
+  if (config.noiseOpacityLight !== undefined) state.noiseOpacityLight = clampNumber(config.noiseOpacityLight, 0, 1, state.noiseOpacityLight);
+  if (config.noiseOpacityDark !== undefined) state.noiseOpacityDark = clampNumber(config.noiseOpacityDark, 0, 1, state.noiseOpacityDark);
+  if (config.noiseBlendMode !== undefined) {
+    const validModes = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'];
+    const v = String(config.noiseBlendMode);
+    state.noiseBlendMode = validModes.includes(v) ? v : state.noiseBlendMode;
+  }
+  if (config.noiseColorLight !== undefined) state.noiseColorLight = String(config.noiseColorLight);
+  if (config.noiseColorDark !== undefined) state.noiseColorDark = String(config.noiseColorDark);
   if (config.detailNoiseOpacity !== undefined) state.detailNoiseOpacity = clampNumber(config.detailNoiseOpacity, 0, 1, state.detailNoiseOpacity);
   
   if (config.wallThickness !== undefined) state.wallThickness = config.wallThickness;

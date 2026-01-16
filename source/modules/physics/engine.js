@@ -154,11 +154,12 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     // - Standard for remaining physics modes
     if (globals.currentMode === MODES.KALEIDOSCOPE) {
       resolveCollisions(6); // handled by kaleidoscope early-return, kept for safety
-    } else if (globals.currentMode !== MODES.FLIES && 
+    } else if (globals.currentMode !== MODES.FLIES &&
                globals.currentMode !== MODES.SPHERE_3D &&
                globals.currentMode !== MODES.CUBE_3D &&
                globals.currentMode !== MODES.PARALLAX_LINEAR &&
-               globals.currentMode !== MODES.STARFIELD_3D) {
+               globals.currentMode !== MODES.STARFIELD_3D &&
+               globals.currentMode !== MODES.DVD_LOGO) {
       resolveCollisions(collisionIterations); // configurable solver iterations
     }
 
@@ -181,11 +182,15 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       const wallEffectsOptions = wallDeformEnabled ? {} : { registerEffects: false };
       const isMobile = globals.isMobile || globals.isMobileViewport;
       for (let i = 0; i < lenWalls; i++) {
+        const ball = balls[i];
+        // Skip wall collisions for DVD logo balls (they handle their own bouncing)
+        if (ball.isDvdLogo) continue;
+        
         // Ball Pit has explicit rounded-corner arc clamping in Ball.walls().
         // Avoid an additional velocity-based corner repeller there, which can
         // create local compressions in dense corner stacks.
-        if (!isPitLike) applyCornerRepellers(balls[i], canvas, DT, isMobile);
-        balls[i].walls(canvas.width, canvas.height, DT, wallRestitution, wallEffectsOptions);
+        if (!isPitLike) applyCornerRepellers(ball, canvas, DT, isMobile);
+        ball.walls(canvas.width, canvas.height, DT, wallRestitution, wallEffectsOptions);
       }
     }
 
@@ -279,6 +284,12 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
           for (let i = 0; i < lenSleep; i++) {
             const b = balls[i];
             if (!b || b.isSleeping) continue;
+            
+            // Never allow meteors to sleep - they need to register wall impacts
+            if (b.isMeteor === true) {
+              b.sleepTimer = 0;
+              continue;
+            }
 
             const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
             const angSpeed = Math.abs(b.omega);

@@ -502,24 +502,61 @@ export async function orchestrateEntrance(options = {}) {
   const elementDuration = g.entranceElementDuration ?? 500;
   const elementEasing = g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
   
+  // Content fade-in config (simple fade, no 3D transforms)
+  // Always starts after the configured delay from page load (not after wall animation)
+  const contentFadeDelay = g.contentFadeInDelay ?? 500;
+  const contentFadeDuration = g.contentFadeInDuration ?? 1000;
+  
   // Late element timing (logo + main links + central content) - slower and more dramatic
   const lateElementDuration = g.entranceLateElementDuration ?? 600;
   const lateStagger = g.entranceLateElementStagger ?? 250; // Stagger between late elements
   
-  // Calculate timing
-  const appFrameDelay = skipWallAnimation ? 0 : (wallDelay + (wallDuration * 0.3));
-  let currentDelay = appFrameDelay + elementDuration + lateStagger;
+  // Calculate timing: always use content fade-in delay (from page load)
+  // This ensures content fades in after the delay regardless of wall animation state
+  const contentFadeStartDelay = contentFadeDelay;
+  let currentDelay = contentFadeStartDelay + contentFadeDuration + lateStagger;
   
-  // 1. Animate main UI wrapper (#app-frame)
-  const fadeTarget = document.getElementById('app-frame');
+  // 1. Animate entire scene (#abs-scene) with simple fade (includes canvas, UI, logo, edges, etc.)
+  // This fades in EVERYTHING except the wall color (which is on html/body)
+  const fadeTarget = document.getElementById('abs-scene');
   if (fadeTarget) {
-    animateElementEntrance(fadeTarget, {
-      delay: appFrameDelay,
-      duration: elementDuration,
-      scaleStart: g.entranceElementScaleStart ?? 0.95,
-      translateZStart: g.entranceElementTranslateZStart ?? -20,
-      easing: elementEasing
-    });
+    // Remove fade-blocking style tag before animation to avoid conflicts
+    const fadeBlocking = document.getElementById('fade-blocking');
+    if (fadeBlocking) fadeBlocking.remove();
+    
+    // Use simple opacity fade instead of 3D entrance animation
+    fadeTarget.style.opacity = '0';
+    fadeTarget.style.visibility = 'visible';
+    fadeTarget.style.willChange = 'opacity';
+    
+    setTimeout(() => {
+      if (typeof fadeTarget.animate === 'function') {
+        const anim = fadeTarget.animate(
+          [
+            { opacity: 0 },
+            { opacity: 1 }
+          ],
+          {
+            duration: contentFadeDuration,
+            easing: elementEasing,
+            fill: 'forwards'
+          }
+        );
+        anim.addEventListener('finish', () => {
+          fadeTarget.style.opacity = '1';
+          fadeTarget.style.willChange = 'auto';
+        });
+        anim.addEventListener('cancel', () => {
+          fadeTarget.style.opacity = '1';
+          fadeTarget.style.willChange = 'auto';
+        });
+      } else {
+        fadeTarget.style.transition = `opacity ${contentFadeDuration}ms ${elementEasing}`;
+        requestAnimationFrame(() => {
+          fadeTarget.style.opacity = '1';
+        });
+      }
+    }, contentFadeStartDelay);
   }
   
   // 2. Reveal brand logo (after main UI)
@@ -564,9 +601,5 @@ export async function orchestrateEntrance(options = {}) {
     currentDelay += lateStagger;
   }
   
-  // Remove fade-blocking style tag after all animations start
-  setTimeout(() => {
-    const fadeBlocking = document.getElementById('fade-blocking');
-    if (fadeBlocking) fadeBlocking.remove();
-  }, currentDelay + 100);
+  // Note: fade-blocking style tag is removed before app-frame animation starts above
 }

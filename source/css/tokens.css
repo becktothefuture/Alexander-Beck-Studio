@@ -213,22 +213,21 @@
   --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
 
   /* Noise + Grain */
-  --noise-size-base: 100px;
-  --noise-size-top: 150px;
+  --noise-size: 85px;
   --noise-size-scale: 1;
-  --noise-back-opacity-light: 0.055;
-  --noise-front-opacity-light: 0.132;
-  --noise-back-opacity-dark: 0.055;
-  --noise-front-opacity-dark: 0.198;
-  --noise-top-opacity: 0; /* Disabled: noise-3 layer removed */
+  --noise-opacity-light: 0.08;
+  --noise-opacity-dark: 0.12;
+  --noise-blend-mode: normal;
+  --noise-color-light: #ffffff;
+  --noise-color-dark: #ffffff;
   --detail-noise-opacity: 1; /* Overall opacity multiplier for detail page noise */
   /* Procedural noise (generated at runtime; motion is CSS-only). */
   --abs-noise-enabled: 1;
   --abs-noise-texture: none;
   --abs-noise-keyframes: abs-noise-jitter;
   --abs-noise-timing: steps(1, end);
-  --abs-noise-speed-back: 1800ms;
-  --abs-noise-speed-front: 1100ms;
+  --abs-noise-speed: 1100ms;
+  --abs-noise-speed-variance: 0;
   --abs-noise-motion-amount: 1;
   --abs-noise-overscan: -220px;
   --abs-noise-flicker: 0.12;

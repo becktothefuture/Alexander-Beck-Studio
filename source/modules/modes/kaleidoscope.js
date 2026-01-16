@@ -144,7 +144,7 @@ function initializeKaleidoscopeWithCount(count, mode) {
 
   const palette = Array.isArray(g.currentColors) ? g.currentColors : [];
   const distribution = Array.isArray(g.colorDistribution) ? g.colorDistribution : [];
-  const ACCENT_INDICES = [5, 6, 7, 3];  // vivid anchors
+  const ACCENT_INDICES = [5, 6, 7, 3, 0];  // vivid anchors + light grey (index 0)
   const NEUTRAL_INDICES = [0, 1, 2, 4]; // greys/black
 
   function findDistributionIndexForPaletteIdx(idx) {

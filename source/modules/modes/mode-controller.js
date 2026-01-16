@@ -16,11 +16,14 @@ import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magne
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
 import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
 import { initializeCritters, applyCrittersForces } from './critters.js';
-import { initializeNeural, applyNeuralForces, preRenderNeural } from './neural.js';
+import { initializeNeural, applyNeuralForces, preRenderNeural, updateNeural } from './neural.js';
 import { initializeParallaxLinear, applyParallaxLinearForces } from './parallax-linear.js';
 import { initialize3DSphere, apply3DSphereForces } from './3d-sphere.js';
 import { initialize3DCube, apply3DCubeForces } from './3d-cube.js';
 import { initializeStarfield3D, applyStarfield3DForces, updateStarfield3D, renderStarfield3D } from './starfield-3d.js';
+import { initializeMeteorShower, applyMeteorShowerForces, updateMeteorShower } from './meteor-shower.js';
+import { initializeElasticCenter, applyElasticCenterForces, updateElasticCenter } from './elastic-center.js';
+import { initializeDvdLogo, applyDvdLogoForces, updateDvdLogo } from './dvd-logo.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor } from '../visual/colors.js';
 import { resetPhysicsAccumulator } from '../physics/engine.js';
@@ -52,6 +55,9 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
     case MODES.PARALLAX_LINEAR: return globals.parallaxLinearWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
+    case MODES.METEOR_SHOWER: return globals.meteorShowerWarmupFrames ?? 10;
+    case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
+    case MODES.DVD_LOGO: return globals.dvdLogoWarmupFrames ?? 10;
     default: return 10;
   }
 }
@@ -97,6 +103,7 @@ export function setMode(mode) {
     }
   }
   
+  
   // Kaleidoscope no longer overrides global spacing (keeps parameters config-driven).
   
   setModeState(mode);
@@ -122,7 +129,10 @@ export function setMode(mode) {
     'parallax-linear': 'Parallax (Linear)',
     '3d-sphere': '3D Sphere',
     '3d-cube': '3D Cube',
-    'starfield-3d': '3D Starfield'
+    'starfield-3d': '3D Starfield',
+    'meteor-shower': 'Meteor Shower',
+    'elastic-center': 'Elastic Center',
+    'dvd-logo': 'DVD Logo'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
   
@@ -236,6 +246,24 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeStarfield3D();
+  } else if (mode === MODES.METEOR_SHOWER) {
+    // Enable gravity with multiplier for faster falling
+    globals.gravityMultiplier = globals.meteorShowerGravityMultiplier || 1.8;
+    globals.G = globals.GE * globals.gravityMultiplier;
+    globals.repellerEnabled = false;
+    initializeMeteorShower();
+  } else if (mode === MODES.ELASTIC_CENTER) {
+    // Disable gravity for elastic center mode
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeElasticCenter();
+  } else if (mode === MODES.DVD_LOGO) {
+    // Disable gravity for linear screensaver movement
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeDvdLogo();
   }
   
   console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
@@ -302,6 +330,12 @@ export function getForceApplicator() {
     return applyParallaxLinearForces;
   } else if (globals.currentMode === MODES.STARFIELD_3D) {
     return applyStarfield3DForces;
+  } else if (globals.currentMode === MODES.METEOR_SHOWER) {
+    return applyMeteorShowerForces;
+  } else if (globals.currentMode === MODES.ELASTIC_CENTER) {
+    return applyElasticCenterForces;
+  } else if (globals.currentMode === MODES.DVD_LOGO) {
+    return applyDvdLogoForces;
   }
   return null;
 }
@@ -316,6 +350,14 @@ export function getModeUpdater() {
     return updateBubbles;
   } else if (globals.currentMode === MODES.STARFIELD_3D) {
     return updateStarfield3D;
+  } else if (globals.currentMode === MODES.METEOR_SHOWER) {
+    return updateMeteorShower;
+  } else if (globals.currentMode === MODES.ELASTIC_CENTER) {
+    return updateElasticCenter;
+  } else if (globals.currentMode === MODES.DVD_LOGO) {
+    return updateDvdLogo;
+  } else if (globals.currentMode === MODES.NEURAL) {
+    return updateNeural;
   }
   return null;
 }

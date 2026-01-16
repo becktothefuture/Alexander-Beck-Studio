@@ -10,6 +10,7 @@ export const MODES = {
   WATER: 'water',
   VORTEX: 'vortex',
   PING_PONG: 'ping-pong',
+  DVD_LOGO: 'dvd-logo',
   MAGNETIC: 'magnetic',
   BUBBLES: 'bubbles',
   KALEIDOSCOPE: 'kaleidoscope-3', // Glorious: 40-50 balls, complex morph
@@ -20,7 +21,9 @@ export const MODES = {
   PARALLAX_LINEAR: 'parallax-linear',
   SPHERE_3D: '3d-sphere',
   CUBE_3D: '3d-cube',
-  STARFIELD_3D: 'starfield-3d'
+  STARFIELD_3D: 'starfield-3d',
+  METEOR_SHOWER: 'meteor-shower',
+  ELASTIC_CENTER: 'elastic-center'
 };
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -40,12 +43,15 @@ export const NARRATIVE_MODE_SEQUENCE = [
   MODES.MAGNETIC,
   MODES.WATER,
   MODES.PING_PONG,
+  MODES.DVD_LOGO,
   MODES.NEURAL,
-  MODES.VORTEX,
+  MODES.METEOR_SHOWER,
   MODES.SPHERE_3D,
   MODES.WEIGHTLESS,
   MODES.PARALLAX_LINEAR,
   MODES.CRITTERS,
+  MODES.ELASTIC_CENTER,
+  MODES.VORTEX,
   MODES.KALEIDOSCOPE,
   MODES.STARFIELD_3D
 ];
@@ -60,11 +66,14 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.MAGNETIC]: 'DESIGN FORCES',
   [MODES.WATER]: 'USER FLOW',
   [MODES.PING_PONG]: 'FEEDBACK CYCLE',
+  [MODES.DVD_LOGO]: 'DVD SCREENSAVER',
   [MODES.NEURAL]: 'CONNECTION MAP',
-  [MODES.VORTEX]: 'EMERGENT ORDER',
+  [MODES.METEOR_SHOWER]: 'METEOR IMPACT',
+  [MODES.VORTEX]: 'ATOMIC STRUCTURE',
   [MODES.WEIGHTLESS]: 'OPEN SPACE',
   [MODES.PARALLAX_LINEAR]: 'PERSPECTIVE SHIFT',
   [MODES.CRITTERS]: 'BEHAVIOR MODEL',
+  [MODES.ELASTIC_CENTER]: 'ELASTIC CENTER',
   [MODES.SPHERE_3D]: '3D SHELL',
   [MODES.CUBE_3D]: '3D FRAME',
   [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',

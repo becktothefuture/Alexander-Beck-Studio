@@ -16,6 +16,8 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 8. **Carbonated Bubbles** (`bubbles`)
 9. **Kaleidoscope** (`kaleidoscope-3`)
 10. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
+11. **Meteor Shower** (`meteor-shower`)
+12. **Elastic Center** (`elastic-center`)
 17. **3D Sphere** (`3d-sphere`)
 18. **3D Cube** (`3d-cube`)
 20. **Neural Network** (`neural`)
@@ -45,16 +47,18 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 3. **3D Cube** (`3d-cube`) — **3D FRAME**
 4. **Carbonated Bubbles** (`bubbles`) — **NOISE SIGNAL**
 5. **Magnetic** (`magnetic`) — **DESIGN FORCES**
-7. **Water Swimming** (`water`) — **USER FLOW**
-8. **Ping Pong** (`ping-pong`) — **FEEDBACK CYCLE**
-9. **Neural Network** (`neural`) — **CONNECTION MAP**
-10. **Vortex Sheets** (`vortex`) — **EMERGENT ORDER**
-11. **3D Sphere** (`3d-sphere`) — **3D SHELL**
-12. **Zero Gravity** (`weightless`) — **OPEN SPACE**
-13. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
-14. **Critters** (`critters`) — **BEHAVIOR MODEL**
-15. **Kaleidoscope** (`kaleidoscope-3`) — **VOCAB BLOOM**
-16. **3D Starfield** (`starfield-3d`) — **DEPTH FIELD**
+6. **Water Swimming** (`water`) — **USER FLOW**
+7. **Ping Pong** (`ping-pong`) — **FEEDBACK CYCLE**
+8. **Neural Network** (`neural`) — **CONNECTION MAP**
+9. **Meteor Shower** (`meteor-shower`) — **METEOR IMPACT**
+10. **3D Sphere** (`3d-sphere`) — **3D SHELL**
+11. **Zero Gravity** (`weightless`) — **OPEN SPACE**
+12. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
+13. **Critters** (`critters`) — **BEHAVIOR MODEL**
+14. **Elastic Center** (`elastic-center`) — **ELASTIC CENTER**
+15. **Vortex Sheets** (`vortex`) — **EMERGENT ORDER**
+16. **Kaleidoscope** (`kaleidoscope-3`) — **VOCAB BLOOM**
+17. **3D Starfield** (`starfield-3d`) — **DEPTH FIELD**
 
 ---
 

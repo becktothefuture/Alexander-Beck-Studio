@@ -24,8 +24,8 @@ const NOISE_KEYS = [
   'noiseChroma',
   'noiseMotion',
   'noiseMotionAmount',
-  'noiseSpeedBackMs',
-  'noiseSpeedFrontMs',
+  'noiseSpeedMs',
+  'noiseSpeedVariance',
   'noiseFlicker',
   'noiseFlickerSpeedMs',
   'noiseBlurPx',
@@ -33,13 +33,13 @@ const NOISE_KEYS = [
   'noiseBrightness',
   'noiseSaturation',
   'noiseHue',
-  'noiseSizeBase',
-  'noiseSizeTop',
-  'noiseBackOpacity',
-  'noiseFrontOpacity',
-  'noiseBackOpacityDark',
-  'noiseFrontOpacityDark',
-  'noiseTopOpacity',
+  'noiseSize',
+  'noiseOpacity',
+  'noiseOpacityLight',
+  'noiseOpacityDark',
+  'noiseBlendMode',
+  'noiseColorLight',
+  'noiseColorDark',
   'detailNoiseOpacity',
 ];
 
@@ -259,8 +259,16 @@ function applyCssVars(cfg) {
   root.style.setProperty('--abs-noise-keyframes', keyframes);
   root.style.setProperty('--abs-noise-timing', timing);
 
-  root.style.setProperty('--abs-noise-speed-back', `${Math.max(0, Math.round(cfg.noiseSpeedBackMs))}ms`);
-  root.style.setProperty('--abs-noise-speed-front', `${Math.max(0, Math.round(cfg.noiseSpeedFrontMs))}ms`);
+  // Single speed with variance applied via animation-duration calculation
+  const baseSpeedMs = clampNumber(cfg.noiseSpeedMs ?? 1100, 0, 10000, 1100);
+  const variance = clampNumber(cfg.noiseSpeedVariance ?? 0, 0, 1, 0);
+  // Variance creates timing variation: use seeded random to create a stable but varied duration
+  // Generate a timing multiplier based on seed and variance
+  const prngTiming = mulberry32((cfg.noiseSeed ^ 0x7F3A2B1C) >>> 0);
+  const timingRand = variance > 0 ? (prngTiming() * 2 - 1) * variance : 0; // -variance to +variance
+  const speedMs = baseSpeedMs * (1 + timingRand);
+  root.style.setProperty('--abs-noise-speed', `${Math.max(0, Math.round(speedMs))}ms`);
+  root.style.setProperty('--abs-noise-speed-variance', String(variance));
   root.style.setProperty('--abs-noise-motion-amount', String(cfg.noiseMotionAmount));
 
   root.style.setProperty('--abs-noise-flicker', String(cfg.noiseFlicker));
@@ -277,7 +285,8 @@ function applyCssVars(cfg) {
   const hasMotion = cfg.noiseMotion !== 'static' && motionAmount > 0;
   // Keep motion amplitude bounded so grain stays subtle and GPU surfaces stay small,
   // even if the user cranks noise scale.
-  const baseMotionPx = clampNumber(clampNumber(cfg.noiseSizeTop, 20, 600, 150) * 0.55, 24, 120, 82);
+  const noiseSize = clampNumber(cfg.noiseSize ?? 85, 20, 600, 85);
+  const baseMotionPx = clampNumber(noiseSize * 0.55, 24, 120, 82);
   const amp = hasMotion ? baseMotionPx * motionAmount : 0;
   const pad = Math.ceil(amp + (blurPx > 0 ? blurPx * 6 : 0) + 32);
   root.style.setProperty('--abs-noise-overscan', `-${pad}px`);
@@ -298,41 +307,47 @@ function applyCssVars(cfg) {
   root.style.setProperty('--abs-noise-drift-x', `${Math.round(Math.cos(angle) * amp)}px`);
   root.style.setProperty('--abs-noise-drift-y', `${Math.round(Math.sin(angle) * amp)}px`);
 
-  // Existing theme vars (kept stable, but driven from state for panel + config export).
-  root.style.setProperty('--noise-size-base', `${Math.round(cfg.noiseSizeBase)}px`);
-  root.style.setProperty('--noise-size-top', `${Math.round(cfg.noiseSizeTop)}px`);
-
-  root.style.setProperty('--noise-back-opacity-light', String(cfg.noiseBackOpacity));
-  root.style.setProperty('--noise-front-opacity-light', String(cfg.noiseFrontOpacity));
-  root.style.setProperty('--noise-back-opacity-dark', String(cfg.noiseBackOpacityDark));
-  root.style.setProperty('--noise-front-opacity-dark', String(cfg.noiseFrontOpacityDark));
-  root.style.setProperty('--noise-top-opacity', String(cfg.noiseTopOpacity));
+  // Single layer controls
+  root.style.setProperty('--noise-size', `${Math.round(noiseSize)}px`);
+  
+  // Opacity (theme-aware)
+  const opacityLight = clampNumber(cfg.noiseOpacityLight ?? cfg.noiseOpacity ?? 0.08, 0, 1, 0.08);
+  const opacityDark = clampNumber(cfg.noiseOpacityDark ?? cfg.noiseOpacity ?? 0.12, 0, 1, 0.12);
+  root.style.setProperty('--noise-opacity-light', String(opacityLight));
+  root.style.setProperty('--noise-opacity-dark', String(opacityDark));
+  
+  // Blend mode (normal = off by default)
+  const blendMode = cfg.noiseBlendMode ?? 'normal';
+  root.style.setProperty('--noise-blend-mode', blendMode);
+  
+  // Color controls (separate for light/dark)
+  const colorLight = cfg.noiseColorLight ?? '#ffffff';
+  const colorDark = cfg.noiseColorDark ?? '#ffffff';
+  root.style.setProperty('--noise-color-light', colorLight);
+  root.style.setProperty('--noise-color-dark', colorDark);
+  
   root.style.setProperty('--detail-noise-opacity', String(cfg.detailNoiseOpacity ?? 1));
 }
 
 function sanitizeConfig(input = {}) {
-  const cssNoiseSizeBase = readRootVarNumber('--noise-size-base', 100);
-  const cssNoiseSizeTop = readRootVarNumber('--noise-size-top', 150);
-  const cssBackOpacityLight = readRootVarNumber('--noise-back-opacity-light', 0.025);
-  const cssFrontOpacityLight = readRootVarNumber('--noise-front-opacity-light', 0.055);
-  const cssBackOpacityDark = readRootVarNumber('--noise-back-opacity-dark', 0.12);
-  const cssFrontOpacityDark = readRootVarNumber('--noise-front-opacity-dark', 0.08);
-  const cssTopOpacity = readRootVarNumber('--noise-top-opacity', 0.01);
+  const cssNoiseSize = readRootVarNumber('--noise-size', 85);
+  const cssOpacityLight = readRootVarNumber('--noise-opacity-light', 0.08);
+  const cssOpacityDark = readRootVarNumber('--noise-opacity-dark', 0.12);
 
   const out = {
     // Texture
     noiseSeed: clampInt(input.noiseSeed, 0, 999999, 1337),
     noiseTextureSize: clampInt(input.noiseTextureSize, 64, 512, 256),
     noiseDistribution: pickEnum(input.noiseDistribution, ['uniform', 'gaussian'], 'gaussian'),
-    noiseMonochrome: input.noiseMonochrome !== undefined ? Boolean(input.noiseMonochrome) : true,
-    noiseChroma: clamp01(input.noiseChroma, 0.35),
+    noiseMonochrome: input.noiseMonochrome !== undefined ? Boolean(input.noiseMonochrome) : false,
+    noiseChroma: clamp01(input.noiseChroma, 0.9),
 
     // Motion
     noiseEnabled: input.noiseEnabled !== undefined ? Boolean(input.noiseEnabled) : true,
     noiseMotion: pickEnum(input.noiseMotion, ['jitter', 'drift', 'static'], 'jitter'),
     noiseMotionAmount: clampNumber(input.noiseMotionAmount, 0, 2.5, 1.0),
-    noiseSpeedBackMs: clampInt(input.noiseSpeedBackMs, 0, 10000, 1800),
-    noiseSpeedFrontMs: clampInt(input.noiseSpeedFrontMs, 0, 10000, 1100),
+    noiseSpeedMs: clampInt(input.noiseSpeedMs, 0, 10000, 1100),
+    noiseSpeedVariance: clampNumber(input.noiseSpeedVariance, 0, 1, 0),
     noiseFlicker: clampNumber(input.noiseFlicker, 0, 1, 0.12),
     noiseFlickerSpeedMs: clampInt(input.noiseFlickerSpeedMs, 0, 5000, 220),
 
@@ -343,19 +358,22 @@ function sanitizeConfig(input = {}) {
     noiseSaturation: clampNumber(input.noiseSaturation, 0, 3, 1.0),
     noiseHue: clampNumber(input.noiseHue, 0, 360, 0),
 
-    // Existing layer controls (with CSS token fallbacks)
-    noiseSizeBase: clampNumber(input.noiseSizeBase, 20, 400, cssNoiseSizeBase),
-    noiseSizeTop: clampNumber(input.noiseSizeTop, 20, 600, cssNoiseSizeTop),
-    noiseBackOpacity: clampNumber(input.noiseBackOpacity, 0, 0.3, cssBackOpacityLight),
-    noiseFrontOpacity: clampNumber(input.noiseFrontOpacity, 0, 0.3, cssFrontOpacityLight),
-    noiseBackOpacityDark: clampNumber(input.noiseBackOpacityDark, 0, 0.5, cssBackOpacityDark),
-    noiseFrontOpacityDark: clampNumber(input.noiseFrontOpacityDark, 0, 0.5, cssFrontOpacityDark),
-    noiseTopOpacity: clampNumber(input.noiseTopOpacity, 0, 0.25, cssTopOpacity),
+    // Single layer controls
+    noiseSize: clampNumber(input.noiseSize, 20, 600, cssNoiseSize),
+    noiseOpacity: clampNumber(input.noiseOpacity, 0, 1, 0.08),
+    noiseOpacityLight: clampNumber(input.noiseOpacityLight, 0, 1, cssOpacityLight),
+    noiseOpacityDark: clampNumber(input.noiseOpacityDark, 0, 1, cssOpacityDark),
+    noiseBlendMode: pickEnum(input.noiseBlendMode, [
+      'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
+      'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'
+    ], 'normal'),
+    noiseColorLight: typeof input.noiseColorLight === 'string' ? input.noiseColorLight : '#ffffff',
+    noiseColorDark: typeof input.noiseColorDark === 'string' ? input.noiseColorDark : '#ffffff',
     detailNoiseOpacity: clampNumber(input.detailNoiseOpacity, 0, 1, 1),
   };
 
   // If monochrome is on, chroma does nothing but keep a stable number.
-  if (out.noiseMonochrome) out.noiseChroma = clamp01(out.noiseChroma, 0.35);
+  if (out.noiseMonochrome) out.noiseChroma = clamp01(out.noiseChroma, 0.9);
 
   return out;
 }
@@ -382,6 +400,8 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
     try {
       const root = document.documentElement;
       root.style.setProperty('--abs-noise-texture', 'none');
+      // Remove noise-ready class when disabled
+      document.body?.classList.remove('noise-ready');
     } catch (e) {}
     if (activeObjectUrl) {
       try { URL.revokeObjectURL(activeObjectUrl); } catch (e) {}
@@ -390,7 +410,13 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
     return;
   }
 
-  if (!force && textureKey === lastTextureKey) return;
+  if (!force && textureKey === lastTextureKey) {
+    // Texture already exists, ensure noise-ready class is present
+    if (activeObjectUrl && cfg.noiseEnabled) {
+      document.body?.classList.add('noise-ready');
+    }
+    return;
+  }
   lastTextureKey = textureKey;
 
   if (regenTimer) window.clearTimeout(regenTimer);
@@ -425,6 +451,8 @@ function scheduleTextureRegeneration(cfg, { force = false } = {}) {
       root.style.setProperty('--abs-noise-texture', `url("${url}")`);
       if (activeObjectUrl) URL.revokeObjectURL(activeObjectUrl);
       activeObjectUrl = url;
+      // Add noise-ready class to enable noise visibility
+      document.body?.classList.add('noise-ready');
     } catch (e) {
       URL.revokeObjectURL(url);
     }
@@ -444,6 +472,11 @@ export function initNoiseSystem(initialConfig = {}) {
 
   applyCssVars(current);
   scheduleTextureRegeneration(current, { force: true });
+  
+  // If noise is enabled and texture already exists, ensure noise-ready class is present
+  if (current.noiseEnabled && activeObjectUrl) {
+    document.body?.classList.add('noise-ready');
+  }
 }
 
 export function applyNoiseSystem(nextConfig = {}) {

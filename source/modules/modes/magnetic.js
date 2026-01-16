@@ -1,7 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                            MAGNETIC MODE                                     ║
-// ║    Cursor creates POWERFUL magnetic field - balls are violently attracted    ║
-// ║    or repelled based on their "charge". Auto-explosion every 10s.            ║
+// ║    All balls are attracted to the cursor like metal to a magnet             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
@@ -44,8 +43,6 @@ export function initializeMagnetic() {
     b.distributionIndex = distributionIndex;
     b.vx = (Math.random() - 0.5) * initSpeed;
     b.vy = (Math.random() - 0.5) * initSpeed;
-    // Assign magnetic charge: positive (attracted) or negative (repelled)
-    b.charge = Math.random() > 0.5 ? 1 : -1;
     b.baseAlpha = 1;
     g.balls.push(b);
   }
@@ -59,7 +56,6 @@ export function initializeMagnetic() {
     b.distributionIndex = distributionIndex;
     b.vx = (Math.random() - 0.5) * initSpeed;
     b.vy = (Math.random() - 0.5) * initSpeed;
-    b.charge = Math.random() > 0.5 ? 1 : -1;
     b.baseAlpha = 1;
     g.balls.push(b);
   }
@@ -99,28 +95,38 @@ export function applyMagneticForces(ball, dt) {
   const g = getGlobals();
   if (g.currentMode !== MODES.MAGNETIC) return;
   if (!g.mouseInCanvas) return;
-
+  
+  const DPR = g.DPR || 1;
+  const magneticStrength = g.magneticStrength || 65000;
+  const magneticRadius = g.magneticRadius || 0; // Optional: max effective radius (0 = unlimited)
+  
   const mx = g.mouseX;
   const my = g.mouseY;
   const dx = mx - ball.x;
   const dy = my - ball.y;
-  const DPR = g.DPR || 1;
-  const dist = Math.max(30 * DPR, Math.sqrt(dx * dx + dy * dy));
+  const distSq = dx * dx + dy * dy;
+  const dist = Math.max(30 * DPR, Math.sqrt(distSq));
   
-  // EXAGGERATED magnetic force - inverse square law with high multiplier
-  const magneticStrength = g.magneticStrength || 65000;
+  // Check if within magnetic radius (if specified)
+  if (magneticRadius > 0) {
+    const radiusPx = magneticRadius * DPR;
+    if (dist > radiusPx) return; // Too far away, no magnetic effect
+  }
   
-  // Force magnitude: strong inverse-square attraction/repulsion
-  const forceMag = magneticStrength / (dist * dist) * 1000;
+  // Force magnitude: inverse-square attraction (like metal to magnet)
+  // Stronger when closer to cursor
+  const forceMag = (magneticStrength / distSq) * 1000;
   
-  // Normalize direction
+  // Normalize direction (toward cursor)
   const nx = dx / dist;
   const ny = dy / dist;
   
-  // Apply force based on charge (positive = attracted, negative = repelled)
-  const charge = ball.charge || 1;
-  ball.vx += nx * forceMag * charge * dt;
-  ball.vy += ny * forceMag * charge * dt;
+  // Always attract (like metal to magnet) - no repulsion
+  ball.vx += nx * forceMag * dt;
+  ball.vy += ny * forceMag * dt;
+  
+  // Remove rotation to prevent spiraling - zero angular velocity
+  ball.omega = 0;
   
   // Velocity cap to prevent explosion (DPR-scaled)
   const maxVel = (g.magneticMaxVelocity || 2800) * DPR;
@@ -130,9 +136,10 @@ export function applyMagneticForces(ball, dt) {
     ball.vy = (ball.vy / vel) * maxVel;
   }
   
-  // Very light drag to prevent chaos (but keep it snappy)
-  ball.vx *= 0.998;
-  ball.vy *= 0.998;
+  // Damping (configurable)
+  const damping = g.magneticDamping ?? 0.998;
+  ball.vx *= damping;
+  ball.vy *= damping;
 }
 
 /**

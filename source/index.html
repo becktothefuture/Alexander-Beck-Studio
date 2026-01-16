@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" class="fonts-loading">
 <head>
-<style id="fade-blocking">#app-frame{opacity:0}</style>
+<style id="fade-blocking">#abs-scene{opacity:0}</style>
   <!-- Failsafe: Remove fade-blocking if JavaScript fails to load/execute -->
   <script>
     (function() {
@@ -11,13 +11,12 @@
       setTimeout(function() {
         try {
           const blocker = document.getElementById('fade-blocking');
-          const appFrame = document.getElementById('app-frame');
+          const absScene = document.getElementById('abs-scene');
           // If fade-blocking style tag still exists, remove it and make content visible
-          if (blocker && appFrame) {
+          if (blocker && absScene) {
             blocker.remove();
-            appFrame.style.opacity = '1';
-            appFrame.style.visibility = 'visible';
-            appFrame.style.transform = 'translateZ(0)';
+            absScene.style.opacity = '1';
+            absScene.style.visibility = 'visible';
             console.warn('⚠️ Fade-blocking failsafe triggered - main JS may have failed to load');
           }
         } catch (e) {}

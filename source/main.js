@@ -93,42 +93,46 @@ export function applyVisualCSSVars(config) {
   // Container inner shadow removed
   
   // Noise texture sizing
-  if (config.noiseSizeBase !== undefined) {
-    root.style.setProperty('--noise-size-base', `${config.noiseSizeBase}px`);
-  }
-  if (config.noiseSizeTop !== undefined) {
-    root.style.setProperty('--noise-size-top', `${config.noiseSizeTop}px`);
+  if (config.noiseSize !== undefined) {
+    root.style.setProperty('--noise-size', `${config.noiseSize}px`);
   }
   
-  // Noise opacity (light mode)
-  if (config.noiseBackOpacity !== undefined) {
-    // Keep both legacy + current variable names for compatibility.
-    root.style.setProperty('--noise-back-opacity', String(config.noiseBackOpacity));
-    root.style.setProperty('--noise-back-opacity-light', String(config.noiseBackOpacity));
+  // Noise opacity
+  if (config.noiseOpacityLight !== undefined) {
+    root.style.setProperty('--noise-opacity-light', String(config.noiseOpacityLight));
   }
-  if (config.noiseFrontOpacity !== undefined) {
-    root.style.setProperty('--noise-front-opacity', String(config.noiseFrontOpacity));
-    root.style.setProperty('--noise-front-opacity-light', String(config.noiseFrontOpacity));
+  if (config.noiseOpacityDark !== undefined) {
+    root.style.setProperty('--noise-opacity-dark', String(config.noiseOpacityDark));
   }
   
-  // Noise opacity (dark mode)
-  if (config.noiseBackOpacityDark !== undefined) {
-    root.style.setProperty('--noise-back-opacity-dark', String(config.noiseBackOpacityDark));
+  // Noise blend mode
+  if (config.noiseBlendMode !== undefined) {
+    root.style.setProperty('--noise-blend-mode', String(config.noiseBlendMode));
   }
-  if (config.noiseFrontOpacityDark !== undefined) {
-    root.style.setProperty('--noise-front-opacity-dark', String(config.noiseFrontOpacityDark));
+  
+  // Noise colors
+  if (config.noiseColorLight !== undefined) {
+    root.style.setProperty('--noise-color-light', String(config.noiseColorLight));
+  }
+  if (config.noiseColorDark !== undefined) {
+    root.style.setProperty('--noise-color-dark', String(config.noiseColorDark));
   }
 }
 
 /**
- * Fade in the primary content wrapper with a gentle ease-out.
+ * Fade in all content (abs-scene) with a gentle ease-out.
  * Uses WAAPI when available, falling back to a CSS transition.
+ * Excludes background/wall color (which remains visible throughout).
+ * abs-scene contains: canvas (#bravia-balls), UI (#app-frame), logo, edges, etc.
  */
 function fadeInContentLayer(options = {}) {
-  const fadeTarget = document.getElementById('app-frame');
+  const fadeTarget = document.getElementById('abs-scene');
   if (!fadeTarget) return Promise.resolve();
   
-  const duration = options.duration ?? CONTENT_FADE_DURATION_MS;
+  // Get config values from globals (with fallbacks)
+  const g = getGlobals();
+  const delay = options.delay ?? g?.contentFadeInDelay ?? 500;
+  const duration = options.duration ?? g?.contentFadeInDuration ?? 1000;
   const easing = options.easing ?? CONTENT_FADE_EASING;
   
   return new Promise((resolve) => {
@@ -138,7 +142,6 @@ function fadeInContentLayer(options = {}) {
       finished = true;
       try {
         fadeTarget.style.opacity = '1';
-        fadeTarget.style.transform = 'translateZ(0)';
         fadeTarget.style.visibility = 'visible';
         fadeTarget.style.willChange = 'auto';
         const blocker = document.getElementById('fade-blocking');
@@ -147,26 +150,40 @@ function fadeInContentLayer(options = {}) {
       resolve();
     };
 
-    fadeTarget.style.visibility = 'visible';
-    fadeTarget.style.willChange = 'opacity, transform';
+    const startAnimation = () => {
+      // Remove fade-blocking style tag BEFORE starting animation to avoid conflicts
+      const blocker = document.getElementById('fade-blocking');
+      if (blocker) blocker.remove();
+      
+      fadeTarget.style.visibility = 'visible';
+      fadeTarget.style.willChange = 'opacity';
+      // Ensure initial opacity is 0 for animation
+      fadeTarget.style.opacity = '0';
 
-    if (typeof fadeTarget.animate === 'function') {
-      const anim = fadeTarget.animate(
-        [
-          { opacity: 0, transform: 'translateZ(0)' },
-          { opacity: 1, transform: 'translateZ(0)' }
-        ],
-        { duration, easing, fill: 'forwards' }
-      );
-      anim.addEventListener('finish', finalize);
-      anim.addEventListener('cancel', finalize);
+      if (typeof fadeTarget.animate === 'function') {
+        const anim = fadeTarget.animate(
+          [
+            { opacity: 0 },
+            { opacity: 1 }
+          ],
+          { duration, easing, fill: 'forwards' }
+        );
+        anim.addEventListener('finish', finalize);
+        anim.addEventListener('cancel', finalize);
+      } else {
+        fadeTarget.style.transition = `opacity ${duration}ms ${easing}`;
+        requestAnimationFrame(() => {
+          fadeTarget.style.opacity = '1';
+        });
+        window.setTimeout(finalize, duration + 50);
+      }
+    };
+
+    // Apply delay before starting animation
+    if (delay > 0) {
+      setTimeout(startAnimation, delay);
     } else {
-      fadeTarget.style.transition = `opacity ${duration}ms ${easing}`;
-      requestAnimationFrame(() => {
-        fadeTarget.style.opacity = '1';
-        fadeTarget.style.transform = 'translateZ(0)';
-      });
-      window.setTimeout(finalize, duration + 50);
+      startAnimation();
     }
   });
 }
@@ -605,8 +622,8 @@ window.addEventListener('unhandledrejection', (event) => {
       window.addEventListener('pageshow', (event) => {
         if (event.persisted) {
           resetTransitionState();
-          const appFrame = document.getElementById('app-frame');
-          if (appFrame) appFrame.style.opacity = '1';
+          const absScene = document.getElementById('abs-scene');
+          if (absScene) absScene.style.opacity = '1';
         }
       });
       
@@ -619,7 +636,8 @@ window.addEventListener('unhandledrejection', (event) => {
       // Skip entrance animation if disabled or reduced motion preferred
       if (!g.entranceEnabled || reduceMotion) {
         try { await waitForFonts(); } catch (e) {}
-        await fadeInContentLayer({ duration: elementDuration, easing: elementEasing });
+        // Use config values for content fade-in (delay + duration)
+        await fadeInContentLayer();
         // Also reveal late elements (logo + main links) that have inline hidden styles
         revealAllLateElements();
         console.log('✓ Entrance animation skipped (disabled or reduced motion)');
@@ -656,11 +674,8 @@ window.addEventListener('unhandledrejection', (event) => {
     } catch (e) {
       console.warn('⚠️ Entrance animation failed, falling back to simple fade:', e);
       try { await waitForFonts(); } catch (e) {}
-      const g = (() => { try { return getGlobals(); } catch (err) { return {}; } })();
-      await fadeInContentLayer({
-        duration: g.entranceElementDuration ?? CONTENT_FADE_DURATION_MS,
-        easing: g.entranceElementEasing ?? CONTENT_FADE_EASING
-      });
+      // Use config values for content fade-in (delay + duration)
+      await fadeInContentLayer();
       // Fallback: also reveal late elements so nothing stays hidden
       try {
         const { revealAllLateElements } = await import('./modules/visual/entrance-animation.js');

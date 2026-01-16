@@ -153,10 +153,15 @@ export class Ball {
     // Snap tiny angular velocity to zero
     if (Math.abs(this.omega) < 0.01) this.omega = 0;
     
-    // Squash decay
-    const decay = Math.min(1, CONSTANTS.SQUASH_DECAY_PER_S * dt);
-    this.squashAmount += (0 - this.squashAmount) * decay;
-    this.squash = 1 - this.squashAmount;
+    // Squash decay (skip for balls that should stay round)
+    if (!this._noSquash) {
+      const decay = Math.min(1, CONSTANTS.SQUASH_DECAY_PER_S * dt);
+      this.squashAmount += (0 - this.squashAmount) * decay;
+      this.squash = 1 - this.squashAmount;
+    } else {
+      this.squashAmount = 0;
+      this.squash = 1;
+    }
     
     // Sleep detection (Ball Pit mode only, Box2D-style)
     // NOTE: Sleep evaluation is done after constraints (collisions + walls) in the engine.
@@ -218,7 +223,7 @@ export class Ball {
   }
 
   walls(w, h, dt, customRest, options = {}) {
-    const registerEffects = options.registerEffects !== false;
+    const registerEffects = options.registerEffects !== false && !this._skipWallEffects;
     const globals = getGlobals();
     const { REST, MASS_BASELINE_KG, MASS_REST_EXP, currentMode, DPR } = globals;
     const rest = customRest !== undefined ? customRest : REST;
@@ -363,9 +368,11 @@ export class Ball {
         if (Math.abs(this.omega) < 0.05) this.omega = 0;
       }
       
-      // Visual squash
-      this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
-      this.squashNormalAngle = Math.atan2(-ny, -nx);
+      // Visual squash (skip for DVD logo and other no-squash balls)
+      if (!this._noSquash) {
+        this.squashAmount = Math.min(globals.getSquashMax(), impact * 0.8);
+        this.squashNormalAngle = Math.atan2(-ny, -nx);
+      }
       
       // Sound and wobble effects
       if (registerEffects) {
@@ -375,8 +382,17 @@ export class Ball {
         
         // Wobble registration - use ball position for impact point
         const impactSpeedN = Math.max(0, preVn);
-        if (!this.isSleeping && impactSpeedN >= wobbleThreshold) {
-          const impactN = Math.min(1, impactSpeedN / (this.r * 80));
+        // For meteors, use a lower threshold to ensure impacts register even after bouncing
+        const isMeteor = this.isMeteor === true;
+        const effectiveThreshold = isMeteor ? Math.max(20, wobbleThreshold * 0.3) : wobbleThreshold;
+        if (!this.isSleeping && impactSpeedN >= effectiveThreshold) {
+          // Impact intensity: scale by velocity and mass for dramatic effects
+          // Mass multiplier: heavier balls (like meteors) create more dramatic deformation
+          // Use square root of mass ratio for more natural scaling (9x mass → ~3x impact)
+          const massRatio = this.m / MASS_BASELINE_KG;
+          const massMultiplier = Math.max(0.5, Math.min(4.0, 0.5 + Math.sqrt(massRatio) * 0.5));
+          const baseImpactN = Math.min(1, impactSpeedN / (this.r * 80));
+          const impactN = Math.min(1, baseImpactN * massMultiplier);
           const contactX = this.x - nx * effectiveRadius;
           const contactY = this.y - ny * effectiveRadius;
           registerWallImpactAtPoint(contactX, contactY, impactN);
@@ -393,8 +409,11 @@ export class Ball {
     }
     
     // Wake on wall collision (prevents sleeping balls from getting stuck in walls)
-    if (hasWallCollision && this.isSleeping) {
-      this.wake();
+    // Always wake meteors on wall collision to ensure they register impacts
+    if (hasWallCollision) {
+      if (this.isSleeping || this.isMeteor === true) {
+        this.wake();
+      }
     }
   }
 

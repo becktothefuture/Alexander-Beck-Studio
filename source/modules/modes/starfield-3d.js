@@ -16,7 +16,9 @@ function createStar(w, h, zNear, zFar, spanX, spanY) {
     x: (Math.random() * 2 - 1) * w * spanX * 0.5,
     y: (Math.random() * 2 - 1) * h * spanY * 0.5,
     z: zNear + Math.random() * (zFar - zNear),
-    color: pickRandomColor()
+    color: pickRandomColor(),
+    alpha: 0, // Start invisible for fade-in
+    fadeState: 'fadingIn' // 'fadingIn', 'visible', 'fadingOut'
   };
 }
 
@@ -41,7 +43,9 @@ export function initializeStarfield3D() {
   // Create stars array (not balls)
   _stars = [];
   for (let i = 0; i < count; i++) {
-    _stars.push(createStar(w, h, zNear, zFar, spanX, spanY));
+    const star = createStar(w, h, zNear, zFar, spanX, spanY);
+    star.fadeTimer = 0;
+    _stars.push(star);
   }
 
   _lastTime = performance.now();
@@ -78,9 +82,13 @@ export function renderStarfield3D(ctx) {
   const centerX = cx;
   const centerY = cy;
 
+  // Fade duration from config (in seconds)
+  const fadeDuration = Math.max(0, g.starfieldFadeDuration ?? 0.5);
+
   // Update and draw each star
   for (let i = 0; i < _stars.length; i++) {
     const star = _stars[i];
+    const wasRecycled = star.z < zNear;
 
     // Advance toward camera
     star.z -= speed * dt;
@@ -91,19 +99,68 @@ export function renderStarfield3D(ctx) {
       star.x = (Math.random() * 2 - 1) * w * spanX * 0.5;
       star.y = (Math.random() * 2 - 1) * h * spanY * 0.5;
       star.color = pickRandomColor();
+      star.alpha = 0;
+      star.fadeState = 'fadingIn';
+      star.fadeTimer = 0;
+    }
+
+    // Update fade state
+    if (fadeDuration > 0) {
+      // Initialize fade state if not set
+      if (!star.fadeState) {
+        star.fadeState = 'fadingIn';
+        star.fadeTimer = 0;
+      }
+      if (star.fadeTimer === undefined) star.fadeTimer = 0;
+      
+      if (star.fadeState === 'fadingIn') {
+        star.fadeTimer += dt;
+        if (star.fadeTimer >= fadeDuration) {
+          star.alpha = 1;
+          star.fadeState = 'visible';
+          star.fadeTimer = 0;
+        } else {
+          star.alpha = star.fadeTimer / fadeDuration;
+        }
+      } else if (star.fadeState === 'visible') {
+        // Check if approaching recycle point (start fading out)
+        const fadeOutStart = zNear + (zFar - zNear) * 0.1; // Start fading 10% before recycle
+        if (star.z < fadeOutStart) {
+          star.fadeState = 'fadingOut';
+          star.fadeTimer = 0;
+        } else {
+          star.alpha = 1;
+        }
+      } else if (star.fadeState === 'fadingOut') {
+        star.fadeTimer += dt;
+        if (star.fadeTimer >= fadeDuration) {
+          star.alpha = 0;
+          star.fadeTimer = 0;
+        } else {
+          star.alpha = 1 - (star.fadeTimer / fadeDuration);
+        }
+      }
+    } else {
+      // No fade - instant visibility
+      star.alpha = 1;
     }
 
     // Perspective projection with fixed center (mouse ignored)
     const scale = focalLength / (focalLength + star.z);
     const x2d = centerX + star.x * scale;
     const y2d = centerY + star.y * scale;
-    const r = Math.max(1, Math.min(baseR, baseR * scale));
+    // Keep radius constant regardless of distance (don't scale with perspective)
+    const r = baseR;
 
-    // Draw circle
-    ctx.beginPath();
-    ctx.arc(x2d, y2d, r, 0, Math.PI * 2);
-    ctx.fillStyle = star.color;
-    ctx.fill();
+    // Draw circle with alpha
+    if (star.alpha > 0) {
+      ctx.globalAlpha = star.alpha;
+      ctx.beginPath();
+      ctx.arc(x2d, y2d, r, 0, Math.PI * 2);
+      ctx.fillStyle = star.color;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   }
 }
 
