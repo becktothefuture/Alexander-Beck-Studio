@@ -16,6 +16,7 @@
   "ballSizeDesktop": 9,
   "ballSizeMobile": 6,
   "mobileObjectReductionFactor": 0.5,
+  "mobileObjectReductionThreshold": 200,
   "ballSoftness": 57,
   "ballSpacing": 0.19,
   "sizeVariationGlobalMul": 1,
