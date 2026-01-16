@@ -14,7 +14,7 @@
   "physicsSleepTime": 0.2,
   "physicsSkipSleepingSteps": true,
   "ballSizeDesktop": 9,
-  "ballSizeMobile": 6,
+  "ballSizeMobile": 7.2,
   "mobileObjectReductionFactor": 0.5,
   "mobileObjectReductionThreshold": 200,
   "ballSoftness": 57,
