@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gaussian Splat Spatial · Test Lab</title>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    body.splat-test {
+      margin: 0;
+      background: var(--wall-color);
+    }
+
+    .splat-test-label {
+      position: fixed;
+      top: var(--gap-md);
+      left: var(--gap-md);
+      font-family: var(--abs-font-sans);
+      font-size: var(--text-sm);
+      letter-spacing: var(--letter-spacing-normal);
+      color: var(--text-primary);
+      z-index: 5;
+    }
+  </style>
+</head>
+<body class="splat-test">
+  <div id="abs-scene" class="abs-scene">
+    <div id="bravia-balls" class="ball-simulation w-embed">
+      <canvas id="c" aria-label="Gaussian splat test" role="img" draggable="false"></canvas>
+    </div>
+    <div id="splat-variant-label" class="splat-test-label" aria-live="polite"></div>
+  </div>
+
+  <script type="module" src="splat-test.js"></script>
+</body>
+</html>
