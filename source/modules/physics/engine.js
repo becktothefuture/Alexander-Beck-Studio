@@ -159,8 +159,17 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
                globals.currentMode !== MODES.CUBE_3D &&
                globals.currentMode !== MODES.PARALLAX_LINEAR &&
                globals.currentMode !== MODES.STARFIELD_3D &&
-               globals.currentMode !== MODES.DVD_LOGO) {
+               globals.currentMode !== MODES.DVD_LOGO &&
+               globals.currentMode !== MODES.SNAKE) {
       resolveCollisions(collisionIterations); // configurable solver iterations
+    } else if (globals.currentMode === MODES.SNAKE) {
+      // Snake uses lighter collision resolution to avoid breaking chain
+      resolveCollisionsCustom({
+        iterations: 3,
+        positionalCorrectionPercent: 0.3,
+        maxCorrectionPx: 1.0 * (globals.DPR || 1),
+        enableSound: false
+      });
     }
 
     // Reset per-step caps/counters (impacts + pressure-event budget)

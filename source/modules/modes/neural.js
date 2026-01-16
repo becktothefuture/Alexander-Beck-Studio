@@ -220,8 +220,9 @@ function updateNeuralConnectors() {
   const neededConnectors = connections.length * connectorDensity;
   
   // Remove excess connectors or create new ones
-  const currentConnectors = g.balls.filter(b => !b._isNeuralNode);
+  let currentConnectors = g.balls.filter(b => !b._isNeuralNode);
   
+  // Remove excess connectors
   while (currentConnectors.length > neededConnectors) {
     const connector = currentConnectors.pop();
     const index = g.balls.indexOf(connector);
@@ -243,6 +244,7 @@ function updateNeuralConnectors() {
     connector.alpha = 0.6; // Slightly transparent
     g.balls.push(connector);
     connectorBalls.push(connector);
+    currentConnectors.push(connector); // Update local array to avoid infinite loop
   }
   
   // Get fresh list after any additions/removals

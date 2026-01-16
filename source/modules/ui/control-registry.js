@@ -3641,6 +3641,83 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
+  snake: {
+    title: 'Snake',
+    icon: '🐍',
+    mode: 'snake',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'snakeBallCount',
+        label: 'Ball Count',
+        stateKey: 'snakeBallCount',
+        type: 'range',
+        min: 20, max: 100, step: 5,
+        default: 95,
+        format: v => String(v),
+        parse: v => parseInt(v, 10),
+        hint: 'Number of balls in the snake trail',
+        reinitMode: true
+      },
+      {
+        id: 'snakeRestLength',
+        label: 'Rest Length',
+        stateKey: 'snakeRestLength',
+        type: 'range',
+        min: 15, max: 80, step: 2,
+        default: 29,
+        format: v => v.toFixed(0) + 'px',
+        parse: parseFloat,
+        hint: 'Distance between connected balls (lower = tighter trail)'
+      },
+      {
+        id: 'snakeSpringStrength',
+        label: 'Spring Strength',
+        stateKey: 'snakeSpringStrength',
+        type: 'range',
+        min: 1, max: 1000, step: 1,
+        default: 238,
+        format: v => v.toFixed(0) + 'px/s²',
+        parse: parseFloat,
+        hint: 'Force keeping balls connected (lower = less wiggling, higher = tighter trail)'
+      },
+      {
+        id: 'snakeSpeed',
+        label: 'Snake Speed',
+        stateKey: 'snakeSpeed',
+        type: 'range',
+        min: 100, max: 800, step: 50,
+        default: 400,
+        format: v => v.toFixed(0) + 'px/s',
+        parse: v => parseInt(v, 10),
+        hint: 'Constant speed of snake head movement (classic snake game behavior)'
+      },
+      {
+        id: 'snakeGroundFriction',
+        label: 'Ground Friction',
+        stateKey: 'snakeGroundFriction',
+        type: 'range',
+        min: 0, max: 2.0, step: 0.05,
+        default: 1.90,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Additional friction simulating high-friction ground surface'
+      },
+      {
+        id: 'snakeDamping',
+        label: 'Damping',
+        stateKey: 'snakeDamping',
+        type: 'range',
+        min: 0.90, max: 0.995, step: 0.005,
+        default: 0.92,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Velocity damping (higher = less damping, more motion)'
+      },
+      warmupFramesControl('snakeWarmupFrames')
+    ]
+  },
+
   dvdLogo: {
     title: 'DVD Logo',
     icon: '📀',
@@ -3707,6 +3784,131 @@ export const CONTROL_SECTIONS = {
         reinitMode: true
       },
       warmupFramesControl('dvdLogoWarmupFrames')
+    ]
+  },
+
+  particleFountain: {
+    title: 'Particle Fountain',
+    icon: '⛲',
+    mode: 'particle-fountain',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'particleFountainEmissionRate',
+        label: 'Emission Rate',
+        stateKey: 'particleFountainEmissionRate',
+        type: 'range',
+        min: 5, max: 100, step: 1,
+        default: 29,
+        format: v => v.toFixed(0) + ' particles/s',
+        parse: v => parseInt(v, 10),
+        hint: 'Number of particles emitted per second'
+      },
+      {
+        id: 'particleFountainInitialVelocity',
+        label: 'Initial Velocity',
+        stateKey: 'particleFountainInitialVelocity',
+        type: 'range',
+        min: 200, max: 10000, step: 100,
+        default: 4700,
+        format: v => v.toFixed(0) + 'px/s',
+        parse: v => parseInt(v, 10),
+        hint: 'Initial upward velocity of particles'
+      },
+      {
+        id: 'particleFountainSpreadAngle',
+        label: 'Spread Angle',
+        stateKey: 'particleFountainSpreadAngle',
+        type: 'range',
+        min: 10, max: 120, step: 5,
+        default: 20,
+        format: v => v.toFixed(0) + '°',
+        parse: v => parseInt(v, 10),
+        hint: 'How wide the fountain spreads (degrees)'
+      },
+      {
+        id: 'particleFountainWaterDrag',
+        label: 'Water Drag',
+        stateKey: 'particleFountainWaterDrag',
+        type: 'range',
+        min: 0.01, max: 0.2, step: 0.01,
+        default: 0.02,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Water-like drag for smooth fluid motion (lower = more natural water, higher = more resistance)'
+      },
+      {
+        id: 'particleFountainGravityMultiplier',
+        label: 'Gravity',
+        stateKey: 'particleFountainGravityMultiplier',
+        type: 'range',
+        min: 0, max: 2.0, step: 0.1,
+        default: 1.7,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        hint: 'Gravity strength (particles fall after rising, 0 = no gravity)'
+      },
+      {
+        id: 'particleFountainUpwardForce',
+        label: 'Upward Force',
+        stateKey: 'particleFountainUpwardForce',
+        type: 'range',
+        min: 0, max: 800, step: 50,
+        default: 300,
+        format: v => v.toFixed(0) + 'px/s²',
+        parse: v => parseInt(v, 10),
+        hint: 'Optional upward force (buoyancy), 0 = disabled'
+      },
+      {
+        id: 'particleFountainMaxParticles',
+        label: 'Max Particles',
+        stateKey: 'particleFountainMaxParticles',
+        type: 'range',
+        min: 20, max: 300, step: 10,
+        default: 230,
+        format: v => v.toFixed(0) + ' particles',
+        parse: v => parseInt(v, 10),
+        hint: 'Maximum active particles'
+      },
+      {
+        id: 'particleFountainLifetime',
+        label: 'Lifetime',
+        stateKey: 'particleFountainLifetime',
+        type: 'range',
+        min: 1.0, max: 30.0, step: 0.5,
+        default: 8.0,
+        format: v => v.toFixed(1) + 's',
+        parse: parseFloat,
+        hint: 'How long particles live before fading out (2s fade animation)'
+      },
+      {
+        id: 'particleFountainMouseRepelStrength',
+        label: 'Mouse Repel Strength',
+        stateKey: 'particleFountainMouseRepelStrength',
+        type: 'range',
+        min: 10000, max: 100000, step: 5000,
+        default: 50000,
+        format: v => v.toFixed(0) + 'px/s²',
+        parse: v => parseInt(v, 10),
+        hint: 'Force pushing particles away from mouse cursor'
+      },
+      {
+        id: 'particleFountainMouseRepelRadiusVw',
+        label: 'Mouse Repel Radius',
+        stateKey: 'particleFountainMouseRepelRadiusVw',
+        type: 'range',
+        min: 1.0, max: 20.0, step: 0.5,
+        default: 5.0,
+        format: v => v.toFixed(1) + 'vw',
+        parse: parseFloat,
+        hint: 'Radius of mouse repulsion (viewport width percentage)',
+        onChange: (g) => {
+          // Update derived px value when vw changes
+          import('../core/state.js').then(({ applyLayoutFromVwToPx }) => {
+            applyLayoutFromVwToPx();
+          }).catch(() => {});
+        }
+      }
     ]
   },
 
@@ -4401,7 +4603,8 @@ function generateHomeModeSectionHTML() {
               '3d-cube': '🧊',
               'starfield-3d': '✨',
               'meteor-shower': '☄️',
-              'elastic-center': '⭕'
+              'elastic-center': '⭕',
+              'snake': '🐍'
             };
             const modeLabels = {
               'pit': 'Pit',
@@ -4421,7 +4624,8 @@ function generateHomeModeSectionHTML() {
               '3d-cube': 'Cube 3D',
               'starfield-3d': 'Starfield 3D',
               'meteor-shower': 'Meteor Shower',
-              'elastic-center': 'Elastic Center'
+              'elastic-center': 'Elastic Center',
+              'snake': 'Snake'
             };
             let buttons = '';
             NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {

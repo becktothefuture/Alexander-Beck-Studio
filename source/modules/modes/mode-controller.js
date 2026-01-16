@@ -24,6 +24,8 @@ import { initializeStarfield3D, applyStarfield3DForces, updateStarfield3D, rende
 import { initializeMeteorShower, applyMeteorShowerForces, updateMeteorShower } from './meteor-shower.js';
 import { initializeElasticCenter, applyElasticCenterForces, updateElasticCenter } from './elastic-center.js';
 import { initializeDvdLogo, applyDvdLogoForces, updateDvdLogo } from './dvd-logo.js';
+import { initializeSnake, applySnakeForces, updateSnake } from './snake.js';
+import { initializeParticleFountain, applyParticleFountainForces, updateParticleFountain } from './particle-fountain.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor } from '../visual/colors.js';
 import { resetPhysicsAccumulator } from '../physics/engine.js';
@@ -58,6 +60,8 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.METEOR_SHOWER: return globals.meteorShowerWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
     case MODES.DVD_LOGO: return globals.dvdLogoWarmupFrames ?? 10;
+    case MODES.SNAKE: return globals.snakeWarmupFrames ?? 10;
+    case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
     default: return 10;
   }
 }
@@ -132,7 +136,9 @@ export function setMode(mode) {
     'starfield-3d': '3D Starfield',
     'meteor-shower': 'Meteor Shower',
     'elastic-center': 'Elastic Center',
-    'dvd-logo': 'DVD Logo'
+    'dvd-logo': 'DVD Logo',
+    'snake': 'Snake',
+    'particle-fountain': 'Particle Fountain'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
   
@@ -264,6 +270,18 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeDvdLogo();
+  } else if (mode === MODES.SNAKE) {
+    // Disable gravity for snake mode
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeSnake();
+  } else if (mode === MODES.PARTICLE_FOUNTAIN) {
+    // Enable gravity for particle fountain (particles fall after rising)
+    globals.gravityMultiplier = globals.particleFountainGravityMultiplier || 1.0;
+    globals.G = globals.GE * globals.gravityMultiplier;
+    globals.repellerEnabled = true; // Enable mouse repulsion for particles
+    initializeParticleFountain();
   }
   
   console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
@@ -336,6 +354,10 @@ export function getForceApplicator() {
     return applyElasticCenterForces;
   } else if (globals.currentMode === MODES.DVD_LOGO) {
     return applyDvdLogoForces;
+  } else if (globals.currentMode === MODES.SNAKE) {
+    return applySnakeForces;
+  } else if (globals.currentMode === MODES.PARTICLE_FOUNTAIN) {
+    return applyParticleFountainForces;
   }
   return null;
 }
@@ -358,6 +380,10 @@ export function getModeUpdater() {
     return updateDvdLogo;
   } else if (globals.currentMode === MODES.NEURAL) {
     return updateNeural;
+  } else if (globals.currentMode === MODES.SNAKE) {
+    return updateSnake;
+  } else if (globals.currentMode === MODES.PARTICLE_FOUNTAIN) {
+    return updateParticleFountain;
   }
   return null;
 }

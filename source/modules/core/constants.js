@@ -23,7 +23,9 @@ export const MODES = {
   CUBE_3D: '3d-cube',
   STARFIELD_3D: 'starfield-3d',
   METEOR_SHOWER: 'meteor-shower',
-  ELASTIC_CENTER: 'elastic-center'
+  ELASTIC_CENTER: 'elastic-center',
+  SNAKE: 'snake',
+  PARTICLE_FOUNTAIN: 'particle-fountain'
 };
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -53,7 +55,9 @@ export const NARRATIVE_MODE_SEQUENCE = [
   MODES.ELASTIC_CENTER,
   MODES.VORTEX,
   MODES.KALEIDOSCOPE,
-  MODES.STARFIELD_3D
+  MODES.STARFIELD_3D,
+  MODES.SNAKE,
+  MODES.PARTICLE_FOUNTAIN
 ];
 
 // Short chapter titles (no numbers) — used by the left-edge narrative label.
@@ -77,7 +81,9 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.SPHERE_3D]: '3D SHELL',
   [MODES.CUBE_3D]: '3D FRAME',
   [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',
-  [MODES.STARFIELD_3D]: 'DEPTH FIELD'
+  [MODES.STARFIELD_3D]: 'DEPTH FIELD',
+  [MODES.SNAKE]: 'SNAKE',
+  [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FLOW'
 };
 
 export const CONSTANTS = {

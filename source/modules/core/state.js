@@ -392,6 +392,31 @@ const state = {
   elasticCenterMouseRadius: 200, // px - distance where mouse affects dots
   elasticCenterDamping: 0.94, // velocity damping for stability
   elasticCenterWarmupFrames: 10,
+  
+  // Snake mode (classic snake game behavior - head moves continuously, body follows path)
+  snakeBallCount: 95,
+  snakeRestLength: 29, // Distance between connected balls (px) - tight for snake trail
+  snakeSpringStrength: 238, // Spring force strength - gentle to keep snake together without wiggling
+  snakeDamping: 0.92, // Velocity damping - high damping for high-friction ground
+  snakeGroundFriction: 1.90, // Additional ground friction - simulates high-friction surface
+  snakeSpeed: 400, // Constant speed for snake head movement (px/s) - classic snake game behavior
+  snakeWarmupFrames: 10,
+  
+  // Particle Fountain mode (water-like behavior)
+  particleFountainEmissionRate: 29, // particles per second
+  particleFountainInitialVelocity: 4700, // px/s - initial upward velocity
+  particleFountainSpreadAngle: 20, // degrees - how wide the fountain spreads
+  particleFountainWaterDrag: 0.02, // water-like drag (lower for natural water droplets with less air resistance)
+  particleFountainGravityMultiplier: 1.7, // gravity multiplier (particles fall after rising)
+  particleFountainUpwardForce: 300, // optional upward force in px/s², 0 = disabled
+  particleFountainMaxParticles: 230, // maximum active particles
+  particleFountainLifetime: 8.0, // seconds - how long particles live before fading out
+  particleFountainWarmupFrames: 0, // no warmup - emit immediately
+  particleFountainMouseRepelStrength: 50000, // px/s² - very strong force for barrier effect (like hand over fountain)
+  particleFountainMouseRepelRadiusVw: 5.0, // vw - radius of mouse repulsion (viewport width)
+  // Derived (px): set in `applyLayoutFromVwToPx()` from `particleFountainMouseRepelRadiusVw`
+  particleFountainMouseRepelRadius: 0,
+  
   weightlessRepelSoft: 5.4,
   
   // Kaleidoscope mode (mouse-driven mirrored wedges) - using KALEIDOSCOPE_3 parameters
@@ -801,6 +826,11 @@ export function applyLayoutFromVwToPx() {
   state.weightlessRepelRadius = Math.round(baseCursorPx);
   state.pingPongCursorRadius = Math.round(baseCursorPx);
   state.bubblesDeflectRadius = Math.round(baseCursorPx);
+  
+  // Particle Fountain mouse repulsion radius (separate vw-based value)
+  const particleFountainMouseRepelRadiusVw = state.particleFountainMouseRepelRadiusVw ?? 5.0;
+  const particleFountainMouseRepelRadiusPx = Math.max(0, vwToPx(particleFountainMouseRepelRadiusVw, w));
+  state.particleFountainMouseRepelRadius = Math.round(particleFountainMouseRepelRadiusPx);
 }
 
 export function applyLayoutCSSVars() {
@@ -1189,6 +1219,28 @@ export function initState(config) {
   if (config.elasticCenterMouseRadius !== undefined) state.elasticCenterMouseRadius = clampInt(config.elasticCenterMouseRadius, 50, 400, state.elasticCenterMouseRadius);
   if (config.elasticCenterDamping !== undefined) state.elasticCenterDamping = clampNumber(config.elasticCenterDamping, 0.85, 0.99, state.elasticCenterDamping);
   if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
+
+  // Snake mode (classic snake game behavior)
+  if (config.snakeBallCount !== undefined) state.snakeBallCount = clampInt(config.snakeBallCount, 20, 100, state.snakeBallCount);
+  if (config.snakeRestLength !== undefined) state.snakeRestLength = clampNumber(config.snakeRestLength, 15, 80, state.snakeRestLength);
+  if (config.snakeSpringStrength !== undefined) state.snakeSpringStrength = clampInt(config.snakeSpringStrength, 1, 1000, state.snakeSpringStrength);
+  if (config.snakeDamping !== undefined) state.snakeDamping = clampNumber(config.snakeDamping, 0.90, 0.995, state.snakeDamping);
+  if (config.snakeGroundFriction !== undefined) state.snakeGroundFriction = clampNumber(config.snakeGroundFriction, 0, 2.0, state.snakeGroundFriction);
+  if (config.snakeSpeed !== undefined) state.snakeSpeed = clampInt(config.snakeSpeed, 100, 800, state.snakeSpeed);
+  if (config.snakeWarmupFrames !== undefined) state.snakeWarmupFrames = clampInt(config.snakeWarmupFrames, 0, 240, state.snakeWarmupFrames);
+
+  // Particle Fountain mode (simplified, water-like)
+  if (config.particleFountainEmissionRate !== undefined) state.particleFountainEmissionRate = clampInt(config.particleFountainEmissionRate, 5, 100, state.particleFountainEmissionRate);
+  if (config.particleFountainInitialVelocity !== undefined) state.particleFountainInitialVelocity = clampInt(config.particleFountainInitialVelocity, 200, 10000, state.particleFountainInitialVelocity);
+  if (config.particleFountainSpreadAngle !== undefined) state.particleFountainSpreadAngle = clampInt(config.particleFountainSpreadAngle, 10, 120, state.particleFountainSpreadAngle);
+  if (config.particleFountainWaterDrag !== undefined) state.particleFountainWaterDrag = clampNumber(config.particleFountainWaterDrag, 0.01, 0.2, state.particleFountainWaterDrag);
+  if (config.particleFountainGravityMultiplier !== undefined) state.particleFountainGravityMultiplier = clampNumber(config.particleFountainGravityMultiplier, 0, 2.0, state.particleFountainGravityMultiplier);
+  if (config.particleFountainUpwardForce !== undefined) state.particleFountainUpwardForce = clampInt(config.particleFountainUpwardForce, 0, 800, state.particleFountainUpwardForce);
+  if (config.particleFountainMaxParticles !== undefined) state.particleFountainMaxParticles = clampInt(config.particleFountainMaxParticles, 20, 300, state.particleFountainMaxParticles);
+  if (config.particleFountainLifetime !== undefined) state.particleFountainLifetime = clampNumber(config.particleFountainLifetime, 1.0, 30.0, state.particleFountainLifetime);
+  if (config.particleFountainMouseRepelStrength !== undefined) state.particleFountainMouseRepelStrength = clampInt(config.particleFountainMouseRepelStrength, 10000, 100000, state.particleFountainMouseRepelStrength);
+  if (config.particleFountainMouseRepelRadiusVw !== undefined) state.particleFountainMouseRepelRadiusVw = clampNumber(config.particleFountainMouseRepelRadiusVw, 1.0, 20.0, state.particleFountainMouseRepelRadiusVw);
+  if (config.particleFountainWarmupFrames !== undefined) state.particleFountainWarmupFrames = clampInt(config.particleFountainWarmupFrames, 0, 30, state.particleFountainWarmupFrames);
 
   // Clamp scene micro-reaction tuning (defensive; UI-only)
   if (config.sceneImpactEnabled !== undefined) {
