@@ -111,4 +111,22 @@ Task ID: 6 (continuation)
 - Updated clean script: `rm -rf dist && rm -f source/current-config*.json`
 - **Root cause:** When killing child processes via Ctrl+C, they report exit code 1 which triggered error logging
 - **Fix:** Track shutdown state and ignore exit codes during intentional termination
+
+---
+
+## 2026-01-17 - Phase 4-5: Dev Server Updates & Git Configuration
+Thread: https://ampcode.com/threads/T-019bce05-06fc-71d9-9862-b1add4ed9dc7
+Task IDs: 7, 8
+- **Task 7 (Phase 4):** Verified dev server scripts already updated in Phase 3
+  - dev-startup.js checkBuildOutput() checks dist/js/app.js ✓
+  - live-reload-server.js WATCH_TARGETS includes dist/ ✓
+  - Production server serves from dist/ ✓
+  - No additional changes needed - marked complete
+- **Task 8 (Phase 5):** Updated .gitignore for new build output
+  - Changed ignored directory from `public/` to `dist/`
+  - Removed public/images/ from git tracking (3 files: favicon.ico, realistic_noise.gif, webclip.png)
+  - Verified dist/ is now ignored by git
+- **Files changed:** .gitignore
+- **Git changes:** Removed public/ from tracking, dist/ now ignored
+- **Build verified:** `npm run build` successful, outputs to dist/
 ---

@@ -1,5 +1,5 @@
 # Build output
-public/
+dist/
 
 # Dependencies
 node_modules/
