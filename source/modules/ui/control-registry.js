@@ -2808,7 +2808,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'pingPongSpeed',
         type: 'range',
         min: 200, max: 1600, step: 50,
-        default: 400,
+        default: 200,
         format: v => v.toFixed(0),
         parse: parseFloat,
         reinitMode: true
@@ -3687,7 +3687,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'snakeSpeed',
         type: 'range',
         min: 100, max: 800, step: 50,
-        default: 400,
+        default: 200,
         format: v => v.toFixed(0) + 'px/s',
         parse: v => parseInt(v, 10),
         hint: 'Constant speed of snake head movement (classic snake game behavior)'
@@ -3730,7 +3730,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'dvdLogoSpeed',
         type: 'range',
         min: 200, max: 800, step: 50,
-        default: 400,
+        default: 200,
         format: v => v.toFixed(0) + 'px/s',
         parse: parseFloat,
         hint: 'Movement speed of the DVD logo'

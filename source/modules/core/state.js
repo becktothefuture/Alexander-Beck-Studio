@@ -377,7 +377,7 @@ const state = {
   meteorShowerWarmupFrames: 10,
 
   // DVD Logo mode params
-  dvdLogoSpeed: 400, // px/s
+  dvdLogoSpeed: 200, // px/s
   dvdLogoSize: 0.7, // scale multiplier
   dvdLogoBallCount: 60, // total balls for letters
   dvdLogoBallSpacing: 1.5, // spacing multiplier between balls
