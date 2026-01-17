@@ -11,7 +11,13 @@ export async function loadRuntimeConfig() {
       }
     } catch (e) {}
 
-    const paths = ['config/default-config.json', 'js/config.json', '../public/js/config.json'];
+    const paths = [
+      'config/default-config.json',
+      '../config/default-config.json',
+      'js/config.json',
+      '../js/config.json',
+      '../public/js/config.json'
+    ];
     for (const path of paths) {
       try {
         const res = await fetch(path, { cache: 'no-cache' });

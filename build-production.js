@@ -270,11 +270,12 @@ async function buildProduction() {
     // - CV page is bundled via Rollup (public/js/cv-bundle.js).
 
     // Copy standalone HTML pages from source/ (cv.html, portfolio.html, etc.)
-    const standalonePages = ['cv.html', 'portfolio.html'];
+    const standalonePages = ['cv.html', 'portfolio.html', path.join('splat', 'index.html')];
     for (const page of standalonePages) {
       const src = path.join('source', page);
       const dst = path.join(CONFIG.publicDestination, page);
       if (fs.existsSync(src)) {
+        fs.mkdirSync(path.dirname(dst), { recursive: true });
         fs.copyFileSync(src, dst);
       }
     }
@@ -596,6 +597,59 @@ async function buildProduction() {
 
         fs.writeFileSync(publicPortfolioPath, pHtml);
         console.log('✅ Injected production assets into public/portfolio.html');
+    }
+
+    // 2g. Inject assets into public/splat/index.html
+    const publicSplatPath = path.join(CONFIG.publicDestination, 'splat', 'index.html');
+    const splatTemplatePath = path.join('source', 'splat', 'index.html');
+    const splatTemplate = safeReadFile(splatTemplatePath);
+
+    if (splatTemplate) {
+      let sHtml = splatTemplate;
+
+      sHtml = sHtml.replace(/<!--\s*ABS_LIVE_RELOAD_START\s*-->[\s\S]*?<!--\s*ABS_LIVE_RELOAD_END\s*-->\s*/g, '');
+
+      sHtml = stripBlockBetweenMarkers(sHtml, 'ABS_BUILD_MARKER:CSS_DEV_START', 'ABS_BUILD_MARKER:CSS_DEV_END');
+      sHtml = stripBlockBetweenMarkers(sHtml, 'ABS_BUILD_MARKER:JS_DEV_START', 'ABS_BUILD_MARKER:JS_DEV_END');
+
+      const bundledCssTag = `<link rel="stylesheet" href="../css/bouncy-balls.css?v=${buildStamp}">`;
+      const splatJsTag = `<script src="../js/splat-bundle.js?v=${buildStamp}" defer></script>`;
+
+      sHtml = replaceMarker(sHtml, 'ABS_BUILD_MARKER:CSS_PROD', bundledCssTag);
+      sHtml = replaceMarker(sHtml, 'ABS_BUILD_MARKER:JS_PROD', splatJsTag);
+
+      sHtml = sHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="\\.\\.\\/css\\/bouncy-balls\\.css[^"]*"[^>]*>/g, bundledCssTag);
+      sHtml = sHtml.replace(/<script[^>]*src="\\.\\.\\/js\\/splat-bundle\\.js[^"]*"[^>]*><\\/script>/g, splatJsTag);
+
+      if (fs.existsSync(runtimeConfigSrc)) {
+        try {
+          const raw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
+          const safe = raw.replace(/</g, '\\u003c');
+          const inline = `<script>window.__RUNTIME_CONFIG__=${safe};</script>`;
+          sHtml = sHtml.replace(/<script>window\\.__RUNTIME_CONFIG__=[^<]+<\\/script>/g, inline);
+          if (!sHtml.includes('__RUNTIME_CONFIG__')) {
+            sHtml = sHtml.replace('</head>', `${inline}\n</head>`);
+          }
+          console.log('✅ Inlined runtime config into public/splat/index.html (hardcoded)');
+        } catch (e) {}
+      }
+
+      if (tokensInline) {
+        sHtml = sHtml.replace(/<script>window\\.__TOKENS__=[^<]+<\\/script>/g, tokensInline);
+        if (!sHtml.includes('__TOKENS__')) {
+          sHtml = sHtml.replace('</head>', `${tokensInline}\n</head>`);
+        }
+      }
+
+      sHtml = sHtml.replace(/^\s*<meta\s+name="theme-color"[^>]*>\s*$/gm, '');
+      sHtml = sHtml.replace('</head>', `${themeColorTags}\n</head>`);
+
+      if (!sHtml.includes('id="frame-config-vars"')) {
+        sHtml = sHtml.replace('<head>', `<head>\n${frameVarsStyle}`);
+      }
+
+      fs.writeFileSync(publicSplatPath, sHtml);
+      console.log('✅ Injected production assets into public/splat/index.html');
     }
 
     // Strip dev-only tooling blocks (keeps production HTML clean).
