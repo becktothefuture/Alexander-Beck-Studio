@@ -52,7 +52,8 @@ function checkNodeModules() {
 }
 
 function checkBuildOutput() {
-  const buildFile = path.join(process.cwd(), 'public', 'js', 'bouncy-balls-embed.js');
+  // Phase 2: Changed from public/js/bouncy-balls-embed.js to dist/js/app.js
+  const buildFile = path.join(process.cwd(), 'dist', 'js', 'app.js');
   return fs.existsSync(buildFile);
 }
 
@@ -107,10 +108,10 @@ function startServer(name, command, port, description) {
       args = ['-m', 'http.server', '8001', '--directory', 'source'];
       cwd = process.cwd();
     } else if (command === 'npm run start') {
-      // Run Python HTTP server serving public/ from project root.
-      // Important: build/watch deletes/recreates public/; --directory keeps serving the new output.
+      // Run Python HTTP server serving dist/ from project root.
+      // Important: build/watch deletes/recreates dist/; --directory keeps serving the new output.
       cmd = 'python3';
-      args = ['-m', 'http.server', '8000', '--directory', 'public'];
+      args = ['-m', 'http.server', '8000', '--directory', 'dist'];
       cwd = process.cwd();
     } else {
       // Fallback for other commands

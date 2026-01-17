@@ -59,4 +59,21 @@ Task ID: 5
   - Rollup auto-splits additional chunks (controls.js, panel-dock.js, pointer.js, legend-colors.js, wall-only-canvas.js)
   - These auto-split chunks are loaded dynamically by the entry points as needed
   - source/splat/ directory doesn't exist - splat-test.html is at source/ root (may need setup in future phase)
+
+---
+
+## 2026-01-17 - Phase 3: NPM Scripts & Package.json
+Thread: https://ampcode.com/threads/T-019bce01-aad4-747e-b082-421d280bd294
+Task ID: 6
+- Updated package.json "start" script: `--directory public` → `--directory dist`
+- Updated scripts/dev-startup.js: production server now serves dist/ instead of public/
+- Updated scripts/live-reload-server.js:
+  - WATCH_TARGETS now includes dist/ instead of public/
+  - Updated comments and warning messages to reference dist/
+- **Files changed:** package.json, scripts/dev-startup.js, scripts/live-reload-server.js
+- **Build verified:** `npm run build` completes successfully, outputs to dist/
+- **Learnings for future iterations:**
+  - dev-startup.js has hardcoded directory paths that need updating when output changes
+  - live-reload-server.js watches both source/ and output dir for change detection
+
 ---

@@ -5,7 +5,7 @@
 // ║  Zero-dependency, local-only live reload via Server-Sent Events (SSE).       ║
 // ║                                                                              ║
 // ║  - Runs on http://localhost:8003                                             ║
-// ║  - Watches source/ and public/ (if present)                                  ║
+// ║  - Watches source/ and dist/ (if present)                                     ║
 // ║  - Broadcasts "reload" events to connected browsers                          ║
 // ║                                                                              ║
 // ║  Privacy: no external calls, no telemetry.                                   ║
@@ -20,7 +20,7 @@ const ROOT = path.join(__dirname, '..');
 
 const WATCH_TARGETS = [
   path.join(ROOT, 'source'),
-  path.join(ROOT, 'public'),
+  path.join(ROOT, 'dist'),
 ];
 
 const clients = new Set();
@@ -179,7 +179,7 @@ function main() {
   }
 
   if (!watchers.length) {
-    log('warning: no watch targets found (expected source/ and/or public/)');
+    log('warning: no watch targets found (expected source/ and/or dist/)');
   }
 }
 
