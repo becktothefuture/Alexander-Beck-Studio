@@ -31,10 +31,10 @@ function vary(base, variance = 0.15) {
 // CONFIGURATION — Locked baseline for soft organic impacts
 // ════════════════════════════════════════════════════════════════════════════════
 const BASE_CONFIG = {
-  // Synthesis
-  attackTime: 0.005,
-  decayTime: 0.075,
-  harmonicGain: 0.0,
+  // Synthesis (longer decay for chime-like sustain)
+  attackTime: 0.003,
+  decayTime: 0.12,
+  harmonicGain: 0.02,
   
   // Filter (timbre)
   filterBaseFreq: 580,
@@ -65,13 +65,13 @@ const BASE_CONFIG = {
   // Stereo
   maxPan: 0.15,
   
-  // Noise transient (impact "snap")
+  // Noise transient (softened for chime character)
   noiseTransientEnabled: true,
-  noiseTransientGain: 0.045,
-  noiseTransientDecay: 0.008,
-  noiseTransientFilterMin: 500,
-  noiseTransientFilterMax: 1800,
-  noiseTransientQ: 1.2,
+  noiseTransientGain: 0.018,
+  noiseTransientDecay: 0.004,
+  noiseTransientFilterMin: 800,
+  noiseTransientFilterMax: 2400,
+  noiseTransientQ: 0.8,
   
   // Sparkle partial (glass-like micro-chimes for aethereal quality)
   sparkleGain: 0.035,
