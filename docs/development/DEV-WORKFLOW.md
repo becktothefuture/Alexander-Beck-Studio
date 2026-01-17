@@ -14,7 +14,7 @@ Note: The project no longer syncs external exports into `source/`. Dev and produ
 
 Portfolio + CV follow the same pattern:
 - **Dev** (`npm run dev`): HTML loads ES modules directly (e.g. `modules/portfolio/app.js`, `modules/cv-init.js`)
-- **Preview/Build** (`npm run preview` / `npm run build`): HTML loads bundled scripts (`public/js/portfolio-bundle.js`, `public/js/cv-bundle.js`) and the runtime config/text are **inlined into the HTML** (no config fetch, no `public/modules/` module graph).
+- **Preview/Build** (`npm run preview` / `npm run build`): HTML loads bundled scripts (`dist/js/portfolio.js`, `dist/js/cv.js`) and the runtime config/text are **inlined into the HTML** (no config fetch, no `dist/modules/` module graph).
 
 ---
 
@@ -83,7 +83,7 @@ npm run startup → option 2
 **What it does:**
 - Runs production build (`npm run build`)
 - Starts HTTP server on port 8000
-- Serves `public/` directory (bundled output)
+- Serves `dist/` directory (bundled output)
 - Tests minified/optimized code
 
 **Visual indicator:**
@@ -115,7 +115,7 @@ npm run startup
 - Starts dev server on port 8001 (instant feedback)
 - Starts build preview server on port 8000 (production structure + bundle)
 - Runs file watcher in background
-- Auto-rebuilds `public/` when `source/` changes
+- Auto-rebuilds `dist/` when `source/` changes
 - Keeps both environments in sync
 - Starts a local live reload server (port 8003) so the browser can auto-refresh
 
@@ -194,7 +194,7 @@ The application automatically detects which environment it's running in:
 
 **PRODUCTION Mode otherwise:**
 - Port 8000
-- Bundled script (`bouncy-balls-embed.js`)
+- Bundled script (`app.js`)
 
 ### Console Output Policy
 
@@ -240,14 +240,15 @@ source/
 
 ### Build Output (Generated - Don't Edit)
 ```
-public/
+dist/
 ├── index.html                    → Production HTML (from source/index.html)
 ├── js/
-│   ├── bouncy-balls-embed.js    → Bundled JS (Rollup output)
-│   ├── portfolio-bundle.js      → Portfolio JS bundle
-│   └── cv-bundle.js             → CV JS bundle
+│   ├── app.js                   → Main bundled JS (Rollup output)
+│   ├── shared.js                → Shared code chunk
+│   ├── portfolio.js             → Portfolio JS bundle
+│   └── cv.js                    → CV JS bundle
 ├── css/
-│   ├── bouncy-balls.css         → Concatenated styles
+│   ├── styles.css               → Concatenated styles
 │   └── portfolio.css            → Portfolio styles
 └── ...
 ```

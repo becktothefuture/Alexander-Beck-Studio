@@ -12,19 +12,19 @@
 - `source/modules/portfolio/panel/` – dev/build tuning panel (mirrors index dock behavior).
 
 ## Data + assets
-- `source/config/portfolio-config.json` – carousel/runtime tuning (copied/minified to `public/config/portfolio-config.json` and `public/js/portfolio-config.json`).
+- `source/config/portfolio-config.json` – carousel/runtime tuning (copied/minified to `dist/config/portfolio-config.json` and `dist/js/portfolio-config.json`).
 - `source/config/contents-portfolio.json` – project list (cover, gallery, content blocks, links, takeaways) consumed by `PortfolioApp`.
-- `source/images/portfolio/` – covers, pages, and detail media (copied to `public/images/portfolio/`).
+- `source/images/portfolio/` – covers, pages, and detail media (copied to `dist/images/portfolio/`).
 
 ### Editing the content
 - Update `source/config/contents-portfolio.json` for copy/links/takeaways.
 - Add or replace media in `source/images/portfolio/` and point paths in the JSON to the matching files.
 
 ## Build outputs
-- JS: `public/js/portfolio-bundle.js` (Rollup)
-- CSS: `public/css/portfolio.css` (copied/minified)
-- Config/Data: `public/config/portfolio-config.json`, `public/config/contents-portfolio.json`
+- JS: `dist/js/portfolio.js` (Rollup)
+- CSS: `dist/css/portfolio.css` (copied/minified)
+- Config/Data: `dist/config/portfolio-config.json`, `dist/config/contents-portfolio.json`
 
 ## Dev vs prod paths
 - Dev: `portfolio.html` pulls `modules/portfolio/app.js` directly.
-- Prod: `portfolio.html` gets rewritten to load `js/portfolio-bundle.js` with cache-busted query params.
+- Prod: `portfolio.html` gets rewritten to load `js/portfolio.js` with cache-busted query params.

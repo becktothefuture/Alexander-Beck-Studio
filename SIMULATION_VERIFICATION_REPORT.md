@@ -10,9 +10,9 @@
 ## ✅ Automated Checks Passed
 
 1. **Build Files Verified**
-   - ✅ `public/index.html` exists
-   - ✅ `public/js/bouncy-balls-embed.js` exists (97KB gzipped)
-   - ✅ `public/css/bouncy-balls.css` exists (15KB gzipped)
+   - ✅ `dist/index.html` exists
+   - ✅ `dist/js/app.js` + `dist/js/shared.js` exist
+   - ✅ `dist/css/styles.css` exists (15KB gzipped)
 
 2. **Mode Registration Verified**
    - ✅ All 19 modes found in `source/modules/core/constants.js`

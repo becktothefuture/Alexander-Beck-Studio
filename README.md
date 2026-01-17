@@ -29,10 +29,10 @@ npm run startup    # choose dev/preview/watch from menu
 # or
 npm run dev        # port 8001, instant reload
 npm run preview    # port 8000, production bundle
-npm run build      # produce public/js/bouncy-balls-embed.js + public/js/portfolio-bundle.js
+npm run build      # produce dist/js/app.js + dist/js/portfolio.js
 ```
 
-Open `http://localhost:8001` for dev or `http://localhost:8000` for the production bundle. Never edit `public/` by hand.
+Open `http://localhost:8001` for dev or `http://localhost:8000` for the production bundle. Never edit `dist/` by hand.
 
 ---
 
@@ -103,8 +103,8 @@ See `docs/reference/MODES.md` for physics specifications and narrative sequence.
 ---
 
 ## How it is built (why it works this way)
-- **Source-first**: all edits in `source/`; build emits `public/js/bouncy-balls-embed.js`. Exported HTML/CSS assets are composed at build-time and are never hand-edited post-build.
-- **Portfolio mirrors the same pattern**: `source/portfolio.html` loads the shared chrome plus `modules/portfolio/app.js`; build emits `public/js/portfolio-bundle.js`, `public/css/portfolio.css`, and copies `config/portfolio-*.json`.
+- **Source-first**: all edits in `source/`; build emits `dist/js/app.js` + `dist/js/shared.js`. Exported HTML/CSS assets are composed at build-time and are never hand-edited post-build.
+- **Portfolio mirrors the same pattern**: `source/portfolio.html` loads the shared chrome plus `modules/portfolio/app.js`; build emits `dist/js/portfolio.js`, `dist/css/portfolio.css`, and copies `config/portfolio-*.json`.
 - **Constant-time hot paths**: spatial grid for collisions, minimal allocations per frame, dt capped for Safari/Chrome parity.
 - **Scoped styles**: everything contained in `#bravia-balls`; CSS variables drive palette, wall, and grain; panel styles are confined to the dock.
 - **Config-injected**: runtime config pulled from `config/default-config.json` (or inlined); localStorage optional and off for physics state by default.
@@ -149,7 +149,7 @@ source/
   config/            # default-config.json (420 lines), text.json, 
                      #   portfolio-config.json, portfolio-data.json
   portfolio.html     # gated portfolio page
-public/              # generated bundle + css/images (never edit directly)
+dist/                # generated bundle + css/images (never edit directly)
 docs/
   development/       # DEV-WORKFLOW.md, CONFIG-SYNC-*.md
   reference/         # MODES.md, CONFIGURATION.md, INTEGRATION.md, PORTFOLIO.md
@@ -159,11 +159,12 @@ docs/
 
 ## Integration (embed)
 ```html
-<link rel="stylesheet" href="css/bouncy-balls.css">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="modulepreload" href="js/shared.js">
 <div id="bravia-balls">
   <canvas id="c" aria-label="Interactive bouncy balls physics simulation"></canvas>
 </div>
-<script src="js/bouncy-balls-embed.js"></script>
+<script type="module" src="js/app.js"></script>
 ```
 See `docs/reference/INTEGRATION.md` for host-page notes and `docs/reference/CONFIGURATION.md` for tunables.
 
@@ -178,7 +179,7 @@ See `docs/reference/INTEGRATION.md` for host-page notes and `docs/reference/CONF
 - Entry: `source/portfolio.html` (same chrome as index, gated via `portfolio-gate.js`).
 - Runtime: `modules/portfolio/app.js` loads `config/portfolio-config.json` + `config/portfolio-data.json`, and assets under `images/portfolio/`.
 - To edit portfolio content: update `config/portfolio-data.json` and drop new media into `images/portfolio/` (keep paths matching the JSON).
-- Build output: `public/js/portfolio-bundle.js`, `public/css/portfolio.css`, `public/config/portfolio-config.json`, `public/config/portfolio-data.json`.
+- Build output: `dist/js/portfolio.js`, `dist/css/portfolio.css`, `dist/config/portfolio-config.json`, `dist/config/portfolio-data.json`.
 
 ---
 
@@ -191,7 +192,7 @@ See `docs/reference/INTEGRATION.md` for host-page notes and `docs/reference/CONF
 
 ## Contributing
 1. `npm run dev` (8001) or `npm run preview` (8000).
-2. Edit `source/` only; never hand-edit `public/`.
+2. Edit `source/` only; never hand-edit `dist/`.
 3. Keep O(1) hot paths, preserve 60fps, and scope styles to `#bravia-balls`.
 4. Follow conventional commits (`feat:`, `fix:`, `perf:`, etc.).
 

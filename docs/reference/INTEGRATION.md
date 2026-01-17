@@ -10,14 +10,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="css/bouncy-balls.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="modulepreload" href="js/shared.js">
 </head>
 <body>
   <div id="bravia-balls">
     <canvas id="c" aria-label="Bouncy balls simulation" role="img"></canvas>
   </div>
   
-  <script src="js/bouncy-balls-embed.js"></script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
 ```
@@ -29,8 +30,8 @@
 ### Step 1: Prepare Files
 
 Upload to your host/CMS:
-- `bouncy-balls-embed.js` → Assets
-- `bouncy-balls.css` → Custom Code or Assets
+- `app.js` + `shared.js` → Assets
+- `styles.css` → Custom Code or Assets
 
 ### Step 2: Add HTML Structure
 
@@ -47,7 +48,8 @@ In your host/CMS, add an embed/HTML block:
 In Page Settings → Custom Code → Head:
 
 ```html
-<link rel="stylesheet" href="https://your-cdn.com/bouncy-balls.css">
+<link rel="stylesheet" href="https://your-cdn.com/styles.css">
+<link rel="modulepreload" href="https://your-cdn.com/shared.js">
 ```
 
 ### Step 4: Link JavaScript
@@ -55,7 +57,7 @@ In Page Settings → Custom Code → Head:
 In Page Settings → Custom Code → Before </body>:
 
 ```html
-<script src="https://your-cdn.com/bouncy-balls-embed.js"></script>
+<script type="module" src="https://your-cdn.com/app.js"></script>
 ```
 
 ### Step 5: Add Required CSS
@@ -188,7 +190,8 @@ Uses `svh` (small viewport height) for mobile:
 const observer = new IntersectionObserver((entries) => {
   if (entries[0].isIntersecting) {
     const script = document.createElement('script');
-    script.src = 'bouncy-balls-embed.js';
+    script.type = 'module';
+    script.src = 'app.js';
     document.body.appendChild(script);
     observer.disconnect();
   }
@@ -198,8 +201,9 @@ observer.observe(document.getElementById('bravia-balls'));
 
 **Preload (Faster):**
 ```html
-<link rel="preload" href="js/bouncy-balls-embed.js" as="script">
-<link rel="preload" href="css/bouncy-balls.css" as="style">
+<link rel="modulepreload" href="js/shared.js">
+<link rel="modulepreload" href="js/app.js">
+<link rel="preload" href="css/styles.css" as="style">
 ```
 
 ### CDN Hosting

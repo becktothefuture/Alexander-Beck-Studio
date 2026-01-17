@@ -2,16 +2,16 @@
 
 ## Commands
 - `npm run dev` — Dev server (port 8001, instant reload)
-- `npm run build` — Production build to `public/`
+- `npm run build` — Production build to `dist/`
 - `npm start` — Serve production (port 8000)
 - No automated tests; manual testing required (all 20 modes, 60 FPS, mobile)
 
 ## Architecture
-- **Edit `source/` only** — Never edit `public/` (generated)
+- **Edit `source/` only** — Never edit `dist/` (generated)
 - Entry: `source/main.js` → modules in `source/modules/{core,physics,rendering,modes,ui,visual,audio,input,utils}/`
 - Config: `source/config/default-config.json` (runtime settings)
 - CSS: `source/css/main.css` + `tokens.css` (design tokens)
-- Build: Rollup bundles to `public/js/bouncy-balls-embed.js`
+- Build: Rollup bundles to `dist/js/app.js` + `dist/js/shared.js`
 
 ## Code Style
 - **ES Modules**: Always include `.js` extension in imports

@@ -14,7 +14,7 @@ The **portfolio page** (see `source/portfolio.html`) uses a **separate config fi
 - **Portfolio data (slides/content)**: `source/config/contents-portfolio.json`
 - **Loader/normalizer**: `source/modules/portfolio/portfolio-config.js`
 
-The portfolio config is copied into the build as `public/js/portfolio-config.json` and is applied only to the portfolio carousel + portfolio-only effects (it does **not** affect the main simulation).
+The portfolio config is copied into the build as `dist/js/portfolio-config.json` and is applied only to the portfolio carousel + portfolio-only effects (it does **not** affect the main simulation).
 
 ### Portfolio `cssVars` (Card sizing)
 
@@ -41,7 +41,7 @@ Relevant keys (all strings, applied as CSS variables):
 
 These keys control the **portfolio carousel sound cues** (implemented in `source/modules/portfolio/app.js` using `source/modules/audio/sound-engine.js`).
 
-Portfolio content (cover + gallery + detail blocks) is pulled from `config/contents-portfolio.json` and resolved against `images/portfolio/` (mirrored to `public/` at build time).
+Portfolio content (cover + gallery + detail blocks) is pulled from `config/contents-portfolio.json` and resolved against `images/portfolio/` (mirrored to `dist/` at build time).
 
 ```json
 {
@@ -80,7 +80,7 @@ Portfolio content (cover + gallery + detail blocks) is pulled from `config/conte
 At startup the app attempts to fetch (in order):
 - `config/default-config.json`
 - `js/config.json`
-- `../public/js/config.json`
+- `../dist/js/config.json`
 
 If nothing loads, it falls back to a small in-code default.
 
@@ -762,4 +762,4 @@ The following legacy keys are still accepted and will be converted to vw at star
 
 - [`MODES.md`](./MODES.md) — Mode behavior & keyboard shortcuts
 - [`SOUND.md`](./SOUND.md) — Collision sound system
-- [`BUILD-SYSTEM.md`](./BUILD-SYSTEM.md) — How config gets copied into `public/`
+- [`BUILD-SYSTEM.md`](./BUILD-SYSTEM.md) — How config gets copied into `dist/`

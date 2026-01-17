@@ -189,4 +189,25 @@ Task ID: 11
 - **Files changed:** runtime-config.js, text-loader.js, portfolio/app.js, portfolio-config.js, build-production.js, test-all-simulations.js, cv.html, source/config/README.md
 - **Build verified:** `npm run build` successful, no references to public/ in source JS files
 - **Note:** Previous thread incorrectly marked this as verified - paths were still public/
+
+---
+
+## 2026-01-17 - Phase 9: Documentation Updates
+Thread: https://ampcode.com/threads/T-019bce0b-9af7-709d-9d40-b753098d7389
+Task ID: 12
+- **Updated all documentation to reference dist/ and new file names:**
+  - README.md: All public/ → dist/, bouncy-balls-embed.js → app.js, bouncy-balls.css → styles.css
+  - AGENTS.md: Already updated in previous task (dist/, app.js + shared.js)
+  - docs/development/DEV-WORKFLOW.md: public/ → dist/, updated Build Output section with new file names
+  - docs/reference/CONFIGURATION.md: public/ → dist/ for config paths
+  - docs/reference/PORTFOLIO.md: All public/ → dist/, portfolio-bundle.js → portfolio.js
+  - docs/reference/INTEGRATION.md: Complete update to ES modules + new file names
+  - SIMULATION_VERIFICATION_REPORT.md: Updated build file paths
+- **Verified no old references remain:**
+  - `grep -r "public/" *.md docs/` → No matches
+  - `grep -r "bouncy-balls" *.md docs/` → No matches
+- **Files changed:** README.md, docs/development/DEV-WORKFLOW.md, docs/reference/CONFIGURATION.md, docs/reference/PORTFOLIO.md, docs/reference/INTEGRATION.md, SIMULATION_VERIFICATION_REPORT.md
+- **Learnings for future iterations:**
+  - INTEGRATION.md needed extensive updates for ES modules (type="module", modulepreload)
+  - Documentation should include the shared.js modulepreload pattern for optimal loading
 ---
