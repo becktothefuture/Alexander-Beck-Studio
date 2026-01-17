@@ -71,7 +71,17 @@ export function setupCustomCursor() {
   cursorElement = document.createElement('div');
   cursorElement.id = 'custom-cursor';
   cursorElement.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(cursorElement);
+  
+  // Insert cursor inside #bravia-balls to be in same stacking context as canvas/wall
+  // This is necessary because #bravia-balls has transform: translateZ(0) which creates
+  // a stacking context - elements outside cannot be layered behind elements inside
+  const container = document.getElementById('bravia-balls');
+  if (container) {
+    container.appendChild(cursorElement);
+  } else {
+    // Fallback to body if container doesn't exist yet
+    document.body.appendChild(cursorElement);
+  }
   
   // Show default cursor in border area, hide in simulation
   // We'll control this dynamically based on mouse position
@@ -105,13 +115,14 @@ export function updateCursorSize() {
   cursorElement.style.marginLeft = '0';
   cursorElement.style.marginTop = '0';
   
-  // Reset transform if not in simulation
+  // Reset transform if not in simulation - start at zero scale
   if (!isInSimulation) {
-    cursorElement.style.transform = 'translate(-50%, -50%) scale(1)';
+    cursorElement.style.transform = ZERO_SCALE;
     // Don't set opacity - let fade-in animation control it
   }
 }
 
+const ZERO_SCALE = 'translate(-50%, -50%) scale(0)';
 const DOT_SCALE = 'translate(-50%, -50%) scale(0.25)';
 const FULL_SCALE = 'translate(-50%, -50%) scale(1)';
 
@@ -227,8 +238,37 @@ export function updateCursorPosition(clientX, clientY) {
   // Check if gate overlay is active - cursor should show at full size
   const overlayIsActive = isOverlayActive();
   
-  cursorElement.style.left = `${clientX}px`;
-  cursorElement.style.top = `${clientY}px`;
+  // When modals are active, move cursor to body and use fixed positioning (above modals)
+  // Otherwise, keep it inside #bravia-balls for proper z-index stacking behind wall
+  const container = document.getElementById('bravia-balls');
+  if (overlayIsActive) {
+    // Move cursor to body when modals are active so it can be above modals (z-index: 20000)
+    if (container && container.contains(cursorElement)) {
+      document.body.appendChild(cursorElement);
+      cursorElement.style.position = 'fixed';
+      cursorElement.style.zIndex = '20000';
+    }
+    // Position relative to viewport when on body
+    cursorElement.style.left = `${clientX}px`;
+    cursorElement.style.top = `${clientY}px`;
+  } else {
+    // Move cursor back to #bravia-balls when modals close (for behind-wall behavior)
+    if (container && !container.contains(cursorElement)) {
+      container.appendChild(cursorElement);
+      cursorElement.style.position = 'absolute';
+      cursorElement.style.zIndex = '3';
+    }
+    // Position relative to container when inside #bravia-balls
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      cursorElement.style.left = `${clientX - rect.left}px`;
+      cursorElement.style.top = `${clientY - rect.top}px`;
+    } else {
+      // Fallback: position relative to viewport if container doesn't exist
+      cursorElement.style.left = `${clientX}px`;
+      cursorElement.style.top = `${clientY}px`;
+    }
+  }
   document.body.style.cursor = 'none';
   
   // When gate overlay is active, show cursor at full size (round button)
@@ -242,8 +282,8 @@ export function updateCursorPosition(clientX, clientY) {
     cursorElement.style.display = 'block';
     
     if (!wasInSimulation) {
-      // Entering simulation: animate from full size to dot
-      cursorElement.style.transform = FULL_SCALE;
+      // Entering simulation: animate from zero to dot size
+      cursorElement.style.transform = ZERO_SCALE;
       // Don't set opacity - let fade-in animation control it
       cursorElement.offsetHeight; // Force reflow
       requestAnimationFrame(() => {
@@ -261,7 +301,8 @@ export function updateCursorPosition(clientX, clientY) {
     // Border area: hide cursor
     cursorElement.style.display = 'none';
     if (wasInSimulation) {
-      cursorElement.style.transform = FULL_SCALE;
+      // Scale down to zero when leaving simulation
+      cursorElement.style.transform = ZERO_SCALE;
       // Don't set opacity - let fade-in animation control it
       cursorElement.style.backgroundColor = '';
       cursorElement.style.filter = '';

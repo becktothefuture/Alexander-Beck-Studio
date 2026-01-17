@@ -1105,6 +1105,102 @@ button.abs-meta-btn,
 
 /* No hover styling for sound toggle (two-state only) */
 
+/* ════════════════════════════════════════════════════════════════════════════════
+   SOUND TOOLTIP — Appears after 5s if sound isn't enabled
+   ════════════════════════════════════════════════════════════════════════════════ */
+
+@keyframes soundTooltipBounce {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes soundTooltipBounceMobile {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-3px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.sound-tooltip {
+  position: fixed;
+  z-index: 1000;
+  /* Reduced padding to hug text */
+  padding: var(--gap-xs) var(--gap-md);
+  /* Medium dark gray for good contrast with white text without being too dark */
+  /* Gray (#333333) provides 12.63:1 contrast ratio with white (exceeds WCAG AA) */
+  background-color: #333333;
+  /* White text for WCAG AA compliance */
+  color: #ffffff;
+  border-radius: var(--abs-radius-cta);
+  font-family: var(--abs-font-sans);
+  font-size: var(--text-size-base);
+  font-weight: var(--abs-weight-medium);
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(0);
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Tooltip pointer (arrow pointing up at sound icon) - positioned at 82% from left (18% from right) */
+.sound-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 18%;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid #333333;
+}
+
+.sound-tooltip--visible {
+  animation: soundTooltipBounce 0.5s var(--ease-bounce) forwards;
+}
+
+.sound-tooltip-text {
+  display: inline-block;
+}
+
+/* Mobile: Center-align tooltip with arrow directly under sound icon */
+@media (max-width: 600px) {
+  .sound-tooltip::before {
+    /* Arrow centered in tooltip box on mobile */
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .sound-tooltip {
+    /* Center tooltip box horizontally on mobile (JS sets left to button center X) */
+    transform: translateX(-50%);
+  }
+  
+  .sound-tooltip--visible {
+    animation: soundTooltipBounceMobile 0.5s var(--ease-bounce) forwards;
+  }
+}
+
 /* Time/Caption */
 .caption {
   position: relative; /* Remove fixed */
@@ -1757,9 +1853,10 @@ a:active {
 
 /* Custom Cursor */
 #custom-cursor {
-  position: fixed;
+  /* Use absolute positioning when inside #bravia-balls (transformed parent makes fixed relative to parent) */
+  position: absolute;
   pointer-events: none;
-  z-index: 30000; /* Above gates (20000) and overlay */
+  z-index: 3; /* Behind canvas (z:5), same level as logo/noise (z:3-4) */
   border: none;
   background: var(--cursor-color);
   transform-origin: center center;
@@ -2052,8 +2149,8 @@ body.dark-mode #modal-overlay.active .abs-icon-btn:hover {
   }
 }
 
-/* Cursor transforms to larger transparent circle when gates are open */
-#custom-cursor.gate-active {
+/* Cursor transforms to larger transparent circle when modals are open */
+#custom-cursor.modal-active {
   display: block;
   width: 64px;
   height: 64px;
@@ -2061,6 +2158,8 @@ body.dark-mode #modal-overlay.active .abs-icon-btn:hover {
   border: 2px solid rgba(var(--abs-rgb-white), 0.34); /* Visible border (increased thickness for larger size) */
   transform: translate(-50%, -50%) scale(1);
   opacity: 1;
+  position: fixed; /* Fixed positioning when on body for modals */
+  z-index: 20000; /* Above gates (19998-19999) when active */
 }
 
 /* Cursor color is palette-driven via --cursor-color (no dark-mode override). */
