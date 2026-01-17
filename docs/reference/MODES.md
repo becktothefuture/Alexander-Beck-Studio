@@ -16,8 +16,7 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 8. **Carbonated Bubbles** (`bubbles`)
 9. **Kaleidoscope** (`kaleidoscope-3`)
 10. **Critters** (`critters`) — **default** (no keyboard shortcut yet)
-11. **Meteor Shower** (`meteor-shower`)
-12. **Elastic Center** (`elastic-center`)
+11. **Elastic Center** (`elastic-center`)
 17. **3D Sphere** (`3d-sphere`)
 18. **3D Cube** (`3d-cube`)
 20. **Neural Network** (`neural`)
@@ -50,8 +49,7 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 6. **Water Swimming** (`water`) — **USER FLOW**
 7. **Ping Pong** (`ping-pong`) — **FEEDBACK CYCLE**
 8. **Neural Network** (`neural`) — **CONNECTION MAP**
-9. **Meteor Shower** (`meteor-shower`) — **METEOR IMPACT**
-10. **3D Sphere** (`3d-sphere`) — **3D SHELL**
+9. **3D Sphere** (`3d-sphere`) — **3D SHELL**
 11. **Zero Gravity** (`weightless`) — **OPEN SPACE**
 12. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
 13. **Critters** (`critters`) — **BEHAVIOR MODEL**
@@ -267,5 +265,4 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 - [`CONFIGURATION.md`](./CONFIGURATION.md) — Runtime config keys (visual + physics)
 - [`SOUND.md`](./SOUND.md) — Collision sound system
 - [`BUILD-SYSTEM.md`](./BUILD-SYSTEM.md) — Production build and asset injection
-
 

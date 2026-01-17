@@ -11,6 +11,8 @@ import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
 // Emission timer for continuous particle spawning
 let emissionTimer = 0;
+const FADE_DURATION = 2.0;
+const MOBILE_PEAK_HEIGHT_RATIO = 0.6;
 
 /**
  * Initialize particle fountain mode - start emitting immediately
@@ -78,7 +80,7 @@ function createParticle() {
   ball.originalRadius = targetRadius; // Store original radius for fade animation
   
   // Assign initial velocity with spread
-  const baseVelocity = (g.particleFountainInitialVelocity || 600) * DPR;
+  const baseVelocity = getFountainBaseVelocity(g, canvas, fountainY);
   const velocityVariation = 0.9 + Math.random() * 0.2; // ±10% variation
   const velocity = baseVelocity * velocityVariation;
   
@@ -136,7 +138,7 @@ function recycleParticle(ball) {
   ball.originalRadius = targetRadius;
   
   // Assign new initial velocity with spread
-  const baseVelocity = (g.particleFountainInitialVelocity || 600) * DPR;
+  const baseVelocity = getFountainBaseVelocity(g, canvas, fountainY);
   const velocityVariation = 0.9 + Math.random() * 0.2;
   const velocity = baseVelocity * velocityVariation;
   
@@ -156,6 +158,21 @@ function recycleParticle(ball) {
   }
 }
 
+function getFountainBaseVelocity(g, canvas, fountainY) {
+  const DPR = g.DPR || 1;
+  const baseVelocity = (g.particleFountainInitialVelocity || 600) * DPR;
+  const isMobile = g.isMobile || g.isMobileViewport;
+  if (!isMobile) {
+    return baseVelocity;
+  }
+  const h = canvas.height;
+  const targetPeakY = h * MOBILE_PEAK_HEIGHT_RATIO;
+  const riseDistance = Math.max(0, fountainY - targetPeakY);
+  const gravity = Math.max(0.01, Math.abs(g.G || (g.GE * (g.gravityMultiplier || 1))));
+  const targetVelocity = Math.sqrt(2 * gravity * riseDistance);
+  return Math.min(baseVelocity, targetVelocity);
+}
+
 export function applyParticleFountainForces(ball, dt) {
   const g = getGlobals();
   if (g.currentMode !== MODES.PARTICLE_FOUNTAIN) return;
@@ -165,7 +182,7 @@ export function applyParticleFountainForces(ball, dt) {
   // LIFETIME TRACKING & FADE ANIMATION
   // ═══════════════════════════════════════════════════════════════════════════
   const lifetime = g.particleFountainLifetime ?? 8.0;
-  const fadeDuration = 2.0; // 2 seconds fade animation
+  const fadeDuration = FADE_DURATION; // 2 seconds fade animation
   
   // Increment age if not already fading
   if (!ball.fading) {
@@ -193,17 +210,9 @@ export function applyParticleFountainForces(ball, dt) {
     // Fade alpha from 1.0 to 0.0
     ball.alpha = Math.max(0, 1.0 - easeInCirc);
     
-    // Shrink radius from originalRadius to 0.5 * originalRadius
-    const targetRadius = (ball.originalRadius || ball.rBase) * 0.5;
-    const currentRadius = (ball.originalRadius || ball.rBase) * (1.0 - easeInCirc * 0.5);
-    ball.r = currentRadius;
-    ball.rBase = ball.r;
-    
     // If fade is complete, particle will be removed in updateParticleFountain
     if (t >= 1.0) {
       ball.alpha = 0;
-      ball.r = targetRadius;
-      ball.rBase = targetRadius;
     }
     
     // Skip physics during fade (particle is disappearing)
@@ -211,7 +220,7 @@ export function applyParticleFountainForces(ball, dt) {
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // MOUSE REPULSION - Strong barrier effect (like hand over fountain)
+  // MOUSE REPULSION - Gentle deflection
   // ═══════════════════════════════════════════════════════════════════════════
   if (g.mouseInCanvas) {
     // Radius is already in px (derived from vw in applyLayoutFromVwToPx)
@@ -227,41 +236,14 @@ export function applyParticleFountainForces(ball, dt) {
     const mdist = Math.sqrt(mdist2);
     
     if (mdist < mouseRepelRadius && mdist > 0.1) {
-      // Steeper falloff for stronger barrier effect (cubic instead of quadratic)
       const falloff = 1 - (mdist / mouseRepelRadius);
-      const falloffCubic = falloff * falloff * falloff; // Cubic falloff for stronger near-field
-      
-      // Much stronger repulsion force - barrier effect
-      const repelForce = mouseRepelStrength * falloffCubic * dt * 3.0; // 3x multiplier for barrier
+      const repelForce = mouseRepelStrength * falloff * dt;
       
       const mnx = mdx / mdist;
       const mny = mdy / mdist;
       
-      // Calculate velocity toward mouse (if particle is moving toward mouse, reverse it)
-      const velTowardMouse = ball.vx * mnx + ball.vy * mny;
-      
-      // If particle is moving toward mouse, add extra reverse force (barrier effect)
-      if (velTowardMouse < 0) {
-        // Particle is moving toward mouse - reverse its velocity component
-        const reverseForce = Math.abs(velTowardMouse) * 2.0; // Strong reversal
-        ball.vx += mnx * reverseForce;
-        ball.vy += mny * reverseForce;
-      }
-      
-      // Apply strong repulsion (push particles away from mouse - barrier effect)
       ball.vx += mnx * repelForce;
       ball.vy += mny * repelForce;
-      
-      // Additional barrier: if very close, push even harder and slow down approach
-      if (mdist < mouseRepelRadius * 0.3) {
-        const closeBarrierForce = mouseRepelStrength * 5.0 * dt; // Very strong near barrier
-        ball.vx += mnx * closeBarrierForce;
-        ball.vy += mny * closeBarrierForce;
-        
-        // Dampen velocity toward mouse (prevent particles from getting too close)
-        ball.vx -= mnx * velTowardMouse * 0.5;
-        ball.vy -= mny * velTowardMouse * 0.5;
-      }
     }
   }
   
@@ -296,6 +278,7 @@ export function updateParticleFountain(dt) {
   const wallInset = Math.max(0, (g.wallThickness ?? 0) * DPR);
   const borderInset = Math.max(0, (g.wallInset ?? 3) * DPR);
   const bottomThreshold = h - wallInset - borderInset;
+  const velocityThreshold = 20 * DPR; // Very slow upward velocity
   
   // ═══════════════════════════════════════════════════════════════════════════
   // REMOVE PARTICLES - Faded out or hit ground
@@ -316,7 +299,6 @@ export function updateParticleFountain(dt) {
     if (!ball.fading && ball.y >= bottomThreshold) {
       // Only recycle if moving downward (positive vy) or very slow (nearly stopped)
       // This prevents recycling particles that are still bouncing upward
-      const velocityThreshold = 20 * DPR; // Very slow upward velocity
       if (ball.vy >= -velocityThreshold) {
         recycleParticle(ball);
       }
@@ -327,24 +309,49 @@ export function updateParticleFountain(dt) {
   // IMMEDIATE EMISSION - Spawn particles continuously from the start
   // ═══════════════════════════════════════════════════════════════════════════
   const emissionRate = g.particleFountainEmissionRate || 30; // particles per second
-  const maxParticles = getMobileAdjustedCount(g.particleFountainMaxParticles || 100);
+  const lifetime = g.particleFountainLifetime ?? 8.0;
+  const targetMaxParticles = Math.max(1, Math.round(emissionRate * (lifetime + FADE_DURATION)));
+  const isMobile = g.isMobile || g.isMobileViewport;
+  const maxParticles = getMobileAdjustedCount(
+    isMobile ? targetMaxParticles : (g.particleFountainMaxParticles || targetMaxParticles)
+  );
   
   // Emit new particles immediately if under max
   emissionTimer += dt;
   const timePerParticle = 1.0 / emissionRate;
+  let activeCount = 0;
+  let recyclableCandidate = null;
+  let oldestCandidate = null;
+  let oldestAge = -Infinity;
+  for (let i = 0; i < g.balls.length; i++) {
+    const ball = g.balls[i];
+    if (ball.isParticleFountain) {
+      activeCount += 1;
+      if (!recyclableCandidate) {
+        const isGrounded = ball.y >= bottomThreshold && ball.vy >= -velocityThreshold;
+        if (ball.fading || isGrounded) {
+          recyclableCandidate = ball;
+        }
+      }
+      const age = ball.age ?? 0;
+      if (age > oldestAge) {
+        oldestAge = age;
+        oldestCandidate = ball;
+      }
+    }
+  }
   
   // Emit particles up to max
   while (emissionTimer >= timePerParticle) {
-    // Count active particles inside loop to check after each emission
-    const activeCount = g.balls.filter(ball => ball.isParticleFountain).length;
-    
-    if (activeCount >= maxParticles) {
-      // Reset timer if we've reached max particles
-      emissionTimer = 0;
-      break;
+    if (activeCount < maxParticles) {
+      createParticle();
+      activeCount += 1;
+    } else {
+      const candidate = recyclableCandidate || oldestCandidate;
+      if (candidate) {
+        recycleParticle(candidate);
+      }
     }
-    
-    createParticle();
     emissionTimer -= timePerParticle;
   }
   

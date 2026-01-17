@@ -3493,78 +3493,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  meteorShower: {
-    title: 'Meteor Shower',
-    icon: '☄️',
-    mode: 'meteor-shower',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'meteorShowerMaxBalls',
-        label: 'Max Balls',
-        stateKey: 'meteorShowerMaxBalls',
-        type: 'range',
-        min: 10, max: 80, step: 5,
-        default: 30,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'meteorShowerSpawnMinInterval',
-        label: 'Spawn Min Interval',
-        stateKey: 'meteorShowerSpawnMinInterval',
-        type: 'range',
-        min: 0.1, max: 1.0, step: 0.05,
-        default: 0.3,
-        format: v => v.toFixed(2) + 's',
-        parse: parseFloat
-      },
-      {
-        id: 'meteorShowerSpawnMaxInterval',
-        label: 'Spawn Max Interval',
-        stateKey: 'meteorShowerSpawnMaxInterval',
-        type: 'range',
-        min: 0.5, max: 3.0, step: 0.1,
-        default: 1.2,
-        format: v => v.toFixed(1) + 's',
-        parse: parseFloat
-      },
-      {
-        id: 'meteorShowerInitialVelocity',
-        label: 'Initial Velocity',
-        stateKey: 'meteorShowerInitialVelocity',
-        type: 'range',
-        min: 400, max: 2000, step: 50,
-        default: 1000,
-        format: v => v.toFixed(0) + 'px/s',
-        parse: parseFloat
-      },
-      {
-        id: 'meteorShowerMassMultiplier',
-        label: 'Mass Multiplier',
-        stateKey: 'meteorShowerMassMultiplier',
-        type: 'range',
-        min: 3.0, max: 12.0, step: 0.5,
-        default: 7.0,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        hint: 'Higher mass creates more dramatic wall deformations'
-      },
-      {
-        id: 'meteorShowerGravityMultiplier',
-        label: 'Gravity Multiplier',
-        stateKey: 'meteorShowerGravityMultiplier',
-        type: 'range',
-        min: 0.5, max: 3.0, step: 0.1,
-        default: 1.8,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat
-      },
-      warmupFramesControl('meteorShowerWarmupFrames')
-    ]
-  },
-
   elasticCenter: {
     title: 'Elastic Center',
     icon: '⭕',
@@ -4602,7 +4530,6 @@ function generateHomeModeSectionHTML() {
               '3d-sphere': '🌐',
               '3d-cube': '🧊',
               'starfield-3d': '✨',
-              'meteor-shower': '☄️',
               'elastic-center': '⭕',
               'snake': '🐍'
             };
@@ -4623,7 +4550,6 @@ function generateHomeModeSectionHTML() {
               '3d-sphere': 'Sphere 3D',
               '3d-cube': 'Cube 3D',
               'starfield-3d': 'Starfield 3D',
-              'meteor-shower': 'Meteor Shower',
               'elastic-center': 'Elastic Center',
               'snake': 'Snake'
             };
