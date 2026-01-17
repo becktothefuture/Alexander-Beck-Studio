@@ -752,7 +752,7 @@ body:not(.dark-mode) h2,
 body:not(.dark-mode) h3,
 body:not(.dark-mode) .gate-title,
 body:not(.dark-mode) #header-cv-link {
-  color: var(--text-color-light);
+  color: var(--text-primary);
 }
 
 p {
@@ -893,7 +893,7 @@ p {
 
 /* Ensure header CV link is dark on light backgrounds */
 body:not(.dark-mode) #header-cv-link {
-  color: var(--text-color-light);
+  color: var(--text-primary);
 }
 
 /* Nav bar specific overrides for main link buttons */
@@ -911,7 +911,7 @@ body:not(.dark-mode) #header-cv-link {
   border: none;
   font-family: inherit;
   font-size: inherit;
-  color: #000000; /* Pure black for maximum visibility */
+  color: var(--text-primary);
   opacity: 1; /* Full strength */
   cursor: none; /* Maintain custom cursor experience */
   text-align: center;
@@ -1234,7 +1234,8 @@ button.abs-meta-btn,
    ───────────────────────────────────────────────────────────────────────────── */
 /* Note: #brand-logo is separate from .fade-content structure to maintain z-index: 3 */
 #brand-logo {
-  color: var(--text-primary);
+  --brand-logo-offset-y: -50%;
+  color: var(--text-logo);
   position: fixed;
   top: 50%;
   left: 0;
@@ -1242,7 +1243,7 @@ button.abs-meta-btn,
   /* Counter-scale the scene "press-in" so the logo stays visually stable.
      #brand-logo lives inside #abs-scene, so it inherits the scene's transform scale. */
   transform:
-    translateY(-50%)
+    translateY(var(--brand-logo-offset-y))
     scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)));
   transform-origin: center center;
   opacity: 1;
@@ -1272,7 +1273,7 @@ button.abs-meta-btn,
 }
 
 body.dark-mode #brand-logo {
-  color: var(--text-primary);
+  color: var(--text-logo);
 }
 
 /* Disable opacity transitions during entrance animation to prevent Safari flash */
@@ -1620,6 +1621,10 @@ html.is-safari .noise::before {
   /* Mobile logo sizing: 60vw */
   #brand-logo .brand-logo-svg {
     width: 60vw;
+  }
+
+  #brand-logo {
+    --brand-logo-offset-y: -150%;
   }
 
   .ui-top {

@@ -188,13 +188,19 @@
   --tap-target: var(--abs-tap-target);
 
   /* Text Colors — Light mode defaults */
-  --text-color-light: #161616;
-  --text-color-light-muted: #2f2f2f;
-  --text-color-dark: #7a8fa3;
-  --text-color-dark-muted: #9db0c4;
+  --text-color-light: #454545;
+  --text-color-light-muted: #454545;
+  --text-color-dark: #617282;
+  --text-color-dark-muted: #617282;
   
   --text-primary: var(--text-color-light);
   --text-muted: var(--text-color-light-muted);
+  --text-quiet: var(--text-primary);
+  --text-strong: var(--text-primary);
+  --text-input: var(--text-primary);
+  --text-placeholder: var(--text-primary);
+  --text-action: var(--text-primary);
+  --text-logo: #161616;
 
   /* Link + Accent Colors (hover system depends on these vars) */
   --link-hover-color: var(--color-accent);
@@ -421,6 +427,7 @@
   /* Text — Dark mode overrides (JS may override --text-color-dark* from config) */
   --text-primary: var(--text-color-dark);
   --text-muted: var(--text-color-dark-muted);
+  --text-logo: #e3e9f0;
 
   /* Single stroke color override for dark mode */
   --abs-stroke-medium: rgba(var(--abs-rgb-white), 0.25);
