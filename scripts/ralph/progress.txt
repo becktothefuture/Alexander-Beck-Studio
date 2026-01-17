@@ -31,4 +31,32 @@ Task ID: 4
   - Original rollup config had a non-existent splat path - always verify entry points exist before configuring
   - Rollup auto-splits additional chunks beyond manualChunks for code that's shared but not explicitly configured
   - Circular dependencies exist in physics/modes - should be addressed in future phase
+
+---
+
+## 2026-01-17 - Phase 2: Build Script Updates for dist/ Directory
+Thread: https://ampcode.com/threads/T-019bcdfc-b8f4-73fb-bf55-675cfee0c51f
+Task ID: 5
+- Updated build-production.js to output to dist/ instead of public/
+- Changed CONFIG.publicDestination from './public' to './dist'
+- Updated all HTML injection to use new ES module file names:
+  - index.html: app.js (was bouncy-balls-embed.js)
+  - portfolio.html: portfolio.js (was portfolio-bundle.js)
+  - cv.html: cv.js (was cv-bundle.js)
+  - splat/index.html: splat.js (was splat-bundle.js)
+- Added `<link rel="modulepreload">` for shared.js chunk on all pages for faster loading
+- Changed script tags from `defer` to `type="module"` for ES module loading
+- Updated bundle size reporting to show app.js + shared.js sizes
+- Updated all console log messages from "public/" to "dist/"
+- Updated scripts/verify-build-parity.js:
+  - Changed default directory from public/ to dist/
+  - Updated asset checks for new ES module file names (app.js, portfolio.js, cv.js)
+  - Added checks for shared.js modulepreload on all pages
+  - Changed from asserting NO type="module" to asserting type="module" PRESENT
+- **Files changed:** build-production.js, scripts/verify-build-parity.js
+- **Build output:** dist/ with app.js (16KB→5KB gzip), shared.js (230KB→68KB gzip), CSS (84KB→15KB gzip), ~88KB total gzip
+- **Learnings for future iterations:**
+  - Rollup auto-splits additional chunks (controls.js, panel-dock.js, pointer.js, legend-colors.js, wall-only-canvas.js)
+  - These auto-split chunks are loaded dynamically by the entry points as needed
+  - source/splat/ directory doesn't exist - splat-test.html is at source/ root (may need setup in future phase)
 ---

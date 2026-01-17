@@ -64,37 +64,107 @@ export const SPLAT_PARAMETERS = {
   }
 };
 
+let dockElement = null;
 let panelElement = null;
 let currentVariant = null;
 let updateConfigCallback = null;
 
+// Drag state
+let dragStartX = 0;
+let dragStartY = 0;
+let elementStartX = 0;
+let elementStartY = 0;
+let isDragging = false;
+let hasDragged = false;
+
+const STORAGE_KEYS = {
+  position: 'splat_panel_position',
+  collapsed: 'splat_panel_collapsed',
+  hidden: 'splat_panel_hidden',
+  size: 'splat_panel_size'
+};
+
+function loadPanelCollapsed() {
+  try {
+    const v = localStorage.getItem(STORAGE_KEYS.collapsed);
+    return v === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+function savePanelCollapsed(collapsed) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.collapsed, String(collapsed));
+  } catch (e) {}
+}
+
+function loadPanelHidden() {
+  try {
+    const v = localStorage.getItem(STORAGE_KEYS.hidden);
+    return v === 'true';
+  } catch (e) {
+    return true; // Hidden by default
+  }
+}
+
+function savePanelHidden(hidden) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.hidden, String(hidden));
+  } catch (e) {}
+}
+
 export function createSplatConfigPanel(variant, config, onConfigUpdate) {
   currentVariant = variant;
   updateConfigCallback = onConfigUpdate;
+
+  // Create or get dock container
+  if (!dockElement) {
+    dockElement = document.createElement('div');
+    dockElement.className = 'panel-dock';
+    dockElement.id = 'splatPanelDock';
+    dockElement.style.position = 'fixed';
+    dockElement.style.top = 'var(--gap-lg, 20px)';
+    dockElement.style.right = 'var(--gap-lg, 20px)';
+    dockElement.style.zIndex = '10001';
+    document.body.appendChild(dockElement);
+    
+    // Load saved state
+    const isHidden = loadPanelHidden();
+    dockElement.classList.toggle('hidden', isHidden);
+    loadPanelPosition();
+    setupDragging();
+    // setupResizePersistence will be called after panel is created
+  }
 
   // Remove existing panel
   if (panelElement) {
     panelElement.remove();
   }
 
-  // Create panel container
+  // Create panel container (matches main panel structure)
   panelElement = document.createElement('div');
   panelElement.id = 'splat-config-panel';
-  panelElement.className = 'panel';
-  panelElement.style.position = 'fixed';
-  panelElement.style.top = 'var(--gap-lg, 20px)';
-  panelElement.style.right = 'var(--gap-lg, 20px)';
-  panelElement.style.width = '320px';
-  panelElement.style.maxHeight = '85vh';
-  panelElement.style.overflowY = 'auto';
-  panelElement.style.zIndex = '10001';
-  panelElement.style.display = 'none'; // Hidden by default
-  panelElement.style.background = 'var(--panel-background, #18181b)';
-  panelElement.style.color = 'var(--panel-foreground, #fafafa)';
-  panelElement.style.border = '1px solid var(--panel-border, rgba(255,255,255,0.1))';
-  panelElement.style.borderTop = '4px solid hsl(32 95% 44%)'; // Orange brand color
-  panelElement.style.borderRadius = 'var(--panel-radius-lg, 12px)';
-  panelElement.style.boxShadow = 'var(--panel-shadow, 0 10px 15px -3px rgba(0,0,0,0.3))';
+  panelElement.className = loadPanelCollapsed() ? 'panel collapsed' : 'panel';
+  
+  // Load saved size if available (only if meaningfully different from defaults)
+  const savedSize = loadPanelSize();
+  const cssDefaultWidth = 320;
+  const cssDefaultHeight = window.innerHeight * 0.85;
+  
+  if (savedSize) {
+    const widthDiff = Math.abs(savedSize.width - cssDefaultWidth);
+    const heightDiff = Math.abs(savedSize.height - cssDefaultHeight);
+    if (widthDiff > 5 || heightDiff > 5) {
+      panelElement.style.width = `${savedSize.width}px`;
+      const maxHeight = window.innerHeight * 0.9;
+      panelElement.style.height = `${Math.min(savedSize.height, maxHeight)}px`;
+    }
+  } else {
+    panelElement.style.width = '320px';
+    panelElement.style.height = '85vh';
+  }
+  panelElement.style.maxHeight = '90vh';
   
   // Add range input styling
   if (!document.querySelector('#splat-panel-range-css')) {
@@ -139,27 +209,31 @@ export function createSplatConfigPanel(variant, config, onConfigUpdate) {
   const variantType = variant.id.includes('cube') ? 'cube' : variant.id.includes('ducky') ? 'ducky' : 'room';
   const params = SPLAT_PARAMETERS[variantType];
 
-  // Build panel HTML
+  // Build panel HTML with header (like main panel)
   panelElement.innerHTML = `
+    <div class="panel-header" style="display: none;"></div>
     <div class="panel-content">
       <div style="position: relative; margin-bottom: var(--panel-gap, 8px); padding-bottom: var(--panel-gap, 8px); border-bottom: 1px solid var(--panel-border, rgba(255,255,255,0.1));">
         <div style="font-size: 13px; font-weight: 600; color: var(--panel-foreground, #fff);">
           ${variant.label}
         </div>
-        <button id="splat-panel-toggle" style="
+        <button class="collapse-btn" id="splat-panel-collapse" style="
           position: absolute;
           top: 0;
           right: 0;
           background: transparent;
-          border: 1px solid var(--panel-border, rgba(255,255,255,0.2));
-          color: var(--panel-foreground, #fff);
+          border: none;
+          color: var(--panel-muted-foreground, #888);
           padding: 4px 8px;
           border-radius: 4px;
           cursor: pointer;
-          font-size: 11px;
-          opacity: 0.7;
-          transition: opacity 0.2s;
-        " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">✕</button>
+          font-size: 12px;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        " aria-label="Collapse panel" title="Collapse">▾</button>
       </div>
       
       ${generateSectionHTML('Main Parameters', params.main, config)}
@@ -172,20 +246,245 @@ export function createSplatConfigPanel(variant, config, onConfigUpdate) {
     </div>
   `;
 
-  document.body.appendChild(panelElement);
+  // Append panel to dock
+  dockElement.appendChild(panelElement);
 
   // Bind controls
   bindPanelControls(panelElement, params, config);
 
-  // Toggle button
-  const toggleBtn = panelElement.querySelector('#splat-panel-toggle');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-      panelElement.style.display = 'none';
+  // Collapse button
+  const collapseBtn = panelElement.querySelector('#splat-panel-collapse');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePanelCollapse();
     });
   }
 
+  // Setup resize observer (only once)
+  if (!window._splatResizeObserverSetup) {
+    window._splatResizeObserverSetup = true;
+    setupResizePersistence();
+  }
+
   return panelElement;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DRAG FUNCTIONALITY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function setupDragging() {
+  if (!dockElement) return;
+  
+  // Make panel draggable from top border area (orange line)
+  dockElement.addEventListener('mousedown', (e) => {
+    // Only start drag from top 12px area (where orange line is)
+    const rect = dockElement.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    if (y <= 12 && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+      handleDragStart(e);
+    }
+  });
+  
+  dockElement.addEventListener('touchstart', (e) => {
+    const rect = dockElement.getBoundingClientRect();
+    const touch = e.touches[0];
+    const y = touch.clientY - rect.top;
+    if (y <= 12 && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+      handleDragStart(e);
+    }
+  }, { passive: false });
+  
+  document.addEventListener('mousemove', handleDragMove);
+  document.addEventListener('mouseup', handleDragEnd);
+  document.addEventListener('touchmove', handleDragMove, { passive: false });
+  document.addEventListener('touchend', handleDragEnd);
+}
+
+function handleDragStart(e) {
+  if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+  if (!dockElement) return;
+  
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  
+  const rect = dockElement.getBoundingClientRect();
+  dragStartX = clientX;
+  dragStartY = clientY;
+  elementStartX = rect.left;
+  elementStartY = rect.top;
+  isDragging = false;
+  hasDragged = false;
+}
+
+function handleDragMove(e) {
+  if (dragStartX === 0 && dragStartY === 0) return;
+  if (!dockElement) return;
+  
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  
+  const deltaX = clientX - dragStartX;
+  const deltaY = clientY - dragStartY;
+  const threshold = 5;
+  
+  if (!isDragging && (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold)) {
+    isDragging = true;
+    hasDragged = true;
+    dockElement.classList.add('dragging');
+    dockElement.style.position = 'fixed';
+    dockElement.style.top = `${elementStartY}px`;
+    dockElement.style.left = `${elementStartX}px`;
+    dockElement.style.right = 'auto';
+  }
+  
+  if (isDragging) {
+    let newX = elementStartX + deltaX;
+    let newY = elementStartY + deltaY;
+    
+    const rect = dockElement.getBoundingClientRect();
+    newX = Math.max(0, Math.min(window.innerWidth - rect.width, newX));
+    newY = Math.max(0, Math.min(window.innerHeight - rect.height, newY));
+    
+    dockElement.style.left = `${newX}px`;
+    dockElement.style.top = `${newY}px`;
+  }
+}
+
+function handleDragEnd() {
+  if (isDragging) {
+    isDragging = false;
+    if (dockElement) dockElement.classList.remove('dragging');
+    savePanelPosition();
+  }
+  
+  dragStartX = 0;
+  dragStartY = 0;
+  
+  setTimeout(() => { hasDragged = false; }, 10);
+}
+
+function savePanelPosition() {
+  try {
+    if (!dockElement) return;
+    const pos = {
+      left: dockElement.style.left,
+      top: dockElement.style.top,
+      custom: true
+    };
+    localStorage.setItem(STORAGE_KEYS.position, JSON.stringify(pos));
+  } catch (e) {}
+}
+
+function loadPanelPosition() {
+  try {
+    if (!dockElement) return;
+    const pos = JSON.parse(localStorage.getItem(STORAGE_KEYS.position) || '{}');
+    if (pos.custom) {
+      dockElement.style.position = 'fixed';
+      dockElement.style.left = pos.left;
+      dockElement.style.top = pos.top;
+      dockElement.style.right = 'auto';
+    }
+  } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RESIZE FUNCTIONALITY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function setupResizePersistence() {
+  // Setup will be called when panel is created
+  // This creates a single observer that watches for panelElement changes
+  if (typeof ResizeObserver === 'undefined') return;
+
+  let resizeTimeout = 0;
+  let currentObserver = null;
+
+  const createObserver = (el) => {
+    if (currentObserver) {
+      currentObserver.disconnect();
+    }
+    if (!el) return;
+
+    currentObserver = new ResizeObserver(() => {
+      if (!el || !dockElement) return;
+      if (el.classList.contains('collapsed')) return;
+
+      window.clearTimeout(resizeTimeout);
+      resizeTimeout = window.setTimeout(() => {
+        savePanelSizeFromElement(el);
+      }, 150);
+    });
+
+    try {
+      currentObserver.observe(el);
+    } catch (e) {}
+  };
+
+  // Watch for panelElement changes
+  const checkPanel = () => {
+    const panel = document.getElementById('splat-config-panel');
+    if (panel && panel !== window._lastObservedPanel) {
+      window._lastObservedPanel = panel;
+      createObserver(panel);
+    }
+  };
+
+  // Check initially and after a delay
+  checkPanel();
+  setTimeout(checkPanel, 100);
+  
+  // Also observe mutations to catch when panel is recreated
+  const observer = new MutationObserver(checkPanel);
+  if (dockElement) {
+    observer.observe(dockElement, { childList: true, subtree: true });
+  }
+}
+
+function savePanelSize() {
+  if (panelElement) {
+    savePanelSizeFromElement(panelElement);
+  }
+}
+
+function loadPanelSize() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.size);
+    if (!raw) return null;
+    const size = JSON.parse(raw);
+    if (!size || typeof size !== 'object') return null;
+    const width = Number(size.width);
+    const height = Number(size.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+    return { width: Math.round(width), height: Math.round(height) };
+  } catch (e) {
+    return null;
+  }
+}
+
+function savePanelSizeFromElement(el) {
+  if (!el) return;
+  try {
+    const width = parseInt(el.style.width) || parseInt(window.getComputedStyle(el).width);
+    const height = parseInt(el.style.height) || parseInt(window.getComputedStyle(el).height);
+    if (width && height) {
+      const size = { width: Math.round(width), height: Math.round(height) };
+      localStorage.setItem(STORAGE_KEYS.size, JSON.stringify(size));
+    }
+  } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COLLAPSE FUNCTIONALITY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function togglePanelCollapse() {
+  if (!panelElement) return;
+  panelElement.classList.toggle('collapsed');
+  savePanelCollapsed(panelElement.classList.contains('collapsed'));
 }
 
 function generateSectionHTML(title, params, config) {
@@ -288,15 +587,20 @@ function bindPanelControls(panel, params, config) {
 }
 
 export function showPanel() {
-  if (panelElement) {
-    const isHidden = panelElement.style.display === 'none' || !panelElement.style.display;
-    panelElement.style.display = isHidden ? 'block' : 'none';
+  if (dockElement) {
+    const isHidden = dockElement.classList.contains('hidden');
+    dockElement.classList.toggle('hidden', !isHidden);
+    savePanelHidden(!isHidden);
   }
 }
 
 export function updatePanelVariant(variant, config) {
-  if (panelElement && updateConfigCallback) {
+  if (updateConfigCallback) {
     createSplatConfigPanel(variant, config, updateConfigCallback);
-    panelElement.style.display = 'block';
+    // Ensure dock is visible when updating
+    if (dockElement) {
+      dockElement.classList.remove('hidden');
+      savePanelHidden(false);
+    }
   }
 }

@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<!-- Portfolio carousel page (shares chrome + walls with index) -->
+<html lang="en" class="fonts-loading">
+<head>
+<style id="frame-config-vars">:root{--frame-color-light:#242529;--frame-color-dark:#242529;}</style>
+  <style id="fade-blocking">#app-frame{opacity:0;}</style>
+  <!-- Critical first-paint wall background (no JS + no !important). -->
+  <!-- Uses unified wall color (#242529) - same for light and dark modes. -->
+  <!-- Fallback color: #242529 (unified wall frame) -->
+  <!-- iOS 26 Safari: Both html AND body must be opaque for correct chrome tinting. -->
+  <style id="abs-critical-wall-bg">
+    html, body { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
+    html.dark-mode, body.dark-mode { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
+  </style>
+  <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
+  <!-- Safari requirements: Compact tab layout (macOS), Allow Website Tinting (iOS) -->
+  <!-- Media-query tags MUST come before the fallback for Safari compatibility -->
+
+
+
+  <!-- CRITICAL: Safari detection for noise layer fixes (must run before CSS) -->
+  <script>
+    (function() {
+      var ua = navigator.userAgent;
+      var isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+      if (isSafari) document.documentElement.classList.add('is-safari');
+    })();
+  </script>
+  <!-- CRITICAL: Dark mode detection BEFORE first paint to prevent white flash -->
+  <script>
+    (function() {
+      'use strict';
+      
+      // Read wall color from CSS tokens (single source of truth)
+      function getWallColorFromCSS(isDark) {
+        try {
+          const hadDarkMode = document.documentElement.classList.contains('dark-mode');
+          if (isDark && !hadDarkMode) {
+            document.documentElement.classList.add('dark-mode');
+          } else if (!isDark && hadDarkMode) {
+            document.documentElement.classList.remove('dark-mode');
+          }
+          const computedStyle = window.getComputedStyle(document.documentElement);
+          let wallColor = computedStyle.getPropertyValue('--wall-color').trim();
+          if (isDark && !hadDarkMode) {
+            document.documentElement.classList.remove('dark-mode');
+          } else if (!isDark && hadDarkMode) {
+            document.documentElement.classList.add('dark-mode');
+          }
+          if (wallColor && (wallColor.startsWith('#') || wallColor.startsWith('rgb'))) {
+            return wallColor;
+          }
+        } catch (e) {}
+        // Fallback to token defaults (theme-aware)
+        return '#242529';
+      }
+      
+      function getMetaThemeColor(selector) {
+        const node = document.querySelector(selector);
+        return node && node.content ? node.content.trim() : '';
+      }
+      
+      // Unified wall color (consistent across all modes)
+      const unifiedWallColor = '#242529';
+      let THEME_COLOR = unifiedWallColor;
+      
+      try {
+        THEME_COLOR = getWallColorFromCSS(false) || getWallColorFromCSS(true) || unifiedWallColor;
+      } catch (e) {
+        // CSS not ready, use unified fallback
+        THEME_COLOR = unifiedWallColor;
+      }
+      
+      const primaryMeta = getMetaThemeColor('meta[name="theme-color"]:not([media])');
+      THEME_COLOR = primaryMeta || THEME_COLOR;
+
+      const THEME_KEY = 'theme-preference-v2';
+      const LEGACY_THEME_KEY = 'theme-preference';
+      function readThemePreference() {
+        try {
+          const v2 = localStorage.getItem(THEME_KEY);
+          if (v2 === 'auto' || v2 === 'light' || v2 === 'dark') return v2;
+          const legacy = localStorage.getItem(LEGACY_THEME_KEY);
+          if (legacy === 'auto' || legacy === 'light' || legacy === 'dark') {
+            localStorage.removeItem(LEGACY_THEME_KEY);
+            localStorage.setItem(THEME_KEY, 'auto');
+          }
+        } catch (e) {}
+        return 'auto';
+      }
+
+      function setBrowserChromeColors(isDark) {
+        // Unified wall color (always #242529, no light/dark variants)
+        const unifiedColor = getWallColorFromCSS(false) || getWallColorFromCSS(true) || '#242529';
+        
+        // Update primary theme-color meta tag (no media query - used as fallback)
+        let meta = document.querySelector('meta[name="theme-color"]:not([media])');
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.name = 'theme-color';
+          document.head.appendChild(meta);
+        }
+        meta.content = unifiedColor;
+        
+        // Safari iOS: Update media-query-specific meta tags (both use unified color)
+        let metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
+        if (!metaLight) {
+          metaLight = document.createElement('meta');
+          metaLight.name = 'theme-color';
+          metaLight.media = '(prefers-color-scheme: light)';
+          document.head.appendChild(metaLight);
+        }
+        metaLight.content = unifiedColor;
+        
+        let metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
+        if (!metaDark) {
+          metaDark = document.createElement('meta');
+          metaDark.name = 'theme-color';
+          metaDark.media = '(prefers-color-scheme: dark)';
+          document.head.appendChild(metaDark);
+        }
+        metaDark.content = unifiedColor;
+        
+        // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style
+        // black-translucent: transparent status bar (allows unified wall color to show)
+        let appleStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+        if (!appleStatusBar) {
+          appleStatusBar = document.createElement('meta');
+          appleStatusBar.name = 'apple-mobile-web-app-status-bar-style';
+          document.head.appendChild(appleStatusBar);
+        }
+        appleStatusBar.content = 'black-translucent';
+      }
+      
+      let themePreference = readThemePreference();
+      let shouldBeDark = false;
+      
+      if (themePreference === 'dark') {
+        shouldBeDark = true;
+      } else if (themePreference === 'light') {
+        shouldBeDark = false;
+      } else {
+        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const hour = new Date().getHours();
+        const isNightTime = hour >= 18 || hour < 6;
+        shouldBeDark = systemPrefersDark || isNightTime;
+      }
+      
+      if (shouldBeDark) {
+        document.documentElement.classList.add('dark-mode');
+        document.documentElement.style.colorScheme = 'dark';
+        if (document.body) {
+          document.body.classList.add('dark-mode');
+        } else {
+          document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('dark-mode');
+          }, { once: true });
+        }
+      }
+      setBrowserChromeColors(shouldBeDark);
+      
+      // Safari iOS: Update theme-color on page visibility changes (page suspend/resume)
+      // This ensures browser chrome color stays in sync when Safari resumes the page
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          // Page became visible: re-sync theme-color in case Safari needs refresh
+          const isCurrentlyDark = document.documentElement.classList.contains('dark-mode');
+          setBrowserChromeColors(isCurrentlyDark);
+        }
+      });
+      
+      // Safari iOS: Also update on pageshow event (back/forward navigation)
+      window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+          // Page was restored from back/forward cache
+          const isCurrentlyDark = document.documentElement.classList.contains('dark-mode');
+          setBrowserChromeColors(isCurrentlyDark);
+        }
+      });
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Portfolio - Alexander Beck</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400&family=Sarina&display=swap" rel="stylesheet">
+  <!-- panel.css is DEV-only; injected dynamically by panel-dock.js when needed -->
+  <link rel="stylesheet" href="css/bouncy-balls.css?v=1768687674530">
+<link rel="stylesheet" href="css/portfolio.css?v=1768687674530">
+<link rel="modulepreload" href="js/shared.js?v=1768687674530">
+  <link rel="stylesheet" href="css/portfolio.css?v=1768687674530">
+  <script>
+    // Soft gate: if no token, bounce back and auto-open the gate.
+    // PORTFOLIO_BASE stays blank for root hosting; change if served from a subfolder.
+    (function() {
+      const token = sessionStorage.getItem('abs_portfolio_ok');
+      if (!token) {
+        sessionStorage.setItem('abs_open_portfolio_gate', '1');
+        window.location.replace('index.html');
+        return;
+      }
+      window.PORTFOLIO_BASE = '';
+    })();
+  </script>
+
+  <link href="images/favicon.ico" rel="shortcut icon" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+  <link href="images/webclip.png" rel="apple-touch-icon">
+  <link rel="mask-icon" href="images/safari-pinned-tab.svg" color="#ffa000">
+  <link rel="manifest" href="images/site.webmanifest">
+
+  <!-- PWA: Mobile web app capable (modern + legacy) -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>window.__PORTFOLIO_CONFIG__={"cssVars":{"--portfolio-logo-blur":"2.5px","--content-offset":"17.6vh","--meta-padding":"10vmin","--slider-max-height":"100dvh","--wheel-radius-x":"65vw","--wheel-radius-y":"22vh","--wheel-spacing-ratio":"0.18","--wheel-center-x":"0vw","--wheel-center-y":"0.5vh","--wheel-tilt":"66deg","--wheel-depth":"2.1","--card-aspect-w":"4","--card-aspect-h":"5","--card-height-min":"29vh","--card-height-ideal":"39vh","--card-height-max":"52vh","--corner-radius":"2.6vmin","--border-width":"0.3vmin","--wheel-scale-min":"0.43","--wheel-scale-max":"1","--wheel-blur-max":"2.3vmin","--wheel-opacity-max":"1","--wheel-opacity-min":"0","--wheel-opacity-curve":"6.95","--wheel-rotate":"12deg","--wheel-active-lift":"2.5vh","--active-shadow-intensity":"0.05","--img-saturation":"110%","--border-color":"#ffffff","--accent-color":"#000000","--wheel-scroll-speed":"0.65","--wheel-drag-speed":"0.9","--wheel-friction":"3","--wheel-snap-speed":"0.14","--wheel-snap-strength":"4","--wheel-bounce-strength":"17","--wheel-bounce-damping":"9.5","--wheel-bounce-impulse":"5.4vmin","--detail-max-width":"720px","--detail-hero-width":"100%","--detail-hero-offset":"0%","--detail-hero-top-pad":"0px","--close-button-top":"26px","--close-button-left":"0px","--close-button-width":"100%","--close-button-height":"96px","--close-button-icon-size":"clamp(14px, 1.5vw, 16px)","--detail-transition-ease":"cubic-bezier(0.22, 1.28, 0.36, 1)","--detail-transition-ms":"820ms","--detail-transition-blur":"12px","--detail-transition-shadow-opacity":"0","--detail-transition-cross-blur":"2.65vmin","--detail-transition-fade-ms":"380ms","--detail-transition-fade-delay":"60ms","--detail-content-pop-duration":"360ms","--detail-content-pop-overshoot-scale":"1","--detail-content-pop-start-scale":"0.96","--detail-content-pop-delay-hero":"120ms","--detail-content-pop-delay-body":"160ms","--detail-content-pop-ease":"cubic-bezier(0.34, 1.56, 0.64, 1)","--transition-speed":"0ms","--perspective":"2350px","--mouse-tilt-left":"6deg","--mouse-tilt-right":"6deg","--mouse-tilt-up":"5deg","--mouse-tilt-down":"5deg","--mouse-tilt-pivot-z":"0vmin"},"runtime":{"wheel":{"sensitivity":1.8,"ease":0.22,"lineHeightFallback":16,"pageScale":0.9},"cylinder":{"enabled":true,"ringCount":12,"dotsPerRing":24,"radiusRings":5,"radiusMin":100,"radiusStep":80,"verticalSpacing":60,"depthRange":1000,"randomness":0.2,"dotSize":3,"opacityMin":0.15,"opacityMax":0.9,"rotationSync":1},"mouseTilt":{"enabled":"false","invertX":true,"invertY":false,"sensitivity":0.8,"ease":0.14},"sound":{"centerClickEnabled":true,"centerClickGain":8,"centerClickFilterHz":3000,"centerClickMinSpeed":0,"centerClickDebounceMs":10,"continuousWheelEnabled":false,"continuousTickGainMul":100,"continuousSwishGainMul":100,"snapEnabled":false,"snapGain":12,"openGain":12,"openFilterHz":1800,"closeGain":10,"closeFilterHz":1600,"snapDebounceMs":300}}};</script>
+<script>window.__RUNTIME_CONFIG__={
+  "liteModeEnabled": false,
+  "chromeHarmonyMode": "site",
+  "autoDarkModeEnabled": true,
+  "autoDarkNightStartHour": 18,
+  "autoDarkNightEndHour": 6,
+  "ballMassKg": 387,
+  "REST": 0.65,
+  "FRICTION": 0.02,
+  "physicsCollisionIterations": 7,
+  "physicsSkipSleepingCollisions": true,
+  "physicsSpatialGridOptimization": true,
+  "physicsSleepThreshold": 6,
+  "physicsSleepTime": 0.2,
+  "physicsSkipSleepingSteps": true,
+  "ballSizeDesktop": 9,
+  "ballSizeMobile": 8.64,
+  "mobileObjectReductionFactor": 0.5,
+  "mobileObjectReductionThreshold": 200,
+  "ballSoftness": 57,
+  "ballSpacing": 0.19,
+  "sizeVariationGlobalMul": 1,
+  "sizeVariationCap": 0.12,
+  "cursorInfluenceRadiusVw": 9.5,
+  "cursorSize": 1.15,
+  "mouseTrailEnabled": true,
+  "mouseTrailLength": 5,
+  "mouseTrailSize": 4.2,
+  "mouseTrailFadeMs": 260,
+  "mouseTrailOpacity": 1,
+  "contentPaddingRatio": 0.03,
+  "contentPaddingHorizontalRatio": 1.05,
+  "contentPaddingBottomRatio": 1,
+  "uiHitAreaMul": 2.3,
+  "uiIconFramePx": 63,
+  "uiIconGlyphPx": 0,
+  "uiIconGroupMarginPx": 3,
+  "uiIconCornerRadiusMul": 0.58,
+  "linkTextPadding": 12,
+  "linkIconPadding": 19,
+  "footerNavBarTopVh": 56.5,
+  "footerNavBarGapVw": 0,
+  "homeMainLinksBelowLogoPx": 58,
+  "edgeLabelInsetAdjustPx": 19,
+  "linkColorInfluence": 1,
+  "linkImpactScale": 0.7,
+  "linkImpactBlur": 0,
+  "linkImpactDuration": 150,
+  "hoverSnapEnabled": true,
+  "hoverSnapDuration": 200,
+  "hoverSnapOvershoot": 1.115,
+  "hoverSnapUndershoot": 0.98,
+  "sceneImpactEnabled": false,
+  "sceneImpactMul": 0.005,
+  "sceneImpactLogoCompMul": 1.15,
+  "sceneImpactMobileMulFactor": 1,
+  "sceneImpactPressMs": 50,
+  "sceneImpactReleaseMs": 150,
+  "sceneImpactAnticipation": 0,
+  "sceneChangeSoundEnabled": true,
+  "sceneChangeSoundIntensity": 1,
+  "sceneChangeSoundRadius": 60,
+  "modalOverlayEnabled": true,
+  "modalOverlayOpacity": 0,
+  "modalOverlayBlurPx": 5.5,
+  "modalOverlayTransitionMs": 700,
+  "modalOverlayTransitionOutMs": 500,
+  "modalOverlayContentDelayMs": 200,
+  "modalDepthScale": 0.943,
+  "modalDepthTranslateY": 1,
+  "logoBlurInactive": 2.5,
+  "logoBlurActive": 8,
+  "bgLight": "#f5f5f5",
+  "bgDark": "#0d0c0c",
+  "textColorLight": "#161616",
+  "textColorLightMuted": "#3d3d3d",
+  "textColorDark": "#e0e4e8",
+  "textColorDarkMuted": "#8a9ba8",
+  "linkHoverColor": "#ff4013",
+  "topLogoWidthVw": 32.5,
+  "colorDistribution": [
+    {
+      "label": "Product & Systems",
+      "colorIndex": 0,
+      "weight": 75
+    },
+    {
+      "label": "Interaction & Motion",
+      "colorIndex": 4,
+      "weight": 2
+    },
+    {
+      "label": "Creative Technology",
+      "colorIndex": 3,
+      "weight": 4
+    },
+    {
+      "label": "AI-Driven Design",
+      "colorIndex": 2,
+      "weight": 10
+    },
+    {
+      "label": "Experience Direction",
+      "colorIndex": 5,
+      "weight": 3
+    },
+    {
+      "label": "Art & Visual Direction",
+      "colorIndex": 6,
+      "weight": 5
+    },
+    {
+      "label": "Prototyping",
+      "colorIndex": 7,
+      "weight": 1
+    }
+  ],
+  "frameColorLight": "#242529",
+  "frameColorDark": "#242529",
+  "wallPreset": "pudding",
+  "wallThicknessVw": 1.4,
+  "wallThicknessAreaMultiplier": 0.34,
+  "wallRadiusVw": 2.5,
+  "wallInset": 3,
+  "mobileWallThicknessXFactor": 1.45,
+  "mobileEdgeLabelsVisible": true,
+  "wallWobbleMaxDeform": 60,
+  "wallWobbleStiffness": 120,
+  "wallWobbleDamping": 71,
+  "wallWobbleSigma": 0.5,
+  "wallWobbleSettlingSpeed": 6,
+  "wallWobbleCornerClamp": 0.99,
+  "wallWobbleImpactThreshold": 111,
+  "wallWobbleMaxVel": 930,
+  "wallWobbleMaxImpulse": 300,
+  "wallWobbleMaxEnergyPerStep": 43500,
+  "wallPhysicsSamples": 21,
+  "wallPhysicsSkipInactive": true,
+  "wallRenderDecimation": 10,
+  "noiseEnabled": true,
+  "noiseSeed": 194267,
+  "noiseTextureSize": 224,
+  "noiseDistribution": "gaussian",
+  "noiseMonochrome": false,
+  "noiseChroma": 1,
+  "noiseSize": 110,
+  "noiseOpacityLight": 0.14,
+  "noiseOpacityDark": 0.06,
+  "noiseBlendMode": "normal",
+  "noiseColorLight": "#ffffff",
+  "noiseColorDark": "#ffffff",
+  "noiseMotion": "jitter",
+  "noiseMotionAmount": 2.28,
+  "noiseSpeedMs": 650,
+  "noiseSpeedVariance": 0.3,
+  "noiseFlicker": 0,
+  "noiseFlickerSpeedMs": 0,
+  "noiseBlurPx": 0,
+  "noiseContrast": 2.9,
+  "noiseBrightness": 1,
+  "noiseSaturation": 1,
+  "noiseHue": 0,
+  "critterCount": 110,
+  "critterSpeed": 70,
+  "critterMaxSpeed": 975,
+  "critterStepHz": 2.3,
+  "critterStepSharpness": 3.6,
+  "critterTurnNoise": 1.6,
+  "critterTurnDamp": 8,
+  "critterTurnSeek": 8,
+  "critterAvoidRadius": 20,
+  "critterAvoidForce": 23750,
+  "critterEdgeAvoid": 1.75,
+  "critterMousePull": 4,
+  "critterMouseRadiusVw": 19,
+  "critterRestitution": 0.15,
+  "critterFriction": 0.017,
+  "crittersWarmupFrames": 91,
+  "gravityMultiplierPit": 1.55,
+  "repelPower": 274000,
+  "sleepVelocityThreshold": 12,
+  "sleepAngularThreshold": 0.18,
+  "timeToSleep": 0.25,
+  "pitWarmupFrames": 10,
+  "fliesBallCount": 60,
+  "attractionPower": 5000,
+  "swarmSpeed": 0.4,
+  "fliesSeparation": 15000,
+  "fliesWarmupFrames": 10,
+  "weightlessCount": 66,
+  "weightlessInitialSpeed": 250,
+  "weightlessBounce": 0.7,
+  "weightlessRepelPower": 50000,
+  "weightlessRepelSoft": 5.4,
+  "weightlessWarmupFrames": 10,
+  "waterBallCount": 960,
+  "waterDrag": 0.113,
+  "waterRippleStrength": 2500,
+  "waterDriftStrength": 11,
+  "waterWarmupFrames": 44,
+  "vortexBallCount": 90,
+  "vortexSwirlStrength": 100,
+  "vortexRadius": 380,
+  "vortexSpeedMultiplier": 2.6,
+  "vortexDepthVariation": 0.45,
+  "vortexSpiralTightness": 0.15,
+  "vortexRotationDirection": 1,
+  "vortexDrag": 0.042,
+  "vortexWarmupFrames": 10,
+  "pingPongBallCount": 35,
+  "pingPongSpeed": 400,
+  "pingPongVerticalDamp": 0.911,
+  "pingPongWarmupFrames": 10,
+  "magneticBallCount": 180,
+  "magneticStrength": 15000,
+  "magneticRadius": 0,
+  "magneticMaxVelocity": 1200,
+  "magneticDamping": 0.988,
+  "magneticWarmupFrames": 10,
+  "bubblesSpawnRate": 16,
+  "bubblesRiseSpeed": 900,
+  "bubblesWobble": 65,
+  "bubblesMaxCount": 170,
+  "bubblesWarmupFrames": 73,
+  "kaleidoscope3BallCount": 150,
+  "kaleidoscope3Wedges": 11,
+  "kaleidoscope3Speed": 0.85,
+  "kaleidoscopeIdleDrift": 0.024,
+  "kaleidoscope3DotSizeVh": 0.6,
+  "kaleidoscope3DotAreaMul": 1,
+  "kaleidoscope3SpawnAreaMul": 1.05,
+  "kaleidoscope3SizeVariance": 0.5,
+  "kaleidoscope3WarmupFrames": 65,
+  "neuralBallCount": 131,
+  "neuralLinkDistanceVw": 5,
+  "neuralLineOpacity": 0.06,
+  "neuralConnectorDensity": 3,
+  "sizeVariationNeural": 0,
+  "neuralWanderStrength": 1010,
+  "neuralMouseStrength": 150000,
+  "neuralSeparationStrength": 11000,
+  "neuralDamping": 0.81,
+  "neuralWarmupFrames": 10,
+  "parallaxLinearDotSizeMul": 1.8,
+  "sizeVariationParallaxLinear": 0.2,
+  "parallaxLinearGridX": 10,
+  "parallaxLinearGridY": 4,
+  "parallaxLinearGridZ": 8,
+  "parallaxLinearSpanX": 5,
+  "parallaxLinearSpanY": 3,
+  "parallaxLinearZNear": 100,
+  "parallaxLinearZFar": 3000,
+  "parallaxLinearFocalLength": 540,
+  "parallaxLinearParallaxStrength": 230,
+  "parallaxLinearWarmupFrames": 59,
+  "starfieldCount": 150,
+  "starfieldSpanX": 2.45,
+  "starfieldSpanY": 2.05,
+  "starfieldZNear": 70,
+  "starfieldZFar": 4000,
+  "starfieldFocalLength": 310,
+  "starfieldParallaxStrength": 320,
+  "starfieldSpeed": 390,
+  "starfieldDotSizeMul": 0.35,
+  "starfieldIdleJitter": 20,
+  "starfieldFadeDuration": 0.5,
+  "starfield3dWarmupFrames": 10,
+  "elasticCenterBallCount": 93,
+  "elasticCenterMassMultiplier": 3.9,
+  "elasticCenterElasticStrength": 500,
+  "elasticCenterMouseRepelStrength": 20000,
+  "elasticCenterMouseRadius": 380,
+  "elasticCenterDamping": 0.97,
+  "elasticCenterWarmupFrames": 10,
+  "snakeBallCount": 95,
+  "snakeRestLength": 29,
+  "snakeSpringStrength": 418,
+  "snakeSpeed": 400,
+  "snakeGroundFriction": 2,
+  "snakeDamping": 0.995,
+  "snakeWarmupFrames": 82,
+  "dvdLogoSpeed": 200,
+  "dvdLogoSize": 0.8,
+  "dvdLogoBallCount": 60,
+  "dvdLogoBallSpacing": 1.3,
+  "dvdLogoLetterSpacing": 1.4,
+  "dvdLogoWarmupFrames": 10,
+  "particleFountainEmissionRate": 31,
+  "particleFountainInitialVelocity": 4900,
+  "particleFountainSpreadAngle": 10,
+  "particleFountainWaterDrag": 0.02,
+  "particleFountainGravityMultiplier": 1.1,
+  "particleFountainUpwardForce": 0,
+  "particleFountainMaxParticles": 260,
+  "particleFountainLifetime": 11,
+  "particleFountainWarmupFrames": 120,
+  "particleFountainMouseRepelStrength": 10000,
+  "particleFountainMouseRepelRadiusVw": 6.5,
+  "sphere3dRadiusVw": 35,
+  "sphere3dDensity": 180,
+  "sphere3dFocalLength": 970,
+  "sphere3dDotSizeMul": 1.5,
+  "sphere3dIdleSpeed": 0.04,
+  "sphere3dTumbleSpeed": 0.3,
+  "sphere3dTumbleDamping": 0.99,
+  "sphere3dWarmupFrames": 10,
+  "cube3dSizeVw": 33.5,
+  "cube3dEdgeDensity": 8,
+  "cube3dFaceGrid": 0,
+  "cube3dIdleSpeed": 0.2,
+  "cube3dCursorInfluence": 0.3,
+  "cube3dTumbleSpeed": 10,
+  "cube3dTumbleDamping": 0.99,
+  "cube3dFocalLength": 1160,
+  "cube3dDotSizeMul": 1.5,
+  "cube3dWarmupFrames": 10,
+  "entranceEnabled": true,
+  "entranceWallTransitionDelay": 300,
+  "entranceWallTransitionDuration": 800,
+  "entranceWallInitialScale": 1.1,
+  "entranceWallEasing": "cubic-bezier(0.16, 1, 0.3, 1)",
+  "entranceElementDuration": 800,
+  "entranceElementScaleStart": 0.95,
+  "entranceElementTranslateZStart": -20,
+  "entrancePerspectiveLandscape": 1200,
+  "entrancePerspectiveSquare": 1000,
+  "entrancePerspectivePortrait": 800,
+  "contentFadeInDelay": 500,
+  "contentFadeInDuration": 1000,
+  "gravityMultiplier": 1.55,
+  "restitution": 0.65,
+  "friction": 0.02,
+  "ballMass": 387,
+  "ballScale": 1.05,
+  "sizeScale": 1.05,
+  "sizeVariation": 0,
+  "repelSoft": 3.4,
+  "repelSoftness": 3.4,
+  "layoutViewportWidthPx": 0,
+  "containerBorderVw": 1.4,
+  "simulationPaddingVw": 0,
+  "layoutMinContentPaddingPx": 0,
+  "layoutMinWallRadiusPx": 32,
+  "soundPreset": "crystalPebbles",
+  "soundConfig": {
+    "attackTime": 0.005,
+    "decayTime": 0.034,
+    "harmonicGain": 0,
+    "filterBaseFreq": 2550,
+    "filterVelocityRange": 1700,
+    "filterQ": 0.22,
+    "filterMinHz": 350,
+    "filterMaxHz": 6200,
+    "pitchMinHz": 420,
+    "pitchMaxHz": 1600,
+    "pitchCurve": 1.15,
+    "reverbDecay": 0.19,
+    "reverbWetMix": 0.07,
+    "reverbHighDamp": 0.8,
+    "minGain": 0.008,
+    "maxGain": 0.09,
+    "masterGain": 0.51,
+    "voiceGainMax": 0.14,
+    "minTimeBetweenSounds": 0.018,
+    "maxPan": 0.15,
+    "noiseTransientEnabled": true,
+    "noiseTransientGain": 0.09,
+    "noiseTransientDecay": 0.006,
+    "noiseTransientFilterMin": 1200,
+    "noiseTransientFilterMax": 7000,
+    "noiseTransientQ": 3.2,
+    "sparkleGain": 0.12,
+    "sparkleRatioMin": 2.6,
+    "sparkleRatioMax": 4.4,
+    "sparkleDecayMul": 0.85,
+    "variancePitch": 0.12,
+    "varianceDecay": 0.2,
+    "varianceGain": 0.47,
+    "varianceFilter": 0.18,
+    "varianceNoise": 0.25,
+    "velocityNoiseScale": 1.5,
+    "velocityBrightnessScale": 1.4,
+    "velocityDecayScale": 0.65,
+    "intensityExponent": 1.65,
+    "toneSafetyMinHz": 130,
+    "toneSafetyMaxHz": 480,
+    "toneSafetyExponent": 2.2,
+    "toneSafetyHighGainAtten": 0.25,
+    "toneSafetyLowGainAtten": 0.06,
+    "toneSafetyHighBrightAtten": 0.45,
+    "collisionMinImpact": 0.2,
+    "highShelfFreq": 2200,
+    "highShelfGain": -4
+  },
+  "enableLOD": false
+}
+;</script>
+<script>window.__BUILD_TIMESTAMP__=1768687674530;</script>
+<script>window.__TOKENS__={"cssVars":{"--abs-rgb-white":"255, 255, 255","--abs-rgb-black":"0, 0, 0","--color-bg-light":"#f5f5f5","--color-bg-dark":"#0a0a0a","--color-accent":"#ff4013","--color-success":"#22c55e","--color-error":"#ef4444","--color-success-rgb":"34, 197, 94","--color-error-rgb":"239, 68, 68","--bg-light":"var(--color-bg-light)","--bg-dark":"var(--color-bg-dark)","--frame-color":"#242529","--wall-color":"#242529","--chrome-bg":"#242529","--frame-color-light":"var(--frame-color)","--frame-color-dark":"var(--frame-color)","--wall-color-light":"var(--wall-color)","--wall-color-dark":"var(--wall-color)","--chrome-bg-light":"var(--chrome-bg)","--chrome-bg-dark":"var(--chrome-bg)","--abs-stroke-medium":"rgba(var(--abs-rgb-black), 0.18)","--ball-1":"#b5b7b6","--ball-2":"#bbbdbd","--ball-3":"#ffffff","--ball-4":"#00695c","--ball-5":"#000000","--ball-6":"var(--color-accent)","--ball-7":"#0d5cb6","--ball-8":"#ffa000","--abs-font-sans":"'Geist', sans-serif","--abs-font-mono":"'Geist Mono', monospace","--abs-font-display":"'Sarina', cursive","--abs-weight-regular":"400","--abs-weight-medium":"600","--abs-weight-semibold":"700","--abs-text-xs":"clamp(9px, 1vw, 12px)","--abs-text-sm":"clamp(11px, 1.2vw, 14px)","--abs-text-md":"clamp(12px, 1.4vw, 16px)","--abs-text-lg":"clamp(0.85rem, 1.5vw, 1.05rem)","--abs-text-xl":"clamp(1.2rem, 1.8vw, 1.35rem)","--abs-line-display":"0.95","--abs-line-title":"1.1","--abs-line-tight":"1.3","--abs-line-base":"1.35","--abs-line-relaxed":"1.4","--abs-line-body":"1.6","--abs-line-body-relaxed":"1.7","--abs-line-loose":"1.75","--abs-line-summary":"1.2","--abs-letter-spacing-tight":"-0.01ch","--abs-letter-spacing-normal":"0.05ch","--abs-letter-spacing-loose":"0.4ch","--abs-space-unit":"1vmin","--abs-space-2xs":"calc(var(--abs-space-unit) * 0.5)","--abs-space-xs":"calc(var(--abs-space-unit) * 1)","--abs-space-sm":"calc(var(--abs-space-unit) * 2)","--abs-space-md":"calc(var(--abs-space-unit) * 4)","--abs-space-lg":"calc(var(--abs-space-unit) * 6)","--abs-space-xl":"calc(var(--abs-space-unit) * 8)","--abs-content-padding":"clamp(16px, 4vmin, 40px)","--abs-gap-xs":"clamp(4px, 0.5vmin, 8px)","--abs-gap-sm":"clamp(8px, 1vmin, 12px)","--abs-gap-md":"clamp(12px, 1.5vmin, 20px)","--abs-gap-lg":"clamp(16px, 2vw, 24px)","--abs-gap-xl":"clamp(24px, 2.5vw, 40px)","--abs-gap-fixed-24":"24px","--abs-size-icon":"clamp(14px, 1.5vw, 16px)","--abs-size-icon-lg":"clamp(24px, 2.5vw, 28px)","--abs-size-dot":"clamp(3px, 0.4vmin, 4px)","--abs-tap-target":"clamp(12px, 2.5vmin, 30px)","--abs-size-1px":"1px","--abs-radius-1":"1px","--abs-radius-9":"9px","--abs-radius-wall-min":"32px","--abs-radius-card":"3vmin","--abs-radius-input":"8px","--abs-radius-cta":"10px","--abs-radius-pill":"999px","--abs-container-border-vw":"1.3","--abs-wall-thickness-vw":"0.9","--abs-wall-radius-vw":"3.7","--abs-layout-min-padding":"16px","--abs-opacity-strong":"0.9","--abs-opacity-muted":"0.7","--abs-opacity-soft":"0.55","--abs-opacity-quiet":"0.38","--abs-opacity-faint":"0.25","--abs-opacity-ghost":"0.12","--abs-hover-intensity-light":"20%","--abs-hover-intensity-dark":"24%","--abs-hover-intensity-active":"18%","--abs-hover-opacity-ui-light":"0.18","--abs-hover-opacity-ui-dark":"0.22","--abs-hover-snap-enabled":"1","--abs-hover-snap-duration":"450ms","--abs-hover-snap-overshoot":"1.08","--abs-hover-snap-undershoot":"0.98","--text-xs":"var(--abs-text-xs)","--text-sm":"var(--abs-text-sm)","--text-md":"var(--abs-text-md)","--text-lg":"var(--abs-text-lg)","--text-xl":"var(--abs-text-xl)","--line-height-display":"var(--abs-line-display)","--line-height-title":"var(--abs-line-title)","--line-height-tight":"var(--abs-line-tight)","--line-height-base":"var(--abs-line-base)","--line-height-relaxed":"var(--abs-line-relaxed)","--line-height-body":"var(--abs-line-body)","--line-height-body-relaxed":"var(--abs-line-body-relaxed)","--line-height-loose":"var(--abs-line-loose)","--line-height-summary":"var(--abs-line-summary)","--letter-spacing-tight":"var(--abs-letter-spacing-tight)","--letter-spacing-normal":"var(--abs-letter-spacing-normal)","--letter-spacing-loose":"var(--abs-letter-spacing-loose)","--space-xs":"var(--abs-space-xs)","--space-sm":"var(--abs-space-sm)","--space-md":"var(--abs-space-md)","--space-lg":"var(--abs-space-lg)","--space-xl":"var(--abs-space-xl)","--content-padding":"var(--abs-content-padding)","--content-padding-x":"var(--abs-content-padding)","--content-padding-y":"var(--abs-content-padding)","--edge-inset":"0px","--edge-inset-lg":"0px","--gap-xs":"var(--abs-gap-xs)","--gap-sm":"var(--abs-gap-sm)","--gap-md":"var(--abs-gap-md)","--gap-lg":"var(--abs-gap-lg)","--gap-xl":"var(--abs-gap-xl)","--gap-24":"var(--abs-gap-fixed-24)","--size-icon":"var(--abs-size-icon)","--size-icon-lg":"var(--abs-size-icon-lg)","--icon-size-base":"var(--abs-size-icon)","--icon-size-lg":"var(--abs-size-icon-lg)","--size-dot":"var(--abs-size-dot)","--tap-target":"var(--abs-tap-target)","--text-color-light":"#161616","--text-color-light-muted":"#2f2f2f","--text-color-dark":"#7a8fa3","--text-color-dark-muted":"#9db0c4","--text-primary":"var(--text-color-light)","--text-muted":"var(--text-color-light-muted)","--link-hover-color":"var(--color-accent)","--cursor-color":"var(--ball-6)","--container-border-vw":"var(--abs-container-border-vw)","--wall-thickness-vw":"var(--abs-wall-thickness-vw)","--wall-radius-vw":"var(--abs-wall-radius-vw)","--layout-min-wall-radius":"var(--abs-radius-wall-min)","--layout-min-content-padding":"var(--abs-layout-min-padding)","--wall-thickness":"calc(var(--wall-thickness-vw) * 1vw)","--wall-radius":"clamp(var(--layout-min-wall-radius), calc(var(--wall-radius-vw) * 1vw), 999px)","--container-radius":"var(--wall-radius)","--container-border":"calc(var(--container-border-vw) * 1vw)","--simulation-padding":"0px","--canvas-radius":"calc(var(--wall-radius) - var(--simulation-padding))","--noise-size":"85px","--noise-size-scale":"1","--noise-opacity-light":"0.08","--noise-opacity-dark":"0.12","--noise-blend-mode":"normal","--noise-color-light":"#ffffff","--noise-color-dark":"#ffffff","--detail-noise-opacity":"1","--abs-noise-enabled":"1","--abs-noise-texture":"none","--abs-noise-keyframes":"abs-noise-jitter","--abs-noise-timing":"steps(1, end)","--abs-noise-speed":"1100ms","--abs-noise-speed-variance":"0","--abs-noise-motion-amount":"1","--abs-noise-overscan":"-220px","--abs-noise-flicker":"0.12","--abs-noise-flicker-speed":"220ms","--abs-noise-filter":"none","--abs-noise-blur":"0px","--abs-noise-contrast":"1.35","--abs-noise-brightness":"1","--abs-noise-saturation":"1","--abs-noise-drift-x":"0px","--abs-noise-drift-y":"0px","--shadow-input-dark":"0 2px 8px rgba(var(--abs-rgb-black), 0.4)","--edge-label-inset-gap":"8px","--edge-label-inset-adjust":"0px","--edge-label-inset":"calc(var(--wall-thickness) + var(--edge-label-inset-gap) + var(--edge-label-inset-adjust))","--edge-label-opacity":"var(--abs-opacity-quiet)","--ease-organic":"cubic-bezier(0.22, 1.28, 0.36, 1)","--ease-settle":"cubic-bezier(0.16, 1, 0.3, 1)","--ease-hesitant":"cubic-bezier(0.4, 0, 0.2, 1)","--ease-bounce":"cubic-bezier(0.34, 1.56, 0.64, 1)","--ease-magnetic":"cubic-bezier(0.25, 1.4, 0.3, 1)","--ease-gate":"var(--ease-magnetic)","--ease-fade":"var(--ease-settle)","--duration-resize":"600ms","--duration-settle":"400ms","--duration-quick":"200ms","--duration-link-hover":"30ms","--dot-bounce-duration":"500ms","--hit-area-padding":"clamp(20px, 3vmin, 30px)","--hit-area-padding-neg":"calc(var(--hit-area-padding) * -1)","--link-nudge":"1px","--abs-brand-logo-impact":"0","--abs-brand-logo-squash":"0","--abs-brand-logo-impact-dur":"100ms","--abs-brand-logo-impact-mul":"0.014","--abs-brand-logo-squash-x-mul":"0.009","--abs-brand-logo-squash-y-mul":"0.015","--abs-brand-logo-tilt-deg":"0","--abs-brand-logo-skew-deg":"0","--abs-scene-impact":"0","--abs-scene-impact-dur":"100ms","--abs-scene-impact-logo-scale":"1","--abs-scene-impact-ease":"var(--ease-gate)","--abs-scene-impact-mul":"0.005","--abs-scene-impact-logo-comp-mul":"1.0","--abs-gate-mobile-pad-x":"20px","--modal-overlay-opacity":"0.01","--modal-overlay-transition-duration":"800ms","--modal-overlay-transition-out-duration":"600ms","--modal-content-delay":"200ms","--modal-overlay-blur":"8px","--modal-depth-scale":"0.96","--modal-depth-translate-y":"8px","--modal-depth-duration":"800ms","--modal-depth-out-duration":"600ms","--logo-blur-inactive":"0px","--logo-blur-active-target":"12px","--logo-blur-active":"0px","--modal-hide-scale":"0.92","--modal-hide-duration":"500ms","--modal-hide-delay":"150ms","--modal-show-duration":"400ms","--modal-show-delay":"100ms","--legend-gap-row":"var(--gap-xs)","--legend-gap-col":"var(--gap-lg)","--legend-item-gap":"var(--gap-sm)","--legend-circle-size":"calc(var(--gap-sm) * 0.8)","--legend-item-radius":"var(--abs-radius-9)","--legend-font-size":"clamp(11px, 2vw, 12px)","--legend-font-weight":"400","--legend-letter-spacing":"0.035ch","--legend-line-height":"var(--line-height-loose)","--legend-opacity":"1","--decorative-script-max-width":"clamp(317px, 33vw, 444px)","--decorative-script-font-size":"var(--text-sm)","--decorative-script-line-height":"var(--line-height-base)","--decorative-script-letter-spacing":"var(--letter-spacing-normal)","--decorative-script-padding-left":"var(--gap-md)","--decorative-script-padding-vertical":"var(--gap-sm)","--footer-icon-gap":"var(--gap-lg)","--footer-icon-size":"var(--size-icon)","--footer-links-padding":"var(--tap-target)","--footer-links-font-size":"clamp(14px, 1.4vw, 18px)","--footer-links-letter-spacing":"var(--letter-spacing-normal)","--footer-link-dot-size":"4px","--footer-link-dot-offset":"8px","--link-text-padding":"var(--hit-area-lg)","--link-text-margin":"calc(var(--link-text-padding) * -1)","--link-icon-padding":"var(--gap-lg)","--link-icon-margin":"calc(var(--link-icon-padding) * -1)","--link-color-influence":"1","--link-impact-scale":"0.95","--link-impact-blur":"10px","--link-impact-duration":"0.15s","--ui-icon-glyph-size":"var(--abs-size-icon-lg)","--ui-icon-frame-size":"calc(var(--abs-size-icon-lg) + (var(--link-icon-padding) * 2))","--caption-font-size":"var(--text-lg)","--caption-font-weight":"400","--caption-line-height":"var(--line-height-tight)","--caption-letter-spacing":"var(--letter-spacing-normal)","--caption-offset":"var(--gap-sm)","--ui-hit-area-mul":"1","--hit-area-sm-base":"var(--gap-sm)","--hit-area-md-base":"var(--gap-md)","--hit-area-lg-base":"var(--tap-target)","--hit-area-sm":"calc(var(--hit-area-sm-base) * var(--ui-hit-area-mul, 1))","--hit-area-md":"calc(var(--hit-area-md-base) * var(--ui-hit-area-mul, 1))","--hit-area-lg":"calc(var(--hit-area-lg-base) * var(--ui-hit-area-mul, 1))","--dot-indicator-size":"var(--size-dot)","--dot-indicator-offset":"var(--gap-xs)","--ui-icon-corner-radius-mul":"0.4","--ui-icon-corner-radius":"clamp(\n    calc(var(--hit-area-sm-base) * 0.75),\n    calc(var(--wall-radius) * var(--ui-icon-corner-radius-mul, 0.4)),\n    999px\n  )","--ui-link-hit-pad":"var(--hit-area-lg)","--ui-icon-hit-pad":"var(--hit-area-md)","--z-ui-base":"10","--z-ui-elevated":"20","--z-ui-top":"25","--z-panel":"9999","--top-logo-width-vw":"42","--brand-logo-width-min":"360px","--brand-logo-width-max":"600px","--abs-brand-logo-width":"clamp(\n    var(--brand-logo-width-min),\n    calc(var(--top-logo-width-vw, 35) * 1vw),\n    var(--brand-logo-width-max)\n  )","--abs-brand-logo-height":"calc(var(--abs-brand-logo-width) * 66 / 919)","--home-main-links-below-logo-px":"40","--footer-nav-bar-top":"50vh","--footer-nav-bar-top-svh":"50svh","--footer-nav-bar-top-dvh":"50dvh","--footer-nav-bar-height":"var(--hit-area-lg)","--footer-nav-bar-gap":"var(--gap-xl)","--brand-logo-user-scale":"1","--breakpoint-tablet":"991px","--breakpoint-mobile-l":"767px","--breakpoint-mobile-p":"480px"},"resolved":{"--abs-rgb-white":"255, 255, 255","--abs-rgb-black":"0, 0, 0","--color-bg-light":"#f5f5f5","--color-bg-dark":"#0a0a0a","--color-accent":"#ff4013","--color-success":"#22c55e","--color-error":"#ef4444","--color-success-rgb":"34, 197, 94","--color-error-rgb":"239, 68, 68","--bg-light":"#f5f5f5","--bg-dark":"#0a0a0a","--frame-color":"#242529","--wall-color":"#242529","--chrome-bg":"#242529","--frame-color-light":"#242529","--frame-color-dark":"#242529","--wall-color-light":"#242529","--wall-color-dark":"#242529","--chrome-bg-light":"#242529","--chrome-bg-dark":"#242529","--abs-stroke-medium":"rgba(0, 0, 0, 0.18)","--ball-1":"#b5b7b6","--ball-2":"#bbbdbd","--ball-3":"#ffffff","--ball-4":"#00695c","--ball-5":"#000000","--ball-6":"#ff4013","--ball-7":"#0d5cb6","--ball-8":"#ffa000","--abs-font-sans":"'Geist', sans-serif","--abs-font-mono":"'Geist Mono', monospace","--abs-font-display":"'Sarina', cursive","--abs-weight-regular":"400","--abs-weight-medium":"600","--abs-weight-semibold":"700","--abs-text-xs":"clamp(9px, 1vw, 12px)","--abs-text-sm":"clamp(11px, 1.2vw, 14px)","--abs-text-md":"clamp(12px, 1.4vw, 16px)","--abs-text-lg":"clamp(0.85rem, 1.5vw, 1.05rem)","--abs-text-xl":"clamp(1.2rem, 1.8vw, 1.35rem)","--abs-line-display":"0.95","--abs-line-title":"1.1","--abs-line-tight":"1.3","--abs-line-base":"1.35","--abs-line-relaxed":"1.4","--abs-line-body":"1.6","--abs-line-body-relaxed":"1.7","--abs-line-loose":"1.75","--abs-line-summary":"1.2","--abs-letter-spacing-tight":"-0.01ch","--abs-letter-spacing-normal":"0.05ch","--abs-letter-spacing-loose":"0.4ch","--abs-space-unit":"1vmin","--abs-space-2xs":"calc(1vmin * 0.5)","--abs-space-xs":"calc(1vmin * 1)","--abs-space-sm":"calc(1vmin * 2)","--abs-space-md":"calc(1vmin * 4)","--abs-space-lg":"calc(1vmin * 6)","--abs-space-xl":"calc(1vmin * 8)","--abs-content-padding":"clamp(16px, 4vmin, 40px)","--abs-gap-xs":"clamp(4px, 0.5vmin, 8px)","--abs-gap-sm":"clamp(8px, 1vmin, 12px)","--abs-gap-md":"clamp(12px, 1.5vmin, 20px)","--abs-gap-lg":"clamp(16px, 2vw, 24px)","--abs-gap-xl":"clamp(24px, 2.5vw, 40px)","--abs-gap-fixed-24":"24px","--abs-size-icon":"clamp(14px, 1.5vw, 16px)","--abs-size-icon-lg":"clamp(24px, 2.5vw, 28px)","--abs-size-dot":"clamp(3px, 0.4vmin, 4px)","--abs-tap-target":"clamp(12px, 2.5vmin, 30px)","--abs-size-1px":"1px","--abs-radius-1":"1px","--abs-radius-9":"9px","--abs-radius-wall-min":"32px","--abs-radius-card":"3vmin","--abs-radius-input":"8px","--abs-radius-cta":"10px","--abs-radius-pill":"999px","--abs-container-border-vw":"1.3","--abs-wall-thickness-vw":"0.9","--abs-wall-radius-vw":"3.7","--abs-layout-min-padding":"16px","--abs-opacity-strong":"0.9","--abs-opacity-muted":"0.7","--abs-opacity-soft":"0.55","--abs-opacity-quiet":"0.38","--abs-opacity-faint":"0.25","--abs-opacity-ghost":"0.12","--abs-hover-intensity-light":"20%","--abs-hover-intensity-dark":"24%","--abs-hover-intensity-active":"18%","--abs-hover-opacity-ui-light":"0.18","--abs-hover-opacity-ui-dark":"0.22","--abs-hover-snap-enabled":"1","--abs-hover-snap-duration":"450ms","--abs-hover-snap-overshoot":"1.08","--abs-hover-snap-undershoot":"0.98","--text-xs":"clamp(9px, 1vw, 12px)","--text-sm":"clamp(11px, 1.2vw, 14px)","--text-md":"clamp(12px, 1.4vw, 16px)","--text-lg":"clamp(0.85rem, 1.5vw, 1.05rem)","--text-xl":"clamp(1.2rem, 1.8vw, 1.35rem)","--line-height-display":"0.95","--line-height-title":"1.1","--line-height-tight":"1.3","--line-height-base":"1.35","--line-height-relaxed":"1.4","--line-height-body":"1.6","--line-height-body-relaxed":"1.7","--line-height-loose":"1.75","--line-height-summary":"1.2","--letter-spacing-tight":"-0.01ch","--letter-spacing-normal":"0.05ch","--letter-spacing-loose":"0.4ch","--space-xs":"calc(1vmin * 1)","--space-sm":"calc(1vmin * 2)","--space-md":"calc(1vmin * 4)","--space-lg":"calc(1vmin * 6)","--space-xl":"calc(1vmin * 8)","--content-padding":"clamp(16px, 4vmin, 40px)","--content-padding-x":"clamp(16px, 4vmin, 40px)","--content-padding-y":"clamp(16px, 4vmin, 40px)","--edge-inset":"0px","--edge-inset-lg":"0px","--gap-xs":"clamp(4px, 0.5vmin, 8px)","--gap-sm":"clamp(8px, 1vmin, 12px)","--gap-md":"clamp(12px, 1.5vmin, 20px)","--gap-lg":"clamp(16px, 2vw, 24px)","--gap-xl":"clamp(24px, 2.5vw, 40px)","--gap-24":"24px","--size-icon":"clamp(14px, 1.5vw, 16px)","--size-icon-lg":"clamp(24px, 2.5vw, 28px)","--icon-size-base":"clamp(14px, 1.5vw, 16px)","--icon-size-lg":"clamp(24px, 2.5vw, 28px)","--size-dot":"clamp(3px, 0.4vmin, 4px)","--tap-target":"clamp(12px, 2.5vmin, 30px)","--text-color-light":"#161616","--text-color-light-muted":"#2f2f2f","--text-color-dark":"#7a8fa3","--text-color-dark-muted":"#9db0c4","--text-primary":"#161616","--text-muted":"#2f2f2f","--link-hover-color":"#ff4013","--cursor-color":"#ff4013","--container-border-vw":"1.3","--wall-thickness-vw":"0.9","--wall-radius-vw":"3.7","--layout-min-wall-radius":"32px","--layout-min-content-padding":"16px","--wall-thickness":"calc(0.9 * 1vw)","--wall-radius":"clamp(32px, calc(3.7 * 1vw), 999px)","--container-radius":"clamp(32px, calc(3.7 * 1vw), 999px)","--container-border":"calc(1.3 * 1vw)","--simulation-padding":"0px","--canvas-radius":"calc(clamp(32px, calc(3.7 * 1vw), 999px) - 0px)","--noise-size":"85px","--noise-size-scale":"1","--noise-opacity-light":"0.08","--noise-opacity-dark":"0.12","--noise-blend-mode":"normal","--noise-color-light":"#ffffff","--noise-color-dark":"#ffffff","--detail-noise-opacity":"1","--abs-noise-enabled":"1","--abs-noise-texture":"none","--abs-noise-keyframes":"abs-noise-jitter","--abs-noise-timing":"steps(1, end)","--abs-noise-speed":"1100ms","--abs-noise-speed-variance":"0","--abs-noise-motion-amount":"1","--abs-noise-overscan":"-220px","--abs-noise-flicker":"0.12","--abs-noise-flicker-speed":"220ms","--abs-noise-filter":"none","--abs-noise-blur":"0px","--abs-noise-contrast":"1.35","--abs-noise-brightness":"1","--abs-noise-saturation":"1","--abs-noise-drift-x":"0px","--abs-noise-drift-y":"0px","--shadow-input-dark":"0 2px 8px rgba(0, 0, 0, 0.4)","--edge-label-inset-gap":"8px","--edge-label-inset-adjust":"0px","--edge-label-inset":"calc(calc(0.9 * 1vw) + 8px + 0px)","--edge-label-opacity":"0.38","--ease-organic":"cubic-bezier(0.22, 1.28, 0.36, 1)","--ease-settle":"cubic-bezier(0.16, 1, 0.3, 1)","--ease-hesitant":"cubic-bezier(0.4, 0, 0.2, 1)","--ease-bounce":"cubic-bezier(0.34, 1.56, 0.64, 1)","--ease-magnetic":"cubic-bezier(0.25, 1.4, 0.3, 1)","--ease-gate":"cubic-bezier(0.25, 1.4, 0.3, 1)","--ease-fade":"cubic-bezier(0.16, 1, 0.3, 1)","--duration-resize":"600ms","--duration-settle":"400ms","--duration-quick":"200ms","--duration-link-hover":"30ms","--dot-bounce-duration":"500ms","--hit-area-padding":"clamp(20px, 3vmin, 30px)","--hit-area-padding-neg":"calc(clamp(20px, 3vmin, 30px) * -1)","--link-nudge":"1px","--abs-brand-logo-impact":"0","--abs-brand-logo-squash":"0","--abs-brand-logo-impact-dur":"100ms","--abs-brand-logo-impact-mul":"0.014","--abs-brand-logo-squash-x-mul":"0.009","--abs-brand-logo-squash-y-mul":"0.015","--abs-brand-logo-tilt-deg":"0","--abs-brand-logo-skew-deg":"0","--abs-scene-impact":"0","--abs-scene-impact-dur":"100ms","--abs-scene-impact-logo-scale":"1","--abs-scene-impact-ease":"cubic-bezier(0.25, 1.4, 0.3, 1)","--abs-scene-impact-mul":"0.005","--abs-scene-impact-logo-comp-mul":"1.0","--abs-gate-mobile-pad-x":"20px","--modal-overlay-opacity":"0.01","--modal-overlay-transition-duration":"800ms","--modal-overlay-transition-out-duration":"600ms","--modal-content-delay":"200ms","--modal-overlay-blur":"8px","--modal-depth-scale":"0.96","--modal-depth-translate-y":"8px","--modal-depth-duration":"800ms","--modal-depth-out-duration":"600ms","--logo-blur-inactive":"0px","--logo-blur-active-target":"12px","--logo-blur-active":"0px","--modal-hide-scale":"0.92","--modal-hide-duration":"500ms","--modal-hide-delay":"150ms","--modal-show-duration":"400ms","--modal-show-delay":"100ms","--legend-gap-row":"clamp(4px, 0.5vmin, 8px)","--legend-gap-col":"clamp(16px, 2vw, 24px)","--legend-item-gap":"clamp(8px, 1vmin, 12px)","--legend-circle-size":"calc(clamp(8px, 1vmin, 12px) * 0.8)","--legend-item-radius":"9px","--legend-font-size":"clamp(11px, 2vw, 12px)","--legend-font-weight":"400","--legend-letter-spacing":"0.035ch","--legend-line-height":"1.75","--legend-opacity":"1","--decorative-script-max-width":"clamp(317px, 33vw, 444px)","--decorative-script-font-size":"clamp(11px, 1.2vw, 14px)","--decorative-script-line-height":"1.35","--decorative-script-letter-spacing":"0.05ch","--decorative-script-padding-left":"clamp(12px, 1.5vmin, 20px)","--decorative-script-padding-vertical":"clamp(8px, 1vmin, 12px)","--footer-icon-gap":"clamp(16px, 2vw, 24px)","--footer-icon-size":"clamp(14px, 1.5vw, 16px)","--footer-links-padding":"clamp(12px, 2.5vmin, 30px)","--footer-links-font-size":"clamp(14px, 1.4vw, 18px)","--footer-links-letter-spacing":"0.05ch","--footer-link-dot-size":"4px","--footer-link-dot-offset":"8px","--link-text-padding":"calc(clamp(12px, 2.5vmin, 30px) * 1)","--link-text-margin":"calc(calc(clamp(12px, 2.5vmin, 30px) * 1) * -1)","--link-icon-padding":"clamp(16px, 2vw, 24px)","--link-icon-margin":"calc(clamp(16px, 2vw, 24px) * -1)","--link-color-influence":"1","--link-impact-scale":"0.95","--link-impact-blur":"10px","--link-impact-duration":"0.15s","--ui-icon-glyph-size":"clamp(24px, 2.5vw, 28px)","--ui-icon-frame-size":"calc(clamp(24px, 2.5vw, 28px) + (clamp(16px, 2vw, 24px) * 2))","--caption-font-size":"clamp(0.85rem, 1.5vw, 1.05rem)","--caption-font-weight":"400","--caption-line-height":"1.3","--caption-letter-spacing":"0.05ch","--caption-offset":"clamp(8px, 1vmin, 12px)","--ui-hit-area-mul":"1","--hit-area-sm-base":"clamp(8px, 1vmin, 12px)","--hit-area-md-base":"clamp(12px, 1.5vmin, 20px)","--hit-area-lg-base":"clamp(12px, 2.5vmin, 30px)","--hit-area-sm":"calc(clamp(8px, 1vmin, 12px) * 1)","--hit-area-md":"calc(clamp(12px, 1.5vmin, 20px) * 1)","--hit-area-lg":"calc(clamp(12px, 2.5vmin, 30px) * 1)","--dot-indicator-size":"clamp(3px, 0.4vmin, 4px)","--dot-indicator-offset":"clamp(4px, 0.5vmin, 8px)","--ui-icon-corner-radius-mul":"0.4","--ui-icon-corner-radius":"clamp(\n    calc(clamp(8px, 1vmin, 12px) * 0.75),\n    calc(clamp(32px, calc(3.7 * 1vw), 999px) * 0.4),\n    999px\n  )","--ui-link-hit-pad":"calc(clamp(12px, 2.5vmin, 30px) * 1)","--ui-icon-hit-pad":"calc(clamp(12px, 1.5vmin, 20px) * 1)","--z-ui-base":"10","--z-ui-elevated":"20","--z-ui-top":"25","--z-panel":"9999","--top-logo-width-vw":"42","--brand-logo-width-min":"360px","--brand-logo-width-max":"600px","--abs-brand-logo-width":"clamp(\n    360px,\n    calc(42 * 1vw),\n    600px\n  )","--abs-brand-logo-height":"calc(clamp(\n    360px,\n    calc(42 * 1vw),\n    600px\n  ) * 66 / 919)","--home-main-links-below-logo-px":"40","--footer-nav-bar-top":"50vh","--footer-nav-bar-top-svh":"50svh","--footer-nav-bar-top-dvh":"50dvh","--footer-nav-bar-height":"calc(clamp(12px, 2.5vmin, 30px) * 1)","--footer-nav-bar-gap":"clamp(24px, 2.5vw, 40px)","--brand-logo-user-scale":"1","--breakpoint-tablet":"991px","--breakpoint-mobile-l":"767px","--breakpoint-mobile-p":"480px"}};</script>
+
+  <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
+  <meta name="theme-color" content="#242529">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#242529">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#242529">
+
+</head>
+<body class="body portfolio-page">
+  <!-- SCENE WRAPPER: All scene layers move together (matches index structure) -->
+  <div id="abs-scene" class="abs-scene">
+    <!-- LAYER 0: Content Background - BEHIND everything (z:1) -->
+    <div id="content-background" class="content-background-layer" aria-hidden="true"></div>
+    <div id="edge-chapter" class="edge-chapter" role="status" aria-live="polite" aria-atomic="true">
+      <span id="edge-chapter-text" class="edge-chapter__text">PORTFOLIO</span>
+    </div>
+    <div id="edge-copyright" class="edge-copyright">
+      <span class="edge-copyright__text">© 2025 Alexander Beck Studio</span>
+    </div>
+    
+    <!-- LAYER 1: Brand Logo - NOT VISIBLE on portfolio page (removed to optimize entrance animation) -->
+    <!-- Logo animation skipped - entrance goes directly from #app-frame to .portfolio-stage -->
+
+    <!-- LAYER 2: Portfolio Container - Carousel renders here (z:5) -->
+    <div id="bravia-balls" class="portfolio-simulation w-embed">
+      <div class="noise"></div>
+      <!-- Wall-only canvas: renders the same rubber wall ring as index (no balls). -->
+      <canvas class="portfolio-wall-canvas" aria-hidden="true"></canvas>
+      <!-- Portfolio Stage -->
+      <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
+      <div class="portfolio-stage" style="opacity:0; visibility:hidden">
+        <div class="portfolio-viewport" id="viewport">
+          <div class="slider-track" id="track">
+            <!-- Slides will be injected here by app.js -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Meta text: positioned outside stage to avoid transform inheritance issues -->
+      <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
+      <div class="portfolio-meta" id="portfolioMeta" aria-live="polite" style="opacity:0; visibility:hidden">
+        <div class="portfolio-meta__inner">
+          <span class="meta-client" data-meta="client"></span>
+          <span class="meta-title" data-meta="title"></span>
+          <span class="meta-summary" data-meta="summary"></span>
+        </div>
+      </div>
+    </div>
+  
+  <!-- UI LAYER: Flexbox Layout Implementation -->
+  <div class="fade-content">
+    <div id="app-frame" class="ui-layer-wrapper">
+      <!-- Header (index-parity chrome) -->
+      <header class="ui-top" data-portfolio-ui>
+        <div class="ui-top-main">
+          <div class="ui-top-left">
+            <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition aria-label="Back to home">
+              <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            </a>
+            <a id="cv-modal-trigger" class="portfolio-cv-link" href="#" aria-label="Bio/CV">Bio/CV</a>
+            <a id="contact-email" class="portfolio-cv-link" href="#" aria-label="Contact">Contact</a>
+          </div>
+          <div class="ui-top-right">
+            <blockquote class="decorative-script portfolio-blurb-wrapper">
+              <p id="portfolio-blurb">Selected collaborations across finance, luxury, digital identity, and frontier tech—things I've directed, mentored, executed, or co-built with global leaders. Currently building my own app; check the final project in the slider. <a id="contact-email-inline" href="#">Let's chat.</a></p>
+            </blockquote>
+            <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>
+          </div>
+        </div>
+        <div id="top-elements-soundRow" class="ui-top-soundRow"></div>
+      </header>
+
+      <!-- CENTER SPACER (Flex Grow) -->
+      <main class="ui-center-spacer" aria-hidden="true"></main>
+
+      <footer class="ui-bottom portfolio-footer" data-portfolio-ui>
+        <div class="ui-meta-row">
+          <div class="ui-meta-left">
+            <ul id="social-links" role="list" aria-label="Social media links" class="footer_icon-group w-list-unstyled">
+              <li class="margin-bottom_none">
+                <a href="https://music.apple.com/profile/beckandeggs" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="Apple Music">
+                  <i class="ti ti-brand-apple" aria-hidden="true"></i>
+                  <span class="screen-reader">Apple Music</span>
+                </a>
+              </li>
+
+              <li class="margin-bottom_none">
+                <a href="https://www.linkedin.com/in/thisisbeck/" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="LinkedIn">
+                  <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
+                  <span class="screen-reader">LinkedIn</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+          
+          <div class="ui-meta-right">
+             <button id="site-year" type="button" class="caption abs-meta-btn abs-hover-target abs-hover-target--index" aria-label="Toggle theme">
+              <span><strong class="location-name">London</strong> &middot; <span id="time-display"></span></span>
+            </button>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+  </div>
+
+  <!-- Modal System: Two-layer architecture for clean compositing -->
+  <!-- Layer 1: Blur Only - No children, isolated backdrop-filter (z:19998) -->
+  <div id="modal-blur-layer" class="modal-blur-layer" aria-hidden="true"></div>
+  
+  <!-- Layer 2: Content Only - Holds modals, no blur (z:19999) -->
+  <div id="modal-content-layer" class="modal-content-layer" aria-hidden="true">
+    <div id="modal-modal-host" class="modal-modal-host"></div>
+  </div>
+
+  <!-- Contact Modal - Same transition as CV/Portfolio -->
+  <div id="contact-modal" class="contact-modal hidden" aria-hidden="true">
+    <div id="contact-modal-label" class="modal-label"></div>
+    <div id="contact-modal-inputs" class="contact-modal-inputs"></div>
+  </div>
+
+  <!-- CV Modal - Same transition as Contact -->
+  <div id="cv-modal" class="cv-modal hidden" aria-hidden="true">
+    <div id="cv-modal-label" class="modal-label"></div>
+    <div class="cv-modal-inputs">
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="Digit 1" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="Digit 2" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="Digit 3" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Digit 4" autocomplete="off" />
+    </div>
+  </div>
+
+  <!-- Page Flash Overlay (for gate success/failure feedback) -->
+  <div id="page-flash" class="page-flash" aria-hidden="true"></div>
+
+  <!-- Panel dock is injected in dev only (mirrors index behavior). -->
+
+  <script type="module" src="js/portfolio.js?v=1768687674530"></script>
+
+  <!-- DEV TOOLING: Local hot reload (no external calls). -->
+  </body>
+</html>

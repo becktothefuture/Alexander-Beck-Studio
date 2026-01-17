@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en" class="fonts-loading">
+<head>
+<style id="frame-config-vars">:root{--frame-color-light:#242529;--frame-color-dark:#242529;}</style>
+<style id="fade-blocking">#app-frame{opacity:0}</style>
+  <!-- Critical first-paint wall background (no JS + no !important). -->
+  <!-- Uses unified wall color (#242529) - same for light and dark modes. -->
+  <!-- Fallback color: #242529 (unified wall frame) -->
+  <!-- iOS 26 Safari: Both html AND body must be opaque for correct chrome tinting. -->
+  <style id="abs-critical-wall-bg">
+    html, body { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
+    html.dark-mode, body.dark-mode { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
+  </style>
+  <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
+  <!-- Safari requirements: Compact tab layout (macOS), Allow Website Tinting (iOS) -->
+  <!-- Media-query tags MUST come before the fallback for Safari compatibility -->
+
+
+
+  <!-- CRITICAL: Safari detection for noise layer fixes (must run before CSS) -->
+  <script>
+    (function() {
+      var ua = navigator.userAgent;
+      var isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+      if (isSafari) document.documentElement.classList.add('is-safari');
+    })();
+  </script>
+  <!-- CRITICAL: Dark mode detection BEFORE first paint to prevent white flash -->
+  <script>
+    (function() {
+      'use strict';
+      
+      function getWallColorFromCSS(isDark) {
+        try {
+          const hadDarkMode = document.documentElement.classList.contains('dark-mode');
+          if (isDark && !hadDarkMode) {
+            document.documentElement.classList.add('dark-mode');
+          } else if (!isDark && hadDarkMode) {
+            document.documentElement.classList.remove('dark-mode');
+          }
+          const computedStyle = window.getComputedStyle(document.documentElement);
+          let wallColor = computedStyle.getPropertyValue('--wall-color').trim();
+          if (isDark && !hadDarkMode) {
+            document.documentElement.classList.remove('dark-mode');
+          } else if (!isDark && hadDarkMode) {
+            document.documentElement.classList.add('dark-mode');
+          }
+          if (wallColor && (wallColor.startsWith('#') || wallColor.startsWith('rgb'))) {
+            return wallColor;
+          }
+        } catch (e) {}
+        // Fallback to token defaults (theme-aware)
+        return '#242529';
+      }
+      
+      function getMetaThemeColor(selector) {
+        const node = document.querySelector(selector);
+        return node && node.content ? node.content.trim() : '';
+      }
+      
+      // Unified wall color (consistent across all modes)
+      const unifiedWallColor = '#242529';
+      let THEME_COLOR = unifiedWallColor;
+      
+      try {
+        THEME_COLOR = getWallColorFromCSS(false) || getWallColorFromCSS(true) || unifiedWallColor;
+      } catch (e) {
+        // CSS not ready, use unified fallback
+        THEME_COLOR = unifiedWallColor;
+      }
+      
+      const primaryMeta = getMetaThemeColor('meta[name="theme-color"]:not([media])');
+      THEME_COLOR = primaryMeta || THEME_COLOR;
+
+      const THEME_KEY = 'theme-preference-v2';
+      const LEGACY_THEME_KEY = 'theme-preference';
+      function readThemePreference() {
+        try {
+          const v2 = localStorage.getItem(THEME_KEY);
+          if (v2 === 'auto' || v2 === 'light' || v2 === 'dark') return v2;
+          const legacy = localStorage.getItem(LEGACY_THEME_KEY);
+          if (legacy === 'auto' || legacy === 'light' || legacy === 'dark') {
+            localStorage.removeItem(LEGACY_THEME_KEY);
+            localStorage.setItem(THEME_KEY, 'auto');
+          }
+        } catch (e) {}
+        return 'auto';
+      }
+
+      function setBrowserChromeColors(isDark) {
+        // Unified wall color (always #242529, no light/dark variants)
+        const unifiedColor = getWallColorFromCSS(false) || getWallColorFromCSS(true) || '#242529';
+        
+        // Update primary theme-color meta tag (no media query - used as fallback)
+        let meta = document.querySelector('meta[name="theme-color"]:not([media])');
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.name = 'theme-color';
+          document.head.appendChild(meta);
+        }
+        meta.content = unifiedColor;
+        
+        // Safari iOS: Update media-query-specific meta tags (both use unified color)
+        let metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
+        if (!metaLight) {
+          metaLight = document.createElement('meta');
+          metaLight.name = 'theme-color';
+          metaLight.media = '(prefers-color-scheme: light)';
+          document.head.appendChild(metaLight);
+        }
+        metaLight.content = unifiedColor;
+        
+        let metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
+        if (!metaDark) {
+          metaDark = document.createElement('meta');
+          metaDark.name = 'theme-color';
+          metaDark.media = '(prefers-color-scheme: dark)';
+          document.head.appendChild(metaDark);
+        }
+        metaDark.content = unifiedColor;
+        
+        // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style
+        // black-translucent: transparent status bar (allows unified wall color to show)
+        let appleStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+        if (!appleStatusBar) {
+          appleStatusBar = document.createElement('meta');
+          appleStatusBar.name = 'apple-mobile-web-app-status-bar-style';
+          document.head.appendChild(appleStatusBar);
+        }
+        appleStatusBar.content = 'black-translucent';
+      }
+      
+      let themePreference = readThemePreference();
+      let shouldBeDark = false;
+      
+      if (themePreference === 'dark') {
+        shouldBeDark = true;
+      } else if (themePreference === 'light') {
+        shouldBeDark = false;
+      } else {
+        const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const hour = new Date().getHours();
+        const isNightTime = hour >= 18 || hour < 6;
+        shouldBeDark = systemPrefersDark || isNightTime;
+      }
+      
+      if (shouldBeDark) {
+        document.documentElement.classList.add('dark-mode');
+        document.documentElement.style.colorScheme = 'dark';
+        if (document.body) {
+          document.body.classList.add('dark-mode');
+        } else {
+          document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('dark-mode');
+          }, { once: true });
+        }
+      }
+      setBrowserChromeColors(shouldBeDark);
+      
+      // Safari iOS: Update theme-color on page visibility changes (page suspend/resume)
+      // This ensures browser chrome color stays in sync when Safari resumes the page
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          // Page became visible: re-sync theme-color in case Safari needs refresh
+          const isCurrentlyDark = document.documentElement.classList.contains('dark-mode');
+          setBrowserChromeColors(isCurrentlyDark);
+        }
+      });
+      
+      // Safari iOS: Also update on pageshow event (back/forward navigation)
+      window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+          // Page was restored from back/forward cache
+          const isCurrentlyDark = document.documentElement.classList.contains('dark-mode');
+          setBrowserChromeColors(isCurrentlyDark);
+        }
+      });
+    })();
+  </script>
+  <meta charset="utf-8">
+  <title>Bio/CV - Alexander Beck Studio</title>
+  <meta content="Alexander Beck - Product Designer, Creative Technologist, Experience Director" name="description">
+  <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
+
+  <link rel="stylesheet" href="css/bouncy-balls.css?v=1768687674530">
+<link rel="modulepreload" href="js/shared.js?v=1768687674530">
+
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&family=Sarina&display=swap" rel="stylesheet">
+
+  <link href="images/favicon.ico" rel="shortcut icon" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+  <link href="images/webclip.png" rel="apple-touch-icon">
+  <link rel="mask-icon" href="images/safari-pinned-tab.svg" color="#ffa000">
+  <link rel="manifest" href="images/site.webmanifest">
+
+  <!-- PWA: Mobile web app capable (modern + legacy) -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>window.__RUNTIME_CONFIG__={
+  "liteModeEnabled": false,
+  "chromeHarmonyMode": "site",
+  "autoDarkModeEnabled": true,
+  "autoDarkNightStartHour": 18,
+  "autoDarkNightEndHour": 6,
+  "ballMassKg": 387,
+  "REST": 0.65,
+  "FRICTION": 0.02,
+  "physicsCollisionIterations": 7,
+  "physicsSkipSleepingCollisions": true,
+  "physicsSpatialGridOptimization": true,
+  "physicsSleepThreshold": 6,
+  "physicsSleepTime": 0.2,
+  "physicsSkipSleepingSteps": true,
+  "ballSizeDesktop": 9,
+  "ballSizeMobile": 8.64,
+  "mobileObjectReductionFactor": 0.5,
+  "mobileObjectReductionThreshold": 200,
+  "ballSoftness": 57,
+  "ballSpacing": 0.19,
+  "sizeVariationGlobalMul": 1,
+  "sizeVariationCap": 0.12,
+  "cursorInfluenceRadiusVw": 9.5,
+  "cursorSize": 1.15,
+  "mouseTrailEnabled": true,
+  "mouseTrailLength": 5,
+  "mouseTrailSize": 4.2,
+  "mouseTrailFadeMs": 260,
+  "mouseTrailOpacity": 1,
+  "contentPaddingRatio": 0.03,
+  "contentPaddingHorizontalRatio": 1.05,
+  "contentPaddingBottomRatio": 1,
+  "uiHitAreaMul": 2.3,
+  "uiIconFramePx": 63,
+  "uiIconGlyphPx": 0,
+  "uiIconGroupMarginPx": 3,
+  "uiIconCornerRadiusMul": 0.58,
+  "linkTextPadding": 12,
+  "linkIconPadding": 19,
+  "footerNavBarTopVh": 56.5,
+  "footerNavBarGapVw": 0,
+  "homeMainLinksBelowLogoPx": 58,
+  "edgeLabelInsetAdjustPx": 19,
+  "linkColorInfluence": 1,
+  "linkImpactScale": 0.7,
+  "linkImpactBlur": 0,
+  "linkImpactDuration": 150,
+  "hoverSnapEnabled": true,
+  "hoverSnapDuration": 200,
+  "hoverSnapOvershoot": 1.115,
+  "hoverSnapUndershoot": 0.98,
+  "sceneImpactEnabled": false,
+  "sceneImpactMul": 0.005,
+  "sceneImpactLogoCompMul": 1.15,
+  "sceneImpactMobileMulFactor": 1,
+  "sceneImpactPressMs": 50,
+  "sceneImpactReleaseMs": 150,
+  "sceneImpactAnticipation": 0,
+  "sceneChangeSoundEnabled": true,
+  "sceneChangeSoundIntensity": 1,
+  "sceneChangeSoundRadius": 60,
+  "modalOverlayEnabled": true,
+  "modalOverlayOpacity": 0,
+  "modalOverlayBlurPx": 5.5,
+  "modalOverlayTransitionMs": 700,
+  "modalOverlayTransitionOutMs": 500,
+  "modalOverlayContentDelayMs": 200,
+  "modalDepthScale": 0.943,
+  "modalDepthTranslateY": 1,
+  "logoBlurInactive": 2.5,
+  "logoBlurActive": 8,
+  "bgLight": "#f5f5f5",
+  "bgDark": "#0d0c0c",
+  "textColorLight": "#161616",
+  "textColorLightMuted": "#3d3d3d",
+  "textColorDark": "#e0e4e8",
+  "textColorDarkMuted": "#8a9ba8",
+  "linkHoverColor": "#ff4013",
+  "topLogoWidthVw": 32.5,
+  "colorDistribution": [
+    {
+      "label": "Product & Systems",
+      "colorIndex": 0,
+      "weight": 75
+    },
+    {
+      "label": "Interaction & Motion",
+      "colorIndex": 4,
+      "weight": 2
+    },
+    {
+      "label": "Creative Technology",
+      "colorIndex": 3,
+      "weight": 4
+    },
+    {
+      "label": "AI-Driven Design",
+      "colorIndex": 2,
+      "weight": 10
+    },
+    {
+      "label": "Experience Direction",
+      "colorIndex": 5,
+      "weight": 3
+    },
+    {
+      "label": "Art & Visual Direction",
+      "colorIndex": 6,
+      "weight": 5
+    },
+    {
+      "label": "Prototyping",
+      "colorIndex": 7,
+      "weight": 1
+    }
+  ],
+  "frameColorLight": "#242529",
+  "frameColorDark": "#242529",
+  "wallPreset": "pudding",
+  "wallThicknessVw": 1.4,
+  "wallThicknessAreaMultiplier": 0.34,
+  "wallRadiusVw": 2.5,
+  "wallInset": 3,
+  "mobileWallThicknessXFactor": 1.45,
+  "mobileEdgeLabelsVisible": true,
+  "wallWobbleMaxDeform": 60,
+  "wallWobbleStiffness": 120,
+  "wallWobbleDamping": 71,
+  "wallWobbleSigma": 0.5,
+  "wallWobbleSettlingSpeed": 6,
+  "wallWobbleCornerClamp": 0.99,
+  "wallWobbleImpactThreshold": 111,
+  "wallWobbleMaxVel": 930,
+  "wallWobbleMaxImpulse": 300,
+  "wallWobbleMaxEnergyPerStep": 43500,
+  "wallPhysicsSamples": 21,
+  "wallPhysicsSkipInactive": true,
+  "wallRenderDecimation": 10,
+  "noiseEnabled": true,
+  "noiseSeed": 194267,
+  "noiseTextureSize": 224,
+  "noiseDistribution": "gaussian",
+  "noiseMonochrome": false,
+  "noiseChroma": 1,
+  "noiseSize": 110,
+  "noiseOpacityLight": 0.14,
+  "noiseOpacityDark": 0.06,
+  "noiseBlendMode": "normal",
+  "noiseColorLight": "#ffffff",
+  "noiseColorDark": "#ffffff",
+  "noiseMotion": "jitter",
+  "noiseMotionAmount": 2.28,
+  "noiseSpeedMs": 650,
+  "noiseSpeedVariance": 0.3,
+  "noiseFlicker": 0,
+  "noiseFlickerSpeedMs": 0,
+  "noiseBlurPx": 0,
+  "noiseContrast": 2.9,
+  "noiseBrightness": 1,
+  "noiseSaturation": 1,
+  "noiseHue": 0,
+  "critterCount": 110,
+  "critterSpeed": 70,
+  "critterMaxSpeed": 975,
+  "critterStepHz": 2.3,
+  "critterStepSharpness": 3.6,
+  "critterTurnNoise": 1.6,
+  "critterTurnDamp": 8,
+  "critterTurnSeek": 8,
+  "critterAvoidRadius": 20,
+  "critterAvoidForce": 23750,
+  "critterEdgeAvoid": 1.75,
+  "critterMousePull": 4,
+  "critterMouseRadiusVw": 19,
+  "critterRestitution": 0.15,
+  "critterFriction": 0.017,
+  "crittersWarmupFrames": 91,
+  "gravityMultiplierPit": 1.55,
+  "repelPower": 274000,
+  "sleepVelocityThreshold": 12,
+  "sleepAngularThreshold": 0.18,
+  "timeToSleep": 0.25,
+  "pitWarmupFrames": 10,
+  "fliesBallCount": 60,
+  "attractionPower": 5000,
+  "swarmSpeed": 0.4,
+  "fliesSeparation": 15000,
+  "fliesWarmupFrames": 10,
+  "weightlessCount": 66,
+  "weightlessInitialSpeed": 250,
+  "weightlessBounce": 0.7,
+  "weightlessRepelPower": 50000,
+  "weightlessRepelSoft": 5.4,
+  "weightlessWarmupFrames": 10,
+  "waterBallCount": 960,
+  "waterDrag": 0.113,
+  "waterRippleStrength": 2500,
+  "waterDriftStrength": 11,
+  "waterWarmupFrames": 44,
+  "vortexBallCount": 90,
+  "vortexSwirlStrength": 100,
+  "vortexRadius": 380,
+  "vortexSpeedMultiplier": 2.6,
+  "vortexDepthVariation": 0.45,
+  "vortexSpiralTightness": 0.15,
+  "vortexRotationDirection": 1,
+  "vortexDrag": 0.042,
+  "vortexWarmupFrames": 10,
+  "pingPongBallCount": 35,
+  "pingPongSpeed": 400,
+  "pingPongVerticalDamp": 0.911,
+  "pingPongWarmupFrames": 10,
+  "magneticBallCount": 180,
+  "magneticStrength": 15000,
+  "magneticRadius": 0,
+  "magneticMaxVelocity": 1200,
+  "magneticDamping": 0.988,
+  "magneticWarmupFrames": 10,
+  "bubblesSpawnRate": 16,
+  "bubblesRiseSpeed": 900,
+  "bubblesWobble": 65,
+  "bubblesMaxCount": 170,
+  "bubblesWarmupFrames": 73,
+  "kaleidoscope3BallCount": 150,
+  "kaleidoscope3Wedges": 11,
+  "kaleidoscope3Speed": 0.85,
+  "kaleidoscopeIdleDrift": 0.024,
+  "kaleidoscope3DotSizeVh": 0.6,
+  "kaleidoscope3DotAreaMul": 1,
+  "kaleidoscope3SpawnAreaMul": 1.05,
+  "kaleidoscope3SizeVariance": 0.5,
+  "kaleidoscope3WarmupFrames": 65,
+  "neuralBallCount": 131,
+  "neuralLinkDistanceVw": 5,
+  "neuralLineOpacity": 0.06,
+  "neuralConnectorDensity": 3,
+  "sizeVariationNeural": 0,
+  "neuralWanderStrength": 1010,
+  "neuralMouseStrength": 150000,
+  "neuralSeparationStrength": 11000,
+  "neuralDamping": 0.81,
+  "neuralWarmupFrames": 10,
+  "parallaxLinearDotSizeMul": 1.8,
+  "sizeVariationParallaxLinear": 0.2,
+  "parallaxLinearGridX": 10,
+  "parallaxLinearGridY": 4,
+  "parallaxLinearGridZ": 8,
+  "parallaxLinearSpanX": 5,
+  "parallaxLinearSpanY": 3,
+  "parallaxLinearZNear": 100,
+  "parallaxLinearZFar": 3000,
+  "parallaxLinearFocalLength": 540,
+  "parallaxLinearParallaxStrength": 230,
+  "parallaxLinearWarmupFrames": 59,
+  "starfieldCount": 150,
+  "starfieldSpanX": 2.45,
+  "starfieldSpanY": 2.05,
+  "starfieldZNear": 70,
+  "starfieldZFar": 4000,
+  "starfieldFocalLength": 310,
+  "starfieldParallaxStrength": 320,
+  "starfieldSpeed": 390,
+  "starfieldDotSizeMul": 0.35,
+  "starfieldIdleJitter": 20,
+  "starfieldFadeDuration": 0.5,
+  "starfield3dWarmupFrames": 10,
+  "elasticCenterBallCount": 93,
+  "elasticCenterMassMultiplier": 3.9,
+  "elasticCenterElasticStrength": 500,
+  "elasticCenterMouseRepelStrength": 20000,
+  "elasticCenterMouseRadius": 380,
+  "elasticCenterDamping": 0.97,
+  "elasticCenterWarmupFrames": 10,
+  "snakeBallCount": 95,
+  "snakeRestLength": 29,
+  "snakeSpringStrength": 418,
+  "snakeSpeed": 400,
+  "snakeGroundFriction": 2,
+  "snakeDamping": 0.995,
+  "snakeWarmupFrames": 82,
+  "dvdLogoSpeed": 200,
+  "dvdLogoSize": 0.8,
+  "dvdLogoBallCount": 60,
+  "dvdLogoBallSpacing": 1.3,
+  "dvdLogoLetterSpacing": 1.4,
+  "dvdLogoWarmupFrames": 10,
+  "particleFountainEmissionRate": 31,
+  "particleFountainInitialVelocity": 4900,
+  "particleFountainSpreadAngle": 10,
+  "particleFountainWaterDrag": 0.02,
+  "particleFountainGravityMultiplier": 1.1,
+  "particleFountainUpwardForce": 0,
+  "particleFountainMaxParticles": 260,
+  "particleFountainLifetime": 11,
+  "particleFountainWarmupFrames": 120,
+  "particleFountainMouseRepelStrength": 10000,
+  "particleFountainMouseRepelRadiusVw": 6.5,
+  "sphere3dRadiusVw": 35,
+  "sphere3dDensity": 180,
+  "sphere3dFocalLength": 970,
+  "sphere3dDotSizeMul": 1.5,
+  "sphere3dIdleSpeed": 0.04,
+  "sphere3dTumbleSpeed": 0.3,
+  "sphere3dTumbleDamping": 0.99,
+  "sphere3dWarmupFrames": 10,
+  "cube3dSizeVw": 33.5,
+  "cube3dEdgeDensity": 8,
+  "cube3dFaceGrid": 0,
+  "cube3dIdleSpeed": 0.2,
+  "cube3dCursorInfluence": 0.3,
+  "cube3dTumbleSpeed": 10,
+  "cube3dTumbleDamping": 0.99,
+  "cube3dFocalLength": 1160,
+  "cube3dDotSizeMul": 1.5,
+  "cube3dWarmupFrames": 10,
+  "entranceEnabled": true,
+  "entranceWallTransitionDelay": 300,
+  "entranceWallTransitionDuration": 800,
+  "entranceWallInitialScale": 1.1,
+  "entranceWallEasing": "cubic-bezier(0.16, 1, 0.3, 1)",
+  "entranceElementDuration": 800,
+  "entranceElementScaleStart": 0.95,
+  "entranceElementTranslateZStart": -20,
+  "entrancePerspectiveLandscape": 1200,
+  "entrancePerspectiveSquare": 1000,
+  "entrancePerspectivePortrait": 800,
+  "contentFadeInDelay": 500,
+  "contentFadeInDuration": 1000,
+  "gravityMultiplier": 1.55,
+  "restitution": 0.65,
+  "friction": 0.02,
+  "ballMass": 387,
+  "ballScale": 1.05,
+  "sizeScale": 1.05,
+  "sizeVariation": 0,
+  "repelSoft": 3.4,
+  "repelSoftness": 3.4,
+  "layoutViewportWidthPx": 0,
+  "containerBorderVw": 1.4,
+  "simulationPaddingVw": 0,
+  "layoutMinContentPaddingPx": 0,
+  "layoutMinWallRadiusPx": 32,
+  "soundPreset": "crystalPebbles",
+  "soundConfig": {
+    "attackTime": 0.005,
+    "decayTime": 0.034,
+    "harmonicGain": 0,
+    "filterBaseFreq": 2550,
+    "filterVelocityRange": 1700,
+    "filterQ": 0.22,
+    "filterMinHz": 350,
+    "filterMaxHz": 6200,
+    "pitchMinHz": 420,
+    "pitchMaxHz": 1600,
+    "pitchCurve": 1.15,
+    "reverbDecay": 0.19,
+    "reverbWetMix": 0.07,
+    "reverbHighDamp": 0.8,
+    "minGain": 0.008,
+    "maxGain": 0.09,
+    "masterGain": 0.51,
+    "voiceGainMax": 0.14,
+    "minTimeBetweenSounds": 0.018,
+    "maxPan": 0.15,
+    "noiseTransientEnabled": true,
+    "noiseTransientGain": 0.09,
+    "noiseTransientDecay": 0.006,
+    "noiseTransientFilterMin": 1200,
+    "noiseTransientFilterMax": 7000,
+    "noiseTransientQ": 3.2,
+    "sparkleGain": 0.12,
+    "sparkleRatioMin": 2.6,
+    "sparkleRatioMax": 4.4,
+    "sparkleDecayMul": 0.85,
+    "variancePitch": 0.12,
+    "varianceDecay": 0.2,
+    "varianceGain": 0.47,
+    "varianceFilter": 0.18,
+    "varianceNoise": 0.25,
+    "velocityNoiseScale": 1.5,
+    "velocityBrightnessScale": 1.4,
+    "velocityDecayScale": 0.65,
+    "intensityExponent": 1.65,
+    "toneSafetyMinHz": 130,
+    "toneSafetyMaxHz": 480,
+    "toneSafetyExponent": 2.2,
+    "toneSafetyHighGainAtten": 0.25,
+    "toneSafetyLowGainAtten": 0.06,
+    "toneSafetyHighBrightAtten": 0.45,
+    "collisionMinImpact": 0.2,
+    "highShelfFreq": 2200,
+    "highShelfGain": -4
+  },
+  "enableLOD": false
+}
+;</script>
+<script>window.__TEXT__={"meta":{"title":"Alexander Beck Studio :: Al Creative :: User Experience :: Product Design","description":"c366"},"edge":{"chapterText":"SOURCE MATERIAL","copyright":"© 2026 Alexander Beck Studio"},"legend":{"ariaLabel":"Areas of expertise","items":[{"colorClass":"bg-ball-1","label":"Product & Systems","tooltip":"I structure systems at scale and guide outcome-driven decisions."},{"colorClass":"bg-ball-5","label":"Interaction & Motion","tooltip":"I design interactions and motion that communicate through behaviour."},{"colorClass":"bg-ball-4","label":"Creative Technology","tooltip":"I build products, websites, and emerging digital experiences using code and prototypes."},{"colorClass":"bg-ball-3","label":"AI-Driven Design","tooltip":"I treat AI as a design material to explore and extrapolate ideas."},{"colorClass":"bg-ball-6","label":"Experience Direction","tooltip":"I shape cohesive product and web experiences through structure, craft, and vision."},{"colorClass":"bg-ball-7","label":"Art & Visual Direction","tooltip":"I define visual and spatial direction across product, motion, and form."},{"colorClass":"bg-ball-8","label":"Prototyping + R&D","tooltip":"I prototype to think, test, and bring ideas into focus."}]},"philosophy":{"textBeforeLink":"The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. ","link":{"id":"contact-email-inline","href":"#","text":"Let's chat."}},"footer":{"navAriaLabel":"Main navigation links","links":{"contact":{"id":"contact-email","href":"#","text":"Contact"},"portfolio":{"id":"portfolio-gate-trigger","href":"#","text":"Portfolio"},"cv":{"id":"cv-gate-trigger","href":"#","text":"Bio/CV"}},"metaLocationPrefix":"London, UK · "},"socials":{"ariaLabel":"Social media links","items":{"appleMusic":{"ariaLabel":"Apple Music","screenReaderText":"Apple Music","url":"https://music.apple.com/profile/beckandeggs"},"linkedin":{"ariaLabel":"LinkedIn","screenReaderText":"LinkedIn","url":"https://www.linkedin.com/in/thisisbeck/"}}},"contact":{"email":"alexander@beck.fyi","copy":{"buttonAriaLabel":"Copy email address","statusCopied":"Copied","statusError":"Copy failed"}},"portfolio":{"blurb":"Selected collaborations across finance, luxury, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently designing for neurodivergent humans."},"gates":{"common":{"backText":"BACK","backAriaLabel":"Back"},"cv":{"title":"Bio/CV","description":"Because spam bots don’t deserve nice things. This keeps my inbox a little more civilised. Need access? Get in touch for the code."},"portfolio":{"title":"View Portfolio","description":"Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."},"contact":{"title":"Contact","description":"For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain. For job opportunities, drop me a note."}}};</script>
+
+  <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
+  <meta name="theme-color" content="#242529">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#242529">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#242529">
+
+</head>
+<body class="body cv-page">
+  <!-- SCENE WRAPPER: All scene layers move together (matches index structure) -->
+  <div id="abs-scene" class="abs-scene">
+    <!-- LAYER 0: Content Background - BEHIND everything (z:1) -->
+    <div id="content-background" class="content-background-layer" aria-hidden="true"></div>
+    <div id="edge-chapter" class="edge-chapter" role="status" aria-live="polite" aria-atomic="true">
+      <span id="edge-chapter-text" class="edge-chapter__text">BIO / CV</span>
+    </div>
+    <div id="edge-copyright" class="edge-copyright">
+      <span class="edge-copyright__text">© 2025 Alexander Beck Studio</span>
+    </div>
+
+    <!-- LAYER 2: CV Container - Content renders here (z:5) -->
+    <div id="bravia-balls" class="cv-simulation w-embed">
+      <div class="noise"></div>
+      <!-- CV Scrolling Content -->
+      <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
+      <div class="cv-scroll-container" style="opacity:0; visibility:hidden">
+        <!-- Gradient overlays removed - cleaner look without fade -->
+        <article class="cv-content">
+          <!-- Left Area: Fixed/Pinned (Photo + Intro) -->
+          <aside class="cv-left" aria-label="CV introduction">
+            <div class="cv-left__inner">
+              <div class="cv-photo">
+                <img src="images/cv-images/profile-image-01.jpg" alt="Alexander Beck" class="cv-photo__image" />
+              </div>
+              <div class="cv-intro">
+                <h1 class="cv-name">Alexander Beck</h1>
+                <p class="cv-title">Product Designer · Creative Technologist · Experience Director</p>
+                <p class="cv-intro-text">For over fifteen years, I've worked at the intersection of design, technology, and human experience. My practice spans product strategy, interaction design, and creative technology—always with a focus on building things that matter.</p>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Right Area: Scrollable (All Main Content) -->
+          <div class="cv-right">
+            <div class="cv-right__inner">
+              <section class="cv-section">
+                <h2 class="cv-section-title">About</h2>
+                <p>I structure systems at scale and guide outcome-driven decisions. I design interactions and motion that communicate through behaviour. I build products, websites, and emerging digital experiences using code and prototypes. I treat AI as a design material to explore and extrapolate ideas.</p>
+                <p>Recent work includes architecting a design system for a trading platform handling $2.4 trillion in annual volume, prototyping spatial computing interfaces for luxury retail, and developing AI-augmented workflows that reduce design iteration cycles by 60%. I shape cohesive product and web experiences through structure, craft, and vision—always with a focus on measurable impact.</p>
+              </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Experience</h2>
+            
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">Independent Practice</h3>
+              <p class="cv-entry-meta">Founder & Principal · 2019 – Present · London</p>
+              <p>Leading product design and creative technology projects for clients including major financial institutions, luxury brands, and technology companies. Recent work: architected a component system for a global bank's digital transformation (reducing design-to-development handoff time by 45%), designed an AI-powered creative tool that processes 10,000+ design variations daily, and built interactive installations viewed by over 200,000 visitors. Specializing in complex systems design, interactive experiences, and AI-augmented workflows.</p>
+            </div>
+
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">Senior Product Designer</h3>
+              <p class="cv-entry-meta">Global Financial Services · 2016 – 2019 · London & New York</p>
+              <p>Led design systems development for enterprise trading platforms serving over 50,000 users daily across 40+ countries. Established design operations practice from scratch, scaling the team from 3 to 12 designers. Reduced time-to-decision for traders by 40% through interface optimization and workflow automation. Designed real-time data visualization systems handling 2.4 million transactions per day with sub-100ms latency requirements.</p>
+            </div>
+
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">Design Lead</h3>
+              <p class="cv-entry-meta">Digital Agency · 2012 – 2016 · Berlin & Amsterdam</p>
+              <p>Directed creative teams of 8–15 designers on campaigns for automotive, fashion, and technology clients. Pioneered data-driven design approaches that increased client campaign engagement by an average of 35%. Established prototyping culture using real-time graphics and physics simulation, reducing client revision cycles from 8 to 3 rounds. Notable projects included interactive installations for automotive launches and brand transformation initiatives for luxury fashion houses.</p>
+            </div>
+
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">Interactive Designer</h3>
+              <p class="cv-entry-meta">Boutique Studio · 2008 – 2012 · San Francisco</p>
+              <p>Early career focused on motion design and interactive development. Built real-time graphics systems for gaming clients, creating physics-based animation engines that powered interactive experiences for 50+ projects. Worked across gaming, entertainment, and startup clients, developing expertise in WebGL, Canvas API, and performance optimization that continues to inform current practice.</p>
+            </div>
+          </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Expertise</h2>
+            <ul class="cv-skills">
+              <li>Product Strategy & Systems Thinking</li>
+              <li>Interaction Design & Motion</li>
+              <li>Design Systems & Component Architecture</li>
+              <li>Frontend Development (React, Vue, Canvas, WebGL)</li>
+              <li>AI/ML Product Integration</li>
+              <li>Design Operations & Team Leadership</li>
+              <li>Prototyping & Experimental Technology</li>
+              <li>Workshop Facilitation & Stakeholder Alignment</li>
+            </ul>
+          </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Selected Projects</h2>
+            <p>Detailed case studies available in portfolio. Highlights include:</p>
+            <ul class="cv-projects">
+              <li><strong>Enterprise Trading Platform Redesign</strong> — Comprehensive overhaul of mission-critical trading interface serving institutional clients. Reduced order execution time by 28% through interface optimization and introduced a design system supporting 200+ components across 12 product teams.</li>
+              <li><strong>Luxury Retail Experience</strong> — Immersive digital flagship combining spatial computing with traditional retail. Designed WebGL-powered virtual showroom that increased online engagement by 65% and reduced return rates by 22% through better product visualization.</li>
+              <li><strong>AI-Powered Design Tool</strong> — Novel interface for creative professionals leveraging generative AI capabilities. Prototyped and tested with 150+ designers, resulting in a tool that generates 10,000+ design variations daily and reduces concept exploration time by 60%.</li>
+              <li><strong>Financial Data Visualization</strong> — Real-time portfolio analytics dashboard for high-net-worth clients. Designed data visualization system handling 2.4 million transactions daily with sub-100ms latency, processing $180 billion in assets under management.</li>
+              <li><strong>Interactive Brand Installation</strong> — Physical/digital hybrid experience for automotive launch. Created real-time physics simulation viewed by 200,000+ visitors, with 85% engagement rate and average dwell time of 4.2 minutes.</li>
+            </ul>
+          </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Education</h2>
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">MA Interactive Design</h3>
+              <p class="cv-entry-meta">Royal College of Art · London · 2008</p>
+            </div>
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">BA Graphic Design</h3>
+              <p class="cv-entry-meta">California College of the Arts · San Francisco · 2006</p>
+            </div>
+          </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Philosophy</h2>
+            <p>Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity.</p>
+            <p>I believe the best digital products are invisible—they fit so naturally into people's lives that the technology disappears. Every project is an opportunity to question assumptions, prototype rapidly, and push boundaries while staying grounded in user needs and business reality.</p>
+            <p>Currently based in London, available for select projects worldwide.</p>
+          </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Recognition</h2>
+            <p class="cv-recognition">Work has been recognized by D&AD, Awwwards, FWA, and Red Dot. Selected projects featured in design publications and industry conferences.</p>
+          </section>
+
+              <footer class="cv-footer">
+                <p class="cv-contact">hello@alexanderbeck.studio</p>
+                <p class="cv-copyright">© 2025 Alexander Beck Studio. All rights reserved.</p>
+              </footer>
+            </div>
+          </div>
+        </article>
+      </div>
+      
+      
+      <!-- Wall-only canvas: renders the same rubber wall ring as index (no simulation). -->
+      <canvas class="cv-wall-canvas" aria-hidden="true"></canvas>
+    </div>
+  
+  <!-- UI LAYER: Flexbox Layout Implementation -->
+    <div class="fade-content">
+      <div id="app-frame" class="ui-layer-wrapper">
+        
+        <!-- TOP SECTION -->
+        <header class="ui-top">
+          <div class="ui-top-main">
+          <div class="ui-top-left">
+            <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition aria-label="Back to home">
+              <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            </a>
+            <a id="portfolio-modal-trigger" class="portfolio-cv-link" href="#" aria-label="Portfolio">Portfolio</a>
+            <a id="contact-email" class="portfolio-cv-link" href="#" aria-label="Contact">Contact</a>
+          </div>
+            <div class="ui-top-right">
+              <div id="sound-toggle-slot"></div>
+            </div>
+          </div>
+          
+        <!-- Mobile Sound Row -->
+          <div id="top-elements-soundRow" class="ui-top-soundRow"></div>
+        </header>
+        
+      <!-- CENTER SPACER -->
+      <main class="ui-center-spacer" aria-hidden="true"></main>
+        
+        <!-- BOTTOM SECTION -->
+        <footer class="ui-bottom">
+          <div class="ui-meta-row">
+            <div class="ui-meta-left">
+              <ul id="social-links" role="list" aria-label="Social media links" class="footer_icon-group w-list-unstyled">
+                <li class="margin-bottom_none">
+                  <a href="https://music.apple.com/profile/beckandeggs" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="Apple Music">
+                    <i class="ti ti-brand-apple" aria-hidden="true"></i>
+                    <span class="screen-reader">Apple Music</span>
+                  </a>
+                </li>
+
+                <li class="margin-bottom_none">
+                <a href="https://www.linkedin.com/in/thisisbeck/" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="LinkedIn">
+                    <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
+                    <span class="screen-reader">LinkedIn</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+            
+            <div class="ui-meta-right">
+             <button id="site-year" type="button" class="caption abs-meta-btn abs-hover-target abs-hover-target--index" aria-label="Toggle theme">
+                <span><strong class="location-name">London</strong> · <span id="time-display"></span></span>
+              </button>
+            </div>
+          </div>
+        </footer>
+        
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal System: Two-layer architecture for clean compositing -->
+  <!-- Layer 1: Blur Only - No children, isolated backdrop-filter (z:19998) -->
+  <div id="modal-blur-layer" class="modal-blur-layer" aria-hidden="true"></div>
+  
+  <!-- Layer 2: Content Only - Holds modals, no blur (z:19999) -->
+  <div id="modal-content-layer" class="modal-content-layer" aria-hidden="true">
+    <div id="modal-modal-host" class="modal-modal-host"></div>
+  </div>
+
+  <!-- Contact Modal -->
+  <div id="contact-modal" class="contact-modal hidden" aria-hidden="true">
+    <div id="contact-modal-label" class="modal-label"></div>
+    <div id="contact-modal-inputs" class="contact-modal-inputs"></div>
+  </div>
+
+  <!-- Portfolio Modal -->
+  <div id="portfolio-modal" class="portfolio-modal hidden" aria-hidden="true">
+    <div id="portfolio-modal-label" class="modal-label"></div>
+    <div id="portfolio-modal-inputs" class="portfolio-modal-inputs">
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="Digit 1" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="Digit 2" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="Digit 3" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Digit 4" autocomplete="off" />
+    </div>
+  </div>
+
+  <!-- Page Flash Overlay -->
+  <div id="page-flash" class="page-flash" aria-hidden="true"></div>
+
+  <script type="module" src="js/cv.js?v=1768687674530"></script>
+  <script>
+    // In production (served from public/), load from bundled JS if available
+    if (!document.querySelector('script[src*="modules/cv-init.js"]')) {
+      // For now CV uses inline init - will be bundled in future
+    }
+  </script>
+</body>
+</html>

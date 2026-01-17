@@ -833,12 +833,23 @@ function setupVariantCycle(variants) {
   });
 
   // Keyboard shortcut to toggle panel (/)
-  document.addEventListener('keydown', (e) => {
-    if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      showPanel();
-    }
-  });
+  // Only bind once
+  if (!window._splatPanelKeyBound) {
+    window._splatPanelKeyBound = true;
+    document.addEventListener('keydown', (e) => {
+      // Only trigger if not typing in an input/textarea
+      const isInputFocused = document.activeElement && (
+        document.activeElement.tagName === 'INPUT' ||
+        document.activeElement.tagName === 'TEXTAREA' ||
+        document.activeElement.isContentEditable
+      );
+      
+      if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !isInputFocused) {
+        e.preventDefault();
+        showPanel();
+      }
+    });
+  }
 }
 
 function startSplatLoop() {

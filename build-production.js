@@ -2,8 +2,9 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                    SIMPLE PRODUCTION BUILD PIPELINE                         ║
 // ║                                                                              ║
-// ║  1. Clean and prepare public/ from source/ (static assets)                  ║
-// ║  2. Bundle CSS/JS and inject into public/index.html                         ║
+// ║  1. Clean and prepare dist/ from source/ (static assets)                    ║
+// ║  2. Bundle CSS/JS via Rollup and inject into dist/index.html                ║
+// ║  3. ES module multi-entry build with code-splitting (shared.js chunk)       ║
 // ║                                                                              ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -20,7 +21,8 @@ console.log('\n🏗️  SIMPLE BUILD PIPELINE STARTING...\n');
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const CONFIG = {
-  publicDestination: './public',
+  // Production output directory (Phase 2: changed from public/ to dist/)
+  publicDestination: './dist',
   panelVisibleInProduction: false,
   // Source index is the canonical DOM/layout (dev + prod should match).
   // Build pipeline composes production assets into this template.
@@ -247,17 +249,17 @@ async function buildProduction() {
     
     const buildStamp = Date.now();
 
-    // STEP 1: Clean and prepare public/ from source/
-    console.log('📁 Step 1: Preparing public/ from source/...');
+    // STEP 1: Clean and prepare dist/ from source/
+    console.log('📁 Step 1: Preparing dist/ from source/...');
     
     if (fs.existsSync(CONFIG.publicDestination)) {
       // macOS + concurrent file watchers (dev startup) can cause transient ENOTEMPTY
       // during recursive deletion. Use retries to make the build resilient.
       fs.rmSync(CONFIG.publicDestination, { recursive: true, force: true, maxRetries: 10, retryDelay: 75 });
-      console.log('   Cleaned existing public/ folder');
+      console.log('   Cleaned existing dist/ folder');
     }
 
-    // Recreate public root
+    // Recreate dist root
     fs.mkdirSync(CONFIG.publicDestination, { recursive: true });
 
     // Copy static assets from source/
@@ -526,17 +528,20 @@ async function buildProduction() {
         pHtml = stripBlockBetweenMarkers(pHtml, 'ABS_BUILD_MARKER:JS_DEV_START', 'ABS_BUILD_MARKER:JS_DEV_END');
         
         // Inject production assets (cache-busted with build timestamp)
+        // Phase 2: ES module multi-entry build with shared chunk modulepreload
         const bundledCssTag = `<link rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
         const portfolioCssTag = `<link rel="stylesheet" href="css/portfolio.css?v=${buildStamp}">`;
-        const portfolioJsTag = `<script src="js/portfolio-bundle.js?v=${buildStamp}" defer></script>`;
+        const portfolioSharedPreload = `<link rel="modulepreload" href="js/shared.js?v=${buildStamp}">`;
+        const portfolioJsTag = `<script type="module" src="js/portfolio.js?v=${buildStamp}"></script>`;
 
         // Deterministic injection points:
-        pHtml = replaceMarker(pHtml, 'ABS_BUILD_MARKER:CSS_PROD', `${bundledCssTag}\n${portfolioCssTag}`);
+        pHtml = replaceMarker(pHtml, 'ABS_BUILD_MARKER:CSS_PROD', `${bundledCssTag}\n${portfolioCssTag}\n${portfolioSharedPreload}`);
         pHtml = replaceMarker(pHtml, 'ABS_BUILD_MARKER:JS_PROD', portfolioJsTag);
 
         // Safety: also update any existing portfolio.css/script tags (in case of template drift)
         pHtml = pHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="css\/portfolio\.css[^"]*"[^>]*>/g, portfolioCssTag);
         pHtml = pHtml.replace(/<script[^>]*src="js\/portfolio-bundle\.js[^"]*"[^>]*><\/script>/g, portfolioJsTag);
+        pHtml = pHtml.replace(/<script[^>]*src="js\/portfolio\.js[^"]*"[^>]*><\/script>/g, portfolioJsTag);
         
         // Always replace existing inline scripts to ensure fresh configs
         if (fs.existsSync(portfolioConfigSrc)) {
@@ -550,7 +555,7 @@ async function buildProduction() {
             if (!pHtml.includes('__PORTFOLIO_CONFIG__')) {
               pHtml = pHtml.replace('</head>', `${inline}\n</head>`);
             }
-            console.log('✅ Inlined portfolio config into public/portfolio.html (hardcoded)');
+            console.log('✅ Inlined portfolio config into dist/portfolio.html (hardcoded)');
           } catch (e) {}
         }
         
@@ -567,7 +572,7 @@ async function buildProduction() {
             if (!pHtml.includes('__RUNTIME_CONFIG__')) {
               pHtml = pHtml.replace('</head>', `${inline}\n</head>`);
             }
-            console.log('✅ Inlined runtime config into public/portfolio.html (hardcoded)');
+            console.log('✅ Inlined runtime config into dist/portfolio.html (hardcoded)');
           } catch (e) {}
         }
 
@@ -596,10 +601,10 @@ async function buildProduction() {
         }
 
         fs.writeFileSync(publicPortfolioPath, pHtml);
-        console.log('✅ Injected production assets into public/portfolio.html');
+        console.log('✅ Injected production assets into dist/portfolio.html');
     }
 
-    // 2g. Inject assets into public/splat/index.html
+    // 2g. Inject assets into dist/splat/index.html
     const publicSplatPath = path.join(CONFIG.publicDestination, 'splat', 'index.html');
     const splatTemplatePath = path.join('source', 'splat', 'index.html');
     const splatTemplate = safeReadFile(splatTemplatePath);
@@ -612,14 +617,17 @@ async function buildProduction() {
       sHtml = stripBlockBetweenMarkers(sHtml, 'ABS_BUILD_MARKER:CSS_DEV_START', 'ABS_BUILD_MARKER:CSS_DEV_END');
       sHtml = stripBlockBetweenMarkers(sHtml, 'ABS_BUILD_MARKER:JS_DEV_START', 'ABS_BUILD_MARKER:JS_DEV_END');
 
+      // Phase 2: ES module multi-entry build with shared chunk modulepreload
       const bundledCssTag = `<link rel="stylesheet" href="../css/bouncy-balls.css?v=${buildStamp}">`;
-      const splatJsTag = `<script src="../js/splat-bundle.js?v=${buildStamp}" defer></script>`;
+      const splatSharedPreload = `<link rel="modulepreload" href="../js/shared.js?v=${buildStamp}">`;
+      const splatJsTag = `<script type="module" src="../js/splat.js?v=${buildStamp}"></script>`;
 
-      sHtml = replaceMarker(sHtml, 'ABS_BUILD_MARKER:CSS_PROD', bundledCssTag);
+      sHtml = replaceMarker(sHtml, 'ABS_BUILD_MARKER:CSS_PROD', `${bundledCssTag}\n${splatSharedPreload}`);
       sHtml = replaceMarker(sHtml, 'ABS_BUILD_MARKER:JS_PROD', splatJsTag);
 
       sHtml = sHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="\.\.\/css\/bouncy-balls\.css[^"]*"[^>]*>/g, bundledCssTag);
       sHtml = sHtml.replace(/<script[^>]*src="\.\.\/js\/splat-bundle\.js[^"]*"[^>]*><\/script>/g, splatJsTag);
+      sHtml = sHtml.replace(/<script[^>]*src="\.\.\/js\/splat\.js[^"]*"[^>]*><\/script>/g, splatJsTag);
 
       if (fs.existsSync(runtimeConfigSrc)) {
         try {
@@ -630,7 +638,7 @@ async function buildProduction() {
           if (!sHtml.includes('__RUNTIME_CONFIG__')) {
             sHtml = sHtml.replace('</head>', `${inline}\n</head>`);
           }
-          console.log('✅ Inlined runtime config into public/splat/index.html (hardcoded)');
+          console.log('✅ Inlined runtime config into dist/splat/index.html (hardcoded)');
         } catch (e) {}
       }
 
@@ -649,7 +657,7 @@ async function buildProduction() {
       }
 
       fs.writeFileSync(publicSplatPath, sHtml);
-      console.log('✅ Injected production assets into public/splat/index.html');
+      console.log('✅ Injected production assets into dist/splat/index.html');
     }
 
     // Strip dev-only tooling blocks (keeps production HTML clean).
@@ -686,7 +694,7 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
         if (!html.includes('__RUNTIME_CONFIG__')) {
           html = html.replace('</head>', `${inline}\n</head>`);
         }
-        console.log('✅ Inlined runtime config into public/index.html (hardcoded)');
+        console.log('✅ Inlined runtime config into dist/index.html (hardcoded)');
       } catch (e) {}
     }
 
@@ -703,7 +711,7 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
         if (!html.includes('__TEXT__')) {
           html = html.replace('</head>', `${inline}\n</head>`);
         }
-        console.log('✅ Inlined runtime text into public/index.html as window.__TEXT__ (minified)');
+        console.log('✅ Inlined runtime text into dist/index.html as window.__TEXT__ (minified)');
       } catch (e) {}
     }
     
@@ -743,14 +751,17 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
     }
     
     // Inject production assets at explicit markers (single source of truth).
+    // Phase 2: ES module multi-entry build with code-splitting
     const cssTag = `<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
-    const jsTag = `<script id="bravia-balls-js" src="js/bouncy-balls-embed.js?v=${buildStamp}" defer></script>`;
-    html = replaceMarker(html, 'ABS_BUILD_MARKER:CSS_PROD', cssTag);
+    // Modulepreload shared chunk for faster loading (browser can parse while main module loads)
+    const sharedPreload = `<link rel="modulepreload" href="js/shared.js?v=${buildStamp}">`;
+    const jsTag = `<script id="bravia-balls-js" type="module" src="js/app.js?v=${buildStamp}"></script>`;
+    html = replaceMarker(html, 'ABS_BUILD_MARKER:CSS_PROD', `${cssTag}\n${sharedPreload}`);
     html = replaceMarker(html, 'ABS_BUILD_MARKER:JS_PROD', jsTag);
     fs.writeFileSync(publicIndexPath, html);
-    console.log('✅ Injected modular assets into public/index.html');
+    console.log('✅ Injected modular assets into dist/index.html');
 
-    // 2g. Inject config frame vars + theme-color + production CSS into public/cv.html
+    // 2g. Inject config frame vars + theme-color + production CSS into dist/cv.html
     const publicCvPath = path.join(CONFIG.publicDestination, 'cv.html');
     if (fs.existsSync(publicCvPath)) {
       try {
@@ -759,13 +770,14 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
         // Marker-based: remove dev CSS block and inject bundled CSS.
         cvHtml = stripBlockBetweenMarkers(cvHtml, 'ABS_BUILD_MARKER:CSS_DEV_START', 'ABS_BUILD_MARKER:CSS_DEV_END');
         
-        // Inject production CSS bundle
+        // Inject production CSS bundle + shared chunk modulepreload
         const bundledCvCssTag = `<link rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
-        cvHtml = replaceMarker(cvHtml, 'ABS_BUILD_MARKER:CSS_PROD', bundledCvCssTag);
+        const cvSharedPreload = `<link rel="modulepreload" href="js/shared.js?v=${buildStamp}">`;
+        cvHtml = replaceMarker(cvHtml, 'ABS_BUILD_MARKER:CSS_PROD', `${bundledCvCssTag}\n${cvSharedPreload}`);
 
-        // Marker-based: remove dev JS block and inject bundled CV JS (no module graph in public/).
+        // Marker-based: remove dev JS block and inject ES module CV entry
         cvHtml = stripBlockBetweenMarkers(cvHtml, 'ABS_BUILD_MARKER:JS_DEV_START', 'ABS_BUILD_MARKER:JS_DEV_END');
-        const cvJsTag = `<script src="js/cv-bundle.js?v=${buildStamp}" defer></script>`;
+        const cvJsTag = `<script type="module" src="js/cv.js?v=${buildStamp}"></script>`;
         cvHtml = replaceMarker(cvHtml, 'ABS_BUILD_MARKER:JS_PROD', cvJsTag);
 
         // CONFIG: Inline runtime config into cv.html (hardcoded at build-time).
@@ -803,7 +815,7 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
           cvHtml = cvHtml.replace('<head>', `<head>\n${frameVarsStyle}`);
         }
         fs.writeFileSync(publicCvPath, cvHtml);
-        console.log('✅ Injected production CSS + frame vars into public/cv.html');
+        console.log('✅ Injected production CSS + frame vars into dist/cv.html');
       } catch (e) {
         console.warn('⚠️ Could not process cv.html:', e);
       }
@@ -819,20 +831,28 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
     }
 
     // Report final bundle sizes (including gzip estimates)
-    const jsPath = path.join(jsDir, 'bouncy-balls-embed.js');
+    // Phase 2: ES module multi-entry build reports app.js + shared.js
+    const jsAppPath = path.join(jsDir, 'app.js');
+    const jsSharedPath = path.join(jsDir, 'shared.js');
     const cssPath = path.join(cssDir, 'bouncy-balls.css');
     
-    if (isProd && fs.existsSync(jsPath) && fs.existsSync(cssPath)) {
-      const jsRaw = fs.readFileSync(jsPath);
+    if (isProd && fs.existsSync(jsAppPath) && fs.existsSync(cssPath)) {
+      const jsAppRaw = fs.readFileSync(jsAppPath);
+      const jsSharedRaw = fs.existsSync(jsSharedPath) ? fs.readFileSync(jsSharedPath) : Buffer.alloc(0);
       const cssRaw = fs.readFileSync(cssPath);
-      const jsGzip = zlib.gzipSync(jsRaw, { level: 9 });
+      const jsAppGzip = zlib.gzipSync(jsAppRaw, { level: 9 });
+      const jsSharedGzip = jsSharedRaw.length > 0 ? zlib.gzipSync(jsSharedRaw, { level: 9 }) : Buffer.alloc(0);
       const cssGzip = zlib.gzipSync(cssRaw, { level: 9 });
       
       console.log('═══════════════════════════════════════════════════════════');
-      console.log('📊 BUNDLE SIZES:');
-      console.log(`   JS:  ${Math.round(jsRaw.length/1024)}KB → ${Math.round(jsGzip.length/1024)}KB gzipped`);
-      console.log(`   CSS: ${Math.round(cssRaw.length/1024)}KB → ${Math.round(cssGzip.length/1024)}KB gzipped`);
-      console.log(`   Total transfer: ~${Math.round((jsGzip.length + cssGzip.length)/1024)}KB gzipped`);
+      console.log('📊 BUNDLE SIZES (ES Module Multi-Entry):');
+      console.log(`   app.js:    ${Math.round(jsAppRaw.length/1024)}KB → ${Math.round(jsAppGzip.length/1024)}KB gzipped`);
+      if (jsSharedRaw.length > 0) {
+        console.log(`   shared.js: ${Math.round(jsSharedRaw.length/1024)}KB → ${Math.round(jsSharedGzip.length/1024)}KB gzipped`);
+      }
+      console.log(`   CSS:       ${Math.round(cssRaw.length/1024)}KB → ${Math.round(cssGzip.length/1024)}KB gzipped`);
+      const totalGzip = jsAppGzip.length + jsSharedGzip.length + cssGzip.length;
+      console.log(`   Total transfer: ~${Math.round(totalGzip/1024)}KB gzipped`);
     }
     
     console.log('═══════════════════════════════════════════════════════════');

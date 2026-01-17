@@ -2,7 +2,9 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                         BUILD PARITY VERIFIER (PROD)                         ║
 // ║                                                                              ║
-// ║  Goal: Catch dev/build drift EARLY by asserting invariants about `public/`.   ║
+// ║  Goal: Catch dev/build drift EARLY by asserting invariants about `dist/`.    ║
+// ║                                                                              ║
+// ║  Phase 2: Updated for ES module multi-entry build (app.js, shared.js, etc.)  ║
 // ║                                                                              ║
 // ║  This script is intentionally strict and fails the build if any invariant     ║
 // ║  is violated. Keep checks focused on drift-prone surfaces (HTML composition).║
@@ -42,7 +44,8 @@ function assertHasCacheBust(html, assetSubstring, label, failures) {
 }
 
 function verifyBuildParity(opts = {}) {
-  const publicDir = opts.publicDir || path.join(process.cwd(), 'public');
+  // Phase 2: Changed default from public/ to dist/
+  const publicDir = opts.publicDir || path.join(process.cwd(), 'dist');
   const failures = [];
 
   const publicIndex = path.join(publicDir, 'index.html');
@@ -64,15 +67,20 @@ function verifyBuildParity(opts = {}) {
   assertNoMarkers(cvHtml, 'cv.html', failures);
 
   // Global: bundled build should not ship the raw module graph directory
-  assert(!fs.existsSync(publicModulesDir), 'public/modules/ should not exist (bundles must be used)', failures);
+  assert(!fs.existsSync(publicModulesDir), 'dist/modules/ should not exist (bundles must be used)', failures);
 
   // index.html invariants
+  // Phase 2: ES module multi-entry build uses app.js + shared.js
   assertIncludes(indexHtml, 'id="bravia-balls-css"', 'index.html: missing #bravia-balls-css link tag', failures);
   assertIncludes(indexHtml, 'id="bravia-balls-js"', 'index.html: missing #bravia-balls-js script tag', failures);
   assertHasCacheBust(indexHtml, 'css/bouncy-balls.css', 'index.html', failures);
-  assertHasCacheBust(indexHtml, 'js/bouncy-balls-embed.js', 'index.html', failures);
+  assertHasCacheBust(indexHtml, 'js/app.js', 'index.html', failures);
+  assertHasCacheBust(indexHtml, 'js/shared.js', 'index.html', failures);
+  
+  // Production uses type="module" for ES modules
+  assertIncludes(indexHtml, 'type="module"', 'index.html: missing type="module" for ES module', failures);
 
-  assertNotIncludes(indexHtml, 'type="module" src="main.js"', 'index.html: dev module entrypoint leaked', failures);
+  assertNotIncludes(indexHtml, 'src="main.js"', 'index.html: dev module entrypoint leaked', failures);
   assertNotIncludes(indexHtml, 'css/tokens.css', 'index.html: unbundled CSS leaked (tokens.css)', failures);
   assertNotIncludes(indexHtml, 'css/normalize.css', 'index.html: unbundled CSS leaked (normalize.css)', failures);
   assertNotIncludes(indexHtml, 'css/main.css', 'index.html: unbundled CSS leaked (main.css)', failures);
@@ -88,18 +96,22 @@ function verifyBuildParity(opts = {}) {
   assertIncludes(indexHtml, 'id="modal-content-layer"', 'index.html: missing #modal-content-layer', failures);
 
   // portfolio.html invariants
+  // Phase 2: ES module build uses portfolio.js + shared.js
   assertHasCacheBust(portfolioHtml, 'css/bouncy-balls.css', 'portfolio.html', failures);
   assertHasCacheBust(portfolioHtml, 'css/portfolio.css', 'portfolio.html', failures);
-  assertHasCacheBust(portfolioHtml, 'js/portfolio-bundle.js', 'portfolio.html', failures);
-  assertNotIncludes(portfolioHtml, 'type="module"', 'portfolio.html: dev module script leaked', failures);
+  assertHasCacheBust(portfolioHtml, 'js/portfolio.js', 'portfolio.html', failures);
+  assertHasCacheBust(portfolioHtml, 'js/shared.js', 'portfolio.html', failures);
+  assertIncludes(portfolioHtml, 'type="module"', 'portfolio.html: missing type="module" for ES module', failures);
   assertNotIncludes(portfolioHtml, 'modules/portfolio/app.js', 'portfolio.html: dev entrypoint leaked', failures);
   assertIncludes(portfolioHtml, 'window.__PORTFOLIO_CONFIG__=', 'portfolio.html: missing inline __PORTFOLIO_CONFIG__', failures);
   assertIncludes(portfolioHtml, 'window.__RUNTIME_CONFIG__=', 'portfolio.html: missing inline __RUNTIME_CONFIG__', failures);
 
   // cv.html invariants
+  // Phase 2: ES module build uses cv.js + shared.js
   assertHasCacheBust(cvHtml, 'css/bouncy-balls.css', 'cv.html', failures);
-  assertHasCacheBust(cvHtml, 'js/cv-bundle.js', 'cv.html', failures);
-  assertNotIncludes(cvHtml, 'type="module"', 'cv.html: dev module script leaked', failures);
+  assertHasCacheBust(cvHtml, 'js/cv.js', 'cv.html', failures);
+  assertHasCacheBust(cvHtml, 'js/shared.js', 'cv.html', failures);
+  assertIncludes(cvHtml, 'type="module"', 'cv.html: missing type="module" for ES module', failures);
   assertIncludes(cvHtml, 'window.__RUNTIME_CONFIG__=', 'cv.html: missing inline __RUNTIME_CONFIG__', failures);
   assertIncludes(cvHtml, 'window.__TEXT__=', 'cv.html: missing inline __TEXT__', failures);
 
@@ -111,7 +123,7 @@ function verifyBuildParity(opts = {}) {
     process.exit(1);
   }
 
-  console.log('✅ Build parity verified (public/ HTML + assets invariants)');
+  console.log('✅ Build parity verified (dist/ HTML + assets invariants)');
 }
 
 module.exports = { verifyBuildParity };
