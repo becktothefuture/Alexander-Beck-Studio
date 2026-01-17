@@ -19,7 +19,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const PORT = 8000;
-const PUBLIC_DIR = path.join(__dirname, 'public');
+const PUBLIC_DIR = path.join(__dirname, 'dist');
 const EXPECTED_MODES = [
   'pit',
   'flies',
@@ -121,6 +121,7 @@ async function verifyBuildFiles() {
   const requiredFiles = [
     'dist/index.html',
     'dist/js/app.js',
+    'dist/js/shared.js',
     'dist/css/styles.css'
   ];
   

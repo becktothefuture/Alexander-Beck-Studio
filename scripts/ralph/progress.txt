@@ -210,4 +210,33 @@ Task ID: 12
 - **Learnings for future iterations:**
   - INTEGRATION.md needed extensive updates for ES modules (type="module", modulepreload)
   - Documentation should include the shared.js modulepreload pattern for optimal loading
+
+---
+
+## 2026-01-17 - Phase 10: Test & Verification
+Thread: https://ampcode.com/threads/T-019bce0e-c55f-752c-805b-c2784ee8699c
+Task ID: 13
+- **Updated test-all-simulations.js:**
+  - Changed PUBLIC_DIR from 'public' to 'dist'
+  - Test script now correctly serves from dist/ directory
+- **Verification results:**
+  - ✅ `npm run build` completes without errors
+  - ✅ All expected files exist in dist/js/: shared.js (235KB), app.js (16KB), portfolio.js, cv.js, splat.js
+  - ✅ Auto-split chunks present: controls.js, panel-dock.js, pointer.js, legend-colors.js, wall-only-canvas.js
+  - ✅ CSS files: styles.css (85KB), portfolio.css (20KB)
+  - ✅ Build parity verification passes
+  - ✅ All 19 simulation modes registered and found
+  - ✅ HTTP 200 responses: index.html, portfolio.html, cv.html
+  - ⚠️ splat/index.html doesn't exist (splat is at root as splat-test.html, not in subdirectory)
+- **Bundle size reduction achieved:**
+  - app.js: 16KB → 5KB gzipped
+  - shared.js: 230KB → 68KB gzipped
+  - CSS: 84KB → 15KB gzipped
+  - Total transfer: ~88KB gzipped
+- **Files changed:** test-all-simulations.js
+- **Learnings for future iterations:**
+  - Splat test page is at /splat-test.html, not /splat/index.html
+  - verify-build-parity.js was already updated in Phase 2
+  - Build parity verifier is essential for catching drift between dev and prod
+
 ---
