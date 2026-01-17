@@ -78,6 +78,27 @@ Task ID: 6
 
 ---
 
+## 2026-01-17 - Phase 4: Dev Server Updates (Verification)
+Thread: https://ampcode.com/threads/T-019bce03-8380-7491-8787-85aaaa8a06be
+Task ID: 7
+- **Verified all Phase 3 updates already satisfy Phase 4 requirements:**
+  - dev-startup.js health check looks for `dist/js/app.js` ✓
+  - Production server serves from `dist/` ✓
+  - live-reload-server.js watches `source/` and `dist/` ✓
+  - Dev mode continues serving from `source/` with ES modules (`type="module"`) ✓
+- **Source file verification:**
+  - source/index.html: `<script type="module" src="main.js">`
+  - source/portfolio.html: `<script type="module" src="modules/portfolio/app.js">`
+  - source/cv.html: `<script type="module" src="modules/cv-init.js">`
+- **Build output:** dist/js/ contains app.js, shared.js, portfolio.js, cv.js, splat.js + auto-split chunks
+- **Files changed:** None (Phase 3 already completed all necessary updates)
+- **Verification:** `npm run build` successful, dev server returns HTTP 200
+- **Learnings for future iterations:**
+  - Phase 3 was comprehensive - Phase 4 was essentially a verification step
+  - Source files already used ES modules before the pipeline overhaul
+
+---
+
 ## 2026-01-17 - Exit Code 1 Fix (dev-startup.js cleanup)
 Thread: https://ampcode.com/threads/T-019bcdfc-b8f4-73fb-bf55-675cfee0c51f
 Task ID: 6 (continuation)
