@@ -811,6 +811,11 @@ export function playWheelClose() {
   playWheelClick(WHEEL_SFX_CONFIG.closeGain, WHEEL_SFX_CONFIG.closeFilterHz || 1600);
 }
 
+export function playHoverSound() {
+  if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
+  playWheelClick(0.025, 2200);
+}
+
 /** Create a short noise burst for transient "snap" */
 function createTransientNoise() {
   if (!sharedNoiseBuffer) {

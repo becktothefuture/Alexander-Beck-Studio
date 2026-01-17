@@ -3,6 +3,8 @@
 // ║  Minimal hover detection: hides custom cursor when over interactive elements ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
+import { playHoverSound } from '../audio/sound-engine.js';
+
 let isInitialized = false;
 const HOVER_CLASS = 'abs-link-hovering';
 
@@ -37,6 +39,7 @@ function onPointerOver(e) {
   
   try {
     document.body.classList.add(HOVER_CLASS);
+    playHoverSound();
   } catch (e) {}
 }
 

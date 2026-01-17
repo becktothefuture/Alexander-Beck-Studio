@@ -93,6 +93,7 @@ function runHealthCheck() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const servers = [];
+let isShuttingDown = false;
 
 function startServer(name, command, port, description) {
   return new Promise((resolve) => {
@@ -154,9 +155,16 @@ function startServer(name, command, port, description) {
       resolve();
     });
     
-    server.on('exit', (code) => {
+    server.on('exit', (code, signal) => {
+      // Don't log errors during intentional shutdown
+      if (isShuttingDown) return;
+      if (signal === 'SIGTERM' || signal === 'SIGINT') {
+        // Graceful shutdown - don't log as error
+        return;
+      }
       if (code !== null && code !== 0) {
-        log(`❌ ${name} exited with code ${code}`, 'red');
+        log(`❌ ${name} exited unexpectedly with code ${code}`, 'red');
+        log(`   Check if the port is already in use or if there's a startup error`, 'dim');
       }
     });
     
@@ -171,10 +179,11 @@ function startServer(name, command, port, description) {
 }
 
 function stopAllServers() {
+  isShuttingDown = true;  // Suppress exit code errors during shutdown
   log('\n🛑 Stopping servers...', 'yellow');
   servers.forEach(({ name, process }) => {
     try {
-      process.kill();
+      process.kill('SIGTERM');
       log(`   Stopped ${name}`, 'dim');
     } catch (e) {
       // Already dead
