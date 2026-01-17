@@ -635,6 +635,165 @@ export const CONTROL_SECTIONS = {
         default: 0.35,
         format: v => v.toFixed(2),
         parse: parseFloat
+      },
+      { type: 'divider', label: 'Cursor Explosion' },
+      {
+        id: 'cursorExplosionEnabled',
+        label: 'Explosion Enabled',
+        stateKey: 'cursorExplosionEnabled',
+        type: 'checkbox',
+        default: true,
+        hint: 'Particle dispersion when cursor enters button areas'
+      },
+      {
+        id: 'cursorExplosionParticleCount',
+        label: 'Particle Count',
+        stateKey: 'cursorExplosionParticleCount',
+        type: 'range',
+        min: 4, max: 32, step: 1,
+        default: 16,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Base particle count (scales with velocity)'
+      },
+      {
+        id: 'cursorExplosionSpeed',
+        label: 'Particle Speed',
+        stateKey: 'cursorExplosionSpeed',
+        type: 'range',
+        min: 100, max: 1000, step: 50,
+        default: 400,
+        format: v => `${Math.round(v)}px/s`,
+        parse: v => parseInt(v, 10),
+        hint: 'Base particle velocity (scales with impact)'
+      },
+      {
+        id: 'cursorExplosionSpreadDeg',
+        label: 'Spread Angle',
+        stateKey: 'cursorExplosionSpreadDeg',
+        type: 'range',
+        min: 180, max: 360, step: 10,
+        default: 360,
+        format: v => `${Math.round(v)}°`,
+        parse: v => parseInt(v, 10),
+        hint: 'Particle dispersion angle (360 = full circle)'
+      },
+      {
+        id: 'cursorExplosionLifetime',
+        label: 'Lifetime',
+        stateKey: 'cursorExplosionLifetime',
+        type: 'range',
+        min: 0.3, max: 1.5, step: 0.1,
+        default: 0.8,
+        format: v => `${v.toFixed(1)}s`,
+        parse: parseFloat,
+        hint: 'How long particles live before fading'
+      },
+      {
+        id: 'cursorExplosionFadeStartRatio',
+        label: 'Fade Start',
+        stateKey: 'cursorExplosionFadeStartRatio',
+        type: 'range',
+        min: 0.3, max: 0.9, step: 0.05,
+        default: 0.6,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'When to start fading (0.6 = fade at 60% lifetime)'
+      },
+      {
+        id: 'cursorExplosionDrag',
+        label: 'Drag',
+        stateKey: 'cursorExplosionDrag',
+        type: 'range',
+        min: 0.85, max: 0.99, step: 0.01,
+        default: 0.95,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Velocity decay per frame (lower = faster slowdown)'
+      },
+      {
+        id: 'cursorExplosionShrinkEnabled',
+        label: 'Shrink Over Time',
+        stateKey: 'cursorExplosionShrinkEnabled',
+        type: 'checkbox',
+        default: true,
+        hint: 'Particles shrink as they age (cartoony character)'
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CURSOR EXPLOSION IMPACT - How mouse velocity affects explosion strength
+  // ═══════════════════════════════════════════════════════════════════════════
+  cursorExplosionImpact: {
+    title: 'Cursor Explosion Impact',
+    controls: [
+      {
+        id: 'cursorExplosionImpactMinFactor',
+        label: 'Min Impact',
+        stateKey: 'cursorExplosionImpactMinFactor',
+        type: 'range',
+        min: 0.1, max: 2.0, step: 0.1,
+        default: 0.5,
+        format: v => `${v.toFixed(1)}x`,
+        parse: parseFloat,
+        hint: 'Impact multiplier for slow hover (0.5 = half intensity)'
+      },
+      {
+        id: 'cursorExplosionImpactMaxFactor',
+        label: 'Max Impact',
+        stateKey: 'cursorExplosionImpactMaxFactor',
+        type: 'range',
+        min: 1.0, max: 8.0, step: 0.5,
+        default: 4.0,
+        format: v => `${v.toFixed(1)}x`,
+        parse: parseFloat,
+        hint: 'Impact multiplier for fast impact (4.0 = 4x intensity)'
+      },
+      {
+        id: 'cursorExplosionImpactSensitivity',
+        label: 'Impact Sensitivity',
+        stateKey: 'cursorExplosionImpactSensitivity',
+        type: 'range',
+        min: 100, max: 1000, step: 50,
+        default: 400,
+        format: v => `${Math.round(v)}px/ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Velocity threshold for scaling (higher = less sensitive)'
+      },
+      { type: 'divider', label: 'Lifetime Impact' },
+      {
+        id: 'cursorExplosionLifetimeImpactMin',
+        label: 'Min Lifetime Scale',
+        stateKey: 'cursorExplosionLifetimeImpactMin',
+        type: 'range',
+        min: 0.3, max: 1.5, step: 0.1,
+        default: 0.7,
+        format: v => `${v.toFixed(1)}x`,
+        parse: parseFloat,
+        hint: 'Lifetime multiplier for slow hover (particles fade quickly)'
+      },
+      {
+        id: 'cursorExplosionLifetimeImpactMax',
+        label: 'Max Lifetime Scale',
+        stateKey: 'cursorExplosionLifetimeImpactMax',
+        type: 'range',
+        min: 1.0, max: 3.0, step: 0.1,
+        default: 1.8,
+        format: v => `${v.toFixed(1)}x`,
+        parse: parseFloat,
+        hint: 'Lifetime multiplier for fast impact (particles travel farther)'
+      },
+      {
+        id: 'cursorExplosionLifetimeImpactSensitivity',
+        label: 'Lifetime Sensitivity',
+        stateKey: 'cursorExplosionLifetimeImpactSensitivity',
+        type: 'range',
+        min: 200, max: 1500, step: 50,
+        default: 600,
+        format: v => `${Math.round(v)}px/ms`,
+        parse: v => parseInt(v, 10),
+        hint: 'Velocity threshold for lifetime scaling (higher = less sensitive)'
       }
     ]
   },

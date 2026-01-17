@@ -6,6 +6,8 @@
 
 import { getGlobals } from '../core/state.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
+import { triggerCursorExplosion, updateMouseVelocity } from '../visual/cursor-explosion.js';
+import { getMouseVelocity, getMouseDirection } from '../input/pointer.js';
 
 let cursorElement = null;
 let isInitialized = false;
@@ -15,6 +17,9 @@ let rectCacheTime = 0;
 const RECT_CACHE_MS = 100; // Cache rect for 100ms to avoid excessive layout reads
 let fadeInStarted = false;
 let fadeInAnimation = null;
+let wasOverLink = false; // Track previous hover state for transition detection
+let lastClientX = 0;
+let lastClientY = 0;
 
 /**
  * Check if mouse is inside simulation container
@@ -138,11 +143,79 @@ function isFadeInComplete() {
  * @param {number} clientX - Mouse X position
  * @param {number} clientY - Mouse Y position
  */
+/**
+ * Get canvas position from client coordinates
+ * Helper for explosion trigger (converts screen coords to canvas coords)
+ * Matches pattern from pointer.js for consistency
+ */
+function getCanvasPosition(clientX, clientY) {
+  const globals = getGlobals();
+  const canvas = globals?.canvas;
+  if (!canvas) return null;
+  
+  const rect = canvas.getBoundingClientRect();
+  const rw = rect.width || 1;
+  const rh = rect.height || 1;
+  const sx = canvas.width / rw;
+  const sy = canvas.height / rh;
+  
+  return {
+    x: (clientX - rect.left) * sx,
+    y: (clientY - rect.top) * sy,
+    inBounds: clientX >= rect.left && clientX <= rect.right && 
+              clientY >= rect.top && clientY <= rect.bottom
+  };
+}
+
 export function updateCursorPosition(clientX, clientY) {
   if (!cursorElement) return;
   
+  // Store position for explosion trigger
+  lastClientX = clientX;
+  lastClientY = clientY;
+  
   // Hide cursor when hovering over links (trail is already suppressed)
   const isOverLink = isHoveringOverLink();
+  
+  // Detect transition: cursor about to hide (entering button area)
+  // Trigger explosion at the moment of transition
+  if (isOverLink && !wasOverLink) {
+    // Cursor is about to disappear - trigger explosion!
+    // Use the last known canvas position if cursor is outside bounds (buttons are often outside canvas)
+    const canvasPos = getCanvasPosition(clientX, clientY);
+    if (canvasPos) {
+      const globals = getGlobals();
+      const canvas = globals?.canvas;
+      
+      // If cursor is outside canvas, clamp to canvas bounds for explosion
+      let x = canvasPos.x;
+      let y = canvasPos.y;
+      
+      if (!canvasPos.inBounds && canvas) {
+        // Clamp to canvas edges (particles will still be visible)
+        x = Math.max(0, Math.min(canvas.width, x));
+        y = Math.max(0, Math.min(canvas.height, y));
+      }
+      
+      // Only trigger if we have valid canvas coordinates
+      if (canvas && x >= 0 && y >= 0 && x <= canvas.width && y <= canvas.height) {
+        const color = getCursorColor();
+        const velocity = getMouseVelocity();
+        const dir = getMouseDirection();
+        
+        // Trigger beautiful visceral explosion
+        triggerCursorExplosion(x, y, color, velocity);
+        
+        // Update velocity tracking in explosion module (for direction bias)
+        if (dir && (dir.x !== 0 || dir.y !== 0)) {
+          updateMouseVelocity(velocity, dir.x, dir.y);
+        }
+      }
+    }
+  }
+  
+  wasOverLink = isOverLink;
+  
   if (isOverLink) {
     cursorElement.style.display = 'none';
     return;

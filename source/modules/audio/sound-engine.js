@@ -53,11 +53,11 @@ const BASE_CONFIG = {
   reverbWetMix: 0.18,
   reverbHighDamp: 0.55,
   
-  // Volume / dynamics
-  minGain: 0.002,
-  maxGain: 0.025,
+  // Volume / dynamics (reduced 50% for subtle chimes)
+  minGain: 0.001,
+  maxGain: 0.0125,
   masterGain: 0.28,
-  voiceGainMax: 0.04,
+  voiceGainMax: 0.02,
   
   // Performance
   minTimeBetweenSounds: 0.012,
@@ -443,13 +443,13 @@ function buildAudioGraph() {
   masterGain = audioContext.createGain();
   masterGain.gain.value = CONFIG.masterGain;
   
-  // Limiter (prevent clipping)
+  // Limiter (aggressive clip prevention)
   limiter = audioContext.createDynamicsCompressor();
-  limiter.threshold.value = -6;
-  limiter.knee.value = 10;
-  limiter.ratio.value = 16;
-  limiter.attack.value = 0.0005;
-  limiter.release.value = 0.08;
+  limiter.threshold.value = -12;
+  limiter.knee.value = 3;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.001;
+  limiter.release.value = 0.05;
 
   // High-shelf EQ (tame highs)
   highShelf = audioContext.createBiquadFilter();
@@ -813,7 +813,7 @@ export function playWheelClose() {
 
 export function playHoverSound() {
   if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
-  playWheelClick(0.09, 2200);
+  playWheelClick(0.099, 2200);
 }
 
 /** Create a short noise burst for transient "snap" */

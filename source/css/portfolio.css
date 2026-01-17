@@ -157,9 +157,8 @@ body.portfolio-page #brand-logo {
      entrance animation from wasting time animating an invisible element */
 }
 
-/* Edge labels: slightly different opacity for portfolio */
-body.portfolio-page .edge-chapter__text,
-body.portfolio-page .edge-copyright__text {
+/* Edge caption: slightly different opacity for portfolio */
+body.portfolio-page .edge-caption__line {
   opacity: 0.8;
 }
 

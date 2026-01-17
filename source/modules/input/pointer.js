@@ -11,11 +11,13 @@ import { notifyMouseTrailMove } from '../visual/mouse-trail.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
 
-// Mouse velocity tracking for water ripples
+// Mouse velocity tracking for water ripples and cursor explosion
 let lastMouseX = 0;
 let lastMouseY = 0;
 let lastMoveTime = 0;
 let mouseVelocity = 0;
+let mouseDirX = 0; // Normalized direction X (-1 to 1)
+let mouseDirY = 0; // Normalized direction Y (-1 to 1)
 let lastTapTime = 0;
 // Simple click tracking - just debounce to prevent rapid clicks
 let lastClickTime = 0;
@@ -111,7 +113,14 @@ export function setupPointer() {
     if (dt > 0 && lastMoveTime > 0) {
       const dx = pos.x - lastMouseX;
       const dy = pos.y - lastMouseY;
-      mouseVelocity = Math.sqrt(dx * dx + dy * dy) / dt;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      mouseVelocity = dist / dt;
+      
+      // Normalize direction for explosion bias
+      if (dist > 0.1) {
+        mouseDirX = dx / dist;
+        mouseDirY = dy / dist;
+      }
     }
     
     // Update custom cursor position only for mouse-like pointers
@@ -285,6 +294,8 @@ export function setupPointer() {
     globals.mouseY = CONSTANTS.OFFSCREEN_MOUSE;
     globals.mouseInCanvas = false;
     mouseVelocity = 0;
+    mouseDirX = 0;
+    mouseDirY = 0;
     if (typeof window !== 'undefined') window.mouseInCanvas = false;
     hideCursor();
   });
@@ -315,6 +326,22 @@ export function setupPointer() {
 /**
  * Enable/disable click-to-cycle mode switching
  */
+/**
+ * Get current mouse velocity (px/ms)
+ * Used for impact-based cursor explosion
+ */
+export function getMouseVelocity() {
+  return mouseVelocity || 0;
+}
+
+/**
+ * Get current mouse direction (normalized vector)
+ * Returns {x, y} with magnitude ~1.0, or {x: 0, y: 0} if no movement
+ */
+export function getMouseDirection() {
+  return { x: mouseDirX || 0, y: mouseDirY || 0 };
+}
+
 export function setClickCycleEnabled(enabled) {
   // Sync to global state
   const globals = getGlobals();

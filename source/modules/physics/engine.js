@@ -13,6 +13,7 @@ import { getModeUpdater, getModeRenderer } from '../modes/mode-controller.js';
 import { renderKaleidoscope } from '../modes/kaleidoscope.js';
 import { applyKaleidoscopeBounds } from '../modes/kaleidoscope.js';
 import { drawMouseTrail } from '../visual/mouse-trail.js';
+import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
 
 const DT_DESKTOP = CONSTANTS.PHYSICS_DT;
 const DT_MOBILE = CONSTANTS.PHYSICS_DT_MOBILE;
@@ -362,6 +363,9 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   }
 
   updatePhysicsInternal(dtSeconds, applyForcesFunc);
+  
+  // Update cursor explosion particles
+  updateCursorExplosion(dtSeconds);
 }
 
 export function render() {
@@ -460,6 +464,9 @@ export function render() {
   
   // Mouse trail: draw after clip restore so it's always visible
   drawMouseTrail(ctx);
+  
+  // Cursor explosion: draw after trail (particles dissipate beautifully)
+  drawCursorExplosion(ctx);
   
   // Depth wash: gradient overlay between balls/trail and wall
   drawDepthWash(ctx, canvas.width, canvas.height);

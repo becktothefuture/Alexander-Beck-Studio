@@ -108,13 +108,12 @@ html.entrance-pre-transition #app-frame {
   visibility: hidden;
 }
 
-/* Background elements (#bravia-balls, #abs-scene, #edge-chapter, #edge-copyright)
+/* Background elements (#bravia-balls, #abs-scene, #edge-caption)
    are visible immediately (no fade-in). #brand-logo and #main-links are NOT included 
    here - they use inline styles + JS animation for late reveal. */
 html.entrance-pre-transition #bravia-balls,
 html.entrance-pre-transition #abs-scene,
-html.entrance-pre-transition #edge-chapter,
-html.entrance-pre-transition #edge-copyright {
+html.entrance-pre-transition #edge-caption {
   opacity: 1;
   visibility: visible;
 }
@@ -134,8 +133,7 @@ html.entrance-transitioning #app-frame {
 /* Background elements remain visible during transition (no fade-in) 
    #brand-logo and #main-links are NOT included - controlled by JS animation only */
 html.entrance-transitioning #abs-scene,
-html.entrance-transitioning #edge-chapter,
-html.entrance-transitioning #edge-copyright {
+html.entrance-transitioning #edge-caption {
   visibility: visible;
   opacity: 1;
 }
@@ -198,78 +196,27 @@ body.dark-mode .content-background-layer {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   EDGE COPYRIGHT (Right Edge, Tilted)
+   EDGE CAPTION (Bottom, centered; engraved two-line stack)
    ───────────────────────────────────────────────────────────────────────────── */
-.edge-copyright {
+.edge-caption {
   position: fixed;
-  top: 0;
-  bottom: 0;
-  left: auto;
-  right: var(--edge-label-inset);
+  left: 50%;
+  bottom: calc(var(--wall-thickness) * 0.495);
+  transform: translateX(-50%);
   z-index: 6; /* Above canvas (5), below UI (20) */
   pointer-events: none;
-  display: flex;
-  align-items: center; /* True vertical centering in viewport */
-  /* Smooth container-border-driven movement on resize (no existing transition here). */
-  transition: right var(--duration-resize) var(--ease-organic);
-}
-
-.edge-copyright__text {
-  display: block;
-  font-family: 'Geist Mono', monospace;
-  font-size: calc(var(--text-xs) * 0.85);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: var(--letter-spacing-loose);
-  text-transform: uppercase;
-  white-space: nowrap;
-
-  color: var(--text-muted);
-  opacity: var(--edge-label-opacity);
-
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transform: rotate(180deg); /* Keeps reading direction feeling "upright" */
-  transform-origin: center;
-}
-
-body.dark-mode .edge-copyright__text {
-  color: var(--text-muted);
-  opacity: var(--edge-label-opacity);
-}
-
-@media (max-width: 600px) {
-  .edge-copyright {
-    /* JS-controlled visibility on mobile via --edge-label-mobile-display */
-    display: var(--edge-label-mobile-display, none);
-    right: var(--edge-label-inset);
-  }
-
-  .edge-copyright__text {
-    font-size: calc(var(--text-xs) * 0.8);
-    opacity: var(--edge-label-opacity);
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   EDGE CHAPTER (Left Edge, Tilted) — current simulation chapter title
-   ───────────────────────────────────────────────────────────────────────────── */
-.edge-chapter {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: var(--edge-label-inset);
-  right: auto;
-  z-index: 6; /* Above canvas (5), below UI (20) */
-  pointer-events: none;
-  display: flex;
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  /* Smooth container-border-driven movement on resize (no existing transition here). */
-  transition: left var(--duration-resize) var(--ease-organic);
+  justify-content: center;
+  gap: clamp(1px, 0.4cap, 5px); /* ~20% tighter cap spacing with small guardrails */
+  text-align: center;
+  transition:
+    bottom var(--duration-resize) var(--ease-organic),
+    transform var(--duration-resize) var(--ease-organic);
 }
 
-.edge-chapter__text {
-  display: block;
+.edge-caption__line {
   font-family: 'Geist Mono', monospace;
   font-size: calc(var(--text-xs) * 0.85);
   font-weight: 400;
@@ -277,37 +224,33 @@ body.dark-mode .edge-copyright__text {
   letter-spacing: var(--letter-spacing-loose);
   text-transform: uppercase;
   white-space: nowrap;
-
   color: var(--text-muted);
   opacity: var(--edge-label-opacity);
-
-  writing-mode: vertical-lr;
-  text-orientation: mixed;
-  transform: rotate(180deg);
-  transform-origin: center;
+  /* Subtle engraved treatment: tiny light lift + recessed dark edge */
+  text-shadow:
+    0 0.5px 0 rgba(var(--abs-rgb-white), 0.16),
+    0 -0.5px 0 rgba(var(--abs-rgb-black), 0.28);
 }
 
-body.dark-mode .edge-chapter__text {
+body.dark-mode .edge-caption__line {
   color: var(--text-muted);
   opacity: var(--edge-label-opacity);
 }
 
 @media (max-width: 600px) {
-  .edge-chapter {
-    /* JS-controlled visibility on mobile via --edge-label-mobile-display */
-    display: var(--edge-label-mobile-display, none);
-    left: var(--edge-label-inset);
+  .edge-caption {
+    display: var(--edge-label-mobile-display, flex);
+    bottom: calc(var(--wall-thickness) * 0.54);
   }
 
-  .edge-chapter__text {
+  .edge-caption__line {
     font-size: calc(var(--text-xs) * 0.8);
     opacity: var(--edge-label-opacity);
   }
 }
 
 html.fonts-loading .fade-content,
-html.fonts-loading #edge-chapter,
-html.fonts-loading #edge-copyright,
+html.fonts-loading #edge-caption,
 html.fonts-loading .portfolio-meta,
 html.fonts-loading .project-detail {
   visibility: hidden;

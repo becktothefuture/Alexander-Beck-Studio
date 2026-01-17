@@ -182,8 +182,8 @@
   <meta content="Alexander Beck - Product Designer, Creative Technologist, Experience Director" name="description">
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
-  <link rel="stylesheet" href="css/styles.css?v=1768688674731">
-<link rel="modulepreload" href="js/shared.js?v=1768688674731">
+  <link rel="stylesheet" href="css/styles.css?v=1768689069706">
+<link rel="modulepreload" href="js/shared.js?v=1768689069706">
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
@@ -230,6 +230,14 @@
   "mouseTrailSize": 4.2,
   "mouseTrailFadeMs": 260,
   "mouseTrailOpacity": 1,
+  "cursorExplosionEnabled": true,
+  "cursorExplosionParticleCount": 16,
+  "cursorExplosionSpeed": 400,
+  "cursorExplosionSpreadDeg": 360,
+  "cursorExplosionLifetime": 0.8,
+  "cursorExplosionFadeStartRatio": 0.6,
+  "cursorExplosionDrag": 0.95,
+  "cursorExplosionShrinkEnabled": true,
   "contentPaddingRatio": 0.03,
   "contentPaddingHorizontalRatio": 1.05,
   "contentPaddingBottomRatio": 1,
@@ -559,10 +567,10 @@
     "reverbDecay": 0.19,
     "reverbWetMix": 0.07,
     "reverbHighDamp": 0.8,
-    "minGain": 0.008,
-    "maxGain": 0.09,
-    "masterGain": 0.51,
-    "voiceGainMax": 0.14,
+    "minGain": 0.001,
+    "maxGain": 0.0125,
+    "masterGain": 0.255,
+    "voiceGainMax": 0.02,
     "minTimeBetweenSounds": 0.018,
     "maxPan": 0.15,
     "noiseTransientEnabled": true,
@@ -828,7 +836,7 @@
   <!-- Page Flash Overlay -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
-  <script type="module" src="js/cv.js?v=1768688674731"></script>
+  <script type="module" src="js/cv.js?v=1768689069706"></script>
   <script>
     // In production (served from dist/), load from bundled JS if available
     if (!document.querySelector('script[src*="modules/cv-init.js"]')) {

@@ -32,8 +32,9 @@ function applyMeta() {
 
 function applyEdge() {
   setText(document.getElementById('edge-chapter-text'), getText('edge.chapterText', ''));
-  const copyEl = document.querySelector('.edge-copyright__text');
-  setText(copyEl, getText('edge.copyright', ''));
+  const taglineEl = document.getElementById('edge-caption-tagline');
+  const tagline = getText('edge.tagline', getText('edge.copyright', ''));
+  setText(taglineEl, tagline);
 }
 
 function applyLegend() {
@@ -185,4 +186,3 @@ export function applyRuntimeTextToDOM() {
     // Never allow copy application to crash boot.
   }
 }
-

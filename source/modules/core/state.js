@@ -174,6 +174,24 @@ const state = {
   mouseTrailFadeMs: 220,    // lifetime of a sample
   mouseTrailOpacity: 0.35,  // 0..1
   
+  // Cursor explosion (particle dispersion on button hover)
+  cursorExplosionEnabled: true,
+  cursorExplosionParticleCount: 6,       // Base count (scales with velocity)
+  cursorExplosionSpeed: 180,             // Base speed (scales with impact)
+  cursorExplosionSpreadDeg: 360,
+  cursorExplosionLifetime: 0.5,          // Base lifetime (scales with velocity)
+  cursorExplosionFadeStartRatio: 0.4,    // Fade threshold
+  cursorExplosionDrag: 0.88,             // Velocity decay
+  cursorExplosionShrinkEnabled: true,
+  
+  // Impact scaling (how mouse velocity affects explosion)
+  cursorExplosionImpactMinFactor: 0.5,   // Minimum impact multiplier (slow hover)
+  cursorExplosionImpactMaxFactor: 4.0,   // Maximum impact multiplier (fast impact)
+  cursorExplosionImpactSensitivity: 400, // Velocity sensitivity (higher = less sensitive)
+  cursorExplosionLifetimeImpactMin: 0.7, // Min lifetime multiplier for slow
+  cursorExplosionLifetimeImpactMax: 1.8, // Max lifetime multiplier for fast
+  cursorExplosionLifetimeImpactSensitivity: 600, // Lifetime velocity sensitivity
+  
   // Ball properties
   ballSoftness: 20,
   ballSpacing: 0.08,    // Extra collision padding as ratio of ball radius (0.1 = 10% of ball size)
@@ -253,6 +271,7 @@ const state = {
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
   contentPaddingBottomRatio: 1.3,     // bottom padding multiplier (applied to vertical padding)
   mobileWallThicknessXFactor: 1.4,    // wall thickness multiplier for LEFT/RIGHT on mobile (1.0 = same as desktop)
+  desktopWallThicknessFactor: 1.0,    // wall thickness multiplier for TOP/BOTTOM on desktop (1.0 = base)
   mobileEdgeLabelsVisible: true,     // whether to show edge labels on mobile (default: visible)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
@@ -785,14 +804,19 @@ export function applyLayoutFromVwToPx() {
   const mobileWallXFactor = isMobileLayout
     ? Math.max(0.5, state.mobileWallThicknessXFactor || 1.0)
     : 1.0;
+  // Desktop-only vertical thickening for the bottom band (and matching top)
+  const desktopWallFactor = isMobileLayout
+    ? 1.0
+    : Math.max(0.5, state.desktopWallThicknessFactor || 1.0);
   
-  // Vertical (top/bottom) stays same, horizontal (left/right) gets mobile factor
-  state.containerBorder = Math.round(borderPx); // Y (top/bottom)
+  // Vertical (top/bottom) uses desktop factor, horizontal (left/right) gets mobile factor
+  state.containerBorder = Math.round(borderPx * desktopWallFactor); // Y (top/bottom)
   state.containerBorderX = Math.round(borderPx * mobileWallXFactor); // X (left/right)
   state.simulationPadding = Math.round(simPadPx);
   
-  // Wall thickness: area-scaled base × mobile factor (matches left/right border)
-  state.wallThickness = Math.round(areaScaledThicknessPx * mobileWallXFactor);
+  // Wall thickness: area-scaled base × axis-specific factor (desktop = Y, mobile = X)
+  const thicknessMul = isMobileLayout ? mobileWallXFactor : desktopWallFactor;
+  state.wallThickness = Math.round(areaScaledThicknessPx * thicknessMul);
   
   // Content padding: additive to wall thickness (viewport-size fraction)
   const viewportSizePx = Math.max(1, Math.sqrt(w * h));
@@ -837,6 +861,9 @@ export function applyLayoutCSSVars() {
   const mobileWallXFactor = isMobileLayout
     ? Math.max(0.5, state.mobileWallThicknessXFactor || 1.0)
     : 1.0;
+  const desktopWallFactor = isMobileLayout
+    ? 1.0
+    : Math.max(0.5, state.desktopWallThicknessFactor || 1.0);
   
   // Set all layout CSS vars (px values override CSS calcs)
   // Y = top/bottom (no mobile factor), X = left/right (with mobile factor)
@@ -862,13 +889,14 @@ export function applyLayoutCSSVars() {
   
   // Also update vw-based vars for CSS calc fallbacks
   const baseContainerVw = state.containerBorderVw || 1.3;
-  root.style.setProperty('--container-border-vw', `${baseContainerVw}`);
+  root.style.setProperty('--container-border-vw', `${baseContainerVw * desktopWallFactor}`);
   root.style.setProperty('--container-border-x-vw', `${baseContainerVw * mobileWallXFactor}`);
   
   const baseThicknessVw = (Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)
     ? state.wallThicknessVw
     : state.containerBorderVw;
-  root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * mobileWallXFactor}`);
+  const wallThicknessVwMul = isMobileLayout ? mobileWallXFactor : desktopWallFactor;
+  root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * wallThicknessVwMul}`);
   
   // Edge label inset: CSS handles calculation via --wall-thickness + --edge-label-inset-gap + --edge-label-inset-adjust
   // Just set the adjust variable if needed (CSS will calculate the rest)
@@ -1140,6 +1168,14 @@ export function initState(config) {
   if (config.parallaxLinearFollowStrength !== undefined) state.parallaxLinearFollowStrength = clampNumber(config.parallaxLinearFollowStrength, 1, 80, state.parallaxLinearFollowStrength);
   if (config.parallaxLinearDamping !== undefined) state.parallaxLinearDamping = clampNumber(config.parallaxLinearDamping, 1, 80, state.parallaxLinearDamping);
 
+  // Cursor explosion impact parameters
+  if (config.cursorExplosionImpactMinFactor !== undefined) state.cursorExplosionImpactMinFactor = clampNumber(config.cursorExplosionImpactMinFactor, 0.1, 2.0, state.cursorExplosionImpactMinFactor);
+  if (config.cursorExplosionImpactMaxFactor !== undefined) state.cursorExplosionImpactMaxFactor = clampNumber(config.cursorExplosionImpactMaxFactor, 1.0, 8.0, state.cursorExplosionImpactMaxFactor);
+  if (config.cursorExplosionImpactSensitivity !== undefined) state.cursorExplosionImpactSensitivity = clampNumber(config.cursorExplosionImpactSensitivity, 100, 1000, state.cursorExplosionImpactSensitivity);
+  if (config.cursorExplosionLifetimeImpactMin !== undefined) state.cursorExplosionLifetimeImpactMin = clampNumber(config.cursorExplosionLifetimeImpactMin, 0.3, 1.5, state.cursorExplosionLifetimeImpactMin);
+  if (config.cursorExplosionLifetimeImpactMax !== undefined) state.cursorExplosionLifetimeImpactMax = clampNumber(config.cursorExplosionLifetimeImpactMax, 1.0, 3.0, state.cursorExplosionLifetimeImpactMax);
+  if (config.cursorExplosionLifetimeImpactSensitivity !== undefined) state.cursorExplosionLifetimeImpactSensitivity = clampNumber(config.cursorExplosionLifetimeImpactSensitivity, 200, 1500, state.cursorExplosionLifetimeImpactSensitivity);
+  
   // Generic "apply like-for-like" config keys to state
   // This ensures panel-exported config round-trips cleanly across modes.
   for (const [key, val] of Object.entries(config || {})) {
@@ -1538,6 +1574,7 @@ export function initState(config) {
     document.documentElement.style.setProperty('--abs-content-pad-mul-bottom', String(state.contentPaddingBottomRatio));
   }
   if (config.mobileWallThicknessXFactor !== undefined) state.mobileWallThicknessXFactor = clampNumber(config.mobileWallThicknessXFactor, 0.5, 3.0, state.mobileWallThicknessXFactor);
+  if (config.desktopWallThicknessFactor !== undefined) state.desktopWallThicknessFactor = clampNumber(config.desktopWallThicknessFactor, 0.5, 3.0, state.desktopWallThicknessFactor);
   if (config.mobileEdgeLabelsVisible !== undefined) state.mobileEdgeLabelsVisible = !!config.mobileEdgeLabelsVisible;
   if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);
   if (config.wallThicknessVw !== undefined) state.wallThicknessVw = clampNumber(config.wallThicknessVw, 0, 20, state.wallThicknessVw);
