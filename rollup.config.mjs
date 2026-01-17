@@ -147,6 +147,36 @@ export default [{
     isProd && terserPlugin(terserConfig),
   ]
 }, {
+  // Splat Simulation Page Bundle
+  input: 'source/splat/splat.js',
+  output: {
+    file: 'public/js/splat-bundle.js',
+    format: 'iife',
+    name: 'SplatPage',
+    sourcemap: !isProd,
+    banner: `/* Splat Page | Alexander Beck Studio | ${new Date().toISOString().split('T')[0]} */`,
+    compact: isProd,
+    inlineDynamicImports: true,
+  },
+  treeshake: {
+    moduleSideEffects: false,
+    propertyReadSideEffects: false,
+    tryCatchDeoptimization: false,
+  },
+  plugins: [
+    replace({
+      preventAssignment: true,
+      values: {
+        __DEV__: JSON.stringify(!isProd),
+        'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
+      }
+    }),
+    nodeResolve({ browser: true }),
+    commonjs(),
+    json(),
+    isProd && terserPlugin(terserConfig),
+  ]
+}, {
   // Portfolio Page Bundle
   input: 'source/modules/portfolio/app.js',
   output: {

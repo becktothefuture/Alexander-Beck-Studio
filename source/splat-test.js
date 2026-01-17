@@ -251,13 +251,17 @@ function buildPointCloud(variant) {
 
   const points = variant.pointSource(variant.config.pointCount);
   const baseRadius = clampRadiusToGlobalBounds(g, (g.R_MED || 18) * BASE_RADIUS_SCALE * (g.DPR || 1));
-
-  const modelScalePx = Math.min(canvas.width, canvas.height) * 0.32 * variant.config.modelScale;
+  const modelScaleFactor = variant.config.modelScale;
+  const modelScalePx = Math.min(canvas.width, canvas.height) * 0.32 * modelScaleFactor;
   g.splatTestState = {
     centerX: canvas.width * 0.5,
     centerY: canvas.height * 0.52,
-    depth: Math.max(0.6, variant.config.modelScale) * 220,
+    depth: Math.max(0.6, modelScaleFactor) * 220,
+    modelScaleFactor,
     modelScalePx,
+    baseRadius,
+    lastCanvasWidth: canvas.width,
+    lastCanvasHeight: canvas.height,
     rotX: 0,
     rotY: 0,
     rotZ: 0,
@@ -287,11 +291,35 @@ function buildPointCloud(variant) {
   g.currentMode = MODES.SPHERE_3D;
 }
 
+function updateSplatScale(state, g, canvas) {
+  const nextModelScalePx = Math.min(canvas.width, canvas.height) * 0.32 * state.modelScaleFactor;
+  const nextBaseRadius = clampRadiusToGlobalBounds(g, (g.R_MED || 18) * BASE_RADIUS_SCALE * (g.DPR || 1));
+  const scaleChanged = Math.abs(nextModelScalePx - state.modelScalePx) > 0.001;
+  const radiusChanged = Math.abs(nextBaseRadius - state.baseRadius) > 0.001;
+  if (!scaleChanged && !radiusChanged) return;
+
+  state.modelScalePx = nextModelScalePx;
+  state.baseRadius = nextBaseRadius;
+
+  const balls = g.balls;
+  for (let i = 0; i < balls.length; i++) {
+    const ball = balls[i];
+    if (!ball || !ball._splatPoint) continue;
+    ball._splatBaseR = nextBaseRadius;
+  }
+}
+
 function updateSplatState(dt) {
   const g = getGlobals();
   const state = g.splatTestState;
   const canvas = g.canvas;
   if (!state || !canvas) return;
+
+  if (canvas.width !== state.lastCanvasWidth || canvas.height !== state.lastCanvasHeight) {
+    state.lastCanvasWidth = canvas.width;
+    state.lastCanvasHeight = canvas.height;
+    updateSplatScale(state, g, canvas);
+  }
 
   state.centerX = canvas.width * 0.5;
   state.centerY = canvas.height * 0.52;

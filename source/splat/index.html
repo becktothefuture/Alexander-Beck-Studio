@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" class="fonts-loading">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gaussian Splat · Simulations</title>
+  <!-- ABS_BUILD_MARKER:CSS_DEV_START -->
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/normalize.css">
+  <link rel="stylesheet" href="../css/main.css">
+  <!-- ABS_BUILD_MARKER:CSS_DEV_END -->
+  <!-- ABS_BUILD_MARKER:CSS_PROD -->
+  <style>
+    body.splat-page {
+      margin: 0;
+      background: var(--wall-color);
+      font-family: var(--abs-font-sans);
+    }
+
+    .splat-variant-label {
+      position: fixed;
+      top: var(--gap-md);
+      left: var(--gap-md);
+      font-family: var(--abs-font-sans);
+      font-size: var(--text-sm);
+      letter-spacing: var(--letter-spacing-normal);
+      color: var(--text-primary);
+      z-index: 5;
+    }
+
+    .splat-panel {
+      position: fixed;
+      top: var(--gap-lg);
+      right: var(--gap-lg);
+      width: min(90vw, calc(var(--gap-xl) * 9));
+      padding: var(--gap-md);
+      border-radius: var(--abs-radius-card);
+      background: color-mix(in srgb, var(--wall-color) 80%, transparent);
+      color: var(--text-primary);
+      display: grid;
+      gap: var(--gap-sm);
+      z-index: 6;
+      box-shadow: 0 0 var(--gap-md) rgba(var(--abs-rgb-black), var(--abs-opacity-ghost));
+      backdrop-filter: blur(var(--gap-xs));
+    }
+
+    .splat-panel__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--gap-sm);
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: var(--letter-spacing-loose);
+      font-weight: var(--abs-weight-semibold);
+    }
+
+    .splat-panel__toggle {
+      border: none;
+      background: color-mix(in srgb, var(--wall-color) 70%, transparent);
+      color: inherit;
+      padding: var(--gap-xs) var(--gap-sm);
+      border-radius: var(--abs-radius-pill);
+      font-size: var(--text-xs);
+      cursor: pointer;
+    }
+
+    .splat-panel__body {
+      display: grid;
+      gap: var(--gap-md);
+    }
+
+    .splat-panel[data-collapsed="true"] .splat-panel__body {
+      display: none;
+    }
+
+    .splat-panel__row {
+      display: grid;
+      gap: var(--gap-xs);
+      font-size: var(--text-sm);
+    }
+
+    .splat-panel__label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--gap-sm);
+    }
+
+    .splat-panel__value {
+      font-variant-numeric: tabular-nums;
+      color: var(--text-muted);
+    }
+
+    .splat-panel__select,
+    .splat-panel__range,
+    .splat-panel__button {
+      width: 100%;
+      font-size: var(--text-sm);
+      border-radius: var(--abs-radius-input);
+      border: none;
+      padding: var(--gap-xs) var(--gap-sm);
+      background: color-mix(in srgb, var(--wall-color) 70%, transparent);
+      color: var(--text-primary);
+    }
+
+    .splat-panel__button {
+      cursor: pointer;
+      font-weight: var(--abs-weight-medium);
+    }
+  </style>
+</head>
+<body class="splat-page">
+  <div id="abs-scene" class="abs-scene">
+    <div id="bravia-balls" class="ball-simulation w-embed">
+      <canvas id="c" aria-label="Gaussian splat simulation" role="img" draggable="false"></canvas>
+    </div>
+    <div id="splat-variant-label" class="splat-variant-label" aria-live="polite"></div>
+  </div>
+
+  <aside id="splat-config-panel" class="splat-panel" aria-label="Splat configuration panel" data-collapsed="false">
+    <div class="splat-panel__header">
+      <span>Splat Config</span>
+      <button id="splat-panel-toggle" class="splat-panel__toggle" type="button" aria-expanded="true">Collapse</button>
+    </div>
+    <div class="splat-panel__body">
+      <label class="splat-panel__row" for="splatVariantSelect">
+        <span class="splat-panel__label">
+          <span>Simulation</span>
+        </span>
+        <select id="splatVariantSelect" class="splat-panel__select" aria-label="Simulation variant"></select>
+      </label>
+      <label class="splat-panel__row" for="splatPointCount">
+        <span class="splat-panel__label">
+          <span>Point Count</span>
+          <span id="splatPointCountValue" class="splat-panel__value"></span>
+        </span>
+        <input id="splatPointCount" class="splat-panel__range" type="range" min="400" max="2400" step="50">
+      </label>
+      <label class="splat-panel__row" for="splatModelScale">
+        <span class="splat-panel__label">
+          <span>Model Scale</span>
+          <span id="splatModelScaleValue" class="splat-panel__value"></span>
+        </span>
+        <input id="splatModelScale" class="splat-panel__range" type="range" min="0.7" max="1.4" step="0.05">
+      </label>
+      <label class="splat-panel__row" for="splatFocalLength">
+        <span class="splat-panel__label">
+          <span>Focal Length</span>
+          <span id="splatFocalLengthValue" class="splat-panel__value"></span>
+        </span>
+        <input id="splatFocalLength" class="splat-panel__range" type="range" min="700" max="1300" step="20">
+      </label>
+      <label class="splat-panel__row" for="splatIdleSpeed">
+        <span class="splat-panel__label">
+          <span>Idle Spin</span>
+          <span id="splatIdleSpeedValue" class="splat-panel__value"></span>
+        </span>
+        <input id="splatIdleSpeed" class="splat-panel__range" type="range" min="0" max="0.06" step="0.005">
+      </label>
+      <label class="splat-panel__row" for="splatTumbleSpeed">
+        <span class="splat-panel__label">
+          <span>Tumble Speed</span>
+          <span id="splatTumbleSpeedValue" class="splat-panel__value"></span>
+        </span>
+        <input id="splatTumbleSpeed" class="splat-panel__range" type="range" min="1" max="3" step="0.1">
+      </label>
+      <label class="splat-panel__row" for="splatTumbleDamping">
+        <span class="splat-panel__label">
+          <span>Tumble Damping</span>
+          <span id="splatTumbleDampingValue" class="splat-panel__value"></span>
+        </span>
+        <input id="splatTumbleDamping" class="splat-panel__range" type="range" min="0.88" max="0.99" step="0.005">
+      </label>
+      <button id="splatResetVariant" class="splat-panel__button" type="button">Reset Variant</button>
+    </div>
+  </aside>
+
+  <!-- ABS_BUILD_MARKER:JS_DEV_START -->
+  <script type="module" src="splat.js"></script>
+  <!-- ABS_BUILD_MARKER:JS_DEV_END -->
+  <!-- ABS_BUILD_MARKER:JS_PROD -->
+</body>
+</html>
