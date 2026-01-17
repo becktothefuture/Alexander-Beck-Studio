@@ -267,9 +267,9 @@ async function buildProduction() {
     const publicImagesDir = path.join(CONFIG.publicDestination, 'images');
     if (fs.existsSync(sourceImagesDir)) copyDir(sourceImagesDir, publicImagesDir);
 
-    // NOTE: We no longer copy `source/modules` into `public/`.
+    // NOTE: We no longer copy `source/modules` into `dist/`.
     // - Main site and portfolio are bundled via Rollup.
-    // - CV page is bundled via Rollup (public/js/cv-bundle.js).
+    // - CV page is bundled via Rollup (dist/js/cv.js).
 
     // Copy standalone HTML pages from source/ (cv.html, portfolio.html, etc.)
     const standalonePages = ['cv.html', 'portfolio.html', path.join('splat', 'index.html')];
@@ -282,7 +282,7 @@ async function buildProduction() {
       }
     }
 
-    // Ensure self-hosted fonts are available in public/
+    // Ensure self-hosted fonts are available in dist/
     // (Used by icon font + any future typography assets)
     const sourceFontsDir = path.join('source', 'fonts');
     const publicFontsDir = path.join(CONFIG.publicDestination, 'fonts');
@@ -380,7 +380,7 @@ async function buildProduction() {
     if (fs.existsSync(runtimeTextSrc)) {
       const textRaw = fs.readFileSync(runtimeTextSrc, 'utf-8');
       const textOut = isProd ? JSON.stringify(JSON.parse(textRaw)) : textRaw;
-      // Production: home contents are inlined into public/index.html as window.__TEXT__.
+      // Production: home contents are inlined into dist/index.html as window.__TEXT__.
       // Keep JSON artifacts only in dev/non-prod builds for inspection.
       if (!isProd) {
         fs.writeFileSync(runtimeTextDstJs, textOut);
@@ -400,7 +400,7 @@ async function buildProduction() {
     if (fs.existsSync(portfolioConfigSrc)) {
       const configRaw = fs.readFileSync(portfolioConfigSrc, 'utf-8');
       const configOut = isProd ? JSON.stringify(JSON.parse(configRaw)) : configRaw;
-      // Production: portfolio config is inlined into public/portfolio.html as window.__PORTFOLIO_CONFIG__.
+      // Production: portfolio config is inlined into dist/portfolio.html as window.__PORTFOLIO_CONFIG__.
       if (!isProd) {
         fs.writeFileSync(portfolioConfigDstJs, configOut);
         if (!fs.existsSync(path.dirname(portfolioConfigDstCfg))) {
@@ -484,7 +484,7 @@ async function buildProduction() {
     }
     console.log('✅ JavaScript bundled via Rollup (all inputs)');
 
-    // 2e. Inject assets into public/index.html
+    // 2e. Inject assets into dist/index.html
     const publicIndexPath = path.join(CONFIG.publicDestination, 'index.html');
     const template = safeReadFile(CONFIG.sourceIndexTemplate);
     if (!template) throw new Error('Missing source index template at ' + CONFIG.sourceIndexTemplate);
@@ -512,7 +512,7 @@ async function buildProduction() {
 
     // ... (index.html processing logic) ...
 
-    // 2f. (NEW) Inject assets into public/portfolio.html
+    // 2f. (NEW) Inject assets into dist/portfolio.html
     const publicPortfolioPath = path.join(CONFIG.publicDestination, 'portfolio.html');
     const portfolioTemplatePath = path.join('source', 'portfolio.html');
     const portfolioTemplate = safeReadFile(portfolioTemplatePath);

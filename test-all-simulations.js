@@ -119,8 +119,8 @@ async function verifyBuildFiles() {
   console.log('\n🔍 Verifying build files...');
   
   const requiredFiles = [
-    'public/index.html',
-    'public/js/bouncy-balls-embed.js',
+    'dist/index.html',
+    'dist/js/app.js',
     'dist/css/styles.css'
   ];
   

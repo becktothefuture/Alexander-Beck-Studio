@@ -43,21 +43,21 @@ const BASE_CONFIG = {
   filterMinHz: 350,
   filterMaxHz: 2800,
   
-  // Pitch mapping (radius → frequency)
-  pitchMinHz: 145,
-  pitchMaxHz: 280,
-  pitchCurve: 1.0,
+  // Pitch mapping (radius → frequency) - wider range for melodic chimes
+  pitchMinHz: 220,
+  pitchMaxHz: 880,
+  pitchCurve: 1.2,
   
-  // Reverb
-  reverbDecay: 0.14,
-  reverbWetMix: 0.08,
-  reverbHighDamp: 0.80,
+  // Reverb (ethereal shimmer)
+  reverbDecay: 0.25,
+  reverbWetMix: 0.18,
+  reverbHighDamp: 0.55,
   
   // Volume / dynamics
-  minGain: 0.008,
-  maxGain: 0.09,
+  minGain: 0.002,
+  maxGain: 0.025,
   masterGain: 0.28,
-  voiceGainMax: 0.14,
+  voiceGainMax: 0.04,
   
   // Performance
   minTimeBetweenSounds: 0.012,
@@ -73,11 +73,11 @@ const BASE_CONFIG = {
   noiseTransientFilterMax: 1800,
   noiseTransientQ: 1.2,
   
-  // Sparkle partial (glass-like micro-chimes; disabled by default)
-  sparkleGain: 0.0,
-  sparkleRatioMin: 2.3,
-  sparkleRatioMax: 4.1,
-  sparkleDecayMul: 0.65,
+  // Sparkle partial (glass-like micro-chimes for aethereal quality)
+  sparkleGain: 0.035,
+  sparkleRatioMin: 2.0,
+  sparkleRatioMax: 5.0,
+  sparkleDecayMul: 0.85,
   
   // Micro-variation (organic feel)
   variancePitch: 0.06,
@@ -813,7 +813,7 @@ export function playWheelClose() {
 
 export function playHoverSound() {
   if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
-  playWheelClick(0.025, 2200);
+  playWheelClick(0.09, 2200);
 }
 
 /** Create a short noise burst for transient "snap" */

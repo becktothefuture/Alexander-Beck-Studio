@@ -60,7 +60,7 @@ async function fetchPortfolioData() {
   const paths = [
     CONFIG.dataPath,
     `${CONFIG.basePath}js/contents-portfolio.json`,
-    '../public/js/contents-portfolio.json',
+    '../dist/js/contents-portfolio.json',
   ];
 
   for (const path of paths) {

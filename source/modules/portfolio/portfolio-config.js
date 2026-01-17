@@ -195,7 +195,7 @@ export async function loadPortfolioConfig() {
     const paths = [
       'config/portfolio-config.json',
       'js/portfolio-config.json',
-      '../public/js/portfolio-config.json',
+      '../dist/js/portfolio-config.json',
     ];
 
     for (const path of paths) {

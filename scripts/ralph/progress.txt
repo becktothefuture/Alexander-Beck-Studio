@@ -167,4 +167,20 @@ Task ID: 10
 - **Files changed:** build-production.js, scripts/verify-build-parity.js, test-all-simulations.js
 - **Build verified:** dist/css/styles.css exists (85KB), no bouncy-balls.css references in dist/
 - **Note:** Source CSS files remain unchanged (main.css, tokens.css, normalize.css) - only build output renamed
+
+---
+
+## 2026-01-17 - Phase 8: Runtime Config Path Updates (Verification)
+Thread: https://ampcode.com/threads/T-019bce0a-6207-75b9-84f2-dd17a0e9451b
+Task ID: 11
+- **Verified all Phase 8 requirements already satisfied from Phase 2:**
+  - source/modules/utils/runtime-config.js: Uses '../dist/js/config.json' ✓
+  - source/modules/utils/text-loader.js: Uses '../dist/js/contents-home.json' ✓
+  - source/modules/portfolio/app.js: Uses '../dist/js/contents-portfolio.json' ✓
+- **Grep verification:** `grep -r "public/" source/modules/` and `grep -r "bouncy-balls" source/modules/` return no results
+- **Build verified:** `npm run build` completes successfully with all assets in dist/
+- **Files changed:** None (Phase 2 already completed all necessary updates)
+- **Learnings for future iterations:**
+  - When updating output directories (public/ → dist/), check all fallback path arrays in utility modules
+  - Path updates were comprehensive in Phase 2, making Phase 8 a verification step
 ---

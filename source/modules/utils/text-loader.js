@@ -23,7 +23,7 @@ async function fetchTextJSON() {
   const paths = [
     'config/contents-home.json',
     'js/contents-home.json',
-    '../public/js/contents-home.json',
+    '../dist/js/contents-home.json',
   ];
 
   for (const path of paths) {

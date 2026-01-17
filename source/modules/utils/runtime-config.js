@@ -16,7 +16,7 @@ export async function loadRuntimeConfig() {
       '../config/default-config.json',
       'js/config.json',
       '../js/config.json',
-      '../public/js/config.json'
+      '../dist/js/config.json'
     ];
     for (const path of paths) {
       try {
