@@ -1,6 +1,7 @@
 # Ralph Progress Log
-Started: 2026-01-13
-Feature: Performance Bottleneck Fixes
+Started: 2026-01-17
+Feature: Build Pipeline Overhaul: dist/ + Code-Splitting
+Parent Task: 3
 
 ## Codebase Patterns
 - Physics runs in `source/modules/physics/` - engine.js is the main loop, collision.js handles ball-ball collisions
@@ -8,58 +9,26 @@ Feature: Performance Bottleneck Fixes
 - Wall system (wall-state.js) is FRAGILE - do NOT modify
 - Build with `npm run build`, dev server with `npm run dev`
 - For per-frame caching, use module-level objects with reset functions (see colorBatchCache pattern)
-
----
-
-## 2026-01-13 - TASK-001: Eliminate Per-Frame Map Allocation
-Thread: https://ampcode.com/threads/T-019bb6e4-9c3c-757f-b709-8b18db3a2d21
-Task ID: TASK-001
-- Added `colorBatchCache` object at module level in engine.js
-- Created `getColorArray()` helper for array pooling
-- Created `resetColorBatchCache()` to clear between frames
-- Updated render() to use cached Map and pooled arrays
-- **Files changed:** source/modules/physics/engine.js
----
-
-## 2026-01-13 - TASK-002: Remove Collision Pair Sorting
-Thread: https://ampcode.com/threads/T-019bb6e4-9c3c-757f-b709-8b18db3a2d21
-Task ID: TASK-002
-- Removed `reusablePairs.sort()` call from collectPairsSorted()
-- O(n log n) overhead eliminated - collision resolution works fine without sorting by overlap
-- **Files changed:** source/modules/physics/collision.js
----
-
-## 2026-01-13 - TASK-003 & TASK-004: Cache getGlobals()
-Thread: https://ampcode.com/threads/T-019bb6e4-9c3c-757f-b709-8b18db3a2d21
-Task ID: TASK-003, TASK-004
-- Verified: Both engine.js and collision.js already have optimal pattern
-- Each hot function calls getGlobals() exactly once at the top
-- No changes needed - code was already well-structured
----
-
-## 2026-01-13 - Mobile Performance Phase 2: 6 Optimizations
-Thread: https://ampcode.com/threads/T-019bb91a-53bc-7281-aeed-efd95d4ae839
-Commit: b734c01
-
-**Optimizations implemented:**
-1. **Physics Hz (120→60)**: Added PHYSICS_DT_MOBILE constant, engine selects based on isMobile flag
-2. **Corner repellers (4→2)**: Skip bottom corners on mobile (floor handles them)
-3. **Kaleidoscope wedges (12→6)**: Mobile uses 6 wedges + trig precomputation via lookup tables
-4. **Squash threshold (0.001→0.01)**: Skip expensive ctx transforms for imperceptible squash
-5. **Mouse trail disabled**: No benefit on touch devices
-6. **Collision iterations (10→4)**: Faster solver on mobile
-
-**Files changed:**
-- source/modules/core/constants.js (PHYSICS_DT_MOBILE)
-- source/modules/core/state.js (mobile defaults in detectResponsiveScale)
-- source/modules/physics/engine.js (mobile DT, corner repeller optimization)
-- source/modules/physics/Ball.js (squash threshold)
-- source/modules/modes/kaleidoscope.js (mobile wedges, trig lookup)
-
-**Learnings:**
 - Float32Array is efficient for trig lookup tables
-- Angle addition formula (cos(a+b), sin(a+b)) avoids per-wedge Math.cos/sin calls
 - Mobile detection via isMobile || isMobileViewport is the standard pattern
 
-**Verified via dev-browser:** Kaleidoscope shows 6-wedge symmetry on 375x667 viewport
+---
+
+## 2026-01-17 - Phase 1: Rollup Multi-Entry Configuration
+Thread: https://ampcode.com/threads/T-019bcdf9-e424-715c-beac-2b4e6a2c270f
+Task ID: 4
+- Transformed rollup.config.mjs from 4 separate IIFE builds to single ES module multi-entry build
+- Changed format from 'iife' to 'es'
+- Replaced 4 separate configs with single multi-entry config using input object
+- Set output.dir to 'dist/js' instead of output.file
+- Removed inlineDynamicImports: true
+- Added entryFileNames: '[name].js' and chunkFileNames: '[name].js'
+- Implemented manualChunks function to route shared modules to 'shared' chunk
+- Fixed splat entry path: source/splat/splat.js → source/splat-test.js (original path was incorrect)
+- **Files changed:** rollup.config.mjs
+- **Build output:** dist/js/ with shared.js (232KB) + app.js, portfolio.js, cv.js, splat.js + auto-split chunks (controls.js, panel-dock.js, etc.)
+- **Learnings for future iterations:**
+  - Original rollup config had a non-existent splat path - always verify entry points exist before configuring
+  - Rollup auto-splits additional chunks beyond manualChunks for code that's shared but not explicitly configured
+  - Circular dependencies exist in physics/modes - should be addressed in future phase
 ---

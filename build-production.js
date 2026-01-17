@@ -618,15 +618,15 @@ async function buildProduction() {
       sHtml = replaceMarker(sHtml, 'ABS_BUILD_MARKER:CSS_PROD', bundledCssTag);
       sHtml = replaceMarker(sHtml, 'ABS_BUILD_MARKER:JS_PROD', splatJsTag);
 
-      sHtml = sHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="\\.\\.\\/css\\/bouncy-balls\\.css[^"]*"[^>]*>/g, bundledCssTag);
-      sHtml = sHtml.replace(/<script[^>]*src="\\.\\.\\/js\\/splat-bundle\\.js[^"]*"[^>]*><\\/script>/g, splatJsTag);
+      sHtml = sHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="\.\.\/css\/bouncy-balls\.css[^"]*"[^>]*>/g, bundledCssTag);
+      sHtml = sHtml.replace(/<script[^>]*src="\.\.\/js\/splat-bundle\.js[^"]*"[^>]*><\/script>/g, splatJsTag);
 
       if (fs.existsSync(runtimeConfigSrc)) {
         try {
           const raw = fs.readFileSync(runtimeConfigSrc, 'utf-8');
           const safe = raw.replace(/</g, '\\u003c');
           const inline = `<script>window.__RUNTIME_CONFIG__=${safe};</script>`;
-          sHtml = sHtml.replace(/<script>window\\.__RUNTIME_CONFIG__=[^<]+<\\/script>/g, inline);
+          sHtml = sHtml.replace(/<script>window\.__RUNTIME_CONFIG__=[^<]+<\/script>/g, inline);
           if (!sHtml.includes('__RUNTIME_CONFIG__')) {
             sHtml = sHtml.replace('</head>', `${inline}\n</head>`);
           }
@@ -635,7 +635,7 @@ async function buildProduction() {
       }
 
       if (tokensInline) {
-        sHtml = sHtml.replace(/<script>window\\.__TOKENS__=[^<]+<\\/script>/g, tokensInline);
+        sHtml = sHtml.replace(/<script>window\.__TOKENS__=[^<]+<\/script>/g, tokensInline);
         if (!sHtml.includes('__TOKENS__')) {
           sHtml = sHtml.replace('</head>', `${tokensInline}\n</head>`);
         }

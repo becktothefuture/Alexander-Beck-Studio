@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Gaussian Splat Spatial · Test Lab</title>
+  <title>NEW SIMULATIONS · Alexander Beck Studio</title>
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/main.css">
   <style>
@@ -21,15 +21,38 @@
       letter-spacing: var(--letter-spacing-normal);
       color: var(--text-primary);
       z-index: 5;
+      background: rgba(36, 37, 41, 0.85);
+      padding: var(--gap-xs) var(--gap-sm);
+      border-radius: 4px;
+      backdrop-filter: blur(8px);
+    }
+
+    .splat-test-instructions {
+      position: fixed;
+      bottom: var(--gap-md);
+      left: var(--gap-md);
+      font-family: var(--abs-font-sans);
+      font-size: var(--text-xs);
+      letter-spacing: var(--letter-spacing-normal);
+      color: var(--text-secondary);
+      z-index: 5;
+      background: rgba(36, 37, 41, 0.85);
+      padding: var(--gap-xs) var(--gap-sm);
+      border-radius: 4px;
+      backdrop-filter: blur(8px);
+      max-width: 320px;
     }
   </style>
 </head>
 <body class="splat-test">
   <div id="abs-scene" class="abs-scene">
     <div id="bravia-balls" class="ball-simulation w-embed">
-      <canvas id="c" aria-label="Gaussian splat test" role="img" draggable="false"></canvas>
+      <canvas id="c" aria-label="New 3D simulations" role="img" draggable="false"></canvas>
     </div>
-    <div id="splat-variant-label" class="splat-test-label" aria-live="polite"></div>
+    <div id="splat-variant-label" class="splat-test-label" aria-live="polite">NEW SIMULATIONS</div>
+    <div class="splat-test-instructions">
+      Click to cycle through scenes · Drag mouse to interact · <kbd>/</kbd> config panel
+    </div>
   </div>
 
   <script type="module" src="splat-test.js"></script>

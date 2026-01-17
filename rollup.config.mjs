@@ -1,7 +1,8 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                          ROLLUP BUILD CONFIGURATION                          ║
 // ║                      Alexander Beck Studio – Bouncy Balls                    ║
-// ║                          Modular Architecture (v2)                           ║
+// ║                          Modular Architecture (v3)                           ║
+// ║                     ES Module Multi-Entry with Code-Splitting                ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { nodeResolve } from '@rollup/plugin-node-resolve';
@@ -109,21 +110,68 @@ const terserConfig = {
   },
 };
 
-export default [{
-  // Parity guarantee: use a single bootstrap in dev + prod.
-  // Prod-only differences (no config panel, reduced console noise, baked config) are gated
-  // behind compile-time flags (e.g. `__DEV__`) and runtime config.
-  input: 'source/main.js',
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARED UI FILES - Route these to shared.js chunk
+// ═══════════════════════════════════════════════════════════════════════════════
+const sharedUIFiles = new Set([
+  'shared-chrome.js',
+  'modal-overlay.js',
+  'cv-modal.js',
+  'portfolio-modal.js',
+  'contact-modal.js',
+  'time-display.js',
+  'social-icons.js',
+  'apply-text.js',
+  'sound-toggle.js',
+  'theme-toggle.js',
+  'link-cursor-hop.js',
+]);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MANUAL CHUNKS CONFIGURATION
+// Route shared modules to 'shared' chunk for code-splitting
+// ═══════════════════════════════════════════════════════════════════════════════
+function manualChunks(id) {
+  // Normalize path separators for cross-platform compatibility
+  const normalizedId = id.replace(/\\/g, '/');
+  
+  // Route entire directories to shared chunk
+  if (normalizedId.includes('/modules/core/')) return 'shared';
+  if (normalizedId.includes('/modules/visual/')) return 'shared';
+  if (normalizedId.includes('/modules/utils/')) return 'shared';
+  if (normalizedId.includes('/modules/audio/')) return 'shared';
+  
+  // Route specific UI files to shared chunk
+  if (normalizedId.includes('/modules/ui/')) {
+    const fileName = normalizedId.split('/').pop();
+    if (sharedUIFiles.has(fileName)) {
+      return 'shared';
+    }
+  }
+  
+  // Let Rollup handle everything else (page-specific code stays with its entry)
+  return undefined;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MULTI-ENTRY ES MODULE BUILD CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════════
+export default {
+  input: {
+    app: 'source/main.js',
+    portfolio: 'source/modules/portfolio/app.js',
+    cv: 'source/modules/cv-init.js',
+    splat: 'source/splat-test.js',
+  },
   output: {
-    file: 'public/js/bouncy-balls-embed.js',
-    format: 'iife',
-    name: 'BouncyBalls',
+    dir: 'dist/js',
+    format: 'es',
     sourcemap: !isProd,
-    banner: `/* Alexander Beck Studio | ${new Date().toISOString().split('T')[0]} */`,  // Shorter banner
-    compact: isProd,  // Compact output in production
-    // This codebase uses `import()` for optional subsystems (e.g. entrance animation).
-    // For IIFE builds we must inline dynamic imports to avoid code-splitting.
-    inlineDynamicImports: true,
+    banner: `/* Alexander Beck Studio | ${new Date().toISOString().split('T')[0]} */`,
+    compact: isProd,
+    entryFileNames: '[name].js',
+    chunkFileNames: '[name].js',
+    manualChunks,
   },
   treeshake: {
     moduleSideEffects: false,  // Assume modules have no side effects
@@ -141,109 +189,9 @@ export default [{
         'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
       }
     }),
-    nodeResolve({ browser: true }),
-    commonjs(),
-    json(),
-    isProd && terserPlugin(terserConfig),
-  ]
-}, {
-  // Splat Simulation Page Bundle
-  input: 'source/splat/splat.js',
-  output: {
-    file: 'public/js/splat-bundle.js',
-    format: 'iife',
-    name: 'SplatPage',
-    sourcemap: !isProd,
-    banner: `/* Splat Page | Alexander Beck Studio | ${new Date().toISOString().split('T')[0]} */`,
-    compact: isProd,
-    inlineDynamicImports: true,
-  },
-  treeshake: {
-    moduleSideEffects: false,
-    propertyReadSideEffects: false,
-    tryCatchDeoptimization: false,
-  },
-  plugins: [
-    replace({
-      preventAssignment: true,
-      values: {
-        __DEV__: JSON.stringify(!isProd),
-        'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
-      }
-    }),
-    nodeResolve({ browser: true }),
-    commonjs(),
-    json(),
-    isProd && terserPlugin(terserConfig),
-  ]
-}, {
-  // Portfolio Page Bundle
-  input: 'source/modules/portfolio/app.js',
-  output: {
-    file: 'public/js/portfolio-bundle.js',
-    format: 'iife',
-    name: 'PortfolioPage',
-    sourcemap: !isProd,
-    banner: `/* Portfolio Page | Alexander Beck Studio | ${new Date().toISOString().split('T')[0]} */`,
-    compact: isProd,
-    extend: true, // Allow extending the window object without overwriting
-    globals: {
-        window: 'window'
-    },
-    inlineDynamicImports: true,
-  },
-  treeshake: {
-    moduleSideEffects: false,
-    propertyReadSideEffects: false,
-    tryCatchDeoptimization: false,
-  },
-  plugins: [
-    replace({
-      preventAssignment: true,
-      values: {
-        __DEV__: JSON.stringify(!isProd),
-        'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
-      }
-    }),
     nodeResolve({ browser: true, extensions: ['.mjs', '.js', '.json', '.node'] }),
-    /*
-    commonjs({
-        // Only transform node_modules, ensuring our ESM source is treated as ESM
-        include: /node_modules/, 
-    }),
-    */
-    json(),
-    isProd && terserPlugin(terserConfig),
-  ]
-}, {
-  // CV Page Bundle
-  input: 'source/modules/cv-init.js',
-  output: {
-    file: 'public/js/cv-bundle.js',
-    format: 'iife',
-    name: 'CVPage',
-    sourcemap: !isProd,
-    banner: `/* CV Page | Alexander Beck Studio | ${new Date().toISOString().split('T')[0]} */`,
-    compact: isProd,
-    extend: true,
-    inlineDynamicImports: true,
-  },
-  treeshake: {
-    moduleSideEffects: false,
-    propertyReadSideEffects: false,
-    tryCatchDeoptimization: false,
-  },
-  plugins: [
-    replace({
-      preventAssignment: true,
-      values: {
-        __DEV__: JSON.stringify(!isProd),
-        'process.env.NODE_ENV': JSON.stringify(isProd ? 'production' : 'development'),
-      }
-    }),
-    nodeResolve({ browser: true }),
     commonjs(),
     json(),
     isProd && terserPlugin(terserConfig),
-  ]
-}];
+  ],
+};
