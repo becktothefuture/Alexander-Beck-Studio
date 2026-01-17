@@ -130,3 +130,24 @@ Task IDs: 7, 8
 - **Git changes:** Removed public/ from tracking, dist/ now ignored
 - **Build verified:** `npm run build` successful, outputs to dist/
 ---
+
+## 2026-01-17 - Phase 6: Source HTML Templates (Verification)
+Thread: https://ampcode.com/threads/T-019bce05-4af7-749d-bba1-03d8fdaac603
+Task ID: 9
+- **Verified all Phase 6 requirements already satisfied from Phase 2:**
+  - Source HTML files already use `type="module"` for development:
+    - source/index.html: `<script type="module" src="main.js">`
+    - source/portfolio.html: `<script type="module" src="modules/portfolio/app.js">`
+    - source/cv.html: `<script type="module" src="modules/cv-init.js">`
+    - source/splat-test.html: `<script type="module" src="splat-test.js">`
+  - Production HTML files (dist/) already have modulepreload + type="module":
+    - dist/index.html: `<link rel="modulepreload" href="js/shared.js">` + `<script type="module" src="js/app.js">`
+    - dist/portfolio.html: `<link rel="modulepreload" href="js/shared.js">` + `<script type="module" src="js/portfolio.js">`
+    - dist/cv.html: `<link rel="modulepreload" href="js/shared.js">` + `<script type="module" src="js/cv.js">`
+- **Files changed:** None (Phase 2 already completed all necessary updates)
+- **Note:** source/splat/ directory does not exist; splat entry is source/splat-test.js with HTML at source/splat-test.html
+- **Verification:** `npm run build` successful, all acceptance criteria met
+- **Learnings for future iterations:**
+  - Task description referenced outdated paths (source/splat/index.html doesn't exist)
+  - Phase 2 was comprehensive and already covered HTML template updates for both dev and production
+---
