@@ -21,7 +21,6 @@ import { initializeParallaxLinear, applyParallaxLinearForces } from './parallax-
 import { initialize3DSphere, apply3DSphereForces } from './3d-sphere.js';
 import { initialize3DCube, apply3DCubeForces } from './3d-cube.js';
 import { initializeStarfield3D, applyStarfield3DForces, updateStarfield3D, renderStarfield3D } from './starfield-3d.js';
-import { initializeMeteorShower, applyMeteorShowerForces, updateMeteorShower } from './meteor-shower.js';
 import { initializeElasticCenter, applyElasticCenterForces, updateElasticCenter } from './elastic-center.js';
 import { initializeDvdLogo, applyDvdLogoForces, updateDvdLogo } from './dvd-logo.js';
 import { initializeSnake, applySnakeForces, updateSnake } from './snake.js';
@@ -57,7 +56,6 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
     case MODES.PARALLAX_LINEAR: return globals.parallaxLinearWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
-    case MODES.METEOR_SHOWER: return globals.meteorShowerWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
     case MODES.DVD_LOGO: return globals.dvdLogoWarmupFrames ?? 10;
     case MODES.SNAKE: return globals.snakeWarmupFrames ?? 10;
@@ -134,7 +132,6 @@ export function setMode(mode) {
     '3d-sphere': '3D Sphere',
     '3d-cube': '3D Cube',
     'starfield-3d': '3D Starfield',
-    'meteor-shower': 'Meteor Shower',
     'elastic-center': 'Elastic Center',
     'dvd-logo': 'DVD Logo',
     'snake': 'Snake',
@@ -252,12 +249,6 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeStarfield3D();
-  } else if (mode === MODES.METEOR_SHOWER) {
-    // Enable gravity with multiplier for faster falling
-    globals.gravityMultiplier = globals.meteorShowerGravityMultiplier || 1.8;
-    globals.G = globals.GE * globals.gravityMultiplier;
-    globals.repellerEnabled = false;
-    initializeMeteorShower();
   } else if (mode === MODES.ELASTIC_CENTER) {
     // Disable gravity for elastic center mode
     globals.gravityMultiplier = 0.0;
@@ -348,8 +339,6 @@ export function getForceApplicator() {
     return applyParallaxLinearForces;
   } else if (globals.currentMode === MODES.STARFIELD_3D) {
     return applyStarfield3DForces;
-  } else if (globals.currentMode === MODES.METEOR_SHOWER) {
-    return applyMeteorShowerForces;
   } else if (globals.currentMode === MODES.ELASTIC_CENTER) {
     return applyElasticCenterForces;
   } else if (globals.currentMode === MODES.DVD_LOGO) {
@@ -372,8 +361,6 @@ export function getModeUpdater() {
     return updateBubbles;
   } else if (globals.currentMode === MODES.STARFIELD_3D) {
     return updateStarfield3D;
-  } else if (globals.currentMode === MODES.METEOR_SHOWER) {
-    return updateMeteorShower;
   } else if (globals.currentMode === MODES.ELASTIC_CENTER) {
     return updateElasticCenter;
   } else if (globals.currentMode === MODES.DVD_LOGO) {

@@ -367,15 +367,6 @@ const state = {
   weightlessRepelRadius: 220,
   weightlessRepelPower: 50000,
   
-  // Meteor Shower mode params
-  meteorShowerMaxBalls: 30,
-  meteorShowerSpawnMinInterval: 0.3, // seconds
-  meteorShowerSpawnMaxInterval: 1.2, // seconds
-  meteorShowerInitialVelocity: 1000, // px/s
-  meteorShowerMassMultiplier: 7.0,
-  meteorShowerGravityMultiplier: 1.8,
-  meteorShowerWarmupFrames: 10,
-
   // DVD Logo mode params
   dvdLogoSpeed: 200, // px/s
   dvdLogoSize: 0.7, // scale multiplier
@@ -413,7 +404,7 @@ const state = {
   particleFountainUpwardForce: 300, // optional upward force in px/s², 0 = disabled
   particleFountainMaxParticles: 230, // maximum active particles
   particleFountainLifetime: 8.0, // seconds - how long particles live before fading out
-  particleFountainWarmupFrames: 0, // no warmup - emit immediately
+  particleFountainWarmupFrames: 120, // skip ahead ~2s on load for instant flow
   particleFountainMouseRepelStrength: 50000, // px/s² - very strong force for barrier effect (like hand over fountain)
   particleFountainMouseRepelRadiusVw: 5.0, // vw - radius of mouse repulsion (viewport width)
   // Derived (px): set in `applyLayoutFromVwToPx()` from `particleFountainMouseRepelRadiusVw`
@@ -997,7 +988,6 @@ export function initState(config) {
   if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
   if (config.neuralWarmupFrames !== undefined) state.neuralWarmupFrames = clampInt(config.neuralWarmupFrames, 0, 240, state.neuralWarmupFrames);
   if (config.parallaxLinearWarmupFrames !== undefined) state.parallaxLinearWarmupFrames = clampInt(config.parallaxLinearWarmupFrames, 0, 240, state.parallaxLinearWarmupFrames);
-  if (config.meteorShowerWarmupFrames !== undefined) state.meteorShowerWarmupFrames = clampInt(config.meteorShowerWarmupFrames, 0, 240, state.meteorShowerWarmupFrames);
   if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
 
   if (config.maxBalls !== undefined) state.maxBalls = config.maxBalls;
@@ -1202,14 +1192,6 @@ export function initState(config) {
   if (config.starfieldFadeDuration !== undefined) state.starfieldFadeDuration = clampNumber(config.starfieldFadeDuration, 0, 3, state.starfieldFadeDuration);
   if (config.starfield3dWarmupFrames !== undefined) state.starfield3dWarmupFrames = clampInt(config.starfield3dWarmupFrames, 0, 240, state.starfield3dWarmupFrames);
   
-  // Meteor Shower mode
-  if (config.meteorShowerMaxBalls !== undefined) state.meteorShowerMaxBalls = clampInt(config.meteorShowerMaxBalls, 10, 80, state.meteorShowerMaxBalls);
-  if (config.meteorShowerSpawnMinInterval !== undefined) state.meteorShowerSpawnMinInterval = clampNumber(config.meteorShowerSpawnMinInterval, 0.1, 1.0, state.meteorShowerSpawnMinInterval);
-  if (config.meteorShowerSpawnMaxInterval !== undefined) state.meteorShowerSpawnMaxInterval = clampNumber(config.meteorShowerSpawnMaxInterval, 0.5, 3.0, state.meteorShowerSpawnMaxInterval);
-  if (config.meteorShowerInitialVelocity !== undefined) state.meteorShowerInitialVelocity = clampInt(config.meteorShowerInitialVelocity, 400, 2000, state.meteorShowerInitialVelocity);
-  if (config.meteorShowerMassMultiplier !== undefined) state.meteorShowerMassMultiplier = clampNumber(config.meteorShowerMassMultiplier, 3.0, 12.0, state.meteorShowerMassMultiplier);
-  if (config.meteorShowerGravityMultiplier !== undefined) state.meteorShowerGravityMultiplier = clampNumber(config.meteorShowerGravityMultiplier, 0.5, 3.0, state.meteorShowerGravityMultiplier);
-  if (config.meteorShowerWarmupFrames !== undefined) state.meteorShowerWarmupFrames = clampInt(config.meteorShowerWarmupFrames, 0, 240, state.meteorShowerWarmupFrames);
 
   // DVD Logo mode
   if (config.dvdLogoSpeed !== undefined) state.dvdLogoSpeed = clampInt(config.dvdLogoSpeed, 200, 800, state.dvdLogoSpeed);
@@ -1250,7 +1232,7 @@ export function initState(config) {
   if (config.particleFountainLifetime !== undefined) state.particleFountainLifetime = clampNumber(config.particleFountainLifetime, 1.0, 30.0, state.particleFountainLifetime);
   if (config.particleFountainMouseRepelStrength !== undefined) state.particleFountainMouseRepelStrength = clampInt(config.particleFountainMouseRepelStrength, 10000, 100000, state.particleFountainMouseRepelStrength);
   if (config.particleFountainMouseRepelRadiusVw !== undefined) state.particleFountainMouseRepelRadiusVw = clampNumber(config.particleFountainMouseRepelRadiusVw, 1.0, 20.0, state.particleFountainMouseRepelRadiusVw);
-  if (config.particleFountainWarmupFrames !== undefined) state.particleFountainWarmupFrames = clampInt(config.particleFountainWarmupFrames, 0, 30, state.particleFountainWarmupFrames);
+  if (config.particleFountainWarmupFrames !== undefined) state.particleFountainWarmupFrames = clampInt(config.particleFountainWarmupFrames, 0, 240, state.particleFountainWarmupFrames);
 
   // Clamp scene micro-reaction tuning (defensive; UI-only)
   if (config.sceneImpactEnabled !== undefined) {
