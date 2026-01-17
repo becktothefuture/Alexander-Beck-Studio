@@ -441,19 +441,37 @@ html.modal-active .fade-content {
   border-radius: 0;
   pointer-events: none;
   z-index: 1;
-  background: radial-gradient(
-    ellipse 100% 100% at 50% 50%,
-    transparent 40%,
-    rgba(var(--abs-rgb-white), 0.10) 100%
-  );
+  mix-blend-mode: soft-light;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(var(--abs-rgb-white), 0.05) 30%,
+      rgba(var(--abs-rgb-black), 0.06) 100%
+    ),
+    radial-gradient(
+      ellipse 120% 120% at 50% 20%,
+      rgba(var(--abs-rgb-white), 0.04) 0%,
+      transparent 70%
+    );
+  background-size: 100% 200%, 200% 200%;
+  background-position: 50% -50%, 50% -50%;
 }
 
 body.dark-mode .fade-content.viewport.viewport--content::before {
-  background: radial-gradient(
-    ellipse 100% 100% at 50% 50%,
-    transparent 40%,
-    rgba(var(--abs-rgb-white), 0.12) 100%
-  );
+  mix-blend-mode: multiply;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(var(--abs-rgb-white), 0.05) 30%,
+      rgba(var(--abs-rgb-black), 0.08) 100%
+    ),
+    radial-gradient(
+      ellipse 120% 120% at 50% 20%,
+      rgba(var(--abs-rgb-white), 0.03) 0%,
+      transparent 70%
+    );
+  background-size: 100% 200%, 200% 200%;
+  background-position: 50% -50%, 50% -50%;
 }
 
 /* Moonlight top-light gradients removed - no overlays on text layers */
