@@ -73,7 +73,7 @@ function verifyBuildParity(opts = {}) {
   // Phase 2: ES module multi-entry build uses app.js + shared.js
   assertIncludes(indexHtml, 'id="bravia-balls-css"', 'index.html: missing #bravia-balls-css link tag', failures);
   assertIncludes(indexHtml, 'id="bravia-balls-js"', 'index.html: missing #bravia-balls-js script tag', failures);
-  assertHasCacheBust(indexHtml, 'css/bouncy-balls.css', 'index.html', failures);
+  assertHasCacheBust(indexHtml, 'css/styles.css', 'index.html', failures);
   assertHasCacheBust(indexHtml, 'js/app.js', 'index.html', failures);
   assertHasCacheBust(indexHtml, 'js/shared.js', 'index.html', failures);
   
@@ -97,7 +97,7 @@ function verifyBuildParity(opts = {}) {
 
   // portfolio.html invariants
   // Phase 2: ES module build uses portfolio.js + shared.js
-  assertHasCacheBust(portfolioHtml, 'css/bouncy-balls.css', 'portfolio.html', failures);
+  assertHasCacheBust(portfolioHtml, 'css/styles.css', 'portfolio.html', failures);
   assertHasCacheBust(portfolioHtml, 'css/portfolio.css', 'portfolio.html', failures);
   assertHasCacheBust(portfolioHtml, 'js/portfolio.js', 'portfolio.html', failures);
   assertHasCacheBust(portfolioHtml, 'js/shared.js', 'portfolio.html', failures);
@@ -108,7 +108,7 @@ function verifyBuildParity(opts = {}) {
 
   // cv.html invariants
   // Phase 2: ES module build uses cv.js + shared.js
-  assertHasCacheBust(cvHtml, 'css/bouncy-balls.css', 'cv.html', failures);
+  assertHasCacheBust(cvHtml, 'css/styles.css', 'cv.html', failures);
   assertHasCacheBust(cvHtml, 'js/cv.js', 'cv.html', failures);
   assertHasCacheBust(cvHtml, 'js/shared.js', 'cv.html', failures);
   assertIncludes(cvHtml, 'type="module"', 'cv.html: missing type="module" for ES module', failures);

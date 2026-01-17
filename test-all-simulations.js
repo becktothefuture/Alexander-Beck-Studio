@@ -121,7 +121,7 @@ async function verifyBuildFiles() {
   const requiredFiles = [
     'public/index.html',
     'public/js/bouncy-balls-embed.js',
-    'public/css/bouncy-balls.css'
+    'dist/css/styles.css'
   ];
   
   const missing = [];

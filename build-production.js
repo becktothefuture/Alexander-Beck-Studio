@@ -293,7 +293,7 @@ async function buildProduction() {
     // STEP 2: Bundle modular sources with Rollup
     console.log('📦 Step 2: Bundling modular sources with Rollup...');
     
-    // 2a. Copy CSS bundle from source/css → public/css/bouncy-balls.css
+    // 2a. Copy CSS bundle from source/css → dist/css/styles.css
     const cssDir = path.join(CONFIG.publicDestination, 'css');
     if (!fs.existsSync(cssDir)) fs.mkdirSync(cssDir, { recursive: true });
     const cssTokensPath = path.join('source', 'css', 'tokens.css');
@@ -327,7 +327,7 @@ async function buildProduction() {
     const cssMinSize = Buffer.byteLength(cssCombined, 'utf-8');
     const cssReduction = Math.round((1 - cssMinSize / cssRawSize) * 100);
     
-    fs.writeFileSync(path.join(cssDir, 'bouncy-balls.css'), cssCombined);
+    fs.writeFileSync(path.join(cssDir, 'styles.css'), cssCombined);
     console.log(`✅ Wrote CSS bundle (${isProd ? `minified: ${Math.round(cssMinSize/1024)}KB, ${cssReduction}% smaller` : 'unminified'})`);
 
     // Standalone panel styles (DEV-ONLY: panel dock is a config-authoring tool)
@@ -529,7 +529,7 @@ async function buildProduction() {
         
         // Inject production assets (cache-busted with build timestamp)
         // Phase 2: ES module multi-entry build with shared chunk modulepreload
-        const bundledCssTag = `<link rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
+        const bundledCssTag = `<link rel="stylesheet" href="css/styles.css?v=${buildStamp}">`;
         const portfolioCssTag = `<link rel="stylesheet" href="css/portfolio.css?v=${buildStamp}">`;
         const portfolioSharedPreload = `<link rel="modulepreload" href="js/shared.js?v=${buildStamp}">`;
         const portfolioJsTag = `<script type="module" src="js/portfolio.js?v=${buildStamp}"></script>`;
@@ -618,7 +618,7 @@ async function buildProduction() {
       sHtml = stripBlockBetweenMarkers(sHtml, 'ABS_BUILD_MARKER:JS_DEV_START', 'ABS_BUILD_MARKER:JS_DEV_END');
 
       // Phase 2: ES module multi-entry build with shared chunk modulepreload
-      const bundledCssTag = `<link rel="stylesheet" href="../css/bouncy-balls.css?v=${buildStamp}">`;
+      const bundledCssTag = `<link rel="stylesheet" href="../css/styles.css?v=${buildStamp}">`;
       const splatSharedPreload = `<link rel="modulepreload" href="../js/shared.js?v=${buildStamp}">`;
       const splatJsTag = `<script type="module" src="../js/splat.js?v=${buildStamp}"></script>`;
 
@@ -752,7 +752,7 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
     
     // Inject production assets at explicit markers (single source of truth).
     // Phase 2: ES module multi-entry build with code-splitting
-    const cssTag = `<link id="bravia-balls-css" rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
+    const cssTag = `<link id="bravia-balls-css" rel="stylesheet" href="css/styles.css?v=${buildStamp}">`;
     // Modulepreload shared chunk for faster loading (browser can parse while main module loads)
     const sharedPreload = `<link rel="modulepreload" href="js/shared.js?v=${buildStamp}">`;
     const jsTag = `<script id="bravia-balls-js" type="module" src="js/app.js?v=${buildStamp}"></script>`;
@@ -771,7 +771,7 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
         cvHtml = stripBlockBetweenMarkers(cvHtml, 'ABS_BUILD_MARKER:CSS_DEV_START', 'ABS_BUILD_MARKER:CSS_DEV_END');
         
         // Inject production CSS bundle + shared chunk modulepreload
-        const bundledCvCssTag = `<link rel="stylesheet" href="css/bouncy-balls.css?v=${buildStamp}">`;
+        const bundledCvCssTag = `<link rel="stylesheet" href="css/styles.css?v=${buildStamp}">`;
         const cvSharedPreload = `<link rel="modulepreload" href="js/shared.js?v=${buildStamp}">`;
         cvHtml = replaceMarker(cvHtml, 'ABS_BUILD_MARKER:CSS_PROD', `${bundledCvCssTag}\n${cvSharedPreload}`);
 
@@ -834,7 +834,7 @@ const fadeBlockingCSS = `<style id="fade-blocking">#app-frame{opacity:0}</style>
     // Phase 2: ES module multi-entry build reports app.js + shared.js
     const jsAppPath = path.join(jsDir, 'app.js');
     const jsSharedPath = path.join(jsDir, 'shared.js');
-    const cssPath = path.join(cssDir, 'bouncy-balls.css');
+    const cssPath = path.join(cssDir, 'styles.css');
     
     if (isProd && fs.existsSync(jsAppPath) && fs.existsSync(cssPath)) {
       const jsAppRaw = fs.readFileSync(jsAppPath);
