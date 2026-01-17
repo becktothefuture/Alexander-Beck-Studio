@@ -139,7 +139,7 @@ export function initializeDvdLogo() {
   // Configuration
   const ballCount = g.dvdLogoBallCount || 60;
   const logoSize = g.dvdLogoSize || 1.0;
-  const speed = (g.dvdLogoSpeed || 400) * DPR;
+  const speed = (g.dvdLogoSpeed || 200) * DPR;
   const ballSpacingMul = g.dvdLogoBallSpacing || 1.3; // Multiplier for spacing between balls
   const letterSpacingMul = g.dvdLogoLetterSpacing || 1.0; // Multiplier for spacing between letters
   
@@ -345,7 +345,7 @@ export function updateDvdLogo(dt) {
   // ═══════════════════════════════════════════════════════════════════════════
   // ADJUST VELOCITY TO MATCH CONFIGURED SPEED (dynamic speed control)
   // ═══════════════════════════════════════════════════════════════════════════
-  const targetSpeed = (g.dvdLogoSpeed || 400) * DPR;
+  const targetSpeed = (g.dvdLogoSpeed || 200) * DPR;
   const currentSpeed = Math.sqrt(logoVelX * logoVelX + logoVelY * logoVelY);
   
   if (currentSpeed > 0.1) {

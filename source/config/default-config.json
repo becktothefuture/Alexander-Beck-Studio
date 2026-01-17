@@ -286,7 +286,7 @@
   "snakeGroundFriction": 2,
   "snakeDamping": 0.995,
   "snakeWarmupFrames": 82,
-  "dvdLogoSpeed": 250,
+  "dvdLogoSpeed": 200,
   "dvdLogoSize": 0.8,
   "dvdLogoBallCount": 60,
   "dvdLogoBallSpacing": 1.3,
