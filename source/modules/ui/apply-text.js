@@ -31,7 +31,6 @@ function applyMeta() {
 }
 
 function applyEdge() {
-  setText(document.getElementById('edge-chapter-text'), getText('edge.chapterText', ''));
   const taglineEl = document.getElementById('edge-caption-tagline');
   const tagline = getText('edge.tagline', getText('edge.copyright', ''));
   setText(taglineEl, tagline);
