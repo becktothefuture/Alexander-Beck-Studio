@@ -592,6 +592,13 @@ export async function orchestrateEntrance(options = {}) {
   // 4. Reveal main links LAST (if present)
   const mainLinks = document.getElementById('main-links');
   if (mainLinks) {
+    const shouldStaggerMainLinks = !!window.matchMedia?.('(max-width: 600px)')?.matches;
+    if (shouldStaggerMainLinks) {
+      mainLinks.classList.add('main-links--staggered');
+      setTimeout(() => {
+        mainLinks.classList.add('main-links--staggered-in');
+      }, currentDelay);
+    }
     revealLateElement(mainLinks, {
       delay: currentDelay,
       duration: lateElementDuration,
