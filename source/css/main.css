@@ -232,10 +232,6 @@ body.dark-mode .content-background-layer {
     0 -0.5px 0 rgba(var(--abs-rgb-black), 0.28);
 }
 
-.edge-caption__line--mode {
-  display: none;
-}
-
 body.dark-mode .edge-caption__line {
   color: var(--text-muted);
   opacity: var(--edge-label-opacity);

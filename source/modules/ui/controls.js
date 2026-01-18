@@ -5,10 +5,9 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { NARRATIVE_CHAPTER_TITLES } from '../core/constants.js';
 import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
 import { autoSaveSettings } from '../utils/storage.js';
-import { bindRegisteredControls, syncSlidersToState } from './control-registry.js';
+import { bindRegisteredControls } from './control-registry.js';
 
 /**
  * Master controls (shared across pages)
@@ -118,11 +117,5 @@ export function updateModeButtonsUI(activeMode) {
     announcer.textContent = `Switched to ${modeNames[activeMode] || activeMode} mode`;
   }
 
-  // Update left-edge chapter label (creative-process narrative title)
-  try {
-    const el = document.getElementById('edge-chapter-text');
-    if (el) {
-      el.textContent = NARRATIVE_CHAPTER_TITLES?.[activeMode] || '—';
-    }
-  } catch (e) {}
+  
 }
