@@ -272,7 +272,7 @@ async function buildProduction() {
     // - CV page is bundled via Rollup (dist/js/cv.js).
 
     // Copy standalone HTML pages from source/ (cv.html, portfolio.html, etc.)
-    const standalonePages = ['cv.html', 'portfolio.html', path.join('splat', 'index.html')];
+    const standalonePages = ['cv.html', 'portfolio.html', 'new-simulations.html'];
     for (const page of standalonePages) {
       const src = path.join('source', page);
       const dst = path.join(CONFIG.publicDestination, page);
@@ -604,13 +604,13 @@ async function buildProduction() {
         console.log('✅ Injected production assets into dist/portfolio.html');
     }
 
-    // 2g. Inject assets into dist/splat/index.html
-    const publicSplatPath = path.join(CONFIG.publicDestination, 'splat', 'index.html');
-    const splatTemplatePath = path.join('source', 'splat', 'index.html');
-    const splatTemplate = safeReadFile(splatTemplatePath);
+    // 2g. Inject assets into dist/new-simulations.html
+    const publicNewSimsPath = path.join(CONFIG.publicDestination, 'new-simulations.html');
+    const newSimsTemplatePath = path.join('source', 'new-simulations.html');
+    const newSimsTemplate = safeReadFile(newSimsTemplatePath);
 
-    if (splatTemplate) {
-      let sHtml = splatTemplate;
+    if (newSimsTemplate) {
+      let sHtml = newSimsTemplate;
 
       sHtml = sHtml.replace(/<!--\s*ABS_LIVE_RELOAD_START\s*-->[\s\S]*?<!--\s*ABS_LIVE_RELOAD_END\s*-->\s*/g, '');
 
@@ -618,16 +618,18 @@ async function buildProduction() {
       sHtml = stripBlockBetweenMarkers(sHtml, 'ABS_BUILD_MARKER:JS_DEV_START', 'ABS_BUILD_MARKER:JS_DEV_END');
 
       // Phase 2: ES module multi-entry build with shared chunk modulepreload
-      const bundledCssTag = `<link rel="stylesheet" href="../css/styles.css?v=${buildStamp}">`;
-      const splatSharedPreload = `<link rel="modulepreload" href="../js/shared.js?v=${buildStamp}">`;
-      const splatJsTag = `<script type="module" src="../js/splat.js?v=${buildStamp}"></script>`;
+      const bundledCssTag = `<link rel="stylesheet" href="css/styles.css?v=${buildStamp}">`;
+      const splatSharedPreload = `<link rel="modulepreload" href="js/shared.js?v=${buildStamp}">`;
+      const splatJsTag = `<script type="module" src="js/splat.js?v=${buildStamp}"></script>`;
 
       sHtml = replaceMarker(sHtml, 'ABS_BUILD_MARKER:CSS_PROD', `${bundledCssTag}\n${splatSharedPreload}`);
       sHtml = replaceMarker(sHtml, 'ABS_BUILD_MARKER:JS_PROD', splatJsTag);
 
-      sHtml = sHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="\.\.\/css\/bouncy-balls\.css[^"]*"[^>]*>/g, bundledCssTag);
-      sHtml = sHtml.replace(/<script[^>]*src="\.\.\/js\/splat-bundle\.js[^"]*"[^>]*><\/script>/g, splatJsTag);
-      sHtml = sHtml.replace(/<script[^>]*src="\.\.\/js\/splat\.js[^"]*"[^>]*><\/script>/g, splatJsTag);
+      // Replace dev script with production bundle
+      sHtml = sHtml.replace(/<script[^>]*src="new-simulations\.js[^"]*"[^>]*><\/script>/g, splatJsTag);
+      // Replace dev CSS links with production bundle
+      sHtml = sHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="css\/tokens\.css[^"]*"[^>]*>/g, bundledCssTag);
+      sHtml = sHtml.replace(/<link[^>]*rel="stylesheet"[^>]*href="css\/main\.css[^"]*"[^>]*>/g, '');
 
       if (fs.existsSync(runtimeConfigSrc)) {
         try {
@@ -638,7 +640,7 @@ async function buildProduction() {
           if (!sHtml.includes('__RUNTIME_CONFIG__')) {
             sHtml = sHtml.replace('</head>', `${inline}\n</head>`);
           }
-          console.log('✅ Inlined runtime config into dist/splat/index.html (hardcoded)');
+          console.log('✅ Inlined runtime config into dist/new-simulations.html (hardcoded)');
         } catch (e) {}
       }
 
@@ -656,8 +658,8 @@ async function buildProduction() {
         sHtml = sHtml.replace('<head>', `<head>\n${frameVarsStyle}`);
       }
 
-      fs.writeFileSync(publicSplatPath, sHtml);
-      console.log('✅ Injected production assets into dist/splat/index.html');
+      fs.writeFileSync(publicNewSimsPath, sHtml);
+      console.log('✅ Injected production assets into dist/new-simulations.html');
     }
 
     // Strip dev-only tooling blocks (keeps production HTML clean).

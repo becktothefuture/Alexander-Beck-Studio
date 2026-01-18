@@ -688,6 +688,38 @@ body.dark-mode .legend-tooltip-output {
   pointer-events: auto;
 }
 
+/* Index page: reduce default text saturation/opacity (except logo) */
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) #main-links .footer_link,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .caption,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn {
+  opacity: 0.7;
+  transition: opacity 0.15s var(--ease-organic);
+}
+
+/* Restore full opacity on hover/focus */
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:hover,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:hover,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) #main-links .footer_link:hover,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link:hover,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:hover,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:hover,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:focus-visible,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) #main-links .footer_link:focus-visible,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link:focus-visible,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:focus-visible,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:focus-visible {
+  opacity: 1;
+}
+
+/* Logo stays crisp (full opacity) */
+#brand-logo {
+  opacity: 1 !important;
+}
+
 /* Base Typography */
 h1 {
   font-weight: 400;
@@ -1037,10 +1069,11 @@ button.abs-meta-btn,
 
 .footer_icon-link {
   color: var(--text-quiet);
-  opacity: 0.9;
+  /* Removed explicit opacity - now controlled by index page rule (0.7 default, 1 on hover) */
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic),
-              color 0.2s var(--ease-organic);
+              color 0.2s var(--ease-organic),
+              opacity 0.15s var(--ease-organic);
   text-decoration: none;
   cursor: none; /* Maintain custom cursor experience */
 }
@@ -1953,7 +1986,7 @@ body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover::before {
 /* Main nav base state: ensure proper contrast when not hovering */
 #main-links .footer_link {
   color: var(--text-primary);
-  opacity: 1;
+  /* Removed opacity: 1 - now controlled by index page rule (0.7 default) */
 }
 
 /* Main nav hover state */
@@ -2230,8 +2263,9 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   gap: clamp(1.5rem, 3vw, 2rem);
   font-size: clamp(0.9em, 0.95em + 0.2vw, 1em);
 
-  width: min(80vw, 480px);
-  max-width: min(80vw, 480px);
+  /* Slightly wider modals - text blocks are 10% wider */
+  width: min(88vw, 528px);
+  max-width: min(88vw, 528px);
   padding-inline: var(--abs-modal-mobile-pad-x, 20px);
   padding-block: clamp(20px, 10vw, 64px);
   max-height: none;
@@ -2367,7 +2401,9 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   font-family: 'Geist', sans-serif;
   font-size: clamp(0.875rem, 2vw, 1rem);
   font-weight: 400;
-  color: var(--text-quiet);
+  /* Fainter color for middle text in modals - use muted color with additional opacity */
+  color: var(--text-muted);
+  opacity: 0.6;
   margin: 0;
   line-height: 1.5;
   max-width: 100%;

@@ -8,7 +8,7 @@ import { clearBalls } from './modules/core/state.js';
 import { spawnBall } from './modules/physics/spawn.js';
 import { clampRadiusToGlobalBounds } from './modules/utils/ball-sizing.js';
 import { render } from './modules/physics/engine.js';
-import { createSplatConfigPanel, showPanel, updatePanelVariant } from './splat-config-panel.js';
+import { createSplatConfigPanel, showPanel, togglePanel, updatePanelVariant } from './splat-config-panel.js';
 
 const BASE_CONFIG_OVERRIDES = {
   sizeVariationGlobalMul: 0,
@@ -33,8 +33,8 @@ const VARIANTS = [
     label: 'Variant A · Perfect Cube',
     pointSource: generateCubeMeshPoints,
     config: {
-      pointCount: 800,
-      modelScale: 1.2,
+      pointCount: 400,
+      modelScale: 1.1,
       focalLength: 850,
       idleSpeed: 0.025,
       tumbleSpeed: 4.2, // Increased for more movement
@@ -47,26 +47,31 @@ const VARIANTS = [
     label: 'Variant B · Rubber Ducky',
     pointSource: generateDuckyPoints,
     config: {
-      pointCount: 1400,
-      modelScale: 1.0,
+      pointCount: 2400,
+      modelScale: 2.2,
       focalLength: 920,
       idleSpeed: 0.02,
-      tumbleSpeed: 2.0,
-      tumbleDamping: 0.95
+      tumbleSpeed: 5.5,
+      tumbleDamping: 0.975,
+      floatAmplitude: 22,
+      floatSpeed: 0.8,
+      levitationHeight:0.05
     }
   },
   {
     id: 'splat-variant-c',
-    label: 'Variant C · Shoebox Room',
-    pointSource: generateShoeboxEnvironmentPoints,
+    label: 'Variant C · Alpine Valley',
+    pointSource: generateValleyScenePoints,
     config: {
-      pointCount: 2000,
-      modelScale: 2.8, // Increased for zoomed-in view
-      focalLength: 600, // Closer focal length for zoom
-      idleSpeed: 0.015,
+      pointCount: 1500,
+      modelScale: 1.0,
+      focalLength: 1250,
+      idleSpeed: 0,
       tumbleSpeed: 0,
       tumbleDamping: 1.0,
-      cameraPanSpeed: 0.3
+      cameraPanSpeed: 0.25,
+      riverFlowSpeed: 0.4,
+      baseRadiusScale: 0.12
     }
   }
 ];
@@ -144,6 +149,11 @@ function projectPoint(point, state, g, cubeIndex = null) {
   }
   
   const rotated = rotateXYZ(scaled, rotX, rotY, rotZ);
+  
+  // Apply levitation offset AFTER rotation (so duck tumbles around its own center)
+  const levitationOffset = (state.isDucky && state.levitationHeight) ? state.levitationHeight * state.modelScalePx : 0;
+  rotated.y += levitationOffset;
+  
   const focal = Math.max(120, state.focalLength);
   const zShift = rotated.z + state.depth;
   const scale = focal / (focal + zShift);
@@ -319,181 +329,152 @@ function generateDuckyPoints(count, config = {}) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SHOEBOX ENVIRONMENT GENERATOR - Room-like environment with camera panning
+// ALPINE VALLEY SCENE - Ground-level view with configurable uniform mesh
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function generateShoeboxEnvironmentPoints(count, config = {}) {
-  const seed = config.seed || 13;
-  const rand = seededRandom(seed);
+function generateValleyScenePoints(count, config = {}) {
   const points = [];
   
-  // Room dimensions from config
-  const boxWidth = config.boxWidth || 2.4;
-  const boxHeight = config.boxHeight || 1.4;
-  const boxDepth = config.boxDepth || 4.2;
-  const wallThickness = 0.02;
-
-  // Density multipliers from config
-  const wallDensity = config.wallDensity || 0.15;
-  const furnitureDensity = config.furnitureDensity || 0.17;
-
-  // Floor (bottom face)
-  const floorCount = Math.floor(count * wallDensity);
-  for (let i = 0; i < floorCount; i++) {
-    points.push({
-      x: (rand() * boxWidth - boxWidth * 0.5),
-      y: -boxHeight * 0.5,
-      z: (rand() * boxDepth - boxDepth * 0.5)
-    });
-  }
-
-  // Ceiling (top face)
-  const ceilingCount = Math.floor(count * (wallDensity * 0.8));
-  for (let i = 0; i < ceilingCount; i++) {
-    points.push({
-      x: (rand() * boxWidth - boxWidth * 0.5),
-      y: boxHeight * 0.5,
-      z: (rand() * boxDepth - boxDepth * 0.5)
-    });
-  }
-
-  // Back wall (far Z)
-  const backWallCount = Math.floor(count * (wallDensity * 0.93));
-  for (let i = 0; i < backWallCount; i++) {
-    points.push({
-      x: (rand() * boxWidth - boxWidth * 0.5),
-      y: (rand() * boxHeight - boxHeight * 0.5),
-      z: -boxDepth * 0.5
-    });
-  }
-
-  // Left wall
-  const leftWallCount = Math.floor(count * (wallDensity * 0.8));
-  for (let i = 0; i < leftWallCount; i++) {
-    points.push({
-      x: -boxWidth * 0.5,
-      y: (rand() * boxHeight - boxHeight * 0.5),
-      z: (rand() * boxDepth - boxDepth * 0.5)
-    });
-  }
-
-  // Right wall
-  const rightWallCount = Math.floor(count * (wallDensity * 0.8));
-  for (let i = 0; i < rightWallCount; i++) {
-    points.push({
-      x: boxWidth * 0.5,
-      y: (rand() * boxHeight - boxHeight * 0.5),
-      z: (rand() * boxDepth - boxDepth * 0.5)
-    });
-  }
-
-  // COUCH (against back wall, left side)
-  const couchCount = Math.floor(count * 0.08);
-  const couchZ = -boxDepth * 0.35;
-  const couchX = -boxWidth * 0.25;
-  const couchWidth = 0.6;
-  const couchHeight = 0.15;
-  const couchDepth = 0.3;
+  // Config-driven density multiplier
+  const density = Math.max(0.5, Math.min(2.0, (config.pointCount || 1500) / 1500));
+  const scale = config.modelScale || 2.0;
   
-  for (let i = 0; i < couchCount; i++) {
-    // Couch seat
-    if (rand() < 0.7) {
-      points.push({
-        x: couchX + (rand() * couchWidth - couchWidth * 0.5),
-        y: -boxHeight * 0.5 + couchHeight,
-        z: couchZ + (rand() * couchDepth * 0.6 - couchDepth * 0.3)
-      });
-    } else {
-      // Couch back
-      points.push({
-        x: couchX + (rand() * couchWidth - couchWidth * 0.5),
-        y: -boxHeight * 0.5 + couchHeight + rand() * couchHeight * 1.2,
-        z: couchZ - couchDepth * 0.3
-      });
+  // Scene bounds
+  const farZ = -1.6;
+  const nearZ = 0.8;
+  const width = 1.4 * scale;
+  
+  const addPoint = (x, y, z, type = 'terrain') => {
+    points.push({ x, y, z, _valleyType: type });
+  };
+
+  // River S-curve
+  const getRiverPath = (t) => Math.sin(t * Math.PI * 1.6) * 0.35;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SKY - Uniform grid
+  // ─────────────────────────────────────────────────────────────────────────────
+  const skyR = Math.round(5 * density);
+  const skyC = Math.round(20 * density);
+  for (let r = 0; r < skyR; r++) {
+    for (let c = 0; c < skyC; c++) {
+      addPoint(
+        (c / (skyC - 1) - 0.5) * width * 1.1,
+        -0.2 - (r / (skyR - 1)) * 0.35,
+        farZ - 0.15
+      , 'sky');
     }
   }
 
-  // TV (on back wall, right side)
-  const tvCount = Math.floor(count * 0.05);
-  const tvZ = -boxDepth * 0.45;
-  const tvX = boxWidth * 0.25;
-  const tvWidth = 0.5;
-  const tvHeight = 0.35;
-  
-  for (let i = 0; i < tvCount; i++) {
-    points.push({
-      x: tvX + (rand() * tvWidth - tvWidth * 0.5),
-      y: -boxHeight * 0.5 + 0.25 + rand() * tvHeight,
-      z: tvZ
-    });
-  }
-
-  // LAMP (standing lamp, near couch)
-  const lampCount = Math.floor(count * 0.04);
-  const lampX = -boxWidth * 0.15;
-  const lampZ = -boxDepth * 0.25;
-  
-  for (let i = 0; i < lampCount; i++) {
-    if (rand() < 0.6) {
-      // Lamp pole
-      points.push({
-        x: lampX + (rand() * 0.06 - 0.03),
-        y: -boxHeight * 0.5 + rand() * (boxHeight * 0.5),
-        z: lampZ + (rand() * 0.06 - 0.03)
-      });
-    } else {
-      // Lamp shade (top)
-      const shadeY = boxHeight * 0.1;
-      const theta = rand() * TAU;
-      const r = 0.08 + rand() * 0.05;
-      points.push({
-        x: lampX + r * Math.cos(theta),
-        y: shadeY + rand() * 0.08,
-        z: lampZ + r * Math.sin(theta)
-      });
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MOUNTAIN - Uniform triangular rows
+  // ─────────────────────────────────────────────────────────────────────────────
+  const mtR = Math.round(12 * density);
+  for (let r = 0; r < mtR; r++) {
+    const t = r / (mtR - 1);
+    const rowW = 0.8 * (1 - t * 0.88);
+    const cols = Math.max(1, Math.round(18 * density * (1 - t * 0.85)));
+    for (let c = 0; c < cols; c++) {
+      addPoint(
+        (cols > 1 ? c / (cols - 1) - 0.5 : 0) * rowW,
+        -t * 0.5,
+        farZ
+      , 'mountain');
     }
   }
 
-  // Additional furniture/details
-  const detailCount = Math.floor(count * furnitureDensity);
-  for (let i = 0; i < detailCount; i++) {
-    const objType = rand();
-    if (objType < 0.3) {
-      // Small items on floor
-      points.push({
-        x: (rand() * 1.4 - 0.7),
-        y: -boxHeight * 0.5 + 0.08 + rand() * 0.12,
-        z: (rand() * boxDepth * 0.8 - boxDepth * 0.4)
-      });
-    } else if (objType < 0.5) {
-      // Wall decorations
-      const wall = Math.floor(rand() * 3);
-      if (wall === 0) {
-        points.push({
-          x: (rand() * 1.6 - 0.8),
-          y: (rand() * 0.8 - 0.4),
-          z: -boxDepth * 0.48
-        });
-      } else if (wall === 1) {
-        points.push({
-          x: -boxWidth * 0.48,
-          y: (rand() * 0.8 - 0.4),
-          z: (rand() * boxDepth * 0.9 - boxDepth * 0.45)
-        });
-      } else {
-        points.push({
-          x: boxWidth * 0.48,
-          y: (rand() * 0.8 - 0.4),
-          z: (rand() * boxDepth * 0.9 - boxDepth * 0.45)
-        });
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GROUND - Uniform perspective grid
+  // ─────────────────────────────────────────────────────────────────────────────
+  const gndR = Math.round(14 * density);
+  const gndC = Math.round(22 * density);
+  for (let r = 0; r < gndR; r++) {
+    const t = r / (gndR - 1);
+    const z = farZ + 0.25 + t * (nearZ - farZ - 0.4);
+    const rowW = (0.6 + t * 1.0) * width / 2;
+    for (let c = 0; c < gndC; c++) {
+      addPoint(
+        (c / (gndC - 1) - 0.5) * rowW * 2,
+        0.02 + t * 0.26,
+        z
+      , 'ground');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RIVER - Uniform grid following curve
+  // ─────────────────────────────────────────────────────────────────────────────
+  const rivC = Math.round(40 * density);
+  const rivR = Math.round(5 * density);
+  const rivW = 0.1;
+  for (let c = 0; c < rivC; c++) {
+    const t = c / (rivC - 1);
+    const cx = (t - 0.5) * width * 0.85;
+    const cz = 0.12 + getRiverPath(t);
+    for (let r = 0; r < rivR; r++) {
+      addPoint(cx, 0.28, cz + (r / (rivR - 1) - 0.5) * rivW, 'river');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // FLOW BALLS - Evenly spaced along river
+  // ─────────────────────────────────────────────────────────────────────────────
+  const flowN = Math.round(12 * density);
+  for (let i = 0; i < flowN; i++) {
+    const phase = i / flowN;
+    points.push({
+      x: (phase - 0.5) * width * 0.85,
+      y: 0.27,
+      z: 0.12 + getRiverPath(phase),
+      _valleyType: 'flowBall',
+      _flowPhase: phase,
+      _width: width
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TREES - Uniform vertical columns
+  // ─────────────────────────────────────────────────────────────────────────────
+  const treeN = Math.round(5 * density);
+  const treePts = Math.round(10 * density);
+  for (let side = -1; side <= 1; side += 2) {
+    for (let i = 0; i < treeN; i++) {
+      const t = i / (treeN - 1);
+      const z = farZ + 0.35 + t * 0.9;
+      const x = side * (0.5 + t * 0.3);
+      const baseY = 0.02 + t * 0.16;
+      for (let p = 0; p < treePts; p++) {
+        addPoint(x, baseY - (p / (treePts - 1)) * 0.22, z, 'tree');
       }
-    } else {
-      // Floating details/mid-air
-      points.push({
-        x: (rand() * 1.6 - 0.8),
-        y: (rand() * 0.6 - 0.3),
-        z: (rand() * boxDepth * 0.7 - boxDepth * 0.35)
-      });
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // FOREGROUND - Uniform grid
+  // ─────────────────────────────────────────────────────────────────────────────
+  const fgR = Math.round(5 * density);
+  const fgC = Math.round(20 * density);
+  for (let r = 0; r < fgR; r++) {
+    for (let c = 0; c < fgC; c++) {
+      addPoint(
+        (c / (fgC - 1) - 0.5) * width * 1.2,
+        0.36 + (r / (fgR - 1)) * 0.16,
+        nearZ - (r / (fgR - 1)) * 0.2
+      , 'grass');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SUN - Uniform concentric rings
+  // ─────────────────────────────────────────────────────────────────────────────
+  const sunX = -0.6, sunY = -0.38;
+  addPoint(sunX, sunY, farZ - 0.1, 'sun');
+  for (let ring = 1; ring <= 3; ring++) {
+    const pts = ring * 6;
+    const rad = ring * 0.03;
+    for (let p = 0; p < pts; p++) {
+      const a = (p / pts) * TAU;
+      addPoint(sunX + rad * Math.cos(a), sunY + rad * Math.sin(a), farZ - 0.1, 'sun');
     }
   }
 
@@ -557,8 +538,9 @@ function buildPointCloud(variant) {
     orbitTime: 0, // For Cirque du Soleil motion
     hasDualCubes, // Flag to enable dual cube logic
     floatTime: 0, // For ducky floating animation
-    floatAmplitude: variant.config.floatAmplitude || 12, // Vertical float distance in pixels
+    floatAmplitude: variant.config.floatAmplitude || 18, // Vertical float distance in pixels
     floatSpeed: variant.config.floatSpeed || 0.8, // Oscillation frequency
+    levitationHeight: variant.config.levitationHeight || -0.15, // Base vertical offset (negative = up)
     isDucky, // Flag for ducky floating
     points
   };
@@ -733,6 +715,15 @@ function updateSplatState(dt) {
     state.floatTime += dt * state.floatSpeed;
   }
 
+  // Update river flow time for alpine valley scene
+  if (state.riverFlowTime === undefined && currentVariantState?.config?.riverFlowSpeed) {
+    state.riverFlowTime = 0;
+  }
+  if (state.riverFlowTime !== undefined) {
+    const flowSpeed = currentVariantState?.config?.riverFlowSpeed || 0.4;
+    state.riverFlowTime += dt * flowSpeed;
+  }
+
   const balls = g.balls;
   for (let i = 0; i < balls.length; i++) {
     const ball = balls[i];
@@ -740,6 +731,32 @@ function updateSplatState(dt) {
     if (!point) continue;
 
     const cubeIndex = ball._cubeIndex !== undefined ? ball._cubeIndex : null;
+    
+    // Handle flowing river balls in alpine valley scene
+    if (point._valleyType === 'flowBall' && state.riverFlowTime !== undefined) {
+      const flowSpeed = currentVariantState?.config?.riverFlowSpeed || 0.4;
+      const flowProgress = (state.riverFlowTime * flowSpeed * 0.08 + point._flowPhase) % 1.0;
+      const width = point._width || 2.8;
+      
+      // X position: flows left to right
+      const riverX = (flowProgress - 0.5) * width * 0.85;
+      
+      // Z follows S-curve (matching mesh river)
+      const riverZ = 0.12 + Math.sin(flowProgress * Math.PI * 1.6) * 0.35;
+      
+      const flowPoint = { x: riverX, y: 0.27, z: riverZ };
+      
+      const projected = projectPointWithPan(flowPoint, state, g);
+      ball.x = projected.x;
+      ball.y = projected.y;
+      ball.r = clampRadiusToGlobalBounds(g, ball._splatBaseR * projected.scale * 1.5);
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.omega = 0;
+      ball.isSleeping = false;
+      continue;
+    }
+    
     let projected = isEnvironment 
       ? projectPointWithPan(point, state, g)
       : projectPoint(point, state, g, cubeIndex);
@@ -774,6 +791,7 @@ function handleConfigUpdate(variant, newConfig) {
     // Update runtime state for parameters that don't require rebuild
     if (newConfig.floatAmplitude !== undefined) state.floatAmplitude = newConfig.floatAmplitude;
     if (newConfig.floatSpeed !== undefined) state.floatSpeed = newConfig.floatSpeed;
+    if (newConfig.levitationHeight !== undefined) state.levitationHeight = newConfig.levitationHeight;
     if (newConfig.orbitRadius !== undefined) { /* applied in projectPoint */ }
     if (newConfig.orbitSpeed !== undefined) { /* applied in update loop */ }
     if (newConfig.centerOffsetY !== undefined) state.centerY = g.canvas.height * (0.5 + newConfig.centerOffsetY);
@@ -846,7 +864,7 @@ function setupVariantCycle(variants) {
       
       if (e.key === '/' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !isInputFocused) {
         e.preventDefault();
-        showPanel();
+        togglePanel();
       }
     });
   }

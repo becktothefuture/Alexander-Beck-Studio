@@ -26,21 +26,21 @@ export const SPLAT_PARAMETERS = {
   },
   ducky: {
     main: [
-      { id: 'pointCount', label: 'Point Count', min: 500, max: 3000, step: 100, default: 1400 },
-      { id: 'modelScale', label: 'Model Scale', min: 0.5, max: 2.0, step: 0.1, default: 1.0 },
+      { id: 'pointCount', label: 'Point Count', min: 800, max: 4000, step: 100, default: 2400 },
+      { id: 'modelScale', label: 'Model Scale', min: 1.0, max: 4.0, step: 0.1, default: 2.2 },
       { id: 'focalLength', label: 'Focal Length', min: 600, max: 1500, step: 50, default: 920 },
       { id: 'baseRadiusScale', label: 'Dot Size', min: 0.1, max: 0.5, step: 0.01, default: 0.22 }
     ],
     secondary: [
       { id: 'idleSpeed', label: 'Idle Speed', min: 0, max: 0.1, step: 0.005, default: 0.02 },
-      { id: 'tumbleSpeed', label: 'Tumble Speed', min: 0, max: 10, step: 0.2, default: 2.0 },
-      { id: 'tumbleDamping', label: 'Tumble Damping', min: 0.9, max: 0.999, step: 0.001, default: 0.95 },
-      { id: 'floatAmplitude', label: 'Float Amplitude', min: 0, max: 30, step: 1, default: 12 }
+      { id: 'tumbleSpeed', label: 'Tumble Speed', min: 0, max: 12, step: 0.2, default: 5.5 },
+      { id: 'tumbleDamping', label: 'Tumble Damping', min: 0.9, max: 0.999, step: 0.001, default: 0.975 },
+      { id: 'levitationHeight', label: 'Levitation Height', min: -0.6, max: 0.2, step: 0.01, default: -0.35 }
     ],
     extra: [
+      { id: 'floatAmplitude', label: 'Float Amplitude', min: 0, max: 50, step: 1, default: 22 },
       { id: 'floatSpeed', label: 'Float Speed', min: 0.1, max: 3, step: 0.1, default: 0.8 },
-      { id: 'bodyDensity', label: 'Body Density', min: 0.3, max: 0.6, step: 0.05, default: 0.45 },
-      { id: 'headDensity', label: 'Head Density', min: 0.15, max: 0.35, step: 0.05, default: 0.25 }
+      { id: 'bodyDensity', label: 'Body Density', min: 0.3, max: 0.6, step: 0.05, default: 0.45 }
     ]
   },
   room: {
@@ -60,6 +60,21 @@ export const SPLAT_PARAMETERS = {
       { id: 'idleSpeed', label: 'Idle Speed', min: 0, max: 0.05, step: 0.005, default: 0.015 },
       { id: 'furnitureDensity', label: 'Furniture Density', min: 0.05, max: 0.3, step: 0.05, default: 0.17 },
       { id: 'wallDensity', label: 'Wall Density', min: 0.1, max: 0.3, step: 0.05, default: 0.15 }
+    ]
+  },
+  valley: {
+    main: [
+      { id: 'pointCount', label: 'Mesh Density', min: 500, max: 3000, step: 100, default: 1500 },
+      { id: 'modelScale', label: 'Scene Scale', min: 1.0, max: 3.5, step: 0.1, default: 2.0 },
+      { id: 'focalLength', label: 'Focal Length', min: 300, max: 800, step: 25, default: 450 },
+      { id: 'cameraPanSpeed', label: 'Pan Speed', min: 0, max: 0.5, step: 0.025, default: 0.25 }
+    ],
+    secondary: [
+      { id: 'riverFlowSpeed', label: 'River Flow', min: 0.1, max: 2.0, step: 0.1, default: 0.4 },
+      { id: 'baseRadiusScale', label: 'Dot Size', min: 0.1, max: 0.5, step: 0.01, default: 0.22 }
+    ],
+    extra: [
+      { id: 'centerOffsetY', label: 'View Offset Y', min: -0.15, max: 0.15, step: 0.01, default: 0 }
     ]
   }
 };
@@ -104,7 +119,7 @@ function loadPanelHidden() {
     const v = localStorage.getItem(STORAGE_KEYS.hidden);
     return v === 'true';
   } catch (e) {
-    return true; // Hidden by default
+    return false; // Visible by default
   }
 }
 
@@ -206,7 +221,13 @@ export function createSplatConfigPanel(variant, config, onConfigUpdate) {
   }
 
   // Get parameter set for current variant
-  const variantType = variant.id.includes('cube') ? 'cube' : variant.id.includes('ducky') ? 'ducky' : 'room';
+  const getVariantType = (id) => {
+    if (id.includes('cube')) return 'cube';
+    if (id.includes('ducky')) return 'ducky';
+    if (id.includes('valley') || id.includes('Alpine')) return 'valley';
+    return 'room';
+  };
+  const variantType = getVariantType(variant.id + ' ' + (variant.label || ''));
   const params = SPLAT_PARAMETERS[variantType];
 
   // Build panel HTML with header (like main panel)
@@ -589,7 +610,15 @@ function bindPanelControls(panel, params, config) {
 export function showPanel() {
   if (dockElement) {
     const isHidden = dockElement.classList.contains('hidden');
-    dockElement.classList.toggle('hidden', !isHidden);
+    dockElement.classList.remove('hidden');
+    savePanelHidden(false);
+  }
+}
+
+export function togglePanel() {
+  if (dockElement) {
+    const isHidden = dockElement.classList.contains('hidden');
+    dockElement.classList.toggle('hidden');
     savePanelHidden(!isHidden);
   }
 }

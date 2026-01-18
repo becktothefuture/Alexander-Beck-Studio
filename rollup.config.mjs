@@ -161,7 +161,7 @@ export default {
     app: 'source/main.js',
     portfolio: 'source/modules/portfolio/app.js',
     cv: 'source/modules/cv-init.js',
-    splat: 'source/splat-test.js',
+    splat: 'source/new-simulations.js',
   },
   output: {
     dir: 'dist/js',
