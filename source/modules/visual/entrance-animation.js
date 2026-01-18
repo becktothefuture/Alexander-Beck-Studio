@@ -379,8 +379,72 @@ export function revealLateElement(element, options = {}) {
 }
 
 /**
- * Instantly reveal all late elements (for reduced-motion / fallback paths)
- * Sets ui-entered state on <html> - CSS derives visibility from this
+ * Reveals the brand logo with a soft blur/scale/translate intro.
+ * Maintains the logo's base transform while animating in.
+ * @param {HTMLElement} element - Logo element to reveal
+ * @param {Object} options - Animation options
+ *   - delay: ms before animation starts
+ *   - duration: animation duration in ms
+ *   - easing: CSS easing function
+ * @returns {Promise} Resolves when animation completes
+ */
+function revealLogoStaggered(element, options = {}) {
+  return new Promise((resolve) => {
+    if (!element) {
+      resolve();
+      return;
+    }
+
+    const g = getGlobals();
+    const delay = options.delay ?? 0;
+    const duration = options.duration ?? g.entranceLateElementDuration ?? 600;
+    const easing = options.easing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
+    const baseScale = 'calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1))';
+    const fromTransform = `translateY(calc(var(--brand-logo-offset-y) - var(--gap-xs))) scale(calc(${baseScale} * 0.96))`;
+    const toTransform = `translateY(var(--brand-logo-offset-y)) scale(${baseScale})`;
+
+    setTimeout(() => {
+      element.style.transition = 'none';
+      element.style.visibility = 'visible';
+
+      const anim = element.animate(
+        [
+          {
+            opacity: 0,
+            transform: fromTransform,
+            filter: 'blur(calc(var(--link-impact-blur) * 0.6))'
+          },
+          {
+            opacity: 1,
+            transform: toTransform,
+            filter: 'blur(0px)'
+          }
+        ],
+        { duration, easing, fill: 'forwards' }
+      );
+
+      anim.finished.then(() => {
+        element.style.opacity = '1';
+        element.style.filter = 'blur(0px)';
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            element.style.removeProperty('transition');
+            element.style.removeProperty('transform');
+            element.style.removeProperty('filter');
+            resolve();
+          });
+        });
+      }).catch(() => {
+        resolve();
+      });
+    }, delay);
+  });
+}
+
+/**
+ * Clears inline hidden styles from late elements (for reduced-motion / fallback paths)
+ * Call this to ensure nothing stays stuck hidden
+ * NOTE: Does NOT clear transform - elements may have CSS transforms (e.g. translateX(-50%))
  */
 export function revealAllLateElements() {
   const html = document.documentElement;
@@ -585,19 +649,18 @@ export async function orchestrateEntrance(options = {}) {
     }, contentFadeDelay);
   }
   
-  // 2. Animate logo and links with unified sequence
-  // Logo first, then links left-to-right with stagger
+  // 2. Reveal brand logo (after main UI)
   const logoLinksDelay = contentFadeDelay + contentFadeDuration * 0.6;
-  
-  setTimeout(() => {
-    animateLogoAndLinks({
-      duration: lateElementDuration,
-      stagger: linkStagger,
-      logoDelay: 0,
-      linksStartDelay: lateElementDuration * 0.35,
-      easing: elementEasing
-    });
-  }, logoLinksDelay);
+  const brandLogo = document.getElementById('brand-logo');
+  if (brandLogo) {
+    setTimeout(() => {
+      revealLogoStaggered(brandLogo, {
+        delay: 0,
+        duration: lateElementDuration,
+        easing: elementEasing
+      });
+    }, logoLinksDelay);
+  }
   
   // 3. Central content (page-specific) - animate after logo/links start
   const contentElements = [];
@@ -618,4 +681,22 @@ export async function orchestrateEntrance(options = {}) {
       });
     }, centralContentDelay + i * 150);
   }
+  
+  // 4. Reveal main links LAST (if present)
+  const mainLinksDelay = logoLinksDelay + lateElementDuration * 0.35;
+  const mainLinks = document.getElementById('main-links');
+  if (mainLinks) {
+    mainLinks.classList.add('main-links--staggered');
+    setTimeout(() => {
+      mainLinks.style.transition = 'none';
+      mainLinks.style.visibility = 'visible';
+      mainLinks.style.opacity = '1';
+      mainLinks.classList.add('main-links--staggered-in');
+      requestAnimationFrame(() => {
+        mainLinks.style.removeProperty('transition');
+      });
+    }, mainLinksDelay);
+  }
+  
+  // Note: fade-blocking style tag is removed before app-frame animation starts above
 }

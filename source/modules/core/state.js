@@ -910,8 +910,12 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--edge-inset-lg', `${edgeInset}px`);
   
   // Mobile edge label visibility (CSS only applies this var on mobile via @media)
-  const displayValue = (isMobileLayout && state.mobileEdgeLabelsVisible) ? 'flex' : 'none';
-  root.style.setProperty('--edge-label-mobile-display', displayValue);
+  if (isMobileLayout) {
+    const displayValue = state.mobileEdgeLabelsVisible ? 'flex' : 'none';
+    root.style.setProperty('--edge-label-mobile-display', displayValue);
+  } else {
+    root.style.removeProperty('--edge-label-mobile-display');
+  }
 
   // UI sizing vars (panel-tunable, but also needed in production without the panel)
   root.style.setProperty('--ui-hit-area-mul', String(state.uiHitAreaMul ?? 1));
@@ -1678,7 +1682,15 @@ export function detectResponsiveScale() {
   // Viewport breakpoint (lets desktop "responsive mode" behave like mobile)
   let isMobileViewport = false;
   try {
-    isMobileViewport = Boolean(window.matchMedia && window.matchMedia('(max-width: 600px)').matches);
+    const mediaMatch = Boolean(window.matchMedia && window.matchMedia('(max-width: 600px)').matches);
+    const widthCandidates = [
+      window.visualViewport?.width,
+      window.innerWidth,
+      document.documentElement?.clientWidth
+    ].filter((value) => Number.isFinite(value));
+    const measuredWidth = widthCandidates.length ? Math.min(...widthCandidates) : null;
+    const widthMatch = Number.isFinite(measuredWidth) ? measuredWidth <= 600 : false;
+    isMobileViewport = mediaMatch || widthMatch;
   } catch (e) {}
 
   const isMobileDevice = Boolean(isIPad || isIPhone);
