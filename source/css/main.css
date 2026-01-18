@@ -858,6 +858,41 @@ p {
     opacity var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms);
 }
 
+#main-links.main-links--staggered .footer_link {
+  opacity: 0;
+  transform: translateY(calc(var(--gap-xs) * -1)) scale(0.96);
+  filter: blur(calc(var(--link-impact-blur) * 0.6));
+}
+
+#main-links.main-links--staggered.main-links--staggered-in .footer_link {
+  animation: main-links-stagger var(--duration-settle) var(--ease-organic) forwards;
+}
+
+#main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(1) {
+  animation-delay: calc(var(--duration-quick) * 0);
+}
+
+#main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(2) {
+  animation-delay: calc(var(--duration-quick) * 1);
+}
+
+#main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(3) {
+  animation-delay: calc(var(--duration-quick) * 2);
+}
+
+@keyframes main-links-stagger {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--gap-xs) * -1)) scale(0.96);
+    filter: blur(calc(var(--link-impact-blur) * 0.6));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
 .footer_link,
 .portfolio-cv-link,
 #header-cv-link {
@@ -1787,38 +1822,6 @@ html.is-safari .noise::before {
     padding-inline: 0;
     gap: 0;
   }
-
-  #main-links.main-links--staggered .footer_link {
-    opacity: 0;
-    transform: translateY(var(--gap-sm));
-  }
-
-  #main-links.main-links--staggered.main-links--staggered-in .footer_link {
-    animation: main-links-stagger var(--duration-settle) var(--ease-organic) forwards;
-  }
-
-  #main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(1) {
-    animation-delay: calc(var(--duration-quick) * 0);
-  }
-
-  #main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(2) {
-    animation-delay: calc(var(--duration-quick) * 1);
-  }
-
-  #main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(3) {
-    animation-delay: calc(var(--duration-quick) * 2);
-  }
-
-  @keyframes main-links-stagger {
-    from {
-      opacity: 0;
-      transform: translateY(var(--gap-sm));
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
   
   .footer_link {
     /* Mobile sizing: 15% smaller than base */
@@ -2094,6 +2097,7 @@ body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover {
   #main-links.main-links--staggered .footer_link {
     opacity: 1;
     transform: none;
+    filter: none;
     animation: none;
   }
 }
