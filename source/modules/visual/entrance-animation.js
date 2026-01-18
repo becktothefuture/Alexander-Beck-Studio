@@ -695,6 +695,20 @@ export async function orchestrateEntrance(options = {}) {
       requestAnimationFrame(() => {
         mainLinks.style.removeProperty('transition');
       });
+      
+      // Remove stagger classes after animation completes so hover animations can work
+      // Duration: 600ms animation + 600ms last child delay + buffer
+      const staggerDuration = 600 + 600 + 100;
+      setTimeout(() => {
+        // Lock final state on each link before removing animation classes
+        const links = mainLinks.querySelectorAll('.footer_link');
+        links.forEach(link => {
+          link.style.opacity = '1';
+          link.style.transform = 'translateY(0) scale(1)';
+          link.style.filter = 'blur(0)';
+        });
+        mainLinks.classList.remove('main-links--staggered', 'main-links--staggered-in');
+      }, staggerDuration);
     }, mainLinksDelay);
   }
   

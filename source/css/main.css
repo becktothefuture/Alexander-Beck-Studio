@@ -201,8 +201,8 @@ body.dark-mode .content-background-layer {
 .edge-caption {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--wall-thickness) * 0.5);
-  transform: translate(-50%, 50%);
+  bottom: calc(var(--wall-thickness) / 2);
+  transform: translate(-50%, -50%);
   z-index: 6; /* Above canvas (5), below UI (20) */
   pointer-events: none;
   display: inline-flex;
@@ -240,8 +240,8 @@ body.dark-mode .edge-caption__line {
 @media (max-width: 600px) {
   .edge-caption {
     display: var(--edge-label-mobile-display, flex);
-    bottom: calc(var(--wall-thickness) * 0.5);
-    transform: translate(-50%, 50%);
+    bottom: calc(var(--wall-thickness) / 2);
+    transform: translate(-50%, -50%);
   }
 
   .edge-caption__line {
@@ -703,14 +703,13 @@ body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn {
 }
 
 /* Restore full opacity on hover/focus */
+/* Note: #main-links .footer_link excluded - controlled by entrance animation state */
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:hover,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) #main-links .footer_link:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:focus-visible,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) #main-links .footer_link:focus-visible,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link:focus-visible,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:focus-visible,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:focus-visible {
@@ -863,19 +862,20 @@ p {
 }
 
 #main-links.main-links--staggered.main-links--staggered-in .footer_link {
-  animation: main-links-stagger var(--duration-settle) var(--ease-organic) forwards;
+  /* 50% slower than default settle (400ms → 600ms) */
+  animation: main-links-stagger 600ms var(--ease-organic) forwards;
 }
 
 #main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(1) {
-  animation-delay: calc(var(--duration-quick) * 0);
+  animation-delay: 0ms;
 }
 
 #main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(2) {
-  animation-delay: calc(var(--duration-quick) * 1);
+  animation-delay: 300ms;
 }
 
 #main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(3) {
-  animation-delay: calc(var(--duration-quick) * 2);
+  animation-delay: 600ms;
 }
 
 @keyframes main-links-stagger {
@@ -939,7 +939,7 @@ body:not(.dark-mode) #header-cv-link {
   font-family: inherit;
   font-size: inherit;
   color: var(--text-primary);
-  opacity: 1; /* Full strength */
+  /* opacity: controlled by entrance animation state variables */
   cursor: none; /* Maintain custom cursor experience */
   text-align: center;
 }
@@ -971,6 +971,11 @@ body:not(.dark-mode) #header-cv-link {
 body.dark-mode #main-links .footer_link {
   color: var(--text-primary);
 }
+
+body.dark-mode #main-links .footer_link:hover {
+  color: var(--cursor-color);
+}
+
 
 /* Row 2: Socials + Meta (Space Between) */
 .ui-meta-row {
@@ -1542,6 +1547,7 @@ html.modal-active #main-links { pointer-events: none; }
     100%
   );
   height: auto;
+  padding-left: clamp(8px, 0.8vw, 10px);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -2130,17 +2136,10 @@ body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover::before {
   z-index: -1;
 }
 
-/* Main nav base state: ensure proper contrast when not hovering */
-#main-links .footer_link {
-  color: var(--text-primary);
-  /* Removed opacity: 1 - now controlled by index page rule (0.7 default) */
-}
+/* Main nav base state - color inherited from earlier rules */
+/* Hover color set by INDEX MODE HOVER rules above */
 
-/* Main nav hover state */
-body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover {
-  color: var(--cursor-hover-fg, var(--cursor-color));
-  opacity: 1;
-}
+/* Main nav hover state - consolidated at line ~975 with !important */
 
 body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover .footer-link-nowrap {
   color: inherit;
@@ -2163,8 +2162,12 @@ body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover .foot
 /* Apply nudge animation to corner and main links on hover */
 body:not(.portfolio-page):not(.detail-open) .footer_icon-link.abs-icon-btn:hover,
 body:not(.portfolio-page):not(.detail-open) .abs-meta-btn:hover,
-body:not(.portfolio-page):not(.detail-open) .sound-toggle:hover,
-body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover {
+body:not(.portfolio-page):not(.detail-open) .sound-toggle:hover {
+  animation-name: absHoverSnapNudge;
+}
+
+/* Main nav links: only animate when UI is visible */
+html.ui-entered:not(.modal-active) #main-links .footer_link:hover {
   animation-name: absHoverSnapNudge;
 }
 
@@ -2185,7 +2188,7 @@ body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover {
   body:not(.portfolio-page):not(.detail-open) .footer_icon-link.abs-icon-btn:hover,
   body:not(.portfolio-page):not(.detail-open) .abs-meta-btn:hover,
   body:not(.portfolio-page):not(.detail-open) .sound-toggle:hover,
-  body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover {
+  html.ui-entered:not(.modal-active) #main-links .footer_link:hover {
     animation-name: none;
   }
   
