@@ -379,29 +379,73 @@ export function revealLateElement(element, options = {}) {
 }
 
 /**
- * Clears inline hidden styles from late elements (for reduced-motion / fallback paths)
- * Call this to ensure nothing stays stuck hidden
- * NOTE: Does NOT clear transform - elements may have CSS transforms (e.g. translateX(-50%))
+ * Instantly reveal all late elements (for reduced-motion / fallback paths)
+ * Sets ui-entered state on <html> - CSS derives visibility from this
  */
 export function revealAllLateElements() {
-  const lateElements = [
-    document.getElementById('main-links'),
-    document.getElementById('brand-logo')
-  ];
+  const html = document.documentElement;
+  const logo = document.getElementById('brand-logo');
+  const mainLinks = document.getElementById('main-links');
   
-  lateElements.forEach((el) => {
-    if (el) {
-      // REMOVE inline opacity so CSS controls it (enables modal fade transitions)
-      el.style.removeProperty('opacity');
-      el.style.visibility = 'visible';
-      // Do NOT clear transform - CSS may rely on it for positioning
-    }
-  });
+  // Clear inline styles that hide elements (from HTML initial state)
+  if (logo) {
+    logo.style.removeProperty('opacity');
+    logo.style.visibility = 'visible';
+  }
+  if (mainLinks) {
+    mainLinks.style.removeProperty('opacity');
+    mainLinks.style.visibility = 'visible';
+  }
   
-  // Also remove the fade-blocking style tag
+  // Set entered state - CSS will derive visibility
+  html.classList.add('ui-entered');
+  
+  // Remove the fade-blocking style tag
   const fadeBlocking = document.getElementById('fade-blocking');
   if (fadeBlocking) fadeBlocking.remove();
 }
+
+/**
+ * Show logo and links with CSS state-based animation
+ * Sets html.ui-entered - CSS handles the animation with staggered delays
+ */
+export function showLogoAndLinks(options = {}) {
+  const html = document.documentElement;
+  const logo = document.getElementById('brand-logo');
+  const mainLinks = document.getElementById('main-links');
+  
+  // Clear inline styles that hide elements (from HTML initial state)
+  if (logo) {
+    logo.style.removeProperty('opacity');
+    logo.style.visibility = 'visible';
+  }
+  if (mainLinks) {
+    mainLinks.style.removeProperty('opacity');
+    mainLinks.style.visibility = 'visible';
+  }
+  
+  // Set entered state - CSS will derive visibility and animate
+  // CSS handles staggered delays via --i custom property on each button
+  html.classList.add('ui-entered');
+}
+
+/**
+ * Hide logo and links (when modal opens)
+ * This is now handled by modal-overlay.js adding html.modal-active
+ * which sets --ui-obscured: 1 and CSS derives opacity: 0
+ * 
+ * This function is kept for compatibility but does nothing -
+ * modal visibility is controlled by the modal-active class on <html>
+ */
+export function hideLogoAndLinks() {
+  // No-op: modal-overlay.js handles this via html.modal-active class
+  // CSS derives visibility from --ui-obscured state variable
+}
+
+// Legacy aliases for compatibility
+export const animateLogoAndLinks = showLogoAndLinks;
+export const fadeOutLogoAndLinks = hideLogoAndLinks;
+export const fadeInLogoAndLinks = showLogoAndLinks;
 
 /**
  * Simple 200ms fade-in for reduced motion users.
@@ -411,6 +455,7 @@ function performReducedMotionFade() {
   const fadeTarget = document.getElementById('app-frame');
   const brandLogo = document.getElementById('brand-logo');
   const mainLinks = document.getElementById('main-links');
+  const buttons = mainLinks ? Array.from(mainLinks.querySelectorAll('.footer_link')) : [];
   const html = document.documentElement;
   
   // Mark entrance as complete immediately
@@ -418,7 +463,7 @@ function performReducedMotionFade() {
   html.classList.add('entrance-complete');
   
   // Simple 200ms fade for all elements
-  const elements = [fadeTarget, brandLogo, mainLinks].filter(Boolean);
+  const elements = [fadeTarget, brandLogo, mainLinks, ...buttons].filter(Boolean);
   elements.forEach(el => {
     el.style.transition = 'opacity 200ms ease-out';
     el.style.opacity = '0';
@@ -438,6 +483,8 @@ function performReducedMotionFade() {
       elements.forEach(el => {
         el.style.removeProperty('transition');
         el.style.removeProperty('opacity');
+        el.style.removeProperty('filter');
+        el.style.removeProperty('transform');
       });
       
       // Remove fade-blocking
@@ -494,37 +541,25 @@ export async function orchestrateEntrance(options = {}) {
   
   // ═══════════════════════════════════════════════════════════════════════════════
   // STAGED ELEMENT REVEAL SEQUENCE
-  // Order: #app-frame (main UI) → #brand-logo → centralContent → #main-links (last)
+  // Order: #abs-scene fade → #brand-logo → #main-links (buttons sequentially)
   // ═══════════════════════════════════════════════════════════════════════════════
   
-  const wallDelay = g.entranceWallTransitionDelay ?? 300;
-  const wallDuration = g.entranceWallTransitionDuration ?? 800;
-  const elementDuration = g.entranceElementDuration ?? 500;
   const elementEasing = g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
   
-  // Content fade-in config (simple fade, no 3D transforms)
-  // Always starts after the configured delay from page load (not after wall animation)
+  // Content fade-in config
   const contentFadeDelay = g.contentFadeInDelay ?? 500;
   const contentFadeDuration = g.contentFadeInDuration ?? 1000;
   
-  // Late element timing (logo + main links + central content) - slower and more dramatic
-  const lateElementDuration = g.entranceLateElementDuration ?? 600;
-  const lateStagger = g.entranceLateElementStagger ?? 250; // Stagger between late elements
+  // Logo and links timing
+  const lateElementDuration = g.entranceLateElementDuration ?? 500;
+  const linkStagger = 80; // Stagger between each link button
   
-  // Calculate timing: always use content fade-in delay (from page load)
-  // This ensures content fades in after the delay regardless of wall animation state
-  const contentFadeStartDelay = contentFadeDelay;
-  let currentDelay = contentFadeStartDelay + contentFadeDuration + lateStagger;
-  
-  // 1. Animate entire scene (#abs-scene) with simple fade (includes canvas, UI, logo, edges, etc.)
-  // This fades in EVERYTHING except the wall color (which is on html/body)
+  // 1. Fade in entire scene (#abs-scene)
   const fadeTarget = document.getElementById('abs-scene');
   if (fadeTarget) {
-    // Remove fade-blocking style tag before animation to avoid conflicts
     const fadeBlocking = document.getElementById('fade-blocking');
     if (fadeBlocking) fadeBlocking.remove();
     
-    // Use simple opacity fade instead of 3D entrance animation
     fadeTarget.style.opacity = '0';
     fadeTarget.style.visibility = 'visible';
     fadeTarget.style.willChange = 'opacity';
@@ -532,15 +567,8 @@ export async function orchestrateEntrance(options = {}) {
     setTimeout(() => {
       if (typeof fadeTarget.animate === 'function') {
         const anim = fadeTarget.animate(
-          [
-            { opacity: 0 },
-            { opacity: 1 }
-          ],
-          {
-            duration: contentFadeDuration,
-            easing: elementEasing,
-            fill: 'forwards'
-          }
+          [{ opacity: 0 }, { opacity: 1 }],
+          { duration: contentFadeDuration, easing: elementEasing, fill: 'forwards' }
         );
         anim.addEventListener('finish', () => {
           fadeTarget.style.opacity = '1';
@@ -552,54 +580,42 @@ export async function orchestrateEntrance(options = {}) {
         });
       } else {
         fadeTarget.style.transition = `opacity ${contentFadeDuration}ms ${elementEasing}`;
-        requestAnimationFrame(() => {
-          fadeTarget.style.opacity = '1';
-        });
+        requestAnimationFrame(() => { fadeTarget.style.opacity = '1'; });
       }
-    }, contentFadeStartDelay);
+    }, contentFadeDelay);
   }
   
-  // 2. Reveal brand logo (after main UI)
-  const brandLogo = document.getElementById('brand-logo');
-  if (brandLogo) {
-    const brandLogoDelay = currentDelay;
-    revealLateElement(brandLogo, {
-      delay: brandLogoDelay,
+  // 2. Animate logo and links with unified sequence
+  // Logo first, then links left-to-right with stagger
+  const logoLinksDelay = contentFadeDelay + contentFadeDuration * 0.6;
+  
+  setTimeout(() => {
+    animateLogoAndLinks({
       duration: lateElementDuration,
-      easing: elementEasing,
-      scaleFrom: g.entranceLateElementScaleFrom ?? 0.92
+      stagger: linkStagger,
+      logoDelay: 0,
+      linksStartDelay: lateElementDuration * 0.35,
+      easing: elementEasing
     });
-    currentDelay += lateStagger;
-  }
+  }, logoLinksDelay);
   
-  // 3. Reveal central content (page-specific: portfolio stage/meta, CV content, etc.)
+  // 3. Central content (page-specific) - animate after logo/links start
   const contentElements = [];
   for (const item of centralContent) {
     const el = typeof item === 'string' ? document.querySelector(item) : item;
     if (el) contentElements.push(el);
   }
   
-  for (const el of contentElements) {
-    revealLateElement(el, {
-      delay: currentDelay,
-      duration: lateElementDuration,
-      easing: elementEasing,
-      scaleFrom: g.entranceLateElementScaleFrom ?? 0.92
-    });
-    currentDelay += lateStagger;
+  const centralContentDelay = logoLinksDelay + lateElementDuration * 0.5;
+  for (let i = 0; i < contentElements.length; i++) {
+    const el = contentElements[i];
+    setTimeout(() => {
+      revealLateElement(el, {
+        delay: 0,
+        duration: lateElementDuration,
+        easing: elementEasing,
+        scaleFrom: g.entranceLateElementScaleFrom ?? 0.92
+      });
+    }, centralContentDelay + i * 150);
   }
-  
-  // 4. Reveal main links LAST (if present)
-  const mainLinks = document.getElementById('main-links');
-  if (mainLinks) {
-    revealLateElement(mainLinks, {
-      delay: currentDelay,
-      duration: lateElementDuration,
-      easing: elementEasing,
-      scaleFrom: g.entranceLateElementScaleFrom ?? 0.92
-    });
-    currentDelay += lateStagger;
-  }
-  
-  // Note: fade-blocking style tag is removed before app-frame animation starts above
 }

@@ -76,8 +76,8 @@
   --meta-lift: 0vh;
   --meta-padding-y: clamp(60px, 8vh, 100px);
   --meta-gap: clamp(20px, 2.7vmin, 24px);
-  --meta-title-max-width: 25ch;
-  --meta-summary-max-width: 45ch;
+  --meta-title-max-width: 20ch;
+  --meta-summary-max-width: 36ch;
   --text-align: center;
   --meta-transition-speed: 360ms;
 
@@ -85,7 +85,7 @@
   --transition-speed: 600ms;
   --transition-ease: var(--ease-organic);
   --perspective: 1000px;
-  --detail-max-width: 720px;
+  --detail-max-width: 576px;
   --detail-transition-ms: 700ms;
   --detail-transition-fade-ms: 240ms;
   --detail-transition-fade-delay: 60ms;
@@ -974,8 +974,8 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
     --text-title-max: 48px;
     --meta-padding-y: clamp(40px, 6vh, 60px);
     --meta-gap: clamp(16px, 2vmin, 20px);
-    --meta-title-max-width: 22ch;
-    --meta-summary-max-width: 40ch;
+    --meta-title-max-width: 18ch;
+    --meta-summary-max-width: 32ch;
   }
 
   .portfolio-viewport {
@@ -1026,8 +1026,8 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
     --text-title-max: 40px;
     --meta-padding-y: clamp(32px, 5vh, 48px);
     --meta-gap: clamp(12px, 1.8vmin, 18px);
-    --meta-title-max-width: 20ch;
-    --meta-summary-max-width: 35ch;
+    --meta-title-max-width: 16ch;
+    --meta-summary-max-width: 28ch;
   }
 
   .portfolio-viewport {

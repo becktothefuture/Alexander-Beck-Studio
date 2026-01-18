@@ -38,7 +38,7 @@
     "--wheel-bounce-strength": "17",
     "--wheel-bounce-damping": "9.5",
     "--wheel-bounce-impulse": "5.4vmin",
-    "--detail-max-width": "720px",
+    "--detail-max-width": "576px",
     "--detail-hero-width": "100%",
     "--detail-hero-offset": "0%",
     "--detail-hero-top-pad": "0px",

@@ -267,7 +267,7 @@ const state = {
   //   viewportSizePx = sqrt(viewportWidthPx * viewportHeightPx)
   //   contentPaddingAddPx = viewportSizePx * contentPaddingRatio
   // (Back-compat: if config provides a large value (|v| > 1), we treat it as legacy px.)
-  contentPaddingRatio: 0.0,
+  contentPaddingRatio: 0.03,
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
   contentPaddingBottomRatio: 1.3,     // bottom padding multiplier (applied to vertical padding)
   mobileWallThicknessXFactor: 1.4,    // wall thickness multiplier for LEFT/RIGHT on mobile (1.0 = same as desktop)
@@ -663,7 +663,7 @@ const state = {
   
   // Link Controls (Panel Tunable)
   uiHitAreaMul: 1,                    // Multiplier for most UI hit areas (links/buttons); drives `--ui-hit-area-mul`
-  uiIconCornerRadiusMul: 0.4,         // Icon button corner radius as a fraction of wall radius; drives `--ui-icon-corner-radius-mul`
+  uiIconCornerRadiusMul: 0.5,         // Icon button corner radius as a fraction of wall radius; drives `--ui-icon-corner-radius-mul` (directly tracks wall)
   uiIconFramePx: 0,                  // Icon button square frame size (px). 0 = use token-derived default
   uiIconGlyphPx: 0,                  // Icon glyph size (px). 0 = use token-derived default
   uiIconGroupMarginPx: 0,            // Social icon group margin (px). Can be negative to push icons outward.
@@ -915,7 +915,7 @@ export function applyLayoutCSSVars() {
 
   // UI sizing vars (panel-tunable, but also needed in production without the panel)
   root.style.setProperty('--ui-hit-area-mul', String(state.uiHitAreaMul ?? 1));
-  root.style.setProperty('--ui-icon-corner-radius-mul', String(state.uiIconCornerRadiusMul ?? 0.4));
+  root.style.setProperty('--ui-icon-corner-radius-mul', String(state.uiIconCornerRadiusMul ?? 0.5));
 
   // Optional explicit overrides (0 = use token-derived defaults)
   if (Number.isFinite(state.uiIconFramePx) && state.uiIconFramePx > 0) {

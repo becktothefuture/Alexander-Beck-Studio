@@ -201,8 +201,8 @@ body.dark-mode .content-background-layer {
 .edge-caption {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--wall-thickness) * 0.495);
-  transform: translateX(-50%);
+  bottom: calc(var(--wall-thickness) * 0.5);
+  transform: translate(-50%, 50%);
   z-index: 6; /* Above canvas (5), below UI (20) */
   pointer-events: none;
   display: inline-flex;
@@ -240,7 +240,8 @@ body.dark-mode .edge-caption__line {
 @media (max-width: 600px) {
   .edge-caption {
     display: var(--edge-label-mobile-display, flex);
-    bottom: calc(var(--wall-thickness) * 0.54);
+    bottom: calc(var(--wall-thickness) * 0.5);
+    transform: translate(-50%, 50%);
   }
 
   .edge-caption__line {
@@ -675,7 +676,7 @@ body.dark-mode .legend-tooltip-output {
   top: auto;
   right: auto;
   /* Constrain text width for readability, but don't constrain parent container */
-  max-width: min(60vw, var(--decorative-script-max-width));
+  max-width: min(48vw, var(--decorative-script-max-width));
   font-family: 'Geist', sans-serif;
   font-size: var(--decorative-script-font-size);
   font-weight: 400;
@@ -691,7 +692,7 @@ body.dark-mode .legend-tooltip-output {
 /* Index page: reduce default text saturation/opacity (except logo) */
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) #main-links .footer_link,
+/* #main-links .footer_link excluded - entrance animation controls opacity */
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .caption,
@@ -715,10 +716,7 @@ body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:focus-vi
   opacity: 1;
 }
 
-/* Logo stays crisp (full opacity) */
-#brand-logo {
-  opacity: 1 !important;
-}
+/* Logo opacity is now controlled by entrance animation state variables */
 
 /* Base Typography */
 h1 {
@@ -861,7 +859,7 @@ p {
 .portfolio-cv-link,
 #header-cv-link {
   position: relative;
-  transform: none;
+  /* transform: controlled by entrance animation for #main-links .footer_link */
   padding-block: var(--link-text-padding);
   padding-inline: var(--link-text-padding);
   margin-block: var(--link-text-margin);
@@ -876,8 +874,8 @@ p {
   opacity: var(--text-opacity-base);
   /* Unified button corner radius (native CSS, no JS/inline) */
   border-radius: var(--ui-icon-corner-radius);
-  transition: transform var(--link-impact-duration) var(--ease-organic),
-              filter var(--link-impact-duration) var(--ease-organic);
+  /* Hover transition only - entrance animation overrides this for #main-links */
+  transition: filter var(--link-impact-duration) var(--ease-organic);
   cursor: none; /* Maintain custom cursor experience */
   /* Safari fix: create stacking context to prevent noise layer bleeding on hover */
   isolation: isolate;
@@ -905,7 +903,7 @@ body:not(.dark-mode) #header-cv-link {
   font-family: inherit;
   font-size: inherit;
   color: #000000; /* Pure black for maximum visibility */
-  opacity: 1; /* Full strength */
+  /* opacity controlled by entrance animation CSS */
   cursor: none; /* Maintain custom cursor experience */
   text-align: center;
 }
@@ -1365,25 +1363,133 @@ body.dark-mode #brand-logo {
   color: var(--text-primary);
 }
 
-/* Disable opacity transitions during entrance animation to prevent Safari flash */
-html:not(.entrance-complete) #brand-logo,
-html:not(.entrance-complete) #main-links {
-  transition: 
-    top var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic),
-    right var(--duration-resize) var(--ease-organic),
-    transform 0s,
-    filter 0s,
-    padding var(--duration-resize) var(--ease-organic);
+/* ─────────────────────────────────────────────────────────────────────────────
+   ENTRANCE ANIMATION - CSS Custom Property State Architecture
+   
+   State flags (set by JS on <html>):
+   - html.ui-entered: entrance animation complete, UI should be visible
+   - html.modal-active: modal is open, UI should be hidden
+   
+   Properties derived from state via calc():
+   - --ui-visible: 1 when entered AND not obscured, 0 otherwise
+   - opacity, transform, filter computed from visibility state
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* State variables */
+:root {
+  /* State flags (0 = false, 1 = true) */
+  --ui-entered: 0;
+  --ui-obscured: 0;
+  
+  /* Computed visibility: entered AND not obscured */
+  --ui-visible: calc(var(--ui-entered) * (1 - var(--ui-obscured)));
+  
+  /* Page-level opacity (index: 0.7, others: 1) */
+  --ui-page-opacity: 0.7;
+  
+  /* Entrance animation values */
+  --ui-entrance-ty: 8px;
+  --ui-entrance-blur: 4px;
+  --ui-entrance-scale: 0.96;
+  
+  /* Timing (30% slower for subtlety) */
+  --ui-ease-in: cubic-bezier(0.16, 1, 0.3, 1);
+  --ui-ease-out: cubic-bezier(0.4, 0, 1, 1);
+  --ui-duration-in: 780ms;
+  --ui-duration-out: 455ms;
+  --ui-logo-duration-in: 1040ms;
+  
+  /* Nav staggering (30% slower) */
+  --ui-stagger: 104ms;
+  --ui-nav-delay: 0ms;
 }
 
-/* After entrance completes, ensure late-reveal elements stay visible 
-   and re-enable opacity transitions for modal fade */
-html.entrance-complete #brand-logo,
-html.entrance-complete #main-links {
-  opacity: 1;
-  visibility: visible;
+/* State flag toggles */
+html.ui-entered { --ui-entered: 1; }
+html.modal-active { --ui-obscured: 1; }
+
+/* Page-specific opacity */
+body.portfolio-page,
+body.cv-page { --ui-page-opacity: 1; }
+
+/* Reduced motion: instant transitions */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ui-duration-in: 200ms;
+    --ui-duration-out: 150ms;
+    --ui-logo-duration-in: 200ms;
+    --ui-stagger: 0ms;
+    --ui-entrance-blur: 0px;
+    --ui-entrance-ty: 0px;
+    --ui-entrance-scale: 1;
+  }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LOGO - State-driven animation
+   ───────────────────────────────────────────────────────────────────────────── */
+#brand-logo {
+  /* Derived properties from state */
+  opacity: var(--ui-visible);
+  filter: blur(calc(var(--ui-entrance-blur) * (1 - var(--ui-entered))));
+  transform: translateY(calc(
+    -50% + (var(--ui-entrance-ty) * (1 - var(--ui-entered)))
+  )) scale(calc(
+    var(--ui-entrance-scale) + ((1 - var(--ui-entrance-scale)) * var(--ui-entered))
+  ));
+  
+  /* Single transition definition - always active */
+  transition:
+    opacity var(--ui-logo-duration-in) var(--ui-ease-in),
+    filter var(--ui-logo-duration-in) var(--ui-ease-in),
+    transform var(--ui-logo-duration-in) var(--ui-ease-in);
+}
+
+/* Faster exit when modal opens */
+html.modal-active #brand-logo {
+  transition-duration: var(--ui-duration-out);
+  transition-timing-function: var(--ui-ease-out);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   NAV LINKS - State-driven animation with staggering
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Assign stagger indices to each link */
+#main-links .footer_link:nth-child(1) { --i: 0; --ri: 2; }
+#main-links .footer_link:nth-child(2) { --i: 1; --ri: 1; }
+#main-links .footer_link:nth-child(3) { --i: 2; --ri: 0; }
+
+/* Nav link animation */
+#main-links .footer_link {
+  /* Derived properties from state */
+  opacity: calc(var(--ui-page-opacity) * var(--ui-visible));
+  filter: blur(calc(var(--ui-entrance-blur) * (1 - var(--ui-entered))));
+  transform: translateY(calc(
+    var(--ui-entrance-ty) * (1 - var(--ui-entered))
+  )) scale(calc(
+    var(--ui-entrance-scale) + ((1 - var(--ui-entrance-scale)) * var(--ui-entered))
+  ));
+  
+  /* Single transition definition - always active */
+  transition:
+    opacity var(--ui-duration-in) var(--ui-ease-in),
+    filter var(--ui-duration-in) var(--ui-ease-in),
+    transform var(--ui-duration-in) var(--ui-ease-in);
+  
+  /* Default stagger: entrance order (left to right) */
+  transition-delay: calc(var(--ui-nav-delay) + (var(--ui-stagger) * var(--i, 0)));
+}
+
+/* Exit stagger: reverse order (right to left) when modal opens */
+html.modal-active #main-links .footer_link {
+  transition-duration: var(--ui-duration-out);
+  transition-timing-function: var(--ui-ease-out);
+  transition-delay: calc(var(--ui-stagger) * var(--ri, 0));
+}
+
+/* Disable pointer events when hidden */
+html.modal-active #main-links { pointer-events: none; }
 
 #brand-logo .brand-logo-svg {
   display: block;

@@ -317,7 +317,7 @@
   --legend-line-height: var(--line-height-loose);
   --legend-opacity: 1;
 
-  --decorative-script-max-width: clamp(317px, 33vw, 444px);
+  --decorative-script-max-width: clamp(254px, 26.4vw, 355px);
   --decorative-script-font-size: var(--text-sm);
   --decorative-script-line-height: var(--line-height-base);
   --decorative-script-letter-spacing: var(--letter-spacing-normal);
@@ -366,10 +366,11 @@
   /* Unified icon button geometry (used across header/footer/dialogs). */
   --ui-icon-frame-size: calc(var(--abs-size-icon-lg) + (var(--link-icon-padding) * 2));
   --ui-icon-glyph-size: var(--abs-size-icon-lg);
-  --ui-icon-corner-radius-mul: 0.4; /* fraction of wall radius */
+  --ui-icon-corner-radius-mul: 0.5; /* fraction of wall radius; buttons track wall roundness */
+  /* Directly correlated to wall: radius = wall-radius × mul. 4px min avoids degenerate when wall is tiny. */
   --ui-icon-corner-radius: clamp(
-    calc(var(--hit-area-sm-base) * 0.75),
-    calc(var(--wall-radius) * var(--ui-icon-corner-radius-mul, 0.4)),
+    4px,
+    calc(var(--wall-radius) * var(--ui-icon-corner-radius-mul, 0.5)),
     999px
   );
 

@@ -12,6 +12,11 @@
       background: var(--wall-color);
     }
 
+    /* Hide second line in edge-caption if it exists */
+    body.splat-test #edge-chapter-text {
+      display: none !important;
+    }
+
     .splat-test-label {
       position: fixed;
       top: var(--gap-md);
@@ -50,6 +55,9 @@
   <div id="abs-scene" class="abs-scene">
     <div id="bravia-balls" class="ball-simulation w-embed">
       <canvas id="c" aria-label="New 3D simulations" role="img" draggable="false"></canvas>
+    </div>
+    <div id="edge-caption" class="edge-caption" role="status" aria-live="polite" aria-atomic="true">
+      <span id="edge-caption-tagline" class="edge-caption__line edge-caption__line--tagline">BUILT WITH LOVE TO BE SATISFYING.</span>
     </div>
     <div id="splat-variant-label" class="splat-test-label" aria-live="polite">NEW SIMULATIONS</div>
     <div class="splat-test-instructions">

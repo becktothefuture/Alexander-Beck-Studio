@@ -244,31 +244,8 @@ function applyDepthEffect(active) {
     }
 }
 
-/**
- * Fade logo and nav when modal opens/closes
- * Simple: just opacity transitions, CSS handles positioning
- */
-function fadeLogoNav(fadeOut = true) {
-    const logo = document.getElementById('brand-logo');
-    const nav = document.getElementById('main-links');
-    const duration = fadeOut ? 500 : 400;
-    
-    if (logo) {
-        // Use Web Animations API to fade - works alongside existing animation
-        logo.animate(
-            [{ opacity: fadeOut ? 1 : 0 }, { opacity: fadeOut ? 0 : 1 }],
-            { duration, easing: 'ease-out', fill: 'forwards' }
-        );
-    }
-    
-    if (nav) {
-        nav.animate(
-            [{ opacity: fadeOut ? 1 : 0 }, { opacity: fadeOut ? 0 : 1 }],
-            { duration, easing: 'ease-out', fill: 'forwards' }
-        );
-        nav.style.pointerEvents = fadeOut ? 'none' : '';
-    }
-}
+// Logo/nav fade is now handled purely by CSS via html.modal-active class
+// The CSS sets --ui-obscured: 1 which derives opacity: 0 for logo and nav
 
 /**
  * Show the overlay with smooth blur animation
@@ -279,11 +256,8 @@ export function showOverlay() {
     // Ensure blur CSS variable is current
     updateBlurFromWallThickness('showOverlay');
 
-    // Global flag for modal-active styling
+    // Global flag for modal-active styling (CSS derives logo/nav visibility from this)
     document.documentElement.classList.add('modal-active');
-    
-    // Fade out logo and nav smoothly
-    fadeLogoNav(true);
     
     // Update aria states
     blurLayerElement.setAttribute('aria-hidden', 'false');
@@ -325,10 +299,9 @@ export function hideOverlay() {
     // Remove active class from BOTH layers
     blurLayerElement.classList.remove('active');
     contentLayerElement.classList.remove('active');
-    document.documentElement.classList.remove('modal-active');
     
-    // Fade logo and nav back in smoothly
-    fadeLogoNav(false);
+    // Remove modal-active (CSS will animate logo/nav back in)
+    document.documentElement.classList.remove('modal-active');
     
     blurLayerElement.setAttribute('aria-hidden', 'true');
     contentLayerElement.setAttribute('aria-hidden', 'true');
