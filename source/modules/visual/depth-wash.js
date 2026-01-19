@@ -58,9 +58,9 @@ export function drawDepthWash(ctx, w, h) {
   ctx.save();
   
   // Set blend mode based on theme
-  // Light: "color-dodge" (intense radiant brightening, inverse of color-burn)
-  // Dark: "color-burn" (rich darkening with color interaction)
-  ctx.globalCompositeOperation = isDark ? 'color-burn' : 'color-dodge';
+  // Light: "color-dodge" (intense radiant brightening)
+  // Dark: "multiply" (consistent cross-browser darkening)
+  ctx.globalCompositeOperation = isDark ? 'multiply' : 'color-dodge';
   
   // Set opacity (same as CSS overlay)
   ctx.globalAlpha = 0.65;
