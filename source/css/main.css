@@ -362,6 +362,32 @@ html.fonts-loading .project-detail {
   transition: opacity var(--content-fade-duration, 800ms) var(--content-fade-ease, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
+.page-content {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--duration-settle) var(--ease-settle),
+    transform var(--duration-settle) var(--ease-settle);
+  will-change: opacity, transform;
+}
+
+body.page-transitioning .page-content {
+  opacity: 0;
+  transform: translateY(var(--gap-sm));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-content {
+    transform: none;
+    transition-duration: var(--duration-quick);
+  }
+
+  body.page-transitioning .page-content {
+    opacity: 0;
+    transform: none;
+  }
+}
+
 html.modal-active .fade-content {
   opacity: 0.2;
   transition-duration: var(--modal-hide-duration, 500ms);

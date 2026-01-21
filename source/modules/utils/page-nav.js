@@ -122,9 +122,12 @@ export function navigateWithTransition(href, state = NAV_STATES.INTERNAL) {
   setNavigationState(state);
   document.body.classList.add('page-transitioning');
   
+  const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const transitionDelay = reduceMotion ? 150 : 400;
+
   setTimeout(() => {
     window.location.href = href;
-  }, 300); // Match CSS animation duration
+  }, transitionDelay); // Match CSS transition duration
 }
 
 /**
