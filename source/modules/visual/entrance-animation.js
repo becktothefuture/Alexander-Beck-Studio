@@ -563,12 +563,14 @@ function performReducedMotionFade() {
  * @param {Object} options - Configuration options
  *   - waitForFonts: async function to wait for fonts
  *   - skipWallAnimation: boolean to skip wall growth animation
+ *   - skipEntranceAnimation: boolean to skip all entrance animation (View Transition handles it)
  *   - centralContent: array of selectors/elements for page-specific central content
  *   - reducedMotion: boolean to use simple 200ms fade (auto-detected if not provided)
  */
 export async function orchestrateEntrance(options = {}) {
   const g = getGlobals();
   const skipWallAnimation = Boolean(options.skipWallAnimation);
+  const skipEntranceAnimation = Boolean(options.skipEntranceAnimation);
   const centralContent = options.centralContent || [];
   
   // Check for reduced motion preference
@@ -582,6 +584,16 @@ export async function orchestrateEntrance(options = {}) {
   // Wait for fonts to load
   if (options.waitForFonts) {
     await options.waitForFonts();
+  }
+  
+  // Skip entrance entirely if View Transition just ran (Chrome handles animation)
+  if (skipEntranceAnimation) {
+    document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
+    document.documentElement.classList.add('entrance-complete');
+    // Just reveal elements that may be hidden
+    revealAllLateElements();
+    console.log('✓ Entrance skipped (View Transition handled animation)');
+    return;
   }
   
   // Reduced motion: simple 200ms fade (not instant, not jarring)

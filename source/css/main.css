@@ -101,19 +101,19 @@ html.entrance-pre-transition.dark-mode {
   background-color: var(--wall-color, #242529);
 }
 
-html.entrance-pre-transition body,
 /* Background elements are visible immediately (no fade-in) */
+/* NOTE: When View Transition is active, JS (page-nav.js pagereveal handler) removes
+   the entrance-pre-transition class to ensure content is visible during the transition. */
 html.entrance-pre-transition #app-frame {
   opacity: 0;
   visibility: hidden;
 }
 
-/* Background elements (#bravia-balls, #abs-scene, #edge-caption)
-   are visible immediately (no fade-in). #brand-logo and #main-links are NOT included 
-   here - they use inline styles + JS animation for late reveal. */
+/* Background elements (#bravia-balls, #abs-scene) are visible immediately (no fade-in).
+   #edge-caption uses .edge-caption only – no overrides – so it keeps 0.3 from the start.
+   #brand-logo and #main-links use inline styles + JS for late reveal. */
 html.entrance-pre-transition #bravia-balls,
-html.entrance-pre-transition #abs-scene,
-html.entrance-pre-transition #edge-caption {
+html.entrance-pre-transition #abs-scene {
   opacity: 1;
   visibility: visible;
 }
@@ -130,10 +130,9 @@ html.entrance-transitioning #app-frame {
   visibility: visible;
 }
 
-/* Background elements remain visible during transition (no fade-in) 
-   #brand-logo and #main-links are NOT included - controlled by JS animation only */
-html.entrance-transitioning #abs-scene,
-html.entrance-transitioning #edge-caption {
+/* Background elements remain visible during transition (no fade-in).
+   #edge-caption uses .edge-caption only – no overrides. */
+html.entrance-transitioning #abs-scene {
   visibility: visible;
   opacity: 1;
 }
@@ -199,11 +198,12 @@ body.dark-mode .content-background-layer {
    EDGE CAPTION (Bottom, centered; engraved two-line stack)
    ───────────────────────────────────────────────────────────────────────────── */
 .edge-caption {
-  position: fixed;
+  position: absolute;
+  /* Distance from bottom: clamps between min and max; 2vh scales with viewport, max caps at largest breakpoints */
+  bottom: clamp(var(--edge-caption-distance-min, 8px), 2vh, var(--edge-caption-distance-max, 48px));
   left: 50%;
-  bottom: calc(var(--wall-thickness) / 2);
-  transform: translate(-50%, -50%);
-  z-index: 6; /* Above canvas (5), below UI (20) */
+  transform: translateX(-50%);
+  z-index: 6;
   pointer-events: none;
   display: inline-flex;
   flex-direction: column;
@@ -211,48 +211,39 @@ body.dark-mode .content-background-layer {
   justify-content: center;
   gap: 0;
   text-align: center;
-  transition:
-    bottom var(--duration-resize) var(--ease-organic),
-    transform var(--duration-resize) var(--ease-organic);
+  padding: 8px;
+  font-size: min(calc(var(--text-xs) * 0.85), 7px);
+  opacity: 0.3;
 }
 
 .edge-caption__line {
   font-family: 'Geist Mono', monospace;
-  font-size: calc(var(--text-xs) * 0.85);
+  font-size: min(calc(var(--text-xs) * 0.85), 7px);
   font-weight: 400;
   line-height: 1;
   letter-spacing: var(--letter-spacing-loose);
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--text-muted);
-  opacity: var(--edge-label-opacity);
+  /* Same colour and opacity (on parent) in light and dark; no overrides */
+  color: #8a8a8a;
   /* Subtle engraved treatment: tiny light lift + recessed dark edge */
   text-shadow:
     0 0.5px 0 rgba(var(--abs-rgb-white), 0.16),
     0 -0.5px 0 rgba(var(--abs-rgb-black), 0.28);
 }
 
-body.dark-mode .edge-caption__line {
-  color: var(--text-muted);
-  opacity: var(--edge-label-opacity);
-}
-
 @media (max-width: 600px) {
   .edge-caption {
     display: var(--edge-label-mobile-display, flex);
-    bottom: calc(var(--wall-thickness) / 2);
-    transform: translate(-50%, -50%);
   }
 
   .edge-caption__line {
-    font-size: calc(var(--text-xs) * 0.7);
+    font-size: min(calc(var(--text-xs) * 0.7), 7px);
     letter-spacing: var(--letter-spacing-normal);
-    opacity: var(--abs-opacity-muted);
   }
 }
 
 html.fonts-loading .fade-content,
-html.fonts-loading #edge-caption,
 html.fonts-loading .portfolio-meta,
 html.fonts-loading .project-detail {
   visibility: hidden;
@@ -395,6 +386,7 @@ html.modal-active .fade-content {
 
 /* UI Wrapper Frame */
 .ui-layer-wrapper {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -543,7 +535,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   }
 }
 
-/* Interactive legend items (clickable like dashboard controls) */
+/* Interactive legend items (hover effects for tooltip display) */
 .legend__item--interactive {
   cursor: none; /* Maintain custom cursor experience */
   position: relative;
@@ -711,9 +703,18 @@ body.dark-mode .legend-tooltip-output {
   letter-spacing: var(--decorative-script-letter-spacing);
   color: var(--text-muted);
   border: none;
-  padding: var(--decorative-script-padding-vertical) 0 var(--decorative-script-padding-vertical) var(--decorative-script-padding-left);
+  /* Symmetrical padding for hover container reveal */
+  padding: var(--decorative-script-padding-vertical) var(--decorative-script-padding-left);
   margin: 0;
   pointer-events: auto;
+  /* Prepare for hover: transparent by default, rounded for reveal */
+  background: transparent;
+  border-radius: var(--abs-radius-card);
+  transition: background var(--duration-quick) var(--ease-organic);
+}
+
+.decorative-script:hover {
+  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
 }
 
 /* Index page: reduce default text saturation/opacity (except logo) */
@@ -787,27 +788,28 @@ p {
   color: inherit;
   pointer-events: auto;
   cursor: none; /* Maintain custom cursor experience */
-  position: relative;
+  /* No position: relative - let ::before position relative to .decorative-script */
   opacity: var(--text-opacity-base);
-  transition: transform 0.15s var(--ease-organic),
-              filter 0.15s var(--ease-organic);
+  transition: color 0.15s var(--ease-organic);
   white-space: nowrap;
-  /* Hit area (no layout shift): padding expands target; negative margins counter it. */
-  padding-block: var(--hit-area-sm);
-  padding-inline: var(--hit-area-sm);
-  margin-block: calc(var(--hit-area-sm) * -1);
-  margin-inline: calc(var(--hit-area-sm) * -1);
-  border-radius: var(--abs-radius-pill);
+}
+
+/* Extend link hit area to cover entire parent block */
+.decorative-script p a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--abs-radius-card);
 }
 
 .decorative-script p a::after {
   content: none; /* Dot removed */
 }
 
-.decorative-script p a:hover {
-  opacity: 1; /* Remove opacity on hover - full strength color */
+/* Color link when hovering anywhere on the block */
+.decorative-script:hover p a {
+  opacity: 1;
   color: var(--cursor-hover-fg, var(--cursor-color));
-  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1249,7 +1251,7 @@ button.abs-meta-btn,
   color: #ffffff;
   border-radius: var(--abs-radius-cta);
   font-family: var(--abs-font-sans);
-  font-size: var(--text-size-base);
+  font-size: var(--text-sm);
   font-weight: var(--abs-weight-medium);
   line-height: 1.2;
   white-space: nowrap;
@@ -3430,7 +3432,8 @@ body.cv-page #bravia-balls .cv-wall-canvas {
 
 .cv-scroll-container {
   position: absolute;
-  inset: 0;
+  /* Inset by wall thickness so the wall frame is visible around the content */
+  inset: var(--wall-thickness, 9px);
   /* Desktop: clip at rounded edges, .cv-right handles its own scroll */
   overflow: hidden;
   /* Border-radius on inner scroll container (not #bravia-balls) to clip CV content 
@@ -4129,5 +4132,132 @@ body.cv-page.dark-mode .cv-scroll-container {
   
   .cv-skills {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   VIEW TRANSITIONS API - Cross-Document Page Transitions
+   
+   SIMPLIFIED APPROACH: Only TWO named layers to avoid ghost artifacts:
+   1. `wall` - The fixed frame (#bravia-balls) that stays in place
+   2. `content` - Everything inside #app-frame that transitions with depth
+   
+   Chrome 126+ supports this natively; Safari/Firefox use JS fallback.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Enable cross-document view transitions for same-origin navigations */
+@view-transition {
+  navigation: auto;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PREVENT ROOT FROM TRANSITIONING (avoids double-exposure ghosting)
+   ───────────────────────────────────────────────────────────────────────────── */
+html {
+  view-transition-name: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TWO-LAYER SYSTEM: Wall (fixed) + Content (transitions)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Wall frame stays fixed (no animation, same position) */
+#bravia-balls {
+  view-transition-name: wall;
+}
+
+/* All page content transitions together as one unified layer */
+#app-frame {
+  view-transition-name: content;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   EXCLUDE OVERLAYS FROM TRANSITIONS (prevents ghost UI)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Modals, panels, and overlays should NOT participate in transitions */
+#modal-overlay,
+#cv-modal,
+#portfolio-modal,
+#contact-modal,
+.modal,
+.panel,
+#master-panel,
+#page-flash,
+.noise {
+  view-transition-name: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   WALL ANIMATION: Freeze completely (no animation, no opacity change)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+::view-transition-group(wall),
+::view-transition-old(wall),
+::view-transition-new(wall) {
+  animation: none;
+}
+
+::view-transition-old(wall),
+::view-transition-new(wall) {
+  opacity: 1;
+  mix-blend-mode: normal;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CONTENT ANIMATION: Cinematic depth transition
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Old content recedes into depth */
+::view-transition-old(content) {
+  animation: vt-recede 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: center center;
+}
+
+/* New content emerges from depth */
+::view-transition-new(content) {
+  animation: vt-emerge 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: center center;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   VIEW TRANSITION KEYFRAMES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Content recedes INTO depth (old page leaving) */
+@keyframes vt-recede {
+  from {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: blur(8px);
+  }
+}
+
+/* Content emerges FROM depth (new page arriving) */
+@keyframes vt-emerge {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   REDUCED MOTION - Simple cross-fade for motion-sensitive users
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  /* Disable view transitions entirely - just use instant navigation */
+  @view-transition {
+    navigation: none;
   }
 }

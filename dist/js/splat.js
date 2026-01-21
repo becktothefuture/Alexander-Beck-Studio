@@ -1,4 +1,4 @@
-/* Alexander Beck Studio | 2026-01-18 */
+/* Alexander Beck Studio | 2026-01-21 */
 import { d as loadRuntimeConfig, e as initState, f as applyLayoutCSSVars, j as setupRenderer, n as setCanvas, S as getContext, k as getCanvas, o as resize, g as getGlobals, q as setupPointer, ab as applyColorTemplate, ac as clearBalls, ad as clampRadiusToGlobalBounds, ae as spawnBall, M as MODES, V as render } from './shared.js';
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -1433,7 +1433,7 @@ function setupVariantCycle(variants) {
   const canvas = getCanvas();
   if (!canvas || variants.length === 0) return;
 
-  let index = 0;
+  let index = Math.floor(Math.random() * variants.length);
   const currentVariant = variants[index];
   buildPointCloud(currentVariant);
   updateVariantLabel(currentVariant);

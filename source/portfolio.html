@@ -224,9 +224,6 @@
   <div id="abs-scene" class="abs-scene">
     <!-- LAYER 0: Content Background - BEHIND everything (z:1) -->
     <div id="content-background" class="content-background-layer" aria-hidden="true"></div>
-    <div id="edge-caption" class="edge-caption" role="status" aria-live="polite" aria-atomic="true">
-      <span id="edge-caption-tagline" class="edge-caption__line edge-caption__line--tagline">BUILT WITH LOVE TO BE SATISFYING.</span>
-    </div>
     
     <!-- LAYER 1: Brand Logo - NOT VISIBLE on portfolio page (removed to optimize entrance animation) -->
     <!-- Logo animation skipped - entrance goes directly from #app-frame to .portfolio-stage -->
@@ -264,7 +261,7 @@
       <header class="ui-top" data-portfolio-ui>
         <div class="ui-top-main">
           <div class="ui-top-left">
-            <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition aria-label="Back to home">
+            <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition data-transition aria-label="Back to home">
               <i class="ti ti-arrow-left" aria-hidden="true"></i>
             </a>
             <a id="cv-modal-trigger" class="portfolio-cv-link" href="#" aria-label="Bio/CV">Bio/CV</a>
@@ -310,6 +307,9 @@
           </div>
         </div>
       </footer>
+      <div id="edge-caption" class="edge-caption" role="status" aria-live="polite" aria-atomic="true">
+        <span id="edge-caption-tagline" class="edge-caption__line edge-caption__line--tagline">BUILT WITH LOVE TO BE SATISFYING.</span>
+      </div>
     </div>
   </div>
   </div>

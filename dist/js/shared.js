@@ -1,4 +1,4 @@
-/* Alexander Beck Studio | 2026-01-18 */
+/* Alexander Beck Studio | 2026-01-21 */
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                          CONSTANTS (COMPLETE)                                ║
 // ║                    Extracted from balls-source.html                          ║
@@ -3496,7 +3496,7 @@ const GLOBAL_MIN_INTERVAL = 0.005; // 5ms between ANY sounds (200/sec max)
 let lastSoundTime = new Map(); // ball id → timestamp
 
 // Reduced motion preference
-let prefersReducedMotion$3 = false;
+let prefersReducedMotion$4 = false;
 
 // Shared noise buffer (created once, reused)
 let sharedNoiseBuffer = null;
@@ -3528,9 +3528,9 @@ function initSoundEngine() {
 
   if (typeof window !== 'undefined' && window.matchMedia) {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    prefersReducedMotion$3 = motionQuery.matches;
+    prefersReducedMotion$4 = motionQuery.matches;
     motionQuery.addEventListener('change', (e) => {
-      prefersReducedMotion$3 = e.matches;
+      prefersReducedMotion$4 = e.matches;
     });
   }
 }
@@ -3857,7 +3857,7 @@ function stopWheelLoops() {
 }
 
 function playWheelClick(gain, filterHz) {
-  if (!isEnabled$1 || !isUnlocked || !audioContext || prefersReducedMotion$3) return;
+  if (!isEnabled$1 || !isUnlocked || !audioContext || prefersReducedMotion$4) return;
   ensureWheelBus();
   createWheelTickBuffer();
   const src = audioContext.createBufferSource();
@@ -3872,7 +3872,7 @@ function playWheelClick(gain, filterHz) {
 }
 
 function updateWheelSfx(velocityPxPerSec = 0) {
-  if (!isEnabled$1 || !isUnlocked || !audioContext || prefersReducedMotion$3) {
+  if (!isEnabled$1 || !isUnlocked || !audioContext || prefersReducedMotion$4) {
     stopWheelLoops();
     return;
   }
@@ -3957,7 +3957,7 @@ function playWheelClose() {
 }
 
 function playHoverSound() {
-  if (!isEnabled$1 || !isUnlocked || !audioContext || prefersReducedMotion$3) return;
+  if (!isEnabled$1 || !isUnlocked || !audioContext || prefersReducedMotion$4) return;
   playWheelClick(0.099, 2200);
 }
 
@@ -4000,7 +4000,7 @@ function createTransientNoise() {
  * @param {string|number} ballId - Unique ball identifier for debouncing
  */
 function playCollisionSound(ballRadius, intensity, xPosition = 0.5, ballId = null) {
-  if (!isEnabled$1 || !isUnlocked || !audioContext || prefersReducedMotion$3) return;
+  if (!isEnabled$1 || !isUnlocked || !audioContext || prefersReducedMotion$4) return;
   
   // Energy threshold: soft touches are silent
   if (intensity < CONFIG.collisionMinImpact) return;
@@ -6960,9 +6960,9 @@ function drawDepthWash(ctx, w, h) {
   ctx.save();
   
   // Set blend mode based on theme
-  // Light: "color-dodge" (intense radiant brightening, inverse of color-burn)
-  // Dark: "color-burn" (rich darkening with color interaction)
-  ctx.globalCompositeOperation = isDark ? 'color-burn' : 'color-dodge';
+  // Light: "color-dodge" (intense radiant brightening)
+  // Dark: "multiply" (consistent cross-browser darkening)
+  ctx.globalCompositeOperation = isDark ? 'multiply' : 'color-dodge';
   
   // Set opacity (same as CSS overlay)
   ctx.globalAlpha = 0.65;
@@ -10384,8 +10384,8 @@ function updateElasticCenter(dt) {
 }
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                            DVD LOGO MODE                                       ║
-// ║     Classic DVD screensaver: "DVD" spelled in balls, bouncing linearly        ║
+// ║                           BECK LOGO MODE                                       ║
+// ║     Classic DVD screensaver: "BECK" spelled in balls, bouncing linearly       ║
 // ║              with color changes on wall bounce                                 ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -10402,10 +10402,10 @@ let currentColorIndex = 0;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Define letter "D" shape using relative positions (normalized coordinates)
+ * Define letter "B" shape using relative positions (normalized coordinates)
  * Returns array of {x, y} positions relative to letter center
  */
-function getLetterDShape() {
+function getLetterBShape() {
   const points = [];
   
   // Left vertical line (5 points)
@@ -10415,71 +10415,134 @@ function getLetterDShape() {
   
   // Top horizontal (2 points)
   points.push({ x: 0, y: -2 });
-  points.push({ x: 1, y: -2 });
+  points.push({ x: 0.8, y: -2 });
   
-  // Right curve (3 points)
-  points.push({ x: 1.5, y: -1 });
-  points.push({ x: 1.5, y: 0 });
-  points.push({ x: 1.5, y: 1 });
+  // Top right curve (2 points)
+  points.push({ x: 1.3, y: -1.5 });
+  points.push({ x: 1.3, y: -1 });
+  
+  // Middle horizontal (2 points)
+  points.push({ x: 0.8, y: 0 });
+  points.push({ x: 0, y: 0 });
+  
+  // Bottom right curve (2 points)
+  points.push({ x: 1.3, y: 0.5 });
+  points.push({ x: 1.3, y: 1 });
   
   // Bottom horizontal (2 points)
-  points.push({ x: 1, y: 2 });
+  points.push({ x: 0.8, y: 2 });
   points.push({ x: 0, y: 2 });
   
   return points;
 }
 
 /**
- * Define letter "V" shape using relative positions
+ * Define letter "E" shape using relative positions
  */
-function getLetterVShape() {
+function getLetterEShape() {
   const points = [];
   
-  // Left diagonal (3 points)
-  points.push({ x: -1.5, y: -2 });
-  points.push({ x: -1, y: -0.5 });
-  points.push({ x: -0.5, y: 1 });
+  // Left vertical line (5 points)
+  for (let i = 0; i < 5; i++) {
+    points.push({ x: -1, y: -2 + i });
+  }
   
-  // Bottom point (2 points for emphasis)
-  points.push({ x: 0, y: 2 });
-  points.push({ x: 0, y: 2.2 });
-  
-  // Right diagonal (3 points)
-  points.push({ x: 0.5, y: 1 });
-  points.push({ x: 1, y: -0.5 });
+  // Top horizontal (3 points)
+  points.push({ x: 0, y: -2 });
+  points.push({ x: 0.8, y: -2 });
   points.push({ x: 1.5, y: -2 });
+  
+  // Middle horizontal (2 points)
+  points.push({ x: 0, y: 0 });
+  points.push({ x: 0.8, y: 0 });
+  
+  // Bottom horizontal (3 points)
+  points.push({ x: 0, y: 2 });
+  points.push({ x: 0.8, y: 2 });
+  points.push({ x: 1.5, y: 2 });
   
   return points;
 }
 
 /**
- * Calculate ball positions for the full "DVD" logo
+ * Define letter "C" shape using relative positions
+ */
+function getLetterCShape() {
+  const points = [];
+  
+  // Top horizontal (2 points)
+  points.push({ x: 0, y: -2 });
+  points.push({ x: 1, y: -2 });
+  
+  // Left curve (5 points)
+  points.push({ x: -0.8, y: -1.5 });
+  points.push({ x: -1.2, y: -0.8 });
+  points.push({ x: -1.2, y: 0 });
+  points.push({ x: -1.2, y: 0.8 });
+  points.push({ x: -0.8, y: 1.5 });
+  
+  // Bottom horizontal (2 points)
+  points.push({ x: 0, y: 2 });
+  points.push({ x: 1, y: 2 });
+  
+  return points;
+}
+
+/**
+ * Define letter "K" shape using relative positions
+ */
+function getLetterKShape() {
+  const points = [];
+  
+  // Left vertical line (5 points)
+  for (let i = 0; i < 5; i++) {
+    points.push({ x: -1, y: -2 + i });
+  }
+  
+  // Upper diagonal (3 points)
+  points.push({ x: 0, y: 0 });
+  points.push({ x: 0.6, y: -1 });
+  points.push({ x: 1.2, y: -2 });
+  
+  // Lower diagonal (3 points)
+  points.push({ x: 0.3, y: 0.5 });
+  points.push({ x: 0.8, y: 1.2 });
+  points.push({ x: 1.3, y: 2 });
+  
+  return points;
+}
+
+/**
+ * Calculate ball positions for the full "BECK" logo
  * @param {number} targetBallCount - Total balls to distribute across letters
  * @param {number} ballRadius - Radius of each ball
  * @param {number} ballSpacingMul - Spacing multiplier between balls
  * @param {number} letterSpacingMul - Spacing multiplier between letters
  * @returns Array of {x, y} absolute positions
  */
-function calculateDvdPositions(targetBallCount, ballRadius, ballSpacingMul, letterSpacingMul) {
+function calculateBeckPositions(targetBallCount, ballRadius, ballSpacingMul, letterSpacingMul) {
   const positions = [];
   
   // Get letter shapes (normalized coordinates)
-  const letterD = getLetterDShape();
-  const letterV = getLetterVShape();
+  const letterB = getLetterBShape();
+  const letterE = getLetterEShape();
+  const letterC = getLetterCShape();
+  const letterK = getLetterKShape();
   
   // Calculate spacing based on ball radius (no overlap)
   const spacing = ballRadius * 2 * ballSpacingMul; // Each ball gets diameter * multiplier
   const letterSpacing = spacing * 3 * letterSpacingMul; // Space between letters
   
-  // Calculate how many balls per letter (distribute evenly)
-  const ballsPerLetter = Math.floor(targetBallCount / 3);
-  const remainder = targetBallCount % 3;
+  // Calculate how many balls per letter (distribute evenly across 4 letters)
+  const ballsPerLetter = Math.floor(targetBallCount / 4);
+  const remainder = targetBallCount % 4;
   
-  // Create ball positions for each letter
+  // Create ball positions for each letter (centered: offsets are -1.5, -0.5, 0.5, 1.5)
   const letters = [
-    { shape: letterD, offset: -letterSpacing, count: ballsPerLetter + (remainder > 0 ? 1 : 0) },
-    { shape: letterV, offset: 0, count: ballsPerLetter + (remainder > 1 ? 1 : 0) },
-    { shape: letterD, offset: letterSpacing, count: ballsPerLetter }
+    { shape: letterB, offset: -1.5 * letterSpacing, count: ballsPerLetter + (remainder > 0 ? 1 : 0) },
+    { shape: letterE, offset: -0.5 * letterSpacing, count: ballsPerLetter + (remainder > 1 ? 1 : 0) },
+    { shape: letterC, offset: 0.5 * letterSpacing, count: ballsPerLetter + (remainder > 2 ? 1 : 0) },
+    { shape: letterK, offset: 1.5 * letterSpacing, count: ballsPerLetter }
   ];
   
   letters.forEach(letter => {
@@ -10528,7 +10591,7 @@ function initializeDvdLogo() {
   const uniformRadius = baseRadius * logoSize;
   
   // Calculate ball positions with proper spacing
-  const positions = calculateDvdPositions(ballCount, uniformRadius, ballSpacingMul, letterSpacingMul);
+  const positions = calculateBeckPositions(ballCount, uniformRadius, ballSpacingMul, letterSpacingMul);
   
   // Initial logo center (random position or center)
   const wallInset = Math.max(0, (g.wallThickness ?? 0) * DPR);
@@ -12425,7 +12488,7 @@ const colors = new Array(PARTICLE_POOL_SIZE); // Hex strings (not numeric)
 let lastMouseDirX = 0;
 let lastMouseDirY = 0;
 
-function prefersReducedMotion$2() {
+function prefersReducedMotion$3() {
   try {
     return !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   } catch (e) {
@@ -12479,7 +12542,7 @@ function updateMouseVelocity(velocity, dirX, dirY) {
 function triggerCursorExplosion(x, y, color, velocity = 0) {
   const g = getGlobals();
   if (!g?.cursorExplosionEnabled) return;
-  if (prefersReducedMotion$2()) return;
+  if (prefersReducedMotion$3()) return;
   if (!g.canvas || !g.ctx) return;
   
   const dpr = g.DPR || 1;
@@ -12642,7 +12705,7 @@ function updateCursorExplosion(dt) {
 function drawCursorExplosion(ctx) {
   const g = getGlobals();
   if (!g?.cursorExplosionEnabled) return;
-  if (prefersReducedMotion$2()) return;
+  if (prefersReducedMotion$3()) return;
   if (!particleCount || !ctx) return;
   
   // Group particles by color for batching (reduces fillStyle changes)
@@ -12758,7 +12821,7 @@ function computeLogoScaleFromImpact(impact01, g) {
   return Math.max(0.5, Math.min(4.0, out));
 }
 
-function prefersReducedMotion$1() {
+function prefersReducedMotion$2() {
   try {
     return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   } catch (e) {
@@ -12798,7 +12861,7 @@ function initSceneImpactReact() {
   applyImpactMulFromGlobals();
 
   // Respect reduced motion: keep stable/robust and do not animate.
-  if (prefersReducedMotion$1()) return;
+  if (prefersReducedMotion$2()) return;
 
   enabled = true;
 
@@ -13682,7 +13745,7 @@ function syncSuppressedState() {
   return suppressed;
 }
 
-function prefersReducedMotion() {
+function prefersReducedMotion$1() {
   try {
     return !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   } catch (e) {
@@ -13733,7 +13796,7 @@ function notifyMouseTrailMove(x, y, nowMs, inBounds) {
   const g = getGlobals();
   if (!g?.mouseTrailEnabled) return;
   if (!inBounds) return;
-  if (prefersReducedMotion()) return;
+  if (prefersReducedMotion$1()) return;
 
   // Cap can be tuned live; only reallocate if needed (rare).
   const wanted = clamp((g.mouseTrailLength ?? 18) | 0, 4, 96);
@@ -13771,7 +13834,7 @@ function drawMouseTrail(ctx) {
 
   const g = getGlobals();
   if (!g?.mouseTrailEnabled) return;
-  if (prefersReducedMotion()) return;
+  if (prefersReducedMotion$1()) return;
   if (!ctx || !size || !cap) return;
 
   const now = performance.now();
@@ -15891,11 +15954,99 @@ function getText(path, fallback = '') {
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                         PAGE NAVIGATION UTILITIES                            ║
 // ║     Unified navigation state: transitions, modal routing, animation skip     ║
+// ║     Now with View Transitions API support + Safari departure fallback        ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 const NAV_STATE_KEY = 'abs_nav_state';
 const NAV_TIMESTAMP_KEY = 'abs_nav_ts';
 const NAV_EXPIRY_MS = 5000; // 5 second window for page transitions
+
+/**
+ * Check if View Transitions API is supported (Chrome 126+)
+ * @returns {boolean}
+ */
+function supportsViewTransitions() {
+  return typeof document.startViewTransition === 'function';
+}
+
+/**
+ * Check if this page load was the result of a View Transition.
+ * Returns the cached result from module load + pagereveal detection.
+ * @returns {boolean}
+ */
+function didViewTransitionRun() {
+  return _viewTransitionDetected;
+}
+
+// Listen for pagereveal event to detect View Transition arrival (backup)
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagereveal', (event) => {
+    if (event.viewTransition) {
+      _viewTransitionDetected = true;
+      console.log('✓ View Transition detected on pagereveal');
+      
+      // CRITICAL: Remove entrance-pre-transition class immediately so content is visible
+      // during the View Transition animation. The View Transition handles the animation,
+      // so we don't need the entrance animation's initial hidden state.
+      document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
+      document.documentElement.classList.add('entrance-complete');
+      
+      // Ensure key elements are visible (they may have inline opacity: 0 from HTML)
+      const elementsToReveal = ['#app-frame', '#abs-scene', '#brand-logo', '#main-links'];
+      elementsToReveal.forEach(selector => {
+        const el = document.querySelector(selector);
+        if (el) {
+          el.style.opacity = '1';
+          el.style.visibility = 'visible';
+        }
+      });
+      
+      // Also reveal main-links buttons
+      document.querySelectorAll('#main-links .footer_link').forEach(btn => {
+        btn.style.opacity = '1';
+        btn.style.transform = 'translateY(0) scale(1)';
+        btn.style.filter = 'blur(0)';
+      });
+    }
+  });
+  
+  // Close overlays before navigation to prevent ghost UI in view transitions
+  window.addEventListener('pageswap', () => {
+    closeOverlaysBeforeNavigation();
+  });
+  
+  window.addEventListener('pagehide', () => {
+    closeOverlaysBeforeNavigation();
+  });
+}
+
+/**
+ * Close all modals, panels, and overlays before navigation.
+ * Prevents ghost UI artifacts in View Transitions.
+ */
+function closeOverlaysBeforeNavigation() {
+  // Close modals
+  const modals = document.querySelectorAll('.modal.active, [data-modal].active');
+  modals.forEach(modal => {
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+  });
+  
+  // Close modal overlay
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay?.classList.contains('active')) {
+    overlay.classList.remove('active');
+  }
+  
+  // Close settings/master panel if open
+  const panel = document.getElementById('master-panel');
+  if (panel?.classList.contains('open')) {
+    panel.classList.remove('open');
+  }
+  
+  // Remove any modal-active class from html
+  document.documentElement.classList.remove('modal-active');
+}
 
 // Navigation state types
 const NAV_STATES = {
@@ -15904,6 +16055,26 @@ const NAV_STATES = {
   OPEN_PORTFOLIO_MODAL: 'open_portfolio', // Open Portfolio modal on arrival
   OPEN_CONTACT_MODAL: 'open_contact',   // Open Contact modal on arrival
 };
+
+// ============================================================================
+// VIEW TRANSITION DETECTION (must run at module load, before state is cleared)
+// ============================================================================
+// Check IMMEDIATELY at module load whether we arrived via View Transition.
+// This must happen before getNavigationState() clears the sessionStorage.
+let _viewTransitionDetected = false;
+try {
+  const navState = sessionStorage.getItem(NAV_STATE_KEY);
+  const navTs = parseInt(sessionStorage.getItem(NAV_TIMESTAMP_KEY) || '0', 10);
+  const isRecent = Date.now() - navTs < NAV_EXPIRY_MS;
+  const browserSupportsVT = typeof document.startViewTransition === 'function';
+  
+  if (navState && isRecent && browserSupportsVT) {
+    _viewTransitionDetected = true;
+    console.log('✓ View Transition detected at module load');
+  }
+} catch (e) {
+  // sessionStorage unavailable
+}
 
 // Debounce state (prevents rapid click navigation)
 let isTransitioning = false;
@@ -16000,21 +16171,38 @@ function getModalToAutoOpen() {
 
 /**
  * Navigate to a page with smooth fade-out transition.
- * Sets navigation state and applies page-transitioning class.
- * Debounces rapid clicks during transition.
+ * Uses View Transitions API on Chrome, departure animation fallback on Safari.
+ * Sets navigation state and debounces rapid clicks.
  * @param {string} href - Destination URL
  * @param {string} state - Navigation state from NAV_STATES
  */
-function navigateWithTransition(href, state = NAV_STATES.INTERNAL) {
+async function navigateWithTransition(href, state = NAV_STATES.INTERNAL) {
   if (isTransitioning) return; // Debounce rapid clicks
   isTransitioning = true;
   
   setNavigationState(state);
+  
+  const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  
+  // If View Transitions API is supported, just navigate (browser handles animation via CSS)
+  if (supportsViewTransitions()) {
+    window.location.href = href;
+    return;
+  }
+  
+  // Safari/Firefox fallback: departure animation before navigation
   document.body.classList.add('page-transitioning');
   
-  setTimeout(() => {
-    window.location.href = href;
-  }, 300); // Match CSS animation duration
+  try {
+    // Dynamic import to avoid loading if not needed
+    const { animateDeparture } = await Promise.resolve().then(function () { return pageDeparture; });
+    await animateDeparture({ duration: reduceMotion ? 150 : 300 });
+  } catch (e) {
+    // Fallback delay if module fails
+    await new Promise(r => setTimeout(r, reduceMotion ? 150 : 300));
+  }
+  
+  window.location.href = href;
 }
 
 /**
@@ -16053,18 +16241,91 @@ function setupPrefetchOnHover(element, href) {
   element.addEventListener('mouseenter', () => prefetchPage(href), { once: true });
 }
 
+/**
+ * Initialize speculative prefetching system.
+ * Prefetches pages on hover/focus with a small delay.
+ * Respects data saver mode.
+ */
+function initSpeculativePrefetch() {
+  const prefetched = new Set();
+  const HOVER_DELAY = 100; // ms before triggering prefetch
+  
+  // Respect data saver mode
+  const connection = navigator.connection;
+  if (connection?.saveData) {
+    console.log('✓ Data saver enabled, skipping speculative prefetch');
+    return;
+  }
+  
+  /**
+   * Handle hover/focus on navigation elements
+   * @param {Element} target 
+   */
+  function handleHoverStart(target) {
+    const href = target.href || target.dataset.href;
+    if (!href || prefetched.has(href)) return;
+    if (!href.endsWith('.html') && !href.includes('/')) return;
+    
+    // Delay prefetch to avoid prefetching on quick mouse passes
+    const timeout = setTimeout(() => {
+      prefetchPage(href);
+      prefetched.add(href);
+    }, HOVER_DELAY);
+    
+    // Cancel if mouse leaves quickly
+    const cancel = () => {
+      clearTimeout(timeout);
+      target.removeEventListener('mouseleave', cancel);
+      target.removeEventListener('touchend', cancel);
+      target.removeEventListener('blur', cancel);
+    };
+    
+    target.addEventListener('mouseleave', cancel, { once: true });
+    target.addEventListener('touchend', cancel, { once: true });
+    target.addEventListener('blur', cancel, { once: true });
+  }
+  
+  // Listen for hover/focus on links
+  document.addEventListener('mouseenter', (e) => {
+    const link = e.target.closest('a[href], [data-href], [data-transition]');
+    if (link) handleHoverStart(link);
+  }, { capture: true });
+  
+  document.addEventListener('focusin', (e) => {
+    const link = e.target.closest('a[href], [data-href], [data-transition]');
+    if (link) handleHoverStart(link);
+  });
+  
+  // Mobile: prefetch on touchstart
+  document.addEventListener('touchstart', (e) => {
+    const link = e.target.closest('a[href], [data-href], [data-transition]');
+    if (link) {
+      const href = link.href || link.dataset.href;
+      if (href && !prefetched.has(href)) {
+        prefetchPage(href);
+        prefetched.add(href);
+      }
+    }
+  }, { passive: true });
+  
+  console.log('✓ Speculative prefetch initialized');
+}
+
 var pageNav = /*#__PURE__*/Object.freeze({
   __proto__: null,
   NAV_STATES: NAV_STATES,
+  didViewTransitionRun: didViewTransitionRun,
   getModalToAutoOpen: getModalToAutoOpen,
   getNavigationState: getNavigationState,
+  initSpeculativePrefetch: initSpeculativePrefetch,
   isBackForwardNavigation: isBackForwardNavigation,
   navigateWithTransition: navigateWithTransition,
   prefetchPage: prefetchPage,
   resetTransitionState: resetTransitionState,
   setNavigationState: setNavigationState,
   setupPrefetchOnHover: setupPrefetchOnHover,
-  shouldSkipWallAnimation: shouldSkipWallAnimation
+  shouldSkipWallAnimation: shouldSkipWallAnimation,
+  supportsViewTransitions: supportsViewTransitions
 });
 
 /**
@@ -16098,7 +16359,7 @@ function triggerFlash$1(flashEl, type) {
     flashEl.classList.add(`page-flash--${type}`);
     
     // Remove after animation completes
-    const duration = 300;
+    const duration = type === 'success' ? 600 : 300;
     setTimeout(() => {
         flashEl.classList.remove(`page-flash--${type}`);
     }, duration);
@@ -16312,21 +16573,50 @@ function initCVModal() {
         
         if (enteredCode.length === 4) {
             if (enteredCode === CODE) {
-                // Success - Pulse on inputs container
+                // ═══════════════════════════════════════════════════════════════════
+                // GATE UNLOCK ANIMATION SEQUENCE (US-005)
+                // 1. Input pulse (200ms) - immediate tactile feedback
+                // 2. Success flash (150ms) - green tint overlay
+                // 3. Modal dissolve (250ms) - scale up + blur + fade
+                // 4. Departure/transition - navigate to destination
+                // Total: ~500ms from correct code to navigation start
+                // ═══════════════════════════════════════════════════════════════════
+                
+                // Step 1: Input container pulse
                 const inputsContainer = document.querySelector('.cv-modal-inputs');
                 if (inputsContainer) {
                     inputsContainer.classList.remove('pulse-energy');
                     inputsContainer.classList.add('pulse-energy');
-                    
-                    setTimeout(() => {
-                        inputsContainer.classList.remove('pulse-energy');
-                    }, 600);
                 }
                 
-                // Smooth page fade-out + redirect using unified navigation
+                // Step 2: Success flash (after pulse starts)
+                setTimeout(() => {
+                    triggerFlash$1(flash, 'success');
+                }, 100);
+                
+                // Step 3: Modal dissolve animation (after flash peaks)
+                setTimeout(() => {
+                    // Use WAAPI for smooth modal dissolve
+                    if (typeof modal.animate === 'function') {
+                        modal.animate(
+                            [
+                                { transform: 'scale(1)', opacity: 1, filter: 'blur(0)' },
+                                { transform: 'scale(1.03)', opacity: 0, filter: 'blur(4px)' }
+                            ],
+                            { duration: 250, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }
+                        );
+                    } else {
+                        modal.style.transition = 'transform 250ms ease-out, opacity 250ms ease-out, filter 250ms ease-out';
+                        modal.style.transform = 'scale(1.03)';
+                        modal.style.opacity = '0';
+                        modal.style.filter = 'blur(4px)';
+                    }
+                }, 200);
+                
+                // Step 4: Navigate (after dissolve is mostly complete)
                 setTimeout(() => {
                     navigateWithTransition('cv.html', NAV_STATES.INTERNAL);
-                }, 200); // Brief delay after pulse starts
+                }, 450);
                 
             } else {
                 // Failure - Red flash, clear inputs
@@ -16453,7 +16743,7 @@ function triggerFlash(flashEl, type) {
     flashEl.classList.add(`page-flash--${type}`);
     
     // Remove after animation completes
-    const duration = 300;
+    const duration = type === 'success' ? 600 : 300;
     setTimeout(() => {
         flashEl.classList.remove(`page-flash--${type}`);
     }, duration);
@@ -16681,24 +16971,53 @@ function initPortfolioModal() {
         
         if (enteredCode.length === 4) {
             if (enteredCode === CODE) {
-                // Success - Pulse on inputs container
+                // ═══════════════════════════════════════════════════════════════════
+                // GATE UNLOCK ANIMATION SEQUENCE (US-005)
+                // 1. Input pulse (200ms) - immediate tactile feedback
+                // 2. Success flash (150ms) - green tint overlay
+                // 3. Modal dissolve (250ms) - scale up + blur + fade
+                // 4. Departure/transition - navigate to destination
+                // Total: ~500ms from correct code to navigation start
+                // ═══════════════════════════════════════════════════════════════════
+                
+                // Step 1: Input container pulse
                 const inputsContainer = document.querySelector('.portfolio-modal-inputs');
                 if (inputsContainer) {
                     inputsContainer.classList.remove('pulse-energy');
                     inputsContainer.classList.add('pulse-energy');
-                    
-                    setTimeout(() => {
-                        inputsContainer.classList.remove('pulse-energy');
-                    }, 600);
                 }
                 
                 // Set session token (soft modal)
                 sessionStorage.setItem('abs_portfolio_ok', Date.now());
                 
-                // Smooth page fade-out + redirect using unified navigation
+                // Step 2: Success flash (after pulse starts)
+                setTimeout(() => {
+                    triggerFlash(flash, 'success');
+                }, 100);
+                
+                // Step 3: Modal dissolve animation (after flash peaks)
+                setTimeout(() => {
+                    // Use WAAPI for smooth modal dissolve
+                    if (typeof modal.animate === 'function') {
+                        modal.animate(
+                            [
+                                { transform: 'scale(1)', opacity: 1, filter: 'blur(0)' },
+                                { transform: 'scale(1.03)', opacity: 0, filter: 'blur(4px)' }
+                            ],
+                            { duration: 250, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }
+                        );
+                    } else {
+                        modal.style.transition = 'transform 250ms ease-out, opacity 250ms ease-out, filter 250ms ease-out';
+                        modal.style.transform = 'scale(1.03)';
+                        modal.style.opacity = '0';
+                        modal.style.filter = 'blur(4px)';
+                    }
+                }, 200);
+                
+                // Step 4: Navigate (after dissolve is mostly complete)
                 setTimeout(() => {
                     navigateWithTransition('portfolio.html', NAV_STATES.INTERNAL);
-                }, 200); // Brief delay after pulse starts
+                }, 450);
                 
             } else {
                 // Failure - Red flash, clear inputs
@@ -17373,7 +17692,7 @@ function createSoundTooltip() {
   // Position relative to button (after appending so we can measure width)
   updateTooltipPosition();
 
-  // Schedule appearance after 7.6 seconds
+  // Schedule appearance after 20 seconds
   tooltipTimeout = setTimeout(() => {
     if (tooltipElement) {
       // Double-check sound still isn't enabled
@@ -17385,7 +17704,7 @@ function createSoundTooltip() {
         tooltipElement.setAttribute('aria-hidden', 'false');
       }
     }
-  }, 7600);
+  }, 20000);
 
   // Hide on interaction with button
   buttonElement.addEventListener('mouseenter', hideSoundTooltip);
@@ -18480,12 +18799,14 @@ function performReducedMotionFade() {
  * @param {Object} options - Configuration options
  *   - waitForFonts: async function to wait for fonts
  *   - skipWallAnimation: boolean to skip wall growth animation
+ *   - skipEntranceAnimation: boolean to skip all entrance animation (View Transition handles it)
  *   - centralContent: array of selectors/elements for page-specific central content
  *   - reducedMotion: boolean to use simple 200ms fade (auto-detected if not provided)
  */
 async function orchestrateEntrance(options = {}) {
   const g = getGlobals();
   const skipWallAnimation = Boolean(options.skipWallAnimation);
+  const skipEntranceAnimation = Boolean(options.skipEntranceAnimation);
   const centralContent = options.centralContent || [];
   
   // Check for reduced motion preference
@@ -18499,6 +18820,16 @@ async function orchestrateEntrance(options = {}) {
   // Wait for fonts to load
   if (options.waitForFonts) {
     await options.waitForFonts();
+  }
+  
+  // Skip entrance entirely if View Transition just ran (Chrome handles animation)
+  if (skipEntranceAnimation) {
+    document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
+    document.documentElement.classList.add('entrance-complete');
+    // Just reveal elements that may be hidden
+    revealAllLateElements();
+    console.log('✓ Entrance skipped (View Transition handled animation)');
+    return;
   }
   
   // Reduced motion: simple 200ms fade (not instant, not jarring)
@@ -19016,6 +19347,92 @@ function syncSoundControlsToConfig(panel, getSoundConfig) {
     }
   }
 }
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                    PAGE DEPARTURE ANIMATION                                  ║
+// ║   Safari/Firefox fallback for View Transitions API                          ║
+// ║   Animates content out before navigation to mask page reload                ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+/**
+ * Check if user prefers reduced motion
+ * @returns {boolean}
+ */
+function prefersReducedMotion() {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+}
+
+/**
+ * Animate page content out before navigation (departure animation)
+ * Used for Safari/Firefox fallback when View Transitions API isn't available
+ * 
+ * @param {Object} options
+ * @param {number} options.duration - Animation duration in ms (default: 300)
+ * @param {string} options.easing - CSS easing function (default: cubic-bezier)
+ * @returns {Promise<void>} Resolves when animation completes
+ */
+async function animateDeparture(options = {}) {
+  const duration = options.duration ?? 300;
+  const easing = options.easing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
+  
+  // Skip animation for reduced motion
+  if (prefersReducedMotion()) {
+    return Promise.resolve();
+  }
+  
+  // Content zones to animate out
+  const contentSelectors = [
+    '#expertise-legend',
+    '.decorative-script',
+    '.portfolio-stage',
+    '#portfolioMeta',
+    '.cv-scroll-container',
+    '#bravia-balls canvas',
+    '.ui-top',
+    '.ui-bottom',
+    '#main-links'
+  ];
+  
+  const elements = contentSelectors
+    .map(sel => document.querySelector(sel))
+    .filter(Boolean);
+  
+  if (elements.length === 0) {
+    return Promise.resolve();
+  }
+  
+  // Use WAAPI for GPU-accelerated animation
+  const animations = elements.map(el => {
+    return el.animate(
+      [
+        { 
+          opacity: 1, 
+          transform: 'scale(1) translateZ(0)', 
+          filter: 'blur(0)' 
+        },
+        { 
+          opacity: 0, 
+          transform: 'scale(0.95) translateZ(-30px)', 
+          filter: 'blur(4px)' 
+        }
+      ],
+      {
+        duration,
+        easing,
+        fill: 'forwards'
+      }
+    );
+  });
+  
+  // Wait for all animations to complete
+  await Promise.all(animations.map(anim => anim.finished));
+}
+
+var pageDeparture = /*#__PURE__*/Object.freeze({
+  __proto__: null,
+  animateDeparture: animateDeparture
+});
 
 export { navigateWithTransition as $, initializeDarkMode as A, initModalOverlay as B, initCVModal as C, initPortfolioModal as D, initContactModal as E, upgradeSocialIcons as F, initTimeDisplay as G, createSoundToggle as H, maybeAutoPickCursorColor as I, startMainLoop as J, measure as K, table as L, MODES as M, NARRATIVE_MODE_SEQUENCE as N, groupEnd as O, printConsoleBanner as P, initConsolePolicy as Q, waitForFonts as R, getContext as S, getText as T, setForceRenderCallback as U, render as V, getForceApplicator as W, applyWallFrameFromConfig as X, applyWallFrameLayout as Y, initSharedChrome as Z, syncWallFrameColors as _, applyRuntimeTextToDOM as a, NAV_STATES as a0, resetTransitionState as a1, setupPrefetchOnHover as a2, updateWheelSfxConfig as a3, playWheelSnap as a4, playWheelCenterClick as a5, playWheelOpen as a6, playWheelClose as a7, updateWheelSfx as a8, setEffectiveDPR as a9, applyWallPreset as aA, wallState as aB, WALL_PRESETS as aC, NARRATIVE_CHAPTER_TITLES as aD, populateColorSelect as aE, state$1 as aF, colors$1 as aG, renderer as aH, modeController as aI, modalOverlay as aJ, cursor as aK, engine as aL, darkModeV2 as aM, configSync as aN, pageNav as aO, entranceAnimation as aP, drawWalls as aa, applyColorTemplate as ab, clearBalls as ac, clampRadiusToGlobalBounds as ad, spawnBall as ae, getCurrentPreset as af, getSoundConfig as ag, generateSoundControlsHTML as ah, saveConfigBulk as ai, applySoundPreset as aj, SOUND_PRESETS as ak, syncSoundControlsToConfig as al, updateSoundConfig as am, unlockAudio as an, bindSoundControls as ao, SOUND_STATE_EVENT as ap, getLayoutViewportWidthPx as aq, applyLayoutFromVwToPx as ar, getSoundState as as, playTestSound as at, toggleSound as au, playHoverSound as av, PARALLAX_LINEAR_PRESETS as aw, applyNoiseSystem as ax, autoSaveSettings as ay, syncConfigToFile as az, group as b, log as c, loadRuntimeConfig as d, initState as e, applyLayoutCSSVars as f, getGlobals as g, initNoiseSystem as h, isDev as i, setupRenderer as j, getCanvas as k, loadRuntimeText as l, mark as m, setCanvas as n, resize as o, playCollisionSound as p, setupPointer as q, resetCurrentMode as r, setMode as s, setupCustomCursor as t, initLinkCursorHop as u, initSceneImpactReact as v, loadSettings as w, rotatePaletteChapterOnReload as x, initSoundEngine as y, applySoundConfigFromRuntimeConfig as z };
 //# sourceMappingURL=shared.js.map

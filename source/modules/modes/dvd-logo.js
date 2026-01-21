@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                            DVD LOGO MODE                                       ║
-// ║     Classic DVD screensaver: "DVD" spelled in balls, bouncing linearly        ║
+// ║                           BECK LOGO MODE                                       ║
+// ║     Classic DVD screensaver: "BECK" spelled in balls, bouncing linearly       ║
 // ║              with color changes on wall bounce                                 ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -22,10 +22,10 @@ let currentColorIndex = 0;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Define letter "D" shape using relative positions (normalized coordinates)
+ * Define letter "B" shape using relative positions (normalized coordinates)
  * Returns array of {x, y} positions relative to letter center
  */
-function getLetterDShape() {
+function getLetterBShape() {
   const points = [];
   
   // Left vertical line (5 points)
@@ -35,71 +35,134 @@ function getLetterDShape() {
   
   // Top horizontal (2 points)
   points.push({ x: 0, y: -2 });
-  points.push({ x: 1, y: -2 });
+  points.push({ x: 0.8, y: -2 });
   
-  // Right curve (3 points)
-  points.push({ x: 1.5, y: -1 });
-  points.push({ x: 1.5, y: 0 });
-  points.push({ x: 1.5, y: 1 });
+  // Top right curve (2 points)
+  points.push({ x: 1.3, y: -1.5 });
+  points.push({ x: 1.3, y: -1 });
+  
+  // Middle horizontal (2 points)
+  points.push({ x: 0.8, y: 0 });
+  points.push({ x: 0, y: 0 });
+  
+  // Bottom right curve (2 points)
+  points.push({ x: 1.3, y: 0.5 });
+  points.push({ x: 1.3, y: 1 });
   
   // Bottom horizontal (2 points)
-  points.push({ x: 1, y: 2 });
+  points.push({ x: 0.8, y: 2 });
   points.push({ x: 0, y: 2 });
   
   return points;
 }
 
 /**
- * Define letter "V" shape using relative positions
+ * Define letter "E" shape using relative positions
  */
-function getLetterVShape() {
+function getLetterEShape() {
   const points = [];
   
-  // Left diagonal (3 points)
-  points.push({ x: -1.5, y: -2 });
-  points.push({ x: -1, y: -0.5 });
-  points.push({ x: -0.5, y: 1 });
+  // Left vertical line (5 points)
+  for (let i = 0; i < 5; i++) {
+    points.push({ x: -1, y: -2 + i });
+  }
   
-  // Bottom point (2 points for emphasis)
-  points.push({ x: 0, y: 2 });
-  points.push({ x: 0, y: 2.2 });
-  
-  // Right diagonal (3 points)
-  points.push({ x: 0.5, y: 1 });
-  points.push({ x: 1, y: -0.5 });
+  // Top horizontal (3 points)
+  points.push({ x: 0, y: -2 });
+  points.push({ x: 0.8, y: -2 });
   points.push({ x: 1.5, y: -2 });
+  
+  // Middle horizontal (2 points)
+  points.push({ x: 0, y: 0 });
+  points.push({ x: 0.8, y: 0 });
+  
+  // Bottom horizontal (3 points)
+  points.push({ x: 0, y: 2 });
+  points.push({ x: 0.8, y: 2 });
+  points.push({ x: 1.5, y: 2 });
   
   return points;
 }
 
 /**
- * Calculate ball positions for the full "DVD" logo
+ * Define letter "C" shape using relative positions
+ */
+function getLetterCShape() {
+  const points = [];
+  
+  // Top horizontal (2 points)
+  points.push({ x: 0, y: -2 });
+  points.push({ x: 1, y: -2 });
+  
+  // Left curve (5 points)
+  points.push({ x: -0.8, y: -1.5 });
+  points.push({ x: -1.2, y: -0.8 });
+  points.push({ x: -1.2, y: 0 });
+  points.push({ x: -1.2, y: 0.8 });
+  points.push({ x: -0.8, y: 1.5 });
+  
+  // Bottom horizontal (2 points)
+  points.push({ x: 0, y: 2 });
+  points.push({ x: 1, y: 2 });
+  
+  return points;
+}
+
+/**
+ * Define letter "K" shape using relative positions
+ */
+function getLetterKShape() {
+  const points = [];
+  
+  // Left vertical line (5 points)
+  for (let i = 0; i < 5; i++) {
+    points.push({ x: -1, y: -2 + i });
+  }
+  
+  // Upper diagonal (3 points)
+  points.push({ x: 0, y: 0 });
+  points.push({ x: 0.6, y: -1 });
+  points.push({ x: 1.2, y: -2 });
+  
+  // Lower diagonal (3 points)
+  points.push({ x: 0.3, y: 0.5 });
+  points.push({ x: 0.8, y: 1.2 });
+  points.push({ x: 1.3, y: 2 });
+  
+  return points;
+}
+
+/**
+ * Calculate ball positions for the full "BECK" logo
  * @param {number} targetBallCount - Total balls to distribute across letters
  * @param {number} ballRadius - Radius of each ball
  * @param {number} ballSpacingMul - Spacing multiplier between balls
  * @param {number} letterSpacingMul - Spacing multiplier between letters
  * @returns Array of {x, y} absolute positions
  */
-function calculateDvdPositions(targetBallCount, ballRadius, ballSpacingMul, letterSpacingMul) {
+function calculateBeckPositions(targetBallCount, ballRadius, ballSpacingMul, letterSpacingMul) {
   const positions = [];
   
   // Get letter shapes (normalized coordinates)
-  const letterD = getLetterDShape();
-  const letterV = getLetterVShape();
+  const letterB = getLetterBShape();
+  const letterE = getLetterEShape();
+  const letterC = getLetterCShape();
+  const letterK = getLetterKShape();
   
   // Calculate spacing based on ball radius (no overlap)
   const spacing = ballRadius * 2 * ballSpacingMul; // Each ball gets diameter * multiplier
   const letterSpacing = spacing * 3 * letterSpacingMul; // Space between letters
   
-  // Calculate how many balls per letter (distribute evenly)
-  const ballsPerLetter = Math.floor(targetBallCount / 3);
-  const remainder = targetBallCount % 3;
+  // Calculate how many balls per letter (distribute evenly across 4 letters)
+  const ballsPerLetter = Math.floor(targetBallCount / 4);
+  const remainder = targetBallCount % 4;
   
-  // Create ball positions for each letter
+  // Create ball positions for each letter (centered: offsets are -1.5, -0.5, 0.5, 1.5)
   const letters = [
-    { shape: letterD, offset: -letterSpacing, count: ballsPerLetter + (remainder > 0 ? 1 : 0) },
-    { shape: letterV, offset: 0, count: ballsPerLetter + (remainder > 1 ? 1 : 0) },
-    { shape: letterD, offset: letterSpacing, count: ballsPerLetter }
+    { shape: letterB, offset: -1.5 * letterSpacing, count: ballsPerLetter + (remainder > 0 ? 1 : 0) },
+    { shape: letterE, offset: -0.5 * letterSpacing, count: ballsPerLetter + (remainder > 1 ? 1 : 0) },
+    { shape: letterC, offset: 0.5 * letterSpacing, count: ballsPerLetter + (remainder > 2 ? 1 : 0) },
+    { shape: letterK, offset: 1.5 * letterSpacing, count: ballsPerLetter }
   ];
   
   letters.forEach(letter => {
@@ -148,7 +211,7 @@ export function initializeDvdLogo() {
   const uniformRadius = baseRadius * logoSize;
   
   // Calculate ball positions with proper spacing
-  const positions = calculateDvdPositions(ballCount, uniformRadius, ballSpacingMul, letterSpacingMul);
+  const positions = calculateBeckPositions(ballCount, uniformRadius, ballSpacingMul, letterSpacingMul);
   
   // Initial logo center (random position or center)
   const wallInset = Math.max(0, (g.wallThickness ?? 0) * DPR);

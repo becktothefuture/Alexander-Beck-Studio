@@ -1,4 +1,4 @@
-/* Alexander Beck Studio | 2026-01-18 */
+/* Alexander Beck Studio | 2026-01-21 */
 import { buildConfigSnapshot } from './control-registry.js';
 
 // Export portfolio config from the panel (mirrors index behavior).

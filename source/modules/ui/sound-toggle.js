@@ -273,7 +273,7 @@ function createSoundTooltip() {
   // Position relative to button (after appending so we can measure width)
   updateTooltipPosition();
 
-  // Schedule appearance after 7.6 seconds
+  // Schedule appearance after 20 seconds
   tooltipTimeout = setTimeout(() => {
     if (tooltipElement) {
       // Double-check sound still isn't enabled
@@ -287,7 +287,7 @@ function createSoundTooltip() {
         tooltipElement.setAttribute('aria-hidden', 'false');
       }
     }
-  }, 7600);
+  }, 20000);
 
   // Hide on interaction with button
   buttonElement.addEventListener('mouseenter', hideSoundTooltip);

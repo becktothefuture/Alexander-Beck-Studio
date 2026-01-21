@@ -1,4 +1,4 @@
-/* Alexander Beck Studio | 2026-01-18 */
+/* Alexander Beck Studio | 2026-01-21 */
 import { l as loadRuntimeText, a as applyRuntimeTextToDOM, R as waitForFonts, g as getGlobals, d as loadRuntimeConfig, X as applyWallFrameFromConfig, h as initNoiseSystem, Y as applyWallFrameLayout, Z as initSharedChrome, x as rotatePaletteChapterOnReload, A as initializeDarkMode, _ as syncWallFrameColors, I as maybeAutoPickCursorColor, G as initTimeDisplay, F as upgradeSocialIcons, $ as navigateWithTransition, a0 as NAV_STATES, a1 as resetTransitionState, a2 as setupPrefetchOnHover } from './shared.js';
 import { i as initPortfolioWallCanvas } from './wall-only-canvas.js';
 
@@ -498,7 +498,25 @@ async function bootstrapCvPage() {
       console.warn(`⚠️ CV entrance fallback (${reason})`);
     };
 
-    if (!g.entranceEnabled || reduceMotion) {
+    // Check if View Transition just handled the animation (skip entrance entirely)
+    const { didViewTransitionRun } = await import('./shared.js').then(function (n) { return n.aO; });
+    const viewTransitionHandled = didViewTransitionRun();
+    
+    if (viewTransitionHandled) {
+      // View Transition handled animation - just reveal elements instantly
+      if (fadeContent) {
+        fadeContent.style.opacity = '1';
+        fadeContent.style.visibility = 'visible';
+        fadeContent.style.transform = 'translateZ(0)';
+      }
+      const cvContainer = document.querySelector('.cv-scroll-container');
+      if (cvContainer) {
+        cvContainer.style.opacity = '1';
+        cvContainer.style.visibility = 'visible';
+      }
+      removeBlocker();
+      console.log('✓ CV entrance skipped (View Transition handled it)');
+    } else if (!g.entranceEnabled || reduceMotion) {
       if (fadeContent) {
         fadeContent.style.opacity = '1';
         fadeContent.style.transform = 'translateZ(0)';

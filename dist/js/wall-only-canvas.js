@@ -1,4 +1,4 @@
-/* Alexander Beck Studio | 2026-01-18 */
+/* Alexander Beck Studio | 2026-01-21 */
 import { n as setCanvas, a9 as setEffectiveDPR, aa as drawWalls, g as getGlobals } from './shared.js';
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗

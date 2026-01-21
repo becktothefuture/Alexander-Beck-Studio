@@ -1,4 +1,4 @@
-/* Alexander Beck Studio | 2026-01-18 */
+/* Alexander Beck Studio | 2026-01-21 */
 import { aw as PARALLAX_LINEAR_PRESETS, ax as applyNoiseSystem, g as getGlobals, ay as autoSaveSettings, az as syncConfigToFile, aA as applyWallPreset, aB as wallState, aC as WALL_PRESETS, N as NARRATIVE_MODE_SEQUENCE, aD as NARRATIVE_CHAPTER_TITLES, aE as populateColorSelect, ab as applyColorTemplate } from './shared.js';
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗

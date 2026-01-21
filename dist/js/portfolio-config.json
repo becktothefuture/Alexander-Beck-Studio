@@ -13,11 +13,13 @@
     "--wheel-depth": "2.1",
     "--card-aspect-w": "4",
     "--card-aspect-h": "5",
-    "--card-height-min": "29vh",
-    "--card-height-ideal": "39vh",
-    "--card-height-max": "52vh",
-    "--corner-radius": "2.6vmin",
-    "--border-width": "0.3vmin",
+    "--card-height-min": "22vh",
+    "--card-height-ideal": "38vh",
+    "--card-height-max": "38vh",
+    "--corner-radius": "6.4vmin",
+    "--border-width": "1.1vmin",
+    "--slide-gradient-intensity-light": "0.6",
+    "--slide-gradient-intensity-dark": "0.6",
     "--wheel-scale-min": "0.43",
     "--wheel-scale-max": "1",
     "--wheel-blur-max": "2.3vmin",
@@ -66,7 +68,9 @@
     "--mouse-tilt-right": "6deg",
     "--mouse-tilt-up": "5deg",
     "--mouse-tilt-down": "5deg",
-    "--mouse-tilt-pivot-z": "0vmin"
+    "--mouse-tilt-pivot-z": "0vmin",
+    "--edge-caption-distance-min": "8px",
+    "--edge-caption-distance-max": "48px"
   },
   "runtime": {
     "wheel": {
@@ -91,7 +95,7 @@
       "rotationSync": 1
     },
     "mouseTilt": {
-      "enabled": "false",
+      "enabled": false,
       "invertX": true,
       "invertY": false,
       "sensitivity": 0.8,

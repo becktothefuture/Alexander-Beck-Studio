@@ -268,25 +268,54 @@ export function initPortfolioModal() {
         
         if (enteredCode.length === 4) {
             if (enteredCode === CODE) {
-                // Success - Pulse on inputs container
+                // ═══════════════════════════════════════════════════════════════════
+                // GATE UNLOCK ANIMATION SEQUENCE (US-005)
+                // 1. Input pulse (200ms) - immediate tactile feedback
+                // 2. Success flash (150ms) - green tint overlay
+                // 3. Modal dissolve (250ms) - scale up + blur + fade
+                // 4. Departure/transition - navigate to destination
+                // Total: ~500ms from correct code to navigation start
+                // ═══════════════════════════════════════════════════════════════════
+                
+                // Step 1: Input container pulse
                 const inputsContainer = document.querySelector('.portfolio-modal-inputs');
                 if (inputsContainer) {
                     inputsContainer.classList.remove('pulse-energy');
                     void inputsContainer.offsetWidth;
                     inputsContainer.classList.add('pulse-energy');
-                    
-                    setTimeout(() => {
-                        inputsContainer.classList.remove('pulse-energy');
-                    }, 600);
                 }
                 
                 // Set session token (soft modal)
                 sessionStorage.setItem('abs_portfolio_ok', Date.now());
                 
-                // Smooth page fade-out + redirect using unified navigation
+                // Step 2: Success flash (after pulse starts)
+                setTimeout(() => {
+                    triggerFlash(flash, 'success');
+                }, 100);
+                
+                // Step 3: Modal dissolve animation (after flash peaks)
+                setTimeout(() => {
+                    // Use WAAPI for smooth modal dissolve
+                    if (typeof modal.animate === 'function') {
+                        modal.animate(
+                            [
+                                { transform: 'scale(1)', opacity: 1, filter: 'blur(0)' },
+                                { transform: 'scale(1.03)', opacity: 0, filter: 'blur(4px)' }
+                            ],
+                            { duration: 250, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }
+                        );
+                    } else {
+                        modal.style.transition = 'transform 250ms ease-out, opacity 250ms ease-out, filter 250ms ease-out';
+                        modal.style.transform = 'scale(1.03)';
+                        modal.style.opacity = '0';
+                        modal.style.filter = 'blur(4px)';
+                    }
+                }, 200);
+                
+                // Step 4: Navigate (after dissolve is mostly complete)
                 setTimeout(() => {
                     navigateWithTransition('portfolio.html', NAV_STATES.INTERNAL);
-                }, 200); // Brief delay after pulse starts
+                }, 450);
                 
             } else {
                 // Failure - Red flash, clear inputs

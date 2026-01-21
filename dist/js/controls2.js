@@ -1,4 +1,4 @@
-/* Alexander Beck Studio | 2026-01-18 */
+/* Alexander Beck Studio | 2026-01-21 */
 import { bindRegisteredControls } from './control-registry.js';
 
 // Portfolio panel control binding.

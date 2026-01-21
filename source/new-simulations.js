@@ -825,7 +825,7 @@ function setupVariantCycle(variants) {
   const canvas = getCanvas();
   if (!canvas || variants.length === 0) return;
 
-  let index = 0;
+  let index = Math.floor(Math.random() * variants.length);
   const currentVariant = variants[index];
   buildPointCloud(currentVariant);
   updateVariantLabel(currentVariant);

@@ -157,11 +157,6 @@ body.portfolio-page #brand-logo {
      entrance animation from wasting time animating an invisible element */
 }
 
-/* Edge caption: slightly different opacity for portfolio */
-body.portfolio-page .edge-caption__line {
-  opacity: 0.8;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    PORTFOLIO SIMULATION CONTAINER
    Uses same #bravia-balls ID with .portfolio-simulation class
@@ -355,6 +350,21 @@ html.modal-active .portfolio-stage,
     transform var(--detail-transition-ms) var(--detail-transition-ease),
     opacity var(--detail-transition-ms) var(--detail-transition-ease),
     filter var(--detail-transition-ms) var(--detail-transition-ease);
+}
+
+/* Gradient overlay on each card: transparent at top, intensity at bottom. Light in light mode, dark in dark mode. */
+.slide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: var(--corner-radius);
+  background: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(var(--abs-rgb-white), var(--slide-gradient-intensity-light, 0.5)) 100%);
+}
+
+body.portfolio-page.dark-mode .slide::after {
+  background: linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(var(--abs-rgb-black), var(--slide-gradient-intensity-dark, 0.5)) 100%);
 }
 
 .slide-image-container {

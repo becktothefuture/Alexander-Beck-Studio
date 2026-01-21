@@ -1,4 +1,4 @@
-/* Alexander Beck Studio | 2026-01-18 */
+/* Alexander Beck Studio | 2026-01-21 */
 import { g as generateHomePanelHTML, a as generatePanelHTML, b as getAllControls, s as setupIndexControls, c as setupMasterControls, d as generateThemeSectionHTML, e as generateMasterSectionsHTML, f as generateColorTemplateSectionHTML } from './controls.js';
 import { g as getGlobals, af as getCurrentPreset, ag as getSoundConfig, i as isDev, ah as generateSoundControlsHTML, ai as saveConfigBulk, aj as applySoundPreset, ak as SOUND_PRESETS, al as syncSoundControlsToConfig, am as updateSoundConfig, an as unlockAudio, ao as bindSoundControls, ap as SOUND_STATE_EVENT, aq as getLayoutViewportWidthPx, ar as applyLayoutFromVwToPx, f as applyLayoutCSSVars, o as resize, as as getSoundState, at as playTestSound, au as toggleSound, av as playHoverSound } from './shared.js';
 

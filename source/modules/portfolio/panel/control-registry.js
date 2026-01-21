@@ -28,6 +28,15 @@ const CONTROL_SECTIONS = {
       { id: 'wheelDepth', label: 'Depth', cssVar: '--wheel-depth', type: 'range', min: 0.1, max: 3, step: 0.05, unit: '', default: 1, refresh: true },
     ],
   },
+  caption: {
+    title: 'Page Caption',
+    icon: '💬',
+    defaultOpen: false,
+    controls: [
+      { id: 'edgeCaptionDistanceMin', label: 'Caption Distance Min', cssVar: '--edge-caption-distance-min', type: 'range', min: 0, max: 80, step: 2, unit: 'px', default: 8, hint: 'Minimum distance from bottom of content' },
+      { id: 'edgeCaptionDistanceMax', label: 'Caption Distance Max', cssVar: '--edge-caption-distance-max', type: 'range', min: 16, max: 200, step: 2, unit: 'px', default: 48, hint: 'Maximum distance; applied at largest breakpoint, does not grow further' },
+    ],
+  },
   card: {
     title: 'Cards',
     icon: '🗂️',
@@ -40,6 +49,8 @@ const CONTROL_SECTIONS = {
       { id: 'cardHeightMax', label: 'Height Max', cssVar: '--card-height-max', type: 'range', min: 20, max: 100, step: 1, unit: 'vh', default: 55, refresh: true },
       { id: 'cornerRadius', label: 'Corner Radius', cssVar: '--corner-radius', type: 'range', min: 0, max: 8, step: 0.1, unit: 'vmin', default: 1.9 },
       { id: 'borderWidth', label: 'Border Width', cssVar: '--border-width', type: 'range', min: 0, max: 2, step: 0.1, unit: 'vmin', default: 0.6 },
+      { id: 'slideGradientIntensityLight', label: 'Gradient Intensity (Light)', cssVar: '--slide-gradient-intensity-light', type: 'range', min: 0, max: 1, step: 0.05, unit: '', default: 0.5, hint: 'Opacity of the white overlay at bottom in light mode' },
+      { id: 'slideGradientIntensityDark', label: 'Gradient Intensity (Dark)', cssVar: '--slide-gradient-intensity-dark', type: 'range', min: 0, max: 1, step: 0.05, unit: '', default: 0.5, hint: 'Opacity of the black overlay at bottom in dark mode' },
     ],
   },
   appearance: {

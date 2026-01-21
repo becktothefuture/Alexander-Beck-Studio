@@ -1666,7 +1666,30 @@ async function bootstrapPortfolio() {
       console.warn(`⚠️ Portfolio entrance fallback (${reason})`);
     };
 
-    if (!g.entranceEnabled || reduceMotion) {
+    // Check if View Transition just handled the animation (skip entrance entirely)
+    const { didViewTransitionRun } = await import('../utils/page-nav.js');
+    const viewTransitionHandled = didViewTransitionRun();
+    
+    if (viewTransitionHandled) {
+      // View Transition handled animation - just reveal elements instantly
+      if (fadeContent) {
+        fadeContent.style.opacity = '1';
+        fadeContent.style.visibility = 'visible';
+        fadeContent.style.transform = 'translateZ(0)';
+      }
+      const portfolioMeta = document.querySelector('.portfolio-meta');
+      const portfolioStage = document.querySelector('.portfolio-stage');
+      if (portfolioMeta) {
+        portfolioMeta.style.opacity = '1';
+        portfolioMeta.style.visibility = 'visible';
+      }
+      if (portfolioStage) {
+        portfolioStage.style.opacity = '1';
+        portfolioStage.style.visibility = 'visible';
+      }
+      removeBlocker();
+      console.log('✓ Portfolio entrance skipped (View Transition handled it)');
+    } else if (!g.entranceEnabled || reduceMotion) {
       if (fadeContent) {
         fadeContent.style.opacity = '1';
         fadeContent.style.transform = 'translateZ(0)';

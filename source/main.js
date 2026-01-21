@@ -3,7 +3,7 @@
 // ║                       Modular Architecture Bootstrap                         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { CONSTANTS } from './modules/core/constants.js';
+import { CONSTANTS, NARRATIVE_MODE_SEQUENCE } from './modules/core/constants.js';
 import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/core/state.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
 import { applyColorTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
@@ -57,8 +57,8 @@ const CONTENT_FADE_DURATION_MS = 800;
 const CONTENT_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 function pickStartupMode() {
-  // Narrative opening: start with Ball Pit.
-  return MODES.PIT;
+  // Random mode from narrative sequence on each reload
+  return NARRATIVE_MODE_SEQUENCE[Math.floor(Math.random() * NARRATIVE_MODE_SEQUENCE.length)];
 }
 
 /**
@@ -603,7 +603,9 @@ window.addEventListener('unhandledrejection', (event) => {
         getModalToAutoOpen, 
         shouldSkipWallAnimation, 
         resetTransitionState,
-        setupPrefetchOnHover 
+        setupPrefetchOnHover,
+        initSpeculativePrefetch,
+        didViewTransitionRun
       } = await import('./modules/utils/page-nav.js');
       
       const g = getGlobals();
@@ -617,6 +619,9 @@ window.addEventListener('unhandledrejection', (event) => {
       // Check if we should skip wall animation (internal nav or browser back/forward)
       // Note: shouldSkipWallAnimation() consumes the navigation state
       const skipWall = shouldSkipWallAnimation();
+      
+      // Check if View Transition just ran (Chrome) - skip entrance animation entirely
+      const skipEntrance = didViewTransitionRun();
       
       // Handle bfcache restore (browser back/forward with cached page)
       window.addEventListener('pageshow', (event) => {
@@ -649,11 +654,14 @@ window.addEventListener('unhandledrejection', (event) => {
               await waitForFonts();
             } catch (e) {}
           },
-          skipWallAnimation: skipWall
+          skipWallAnimation: skipWall,
+          skipEntranceAnimation: skipEntrance
         });
-        console.log(skipWall 
-          ? '✓ Quick entrance (returning from internal page)' 
-          : '✓ Dramatic entrance animation orchestrated');
+        console.log(skipEntrance 
+          ? '✓ Entrance skipped (View Transition handled it)'
+          : skipWall 
+            ? '✓ Quick entrance (returning from internal page)' 
+            : '✓ Dramatic entrance animation orchestrated');
       }
       
       // Auto-open modal if requested via navigation state
@@ -670,6 +678,9 @@ window.addEventListener('unhandledrejection', (event) => {
           if (contactTriggerEl) contactTriggerEl.click();
         }, 400);
       }
+      
+      // Initialize speculative prefetch system for faster page transitions
+      initSpeculativePrefetch();
       
     } catch (e) {
       console.warn('⚠️ Entrance animation failed, falling back to simple fade:', e);

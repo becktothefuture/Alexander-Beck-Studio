@@ -226,8 +226,8 @@
   <meta content="c366" name="description">
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
-  <link id="bravia-balls-css" rel="stylesheet" href="css/styles.css?v=1768759950077">
-<link rel="modulepreload" href="js/shared.js?v=1768759950077">
+  <link id="bravia-balls-css" rel="stylesheet" href="css/styles.css?v=1768998915160">
+<link rel="modulepreload" href="js/shared.js?v=1768998915160">
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
@@ -250,10 +250,10 @@
   "autoDarkModeEnabled": true,
   "autoDarkNightStartHour": 18,
   "autoDarkNightEndHour": 6,
-  "ballMassKg": 387,
-  "REST": 0.65,
-  "FRICTION": 0.02,
-  "physicsCollisionIterations": 7,
+  "ballMassKg": 400,
+  "REST": 0.95,
+  "FRICTION": 0.013,
+  "physicsCollisionIterations": 5,
   "physicsSkipSleepingCollisions": true,
   "physicsSpatialGridOptimization": true,
   "physicsSleepThreshold": 6,
@@ -376,23 +376,23 @@
   ],
   "frameColorLight": "#242529",
   "frameColorDark": "#242529",
-  "wallPreset": "pudding",
+  "wallPreset": "jelly",
   "wallThicknessVw": 1.4,
   "wallThicknessAreaMultiplier": 0.34,
   "wallRadiusVw": 2.5,
   "wallInset": 3,
   "mobileWallThicknessXFactor": 1.45,
   "mobileEdgeLabelsVisible": true,
-  "wallWobbleMaxDeform": 60,
-  "wallWobbleStiffness": 120,
-  "wallWobbleDamping": 71,
-  "wallWobbleSigma": 0.5,
-  "wallWobbleSettlingSpeed": 6,
-  "wallWobbleCornerClamp": 0.99,
-  "wallWobbleImpactThreshold": 111,
-  "wallWobbleMaxVel": 930,
-  "wallWobbleMaxImpulse": 300,
-  "wallWobbleMaxEnergyPerStep": 43500,
+  "wallWobbleMaxDeform": 95,
+  "wallWobbleStiffness": 820,
+  "wallWobbleDamping": 16,
+  "wallWobbleSigma": 3.6,
+  "wallWobbleSettlingSpeed": 28,
+  "wallWobbleCornerClamp": 0.4,
+  "wallWobbleImpactThreshold": 75,
+  "wallWobbleMaxVel": 900,
+  "wallWobbleMaxImpulse": 260,
+  "wallWobbleMaxEnergyPerStep": 26000,
   "wallPhysicsSamples": 21,
   "wallPhysicsSkipInactive": true,
   "wallRenderDecimation": 10,
@@ -491,15 +491,15 @@
   "kaleidoscope3SizeVariance": 0.5,
   "kaleidoscope3WarmupFrames": 65,
   "neuralBallCount": 90,
-  "neuralLinkDistanceVw": 6.5,
-  "neuralLineOpacity": 0.8,
-  "neuralConnectorDensity": 2,
-  "sizeVariationNeural": 0,
-  "neuralWanderStrength": 560,
-  "neuralMouseStrength": 750000,
-  "neuralSeparationStrength": 5000,
-  "neuralDamping": 0.962,
-  "neuralWarmupFrames": 10,
+  "neuralLinkDistanceVw": 8.5,
+  "neuralLineOpacity": 0.58,
+  "neuralConnectorDensity": 4,
+  "sizeVariationNeural": 0.75,
+  "neuralWanderStrength": 1070,
+  "neuralMouseStrength": 150000,
+  "neuralSeparationStrength": 30000,
+  "neuralDamping": 0.9,
+  "neuralWarmupFrames": 55,
   "parallaxLinearDotSizeMul": 1.8,
   "sizeVariationParallaxLinear": 0.2,
   "parallaxLinearGridX": 10,
@@ -545,7 +545,7 @@
   "dvdLogoLetterSpacing": 1.4,
   "dvdLogoWarmupFrames": 10,
   "particleFountainEmissionRate": 31,
-  "particleFountainInitialVelocity": 2400,
+  "particleFountainInitialVelocity": 4000,
   "particleFountainSpreadAngle": 10,
   "particleFountainWaterDrag": 0.02,
   "particleFountainGravityMultiplier": 1.1,
@@ -586,9 +586,9 @@
   "contentFadeInDelay": 500,
   "contentFadeInDuration": 1000,
   "gravityMultiplier": 1.55,
-  "restitution": 0.65,
-  "friction": 0.02,
-  "ballMass": 387,
+  "restitution": 0.95,
+  "friction": 0.013,
+  "ballMass": 400,
   "ballScale": 1.05,
   "sizeScale": 1.05,
   "sizeVariation": 0,
@@ -667,9 +667,6 @@
   <div id="abs-scene" class="abs-scene">
     <!-- LAYER 0: Content Background - BEHIND everything (z:1) -->
     <div id="content-background" class="content-background-layer" aria-hidden="true"></div>
-    <div id="edge-caption" class="edge-caption" role="status" aria-live="polite" aria-atomic="true">
-      <span id="edge-caption-tagline" class="edge-caption__line edge-caption__line--tagline">BUILT WITH LOVE TO BE SATISFYING.</span>
-    </div>
     
     <!-- LAYER 1: Brand Logo - BEHIND balls (z:3) -->
     <!-- Inline style hides at first paint; revealed by entrance-animation.js -->
@@ -689,7 +686,7 @@
     </div>
   
   <!-- UI LAYER: Flexbox Layout Implementation -->
-  <div class="fade-content">
+  <div class="fade-content page-content">
     <div id="app-frame" class="ui-layer-wrapper">
       
       <!-- TOP SECTION -->
@@ -697,31 +694,31 @@
         <div class="ui-top-main">
           <div class="ui-top-left">
             <nav id="expertise-legend" class="legend" aria-label="Areas of expertise">
-              <div class="w-layout-hflex legend__item" role="button" tabindex="0" data-tooltip="I structure systems at scale and guide outcome-driven decisions.">
+              <div class="w-layout-hflex legend__item" data-tooltip="I structure systems at scale and guide outcome-driven decisions.">
                 <div class="circle bg-ball-1" aria-hidden="true"></div>
                 <span>Product &amp; Systems</span>
               </div>
-              <div class="w-layout-hflex legend__item" role="button" tabindex="0" data-tooltip="I design interactions and motion that communicate through behaviour.">
+              <div class="w-layout-hflex legend__item" data-tooltip="I design interactions and motion that communicate through behaviour.">
                 <div class="circle bg-ball-5" aria-hidden="true"></div>
                 <span>Interaction &amp; Motion</span>
               </div>
-              <div class="w-layout-hflex legend__item" role="button" tabindex="0" data-tooltip="I build products, websites, and emerging digital experiences using code and prototypes.">
+              <div class="w-layout-hflex legend__item" data-tooltip="I build products, websites, and emerging digital experiences using code and prototypes.">
                 <div class="circle bg-ball-4" aria-hidden="true"></div>
                 <span>Creative Technology</span>
               </div>
-              <div class="w-layout-hflex legend__item" role="button" tabindex="0" data-tooltip="I treat AI as a design material to explore and extrapolate ideas.">
+              <div class="w-layout-hflex legend__item" data-tooltip="I treat AI as a design material to explore and extrapolate ideas.">
                 <div class="circle bg-ball-3" aria-hidden="true"></div>
                 <span>AI-Driven Design</span>
               </div>
-              <div class="w-layout-hflex legend__item" role="button" tabindex="0" data-tooltip="I shape cohesive product and web experiences through structure, craft, and vision.">
+              <div class="w-layout-hflex legend__item" data-tooltip="I shape cohesive product and web experiences through structure, craft, and vision.">
                 <div class="circle bg-ball-6" aria-hidden="true"></div>
                 <span>Experience Direction</span>
               </div>
-              <div class="w-layout-hflex legend__item" role="button" tabindex="0" data-tooltip="I define visual and spatial direction across product, motion, and form.">
+              <div class="w-layout-hflex legend__item" data-tooltip="I define visual and spatial direction across product, motion, and form.">
                 <div class="circle bg-ball-7" aria-hidden="true"></div>
                 <span>Art &amp; Visual Direction</span>
               </div>
-              <div class="w-layout-hflex legend__item" role="button" tabindex="0" data-tooltip="I prototype to think, test, and bring ideas into focus.">
+              <div class="w-layout-hflex legend__item" data-tooltip="I prototype to think, test, and bring ideas into focus.">
                 <div class="circle bg-ball-8" aria-hidden="true"></div>
                 <span>Prototyping</span>
               </div>
@@ -776,7 +773,9 @@
           </div>
         </div>
       </footer>
-      
+      <div id="edge-caption" class="edge-caption" role="status" aria-live="polite" aria-atomic="true">
+        <span id="edge-caption-tagline" class="edge-caption__line edge-caption__line--tagline">BUILT WITH LOVE TO BE SATISFYING.</span>
+      </div>
     </div>
   </div>
   </div>
@@ -829,7 +828,7 @@
   <!-- Page Flash Overlay (for CV and Portfolio gate success/failure feedback) -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
-  <script id="bravia-balls-js" type="module" src="js/app.js?v=1768759950077"></script>
+  <script id="bravia-balls-js" type="module" src="js/app.js?v=1768998915160"></script>
 
   <!-- DEV TOOLING: Local hot reload (no external calls). -->
   <!-- This is stripped from production builds. -->

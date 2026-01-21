@@ -74,7 +74,25 @@ async function bootstrapCvPage() {
       console.warn(`⚠️ CV entrance fallback (${reason})`);
     };
 
-    if (!g.entranceEnabled || reduceMotion) {
+    // Check if View Transition just handled the animation (skip entrance entirely)
+    const { didViewTransitionRun } = await import('./utils/page-nav.js');
+    const viewTransitionHandled = didViewTransitionRun();
+    
+    if (viewTransitionHandled) {
+      // View Transition handled animation - just reveal elements instantly
+      if (fadeContent) {
+        fadeContent.style.opacity = '1';
+        fadeContent.style.visibility = 'visible';
+        fadeContent.style.transform = 'translateZ(0)';
+      }
+      const cvContainer = document.querySelector('.cv-scroll-container');
+      if (cvContainer) {
+        cvContainer.style.opacity = '1';
+        cvContainer.style.visibility = 'visible';
+      }
+      removeBlocker();
+      console.log('✓ CV entrance skipped (View Transition handled it)');
+    } else if (!g.entranceEnabled || reduceMotion) {
       if (fadeContent) {
         fadeContent.style.opacity = '1';
         fadeContent.style.transform = 'translateZ(0)';
