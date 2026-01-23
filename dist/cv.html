@@ -182,8 +182,8 @@
   <meta content="Alexander Beck - Product Designer, Creative Technologist, Experience Director" name="description">
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
-  <link rel="stylesheet" href="css/styles.css?v=1769172693087">
-<link rel="modulepreload" href="js/shared.js?v=1769172693087">
+  <link rel="stylesheet" href="css/styles.css?v=1769176095280">
+<link rel="modulepreload" href="js/shared.js?v=1769176095280">
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
@@ -260,7 +260,19 @@
   "edgeCaptionDistanceMinPx": 0,
   "edgeCaptionDistanceMaxPx": 16,
   "simulationOverlayIntensity": 0.45,
-  "depthWashOpacity": 0.35,
+  "depthWashOpacity": 0.65,
+  "depthWashCenterY": 0.3,
+  "depthWashRadiusScale": 1,
+  "depthWashBlendModeLight": "color-dodge",
+  "depthWashCenterColorLight": "#ffffff",
+  "depthWashCenterAlphaLight": 0.3,
+  "depthWashEdgeColorLight": "#142b48",
+  "depthWashEdgeAlphaLight": 0.4,
+  "depthWashBlendModeDark": "multiply",
+  "depthWashCenterColorDark": "#1a1e23",
+  "depthWashCenterAlphaDark": 0.45,
+  "depthWashEdgeColorDark": "#05020f",
+  "depthWashEdgeAlphaDark": 1,
   "linkColorInfluence": 1,
   "linkImpactScale": 0.7,
   "linkImpactBlur": 0,
@@ -544,20 +556,19 @@
   "entrancePerspectivePortrait": 800,
   "contentFadeInDelay": 500,
   "contentFadeInDuration": 1000,
-  "sizeScale": 1.05,
-  "liteModeObjectReductionFactor": 0.6,
-  "noiseOpacity": 0.08,
   "gravityMultiplier": 1.55,
   "restitution": 0.95,
   "friction": 0.011,
   "ballMass": 301,
   "ballScale": 1.05,
+  "sizeScale": 1.05,
   "sizeVariation": 0,
   "repelSoft": 3.4,
   "repelSoftness": 3.4,
   "layoutViewportWidthPx": 0,
   "containerBorderVw": 1.4,
   "simulationPaddingVw": 0,
+  "layoutMinContentPaddingPx": 0,
   "layoutMinWallRadiusPx": 32,
   "soundPreset": "crystalPebbles",
   "soundConfig": {
@@ -611,8 +622,7 @@
     "highShelfGain": -4
   },
   "enableLOD": false
-}
-;</script>
+};</script>
 <script>window.__TEXT__={"meta":{"title":"Alexander Beck Studio :: Al Creative :: User Experience :: Product Design","description":"c366"},"edge":{"chapterText":"SOURCE MATERIAL","tagline":"Built with love for aesthetics, motion, and interaction that feels impossibly satisfying.","copyright":"© 2026 Alexander Beck Studio"},"legend":{"ariaLabel":"Areas of expertise","items":[{"colorClass":"bg-ball-1","label":"Product & Systems","tooltip":"I structure systems at scale and guide outcome-driven decisions."},{"colorClass":"bg-ball-5","label":"Interaction & Motion","tooltip":"I design interactions and motion that communicate through behaviour."},{"colorClass":"bg-ball-4","label":"Creative Technology","tooltip":"I build products, websites, and emerging digital experiences using code and prototypes."},{"colorClass":"bg-ball-3","label":"AI-Driven Design","tooltip":"I treat AI as a design material to explore and extrapolate ideas."},{"colorClass":"bg-ball-6","label":"Experience Direction","tooltip":"I shape cohesive product and web experiences through structure, craft, and vision."},{"colorClass":"bg-ball-7","label":"Art & Visual Direction","tooltip":"I define visual and spatial direction across product, motion, and form."},{"colorClass":"bg-ball-8","label":"Prototyping + R&D","tooltip":"I prototype to think, test, and bring ideas into focus."}]},"philosophy":{"textBeforeLink":"The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. ","link":{"id":"contact-email-inline","href":"#","text":"Let's chat."}},"footer":{"navAriaLabel":"Main navigation links","links":{"contact":{"id":"contact-email","href":"#","text":"Contact"},"portfolio":{"id":"portfolio-gate-trigger","href":"#","text":"Portfolio"},"cv":{"id":"cv-gate-trigger","href":"#","text":"Bio/CV"}},"metaLocationPrefix":"London, UK · "},"socials":{"ariaLabel":"Social media links","items":{"appleMusic":{"ariaLabel":"Apple Music","screenReaderText":"Apple Music","url":"https://music.apple.com/profile/beckandeggs"},"linkedin":{"ariaLabel":"LinkedIn","screenReaderText":"LinkedIn","url":"https://www.linkedin.com/in/thisisbeck/"}}},"contact":{"email":"alexander@beck.fyi","copy":{"buttonAriaLabel":"Copy email address","statusCopied":"Copied","statusError":"Copy failed"}},"portfolio":{"blurb":"Selected collaborations across finance, luxury, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently designing for neurodivergent humans."},"gates":{"common":{"backText":"BACK","backAriaLabel":"Back"},"cv":{"title":"Bio/CV","description":"Because spam bots don’t deserve nice things. This keeps my inbox a little more civilised. Need access? Get in touch for the code."},"portfolio":{"title":"View Portfolio","description":"Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."},"contact":{"title":"Contact","description":"For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain. For job opportunities, drop me a note."}}};</script>
 
   <!-- Browser Chrome Color - Safari iOS, Chrome Android, Edge -->
@@ -840,7 +850,7 @@
   <!-- Page Flash Overlay -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
-  <script type="module" src="js/cv.js?v=1769172693087"></script>
+  <script type="module" src="js/cv.js?v=1769176095280"></script>
   <script>
     // In production (served from dist/), load from bundled JS if available
     if (!document.querySelector('script[src*="modules/cv-init.js"]')) {

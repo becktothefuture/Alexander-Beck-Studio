@@ -5,77 +5,101 @@
 
 import { getGlobals } from '../core/state.js';
 
-// Gradient cache: rebuild only on resize/theme changes
+// Gradient cache: rebuild only when params change
 let cachedGradient = null;
-let cachedWidth = 0;
-let cachedHeight = 0;
-let cachedIsDark = false;
+let cacheKey = '';
 
 /**
- * Build radial gradient for depth wash (cached per canvas size + theme)
+ * Parse hex color to RGB object
  */
-function createDepthGradient(ctx, w, h, isDark) {
-  // Center at 50% x, 30% y as specified
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
+}
+
+/**
+ * Build radial gradient for depth wash
+ */
+function createDepthGradient(ctx, w, h, g, isDark) {
+  // Get configurable center position (default: 50% x, 30% y)
+  const centerYPct = typeof g.depthWashCenterY === 'number' ? g.depthWashCenterY : 0.3;
+  const radiusScale = typeof g.depthWashRadiusScale === 'number' ? g.depthWashRadiusScale : 1.0;
+  
   const centerX = w / 2;
-  const centerY = h * 0.3;
-  const radius = Math.max(w, h) * 0.8; // Extend to cover canvas
+  const centerY = h * centerYPct;
+  const radius = Math.max(w, h) * radiusScale;
   
   const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
   
-  if (isDark) {
-    // Dark mode gradient (desaturated, opaque at center for top-down lighting)
-    gradient.addColorStop(1, 'rgba(5, 2, 15, 0.8)');
-    gradient.addColorStop(0, 'rgba(25, 30, 35, 0)');
-  } else {
-    // Light mode gradient (from CSS overlay)
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
-    gradient.addColorStop(1, 'rgba(20, 43, 72, 0.05)');
-  }
+  // Get colors from config
+  const centerColor = isDark 
+    ? (g.depthWashCenterColorDark || '#1a1e23')
+    : (g.depthWashCenterColorLight || '#ffffff');
+  const edgeColor = isDark
+    ? (g.depthWashEdgeColorDark || '#05020f')
+    : (g.depthWashEdgeColorLight || '#142b48');
+  
+  // Get alpha values (0-1)
+  const centerAlpha = isDark
+    ? (typeof g.depthWashCenterAlphaDark === 'number' ? g.depthWashCenterAlphaDark : 0)
+    : (typeof g.depthWashCenterAlphaLight === 'number' ? g.depthWashCenterAlphaLight : 0.3);
+  const edgeAlpha = isDark
+    ? (typeof g.depthWashEdgeAlphaDark === 'number' ? g.depthWashEdgeAlphaDark : 0.8)
+    : (typeof g.depthWashEdgeAlphaLight === 'number' ? g.depthWashEdgeAlphaLight : 0.4);
+  
+  const center = hexToRgb(centerColor);
+  const edge = hexToRgb(edgeColor);
+  
+  gradient.addColorStop(0, `rgba(${center.r}, ${center.g}, ${center.b}, ${centerAlpha})`);
+  gradient.addColorStop(1, `rgba(${edge.r}, ${edge.g}, ${edge.b}, ${edgeAlpha})`);
   
   return gradient;
 }
 
 /**
+ * Generate cache key from all gradient parameters
+ */
+function getCacheKey(w, h, g, isDark) {
+  return `${w}|${h}|${isDark}|${g.depthWashCenterY}|${g.depthWashRadiusScale}|` +
+    `${g.depthWashCenterColorLight}|${g.depthWashEdgeColorLight}|${g.depthWashCenterAlphaLight}|${g.depthWashEdgeAlphaLight}|` +
+    `${g.depthWashCenterColorDark}|${g.depthWashEdgeColorDark}|${g.depthWashCenterAlphaDark}|${g.depthWashEdgeAlphaDark}`;
+}
+
+/**
  * Draw depth wash overlay between balls and wall
- * Blend modes: light = "lighter" (additive), dark = "color-burn"
  */
 export function drawDepthWash(ctx, w, h) {
   const g = getGlobals();
   const isDark = g.isDarkMode || false;
   
-  // Cache invalidation: rebuild gradient on resize or theme change
-  if (!cachedGradient || 
-      Math.abs(w - cachedWidth) > 1 || 
-      Math.abs(h - cachedHeight) > 1 || 
-      isDark !== cachedIsDark) {
-    cachedGradient = createDepthGradient(ctx, w, h, isDark);
-    cachedWidth = w;
-    cachedHeight = h;
-    cachedIsDark = isDark;
-  }
-  
-  // Get configurable opacity from state (default 0.65)
+  // Get configurable opacity (master control)
   const opacity = typeof g.depthWashOpacity === 'number' ? g.depthWashOpacity : 0.65;
-  
-  // Skip if opacity is 0
   if (opacity <= 0) return;
   
-  // Save state (blend mode + alpha will be modified)
+  // Cache invalidation: rebuild gradient when any param changes
+  const key = getCacheKey(w, h, g, isDark);
+  if (cachedGradient === null || cacheKey !== key) {
+    cachedGradient = createDepthGradient(ctx, w, h, g, isDark);
+    cacheKey = key;
+  }
+  
   ctx.save();
   
-  // Set blend mode from config (defaults: light=color-dodge, dark=multiply)
+  // Set blend mode from config
   const blendLight = g.depthWashBlendModeLight || 'color-dodge';
   const blendDark = g.depthWashBlendModeDark || 'multiply';
   ctx.globalCompositeOperation = isDark ? blendDark : blendLight;
   
-  // Set opacity from config
+  // Master opacity control
   ctx.globalAlpha = opacity;
   
-  // Fill full canvas with gradient (wall will be drawn on top, hiding overflow)
   ctx.fillStyle = cachedGradient;
   ctx.fillRect(0, 0, w, h);
   
-  // Restore state (critical: don't affect wall rendering)
   ctx.restore();
 }
 
@@ -84,4 +108,5 @@ export function drawDepthWash(ctx, w, h) {
  */
 export function invalidateDepthWashCache() {
   cachedGradient = null;
+  cacheKey = '';
 }

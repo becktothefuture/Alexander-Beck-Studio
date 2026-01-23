@@ -598,11 +598,24 @@ const state = {
   // Page caption: clamp(min, 2vh, max) for bottom distance (universal: index, portfolio, cv).
   edgeCaptionDistanceMinPx: 8,
   edgeCaptionDistanceMaxPx: 48,
-  // Simulation overlays: CSS ::before gradient (0–1) and canvas depth-wash opacity (0–1).
+  // Simulation overlays: CSS ::before gradient (0–1) and canvas depth-wash.
   simulationOverlayIntensity: 1,
+  // Depth wash: radial gradient overlay between balls and wall
   depthWashOpacity: 0.65,
   depthWashBlendModeLight: 'color-dodge',
   depthWashBlendModeDark: 'multiply',
+  depthWashCenterY: 0.3, // Center position (0=top, 1=bottom)
+  depthWashRadiusScale: 1.0, // Radius multiplier
+  // Light mode gradient
+  depthWashCenterColorLight: '#ffffff',
+  depthWashEdgeColorLight: '#142b48',
+  depthWashCenterAlphaLight: 0.3,
+  depthWashEdgeAlphaLight: 0.4,
+  // Dark mode gradient
+  depthWashCenterColorDark: '#1a1e23',
+  depthWashEdgeColorDark: '#05020f',
+  depthWashCenterAlphaDark: 0,
+  depthWashEdgeAlphaDark: 0.8,
   
   // Link Colors
   linkHoverColor: '#ff4013',          // Link hover accent (shared)
@@ -1394,6 +1407,7 @@ export function initState(config) {
   if (config.simulationOverlayIntensity !== undefined) {
     state.simulationOverlayIntensity = clampNumber(config.simulationOverlayIntensity, 0, 1, state.simulationOverlayIntensity);
   }
+  // Depth wash configuration
   if (config.depthWashOpacity !== undefined) {
     state.depthWashOpacity = clampNumber(config.depthWashOpacity, 0, 1, state.depthWashOpacity);
   }
@@ -1406,6 +1420,16 @@ export function initState(config) {
     const v = String(config.depthWashBlendModeDark);
     state.depthWashBlendModeDark = validCanvasBlendModes.includes(v) ? v : state.depthWashBlendModeDark;
   }
+  if (config.depthWashCenterY !== undefined) state.depthWashCenterY = clampNumber(config.depthWashCenterY, 0, 1, state.depthWashCenterY);
+  if (config.depthWashRadiusScale !== undefined) state.depthWashRadiusScale = clampNumber(config.depthWashRadiusScale, 0.2, 3, state.depthWashRadiusScale);
+  if (config.depthWashCenterColorLight !== undefined) state.depthWashCenterColorLight = String(config.depthWashCenterColorLight);
+  if (config.depthWashEdgeColorLight !== undefined) state.depthWashEdgeColorLight = String(config.depthWashEdgeColorLight);
+  if (config.depthWashCenterAlphaLight !== undefined) state.depthWashCenterAlphaLight = clampNumber(config.depthWashCenterAlphaLight, 0, 1, state.depthWashCenterAlphaLight);
+  if (config.depthWashEdgeAlphaLight !== undefined) state.depthWashEdgeAlphaLight = clampNumber(config.depthWashEdgeAlphaLight, 0, 1, state.depthWashEdgeAlphaLight);
+  if (config.depthWashCenterColorDark !== undefined) state.depthWashCenterColorDark = String(config.depthWashCenterColorDark);
+  if (config.depthWashEdgeColorDark !== undefined) state.depthWashEdgeColorDark = String(config.depthWashEdgeColorDark);
+  if (config.depthWashCenterAlphaDark !== undefined) state.depthWashCenterAlphaDark = clampNumber(config.depthWashCenterAlphaDark, 0, 1, state.depthWashCenterAlphaDark);
+  if (config.depthWashEdgeAlphaDark !== undefined) state.depthWashEdgeAlphaDark = clampNumber(config.depthWashEdgeAlphaDark, 0, 1, state.depthWashEdgeAlphaDark);
 
   // UI layout knobs (CSS var driven)
   if (config.topLogoWidthVw !== undefined) {

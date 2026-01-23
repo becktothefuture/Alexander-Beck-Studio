@@ -106,16 +106,18 @@ export function initialize3DCube() {
 
   clearBalls();
 
-  const edgeDensity = Math.max(2, Math.round(g.cube3dEdgeDensity ?? 8));
-  const faceGrid = Math.max(0, Math.round(g.cube3dFaceGrid ?? 0));
+  // Apply mobile reduction to density BEFORE generating points to preserve cube structure.
+  // Slicing afterwards would cut off entire edges, destroying the cube shape.
+  const baseEdgeDensity = Math.max(2, Math.round(g.cube3dEdgeDensity ?? 8));
+  const edgeDensity = getMobileAdjustedCount(baseEdgeDensity);
+  const baseFaceGrid = Math.max(0, Math.round(g.cube3dFaceGrid ?? 0));
+  const faceGrid = baseFaceGrid > 0 ? getMobileAdjustedCount(baseFaceGrid) : 0;
   const sizeVw = g.cube3dSizeVw ?? 25;
   const sizePx = Math.max(10, (sizeVw / 100) * canvas.width);
   const baseR = (g.R_MED || 20) * 0.30 * 2.0 * (g.DPR || 1);
   const dotSizeMul = Math.max(0.1, g.cube3dDotSizeMul ?? 1.5);
 
-  const ptsRaw = generateCubePoints(sizePx, edgeDensity, faceGrid);
-  const count = getMobileAdjustedCount(ptsRaw.length);
-  const pts = ptsRaw.slice(0, count);
+  const pts = generateCubePoints(sizePx, edgeDensity, faceGrid);
 
   g.cube3dState = {
     cx: canvas.width * 0.5,

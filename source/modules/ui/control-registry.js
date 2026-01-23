@@ -1162,21 +1162,44 @@ export const CONTROL_SECTIONS = {
           import('../core/state.js').then(mod => { mod.applyLayoutCSSVars(); }).catch(() => {});
         }
       },
+      { type: 'divider', label: 'Depth Wash (Canvas)' },
       {
         id: 'depthWashOpacity',
-        label: 'Depth Wash',
+        label: 'Opacity',
         stateKey: 'depthWashOpacity',
         type: 'range',
         min: 0, max: 1, step: 0.05,
         default: 0.65,
-        format: v => v.toFixed(2),
+        format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Opacity of the radial depth overlay between balls and wall.',
-        onChange: () => {}
+        hint: 'Master opacity of the radial depth overlay'
       },
       {
+        id: 'depthWashCenterY',
+        label: 'Center Y',
+        stateKey: 'depthWashCenterY',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.3,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Vertical center of gradient (0=top, 100%=bottom)'
+      },
+      {
+        id: 'depthWashRadiusScale',
+        label: 'Radius',
+        stateKey: 'depthWashRadiusScale',
+        type: 'range',
+        min: 0.2, max: 3, step: 0.1,
+        default: 1.0,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        hint: 'Size of the gradient'
+      },
+      { type: 'divider', label: 'Light Mode' },
+      {
         id: 'depthWashBlendModeLight',
-        label: 'Blend (Light)',
+        label: 'Blend Mode',
         stateKey: 'depthWashBlendModeLight',
         type: 'select',
         options: [
@@ -1195,12 +1218,50 @@ export const CONTROL_SECTIONS = {
         ],
         default: 'color-dodge',
         format: v => String(v),
-        parse: v => String(v),
-        hint: 'Canvas blend mode for light theme'
+        parse: v => String(v)
       },
       {
+        id: 'depthWashCenterColorLight',
+        label: 'Center Color',
+        stateKey: 'depthWashCenterColorLight',
+        type: 'color',
+        default: '#ffffff',
+        format: v => String(v),
+        parse: v => String(v)
+      },
+      {
+        id: 'depthWashCenterAlphaLight',
+        label: 'Center Alpha',
+        stateKey: 'depthWashCenterAlphaLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.3,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat
+      },
+      {
+        id: 'depthWashEdgeColorLight',
+        label: 'Edge Color',
+        stateKey: 'depthWashEdgeColorLight',
+        type: 'color',
+        default: '#142b48',
+        format: v => String(v),
+        parse: v => String(v)
+      },
+      {
+        id: 'depthWashEdgeAlphaLight',
+        label: 'Edge Alpha',
+        stateKey: 'depthWashEdgeAlphaLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.4,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat
+      },
+      { type: 'divider', label: 'Dark Mode' },
+      {
         id: 'depthWashBlendModeDark',
-        label: 'Blend (Dark)',
+        label: 'Blend Mode',
         stateKey: 'depthWashBlendModeDark',
         type: 'select',
         options: [
@@ -1219,8 +1280,45 @@ export const CONTROL_SECTIONS = {
         ],
         default: 'multiply',
         format: v => String(v),
-        parse: v => String(v),
-        hint: 'Canvas blend mode for dark theme'
+        parse: v => String(v)
+      },
+      {
+        id: 'depthWashCenterColorDark',
+        label: 'Center Color',
+        stateKey: 'depthWashCenterColorDark',
+        type: 'color',
+        default: '#1a1e23',
+        format: v => String(v),
+        parse: v => String(v)
+      },
+      {
+        id: 'depthWashCenterAlphaDark',
+        label: 'Center Alpha',
+        stateKey: 'depthWashCenterAlphaDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat
+      },
+      {
+        id: 'depthWashEdgeColorDark',
+        label: 'Edge Color',
+        stateKey: 'depthWashEdgeColorDark',
+        type: 'color',
+        default: '#05020f',
+        format: v => String(v),
+        parse: v => String(v)
+      },
+      {
+        id: 'depthWashEdgeAlphaDark',
+        label: 'Edge Alpha',
+        stateKey: 'depthWashEdgeAlphaDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.8,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat
       }
     ]
   },

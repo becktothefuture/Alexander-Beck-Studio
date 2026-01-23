@@ -652,11 +652,22 @@ async function saveAllConfigToFile() {
     config.noiseColorLight = g.noiseColorLight;
     config.noiseColorDark = g.noiseColorDark;
     
-    // Depth wash (simulation overlay)
+    // Simulation overlay
+    config.simulationOverlayIntensity = g.simulationOverlayIntensity;
+    // Depth wash
     config.depthWashOpacity = g.depthWashOpacity;
     config.depthWashBlendModeLight = g.depthWashBlendModeLight;
     config.depthWashBlendModeDark = g.depthWashBlendModeDark;
-    config.simulationOverlayIntensity = g.simulationOverlayIntensity;
+    config.depthWashCenterY = g.depthWashCenterY;
+    config.depthWashRadiusScale = g.depthWashRadiusScale;
+    config.depthWashCenterColorLight = g.depthWashCenterColorLight;
+    config.depthWashEdgeColorLight = g.depthWashEdgeColorLight;
+    config.depthWashCenterAlphaLight = g.depthWashCenterAlphaLight;
+    config.depthWashEdgeAlphaLight = g.depthWashEdgeAlphaLight;
+    config.depthWashCenterColorDark = g.depthWashCenterColorDark;
+    config.depthWashEdgeColorDark = g.depthWashEdgeColorDark;
+    config.depthWashCenterAlphaDark = g.depthWashCenterAlphaDark;
+    config.depthWashEdgeAlphaDark = g.depthWashEdgeAlphaDark;
     
     config.noiseMotion = g.noiseMotion;
     config.noiseMotionAmount = g.noiseMotionAmount;
