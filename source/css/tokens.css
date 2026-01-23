@@ -333,7 +333,7 @@
   --footer-icon-gap: var(--gap-lg);
   --footer-icon-size: var(--size-icon);
   --footer-links-padding: var(--tap-target);
-  --footer-links-font-size: clamp(14px, 1.4vw, 18px);
+  --footer-links-font-size: clamp(14px, 1.4vw, 15px);
   --footer-links-letter-spacing: var(--letter-spacing-normal);
   --footer-link-dot-size: 4px;
   --footer-link-dot-offset: 8px;

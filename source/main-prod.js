@@ -271,8 +271,11 @@ export function applyVisualCSSVars(config) {
     root.style.setProperty('--noise-opacity-dark', String(config.noiseOpacityDark));
   }
 
-  if (config.noiseBlendMode !== undefined) {
-    root.style.setProperty('--noise-blend-mode', String(config.noiseBlendMode));
+  if (config.noiseBlendModeLight !== undefined) {
+    root.style.setProperty('--noise-blend-mode-light', String(config.noiseBlendModeLight));
+  }
+  if (config.noiseBlendModeDark !== undefined) {
+    root.style.setProperty('--noise-blend-mode-dark', String(config.noiseBlendModeDark));
   }
 
   if (config.noiseColorLight !== undefined) {

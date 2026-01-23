@@ -363,10 +363,14 @@ function sanitizeConfig(input = {}) {
     noiseOpacity: clampNumber(input.noiseOpacity, 0, 1, 0.08),
     noiseOpacityLight: clampNumber(input.noiseOpacityLight, 0, 1, cssOpacityLight),
     noiseOpacityDark: clampNumber(input.noiseOpacityDark, 0, 1, cssOpacityDark),
-    noiseBlendMode: pickEnum(input.noiseBlendMode, [
+    noiseBlendModeLight: pickEnum(input.noiseBlendModeLight, [
       'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
       'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'
-    ], 'normal'),
+    ], 'overlay'),
+    noiseBlendModeDark: pickEnum(input.noiseBlendModeDark, [
+      'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
+      'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'
+    ], 'soft-light'),
     noiseColorLight: typeof input.noiseColorLight === 'string' ? input.noiseColorLight : '#ffffff',
     noiseColorDark: typeof input.noiseColorDark === 'string' ? input.noiseColorDark : '#ffffff',
     detailNoiseOpacity: clampNumber(input.detailNoiseOpacity, 0, 1, 1),

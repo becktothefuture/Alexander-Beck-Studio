@@ -82,6 +82,7 @@ export const MASTER_SECTION_KEYS = [
   'links',              // link styling, padding, color, impact motion
   'scene',              // global scene motion
   'overlay',            // gate/overlays
+  'simulationOverlay',  // gradient on simulation (viewport ::before + depth-wash)
   'entrance',           // dramatic page entrance animation
   'environment'         // browser/theme behavior
 ];
@@ -109,6 +110,7 @@ const SECTION_CATEGORIES = {
   'entrance': 'MOTION',
 
   'overlay': 'DEPTH & LAYOUT',
+  'simulationOverlay': 'DEPTH & LAYOUT',
   'layout': 'DEPTH & LAYOUT',
   'uiSpacing': 'DEPTH & LAYOUT',
 
@@ -1106,6 +1108,119 @@ export const CONTROL_SECTIONS = {
             mod.applyLayoutCSSVars();
           }).catch(() => {});
         }
+      },
+      {
+        id: 'edgeCaptionDistanceMinPx',
+        label: 'Caption Distance Min',
+        stateKey: 'edgeCaptionDistanceMinPx',
+        type: 'range',
+        min: 0, max: 80, step: 2,
+        default: 8,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Padding from bottom inner edge of wall (0 = flush). Index, portfolio, cv.',
+        onChange: () => {
+          import('../core/state.js').then(mod => { mod.applyLayoutCSSVars(); }).catch(() => {});
+        }
+      },
+      {
+        id: 'edgeCaptionDistanceMaxPx',
+        label: 'Caption Distance Max',
+        stateKey: 'edgeCaptionDistanceMaxPx',
+        type: 'range',
+        min: 16, max: 200, step: 2,
+        default: 48,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Maximum distance; at largest breakpoint does not grow further.',
+        onChange: () => {
+          import('../core/state.js').then(mod => { mod.applyLayoutCSSVars(); }).catch(() => {});
+        }
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SIMULATION OVERLAY - Gradient on top of the simulation (viewport ::before + depth-wash)
+  // ═══════════════════════════════════════════════════════════════════════════
+  simulationOverlay: {
+    title: 'Simulation Overlay',
+    icon: '🔆',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'simulationOverlayIntensity',
+        label: 'CSS Gradient',
+        stateKey: 'simulationOverlayIntensity',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 1,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Intensity of the soft gradient overlay on the simulation (viewport ::before).',
+        onChange: () => {
+          import('../core/state.js').then(mod => { mod.applyLayoutCSSVars(); }).catch(() => {});
+        }
+      },
+      {
+        id: 'depthWashOpacity',
+        label: 'Depth Wash',
+        stateKey: 'depthWashOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.65,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Opacity of the radial depth overlay between balls and wall.',
+        onChange: () => {}
+      },
+      {
+        id: 'depthWashBlendModeLight',
+        label: 'Blend (Light)',
+        stateKey: 'depthWashBlendModeLight',
+        type: 'select',
+        options: [
+          { value: 'source-over', label: 'Normal' },
+          { value: 'multiply', label: 'Multiply' },
+          { value: 'screen', label: 'Screen' },
+          { value: 'overlay', label: 'Overlay' },
+          { value: 'darken', label: 'Darken' },
+          { value: 'lighten', label: 'Lighten' },
+          { value: 'color-dodge', label: 'Color Dodge' },
+          { value: 'color-burn', label: 'Color Burn' },
+          { value: 'hard-light', label: 'Hard Light' },
+          { value: 'soft-light', label: 'Soft Light' },
+          { value: 'difference', label: 'Difference' },
+          { value: 'exclusion', label: 'Exclusion' }
+        ],
+        default: 'color-dodge',
+        format: v => String(v),
+        parse: v => String(v),
+        hint: 'Canvas blend mode for light theme'
+      },
+      {
+        id: 'depthWashBlendModeDark',
+        label: 'Blend (Dark)',
+        stateKey: 'depthWashBlendModeDark',
+        type: 'select',
+        options: [
+          { value: 'source-over', label: 'Normal' },
+          { value: 'multiply', label: 'Multiply' },
+          { value: 'screen', label: 'Screen' },
+          { value: 'overlay', label: 'Overlay' },
+          { value: 'darken', label: 'Darken' },
+          { value: 'lighten', label: 'Lighten' },
+          { value: 'color-dodge', label: 'Color Dodge' },
+          { value: 'color-burn', label: 'Color Burn' },
+          { value: 'hard-light', label: 'Hard Light' },
+          { value: 'soft-light', label: 'Soft Light' },
+          { value: 'difference', label: 'Difference' },
+          { value: 'exclusion', label: 'Exclusion' }
+        ],
+        default: 'multiply',
+        format: v => String(v),
+        parse: v => String(v),
+        hint: 'Canvas blend mode for dark theme'
       }
     ]
   },
@@ -3524,7 +3639,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-
   starfield3d: {
     title: '3D Starfield',
     icon: '✨',
@@ -4183,6 +4297,225 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat
       },
       warmupFramesControl('cube3dWarmupFrames')
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PARALLAX LINEAR — 3D grid with mouse-driven camera pan
+  // ═══════════════════════════════════════════════════════════════════════════
+  parallaxLinear: {
+    title: 'Parallax (Linear)',
+    icon: '📐',
+    mode: 'parallax-linear',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'parallaxLinearGridX',
+        label: 'Grid X',
+        stateKey: 'parallaxLinearGridX',
+        type: 'range',
+        min: 4, max: 30, step: 1,
+        default: 14,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxLinearGridY',
+        label: 'Grid Y',
+        stateKey: 'parallaxLinearGridY',
+        type: 'range',
+        min: 4, max: 30, step: 1,
+        default: 10,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxLinearGridZ',
+        label: 'Grid Z (Depth)',
+        stateKey: 'parallaxLinearGridZ',
+        type: 'range',
+        min: 2, max: 15, step: 1,
+        default: 7,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      { type: 'divider', label: 'Spread & Depth' },
+      {
+        id: 'parallaxLinearSpanX',
+        label: 'Span X',
+        stateKey: 'parallaxLinearSpanX',
+        type: 'range',
+        min: 1.0, max: 12.0, step: 0.1,
+        default: 5.4,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'How far the grid extends horizontally'
+      },
+      {
+        id: 'parallaxLinearSpanY',
+        label: 'Span Y',
+        stateKey: 'parallaxLinearSpanY',
+        type: 'range',
+        min: 1.0, max: 12.0, step: 0.1,
+        default: 5.4,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'How far the grid extends vertically'
+      },
+      {
+        id: 'parallaxLinearZNear',
+        label: 'Z Near',
+        stateKey: 'parallaxLinearZNear',
+        type: 'range',
+        min: 10, max: 200, step: 5,
+        default: 50,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxLinearZFar',
+        label: 'Z Far',
+        stateKey: 'parallaxLinearZFar',
+        type: 'range',
+        min: 200, max: 2000, step: 50,
+        default: 800,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      { type: 'divider', label: 'Camera & Mouse' },
+      {
+        id: 'parallaxLinearFocalLength',
+        label: 'Focal Length',
+        stateKey: 'parallaxLinearFocalLength',
+        type: 'range',
+        min: 100, max: 1000, step: 10,
+        default: 420,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'parallaxLinearParallaxStrength',
+        label: 'Parallax Strength',
+        stateKey: 'parallaxLinearParallaxStrength',
+        type: 'range',
+        min: 0, max: 500, step: 10,
+        default: 120,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'How much the view shifts with mouse movement'
+      },
+      {
+        id: 'parallaxLinearMouseEasing',
+        label: 'Mouse Smoothing',
+        stateKey: 'parallaxLinearMouseEasing',
+        type: 'range',
+        min: 0.5, max: 15, step: 0.5,
+        default: 4,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        hint: 'Lower = smoother/slower, higher = snappier'
+      },
+      { type: 'divider', label: 'Appearance' },
+      {
+        id: 'parallaxLinearDotSizeMul',
+        label: 'Dot Size',
+        stateKey: 'parallaxLinearDotSizeMul',
+        type: 'range',
+        min: 0.5, max: 4.0, step: 0.1,
+        default: 1.8,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat
+      },
+      warmupFramesControl('parallaxLinearWarmupFrames')
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PARALLAX FLOAT — Organic variant with random positions + levitation
+  // ═══════════════════════════════════════════════════════════════════════════
+  parallaxFloat: {
+    title: 'Parallax (Float)',
+    icon: '🫧',
+    mode: 'parallax-float',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'parallaxFloatRandomize',
+        label: 'Randomize',
+        stateKey: 'parallaxFloatRandomize',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.5,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        reinitMode: true,
+        hint: '0 = perfect grid, 1 = fully scattered'
+      },
+      { type: 'divider', label: 'Levitation' },
+      {
+        id: 'parallaxFloatLevitationAmp',
+        label: 'Amplitude',
+        stateKey: 'parallaxFloatLevitationAmp',
+        type: 'range',
+        min: 0, max: 60, step: 2,
+        default: 20,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'How far particles drift'
+      },
+      {
+        id: 'parallaxFloatLevitationSpeed',
+        label: 'Speed',
+        stateKey: 'parallaxFloatLevitationSpeed',
+        type: 'range',
+        min: 0.05, max: 0.5, step: 0.02,
+        default: 0.2,
+        format: v => v.toFixed(2) + ' Hz',
+        parse: parseFloat,
+        hint: 'How fast particles drift'
+      },
+      { type: 'divider', label: 'Mouse' },
+      {
+        id: 'parallaxFloatParallaxStrength',
+        label: 'Parallax Strength',
+        stateKey: 'parallaxFloatParallaxStrength',
+        type: 'range',
+        min: 0, max: 500, step: 10,
+        default: 120,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'How much the view shifts with mouse'
+      },
+      {
+        id: 'parallaxFloatMouseEasing',
+        label: 'Mouse Smoothing',
+        stateKey: 'parallaxFloatMouseEasing',
+        type: 'range',
+        min: 0.5, max: 15, step: 0.5,
+        default: 4,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        hint: 'Lower = smoother/slower, higher = snappier'
+      },
+      { type: 'divider', label: 'Appearance' },
+      {
+        id: 'parallaxFloatDotSizeMul',
+        label: 'Dot Size',
+        stateKey: 'parallaxFloatDotSizeMul',
+        type: 'range',
+        min: 0.5, max: 4.0, step: 0.1,
+        default: 1.8,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat
+      },
+      warmupFramesControl('parallaxFloatWarmupFrames')
     ]
   },
 

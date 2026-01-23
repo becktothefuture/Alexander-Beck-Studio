@@ -54,16 +54,22 @@ export function drawDepthWash(ctx, w, h) {
     cachedIsDark = isDark;
   }
   
+  // Get configurable opacity from state (default 0.65)
+  const opacity = typeof g.depthWashOpacity === 'number' ? g.depthWashOpacity : 0.65;
+  
+  // Skip if opacity is 0
+  if (opacity <= 0) return;
+  
   // Save state (blend mode + alpha will be modified)
   ctx.save();
   
-  // Set blend mode based on theme
-  // Light: "color-dodge" (intense radiant brightening)
-  // Dark: "multiply" (consistent cross-browser darkening)
-  ctx.globalCompositeOperation = isDark ? 'multiply' : 'color-dodge';
+  // Set blend mode from config (defaults: light=color-dodge, dark=multiply)
+  const blendLight = g.depthWashBlendModeLight || 'color-dodge';
+  const blendDark = g.depthWashBlendModeDark || 'multiply';
+  ctx.globalCompositeOperation = isDark ? blendDark : blendLight;
   
-  // Set opacity (same as CSS overlay)
-  ctx.globalAlpha = 0.65;
+  // Set opacity from config
+  ctx.globalAlpha = opacity;
   
   // Fill full canvas with gradient (wall will be drawn on top, hiding overflow)
   ctx.fillStyle = cachedGradient;

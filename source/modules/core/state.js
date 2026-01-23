@@ -595,6 +595,14 @@ const state = {
   textColorDarkMuted: '#9db0c4', // Secondary/muted text (dark mode) — harmonized light blue-gray
   // Edge labels now derive from `--text-muted` in CSS (not independently tunable).
   edgeLabelInsetAdjustPx: 0,
+  // Page caption: clamp(min, 2vh, max) for bottom distance (universal: index, portfolio, cv).
+  edgeCaptionDistanceMinPx: 8,
+  edgeCaptionDistanceMaxPx: 48,
+  // Simulation overlays: CSS ::before gradient (0–1) and canvas depth-wash opacity (0–1).
+  simulationOverlayIntensity: 1,
+  depthWashOpacity: 0.65,
+  depthWashBlendModeLight: 'color-dodge',
+  depthWashBlendModeDark: 'multiply',
   
   // Link Colors
   linkHoverColor: '#ff4013',          // Link hover accent (shared)
@@ -903,7 +911,17 @@ export function applyLayoutCSSVars() {
   const edgeLabelAdjust = state.edgeLabelInsetAdjustPx || 0;
   root.style.setProperty('--edge-label-inset-adjust', `${edgeLabelAdjust}px`);
   // CSS will calculate: --edge-label-inset = calc(--wall-thickness + --edge-label-inset-gap + --edge-label-inset-adjust)
-  
+
+  // Page caption distance (universal: index, portfolio, cv).
+  const capMin = Number.isFinite(state.edgeCaptionDistanceMinPx) ? state.edgeCaptionDistanceMinPx : 8;
+  const capMax = Number.isFinite(state.edgeCaptionDistanceMaxPx) ? state.edgeCaptionDistanceMaxPx : 48;
+  root.style.setProperty('--edge-caption-distance-min', `${Math.max(0, capMin)}px`);
+  root.style.setProperty('--edge-caption-distance-max', `${Math.max(capMin, capMax)}px`);
+
+  // Simulation overlay: CSS ::before gradient intensity (0–1).
+  const simOverlay = Number.isFinite(state.simulationOverlayIntensity) ? Math.max(0, Math.min(1, state.simulationOverlayIntensity)) : 1;
+  root.style.setProperty('--simulation-overlay-intensity', String(simOverlay));
+
   // True inner offset: wall thickness + content padding (for edge-inset CSS var)
   const edgeInset = state.wallThickness + state.contentPadding;
   root.style.setProperty('--edge-inset', `${edgeInset}px`);
@@ -1367,7 +1385,28 @@ export function initState(config) {
   if (config.edgeLabelInsetAdjustPx !== undefined) {
     state.edgeLabelInsetAdjustPx = clampNumber(config.edgeLabelInsetAdjustPx, -500, 500, state.edgeLabelInsetAdjustPx);
   }
-  
+  if (config.edgeCaptionDistanceMinPx !== undefined) {
+    state.edgeCaptionDistanceMinPx = clampInt(config.edgeCaptionDistanceMinPx, 0, 200, state.edgeCaptionDistanceMinPx);
+  }
+  if (config.edgeCaptionDistanceMaxPx !== undefined) {
+    state.edgeCaptionDistanceMaxPx = clampInt(config.edgeCaptionDistanceMaxPx, 0, 400, state.edgeCaptionDistanceMaxPx);
+  }
+  if (config.simulationOverlayIntensity !== undefined) {
+    state.simulationOverlayIntensity = clampNumber(config.simulationOverlayIntensity, 0, 1, state.simulationOverlayIntensity);
+  }
+  if (config.depthWashOpacity !== undefined) {
+    state.depthWashOpacity = clampNumber(config.depthWashOpacity, 0, 1, state.depthWashOpacity);
+  }
+  const validCanvasBlendModes = ['source-over', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'];
+  if (config.depthWashBlendModeLight !== undefined) {
+    const v = String(config.depthWashBlendModeLight);
+    state.depthWashBlendModeLight = validCanvasBlendModes.includes(v) ? v : state.depthWashBlendModeLight;
+  }
+  if (config.depthWashBlendModeDark !== undefined) {
+    const v = String(config.depthWashBlendModeDark);
+    state.depthWashBlendModeDark = validCanvasBlendModes.includes(v) ? v : state.depthWashBlendModeDark;
+  }
+
   // UI layout knobs (CSS var driven)
   if (config.topLogoWidthVw !== undefined) {
     state.topLogoWidthVw = clampNumber(config.topLogoWidthVw, 0, 120, state.topLogoWidthVw);

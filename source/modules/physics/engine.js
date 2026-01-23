@@ -14,20 +14,22 @@ import { renderKaleidoscope } from '../modes/kaleidoscope.js';
 import { applyKaleidoscopeBounds } from '../modes/kaleidoscope.js';
 import { drawMouseTrail } from '../visual/mouse-trail.js';
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
+import { 
+  getAccumulator, 
+  setAccumulator, 
+  addToAccumulator, 
+  subtractFromAccumulator,
+  resetPhysicsAccumulator 
+} from './accumulator.js';
+
+// Re-export for backwards compatibility
+export { resetPhysicsAccumulator };
 
 const DT_DESKTOP = CONSTANTS.PHYSICS_DT;
 const DT_MOBILE = CONSTANTS.PHYSICS_DT_MOBILE;
-let acc = 0;
 const CORNER_RADIUS = 42; // matches rounded container corners
 const CORNER_FORCE = 1800;
 const WARMUP_FRAME_DT = 1 / 60;
-
-/**
- * Reset physics accumulator - call when switching modes to prevent timing spikes
- */
-export function resetPhysicsAccumulator() {
-  acc = 0;
-}
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PERF: Reusable color batch cache to eliminate per-frame Map/array allocations
@@ -118,11 +120,11 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     }
 
     // No wallState.step() in Kaleidoscope
-    acc = 0;
+    setAccumulator(0);
     return;
   }
   
-  acc += dtSeconds;
+  addToAccumulator(dtSeconds);
   let physicsSteps = 0;
 
   // Wall input accumulation:
@@ -136,7 +138,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     wallState.clearPressureFrame();
   }
   
-  while (acc >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
+  while (getAccumulator() >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
     // Integrate physics for all modes
       const len = balls.length;
       for (let i = 0; i < len; i++) {
@@ -159,6 +161,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
                globals.currentMode !== MODES.SPHERE_3D &&
                globals.currentMode !== MODES.CUBE_3D &&
                globals.currentMode !== MODES.PARALLAX_LINEAR &&
+               globals.currentMode !== MODES.PARALLAX_FLOAT &&
                globals.currentMode !== MODES.STARFIELD_3D &&
                globals.currentMode !== MODES.DVD_LOGO &&
                globals.currentMode !== MODES.SNAKE) {
@@ -184,6 +187,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     if (globals.currentMode !== MODES.SPHERE_3D &&
         globals.currentMode !== MODES.CUBE_3D &&
         globals.currentMode !== MODES.PARALLAX_LINEAR &&
+        globals.currentMode !== MODES.PARALLAX_FLOAT &&
         globals.currentMode !== MODES.STARFIELD_3D) {
       const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
       const isPitLike = (globals.currentMode === MODES.PIT);
@@ -319,7 +323,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       }
     }
     
-    acc -= DT;
+    subtractFromAccumulator(DT);
     physicsSteps++;
   }
   
@@ -336,7 +340,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   }
 
   // Reset accumulator if falling behind
-  if (acc > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) acc = 0;
+  if (getAccumulator() > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) {
+    setAccumulator(0);
+  }
 }
 
 export async function updatePhysics(dtSeconds, applyForcesFunc) {
@@ -353,7 +359,7 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   const warmupFrames = Math.max(0, Math.round(globals.warmupFramesRemaining || 0));
   if (warmupFrames > 0) {
     globals.warmupFramesRemaining = 0;
-    acc = 0;
+    setAccumulator(0);
 
     for (let i = 0; i < warmupFrames; i++) {
       updatePhysicsInternal(WARMUP_FRAME_DT, applyForcesFunc);
