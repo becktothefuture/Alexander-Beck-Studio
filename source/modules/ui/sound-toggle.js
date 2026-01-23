@@ -51,7 +51,6 @@ export function createSoundToggle() {
 
   // Initial icon (sound starts off)
   buttonElement.innerHTML = ICON_SOUND_OFF;
-  buttonElement.title = 'Sound off';
   
   // Click handler
   buttonElement.addEventListener('click', handleToggleClick);
@@ -195,7 +194,6 @@ async function handleToggleClick() {
       if (buttonElement) {
         buttonElement.innerHTML = ICON_SOUND_OFF;
         buttonElement.setAttribute('aria-label', 'Audio unavailable');
-        buttonElement.title = 'Audio unavailable';
       }
       setTimeout(() => {
         updateButtonState(false);
@@ -221,7 +219,6 @@ function updateButtonState(enabled) {
   buttonElement.setAttribute('data-enabled', enabled ? 'true' : 'false');
   buttonElement.setAttribute('aria-pressed', enabled ? 'true' : 'false');
   buttonElement.setAttribute('aria-label', enabled ? 'Sound on' : 'Sound off');
-  buttonElement.title = enabled ? 'Sound on' : 'Sound off';
   buttonElement.innerHTML = enabled ? ICON_SOUND_ON : ICON_SOUND_OFF;
 }
 

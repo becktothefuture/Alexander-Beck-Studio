@@ -63,7 +63,8 @@ export function initContactModal() {
 
   const triggers = [
     document.getElementById('contact-email'),
-    document.getElementById('contact-email-inline')
+    document.getElementById('contact-email-inline'),
+    document.querySelector('.decorative-script') // Entire blockquote triggers contact modal
   ].filter(Boolean);
 
   const logo = document.getElementById('brand-logo');

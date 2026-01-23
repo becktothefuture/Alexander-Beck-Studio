@@ -571,11 +571,11 @@ body.dark-mode .legend__item--interactive:hover::before {
 }
 
 .legend .legend__item--interactive:hover span {
-  color: var(--text-muted);
+  color: var(--cursor-hover-fg, var(--cursor-color));
 }
 
 body.dark-mode .legend .legend__item--interactive:hover span {
-  color: var(--text-strong);
+  color: var(--cursor-hover-fg, var(--cursor-color));
 }
 
 /* Active filter state */
@@ -781,15 +781,15 @@ p {
   margin: 0;
   text-align: left; /* Keep left aligned within the block */
   color: var(--text-muted);
+  transition: color 0.15s var(--ease-organic);
 }
 
 .decorative-script p a {
-  text-decoration: underline;
+  text-decoration: none; /* No underline — entire block is clickable */
   color: inherit;
   pointer-events: auto;
   cursor: none; /* Maintain custom cursor experience */
   /* No position: relative - let ::before position relative to .decorative-script */
-  opacity: var(--text-opacity-base);
   transition: color 0.15s var(--ease-organic);
   white-space: nowrap;
 }
@@ -806,9 +806,8 @@ p {
   content: none; /* Dot removed */
 }
 
-/* Color link when hovering anywhere on the block */
-.decorative-script:hover p a {
-  opacity: 1;
+/* Color entire block text when hovering */
+.decorative-script:hover p {
   color: var(--cursor-hover-fg, var(--cursor-color));
 }
 
@@ -1194,8 +1193,8 @@ button.abs-meta-btn,
 }
 
 .sound-toggle[data-enabled="true"] {
-  /* Persistent "sound ON" signal (orange) */
-  color: var(--link-hover-color);
+  /* Persistent "sound ON" signal — uses current cursor color */
+  color: var(--cursor-color, var(--link-hover-color));
 }
 
 /* No hover dot for sound toggle (two-state only) */
@@ -2463,6 +2462,27 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .cv-modal,
 .portfolio-modal {
   padding-inline: calc(var(--abs-modal-mobile-pad-x, 20px) + var(--modal-pad-md-x));
+}
+
+/* Modal radial gradient vignette (background center → transparent edge) */
+.cv-modal,
+.portfolio-modal,
+.contact-modal {
+  background: radial-gradient(
+    circle closest-side,
+    var(--bg-light) 30%,
+    transparent 100%
+  );
+}
+
+body.dark-mode .cv-modal,
+body.dark-mode .portfolio-modal,
+body.dark-mode .contact-modal {
+  background: radial-gradient(
+    circle closest-side,
+    var(--bg-dark) 30%,
+    transparent 100%
+  );
 }
 
 @media (max-width: 768px) {

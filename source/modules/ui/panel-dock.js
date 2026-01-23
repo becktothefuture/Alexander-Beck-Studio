@@ -182,7 +182,7 @@ function getMasterPanelContent({
       </summary>
       <div class="panel-section-content">
         <div class="sound-enable-row">
-          <button id="soundEnableBtn" class="sound-enable-btn" aria-label="Enable sound" title="Enable sound">🔇</button>
+          <button id="soundEnableBtn" class="sound-enable-btn" aria-label="Enable sound">🔇</button>
         </div>
         <div id="soundControlsWrapper" class="sound-controls" style="display: none;">
           <div class="sound-perf" aria-label="Sound performance controls">
@@ -1013,7 +1013,6 @@ function setupSoundControls(panel) {
     // Icon-only (no text). Use aria-label/title for accessibility.
     enableBtn.innerHTML = (unlocked && enabled) ? ICON_SOUND_ON : ICON_SOUND_OFF;
     enableBtn.setAttribute('aria-label', unlocked ? (enabled ? 'Sound on' : 'Sound off') : 'Enable sound');
-    enableBtn.title = unlocked ? (enabled ? 'Sound on' : 'Sound off') : 'Enable sound';
 
     enableBtn.classList.toggle('enabled', enabled);
 
