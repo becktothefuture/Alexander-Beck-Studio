@@ -37,8 +37,8 @@ export function initializeParallaxFloat() {
 
   // Grid span: how much of the viewport the grid occupies in world space.
   // Default 10 = 10x viewport spread
-  const spanX = Math.max(0, Math.min(20.0, g.parallaxFloatSpanX ?? g.parallaxLinearSpanX ?? 10));
-  const spanY = Math.max(0, Math.min(20.0, g.parallaxFloatSpanY ?? g.parallaxLinearSpanY ?? 10));
+  const spanX = Math.max(0, Math.min(10.0, g.parallaxFloatSpanX ?? g.parallaxLinearSpanX ?? 3));
+  const spanY = Math.max(0, Math.min(10.0, g.parallaxFloatSpanY ?? g.parallaxLinearSpanY ?? 3));
   const xMin = -0.5 * w * spanX;
   const yMin = -0.5 * h * spanY;
   const xStep = (w * spanX) / Math.max(1, gridX - 1);
@@ -56,8 +56,11 @@ export function initializeParallaxFloat() {
   const baseR = (g.R_MED || 20) * 0.32 * 2.4 * (g.DPR || 1) * dotSizeMul;
   const varFrac = getModeSizeVarianceFrac(g, MODES.PARALLAX_FLOAT);
 
-  // Randomization amount (0 = perfect grid, 1 = fully scattered)
-  const randomize = Math.max(0, Math.min(1, g.parallaxFloatRandomize ?? 0.5));
+  // Randomization amount (0-100 UI scale, or 0-1 legacy)
+  // 0 = perfect grid like linear; 100 = fully random
+  let randomizeRaw = g.parallaxFloatRandomize ?? 50;
+  let randomize01 = (randomizeRaw > 1) ? (randomizeRaw / 100) : randomizeRaw;
+  const randomize = Math.max(0, Math.min(1, randomize01));
 
   // Create 3D grid with random offsets
   const centerX = w * 0.5;

@@ -9,10 +9,20 @@ import { pickRandomColor } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { getModeSizeVarianceFrac, clampRadiusToGlobalBounds } from '../utils/ball-sizing.js';
 
+// Smoothed mouse state (shared across all balls in this mode)
+let _smoothMouseX = 0;
+let _smoothMouseY = 0;
+let _mouseInitialized = false;
+
 export function initializeParallaxLinear() {
   const g = getGlobals();
   const canvas = g.canvas;
   if (!canvas) return;
+
+  // Reset smoothed mouse state
+  _smoothMouseX = 0;
+  _smoothMouseY = 0;
+  _mouseInitialized = false;
 
   clearBalls();
 
@@ -87,6 +97,39 @@ export function initializeParallaxLinear() {
   }
 }
 
+// Update smoothed mouse position (call once per frame, not per ball)
+export function updateParallaxLinearMouse(dt) {
+  const g = getGlobals();
+  const canvas = g.canvas;
+  if (!canvas) return;
+
+  const cx = canvas.width * 0.5;
+  const cy = canvas.height * 0.5;
+  
+  // Target mouse position (normalized -1 to 1), or 0 if mouse outside
+  let targetX = 0, targetY = 0;
+  if (g.mouseInCanvas) {
+    targetX = Math.max(-1, Math.min(1, (g.mouseX - cx) / (canvas.width * 0.5)));
+    targetY = Math.max(-1, Math.min(1, (g.mouseY - cy) / (canvas.height * 0.5)));
+  }
+
+  // Mouse easing factor (higher = snappier, lower = smoother)
+  // Default to 20 (very snappy) for linear mode to preserve original feel
+  const easing = Math.max(0.5, Math.min(50, g.parallaxLinearMouseEasing ?? 20));
+  const easeFactor = 1 - Math.exp(-easing * dt);
+
+  // Initialize smoothed position on first frame to avoid jump
+  if (!_mouseInitialized) {
+    _smoothMouseX = targetX;
+    _smoothMouseY = targetY;
+    _mouseInitialized = true;
+  } else {
+    // Smooth interpolation toward target
+    _smoothMouseX += (targetX - _smoothMouseX) * easeFactor;
+    _smoothMouseY += (targetY - _smoothMouseY) * easeFactor;
+  }
+}
+
 export function applyParallaxLinearForces(ball, dt) {
   if (!ball._parallax3D) return;
 
@@ -94,15 +137,12 @@ export function applyParallaxLinearForces(ball, dt) {
   const canvas = g.canvas;
   if (!canvas) return;
 
-  // Mouse offset (normalized -1 to 1)
   const cx = canvas.width * 0.5;
   const cy = canvas.height * 0.5;
-  let mx = 0, my = 0;
-  
-  if (g.mouseInCanvas) {
-    mx = Math.max(-1, Math.min(1, (g.mouseX - cx) / (canvas.width * 0.5)));
-    my = Math.max(-1, Math.min(1, (g.mouseY - cy) / (canvas.height * 0.5)));
-  }
+
+  // Use smoothed mouse position
+  const mx = _smoothMouseX;
+  const my = _smoothMouseY;
 
   // Camera parameters
   const focalLength = Math.max(100, g.parallaxLinearFocalLength ?? 400);
@@ -126,7 +166,7 @@ export function applyParallaxLinearForces(ball, dt) {
   const rawR = (g.R_MED || 20) * 0.32 * 2.4 * (g.DPR || 1) * dotSizeMul * sizeMul * scale;
   ball.r = clampRadiusToGlobalBounds(g, rawR);
 
-  // No easing: snap directly to cursor-driven projection
+  // Snap to smoothed position
   ball.x = targetX;
   ball.y = targetY;
   ball.vx = 0;

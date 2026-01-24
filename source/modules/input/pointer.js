@@ -298,14 +298,14 @@ export function setupPointer() {
     mouseDirY = 0;
     if (typeof window !== 'undefined') window.mouseInCanvas = false;
     hideCursor();
-  });
+  }, { passive: true });
   
   /**
    * Show cursor when mouse enters window
    */
   document.addEventListener('mouseenter', () => {
     showCursor();
-  });
+  }, { passive: true });
   
   /**
    * Touch end - reset tracking

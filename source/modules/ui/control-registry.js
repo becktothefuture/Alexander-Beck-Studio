@@ -3691,7 +3691,196 @@ export const CONTROL_SECTIONS = {
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10)
       },
+      {
+        id: 'parallaxLinearMouseEasing',
+        label: 'Mouse Smoothing',
+        stateKey: 'parallaxLinearMouseEasing',
+        type: 'range',
+        min: 0.5, max: 50, step: 0.5,
+        default: 20,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        hint: 'Higher = snappier, lower = smoother camera pan (20 = near-instant)'
+      },
       warmupFramesControl('parallaxLinearWarmupFrames')
+    ]
+  },
+
+  parallaxFloat: {
+    title: 'Parallax (Float)',
+    icon: '🫧',
+    mode: 'parallax-float',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'parallaxFloatRandomize',
+        label: 'Randomness',
+        stateKey: 'parallaxFloatRandomize',
+        type: 'range',
+        min: 0, max: 100, step: 1,
+        default: 50,
+        format: v => `${Math.round(v)}%`,
+        parse: v => parseInt(v, 10),
+        reinitMode: true,
+        hint: '0% = perfect grid, 100% = fully random positions'
+      },
+      {
+        id: 'parallaxFloatLevitationAmp',
+        label: 'Levitation Amplitude',
+        stateKey: 'parallaxFloatLevitationAmp',
+        type: 'range',
+        min: 0, max: 100, step: 1,
+        default: 25,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        reinitMode: true,
+        hint: 'How far particles drift during levitation'
+      },
+      {
+        id: 'parallaxFloatLevitationSpeed',
+        label: 'Levitation Speed',
+        stateKey: 'parallaxFloatLevitationSpeed',
+        type: 'range',
+        min: 0.01, max: 1.0, step: 0.01,
+        default: 0.25,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'How fast particles oscillate'
+      },
+      {
+        id: 'parallaxFloatMouseEasing',
+        label: 'Mouse Smoothing',
+        stateKey: 'parallaxFloatMouseEasing',
+        type: 'range',
+        min: 0.5, max: 20, step: 0.5,
+        default: 5,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        hint: 'Higher = snappier, lower = smoother camera pan'
+      },
+      {
+        id: 'parallaxFloatDotSizeMul',
+        label: 'Dot Size',
+        stateKey: 'parallaxFloatDotSizeMul',
+        type: 'range',
+        min: 0.2, max: 6.0, step: 0.1,
+        default: 1.4,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'sizeVariationParallaxFloat',
+        label: 'Size Variation',
+        stateKey: 'sizeVariationParallaxFloat',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        reinitMode: true
+      },
+      {
+        id: 'parallaxFloatGridX',
+        label: 'Grid X (Cols)',
+        stateKey: 'parallaxFloatGridX',
+        type: 'range',
+        min: 3, max: 40, step: 1,
+        default: 15,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxFloatGridY',
+        label: 'Grid Y (Rows)',
+        stateKey: 'parallaxFloatGridY',
+        type: 'range',
+        min: 3, max: 40, step: 1,
+        default: 10,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxFloatGridZ',
+        label: 'Grid Z (Layers)',
+        stateKey: 'parallaxFloatGridZ',
+        type: 'range',
+        min: 2, max: 20, step: 1,
+        default: 12,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxFloatSpanX',
+        label: 'Span X',
+        stateKey: 'parallaxFloatSpanX',
+        type: 'range',
+        min: 0.2, max: 10.0, step: 0.1,
+        default: 4,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'World-space width as a multiple of the viewport width'
+      },
+      {
+        id: 'parallaxFloatSpanY',
+        label: 'Span Y',
+        stateKey: 'parallaxFloatSpanY',
+        type: 'range',
+        min: 0.2, max: 10.0, step: 0.1,
+        default: 3,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat,
+        reinitMode: true,
+        hint: 'World-space height as a multiple of the viewport height'
+      },
+      {
+        id: 'parallaxFloatZNear',
+        label: 'Z Near',
+        stateKey: 'parallaxFloatZNear',
+        type: 'range',
+        min: 10, max: 1200, step: 10,
+        default: 100,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxFloatZFar',
+        label: 'Z Far',
+        stateKey: 'parallaxFloatZFar',
+        type: 'range',
+        min: 200, max: 4000, step: 50,
+        default: 2500,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        reinitMode: true
+      },
+      {
+        id: 'parallaxFloatFocalLength',
+        label: 'Focal Length',
+        stateKey: 'parallaxFloatFocalLength',
+        type: 'range',
+        min: 80, max: 2000, step: 10,
+        default: 500,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'parallaxFloatParallaxStrength',
+        label: 'Parallax Strength',
+        stateKey: 'parallaxFloatParallaxStrength',
+        type: 'range',
+        min: 0, max: 2000, step: 10,
+        default: 350,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10)
+      },
+      warmupFramesControl('parallaxFloatWarmupFrames')
     ]
   },
 

@@ -77,6 +77,7 @@ const state = {
   sizeVariationCritters: 0.2,
   sizeVariationNeural: 0.05,
   sizeVariationParallaxLinear: 0,
+  sizeVariationParallaxFloat: 0,
   
   // Warmup (per simulation) — how many "startup frames" to pre-run before first render.
   // Default 10 for all modes (quick settle; avoids visible pop-in while testing).
@@ -92,6 +93,7 @@ const state = {
   crittersWarmupFrames: 10,
   neuralWarmupFrames: 10,
   parallaxLinearWarmupFrames: 10,
+  parallaxFloatWarmupFrames: 10,
   // 3D Sphere (Mode 16)
   sphere3dRadiusVw: 18,
   sphere3dDensity: 140,

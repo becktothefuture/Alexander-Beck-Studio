@@ -53,7 +53,10 @@ function updateAdaptiveThrottle(frameTime) {
   }
 }
 
-export function startMainLoop(applyForcesFunc) {
+export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
+  // Cached force applicator - resolved once per frame, not per particle
+  let cachedForceFn = null;
+  
   // ══════════════════════════════════════════════════════════════════════════════
   // PERFORMANCE: Visibility API - pause when tab is hidden
   // Saves CPU/battery when user isn't looking
@@ -77,7 +80,7 @@ export function startMainLoop(applyForcesFunc) {
         frameId = null;
       }
     }
-  });
+  }, { passive: true });
   
   function frame(nowMs) {
     // Skip if page not visible (belt and suspenders with visibility handler)
@@ -104,9 +107,14 @@ export function startMainLoop(applyForcesFunc) {
     let dt = Math.min(0.033, now - last);
     last = now;
     
+    // PERF: Cache force applicator once per frame (not per particle)
+    if (getForcesFn) {
+      cachedForceFn = getForcesFn();
+    }
+    
     // Physics update (may be throttled at level 2)
     if (adaptiveThrottleLevel < 2 || Math.random() > 0.5) {
-      updatePhysics(dt, applyForcesFunc);
+      updatePhysics(dt, cachedForceFn ?? applyForcesFunc);
     }
     
     // Render

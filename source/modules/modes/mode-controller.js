@@ -17,7 +17,8 @@ import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.
 import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
 import { initializeCritters, applyCrittersForces } from './critters.js';
 import { initializeNeural, applyNeuralForces, preRenderNeural, updateNeural } from './neural.js';
-import { initializeParallaxLinear, applyParallaxLinearForces } from './parallax-linear.js';
+import { initializeParallaxLinear, applyParallaxLinearForces, updateParallaxLinearMouse } from './parallax-linear.js';
+import { initializeParallaxFloat, applyParallaxFloatForces, updateParallaxFloatMouse } from './parallax-float.js';
 import { initialize3DSphere, apply3DSphereForces } from './3d-sphere.js';
 import { initialize3DCube, apply3DCubeForces } from './3d-cube.js';
 import { initializeStarfield3D, applyStarfield3DForces, updateStarfield3D, renderStarfield3D } from './starfield-3d.js';
@@ -55,6 +56,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.SPHERE_3D: return globals.sphere3dWarmupFrames ?? 10;
     case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
     case MODES.PARALLAX_LINEAR: return globals.parallaxLinearWarmupFrames ?? 10;
+    case MODES.PARALLAX_FLOAT: return globals.parallaxFloatWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
     case MODES.DVD_LOGO: return globals.dvdLogoWarmupFrames ?? 10;
@@ -129,6 +131,7 @@ export function setMode(mode) {
     critters: 'Critters',
     neural: 'Neural Network',
     'parallax-linear': 'Parallax (Linear)',
+    'parallax-float': 'Parallax (Float)',
     '3d-sphere': '3D Sphere',
     '3d-cube': '3D Cube',
     'starfield-3d': '3D Starfield',
@@ -239,6 +242,11 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeParallaxLinear();
+  } else if (mode === MODES.PARALLAX_FLOAT) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeParallaxFloat();
   } else if (mode === MODES.STARFIELD_3D) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -324,6 +332,8 @@ export function getForceApplicator() {
     return applyNeuralForces;
   } else if (globals.currentMode === MODES.PARALLAX_LINEAR) {
     return applyParallaxLinearForces;
+  } else if (globals.currentMode === MODES.PARALLAX_FLOAT) {
+    return applyParallaxFloatForces;
   } else if (globals.currentMode === MODES.STARFIELD_3D) {
     return applyStarfield3DForces;
   } else if (globals.currentMode === MODES.ELASTIC_CENTER) {
@@ -354,6 +364,10 @@ export function getModeUpdater() {
     return updateNeural;
   } else if (globals.currentMode === MODES.PARTICLE_FOUNTAIN) {
     return updateParticleFountain;
+  } else if (globals.currentMode === MODES.PARALLAX_FLOAT) {
+    return updateParallaxFloatMouse;
+  } else if (globals.currentMode === MODES.PARALLAX_LINEAR) {
+    return updateParallaxLinearMouse;
   }
   return null;
 }

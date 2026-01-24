@@ -545,11 +545,8 @@ window.addEventListener('unhandledrejection', (event) => {
     // NOTE: Scroll FX is portfolio-only (see `source/modules/portfolio/`).
 
     // Start main render loop
-    const getForces = () => getForceApplicator();
-    startMainLoop((ball, dt) => {
-      const forceFn = getForces();
-      if (forceFn) forceFn(ball, dt);
-    });
+    // PERF: getForcesFn is resolved once per frame in the loop, not per particle
+    startMainLoop(null, { getForcesFn: getForceApplicator });
     
     mark('bb:end');
     log('✅ Bouncy Balls running (modular)');

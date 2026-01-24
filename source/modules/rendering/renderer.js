@@ -147,7 +147,7 @@ export function setupRenderer() {
     });
   };
   
-  window.addEventListener('resize', debouncedResize);
+  window.addEventListener('resize', debouncedResize, { passive: true });
   
   // Enhanced responsiveness: handle edge cases where 'resize' event doesn't fire
   // - iOS Safari: virtual keyboard, safe area changes, rotation quirks
@@ -157,12 +157,12 @@ export function setupRenderer() {
     // iOS needs a delay after orientation change for accurate dimensions
     setTimeout(resize, 100);
     setTimeout(resize, 300); // Fallback for slow devices
-  });
+  }, { passive: true });
   
   // Visual Viewport API: catches more edge cases (iOS notch, virtual keyboard)
   if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', debouncedResize);
-    window.visualViewport.addEventListener('scroll', debouncedResize); // For notch/safe-area shifts
+    window.visualViewport.addEventListener('resize', debouncedResize, { passive: true });
+    window.visualViewport.addEventListener('scroll', debouncedResize, { passive: true });
   }
   
   // ResizeObserver: catches CSS-driven size changes that don't trigger window resize

@@ -18,6 +18,7 @@ export const MODES = {
   NEURAL: 'neural',
   // Parallax (depth perception) simulations
   PARALLAX_LINEAR: 'parallax-linear',
+  PARALLAX_FLOAT: 'parallax-float',
   SPHERE_3D: '3d-sphere',
   CUBE_3D: '3d-cube',
   STARFIELD_3D: 'starfield-3d',
@@ -51,6 +52,7 @@ export const NARRATIVE_MODE_SEQUENCE = [
   MODES.VORTEX,
   MODES.KALEIDOSCOPE,
   MODES.STARFIELD_3D,
+  MODES.PARALLAX_FLOAT,
   MODES.PARTICLE_FOUNTAIN
 ];
 
@@ -74,6 +76,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.CUBE_3D]: '3D FRAME',
   [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',
   [MODES.STARFIELD_3D]: 'DEPTH FIELD',
+  [MODES.PARALLAX_FLOAT]: 'ORGANIC DRIFT',
   [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FLOW'
 };
 

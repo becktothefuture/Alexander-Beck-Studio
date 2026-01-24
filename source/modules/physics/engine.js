@@ -32,6 +32,20 @@ const CORNER_FORCE = 1800;
 const WARMUP_FRAME_DT = 1 / 60;
 
 // ════════════════════════════════════════════════════════════════════════════════
+// PERF: Preallocated options objects to avoid per-loop/per-frame allocations
+// ════════════════════════════════════════════════════════════════════════════════
+const WALL_EFFECTS_ON = {};
+const WALL_EFFECTS_OFF = Object.freeze({ registerEffects: false });
+const PIT_CLAMP_OPTS = WALL_EFFECTS_OFF;
+// Kaleidoscope collision options - mutable maxCorrectionPx updated per-frame
+const KALEIDO_COLLISION_OPTS = {
+  iterations: 3,
+  positionalCorrectionPercent: 0.22,
+  maxCorrectionPx: 1.25,
+  enableSound: false
+};
+
+// ════════════════════════════════════════════════════════════════════════════════
 // PERF: Reusable color batch cache to eliminate per-frame Map/array allocations
 // ════════════════════════════════════════════════════════════════════════════════
 const colorBatchCache = {
@@ -57,28 +71,66 @@ function resetColorBatchCache() {
   colorBatchCache.arrayIndex = 0;
 }
 
-function applyCornerRepellers(ball, canvas, dt, mobile = false) {
-  const corners = [
-    { x: CORNER_RADIUS, y: CORNER_RADIUS },
-    { x: canvas.width - CORNER_RADIUS, y: CORNER_RADIUS },
-    { x: CORNER_RADIUS, y: canvas.height - CORNER_RADIUS },
-    { x: canvas.width - CORNER_RADIUS, y: canvas.height - CORNER_RADIUS }
-  ];
-  const cornerCount = mobile ? 2 : corners.length;
-  for (let i = 0; i < cornerCount; i++) {
-    const cx = corners[i].x;
-    const cy = corners[i].y;
-    const dx = ball.x - cx;
-    const dy = ball.y - cy;
-    const dist = Math.max(1, Math.hypot(dx, dy));
-    if (dist < CORNER_RADIUS + ball.r) {
-      const pen = (CORNER_RADIUS + ball.r) - dist;
-      const strength = (pen / (CORNER_RADIUS + ball.r)) * CORNER_FORCE;
-      const nx = dx / dist;
-      const ny = dy / dist;
-      ball.vx += nx * strength * dt;
-      ball.vy += ny * strength * dt;
-    }
+// PERF: Zero-allocation corner repeller - computes corners inline, uses squared distance
+function applyCornerRepellers(ball, canvasW, canvasH, dt, mobile = false) {
+  const r = ball.r;
+  const threshold = CORNER_RADIUS + r;
+  const thresholdSq = threshold * threshold;
+  
+  // Compute corners inline (no array allocation)
+  // Corner 0: top-left
+  let dx = ball.x - CORNER_RADIUS;
+  let dy = ball.y - CORNER_RADIUS;
+  let d2 = dx * dx + dy * dy;
+  if (d2 < thresholdSq && d2 > 0) {
+    const dist = Math.sqrt(d2);
+    const pen = threshold - dist;
+    const strength = (pen / threshold) * CORNER_FORCE;
+    const invDist = 1 / dist;
+    ball.vx += dx * invDist * strength * dt;
+    ball.vy += dy * invDist * strength * dt;
+  }
+  
+  // Corner 1: top-right
+  dx = ball.x - (canvasW - CORNER_RADIUS);
+  dy = ball.y - CORNER_RADIUS;
+  d2 = dx * dx + dy * dy;
+  if (d2 < thresholdSq && d2 > 0) {
+    const dist = Math.sqrt(d2);
+    const pen = threshold - dist;
+    const strength = (pen / threshold) * CORNER_FORCE;
+    const invDist = 1 / dist;
+    ball.vx += dx * invDist * strength * dt;
+    ball.vy += dy * invDist * strength * dt;
+  }
+  
+  // Mobile: only check top 2 corners (bottom corners rarely needed on small screens)
+  if (mobile) return;
+  
+  // Corner 2: bottom-left
+  dx = ball.x - CORNER_RADIUS;
+  dy = ball.y - (canvasH - CORNER_RADIUS);
+  d2 = dx * dx + dy * dy;
+  if (d2 < thresholdSq && d2 > 0) {
+    const dist = Math.sqrt(d2);
+    const pen = threshold - dist;
+    const strength = (pen / threshold) * CORNER_FORCE;
+    const invDist = 1 / dist;
+    ball.vx += dx * invDist * strength * dt;
+    ball.vy += dy * invDist * strength * dt;
+  }
+  
+  // Corner 3: bottom-right
+  dx = ball.x - (canvasW - CORNER_RADIUS);
+  dy = ball.y - (canvasH - CORNER_RADIUS);
+  d2 = dx * dx + dy * dy;
+  if (d2 < thresholdSq && d2 > 0) {
+    const dist = Math.sqrt(d2);
+    const pen = threshold - dist;
+    const strength = (pen / threshold) * CORNER_FORCE;
+    const invDist = 1 / dist;
+    ball.vx += dx * invDist * strength * dt;
+    ball.vy += dy * invDist * strength * dt;
   }
 }
 
@@ -107,12 +159,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     }
 
     // Keep circles apart (non-overlap) with a lighter solver
-    resolveCollisionsCustom({
-      iterations: 3,
-      positionalCorrectionPercent: 0.22,
-      maxCorrectionPx: 1.25 * (globals.DPR || 1),
-      enableSound: false
-    });
+    // PERF: Reuse preallocated options object, update DPR-dependent value
+    KALEIDO_COLLISION_OPTS.maxCorrectionPx = 1.25 * (globals.DPR || 1);
+    resolveCollisionsCustom(KALEIDO_COLLISION_OPTS);
 
     // Simple bounds (no impacts / no wobble)
     for (let i = 0; i < len; i++) {
@@ -175,17 +224,21 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     
     // Wall collisions + corner repellers
     // Skip for Parallax modes (internal wrap logic, no wall physics)
-    if (globals.currentMode !== MODES.SPHERE_3D &&
-        globals.currentMode !== MODES.CUBE_3D &&
-        globals.currentMode !== MODES.PARALLAX_LINEAR &&
-        globals.currentMode !== MODES.PARALLAX_FLOAT &&
-        globals.currentMode !== MODES.STARFIELD_3D) {
-      const wallRestitution = (globals.currentMode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
-      const isPitLike = (globals.currentMode === MODES.PIT);
+    // PERF: Hoist mode/mobile checks and canvas dimensions outside loops
+    const mode = globals.currentMode;
+    if (mode !== MODES.SPHERE_3D &&
+        mode !== MODES.CUBE_3D &&
+        mode !== MODES.PARALLAX_LINEAR &&
+        mode !== MODES.PARALLAX_FLOAT &&
+        mode !== MODES.STARFIELD_3D) {
+      const wallRestitution = (mode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
+      const isPitLike = (mode === MODES.PIT);
       const lenWalls = balls.length;
-      // On mobile, disable wall impact/pressure registration for performance
-      const wallEffectsOptions = wallDeformEnabled ? {} : { registerEffects: false };
+      // PERF: Preallocated options object (reused, not allocated per-loop)
+      const wallEffectsOptions = wallDeformEnabled ? WALL_EFFECTS_ON : WALL_EFFECTS_OFF;
       const isMobile = globals.isMobile || globals.isMobileViewport;
+      const canvasW = canvas.width;
+      const canvasH = canvas.height;
       for (let i = 0; i < lenWalls; i++) {
         const ball = balls[i];
         // Skip wall collisions for DVD logo balls (they handle their own bouncing)
@@ -194,23 +247,26 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         // Ball Pit has explicit rounded-corner arc clamping in Ball.walls().
         // Avoid an additional velocity-based corner repeller there, which can
         // create local compressions in dense corner stacks.
-        if (!isPitLike) applyCornerRepellers(ball, canvas, DT, isMobile);
-        ball.walls(canvas.width, canvas.height, DT, wallRestitution, wallEffectsOptions);
+        if (!isPitLike) applyCornerRepellers(ball, canvasW, canvasH, DT, isMobile);
+        ball.walls(canvasW, canvasH, DT, wallRestitution, wallEffectsOptions);
       }
     }
 
     // Ball Pit stabilization:
     // Wall/corner clamping can re-introduce overlaps in dense stacks (especially near the floor).
     // Run a small post-wall collision pass for Pit-like modes only.
-    if (globals.currentMode === MODES.PIT) {
+    if (mode === MODES.PIT) {
       resolveCollisions(3);
 
       // The post-wall collision pass can push bodies slightly outside the inset wall bounds.
       // Clamp once more without registering wall effects (sound/pressure/wobble).
+      // PERF: Reuse preallocated options object
       const wallRestitution = globals.REST;
       const lenClamp = balls.length;
+      const canvasW = canvas.width;
+      const canvasH = canvas.height;
       for (let i = 0; i < lenClamp; i++) {
-        balls[i].walls(canvas.width, canvas.height, DT, wallRestitution, { registerEffects: false });
+        balls[i].walls(canvasW, canvasH, DT, wallRestitution, PIT_CLAMP_OPTS);
       }
 
       // ══════════════════════════════════════════════════════════════════════════
@@ -222,6 +278,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       // Thresholds must be DPR-scaled: physics runs in canvas pixels (displayPx * DPR)
       // Same apparent motion = DPRx higher velocity in canvas space
       const vThresh = (Number.isFinite(globals.sleepVelocityThreshold) ? globals.sleepVelocityThreshold : 12.0) * DPR;
+      // PERF: Precompute squared thresholds to avoid Math.sqrt in hot loop
+      const vThreshSq = vThresh * vThresh;
+      const tinySpeedSq = (2 * DPR) * (2 * DPR);
       const wThresh = Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18;
       const tSleep = globals.timeToSleep ?? 0.25;
       
@@ -229,20 +288,21 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         const b = balls[i];
         if (!b || b.isSleeping) continue;
         
-        const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        // PERF: Use squared speed comparison to avoid Math.sqrt
+        const speedSq = b.vx * b.vx + b.vy * b.vy;
         const angSpeed = Math.abs(b.omega);
         
         // Aggressive stabilization: if grounded OR supported with tiny velocity, zero it
         // hasSupport = resting on another ball; isGrounded = touching floor
         const isSettled = b.isGrounded || b.hasSupport;
-        if (isSettled && speed < vThresh && angSpeed < wThresh) {
+        if (isSettled && speedSq < vThreshSq && angSpeed < wThresh) {
           // Aggressively dampen toward zero (static friction simulation)
           b.vx *= 0.5;
           b.vy *= 0.5;
           b.omega *= 0.5;
           
           // If really tiny, snap to zero (DPR-scaled)
-          if (speed < 2 * DPR) {
+          if (speedSq < tinySpeedSq) {
             b.vx = 0;
             b.vy = 0;
           }
@@ -269,18 +329,21 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     // If enabled, allow truly-stationary balls to sleep to reduce per-ball work.
     // Uses physicsSleepThreshold/physicsSleepTime (DPR-scaled) and the shared angular threshold.
     if (globals.physicsSkipSleepingSteps !== false) {
-      const mode = globals.currentMode;
+      // PERF: Reuse mode variable from wall collision block (already hoisted)
       const eligible =
         mode !== MODES.FLIES &&
         mode !== MODES.SPHERE_3D &&
         mode !== MODES.CUBE_3D &&
         mode !== MODES.PARALLAX_LINEAR &&
+        mode !== MODES.PARALLAX_FLOAT &&
         mode !== MODES.KALEIDOSCOPE &&
         mode !== MODES.PIT;
 
       if (eligible) {
         const DPR = globals.DPR || 1;
         const vThresh = Math.max(0, Number(globals.physicsSleepThreshold ?? 12.0) || 0) * DPR;
+        // PERF: Precompute squared threshold to avoid Math.sqrt in hot loop
+        const vThreshSq = vThresh * vThresh;
         const tSleep = Math.max(0, Number(globals.physicsSleepTime ?? 0.25) || 0);
         const wThresh = Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18;
 
@@ -296,9 +359,10 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
               continue;
             }
 
-            const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+            // PERF: Use squared speed comparison to avoid Math.sqrt
+            const speedSq = b.vx * b.vx + b.vy * b.vy;
             const angSpeed = Math.abs(b.omega);
-            if (speed < vThresh && angSpeed < wThresh) {
+            if (speedSq < vThreshSq && angSpeed < wThresh) {
               b.sleepTimer += DT;
               if (b.sleepTimer >= tSleep) {
                 b.vx = 0;

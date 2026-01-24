@@ -21,6 +21,7 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 18. **3D Cube** (`3d-cube`)
 20. **Neural Network** (`neural`)
 21. **Parallax (Linear)** (`parallax-linear`)
+22. **Parallax (Float)** (`parallax-float`)
 23. **3D Starfield** (`starfield-3d`)
 
 ---
@@ -57,6 +58,8 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
 15. **Vortex Sheets** (`vortex`) — **EMERGENT ORDER**
 16. **Kaleidoscope** (`kaleidoscope-3`) — **VOCAB BLOOM**
 17. **3D Starfield** (`starfield-3d`) — **DEPTH FIELD**
+18. **Parallax (Float)** (`parallax-float`) — **ORGANIC DRIFT**
+19. **Particle Fountain** (`particle-fountain`) — **PARTICLE FLOW**
 
 ---
 
