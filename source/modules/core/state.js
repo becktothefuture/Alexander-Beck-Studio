@@ -70,7 +70,7 @@ const state = {
   sizeVariationWeightless: 0,
   sizeVariationWater: 0,
   sizeVariationVortex: 0.2,
-  sizeVariationPingPong: 0,
+
   sizeVariationMagnetic: 0,
   sizeVariationBubbles: 0.2,
   sizeVariationKaleidoscope: 0,
@@ -85,7 +85,7 @@ const state = {
   weightlessWarmupFrames: 10,
   waterWarmupFrames: 10,
   vortexWarmupFrames: 10,
-  pingPongWarmupFrames: 10,
+
   magneticWarmupFrames: 10,
   bubblesWarmupFrames: 10,
   kaleidoscope3WarmupFrames: 10,
@@ -342,12 +342,7 @@ const state = {
   // Derived (px): set in `applyLayoutFromVwToPx()` from `cursorInfluenceRadiusVw`.
   bubblesDeflectRadius: 0,
   
-  
-  // Ping Pong mode params (left-right bounce, cursor obstacle)
-  pingPongBallCount: 35,
-  pingPongSpeed: 400,
-  // Derived (px): set in `applyLayoutFromVwToPx()` from `cursorInfluenceRadiusVw`.
-  pingPongCursorRadius: 0,
+
   
   // Colors
   // Palette chapters ("colour schemes") — see `source/modules/visual/colors.js`
@@ -405,14 +400,7 @@ const state = {
   elasticCenterDamping: 0.94, // velocity damping for stability
   elasticCenterWarmupFrames: 10,
   
-  // Snake mode (classic snake game behavior - head moves continuously, body follows path)
-  snakeBallCount: 95,
-  snakeRestLength: 29, // Distance between connected balls (px) - tight for snake trail
-  snakeSpringStrength: 238, // Spring force strength - gentle to keep snake together without wiggling
-  snakeDamping: 0.92, // Velocity damping - high damping for high-friction ground
-  snakeGroundFriction: 1.90, // Additional ground friction - simulates high-friction surface
-  snakeSpeed: 400, // Constant speed for snake head movement (px/s) - classic snake game behavior
-  snakeWarmupFrames: 10,
+
   
   // Particle Fountain mode (water-like behavior)
   particleFountainEmissionRate: 29, // particles per second
@@ -497,8 +485,7 @@ const state = {
   // Vortex mode
   vortexDrag: 0.005,
   
-  // Ping Pong mode
-  pingPongVerticalDamp: 0.911,
+
   
   // Magnetic mode
   magneticDamping: 0.998,
@@ -862,7 +849,7 @@ export function applyLayoutFromVwToPx() {
   // Universal: all cursor interaction radii share the same base value.
   state.repelRadius = Math.round(baseCursorPx);
   state.weightlessRepelRadius = Math.round(baseCursorPx);
-  state.pingPongCursorRadius = Math.round(baseCursorPx);
+
   state.bubblesDeflectRadius = Math.round(baseCursorPx);
   
   // Particle Fountain mouse repulsion radius (separate vw-based value)
@@ -1002,7 +989,7 @@ export function initState(config) {
   if (config.sizeVariationWeightless !== undefined) state.sizeVariationWeightless = clampNumber(config.sizeVariationWeightless, 0, 1, state.sizeVariationWeightless);
   if (config.sizeVariationWater !== undefined) state.sizeVariationWater = clampNumber(config.sizeVariationWater, 0, 1, state.sizeVariationWater);
   if (config.sizeVariationVortex !== undefined) state.sizeVariationVortex = clampNumber(config.sizeVariationVortex, 0, 1, state.sizeVariationVortex);
-  if (config.sizeVariationPingPong !== undefined) state.sizeVariationPingPong = clampNumber(config.sizeVariationPingPong, 0, 1, state.sizeVariationPingPong);
+
   if (config.sizeVariationMagnetic !== undefined) state.sizeVariationMagnetic = clampNumber(config.sizeVariationMagnetic, 0, 1, state.sizeVariationMagnetic);
   if (config.sizeVariationBubbles !== undefined) state.sizeVariationBubbles = clampNumber(config.sizeVariationBubbles, 0, 1, state.sizeVariationBubbles);
   if (config.sizeVariationKaleidoscope !== undefined) state.sizeVariationKaleidoscope = clampNumber(config.sizeVariationKaleidoscope, 0, 1, state.sizeVariationKaleidoscope);
@@ -1044,7 +1031,7 @@ export function initState(config) {
   if (config.weightlessWarmupFrames !== undefined) state.weightlessWarmupFrames = clampInt(config.weightlessWarmupFrames, 0, 240, state.weightlessWarmupFrames);
   if (config.waterWarmupFrames !== undefined) state.waterWarmupFrames = clampInt(config.waterWarmupFrames, 0, 240, state.waterWarmupFrames);
   if (config.vortexWarmupFrames !== undefined) state.vortexWarmupFrames = clampInt(config.vortexWarmupFrames, 0, 240, state.vortexWarmupFrames);
-  if (config.pingPongWarmupFrames !== undefined) state.pingPongWarmupFrames = clampInt(config.pingPongWarmupFrames, 0, 240, state.pingPongWarmupFrames);
+
   if (config.magneticWarmupFrames !== undefined) state.magneticWarmupFrames = clampInt(config.magneticWarmupFrames, 0, 240, state.magneticWarmupFrames);
   if (config.bubblesWarmupFrames !== undefined) state.bubblesWarmupFrames = clampInt(config.bubblesWarmupFrames, 0, 240, state.bubblesWarmupFrames);
   if (config.kaleidoscope3WarmupFrames !== undefined) state.kaleidoscope3WarmupFrames = clampInt(config.kaleidoscope3WarmupFrames, 0, 240, state.kaleidoscope3WarmupFrames);
@@ -1283,14 +1270,7 @@ export function initState(config) {
   if (config.elasticCenterDamping !== undefined) state.elasticCenterDamping = clampNumber(config.elasticCenterDamping, 0.85, 0.99, state.elasticCenterDamping);
   if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
 
-  // Snake mode (classic snake game behavior)
-  if (config.snakeBallCount !== undefined) state.snakeBallCount = clampInt(config.snakeBallCount, 20, 100, state.snakeBallCount);
-  if (config.snakeRestLength !== undefined) state.snakeRestLength = clampNumber(config.snakeRestLength, 15, 80, state.snakeRestLength);
-  if (config.snakeSpringStrength !== undefined) state.snakeSpringStrength = clampInt(config.snakeSpringStrength, 1, 1000, state.snakeSpringStrength);
-  if (config.snakeDamping !== undefined) state.snakeDamping = clampNumber(config.snakeDamping, 0.90, 0.995, state.snakeDamping);
-  if (config.snakeGroundFriction !== undefined) state.snakeGroundFriction = clampNumber(config.snakeGroundFriction, 0, 2.0, state.snakeGroundFriction);
-  if (config.snakeSpeed !== undefined) state.snakeSpeed = clampInt(config.snakeSpeed, 100, 800, state.snakeSpeed);
-  if (config.snakeWarmupFrames !== undefined) state.snakeWarmupFrames = clampInt(config.snakeWarmupFrames, 0, 240, state.snakeWarmupFrames);
+
 
   // Particle Fountain mode (simplified, water-like)
   if (config.particleFountainEmissionRate !== undefined) state.particleFountainEmissionRate = clampInt(config.particleFountainEmissionRate, 5, 100, state.particleFountainEmissionRate);

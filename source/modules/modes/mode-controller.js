@@ -11,7 +11,7 @@ import { initializeWeightless, applyWeightlessForces } from './weightless.js';
 import { resize } from '../rendering/renderer.js';
 import { initializeWater, applyWaterForces, updateWaterRipples } from './water.js';
 import { initializeVortex, applyVortexForces } from './vortex.js';
-import { initializePingPong, applyPingPongForces } from './ping-pong.js';
+
 import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magnetic.js';
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
 import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
@@ -23,7 +23,7 @@ import { initialize3DCube, apply3DCubeForces } from './3d-cube.js';
 import { initializeStarfield3D, applyStarfield3DForces, updateStarfield3D, renderStarfield3D } from './starfield-3d.js';
 import { initializeElasticCenter, applyElasticCenterForces, updateElasticCenter } from './elastic-center.js';
 import { initializeDvdLogo, applyDvdLogoForces, updateDvdLogo } from './dvd-logo.js';
-import { initializeSnake, applySnakeForces, updateSnake } from './snake.js';
+
 import { initializeParticleFountain, applyParticleFountainForces, updateParticleFountain } from './particle-fountain.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor } from '../visual/colors.js';
@@ -46,7 +46,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.WEIGHTLESS: return globals.weightlessWarmupFrames ?? 10;
     case MODES.WATER: return globals.waterWarmupFrames ?? 10;
     case MODES.VORTEX: return globals.vortexWarmupFrames ?? 10;
-    case MODES.PING_PONG: return globals.pingPongWarmupFrames ?? 10;
+
     case MODES.MAGNETIC: return globals.magneticWarmupFrames ?? 10;
     case MODES.BUBBLES: return globals.bubblesWarmupFrames ?? 10;
     case MODES.KALEIDOSCOPE: return globals.kaleidoscope3WarmupFrames ?? globals.kaleidoscopeWarmupFrames ?? 10;
@@ -58,7 +58,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
     case MODES.DVD_LOGO: return globals.dvdLogoWarmupFrames ?? 10;
-    case MODES.SNAKE: return globals.snakeWarmupFrames ?? 10;
+
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
     default: return 10;
   }
@@ -122,7 +122,7 @@ export function setMode(mode) {
     weightless: 'Zero Gravity', 
     water: 'Water Swimming',
     vortex: 'Vortex Sheets',
-    'ping-pong': 'Ping Pong',
+
     magnetic: 'Magnetic',
     bubbles: 'Carbonated Bubbles',
     'kaleidoscope-3': 'Kaleidoscope',
@@ -134,7 +134,7 @@ export function setMode(mode) {
     'starfield-3d': '3D Starfield',
     'elastic-center': 'Elastic Center',
     'dvd-logo': 'DVD Logo',
-    'snake': 'Snake',
+
     'particle-fountain': 'Particle Fountain'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
@@ -185,11 +185,6 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeVortex();
-  } else if (mode === MODES.PING_PONG) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializePingPong();
   } else if (mode === MODES.MAGNETIC) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -261,12 +256,6 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeDvdLogo();
-  } else if (mode === MODES.SNAKE) {
-    // Disable gravity for snake mode
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeSnake();
   } else if (mode === MODES.PARTICLE_FOUNTAIN) {
     // Enable gravity for particle fountain (particles fall after rising)
     globals.gravityMultiplier = globals.particleFountainGravityMultiplier || 1.0;
@@ -319,8 +308,6 @@ export function getForceApplicator() {
     return applyWaterForces;
   } else if (globals.currentMode === MODES.VORTEX) {
     return applyVortexForces;
-  } else if (globals.currentMode === MODES.PING_PONG) {
-    return applyPingPongForces;
   } else if (globals.currentMode === MODES.MAGNETIC) {
     return applyMagneticForces;
   } else if (globals.currentMode === MODES.BUBBLES) {
@@ -343,8 +330,6 @@ export function getForceApplicator() {
     return applyElasticCenterForces;
   } else if (globals.currentMode === MODES.DVD_LOGO) {
     return applyDvdLogoForces;
-  } else if (globals.currentMode === MODES.SNAKE) {
-    return applySnakeForces;
   } else if (globals.currentMode === MODES.PARTICLE_FOUNTAIN) {
     return applyParticleFountainForces;
   }
@@ -367,8 +352,6 @@ export function getModeUpdater() {
     return updateDvdLogo;
   } else if (globals.currentMode === MODES.NEURAL) {
     return updateNeural;
-  } else if (globals.currentMode === MODES.SNAKE) {
-    return updateSnake;
   } else if (globals.currentMode === MODES.PARTICLE_FOUNTAIN) {
     return updateParticleFountain;
   }

@@ -108,7 +108,7 @@ export function updateModeButtonsUI(activeMode) {
       'weightless': 'Zero-G',
       'water': 'Water Swimming',
       'vortex': 'Electrons',
-      'ping-pong': 'Ping Pong',
+
       'magnetic': 'Magnetic',
       'bubbles': 'Carbonated Bubbles',
       'kaleidoscope-3': 'Kaleidoscope',

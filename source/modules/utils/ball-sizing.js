@@ -22,7 +22,7 @@ export function getModeSizeVariation01(g, mode) {
     case MODES.WEIGHTLESS: return g.sizeVariationWeightless ?? 0;
     case MODES.WATER: return g.sizeVariationWater ?? 0;
     case MODES.VORTEX: return g.sizeVariationVortex ?? 0;
-    case MODES.PING_PONG: return g.sizeVariationPingPong ?? 0;
+
     case MODES.MAGNETIC: return g.sizeVariationMagnetic ?? 0;
     case MODES.BUBBLES: return g.sizeVariationBubbles ?? 0;
     case MODES.KALEIDOSCOPE: return g.sizeVariationKaleidoscope ?? 0;

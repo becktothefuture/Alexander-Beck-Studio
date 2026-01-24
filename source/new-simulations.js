@@ -17,7 +17,7 @@ const BASE_CONFIG_OVERRIDES = {
   sizeVariationWeightless: 0,
   sizeVariationWater: 0,
   sizeVariationVortex: 0,
-  sizeVariationPingPong: 0,
+
   sizeVariationMagnetic: 0,
   sizeVariationBubbles: 0,
   sizeVariationKaleidoscope: 0,

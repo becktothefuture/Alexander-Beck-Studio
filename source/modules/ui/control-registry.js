@@ -3157,48 +3157,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  'ping-pong': {
-    title: 'Ping Pong',
-    icon: '🏓',
-    mode: 'ping-pong',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'pingPongBallCount',
-        label: 'Ball Count',
-        stateKey: 'pingPongBallCount',
-        type: 'range',
-        min: 10, max: 100, step: 5,
-        default: 35,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'pingPongSpeed',
-        label: 'Ball Speed',
-        stateKey: 'pingPongSpeed',
-        type: 'range',
-        min: 200, max: 1600, step: 50,
-        default: 200,
-        format: v => v.toFixed(0),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'pingPongVerticalDamp',
-        label: 'Vertical Damping',
-        stateKey: 'pingPongVerticalDamp',
-        type: 'range',
-        min: 0.8, max: 0.999, step: 0.001,
-        default: 0.911,
-        format: v => v.toFixed(3),
-        parse: parseFloat
-      },
-      warmupFramesControl('pingPongWarmupFrames')
-    ]
-  },
-
   magnetic: {
     title: 'Magnetic',
     icon: '🧲',
@@ -3937,83 +3895,6 @@ export const CONTROL_SECTIONS = {
         hint: 'Velocity damping for stability (higher = less damping)'
       },
       warmupFramesControl('elasticCenterWarmupFrames')
-    ]
-  },
-
-  snake: {
-    title: 'Snake',
-    icon: '🐍',
-    mode: 'snake',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'snakeBallCount',
-        label: 'Ball Count',
-        stateKey: 'snakeBallCount',
-        type: 'range',
-        min: 20, max: 100, step: 5,
-        default: 95,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        hint: 'Number of balls in the snake trail',
-        reinitMode: true
-      },
-      {
-        id: 'snakeRestLength',
-        label: 'Rest Length',
-        stateKey: 'snakeRestLength',
-        type: 'range',
-        min: 15, max: 80, step: 2,
-        default: 29,
-        format: v => v.toFixed(0) + 'px',
-        parse: parseFloat,
-        hint: 'Distance between connected balls (lower = tighter trail)'
-      },
-      {
-        id: 'snakeSpringStrength',
-        label: 'Spring Strength',
-        stateKey: 'snakeSpringStrength',
-        type: 'range',
-        min: 1, max: 1000, step: 1,
-        default: 238,
-        format: v => v.toFixed(0) + 'px/s²',
-        parse: parseFloat,
-        hint: 'Force keeping balls connected (lower = less wiggling, higher = tighter trail)'
-      },
-      {
-        id: 'snakeSpeed',
-        label: 'Snake Speed',
-        stateKey: 'snakeSpeed',
-        type: 'range',
-        min: 100, max: 800, step: 50,
-        default: 200,
-        format: v => v.toFixed(0) + 'px/s',
-        parse: v => parseInt(v, 10),
-        hint: 'Constant speed of snake head movement (classic snake game behavior)'
-      },
-      {
-        id: 'snakeGroundFriction',
-        label: 'Ground Friction',
-        stateKey: 'snakeGroundFriction',
-        type: 'range',
-        min: 0, max: 2.0, step: 0.05,
-        default: 1.90,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Additional friction simulating high-friction ground surface'
-      },
-      {
-        id: 'snakeDamping',
-        label: 'Damping',
-        stateKey: 'snakeDamping',
-        type: 'range',
-        min: 0.90, max: 0.995, step: 0.005,
-        default: 0.92,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Velocity damping (higher = less damping, more motion)'
-      },
-      warmupFramesControl('snakeWarmupFrames')
     ]
   },
 
@@ -5111,7 +4992,6 @@ function generateHomeModeSectionHTML() {
               'water': '🌊',
               'vortex': '⚛️',
               'magnetic': '🧲',
-              'ping-pong': '🏓',
               'dvd-logo': '📀',
               'weightless': '🌌',
               'kaleidoscope-3': '🪞',
@@ -5120,8 +5000,7 @@ function generateHomeModeSectionHTML() {
               '3d-sphere': '🌐',
               '3d-cube': '🧊',
               'starfield-3d': '✨',
-              'elastic-center': '⭕',
-              'snake': '🐍'
+              'elastic-center': '⭕'
             };
             const modeLabels = {
               'pit': 'Pit',
@@ -5131,7 +5010,6 @@ function generateHomeModeSectionHTML() {
               'water': 'Water',
               'vortex': 'Electrons',
               'magnetic': 'Magnet',
-              'ping-pong': 'Pong',
               'dvd-logo': 'DVD',
               'weightless': 'Zero-G',
               'kaleidoscope-3': 'Kalei',
@@ -5140,8 +5018,7 @@ function generateHomeModeSectionHTML() {
               '3d-sphere': 'Sphere 3D',
               '3d-cube': 'Cube 3D',
               'starfield-3d': 'Starfield 3D',
-              'elastic-center': 'Elastic Center',
-              'snake': 'Snake'
+              'elastic-center': 'Elastic Center'
             };
             let buttons = '';
             NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {
@@ -5342,7 +5219,6 @@ export function bindRegisteredControls() {
             weightless: g.weightlessCount,
             water: g.waterBallCount,
             vortex: g.vortexBallCount,
-            'ping-pong': g.pingPongBallCount,
             magnetic: g.magneticBallCount,
             bubbles: g.bubblesMaxCount,
             'kaleidoscope-3': g.kaleidoscope3BallCount,
