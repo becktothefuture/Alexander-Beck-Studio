@@ -89,9 +89,11 @@ export function initializeParallaxFloat() {
         const x2d = centerX + x3d * scale;
         const y2d = centerY + y3d * scale;
 
-        // Size (opacity is constant)
+        // Size and depth-based opacity (fade over last ¼ of depth)
         const r = baseR * scale;
-        const alpha = 1.0;
+        const fadeStart = 0.75;
+        const fadeRamp = depthFactor > fadeStart ? (depthFactor - fadeStart) / (1 - fadeStart) : 0;
+        const alpha = 1.0 - fadeRamp * 0.85; // Opaque until 75% depth, then fade to 0.15
 
         const color = pickRandomColor();
         const ball = spawnBall(x2d, y2d, color);
