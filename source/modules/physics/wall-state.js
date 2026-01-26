@@ -1,1376 +1,69 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                          RUBBER RING WALL SYSTEM                             ║
+// ║                          STATIC WALL RENDERING                              ║
 // ║                                                                              ║
-// ║  Phase 1 (visual-only):                                                      ║
-// ║  - Replace 4 separate edges with ONE continuous rubber ring                  ║
-// ║  - Corners are part of the same material (no breaks)                         ║
-// ║  - Collisions remain rigid/rounded-rect (Ball.walls)                          ║
-// ║  - Impacts/pressure still come from Ball.walls via side names                ║
-// ║  - Designed for performance: fixed sample count, typed arrays, O(N)          ║
+// ║  Simplified wall system - static rounded rectangle, no deformation.         ║
+// ║  Wall impacts trigger CSS-based rumble on the container instead.            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { WALL_PRESETS } from '../core/constants.js';
+import { MODES } from '../core/constants.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONSTANTS (kept small + fixed for perf)
+// RUMBLE PRESETS - Different feel options for viewport shake
+// Designed to feel like thick rubber walls absorbing impact
 // ═══════════════════════════════════════════════════════════════════════════════
-const RING_SAMPLES = 768; // Very high density for perfectly smooth corners
-// Uniform perimeter distribution ensures consistent sample spacing everywhere.
-// All 768 samples are used for rendering (no decimation) for maximum smoothness.
-const DEFAULT_STIFFNESS = 2200;
-const DEFAULT_DAMPING = 35;
-const DEFAULT_MAX_DEFORM = 45; // CSS px at DPR 1
-const DEFAULT_TENSION_MUL = 0.18; // Neighbor coupling relative to stiffness
-const DEFAULT_RENDER_THRESHOLD_PX = 2.0; // Skip drawing micro-wobbles
-// Visual test multiplier (Phase 1): exaggerate inward wall deformation without
-// changing collision bounds. Set back to 1 to return to normal.
-const WALL_VISUAL_TEST_DEFORM_MUL = 1.0; // normal (no exaggeration)
-// Performance caps (hard limits; UI ranges can remain expressive)
-const MAX_RING_IMPACTS_PER_PHYSICS_STEP = 64;
-const MAX_RING_PRESSURE_EVENTS_PER_PHYSICS_STEP = 256;
-const MAX_IMPACT_SIGMA = 6.0; // cap for safety if config sets extreme values
-const MAX_IMPACT_SPAN_SAMPLES = 24; // caps gaussian work: 2*span+1 writes
-const MAX_WALL_STEP_DT = 1 / 30; // clamp wall integration step for stability
+export const RUMBLE_PRESETS = {
+  subtle: {
+    label: 'Subtle',
+    description: 'Barely perceptible micro-wobble',
+    wallRumbleMax: 1.2,
+    wallRumbleThreshold: 280,
+    wallRumbleScale: 0.008,
+    wallRumbleDecay: 0.82,
+    wallRumbleImpactScale: 600
+  },
+  rubber: {
+    label: 'Rubber',
+    description: 'Thick rubber absorption (default)',
+    wallRumbleMax: 1.8,
+    wallRumbleThreshold: 220,
+    wallRumbleScale: 0.012,
+    wallRumbleDecay: 0.85,
+    wallRumbleImpactScale: 700
+  },
+  soft: {
+    label: 'Soft',
+    description: 'Gentle cushioned feel',
+    wallRumbleMax: 2.5,
+    wallRumbleThreshold: 180,
+    wallRumbleScale: 0.015,
+    wallRumbleDecay: 0.88,
+    wallRumbleImpactScale: 850
+  },
+  responsive: {
+    label: 'Responsive',
+    description: 'More noticeable feedback',
+    wallRumbleMax: 3.5,
+    wallRumbleThreshold: 140,
+    wallRumbleScale: 0.02,
+    wallRumbleDecay: 0.86,
+    wallRumbleImpactScale: 1000
+  }
+};
 
-// Pressure→stability coupling:
-// In dense bottom stacks we want the wall to feel heavier and avoid rare spikes.
-// We automatically attenuate impact injection and max velocity in high-pressure zones.
-const PRESSURE_IMPULSE_ATTENUATION = 0.65; // 0..1
-const PRESSURE_MAXVEL_ATTENUATION = 0.55;  // 0..1
-const PRESSURE_ATTEN_MIN = 0.25;           // never drop below this (keeps responsiveness)
+// Modes that support viewport rumble
+const RUMBLE_ENABLED_MODES = new Set([
+  MODES.PIT,
+  MODES.FLIES,
+  MODES.WEIGHTLESS,
+  MODES.PARTICLE_FOUNTAIN
+]);
 
 // Cached wall fill color (avoid per-frame getComputedStyle)
 let CACHED_WALL_COLOR = null;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// WALL PRESETS - Moved to core/constants.js to avoid circular deps
-// ═══════════════════════════════════════════════════════════════════════════════
-export { WALL_PRESETS }; // Re-export for convenience if needed, but prefer direct import
-
-/**
- * Apply a named preset to the global state
- * @param {string} presetName key in WALL_PRESETS
- * @param {object} g global state object
- */
-export function applyWallPreset(presetName, g) {
-  const preset = WALL_PRESETS[presetName];
-  if (!preset) return;
-  // Presets may be either a plain values object or a { label, description, values } record.
-  const values = preset?.values ? preset.values : preset;
-  Object.assign(g, values);
-  g.wallPreset = presetName;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// RUBBER RING (1D wave + spring model around a rounded-rect perimeter)
-// - Each sample stores inward deformation (CSS px at DPR 1)
-// - Neighbor coupling makes the wall feel like a single continuous material
-// ═══════════════════════════════════════════════════════════════════════════════
-class RubberRingWall {
-  constructor(sampleCount) {
-    const n = Math.max(8, Math.round(sampleCount || RING_SAMPLES));
-    this.n = n;
-    this.deformations = new Float32Array(n);
-    this.velocities = new Float32Array(n);
-    this.pressure = new Float32Array(n);
-    // Render-time smoothing buffer (no allocations in draw path).
-    this.renderDeformations = new Float32Array(n);
-
-    // Cached geometry (canvas px space)
-    this._w = 0;
-    this._h = 0;
-    this._r = 0;
-    this._Lt = 0;
-    this._Lr = 0;
-    this._La = 0;
-    this._L = 0;
-    this._offTop = 0;
-    this._offRight = 0;
-    this._offBottom = 0;
-    this._offLeft = 0;
-    this._offTopLeft = 0;
-    this._offTopRight = 0;
-    this._offBottomLeft = 0;
-    this._offBottomRight = 0;
-
-    // Per-sample geometry (canvas px space), recomputed on resize only.
-    this.baseX = new Float32Array(n);
-    this.baseY = new Float32Array(n);
-    this.normX = new Float32Array(n);
-    this.normY = new Float32Array(n);
-    this.cornerMask = new Float32Array(n); // 1 on corners, 0 on straights
-
-    this._maxDeform = 0;
-    this._maxVel = 0;
-    this._active = false;
-
-    // Safety: cap total impact energy injected per physics tick
-    this._energyThisStep = 0;
-  }
-
-  /**
-   * Ensure this ring uses the requested sample count.
-   * Reallocates typed arrays only when the count changes (not a hot-path operation).
-   *
-   * IMPORTANT: This preserves deformation/velocity/pressure by resampling the
-   * previous arrays into the new resolution. Without this, changing sample count
-   * would zero impulses and make the wall appear "stuck".
-   */
-  ensureSampleCount(sampleCount) {
-    const target = Math.max(8, Math.round(Number(sampleCount) || RING_SAMPLES));
-    if (target === this.n) return;
-
-    const prevN = this.n;
-    const prevDef = this.deformations;
-    const prevVel = this.velocities;
-    const prevP = this.pressure;
-
-    const nextDef = new Float32Array(target);
-    const nextVel = new Float32Array(target);
-    const nextP = new Float32Array(target);
-    const nextRender = new Float32Array(target);
-
-    // Resample ring fields with wrap-around linear interpolation in index space.
-    // This is stable and cheap enough because it only runs when sample count changes.
-    if (prevN > 0) {
-      let maxDef = 0;
-      let maxVel = 0;
-      for (let i = 0; i < target; i++) {
-        const f = (i / target) * prevN;
-        const i0 = Math.floor(f) % prevN;
-        const t = f - i0;
-        const i1 = (i0 + 1) % prevN;
-
-        const d = (1 - t) * prevDef[i0] + t * prevDef[i1];
-        const v = (1 - t) * prevVel[i0] + t * prevVel[i1];
-        const p = (1 - t) * prevP[i0] + t * prevP[i1];
-
-        nextDef[i] = d;
-        nextVel[i] = v;
-        nextP[i] = p;
-
-        if (d > maxDef) maxDef = d;
-        const vAbs = Math.abs(v);
-        if (vAbs > maxVel) maxVel = vAbs;
-      }
-      this._maxDeform = maxDef;
-      this._maxVel = maxVel;
-      this._active = maxDef > 0 || maxVel > 0;
-    } else {
-      this._maxDeform = 0;
-      this._maxVel = 0;
-      this._active = false;
-    }
-
-    this.n = target;
-    this.deformations = nextDef;
-    this.velocities = nextVel;
-    this.pressure = nextP;
-    this.renderDeformations = nextRender;
-
-    this.baseX = new Float32Array(target);
-    this.baseY = new Float32Array(target);
-    this.normX = new Float32Array(target);
-    this.normY = new Float32Array(target);
-    this.cornerMask = new Float32Array(target);
-
-    // Invalidate cached geometry so next ensureGeometry recomputes everything.
-    this._w = 0;
-    this._h = 0;
-    this._r = 0;
-    this._Lt = 0;
-    this._Lr = 0;
-    this._La = 0;
-    this._L = 0;
-    this._offTop = 0;
-    this._offRight = 0;
-    this._offBottom = 0;
-    this._offLeft = 0;
-    this._offTopLeft = 0;
-    this._offTopRight = 0;
-    this._offBottomLeft = 0;
-    this._offBottomRight = 0;
-  }
-
-  clearPressure() {
-    this.pressure.fill(0);
-  }
-
-  reset() {
-    this.deformations.fill(0);
-    this.velocities.fill(0);
-    this.pressure.fill(0);
-    this.renderDeformations.fill(0);
-    this._maxDeform = 0;
-    this._maxVel = 0;
-    this._active = false;
-    this._energyThisStep = 0;
-  }
-
-  hasDeformation() {
-    return this._maxDeform > DEFAULT_RENDER_THRESHOLD_PX;
-  }
-
-  ensureGeometry(w, h, rCanvasPx) {
-    const ww = Math.max(1, w | 0);
-    const hh = Math.max(1, h | 0);
-    const rr = Math.max(0, Math.min(Number(rCanvasPx) || 0, Math.min(ww, hh) * 0.5));
-    if (ww === this._w && hh === this._h && Math.abs(rr - this._r) < 1e-3) return;
-
-    this._w = ww;
-    this._h = hh;
-    this._r = rr;
-
-    if (rr <= 0) {
-      const Lt = ww;
-      const Lr = hh;
-      const L = 2 * (Lt + Lr);
-      this._Lt = Lt;
-      this._Lr = Lr;
-      this._La = 0;
-      this._L = L;
-      // Start at MIDDLE OF BOTTOM EDGE (least visible seam location)
-      this._offBottom = 0;
-      this._offRight = Lt / 2;
-      this._offTop = Lt / 2 + Lr;
-      this._offLeft = Lt / 2 + Lr + Lt;
-      this._offTopLeft = 0;
-      this._offTopRight = 0;
-      this._offBottomLeft = 0;
-      this._offBottomRight = 0;
-
-      for (let i = 0; i < this.n; i++) {
-        // Start at middle of bottom edge, go clockwise
-        const s = ((i / this.n) * L + (Lt / 2)) % L;
-        const middleX = ww / 2; // Middle of bottom edge
-        if (s < Lt / 2) {
-          // Bottom straight (middle -> right)
-          this.baseX[i] = middleX + s; // Go from middle to right edge
-          this.baseY[i] = hh;
-          this.normX[i] = 0;
-          this.normY[i] = -1;
-        } else if (s < Lt / 2 + Lr) {
-          // Right straight (bottom -> top)
-          const t = s - Lt / 2;
-          this.baseX[i] = ww;
-          this.baseY[i] = t;
-          this.normX[i] = -1;
-          this.normY[i] = 0;
-        } else if (s < Lt / 2 + Lr + Lt) {
-          // Top straight (right -> left)
-          const t = s - (Lt / 2 + Lr);
-          this.baseX[i] = ww - t;
-          this.baseY[i] = 0;
-          this.normX[i] = 0;
-          this.normY[i] = 1;
-        } else if (s < Lt / 2 + Lr + Lt + Lr) {
-          // Left straight (top -> bottom)
-          const t = s - (Lt / 2 + Lr + Lt);
-          this.baseX[i] = 0;
-          this.baseY[i] = hh - t;
-          this.normX[i] = 1;
-          this.normY[i] = 0;
-        } else {
-          // Bottom straight (left half, wraps to start)
-          const t = s - (Lt / 2 + Lr + Lt + Lr);
-          this.baseX[i] = t; // Go from left edge (0) to middle
-          this.baseY[i] = hh;
-          this.normX[i] = 0;
-          this.normY[i] = -1;
-        }
-        this.cornerMask[i] = 0;
-      }
-      return;
-    }
-
-    const Lt = Math.max(0, ww - 2 * rr);
-    const Lr = Math.max(0, hh - 2 * rr);
-    const La = 0.5 * Math.PI * rr;
-    const L = 2 * (Lt + Lr) + 4 * La;
-    this._Lt = Lt;
-    this._Lr = Lr;
-    this._La = La;
-    this._L = L;
-    
-    // Offsets for legacy compatibility (some code may reference these)
-    this._offBottom = 0;
-    this._offBottomRight = Lt / 2;
-    this._offRight = Lt / 2 + La;
-    this._offTopRight = Lt / 2 + La + Lr;
-    this._offTop = Lt / 2 + La + Lr + La;
-    this._offTopLeft = Lt / 2 + La + Lr + La + Lt;
-    this._offLeft = Lt / 2 + La + Lr + La + Lt + La;
-    this._offBottomLeft = Lt / 2 + La + Lr + La + Lt + La + Lr;
-
-    // ════════════════════════════════════════════════════════════════════════════
-    // UNIFORM PERIMETER DISTRIBUTION for perfectly smooth walls
-    // 
-    // Strategy: Distribute samples evenly along the perimeter by arc length.
-    // This ensures consistent spacing everywhere - no density discontinuities
-    // at corner/edge transitions that would create visible edges.
-    // 
-    // The key insight: visible "corners" were caused by sample density changes,
-    // not by the rounded rectangle shape itself. Uniform distribution eliminates this.
-    // ════════════════════════════════════════════════════════════════════════════
-    
-    // Calculate actual segment lengths for proportional distribution
-    const segLengths = [
-      Lt / 2,  // Segment 0: Bottom right half
-      La,      // Segment 1: Bottom-right arc
-      Lr,      // Segment 2: Right straight
-      La,      // Segment 3: Top-right arc
-      Lt,      // Segment 4: Top straight
-      La,      // Segment 5: Top-left arc
-      Lr,      // Segment 6: Left straight
-      La,      // Segment 7: Bottom-left arc
-    ];
-    
-    // Normalize to get segment weights proportional to LENGTH (uniform density)
-    const totalLength = segLengths.reduce((sum, l) => sum + l, 0);
-    const segmentWeights = segLengths.map(l => l / totalLength);
-    
-    // Compute cumulative weights for segment boundary detection
-    const cumulativeWeights = [0];
-    for (let i = 0; i < segmentWeights.length; i++) {
-      cumulativeWeights.push(cumulativeWeights[i] + segmentWeights[i]);
-    }
-
-    const w0 = ww;
-    const h0 = hh;
-    const r0 = rr;
-    const n = this.n;
-
-    // Helper function to calculate arc point
-    const arcPoint = (cx, cy, radius, startAngle, endAngle, t) => {
-      const angle = startAngle + (endAngle - startAngle) * t;
-      const ca = Math.cos(angle);
-      const sa = Math.sin(angle);
-      return {
-        x: cx + radius * ca,
-        y: cy + radius * sa,
-        nx: -ca,
-        ny: -sa
-      };
-    };
-
-    // Key positions
-    const middleX = r0 + (Lt / 2);
-    const rightCornerX = w0 - r0;
-    const leftCornerX = r0;
-
-    for (let i = 0; i < n; i++) {
-      // Use NORMALIZED parameter (0-1) instead of absolute perimeter distance
-      // This makes sample distribution independent of viewport size
-      const normalizedT = i / n;
-      
-      let x = 0, y = 0, nx = 0, ny = 0;
-      let isCorner = 0;
-
-      // Find which segment this sample belongs to using normalized weights
-      let segmentIndex = 0;
-      for (let j = 0; j < segmentWeights.length; j++) {
-        if (normalizedT >= cumulativeWeights[j] && normalizedT < cumulativeWeights[j + 1]) {
-          segmentIndex = j;
-          break;
-        }
-      }
-
-      // Handle edge case: last sample (normalizedT = 1.0 or very close)
-      if (normalizedT >= cumulativeWeights[segmentWeights.length]) {
-        segmentIndex = segmentWeights.length - 1;
-      }
-
-      // Normalized position within the segment (0-1)
-      const segmentT = (normalizedT - cumulativeWeights[segmentIndex]) / segmentWeights[segmentIndex];
-
-      switch (segmentIndex) {
-        case 0: // Bottom right half (middle -> right corner)
-          x = middleX + segmentT * (Lt / 2);
-          y = h0;
-          nx = 0;
-          ny = -1;
-          break;
-        
-        case 1: // Bottom-right arc (bottom edge -> right edge)
-          const pt1 = arcPoint(w0 - r0, h0 - r0, r0, Math.PI / 2, 0, segmentT);
-          x = pt1.x;
-          y = pt1.y;
-          nx = pt1.nx;
-          ny = pt1.ny;
-          isCorner = 1;
-          break;
-        
-        case 2: // Right straight (bottom -> top)
-          x = w0;
-          y = (h0 - r0) - segmentT * Lr;
-          nx = -1;
-          ny = 0;
-          break;
-        
-        case 3: // Top-right arc (right edge -> top edge)
-          const pt3 = arcPoint(w0 - r0, r0, r0, 0, -Math.PI / 2, segmentT);
-          x = pt3.x;
-          y = pt3.y;
-          nx = pt3.nx;
-          ny = pt3.ny;
-          isCorner = 1;
-          break;
-        
-        case 4: // Top straight (right -> left)
-          x = rightCornerX - segmentT * Lt;
-          y = 0;
-          nx = 0;
-          ny = 1;
-          break;
-        
-        case 5: // Top-left arc (top edge -> left edge)
-          const pt5 = arcPoint(r0, r0, r0, 3 * Math.PI / 2, Math.PI, segmentT);
-          x = pt5.x;
-          y = pt5.y;
-          nx = pt5.nx;
-          ny = pt5.ny;
-          isCorner = 1;
-          break;
-        
-        case 6: // Left straight (top -> bottom)
-          x = 0;
-          y = r0 + segmentT * Lr;
-          nx = 1;
-          ny = 0;
-          break;
-        
-        case 7: // Bottom-left arc (left edge -> bottom edge)
-          const pt7 = arcPoint(r0, h0 - r0, r0, Math.PI, Math.PI / 2, segmentT);
-          x = pt7.x;
-          y = pt7.y;
-          nx = pt7.nx;
-          ny = pt7.ny;
-          isCorner = 1;
-          break;
-      }
-
-      this.baseX[i] = x;
-      this.baseY[i] = y;
-      this.normX[i] = nx;
-      this.normY[i] = ny;
-      this.cornerMask[i] = isCorner ? 1 : 0;
-    }
-  }
-
-  /**
-   * Map a point in inner-wall space to ring t (0..1).
-   * Used for sampling deformation AND for injecting impacts/pressure at the true contact point.
-   */
-  tFromPoint(x, y) {
-    const w = this._w;
-    const h = this._h;
-    const r = this._r;
-    const n = this.n;
-    if (n === 0 || !(w > 0 && h > 0)) return 0;
-
-    const innerW = w;
-    const innerH = h;
-    const innerR = r;
-
-    // Check if point is in a corner region
-    const inTopLeftCorner = x < innerR && y < innerR;
-    const inTopRightCorner = x > innerW - innerR && y < innerR;
-    const inBottomLeftCorner = x < innerR && y > innerH - innerR;
-    const inBottomRightCorner = x > innerW - innerR && y > innerH - innerR;
-
-    let t = 0;
-    if (inTopLeftCorner) {
-      // Top-left corner: arc goes from π to 3π/2 (bottom of left edge to top of top edge)
-      // In new order: top-left arc starts at _offTopLeft
-      const dx = x - innerR;
-      const dy = y - innerR;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 0) {
-        const angle = Math.atan2(dy, dx); // -π to π
-        // Map angle from [π, 3π/2] to [0, 1] for corner arc
-        const normalizedAngle = (angle - Math.PI) / (Math.PI / 2); // 0 to 1
-        const cornerStart = this._offTopLeft / this._L;
-        const cornerEnd = (this._offTopLeft + this._La) / this._L;
-        t = cornerStart + Math.max(0, Math.min(1, normalizedAngle)) * (cornerEnd - cornerStart);
-      } else {
-        t = this._offTopLeft / this._L;
-      }
-    } else if (inTopRightCorner) {
-      // Top-right corner: arc goes from -π/2 to 0 (top of top edge to top of right edge)
-      // In new order: top-right arc starts at _offTopRight
-      const dx = x - (innerW - innerR);
-      const dy = y - innerR;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 0) {
-        const angle = Math.atan2(dy, dx); // -π to π
-        // Map angle from [-π/2, 0] to [0, 1]
-        const normalizedAngle = (angle + Math.PI / 2) / (Math.PI / 2); // 0 to 1
-        const cornerStart = this._offTopRight / this._L;
-        const cornerEnd = (this._offTopRight + this._La) / this._L;
-        t = cornerStart + Math.max(0, Math.min(1, normalizedAngle)) * (cornerEnd - cornerStart);
-      } else {
-        t = this._offTopRight / this._L;
-      }
-    } else if (inBottomRightCorner) {
-      // Bottom-right corner: arc goes from 0 to π/2 (top of right edge to top of bottom edge)
-      // In new order: bottom-right arc starts at _offBottomRight
-      const dx = x - (innerW - innerR);
-      const dy = y - (innerH - innerR);
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 0) {
-        const angle = Math.atan2(dy, dx); // -π to π
-        // Map angle from [0, π/2] to [0, 1]
-        const normalizedAngle = angle / (Math.PI / 2); // 0 to 1
-        const cornerStart = this._offBottomRight / this._L;
-        const cornerEnd = (this._offBottomRight + this._La) / this._L;
-        t = cornerStart + Math.max(0, Math.min(1, normalizedAngle)) * (cornerEnd - cornerStart);
-      } else {
-        t = this._offBottomRight / this._L;
-      }
-    } else if (inBottomLeftCorner) {
-      // Bottom-left corner: arc goes from π/2 to π (top of bottom edge to bottom of left edge)
-      // In new order: bottom-left arc starts at _offBottomLeft (wraps to 0)
-      const dx = x - innerR;
-      const dy = y - (innerH - innerR);
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 0) {
-        const angle = Math.atan2(dy, dx); // -π to π
-        // Map angle from [π/2, π] to [0, 1]
-        const normalizedAngle = (angle - Math.PI / 2) / (Math.PI / 2); // 0 to 1
-        const cornerStart = this._offBottomLeft / this._L;
-        const cornerEnd = 1.0; // Wraps to start (0)
-        t = cornerStart + Math.max(0, Math.min(1, normalizedAngle)) * (cornerEnd - cornerStart);
-        if (t >= 1.0) t = t - 1.0; // Wrap around
-      } else {
-        t = this._offBottomLeft / this._L;
-      }
-    } else {
-      // On a straight edge
-      if (y < innerR) {
-        // Top edge (left -> right)
-        const s = Math.max(0, Math.min(this._Lt, x - innerR));
-        t = (this._offTop + s) / this._L;
-      } else if (x > innerW - innerR) {
-        // Right edge (bottom -> top)
-        const s = Math.max(0, Math.min(this._Lr, y - innerR));
-        t = (this._offRight + s) / this._L;
-      } else if (y > innerH - innerR) {
-        // Bottom edge - split in half with seam in middle
-        // Bottom edge goes: middle (start) -> right -> right corner -> left corner -> left -> middle (wrap)
-        const xFromRight = (innerW - innerR) - x;
-        if (xFromRight <= this._Lt / 2) {
-          // Right half of bottom edge (from middle to right corner)
-          const s = this._Lt / 2 - xFromRight;
-          t = (this._offBottom + s) / this._L;
-        } else {
-          // Left half of bottom edge (from left corner to middle, wraps to start)
-          // After bottom-left arc, we're at _offBottomLeft + La
-          // Then we go left -> middle, which is the remaining Lt/2
-          const xFromLeft = x - innerR;
-          const s = this._Lt / 2 + (this._Lt / 2 - xFromLeft);
-          t = (this._offBottom + s) / this._L;
-          if (t >= 1.0) t = t - 1.0; // Wrap around
-        }
-      } else if (x < innerR) {
-        // Left edge (top -> bottom)
-        const s = Math.max(0, Math.min(this._Lr, (innerH - innerR) - y));
-        t = (this._offLeft + s) / this._L;
-      }
-    }
-
-    return ((t % 1 + 1) % 1);
-  }
-
-  /**
-   * Get deformation at a specific x,y position (inner-wall space).
-   * Returns the inward deformation amount in CSS px (authored at DPR 1).
-   */
-  getDeformationAtPoint(x, y) {
-    const n = this.n;
-    if (n === 0) return 0;
-    const t = this.tFromPoint(x, y);
-
-    // Interpolate deformation at this t value
-    const idx = t * n;
-    const i0 = Math.floor(idx) % n;
-    const i1 = (i0 + 1) % n;
-    const frac = idx - i0;
-    const def0 = this.deformations[i0];
-    const def1 = this.deformations[i1];
-    return (1 - frac) * def0 + frac * def1;
-  }
-
-  /**
-   * Inject an impact at a point (inner-wall space).
-   */
-  impactAtPoint(x, y, intensity) {
-    const t = this.tFromPoint(x, y);
-    this.impactAtT(t, intensity);
-  }
-
-  /**
-   * Add pressure at a point (inner-wall space).
-   */
-  addPressureAtPoint(x, y, amount, options = {}) {
-    const t = this.tFromPoint(x, y);
-    this.addPressureAtT(t, amount, options);
-  }
-
-  /**
-   * Map a side + normalized position to ring t (0..1).
-   * This is intentionally cheap: piecewise linear on straight spans.
-   * Corners still participate via neighbor coupling (continuous ring).
-   */
-  tFromWall(wall, normalizedPos) {
-    const w = this._w;
-    const h = this._h;
-    const r = this._r;
-    const Lt = this._Lt;
-    const Lr = this._Lr;
-    const L = this._L;
-    if (!(L > 0)) return 0;
-
-    const p = Math.max(0, Math.min(1, Number(normalizedPos) || 0));
-
-    if (wall === 'top') {
-      const x = p * w;
-      const s = Math.max(0, Math.min(Lt, x - r));
-      return (this._offTop + s) / L;
-    }
-    if (wall === 'right') {
-      const y = p * h;
-      const s = Math.max(0, Math.min(Lr, y - r));
-      return (this._offRight + s) / L;
-    }
-    if (wall === 'bottom') {
-      const x = p * w;
-      const s = Math.max(0, Math.min(Lt, (w - r) - x));
-      return (this._offBottom + s) / L;
-    }
-    if (wall === 'left') {
-      const y = p * h;
-      const s = Math.max(0, Math.min(Lr, (h - r) - y));
-      return (this._offLeft + s) / L;
-    }
-    return 0;
-  }
-
-  impactAtT(t, intensity) {
-    const g = getGlobals();
-    const n = this.n;
-    if (n <= 0) return;
-    const maxDeform = Math.max(0, g.wallWobbleMaxDeform ?? DEFAULT_MAX_DEFORM);
-    const impulse = maxDeform * Math.max(0, Math.min(1, Number(intensity) || 0));
-    if (!(impulse > 0)) return;
-
-    const sigma = Math.max(0.25, Math.min(MAX_IMPACT_SIGMA, g.wallWobbleSigma ?? 2.0));
-    const idx = ((Number(t) || 0) % 1 + 1) % 1 * n;
-
-    // Stabilizers:
-    // - clamp per-sample impulse injection (prevents huge spikes when many impacts stack)
-    // - clamp absolute velocity (prevents erratic overshoot and deformation "slamming" maxDeform)
-    const maxImpulse = Math.max(0, Number(g.wallWobbleMaxImpulse ?? 220) || 0); // deform-vel units
-    const maxVelClamp = Math.max(0, Number(g.wallWobbleMaxVel ?? 800) || 0);     // deform-vel units
-    const maxEnergy = Math.max(0, Number(g.wallWobbleMaxEnergyPerStep ?? 20000) || 0);
-
-    // Only touch a local window (perf): 3σ contains ~99.7% of gaussian energy.
-    const span = Math.max(2, Math.min(n, Math.min(MAX_IMPACT_SPAN_SAMPLES, Math.ceil(sigma * 3))));
-    for (let k = -span; k <= span; k++) {
-      const i = ((Math.round(idx) + k) % n + n) % n;
-      const dist = Math.abs(idx - i);
-      const d = Math.min(dist, n - dist);
-      const falloff = Math.exp(-(d * d) / (2 * sigma * sigma));
-      let add = impulse * falloff;
-      if (maxImpulse > 0 && add > maxImpulse) add = maxImpulse;
-
-      // Heavier goo under load: attenuate injection where pressure is high.
-      // (Pressure is 0..1; higher means more balls resting here.)
-      const p = this.pressure[i] || 0;
-      if (p > 0) {
-        const atten = Math.max(PRESSURE_ATTEN_MIN, 1 - p * PRESSURE_IMPULSE_ATTENUATION);
-        add *= atten;
-      }
-      // Energy budget: once we hit a per-tick budget, stop injecting.
-      if (maxEnergy > 0) {
-        const remaining = maxEnergy - this._energyThisStep;
-        if (remaining <= 0) break;
-        if (add > remaining) add = remaining;
-      }
-      let v = this.velocities[i] + add;
-      if (maxVelClamp > 0) {
-        // Under pressure, reduce the velocity cap further (prevents bottom spikes).
-        const p = this.pressure[i] || 0;
-        const localClamp = p > 0
-          ? (maxVelClamp * Math.max(PRESSURE_ATTEN_MIN, 1 - p * PRESSURE_MAXVEL_ATTENUATION))
-          : maxVelClamp;
-        if (v > localClamp) v = localClamp;
-        else if (v < -localClamp) v = -localClamp;
-      }
-      this.velocities[i] = v;
-      if (maxEnergy > 0) this._energyThisStep += Math.abs(add);
-    }
-    this._active = true;
-  }
-
-  addPressureAtT(t, amount, options = {}) {
-    const n = this.n;
-    if (n <= 0) return;
-    const a = Math.max(0, Math.min(1, Number(amount) || 0));
-    if (!(a > 0)) return;
-
-    const idx = ((Number(t) || 0) % 1 + 1) % 1 * n;
-    const center = Math.round(idx) % n;
-
-    // Simple local pressure spread (linear falloff).
-    const spread = options.fast ? 1 : 3;
-    for (let k = -spread; k <= spread; k++) {
-      const i = ((center + k) % n + n) % n;
-      const falloff = Math.max(0, 1 - Math.abs(k) / (spread + 1));
-      const next = this.pressure[i] + a * falloff;
-      this.pressure[i] = next > 1 ? 1 : next;
-    }
-    this._active = true;
-  }
-
-  step(dt) {
-    const g = getGlobals();
-    const n = this.n;
-    if (n <= 0) return;
-
-    const dtSafe = Math.min(MAX_WALL_STEP_DT, Math.max(0, Number(dt) || 0));
-    if (!(dtSafe > 0)) return;
-
-    // When inactive, apply strong restoring force to pull wall back to perfect rounded rectangle
-    if (!this._active) {
-      let hasAnyDeform = false;
-      const RESTORE_FORCE = 200.0; // Much stronger restoring force when inactive
-      const TOP_EDGE_BOOST = 3.0; // Extra boost for top edge to prevent sagging
-      const TOP_LEFT_BOOST = 5.0; // Extra boost specifically for top-left corner (wrap-around point)
-      
-      for (let i = 0; i < n; i++) {
-        if (this.deformations[i] > 0.001 || Math.abs(this.velocities[i]) > 0.001) {
-          hasAnyDeform = true;
-          
-          // Identify if this is a top edge sample (y = 0, not a corner)
-          // Use a more lenient threshold to catch all top edge samples, including near corners
-          const isTopEdge = this.baseY[i] < 1.0 && !this.cornerMask[i] && this.normY[i] > 0.7;
-          // Also check if sample is near top corners - treat them like top edge for restoring force
-          // Be more lenient for top-left corner area
-          const nearTopLeftCorner = !this.cornerMask[i] && this.baseX[i] < this._r + 2.0 && this.baseY[i] < this._r + 2.0;
-          const nearTopRightCorner = !this.cornerMask[i] && this.baseX[i] > this._w - this._r - 1.0 && this.baseY[i] < this._r + 1.0;
-          const isNearTopCorner = nearTopLeftCorner || nearTopRightCorner;
-          // Check if this IS a top corner sample (actual corner arc, not just nearby)
-          // Use position-based detection for reliability - be more lenient for top-left corner
-          const isTopLeftCorner = this.cornerMask[i] && this.baseX[i] < this._r + 3.0 && this.baseY[i] < this._r + 3.0;
-          const isTopRightCorner = this.cornerMask[i] && this.baseX[i] > this._w - this._r - 2.0 && this.baseY[i] < this._r + 2.0;
-          const isTopCorner = isTopLeftCorner || isTopRightCorner;
-          
-          // Top-left corner gets extra boost (it's at wrap-around point, needs more help)
-          const forceMultiplier = isTopLeftCorner || nearTopLeftCorner 
-            ? RESTORE_FORCE * TOP_EDGE_BOOST * TOP_LEFT_BOOST 
-            : ((isTopEdge || isNearTopCorner || isTopCorner) ? RESTORE_FORCE * TOP_EDGE_BOOST : RESTORE_FORCE);
-          
-          // Strong restoring force: pull deformation to zero
-          const restoreAccel = -forceMultiplier * this.deformations[i] - 20.0 * this.velocities[i];
-          this.velocities[i] += restoreAccel * dtSafe;
-          this.deformations[i] += this.velocities[i] * dtSafe;
-          
-          // Clamp to [-maxDeform, +maxDeform] range (allow outward bulge)
-          const maxDeform = Math.max(0, g.wallWobbleMaxDeform ?? DEFAULT_MAX_DEFORM);
-          if (this.deformations[i] < -maxDeform) {
-            this.deformations[i] = -maxDeform;
-            this.velocities[i] = 0;
-          } else if (this.deformations[i] > maxDeform) {
-            this.deformations[i] = maxDeform;
-            this.velocities[i] = 0;
-          }
-          
-          // Aggressive snap to zero (especially for top edge and top corners)
-          const isTopArea = isTopEdge || isNearTopCorner || isTopCorner;
-          // Top-left corner gets even more aggressive snap
-          const isTopLeftArea = isTopLeftCorner || nearTopLeftCorner;
-          const snapThreshold = isTopLeftArea ? 0.01 : (isTopArea ? 0.02 : 0.1); // Most aggressive for top-left
-          const velThreshold = isTopLeftArea ? 0.2 : (isTopArea ? 0.3 : 1.0); // Lower velocity threshold for top-left
-          if (this.deformations[i] < snapThreshold && Math.abs(this.velocities[i]) < velThreshold) {
-            this.deformations[i] = 0;
-            this.velocities[i] = 0;
-          }
-        }
-      }
-      // Update active state
-      this._active = hasAnyDeform;
-      if (!hasAnyDeform) {
-        this._maxDeform = 0;
-        this._maxVel = 0;
-      }
-      return;
-    }
-
-    const stiffnessBase = Math.max(1, g.wallWobbleStiffness ?? DEFAULT_STIFFNESS);
-    const baseDamping = Math.max(0, g.wallWobbleDamping ?? DEFAULT_DAMPING);
-    const maxDeform = Math.max(0, g.wallWobbleMaxDeform ?? DEFAULT_MAX_DEFORM);
-    const maxVelClamp = Math.max(0, Number(g.wallWobbleMaxVel ?? 800) || 0); // deform-vel units
-
-    // Neighbor coupling/tension: makes impacts behave like a single ring.
-    const tension = stiffnessBase * DEFAULT_TENSION_MUL;
-
-    // Settling speed (0-100): controls snap thresholds + pressure damping.
-    const settlingSpeed = Math.max(0, Math.min(100, g.wallWobbleSettlingSpeed ?? 50));
-    const settleFactor = settlingSpeed / 100;
-    const pressureDampingMult = 5.0 + (30.0 * settleFactor);
-    const snapScale = 0.5 + (1.5 * settleFactor);
-
-    let maxDef = 0;
-    let maxVel = 0;
-
-    // Semi-implicit Euler with Laplacian coupling.
-    for (let i = 0; i < n; i++) {
-      const prev = i === 0 ? (n - 1) : (i - 1);
-      const next = i === (n - 1) ? 0 : (i + 1);
-
-      const def = this.deformations[i];
-      const vel = this.velocities[i];
-
-      // UNIFIED STIFFNESS: Identical behavior for corners and edges
-      // This eliminates ALL visible discontinuities at corner/edge boundaries
-      // The entire wall behaves as a single continuous elastic membrane
-      const isTopEdge = this.baseY[i] < 1.0 && this.normY[i] > 0.7;
-      
-      // Single uniform stiffness for the entire wall ring
-      // No corner vs edge distinction = no visible spikes or discontinuities
-      const kLocal = stiffnessBase * (isTopEdge ? 1.9 : 1.7);
-
-      // Progressive damping: higher at low amplitude to kill micro-jitter.
-      const defAbs = Math.abs(def);
-      const velAbs = Math.abs(vel);
-
-      const amplitudeFactor = Math.max(0, Math.min(1, 1 - defAbs / 20));
-      const progressiveDamping = baseDamping * (1 + amplitudeFactor * 1.0);
-
-      // Pressure adds friction (resting balls damp the ring).
-      const pressure = this.pressure[i];
-      const pressureDamping = progressiveDamping * (1 + pressure * pressureDampingMult);
-
-      // Approximate critical damping cap (include tension influence).
-      const critical = 2 * Math.sqrt(kLocal + 2 * tension);
-      const effectiveDamping = Math.min(pressureDamping, critical * 0.95);
-
-      // Laplacian (neighbor coupling) promotes smooth, continuous waves.
-      const lap = (this.deformations[prev] + this.deformations[next] - 2 * def);
-      const force = -kLocal * def + (tension * lap) - effectiveDamping * vel;
-
-      let vNext = vel + force * dtSafe;
-      if (maxVelClamp > 0) {
-        // Under pressure, reduce max velocity (heavier goo / less jitter in stacks).
-        const p = this.pressure[i] || 0;
-        const localClamp = p > 0
-          ? (maxVelClamp * Math.max(PRESSURE_ATTEN_MIN, 1 - p * PRESSURE_MAXVEL_ATTENUATION))
-          : maxVelClamp;
-        if (vNext > localClamp) vNext = localClamp;
-        else if (vNext < -localClamp) vNext = -localClamp;
-      }
-      let dNext = def + vNext * dtSafe;
-
-      // Clamp deformation: allow outward bulge (negative) for realistic bounce-back
-      // Range: -maxDeform (outward bulge) to +maxDeform (inward dent)
-      let clampedLow = false;
-      let clampedHigh = false;
-      if (dNext < -maxDeform) { dNext = -maxDeform; clampedLow = true; }
-      if (dNext > maxDeform) { dNext = maxDeform; clampedHigh = true; }
-
-      // Stability: prevent "bouncing" against hard deformation clamps.
-      // If we are clamped and velocity is still pushing further into the clamp,
-      // zero that component so the wall settles instead of jittering.
-      if (clampedLow && vNext < 0) vNext = 0;
-      if (clampedHigh && vNext > 0) vNext = 0;
-
-      // Snap-to-zero thresholds (scaled by pressure + settling).
-      // UNIFIED snap behavior for entire wall - no corner/edge distinction
-      const isTopEdgeSnap = this.baseY[i] < 1.0 && this.normY[i] > 0.7;
-      // Top edge gets boosted snap-to-zero, all other samples treated uniformly
-      const snapBoost = isTopEdgeSnap ? 4.0 : 2.0;
-      const baseDeformThresh = pressure > 0.5 ? 0.3 : (pressure > 0.1 ? 0.8 : 2.0);
-      const baseVelThresh = pressure > 0.5 ? 0.5 : (pressure > 0.1 ? 3.0 : 10.0);
-      const deformThresh = baseDeformThresh * snapScale * snapBoost;
-      const velThresh = baseVelThresh * snapScale * snapBoost;
-      if (Math.abs(dNext) < deformThresh && velAbs < velThresh) {
-        this.deformations[i] = 0;
-        this.velocities[i] = 0;
-      } else {
-        this.deformations[i] = dNext;
-        this.velocities[i] = vNext;
-      }
-
-      if (this.deformations[i] > maxDef) maxDef = this.deformations[i];
-      const vAbsNext = Math.abs(this.velocities[i]);
-      if (vAbsNext > maxVel) maxVel = vAbsNext;
-    }
-
-    // Hard failsafe: if anything becomes non-finite, reset immediately.
-    // This prevents rare NaN/Infinity cascades from producing visual explosions.
-    if (!Number.isFinite(maxDef) || !Number.isFinite(maxVel)) {
-      this.reset();
-      return;
-    }
-
-    this._maxDeform = maxDef;
-    this._maxVel = maxVel;
-    this._active = maxDef > 0 || maxVel > 0;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// RENDER INDEX GENERATION - All samples for maximum smoothness
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Create render sample indices for smooth wall rendering.
- * 
- * NO DECIMATION: Use all samples for perfectly smooth corners.
- * With 768 samples and uniform perimeter distribution, corners are buttery smooth.
- * 
- * @param {RubberRingWall} physicsRing - High-res physics ring
- * @returns {number[]} All sample indices for rendering (no decimation)
- */
-function createAdaptiveRenderIndices(physicsRing) {
-  const n = physicsRing.n;
-  if (n === 0) return [];
-  
-  const selected = [];
-  
-  // NO DECIMATION: Use all samples for maximum smoothness
-  // 768 samples with uniform perimeter distribution = perfectly smooth corners
-  for (let i = 0; i < n; i++) {
-    selected.push(i);
-  }
-  
-  return selected;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// WALL STATE SINGLETON
-// ═══════════════════════════════════════════════════════════════════════════════
-export const wallState = {
-  // Two-ring strategy:
-  // - ringPhysics: high sample count for accurate integration/impulses (768)
-  // - ringRender: same resolution (all samples used for rendering)
-  ringPhysics: new RubberRingWall(RING_SAMPLES),
-  ringRender: new RubberRingWall(RING_SAMPLES),
-  _impactsThisStep: 0,
-  _pressureEventsThisStep: 0,
-  
-  // Tier 1: Physics update frequency decoupling
-  _physicsUpdateInterval: 1/30, // 30Hz physics (configurable, default 30fps)
-  _physicsAccumulator: 0,
-  _interpolationAlpha: 0, // 0-1 for lerp between states
-  _prevDeformations: null, // Previous state for interpolation
-
-  // Render index cache (perf): all sample indices for rendering
-  _adaptiveIndices: null, // Computed once per geometry change
-  
-  // Render cache (perf): avoid remapping+filtering every render frame.
-  // We update these only on wall physics ticks, then linearly interpolate per-frame.
-  _renderSmPrev: null,
-  _renderSmCurr: null,
-  _renderMapTmp: null,
-  
-  /**
-   * Reset per-physics-step budgets/counters.
-   * IMPORTANT: Do NOT clear `pressure` here — pressure is meant to accumulate
-   * across the render-frame so the wall can settle under load.
-   */
-  resetStepBudgets() {
-    this._impactsThisStep = 0;
-    this._pressureEventsThisStep = 0;
-    // Reset energy budget accumulator for this physics tick.
-    this.ringPhysics._energyThisStep = 0;
-  },
-
-  /**
-   * Clear accumulated pressure (call once per render-frame).
-   */
-  clearPressureFrame() {
-    this.ringPhysics.clearPressure();
-  },
-  
-  /**
-   * Update all wall physics
-   * Tier 1: Runs at lower frequency (default 30Hz) with interpolation for smooth visuals
-   */
-  step(dt) {
-    const g = getGlobals();
-
-    // Tier 2: Adaptive sample count (stability rule)
-    // Only change sample count on "physics ticks" (when we are about to integrate),
-    // not every render-frame. This prevents visual thrash and reduces path artifacts.
-    const enableAdaptive = g.wallPhysicsAdaptiveSamples !== false;
-    const minSamples = Math.max(8, Math.min(48, Math.round(Number(g.wallPhysicsMinSamples ?? 24) || 24)));
-    const maxSamples = Math.min(RING_SAMPLES, Math.round(Number(g.wallPhysicsSamples ?? RING_SAMPLES) || RING_SAMPLES));
-
-    // Optional: skip stepping when inactive (ring.step already has a cheap early return).
-    // BUT: always run step() to allow restoring force to maintain perfect rounded rectangle shape
-    // The ring.step() will handle the inactive case with strong restoring force
-    if (g.wallPhysicsSkipInactive !== false && !this.ringPhysics._active) {
-      // Still run step() to allow restoring force to work, but skip expensive interpolation updates
-      this.ringPhysics.step(dt);
-      this.ringRender.step(dt);
-      this._interpolationAlpha = 1.0;
-      return;
-    }
-
-    // Tier 1: Decouple physics update frequency from render frequency
-    const updateHz = Math.max(10, Math.min(60, Number(g.wallPhysicsUpdateHz ?? 30) || 30));
-    const updateInterval = 1 / updateHz;
-    const enableInterpolation = g.wallPhysicsInterpolation !== false;
-
-    this._physicsAccumulator += dt;
-
-    // Only run physics when accumulator reaches update interval
-    if (this._physicsAccumulator >= updateInterval) {
-      // Tier 2: choose target sample count ONLY on physics ticks
-      if (enableAdaptive) {
-        const currentSamples = this.ringPhysics.n;
-        let desiredSamples = currentSamples;
-
-        if (!this.ringPhysics._active) {
-          desiredSamples = Math.max(minSamples, Math.min(maxSamples, currentSamples - 1));
-        } else {
-          // Use last-step maxima to decide if we can downshift quality
-          const maxDeform = this.ringPhysics._maxDeform || 0;
-          const maxVel = this.ringPhysics._maxVel || 0;
-          if (maxDeform < 5.0 && maxVel < 2.0) {
-            desiredSamples = Math.max(minSamples, Math.min(maxSamples, currentSamples - 1));
-          } else {
-            desiredSamples = Math.min(maxSamples, Math.max(minSamples, currentSamples + 1));
-          }
-        }
-
-        if (desiredSamples !== currentSamples) {
-          this.ringPhysics.ensureSampleCount(desiredSamples);
-        }
-      } else {
-        // Fixed sample count (no adaptive)
-        const fixedSamples = Math.max(8, Math.min(RING_SAMPLES, maxSamples));
-        if (this.ringPhysics.n !== fixedSamples) this.ringPhysics.ensureSampleCount(fixedSamples);
-      }
-
-      // Store previous state for interpolation BEFORE running physics (only if interpolation enabled)
-      if (enableInterpolation && this.ringPhysics.n > 0) {
-        const n = this.ringPhysics.n;
-        if (!this._prevDeformations || this._prevDeformations.length !== n) {
-          // Allocate arrays on first use or when sample count changes
-          this._prevDeformations = new Float32Array(n);
-          // Initialize with current state on first allocation (so interpolation works from the start)
-          this._prevDeformations.set(this.ringPhysics.deformations);
-        } else {
-          // Copy current deformation state to previous (geometry doesn't change between physics steps)
-          this._prevDeformations.set(this.ringPhysics.deformations);
-        }
-      }
-
-      // Use exactly one interval for physics, keep remainder in accumulator
-      let remaining = updateInterval;
-      this._physicsAccumulator -= updateInterval; // Keep remainder
-
-      // Stability: substep wall integration so we never integrate with a large dt.
-      // This prevents "big dt" overshoot when Tier 1 lowers update cadence.
-      const maxSubHz = Math.max(30, Math.min(240, Number(g.wallPhysicsMaxSubstepHz ?? 60) || 60));
-      const maxSubDt = 1 / maxSubHz;
-      let steps = 0;
-      const maxSteps = 6; // hard safety cap (prevents runaway loops)
-
-      while (remaining > 1e-6 && steps < maxSteps) {
-        const dtStep = remaining > maxSubDt ? maxSubDt : remaining;
-        this.ringPhysics.step(dtStep);
-        remaining -= dtStep;
-        steps++;
-      }
-
-      // PERF: update render smoothing cache only on physics ticks.
-      // This replaces per-frame remap+low-pass cost inside drawWalls().
-      try {
-        const ringPhysics = this.ringPhysics;
-        const ringRender = this.ringRender;
-        const nPhys = ringPhysics.n | 0;
-        const nR = ringRender.n | 0;
-        if (nPhys > 0 && nR > 0) {
-          if (!this._renderSmPrev || this._renderSmPrev.length !== nR) {
-            this._renderSmPrev = new Float32Array(nR);
-            this._renderSmCurr = new Float32Array(nR);
-            this._renderMapTmp = new Float32Array(nR);
-            // Initialize prev/curr as zero.
-          } else {
-            this._renderSmPrev.set(this._renderSmCurr);
-          }
-
-          const srcPhys = ringPhysics.deformations;
-          const tmp = this._renderMapTmp;
-          const curr = this._renderSmCurr;
-
-          // Map physics samples -> render samples (linear interpolation in ring parameter space)
-          for (let i = 0; i < nR; i++) {
-            const f = (i / nR) * nPhys;
-            const i0 = Math.floor(f) % nPhys;
-            const t = f - i0;
-            const i1 = (i0 + 1) % nPhys;
-            tmp[i] = (1 - t) * srcPhys[i0] + t * srcPhys[i1];
-          }
-
-          // TWO-PASS 5-tap low-pass around the ring (wrap-around) for ultra-smooth corners.
-          // Each pass uses Kernel: [1, 4, 6, 4, 1] / 16
-          // Two passes create a 9-tap effective filter that eliminates all visible spikes
-          
-          // Pass 1: tmp -> curr
-          for (let i = 0; i < nR; i++) {
-            const m2 = (i - 2 + nR) % nR;
-            const m1 = (i - 1 + nR) % nR;
-            const p1 = (i + 1) % nR;
-            const p2 = (i + 2) % nR;
-            curr[i] = (tmp[m2] + 4 * tmp[m1] + 6 * tmp[i] + 4 * tmp[p1] + tmp[p2]) * (1 / 16);
-          }
-          
-          // Pass 2: curr -> tmp -> curr (reusing tmp as scratch)
-          for (let i = 0; i < nR; i++) {
-            const m2 = (i - 2 + nR) % nR;
-            const m1 = (i - 1 + nR) % nR;
-            const p1 = (i + 1) % nR;
-            const p2 = (i + 2) % nR;
-            tmp[i] = (curr[m2] + 4 * curr[m1] + 6 * curr[i] + 4 * curr[p1] + curr[p2]) * (1 / 16);
-          }
-          // Copy final result back to curr
-          for (let i = 0; i < nR; i++) {
-            curr[i] = tmp[i];
-          }
-        }
-      } catch (e) {}
-
-      // Calculate interpolation alpha based on remainder
-      if (enableInterpolation) {
-        this._interpolationAlpha = Math.max(0, Math.min(1, this._physicsAccumulator / updateInterval));
-      } else {
-        this._interpolationAlpha = 1.0; // No interpolation: use current state
-      }
-    } else {
-      // Between physics updates: calculate interpolation alpha for smooth rendering
-      if (enableInterpolation) {
-        this._interpolationAlpha = Math.max(0, Math.min(1, this._physicsAccumulator / updateInterval));
-      } else {
-        this._interpolationAlpha = 1.0; // No interpolation: use current state
-      }
-    }
-  },
-  
-  reset() {
-    this.ringPhysics.reset();
-    this.ringRender.reset();
-    this._physicsAccumulator = 0;
-    this._interpolationAlpha = 0;
-    this._prevDeformations = null;
-    this._renderSmPrev = null;
-    this._renderSmCurr = null;
-    this._adaptiveIndices = null; // Clear render index cache
-    this._lastGeometryN = 0;
-    this._renderMapTmp = null;
-  },
-  
-  hasAnyDeformation() {
-    return this.ringPhysics.hasDeformation();
-  },
-
-  /**
-   * Get wall deformation at a specific point (canvas px coordinates).
-   * Returns deformation in canvas pixels (scaled by DPR).
-   * Used by ball collision to adjust boundaries dynamically.
-   */
-  getDeformationAtPoint(x, y) {
-    const ring = this.ringPhysics;
-    if (!ring || ring.n === 0) return 0;
-    const g = getGlobals();
-    const canvas = g.canvas;
-    if (!canvas) return 0;
-    
-    // Convert canvas coordinates to inner wall coordinates.
-    // Must match drawWalls(): inset = wallThickness * DPR.
-    const DPR = g.DPR || 1;
-    const wallThicknessPx = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
-    const insetPx = wallThicknessPx;
-    const innerX = x - insetPx;
-    const innerY = y - insetPx;
-    
-    // IMPORTANT UNIT NOTE:
-    // `RubberRingWall.deformations[]` are authored/stepped in CSS px @ DPR=1
-    // (see wallWobbleMaxDeform in state/config). Rendering scales by DPR.
-    // Collisions operate in canvas px, so we scale the sampled deformation by DPR here.
-    const dCssPx = ring.getDeformationAtPoint(innerX, innerY);
-    return (dCssPx > 0) ? (dCssPx * DPR) : 0;
-  }
-};
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// IMPACT REGISTRATION
-// Called from Ball.walls() - collisions remain rigid; this is VISUAL only.
-// ═══════════════════════════════════════════════════════════════════════════════
-export function registerWallImpact(wall, normalizedPos, intensity) {
-  if (!wall || wall.startsWith('corner')) return;
-  if (wall !== 'top' && wall !== 'bottom' && wall !== 'left' && wall !== 'right') return;
-
-  const g = getGlobals();
-  const canvas = g.canvas;
-  if (!canvas) return;
-
-  const rCssPx = (typeof g.getCanvasCornerRadius === 'function')
-    ? g.getCanvasCornerRadius()
-    : (g.cornerRadius ?? g.wallRadius ?? 0);
-  const rCanvasPx = Math.max(0, (Number(rCssPx) || 0) * (g.DPR || 1));
-
-  // Ensure geometry matches drawWalls() / Ball.walls():
-  // inner dims are inset by wallThickness only, radius is clamped to inner dims.
-  const DPR = g.DPR || 1;
-  const wallThicknessPx = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
-  const insetPx = wallThicknessPx;
-  const innerW = Math.max(1, canvas.width - insetPx * 2);
-  const innerH = Math.max(1, canvas.height - insetPx * 2);
-  const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
-  wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
-  // NO CLAMPING: Impacts reach corners freely for fully continuous deformation
-  // The wall behaves as a unified elastic surface without edge/corner distinction
-  const t = wallState.ringPhysics.tFromWall(wall, normalizedPos);
-
-  // Cap work in pathological cases (tons of impacts in a single physics step).
-  if (wallState._impactsThisStep < MAX_RING_IMPACTS_PER_PHYSICS_STEP) {
-    wallState.ringPhysics.impactAtT(t, intensity);
-  } else {
-    // Cheap fallback: keep responsiveness without the gaussian loop.
-    const n = wallState.ringPhysics.n;
-    if (n > 0) {
-      const idx = ((Number(t) || 0) % 1 + 1) % 1 * n;
-      const i = Math.round(idx) % n;
-      const maxDeform = Math.max(0, g.wallWobbleMaxDeform ?? DEFAULT_MAX_DEFORM);
-      const impulse = maxDeform * Math.max(0, Math.min(1, Number(intensity) || 0));
-      wallState.ringPhysics.velocities[i] += impulse;
-      wallState.ringPhysics._active = true;
-    }
-  }
-  wallState._impactsThisStep++;
-}
-
-/**
- * Register an impact by contact point (canvas px space).
- * This is preferred for SDF collisions because it correctly drives corners/arcs.
- */
-export function registerWallImpactAtPoint(x, y, intensity) {
-  const g = getGlobals();
-  const canvas = g.canvas;
-  if (!canvas) return;
-
-  const rCssPx = (typeof g.getCanvasCornerRadius === 'function')
-    ? g.getCanvasCornerRadius()
-    : (g.cornerRadius ?? g.wallRadius ?? 0);
-  const rCanvasPx = Math.max(0, (Number(rCssPx) || 0) * (g.DPR || 1));
-
-  // Ensure geometry matches drawWalls() / Ball.walls():
-  // inner dims are inset by wallThickness only, radius is clamped to inner dims.
-  const DPR = g.DPR || 1;
-  const wallThicknessPx = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
-  const insetPx = wallThicknessPx;
-  const innerW = Math.max(1, canvas.width - insetPx * 2);
-  const innerH = Math.max(1, canvas.height - insetPx * 2);
-  const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
-  wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
-
-  const ix = x - insetPx;
-  const iy = y - insetPx;
-
-  // Cap work in pathological cases (tons of impacts in a single physics step).
-  if (wallState._impactsThisStep < MAX_RING_IMPACTS_PER_PHYSICS_STEP) {
-    wallState.ringPhysics.impactAtPoint(ix, iy, intensity);
-  } else {
-    // Cheap fallback: keep responsiveness without the gaussian loop.
-    const n = wallState.ringPhysics.n;
-    if (n > 0) {
-      const t = wallState.ringPhysics.tFromPoint(ix, iy);
-      const idx = ((Number(t) || 0) % 1 + 1) % 1 * n;
-      const i = Math.round(idx) % n;
-      const maxDeform = Math.max(0, g.wallWobbleMaxDeform ?? DEFAULT_MAX_DEFORM);
-      const impulse = maxDeform * Math.max(0, Math.min(1, Number(intensity) || 0));
-      wallState.ringPhysics.velocities[i] += impulse;
-      wallState.ringPhysics._active = true;
-    }
-  }
-
-  wallState._impactsThisStep++;
-}
-
-/**
- * Register resting pressure (balls touching wall but not impacting)
- * This applies extra damping to stop wobble when balls settle
- */
-export function registerWallPressure(wall, normalizedPos, amount = 1.0) {
-  if (!wall || wall.startsWith('corner')) return;
-  if (wall !== 'top' && wall !== 'bottom' && wall !== 'left' && wall !== 'right') return;
-
-  const g = getGlobals();
-  const canvas = g.canvas;
-  if (!canvas) return;
-
-  const rCssPx = (typeof g.getCanvasCornerRadius === 'function')
-    ? g.getCanvasCornerRadius()
-    : (g.cornerRadius ?? g.wallRadius ?? 0);
-  const rCanvasPx = Math.max(0, (Number(rCssPx) || 0) * (g.DPR || 1));
-
-  // Ensure geometry matches drawWalls() / Ball.walls() (same as registerWallImpact)
-  const DPR = g.DPR || 1;
-  const wallThicknessPx = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
-  const insetPx = wallThicknessPx;
-  const innerW = Math.max(1, canvas.width - insetPx * 2);
-  const innerH = Math.max(1, canvas.height - insetPx * 2);
-  const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
-  wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
-  // Pressure is used for damping/settling: keep it less clamped than impacts.
-  const clamp = 0.1;
-  const pos = Math.max(clamp, Math.min(1 - clamp, Number(normalizedPos) || 0));
-  const t = wallState.ringPhysics.tFromWall(wall, pos);
-  const fast = wallState._pressureEventsThisStep >= MAX_RING_PRESSURE_EVENTS_PER_PHYSICS_STEP;
-  wallState.ringPhysics.addPressureAtT(t, amount, { fast });
-  wallState._pressureEventsThisStep++;
-}
-
-/**
- * Register resting pressure by contact point (canvas px space).
- * Preferred for SDF collisions because it works consistently at corners.
- */
-export function registerWallPressureAtPoint(x, y, amount = 1.0) {
-  const g = getGlobals();
-  const canvas = g.canvas;
-  if (!canvas) return;
-
-  const rCssPx = (typeof g.getCanvasCornerRadius === 'function')
-    ? g.getCanvasCornerRadius()
-    : (g.cornerRadius ?? g.wallRadius ?? 0);
-  const rCanvasPx = Math.max(0, (Number(rCssPx) || 0) * (g.DPR || 1));
-
-  // Ensure geometry matches drawWalls() / Ball.walls():
-  const DPR = g.DPR || 1;
-  const wallThicknessPx = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
-  const insetPx = wallThicknessPx;
-  const innerW = Math.max(1, canvas.width - insetPx * 2);
-  const innerH = Math.max(1, canvas.height - insetPx * 2);
-  const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
-  wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
-
-  const ix = x - insetPx;
-  const iy = y - insetPx;
-
-  const fast = wallState._pressureEventsThisStep >= MAX_RING_PRESSURE_EVENTS_PER_PHYSICS_STEP;
-  wallState.ringPhysics.addPressureAtPoint(ix, iy, amount, { fast });
-  wallState._pressureEventsThisStep++;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// WALL RENDERING
-// Draws a continuous, deformed rubber ring (visual-only).
-// On mobile (wallDeformationEnabled = false), draws a simple static rounded rect.
+// WALL RENDERING - Static rounded rectangle
 // ═══════════════════════════════════════════════════════════════════════════════
 export function drawWalls(ctx, w, h) {
   const g = getGlobals();
@@ -1386,7 +79,6 @@ export function drawWalls(ctx, w, h) {
   
   // Wall inset rule:
   // The wall inner edge (collision boundary) is defined ONLY by wall thickness.
-  // Content padding is layout-only and must not affect wall geometry.
   const wallThicknessPx = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
   const insetPx = wallThicknessPx;
   
@@ -1394,173 +86,36 @@ export function drawWalls(ctx, w, h) {
   const innerH = Math.max(1, h - (insetPx * 2));
   const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
   
-  // Small padding beyond canvas edges for sub-pixel path rounding safety (clipped by canvas anyway)
+  // Small padding beyond canvas edges for sub-pixel path rounding safety
   const pad = Math.max(2, 2 * DPR);
 
   ctx.save();
   ctx.fillStyle = chromeColor;
   ctx.beginPath();
 
-  // Outer path (CW): canvas edges (container fills viewport, wall is inset inside)
+  // Outer path (CW): canvas edges
   ctx.moveTo(-pad, -pad);
   ctx.lineTo(w + pad, -pad);
   ctx.lineTo(w + pad, h + pad);
   ctx.lineTo(-pad, h + pad);
   ctx.closePath();
 
-  // ════════════════════════════════════════════════════════════════════════════════
-  // MOBILE FAST PATH: Draw static rounded rectangle (no deformation)
-  // Eliminates ~46,000 path segments/second on mobile for 60 FPS performance
-  // ════════════════════════════════════════════════════════════════════════════════
-  const wallDeformEnabled = g.wallDeformationEnabled !== false;
-  if (!wallDeformEnabled) {
-    // Draw simple static rounded rect (CCW for even-odd fill)
-    const x = insetPx;
-    const y = insetPx;
-    const r = innerR;
-    
-    // CCW rounded rectangle path
-    ctx.moveTo(x + r, y + innerH);
-    ctx.lineTo(x + innerW - r, y + innerH);
-    ctx.arcTo(x + innerW, y + innerH, x + innerW, y + innerH - r, r);
-    ctx.lineTo(x + innerW, y + r);
-    ctx.arcTo(x + innerW, y, x + innerW - r, y, r);
-    ctx.lineTo(x + r, y);
-    ctx.arcTo(x, y, x, y + r, r);
-    ctx.lineTo(x, y + innerH - r);
-    ctx.arcTo(x, y + innerH, x + r, y + innerH, r);
-    ctx.closePath();
-    
-    try {
-      ctx.fill('evenodd');
-    } catch (e) {
-      ctx.fill();
-    }
-    ctx.restore();
-    return;
-  }
-
-  // ════════════════════════════════════════════════════════════════════════════════
-  // DESKTOP PATH: Full deformed rubber ring rendering
-  // ════════════════════════════════════════════════════════════════════════════════
+  // Inner path (CCW): static rounded rectangle
+  const x = insetPx;
+  const y = insetPx;
+  const r = innerR;
   
-  // DEBUG/TEST: allow exaggerating deformation (visual-only).
-  // Default should remain 1.0 in config.
-  const visualMul = Math.max(0, Math.min(10, Number(g.wallVisualDeformMul ?? 1.0) || 1.0));
+  ctx.moveTo(x + r, y + innerH);
+  ctx.lineTo(x + innerW - r, y + innerH);
+  ctx.arcTo(x + innerW, y + innerH, x + innerW, y + innerH - r, r);
+  ctx.lineTo(x + innerW, y + r);
+  ctx.arcTo(x + innerW, y, x + innerW - r, y, r);
+  ctx.lineTo(x + r, y);
+  ctx.arcTo(x, y, x, y + r, r);
+  ctx.lineTo(x, y + innerH - r);
+  ctx.arcTo(x, y + innerH, x + r, y + innerH, r);
+  ctx.closePath();
   
-  // Ensure both rings share the same geometric basis (so t-mapping aligns).
-  // Use inner dimensions for the wall geometry (wall is inset from container edges)
-  // This creates the inner edge of the wall border - outer edge is at canvas boundaries
-  wallState.ringPhysics.ensureGeometry(innerW, innerH, innerR);
-  wallState.ringRender.ensureGeometry(innerW, innerH, innerR);
-
-  // Inner path (CCW): deformed rounded-rect perimeter.
-  const ringPhysics = wallState.ringPhysics;
-  const ringRender = wallState.ringRender;
-  const nPhys = ringPhysics.n;
-  const n = ringRender.n;
-  if (n > 0 && nPhys > 0) {
-    // Smooth look:
-    // Use the cached smoothed deformation field (updated only on wall physics ticks),
-    // then interpolate across ticks for a continuous render.
-    const enableInterpolation = g.wallPhysicsInterpolation !== false;
-    const alpha = enableInterpolation ? Math.max(0, Math.min(1, wallState._interpolationAlpha || 0)) : 1.0;
-
-    const sm = ringRender.renderDeformations; // scratch buffer for interpolated sm
-    const prevSm = wallState._renderSmPrev;
-    const currSm = wallState._renderSmCurr;
-    const canUseCache = prevSm && currSm && prevSm.length === n && currSm.length === n;
-
-    if (canUseCache) {
-      for (let i = 0; i < n; i++) {
-        const pv = prevSm[i];
-        sm[i] = pv + (currSm[i] - pv) * alpha;
-      }
-    } else {
-      // Fallback: map + two-pass smooth if cache isn't ready.
-      const srcPhys = ringPhysics.deformations;
-      const src = ringRender.deformations;
-      for (let i = 0; i < n; i++) {
-        const f = (i / n) * nPhys;
-        const i0 = Math.floor(f) % nPhys;
-        const t = f - i0;
-        const i1 = (i0 + 1) % nPhys;
-        src[i] = (1 - t) * srcPhys[i0] + t * srcPhys[i1];
-      }
-      // Pass 1: src -> sm
-      for (let i = 0; i < n; i++) {
-        const m2 = (i - 2 + n) % n;
-        const m1 = (i - 1 + n) % n;
-        const p1 = (i + 1) % n;
-        const p2 = (i + 2) % n;
-        sm[i] = (src[m2] + 4 * src[m1] + 6 * src[i] + 4 * src[p1] + src[p2]) * (1 / 16);
-      }
-      // Pass 2: sm -> src -> sm (ultra-smooth)
-      for (let i = 0; i < n; i++) {
-        const m2 = (i - 2 + n) % n;
-        const m1 = (i - 1 + n) % n;
-        const p1 = (i + 1) % n;
-        const p2 = (i + 2) % n;
-        src[i] = (sm[m2] + 4 * sm[m1] + 6 * sm[i] + 4 * sm[p1] + sm[p2]) * (1 / 16);
-      }
-      for (let i = 0; i < n; i++) {
-        sm[i] = src[i];
-      }
-    }
-
-    const baseX = ringRender.baseX;
-    const baseY = ringRender.baseY;
-    const normX = ringRender.normX;
-    const normY = ringRender.normY;
-
-    // Render-only safety clamp:
-    // - still respects configured max deform
-    // - also prevents self-intersection on extreme configs
-    const minDim = Math.max(1, Math.min(w, h));
-    const maxDispGeomPx = Math.max(0, minDim * 0.18);
-    const maxDeformCfg = Math.max(0, Number(g.wallWobbleMaxDeform ?? DEFAULT_MAX_DEFORM) || DEFAULT_MAX_DEFORM);
-    const maxDispCfgPx = maxDeformCfg * DPR * WALL_VISUAL_TEST_DEFORM_MUL * visualMul;
-    const maxDispCanvasPx = Math.min(maxDispGeomPx, maxDispCfgPx);
-    const dispCanvasPx = (idx) => {
-      const d = (sm[idx] * DPR * WALL_VISUAL_TEST_DEFORM_MUL * visualMul);
-      if (!(d > 0)) return 0;
-      return d > maxDispCanvasPx ? maxDispCanvasPx : d;
-    };
-
-    // Offset inner path by wall inset to position it inset from container edges
-    const pointX = (idx) => (baseX[idx] + normX[idx] * dispCanvasPx(idx)) + insetPx;
-    const pointY = (idx) => (baseY[idx] + normY[idx] * dispCanvasPx(idx)) + insetPx;
-
-    // ════════════════════════════════════════════════════════════════════════════
-    // UNIFORM RENDERING: All samples used for maximum smoothness
-    // - 768 samples with uniform perimeter distribution
-    // - No decimation = perfectly smooth corners everywhere
-    // ════════════════════════════════════════════════════════════════════════════
-    
-    // Build render index cache (only when geometry changes)
-    if (!wallState._adaptiveIndices || wallState._lastGeometryN !== n) {
-      wallState._adaptiveIndices = createAdaptiveRenderIndices(ringRender);
-      wallState._lastGeometryN = n;
-    }
-    
-    const indices = wallState._adaptiveIndices;
-    
-    if (indices && indices.length > 0) {
-      // Start at last adaptive sample (draw CCW for even-odd fill)
-      const firstIdx = indices[indices.length - 1];
-      ctx.moveTo(pointX(firstIdx), pointY(firstIdx));
-      
-      // Draw through adaptive samples in reverse order (CCW)
-      for (let j = indices.length - 2; j >= 0; j--) {
-        const idx = indices[j];
-        ctx.lineTo(pointX(idx), pointY(idx));
-      }
-      
-      ctx.closePath();
-    }
-  }
-
-  // Prefer even-odd to define the ring; fallback to non-zero (inner path is CCW).
   try {
     ctx.fill('evenodd');
   } catch (e) {
@@ -1571,12 +126,194 @@ export function drawWalls(ctx, w, h) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// VIEWPORT RUMBLE SYSTEM - CSS-based full-page shake on wall impacts
+// ═══════════════════════════════════════════════════════════════════════════════
+// Applies transform to document.body so the entire viewport shakes.
+// Only active in specific modes: pit, flies, weightless, particle-fountain.
+// Uses smooth ease-out decay for natural stopping (no abrupt end).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Rumble state
+let currentRumbleIntensity = 0;
+let targetRumbleIntensity = 0;  // For smooth interpolation
+let rumbleDecayRAF = null;
+let rumbleStartTime = 0;
+
+/**
+ * Check if current mode supports rumble.
+ */
+function isRumbleEnabledForCurrentMode() {
+  const g = getGlobals();
+  return RUMBLE_ENABLED_MODES.has(g.currentMode);
+}
+
+/**
+ * Trigger viewport rumble on high-velocity wall impact.
+ * Only triggers in modes that support it (pit, flies, weightless, particle-fountain).
+ * 
+ * @param {number} impactVelocity - Velocity of the impact (px/s)
+ */
+export function triggerWallRumble(impactVelocity) {
+  const g = getGlobals();
+  
+  // Check if rumble is globally enabled
+  if (g.wallRumbleEnabled === false) {
+    return;
+  }
+  
+  // Check if current mode supports rumble
+  if (!isRumbleEnabledForCurrentMode()) {
+    return;
+  }
+  
+  const threshold = g.wallRumbleThreshold ?? 150;
+  const maxRumble = g.wallRumbleMax ?? 3;
+  const velocityScale = g.wallRumbleScale ?? 0.02;
+  
+  if (impactVelocity < threshold) {
+    return;
+  }
+  
+  // Calculate rumble intensity (0 to maxRumble)
+  const excess = impactVelocity - threshold;
+  const intensity = Math.min(maxRumble, excess * velocityScale);
+  
+  // Set target intensity (accumulate for rapid impacts, capped)
+  targetRumbleIntensity = Math.min(maxRumble, targetRumbleIntensity + intensity);
+  rumbleStartTime = performance.now();
+  
+  // Immediately jump toward target for responsiveness
+  currentRumbleIntensity = Math.max(currentRumbleIntensity, targetRumbleIntensity * 0.7);
+  
+  applyRumble();
+  scheduleRumbleDecay();
+}
+
+/**
+ * Apply current rumble intensity to document.body via inline transform.
+ * Uses smooth random direction changes for organic feel.
+ */
+let lastAngle = Math.random() * Math.PI * 2;
+
+function applyRumble() {
+  if (!document.body) return;
+  
+  // Smooth angle drift for organic feel (not jarring random jumps)
+  lastAngle += (Math.random() - 0.5) * 1.2;
+  const offsetX = Math.cos(lastAngle) * currentRumbleIntensity;
+  const offsetY = Math.sin(lastAngle) * currentRumbleIntensity;
+  
+  // Apply transform directly to body
+  document.body.style.transform = `translate(${offsetX.toFixed(2)}px, ${offsetY.toFixed(2)}px)`;
+}
+
+/**
+ * Smooth ease-out function for natural decay.
+ * @param {number} t - Progress 0-1
+ * @returns {number} - Eased value 0-1
+ */
+function easeOutQuad(t) {
+  return 1 - (1 - t) * (1 - t);
+}
+
+/**
+ * Schedule rumble decay animation.
+ * Uses smooth ease-out curve for natural stopping (no abrupt end).
+ */
+function scheduleRumbleDecay() {
+  if (rumbleDecayRAF) return; // Already scheduled
+  
+  const g = getGlobals();
+  const decayRate = g.wallRumbleDecay ?? 0.94;
+  
+  const decay = () => {
+    // Decay target intensity
+    targetRumbleIntensity *= decayRate;
+    
+    // Smooth interpolation toward target (ease-out feel)
+    const smoothFactor = 0.15; // Lower = smoother transition
+    currentRumbleIntensity += (targetRumbleIntensity - currentRumbleIntensity) * smoothFactor;
+    
+    // Very low threshold for smooth fade to zero
+    if (currentRumbleIntensity < 0.02 && targetRumbleIntensity < 0.02) {
+      // Smooth final fade
+      currentRumbleIntensity = 0;
+      targetRumbleIntensity = 0;
+      if (document.body) {
+        document.body.style.transform = '';
+      }
+      rumbleDecayRAF = null;
+      return;
+    }
+    
+    applyRumble();
+    rumbleDecayRAF = requestAnimationFrame(decay);
+  };
+  
+  rumbleDecayRAF = requestAnimationFrame(decay);
+}
+
+/**
+ * Reset rumble state (call on mode change, etc.)
+ */
+export function resetWallRumble() {
+  currentRumbleIntensity = 0;
+  targetRumbleIntensity = 0;
+  if (rumbleDecayRAF) {
+    cancelAnimationFrame(rumbleDecayRAF);
+    rumbleDecayRAF = null;
+  }
+  if (document.body) {
+    document.body.style.transform = '';
+  }
+}
+
+/**
+ * Apply a rumble preset by name.
+ * @param {string} presetName - One of: 'subtle', 'gentle', 'punchy', 'dramatic'
+ * @param {Function} [updateConfig] - Optional callback to persist config changes
+ */
+export function applyRumblePreset(presetName, updateConfig) {
+  const preset = RUMBLE_PRESETS[presetName];
+  if (!preset) {
+    console.warn(`[RUMBLE] Unknown preset: ${presetName}`);
+    return;
+  }
+  
+  const g = getGlobals();
+  
+  // Apply preset values to globals
+  g.wallRumbleMax = preset.wallRumbleMax;
+  g.wallRumbleThreshold = preset.wallRumbleThreshold;
+  g.wallRumbleScale = preset.wallRumbleScale;
+  g.wallRumbleDecay = preset.wallRumbleDecay;
+  g.wallRumbleImpactScale = preset.wallRumbleImpactScale;
+  
+  // Call config update callback if provided
+  if (typeof updateConfig === 'function') {
+    updateConfig(preset);
+  }
+  
+  console.log(`[RUMBLE] Applied preset: ${preset.label}`);
+}
+
+/**
+ * Get list of available rumble presets.
+ * @returns {Array<{id: string, label: string, description: string}>}
+ */
+export function getRumblePresets() {
+  return Object.entries(RUMBLE_PRESETS).map(([id, preset]) => ({
+    id,
+    label: preset.label,
+    description: preset.description
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
 function getChromeColorFromCSS() {
   try {
-    // Use --wall-color (theme-aware, single-token consumer).
-    // In some contexts tokens might be scoped; try root → body → container.
     const root = document.documentElement;
     const body = document.body;
     const container = document.getElementById('bravia-balls');
@@ -1585,12 +322,8 @@ function getChromeColorFromCSS() {
       if (!el) return '';
       try {
         const value = getComputedStyle(el).getPropertyValue(name).trim();
-        // If value is empty or just whitespace, try reading the resolved value
         if (!value) {
-          // Try reading the actual computed color value
-          const computed = getComputedStyle(el);
-          // For --wall-color, check if it resolves to a color
-          const resolved = computed.getPropertyValue(name).trim();
+          const resolved = getComputedStyle(el).getPropertyValue(name).trim();
           return resolved;
         }
         return value;
@@ -1602,7 +335,6 @@ function getChromeColorFromCSS() {
     // Try --wall-color first (theme-aware)
     let color = read(root, '--wall-color');
     if (!color) {
-      // Fallback: check if dark mode and use --wall-color-dark directly
       const isDark = root.classList.contains('dark-mode') || body.classList.contains('dark-mode');
       if (isDark) {
         color = read(root, '--wall-color-dark') || read(root, '--frame-color-dark');
@@ -1611,14 +343,13 @@ function getChromeColorFromCSS() {
       }
     }
     
-    // If still no color, try body and container
     if (!color) {
       color = read(body, '--wall-color') || read(container, '--wall-color');
     }
     
     return color || '#0a0a0a';
   } catch {
-    return '#0a0a0a';  // Must match --frame-color-* in main.css
+    return '#0a0a0a';
   }
 }
 
@@ -1626,24 +357,35 @@ export function updateChromeColor() {
   CACHED_WALL_COLOR = getChromeColorFromCSS();
 }
 
-/**
- * Derive low-level wall wobble parameters from high-level controls
- * @param {number} softness 0-100 (softer = more flex, lower stiffness)
- * @param {number} bounciness 0-100 (bouncier = less damping, less settling)
- * @returns {Object} { wallWobbleStiffness, wallWobbleMaxDeform, wallWobbleDamping, wallWobbleSettlingSpeed }
- */
-export function deriveWallParamsFromHighLevel(softness, bounciness) {
-  const s = Math.max(0, Math.min(100, softness)) / 100;
-  const b = Math.max(0, Math.min(100, bounciness)) / 100;
-  
-  function lerp(min, max, t) { return min + (max - min) * t; }
-  
-  return {
-    wallWobbleStiffness: Math.round(lerp(2800, 600, s)),
-    wallWobbleMaxDeform: Math.round(lerp(40, 140, s)),
-    wallWobbleDamping: Math.round(lerp(70, 12, b)),
-    // Settling speed inversely related to bounciness by default (bouncier = less settling)
-    // But exposed as separate advanced control
-    wallWobbleSettlingSpeed: Math.round(lerp(80, 20, b))
-  };
+// ═══════════════════════════════════════════════════════════════════════════════
+// LEGACY STUBS - For backwards compatibility during transition
+// These do nothing but prevent errors if called from other modules
+// ═══════════════════════════════════════════════════════════════════════════════
+export const wallState = {
+  reset() {},
+  step() {},
+  hasAnyDeformation() { return false; },
+  resetStepBudgets() {},
+  clearPressureFrame() {},
+  ringPhysics: { reset() {}, ensureGeometry() {} },
+  ringRender: { reset() {}, ensureGeometry() {} }
+};
+
+export function registerWallImpact(wall, normalizedPos, intensity) {
+  // Trigger rumble instead of deformation
+  const g = getGlobals();
+  const baseVel = (intensity || 0) * (g.wallRumbleImpactScale ?? 1000);
+  triggerWallRumble(baseVel);
 }
+
+export function registerWallImpactAtPoint(x, y, intensity) {
+  const g = getGlobals();
+  const scale = g.wallRumbleImpactScale ?? 1000;
+  const baseVel = (intensity || 0) * scale;
+  triggerWallRumble(baseVel);
+}
+
+export function registerWallPressure() {}
+export function registerWallPressureAtPoint() {}
+export function applyWallPreset() {}
+export function deriveWallParamsFromHighLevel() { return {}; }

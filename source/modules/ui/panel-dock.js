@@ -8,13 +8,14 @@ import { setupIndexControls, setupMasterControls } from './controls.js';
 import { setupBuildControls } from './build-controls.js';
 import {
   generateThemeSectionHTML,
-  generateMasterSectionsHTML,
   generateColorTemplateSectionHTML,
+  generateGlobalSectionsHTML,
+  generateSimulationsSectionsHTML,
+  generateBrowserTransitionSectionsHTML,
+  updateWallShadowCSS,
 } from './control-registry.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
-import { getAllControls } from './control-registry.js';
 import { isDev } from '../utils/logger.js';
-import { saveConfigBulk } from '../utils/config-sync.js';
 import {
   SOUND_PRESETS,
   getSoundConfig,
@@ -54,11 +55,11 @@ const STORAGE_KEYS = {
 function loadPanelCollapsed() {
   try {
     const v = localStorage.getItem(STORAGE_KEYS.panelCollapsed);
-    // Default: collapsed (avoid obstructing content on first visit).
-    if (v === null) return true;
+    // Default: OPEN in dev mode, collapsed in production
+    if (v === null) return !isDev();
     return v === 'true';
   } catch (e) {
-    return true;
+    return !isDev();
   }
 }
 
@@ -133,22 +134,19 @@ let elementStartY = 0;
 function getMasterPanelContent({
   pageLabel = 'Home',
   pageHTML = HOME_PANEL_HTML,
-  includePageSaveButton = false,
-  pageSaveButtonId = 'savePortfolioConfigBtn',
-  footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters have no key (yet)',
+  includePageSaveButton = true,
+  pageSaveButtonId = 'saveRuntimeConfigBtn',
+  footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes',
 } = {}) {
   const g = getGlobals();
-  // Values are vw-native in state; px values are derived once and kept in sync.
-  const frameVw = Number(g.containerBorderVw || 0);
   const viewportWidthPx = getLayoutViewportWidthPx();
   const viewportWidthLabel = g.layoutViewportWidthPx > 0
     ? `${Math.round(g.layoutViewportWidthPx)}px`
     : `Auto (${Math.round(viewportWidthPx)}px)`;
-
-  const framePx = Math.max(0, Math.round(g.containerBorder ?? 0));
   const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
 
-  const layoutSectionHTML = `
+  // Layout controls (embedded in Global group)
+  const layoutControlsHTML = `
     <details class="panel-section-accordion" id="layoutSection">
       <summary class="panel-section-header">
         <span class="section-icon">📐</span>
@@ -174,7 +172,8 @@ function getMasterPanelContent({
     </details>
   `;
 
-  const soundSectionHTML = `
+  // Sound controls (embedded in Global group)
+  const soundControlsHTML = `
     <details class="panel-section-accordion" id="soundSection">
       <summary class="panel-section-header">
         <span class="section-icon">🔊</span>
@@ -202,11 +201,12 @@ function getMasterPanelContent({
     </details>
   `;
 
-  const pageSectionHTML = `
+  // Mode selector (embedded in Simulations group)
+  const modeControlsHTML = `
     <details class="panel-section-accordion" id="pageSection" open>
       <summary class="panel-section-header">
-        <span class="section-icon">⚙️</span>
-        <span class="section-label">${pageLabel}</span>
+        <span class="section-icon">🎛️</span>
+        <span class="section-label">Mode</span>
       </summary>
       <div class="panel-section-content">
         ${pageHTML}
@@ -215,20 +215,50 @@ function getMasterPanelContent({
   `;
 
   const actionsHTML = `
-    <div class="panel-section panel-section--action">
-      <button id="saveRuntimeConfigBtn" class="primary">💾 Save Config</button>
-      ${includePageSaveButton ? `<button id="${pageSaveButtonId}" class="primary">💾 Save ${pageLabel} Config</button>` : ''}
-    </div>
+    ${includePageSaveButton ? `<div class="panel-section panel-section--action"><button id="${pageSaveButtonId}" class="primary">💾 Save ${pageLabel} Config</button></div>` : ''}
     <div class="panel-footer">${footerHint}</div>
   `;
 
+  // Build the 3 master groups with all content properly nested
   return `
-    ${generateThemeSectionHTML({ open: true })}
-    ${generateMasterSectionsHTML()}
-    ${layoutSectionHTML}
-    ${soundSectionHTML}
-    ${generateColorTemplateSectionHTML({ open: false })}
-    ${pageSectionHTML}
+    <!-- GLOBAL: Theme, Colors, Sound, Layout -->
+    <details class="panel-master-group" open>
+      <summary class="panel-master-group-header">
+        <span class="panel-master-group-icon">🌐</span>
+        <span class="panel-master-group-title">Global</span>
+      </summary>
+      <div class="panel-master-group-content">
+        ${generateThemeSectionHTML({ open: false })}
+        ${generateGlobalSectionsHTML()}
+        ${layoutControlsHTML}
+        ${soundControlsHTML}
+        ${generateColorTemplateSectionHTML({ open: false })}
+      </div>
+    </details>
+
+    <!-- SIMULATIONS: Mode, Physics, Balls, Wall, Mode-specific -->
+    <details class="panel-master-group" open>
+      <summary class="panel-master-group-header">
+        <span class="panel-master-group-icon">🧪</span>
+        <span class="panel-master-group-title">Simulations</span>
+      </summary>
+      <div class="panel-master-group-content">
+        ${modeControlsHTML}
+        ${generateSimulationsSectionsHTML()}
+      </div>
+    </details>
+
+    <!-- BROWSER & TRANSITION: Environment, Entrance, Overlay -->
+    <details class="panel-master-group" open>
+      <summary class="panel-master-group-header">
+        <span class="panel-master-group-icon">🧭</span>
+        <span class="panel-master-group-title">Browser & Transition</span>
+      </summary>
+      <div class="panel-master-group-content">
+        ${generateBrowserTransitionSectionsHTML()}
+      </div>
+    </details>
+
     ${actionsHTML}
   `;
 }
@@ -276,11 +306,12 @@ export function createPanelDock(options = {}) {
   const page = options.page || 'home';
   const pageLabel = options.pageLabel || (page === 'portfolio' ? 'Portfolio' : 'Home');
   const pageHTML = options.pageHTML || HOME_PANEL_HTML;
-  const includePageSaveButton = !!options.includePageSaveButton;
-  const pageSaveButtonId = options.pageSaveButtonId || 'savePortfolioConfigBtn';
+  // Default to true for home page (save config button), false must be explicit
+  const includePageSaveButton = options.includePageSaveButton !== false;
+  const pageSaveButtonId = options.pageSaveButtonId || 'saveRuntimeConfigBtn';
   const footerHint = options.footerHint || (page === 'portfolio'
     ? '<kbd>/</kbd> panel'
-    : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters have no key (yet)');
+    : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei');
   const panelTitle = options.panelTitle || 'Settings';
   const modeLabel = options.modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
   const bindShortcut = !!options.bindShortcut;
@@ -300,8 +331,9 @@ export function createPanelDock(options = {}) {
   dockElement.id = 'panelDock';
 
   // Default visibility:
-  // - All pages: hidden by default, use gear button to open
-  let defaultHidden = true; // Always start hidden, use gear button to open
+  // - Dev mode: visible by default
+  // - Production: hidden by default, use gear button to open
+  let defaultHidden = !isDev();
   let isHidden = loadDockHiddenState({ defaultHidden });
   try {
     if (typeof __PANEL_INITIALLY_VISIBLE__ === 'boolean') isHidden = !__PANEL_INITIALLY_VISIBLE__;
@@ -382,18 +414,10 @@ function createMasterPanel({
   const header = document.createElement('div');
   header.className = 'panel-header';
   header.innerHTML = `
-    <div class="mac-titlebar">
-      <div class="mac-traffic" aria-hidden="true">
-        <span class="mac-dot mac-dot--red"></span>
-        <span class="mac-dot mac-dot--yellow"></span>
-        <span class="mac-dot mac-dot--green"></span>
-      </div>
-      <div class="panel-title mac-title">${panelTitle}</div>
-      <div class="mac-right">
-        ${isDev() ? `<button id="saveConfigBtn" class="panel-save-btn" aria-label="Save config" title="Save config to file">Save</button>` : ''}
-        <button class="collapse-btn mac-collapse" aria-label="Collapse panel" title="Collapse">▾</button>
-      </div>
-    </div>
+    <span class="panel-title">${panelTitle}</span>
+    <button class="collapse-btn" aria-label="Collapse panel" title="Collapse">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 4l4 4 4-4"/></svg>
+    </button>
   `;
   
   // Content
@@ -431,16 +455,6 @@ function createMasterPanel({
     // Otherwise, let CSS defaults apply
   }
   
-  // Save config button (dev mode only)
-  const saveBtn = header.querySelector('#saveConfigBtn');
-  if (saveBtn && isDev()) {
-    saveBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      await saveAllConfigToFile();
-    });
-  }
-  
   // Collapse button
   const collapseBtn = header.querySelector('.collapse-btn');
   if (collapseBtn) {
@@ -465,305 +479,18 @@ function createMasterPanel({
     setupBuildControls();
     setupSoundControls(panel);
     setupLayoutControls(panel);
+    
+    // Initialize wall shadow CSS from current state
+    try {
+      const g = getGlobals();
+      updateWallShadowCSS(g);
+    } catch (e) {}
 
     // Page-specific bindings (portfolio carousel, etc).
     try { setupPageControls?.(panel); } catch (e) {}
   }, 0);
   
   return panel;
-}
-
-/**
- * Save all current config values to default-config.json via sync server
- */
-async function saveAllConfigToFile() {
-  if (!isDev()) return;
-  
-  const g = getGlobals();
-  const saveBtn = document.getElementById('saveConfigBtn');
-  const originalText = saveBtn?.textContent || 'Save';
-  
-  // Show saving state
-  if (saveBtn) {
-    saveBtn.textContent = 'Saving...';
-    saveBtn.disabled = true;
-  }
-  
-  try {
-    // Build organized config snapshot matching original config file structure
-    // This ensures a clean, readable config file when saved
-    
-    // STEP 1: Collect ALL controls first (ensures nothing is missed)
-    const config = {};
-    try {
-      const controls = getAllControls();
-      for (const c of controls) {
-        if (!c || !c.stateKey) continue;
-        const v = g[c.stateKey];
-        if (v === undefined) continue;
-        config[c.stateKey] = v;
-      }
-    } catch (e) {
-      console.warn('[save-config] Error collecting controls:', e);
-    }
-    
-    // STEP 2: Add/override in organized order for clean file structure
-    // (This doesn't add new keys, just ensures they're written in logical order)
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 1) BROWSER / THEME ENVIRONMENT (top of file)
-    // ═══════════════════════════════════════════════════════════════════════════
-    config.chromeHarmonyMode = g.chromeHarmonyMode;
-    config.autoDarkModeEnabled = g.autoDarkModeEnabled;
-    config.autoDarkNightStartHour = g.autoDarkNightStartHour;
-    config.autoDarkNightEndHour = g.autoDarkNightEndHour;
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 2) MATERIAL WORLD — Physics
-    // ═══════════════════════════════════════════════════════════════════════════
-    config.ballMassKg = g.ballMassKg;
-    config.REST = g.REST;
-    config.FRICTION = g.FRICTION;
-    config.physicsCollisionIterations = g.physicsCollisionIterations;
-    config.physicsSkipSleepingCollisions = g.physicsSkipSleepingCollisions;
-    config.physicsSpatialGridOptimization = g.physicsSpatialGridOptimization;
-    config.physicsSleepThreshold = g.physicsSleepThreshold;
-    config.physicsSleepTime = g.physicsSleepTime;
-    config.physicsSkipSleepingSteps = g.physicsSkipSleepingSteps;
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 3) MATERIAL WORLD — Ball Material
-    // ═══════════════════════════════════════════════════════════════════════════
-    config.sizeScale = g.sizeScale;
-    config.responsiveScaleMobile = g.responsiveScaleMobile;
-    config.mobileObjectReductionFactor = g.mobileObjectReductionFactor;
-    config.liteModeEnabled = g.liteModeEnabled;
-    config.liteModeObjectReductionFactor = g.liteModeObjectReductionFactor;
-    config.ballSoftness = g.ballSoftness;
-    config.ballSpacing = g.ballSpacing;
-    config.sizeVariationGlobalMul = g.sizeVariationGlobalMul;
-    config.sizeVariationCap = g.sizeVariationCap;
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 4) INTERACTION — Cursor, Trail, Links
-    // ═══════════════════════════════════════════════════════════════════════════
-    config.cursorInfluenceRadiusVw = g.cursorInfluenceRadiusVw;
-    config.cursorSize = g.cursorSize;
-    config.mouseTrailEnabled = g.mouseTrailEnabled;
-    config.mouseTrailLength = g.mouseTrailLength;
-    config.mouseTrailSize = g.mouseTrailSize;
-    config.mouseTrailFadeMs = g.mouseTrailFadeMs;
-    config.mouseTrailOpacity = g.mouseTrailOpacity;
-    
-    config.contentPaddingRatio = g.contentPaddingRatio;
-    config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;
-    if (g.uiHitAreaMul !== undefined) config.uiHitAreaMul = g.uiHitAreaMul;
-    if (g.uiIconCornerRadiusMul !== undefined) config.uiIconCornerRadiusMul = g.uiIconCornerRadiusMul;
-    if (g.uiIconFramePx) config.uiIconFramePx = g.uiIconFramePx;
-    if (g.uiIconGlyphPx) config.uiIconGlyphPx = g.uiIconGlyphPx;
-    if (g.uiIconGroupMarginPx !== undefined) config.uiIconGroupMarginPx = g.uiIconGroupMarginPx;
-    config.linkTextPadding = g.linkTextPadding;
-    config.linkIconPadding = g.linkIconPadding;
-    if (g.footerNavBarTopVh !== undefined) config.footerNavBarTopVh = g.footerNavBarTopVh;
-    if (g.footerNavBarGapVw !== undefined) config.footerNavBarGapVw = g.footerNavBarGapVw;
-    if (g.homeMainLinksBelowLogoPx !== undefined) config.homeMainLinksBelowLogoPx = g.homeMainLinksBelowLogoPx;
-    if (g.edgeLabelInsetAdjustPx !== undefined) config.edgeLabelInsetAdjustPx = g.edgeLabelInsetAdjustPx;
-    config.linkColorInfluence = g.linkColorInfluence;
-    config.linkImpactScale = g.linkImpactScale;
-    config.linkImpactBlur = g.linkImpactBlur;
-    config.linkImpactDuration = g.linkImpactDuration;
-    config.hoverSnapEnabled = g.hoverSnapEnabled;
-    config.hoverSnapDuration = g.hoverSnapDuration;
-    config.hoverSnapOvershoot = g.hoverSnapOvershoot;
-    config.hoverSnapUndershoot = g.hoverSnapUndershoot;
-    
-    config.sceneImpactEnabled = g.sceneImpactEnabled;
-    config.sceneImpactMul = g.sceneImpactMul;
-    config.sceneImpactLogoCompMul = g.sceneImpactLogoCompMul;
-    config.sceneImpactMobileMulFactor = g.sceneImpactMobileMulFactor;
-    config.sceneImpactPressMs = g.sceneImpactPressMs;
-    config.sceneImpactReleaseMs = g.sceneImpactReleaseMs;
-    config.sceneImpactAnticipation = g.sceneImpactAnticipation;
-    config.sceneChangeSoundEnabled = g.sceneChangeSoundEnabled;
-    config.sceneChangeSoundIntensity = g.sceneChangeSoundIntensity;
-    config.sceneChangeSoundRadius = g.sceneChangeSoundRadius;
-    
-    config.gateOverlayEnabled = g.gateOverlayEnabled;
-    config.gateOverlayOpacity = g.gateOverlayOpacity;
-    config.gateOverlayTransitionMs = g.gateOverlayTransitionMs;
-    config.gateOverlayTransitionOutMs = g.gateOverlayTransitionOutMs;
-    config.gateOverlayContentDelayMs = g.gateOverlayContentDelayMs;
-    config.gateDepthScale = g.gateDepthScale;
-    config.gateDepthTranslateY = g.gateDepthTranslateY;
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 5) LOOK & PALETTE — Colors
-    // ═══════════════════════════════════════════════════════════════════════════
-    config.bgLight = g.bgLight;
-    config.bgDark = g.bgDark;
-    config.textColorLight = g.textColorLight;
-    config.textColorLightMuted = g.textColorLightMuted;
-    config.textColorDark = g.textColorDark;
-    config.textColorDarkMuted = g.textColorDarkMuted;
-    config.linkHoverColor = g.linkHoverColor;
-    config.topLogoWidthVw = g.topLogoWidthVw;
-    
-    config.colorDistribution = g.colorDistribution;
-    config.frameColorLight = g.frameColorLight;
-    config.frameColorDark = g.frameColorDark;
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 6) MATERIAL WORLD — Wall
-    // ═══════════════════════════════════════════════════════════════════════════
-    config.wallPreset = g.wallPreset;
-    config.wallThicknessVw = g.wallThicknessVw;
-    config.wallThicknessAreaMultiplier = g.wallThicknessAreaMultiplier;
-    config.wallRadiusVw = g.wallRadiusVw;
-    config.wallInset = g.wallInset;
-    config.mobileWallThicknessXFactor = g.mobileWallThicknessXFactor;
-    config.mobileEdgeLabelsVisible = g.mobileEdgeLabelsVisible;
-    config.wallWobbleMaxDeform = g.wallWobbleMaxDeform;
-    config.wallWobbleStiffness = g.wallWobbleStiffness;
-    config.wallWobbleDamping = g.wallWobbleDamping;
-    config.wallWobbleSigma = g.wallWobbleSigma;
-    config.wallWobbleSettlingSpeed = g.wallWobbleSettlingSpeed;
-    config.wallWobbleCornerClamp = g.wallWobbleCornerClamp;
-    config.wallWobbleImpactThreshold = g.wallWobbleImpactThreshold;
-    config.wallWobbleMaxVel = g.wallWobbleMaxVel;
-    config.wallWobbleMaxImpulse = g.wallWobbleMaxImpulse;
-    config.wallWobbleMaxEnergyPerStep = g.wallWobbleMaxEnergyPerStep;
-    config.wallPhysicsSamples = g.wallPhysicsSamples;
-    config.wallPhysicsSkipInactive = g.wallPhysicsSkipInactive;
-    config.wallRenderDecimation = g.wallRenderDecimation;
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 7) LOOK & PALETTE — Noise/Grain
-    // ═══════════════════════════════════════════════════════════════════════════
-    config.noiseEnabled = g.noiseEnabled;
-    config.noiseSeed = g.noiseSeed;
-    config.noiseTextureSize = g.noiseTextureSize;
-    config.noiseDistribution = g.noiseDistribution;
-    config.noiseMonochrome = g.noiseMonochrome;
-    config.noiseChroma = g.noiseChroma;
-    config.noiseSize = g.noiseSize;
-    config.noiseOpacity = g.noiseOpacity;
-    config.noiseOpacityLight = g.noiseOpacityLight;
-    config.noiseOpacityDark = g.noiseOpacityDark;
-    config.noiseBlendMode = g.noiseBlendMode;
-    config.noiseColorLight = g.noiseColorLight;
-    config.noiseColorDark = g.noiseColorDark;
-    
-    // Simulation overlay
-    config.simulationOverlayIntensity = g.simulationOverlayIntensity;
-    // Depth wash
-    config.depthWashOpacity = g.depthWashOpacity;
-    config.depthWashBlendModeLight = g.depthWashBlendModeLight;
-    config.depthWashBlendModeDark = g.depthWashBlendModeDark;
-    config.depthWashCenterY = g.depthWashCenterY;
-    config.depthWashRadiusScale = g.depthWashRadiusScale;
-    config.depthWashCenterColorLight = g.depthWashCenterColorLight;
-    config.depthWashEdgeColorLight = g.depthWashEdgeColorLight;
-    config.depthWashCenterAlphaLight = g.depthWashCenterAlphaLight;
-    config.depthWashEdgeAlphaLight = g.depthWashEdgeAlphaLight;
-    config.depthWashCenterColorDark = g.depthWashCenterColorDark;
-    config.depthWashEdgeColorDark = g.depthWashEdgeColorDark;
-    config.depthWashCenterAlphaDark = g.depthWashCenterAlphaDark;
-    config.depthWashEdgeAlphaDark = g.depthWashEdgeAlphaDark;
-    
-    config.noiseMotion = g.noiseMotion;
-    config.noiseMotionAmount = g.noiseMotionAmount;
-    config.noiseSpeedMs = g.noiseSpeedMs;
-    config.noiseSpeedVariance = g.noiseSpeedVariance;
-    config.noiseFlicker = g.noiseFlicker;
-    config.noiseFlickerSpeedMs = g.noiseFlickerSpeedMs;
-    config.noiseBlurPx = g.noiseBlurPx;
-    config.noiseContrast = g.noiseContrast;
-    config.noiseBrightness = g.noiseBrightness;
-    config.noiseSaturation = g.noiseSaturation;
-    config.noiseHue = g.noiseHue;
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 8) MODE-SPECIFIC CONTROLS — Already collected in STEP 1
-    // ═══════════════════════════════════════════════════════════════════════════
-    // All mode parameters (critters, flies, pit, weightless, water, vortex, etc.)
-    // are already in config from getAllControls() in STEP 1 above
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 9) MOTION — Entrance Animation
-    // ═══════════════════════════════════════════════════════════════════════════
-    if (g.entranceEnabled !== undefined) config.entranceEnabled = g.entranceEnabled;
-    if (g.entranceWallTransitionDelay !== undefined) config.entranceWallTransitionDelay = g.entranceWallTransitionDelay;
-    if (g.entranceWallTransitionDuration !== undefined) config.entranceWallTransitionDuration = g.entranceWallTransitionDuration;
-    if (g.entranceWallInitialScale !== undefined) config.entranceWallInitialScale = g.entranceWallInitialScale;
-    if (g.entranceWallEasing !== undefined) config.entranceWallEasing = g.entranceWallEasing;
-    if (g.entranceElementDuration !== undefined) config.entranceElementDuration = g.entranceElementDuration;
-    if (g.entranceElementScaleStart !== undefined) config.entranceElementScaleStart = g.entranceElementScaleStart;
-    if (g.entranceElementTranslateZStart !== undefined) config.entranceElementTranslateZStart = g.entranceElementTranslateZStart;
-    if (g.entrancePerspectiveLandscape !== undefined) config.entrancePerspectiveLandscape = g.entrancePerspectiveLandscape;
-    if (g.entrancePerspectiveSquare !== undefined) config.entrancePerspectiveSquare = g.entrancePerspectiveSquare;
-    if (g.entrancePerspectivePortrait !== undefined) config.entrancePerspectivePortrait = g.entrancePerspectivePortrait;
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 10) LEGACY ALIASES (keep for compatibility)
-    // ═══════════════════════════════════════════════════════════════════════════
-    config.gravityMultiplier = g.gravityMultiplierPit;
-    config.restitution = g.REST;
-    config.friction = g.FRICTION;
-    config.ballMass = g.ballMassKg;
-    config.ballScale = g.sizeScale;
-    config.sizeVariation = g.sizeVariation;
-    config.repelSoft = g.repelSoft;
-    config.repelSoftness = g.repelSoft;
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 11) LAYOUT (vw-based values + derived)
-    // ═══════════════════════════════════════════════════════════════════════════
-    config.layoutViewportWidthPx = g.layoutViewportWidthPx || 0;
-    config.containerBorderVw = g.containerBorderVw;
-    config.simulationPaddingVw = g.simulationPaddingVw;
-    config.layoutMinWallRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 12) SOUND
-    // ═══════════════════════════════════════════════════════════════════════════
-    try {
-      config.soundPreset = getCurrentPreset();
-      config.soundConfig = getSoundConfig();
-    } catch (e) {}
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 13) HOUSEKEEPING
-    // ═══════════════════════════════════════════════════════════════════════════
-    config.enableLOD = false;
-    
-    // Save entire config object at once (bulk save - avoids race conditions)
-    const success = await saveConfigBulk('default', config);
-    
-    if (saveBtn) {
-      if (success) {
-        saveBtn.textContent = 'Saved!';
-        setTimeout(() => {
-          saveBtn.textContent = originalText;
-          saveBtn.disabled = false;
-        }, 1500);
-      } else {
-        saveBtn.textContent = 'Error';
-        setTimeout(() => {
-          saveBtn.textContent = originalText;
-          saveBtn.disabled = false;
-        }, 2000);
-        console.warn(`[save-config] Failed to save config`);
-      }
-    }
-  } catch (e) {
-    console.error('[save-config] Error saving config:', e);
-    if (saveBtn) {
-      saveBtn.textContent = 'Error';
-      setTimeout(() => {
-        saveBtn.textContent = originalText;
-        saveBtn.disabled = false;
-      }, 2000);
-    }
-  }
 }
 
 function setupResizePersistence() {

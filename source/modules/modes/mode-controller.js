@@ -15,7 +15,7 @@ import { initializeVortex, applyVortexForces } from './vortex.js';
 import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magnetic.js';
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
 import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
-import { initializeCritters, applyCrittersForces } from './critters.js';
+import { initializeCritters, applyCrittersForces, updateCrittersGrid, renderCrittersWaypoints } from './critters.js';
 import { initializeNeural, applyNeuralForces, preRenderNeural, updateNeural } from './neural.js';
 import { initializeParallaxLinear, applyParallaxLinearForces, updateParallaxLinearMouse } from './parallax-linear.js';
 import { initializeParallaxFloat, applyParallaxFloatForces, updateParallaxFloatMouse } from './parallax-float.js';
@@ -30,7 +30,7 @@ import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor } from '../visual/colors.js';
 import { resetPhysicsAccumulator } from '../physics/engine.js';
 import { resetAdaptiveThrottle } from '../rendering/loop.js';
-import { wallState } from '../physics/wall-state.js';
+import { resetWallRumble } from '../physics/wall-state.js';
 
 export { MODES };
 
@@ -77,18 +77,8 @@ export function setMode(mode) {
   resetPhysicsAccumulator();
   resetAdaptiveThrottle();
   
-  // Reset wall deformation state (physics + render rings, caches)
-  if (wallState?.ringPhysics?.reset) {
-    wallState.ringPhysics.reset();
-  }
-  if (wallState?.ringRender?.reset) {
-    wallState.ringRender.reset();
-  }
-  // Clear interpolation caches
-  wallState._renderSmPrev = null;
-  wallState._renderSmCurr = null;
-  wallState._impactsThisStep = 0;
-  wallState._pressureEventsThisStep = 0;
+  // Reset wall rumble state
+  resetWallRumble();
   
   // Restore physics overrides when leaving Critters mode
   if (globals.currentMode === MODES.CRITTERS && mode !== MODES.CRITTERS) {
@@ -128,7 +118,7 @@ export function setMode(mode) {
     magnetic: 'Magnetic',
     bubbles: 'Carbonated Bubbles',
     'kaleidoscope-3': 'Kaleidoscope',
-    critters: 'Critters',
+    critters: 'Hive',
     neural: 'Neural Network',
     'parallax-linear': 'Parallax (Linear)',
     'parallax-float': 'Parallax (Float)',
@@ -368,6 +358,8 @@ export function getModeUpdater() {
     return updateParallaxFloatMouse;
   } else if (globals.currentMode === MODES.PARALLAX_LINEAR) {
     return updateParallaxLinearMouse;
+  } else if (globals.currentMode === MODES.CRITTERS) {
+    return updateCrittersGrid;
   }
   return null;
 }
@@ -381,6 +373,10 @@ export function getModeRenderer() {
   } else if (globals.currentMode === MODES.STARFIELD_3D) {
     return {
       preRender: renderStarfield3D
+    };
+  } else if (globals.currentMode === MODES.CRITTERS) {
+    return {
+      preRender: renderCrittersWaypoints
     };
   }
   return null;

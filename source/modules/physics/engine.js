@@ -7,7 +7,7 @@ import { CONSTANTS, MODES } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { resolveCollisions, resolveCollisionsCustom } from './collision.js';
 import { updateWaterRipples, getWaterRipples } from '../modes/water.js';
-import { wallState, drawWalls, updateChromeColor } from './wall-state.js';
+import { drawWalls, updateChromeColor } from './wall-state.js';
 import { drawDepthWash } from '../visual/depth-wash.js';
 import { getModeUpdater, getModeRenderer } from '../modes/mode-controller.js';
 import { renderKaleidoscope } from '../modes/kaleidoscope.js';
@@ -168,7 +168,6 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       applyKaleidoscopeBounds(balls[i], canvas.width, canvas.height, dt);
     }
 
-    // No wallState.step() in Kaleidoscope
     setAccumulator(0);
     return;
   }
@@ -177,15 +176,6 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   let physicsSteps = 0;
 
   // Wall input accumulation:
-  // The wall ring integrates at a configurable cadence (Tier 1), but impacts/pressure
-  // are registered during the fixed-timestep loop. If we clear pressure inside the
-  // 120Hz loop, the wall never sees stable "resting pressure" and can become overly wobbly.
-  // Clear pressure ONCE per render-frame, then accumulate across physics substeps.
-  // Skip entirely on mobile for performance (wallDeformationEnabled = false)
-  const wallDeformEnabled = globals.wallDeformationEnabled !== false;
-  if (wallDeformEnabled) {
-    wallState.clearPressureFrame();
-  }
   
   while (getAccumulator() >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
     // Integrate physics for all modes
@@ -216,11 +206,6 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       resolveCollisions(collisionIterations); // configurable solver iterations
     }
 
-    // Reset per-step caps/counters (impacts + pressure-event budget)
-    // Skip on mobile for performance
-    if (wallDeformEnabled) {
-      wallState.resetStepBudgets();
-    }
     
     // Wall collisions + corner repellers
     // Skip for Parallax modes (internal wrap logic, no wall physics)
@@ -234,8 +219,8 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       const wallRestitution = (mode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
       const isPitLike = (mode === MODES.PIT);
       const lenWalls = balls.length;
-      // PERF: Preallocated options object (reused, not allocated per-loop)
-      const wallEffectsOptions = wallDeformEnabled ? WALL_EFFECTS_ON : WALL_EFFECTS_OFF;
+      // PERF: Preallocated options object - always enable effects for rumble
+      const wallEffectsOptions = WALL_EFFECTS_ON;
       const isMobile = globals.isMobile || globals.isMobileViewport;
       const canvasW = canvas.width;
       const canvasH = canvas.height;
@@ -388,11 +373,6 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     modeUpdater(dtSeconds);
   }
   
-  // Update rubber wall physics (all non-kaleidoscope modes)
-  // Skip on mobile for performance (wallDeformationEnabled = false)
-  if (wallDeformEnabled) {
-    wallState.step(dtSeconds);
-  }
 
   // Reset accumulator if falling behind
   if (getAccumulator() > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) {

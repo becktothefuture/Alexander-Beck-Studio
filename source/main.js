@@ -26,6 +26,7 @@ import { createThemeToggle } from './modules/ui/theme-toggle.js';
 import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/audio/sound-engine.js';
 import { upgradeSocialIcons } from './modules/ui/social-icons.js';
 import { initTimeDisplay } from './modules/ui/time-display.js';
+import { initQuoteDisplay } from './modules/ui/quote-display.js';
 import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 // Note: Legend interactivity is now inlined in main.js for reliability
 import { initLegendFilterSystem } from './modules/ui/legend-filter.js';
@@ -538,6 +539,10 @@ window.addEventListener('unhandledrejection', (event) => {
     } catch (e) {}
     mark('bb:mode');
     log('✓ Mode initialized');
+    
+    // Initialize quote display (shows curated quotes based on current mode)
+    initQuoteDisplay();
+    log('✓ Quote display initialized');
     
     // Register force render callback for resize (prevents blank frames during drag-resize)
     setForceRenderCallback(render);

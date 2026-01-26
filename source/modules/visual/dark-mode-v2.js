@@ -10,6 +10,7 @@ import { log as devLog } from '../utils/logger.js';
 import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
 import { invalidateDepthWashCache } from './depth-wash.js';
+import { updateWallShadowCSS } from '../ui/control-registry.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
 const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
@@ -218,6 +219,9 @@ function applyDarkModeToDOM(isDark) {
   
   // Switch color palette variant
   applyColorTemplate(globals.currentTemplate);
+  
+  // Refresh wall shadow for new theme (light/dark use different colors)
+  updateWallShadowCSS(globals);
   
   // Update UI
   updateSegmentControl();

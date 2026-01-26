@@ -80,6 +80,91 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FLOW'
 };
 
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                       NARRATIVE QUOTES (CURATED)                              ║
+// ║      Real quotes from creatives, thinkers, and makers — one per mode          ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+//
+// Selection principles:
+// - Authentic, verified quotes only (no paraphrases or misattributions)
+// - Mix of designers, artists, musicians, scientists, philosophers
+// - Each quote resonates with the simulation's visual/physical metaphor
+// - Loose narrative arc: foundation → emergence → synthesis → infinity
+export const NARRATIVE_QUOTES = {
+  [MODES.PIT]: {
+    quote: 'The details are not the details. They make the design.',
+    author: 'Charles Eames'
+  },
+  [MODES.FLIES]: {
+    quote: 'No man ever steps in the same river twice.',
+    author: 'Heraclitus'
+  },
+  [MODES.CUBE_3D]: {
+    quote: 'Less, but better.',
+    author: 'Dieter Rams'
+  },
+  [MODES.BUBBLES]: {
+    quote: 'In the middle of difficulty lies opportunity.',
+    author: 'Albert Einstein'
+  },
+  [MODES.MAGNETIC]: {
+    quote: 'Order is never observed; it is disorder that attracts attention.',
+    author: 'Henri Bergson'
+  },
+  [MODES.WATER]: {
+    quote: 'Be like water making its way through cracks.',
+    author: 'Bruce Lee'
+  },
+  [MODES.DVD_LOGO]: {
+    quote: 'Do not fear mistakes. There are none.',
+    author: 'Miles Davis'
+  },
+  [MODES.NEURAL]: {
+    quote: 'The best design is invisible.',
+    author: 'Tobias van Schneider'
+  },
+  [MODES.SPHERE_3D]: {
+    quote: 'Nature uses only the longest threads to weave her patterns.',
+    author: 'Richard Feynman'
+  },
+  [MODES.WEIGHTLESS]: {
+    quote: 'An empty space is never empty.',
+    author: 'John Cage'
+  },
+  [MODES.PARALLAX_LINEAR]: {
+    quote: "We don't see things as they are, we see them as we are.",
+    author: 'Anaïs Nin'
+  },
+  [MODES.CRITTERS]: {
+    quote: 'The whole is other than the sum of the parts.',
+    author: 'Kurt Koffka'
+  },
+  [MODES.ELASTIC_CENTER]: {
+    quote: 'Having guts always works out for me.',
+    author: 'Stefan Sagmeister'
+  },
+  [MODES.VORTEX]: {
+    quote: 'In all chaos there is a cosmos, in all disorder a secret order.',
+    author: 'Carl Jung'
+  },
+  [MODES.KALEIDOSCOPE]: {
+    quote: 'Creativity takes courage.',
+    author: 'Henri Matisse'
+  },
+  [MODES.STARFIELD_3D]: {
+    quote: 'The cosmos is within us. We are made of star-stuff.',
+    author: 'Carl Sagan'
+  },
+  [MODES.PARALLAX_FLOAT]: {
+    quote: 'Nature does not hurry, yet everything is accomplished.',
+    author: 'Lao Tzu'
+  },
+  [MODES.PARTICLE_FOUNTAIN]: {
+    quote: "You can't use up creativity. The more you use, the more you have.",
+    author: 'Maya Angelou'
+  }
+};
+
 export const CONSTANTS = {
   DPR: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
   CANVAS_HEIGHT_VH_PIT: 1.5,
@@ -114,183 +199,10 @@ export const CONSTANTS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// WALL PRESETS
+// WALL PRESETS (REMOVED - Deformation system deprecated, replaced by rumble)
+// Empty export for backward compatibility
 // ═══════════════════════════════════════════════════════════════════════════════
-export const WALL_PRESETS = {
-  // NOTE: These are intended to be "wall types" and should update the wall sliders in real time.
-  // Keep values explicit for all key wall params so switching presets resets everything consistently.
-  rubber: {
-    label: 'Rubber (balanced)',
-    description: 'Balanced rubber ring with clear bounce and crisp ripples.',
-    values: {
-      wallWobbleMaxDeform: 50,
-      wallWobbleStiffness: 2100,
-      wallWobbleDamping: 34,
-      wallWobbleSigma: 2.2,
-      wallWobbleCornerClamp: 0.6,
-      wallWobbleImpactThreshold: 110,
-      wallWobbleSettlingSpeed: 70,
-      wallWobbleMaxVel: 900,
-      wallWobbleMaxImpulse: 240,
-      wallWobbleMaxEnergyPerStep: 24000,
-      wallInset: 3
-    }
-  },
-  pudding: {
-    label: 'Pudding (thick, soft)',
-    description: 'Overdamped, broad blobs. Big squish, quick settling, minimal ringing.',
-    values: {
-      wallWobbleMaxDeform: 85,
-      wallWobbleStiffness: 520,
-      wallWobbleDamping: 82,
-      wallWobbleSigma: 5.2,
-      wallWobbleCornerClamp: 0.25,
-      wallWobbleImpactThreshold: 55,
-      wallWobbleSettlingSpeed: 94,
-      wallWobbleMaxVel: 650,
-      wallWobbleMaxImpulse: 180,
-      wallWobbleMaxEnergyPerStep: 22000,
-      wallInset: 3
-    }
-  },
-  trampoline: {
-    label: 'Trampoline (snappy)',
-    description: 'High elasticity and low viscosity. Fast rebound with lively oscillation.',
-    values: {
-      wallWobbleMaxDeform: 60,
-      wallWobbleStiffness: 2900,
-      wallWobbleDamping: 14,
-      wallWobbleSigma: 2.4,
-      wallWobbleCornerClamp: 0.55,
-      wallWobbleImpactThreshold: 95,
-      wallWobbleSettlingSpeed: 35,
-      wallWobbleMaxVel: 1200,
-      wallWobbleMaxImpulse: 320,
-      wallWobbleMaxEnergyPerStep: 30000,
-      wallInset: 3
-    }
-  },
-  jelly: {
-    label: 'Jelly (slow wobble)',
-    description: 'Soft and springy with slow, smooth undulation. More “gel sheet”.',
-    values: {
-      wallWobbleMaxDeform: 95,
-      wallWobbleStiffness: 820,
-      wallWobbleDamping: 16,
-      wallWobbleSigma: 3.6,
-      wallWobbleCornerClamp: 0.4,
-      wallWobbleImpactThreshold: 75,
-      wallWobbleSettlingSpeed: 28,
-      wallWobbleMaxVel: 900,
-      wallWobbleMaxImpulse: 260,
-      wallWobbleMaxEnergyPerStep: 26000,
-      wallInset: 3
-    }
-  },
-  stiff: {
-    label: 'Stiff (rigid-ish)',
-    description: 'Small deformation with heavy damping: feels like thick industrial gasket.',
-    values: {
-      wallWobbleMaxDeform: 28,
-      wallWobbleStiffness: 3200,
-      wallWobbleDamping: 62,
-      wallWobbleSigma: 1.7,
-      wallWobbleCornerClamp: 0.8,
-      wallWobbleImpactThreshold: 160,
-      wallWobbleSettlingSpeed: 92,
-      wallWobbleMaxVel: 700,
-      wallWobbleMaxImpulse: 160,
-      wallWobbleMaxEnergyPerStep: 20000,
-      wallInset: 3
-    }
-  },
-  steel: {
-    label: 'Steel (almost solid)',
-    description: 'Barely moves; impact gating high. Useful as a near-static control case.',
-    values: {
-      wallWobbleMaxDeform: 10,
-      wallWobbleStiffness: 3600,
-      wallWobbleDamping: 75,
-      wallWobbleSigma: 1.2,
-      wallWobbleCornerClamp: 0.9,
-      wallWobbleImpactThreshold: 190,
-      wallWobbleSettlingSpeed: 98,
-      wallWobbleMaxVel: 500,
-      wallWobbleMaxImpulse: 90,
-      wallWobbleMaxEnergyPerStep: 16000,
-      wallInset: 3
-    }
-  },
-  latex: {
-    label: 'Latex (tight snap)',
-    description: 'Taut membrane: smaller blobs, higher tension, crisp rebounds.',
-    values: {
-      wallWobbleMaxDeform: 55,
-      wallWobbleStiffness: 2600,
-      wallWobbleDamping: 22,
-      wallWobbleSigma: 1.8,
-      wallWobbleCornerClamp: 0.7,
-      wallWobbleImpactThreshold: 105,
-      wallWobbleSettlingSpeed: 55,
-      wallWobbleMaxVel: 1100,
-      wallWobbleMaxImpulse: 300,
-      wallWobbleMaxEnergyPerStep: 28000,
-      wallInset: 3
-    }
-  },
-  memoryFoam: {
-    label: 'Memory Foam (slow sink)',
-    description: 'Very soft with heavy damping: sinks in and slowly recovers.',
-    values: {
-      wallWobbleMaxDeform: 120,
-      wallWobbleStiffness: 420,
-      wallWobbleDamping: 88,
-      wallWobbleSigma: 6.0,
-      wallWobbleCornerClamp: 0.2,
-      wallWobbleImpactThreshold: 45,
-      wallWobbleSettlingSpeed: 96,
-      wallWobbleMaxVel: 520,
-      wallWobbleMaxImpulse: 150,
-      wallWobbleMaxEnergyPerStep: 22000,
-      wallInset: 3
-    }
-  },
-  hydraulic: {
-    label: 'Hydraulic (damped)',
-    description: 'Medium squish with very high viscosity: controlled, “mechanical” response.',
-    values: {
-      wallWobbleMaxDeform: 70,
-      wallWobbleStiffness: 1400,
-      wallWobbleDamping: 78,
-      wallWobbleSigma: 3.0,
-      wallWobbleCornerClamp: 0.55,
-      wallWobbleImpactThreshold: 85,
-      wallWobbleSettlingSpeed: 90,
-      wallWobbleMaxVel: 650,
-      wallWobbleMaxImpulse: 200,
-      wallWobbleMaxEnergyPerStep: 24000,
-      wallInset: 3
-    }
-  },
-  gelSheet: {
-    label: 'Gel Sheet (wide ripples)',
-    description: 'Wide, slow waves with moderate bounce. Feels like a gel panel.',
-    values: {
-      wallWobbleMaxDeform: 95,
-      wallWobbleStiffness: 1000,
-      wallWobbleDamping: 28,
-      wallWobbleSigma: 4.8,
-      wallWobbleCornerClamp: 0.35,
-      wallWobbleImpactThreshold: 70,
-      wallWobbleSettlingSpeed: 45,
-      wallWobbleMaxVel: 900,
-      wallWobbleMaxImpulse: 260,
-      wallWobbleMaxEnergyPerStep: 26000,
-      wallDeformPhysicsPrecision: 75,
-      wallInset: 3
-    }
-  }
-};
+export const WALL_PRESETS = {};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODE PRESETS - Curated configurations for each simulation

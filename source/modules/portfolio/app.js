@@ -256,6 +256,10 @@ class PortfolioApp {
     this.updateWheelConfig();
     this.startWheel();
 
+    // Check URL hash for deep linking to a project
+    this.checkUrlHash();
+    window.addEventListener('hashchange', () => this.checkUrlHash());
+
     // Cylinder background removed.
 
     window.addEventListener('resize', () => {
@@ -1048,6 +1052,20 @@ class PortfolioApp {
         this.prefetchProjectAssets(this.projects[projectIndex]);
         this.updateFixedMeta(this.projects[projectIndex]);
         this.maybePlayCenterClick();
+        
+        // Preload ±2 adjacent projects (cover images only)
+        [-2, -1, 1, 2].forEach(offset => {
+          const adjIndex = (projectIndex + offset + this.projects.length) % this.projects.length;
+          const adjProject = this.projects[adjIndex];
+          if (adjProject && !this.preloadedProjects.has(adjProject.id)) {
+            // Only preload cover image, not full detail
+            const coverSrc = adjProject.image ? `${CONFIG.assetBasePath}${adjProject.image}` : null;
+            if (coverSrc && !this.preloadedAssets.has(coverSrc)) {
+              this.preloadedAssets.add(coverSrc);
+              this.preloadImage(coverSrc);
+            }
+          }
+        });
       }
 
       const snapSpeed = this.wheelSnapSpeed * Math.PI * 2;
@@ -1174,6 +1192,13 @@ class PortfolioApp {
         this.detailClose.addEventListener('click', () => this.closeProjectDetail());
     }
 
+    // Listen for inline close button clicks (delegated)
+    this.detailOverlay.addEventListener('click', (e) => {
+      if (e.target.closest('[data-detail-close-inline]')) {
+        this.closeProjectDetail();
+      }
+    });
+
     this.setupCloseButtonScrollAnimation();
   }
 
@@ -1187,6 +1212,7 @@ class PortfolioApp {
     overlay.className = 'project-detail';
     overlay.setAttribute('aria-hidden', 'true');
     overlay.innerHTML = `
+      <div class="project-detail__progress" aria-hidden="true"></div>
       <div class="project-detail__noise project-detail__noise--back" aria-hidden="true"></div>
       <div class="project-detail__card" role="dialog" aria-modal="true" aria-label="Project detail">
         <button class="project-detail__close gate-back abs-icon-btn" type="button" aria-label="Close project detail" data-detail-close>
@@ -1271,11 +1297,15 @@ class PortfolioApp {
         if (block.type === 'video') {
             const videoSrc = this.resolveDetailAsset(block.src);
             const videoType = this.getVideoMimeType(videoSrc);
+            const shouldAutoplay = !this.prefersReducedMotion;
             return `
-              <figure class="project-detail__block">
-                <video class="project-detail__video" autoplay muted loop playsinline preload="auto">
+              <figure class="project-detail__block project-detail__video-wrapper">
+                <video class="project-detail__video" ${shouldAutoplay ? 'autoplay' : ''} muted loop playsinline preload="metadata" data-src="${videoSrc}">
                   <source src="${videoSrc}"${videoType ? ` type="${videoType}"` : ''}>
                 </video>
+                <button class="project-detail__video-toggle" type="button" aria-label="Play/Pause video">
+                  <i class="ti ti-player-${shouldAutoplay ? 'pause' : 'play'}" aria-hidden="true"></i>
+                </button>
                 ${block.caption ? `<figcaption class="project-detail__caption">${block.caption}</figcaption>` : ''}
               </figure>
             `;
@@ -1285,7 +1315,9 @@ class PortfolioApp {
         const alt = block.alt || project.title || 'Project image';
         return `
           <figure class="project-detail__block">
-            <img class="project-detail__media-block" src="${imageSrc}" alt="${alt}" loading="lazy">
+            <div class="project-detail__media-skeleton" style="aspect-ratio: 16/9;">
+              <img class="project-detail__media-block" src="${imageSrc}" alt="${alt}" loading="lazy" onload="this.classList.add('loaded');this.parentElement.classList.remove('project-detail__media-skeleton')" onerror="this.classList.add('error');this.parentElement.classList.add('project-detail__media-error')">
+            </div>
             ${block.caption ? `<figcaption class="project-detail__caption">${block.caption}</figcaption>` : ''}
           </figure>
         `;
@@ -1294,15 +1326,18 @@ class PortfolioApp {
     const linksHtml = links.length ? `
       <div class="project-detail__links">
         ${links.map((link) => `
-          <a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.label}</a>
+          <a href="${link.url}" target="_blank" rel="noopener noreferrer">
+            ${link.label}
+            <i class="ti ti-external-link project-detail__external-icon" aria-hidden="true"></i>
+          </a>
         `).join('')}
       </div>
     ` : '';
 
     this.detailContent.innerHTML = `
       <section class="project-detail__hero">
-        <div class="project-detail__media">
-          <img class="project-detail__image" src="${headerSrc}" alt="${project.title || 'Project'}" loading="eager">
+        <div class="project-detail__media project-detail__media-skeleton">
+          <img class="project-detail__image" src="${headerSrc}" alt="${project.title || 'Project'}" loading="eager" onload="this.classList.add('loaded');this.parentElement.classList.remove('project-detail__media-skeleton')" onerror="this.classList.add('error');this.parentElement.classList.add('project-detail__media-error')">
         </div>
         <div class="project-detail__content project-detail__content--hero">
           <div class="project-detail__intro">
@@ -1328,6 +1363,12 @@ class PortfolioApp {
               ${takeaways.map((item) => `<li>${item}</li>`).join('')}
             </ul>
           </section>
+          <div class="project-detail__close-footer">
+            <button class="project-detail__close-inline gate-back abs-icon-btn" type="button" aria-label="Close project detail" data-detail-close-inline>
+              <i class="ti ti-x" aria-hidden="true"></i>
+              <span>Close</span>
+            </button>
+          </div>
         </div>
       </section>
     `;
@@ -1439,13 +1480,246 @@ class PortfolioApp {
     }
 
     if (this.detailClose) this.detailClose.focus();
+    
+    // Setup focus trap for accessibility
+    this.setupFocusTrap();
+    
+    // Setup arrow key navigation between projects
+    this.detailKeyHandler = (e) => {
+      if (!this.detailOpen) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        this.navigateToProject(-1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        this.navigateToProject(1);
+      }
+    };
+    document.addEventListener('keydown', this.detailKeyHandler);
+    
+    // Setup scroll progress indicator
+    this.progressBar = this.detailOverlay.querySelector('.project-detail__progress');
+    this.scrollProgressHandler = () => {
+      if (!this.detailScroller || !this.progressBar) return;
+      const { scrollTop, scrollHeight, clientHeight } = this.detailScroller;
+      const progress = scrollTop / (scrollHeight - clientHeight) * 100;
+      this.progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+    };
+    this.detailScroller.addEventListener('scroll', this.scrollProgressHandler, { passive: true });
+    
+    // Setup swipe gestures for mobile
+    this.setupSwipeGestures();
+    
+    // Update URL hash for deep linking (replaceState to avoid polluting history)
+    if (project.id) {
+      const slug = project.id.toLowerCase().replace(/\s+/g, '-');
+      history.replaceState({ projectIndex: index }, '', `#project-${slug}`);
+    }
+  }
+
+  setupFocusTrap() {
+    if (!this.detailOverlay) return;
+    
+    const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    
+    this.focusTrapHandler = (e) => {
+      if (e.key !== 'Tab' || !this.detailOpen) return;
+      
+      const focusableElements = Array.from(
+        this.detailOverlay.querySelectorAll(focusableSelector)
+      ).filter(el => !el.hasAttribute('disabled') && el.offsetParent !== null);
+      
+      if (focusableElements.length === 0) return;
+      
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    };
+    
+    document.addEventListener('keydown', this.focusTrapHandler);
+  }
+
+  removeFocusTrap() {
+    if (this.focusTrapHandler) {
+      document.removeEventListener('keydown', this.focusTrapHandler);
+      this.focusTrapHandler = null;
+    }
+  }
+
+  setupSwipeGestures() {
+    if (!this.detailScroller) return;
+    
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    let currentX = 0;
+    let currentY = 0;
+    
+    const threshold = 50;
+    const verticalThreshold = 100;
+    
+    this.swipeTouchStart = (e) => {
+      if (!this.detailOpen) return;
+      const touch = e.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      currentX = startX;
+      currentY = startY;
+      startTime = Date.now();
+    };
+    
+    this.swipeTouchMove = (e) => {
+      if (!this.detailOpen) return;
+      const touch = e.touches[0];
+      currentX = touch.clientX;
+      currentY = touch.clientY;
+    };
+    
+    this.swipeTouchEnd = (e) => {
+      if (!this.detailOpen) return;
+      
+      const deltaX = currentX - startX;
+      const deltaY = currentY - startY;
+      const deltaTime = Date.now() - startTime;
+      
+      // Only process quick swipes (under 500ms) to avoid interfering with scrolling
+      if (deltaTime > 500) return;
+      
+      // Swipe down to close (only at scroll top, requires significant movement)
+      if (deltaY > verticalThreshold && this.detailScroller.scrollTop < 10 && Math.abs(deltaX) < threshold) {
+        this.closeProjectDetail();
+        return;
+      }
+      
+      // Swipe left/right for navigation (requires clear horizontal intent)
+      if (Math.abs(deltaX) > threshold && Math.abs(deltaY) < Math.abs(deltaX) * 0.5) {
+        if (deltaX > 0) {
+          // Swipe right = previous
+          this.navigateToProject(-1);
+        } else {
+          // Swipe left = next
+          this.navigateToProject(1);
+        }
+      }
+    };
+    
+    this.detailScroller.addEventListener('touchstart', this.swipeTouchStart, { passive: true });
+    this.detailScroller.addEventListener('touchmove', this.swipeTouchMove, { passive: true });
+    this.detailScroller.addEventListener('touchend', this.swipeTouchEnd, { passive: true });
+  }
+
+  removeSwipeGestures() {
+    if (!this.detailScroller) return;
+    if (this.swipeTouchStart) {
+      this.detailScroller.removeEventListener('touchstart', this.swipeTouchStart);
+      this.detailScroller.removeEventListener('touchmove', this.swipeTouchMove);
+      this.detailScroller.removeEventListener('touchend', this.swipeTouchEnd);
+      this.swipeTouchStart = null;
+      this.swipeTouchMove = null;
+      this.swipeTouchEnd = null;
+    }
+  }
+
+  /**
+   * Check URL hash for deep linking to a project
+   * Allows sharing direct links like portfolio.html#project-design-systems
+   */
+  checkUrlHash() {
+    const hash = location.hash;
+    if (!hash.startsWith('#project-')) return;
+    
+    const slug = hash.replace('#project-', '');
+    const projectIndex = this.projects.findIndex(p => {
+      const projectSlug = (p.id || '').toLowerCase().replace(/\s+/g, '-');
+      return projectSlug === slug;
+    });
+    
+    if (projectIndex === -1) return;
+    
+    // Wait for carousel to be ready, then open the project
+    requestAnimationFrame(() => {
+      // Navigate carousel to the project first
+      this.currentRotation = projectIndex * this.angleStep;
+      this.updateWheelPositions(0, true);
+      
+      // Open the detail view after a brief delay
+      setTimeout(() => {
+        const slide = this.slides[projectIndex];
+        if (slide) this.openProjectDetail(projectIndex, slide);
+      }, 100);
+    });
+  }
+
+  navigateToProject(direction) {
+    if (!this.detailOpen || this.isTransitioning) return;
+    
+    const newIndex = (this.activeIndex + direction + this.projects.length) % this.projects.length;
+    const project = this.projects[newIndex];
+    if (!project) return;
+    
+    // Quick fade transition
+    this.isTransitioning = true;
+    const inner = this.detailOverlay.querySelector('.project-detail__inner');
+    if (inner) {
+      inner.style.opacity = '0';
+      inner.style.transform = 'scale(0.98)';
+    }
+    
+    setTimeout(() => {
+      this.activeIndex = newIndex;
+      this.renderDetailContent(project);
+      
+      // Announce to screen readers
+      const announcement = document.createElement('div');
+      announcement.setAttribute('role', 'status');
+      announcement.setAttribute('aria-live', 'polite');
+      announcement.className = 'sr-only';
+      announcement.textContent = `Project ${newIndex + 1} of ${this.projects.length}: ${project.title}`;
+      this.detailOverlay.appendChild(announcement);
+      setTimeout(() => announcement.remove(), 1000);
+      
+      if (inner) {
+        inner.style.opacity = '';
+        inner.style.transform = '';
+      }
+      this.isTransitioning = false;
+    }, 200);
   }
 
   closeProjectDetail() {
     // Guard: prevent closing if already closed or transitioning
     if (!this.detailOpen || this.isTransitioning) return;
     
+    // Clear URL hash
+    if (location.hash.startsWith('#project-')) {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+    
     SoundEngine.playWheelClose();
+    
+    // Remove focus trap and keyboard handlers
+    this.removeFocusTrap();
+    if (this.detailKeyHandler) {
+      document.removeEventListener('keydown', this.detailKeyHandler);
+      this.detailKeyHandler = null;
+    }
+    
+    // Remove scroll progress handler
+    if (this.scrollProgressHandler && this.detailScroller) {
+      this.detailScroller.removeEventListener('scroll', this.scrollProgressHandler);
+      this.scrollProgressHandler = null;
+    }
+    
+    // Remove swipe gestures
+    this.removeSwipeGestures();
 
     this.isTransitioning = true;
     this.detailOpen = false;
@@ -1505,21 +1779,52 @@ class PortfolioApp {
     const videos = Array.from(this.detailOverlay.querySelectorAll('.project-detail__video'));
     if (!videos.length) return;
 
+    // Add click handlers for play/pause toggles
+    this.detailOverlay.querySelectorAll('.project-detail__video-toggle').forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        const video = videos[i];
+        if (!video) return;
+        if (video.paused) {
+          video.play().catch(() => {});
+          btn.querySelector('i').className = 'ti ti-player-pause';
+        } else {
+          video.pause();
+          btn.querySelector('i').className = 'ti ti-player-play';
+        }
+      });
+    });
+
     if ('IntersectionObserver' in window) {
         this.detailVideoObserver = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 const video = entry.target;
                 if (entry.isIntersecting) {
-                    video.play().catch(() => {});
+                    // Upgrade preload when near viewport
+                    if (video.preload === 'metadata') {
+                      video.preload = 'auto';
+                    }
+                    if (!this.prefersReducedMotion) {
+                      video.play().catch(() => {});
+                      // Update toggle button icon
+                      const wrapper = video.closest('.project-detail__video-wrapper');
+                      const btn = wrapper?.querySelector('.project-detail__video-toggle i');
+                      if (btn) btn.className = 'ti ti-player-pause';
+                    }
                 } else {
                     video.pause();
+                    // Update toggle button icon
+                    const wrapper = video.closest('.project-detail__video-wrapper');
+                    const btn = wrapper?.querySelector('.project-detail__video-toggle i');
+                    if (btn) btn.className = 'ti ti-player-play';
                 }
             });
-        }, { root: this.detailScroller, threshold: 0.6 });
+        }, { root: this.detailScroller, threshold: 0.3, rootMargin: '200px' });
 
         videos.forEach((video) => this.detailVideoObserver.observe(video));
     } else {
-        videos.forEach((video) => video.play().catch(() => {}));
+        if (!this.prefersReducedMotion) {
+          videos.forEach((video) => video.play().catch(() => {}));
+        }
     }
   }
 
@@ -1575,11 +1880,16 @@ class PortfolioApp {
     if (!project || !project.id) return;
     if (this.preloadedProjects.has(project.id)) return;
 
+    // Check connection quality
+    const connection = navigator.connection;
+    const saveData = connection?.saveData;
+    const effectiveType = connection?.effectiveType;
+    const shouldPreloadVideo = !saveData && effectiveType !== '2g' && effectiveType !== 'slow-2g';
+
     const assets = this.collectProjectAssets(project);
     if (!assets.length) return;
 
     this.preloadedProjects.add(project.id);
-    const shouldPreloadVideo = !navigator.connection || !navigator.connection.saveData;
 
     const run = () => {
         assets.forEach((asset) => {

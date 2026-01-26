@@ -6,7 +6,7 @@
 import { getConfig, getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
-import { registerWallImpactAtPoint, registerWallPressureAtPoint, wallState } from './wall-state.js';
+import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-state.js';
 
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;

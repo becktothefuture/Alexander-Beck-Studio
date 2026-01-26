@@ -5,17 +5,166 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { autoSaveSettings } from '../utils/storage.js';
-import { syncConfigToFile } from '../utils/config-sync.js';
-import { WALL_PRESETS, PARALLAX_LINEAR_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
+import { PARALLAX_LINEAR_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
-import { applyWallPreset, wallState } from '../physics/wall-state.js';
+import { resetWallRumble } from '../physics/wall-state.js';
 
 // Will be set by main.js to avoid circular dependency
 let applyVisualCSSVars = null;
 export function setApplyVisualCSSVars(fn) {
   applyVisualCSSVars = fn;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WALL SHADOW CSS UPDATE
+// Dynamically updates box-shadow on #bravia-balls::after via CSS custom properties
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Convert hex color to RGB object
+ * @param {string} hex - Hex color string (e.g., '#ffffff' or '#fff')
+ * @returns {{r: number, g: number, b: number}} RGB values (0-255)
+ */
+function hexToRgb(hex) {
+  // Remove # if present
+  hex = hex.replace(/^#/, '');
+  
+  // Handle 3-character hex
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+  
+  const num = parseInt(hex, 16);
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255
+  };
+}
+
+function updateWallShadowCSS(g) {
+  const container = document.getElementById('bravia-balls');
+  if (!container) return;
+  
+  // ═══ CORE PARAMETERS ═══
+  const angle = g.wallShadowAngle ?? 160;
+  const distance = g.wallShadowDistance ?? 10;
+  const layers = Math.max(1, Math.min(12, Math.round(g.wallShadowLayers ?? 5)));
+  
+  // ═══ OUTSET (external shadow) PARAMETERS ═══
+  const outsetIntensity = g.wallShadowOutsetIntensity ?? 1.0;
+  const outsetOpacityBase = g.wallShadowOutsetOpacity ?? 0.25;
+  const outsetBlurMin = g.wallShadowOutsetBlurMin ?? 4;
+  const outsetBlurMax = g.wallShadowOutsetBlurMax ?? 120;
+  const outsetSpreadMin = g.wallShadowOutsetSpreadMin ?? 0;
+  const outsetSpreadMax = g.wallShadowOutsetSpreadMax ?? 30;
+  
+  // ═══ INSET (vignette) PARAMETERS ═══
+  const insetIntensity = g.wallShadowInsetIntensity ?? 0.8;
+  const insetOpacityBase = g.wallShadowInsetOpacity ?? 0.15;
+  const insetBlurMin = g.wallShadowInsetBlurMin ?? 8;
+  const insetBlurMax = g.wallShadowInsetBlurMax ?? 100;
+  const insetSpreadMin = g.wallShadowInsetSpreadMin ?? 0;
+  const insetSpreadMax = g.wallShadowInsetSpreadMax ?? 20;
+  const insetLayerRatio = g.wallShadowInsetLayerRatio ?? 0.6;
+  
+  // ═══ FALLOFF CURVE ═══
+  const falloffCurve = g.wallShadowFalloffCurve ?? 2.0;
+  const falloffFactor = g.wallShadowFalloffFactor ?? 0.7;
+  
+  // Calculate directional offset from angle
+  const angleRad = (angle + 180) * Math.PI / 180;
+  const offsetX = Math.sin(angleRad) * distance;
+  const offsetY = -Math.cos(angleRad) * distance;
+  
+  // Check if dark mode and get shadow color
+  const isDark = document.body.classList.contains('dark-mode');
+  const colorHex = isDark 
+    ? (g.wallShadowColorDark ?? '#000000')
+    : (g.wallShadowColorLight ?? '#ffffff');
+  const rgb = hexToRgb(colorHex);
+  const rgbStr = `${rgb.r},${rgb.g},${rgb.b}`;
+  
+  // ═══ MODE-SPECIFIC INTENSITY ═══
+  // Light mode needs higher opacity because light-on-light has low contrast
+  // Dark mode shadows are naturally visible (dark-on-dark creates depth)
+  const lightModeBoost = g.wallShadowLightModeBoost ?? 3.0;
+  const modeMultiplier = isDark ? 1.0 : lightModeBoost;
+  
+  const shadows = [];
+  
+  // ═══ OUTSET SHADOWS (projected onto wall) ═══
+  for (let i = 0; i < layers; i++) {
+    const t = layers === 1 ? 0 : i / (layers - 1); // 0 to 1 progress
+    
+    // Progressive offset (closer layers have less offset)
+    const layerOffset = 0.15 + (t * 0.85);
+    const ox = (offsetX * layerOffset).toFixed(1);
+    const oy = (offsetY * layerOffset).toFixed(1);
+    
+    // Progressive blur (exponential growth)
+    const blurRange = outsetBlurMax - outsetBlurMin;
+    const layerBlur = (outsetBlurMin + (t * t * blurRange)).toFixed(1);
+    
+    // Progressive spread
+    const spreadRange = outsetSpreadMax - outsetSpreadMin;
+    const layerSpread = (outsetSpreadMin + (t * spreadRange)).toFixed(1);
+    
+    // Configurable opacity falloff with mode-specific boost
+    const falloffMult = Math.pow(1 - t * falloffFactor, falloffCurve);
+    const rawOpacity = outsetOpacityBase * falloffMult * outsetIntensity * modeMultiplier;
+    const layerOpacity = Math.min(1, rawOpacity).toFixed(4); // Clamp to max 1.0
+    
+    shadows.push(`${ox}px ${oy}px ${layerBlur}px ${layerSpread}px rgba(${rgbStr}, ${layerOpacity})`);
+  }
+  
+  // ═══ INSET SHADOWS (interior vignette) ═══
+  const insetLayers = Math.max(1, Math.round(layers * insetLayerRatio));
+  for (let i = 0; i < insetLayers; i++) {
+    const t = insetLayers === 1 ? 0 : i / (insetLayers - 1);
+    
+    // Inset offset (subtle directional)
+    const layerOffset = 0.1 + (t * 0.4);
+    const ox = (offsetX * layerOffset).toFixed(1);
+    const oy = (offsetY * layerOffset).toFixed(1);
+    
+    // Progressive blur
+    const blurRange = insetBlurMax - insetBlurMin;
+    const layerBlur = (insetBlurMin + (t * t * blurRange)).toFixed(1);
+    
+    // Progressive spread
+    const spreadRange = insetSpreadMax - insetSpreadMin;
+    const layerSpread = (insetSpreadMin + (t * spreadRange)).toFixed(1);
+    
+    // Configurable opacity falloff with mode-specific boost
+    const falloffMult = Math.pow(1 - t * falloffFactor * 0.85, falloffCurve);
+    const rawOpacity = insetOpacityBase * falloffMult * insetIntensity * modeMultiplier;
+    const layerOpacity = Math.min(1, rawOpacity).toFixed(4); // Clamp to max 1.0
+    
+    shadows.push(`inset ${ox}px ${oy}px ${layerBlur}px ${layerSpread}px rgba(${rgbStr}, ${layerOpacity})`);
+  }
+  
+  const shadowStr = shadows.join(', ');
+  
+  // Apply to the ::after pseudo-element via a style override
+  container.style.setProperty('--wall-shadow-override', shadowStr);
+  
+  // Add a style tag if not exists to use the override
+  let styleTag = document.getElementById('wall-shadow-override-style');
+  if (!styleTag) {
+    styleTag = document.createElement('style');
+    styleTag.id = 'wall-shadow-override-style';
+    styleTag.textContent = `
+      #bravia-balls::after {
+        box-shadow: var(--wall-shadow-override) !important;
+      }
+    `;
+    document.head.appendChild(styleTag);
+  }
+}
+
+// Export for initialization
+export { updateWallShadowCSS };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONTROL VISIBILITY STATE
@@ -67,25 +216,65 @@ loadVisibility();
 // PANEL SCOPES (MASTER vs HOME)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const MASTER_SECTION_KEYS = [
-  // Artist-first order: start with the physical world, then look/texture, then interaction.
-  'liteMode',           // single performance toggle
-  'physics',            // global material world (mass, bounce, drag, perf)
-  'wall',               // boundary feel + wobble
-  'balls',              // ball material + spacing
-  'colorDistribution',  // what's inside (palette mix)
-  'colors',             // surface + text + frame
-  'uiSpacing',          // content padding + hit areas + link/footer spacing
-  'noise',              // grain/texture
-  'cursor',             // interaction feel
-  'trail',              // motion styling
-  'links',              // link styling, padding, color, impact motion
-  'scene',              // global scene motion
-  'overlay',            // gate/overlays
-  'simulationOverlay',  // gradient on simulation (viewport ::before + depth-wash)
-  'entrance',           // dramatic page entrance animation
-  'environment'         // browser/theme behavior
+export const MASTER_GROUPS = [
+  {
+    id: 'global',
+    title: 'Global',
+    icon: '🌐',
+    sections: [
+      'colors',
+      'colorDistribution',
+      'noise',
+      'uiSpacing',
+      'cursor',
+      'trail',
+      'links',
+      'scene'
+    ]
+  },
+  {
+    id: 'simulations',
+    title: 'Simulations',
+    icon: '🧪',
+    sections: [
+      'liteMode',
+      'physics',
+      'balls',
+      'wall',
+      'simulationOverlay',
+      'critters',
+      'pit',
+      'flies',
+      'water',
+      'vortex',
+      'magnetic',
+      'bubbles',
+      'kaleidoscope3',
+      'sphere3d',
+      'cube3d',
+      'neural',
+      'parallaxLinear',
+      'parallaxFloat',
+      'starfield3d',
+      'elasticCenter',
+      'dvdLogo',
+      'particleFountain',
+      'weightless'
+    ]
+  },
+  {
+    id: 'browserTransition',
+    title: 'Browser & Transition',
+    icon: '🧭',
+    sections: [
+      'environment',
+      'entrance',
+      'overlay'
+    ]
+  }
 ];
+
+export const MASTER_SECTION_KEYS = MASTER_GROUPS.flatMap(group => group.sections);
 
 // Category groupings for visual chunking in the panel
 const SECTION_CATEGORIES = {
@@ -139,6 +328,273 @@ export function applyParallaxLinearPreset(presetName, reinit = true) {
 
   try { syncSlidersToState(); } catch (e) {}
   console.log(`Applied parallax linear preset: ${preset.label}`);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WALL SHADOW PRESETS - Realistic shadow configurations
+// High layer counts + smooth falloff curves = no banding
+// Progressive blur increases naturally with distance from edge
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const WALL_SHADOW_PRESETS = {
+  // 1. Barely-there ambient occlusion
+  subtle: {
+    label: 'Subtle Ambient',
+    wallShadowLayers: 6,
+    wallShadowAngle: 160,
+    wallShadowDistance: 4,
+    wallShadowFalloffCurve: 2.5,
+    wallShadowFalloffFactor: 0.85,
+    wallShadowOutsetIntensity: 0.4,
+    wallShadowOutsetOpacity: 0.08,
+    wallShadowOutsetBlurMin: 2,
+    wallShadowOutsetBlurMax: 40,
+    wallShadowOutsetSpreadMin: 0,
+    wallShadowOutsetSpreadMax: 8,
+    wallShadowInsetIntensity: 0.3,
+    wallShadowInsetOpacity: 0.06,
+    wallShadowInsetLayerRatio: 0.5,
+    wallShadowInsetBlurMin: 4,
+    wallShadowInsetBlurMax: 50,
+    wallShadowInsetSpreadMin: 0,
+    wallShadowInsetSpreadMax: 10,
+    wallShadowLightModeBoost: 5.0  // High boost for subtle effect to be visible
+  },
+
+  // 2. Soft diffuse light (overcast day)
+  softDiffuse: {
+    label: 'Soft Diffuse',
+    wallShadowLayers: 8,
+    wallShadowAngle: 180,
+    wallShadowDistance: 6,
+    wallShadowFalloffCurve: 2.2,
+    wallShadowFalloffFactor: 0.75,
+    wallShadowOutsetIntensity: 0.7,
+    wallShadowOutsetOpacity: 0.12,
+    wallShadowOutsetBlurMin: 6,
+    wallShadowOutsetBlurMax: 80,
+    wallShadowOutsetSpreadMin: 0,
+    wallShadowOutsetSpreadMax: 15,
+    wallShadowInsetIntensity: 0.6,
+    wallShadowInsetOpacity: 0.10,
+    wallShadowInsetLayerRatio: 0.6,
+    wallShadowInsetBlurMin: 8,
+    wallShadowInsetBlurMax: 70,
+    wallShadowInsetSpreadMin: 0,
+    wallShadowInsetSpreadMax: 12,
+    wallShadowLightModeBoost: 4.0
+  },
+
+  // 3. Natural window light (realistic daylight)
+  naturalDaylight: {
+    label: 'Natural Daylight',
+    wallShadowLayers: 10,
+    wallShadowAngle: 135,
+    wallShadowDistance: 12,
+    wallShadowFalloffCurve: 2.0,
+    wallShadowFalloffFactor: 0.70,
+    wallShadowOutsetIntensity: 1.0,
+    wallShadowOutsetOpacity: 0.18,
+    wallShadowOutsetBlurMin: 4,
+    wallShadowOutsetBlurMax: 100,
+    wallShadowOutsetSpreadMin: 0,
+    wallShadowOutsetSpreadMax: 25,
+    wallShadowInsetIntensity: 0.8,
+    wallShadowInsetOpacity: 0.12,
+    wallShadowInsetLayerRatio: 0.6,
+    wallShadowInsetBlurMin: 6,
+    wallShadowInsetBlurMax: 80,
+    wallShadowInsetSpreadMin: 0,
+    wallShadowInsetSpreadMax: 18,
+    wallShadowLightModeBoost: 3.0
+  },
+
+  // 4. Dramatic directional (strong single source)
+  dramatic: {
+    label: 'Dramatic',
+    wallShadowLayers: 12,
+    wallShadowAngle: 145,
+    wallShadowDistance: 20,
+    wallShadowFalloffCurve: 1.8,
+    wallShadowFalloffFactor: 0.65,
+    wallShadowOutsetIntensity: 1.4,
+    wallShadowOutsetOpacity: 0.28,
+    wallShadowOutsetBlurMin: 3,
+    wallShadowOutsetBlurMax: 140,
+    wallShadowOutsetSpreadMin: 0,
+    wallShadowOutsetSpreadMax: 35,
+    wallShadowInsetIntensity: 1.2,
+    wallShadowInsetOpacity: 0.20,
+    wallShadowInsetLayerRatio: 0.7,
+    wallShadowInsetBlurMin: 5,
+    wallShadowInsetBlurMax: 100,
+    wallShadowInsetSpreadMin: 0,
+    wallShadowInsetSpreadMax: 25,
+    wallShadowLightModeBoost: 2.5
+  },
+
+  // 5. Floating / levitation effect (object lifted off surface)
+  floating: {
+    label: 'Floating',
+    wallShadowLayers: 10,
+    wallShadowAngle: 180,
+    wallShadowDistance: 25,
+    wallShadowFalloffCurve: 2.8,
+    wallShadowFalloffFactor: 0.80,
+    wallShadowOutsetIntensity: 1.1,
+    wallShadowOutsetOpacity: 0.15,
+    wallShadowOutsetBlurMin: 8,
+    wallShadowOutsetBlurMax: 180,
+    wallShadowOutsetSpreadMin: -5,
+    wallShadowOutsetSpreadMax: 40,
+    wallShadowInsetIntensity: 0.4,
+    wallShadowInsetOpacity: 0.08,
+    wallShadowInsetLayerRatio: 0.4,
+    wallShadowInsetBlurMin: 10,
+    wallShadowInsetBlurMax: 60,
+    wallShadowInsetSpreadMin: 0,
+    wallShadowInsetSpreadMax: 8,
+    wallShadowLightModeBoost: 3.5
+  },
+
+  // 6. Deep recess (object sunk into surface)
+  deepRecess: {
+    label: 'Deep Recess',
+    wallShadowLayers: 10,
+    wallShadowAngle: 160,
+    wallShadowDistance: 8,
+    wallShadowFalloffCurve: 2.2,
+    wallShadowFalloffFactor: 0.70,
+    wallShadowOutsetIntensity: 0.5,
+    wallShadowOutsetOpacity: 0.10,
+    wallShadowOutsetBlurMin: 4,
+    wallShadowOutsetBlurMax: 60,
+    wallShadowOutsetSpreadMin: 0,
+    wallShadowOutsetSpreadMax: 12,
+    wallShadowInsetIntensity: 1.8,
+    wallShadowInsetOpacity: 0.25,
+    wallShadowInsetLayerRatio: 1.0,
+    wallShadowInsetBlurMin: 4,
+    wallShadowInsetBlurMax: 120,
+    wallShadowInsetSpreadMin: 0,
+    wallShadowInsetSpreadMax: 30,
+    wallShadowLightModeBoost: 2.5
+  },
+
+  // 7. Spotlight (sharp theatrical lighting)
+  spotlight: {
+    label: 'Spotlight',
+    wallShadowLayers: 12,
+    wallShadowAngle: 135,
+    wallShadowDistance: 30,
+    wallShadowFalloffCurve: 1.5,
+    wallShadowFalloffFactor: 0.55,
+    wallShadowOutsetIntensity: 1.6,
+    wallShadowOutsetOpacity: 0.35,
+    wallShadowOutsetBlurMin: 2,
+    wallShadowOutsetBlurMax: 200,
+    wallShadowOutsetSpreadMin: -2,
+    wallShadowOutsetSpreadMax: 50,
+    wallShadowInsetIntensity: 1.0,
+    wallShadowInsetOpacity: 0.18,
+    wallShadowInsetLayerRatio: 0.5,
+    wallShadowInsetBlurMin: 3,
+    wallShadowInsetBlurMax: 90,
+    wallShadowInsetSpreadMin: 0,
+    wallShadowInsetSpreadMax: 20,
+    wallShadowLightModeBoost: 2.0  // Lower boost - already strong
+  },
+
+  // 8. Overcast (very soft, almost directionless)
+  overcast: {
+    label: 'Overcast',
+    wallShadowLayers: 8,
+    wallShadowAngle: 180,
+    wallShadowDistance: 3,
+    wallShadowFalloffCurve: 3.0,
+    wallShadowFalloffFactor: 0.90,
+    wallShadowOutsetIntensity: 0.6,
+    wallShadowOutsetOpacity: 0.10,
+    wallShadowOutsetBlurMin: 10,
+    wallShadowOutsetBlurMax: 100,
+    wallShadowOutsetSpreadMin: 2,
+    wallShadowOutsetSpreadMax: 20,
+    wallShadowInsetIntensity: 0.5,
+    wallShadowInsetOpacity: 0.08,
+    wallShadowInsetLayerRatio: 0.6,
+    wallShadowInsetBlurMin: 12,
+    wallShadowInsetBlurMax: 80,
+    wallShadowInsetSpreadMin: 2,
+    wallShadowInsetSpreadMax: 15,
+    wallShadowLightModeBoost: 4.5
+  },
+
+  // 9. Golden hour (warm, long shadows)
+  goldenHour: {
+    label: 'Golden Hour',
+    wallShadowLayers: 12,
+    wallShadowAngle: 110,
+    wallShadowDistance: 35,
+    wallShadowFalloffCurve: 1.8,
+    wallShadowFalloffFactor: 0.60,
+    wallShadowOutsetIntensity: 1.2,
+    wallShadowOutsetOpacity: 0.22,
+    wallShadowOutsetBlurMin: 3,
+    wallShadowOutsetBlurMax: 180,
+    wallShadowOutsetSpreadMin: 0,
+    wallShadowOutsetSpreadMax: 45,
+    wallShadowInsetIntensity: 0.9,
+    wallShadowInsetOpacity: 0.15,
+    wallShadowInsetLayerRatio: 0.6,
+    wallShadowInsetBlurMin: 5,
+    wallShadowInsetBlurMax: 100,
+    wallShadowInsetSpreadMin: 0,
+    wallShadowInsetSpreadMax: 22,
+    wallShadowLightModeBoost: 2.5
+  },
+
+  // 10. Studio (professional photography, balanced)
+  studio: {
+    label: 'Studio',
+    wallShadowLayers: 10,
+    wallShadowAngle: 150,
+    wallShadowDistance: 15,
+    wallShadowFalloffCurve: 2.0,
+    wallShadowFalloffFactor: 0.70,
+    wallShadowOutsetIntensity: 1.0,
+    wallShadowOutsetOpacity: 0.20,
+    wallShadowOutsetBlurMin: 4,
+    wallShadowOutsetBlurMax: 120,
+    wallShadowOutsetSpreadMin: 0,
+    wallShadowOutsetSpreadMax: 28,
+    wallShadowInsetIntensity: 0.8,
+    wallShadowInsetOpacity: 0.14,
+    wallShadowInsetLayerRatio: 0.6,
+    wallShadowInsetBlurMin: 6,
+    wallShadowInsetBlurMax: 90,
+    wallShadowInsetSpreadMin: 0,
+    wallShadowInsetSpreadMax: 18,
+    wallShadowLightModeBoost: 3.0
+  }
+};
+
+export function applyWallShadowPreset(presetName) {
+  const preset = WALL_SHADOW_PRESETS[presetName];
+  if (!preset) return;
+
+  const g = getGlobals();
+  for (const [key, val] of Object.entries(preset)) {
+    if (key === 'label') continue;
+    if (g[key] !== undefined) g[key] = val;
+  }
+  g.wallShadowPreset = presetName;
+
+  // Update the shadow CSS
+  updateWallShadowCSS(g);
+  
+  // Sync sliders to reflect new values
+  try { syncSlidersToState(); } catch (e) {}
+  console.log(`Applied wall shadow preset: ${preset.label}`);
 }
 
 function warmupFramesControl(stateKey) {
@@ -821,8 +1277,6 @@ export const CONTROL_SECTIONS = {
          hint: 'Additive padding as a fraction of viewport size (sqrt(w*h)). Back-compat: old px values are auto-converted.',
          onChange: (g, val) => {
            const valueToSync = val !== undefined ? val : (g.contentPaddingRatio !== undefined ? g.contentPaddingRatio : 0);
-           // Sync to config file (dev mode only) - do this first to ensure it happens
-           syncConfigToFile('default', 'contentPaddingRatio', valueToSync);
            
            import('../core/state.js').then(({ applyLayoutFromVwToPx, applyLayoutCSSVars }) => {
              applyLayoutFromVwToPx();
@@ -885,10 +1339,6 @@ export const CONTROL_SECTIONS = {
          onChange: (_g, val) => {
            const ratio = Number(val) || 1.3;
            document.documentElement.style.setProperty('--abs-content-pad-mul-bottom', String(ratio));
-          // Sync to config file (dev mode only)
-          import('../utils/config-sync.js').then(({ syncConfigToFile }) => {
-            syncConfigToFile('default', 'contentPaddingBottomRatio', ratio);
-          }).catch(() => {});
          }
        },
 
@@ -1987,44 +2437,6 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
-        id: 'wallPreset',
-        label: 'Wall Preset',
-        stateKey: 'wallPreset',
-        type: 'select',
-        // Preserve insertion order from WALL_PRESETS (curated order in constants.js)
-        options: Object.entries(WALL_PRESETS).map(([key, preset]) => ({
-          value: key,
-          label: preset?.label ? preset.label : key
-        })),
-        default: 'pudding',
-        format: v => String(v),
-        onChange: (g, val) => {
-          applyWallPreset(String(val), g);
-          // UI sync only (no control side-effects like full page reloads).
-          syncSlidersToState({ runOnChange: false });
-
-          // Reload ONLY the simulation state (not the page, not the panel DOM).
-          // Preset values are read live by the physics/render loops, so we mainly want to:
-          // - clear existing wall deformation so the new material starts clean
-          // - wake balls so changes are obvious immediately
-          try { wallState?.reset?.(); } catch (e) {}
-          try {
-            const balls = Array.isArray(g?.balls) ? g.balls : [];
-            for (let i = 0; i < balls.length; i++) balls[i]?.wake?.();
-          } catch (e) {}
-
-          // IMPORTANT UX: After interacting with a <select>, keyboard mode switching (ArrowLeft/ArrowRight)
-          // is intentionally ignored because the key handler skips INPUT/TEXTAREA/SELECT targets.
-          // Blur so mode switching resumes immediately after choosing a preset.
-          try {
-            const el = document.getElementById('wallPresetSlider');
-            if (el && typeof el.blur === 'function') el.blur();
-            else if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
-          } catch (e) {}
-        },
-        hint: 'Curated wall “types” that set multiple wall sliders at once.'
-      },
-      {
         id: 'wallThicknessVw',
         label: 'Wall Thickness',
         stateKey: 'wallThicknessVw',
@@ -2157,34 +2569,376 @@ export const CONTROL_SECTIONS = {
       },
       
       // ═══════════════════════════════════════════════════════════════════
-      // WALL PHYSICS & MATERIAL
-      // 2-column grid layout for compact organization
+      // WALL RUMBLE - Viewport shake on impacts (pit, flies, weightless, fountain only)
       // ═══════════════════════════════════════════════════════════════════
       {
-        id: 'wallWobbleMaxDeform',
-        label: 'Deformation',
-        stateKey: 'wallWobbleMaxDeform',
-        type: 'range',
-        min: 10, max: 150, step: 5,
-        default: 60,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Material',
-        groupLayout: 'grid-2col',
-        hint: 'Max flex distance. Low = rigid, High = soft'
+        id: 'wallRumbleEnabled',
+        label: 'Rumble',
+        stateKey: 'wallRumbleEnabled',
+        type: 'toggle',
+        default: true,
+        group: 'Wall Rumble',
+        hint: 'Viewport shake on impacts (pit, flies, zero-g, fountain only)'
       },
       {
-        id: 'wallWobbleStiffness',
-        label: 'Stiffness',
-        stateKey: 'wallWobbleStiffness',
-        type: 'range',
-        min: 50, max: 3000, step: 10,
-        default: 120,
+        id: 'wallRumblePreset',
+        label: 'Preset',
+        stateKey: 'wallRumblePreset',
+        type: 'select',
+        options: [
+          { value: 'subtle', label: 'Subtle — barely perceptible' },
+          { value: 'rubber', label: 'Rubber — thick absorption (default)' },
+          { value: 'soft', label: 'Soft — gentle cushion' },
+          { value: 'responsive', label: 'Responsive — more feedback' }
+        ],
+        default: 'rubber',
         format: v => String(v),
-        parse: v => parseInt(v, 10),
-        group: 'Wall Material',
-        hint: 'Spring strength. Low = soft, High = firm'
+        parse: v => String(v),
+        group: 'Wall Rumble',
+        hint: 'Thick rubber wall feel',
+        onChange: (g, value) => {
+          import('../physics/wall-state.js').then(({ applyRumblePreset }) => {
+            applyRumblePreset(value);
+          });
+        }
       },
+      {
+        id: 'wallRumbleThreshold',
+        label: 'Threshold',
+        stateKey: 'wallRumbleThreshold',
+        type: 'range',
+        min: 100, max: 400, step: 10,
+        default: 350,
+        format: v => `${v} px/s`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Rumble',
+        hint: 'Impact force needed (higher = less sensitive)'
+      },
+      {
+        id: 'wallRumbleMax',
+        label: 'Max Wobble',
+        stateKey: 'wallRumbleMax',
+        type: 'range',
+        min: 0.5, max: 5, step: 0.1,
+        default: 1.5,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        group: 'Wall Rumble',
+        hint: 'Maximum displacement (thick rubber = small)'
+      },
+      {
+        id: 'wallRumbleDecay',
+        label: 'Absorption',
+        stateKey: 'wallRumbleDecay',
+        type: 'range',
+        min: 0.70, max: 0.92, step: 0.01,
+        default: 0.75,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        group: 'Wall Rumble',
+        hint: 'Lower = faster absorption, higher = longer wobble'
+      },
+      
+      // ═══════════════════════════════════════════════════════════════════
+      // WALL SHADOW - Full control depth effect system
+      // ═══════════════════════════════════════════════════════════════════
+      {
+        id: 'wallShadowPreset',
+        label: 'Preset',
+        stateKey: 'wallShadowPreset',
+        type: 'select',
+        options: Object.keys(WALL_SHADOW_PRESETS).map(k => ({ value: k, label: WALL_SHADOW_PRESETS[k].label })),
+        default: 'naturalDaylight',
+        format: v => WALL_SHADOW_PRESETS[v]?.label || v,
+        group: 'Wall Shadow',
+        hint: 'Realistic shadow configurations',
+        onChange: (g, value) => {
+          applyWallShadowPreset(value);
+        }
+      },
+      
+      // ─── CORE ───
+      { type: 'divider', label: 'Core', group: 'Wall Shadow' },
+      {
+        id: 'wallShadowLayers',
+        label: 'Layers',
+        stateKey: 'wallShadowLayers',
+        type: 'range',
+        min: 1, max: 12, step: 1,
+        default: 5,
+        format: v => `${Math.round(v)}`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Total shadow layers (more = smoother, heavier)',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowAngle',
+        label: 'Light Angle',
+        stateKey: 'wallShadowAngle',
+        type: 'range',
+        min: 0, max: 360, step: 1,
+        default: 160,
+        format: v => `${v}°`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Light source direction (0° = top, 90° = right)',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowDistance',
+        label: 'Distance',
+        stateKey: 'wallShadowDistance',
+        type: 'range',
+        min: 0, max: 80, step: 1,
+        default: 10,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Shadow offset from light source',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      
+      // ─── FALLOFF CURVE ───
+      { type: 'divider', label: 'Falloff', group: 'Wall Shadow' },
+      {
+        id: 'wallShadowFalloffCurve',
+        label: 'Curve',
+        stateKey: 'wallShadowFalloffCurve',
+        type: 'range',
+        min: 0.5, max: 4, step: 0.1,
+        default: 2.0,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Opacity falloff power (1=linear, 2=quadratic, 3=cubic)',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowFalloffFactor',
+        label: 'Factor',
+        stateKey: 'wallShadowFalloffFactor',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.7,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'How quickly opacity fades (0=none, 100%=full decay)',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      
+      // ─── OUTSET (EXTERNAL SHADOW) ───
+      { type: 'divider', label: 'Outset Shadow', group: 'Wall Shadow' },
+      {
+        id: 'wallShadowOutsetIntensity',
+        label: 'Intensity',
+        stateKey: 'wallShadowOutsetIntensity',
+        type: 'range',
+        min: 0, max: 3, step: 0.05,
+        default: 1.0,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Overall outset shadow strength',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowOutsetOpacity',
+        label: 'Base Opacity',
+        stateKey: 'wallShadowOutsetOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.25,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Starting opacity for closest layer',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowOutsetBlurMin',
+        label: 'Blur Min',
+        stateKey: 'wallShadowOutsetBlurMin',
+        type: 'range',
+        min: 0, max: 50, step: 1,
+        default: 4,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Blur for closest layer',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowOutsetBlurMax',
+        label: 'Blur Max',
+        stateKey: 'wallShadowOutsetBlurMax',
+        type: 'range',
+        min: 10, max: 300, step: 5,
+        default: 120,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Blur for furthest layer',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowOutsetSpreadMin',
+        label: 'Spread Min',
+        stateKey: 'wallShadowOutsetSpreadMin',
+        type: 'range',
+        min: -20, max: 20, step: 1,
+        default: 0,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Spread for closest layer (negative = shrink)',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowOutsetSpreadMax',
+        label: 'Spread Max',
+        stateKey: 'wallShadowOutsetSpreadMax',
+        type: 'range',
+        min: 0, max: 100, step: 1,
+        default: 30,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Spread for furthest layer',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      
+      // ─── INSET (VIGNETTE) ───
+      { type: 'divider', label: 'Inset Vignette', group: 'Wall Shadow' },
+      {
+        id: 'wallShadowInsetIntensity',
+        label: 'Intensity',
+        stateKey: 'wallShadowInsetIntensity',
+        type: 'range',
+        min: 0, max: 3, step: 0.05,
+        default: 0.8,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Overall inset vignette strength',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowInsetOpacity',
+        label: 'Base Opacity',
+        stateKey: 'wallShadowInsetOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.15,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Starting opacity for inner vignette',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowInsetLayerRatio',
+        label: 'Layer Ratio',
+        stateKey: 'wallShadowInsetLayerRatio',
+        type: 'range',
+        min: 0, max: 1.5, step: 0.1,
+        default: 0.6,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Inset layers as % of outset layers',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowInsetBlurMin',
+        label: 'Blur Min',
+        stateKey: 'wallShadowInsetBlurMin',
+        type: 'range',
+        min: 0, max: 50, step: 1,
+        default: 8,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Blur for inner edge',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowInsetBlurMax',
+        label: 'Blur Max',
+        stateKey: 'wallShadowInsetBlurMax',
+        type: 'range',
+        min: 10, max: 250, step: 5,
+        default: 100,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Blur for outer vignette edge',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowInsetSpreadMin',
+        label: 'Spread Min',
+        stateKey: 'wallShadowInsetSpreadMin',
+        type: 'range',
+        min: -20, max: 20, step: 1,
+        default: 0,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Spread for inner edge',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowInsetSpreadMax',
+        label: 'Spread Max',
+        stateKey: 'wallShadowInsetSpreadMax',
+        type: 'range',
+        min: 0, max: 80, step: 1,
+        default: 20,
+        format: v => `${v}px`,
+        parse: v => parseInt(v, 10),
+        group: 'Wall Shadow',
+        hint: 'Spread for outer vignette edge',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      
+      // ─── COLORS ───
+      { type: 'divider', label: 'Colors', group: 'Wall Shadow' },
+      {
+        id: 'wallShadowColorLight',
+        label: 'Light Mode',
+        stateKey: 'wallShadowColorLight',
+        type: 'color',
+        default: '#ffffff',
+        group: 'Wall Shadow',
+        hint: 'Glow/highlight color (lighter than background)',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowColorDark',
+        label: 'Dark Mode',
+        stateKey: 'wallShadowColorDark',
+        type: 'color',
+        default: '#000000',
+        group: 'Wall Shadow',
+        hint: 'Shadow color (darker than background)',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowLightModeBoost',
+        label: 'Light Mode Boost',
+        stateKey: 'wallShadowLightModeBoost',
+        type: 'range',
+        min: 1.0, max: 8.0, step: 0.25,
+        default: 3.0,
+        format: v => `${v.toFixed(1)}×`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Opacity multiplier for light mode (compensates for low contrast)',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      
       {
         id: 'restitution',
         label: 'Bounce',
@@ -2197,142 +2951,6 @@ export const CONTROL_SECTIONS = {
         group: 'Wall Material',
         hint: 'Energy kept on bounce. 100% = elastic, 30% = soft'
       },
-      {
-        id: 'wallWobbleDamping',
-        label: 'Damping',
-        stateKey: 'wallWobbleDamping',
-        type: 'range',
-        min: 0, max: 80, step: 1,
-        default: 35,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        group: 'Wall Material',
-        hint: 'Oscillation decay. High = viscous/slow'
-      },
-      {
-        id: 'wallWobbleSigma',
-        label: 'Impact Spread',
-        stateKey: 'wallWobbleSigma',
-        type: 'range',
-        min: 0.5, max: 6.0, step: 0.1,
-        default: 2.0,
-        format: v => v.toFixed(1),
-        parse: parseFloat,
-        group: 'Wall Material',
-        hint: 'Blob size. High = pudding, Low = rubber'
-      },
-      {
-        id: 'wallWobbleSettlingSpeed',
-        label: 'Settle Speed',
-        stateKey: 'wallWobbleSettlingSpeed',
-        type: 'range',
-        min: 0, max: 100, step: 1,
-        default: 75,
-        format: v => `${v}%`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Material',
-        hint: 'Snap-to-flat aggression when still'
-      },
-      {
-        id: 'wallWobbleCornerClamp',
-        label: 'Corner Stiffness',
-        stateKey: 'wallWobbleCornerClamp',
-        type: 'range',
-        min: 0.0, max: 1.0, step: 0.01,
-        default: 0.6,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        group: 'Wall Behavior',
-        groupLayout: 'grid-2col',
-        groupCollapsed: true,
-        hint: '1.0 = locked corners, 0 = flexible corners'
-      },
-      {
-        id: 'wallWobbleImpactThreshold',
-        label: 'Impact Gate',
-        stateKey: 'wallWobbleImpactThreshold',
-        type: 'range',
-        min: 20, max: 200, step: 1,
-        default: 140,
-        format: v => `${v} px/s`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Behavior',
-        hint: 'Min impact speed to trigger deformation'
-      },
-      {
-        id: 'wallWobbleMaxVel',
-        label: 'Max Wall Speed',
-        stateKey: 'wallWobbleMaxVel',
-        type: 'range',
-        min: 100, max: 2000, step: 10,
-        default: 800,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        group: 'Performance Caps',
-        groupLayout: 'grid-2col',
-        groupCollapsed: true,
-        hint: 'Velocity cap to prevent erratic spikes'
-      },
-      {
-        id: 'wallWobbleMaxImpulse',
-        label: 'Max Impulse',
-        stateKey: 'wallWobbleMaxImpulse',
-        type: 'range',
-        min: 20, max: 600, step: 5,
-        default: 220,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        group: 'Performance Caps',
-        hint: 'Per-sample impact cap for smoother behavior'
-      },
-      {
-        id: 'wallWobbleMaxEnergyPerStep',
-        label: 'Max Energy/Tick',
-        stateKey: 'wallWobbleMaxEnergyPerStep',
-        type: 'range',
-        min: 1000, max: 80000, step: 500,
-        default: 20000,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        group: 'Performance Caps',
-        hint: 'Safety budget to prevent runaway spikes'
-      },
-
-      // Wall Performance
-      {
-        id: 'wallPhysicsSamples',
-        label: 'Physics Samples',
-        stateKey: 'wallPhysicsSamples',
-        type: 'range',
-        min: 8, max: 96, step: 1,
-        default: 48,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        group: 'Performance',
-        groupCollapsed: true,
-        hint: 'Visual-only. Lower = faster, higher = smoother blobs.'
-      },
-      {
-        id: 'wallPhysicsSkipInactive',
-        label: 'Skip When Still',
-        stateKey: 'wallPhysicsSkipInactive',
-        type: 'toggle',
-        default: true,
-        group: 'Performance',
-        hint: 'Stops integrating the wall when it\'s already at rest.'
-      },
-      {
-        id: 'wallRenderDecimation',
-        label: 'Render Detail',
-        stateKey: 'wallRenderDecimation',
-        type: 'range',
-        min: 1, max: 12, step: 1,
-        default: 2,
-        format: v => `${Math.round(v)}`,
-        parse: v => parseInt(v, 10),
-        group: 'Performance',
-        hint: '1=ultra smooth, 2=default, 4=faster, 12=very fast/polygonal (rendering only).'
-      }
     ]
   },
 
@@ -2649,11 +3267,15 @@ export const CONTROL_SECTIONS = {
   // MODE-SPECIFIC CONTROLS
   // ═══════════════════════════════════════════════════════════════════════════
   critters: {
-    title: 'Critters',
-    icon: '🪲',
+    title: 'Hive',
+    icon: '🐝',
     mode: 'critters',
     defaultOpen: false,
     controls: [
+      // ─────────────────────────────────────────────────────────────────────────
+      // POPULATION
+      // ─────────────────────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Population' },
       {
         id: 'critterCount',
         label: 'Count',
@@ -2665,6 +3287,10 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10),
         reinitMode: true
       },
+      // ─────────────────────────────────────────────────────────────────────────
+      // MOVEMENT
+      // ─────────────────────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Movement' },
       {
         id: 'critterSpeed',
         label: 'Speed',
@@ -2737,6 +3363,10 @@ export const CONTROL_SECTIONS = {
         format: v => v.toFixed(1),
         parse: parseFloat
       },
+      // ─────────────────────────────────────────────────────────────────────────
+      // AVOIDANCE
+      // ─────────────────────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Avoidance' },
       {
         id: 'critterAvoidRadius',
         label: 'Avoid Radius',
@@ -2767,6 +3397,10 @@ export const CONTROL_SECTIONS = {
         format: v => v.toFixed(2) + 'x',
         parse: parseFloat
       },
+      // ─────────────────────────────────────────────────────────────────────────
+      // MOUSE INTERACTION
+      // ─────────────────────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Mouse Interaction' },
       {
         id: 'critterMousePull',
         label: 'Mouse Fear',
@@ -2788,6 +3422,10 @@ export const CONTROL_SECTIONS = {
         format: v => `${Math.round(v)}vw`,
         parse: parseFloat
       },
+      // ─────────────────────────────────────────────────────────────────────────
+      // PHYSICS
+      // ─────────────────────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Physics' },
       {
         id: 'critterRestitution',
         label: 'Bounciness',
@@ -2815,6 +3453,212 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           if (g.currentMode === 'critters') g.FRICTION = val;
         }
+      },
+      // ─────────────────────────────────────────────────────────────────────────
+      // HIVE BEHAVIOR
+      // ─────────────────────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Hive Behavior' },
+      {
+        id: 'critterHiveStirInterval',
+        label: 'Hive Stir Interval',
+        stateKey: 'critterHiveStirInterval',
+        type: 'range',
+        min: 1, max: 15, step: 0.5,
+        default: 5.0,
+        format: v => v.toFixed(1) + 's',
+        parse: parseFloat,
+        hint: 'Seconds between activity waves'
+      },
+      {
+        id: 'critterHiveStirStrength',
+        label: 'Hive Stir Strength',
+        stateKey: 'critterHiveStirStrength',
+        type: 'range',
+        min: 0, max: 6, step: 0.1,
+        default: 2.5,
+        format: v => v.toFixed(1) + 'x',
+        parse: parseFloat,
+        hint: 'Force of activity waves'
+      },
+      {
+        id: 'critterHiveWaveSpeed',
+        label: 'Hive Wave Speed',
+        stateKey: 'critterHiveWaveSpeed',
+        type: 'range',
+        min: 0.1, max: 1.0, step: 0.05,
+        default: 0.4,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'How fast stir wave expands'
+      },
+      // ─────────────────────────────────────────────────────────────────────────
+      // CHARACTER TRAITS
+      // ─────────────────────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Character Traits' },
+      {
+        id: 'critterNervousnessMin',
+        label: 'Nervousness (Min)',
+        stateKey: 'critterNervousnessMin',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.4,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Minimum startle sensitivity',
+        reinitMode: true
+      },
+      {
+        id: 'critterNervousnessMax',
+        label: 'Nervousness (Max)',
+        stateKey: 'critterNervousnessMax',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 1.0,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Maximum startle sensitivity',
+        reinitMode: true
+      },
+      {
+        id: 'critterCuriosityBias',
+        label: 'Curiosity Bias',
+        stateKey: 'critterCuriosityBias',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.5,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: '0=stay put, 1=explore edges',
+        reinitMode: true
+      },
+      // ─────────────────────────────────────────────────────────────────────────
+      // JOURNEY POINTS
+      // ─────────────────────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Journey Points' },
+      {
+        id: 'hiveJourneyPointCount',
+        label: 'Point Count',
+        stateKey: 'hiveJourneyPointCount',
+        type: 'range',
+        min: 1, max: 8, step: 1,
+        default: 4,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Number of goal destinations scattered across viewport',
+        reinitMode: true
+      },
+      {
+        id: 'hiveJourneyPointMargin',
+        label: 'Point Margin',
+        stateKey: 'hiveJourneyPointMargin',
+        type: 'range',
+        min: 0, max: 0.2, step: 0.01,
+        default: 0.05,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Margin from edges for journey point placement',
+        reinitMode: true
+      },
+      {
+        id: 'hiveGoalAttractionStrength',
+        label: 'Goal Attraction',
+        stateKey: 'hiveGoalAttractionStrength',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.25,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'How strongly critters steer toward goals'
+      },
+      {
+        id: 'hiveGoalSwitchMinS',
+        label: 'Goal Switch (Min)',
+        stateKey: 'hiveGoalSwitchMinS',
+        type: 'range',
+        min: 1, max: 20, step: 0.5,
+        default: 4,
+        format: v => v.toFixed(1) + 's',
+        parse: parseFloat,
+        hint: 'Minimum seconds before switching to new goal'
+      },
+      {
+        id: 'hiveGoalSwitchMaxS',
+        label: 'Goal Switch (Max)',
+        stateKey: 'hiveGoalSwitchMaxS',
+        type: 'range',
+        min: 5, max: 30, step: 0.5,
+        default: 14,
+        format: v => v.toFixed(1) + 's',
+        parse: parseFloat,
+        hint: 'Maximum seconds before switching to new goal'
+      },
+      {
+        id: 'hiveGoalReachedRadius',
+        label: 'Goal Reached Radius',
+        stateKey: 'hiveGoalReachedRadius',
+        type: 'range',
+        min: 10, max: 200, step: 5,
+        default: 50,
+        format: v => `${Math.round(v)}px`,
+        parse: parseFloat,
+        hint: 'Distance threshold to consider goal reached'
+      },
+      {
+        id: 'hivePathAdherence',
+        label: 'Path Adherence',
+        stateKey: 'hivePathAdherence',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.5,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Probability to pick next sequential point vs random'
+      },
+      // ─────────────────────────────────────────────────────────────────────────
+      // WAYPOINT APPEARANCE
+      // ─────────────────────────────────────────────────────────────────────────
+      { type: 'divider', label: 'Waypoint Appearance' },
+      {
+        id: 'hiveWaypointVisible',
+        label: 'Show Waypoints',
+        stateKey: 'hiveWaypointVisible',
+        type: 'checkbox',
+        default: true,
+        hint: 'Display colored balls at journey point locations'
+      },
+      {
+        id: 'hiveWaypointSizeMul',
+        label: 'Waypoint Size',
+        stateKey: 'hiveWaypointSizeMul',
+        type: 'range',
+        min: 0.5, max: 3, step: 0.1,
+        default: 1.5,
+        format: v => `${v.toFixed(1)}×`,
+        parse: parseFloat,
+        hint: 'Size multiplier for waypoint balls (relative to base ball size)'
+      },
+      {
+        id: 'hiveWaypointOpacity',
+        label: 'Waypoint Opacity',
+        stateKey: 'hiveWaypointOpacity',
+        type: 'range',
+        min: 0.1, max: 1, step: 0.05,
+        default: 0.9,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Opacity of waypoint balls'
+      },
+      {
+        id: 'hiveCritterSaturation',
+        label: 'Critter Saturation',
+        stateKey: 'hiveCritterSaturation',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.3,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Color saturation for critters (low = faint, high = vibrant)',
+        reinitMode: true
       },
       warmupFramesControl('crittersWarmupFrames')
     ]
@@ -5122,38 +5966,68 @@ export function generateColorTemplateSectionHTML({ open = false } = {}) {
 
 export function generateMasterSectionsHTML() {
   let html = '';
-  let lastCategory = null;
-  
-  for (const key of MASTER_SECTION_KEYS) {
-    if (!CONTROL_SECTIONS[key]) continue;
-    
-    const currentCategory = SECTION_CATEGORIES[key] || null;
-    
-    // Add category label and separator if category changed
-    if (currentCategory && currentCategory !== lastCategory) {
-      if (lastCategory !== null) {
-        // Close previous category group with separator
-        html += '</div>';
-      }
-      // Open new category group with label
-      html += `
-        <div class="panel-category-group">
-          <div class="panel-category-label">${currentCategory}</div>`;
-      lastCategory = currentCategory;
-    } else if (!currentCategory && lastCategory !== null) {
-      // Close category group if transitioning to uncategorized
-      html += '</div>';
-      lastCategory = null;
+
+  for (const group of MASTER_GROUPS) {
+    let groupContent = '';
+
+    for (const key of group.sections) {
+      if (!CONTROL_SECTIONS[key]) continue;
+      groupContent += generateSectionHTML(key, CONTROL_SECTIONS[key]);
     }
-    
+
+    if (!groupContent) continue;
+
+    html += `
+      <details class="panel-master-group" open>
+        <summary class="panel-master-group-header">
+          ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
+          <span class="panel-master-group-title">${group.title}</span>
+        </summary>
+        <div class="panel-master-group-content">
+          ${groupContent}
+        </div>
+      </details>`;
+  }
+
+  return html;
+}
+
+// Generate sections for GLOBAL group only
+export function generateGlobalSectionsHTML() {
+  const globalSections = ['colors', 'colorDistribution', 'noise', 'uiSpacing', 'cursor', 'trail', 'links', 'scene'];
+  let html = '';
+  for (const key of globalSections) {
+    if (!CONTROL_SECTIONS[key]) continue;
     html += generateSectionHTML(key, CONTROL_SECTIONS[key]);
   }
-  
-  // Close final category group if open
-  if (lastCategory !== null) {
-    html += '</div>';
+  return html;
+}
+
+// Generate sections for SIMULATIONS group only
+export function generateSimulationsSectionsHTML() {
+  const simSections = ['liteMode', 'physics', 'balls', 'wall', 'simulationOverlay'];
+  let html = '';
+  for (const key of simSections) {
+    if (!CONTROL_SECTIONS[key]) continue;
+    html += generateSectionHTML(key, CONTROL_SECTIONS[key]);
   }
-  
+  // Add all mode-specific sections
+  for (const [key, section] of Object.entries(CONTROL_SECTIONS)) {
+    if (section?.mode) {
+      html += generateSectionHTML(key, section);
+    }
+  }
+  return html;
+}
+
+// Generate sections for BROWSER & TRANSITION group only
+export function generateBrowserTransitionSectionsHTML() {
+  const browserSections = ['environment', 'entrance', 'overlay'];
+  let html = '';
+  for (const key of browserSections) {
+    if (!CONTROL_SECTIONS[key]) continue;
+    html += generateSectionHTML(key, CONTROL_SECTIONS[key]);
+  }
   return html;
 }
 
@@ -5176,7 +6050,7 @@ function generateHomeModeSectionHTML() {
             const modeIcons = {
               'pit': '🎯',
               'bubbles': '🫧',
-              'critters': '🪲',
+              'critters': '🐝',
               'flies': '🕊️',
               'water': '🌊',
               'vortex': '⚛️',
@@ -5194,7 +6068,7 @@ function generateHomeModeSectionHTML() {
             const modeLabels = {
               'pit': 'Pit',
               'bubbles': 'Bubbles',
-              'critters': 'Critters',
+              'critters': 'Hive',
               'flies': 'Flies',
               'water': 'Water',
               'vortex': 'Electrons',
@@ -5261,11 +6135,8 @@ export function generatePanelHTML() {
     ${generateMasterSectionsHTML()}
     ${generateHomePanelHTML()}
     ${generateColorTemplateSectionHTML({ open: false })}
-    <div class="panel-section panel-section--action">
-      <button id="saveRuntimeConfigBtn" class="primary">💾 Save Config</button>
-    </div>
     <div class="panel-footer">
-      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters + Throws have no key (yet)
+      <kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> switch modes
     </div>
   `;
 }
@@ -5510,7 +6381,6 @@ export function bindRegisteredControls() {
             for (let i = 0; i < g.colorDistribution.length; i++) g.colorDistribution[i].weight = weights[i];
             syncColorDistributionUI();
             applyDistributionSideEffects();
-            autoSaveSettings();
           });
         }
 
@@ -5527,7 +6397,6 @@ export function bindRegisteredControls() {
               g.colorDistribution = dist;
               syncColorDistributionUI();
               applyDistributionSideEffects();
-              autoSaveSettings();
             });
           }
 
@@ -5540,7 +6409,6 @@ export function bindRegisteredControls() {
               g.colorDistribution = dist;
               syncColorDistributionUI();
               applyDistributionSideEffects();
-              autoSaveSettings();
             });
           }
         }
@@ -5573,12 +6441,6 @@ export function bindRegisteredControls() {
             valEl.textContent = colorVal;
           }
           
-          // Sync to source config file (dev mode only)
-          if (control.stateKey) {
-            syncConfigToFile('default', control.stateKey, colorVal);
-          }
-          
-          autoSaveSettings();
         });
         
         continue;
@@ -5605,13 +6467,6 @@ export function bindRegisteredControls() {
             const displayVal = control.stateKey ? g[control.stateKey] : rawVal;
             valEl.textContent = control.format ? control.format(displayVal) : String(displayVal);
           }
-          
-          // Sync to source config file (dev mode only)
-          if (control.stateKey) {
-            syncConfigToFile('default', control.stateKey, rawVal);
-          }
-          
-          autoSaveSettings();
         });
         
         continue;
@@ -5646,13 +6501,6 @@ export function bindRegisteredControls() {
               .then(({ resetCurrentMode }) => resetCurrentMode?.())
               .catch(() => {});
           }
-
-          // Sync to source config file (dev mode only)
-          if (control.stateKey) {
-            syncConfigToFile('default', control.stateKey, rawVal);
-          }
-
-          autoSaveSettings();
         });
 
         continue;
@@ -5699,13 +6547,6 @@ export function bindRegisteredControls() {
             .then(({ resetCurrentMode }) => resetCurrentMode?.())
             .catch(() => {});
         }
-        
-        // Sync to source config file (dev mode only)
-        if (control.stateKey) {
-          syncConfigToFile('default', control.stateKey, rawVal);
-        }
-        
-        autoSaveSettings();
       });
     }
   }

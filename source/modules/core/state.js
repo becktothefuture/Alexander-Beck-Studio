@@ -135,9 +135,7 @@ const state = {
   ballSizeMobile: 8.64,        // Ball radius in px for mobile
   isMobile: false,            // Mobile *device* detected? (UA/touch heuristic)
   isMobileViewport: false,    // Mobile viewport detected? (width breakpoint)
-  // Mobile performance: completely disable wall deformation on mobile for 60 FPS
-  // Set during initialization based on isMobile/isMobileViewport
-  wallDeformationEnabled: true,
+  // Wall rumble: CSS-based container shake on impacts (replaces deformation)
   // Mobile performance: global multiplier applied to object counts (0..1).
   // 1.0 = no reduction, 0.0 = (effectively) no objects.
   mobileObjectReductionFactor: 0.5,
@@ -246,6 +244,25 @@ const state = {
   critterMouseRadiusVw: 30,   // zone radius (vw)
   critterRestitution: 0.18,   // collision “bounciness” override while mode active
   critterFriction: 0.018,     // drag override while mode active
+  
+  // Hive behavior parameters
+  critterHiveStirInterval: 5.0,   // seconds between hive stir waves
+  critterHiveStirStrength: 2.5,   // force multiplier for stir impulse
+  critterHiveWaveSpeed: 0.4,      // how fast stir wave expands (canvas/sec)
+  
+  // Character trait ranges (personality variation)
+  critterNervousnessMin: 0.4,     // min nervousness (0-1)
+  critterNervousnessMax: 1.0,     // max nervousness (0-1)
+  critterCuriosityBias: 0.5,      // avg curiosity level (0=stay put, 1=explore)
+  
+  // Journey points (goal-based wandering)
+  hiveJourneyPointCount: 4,       // number of journey points (1-8)
+  hiveJourneyPointMargin: 0.05,   // margin from edges (0-0.2)
+  hiveGoalAttractionStrength: 0.25, // how strongly critters steer toward goals (0-1)
+  hiveGoalSwitchMinS: 4,          // min seconds before switching goals (1-20)
+  hiveGoalSwitchMaxS: 14,         // max seconds before switching goals (5-30)
+  hiveGoalReachedRadius: 50,      // distance threshold to consider goal reached (10-200)
+  hivePathAdherence: 0.5,         // probability to pick next sequential point vs random (0-1)
   
   // Corner (matches CSS border-radius for collision bounds)
   cornerRadius: 42,
@@ -619,26 +636,55 @@ const state = {
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
   wallInset: 3,             // Physics-only inset from edges (px at DPR 1)
 
-  // Rubber wall wobble tuning (visual-only deformation, no collision changes)
-  // High-level controls (0-100)
-  wallPreset: 'pudding',            // Preset name: rubber, pudding, trampoline, jelly, stiff
-  wallSoftness: 50,                 // Legacy support / manual tweak
-  wallBounciness: 50,               // Legacy support / manual tweak
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // WALL RUMBLE - CSS-based container shake on high-velocity impacts
+  // Replaces the old deformation system with a simpler, more performant approach
+  // ═══════════════════════════════════════════════════════════════════════════════
+  wallRumbleEnabled: true,          // Enable viewport rumble on wall impacts (pit, flies, weightless, fountain only)
+  wallRumbleThreshold: 350,         // Min impact velocity (px/s) - higher = less sensitive
+  wallRumbleMax: 1.5,               // Max rumble displacement (px) - thick rubber feel
+  wallRumbleScale: 0.012,           // Velocity → rumble intensity scale factor
+  wallRumbleDecay: 0.75,            // Per-frame decay (lower = faster, more natural rubber absorption)
+  wallRumbleImpactScale: 700,       // Intensity → velocity multiplier for impact registration
+  wallRumblePreset: 'rubber',       // Active preset: subtle, rubber, soft, responsive
   
-  // Low-level parameters (derived from above or set manually)
-  // Pudding baseline: broad, overdamped blobs (soft boundary, minimal “rubber band” ripple)
-  wallWobbleMaxDeform: 70,          // Max inward deformation (px at DPR 1)
-  wallWobbleStiffness: 420,         // Spring stiffness (lower = softer)
-  wallWobbleDamping: 92,            // Damping (higher = more viscous)
-  wallWobbleSigma: 5.5,             // Impact spread (higher = larger blobs)
-  wallWobbleCornerClamp: 0.25,      // Corner grip (lower = more flow around corners)
-  wallWobbleMaxVel: 620,            // Clamp: max wall deformation velocity (prevents erratic spikes)
-  wallWobbleMaxImpulse: 160,        // Clamp: max per-sample impulse injection (prevents runaway)
-  wallWobbleMaxEnergyPerStep: 20000, // Clamp: total impact energy budget per physics tick
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // WALL SHADOW - Full control depth effect system
+  // Defaults match 'naturalDaylight' preset - realistic window light
+  // ═══════════════════════════════════════════════════════════════════════════════
   
-  // Settling parameters (Advanced)
-  wallWobbleImpactThreshold: 60,    // Min velocity (px/s) to trigger wobble
-  wallWobbleSettlingSpeed: 94,      // Controls snap-to-zero aggression (0-100)
+  wallShadowPreset: 'naturalDaylight', // Active preset name
+  
+  // Core
+  wallShadowLayers: 10,             // Total shadow layers (more = smoother, no banding)
+  wallShadowAngle: 135,             // Light source angle (degrees, 135 = top-left)
+  wallShadowDistance: 12,           // Shadow offset from light source (px)
+  
+  // Falloff curve (controls opacity decay)
+  wallShadowFalloffCurve: 2.0,      // Opacity falloff power (1=linear, 2=quadratic, 3=cubic)
+  wallShadowFalloffFactor: 0.70,    // How quickly opacity fades (0=none, 1=full decay)
+  
+  // Outset (external shadow projected onto wall)
+  wallShadowOutsetIntensity: 1.0,   // Overall outset shadow strength (0-3)
+  wallShadowOutsetOpacity: 0.18,    // Starting opacity for closest layer (0-1)
+  wallShadowOutsetBlurMin: 4,       // Blur for closest layer (px)
+  wallShadowOutsetBlurMax: 100,     // Blur for furthest layer (px)
+  wallShadowOutsetSpreadMin: 0,     // Spread for closest layer (px, negative = shrink)
+  wallShadowOutsetSpreadMax: 25,    // Spread for furthest layer (px)
+  
+  // Inset (interior vignette)
+  wallShadowInsetIntensity: 0.8,    // Overall inset vignette strength (0-3)
+  wallShadowInsetOpacity: 0.12,     // Starting opacity for inner vignette (0-1)
+  wallShadowInsetLayerRatio: 0.6,   // Inset layers as ratio of outset layers
+  wallShadowInsetBlurMin: 6,        // Blur for inner edge (px)
+  wallShadowInsetBlurMax: 80,       // Blur for outer vignette edge (px)
+  wallShadowInsetSpreadMin: 0,      // Spread for inner edge (px)
+  wallShadowInsetSpreadMax: 18,     // Spread for outer vignette edge (px)
+  
+  // Colors (theme-aware)
+  wallShadowColorLight: '#ffffff',  // Light mode: lighter than bg (glow/highlight effect)
+  wallShadowColorDark: '#000000',   // Dark mode: darker than bg (traditional shadow)
+  wallShadowLightModeBoost: 3.0,    // Opacity multiplier for light mode (compensates for low contrast)
   
   // Gate overlay (blur backdrop for dialogs)
   modalOverlayEnabled: true,         // Enable/disable overlay
@@ -1158,6 +1204,16 @@ export function initState(config) {
   if (config.critterMouseRadiusVw !== undefined) state.critterMouseRadiusVw = config.critterMouseRadiusVw;
   if (config.critterRestitution !== undefined) state.critterRestitution = config.critterRestitution;
   if (config.critterFriction !== undefined) state.critterFriction = config.critterFriction;
+  
+  // Hive behavior
+  if (config.critterHiveStirInterval !== undefined) state.critterHiveStirInterval = config.critterHiveStirInterval;
+  if (config.critterHiveStirStrength !== undefined) state.critterHiveStirStrength = config.critterHiveStirStrength;
+  if (config.critterHiveWaveSpeed !== undefined) state.critterHiveWaveSpeed = config.critterHiveWaveSpeed;
+  
+  // Character traits
+  if (config.critterNervousnessMin !== undefined) state.critterNervousnessMin = config.critterNervousnessMin;
+  if (config.critterNervousnessMax !== undefined) state.critterNervousnessMax = config.critterNervousnessMax;
+  if (config.critterCuriosityBias !== undefined) state.critterCuriosityBias = config.critterCuriosityBias;
 
   // Neural (config overrides)
   if (config.neuralBallCount !== undefined) state.neuralBallCount = clampNumber(config.neuralBallCount, 8, 400, state.neuralBallCount);
@@ -1550,31 +1606,13 @@ export function initState(config) {
     if (values) Object.assign(state, values);
   }
 
-  if (config.wallSoftness !== undefined) state.wallSoftness = config.wallSoftness;
-  if (config.wallBounciness !== undefined) state.wallBounciness = config.wallBounciness;
-  
-  if (config.wallWobbleMaxDeform !== undefined) state.wallWobbleMaxDeform = config.wallWobbleMaxDeform;
-  if (config.wallWobbleStiffness !== undefined) state.wallWobbleStiffness = config.wallWobbleStiffness;
-  if (config.wallWobbleDamping !== undefined) state.wallWobbleDamping = config.wallWobbleDamping;
-  if (config.wallWobbleSigma !== undefined) state.wallWobbleSigma = config.wallWobbleSigma;
-  if (config.wallWobbleCornerClamp !== undefined) state.wallWobbleCornerClamp = config.wallWobbleCornerClamp;
-  if (config.wallWobbleMaxVel !== undefined) state.wallWobbleMaxVel = config.wallWobbleMaxVel;
-  if (config.wallWobbleMaxImpulse !== undefined) state.wallWobbleMaxImpulse = config.wallWobbleMaxImpulse;
-  if (config.wallWobbleMaxEnergyPerStep !== undefined) state.wallWobbleMaxEnergyPerStep = config.wallWobbleMaxEnergyPerStep;
-  
-  if (config.wallWobbleImpactThreshold !== undefined) state.wallWobbleImpactThreshold = config.wallWobbleImpactThreshold;
-  if (config.wallWobbleSettlingSpeed !== undefined) state.wallWobbleSettlingSpeed = config.wallWobbleSettlingSpeed;
-  
-  // Wall performance tuning (Tier 1 & 2 optimizations)
-  if (config.wallPhysicsSamples !== undefined) state.wallPhysicsSamples = config.wallPhysicsSamples;
-  if (config.wallPhysicsSkipInactive !== undefined) state.wallPhysicsSkipInactive = config.wallPhysicsSkipInactive;
-  if (config.wallPhysicsUpdateHz !== undefined) state.wallPhysicsUpdateHz = config.wallPhysicsUpdateHz;
-  if (config.wallPhysicsMaxSubstepHz !== undefined) state.wallPhysicsMaxSubstepHz = config.wallPhysicsMaxSubstepHz;
-  if (config.wallPhysicsInterpolation !== undefined) state.wallPhysicsInterpolation = config.wallPhysicsInterpolation;
-  if (config.wallPhysicsAdaptiveSamples !== undefined) state.wallPhysicsAdaptiveSamples = config.wallPhysicsAdaptiveSamples;
-  if (config.wallPhysicsMinSamples !== undefined) state.wallPhysicsMinSamples = config.wallPhysicsMinSamples;
-  if (config.wallVisualDeformMul !== undefined) state.wallVisualDeformMul = config.wallVisualDeformMul;
-  if (config.wallRenderDecimation !== undefined) state.wallRenderDecimation = config.wallRenderDecimation;
+  // Wall rumble config
+  if (config.wallRumbleEnabled !== undefined) state.wallRumbleEnabled = config.wallRumbleEnabled;
+  if (config.wallRumbleThreshold !== undefined) state.wallRumbleThreshold = config.wallRumbleThreshold;
+  if (config.wallRumbleMax !== undefined) state.wallRumbleMax = config.wallRumbleMax;
+  if (config.wallRumbleScale !== undefined) state.wallRumbleScale = config.wallRumbleScale;
+  if (config.wallRumbleDecay !== undefined) state.wallRumbleDecay = config.wallRumbleDecay;
+  if (config.wallRumbleImpactScale !== undefined) state.wallRumbleImpactScale = config.wallRumbleImpactScale;
 
   // Wall colors: use frameColorLight/frameColorDark (all wall colors point to frameColor via CSS)
   // Legacy config support: if wallColorLight/wallColorDark are set, update frame colors
@@ -1751,8 +1789,6 @@ export function detectResponsiveScale() {
   state.isMobile = nextMobileDevice;
   state.isMobileViewport = nextMobileViewport;
   
-  // Disable wall deformation on mobile for 60 FPS performance
-  state.wallDeformationEnabled = !(state.isMobile || state.isMobileViewport);
   
   // Mobile performance optimizations
   if (state.isMobile || state.isMobileViewport) {

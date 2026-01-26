@@ -17,8 +17,6 @@ const ICON_SOUND_OFF = '<i class="ti ti-volume-off" aria-hidden="true"></i>';
 const ICON_SOUND_ON = '<i class="ti ti-volume-2" aria-hidden="true"></i>';
 
 let buttonElement = null;
-let tooltipElement = null;
-let tooltipTimeout = null;
 
 /**
  * Create and inject the sound toggle button into the DOM
@@ -149,16 +147,9 @@ export function createSoundToggle() {
       const s = e && e.detail ? e.detail : null;
       if (s) {
         updateButtonState(!!(s.isUnlocked && s.isEnabled));
-        // Hide tooltip if sound is enabled
-        if (s.isUnlocked && s.isEnabled) {
-          hideSoundTooltip();
-        }
       }
     });
   }
-
-  // Create and schedule tooltip
-  createSoundTooltip();
 
   return buttonElement;
 }
@@ -188,7 +179,6 @@ async function handleToggleClick() {
     const success = await unlockAudio();
     if (success) {
       updateButtonState(true);
-      hideSoundTooltip();
     } else {
       // Failed to unlock - show error state briefly, then revert
       if (buttonElement) {
@@ -203,9 +193,6 @@ async function handleToggleClick() {
     // Subsequent clicks: toggle on/off
     const newState = toggleSound();
     updateButtonState(newState);
-    if (newState) {
-      hideSoundTooltip();
-    }
   }
 }
 
@@ -237,148 +224,5 @@ export function getSoundToggleElement() {
  */
 export function setSoundToggleState(enabled) {
   updateButtonState(enabled);
-  if (enabled) {
-    hideSoundTooltip();
-  }
 }
 
-/**
- * Create tooltip that appears after 5s if sound isn't enabled
- */
-function createSoundTooltip() {
-  if (!buttonElement) return;
-
-  // Check if sound is already enabled - don't show tooltip
-  const state = getSoundState();
-  if (state.isUnlocked && state.isEnabled) {
-    return;
-  }
-
-  // Create tooltip element
-  tooltipElement = document.createElement('div');
-  tooltipElement.className = 'sound-tooltip';
-  tooltipElement.setAttribute('role', 'tooltip');
-  tooltipElement.setAttribute('aria-hidden', 'true');
-  
-  // Tooltip content
-  tooltipElement.innerHTML = `<span class="sound-tooltip-text">Try sound on?</span>`;
-
-  // Append to same parent as button (or body as fallback) BEFORE positioning
-  const parent = buttonElement.parentElement || document.body;
-  parent.appendChild(tooltipElement);
-
-  // Position relative to button (after appending so we can measure width)
-  updateTooltipPosition();
-
-  // Schedule appearance after 20 seconds
-  tooltipTimeout = setTimeout(() => {
-    if (tooltipElement) {
-      // Double-check sound still isn't enabled
-      const currentState = getSoundState();
-      if (!(currentState.isUnlocked && currentState.isEnabled)) {
-        // Force a reflow to ensure width is calculated correctly
-        void tooltipElement.offsetWidth;
-        // Update position with accurate width before showing
-        updateTooltipPosition();
-        tooltipElement.classList.add('sound-tooltip--visible');
-        tooltipElement.setAttribute('aria-hidden', 'false');
-      }
-    }
-  }, 20000);
-
-  // Hide on interaction with button
-  buttonElement.addEventListener('mouseenter', hideSoundTooltip);
-  buttonElement.addEventListener('focus', hideSoundTooltip);
-  buttonElement.addEventListener('click', hideSoundTooltip);
-
-  // Update position on resize
-  if (typeof window !== 'undefined' && window.addEventListener) {
-    window.addEventListener('resize', updateTooltipPosition);
-  }
-}
-
-/**
- * Update tooltip position to point at button
- * Arrow peak should be directly below sound icon center at all times
- * Tooltip box extends right from the arrow position (10% of box width to left of arrow)
- * Uses fixed positioning so coordinates are always relative to viewport
- */
-function updateTooltipPosition() {
-  if (!tooltipElement || !buttonElement) return;
-
-  // Get button position in viewport coordinates
-  const buttonRect = buttonElement.getBoundingClientRect();
-  const buttonCenterX = buttonRect.left + (buttonRect.width / 2);
-  const buttonBottomY = buttonRect.bottom;
-  
-  // Ensure we have valid button coordinates
-  if (!buttonRect.width || !buttonRect.height) {
-    console.warn('Sound tooltip: Button rect not available, skipping position update');
-    return;
-  }
-
-  // Force layout to get accurate tooltip width
-  // Position off-screen temporarily for accurate measurement
-  tooltipElement.style.position = 'fixed';
-  tooltipElement.style.left = '-9999px';
-  tooltipElement.style.top = '-9999px';
-  tooltipElement.style.visibility = 'visible';
-  tooltipElement.style.opacity = '0'; // Invisible but still laid out
-  
-  // Force a reflow to ensure width is calculated
-  void tooltipElement.offsetWidth;
-  
-  // Get accurate width now that it's fully laid out
-  const tooltipBoxWidth = tooltipElement.offsetWidth || 120;
-
-  // Check if mobile (same breakpoint as CSS)
-  const isMobile = typeof window !== 'undefined' && 
-                   typeof window.matchMedia === 'function' &&
-                   window.matchMedia('(max-width: 600px)').matches;
-
-  let tooltipLeft;
-  if (isMobile) {
-    // On mobile: center the tooltip at button center X
-    // CSS will use transform: translateX(-50%) to center it
-    tooltipLeft = buttonCenterX;
-  } else {
-    // Desktop: Arrow positioned at 82% from left (18% from right) of tooltip box
-    // This means 82% of box is to the left of arrow, 18% to the right
-    // The arrow peak (left edge of the 0-width triangle) must be at button center X
-    // Calculation: tooltipLeft + (tooltipBoxWidth * 0.82) = buttonCenterX
-    // Therefore: tooltipLeft = buttonCenterX - (tooltipBoxWidth * 0.82)
-    tooltipLeft = buttonCenterX - (tooltipBoxWidth * 0.82);
-  }
-  
-  const tooltipTop = buttonBottomY + 12; // 12px gap below button
-
-  // Restore visibility
-  tooltipElement.style.opacity = '';
-  
-  // Apply position in viewport coordinates (fixed positioning)
-  tooltipElement.style.left = `${tooltipLeft}px`;
-  tooltipElement.style.top = `${tooltipTop}px`;
-}
-
-/**
- * Hide and remove tooltip
- */
-function hideSoundTooltip() {
-  if (tooltipTimeout) {
-    clearTimeout(tooltipTimeout);
-    tooltipTimeout = null;
-  }
-
-  if (tooltipElement) {
-    tooltipElement.classList.remove('sound-tooltip--visible');
-    tooltipElement.setAttribute('aria-hidden', 'true');
-    
-    // Remove after fade-out animation completes
-    setTimeout(() => {
-      if (tooltipElement && tooltipElement.parentElement) {
-        tooltipElement.parentElement.removeChild(tooltipElement);
-      }
-      tooltipElement = null;
-    }, 300); // Match CSS transition duration
-  }
-}

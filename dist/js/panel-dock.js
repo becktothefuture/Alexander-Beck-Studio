@@ -1,1 +1,1006 @@
-function n(n){try{localStorage.setItem(U.dockHidden,n+"")}catch(t){}}function t(t={}){if(!document.querySelector('link[href*="panel.css"]')){const n=document.createElement("link");n.rel="stylesheet",n.href="css/panel.css",document.head.appendChild(n)}const s=t.page||"home",i=t.pageLabel||("portfolio"===s?"Portfolio":"Home"),c=t.pageHTML||z,l=!!t.includePageSaveButton,d=t.pageSaveButtonId||"savePortfolioConfigBtn",u=t.footerHint||("portfolio"===s?"<kbd>/</kbd> panel":"<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters have no key (yet)"),p=t.panelTitle||"Settings",f=t.modeLabel||(B()?"DEV MODE":"BUILD MODE"),v=!!t.bindShortcut,q="function"==typeof t.setupPageControls?t.setupPageControls:null;try{const n=document.getElementById("controlPanel");n&&n.remove();const t=document.getElementById("soundPanel");t&&t.remove()}catch(G){}A=document.createElement("div"),A.className="panel-dock",A.id="panelDock";let F=(({defaultHidden:n=!0}={})=>{try{const t=localStorage.getItem(U.dockHidden);return null===t?!!n:"true"===t}catch(G){return!!n}})({defaultHidden:!0});try{F=!0}catch(G){}return A.classList.toggle("hidden",!!F),n(!!F),J=(({page:n,panelTitle:t,pageLabel:e,pageHTML:a,includePageSaveButton:o,pageSaveButtonId:s,footerHint:i,setupPageControls:c}={})=>{const l=document.createElement("div");l.id="masterPanel",l.className=(()=>{try{const n=localStorage.getItem(U.panelCollapsed);return null===n||"true"===n}catch(G){return!0}})()?"panel collapsed":"panel",l.setAttribute("role","region"),l.setAttribute("aria-label","Settings");const r=document.createElement("div");r.className="panel-header",r.innerHTML=`\n    <div class="mac-titlebar">\n      <div class="mac-traffic" aria-hidden="true">\n        <span class="mac-dot mac-dot--red"></span>\n        <span class="mac-dot mac-dot--yellow"></span>\n        <span class="mac-dot mac-dot--green"></span>\n      </div>\n      <div class="panel-title mac-title">${t}</div>\n      <div class="mac-right">\n        ${B()?'<button id="saveConfigBtn" class="panel-save-btn" aria-label="Save config" title="Save config to file">Save</button>':""}\n        <button class="collapse-btn mac-collapse" aria-label="Collapse panel" title="Collapse">▾</button>\n      </div>\n    </div>\n  `;const d=document.createElement("div");d.className="panel-content",d.innerHTML=(({pageLabel:n="Home",pageHTML:t=z,includePageSaveButton:e=!1,pageSaveButtonId:a="savePortfolioConfigBtn",footerHint:o="<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei · Critters have no key (yet)"}={})=>{const s=S(),i=O(),c=s.layoutViewportWidthPx>0?Math.round(s.layoutViewportWidthPx)+"px":`Auto (${Math.round(i)}px)`,l=Math.max(0,Math.round(s.wallInset??3)),r=`\n    <details class="panel-section-accordion" id="layoutSection">\n      <summary class="panel-section-header">\n        <span class="section-icon">📐</span>\n        <span class="section-label">Layout</span>\n      </summary>\n      <div class="panel-section-content">\n        <label class="control-row">\n          <div class="control-row-header">\n            <span class="control-label">Viewport Width</span>\n            <span class="control-value" id="viewportWidthValue">${c}</span>\n          </div>\n          <input type="range" id="layoutViewportWidth" min="0" max="2400" step="10" value="${Math.round(s.layoutViewportWidthPx||0)}" />\n          <div class="control-hint">0 = Auto (uses current window width)</div>\n        </label>\n        <label class="control-row">\n          <div class="control-row-header">\n            <span class="control-label">Wall Inset</span>\n            <span class="control-value" id="wallInsetValue">${l}px</span>\n          </div>\n          <input type="range" id="layoutWallInset" min="0" max="20" value="${l}" />\n        </label>\n      </div>\n    </details>\n  `,d=`\n    <details class="panel-section-accordion" id="soundSection">\n      <summary class="panel-section-header">\n        <span class="section-icon">🔊</span>\n        <span class="section-label">Sound</span>\n      </summary>\n      <div class="panel-section-content">\n        <div class="sound-enable-row">\n          <button id="soundEnableBtn" class="sound-enable-btn" aria-label="Enable sound">🔇</button>\n        </div>\n        <div id="soundControlsWrapper" class="sound-controls" style="display: none;">\n          <div class="sound-perf" aria-label="Sound performance controls">\n            <button type="button" id="soundTapBtn" class="sound-perf__btn" aria-label="Play test hit">▶︎</button>\n            <button type="button" id="soundResetBtn" class="sound-perf__btn" aria-label="Reset to preset">↺</button>\n            <button type="button" id="soundShuffleBtn" class="sound-perf__btn" aria-label="Shuffle (subtle) sound">🎲</button>\n            <span class="sound-perf__hint">wheel adjusts · shift/alt = fine</span>\n          </div>\n          <label class="control-row">\n            <span class="control-label">Preset</span>\n            <select id="soundPresetSelect" class="control-select"></select>\n          </label>\n          <p id="presetDescription" class="control-hint"></p>\n          ${x()}\n        </div>\n      </div>\n    </details>\n  `,u=`\n    <details class="panel-section-accordion" id="pageSection" open>\n      <summary class="panel-section-header">\n        <span class="section-icon">⚙️</span>\n        <span class="section-label">${n}</span>\n      </summary>\n      <div class="panel-section-content">\n        ${t}\n      </div>\n    </details>\n  `,p=`\n    <div class="panel-section panel-section--action">\n      <button id="saveRuntimeConfigBtn" class="primary">💾 Save Config</button>\n      ${e?`<button id="${a}" class="primary">💾 Save ${n} Config</button>`:""}\n    </div>\n    <div class="panel-footer">${o}</div>\n  `;return`\n    ${g({open:!0})}\n    ${y()}\n    ${r}\n    ${d}\n    ${w({open:!1})}\n    ${u}\n    ${p}\n  `})({pageLabel:e,pageHTML:a,includePageSaveButton:o,pageSaveButtonId:s,footerHint:i}),l.appendChild(r),l.appendChild(d);const u=(()=>{try{const n=localStorage.getItem(U.panelSize);if(!n)return null;const t=JSON.parse(n);if(!t||"object"!=typeof t)return null;const e=+t.width,a=+t.height;return Number.isFinite(e)&&Number.isFinite(a)?{width:Math.round(e),height:Math.round(a)}:null}catch(G){return null}})();if(u){const n=.9*window.innerHeight;if(Math.abs(u.width-368)>5||Math.abs(u.height-n)>5){l.style.width=u.width+"px";const n=.9*window.innerHeight;l.style.height=Math.min(u.height,n)+"px",l.style.maxHeight="90vh"}}const p=r.querySelector("#saveConfigBtn");p&&B()&&p.addEventListener("click",async n=>{n.preventDefault(),n.stopPropagation(),await(async()=>{if(!B())return;const t=S(),e=document.getElementById("saveConfigBtn"),a=e?.textContent||"Save";e&&(e.textContent="Saving...",e.disabled=!0);try{const o={};try{const n=h();for(const e of n){if(!e||!e.stateKey)continue;const n=t[e.stateKey];void 0!==n&&(o[e.stateKey]=n)}}catch(n){console.warn("[save-config] Error collecting controls:",n)}o.chromeHarmonyMode=t.chromeHarmonyMode,o.autoDarkModeEnabled=t.autoDarkModeEnabled,o.autoDarkNightStartHour=t.autoDarkNightStartHour,o.autoDarkNightEndHour=t.autoDarkNightEndHour,o.ballMassKg=t.ballMassKg,o.REST=t.REST,o.FRICTION=t.FRICTION,o.physicsCollisionIterations=t.physicsCollisionIterations,o.physicsSkipSleepingCollisions=t.physicsSkipSleepingCollisions,o.physicsSpatialGridOptimization=t.physicsSpatialGridOptimization,o.physicsSleepThreshold=t.physicsSleepThreshold,o.physicsSleepTime=t.physicsSleepTime,o.physicsSkipSleepingSteps=t.physicsSkipSleepingSteps,o.sizeScale=t.sizeScale,o.responsiveScaleMobile=t.responsiveScaleMobile,o.mobileObjectReductionFactor=t.mobileObjectReductionFactor,o.liteModeEnabled=t.liteModeEnabled,o.liteModeObjectReductionFactor=t.liteModeObjectReductionFactor,o.ballSoftness=t.ballSoftness,o.ballSpacing=t.ballSpacing,o.sizeVariationGlobalMul=t.sizeVariationGlobalMul,o.sizeVariationCap=t.sizeVariationCap,o.cursorInfluenceRadiusVw=t.cursorInfluenceRadiusVw,o.cursorSize=t.cursorSize,o.mouseTrailEnabled=t.mouseTrailEnabled,o.mouseTrailLength=t.mouseTrailLength,o.mouseTrailSize=t.mouseTrailSize,o.mouseTrailFadeMs=t.mouseTrailFadeMs,o.mouseTrailOpacity=t.mouseTrailOpacity,o.contentPaddingRatio=t.contentPaddingRatio,o.contentPaddingHorizontalRatio=t.contentPaddingHorizontalRatio,void 0!==t.uiHitAreaMul&&(o.uiHitAreaMul=t.uiHitAreaMul),void 0!==t.uiIconCornerRadiusMul&&(o.uiIconCornerRadiusMul=t.uiIconCornerRadiusMul),t.uiIconFramePx&&(o.uiIconFramePx=t.uiIconFramePx),t.uiIconGlyphPx&&(o.uiIconGlyphPx=t.uiIconGlyphPx),void 0!==t.uiIconGroupMarginPx&&(o.uiIconGroupMarginPx=t.uiIconGroupMarginPx),o.linkTextPadding=t.linkTextPadding,o.linkIconPadding=t.linkIconPadding,void 0!==t.footerNavBarTopVh&&(o.footerNavBarTopVh=t.footerNavBarTopVh),void 0!==t.footerNavBarGapVw&&(o.footerNavBarGapVw=t.footerNavBarGapVw),void 0!==t.homeMainLinksBelowLogoPx&&(o.homeMainLinksBelowLogoPx=t.homeMainLinksBelowLogoPx),void 0!==t.edgeLabelInsetAdjustPx&&(o.edgeLabelInsetAdjustPx=t.edgeLabelInsetAdjustPx),o.linkColorInfluence=t.linkColorInfluence,o.linkImpactScale=t.linkImpactScale,o.linkImpactBlur=t.linkImpactBlur,o.linkImpactDuration=t.linkImpactDuration,o.hoverSnapEnabled=t.hoverSnapEnabled,o.hoverSnapDuration=t.hoverSnapDuration,o.hoverSnapOvershoot=t.hoverSnapOvershoot,o.hoverSnapUndershoot=t.hoverSnapUndershoot,o.sceneImpactEnabled=t.sceneImpactEnabled,o.sceneImpactMul=t.sceneImpactMul,o.sceneImpactLogoCompMul=t.sceneImpactLogoCompMul,o.sceneImpactMobileMulFactor=t.sceneImpactMobileMulFactor,o.sceneImpactPressMs=t.sceneImpactPressMs,o.sceneImpactReleaseMs=t.sceneImpactReleaseMs,o.sceneImpactAnticipation=t.sceneImpactAnticipation,o.sceneChangeSoundEnabled=t.sceneChangeSoundEnabled,o.sceneChangeSoundIntensity=t.sceneChangeSoundIntensity,o.sceneChangeSoundRadius=t.sceneChangeSoundRadius,o.gateOverlayEnabled=t.gateOverlayEnabled,o.gateOverlayOpacity=t.gateOverlayOpacity,o.gateOverlayTransitionMs=t.gateOverlayTransitionMs,o.gateOverlayTransitionOutMs=t.gateOverlayTransitionOutMs,o.gateOverlayContentDelayMs=t.gateOverlayContentDelayMs,o.gateDepthScale=t.gateDepthScale,o.gateDepthTranslateY=t.gateDepthTranslateY,o.bgLight=t.bgLight,o.bgDark=t.bgDark,o.textColorLight=t.textColorLight,o.textColorLightMuted=t.textColorLightMuted,o.textColorDark=t.textColorDark,o.textColorDarkMuted=t.textColorDarkMuted,o.linkHoverColor=t.linkHoverColor,o.topLogoWidthVw=t.topLogoWidthVw,o.colorDistribution=t.colorDistribution,o.frameColorLight=t.frameColorLight,o.frameColorDark=t.frameColorDark,o.wallPreset=t.wallPreset,o.wallThicknessVw=t.wallThicknessVw,o.wallThicknessAreaMultiplier=t.wallThicknessAreaMultiplier,o.wallRadiusVw=t.wallRadiusVw,o.wallInset=t.wallInset,o.mobileWallThicknessXFactor=t.mobileWallThicknessXFactor,o.mobileEdgeLabelsVisible=t.mobileEdgeLabelsVisible,o.wallWobbleMaxDeform=t.wallWobbleMaxDeform,o.wallWobbleStiffness=t.wallWobbleStiffness,o.wallWobbleDamping=t.wallWobbleDamping,o.wallWobbleSigma=t.wallWobbleSigma,o.wallWobbleSettlingSpeed=t.wallWobbleSettlingSpeed,o.wallWobbleCornerClamp=t.wallWobbleCornerClamp,o.wallWobbleImpactThreshold=t.wallWobbleImpactThreshold,o.wallWobbleMaxVel=t.wallWobbleMaxVel,o.wallWobbleMaxImpulse=t.wallWobbleMaxImpulse,o.wallWobbleMaxEnergyPerStep=t.wallWobbleMaxEnergyPerStep,o.wallPhysicsSamples=t.wallPhysicsSamples,o.wallPhysicsSkipInactive=t.wallPhysicsSkipInactive,o.wallRenderDecimation=t.wallRenderDecimation,o.noiseEnabled=t.noiseEnabled,o.noiseSeed=t.noiseSeed,o.noiseTextureSize=t.noiseTextureSize,o.noiseDistribution=t.noiseDistribution,o.noiseMonochrome=t.noiseMonochrome,o.noiseChroma=t.noiseChroma,o.noiseSize=t.noiseSize,o.noiseOpacity=t.noiseOpacity,o.noiseOpacityLight=t.noiseOpacityLight,o.noiseOpacityDark=t.noiseOpacityDark,o.noiseBlendMode=t.noiseBlendMode,o.noiseColorLight=t.noiseColorLight,o.noiseColorDark=t.noiseColorDark,o.simulationOverlayIntensity=t.simulationOverlayIntensity,o.depthWashOpacity=t.depthWashOpacity,o.depthWashBlendModeLight=t.depthWashBlendModeLight,o.depthWashBlendModeDark=t.depthWashBlendModeDark,o.depthWashCenterY=t.depthWashCenterY,o.depthWashRadiusScale=t.depthWashRadiusScale,o.depthWashCenterColorLight=t.depthWashCenterColorLight,o.depthWashEdgeColorLight=t.depthWashEdgeColorLight,o.depthWashCenterAlphaLight=t.depthWashCenterAlphaLight,o.depthWashEdgeAlphaLight=t.depthWashEdgeAlphaLight,o.depthWashCenterColorDark=t.depthWashCenterColorDark,o.depthWashEdgeColorDark=t.depthWashEdgeColorDark,o.depthWashCenterAlphaDark=t.depthWashCenterAlphaDark,o.depthWashEdgeAlphaDark=t.depthWashEdgeAlphaDark,o.noiseMotion=t.noiseMotion,o.noiseMotionAmount=t.noiseMotionAmount,o.noiseSpeedMs=t.noiseSpeedMs,o.noiseSpeedVariance=t.noiseSpeedVariance,o.noiseFlicker=t.noiseFlicker,o.noiseFlickerSpeedMs=t.noiseFlickerSpeedMs,o.noiseBlurPx=t.noiseBlurPx,o.noiseContrast=t.noiseContrast,o.noiseBrightness=t.noiseBrightness,o.noiseSaturation=t.noiseSaturation,o.noiseHue=t.noiseHue,void 0!==t.entranceEnabled&&(o.entranceEnabled=t.entranceEnabled),void 0!==t.entranceWallTransitionDelay&&(o.entranceWallTransitionDelay=t.entranceWallTransitionDelay),void 0!==t.entranceWallTransitionDuration&&(o.entranceWallTransitionDuration=t.entranceWallTransitionDuration),void 0!==t.entranceWallInitialScale&&(o.entranceWallInitialScale=t.entranceWallInitialScale),void 0!==t.entranceWallEasing&&(o.entranceWallEasing=t.entranceWallEasing),void 0!==t.entranceElementDuration&&(o.entranceElementDuration=t.entranceElementDuration),void 0!==t.entranceElementScaleStart&&(o.entranceElementScaleStart=t.entranceElementScaleStart),void 0!==t.entranceElementTranslateZStart&&(o.entranceElementTranslateZStart=t.entranceElementTranslateZStart),void 0!==t.entrancePerspectiveLandscape&&(o.entrancePerspectiveLandscape=t.entrancePerspectiveLandscape),void 0!==t.entrancePerspectiveSquare&&(o.entrancePerspectiveSquare=t.entrancePerspectiveSquare),void 0!==t.entrancePerspectivePortrait&&(o.entrancePerspectivePortrait=t.entrancePerspectivePortrait),o.gravityMultiplier=t.gravityMultiplierPit,o.restitution=t.REST,o.friction=t.FRICTION,o.ballMass=t.ballMassKg,o.ballScale=t.sizeScale,o.sizeVariation=t.sizeVariation,o.repelSoft=t.repelSoft,o.repelSoftness=t.repelSoft,o.layoutViewportWidthPx=t.layoutViewportWidthPx||0,o.containerBorderVw=t.containerBorderVw,o.simulationPaddingVw=t.simulationPaddingVw,o.layoutMinWallRadiusPx=Math.max(0,Math.round(t.layoutMinWallRadiusPx??0));try{o.soundPreset=M(),o.soundConfig=k()}catch(n){}o.enableLOD=!1;const s=await _("default",o);e&&(s?(e.textContent="Saved!",setTimeout(()=>{e.textContent=a,e.disabled=!1},1500)):(e.textContent="Error",setTimeout(()=>{e.textContent=a,e.disabled=!1},2e3),console.warn("[save-config] Failed to save config")))}catch(n){console.error("[save-config] Error saving config:",n),e&&(e.textContent="Error",setTimeout(()=>{e.textContent=a,e.disabled=!1},2e3))}})()});const f=r.querySelector(".collapse-btn");return f&&f.addEventListener("click",n=>{n.preventDefault(),n.stopPropagation(),(t=>{t.classList.toggle("collapsed"),(t=>{try{localStorage.setItem(U.panelCollapsed,t+"")}catch(n){}})(t.classList.contains("collapsed"))})(l)}),setTimeout(()=>{"home"===n?b():m(),(()=>{const n=document.getElementById("saveRuntimeConfigBtn");n&&n.addEventListener("click",()=>{const n=S(),t={};try{const e=h();for(const a of e){if(!a||!a.stateKey)continue;const e=n[a.stateKey];void 0!==e&&(t[a.stateKey]=e)}}catch(G){}t.gravityMultiplier=n.gravityMultiplierPit,t.restitution=n.REST,t.friction=n.FRICTION,t.ballMass=n.ballMassKg,t.ballScale=n.sizeScale,t.sizeScale=n.sizeScale,t.sizeVariation=n.sizeVariation,t.repelSoft=n.repelSoft,t.repelSoftness=n.repelSoft,t.layoutViewportWidthPx=n.layoutViewportWidthPx||0,t.containerBorderVw=n.containerBorderVw,t.simulationPaddingVw=n.simulationPaddingVw,t.contentPaddingVw=n.contentPaddingVw,t.contentPaddingHorizontalRatio=n.contentPaddingHorizontalRatio,t.wallRadiusVw=n.wallRadiusVw,t.wallThicknessVw=n.wallThicknessVw,t.layoutMinContentPaddingPx=Math.max(0,Math.round(n.layoutMinContentPaddingPx??0)),t.layoutMinWallRadiusPx=Math.max(0,Math.round(n.layoutMinWallRadiusPx??0)),t.wallInset=n.wallInset;try{t.soundPreset=M(),t.soundConfig=k()}catch(G){}t.chromeHarmonyMode=n.chromeHarmonyMode,t.autoDarkModeEnabled=n.autoDarkModeEnabled,t.autoDarkNightStartHour=n.autoDarkNightStartHour,t.autoDarkNightEndHour=n.autoDarkNightEndHour,t.enableLOD=!1;const e=new Blob([JSON.stringify(t,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(e),a.download="default-config.json",document.body.appendChild(a),a.click(),document.body.removeChild(a)})})(),(n=>{const t=n.querySelector("#soundEnableBtn"),e=n.querySelector("#soundControlsWrapper"),a=n.querySelector("#soundPresetSelect"),o=n.querySelector("#presetDescription"),s=n.querySelector("#soundSection"),i=n.querySelector("#soundTapBtn"),c=n.querySelector("#soundResetBtn"),l=n.querySelector("#soundShuffleBtn"),r=(n,t,e)=>t>n?t:n>e?e:n,d=(n,t)=>n+2*(Math.random()-.5)*t,u=(n,{openIfEnabled:a=!1}={})=>{if(!t)return;const o=n||I(),i=!(!o.isUnlocked||!o.isEnabled),c=!!o.isUnlocked;t.innerHTML=c&&i?'<i class="ti ti-volume-2" aria-hidden="true"></i>':'<i class="ti ti-volume-off" aria-hidden="true"></i>',t.setAttribute("aria-label",c?i?"Sound on":"Sound off":"Enable sound"),t.classList.toggle("enabled",i),e&&(e.style.display=i?"":"none"),a&&i&&s&&!s.open&&(s.open=!0)};if(i&&i.addEventListener("click",()=>{$({intensity:.86,radius:18,xPosition:.72})}),c&&c.addEventListener("click",()=>{const t=M();C(t),o&&P[t]&&(o.textContent=P[t].description),E(n,k)}),l&&l.addEventListener("click",()=>{const t=k(),e={filterBaseFreq:r(d(t.filterBaseFreq,120),300,8e3),filterQ:r(d(t.filterQ,.04),.05,.9),pitchCurve:r(d(t.pitchCurve,.06),.6,1.8),sparkleGain:r(d(t.sparkleGain,.03),0,.35),sparkleDecayMul:r(d(t.sparkleDecayMul,.05),.25,.95),noiseTransientQ:r(d(t.noiseTransientQ,.25),.6,6),reverbWetMix:r(d(t.reverbWetMix,.02),0,.35),reverbDecay:r(d(t.reverbDecay,.03),.05,.4),collisionMinImpact:r(d(t.collisionMinImpact,.03),.45,.9),variancePitch:r(d(t.variancePitch,.01),0,.2),varianceGain:r(d(t.varianceGain,.02),0,.35)};T(e),E(n,k),$({intensity:.86,radius:18,xPosition:.72})}),t&&t.addEventListener("click",async()=>{const n=I();if(n.isUnlocked){const t=L();u({...n,isEnabled:t})}else await H()&&u(null,{openIfEnabled:!0})}),a){for(const[n,t]of Object.entries(P)){const e=document.createElement("option");e.value=n,e.textContent=t.label,a.appendChild(e)}a.value=M(),o&&P[M()]&&(o.textContent=P[M()].description),a.addEventListener("change",()=>{C(a.value),o&&P[a.value]&&(o.textContent=P[a.value].description),E(n,k)})}R(n,k,T),E(n,k),u(),"undefined"!=typeof window&&window.addEventListener&&window.addEventListener(W,n=>{u(n&&n.detail?n.detail:null)})})(l),(n=>{const t=n.querySelector("#layoutViewportWidth"),e=n.querySelector("#viewportWidthValue"),a=n.querySelector("#layoutWallInset"),o=n.querySelector("#wallInsetValue"),s=S();t&&e&&t.addEventListener("input",n=>{const t=parseInt(n.target.value,10);s.layoutViewportWidthPx=Number.isFinite(t)?Math.max(0,t):0,(({triggerResize:t=!1}={})=>{if(D(),N(),e){const n=O();e.textContent=s.layoutViewportWidthPx>0?Math.round(s.layoutViewportWidthPx)+"px":`Auto (${Math.round(n)}px)`}if(t)try{j()}catch(n){}document.dispatchEvent(new CustomEvent("layout-updated"))})({triggerResize:!0})}),a&&o&&a.addEventListener("input",n=>{const t=parseInt(n.target.value,10);o.textContent=t+"px",s.wallInset=t})})(l);try{c?.(l)}catch(G){}},0),l})({page:s,panelTitle:p,modeLabel:f,pageLabel:i,pageHTML:c,includePageSaveButton:l,pageSaveButtonId:d,footerHint:u,setupPageControls:q}),A.appendChild(J),document.body.insertBefore(A,document.body.firstChild),B()&&(()=>{if(document.querySelector(".panel-toggle-btn"))return;const n=document.createElement("button");n.className="panel-toggle-btn",n.setAttribute("aria-label","Toggle config panel"),n.innerHTML="⚙",n.style.display="flex",n.addEventListener("click",()=>{r()}),document.body.appendChild(n)})(),J&&(J.addEventListener("mousedown",n=>{const t=J.getBoundingClientRect();n.clientY-t.top>12||n.target.closest("button")||n.target.closest("input")||n.target.closest("select")||e(n)}),J.addEventListener("touchstart",n=>{const t=J.getBoundingClientRect();n.touches[0].clientY-t.top>12||n.target.closest("button")||n.target.closest("input")||n.target.closest("select")||e(n)},{passive:!1}),document.addEventListener("mousemove",a),document.addEventListener("mouseup",o),document.addEventListener("touchmove",a,{passive:!1}),document.addEventListener("touchend",o),(()=>{try{if(!A)return;const n=JSON.parse(localStorage.getItem(U.position)||"{}");n.custom&&(A.style.position="fixed",A.style.left=n.left,A.style.top=n.top,A.style.right="auto")}catch(G){}})()),(()=>{if(!J)return;if("undefined"==typeof ResizeObserver)return;let n=0;const t=new ResizeObserver(()=>{J&&(J.classList.contains("collapsed")||(window.clearTimeout(n),n=window.setTimeout(()=>{(n=>{try{if(!n)return;if(n.classList.contains("collapsed"))return;const t=n.getBoundingClientRect();localStorage.setItem(U.panelSize,JSON.stringify({width:Math.round(t.width),height:Math.round(t.height)}))}catch(G){}})(J)},150)))});try{t.observe(J)}catch(G){}})(),A&&A.addEventListener("pointerenter",n=>{const t=n.target;if(!t||!t.closest)return;const e=t.matches('button, [role="button"], .mode-btn, .mac-dot'),a=t.matches('input[type="range"]'),o=t.matches("select");(e||a||o)&&V()},!0),v&&(K||(K=!0,window.addEventListener("keydown",n=>{try{const t=n.target?.tagName,e=["INPUT","TEXTAREA","SELECT"].includes(t),a=!!n.target?.closest?.(".panel-dock");if(e&&!a)return}catch(G){}"/"!==(n.key?.toLowerCase?.()||"")&&"Slash"!==n.code||(n.preventDefault(),r())}))),A}function e(n){if(n.target.closest("button")||n.target.closest("input")||n.target.closest("select"))return;if(!A)return;const t=n.touches?n.touches[0].clientX:n.clientX,e=n.touches?n.touches[0].clientY:n.clientY,a=A.getBoundingClientRect();F=t,G=e,Q=a.left,X=a.top,q=!1}function a(n){if(0===F&&0===G)return;if(!A)return;const t=(n.touches?n.touches[0].clientX:n.clientX)-F,e=(n.touches?n.touches[0].clientY:n.clientY)-G;if(q||5>=Math.abs(t)&&5>=Math.abs(e)||(q=!0,A.classList.add("dragging"),A.style.position="fixed",A.style.top=X+"px",A.style.left=Q+"px",A.style.right="auto"),q){let a=Q+t,o=X+e;const s=A.getBoundingClientRect();a=Math.max(0,Math.min(window.innerWidth-s.width,a)),o=Math.max(0,Math.min(window.innerHeight-s.height,o)),A.style.left=a+"px",A.style.top=o+"px",n.preventDefault()}}function o(){q&&(q=!1,A&&A.classList.remove("dragging"),s()),F=0,G=0,setTimeout(()=>{},10)}function s(){try{if(!A)return;localStorage.setItem(U.position,JSON.stringify({left:A.style.left,top:A.style.top,custom:!0}))}catch(n){}}function i(){if(A){A.style.position="",A.style.left="",A.style.top="",A.style.right="";try{localStorage.removeItem(U.position)}catch(n){}}}function c(){J&&J.classList.remove("collapsed")}function l(){J&&J.classList.add("collapsed")}function r(){if(!A)try{t()}catch(a){return}const e=A.classList.toggle("hidden");if(n(e),!e)try{(()=>{if(!A)return;if(!A.style.left&&!A.style.top)return;const n=A.getBoundingClientRect(),t=window.innerWidth||0,e=window.innerHeight||0;if(!t||!e)return;const a=10;if(a>n.right||n.left>t-a||a>n.bottom||n.top>e-a)return void i();const o=(n,t,e)=>t>n?t:n>e?e:n,c=o(n.left,a,Math.max(a,t-n.width-a)),l=o(n.top,a,Math.max(a,e-n.height-a));A.style.position="fixed",A.style.left=Math.round(c)+"px",A.style.top=Math.round(l)+"px",A.style.right="auto",s()})()}catch(a){}}function d(){return A}function u(){return J}function p(){return J}import{g as f,a as v,b as h,s as b,c as m,d as g,e as y,f as w}from"./controls.js";import{g as S,af as M,ag as k,i as B,ah as x,ai as _,aj as $,ak as C,al as P,am as E,an as T,ao as I,ap as H,aq as L,ar as R,as as W,at as O,au as D,f as N,o as j,av as V}from"./shared.js";v();const z=f();let A=null,J=null;const U={position:"panel_dock_position_v2",dockHidden:"panel_dock_hidden",panelCollapsed:"master_panel_collapsed",panelSize:B()?"panel_dock_size_dev_v3":"panel_dock_size_prod_v3"};let q=!1,F=0,G=0,Q=0,X=0,K=!1;const Y=i;export{l as collapsePanel,t as createPanelDock,c as expandPanel,u as getControlPanel,d as getDock,p as getSoundPanel,Y as resetDockPosition,i as resetPanelPositions,r as toggleDock};
+/* Alexander Beck Studio | 2026-01-26 */
+import { ah as generateHomePanelHTML, ai as generatePanelHTML, aj as getAllControls, g as getGlobals, ak as getCurrentPreset, al as getSoundConfig, i as isDev, am as updateWallShadowCSS, an as generateSoundControlsHTML, ao as generateThemeSectionHTML, ap as generateGlobalSectionsHTML, aq as generateColorTemplateSectionHTML, ar as generateSimulationsSectionsHTML, as as generateBrowserTransitionSectionsHTML, at as applySoundPreset, au as SOUND_PRESETS, av as syncSoundControlsToConfig, aw as updateSoundConfig, ax as unlockAudio, ay as bindSoundControls, az as SOUND_STATE_EVENT, aA as getLayoutViewportWidthPx, aB as applyLayoutFromVwToPx, j as applyLayoutCSSVars, t as resize, aC as getSoundState, aD as playTestSound, aE as toggleSound, aF as playHoverSound } from './shared.js';
+import { setupIndexControls, setupMasterControls } from './controls.js';
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                         CONTROL PANEL HTML TEMPLATE                          ║
+// ║           Generated from centralized control-registry.js                     ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+// For backwards compatibility, also export PANEL_HTML constant
+// Note: This won't update if visibility changes at runtime
+generatePanelHTML();
+
+// Page-specific (index/home) controls without master sections/footer.
+const HOME_PANEL_HTML = generateHomePanelHTML();
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                             BUILD / SAVE CONFIG                              ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+function setupBuildControls() {
+  const btn = document.getElementById('saveRuntimeConfigBtn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const g = getGlobals();
+    // Build a "complete" config snapshot that round-trips all panel settings.
+    // - Includes all registered controls (mode + global sections)
+    // - Includes canonical key aliases for compatibility (ballScale/sizeScale, repelSoft/repelSoftness)
+    // - Includes sound preset + full soundConfig overrides
+    const config = {};
+
+    // 1) All registered controls → copy from state by stateKey
+    try {
+      const controls = getAllControls();
+      for (const c of controls) {
+        if (!c || !c.stateKey) continue;
+        const v = g[c.stateKey];
+        if (v === undefined) continue;
+        config[c.stateKey] = v;
+      }
+    } catch (e) {}
+
+    // 2) Canonical + legacy aliases (keep these stable)
+    config.gravityMultiplier = g.gravityMultiplierPit;
+    config.restitution = g.REST;
+    config.friction = g.FRICTION;
+    config.ballMass = g.ballMassKg;
+    config.ballScale = g.sizeScale;
+    config.sizeScale = g.sizeScale;
+    config.sizeVariation = g.sizeVariation;
+    config.repelSoft = g.repelSoft;
+    config.repelSoftness = g.repelSoft;
+
+    // 3) Explicitly include layout controls (not in registry)
+    // Layout is vw-native (derived to px at runtime). Export vw keys as canonical.
+    config.layoutViewportWidthPx = g.layoutViewportWidthPx || 0;
+    config.containerBorderVw = g.containerBorderVw;
+    config.simulationPaddingVw = g.simulationPaddingVw;
+    config.contentPaddingVw = g.contentPaddingVw;
+    config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;
+    config.wallRadiusVw = g.wallRadiusVw;
+    config.wallThicknessVw = g.wallThicknessVw;
+    // Minimum clamp targets (px)
+    config.layoutMinContentPaddingPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
+    config.layoutMinWallRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
+    // Physics-only inset remains px.
+    config.wallInset = g.wallInset;
+
+    // 4) Sound (full round-trip)
+    try {
+      config.soundPreset = getCurrentPreset();
+      config.soundConfig = getSoundConfig();
+    } catch (e) {}
+
+    // 4b) Browser / theme environment
+    config.chromeHarmonyMode = g.chromeHarmonyMode;
+    config.autoDarkModeEnabled = g.autoDarkModeEnabled;
+    config.autoDarkNightStartHour = g.autoDarkNightStartHour;
+    config.autoDarkNightEndHour = g.autoDarkNightEndHour;
+
+    // 5) Stable housekeeping defaults
+    config.enableLOD = false;
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    // This is the file you can drop in as `source/config/default-config.json` and rebuild.
+    a.download = 'default-config.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+}
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                       UNIFIED MASTER PANEL                                   ║
+// ║           Single panel with collapsible sections                             ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+let dockElement = null;
+let masterPanelElement = null;
+
+// ════════════════════════════════════════════════════════════════════════════════
+// STATE PERSISTENCE
+// ════════════════════════════════════════════════════════════════════════════════
+
+const STORAGE_KEYS = {
+  // v2: avoid inheriting old "too low" positions
+  position: 'panel_dock_position_v2',
+  dockHidden: 'panel_dock_hidden',
+  panelCollapsed: 'master_panel_collapsed',
+  // v3: separate dev/prod panel sizes (they have different contexts)
+  panelSize: isDev() ? 'panel_dock_size_dev_v3' : 'panel_dock_size_prod_v3'
+};
+
+function loadPanelCollapsed() {
+  try {
+    const v = localStorage.getItem(STORAGE_KEYS.panelCollapsed);
+    // Default: OPEN in dev mode, collapsed in production
+    if (v === null) return !isDev();
+    return v === 'true';
+  } catch (e) {
+    return !isDev();
+  }
+}
+
+function savePanelCollapsed(collapsed) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.panelCollapsed, String(collapsed));
+  } catch (e) {}
+}
+
+function loadDockHiddenState({ defaultHidden = true } = {}) {
+  try {
+    const v = localStorage.getItem(STORAGE_KEYS.dockHidden);
+    if (v === null) return !!defaultHidden;
+    return v === 'true';
+  } catch (e) {
+    return !!defaultHidden;
+  }
+}
+
+function saveDockHiddenState(hidden) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.dockHidden, String(hidden));
+  } catch (e) {}
+}
+
+function loadPanelSize() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.panelSize);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const width = Number(parsed.width);
+    const height = Number(parsed.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+    return {
+      width: Math.round(width),
+      height: Math.round(height),
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function savePanelSizeFromElement(el) {
+  try {
+    if (!el) return;
+    if (el.classList.contains('collapsed')) return;
+    const rect = el.getBoundingClientRect();
+    const next = {
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+    };
+    localStorage.setItem(STORAGE_KEYS.panelSize, JSON.stringify(next));
+  } catch (e) {}
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DRAG STATE
+// ════════════════════════════════════════════════════════════════════════════════
+
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let elementStartX = 0;
+let elementStartY = 0;
+
+// ════════════════════════════════════════════════════════════════════════════════
+// MASTER PANEL HTML
+// ════════════════════════════════════════════════════════════════════════════════
+
+function getMasterPanelContent({
+  pageLabel = 'Home',
+  pageHTML = HOME_PANEL_HTML,
+  includePageSaveButton = true,
+  pageSaveButtonId = 'saveRuntimeConfigBtn',
+  footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes',
+} = {}) {
+  const g = getGlobals();
+  const viewportWidthPx = getLayoutViewportWidthPx();
+  const viewportWidthLabel = g.layoutViewportWidthPx > 0
+    ? `${Math.round(g.layoutViewportWidthPx)}px`
+    : `Auto (${Math.round(viewportWidthPx)}px)`;
+  const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
+
+  // Layout controls (embedded in Global group)
+  const layoutControlsHTML = `
+    <details class="panel-section-accordion" id="layoutSection">
+      <summary class="panel-section-header">
+        <span class="section-icon">📐</span>
+        <span class="section-label">Layout</span>
+      </summary>
+      <div class="panel-section-content">
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Viewport Width</span>
+            <span class="control-value" id="viewportWidthValue">${viewportWidthLabel}</span>
+          </div>
+          <input type="range" id="layoutViewportWidth" min="0" max="2400" step="10" value="${Math.round(g.layoutViewportWidthPx || 0)}" />
+          <div class="control-hint">0 = Auto (uses current window width)</div>
+        </label>
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Wall Inset</span>
+            <span class="control-value" id="wallInsetValue">${wallInsetVal}px</span>
+          </div>
+          <input type="range" id="layoutWallInset" min="0" max="20" value="${wallInsetVal}" />
+        </label>
+      </div>
+    </details>
+  `;
+
+  // Sound controls (embedded in Global group)
+  const soundControlsHTML = `
+    <details class="panel-section-accordion" id="soundSection">
+      <summary class="panel-section-header">
+        <span class="section-icon">🔊</span>
+        <span class="section-label">Sound</span>
+      </summary>
+      <div class="panel-section-content">
+        <div class="sound-enable-row">
+          <button id="soundEnableBtn" class="sound-enable-btn" aria-label="Enable sound">🔇</button>
+        </div>
+        <div id="soundControlsWrapper" class="sound-controls" style="display: none;">
+          <div class="sound-perf" aria-label="Sound performance controls">
+            <button type="button" id="soundTapBtn" class="sound-perf__btn" aria-label="Play test hit">▶︎</button>
+            <button type="button" id="soundResetBtn" class="sound-perf__btn" aria-label="Reset to preset">↺</button>
+            <button type="button" id="soundShuffleBtn" class="sound-perf__btn" aria-label="Shuffle (subtle) sound">🎲</button>
+            <span class="sound-perf__hint">wheel adjusts · shift/alt = fine</span>
+          </div>
+          <label class="control-row">
+            <span class="control-label">Preset</span>
+            <select id="soundPresetSelect" class="control-select"></select>
+          </label>
+          <p id="presetDescription" class="control-hint"></p>
+          ${generateSoundControlsHTML()}
+        </div>
+      </div>
+    </details>
+  `;
+
+  // Mode selector (embedded in Simulations group)
+  const modeControlsHTML = `
+    <details class="panel-section-accordion" id="pageSection" open>
+      <summary class="panel-section-header">
+        <span class="section-icon">🎛️</span>
+        <span class="section-label">Mode</span>
+      </summary>
+      <div class="panel-section-content">
+        ${pageHTML}
+      </div>
+    </details>
+  `;
+
+  const actionsHTML = `
+    ${includePageSaveButton ? `<div class="panel-section panel-section--action"><button id="${pageSaveButtonId}" class="primary">💾 Save ${pageLabel} Config</button></div>` : ''}
+    <div class="panel-footer">${footerHint}</div>
+  `;
+
+  // Build the 3 master groups with all content properly nested
+  return `
+    <!-- GLOBAL: Theme, Colors, Sound, Layout -->
+    <details class="panel-master-group" open>
+      <summary class="panel-master-group-header">
+        <span class="panel-master-group-icon">🌐</span>
+        <span class="panel-master-group-title">Global</span>
+      </summary>
+      <div class="panel-master-group-content">
+        ${generateThemeSectionHTML({ open: false })}
+        ${generateGlobalSectionsHTML()}
+        ${layoutControlsHTML}
+        ${soundControlsHTML}
+        ${generateColorTemplateSectionHTML({ open: false })}
+      </div>
+    </details>
+
+    <!-- SIMULATIONS: Mode, Physics, Balls, Wall, Mode-specific -->
+    <details class="panel-master-group" open>
+      <summary class="panel-master-group-header">
+        <span class="panel-master-group-icon">🧪</span>
+        <span class="panel-master-group-title">Simulations</span>
+      </summary>
+      <div class="panel-master-group-content">
+        ${modeControlsHTML}
+        ${generateSimulationsSectionsHTML()}
+      </div>
+    </details>
+
+    <!-- BROWSER & TRANSITION: Environment, Entrance, Overlay -->
+    <details class="panel-master-group" open>
+      <summary class="panel-master-group-header">
+        <span class="panel-master-group-icon">🧭</span>
+        <span class="panel-master-group-title">Browser & Transition</span>
+      </summary>
+      <div class="panel-master-group-content">
+        ${generateBrowserTransitionSectionsHTML()}
+      </div>
+    </details>
+
+    ${actionsHTML}
+  `;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DOCK CREATION
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PANEL TOGGLE BUTTON (GEAR ICON)
+// ════════════════════════════════════════════════════════════════════════════════
+
+function createPanelToggleButton() {
+  // Check if button already exists
+  if (document.querySelector('.panel-toggle-btn')) return;
+  
+  const toggleBtn = document.createElement('button');
+  toggleBtn.className = 'panel-toggle-btn';
+  toggleBtn.setAttribute('aria-label', 'Toggle config panel');
+  toggleBtn.innerHTML = '⚙';
+  toggleBtn.style.display = 'flex';
+  
+  toggleBtn.addEventListener('click', () => {
+    toggleDock();
+  });
+  
+  document.body.appendChild(toggleBtn);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// MAIN PANEL DOCK CREATION
+// ════════════════════════════════════════════════════════════════════════════════
+
+function createPanelDock(options = {}) {
+  // DEV-only: dynamically inject panel.css if not already present
+  // (Production builds don't include panel.css, so we inject it on-demand)
+  if (!document.querySelector('link[href*="panel.css"]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    // Detect base path (dev: css/panel.css, prod: would not reach here)
+    link.href = 'css/panel.css';
+    document.head.appendChild(link);
+  }
+
+  const page = options.page || 'home';
+  const pageLabel = options.pageLabel || (page === 'portfolio' ? 'Portfolio' : 'Home');
+  const pageHTML = options.pageHTML || HOME_PANEL_HTML;
+  // Default to true for home page (save config button), false must be explicit
+  const includePageSaveButton = options.includePageSaveButton !== false;
+  const pageSaveButtonId = options.pageSaveButtonId || 'saveRuntimeConfigBtn';
+  const footerHint = options.footerHint || (page === 'portfolio'
+    ? '<kbd>/</kbd> panel'
+    : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei');
+  const panelTitle = options.panelTitle || 'Settings';
+  const modeLabel = options.modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
+  const bindShortcut = !!options.bindShortcut;
+  const setupPageControls = typeof options.setupPageControls === 'function' ? options.setupPageControls : null;
+
+  // Remove any legacy placeholders
+  try {
+    const existingControl = document.getElementById('controlPanel');
+    if (existingControl) existingControl.remove();
+    const existingSound = document.getElementById('soundPanel');
+    if (existingSound) existingSound.remove();
+  } catch (e) {}
+  
+  // Create dock container
+  dockElement = document.createElement('div');
+  dockElement.className = 'panel-dock';
+  dockElement.id = 'panelDock';
+
+  // Default visibility:
+  // - Dev mode: visible by default
+  // - Production: hidden by default, use gear button to open
+  let defaultHidden = !isDev();
+  let isHidden = loadDockHiddenState({ defaultHidden });
+  try {
+    isHidden = false;
+  } catch (e) {}
+
+  dockElement.classList.toggle('hidden', !!isHidden);
+  saveDockHiddenState(!!isHidden);
+  
+  // Create master panel
+  masterPanelElement = createMasterPanel({
+    page,
+    panelTitle,
+    modeLabel,
+    pageLabel,
+    pageHTML,
+    includePageSaveButton,
+    pageSaveButtonId,
+    footerHint,
+    setupPageControls,
+  });
+  dockElement.appendChild(masterPanelElement);
+
+  // Append to body as first child for maximum z-index stacking
+  document.body.insertBefore(dockElement, document.body.firstChild);
+  
+  // Create gear button toggle (dev-only)
+  if (isDev()) {
+    createPanelToggleButton();
+  }
+  
+  // Setup interactions
+  setupDragging();
+  setupResizePersistence();
+  setupPanelHoverSounds();
+
+  // Setup keyboard toggle for non-index pages (index has its own keyboard system).
+  if (bindShortcut) bindDockToggleShortcut();
+
+  return dockElement;
+}
+
+let shortcutBound = false;
+function bindDockToggleShortcut() {
+  if (shortcutBound) return;
+  shortcutBound = true;
+  window.addEventListener('keydown', (event) => {
+    try {
+      const tag = event.target?.tagName;
+      const isFormField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
+      const inDock = !!event.target?.closest?.('.panel-dock');
+      if (isFormField && !inDock) return;
+    } catch (e) {}
+    const key = event.key?.toLowerCase?.() || '';
+    if (key !== '/' && event.code !== 'Slash') return;
+    event.preventDefault();
+    toggleDock();
+  });
+}
+
+function createMasterPanel({
+  page,
+  panelTitle,
+  modeLabel,
+  pageLabel,
+  pageHTML,
+  includePageSaveButton,
+  pageSaveButtonId,
+  footerHint,
+  setupPageControls,
+} = {}) {
+  const panel = document.createElement('div');
+  panel.id = 'masterPanel';
+  panel.className = loadPanelCollapsed() ? 'panel collapsed' : 'panel';
+  panel.setAttribute('role', 'region');
+  panel.setAttribute('aria-label', 'Settings');
+  
+  // Header
+  const header = document.createElement('div');
+  header.className = 'panel-header';
+  header.innerHTML = `
+    <span class="panel-title">${panelTitle}</span>
+    <button class="collapse-btn" aria-label="Collapse panel" title="Collapse">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 4l4 4 4-4"/></svg>
+    </button>
+  `;
+  
+  // Content
+  const content = document.createElement('div');
+  content.className = 'panel-content';
+  content.innerHTML = getMasterPanelContent({
+    pageLabel,
+    pageHTML,
+    includePageSaveButton,
+    pageSaveButtonId,
+    footerHint,
+  });
+  
+  panel.appendChild(header);
+  panel.appendChild(content);
+
+  // Restore size (only if user has manually resized - i.e., significantly different from CSS defaults)
+  const savedSize = loadPanelSize();
+  if (savedSize) {
+    // CSS defaults: width = 23rem (368px), height = 90vh
+    // Only apply saved size if it's meaningfully different (user actually resized)
+    const cssDefaultWidth = 368; // 23rem
+    const cssDefaultHeight = window.innerHeight * 0.9; // 90vh
+    const widthDiff = Math.abs(savedSize.width - cssDefaultWidth);
+    const heightDiff = Math.abs(savedSize.height - cssDefaultHeight);
+    
+    // Only restore if difference is significant (> 5px) - means user manually resized
+    if (widthDiff > 5 || heightDiff > 5) {
+      panel.style.width = `${savedSize.width}px`;
+      // Clamp restored height to 90vh max
+      const maxHeight = window.innerHeight * 0.9;
+      panel.style.height = `${Math.min(savedSize.height, maxHeight)}px`;
+      panel.style.maxHeight = '90vh';
+    }
+    // Otherwise, let CSS defaults apply
+  }
+  
+  // Collapse button
+  const collapseBtn = header.querySelector('.collapse-btn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePanelCollapse(panel);
+    });
+  }
+  // Header click should NOT toggle collapse.
+  // For a Mac-window feel, the titlebar is for dragging; collapse is explicit via the button.
+  
+  // Initialize controls
+  setTimeout(() => {
+    // Shared (master) controls are safe on all pages.
+    if (page === 'home') {
+      setupIndexControls();
+    } else {
+      setupMasterControls();
+    }
+
+    setupBuildControls();
+    setupSoundControls(panel);
+    setupLayoutControls(panel);
+    
+    // Initialize wall shadow CSS from current state
+    try {
+      const g = getGlobals();
+      updateWallShadowCSS(g);
+    } catch (e) {}
+
+    // Page-specific bindings (portfolio carousel, etc).
+    try { setupPageControls?.(panel); } catch (e) {}
+  }, 0);
+  
+  return panel;
+}
+
+function setupResizePersistence() {
+  if (!masterPanelElement) return;
+  if (typeof ResizeObserver === 'undefined') return;
+
+  let t = 0;
+  const ro = new ResizeObserver(() => {
+    if (!masterPanelElement) return;
+    // Avoid persisting while collapsed (it forces a short height)
+    if (masterPanelElement.classList.contains('collapsed')) return;
+
+    window.clearTimeout(t);
+    t = window.setTimeout(() => {
+      savePanelSizeFromElement(masterPanelElement);
+    }, 150);
+  });
+
+  try {
+    ro.observe(masterPanelElement);
+  } catch (e) {}
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DRAG FUNCTIONALITY
+// ════════════════════════════════════════════════════════════════════════════════
+
+function setupDragging() {
+  if (!masterPanelElement) return;
+  
+  // Make panel draggable from top border area (orange line)
+  masterPanelElement.addEventListener('mousedown', (e) => {
+    // Only start drag from top 12px area (where orange line is)
+    const rect = masterPanelElement.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    if (y <= 12 && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+      handleDragStart(e);
+    }
+  });
+  masterPanelElement.addEventListener('touchstart', (e) => {
+    const rect = masterPanelElement.getBoundingClientRect();
+    const touch = e.touches[0];
+    const y = touch.clientY - rect.top;
+    if (y <= 12 && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+      handleDragStart(e);
+    }
+  }, { passive: false });
+  
+  document.addEventListener('mousemove', handleDragMove);
+  document.addEventListener('mouseup', handleDragEnd);
+  document.addEventListener('touchmove', handleDragMove, { passive: false });
+  document.addEventListener('touchend', handleDragEnd);
+  
+  loadPanelPosition();
+}
+
+function handleDragStart(e) {
+  if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+  if (!dockElement) return;
+  
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  
+  const rect = dockElement.getBoundingClientRect();
+  dragStartX = clientX;
+  dragStartY = clientY;
+  elementStartX = rect.left;
+  elementStartY = rect.top;
+  isDragging = false;
+}
+
+function handleDragMove(e) {
+  if (dragStartX === 0 && dragStartY === 0) return;
+  if (!dockElement) return;
+  
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  
+  const deltaX = clientX - dragStartX;
+  const deltaY = clientY - dragStartY;
+  const threshold = 5;
+  
+  if (!isDragging && (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold)) {
+    isDragging = true;
+    dockElement.classList.add('dragging');
+    dockElement.style.position = 'fixed';
+    dockElement.style.top = `${elementStartY}px`;
+    dockElement.style.left = `${elementStartX}px`;
+    dockElement.style.right = 'auto';
+  }
+  
+  if (isDragging) {
+    let newX = elementStartX + deltaX;
+    let newY = elementStartY + deltaY;
+    
+    const rect = dockElement.getBoundingClientRect();
+    newX = Math.max(0, Math.min(window.innerWidth - rect.width, newX));
+    newY = Math.max(0, Math.min(window.innerHeight - rect.height, newY));
+    
+    dockElement.style.left = `${newX}px`;
+    dockElement.style.top = `${newY}px`;
+    e.preventDefault();
+  }
+}
+
+function handleDragEnd() {
+  if (isDragging) {
+    isDragging = false;
+    if (dockElement) dockElement.classList.remove('dragging');
+    savePanelPosition();
+  }
+  
+  dragStartX = 0;
+  dragStartY = 0;
+  
+  setTimeout(() => { }, 10);
+}
+
+function savePanelPosition() {
+  try {
+    if (!dockElement) return;
+    const pos = {
+      left: dockElement.style.left,
+      top: dockElement.style.top,
+      custom: true
+    };
+    localStorage.setItem(STORAGE_KEYS.position, JSON.stringify(pos));
+  } catch (e) {}
+}
+
+function loadPanelPosition() {
+  try {
+    if (!dockElement) return;
+    const pos = JSON.parse(localStorage.getItem(STORAGE_KEYS.position) || '{}');
+    if (pos.custom) {
+      dockElement.style.position = 'fixed';
+      dockElement.style.left = pos.left;
+      dockElement.style.top = pos.top;
+      dockElement.style.right = 'auto';
+    }
+  } catch (e) {}
+}
+
+function resetPanelPositions() {
+  if (!dockElement) return;
+  dockElement.style.position = '';
+  dockElement.style.left = '';
+  dockElement.style.top = '';
+  dockElement.style.right = '';
+  try {
+    localStorage.removeItem(STORAGE_KEYS.position);
+  } catch (e) {}
+}
+
+const resetDockPosition = resetPanelPositions;
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PANEL COLLAPSE
+// ════════════════════════════════════════════════════════════════════════════════
+
+function togglePanelCollapse(panel) {
+  panel.classList.toggle('collapsed');
+  savePanelCollapsed(panel.classList.contains('collapsed'));
+}
+
+function expandPanel() {
+  if (masterPanelElement) masterPanelElement.classList.remove('collapsed');
+}
+
+function collapsePanel() {
+  if (masterPanelElement) masterPanelElement.classList.add('collapsed');
+}
+
+function toggleDock() {
+  // Dev-only safety: if the dock hasn't been created yet (or got removed),
+  // create it on-demand so `/` always works.
+  if (!dockElement) {
+    try {
+      createPanelDock();
+    } catch (e) {
+      return;
+    }
+  }
+
+  const isHidden = dockElement.classList.toggle('hidden');
+  saveDockHiddenState(isHidden);
+
+  // If we're showing, ensure it isn't off-screen due to a stale saved position.
+  if (!isHidden) {
+    try {
+      ensureDockOnscreen();
+    } catch (e) {}
+  }
+}
+
+function ensureDockOnscreen() {
+  if (!dockElement) return;
+
+  // If the dock is in its default “right/top” position (no custom left/top),
+  // don't interfere.
+  const hasCustomLeft = !!dockElement.style.left;
+  const hasCustomTop = !!dockElement.style.top;
+  if (!hasCustomLeft && !hasCustomTop) return;
+
+  const rect = dockElement.getBoundingClientRect();
+  const vw = window.innerWidth || 0;
+  const vh = window.innerHeight || 0;
+  if (!vw || !vh) return;
+
+  const edge = 10;
+
+  // If rect is wildly out of view, reset to default docked position.
+  const totallyOff =
+    rect.right < edge ||
+    rect.left > vw - edge ||
+    rect.bottom < edge ||
+    rect.top > vh - edge;
+  if (totallyOff) {
+    resetPanelPositions();
+    return;
+  }
+
+  // Clamp to viewport.
+  const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
+  const nextLeft = clamp(rect.left, edge, Math.max(edge, vw - rect.width - edge));
+  const nextTop = clamp(rect.top, edge, Math.max(edge, vh - rect.height - edge));
+
+  dockElement.style.position = 'fixed';
+  dockElement.style.left = `${Math.round(nextLeft)}px`;
+  dockElement.style.top = `${Math.round(nextTop)}px`;
+  dockElement.style.right = 'auto';
+
+  savePanelPosition();
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SOUND CONTROLS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function setupSoundControls(panel) {
+  const enableBtn = panel.querySelector('#soundEnableBtn');
+  const controlsWrapper = panel.querySelector('#soundControlsWrapper');
+  const presetSelect = panel.querySelector('#soundPresetSelect');
+  const presetDesc = panel.querySelector('#presetDescription');
+  const soundDetails = panel.querySelector('#soundSection');
+  const tapBtn = panel.querySelector('#soundTapBtn');
+  const resetBtn = panel.querySelector('#soundResetBtn');
+  const shuffleBtn = panel.querySelector('#soundShuffleBtn');
+
+  // Icon-only button labels (no text), with accessible aria-label/title.
+  const ICON_SOUND_OFF = '<i class="ti ti-volume-off" aria-hidden="true"></i>';
+  const ICON_SOUND_ON = '<i class="ti ti-volume-2" aria-hidden="true"></i>';
+
+  const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
+  const jitter = (base, amount) => base + (Math.random() - 0.5) * 2 * amount;
+
+  const syncSoundSectionUI = (state, { openIfEnabled = false } = {}) => {
+    if (!enableBtn) return;
+    const s = state || getSoundState();
+    const enabled = !!(s.isUnlocked && s.isEnabled);
+    const unlocked = !!s.isUnlocked;
+
+    // Icon-only (no text). Use aria-label/title for accessibility.
+    enableBtn.innerHTML = (unlocked && enabled) ? ICON_SOUND_ON : ICON_SOUND_OFF;
+    enableBtn.setAttribute('aria-label', unlocked ? (enabled ? 'Sound on' : 'Sound off') : 'Enable sound');
+
+    enableBtn.classList.toggle('enabled', enabled);
+
+    if (controlsWrapper) {
+      controlsWrapper.style.display = enabled ? '' : 'none';
+    }
+
+    if (openIfEnabled && enabled && soundDetails && !soundDetails.open) {
+      soundDetails.open = true;
+    }
+  };
+
+  // Performance controls (audition / reset / gentle shuffle)
+  if (tapBtn) {
+    tapBtn.addEventListener('click', () => {
+      // If sound isn't enabled, do nothing; user can hit "Enable Sound" first
+      playTestSound({ intensity: 0.86, radius: 18, xPosition: 0.72 });
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      const preset = getCurrentPreset();
+      applySoundPreset(preset);
+      if (presetDesc && SOUND_PRESETS[preset]) presetDesc.textContent = SOUND_PRESETS[preset].description;
+      syncSoundControlsToConfig(panel, getSoundConfig);
+    });
+  }
+
+  if (shuffleBtn) {
+    shuffleBtn.addEventListener('click', () => {
+      // Subtle, musical micro-randomization: never wild, just "alive".
+      const c = getSoundConfig();
+      const next = {
+        // Tone / crystal
+        filterBaseFreq: clamp(jitter(c.filterBaseFreq, 120), 300, 8000),
+        filterQ: clamp(jitter(c.filterQ, 0.04), 0.05, 0.9),
+        pitchCurve: clamp(jitter(c.pitchCurve, 0.06), 0.6, 1.8),
+        sparkleGain: clamp(jitter(c.sparkleGain, 0.03), 0.0, 0.35),
+        sparkleDecayMul: clamp(jitter(c.sparkleDecayMul, 0.05), 0.25, 0.95),
+        noiseTransientQ: clamp(jitter(c.noiseTransientQ, 0.25), 0.6, 6.0),
+
+        // Space / dynamics
+        reverbWetMix: clamp(jitter(c.reverbWetMix, 0.02), 0.0, 0.35),
+        reverbDecay: clamp(jitter(c.reverbDecay, 0.03), 0.05, 0.40),
+        collisionMinImpact: clamp(jitter(c.collisionMinImpact, 0.03), 0.45, 0.90),
+
+        // Humanization
+        variancePitch: clamp(jitter(c.variancePitch, 0.01), 0.0, 0.20),
+        varianceGain: clamp(jitter(c.varianceGain, 0.02), 0.0, 0.35),
+      };
+
+      updateSoundConfig(next);
+      syncSoundControlsToConfig(panel, getSoundConfig);
+      playTestSound({ intensity: 0.86, radius: 18, xPosition: 0.72 });
+    });
+  }
+  
+  if (enableBtn) {
+    enableBtn.addEventListener('click', async () => {
+      const state = getSoundState();
+      
+      if (!state.isUnlocked) {
+        const success = await unlockAudio();
+        if (success) {
+          syncSoundSectionUI(null, { openIfEnabled: true });
+        }
+      } else {
+        const newState = toggleSound();
+        syncSoundSectionUI({ ...state, isEnabled: newState });
+      }
+    });
+  }
+  
+  if (presetSelect) {
+    for (const [key, preset] of Object.entries(SOUND_PRESETS)) {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = preset.label;
+      presetSelect.appendChild(option);
+    }
+    
+    presetSelect.value = getCurrentPreset();
+    if (presetDesc && SOUND_PRESETS[getCurrentPreset()]) {
+      presetDesc.textContent = SOUND_PRESETS[getCurrentPreset()].description;
+    }
+    
+    presetSelect.addEventListener('change', () => {
+      applySoundPreset(presetSelect.value);
+      if (presetDesc && SOUND_PRESETS[presetSelect.value]) {
+        presetDesc.textContent = SOUND_PRESETS[presetSelect.value].description;
+      }
+      syncSoundControlsToConfig(panel, getSoundConfig);
+    });
+  }
+  
+  bindSoundControls(panel, getSoundConfig, updateSoundConfig);
+  syncSoundControlsToConfig(panel, getSoundConfig);
+
+  // Initial state (if sound was enabled elsewhere, show controls immediately)
+  syncSoundSectionUI();
+
+  // Stay in sync with external toggles (e.g. the floating sound toggle button)
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener(SOUND_STATE_EVENT, (e) => {
+      syncSoundSectionUI(e && e.detail ? e.detail : null);
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// LAYOUT CONTROLS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function setupLayoutControls(panel) {
+  const viewportWidthSlider = panel.querySelector('#layoutViewportWidth');
+  const viewportWidthValue = panel.querySelector('#viewportWidthValue');
+  const wallInsetSlider = panel.querySelector('#layoutWallInset');
+  const wallInsetValue = panel.querySelector('#wallInsetValue');
+  const g = getGlobals();
+
+  const syncDerivedLayout = ({ triggerResize = false } = {}) => {
+    applyLayoutFromVwToPx();
+    applyLayoutCSSVars();
+    if (viewportWidthValue) {
+      const w = getLayoutViewportWidthPx();
+      viewportWidthValue.textContent = g.layoutViewportWidthPx > 0 ? `${Math.round(g.layoutViewportWidthPx)}px` : `Auto (${Math.round(w)}px)`;
+    }
+    if (triggerResize) {
+      try { resize(); } catch (e) {}
+    }
+    
+    // Notify overlay system that layout changed (blur needs recalculation)
+    document.dispatchEvent(new CustomEvent('layout-updated'));
+  };
+  
+  // Virtual viewport width (debug): changes the vw→px conversion basis
+  if (viewportWidthSlider && viewportWidthValue) {
+    viewportWidthSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      g.layoutViewportWidthPx = Number.isFinite(val) ? Math.max(0, val) : 0;
+      syncDerivedLayout({ triggerResize: true });
+    });
+  }
+
+  // Wall inset (physics-only): shrinks the effective collision bounds uniformly
+  if (wallInsetSlider && wallInsetValue) {
+    wallInsetSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      wallInsetValue.textContent = `${val}px`;
+      g.wallInset = val;
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PANEL HOVER SOUNDS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function setupPanelHoverSounds() {
+  if (!dockElement) return;
+  
+  dockElement.addEventListener('pointerenter', (e) => {
+    const target = e.target;
+    if (!target || !target.closest) return;
+    
+    const isButton = target.matches('button, [role="button"], .mode-btn, .mac-dot');
+    const isSliderThumb = target.matches('input[type="range"]');
+    const isSelect = target.matches('select');
+    
+    if (isButton || isSliderThumb || isSelect) {
+      playHoverSound();
+    }
+  }, true);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// EXPORTS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function getDock() { return dockElement; }
+function getControlPanel() { return masterPanelElement; }
+function getSoundPanel() { return masterPanelElement; }
+
+export { collapsePanel, createPanelDock, expandPanel, getControlPanel, getDock, getSoundPanel, resetDockPosition, resetPanelPositions, toggleDock };
+//# sourceMappingURL=panel-dock.js.map

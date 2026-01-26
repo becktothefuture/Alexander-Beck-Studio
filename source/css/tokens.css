@@ -285,6 +285,35 @@
   --abs-scene-impact-mul: 0.005;
   --abs-scene-impact-logo-comp-mul: 1.0;
 
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     WALL INNER SHADOW - Depth effect on wall interior
+     Light source simulated from top-left, shadow falls toward bottom-right
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  /* Light mode: soft darker vignette for depth (subtle recessed look) */
+  --wall-shadow-color-light: var(--abs-rgb-black);
+  --wall-shadow-intensity-light: 0.15;        /* Base opacity (0-1) */
+  --wall-shadow-intensity-edge-light: 0.10;   /* Tight edge shadow opacity */
+  --wall-shadow-intensity-ambient-light: 0.08; /* Soft ambient spread opacity */
+  
+  /* Dark mode: deeper shadow (appears recessed) */
+  --wall-shadow-color-dark: var(--abs-rgb-black);
+  --wall-shadow-intensity-dark: 0.60;         /* Base opacity (0-1) */
+  --wall-shadow-intensity-edge-dark: 0.50;    /* Tight edge shadow opacity */
+  --wall-shadow-intensity-ambient-dark: 0.35; /* Soft ambient spread opacity */
+  
+  /* Shadow geometry (shared between modes) */
+  --wall-shadow-blur-tight: 25px;             /* Tight edge blur */
+  --wall-shadow-spread-tight: 0px;            /* Tight edge spread */
+  --wall-shadow-blur-mid: 80px;               /* Mid-range blur */
+  --wall-shadow-spread-mid: 10px;             /* Mid-range spread */
+  --wall-shadow-blur-ambient: 150px;          /* Ambient blur */
+  --wall-shadow-spread-ambient: 40px;         /* Ambient spread */
+  
+  /* Light direction offset (positive = shadow falls toward bottom-right) */
+  --wall-shadow-offset-x: 2px;                /* Horizontal offset */
+  --wall-shadow-offset-y: 3px;                /* Vertical offset */
+
   /* Gate Defaults */
   --abs-gate-mobile-pad-x: 20px;
   --modal-overlay-opacity: 0.01;
