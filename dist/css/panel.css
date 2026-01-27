@@ -1,0 +1,1621 @@
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+   ║                    PANEL SYSTEM — SHADCN-INSPIRED DESIGN                    ║
+   ║        Modern, clean, accessible · Based on shadcn/ui design tokens         ║
+   ╚══════════════════════════════════════════════════════════════════════════════╝ */
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS — shadcn/ui inspired
+   ═══════════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Base colors - Dark mode (default for panel) */
+  --panel-background: hsl(240 10% 3.9% / 1.0); /* Fully opaque */
+  --panel-foreground: hsl(0 0% 98%);
+  --panel-card: hsl(240 10% 3.9%);
+  --panel-card-foreground: hsl(0 0% 98%);
+  --panel-muted: hsl(240 3.7% 15.9%);
+  --panel-muted-foreground: hsl(240 5% 64.9%);
+  --panel-accent: hsl(240 3.7% 15.9%);
+  --panel-accent-foreground: hsl(0 0% 98%);
+  --panel-border: hsl(240 3.7% 15.9%);
+  --panel-input: hsl(240 3.7% 15.9%);
+  --panel-ring: hsl(240 4.9% 83.9%);
+  --panel-primary: hsl(0 0% 98%);
+  --panel-primary-foreground: hsl(240 5.9% 10%);
+  --panel-destructive: hsl(0 62.8% 30.6%);
+  --panel-destructive-foreground: hsl(0 0% 98%);
+  
+  /* Brand accent */
+  --panel-brand: hsl(32 95% 44%);
+  --panel-brand-foreground: hsl(0 0% 100%);
+  
+  /* Sizing */
+  --panel-radius: 0.75rem;
+  --panel-radius-sm: 0.5rem;
+  --panel-radius-lg: 1rem;
+  /* Panel width */
+  --panel-width: 23rem;
+  --panel-height: 90vh;
+
+  /* Density (DAW-style compact spacing) - 30% more compact */
+  --panel-pad: 7px;
+  --panel-gap: 6px;
+  --panel-section-pad: 7px;
+  --panel-section-gap: 4px;
+  --panel-control-gap: 2px;
+
+  /* Padding tokens (avoid hard-coded padding declarations) */
+  --panel-pad-2: 2px;
+  --panel-pad-3: 3px;
+  --panel-pad-4: 4px;
+  --panel-pad-5: 5px;
+  --panel-pad-6: 6px;
+  --panel-pad-7: 7px;
+  --panel-pad-8: 8px;
+  --panel-pad-9: 9px;
+  --panel-pad-10: 10px;
+  --panel-pad-12: 12px;
+  --panel-pad-14: 14px;
+  --panel-pad-32: 32px;
+  
+  /* Typography */
+  --panel-font: 'Geist', sans-serif;
+  --panel-font-mono: 'Geist Mono', monospace;
+  
+  /* Shadows */
+  --panel-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --panel-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* Light mode tokens */
+body:not(.dark-mode) {
+  --panel-background: hsl(0 0% 100% / 1.0); /* Fully opaque */
+  --panel-foreground: hsl(240 10% 10%);
+  --panel-card: hsl(0 0% 100%);
+  --panel-card-foreground: hsl(240 10% 3.9%);
+  --panel-muted: hsl(240 4.8% 95.9%);
+  --panel-muted-foreground: hsl(240 5% 30%);
+  --panel-accent: hsl(240 4.8% 95.9%);
+  --panel-accent-foreground: hsl(240 5.9% 10%);
+  --panel-border: hsl(240 5.9% 90%);
+  --panel-input: hsl(240 5.9% 90%);
+  --panel-ring: hsl(240 5.9% 10%);
+  --panel-primary: hsl(240 5.9% 10%);
+  --panel-primary-foreground: hsl(0 0% 98%);
+  --panel-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --panel-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   BASE PANEL — Card-like container
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel {
+  font-family: var(--panel-font);
+  font-size: 12.5px;
+  line-height: 1.35;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  background: var(--panel-background);
+  color: var(--panel-foreground);
+  border: 1px solid var(--panel-border);
+  border-top: 4px solid var(--panel-brand);
+  border-radius: var(--panel-radius-lg);
+  box-shadow: none;
+  
+  width: var(--panel-width);
+  height: var(--panel-height);
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  
+  /* Keep within sane stacking ranges; dock container manages global stacking */
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.panel.hidden { 
+  display: none; 
+}
+
+.panel * {
+  pointer-events: auto !important;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PANEL HEADER — Hidden, replaced with orange line
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel .panel-header {
+  display: none;
+}
+
+.panel .panel-header:hover {
+  background: var(--panel-muted);
+}
+
+.panel .panel-header .panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--panel-foreground);
+}
+
+.panel .panel-header .panel-icon {
+  font-size: 16px;
+}
+
+.panel .panel-header .collapse-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-muted-foreground);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-organic);
+}
+
+.panel .panel-header .collapse-btn:hover {
+  background: var(--panel-accent);
+  color: var(--panel-foreground);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PANEL CONTENT — Scrollable area with clean padding
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel .panel-content {
+  padding: var(--panel-pad);
+  padding-top: calc(var(--panel-pad) + 2px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-gap);
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  -webkit-user-select: auto;
+  user-select: auto;
+  cursor: auto;
+}
+
+/* Clean minimal scrollbar */
+.panel .panel-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.panel .panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel .panel-content::-webkit-scrollbar-thumb {
+  background: var(--panel-muted);
+  border-radius: 4px;
+  border: 2px solid var(--panel-background);
+}
+
+.panel .panel-content::-webkit-scrollbar-thumb:hover {
+  background: var(--panel-muted-foreground);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SECTION TITLES — Small, muted labels
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel .section-title {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-normal);
+  color: var(--panel-muted-foreground);
+  margin-bottom: 5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SECTION ACCORDIONS — Top-level collapsible sections (Sound, Controls)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PANEL CATEGORY GROUPS — Visual chunking with labels and separators
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel-category-group {
+  margin-top: var(--panel-pad-8);
+  padding-top: var(--panel-pad-6);
+  border-top: 1px solid var(--panel-border);
+  opacity: 1;
+}
+
+.panel-category-group:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.panel-category-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-loose);
+  color: var(--panel-muted-foreground);
+  margin-bottom: var(--panel-pad-6);
+  padding-left: var(--panel-pad);
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   2-COLUMN GRID LAYOUT — For compact control groups
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel-section-content.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--panel-control-gap) var(--panel-pad-8);
+}
+
+.panel-section-content.grid-2col .control-item {
+  margin-bottom: 0; /* Grid gap handles spacing */
+}
+
+/* Full-width controls span both columns */
+.panel-section-content.grid-2col .control-item.span-2 {
+  grid-column: 1 / -1;
+}
+
+.panel-section-accordion {
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  border-image: none;
+  background-color: rgba(250, 250, 252, 0);
+  padding-bottom: var(--panel-pad-4);
+  margin-bottom: var(--panel-pad-4);
+}
+
+.panel-section-accordion:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.panel-category-group .panel-section-accordion:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.panel-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 var(--panel-pad);
+  height: 28px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--panel-foreground);
+  cursor: pointer;
+  list-style: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background 0.15s var(--ease-organic);
+}
+
+.panel-section-header::-webkit-details-marker {
+  display: none;
+}
+
+.panel-section-header::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.2s var(--ease-organic);
+  flex-shrink: 0;
+}
+
+.panel-section-accordion[open] > .panel-section-header::after {
+  transform: rotate(180deg);
+}
+
+.panel-section-header:hover {
+  background: var(--panel-muted);
+}
+
+.section-icon {
+  font-size: 16px;
+}
+
+.section-label {
+  flex: 1;
+}
+
+.panel-section-content {
+  padding: var(--panel-section-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-section-gap);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MASTER GROUPS — Top-level category accordions (Global, Simulations, Browser)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel-master-group {
+  border: none;
+  margin-bottom: var(--panel-pad-6);
+  background: transparent;
+}
+
+.panel-master-group:last-child {
+  margin-bottom: 0;
+}
+
+.panel-master-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--panel-pad-8) var(--panel-pad);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--panel-foreground);
+  background: var(--panel-muted);
+  border-radius: var(--panel-radius-sm);
+  cursor: pointer;
+  list-style: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background 0.15s var(--ease-organic);
+}
+
+.panel-master-group-header::-webkit-details-marker {
+  display: none;
+}
+
+.panel-master-group-header::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.2s var(--ease-organic);
+  flex-shrink: 0;
+}
+
+.panel-master-group[open] > .panel-master-group-header::after {
+  transform: rotate(180deg);
+}
+
+.panel-master-group-header:hover {
+  background: var(--panel-accent);
+}
+
+.panel-master-group-icon {
+  font-size: 16px;
+}
+
+.panel-master-group-title {
+  flex: 1;
+}
+
+.panel-master-group-content {
+  padding: var(--panel-pad-4) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  /* Let content expand naturally; parent .panel-content handles scrolling */
+  overflow: visible;
+  max-height: none;
+}
+
+/* Sections inside master groups have subtle indent */
+.panel-master-group-content .panel-section-accordion {
+  margin-left: var(--panel-pad-4);
+  border-left: 2px solid var(--panel-border);
+  padding-left: var(--panel-pad-4);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   NESTED ACCORDIONS — Only for legacy/inner details.
+   Top-level accordions use `.panel-section-accordion`.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel details:not(.panel-section-accordion):not(.panel-master-group) {
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  overflow: hidden;
+}
+
+.panel details:not(.panel-section-accordion):not(.panel-master-group) + details:not(.panel-section-accordion):not(.panel-master-group) {
+  margin-top: 6px;
+}
+
+.panel details:not(.panel-section-accordion):not(.panel-master-group) summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--panel-pad-7) var(--panel-pad-8);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--panel-foreground);
+  cursor: pointer;
+  list-style: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background 0.15s var(--ease-organic);
+}
+
+.panel details:not(.panel-section-accordion):not(.panel-master-group) summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel details:not(.panel-section-accordion):not(.panel-master-group) summary::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.2s var(--ease-organic);
+  flex-shrink: 0;
+}
+
+.panel details:not(.panel-section-accordion):not(.panel-master-group)[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.panel details:not(.panel-section-accordion):not(.panel-master-group) summary:hover {
+  background: var(--panel-accent);
+}
+
+.panel details:not(.panel-section-accordion):not(.panel-master-group)[open] summary {
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.panel details:not(.panel-section-accordion):not(.panel-master-group) .group {
+  padding: var(--panel-section-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-section-gap);
+  background: var(--panel-background);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LABELS & VALUES — Clean control layout
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-control-gap);
+}
+
+.panel label > span:first-child,
+.panel label > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--panel-muted-foreground);
+}
+
+.panel span.val {
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--panel-font-mono);
+  color: var(--panel-foreground);
+  min-width: 48px;
+  text-align: right;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SLIDERS — Modern range inputs
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel input[type="range"] {
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--panel-muted);
+  border: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.panel input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--panel-foreground);
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+  transition: transform 0.15s var(--ease-organic);
+}
+
+.panel input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: none;
+}
+
+.panel input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(0.95);
+}
+
+.panel input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--panel-foreground);
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.panel input[type="range"]::-moz-range-track {
+  height: 6px;
+  background: var(--panel-muted);
+  border-radius: 9999px;
+}
+
+/* Focus states intentionally disabled (per request). */
+.panel input[type="range"]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   BUTTONS — shadcn-style buttons
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel button {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: var(--panel-pad-5) var(--panel-pad-7);
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-foreground);
+  cursor: pointer;
+  transition: all 0.15s var(--ease-organic),
+              transform 0.15s var(--ease-organic),
+              filter 0.15s var(--ease-organic);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.panel button:hover {
+  background: var(--panel-accent);
+  border-color: var(--panel-accent-foreground);
+}
+
+.panel button:active {
+  transform: scale(0.95);
+}
+
+.panel button:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Primary button */
+.panel button.primary {
+  background: var(--panel-primary);
+  border-color: var(--panel-primary);
+  color: var(--panel-primary-foreground);
+}
+
+.panel button.primary:hover {
+  background: var(--panel-primary);
+  opacity: 0.9;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SELECT — Clean dropdown
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel select {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: var(--panel-pad-5) var(--panel-pad-32) var(--panel-pad-5) var(--panel-pad-7);
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-foreground);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: all 0.15s var(--ease-organic);
+}
+
+.panel select:hover {
+  border-color: var(--panel-muted-foreground);
+}
+
+.panel select:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.panel select option {
+  background: var(--panel-background);
+  color: var(--panel-foreground);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MODE SWITCHER — Grid of mode buttons (Segmented Control style)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.mode-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--panel-gap);
+}
+
+.mode-button {
+  padding: var(--panel-pad-6);
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-muted-foreground);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.15s var(--ease-organic),
+              transform 0.15s var(--ease-organic),
+              filter 0.15s var(--ease-organic);
+}
+
+.mode-button-number {
+  font-weight: 700;
+  color: var(--panel-muted-foreground);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.mode-button-label {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.mode-button.active .mode-button-number {
+  color: inherit;
+}
+
+.mode-button:hover {
+  background: var(--panel-accent);
+  color: var(--panel-foreground);
+  border-color: var(--panel-muted-foreground);
+}
+
+.mode-button.active {
+  background: var(--panel-foreground);
+  border-color: var(--panel-foreground);
+  color: var(--panel-background);
+  font-weight: 600;
+}
+
+.mode-button.active:hover {
+  opacity: 0.9;
+}
+
+.mode-button:active {
+  transform: scale(0.95);
+}
+
+.mode-controls { 
+  display: none; 
+}
+
+.mode-controls.active { 
+  display: block; 
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   THEME SEGMENT CONTROL — Auto/Light/Dark toggle
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.theme-segment-control {
+  display: flex;
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.theme-segment-btn {
+  flex: 1;
+  padding: 3px 6px;
+  border: none;
+  background: transparent;
+  color: var(--panel-muted-foreground);
+  border-radius: calc(var(--panel-radius-sm) - 2px);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-organic);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.theme-segment-btn:hover {
+  color: var(--panel-foreground);
+  background: var(--panel-accent);
+}
+
+.theme-segment-btn.active {
+  background: var(--panel-foreground);
+  color: var(--panel-background);
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   COLOR PICKER — Clean inline picker
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel input[type="color"] {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 2px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  cursor: pointer;
+  background: transparent;
+  overflow: hidden;
+}
+
+.panel input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: var(--panel-pad-3);
+}
+
+.panel input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: calc(var(--panel-radius-sm) - 4px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   COLLAPSED STATE
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel.collapsed .panel-content,
+.panel.minimized .panel-content {
+  display: none;
+}
+
+.panel.collapsed,
+.panel.minimized {
+  height: 42px;
+  max-height: 42px;
+}
+
+.panel.collapsed .collapse-btn {
+  transform: rotate(-90deg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PANEL SECTIONS — Grouped content areas
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-section-gap);
+}
+
+.panel-section--action {
+  padding-top: calc(var(--panel-section-gap) * 0.7);
+  margin-top: calc(var(--panel-section-gap) * 0.7);
+  border-top: 1px solid var(--panel-border);
+}
+
+/* Pin config export to bottom of the window */
+.panel-section--action {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: auto;
+  padding-bottom: var(--panel-pad-6);
+  /* soft fade so it reads as “anchored” without a hard edge */
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.20) 24%,
+    rgba(0, 0, 0, 0.38) 100%
+  );
+}
+
+body:not(.dark-mode) .panel-section--action {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 24%,
+    rgba(255, 255, 255, 0.80) 100%
+  );
+}
+
+.panel-section--action button {
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PANEL STATUS — Status indicator
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel-status {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--panel-muted-foreground);
+  text-align: center;
+  padding: var(--panel-pad-7) var(--panel-pad-8);
+  background: var(--panel-muted);
+  border-radius: var(--panel-radius-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PANEL FOOTER — Keyboard hints
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel-footer {
+  font-size: 12px;
+  color: var(--panel-muted-foreground);
+  text-align: center;
+  padding-top: var(--panel-pad-8);
+  margin-top: 8px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.panel-footer kbd {
+  display: inline-block;
+  padding: var(--panel-pad-3) var(--panel-pad-6);
+  font-family: var(--panel-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--panel-foreground);
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   GROUP CONTAINER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel .group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-section-gap);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SOUND SECTION STYLES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.sound-enable-row {
+  margin-bottom: var(--panel-section-gap);
+}
+
+.sound-enable-btn {
+  width: 100%;
+  padding: var(--panel-pad-6) var(--panel-pad-8);
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-foreground);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-organic);
+}
+
+.sound-enable-btn .ti {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  display: block;
+}
+
+.sound-enable-btn:hover {
+  background: var(--panel-accent);
+  border-color: var(--panel-muted-foreground);
+}
+
+.sound-enable-btn.enabled {
+  background: hsl(142 70% 35%);
+  border-color: hsl(142 70% 35%);
+  color: var(--panel-brand-foreground);
+}
+
+.sound-enable-btn.enabled:hover {
+  background: hsl(142 70% 40%);
+}
+
+.sound-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-section-gap);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CONTROL ROW — Unified label/input layout
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-control-gap);
+}
+
+.control-row--hero {
+  padding: var(--panel-pad-10);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-md);
+  background: var(--panel-muted);
+  box-shadow: none;
+}
+
+.control-row--hero .control-row-header {
+  align-items: flex-start;
+}
+
+.control-row--hero .control-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--panel-foreground);
+}
+
+.control-row--hero .control-value {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.control-row--hero input[type="checkbox"] {
+  width: calc(var(--panel-pad-10) + var(--panel-pad-4));
+  height: calc(var(--panel-pad-10) + var(--panel-pad-4));
+}
+
+.control-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.control-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--panel-muted-foreground);
+}
+
+.control-value {
+  font-size: 11px;
+  font-family: var(--panel-font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--panel-foreground);
+  opacity: 0.8;
+}
+
+.control-select {
+  width: 100%;
+  padding: var(--panel-pad-6) var(--panel-pad-32) var(--panel-pad-6) var(--panel-pad-7);
+  background: var(--panel-muted);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-foreground);
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+}
+
+.control-select:hover {
+  border-color: var(--panel-muted-foreground);
+}
+
+.control-hint {
+  font-size: 11px;
+  color: var(--panel-muted-foreground);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   COLOR DISTRIBUTION — Discipline ↔ Palette slot ↔ Weight
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.color-dist-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-gap);
+  margin-top: var(--panel-pad-6);
+}
+
+.color-dist-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-pad-4);
+}
+
+.color-dist-row-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--panel-muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+.color-dist-row-controls {
+  display: grid;
+  grid-template-columns: calc(var(--panel-pad-10) + var(--panel-pad-4)) minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: var(--panel-gap);
+}
+
+.color-dist-swatch {
+  width: calc(var(--panel-pad-10) + var(--panel-pad-4));
+  height: calc(var(--panel-pad-10) + var(--panel-pad-4));
+  border-radius: 999px;
+  outline: calc(var(--panel-pad-2) * 0.5) solid var(--panel-border);
+}
+
+.color-dist-weight {
+  font-size: 10px;
+  font-family: var(--panel-font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--panel-muted-foreground);
+  white-space: nowrap;
+}
+
+.color-dist-actions {
+  margin-top: var(--panel-pad-6);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   CONTROL DIVIDER — Section separator within a category
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.control-divider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 6px 0;
+  padding-top: 5px;
+  border-top: 1px solid var(--panel-muted-foreground);
+  opacity: 0.4;
+}
+
+.control-divider:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.control-divider-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-loose);
+  color: var(--panel-muted-foreground);
+  white-space: nowrap;
+}
+
+/* Checkbox controls (used for simple on/off toggles like Trail Enabled) */
+.control-row input[type="checkbox"] {
+  align-self: flex-end;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--panel-brand);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PALETTE SWATCH ROW — Cursor color picker (contrasty-only options)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.palette-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--panel-gap);
+  padding-top: var(--panel-pad-4);
+}
+
+.palette-swatch {
+  width: calc(var(--panel-pad-10) + var(--panel-pad-12)); /* 22px */
+  height: calc(var(--panel-pad-10) + var(--panel-pad-12)); /* 22px */
+  border-radius: 999px;
+  border: calc(var(--panel-pad-2) * 0.5) solid var(--panel-border); /* 1px */
+  box-shadow: none;
+  cursor: pointer;
+  transition: transform 0.12s var(--ease-organic), border-color 0.12s var(--ease-organic);
+}
+
+.palette-swatch:hover {
+  transform: translateY(calc(var(--panel-pad-2) * -0.5)); /* -1px */
+  border-color: var(--panel-muted-foreground);
+}
+
+.palette-swatch.active {
+  border-color: var(--panel-ring);
+  box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SCREEN READER ONLY
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SOUND SECTION — Dense “DAW synth” layout (formerly sound-panel.css)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Sound slider rows */
+.sound-dock__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sound-dock__label {
+  flex: 0 0 74px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--panel-muted-foreground);
+}
+
+.sound-dock__slider {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--panel-muted);
+  border-radius: 9999px;
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+
+.sound-dock__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--panel-foreground);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.sound-dock__slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--panel-foreground);
+  cursor: pointer;
+  border: none;
+}
+
+.sound-dock__val {
+  flex: 0 0 45px;
+  text-align: right;
+  font-size: 11px;
+  font-family: var(--panel-font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--panel-foreground);
+}
+
+/* Sound section groups */
+.sound-dock__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sound-dock__section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-normal);
+  color: var(--panel-muted-foreground);
+  margin-bottom: 2px;
+  margin-top: 4px;
+}
+
+.sound-dock__section-title:first-child {
+  margin-top: 0;
+}
+
+#soundSection .panel-section-content {
+  gap: 6px;
+  padding-top: var(--panel-pad-8);
+  padding-bottom: var(--panel-pad-10);
+}
+
+#soundSection .sound-enable-row {
+  margin-bottom: 4px;
+}
+
+#soundSection .sound-enable-btn {
+  padding: var(--panel-pad-7) var(--panel-pad-10);
+}
+
+#soundSection .sound-controls {
+  gap: 6px;
+}
+
+#soundSection .control-row {
+  gap: 4px;
+}
+
+#soundSection .control-hint {
+  margin-top: -2px;
+  padding-bottom: var(--panel-pad-2);
+}
+
+.sound-perf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--panel-pad-4) 0 var(--panel-pad-2);
+}
+
+.sound-perf__btn {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-muted);
+  color: var(--panel-foreground);
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sound-perf__btn:hover {
+  background: var(--panel-accent);
+  border-color: var(--panel-muted-foreground);
+}
+
+.sound-perf__btn:active {
+  transform: translateY(0.5px);
+}
+
+.sound-perf__hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--panel-muted-foreground);
+  font-family: var(--panel-font-mono, monospace);
+  opacity: 0.9;
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PANEL DOCK — Unified master panel (formerly panel-dock.css)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.panel-dock {
+  --dock-panel-height: 80vh;
+  --dock-panel-max-height: calc(100vh - var(--dock-top) - var(--dock-edge) - env(safe-area-inset-bottom, 0px));
+  --dock-panel-collapsed-height: 38px;
+  /* Default dock placement: top-right, 8px padding (plus safe-area). */
+  --dock-edge: 8px;
+  --dock-top: calc(env(safe-area-inset-top, 0px) + var(--dock-edge));
+  --dock-right: calc(env(safe-area-inset-right, 0px) + var(--dock-edge));
+  
+  position: fixed;
+  top: var(--dock-top);
+  right: var(--dock-right);
+  z-index: 2147483000;
+  height: var(--dock-panel-height);
+  
+	  transition: 
+	    top var(--duration-resize, 600ms) var(--ease-organic, var(--ease-settle)),
+	    right var(--duration-resize, 600ms) var(--ease-organic, var(--ease-settle)),
+	    opacity 0.3s var(--ease-fade),
+	    transform 0.32s var(--ease-organic);
+  
+  pointer-events: none;
+  /* Simplify: no dock-level blur layers (they can blur the panel itself). */
+}
+
+
+.panel-dock > * {
+  pointer-events: auto;
+}
+
+/* Removed dock blur overlay (::before) to keep panel content crisp. */
+
+.panel-dock,
+.panel-dock *,
+.dock-toggle,
+.dock-toggle * {
+  cursor: auto !important;
+}
+
+.panel-dock button,
+.panel-dock summary,
+.panel-dock select,
+.panel-dock input,
+.dock-toggle {
+  cursor: pointer !important;
+}
+
+.panel-dock input[type="range"] {
+  cursor: ew-resize !important;
+}
+
+.panel-dock .panel {
+  cursor: default !important;
+}
+
+.panel-dock .panel:active {
+  cursor: default !important;
+}
+
+.panel-dock.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(100% + 40px));
+}
+
+.panel-dock.dragging,
+.panel.dragging {
+  cursor: grabbing !important;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: none !important;
+  will-change: transform;
+}
+
+.panel-dock.dragging *,
+.panel.dragging * {
+  cursor: grabbing !important;
+}
+
+.panel-dock .panel {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  
+  width: var(--panel-width, 368px);
+  height: var(--dock-panel-height);
+  max-width: calc(100vw - (var(--dock-edge) * 2) - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  min-width: 280px;
+  /* Avoid conflicting heights; dock already defines the available height. */
+
+  resize: both;
+  overflow: hidden;
+  
+  transition: 
+    max-height 0.3s var(--ease-organic),
+    height 0.3s var(--ease-organic),
+    opacity 0.25s var(--ease-fade);
+}
+
+.panel-dock .panel::before {
+  display: none;
+}
+
+.panel-dock .panel.dragging::before {
+  cursor: grabbing;
+}
+
+body.dark-mode .panel-dock .panel {
+  background: rgba(18, 18, 22, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  filter: none;
+}
+
+body:not(.dark-mode) .panel-dock .panel {
+  background: rgba(250, 250, 252, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  filter: none;
+}
+
+body:not(.dark-mode) #portfolioPanel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 60%, rgba(46, 49, 56, 0.01) 100%);
+  background-color: rgba(255, 255, 255, 0.01);
+  border-width: 0px;
+  border-color: rgba(0, 0, 0, 0);
+  border-style: none;
+  border-image: none;
+  box-shadow: none;
+}
+
+.panel-dock .panel-header {
+  display: block;
+  padding: var(--panel-pad-7) var(--panel-pad-10);
+  cursor: grab !important;
+}
+
+.panel-dock .panel-header:hover {
+  background: transparent;
+}
+
+.panel-dock .mac-titlebar {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-dock .mac-title {
+  justify-self: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-normal);
+  color: var(--panel-foreground);
+  opacity: 0.92;
+}
+
+.panel-dock .mac-traffic {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.panel-dock .mac-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 9999px;
+  display: inline-block;
+  box-shadow: none;
+}
+
+.panel-dock .mac-dot--red { background: #ff5f57; }
+.panel-dock .mac-dot--yellow { background: #febc2e; }
+.panel-dock .mac-dot--green { background: #28c840; }
+
+.panel-dock .mac-collapse {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border-radius: 8px;
+  justify-self: end;
+  opacity: 0.85;
+}
+
+.panel-dock .mac-right {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-dock .panel-save-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--panel-brand-foreground);
+  background: var(--panel-brand);
+  border: none;
+  border-radius: var(--panel-radius-sm);
+  cursor: pointer;
+  transition: opacity 0.2s, background 0.2s;
+  white-space: nowrap;
+  margin-right: var(--panel-pad-4);
+}
+
+.panel-dock .panel-save-btn:hover {
+  opacity: 0.9;
+}
+
+.panel-dock .panel-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.panel-dock .panel-mode-pill {
+  height: 20px;
+  padding: 0 var(--panel-pad-10);
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-loose);
+  text-transform: uppercase;
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1;
+  color: var(--panel-foreground);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+body:not(.dark-mode) .panel-dock .panel-mode-pill {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.panel-dock .panel .panel-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+
+.panel-dock .panel.collapsed {
+  height: var(--dock-panel-collapsed-height);
+  max-height: var(--dock-panel-collapsed-height);
+  overflow: hidden;
+}
+
+.panel-dock .panel.collapsed .panel-content {
+  display: none;
+}
+
+.panel-dock .panel.collapsed .collapse-btn {
+  transform: rotate(-90deg);
+}
+
+.panel-dock .panel:not(.collapsed) .collapse-btn {
+  transform: rotate(0deg);
+}
+
+.dock-toggle { display: none !important; }
+
+@media (max-width: 768px) {
+  .panel-dock {
+    --dock-panel-height: 80vh;
+    --dock-panel-max-height: calc(100vh - var(--dock-top) - var(--dock-edge) - env(safe-area-inset-bottom, 0px));
+  }
+  
+  .panel-dock .panel {
+    width: 300px;
+  }
+}
+
+@media (max-width: 600px) {
+  .panel-dock {
+    --dock-panel-height: 80vh;
+    --dock-panel-max-height: calc(100vh - var(--dock-top) - var(--dock-edge) - env(safe-area-inset-bottom, 0px));
+  }
+  
+  .panel-dock .panel {
+    width: calc(100vw - var(--edge-inset, 40px) * 2);
+    max-width: 320px;
+  }
+}

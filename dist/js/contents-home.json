@@ -1,0 +1,125 @@
+{
+  "meta": {
+    "title": "Alexander Beck Studio :: Al Creative :: User Experience :: Product Design",
+    "description": "c366"
+  },
+  "edge": {
+    "chapterText": "SOURCE MATERIAL",
+    "tagline": "Built with love for aesthetics, motion, and interaction that feels impossibly satisfying.",
+    "copyright": "\u00a9 2026 Alexander Beck Studio"
+  },
+  "legend": {
+    "ariaLabel": "Areas of expertise",
+    "items": [
+      {
+        "colorClass": "bg-ball-1",
+        "label": "Product & Systems",
+        "tooltip": "I structure systems at scale and guide outcome-driven decisions."
+      },
+      {
+        "colorClass": "bg-ball-5",
+        "label": "Interaction & Motion",
+        "tooltip": "I design interactions and motion that communicate through behaviour."
+      },
+      {
+        "colorClass": "bg-ball-4",
+        "label": "Creative Technology",
+        "tooltip": "I build products, websites, and emerging digital experiences using code and prototypes."
+      },
+      {
+        "colorClass": "bg-ball-3",
+        "label": "AI-Driven Design",
+        "tooltip": "I treat AI as a design material to explore and extrapolate ideas."
+      },
+      {
+        "colorClass": "bg-ball-6",
+        "label": "Experience Direction",
+        "tooltip": "I shape cohesive product and web experiences through structure, craft, and vision."
+      },
+      {
+        "colorClass": "bg-ball-7",
+        "label": "Art & Visual Direction",
+        "tooltip": "I define visual and spatial direction across product, motion, and form."
+      },
+      {
+        "colorClass": "bg-ball-8",
+        "label": "Prototyping + R&D",
+        "tooltip": "I prototype to think, test, and bring ideas into focus."
+      }
+    ]
+  },
+  "philosophy": {
+    "textBeforeLink": "The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. ",
+    "link": {
+      "id": "contact-email-inline",
+      "href": "#",
+      "text": "Let's chat."
+    }
+  },
+  "footer": {
+    "navAriaLabel": "Main navigation links",
+    "links": {
+      "contact": {
+        "id": "contact-email",
+        "href": "#",
+        "text": "Contact"
+      },
+      "portfolio": {
+        "id": "portfolio-gate-trigger",
+        "href": "#",
+        "text": "Portfolio"
+      },
+      "cv": {
+        "id": "cv-gate-trigger",
+        "href": "#",
+        "text": "Bio/CV"
+      }
+    },
+    "metaLocationPrefix": "London, UK \u00b7 "
+  },
+  "socials": {
+    "ariaLabel": "Social media links",
+    "items": {
+      "appleMusic": {
+        "ariaLabel": "Apple Music",
+        "screenReaderText": "Apple Music",
+        "url": "https://music.apple.com/profile/beckandeggs"
+      },
+
+      "linkedin": {
+        "ariaLabel": "LinkedIn",
+        "screenReaderText": "LinkedIn",
+        "url": "https://www.linkedin.com/in/thisisbeck/"
+      }
+    }
+  },
+  "contact": {
+    "email": "alexander@beck.fyi",
+    "copy": {
+      "buttonAriaLabel": "Copy email address",
+      "statusCopied": "Copied",
+      "statusError": "Copy failed"
+    }
+  },
+  "portfolio": {
+    "blurb": "Selected collaborations across finance, luxury, and frontier tech\u2014things I\u2019ve directed, mentored, executed, or co-built with global leaders. Currently designing for neurodivergent humans."
+  },
+  "gates": {
+    "common": {
+      "backText": "BACK",
+      "backAriaLabel": "Back"
+    },
+    "cv": {
+      "title": "Bio/CV",
+      "description": "Because spam bots don\u2019t deserve nice things. This keeps my inbox a little more civilised. Need access? Get in touch for the code."
+    },
+    "portfolio": {
+      "title": "View Portfolio",
+      "description": "Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain. For job opportunities, drop me a note."
+    }
+  }
+}

@@ -221,21 +221,16 @@
       });
     })();
   </script>
-  
-  <!-- Resource Hints: Font Preloading + Connection Hints -->
-  <link rel="preload" href="fonts/tabler-icons-outline.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<meta charset="utf-8">
+  <meta charset="utf-8">
   <title>Alexander Beck Studio :: Al Creative :: User Experience :: Product Design</title>
   <meta content="c366" name="description">
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
-  <link id="bravia-balls-css" rel="stylesheet" href="css/styles.css?v=1769547021118">
-<link rel="modulepreload" href="js/shared.js?v=1769547021118">
+  <link id="bravia-balls-css" rel="stylesheet" href="css/styles.css?v=1769547242392">
+<link rel="modulepreload" href="js/shared.js?v=1769547242392">
 
-  
-  
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&family=Press+Start+2P&family=VT323&family=Silkscreen&family=DotGothic16&family=Pixelify+Sans&display=swap" rel="stylesheet">
 
   <link href="images/favicon.ico" rel="shortcut icon" type="image/x-icon">
@@ -713,17 +708,8 @@
 
     <!-- LAYER 2: Simulation Container - Balls render here -->
     <div id="bravia-balls" class="ball-simulation w-embed">
+      <div class="noise"></div>
       <canvas id="c" aria-label="Bouncy balls" role="img" draggable="false"></canvas>
-      <!-- EFFECTS OVERLAYS: Noise + Video grouped above wall, clipped to interior -->
-      <div class="effects-overlays" aria-hidden="true">
-        <div class="noise"></div>
-        <!-- Video overlay placeholder: uncomment when ready
-        <video id="grunge-video-overlay" class="grunge-video-overlay" autoplay muted loop playsinline preload="auto">
-          <source src="video/grunge-overlay.webm" type="video/webm">
-          <source src="video/grunge-overlay.mp4" type="video/mp4">
-        </video>
-        -->
-      </div>
     </div>
   </div>
   
@@ -870,7 +856,7 @@
   <!-- Page Flash Overlay (for CV and Portfolio gate success/failure feedback) -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
-  <script id="bravia-balls-js" type="module" src="js/app.js?v=1769547021118"></script>
+  <script id="bravia-balls-js" type="module" src="js/app.js?v=1769547242392"></script>
 
   <!-- DEV TOOLING: Local hot reload (no external calls). -->
   <!-- This is stripped from production builds. -->

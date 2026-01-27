@@ -1,1 +1,1006 @@
-function n(n){try{localStorage.setItem(q.dockHidden,n+"")}catch(t){}}function t(t={}){if(!document.querySelector('link[href*="panel.css"]')){const n=document.createElement("link");n.rel="stylesheet",n.href="css/panel.css",document.head.appendChild(n)}const s=t.page||"home",l=t.pageLabel||("portfolio"===s?"Portfolio":"Home"),c=t.pageHTML||G,i=!1!==t.includePageSaveButton,u=t.pageSaveButtonId||"saveRuntimeConfigBtn",d=t.footerHint||("portfolio"===s?"<kbd>/</kbd> panel":"<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei"),p=t.panelTitle||"Settings",f=t.modeLabel||(y()?"DEV MODE":"BUILD MODE"),m=!!t.bindShortcut,F="function"==typeof t.setupPageControls?t.setupPageControls:null;try{const n=document.getElementById("controlPanel");n&&n.remove();const t=document.getElementById("soundPanel");t&&t.remove()}catch(X){}J=document.createElement("div"),J.className="panel-dock",J.id="panelDock";let Q=(({defaultHidden:n=!0}={})=>{try{const t=localStorage.getItem(q.dockHidden);return null===t?!!n:"true"===t}catch(X){return!!n}})({defaultHidden:!y()});try{Q=!0}catch(X){}return J.classList.toggle("hidden",!!Q),n(!!Q),U=(({page:n,panelTitle:t,pageLabel:e,pageHTML:a,includePageSaveButton:o,pageSaveButtonId:s,footerHint:l,setupPageControls:c}={})=>{const i=document.createElement("div");i.id="masterPanel",i.className=(()=>{try{const n=localStorage.getItem(q.panelCollapsed);return null===n?!y():"true"===n}catch(X){return!y()}})()?"panel collapsed":"panel",i.setAttribute("role","region"),i.setAttribute("aria-label","Settings");const r=document.createElement("div");r.className="panel-header",r.innerHTML=`\n    <span class="panel-title">${t}</span>\n    <button class="collapse-btn" aria-label="Collapse panel" title="Collapse">\n      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 4l4 4 4-4"/></svg>\n    </button>\n  `;const u=document.createElement("div");u.className="panel-content",u.innerHTML=(({pageLabel:n="Home",pageHTML:t=G,includePageSaveButton:e=!0,pageSaveButtonId:a="saveRuntimeConfigBtn",footerHint:o="<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes"}={})=>{const s=b(),l=W(),c=s.layoutViewportWidthPx>0?Math.round(s.layoutViewportWidthPx)+"px":`Auto (${Math.round(l)}px)`,i=Math.max(0,Math.round(s.wallInset??3)),r=`\n    <details class="panel-section-accordion" id="layoutSection">\n      <summary class="panel-section-header">\n        <span class="section-icon">📐</span>\n        <span class="section-label">Layout</span>\n      </summary>\n      <div class="panel-section-content">\n        <label class="control-row">\n          <div class="control-row-header">\n            <span class="control-label">Viewport Width</span>\n            <span class="control-value" id="viewportWidthValue">${c}</span>\n          </div>\n          <input type="range" id="layoutViewportWidth" min="0" max="2400" step="10" value="${Math.round(s.layoutViewportWidthPx||0)}" />\n          <div class="control-hint">0 = Auto (uses current window width)</div>\n        </label>\n        <label class="control-row">\n          <div class="control-row-header">\n            <span class="control-label">Wall Inset</span>\n            <span class="control-value" id="wallInsetValue">${i}px</span>\n          </div>\n          <input type="range" id="layoutWallInset" min="0" max="20" value="${i}" />\n        </label>\n      </div>\n    </details>\n  `,u=`\n    <details class="panel-section-accordion" id="soundSection">\n      <summary class="panel-section-header">\n        <span class="section-icon">🔊</span>\n        <span class="section-label">Sound</span>\n      </summary>\n      <div class="panel-section-content">\n        <div class="sound-enable-row">\n          <button id="soundEnableBtn" class="sound-enable-btn" aria-label="Enable sound">🔇</button>\n        </div>\n        <div id="soundControlsWrapper" class="sound-controls" style="display: none;">\n          <div class="sound-perf" aria-label="Sound performance controls">\n            <button type="button" id="soundTapBtn" class="sound-perf__btn" aria-label="Play test hit">▶︎</button>\n            <button type="button" id="soundResetBtn" class="sound-perf__btn" aria-label="Reset to preset">↺</button>\n            <button type="button" id="soundShuffleBtn" class="sound-perf__btn" aria-label="Shuffle (subtle) sound">🎲</button>\n            <span class="sound-perf__hint">wheel adjusts · shift/alt = fine</span>\n          </div>\n          <label class="control-row">\n            <span class="control-label">Preset</span>\n            <select id="soundPresetSelect" class="control-select"></select>\n          </label>\n          <p id="presetDescription" class="control-hint"></p>\n          ${S()}\n        </div>\n      </div>\n    </details>\n  `,d=`\n    <details class="panel-section-accordion" id="pageSection" open>\n      <summary class="panel-section-header">\n        <span class="section-icon">🎛️</span>\n        <span class="section-label">Mode</span>\n      </summary>\n      <div class="panel-section-content">\n        ${t}\n      </div>\n    </details>\n  `,p=`\n    ${e?`<div class="panel-section panel-section--action"><button id="${a}" class="primary">💾 Save ${n} Config</button></div>`:""}\n    <div class="panel-footer">${o}</div>\n  `;return`\n    \x3c!-- GLOBAL: Theme, Colors, Sound, Layout --\x3e\n    <details class="panel-master-group" open>\n      <summary class="panel-master-group-header">\n        <span class="panel-master-group-icon">🌐</span>\n        <span class="panel-master-group-title">Global</span>\n      </summary>\n      <div class="panel-master-group-content">\n        ${M({open:!1})}\n        ${k()}\n        ${r}\n        ${u}\n        ${x({open:!1})}\n      </div>\n    </details>\n\n    \x3c!-- SIMULATIONS: Mode, Physics, Balls, Wall, Mode-specific --\x3e\n    <details class="panel-master-group" open>\n      <summary class="panel-master-group-header">\n        <span class="panel-master-group-icon">🧪</span>\n        <span class="panel-master-group-title">Simulations</span>\n      </summary>\n      <div class="panel-master-group-content">\n        ${d}\n        ${B()}\n      </div>\n    </details>\n\n    \x3c!-- BROWSER & TRANSITION: Environment, Entrance, Overlay --\x3e\n    <details class="panel-master-group" open>\n      <summary class="panel-master-group-header">\n        <span class="panel-master-group-icon">🧭</span>\n        <span class="panel-master-group-title">Browser & Transition</span>\n      </summary>\n      <div class="panel-master-group-content">\n        ${_()}\n      </div>\n    </details>\n\n    ${p}\n  `})({pageLabel:e,pageHTML:a,includePageSaveButton:o,pageSaveButtonId:s,footerHint:l}),i.appendChild(r),i.appendChild(u);const d=(()=>{try{const n=localStorage.getItem(q.panelSize);if(!n)return null;const t=JSON.parse(n);if(!t||"object"!=typeof t)return null;const e=+t.width,a=+t.height;return Number.isFinite(e)&&Number.isFinite(a)?{width:Math.round(e),height:Math.round(a)}:null}catch(X){return null}})();if(d){const n=.9*window.innerHeight;if(Math.abs(d.width-368)>5||Math.abs(d.height-n)>5){i.style.width=d.width+"px";const n=.9*window.innerHeight;i.style.height=Math.min(d.height,n)+"px",i.style.maxHeight="90vh"}}const p=r.querySelector(".collapse-btn");return p&&p.addEventListener("click",n=>{n.preventDefault(),n.stopPropagation(),(t=>{t.classList.toggle("collapsed"),(t=>{try{localStorage.setItem(q.panelCollapsed,t+"")}catch(n){}})(t.classList.contains("collapsed"))})(i)}),setTimeout(()=>{"home"===n?z():V(),(()=>{const n=document.getElementById("saveRuntimeConfigBtn");n&&n.addEventListener("click",()=>{const n=b(),t={};try{const e=h();for(const a of e){if(!a||!a.stateKey)continue;const e=n[a.stateKey];void 0!==e&&(t[a.stateKey]=e)}}catch(X){}t.gravityMultiplier=n.gravityMultiplierPit,t.restitution=n.REST,t.friction=n.FRICTION,t.ballMass=n.ballMassKg,t.ballScale=n.sizeScale,t.sizeScale=n.sizeScale,t.sizeVariation=n.sizeVariation,t.repelSoft=n.repelSoft,t.repelSoftness=n.repelSoft,t.layoutViewportWidthPx=n.layoutViewportWidthPx||0,t.containerBorderVw=n.containerBorderVw,t.simulationPaddingVw=n.simulationPaddingVw,t.contentPaddingVw=n.contentPaddingVw,t.contentPaddingHorizontalRatio=n.contentPaddingHorizontalRatio,t.wallRadiusVw=n.wallRadiusVw,t.wallThicknessVw=n.wallThicknessVw,t.layoutMinContentPaddingPx=Math.max(0,Math.round(n.layoutMinContentPaddingPx??0)),t.layoutMinWallRadiusPx=Math.max(0,Math.round(n.layoutMinWallRadiusPx??0)),t.wallInset=n.wallInset;try{t.soundPreset=g(),t.soundConfig=v()}catch(X){}t.chromeHarmonyMode=n.chromeHarmonyMode,t.autoDarkModeEnabled=n.autoDarkModeEnabled,t.autoDarkNightStartHour=n.autoDarkNightStartHour,t.autoDarkNightEndHour=n.autoDarkNightEndHour,t.enableLOD=!1;const e=new Blob([JSON.stringify(t,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(e),a.download="default-config.json",document.body.appendChild(a),a.click(),document.body.removeChild(a)})})(),(n=>{const t=n.querySelector("#soundEnableBtn"),e=n.querySelector("#soundControlsWrapper"),a=n.querySelector("#soundPresetSelect"),o=n.querySelector("#presetDescription"),s=n.querySelector("#soundSection"),l=n.querySelector("#soundTapBtn"),c=n.querySelector("#soundResetBtn"),i=n.querySelector("#soundShuffleBtn"),r=(n,t,e)=>t>n?t:n>e?e:n,u=(n,t)=>n+2*(Math.random()-.5)*t,d=(n,{openIfEnabled:a=!1}={})=>{if(!t)return;const o=n||C(),l=!(!o.isUnlocked||!o.isEnabled),c=!!o.isUnlocked;t.innerHTML=c&&l?'<i class="ti ti-volume-2" aria-hidden="true"></i>':'<i class="ti ti-volume-off" aria-hidden="true"></i>',t.setAttribute("aria-label",c?l?"Sound on":"Sound off":"Enable sound"),t.classList.toggle("enabled",l),e&&(e.style.display=l?"":"none"),a&&l&&s&&!s.open&&(s.open=!0)};if(l&&l.addEventListener("click",()=>{$({intensity:.86,radius:18,xPosition:.72})}),c&&c.addEventListener("click",()=>{const t=g();T(t),o&&I[t]&&(o.textContent=I[t].description),E(n,v)}),i&&i.addEventListener("click",()=>{const t=v(),e={filterBaseFreq:r(u(t.filterBaseFreq,120),300,8e3),filterQ:r(u(t.filterQ,.04),.05,.9),pitchCurve:r(u(t.pitchCurve,.06),.6,1.8),sparkleGain:r(u(t.sparkleGain,.03),0,.35),sparkleDecayMul:r(u(t.sparkleDecayMul,.05),.25,.95),noiseTransientQ:r(u(t.noiseTransientQ,.25),.6,6),reverbWetMix:r(u(t.reverbWetMix,.02),0,.35),reverbDecay:r(u(t.reverbDecay,.03),.05,.4),collisionMinImpact:r(u(t.collisionMinImpact,.03),.45,.9),variancePitch:r(u(t.variancePitch,.01),0,.2),varianceGain:r(u(t.varianceGain,.02),0,.35)};P(e),E(n,v),$({intensity:.86,radius:18,xPosition:.72})}),t&&t.addEventListener("click",async()=>{const n=C();if(n.isUnlocked){const t=R();d({...n,isEnabled:t})}else await L()&&d(null,{openIfEnabled:!0})}),a){for(const[n,t]of Object.entries(I)){const e=document.createElement("option");e.value=n,e.textContent=t.label,a.appendChild(e)}a.value=g(),o&&I[g()]&&(o.textContent=I[g()].description),a.addEventListener("change",()=>{T(a.value),o&&I[a.value]&&(o.textContent=I[a.value].description),E(n,v)})}O(n,v,P),E(n,v),d(),"undefined"!=typeof window&&window.addEventListener&&window.addEventListener(H,n=>{d(n&&n.detail?n.detail:null)})})(i),(n=>{const t=n.querySelector("#layoutViewportWidth"),e=n.querySelector("#viewportWidthValue"),a=n.querySelector("#layoutWallInset"),o=n.querySelector("#wallInsetValue"),s=b();t&&e&&t.addEventListener("input",n=>{const t=parseInt(n.target.value,10);s.layoutViewportWidthPx=Number.isFinite(t)?Math.max(0,t):0,(({triggerResize:t=!1}={})=>{if(N(),D(),e){const n=W();e.textContent=s.layoutViewportWidthPx>0?Math.round(s.layoutViewportWidthPx)+"px":`Auto (${Math.round(n)}px)`}if(t)try{j()}catch(n){}document.dispatchEvent(new CustomEvent("layout-updated"))})({triggerResize:!0})}),a&&o&&a.addEventListener("input",n=>{const t=parseInt(n.target.value,10);o.textContent=t+"px",s.wallInset=t})})(i);try{const n=b();w(n)}catch(X){}try{c?.(i)}catch(X){}},0),i})({page:s,panelTitle:p,modeLabel:f,pageLabel:l,pageHTML:c,includePageSaveButton:i,pageSaveButtonId:u,footerHint:d,setupPageControls:F}),J.appendChild(U),document.body.insertBefore(J,document.body.firstChild),y()&&(()=>{if(document.querySelector(".panel-toggle-btn"))return;const n=document.createElement("button");n.className="panel-toggle-btn",n.setAttribute("aria-label","Toggle config panel"),n.innerHTML="⚙",n.style.display="flex",n.addEventListener("click",()=>{r()}),document.body.appendChild(n)})(),U&&(U.addEventListener("mousedown",n=>{const t=U.getBoundingClientRect();n.clientY-t.top>12||n.target.closest("button")||n.target.closest("input")||n.target.closest("select")||e(n)}),U.addEventListener("touchstart",n=>{const t=U.getBoundingClientRect();n.touches[0].clientY-t.top>12||n.target.closest("button")||n.target.closest("input")||n.target.closest("select")||e(n)},{passive:!1}),document.addEventListener("mousemove",a),document.addEventListener("mouseup",o),document.addEventListener("touchmove",a,{passive:!1}),document.addEventListener("touchend",o),(()=>{try{if(!J)return;const n=JSON.parse(localStorage.getItem(q.position)||"{}");n.custom&&(J.style.position="fixed",J.style.left=n.left,J.style.top=n.top,J.style.right="auto")}catch(X){}})()),(()=>{if(!U)return;if("undefined"==typeof ResizeObserver)return;let n=0;const t=new ResizeObserver(()=>{U&&(U.classList.contains("collapsed")||(window.clearTimeout(n),n=window.setTimeout(()=>{(n=>{try{if(!n)return;if(n.classList.contains("collapsed"))return;const t=n.getBoundingClientRect();localStorage.setItem(q.panelSize,JSON.stringify({width:Math.round(t.width),height:Math.round(t.height)}))}catch(X){}})(U)},150)))});try{t.observe(U)}catch(X){}})(),J&&J.addEventListener("pointerenter",n=>{const t=n.target;if(!t||!t.closest)return;const e=t.matches('button, [role="button"], .mode-btn, .mac-dot'),a=t.matches('input[type="range"]'),o=t.matches("select");(e||a||o)&&A()},!0),m&&(Z||(Z=!0,window.addEventListener("keydown",n=>{try{const t=n.target?.tagName,e=["INPUT","TEXTAREA","SELECT"].includes(t),a=!!n.target?.closest?.(".panel-dock");if(e&&!a)return}catch(X){}"/"!==(n.key?.toLowerCase?.()||"")&&"Slash"!==n.code||(n.preventDefault(),r())}))),J}function e(n){if(n.target.closest("button")||n.target.closest("input")||n.target.closest("select"))return;if(!J)return;const t=n.touches?n.touches[0].clientX:n.clientX,e=n.touches?n.touches[0].clientY:n.clientY,a=J.getBoundingClientRect();Q=t,X=e,K=a.left,Y=a.top,F=!1}function a(n){if(0===Q&&0===X)return;if(!J)return;const t=(n.touches?n.touches[0].clientX:n.clientX)-Q,e=(n.touches?n.touches[0].clientY:n.clientY)-X;if(F||5>=Math.abs(t)&&5>=Math.abs(e)||(F=!0,J.classList.add("dragging"),J.style.position="fixed",J.style.top=Y+"px",J.style.left=K+"px",J.style.right="auto"),F){let a=K+t,o=Y+e;const s=J.getBoundingClientRect();a=Math.max(0,Math.min(window.innerWidth-s.width,a)),o=Math.max(0,Math.min(window.innerHeight-s.height,o)),J.style.left=a+"px",J.style.top=o+"px",n.preventDefault()}}function o(){F&&(F=!1,J&&J.classList.remove("dragging"),s()),Q=0,X=0,setTimeout(()=>{},10)}function s(){try{if(!J)return;localStorage.setItem(q.position,JSON.stringify({left:J.style.left,top:J.style.top,custom:!0}))}catch(n){}}function l(){if(J){J.style.position="",J.style.left="",J.style.top="",J.style.right="";try{localStorage.removeItem(q.position)}catch(n){}}}function c(){U&&U.classList.remove("collapsed")}function i(){U&&U.classList.add("collapsed")}function r(){if(!J)try{t()}catch(a){return}const e=J.classList.toggle("hidden");if(n(e),!e)try{(()=>{if(!J)return;if(!J.style.left&&!J.style.top)return;const n=J.getBoundingClientRect(),t=window.innerWidth||0,e=window.innerHeight||0;if(!t||!e)return;const a=10;if(a>n.right||n.left>t-a||a>n.bottom||n.top>e-a)return void l();const o=(n,t,e)=>t>n?t:n>e?e:n,c=o(n.left,a,Math.max(a,t-n.width-a)),i=o(n.top,a,Math.max(a,e-n.height-a));J.style.position="fixed",J.style.left=Math.round(c)+"px",J.style.top=Math.round(i)+"px",J.style.right="auto",s()})()}catch(a){}}function u(){return J}function d(){return U}function p(){return U}import{ai as f,aj as m,ak as h,g as b,al as g,am as v,i as y,an as w,ao as S,ap as M,aq as k,ar as x,as as B,at as _,au as $,av as T,aw as I,ax as E,ay as P,az as C,aA as L,aB as R,aC as O,aD as H,aE as W,aF as N,j as D,t as j,aG as A}from"./shared.js";import{setupIndexControls as z,setupMasterControls as V}from"./controls.js";m();const G=f();let J=null,U=null;const q={position:"panel_dock_position_v2",dockHidden:"panel_dock_hidden",panelCollapsed:"master_panel_collapsed",panelSize:y()?"panel_dock_size_dev_v3":"panel_dock_size_prod_v3"};let F=!1,Q=0,X=0,K=0,Y=0,Z=!1;const nn=l;export{i as collapsePanel,t as createPanelDock,c as expandPanel,d as getControlPanel,u as getDock,p as getSoundPanel,nn as resetDockPosition,l as resetPanelPositions,r as toggleDock};
+/* Alexander Beck Studio | 2026-01-27 */
+import { ai as generateHomePanelHTML, aj as generatePanelHTML, ak as getAllControls, g as getGlobals, al as getCurrentPreset, am as getSoundConfig, i as isDev, an as updateWallShadowCSS, ao as generateSoundControlsHTML, ap as generateThemeSectionHTML, aq as generateGlobalSectionsHTML, ar as generateColorTemplateSectionHTML, as as generateSimulationsSectionsHTML, at as generateBrowserTransitionSectionsHTML, au as applySoundPreset, av as SOUND_PRESETS, aw as syncSoundControlsToConfig, ax as updateSoundConfig, ay as unlockAudio, az as bindSoundControls, aA as SOUND_STATE_EVENT, aB as getLayoutViewportWidthPx, aC as applyLayoutFromVwToPx, j as applyLayoutCSSVars, t as resize, aD as getSoundState, aE as playTestSound, aF as toggleSound, aG as playHoverSound } from './shared.js';
+import { setupIndexControls, setupMasterControls } from './controls.js';
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                         CONTROL PANEL HTML TEMPLATE                          ║
+// ║           Generated from centralized control-registry.js                     ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+// For backwards compatibility, also export PANEL_HTML constant
+// Note: This won't update if visibility changes at runtime
+generatePanelHTML();
+
+// Page-specific (index/home) controls without master sections/footer.
+const HOME_PANEL_HTML = generateHomePanelHTML();
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                             BUILD / SAVE CONFIG                              ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+function setupBuildControls() {
+  const btn = document.getElementById('saveRuntimeConfigBtn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const g = getGlobals();
+    // Build a "complete" config snapshot that round-trips all panel settings.
+    // - Includes all registered controls (mode + global sections)
+    // - Includes canonical key aliases for compatibility (ballScale/sizeScale, repelSoft/repelSoftness)
+    // - Includes sound preset + full soundConfig overrides
+    const config = {};
+
+    // 1) All registered controls → copy from state by stateKey
+    try {
+      const controls = getAllControls();
+      for (const c of controls) {
+        if (!c || !c.stateKey) continue;
+        const v = g[c.stateKey];
+        if (v === undefined) continue;
+        config[c.stateKey] = v;
+      }
+    } catch (e) {}
+
+    // 2) Canonical + legacy aliases (keep these stable)
+    config.gravityMultiplier = g.gravityMultiplierPit;
+    config.restitution = g.REST;
+    config.friction = g.FRICTION;
+    config.ballMass = g.ballMassKg;
+    config.ballScale = g.sizeScale;
+    config.sizeScale = g.sizeScale;
+    config.sizeVariation = g.sizeVariation;
+    config.repelSoft = g.repelSoft;
+    config.repelSoftness = g.repelSoft;
+
+    // 3) Explicitly include layout controls (not in registry)
+    // Layout is vw-native (derived to px at runtime). Export vw keys as canonical.
+    config.layoutViewportWidthPx = g.layoutViewportWidthPx || 0;
+    config.containerBorderVw = g.containerBorderVw;
+    config.simulationPaddingVw = g.simulationPaddingVw;
+    config.contentPaddingVw = g.contentPaddingVw;
+    config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;
+    config.wallRadiusVw = g.wallRadiusVw;
+    config.wallThicknessVw = g.wallThicknessVw;
+    // Minimum clamp targets (px)
+    config.layoutMinContentPaddingPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
+    config.layoutMinWallRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
+    // Physics-only inset remains px.
+    config.wallInset = g.wallInset;
+
+    // 4) Sound (full round-trip)
+    try {
+      config.soundPreset = getCurrentPreset();
+      config.soundConfig = getSoundConfig();
+    } catch (e) {}
+
+    // 4b) Browser / theme environment
+    config.chromeHarmonyMode = g.chromeHarmonyMode;
+    config.autoDarkModeEnabled = g.autoDarkModeEnabled;
+    config.autoDarkNightStartHour = g.autoDarkNightStartHour;
+    config.autoDarkNightEndHour = g.autoDarkNightEndHour;
+
+    // 5) Stable housekeeping defaults
+    config.enableLOD = false;
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    // This is the file you can drop in as `source/config/default-config.json` and rebuild.
+    a.download = 'default-config.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+}
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                       UNIFIED MASTER PANEL                                   ║
+// ║           Single panel with collapsible sections                             ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+let dockElement = null;
+let masterPanelElement = null;
+
+// ════════════════════════════════════════════════════════════════════════════════
+// STATE PERSISTENCE
+// ════════════════════════════════════════════════════════════════════════════════
+
+const STORAGE_KEYS = {
+  // v2: avoid inheriting old "too low" positions
+  position: 'panel_dock_position_v2',
+  dockHidden: 'panel_dock_hidden',
+  panelCollapsed: 'master_panel_collapsed',
+  // v3: separate dev/prod panel sizes (they have different contexts)
+  panelSize: isDev() ? 'panel_dock_size_dev_v3' : 'panel_dock_size_prod_v3'
+};
+
+function loadPanelCollapsed() {
+  try {
+    const v = localStorage.getItem(STORAGE_KEYS.panelCollapsed);
+    // Default: OPEN in dev mode, collapsed in production
+    if (v === null) return !isDev();
+    return v === 'true';
+  } catch (e) {
+    return !isDev();
+  }
+}
+
+function savePanelCollapsed(collapsed) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.panelCollapsed, String(collapsed));
+  } catch (e) {}
+}
+
+function loadDockHiddenState({ defaultHidden = true } = {}) {
+  try {
+    const v = localStorage.getItem(STORAGE_KEYS.dockHidden);
+    if (v === null) return !!defaultHidden;
+    return v === 'true';
+  } catch (e) {
+    return !!defaultHidden;
+  }
+}
+
+function saveDockHiddenState(hidden) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.dockHidden, String(hidden));
+  } catch (e) {}
+}
+
+function loadPanelSize() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.panelSize);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const width = Number(parsed.width);
+    const height = Number(parsed.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+    return {
+      width: Math.round(width),
+      height: Math.round(height),
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function savePanelSizeFromElement(el) {
+  try {
+    if (!el) return;
+    if (el.classList.contains('collapsed')) return;
+    const rect = el.getBoundingClientRect();
+    const next = {
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+    };
+    localStorage.setItem(STORAGE_KEYS.panelSize, JSON.stringify(next));
+  } catch (e) {}
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DRAG STATE
+// ════════════════════════════════════════════════════════════════════════════════
+
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let elementStartX = 0;
+let elementStartY = 0;
+
+// ════════════════════════════════════════════════════════════════════════════════
+// MASTER PANEL HTML
+// ════════════════════════════════════════════════════════════════════════════════
+
+function getMasterPanelContent({
+  pageLabel = 'Home',
+  pageHTML = HOME_PANEL_HTML,
+  includePageSaveButton = true,
+  pageSaveButtonId = 'saveRuntimeConfigBtn',
+  footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes',
+} = {}) {
+  const g = getGlobals();
+  const viewportWidthPx = getLayoutViewportWidthPx();
+  const viewportWidthLabel = g.layoutViewportWidthPx > 0
+    ? `${Math.round(g.layoutViewportWidthPx)}px`
+    : `Auto (${Math.round(viewportWidthPx)}px)`;
+  const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
+
+  // Layout controls (embedded in Global group)
+  const layoutControlsHTML = `
+    <details class="panel-section-accordion" id="layoutSection">
+      <summary class="panel-section-header">
+        <span class="section-icon">📐</span>
+        <span class="section-label">Layout</span>
+      </summary>
+      <div class="panel-section-content">
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Viewport Width</span>
+            <span class="control-value" id="viewportWidthValue">${viewportWidthLabel}</span>
+          </div>
+          <input type="range" id="layoutViewportWidth" min="0" max="2400" step="10" value="${Math.round(g.layoutViewportWidthPx || 0)}" />
+          <div class="control-hint">0 = Auto (uses current window width)</div>
+        </label>
+        <label class="control-row">
+          <div class="control-row-header">
+            <span class="control-label">Wall Inset</span>
+            <span class="control-value" id="wallInsetValue">${wallInsetVal}px</span>
+          </div>
+          <input type="range" id="layoutWallInset" min="0" max="20" value="${wallInsetVal}" />
+        </label>
+      </div>
+    </details>
+  `;
+
+  // Sound controls (embedded in Global group)
+  const soundControlsHTML = `
+    <details class="panel-section-accordion" id="soundSection">
+      <summary class="panel-section-header">
+        <span class="section-icon">🔊</span>
+        <span class="section-label">Sound</span>
+      </summary>
+      <div class="panel-section-content">
+        <div class="sound-enable-row">
+          <button id="soundEnableBtn" class="sound-enable-btn" aria-label="Enable sound">🔇</button>
+        </div>
+        <div id="soundControlsWrapper" class="sound-controls" style="display: none;">
+          <div class="sound-perf" aria-label="Sound performance controls">
+            <button type="button" id="soundTapBtn" class="sound-perf__btn" aria-label="Play test hit">▶︎</button>
+            <button type="button" id="soundResetBtn" class="sound-perf__btn" aria-label="Reset to preset">↺</button>
+            <button type="button" id="soundShuffleBtn" class="sound-perf__btn" aria-label="Shuffle (subtle) sound">🎲</button>
+            <span class="sound-perf__hint">wheel adjusts · shift/alt = fine</span>
+          </div>
+          <label class="control-row">
+            <span class="control-label">Preset</span>
+            <select id="soundPresetSelect" class="control-select"></select>
+          </label>
+          <p id="presetDescription" class="control-hint"></p>
+          ${generateSoundControlsHTML()}
+        </div>
+      </div>
+    </details>
+  `;
+
+  // Mode selector (embedded in Simulations group)
+  const modeControlsHTML = `
+    <details class="panel-section-accordion" id="pageSection" open>
+      <summary class="panel-section-header">
+        <span class="section-icon">🎛️</span>
+        <span class="section-label">Mode</span>
+      </summary>
+      <div class="panel-section-content">
+        ${pageHTML}
+      </div>
+    </details>
+  `;
+
+  const actionsHTML = `
+    ${includePageSaveButton ? `<div class="panel-section panel-section--action"><button id="${pageSaveButtonId}" class="primary">💾 Save ${pageLabel} Config</button></div>` : ''}
+    <div class="panel-footer">${footerHint}</div>
+  `;
+
+  // Build the 3 master groups with all content properly nested
+  return `
+    <!-- GLOBAL: Theme, Colors, Sound, Layout -->
+    <details class="panel-master-group" open>
+      <summary class="panel-master-group-header">
+        <span class="panel-master-group-icon">🌐</span>
+        <span class="panel-master-group-title">Global</span>
+      </summary>
+      <div class="panel-master-group-content">
+        ${generateThemeSectionHTML({ open: false })}
+        ${generateGlobalSectionsHTML()}
+        ${layoutControlsHTML}
+        ${soundControlsHTML}
+        ${generateColorTemplateSectionHTML({ open: false })}
+      </div>
+    </details>
+
+    <!-- SIMULATIONS: Mode, Physics, Balls, Wall, Mode-specific -->
+    <details class="panel-master-group" open>
+      <summary class="panel-master-group-header">
+        <span class="panel-master-group-icon">🧪</span>
+        <span class="panel-master-group-title">Simulations</span>
+      </summary>
+      <div class="panel-master-group-content">
+        ${modeControlsHTML}
+        ${generateSimulationsSectionsHTML()}
+      </div>
+    </details>
+
+    <!-- BROWSER & TRANSITION: Environment, Entrance, Overlay -->
+    <details class="panel-master-group" open>
+      <summary class="panel-master-group-header">
+        <span class="panel-master-group-icon">🧭</span>
+        <span class="panel-master-group-title">Browser & Transition</span>
+      </summary>
+      <div class="panel-master-group-content">
+        ${generateBrowserTransitionSectionsHTML()}
+      </div>
+    </details>
+
+    ${actionsHTML}
+  `;
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DOCK CREATION
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PANEL TOGGLE BUTTON (GEAR ICON)
+// ════════════════════════════════════════════════════════════════════════════════
+
+function createPanelToggleButton() {
+  // Check if button already exists
+  if (document.querySelector('.panel-toggle-btn')) return;
+  
+  const toggleBtn = document.createElement('button');
+  toggleBtn.className = 'panel-toggle-btn';
+  toggleBtn.setAttribute('aria-label', 'Toggle config panel');
+  toggleBtn.innerHTML = '⚙';
+  toggleBtn.style.display = 'flex';
+  
+  toggleBtn.addEventListener('click', () => {
+    toggleDock();
+  });
+  
+  document.body.appendChild(toggleBtn);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// MAIN PANEL DOCK CREATION
+// ════════════════════════════════════════════════════════════════════════════════
+
+function createPanelDock(options = {}) {
+  // DEV-only: dynamically inject panel.css if not already present
+  // (Production builds don't include panel.css, so we inject it on-demand)
+  if (!document.querySelector('link[href*="panel.css"]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    // Detect base path (dev: css/panel.css, prod: would not reach here)
+    link.href = 'css/panel.css';
+    document.head.appendChild(link);
+  }
+
+  const page = options.page || 'home';
+  const pageLabel = options.pageLabel || (page === 'portfolio' ? 'Portfolio' : 'Home');
+  const pageHTML = options.pageHTML || HOME_PANEL_HTML;
+  // Default to true for home page (save config button), false must be explicit
+  const includePageSaveButton = options.includePageSaveButton !== false;
+  const pageSaveButtonId = options.pageSaveButtonId || 'saveRuntimeConfigBtn';
+  const footerHint = options.footerHint || (page === 'portfolio'
+    ? '<kbd>/</kbd> panel'
+    : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei');
+  const panelTitle = options.panelTitle || 'Settings';
+  const modeLabel = options.modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
+  const bindShortcut = !!options.bindShortcut;
+  const setupPageControls = typeof options.setupPageControls === 'function' ? options.setupPageControls : null;
+
+  // Remove any legacy placeholders
+  try {
+    const existingControl = document.getElementById('controlPanel');
+    if (existingControl) existingControl.remove();
+    const existingSound = document.getElementById('soundPanel');
+    if (existingSound) existingSound.remove();
+  } catch (e) {}
+  
+  // Create dock container
+  dockElement = document.createElement('div');
+  dockElement.className = 'panel-dock';
+  dockElement.id = 'panelDock';
+
+  // Default visibility:
+  // - Dev mode: visible by default
+  // - Production: hidden by default, use gear button to open
+  let defaultHidden = !isDev();
+  let isHidden = loadDockHiddenState({ defaultHidden });
+  try {
+    isHidden = false;
+  } catch (e) {}
+
+  dockElement.classList.toggle('hidden', !!isHidden);
+  saveDockHiddenState(!!isHidden);
+  
+  // Create master panel
+  masterPanelElement = createMasterPanel({
+    page,
+    panelTitle,
+    modeLabel,
+    pageLabel,
+    pageHTML,
+    includePageSaveButton,
+    pageSaveButtonId,
+    footerHint,
+    setupPageControls,
+  });
+  dockElement.appendChild(masterPanelElement);
+
+  // Append to body as first child for maximum z-index stacking
+  document.body.insertBefore(dockElement, document.body.firstChild);
+  
+  // Create gear button toggle (dev-only)
+  if (isDev()) {
+    createPanelToggleButton();
+  }
+  
+  // Setup interactions
+  setupDragging();
+  setupResizePersistence();
+  setupPanelHoverSounds();
+
+  // Setup keyboard toggle for non-index pages (index has its own keyboard system).
+  if (bindShortcut) bindDockToggleShortcut();
+
+  return dockElement;
+}
+
+let shortcutBound = false;
+function bindDockToggleShortcut() {
+  if (shortcutBound) return;
+  shortcutBound = true;
+  window.addEventListener('keydown', (event) => {
+    try {
+      const tag = event.target?.tagName;
+      const isFormField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
+      const inDock = !!event.target?.closest?.('.panel-dock');
+      if (isFormField && !inDock) return;
+    } catch (e) {}
+    const key = event.key?.toLowerCase?.() || '';
+    if (key !== '/' && event.code !== 'Slash') return;
+    event.preventDefault();
+    toggleDock();
+  });
+}
+
+function createMasterPanel({
+  page,
+  panelTitle,
+  modeLabel,
+  pageLabel,
+  pageHTML,
+  includePageSaveButton,
+  pageSaveButtonId,
+  footerHint,
+  setupPageControls,
+} = {}) {
+  const panel = document.createElement('div');
+  panel.id = 'masterPanel';
+  panel.className = loadPanelCollapsed() ? 'panel collapsed' : 'panel';
+  panel.setAttribute('role', 'region');
+  panel.setAttribute('aria-label', 'Settings');
+  
+  // Header
+  const header = document.createElement('div');
+  header.className = 'panel-header';
+  header.innerHTML = `
+    <span class="panel-title">${panelTitle}</span>
+    <button class="collapse-btn" aria-label="Collapse panel" title="Collapse">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 4l4 4 4-4"/></svg>
+    </button>
+  `;
+  
+  // Content
+  const content = document.createElement('div');
+  content.className = 'panel-content';
+  content.innerHTML = getMasterPanelContent({
+    pageLabel,
+    pageHTML,
+    includePageSaveButton,
+    pageSaveButtonId,
+    footerHint,
+  });
+  
+  panel.appendChild(header);
+  panel.appendChild(content);
+
+  // Restore size (only if user has manually resized - i.e., significantly different from CSS defaults)
+  const savedSize = loadPanelSize();
+  if (savedSize) {
+    // CSS defaults: width = 23rem (368px), height = 90vh
+    // Only apply saved size if it's meaningfully different (user actually resized)
+    const cssDefaultWidth = 368; // 23rem
+    const cssDefaultHeight = window.innerHeight * 0.9; // 90vh
+    const widthDiff = Math.abs(savedSize.width - cssDefaultWidth);
+    const heightDiff = Math.abs(savedSize.height - cssDefaultHeight);
+    
+    // Only restore if difference is significant (> 5px) - means user manually resized
+    if (widthDiff > 5 || heightDiff > 5) {
+      panel.style.width = `${savedSize.width}px`;
+      // Clamp restored height to 90vh max
+      const maxHeight = window.innerHeight * 0.9;
+      panel.style.height = `${Math.min(savedSize.height, maxHeight)}px`;
+      panel.style.maxHeight = '90vh';
+    }
+    // Otherwise, let CSS defaults apply
+  }
+  
+  // Collapse button
+  const collapseBtn = header.querySelector('.collapse-btn');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePanelCollapse(panel);
+    });
+  }
+  // Header click should NOT toggle collapse.
+  // For a Mac-window feel, the titlebar is for dragging; collapse is explicit via the button.
+  
+  // Initialize controls
+  setTimeout(() => {
+    // Shared (master) controls are safe on all pages.
+    if (page === 'home') {
+      setupIndexControls();
+    } else {
+      setupMasterControls();
+    }
+
+    setupBuildControls();
+    setupSoundControls(panel);
+    setupLayoutControls(panel);
+    
+    // Initialize wall shadow CSS from current state
+    try {
+      const g = getGlobals();
+      updateWallShadowCSS(g);
+    } catch (e) {}
+
+    // Page-specific bindings (portfolio carousel, etc).
+    try { setupPageControls?.(panel); } catch (e) {}
+  }, 0);
+  
+  return panel;
+}
+
+function setupResizePersistence() {
+  if (!masterPanelElement) return;
+  if (typeof ResizeObserver === 'undefined') return;
+
+  let t = 0;
+  const ro = new ResizeObserver(() => {
+    if (!masterPanelElement) return;
+    // Avoid persisting while collapsed (it forces a short height)
+    if (masterPanelElement.classList.contains('collapsed')) return;
+
+    window.clearTimeout(t);
+    t = window.setTimeout(() => {
+      savePanelSizeFromElement(masterPanelElement);
+    }, 150);
+  });
+
+  try {
+    ro.observe(masterPanelElement);
+  } catch (e) {}
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DRAG FUNCTIONALITY
+// ════════════════════════════════════════════════════════════════════════════════
+
+function setupDragging() {
+  if (!masterPanelElement) return;
+  
+  // Make panel draggable from top border area (orange line)
+  masterPanelElement.addEventListener('mousedown', (e) => {
+    // Only start drag from top 12px area (where orange line is)
+    const rect = masterPanelElement.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    if (y <= 12 && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+      handleDragStart(e);
+    }
+  });
+  masterPanelElement.addEventListener('touchstart', (e) => {
+    const rect = masterPanelElement.getBoundingClientRect();
+    const touch = e.touches[0];
+    const y = touch.clientY - rect.top;
+    if (y <= 12 && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('select')) {
+      handleDragStart(e);
+    }
+  }, { passive: false });
+  
+  document.addEventListener('mousemove', handleDragMove);
+  document.addEventListener('mouseup', handleDragEnd);
+  document.addEventListener('touchmove', handleDragMove, { passive: false });
+  document.addEventListener('touchend', handleDragEnd);
+  
+  loadPanelPosition();
+}
+
+function handleDragStart(e) {
+  if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+  if (!dockElement) return;
+  
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  
+  const rect = dockElement.getBoundingClientRect();
+  dragStartX = clientX;
+  dragStartY = clientY;
+  elementStartX = rect.left;
+  elementStartY = rect.top;
+  isDragging = false;
+}
+
+function handleDragMove(e) {
+  if (dragStartX === 0 && dragStartY === 0) return;
+  if (!dockElement) return;
+  
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  
+  const deltaX = clientX - dragStartX;
+  const deltaY = clientY - dragStartY;
+  const threshold = 5;
+  
+  if (!isDragging && (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold)) {
+    isDragging = true;
+    dockElement.classList.add('dragging');
+    dockElement.style.position = 'fixed';
+    dockElement.style.top = `${elementStartY}px`;
+    dockElement.style.left = `${elementStartX}px`;
+    dockElement.style.right = 'auto';
+  }
+  
+  if (isDragging) {
+    let newX = elementStartX + deltaX;
+    let newY = elementStartY + deltaY;
+    
+    const rect = dockElement.getBoundingClientRect();
+    newX = Math.max(0, Math.min(window.innerWidth - rect.width, newX));
+    newY = Math.max(0, Math.min(window.innerHeight - rect.height, newY));
+    
+    dockElement.style.left = `${newX}px`;
+    dockElement.style.top = `${newY}px`;
+    e.preventDefault();
+  }
+}
+
+function handleDragEnd() {
+  if (isDragging) {
+    isDragging = false;
+    if (dockElement) dockElement.classList.remove('dragging');
+    savePanelPosition();
+  }
+  
+  dragStartX = 0;
+  dragStartY = 0;
+  
+  setTimeout(() => { }, 10);
+}
+
+function savePanelPosition() {
+  try {
+    if (!dockElement) return;
+    const pos = {
+      left: dockElement.style.left,
+      top: dockElement.style.top,
+      custom: true
+    };
+    localStorage.setItem(STORAGE_KEYS.position, JSON.stringify(pos));
+  } catch (e) {}
+}
+
+function loadPanelPosition() {
+  try {
+    if (!dockElement) return;
+    const pos = JSON.parse(localStorage.getItem(STORAGE_KEYS.position) || '{}');
+    if (pos.custom) {
+      dockElement.style.position = 'fixed';
+      dockElement.style.left = pos.left;
+      dockElement.style.top = pos.top;
+      dockElement.style.right = 'auto';
+    }
+  } catch (e) {}
+}
+
+function resetPanelPositions() {
+  if (!dockElement) return;
+  dockElement.style.position = '';
+  dockElement.style.left = '';
+  dockElement.style.top = '';
+  dockElement.style.right = '';
+  try {
+    localStorage.removeItem(STORAGE_KEYS.position);
+  } catch (e) {}
+}
+
+const resetDockPosition = resetPanelPositions;
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PANEL COLLAPSE
+// ════════════════════════════════════════════════════════════════════════════════
+
+function togglePanelCollapse(panel) {
+  panel.classList.toggle('collapsed');
+  savePanelCollapsed(panel.classList.contains('collapsed'));
+}
+
+function expandPanel() {
+  if (masterPanelElement) masterPanelElement.classList.remove('collapsed');
+}
+
+function collapsePanel() {
+  if (masterPanelElement) masterPanelElement.classList.add('collapsed');
+}
+
+function toggleDock() {
+  // Dev-only safety: if the dock hasn't been created yet (or got removed),
+  // create it on-demand so `/` always works.
+  if (!dockElement) {
+    try {
+      createPanelDock();
+    } catch (e) {
+      return;
+    }
+  }
+
+  const isHidden = dockElement.classList.toggle('hidden');
+  saveDockHiddenState(isHidden);
+
+  // If we're showing, ensure it isn't off-screen due to a stale saved position.
+  if (!isHidden) {
+    try {
+      ensureDockOnscreen();
+    } catch (e) {}
+  }
+}
+
+function ensureDockOnscreen() {
+  if (!dockElement) return;
+
+  // If the dock is in its default “right/top” position (no custom left/top),
+  // don't interfere.
+  const hasCustomLeft = !!dockElement.style.left;
+  const hasCustomTop = !!dockElement.style.top;
+  if (!hasCustomLeft && !hasCustomTop) return;
+
+  const rect = dockElement.getBoundingClientRect();
+  const vw = window.innerWidth || 0;
+  const vh = window.innerHeight || 0;
+  if (!vw || !vh) return;
+
+  const edge = 10;
+
+  // If rect is wildly out of view, reset to default docked position.
+  const totallyOff =
+    rect.right < edge ||
+    rect.left > vw - edge ||
+    rect.bottom < edge ||
+    rect.top > vh - edge;
+  if (totallyOff) {
+    resetPanelPositions();
+    return;
+  }
+
+  // Clamp to viewport.
+  const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
+  const nextLeft = clamp(rect.left, edge, Math.max(edge, vw - rect.width - edge));
+  const nextTop = clamp(rect.top, edge, Math.max(edge, vh - rect.height - edge));
+
+  dockElement.style.position = 'fixed';
+  dockElement.style.left = `${Math.round(nextLeft)}px`;
+  dockElement.style.top = `${Math.round(nextTop)}px`;
+  dockElement.style.right = 'auto';
+
+  savePanelPosition();
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SOUND CONTROLS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function setupSoundControls(panel) {
+  const enableBtn = panel.querySelector('#soundEnableBtn');
+  const controlsWrapper = panel.querySelector('#soundControlsWrapper');
+  const presetSelect = panel.querySelector('#soundPresetSelect');
+  const presetDesc = panel.querySelector('#presetDescription');
+  const soundDetails = panel.querySelector('#soundSection');
+  const tapBtn = panel.querySelector('#soundTapBtn');
+  const resetBtn = panel.querySelector('#soundResetBtn');
+  const shuffleBtn = panel.querySelector('#soundShuffleBtn');
+
+  // Icon-only button labels (no text), with accessible aria-label/title.
+  const ICON_SOUND_OFF = '<i class="ti ti-volume-off" aria-hidden="true"></i>';
+  const ICON_SOUND_ON = '<i class="ti ti-volume-2" aria-hidden="true"></i>';
+
+  const clamp = (v, min, max) => (v < min ? min : v > max ? max : v);
+  const jitter = (base, amount) => base + (Math.random() - 0.5) * 2 * amount;
+
+  const syncSoundSectionUI = (state, { openIfEnabled = false } = {}) => {
+    if (!enableBtn) return;
+    const s = state || getSoundState();
+    const enabled = !!(s.isUnlocked && s.isEnabled);
+    const unlocked = !!s.isUnlocked;
+
+    // Icon-only (no text). Use aria-label/title for accessibility.
+    enableBtn.innerHTML = (unlocked && enabled) ? ICON_SOUND_ON : ICON_SOUND_OFF;
+    enableBtn.setAttribute('aria-label', unlocked ? (enabled ? 'Sound on' : 'Sound off') : 'Enable sound');
+
+    enableBtn.classList.toggle('enabled', enabled);
+
+    if (controlsWrapper) {
+      controlsWrapper.style.display = enabled ? '' : 'none';
+    }
+
+    if (openIfEnabled && enabled && soundDetails && !soundDetails.open) {
+      soundDetails.open = true;
+    }
+  };
+
+  // Performance controls (audition / reset / gentle shuffle)
+  if (tapBtn) {
+    tapBtn.addEventListener('click', () => {
+      // If sound isn't enabled, do nothing; user can hit "Enable Sound" first
+      playTestSound({ intensity: 0.86, radius: 18, xPosition: 0.72 });
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      const preset = getCurrentPreset();
+      applySoundPreset(preset);
+      if (presetDesc && SOUND_PRESETS[preset]) presetDesc.textContent = SOUND_PRESETS[preset].description;
+      syncSoundControlsToConfig(panel, getSoundConfig);
+    });
+  }
+
+  if (shuffleBtn) {
+    shuffleBtn.addEventListener('click', () => {
+      // Subtle, musical micro-randomization: never wild, just "alive".
+      const c = getSoundConfig();
+      const next = {
+        // Tone / crystal
+        filterBaseFreq: clamp(jitter(c.filterBaseFreq, 120), 300, 8000),
+        filterQ: clamp(jitter(c.filterQ, 0.04), 0.05, 0.9),
+        pitchCurve: clamp(jitter(c.pitchCurve, 0.06), 0.6, 1.8),
+        sparkleGain: clamp(jitter(c.sparkleGain, 0.03), 0.0, 0.35),
+        sparkleDecayMul: clamp(jitter(c.sparkleDecayMul, 0.05), 0.25, 0.95),
+        noiseTransientQ: clamp(jitter(c.noiseTransientQ, 0.25), 0.6, 6.0),
+
+        // Space / dynamics
+        reverbWetMix: clamp(jitter(c.reverbWetMix, 0.02), 0.0, 0.35),
+        reverbDecay: clamp(jitter(c.reverbDecay, 0.03), 0.05, 0.40),
+        collisionMinImpact: clamp(jitter(c.collisionMinImpact, 0.03), 0.45, 0.90),
+
+        // Humanization
+        variancePitch: clamp(jitter(c.variancePitch, 0.01), 0.0, 0.20),
+        varianceGain: clamp(jitter(c.varianceGain, 0.02), 0.0, 0.35),
+      };
+
+      updateSoundConfig(next);
+      syncSoundControlsToConfig(panel, getSoundConfig);
+      playTestSound({ intensity: 0.86, radius: 18, xPosition: 0.72 });
+    });
+  }
+  
+  if (enableBtn) {
+    enableBtn.addEventListener('click', async () => {
+      const state = getSoundState();
+      
+      if (!state.isUnlocked) {
+        const success = await unlockAudio();
+        if (success) {
+          syncSoundSectionUI(null, { openIfEnabled: true });
+        }
+      } else {
+        const newState = toggleSound();
+        syncSoundSectionUI({ ...state, isEnabled: newState });
+      }
+    });
+  }
+  
+  if (presetSelect) {
+    for (const [key, preset] of Object.entries(SOUND_PRESETS)) {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = preset.label;
+      presetSelect.appendChild(option);
+    }
+    
+    presetSelect.value = getCurrentPreset();
+    if (presetDesc && SOUND_PRESETS[getCurrentPreset()]) {
+      presetDesc.textContent = SOUND_PRESETS[getCurrentPreset()].description;
+    }
+    
+    presetSelect.addEventListener('change', () => {
+      applySoundPreset(presetSelect.value);
+      if (presetDesc && SOUND_PRESETS[presetSelect.value]) {
+        presetDesc.textContent = SOUND_PRESETS[presetSelect.value].description;
+      }
+      syncSoundControlsToConfig(panel, getSoundConfig);
+    });
+  }
+  
+  bindSoundControls(panel, getSoundConfig, updateSoundConfig);
+  syncSoundControlsToConfig(panel, getSoundConfig);
+
+  // Initial state (if sound was enabled elsewhere, show controls immediately)
+  syncSoundSectionUI();
+
+  // Stay in sync with external toggles (e.g. the floating sound toggle button)
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener(SOUND_STATE_EVENT, (e) => {
+      syncSoundSectionUI(e && e.detail ? e.detail : null);
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// LAYOUT CONTROLS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function setupLayoutControls(panel) {
+  const viewportWidthSlider = panel.querySelector('#layoutViewportWidth');
+  const viewportWidthValue = panel.querySelector('#viewportWidthValue');
+  const wallInsetSlider = panel.querySelector('#layoutWallInset');
+  const wallInsetValue = panel.querySelector('#wallInsetValue');
+  const g = getGlobals();
+
+  const syncDerivedLayout = ({ triggerResize = false } = {}) => {
+    applyLayoutFromVwToPx();
+    applyLayoutCSSVars();
+    if (viewportWidthValue) {
+      const w = getLayoutViewportWidthPx();
+      viewportWidthValue.textContent = g.layoutViewportWidthPx > 0 ? `${Math.round(g.layoutViewportWidthPx)}px` : `Auto (${Math.round(w)}px)`;
+    }
+    if (triggerResize) {
+      try { resize(); } catch (e) {}
+    }
+    
+    // Notify overlay system that layout changed (blur needs recalculation)
+    document.dispatchEvent(new CustomEvent('layout-updated'));
+  };
+  
+  // Virtual viewport width (debug): changes the vw→px conversion basis
+  if (viewportWidthSlider && viewportWidthValue) {
+    viewportWidthSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      g.layoutViewportWidthPx = Number.isFinite(val) ? Math.max(0, val) : 0;
+      syncDerivedLayout({ triggerResize: true });
+    });
+  }
+
+  // Wall inset (physics-only): shrinks the effective collision bounds uniformly
+  if (wallInsetSlider && wallInsetValue) {
+    wallInsetSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      wallInsetValue.textContent = `${val}px`;
+      g.wallInset = val;
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PANEL HOVER SOUNDS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function setupPanelHoverSounds() {
+  if (!dockElement) return;
+  
+  dockElement.addEventListener('pointerenter', (e) => {
+    const target = e.target;
+    if (!target || !target.closest) return;
+    
+    const isButton = target.matches('button, [role="button"], .mode-btn, .mac-dot');
+    const isSliderThumb = target.matches('input[type="range"]');
+    const isSelect = target.matches('select');
+    
+    if (isButton || isSliderThumb || isSelect) {
+      playHoverSound();
+    }
+  }, true);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// EXPORTS
+// ════════════════════════════════════════════════════════════════════════════════
+
+function getDock() { return dockElement; }
+function getControlPanel() { return masterPanelElement; }
+function getSoundPanel() { return masterPanelElement; }
+
+export { collapsePanel, createPanelDock, expandPanel, getControlPanel, getDock, getSoundPanel, resetDockPosition, resetPanelPositions, toggleDock };
+//# sourceMappingURL=panel-dock.js.map

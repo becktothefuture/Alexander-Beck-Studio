@@ -1,1 +1,118 @@
-function e(){c(),n();const e=document.getElementById("colorSelect");e&&e.addEventListener("change",()=>{a(e.value),i()});const t=document.getElementById("themeAuto"),o=document.getElementById("themeLight"),s=document.getElementById("themeDark");[t,o,s].forEach(e=>{e&&e.addEventListener("click",()=>{[t,o,s].forEach(e=>e?.classList.remove("active")),e.classList.add("active")})})}function t(){e(),document.querySelectorAll(".mode-button").forEach(e=>{e.addEventListener("click",t=>{t.stopPropagation();const c=e.getAttribute("data-mode");console.log("Mode button clicked:",c),import("./shared.js").then(e=>e.aK).then(({setMode:e})=>{e(c),o(c)}).catch(()=>{})})})}function o(e){document.querySelectorAll(".mode-button").forEach(t=>{const o=t.getAttribute("data-mode")===e;t.classList.toggle("active",o)}),document.querySelectorAll(".mode-controls").forEach(e=>e.classList.remove("active"));const t=document.getElementById(e+"Controls");t&&t.classList.add("active");const o=document.getElementById("announcer");o&&(o.textContent=`Switched to ${{critters:"Critters",pit:"Ball Pit",flies:"Flies to Light",weightless:"Zero-G",water:"Water Swimming",vortex:"Electrons",magnetic:"Magnetic",bubbles:"Carbonated Bubbles","kaleidoscope-3":"Kaleidoscope",neural:"Neural Network"}[e]||e} mode`)}import{aH as c,aI as n,ae as a,aJ as i}from"./shared.js";export{t as setupIndexControls,e as setupMasterControls,o as updateModeButtonsUI};
+/* Alexander Beck Studio | 2026-01-27 */
+import { aH as bindRegisteredControls, aI as populateColorSelect, ae as applyColorTemplate, aJ as autoSaveSettings } from './shared.js';
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                            UI CONTROLS WIRING                                ║
+// ║              Thin orchestrator for panel controls                            ║
+// ║    All slider bindings are handled by control-registry.js                    ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+/**
+ * Master controls (shared across pages)
+ * - Registry handles all slider/picker bindings via bindRegisteredControls()
+ * - This file handles only: theme buttons and color template select
+ */
+function setupMasterControls() {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BIND ALL REGISTERED CONTROLS FROM REGISTRY (single source of truth)
+  // ═══════════════════════════════════════════════════════════════════════════
+  bindRegisteredControls();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // COLOR TEMPLATE SELECT — Special handling (not in registry)
+  // ═══════════════════════════════════════════════════════════════════════════
+  populateColorSelect();
+  const colorSelect = document.getElementById('colorSelect');
+  if (colorSelect) {
+    colorSelect.addEventListener('change', () => {
+      applyColorTemplate(colorSelect.value);
+      autoSaveSettings();
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // THEME BUTTONS — Manual binding (not in registry)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const themeAuto = document.getElementById('themeAuto');
+  const themeLight = document.getElementById('themeLight');
+  const themeDark = document.getElementById('themeDark');
+  
+  // Theme buttons are handled by dark-mode-v2.js, just add visual feedback here
+  [themeAuto, themeLight, themeDark].forEach(btn => {
+    if (btn) {
+      btn.addEventListener('click', () => {
+        // Remove active from all, add to clicked
+        [themeAuto, themeLight, themeDark].forEach(b => b?.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    }
+  });
+}
+
+/**
+ * Index-only controls (home page)
+ * - Adds mode switching UI and related updates
+ */
+function setupIndexControls() {
+  setupMasterControls();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MODE BUTTONS — Critical for panel mode switching
+  // ═══════════════════════════════════════════════════════════════════════════
+  const modeButtons = document.querySelectorAll('.mode-button');
+  modeButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const mode = btn.getAttribute('data-mode');
+      console.log('Mode button clicked:', mode);
+      import('./shared.js').then(function (n) { return n.aL; })
+        .then(({ setMode }) => {
+          setMode(mode);
+          updateModeButtonsUI(mode);
+        })
+        .catch(() => {});
+    });
+  });
+}
+
+/**
+ * Update mode button UI to reflect active mode
+ */
+function updateModeButtonsUI(activeMode) {
+  const buttons = document.querySelectorAll('.mode-button');
+  buttons.forEach(btn => {
+    const isActive = btn.getAttribute('data-mode') === activeMode;
+    btn.classList.toggle('active', isActive);
+  });
+  
+  // Show/hide mode-specific controls
+  document.querySelectorAll('.mode-controls').forEach(el => el.classList.remove('active'));
+  const controlId = activeMode + 'Controls';
+  const activeControls = document.getElementById(controlId);
+  if (activeControls) activeControls.classList.add('active');
+  
+  // Update announcer for accessibility
+  const announcer = document.getElementById('announcer');
+  if (announcer) {
+    const modeNames = {
+      'critters': 'Critters',
+      'pit': 'Ball Pit',
+      'flies': 'Flies to Light', 
+      'weightless': 'Zero-G',
+      'water': 'Water Swimming',
+      'vortex': 'Electrons',
+
+      'magnetic': 'Magnetic',
+      'bubbles': 'Carbonated Bubbles',
+      'kaleidoscope-3': 'Kaleidoscope',
+      'neural': 'Neural Network'
+    };
+    announcer.textContent = `Switched to ${modeNames[activeMode] || activeMode} mode`;
+  }
+
+  
+}
+
+export { setupIndexControls, setupMasterControls, updateModeButtonsUI };
+//# sourceMappingURL=controls.js.map

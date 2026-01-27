@@ -1744,45 +1744,16 @@ body.dark-mode #bravia-balls::before {
   left: -1px;
   width: calc(100% + 2px);
   height: calc(100% + 2px);
-  z-index: 10; /* Canvas (balls): below effects overlays */
+  z-index: 10; /* Canvas (balls): below video (z:20), below wall frame (z:30/40) */
   pointer-events: auto; /* Interactions enabled */
   touch-action: none;
   border-radius: 0; /* Radius controlled entirely by rubber wall system */
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   EFFECTS OVERLAYS CONTAINER
-   
-   Groups visual effects (noise, video overlay) in a single layer ABOVE wall effects.
-   Clipped to wall interior using border-radius + overflow: hidden.
-   
-   Z-INDEX STACK (inside #bravia-balls):
-   - 10: canvas (simulation/balls)
-   - 30: ::after (wall edge shading)
-   - 40: ::before (wall stroke)
-   - 50: .effects-overlays (noise + video, on top of everything)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.effects-overlays {
-  position: absolute;
-  /* Match wall inner edge exactly */
-  inset: var(--wall-thickness, 9px);
-  border-radius: var(--wall-radius);
-  /* Clip all effects to wall interior */
-  overflow: hidden;
-  pointer-events: none;
-  /* Above all wall visual effects (::before at z:40, ::after at z:30) */
-  z-index: 50;
-  /* Prevent effects from creating unwanted stacking contexts that interfere with other layers */
-  isolation: isolate;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   NOISE TEXTURE OVERLAY
-   ═══════════════════════════════════════════════════════════════════════════════ */
 .noise {
   position: absolute;
-  /* Fill the effects container (already clipped by parent) */
-  inset: 0;
+  /* Inset 4px from edges to prevent flickering through edges */
+  inset: 4px;
   pointer-events: none;
   overflow: hidden;
   /* Safari fix: isolate blend mode to prevent bleeding into other layers */
@@ -1790,6 +1761,13 @@ body.dark-mode #bravia-balls::before {
   /* Fade-in on load: starts hidden via visibility, revealed by .noise-ready class */
   visibility: hidden;
   transition: visibility 0s linear 0s, opacity 800ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* Note: clip-path removed to allow noise to fill full height.
+     If Safari browser chrome tinting issues occur, consider applying
+     clip-path only to ::before/::after pseudo-elements instead. */
+}
+
+.noise {
+  z-index: 25; /* Noise: above video (z:20), below wall frame (z:30/40) */
   opacity: 0;
 }
 
@@ -1852,51 +1830,6 @@ body.dark-mode .noise-ready .noise {
 
 body.dark-mode .noise::after {
   background-color: var(--noise-color-dark);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
-   GRUNGE VIDEO OVERLAY (within .effects-overlays)
-   
-   Atmospheric video texture for found-footage aesthetic.
-   See docs/grunge-video-overlay.md for setup instructions.
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.grunge-video-overlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none;
-  /* Start hidden, fade in when video loads */
-  opacity: 0;
-  visibility: hidden;
-  transition: 
-    opacity var(--grunge-video-fade-duration, 2000ms) var(--grunge-video-fade-easing, cubic-bezier(0.16, 1, 0.3, 1)),
-    visibility 0s linear 0s;
-  /* Light mode blend */
-  mix-blend-mode: var(--grunge-video-blend-mode-light, multiply);
-  /* GPU acceleration */
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-
-/* Video visible state (triggered by JS when video can play) */
-.grunge-video-ready .grunge-video-overlay {
-  opacity: calc(var(--grunge-video-opacity, 1) * var(--grunge-video-enabled, 1));
-  visibility: visible;
-}
-
-/* Dark mode video blend */
-body.dark-mode .grunge-video-overlay {
-  mix-blend-mode: var(--grunge-video-blend-mode-dark, overlay);
-}
-
-/* Respect reduced motion: pause video animation */
-@media (prefers-reduced-motion: reduce) {
-  .grunge-video-overlay {
-    display: none;
-  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
