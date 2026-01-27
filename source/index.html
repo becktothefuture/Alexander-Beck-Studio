@@ -286,9 +286,23 @@
 
     <!-- LAYER 2: Simulation Container - Balls render here -->
     <div id="bravia-balls" class="ball-simulation w-embed">
-      <div class="noise"></div>
       <canvas id="c" aria-label="Bouncy balls" role="img" draggable="false"></canvas>
     </div>
+  </div>
+
+  <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, video, etc.) -->
+  <!-- Positioned above wall (z:100), below modals (z:19998) -->
+  <div id="overlay-effects" class="overlay-effects" aria-hidden="true">
+    <div class="noise"></div>
+    <!-- Grunge video overlay placeholder (see docs/grunge-video-overlay.md) -->
+    <!-- <video 
+      id="grunge-video-overlay" 
+      class="grunge-video-overlay"
+      autoplay muted loop playsinline preload="auto"
+    >
+      <source src="videos/grunge-overlay.webm" type="video/webm">
+      <source src="videos/grunge-overlay.mp4" type="video/mp4">
+    </video> -->
   </div>
   
   <!-- UI LAYER: Flexbox Layout - OUTSIDE #abs-scene to avoid transform interference -->

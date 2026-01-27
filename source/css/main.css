@@ -1750,24 +1750,40 @@ body.dark-mode #bravia-balls::before {
   border-radius: 0; /* Radius controlled entirely by rubber wall system */
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   OVERLAY EFFECTS CONTAINER
+   Visual effects layer (noise, video) above everything except modals.
+   Position: above wall (z:100), below modals (z:19998).
+   MUST match #bravia-balls positioning exactly.
+   ───────────────────────────────────────────────────────────────────────────── */
+.overlay-effects {
+  position: fixed;
+  /* Match #bravia-balls positioning exactly (same inset from viewport edges) */
+  --safari-tint-inset: 20px;
+  top: var(--safari-tint-inset);
+  left: var(--safari-tint-inset);
+  right: var(--safari-tint-inset);
+  bottom: var(--safari-tint-inset);
+  /* Above wall frame (z:100), below modals (z:19998) */
+  z-index: 150;
+  pointer-events: none;
+  /* No overflow hidden - let noise extend for animation, it clips via border-radius */
+}
+
 .noise {
   position: absolute;
-  /* Inset 4px from edges to prevent flickering through edges */
-  inset: 4px;
+  /* Inset by wall thickness to position noise INSIDE the wall frame */
+  /* This matches #bravia-balls::after inset positioning */
+  inset: var(--wall-thickness, 9px);
   pointer-events: none;
   overflow: hidden;
   /* Safari fix: isolate blend mode to prevent bleeding into other layers */
   isolation: isolate;
+  /* Border radius to match simulation interior (same as wall inner edge) */
+  border-radius: var(--wall-radius);
   /* Fade-in on load: starts hidden via visibility, revealed by .noise-ready class */
   visibility: hidden;
   transition: visibility 0s linear 0s, opacity 800ms cubic-bezier(0.16, 1, 0.3, 1);
-  /* Note: clip-path removed to allow noise to fill full height.
-     If Safari browser chrome tinting issues occur, consider applying
-     clip-path only to ::before/::after pseudo-elements instead. */
-}
-
-.noise {
-  z-index: 25; /* Noise: above video (z:20), below wall frame (z:30/40) */
   opacity: 0;
 }
 
@@ -1919,6 +1935,50 @@ html.is-safari .noise::before {
   75% { opacity: calc(1 - (var(--abs-noise-flicker) * 0.45)); }
   87.5% { opacity: calc(1 - (var(--abs-noise-flicker) * 0.1)); }
   100% { opacity: calc(1 - (var(--abs-noise-flicker) * 0.35)); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   GRUNGE VIDEO OVERLAY (see docs/grunge-video-overlay.md)
+   ───────────────────────────────────────────────────────────────────────────── */
+.grunge-video-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  /* Start hidden; JS reveals when video is ready */
+  opacity: 0;
+  visibility: hidden;
+  mix-blend-mode: var(--grunge-video-blend-mode-light);
+  transition: 
+    opacity var(--grunge-video-fade-duration) var(--grunge-video-fade-easing),
+    visibility 0s linear var(--grunge-video-fade-duration);
+  /* GPU acceleration */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: opacity;
+}
+
+/* Video is ready and enabled */
+.grunge-video-ready .grunge-video-overlay {
+  opacity: calc(var(--grunge-video-opacity) * var(--grunge-video-enabled));
+  visibility: visible;
+  transition: 
+    opacity var(--grunge-video-fade-duration) var(--grunge-video-fade-easing),
+    visibility 0s linear 0s;
+}
+
+/* Dark mode blend mode */
+body.dark-mode .grunge-video-overlay {
+  mix-blend-mode: var(--grunge-video-blend-mode-dark);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .grunge-video-overlay {
+    display: none;
+  }
 }
 
 /* Dark-mode text colors are token-driven via `--text-*` variables in `css/tokens.css`. */

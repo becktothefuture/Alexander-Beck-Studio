@@ -242,17 +242,13 @@ The blend mode determines how the video mixes with the content below:
 
 ### Architecture
 
-**Effects Overlays Container** (`.effects-overlays`):
-- **Location**: Inside `#bravia-balls`, groups noise + video effects
-- **Layer**: z-index 50 (above wall effects at z:30/40, above canvas at z:10)
-- **Clipping**: Matches wall interior via `inset: var(--wall-thickness)` and `border-radius: var(--wall-radius)`
-- **Isolation**: `isolation: isolate` prevents blend mode bleeding
-
-**Video Overlay** (`.grunge-video-overlay`):
-- **Positioning**: Absolute, fills the effects container
+- **Container**: `.overlay-effects` - shared container for all visual overlay effects (noise, video)
+- **Layer**: z-index 150 (above wall at z:100, below modals at z:19998)
+- **Positioning**: Fixed, matches simulation bounds via CSS custom properties
 - **Performance**: Hardware-accelerated via `transform: translateZ(0)`
 - **Accessibility**: `aria-hidden="true"`, respects `prefers-reduced-motion`
 - **Interaction**: `pointer-events: none` (doesn't block clicks)
+- **Border radius**: Matches simulation interior via `var(--wall-radius)`
 
 ### Browser Support
 
@@ -266,16 +262,16 @@ The blend mode determines how the video mixes with the content below:
 
 ```
 source/
-├── index.html              # Effects overlays container + video element
-├── portfolio.html          # Effects overlays container + video element
-├── cv.html                 # Effects overlays container + video element
+├── index.html              # Overlay effects container with video placeholder
+├── portfolio.html          # Overlay effects container with video placeholder
+├── cv.html                 # Overlay effects container with video placeholder
 ├── main.js                 # Video initialization (index)
-├── video/                  # Your video files (create this)
+├── videos/                 # Your video files (create this)
 │   ├── grunge-overlay.mp4
 │   └── grunge-overlay.webm
 ├── css/
-│   ├── tokens.css          # Configuration variables
-│   └── main.css            # Effects overlays + video styles
+│   ├── tokens.css          # Configuration variables (--grunge-video-*)
+│   └── main.css            # Overlay effects + video styles
 └── modules/
     ├── portfolio/
     │   └── app.js          # Video initialization (portfolio)
@@ -284,16 +280,15 @@ source/
 
 ### HTML Structure
 
-The effects overlays are inside `#bravia-balls` as a unified container:
+All pages use a shared `#overlay-effects` container for visual effects:
 
 ```html
-<div id="bravia-balls" class="ball-simulation w-embed">
-  <canvas id="c" ...></canvas>
-  <!-- EFFECTS OVERLAYS: Noise + Video grouped above wall -->
-  <div class="effects-overlays" aria-hidden="true">
-    <div class="noise"></div>
-    <video class="grunge-video-overlay" ...></video>
-  </div>
+<!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, video, etc.) -->
+<!-- Positioned above wall (z:100), below modals (z:19998) -->
+<div id="overlay-effects" class="overlay-effects" aria-hidden="true">
+  <div class="noise"></div>
+  <!-- Grunge video overlay (uncomment when adding video) -->
+  <!-- <video id="grunge-video-overlay" class="grunge-video-overlay" ...></video> -->
 </div>
 ```
 

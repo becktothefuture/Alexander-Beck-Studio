@@ -182,8 +182,8 @@
   <meta content="Alexander Beck - Product Designer, Creative Technologist, Experience Director" name="description">
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
-  <link rel="stylesheet" href="css/styles.css?v=1769547242392">
-<link rel="modulepreload" href="js/shared.js?v=1769547242392">
+  <link rel="stylesheet" href="css/styles.css?v=1769548178499">
+<link rel="modulepreload" href="js/shared.js?v=1769548178499">
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
@@ -651,7 +651,6 @@
 
     <!-- LAYER 2: CV Container - Content renders here (z:5) -->
     <div id="bravia-balls" class="cv-simulation w-embed">
-      <div class="noise"></div>
       <!-- CV Scrolling Content -->
       <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
       <div class="cv-scroll-container" style="opacity:0; visibility:hidden">
@@ -771,7 +770,14 @@
       <!-- Wall-only canvas: renders the same rubber wall ring as index (no simulation). -->
       <canvas class="cv-wall-canvas" aria-hidden="true"></canvas>
     </div>
-  
+  </div>
+
+  <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, video, etc.) -->
+  <!-- Positioned above wall (z:100), below modals (z:19998) -->
+  <div id="overlay-effects" class="overlay-effects" aria-hidden="true">
+    <div class="noise"></div>
+  </div>
+
   <!-- UI LAYER: Flexbox Layout Implementation -->
     <div class="fade-content page-content">
       <div id="app-frame" class="ui-layer-wrapper">
@@ -831,7 +837,6 @@
       </div>
       </div>
     </div>
-  </div>
 
   <!-- Modal System: Two-layer architecture for clean compositing -->
   <!-- Layer 1: Blur Only - No children, isolated backdrop-filter (z:19998) -->
@@ -862,7 +867,7 @@
   <!-- Page Flash Overlay -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
-  <script type="module" src="js/cv.js?v=1769547242392"></script>
+  <script type="module" src="js/cv.js?v=1769548178499"></script>
   <script>
     // In production (served from dist/), load from bundled JS if available
     if (!document.querySelector('script[src*="modules/cv-init.js"]')) {

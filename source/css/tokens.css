@@ -241,6 +241,15 @@
   --abs-noise-saturation: 1;
   --abs-noise-drift-x: 0px;
   --abs-noise-drift-y: 0px;
+
+  /* Grunge Video Overlay (see docs/grunge-video-overlay.md) */
+  --grunge-video-enabled: 0;                          /* 0 = off, 1 = on */
+  --grunge-video-opacity: 1;                          /* Final opacity (0-1) */
+  --grunge-video-blend-mode-light: multiply;          /* Light mode blend */
+  --grunge-video-blend-mode-dark: overlay;            /* Dark mode blend */
+  --grunge-video-fade-duration: 2000ms;               /* Fade-in duration */
+  --grunge-video-fade-easing: cubic-bezier(0.16, 1, 0.3, 1); /* Easing curve */
+
   --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
 
   /* Interaction + Motion Tokens */

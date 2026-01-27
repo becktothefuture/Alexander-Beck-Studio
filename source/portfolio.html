@@ -230,7 +230,6 @@
 
     <!-- LAYER 2: Portfolio Container - Carousel renders here (z:5) -->
     <div id="bravia-balls" class="portfolio-simulation w-embed">
-      <div class="noise"></div>
       <!-- Wall-only canvas: renders the same rubber wall ring as index (no balls). -->
       <canvas class="portfolio-wall-canvas" aria-hidden="true"></canvas>
       <!-- Portfolio Stage -->
@@ -253,7 +252,14 @@
         </div>
       </div>
     </div>
-  
+  </div>
+
+  <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, video, etc.) -->
+  <!-- Positioned above wall (z:100), below modals (z:19998) -->
+  <div id="overlay-effects" class="overlay-effects" aria-hidden="true">
+    <div class="noise"></div>
+  </div>
+
   <!-- UI LAYER: Flexbox Layout Implementation -->
   <div class="fade-content page-content">
     <div id="app-frame" class="ui-layer-wrapper">
@@ -311,7 +317,6 @@
         <span id="edge-caption-tagline" class="edge-caption__line edge-caption__line--tagline">BUILT WITH LOVE TO BE SATISFYING.</span>
       </div>
     </div>
-  </div>
   </div>
 
   <!-- Modal System: Two-layer architecture for clean compositing -->
