@@ -23,7 +23,8 @@ export function getEffectiveDPR() {
 const state = {
   config: {},
   // Default boot mode (overridden by main.js on init, but kept consistent here too).
-  currentMode: MODES.CRITTERS,
+  // Always use a Featured tier mode to ensure best first impression.
+  currentMode: MODES.PIT,
   // Mode-switch warmup: engine consumes this before first render after init.
   // Units: render frames at 60fps (each warmup frame advances ~1/60s via physics steps).
   warmupFramesRemaining: 0,
@@ -114,6 +115,8 @@ const state = {
   cube3dTumbleDamping: 0.95,
   cube3dFocalLength: 500,
   cube3dDotSizeMul: 1.5,
+  cube3dFogStart: 0.6,
+  cube3dFogMin: 0.15,
   cube3dWarmupFrames: 10,
   // 3D Starfield (Mode 23)
   starfieldCount: 200,
@@ -135,7 +138,7 @@ const state = {
   ballSizeMobile: 8.64,        // Ball radius in px for mobile
   isMobile: false,            // Mobile *device* detected? (UA/touch heuristic)
   isMobileViewport: false,    // Mobile viewport detected? (width breakpoint)
-  // Wall rumble: CSS-based container shake on impacts (replaces deformation)
+
   // Mobile performance: global multiplier applied to object counts (0..1).
   // 1.0 = no reduction, 0.0 = (effectively) no objects.
   mobileObjectReductionFactor: 0.5,
@@ -410,7 +413,7 @@ const state = {
   dvdLogoWarmupFrames: 10,
 
   // Elastic Center mode params
-  elasticCenterBallCount: 93,
+  elasticCenterRingCount: 10,
   elasticCenterMassMultiplier: 2.0,
   elasticCenterSpacingMultiplier: 2.8, // multiplier for spacing between balls (higher = larger gaps)
   elasticCenterElasticStrength: 2000, // px/s² - force pulling dots back to center (lower = circle moves more)
@@ -637,54 +640,30 @@ const state = {
   wallInset: 3,             // Physics-only inset from edges (px at DPR 1)
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // WALL RUMBLE - CSS-based container shake on high-velocity impacts
-  // Replaces the old deformation system with a simpler, more performant approach
-  // ═══════════════════════════════════════════════════════════════════════════════
-  wallRumbleEnabled: true,          // Enable viewport rumble on wall impacts (pit, flies, weightless, fountain only)
-  wallRumbleThreshold: 350,         // Min impact velocity (px/s) - higher = less sensitive
-  wallRumbleMax: 1.5,               // Max rumble displacement (px) - thick rubber feel
-  wallRumbleScale: 0.012,           // Velocity → rumble intensity scale factor
-  wallRumbleDecay: 0.75,            // Per-frame decay (lower = faster, more natural rubber absorption)
-  wallRumbleImpactScale: 700,       // Intensity → velocity multiplier for impact registration
-  wallRumblePreset: 'rubber',       // Active preset: subtle, rubber, soft, responsive
-  
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // WALL SHADOW - Full control depth effect system
-  // Defaults match 'naturalDaylight' preset - realistic window light
+  // WALL SHADOW - Recessed panel depth effect
+  // Light from top-left: wall casts shadows onto recessed content
   // ═══════════════════════════════════════════════════════════════════════════════
   
-  wallShadowPreset: 'naturalDaylight', // Active preset name
+  // Dark edges (top + left) - wall shadow falling onto content
+  wallShadowEdgeTopOpacityLight: 0.08,    // Top edge darkness in light mode
+  wallShadowEdgeTopOpacityDark: 0.25,     // Top edge darkness in dark mode
+  wallShadowEdgeLeftOpacityLight: 0.06,   // Left edge darkness in light mode
+  wallShadowEdgeLeftOpacityDark: 0.18,    // Left edge darkness in dark mode
   
-  // Core
-  wallShadowLayers: 10,             // Total shadow layers (more = smoother, no banding)
-  wallShadowAngle: 135,             // Light source angle (degrees, 135 = top-left)
-  wallShadowDistance: 12,           // Shadow offset from light source (px)
+  // Light edges (bottom + right) - catching light
+  wallShadowEdgeBottomOpacityLight: 0.06, // Bottom highlight in light mode
+  wallShadowEdgeBottomOpacityDark: 0.03,  // Bottom highlight in dark mode
+  wallShadowEdgeRightOpacityLight: 0.04,  // Right highlight in light mode
+  wallShadowEdgeRightOpacityDark: 0.02,   // Right highlight in dark mode
   
-  // Falloff curve (controls opacity decay)
-  wallShadowFalloffCurve: 2.0,      // Opacity falloff power (1=linear, 2=quadratic, 3=cubic)
-  wallShadowFalloffFactor: 0.70,    // How quickly opacity fades (0=none, 1=full decay)
+  // Ambient inset vignette (soft depth from wall)
+  wallShadowAmbientBlur: 20,              // Vignette blur radius (px)
+  wallShadowAmbientOpacityLight: 0.04,    // Vignette depth in light mode
+  wallShadowAmbientOpacityDark: 0.12,     // Vignette depth in dark mode
   
-  // Outset (external shadow projected onto wall)
-  wallShadowOutsetIntensity: 1.0,   // Overall outset shadow strength (0-3)
-  wallShadowOutsetOpacity: 0.18,    // Starting opacity for closest layer (0-1)
-  wallShadowOutsetBlurMin: 4,       // Blur for closest layer (px)
-  wallShadowOutsetBlurMax: 100,     // Blur for furthest layer (px)
-  wallShadowOutsetSpreadMin: 0,     // Spread for closest layer (px, negative = shrink)
-  wallShadowOutsetSpreadMax: 25,    // Spread for furthest layer (px)
-  
-  // Inset (interior vignette)
-  wallShadowInsetIntensity: 0.8,    // Overall inset vignette strength (0-3)
-  wallShadowInsetOpacity: 0.12,     // Starting opacity for inner vignette (0-1)
-  wallShadowInsetLayerRatio: 0.6,   // Inset layers as ratio of outset layers
-  wallShadowInsetBlurMin: 6,        // Blur for inner edge (px)
-  wallShadowInsetBlurMax: 80,       // Blur for outer vignette edge (px)
-  wallShadowInsetSpreadMin: 0,      // Spread for inner edge (px)
-  wallShadowInsetSpreadMax: 18,     // Spread for outer vignette edge (px)
-  
-  // Colors (theme-aware)
-  wallShadowColorLight: '#ffffff',  // Light mode: lighter than bg (glow/highlight effect)
-  wallShadowColorDark: '#000000',   // Dark mode: darker than bg (traditional shadow)
-  wallShadowLightModeBoost: 3.0,    // Opacity multiplier for light mode (compensates for low contrast)
+  // Stroke (solid edge definition)
+  wallShadowStrokeOpacityLight: 0.06,     // Solid edge stroke in light mode
+  wallShadowStrokeOpacityDark: 0.04,      // Solid edge stroke in dark mode
   
   // Gate overlay (blur backdrop for dialogs)
   modalOverlayEnabled: true,         // Enable/disable overlay
@@ -1292,6 +1271,8 @@ export function initState(config) {
   if (config.cube3dTumbleDamping !== undefined) state.cube3dTumbleDamping = clampNumber(config.cube3dTumbleDamping, 0.8, 0.99, state.cube3dTumbleDamping);
   if (config.cube3dFocalLength !== undefined) state.cube3dFocalLength = clampInt(config.cube3dFocalLength, 80, 2000, state.cube3dFocalLength);
   if (config.cube3dDotSizeMul !== undefined) state.cube3dDotSizeMul = clampNumber(config.cube3dDotSizeMul, 0.2, 4.0, state.cube3dDotSizeMul);
+  if (config.cube3dFogStart !== undefined) state.cube3dFogStart = clampNumber(config.cube3dFogStart, 0, 1, state.cube3dFogStart);
+  if (config.cube3dFogMin !== undefined) state.cube3dFogMin = clampNumber(config.cube3dFogMin, 0, 1, state.cube3dFogMin);
   if (config.cube3dWarmupFrames !== undefined) state.cube3dWarmupFrames = clampInt(config.cube3dWarmupFrames, 0, 240, state.cube3dWarmupFrames);
 
   // 3D Starfield (Mode 23)
@@ -1319,7 +1300,7 @@ export function initState(config) {
   if (config.dvdLogoWarmupFrames !== undefined) state.dvdLogoWarmupFrames = clampInt(config.dvdLogoWarmupFrames, 0, 240, state.dvdLogoWarmupFrames);
 
   // Elastic Center mode
-  if (config.elasticCenterBallCount !== undefined) state.elasticCenterBallCount = clampInt(config.elasticCenterBallCount, 20, 120, state.elasticCenterBallCount);
+  if (config.elasticCenterRingCount !== undefined) state.elasticCenterRingCount = clampInt(config.elasticCenterRingCount, 2, 20, state.elasticCenterRingCount);
   if (config.elasticCenterMassMultiplier !== undefined) state.elasticCenterMassMultiplier = clampNumber(config.elasticCenterMassMultiplier, 0.5, 5.0, state.elasticCenterMassMultiplier);
   if (config.elasticCenterSpacingMultiplier !== undefined) state.elasticCenterSpacingMultiplier = clampNumber(config.elasticCenterSpacingMultiplier, 2.0, 4.0, state.elasticCenterSpacingMultiplier);
   if (config.elasticCenterElasticStrength !== undefined) state.elasticCenterElasticStrength = clampInt(config.elasticCenterElasticStrength, 0, 15000, state.elasticCenterElasticStrength);
@@ -1605,14 +1586,6 @@ export function initState(config) {
     const values = preset?.values ? preset.values : preset;
     if (values) Object.assign(state, values);
   }
-
-  // Wall rumble config
-  if (config.wallRumbleEnabled !== undefined) state.wallRumbleEnabled = config.wallRumbleEnabled;
-  if (config.wallRumbleThreshold !== undefined) state.wallRumbleThreshold = config.wallRumbleThreshold;
-  if (config.wallRumbleMax !== undefined) state.wallRumbleMax = config.wallRumbleMax;
-  if (config.wallRumbleScale !== undefined) state.wallRumbleScale = config.wallRumbleScale;
-  if (config.wallRumbleDecay !== undefined) state.wallRumbleDecay = config.wallRumbleDecay;
-  if (config.wallRumbleImpactScale !== undefined) state.wallRumbleImpactScale = config.wallRumbleImpactScale;
 
   // Wall colors: use frameColorLight/frameColorDark (all wall colors point to frameColor via CSS)
   // Legacy config support: if wallColorLight/wallColorDark are set, update frame colors

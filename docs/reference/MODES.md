@@ -2,9 +2,21 @@
 
 Current mode system supports **multiple modes** (switchable via the Settings panel; narrative cycling is via Arrow keys).
 
+## Two-Tier System
+
+Simulations are organized into two tiers to ensure visitors always see the best work first:
+
+### **Featured Tier** (8 modes)
+The most visually impressive simulations that always cycle first. New visitors are guaranteed to see one of these on their first visit.
+
+### **Extended Tier** (11 modes)
+Additional explorations and experiments that appear only after all Featured modes have been shown.
+
+**Loop order:** Featured → Extended → Featured → ...
+
 ---
 
-## Mode List (Current)
+## Mode List (All 19 Modes)
 
 1. **Ball Pit** (`pit`)
 2. **Flies to Light** (`flies`)
@@ -23,6 +35,8 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 21. **Parallax (Linear)** (`parallax-linear`)
 22. **Parallax (Float)** (`parallax-float`)
 23. **3D Starfield** (`starfield-3d`)
+24. **Shooting Stars** (`shooting-stars`)
+25. **Particle Fountain** (`particle-fountain`)
 
 ---
 
@@ -40,24 +54,30 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 
 ## Narrative Mode Sequence (Arrow Keys)
 
-The arrow keys cycle through a fixed story order (looping). Think of it as chapters — each mode is a new lens on the same set of elements:
+The arrow keys cycle through a tiered story order. Think of it as chapters — each mode is a new lens on the same set of elements.
+
+### Featured Tier (Shown First)
 
 1. **Ball Pit** (`pit`) — **SOURCE MATERIAL**
 2. **Flies to Light** (`flies`) — **IDEA SPARK**
 3. **3D Cube** (`3d-cube`) — **3D FRAME**
-4. **Carbonated Bubbles** (`bubbles`) — **NOISE SIGNAL**
-5. **Magnetic** (`magnetic`) — **DESIGN FORCES**
-6. **Water Swimming** (`water`) — **USER FLOW**
-7. **Ping Pong** (`ping-pong`) — **FEEDBACK CYCLE**
-8. **Neural Network** (`neural`) — **CONNECTION MAP**
-9. **3D Sphere** (`3d-sphere`) — **3D SHELL**
-11. **Zero Gravity** (`weightless`) — **OPEN SPACE**
-12. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
-13. **Critters** (`critters`) — **BEHAVIOR MODEL**
-14. **Elastic Center** (`elastic-center`) — **ELASTIC CENTER**
-15. **Vortex Sheets** (`vortex`) — **EMERGENT ORDER**
-16. **Kaleidoscope** (`kaleidoscope-3`) — **VOCAB BLOOM**
-17. **3D Starfield** (`starfield-3d`) — **DEPTH FIELD**
+4. **Water Swimming** (`water`) — **USER FLOW**
+5. **3D Sphere** (`3d-sphere`) — **3D SHELL**
+6. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
+7. **Elastic Center** (`elastic-center`) — **ELASTIC CENTER**
+8. **Kaleidoscope** (`kaleidoscope-3`) — **VOCAB BLOOM**
+
+### Extended Tier (Shown After Featured)
+
+9. **Carbonated Bubbles** (`bubbles`) — **NOISE SIGNAL**
+10. **Magnetic** (`magnetic`) — **DESIGN FORCES**
+11. **DVD Logo** (`dvd-logo`) — **DVD SCREENSAVER**
+12. **Neural Network** (`neural`) — **CONNECTION MAP**
+13. **Zero Gravity** (`weightless`) — **OPEN SPACE**
+14. **Critters** (`critters`) — **BEHAVIOR MODEL**
+15. **Vortex Sheets** (`vortex`) — **ATOMIC STRUCTURE**
+16. **3D Starfield** (`starfield-3d`) — **DEPTH FIELD**
+17. **Shooting Stars** (`shooting-stars`) — **COSMIC WISH**
 18. **Parallax (Float)** (`parallax-float`) — **ORGANIC DRIFT**
 19. **Particle Fountain** (`particle-fountain`) — **PARTICLE FLOW**
 
@@ -260,6 +280,31 @@ The arrow keys cycle through a fixed story order (looping). Think of it as chapt
   - `starfieldDotSizeMul` (capped at normal ball size)
   - `starfieldIdleJitter`
   - `starfield3dWarmupFrames`
+
+---
+
+## Mode 24: Shooting Stars 🌠
+
+**Purpose:** Magical arcing trajectories across the viewport. Pure visual choreography with no physics collisions - just graceful bezier curves and ethereal motion.
+
+- **Gravity:** Disabled
+- **Collisions:** Disabled; no physics interactions
+- **Interaction:** Gentle mouse attraction (configurable influence)
+- **Motion:** Smooth quadratic bezier curves from edge to edge with natural arc
+- **Lifecycle:** Fade in on spawn, fade out before exit, continuous recycling
+- **Rendering:** Circle-only minimalist aesthetic (no trails by default)
+- **Respects:** `prefers-reduced-motion` (disables mouse influence)
+- **Settings (panel):**
+  - `shootingStarsCount` (5-50) — number of active shooting stars
+  - `shootingStarsMinSpeed` (50-500) — minimum crossing speed
+  - `shootingStarsMaxSpeed` (500-2000) — maximum crossing speed
+  - `shootingStarsMinSize` (0.2-1.0) — minimum dot size multiplier
+  - `shootingStarsMaxSize` (1.0-4.0) — maximum dot size multiplier
+  - `shootingStarsArcHeight` (0.0-1.0) — curve intensity (0=straight, 1=dramatic arc)
+  - `shootingStarsDuration` (0.5-5.0) — base crossing time in seconds
+  - `shootingStarsSpawnRate` (0.1-3.0) — speed multiplier for spawn rate
+  - `shootingStarsMouseInfluence` (0-200) — cursor attraction strength
+  - `shootingStarsWarmupFrames` (0-30) — warmup frames
 
 ---
 

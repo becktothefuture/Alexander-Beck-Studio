@@ -198,6 +198,14 @@ export function apply3DCubeForces(ball, dt) {
   const targetY = state.cy + rotated.y * scale;
   const rawR = ball._cloudBaseR * dotSizeMul * scale;
 
+  // Depth-based fog (fade points at far end of cube)
+  // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 1 is farthest
+  const depthFactor = (rotated.z + state.sizePx * 0.5) / state.sizePx;
+  const fadeStart = Math.max(0, Math.min(1, g.cube3dFogStart ?? 0.6));
+  const fadeMin = Math.max(0, Math.min(1, g.cube3dFogMin ?? 0.15));
+  const fadeRamp = depthFactor > fadeStart ? (depthFactor - fadeStart) / (1 - fadeStart) : 0;
+  ball.alpha = 1.0 - fadeRamp * (1.0 - fadeMin);
+
   ball.r = clampRadiusToGlobalBounds(g, rawR);
   ball.x = targetX;
   ball.y = targetY;

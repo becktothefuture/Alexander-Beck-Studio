@@ -193,21 +193,25 @@ function handleOverlayClick(e) {
         return;
     }
 
+    // Ensure target is an Element (could be Text node, Document, etc.)
+    const target = e.target?.closest ? e.target : e.target?.parentElement;
+    if (!target?.closest) return;
+
     // Ignore clicks on interactive elements within modals (buttons, inputs, etc.)
-    if (e.target.closest('button')) return;
-    if (e.target.closest('input')) return;
-    if (e.target.closest('a')) return;
-    if (e.target.closest('select')) return;
-    if (e.target.closest('textarea')) return;
+    if (target.closest('button')) return;
+    if (target.closest('input')) return;
+    if (target.closest('a')) return;
+    if (target.closest('select')) return;
+    if (target.closest('textarea')) return;
     
     // Accept clicks on content layer, modal host, or modal containers (but not their interactive children)
-    const isGateContainer = e.target.id === 'cv-modal' || 
-                           e.target.id === 'portfolio-modal' || 
-                           e.target.id === 'contact-modal' ||
-                           e.target.classList.contains('modal-label') ||
-                           e.target.classList.contains('modal-description');
+    const isGateContainer = target.id === 'cv-modal' || 
+                           target.id === 'portfolio-modal' || 
+                           target.id === 'contact-modal' ||
+                           target.classList.contains('modal-label') ||
+                           target.classList.contains('modal-description');
     
-    const isContentLayerSurface = e.target === contentLayerElement || e.target?.id === 'modal-modal-host';
+    const isContentLayerSurface = target === contentLayerElement || target?.id === 'modal-modal-host';
     if (isContentLayerSurface || isGateContainer) {
         // Dispatch custom event with instant flag (false = smooth close)
         document.dispatchEvent(new CustomEvent('modal-overlay-dismiss', { detail: { instant: false } }));

@@ -182,8 +182,8 @@
   <meta content="Alexander Beck - Product Designer, Creative Technologist, Experience Director" name="description">
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
-  <link rel="stylesheet" href="css/styles.css?v=1769445083239">
-<link rel="modulepreload" href="js/shared.js?v=1769445083239">
+  <link rel="stylesheet" href="css/styles.css?v=1769540542309">
+<link rel="modulepreload" href="js/shared.js?v=1769540542309">
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
@@ -207,8 +207,8 @@
   "autoDarkNightStartHour": 18,
   "autoDarkNightEndHour": 6,
   "ballMassKg": 301,
-  "REST": 0.12,
-  "FRICTION": 0.022,
+  "REST": 0.24,
+  "FRICTION": 0.011,
   "physicsCollisionIterations": 5,
   "physicsSkipSleepingCollisions": true,
   "physicsSpatialGridOptimization": true,
@@ -354,33 +354,19 @@
   "wallInset": 3,
   "mobileWallThicknessXFactor": 1.45,
   "mobileEdgeLabelsVisible": true,
-  "wallRumbleEnabled": true,
-  "wallRumblePreset": "rubber",
-  "wallRumbleThreshold": 350,
-  "wallRumbleMax": 1.5,
-  "wallRumbleDecay": 0.75,
-  "wallShadowPreset": "naturalDaylight",
-  "wallShadowLayers": 6,
-  "wallShadowAngle": 160,
-  "wallShadowDistance": 1,
-  "wallShadowFalloffCurve": 2,
-  "wallShadowFalloffFactor": 0.65,
-  "wallShadowOutsetIntensity": 0.8,
-  "wallShadowOutsetOpacity": 0.38,
-  "wallShadowOutsetBlurMin": 4,
-  "wallShadowOutsetBlurMax": 10,
-  "wallShadowOutsetSpreadMin": 4,
-  "wallShadowOutsetSpreadMax": 15,
-  "wallShadowInsetIntensity": 0.8,
-  "wallShadowInsetOpacity": 0.15,
-  "wallShadowInsetLayerRatio": 0.6,
-  "wallShadowInsetBlurMin": 8,
-  "wallShadowInsetBlurMax": 100,
-  "wallShadowInsetSpreadMin": 0,
-  "wallShadowInsetSpreadMax": 20,
-  "wallShadowColorLight": "#545454",
-  "wallShadowColorDark": "#070708",
-  "wallShadowLightModeBoost": 3.75,
+  "wallShadowEdgeTopOpacityLight": 0.18,
+  "wallShadowEdgeTopOpacityDark": 0.42,
+  "wallShadowEdgeLeftOpacityLight": 0.14,
+  "wallShadowEdgeLeftOpacityDark": 0.32,
+  "wallShadowEdgeBottomOpacityLight": 0.12,
+  "wallShadowEdgeBottomOpacityDark": 0.06,
+  "wallShadowEdgeRightOpacityLight": 0.09,
+  "wallShadowEdgeRightOpacityDark": 0.04,
+  "wallShadowAmbientBlur": 28,
+  "wallShadowAmbientOpacityLight": 0.08,
+  "wallShadowAmbientOpacityDark": 0.2,
+  "wallShadowStrokeOpacityLight": 0.1,
+  "wallShadowStrokeOpacityDark": 0.06,
   "noiseEnabled": true,
   "noiseSeed": 194267,
   "noiseTextureSize": 224,
@@ -404,38 +390,38 @@
   "noiseBrightness": 1,
   "noiseSaturation": 1,
   "noiseHue": 0,
-  "critterCount": 170,
-  "critterSpeed": 320,
-  "critterMaxSpeed": 780,
-  "critterStepHz": 3.8,
-  "critterStepSharpness": 1.5,
+  "critterCount": 135,
+  "critterSpeed": 70,
+  "critterMaxSpeed": 1775,
+  "critterStepHz": 9.8,
+  "critterStepSharpness": 1.1,
   "critterTurnNoise": 1.4,
-  "critterTurnDamp": 15,
-  "critterTurnSeek": 7.5,
+  "critterTurnDamp": 12,
+  "critterTurnSeek": 24,
   "critterAvoidRadius": 60,
   "critterAvoidForce": 4200,
   "critterEdgeAvoid": 1.2,
   "critterMousePull": 1.3,
   "critterMouseRadiusVw": 11,
-  "critterRestitution": 0.12,
-  "critterFriction": 0.022,
-  "critterHiveStirInterval": 8,
-  "critterHiveStirStrength": 1.6,
-  "critterHiveWaveSpeed": 0.33,
-  "critterNervousnessMin": 0.55,
-  "critterNervousnessMax": 1.15,
-  "critterCuriosityBias": 0.45,
-  "hiveJourneyPointCount": 5,
-  "hiveJourneyPointMargin": 0.06,
-  "hiveGoalAttractionStrength": 0.9,
-  "hiveGoalSwitchMinS": 3.5,
-  "hiveGoalSwitchMaxS": 12,
-  "hiveGoalReachedRadius": 25,
-  "hivePathAdherence": 0.8,
-  "hiveWaypointSizeMul": 1.3,
+  "critterRestitution": 0.24,
+  "critterFriction": 0.011,
+  "critterHiveStirInterval": 2,
+  "critterHiveStirStrength": 5.1,
+  "critterHiveWaveSpeed": 0.75,
+  "critterNervousnessMin": 0.2,
+  "critterNervousnessMax": 0.65,
+  "critterCuriosityBias": 0.5,
+  "hiveJourneyPointCount": 7,
+  "hiveJourneyPointMargin": 0.04,
+  "hiveGoalAttractionStrength": 0.8,
+  "hiveGoalSwitchMinS": 6.5,
+  "hiveGoalSwitchMaxS": 16.5,
+  "hiveGoalReachedRadius": 15,
+  "hivePathAdherence": 0.2,
+  "hiveWaypointSizeMul": 1.2,
   "hiveWaypointOpacity": 1,
-  "hiveCritterSaturation": 0.7,
-  "crittersWarmupFrames": 138,
+  "hiveCritterSaturation": 0.2,
+  "crittersWarmupFrames": 71,
   "gravityMultiplierPit": 1.55,
   "repelPower": 274000,
   "sleepVelocityThreshold": 12,
@@ -510,8 +496,8 @@
   "parallaxLinearWarmupFrames": 59,
   "parallaxFloatWarmupFrames": 10,
   "starfieldCount": 150,
-  "starfieldSpanX": 2.45,
-  "starfieldSpanY": 2.05,
+  "starfieldSpanX": 3.5,
+  "starfieldSpanY": 3,
   "starfieldZNear": 70,
   "starfieldZFar": 4000,
   "starfieldFocalLength": 310,
@@ -521,7 +507,7 @@
   "starfieldIdleJitter": 20,
   "starfieldFadeDuration": 0.5,
   "starfield3dWarmupFrames": 10,
-  "elasticCenterBallCount": 93,
+  "elasticCenterRingCount": 10,
   "elasticCenterMassMultiplier": 3.9,
   "elasticCenterElasticStrength": 500,
   "elasticCenterMouseRepelStrength": 20000,
@@ -534,16 +520,26 @@
   "dvdLogoBallSpacing": 1.3,
   "dvdLogoLetterSpacing": 1.1,
   "dvdLogoWarmupFrames": 10,
-  "particleFountainEmissionRate": 31,
-  "particleFountainInitialVelocity": 4400,
+  "particleFountainEmissionRate": 53,
+  "particleFountainInitialVelocity": 6700,
   "particleFountainSpreadAngle": 20,
-  "particleFountainWaterDrag": 0.06,
+  "particleFountainWaterDrag": 0.05,
   "particleFountainGravityMultiplier": 1,
   "particleFountainUpwardForce": 0,
-  "particleFountainMaxParticles": 260,
-  "particleFountainLifetime": 11,
+  "particleFountainMaxParticles": 210,
+  "particleFountainLifetime": 17,
   "particleFountainMouseRepelStrength": 85000,
   "particleFountainMouseRepelRadiusVw": 6.5,
+  "shootingStarsCount": 20,
+  "shootingStarsMinSpeed": 200,
+  "shootingStarsMaxSpeed": 800,
+  "shootingStarsMinSize": 0.4,
+  "shootingStarsMaxSize": 2.0,
+  "shootingStarsArcHeight": 0.3,
+  "shootingStarsDuration": 2.0,
+  "shootingStarsSpawnRate": 1.0,
+  "shootingStarsMouseInfluence": 50,
+  "shootingStarsWarmupFrames": 10,
   "sphere3dRadiusVw": 35,
   "sphere3dDensity": 180,
   "sphere3dFocalLength": 970,
@@ -561,6 +557,8 @@
   "cube3dTumbleDamping": 0.99,
   "cube3dFocalLength": 1160,
   "cube3dDotSizeMul": 1.5,
+  "cube3dFogStart": 0.6,
+  "cube3dFogMin": 0.15,
   "cube3dWarmupFrames": 10,
   "entranceEnabled": true,
   "entranceWallTransitionDelay": 300,
@@ -576,8 +574,8 @@
   "contentFadeInDelay": 500,
   "contentFadeInDuration": 1000,
   "gravityMultiplier": 1.55,
-  "restitution": 0.12,
-  "friction": 0.022,
+  "restitution": 0.24,
+  "friction": 0.011,
   "ballMass": 301,
   "ballScale": 1.05,
   "sizeScale": 1.05,
@@ -839,6 +837,20 @@
       </div>
     </div>
   </div>
+  
+  <!-- Video Overlay - FIXED position, above balls and UI, below wall frame -->
+  <video 
+    id="grunge-video-overlay" 
+    class="grunge-video-overlay"
+    autoplay 
+    muted 
+    loop 
+    playsinline
+    preload="auto"
+    aria-hidden="true"
+  >
+    <source src="video/videoB.mp4" type="video/mp4">
+  </video>
 
   <!-- Modal System: Two-layer architecture for clean compositing -->
   <!-- Layer 1: Blur Only - No children, isolated backdrop-filter (z:19998) -->
@@ -869,7 +881,7 @@
   <!-- Page Flash Overlay -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
-  <script type="module" src="js/cv.js?v=1769445083239"></script>
+  <script type="module" src="js/cv.js?v=1769540542309"></script>
   <script>
     // In production (served from dist/), load from bundled JS if available
     if (!document.querySelector('script[src*="modules/cv-init.js"]')) {

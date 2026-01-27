@@ -225,7 +225,7 @@
     <!-- LAYER 0: Content Background - BEHIND everything (z:1) -->
     <div id="content-background" class="content-background-layer" aria-hidden="true"></div>
     
-    <!-- LAYER 1: Brand Logo - NOT VISIBLE on portfolio page (removed to optimize entrance animation) -->
+    <!-- LAYER 2: Brand Logo - NOT VISIBLE on portfolio page (removed to optimize entrance animation) -->
     <!-- Logo animation skipped - entrance goes directly from #app-frame to .portfolio-stage -->
 
     <!-- LAYER 2: Portfolio Container - Carousel renders here (z:5) -->
@@ -233,6 +233,19 @@
       <div class="noise"></div>
       <!-- Wall-only canvas: renders the same rubber wall ring as index (no balls). -->
       <canvas class="portfolio-wall-canvas" aria-hidden="true"></canvas>
+      <!-- Video Overlay - Inside wall, above canvas, below wall frame -->
+      <video 
+        id="grunge-video-overlay" 
+        class="grunge-video-overlay"
+        autoplay 
+        muted 
+        loop 
+        playsinline
+        preload="auto"
+        aria-hidden="true"
+      >
+        <source src="video/videoB.mp4" type="video/mp4">
+      </video>
       <!-- Portfolio Stage -->
       <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
       <div class="portfolio-stage" style="opacity:0; visibility:hidden">

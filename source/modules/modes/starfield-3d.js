@@ -11,6 +11,11 @@ let _stars = [];
 let _lastTime = 0;
 const SPAN_MULTIPLIER = 4;
 
+// Smoothed mouse state for parallax panning
+let _smoothMouseX = 0;
+let _smoothMouseY = 0;
+let _mouseInitialized = false;
+
 function createStar(w, h, zNear, zFar, spanX, spanY) {
   return {
     x: (Math.random() * 2 - 1) * w * spanX * 0.5,
@@ -49,6 +54,11 @@ export function initializeStarfield3D() {
   }
 
   _lastTime = performance.now();
+  
+  // Reset mouse state
+  _smoothMouseX = 0;
+  _smoothMouseY = 0;
+  _mouseInitialized = false;
 }
 
 // Custom renderer - draws stars directly to canvas
@@ -78,9 +88,27 @@ export function renderStarfield3D(ctx) {
   const dotSizeMul = Math.max(0.2, Math.min(4.0, g.starfieldDotSizeMul ?? 1.0));
   const baseR = (g.R_MED || 20) * dotSizeMul * 2; // 2× base size requested
 
-  // Vanishing point stays fixed at center (cursor ignored)
-  const centerX = cx;
-  const centerY = cy;
+  // Mouse parallax panning
+  const parallaxStrength = Math.max(0, g.starfieldParallaxStrength ?? 320);
+  const mouseEasing = 8;
+  
+  // Target mouse position (normalized -1 to 1)
+  let targetX = 0, targetY = 0;
+  if (g.mouseInCanvas) {
+    targetX = Math.max(-1, Math.min(1, (g.mouseX - cx) / (w * 0.5)));
+    targetY = Math.max(-1, Math.min(1, (g.mouseY - cy) / (h * 0.5)));
+  }
+  
+  // Smooth mouse interpolation
+  const easeFactor = 1 - Math.exp(-mouseEasing * dt);
+  if (!_mouseInitialized) {
+    _smoothMouseX = targetX;
+    _smoothMouseY = targetY;
+    _mouseInitialized = true;
+  } else {
+    _smoothMouseX += (targetX - _smoothMouseX) * easeFactor;
+    _smoothMouseY += (targetY - _smoothMouseY) * easeFactor;
+  }
 
   // Fade duration from config (in seconds)
   const fadeDuration = Math.max(0, g.starfieldFadeDuration ?? 0.5);
@@ -145,10 +173,12 @@ export function renderStarfield3D(ctx) {
       star.alpha = 1;
     }
 
-    // Perspective projection with fixed center (mouse ignored)
+    // Perspective projection with mouse parallax offset
     const scale = focalLength / (focalLength + star.z);
-    const x2d = centerX + star.x * scale;
-    const y2d = centerY + star.y * scale;
+    const offsetX = _smoothMouseX * parallaxStrength * scale;
+    const offsetY = _smoothMouseY * parallaxStrength * scale;
+    const x2d = cx + (star.x + offsetX) * scale;
+    const y2d = cy + (star.y + offsetY) * scale;
     // Keep radius constant regardless of distance (don't scale with perspective)
     const r = baseR;
 

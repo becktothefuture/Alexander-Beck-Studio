@@ -2200,6 +2200,38 @@ async function bootstrapPortfolio() {
   if (backLink) {
     setupPrefetchOnHover(backLink, 'index.html');
   }
+  
+  // ╔══════════════════════════════════════════════════════════════════════════════╗
+  // ║                    GRUNGE VIDEO OVERLAY INITIALIZATION                       ║
+  // ║          Soft fade-in when video is ready to play                            ║
+  // ╚══════════════════════════════════════════════════════════════════════════════╝
+  try {
+    const grungeVideo = document.getElementById('grunge-video-overlay');
+    if (grungeVideo) {
+      const hasSource = grungeVideo.querySelector('source');
+      if (hasSource) {
+        const handleVideoReady = () => {
+          grungeVideo.classList.add('loaded');
+          console.log('✓ Grunge video overlay faded in (portfolio)');
+        };
+        
+        if (grungeVideo.readyState >= 3) {
+          handleVideoReady();
+        } else {
+          grungeVideo.addEventListener('canplaythrough', handleVideoReady, { once: true });
+          grungeVideo.addEventListener('error', () => {
+            console.warn('⚠️ Grunge video failed to load (portfolio)');
+          }, { once: true });
+        }
+        
+        grungeVideo.play().catch((err) => {
+          console.warn('⚠️ Grunge video autoplay blocked (portfolio):', err.message);
+        });
+      }
+    }
+  } catch (videoError) {
+    console.warn('⚠️ Video overlay initialization error (portfolio):', videoError);
+  }
 }
 
 // Start

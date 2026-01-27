@@ -3,7 +3,7 @@
 // ║                       Modular Architecture Bootstrap                         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { CONSTANTS, NARRATIVE_MODE_SEQUENCE } from './modules/core/constants.js';
+import { CONSTANTS, NARRATIVE_MODE_SEQUENCE, FEATURED_MODES } from './modules/core/constants.js';
 import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/core/state.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
 import { applyColorTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
@@ -58,8 +58,8 @@ const CONTENT_FADE_DURATION_MS = 800;
 const CONTENT_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 function pickStartupMode() {
-  // Random mode from narrative sequence on each reload
-  return NARRATIVE_MODE_SEQUENCE[Math.floor(Math.random() * NARRATIVE_MODE_SEQUENCE.length)];
+  // Random mode from FEATURED tier only (ensures visitors always see best work first)
+  return FEATURED_MODES[Math.floor(Math.random() * FEATURED_MODES.length)];
 }
 
 /**
@@ -710,6 +710,47 @@ window.addEventListener('unhandledrejection', (event) => {
         const blocker = document.getElementById('fade-blocking');
         if (blocker) blocker.remove();
       }
+    }
+    
+    // ╔══════════════════════════════════════════════════════════════════════════════╗
+    // ║                    GRUNGE VIDEO OVERLAY INITIALIZATION                       ║
+    // ║          Soft fade-in when video is ready to play                            ║
+    // ╚══════════════════════════════════════════════════════════════════════════════╝
+    try {
+      const grungeVideo = document.getElementById('grunge-video-overlay');
+      if (grungeVideo) {
+        // Only initialize if video has a source
+        const hasSource = grungeVideo.querySelector('source');
+        if (hasSource) {
+          // Handle video ready state
+          const handleVideoReady = () => {
+            // Add loaded class to trigger CSS fade-in
+            grungeVideo.classList.add('loaded');
+            log('✓ Grunge video overlay faded in');
+          };
+          
+          // Check if video is already ready (cached)
+          if (grungeVideo.readyState >= 3) {
+            handleVideoReady();
+          } else {
+            // Wait for video to be ready
+            grungeVideo.addEventListener('canplaythrough', handleVideoReady, { once: true });
+            
+            // Fallback: if video fails to load, don't block anything
+            grungeVideo.addEventListener('error', () => {
+              console.warn('⚠️ Grunge video failed to load, skipping overlay');
+            }, { once: true });
+          }
+          
+          // Start playback (muted + autoplay should work)
+          grungeVideo.play().catch((err) => {
+            // Autoplay blocked - this is fine, video won't show
+            console.warn('⚠️ Grunge video autoplay blocked:', err.message);
+          });
+        }
+      }
+    } catch (videoError) {
+      console.warn('⚠️ Video overlay initialization error:', videoError);
     }
     
   } catch (error) {

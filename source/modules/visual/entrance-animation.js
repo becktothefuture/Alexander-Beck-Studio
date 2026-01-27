@@ -381,6 +381,8 @@ export function revealLateElement(element, options = {}) {
 /**
  * Reveals the brand logo with a soft blur/scale/translate intro.
  * Maintains the logo's base transform while animating in.
+ * NOTE: Grid-positioned logos (.brand-logo-in-grid) use scale-only animation
+ *       to avoid offsetting from their natural flex position.
  * @param {HTMLElement} element - Logo element to reveal
  * @param {Object} options - Animation options
  *   - delay: ms before animation starts
@@ -399,29 +401,46 @@ function revealLogoStaggered(element, options = {}) {
     const delay = options.delay ?? 0;
     const duration = options.duration ?? g.entranceLateElementDuration ?? 600;
     const easing = options.easing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
-    const baseScale = 'calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1))';
-    const fromTransform = `translateY(calc(var(--brand-logo-offset-y) - var(--gap-xs))) scale(calc(${baseScale} * 0.96))`;
-    const toTransform = `translateY(var(--brand-logo-offset-y)) scale(${baseScale})`;
+    
+    // Check if logo is grid-positioned (flex item) vs fixed-positioned
+    const isGridPositioned = element.classList.contains('brand-logo-in-grid');
 
     setTimeout(() => {
       element.style.transition = 'none';
       element.style.visibility = 'visible';
 
-      const anim = element.animate(
-        [
-          {
-            opacity: 0,
-            transform: fromTransform,
-            filter: 'blur(calc(var(--link-impact-blur) * 0.6))'
-          },
-          {
-            opacity: 1,
-            transform: toTransform,
-            filter: 'blur(0px)'
-          }
-        ],
-        { duration, easing, fill: 'forwards' }
-      );
+      let anim;
+      if (isGridPositioned) {
+        // Grid logo: simple fade + blur only - NO transforms
+        // The wrapper is absolutely positioned, logo is just a flex child
+        anim = element.animate(
+          [
+            { opacity: 0, filter: 'blur(8px)' },
+            { opacity: 1, filter: 'blur(0px)' }
+          ],
+          { duration, easing, fill: 'forwards' }
+        );
+      } else {
+        // Fixed logo: use the original transform with translateY offset
+        const baseScale = 'calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1))';
+        const fromTransform = `translateY(calc(var(--brand-logo-offset-y) - var(--gap-xs))) scale(calc(${baseScale} * 0.96))`;
+        const toTransform = `translateY(var(--brand-logo-offset-y)) scale(${baseScale})`;
+        anim = element.animate(
+          [
+            {
+              opacity: 0,
+              transform: fromTransform,
+              filter: 'blur(calc(var(--link-impact-blur) * 0.6))'
+            },
+            {
+              opacity: 1,
+              transform: toTransform,
+              filter: 'blur(0px)'
+            }
+          ],
+          { duration, easing, fill: 'forwards' }
+        );
+      }
 
       anim.finished.then(() => {
         element.style.opacity = '1';

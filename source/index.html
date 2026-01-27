@@ -230,6 +230,22 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/normalize.css">
   <link rel="stylesheet" href="css/main.css">
+  <!-- Random display typeface selection (scale-compensated to match Sarina cap height) -->
+  <script>
+    (function() {
+      var fonts = [
+        { name: 'Sarina', scale: 1, fallback: 'cursive' },
+        { name: 'Pacifico', scale: 1.05, fallback: 'cursive' },
+        { name: 'Press Start 2P', scale: 1.7, fallback: 'monospace' },
+        { name: 'VT323', scale: 1.35, fallback: 'monospace' },
+        { name: 'Bangers', scale: 0.95, fallback: 'cursive' },
+        { name: 'Boogaloo', scale: 1.0, fallback: 'cursive' }
+      ];
+      var pick = fonts[Math.floor(Math.random() * fonts.length)];
+      document.documentElement.style.setProperty('--abs-font-display', "'" + pick.name + "', " + pick.fallback);
+      document.documentElement.style.setProperty('--abs-font-display-scale', pick.scale);
+    })();
+  </script>
   <!-- panel.css is DEV-only; injected dynamically by panel-dock.js when needed -->
   <!-- ABS_BUILD_MARKER:CSS_DEV_END -->
 
@@ -237,7 +253,7 @@
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&family=Sarina&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&family=Sarina&family=Pacifico&family=Press+Start+2P&family=VT323&family=Bangers&family=Boogaloo&display=swap" rel="stylesheet">
 
   <link href="images/favicon.ico" rel="shortcut icon" type="image/x-icon">
   <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
@@ -269,13 +285,27 @@
       </svg>
     </div>
 
-    <!-- LAYER 2: Simulation Container - Balls render here (z:5) -->
+    <!-- LAYER 2: Simulation Container - Balls render here -->
     <div id="bravia-balls" class="ball-simulation w-embed">
       <div class="noise"></div>
       <canvas id="c" aria-label="Bouncy balls" role="img" draggable="false"></canvas>
+      <!-- Video Overlay - Inside wall, above balls, below wall frame -->
+      <video 
+        id="grunge-video-overlay" 
+        class="grunge-video-overlay"
+        autoplay 
+        muted 
+        loop 
+        playsinline
+        preload="auto"
+        aria-hidden="true"
+      >
+        <source src="video/videoB.mp4" type="video/mp4">
+      </video>
     </div>
+  </div>
   
-  <!-- UI LAYER: Flexbox Layout Implementation -->
+  <!-- UI LAYER: Flexbox Layout - OUTSIDE #abs-scene to avoid transform interference -->
   <div class="fade-content page-content">
     <div id="app-frame" class="ui-layer-wrapper">
       
@@ -368,7 +398,6 @@
         <span id="edge-caption-copyright" class="edge-caption__line edge-caption__line--copyright">© 2026 Alexander Beck Studio</span>
       </div>
     </div>
-  </div>
   </div>
 
   <!-- Main Links Container - Outside fade wrapper for proper fixed positioning relative to viewport -->

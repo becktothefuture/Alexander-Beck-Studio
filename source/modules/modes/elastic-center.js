@@ -16,9 +16,23 @@ let centerY = 0;
 let targetRadius = 0; // Target radius for the circle formation
 
 /**
- * Create composite circle from many small balls arranged in a circular pattern
+ * Calculate total ball count for a given number of rings
+ * Ring 0 = center ball, Ring 1 = first ring around center, etc.
  */
-function createCompositeCircle(globals, targetBalls) {
+function calculateBallCountForRings(ringCount) {
+  if (ringCount <= 0) return 0;
+  let total = 1; // center ball (ring 0)
+  for (let ring = 1; ring < ringCount; ring++) {
+    total += 6 * ring; // Each ring has 6 * ringNumber balls
+  }
+  return total;
+}
+
+/**
+ * Create composite circle from many small balls arranged in a circular pattern
+ * Based on ring count rather than ball count
+ */
+function createCompositeCircle(globals, ringCount) {
   const canvas = globals.canvas;
   if (!canvas) return;
   
@@ -28,43 +42,29 @@ function createCompositeCircle(globals, targetBalls) {
   const spacingMultiplier = globals.elasticCenterSpacingMultiplier || 2.8;
   const spacing = avgRadius * spacingMultiplier; // Larger gaps between ball centers
   
-  // Calculate target radius based on ball count (approximately)
-  // Each layer adds roughly 6 * layer balls
-  let layers = 1;
-  let totalCapacity = 1; // center ball
-  while (totalCapacity < targetBalls) {
-    totalCapacity += 6 * layers;
-    layers++;
-  }
-  targetRadius = layers * spacing;
+  // Calculate target radius based on ring count
+  targetRadius = ringCount * spacing;
   
-  // Calculate layers needed for target ball count
-  let totalPlaced = 0;
-  let layer = 0;
   const ballPositions = [];
   
-  // Center ball
-  if (targetBalls > 0) {
+  // Center ball (ring 0)
+  if (ringCount > 0) {
     ballPositions.push({ x: 0, y: 0, layer: 0, index: 0 });
-    totalPlaced++;
   }
   
-  // Add layers
-  layer = 1;
-  while (totalPlaced < targetBalls) {
-    const layerRadius = layer * spacing;
+  // Add rings 1 through ringCount-1
+  for (let ring = 1; ring < ringCount; ring++) {
+    const layerRadius = ring * spacing;
     const circumference = layerRadius * 2 * Math.PI;
     // Calculate balls based on spacing distance (not diameter) for consistent gaps
     const ballsInLayer = Math.max(6, Math.floor(circumference / spacing));
     
-    for (let i = 0; i < ballsInLayer && totalPlaced < targetBalls; i++) {
+    for (let i = 0; i < ballsInLayer; i++) {
       const angle = (i / ballsInLayer) * Math.PI * 2;
       const x = Math.cos(angle) * layerRadius;
       const y = Math.sin(angle) * layerRadius;
-      ballPositions.push({ x, y, layer, index: totalPlaced });
-      totalPlaced++;
+      ballPositions.push({ x, y, layer: ring, index: ballPositions.length });
     }
-    layer++;
   }
   
   // Create balls from positions
@@ -121,12 +121,11 @@ export function initializeElasticCenter() {
   centerX = w * 0.5;
   centerY = h * 0.5;
   
-  // Create composite circle
-  const baseCount = g.elasticCenterBallCount ?? 60;
-  const count = getMobileAdjustedCount(baseCount);
-  if (count <= 0) return;
+  // Create composite circle based on ring count
+  const ringCount = g.elasticCenterRingCount ?? 10;
+  if (ringCount <= 0) return;
   
-  createCompositeCircle(g, count);
+  createCompositeCircle(g, ringCount);
 }
 
 export function applyElasticCenterForces(ball, dt) {

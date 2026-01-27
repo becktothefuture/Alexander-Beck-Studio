@@ -5,13 +5,7 @@
 
 :root {
   color-scheme: light;
-
-  /* ───────────────────────────────────────────────────────────────────────────
-     COLOR SYSTEM (MINIMAL)
-     Keep: 2 text colors, 8 ball colors, 5 essentials, 1 stroke color
-     Plus: required hover + theme bridge variables (non-palette utilities)
-     ─────────────────────────────────────────────────────────────────────────── */
-
+  
   /* Utility RGB (required by existing rgba(var(--abs-rgb-*), ...) usage) */
   --abs-rgb-white: 255, 255, 255;
   --abs-rgb-black: 0, 0, 0;
@@ -57,13 +51,14 @@
   --abs-font-sans: 'Geist', sans-serif;
   --abs-font-mono: 'Geist Mono', monospace;
   --abs-font-display: 'Sarina', cursive;
+  --abs-font-display-scale: 1;
   --abs-weight-regular: 400;
   --abs-weight-medium: 600;
   --abs-weight-semibold: 700;
 
-  --abs-text-xs: clamp(9px, 1vw, 12px);
-  --abs-text-sm: clamp(11px, 1.2vw, 14px);
-  --abs-text-md: clamp(12px, 1.4vw, 16px);
+  --abs-text-xs: clamp(9px, 1vw, 11px);
+  --abs-text-sm: clamp(11px, 1.2vw, 13px);
+  --abs-text-md: clamp(12px, 1.4vw, 15px);
   --abs-text-lg: clamp(0.85rem, 1.5vw, 1.05rem);
   --abs-text-xl: clamp(1.2rem, 1.8vw, 1.35rem);;
 

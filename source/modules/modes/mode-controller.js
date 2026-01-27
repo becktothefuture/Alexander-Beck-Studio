@@ -26,11 +26,11 @@ import { initializeElasticCenter, applyElasticCenterForces, updateElasticCenter 
 import { initializeDvdLogo, applyDvdLogoForces, updateDvdLogo } from './dvd-logo.js';
 
 import { initializeParticleFountain, applyParticleFountainForces, updateParticleFountain } from './particle-fountain.js';
+import { initializeShootingStars, applyShootingStarsForces, updateShootingStars, renderShootingStars } from './shooting-stars.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor } from '../visual/colors.js';
 import { resetPhysicsAccumulator } from '../physics/engine.js';
 import { resetAdaptiveThrottle } from '../rendering/loop.js';
-import { resetWallRumble } from '../physics/wall-state.js';
 
 export { MODES };
 
@@ -62,6 +62,7 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.DVD_LOGO: return globals.dvdLogoWarmupFrames ?? 10;
 
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
+    case MODES.SHOOTING_STARS: return globals.shootingStarsWarmupFrames ?? 10;
     default: return 10;
   }
 }
@@ -76,9 +77,6 @@ export function setMode(mode) {
   // ════════════════════════════════════════════════════════════════════════════════
   resetPhysicsAccumulator();
   resetAdaptiveThrottle();
-  
-  // Reset wall rumble state
-  resetWallRumble();
   
   // Restore physics overrides when leaving Critters mode
   if (globals.currentMode === MODES.CRITTERS && mode !== MODES.CRITTERS) {
@@ -128,7 +126,8 @@ export function setMode(mode) {
     'elastic-center': 'Elastic Center',
     'dvd-logo': 'DVD Logo',
 
-    'particle-fountain': 'Particle Fountain'
+    'particle-fountain': 'Particle Fountain',
+    'shooting-stars': 'Shooting Stars'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
   
@@ -260,6 +259,12 @@ export function setMode(mode) {
     globals.G = globals.GE * globals.gravityMultiplier;
     globals.repellerEnabled = true; // Enable mouse repulsion for particles
     initializeParticleFountain();
+  } else if (mode === MODES.SHOOTING_STARS) {
+    // Disable gravity for magical arcing motion
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+    initializeShootingStars();
   }
   
   console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
@@ -332,6 +337,8 @@ export function getForceApplicator() {
     return applyDvdLogoForces;
   } else if (globals.currentMode === MODES.PARTICLE_FOUNTAIN) {
     return applyParticleFountainForces;
+  } else if (globals.currentMode === MODES.SHOOTING_STARS) {
+    return applyShootingStarsForces;
   }
   return null;
 }
@@ -360,6 +367,8 @@ export function getModeUpdater() {
     return updateParallaxLinearMouse;
   } else if (globals.currentMode === MODES.CRITTERS) {
     return updateCrittersGrid;
+  } else if (globals.currentMode === MODES.SHOOTING_STARS) {
+    return updateShootingStars;
   }
   return null;
 }
@@ -377,6 +386,10 @@ export function getModeRenderer() {
   } else if (globals.currentMode === MODES.CRITTERS) {
     return {
       preRender: renderCrittersWaypoints
+    };
+  } else if (globals.currentMode === MODES.SHOOTING_STARS) {
+    return {
+      preRender: renderShootingStars
     };
   }
   return null;

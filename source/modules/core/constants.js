@@ -23,37 +23,60 @@ export const MODES = {
   CUBE_3D: '3d-cube',
   STARFIELD_3D: 'starfield-3d',
   ELASTIC_CENTER: 'elastic-center',
-  PARTICLE_FOUNTAIN: 'particle-fountain'
+  PARTICLE_FOUNTAIN: 'particle-fountain',
+  SHOOTING_STARS: 'shooting-stars'
 };
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                       NARRATIVE MODE SEQUENCE (ORDERED)                       ║
+// ║                       NARRATIVE MODE SEQUENCE (TIERED)                        ║
 // ║          Used for ArrowLeft/ArrowRight navigation (looping)                   ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 //
-// Story arc (curated alternation):
-// - Keep tonal contrast between adjacent sims (avoid “similar twice in a row”)
-// - Ball Pit opens the story
-// - Kaleidoscopes are contiguous and increase complexity
+// Two-tier system ensures visitors see the most impressive work first:
+// 
+// FEATURED TIER (8 modes):
+// - Always cycles first in the sequence
+// - Guaranteed first impression for new visitors
+// - Best work, strongest visual impact
+//
+// EXTENDED TIER (11 modes):
+// - Only appears after all Featured modes have cycled
+// - Additional explorations and experiments
+// - Loop order: Featured → Extended → Featured → ...
+//
+// Story arc principles:
+// - Keep tonal contrast between adjacent sims (avoid "similar twice in a row")
+// - Ball Pit opens the story (source material)
+// - Kaleidoscope closes Featured tier (vocab bloom)
+export const FEATURED_MODES = [
+  MODES.PIT,              // SOURCE MATERIAL
+  MODES.FLIES,            // IDEA SPARK
+  MODES.CUBE_3D,          // 3D FRAME
+  MODES.WATER,            // USER FLOW
+  MODES.SPHERE_3D,        // 3D SHELL
+  MODES.PARALLAX_LINEAR,  // PERSPECTIVE SHIFT
+  MODES.ELASTIC_CENTER,   // ELASTIC CENTER
+  MODES.KALEIDOSCOPE      // VOCAB BLOOM
+];
+
+export const EXTENDED_MODES = [
+  MODES.BUBBLES,          // NOISE SIGNAL
+  MODES.MAGNETIC,         // DESIGN FORCES
+  MODES.DVD_LOGO,         // DVD SCREENSAVER
+  MODES.NEURAL,           // CONNECTION MAP
+  MODES.WEIGHTLESS,       // OPEN SPACE
+  MODES.CRITTERS,         // BEHAVIOR MODEL
+  MODES.VORTEX,           // ATOMIC STRUCTURE
+  MODES.STARFIELD_3D,     // DEPTH FIELD
+  MODES.SHOOTING_STARS,   // COSMIC WISH
+  MODES.PARALLAX_FLOAT,   // ORGANIC DRIFT
+  MODES.PARTICLE_FOUNTAIN // PARTICLE FLOW
+];
+
+// Combined sequence: Featured first, then Extended (loops back to Featured)
 export const NARRATIVE_MODE_SEQUENCE = [
-  MODES.PIT,
-  MODES.FLIES,
-  MODES.CUBE_3D,
-  MODES.BUBBLES,
-  MODES.MAGNETIC,
-  MODES.WATER,
-  MODES.DVD_LOGO,
-  MODES.NEURAL,
-  MODES.SPHERE_3D,
-  MODES.WEIGHTLESS,
-  MODES.PARALLAX_LINEAR,
-  MODES.CRITTERS,
-  MODES.ELASTIC_CENTER,
-  MODES.VORTEX,
-  MODES.KALEIDOSCOPE,
-  MODES.STARFIELD_3D,
-  MODES.PARALLAX_FLOAT,
-  MODES.PARTICLE_FOUNTAIN
+  ...FEATURED_MODES,
+  ...EXTENDED_MODES
 ];
 
 // Short chapter titles (no numbers) — used by the left-edge narrative label.
@@ -76,6 +99,7 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.CUBE_3D]: '3D FRAME',
   [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',
   [MODES.STARFIELD_3D]: 'DEPTH FIELD',
+  [MODES.SHOOTING_STARS]: 'COSMIC WISH',
   [MODES.PARALLAX_FLOAT]: 'ORGANIC DRIFT',
   [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FLOW'
 };
@@ -154,6 +178,10 @@ export const NARRATIVE_QUOTES = {
   [MODES.STARFIELD_3D]: {
     quote: 'The cosmos is within us. We are made of star-stuff.',
     author: 'Carl Sagan'
+  },
+  [MODES.SHOOTING_STARS]: {
+    quote: 'When you realize you want to spend the rest of your life with somebody, you want the rest of your life to start as soon as possible.',
+    author: 'Nora Ephron'
   },
   [MODES.PARALLAX_FLOAT]: {
     quote: 'Nature does not hurry, yet everything is accomplished.',

@@ -7,7 +7,6 @@
 import { getGlobals } from '../core/state.js';
 import { PARALLAX_LINEAR_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
-import { resetWallRumble } from '../physics/wall-state.js';
 
 // Will be set by main.js to avoid circular dependency
 let applyVisualCSSVars = null;
@@ -46,108 +45,60 @@ function updateWallShadowCSS(g) {
   const container = document.getElementById('bravia-balls');
   if (!container) return;
   
-  // ═══ CORE PARAMETERS ═══
-  const angle = g.wallShadowAngle ?? 160;
-  const distance = g.wallShadowDistance ?? 10;
-  const layers = Math.max(1, Math.min(12, Math.round(g.wallShadowLayers ?? 5)));
-  
-  // ═══ OUTSET (external shadow) PARAMETERS ═══
-  const outsetIntensity = g.wallShadowOutsetIntensity ?? 1.0;
-  const outsetOpacityBase = g.wallShadowOutsetOpacity ?? 0.25;
-  const outsetBlurMin = g.wallShadowOutsetBlurMin ?? 4;
-  const outsetBlurMax = g.wallShadowOutsetBlurMax ?? 120;
-  const outsetSpreadMin = g.wallShadowOutsetSpreadMin ?? 0;
-  const outsetSpreadMax = g.wallShadowOutsetSpreadMax ?? 30;
-  
-  // ═══ INSET (vignette) PARAMETERS ═══
-  const insetIntensity = g.wallShadowInsetIntensity ?? 0.8;
-  const insetOpacityBase = g.wallShadowInsetOpacity ?? 0.15;
-  const insetBlurMin = g.wallShadowInsetBlurMin ?? 8;
-  const insetBlurMax = g.wallShadowInsetBlurMax ?? 100;
-  const insetSpreadMin = g.wallShadowInsetSpreadMin ?? 0;
-  const insetSpreadMax = g.wallShadowInsetSpreadMax ?? 20;
-  const insetLayerRatio = g.wallShadowInsetLayerRatio ?? 0.6;
-  
-  // ═══ FALLOFF CURVE ═══
-  const falloffCurve = g.wallShadowFalloffCurve ?? 2.0;
-  const falloffFactor = g.wallShadowFalloffFactor ?? 0.7;
-  
-  // Calculate directional offset from angle
-  const angleRad = (angle + 180) * Math.PI / 180;
-  const offsetX = Math.sin(angleRad) * distance;
-  const offsetY = -Math.cos(angleRad) * distance;
-  
-  // Check if dark mode and get shadow color
+  // Check if dark mode
   const isDark = document.body.classList.contains('dark-mode');
-  const colorHex = isDark 
-    ? (g.wallShadowColorDark ?? '#000000')
-    : (g.wallShadowColorLight ?? '#ffffff');
-  const rgb = hexToRgb(colorHex);
-  const rgbStr = `${rgb.r},${rgb.g},${rgb.b}`;
   
-  // ═══ MODE-SPECIFIC INTENSITY ═══
-  // Light mode needs higher opacity because light-on-light has low contrast
-  // Dark mode shadows are naturally visible (dark-on-dark creates depth)
-  const lightModeBoost = g.wallShadowLightModeBoost ?? 3.0;
-  const modeMultiplier = isDark ? 1.0 : lightModeBoost;
+  // ═══ RECESSED PANEL DEPTH ═══
+  // Light from top-left: wall casts shadows DOWN and RIGHT onto recessed content
   
-  const shadows = [];
+  // Dark edges (top + left) - wall shadow falling onto content
+  const edgeTopOpacity = isDark 
+    ? (g.wallShadowEdgeTopOpacityDark ?? 0.25)
+    : (g.wallShadowEdgeTopOpacityLight ?? 0.08);
+  const edgeLeftOpacity = isDark
+    ? (g.wallShadowEdgeLeftOpacityDark ?? 0.18)
+    : (g.wallShadowEdgeLeftOpacityLight ?? 0.06);
   
-  // ═══ OUTSET SHADOWS (projected onto wall) ═══
-  for (let i = 0; i < layers; i++) {
-    const t = layers === 1 ? 0 : i / (layers - 1); // 0 to 1 progress
-    
-    // Progressive offset (closer layers have less offset)
-    const layerOffset = 0.15 + (t * 0.85);
-    const ox = (offsetX * layerOffset).toFixed(1);
-    const oy = (offsetY * layerOffset).toFixed(1);
-    
-    // Progressive blur (exponential growth)
-    const blurRange = outsetBlurMax - outsetBlurMin;
-    const layerBlur = (outsetBlurMin + (t * t * blurRange)).toFixed(1);
-    
-    // Progressive spread
-    const spreadRange = outsetSpreadMax - outsetSpreadMin;
-    const layerSpread = (outsetSpreadMin + (t * spreadRange)).toFixed(1);
-    
-    // Configurable opacity falloff with mode-specific boost
-    const falloffMult = Math.pow(1 - t * falloffFactor, falloffCurve);
-    const rawOpacity = outsetOpacityBase * falloffMult * outsetIntensity * modeMultiplier;
-    const layerOpacity = Math.min(1, rawOpacity).toFixed(4); // Clamp to max 1.0
-    
-    shadows.push(`${ox}px ${oy}px ${layerBlur}px ${layerSpread}px rgba(${rgbStr}, ${layerOpacity})`);
-  }
+  // Light edges (bottom + right) - catching light
+  const edgeBottomOpacity = isDark
+    ? (g.wallShadowEdgeBottomOpacityDark ?? 0.03)
+    : (g.wallShadowEdgeBottomOpacityLight ?? 0.06);
+  const edgeRightOpacity = isDark
+    ? (g.wallShadowEdgeRightOpacityDark ?? 0.02)
+    : (g.wallShadowEdgeRightOpacityLight ?? 0.04);
   
-  // ═══ INSET SHADOWS (interior vignette) ═══
-  const insetLayers = Math.max(1, Math.round(layers * insetLayerRatio));
-  for (let i = 0; i < insetLayers; i++) {
-    const t = insetLayers === 1 ? 0 : i / (insetLayers - 1);
-    
-    // Inset offset (subtle directional)
-    const layerOffset = 0.1 + (t * 0.4);
-    const ox = (offsetX * layerOffset).toFixed(1);
-    const oy = (offsetY * layerOffset).toFixed(1);
-    
-    // Progressive blur
-    const blurRange = insetBlurMax - insetBlurMin;
-    const layerBlur = (insetBlurMin + (t * t * blurRange)).toFixed(1);
-    
-    // Progressive spread
-    const spreadRange = insetSpreadMax - insetSpreadMin;
-    const layerSpread = (insetSpreadMin + (t * spreadRange)).toFixed(1);
-    
-    // Configurable opacity falloff with mode-specific boost
-    const falloffMult = Math.pow(1 - t * falloffFactor * 0.85, falloffCurve);
-    const rawOpacity = insetOpacityBase * falloffMult * insetIntensity * modeMultiplier;
-    const layerOpacity = Math.min(1, rawOpacity).toFixed(4); // Clamp to max 1.0
-    
-    shadows.push(`inset ${ox}px ${oy}px ${layerBlur}px ${layerSpread}px rgba(${rgbStr}, ${layerOpacity})`);
-  }
+  // Ambient inset shadow (soft vignette from wall depth)
+  const ambientBlur = g.wallShadowAmbientBlur ?? 20;
+  const ambientOpacity = isDark
+    ? (g.wallShadowAmbientOpacityDark ?? 0.12)
+    : (g.wallShadowAmbientOpacityLight ?? 0.04);
+  
+  // Stroke (solid edge definition)
+  const strokeOpacity = isDark
+    ? (g.wallShadowStrokeOpacityDark ?? 0.04)
+    : (g.wallShadowStrokeOpacityLight ?? 0.06);
+  
+  // ═══ BUILD SHADOW STRING ═══
+  const shadows = [
+    // Top edge - dark line (wall shadow)
+    `inset 0 1px 0 rgba(0,0,0, ${edgeTopOpacity.toFixed(3)})`,
+    // Left edge - dark line (wall shadow)
+    `inset 1px 0 0 rgba(0,0,0, ${edgeLeftOpacity.toFixed(3)})`,
+    // Bottom edge - light highlight
+    `inset 0 -1px 0 rgba(255,255,255, ${edgeBottomOpacity.toFixed(3)})`,
+    // Right edge - light highlight
+    `inset -1px 0 0 rgba(255,255,255, ${edgeRightOpacity.toFixed(3)})`,
+    // Ambient inset vignette (soft depth from all sides, biased top-left)
+    `inset 2px 3px ${ambientBlur}px rgba(0,0,0, ${ambientOpacity.toFixed(3)})`
+  ];
   
   const shadowStr = shadows.join(', ');
   
   // Apply to the ::after pseudo-element via a style override
   container.style.setProperty('--wall-shadow-override', shadowStr);
+  
+  // Apply stroke to ::before pseudo-element
+  container.style.setProperty('--wall-stroke-opacity', strokeOpacity.toFixed(3));
   
   // Add a style tag if not exists to use the override
   let styleTag = document.getElementById('wall-shadow-override-style');
@@ -157,6 +108,9 @@ function updateWallShadowCSS(g) {
     styleTag.textContent = `
       #bravia-balls::after {
         box-shadow: var(--wall-shadow-override) !important;
+      }
+      #bravia-balls::before {
+        border-color: rgba(255,255,255, var(--wall-stroke-opacity, 0.05)) !important;
       }
     `;
     document.head.appendChild(styleTag);
@@ -2569,373 +2523,187 @@ export const CONTROL_SECTIONS = {
       },
       
       // ═══════════════════════════════════════════════════════════════════
-      // WALL RUMBLE - Viewport shake on impacts (pit, flies, weightless, fountain only)
+      // WALL SHADOW - Edge-based depth effect system
       // ═══════════════════════════════════════════════════════════════════
-      {
-        id: 'wallRumbleEnabled',
-        label: 'Rumble',
-        stateKey: 'wallRumbleEnabled',
-        type: 'toggle',
-        default: true,
-        group: 'Wall Rumble',
-        hint: 'Viewport shake on impacts (pit, flies, zero-g, fountain only)'
-      },
-      {
-        id: 'wallRumblePreset',
-        label: 'Preset',
-        stateKey: 'wallRumblePreset',
-        type: 'select',
-        options: [
-          { value: 'subtle', label: 'Subtle — barely perceptible' },
-          { value: 'rubber', label: 'Rubber — thick absorption (default)' },
-          { value: 'soft', label: 'Soft — gentle cushion' },
-          { value: 'responsive', label: 'Responsive — more feedback' }
-        ],
-        default: 'rubber',
-        format: v => String(v),
-        parse: v => String(v),
-        group: 'Wall Rumble',
-        hint: 'Thick rubber wall feel',
-        onChange: (g, value) => {
-          import('../physics/wall-state.js').then(({ applyRumblePreset }) => {
-            applyRumblePreset(value);
-          });
-        }
-      },
-      {
-        id: 'wallRumbleThreshold',
-        label: 'Threshold',
-        stateKey: 'wallRumbleThreshold',
-        type: 'range',
-        min: 100, max: 400, step: 10,
-        default: 350,
-        format: v => `${v} px/s`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Rumble',
-        hint: 'Impact force needed (higher = less sensitive)'
-      },
-      {
-        id: 'wallRumbleMax',
-        label: 'Max Wobble',
-        stateKey: 'wallRumbleMax',
-        type: 'range',
-        min: 0.5, max: 5, step: 0.1,
-        default: 1.5,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        group: 'Wall Rumble',
-        hint: 'Maximum displacement (thick rubber = small)'
-      },
-      {
-        id: 'wallRumbleDecay',
-        label: 'Absorption',
-        stateKey: 'wallRumbleDecay',
-        type: 'range',
-        min: 0.70, max: 0.92, step: 0.01,
-        default: 0.75,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        group: 'Wall Rumble',
-        hint: 'Lower = faster absorption, higher = longer wobble'
-      },
       
-      // ═══════════════════════════════════════════════════════════════════
-      // WALL SHADOW - Full control depth effect system
-      // ═══════════════════════════════════════════════════════════════════
+      // ─── DARK EDGES (Top + Left) ───
+      { type: 'divider', label: 'Dark Edges', group: 'Wall Shadow' },
       {
-        id: 'wallShadowPreset',
-        label: 'Preset',
-        stateKey: 'wallShadowPreset',
-        type: 'select',
-        options: Object.keys(WALL_SHADOW_PRESETS).map(k => ({ value: k, label: WALL_SHADOW_PRESETS[k].label })),
-        default: 'naturalDaylight',
-        format: v => WALL_SHADOW_PRESETS[v]?.label || v,
-        group: 'Wall Shadow',
-        hint: 'Realistic shadow configurations',
-        onChange: (g, value) => {
-          applyWallShadowPreset(value);
-        }
-      },
-      
-      // ─── CORE ───
-      { type: 'divider', label: 'Core', group: 'Wall Shadow' },
-      {
-        id: 'wallShadowLayers',
-        label: 'Layers',
-        stateKey: 'wallShadowLayers',
+        id: 'wallShadowEdgeTopOpacityLight',
+        label: 'Top Edge (Light)',
+        stateKey: 'wallShadowEdgeTopOpacityLight',
         type: 'range',
-        min: 1, max: 12, step: 1,
-        default: 5,
-        format: v => `${Math.round(v)}`,
-        parse: v => parseInt(v, 10),
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.12,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
         group: 'Wall Shadow',
-        hint: 'Total shadow layers (more = smoother, heavier)',
+        hint: 'Top edge darkness in light mode',
         onChange: (g) => updateWallShadowCSS(g)
       },
       {
-        id: 'wallShadowAngle',
-        label: 'Light Angle',
-        stateKey: 'wallShadowAngle',
+        id: 'wallShadowEdgeTopOpacityDark',
+        label: 'Top Edge (Dark)',
+        stateKey: 'wallShadowEdgeTopOpacityDark',
         type: 'range',
-        min: 0, max: 360, step: 1,
-        default: 160,
-        format: v => `${v}°`,
-        parse: v => parseInt(v, 10),
+        min: 0, max: 0.8, step: 0.01,
+        default: 0.35,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
         group: 'Wall Shadow',
-        hint: 'Light source direction (0° = top, 90° = right)',
+        hint: 'Top edge darkness in dark mode',
         onChange: (g) => updateWallShadowCSS(g)
       },
       {
-        id: 'wallShadowDistance',
-        label: 'Distance',
-        stateKey: 'wallShadowDistance',
+        id: 'wallShadowEdgeLeftOpacityLight',
+        label: 'Left Edge (Light)',
+        stateKey: 'wallShadowEdgeLeftOpacityLight',
         type: 'range',
-        min: 0, max: 80, step: 1,
-        default: 10,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.10,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
         group: 'Wall Shadow',
-        hint: 'Shadow offset from light source',
+        hint: 'Left edge darkness in light mode',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowEdgeLeftOpacityDark',
+        label: 'Left Edge (Dark)',
+        stateKey: 'wallShadowEdgeLeftOpacityDark',
+        type: 'range',
+        min: 0, max: 0.6, step: 0.01,
+        default: 0.28,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Left edge darkness in dark mode',
         onChange: (g) => updateWallShadowCSS(g)
       },
       
-      // ─── FALLOFF CURVE ───
-      { type: 'divider', label: 'Falloff', group: 'Wall Shadow' },
+      // ─── LIGHT EDGES (Bottom + Right) ───
+      { type: 'divider', label: 'Light Edges', group: 'Wall Shadow' },
       {
-        id: 'wallShadowFalloffCurve',
-        label: 'Curve',
-        stateKey: 'wallShadowFalloffCurve',
+        id: 'wallShadowEdgeBottomOpacityLight',
+        label: 'Bottom (Light)',
+        stateKey: 'wallShadowEdgeBottomOpacityLight',
         type: 'range',
-        min: 0.5, max: 4, step: 0.1,
-        default: 2.0,
-        format: v => v.toFixed(1),
-        parse: parseFloat,
-        group: 'Wall Shadow',
-        hint: 'Opacity falloff power (1=linear, 2=quadratic, 3=cubic)',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowFalloffFactor',
-        label: 'Factor',
-        stateKey: 'wallShadowFalloffFactor',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.7,
+        min: 0, max: 0.2, step: 0.01,
+        default: 0.06,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         group: 'Wall Shadow',
-        hint: 'How quickly opacity fades (0=none, 100%=full decay)',
+        hint: 'Bottom highlight in light mode',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowEdgeBottomOpacityDark',
+        label: 'Bottom (Dark)',
+        stateKey: 'wallShadowEdgeBottomOpacityDark',
+        type: 'range',
+        min: 0, max: 0.15, step: 0.01,
+        default: 0.03,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Bottom highlight in dark mode',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowEdgeRightOpacityLight',
+        label: 'Right (Light)',
+        stateKey: 'wallShadowEdgeRightOpacityLight',
+        type: 'range',
+        min: 0, max: 0.15, step: 0.01,
+        default: 0.04,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Right highlight in light mode',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowEdgeRightOpacityDark',
+        label: 'Right (Dark)',
+        stateKey: 'wallShadowEdgeRightOpacityDark',
+        type: 'range',
+        min: 0, max: 0.1, step: 0.01,
+        default: 0.02,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Right highlight in dark mode',
         onChange: (g) => updateWallShadowCSS(g)
       },
       
-      // ─── OUTSET (EXTERNAL SHADOW) ───
-      { type: 'divider', label: 'Outset Shadow', group: 'Wall Shadow' },
+      // ─── AMBIENT VIGNETTE ───
+      { type: 'divider', label: 'Ambient Vignette', group: 'Wall Shadow' },
       {
-        id: 'wallShadowOutsetIntensity',
-        label: 'Intensity',
-        stateKey: 'wallShadowOutsetIntensity',
+        id: 'wallShadowAmbientBlur',
+        label: 'Blur',
+        stateKey: 'wallShadowAmbientBlur',
         type: 'range',
-        min: 0, max: 3, step: 0.05,
-        default: 1.0,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        group: 'Wall Shadow',
-        hint: 'Overall outset shadow strength',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowOutsetOpacity',
-        label: 'Base Opacity',
-        stateKey: 'wallShadowOutsetOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.25,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        group: 'Wall Shadow',
-        hint: 'Starting opacity for closest layer',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowOutsetBlurMin',
-        label: 'Blur Min',
-        stateKey: 'wallShadowOutsetBlurMin',
-        type: 'range',
-        min: 0, max: 50, step: 1,
-        default: 4,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Shadow',
-        hint: 'Blur for closest layer',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowOutsetBlurMax',
-        label: 'Blur Max',
-        stateKey: 'wallShadowOutsetBlurMax',
-        type: 'range',
-        min: 10, max: 300, step: 5,
-        default: 120,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Shadow',
-        hint: 'Blur for furthest layer',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowOutsetSpreadMin',
-        label: 'Spread Min',
-        stateKey: 'wallShadowOutsetSpreadMin',
-        type: 'range',
-        min: -20, max: 20, step: 1,
-        default: 0,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Shadow',
-        hint: 'Spread for closest layer (negative = shrink)',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowOutsetSpreadMax',
-        label: 'Spread Max',
-        stateKey: 'wallShadowOutsetSpreadMax',
-        type: 'range',
-        min: 0, max: 100, step: 1,
-        default: 30,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Shadow',
-        hint: 'Spread for furthest layer',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      
-      // ─── INSET (VIGNETTE) ───
-      { type: 'divider', label: 'Inset Vignette', group: 'Wall Shadow' },
-      {
-        id: 'wallShadowInsetIntensity',
-        label: 'Intensity',
-        stateKey: 'wallShadowInsetIntensity',
-        type: 'range',
-        min: 0, max: 3, step: 0.05,
-        default: 0.8,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        group: 'Wall Shadow',
-        hint: 'Overall inset vignette strength',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowInsetOpacity',
-        label: 'Base Opacity',
-        stateKey: 'wallShadowInsetOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.15,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        group: 'Wall Shadow',
-        hint: 'Starting opacity for inner vignette',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowInsetLayerRatio',
-        label: 'Layer Ratio',
-        stateKey: 'wallShadowInsetLayerRatio',
-        type: 'range',
-        min: 0, max: 1.5, step: 0.1,
-        default: 0.6,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        group: 'Wall Shadow',
-        hint: 'Inset layers as % of outset layers',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowInsetBlurMin',
-        label: 'Blur Min',
-        stateKey: 'wallShadowInsetBlurMin',
-        type: 'range',
-        min: 0, max: 50, step: 1,
-        default: 8,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Shadow',
-        hint: 'Blur for inner edge',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowInsetBlurMax',
-        label: 'Blur Max',
-        stateKey: 'wallShadowInsetBlurMax',
-        type: 'range',
-        min: 10, max: 250, step: 5,
-        default: 100,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Shadow',
-        hint: 'Blur for outer vignette edge',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowInsetSpreadMin',
-        label: 'Spread Min',
-        stateKey: 'wallShadowInsetSpreadMin',
-        type: 'range',
-        min: -20, max: 20, step: 1,
-        default: 0,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        group: 'Wall Shadow',
-        hint: 'Spread for inner edge',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowInsetSpreadMax',
-        label: 'Spread Max',
-        stateKey: 'wallShadowInsetSpreadMax',
-        type: 'range',
-        min: 0, max: 80, step: 1,
+        min: 5, max: 60, step: 1,
         default: 20,
         format: v => `${v}px`,
         parse: v => parseInt(v, 10),
         group: 'Wall Shadow',
-        hint: 'Spread for outer vignette edge',
+        hint: 'Soft inset vignette blur',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowAmbientOpacityLight',
+        label: 'Opacity (Light)',
+        stateKey: 'wallShadowAmbientOpacityLight',
+        type: 'range',
+        min: 0, max: 0.15, step: 0.01,
+        default: 0.04,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Vignette depth in light mode',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowAmbientOpacityDark',
+        label: 'Opacity (Dark)',
+        stateKey: 'wallShadowAmbientOpacityDark',
+        type: 'range',
+        min: 0, max: 0.3, step: 0.01,
+        default: 0.12,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Vignette depth in dark mode',
         onChange: (g) => updateWallShadowCSS(g)
       },
       
-      // ─── COLORS ───
-      { type: 'divider', label: 'Colors', group: 'Wall Shadow' },
+      // ─── STROKE (Solid Edge) ───
+      { type: 'divider', label: 'Solid Stroke', group: 'Wall Shadow' },
       {
-        id: 'wallShadowColorLight',
-        label: 'Light Mode',
-        stateKey: 'wallShadowColorLight',
-        type: 'color',
-        default: '#ffffff',
-        group: 'Wall Shadow',
-        hint: 'Glow/highlight color (lighter than background)',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowColorDark',
-        label: 'Dark Mode',
-        stateKey: 'wallShadowColorDark',
-        type: 'color',
-        default: '#000000',
-        group: 'Wall Shadow',
-        hint: 'Shadow color (darker than background)',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallShadowLightModeBoost',
-        label: 'Light Mode Boost',
-        stateKey: 'wallShadowLightModeBoost',
+        id: 'wallShadowStrokeOpacityLight',
+        label: 'Stroke (Light)',
+        stateKey: 'wallShadowStrokeOpacityLight',
         type: 'range',
-        min: 1.0, max: 8.0, step: 0.25,
-        default: 3.0,
-        format: v => `${v.toFixed(1)}×`,
+        min: 0, max: 0.2, step: 0.01,
+        default: 0.05,
+        format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         group: 'Wall Shadow',
-        hint: 'Opacity multiplier for light mode (compensates for low contrast)',
+        hint: 'Solid edge stroke in light mode',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallShadowStrokeOpacityDark',
+        label: 'Stroke (Dark)',
+        stateKey: 'wallShadowStrokeOpacityDark',
+        type: 'range',
+        min: 0, max: 0.15, step: 0.01,
+        default: 0.03,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Shadow',
+        hint: 'Solid edge stroke in dark mode',
         onChange: (g) => updateWallShadowCSS(g)
       },
       
@@ -4862,15 +4630,16 @@ export const CONTROL_SECTIONS = {
     defaultOpen: false,
     controls: [
       {
-        id: 'elasticCenterBallCount',
-        label: 'Ball Count',
-        stateKey: 'elasticCenterBallCount',
+        id: 'elasticCenterRingCount',
+        label: 'Ring Count',
+        stateKey: 'elasticCenterRingCount',
         type: 'range',
-        min: 20, max: 120, step: 5,
-        default: 60,
+        min: 2, max: 20, step: 1,
+        default: 10,
         format: v => String(v),
         parse: v => parseInt(v, 10),
-        reinitMode: true
+        reinitMode: true,
+        hint: 'Number of concentric rings (more rings = more balls)'
       },
       {
         id: 'elasticCenterMassMultiplier',
@@ -5306,6 +5075,26 @@ export const CONTROL_SECTIONS = {
         min: 0.2, max: 4.0, step: 0.05,
         default: 1.5,
         format: v => v.toFixed(2) + '×',
+        parse: parseFloat
+      },
+      {
+        id: 'cube3dFogStart',
+        label: 'Fog Start',
+        stateKey: 'cube3dFogStart',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.6,
+        format: v => Math.round(v * 100) + '%',
+        parse: parseFloat
+      },
+      {
+        id: 'cube3dFogMin',
+        label: 'Fog Min Opacity',
+        stateKey: 'cube3dFogMin',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.15,
+        format: v => Math.round(v * 100) + '%',
         parse: parseFloat
       },
       warmupFramesControl('cube3dWarmupFrames')
