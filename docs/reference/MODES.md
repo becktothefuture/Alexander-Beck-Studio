@@ -285,25 +285,24 @@ The arrow keys cycle through a tiered story order. Think of it as chapters — e
 
 ## Mode 24: Shooting Stars 🌠
 
-**Purpose:** Magical arcing trajectories across the viewport. Pure visual choreography with no physics collisions - just graceful bezier curves and ethereal motion.
+**Purpose:** Sporadic meteors streaking across the sky in one direction with trailing effect. Like watching a real meteor shower - rare, magical moments.
 
 - **Gravity:** Disabled
 - **Collisions:** Disabled; no physics interactions
-- **Interaction:** Gentle mouse attraction (configurable influence)
-- **Motion:** Smooth quadratic bezier curves from edge to edge with natural arc
-- **Lifecycle:** Fade in on spawn, fade out before exit, continuous recycling
-- **Rendering:** Circle-only minimalist aesthetic (no trails by default)
-- **Respects:** `prefers-reduced-motion` (disables mouse influence)
+- **Motion:** Linear diagonal trajectory (configurable angle)
+- **Spawning:** Sporadic bursts (not continuous) with random intervals
+- **Trail:** Fading circle trail that tapers toward tail
+- **Lifecycle:** Quick fade in, sustained visibility, gentle fade out before exit
+- **Rendering:** Circle-only minimalist aesthetic with trailing circles
 - **Settings (panel):**
-  - `shootingStarsCount` (5-50) — number of active shooting stars
-  - `shootingStarsMinSpeed` (50-500) — minimum crossing speed
-  - `shootingStarsMaxSpeed` (500-2000) — maximum crossing speed
-  - `shootingStarsMinSize` (0.2-1.0) — minimum dot size multiplier
+  - `shootingStarsMinSpeed` (100-1000) — minimum meteor speed
+  - `shootingStarsMaxSpeed` (500-2000) — maximum meteor speed
+  - `shootingStarsMinSize` (0.2-2.0) — minimum dot size multiplier
   - `shootingStarsMaxSize` (1.0-4.0) — maximum dot size multiplier
-  - `shootingStarsArcHeight` (0.0-1.0) — curve intensity (0=straight, 1=dramatic arc)
-  - `shootingStarsDuration` (0.5-5.0) — base crossing time in seconds
-  - `shootingStarsSpawnRate` (0.1-3.0) — speed multiplier for spawn rate
-  - `shootingStarsMouseInfluence` (0-200) — cursor attraction strength
+  - `shootingStarsAngle` (-180 to 180 degrees) — direction of travel (default: -45 diagonal down-right)
+  - `shootingStarsTrailLength` (0-20) — number of trail points (0=no trail)
+  - `shootingStarsSpawnInterval` (0.5-10.0 seconds) — time between spawns
+  - `shootingStarsBurstSize` (1-10) — number of stars per burst
   - `shootingStarsWarmupFrames` (0-30) — warmup frames
 
 ---

@@ -198,12 +198,18 @@ export function apply3DCubeForces(ball, dt) {
   const targetY = state.cy + rotated.y * scale;
   const rawR = ball._cloudBaseR * dotSizeMul * scale;
 
-  // Depth-based fog (fade points at far end of cube)
+  // Depth-based fog (fade points at far end of cube with smooth easing)
   // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 1 is farthest
   const depthFactor = (rotated.z + state.sizePx * 0.5) / state.sizePx;
-  const fadeStart = Math.max(0, Math.min(1, g.cube3dFogStart ?? 0.6));
-  const fadeMin = Math.max(0, Math.min(1, g.cube3dFogMin ?? 0.15));
-  const fadeRamp = depthFactor > fadeStart ? (depthFactor - fadeStart) / (1 - fadeStart) : 0;
+  const fadeStart = Math.max(0, Math.min(1, g.cube3dFogStart ?? 0.5));
+  const fadeMin = Math.max(0, Math.min(1, g.cube3dFogMin ?? 0.1));
+  
+  // Smooth fade using quadratic easing for gradual transition
+  let fadeRamp = 0;
+  if (depthFactor > fadeStart) {
+    const t = (depthFactor - fadeStart) / (1 - fadeStart);
+    fadeRamp = t * t; // Quadratic ease-in for smooth acceleration
+  }
   ball.alpha = 1.0 - fadeRamp * (1.0 - fadeMin);
 
   ball.r = clampRadiusToGlobalBounds(g, rawR);

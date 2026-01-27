@@ -214,20 +214,10 @@
 
     <!-- LAYER 2: CV Container - Content renders here (z:5) -->
     <div id="bravia-balls" class="cv-simulation w-embed">
-      <div class="noise"></div>
-      <!-- Video Overlay - Inside wall, above canvas, below wall frame -->
-      <video 
-        id="grunge-video-overlay" 
-        class="grunge-video-overlay"
-        autoplay 
-        muted 
-        loop 
-        playsinline
-        preload="auto"
-        aria-hidden="true"
-      >
-        <source src="video/videoB.mp4" type="video/mp4">
-      </video>
+      <!-- EFFECTS OVERLAYS: Noise + Video grouped above wall, clipped to interior -->
+      <div class="effects-overlays" aria-hidden="true">
+        <div class="noise"></div>
+      </div>
       <!-- CV Scrolling Content -->
       <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
       <div class="cv-scroll-container" style="opacity:0; visibility:hidden">

@@ -115,8 +115,8 @@ const state = {
   cube3dTumbleDamping: 0.95,
   cube3dFocalLength: 500,
   cube3dDotSizeMul: 1.5,
-  cube3dFogStart: 0.6,
-  cube3dFogMin: 0.15,
+  cube3dFogStart: 0.5,
+  cube3dFogMin: 0.1,
   cube3dWarmupFrames: 10,
   // 3D Starfield (Mode 23)
   starfieldCount: 200,

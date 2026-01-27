@@ -210,6 +210,7 @@ export const MASTER_GROUPS = [
       'parallaxLinear',
       'parallaxFloat',
       'starfield3d',
+      'shootingStars',
       'elasticCenter',
       'dvdLogo',
       'particleFountain',
@@ -249,6 +250,7 @@ const SECTION_CATEGORIES = {
   'sphere3d': 'MOTION',
   'cube3d': 'MOTION',
   'starfield3d': 'MOTION',
+  'shootingStars': 'MOTION',
   'cloudHelix': 'MOTION',
   'entrance': 'MOTION',
 
@@ -4623,6 +4625,100 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
+  shootingStars: {
+    title: 'Shooting Stars',
+    icon: '🌠',
+    mode: 'shooting-stars',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'shootingStarsSpawnInterval',
+        label: 'Spawn Interval',
+        stateKey: 'shootingStarsSpawnInterval',
+        type: 'range',
+        min: 0.5, max: 10.0, step: 0.5,
+        default: 3.0,
+        format: v => v.toFixed(1) + 's',
+        parse: parseFloat,
+        hint: 'Time between shooting star bursts (lower = more frequent)'
+      },
+      {
+        id: 'shootingStarsBurstSize',
+        label: 'Burst Size',
+        stateKey: 'shootingStarsBurstSize',
+        type: 'range',
+        min: 1, max: 10, step: 1,
+        default: 1,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Number of stars spawned per burst'
+      },
+      {
+        id: 'shootingStarsMinSpeed',
+        label: 'Min Speed',
+        stateKey: 'shootingStarsMinSpeed',
+        type: 'range',
+        min: 100, max: 1000, step: 50,
+        default: 400,
+        format: v => `${Math.round(v)}px/s`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'shootingStarsMaxSpeed',
+        label: 'Max Speed',
+        stateKey: 'shootingStarsMaxSpeed',
+        type: 'range',
+        min: 500, max: 2000, step: 50,
+        default: 1200,
+        format: v => `${Math.round(v)}px/s`,
+        parse: v => parseInt(v, 10)
+      },
+      {
+        id: 'shootingStarsAngle',
+        label: 'Angle',
+        stateKey: 'shootingStarsAngle',
+        type: 'range',
+        min: -180, max: 180, step: 5,
+        default: -45,
+        format: v => `${Math.round(v)}°`,
+        parse: v => parseInt(v, 10),
+        hint: 'Direction of travel (0° = right, -90° = up, 90° = down)'
+      },
+      {
+        id: 'shootingStarsTrailLength',
+        label: 'Trail Length',
+        stateKey: 'shootingStarsTrailLength',
+        type: 'range',
+        min: 0, max: 20, step: 1,
+        default: 5,
+        format: v => String(Math.round(v)),
+        parse: v => parseInt(v, 10),
+        hint: 'Number of trail points (0 = no trail)'
+      },
+      {
+        id: 'shootingStarsMinSize',
+        label: 'Min Size',
+        stateKey: 'shootingStarsMinSize',
+        type: 'range',
+        min: 0.2, max: 2.0, step: 0.1,
+        default: 0.5,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat
+      },
+      {
+        id: 'shootingStarsMaxSize',
+        label: 'Max Size',
+        stateKey: 'shootingStarsMaxSize',
+        type: 'range',
+        min: 1.0, max: 4.0, step: 0.1,
+        default: 1.5,
+        format: v => v.toFixed(1) + '×',
+        parse: parseFloat
+      },
+      warmupFramesControl('shootingStarsWarmupFrames')
+    ]
+  },
+
   elasticCenter: {
     title: 'Elastic Center',
     icon: '⭕',
@@ -5083,7 +5179,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'cube3dFogStart',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.6,
+        default: 0.5,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat
       },
@@ -5093,7 +5189,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'cube3dFogMin',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.15,
+        default: 0.1,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat
       },
@@ -5870,6 +5966,7 @@ function generateHomeModeSectionHTML() {
               '3d-sphere': 'Sphere 3D',
               '3d-cube': 'Cube 3D',
               'starfield-3d': 'Starfield 3D',
+              'shooting-stars': 'Shooting Stars',
               'elastic-center': 'Elastic Center'
             };
             let buttons = '';

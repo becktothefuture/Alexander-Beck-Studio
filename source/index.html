@@ -230,19 +230,18 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/normalize.css">
   <link rel="stylesheet" href="css/main.css">
-  <!-- Random display typeface selection (scale-compensated to match Sarina cap height) -->
+  <!-- Random pixel font selection (game-like, scale-compensated) -->
   <script>
     (function() {
       var fonts = [
-        { name: 'Sarina', scale: 1, fallback: 'cursive' },
-        { name: 'Pacifico', scale: 1.05, fallback: 'cursive' },
-        { name: 'Press Start 2P', scale: 1.7, fallback: 'monospace' },
-        { name: 'VT323', scale: 1.35, fallback: 'monospace' },
-        { name: 'Bangers', scale: 0.95, fallback: 'cursive' },
-        { name: 'Boogaloo', scale: 1.0, fallback: 'cursive' }
+        { name: 'Press Start 2P', scale: 1.7 },
+        { name: 'VT323', scale: 1.35 },
+        { name: 'Silkscreen', scale: 1.5 },
+        { name: 'DotGothic16', scale: 1.25 },
+        { name: 'Pixelify Sans', scale: 1.15 }
       ];
       var pick = fonts[Math.floor(Math.random() * fonts.length)];
-      document.documentElement.style.setProperty('--abs-font-display', "'" + pick.name + "', " + pick.fallback);
+      document.documentElement.style.setProperty('--abs-font-display', "'" + pick.name + "', monospace");
       document.documentElement.style.setProperty('--abs-font-display-scale', pick.scale);
     })();
   </script>
@@ -253,7 +252,7 @@
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&family=Sarina&family=Pacifico&family=Press+Start+2P&family=VT323&family=Bangers&family=Boogaloo&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&family=Press+Start+2P&family=VT323&family=Silkscreen&family=DotGothic16&family=Pixelify+Sans&display=swap" rel="stylesheet">
 
   <link href="images/favicon.ico" rel="shortcut icon" type="image/x-icon">
   <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
@@ -287,21 +286,17 @@
 
     <!-- LAYER 2: Simulation Container - Balls render here -->
     <div id="bravia-balls" class="ball-simulation w-embed">
-      <div class="noise"></div>
       <canvas id="c" aria-label="Bouncy balls" role="img" draggable="false"></canvas>
-      <!-- Video Overlay - Inside wall, above balls, below wall frame -->
-      <video 
-        id="grunge-video-overlay" 
-        class="grunge-video-overlay"
-        autoplay 
-        muted 
-        loop 
-        playsinline
-        preload="auto"
-        aria-hidden="true"
-      >
-        <source src="video/videoB.mp4" type="video/mp4">
-      </video>
+      <!-- EFFECTS OVERLAYS: Noise + Video grouped above wall, clipped to interior -->
+      <div class="effects-overlays" aria-hidden="true">
+        <div class="noise"></div>
+        <!-- Video overlay placeholder: uncomment when ready
+        <video id="grunge-video-overlay" class="grunge-video-overlay" autoplay muted loop playsinline preload="auto">
+          <source src="video/grunge-overlay.webm" type="video/webm">
+          <source src="video/grunge-overlay.mp4" type="video/mp4">
+        </video>
+        -->
+      </div>
     </div>
   </div>
   
@@ -388,7 +383,7 @@
           <div class="ui-meta-right corner-dock corner-dock--br">
              <!-- Sound Toggle will be injected here by JS -->
              <button id="site-year" type="button" class="caption abs-meta-btn abs-hover-target abs-hover-target--index" aria-label="Toggle theme">
-              <span><strong class="location-name">London</strong><span class="meta-separator"> · </span><span id="time-display"></span></span>
+              <span class="meta-stack"><strong class="location-name">London</strong><span id="time-display"></span></span>
             </button>
           </div>
         </div>

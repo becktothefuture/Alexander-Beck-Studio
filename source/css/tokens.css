@@ -50,8 +50,8 @@
   /* Typography Tokens */
   --abs-font-sans: 'Geist', sans-serif;
   --abs-font-mono: 'Geist Mono', monospace;
-  --abs-font-display: 'Sarina', cursive;
-  --abs-font-display-scale: 1;
+  --abs-font-display: 'Press Start 2P', monospace;
+  --abs-font-display-scale: 1.7;
   --abs-weight-regular: 400;
   --abs-weight-medium: 600;
   --abs-weight-semibold: 700;
@@ -409,10 +409,41 @@
   --ui-icon-hit-pad: var(--hit-area-md);
 
 
-  --z-ui-base: 10;
-  --z-ui-elevated: 20;
-  --z-ui-top: 25;
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     Z-INDEX STACKING ORDER (bottom to top)
+     ═══════════════════════════════════════════════════════════════════════════════
+     
+     DOCUMENT LEVEL (position: fixed):
+     ─────────────────────────────────────────────────────────────────────────────
+     Body                     -          body (base)
+     Background               1          .content-background-layer
+     Logo                     2          #brand-logo
+     Text Content             3          .fade-content, #main-links, .edge-caption
+     Wall (container)         100        #bravia-balls
+     Dev Panel                9999       .abs-control-panel
+     Modal Blur               19998      #modal-blur-layer
+     Modal Content            19999      #modal-content-layer
+     Page Flash               20000      #page-flash
+     
+     INSIDE #bravia-balls (wall interior stacking context):
+     ─────────────────────────────────────────────────────────────────────────────
+     Canvas (balls)           10         #bravia-balls canvas
+     Noise                    25         .noise
+     Wall Edge Shading        30         #bravia-balls::after
+     Wall Stroke              40         #bravia-balls::before
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  --z-background: 1;
+  --z-logo: 2;
+  --z-text-content: 3;
+  --z-wall: 100;
+  --z-canvas: 10;
+  --z-noise: 25;
+  --z-wall-edge: 30;
+  --z-wall-stroke: 40;
   --z-panel: 9999;
+  --z-modal-blur: 19998;
+  --z-modal-content: 19999;
+  --z-page-flash: 20000;
 
   /* Brand logo sizing (driven by the dev panel slider via `--top-logo-width-vw`). */
   --top-logo-width-vw: 42;

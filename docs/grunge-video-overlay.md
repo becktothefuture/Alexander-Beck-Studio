@@ -242,8 +242,14 @@ The blend mode determines how the video mixes with the content below:
 
 ### Architecture
 
-- **Layer**: z-index 19997 (above all content, below modals)
-- **Positioning**: Fixed, full viewport (100dvw × 100dvh)
+**Effects Overlays Container** (`.effects-overlays`):
+- **Location**: Inside `#bravia-balls`, groups noise + video effects
+- **Layer**: z-index 50 (above wall effects at z:30/40, above canvas at z:10)
+- **Clipping**: Matches wall interior via `inset: var(--wall-thickness)` and `border-radius: var(--wall-radius)`
+- **Isolation**: `isolation: isolate` prevents blend mode bleeding
+
+**Video Overlay** (`.grunge-video-overlay`):
+- **Positioning**: Absolute, fills the effects container
 - **Performance**: Hardware-accelerated via `transform: translateZ(0)`
 - **Accessibility**: `aria-hidden="true"`, respects `prefers-reduced-motion`
 - **Interaction**: `pointer-events: none` (doesn't block clicks)
@@ -260,20 +266,35 @@ The blend mode determines how the video mixes with the content below:
 
 ```
 source/
-├── index.html              # Video element added
-├── portfolio.html          # Video element added
-├── cv.html                 # Video element added
+├── index.html              # Effects overlays container + video element
+├── portfolio.html          # Effects overlays container + video element
+├── cv.html                 # Effects overlays container + video element
 ├── main.js                 # Video initialization (index)
-├── videos/                 # Your video files (create this)
+├── video/                  # Your video files (create this)
 │   ├── grunge-overlay.mp4
 │   └── grunge-overlay.webm
 ├── css/
 │   ├── tokens.css          # Configuration variables
-│   └── main.css            # Video overlay styles
+│   └── main.css            # Effects overlays + video styles
 └── modules/
     ├── portfolio/
     │   └── app.js          # Video initialization (portfolio)
     └── cv-init.js          # Video initialization (CV)
+```
+
+### HTML Structure
+
+The effects overlays are inside `#bravia-balls` as a unified container:
+
+```html
+<div id="bravia-balls" class="ball-simulation w-embed">
+  <canvas id="c" ...></canvas>
+  <!-- EFFECTS OVERLAYS: Noise + Video grouped above wall -->
+  <div class="effects-overlays" aria-hidden="true">
+    <div class="noise"></div>
+    <video class="grunge-video-overlay" ...></video>
+  </div>
+</div>
 ```
 
 ## Examples

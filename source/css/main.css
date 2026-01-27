@@ -194,76 +194,6 @@ body.dark-mode .content-background-layer {
   background: transparent;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   GRUNGE VIDEO OVERLAY - Inside #bravia-balls, above balls, below wall frame
-   Behaves EXACTLY like background-size: cover - always fills, no gaps
-   ═══════════════════════════════════════════════════════════════════════════════ */
-.grunge-video-overlay {
-  /* ABSOLUTE positioning within #bravia-balls */
-  position: absolute;
-  
-  /* Inset by wall-thickness to sit INSIDE the wall frame */
-  inset: var(--wall-thickness, 9px);
-  
-  /* Border radius matches wall interior */
-  border-radius: var(--wall-radius);
-  
-  /* Layering - Above canvas (z:3), BELOW wall frame effects (z:6-7) */
-  z-index: 4;
-  
-  /* CRITICAL: object-fit cover = scale to fill, crop edges if needed */
-  /* This ensures video ALWAYS fills entire area - no gaps ever */
-  object-fit: cover;
-  object-position: center;
-  
-  /* Blend mode - Token-driven, theme-aware */
-  mix-blend-mode: var(--grunge-video-blend-mode-light, lighten);
-  
-  /* Pointer events - Video should not block interactions */
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-select: none;
-  
-  /* Initial state - Hidden, ready for fade-in */
-  opacity: 0;
-  visibility: hidden;
-  
-  /* Performance optimizations */
-  will-change: opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  
-  /* Fade-in transition - Token-driven timing */
-  transition: 
-    opacity var(--grunge-video-fade-duration, 2000ms) var(--grunge-video-fade-easing, cubic-bezier(0.16, 1, 0.3, 1)),
-    visibility var(--grunge-video-fade-duration, 2000ms) var(--grunge-video-fade-easing, cubic-bezier(0.16, 1, 0.3, 1)),
-    mix-blend-mode var(--duration-settle, 400ms) var(--ease-settle, cubic-bezier(0.16, 1, 0.3, 1));
-}
-
-/* Loaded state - Fades in when video is ready */
-.grunge-video-overlay.loaded {
-  opacity: var(--grunge-video-opacity, 1);
-  visibility: visible;
-}
-
-/* Dark mode adjustment - Uses dark mode blend token */
-.dark-mode .grunge-video-overlay {
-  mix-blend-mode: var(--grunge-video-blend-mode-dark, lighten);
-}
-
-/* Disabled state - Honor global disable token */
-.grunge-video-overlay[data-disabled="true"] {
-  display: none;
-}
-
-/* Reduced motion - Instant appearance, no animation */
-@media (prefers-reduced-motion: reduce) {
-  .grunge-video-overlay {
-    transition: none;
-  }
-}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    EDGE CAPTION (Bottom, centered; engraved two-line stack)
@@ -274,7 +204,7 @@ body.dark-mode .content-background-layer {
   bottom: clamp(var(--edge-caption-distance-min, 8px), 2vh, var(--edge-caption-distance-max, 48px));
   left: 50%;
   transform: translateX(-50%);
-  z-index: 6;
+  z-index: 3; /* Text content layer: same as .fade-content */
   pointer-events: none;
   display: inline-flex;
   flex-direction: column;
@@ -291,10 +221,10 @@ body.dark-mode .content-background-layer {
   font-family: 'Geist Mono', monospace;
   font-size: min(calc(var(--text-xs) * 0.85), 7px);
   font-weight: 400;
-  line-height: 1;
+  line-height: 1.3;
   letter-spacing: var(--letter-spacing-loose);
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal; /* Allow wrapping */
   /* Same colour and opacity (on parent) in light and dark; no overrides */
   color: #8a8a8a;
   /* Subtle engraved treatment: tiny light lift + recessed dark edge */
@@ -373,7 +303,7 @@ html.fonts-loading .project-detail {
   /* Visuals */
   background: transparent;
   /* No border-radius - only simulation (#bravia-balls) has rounded corners */
-  z-index: 20; /* Above canvas */
+  z-index: 3; /* Text content: above logo (z:2), below canvas (z:10) */
   pointer-events: none; /* Let clicks pass through to canvas in empty areas */
   /* Smooth layout updates (resize + config). Avoid overriding other timings by only setting this where none exists. */
   transition:
@@ -455,15 +385,28 @@ html.modal-active .fade-content {
   transition-duration: var(--modal-hide-duration, 500ms);
 }
 
-/* UI Wrapper Frame */
+/* UI Wrapper Frame - CSS Grid 3-Row Layout */
 .ui-layer-wrapper {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "top"
+    "center"
+    "bottom";
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* Grid area assignments */
+.ui-top {
+  grid-area: top;
+}
+
+.ui-bottom {
+  grid-area: bottom;
 }
 
 /* Light gradient overlay from .viewport--content::before - preserved */
@@ -517,7 +460,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   display: flex;
   flex-direction: column;
   width: 100%;
-  z-index: 20;
+  z-index: 3; /* Inherits from .fade-content (z:3) */
   pointer-events: none;
 }
 
@@ -545,13 +488,13 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
 
 /* Legend - Left */
 .legend {
-  position: relative; /* Remove fixed */
+  position: relative;
   top: auto;
   left: auto;
-  /* Switch to GRID for 4x2 layout */
+  /* 3-column grid on desktop */
   display: grid;
-  grid-template-columns: repeat(4, auto);
-  gap: var(--legend-gap-row) var(--legend-gap-col);
+  grid-template-columns: repeat(3, auto);
+  gap: -2px; /* Negative gap for tight/overlapping layout */
   padding: var(--gap-xs);
   /* Limit max width to keep legend compact */
   max-width: 620px; 
@@ -562,12 +505,10 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   pointer-events: auto;
 }
 
-/* Expertise legend container should not present as a rounded "card" (Webflow/cursor systems may apply radius). */
+/* Expertise legend container should not present as a rounded "card" */
 #expertise-legend {
   border-radius: 0;
   background: transparent;
-  column-gap: 0;
-  row-gap: 0;
 }
 
 .legend:hover {
@@ -758,7 +699,12 @@ body.dark-mode .legend-tooltip-output {
   justify-content: flex-end;
   width: 100%;
   pointer-events: none;
-  gap: var(--gap-lg); /* Gap between text and sound button */
+  gap: var(--gap-lg); /* Gap between sound button and text */
+}
+
+/* Sound toggle appears BEFORE text (left of text) via flex order */
+.ui-top-right #sound-toggle-slot {
+  order: -1; /* Move sound icon to the left of the text */
 }
 
 .decorative-script {
@@ -890,7 +836,7 @@ p {
   flex-direction: column;
   width: 100%;
   gap: var(--gap-24); /* Spacing between Links Row and Meta Row */
-  z-index: 20;
+  z-index: 3; /* Text content layer: same as .fade-content */
   pointer-events: none;
 }
 
@@ -940,7 +886,7 @@ p {
   margin: 0;
   pointer-events: auto;
   opacity: 1;
-  z-index: 21; /* Above .fade-content (z-index: 20) */
+  z-index: 3; /* Text content layer: same as .fade-content */
   /* Modal show transition (when modal closes, nav fades back in) */
   transition:
     top var(--duration-resize) var(--ease-organic),
@@ -1373,11 +1319,19 @@ button.abs-meta-btn,
   font-weight: var(--abs-weight-regular);
 }
 
-/* Time Display - Geist font (not Sarina) */
+/* Meta stack: location on top, time below */
+.meta-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/* Time Display - Geist font, 80% size */
 #time-display {
   font-family: 'Geist', sans-serif;
   font-style: normal;
-  font-size: inherit;
+  font-size: 0.8em;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
@@ -1436,7 +1390,7 @@ button.abs-meta-btn,
 /* ─────────────────────────────────────────────────────────────────────────────
    CENTER SECTION (LOGO) - Kept absolute/fixed behind UI
    ───────────────────────────────────────────────────────────────────────────── */
-/* Note: #brand-logo is separate from .fade-content structure to maintain z-index: 3 */
+/* Note: #brand-logo is separate from .fade-content structure to maintain z-index: 2 */
 #brand-logo {
   --brand-logo-offset-y: -50%;
   color: var(--text-logo);
@@ -1460,7 +1414,7 @@ button.abs-meta-btn,
     opacity var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms),
     filter var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms),
     padding var(--duration-resize) var(--ease-organic);
-  z-index: 3; /* Behind balls (z:5) */
+  z-index: 2; /* Logo: above background (z:1), below text content (z:3) */
   pointer-events: none;
   width: 100%;
   height: auto;
@@ -1643,7 +1597,7 @@ html.modal-active #main-links { pointer-events: none; }
   /* Background is owned by #bravia-balls (single rounded surface) to prevent
      multi-layer rounded-edge re-rasterization "snaps" at the end of scene scaling. */
   background: transparent;
-  z-index: 1; 
+  z-index: 1; /* Background: lowest layer above body */
   pointer-events: none;
   transform: translateZ(0);
   /* Smooth resize-driven geometry changes (inset only, no radius). */
@@ -1675,9 +1629,9 @@ html.modal-active #main-links { pointer-events: none; }
   /* Scene interior uses page background (light in light mode, dark in dark mode) */
   background: var(--bg-light);
   background-color: var(--bg-light);
-  z-index: 25; /* Above #app-frame (z:20) so video overlay appears above UI */
+  z-index: 100; /* Wall: top of visual stack (below modals at z:19998+) */
   pointer-events: none;
-  overflow: visible; /* Canvas extends 1px beyond for edge coverage; balls are physics-contained */
+  overflow: visible; /* Canvas extends 1px beyond for edge coverage */
   /* GPU layer hint for smooth compositing */
   transform: translateZ(0);
   transform-origin: center center;
@@ -1730,7 +1684,7 @@ body.dark-mode #bravia-balls {
   border-radius: var(--wall-radius);
   
   pointer-events: none;
-  z-index: 6;
+  z-index: 30; /* Wall edge shading: above video (z:20), below stroke (z:40) */
   
   /* ═══ LIGHT MODE: Recessed panel depth ═══ */
   box-shadow:
@@ -1757,7 +1711,7 @@ body.dark-mode #bravia-balls {
   border-radius: var(--wall-radius);
   
   pointer-events: none;
-  z-index: 7; /* Above edge shading */
+  z-index: 40; /* Wall stroke: top of wall interior stack */
   
   /* Solid edge definition */
   border: 0.5px solid rgba(255,255,255, 0.05);
@@ -1790,16 +1744,45 @@ body.dark-mode #bravia-balls::before {
   left: -1px;
   width: calc(100% + 2px);
   height: calc(100% + 2px);
-  z-index: 3; /* Below video (z:4) and wall effects (z:6-7) */
+  z-index: 10; /* Canvas (balls): below effects overlays */
   pointer-events: auto; /* Interactions enabled */
   touch-action: none;
   border-radius: 0; /* Radius controlled entirely by rubber wall system */
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   EFFECTS OVERLAYS CONTAINER
+   
+   Groups visual effects (noise, video overlay) in a single layer ABOVE wall effects.
+   Clipped to wall interior using border-radius + overflow: hidden.
+   
+   Z-INDEX STACK (inside #bravia-balls):
+   - 10: canvas (simulation/balls)
+   - 30: ::after (wall edge shading)
+   - 40: ::before (wall stroke)
+   - 50: .effects-overlays (noise + video, on top of everything)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.effects-overlays {
+  position: absolute;
+  /* Match wall inner edge exactly */
+  inset: var(--wall-thickness, 9px);
+  border-radius: var(--wall-radius);
+  /* Clip all effects to wall interior */
+  overflow: hidden;
+  pointer-events: none;
+  /* Above all wall visual effects (::before at z:40, ::after at z:30) */
+  z-index: 50;
+  /* Prevent effects from creating unwanted stacking contexts that interfere with other layers */
+  isolation: isolate;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   NOISE TEXTURE OVERLAY
+   ═══════════════════════════════════════════════════════════════════════════════ */
 .noise {
   position: absolute;
-  /* Inset 4px from edges to prevent flickering through edges */
-  inset: 4px;
+  /* Fill the effects container (already clipped by parent) */
+  inset: 0;
   pointer-events: none;
   overflow: hidden;
   /* Safari fix: isolate blend mode to prevent bleeding into other layers */
@@ -1807,13 +1790,6 @@ body.dark-mode #bravia-balls::before {
   /* Fade-in on load: starts hidden via visibility, revealed by .noise-ready class */
   visibility: hidden;
   transition: visibility 0s linear 0s, opacity 800ms cubic-bezier(0.16, 1, 0.3, 1);
-  /* Note: clip-path removed to allow noise to fill full height.
-     If Safari browser chrome tinting issues occur, consider applying
-     clip-path only to ::before/::after pseudo-elements instead. */
-}
-
-.noise {
-  z-index: 4; /* Behind canvas (z:5) and wall, but above logo (z:3) */
   opacity: 0;
 }
 
@@ -1876,6 +1852,51 @@ body.dark-mode .noise-ready .noise {
 
 body.dark-mode .noise::after {
   background-color: var(--noise-color-dark);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   GRUNGE VIDEO OVERLAY (within .effects-overlays)
+   
+   Atmospheric video texture for found-footage aesthetic.
+   See docs/grunge-video-overlay.md for setup instructions.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.grunge-video-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  /* Start hidden, fade in when video loads */
+  opacity: 0;
+  visibility: hidden;
+  transition: 
+    opacity var(--grunge-video-fade-duration, 2000ms) var(--grunge-video-fade-easing, cubic-bezier(0.16, 1, 0.3, 1)),
+    visibility 0s linear 0s;
+  /* Light mode blend */
+  mix-blend-mode: var(--grunge-video-blend-mode-light, multiply);
+  /* GPU acceleration */
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Video visible state (triggered by JS when video can play) */
+.grunge-video-ready .grunge-video-overlay {
+  opacity: calc(var(--grunge-video-opacity, 1) * var(--grunge-video-enabled, 1));
+  visibility: visible;
+}
+
+/* Dark mode video blend */
+body.dark-mode .grunge-video-overlay {
+  mix-blend-mode: var(--grunge-video-blend-mode-dark, overlay);
+}
+
+/* Respect reduced motion: pause video animation */
+@media (prefers-reduced-motion: reduce) {
+  .grunge-video-overlay {
+    display: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -1975,7 +1996,7 @@ html.is-safari .noise::before {
 @media (max-width: 991px) { /* Tablet */
   .legend {
     grid-template-columns: repeat(3, auto); /* 3x3 layout */
-    gap: clamp(3px, 0.4vmin, 6px) clamp(12px, 1.5vw, 20px);
+    gap: -2px;
   }
 }
 
@@ -1984,7 +2005,7 @@ html.is-safari .noise::before {
 @media (max-width: 820px) {
   .legend {
     grid-template-columns: repeat(2, auto);
-    gap: clamp(3px, 0.4vmin, 6px) clamp(10px, 1.2vw, 16px);
+    gap: -2px;
   }
 }
 
@@ -2025,14 +2046,9 @@ html.is-safari .noise::before {
     gap: var(--gap-lg); /* Increase gutter between left list and right bio */
   }
 
-  .ui-top-left,
-  .ui-top-right {
+  .ui-top-left {
     flex: 1 1 0;
     min-width: 0; /* allow text/grid to shrink instead of forcing overflow */
-  }
-
-  .ui-top-right {
-    max-width: none;
   }
 
   #top-elements-soundRow.ui-top-soundRow {
@@ -2050,8 +2066,8 @@ html.is-safari .noise::before {
   
   .legend {
     max-width: 100%;
-    grid-template-columns: 1fr; /* 1x7 layout */
-    gap: var(--gap-xs);
+    grid-template-columns: 1fr; /* 1-column on mobile */
+    gap: -2px;
   }
   
   /* Reduce vertical padding on legend items for tighter mobile spacing */
@@ -2064,11 +2080,6 @@ html.is-safari .noise::before {
     padding: calc(var(--gap-xs) * 2) var(--gap-sm);
   }
   
-  .ui-top-right {
-    max-width: 100%;
-    justify-content: flex-start;
-  }
-  
   .ui-bottom {
     gap: var(--gap-24);
   }
@@ -2078,11 +2089,13 @@ html.is-safari .noise::before {
   }
   
   #main-links {
-    /* Mobile: vertically stacked, no gap, center aligned */
-    flex-direction: column;
+    /* Mobile: horizontal row, smaller gap, center aligned */
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: center;
+    justify-content: center;
     padding-inline: 0;
-    gap: 0;
+    gap: var(--gap-sm);
   }
   
   .footer_link {
@@ -2090,10 +2103,10 @@ html.is-safari .noise::before {
     font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 0.85);
   }
 
-  /* Nav bar links: proper padding on mobile */
+  /* Nav bar links: compact padding on mobile */
   #main-links .footer_link {
-    padding-block: 16px;
-    padding-inline: 32px;
+    padding-block: 10px;
+    padding-inline: 14px;
     margin: 0;
     display: inline-flex;
     align-items: center;
@@ -2192,7 +2205,7 @@ a:active {
   /* Use absolute positioning when inside #bravia-balls (transformed parent makes fixed relative to parent) */
   position: absolute;
   pointer-events: none;
-  z-index: 3; /* Behind canvas (z:5), same level as logo/noise (z:3-4) */
+  z-index: 3; /* Text content layer: above logo (z:2), below canvas (z:4) */
   border: none;
   background: var(--cursor-color);
   transform-origin: center center;

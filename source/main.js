@@ -712,47 +712,6 @@ window.addEventListener('unhandledrejection', (event) => {
       }
     }
     
-    // ╔══════════════════════════════════════════════════════════════════════════════╗
-    // ║                    GRUNGE VIDEO OVERLAY INITIALIZATION                       ║
-    // ║          Soft fade-in when video is ready to play                            ║
-    // ╚══════════════════════════════════════════════════════════════════════════════╝
-    try {
-      const grungeVideo = document.getElementById('grunge-video-overlay');
-      if (grungeVideo) {
-        // Only initialize if video has a source
-        const hasSource = grungeVideo.querySelector('source');
-        if (hasSource) {
-          // Handle video ready state
-          const handleVideoReady = () => {
-            // Add loaded class to trigger CSS fade-in
-            grungeVideo.classList.add('loaded');
-            log('✓ Grunge video overlay faded in');
-          };
-          
-          // Check if video is already ready (cached)
-          if (grungeVideo.readyState >= 3) {
-            handleVideoReady();
-          } else {
-            // Wait for video to be ready
-            grungeVideo.addEventListener('canplaythrough', handleVideoReady, { once: true });
-            
-            // Fallback: if video fails to load, don't block anything
-            grungeVideo.addEventListener('error', () => {
-              console.warn('⚠️ Grunge video failed to load, skipping overlay');
-            }, { once: true });
-          }
-          
-          // Start playback (muted + autoplay should work)
-          grungeVideo.play().catch((err) => {
-            // Autoplay blocked - this is fine, video won't show
-            console.warn('⚠️ Grunge video autoplay blocked:', err.message);
-          });
-        }
-      }
-    } catch (videoError) {
-      console.warn('⚠️ Video overlay initialization error:', videoError);
-    }
-    
   } catch (error) {
     console.error('❌ Initialization failed:', error);
     document.body.innerHTML = `<div style="padding: 20px; color: red; background: white;">

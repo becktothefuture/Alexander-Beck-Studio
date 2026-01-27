@@ -285,37 +285,6 @@ async function bootstrapCvPage() {
     setupPrefetchOnHover(backLink, 'index.html');
   }
   
-  // ╔══════════════════════════════════════════════════════════════════════════════╗
-  // ║                    GRUNGE VIDEO OVERLAY INITIALIZATION                       ║
-  // ║          Soft fade-in when video is ready to play                            ║
-  // ╚══════════════════════════════════════════════════════════════════════════════╝
-  try {
-    const grungeVideo = document.getElementById('grunge-video-overlay');
-    if (grungeVideo) {
-      const hasSource = grungeVideo.querySelector('source');
-      if (hasSource) {
-        const handleVideoReady = () => {
-          grungeVideo.classList.add('loaded');
-          console.log('✓ Grunge video overlay faded in (CV)');
-        };
-        
-        if (grungeVideo.readyState >= 3) {
-          handleVideoReady();
-        } else {
-          grungeVideo.addEventListener('canplaythrough', handleVideoReady, { once: true });
-          grungeVideo.addEventListener('error', () => {
-            console.warn('⚠️ Grunge video failed to load (CV)');
-          }, { once: true });
-        }
-        
-        grungeVideo.play().catch((err) => {
-          console.warn('⚠️ Grunge video autoplay blocked (CV):', err.message);
-        });
-      }
-    }
-  } catch (videoError) {
-    console.warn('⚠️ Video overlay initialization error (CV):', videoError);
-  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

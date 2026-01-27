@@ -230,22 +230,12 @@
 
     <!-- LAYER 2: Portfolio Container - Carousel renders here (z:5) -->
     <div id="bravia-balls" class="portfolio-simulation w-embed">
-      <div class="noise"></div>
       <!-- Wall-only canvas: renders the same rubber wall ring as index (no balls). -->
       <canvas class="portfolio-wall-canvas" aria-hidden="true"></canvas>
-      <!-- Video Overlay - Inside wall, above canvas, below wall frame -->
-      <video 
-        id="grunge-video-overlay" 
-        class="grunge-video-overlay"
-        autoplay 
-        muted 
-        loop 
-        playsinline
-        preload="auto"
-        aria-hidden="true"
-      >
-        <source src="video/videoB.mp4" type="video/mp4">
-      </video>
+      <!-- EFFECTS OVERLAYS: Noise + Video grouped above wall, clipped to interior -->
+      <div class="effects-overlays" aria-hidden="true">
+        <div class="noise"></div>
+      </div>
       <!-- Portfolio Stage -->
       <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
       <div class="portfolio-stage" style="opacity:0; visibility:hidden">
