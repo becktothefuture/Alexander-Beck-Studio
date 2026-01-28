@@ -2000,16 +2000,16 @@ html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay--da
     min-width: 0;
   }
 
-  /* FIX #2: Left-align intro text container on mobile (after vertical stack) */
+  /* FIX #2: Keep intro text container aligned right on mobile (after vertical stack) */
   .ui-top-right {
-    justify-content: flex-start;
+    justify-content: flex-end;
     width: 100%;
   }
 
-  /* FIX #3: Expand intro paragraph to full width on mobile */
+  /* FIX #3: Expand intro paragraph to full width on mobile, aligned right */
   .decorative-script {
     max-width: 100%;
-    text-align: left;
+    text-align: right;
   }
 
   #top-elements-soundRow.ui-top-soundRow {
