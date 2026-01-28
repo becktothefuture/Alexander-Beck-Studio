@@ -192,9 +192,6 @@ body.body.dark-mode {
   /* Inner shadow removed */
 }
 
-body.dark-mode .content-background-layer {
-  background: transparent;
-}
 
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -206,7 +203,7 @@ body.dark-mode .content-background-layer {
   bottom: clamp(var(--edge-caption-distance-min, 8px), 2vh, var(--edge-caption-distance-max, 48px));
   left: 50%;
   transform: translateX(-50%);
-  z-index: 3; /* Text content layer: same as .fade-content */
+  z-index: 3; /* Within .fade-content stacking context */
   pointer-events: none;
   display: inline-flex;
   flex-direction: column;
@@ -305,7 +302,7 @@ html.fonts-loading .project-detail {
   /* Visuals */
   background: transparent;
   /* No border-radius - only simulation (#bravia-balls) has rounded corners */
-  z-index: 3; /* Text content: above logo (z:2), below canvas (z:10) */
+  z-index: 200; /* UI layer: above wall (z:100), below modals (z:19998+) */
   pointer-events: none; /* Let clicks pass through to canvas in empty areas */
   /* Smooth layout updates (resize + config). Avoid overriding other timings by only setting this where none exists. */
   transition:
@@ -407,6 +404,21 @@ html.modal-active .fade-content {
   grid-area: top;
 }
 
+.ui-center {
+  /* Absolutely positioned at viewport center, slightly shifted down for visual balance */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateY(5vh); /* 5vh downward shift for visual balance */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(32px, 4vw, 56px);
+  pointer-events: none;
+  z-index: 10; /* Above background, below modals */
+}
+
 .ui-bottom {
   grid-area: bottom;
 }
@@ -415,7 +427,8 @@ html.modal-active .fade-content {
 .fade-content.viewport.viewport--content::before {
   content: '';
   position: absolute;
-  inset: 0;
+  /* Align to inner wall edge: safari-tint-inset + wall-thickness */
+  inset: calc(var(--safari-tint-inset, 20px) + var(--wall-thickness, 9px));
   /* No border-radius - only simulation (#bravia-balls) has rounded corners */
   border-radius: 0;
   pointer-events: none;
@@ -462,7 +475,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   display: flex;
   flex-direction: column;
   width: 100%;
-  z-index: 3; /* Inherits from .fade-content (z:3) */
+  z-index: 3; /* Within .fade-content (z:200) stacking context */
   pointer-events: none;
 }
 
@@ -838,7 +851,7 @@ p {
   flex-direction: column;
   width: 100%;
   gap: var(--gap-24); /* Spacing between Links Row and Meta Row */
-  z-index: 3; /* Text content layer: same as .fade-content */
+  z-index: 3; /* Within .fade-content (z:200) stacking context */
   pointer-events: none;
 }
 
@@ -857,21 +870,11 @@ p {
   justify-content: center;
 }
 
-/* Main Links Navigation Bar - Full-width nav bar positioned relative to viewport */
+/* Main Links Navigation - Grid-positioned in .ui-center flex container */
 #main-links {
-  /* Position relative to viewport (outside .fade-content to avoid transform containing block) */
-  position: fixed;
-  left: 0;
-  right: 0;
-  transform: translateX(0) scale(1);
+  position: static; /* Static positioning in flex container */
+  transform: scale(1);
   transform-origin: center center;
-  /* Position from top (configurable via --footer-nav-bar-top) */
-  top: var(--footer-nav-bar-top, 50vh);
-  top: var(--footer-nav-bar-top-svh, 50svh);
-  top: var(--footer-nav-bar-top-dvh, 50dvh);
-  /* Height auto - determined by button padding + content */
-  height: auto;
-  min-height: 0;
   /* Horizontal flexbox layout - center aligned */
   display: flex;
   flex-direction: row;
@@ -880,25 +883,21 @@ p {
   align-items: center; /* Center align buttons vertically */
   /* Gap between buttons (configurable via token) */
   gap: var(--footer-nav-bar-gap, var(--gap-xl));
-  /* Full-width bar; content centered */
+  /* Full-width container; content centered */
   width: 100%;
   max-width: 100%;
   padding-inline: 0;
   padding-block: 0;
   margin: 0;
   pointer-events: auto;
-  opacity: 1;
-  z-index: 3; /* Text content layer: same as .fade-content */
-  /* Modal show transition (when modal closes, nav fades back in) */
+  /* Opacity: 0 when not entered, page-opacity when entered (matches logo behavior) */
+  opacity: calc(var(--ui-visible, 0) * var(--ui-page-opacity, 0.7));
+  /* Transition for entrance animation */
   transition:
-    top var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic),
-    right var(--duration-resize) var(--ease-organic),
-    max-width var(--duration-resize) var(--ease-organic),
-    gap var(--duration-resize) var(--ease-organic),
-    padding var(--duration-resize) var(--ease-organic),
-    transform var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms),
-    opacity var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms);
+    gap var(--duration-resize, 200ms) var(--ease-organic, cubic-bezier(0.34, 1.56, 0.64, 1)),
+    padding var(--duration-resize, 200ms) var(--ease-organic, cubic-bezier(0.34, 1.56, 0.64, 1)),
+    opacity var(--ui-duration-in, 780ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--ui-duration-in, 780ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 #main-links.main-links--staggered .footer_link {
@@ -1390,35 +1389,15 @@ button.abs-meta-btn,
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   CENTER SECTION (LOGO) - Kept absolute/fixed behind UI
+   CENTER SECTION (LOGO) - Grid-positioned in .ui-center flex container
    ───────────────────────────────────────────────────────────────────────────── */
-/* Note: #brand-logo is separate from .fade-content structure to maintain z-index: 2 */
 #brand-logo {
-  --brand-logo-offset-y: -50%;
   color: var(--text-logo);
-  position: fixed;
-  top: 50%;
-  left: 0;
-  right: 0;
-  /* Counter-scale the scene "press-in" so the logo stays visually stable.
-     #brand-logo lives inside #abs-scene, so it inherits the scene's transform scale. */
-  transform:
-    translateY(var(--brand-logo-offset-y))
-    scale(calc(var(--abs-scene-impact-logo-scale, 1) * var(--brand-logo-user-scale, 1)));
+  position: static; /* Static positioning in flex container - participates in flex flow */
   transform-origin: center center;
-  opacity: 1;
-  /* Modal show transition (when modal closes, logo fades back in) */
-  transition: 
-    top var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic),
-    right var(--duration-resize) var(--ease-organic),
-    transform var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms),
-    opacity var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms),
-    filter var(--modal-show-duration, 400ms) var(--ease-gate) var(--modal-show-delay, 100ms),
-    padding var(--duration-resize) var(--ease-organic);
-  z-index: 2; /* Logo: above background (z:1), below text content (z:3) */
   pointer-events: none;
-  width: 100%;
+  /* Let SVG define the size - no constraints on container */
+  width: auto;
   height: auto;
   margin: 0;
   padding-inline: 0;
@@ -1499,23 +1478,28 @@ body.cv-page { --ui-page-opacity: 1; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LOGO - State-driven animation
+   LOGO - State-driven animation (grid-positioned, no translateY offset)
    ───────────────────────────────────────────────────────────────────────────── */
 #brand-logo {
-  /* Derived properties from state */
-  opacity: var(--ui-visible);
-  filter: blur(calc(var(--ui-entrance-blur) * (1 - var(--ui-entered))));
-  transform: translateY(calc(
-    -50% + (var(--ui-entrance-ty) * (1 - var(--ui-entered)))
-  )) scale(calc(
-    var(--ui-entrance-scale) + ((1 - var(--ui-entrance-scale)) * var(--ui-entered))
+  /* Static positioning in flex container - participates in flex flow */
+  position: static;
+  visibility: visible;
+  /* Opacity: 0 when not entered, page-opacity (0.7) when entered */
+  opacity: calc(var(--ui-visible, 0) * var(--ui-page-opacity, 0.7));
+  filter: blur(calc(var(--ui-entrance-blur, 4px) * (1 - var(--ui-entered, 0))));
+  /* Grid-positioned: scale-only animation (no translateY offset needed) */
+  /* Combine entrance scale with impact scale */
+  transform: scale(calc(
+    (var(--ui-entrance-scale, 0.96) + ((1 - var(--ui-entrance-scale, 0.96)) * var(--ui-entered, 0))) *
+    var(--abs-scene-impact-logo-scale, 1) *
+    var(--brand-logo-user-scale, 1)
   ));
   
   /* Single transition definition - always active */
   transition:
-    opacity var(--ui-logo-duration-in) var(--ui-ease-in),
-    filter var(--ui-logo-duration-in) var(--ui-ease-in),
-    transform var(--ui-logo-duration-in) var(--ui-ease-in);
+    opacity var(--ui-logo-duration-in, 1040ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1)),
+    filter var(--ui-logo-duration-in, 1040ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--ui-logo-duration-in, 1040ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 /* Faster exit when modal opens */
@@ -1523,6 +1507,7 @@ html.modal-active #brand-logo {
   transition-duration: var(--ui-duration-out);
   transition-timing-function: var(--ui-ease-out);
 }
+
 
 /* ─────────────────────────────────────────────────────────────────────────────
    NAV LINKS - State-driven animation with staggering
@@ -1566,17 +1551,9 @@ html.modal-active #main-links { pointer-events: none; }
 
 #brand-logo .brand-logo-svg {
   display: block;
-  width: min(
-    var(
-      --abs-brand-logo-width,
-      clamp(
-        var(--brand-logo-width-min),
-        calc(var(--top-logo-width-vw, 35) * 1vw),
-        var(--brand-logo-width-max)
-      )
-    ),
-    100%
-  );
+  /* Logo width: 250px min (mobile) to 500px max */
+  width: clamp(250px, 45vw, 500px);
+  max-width: 90vw; /* Prevent overflow on small screens */
   height: auto;
   padding-left: clamp(8px, 0.8vw, 10px);
 }
@@ -1585,30 +1562,6 @@ html.modal-active #main-links { pointer-events: none; }
    Note: Logo & Nav fade on modal open/close is handled by JavaScript in 
    modal-overlay.js (fadeLogoNav function) for reliable cross-browser transitions
    ───────────────────────────────────────────────────────────────────────────── */
-
-.content-background-layer {
-  position: fixed;
-  /* No outer border on index page - fills viewport */
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100vh;
-  height: 100svh;
-  height: 100dvh;
-  /* No border-radius - only simulation (#bravia-balls) has rounded corners */
-  /* Background is owned by #bravia-balls (single rounded surface) to prevent
-     multi-layer rounded-edge re-rasterization "snaps" at the end of scene scaling. */
-  background: transparent;
-  z-index: 1; /* Background: lowest layer above body */
-  pointer-events: none;
-  transform: translateZ(0);
-  /* Smooth resize-driven geometry changes (inset only, no radius). */
-  transition:
-    top var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic),
-    right var(--duration-resize) var(--ease-organic),
-    height var(--duration-resize) var(--ease-organic);
-}
 
 #bravia-balls {
   position: fixed;
@@ -1696,12 +1649,12 @@ body.dark-mode #bravia-balls::after {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   OVERLAY EFFECTS CONTAINER
+   SCENE EFFECTS CONTAINER
    Visual effects layer (noise, video) above everything except modals.
    Position: above wall (z:100), below modals (z:19998).
    MUST match #bravia-balls positioning exactly.
    ───────────────────────────────────────────────────────────────────────────── */
-.overlay-effects {
+.scene-effects {
   /* Fixed positioning - works inside #abs-scene because transform creates containing block */
   position: fixed;
   /* MUST match #bravia-balls positioning exactly for perfect alignment during transforms */
@@ -1909,8 +1862,8 @@ html.is-safari .noise::before {
   object-fit: cover;
   object-position: center;
   pointer-events: none;
-  /* Behind wall (z:100) so video doesn't peek through wall edges */
-  z-index: 80;
+  /* Above wall (z:100) but below UI (z:200) - blend mode handles visual integration */
+  z-index: 150;
   /* Initial state: hidden, fades in when .grunge-video-ready is added */
   visibility: hidden;
   opacity: 0;
@@ -2028,10 +1981,6 @@ html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay--da
   /* Mobile logo sizing: 60vw */
   #brand-logo .brand-logo-svg {
     width: 60vw;
-  }
-
-  #brand-logo {
-    --brand-logo-offset-y: -150%;
   }
 
   .ui-top {
@@ -2222,7 +2171,7 @@ a:active {
   /* Use absolute positioning when inside #bravia-balls (transformed parent makes fixed relative to parent) */
   position: absolute;
   pointer-events: none;
-  z-index: 3; /* Text content layer: above logo (z:2), below canvas (z:4) */
+  z-index: 3; /* Within UI stacking context */
   border: none;
   background: var(--cursor-color);
   transform-origin: center center;

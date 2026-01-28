@@ -1,8 +1,8 @@
 {
     "folder-color.pathColors": [],
-    "builder.serverUrl": "",
+    "builder.serverUrl": "http://localhost:8001",
     "builder.command": "npm run dev",
-    "builder.runDevServer": true,
+    "builder.runDevServer": false,
     "builder.autoDetectDevServer": true,
-    "builder.launchType": "browser"
+    "builder.launchType": "editor"
 }

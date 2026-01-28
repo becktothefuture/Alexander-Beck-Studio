@@ -427,28 +427,30 @@
      Z-INDEX STACKING ORDER (bottom to top)
      ═══════════════════════════════════════════════════════════════════════════════
      
-     DOCUMENT LEVEL (position: fixed):
+     All visual layers are inside #abs-scene for unified transform (depth effects).
+     
+     INSIDE #abs-scene (scene stacking context):
      ─────────────────────────────────────────────────────────────────────────────
-     Body                     -          body (base)
-     Background               1          .content-background-layer
-     Logo                     2          #brand-logo
-     Text Content             3          .fade-content, #main-links, .edge-caption
+     Scene Effects            90         .scene-effects
      Wall (container)         100        #bravia-balls
-     Dev Panel                9999       .abs-control-panel
-     Modal Blur               19998      #modal-blur-layer
-     Modal Content            19999      #modal-content-layer
-     Page Flash               20000      #page-flash
+     Video Overlays           150        .grunge-video-overlay (above wall, below UI)
+     UI Layer                 200        .fade-content (contains logo + nav + header + footer)
      
      INSIDE #bravia-balls (wall interior stacking context):
      ─────────────────────────────────────────────────────────────────────────────
      Canvas (balls)           10         #bravia-balls canvas
-     Noise                    25         .noise
+     Noise                    25         .noise (inside .scene-effects)
      Wall Edge Shading        30         #bravia-balls::after
      Wall Stroke              40         #bravia-balls::before
+     
+     OUTSIDE #abs-scene (modal layer):
+     ─────────────────────────────────────────────────────────────────────────────
+     Dev Panel                9999       .abs-control-panel
+     Modal Blur               19998      #modal-blur-layer
+     Modal Content            19999      #modal-content-layer
+     Page Flash               20000      #page-flash
      ═══════════════════════════════════════════════════════════════════════════════ */
-  --z-background: 1;
-  --z-logo: 2;
-  --z-text-content: 3;
+  --z-text-content: 200;
   --z-wall: 100;
   --z-canvas: 10;
   --z-noise: 25;
@@ -460,9 +462,10 @@
   --z-page-flash: 20000;
 
   /* Brand logo sizing (driven by the dev panel slider via `--top-logo-width-vw`). */
-  --top-logo-width-vw: 42;
-  --brand-logo-width-min: 360px;
-  --brand-logo-width-max: 600px;
+  /* Scaled 1.6x from original (42vw, 360px, 600px) */
+  --top-logo-width-vw: 67;
+  --brand-logo-width-min: 576px;
+  --brand-logo-width-max: 960px;
   --abs-brand-logo-width: clamp(
     var(--brand-logo-width-min),
     calc(var(--top-logo-width-vw, 35) * 1vw),

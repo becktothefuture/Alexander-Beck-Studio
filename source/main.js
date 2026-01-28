@@ -529,16 +529,8 @@ window.addEventListener('unhandledrejection', (event) => {
       throw new Error('Missing DOM elements');
     }
 
-    // Ensure the brand logo renders ABOVE the rounded window background.
-    // We now paint the window background on `#bravia-balls` (single rounded surface)
-    // to avoid end-of-scale corner snapping. That means the logo must live inside
-    // the same stacking context to remain visible while still sitting behind balls.
-    try {
-      const logo = document.getElementById('brand-logo');
-      if (logo && logo.parentElement !== container) {
-        container.prepend(logo);
-      }
-    } catch (e) {}
+    // Logo is now positioned in .ui-center flex container (inside .fade-content)
+    // No longer moved to #bravia-balls - it stays in the UI layer for proper flex layout
 
     // Accessibility: the canvas is an interactive surface (keyboard + pointer).
     // Ensure we expose it as an application-like region for AT.

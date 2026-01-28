@@ -334,24 +334,39 @@ export function initSpeculativePrefetch() {
   
   // Listen for hover/focus on links
   document.addEventListener('mouseenter', (e) => {
-    const link = e.target.closest('a[href], [data-href], [data-transition]');
-    if (link) handleHoverStart(link);
+    try {
+      if (!e.target || typeof e.target.closest !== 'function') return;
+      const link = e.target.closest('a[href], [data-href], [data-transition]');
+      if (link) handleHoverStart(link);
+    } catch (err) {
+      console.error('Prefetch mouseenter error:', err);
+    }
   }, { capture: true });
-  
+
   document.addEventListener('focusin', (e) => {
-    const link = e.target.closest('a[href], [data-href], [data-transition]');
-    if (link) handleHoverStart(link);
+    try {
+      if (!e.target || typeof e.target.closest !== 'function') return;
+      const link = e.target.closest('a[href], [data-href], [data-transition]');
+      if (link) handleHoverStart(link);
+    } catch (err) {
+      console.error('Prefetch focusin error:', err);
+    }
   });
-  
+
   // Mobile: prefetch on touchstart
   document.addEventListener('touchstart', (e) => {
-    const link = e.target.closest('a[href], [data-href], [data-transition]');
-    if (link) {
-      const href = link.href || link.dataset.href;
-      if (href && !prefetched.has(href)) {
-        prefetchPage(href);
-        prefetched.add(href);
+    try {
+      if (!e.target || typeof e.target.closest !== 'function') return;
+      const link = e.target.closest('a[href], [data-href], [data-transition]');
+      if (link) {
+        const href = link.href || link.dataset.href;
+        if (href && !prefetched.has(href)) {
+          prefetchPage(href);
+          prefetched.add(href);
+        }
       }
+    } catch (err) {
+      console.error('Prefetch touchstart error:', err);
     }
   }, { passive: true });
   

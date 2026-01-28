@@ -222,9 +222,6 @@
 <body class="body portfolio-page">
   <!-- SCENE WRAPPER: All scene layers move together (matches index structure) -->
   <div id="abs-scene" class="abs-scene">
-    <!-- LAYER 0: Content Background - BEHIND everything (z:1) -->
-    <div id="content-background" class="content-background-layer" aria-hidden="true"></div>
-    
     <!-- LAYER 2: Brand Logo - NOT VISIBLE on portfolio page (removed to optimize entrance animation) -->
     <!-- Logo animation skipped - entrance goes directly from #app-frame to .portfolio-stage -->
 
@@ -265,8 +262,8 @@
   </div>
   
   <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, etc.) -->
-  <!-- Positioned above wall (z:100), below modals (z:19998) -->
-  <div id="overlay-effects" class="overlay-effects" aria-hidden="true">
+  <!-- SCENE EFFECTS: Positioned above wall (z:100), below modals (z:19998) -->
+  <div id="scene-effects" class="scene-effects" aria-hidden="true">
     <div class="noise"></div>
   </div>
 
