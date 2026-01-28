@@ -127,36 +127,52 @@ For best performance, compress your video using a tool like:
 
 ## Customization
 
-All video overlay settings are controlled via CSS custom properties in `source/css/tokens.css`:
+### Control Panel
+
+Video overlay settings are available in the dev control panel under **"Video Overlay"** (📼 icon):
+- **Enabled** - Toggle video overlay on/off
+- **Opacity** - Video transparency (0-1)
+- **Blend (Light)** - Blend mode for light mode video
+- **Blend (Dark)** - Blend mode for dark mode video
+
+### CSS Custom Properties
+
+Settings are also controllable via CSS in `source/css/tokens.css`:
 
 ```css
 /* Grunge Video Overlay Configuration */
---grunge-video-opacity: 1;                          /* Final opacity (0-1) */
---grunge-video-blend-mode-light: multiply;          /* Light mode blend */
---grunge-video-blend-mode-dark: overlay;            /* Dark mode blend */
+--grunge-video-opacity: 0.8;                        /* Final opacity (0-1) */
+--grunge-video-blend-mode-light: overlay;           /* Light mode blend */
+--grunge-video-blend-mode-dark: screen;             /* Dark mode blend */
 --grunge-video-fade-duration: 2000ms;               /* Fade-in duration */
 --grunge-video-fade-easing: cubic-bezier(0.16, 1, 0.3, 1); /* Easing curve */
---grunge-video-enabled: 1;                          /* 0 to disable */
 ```
+
+### Video Files
+
+The system uses separate videos for light and dark modes:
+- `source/video/video-light.webm` - Light mode video
+- `source/video/video-dark.mp4` - Dark mode video
+- `source/video/archive/` - Unused videos (gitignored)
 
 ### Blend Mode Guide
 
 The blend mode determines how the video mixes with the content below:
 
-#### **multiply** (Default for light mode)
-- **Effect**: Darkens the image
-- **Best for**: Light-colored videos over dark content
-- **Use when**: Video has white/light background
-
-#### **overlay** (Default for dark mode)
+#### **overlay** (Default for light mode)
 - **Effect**: Combines multiply and screen, creates contrast
 - **Best for**: Varied lighting, creates dramatic effect
 - **Use when**: Video has mixed tones
 
-#### **screen**
-- **Effect**: Lightens the image
+#### **screen** (Default for dark mode)
+- **Effect**: Lightens the image (white = transparent)
 - **Best for**: Dark videos over light content
 - **Use when**: Video has dark/black background
+
+#### **multiply**
+- **Effect**: Darkens the image (white = transparent)
+- **Best for**: Light-colored videos over dark content
+- **Use when**: Video has white/light background
 
 #### **soft-light**
 - **Effect**: Subtle, gentle contrast
@@ -242,13 +258,21 @@ The blend mode determines how the video mixes with the content below:
 
 ### Architecture
 
-- **Container**: `.overlay-effects` - shared container for all visual overlay effects (noise, video)
-- **Layer**: z-index 150 (above wall at z:100, below modals at z:19998)
-- **Positioning**: Fixed, matches simulation bounds via CSS custom properties
-- **Performance**: Hardware-accelerated via `transform: translateZ(0)`
+- **Videos are direct children of `<body>`** - Required for `mix-blend-mode` to work across page content
+- **`isolation: isolate` on body** - Creates unified stacking context for blend modes
+- **No z-index on videos** - Prevents isolated stacking context that breaks blend modes
+- **Separate light/dark videos** - Different files and blend modes per theme
+- **Positioning**: Fixed, matches simulation interior bounds (wall inset + thickness)
 - **Accessibility**: `aria-hidden="true"`, respects `prefers-reduced-motion`
 - **Interaction**: `pointer-events: none` (doesn't block clicks)
 - **Border radius**: Matches simulation interior via `var(--wall-radius)`
+
+### Blend Mode Requirements
+
+For `mix-blend-mode` to work across all page content:
+1. Body must have `isolation: isolate` (creates unified backdrop)
+2. Video must NOT have `z-index` (prevents isolated stacking context)
+3. Video must be outside containers with `z-index` (like `.overlay-effects`)
 
 ### Browser Support
 
@@ -262,34 +286,38 @@ The blend mode determines how the video mixes with the content below:
 
 ```
 source/
-├── index.html              # Overlay effects container with video placeholder
-├── portfolio.html          # Overlay effects container with video placeholder
-├── cv.html                 # Overlay effects container with video placeholder
-├── main.js                 # Video initialization (index)
-├── videos/                 # Your video files (create this)
-│   ├── grunge-overlay.mp4
-│   └── grunge-overlay.webm
+├── index.html              # Videos as direct body children
+├── video/
+│   ├── video-light.webm    # Light mode video
+│   ├── video-dark.mp4      # Dark mode video
+│   └── archive/            # Unused videos (gitignored)
 ├── css/
-│   ├── tokens.css          # Configuration variables (--grunge-video-*)
-│   └── main.css            # Overlay effects + video styles
+│   ├── tokens.css          # CSS variables (--grunge-video-*)
+│   └── main.css            # Video overlay styles
 └── modules/
-    ├── portfolio/
-    │   └── app.js          # Video initialization (portfolio)
-    └── cv-init.js          # Video initialization (CV)
+    └── ui/
+        └── control-registry.js  # Panel controls for video overlay
 ```
 
-### HTML Structure
+### HTML Structure (index.html)
 
-All pages use a shared `#overlay-effects` container for visual effects:
+Videos are placed as direct children of `<body>` after the overlay effects container:
 
 ```html
-<!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, video, etc.) -->
-<!-- Positioned above wall (z:100), below modals (z:19998) -->
+<!-- OVERLAY EFFECTS: Noise layer -->
 <div id="overlay-effects" class="overlay-effects" aria-hidden="true">
   <div class="noise"></div>
-  <!-- Grunge video overlay (uncomment when adding video) -->
-  <!-- <video id="grunge-video-overlay" class="grunge-video-overlay" ...></video> -->
 </div>
+
+<!-- GRUNGE VIDEO OVERLAYS: Direct body children for proper blend mode compositing -->
+<!-- Light mode video (overlay blend) -->
+<video id="grunge-video-light" class="grunge-video-overlay grunge-video-overlay--light" ...>
+  <source src="video/video-light.webm" type="video/webm">
+</video>
+<!-- Dark mode video (screen blend) -->
+<video id="grunge-video-dark" class="grunge-video-overlay grunge-video-overlay--dark" ...>
+  <source src="video/video-dark.mp4" type="video/mp4">
+</video>
 ```
 
 ## Examples

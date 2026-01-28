@@ -25,3 +25,11 @@
 - Privacy-first: No external calls, localStorage for settings only
 - Accessibility: ARIA labels, keyboard nav, respect `prefers-reduced-motion`
 - Modal blur uses two-layer architecture (locked, do not modify)
+
+## Workflow: Completion & Handoff Protocol
+**CRITICAL**: Never assume a problem is solved or a task is complete without explicit user confirmation.
+- Before handing off work: Verify all changes are complete, tested, and ready for review
+- After implementation: Always request user verification before marking anything as done
+- If user reports an issue: Continue investigating until they confirm it's resolved
+- Never mark todos complete or close issues without explicit user confirmation
+- This ensures quality and prevents incomplete work from being considered finished

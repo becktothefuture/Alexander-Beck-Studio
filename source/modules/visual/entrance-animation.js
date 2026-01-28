@@ -92,12 +92,16 @@ export function setInitialBrowserDefaultState() {
  * NOTE: Wall color is controlled by the early inline script and CSS tokens.
  * This function only manages the wall ANIMATION (scale + border-radius),
  * not the color transitions.
+ * 
+ * @param {Object} options - Animation options
+ *   - wallContent: array of selectors/elements that should animate WITH the wall scale
  */
-export function transitionToWallState() {
+export function transitionToWallState(options = {}) {
   const g = getGlobals();
   const html = document.documentElement;
   const delay = g.entranceWallTransitionDelay || 300;
   const duration = g.entranceWallTransitionDuration || 800;
+  const wallContent = options.wallContent || [];
   
   // Get the wall container (#bravia-balls)
   const wallContainer = document.getElementById('bravia-balls');
@@ -137,6 +141,13 @@ export function transitionToWallState() {
   // Store original transition to restore after animation
   const originalTransition = wallContainer.style.transition;
   
+  // Resolve wall content elements
+  const wallContentElements = [];
+  for (const item of wallContent) {
+    const el = typeof item === 'string' ? document.querySelector(item) : item;
+    if (el) wallContentElements.push(el);
+  }
+  
   setTimeout(() => {
     // ═══════════════════════════════════════════════════════════════════════════════
     // PHASE 2: REVEAL (remove browser default class, show wall)
@@ -161,6 +172,15 @@ export function transitionToWallState() {
     wallContainer.style.borderRadius = '0px';
     wallContainer.style.opacity = '1';
     wallContainer.style.visibility = 'visible';
+    
+    // Prepare wall content elements for synchronized animation
+    // They start at opacity 0 but visible, so they inherit wall's scale transform
+    wallContentElements.forEach(el => {
+      el.style.transition = 'none';
+      el.style.opacity = '0';
+      el.style.visibility = 'visible';
+      el.style.willChange = 'opacity';
+    });
     
     // Force browser reflow to apply initial state
     wallContainer.offsetHeight;
@@ -198,19 +218,47 @@ export function transitionToWallState() {
         }
       );
       
+      // Animation 3: Wall content elements fade in (synchronized with wall scale)
+      // These elements inherit the wall's scale transform, so they appear to grow with the wall
+      // Slight delay (20% into wall animation) for visual layering effect
+      const contentDelay = duration * 0.2;
+      const contentDuration = duration * 0.8;
+      
+      const wallContentAnims = wallContentElements.map(el => {
+        return el.animate(
+          [
+            { opacity: 0 },
+            { opacity: 1 }
+          ],
+          {
+            duration: contentDuration,
+            delay: contentDelay,
+            easing,
+            fill: 'forwards'
+          }
+        );
+      });
+      
       // ═══════════════════════════════════════════════════════════════════════════════
       // PHASE 5: CLEANUP (lock final values, restore normal behavior)
       // ═══════════════════════════════════════════════════════════════════════════════
       
       let scaleComplete = false;
       let radiusComplete = false;
+      let contentComplete = wallContentElements.length === 0; // Skip if no content
       
       const finishAnimation = () => {
-        if (scaleComplete && radiusComplete) {
+        if (scaleComplete && radiusComplete && contentComplete) {
           // Lock final values with inline styles
           wallContainer.style.transform = 'scale(1)';
           wallContainer.style.borderRadius = finalRadius;
           wallContainer.style.opacity = '1';
+          
+          // Lock wall content final state
+          wallContentElements.forEach(el => {
+            el.style.opacity = '1';
+            el.style.willChange = 'auto';
+          });
           
           // Brief delay before restoring transitions (allows animation to settle)
           setTimeout(() => {
@@ -241,6 +289,22 @@ export function transitionToWallState() {
         finishAnimation();
       });
       
+      // Track wall content animations completion
+      if (wallContentAnims.length > 0) {
+        let completedCount = 0;
+        wallContentAnims.forEach(anim => {
+          const handleComplete = () => {
+            completedCount++;
+            if (completedCount >= wallContentAnims.length) {
+              contentComplete = true;
+              finishAnimation();
+            }
+          };
+          anim.addEventListener('finish', handleComplete);
+          anim.addEventListener('cancel', handleComplete);
+        });
+      }
+      
     } else {
       // Fallback: CSS transitions (for browsers without WAAPI)
       requestAnimationFrame(() => {
@@ -251,8 +315,26 @@ export function transitionToWallState() {
         });
       });
       
+      // Wall content fade-in (CSS transition fallback)
+      const contentDelay = duration * 0.2;
+      const contentDuration = duration * 0.8;
+      setTimeout(() => {
+        wallContentElements.forEach(el => {
+          el.style.transition = `opacity ${contentDuration}ms ${easing}`;
+          requestAnimationFrame(() => {
+            el.style.opacity = '1';
+          });
+        });
+      }, contentDelay);
+      
       setTimeout(() => {
         wallContainer.style.transition = originalTransition || '';
+        // Lock wall content final state
+        wallContentElements.forEach(el => {
+          el.style.opacity = '1';
+          el.style.willChange = 'auto';
+          el.style.removeProperty('transition');
+        });
         html.classList.remove('entrance-transitioning');
         html.classList.add('entrance-complete');
       }, duration + 50);
@@ -324,13 +406,14 @@ export function animateElementEntrance(element, options = {}) {
 }
 
 /**
- * Reveals a late element by clearing its inline hidden styles and optionally animating
+ * Reveals a late element by clearing its inline hidden styles and animating
+ * with opacity and optional scale animation
  * @param {HTMLElement} element - Element to reveal
  * @param {Object} options - Animation options
  *   - delay: ms before animation starts
  *   - duration: animation duration in ms
  *   - easing: CSS easing function
- *   - scaleFrom: starting scale (e.g. 0.9 = 90%)
+ *   - scaleFrom: starting scale (e.g. 0.92 = 92%)
  *   - scaleTo: ending scale (default 1)
  * @returns {Promise} Resolves when animation completes
  */
@@ -345,29 +428,44 @@ export function revealLateElement(element, options = {}) {
     const delay = options.delay ?? 0;
     const duration = (options.duration ?? g.entranceLateElementDuration ?? 600) * 2;
     const easing = options.easing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
+    const scaleFrom = options.scaleFrom ?? g.entranceLateElementScaleFrom ?? 0.92;
+    const scaleTo = options.scaleTo ?? 1;
     
     setTimeout(() => {
       // Disable ALL transitions to prevent Safari flash
       element.style.transition = 'none';
       element.style.visibility = 'visible';
+      element.style.willChange = 'opacity, transform';
+      
+      // Set initial state (start scaled down and transparent)
+      element.style.transform = `scale(${scaleFrom})`;
+      element.style.transformOrigin = 'center center';
+      element.style.opacity = '0';
+      
+      // Force reflow to apply initial state
+      element.offsetHeight;
       
       // Animate with fill: forwards - never cancel, let it hold the final state
       const anim = element.animate(
         [
-          { opacity: 0 },
-          { opacity: 1 }
+          { opacity: 0, transform: `scale(${scaleFrom})` },
+          { opacity: 1, transform: `scale(${scaleTo})` }
         ],
         { duration, easing, fill: 'forwards' }
       );
       
       // After animation finishes, set final state and re-enable transitions
       anim.finished.then(() => {
-        // Set inline opacity to match animation end state
+        // Set inline styles to match animation end state
         element.style.opacity = '1';
+        element.style.transform = `scale(${scaleTo})`;
+        element.style.willChange = 'auto';
         // Wait a frame before re-enabling transitions
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             element.style.removeProperty('transition');
+            element.style.removeProperty('transform');
+            element.style.removeProperty('transformOrigin');
             document.documentElement.classList.add('entrance-complete');
           });
         });
@@ -583,13 +681,15 @@ function performReducedMotionFade() {
  *   - waitForFonts: async function to wait for fonts
  *   - skipWallAnimation: boolean to skip wall growth animation
  *   - skipEntranceAnimation: boolean to skip all entrance animation (View Transition handles it)
- *   - centralContent: array of selectors/elements for page-specific central content
+ *   - wallContent: array of selectors/elements that animate WITH the wall scale (inherits transform)
+ *   - centralContent: array of selectors/elements for page-specific central content (animates AFTER wall)
  *   - reducedMotion: boolean to use simple 200ms fade (auto-detected if not provided)
  */
 export async function orchestrateEntrance(options = {}) {
   const g = getGlobals();
   const skipWallAnimation = Boolean(options.skipWallAnimation);
   const skipEntranceAnimation = Boolean(options.skipEntranceAnimation);
+  const wallContent = options.wallContent || [];
   const centralContent = options.centralContent || [];
   
   // Check for reduced motion preference
@@ -630,8 +730,9 @@ export async function orchestrateEntrance(options = {}) {
   }
   
   // Start wall-state transition (optional)
+  // Pass wallContent elements so they animate WITH the wall scale
   if (!skipWallAnimation) {
-    transitionToWallState();
+    transitionToWallState({ wallContent });
   }
   
   // ═══════════════════════════════════════════════════════════════════════════════

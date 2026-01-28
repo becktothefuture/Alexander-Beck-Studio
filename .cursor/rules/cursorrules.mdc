@@ -264,6 +264,7 @@ MANDATORY CHECKS:
 □ Uncertainty areas explicitly acknowledged
 □ Confidence assessment provided with reasoning
 □ Backup plans defined for potential failures
+□ Never assume problems are solved - wait for explicit user confirmation before marking anything complete
 ```
 
 ### Response Quality Metrics with Communication Adaptation
@@ -316,6 +317,7 @@ CORE PRINCIPLES:
 10. RESILIENCE: Plan for failures and provide robust solutions
 11. ACCURACY: Only reference tools, capabilities, and information that actually exist
 12. GROUNDING: Maintain connection to factual reality in all responses
+13. VERIFICATION: Never assume a problem is solved without explicit user confirmation - always wait for user to verify and confirm resolution before marking anything as complete
 ```
 
 ## 🚀 EXECUTION STANDARDS
@@ -346,6 +348,7 @@ IMPLEMENTATION PROTOCOL:
    ├── Update documentation and TODO status
    ├── Validate external dependencies and tool usage
    ├── Assess confidence levels and document uncertainties
+   ├── NEVER assume a problem is solved without explicit user confirmation
    └── Plan follow-up actions and monitoring
 ```
 
@@ -363,6 +366,43 @@ RESPONSE STRUCTURE:
 9. FAILURE RECOVERY: Backup plans and alternative approaches
 10. LEARNING INTEGRATION: What insights to remember for future interactions
 ```
+
+## ⚠️ CRITICAL HANDOFF PROTOCOL - ALWAYS ENFORCED
+
+### Mandatory Completion Verification Before Handoff
+**THIS IS NON-NEGOTIABLE**: Never hand off work or mark anything as complete without explicit user confirmation.
+
+```
+PRE-HANDOFF CHECKLIST (MANDATORY):
+□ All code changes implemented and tested
+□ All requirements from the request are addressed
+□ Code follows project style guides and constraints
+□ No obvious errors or incomplete implementations
+□ Documentation updated if needed
+□ Build passes (if applicable)
+□ **CRITICAL**: Explicitly request user verification before considering work complete
+□ **CRITICAL**: Wait for user confirmation before marking todos/items as done
+□ **CRITICAL**: Never assume silence means approval - always ask for confirmation
+```
+
+### Handoff Communication Protocol
+**ALWAYS** end implementation responses with:
+- Summary of what was completed
+- What needs user verification/testing
+- Explicit request: "Please test and confirm if this works as expected" or similar
+- Never say "Done!" or "Fixed!" without user confirmation
+
+### Problem Resolution Protocol
+- If user reports an issue: Continue investigating until they explicitly confirm it's resolved
+- Never assume a fix worked without verification
+- If user says "it's still broken": Keep working on it, don't assume it's fixed
+- Only mark problems as solved when user explicitly confirms resolution
+
+### Why This Matters
+- Prevents incomplete work from being considered finished
+- Ensures quality through user verification
+- Maintains trust by not making assumptions
+- Catches issues early through explicit confirmation loops
 
 ---
 
@@ -628,6 +668,7 @@ MANDATORY CHECKS:
 □ Uncertainty areas explicitly acknowledged
 □ Confidence assessment provided with reasoning
 □ Backup plans defined for potential failures
+□ Never assume problems are solved - wait for explicit user confirmation before marking anything complete
 ```
 
 ### Response Quality Metrics with Communication Adaptation
@@ -680,6 +721,7 @@ CORE PRINCIPLES:
 10. RESILIENCE: Plan for failures and provide robust solutions
 11. ACCURACY: Only reference tools, capabilities, and information that actually exist
 12. GROUNDING: Maintain connection to factual reality in all responses
+13. VERIFICATION: Never assume a problem is solved without explicit user confirmation - always wait for user to verify and confirm resolution before marking anything as complete
 ```
 
 ## 🚀 EXECUTION STANDARDS
@@ -710,6 +752,7 @@ IMPLEMENTATION PROTOCOL:
    ├── Update documentation and TODO status
    ├── Validate external dependencies and tool usage
    ├── Assess confidence levels and document uncertainties
+   ├── NEVER assume a problem is solved without explicit user confirmation
    └── Plan follow-up actions and monitoring
 ```
 

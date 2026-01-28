@@ -154,6 +154,53 @@ async function bootstrapCvPage() {
     try { initPortfolioWallCanvas({ canvasSelector: '.cv-wall-canvas' }); } catch (e) {}
     // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.
     try { initNoiseSystem(getGlobals()); } catch (e) {}
+    
+    // Grunge video overlay initialization - inside #bravia-balls for proper blend mode
+    try {
+      const grungeVideo = document.getElementById('grunge-video-overlay');
+      const braviaBalls = document.getElementById('bravia-balls');
+      const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
+      
+      if (grungeVideo && braviaBalls) {
+        if (isDev) {
+          console.log('[CV Video] Initializing grunge video overlay');
+          console.log('[CV Video] Video src:', grungeVideo.currentSrc || grungeVideo.src);
+        }
+        
+        grungeVideo.addEventListener('loadstart', () => {
+          if (isDev) console.log('[CV Video] Loading started');
+        }, { once: true });
+        
+        grungeVideo.addEventListener('loadedmetadata', () => {
+          if (isDev) console.log('[CV Video] Metadata loaded -', grungeVideo.videoWidth, 'x', grungeVideo.videoHeight);
+        }, { once: true });
+        
+        grungeVideo.addEventListener('canplaythrough', () => {
+          if (isDev) {
+            console.log('[CV Video] Can play through - adding grunge-video-ready class to #bravia-balls');
+          }
+          braviaBalls.classList.add('grunge-video-ready');
+          
+          const playPromise = grungeVideo.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              if (isDev) console.log('[CV Video] Playback started');
+            }).catch((err) => {
+              if (isDev) console.warn('[CV Video] Autoplay prevented:', err);
+            });
+          }
+        }, { once: true });
+        
+        grungeVideo.addEventListener('error', (e) => {
+          if (isDev) console.error('[CV Video] Load error:', e);
+        }, { once: true });
+      } else {
+        if (isDev) console.warn('[CV Video] Elements not found');
+      }
+    } catch (e) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[CV Video] Init error:', e);
+    }
+    
     // Keep the frame responsive to viewport changes (same behavior as index).
     window.addEventListener('resize', applyWallFrameLayout, { passive: true });
   } catch (e) {

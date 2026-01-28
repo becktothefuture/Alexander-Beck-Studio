@@ -118,6 +118,51 @@ export function applyVisualCSSVars(config) {
   if (config.noiseColorDark !== undefined) {
     root.style.setProperty('--noise-color-dark', String(config.noiseColorDark));
   }
+  
+  // Grunge video overlay
+  if (config.grungeVideoEnabled !== undefined) {
+    const videos = document.querySelectorAll('.grunge-video-overlay');
+    videos.forEach(v => {
+      v.style.display = config.grungeVideoEnabled ? '' : 'none';
+    });
+  }
+  if (config.grungeVideoOpacityLight !== undefined) {
+    root.style.setProperty('--grunge-video-opacity-light', String(config.grungeVideoOpacityLight));
+  }
+  if (config.grungeVideoOpacityDark !== undefined) {
+    root.style.setProperty('--grunge-video-opacity-dark', String(config.grungeVideoOpacityDark));
+  }
+  if (config.grungeVideoBlendModeLight !== undefined) {
+    root.style.setProperty('--grunge-video-blend-mode-light', String(config.grungeVideoBlendModeLight));
+  }
+  if (config.grungeVideoBlendModeDark !== undefined) {
+    root.style.setProperty('--grunge-video-blend-mode-dark', String(config.grungeVideoBlendModeDark));
+  }
+  // Grunge video filter controls
+  if (config.grungeVideoContrast !== undefined) {
+    root.style.setProperty('--grunge-video-contrast', String(config.grungeVideoContrast));
+  }
+  if (config.grungeVideoBrightness !== undefined) {
+    root.style.setProperty('--grunge-video-brightness', String(config.grungeVideoBrightness));
+  }
+  if (config.grungeVideoSaturate !== undefined) {
+    root.style.setProperty('--grunge-video-saturate', String(config.grungeVideoSaturate));
+  }
+  if (config.grungeVideoHueRotate !== undefined) {
+    root.style.setProperty('--grunge-video-hue-rotate', `${config.grungeVideoHueRotate}deg`);
+  }
+  if (config.grungeVideoInvert !== undefined) {
+    root.style.setProperty('--grunge-video-invert', String(config.grungeVideoInvert));
+  }
+  if (config.grungeVideoSepia !== undefined) {
+    root.style.setProperty('--grunge-video-sepia', String(config.grungeVideoSepia));
+  }
+  if (config.grungeVideoGrayscale !== undefined) {
+    root.style.setProperty('--grunge-video-grayscale', String(config.grungeVideoGrayscale));
+  }
+  if (config.grungeVideoBlur !== undefined) {
+    root.style.setProperty('--grunge-video-blur', `${config.grungeVideoBlur}px`);
+  }
 }
 
 /**
@@ -368,6 +413,111 @@ window.addEventListener('unhandledrejection', (event) => {
     try {
       initNoiseSystem(getGlobals());
     } catch (e) {}
+    
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // GRUNGE VIDEO OVERLAY INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Videos are direct children of body for proper blend mode compositing
+    try {
+      const videoLight = document.getElementById('grunge-video-light');
+      const videoDark = document.getElementById('grunge-video-dark');
+      const videos = [videoLight, videoDark].filter(Boolean);
+      
+      if (videos.length > 0) {
+        if (ABS_DEV) {
+          console.log('[Video] Initializing grunge video overlays');
+          console.log('[Video] Light video:', !!videoLight);
+          console.log('[Video] Dark video:', !!videoDark);
+        }
+        
+        let videoReadyTriggered = false;
+        
+        const handleVideoReady = (video, label) => {
+          if (videoReadyTriggered) return;
+          videoReadyTriggered = true;
+          
+          if (ABS_DEV) {
+            console.log(`[Video ${label}] Can play through - triggering fade-in`);
+          }
+          
+          // Add class to body for CSS fade-in
+          document.body.classList.add('grunge-video-ready');
+          
+          if (ABS_DEV) {
+            const computedOpacity = getComputedStyle(video).opacity;
+            console.log(`[Video ${label}] Computed opacity:`, computedOpacity);
+            console.log(`[Video ${label}] Computed blend mode:`, getComputedStyle(video).mixBlendMode);
+          }
+        };
+        
+        // Initialize each video
+        videos.forEach((video, idx) => {
+          const label = video === videoLight ? 'Light' : 'Dark';
+          
+          video.addEventListener('loadstart', () => {
+            if (ABS_DEV) console.log(`[Video ${label}] Loading started`);
+          }, { once: true });
+          
+          video.addEventListener('loadedmetadata', () => {
+            if (ABS_DEV) console.log(`[Video ${label}] Metadata loaded`);
+          }, { once: true });
+          
+          video.addEventListener('canplaythrough', () => {
+            handleVideoReady(video, label);
+            
+            // Ensure video plays
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                if (ABS_DEV) console.log(`[Video ${label}] Playback started`);
+              }).catch((err) => {
+                if (ABS_DEV) console.warn(`[Video ${label}] Autoplay prevented:`, err);
+              });
+            }
+          }, { once: true });
+          
+          video.addEventListener('error', (e) => {
+            if (ABS_DEV) {
+              console.error(`[Video ${label}] Failed to load`);
+              console.error(`[Video ${label}] Error:`, e);
+            }
+          }, { once: true });
+          
+          // Check if video is already ready (event may have fired before listener was added)
+          // HAVE_ENOUGH_DATA (4) means canplaythrough would have fired
+          if (video.readyState >= 4) {
+            if (ABS_DEV) console.log(`[Video ${label}] Already loaded (readyState=${video.readyState})`);
+            handleVideoReady(video, label);
+            // Also ensure playback
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {}); // Ignore autoplay prevention
+            }
+          }
+        });
+        
+        // Debug status after 2s
+        if (ABS_DEV) {
+          setTimeout(() => {
+            console.log('[Video] Status after 2s:');
+            console.log('  - grunge-video-ready class on body:', document.body.classList.contains('grunge-video-ready'));
+            videos.forEach(v => {
+              const label = v === videoLight ? 'Light' : 'Dark';
+              console.log(`  - ${label}: readyState=${v.readyState}, paused=${v.paused}`);
+            });
+          }, 2000);
+        }
+        
+      } else {
+        if (ABS_DEV) {
+          console.warn('[Video] No video elements found');
+        }
+      }
+    } catch (e) {
+      if (ABS_DEV) {
+        console.error('[Video] Initialization error:', e);
+      }
+    }
     
     // Setup canvas (attaches resize listener, but doesn't resize yet)
     setupRenderer();

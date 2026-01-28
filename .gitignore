@@ -9,7 +9,10 @@ package-lock.json
 test-results/
 playwright-report/
 .playwright-mcp/
-*.webm
+
+# Video archive (unused video assets)
+source/video/archive/
+dist/video/archive/
 
 # OS files
 .DS_Store

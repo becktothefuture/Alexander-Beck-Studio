@@ -289,6 +289,13 @@ async function buildProduction() {
     if (fs.existsSync(sourceFontsDir)) {
       copyDir(sourceFontsDir, publicFontsDir);
     }
+
+    // Copy video files for grunge overlay and other video assets
+    const sourceVideoDir = path.join('source', 'video');
+    const publicVideoDir = path.join(CONFIG.publicDestination, 'video');
+    if (fs.existsSync(sourceVideoDir)) {
+      copyDir(sourceVideoDir, publicVideoDir);
+    }
     
     // STEP 2: Bundle modular sources with Rollup
     console.log('📦 Step 2: Bundling modular sources with Rollup...');

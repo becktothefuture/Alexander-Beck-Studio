@@ -2070,6 +2070,53 @@ async function bootstrapPortfolio() {
     try { 
       initNoiseSystem(getGlobals());
     } catch (e) {}
+    
+    // Grunge video overlay initialization - inside #bravia-balls for proper blend mode
+    try {
+      const grungeVideo = document.getElementById('grunge-video-overlay');
+      const braviaBalls = document.getElementById('bravia-balls');
+      const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
+      
+      if (grungeVideo && braviaBalls) {
+        if (isDev) {
+          console.log('[Portfolio Video] Initializing grunge video overlay');
+          console.log('[Portfolio Video] Video src:', grungeVideo.currentSrc || grungeVideo.src);
+        }
+        
+        grungeVideo.addEventListener('loadstart', () => {
+          if (isDev) console.log('[Portfolio Video] Loading started');
+        }, { once: true });
+        
+        grungeVideo.addEventListener('loadedmetadata', () => {
+          if (isDev) console.log('[Portfolio Video] Metadata loaded -', grungeVideo.videoWidth, 'x', grungeVideo.videoHeight);
+        }, { once: true });
+        
+        grungeVideo.addEventListener('canplaythrough', () => {
+          if (isDev) {
+            console.log('[Portfolio Video] Can play through - adding grunge-video-ready class to #bravia-balls');
+          }
+          braviaBalls.classList.add('grunge-video-ready');
+          
+          const playPromise = grungeVideo.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              if (isDev) console.log('[Portfolio Video] Playback started');
+            }).catch((err) => {
+              if (isDev) console.warn('[Portfolio Video] Autoplay prevented:', err);
+            });
+          }
+        }, { once: true });
+        
+        grungeVideo.addEventListener('error', (e) => {
+          if (isDev) console.error('[Portfolio Video] Load error:', e);
+        }, { once: true });
+      } else {
+        if (isDev) console.warn('[Portfolio Video] Elements not found');
+      }
+    } catch (e) {
+      if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[Portfolio Video] Init error:', e);
+    }
+    
     // Keep the frame responsive to viewport changes (same behavior as index).
     window.addEventListener('resize', applyWallFrameLayout);
   } catch (e) {

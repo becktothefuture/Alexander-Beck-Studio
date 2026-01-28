@@ -178,7 +178,9 @@ export const MASTER_GROUPS = [
     sections: [
       'colors',
       'colorDistribution',
+      'layers',
       'noise',
+      'videoOverlay',
       'uiSpacing',
       'cursor',
       'trail',
@@ -241,6 +243,8 @@ const SECTION_CATEGORIES = {
   'colorDistribution': 'LOOK & PALETTE',
   'colors': 'LOOK & PALETTE',
   'noise': 'LOOK & PALETTE',
+  'videoOverlay': 'LOOK & PALETTE',
+  'layers': 'LOOK & PALETTE',
 
   'cursor': 'INTERACTION',
   'trail': 'INTERACTION',
@@ -2148,6 +2152,265 @@ export const CONTROL_SECTIONS = {
           import('./modal-overlay.js').then(({ updateLogoBlurActive }) => {
             updateLogoBlurActive(val);
           });
+        }
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VIDEO OVERLAY - Grunge/texture video effect
+  // ═══════════════════════════════════════════════════════════════════════════
+  videoOverlay: {
+    title: 'Video Overlay',
+    icon: '📼',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'grungeVideoEnabled',
+        label: 'Enabled',
+        stateKey: 'grungeVideoEnabled',
+        type: 'checkbox',
+        default: true,
+        hint: 'Enable/disable the grunge video overlay effect',
+        onChange: (g, val) => {
+          const videos = document.querySelectorAll('.grunge-video-overlay');
+          videos.forEach(v => {
+            v.style.display = val ? '' : 'none';
+          });
+        }
+      },
+
+      {
+        id: 'grungeVideoOpacityLight',
+        label: 'Opacity (Light)',
+        stateKey: 'grungeVideoOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.8,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Video overlay opacity in light mode (0 = invisible, 1 = full)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-opacity-light', String(val));
+        }
+      },
+      {
+        id: 'grungeVideoOpacityDark',
+        label: 'Opacity (Dark)',
+        stateKey: 'grungeVideoOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.8,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Video overlay opacity in dark mode (0 = invisible, 1 = full)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-opacity-dark', String(val));
+        }
+      },
+      {
+        id: 'grungeVideoBlendModeLight',
+        label: 'Blend (Light)',
+        stateKey: 'grungeVideoBlendModeLight',
+        type: 'select',
+        options: [
+          { value: 'overlay', label: 'Overlay (Contrast)' },
+          { value: 'screen', label: 'Screen (Lighten)' },
+          { value: 'multiply', label: 'Multiply (Darken)' },
+          { value: 'soft-light', label: 'Soft Light (Subtle)' },
+          { value: 'hard-light', label: 'Hard Light (Intense)' },
+          { value: 'lighten', label: 'Lighten (Pick Lighter)' },
+          { value: 'darken', label: 'Darken (Pick Darker)' },
+          { value: 'plus-lighter', label: 'Plus Lighter (Additive)' },
+          { value: 'color-dodge', label: 'Color Dodge (Bright)' },
+          { value: 'color-burn', label: 'Color Burn (Dark)' }
+        ],
+        default: 'overlay',
+        hint: 'Blend mode for light mode video',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-blend-mode-light', val);
+        }
+      },
+      {
+        id: 'grungeVideoBlendModeDark',
+        label: 'Blend (Dark)',
+        stateKey: 'grungeVideoBlendModeDark',
+        type: 'select',
+        options: [
+          { value: 'screen', label: 'Screen (Lighten)' },
+          { value: 'overlay', label: 'Overlay (Contrast)' },
+          { value: 'multiply', label: 'Multiply (Darken)' },
+          { value: 'soft-light', label: 'Soft Light (Subtle)' },
+          { value: 'hard-light', label: 'Hard Light (Intense)' },
+          { value: 'lighten', label: 'Lighten (Pick Lighter)' },
+          { value: 'darken', label: 'Darken (Pick Darker)' },
+          { value: 'plus-lighter', label: 'Plus Lighter (Additive)' },
+          { value: 'color-dodge', label: 'Color Dodge (Bright)' },
+          { value: 'color-burn', label: 'Color Burn (Dark)' }
+        ],
+        default: 'screen',
+        hint: 'Blend mode for dark mode video',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-blend-mode-dark', val);
+        }
+      },
+      {
+        id: 'grungeVideoContrast',
+        label: 'Contrast',
+        stateKey: 'grungeVideoContrast',
+        type: 'range',
+        min: 0.5, max: 2, step: 0.05,
+        default: 1,
+        precision: 2,
+        hint: 'Video contrast (1 = normal, >1 = more contrast)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-contrast', String(val));
+        }
+      },
+      {
+        id: 'grungeVideoBrightness',
+        label: 'Brightness',
+        stateKey: 'grungeVideoBrightness',
+        type: 'range',
+        min: 0.5, max: 2, step: 0.05,
+        default: 1,
+        precision: 2,
+        hint: 'Video brightness/exposure (1 = normal, >1 = brighter)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-brightness', String(val));
+        }
+      },
+      {
+        id: 'grungeVideoSaturate',
+        label: 'Saturation',
+        stateKey: 'grungeVideoSaturate',
+        type: 'range',
+        min: 0, max: 2, step: 0.05,
+        default: 1,
+        precision: 2,
+        hint: 'Video saturation (0 = grayscale, 1 = normal, >1 = vivid)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-saturate', String(val));
+        }
+      },
+      {
+        id: 'grungeVideoHueRotate',
+        label: 'Hue Rotate',
+        stateKey: 'grungeVideoHueRotate',
+        type: 'range',
+        min: 0, max: 360, step: 1,
+        default: 0,
+        precision: 0,
+        hint: 'Rotate colors around the color wheel (0-360 degrees)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-hue-rotate', `${val}deg`);
+        }
+      },
+      {
+        id: 'grungeVideoInvert',
+        label: 'Invert',
+        stateKey: 'grungeVideoInvert',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        precision: 2,
+        hint: 'Invert colors (0 = normal, 1 = fully inverted)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-invert', String(val));
+        }
+      },
+      {
+        id: 'grungeVideoSepia',
+        label: 'Sepia',
+        stateKey: 'grungeVideoSepia',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        precision: 2,
+        hint: 'Sepia tone effect (0 = none, 1 = full sepia)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-sepia', String(val));
+        }
+      },
+      {
+        id: 'grungeVideoGrayscale',
+        label: 'Grayscale',
+        stateKey: 'grungeVideoGrayscale',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0,
+        precision: 2,
+        hint: 'Convert to grayscale (0 = color, 1 = black & white)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-grayscale', String(val));
+        }
+      },
+      {
+        id: 'grungeVideoBlur',
+        label: 'Blur',
+        stateKey: 'grungeVideoBlur',
+        type: 'range',
+        min: 0, max: 20, step: 0.5,
+        default: 0,
+        precision: 1,
+        hint: 'Blur effect in pixels (0 = sharp)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-blur', `${val}px`);
+        }
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAYERS - Overlay positioning and edge overlap controls
+  // ═══════════════════════════════════════════════════════════════════════════
+  layers: {
+    title: 'Layers & Edges',
+    icon: '📐',
+    defaultOpen: false,
+    controls: [
+      { type: 'divider', label: 'Edge Overlap' },
+      {
+        id: 'noiseEdgeOverlapLayers',
+        label: 'Noise Overlap',
+        stateKey: 'noiseEdgeOverlap',
+        type: 'range',
+        min: 0, max: 15, step: 1,
+        default: 5,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'How far noise extends past inner wall edge (px)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--abs-noise-edge-overlap', `${val}px`);
+        }
+      },
+      {
+        id: 'videoEdgeOverlapLayers',
+        label: 'Video Overlap',
+        stateKey: 'grungeVideoEdgeOverlap',
+        type: 'range',
+        min: 0, max: 15, step: 1,
+        default: 3,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'How far video extends past inner wall edge (px)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-edge-overlap', `${val}px`);
+        }
+      },
+      { type: 'divider', label: 'Wall Frame' },
+      {
+        id: 'safariTintInset',
+        label: 'Outer Inset',
+        stateKey: 'safariTintInset',
+        type: 'range',
+        min: 0, max: 40, step: 1,
+        default: 20,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Distance from viewport edge to wall outer edge (px)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--safari-tint-inset', `${val}px`);
         }
       }
     ]
@@ -5879,7 +6142,7 @@ export function generateMasterSectionsHTML() {
 
 // Generate sections for GLOBAL group only
 export function generateGlobalSectionsHTML() {
-  const globalSections = ['colors', 'colorDistribution', 'noise', 'uiSpacing', 'cursor', 'trail', 'links', 'scene'];
+  const globalSections = ['colors', 'colorDistribution', 'layers', 'noise', 'videoOverlay', 'uiSpacing', 'cursor', 'trail', 'links', 'scene'];
   let html = '';
   for (const key of globalSections) {
     if (!CONTROL_SECTIONS[key]) continue;

@@ -182,8 +182,8 @@
   <meta content="Alexander Beck - Product Designer, Creative Technologist, Experience Director" name="description">
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
-  <link rel="stylesheet" href="css/styles.css?v=1769548178499">
-<link rel="modulepreload" href="js/shared.js?v=1769548178499">
+  <link rel="stylesheet" href="css/styles.css?v=1769605267035">
+<link rel="modulepreload" href="js/shared.js?v=1769605267035">
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
@@ -254,25 +254,25 @@
   "linkTextPadding": 12,
   "linkIconPadding": 19,
   "footerNavBarTopVh": 56.5,
-  "footerNavBarGapVw": 0.5,
-  "homeMainLinksBelowLogoPx": -92,
+  "footerNavBarGapVw": 0,
+  "homeMainLinksBelowLogoPx": -132,
   "edgeLabelInsetAdjustPx": -58,
   "edgeCaptionDistanceMinPx": 0,
   "edgeCaptionDistanceMaxPx": 16,
-  "simulationOverlayIntensity": 0.45,
-  "depthWashOpacity": 0.65,
+  "simulationOverlayIntensity": 1,
+  "depthWashOpacity": 0.4,
   "depthWashCenterY": 0.3,
   "depthWashRadiusScale": 1,
-  "depthWashBlendModeLight": "multiply",
+  "depthWashBlendModeLight": "color-dodge",
   "depthWashCenterColorLight": "#ffffff",
   "depthWashCenterAlphaLight": 0.1,
   "depthWashEdgeColorLight": "#5c6a7a",
   "depthWashEdgeAlphaLight": 0.4,
-  "depthWashBlendModeDark": "multiply",
+  "depthWashBlendModeDark": "source-over",
   "depthWashCenterColorDark": "#1a1e23",
-  "depthWashCenterAlphaDark": 0.45,
-  "depthWashEdgeColorDark": "#05020f",
-  "depthWashEdgeAlphaDark": 1,
+  "depthWashCenterAlphaDark": 0.6,
+  "depthWashEdgeColorDark": "#00040a",
+  "depthWashEdgeAlphaDark": 0.95,
   "linkColorInfluence": 1,
   "linkImpactScale": 0.7,
   "linkImpactBlur": 0,
@@ -301,6 +301,10 @@
   "modalDepthTranslateY": 1,
   "logoBlurInactive": 2.5,
   "logoBlurActive": 8,
+  "grungeVideoEnabled": true,
+  "grungeVideoBlendModeLight": "plus-lighter",
+  "grungeVideoBlendModeDark": "color-dodge",
+  "grungeVideoContrast": 1.15,
   "bgLight": "#f5f5f5",
   "bgDark": "#0d0c0c",
   "textColorLight": "#161616",
@@ -504,14 +508,6 @@
   "starfieldIdleJitter": 20,
   "starfieldFadeDuration": 0.5,
   "starfield3dWarmupFrames": 10,
-  "shootingStarsSpawnInterval": 2,
-  "shootingStarsBurstSize": 8,
-  "shootingStarsMinSpeed": 400,
-  "shootingStarsMaxSpeed": 2000,
-  "shootingStarsAngle": 120,
-  "shootingStarsTrailLength": 13,
-  "shootingStarsMinSize": 0.2,
-  "shootingStarsMaxSize": 1.5,
   "elasticCenterRingCount": 10,
   "elasticCenterMassMultiplier": 3.9,
   "elasticCenterElasticStrength": 500,
@@ -769,10 +765,20 @@
       
       <!-- Wall-only canvas: renders the same rubber wall ring as index (no simulation). -->
       <canvas class="cv-wall-canvas" aria-hidden="true"></canvas>
+      <!-- Grunge video overlay - INSIDE #bravia-balls for proper blend mode compositing -->
+      <video 
+        id="grunge-video-overlay" 
+        class="grunge-video-overlay"
+        autoplay muted loop playsinline preload="auto" aria-hidden="true"
+      >
+        <source src="video/videoG.mp4" type="video/mp4">
+      </video>
     </div>
   </div>
 
-  <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, video, etc.) -->
+  </div>
+  
+  <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, etc.) -->
   <!-- Positioned above wall (z:100), below modals (z:19998) -->
   <div id="overlay-effects" class="overlay-effects" aria-hidden="true">
     <div class="noise"></div>
@@ -867,7 +873,7 @@
   <!-- Page Flash Overlay -->
   <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
-  <script type="module" src="js/cv.js?v=1769548178499"></script>
+  <script type="module" src="js/cv.js?v=1769605267035"></script>
   <script>
     // In production (served from dist/), load from bundled JS if available
     if (!document.querySelector('script[src*="modules/cv-init.js"]')) {

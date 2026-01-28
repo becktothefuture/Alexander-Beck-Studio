@@ -241,14 +241,19 @@
   --abs-noise-saturation: 1;
   --abs-noise-drift-x: 0px;
   --abs-noise-drift-y: 0px;
+  --abs-noise-edge-overlap: 5px; /* How far noise extends past inner wall edge */
 
   /* Grunge Video Overlay (see docs/grunge-video-overlay.md) */
-  --grunge-video-enabled: 0;                          /* 0 = off, 1 = on */
-  --grunge-video-opacity: 1;                          /* Final opacity (0-1) */
-  --grunge-video-blend-mode-light: multiply;          /* Light mode blend */
-  --grunge-video-blend-mode-dark: overlay;            /* Dark mode blend */
+  --grunge-video-edge-overlap: 3px;                   /* How far video extends past inner wall edge */
+  --grunge-video-enabled: 1;                          /* 0 = off, 1 = on */
+  --grunge-video-opacity: 0.8;                        /* Final opacity (0-1) */
+  --grunge-video-blend-mode-light: overlay;           /* Light mode blend */
+  --grunge-video-blend-mode-dark: screen;             /* Dark mode blend */
   --grunge-video-fade-duration: 2000ms;               /* Fade-in duration */
   --grunge-video-fade-easing: cubic-bezier(0.16, 1, 0.3, 1); /* Easing curve */
+
+  /* Wall Frame Inset (space between viewport edge and wall outer edge) */
+  --safari-tint-inset: 20px;
 
   --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
 

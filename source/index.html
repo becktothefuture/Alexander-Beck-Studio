@@ -230,19 +230,11 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/normalize.css">
   <link rel="stylesheet" href="css/main.css">
-  <!-- Random pixel font selection (game-like, scale-compensated) -->
+  <!-- Display font (Silkscreen) -->
   <script>
     (function() {
-      var fonts = [
-        { name: 'Press Start 2P', scale: 1.7 },
-        { name: 'VT323', scale: 1.35 },
-        { name: 'Silkscreen', scale: 1.5 },
-        { name: 'DotGothic16', scale: 1.25 },
-        { name: 'Pixelify Sans', scale: 1.15 }
-      ];
-      var pick = fonts[Math.floor(Math.random() * fonts.length)];
-      document.documentElement.style.setProperty('--abs-font-display', "'" + pick.name + "', monospace");
-      document.documentElement.style.setProperty('--abs-font-display-scale', pick.scale);
+      document.documentElement.style.setProperty('--abs-font-display', "'Silkscreen', monospace");
+      document.documentElement.style.setProperty('--abs-font-display-scale', 1.2);
     })();
   </script>
   <!-- panel.css is DEV-only; injected dynamically by panel-dock.js when needed -->
@@ -252,7 +244,7 @@
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&family=Press+Start+2P&family=VT323&family=Silkscreen&family=DotGothic16&family=Pixelify+Sans&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400&family=Silkscreen&display=swap" rel="stylesheet">
 
   <link href="images/favicon.ico" rel="shortcut icon" type="image/x-icon">
   <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
@@ -288,21 +280,29 @@
     <div id="bravia-balls" class="ball-simulation w-embed">
       <canvas id="c" aria-label="Bouncy balls" role="img" draggable="false"></canvas>
     </div>
-  </div>
 
-  <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, video, etc.) -->
-  <!-- Positioned above wall (z:100), below modals (z:19998) -->
-  <div id="overlay-effects" class="overlay-effects" aria-hidden="true">
-    <div class="noise"></div>
-    <!-- Grunge video overlay placeholder (see docs/grunge-video-overlay.md) -->
-    <!-- <video 
-      id="grunge-video-overlay" 
-      class="grunge-video-overlay"
-      autoplay muted loop playsinline preload="auto"
+    <!-- OVERLAY EFFECTS: Noise layer (inside #abs-scene for depth effect) -->
+    <div id="overlay-effects" class="overlay-effects" aria-hidden="true">
+      <div class="noise"></div>
+    </div>
+
+    <!-- GRUNGE VIDEO OVERLAYS: Inside #abs-scene for depth effect -->
+    <!-- Light mode video (overlay blend) -->
+    <video 
+      id="grunge-video-light" 
+      class="grunge-video-overlay grunge-video-overlay--light"
+      autoplay muted loop playsinline preload="auto" aria-hidden="true"
     >
-      <source src="videos/grunge-overlay.webm" type="video/webm">
-      <source src="videos/grunge-overlay.mp4" type="video/mp4">
-    </video> -->
+      <source src="video/video-dark.mp4" type="video/mp4">
+    </video>
+    <!-- Dark mode video (screen blend) -->
+    <video 
+      id="grunge-video-dark" 
+      class="grunge-video-overlay grunge-video-overlay--dark"
+      autoplay muted loop playsinline preload="auto" aria-hidden="true"
+    >
+      <source src="video/video-dark.mp4" type="video/mp4">
+    </video>
   </div>
   
   <!-- UI LAYER: Flexbox Layout - OUTSIDE #abs-scene to avoid transform interference -->

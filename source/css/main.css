@@ -164,6 +164,8 @@ body.body {
   transition: 
     background-color var(--duration-settle) var(--ease-settle),
     padding var(--duration-resize, 600ms) var(--ease-organic, ease);
+  /* Create stacking context for mix-blend-mode to work across all page content */
+  isolation: isolate;
 }
 
 /* Pages that do not use the index fade-in pipeline should be visible + interactive.
@@ -1610,10 +1612,8 @@ html.modal-active #main-links { pointer-events: none; }
 
 #bravia-balls {
   position: fixed;
-  /* iOS 26 Safari fix: 6px inset from viewport edges exposes wall colour (html/body bg)
-     so Safari samples the correct colour for browser chrome tinting.
-     The 6px gap creates a visible frame and ensures Safari sees wall colour at edges. */
-  --safari-tint-inset: 20px;
+  /* Wall inset from viewport edges (--safari-tint-inset defined in tokens.css).
+     This gap exposes wall colour (html/body bg) so Safari samples correct chrome tint. */
   top: var(--safari-tint-inset);
   left: var(--safari-tint-inset);
   right: var(--safari-tint-inset);
@@ -1631,7 +1631,7 @@ html.modal-active #main-links { pointer-events: none; }
   background-color: var(--bg-light);
   z-index: 100; /* Wall: top of visual stack (below modals at z:19998+) */
   pointer-events: none;
-  overflow: visible; /* Canvas extends 1px beyond for edge coverage */
+  overflow: hidden;
   /* GPU layer hint for smooth compositing */
   transform: translateZ(0);
   transform-origin: center center;
@@ -1662,88 +1662,33 @@ body.dark-mode #bravia-balls {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   WALL INNER SHADOW - Subtle edge-based depth effect
-   
-   Creates machined/architectural realism using crisp edge shading:
-   - Dark edge at top and left (shadow side)
-   - Light edge at bottom (highlight side)  
-   - Solid stroke layer on top for definition
-   - Minimal ambient shadow for separation
-   
-   POSITIONING: Uses same tokens as wall (--wall-thickness, --wall-radius)
-   to ensure perfect alignment with canvas-rendered wall inner edge.
+   WALL INNER SHADOW - Simple inset shadow for depth
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* ═══ EDGE SHADING LAYER (::after) ═══ */
 #bravia-balls::after {
   content: '';
   position: absolute;
-  
-  /* Match wall inner edge exactly */
   inset: var(--wall-thickness, 9px);
   border-radius: var(--wall-radius);
-  
   pointer-events: none;
-  z-index: 30; /* Wall edge shading: above video (z:20), below stroke (z:40) */
+  z-index: 30;
   
-  /* ═══ LIGHT MODE: Recessed panel depth ═══ */
-  box-shadow:
-    /* Top edge - dark (wall shadow) */
-    inset 0 1px 0 rgba(0,0,0, 0.08),
-    /* Left edge - dark (wall shadow) */
-    inset 1px 0 0 rgba(0,0,0, 0.06),
-    /* Bottom edge - light highlight */
-    inset 0 -1px 0 rgba(255,255,255, 0.06),
-    /* Right edge - light highlight */
-    inset -1px 0 0 rgba(255,255,255, 0.04),
-    /* Ambient inset vignette */
-    inset 2px 3px 20px rgba(0,0,0, 0.04);
-  
+  /* Simple inner shadow */
+  box-shadow: inset 0 2px 8px rgba(0,0,0, 0.06);
   transition: box-shadow var(--duration-settle, 400ms) var(--ease-settle);
 }
 
-/* ═══ SOLID STROKE LAYER (::before) - On top of shadows ═══ */
-#bravia-balls::before {
-  content: '';
-  position: absolute;
-  
-  inset: var(--wall-thickness, 9px);
-  border-radius: var(--wall-radius);
-  
-  pointer-events: none;
-  z-index: 40; /* Wall stroke: top of wall interior stack */
-  
-  /* Solid edge definition */
-  border: 0.5px solid rgba(255,255,255, 0.05);
-}
-
-/* ═══ DARK MODE: Deeper recessed depth ═══ */
+/* Dark mode: slightly deeper shadow */
 body.dark-mode #bravia-balls::after {
-  box-shadow:
-    /* Top edge - dark (wall shadow) */
-    inset 0 1px 0 rgba(0,0,0, 0.25),
-    /* Left edge - dark (wall shadow) */
-    inset 1px 0 0 rgba(0,0,0, 0.18),
-    /* Bottom edge - subtle light highlight */
-    inset 0 -1px 0 rgba(255,255,255, 0.03),
-    /* Right edge - subtle light highlight */
-    inset -1px 0 0 rgba(255,255,255, 0.02),
-    /* Ambient inset vignette */
-    inset 2px 3px 20px rgba(0,0,0, 0.12);
-}
-
-body.dark-mode #bravia-balls::before {
-  border-color: rgba(255,255,255, 0.03);
+  box-shadow: inset 0 2px 12px rgba(0,0,0, 0.15);
 }
 
 #bravia-balls canvas {
   position: absolute;
-  /* Canvas extends 1px beyond container on all sides to prevent edge gaps.
-     Wall fill reaches canvas edges, so this ensures complete coverage. */
-  top: -1px;
-  left: -1px;
-  width: calc(100% + 2px);
-  height: calc(100% + 2px);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   z-index: 10; /* Canvas (balls): below video (z:20), below wall frame (z:30/40) */
   pointer-events: auto; /* Interactions enabled */
   touch-action: none;
@@ -1757,44 +1702,50 @@ body.dark-mode #bravia-balls::before {
    MUST match #bravia-balls positioning exactly.
    ───────────────────────────────────────────────────────────────────────────── */
 .overlay-effects {
+  /* Fixed positioning - works inside #abs-scene because transform creates containing block */
   position: fixed;
-  /* Match #bravia-balls positioning exactly (same inset from viewport edges) */
-  --safari-tint-inset: 20px;
+  /* MUST match #bravia-balls positioning exactly for perfect alignment during transforms */
+  /* Uses --safari-tint-inset from tokens.css (inherited from :root) */
   top: var(--safari-tint-inset);
   left: var(--safari-tint-inset);
-  right: var(--safari-tint-inset);
-  bottom: var(--safari-tint-inset);
-  /* Above wall frame (z:100), below modals (z:19998) */
-  z-index: 150;
+  /* Use same dimension strategy as #bravia-balls */
+  width: calc(100% - var(--safari-tint-inset) * 2);
+  height: calc(100dvh - var(--safari-tint-inset) * 2);
+  /* Behind wall frame (z:100) so noise doesn't cover wall edges */
+  z-index: 90;
   pointer-events: none;
-  /* No overflow hidden - let noise extend for animation, it clips via border-radius */
 }
 
 .noise {
   position: absolute;
   /* Inset by wall thickness to position noise INSIDE the wall frame */
-  /* This matches #bravia-balls::after inset positioning */
-  inset: var(--wall-thickness, 9px);
+  /* Overlap extends past inner wall edge to prevent gaps */
+  /* Configurable via --abs-noise-edge-overlap (default 5px) */
+  inset: calc(var(--wall-thickness, 9px) - var(--abs-noise-edge-overlap, 5px));
   pointer-events: none;
   overflow: hidden;
-  /* Safari fix: isolate blend mode to prevent bleeding into other layers */
-  isolation: isolate;
+  /* Note: isolation removed - it creates stacking context that breaks blend modes for sibling elements */
   /* Border radius to match simulation interior (same as wall inner edge) */
   border-radius: var(--wall-radius);
   /* Fade-in on load: starts hidden via visibility, revealed by .noise-ready class */
+  /* Delayed fade-in to appear after other layers have settled */
+  /* Visibility stays hidden until opacity transition is ready to prevent flash */
   visibility: hidden;
-  transition: visibility 0s linear 0s, opacity 800ms cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 0;
+  /* Delay both visibility and opacity to prevent any flash during initial render */
+  /* Visibility delay matches opacity delay so both activate together */
+  transition: visibility 0s linear 500ms, opacity 2500ms cubic-bezier(0.16, 1, 0.3, 1) 500ms;
 }
 
-/* Noise layer fades in after page load */
-.noise-ready .noise {
+/* Noise layer fades in AFTER entrance animation completes */
+/* Requires: html.entrance-complete (entrance done) + body.noise-ready (texture generated) */
+/* This ensures noise appears after wall/content/logo/links have settled */
+html.entrance-complete .noise-ready .noise {
   visibility: visible;
-}
-
-.noise-ready .noise {
   opacity: calc(var(--noise-opacity-light) * var(--abs-noise-enabled));
   mix-blend-mode: var(--noise-blend-mode, normal);
+  /* Both transition together - visibility becomes visible as opacity starts transitioning */
+  transition: visibility 0s linear 0s, opacity 2500ms cubic-bezier(0.16, 1, 0.3, 1) 0s;
 }
 
 .noise::before {
@@ -1838,9 +1789,7 @@ body.dark-mode #bravia-balls::before {
 }
 
 /* Dark mode noise fade-in with correct opacities and colors */
-.noise-ready body.dark-mode .noise,
-body.dark-mode.noise-ready .noise,
-body.dark-mode .noise-ready .noise {
+html.entrance-complete body.dark-mode.noise-ready .noise {
   opacity: calc(var(--noise-opacity-dark) * var(--abs-noise-enabled));
 }
 
@@ -1941,37 +1890,93 @@ html.is-safari .noise::before {
    GRUNGE VIDEO OVERLAY (see docs/grunge-video-overlay.md)
    ───────────────────────────────────────────────────────────────────────────── */
 .grunge-video-overlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  /* Fixed positioning - works inside #abs-scene because transform creates containing block */
+  position: fixed;
+  /* 
+   * POSITIONING STRATEGY (must match #bravia-balls for transform alignment):
+   * - Wall outer edge: --safari-tint-inset (from tokens.css) from viewport
+   * - Wall inner edge: inset + wall-thickness from viewport
+   * - Video edge: inner edge - overlap for seamless coverage
+   */
+  --video-inset: calc(var(--safari-tint-inset) + var(--wall-thickness, 9px) - var(--grunge-video-edge-overlap, 3px));
+  top: var(--video-inset);
+  left: var(--video-inset);
+  /* Match #bravia-balls dimension strategy: 100% for width, 100dvh for height */
+  width: calc(100% - var(--video-inset) * 2);
+  height: calc(100dvh - var(--video-inset) * 2);
+  /* Match wall interior rounded corners */
+  border-radius: var(--wall-radius);
   object-fit: cover;
+  object-position: center;
   pointer-events: none;
-  /* Start hidden; JS reveals when video is ready */
-  opacity: 0;
+  /* Behind wall (z:100) so video doesn't peek through wall edges */
+  z-index: 80;
+  /* Initial state: hidden, fades in when .grunge-video-ready is added */
   visibility: hidden;
-  mix-blend-mode: var(--grunge-video-blend-mode-light);
+  opacity: 0;
+  /* Transition: opacity fades smoothly */
   transition: 
-    opacity var(--grunge-video-fade-duration) var(--grunge-video-fade-easing),
-    visibility 0s linear var(--grunge-video-fade-duration);
-  /* GPU acceleration */
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  will-change: opacity;
+    visibility 0s linear, 
+    opacity 5000ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Video is ready and enabled */
-.grunge-video-ready .grunge-video-overlay {
-  opacity: calc(var(--grunge-video-opacity) * var(--grunge-video-enabled));
+/* Video fade-in when ready AND entrance animation is complete AND noise is ready */
+/* Requires: html.entrance-complete + body.noise-ready + body.grunge-video-ready */
+/* Delay ensures video fades in AFTER noise is partially visible (noise takes 2.5s to fade in) */
+html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay {
   visibility: visible;
-  transition: 
-    opacity var(--grunge-video-fade-duration) var(--grunge-video-fade-easing),
-    visibility 0s linear 0s;
+  transition-delay: 1500ms; /* Start 1.5s after noise begins, overlapping with noise fade */
 }
 
-/* Dark mode blend mode */
-body.dark-mode .grunge-video-overlay {
-  mix-blend-mode: var(--grunge-video-blend-mode-dark);
+/* Light mode video: uses separate opacity and blend mode */
+.grunge-video-overlay--light {
+  mix-blend-mode: var(--grunge-video-blend-mode-light, overlay);
+}
+
+/* Light mode video opacity and filters (when visible) */
+html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay--light {
+  opacity: var(--grunge-video-opacity-light, 0.8);
+  /* Image adjustment filters */
+  filter: 
+    contrast(var(--grunge-video-contrast, 1))
+    brightness(var(--grunge-video-brightness, 1))
+    saturate(var(--grunge-video-saturate, 1))
+    hue-rotate(var(--grunge-video-hue-rotate, 0deg))
+    invert(var(--grunge-video-invert, 0))
+    sepia(var(--grunge-video-sepia, 0))
+    grayscale(var(--grunge-video-grayscale, 0))
+    blur(var(--grunge-video-blur, 0px));
+}
+
+/* Dark mode video: hidden by default (light mode is default) */
+.grunge-video-overlay--dark {
+  mix-blend-mode: var(--grunge-video-blend-mode-dark, screen);
+  display: none;
+}
+
+/* Dark mode: swap videos */
+:root.dark-mode .grunge-video-overlay--light {
+  display: none;
+}
+
+/* Dark mode video opacity and filters (when visible) */
+html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay--dark {
+  opacity: var(--grunge-video-opacity-dark, 0.8);
+  /* Image adjustment filters */
+  filter: 
+    contrast(var(--grunge-video-contrast, 1))
+    brightness(var(--grunge-video-brightness, 1))
+    saturate(var(--grunge-video-saturate, 1))
+    hue-rotate(var(--grunge-video-hue-rotate, 0deg))
+    invert(var(--grunge-video-invert, 0))
+    sepia(var(--grunge-video-sepia, 0))
+    grayscale(var(--grunge-video-grayscale, 0))
+    blur(var(--grunge-video-blur, 0px));
+}
+
+:root.dark-mode .grunge-video-overlay--dark {
+  display: block;
 }
 
 /* Respect reduced motion preference */
@@ -2033,15 +2038,29 @@ body.dark-mode .grunge-video-overlay {
     gap: var(--gap-md);
   }
 
+  /* FIX #1: Stack legend and intro text vertically on mobile */
   .ui-top-main {
-    flex-direction: row;
+    flex-direction: column;
     align-items: flex-start;
-    gap: var(--gap-lg); /* Increase gutter between left list and right bio */
+    gap: var(--gap-md); /* Tighter gap when stacked */
   }
 
   .ui-top-left {
-    flex: 1 1 0;
-    min-width: 0; /* allow text/grid to shrink instead of forcing overflow */
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* FIX #2: Left-align intro text container on mobile (after vertical stack) */
+  .ui-top-right {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  /* FIX #3: Expand intro paragraph to full width on mobile */
+  .decorative-script {
+    max-width: 100%;
+    text-align: left;
   }
 
   #top-elements-soundRow.ui-top-soundRow {
@@ -2156,6 +2175,11 @@ body.dark-mode .grunge-video-overlay {
   
   /* Hide separator dot on mobile */
   .meta-separator {
+    display: none;
+  }
+  
+  /* FIX #4: Hide quote display on mobile to avoid cramped bottom section */
+  .quote-display {
     display: none;
   }
 }
