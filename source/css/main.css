@@ -1987,11 +1987,11 @@ html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay--da
     gap: var(--gap-md);
   }
 
-  /* FIX #1: Stack legend and intro text vertically on mobile */
+  /* Mobile: default stack for tighter layouts */
   .ui-top-main {
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--gap-md); /* Tighter gap when stacked */
+    gap: var(--gap-md);
   }
 
   .ui-top-left {
@@ -2000,10 +2000,31 @@ html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay--da
     min-width: 0;
   }
 
-  /* FIX #2: Keep intro text container aligned right on mobile (after vertical stack) */
+  /* Keep intro text aligned to the right on mobile */
   .ui-top-right {
     justify-content: flex-end;
     width: 100%;
+  }
+
+  /* Index: keep legend + intro split side-by-side */
+  body:not(.portfolio-page):not(.cv-page) .ui-top-main {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--gap-md);
+  }
+
+  body:not(.portfolio-page):not(.cv-page) .ui-top-left,
+  body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  body:not(.portfolio-page):not(.cv-page) .ui-top-left {
+    width: auto;
+  }
+
+  body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+    width: auto;
   }
 
   /* FIX #3: Expand intro paragraph to full width on mobile, aligned right */
@@ -2014,7 +2035,7 @@ html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay--da
 
   #top-elements-soundRow.ui-top-soundRow {
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
     pointer-events: auto;
   }
