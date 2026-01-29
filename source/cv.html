@@ -143,16 +143,14 @@
         shouldBeDark = systemPrefersDark || isNightTime;
       }
       
-      if (shouldBeDark) {
-        document.documentElement.classList.add('dark-mode');
-        document.documentElement.style.colorScheme = 'dark';
-        if (document.body) {
-          document.body.classList.add('dark-mode');
-        } else {
-          document.addEventListener('DOMContentLoaded', function() {
-            document.body.classList.add('dark-mode');
-          }, { once: true });
-        }
+      document.documentElement.classList.toggle('dark-mode', shouldBeDark);
+      document.documentElement.style.colorScheme = shouldBeDark ? 'dark' : 'light';
+      if (document.body) {
+        document.body.classList.toggle('dark-mode', shouldBeDark);
+      } else {
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.classList.toggle('dark-mode', shouldBeDark);
+        }, { once: true });
       }
       setBrowserChromeColors(shouldBeDark);
       

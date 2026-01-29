@@ -22,6 +22,7 @@
   /* Theme bridge (JS writes these; keep names stable) */
   --bg-light: var(--color-bg-light);
   --bg-dark: var(--color-bg-dark);
+  --bg-scene: var(--bg-light);
   /* Unified wall and browser chrome color (consistent across all modes) */
   --frame-color: #242529;
   --wall-color: #242529;
@@ -496,6 +497,7 @@
   color-scheme: dark;
   /* Wall and chrome colors remain unified (#242529) in dark mode */
   /* Scene interior uses --bg-dark for dark mode */
+  --bg-scene: var(--bg-dark);
 
   /* Text — Dark mode overrides (JS may override --text-color-dark* from config) */
   --text-primary: var(--text-color-dark);

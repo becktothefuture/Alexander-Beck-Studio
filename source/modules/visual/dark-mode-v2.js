@@ -14,6 +14,8 @@ import { updateWallShadowCSS } from '../ui/control-registry.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
 const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
+const COLOR_CACHE_VERSION_KEY = 'abs_color_cache_version_v2';
+const COLOR_CACHE_VERSION = '1';
 
 // Theme states: 'auto', 'light', 'dark'
 let currentTheme = 'auto'; // Default to auto (system + night heuristic)
@@ -293,12 +295,12 @@ export function setTheme(theme) {
  */
 function clearColorCache() {
   try {
-    // Clear theme preferences (will be re-initialized with unified color)
-    localStorage.removeItem(THEME_STORAGE_KEY);
-    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+    const storedVersion = localStorage.getItem(COLOR_CACHE_VERSION_KEY);
+    if (storedVersion === COLOR_CACHE_VERSION) return;
+    localStorage.setItem(COLOR_CACHE_VERSION_KEY, COLOR_CACHE_VERSION);
     // Clear palette rotation cache (from colors.js - actual key name)
     localStorage.removeItem('abs_palette_chapter');
-    devLog('🗑️ Cleared color-related localStorage cache');
+    devLog('🗑️ Cleared color cache (version mismatch)');
   } catch (e) {
     // localStorage unavailable or error
   }

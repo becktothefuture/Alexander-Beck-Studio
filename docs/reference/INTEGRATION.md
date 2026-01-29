@@ -25,6 +25,23 @@
 
 **That's it!** The simulation auto-initializes.
 
+### Theme Initialization (First Paint)
+
+To ensure dark mode palettes render immediately (no flash), set the theme **before CSS paints** and rely on CSS variables. The surface background uses `--bg-scene` (derived from `--bg-light` / `--bg-dark` in `tokens.css`).
+
+```html
+<script>
+  (function() {
+    var stored = null;
+    try { stored = localStorage.getItem('theme-preference-v2'); } catch (e) {}
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var shouldBeDark = stored === 'dark' || (stored !== 'light' && prefersDark);
+    document.documentElement.classList.toggle('dark-mode', shouldBeDark);
+    document.documentElement.style.colorScheme = shouldBeDark ? 'dark' : 'light';
+  })();
+</script>
+```
+
 ## Embedding Integration
 
 ### Step 1: Prepare Files

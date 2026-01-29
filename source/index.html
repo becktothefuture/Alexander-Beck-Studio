@@ -184,19 +184,17 @@
         shouldBeDark = systemPrefersDark || isNightTime;
       }
       
-      // Apply dark mode IMMEDIATELY before first paint
-      if (shouldBeDark) {
-        document.documentElement.classList.add('dark-mode');
-        document.documentElement.style.colorScheme = 'dark';
-        // Apply to body as well (will be set properly when body exists)
-        if (document.body) {
-          document.body.classList.add('dark-mode');
-        } else {
-          // If body doesn't exist yet, set it when DOMContentLoaded fires
-          document.addEventListener('DOMContentLoaded', function() {
-            document.body.classList.add('dark-mode');
-          }, { once: true });
-        }
+      // Apply theme IMMEDIATELY before first paint
+      document.documentElement.classList.toggle('dark-mode', shouldBeDark);
+      document.documentElement.style.colorScheme = shouldBeDark ? 'dark' : 'light';
+      // Apply to body as well (will be set properly when body exists)
+      if (document.body) {
+        document.body.classList.toggle('dark-mode', shouldBeDark);
+      } else {
+        // If body doesn't exist yet, set it when DOMContentLoaded fires
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.classList.toggle('dark-mode', shouldBeDark);
+        }, { once: true });
       }
       setBrowserChromeColors(shouldBeDark);
       

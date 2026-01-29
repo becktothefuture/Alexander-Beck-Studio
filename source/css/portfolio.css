@@ -376,7 +376,7 @@ body.portfolio-page.dark-mode .slide::after {
   border: var(--border-width) solid var(--border-color);
   overflow: hidden;
   position: relative;
-  background: var(--bg-light);
+  background: var(--bg-scene, var(--bg-light));
   box-shadow: none;
   transition: 
     border-width var(--transition-speed) var(--transition-ease), 
@@ -387,10 +387,6 @@ body.portfolio-page.dark-mode .slide::after {
   transform-origin: center;
   will-change: transform, opacity, filter;
   isolation: isolate;
-}
-
-body.portfolio-page.dark-mode .slide-image-container {
-  background: var(--bg-dark);
 }
 
 /* Glowing border on hover */
@@ -550,16 +546,12 @@ html.entrance-complete .portfolio-meta {
   z-index: 50;
   opacity: 0;
   pointer-events: none;
-  background: var(--bg-light);
+  background: var(--bg-scene, var(--bg-light));
   will-change: opacity, transform;
   transform: scale(var(--detail-overlay-start-scale));
   transition:
     opacity var(--detail-transition-ms) var(--detail-transition-ease),
     transform var(--detail-transition-ms) var(--detail-transition-ease);
-}
-
-body.portfolio-page.dark-mode .project-detail {
-  background: var(--bg-dark);
 }
 
 .project-detail.is-open {
