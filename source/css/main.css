@@ -2464,6 +2464,70 @@ body.dark-mode #modal-overlay.active .abs-icon-btn:hover {
   }
 }
 
+/* Touch devices: disable sticky hover states */
+@media (hover: none) {
+  body:not(.portfolio-page):not(.detail-open) a:hover,
+  body:not(.portfolio-page):not(.detail-open) button:hover,
+  body:not(.portfolio-page):not(.detail-open) .legend__item--interactive:hover,
+  body.portfolio-page a:hover,
+  body.portfolio-page button:hover,
+  body.detail-open a:hover,
+  body.detail-open button:hover,
+  #modal-overlay.active a:hover,
+  #modal-overlay.active button:hover {
+    animation: none;
+    transform: none;
+  }
+
+  body:not(.portfolio-page):not(.detail-open) .footer_link:hover,
+  body:not(.portfolio-page):not(.detail-open) .portfolio-cv-link:hover,
+  body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover,
+  body.portfolio-page .footer_link:hover,
+  body.detail-open .footer_link:hover,
+  body.dark-mode.portfolio-page .footer_link:hover,
+  body.dark-mode.detail-open .footer_link:hover {
+    color: var(--text-primary);
+    opacity: var(--text-opacity-base);
+  }
+
+  body:not(.portfolio-page):not(.detail-open) .footer_link:hover::before,
+  body:not(.portfolio-page):not(.detail-open) .portfolio-cv-link:hover::before,
+  body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover::before,
+  body.portfolio-page .footer_link:hover::before,
+  body.detail-open .footer_link:hover::before {
+    opacity: 0;
+    background: transparent;
+  }
+
+  body:not(.portfolio-page):not(.detail-open) .abs-icon-btn:hover,
+  body.portfolio-page .abs-icon-btn:hover,
+  body.detail-open .abs-icon-btn:hover,
+  #modal-overlay.active .abs-icon-btn:hover,
+  .abs-meta-btn:hover,
+  #site-year:hover {
+    color: inherit;
+    background: transparent;
+  }
+
+  body:not(.portfolio-page):not(.detail-open) .abs-icon-btn:hover::before,
+  body.portfolio-page .abs-icon-btn:hover::before,
+  body.detail-open .abs-icon-btn:hover::before,
+  #modal-overlay.active .abs-icon-btn:hover::before,
+  .abs-meta-btn:hover::before,
+  #site-year:hover::before {
+    opacity: 0;
+    background: transparent;
+  }
+
+  body:not(.portfolio-page):not(.detail-open) .footer_icon-link.abs-icon-btn:hover,
+  body:not(.portfolio-page):not(.detail-open) .abs-meta-btn:hover,
+  body:not(.portfolio-page):not(.detail-open) .sound-toggle:hover,
+  html.ui-entered:not(.modal-active) #main-links .footer_link:hover {
+    animation-name: none;
+    transform: none;
+  }
+}
+
 /* Cursor transforms to larger transparent circle when modals are open */
 #custom-cursor.modal-active {
   display: block;

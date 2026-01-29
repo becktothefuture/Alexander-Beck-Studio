@@ -1028,6 +1028,36 @@ body.portfolio-page.dark-mode .project-detail__media-skeleton {
   transform: scale(1.1);
 }
 
+@media (hover: none) {
+  .project-detail__close-inline:hover {
+    background: rgba(var(--abs-rgb-white), 0.1);
+  }
+
+  body.portfolio-page.dark-mode .project-detail__close-inline:hover {
+    background: rgba(var(--abs-rgb-black), 0.15);
+  }
+
+  .project-detail__links a:hover {
+    color: var(--text-primary);
+    border-color: rgba(var(--abs-rgb-black), 0.1);
+  }
+
+  body.portfolio-page.dark-mode .project-detail__links a:hover {
+    color: var(--text-primary);
+    border-color: rgba(var(--abs-rgb-white), 0.15);
+  }
+
+  .project-detail__links a:hover .project-detail__external-icon {
+    transform: none;
+    opacity: 0.6;
+  }
+
+  .project-detail__video-toggle:hover {
+    opacity: 0.5;
+    transform: none;
+  }
+}
+
 .project-detail__caption {
   font-size: var(--text-xs);
   opacity: 0.6;
