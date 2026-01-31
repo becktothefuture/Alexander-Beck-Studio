@@ -431,23 +431,64 @@ window.addEventListener('unhandledrejection', (event) => {
         }
         
         let videoReadyTriggered = false;
+        let videoCanPlay = false;
         
-        const handleVideoReady = (video, label) => {
+        // Coordinated fade-in: only add class when ALL prerequisites are met
+        // This prevents the flash caused by visibility changing before opacity can transition
+        const checkAndTriggerFadeIn = () => {
           if (videoReadyTriggered) return;
-          videoReadyTriggered = true;
+          
+          const entranceComplete = document.documentElement.classList.contains('entrance-complete');
+          const noiseReady = document.body.classList.contains('noise-ready');
           
           if (ABS_DEV) {
-            console.log(`[Video ${label}] Can play through - triggering fade-in`);
+            console.log('[Video] Checking fade prerequisites:', {
+              videoCanPlay,
+              entranceComplete,
+              noiseReady
+            });
           }
           
-          // Add class to body for CSS fade-in
-          document.body.classList.add('grunge-video-ready');
+          // All three conditions must be met
+          if (videoCanPlay && entranceComplete && noiseReady) {
+            videoReadyTriggered = true;
+            if (ABS_DEV) {
+              console.log('[Video] All prerequisites met - triggering coordinated fade-in');
+            }
+            // Single class triggers the CSS fade - no race condition
+            document.body.classList.add('video-fade-ready');
+          }
+        };
+        
+        // Watch for entrance-complete class being added
+        const entranceObserver = new MutationObserver(() => {
+          if (document.documentElement.classList.contains('entrance-complete')) {
+            checkAndTriggerFadeIn();
+          }
+        });
+        entranceObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        
+        // Watch for noise-ready class being added
+        const noiseObserver = new MutationObserver(() => {
+          if (document.body.classList.contains('noise-ready')) {
+            checkAndTriggerFadeIn();
+          }
+        });
+        noiseObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        
+        const handleVideoReady = (video, label) => {
+          if (videoCanPlay) return;
+          videoCanPlay = true;
           
           if (ABS_DEV) {
+            console.log(`[Video ${label}] Can play through - checking prerequisites`);
             const computedOpacity = getComputedStyle(video).opacity;
             console.log(`[Video ${label}] Computed opacity:`, computedOpacity);
             console.log(`[Video ${label}] Computed blend mode:`, getComputedStyle(video).mixBlendMode);
           }
+          
+          // Check if we can trigger fade-in now
+          checkAndTriggerFadeIn();
         };
         
         // Initialize each video
@@ -500,7 +541,9 @@ window.addEventListener('unhandledrejection', (event) => {
         if (ABS_DEV) {
           setTimeout(() => {
             console.log('[Video] Status after 2s:');
-            console.log('  - grunge-video-ready class on body:', document.body.classList.contains('grunge-video-ready'));
+            console.log('  - video-fade-ready class on body:', document.body.classList.contains('video-fade-ready'));
+            console.log('  - entrance-complete on html:', document.documentElement.classList.contains('entrance-complete'));
+            console.log('  - noise-ready on body:', document.body.classList.contains('noise-ready'));
             videos.forEach(v => {
               const label = v === videoLight ? 'Light' : 'Dark';
               console.log(`  - ${label}: readyState=${v.readyState}, paused=${v.paused}`);

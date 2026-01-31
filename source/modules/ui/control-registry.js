@@ -48,56 +48,97 @@ function updateWallShadowCSS(g) {
   // Check if dark mode
   const isDark = document.body.classList.contains('dark-mode');
   
-  // ═══ RECESSED PANEL DEPTH ═══
-  // Light from top-left: wall casts shadows DOWN and RIGHT onto recessed content
+  // ═══ EDGE BORDERS DISABLED ═══
+  // All edge shadows and strokes are now disabled by default.
+  // Previously created 1px bevel lines around the inner wall edge.
+  // To re-enable, set these values in config:
+  // wallShadowEdgeTopOpacityLight, wallShadowEdgeTopOpacityDark, etc.
   
   // Dark edges (top + left) - wall shadow falling onto content
   const edgeTopOpacity = isDark 
-    ? (g.wallShadowEdgeTopOpacityDark ?? 0.25)
-    : (g.wallShadowEdgeTopOpacityLight ?? 0.08);
+    ? (g.wallShadowEdgeTopOpacityDark ?? 0)
+    : (g.wallShadowEdgeTopOpacityLight ?? 0);
   const edgeLeftOpacity = isDark
-    ? (g.wallShadowEdgeLeftOpacityDark ?? 0.18)
-    : (g.wallShadowEdgeLeftOpacityLight ?? 0.06);
+    ? (g.wallShadowEdgeLeftOpacityDark ?? 0)
+    : (g.wallShadowEdgeLeftOpacityLight ?? 0);
   
   // Light edges (bottom + right) - catching light
   const edgeBottomOpacity = isDark
-    ? (g.wallShadowEdgeBottomOpacityDark ?? 0.03)
-    : (g.wallShadowEdgeBottomOpacityLight ?? 0.06);
+    ? (g.wallShadowEdgeBottomOpacityDark ?? 0)
+    : (g.wallShadowEdgeBottomOpacityLight ?? 0);
   const edgeRightOpacity = isDark
-    ? (g.wallShadowEdgeRightOpacityDark ?? 0.02)
-    : (g.wallShadowEdgeRightOpacityLight ?? 0.04);
+    ? (g.wallShadowEdgeRightOpacityDark ?? 0)
+    : (g.wallShadowEdgeRightOpacityLight ?? 0);
   
-  // Ambient inset shadow (soft vignette from wall depth)
+  // Ambient inset shadow (soft vignette from wall depth) - kept for subtle depth
   const ambientBlur = g.wallShadowAmbientBlur ?? 20;
   const ambientOpacity = isDark
     ? (g.wallShadowAmbientOpacityDark ?? 0.12)
     : (g.wallShadowAmbientOpacityLight ?? 0.04);
   
-  // Stroke (solid edge definition)
+  // Stroke (solid edge definition) - disabled
   const strokeOpacity = isDark
-    ? (g.wallShadowStrokeOpacityDark ?? 0.04)
-    : (g.wallShadowStrokeOpacityLight ?? 0.06);
+    ? (g.wallShadowStrokeOpacityDark ?? 0)
+    : (g.wallShadowStrokeOpacityLight ?? 0);
   
   // ═══ BUILD SHADOW STRING ═══
-  const shadows = [
-    // Top edge - dark line (wall shadow)
-    `inset 0 1px 0 rgba(0,0,0, ${edgeTopOpacity.toFixed(3)})`,
-    // Left edge - dark line (wall shadow)
-    `inset 1px 0 0 rgba(0,0,0, ${edgeLeftOpacity.toFixed(3)})`,
-    // Bottom edge - light highlight
-    `inset 0 -1px 0 rgba(255,255,255, ${edgeBottomOpacity.toFixed(3)})`,
-    // Right edge - light highlight
-    `inset -1px 0 0 rgba(255,255,255, ${edgeRightOpacity.toFixed(3)})`,
-    // Ambient inset vignette (soft depth from all sides, biased top-left)
-    `inset 2px 3px ${ambientBlur}px rgba(0,0,0, ${ambientOpacity.toFixed(3)})`
-  ];
+  const shadows = [];
   
-  const shadowStr = shadows.join(', ');
+  // Only add edge shadows if they have non-zero opacity
+  if (edgeTopOpacity > 0) {
+    shadows.push(`inset 0 1px 0 rgba(0,0,0, ${edgeTopOpacity.toFixed(3)})`);
+  }
+  if (edgeLeftOpacity > 0) {
+    shadows.push(`inset 1px 0 0 rgba(0,0,0, ${edgeLeftOpacity.toFixed(3)})`);
+  }
+  if (edgeBottomOpacity > 0) {
+    shadows.push(`inset 0 -1px 0 rgba(255,255,255, ${edgeBottomOpacity.toFixed(3)})`);
+  }
+  if (edgeRightOpacity > 0) {
+    shadows.push(`inset -1px 0 0 rgba(255,255,255, ${edgeRightOpacity.toFixed(3)})`);
+  }
+  
+  // Ambient vignette (always add if non-zero)
+  if (ambientOpacity > 0) {
+    shadows.push(`inset 2px 3px ${ambientBlur}px rgba(0,0,0, ${ambientOpacity.toFixed(3)})`);
+  }
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STAGGERED INNER SHADOW (3 layers for realistic depth)
+  // Creates the illusion of the wall casting shadow onto the recessed content
+  // Layer 1: Tight, sharp contact shadow
+  // Layer 2: Medium diffuse shadow
+  // Layer 3: Soft ambient shadow
+  // ─────────────────────────────────────────────────────────────────────────────
+  const innerShadowEnabled = g.wallInnerShadowEnabled ?? true;
+  if (innerShadowEnabled) {
+    const innerOpacity = isDark
+      ? (g.wallInnerShadowOpacityDark ?? 0.25)
+      : (g.wallInnerShadowOpacityLight ?? 0.08);
+    
+    if (innerOpacity > 0) {
+      const offsetY = g.wallInnerShadowOffsetY ?? 2;
+      const blur1 = g.wallInnerShadowBlur1 ?? 3;
+      const blur2 = g.wallInnerShadowBlur2 ?? 8;
+      const blur3 = g.wallInnerShadowBlur3 ?? 20;
+      
+      // Opacity distribution: layer 1 strongest, layer 3 softest
+      const op1 = innerOpacity * 1.0;    // 100% of base opacity
+      const op2 = innerOpacity * 0.6;    // 60% of base opacity
+      const op3 = innerOpacity * 0.3;    // 30% of base opacity
+      
+      shadows.push(`inset 0 ${offsetY}px ${blur1}px rgba(0,0,0, ${op1.toFixed(3)})`);
+      shadows.push(`inset 0 ${offsetY * 1.5}px ${blur2}px rgba(0,0,0, ${op2.toFixed(3)})`);
+      shadows.push(`inset 0 ${offsetY * 2}px ${blur3}px rgba(0,0,0, ${op3.toFixed(3)})`);
+    }
+  }
+  
+  const shadowStr = shadows.length > 0 ? shadows.join(', ') : 'none';
   
   // Apply to the ::after pseudo-element via a style override
   container.style.setProperty('--wall-shadow-override', shadowStr);
   
-  // Apply stroke to ::before pseudo-element
+  // Apply stroke to ::before pseudo-element (disabled by default)
   container.style.setProperty('--wall-stroke-opacity', strokeOpacity.toFixed(3));
   
   // Add a style tag if not exists to use the override
@@ -110,7 +151,7 @@ function updateWallShadowCSS(g) {
         box-shadow: var(--wall-shadow-override) !important;
       }
       #bravia-balls::before {
-        border-color: rgba(255,255,255, var(--wall-stroke-opacity, 0.05)) !important;
+        border-color: rgba(255,255,255, var(--wall-stroke-opacity, 0)) !important;
       }
     `;
     document.head.appendChild(styleTag);
@@ -172,33 +213,53 @@ loadVisibility();
 
 export const MASTER_GROUPS = [
   {
-    id: 'global',
-    title: 'Global',
-    icon: '🌐',
+    id: 'appearance',
+    title: 'Appearance',
+    icon: '🎨',
     sections: [
       'colors',
       'colorDistribution',
-      'layers',
       'noise',
-      'videoOverlay',
-      'uiSpacing',
-      'cursor',
-      'trail',
-      'links',
-      'scene'
+      'videoOverlay'
     ]
   },
   {
-    id: 'simulations',
-    title: 'Simulations',
-    icon: '🧪',
+    id: 'frame',
+    title: 'Frame',
+    icon: '🖼️',
+    sections: [
+      'wall',
+      'layers',
+      'uiSpacing'
+    ]
+  },
+  {
+    id: 'effects',
+    title: 'Effects',
+    icon: '✨',
+    sections: [
+      'simulationOverlay',
+      'overlay'
+    ]
+  },
+  {
+    id: 'interaction',
+    title: 'Interaction',
+    icon: '👆',
+    sections: [
+      'cursor',
+      'trail',
+      'links'
+    ]
+  },
+  {
+    id: 'simulation',
+    title: 'Simulation',
+    icon: '⚡',
     sections: [
       'liteMode',
       'physics',
       'balls',
-      'wall',
-      'simulationOverlay',
-      'critters',
       'pit',
       'flies',
       'water',
@@ -216,17 +277,18 @@ export const MASTER_GROUPS = [
       'elasticCenter',
       'dvdLogo',
       'particleFountain',
-      'weightless'
+      'weightless',
+      'critters'
     ]
   },
   {
-    id: 'browserTransition',
-    title: 'Browser & Transition',
-    icon: '🧭',
+    id: 'motion',
+    title: 'Motion',
+    icon: '🎬',
     sections: [
-      'environment',
+      'scene',
       'entrance',
-      'overlay'
+      'environment'
     ]
   }
 ];
@@ -235,36 +297,35 @@ export const MASTER_SECTION_KEYS = MASTER_GROUPS.flatMap(group => group.sections
 
 // Category groupings for visual chunking in the panel
 const SECTION_CATEGORIES = {
+  // Appearance
+  'colors': 'SURFACE',
+  'colorDistribution': 'PALETTE',
+  'noise': 'GRAIN',
+  'videoOverlay': 'TEXTURE',
+
+  // Frame
+  'wall': 'FRAME',
+  'layers': 'LAYERS',
+  'uiSpacing': 'SPACING',
+
+  // Effects
+  'simulationOverlay': 'OVERLAYS',
+  'overlay': 'DEPTH',
+
+  // Interaction
+  'cursor': 'CURSOR',
+  'trail': 'TRAIL',
+  'links': 'LINKS',
+
+  // Simulation
   'liteMode': 'PERFORMANCE',
-  'physics': 'MATERIAL WORLD',
-  'wall': 'MATERIAL WORLD',
-  'balls': 'MATERIAL WORLD',
+  'physics': 'PHYSICS',
+  'balls': 'BALLS',
 
-  'colorDistribution': 'LOOK & PALETTE',
-  'colors': 'LOOK & PALETTE',
-  'noise': 'LOOK & PALETTE',
-  'videoOverlay': 'LOOK & PALETTE',
-  'layers': 'LOOK & PALETTE',
-
-  'cursor': 'INTERACTION',
-  'trail': 'INTERACTION',
-  'links': 'INTERACTION',
-
-  'scene': 'MOTION',
-  'sphere3d': 'MOTION',
-  'cube3d': 'MOTION',
-  'starfield3d': 'MOTION',
-  'shootingStars': 'MOTION',
-  'cloudHelix': 'MOTION',
-  'entrance': 'MOTION',
-
-  'overlay': 'DEPTH & LAYOUT',
-  'simulationOverlay': 'DEPTH & LAYOUT',
-  'layout': 'DEPTH & LAYOUT',
-  'uiSpacing': 'DEPTH & LAYOUT',
-
-  'sound': 'SOUND',
-  'environment': 'ENVIRONMENT'
+  // Motion
+  'scene': 'SCENE',
+  'entrance': 'ENTRANCE',
+  'environment': 'BROWSER'
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -845,17 +906,17 @@ export const CONTROL_SECTIONS = {
     defaultOpen: false,
     controls: [
       {
-        id: 'ballSizeDesktop',
-        label: 'Desktop Size',
-        stateKey: 'ballSizeDesktop',
+        id: 'ballSizeMin',
+        label: 'Size Min',
+        stateKey: 'ballSizeMin',
         type: 'range',
-        min: 2, max: 40, step: 1,
-        default: 18,
+        min: 8, max: 40, step: 1,
+        default: 22,
         format: v => v + 'px',
         parse: parseFloat,
-        hint: 'Ball radius in pixels for desktop',
+        hint: 'Ball radius at smallest viewport (320px)',
         onChange: (g, val) => {
-          g.ballSizeDesktop = val;
+          g.ballSizeMin = val;
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
             const newSize = g.R_MED;
@@ -869,23 +930,50 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
-        id: 'ballSizeMobile',
-        label: 'Mobile Size',
-        stateKey: 'ballSizeMobile',
+        id: 'ballSizeMax',
+        label: 'Size Max',
+        stateKey: 'ballSizeMax',
         type: 'range',
-        min: 2, max: 30, step: 1,
-        default: 6,
+        min: 10, max: 60, step: 1,
+        default: 30,
         format: v => v + 'px',
         parse: parseFloat,
-        hint: 'Ball radius in pixels for mobile devices',
+        hint: 'Ball radius at largest viewport (1920px)',
         onChange: (g, val) => {
-          g.ballSizeMobile = val;
+          g.ballSizeMax = val;
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
             const newSize = g.R_MED;
             if (g.balls && g.balls.length) {
               g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
             }
+          });
+          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
+            updateCursorSize();
+          });
+        }
+      },
+      {
+        id: 'ballSizeCurve',
+        label: 'Size Curve',
+        stateKey: 'ballSizeCurve',
+        type: 'range',
+        min: 0.2, max: 5, step: 0.1,
+        default: 2.5,
+        format: v => v.toFixed(1),
+        parse: parseFloat,
+        hint: 'Easing curve (1=linear, >1=smaller longer, <1=grows faster)',
+        onChange: (g, val) => {
+          g.ballSizeCurve = val;
+          import('../core/state.js').then(({ updateBallSizes }) => {
+            updateBallSizes();
+            const newSize = g.R_MED;
+            if (g.balls && g.balls.length) {
+              g.balls.forEach(b => { b.r = newSize; b.rBase = newSize; });
+            }
+          });
+          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
+            updateCursorSize();
           });
         }
       },
@@ -2200,7 +2288,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'grungeVideoOpacityDark',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.8,
+        default: 0.12,
         format: v => v.toFixed(2),
         parse: parseFloat,
         hint: 'Video overlay opacity in dark mode (0 = invisible, 1 = full)',
@@ -2396,6 +2484,35 @@ export const CONTROL_SECTIONS = {
         hint: 'How far video extends past inner wall edge (px)',
         onChange: (g, val) => {
           document.documentElement.style.setProperty('--grunge-video-edge-overlap', `${val}px`);
+        }
+      },
+      { type: 'divider', label: 'Vertical Offset' },
+      {
+        id: 'noiseOffsetY',
+        label: 'Noise Y Offset',
+        stateKey: 'noiseOffsetY',
+        type: 'range',
+        min: -50, max: 50, step: 1,
+        default: 0,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Move noise layer up (negative) or down (positive)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--abs-noise-offset-y', `${val}px`);
+        }
+      },
+      {
+        id: 'videoOffsetY',
+        label: 'Video Y Offset',
+        stateKey: 'videoOffsetY',
+        type: 'range',
+        min: -50, max: 50, step: 1,
+        default: 0,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Move video layer up (negative) or down (positive)',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--grunge-video-offset-y', `${val}px`);
         }
       },
       { type: 'divider', label: 'Wall Frame' },
@@ -2972,6 +3089,225 @@ export const CONTROL_SECTIONS = {
         onChange: (g) => updateWallShadowCSS(g)
       },
       
+      // ─── INNER SHADOW ───
+      // Staggered 3-layer shadow for realistic depth
+      { type: 'divider', label: 'Inner Shadow', group: 'Inner Shadow' },
+      {
+        id: 'wallInnerShadowEnabled',
+        label: 'Enabled',
+        stateKey: 'wallInnerShadowEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        group: 'Inner Shadow',
+        hint: 'Soft inner shadow from wall onto content',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallInnerShadowOpacityLight',
+        label: 'Opacity (Light)',
+        stateKey: 'wallInnerShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.08,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Inner Shadow',
+        hint: 'Shadow opacity in light mode',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallInnerShadowOpacityDark',
+        label: 'Opacity (Dark)',
+        stateKey: 'wallInnerShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.25,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Inner Shadow',
+        hint: 'Shadow opacity in dark mode',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallInnerShadowOffsetY',
+        label: 'Offset Y',
+        stateKey: 'wallInnerShadowOffsetY',
+        type: 'range',
+        min: 0, max: 10, step: 0.5,
+        default: 2,
+        format: v => `${v.toFixed(1)} px`,
+        parse: parseFloat,
+        group: 'Inner Shadow',
+        hint: 'Vertical offset (light from above)',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallInnerShadowBlur1',
+        label: 'Blur 1 (Sharp)',
+        stateKey: 'wallInnerShadowBlur1',
+        type: 'range',
+        min: 0, max: 15, step: 1,
+        default: 3,
+        format: v => `${Math.round(v)} px`,
+        parse: parseFloat,
+        group: 'Inner Shadow',
+        hint: 'Layer 1: tight contact shadow',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallInnerShadowBlur2',
+        label: 'Blur 2 (Medium)',
+        stateKey: 'wallInnerShadowBlur2',
+        type: 'range',
+        min: 0, max: 30, step: 1,
+        default: 8,
+        format: v => `${Math.round(v)} px`,
+        parse: parseFloat,
+        group: 'Inner Shadow',
+        hint: 'Layer 2: medium diffuse shadow',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallInnerShadowBlur3',
+        label: 'Blur 3 (Soft)',
+        stateKey: 'wallInnerShadowBlur3',
+        type: 'range',
+        min: 0, max: 60, step: 1,
+        default: 20,
+        format: v => `${Math.round(v)} px`,
+        parse: parseFloat,
+        group: 'Inner Shadow',
+        hint: 'Layer 3: soft ambient shadow',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      
+      // ─── EDGE LIGHTING ───
+      // Two radial gradient strokes that simulate light on the inner wall edge
+      { type: 'divider', label: 'Edge Lighting', group: 'Edge Lighting' },
+      {
+        id: 'wallGradientStrokeEnabled',
+        label: 'Enabled',
+        stateKey: 'wallGradientStrokeEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        group: 'Edge Lighting',
+        hint: 'Master toggle for edge lighting strokes'
+      },
+      {
+        id: 'wallGradientStrokeWidth',
+        label: 'Stroke Width',
+        stateKey: 'wallGradientStrokeWidth',
+        type: 'range',
+        min: 0.25, max: 5, step: 0.05,
+        default: 0.33,
+        format: v => `${v.toFixed(2)} px`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'Stroke width in CSS px (0.33 = 1 retina pixel)'
+      },
+      
+      // ─── BOTTOM LIGHT ───
+      { type: 'divider', label: 'Bottom Light', group: 'Edge Lighting' },
+      {
+        id: 'wallGradientStrokeBottomEnabled',
+        label: 'Enabled',
+        stateKey: 'wallGradientStrokeBottomEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        group: 'Edge Lighting',
+        hint: 'Light shining up from below'
+      },
+      {
+        id: 'wallGradientStrokeBottomRadius',
+        label: 'Size',
+        stateKey: 'wallGradientStrokeBottomRadius',
+        type: 'range',
+        min: 0.1, max: 3, step: 0.05,
+        default: 1.0,
+        format: v => `${v.toFixed(2)}×`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'Gradient radius (1.0 = canvas height)'
+      },
+      {
+        id: 'wallGradientStrokeBottomOpacity',
+        label: 'Opacity',
+        stateKey: 'wallGradientStrokeBottomOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 1.0,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'Light intensity at center'
+      },
+      {
+        id: 'wallGradientStrokeBottomColor',
+        label: 'Color',
+        stateKey: 'wallGradientStrokeBottomColor',
+        type: 'color',
+        default: '#ffffff',
+        format: v => v,
+        parse: v => v,
+        group: 'Edge Lighting',
+        hint: 'Light color'
+      },
+      
+      // ─── TOP LIGHT ───
+      { type: 'divider', label: 'Top Light', group: 'Edge Lighting' },
+      {
+        id: 'wallGradientStrokeTopEnabled',
+        label: 'Enabled',
+        stateKey: 'wallGradientStrokeTopEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        group: 'Edge Lighting',
+        hint: 'Ambient light from above'
+      },
+      {
+        id: 'wallGradientStrokeTopRadius',
+        label: 'Size',
+        stateKey: 'wallGradientStrokeTopRadius',
+        type: 'range',
+        min: 0.1, max: 3, step: 0.05,
+        default: 1.0,
+        format: v => `${v.toFixed(2)}×`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'Gradient radius (1.0 = canvas height)'
+      },
+      {
+        id: 'wallGradientStrokeTopOpacity',
+        label: 'Opacity',
+        stateKey: 'wallGradientStrokeTopOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.5,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'Light intensity at center'
+      },
+      {
+        id: 'wallGradientStrokeTopColor',
+        label: 'Color',
+        stateKey: 'wallGradientStrokeTopColor',
+        type: 'color',
+        default: '#ffffff',
+        format: v => v,
+        parse: v => v,
+        group: 'Edge Lighting',
+        hint: 'Light color'
+      },
+      
       {
         id: 'restitution',
         label: 'Bounce',
@@ -3128,7 +3464,7 @@ export const CONTROL_SECTIONS = {
           { value: 'difference', label: 'Difference' },
           { value: 'exclusion', label: 'Exclusion' }
         ],
-        default: 'normal',
+        default: 'overlay',
         format: v => String(v),
         parse: v => String(v),
         group: 'Layer',

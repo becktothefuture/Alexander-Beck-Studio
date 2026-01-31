@@ -217,9 +217,9 @@
   /* Noise + Grain */
   --noise-size: 85px;
   --noise-size-scale: 1;
-  --noise-opacity-light: 0.08;
-  --noise-opacity-dark: 0.12;
-  --noise-blend-mode: normal;
+  --noise-opacity-light: 0.20;
+  --noise-opacity-dark: 0.18;
+  --noise-blend-mode: overlay;
   --noise-color-light: #ffffff;
   --noise-color-dark: #ffffff;
   --detail-noise-opacity: 1; /* Overall opacity multiplier for detail page noise */
@@ -242,9 +242,11 @@
   --abs-noise-drift-x: 0px;
   --abs-noise-drift-y: 0px;
   --abs-noise-edge-overlap: 5px; /* How far noise extends past inner wall edge */
+  --abs-noise-offset-y: 0px;     /* Vertical offset for noise layer (positive = down) */
 
   /* Grunge Video Overlay (see docs/grunge-video-overlay.md) */
   --grunge-video-edge-overlap: 3px;                   /* How far video extends past inner wall edge */
+  --grunge-video-offset-y: 0px;                       /* Vertical offset for video layer (positive = down) */
   --grunge-video-enabled: 1;                          /* 0 = off, 1 = on */
   --grunge-video-opacity: 0.8;                        /* Final opacity (0-1) */
   --grunge-video-blend-mode-light: overlay;           /* Light mode blend */
@@ -268,6 +270,8 @@
   --ease-hesitant: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-magnetic: cubic-bezier(0.25, 1.4, 0.3, 1);
+  /* Safari-safe: smooth ease-out without overshoot (Safari/iOS backdrop-filter transitions poorly with overshoot) */
+  --ease-safari-safe: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-gate: var(--ease-magnetic);
   --ease-fade: var(--ease-settle);
   --duration-resize: 600ms;
@@ -448,7 +452,6 @@
      Dev Panel                9999       .abs-control-panel
      Modal Blur               19998      #modal-blur-layer
      Modal Content            19999      #modal-content-layer
-     Page Flash               20000      #page-flash
      ═══════════════════════════════════════════════════════════════════════════════ */
   --z-text-content: 200;
   --z-wall: 100;
@@ -459,7 +462,6 @@
   --z-panel: 9999;
   --z-modal-blur: 19998;
   --z-modal-content: 19999;
-  --z-page-flash: 20000;
 
   /* Brand logo sizing (driven by the dev panel slider via `--top-logo-width-vw`). */
   /* Scaled 1.6x from original (42vw, 360px, 600px) */

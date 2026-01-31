@@ -1460,9 +1460,8 @@ body.dark-mode #brand-logo {
 html.ui-entered { --ui-entered: 1; }
 html.modal-active { --ui-obscured: 1; }
 
-/* Page-specific opacity */
-body.portfolio-page,
-body.cv-page { --ui-page-opacity: 1; }
+/* UI elements full opacity on all pages */
+:root { --ui-page-opacity: 1; }
 
 /* Reduced motion: instant transitions */
 @media (prefers-reduced-motion: reduce) {
@@ -1615,7 +1614,7 @@ body.dark-mode #bravia-balls {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   WALL INNER SHADOW - Simple inset shadow for depth
+   WALL INNER SHADOW - Controlled via JS (control-registry.js updateWallShadowCSS)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 #bravia-balls::after {
@@ -1626,14 +1625,14 @@ body.dark-mode #bravia-balls {
   pointer-events: none;
   z-index: 30;
   
-  /* Simple inner shadow */
-  box-shadow: inset 0 2px 8px rgba(0,0,0, 0.06);
+  /* No default shadow - controlled by JS via --wall-shadow-override */
+  box-shadow: none;
   transition: box-shadow var(--duration-settle, 400ms) var(--ease-settle);
 }
 
-/* Dark mode: slightly deeper shadow */
+/* Dark mode shadow also controlled by JS */
 body.dark-mode #bravia-balls::after {
-  box-shadow: inset 0 2px 12px rgba(0,0,0, 0.15);
+  box-shadow: none;
 }
 
 #bravia-balls canvas {
@@ -1664,8 +1663,8 @@ body.dark-mode #bravia-balls::after {
   /* Use same dimension strategy as #bravia-balls */
   width: calc(100% - var(--safari-tint-inset) * 2);
   height: calc(100dvh - var(--safari-tint-inset) * 2);
-  /* Behind wall frame (z:100) so noise doesn't cover wall edges */
-  z-index: 90;
+  /* Above wall (z:100) but below UI (z:200) - noise is inset by wall-thickness so it stays within wall interior */
+  z-index: 150;
   pointer-events: none;
 }
 
@@ -1674,7 +1673,12 @@ body.dark-mode #bravia-balls::after {
   /* Inset by wall thickness to position noise INSIDE the wall frame */
   /* Overlap extends past inner wall edge to prevent gaps */
   /* Configurable via --abs-noise-edge-overlap (default 5px) */
-  inset: calc(var(--wall-thickness, 9px) - var(--abs-noise-edge-overlap, 5px));
+  /* Vertical offset via --abs-noise-offset-y (default 0px) - positive moves down */
+  --noise-base-inset: calc(var(--wall-thickness, 9px) - var(--abs-noise-edge-overlap, 5px));
+  top: calc(var(--noise-base-inset) + var(--abs-noise-offset-y, 0px));
+  left: var(--noise-base-inset);
+  right: var(--noise-base-inset);
+  bottom: calc(var(--noise-base-inset) - var(--abs-noise-offset-y, 0px));
   pointer-events: none;
   overflow: hidden;
   /* Note: isolation removed - it creates stacking context that breaks blend modes for sibling elements */
@@ -1850,13 +1854,14 @@ html.is-safari .noise::before {
    * - Wall outer edge: --safari-tint-inset (from tokens.css) from viewport
    * - Wall inner edge: inset + wall-thickness from viewport
    * - Video edge: inner edge - overlap for seamless coverage
+   * - Vertical offset: --grunge-video-offset-y (positive moves down)
    */
   --video-inset: calc(var(--safari-tint-inset) + var(--wall-thickness, 9px) - var(--grunge-video-edge-overlap, 3px));
-  top: var(--video-inset);
+  top: calc(var(--video-inset) + var(--grunge-video-offset-y, 0px));
   left: var(--video-inset);
   /* Match #bravia-balls dimension strategy: 100% for width, 100dvh for height */
   width: calc(100% - var(--video-inset) * 2);
-  height: calc(100dvh - var(--video-inset) * 2);
+  height: calc(100dvh - var(--video-inset) * 2 - var(--grunge-video-offset-y, 0px) * 2);
   /* Match wall interior rounded corners */
   border-radius: var(--wall-radius);
   object-fit: cover;
@@ -1864,22 +1869,23 @@ html.is-safari .noise::before {
   pointer-events: none;
   /* Above wall (z:100) but below UI (z:200) - blend mode handles visual integration */
   z-index: 150;
-  /* Initial state: hidden, fades in when .grunge-video-ready is added */
-  visibility: hidden;
+  /* Initial state: fully hidden via opacity only (visibility toggle causes flash) */
   opacity: 0;
-  /* Transition: opacity fades smoothly */
+  /* Transition: opacity fades smoothly - no visibility to avoid instant flash */
   transition: 
-    visibility 0s linear, 
     opacity 5000ms cubic-bezier(0.16, 1, 0.3, 1),
     filter 400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Video fade-in when ready AND entrance animation is complete AND noise is ready */
-/* Requires: html.entrance-complete + body.noise-ready + body.grunge-video-ready */
-/* Delay ensures video fades in AFTER noise is partially visible (noise takes 2.5s to fade in) */
-html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay {
-  visibility: visible;
-  transition-delay: 1500ms; /* Start 1.5s after noise begins, overlapping with noise fade */
+/* Video fade-in when coordinated ready class is added */
+/* Uses single .video-fade-ready class that's only set when ALL prerequisites are met:
+   - entrance-complete: page entrance animation finished
+   - noise-ready: noise texture generated
+   - video canplaythrough: video buffered enough to play smoothly
+   This coordination happens in JavaScript to prevent race condition flashes */
+body.video-fade-ready .grunge-video-overlay {
+  /* Delay ensures video fades in AFTER noise is partially visible (noise takes 2.5s to fade in) */
+  transition-delay: 1500ms;
 }
 
 /* Light mode video: uses separate opacity and blend mode */
@@ -1888,7 +1894,7 @@ html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay {
 }
 
 /* Light mode video opacity and filters (when visible) */
-html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay--light {
+body.video-fade-ready .grunge-video-overlay--light {
   opacity: var(--grunge-video-opacity-light, 0.8);
   /* Image adjustment filters */
   filter: 
@@ -1914,7 +1920,7 @@ html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay--li
 }
 
 /* Dark mode video opacity and filters (when visible) */
-html.entrance-complete .noise-ready.grunge-video-ready .grunge-video-overlay--dark {
+body.video-fade-ready .grunge-video-overlay--dark {
   opacity: var(--grunge-video-opacity-dark, 0.8);
   /* Image adjustment filters */
   filter: 
@@ -2252,31 +2258,30 @@ body:not(.portfolio-page):not(.detail-open) .legend__item--interactive:hover {
 }
 
 /* Icon buttons get cursor color on hover */
-body:not(.portfolio-page):not(.detail-open) .abs-icon-btn:hover {
+.abs-icon-btn:hover {
   color: var(--cursor-hover-fg, var(--cursor-color));
   background: transparent;
   border-radius: inherit;
 }
 
-body:not(.portfolio-page):not(.detail-open) .abs-icon-btn:hover::before {
+.abs-icon-btn:hover::before {
   opacity: 1;
   background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
 }
 
-/* INDEX MODE HOVER (native CSS - no JS classes needed) */
-/* Only apply when NOT on portfolio page or in detail view */
-body:not(.portfolio-page):not(.detail-open) .footer_link:hover,
-body:not(.portfolio-page):not(.detail-open) .portfolio-cv-link:hover,
-body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover {
+/* Link hover states — cursor color + pill background */
+.footer_link:hover,
+.portfolio-cv-link:hover,
+#header-cv-link:hover {
   color: var(--cursor-hover-fg, var(--cursor-color));
   opacity: 1;
   position: relative;
 }
 
-/* Subtle pill background on footer link hover */
-body:not(.portfolio-page):not(.detail-open) .footer_link:hover::before,
-body:not(.portfolio-page):not(.detail-open) .portfolio-cv-link:hover::before,
-body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover::before {
+/* Subtle pill background on link hover */
+.footer_link:hover::before,
+.portfolio-cv-link:hover::before,
+#header-cv-link:hover::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -2286,12 +2291,7 @@ body:not(.portfolio-page):not(.detail-open) #header-cv-link:hover::before {
   z-index: -1;
 }
 
-/* Main nav base state - color inherited from earlier rules */
-/* Hover color set by INDEX MODE HOVER rules above */
-
-/* Main nav hover state - consolidated at line ~975 with !important */
-
-body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover .footer-link-nowrap {
+#main-links .footer_link:hover .footer-link-nowrap {
   color: inherit;
   opacity: 1;
 }
@@ -2309,15 +2309,11 @@ body:not(.portfolio-page):not(.detail-open) #main-links .footer_link:hover .foot
   100% { transform: translateY(var(--link-nudge)) scale(1); }
 }
 
-/* Apply nudge animation to corner and main links on hover */
-body:not(.portfolio-page):not(.detail-open) .footer_icon-link.abs-icon-btn:hover,
-body:not(.portfolio-page):not(.detail-open) .abs-meta-btn:hover,
-body:not(.portfolio-page):not(.detail-open) .sound-toggle:hover {
-  animation-name: absHoverSnapNudge;
-}
-
-/* Main nav links: only animate when UI is visible */
-html.ui-entered:not(.modal-active) #main-links .footer_link:hover {
+/* Apply nudge animation to interactive elements on hover */
+.footer_icon-link.abs-icon-btn:hover,
+.abs-meta-btn:hover,
+.sound-toggle:hover,
+#main-links .footer_link:hover {
   animation-name: absHoverSnapNudge;
 }
 
@@ -2335,10 +2331,10 @@ html.ui-entered:not(.modal-active) #main-links .footer_link:hover {
 
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  body:not(.portfolio-page):not(.detail-open) .footer_icon-link.abs-icon-btn:hover,
-  body:not(.portfolio-page):not(.detail-open) .abs-meta-btn:hover,
-  body:not(.portfolio-page):not(.detail-open) .sound-toggle:hover,
-  html.ui-entered:not(.modal-active) #main-links .footer_link:hover {
+  .footer_icon-link.abs-icon-btn:hover,
+  .abs-meta-btn:hover,
+  .sound-toggle:hover,
+  #main-links .footer_link:hover {
     animation-name: none;
   }
   
@@ -2361,14 +2357,9 @@ html.ui-entered:not(.modal-active) #main-links .footer_link:hover {
   }
 }
 
-/* UI MODE HOVER (portfolio page, detail views, modals) - native CSS */
-/* Snap animation for UI mode */
-body.portfolio-page a:hover,
-body.portfolio-page button:hover,
-body.detail-open a:hover,
-body.detail-open button:hover,
-#modal-overlay.active a:hover,
-#modal-overlay.active button:hover {
+/* Global hover snap animation */
+a:hover,
+button:hover {
   --abs-cursor-pulse-ms: 520ms;
   will-change: transform;
   transform-origin: center;
@@ -2378,81 +2369,36 @@ body.detail-open button:hover,
   animation-fill-mode: both;
 }
 
-/* UI mode: suppress dot-under-label for decorative text links */
-body.portfolio-page .decorative-script p a::after,
-body.portfolio-page .gate-back::after,
-body.detail-open .decorative-script p a::after,
-body.detail-open .gate-back::after,
-#modal-overlay.active .gate-back::after {
+/* Suppress dot-under-label for decorative text links */
+.decorative-script p a::after,
+.gate-back::after {
   opacity: 0;
   animation: none;
   transform: translate3d(-50%, 0, 0) scaleY(0);
 }
 
-/* UI mode: text link hover (subtle tone shift + cursor background) */
-body.portfolio-page .footer_link:hover,
-body.detail-open .footer_link:hover {
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
-  color: var(--text-muted);
-  color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-black), 1) 14%);
-}
-
-body.dark-mode.portfolio-page .footer_link:hover,
-body.dark-mode.detail-open .footer_link:hover {
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
-  color: color-mix(in srgb, var(--text-muted) 86%, rgba(var(--abs-rgb-white), 1) 14%);
-}
-
-/* Dark mode: active text links use cursor color blend */
-body.dark-mode.portfolio-page .portfolio-cv-link:hover,
-body.dark-mode.portfolio-page #header-cv-link:hover,
-body.dark-mode.detail-open .portfolio-cv-link:hover,
-body.dark-mode.detail-open #header-cv-link:hover,
-body.dark-mode.cv-page .portfolio-cv-link:hover,
-body.dark-mode.cv-page #contact-email:hover,
-body.dark-mode.cv-page #portfolio-modal-trigger:hover {
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
-  color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-white), 1) 60%);
-  opacity: 1;
-}
-
-/* Light mode: active text links use cursor color blend */
-body:not(.dark-mode).portfolio-page .footer_link:hover,
-body:not(.dark-mode).portfolio-page .portfolio-cv-link:hover,
-body:not(.dark-mode).portfolio-page #header-cv-link:hover,
-body:not(.dark-mode).portfolio-page .decorative-script p a:hover,
-body:not(.dark-mode).detail-open .footer_link:hover,
-body:not(.dark-mode).detail-open .portfolio-cv-link:hover,
-body:not(.dark-mode).detail-open #header-cv-link:hover,
-body:not(.dark-mode).cv-page .portfolio-cv-link:hover,
-body:not(.dark-mode).cv-page #contact-email:hover,
-body:not(.dark-mode).cv-page #portfolio-modal-trigger:hover {
+/* Text link hover — light mode */
+.footer_link:hover,
+.portfolio-cv-link:hover,
+#header-cv-link:hover,
+#contact-email:hover,
+#portfolio-modal-trigger:hover,
+.decorative-script p a:hover {
   color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-black), 1) 60%);
-  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
-  opacity: 1;
-}
-
-/* UI mode: icon buttons get full cursor color */
-body.portfolio-page .abs-icon-btn:hover,
-body.detail-open .abs-icon-btn:hover,
-#modal-overlay.active .abs-icon-btn:hover {
-  color: var(--cursor-color);
-  background: transparent;
-  border-radius: inherit;
-  opacity: 1;
-}
-
-body.portfolio-page .abs-icon-btn:hover::before,
-body.detail-open .abs-icon-btn:hover::before,
-#modal-overlay.active .abs-icon-btn:hover::before {
-  opacity: 1;
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+  opacity: 1;
 }
 
-body.dark-mode.portfolio-page .abs-icon-btn:hover,
-body.dark-mode.detail-open .abs-icon-btn:hover,
-body.dark-mode #modal-overlay.active .abs-icon-btn:hover {
+/* Text link hover — dark mode */
+body.dark-mode .footer_link:hover,
+body.dark-mode .portfolio-cv-link:hover,
+body.dark-mode #header-cv-link:hover,
+body.dark-mode #contact-email:hover,
+body.dark-mode #portfolio-modal-trigger:hover,
+body.dark-mode .decorative-script p a:hover {
+  color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-white), 1) 60%);
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
+  opacity: 1;
 }
 
 /* Focus visibility (WCAG priority): restore a clear focus ring for primary interactive targets.
@@ -2478,13 +2424,9 @@ body.dark-mode #modal-overlay.active .abs-icon-btn:hover {
 
 /* Reduce motion: disable hover snap animation */
 @media (prefers-reduced-motion: reduce) {
-  body:not(.portfolio-page):not(.detail-open) a:hover,
-  body:not(.portfolio-page):not(.detail-open) button:hover,
-  body:not(.portfolio-page):not(.detail-open) .legend__item--interactive:hover,
-  body.portfolio-page a:hover,
-  body.portfolio-page button:hover,
-  body.detail-open a:hover,
-  body.detail-open button:hover {
+  a:hover,
+  button:hover,
+  .legend__item--interactive:hover {
     animation: none;
   }
 }
@@ -3103,40 +3045,6 @@ body.dark-mode .portfolio-digit:focus {
   pointer-events: none;
 }
 
-.page-flash {
-  position: fixed;
-  inset: 0;
-  z-index: 21000;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s var(--ease-hesitant);
-}
-
-.page-flash--active {
-  opacity: 1;
-}
-
-.page-flash--success {
-  /* REMOVED - no longer needed, pulse handles success feedback */
-  display: none;
-}
-
-@keyframes flash-success {
-  0% { opacity: 0; }
-  30% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-.page-flash--error {
-  background: rgba(var(--color-error-rgb), 0.3);
-  animation: flash-error 0.3s var(--ease-gate);
-}
-
-@keyframes flash-error {
-  0% { opacity: 0; }
-  50% { opacity: 1; }
-  100% { opacity: 0; }
-}
 
 /* Shared fixed pulse color (green) for copy field energy wave. */
 :root {
@@ -3383,6 +3291,46 @@ body.dark-mode .modal-blur-layer.active {
   }
 }
 
+/* Safari/iOS: Use smoother easing without overshoot for backdrop-filter transitions
+   Safari handles backdrop-filter poorly with cubic-bezier overshoot values (>1.0) */
+html.is-safari #modal-blur-layer,
+html.is-safari .modal-blur-layer {
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-out-duration, 850ms) var(--ease-safari-safe),
+              backdrop-filter var(--modal-overlay-transition-out-duration, 850ms) var(--ease-safari-safe),
+              background-color var(--modal-overlay-transition-out-duration, 850ms) var(--ease-safari-safe);
+}
+
+html.is-safari #modal-blur-layer.active,
+html.is-safari .modal-blur-layer.active {
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-safari-safe),
+              backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-safari-safe),
+              background-color var(--modal-overlay-transition-duration, 850ms) var(--ease-safari-safe);
+}
+
+/* Safari modal content: smoother scale/opacity transitions */
+html.is-safari .cv-modal,
+html.is-safari .portfolio-modal,
+html.is-safari .contact-modal {
+  transition: opacity var(--modal-overlay-transition-out-duration, 1700ms) var(--ease-safari-safe),
+              transform var(--modal-overlay-transition-out-duration, 1700ms) var(--ease-safari-safe);
+}
+
+html.is-safari .cv-modal.active,
+html.is-safari .portfolio-modal.active,
+html.is-safari .contact-modal.active {
+  transition: opacity var(--modal-overlay-transition-duration, 850ms) var(--ease-safari-safe) var(--modal-content-delay, 150ms),
+              transform var(--modal-overlay-transition-duration, 850ms) var(--ease-safari-safe) var(--modal-content-delay, 150ms);
+}
+
+/* Safari scene depth: smoother transform transitions */
+html.is-safari #abs-scene.gate-depth-active {
+  transition: transform var(--modal-depth-duration, 850ms) var(--ease-safari-safe);
+}
+
+html.is-safari #abs-scene.gate-depth-out {
+  transition: transform var(--modal-depth-out-duration, 600ms) var(--ease-safari-safe);
+}
+
 /* Legacy .modal-overlay fallback (kept for compatibility) */
 .modal-overlay {
   position: fixed;
@@ -3450,6 +3398,19 @@ body.dark-mode .modal-blur-layer.active {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+}
+
+/* Safari/iOS: Legacy modal-overlay smooth easing */
+html.is-safari .modal-overlay {
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-out-duration, 250ms) var(--ease-safari-safe),
+              backdrop-filter var(--modal-overlay-transition-out-duration, 250ms) var(--ease-safari-safe),
+              background-color var(--modal-overlay-transition-out-duration, 250ms) var(--ease-safari-safe);
+}
+
+html.is-safari .modal-overlay.active {
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-duration, 400ms) var(--ease-safari-safe),
+              backdrop-filter var(--modal-overlay-transition-duration, 400ms) var(--ease-safari-safe),
+              background-color var(--modal-overlay-transition-duration, 400ms) var(--ease-safari-safe);
 }
 
 /* ════════════════════════════════════════════════════════════════════════════════
@@ -3524,36 +3485,22 @@ body.cv-page .cv-right p {
   color: var(--text-muted);
 }
 
-/* CV Page Top Left - Match portfolio page styling for links */
-/* Portfolio and CV pages: top-left nav items aligned to left edge */
-body.portfolio-page .ui-top-left,
-body.cv-page .ui-top-left {
+/* Top-left nav items — consistent across all pages */
+.ui-top-left {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 0;
-  width: auto; /* Override base width: 100% to shrink to fit content */
-  flex-shrink: 0; /* Don't shrink when space is tight */
+  width: auto;
+  flex-shrink: 0;
 }
 
-/* Portfolio page: reset margins and padding on portfolio-cv-link to match meta button padding */
-body.portfolio-page .ui-top-left .portfolio-cv-link,
-body.portfolio-page .ui-top-left #contact-email {
+/* Top-left nav links — consistent padding/alignment */
+.ui-top-left .portfolio-cv-link,
+.ui-top-left #contact-email,
+.ui-top-left #portfolio-modal-trigger {
   margin: 0;
-  padding: var(--abs-space-2xs) var(--abs-space-sm); /* Reduced vertical padding to next smallest token */
-  block-size: auto;
-  height: auto;
-  min-height: var(--ui-icon-frame-size); /* Match meta button min-height for alignment */
-  display: inline-flex;
-  align-items: center;
-}
-
-/* CV page: reset margins and padding on nav links to align tightly */
-body.cv-page .ui-top-left .portfolio-cv-link,
-body.cv-page .ui-top-left #contact-email,
-body.cv-page .ui-top-left #portfolio-modal-trigger {
-  margin: 0;
-  padding: var(--abs-space-2xs) var(--abs-space-sm); /* Reduced vertical padding to next smallest token */
+  padding: var(--abs-space-2xs) var(--abs-space-sm);
   block-size: auto;
   height: auto;
   min-height: var(--ui-icon-frame-size);
@@ -4326,7 +4273,6 @@ html {
 .modal,
 .panel,
 #master-panel,
-#page-flash,
 .noise {
   view-transition-name: none;
 }

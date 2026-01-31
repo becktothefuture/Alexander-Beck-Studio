@@ -317,7 +317,7 @@ function applyCssVars(cfg) {
   root.style.setProperty('--noise-opacity-dark', String(opacityDark));
   
   // Blend mode (normal = off by default)
-  const blendMode = cfg.noiseBlendMode ?? 'normal';
+    const blendMode = cfg.noiseBlendMode ?? 'overlay';
   root.style.setProperty('--noise-blend-mode', blendMode);
   
   // Color controls (separate for light/dark)

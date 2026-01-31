@@ -133,9 +133,12 @@ const state = {
   starfield3dWarmupFrames: 10,
   // Legacy (pre per-mode system) — kept for back-compat; prefer the per-mode keys above.
   sizeVariation: 0,
-  // Fixed ball sizes in pixels
-  ballSizeDesktop: 18,        // Ball radius in px for desktop
-  ballSizeMobile: 8.64,        // Ball radius in px for mobile
+  // Responsive ball sizes - interpolates between min/max based on viewport width
+  ballSizeMin: 22,            // Ball radius in px at smallest viewport
+  ballSizeMax: 30,            // Ball radius in px at largest viewport
+  ballSizeBreakpointMin: 320, // Viewport width (px) where min size applies
+  ballSizeBreakpointMax: 1920, // Viewport width (px) where max size applies
+  ballSizeCurve: 2.5,         // Easing curve (1=linear, >1=stays smaller longer, <1=grows faster)
   isMobile: false,            // Mobile *device* detected? (UA/touch heuristic)
   isMobileViewport: false,    // Mobile viewport detected? (width breakpoint)
 
@@ -319,10 +322,10 @@ const state = {
   noiseHue: 0,
   // Single layer controls
   noiseSize: 85, // Grain size (px)
-  noiseOpacity: 0.08, // Overall opacity (0-1)
-  noiseOpacityLight: 0.08, // Opacity for light mode
-  noiseOpacityDark: 0.12, // Opacity for dark mode
-  noiseBlendMode: 'normal', // CSS mix-blend-mode (normal = off by default)
+  noiseOpacity: 0.20, // Overall opacity (0-1)
+  noiseOpacityLight: 0.20, // Opacity for light mode
+  noiseOpacityDark: 0.18, // Opacity for dark mode
+  noiseBlendMode: 'overlay', // CSS mix-blend-mode for grain visibility
   // Color controls (separate for light/dark)
   noiseColorLight: '#ffffff', // Grain color for light mode (hex)
   noiseColorDark: '#ffffff', // Grain color for dark mode (hex)
@@ -664,6 +667,33 @@ const state = {
   // Stroke (solid edge definition)
   wallShadowStrokeOpacityLight: 0.06,     // Solid edge stroke in light mode
   wallShadowStrokeOpacityDark: 0.04,      // Solid edge stroke in dark mode
+  
+  // Inner Shadow (soft, staggered 3-layer shadow for depth)
+  // Creates the illusion of the wall casting shadow onto the recessed content
+  wallInnerShadowEnabled: true,           // Master toggle
+  wallInnerShadowOpacityLight: 0.08,      // Shadow opacity in light mode
+  wallInnerShadowOpacityDark: 0.25,       // Shadow opacity in dark mode
+  wallInnerShadowOffsetY: 2,              // Vertical offset (px) - positive = shadow from top
+  wallInnerShadowBlur1: 3,                // Layer 1: tight, sharp shadow (px)
+  wallInnerShadowBlur2: 8,                // Layer 2: medium diffuse (px)
+  wallInnerShadowBlur3: 20,               // Layer 3: soft ambient (px)
+  
+  // Radial Gradient Stroke (inner wall edge lighting)
+  // Two gradient strokes: bottom light (main) and top light (ambient)
+  wallGradientStrokeEnabled: true,           // Master enable for gradient strokes
+  wallGradientStrokeWidth: 0.33,             // Stroke width in CSS px (0.33 = 1 retina pixel)
+  
+  // Bottom Light - Primary light source from below
+  wallGradientStrokeBottomEnabled: true,     // Enable bottom light gradient
+  wallGradientStrokeBottomRadius: 1.0,       // Gradient radius (1.0 = canvas height)
+  wallGradientStrokeBottomOpacity: 1.0,      // Light opacity at center (0-1)
+  wallGradientStrokeBottomColor: '#ffffff',  // Light color
+  
+  // Top Light - Ambient light from above
+  wallGradientStrokeTopEnabled: true,        // Enable top light gradient
+  wallGradientStrokeTopRadius: 1.0,          // Gradient radius (1.0 = canvas height)
+  wallGradientStrokeTopOpacity: 0.5,         // Light opacity at center (0-1)
+  wallGradientStrokeTopColor: '#ffffff',     // Light color
   
   // Gate overlay (blur backdrop for dialogs)
   modalOverlayEnabled: true,         // Enable/disable overlay
@@ -1088,8 +1118,15 @@ export function initState(config) {
   } else if (config.repelRadius !== undefined) {
     state.cursorInfluenceRadiusVw = clampNumber(config.repelRadius / 10, 0, 80, state.cursorInfluenceRadiusVw);
   }
-  if (config.ballSizeDesktop !== undefined) state.ballSizeDesktop = config.ballSizeDesktop;
-  if (config.ballSizeMobile !== undefined) state.ballSizeMobile = config.ballSizeMobile;
+  // Responsive ball sizing
+  if (config.ballSizeMin !== undefined) state.ballSizeMin = clampNumber(config.ballSizeMin, 1, 100, state.ballSizeMin);
+  if (config.ballSizeMax !== undefined) state.ballSizeMax = clampNumber(config.ballSizeMax, 1, 100, state.ballSizeMax);
+  if (config.ballSizeBreakpointMin !== undefined) state.ballSizeBreakpointMin = clampNumber(config.ballSizeBreakpointMin, 100, 2000, state.ballSizeBreakpointMin);
+  if (config.ballSizeBreakpointMax !== undefined) state.ballSizeBreakpointMax = clampNumber(config.ballSizeBreakpointMax, 500, 4000, state.ballSizeBreakpointMax);
+  if (config.ballSizeCurve !== undefined) state.ballSizeCurve = clampNumber(config.ballSizeCurve, 0.1, 5, state.ballSizeCurve);
+  // Legacy fallback for old configs
+  if (config.ballSizeDesktop !== undefined && config.ballSizeMin === undefined) state.ballSizeMax = config.ballSizeDesktop;
+  if (config.ballSizeMobile !== undefined && config.ballSizeMin === undefined) state.ballSizeMin = config.ballSizeMobile;
   if (config.liteModeEnabled !== undefined) state.liteModeEnabled = Boolean(config.liteModeEnabled);
   if (config.liteModeObjectReductionFactor !== undefined) {
     state.liteModeObjectReductionFactor = clampNumber(
@@ -1738,8 +1775,8 @@ export function clearBalls() {
 }
 
 /**
- * Detect device type and apply fixed ball sizing
- * Desktop: 22px, Mobile: 15px
+ * Detect device type and apply responsive ball sizing
+ * Ball size interpolates between ballSizeMin and ballSizeMax based on viewport width.
  */
 export function detectResponsiveScale() {
   const ua = navigator.userAgent || '';
@@ -1764,46 +1801,67 @@ export function detectResponsiveScale() {
   const nextMobileViewport = isMobileViewport;
   const nextMobileDevice = isMobileDevice;
 
-  // Early-out: avoid work during resize drags unless we actually cross a breakpoint.
-  const didChange =
+  const didDeviceChange =
     state.isMobile !== nextMobileDevice ||
     state.isMobileViewport !== nextMobileViewport;
-  if (!didChange) return;
 
-  state.isMobile = nextMobileDevice;
-  state.isMobileViewport = nextMobileViewport;
-  
-  
-  // Mobile performance optimizations
-  if (state.isMobile || state.isMobileViewport) {
-    state.physicsCollisionIterations = 4;
-    state.mouseTrailEnabled = false;
+  if (didDeviceChange) {
+    state.isMobile = nextMobileDevice;
+    state.isMobileViewport = nextMobileViewport;
+    
+    // Mobile performance optimizations
+    if (state.isMobile || state.isMobileViewport) {
+      state.physicsCollisionIterations = 4;
+      state.mouseTrailEnabled = false;
+    }
   }
 
-  // Update ball sizes based on device type
+  // Store previous ball size to detect if update needed
+  const prevSize = state.R_MED;
+  
+  // Update ball sizes based on viewport width (always runs to handle continuous sizing)
   updateBallSizes();
-
-  // Update existing balls with new size
-  try {
-    const newSize = state.R_MED;
-    if (Number.isFinite(newSize) && newSize > 0 && Array.isArray(state.balls) && state.balls.length) {
-      for (let i = 0; i < state.balls.length; i++) {
-        const b = state.balls[i];
-        if (!b) continue;
-        b.r = newSize;
-        b.rBase = newSize;
+  
+  // Update existing balls only if size actually changed
+  const newSize = state.R_MED;
+  if (Math.abs(newSize - prevSize) > 0.1) {
+    try {
+      if (Number.isFinite(newSize) && newSize > 0 && Array.isArray(state.balls) && state.balls.length) {
+        for (let i = 0; i < state.balls.length; i++) {
+          const b = state.balls[i];
+          if (!b) continue;
+          b.r = newSize;
+          b.rBase = newSize;
+        }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
+  }
 }
 
 /**
- * Update ball sizes based on device type (fixed pixel sizes)
- * Desktop: ballSizeDesktop (22px), Mobile: ballSizeMobile (15px)
+ * Update ball sizes based on viewport width (responsive clamping)
+ * Interpolates between ballSizeMin and ballSizeMax based on viewport width.
+ * The curve parameter controls easing: 1=linear, >1=stays smaller longer, <1=grows faster.
  */
 export function updateBallSizes() {
-  const isMobileDevice = state.isMobile || state.isMobileViewport;
-  const size = isMobileDevice ? state.ballSizeMobile : state.ballSizeDesktop;
+  const minSize = state.ballSizeMin || 22;
+  const maxSize = state.ballSizeMax || 30;
+  const bpMin = state.ballSizeBreakpointMin || 320;
+  const bpMax = state.ballSizeBreakpointMax || 1920;
+  const curve = state.ballSizeCurve || 1;
+  
+  // Get current viewport width
+  const viewportWidth = getLayoutViewportWidthPx();
+  
+  // Calculate linear interpolation factor (0 at bpMin, 1 at bpMax)
+  const tLinear = Math.max(0, Math.min(1, (viewportWidth - bpMin) / (bpMax - bpMin)));
+  
+  // Apply curve: t^curve makes it stay smaller longer when curve > 1
+  const t = Math.pow(tLinear, curve);
+  
+  // Interpolation between min and max sizes
+  const size = minSize + (maxSize - minSize) * t;
+  
   state.R_MED = size;
   state.R_MIN = size;
   state.R_MAX = size;

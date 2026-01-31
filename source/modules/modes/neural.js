@@ -235,7 +235,7 @@ function updateNeuralConnectors() {
   
   // Create new connectors if needed
   while (currentConnectors.length < neededConnectors) {
-    const connector = new Ball(0, 0, (g.ballSizeDesktop || 9) * 0.4 * DPR, '#888');
+    const connector = new Ball(0, 0, (g.R_MED || 22) * 0.4 * DPR, '#888');
     connector._isNeuralNode = false;
     connector._isNeuralConnector = true;
     connector.vx = 0;

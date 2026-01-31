@@ -7,40 +7,6 @@ import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverla
 import { getText } from '../utils/text-loader.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
 
-/**
- * Create the page flash overlay element if it doesn't exist
- */
-function createPageFlash() {
-    const flash = document.createElement('div');
-    flash.id = 'page-flash';
-    flash.className = 'page-flash';
-    flash.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(flash);
-    return flash;
-}
-
-/**
- * Trigger a flash effect on the page
- * @param {HTMLElement} flashEl - The flash overlay element
- * @param {'success' | 'error'} type - The type of flash
- */
-function triggerFlash(flashEl, type) {
-    // Remove any existing flash classes
-    flashEl.classList.remove('page-flash--success', 'page-flash--error');
-    
-    // Force reflow to restart animation
-    void flashEl.offsetWidth;
-    
-    // Add the appropriate class
-    flashEl.classList.add(`page-flash--${type}`);
-    
-    // Remove after animation completes
-    const duration = type === 'success' ? 600 : 300;
-    setTimeout(() => {
-        flashEl.classList.remove(`page-flash--${type}`);
-    }, duration);
-}
-
 export function initCVModal() {
     const trigger = document.getElementById('cv-modal-trigger');
     const logo = document.getElementById('brand-logo');
@@ -48,7 +14,6 @@ export function initCVModal() {
     const portfolioGate = document.getElementById('portfolio-modal'); // Get portfolio modal to check/close if open
     const contactGate = document.getElementById('contact-modal'); // Get contact modal to check/close if open
     const inputs = Array.from(document.querySelectorAll('.cv-digit'));
-    const pageFlash = document.getElementById('page-flash');
     const modalLabel = document.getElementById('cv-modal-label');
     
     // Correct Code
@@ -85,9 +50,6 @@ export function initCVModal() {
             <p class="modal-description">${DESC}</p>
         `;
     }
-    
-    // Create page-flash element if it doesn't exist
-    const flash = pageFlash || createPageFlash();
 
     // State
     let isOpen = false;
@@ -270,12 +232,7 @@ export function initCVModal() {
                     inputsContainer.classList.add('pulse-energy');
                 }
                 
-                // Step 2: Success flash (after pulse starts)
-                setTimeout(() => {
-                    triggerFlash(flash, 'success');
-                }, 100);
-                
-                // Step 3: Modal dissolve animation (after flash peaks)
+                // Step 2: Modal dissolve animation (after pulse)
                 setTimeout(() => {
                     // Use WAAPI for smooth modal dissolve
                     if (typeof modal.animate === 'function') {
@@ -300,12 +257,11 @@ export function initCVModal() {
                 }, 450);
                 
             } else {
-                // Failure - Red flash, clear inputs
-                triggerFlash(flash, 'error');
+                // Failure - clear inputs
                 setTimeout(() => {
                     inputs.forEach(input => input.value = '');
                     inputs[0].focus();
-                }, 350);
+                }, 150);
             }
         }
     };

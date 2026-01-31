@@ -260,9 +260,7 @@
 </head>
 <body class="body">
   <!-- SCENE WRAPPER: All scene layers move together (depth + micro-reactions). -->
-  <!-- NOTE: Gates remain outside so they are not moved. -->
   <div id="abs-scene" class="abs-scene">
-    <!-- LAYER 2: Simulation Container - Balls render here -->
     <div id="bravia-balls" class="ball-simulation w-embed">
       <canvas id="c" aria-label="Bouncy balls" role="img" draggable="false"></canvas>
     </div>
@@ -402,10 +400,8 @@
   </div>
 
   <!-- Modal System: Two-layer architecture for clean compositing -->
-  <!-- Layer 1: Blur Only - No children, isolated backdrop-filter (z:19998) -->
   <div id="modal-blur-layer" class="modal-blur-layer" aria-hidden="true"></div>
   
-  <!-- Layer 2: Content Only - Holds modals, no blur (z:19999) -->
   <div id="modal-content-layer" class="modal-content-layer" aria-hidden="true">
     <div id="modal-modal-host" class="modal-modal-host"></div>
   </div>
@@ -438,8 +434,6 @@
     <div id="contact-modal-inputs" class="contact-modal-inputs"></div>
   </div>
   
-  <!-- Page Flash Overlay (for CV and Portfolio gate success/failure feedback) -->
-  <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
   <!-- ABS_BUILD_MARKER:JS_DEV_START -->
   <!-- Use ES module for dev (instant reload) -->

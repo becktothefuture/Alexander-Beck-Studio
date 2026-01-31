@@ -155,17 +155,50 @@ async function bootstrapCvPage() {
     // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.
     try { initNoiseSystem(getGlobals()); } catch (e) {}
     
-    // Grunge video overlay initialization - inside #bravia-balls for proper blend mode
+    // Grunge video overlay initialization - coordinated fade-in to prevent flash
     try {
       const grungeVideo = document.getElementById('grunge-video-overlay');
-      const braviaBalls = document.getElementById('bravia-balls');
       const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
       
-      if (grungeVideo && braviaBalls) {
+      if (grungeVideo) {
         if (isDev) {
           console.log('[CV Video] Initializing grunge video overlay');
           console.log('[CV Video] Video src:', grungeVideo.currentSrc || grungeVideo.src);
         }
+        
+        let videoReadyTriggered = false;
+        let videoCanPlay = false;
+        
+        // Coordinated fade-in: only add class when ALL prerequisites are met
+        const checkAndTriggerFadeIn = () => {
+          if (videoReadyTriggered) return;
+          
+          const entranceComplete = document.documentElement.classList.contains('entrance-complete');
+          const noiseReady = document.body.classList.contains('noise-ready');
+          
+          if (isDev) {
+            console.log('[CV Video] Checking fade prerequisites:', {
+              videoCanPlay, entranceComplete, noiseReady
+            });
+          }
+          
+          if (videoCanPlay && entranceComplete && noiseReady) {
+            videoReadyTriggered = true;
+            if (isDev) console.log('[CV Video] All prerequisites met - triggering fade-in');
+            document.body.classList.add('video-fade-ready');
+          }
+        };
+        
+        // Watch for entrance-complete and noise-ready classes
+        const entranceObserver = new MutationObserver(() => {
+          if (document.documentElement.classList.contains('entrance-complete')) checkAndTriggerFadeIn();
+        });
+        entranceObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        
+        const noiseObserver = new MutationObserver(() => {
+          if (document.body.classList.contains('noise-ready')) checkAndTriggerFadeIn();
+        });
+        noiseObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
         
         grungeVideo.addEventListener('loadstart', () => {
           if (isDev) console.log('[CV Video] Loading started');
@@ -176,10 +209,9 @@ async function bootstrapCvPage() {
         }, { once: true });
         
         grungeVideo.addEventListener('canplaythrough', () => {
-          if (isDev) {
-            console.log('[CV Video] Can play through - adding grunge-video-ready class to #bravia-balls');
-          }
-          braviaBalls.classList.add('grunge-video-ready');
+          videoCanPlay = true;
+          if (isDev) console.log('[CV Video] Can play through - checking prerequisites');
+          checkAndTriggerFadeIn();
           
           const playPromise = grungeVideo.play();
           if (playPromise !== undefined) {
@@ -195,7 +227,7 @@ async function bootstrapCvPage() {
           if (isDev) console.error('[CV Video] Load error:', e);
         }, { once: true });
       } else {
-        if (isDev) console.warn('[CV Video] Elements not found');
+        if (isDev) console.warn('[CV Video] Video element not found');
       }
     } catch (e) {
       if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[CV Video] Init error:', e);

@@ -88,6 +88,20 @@ export function updateBlurFromWallThickness(reason = 'direct') {
 }
 
 /**
+ * Detect Safari browser (desktop and iOS)
+ * Safari handles backdrop-filter transitions differently - needs smoother easing
+ */
+function detectSafari() {
+    const ua = navigator.userAgent || '';
+    const vendor = navigator.vendor || '';
+    // Safari: has Safari in UA, Apple vendor, but NOT Chrome/Chromium
+    const isSafari = /Safari\//.test(ua) && /Apple/.test(vendor) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua);
+    // iOS browsers all use WebKit (including Chrome on iOS)
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    return isSafari || isIOS;
+}
+
+/**
  * Initialize the modal overlay system with config values
  * @param {Object} config - Configuration object with overlay settings
  */
@@ -98,6 +112,12 @@ export function initModalOverlay(config) {
     if (!blurLayerElement || !contentLayerElement) {
         console.warn('Modal Overlay: #modal-blur-layer or #modal-content-layer not found');
         return;
+    }
+    
+    // Safari detection: add class for CSS to apply smoother modal easing
+    // Safari/iOS handles backdrop-filter transitions poorly with overshoot easing
+    if (detectSafari()) {
+        document.documentElement.classList.add('is-safari');
     }
     
     // Check if overlay is enabled

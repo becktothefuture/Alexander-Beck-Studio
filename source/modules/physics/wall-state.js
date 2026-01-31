@@ -70,6 +70,135 @@ export function drawWalls(ctx, w, h) {
   }
 
   ctx.restore();
+  
+  // Draw radial gradient stroke on inner wall edge
+  if (g.wallGradientStrokeEnabled) {
+    drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GRADIENT STROKE SYSTEM
+// 
+// Two radial gradient strokes along the inner wall edge:
+// 1. BOTTOM LIGHT - Simulates light shining up from below (white → transparent)
+// 2. TOP LIGHT    - Subtle ambient light from above (white → transparent, lower opacity)
+//
+// Each gradient:
+// - Originates from a point (center) and expands outward
+// - Uses configurable radius to control how far the light spreads
+// - Stroke is drawn centered on the inner wall edge
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR) {
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STROKE WIDTH
+  // Base width in CSS pixels, scaled by device pixel ratio
+  // 0.33px CSS ≈ 1 retina pixel on 3x displays
+  // ─────────────────────────────────────────────────────────────────────────────
+  const baseWidthCSS = g.wallGradientStrokeWidth ?? 0.33;
+  const strokeWidth = Math.max(1, baseWidthCSS * DPR);
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // INNER WALL PATH (shared by both gradients)
+  // The stroke follows the inner edge of the wall frame
+  // ─────────────────────────────────────────────────────────────────────────────
+  const x = insetPx;
+  const y = insetPx;
+  const r = innerR;
+  
+  // Helper to draw the rounded rectangle stroke path
+  const drawStrokePath = () => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + innerW - r, y);
+    if (r > 0) ctx.arcTo(x + innerW, y, x + innerW, y + r, r);
+    ctx.lineTo(x + innerW, y + innerH - r);
+    if (r > 0) ctx.arcTo(x + innerW, y + innerH, x + innerW - r, y + innerH, r);
+    ctx.lineTo(x + r, y + innerH);
+    if (r > 0) ctx.arcTo(x, y + innerH, x, y + innerH - r, r);
+    ctx.lineTo(x, y + r);
+    if (r > 0) ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  };
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // BOTTOM LIGHT GRADIENT
+  // Center: bottom-center (50%, 100%)
+  // Effect: Light shines upward from below, brightest at bottom edge
+  // ─────────────────────────────────────────────────────────────────────────────
+  const bottomEnabled = g.wallGradientStrokeBottomEnabled ?? true;
+  if (bottomEnabled) {
+    const bottomCenterX = w * 0.5;
+    const bottomCenterY = h;  // Bottom edge
+    const bottomRadius = (g.wallGradientStrokeBottomRadius ?? 1.0) * h;
+    const bottomOpacity = g.wallGradientStrokeBottomOpacity ?? 1.0;
+    const bottomColor = g.wallGradientStrokeBottomColor ?? '#ffffff';
+    
+    // Radial gradient: white at center → transparent at radius
+    const bottomGradient = ctx.createRadialGradient(
+      bottomCenterX, bottomCenterY, 0,
+      bottomCenterX, bottomCenterY, bottomRadius
+    );
+    bottomGradient.addColorStop(0, hexToRGBA(bottomColor, bottomOpacity));
+    bottomGradient.addColorStop(1, hexToRGBA(bottomColor, 0));
+    
+    ctx.save();
+    ctx.strokeStyle = bottomGradient;
+    ctx.lineWidth = strokeWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    drawStrokePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // TOP LIGHT GRADIENT
+  // Center: top-center (50%, 0%)
+  // Effect: Ambient light from above, softer than bottom light
+  // ─────────────────────────────────────────────────────────────────────────────
+  const topEnabled = g.wallGradientStrokeTopEnabled ?? true;
+  if (topEnabled) {
+    const topCenterX = w * 0.5;
+    const topCenterY = 0;  // Top edge
+    const topRadius = (g.wallGradientStrokeTopRadius ?? 1.0) * h;
+    const topOpacity = g.wallGradientStrokeTopOpacity ?? 0.5;
+    const topColor = g.wallGradientStrokeTopColor ?? '#ffffff';
+    
+    // Radial gradient: white at center → transparent at radius
+    const topGradient = ctx.createRadialGradient(
+      topCenterX, topCenterY, 0,
+      topCenterX, topCenterY, topRadius
+    );
+    topGradient.addColorStop(0, hexToRGBA(topColor, topOpacity));
+    topGradient.addColorStop(1, hexToRGBA(topColor, 0));
+    
+    ctx.save();
+    ctx.strokeStyle = topGradient;
+    ctx.lineWidth = strokeWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    drawStrokePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// Convert hex color to rgba string
+function hexToRGBA(hex, alpha) {
+  // Handle shorthand hex (#fff)
+  let r, g, b;
+  if (hex.length === 4) {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else {
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

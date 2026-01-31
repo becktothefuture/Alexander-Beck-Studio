@@ -182,8 +182,8 @@
   <meta content="Alexander Beck - Product Designer, Creative Technologist, Experience Director" name="description">
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
-  <link rel="stylesheet" href="css/styles.css?v=1769605267035">
-<link rel="modulepreload" href="js/shared.js?v=1769605267035">
+  <link rel="stylesheet" href="css/styles.css?v=1769898900977">
+<link rel="modulepreload" href="js/shared.js?v=1769898900977">
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
@@ -215,12 +215,13 @@
   "physicsSleepThreshold": 6,
   "physicsSleepTime": 0.2,
   "physicsSkipSleepingSteps": true,
-  "ballSizeDesktop": 9,
-  "ballSizeMobile": 8.64,
-  "mobileObjectReductionFactor": 0.5,
+  "ballSizeMin": 15,
+  "ballSizeMax": 30,
+  "ballSizeCurve": 4.3,
+  "mobileObjectReductionFactor": 0.8,
   "ballSoftness": 57,
   "ballSpacing": 0.19,
-  "sizeVariationGlobalMul": 1,
+  "sizeVariationGlobalMul": 0.9,
   "sizeVariationCap": 0.12,
   "cursorInfluenceRadiusVw": 9.5,
   "cursorSize": 1.15,
@@ -301,12 +302,15 @@
   "modalDepthTranslateY": 1,
   "logoBlurInactive": 2.5,
   "logoBlurActive": 8,
-  "grungeVideoEnabled": true,
-  "grungeVideoBlendModeLight": "plus-lighter",
-  "grungeVideoBlendModeDark": "color-dodge",
-  "grungeVideoContrast": 1.15,
+  "grungeVideoEnabled": false,
+  "grungeVideoBlendModeLight": "screen",
+  "grungeVideoBlendModeDark": "plus-lighter",
+  "noiseEdgeOverlap": 0,
+  "grungeVideoEdgeOverlap": 3,
+  "noiseOffsetY": -1,
+  "videoOffsetY": 0,
   "bgLight": "#f5f5f5",
-  "bgDark": "#0d0c0c",
+  "bgDark": "#050505",
   "textColorLight": "#161616",
   "textColorLightMuted": "#3d3d3d",
   "textColorDark": "#a0a1a2",
@@ -358,20 +362,37 @@
   "wallInset": 3,
   "mobileWallThicknessXFactor": 1.45,
   "mobileEdgeLabelsVisible": true,
-  "wallShadowEdgeTopOpacityLight": 0.18,
+  "wallShadowEdgeTopOpacityLight": 0.07,
   "wallShadowEdgeTopOpacityDark": 0.42,
-  "wallShadowEdgeLeftOpacityLight": 0.14,
-  "wallShadowEdgeLeftOpacityDark": 0.32,
-  "wallShadowEdgeBottomOpacityLight": 0.12,
-  "wallShadowEdgeBottomOpacityDark": 0.06,
-  "wallShadowEdgeRightOpacityLight": 0.09,
-  "wallShadowEdgeRightOpacityDark": 0.04,
-  "wallShadowAmbientBlur": 28,
+  "wallShadowEdgeLeftOpacityLight": 0.07,
+  "wallShadowEdgeLeftOpacityDark": 0.08,
+  "wallShadowEdgeBottomOpacityLight": 0,
+  "wallShadowEdgeBottomOpacityDark": 0.02,
+  "wallShadowEdgeRightOpacityLight": 0.03,
+  "wallShadowEdgeRightOpacityDark": 0.01,
+  "wallShadowAmbientBlur": 40,
   "wallShadowAmbientOpacityLight": 0.08,
-  "wallShadowAmbientOpacityDark": 0.2,
-  "wallShadowStrokeOpacityLight": 0.1,
-  "wallShadowStrokeOpacityDark": 0.06,
-  "noiseEnabled": true,
+  "wallShadowAmbientOpacityDark": 0.3,
+  "wallShadowStrokeOpacityLight": 0.06,
+  "wallShadowStrokeOpacityDark": 0.1,
+  "wallInnerShadowEnabled": true,
+  "wallInnerShadowOpacityLight": 0.08,
+  "wallInnerShadowOpacityDark": 0.25,
+  "wallInnerShadowOffsetY": 2,
+  "wallInnerShadowBlur1": 3,
+  "wallInnerShadowBlur2": 8,
+  "wallInnerShadowBlur3": 20,
+  "wallGradientStrokeEnabled": true,
+  "wallGradientStrokeWidth": 0.33,
+  "wallGradientStrokeBottomEnabled": true,
+  "wallGradientStrokeBottomRadius": 1.0,
+  "wallGradientStrokeBottomOpacity": 1.0,
+  "wallGradientStrokeBottomColor": "#ffffff",
+  "wallGradientStrokeTopEnabled": true,
+  "wallGradientStrokeTopRadius": 1.0,
+  "wallGradientStrokeTopOpacity": 0.5,
+  "wallGradientStrokeTopColor": "#ffffff",
+  "noiseEnabled": false,
   "noiseSeed": 194267,
   "noiseTextureSize": 224,
   "noiseDistribution": "gaussian",
@@ -379,8 +400,8 @@
   "noiseChroma": 1,
   "noiseSize": 110,
   "noiseOpacityLight": 0.14,
-  "noiseOpacityDark": 0.06,
-  "noiseBlendMode": "normal",
+  "noiseOpacityDark": 0.12,
+  "noiseBlendMode": "overlay",
   "noiseColorLight": "#ffffff",
   "noiseColorDark": "#ffffff",
   "noiseMotion": "jitter",
@@ -642,9 +663,6 @@
 <body class="body cv-page">
   <!-- SCENE WRAPPER: All scene layers move together (matches index structure) -->
   <div id="abs-scene" class="abs-scene">
-    <!-- LAYER 0: Content Background - BEHIND everything (z:1) -->
-    <div id="content-background" class="content-background-layer" aria-hidden="true"></div>
-
     <!-- LAYER 2: CV Container - Content renders here (z:5) -->
     <div id="bravia-balls" class="cv-simulation w-embed">
       <!-- CV Scrolling Content -->
@@ -779,8 +797,8 @@
   </div>
   
   <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, etc.) -->
-  <!-- Positioned above wall (z:100), below modals (z:19998) -->
-  <div id="overlay-effects" class="overlay-effects" aria-hidden="true">
+  <!-- SCENE EFFECTS: Positioned above wall (z:100), below modals (z:19998) -->
+  <div id="scene-effects" class="scene-effects" aria-hidden="true">
     <div class="noise"></div>
   </div>
 
@@ -870,10 +888,8 @@
     </div>
   </div>
 
-  <!-- Page Flash Overlay -->
-  <div id="page-flash" class="page-flash" aria-hidden="true"></div>
 
-  <script type="module" src="js/cv.js?v=1769605267035"></script>
+  <script type="module" src="js/cv.js?v=1769898900977"></script>
   <script>
     // In production (served from dist/), load from bundled JS if available
     if (!document.querySelector('script[src*="modules/cv-init.js"]')) {
