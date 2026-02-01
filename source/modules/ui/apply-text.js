@@ -131,16 +131,23 @@ function applySocials() {
   if (!ul || !items || typeof items !== 'object') return;
 
   const order = ['appleMusic', 'x', 'linkedin'];
-  const anchors = ul.querySelectorAll('a.footer_icon-link');
+  const buttons = ul.querySelectorAll('.footer_icon-link');
 
-  for (let i = 0; i < anchors.length && i < order.length; i++) {
-    const a = anchors[i];
+  for (let i = 0; i < buttons.length && i < order.length; i++) {
+    const btn = buttons[i];
     const cfg = items?.[order[i]];
     if (!cfg) continue;
-    if (cfg.url) a.setAttribute('href', cfg.url);
-    if (cfg.ariaLabel) a.setAttribute('aria-label', cfg.ariaLabel);
+    // Handle both <a> (href) and <button> (onclick) elements
+    if (cfg.url) {
+      if (btn.tagName === 'A') {
+        btn.setAttribute('href', cfg.url);
+      } else {
+        btn.onclick = () => window.open(cfg.url, '_blank', 'noopener,noreferrer');
+      }
+    }
+    if (cfg.ariaLabel) btn.setAttribute('aria-label', cfg.ariaLabel);
 
-    const sr = a.querySelector('.screen-reader');
+    const sr = btn.querySelector('.screen-reader');
     if (sr && cfg.screenReaderText) sr.textContent = cfg.screenReaderText;
   }
 }

@@ -679,6 +679,22 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 - **Meaning**: Recoil scale before settling back to `1.0`.
 - **Applied to**: CSS var `--abs-hover-snap-undershoot`
 
+### `linkHoverNudge` (number, px)
+- **Meaning**: Vertical translation applied to hover, focus, and active states (corner links + icon buttons).
+- **Applied to**: CSS var `--link-nudge`
+
+### `linkHoverIntensityLight` (number, 0..1)
+- **Meaning**: Cursor color mix percentage used for hover backgrounds in light mode (`1` = 100% cursor color).
+- **Applied to**: CSS var `--abs-hover-intensity-light`
+
+### `linkHoverIntensityDark` (number, 0..1)
+- **Meaning**: Cursor color mix percentage used for hover backgrounds in dark mode.
+- **Applied to**: CSS var `--abs-hover-intensity-dark`
+
+### `linkHoverIntensityActive` (number, 0..1)
+- **Meaning**: Cursor color mix percentage while an element is active/pressed (applies to the active hover tint + link nudge transition).
+- **Applied to**: CSS var `--abs-hover-intensity-active`
+
 ### `homeMainLinksBelowLogoPx` (number, px)
 - **Meaning**: Index-only vertical offset for the main links cluster below the logo.
 - **Applied to**: CSS var `--home-main-links-below-logo-px`

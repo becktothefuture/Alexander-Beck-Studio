@@ -13,38 +13,38 @@
     "items": [
       {
         "colorClass": "bg-ball-1",
-        "label": "Product & Systems",
-        "tooltip": "I structure systems at scale and guide outcome-driven decisions."
+        "label": "Systems Strategy",
+        "tooltip": "I structure adaptive platforms for 2026 demand curves, balancing resilience with measurable outcomes."
       },
       {
         "colorClass": "bg-ball-5",
-        "label": "Interaction & Motion",
-        "tooltip": "I design interactions and motion that communicate through behaviour."
+        "label": "Kinetic Interaction",
+        "tooltip": "I choreograph motion-rich interfaces that guide behavior across immersive and physical touchpoints."
       },
       {
         "colorClass": "bg-ball-4",
-        "label": "Creative Technology",
-        "tooltip": "I build products, websites, and emerging digital experiences using code and prototypes."
+        "label": "Creative Tech",
+        "tooltip": "I fuse craft and code to deliver expressive digital experiences that scale across web3, spatial, and emerging screens."
       },
       {
         "colorClass": "bg-ball-3",
-        "label": "AI-Driven Design",
-        "tooltip": "I treat AI as a design material to explore and extrapolate ideas."
+        "label": "AI Design",
+        "tooltip": "I use AI as a live design material, shaping new workflows and generative narratives for 2026 products."
       },
       {
         "colorClass": "bg-ball-6",
-        "label": "Experience Direction",
-        "tooltip": "I shape cohesive product and web experiences through structure, craft, and vision."
+        "label": "Experience Strategy",
+        "tooltip": "I orchestrate end-to-end experience strategy that ties product, storytelling, and emerging platforms together."
       },
       {
         "colorClass": "bg-ball-7",
-        "label": "Art & Visual Direction",
-        "tooltip": "I define visual and spatial direction across product, motion, and form."
+        "label": "Visual Direction",
+        "tooltip": "I define visual direction that aligns spatial, motion, and identity systems for high-impact storytelling."
       },
       {
         "colorClass": "bg-ball-8",
-        "label": "Prototyping + R&D",
-        "tooltip": "I prototype to think, test, and bring ideas into focus."
+        "label": "Rapid Prototyping",
+        "tooltip": "I prototype rapidly to surface learnings, validate AI-driven ideas, and align distributed teams."
       }
     ]
   },

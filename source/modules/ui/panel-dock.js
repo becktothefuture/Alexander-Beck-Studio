@@ -3,15 +3,15 @@
 // ║           Single panel with collapsible sections                             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { HOME_PANEL_HTML } from './panel-html.js';
+// HOME_PANEL_HTML no longer used - mode sections are generated directly
 import { setupIndexControls, setupMasterControls } from './controls.js';
 import { setupBuildControls } from './build-controls.js';
 import {
   generateThemeSectionHTML,
   generateColorTemplateSectionHTML,
-  generateGlobalSectionsHTML,
-  generateSimulationsSectionsHTML,
-  generateBrowserTransitionSectionsHTML,
+  generateMasterSectionsHTML,
+  generateModeSwitcherHTML,
+  generateModeSpecificSectionsHTML,
   updateWallShadowCSS,
 } from './control-registry.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
@@ -133,7 +133,6 @@ let elementStartY = 0;
 
 function getMasterPanelContent({
   pageLabel = 'Home',
-  pageHTML = HOME_PANEL_HTML,
   includePageSaveButton = true,
   pageSaveButtonId = 'saveRuntimeConfigBtn',
   footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes',
@@ -145,7 +144,7 @@ function getMasterPanelContent({
     : `Auto (${Math.round(viewportWidthPx)}px)`;
   const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
 
-  // Layout controls (embedded in Global group)
+  // Layout controls → embedded in Frame group
   const layoutControlsHTML = `
     <details class="panel-section-accordion" id="layoutSection">
       <summary class="panel-section-header">
@@ -172,7 +171,7 @@ function getMasterPanelContent({
     </details>
   `;
 
-  // Sound controls (embedded in Global group)
+  // Sound controls → embedded in Interaction group
   const soundControlsHTML = `
     <details class="panel-section-accordion" id="soundSection">
       <summary class="panel-section-header">
@@ -201,64 +200,30 @@ function getMasterPanelContent({
     </details>
   `;
 
-  // Mode selector (embedded in Simulations group)
-  const modeControlsHTML = `
-    <details class="panel-section-accordion" id="pageSection" open>
-      <summary class="panel-section-header">
-        <span class="section-icon">🎛️</span>
-        <span class="section-label">Mode</span>
-      </summary>
-      <div class="panel-section-content">
-        ${pageHTML}
-      </div>
-    </details>
-  `;
-
   const actionsHTML = `
     ${includePageSaveButton ? `<div class="panel-section panel-section--action"><button id="${pageSaveButtonId}" class="primary">💾 Save ${pageLabel} Config</button></div>` : ''}
     <div class="panel-footer">${footerHint}</div>
   `;
 
-  // Build the 3 master groups with all content properly nested
+  // Build all master groups with proper content injection
+  // - Theme + Palette → Appearance (prepend/append)
+  // - Layout → Frame (append)
+  // - Sound → Interaction (append)
+  // - Mode switcher + mode-specific sections → Simulation (prepend)
+  const masterGroupsHTML = generateMasterSectionsHTML({
+    prepend: {
+      appearance: generateThemeSectionHTML({ open: false }),
+      simulation: generateModeSwitcherHTML() + generateModeSpecificSectionsHTML(),
+    },
+    append: {
+      appearance: generateColorTemplateSectionHTML({ open: false }),
+      frame: layoutControlsHTML,
+      interaction: soundControlsHTML,
+    }
+  });
+
   return `
-    <!-- GLOBAL: Theme, Colors, Sound, Layout -->
-    <details class="panel-master-group" open>
-      <summary class="panel-master-group-header">
-        <span class="panel-master-group-icon">🌐</span>
-        <span class="panel-master-group-title">Global</span>
-      </summary>
-      <div class="panel-master-group-content">
-        ${generateThemeSectionHTML({ open: false })}
-        ${generateGlobalSectionsHTML()}
-        ${layoutControlsHTML}
-        ${soundControlsHTML}
-        ${generateColorTemplateSectionHTML({ open: false })}
-      </div>
-    </details>
-
-    <!-- SIMULATIONS: Mode, Physics, Balls, Wall, Mode-specific -->
-    <details class="panel-master-group" open>
-      <summary class="panel-master-group-header">
-        <span class="panel-master-group-icon">🧪</span>
-        <span class="panel-master-group-title">Simulations</span>
-      </summary>
-      <div class="panel-master-group-content">
-        ${modeControlsHTML}
-        ${generateSimulationsSectionsHTML()}
-      </div>
-    </details>
-
-    <!-- BROWSER & TRANSITION: Environment, Entrance, Overlay -->
-    <details class="panel-master-group" open>
-      <summary class="panel-master-group-header">
-        <span class="panel-master-group-icon">🧭</span>
-        <span class="panel-master-group-title">Browser & Transition</span>
-      </summary>
-      <div class="panel-master-group-content">
-        ${generateBrowserTransitionSectionsHTML()}
-      </div>
-    </details>
-
+    ${masterGroupsHTML}
     ${actionsHTML}
   `;
 }
@@ -305,7 +270,6 @@ export function createPanelDock(options = {}) {
 
   const page = options.page || 'home';
   const pageLabel = options.pageLabel || (page === 'portfolio' ? 'Portfolio' : 'Home');
-  const pageHTML = options.pageHTML || HOME_PANEL_HTML;
   // Default to true for home page (save config button), false must be explicit
   const includePageSaveButton = options.includePageSaveButton !== false;
   const pageSaveButtonId = options.pageSaveButtonId || 'saveRuntimeConfigBtn';
@@ -348,7 +312,6 @@ export function createPanelDock(options = {}) {
     panelTitle,
     modeLabel,
     pageLabel,
-    pageHTML,
     includePageSaveButton,
     pageSaveButtonId,
     footerHint,
@@ -398,7 +361,6 @@ function createMasterPanel({
   panelTitle,
   modeLabel,
   pageLabel,
-  pageHTML,
   includePageSaveButton,
   pageSaveButtonId,
   footerHint,
@@ -425,7 +387,6 @@ function createMasterPanel({
   content.className = 'panel-content';
   content.innerHTML = getMasterPanelContent({
     pageLabel,
-    pageHTML,
     includePageSaveButton,
     pageSaveButtonId,
     footerHint,

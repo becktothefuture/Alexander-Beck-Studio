@@ -481,10 +481,10 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
 
 /* Desktop/Tablet: main top row (legend + blurb + optional sound icon in top-right slot) */
 .ui-top-main {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(1, 1fr);
   align-items: flex-start;
-  flex-wrap: nowrap;
   width: 100%;
   gap: var(--gap-24);
   pointer-events: none;
@@ -506,10 +506,10 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   position: relative;
   top: auto;
   left: auto;
-  /* 3-column grid on desktop */
+  /* 3-column grid on desktop - equal width columns */
   display: grid;
-  grid-template-columns: repeat(3, auto);
-  gap: -2px; /* Negative gap for tight/overlapping layout */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0; /* No gap - items fill their cells */
   padding: var(--gap-xs);
   /* Limit max width to keep legend compact */
   max-width: 620px; 
@@ -524,6 +524,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
 #expertise-legend {
   border-radius: 0;
   background: transparent;
+  width: 100%;
 }
 
 .legend:hover {
@@ -573,28 +574,38 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   padding: var(--gap-sm);
   margin: 0;
   gap: var(--legend-item-gap);
+  overflow: hidden; /* Contain pseudo-elements for edge lighting */
+  /* Fill available width in grid cell */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .legend__item--interactive::before {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: inherit;
+  z-index: -1;
+  border-radius: var(--legend-item-radius);
   background: transparent;
+  opacity: 0;
   pointer-events: none;
-  transition: background 0.2s var(--ease-organic);
+  transition: opacity var(--duration-link-hover) var(--ease-organic);
 }
 
 .legend__item--interactive:hover::before {
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-light), transparent calc(100% - var(--abs-hover-intensity-light)));
+  opacity: 1;
+  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-light), transparent);
 }
 
 body.dark-mode .legend__item--interactive:hover::before {
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-dark), transparent calc(100% - var(--abs-hover-intensity-dark)));
+  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-dark), transparent);
 }
 
 .legend__item--interactive:hover {
   opacity: 1;
+  /* Disable scale animation - keep exact same dimensions on hover */
+  animation: none;
+  transform: none;
 }
 
 .legend .legend__item--interactive:hover span {
@@ -742,11 +753,30 @@ body.dark-mode .legend-tooltip-output {
   /* Prepare for hover: transparent by default, rounded for reveal */
   background: transparent;
   border-radius: var(--abs-radius-card);
-  transition: background var(--duration-quick) var(--ease-organic);
+  overflow: hidden; /* Contain pseudo-element */
+  isolation: isolate;
 }
 
-.decorative-script:hover {
-  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
+/* Hover background pseudo-element for decorative-script */
+.decorative-script::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--abs-radius-card);
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-quick) var(--ease-organic);
+}
+
+.decorative-script:hover::before {
+  opacity: 1;
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+}
+
+body.dark-mode .decorative-script:hover::before {
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
 }
 
 /* Index page: reduce default text saturation/opacity (except logo) */
@@ -961,6 +991,27 @@ p {
   /* Safari fix: create stacking context to prevent noise layer bleeding on hover */
   isolation: isolate;
   z-index: 15;
+  
+  /* Button reset for <button> elements */
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  overflow: hidden; /* Contain pseudo-element */
+}
+
+/* Hover background pseudo-element for text links (always present, opacity transitions) */
+.footer_link::before,
+.portfolio-cv-link::before,
+#header-cv-link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--ui-icon-corner-radius);
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-link-hover) var(--ease-organic);
 }
 
 /* Ensure header CV link is dark on light backgrounds */
@@ -1051,7 +1102,7 @@ button.abs-meta-btn,
   border: none;
   cursor: none;
   position: relative;
-  overflow: visible;
+  overflow: hidden; /* Clip ::before to rounded corners */
   isolation: isolate;
   padding: var(--abs-space-2xs) var(--abs-space-sm);
   color: inherit;
@@ -1067,14 +1118,12 @@ button.abs-meta-btn,
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   border-radius: var(--ui-icon-corner-radius);
   background: transparent;
   opacity: 0;
   pointer-events: none;
-  transition:
-    opacity var(--duration-link-hover) var(--ease-organic),
-    background var(--duration-link-hover) var(--ease-organic);
+  transition: opacity var(--duration-link-hover) var(--ease-organic);
 }
 
 /* Meta button hover */
@@ -1086,7 +1135,12 @@ button.abs-meta-btn,
 .abs-meta-btn:hover::before,
 #site-year:hover::before {
   opacity: 1;
-  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+}
+
+body.dark-mode .abs-meta-btn:hover::before,
+body.dark-mode #site-year:hover::before {
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
 }
 
 /* Left: Socials */
@@ -1113,9 +1167,15 @@ button.abs-meta-btn,
   align-items: center;
   justify-content: center;
   position: relative;
-  overflow: visible;
+  overflow: hidden; /* Clip pseudo-elements for edge lighting */
   text-decoration: none;
   isolation: isolate;
+
+  /* Button reset for <button> elements */
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: inherit;
 
   /* Size by frame height (square). Defaults are derived from tokens. */
   inline-size: var(--ui-icon-frame-size);
@@ -1123,8 +1183,7 @@ button.abs-meta-btn,
   aspect-ratio: 1 / 1;
   padding: 0;
 
-  /* Unified button corner radius (native CSS, no JS/inline) */
-  border-radius: var(--ui-icon-corner-radius);
+  /* No border-radius on button element - only hover background (::before) has rounded corners */
   font-size: var(--ui-icon-glyph-size);
   line-height: 1;
 }
@@ -1134,13 +1193,12 @@ button.abs-meta-btn,
   position: absolute;
   inset: 0;
   z-index: 0;
+  /* Hover background is the ONLY element with rounded corners */
   border-radius: var(--ui-icon-corner-radius);
   background: transparent;
   opacity: 0;
   pointer-events: none;
-  transition:
-    opacity var(--duration-link-hover) var(--ease-organic),
-    background var(--duration-link-hover) var(--ease-organic);
+  transition: opacity var(--duration-link-hover) var(--ease-organic);
 }
 
 .abs-icon-btn > i,
@@ -1160,12 +1218,12 @@ button.abs-meta-btn,
               opacity 0.15s var(--ease-organic);
   text-decoration: none;
   cursor: none; /* Maintain custom cursor experience */
+  /* Ensure proper positioning for ::before */
+  position: relative;
+  overflow: hidden;
+  /* No border-radius on link element - only hover background (::before) has rounded corners */
 }
 
-/* Remove dot from icon links */
-.footer_icon-link::after {
-  display: none;
-}
 
 .footer_icon-link:hover {
   color: var(--cursor-color, var(--link-hover-color));
@@ -1952,8 +2010,8 @@ body.video-fade-ready .grunge-video-overlay--dark {
    ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 991px) { /* Tablet */
   .legend {
-    grid-template-columns: repeat(3, auto); /* 3x3 layout */
-    gap: -2px;
+    grid-template-columns: repeat(3, 1fr); /* 3x3 layout, equal width columns */
+    gap: 0;
   }
 }
 
@@ -1961,8 +2019,8 @@ body.video-fade-ready .grunge-video-overlay--dark {
    Switch to 2 columns so the right blurb can breathe. */
 @media (max-width: 820px) {
   .legend {
-    grid-template-columns: repeat(2, auto);
-    gap: -2px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
   }
 }
 
@@ -1993,15 +2051,15 @@ body.video-fade-ready .grunge-video-overlay--dark {
     gap: var(--gap-md);
   }
 
-  /* Mobile: default stack for tighter layouts */
+  /* Mobile: stack for tighter layouts (grid single column) */
   .ui-top-main {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
     align-items: flex-start;
     gap: var(--gap-md);
   }
 
   .ui-top-left {
-    flex: 0 0 auto;
     width: 100%;
     min-width: 0;
   }
@@ -2012,25 +2070,18 @@ body.video-fade-ready .grunge-video-overlay--dark {
     width: 100%;
   }
 
-  /* Index: keep legend + intro split side-by-side */
+  /* Index: keep legend + intro split side-by-side (2 column grid) */
   body:not(.portfolio-page):not(.cv-page) .ui-top-main {
-    flex-direction: row;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 1fr;
     align-items: flex-start;
     gap: var(--gap-md);
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-left,
   body:not(.portfolio-page):not(.cv-page) .ui-top-right {
-    flex: 1 1 0;
+    width: 100%;
     min-width: 0;
-  }
-
-  body:not(.portfolio-page):not(.cv-page) .ui-top-left {
-    width: auto;
-  }
-
-  body:not(.portfolio-page):not(.cv-page) .ui-top-right {
-    width: auto;
   }
 
   /* FIX #3: Expand intro paragraph to full width on mobile, aligned right */
@@ -2055,7 +2106,7 @@ body.video-fade-ready .grunge-video-overlay--dark {
   .legend {
     max-width: 100%;
     grid-template-columns: 1fr; /* 1-column on mobile */
-    gap: -2px;
+    gap: 0;
   }
   
   /* Reduce vertical padding on legend items for tighter mobile spacing */
@@ -2245,9 +2296,9 @@ body.abs-link-hovering #custom-cursor {
 }
 
 /* INDEX MODE HOVER: Snap animation (native :hover) */
-body:not(.portfolio-page):not(.detail-open) a:hover,
-body:not(.portfolio-page):not(.detail-open) button:hover,
-body:not(.portfolio-page):not(.detail-open) .legend__item--interactive:hover {
+/* Note: .legend__item--interactive excluded - hover must not affect size/position */
+a:hover,
+button:hover {
   --abs-cursor-pulse-ms: 520ms;
   will-change: transform;
   transform-origin: center;
@@ -2257,44 +2308,62 @@ body:not(.portfolio-page):not(.detail-open) .legend__item--interactive:hover {
   animation-fill-mode: both;
 }
 
-/* Icon buttons get cursor color on hover */
-.abs-icon-btn:hover {
-  color: var(--cursor-hover-fg, var(--cursor-color));
-  background: transparent;
-  border-radius: inherit;
-}
+/* ═══════════════════════════════════════════════════════════════════════════════
+   INTERACTIVE HOVER EFFECTS
+   Unified hover styling for all clickable UI elements:
+   - Text links: .footer_link, .portfolio-cv-link, #header-cv-link
+   - Icon buttons: .abs-icon-btn (social links, sound toggle)
+   - Legend items: .legend__item--interactive
+   - Meta elements: .abs-meta-btn, #site-year
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
-.abs-icon-btn:hover::before {
-  opacity: 1;
-  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
-}
-
-/* Link hover states — cursor color + pill background */
-.footer_link:hover,
-.portfolio-cv-link:hover,
-#header-cv-link:hover {
+/* ─── Hover State: Color & Background ─── */
+:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn):hover {
   color: var(--cursor-hover-fg, var(--cursor-color));
   opacity: 1;
   position: relative;
 }
 
-/* Subtle pill background on link hover */
-.footer_link:hover::before,
-.portfolio-cv-link:hover::before,
-#header-cv-link:hover::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: color-mix(in srgb, var(--cursor-color) 12%, transparent);
-  pointer-events: none;
-  z-index: -1;
+.abs-icon-btn:hover {
+  background: transparent;
+  /* No border-radius - only ::before has rounded corners */
+}
+
+/* Icon button hover background (uses opacity transition like .abs-meta-btn) */
+.abs-icon-btn:hover::before {
+  opacity: 1;
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+}
+
+body.dark-mode .abs-icon-btn:hover::before {
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
+}
+
+/* Tinted background on hover (::before) - for text links (opacity transition) */
+:is(
+  .footer_link,
+  .portfolio-cv-link,
+  #header-cv-link
+):hover::before {
+  opacity: 1;
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+}
+
+/* Dark mode: adjust hover background intensity */
+body.dark-mode :is(
+  .footer_link,
+  .portfolio-cv-link,
+  #header-cv-link
+):hover::before {
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
 }
 
 #main-links .footer_link:hover .footer-link-nowrap {
   color: inherit;
   opacity: 1;
 }
+
+/* Edge lighting removed from buttons/links - keeping only simple hover background (::before) for cleaner rendering */
 
 /* ─────────────────────────────────────────────────────────────────────────────
    CORNER LINK NUDGE — Intentional 1px downward shift on interaction
@@ -2377,7 +2446,7 @@ button:hover {
   transform: translate3d(-50%, 0, 0) scaleY(0);
 }
 
-/* Text link hover — light mode */
+/* Text link hover — light mode (background via ::before, not direct) */
 .footer_link:hover,
 .portfolio-cv-link:hover,
 #header-cv-link:hover,
@@ -2385,11 +2454,10 @@ button:hover {
 #portfolio-modal-trigger:hover,
 .decorative-script p a:hover {
   color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-black), 1) 60%);
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
   opacity: 1;
 }
 
-/* Text link hover — dark mode */
+/* Text link hover — dark mode (background via ::before, not direct) */
 body.dark-mode .footer_link:hover,
 body.dark-mode .portfolio-cv-link:hover,
 body.dark-mode #header-cv-link:hover,
@@ -2397,7 +2465,6 @@ body.dark-mode #contact-email:hover,
 body.dark-mode #portfolio-modal-trigger:hover,
 body.dark-mode .decorative-script p a:hover {
   color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-white), 1) 60%);
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
   opacity: 1;
 }
 
@@ -2417,7 +2484,7 @@ body.dark-mode .decorative-script p a:hover {
 }
 
 .abs-icon-btn:focus-visible {
-  border-radius: inherit;
+  /* No border-radius - only ::before has rounded corners */
 }
 
 /* Pulse animation removed - no longer needed with native CSS hover */
@@ -2425,8 +2492,7 @@ body.dark-mode .decorative-script p a:hover {
 /* Reduce motion: disable hover snap animation */
 @media (prefers-reduced-motion: reduce) {
   a:hover,
-  button:hover,
-  .legend__item--interactive:hover {
+  button:hover {
     animation: none;
   }
 }
@@ -3488,7 +3554,7 @@ body.cv-page .cv-right p {
 /* Top-left nav items — consistent across all pages */
 .ui-top-left {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   gap: 0;
   width: auto;

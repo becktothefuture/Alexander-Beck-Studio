@@ -228,7 +228,7 @@ export const MASTER_GROUPS = [
     title: 'Frame',
     icon: '🖼️',
     sections: [
-      'wall',
+      'wallGeometry',
       'layers',
       'uiSpacing'
     ]
@@ -238,6 +238,8 @@ export const MASTER_GROUPS = [
     title: 'Effects',
     icon: '✨',
     sections: [
+      'wallDepthShadow',
+      'wallEdgeLighting',
       'simulationOverlay',
       'overlay'
     ]
@@ -249,6 +251,7 @@ export const MASTER_GROUPS = [
     sections: [
       'cursor',
       'trail',
+      'cursorExplosionImpact',
       'links'
     ]
   },
@@ -259,26 +262,7 @@ export const MASTER_GROUPS = [
     sections: [
       'liteMode',
       'physics',
-      'balls',
-      'pit',
-      'flies',
-      'water',
-      'vortex',
-      'magnetic',
-      'bubbles',
-      'kaleidoscope3',
-      'sphere3d',
-      'cube3d',
-      'neural',
-      'parallaxLinear',
-      'parallaxFloat',
-      'starfield3d',
-      'shootingStars',
-      'elasticCenter',
-      'dvdLogo',
-      'particleFountain',
-      'weightless',
-      'critters'
+      'balls'
     ]
   },
   {
@@ -1885,6 +1869,7 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--link-impact-duration', `${val}ms`);
         }
       },
+      { type: 'divider', label: 'Hover Motion', group: 'Motion' },
       {
         id: 'hoverSnapEnabled',
         label: 'Hover Snap',
@@ -1936,6 +1921,235 @@ export const CONTROL_SECTIONS = {
         hint: 'Small recoil scale before settling back to 1.0 (<= 1.0).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--abs-hover-snap-undershoot', String(val));
+        }
+      },
+      {
+        id: 'linkHoverNudge',
+        label: 'Hover Nudge',
+        stateKey: 'linkHoverNudge',
+        type: 'range',
+        min: 0, max: 4, step: 0.25,
+        default: 1,
+        format: v => `${v.toFixed(2)}px`,
+        parse: parseFloat,
+        hint: 'Vertical translation applied to hover/focus/active states for corner links.',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--link-nudge', `${val}px`);
+        }
+      },
+      { type: 'divider', label: 'Hover Color', group: 'Color' },
+      {
+        id: 'linkHoverIntensityLight',
+        label: 'Tint (Light)',
+        stateKey: 'linkHoverIntensityLight',
+        type: 'range',
+        min: 0, max: 0.6, step: 0.01,
+        default: 0.2,
+        format: v => `${(v * 100).toFixed(1)}%`,
+        parse: parseFloat,
+        hint: 'Cursor color mix percentage for hover backgrounds in light mode.',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-intensity-light', `${(Math.max(0, Math.min(1, val)) * 100).toFixed(1)}%`);
+        }
+      },
+      {
+        id: 'linkHoverIntensityDark',
+        label: 'Tint (Dark)',
+        stateKey: 'linkHoverIntensityDark',
+        type: 'range',
+        min: 0, max: 0.6, step: 0.01,
+        default: 0.24,
+        format: v => `${(v * 100).toFixed(1)}%`,
+        parse: parseFloat,
+        hint: 'Cursor color mix percentage for hover backgrounds in dark mode.',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-intensity-dark', `${(Math.max(0, Math.min(1, val)) * 100).toFixed(1)}%`);
+        }
+      },
+      {
+        id: 'linkHoverIntensityActive',
+        label: 'Tint (Active)',
+        stateKey: 'linkHoverIntensityActive',
+        type: 'range',
+        min: 0, max: 0.4, step: 0.01,
+        default: 0.18,
+        format: v => `${(v * 100).toFixed(1)}%`,
+        parse: parseFloat,
+        hint: 'Cursor color mix percentage while a link/button is active.',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-intensity-active', `${(Math.max(0, Math.min(1, val)) * 100).toFixed(1)}%`);
+        }
+      },
+      
+      // ─── HOVER EDGE LIGHTING ───
+      // Radial gradient strokes on hover backgrounds - mirrors wall gradient stroke system
+      { type: 'divider', label: 'Edge Lighting', group: 'Edge Lighting' },
+      {
+        id: 'hoverEdgeEnabled',
+        label: 'Enabled',
+        stateKey: 'hoverEdgeEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        group: 'Edge Lighting',
+        hint: 'Master toggle for hover edge lighting effect',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-enabled', val ? '1' : '0');
+        }
+      },
+      {
+        id: 'hoverEdgeWidth',
+        label: 'Stroke Width',
+        stateKey: 'hoverEdgeWidth',
+        type: 'range',
+        min: 0.5, max: 3, step: 0.1,
+        default: 1,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'Width of the edge lighting stroke',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-width', `${val}px`);
+        }
+      },
+      {
+        id: 'hoverEdgeInset',
+        label: 'Inset',
+        stateKey: 'hoverEdgeInset',
+        type: 'range',
+        min: 0, max: 4, step: 0.5,
+        default: 0,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'How far inside the element edge to draw',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-inset', `${val}px`);
+        }
+      },
+      
+      // ─── BOTTOM LIGHT ───
+      { type: 'divider', label: 'Bottom Light', group: 'Edge Lighting' },
+      {
+        id: 'hoverEdgeBottomEnabled',
+        label: 'Enabled',
+        stateKey: 'hoverEdgeBottomEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        group: 'Edge Lighting',
+        hint: 'Primary upward light source',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-bottom-enabled', val ? '1' : '0');
+        }
+      },
+      {
+        id: 'hoverEdgeBottomRadius',
+        label: 'Size',
+        stateKey: 'hoverEdgeBottomRadius',
+        type: 'range',
+        min: 0.5, max: 3, step: 0.05,
+        default: 1.2,
+        format: v => `${v.toFixed(2)}×`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'Gradient radius (1.0 = element height)',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-bottom-radius', String(val));
+        }
+      },
+      {
+        id: 'hoverEdgeBottomOpacity',
+        label: 'Opacity',
+        stateKey: 'hoverEdgeBottomOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.02,
+        default: 0.6,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'Light intensity at center',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-bottom-opacity', String(val));
+        }
+      },
+      {
+        id: 'hoverEdgeBottomColorMix',
+        label: 'Color Mix',
+        stateKey: 'hoverEdgeBottomColorMix',
+        type: 'range',
+        min: 0, max: 100, step: 5,
+        default: 70,
+        format: v => `${Math.round(v)}%`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'How much cursor color vs white',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-bottom-color-mix', `${val}%`);
+        }
+      },
+      
+      // ─── TOP LIGHT ───
+      { type: 'divider', label: 'Top Light', group: 'Edge Lighting' },
+      {
+        id: 'hoverEdgeTopEnabled',
+        label: 'Enabled',
+        stateKey: 'hoverEdgeTopEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        group: 'Edge Lighting',
+        hint: 'Ambient downward light source',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-top-enabled', val ? '1' : '0');
+        }
+      },
+      {
+        id: 'hoverEdgeTopRadius',
+        label: 'Size',
+        stateKey: 'hoverEdgeTopRadius',
+        type: 'range',
+        min: 0.5, max: 3, step: 0.05,
+        default: 1.0,
+        format: v => `${v.toFixed(2)}×`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'Gradient radius (1.0 = element height)',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-top-radius', String(val));
+        }
+      },
+      {
+        id: 'hoverEdgeTopOpacity',
+        label: 'Opacity',
+        stateKey: 'hoverEdgeTopOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.02,
+        default: 0.3,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'Light intensity at center',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-top-opacity', String(val));
+        }
+      },
+      {
+        id: 'hoverEdgeTopColorMix',
+        label: 'Color Mix',
+        stateKey: 'hoverEdgeTopColorMix',
+        type: 'range',
+        min: 0, max: 100, step: 5,
+        default: 50,
+        format: v => `${Math.round(v)}%`,
+        parse: parseFloat,
+        group: 'Edge Lighting',
+        hint: 'How much cursor color vs white',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--hover-edge-top-color-mix', `${val}%`);
         }
       }
     ]
@@ -2695,11 +2909,12 @@ export const CONTROL_SECTIONS = {
   // Inner shadow removed
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // WALL - Unified Frame & Physics
   // ═══════════════════════════════════════════════════════════════════════════
-  wall: {
-    title: 'WALL',
-    icon: '🫧',
+  // WALL GEOMETRY - Basic wall structure and frame
+  // ═══════════════════════════════════════════════════════════════════════════
+  wallGeometry: {
+    title: 'Wall · Frame',
+    icon: '🖼️',
     defaultOpen: false,
     controls: [
       {
@@ -2903,11 +3118,29 @@ export const CONTROL_SECTIONS = {
           });
         }
       },
-      
-      // ═══════════════════════════════════════════════════════════════════
-      // WALL SHADOW - Edge-based depth effect system
-      // ═══════════════════════════════════════════════════════════════════
-      
+      {
+        id: 'restitution',
+        label: 'Bounce',
+        stateKey: 'restitution',
+        type: 'range',
+        min: 0.3, max: 0.95, step: 0.05,
+        default: 0.70,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Wall Material',
+        hint: 'Energy kept on bounce. 100% = elastic, 30% = soft'
+      },
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WALL DEPTH SHADOW - Edge-based depth effect system
+  // ═══════════════════════════════════════════════════════════════════════════
+  wallDepthShadow: {
+    title: 'Wall · Shadows',
+    icon: '🌗',
+    defaultOpen: false,
+    controls: [
       // ─── DARK EDGES (Top + Left) ───
       { type: 'divider', label: 'Dark Edges', group: 'Wall Shadow' },
       {
@@ -3182,10 +3415,17 @@ export const CONTROL_SECTIONS = {
         hint: 'Layer 3: soft ambient shadow',
         onChange: (g) => updateWallShadowCSS(g)
       },
-      
-      // ─── EDGE LIGHTING ───
-      // Two radial gradient strokes that simulate light on the inner wall edge
-      { type: 'divider', label: 'Edge Lighting', group: 'Edge Lighting' },
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WALL EDGE LIGHTING - Gradient strokes that simulate light on inner wall edge
+  // ═══════════════════════════════════════════════════════════════════════════
+  wallEdgeLighting: {
+    title: 'Wall · Lighting',
+    icon: '💡',
+    defaultOpen: false,
+    controls: [
       {
         id: 'wallGradientStrokeEnabled',
         label: 'Enabled',
@@ -3306,19 +3546,6 @@ export const CONTROL_SECTIONS = {
         parse: v => v,
         group: 'Edge Lighting',
         hint: 'Light color'
-      },
-      
-      {
-        id: 'restitution',
-        label: 'Bounce',
-        stateKey: 'restitution',
-        type: 'range',
-        min: 0.3, max: 0.95, step: 0.05,
-        default: 0.70,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        group: 'Wall Material',
-        hint: 'Energy kept on bounce. 100% = elastic, 30% = soft'
       },
     ]
   },
@@ -6448,21 +6675,57 @@ export function generateColorTemplateSectionHTML({ open = false } = {}) {
     </details>`;
 }
 
-export function generateMasterSectionsHTML() {
+/**
+ * Generate master panel sections with optional custom content injections.
+ * @param {Object} options - Injection options
+ * @param {Object} options.prepend - HTML to prepend to each group { groupId: htmlString }
+ * @param {Object} options.append - HTML to append to each group { groupId: htmlString }
+ * @param {Object} options.replace - Completely replace group content { groupId: htmlString }
+ * @returns {string} Complete master groups HTML
+ */
+export function generateMasterSectionsHTML(options = {}) {
+  const { prepend = {}, append = {}, replace = {} } = options;
   let html = '';
 
   for (const group of MASTER_GROUPS) {
+    // Check if this group has replacement content
+    if (replace[group.id]) {
+      html += `
+      <details class="panel-master-group">
+        <summary class="panel-master-group-header">
+          ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
+          <span class="panel-master-group-title">${group.title}</span>
+        </summary>
+        <div class="panel-master-group-content">
+          ${replace[group.id]}
+        </div>
+      </details>`;
+      continue;
+    }
+
+    // Build standard group content
     let groupContent = '';
 
+    // Prepend custom content
+    if (prepend[group.id]) {
+      groupContent += prepend[group.id];
+    }
+
+    // Add registered sections
     for (const key of group.sections) {
       if (!CONTROL_SECTIONS[key]) continue;
       groupContent += generateSectionHTML(key, CONTROL_SECTIONS[key]);
     }
 
+    // Append custom content
+    if (append[group.id]) {
+      groupContent += append[group.id];
+    }
+
     if (!groupContent) continue;
 
     html += `
-      <details class="panel-master-group" open>
+      <details class="panel-master-group">
         <summary class="panel-master-group-header">
           ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
           <span class="panel-master-group-title">${group.title}</span>
@@ -6489,7 +6752,7 @@ export function generateGlobalSectionsHTML() {
 
 // Generate sections for SIMULATIONS group only
 export function generateSimulationsSectionsHTML() {
-  const simSections = ['liteMode', 'physics', 'balls', 'wall', 'simulationOverlay'];
+  const simSections = ['liteMode', 'physics', 'balls', 'simulationOverlay'];
   let html = '';
   for (const key of simSections) {
     if (!CONTROL_SECTIONS[key]) continue;
@@ -6515,13 +6778,87 @@ export function generateBrowserTransitionSectionsHTML() {
   return html;
 }
 
-function generateHomeModeSectionHTML() {
-  // Mode-specific options should appear directly under the mode selector.
-  const modeControlsHtml = Object.entries(CONTROL_SECTIONS)
-    .filter(([, section]) => section?.mode)
-    .map(([key, section]) => generateSectionHTML(key, section))
-    .join('');
+/**
+ * Generate just the mode switcher buttons (no mode-specific sections).
+ * Used by panel-dock.js to embed in the Simulation group.
+ */
+export function generateModeSwitcherHTML() {
+  const modeIcons = {
+    'pit': '🎯',
+    'bubbles': '🫧',
+    'critters': '🐝',
+    'flies': '🕊️',
+    'water': '🌊',
+    'vortex': '⚛️',
+    'magnetic': '🧲',
+    'dvd-logo': '📀',
+    'weightless': '🌌',
+    'kaleidoscope-3': '🪞',
+    'neural': '🧠',
+    'parallax-linear': '🎚️',
+    '3d-sphere': '🌐',
+    '3d-cube': '🧊',
+    'starfield-3d': '✨',
+    'elastic-center': '⭕'
+  };
+  const modeLabels = {
+    'pit': 'Pit',
+    'bubbles': 'Bubbles',
+    'critters': 'Hive',
+    'flies': 'Flies',
+    'water': 'Water',
+    'vortex': 'Electrons',
+    'magnetic': 'Magnet',
+    'dvd-logo': 'DVD',
+    'weightless': 'Zero-G',
+    'kaleidoscope-3': 'Kalei',
+    'neural': 'Neural',
+    'parallax-linear': 'Parallax Lin',
+    '3d-sphere': 'Sphere 3D',
+    '3d-cube': 'Cube 3D',
+    'starfield-3d': 'Starfield 3D',
+    'shooting-stars': 'Shooting Stars',
+    'elastic-center': 'Elastic Center'
+  };
+  
+  let buttons = '';
+  NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {
+    const icon = modeIcons[mode] || '⚪';
+    const label = modeLabels[mode] || mode;
+    const number = String(idx + 1).padStart(2, '0');
+    const ariaLabel = `${number} · ${(NARRATIVE_CHAPTER_TITLES[mode] || label)} mode`;
+    buttons += `<button class="mode-button" data-mode="${mode}" aria-label="${ariaLabel}"><span class="mode-button-number">${number}</span><span class="mode-button-label">${icon} ${label}</span></button>`;
+  });
 
+  return `
+    <details class="panel-section-accordion" id="modeSwitcherSection" open>
+      <summary class="panel-section-header">
+        <span class="section-icon">🎛️</span>
+        <span class="section-label">Mode</span>
+      </summary>
+      <div class="panel-section-content">
+        <div class="mode-switcher" role="group" aria-label="Simulation mode selector">
+          ${buttons}
+        </div>
+      </div>
+    </details>`;
+}
+
+/**
+ * Generate mode-specific sections HTML (all modes).
+ * These are added to the Simulation group after the mode switcher.
+ */
+export function generateModeSpecificSectionsHTML() {
+  let html = '';
+  for (const [key, section] of Object.entries(CONTROL_SECTIONS)) {
+    if (section?.mode) {
+      html += generateSectionHTML(key, section);
+    }
+  }
+  return html;
+}
+
+function generateHomeModeSectionHTML() {
   return `
     <details class="panel-section-accordion" open>
       <summary class="panel-section-header">
@@ -6580,7 +6917,7 @@ function generateHomeModeSectionHTML() {
             return buttons;
           })()}
         </div>
-        ${modeControlsHtml}
+        ${generateModeSpecificSectionsHTML()}
       </div>
     </details>`;
 }

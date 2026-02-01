@@ -366,21 +366,17 @@
           <!-- Row 2: Socials (Left) & Meta (Right) -->
           <div class="ui-meta-row">
             <div class="ui-meta-left corner-dock corner-dock--bl">
-              <ul id="social-links" role="list" aria-label="Social media links" class="footer_icon-group w-list-unstyled">
-                <li class="margin-bottom_none">
-                  <a href="https://music.apple.com/profile/beckandeggs" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="Apple Music">
-                    <i class="ti ti-brand-apple" aria-hidden="true"></i>
-                    <span class="screen-reader">Apple Music</span>
-                  </a>
-                </li>
+              <div id="social-links" class="footer_icon-group" role="group" aria-label="Social media links">
+                <button type="button" onclick="window.open('https://music.apple.com/profile/beckandeggs', '_blank', 'noopener,noreferrer')" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="Apple Music">
+                  <i class="ti ti-brand-apple" aria-hidden="true"></i>
+                  <span class="screen-reader">Apple Music</span>
+                </button>
 
-                <li class="margin-bottom_none">
-                  <a href="https://www.linkedin.com/in/thisisbeck/" target="_blank" rel="noopener noreferrer" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="LinkedIn">
-                    <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
-                    <span class="screen-reader">LinkedIn</span>
-                  </a>
-                </li>
-              </ul>
+                <button type="button" onclick="window.open('https://www.linkedin.com/in/thisisbeck/', '_blank', 'noopener,noreferrer')" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="LinkedIn">
+                  <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
+                  <span class="screen-reader">LinkedIn</span>
+                </button>
+              </div>
             </div>
             
             <div class="ui-meta-right corner-dock corner-dock--br">

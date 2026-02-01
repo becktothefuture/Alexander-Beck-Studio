@@ -744,10 +744,32 @@ const state = {
   linkImpactScale: 0.95,             // Scale when link is pressed (0.7-1.0)
   linkImpactBlur: 10,                // Blur amount when link is pressed (px)
   linkImpactDuration: 150,           // Duration of press animation (ms)
+  linkHoverNudge: 1,                 // Vertical translation applied during hover/focus/active (px)
+  linkHoverIntensityLight: 0.2,      // Cursor tint strength for light-mode hover backgrounds (0-1)
+  linkHoverIntensityDark: 0.24,      // Cursor tint strength for dark-mode hover backgrounds (0-1)
+  linkHoverIntensityActive: 0.18,    // Cursor tint strength while active/pressed (0-1)
   hoverSnapEnabled: true,            // Hover targets: scale-only bounce on hover entry (no color delay)
   hoverSnapDuration: 450,            // Hover snap duration (ms)
   hoverSnapOvershoot: 1.08,          // Hover snap peak scale (>= 1.0)
   hoverSnapUndershoot: 0.98,         // Hover snap recoil scale (<= 1.0)
+  
+  // Hover Edge Lighting (radial gradient strokes on hover backgrounds)
+  // Mirrors the wall gradient stroke system for visual cohesion
+  hoverEdgeEnabled: true,                    // Master toggle for hover edge lighting
+  hoverEdgeWidth: 1,                         // Stroke width in px
+  hoverEdgeInset: 0,                         // Inset from element edge in px
+  
+  // Bottom Light - Primary upward light source (brighter)
+  hoverEdgeBottomEnabled: true,              // Enable bottom light
+  hoverEdgeBottomRadius: 1.2,                // Gradient radius (1.0 = element height)
+  hoverEdgeBottomOpacity: 0.6,               // Light intensity at center (0-1)
+  hoverEdgeBottomColorMix: 70,               // Cursor color mix percentage (0-100)
+  
+  // Top Light - Ambient downward light source (dimmer)
+  hoverEdgeTopEnabled: true,                 // Enable top light
+  hoverEdgeTopRadius: 1.0,                   // Gradient radius (1.0 = element height)
+  hoverEdgeTopOpacity: 0.3,                  // Light intensity at center (0-1)
+  hoverEdgeTopColorMix: 50,                  // Cursor color mix percentage (0-100)
   
   // Helpers
   getSquashMax() {
@@ -1020,6 +1042,23 @@ export function applyLayoutCSSVars() {
   } else {
     root.style.removeProperty('--ui-icon-group-margin');
   }
+  
+  // Hover Edge Lighting CSS variables (mirrors wall gradient stroke system)
+  root.style.setProperty('--hover-edge-enabled', state.hoverEdgeEnabled ? '1' : '0');
+  root.style.setProperty('--hover-edge-width', `${state.hoverEdgeWidth ?? 1}px`);
+  root.style.setProperty('--hover-edge-inset', `${state.hoverEdgeInset ?? 0}px`);
+  
+  // Bottom light (primary upward)
+  root.style.setProperty('--hover-edge-bottom-enabled', state.hoverEdgeBottomEnabled ? '1' : '0');
+  root.style.setProperty('--hover-edge-bottom-radius', String(state.hoverEdgeBottomRadius ?? 1.2));
+  root.style.setProperty('--hover-edge-bottom-opacity', String(state.hoverEdgeBottomOpacity ?? 0.6));
+  root.style.setProperty('--hover-edge-bottom-color-mix', `${state.hoverEdgeBottomColorMix ?? 70}%`);
+  
+  // Top light (ambient downward)
+  root.style.setProperty('--hover-edge-top-enabled', state.hoverEdgeTopEnabled ? '1' : '0');
+  root.style.setProperty('--hover-edge-top-radius', String(state.hoverEdgeTopRadius ?? 1.0));
+  root.style.setProperty('--hover-edge-top-opacity', String(state.hoverEdgeTopOpacity ?? 0.3));
+  root.style.setProperty('--hover-edge-top-color-mix', `${state.hoverEdgeTopColorMix ?? 50}%`);
 }
 
 export function initState(config) {
@@ -1552,6 +1591,18 @@ export function initState(config) {
   }
   if (config.linkImpactDuration !== undefined) {
     state.linkImpactDuration = clampInt(config.linkImpactDuration, 0, 3000, state.linkImpactDuration);
+  }
+  if (config.linkHoverNudge !== undefined) {
+    state.linkHoverNudge = clampNumber(config.linkHoverNudge, 0, 4, state.linkHoverNudge);
+  }
+  if (config.linkHoverIntensityLight !== undefined) {
+    state.linkHoverIntensityLight = clampNumber(config.linkHoverIntensityLight, 0, 1, state.linkHoverIntensityLight);
+  }
+  if (config.linkHoverIntensityDark !== undefined) {
+    state.linkHoverIntensityDark = clampNumber(config.linkHoverIntensityDark, 0, 1, state.linkHoverIntensityDark);
+  }
+  if (config.linkHoverIntensityActive !== undefined) {
+    state.linkHoverIntensityActive = clampNumber(config.linkHoverIntensityActive, 0, 1, state.linkHoverIntensityActive);
   }
 
   // Hover target snap/bounce (scale-only; colors remain instant)

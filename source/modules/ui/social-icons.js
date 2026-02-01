@@ -18,7 +18,7 @@ export function upgradeSocialIcons() {
   // Idempotent: if we already upgraded one icon, bail out fast.
   if (list.querySelector('i.ti')) return;
 
-  const links = Array.from(list.querySelectorAll('a.footer_icon-link[aria-label]'));
+  const links = Array.from(list.querySelectorAll('.footer_icon-link[aria-label]'));
   for (const a of links) {
     const label = (a.getAttribute('aria-label') || '').trim().toLowerCase();
     const iconHtml = ICON_BY_LABEL.get(label);

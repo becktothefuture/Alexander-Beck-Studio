@@ -339,6 +339,12 @@ window.addEventListener('unhandledrejection', (event) => {
     try {
       const g = getGlobals();
       const root = document.documentElement;
+      const clampHoverPercent = (value) => {
+        const normalized = Number(value);
+        if (!Number.isFinite(normalized)) return '0%';
+        const clamped = Math.max(0, Math.min(1, normalized));
+        return `${(clamped * 100).toFixed(1)}%`;
+      };
       if (Number.isFinite(g?.topLogoWidthVw)) {
         root.style.setProperty('--top-logo-width-vw', String(g.topLogoWidthVw));
       }
@@ -389,6 +395,18 @@ window.addEventListener('unhandledrejection', (event) => {
       }
       if (Number.isFinite(g?.linkImpactDuration)) {
         root.style.setProperty('--link-impact-duration', `${Math.round(g.linkImpactDuration)}ms`);
+      }
+      if (Number.isFinite(g?.linkHoverNudge)) {
+        root.style.setProperty('--link-nudge', `${g.linkHoverNudge}px`);
+      }
+      if (Number.isFinite(g?.linkHoverIntensityLight)) {
+        root.style.setProperty('--abs-hover-intensity-light', clampHoverPercent(g.linkHoverIntensityLight));
+      }
+      if (Number.isFinite(g?.linkHoverIntensityDark)) {
+        root.style.setProperty('--abs-hover-intensity-dark', clampHoverPercent(g.linkHoverIntensityDark));
+      }
+      if (Number.isFinite(g?.linkHoverIntensityActive)) {
+        root.style.setProperty('--abs-hover-intensity-active', clampHoverPercent(g.linkHoverIntensityActive));
       }
 
       // Hover target "snap" bounce (scale-only; color stays instant)

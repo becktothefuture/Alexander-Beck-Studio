@@ -129,6 +129,24 @@
   --abs-hover-opacity-ui-light: 0.18;   /* UI mode opacity (light mode) */
   --abs-hover-opacity-ui-dark: 0.22;   /* UI mode opacity (dark mode) */
 
+  /* Hover Edge Lighting - Radial gradient stroke on hover backgrounds
+     Mirrors the wall gradient stroke system for visual consistency */
+  --hover-edge-enabled: 1;                  /* Master toggle (1=on, 0=off) */
+  --hover-edge-width: 1px;                  /* Stroke width */
+  --hover-edge-inset: 0px;                  /* How far inside the border radius to draw */
+  
+  /* Bottom Light - Primary upward light source */
+  --hover-edge-bottom-enabled: 1;           /* 1=on, 0=off */
+  --hover-edge-bottom-radius: 1.2;          /* Gradient radius multiplier (1.0 = element height) */
+  --hover-edge-bottom-opacity: 0.6;         /* Light intensity at center */
+  --hover-edge-bottom-color-mix: 70%;       /* How much cursor color vs white (70% = mostly cursor) */
+  
+  /* Top Light - Ambient downward light source */
+  --hover-edge-top-enabled: 1;              /* 1=on, 0=off */
+  --hover-edge-top-radius: 1.0;             /* Gradient radius multiplier */
+  --hover-edge-top-opacity: 0.3;            /* Light intensity at center (dimmer than bottom) */
+  --hover-edge-top-color-mix: 50%;          /* How much cursor color vs white */
+
   /* Hover Target "Snap" Bounce (scale-only; color remains instant) */
   --abs-hover-snap-enabled: 1;           /* 1 = on, 0 = off */
   --abs-hover-snap-duration: 450ms;      /* Total bounce duration */
