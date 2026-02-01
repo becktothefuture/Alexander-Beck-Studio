@@ -13,12 +13,12 @@
     "items": [
       {
         "colorClass": "bg-ball-1",
-        "label": "Systems Strategy",
+        "label": "Product Systems",
         "tooltip": "I structure adaptive platforms for 2026 demand curves, balancing resilience with measurable outcomes."
       },
       {
         "colorClass": "bg-ball-5",
-        "label": "Kinetic Interaction",
+        "label": "Interaction Design",
         "tooltip": "I choreograph motion-rich interfaces that guide behavior across immersive and physical touchpoints."
       },
       {
@@ -33,17 +33,17 @@
       },
       {
         "colorClass": "bg-ball-6",
-        "label": "Experience Strategy",
+        "label": "Design Direction",
         "tooltip": "I orchestrate end-to-end experience strategy that ties product, storytelling, and emerging platforms together."
       },
       {
         "colorClass": "bg-ball-7",
-        "label": "Visual Direction",
+        "label": "Art Direction",
         "tooltip": "I define visual direction that aligns spatial, motion, and identity systems for high-impact storytelling."
       },
       {
         "colorClass": "bg-ball-8",
-        "label": "Rapid Prototyping",
+        "label": "Prototyping",
         "tooltip": "I prototype rapidly to surface learnings, validate AI-driven ideas, and align distributed teams."
       }
     ]

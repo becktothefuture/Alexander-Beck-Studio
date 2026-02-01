@@ -142,16 +142,14 @@ function updateWallShadowCSS(g) {
   container.style.setProperty('--wall-stroke-opacity', strokeOpacity.toFixed(3));
   
   // Add a style tag if not exists to use the override
+  // Depth shadow goes on ::before (inner wall), edge lighting stays on ::after (outer wall)
   let styleTag = document.getElementById('wall-shadow-override-style');
   if (!styleTag) {
     styleTag = document.createElement('style');
     styleTag.id = 'wall-shadow-override-style';
     styleTag.textContent = `
-      #bravia-balls::after {
-        box-shadow: var(--wall-shadow-override) !important;
-      }
       #bravia-balls::before {
-        border-color: rgba(255,255,255, var(--wall-stroke-opacity, 0)) !important;
+        box-shadow: var(--wall-shadow-override) !important;
       }
     `;
     document.head.appendChild(styleTag);
@@ -1937,6 +1935,60 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--link-nudge', `${val}px`);
         }
       },
+      { type: 'divider', label: 'Hover Background Bounce', group: 'Motion' },
+      {
+        id: 'hoverBgBounceEnabled',
+        label: 'BG Bounce',
+        stateKey: 'hoverBgBounceEnabled',
+        type: 'checkbox',
+        default: true,
+        hint: 'Enable bouncy fade-in animation for hover pseudoelement backgrounds.',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-bg-bounce-enabled', val ? '1' : '0');
+        }
+      },
+      {
+        id: 'hoverBgBounceDuration',
+        label: 'BG Duration',
+        stateKey: 'hoverBgBounceDuration',
+        type: 'range',
+        min: 0, max: 1200, step: 10,
+        default: 450,
+        format: v => `${Math.round(v)}ms`,
+        parse: parseFloat,
+        hint: 'Total duration of the hover background bounce (ms).',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-bg-bounce-duration', `${Math.max(0, Math.round(val))}ms`);
+        }
+      },
+      {
+        id: 'hoverBgBounceOvershoot',
+        label: 'BG Overshoot',
+        stateKey: 'hoverBgBounceOvershoot',
+        type: 'range',
+        min: 1.0, max: 1.5, step: 0.005,
+        default: 1.12,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        hint: 'Peak scale during hover background bounce (>= 1.0).',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-bg-bounce-overshoot', String(val));
+        }
+      },
+      {
+        id: 'hoverBgBounceEndSize',
+        label: 'BG End Size',
+        stateKey: 'hoverBgBounceEndSize',
+        type: 'range',
+        min: 0.8, max: 1.2, step: 0.005,
+        default: 1.0,
+        format: v => v.toFixed(3),
+        parse: parseFloat,
+        hint: 'Final settled scale for hover background (typically 1.0).',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--abs-hover-bg-bounce-end-size', String(val));
+        }
+      },
       { type: 'divider', label: 'Hover Color', group: 'Color' },
       {
         id: 'linkHoverIntensityLight',
@@ -2893,12 +2945,12 @@ export const CONTROL_SECTIONS = {
         type: 'colorDistribution',
         // Labels are fixed; you assign which palette slot + weight each label gets.
         labels: [
-          'Product & Systems',
-          'Interaction & Motion',
-          'Creative Technology',
-          'AI-Driven Design',
-          'Experience Direction',
-          'Art & Visual Direction',
+          'Product Systems',
+          'Interaction Design',
+          'Creative Tech',
+          'AI Design',
+          'Design Direction',
+          'Art Direction',
           'Prototyping'
         ],
         hint: 'Assign each discipline to a palette color, then set weights that sum to 100%. Used for all ball spawns across modes.'
@@ -3546,6 +3598,287 @@ export const CONTROL_SECTIONS = {
         parse: v => v,
         group: 'Edge Lighting',
         hint: 'Light color'
+      },
+      
+    ]
+  },
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOUBLE WALL - Outer wall edge effects and cast shadow
+  // ═══════════════════════════════════════════════════════════════════════════
+  doubleWall: {
+    title: 'Double Wall',
+    icon: '🪟',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'outerWallEdgeEnabled',
+        label: 'Enabled',
+        stateKey: 'outerWallEdgeEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'Enable the outer wall edge effects (double-wall look)',
+        onChange: (_g, val) => {
+          const container = document.getElementById('bravia-balls');
+          if (container) {
+            container.classList.toggle('outer-wall-edge-disabled', !val);
+          }
+        }
+      },
+      {
+        id: 'outerWallRadiusAdjust',
+        label: 'Outer Radius Adjust',
+        stateKey: 'outerWallRadiusAdjust',
+        type: 'range',
+        min: -5, max: 10, step: 0.5,
+        default: 2,
+        format: v => `${v > 0 ? '+' : ''}${v}px`,
+        parse: parseFloat,
+        hint: 'Fine-tune outer wall corner roundness',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--outer-wall-radius-adjust', `${val}px`);
+        }
+      },
+      
+      // ─── TOP DARK EDGE ───
+      { type: 'divider', label: 'Top Dark Edge' },
+      {
+        id: 'outerWallTopDarkOpacityLight',
+        label: 'Opacity (Light)',
+        stateKey: 'outerWallTopDarkOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.02,
+        default: 0.6,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Top dark edge opacity in light mode',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--outer-wall-top-dark-opacity', String(val));
+          }
+        }
+      },
+      {
+        id: 'outerWallTopDarkOpacityDark',
+        label: 'Opacity (Dark)',
+        stateKey: 'outerWallTopDarkOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.02,
+        default: 0.4,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Top dark edge opacity in dark mode',
+        onChange: (_g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--outer-wall-top-dark-opacity', String(val));
+          }
+        }
+      },
+      {
+        id: 'outerWallTopDarkBlur',
+        label: 'Blur',
+        stateKey: 'outerWallTopDarkBlur',
+        type: 'range',
+        min: 0, max: 20, step: 1,
+        default: 3,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Blur radius (0 = crisp line)',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--outer-wall-top-dark-blur', `${val}px`);
+        }
+      },
+      
+      // ─── BOTTOM LIGHT EDGE ───
+      { type: 'divider', label: 'Bottom Light Edge' },
+      {
+        id: 'outerWallBottomLightOpacityLight',
+        label: 'Opacity (Light)',
+        stateKey: 'outerWallBottomLightOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.02,
+        default: 0.5,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Bottom light edge opacity in light mode',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--outer-wall-bottom-light-opacity', String(val));
+          }
+        }
+      },
+      {
+        id: 'outerWallBottomLightOpacityDark',
+        label: 'Opacity (Dark)',
+        stateKey: 'outerWallBottomLightOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.02,
+        default: 0.3,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Bottom light edge opacity in dark mode',
+        onChange: (_g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--outer-wall-bottom-light-opacity', String(val));
+          }
+        }
+      },
+      {
+        id: 'outerWallBottomLightBlur',
+        label: 'Blur',
+        stateKey: 'outerWallBottomLightBlur',
+        type: 'range',
+        min: 0, max: 20, step: 1,
+        default: 0,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Blur radius (0 = crisp line)',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--outer-wall-bottom-light-blur', `${val}px`);
+        }
+      },
+      
+      // ─── CAST SHADOW ───
+      { type: 'divider', label: 'Cast Shadow (onto wall surface)' },
+      {
+        id: 'outerWallCastShadowOpacityLight',
+        label: 'Opacity (Light)',
+        stateKey: 'outerWallCastShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.15,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Cast shadow opacity in light mode',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(val));
+          }
+        }
+      },
+      {
+        id: 'outerWallCastShadowOpacityDark',
+        label: 'Opacity (Dark)',
+        stateKey: 'outerWallCastShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.25,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Cast shadow opacity in dark mode',
+        onChange: (_g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(val));
+          }
+        }
+      },
+      {
+        id: 'outerWallCastShadowBlur',
+        label: 'Blur',
+        stateKey: 'outerWallCastShadowBlur',
+        type: 'range',
+        min: 0, max: 40, step: 1,
+        default: 12,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Softness of cast shadow',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--outer-wall-cast-shadow-blur', `${val}px`);
+        }
+      },
+      {
+        id: 'outerWallCastShadowOffset',
+        label: 'Offset',
+        stateKey: 'outerWallCastShadowOffset',
+        type: 'range',
+        min: 0, max: 10, step: 1,
+        default: 3,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Vertical offset of cast shadow',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--outer-wall-cast-shadow-offset', `${val}px`);
+        }
+      },
+      
+      // ─── INNER WALL OUTWARD SHADOW ───
+      { type: 'divider', label: 'Inner Wall Shadow (onto wall surface)' },
+      {
+        id: 'innerWallOutwardShadowOpacityLight',
+        label: 'Opacity (Light)',
+        stateKey: 'innerWallOutwardShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 0.6, step: 0.02,
+        default: 0.2,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shadow opacity cast onto wall surface in light mode',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
+          }
+        }
+      },
+      {
+        id: 'innerWallOutwardShadowOpacityDark',
+        label: 'Opacity (Dark)',
+        stateKey: 'innerWallOutwardShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 0.6, step: 0.02,
+        default: 0.35,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shadow opacity cast onto wall surface in dark mode',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(val));
+          if (document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
+          }
+        }
+      },
+      {
+        id: 'innerWallOutwardShadowBlur',
+        label: 'Blur',
+        stateKey: 'innerWallOutwardShadowBlur',
+        type: 'range',
+        min: 0, max: 30, step: 1,
+        default: 8,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Softness of shadow cast onto wall',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--inner-wall-outward-shadow-blur', `${val}px`);
+        }
+      },
+      {
+        id: 'innerWallOutwardShadowSpread',
+        label: 'Spread',
+        stateKey: 'innerWallOutwardShadowSpread',
+        type: 'range',
+        min: 0, max: 10, step: 1,
+        default: 2,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'How far the shadow extends',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--inner-wall-outward-shadow-spread', `${val}px`);
+        }
+      },
+      {
+        id: 'innerWallOutwardShadowOffset',
+        label: 'Offset',
+        stateKey: 'innerWallOutwardShadowOffset',
+        type: 'range',
+        min: -5, max: 10, step: 1,
+        default: 2,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Vertical offset of shadow',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--inner-wall-outward-shadow-offset', `${val}px`);
+        }
       },
     ]
   },

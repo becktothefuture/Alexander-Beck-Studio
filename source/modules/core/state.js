@@ -383,12 +383,12 @@ const state = {
   // Used by `pickRandomColor()` for ALL modes.
   // NOTE: 7 disciplines choose 7 distinct palette indices (0..7). One palette color may remain unused.
   colorDistribution: [
-    { label: 'Product & Systems', colorIndex: 0, weight: 30 },
-    { label: 'Interaction & Motion', colorIndex: 4, weight: 18 },
-    { label: 'Creative Technology', colorIndex: 3, weight: 15 },
-    { label: 'AI-Driven Design', colorIndex: 2, weight: 12 },
-    { label: 'Experience Direction', colorIndex: 5, weight: 10 },
-    { label: 'Art & Visual Direction', colorIndex: 6, weight: 10 },
+    { label: 'Product Systems', colorIndex: 0, weight: 30 },
+    { label: 'Interaction Design', colorIndex: 4, weight: 18 },
+    { label: 'Creative Tech', colorIndex: 3, weight: 15 },
+    { label: 'AI Design', colorIndex: 2, weight: 12 },
+    { label: 'Design Direction', colorIndex: 5, weight: 10 },
+    { label: 'Art Direction', colorIndex: 6, weight: 10 },
     { label: 'Prototyping', colorIndex: 7, weight: 5 }
   ],
   
@@ -694,6 +694,32 @@ const state = {
   wallGradientStrokeTopRadius: 1.0,          // Gradient radius (1.0 = canvas height)
   wallGradientStrokeTopOpacity: 0.5,         // Light opacity at center (0-1)
   wallGradientStrokeTopColor: '#ffffff',     // Light color
+  
+  // Outer Wall Edge Lighting (double-wall effect)
+  outerWallEdgeEnabled: true,               // Enable outer wall edge effects
+  outerWallRadiusAdjust: 2,                 // Outer wall radius fine-tune (px)
+  outerWallTopDarkOffset: 1,                // Top shadow Y offset (px)
+  outerWallTopDarkBlur: 3,                  // Top shadow blur (px)
+  outerWallTopDarkSpread: 0,                // Top shadow spread (px)
+  outerWallTopDarkOpacityLight: 0.6,        // Top shadow opacity light mode (0-1)
+  outerWallTopDarkOpacityDark: 0.4,         // Top shadow opacity dark mode (0-1)
+  outerWallBottomLightOffset: 0.5,          // Bottom light Y offset (px)
+  outerWallBottomLightBlur: 0,              // Bottom light blur (0 = crisp 1px line)
+  outerWallBottomLightSpread: 0,            // Bottom light spread (px)
+  outerWallBottomLightOpacityLight: 0.5,    // Bottom light opacity light mode (0-1)
+  outerWallBottomLightOpacityDark: 0.3,     // Bottom light opacity dark mode (0-1)
+  outerWallCastShadowOffset: 3,             // Cast shadow Y offset (px)
+  outerWallCastShadowBlur: 12,              // Cast shadow blur (px)
+  outerWallCastShadowSpread: 0,             // Cast shadow spread (px)
+  outerWallCastShadowOpacityLight: 0.15,    // Cast shadow opacity light mode (0-1)
+  outerWallCastShadowOpacityDark: 0.25,     // Cast shadow opacity dark mode (0-1)
+  
+  // Inner Wall Outward Shadow (cast onto wall surface)
+  innerWallOutwardShadowOffset: 2,          // Shadow Y offset (px)
+  innerWallOutwardShadowBlur: 8,            // Shadow blur (px)
+  innerWallOutwardShadowSpread: 2,          // Shadow spread (px)
+  innerWallOutwardShadowOpacityLight: 0.2,  // Light mode opacity (0-1)
+  innerWallOutwardShadowOpacityDark: 0.35,  // Dark mode opacity (0-1)
   
   // Gate overlay (blur backdrop for dialogs)
   modalOverlayEnabled: true,         // Enable/disable overlay
@@ -1059,6 +1085,43 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--hover-edge-top-radius', String(state.hoverEdgeTopRadius ?? 1.0));
   root.style.setProperty('--hover-edge-top-opacity', String(state.hoverEdgeTopOpacity ?? 0.3));
   root.style.setProperty('--hover-edge-top-color-mix', `${state.hoverEdgeTopColorMix ?? 50}%`);
+  
+  // Outer Wall Edge Lighting CSS variables (double-wall effect)
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  root.style.setProperty('--outer-wall-radius-adjust', `${state.outerWallRadiusAdjust ?? 2}px`);
+  root.style.setProperty('--outer-wall-top-dark-offset', `${state.outerWallTopDarkOffset ?? 1}px`);
+  root.style.setProperty('--outer-wall-top-dark-blur', `${state.outerWallTopDarkBlur ?? 3}px`);
+  root.style.setProperty('--outer-wall-top-dark-spread', `${state.outerWallTopDarkSpread ?? 0}px`);
+  root.style.setProperty('--outer-wall-top-dark-opacity', String(isDarkMode 
+    ? (state.outerWallTopDarkOpacityDark ?? 0.4) 
+    : (state.outerWallTopDarkOpacityLight ?? 0.6)));
+  root.style.setProperty('--outer-wall-bottom-light-offset', `${state.outerWallBottomLightOffset ?? 0.5}px`);
+  root.style.setProperty('--outer-wall-bottom-light-blur', `${state.outerWallBottomLightBlur ?? 0}px`);
+  root.style.setProperty('--outer-wall-bottom-light-spread', `${state.outerWallBottomLightSpread ?? 0}px`);
+  root.style.setProperty('--outer-wall-bottom-light-opacity', String(isDarkMode
+    ? (state.outerWallBottomLightOpacityDark ?? 0.3)
+    : (state.outerWallBottomLightOpacityLight ?? 0.5)));
+  root.style.setProperty('--outer-wall-cast-shadow-offset', `${state.outerWallCastShadowOffset ?? 3}px`);
+  root.style.setProperty('--outer-wall-cast-shadow-blur', `${state.outerWallCastShadowBlur ?? 12}px`);
+  root.style.setProperty('--outer-wall-cast-shadow-spread', `${state.outerWallCastShadowSpread ?? 0}px`);
+  root.style.setProperty('--outer-wall-cast-shadow-opacity', String(isDarkMode
+    ? (state.outerWallCastShadowOpacityDark ?? 0.25)
+    : (state.outerWallCastShadowOpacityLight ?? 0.15)));
+  
+  // Inner Wall Outward Shadow CSS variables
+  root.style.setProperty('--inner-wall-outward-shadow-offset', `${state.innerWallOutwardShadowOffset ?? 2}px`);
+  root.style.setProperty('--inner-wall-outward-shadow-blur', `${state.innerWallOutwardShadowBlur ?? 8}px`);
+  root.style.setProperty('--inner-wall-outward-shadow-spread', `${state.innerWallOutwardShadowSpread ?? 2}px`);
+  root.style.setProperty('--inner-wall-outward-shadow-opacity', String(isDarkMode
+    ? (state.innerWallOutwardShadowOpacityDark ?? 0.35)
+    : (state.innerWallOutwardShadowOpacityLight ?? 0.2)));
+  root.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(state.innerWallOutwardShadowOpacityDark ?? 0.35));
+  
+  // Apply outer wall edge enabled state to DOM
+  const container = document.getElementById('bravia-balls');
+  if (container) {
+    container.classList.toggle('outer-wall-edge-disabled', !state.outerWallEdgeEnabled);
+  }
 }
 
 export function initState(config) {

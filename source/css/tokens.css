@@ -153,6 +153,12 @@
   --abs-hover-snap-overshoot: 1.08;      /* Peak scale */
   --abs-hover-snap-undershoot: 0.98;     /* Small recoil before settling */
 
+  /* Hover Pseudoelement Background Bounce (fade + scale on ::before backgrounds) */
+  --abs-hover-bg-bounce-enabled: 1;      /* 1 = on, 0 = off */
+  --abs-hover-bg-bounce-duration: 450ms; /* Total bounce duration */
+  --abs-hover-bg-bounce-overshoot: 1.12; /* Peak scale (more pronounced than button scale) */
+  --abs-hover-bg-bounce-end-size: 1.0;   /* Final settled scale */
+
   /* Typography Aliases */
   --text-xs: var(--abs-text-xs);
   --text-sm: var(--abs-text-sm);
@@ -259,11 +265,11 @@
   --abs-noise-saturation: 1;
   --abs-noise-drift-x: 0px;
   --abs-noise-drift-y: 0px;
-  --abs-noise-edge-overlap: 5px; /* How far noise extends past inner wall edge */
+  --abs-noise-edge-overlap: 0px; /* How far noise extends past inner wall edge */
   --abs-noise-offset-y: 0px;     /* Vertical offset for noise layer (positive = down) */
 
   /* Grunge Video Overlay (see docs/grunge-video-overlay.md) */
-  --grunge-video-edge-overlap: 3px;                   /* How far video extends past inner wall edge */
+  --grunge-video-edge-overlap: 0px;                   /* How far video extends past inner wall edge */
   --grunge-video-offset-y: 0px;                       /* Vertical offset for video layer (positive = down) */
   --grunge-video-enabled: 1;                          /* 0 = off, 1 = on */
   --grunge-video-opacity: 0.8;                        /* Final opacity (0-1) */
@@ -344,6 +350,32 @@
   /* Light direction offset (positive = shadow falls toward bottom-right) */
   --wall-shadow-offset-x: 2px;                /* Horizontal offset */
   --wall-shadow-offset-y: 3px;                /* Vertical offset */
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+     OUTER WALL EDGE LIGHTING - Edge highlights on the outer wall boundary
+     Creates double-wall effect with consistent lighting direction
+     ═══════════════════════════════════════════════════════════════════════════════ */
+  
+  --outer-wall-radius-adjust: 2px;            /* Fine-tune outer wall corner roundness */
+  --outer-wall-top-dark-offset: 1px;          /* Top shadow Y offset */
+  --outer-wall-top-dark-blur: 4px;            /* Top shadow blur */
+  --outer-wall-top-dark-spread: 0px;          /* Top shadow spread */
+  --outer-wall-top-dark-opacity: 0.5;         /* Top shadow opacity */
+  --outer-wall-bottom-light-offset: 0.5px;    /* Bottom light Y offset */
+  --outer-wall-bottom-light-blur: 0px;        /* Bottom light blur (0 = crisp 1px line) */
+  --outer-wall-bottom-light-spread: 0px;      /* Bottom light spread */
+  --outer-wall-bottom-light-opacity: 0.8;     /* Bottom light opacity */
+  --outer-wall-cast-shadow-offset: 3px;       /* Cast shadow Y offset */
+  --outer-wall-cast-shadow-blur: 12px;        /* Cast shadow blur */
+  --outer-wall-cast-shadow-spread: 0px;       /* Cast shadow spread */
+  --outer-wall-cast-shadow-opacity: 0.15;     /* Cast shadow opacity */
+  
+  /* Inner wall outward shadow - cast onto wall surface and background */
+  --inner-wall-outward-shadow-offset: 2px;    /* Shadow Y offset */
+  --inner-wall-outward-shadow-blur: 8px;      /* Shadow blur */
+  --inner-wall-outward-shadow-spread: 2px;    /* Shadow spread */
+  --inner-wall-outward-shadow-opacity: 0.2;   /* Light mode opacity */
+  --inner-wall-outward-shadow-opacity-dark: 0.35; /* Dark mode opacity */
 
   /* Gate Defaults */
   --abs-gate-mobile-pad-x: 20px;

@@ -509,7 +509,8 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   /* 3-column grid on desktop - equal width columns */
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0; /* No gap - items fill their cells */
+  column-gap: var(--abs-gap-lg);
+  row-gap: 0; /* No gap - items fill their cells */
   padding: var(--gap-xs);
   /* Limit max width to keep legend compact */
   max-width: 620px; 
@@ -563,6 +564,47 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   UNIFIED HOVER BACKGROUND SYSTEM
+   All interactive elements use this base pattern for ::before pseudoelements
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Base hover background pattern - applies to all interactive ::before elements */
+.abs-icon-btn::before,
+.footer_link::before,
+.portfolio-cv-link::before,
+#header-cv-link::before,
+.abs-meta-btn::before,
+#site-year::before,
+.legend__item--interactive::before,
+.decorative-script::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: var(--hover-bg-z, -1);
+  border-radius: var(--hover-bg-radius, var(--ui-icon-corner-radius));
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.92);
+  transform-origin: center;
+  transition: background var(--hover-bg-duration, var(--duration-link-hover)) ease-out;
+}
+
+/* Specific element overrides using CSS custom properties */
+.abs-icon-btn::before {
+  --hover-bg-z: 0; /* Icon buttons need z-index: 0 instead of -1 */
+}
+
+.legend__item--interactive::before {
+  --hover-bg-radius: var(--legend-item-radius);
+}
+
+.decorative-script::before {
+  --hover-bg-radius: var(--abs-radius-card);
+  --hover-bg-duration: var(--duration-quick);
+}
+
 /* Interactive legend items (hover effects for tooltip display) */
 .legend__item--interactive {
   cursor: none; /* Maintain custom cursor experience */
@@ -580,26 +622,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   box-sizing: border-box;
 }
 
-.legend__item--interactive::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: var(--legend-item-radius);
-  background: transparent;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--duration-link-hover) var(--ease-organic);
-}
-
-.legend__item--interactive:hover::before {
-  opacity: 1;
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-light), transparent);
-}
-
-body.dark-mode .legend__item--interactive:hover::before {
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-dark), transparent);
-}
+/* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */
 
 .legend__item--interactive:hover {
   opacity: 1;
@@ -750,7 +773,7 @@ body.dark-mode .legend-tooltip-output {
   padding: var(--decorative-script-padding-vertical) var(--decorative-script-padding-left);
   margin: 0;
   pointer-events: auto;
-  /* Prepare for hover: transparent by default, rounded for reveal */
+  /* Rounded corners on element itself (not just hover background) */
   background: transparent;
   border-radius: var(--abs-radius-card);
   overflow: hidden; /* Contain pseudo-element */
@@ -759,25 +782,12 @@ body.dark-mode .legend-tooltip-output {
 
 /* Hover background pseudo-element for decorative-script */
 .decorative-script::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: var(--abs-radius-card);
-  background: transparent;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--duration-quick) var(--ease-organic);
+  /* Specific overrides for decorative script */
+  --hover-bg-radius: var(--abs-radius-card);
+  --hover-bg-duration: var(--duration-quick);
 }
 
-.decorative-script:hover::before {
-  opacity: 1;
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
-}
-
-body.dark-mode .decorative-script:hover::before {
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
-}
+/* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */
 
 /* Index page: reduce default text saturation/opacity (except logo) */
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item,
@@ -999,20 +1009,7 @@ p {
   overflow: hidden; /* Contain pseudo-element */
 }
 
-/* Hover background pseudo-element for text links (always present, opacity transitions) */
-.footer_link::before,
-.portfolio-cv-link::before,
-#header-cv-link::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: var(--ui-icon-corner-radius);
-  background: transparent;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--duration-link-hover) var(--ease-organic);
-}
+/* Hover background pseudo-element for text links (uses unified base below) */
 
 /* Ensure header CV link is dark on light backgrounds */
 body:not(.dark-mode) #header-cv-link {
@@ -1112,19 +1109,7 @@ button.abs-meta-btn,
   border-radius: var(--ui-icon-corner-radius);
 }
 
-/* Hover background pseudo-element (same pattern as .abs-icon-btn) */
-.abs-meta-btn::before,
-#site-year::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: var(--ui-icon-corner-radius);
-  background: transparent;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--duration-link-hover) var(--ease-organic);
-}
+/* Hover background pseudo-element (uses unified base below) */
 
 /* Meta button hover */
 .abs-meta-btn:hover,
@@ -1132,16 +1117,7 @@ button.abs-meta-btn,
   color: var(--cursor-hover-fg, var(--cursor-color));
 }
 
-.abs-meta-btn:hover::before,
-#site-year:hover::before {
-  opacity: 1;
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
-}
-
-body.dark-mode .abs-meta-btn:hover::before,
-body.dark-mode #site-year:hover::before {
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
-}
+/* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */
 
 /* Left: Socials */
 #social-links,
@@ -1183,22 +1159,15 @@ body.dark-mode #site-year:hover::before {
   aspect-ratio: 1 / 1;
   padding: 0;
 
-  /* No border-radius on button element - only hover background (::before) has rounded corners */
+  /* Unified button corner radius */
+  border-radius: var(--ui-icon-corner-radius);
   font-size: var(--ui-icon-glyph-size);
   line-height: 1;
 }
 
 .abs-icon-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  /* Hover background is the ONLY element with rounded corners */
-  border-radius: var(--ui-icon-corner-radius);
-  background: transparent;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--duration-link-hover) var(--ease-organic);
+  /* Icon buttons need z-index: 0 instead of -1 */
+  --hover-bg-z: 0;
 }
 
 .abs-icon-btn > i,
@@ -1672,25 +1641,83 @@ body.dark-mode #bravia-balls {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   WALL INNER SHADOW - Controlled via JS (control-registry.js updateWallShadowCSS)
+   DOUBLE WALL SYSTEM
+   
+   Creates a layered wall effect with proper edge lighting on both walls:
+   
+   OUTER WALL (::after at inset:0):
+   - Edge lighting: top dark, bottom light (CSS box-shadow)
+   - Radius: inner radius + wall thickness for consistent corner width
+   
+   INNER WALL (::before at inset:wall-thickness):
+   - Depth shadow: casts onto balls (JS-controlled via updateWallShadowCSS)
+   - Edge lighting: handled by canvas gradient strokes (wall-state.js)
+   
+   CANVAS:
+   - Draws the wall frame fill
+   - Draws gradient strokes on inner wall edge (the original edge lighting)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   OUTER WALL EDGE LIGHTING (::after)
+   Edge effects on the outer wall boundary - light from below, shadow from above
+   Also casts a soft inner shadow onto the wall surface below
+   ───────────────────────────────────────────────────────────────────────────── */
 #bravia-balls::after {
   content: '';
   position: absolute;
-  inset: var(--wall-thickness, 9px);
-  border-radius: var(--wall-radius);
+  inset: 0;
+  /* Outer wall radius = inner radius + partial wall thickness + configurable adjustment */
+  border-radius: calc(var(--wall-radius) + var(--wall-thickness, 9px) * 0.5 + var(--outer-wall-radius-adjust, 2px));
   pointer-events: none;
-  z-index: 30;
+  z-index: 35; /* Above inner wall (z:30) */
   
-  /* No default shadow - controlled by JS via --wall-shadow-override */
-  box-shadow: none;
+  /* Outer wall effects:
+     1. Edge lighting (top dark, bottom light)
+     2. Cast shadow onto wall surface below */
+  box-shadow:
+    /* Top dark edge - shadow from above */
+    inset 0 var(--outer-wall-top-dark-offset, 1px) var(--outer-wall-top-dark-blur, 4px) var(--outer-wall-top-dark-spread, 0px) rgba(0, 0, 0, var(--outer-wall-top-dark-opacity, 0.5)),
+    /* Bottom light edge - crisp 1 retina pixel line */
+    inset 0 calc(-1 * var(--outer-wall-bottom-light-offset, 0.5px)) var(--outer-wall-bottom-light-blur, 0px) var(--outer-wall-bottom-light-spread, 0px) rgba(255, 255, 255, var(--outer-wall-bottom-light-opacity, 0.8)),
+    /* Soft inner shadow cast onto wall surface - creates depth between outer and inner wall */
+    inset 0 var(--outer-wall-cast-shadow-offset, 3px) var(--outer-wall-cast-shadow-blur, 12px) var(--outer-wall-cast-shadow-spread, 0px) rgba(0, 0, 0, var(--outer-wall-cast-shadow-opacity, 0.15));
+  
   transition: box-shadow var(--duration-settle, 400ms) var(--ease-settle);
 }
 
-/* Dark mode shadow also controlled by JS */
-body.dark-mode #bravia-balls::after {
+/* Disable outer wall edge effects when explicitly turned off */
+#bravia-balls.outer-wall-edge-disabled::after {
   box-shadow: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   INNER WALL DEPTH SHADOW (::before)
+   Casts shadow both inward (onto balls) and outward (onto wall surface)
+   The outward shadow makes the inner area appear recessed
+   ───────────────────────────────────────────────────────────────────────────── */
+#bravia-balls::before {
+  content: '';
+  position: absolute;
+  /* Inner wall position - inset by wall thickness */
+  inset: var(--wall-thickness, 9px);
+  border-radius: var(--wall-radius);
+  pointer-events: none;
+  z-index: 30; /* Above canvas (z:10), below outer wall (z:35) */
+  
+  /* Inner wall casts shadow OUTWARD onto the wall surface
+     This creates the recessed/inset appearance */
+  box-shadow: 
+    /* Outward shadow - cast onto wall surface and background */
+    0 var(--inner-wall-outward-shadow-offset, 2px) var(--inner-wall-outward-shadow-blur, 8px) var(--inner-wall-outward-shadow-spread, 2px) rgba(0, 0, 0, var(--inner-wall-outward-shadow-opacity, 0.2));
+  
+  transition: box-shadow var(--duration-settle, 400ms) var(--ease-settle);
+}
+
+/* Dark mode - stronger outward shadow */
+body.dark-mode #bravia-balls::before {
+  box-shadow: 
+    0 var(--inner-wall-outward-shadow-offset, 2px) var(--inner-wall-outward-shadow-blur, 8px) var(--inner-wall-outward-shadow-spread, 2px) rgba(0, 0, 0, var(--inner-wall-outward-shadow-opacity-dark, 0.35));
 }
 
 #bravia-balls canvas {
@@ -2011,7 +2038,8 @@ body.video-fade-ready .grunge-video-overlay--dark {
 @media (max-width: 991px) { /* Tablet */
   .legend {
     grid-template-columns: repeat(3, 1fr); /* 3x3 layout, equal width columns */
-    gap: 0;
+    column-gap: var(--abs-gap-md);
+    row-gap: 0;
   }
 }
 
@@ -2020,7 +2048,8 @@ body.video-fade-ready .grunge-video-overlay--dark {
 @media (max-width: 820px) {
   .legend {
     grid-template-columns: repeat(2, 1fr);
-    gap: 0;
+    column-gap: var(--abs-gap-md);
+    row-gap: 0;
   }
 }
 
@@ -2106,7 +2135,8 @@ body.video-fade-ready .grunge-video-overlay--dark {
   .legend {
     max-width: 100%;
     grid-template-columns: 1fr; /* 1-column on mobile */
-    gap: 0;
+    column-gap: 0;
+    row-gap: 0;
   }
   
   /* Reduce vertical padding on legend items for tighter mobile spacing */
@@ -2295,6 +2325,22 @@ body.abs-link-hovering #custom-cursor {
   100% { transform: scale(1); }
 }
 
+/* Pseudoelement background bounce: fade in + scale bounce */
+@keyframes absHoverBgBounce {
+  0%   { 
+    opacity: 0; 
+    transform: scale(0.92); 
+  }
+  40%  { 
+    opacity: 1; 
+    transform: scale(var(--abs-hover-bg-bounce-overshoot, 1.12)); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: scale(var(--abs-hover-bg-bounce-end-size, 1.0)); 
+  }
+}
+
 /* INDEX MODE HOVER: Snap animation (native :hover) */
 /* Note: .legend__item--interactive excluded - hover must not affect size/position */
 a:hover,
@@ -2329,32 +2375,32 @@ button:hover {
   /* No border-radius - only ::before has rounded corners */
 }
 
-/* Icon button hover background (uses opacity transition like .abs-meta-btn) */
-.abs-icon-btn:hover::before {
-  opacity: 1;
+/* ─── Unified Hover Background Animation ─── */
+/* All interactive ::before elements get the same hover animation */
+.abs-icon-btn:hover::before,
+.footer_link:hover::before,
+.portfolio-cv-link:hover::before,
+#header-cv-link:hover::before,
+.abs-meta-btn:hover::before,
+#site-year:hover::before,
+.legend__item--interactive:hover::before,
+.decorative-script:hover::before {
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+  animation-name: absHoverBgBounce;
+  animation-duration: calc(var(--abs-hover-bg-bounce-enabled, 1) * var(--abs-hover-bg-bounce-duration, 450ms));
+  animation-timing-function: var(--ease-bounce);
+  animation-fill-mode: forwards;
 }
 
-body.dark-mode .abs-icon-btn:hover::before {
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
-}
-
-/* Tinted background on hover (::before) - for text links (opacity transition) */
-:is(
-  .footer_link,
-  .portfolio-cv-link,
-  #header-cv-link
-):hover::before {
-  opacity: 1;
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
-}
-
-/* Dark mode: adjust hover background intensity */
-body.dark-mode :is(
-  .footer_link,
-  .portfolio-cv-link,
-  #header-cv-link
-):hover::before {
+/* Dark mode: adjust hover background intensity for all elements */
+body.dark-mode .abs-icon-btn:hover::before,
+body.dark-mode .footer_link:hover::before,
+body.dark-mode .portfolio-cv-link:hover::before,
+body.dark-mode #header-cv-link:hover::before,
+body.dark-mode .abs-meta-btn:hover::before,
+body.dark-mode #site-year:hover::before,
+body.dark-mode .legend__item--interactive:hover::before,
+body.dark-mode .decorative-script:hover::before {
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
 }
 
@@ -2489,11 +2535,25 @@ body.dark-mode .decorative-script p a:hover {
 
 /* Pulse animation removed - no longer needed with native CSS hover */
 
-/* Reduce motion: disable hover snap animation */
+/* Reduce motion: disable hover snap animation and pseudoelement bounce */
 @media (prefers-reduced-motion: reduce) {
   a:hover,
   button:hover {
     animation: none;
+  }
+  
+  /* Disable pseudoelement bounce animations */
+  .abs-icon-btn:hover::before,
+  .footer_link:hover::before,
+  .portfolio-cv-link:hover::before,
+  #header-cv-link:hover::before,
+  .abs-meta-btn:hover::before,
+  #site-year:hover::before,
+  .legend__item--interactive:hover::before,
+  .decorative-script:hover::before {
+    animation: none;
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

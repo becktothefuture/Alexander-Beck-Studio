@@ -18,6 +18,39 @@ const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
 // Theme states: 'auto', 'light', 'dark'
 let currentTheme = 'auto'; // Default to auto (system + night heuristic)
 let systemPreference = 'light';
+
+/**
+ * Update outer wall CSS variables for dark/light mode
+ * @param {boolean} isDark - Whether dark mode is active
+ * @param {Object} globals - Global state object
+ */
+function updateOuterWallForTheme(isDark, globals) {
+  const root = document.documentElement;
+  
+  // Top dark edge opacity
+  const topDarkOpacity = isDark 
+    ? (globals.outerWallTopDarkOpacityDark ?? 0.4)
+    : (globals.outerWallTopDarkOpacityLight ?? 0.6);
+  root.style.setProperty('--outer-wall-top-dark-opacity', String(topDarkOpacity));
+  
+  // Bottom light edge opacity
+  const bottomLightOpacity = isDark
+    ? (globals.outerWallBottomLightOpacityDark ?? 0.3)
+    : (globals.outerWallBottomLightOpacityLight ?? 0.5);
+  root.style.setProperty('--outer-wall-bottom-light-opacity', String(bottomLightOpacity));
+  
+  // Cast shadow opacity
+  const castShadowOpacity = isDark
+    ? (globals.outerWallCastShadowOpacityDark ?? 0.25)
+    : (globals.outerWallCastShadowOpacityLight ?? 0.15);
+  root.style.setProperty('--outer-wall-cast-shadow-opacity', String(castShadowOpacity));
+  
+  // Inner wall outward shadow opacity
+  const innerOutwardOpacity = isDark
+    ? (globals.innerWallOutwardShadowOpacityDark ?? 0.35)
+    : (globals.innerWallOutwardShadowOpacityLight ?? 0.2);
+  root.style.setProperty('--inner-wall-outward-shadow-opacity', String(innerOutwardOpacity));
+}
 let isDarkModeInitialized = false;
 
 function readStoredThemePreference() {
@@ -222,6 +255,9 @@ function applyDarkModeToDOM(isDark) {
   
   // Refresh wall shadow for new theme (light/dark use different colors)
   updateWallShadowCSS(globals);
+  
+  // Update outer wall edge effects for new theme
+  updateOuterWallForTheme(isDark, globals);
   
   // Update UI
   updateSegmentControl();
