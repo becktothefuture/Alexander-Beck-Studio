@@ -123,24 +123,26 @@ function drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR) 
   };
   
   // ─────────────────────────────────────────────────────────────────────────────
-  // BOTTOM LIGHT GRADIENT
-  // Center: bottom-center (50%, 100%)
-  // Effect: Light shines upward from below, brightest at bottom edge
+  // BOTTOM LIGHT GRADIENT (now rendered at TOP for flipped inner wall)
+  // Center: top-center (50%, 0%)
+  // Effect: Light shines downward from above, brightest at top edge
   // ─────────────────────────────────────────────────────────────────────────────
   const bottomEnabled = g.wallGradientStrokeBottomEnabled ?? true;
   if (bottomEnabled) {
     const bottomCenterX = w * 0.5;
-    const bottomCenterY = h;  // Bottom edge
-    const bottomRadius = (g.wallGradientStrokeBottomRadius ?? 1.0) * h;
+    const bottomCenterY = 0;  // Top edge (flipped)
+    const bottomRadius = (g.wallGradientStrokeBottomRadius ?? 1.0) * h * 0.7;  // 70% size
     const bottomOpacity = g.wallGradientStrokeBottomOpacity ?? 1.0;
     const bottomColor = g.wallGradientStrokeBottomColor ?? '#ffffff';
     
-    // Radial gradient: white at center → transparent at radius
+    // Radial gradient: full opacity at 10%, half at 50%, transparent at 100%
     const bottomGradient = ctx.createRadialGradient(
       bottomCenterX, bottomCenterY, 0,
       bottomCenterX, bottomCenterY, bottomRadius
     );
     bottomGradient.addColorStop(0, hexToRGBA(bottomColor, bottomOpacity));
+    bottomGradient.addColorStop(0.1, hexToRGBA(bottomColor, bottomOpacity));
+    bottomGradient.addColorStop(0.5, hexToRGBA(bottomColor, bottomOpacity * 0.5));
     bottomGradient.addColorStop(1, hexToRGBA(bottomColor, 0));
     
     ctx.save();
@@ -154,24 +156,26 @@ function drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR) 
   }
   
   // ─────────────────────────────────────────────────────────────────────────────
-  // TOP LIGHT GRADIENT
-  // Center: top-center (50%, 0%)
-  // Effect: Ambient light from above, softer than bottom light
+  // TOP DARK GRADIENT (now rendered at BOTTOM for flipped inner wall)
+  // Center: bottom-center (50%, 100%)
+  // Effect: Shadow from below, darker at bottom edge
   // ─────────────────────────────────────────────────────────────────────────────
   const topEnabled = g.wallGradientStrokeTopEnabled ?? true;
   if (topEnabled) {
     const topCenterX = w * 0.5;
-    const topCenterY = 0;  // Top edge
-    const topRadius = (g.wallGradientStrokeTopRadius ?? 1.0) * h;
+    const topCenterY = h;  // Bottom edge (flipped)
+    const topRadius = (g.wallGradientStrokeTopRadius ?? 1.0) * h * 0.7;  // 70% size
     const topOpacity = g.wallGradientStrokeTopOpacity ?? 0.5;
     const topColor = g.wallGradientStrokeTopColor ?? '#ffffff';
     
-    // Radial gradient: white at center → transparent at radius
+    // Radial gradient: full opacity at 10%, half at 50%, transparent at 100%
     const topGradient = ctx.createRadialGradient(
       topCenterX, topCenterY, 0,
       topCenterX, topCenterY, topRadius
     );
     topGradient.addColorStop(0, hexToRGBA(topColor, topOpacity));
+    topGradient.addColorStop(0.1, hexToRGBA(topColor, topOpacity));
+    topGradient.addColorStop(0.5, hexToRGBA(topColor, topOpacity * 0.5));
     topGradient.addColorStop(1, hexToRGBA(topColor, 0));
     
     ctx.save();

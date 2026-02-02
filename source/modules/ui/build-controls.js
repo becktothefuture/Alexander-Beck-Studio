@@ -48,6 +48,8 @@ export function setupBuildControls() {
     config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;
     config.wallRadiusVw = g.wallRadiusVw;
     config.wallThicknessVw = g.wallThicknessVw;
+    config.wallThicknessMinPx = g.wallThicknessMinPx;
+    config.wallThicknessMaxPx = g.wallThicknessMaxPx;
     // Minimum clamp targets (px)
     config.layoutMinContentPaddingPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
     config.layoutMinWallRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));

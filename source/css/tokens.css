@@ -357,18 +357,24 @@
      ═══════════════════════════════════════════════════════════════════════════════ */
   
   --outer-wall-radius-adjust: 2px;            /* Fine-tune outer wall corner roundness */
+  --wall-edge-end-fade: 15%;                  /* How much edges fade at left/right (0-50%) */
   --outer-wall-top-dark-offset: 1px;          /* Top shadow Y offset */
   --outer-wall-top-dark-blur: 4px;            /* Top shadow blur */
   --outer-wall-top-dark-spread: 0px;          /* Top shadow spread */
   --outer-wall-top-dark-opacity: 0.5;         /* Top shadow opacity */
+  --outer-wall-top-dark-rgb: 0, 0, 0;         /* Top shadow RGB (editable via color picker) */
   --outer-wall-bottom-light-offset: 0.5px;    /* Bottom light Y offset */
   --outer-wall-bottom-light-blur: 0px;        /* Bottom light blur (0 = crisp 1px line) */
   --outer-wall-bottom-light-spread: 0px;      /* Bottom light spread */
   --outer-wall-bottom-light-opacity: 0.8;     /* Bottom light opacity */
+  --outer-wall-bottom-light-rgb: 255, 255, 255; /* Bottom light RGB (editable via color picker) */
+  --outer-wall-edge-width: 2px;               /* Height of outer wall gradient edges */
   --outer-wall-cast-shadow-offset: 3px;       /* Cast shadow Y offset */
   --outer-wall-cast-shadow-blur: 12px;        /* Cast shadow blur */
   --outer-wall-cast-shadow-spread: 0px;       /* Cast shadow spread */
   --outer-wall-cast-shadow-opacity: 0.15;     /* Cast shadow opacity */
+  --outer-wall-cast-shadow-rgb: 0, 0, 0;      /* Cast shadow RGB (editable via color picker) */
+  --outer-wall-top-bevel-rgb: 0, 0, 0;        /* Top bevel RGB (editable via color picker) */
   
   /* Inner wall outward shadow - cast onto wall surface and background */
   --inner-wall-outward-shadow-offset: 2px;    /* Shadow Y offset */
@@ -376,6 +382,30 @@
   --inner-wall-outward-shadow-spread: 2px;    /* Shadow spread */
   --inner-wall-outward-shadow-opacity: 0.2;   /* Light mode opacity */
   --inner-wall-outward-shadow-opacity-dark: 0.35; /* Dark mode opacity */
+  --inner-wall-outward-shadow-rgb: 0, 0, 0;   /* Shadow RGB (editable via color picker) */
+  
+  /* Inner wall outer glow (all-around shadow) */
+  --inner-wall-outer-shadow-blur: 12px;       /* Outer glow blur */
+  --inner-wall-outer-shadow-spread: 4px;      /* Outer glow spread */
+  --inner-wall-outer-shadow-opacity: 0.15;    /* Outer glow opacity light mode */
+  --inner-wall-outer-shadow-opacity-dark: 0.25; /* Outer glow opacity dark mode */
+  
+  /* Top bevel - thick visible lip at top edge of walls */
+  --outer-wall-top-bevel-width: 3px;          /* Outer wall bevel thickness */
+  --outer-wall-top-bevel-opacity: 0.25;       /* Outer wall bevel opacity (light mode) */
+  --outer-wall-top-bevel-opacity-dark: 0.35;  /* Outer wall bevel opacity (dark mode) */
+  
+  /* Inner wall gradient edge - radial gradient light/shadow edges */
+  --inner-wall-gradient-edge-width: 2px;      /* Thickness of gradient edge border */
+  --inner-wall-gradient-radius: 70;           /* Percentage of width for gradient spread */
+  --inner-wall-top-bevel-width: 2px;          /* Inner wall top light edge thickness */
+  --inner-wall-top-light-opacity: 0.3;        /* Inner wall top light edge opacity (light mode) */
+  --inner-wall-top-light-opacity-dark: 0.4;   /* Inner wall top light edge opacity (dark mode) */
+  --inner-wall-top-light-rgb: 255, 255, 255;  /* Inner wall top light color RGB */
+  --inner-wall-bottom-bevel-width: 2px;       /* Inner wall bottom shadow thickness */
+  --inner-wall-bottom-shadow-opacity: 0.18;   /* Inner wall bottom shadow opacity (light mode) */
+  --inner-wall-bottom-shadow-opacity-dark: 0.25; /* Inner wall bottom shadow opacity (dark mode) */
+  --inner-wall-bottom-shadow-rgb: 0, 0, 0;    /* Inner wall bottom shadow color RGB */
 
   /* Gate Defaults */
   --abs-gate-mobile-pad-x: 20px;

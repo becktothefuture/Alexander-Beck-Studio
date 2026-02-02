@@ -1641,84 +1641,222 @@ body.dark-mode #bravia-balls {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   DOUBLE WALL SYSTEM
+   DOUBLE WALL SYSTEM (Real DOM Elements)
    
-   Creates a layered wall effect with proper edge lighting on both walls:
+   Creates a layered wall effect with proper edge lighting on both walls.
+   Uses real DOM elements instead of pseudo-elements for better control and
+   clip-path support on gradient overlays.
    
-   OUTER WALL (::after at inset:0):
-   - Edge lighting: top dark, bottom light (CSS box-shadow)
-   - Radius: inner radius + wall thickness for consistent corner width
+   Structure:
+   #bravia-balls
+     ├── .outer-wall (inset:0, larger radius, INSET effect - appears recessed)
+     ├── .inner-wall (inset:wall-thickness, smaller radius, OUTSET effect - raised)
+     │   ├── .inner-wall__edge--top (gradient light from above, clipped to corners)
+     │   └── .inner-wall__edge--bottom (gradient shadow from below, clipped)
+     └── canvas
    
-   INNER WALL (::before at inset:wall-thickness):
-   - Depth shadow: casts onto balls (JS-controlled via updateWallShadowCSS)
-   - Edge lighting: handled by canvas gradient strokes (wall-state.js)
-   
-   CANVAS:
-   - Draws the wall frame fill
-   - Draws gradient strokes on inner wall edge (the original edge lighting)
+   The outer wall appears to sit BEHIND the inner wall, with a visible gap between.
+   Light comes from above: top edges are dark (shadow), bottom edges catch light.
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   OUTER WALL EDGE LIGHTING (::after)
-   Edge effects on the outer wall boundary - light from below, shadow from above
-   Also casts a soft inner shadow onto the wall surface below
+   OUTER WALL (Real DOM Element)
+   The recessed outer boundary - sits behind inner wall with visible gap
+   Light direction: top=shadow, bottom=light
    ───────────────────────────────────────────────────────────────────────────── */
-#bravia-balls::after {
-  content: '';
+.outer-wall {
   position: absolute;
   inset: 0;
-  /* Outer wall radius = inner radius + partial wall thickness + configurable adjustment */
+  /* Outer wall radius = inner radius + half wall thickness + adjustment */
   border-radius: calc(var(--wall-radius) + var(--wall-thickness, 9px) * 0.5 + var(--outer-wall-radius-adjust, 2px));
   pointer-events: none;
-  z-index: 35; /* Above inner wall (z:30) */
+  z-index: 25; /* Below inner wall (z:30) */
   
-  /* Outer wall effects:
-     1. Edge lighting (top dark, bottom light)
-     2. Cast shadow onto wall surface below */
+  /* Clip children (edge gradients) to the rounded corners */
+  overflow: hidden;
+  
+  /* Outer wall shadow - soft inner shadow onto wall surface for depth */
   box-shadow:
-    /* Top dark edge - shadow from above */
-    inset 0 var(--outer-wall-top-dark-offset, 1px) var(--outer-wall-top-dark-blur, 4px) var(--outer-wall-top-dark-spread, 0px) rgba(0, 0, 0, var(--outer-wall-top-dark-opacity, 0.5)),
-    /* Bottom light edge - crisp 1 retina pixel line */
-    inset 0 calc(-1 * var(--outer-wall-bottom-light-offset, 0.5px)) var(--outer-wall-bottom-light-blur, 0px) var(--outer-wall-bottom-light-spread, 0px) rgba(255, 255, 255, var(--outer-wall-bottom-light-opacity, 0.8)),
-    /* Soft inner shadow cast onto wall surface - creates depth between outer and inner wall */
-    inset 0 var(--outer-wall-cast-shadow-offset, 3px) var(--outer-wall-cast-shadow-blur, 12px) var(--outer-wall-cast-shadow-spread, 0px) rgba(0, 0, 0, var(--outer-wall-cast-shadow-opacity, 0.15));
+    inset 0 var(--outer-wall-cast-shadow-offset, 3px) var(--outer-wall-cast-shadow-blur, 12px) var(--outer-wall-cast-shadow-spread, 0px) rgba(var(--outer-wall-cast-shadow-rgb, 0, 0, 0), var(--outer-wall-cast-shadow-opacity, 0.15));
   
-  transition: box-shadow var(--duration-settle, 400ms) var(--ease-settle);
+  transition: 
+    box-shadow var(--duration-settle, 400ms) var(--ease-settle),
+    border-radius var(--duration-settle, 400ms) var(--ease-settle);
 }
 
-/* Disable outer wall edge effects when explicitly turned off */
-#bravia-balls.outer-wall-edge-disabled::after {
+/* Disable outer wall effects when explicitly turned off */
+#bravia-balls.outer-wall-edge-disabled .outer-wall {
   box-shadow: none;
 }
 
+#bravia-balls.outer-wall-edge-disabled .outer-wall__edge {
+  display: none;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
-   INNER WALL DEPTH SHADOW (::before)
-   Casts shadow both inward (onto balls) and outward (onto wall surface)
-   The outward shadow makes the inner area appear recessed
+   OUTER WALL EDGE GRADIENTS
+   Radial gradient lighting that properly clips to rounded corners.
+   Nested inside .outer-wall with overflow:hidden for automatic clipping.
    ───────────────────────────────────────────────────────────────────────────── */
-#bravia-balls::before {
-  content: '';
+.outer-wall__edge {
   position: absolute;
-  /* Inner wall position - inset by wall thickness */
+  /* Full width - mask handles end fade */
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  
+  /* Height set by JS, fallback here */
+  height: var(--outer-wall-edge-width, 3px);
+  
+  /* Fade to transparent at left/right extremities */
+  --edge-end-fade: var(--wall-edge-end-fade, 15%);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black var(--edge-end-fade),
+    black calc(100% - var(--edge-end-fade)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black var(--edge-end-fade),
+    black calc(100% - var(--edge-end-fade)),
+    transparent 100%
+  );
+  
+  /* Smooth transitions for theme changes */
+  transition: 
+    background var(--duration-settle, 400ms) var(--ease-settle),
+    opacity var(--duration-settle, 400ms) var(--ease-settle),
+    height var(--duration-settle, 400ms) var(--ease-settle);
+}
+
+/* Top edge - shadow from above (dark, creates recessed look) */
+.outer-wall__edge--top {
+  top: 0;
+  /* Gradient set by JS */
+}
+
+/* Bottom edge - light catching from above (bright at center, fades to corners) */
+.outer-wall__edge--bottom {
+  bottom: 0;
+  /* Gradient set by JS */
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   INNER WALL (Real DOM Element)
+   The raised inner boundary - appears to protrude outward from content area
+   Casts shadow OUTWARD onto the wall surface (gap area)
+   ───────────────────────────────────────────────────────────────────────────── */
+.inner-wall {
+  position: absolute;
+  /* Inset by wall thickness - creates the gap between outer and inner walls */
   inset: var(--wall-thickness, 9px);
   border-radius: var(--wall-radius);
   pointer-events: none;
-  z-index: 30; /* Above canvas (z:10), below outer wall (z:35) */
+  z-index: 30; /* Above outer wall (z:25), above canvas (z:10) */
   
-  /* Inner wall casts shadow OUTWARD onto the wall surface
-     This creates the recessed/inset appearance */
+  /* Clip children (edge gradients) to the rounded corners */
+  overflow: hidden;
+  
+  /* Inner wall shadow effects:
+     - Directional outward shadow (cast onto wall surface) */
   box-shadow: 
-    /* Outward shadow - cast onto wall surface and background */
-    0 var(--inner-wall-outward-shadow-offset, 2px) var(--inner-wall-outward-shadow-blur, 8px) var(--inner-wall-outward-shadow-spread, 2px) rgba(0, 0, 0, var(--inner-wall-outward-shadow-opacity, 0.2));
+    /* Directional shadow - cast onto wall surface */
+    0 var(--inner-wall-outward-shadow-offset, 2px) var(--inner-wall-outward-shadow-blur, 8px) var(--inner-wall-outward-shadow-spread, 2px) rgba(var(--inner-wall-outward-shadow-rgb, 0, 0, 0), var(--inner-wall-outward-shadow-opacity, 0.2));
   
-  transition: box-shadow var(--duration-settle, 400ms) var(--ease-settle);
+  transition: 
+    box-shadow var(--duration-settle, 400ms) var(--ease-settle),
+    border-radius var(--duration-settle, 400ms) var(--ease-settle),
+    inset var(--duration-settle, 400ms) var(--ease-settle);
 }
 
 /* Dark mode - stronger outward shadow */
-body.dark-mode #bravia-balls::before {
+body.dark-mode .inner-wall {
   box-shadow: 
-    0 var(--inner-wall-outward-shadow-offset, 2px) var(--inner-wall-outward-shadow-blur, 8px) var(--inner-wall-outward-shadow-spread, 2px) rgba(0, 0, 0, var(--inner-wall-outward-shadow-opacity-dark, 0.35));
+    0 var(--inner-wall-outward-shadow-offset, 2px) var(--inner-wall-outward-shadow-blur, 8px) var(--inner-wall-outward-shadow-spread, 2px) rgba(var(--inner-wall-outward-shadow-rgb, 0, 0, 0), var(--inner-wall-outward-shadow-opacity-dark, 0.35));
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   INNER WALL INNER GLOW
+   Soft top-down gradient for interior lighting effect.
+   ───────────────────────────────────────────────────────────────────────────── */
+.inner-wall__glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  /* Height and background set by JS */
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   INNER WALL EDGE GRADIENTS
+   Radial gradient lighting that properly clips to rounded corners.
+   Nested inside .inner-wall with overflow:hidden for automatic clipping.
+   ───────────────────────────────────────────────────────────────────────────── */
+.inner-wall__edge {
+  position: absolute;
+  /* Full width - mask handles end fade */
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  
+  /* Height set by JS, fallback here */
+  height: var(--inner-wall-gradient-edge-width, 2px);
+  
+  /* Fade to transparent at left/right extremities */
+  --edge-end-fade: var(--wall-edge-end-fade, 15%);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black var(--edge-end-fade),
+    black calc(100% - var(--edge-end-fade)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black var(--edge-end-fade),
+    black calc(100% - var(--edge-end-fade)),
+    transparent 100%
+  );
+  
+  /* Smooth transitions for theme changes */
+  transition: 
+    background var(--duration-settle, 400ms) var(--ease-settle),
+    opacity var(--duration-settle, 400ms) var(--ease-settle),
+    height var(--duration-settle, 400ms) var(--ease-settle);
+}
+
+/* Top edge - light from above, brightest at horizontal center */
+.inner-wall__edge--top {
+  top: 0;
+  /* Gradient set by JS */
+}
+
+/* Bottom edge - shadow from below, darkest at horizontal center */
+.inner-wall__edge--bottom {
+  bottom: 0;
+  /* Gradient set by JS */
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LEGACY PSEUDO-ELEMENT CLEANUP
+   Disable old pseudo-element wall system (replaced by real DOM elements)
+   ───────────────────────────────────────────────────────────────────────────── */
+#bravia-balls::before,
+#bravia-balls::after {
+  display: none;
+}
+
+/* Legacy class cleanup - old gradient edge elements */
+.inner-wall-gradient-edge {
+  display: none;
+}
+
+
 
 #bravia-balls canvas {
   position: absolute;

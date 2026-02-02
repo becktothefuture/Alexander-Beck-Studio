@@ -11,6 +11,7 @@ import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
 import { invalidateDepthWashCache } from './depth-wash.js';
 import { updateWallShadowCSS } from '../ui/control-registry.js';
+import { updateWallElements } from './wall-elements.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
 const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
@@ -50,6 +51,28 @@ function updateOuterWallForTheme(isDark, globals) {
     ? (globals.innerWallOutwardShadowOpacityDark ?? 0.35)
     : (globals.innerWallOutwardShadowOpacityLight ?? 0.2);
   root.style.setProperty('--inner-wall-outward-shadow-opacity', String(innerOutwardOpacity));
+  
+  // Inner wall inner glow opacity
+  const innerGlowOpacity = isDark
+    ? (globals.innerWallInnerGlowOpacityDark ?? 0.08)
+    : (globals.innerWallInnerGlowOpacityLight ?? 0);
+  root.style.setProperty('--inner-wall-inner-glow-opacity', String(innerGlowOpacity));
+  
+  // Top bevel opacities
+  const outerBevelOpacity = isDark
+    ? (globals.outerWallTopBevelOpacityDark ?? 0.35)
+    : (globals.outerWallTopBevelOpacityLight ?? 0.25);
+  root.style.setProperty('--outer-wall-top-bevel-opacity', String(outerBevelOpacity));
+  
+  const innerBevelOpacity = isDark
+    ? (globals.innerWallTopBevelOpacityDark ?? 0.25)
+    : (globals.innerWallTopBevelOpacityLight ?? 0.18);
+  root.style.setProperty('--inner-wall-top-bevel-opacity', String(innerBevelOpacity));
+  
+  const innerLightOpacity = isDark
+    ? (globals.innerWallTopLightOpacityDark ?? 0.4)
+    : (globals.innerWallTopLightOpacityLight ?? 0.3);
+  root.style.setProperty('--inner-wall-top-light-opacity', String(innerLightOpacity));
 }
 let isDarkModeInitialized = false;
 
@@ -258,6 +281,9 @@ function applyDarkModeToDOM(isDark) {
   
   // Update outer wall edge effects for new theme
   updateOuterWallForTheme(isDark, globals);
+  
+  // Update wall elements (outer wall + inner wall + edge gradients) for new theme
+  updateWallElements();
   
   // Update UI
   updateSegmentControl();

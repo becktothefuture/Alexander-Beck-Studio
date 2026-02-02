@@ -31,6 +31,9 @@ import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 // Note: Legend interactivity is now inlined in main.js for reliability
 import { initLegendFilterSystem } from './modules/ui/legend-filter.js';
 import { initLinkCursorHop } from './modules/ui/link-cursor-hop.js';
+import { initWallElements, updateWallElements } from './modules/visual/wall-elements.js';
+// Legacy import kept for backward compatibility with control-registry
+import { initInnerWallGradientEdge, updateGradientEdge } from './modules/visual/inner-wall-gradient-edge.js';
 // Layout controls now integrated into master panel
 import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
 import { initSceneChangeSFX } from './modules/ui/scene-change-sfx.js';
@@ -627,6 +630,10 @@ window.addEventListener('unhandledrejection', (event) => {
     setupCustomCursor();
     mark('bb:input');
     log('✓ Custom cursor initialized');
+    
+    // Initialize wall elements (real DOM elements for outer/inner walls)
+    initWallElements();
+    log('✓ Wall elements initialized (outer-wall, inner-wall)');
 
     // Link hover: hide cursor + trail; let hover dot “become” the cursor.
     initLinkCursorHop();

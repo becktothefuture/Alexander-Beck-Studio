@@ -6,6 +6,20 @@
 import { CONSTANTS, MODES, WALL_PRESETS } from './constants.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
 
+// Helper: Convert hex color to "r, g, b" string for CSS rgba()
+function hexToRgbString(hex) {
+  if (!hex) return '255, 255, 255';
+  hex = hex.replace(/^#/, '');
+  if (hex.length === 3) {
+    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+  const num = parseInt(hex, 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `${r}, ${g}, ${b}`;
+}
+
 // ════════════════════════════════════════════════════════════════════════════════
 // PERFORMANCE: Dynamic DPR getter - allows runtime adaptation
 // The renderer can reduce DPR on weak devices for better performance
@@ -301,6 +315,8 @@ const state = {
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
   wallThicknessVw: 0,       // wall tube thickness (vw)
   wallThicknessAreaMultiplier: 1.0,  // multiplier for area-based wall thickness scaling (1.0 = no area scaling)
+  wallThicknessMinPx: 6,    // minimum wall thickness clamp (px) for small viewports
+  wallThicknessMaxPx: 25,   // maximum wall thickness clamp (px) for large viewports
 
   // Procedural noise (no GIF): texture + cinematic controls
   noiseEnabled: true,
@@ -721,6 +737,17 @@ const state = {
   innerWallOutwardShadowOpacityLight: 0.2,  // Light mode opacity (0-1)
   innerWallOutwardShadowOpacityDark: 0.35,  // Dark mode opacity (0-1)
   
+  // Top Bevel (thick lip at top edge of walls)
+  outerWallTopBevelWidth: 3,                // Outer wall bevel thickness (px)
+  outerWallTopBevelOpacityLight: 0.25,      // Outer wall bevel opacity light mode (0-1)
+  outerWallTopBevelOpacityDark: 0.35,       // Outer wall bevel opacity dark mode (0-1)
+  innerWallTopBevelWidth: 2,                // Inner wall top light edge thickness (px)
+  innerWallTopLightOpacityLight: 0.3,       // Inner wall top light opacity light mode (0-1)
+  innerWallTopLightOpacityDark: 0.4,        // Inner wall top light opacity dark mode (0-1)
+  innerWallBottomBevelWidth: 2,             // Inner wall bottom shadow thickness (px)
+  innerWallTopBevelOpacityLight: 0.18,      // Inner wall bottom shadow opacity light mode (0-1)
+  innerWallTopBevelOpacityDark: 0.25,       // Inner wall bottom shadow opacity dark mode (0-1)
+  
   // Gate overlay (blur backdrop for dialogs)
   modalOverlayEnabled: true,         // Enable/disable overlay
   modalOverlayOpacity: 0.01,          // White wash opacity (0-1)
@@ -935,7 +962,12 @@ export function applyLayoutFromVwToPx() {
   
   // Wall thickness: area-scaled base × axis-specific factor (desktop = Y, mobile = X)
   const thicknessMul = isMobileLayout ? mobileWallXFactor : desktopWallFactor;
-  state.wallThickness = Math.round(areaScaledThicknessPx * thicknessMul);
+  const unclampedWallThickness = areaScaledThicknessPx * thicknessMul;
+  // Apply min/max clamps for wall thickness
+  const minThickness = Number.isFinite(state.wallThicknessMinPx) ? state.wallThicknessMinPx : 0;
+  const maxThickness = Number.isFinite(state.wallThicknessMaxPx) && state.wallThicknessMaxPx > 0 
+    ? state.wallThicknessMaxPx : Infinity;
+  state.wallThickness = Math.round(Math.max(minThickness, Math.min(maxThickness, unclampedWallThickness)));
   
   // Content padding: additive to wall thickness (viewport-size fraction)
   const viewportSizePx = Math.max(1, Math.sqrt(w * h));
@@ -1116,6 +1148,33 @@ export function applyLayoutCSSVars() {
     ? (state.innerWallOutwardShadowOpacityDark ?? 0.35)
     : (state.innerWallOutwardShadowOpacityLight ?? 0.2)));
   root.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(state.innerWallOutwardShadowOpacityDark ?? 0.35));
+  
+  // Inner Wall Inner Glow CSS variables
+  root.style.setProperty('--inner-wall-inner-glow-blur', `${state.innerWallInnerGlowBlur ?? 25}px`);
+  root.style.setProperty('--inner-wall-inner-glow-spread', `${state.innerWallInnerGlowSpread ?? 3}px`);
+  root.style.setProperty('--inner-wall-inner-glow-offset-y', `${state.innerWallInnerGlowOffsetY ?? 12}px`);
+  root.style.setProperty('--inner-wall-inner-glow-opacity', String(isDarkMode
+    ? (state.innerWallInnerGlowOpacityDark ?? 0.08)
+    : (state.innerWallInnerGlowOpacityLight ?? 0)));
+  root.style.setProperty('--inner-wall-inner-glow-opacity-dark', String(state.innerWallInnerGlowOpacityDark ?? 0.08));
+  if (state.innerWallInnerGlowColor) {
+    const rgb = hexToRgbString(state.innerWallInnerGlowColor);
+    root.style.setProperty('--inner-wall-inner-glow-rgb', rgb);
+  }
+  
+  // Top Bevel CSS variables (thick lip at top edge)
+  root.style.setProperty('--outer-wall-top-bevel-width', `${state.outerWallTopBevelWidth ?? 3}px`);
+  root.style.setProperty('--outer-wall-top-bevel-opacity', String(isDarkMode
+    ? (state.outerWallTopBevelOpacityDark ?? 0.35)
+    : (state.outerWallTopBevelOpacityLight ?? 0.25)));
+  root.style.setProperty('--inner-wall-top-bevel-width', `${state.innerWallTopBevelWidth ?? 2}px`);
+  root.style.setProperty('--inner-wall-top-light-opacity', String(isDarkMode
+    ? (state.innerWallTopLightOpacityDark ?? 0.4)
+    : (state.innerWallTopLightOpacityLight ?? 0.3)));
+  root.style.setProperty('--inner-wall-bottom-bevel-width', `${state.innerWallBottomBevelWidth ?? 2}px`);
+  root.style.setProperty('--inner-wall-top-bevel-opacity', String(isDarkMode
+    ? (state.innerWallTopBevelOpacityDark ?? 0.25)
+    : (state.innerWallTopBevelOpacityLight ?? 0.18)));
   
   // Apply outer wall edge enabled state to DOM
   const container = document.getElementById('bravia-balls');
@@ -1770,6 +1829,40 @@ export function initState(config) {
   if (config.grungeVideoOpacity !== undefined) state.grungeVideoOpacity = config.grungeVideoOpacity;
   if (config.grungeVideoBlendMode !== undefined) state.grungeVideoBlendMode = config.grungeVideoBlendMode;
   
+  // Outer wall settings (edge lighting, shadows)
+  if (config.outerWallEdgeEnabled !== undefined) state.outerWallEdgeEnabled = config.outerWallEdgeEnabled;
+  if (config.outerWallEdgeWidth !== undefined) state.outerWallEdgeWidth = config.outerWallEdgeWidth;
+  if (config.outerWallGradientRadius !== undefined) state.outerWallGradientRadius = config.outerWallGradientRadius;
+  if (config.outerWallTopDarkOpacityLight !== undefined) state.outerWallTopDarkOpacityLight = config.outerWallTopDarkOpacityLight;
+  if (config.outerWallTopDarkOpacityDark !== undefined) state.outerWallTopDarkOpacityDark = config.outerWallTopDarkOpacityDark;
+  if (config.outerWallBottomLightOpacityLight !== undefined) state.outerWallBottomLightOpacityLight = config.outerWallBottomLightOpacityLight;
+  if (config.outerWallBottomLightOpacityDark !== undefined) state.outerWallBottomLightOpacityDark = config.outerWallBottomLightOpacityDark;
+  if (config.outerWallCastShadowOpacityLight !== undefined) state.outerWallCastShadowOpacityLight = config.outerWallCastShadowOpacityLight;
+  if (config.outerWallCastShadowOpacityDark !== undefined) state.outerWallCastShadowOpacityDark = config.outerWallCastShadowOpacityDark;
+  if (config.outerWallCastShadowBlur !== undefined) state.outerWallCastShadowBlur = config.outerWallCastShadowBlur;
+  if (config.outerWallCastShadowOffset !== undefined) state.outerWallCastShadowOffset = config.outerWallCastShadowOffset;
+  if (config.outerWallRadiusAdjust !== undefined) state.outerWallRadiusAdjust = config.outerWallRadiusAdjust;
+  
+  // Inner wall settings (edge lighting, shadows, glow)
+  if (config.innerWallTopBevelWidth !== undefined) state.innerWallTopBevelWidth = config.innerWallTopBevelWidth;
+  if (config.innerWallGradientRadius !== undefined) state.innerWallGradientRadius = config.innerWallGradientRadius;
+  if (config.innerWallTopLightOpacityLight !== undefined) state.innerWallTopLightOpacityLight = config.innerWallTopLightOpacityLight;
+  if (config.innerWallTopLightOpacityDark !== undefined) state.innerWallTopLightOpacityDark = config.innerWallTopLightOpacityDark;
+  if (config.innerWallTopBevelOpacityLight !== undefined) state.innerWallTopBevelOpacityLight = config.innerWallTopBevelOpacityLight;
+  if (config.innerWallTopBevelOpacityDark !== undefined) state.innerWallTopBevelOpacityDark = config.innerWallTopBevelOpacityDark;
+  if (config.innerWallOutwardShadowOpacityLight !== undefined) state.innerWallOutwardShadowOpacityLight = config.innerWallOutwardShadowOpacityLight;
+  if (config.innerWallOutwardShadowOpacityDark !== undefined) state.innerWallOutwardShadowOpacityDark = config.innerWallOutwardShadowOpacityDark;
+  if (config.innerWallOutwardShadowBlur !== undefined) state.innerWallOutwardShadowBlur = config.innerWallOutwardShadowBlur;
+  if (config.innerWallOutwardShadowOffset !== undefined) state.innerWallOutwardShadowOffset = config.innerWallOutwardShadowOffset;
+  if (config.innerWallOutwardShadowSpread !== undefined) state.innerWallOutwardShadowSpread = config.innerWallOutwardShadowSpread;
+  // Inner glow (inset white glow)
+  if (config.innerWallInnerGlowOpacityLight !== undefined) state.innerWallInnerGlowOpacityLight = config.innerWallInnerGlowOpacityLight;
+  if (config.innerWallInnerGlowOpacityDark !== undefined) state.innerWallInnerGlowOpacityDark = config.innerWallInnerGlowOpacityDark;
+  if (config.innerWallInnerGlowBlur !== undefined) state.innerWallInnerGlowBlur = config.innerWallInnerGlowBlur;
+  if (config.innerWallInnerGlowSpread !== undefined) state.innerWallInnerGlowSpread = config.innerWallInnerGlowSpread;
+  if (config.innerWallInnerGlowOffsetY !== undefined) state.innerWallInnerGlowOffsetY = config.innerWallInnerGlowOffsetY;
+  if (config.innerWallInnerGlowColor !== undefined) state.innerWallInnerGlowColor = config.innerWallInnerGlowColor;
+  
   // Ball sizes are recalculated in detectResponsiveScale (called above)
   // which applies both sizeScale and responsiveScale
 
@@ -1801,6 +1894,8 @@ export function initState(config) {
   if (config.wallRadiusVw !== undefined) state.wallRadiusVw = clampNumber(config.wallRadiusVw, 0, 40, state.wallRadiusVw);
   if (config.wallThicknessVw !== undefined) state.wallThicknessVw = clampNumber(config.wallThicknessVw, 0, 20, state.wallThicknessVw);
   if (config.wallThicknessAreaMultiplier !== undefined) state.wallThicknessAreaMultiplier = clampNumber(config.wallThicknessAreaMultiplier, 0, 10, state.wallThicknessAreaMultiplier);
+  if (config.wallThicknessMinPx !== undefined) state.wallThicknessMinPx = clampNumber(config.wallThicknessMinPx, 0, 200, state.wallThicknessMinPx);
+  if (config.wallThicknessMaxPx !== undefined) state.wallThicknessMaxPx = clampNumber(config.wallThicknessMaxPx, 0, 200, state.wallThicknessMaxPx);
 
   if (!(Number.isFinite(state.containerBorderVw) && state.containerBorderVw > 0)) {
     const tokenBorderVw = readTokenNumber('--container-border-vw', null);
