@@ -190,7 +190,9 @@ function updateEdgeGradients(g, isDark, wallRadius, outerRadius) {
     
     const innerTopColor = g.innerWallTopLightColor ?? '#ffffff';
     const innerBottomColor = g.innerWallBottomShadowColor ?? '#000000';
-    const innerEdgeWidth = g.innerWallTopBevelWidth ?? 2;
+    const innerShadowWidth = g.innerWallTopBevelWidth ?? 2;
+    // Light stroke width is independent from the shadow strip width.
+    const innerLightStrokeWidth = g.innerWallTopLightStrokeWidth ?? 0.6;
     
     const innerTopRgb = hexToRgb(innerTopColor);
     const innerBottomRgb = hexToRgb(innerBottomColor);
@@ -200,7 +202,7 @@ function updateEdgeGradients(g, isDark, wallRadius, outerRadius) {
       innerLightStroke,
       innerWall,
       wallRadius,
-      innerEdgeWidth,
+      innerLightStrokeWidth,
       innerTopRgb,
       innerTopOpacity,
       'top',
@@ -228,7 +230,7 @@ function updateEdgeGradients(g, isDark, wallRadius, outerRadius) {
         rgba(${innerBottomRgb.r}, ${innerBottomRgb.g}, ${innerBottomRgb.b}, 0) 100%
       )`;
       bottomEdge.style.background = innerBottomGradient;
-      bottomEdge.style.height = `${innerEdgeWidth}px`;
+      bottomEdge.style.height = `${innerShadowWidth}px`;
     }
   }
   
@@ -253,6 +255,8 @@ function updateEdgeGradients(g, isDark, wallRadius, outerRadius) {
     const outerBottomColor = g.outerWallBottomLightColor ?? '#ffffff';
     
     const outerEdgeWidth = g.outerWallEdgeWidth ?? 2;
+    // Light stroke width is independent from the shadow strip width.
+    const outerLightStrokeWidth = g.outerWallBottomLightStrokeWidth ?? 0.6;
     
     const outerTopRgb = hexToRgb(outerTopColor);
     const outerBottomRgb = hexToRgb(outerBottomColor);
@@ -281,7 +285,7 @@ function updateEdgeGradients(g, isDark, wallRadius, outerRadius) {
         outerLightStroke,
         outerWall,
         outerRadius,
-        outerEdgeWidth,
+        outerLightStrokeWidth,
         outerBottomRgb,
         outerBottomOpacity,
         'bottom',
@@ -351,7 +355,7 @@ function updateLightStrokeEdge(stroke, hostEl, radiusPx, edgeWidth, rgb, opacity
     return;
   }
   
-  const strokeWidth = getLightStrokeWidth(edgeWidth);
+  const strokeWidth = clamp(Number(edgeWidth) || 0, 0.1, 12);
   const width = rect.width;
   const height = rect.height;
   const half = strokeWidth * 0.5;
@@ -383,11 +387,6 @@ function updateLightStrokeEdge(stroke, hostEl, radiusPx, edgeWidth, rgb, opacity
   stroke.gradient.setAttribute('x2', '0');
   stroke.gradient.setAttribute('y1', direction === 'bottom' ? '1' : '0');
   stroke.gradient.setAttribute('y2', direction === 'bottom' ? '0' : '1');
-}
-
-function getLightStrokeWidth(edgeWidth) {
-  const base = Number.isFinite(edgeWidth) ? edgeWidth : 0;
-  return Math.max(base * 2, base + 2);
 }
 
 function getLightFalloffPercent(gradientRadius) {

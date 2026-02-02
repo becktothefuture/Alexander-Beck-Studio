@@ -3268,9 +3268,23 @@ export const CONTROL_SECTIONS = {
         default: 3,
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
-        hint: 'Thickness of edge gradient strips',
+        hint: 'Thickness of shadow edge strip (top)',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--outer-wall-edge-width', `${val}px`);
+          getUpdateGradientEdge().then(fn => fn?.());
+        }
+      },
+      {
+        id: 'outerWallBottomLightStrokeWidth',
+        label: 'Light Stroke Width',
+        stateKey: 'outerWallBottomLightStrokeWidth',
+        type: 'range',
+        min: 0.1, max: 4, step: 0.1,
+        default: 0.6,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Thickness of the bottom light stroke',
+        onChange: (_g, _val) => {
           getUpdateGradientEdge().then(fn => fn?.());
         }
       },
@@ -3485,9 +3499,23 @@ export const CONTROL_SECTIONS = {
         default: 2,
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
-        hint: 'Thickness of edge gradient strips',
+        hint: 'Thickness of bottom shadow strip',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-width', `${val}px`);
+          getUpdateGradientEdge().then(fn => fn?.());
+        }
+      },
+      {
+        id: 'innerWallTopLightStrokeWidth',
+        label: 'Light Stroke Width',
+        stateKey: 'innerWallTopLightStrokeWidth',
+        type: 'range',
+        min: 0.1, max: 4, step: 0.1,
+        default: 0.6,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Thickness of the top light stroke',
+        onChange: (_g, _val) => {
           getUpdateGradientEdge().then(fn => fn?.());
         }
       },

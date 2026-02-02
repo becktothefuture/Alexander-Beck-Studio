@@ -6,6 +6,7 @@
 
 import { CONSTANTS } from '../core/constants.js';
 import { getGlobals, setEffectiveDPR, applyLayoutFromVwToPx, applyLayoutCSSVars, detectResponsiveScale } from '../core/state.js';
+import { updateWallElements } from '../visual/wall-elements.js';
 import { applyCanvasShadow } from './effects.js';
 
 let canvas, ctx;
@@ -244,6 +245,9 @@ export function resize() {
 
   // Keep "mobile scaling" responsive to viewport width (safe: early-outs unless breakpoint changes).
   try { detectResponsiveScale(); } catch (e) {}
+  
+  // Keep wall strokes aligned with size changes (safe: early-out until initialized).
+  try { updateWallElements(); } catch (e) {}
   
   // Use container dimensions if available, fallback to window for safety
   const container = globals.container || document.getElementById('bravia-balls');

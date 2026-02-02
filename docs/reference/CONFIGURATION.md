@@ -743,14 +743,16 @@ The light edges are rendered as **SVG stroke gradients** that follow the wall pa
 - `innerWallTopLightOpacityLight`
 - `innerWallTopLightOpacityDark`
 - `innerWallTopLightColor`
-- `innerWallTopBevelWidth` (base width; stroke width expands from this)
+- `innerWallTopLightStrokeWidth` (px)
+- `innerWallTopBevelWidth` (bottom shadow strip width, px)
 - `innerWallGradientRadius` (controls light falloff depth)
 
 **Outer wall bottom light**
 - `outerWallBottomLightOpacityLight`
 - `outerWallBottomLightOpacityDark`
 - `outerWallBottomLightColor`
-- `outerWallEdgeWidth` (base width; stroke width expands from this)
+- `outerWallBottomLightStrokeWidth` (px)
+- `outerWallEdgeWidth` (top shadow strip width, px)
 - `outerWallGradientRadius` (controls light falloff depth)
 
 ### Legacy compatibility (px keys)

@@ -724,6 +724,7 @@ const state = {
   outerWallBottomLightSpread: 0,            // Bottom light spread (px)
   outerWallBottomLightOpacityLight: 0.5,    // Bottom light opacity light mode (0-1)
   outerWallBottomLightOpacityDark: 0.3,     // Bottom light opacity dark mode (0-1)
+  outerWallBottomLightStrokeWidth: 0.6,     // Bottom light stroke width (px)
   outerWallCastShadowOffset: 3,             // Cast shadow Y offset (px)
   outerWallCastShadowBlur: 12,              // Cast shadow blur (px)
   outerWallCastShadowSpread: 0,             // Cast shadow spread (px)
@@ -744,6 +745,7 @@ const state = {
   innerWallTopBevelWidth: 2,                // Inner wall top light edge thickness (px)
   innerWallTopLightOpacityLight: 0.3,       // Inner wall top light opacity light mode (0-1)
   innerWallTopLightOpacityDark: 0.4,        // Inner wall top light opacity dark mode (0-1)
+  innerWallTopLightStrokeWidth: 0.6,        // Inner wall top light stroke width (px)
   innerWallBottomBevelWidth: 2,             // Inner wall bottom shadow thickness (px)
   innerWallTopBevelOpacityLight: 0.18,      // Inner wall bottom shadow opacity light mode (0-1)
   innerWallTopBevelOpacityDark: 0.25,       // Inner wall bottom shadow opacity dark mode (0-1)
@@ -1837,6 +1839,7 @@ export function initState(config) {
   if (config.outerWallTopDarkOpacityDark !== undefined) state.outerWallTopDarkOpacityDark = config.outerWallTopDarkOpacityDark;
   if (config.outerWallBottomLightOpacityLight !== undefined) state.outerWallBottomLightOpacityLight = config.outerWallBottomLightOpacityLight;
   if (config.outerWallBottomLightOpacityDark !== undefined) state.outerWallBottomLightOpacityDark = config.outerWallBottomLightOpacityDark;
+  if (config.outerWallBottomLightStrokeWidth !== undefined) state.outerWallBottomLightStrokeWidth = config.outerWallBottomLightStrokeWidth;
   if (config.outerWallCastShadowOpacityLight !== undefined) state.outerWallCastShadowOpacityLight = config.outerWallCastShadowOpacityLight;
   if (config.outerWallCastShadowOpacityDark !== undefined) state.outerWallCastShadowOpacityDark = config.outerWallCastShadowOpacityDark;
   if (config.outerWallCastShadowBlur !== undefined) state.outerWallCastShadowBlur = config.outerWallCastShadowBlur;
@@ -1848,6 +1851,7 @@ export function initState(config) {
   if (config.innerWallGradientRadius !== undefined) state.innerWallGradientRadius = config.innerWallGradientRadius;
   if (config.innerWallTopLightOpacityLight !== undefined) state.innerWallTopLightOpacityLight = config.innerWallTopLightOpacityLight;
   if (config.innerWallTopLightOpacityDark !== undefined) state.innerWallTopLightOpacityDark = config.innerWallTopLightOpacityDark;
+  if (config.innerWallTopLightStrokeWidth !== undefined) state.innerWallTopLightStrokeWidth = config.innerWallTopLightStrokeWidth;
   if (config.innerWallTopBevelOpacityLight !== undefined) state.innerWallTopBevelOpacityLight = config.innerWallTopBevelOpacityLight;
   if (config.innerWallTopBevelOpacityDark !== undefined) state.innerWallTopBevelOpacityDark = config.innerWallTopBevelOpacityDark;
   if (config.innerWallOutwardShadowOpacityLight !== undefined) state.innerWallOutwardShadowOpacityLight = config.innerWallOutwardShadowOpacityLight;
