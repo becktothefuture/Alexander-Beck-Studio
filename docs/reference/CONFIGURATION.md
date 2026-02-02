@@ -735,6 +735,24 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 - `wallRadiusVw` (number, vw) → `--wall-radius` (derived px; also feeds rounded-corner collision bounds)
 - `wallInset` (number, px) → physics-only inset (shrinks effective collision bounds to prevent visual overlap)
 
+### Edge lighting (inner/outer)
+The light edges are rendered as **SVG stroke gradients** that follow the wall path
+(not thin top/bottom bars). Shadows remain as radial-gradient edge strips.
+
+**Inner wall top light**
+- `innerWallTopLightOpacityLight`
+- `innerWallTopLightOpacityDark`
+- `innerWallTopLightColor`
+- `innerWallTopBevelWidth` (base width; stroke width expands from this)
+- `innerWallGradientRadius` (controls light falloff depth)
+
+**Outer wall bottom light**
+- `outerWallBottomLightOpacityLight`
+- `outerWallBottomLightOpacityDark`
+- `outerWallBottomLightColor`
+- `outerWallEdgeWidth` (base width; stroke width expands from this)
+- `outerWallGradientRadius` (controls light falloff depth)
+
 ### Legacy compatibility (px keys)
 The following legacy keys are still accepted and will be converted to vw at startup:
 - `wallThickness` (px)

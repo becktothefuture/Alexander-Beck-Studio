@@ -16,6 +16,8 @@
 
 import { getGlobals } from '../core/state.js';
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
 // Element references
 let outerWall = null;
 let innerWall = null;
@@ -24,6 +26,8 @@ let bottomEdge = null;
 let innerGlow = null;
 let outerBottomEdge = null;
 let outerTopEdge = null;
+let innerLightStroke = null;
+let outerLightStroke = null;
 let initialized = false;
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -52,6 +56,10 @@ export function initWallElements() {
   outerTopEdge.setAttribute('aria-hidden', 'true');
   outerWall.appendChild(outerTopEdge);
   
+  // Create outer wall light stroke (SVG gradient following wall path)
+  outerLightStroke = createLightStrokeSvg('outer-wall__stroke-light', 'outer-wall-light-stroke-gradient');
+  outerWall.appendChild(outerLightStroke.svg);
+  
   outerBottomEdge = document.createElement('div');
   outerBottomEdge.className = 'outer-wall__edge outer-wall__edge--bottom';
   outerBottomEdge.setAttribute('aria-hidden', 'true');
@@ -73,6 +81,10 @@ export function initWallElements() {
   innerGlow.style.right = '0';
   innerGlow.style.pointerEvents = 'none';
   innerWall.appendChild(innerGlow);
+  
+  // Create inner wall light stroke (SVG gradient following wall path)
+  innerLightStroke = createLightStrokeSvg('inner-wall__stroke-light', 'inner-wall-light-stroke-gradient');
+  innerWall.appendChild(innerLightStroke.svg);
   
   // Create top edge gradient (inside inner wall for proper clipping)
   topEdge = document.createElement('div');
@@ -124,7 +136,7 @@ export function updateWallElements() {
   innerWall.style.borderRadius = wallRadius;
   
   // Update edge gradients
-  updateEdgeGradients(g, isDark, radiusPx);
+  updateEdgeGradients(g, isDark, radiusPx, outerRadius);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -132,7 +144,7 @@ export function updateWallElements() {
 // Applies radial gradient lighting to both inner and outer wall edges
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function updateEdgeGradients(g, isDark, wallRadius) {
+function updateEdgeGradients(g, isDark, wallRadius, outerRadius) {
   const innerGradientRadius = g.innerWallGradientRadius ?? 70;
   const outerGradientRadius = g.outerWallGradientRadius ?? 70;
   
@@ -183,22 +195,22 @@ function updateEdgeGradients(g, isDark, wallRadius) {
     const innerTopRgb = hexToRgb(innerTopColor);
     const innerBottomRgb = hexToRgb(innerBottomColor);
     
-    // Inner wall top gradient (light from above)
-    if (innerTopOpacity <= 0.01) {
+    // Inner wall top light (SVG stroke gradient - replaces thin edge bar)
+    updateLightStrokeEdge(
+      innerLightStroke,
+      innerWall,
+      wallRadius,
+      innerEdgeWidth,
+      innerTopRgb,
+      innerTopOpacity,
+      'top',
+      innerGradientRadius
+    );
+    
+    if (topEdge) {
       topEdge.style.display = 'none';
       topEdge.style.background = 'none';
       topEdge.style.height = '0px';
-    } else {
-      topEdge.style.display = 'block';
-      const innerTopGradient = `radial-gradient(
-        ellipse ${innerGradientRadius}% 200% at 50% 0%,
-        rgba(${innerTopRgb.r}, ${innerTopRgb.g}, ${innerTopRgb.b}, ${innerTopOpacity}) 0%,
-        rgba(${innerTopRgb.r}, ${innerTopRgb.g}, ${innerTopRgb.b}, ${innerTopOpacity * 0.8}) 20%,
-        rgba(${innerTopRgb.r}, ${innerTopRgb.g}, ${innerTopRgb.b}, ${innerTopOpacity * 0.4}) 50%,
-        rgba(${innerTopRgb.r}, ${innerTopRgb.g}, ${innerTopRgb.b}, 0) 100%
-      )`;
-      topEdge.style.background = innerTopGradient;
-      topEdge.style.height = `${innerEdgeWidth}px`;
     }
 
     // Inner wall bottom gradient (shadow from below)
@@ -226,6 +238,8 @@ function updateEdgeGradients(g, isDark, wallRadius) {
   // Opposite of inner wall - outer wall is recessed, so bottom catches light
   // ─────────────────────────────────────────────────────────────────────────────
   if (outerTopEdge && outerBottomEdge) {
+    const outerEdgeEnabled = g.outerWallEdgeEnabled !== false;
+    
     // Outer wall top edge (shadow - dark, recessed look)
     const outerTopOpacity = isDark
       ? (g.outerWallTopDarkOpacityDark ?? 0.5)
@@ -261,24 +275,138 @@ function updateEdgeGradients(g, isDark, wallRadius) {
       outerTopEdge.style.height = `${outerEdgeWidth}px`;
     }
     
-    // Outer wall bottom gradient (light catching - brightest at center)
-    if (outerBottomOpacity <= 0.01) {
+    // Outer wall bottom light (SVG stroke gradient - replaces thin edge bar)
+    if (outerEdgeEnabled) {
+      updateLightStrokeEdge(
+        outerLightStroke,
+        outerWall,
+        outerRadius,
+        outerEdgeWidth,
+        outerBottomRgb,
+        outerBottomOpacity,
+        'bottom',
+        outerGradientRadius
+      );
+    } else if (outerLightStroke?.svg) {
+      outerLightStroke.svg.style.display = 'none';
+    }
+    
+    if (outerBottomEdge) {
       outerBottomEdge.style.display = 'none';
       outerBottomEdge.style.background = 'none';
       outerBottomEdge.style.height = '0px';
-    } else {
-      outerBottomEdge.style.display = 'block';
-      const outerBottomGradient = `radial-gradient(
-        ellipse ${outerGradientRadius}% 200% at 50% 100%,
-        rgba(${outerBottomRgb.r}, ${outerBottomRgb.g}, ${outerBottomRgb.b}, ${outerBottomOpacity}) 0%,
-        rgba(${outerBottomRgb.r}, ${outerBottomRgb.g}, ${outerBottomRgb.b}, ${outerBottomOpacity * 0.8}) 20%,
-        rgba(${outerBottomRgb.r}, ${outerBottomRgb.g}, ${outerBottomRgb.b}, ${outerBottomOpacity * 0.4}) 50%,
-        rgba(${outerBottomRgb.r}, ${outerBottomRgb.g}, ${outerBottomRgb.b}, 0) 100%
-      )`;
-      outerBottomEdge.style.background = outerBottomGradient;
-      outerBottomEdge.style.height = `${outerEdgeWidth}px`;
     }
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LIGHT STROKE HELPERS
+// SVG stroke gradients that follow the wall path (no thin edge bars)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function createLightStrokeSvg(className, gradientId) {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.classList.add(className);
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.setAttribute('preserveAspectRatio', 'none');
+  
+  const defs = document.createElementNS(SVG_NS, 'defs');
+  const gradient = document.createElementNS(SVG_NS, 'linearGradient');
+  gradient.setAttribute('id', gradientId);
+  gradient.setAttribute('gradientUnits', 'objectBoundingBox');
+  
+  const stops = [];
+  for (let i = 0; i < 4; i += 1) {
+    const stop = document.createElementNS(SVG_NS, 'stop');
+    gradient.appendChild(stop);
+    stops.push(stop);
+  }
+  
+  defs.appendChild(gradient);
+  svg.appendChild(defs);
+  
+  const rect = document.createElementNS(SVG_NS, 'rect');
+  rect.setAttribute('fill', 'none');
+  rect.setAttribute('stroke', `url(#${gradientId})`);
+  rect.setAttribute('stroke-linecap', 'round');
+  rect.setAttribute('stroke-linejoin', 'round');
+  svg.appendChild(rect);
+  
+  return { svg, rect, gradient, stops };
+}
+
+function updateLightStrokeEdge(stroke, hostEl, radiusPx, edgeWidth, rgb, opacity, direction, gradientRadius) {
+  if (!stroke?.svg || !stroke?.rect || !hostEl) return;
+  
+  const useOpacity = Number.isFinite(opacity) ? opacity : 0;
+  if (useOpacity <= 0.01 || edgeWidth <= 0) {
+    stroke.svg.style.display = 'none';
+    return;
+  }
+  
+  const rect = hostEl.getBoundingClientRect();
+  if (!rect || rect.width <= 1 || rect.height <= 1) {
+    stroke.svg.style.display = 'none';
+    return;
+  }
+  
+  const strokeWidth = getLightStrokeWidth(edgeWidth);
+  const width = rect.width;
+  const height = rect.height;
+  const half = strokeWidth * 0.5;
+  const drawW = Math.max(1, width - strokeWidth);
+  const drawH = Math.max(1, height - strokeWidth);
+  const maxRadius = Math.min(drawW * 0.5, drawH * 0.5);
+  const insetRadius = Math.max(0, Math.min(radiusPx - half, maxRadius));
+  
+  stroke.svg.style.display = 'block';
+  stroke.svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  stroke.svg.setAttribute('width', String(width));
+  stroke.svg.setAttribute('height', String(height));
+  
+  stroke.rect.setAttribute('x', String(half));
+  stroke.rect.setAttribute('y', String(half));
+  stroke.rect.setAttribute('width', String(drawW));
+  stroke.rect.setAttribute('height', String(drawH));
+  stroke.rect.setAttribute('rx', String(insetRadius));
+  stroke.rect.setAttribute('ry', String(insetRadius));
+  stroke.rect.setAttribute('stroke-width', String(strokeWidth));
+  
+  const falloff = getLightFalloffPercent(gradientRadius);
+  setSvgStop(stroke.stops[0], 0, rgb, useOpacity);
+  setSvgStop(stroke.stops[1], falloff * 0.35, rgb, useOpacity * 0.8);
+  setSvgStop(stroke.stops[2], falloff * 0.7, rgb, useOpacity * 0.4);
+  setSvgStop(stroke.stops[3], falloff, rgb, 0);
+  
+  stroke.gradient.setAttribute('x1', '0');
+  stroke.gradient.setAttribute('x2', '0');
+  stroke.gradient.setAttribute('y1', direction === 'bottom' ? '1' : '0');
+  stroke.gradient.setAttribute('y2', direction === 'bottom' ? '0' : '1');
+}
+
+function getLightStrokeWidth(edgeWidth) {
+  const base = Number.isFinite(edgeWidth) ? edgeWidth : 0;
+  return Math.max(base * 2, base + 2);
+}
+
+function getLightFalloffPercent(gradientRadius) {
+  const radius = clamp(Number(gradientRadius) || 70, 30, 100);
+  const falloff = (radius / 100) * 0.35;
+  return clamp(falloff, 0.12, 0.45);
+}
+
+function setSvgStop(stop, offset, rgb, opacity) {
+  if (!stop) return;
+  const stopOffset = clamp(offset, 0, 1);
+  const safeOpacity = clamp(opacity, 0, 1);
+  stop.setAttribute('offset', `${stopOffset * 100}%`);
+  stop.setAttribute('stop-color', `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`);
+  stop.setAttribute('stop-opacity', String(safeOpacity));
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -327,5 +455,7 @@ export function destroyWallElements() {
   bottomEdge = null;
   outerTopEdge = null;
   outerBottomEdge = null;
+  innerLightStroke = null;
+  outerLightStroke = null;
   initialized = false;
 }

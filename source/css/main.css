@@ -1693,6 +1693,10 @@ body.dark-mode #bravia-balls {
   display: none;
 }
 
+#bravia-balls.outer-wall-edge-disabled .outer-wall__stroke-light {
+  display: none;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    OUTER WALL EDGE GRADIENTS
    Radial gradient lighting that properly clips to rounded corners.
@@ -1730,6 +1734,15 @@ body.dark-mode #bravia-balls {
     background var(--duration-settle, 400ms) var(--ease-settle),
     opacity var(--duration-settle, 400ms) var(--ease-settle),
     height var(--duration-settle, 400ms) var(--ease-settle);
+}
+
+/* Outer wall light stroke (SVG gradient along wall path) */
+.outer-wall__stroke-light {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* Top edge - shadow from above (dark, creates recessed look) */
@@ -1789,6 +1802,15 @@ body.dark-mode .inner-wall {
   right: 0;
   pointer-events: none;
   /* Height and background set by JS */
+}
+
+/* Inner wall light stroke (SVG gradient along wall path) */
+.inner-wall__stroke-light {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
