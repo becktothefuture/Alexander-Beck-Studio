@@ -29,6 +29,12 @@ export function setApplyVisualCSSVars(fn) {
   applyVisualCSSVars = fn;
 }
 
+// Will be set by main.js
+let updateTactileLayerFn = null;
+export function setUpdateTactileLayer(fn) {
+  updateTactileLayerFn = fn;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // WALL SHADOW CSS UPDATE
 // Dynamically updates box-shadow on #bravia-balls::after via CSS custom properties
@@ -253,7 +259,8 @@ export const MASTER_GROUPS = [
       'colors',
       'colorDistribution',
       'noise',
-      'videoOverlay'
+      'videoOverlay',
+      'tactileLayer'
     ]
   },
   {
@@ -319,6 +326,7 @@ const SECTION_CATEGORIES = {
   'colorDistribution': 'PALETTE',
   'noise': 'GRAIN',
   'videoOverlay': 'TEXTURE',
+  'tactileLayer': 'TACTILE',
 
   // Frame
   'wall': 'FRAME',
@@ -2750,6 +2758,97 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
+  // TACTILE LAYER - Unicorn Studio
+  // ═══════════════════════════════════════════════════════════════════════════
+  tactileLayer: {
+    title: 'Tactile Layer',
+    icon: '🦄',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'tactileEnabled',
+        label: 'Enabled',
+        stateKey: 'tactileEnabled',
+        type: 'checkbox',
+        default: true,
+        hint: 'Enable Unicorn Studio WebGL layer',
+        onChange: (g, val) => {
+          if (updateTactileLayerFn) updateTactileLayerFn(g);
+        }
+      },
+      {
+        id: 'tactileProjectId',
+        label: 'Project ID',
+        stateKey: 'tactileProjectId',
+        type: 'text',
+        default: 'qBFxB3kkFBqgLxFNFleF',
+        hint: 'Unicorn Studio Project ID',
+        onChange: (g, val) => {
+          if (updateTactileLayerFn) updateTactileLayerFn(g);
+        }
+      },
+      {
+        id: 'tactileScale',
+        label: 'Scale',
+        stateKey: 'tactileScale',
+        type: 'range',
+        min: 0.1, max: 1, step: 0.1,
+        default: 1.0,
+        hint: 'Resolution scale (lower for performance)',
+        onChange: (g, val) => {
+           if (updateTactileLayerFn) updateTactileLayerFn(g);
+        }
+      },
+      {
+        id: 'tactileDpi',
+        label: 'DPI',
+        stateKey: 'tactileDpi',
+        type: 'range',
+        min: 0.5, max: 2, step: 0.1,
+        default: 1.0,
+        hint: 'Device Pixel Ratio (Keep low for performance)',
+        onChange: (g, val) => {
+           if (updateTactileLayerFn) updateTactileLayerFn(g);
+        }
+      },
+      {
+        id: 'tactileOpacity',
+        label: 'Opacity',
+        stateKey: 'tactileOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 1.0,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        onChange: (g, val) => {
+           if (updateTactileLayerFn) updateTactileLayerFn(g);
+        }
+      },
+      {
+        id: 'tactileBlendMode',
+        label: 'Blend Mode',
+        stateKey: 'tactileBlendMode',
+        type: 'select',
+        options: ['normal', 'overlay', 'screen', 'multiply', 'color-burn', 'linear-burn', 'soft-light', 'hard-light', 'lighten', 'difference'],
+        default: 'overlay',
+        onChange: (g, val) => {
+           if (updateTactileLayerFn) updateTactileLayerFn(g);
+        }
+      },
+      {
+        id: 'tactilePointerEvents',
+        label: 'Interactive',
+        stateKey: 'tactilePointerEvents',
+        type: 'checkbox',
+        default: false,
+        hint: 'If true, blocks underlying elements. Enable if visual requires direct interaction.',
+        onChange: (g, val) => {
+           if (updateTactileLayerFn) updateTactileLayerFn(g);
+        }
+      }
+    ]
+  },
+
   // ═══════════════════════════════════════════════════════════════════════════
   // LAYERS - Overlay positioning and edge overlap controls
   // ═══════════════════════════════════════════════════════════════════════════
@@ -3257,166 +3356,113 @@ export const CONTROL_SECTIONS = {
         }
       },
       
-      // ─── EDGE LIGHTING ───
-      { type: 'divider', label: '💡 Edge Lighting' },
+      // ─── CONTINUOUS BORDER ───
+      { type: 'divider', label: '🔘 Continuous Border' },
       {
-        id: 'outerWallEdgeWidth',
-        label: 'Edge Width',
-        stateKey: 'outerWallEdgeWidth',
+        id: 'outerWallBorderWidth',
+        label: 'Width',
+        stateKey: 'outerWallBorderWidth',
         type: 'range',
-        min: 0.1, max: 8, step: 0.1,
-        default: 3,
+        min: 0, max: 10, step: 0.1,
+        default: 2,
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
-        hint: 'Thickness of edge gradient strips',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--outer-wall-edge-width', `${val}px`);
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        hint: 'Thickness of the continuous border',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
+      
+      // Light Mode Group
+      { type: 'divider', label: '☀️ Light Mode' },
       {
-        id: 'outerWallGradientRadius',
+        id: 'outerWallBorderGradientSpread',
         label: 'Gradient Spread',
-        stateKey: 'outerWallGradientRadius',
+        stateKey: 'outerWallBorderGradientSpread',
         type: 'range',
-        min: 30, max: 100, step: 5,
-        default: 70,
-        format: v => `${v}%`,
+        min: 10, max: 170, step: 5,
+        default: 85,
+        format: v => `${v}°`,
         parse: parseFloat,
-        hint: 'How far the radial gradient spreads',
-        onChange: (_g, val) => {
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        hint: 'Angle of the bright spot (half-width)',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'outerWallTopDarkOpacityLight',
-        label: 'Top Shadow ☀️',
-        stateKey: 'outerWallTopDarkOpacityLight',
+        id: 'outerWallBorderBrightOpacityLight',
+        label: 'Bright Opacity',
+        stateKey: 'outerWallBorderBrightOpacityLight',
         type: 'range',
-        min: 0, max: 1, step: 0.02,
+        min: 0, max: 1, step: 0.05,
         default: 0.5,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Top edge shadow opacity (light mode)',
-        onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--outer-wall-top-dark-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        hint: 'Opacity of brightest point (bottom) in light mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'outerWallTopDarkOpacityDark',
-        label: 'Top Shadow 🌙',
-        stateKey: 'outerWallTopDarkOpacityDark',
+        id: 'outerWallBorderDimOpacityLight',
+        label: 'Dim Opacity',
+        stateKey: 'outerWallBorderDimOpacityLight',
         type: 'range',
-        min: 0, max: 1, step: 0.02,
-        default: 0.4,
+        min: 0, max: 1, step: 0.05,
+        default: 0.15,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Top edge shadow opacity (dark mode)',
-        onChange: (_g, val) => {
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--outer-wall-top-dark-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        hint: 'Opacity of dim sides in light mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'outerWallBottomLightOpacityLight',
-        label: 'Bottom Light ☀️',
-        stateKey: 'outerWallBottomLightOpacityLight',
+        id: 'outerWallBorderShadowOpacityLight',
+        label: 'Shadow Opacity',
+        stateKey: 'outerWallBorderShadowOpacityLight',
         type: 'range',
-        min: 0, max: 1, step: 0.02,
-        default: 0.8,
+        min: 0, max: 1, step: 0.05,
+        default: 0.25,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Bottom edge shine opacity (light mode)',
-        onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--outer-wall-bottom-light-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        hint: 'Opacity of shadow point (top) in light mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
+
+      // Dark Mode Group
+      { type: 'divider', label: '🌙 Dark Mode' },
       {
-        id: 'outerWallBottomLightOpacityDark',
-        label: 'Bottom Light 🌙',
-        stateKey: 'outerWallBottomLightOpacityDark',
+        id: 'outerWallBorderBrightOpacityDark',
+        label: 'Bright Opacity',
+        stateKey: 'outerWallBorderBrightOpacityDark',
         type: 'range',
-        min: 0, max: 1, step: 0.02,
+        min: 0, max: 1, step: 0.05,
         default: 0.6,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Bottom edge shine opacity (dark mode)',
-        onChange: (_g, val) => {
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--outer-wall-bottom-light-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        hint: 'Opacity of brightest point (bottom) in dark mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'outerWallTopDarkColor',
-        label: 'Top Shadow Color',
-        stateKey: 'outerWallTopDarkColor',
-        type: 'color',
-        default: '#000000',
-        hint: 'Color of top edge shadow gradient',
-        onChange: (_g, val) => {
-          const rgb = hexToRgbString(val);
-          document.documentElement.style.setProperty('--outer-wall-top-dark-rgb', rgb);
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        id: 'outerWallBorderDimOpacityDark',
+        label: 'Dim Opacity',
+        stateKey: 'outerWallBorderDimOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.2,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Opacity of dim sides in dark mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'outerWallBottomLightColor',
-        label: 'Bottom Light Color',
-        stateKey: 'outerWallBottomLightColor',
-        type: 'color',
-        default: '#ffffff',
-        hint: 'Color of bottom edge light gradient',
-        onChange: (_g, val) => {
-          const rgb = hexToRgbString(val);
-          document.documentElement.style.setProperty('--outer-wall-bottom-light-rgb', rgb);
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        id: 'outerWallBorderShadowOpacityDark',
+        label: 'Shadow Opacity',
+        stateKey: 'outerWallBorderShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.4,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Opacity of shadow point (top) in dark mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       
       // ─── DEPTH SHADOW ───
       { type: 'divider', label: '🌑 Depth Shadow' },
-      {
-        id: 'outerWallCastShadowOpacityLight',
-        label: 'Shadow ☀️',
-        stateKey: 'outerWallCastShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.01,
-        default: 0.15,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Inward shadow opacity (light mode)',
-        onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(val));
-          }
-        }
-      },
-      {
-        id: 'outerWallCastShadowOpacityDark',
-        label: 'Shadow 🌙',
-        stateKey: 'outerWallCastShadowOpacityDark',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.01,
-        default: 0.25,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Inward shadow opacity (dark mode)',
-        onChange: (_g, val) => {
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(val));
-          }
-        }
-      },
       {
         id: 'outerWallCastShadowBlur',
         label: 'Shadow Blur',
@@ -3444,6 +3490,121 @@ export const CONTROL_SECTIONS = {
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--outer-wall-cast-shadow-offset', `${val}px`);
         }
+      },
+      // Light Mode Group
+      { type: 'divider', label: '☀️ Light Mode' },
+      {
+        id: 'outerWallCastShadowOpacityLight',
+        label: 'Shadow Opacity',
+        stateKey: 'outerWallCastShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.15,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Inward shadow opacity (light mode)',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(val));
+          }
+        }
+      },
+      // Dark Mode Group
+      { type: 'divider', label: '🌙 Dark Mode' },
+      {
+        id: 'outerWallCastShadowOpacityDark',
+        label: 'Shadow Opacity',
+        stateKey: 'outerWallCastShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.25,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Inward shadow opacity (dark mode)',
+        onChange: (_g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(val));
+          }
+        }
+      },
+      
+      // ─── MICRO-DETAILS ───
+      { type: 'divider', label: '🔍 Micro-Details' },
+      {
+        id: 'wallAOSpread',
+        label: 'AO Spread',
+        stateKey: 'wallAOSpread',
+        type: 'range',
+        min: 0, max: 10, step: 0.5,
+        default: 2,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Spread size of the ambient occlusion shadow',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'wallSpecularWidth',
+        label: 'Specular Width',
+        stateKey: 'wallSpecularWidth',
+        type: 'range',
+        min: 0.1, max: 2, step: 0.1,
+        default: 0.5,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Width of the razor-sharp specular highlight',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      // Light Mode Group
+      { type: 'divider', label: '☀️ Light Mode' },
+      {
+        id: 'wallAOOpacityLight',
+        label: 'AO Opacity',
+        stateKey: 'wallAOOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.15,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Ambient Occlusion (gap shadow) opacity in light mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'wallSpecularOpacityLight',
+        label: 'Specular Opacity',
+        stateKey: 'wallSpecularOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.4,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Razor-sharp edge highlight opacity in light mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      // Dark Mode Group
+      { type: 'divider', label: '🌙 Dark Mode' },
+      {
+        id: 'wallAOOpacityDark',
+        label: 'AO Opacity',
+        stateKey: 'wallAOOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.3,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Ambient Occlusion (gap shadow) opacity in dark mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'wallSpecularOpacityDark',
+        label: 'Specular Opacity',
+        stateKey: 'wallSpecularOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.5,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Razor-sharp edge highlight opacity in dark mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       
       // ─── GEOMETRY ───
@@ -3474,168 +3635,101 @@ export const CONTROL_SECTIONS = {
     icon: '🔳',
     defaultOpen: false,
     controls: [
-      // ─── EDGE LIGHTING ───
-      { type: 'divider', label: '💡 Edge Lighting' },
+      // ─── CONTINUOUS BORDER ───
+      { type: 'divider', label: '🔘 Continuous Border' },
       {
-        id: 'innerWallTopBevelWidth',
-        label: 'Edge Width',
-        stateKey: 'innerWallTopBevelWidth',
+        id: 'innerWallBorderWidth',
+        label: 'Width',
+        stateKey: 'innerWallBorderWidth',
         type: 'range',
-        min: 0.1, max: 6, step: 0.1,
+        min: 0, max: 10, step: 0.1,
         default: 2,
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
-        hint: 'Thickness of edge gradient strips',
+        hint: 'Thickness of the continuous border',
         onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-width', `${val}px`);
-          getUpdateGradientEdge().then(fn => fn?.());
+          getUpdateWallElements().then(fn => fn?.());
         }
       },
+      // Light Mode Group
+      { type: 'divider', label: '☀️ Light Mode' },
       {
-        id: 'innerWallGradientRadius',
-        label: 'Gradient Spread',
-        stateKey: 'innerWallGradientRadius',
+        id: 'innerWallBorderBrightOpacityLight',
+        label: 'Bright Opacity',
+        stateKey: 'innerWallBorderBrightOpacityLight',
         type: 'range',
-        min: 30, max: 100, step: 5,
-        default: 70,
-        format: v => `${v}%`,
-        parse: parseFloat,
-        hint: 'How far the radial gradient spreads',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-gradient-radius', String(val));
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
-      },
-      {
-        id: 'innerWallTopLightOpacityLight',
-        label: 'Top Light ☀️',
-        stateKey: 'innerWallTopLightOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.02,
-        default: 0.3,
+        min: 0, max: 1, step: 0.05,
+        default: 0.5,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Top edge light opacity (light mode)',
-        onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-top-light-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        hint: 'Opacity of brightest point (top) in light mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'innerWallTopLightOpacityDark',
-        label: 'Top Light 🌙',
-        stateKey: 'innerWallTopLightOpacityDark',
+        id: 'innerWallBorderDimOpacityLight',
+        label: 'Dim Opacity',
+        stateKey: 'innerWallBorderDimOpacityLight',
         type: 'range',
-        min: 0, max: 1, step: 0.02,
-        default: 0.4,
+        min: 0, max: 1, step: 0.05,
+        default: 0.15,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Top edge light opacity (dark mode)',
-        onChange: (_g, val) => {
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-top-light-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        hint: 'Opacity of dim sides in light mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'innerWallTopBevelOpacityLight',
-        label: 'Bottom Shadow ☀️',
-        stateKey: 'innerWallTopBevelOpacityLight',
+        id: 'innerWallBorderShadowOpacityLight',
+        label: 'Shadow Opacity',
+        stateKey: 'innerWallBorderShadowOpacityLight',
         type: 'range',
-        min: 0, max: 0.5, step: 0.02,
-        default: 0.18,
+        min: 0, max: 1, step: 0.05,
+        default: 0.2,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Bottom edge shadow opacity (light mode)',
-        onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-bottom-shadow-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        hint: 'Opacity of shadow point (bottom) in light mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
+      // Dark Mode Group
+      { type: 'divider', label: '🌙 Dark Mode' },
       {
-        id: 'innerWallTopBevelOpacityDark',
-        label: 'Bottom Shadow 🌙',
-        stateKey: 'innerWallTopBevelOpacityDark',
+        id: 'innerWallBorderBrightOpacityDark',
+        label: 'Bright Opacity',
+        stateKey: 'innerWallBorderBrightOpacityDark',
         type: 'range',
-        min: 0, max: 0.5, step: 0.02,
-        default: 0.25,
+        min: 0, max: 1, step: 0.05,
+        default: 0.6,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Bottom edge shadow opacity (dark mode)',
-        onChange: (_g, val) => {
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-bottom-shadow-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        hint: 'Opacity of brightest point (top) in dark mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'innerWallTopLightColor',
-        label: 'Top Light Color',
-        stateKey: 'innerWallTopLightColor',
-        type: 'color',
-        default: '#ffffff',
-        hint: 'Color of top edge light gradient',
-        onChange: (_g, val) => {
-          const rgb = hexToRgbString(val);
-          document.documentElement.style.setProperty('--inner-wall-top-light-rgb', rgb);
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        id: 'innerWallBorderDimOpacityDark',
+        label: 'Dim Opacity',
+        stateKey: 'innerWallBorderDimOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.2,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Opacity of dim sides in dark mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'innerWallBottomShadowColor',
-        label: 'Bottom Shadow Color',
-        stateKey: 'innerWallBottomShadowColor',
-        type: 'color',
-        default: '#000000',
-        hint: 'Color of bottom edge shadow gradient',
-        onChange: (_g, val) => {
-          const rgb = hexToRgbString(val);
-          document.documentElement.style.setProperty('--inner-wall-bottom-shadow-rgb', rgb);
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
+        id: 'innerWallBorderShadowOpacityDark',
+        label: 'Shadow Opacity',
+        stateKey: 'innerWallBorderShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.35,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Opacity of shadow point (bottom) in dark mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       
       // ─── OUTWARD SHADOW ───
       { type: 'divider', label: '🌑 Outward Shadow' },
-      {
-        id: 'innerWallOutwardShadowOpacityLight',
-        label: 'Shadow ☀️',
-        stateKey: 'innerWallOutwardShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 0.8, step: 0.02,
-        default: 0.2,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Outward shadow opacity (light mode)',
-        onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
-          }
-        }
-      },
-      {
-        id: 'innerWallOutwardShadowOpacityDark',
-        label: 'Shadow 🌙',
-        stateKey: 'innerWallOutwardShadowOpacityDark',
-        type: 'range',
-        min: 0, max: 0.8, step: 0.02,
-        default: 0.35,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Outward shadow opacity (dark mode)',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(val));
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
-          }
-        }
-      },
       {
         id: 'innerWallOutwardShadowBlur',
         label: 'Shadow Blur',
@@ -3664,45 +3758,46 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--inner-wall-outward-shadow-offset', `${val}px`);
         }
       },
-      
+      // Light Mode Group
+      { type: 'divider', label: '☀️ Light Mode' },
+      {
+        id: 'innerWallOutwardShadowOpacityLight',
+        label: 'Shadow Opacity',
+        stateKey: 'innerWallOutwardShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 0.8, step: 0.02,
+        default: 0.2,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Outward shadow opacity (light mode)',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
+          }
+        }
+      },
+      // Dark Mode Group
+      { type: 'divider', label: '🌙 Dark Mode' },
+      {
+        id: 'innerWallOutwardShadowOpacityDark',
+        label: 'Shadow Opacity',
+        stateKey: 'innerWallOutwardShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 0.8, step: 0.02,
+        default: 0.35,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Outward shadow opacity (dark mode)',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(val));
+          if (document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
+          }
+        }
+      },
       
       // ─── INNER GLOW ───
       { type: 'divider', label: '🌟 Inner Glow' },
-      {
-        id: 'innerWallInnerGlowOpacityLight',
-        label: 'Glow ☀️',
-        stateKey: 'innerWallInnerGlowOpacityLight',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.01,
-        default: 0,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Soft white inner glow opacity (light mode)',
-        onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
-      },
-      {
-        id: 'innerWallInnerGlowOpacityDark',
-        label: 'Glow 🌙',
-        stateKey: 'innerWallInnerGlowOpacityDark',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.01,
-        default: 0.08,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Soft white inner glow opacity (dark mode)',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity-dark', String(val));
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
-      },
       {
         id: 'innerWallInnerGlowBlur',
         label: 'Glow Blur',
@@ -3756,6 +3851,45 @@ export const CONTROL_SECTIONS = {
         onChange: (_g, val) => {
           const rgb = hexToRgbString(val);
           document.documentElement.style.setProperty('--inner-wall-inner-glow-rgb', rgb);
+          getUpdateGradientEdge().then(fn => fn?.());
+        }
+      },
+      // Light Mode Group
+      { type: 'divider', label: '☀️ Light Mode' },
+      {
+        id: 'innerWallInnerGlowOpacityLight',
+        label: 'Glow Opacity',
+        stateKey: 'innerWallInnerGlowOpacityLight',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Soft white inner glow opacity (light mode)',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity', String(val));
+          }
+          getUpdateGradientEdge().then(fn => fn?.());
+        }
+      },
+      // Dark Mode Group
+      { type: 'divider', label: '🌙 Dark Mode' },
+      {
+        id: 'innerWallInnerGlowOpacityDark',
+        label: 'Glow Opacity',
+        stateKey: 'innerWallInnerGlowOpacityDark',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.08,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Soft white inner glow opacity (dark mode)',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity-dark', String(val));
+          if (document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity', String(val));
+          }
           getUpdateGradientEdge().then(fn => fn?.());
         }
       },
@@ -4715,102 +4849,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  vortex: {
-    title: 'Electrons',
-    icon: '⚛️',
-    mode: 'vortex',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'vortexBallCount',
-        label: 'Ball Count',
-        stateKey: 'vortexBallCount',
-        type: 'range',
-        min: 50, max: 500, step: 10,
-        default: 180,
-        format: v => String(v),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'vortexSwirl',
-        label: 'Orbital Strength',
-        stateKey: 'vortexSwirlStrength',
-        type: 'range',
-        min: 100, max: 3000, step: 50,
-        default: 420,
-        format: v => v.toFixed(0),
-        parse: parseFloat,
-        tooltip: 'Electromagnetic force strength binding electrons to nucleus'
-      },
-      {
-        id: 'vortexRadius',
-        label: 'Shell Radius',
-        stateKey: 'vortexRadius',
-        type: 'range',
-        min: 0, max: 800, step: 20,
-        default: 300,
-        format: v => v === 0 ? 'Auto-scale' : v.toFixed(0) + 'px',
-        parse: parseFloat,
-        tooltip: 'Base radius for electron orbital shells (like atomic energy levels)'
-      },
-      {
-        id: 'vortexSpeedMultiplier',
-        label: 'Speed Multiplier',
-        stateKey: 'vortexSpeedMultiplier',
-        type: 'range',
-        min: 0.1, max: 3.0, step: 0.1,
-        default: 1.0,
-        format: v => v.toFixed(1),
-        parse: parseFloat
-      },
-      {
-        id: 'vortexDepthVariation',
-        label: 'Depth Variation',
-        stateKey: 'vortexDepthVariation',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.6,
-        format: v => (v * 100).toFixed(0) + '%',
-        parse: parseFloat,
-        tooltip: 'How much ball size changes with 3D depth (0 = no change, 1 = max variation)'
-      },
-      {
-        id: 'vortexSpiralTightness',
-        label: 'Spiral Tightness',
-        stateKey: 'vortexSpiralTightness',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.5,
-        format: v => (v * 100).toFixed(0) + '%',
-        parse: parseFloat,
-        tooltip: 'How tightly balls spiral in 3D space (0 = flat orbit, 1 = tight spiral)'
-      },
-      {
-        id: 'vortexRotationDirection',
-        label: 'Rotation Direction',
-        stateKey: 'vortexRotationDirection',
-        type: 'range',
-        min: -1, max: 1, step: 2,
-        default: 1,
-        format: v => v === 1 ? 'Counterclockwise' : 'Clockwise',
-        parse: parseFloat
-      },
-      {
-        id: 'vortexDrag',
-        label: 'Drag',
-        stateKey: 'vortexDrag',
-        type: 'range',
-        min: 0.001, max: 0.05, step: 0.001,
-        default: 0.01,
-        format: v => v.toFixed(3),
-        parse: parseFloat,
-        tooltip: 'Damping to stabilize orbital motion'
-      },
-      warmupFramesControl('vortexWarmupFrames')
-    ]
-  },
-
   magnetic: {
     title: 'Magnetic',
     icon: '🧲',
@@ -5091,114 +5129,6 @@ export const CONTROL_SECTIONS = {
   },
 
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // NEURAL — Connectivity expressed through motion only (no lines)
-  // ═══════════════════════════════════════════════════════════════════════════
-  neural: {
-    title: 'Neural Network',
-    icon: '🧠',
-    mode: 'neural',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'neuralBallCount',
-        label: 'Ball Count',
-        stateKey: 'neuralBallCount',
-        type: 'range',
-        min: 8, max: 400, step: 1,
-        default: 311,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'neuralLinkDistanceVw',
-        label: 'Link Distance',
-        stateKey: 'neuralLinkDistanceVw',
-        type: 'range',
-        min: 5, max: 40, step: 0.5,
-        default: 5.0,
-        format: v => v.toFixed(1) + 'vw',
-        parse: parseFloat,
-        tooltip: 'Maximum distance for connections between nodes'
-      },
-      {
-        id: 'neuralLineOpacity',
-        label: 'Link Opacity',
-        stateKey: 'neuralLineOpacity',
-        type: 'range',
-        min: 0, max: 0.8, step: 0.02,
-        default: 0.06,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        tooltip: 'Opacity of connector balls (legacy - now using connector density)'
-      },
-      {
-        id: 'neuralConnectorDensity',
-        label: 'Connector Density',
-        stateKey: 'neuralConnectorDensity',
-        type: 'range',
-        min: 0, max: 10, step: 1,
-        default: 3,
-        format: v => String(Math.round(v)) + ' balls',
-        parse: v => parseInt(v, 10),
-        tooltip: 'Number of connector balls per connection (0 = no connectors)'
-      },
-      {
-        id: 'sizeVariationNeural',
-        label: 'Size Variation',
-        stateKey: 'sizeVariationNeural',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.05,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'neuralWanderStrength',
-        label: 'Wander Strength',
-        stateKey: 'neuralWanderStrength',
-        type: 'range',
-        min: 0, max: 2000, step: 10,
-        default: 1000,
-        format: v => String(Math.round(v)),
-        parse: parseFloat
-      },
-      {
-        id: 'neuralMouseStrength',
-        label: 'Mouse Attraction',
-        stateKey: 'neuralMouseStrength',
-        type: 'range',
-        min: 0, max: 150000, step: 5000,
-        default: 150000,
-        format: v => String(Math.round(v / 1000)) + 'k',
-        parse: parseFloat
-      },
-      {
-        id: 'neuralSeparationStrength',
-        label: 'Separation',
-        stateKey: 'neuralSeparationStrength',
-        type: 'range',
-        min: 0, max: 30000, step: 500,
-        default: 11000,
-        format: v => String(Math.round(v / 1000)) + 'k',
-        parse: parseFloat,
-        tooltip: 'How strongly balls avoid each other (subtle spacing)'
-      },
-      {
-        id: 'neuralDamping',
-        label: 'Damping',
-        stateKey: 'neuralDamping',
-        type: 'range',
-        min: 0.9, max: 1.0, step: 0.002,
-        default: 0.900,
-        format: v => v.toFixed(3),
-        parse: parseFloat
-      },
-      warmupFramesControl('neuralWarmupFrames')
-    ]
-  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // NOTE: “Warmup Frames” is appended per mode below to avoid visible settling
@@ -5665,100 +5595,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  shootingStars: {
-    title: 'Shooting Stars',
-    icon: '🌠',
-    mode: 'shooting-stars',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'shootingStarsSpawnInterval',
-        label: 'Spawn Interval',
-        stateKey: 'shootingStarsSpawnInterval',
-        type: 'range',
-        min: 0.5, max: 10.0, step: 0.5,
-        default: 3.0,
-        format: v => v.toFixed(1) + 's',
-        parse: parseFloat,
-        hint: 'Time between shooting star bursts (lower = more frequent)'
-      },
-      {
-        id: 'shootingStarsBurstSize',
-        label: 'Burst Size',
-        stateKey: 'shootingStarsBurstSize',
-        type: 'range',
-        min: 1, max: 10, step: 1,
-        default: 1,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Number of stars spawned per burst'
-      },
-      {
-        id: 'shootingStarsMinSpeed',
-        label: 'Min Speed',
-        stateKey: 'shootingStarsMinSpeed',
-        type: 'range',
-        min: 100, max: 1000, step: 50,
-        default: 400,
-        format: v => `${Math.round(v)}px/s`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'shootingStarsMaxSpeed',
-        label: 'Max Speed',
-        stateKey: 'shootingStarsMaxSpeed',
-        type: 'range',
-        min: 500, max: 2000, step: 50,
-        default: 1200,
-        format: v => `${Math.round(v)}px/s`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'shootingStarsAngle',
-        label: 'Angle',
-        stateKey: 'shootingStarsAngle',
-        type: 'range',
-        min: -180, max: 180, step: 5,
-        default: -45,
-        format: v => `${Math.round(v)}°`,
-        parse: v => parseInt(v, 10),
-        hint: 'Direction of travel (0° = right, -90° = up, 90° = down)'
-      },
-      {
-        id: 'shootingStarsTrailLength',
-        label: 'Trail Length',
-        stateKey: 'shootingStarsTrailLength',
-        type: 'range',
-        min: 0, max: 20, step: 1,
-        default: 5,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Number of trail points (0 = no trail)'
-      },
-      {
-        id: 'shootingStarsMinSize',
-        label: 'Min Size',
-        stateKey: 'shootingStarsMinSize',
-        type: 'range',
-        min: 0.2, max: 2.0, step: 0.1,
-        default: 0.5,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat
-      },
-      {
-        id: 'shootingStarsMaxSize',
-        label: 'Max Size',
-        stateKey: 'shootingStarsMaxSize',
-        type: 'range',
-        min: 1.0, max: 4.0, step: 0.1,
-        default: 1.5,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat
-      },
-      warmupFramesControl('shootingStarsWarmupFrames')
-    ]
-  },
-
   elasticCenter: {
     title: 'Elastic Center',
     icon: '⭕',
@@ -5833,75 +5669,6 @@ export const CONTROL_SECTIONS = {
         hint: 'Velocity damping for stability (higher = less damping)'
       },
       warmupFramesControl('elasticCenterWarmupFrames')
-    ]
-  },
-
-  dvdLogo: {
-    title: 'DVD Logo',
-    icon: '📀',
-    mode: 'dvd-logo',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'dvdLogoSpeed',
-        label: 'Speed',
-        stateKey: 'dvdLogoSpeed',
-        type: 'range',
-        min: 200, max: 800, step: 50,
-        default: 200,
-        format: v => v.toFixed(0) + 'px/s',
-        parse: parseFloat,
-        hint: 'Movement speed of the DVD logo'
-      },
-      {
-        id: 'dvdLogoSize',
-        label: 'Logo Size',
-        stateKey: 'dvdLogoSize',
-        type: 'range',
-        min: 0.5, max: 2.0, step: 0.1,
-        default: 1.0,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        hint: 'Scale multiplier for logo size',
-        reinitMode: true
-      },
-      {
-        id: 'dvdLogoBallCount',
-        label: 'Ball Count',
-        stateKey: 'dvdLogoBallCount',
-        type: 'range',
-        min: 30, max: 120, step: 5,
-        default: 60,
-        format: v => v.toFixed(0) + ' balls',
-        parse: parseFloat,
-        hint: 'Total balls forming the DVD letters',
-        reinitMode: true
-      },
-      {
-        id: 'dvdLogoBallSpacing',
-        label: 'Ball Spacing',
-        stateKey: 'dvdLogoBallSpacing',
-        type: 'range',
-        min: 1.0, max: 2.0, step: 0.1,
-        default: 1.3,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        hint: 'Spacing between balls (higher = larger gaps)',
-        reinitMode: true
-      },
-      {
-        id: 'dvdLogoLetterSpacing',
-        label: 'Letter Spacing',
-        stateKey: 'dvdLogoLetterSpacing',
-        type: 'range',
-        min: 0.5, max: 2.0, step: 0.1,
-        default: 1.0,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        hint: 'Spacing between D-V-D letters',
-        reinitMode: true
-      },
-      warmupFramesControl('dvdLogoWarmupFrames')
     ]
   },
 
@@ -7005,10 +6772,8 @@ export function generateModeSwitcherHTML() {
     'water': '🌊',
     'vortex': '⚛️',
     'magnetic': '🧲',
-    'dvd-logo': '📀',
     'weightless': '🌌',
     'kaleidoscope-3': '🪞',
-    'neural': '🧠',
     'parallax-linear': '🎚️',
     '3d-sphere': '🌐',
     '3d-cube': '🧊',
@@ -7021,27 +6786,36 @@ export function generateModeSwitcherHTML() {
     'critters': 'Hive',
     'flies': 'Flies',
     'water': 'Water',
-    'vortex': 'Electrons',
     'magnetic': 'Magnet',
-    'dvd-logo': 'DVD',
     'weightless': 'Zero-G',
     'kaleidoscope-3': 'Kalei',
-    'neural': 'Neural',
     'parallax-linear': 'Parallax Lin',
     '3d-sphere': 'Sphere 3D',
     '3d-cube': 'Cube 3D',
     'starfield-3d': 'Starfield 3D',
-    'shooting-stars': 'Shooting Stars',
     'elastic-center': 'Elastic Center'
   };
+  
+  // Calculate which mode is the daily mode (inline to avoid async)
+  function getDayOfYear(date = new Date()) {
+    const start = new Date(date.getFullYear(), 0, 0);
+    const diff = date - start;
+    const oneDay = 1000 * 60 * 60 * 24;
+    return Math.floor(diff / oneDay);
+  }
+  const dayOfYear = getDayOfYear();
+  const modeIndex = dayOfYear % NARRATIVE_MODE_SEQUENCE.length;
+  const dailyMode = NARRATIVE_MODE_SEQUENCE[modeIndex];
   
   let buttons = '';
   NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {
     const icon = modeIcons[mode] || '⚪';
     const label = modeLabels[mode] || mode;
     const number = String(idx + 1).padStart(2, '0');
-    const ariaLabel = `${number} · ${(NARRATIVE_CHAPTER_TITLES[mode] || label)} mode`;
-    buttons += `<button class="mode-button" data-mode="${mode}" aria-label="${ariaLabel}"><span class="mode-button-number">${number}</span><span class="mode-button-label">${icon} ${label}</span></button>`;
+    const isDailyMode = mode === dailyMode;
+    const dailyBadge = isDailyMode ? '<span class="daily-badge" title="Today\'s Simulation">📅</span>' : '';
+    const ariaLabel = `${number} · ${(NARRATIVE_CHAPTER_TITLES[mode] || label)} mode${isDailyMode ? ' (Today\'s Simulation)' : ''}`;
+    buttons += `<button class="mode-button${isDailyMode ? ' is-daily-mode' : ''}" data-mode="${mode}" aria-label="${ariaLabel}"><span class="mode-button-number">${number}</span><span class="mode-button-label">${icon} ${label}${dailyBadge}</span></button>`;
   });
 
   return `
@@ -7088,12 +6862,9 @@ function generateHomeModeSectionHTML() {
               'critters': '🐝',
               'flies': '🕊️',
               'water': '🌊',
-              'vortex': '⚛️',
               'magnetic': '🧲',
-              'dvd-logo': '📀',
               'weightless': '🌌',
               'kaleidoscope-3': '🪞',
-              'neural': '🧠',
             'parallax-linear': '🎚️',
               '3d-sphere': '🌐',
               '3d-cube': '🧊',
@@ -7106,17 +6877,13 @@ function generateHomeModeSectionHTML() {
               'critters': 'Hive',
               'flies': 'Flies',
               'water': 'Water',
-              'vortex': 'Electrons',
               'magnetic': 'Magnet',
-              'dvd-logo': 'DVD',
               'weightless': 'Zero-G',
               'kaleidoscope-3': 'Kalei',
-              'neural': 'Neural',
             'parallax-linear': 'Parallax Lin',
               '3d-sphere': 'Sphere 3D',
               '3d-cube': 'Cube 3D',
               'starfield-3d': 'Starfield 3D',
-              'shooting-stars': 'Shooting Stars',
               'elastic-center': 'Elastic Center'
             };
             let buttons = '';

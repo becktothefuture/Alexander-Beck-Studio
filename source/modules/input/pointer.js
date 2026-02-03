@@ -52,8 +52,8 @@ export function setupPointer() {
   const globals = getGlobals();
   const canvas = globals.canvas;
   
-  // Ensure the flag exists (some modes may override it at runtime).
-  if (globals.clickCycleEnabled === undefined) globals.clickCycleEnabled = false;
+  // Click-cycle permanently disabled in Daily Simulation mode
+  globals.clickCycleEnabled = false;
   
   if (!canvas) {
     console.error('Canvas not available for pointer setup');
@@ -208,36 +208,7 @@ export function setupPointer() {
     );
   }
 
-  /**
-   * Simple click handler for mode cycling - forward only
-   * Left click = next mode
-   */
-  document.addEventListener('click', (e) => {
-    // Skip if cycling is disabled
-    if (!globals.clickCycleEnabled) return;
-    
-    // Skip if clicking on UI elements
-    if (isEventOnUI(e.target)) return;
-    if (isTargetInteractive(e.target)) return;
-    if (isOverlayActive()) return;
-    
-    // Check if click is within canvas bounds
-    const pos = getCanvasPosition(e.clientX, e.clientY);
-    if (!pos.inBounds) return;
-    
-    // Debounce to prevent rapid clicks
-    const now = performance.now();
-    if (now - lastClickTime < CLICK_DEBOUNCE_MS) return;
-    lastClickTime = now;
-    
-    // Only handle left clicks (button 0) - forward only
-    // Ignore right clicks (button 2) and middle clicks (button 1)
-    const button = e.button !== undefined ? e.button : (e.which === 3 ? 2 : e.which === 2 ? 1 : 0);
-    if (button === 0) {
-      // Left button: go forward
-      cycleMode();
-    }
-  }, { passive: true });
+  // Click-to-cycle disabled in Daily Simulation mode
   
   /**
    * Touch move tracking for mobile

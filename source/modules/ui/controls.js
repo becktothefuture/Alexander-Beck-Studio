@@ -8,6 +8,7 @@ import { getGlobals } from '../core/state.js';
 import { applyColorTemplate, populateColorSelect } from '../visual/colors.js';
 import { autoSaveSettings } from '../utils/storage.js';
 import { bindRegisteredControls } from './control-registry.js';
+import { isDev } from '../utils/logger.js';
 
 /**
  * Master controls (shared across pages)
@@ -53,28 +54,33 @@ export function setupMasterControls() {
 
 /**
  * Index-only controls (home page)
- * - Adds mode switching UI and related updates
+ * - Mode switching disabled in production (Daily Simulation mode)
+ * - Mode switching enabled in dev mode (config panel testing)
  */
 export function setupIndexControls() {
   setupMasterControls();
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // MODE BUTTONS — Critical for panel mode switching
+  // MODE BUTTONS — Dev-only override for testing
   // ═══════════════════════════════════════════════════════════════════════════
-  const modeButtons = document.querySelectorAll('.mode-button');
-  modeButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const mode = btn.getAttribute('data-mode');
-      console.log('Mode button clicked:', mode);
-      import('../modes/mode-controller.js')
-        .then(({ setMode }) => {
-          setMode(mode);
-          updateModeButtonsUI(mode);
-        })
-        .catch(() => {});
+  // In production: Mode buttons are disabled (strict Daily Simulation mode)
+  // In dev mode: Mode buttons work for testing (config panel override)
+  if (isDev()) {
+    const modeButtons = document.querySelectorAll('.mode-button');
+    modeButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const mode = btn.getAttribute('data-mode');
+        console.log('Mode button clicked (dev override):', mode);
+        import('../modes/mode-controller.js')
+          .then(({ setMode }) => {
+            setMode(mode);
+            updateModeButtonsUI(mode);
+          })
+          .catch(() => {});
+      });
     });
-  });
+  }
 }
 
 // Backwards compatibility: the index page historically called `setupControls()`.

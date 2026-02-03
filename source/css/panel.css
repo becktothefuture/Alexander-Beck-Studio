@@ -727,6 +727,37 @@ body:not(.dark-mode) {
   transform: scale(0.95);
 }
 
+/* Daily Mode indicator */
+.mode-button.is-daily-mode {
+  position: relative;
+  border-color: var(--panel-accent);
+  box-shadow: 0 0 0 1px var(--panel-accent);
+}
+
+.mode-button.is-daily-mode::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: var(--panel-accent);
+  border-radius: 50%;
+  animation: pulse-daily 2s ease-in-out infinite;
+}
+
+@keyframes pulse-daily {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+.daily-badge {
+  display: inline-block;
+  font-size: 10px;
+  margin-left: 2px;
+  opacity: 0.8;
+}
+
 .mode-controls { 
   display: none; 
 }

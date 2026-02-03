@@ -3,8 +3,9 @@
 // ║                       Modular Architecture Bootstrap                         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { CONSTANTS, NARRATIVE_MODE_SEQUENCE, FEATURED_MODES } from './modules/core/constants.js';
+import { CONSTANTS, NARRATIVE_MODE_SEQUENCE } from './modules/core/constants.js';
 import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/core/state.js';
+import { getDailyMode } from './modules/core/daily-scheduler.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
 import { applyColorTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
 import { initNoiseSystem } from './modules/visual/noise-system.js';
@@ -32,8 +33,7 @@ import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 import { initLegendFilterSystem } from './modules/ui/legend-filter.js';
 import { initLinkCursorHop } from './modules/ui/link-cursor-hop.js';
 import { initWallElements, updateWallElements } from './modules/visual/wall-elements.js';
-// Legacy import kept for backward compatibility with control-registry
-import { initInnerWallGradientEdge, updateGradientEdge } from './modules/visual/inner-wall-gradient-edge.js';
+import { initTactileLayer, updateTactileLayer } from './modules/visual/tactile-layer.js';
 // Layout controls now integrated into master panel
 import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
 import { initSceneChangeSFX } from './modules/ui/scene-change-sfx.js';
@@ -60,10 +60,7 @@ const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : isDev();
 const CONTENT_FADE_DURATION_MS = 800;
 const CONTENT_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
-function pickStartupMode() {
-  // Random mode from FEATURED tier only (ensures visitors always see best work first)
-  return FEATURED_MODES[Math.floor(Math.random() * FEATURED_MODES.length)];
-}
+// Removed: pickStartupMode() - replaced with deterministic daily scheduler
 
 /**
  * Apply two-level padding CSS variables from global state to :root
@@ -303,6 +300,7 @@ window.addEventListener('unhandledrejection', (event) => {
     try {
       const mod = await import('./modules/ui/control-registry.js');
       mod.setApplyVisualCSSVars?.(applyVisualCSSVars);
+      mod.setUpdateTactileLayer?.(updateTactileLayer);
     } catch (e) {}
   }
   
@@ -635,6 +633,14 @@ window.addEventListener('unhandledrejection', (event) => {
     initWallElements();
     log('✓ Wall elements initialized (outer-wall, inner-wall)');
 
+    // Initialize Tactile Layer (Unicorn Studio)
+    try {
+      initTactileLayer(config);
+      log('✓ Tactile layer initialized');
+    } catch (e) {
+      console.warn('Tactile layer init failed:', e);
+    }
+
     // Link hover: hide cursor + trail; let hover dot “become” the cursor.
     initLinkCursorHop();
 
@@ -737,8 +743,8 @@ window.addEventListener('unhandledrejection', (event) => {
     
     // Layout controls integrated into master panel
     
-    // Initialize starting mode (randomized on each reload)
-    const startMode = pickStartupMode();
+    // Initialize starting mode (deterministic daily simulation)
+    const startMode = getDailyMode();
     // Cursor color: auto-pick a new contrasty ball color per simulation load.
     // Must run after theme/palette is initialized (initializeDarkMode → applyColorTemplate).
     maybeAutoPickCursorColor?.('startup');
