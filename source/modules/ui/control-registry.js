@@ -2953,9 +2953,9 @@ export const CONTROL_SECTIONS = {
         labels: [
           'Product Systems',
           'Interaction Design',
-          'Creative Tech',
-          'AI Design',
-          'Design Direction',
+          'Creative Technology',
+          'Applied AI',
+          'Experience Strategy',
           'Art Direction',
           'Prototyping'
         ],

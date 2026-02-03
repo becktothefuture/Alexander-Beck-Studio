@@ -401,9 +401,9 @@ const state = {
   colorDistribution: [
     { label: 'Product Systems', colorIndex: 0, weight: 30 },
     { label: 'Interaction Design', colorIndex: 4, weight: 18 },
-    { label: 'Creative Tech', colorIndex: 3, weight: 15 },
-    { label: 'AI Design', colorIndex: 2, weight: 12 },
-    { label: 'Design Direction', colorIndex: 5, weight: 10 },
+    { label: 'Creative Technology', colorIndex: 3, weight: 15 },
+    { label: 'Applied AI', colorIndex: 2, weight: 12 },
+    { label: 'Experience Strategy', colorIndex: 5, weight: 10 },
     { label: 'Art Direction', colorIndex: 6, weight: 10 },
     { label: 'Prototyping', colorIndex: 7, weight: 5 }
   ],

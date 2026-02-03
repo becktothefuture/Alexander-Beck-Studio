@@ -23,18 +23,18 @@
       },
       {
         "colorClass": "bg-ball-4",
-        "label": "Creative Tech",
+        "label": "Creative Technology",
         "tooltip": "I fuse craft and code to deliver expressive digital experiences that scale across web3, spatial, and emerging screens."
       },
       {
         "colorClass": "bg-ball-3",
-        "label": "AI Design",
-        "tooltip": "I use AI as a live design material, shaping new workflows and generative narratives for 2026 products."
+        "label": "Applied AI",
+        "tooltip": "I apply AI as a live material, shaping new workflows and generative narratives for 2026 products."
       },
       {
         "colorClass": "bg-ball-6",
-        "label": "Design Direction",
-        "tooltip": "I orchestrate end-to-end experience strategy that ties product, storytelling, and emerging platforms together."
+        "label": "Experience Strategy",
+        "tooltip": "I align product, storytelling, and emerging platforms into a cohesive experience strategy."
       },
       {
         "colorClass": "bg-ball-7",
