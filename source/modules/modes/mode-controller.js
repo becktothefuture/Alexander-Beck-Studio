@@ -10,23 +10,19 @@ import { initializeBallPit, applyBallPitForces } from './ball-pit.js';
 import { initializeWeightless, applyWeightlessForces } from './weightless.js';
 import { resize } from '../rendering/renderer.js';
 import { initializeWater, applyWaterForces, updateWaterRipples } from './water.js';
-import { initializeVortex, applyVortexForces } from './vortex.js';
 
 import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magnetic.js';
 import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
 import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
 import { initializeCritters, applyCrittersForces, updateCrittersGrid, renderCrittersWaypoints } from './critters.js';
-import { initializeNeural, applyNeuralForces, preRenderNeural, updateNeural } from './neural.js';
 import { initializeParallaxLinear, applyParallaxLinearForces, updateParallaxLinearMouse } from './parallax-linear.js';
 import { initializeParallaxFloat, applyParallaxFloatForces, updateParallaxFloatMouse } from './parallax-float.js';
 import { initialize3DSphere, apply3DSphereForces } from './3d-sphere.js';
 import { initialize3DCube, apply3DCubeForces } from './3d-cube.js';
 import { initializeStarfield3D, applyStarfield3DForces, updateStarfield3D, renderStarfield3D } from './starfield-3d.js';
 import { initializeElasticCenter, applyElasticCenterForces, updateElasticCenter } from './elastic-center.js';
-import { initializeDvdLogo, applyDvdLogoForces, updateDvdLogo } from './dvd-logo.js';
 
 import { initializeParticleFountain, applyParticleFountainForces, updateParticleFountain } from './particle-fountain.js';
-import { initializeShootingStars, applyShootingStarsForces, updateShootingStars, renderShootingStars } from './shooting-stars.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor } from '../visual/colors.js';
 import { resetPhysicsAccumulator } from '../physics/engine.js';
@@ -46,23 +42,19 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.FLIES: return globals.fliesWarmupFrames ?? 10;
     case MODES.WEIGHTLESS: return globals.weightlessWarmupFrames ?? 10;
     case MODES.WATER: return globals.waterWarmupFrames ?? 10;
-    case MODES.VORTEX: return globals.vortexWarmupFrames ?? 10;
 
     case MODES.MAGNETIC: return globals.magneticWarmupFrames ?? 10;
     case MODES.BUBBLES: return globals.bubblesWarmupFrames ?? 10;
     case MODES.KALEIDOSCOPE: return globals.kaleidoscope3WarmupFrames ?? globals.kaleidoscopeWarmupFrames ?? 10;
     case MODES.CRITTERS: return globals.crittersWarmupFrames ?? 10;
-    case MODES.NEURAL: return globals.neuralWarmupFrames ?? 10;
     case MODES.SPHERE_3D: return globals.sphere3dWarmupFrames ?? 10;
     case MODES.CUBE_3D: return globals.cube3dWarmupFrames ?? 10;
     case MODES.PARALLAX_LINEAR: return globals.parallaxLinearWarmupFrames ?? 10;
     case MODES.PARALLAX_FLOAT: return globals.parallaxFloatWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
-    case MODES.DVD_LOGO: return globals.dvdLogoWarmupFrames ?? 10;
 
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
-    case MODES.SHOOTING_STARS: return globals.shootingStarsWarmupFrames ?? 10;
     default: return 10;
   }
 }
@@ -111,23 +103,19 @@ export function setMode(mode) {
     flies: 'Flies to Light', 
     weightless: 'Zero Gravity', 
     water: 'Water Swimming',
-    vortex: 'Vortex Sheets',
 
     magnetic: 'Magnetic',
     bubbles: 'Carbonated Bubbles',
     'kaleidoscope-3': 'Kaleidoscope',
     critters: 'Hive',
-    neural: 'Neural Network',
     'parallax-linear': 'Parallax (Linear)',
     'parallax-float': 'Parallax (Float)',
     '3d-sphere': '3D Sphere',
     '3d-cube': '3D Cube',
     'starfield-3d': '3D Starfield',
     'elastic-center': 'Elastic Center',
-    'dvd-logo': 'DVD Logo',
 
-    'particle-fountain': 'Particle Fountain',
-    'shooting-stars': 'Shooting Stars'
+    'particle-fountain': 'Particle Fountain'
   };
   announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
   
@@ -172,11 +160,6 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeWater();
-  } else if (mode === MODES.VORTEX) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeVortex();
   } else if (mode === MODES.MAGNETIC) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -221,11 +204,6 @@ export function setMode(mode) {
     globals.ballSpacing = Math.min(globals.ballSpacing || 0, 1.0);
 
     initializeCritters();
-  } else if (mode === MODES.NEURAL) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = true;
-    initializeNeural();
   } else if (mode === MODES.PARALLAX_LINEAR) {
     globals.gravityMultiplier = 0.0;
     globals.G = 0;
@@ -247,24 +225,12 @@ export function setMode(mode) {
     globals.G = 0;
     globals.repellerEnabled = false;
     initializeElasticCenter();
-  } else if (mode === MODES.DVD_LOGO) {
-    // Disable gravity for linear screensaver movement
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeDvdLogo();
   } else if (mode === MODES.PARTICLE_FOUNTAIN) {
     // Enable gravity for particle fountain (particles fall after rising)
     globals.gravityMultiplier = globals.particleFountainGravityMultiplier || 1.0;
     globals.G = globals.GE * globals.gravityMultiplier;
     globals.repellerEnabled = true; // Enable mouse repulsion for particles
     initializeParticleFountain();
-  } else if (mode === MODES.SHOOTING_STARS) {
-    // Disable gravity for magical arcing motion
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeShootingStars();
   }
   
   console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
@@ -309,8 +275,6 @@ export function getForceApplicator() {
     return applyWeightlessForces;
   } else if (globals.currentMode === MODES.WATER) {
     return applyWaterForces;
-  } else if (globals.currentMode === MODES.VORTEX) {
-    return applyVortexForces;
   } else if (globals.currentMode === MODES.MAGNETIC) {
     return applyMagneticForces;
   } else if (globals.currentMode === MODES.BUBBLES) {
@@ -323,8 +287,6 @@ export function getForceApplicator() {
     return apply3DCubeForces;
   } else if (globals.currentMode === MODES.CRITTERS) {
     return applyCrittersForces;
-  } else if (globals.currentMode === MODES.NEURAL) {
-    return applyNeuralForces;
   } else if (globals.currentMode === MODES.PARALLAX_LINEAR) {
     return applyParallaxLinearForces;
   } else if (globals.currentMode === MODES.PARALLAX_FLOAT) {
@@ -333,12 +295,8 @@ export function getForceApplicator() {
     return applyStarfield3DForces;
   } else if (globals.currentMode === MODES.ELASTIC_CENTER) {
     return applyElasticCenterForces;
-  } else if (globals.currentMode === MODES.DVD_LOGO) {
-    return applyDvdLogoForces;
   } else if (globals.currentMode === MODES.PARTICLE_FOUNTAIN) {
     return applyParticleFountainForces;
-  } else if (globals.currentMode === MODES.SHOOTING_STARS) {
-    return applyShootingStarsForces;
   }
   return null;
 }
@@ -355,10 +313,6 @@ export function getModeUpdater() {
     return updateStarfield3D;
   } else if (globals.currentMode === MODES.ELASTIC_CENTER) {
     return updateElasticCenter;
-  } else if (globals.currentMode === MODES.DVD_LOGO) {
-    return updateDvdLogo;
-  } else if (globals.currentMode === MODES.NEURAL) {
-    return updateNeural;
   } else if (globals.currentMode === MODES.PARTICLE_FOUNTAIN) {
     return updateParticleFountain;
   } else if (globals.currentMode === MODES.PARALLAX_FLOAT) {
@@ -367,29 +321,19 @@ export function getModeUpdater() {
     return updateParallaxLinearMouse;
   } else if (globals.currentMode === MODES.CRITTERS) {
     return updateCrittersGrid;
-  } else if (globals.currentMode === MODES.SHOOTING_STARS) {
-    return updateShootingStars;
   }
   return null;
 }
 
 export function getModeRenderer() {
   const globals = getGlobals();
-  if (globals.currentMode === MODES.NEURAL) {
-    return {
-      preRender: preRenderNeural
-    };
-  } else if (globals.currentMode === MODES.STARFIELD_3D) {
+  if (globals.currentMode === MODES.STARFIELD_3D) {
     return {
       preRender: renderStarfield3D
     };
   } else if (globals.currentMode === MODES.CRITTERS) {
     return {
       preRender: renderCrittersWaypoints
-    };
-  } else if (globals.currentMode === MODES.SHOOTING_STARS) {
-    return {
-      preRender: renderShootingStars
     };
   }
   return null;

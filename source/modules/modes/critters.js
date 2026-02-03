@@ -13,10 +13,10 @@ import { MODES } from '../core/constants.js';
 // ════════════════════════════════════════════════════════════════════════════════
 // SWARM COLOR DISTRIBUTION
 // Waypoints: ALL bright accent colors from current palette (indices 3, 5, 6, 7)
-// Critters: Greys only (indices 0, 1) - subtle, let waypoints hold the color
+// Critters: All colors from palette (indices 0-7) - no strict separation
 // ════════════════════════════════════════════════════════════════════════════════
 const WAYPOINT_COLOR_INDICES = [3, 5, 6, 7];  // All 4 bright accents from palette
-const CRITTER_COLOR_INDICES = [0, 1];          // Greys only
+const CRITTER_COLOR_INDICES = [0, 1, 2, 3, 4, 5, 6, 7];  // All colors from palette
 
 // ════════════════════════════════════════════════════════════════════════════════
 // SPATIAL HASH GRID (for O(1) neighbor lookups instead of O(n²))

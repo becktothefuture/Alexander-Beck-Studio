@@ -123,6 +123,8 @@ export function initializeParallaxFloat() {
         
         ball._parallaxSizeMul = (varFrac <= 1e-6) ? 1.0 : (1 + (Math.random() * 2 - 1) * varFrac);
         ball._isParallax = true; // Skip all standard physics
+        // Z-depth for logo layering: invert depthFactor (0=far becomes back, 1=near becomes front)
+        ball.z = 1 - depthFactor;
         idx++;
       }
     }

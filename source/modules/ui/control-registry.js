@@ -7,8 +7,9 @@
 import { getGlobals } from '../core/state.js';
 import { PARALLAX_LINEAR_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
+import { updateWallElements } from '../visual/wall-elements.js';
 
-// Lazy import to avoid circular dependency - will be called when needed
+// Lazy import for other callers that may load before wall-elements (e.g. sync)
 let _updateWallElements = null;
 async function getUpdateWallElements() {
   if (!_updateWallElements) {
@@ -936,7 +937,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'ballSizeMin',
         type: 'range',
         min: 8, max: 40, step: 1,
-        default: 22,
+        default: 12,
         format: v => v + 'px',
         parse: parseFloat,
         hint: 'Ball radius at smallest viewport (320px)',
@@ -960,7 +961,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'ballSizeMax',
         type: 'range',
         min: 10, max: 60, step: 1,
-        default: 30,
+        default: 12,
         format: v => v + 'px',
         parse: parseFloat,
         hint: 'Ball radius at largest viewport (1920px)',
@@ -984,7 +985,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'ballSizeCurve',
         type: 'range',
         min: 0.2, max: 5, step: 0.1,
-        default: 2.5,
+        default: 1.6,
         format: v => v.toFixed(1),
         parse: parseFloat,
         hint: 'Easing curve (1=linear, >1=smaller longer, <1=grows faster)',
@@ -1008,7 +1009,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'mobileObjectReductionFactor',
         type: 'range',
         min: 0, max: 1.0, step: 0.05,
-        default: 0.7,
+        default: 1.0,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Scales object counts on mobile (0% = none). Resets the current mode.',
@@ -1024,7 +1025,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'ballSoftness',
         type: 'range',
         min: 0, max: 100, step: 1,
-        default: 20,
+        default: 29,
         format: v => String(v),
         parse: v => parseInt(v, 10)
       },
@@ -1061,7 +1062,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sizeVariationCap',
         type: 'range',
         min: 0, max: 0.2, step: 0.01,
-        default: 0.2,
+        default: 0,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat,
         hint: 'Max radius deviation from medium (20% = ±20%)',
@@ -2770,7 +2771,7 @@ export const CONTROL_SECTIONS = {
         label: 'Enabled',
         stateKey: 'tactileEnabled',
         type: 'checkbox',
-        default: true,
+        default: false,
         hint: 'Enable Unicorn Studio WebGL layer',
         onChange: (g, val) => {
           if (updateTactileLayerFn) updateTactileLayerFn(g);
@@ -3368,7 +3369,11 @@ export const CONTROL_SECTIONS = {
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
         hint: 'Thickness of the continuous border',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+        onChange: (_g, val) => {
+          const px = `${Number(val)}px`;
+          document.documentElement.style.setProperty('--outer-wall-border-width', px);
+          updateWallElements();
+        }
       },
       
       // Light Mode Group
@@ -3462,6 +3467,55 @@ export const CONTROL_SECTIONS = {
       },
       
       // ─── DEPTH SHADOW ───
+      {
+        id: 'outerWallTopShadowOpacityLight',
+        label: 'Top Shadow ☀️',
+        stateKey: 'outerWallTopShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.4,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Top overhang shadow opacity in light mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallTopShadowOpacityDark',
+        label: 'Top Shadow 🌙',
+        stateKey: 'outerWallTopShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.6,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Top overhang shadow opacity in dark mode',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallTopShadowOffset',
+        label: 'Top Shadow Offset',
+        stateKey: 'outerWallTopShadowOffset',
+        type: 'range',
+        min: 0, max: 20, step: 1,
+        default: 3,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Vertical offset of the top overhang shadow',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallTopShadowBlur',
+        label: 'Top Shadow Blur',
+        stateKey: 'outerWallTopShadowBlur',
+        type: 'range',
+        min: 0, max: 30, step: 1,
+        default: 8,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Blur radius of the top overhang shadow',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      
       { type: 'divider', label: '🌑 Depth Shadow' },
       {
         id: 'outerWallCastShadowBlur',
@@ -3648,7 +3702,9 @@ export const CONTROL_SECTIONS = {
         parse: parseFloat,
         hint: 'Thickness of the continuous border',
         onChange: (_g, val) => {
-          getUpdateWallElements().then(fn => fn?.());
+          const px = `${Number(val)}px`;
+          document.documentElement.style.setProperty('--inner-wall-border-width', px);
+          updateWallElements();
         }
       },
       // Light Mode Group

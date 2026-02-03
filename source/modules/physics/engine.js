@@ -21,11 +21,85 @@ import {
   subtractFromAccumulator,
   resetPhysicsAccumulator 
 } from './accumulator.js';
+import {
+  initCanvasLogo,
+  updateLogoSize,
+  drawLogo,
+  updateLogoEntrance,
+  isCanvasLogoReady
+} from '../rendering/canvas-logo.js';
 
 // Re-export for backwards compatibility
 export { resetPhysicsAccumulator };
 
 const DT_DESKTOP = CONSTANTS.PHYSICS_DT;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOGO Z-DEPTH CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+const LOGO_Z = 0.5; // Logo renders at z=0.5 (middle of depth range)
+
+// Depth fog settings for z-partitioned modes
+// Balls further back (z closer to 0) fade out more
+// Note: This is additive to any mode-specific fog (e.g., 3D cube's own fog)
+// Keep subtle to avoid over-darkening
+const DEPTH_FOG_MIN_OPACITY = 0.3;   // Minimum opacity for balls at z=0 (furthest back)
+const DEPTH_FOG_START_Z = 0.75;      // Z value where fog starts fading (balls above this are fully opaque)
+
+// Modes that render ALL balls on top of logo (no z-partitioning needed)
+// Category A: Simple particle simulations
+const MODES_ALWAYS_ON_TOP = new Set([
+  MODES.PIT,
+  MODES.FLIES,
+  MODES.WEIGHTLESS,
+  MODES.CRITTERS,
+  MODES.MAGNETIC,
+  MODES.ELASTIC_CENTER,
+  MODES.WATER,
+  MODES.KALEIDOSCOPE,
+  MODES.DVD_LOGO,
+  MODES.SHOOTING_STARS
+]);
+
+/**
+ * Calculate depth fog opacity multiplier based on z-depth
+ * Efficient linear interpolation - no expensive calculations
+ * z=0 (back) → DEPTH_FOG_MIN_OPACITY (30% opacity)
+ * z>=DEPTH_FOG_START_Z (front) → 1.0 (100% opacity)
+ * Linear interpolation between
+ * @param {number} z - Z-depth value (0-1)
+ * @returns {number} Opacity multiplier (0-1)
+ */
+function getDepthFogOpacity(z) {
+  if (z >= DEPTH_FOG_START_Z) return 1.0;
+  // Linear fade from MIN_OPACITY at z=0 to 1.0 at z=DEPTH_FOG_START_Z
+  // This is just: minOpacity + (z / startZ) * (1 - minOpacity)
+  // Very cheap calculation - no conditionals, no expensive math
+  const t = z / DEPTH_FOG_START_Z;
+  return DEPTH_FOG_MIN_OPACITY + t * (1.0 - DEPTH_FOG_MIN_OPACITY);
+}
+
+/**
+ * Check if current mode needs z-partitioning for logo rendering
+ * Returns false for Category A modes (balls always on top)
+ * Returns true for Category B/C/D modes (spatial/3D)
+ */
+function modeNeedsZPartitioning(mode) {
+  return !MODES_ALWAYS_ON_TOP.has(mode);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOGO Z-PARTITION CACHE (avoid per-frame allocations)
+// ═══════════════════════════════════════════════════════════════════════════════
+const zPartitionCache = {
+  behind: [],
+  inFront: []
+};
+
+function resetZPartitionCache() {
+  zPartitionCache.behind.length = 0;
+  zPartitionCache.inFront.length = 0;
+}
 const DT_MOBILE = CONSTANTS.PHYSICS_DT_MOBILE;
 const CORNER_RADIUS = 42; // matches rounded container corners
 const CORNER_FORCE = 1800;
@@ -407,6 +481,9 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   
   // Update cursor explosion particles
   updateCursorExplosion(dtSeconds);
+  
+  // Update logo entrance animation
+  updateLogoEntrance(dtSeconds);
 }
 
 export function render() {
@@ -416,6 +493,12 @@ export function render() {
   const canvas = globals.canvas;
   
   if (!ctx || !canvas) return;
+  
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // LOGO: Update size (early-exits if no changes)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  const dpr = globals.DPR || 1;
+  updateLogoSize(canvas.width, canvas.height, dpr);
   
   // Clear frame (ghost trails removed per performance optimization plan)
   // Clear BEFORE applying clip so the corners never accumulate stale pixels.
@@ -443,54 +526,62 @@ export function render() {
     modeRenderer.preRender(ctx);
   }
   
-  // ══════════════════════════════════════════════════════════════════════════════
-  // OPTIMIZATION #1: Batch balls by color to reduce ctx.fillStyle changes
-  // Typical scene: 300 balls, 8-12 unique colors
-  // Before: 300 fillStyle changes per frame
-  // After: 8-12 fillStyle changes per frame (~25x reduction)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // LOGO + BALLS RENDERING WITH Z-DEPTH
   // 
-  // IMPORTANT: This does NOT change ball color distribution - we're only
-  // optimizing how they're rendered, not how colors are assigned to balls.
-  // ══════════════════════════════════════════════════════════════════════════════
+  // Category A modes (particle sims): Logo first, then all balls on top
+  // Category B/C/D modes (spatial/3D): Partition balls by z, draw behind → logo → front
+  // ═══════════════════════════════════════════════════════════════════════════════
+  const needsZPartition = modeNeedsZPartitioning(globals.currentMode);
+  const logoReady = isCanvasLogoReady();
+  
   if (globals.currentMode === MODES.KALEIDOSCOPE) {
+    // Kaleidoscope has special rendering - draw logo first, then kaleidoscope on top
+    if (logoReady) {
+      drawLogo(ctx, canvas.width, canvas.height);
+    }
     renderKaleidoscope(ctx);
-  } else {
-    // Group balls by color (O(n) pass, minimal overhead)
-    // PERF: Reuse cached Map and arrays to eliminate per-frame allocations
-    resetColorBatchCache();
-    const ballsByColor = colorBatchCache.map;
-    for (let i = 0; i < balls.length; i++) {
-      const ball = balls[i];
-      const color = ball.color;
-      if (!ballsByColor.has(color)) {
-        ballsByColor.set(color, getColorArray());
-      }
-      ballsByColor.get(color).push(ball);
+  } else if (!needsZPartition) {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CATEGORY A: All balls render ON TOP of logo (no z-partitioning)
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (logoReady) {
+      drawLogo(ctx, canvas.width, canvas.height);
     }
     
-    // Draw in batches (far fewer fillStyle state changes)
-    for (const [color, group] of ballsByColor) {
-      ctx.fillStyle = color;
-      
-      for (let i = 0; i < group.length; i++) {
-        const ball = group[i];
-        
-        // Handle special rendering cases (squash, alpha, filtering)
-        const hasSquash = ball.squashAmount > 0.01;
-        const filterOpacity = ball.filterOpacity ?? 1;
-        const effectiveAlpha = ball.alpha * filterOpacity;
-        const hasAlpha = effectiveAlpha < 1.0;
-        
-        if (hasSquash || hasAlpha) {
-          // Use existing Ball.draw() for complex cases
-          ball.draw(ctx);
-        } else {
-          // Fast path: simple circle (no transforms, no save/restore)
-          ctx.beginPath();
-          ctx.arc(ball.x, ball.y, ball.getDisplayRadius(), 0, Math.PI * 2);
-          ctx.fill();
-        }
+    // Draw all balls (color-batched for performance)
+    renderBallsColorBatched(ctx, balls);
+    
+  } else {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CATEGORY B/C/D: Partition balls by z-depth
+    // Balls with z < 0.5 render behind logo, z >= 0.5 render in front
+    // ═══════════════════════════════════════════════════════════════════════════
+    resetZPartitionCache();
+    
+    for (let i = 0; i < balls.length; i++) {
+      const ball = balls[i];
+      const z = ball.z ?? 1.0; // Default to front if z not set
+      if (z < LOGO_Z) {
+        zPartitionCache.behind.push(ball);
+      } else {
+        zPartitionCache.inFront.push(ball);
       }
+    }
+    
+    // Draw balls behind logo (with depth fog for atmospheric effect)
+    if (zPartitionCache.behind.length > 0) {
+      renderBallsColorBatched(ctx, zPartitionCache.behind, true); // Apply depth fog
+    }
+    
+    // Draw logo
+    if (logoReady) {
+      drawLogo(ctx, canvas.width, canvas.height);
+    }
+    
+    // Draw balls in front of logo (also apply depth fog for consistent effect)
+    if (zPartitionCache.inFront.length > 0) {
+      renderBallsColorBatched(ctx, zPartitionCache.inFront, true); // Apply depth fog
     }
   }
 
@@ -514,6 +605,80 @@ export function render() {
   
   // Draw rubber walls LAST (in front of balls, outside clip path)
   drawWalls(ctx, canvas.width, canvas.height);
+}
+
+/**
+ * Render balls with color batching optimization
+ * Groups balls by color to reduce ctx.fillStyle changes
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Array} ballsToRender - Array of Ball objects
+ * @param {boolean} applyDepthFog - Whether to apply z-depth fog (for balls behind logo)
+ */
+function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false) {
+  if (!ballsToRender || ballsToRender.length === 0) return;
+  
+  // Group balls by color (O(n) pass, minimal overhead)
+  // PERF: Reuse cached Map and arrays to eliminate per-frame allocations
+  resetColorBatchCache();
+  const ballsByColor = colorBatchCache.map;
+  
+  for (let i = 0; i < ballsToRender.length; i++) {
+    const ball = ballsToRender[i];
+    const color = ball.color;
+    if (!ballsByColor.has(color)) {
+      ballsByColor.set(color, getColorArray());
+    }
+    ballsByColor.get(color).push(ball);
+  }
+  
+  // Draw in batches (far fewer fillStyle state changes)
+  for (const [color, group] of ballsByColor) {
+    ctx.fillStyle = color;
+    
+    for (let i = 0; i < group.length; i++) {
+      const ball = group[i];
+      
+      // Handle special rendering cases (squash, alpha, filtering)
+      const hasSquash = ball.squashAmount > 0.01;
+      const filterOpacity = ball.filterOpacity ?? 1;
+      let effectiveAlpha = ball.alpha * filterOpacity;
+      
+      // Apply depth fog for balls behind logo (more transparent when further back)
+      if (applyDepthFog) {
+        const fogOpacity = getDepthFogOpacity(ball.z ?? 1.0);
+        effectiveAlpha *= fogOpacity;
+      }
+      
+      const hasAlpha = effectiveAlpha < 1.0;
+      
+      if (hasSquash || hasAlpha) {
+        // Complex case: use save/restore for alpha and transforms
+        ctx.save();
+        ctx.globalAlpha = effectiveAlpha;
+        
+        if (hasSquash) {
+          // Use existing Ball.draw() for squash (it handles transforms)
+          // But we've already set globalAlpha, so temporarily override
+          const originalAlpha = ball.alpha;
+          ball.alpha = 1.0; // Prevent double-applying alpha
+          ball.draw(ctx);
+          ball.alpha = originalAlpha;
+        } else {
+          // Simple alpha case: just draw circle with alpha
+          ctx.beginPath();
+          ctx.arc(ball.x, ball.y, ball.getDisplayRadius(), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        ctx.restore();
+      } else {
+        // Fast path: simple circle (no transforms, no save/restore)
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.getDisplayRadius(), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
 }
 
 /**

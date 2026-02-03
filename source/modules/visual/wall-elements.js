@@ -2,16 +2,14 @@
 // ║                         WALL ELEMENTS SYSTEM                                 ║
 // ║                                                                              ║
 // ║  Creates real DOM elements for outer and inner walls with proper layering.  ║
-// ║  Replaces pseudo-elements (::before/::after) for better control and         ║
-// ║  clip-path support on gradient overlays.                                    ║
+// ║  Manages continuous conic gradient borders via CSS custom properties.      ║
 // ║                                                                              ║
 // ║  Structure:                                                                  ║
 // ║  #bravia-balls                                                               ║
-// ║    ├── .outer-wall (inset:0, larger radius, inset shadow effect)           ║
-// ║    ├── .inner-wall (inset:wall-thickness, smaller radius, outset effect)   ║
-// ║    │   ├── .inner-wall__edge--top (gradient light from above)              ║
-// ║    │   └── .inner-wall__edge--bottom (gradient shadow from below)          ║
-// ║    └── canvas                                                               ║
+// ║    ├── .outer-wall (recessed effect, conic border via ::before)              ║
+// ║    ├── .inner-wall (raised effect, conic border via ::before)                ║
+// ║    │   └── .inner-wall__glow (soft ambient top light)                        ║
+// ║    └── canvas                                                                ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
@@ -19,12 +17,55 @@ import { getGlobals } from '../core/state.js';
 // Element references
 let outerWall = null;
 let innerWall = null;
-let topEdge = null;
-let bottomEdge = null;
 let innerGlow = null;
-let outerBottomEdge = null;
-let outerTopEdge = null;
 let initialized = false;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LIGHT SIMULATION
+// Naturalistic fluctuation of ambient light
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let lightSimTimeout = null;
+
+export function initLightSimulation() {
+  if (lightSimTimeout) clearTimeout(lightSimTimeout);
+  
+  // Set initial value
+  // OPTIMIZATION: Set on outerWall instead of root to scope style invalidation
+  // This prevents the whole document from recalculating styles on every light tick
+  if (outerWall) {
+    outerWall.style.setProperty('--ambient-light-mul', '1');
+  }
+  
+  const tick = () => {
+    const g = getGlobals();
+    if (!g || !outerWall) {
+      lightSimTimeout = setTimeout(tick, 1000);
+      return;
+    }
+    
+    // Configurable strength of fluctuation
+    const strength = g.wallLightFluctuationStrength ?? 0.15;
+    
+    // Random target between 1.0 - strength and 1.0 + strength
+    const randomFactor = (Math.random() - 0.5) * 2; // -1 to 1
+    const targetMul = 1.0 + (randomFactor * strength);
+    
+    // Apply to CSS variable on the LOCAL element
+    outerWall.style.setProperty('--ambient-light-mul', targetMul.toFixed(3));
+    
+    // Also apply to inner wall if it uses it (it does for borders)
+    if (innerWall) {
+        innerWall.style.setProperty('--ambient-light-mul', targetMul.toFixed(3));
+    }
+    
+    // Schedule next update
+    const nextInterval = 3000 + Math.random() * 3000;
+    lightSimTimeout = setTimeout(tick, nextInterval);
+  };
+  
+  tick();
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INITIALIZATION
@@ -46,17 +87,6 @@ export function initWallElements() {
   outerWall.setAttribute('aria-hidden', 'true');
   container.insertBefore(outerWall, container.firstChild);
   
-  // Create outer wall edge gradients (inside outer wall for clipping)
-  outerTopEdge = document.createElement('div');
-  outerTopEdge.className = 'outer-wall__edge outer-wall__edge--top';
-  outerTopEdge.setAttribute('aria-hidden', 'true');
-  outerWall.appendChild(outerTopEdge);
-  
-  outerBottomEdge = document.createElement('div');
-  outerBottomEdge.className = 'outer-wall__edge outer-wall__edge--bottom';
-  outerBottomEdge.setAttribute('aria-hidden', 'true');
-  outerWall.appendChild(outerBottomEdge);
-  
   // Create inner wall (outset effect - appears raised)
   innerWall = document.createElement('div');
   innerWall.className = 'inner-wall';
@@ -74,19 +104,10 @@ export function initWallElements() {
   innerGlow.style.pointerEvents = 'none';
   innerWall.appendChild(innerGlow);
   
-  // Create top edge gradient (inside inner wall for proper clipping)
-  topEdge = document.createElement('div');
-  topEdge.className = 'inner-wall__edge inner-wall__edge--top';
-  topEdge.setAttribute('aria-hidden', 'true');
-  innerWall.appendChild(topEdge);
-  
-  // Create bottom edge gradient (inside inner wall for proper clipping)
-  bottomEdge = document.createElement('div');
-  bottomEdge.className = 'inner-wall__edge inner-wall__edge--bottom';
-  bottomEdge.setAttribute('aria-hidden', 'true');
-  innerWall.appendChild(bottomEdge);
-  
   initialized = true;
+  
+  // Start light simulation
+  initLightSimulation();
   
   // Apply initial styles
   updateWallElements();
@@ -113,29 +134,28 @@ export function updateWallElements() {
   const radiusPx = parseFloat(wallRadius) || 24;
   
   // Outer wall radius = inner radius + half wall thickness + adjustment
-  const outerRadiusAdjust = parseFloat(getComputedStyle(root).getPropertyValue('--outer-wall-radius-adjust').trim()) || 2;
+  const outerRadiusAdjust = g.outerWallRadiusAdjust ?? 2;
   const outerRadius = radiusPx + (thicknessPx * 0.5) + outerRadiusAdjust;
   
   // Update outer wall
   outerWall.style.borderRadius = `${outerRadius}px`;
+  // IMPORTANT: Set CSS variable so pseudo-element calc() can work
+  outerWall.style.setProperty('--current-outer-radius', `${outerRadius}px`);
   
   // Update inner wall
   innerWall.style.inset = wallThickness;
   innerWall.style.borderRadius = wallRadius;
   
-  // Update edge gradients
-  updateEdgeGradients(g, isDark, radiusPx);
+  // Update border styles (CSS variables)
+  updateWallBorders(g, isDark);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// UPDATE EDGE GRADIENTS
-// Applies radial gradient lighting to both inner and outer wall edges
+// UPDATE WALL BORDERS
+// Sets CSS custom properties that control the conic gradient borders
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function updateEdgeGradients(g, isDark, wallRadius) {
-  const innerGradientRadius = g.innerWallGradientRadius ?? 70;
-  const outerGradientRadius = g.outerWallGradientRadius ?? 70;
-  
+function updateWallBorders(g, isDark) {
   // ─────────────────────────────────────────────────────────────────────────────
   // INNER WALL GLOW (Top light gradient)
   // ─────────────────────────────────────────────────────────────────────────────
@@ -164,120 +184,84 @@ function updateEdgeGradients(g, isDark, wallRadius) {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // INNER WALL EDGES
-  // Top: light from above | Bottom: shadow from below
+  // INNER WALL BORDER (Conic gradient via ::before)
   // ─────────────────────────────────────────────────────────────────────────────
-  if (topEdge && bottomEdge) {
-    const innerTopOpacity = isDark 
-      ? (g.innerWallTopLightOpacityDark ?? 0.4)
-      : (g.innerWallTopLightOpacityLight ?? 0.3);
+  if (innerWall) {
+    const width = g.innerWallBorderWidth ?? 2;
+    // Angles for conical gradient: center 0deg (top).
+    // Spread defines how wide the bright spot is.
+    const spread = g.innerWallBorderGradientSpread ?? 75; // Degrees from center (total width = 2x)
     
-    const innerBottomOpacity = isDark
-      ? (g.innerWallTopBevelOpacityDark ?? 0.25)
-      : (g.innerWallTopBevelOpacityLight ?? 0.18);
-    
-    const innerTopColor = g.innerWallTopLightColor ?? '#ffffff';
-    const innerBottomColor = g.innerWallBottomShadowColor ?? '#000000';
-    const innerEdgeWidth = g.innerWallTopBevelWidth ?? 2;
-    
-    const innerTopRgb = hexToRgb(innerTopColor);
-    const innerBottomRgb = hexToRgb(innerBottomColor);
-    
-    // Inner wall top gradient (light from above)
-    if (innerTopOpacity <= 0.01) {
-      topEdge.style.display = 'none';
-      topEdge.style.background = 'none';
-      topEdge.style.height = '0px';
-    } else {
-      topEdge.style.display = 'block';
-      const innerTopGradient = `radial-gradient(
-        ellipse ${innerGradientRadius}% 200% at 50% 0%,
-        rgba(${innerTopRgb.r}, ${innerTopRgb.g}, ${innerTopRgb.b}, ${innerTopOpacity}) 0%,
-        rgba(${innerTopRgb.r}, ${innerTopRgb.g}, ${innerTopRgb.b}, ${innerTopOpacity * 0.8}) 20%,
-        rgba(${innerTopRgb.r}, ${innerTopRgb.g}, ${innerTopRgb.b}, ${innerTopOpacity * 0.4}) 50%,
-        rgba(${innerTopRgb.r}, ${innerTopRgb.g}, ${innerTopRgb.b}, 0) 100%
-      )`;
-      topEdge.style.background = innerTopGradient;
-      topEdge.style.height = `${innerEdgeWidth}px`;
-    }
+    const brightOp = isDark ? (g.innerWallBorderBrightOpacityDark ?? 0.6) : (g.innerWallBorderBrightOpacityLight ?? 0.5);
+    const dimOp = isDark ? (g.innerWallBorderDimOpacityDark ?? 0.2) : (g.innerWallBorderDimOpacityLight ?? 0.15);
+    const shadowOp = isDark ? (g.innerWallBorderShadowOpacityDark ?? 0.35) : (g.innerWallBorderShadowOpacityLight ?? 0.2);
 
-    // Inner wall bottom gradient (shadow from below)
-    if (innerBottomOpacity <= 0.01) {
-      bottomEdge.style.display = 'none';
-      bottomEdge.style.background = 'none';
-      bottomEdge.style.height = '0px';
-    } else {
-      bottomEdge.style.display = 'block';
-      const innerBottomGradient = `radial-gradient(
-        ellipse ${innerGradientRadius}% 200% at 50% 100%,
-        rgba(${innerBottomRgb.r}, ${innerBottomRgb.g}, ${innerBottomRgb.b}, ${innerBottomOpacity}) 0%,
-        rgba(${innerBottomRgb.r}, ${innerBottomRgb.g}, ${innerBottomRgb.b}, ${innerBottomOpacity * 0.8}) 20%,
-        rgba(${innerBottomRgb.r}, ${innerBottomRgb.g}, ${innerBottomRgb.b}, ${innerBottomOpacity * 0.4}) 50%,
-        rgba(${innerBottomRgb.r}, ${innerBottomRgb.g}, ${innerBottomRgb.b}, 0) 100%
-      )`;
-      bottomEdge.style.background = innerBottomGradient;
-      bottomEdge.style.height = `${innerEdgeWidth}px`;
-    }
+    innerWall.style.setProperty('--inner-wall-border-width', `${width}px`);
+    
+    // Set gradient stops based on spread
+    // 0deg = Top Center (Brightest)
+    // spread = End of bright fade
+    innerWall.style.setProperty('--inner-wall-grad-stop-bright', `0deg`);
+    innerWall.style.setProperty('--inner-wall-grad-stop-dim-start', `${spread}deg`);
+    innerWall.style.setProperty('--inner-wall-grad-stop-dim-end', `${360 - spread}deg`);
+    
+    // Multiply by ambient light for dynamic effect
+    innerWall.style.setProperty('--inner-wall-border-bright-opacity', `calc(${brightOp} * var(--ambient-light-mul, 1))`);
+    innerWall.style.setProperty('--inner-wall-border-dim-opacity', `calc(${dimOp} * var(--ambient-light-mul, 1))`);
+    innerWall.style.setProperty('--inner-wall-border-shadow-opacity', shadowOp); // Shadows typically don't fluctuate with light intensity in the same way, or inverse? Let's keep static for now or maybe subtle inverse? Sticking to static for shadow to anchor it.
   }
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
-  // OUTER WALL EDGES
-  // Top: shadow from above (dark) | Bottom: light catching from above (bright)
-  // Opposite of inner wall - outer wall is recessed, so bottom catches light
+  // OUTER WALL BORDER (Conic gradient via ::before)
   // ─────────────────────────────────────────────────────────────────────────────
-  if (outerTopEdge && outerBottomEdge) {
-    // Outer wall top edge (shadow - dark, recessed look)
-    const outerTopOpacity = isDark
-      ? (g.outerWallTopDarkOpacityDark ?? 0.5)
-      : (g.outerWallTopDarkOpacityLight ?? 0.5);
-    const outerTopColor = g.outerWallTopDarkColor ?? '#000000';
+  if (outerWall) {
+    const width = g.outerWallBorderWidth ?? 2;
+    // Angles for conical gradient: center 180deg (bottom).
+    const spread = g.outerWallBorderGradientSpread ?? 85; // Degrees from center
     
-    // Outer wall bottom edge (light - catching light from above)
-    const outerBottomOpacity = isDark
-      ? (g.outerWallBottomLightOpacityDark ?? 0.5)
-      : (g.outerWallBottomLightOpacityLight ?? 0.5);
-    const outerBottomColor = g.outerWallBottomLightColor ?? '#ffffff';
+    const brightOp = isDark ? (g.outerWallBorderBrightOpacityDark ?? 0.6) : (g.outerWallBorderBrightOpacityLight ?? 0.5);
+    const dimOp = isDark ? (g.outerWallBorderDimOpacityDark ?? 0.2) : (g.outerWallBorderDimOpacityLight ?? 0.15);
+    const shadowOp = isDark ? (g.outerWallBorderShadowOpacityDark ?? 0.4) : (g.outerWallBorderShadowOpacityLight ?? 0.25);
+
+    outerWall.style.setProperty('--outer-wall-border-width', `${width}px`);
     
-    const outerEdgeWidth = g.outerWallEdgeWidth ?? 2;
+    // Set gradient stops based on spread (centered at 180deg)
+    // 180deg = Bottom Center (Brightest)
+    // 180 +/- spread = End of bright fade
+    outerWall.style.setProperty('--outer-wall-grad-stop-bright', `180deg`);
+    outerWall.style.setProperty('--outer-wall-grad-stop-dim-start', `${180 - spread}deg`);
+    outerWall.style.setProperty('--outer-wall-grad-stop-dim-end', `${180 + spread}deg`);
     
-    const outerTopRgb = hexToRgb(outerTopColor);
-    const outerBottomRgb = hexToRgb(outerBottomColor);
+    outerWall.style.setProperty('--outer-wall-border-bright-opacity', `calc(${brightOp} * var(--ambient-light-mul, 1))`);
+    outerWall.style.setProperty('--outer-wall-border-dim-opacity', `calc(${dimOp} * var(--ambient-light-mul, 1))`);
+    outerWall.style.setProperty('--outer-wall-border-shadow-opacity', shadowOp);
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // MICRO-DETAILS (AO & Specular Bevel)
+    // ─────────────────────────────────────────────────────────────────────────────
     
-    // Outer wall top gradient (shadow from above - darker at center)
-    if (outerTopOpacity <= 0.01) {
-      outerTopEdge.style.display = 'none';
-      outerTopEdge.style.background = 'none';
-      outerTopEdge.style.height = '0px';
-    } else {
-      outerTopEdge.style.display = 'block';
-      const outerTopGradient = `radial-gradient(
-        ellipse ${outerGradientRadius}% 200% at 50% 0%,
-        rgba(${outerTopRgb.r}, ${outerTopRgb.g}, ${outerTopRgb.b}, ${outerTopOpacity}) 0%,
-        rgba(${outerTopRgb.r}, ${outerTopRgb.g}, ${outerTopRgb.b}, ${outerTopOpacity * 0.8}) 20%,
-        rgba(${outerTopRgb.r}, ${outerTopRgb.g}, ${outerTopRgb.b}, ${outerTopOpacity * 0.4}) 50%,
-        rgba(${outerTopRgb.r}, ${outerTopRgb.g}, ${outerTopRgb.b}, 0) 100%
-      )`;
-      outerTopEdge.style.background = outerTopGradient;
-      outerTopEdge.style.height = `${outerEdgeWidth}px`;
-    }
+    // Ambient Occlusion (AO)
+    const aoOpacity = isDark ? (g.wallAOOpacityDark ?? 0.3) : (g.wallAOOpacityLight ?? 0.15);
+    const aoSpread = g.wallAOSpread ?? 2;
+    outerWall.style.setProperty('--wall-ao-opacity', aoOpacity);
+    outerWall.style.setProperty('--wall-ao-spread', `${aoSpread}px`);
+
+    // Specular Micro-Bevel
+    const specOpacity = isDark ? (g.wallSpecularOpacityDark ?? 0.5) : (g.wallSpecularOpacityLight ?? 0.4);
+    const specWidth = g.wallSpecularWidth ?? 0.5;
+    // Specular highlight fluctuates significantly with light
+    // We update the variable that the CSS uses in its calc()
+    outerWall.style.setProperty('--wall-specular-opacity', specOpacity); 
+    outerWall.style.setProperty('--wall-specular-width', `${specWidth}px`);
     
-    // Outer wall bottom gradient (light catching - brightest at center)
-    if (outerBottomOpacity <= 0.01) {
-      outerBottomEdge.style.display = 'none';
-      outerBottomEdge.style.background = 'none';
-      outerBottomEdge.style.height = '0px';
-    } else {
-      outerBottomEdge.style.display = 'block';
-      const outerBottomGradient = `radial-gradient(
-        ellipse ${outerGradientRadius}% 200% at 50% 100%,
-        rgba(${outerBottomRgb.r}, ${outerBottomRgb.g}, ${outerBottomRgb.b}, ${outerBottomOpacity}) 0%,
-        rgba(${outerBottomRgb.r}, ${outerBottomRgb.g}, ${outerBottomRgb.b}, ${outerBottomOpacity * 0.8}) 20%,
-        rgba(${outerBottomRgb.r}, ${outerBottomRgb.g}, ${outerBottomRgb.b}, ${outerBottomOpacity * 0.4}) 50%,
-        rgba(${outerBottomRgb.r}, ${outerBottomRgb.g}, ${outerBottomRgb.b}, 0) 100%
-      )`;
-      outerBottomEdge.style.background = outerBottomGradient;
-      outerBottomEdge.style.height = `${outerEdgeWidth}px`;
-    }
+    // Top Shadow (Overhang)
+    const topShadowOp = isDark ? (g.outerWallTopShadowOpacityDark ?? 0.6) : (g.outerWallTopShadowOpacityLight ?? 0.4);
+    const topShadowBlur = g.outerWallTopShadowBlur ?? 8;
+    const topShadowOffset = g.outerWallTopShadowOffset ?? 3;
+    
+    outerWall.style.setProperty('--outer-wall-top-shadow-opacity', topShadowOp);
+    outerWall.style.setProperty('--outer-wall-top-shadow-blur', `${topShadowBlur}px`);
+    outerWall.style.setProperty('--outer-wall-top-shadow-offset', `${topShadowOffset}px`);
   }
 }
 
@@ -305,10 +289,6 @@ function hexToRgb(hex) {
 
 export function getOuterWall() { return outerWall; }
 export function getInnerWall() { return innerWall; }
-export function getTopEdge() { return topEdge; }
-export function getBottomEdge() { return bottomEdge; }
-export function getOuterTopEdge() { return outerTopEdge; }
-export function getOuterBottomEdge() { return outerBottomEdge; }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CLEANUP
@@ -323,9 +303,5 @@ export function destroyWallElements() {
   outerWall = null;
   innerWall = null;
   innerGlow = null;
-  topEdge = null;
-  bottomEdge = null;
-  outerTopEdge = null;
-  outerBottomEdge = null;
   initialized = false;
 }

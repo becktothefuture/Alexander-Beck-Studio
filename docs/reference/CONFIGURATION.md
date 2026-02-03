@@ -480,7 +480,7 @@ These keys control the ball-only Critters simulation (mode `critters`).
 
 These keys control the 3D Sphere simulation (mode `3d-sphere`). Rotating sphere point cloud, camera-locked like 3D Cube.
 
-- `sphere3dRadiusVw` (number, vw): sphere radius (vw → px at init) — default: 18
+- `sphere3dRadiusVw` (number, vmin): sphere radius (percent of shorter side → px) — default: 18
 - `sphere3dDensity` (number): number of surface points (re-init on change) — default: 140
 - `sphere3dFocalLength` (number, px): perspective focal length — default: 600
 - `sphere3dDotSizeMul` (number): dot size multiplier — default: 1.5

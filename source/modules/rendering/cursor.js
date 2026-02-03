@@ -22,17 +22,39 @@ let lastClientX = 0;
 let lastClientY = 0;
 
 /**
- * Check if mouse is inside simulation container
+ * Check if mouse is inside inner wall area (the actual simulation content area)
  * Uses cached bounding rect for performance
+ * The inner wall is the raised boundary inside the outer wall - this is where
+ * the custom cursor should appear. Outside this area, the default cursor shows.
  */
 function isMouseInSimulation(clientX, clientY) {
-  const container = document.getElementById('bravia-balls');
-  if (!container) return false;
+  // Use .inner-wall element for boundary detection
+  // This is the actual content area where balls/simulation live
+  const innerWall = document.querySelector('.inner-wall');
+  if (!innerWall) {
+    // Fallback to container if inner wall doesn't exist yet
+    const container = document.getElementById('bravia-balls');
+    if (!container) return false;
+    
+    const now = performance.now();
+    if (!cachedContainerRect || (now - rectCacheTime) > RECT_CACHE_MS) {
+      cachedContainerRect = container.getBoundingClientRect();
+      rectCacheTime = now;
+    }
+    
+    const rect = cachedContainerRect;
+    return (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    );
+  }
   
   // Cache rect to avoid expensive layout reads on every mouse move
   const now = performance.now();
   if (!cachedContainerRect || (now - rectCacheTime) > RECT_CACHE_MS) {
-    cachedContainerRect = container.getBoundingClientRect();
+    cachedContainerRect = innerWall.getBoundingClientRect();
     rectCacheTime = now;
   }
   
@@ -269,7 +291,15 @@ export function updateCursorPosition(clientX, clientY) {
       cursorElement.style.top = `${clientY}px`;
     }
   }
-  document.body.style.cursor = 'none';
+  
+  // Toggle body class to control cursor visibility across all elements
+  // Inside inner wall OR modal active: hide default cursor (custom cursor shows)
+  // Outside inner wall (and no modal): show default cursor
+  if (isInSimulation || overlayIsActive) {
+    document.body.classList.add('abs-in-simulation');
+  } else {
+    document.body.classList.remove('abs-in-simulation');
+  }
   
   // When gate overlay is active, show cursor at full size (round button)
   if (overlayIsActive) {
@@ -298,10 +328,10 @@ export function updateCursorPosition(clientX, clientY) {
       }
     }
   } else {
-    // Border area: hide cursor
+    // Outside inner wall: hide custom cursor (default cursor shows)
     cursorElement.style.display = 'none';
     if (wasInSimulation) {
-      // Scale down to zero when leaving simulation
+      // Scale down to zero when leaving inner wall area
       cursorElement.style.transform = ZERO_SCALE;
       // Don't set opacity - let fade-in animation control it
       cursorElement.style.backgroundColor = '';
@@ -317,7 +347,8 @@ export function hideCursor() {
   if (!cursorElement) return;
   
   cursorElement.style.display = 'none';
-  document.body.style.cursor = 'none';
+  // Restore default cursor when mouse leaves window
+  document.body.classList.remove('abs-in-simulation');
   isInSimulation = false;
 }
 

@@ -160,6 +160,9 @@ export function applyVortexForces(ball, dt) {
   // Use sine wave to smoothly cycle through depth (0 = back, 1 = front)
   const zDepth = (Math.sin(spiralPhaseValue) + 1) / 2; // 0 to 1
   
+  // Assign z-depth for logo layering
+  ball.z = zDepth;
+  
   // Effective orbital radius varies with 3D depth (spiral effect)
   // When ball is closer (zDepth = 1), it's at the base radius
   // When ball is farther (zDepth = 0), it's at a larger radius

@@ -58,6 +58,7 @@ export function initializeNeural() {
     ball._neuralAngle = Math.random() * Math.PI * 2;
     ball._neuralRotSpeed = 0.15 + Math.random() * 0.15; // Slower, more neutral
     ball._isNeuralNode = true; // Mark as node ball
+    ball.z = Math.random(); // Random z-depth for logo layering
     nodeBalls.push(ball);
   }
 
@@ -78,6 +79,7 @@ export function initializeNeural() {
     ball._neuralAngle = Math.random() * Math.PI * 2;
     ball._neuralRotSpeed = 0.15 + Math.random() * 0.15;
     ball._isNeuralNode = true; // Mark as node ball
+    ball.z = Math.random(); // Random z-depth for logo layering
     nodeBalls.push(ball);
   }
   

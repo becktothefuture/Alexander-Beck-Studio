@@ -66,6 +66,7 @@ export function initializeParallaxWave() {
   // Render back-to-front
   for (let iz = gridZ - 1; iz >= 0; iz--) {
     const z = zNear + iz * zStep;
+    const depthFactor = iz / Math.max(1, gridZ - 1); // 0 (near) to 1 (far)
     
     for (let ix = 0; ix < gridX; ix++) {
       // X position in world space
@@ -103,6 +104,8 @@ export function initializeParallaxWave() {
       
       ball._parallaxSizeMul = (varFrac <= 1e-6) ? 1.0 : (1 + (Math.random() * 2 - 1) * varFrac);
       ball._isParallax = true;
+      // Z-depth for logo layering: invert depthFactor (0=far becomes back, 1=near becomes front)
+      ball.z = 1 - depthFactor;
       idx++;
     }
   }

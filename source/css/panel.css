@@ -95,7 +95,8 @@ body:not(.dark-mode) {
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  
+  cursor: default;
+
   background: var(--panel-background);
   color: var(--panel-foreground);
   border: 1px solid var(--panel-border);

@@ -8,14 +8,11 @@ export const MODES = {
   FLIES: 'flies',
   WEIGHTLESS: 'weightless',
   WATER: 'water',
-  VORTEX: 'vortex',
-  DVD_LOGO: 'dvd-logo',
   MAGNETIC: 'magnetic',
   BUBBLES: 'bubbles',
   KALEIDOSCOPE: 'kaleidoscope-3', // Glorious: 40-50 balls, complex morph
   // Simulation 11: ball-only "critters" (no keyboard shortcut yet)
   CRITTERS: 'critters',
-  NEURAL: 'neural',
   // Parallax (depth perception) simulations
   PARALLAX_LINEAR: 'parallax-linear',
   PARALLAX_FLOAT: 'parallax-float',
@@ -23,8 +20,7 @@ export const MODES = {
   CUBE_3D: '3d-cube',
   STARFIELD_3D: 'starfield-3d',
   ELASTIC_CENTER: 'elastic-center',
-  PARTICLE_FOUNTAIN: 'particle-fountain',
-  SHOOTING_STARS: 'shooting-stars'
+  PARTICLE_FOUNTAIN: 'particle-fountain'
 };
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -62,13 +58,9 @@ export const FEATURED_MODES = [
 export const EXTENDED_MODES = [
   MODES.BUBBLES,          // NOISE SIGNAL
   MODES.MAGNETIC,         // DESIGN FORCES
-  MODES.DVD_LOGO,         // DVD SCREENSAVER
-  MODES.NEURAL,           // CONNECTION MAP
   MODES.WEIGHTLESS,       // OPEN SPACE
   MODES.CRITTERS,         // BEHAVIOR MODEL
-  MODES.VORTEX,           // ATOMIC STRUCTURE
   MODES.STARFIELD_3D,     // DEPTH FIELD
-  MODES.SHOOTING_STARS,   // COSMIC WISH
   MODES.PARALLAX_FLOAT,   // ORGANIC DRIFT
   MODES.PARTICLE_FOUNTAIN // PARTICLE FLOW
 ];
@@ -88,9 +80,6 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.BUBBLES]: 'NOISE SIGNAL',
   [MODES.MAGNETIC]: 'DESIGN FORCES',
   [MODES.WATER]: 'USER FLOW',
-  [MODES.DVD_LOGO]: 'DVD SCREENSAVER',
-  [MODES.NEURAL]: 'CONNECTION MAP',
-  [MODES.VORTEX]: 'ATOMIC STRUCTURE',
   [MODES.WEIGHTLESS]: 'OPEN SPACE',
   [MODES.PARALLAX_LINEAR]: 'PERSPECTIVE SHIFT',
   [MODES.CRITTERS]: 'BEHAVIOR MODEL',
@@ -99,7 +88,6 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.CUBE_3D]: '3D FRAME',
   [MODES.KALEIDOSCOPE]: 'VOCAB BLOOM',
   [MODES.STARFIELD_3D]: 'DEPTH FIELD',
-  [MODES.SHOOTING_STARS]: 'COSMIC WISH',
   [MODES.PARALLAX_FLOAT]: 'ORGANIC DRIFT',
   [MODES.PARTICLE_FOUNTAIN]: 'PARTICLE FLOW'
 };
@@ -139,14 +127,6 @@ export const NARRATIVE_QUOTES = {
     quote: 'Be like water making its way through cracks.',
     author: 'Bruce Lee'
   },
-  [MODES.DVD_LOGO]: {
-    quote: 'Do not fear mistakes. There are none.',
-    author: 'Miles Davis'
-  },
-  [MODES.NEURAL]: {
-    quote: 'The best design is invisible.',
-    author: 'Tobias van Schneider'
-  },
   [MODES.SPHERE_3D]: {
     quote: 'Nature uses only the longest threads to weave her patterns.',
     author: 'Richard Feynman'
@@ -167,10 +147,6 @@ export const NARRATIVE_QUOTES = {
     quote: 'Having guts always works out for me.',
     author: 'Stefan Sagmeister'
   },
-  [MODES.VORTEX]: {
-    quote: 'In all chaos there is a cosmos, in all disorder a secret order.',
-    author: 'Carl Jung'
-  },
   [MODES.KALEIDOSCOPE]: {
     quote: 'Creativity takes courage.',
     author: 'Henri Matisse'
@@ -178,10 +154,6 @@ export const NARRATIVE_QUOTES = {
   [MODES.STARFIELD_3D]: {
     quote: 'The cosmos is within us. We are made of star-stuff.',
     author: 'Carl Sagan'
-  },
-  [MODES.SHOOTING_STARS]: {
-    quote: 'When you realize you want to spend the rest of your life with somebody, you want the rest of your life to start as soon as possible.',
-    author: 'Nora Ephron'
   },
   [MODES.PARALLAX_FLOAT]: {
     quote: 'Nature does not hurry, yet everything is accomplished.',

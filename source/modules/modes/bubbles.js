@@ -64,6 +64,7 @@ function createBubble(x, y, color, distributionIndex, alreadyVisible = false, sp
   const b = new Ball(x, y, initialRadius, color);
   b.distributionIndex = distributionIndex;
   b.isBubble = true;
+  b.z = Math.random(); // Random z-depth for logo layering (some in front, some behind)
   b.baseRadius = targetRadius;
   b.targetRadius = targetRadius;
   b.wobblePhase = Math.random() * Math.PI * 2;
@@ -135,6 +136,7 @@ function recycleBubble(ball) {
   ball.microLife = 0;
   ball.microStartRadius = 0;
   ball.wobbleMul = 0.6 + Math.random() * 0.8;
+  ball.z = Math.random(); // New random z-depth for logo layering
 }
 
 export function applyBubblesForces(ball, dt) {

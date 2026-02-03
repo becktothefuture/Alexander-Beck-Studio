@@ -123,11 +123,11 @@
   --abs-opacity-ghost: 0.12;
 
   /* Hover Target Effect Intensities (color-mix percentages) */
-  --abs-hover-intensity-light: 20%;      /* Light mode: more pronounced hover background */
-  --abs-hover-intensity-dark: 24%;     /* Dark mode: higher intensity for visibility */
-  --abs-hover-intensity-active: 18%;   /* Active/pressed state: slightly less than hover */
-  --abs-hover-opacity-ui-light: 0.18;   /* UI mode opacity (light mode) */
-  --abs-hover-opacity-ui-dark: 0.22;   /* UI mode opacity (dark mode) */
+  --abs-hover-intensity-light: 30%;      /* Light mode: more pronounced hover background */
+  --abs-hover-intensity-dark: 36%;     /* Dark mode: higher intensity for visibility */
+  --abs-hover-intensity-active: 27%;   /* Active/pressed state: slightly less than hover */
+  --abs-hover-opacity-ui-light: 0.27;   /* UI mode opacity (light mode) */
+  --abs-hover-opacity-ui-dark: 0.33;   /* UI mode opacity (dark mode) */
 
   /* Hover Edge Lighting - Radial gradient stroke on hover backgrounds
      Mirrors the wall gradient stroke system for visual consistency */

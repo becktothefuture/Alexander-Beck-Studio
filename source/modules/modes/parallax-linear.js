@@ -93,6 +93,8 @@ export function initializeParallaxLinear() {
         ball._parallax3D = { x: x3d, y: y3d, z: z3d, baseScale: scale };
         ball._parallaxSizeMul = (varFrac <= 1e-6) ? 1.0 : (1 + (Math.random() * 2 - 1) * varFrac);
         ball._isParallax = true; // Skip all standard physics
+        // Z-depth for logo layering: invert depthFactor (0=far becomes back, 1=near becomes front)
+        ball.z = 1 - depthFactor;
         idx++;
       }
     }

@@ -191,32 +191,52 @@ export function apply3DCubeForces(ball, dt) {
   const { x, y, z } = ball._cube3d;
   const rotated = rotateXYZ(x, y, z, state.rotX, state.rotY, state.rotZ);
   const focal = Math.max(80, g.cube3dFocalLength ?? 500);
-  const zShift = rotated.z + (state.sizePx || 1);
-  const scale = focal / (focal + zShift);
+  
+  // Calculate distance from viewer for correct perspective
+  // rotated.z ranges from -sizePx/2 (back) to +sizePx/2 (front)
+  // zDist: back gives sizePx (far), front gives 0 (close)
+  const halfSize = state.sizePx * 0.5;
+  const zDist = halfSize - rotated.z;
+  const scale = focal / (focal + zDist);
+  // Now: back points get smaller scale (more distant), front points get larger scale (closer)
 
   const targetX = state.cx + rotated.x * scale;
   const targetY = state.cy + rotated.y * scale;
   const rawR = ball._cloudBaseR * dotSizeMul * scale;
 
-  // Depth-based fog (fade points at far end of cube with smooth easing)
-  // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 1 is farthest
-  const depthFactor = (rotated.z + state.sizePx * 0.5) / state.sizePx;
+  // Depth factor for logo layering and engine fog
+  // Map z from [-sizePx/2, +sizePx/2] to [0, 1] where 0 is back, 1 is front
+  const depthFactor = (rotated.z + halfSize) / state.sizePx;
+  
+  // Cube's own additional fog (fades back points more)
+  // This stacks with the engine's depth fog for a stronger atmospheric effect
   const fadeStart = Math.max(0, Math.min(1, g.cube3dFogStart ?? 0.5));
   const fadeMin = Math.max(0, Math.min(1, g.cube3dFogMin ?? 0.1));
   
   // Smooth fade using quadratic easing for gradual transition
+  // Fade increases as depthFactor DECREASES (back points fade more)
   let fadeRamp = 0;
-  if (depthFactor > fadeStart) {
-    const t = (depthFactor - fadeStart) / (1 - fadeStart);
+  if (depthFactor < fadeStart) {
+    const t = (fadeStart - depthFactor) / fadeStart;
     fadeRamp = t * t; // Quadratic ease-in for smooth acceleration
   }
   ball.alpha = 1.0 - fadeRamp * (1.0 - fadeMin);
 
-  ball.r = clampRadiusToGlobalBounds(g, rawR);
+  // Scale size based on z-depth for perspective illusion
+  // Back balls (z=0) are smaller, front balls (z=1) are larger
+  // This enhances the 3D effect significantly
+  const perspectiveSize = 0.6 + ball.z * 0.8; // 0.6x to 1.4x scale
+  
+  ball.r = clampRadiusToGlobalBounds(g, rawR * perspectiveSize);
   ball.x = targetX;
   ball.y = targetY;
   ball.vx = 0;
   ball.vy = 0;
   ball.omega = 0;
   ball.isSleeping = false;
+  
+  // Use depthFactor directly as z for logo layering (already normalized 0-1)
+  // Back points: depthFactor=0 (behind logo, dark, small)
+  // Front points: depthFactor=1 (in front of logo, bright, large)
+  ball.z = depthFactor;
 }

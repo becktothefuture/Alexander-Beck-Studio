@@ -11,6 +11,7 @@ import { applyColorTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnRel
 import { initNoiseSystem } from './modules/visual/noise-system.js';
 import { setupRenderer, getCanvas, getContext, resize, setForceRenderCallback } from './modules/rendering/renderer.js';
 import { render } from './modules/physics/engine.js';
+import { initCanvasLogo, startLogoEntrance, skipLogoEntrance } from './modules/rendering/canvas-logo.js';
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { setupOverscrollLock } from './modules/input/overscroll-lock.js';
@@ -611,6 +612,10 @@ window.addEventListener('unhandledrejection', (event) => {
     mark('bb:renderer');
     log('✓ Canvas initialized (container-relative sizing)');
     
+    // Initialize canvas logo (extracts SVG paths, prepares offscreen rendering)
+    initCanvasLogo();
+    log('✓ Canvas logo initialized');
+    
     // Ensure initial mouseInCanvas state is false for tests
     const globals = getGlobals();
     globals.mouseInCanvas = false;
@@ -863,8 +868,19 @@ window.addEventListener('unhandledrejection', (event) => {
         await fadeInContentLayer();
         // Also reveal late elements (logo + main links) that have inline hidden styles
         revealAllLateElements();
+        // Skip canvas logo entrance animation (show immediately)
+        skipLogoEntrance();
         console.log('✓ Entrance animation skipped (disabled or reduced motion)');
       } else {
+        // Start canvas logo entrance animation (blur + fade in)
+        // Timing matches the DOM logo reveal in orchestrateEntrance
+        const contentFadeDelay = g.contentFadeInDelay ?? 500;
+        const contentFadeDuration = g.contentFadeInDuration ?? 1000;
+        const logoDelay = contentFadeDelay + contentFadeDuration * 0.6;
+        setTimeout(() => {
+          startLogoEntrance();
+        }, logoDelay);
+        
         // Orchestrate entrance (wall animation conditional on navigation state)
         await orchestrateEntrance({
           waitForFonts: async () => {
@@ -905,6 +921,8 @@ window.addEventListener('unhandledrejection', (event) => {
       try { await waitForFonts(); } catch (e) {}
       // Use config values for content fade-in (delay + duration)
       await fadeInContentLayer();
+      // Skip canvas logo entrance (show immediately)
+      skipLogoEntrance();
       // Fallback: also reveal late elements so nothing stays hidden
       try {
         const { revealAllLateElements } = await import('./modules/visual/entrance-animation.js');

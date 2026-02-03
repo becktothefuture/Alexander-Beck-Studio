@@ -34,6 +34,7 @@ export class Ball {
     this.squashAmount = 0.0;
     this.squashNormalAngle = 0.0;
     this.alpha = 1.0;
+    this.z = 1.0; // Z-depth for render ordering (0=back, 0.5=logo, 1=front). Default 1.0 = always on top of logo.
     this.isSleeping = false;
     this.sleepTimer = 0;  // Time spent below sleep threshold
     this.isGrounded = false; // Set during wall collisions (bottom contact)

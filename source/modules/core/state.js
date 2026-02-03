@@ -84,13 +84,10 @@ const state = {
   sizeVariationFlies: 0,
   sizeVariationWeightless: 0,
   sizeVariationWater: 0,
-  sizeVariationVortex: 0.2,
-
   sizeVariationMagnetic: 0,
   sizeVariationBubbles: 0.2,
   sizeVariationKaleidoscope: 0,
   sizeVariationCritters: 0.2,
-  sizeVariationNeural: 0.05,
   sizeVariationParallaxLinear: 0,
   sizeVariationParallaxFloat: 0,
   
@@ -100,17 +97,15 @@ const state = {
   fliesWarmupFrames: 10,
   weightlessWarmupFrames: 10,
   waterWarmupFrames: 10,
-  vortexWarmupFrames: 10,
 
   magneticWarmupFrames: 10,
   bubblesWarmupFrames: 10,
   kaleidoscope3WarmupFrames: 10,
   crittersWarmupFrames: 10,
-  neuralWarmupFrames: 10,
   parallaxLinearWarmupFrames: 10,
   parallaxFloatWarmupFrames: 10,
   // 3D Sphere (Mode 16)
-  sphere3dRadiusVw: 18,
+  sphere3dRadiusVw: 60,                     // Sphere radius (vw)
   sphere3dDensity: 140,
   sphere3dFocalLength: 600,
   sphere3dDotSizeMul: 1.5,
@@ -148,17 +143,17 @@ const state = {
   // Legacy (pre per-mode system) — kept for back-compat; prefer the per-mode keys above.
   sizeVariation: 0,
   // Responsive ball sizes - interpolates between min/max based on viewport width
-  ballSizeMin: 22,            // Ball radius in px at smallest viewport
-  ballSizeMax: 30,            // Ball radius in px at largest viewport
+  ballSizeMin: 12,            // Ball radius in px at smallest viewport
+  ballSizeMax: 12,            // Ball radius in px at largest viewport
   ballSizeBreakpointMin: 320, // Viewport width (px) where min size applies
   ballSizeBreakpointMax: 1920, // Viewport width (px) where max size applies
-  ballSizeCurve: 2.5,         // Easing curve (1=linear, >1=stays smaller longer, <1=grows faster)
+  ballSizeCurve: 1.6,         // Easing curve (1=linear, >1=stays smaller longer, <1=grows faster)
   isMobile: false,            // Mobile *device* detected? (UA/touch heuristic)
   isMobileViewport: false,    // Mobile viewport detected? (width breakpoint)
 
   // Mobile performance: global multiplier applied to object counts (0..1).
   // 1.0 = no reduction, 0.0 = (effectively) no objects.
-  mobileObjectReductionFactor: 0.5,
+  mobileObjectReductionFactor: 1.0,
   // Only reduce object counts on mobile when counts exceed this threshold.
   mobileObjectReductionThreshold: 200,
   // Lite mode: global multiplier applied to object counts (0..1).
@@ -213,8 +208,10 @@ const state = {
   cursorExplosionLifetimeImpactSensitivity: 600, // Lifetime velocity sensitivity
   
   // Ball properties
-  ballSoftness: 20,
+  ballSoftness: 29,
   ballSpacing: 0.08,    // Extra collision padding as ratio of ball radius (0.1 = 10% of ball size)
+  sizeVariationGlobalMul: 1.0,
+  sizeVariationCap: 0,
 
   // Sleep tuning (Ball Pit modes only)
   // Higher thresholds = balls settle/sleep sooner (less idle jiggle).
@@ -358,16 +355,6 @@ const state = {
   // This is distinct from radius: it shrinks the effective collision bounds uniformly.
   wallInset: 3,
 
-  // Vortex mode params (electron orbital effect)
-  vortexSwirlStrength: 450,
-  vortexBallCount: 90,
-  vortexSpeedMultiplier: 2.6,
-  vortexRadius: 100, // Preferred orbital radius (0 = auto-scale)
-  vortexRotationDirection: 1, // 1 = counterclockwise, -1 = clockwise
-  vortexDepthVariation: 0.95, // How much size changes with z-depth (0-1)
-  vortexSpiralTightness: 0.15, // How tightly balls spiral in 3D (0-1)
-  
-  
   // Magnetic mode params (updated defaults)
   magneticBallCount: 180,
   magneticStrength: 65000,
@@ -421,15 +408,6 @@ const state = {
   weightlessBounce: 0.70,
   weightlessRepelRadius: 220,
   weightlessRepelPower: 50000,
-  
-  // DVD Logo mode params
-  dvdLogoSpeed: 200, // px/s
-  dvdLogoSize: 0.7, // scale multiplier
-  dvdLogoBallCount: 60, // total balls for letters
-  dvdLogoBallSpacing: 1.5, // spacing multiplier between balls
-  dvdLogoLetterSpacing: 1.5, // spacing multiplier between letters
-  dvdLogoMassMultiplier: 2.0,
-  dvdLogoWarmupFrames: 10,
 
   // Elastic Center mode params
   elasticCenterRingCount: 10,
@@ -475,18 +453,6 @@ const state = {
   kaleidoscope3SizeVariance: 0.5,
   kaleidoscope3WarmupFrames: 65,
 
-  // Neural mode (emergent "synapses")
-  neuralBallCount: 311,
-  neuralLinkDistanceVw: 5.0,
-  neuralLineOpacity: 0.06,
-  neuralConnectorDensity: 3,
-  neuralWanderStrength: 1000,
-  neuralMouseStrength: 150000,
-  neuralSeparationRadius: 100,
-  neuralSeparationStrength: 11000,
-  neuralMaxLinksPerBall: 6,
-  neuralDamping: 0.900,
-
   // Parallax modes (mouse-driven depth parallax)
   // NOTE: Older parallax parameters are kept for compatibility with older presets/UI,
   // but the current Parallax implementations use the 3D grid keys below.
@@ -522,11 +488,6 @@ const state = {
   waterRippleStrength: 18000,
   waterDriftStrength: 40,
   waterInitialVelocity: 200,
-  
-  // Vortex mode
-  vortexDrag: 0.005,
-  
-
   
   // Magnetic mode
   magneticDamping: 0.998,
@@ -711,24 +672,29 @@ const state = {
   wallGradientStrokeTopOpacity: 0.5,         // Light opacity at center (0-1)
   wallGradientStrokeTopColor: '#ffffff',     // Light color
   
-  // Outer Wall Edge Lighting (double-wall effect)
-  outerWallEdgeEnabled: true,               // Enable outer wall edge effects
-  outerWallRadiusAdjust: 2,                 // Outer wall radius fine-tune (px)
-  outerWallTopDarkOffset: 1,                // Top shadow Y offset (px)
-  outerWallTopDarkBlur: 3,                  // Top shadow blur (px)
-  outerWallTopDarkSpread: 0,                // Top shadow spread (px)
-  outerWallTopDarkOpacityLight: 0.6,        // Top shadow opacity light mode (0-1)
-  outerWallTopDarkOpacityDark: 0.4,         // Top shadow opacity dark mode (0-1)
-  outerWallBottomLightOffset: 0.5,          // Bottom light Y offset (px)
-  outerWallBottomLightBlur: 0,              // Bottom light blur (0 = crisp 1px line)
-  outerWallBottomLightSpread: 0,            // Bottom light spread (px)
-  outerWallBottomLightOpacityLight: 0.5,    // Bottom light opacity light mode (0-1)
-  outerWallBottomLightOpacityDark: 0.3,     // Bottom light opacity dark mode (0-1)
+  // Outer Wall Continuous Border
+  outerWallBorderWidth: 1.4,                // Border width (px)
+  outerWallBorderGradientSpread: 85,        // Gradient spread angle (degrees)
+  outerWallBorderBrightOpacityLight: 0.3,   // Brightest point opacity light mode
+  outerWallBorderBrightOpacityDark: 0.4,    // Brightest point opacity dark mode
+  outerWallBorderDimOpacityLight: 0.1,      // Dim/side opacity light mode
+  outerWallBorderDimOpacityDark: 0.15,      // Dim/side opacity dark mode
+  outerWallBorderShadowOpacityLight: 0.25,  // Shadow point opacity light mode
+  outerWallBorderShadowOpacityDark: 0.4,    // Shadow point opacity dark mode
+  
+  // Outer Wall Cast Shadow (inward depth shadow)
   outerWallCastShadowOffset: 3,             // Cast shadow Y offset (px)
   outerWallCastShadowBlur: 12,              // Cast shadow blur (px)
   outerWallCastShadowSpread: 0,             // Cast shadow spread (px)
   outerWallCastShadowOpacityLight: 0.15,    // Cast shadow opacity light mode (0-1)
   outerWallCastShadowOpacityDark: 0.25,     // Cast shadow opacity dark mode (0-1)
+  outerWallRadiusAdjust: 2,                 // Outer wall radius fine-tune (px)
+  
+  // Outer Wall Top Shadow (Overhang shadow)
+  outerWallTopShadowOffset: 3,              // Top shadow Y offset (px)
+  outerWallTopShadowBlur: 8,                // Top shadow blur (px)
+  outerWallTopShadowOpacityLight: 0.4,      // Top shadow opacity light mode
+  outerWallTopShadowOpacityDark: 0.6,       // Top shadow opacity dark mode
   
   // Inner Wall Outward Shadow (cast onto wall surface)
   innerWallOutwardShadowOffset: 2,          // Shadow Y offset (px)
@@ -736,19 +702,34 @@ const state = {
   innerWallOutwardShadowSpread: 2,          // Shadow spread (px)
   innerWallOutwardShadowOpacityLight: 0.2,  // Light mode opacity (0-1)
   innerWallOutwardShadowOpacityDark: 0.35,  // Dark mode opacity (0-1)
+  innerWallBorderWidth: 2,                  // Border width (px)
+  innerWallBorderBrightOpacityLight: 0.5,   // Brightest point opacity light mode
+  innerWallBorderBrightOpacityDark: 0.6,    // Brightest point opacity dark mode
+  innerWallBorderDimOpacityLight: 0.15,     // Dim/side opacity light mode
+  innerWallBorderDimOpacityDark: 0.2,       // Dim/side opacity dark mode
+  innerWallBorderShadowOpacityLight: 0.2,   // Shadow point opacity light mode
+  innerWallBorderShadowOpacityDark: 0.35,   // Shadow point opacity dark mode
   
-  // Top Bevel (thick lip at top edge of walls)
-  outerWallTopBevelWidth: 3,                // Outer wall bevel thickness (px)
-  outerWallTopBevelOpacityLight: 0.25,      // Outer wall bevel opacity light mode (0-1)
-  outerWallTopBevelOpacityDark: 0.35,       // Outer wall bevel opacity dark mode (0-1)
-  innerWallTopBevelWidth: 2,                // Inner wall top light edge thickness (px)
-  innerWallTopLightOpacityLight: 0.3,       // Inner wall top light opacity light mode (0-1)
-  innerWallTopLightOpacityDark: 0.4,        // Inner wall top light opacity dark mode (0-1)
-  innerWallBottomBevelWidth: 2,             // Inner wall bottom shadow thickness (px)
-  innerWallTopBevelOpacityLight: 0.18,      // Inner wall bottom shadow opacity light mode (0-1)
-  innerWallTopBevelOpacityDark: 0.25,       // Inner wall bottom shadow opacity dark mode (0-1)
+  // Inner Wall Inner Glow (soft inset top light)
+  innerWallInnerGlowOpacityLight: 0.1,      // Light mode glow opacity (0-1)
+  innerWallInnerGlowOpacityDark: 0.12,      // Dark mode glow opacity (0-1)
+  innerWallInnerGlowBlur: 30,               // Glow blur (px)
+  innerWallInnerGlowSpread: -5,             // Glow spread (px)
+  innerWallInnerGlowOffsetY: 8,             // Glow Y offset (px)
+  innerWallInnerGlowColor: '#ffffff',       // Glow color
   
-  // Gate overlay (blur backdrop for dialogs)
+  // Wall AO (Ambient Occlusion in gap)
+  wallAOOpacityLight: 0.15,                 // AO opacity in light mode
+  wallAOOpacityDark: 0.3,                   // AO opacity in dark mode
+  wallAOSpread: 2,                          // AO spread/size (px)
+  
+  // Specular Micro-Bevel (razor-sharp highlight)
+  wallSpecularOpacityLight: 0.4,            // Specular opacity light mode
+  wallSpecularOpacityDark: 0.5,             // Specular opacity dark mode
+  wallSpecularWidth: 0.5,                   // Specular width (px)
+  
+  // Wall Light Fluctuation (Naturalistic light simulation)
+  wallLightFluctuationStrength: 0.15,       // Strength of the ambient light fluctuation (0-1)
   modalOverlayEnabled: true,         // Enable/disable overlay
   modalOverlayOpacity: 0.01,          // White wash opacity (0-1)
   modalOverlayBlurPx: 8,             // Backdrop blur amount (px)
@@ -1212,13 +1193,10 @@ export function initState(config) {
   if (config.sizeVariationFlies !== undefined) state.sizeVariationFlies = clampNumber(config.sizeVariationFlies, 0, 1, state.sizeVariationFlies);
   if (config.sizeVariationWeightless !== undefined) state.sizeVariationWeightless = clampNumber(config.sizeVariationWeightless, 0, 1, state.sizeVariationWeightless);
   if (config.sizeVariationWater !== undefined) state.sizeVariationWater = clampNumber(config.sizeVariationWater, 0, 1, state.sizeVariationWater);
-  if (config.sizeVariationVortex !== undefined) state.sizeVariationVortex = clampNumber(config.sizeVariationVortex, 0, 1, state.sizeVariationVortex);
-
   if (config.sizeVariationMagnetic !== undefined) state.sizeVariationMagnetic = clampNumber(config.sizeVariationMagnetic, 0, 1, state.sizeVariationMagnetic);
   if (config.sizeVariationBubbles !== undefined) state.sizeVariationBubbles = clampNumber(config.sizeVariationBubbles, 0, 1, state.sizeVariationBubbles);
   if (config.sizeVariationKaleidoscope !== undefined) state.sizeVariationKaleidoscope = clampNumber(config.sizeVariationKaleidoscope, 0, 1, state.sizeVariationKaleidoscope);
   if (config.sizeVariationCritters !== undefined) state.sizeVariationCritters = clampNumber(config.sizeVariationCritters, 0, 1, state.sizeVariationCritters);
-  if (config.sizeVariationNeural !== undefined) state.sizeVariationNeural = clampNumber(config.sizeVariationNeural, 0, 1, state.sizeVariationNeural);
   if (config.sizeVariationParallaxLinear !== undefined) state.sizeVariationParallaxLinear = clampNumber(config.sizeVariationParallaxLinear, 0, 1, state.sizeVariationParallaxLinear);
   // Legacy key (kept): does not affect per-mode sliders, but we store it.
   if (config.sizeVariation !== undefined) state.sizeVariation = config.sizeVariation;
@@ -1254,13 +1232,11 @@ export function initState(config) {
   if (config.fliesWarmupFrames !== undefined) state.fliesWarmupFrames = clampInt(config.fliesWarmupFrames, 0, 240, state.fliesWarmupFrames);
   if (config.weightlessWarmupFrames !== undefined) state.weightlessWarmupFrames = clampInt(config.weightlessWarmupFrames, 0, 240, state.weightlessWarmupFrames);
   if (config.waterWarmupFrames !== undefined) state.waterWarmupFrames = clampInt(config.waterWarmupFrames, 0, 240, state.waterWarmupFrames);
-  if (config.vortexWarmupFrames !== undefined) state.vortexWarmupFrames = clampInt(config.vortexWarmupFrames, 0, 240, state.vortexWarmupFrames);
 
   if (config.magneticWarmupFrames !== undefined) state.magneticWarmupFrames = clampInt(config.magneticWarmupFrames, 0, 240, state.magneticWarmupFrames);
   if (config.bubblesWarmupFrames !== undefined) state.bubblesWarmupFrames = clampInt(config.bubblesWarmupFrames, 0, 240, state.bubblesWarmupFrames);
   if (config.kaleidoscope3WarmupFrames !== undefined) state.kaleidoscope3WarmupFrames = clampInt(config.kaleidoscope3WarmupFrames, 0, 240, state.kaleidoscope3WarmupFrames);
   if (config.crittersWarmupFrames !== undefined) state.crittersWarmupFrames = clampInt(config.crittersWarmupFrames, 0, 240, state.crittersWarmupFrames);
-  if (config.neuralWarmupFrames !== undefined) state.neuralWarmupFrames = clampInt(config.neuralWarmupFrames, 0, 240, state.neuralWarmupFrames);
   if (config.parallaxLinearWarmupFrames !== undefined) state.parallaxLinearWarmupFrames = clampInt(config.parallaxLinearWarmupFrames, 0, 240, state.parallaxLinearWarmupFrames);
   if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
 
@@ -1398,18 +1374,6 @@ export function initState(config) {
   if (config.critterNervousnessMax !== undefined) state.critterNervousnessMax = config.critterNervousnessMax;
   if (config.critterCuriosityBias !== undefined) state.critterCuriosityBias = config.critterCuriosityBias;
 
-  // Neural (config overrides)
-  if (config.neuralBallCount !== undefined) state.neuralBallCount = clampNumber(config.neuralBallCount, 8, 400, state.neuralBallCount);
-  if (config.neuralLinkDistanceVw !== undefined) state.neuralLinkDistanceVw = clampNumber(config.neuralLinkDistanceVw, 1, 50, state.neuralLinkDistanceVw);
-  if (config.neuralLineOpacity !== undefined) state.neuralLineOpacity = clampNumber(config.neuralLineOpacity, 0, 1, state.neuralLineOpacity);
-  if (config.neuralConnectorDensity !== undefined) state.neuralConnectorDensity = clampNumber(config.neuralConnectorDensity, 0, 10, state.neuralConnectorDensity);
-  if (config.neuralWanderStrength !== undefined) state.neuralWanderStrength = clampNumber(config.neuralWanderStrength, 0, 4000, state.neuralWanderStrength);
-  if (config.neuralMouseStrength !== undefined) state.neuralMouseStrength = clampNumber(config.neuralMouseStrength, 0, 300000, state.neuralMouseStrength);
-  if (config.neuralSeparationRadius !== undefined) state.neuralSeparationRadius = clampNumber(config.neuralSeparationRadius, 50, 300, state.neuralSeparationRadius);
-  if (config.neuralSeparationStrength !== undefined) state.neuralSeparationStrength = clampNumber(config.neuralSeparationStrength, 0, 30000, state.neuralSeparationStrength);
-  if (config.neuralMaxLinksPerBall !== undefined) state.neuralMaxLinksPerBall = clampNumber(config.neuralMaxLinksPerBall, 0, 16, state.neuralMaxLinksPerBall);
-  if (config.neuralDamping !== undefined) state.neuralDamping = clampNumber(config.neuralDamping, 0.8, 1.0, state.neuralDamping);
-
   // Lattice (config overrides)
 
   // Parallax (config overrides)
@@ -1455,7 +1419,7 @@ export function initState(config) {
   }
 
   // 3D Sphere (Mode 16)
-  if (config.sphere3dRadiusVw !== undefined) state.sphere3dRadiusVw = clampNumber(config.sphere3dRadiusVw, 5, 40, state.sphere3dRadiusVw);
+  if (config.sphere3dRadiusVw !== undefined) state.sphere3dRadiusVw = clampNumber(config.sphere3dRadiusVw, 5, 60, state.sphere3dRadiusVw);
   if (config.sphere3dDensity !== undefined) state.sphere3dDensity = clampInt(config.sphere3dDensity, 30, 600, state.sphere3dDensity);
   if (config.sphere3dFocalLength !== undefined) state.sphere3dFocalLength = clampInt(config.sphere3dFocalLength, 80, 2000, state.sphere3dFocalLength);
   if (config.sphere3dDotSizeMul !== undefined) state.sphere3dDotSizeMul = clampNumber(config.sphere3dDotSizeMul, 0.2, 4.0, state.sphere3dDotSizeMul);
@@ -1493,15 +1457,6 @@ export function initState(config) {
   if (config.starfieldFadeDuration !== undefined) state.starfieldFadeDuration = clampNumber(config.starfieldFadeDuration, 0, 3, state.starfieldFadeDuration);
   if (config.starfield3dWarmupFrames !== undefined) state.starfield3dWarmupFrames = clampInt(config.starfield3dWarmupFrames, 0, 240, state.starfield3dWarmupFrames);
   
-
-  // DVD Logo mode
-  if (config.dvdLogoSpeed !== undefined) state.dvdLogoSpeed = clampInt(config.dvdLogoSpeed, 200, 800, state.dvdLogoSpeed);
-  if (config.dvdLogoSize !== undefined) state.dvdLogoSize = clampNumber(config.dvdLogoSize, 0.5, 2.0, state.dvdLogoSize);
-  if (config.dvdLogoBallCount !== undefined) state.dvdLogoBallCount = clampInt(config.dvdLogoBallCount, 30, 120, state.dvdLogoBallCount);
-  if (config.dvdLogoBallSpacing !== undefined) state.dvdLogoBallSpacing = clampNumber(config.dvdLogoBallSpacing, 1.0, 2.0, state.dvdLogoBallSpacing);
-  if (config.dvdLogoLetterSpacing !== undefined) state.dvdLogoLetterSpacing = clampNumber(config.dvdLogoLetterSpacing, 0.5, 2.0, state.dvdLogoLetterSpacing);
-  if (config.dvdLogoMassMultiplier !== undefined) state.dvdLogoMassMultiplier = clampNumber(config.dvdLogoMassMultiplier, 1.0, 5.0, state.dvdLogoMassMultiplier);
-  if (config.dvdLogoWarmupFrames !== undefined) state.dvdLogoWarmupFrames = clampInt(config.dvdLogoWarmupFrames, 0, 240, state.dvdLogoWarmupFrames);
 
   // Elastic Center mode
   if (config.elasticCenterRingCount !== undefined) state.elasticCenterRingCount = clampInt(config.elasticCenterRingCount, 2, 20, state.elasticCenterRingCount);
@@ -1830,26 +1785,39 @@ export function initState(config) {
   if (config.grungeVideoBlendMode !== undefined) state.grungeVideoBlendMode = config.grungeVideoBlendMode;
   
   // Outer wall settings (edge lighting, shadows)
-  if (config.outerWallEdgeEnabled !== undefined) state.outerWallEdgeEnabled = config.outerWallEdgeEnabled;
-  if (config.outerWallEdgeWidth !== undefined) state.outerWallEdgeWidth = config.outerWallEdgeWidth;
-  if (config.outerWallGradientRadius !== undefined) state.outerWallGradientRadius = config.outerWallGradientRadius;
-  if (config.outerWallTopDarkOpacityLight !== undefined) state.outerWallTopDarkOpacityLight = config.outerWallTopDarkOpacityLight;
-  if (config.outerWallTopDarkOpacityDark !== undefined) state.outerWallTopDarkOpacityDark = config.outerWallTopDarkOpacityDark;
-  if (config.outerWallBottomLightOpacityLight !== undefined) state.outerWallBottomLightOpacityLight = config.outerWallBottomLightOpacityLight;
-  if (config.outerWallBottomLightOpacityDark !== undefined) state.outerWallBottomLightOpacityDark = config.outerWallBottomLightOpacityDark;
+  // Outer Wall Continuous Border
+  if (config.outerWallBorderWidth !== undefined) state.outerWallBorderWidth = config.outerWallBorderWidth;
+  if (config.outerWallBorderGradientSpread !== undefined) state.outerWallBorderGradientSpread = config.outerWallBorderGradientSpread;
+  if (config.outerWallBorderBrightOpacityLight !== undefined) state.outerWallBorderBrightOpacityLight = config.outerWallBorderBrightOpacityLight;
+  if (config.outerWallBorderBrightOpacityDark !== undefined) state.outerWallBorderBrightOpacityDark = config.outerWallBorderBrightOpacityDark;
+  if (config.outerWallBorderDimOpacityLight !== undefined) state.outerWallBorderDimOpacityLight = config.outerWallBorderDimOpacityLight;
+  if (config.outerWallBorderDimOpacityDark !== undefined) state.outerWallBorderDimOpacityDark = config.outerWallBorderDimOpacityDark;
+  if (config.outerWallBorderShadowOpacityLight !== undefined) state.outerWallBorderShadowOpacityLight = config.outerWallBorderShadowOpacityLight;
+  if (config.outerWallBorderShadowOpacityDark !== undefined) state.outerWallBorderShadowOpacityDark = config.outerWallBorderShadowOpacityDark;
+  
+  // Outer Wall Shadow
   if (config.outerWallCastShadowOpacityLight !== undefined) state.outerWallCastShadowOpacityLight = config.outerWallCastShadowOpacityLight;
   if (config.outerWallCastShadowOpacityDark !== undefined) state.outerWallCastShadowOpacityDark = config.outerWallCastShadowOpacityDark;
   if (config.outerWallCastShadowBlur !== undefined) state.outerWallCastShadowBlur = config.outerWallCastShadowBlur;
   if (config.outerWallCastShadowOffset !== undefined) state.outerWallCastShadowOffset = config.outerWallCastShadowOffset;
   if (config.outerWallRadiusAdjust !== undefined) state.outerWallRadiusAdjust = config.outerWallRadiusAdjust;
   
+  // Outer Wall Top Shadow
+  if (config.outerWallTopShadowOffset !== undefined) state.outerWallTopShadowOffset = config.outerWallTopShadowOffset;
+  if (config.outerWallTopShadowBlur !== undefined) state.outerWallTopShadowBlur = config.outerWallTopShadowBlur;
+  if (config.outerWallTopShadowOpacityLight !== undefined) state.outerWallTopShadowOpacityLight = config.outerWallTopShadowOpacityLight;
+  if (config.outerWallTopShadowOpacityDark !== undefined) state.outerWallTopShadowOpacityDark = config.outerWallTopShadowOpacityDark;
+  
   // Inner wall settings (edge lighting, shadows, glow)
-  if (config.innerWallTopBevelWidth !== undefined) state.innerWallTopBevelWidth = config.innerWallTopBevelWidth;
-  if (config.innerWallGradientRadius !== undefined) state.innerWallGradientRadius = config.innerWallGradientRadius;
-  if (config.innerWallTopLightOpacityLight !== undefined) state.innerWallTopLightOpacityLight = config.innerWallTopLightOpacityLight;
-  if (config.innerWallTopLightOpacityDark !== undefined) state.innerWallTopLightOpacityDark = config.innerWallTopLightOpacityDark;
-  if (config.innerWallTopBevelOpacityLight !== undefined) state.innerWallTopBevelOpacityLight = config.innerWallTopBevelOpacityLight;
-  if (config.innerWallTopBevelOpacityDark !== undefined) state.innerWallTopBevelOpacityDark = config.innerWallTopBevelOpacityDark;
+  // Inner Wall Continuous Border
+  if (config.innerWallBorderWidth !== undefined) state.innerWallBorderWidth = config.innerWallBorderWidth;
+  if (config.innerWallBorderGradientSpread !== undefined) state.innerWallBorderGradientSpread = config.innerWallBorderGradientSpread;
+  if (config.innerWallBorderBrightOpacityLight !== undefined) state.innerWallBorderBrightOpacityLight = config.innerWallBorderBrightOpacityLight;
+  if (config.innerWallBorderBrightOpacityDark !== undefined) state.innerWallBorderBrightOpacityDark = config.innerWallBorderBrightOpacityDark;
+  if (config.innerWallBorderDimOpacityLight !== undefined) state.innerWallBorderDimOpacityLight = config.innerWallBorderDimOpacityLight;
+  if (config.innerWallBorderDimOpacityDark !== undefined) state.innerWallBorderDimOpacityDark = config.innerWallBorderDimOpacityDark;
+  if (config.innerWallBorderShadowOpacityLight !== undefined) state.innerWallBorderShadowOpacityLight = config.innerWallBorderShadowOpacityLight;
+  if (config.innerWallBorderShadowOpacityDark !== undefined) state.innerWallBorderShadowOpacityDark = config.innerWallBorderShadowOpacityDark;
   if (config.innerWallOutwardShadowOpacityLight !== undefined) state.innerWallOutwardShadowOpacityLight = config.innerWallOutwardShadowOpacityLight;
   if (config.innerWallOutwardShadowOpacityDark !== undefined) state.innerWallOutwardShadowOpacityDark = config.innerWallOutwardShadowOpacityDark;
   if (config.innerWallOutwardShadowBlur !== undefined) state.innerWallOutwardShadowBlur = config.innerWallOutwardShadowBlur;
@@ -1862,6 +1830,19 @@ export function initState(config) {
   if (config.innerWallInnerGlowSpread !== undefined) state.innerWallInnerGlowSpread = config.innerWallInnerGlowSpread;
   if (config.innerWallInnerGlowOffsetY !== undefined) state.innerWallInnerGlowOffsetY = config.innerWallInnerGlowOffsetY;
   if (config.innerWallInnerGlowColor !== undefined) state.innerWallInnerGlowColor = config.innerWallInnerGlowColor;
+  
+  // Wall AO (Ambient Occlusion)
+  if (config.wallAOOpacityLight !== undefined) state.wallAOOpacityLight = config.wallAOOpacityLight;
+  if (config.wallAOOpacityDark !== undefined) state.wallAOOpacityDark = config.wallAOOpacityDark;
+  if (config.wallAOSpread !== undefined) state.wallAOSpread = config.wallAOSpread;
+  
+  // Wall Specular Bevel
+  if (config.wallSpecularOpacityLight !== undefined) state.wallSpecularOpacityLight = config.wallSpecularOpacityLight;
+  if (config.wallSpecularOpacityDark !== undefined) state.wallSpecularOpacityDark = config.wallSpecularOpacityDark;
+  if (config.wallSpecularWidth !== undefined) state.wallSpecularWidth = config.wallSpecularWidth;
+  
+  // Natural Light Simulation
+  if (config.wallLightFluctuationStrength !== undefined) state.wallLightFluctuationStrength = config.wallLightFluctuationStrength;
   
   // Ball sizes are recalculated in detectResponsiveScale (called above)
   // which applies both sizeScale and responsiveScale
@@ -2053,8 +2034,8 @@ export function detectResponsiveScale() {
  * The curve parameter controls easing: 1=linear, >1=stays smaller longer, <1=grows faster.
  */
 export function updateBallSizes() {
-  const minSize = state.ballSizeMin || 22;
-  const maxSize = state.ballSizeMax || 30;
+  const minSize = state.ballSizeMin || 28.6;
+  const maxSize = state.ballSizeMax || 39;
   const bpMin = state.ballSizeBreakpointMin || 320;
   const bpMax = state.ballSizeBreakpointMax || 1920;
   const curve = state.ballSizeCurve || 1;
