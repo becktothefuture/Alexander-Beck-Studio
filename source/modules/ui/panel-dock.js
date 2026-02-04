@@ -13,6 +13,7 @@ import {
   generateModeSwitcherHTML,
   generateModeSpecificSectionsHTML,
   updateWallShadowCSS,
+  setupWallSectionTabs,
 } from './control-registry.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
 import { isDev } from '../utils/logger.js';
@@ -440,6 +441,7 @@ function createMasterPanel({
     setupBuildControls();
     setupSoundControls(panel);
     setupLayoutControls(panel);
+    setupWallSectionTabs();
     
     // Initialize wall shadow CSS from current state
     try {

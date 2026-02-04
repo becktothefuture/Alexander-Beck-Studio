@@ -165,7 +165,7 @@ export function initialize3DSphere() {
   // Scale based on shorter side (vmin) to ensure it fits/scales appropriately
   const minDim = Math.min(canvas.width, canvas.height);
   const radiusPx = Math.max(10, (radiusVw / 100) * minDim);
-  const dotSizeMul = 1.55; // Fixed size multiplier (removed from config panel as requested)
+  const dotSizeMul = 1.5; // Fixed size multiplier from design
   const baseR = (g.R_MED || 20) * 0.30 * 2.0 * (g.DPR || 1);
 
   // Initialize rotation matrix as identity (no rotation)
@@ -175,19 +175,24 @@ export function initialize3DSphere() {
     0, 0, 1
   ];
   
-  g.sphere3dState = {
-    cx: canvas.width * 0.5,
-    cy: canvas.height * 0.5,
-    radiusPx,
-    rotationMatrix: rotMatrix,  // 3x3 rotation matrix (avoids gimbal lock)
-    dotSizeMul,
-    // Trackball state
-    prevTrackballPoint: null,
-    currentAngularVelX: 0,
-    currentAngularVelY: 0,
-    currentAngularVelZ: 0,
-    idleRotationTime: 0
-  };
+    g.sphere3dState = {
+      cx: canvas.width * 0.5,
+      cy: canvas.height * 0.5,
+      radiusPx,
+      rotationMatrix: rotMatrix,  // 3x3 rotation matrix (avoids gimbal lock)
+      dotSizeMul,
+      // Trackball state
+      prevTrackballPoint: null,
+      currentAngularVelX: 0,
+      currentAngularVelY: 0,
+      currentAngularVelZ: 0,
+      idleRotationTime: 0,
+      // Smoothed mouse state for fluid interaction
+      smoothMouseX: g.mouseX,
+      smoothMouseY: g.mouseY,
+      lastMouseX: g.mouseX,
+      lastMouseY: g.mouseY
+    };
 
   const pts = fibonacciSphere(count);
   for (let i = 0; i < pts.length; i++) {
@@ -214,7 +219,7 @@ export function apply3DSphereForces(ball, dt) {
   const idleSpeed = g.sphere3dIdleSpeed ?? 0.15;
   const tumbleSpeed = g.sphere3dTumbleSpeed ?? 8.0;
   const tumbleDamping = Math.max(0, Math.min(0.999, g.sphere3dTumbleDamping ?? 0.94));
-  const dotSizeMul = 1.55; // Fixed size multiplier (removed from config panel as requested)
+  const dotSizeMul = 1.5; // Fixed size multiplier from design
 
   // Update shared rotation once per frame (first ball)
   if (ball === g.balls[0]) {
@@ -234,9 +239,27 @@ export function apply3DSphereForces(ball, dt) {
     // TRACKBALL ROTATION MODEL (Matrix-based, no Euler angle drift)
     // ═══════════════════════════════════════════════════════════════════════════════
     if (g.mouseInCanvas) {
+      // Smooth mouse position for fluid "weighty" feel
+      const mouseDamping = Math.max(0.01, Math.min(1, g.sphere3dMouseDamping ?? 0.15));
+      
+      // Initialize smoothed mouse if first frame or reset
+      if (state.smoothMouseX === undefined) {
+        state.smoothMouseX = g.mouseX;
+        state.smoothMouseY = g.mouseY;
+      }
+      
+      // Lerp smoothed mouse towards current mouse
+      // This adds "weight" to the cursor interaction
+      state.smoothMouseX += (g.mouseX - state.smoothMouseX) * mouseDamping;
+      state.smoothMouseY += (g.mouseY - state.smoothMouseY) * mouseDamping;
+      
+      // Use smoothed mouse for interaction calculations
+      const interactionX = state.smoothMouseX;
+      const interactionY = state.smoothMouseY;
+      
       // Calculate mouse position relative to sphere center
-      const relX = g.mouseX - cx;
-      const relY = g.mouseY - cy;
+      const relX = interactionX - cx;
+      const relY = interactionY - cy;
       const distFromCenter = Math.sqrt(relX * relX + relY * relY);
       
       // Check if mouse is over/near the sphere
@@ -250,12 +273,13 @@ export function apply3DSphereForces(ball, dt) {
           // Calculate rotation from previous to current position
           const rotation = trackballRotation(state.prevTrackballPoint, currentPoint);
           
-          if (rotation.angle > 0.001) {
+          if (rotation.angle > 0.0001) {
             // Calculate angular velocity (rad/s)
             const angularVel = rotation.angle / dt;
             
             // Velocity threshold to filter jitter
-            const velocityThreshold = 0.3; // rad/s minimum
+            // Lowered to 0.05 rad/s to allow slow, precise "grabbing" movements
+            const velocityThreshold = 0.05; 
             
             if (angularVel > velocityThreshold) {
               // Apply rotation sensitivity
@@ -269,9 +293,11 @@ export function apply3DSphereForces(ball, dt) {
               state.rotationMatrix = multiplyMatrices(deltaMatrix, state.rotationMatrix);
               
               // Store angular velocity for damping
-              state.currentAngularVelX = rotation.axis.x * angularVel * sensitivity;
-              state.currentAngularVelY = rotation.axis.y * angularVel * sensitivity;
-              state.currentAngularVelZ = rotation.axis.z * angularVel * sensitivity;
+              // Blend with existing velocity for momentum conservation
+              const momentumBlend = 0.5; // Balance between new input and existing momentum
+              state.currentAngularVelX = state.currentAngularVelX * momentumBlend + (rotation.axis.x * angularVel * sensitivity) * (1 - momentumBlend);
+              state.currentAngularVelY = state.currentAngularVelY * momentumBlend + (rotation.axis.y * angularVel * sensitivity) * (1 - momentumBlend);
+              state.currentAngularVelZ = state.currentAngularVelZ * momentumBlend + (rotation.axis.z * angularVel * sensitivity) * (1 - momentumBlend);
             }
           }
         }
@@ -318,8 +344,8 @@ export function apply3DSphereForces(ball, dt) {
   
   // Gentle idle rotation around Y-axis (only when coasting is slow)
   // Blends in as manual rotation slows down
-  if (totalAngularVel < 0.1) {
-    const blend = 1.0 - (totalAngularVel / 0.1); // 0 to 1
+  if (totalAngularVel < 0.2) {
+    const blend = 1.0 - (totalAngularVel / 0.2); // 0 to 1
     const idleAngle = idleSpeed * dt * blend;
     const idleMatrix = axisAngleToMatrix({ x: 0, y: 1, z: 0 }, idleAngle);
     state.rotationMatrix = multiplyMatrices(idleMatrix, state.rotationMatrix);

@@ -3332,8 +3332,8 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // OUTER WALL - Edge lighting and shadows on the outer wall boundary
-  // Structure: Edges (top shadow, bottom light) → Shadows → Geometry
+  // OUTER WALL - Edge lighting and shadows (tabbed Light/Dark)
+  // theme: null = shared above tabs; 'light'|'dark' = in tab panel. wallGroup for labels.
   // ═══════════════════════════════════════════════════════════════════════════
   outerWall: {
     title: 'Outer Wall',
@@ -3349,6 +3349,8 @@ export const CONTROL_SECTIONS = {
         format: v => (v ? 'On' : 'Off'),
         parse: v => !!v,
         hint: 'Show outer wall (creates depth between walls)',
+        theme: null,
+        wallGroup: null,
         onChange: (_g, val) => {
           const container = document.getElementById('bravia-balls');
           if (container) {
@@ -3356,9 +3358,6 @@ export const CONTROL_SECTIONS = {
           }
         }
       },
-      
-      // ─── CONTINUOUS BORDER ───
-      { type: 'divider', label: '🔘 Continuous Border' },
       {
         id: 'outerWallBorderWidth',
         label: 'Width',
@@ -3368,16 +3367,15 @@ export const CONTROL_SECTIONS = {
         default: 2,
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
-        hint: 'Thickness of the continuous border',
+        hint: 'Thickness of the continuous border (shine)',
+        theme: null,
+        wallGroup: 'shine',
         onChange: (_g, val) => {
           const px = `${Number(val)}px`;
           document.documentElement.style.setProperty('--outer-wall-border-width', px);
           updateWallElements();
         }
       },
-      
-      // Light Mode Group
-      { type: 'divider', label: '☀️ Light Mode' },
       {
         id: 'outerWallBorderGradientSpread',
         label: 'Gradient Spread',
@@ -3388,107 +3386,8 @@ export const CONTROL_SECTIONS = {
         format: v => `${v}°`,
         parse: parseFloat,
         hint: 'Angle of the bright spot (half-width)',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'outerWallBorderBrightOpacityLight',
-        label: 'Bright Opacity',
-        stateKey: 'outerWallBorderBrightOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.5,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of brightest point (bottom) in light mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'outerWallBorderDimOpacityLight',
-        label: 'Dim Opacity',
-        stateKey: 'outerWallBorderDimOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.15,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of dim sides in light mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'outerWallBorderShadowOpacityLight',
-        label: 'Shadow Opacity',
-        stateKey: 'outerWallBorderShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.25,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of shadow point (top) in light mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-
-      // Dark Mode Group
-      { type: 'divider', label: '🌙 Dark Mode' },
-      {
-        id: 'outerWallBorderBrightOpacityDark',
-        label: 'Bright Opacity',
-        stateKey: 'outerWallBorderBrightOpacityDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.6,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of brightest point (bottom) in dark mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'outerWallBorderDimOpacityDark',
-        label: 'Dim Opacity',
-        stateKey: 'outerWallBorderDimOpacityDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.2,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of dim sides in dark mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'outerWallBorderShadowOpacityDark',
-        label: 'Shadow Opacity',
-        stateKey: 'outerWallBorderShadowOpacityDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.4,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of shadow point (top) in dark mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      
-      // ─── DEPTH SHADOW ───
-      {
-        id: 'outerWallTopShadowOpacityLight',
-        label: 'Top Shadow ☀️',
-        stateKey: 'outerWallTopShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.4,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Top overhang shadow opacity in light mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'outerWallTopShadowOpacityDark',
-        label: 'Top Shadow 🌙',
-        stateKey: 'outerWallTopShadowOpacityDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.6,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Top overhang shadow opacity in dark mode',
+        theme: null,
+        wallGroup: 'shine',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
@@ -3501,6 +3400,8 @@ export const CONTROL_SECTIONS = {
         format: v => `${v}px`,
         parse: parseFloat,
         hint: 'Vertical offset of the top overhang shadow',
+        theme: null,
+        wallGroup: 'shadow',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
@@ -3513,77 +3414,42 @@ export const CONTROL_SECTIONS = {
         format: v => `${v}px`,
         parse: parseFloat,
         hint: 'Blur radius of the top overhang shadow',
+        theme: null,
+        wallGroup: 'shadow',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
-      
-      { type: 'divider', label: '🌑 Depth Shadow' },
       {
         id: 'outerWallCastShadowBlur',
-        label: 'Shadow Blur',
+        label: 'Inward Shadow Blur',
         stateKey: 'outerWallCastShadowBlur',
         type: 'range',
         min: 0, max: 40, step: 1,
         default: 12,
         format: v => `${v}px`,
         parse: parseFloat,
-        hint: 'Softness of inward shadow',
+        hint: 'Softness of inward (depth) shadow',
+        theme: null,
+        wallGroup: 'shadow',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--outer-wall-cast-shadow-blur', `${val}px`);
         }
       },
       {
         id: 'outerWallCastShadowOffset',
-        label: 'Shadow Offset',
+        label: 'Inward Shadow Offset',
         stateKey: 'outerWallCastShadowOffset',
         type: 'range',
         min: 0, max: 15, step: 1,
         default: 3,
         format: v => `${v}px`,
         parse: parseFloat,
-        hint: 'Vertical offset of shadow',
+        hint: 'Vertical offset of inward shadow',
+        theme: null,
+        wallGroup: 'shadow',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--outer-wall-cast-shadow-offset', `${val}px`);
         }
       },
-      // Light Mode Group
-      { type: 'divider', label: '☀️ Light Mode' },
-      {
-        id: 'outerWallCastShadowOpacityLight',
-        label: 'Shadow Opacity',
-        stateKey: 'outerWallCastShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.01,
-        default: 0.15,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Inward shadow opacity (light mode)',
-        onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(val));
-          }
-        }
-      },
-      // Dark Mode Group
-      { type: 'divider', label: '🌙 Dark Mode' },
-      {
-        id: 'outerWallCastShadowOpacityDark',
-        label: 'Shadow Opacity',
-        stateKey: 'outerWallCastShadowOpacityDark',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.01,
-        default: 0.25,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Inward shadow opacity (dark mode)',
-        onChange: (_g, val) => {
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(val));
-          }
-        }
-      },
-      
-      // ─── MICRO-DETAILS ───
-      { type: 'divider', label: '🔍 Micro-Details' },
       {
         id: 'wallAOSpread',
         label: 'AO Spread',
@@ -3594,6 +3460,8 @@ export const CONTROL_SECTIONS = {
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
         hint: 'Spread size of the ambient occlusion shadow',
+        theme: null,
+        wallGroup: 'micro',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
@@ -3606,10 +3474,101 @@ export const CONTROL_SECTIONS = {
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
         hint: 'Width of the razor-sharp specular highlight',
+        theme: null,
+        wallGroup: 'micro',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
-      // Light Mode Group
-      { type: 'divider', label: '☀️ Light Mode' },
+      {
+        id: 'outerWallRadiusAdjust',
+        label: 'Corner Adjust',
+        stateKey: 'outerWallRadiusAdjust',
+        type: 'range',
+        min: -5, max: 10, step: 1,
+        default: 2,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Fine-tune outer wall corner roundness',
+        theme: null,
+        wallGroup: 'geometry',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--outer-wall-radius-adjust', `${val}px`);
+        }
+      },
+      // Light tab
+      {
+        id: 'outerWallBorderBrightOpacityLight',
+        label: 'Bright Opacity',
+        stateKey: 'outerWallBorderBrightOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.5,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: brightest point (bottom)',
+        theme: 'light',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallBorderDimOpacityLight',
+        label: 'Dim Opacity',
+        stateKey: 'outerWallBorderDimOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.15,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: dim sides',
+        theme: 'light',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallBorderShadowOpacityLight',
+        label: 'Shadow Opacity',
+        stateKey: 'outerWallBorderShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.25,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: shadow point (top)',
+        theme: 'light',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallTopShadowOpacityLight',
+        label: 'Top Shadow Opacity',
+        stateKey: 'outerWallTopShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.4,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Top overhang shadow',
+        theme: 'light',
+        wallGroup: 'shadow',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallCastShadowOpacityLight',
+        label: 'Inward Shadow Opacity',
+        stateKey: 'outerWallCastShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.15,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Inward (depth) shadow',
+        theme: 'light',
+        wallGroup: 'shadow',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(val));
+          }
+        }
+      },
       {
         id: 'wallAOOpacityLight',
         label: 'AO Opacity',
@@ -3619,7 +3578,9 @@ export const CONTROL_SECTIONS = {
         default: 0.15,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Ambient Occlusion (gap shadow) opacity in light mode',
+        hint: 'Ambient occlusion (gap shadow)',
+        theme: 'light',
+        wallGroup: 'micro',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
@@ -3631,11 +3592,86 @@ export const CONTROL_SECTIONS = {
         default: 0.4,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Razor-sharp edge highlight opacity in light mode',
+        hint: 'Razor-sharp edge highlight',
+        theme: 'light',
+        wallGroup: 'micro',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
-      // Dark Mode Group
-      { type: 'divider', label: '🌙 Dark Mode' },
+      // Dark tab
+      {
+        id: 'outerWallBorderBrightOpacityDark',
+        label: 'Bright Opacity',
+        stateKey: 'outerWallBorderBrightOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.6,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: brightest point (bottom)',
+        theme: 'dark',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallBorderDimOpacityDark',
+        label: 'Dim Opacity',
+        stateKey: 'outerWallBorderDimOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.2,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: dim sides',
+        theme: 'dark',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallBorderShadowOpacityDark',
+        label: 'Shadow Opacity',
+        stateKey: 'outerWallBorderShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.4,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: shadow point (top)',
+        theme: 'dark',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallTopShadowOpacityDark',
+        label: 'Top Shadow Opacity',
+        stateKey: 'outerWallTopShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.6,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Top overhang shadow',
+        theme: 'dark',
+        wallGroup: 'shadow',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallCastShadowOpacityDark',
+        label: 'Inward Shadow Opacity',
+        stateKey: 'outerWallCastShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0.25,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Inward (depth) shadow',
+        theme: 'dark',
+        wallGroup: 'shadow',
+        onChange: (_g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(val));
+          }
+        }
+      },
       {
         id: 'wallAOOpacityDark',
         label: 'AO Opacity',
@@ -3645,7 +3681,9 @@ export const CONTROL_SECTIONS = {
         default: 0.3,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Ambient Occlusion (gap shadow) opacity in dark mode',
+        hint: 'Ambient occlusion (gap shadow)',
+        theme: 'dark',
+        wallGroup: 'micro',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
@@ -3657,40 +3695,22 @@ export const CONTROL_SECTIONS = {
         default: 0.5,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Razor-sharp edge highlight opacity in dark mode',
+        hint: 'Razor-sharp edge highlight',
+        theme: 'dark',
+        wallGroup: 'micro',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      
-      // ─── GEOMETRY ───
-      { type: 'divider', label: '📐 Geometry' },
-      {
-        id: 'outerWallRadiusAdjust',
-        label: 'Corner Adjust',
-        stateKey: 'outerWallRadiusAdjust',
-        type: 'range',
-        min: -5, max: 10, step: 1,
-        default: 2,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Fine-tune outer wall corner roundness',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--outer-wall-radius-adjust', `${val}px`);
-        }
       },
     ]
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // INNER WALL - Edge lighting and shadows on the inner wall boundary
-  // Structure: Edges (top light, bottom shadow) → Shadows → Geometry
+  // INNER WALL - Edge lighting and shadows (tabbed Light/Dark) + Inner Glow
   // ═══════════════════════════════════════════════════════════════════════════
   innerWall: {
     title: 'Inner Wall',
     icon: '🔳',
     defaultOpen: false,
     controls: [
-      // ─── CONTINUOUS BORDER ───
-      { type: 'divider', label: '🔘 Continuous Border' },
       {
         id: 'innerWallBorderWidth',
         label: 'Width',
@@ -3700,92 +3720,15 @@ export const CONTROL_SECTIONS = {
         default: 2,
         format: v => `${v.toFixed(1)}px`,
         parse: parseFloat,
-        hint: 'Thickness of the continuous border',
+        hint: 'Thickness of the continuous border (shine)',
+        theme: null,
+        wallGroup: 'shine',
         onChange: (_g, val) => {
           const px = `${Number(val)}px`;
           document.documentElement.style.setProperty('--inner-wall-border-width', px);
           updateWallElements();
         }
       },
-      // Light Mode Group
-      { type: 'divider', label: '☀️ Light Mode' },
-      {
-        id: 'innerWallBorderBrightOpacityLight',
-        label: 'Bright Opacity',
-        stateKey: 'innerWallBorderBrightOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.5,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of brightest point (top) in light mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'innerWallBorderDimOpacityLight',
-        label: 'Dim Opacity',
-        stateKey: 'innerWallBorderDimOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.15,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of dim sides in light mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'innerWallBorderShadowOpacityLight',
-        label: 'Shadow Opacity',
-        stateKey: 'innerWallBorderShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.2,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of shadow point (bottom) in light mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      // Dark Mode Group
-      { type: 'divider', label: '🌙 Dark Mode' },
-      {
-        id: 'innerWallBorderBrightOpacityDark',
-        label: 'Bright Opacity',
-        stateKey: 'innerWallBorderBrightOpacityDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.6,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of brightest point (top) in dark mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'innerWallBorderDimOpacityDark',
-        label: 'Dim Opacity',
-        stateKey: 'innerWallBorderDimOpacityDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.2,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of dim sides in dark mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'innerWallBorderShadowOpacityDark',
-        label: 'Shadow Opacity',
-        stateKey: 'innerWallBorderShadowOpacityDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.35,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of shadow point (bottom) in dark mode',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      
-      // ─── OUTWARD SHADOW ───
-      { type: 'divider', label: '🌑 Outward Shadow' },
       {
         id: 'innerWallOutwardShadowBlur',
         label: 'Shadow Blur',
@@ -3796,6 +3739,8 @@ export const CONTROL_SECTIONS = {
         format: v => `${v}px`,
         parse: parseFloat,
         hint: 'Softness of outward shadow',
+        theme: null,
+        wallGroup: 'shadow',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--inner-wall-outward-shadow-blur', `${val}px`);
         }
@@ -3809,51 +3754,29 @@ export const CONTROL_SECTIONS = {
         default: 2,
         format: v => `${v}px`,
         parse: parseFloat,
-        hint: 'Vertical offset of shadow',
+        hint: 'Vertical offset of outward shadow',
+        theme: null,
+        wallGroup: 'shadow',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--inner-wall-outward-shadow-offset', `${val}px`);
         }
       },
-      // Light Mode Group
-      { type: 'divider', label: '☀️ Light Mode' },
       {
-        id: 'innerWallOutwardShadowOpacityLight',
-        label: 'Shadow Opacity',
-        stateKey: 'innerWallOutwardShadowOpacityLight',
+        id: 'innerWallOutwardShadowSpread',
+        label: 'Shadow Spread',
+        stateKey: 'innerWallOutwardShadowSpread',
         type: 'range',
-        min: 0, max: 0.8, step: 0.02,
-        default: 0.2,
-        format: v => `${Math.round(v * 100)}%`,
+        min: -5, max: 15, step: 1,
+        default: 2,
+        format: v => `${v}px`,
         parse: parseFloat,
-        hint: 'Outward shadow opacity (light mode)',
+        hint: 'Spread of outward shadow',
+        theme: null,
+        wallGroup: 'shadow',
         onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
-          }
+          document.documentElement.style.setProperty('--inner-wall-outward-shadow-spread', `${val}px`);
         }
       },
-      // Dark Mode Group
-      { type: 'divider', label: '🌙 Dark Mode' },
-      {
-        id: 'innerWallOutwardShadowOpacityDark',
-        label: 'Shadow Opacity',
-        stateKey: 'innerWallOutwardShadowOpacityDark',
-        type: 'range',
-        min: 0, max: 0.8, step: 0.02,
-        default: 0.35,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Outward shadow opacity (dark mode)',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(val));
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
-          }
-        }
-      },
-      
-      // ─── INNER GLOW ───
-      { type: 'divider', label: '🌟 Inner Glow' },
       {
         id: 'innerWallInnerGlowBlur',
         label: 'Glow Blur',
@@ -3863,7 +3786,9 @@ export const CONTROL_SECTIONS = {
         default: 30,
         format: v => `${v}px`,
         parse: parseFloat,
-        hint: 'Blur/softness of the glow',
+        hint: 'Blur/softness of the inner glow',
+        theme: null,
+        wallGroup: 'innerGlow',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--inner-wall-inner-glow-blur', `${val}px`);
           getUpdateGradientEdge().then(fn => fn?.());
@@ -3879,6 +3804,8 @@ export const CONTROL_SECTIONS = {
         format: v => `${v}px`,
         parse: parseFloat,
         hint: 'Spread (negative tightens to edges)',
+        theme: null,
+        wallGroup: 'innerGlow',
         onChange: (_g, val) => {
           getUpdateGradientEdge().then(fn => fn?.());
         }
@@ -3893,6 +3820,8 @@ export const CONTROL_SECTIONS = {
         format: v => `${v}px`,
         parse: parseFloat,
         hint: 'Vertical bias (+ = top brighter, - = bottom brighter)',
+        theme: null,
+        wallGroup: 'innerGlow',
         onChange: (_g, val) => {
           getUpdateGradientEdge().then(fn => fn?.());
         }
@@ -3904,14 +3833,75 @@ export const CONTROL_SECTIONS = {
         type: 'color',
         default: '#ffffff',
         hint: 'Color of the inner glow',
+        theme: null,
+        wallGroup: 'innerGlow',
         onChange: (_g, val) => {
           const rgb = hexToRgbString(val);
           document.documentElement.style.setProperty('--inner-wall-inner-glow-rgb', rgb);
           getUpdateGradientEdge().then(fn => fn?.());
         }
       },
-      // Light Mode Group
-      { type: 'divider', label: '☀️ Light Mode' },
+      // Light tab
+      {
+        id: 'innerWallBorderBrightOpacityLight',
+        label: 'Bright Opacity',
+        stateKey: 'innerWallBorderBrightOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.5,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: brightest point (top)',
+        theme: 'light',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'innerWallBorderDimOpacityLight',
+        label: 'Dim Opacity',
+        stateKey: 'innerWallBorderDimOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.15,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: dim sides',
+        theme: 'light',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'innerWallBorderShadowOpacityLight',
+        label: 'Shadow Opacity',
+        stateKey: 'innerWallBorderShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.2,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: shadow point (bottom)',
+        theme: 'light',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'innerWallOutwardShadowOpacityLight',
+        label: 'Outward Shadow Opacity',
+        stateKey: 'innerWallOutwardShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 0.8, step: 0.02,
+        default: 0.2,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Outward shadow',
+        theme: 'light',
+        wallGroup: 'shadow',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
+          }
+        }
+      },
       {
         id: 'innerWallInnerGlowOpacityLight',
         label: 'Glow Opacity',
@@ -3921,7 +3911,9 @@ export const CONTROL_SECTIONS = {
         default: 0,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Soft white inner glow opacity (light mode)',
+        hint: 'Inner glow strength',
+        theme: 'light',
+        wallGroup: 'innerGlow',
         onChange: (_g, val) => {
           if (!document.body.classList.contains('dark-mode')) {
             document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity', String(val));
@@ -3929,8 +3921,68 @@ export const CONTROL_SECTIONS = {
           getUpdateGradientEdge().then(fn => fn?.());
         }
       },
-      // Dark Mode Group
-      { type: 'divider', label: '🌙 Dark Mode' },
+      // Dark tab
+      {
+        id: 'innerWallBorderBrightOpacityDark',
+        label: 'Bright Opacity',
+        stateKey: 'innerWallBorderBrightOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.6,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: brightest point (top)',
+        theme: 'dark',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'innerWallBorderDimOpacityDark',
+        label: 'Dim Opacity',
+        stateKey: 'innerWallBorderDimOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.2,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: dim sides',
+        theme: 'dark',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'innerWallBorderShadowOpacityDark',
+        label: 'Shadow Opacity',
+        stateKey: 'innerWallBorderShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.35,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: shadow point (bottom)',
+        theme: 'dark',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'innerWallOutwardShadowOpacityDark',
+        label: 'Outward Shadow Opacity',
+        stateKey: 'innerWallOutwardShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 0.8, step: 0.02,
+        default: 0.35,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Outward shadow',
+        theme: 'dark',
+        wallGroup: 'shadow',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(val));
+          if (document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
+          }
+        }
+      },
       {
         id: 'innerWallInnerGlowOpacityDark',
         label: 'Glow Opacity',
@@ -3940,7 +3992,9 @@ export const CONTROL_SECTIONS = {
         default: 0.08,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Soft white inner glow opacity (dark mode)',
+        hint: 'Inner glow strength',
+        theme: 'dark',
+        wallGroup: 'innerGlow',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity-dark', String(val));
           if (document.body.classList.contains('dark-mode')) {
@@ -6613,6 +6667,10 @@ function generateControlHTML(control) {
 }
 
 function generateSectionHTML(key, section) {
+  if (key === 'outerWall' || key === 'innerWall') {
+    return generateWallSectionHTML(key, section);
+  }
+
   const visibleControls = section.controls.filter(c => isControlVisible(c.id));
   if (visibleControls.length === 0) return '';
   
@@ -6626,7 +6684,7 @@ function generateSectionHTML(key, section) {
     if (control.group && control.group !== currentGroup) {
       if (currentGroup !== null) html += '</div>'; // Close previous group content
       const groupLayout = control.groupLayout || '';
-      html += `<div class="section-title" style="margin-top: 12px;">${control.group}</div><div class="group ${groupLayout}">`;
+      html += `<div class="section-title">${control.group}</div><div class="group ${groupLayout}">`;
       currentGroup = control.group;
       currentGroupLayout = groupLayout;
     } else if (!control.group && currentGroup !== null) {
@@ -6660,6 +6718,94 @@ function generateSectionHTML(key, section) {
         </details>
       </div>`;
   }
+
+  return `
+    <details class="panel-section-accordion" ${detailsAttrs}>
+      ${header}
+      ${body}
+    </details>`;
+}
+
+const WALL_GROUP_LABELS = {
+  shine: 'Shine',
+  shadow: 'Shadow',
+  innerGlow: 'Inner Glow',
+  micro: 'Micro-details',
+  geometry: 'Geometry'
+};
+
+const WALL_GROUP_DESCRIPTIONS = {
+  shine: 'Continuous border light around the edge (bright, dim, shadow points).',
+  shadow: 'Inner or outward shadow (depth, overhang, cast shadow).',
+  innerGlow: 'Soft top light inside the inner wall.',
+  micro: 'Ambient occlusion and specular highlight on the edge.',
+  geometry: 'Corner roundness and shape.'
+};
+
+function renderWallControlsWithGroupLabels(controls) {
+  let html = '';
+  let currentGroup = null;
+  let chunkOpen = false;
+  for (const control of controls) {
+    const group = control.wallGroup || null;
+    if (group !== currentGroup) {
+      if (chunkOpen) html += '</div>';
+      chunkOpen = false;
+      if (group && WALL_GROUP_LABELS[group]) {
+        const label = WALL_GROUP_LABELS[group];
+        const desc = WALL_GROUP_DESCRIPTIONS[group] || '';
+        html += `<div class="wall-chunk"><div class="wall-chunk-header"><span class="wall-chunk-label">${escapeAttr(label)}</span><p class="wall-chunk-desc">${escapeAttr(desc)}</p></div>`;
+        chunkOpen = true;
+      }
+      currentGroup = group;
+    }
+    html += generateControlHTML(control);
+  }
+  if (chunkOpen) html += '</div>';
+  return html;
+}
+
+function generateWallSectionHTML(sectionKey, section) {
+  const visibleControls = section.controls.filter(c => c.type !== 'divider' && c.id && isControlVisible(c.id));
+  if (visibleControls.length === 0) return '';
+
+  const shared = visibleControls.filter(c => c.theme == null);
+  const lightControls = visibleControls.filter(c => c.theme === 'light');
+  const darkControls = visibleControls.filter(c => c.theme === 'dark');
+
+  const isDark = typeof document !== 'undefined' && document.body.classList.contains('dark-mode');
+  const defaultTab = isDark ? 'dark' : 'light';
+
+  const sharedHtml = renderWallControlsWithGroupLabels(shared);
+  const lightHtml = renderWallControlsWithGroupLabels(lightControls);
+  const darkHtml = renderWallControlsWithGroupLabels(darkControls);
+
+  const lightTabActive = defaultTab === 'light' ? ' active' : '';
+  const darkTabActive = defaultTab === 'dark' ? ' active' : '';
+  const lightPanelActive = defaultTab === 'light' ? ' active' : '';
+  const darkPanelActive = defaultTab === 'dark' ? ' active' : '';
+
+  const tabStrip = `
+    <div class="wall-theme-tabs" role="tablist" aria-label="Light or dark theme">
+      <button type="button" class="wall-theme-tab${lightTabActive}" data-wall-section="${sectionKey}" data-theme="light" role="tab" aria-selected="${defaultTab === 'light'}">Light</button>
+      <button type="button" class="wall-theme-tab${darkTabActive}" data-wall-section="${sectionKey}" data-theme="dark" role="tab" aria-selected="${defaultTab === 'dark'}">Dark</button>
+    </div>`;
+  const lightPanel = `<div id="${sectionKey}LightPanel" class="wall-tab-panel${lightPanelActive}" role="tabpanel" data-theme="light">${lightHtml}</div>`;
+  const darkPanel = `<div id="${sectionKey}DarkPanel" class="wall-tab-panel${darkPanelActive}" role="tabpanel" data-theme="dark">${darkHtml}</div>`;
+
+  const body = `<div class="panel-section-content wall-section-with-tabs">
+    ${sharedHtml}
+    ${tabStrip}
+    ${lightPanel}
+    ${darkPanel}
+  </div>`;
+
+  const detailsAttrs = `${section.defaultOpen ? 'open' : ''}`;
+  const header = `
+    <summary class="panel-section-header">
+      ${section.icon ? `<span class="section-icon">${section.icon}</span>` : ''}
+      <span class="section-label">${section.title}</span>
+    </summary>`;
 
   return `
     <details class="panel-section-accordion" ${detailsAttrs}>
@@ -7457,4 +7603,46 @@ export function syncSlidersToState(options = {}) {
       }
     }
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WALL SECTION TABS (Light/Dark) – bind tab clicks and sync to page theme
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function setupWallSectionTabs() {
+  document.querySelectorAll('.wall-theme-tab').forEach(btn => {
+    if (btn._wallTabBound) return;
+    btn._wallTabBound = true;
+    btn.addEventListener('click', () => {
+      const sectionKey = btn.getAttribute('data-wall-section');
+      const theme = btn.getAttribute('data-theme');
+      if (!sectionKey || !theme) return;
+      const container = btn.closest('.wall-section-with-tabs');
+      if (!container) return;
+      container.querySelectorAll('.wall-theme-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      container.querySelectorAll('.wall-tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+      const panel = document.getElementById(sectionKey + (theme === 'light' ? 'LightPanel' : 'DarkPanel'));
+      if (panel) panel.classList.add('active');
+    });
+  });
+}
+
+export function syncWallPanelTabsToTheme() {
+  const isDark = document.body.classList.contains('dark-mode');
+  const theme = isDark ? 'dark' : 'light';
+  document.querySelectorAll('.wall-section-with-tabs').forEach(container => {
+    const sectionKey = container.querySelector('.wall-theme-tab')?.getAttribute('data-wall-section');
+    if (!sectionKey) return;
+    const tab = container.querySelector(`.wall-theme-tab[data-theme="${theme}"]`);
+    const panel = document.getElementById(sectionKey + (theme === 'light' ? 'LightPanel' : 'DarkPanel'));
+    if (tab && panel) {
+      container.querySelectorAll('.wall-theme-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      container.querySelectorAll('.wall-tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      panel.classList.add('active');
+    }
+  });
 }

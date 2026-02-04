@@ -14,6 +14,14 @@ let _smoothMouseX = 0;
 let _smoothMouseY = 0;
 let _mouseInitialized = false;
 
+// Global animation state for slot machine effect
+let _scrollOffset = 0;
+let _gridParams = {
+  gridZ: 0
+};
+// Pre-generated colors per column: _columnColors[ix][iy] = [color0, color1, ..., colorZ-1]
+let _columnColors = [];
+
 export function initializeParallaxLinear() {
   const g = getGlobals();
   const canvas = g.canvas;
@@ -48,6 +56,25 @@ export function initializeParallaxLinear() {
   const zNear = Math.max(10, g.parallaxLinearZNear ?? 50);
   const zFar = Math.max(zNear + 100, g.parallaxLinearZFar ?? 800);
   const zStep = (zFar - zNear) / Math.max(1, gridZ - 1);
+
+  // Store grid params for slot machine effect
+  _gridParams = {
+    gridZ
+  };
+  _scrollOffset = 0; // Reset animation on re-init
+  
+  // Pre-generate random colors for each (ix, iy) column
+  // Each column has gridZ colors that will rotate through
+  _columnColors = [];
+  for (let ix = 0; ix < gridX; ix++) {
+    _columnColors[ix] = [];
+    for (let iy = 0; iy < gridY; iy++) {
+      _columnColors[ix][iy] = [];
+      for (let iz = 0; iz < gridZ; iz++) {
+        _columnColors[ix][iy][iz] = pickRandomColor();
+      }
+    }
+  }
 
   // Camera/projection
   const focalLength = Math.max(80, g.parallaxLinearFocalLength ?? 420);
@@ -84,7 +111,8 @@ export function initializeParallaxLinear() {
         const fadeRamp = depthFactor > fadeStart ? (depthFactor - fadeStart) / (1 - fadeStart) : 0;
         const alpha = 1.0 - fadeRamp * 0.85; // Opaque until 75% depth, then fade to 0.15
 
-        const color = pickRandomColor();
+        // Use pre-generated color for this column position
+        const color = _columnColors[ix][iy][iz];
         const ball = spawnBall(x2d, y2d, color);
         ball.r = clampRadiusToGlobalBounds(g, r);
         ball.vx = 0;
@@ -93,6 +121,10 @@ export function initializeParallaxLinear() {
         ball._parallax3D = { x: x3d, y: y3d, z: z3d, baseScale: scale };
         ball._parallaxSizeMul = (varFrac <= 1e-6) ? 1.0 : (1 + (Math.random() * 2 - 1) * varFrac);
         ball._isParallax = true; // Skip all standard physics
+        // Store grid indices for slot machine effect (colors rotate through Z depth)
+        ball._gridIx = ix;
+        ball._gridIy = iy;
+        ball._gridIz = iz;
         // Z-depth for logo layering: invert depthFactor (0=far becomes back, 1=near becomes front)
         ball.z = 1 - depthFactor;
         idx++;
@@ -132,6 +164,11 @@ export function updateParallaxLinearMouse(dt) {
     _smoothMouseX += (targetX - _smoothMouseX) * easeFactor;
     _smoothMouseY += (targetY - _smoothMouseY) * easeFactor;
   }
+
+  // Update slot machine scroll (colors rotate through Z-depth columns)
+  // 2.5 shifts/sec for a lively flowing effect
+  const speed = 2.5; 
+  _scrollOffset += speed * dt;
 }
 
 export function applyParallaxLinearForces(ball, dt) {
@@ -153,7 +190,7 @@ export function applyParallaxLinearForces(ball, dt) {
   const parallaxStrength = Math.max(0, g.parallaxLinearParallaxStrength ?? 120);
 
   // Apply mouse-driven camera rotation/pan
-  const { x, y, z } = ball._parallax3D;
+  let { x, y, z } = ball._parallax3D;
   
   // Parallax offset (simulates camera pan)
   const offsetX = mx * parallaxStrength;
@@ -163,6 +200,23 @@ export function applyParallaxLinearForces(ball, dt) {
   const scale = focalLength / (focalLength + z);
   const targetX = cx + (x + offsetX) * scale;
   const targetY = cy + (y + offsetY) * scale;
+
+  // Slot machine effect: rotate colors through each perceived column (same ix,iy, different iz)
+  if (ball._gridIx !== undefined && ball._gridIy !== undefined && ball._gridIz !== undefined) {
+    const ix = ball._gridIx;
+    const iy = ball._gridIy;
+    const iz = ball._gridIz;
+    const gridZ = _gridParams.gridZ;
+    
+    if (gridZ > 0 && _columnColors[ix] && _columnColors[ix][iy]) {
+      const columnColorArray = _columnColors[ix][iy];
+      // Shift the color index by scroll offset (colors rotate through the Z depth column)
+      const shiftedIndex = (iz + Math.floor(_scrollOffset)) % gridZ;
+      // Ensure positive index
+      const safeIndex = ((shiftedIndex % gridZ) + gridZ) % gridZ;
+      ball.color = columnColorArray[safeIndex];
+    }
+  }
 
   // Update size based on depth
   const dotSizeMul = Math.max(0.1, Math.min(6.0, g.parallaxLinearDotSizeMul ?? 1.8));

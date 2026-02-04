@@ -225,12 +225,11 @@ function updateWallBorders(g, isDark) {
 
     outerWall.style.setProperty('--outer-wall-border-width', `${width}px`);
     
-    // Set gradient stops based on spread (centered at 180deg)
-    // 180deg = Bottom Center (Brightest)
-    // 180 +/- spread = End of bright fade
-    outerWall.style.setProperty('--outer-wall-grad-stop-bright', `180deg`);
-    outerWall.style.setProperty('--outer-wall-grad-stop-dim-start', `${180 - spread}deg`);
-    outerWall.style.setProperty('--outer-wall-grad-stop-dim-end', `${180 + spread}deg`);
+    // Set gradient stops based on spread (centered at 0deg in rotated gradient)
+    // With `from 180deg`, 0deg maps to bottom center (brightest).
+    outerWall.style.setProperty('--outer-wall-grad-stop-bright', `0deg`);
+    outerWall.style.setProperty('--outer-wall-grad-stop-dim-start', `${spread}deg`);
+    outerWall.style.setProperty('--outer-wall-grad-stop-dim-end', `${360 - spread}deg`);
     
     outerWall.style.setProperty('--outer-wall-border-bright-opacity', `calc(${brightOp} * var(--ambient-light-mul, 1))`);
     outerWall.style.setProperty('--outer-wall-border-dim-opacity', `calc(${dimOp} * var(--ambient-light-mul, 1))`);

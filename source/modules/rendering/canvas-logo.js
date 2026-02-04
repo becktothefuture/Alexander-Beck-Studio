@@ -238,11 +238,19 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
   let opacity = 1;
   let blur = 0;
   
-  if (!entranceState.isComplete && entranceState.isStarted) {
-    const t = easeOutExpo(entranceState.progress);
-    opacity = t;
-    blur = (1 - t) * ENTRANCE_BLUR_MAX;
+  if (!entranceState.isComplete) {
+    if (entranceState.isStarted) {
+      const t = easeOutExpo(entranceState.progress);
+      opacity = t;
+      blur = (1 - t) * ENTRANCE_BLUR_MAX;
+    } else {
+      // Not started yet -> hidden
+      opacity = 0;
+    }
   }
+  
+  // Optimization: Skip drawing if invisible
+  if (opacity <= 0) return;
   
   // Apply scene impact scale from CSS var (if available)
   let effectiveScale = scale;
