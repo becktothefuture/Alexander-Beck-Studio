@@ -136,66 +136,29 @@ function updateWallShadowCSS(g) {
   }
   
   // ─────────────────────────────────────────────────────────────────────────────
-  // STAGGERED INNER SHADOW (3 layers for realistic depth)
-  // Creates the illusion of the wall casting shadow onto the recessed content
-  // Layer 1: Tight, sharp contact shadow
-  // Layer 2: Medium diffuse shadow
-  // Layer 3: Soft ambient shadow
+  // SINGLE INNER SHADOW — above balls, below text (one inset shadow only)
+  // Applied to .inner-shadow element
   // ─────────────────────────────────────────────────────────────────────────────
   const innerShadowEnabled = g.wallInnerShadowEnabled ?? true;
+  let innerShadowStr = 'none';
   if (innerShadowEnabled) {
     const innerOpacity = isDark
       ? (g.wallInnerShadowOpacityDark ?? 0.25)
       : (g.wallInnerShadowOpacityLight ?? 0.08);
-    
     if (innerOpacity > 0) {
       const offsetY = g.wallInnerShadowOffsetY ?? 2;
-      const blur1 = g.wallInnerShadowBlur1 ?? 3;
-      const blur2 = g.wallInnerShadowBlur2 ?? 8;
-      const blur3 = g.wallInnerShadowBlur3 ?? 20;
-      
-      // Opacity distribution: layer 1 strongest, layer 3 softest
-      const op1 = innerOpacity * 1.0;    // 100% of base opacity
-      const op2 = innerOpacity * 0.6;    // 60% of base opacity
-      const op3 = innerOpacity * 0.3;    // 30% of base opacity
-      
-      shadows.push(`inset 0 ${offsetY}px ${blur1}px rgba(0,0,0, ${op1.toFixed(3)})`);
-      shadows.push(`inset 0 ${offsetY * 1.5}px ${blur2}px rgba(0,0,0, ${op2.toFixed(3)})`);
-      shadows.push(`inset 0 ${offsetY * 2}px ${blur3}px rgba(0,0,0, ${op3.toFixed(3)})`);
+      const blur = g.wallInnerShadowBlur2 ?? 8; // single soft blur
+      innerShadowStr = `inset 0 ${offsetY}px ${blur}px rgba(0,0,0, ${innerOpacity.toFixed(3)})`;
     }
   }
-  
-  // Get current outward shadow values from CSS variables
-  const root = document.documentElement;
-  const outwardOffset = getComputedStyle(root).getPropertyValue('--inner-wall-outward-shadow-offset').trim() || '2px';
-  const outwardBlur = getComputedStyle(root).getPropertyValue('--inner-wall-outward-shadow-blur').trim() || '8px';
-  const outwardSpread = getComputedStyle(root).getPropertyValue('--inner-wall-outward-shadow-spread').trim() || '2px';
-  const outwardOpacity = getComputedStyle(root).getPropertyValue('--inner-wall-outward-shadow-opacity').trim() || '0.2';
-  
-  // Always include the outward shadow first (this is the main depth shadow)
-  const outwardShadow = `0 ${outwardOffset} ${outwardBlur} ${outwardSpread} rgba(0, 0, 0, ${outwardOpacity})`;
-  shadows.unshift(outwardShadow);
-  
-  const shadowStr = shadows.length > 0 ? shadows.join(', ') : 'none';
-  
-  // Apply combined shadow to the ::before pseudo-element
-  container.style.setProperty('--wall-shadow-override', shadowStr);
+  container.style.setProperty('--inner-wall-inner-shadow', innerShadowStr);
   
   // Apply stroke opacity (disabled by default)
   container.style.setProperty('--wall-stroke-opacity', strokeOpacity.toFixed(3));
   
-  // Add a style tag if not exists to use the override
-  let styleTag = document.getElementById('wall-shadow-override-style');
-  if (!styleTag) {
-    styleTag = document.createElement('style');
-    styleTag.id = 'wall-shadow-override-style';
-    styleTag.textContent = `
-      #bravia-balls::before {
-        box-shadow: var(--wall-shadow-override) !important;
-      }
-    `;
-    document.head.appendChild(styleTag);
-  }
+  // Remove legacy style tag that targeted #bravia-balls::before (display:none)
+  const styleTag = document.getElementById('wall-shadow-override-style');
+  if (styleTag) styleTag.remove();
 }
 
 // Export for initialization
@@ -260,7 +223,6 @@ export const MASTER_GROUPS = [
       'colors',
       'colorDistribution',
       'noise',
-      'videoOverlay',
       'tactileLayer'
     ]
   },
@@ -279,8 +241,8 @@ export const MASTER_GROUPS = [
     title: 'Effects',
     icon: '✨',
     sections: [
-      'outerWall',
       'innerWall',
+      'outerWall',
       'simulationOverlay',
       'overlay'
     ]
@@ -292,7 +254,6 @@ export const MASTER_GROUPS = [
     sections: [
       'cursor',
       'trail',
-      'cursorExplosionImpact',
       'links'
     ]
   },
@@ -326,7 +287,6 @@ const SECTION_CATEGORIES = {
   'colors': 'SURFACE',
   'colorDistribution': 'PALETTE',
   'noise': 'GRAIN',
-  'videoOverlay': 'TEXTURE',
   'tactileLayer': 'TACTILE',
 
   // Frame
@@ -1167,165 +1127,6 @@ export const CONTROL_SECTIONS = {
         default: 0.35,
         format: v => v.toFixed(2),
         parse: parseFloat
-      },
-      { type: 'divider', label: 'Cursor Explosion' },
-      {
-        id: 'cursorExplosionEnabled',
-        label: 'Explosion Enabled',
-        stateKey: 'cursorExplosionEnabled',
-        type: 'checkbox',
-        default: true,
-        hint: 'Particle dispersion when cursor enters button areas'
-      },
-      {
-        id: 'cursorExplosionParticleCount',
-        label: 'Particle Count',
-        stateKey: 'cursorExplosionParticleCount',
-        type: 'range',
-        min: 4, max: 32, step: 1,
-        default: 16,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Base particle count (scales with velocity)'
-      },
-      {
-        id: 'cursorExplosionSpeed',
-        label: 'Particle Speed',
-        stateKey: 'cursorExplosionSpeed',
-        type: 'range',
-        min: 100, max: 1000, step: 50,
-        default: 400,
-        format: v => `${Math.round(v)}px/s`,
-        parse: v => parseInt(v, 10),
-        hint: 'Base particle velocity (scales with impact)'
-      },
-      {
-        id: 'cursorExplosionSpreadDeg',
-        label: 'Spread Angle',
-        stateKey: 'cursorExplosionSpreadDeg',
-        type: 'range',
-        min: 180, max: 360, step: 10,
-        default: 360,
-        format: v => `${Math.round(v)}°`,
-        parse: v => parseInt(v, 10),
-        hint: 'Particle dispersion angle (360 = full circle)'
-      },
-      {
-        id: 'cursorExplosionLifetime',
-        label: 'Lifetime',
-        stateKey: 'cursorExplosionLifetime',
-        type: 'range',
-        min: 0.3, max: 1.5, step: 0.1,
-        default: 0.8,
-        format: v => `${v.toFixed(1)}s`,
-        parse: parseFloat,
-        hint: 'How long particles live before fading'
-      },
-      {
-        id: 'cursorExplosionFadeStartRatio',
-        label: 'Fade Start',
-        stateKey: 'cursorExplosionFadeStartRatio',
-        type: 'range',
-        min: 0.3, max: 0.9, step: 0.05,
-        default: 0.6,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'When to start fading (0.6 = fade at 60% lifetime)'
-      },
-      {
-        id: 'cursorExplosionDrag',
-        label: 'Drag',
-        stateKey: 'cursorExplosionDrag',
-        type: 'range',
-        min: 0.85, max: 0.99, step: 0.01,
-        default: 0.95,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Velocity decay per frame (lower = faster slowdown)'
-      },
-      {
-        id: 'cursorExplosionShrinkEnabled',
-        label: 'Shrink Over Time',
-        stateKey: 'cursorExplosionShrinkEnabled',
-        type: 'checkbox',
-        default: true,
-        hint: 'Particles shrink as they age (cartoony character)'
-      }
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CURSOR EXPLOSION IMPACT - How mouse velocity affects explosion strength
-  // ═══════════════════════════════════════════════════════════════════════════
-  cursorExplosionImpact: {
-    title: 'Cursor Explosion Impact',
-    controls: [
-      {
-        id: 'cursorExplosionImpactMinFactor',
-        label: 'Min Impact',
-        stateKey: 'cursorExplosionImpactMinFactor',
-        type: 'range',
-        min: 0.1, max: 2.0, step: 0.1,
-        default: 0.5,
-        format: v => `${v.toFixed(1)}x`,
-        parse: parseFloat,
-        hint: 'Impact multiplier for slow hover (0.5 = half intensity)'
-      },
-      {
-        id: 'cursorExplosionImpactMaxFactor',
-        label: 'Max Impact',
-        stateKey: 'cursorExplosionImpactMaxFactor',
-        type: 'range',
-        min: 1.0, max: 8.0, step: 0.5,
-        default: 4.0,
-        format: v => `${v.toFixed(1)}x`,
-        parse: parseFloat,
-        hint: 'Impact multiplier for fast impact (4.0 = 4x intensity)'
-      },
-      {
-        id: 'cursorExplosionImpactSensitivity',
-        label: 'Impact Sensitivity',
-        stateKey: 'cursorExplosionImpactSensitivity',
-        type: 'range',
-        min: 100, max: 1000, step: 50,
-        default: 400,
-        format: v => `${Math.round(v)}px/ms`,
-        parse: v => parseInt(v, 10),
-        hint: 'Velocity threshold for scaling (higher = less sensitive)'
-      },
-      { type: 'divider', label: 'Lifetime Impact' },
-      {
-        id: 'cursorExplosionLifetimeImpactMin',
-        label: 'Min Lifetime Scale',
-        stateKey: 'cursorExplosionLifetimeImpactMin',
-        type: 'range',
-        min: 0.3, max: 1.5, step: 0.1,
-        default: 0.7,
-        format: v => `${v.toFixed(1)}x`,
-        parse: parseFloat,
-        hint: 'Lifetime multiplier for slow hover (particles fade quickly)'
-      },
-      {
-        id: 'cursorExplosionLifetimeImpactMax',
-        label: 'Max Lifetime Scale',
-        stateKey: 'cursorExplosionLifetimeImpactMax',
-        type: 'range',
-        min: 1.0, max: 3.0, step: 0.1,
-        default: 1.8,
-        format: v => `${v.toFixed(1)}x`,
-        parse: parseFloat,
-        hint: 'Lifetime multiplier for fast impact (particles travel farther)'
-      },
-      {
-        id: 'cursorExplosionLifetimeImpactSensitivity',
-        label: 'Lifetime Sensitivity',
-        stateKey: 'cursorExplosionLifetimeImpactSensitivity',
-        type: 'range',
-        min: 200, max: 1500, step: 50,
-        default: 600,
-        format: v => `${Math.round(v)}px/ms`,
-        parse: v => parseInt(v, 10),
-        hint: 'Velocity threshold for lifetime scaling (higher = less sensitive)'
       }
     ]
   },
@@ -2555,210 +2356,6 @@ export const CONTROL_SECTIONS = {
     ]
   },
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // VIDEO OVERLAY - Grunge/texture video effect
-  // ═══════════════════════════════════════════════════════════════════════════
-  videoOverlay: {
-    title: 'Video Overlay',
-    icon: '📼',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'grungeVideoEnabled',
-        label: 'Enabled',
-        stateKey: 'grungeVideoEnabled',
-        type: 'checkbox',
-        default: true,
-        hint: 'Enable/disable the grunge video overlay effect',
-        onChange: (g, val) => {
-          const videos = document.querySelectorAll('.grunge-video-overlay');
-          videos.forEach(v => {
-            v.style.display = val ? '' : 'none';
-          });
-        }
-      },
-
-      {
-        id: 'grungeVideoOpacityLight',
-        label: 'Opacity (Light)',
-        stateKey: 'grungeVideoOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.8,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Video overlay opacity in light mode (0 = invisible, 1 = full)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-opacity-light', String(val));
-        }
-      },
-      {
-        id: 'grungeVideoOpacityDark',
-        label: 'Opacity (Dark)',
-        stateKey: 'grungeVideoOpacityDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.12,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        hint: 'Video overlay opacity in dark mode (0 = invisible, 1 = full)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-opacity-dark', String(val));
-        }
-      },
-      {
-        id: 'grungeVideoBlendModeLight',
-        label: 'Blend (Light)',
-        stateKey: 'grungeVideoBlendModeLight',
-        type: 'select',
-        options: [
-          { value: 'overlay', label: 'Overlay (Contrast)' },
-          { value: 'screen', label: 'Screen (Lighten)' },
-          { value: 'multiply', label: 'Multiply (Darken)' },
-          { value: 'soft-light', label: 'Soft Light (Subtle)' },
-          { value: 'hard-light', label: 'Hard Light (Intense)' },
-          { value: 'lighten', label: 'Lighten (Pick Lighter)' },
-          { value: 'darken', label: 'Darken (Pick Darker)' },
-          { value: 'plus-lighter', label: 'Plus Lighter (Additive)' },
-          { value: 'color-dodge', label: 'Color Dodge (Bright)' },
-          { value: 'color-burn', label: 'Color Burn (Dark)' }
-        ],
-        default: 'overlay',
-        hint: 'Blend mode for light mode video',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-blend-mode-light', val);
-        }
-      },
-      {
-        id: 'grungeVideoBlendModeDark',
-        label: 'Blend (Dark)',
-        stateKey: 'grungeVideoBlendModeDark',
-        type: 'select',
-        options: [
-          { value: 'screen', label: 'Screen (Lighten)' },
-          { value: 'overlay', label: 'Overlay (Contrast)' },
-          { value: 'multiply', label: 'Multiply (Darken)' },
-          { value: 'soft-light', label: 'Soft Light (Subtle)' },
-          { value: 'hard-light', label: 'Hard Light (Intense)' },
-          { value: 'lighten', label: 'Lighten (Pick Lighter)' },
-          { value: 'darken', label: 'Darken (Pick Darker)' },
-          { value: 'plus-lighter', label: 'Plus Lighter (Additive)' },
-          { value: 'color-dodge', label: 'Color Dodge (Bright)' },
-          { value: 'color-burn', label: 'Color Burn (Dark)' }
-        ],
-        default: 'screen',
-        hint: 'Blend mode for dark mode video',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-blend-mode-dark', val);
-        }
-      },
-      {
-        id: 'grungeVideoContrast',
-        label: 'Contrast',
-        stateKey: 'grungeVideoContrast',
-        type: 'range',
-        min: 0.5, max: 2, step: 0.05,
-        default: 1,
-        precision: 2,
-        hint: 'Video contrast (1 = normal, >1 = more contrast)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-contrast', String(val));
-        }
-      },
-      {
-        id: 'grungeVideoBrightness',
-        label: 'Brightness',
-        stateKey: 'grungeVideoBrightness',
-        type: 'range',
-        min: 0.5, max: 2, step: 0.05,
-        default: 1,
-        precision: 2,
-        hint: 'Video brightness/exposure (1 = normal, >1 = brighter)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-brightness', String(val));
-        }
-      },
-      {
-        id: 'grungeVideoSaturate',
-        label: 'Saturation',
-        stateKey: 'grungeVideoSaturate',
-        type: 'range',
-        min: 0, max: 2, step: 0.05,
-        default: 1,
-        precision: 2,
-        hint: 'Video saturation (0 = grayscale, 1 = normal, >1 = vivid)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-saturate', String(val));
-        }
-      },
-      {
-        id: 'grungeVideoHueRotate',
-        label: 'Hue Rotate',
-        stateKey: 'grungeVideoHueRotate',
-        type: 'range',
-        min: 0, max: 360, step: 1,
-        default: 0,
-        precision: 0,
-        hint: 'Rotate colors around the color wheel (0-360 degrees)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-hue-rotate', `${val}deg`);
-        }
-      },
-      {
-        id: 'grungeVideoInvert',
-        label: 'Invert',
-        stateKey: 'grungeVideoInvert',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        precision: 2,
-        hint: 'Invert colors (0 = normal, 1 = fully inverted)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-invert', String(val));
-        }
-      },
-      {
-        id: 'grungeVideoSepia',
-        label: 'Sepia',
-        stateKey: 'grungeVideoSepia',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        precision: 2,
-        hint: 'Sepia tone effect (0 = none, 1 = full sepia)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-sepia', String(val));
-        }
-      },
-      {
-        id: 'grungeVideoGrayscale',
-        label: 'Grayscale',
-        stateKey: 'grungeVideoGrayscale',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        precision: 2,
-        hint: 'Convert to grayscale (0 = color, 1 = black & white)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-grayscale', String(val));
-        }
-      },
-      {
-        id: 'grungeVideoBlur',
-        label: 'Blur',
-        stateKey: 'grungeVideoBlur',
-        type: 'range',
-        min: 0, max: 20, step: 0.5,
-        default: 0,
-        precision: 1,
-        hint: 'Blur effect in pixels (0 = sharp)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-blur', `${val}px`);
-        }
-      }
-    ]
-  },
-
   // TACTILE LAYER - Unicorn Studio
   // ═══════════════════════════════════════════════════════════════════════════
   tactileLayer: {
@@ -2894,7 +2491,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'safariTintInset',
         type: 'range',
         min: 0, max: 40, step: 1,
-        default: 20,
+        default: 15,
         format: v => `${v}px`,
         parse: parseFloat,
         hint: 'Distance from viewport edge to wall outer edge (px)',
@@ -3359,38 +2956,6 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
-        id: 'outerWallBorderWidth',
-        label: 'Width',
-        stateKey: 'outerWallBorderWidth',
-        type: 'range',
-        min: 0, max: 10, step: 0.1,
-        default: 2,
-        format: v => `${v.toFixed(1)}px`,
-        parse: parseFloat,
-        hint: 'Thickness of the continuous border (shine)',
-        theme: null,
-        wallGroup: 'shine',
-        onChange: (_g, val) => {
-          const px = `${Number(val)}px`;
-          document.documentElement.style.setProperty('--outer-wall-border-width', px);
-          updateWallElements();
-        }
-      },
-      {
-        id: 'outerWallBorderGradientSpread',
-        label: 'Gradient Spread',
-        stateKey: 'outerWallBorderGradientSpread',
-        type: 'range',
-        min: 10, max: 170, step: 5,
-        default: 85,
-        format: v => `${v}°`,
-        parse: parseFloat,
-        hint: 'Angle of the bright spot (half-width)',
-        theme: null,
-        wallGroup: 'shine',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
         id: 'outerWallTopShadowOffset',
         label: 'Top Shadow Offset',
         stateKey: 'outerWallTopShadowOffset',
@@ -3479,6 +3044,38 @@ export const CONTROL_SECTIONS = {
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
+        id: 'outerWallBorderWidth',
+        label: 'Width',
+        stateKey: 'outerWallBorderWidth',
+        type: 'range',
+        min: 0, max: 10, step: 0.1,
+        default: 2,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Thickness of the continuous border (shine)',
+        theme: null,
+        wallGroup: 'shine',
+        onChange: (_g, val) => {
+          const px = `${Number(val)}px`;
+          document.documentElement.style.setProperty('--outer-wall-border-width', px);
+          updateWallElements();
+        }
+      },
+      {
+        id: 'outerWallBorderGradientSpread',
+        label: 'Gradient Spread',
+        stateKey: 'outerWallBorderGradientSpread',
+        type: 'range',
+        min: 10, max: 170, step: 5,
+        default: 85,
+        format: v => `${v}°`,
+        parse: parseFloat,
+        hint: 'Angle of the bright spot (half-width)',
+        theme: null,
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
         id: 'outerWallRadiusAdjust',
         label: 'Corner Adjust',
         stateKey: 'outerWallRadiusAdjust',
@@ -3495,48 +3092,6 @@ export const CONTROL_SECTIONS = {
         }
       },
       // Light tab
-      {
-        id: 'outerWallBorderBrightOpacityLight',
-        label: 'Bright Opacity',
-        stateKey: 'outerWallBorderBrightOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.5,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Shine: brightest point (bottom)',
-        theme: 'light',
-        wallGroup: 'shine',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'outerWallBorderDimOpacityLight',
-        label: 'Dim Opacity',
-        stateKey: 'outerWallBorderDimOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.15,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Shine: dim sides',
-        theme: 'light',
-        wallGroup: 'shine',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'outerWallBorderShadowOpacityLight',
-        label: 'Shadow Opacity',
-        stateKey: 'outerWallBorderShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.25,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Shine: shadow point (top)',
-        theme: 'light',
-        wallGroup: 'shine',
-        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
       {
         id: 'outerWallTopShadowOpacityLight',
         label: 'Top Shadow Opacity',
@@ -3597,49 +3152,49 @@ export const CONTROL_SECTIONS = {
         wallGroup: 'micro',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
-      // Dark tab
       {
-        id: 'outerWallBorderBrightOpacityDark',
+        id: 'outerWallBorderBrightOpacityLight',
         label: 'Bright Opacity',
-        stateKey: 'outerWallBorderBrightOpacityDark',
+        stateKey: 'outerWallBorderBrightOpacityLight',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.6,
+        default: 0.5,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Shine: brightest point (bottom)',
-        theme: 'dark',
+        theme: 'light',
         wallGroup: 'shine',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'outerWallBorderDimOpacityDark',
+        id: 'outerWallBorderDimOpacityLight',
         label: 'Dim Opacity',
-        stateKey: 'outerWallBorderDimOpacityDark',
+        stateKey: 'outerWallBorderDimOpacityLight',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.2,
+        default: 0.15,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Shine: dim sides',
-        theme: 'dark',
+        theme: 'light',
         wallGroup: 'shine',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
       {
-        id: 'outerWallBorderShadowOpacityDark',
+        id: 'outerWallBorderShadowOpacityLight',
         label: 'Shadow Opacity',
-        stateKey: 'outerWallBorderShadowOpacityDark',
+        stateKey: 'outerWallBorderShadowOpacityLight',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.4,
+        default: 0.25,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Shine: shadow point (top)',
-        theme: 'dark',
+        theme: 'light',
         wallGroup: 'shine',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
+      // Dark tab
       {
         id: 'outerWallTopShadowOpacityDark',
         label: 'Top Shadow Opacity',
@@ -3700,6 +3255,48 @@ export const CONTROL_SECTIONS = {
         wallGroup: 'micro',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
+      {
+        id: 'outerWallBorderBrightOpacityDark',
+        label: 'Bright Opacity',
+        stateKey: 'outerWallBorderBrightOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.6,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: brightest point (bottom)',
+        theme: 'dark',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallBorderDimOpacityDark',
+        label: 'Dim Opacity',
+        stateKey: 'outerWallBorderDimOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.2,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: dim sides',
+        theme: 'dark',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'outerWallBorderShadowOpacityDark',
+        label: 'Shadow Opacity',
+        stateKey: 'outerWallBorderShadowOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.05,
+        default: 0.4,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Shine: shadow point (top)',
+        theme: 'dark',
+        wallGroup: 'shine',
+        onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
     ]
   },
 
@@ -3711,22 +3308,109 @@ export const CONTROL_SECTIONS = {
     icon: '🔳',
     defaultOpen: false,
     controls: [
+      // ═══════════════════════════════════════════════════════════════════════════
+      // INNER WALL SHINE (blur glow layer)
+      // ═══════════════════════════════════════════════════════════════════════════
       {
-        id: 'innerWallBorderWidth',
-        label: 'Width',
-        stateKey: 'innerWallBorderWidth',
-        type: 'range',
-        min: 0, max: 10, step: 0.1,
-        default: 2,
-        format: v => `${v.toFixed(1)}px`,
-        parse: parseFloat,
-        hint: 'Thickness of the continuous border (shine)',
-        theme: null,
+        id: 'innerWallShineBlur',
+        label: 'Blur',
+        stateKey: 'innerWallShineBlur',
         wallGroup: 'shine',
-        onChange: (_g, val) => {
-          const px = `${Number(val)}px`;
-          document.documentElement.style.setProperty('--inner-wall-border-width', px);
-          updateWallElements();
+        type: 'range',
+        min: 0, max: 100, step: 1,
+        default: 20,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        onChange: (g, val) => {
+          import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+            updateWallElements();
+          });
+        }
+      },
+      {
+        id: 'innerWallShineOvershoot',
+        label: 'Overshoot',
+        stateKey: 'innerWallShineOvershoot',
+        wallGroup: 'shine',
+        type: 'range',
+        min: -50, max: 50, step: 1,
+        default: 10,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'How far outside the wall edge the shadow starts (negative = inset)',
+        onChange: (g, val) => {
+          import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+            updateWallElements();
+          });
+        }
+      },
+      {
+        id: 'innerWallShineSpread',
+        label: 'Spread',
+        stateKey: 'innerWallShineSpread',
+        wallGroup: 'shine',
+        type: 'range',
+        min: -20, max: 40, step: 1,
+        default: 4,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Inset box-shadow spread (negative = tighter shadow)',
+        onChange: (g, val) => {
+          import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+            updateWallElements();
+          });
+        }
+      },
+      {
+        id: 'innerWallShineOpacityLight',
+        label: 'Opacity (Light)',
+        stateKey: 'innerWallShineOpacityLight',
+        wallGroup: 'shine',
+        theme: 'light',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.4,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        onChange: (g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+             import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
+      {
+        id: 'innerWallShineOpacityDark',
+        label: 'Opacity (Dark)',
+        stateKey: 'innerWallShineOpacityDark',
+        wallGroup: 'shine',
+        theme: 'dark',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.5,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        onChange: (g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+             import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
+      {
+        id: 'innerWallShineColor',
+        label: 'Color Override',
+        stateKey: 'innerWallShineColor',
+        wallGroup: 'shine',
+        type: 'text',
+        default: '',
+        hint: 'Leave empty to use background color (hex)',
+        onChange: (g, val) => {
+          import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+            updateWallElements();
+          });
         }
       },
       {
@@ -3841,7 +3525,62 @@ export const CONTROL_SECTIONS = {
           getUpdateGradientEdge().then(fn => fn?.());
         }
       },
+      {
+        id: 'innerWallBorderWidth',
+        label: 'Width',
+        stateKey: 'innerWallBorderWidth',
+        type: 'range',
+        min: 0, max: 10, step: 0.1,
+        default: 2,
+        format: v => `${v.toFixed(1)}px`,
+        parse: parseFloat,
+        hint: 'Thickness of the continuous border (shine)',
+        theme: null,
+        wallGroup: 'shine',
+        onChange: (_g, val) => {
+          const px = `${Number(val)}px`;
+          document.documentElement.style.setProperty('--inner-wall-border-width', px);
+          updateWallElements();
+        }
+      },
       // Light tab
+      {
+        id: 'innerWallOutwardShadowOpacityLight',
+        label: 'Outward Shadow Opacity',
+        stateKey: 'innerWallOutwardShadowOpacityLight',
+        type: 'range',
+        min: 0, max: 0.8, step: 0.02,
+        default: 0.2,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Outward shadow',
+        theme: 'light',
+        wallGroup: 'shadow',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
+          }
+        }
+      },
+      {
+        id: 'innerWallInnerGlowOpacityLight',
+        label: 'Glow Opacity',
+        stateKey: 'innerWallInnerGlowOpacityLight',
+        type: 'range',
+        min: 0, max: 0.5, step: 0.01,
+        default: 0,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Inner glow strength',
+        theme: 'light',
+        wallGroup: 'innerGlow',
+        onChange: (_g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity', String(val));
+          }
+          getUpdateGradientEdge().then(fn => fn?.());
+        }
+      },
       {
         id: 'innerWallBorderBrightOpacityLight',
         label: 'Bright Opacity',
@@ -3884,44 +3623,46 @@ export const CONTROL_SECTIONS = {
         wallGroup: 'shine',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
+      // Dark tab
       {
-        id: 'innerWallOutwardShadowOpacityLight',
+        id: 'innerWallOutwardShadowOpacityDark',
         label: 'Outward Shadow Opacity',
-        stateKey: 'innerWallOutwardShadowOpacityLight',
+        stateKey: 'innerWallOutwardShadowOpacityDark',
         type: 'range',
         min: 0, max: 0.8, step: 0.02,
-        default: 0.2,
+        default: 0.35,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Outward shadow',
-        theme: 'light',
+        theme: 'dark',
         wallGroup: 'shadow',
         onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
+          document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(val));
+          if (document.body.classList.contains('dark-mode')) {
             document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
           }
         }
       },
       {
-        id: 'innerWallInnerGlowOpacityLight',
+        id: 'innerWallInnerGlowOpacityDark',
         label: 'Glow Opacity',
-        stateKey: 'innerWallInnerGlowOpacityLight',
+        stateKey: 'innerWallInnerGlowOpacityDark',
         type: 'range',
         min: 0, max: 0.5, step: 0.01,
-        default: 0,
+        default: 0.08,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Inner glow strength',
-        theme: 'light',
+        theme: 'dark',
         wallGroup: 'innerGlow',
         onChange: (_g, val) => {
-          if (!document.body.classList.contains('dark-mode')) {
+          document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity-dark', String(val));
+          if (document.body.classList.contains('dark-mode')) {
             document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity', String(val));
           }
           getUpdateGradientEdge().then(fn => fn?.());
         }
       },
-      // Dark tab
       {
         id: 'innerWallBorderBrightOpacityDark',
         label: 'Bright Opacity',
@@ -3964,45 +3705,7 @@ export const CONTROL_SECTIONS = {
         wallGroup: 'shine',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
-      {
-        id: 'innerWallOutwardShadowOpacityDark',
-        label: 'Outward Shadow Opacity',
-        stateKey: 'innerWallOutwardShadowOpacityDark',
-        type: 'range',
-        min: 0, max: 0.8, step: 0.02,
-        default: 0.35,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Outward shadow',
-        theme: 'dark',
-        wallGroup: 'shadow',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(val));
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(val));
-          }
-        }
-      },
-      {
-        id: 'innerWallInnerGlowOpacityDark',
-        label: 'Glow Opacity',
-        stateKey: 'innerWallInnerGlowOpacityDark',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.01,
-        default: 0.08,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Inner glow strength',
-        theme: 'dark',
-        wallGroup: 'innerGlow',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity-dark', String(val));
-          if (document.body.classList.contains('dark-mode')) {
-            document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity', String(val));
-          }
-          getUpdateGradientEdge().then(fn => fn?.());
-        }
-      },
+
     ]
   },
 
@@ -5057,6 +4760,28 @@ export const CONTROL_SECTIONS = {
         default: 65,
         format: v => v.toFixed(0),
         parse: parseFloat
+      },
+      {
+        id: 'bubblesVerticalExtent',
+        label: 'Vertical Extent',
+        stateKey: 'bubblesVerticalExtent',
+        type: 'range',
+        min: 0.15, max: 1, step: 0.05,
+        default: 0.7,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Height of the bubble band around the logo (1 = full screen).'
+      },
+      {
+        id: 'bubblesDepthSpan',
+        label: 'Depth Span',
+        stateKey: 'bubblesDepthSpan',
+        type: 'range',
+        min: 0.1, max: 1, step: 0.05,
+        default: 0.8,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Z range around the logo depth (1 = full depth).'
       },
       {
         id: 'bubblesMax',
@@ -6730,6 +6455,7 @@ const WALL_GROUP_LABELS = {
   shine: 'Shine',
   shadow: 'Shadow',
   innerGlow: 'Inner Glow',
+  innerShadow: 'Inner Shadow',
   micro: 'Micro-details',
   geometry: 'Geometry'
 };
@@ -6738,6 +6464,7 @@ const WALL_GROUP_DESCRIPTIONS = {
   shine: 'Continuous border light around the edge (bright, dim, shadow points).',
   shadow: 'Inner or outward shadow (depth, overhang, cast shadow).',
   innerGlow: 'Soft top light inside the inner wall.',
+  innerShadow: 'Inner shadow behind the wall (creates depth).',
   micro: 'Ambient occlusion and specular highlight on the edge.',
   geometry: 'Corner roundness and shape.'
 };
@@ -6751,10 +6478,10 @@ function renderWallControlsWithGroupLabels(controls) {
     if (group !== currentGroup) {
       if (chunkOpen) html += '</div>';
       chunkOpen = false;
-      if (group && WALL_GROUP_LABELS[group]) {
+    if (group && WALL_GROUP_LABELS[group]) {
         const label = WALL_GROUP_LABELS[group];
         const desc = WALL_GROUP_DESCRIPTIONS[group] || '';
-        html += `<div class="wall-chunk"><div class="wall-chunk-header"><span class="wall-chunk-label">${escapeAttr(label)}</span><p class="wall-chunk-desc">${escapeAttr(desc)}</p></div>`;
+      html += `<div class="wall-chunk" data-wall-group="${escapeAttr(group)}"><div class="wall-chunk-header"><span class="wall-chunk-label">${escapeAttr(label)}</span><p class="wall-chunk-desc">${escapeAttr(desc)}</p></div>`;
         chunkOpen = true;
       }
       currentGroup = group;
@@ -6776,9 +6503,28 @@ function generateWallSectionHTML(sectionKey, section) {
   const isDark = typeof document !== 'undefined' && document.body.classList.contains('dark-mode');
   const defaultTab = isDark ? 'dark' : 'light';
 
-  const sharedHtml = renderWallControlsWithGroupLabels(shared);
-  const lightHtml = renderWallControlsWithGroupLabels(lightControls);
-  const darkHtml = renderWallControlsWithGroupLabels(darkControls);
+  const getGroupRank = (group, sectionKey) => {
+    if (sectionKey === 'outerWall') {
+      return { shine: 1, micro: 2, shadow: 3, geometry: 4 }[group] ?? 99;
+    }
+    if (sectionKey === 'innerWall') {
+      return { shine: 1, innerGlow: 2, innerShadow: 3, shadow: 4, micro: 5, geometry: 6 }[group] ?? 99;
+    }
+    return 99;
+  };
+
+  const sortByGroupOrder = (controls) => {
+    return [...controls].sort((a, b) => {
+      const aRank = getGroupRank(a.wallGroup, sectionKey);
+      const bRank = getGroupRank(b.wallGroup, sectionKey);
+      if (aRank !== bRank) return aRank - bRank;
+      return 0;
+    });
+  };
+
+  const sharedHtml = renderWallControlsWithGroupLabels(sortByGroupOrder(shared));
+  const lightHtml = renderWallControlsWithGroupLabels(sortByGroupOrder(lightControls));
+  const darkHtml = renderWallControlsWithGroupLabels(sortByGroupOrder(darkControls));
 
   const lightTabActive = defaultTab === 'light' ? ' active' : '';
   const darkTabActive = defaultTab === 'dark' ? ' active' : '';
@@ -6808,10 +6554,68 @@ function generateWallSectionHTML(sectionKey, section) {
     </summary>`;
 
   return `
-    <details class="panel-section-accordion" ${detailsAttrs}>
+    <details class="panel-section-accordion" data-section-key="${sectionKey}" ${detailsAttrs}>
       ${header}
       ${body}
     </details>`;
+}
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                    WALL STACK DIAGRAM — ISOMETRIC VIEW                       ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+export function generateWallStackDiagramHTML() {
+  return `
+    <div class="wall-stack-diagram-sticky">
+    <div class="wall-stack-iso" role="img" aria-label="Wall layer stack, bottom to top">
+      <div class="wall-stack-iso__caption">Wall stack (bottom → top)</div>
+      <div class="wall-stack-iso__groups">
+        <div class="wall-stack-iso__group" data-wall="inner">
+          <div class="wall-stack-iso__group-label">Inner Wall</div>
+          <div class="wall-stack-iso__group-body">
+            <div class="wall-stack-iso__row" data-layer="inner-shine" data-section="innerWall" data-group="shine">
+              <div class="wall-stack-iso__layer" data-layer="inner-shine"></div>
+              <div class="wall-stack-iso__label">Inner Shine <span class="wall-stack-iso__z">z:30</span></div>
+            </div>
+            <div class="wall-stack-iso__row" data-layer="inner-glow" data-section="innerWall" data-group="innerGlow">
+              <div class="wall-stack-iso__layer" data-layer="inner-glow"></div>
+              <div class="wall-stack-iso__label">Inner Glow <span class="wall-stack-iso__z">z:30</span></div>
+            </div>
+            <div class="wall-stack-iso__row" data-layer="inner-shadow" data-section="innerWall" data-group="innerShadow">
+              <div class="wall-stack-iso__layer" data-layer="inner-shadow"></div>
+              <div class="wall-stack-iso__label">Inner Shadow <span class="wall-stack-iso__z">z:15</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="wall-stack-iso__group" data-wall="outer">
+          <div class="wall-stack-iso__group-label">Outer Wall</div>
+          <div class="wall-stack-iso__group-body">
+            <div class="wall-stack-iso__row" data-layer="outer-shine" data-section="outerWall" data-group="shine">
+              <div class="wall-stack-iso__layer" data-layer="outer-shine"></div>
+              <div class="wall-stack-iso__label">Outer Shine <span class="wall-stack-iso__z">z:25</span></div>
+            </div>
+            <div class="wall-stack-iso__row" data-layer="outer-micro" data-section="outerWall" data-group="micro">
+              <div class="wall-stack-iso__layer" data-layer="outer-micro"></div>
+              <div class="wall-stack-iso__label">Outer Micro <span class="wall-stack-iso__z">z:25</span></div>
+            </div>
+            <div class="wall-stack-iso__row" data-layer="outer-shadow" data-section="outerWall" data-group="shadow">
+              <div class="wall-stack-iso__layer" data-layer="outer-shadow"></div>
+              <div class="wall-stack-iso__label">Outer Shadow <span class="wall-stack-iso__z">z:25</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="wall-stack-iso__group" data-wall="shared">
+          <div class="wall-stack-iso__group-label">Shared</div>
+          <div class="wall-stack-iso__group-body">
+            <div class="wall-stack-iso__row" data-layer="geometry" data-section="outerWall" data-group="geometry">
+              <div class="wall-stack-iso__layer" data-layer="geometry"></div>
+              <div class="wall-stack-iso__label">Geometry <span class="wall-stack-iso__z">z:25/30</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  `;
 }
 
 export function generateThemeSectionHTML({ open = true } = {}) {
@@ -6874,7 +6678,7 @@ export function generateMasterSectionsHTML(options = {}) {
     // Check if this group has replacement content
     if (replace[group.id]) {
       html += `
-      <details class="panel-master-group">
+      <details class="panel-master-group" data-group-id="${group.id}">
         <summary class="panel-master-group-header">
           ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
           <span class="panel-master-group-title">${group.title}</span>
@@ -6908,7 +6712,7 @@ export function generateMasterSectionsHTML(options = {}) {
     if (!groupContent) continue;
 
     html += `
-      <details class="panel-master-group">
+      <details class="panel-master-group" data-group-id="${group.id}">
         <summary class="panel-master-group-header">
           ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
           <span class="panel-master-group-title">${group.title}</span>
@@ -6924,7 +6728,7 @@ export function generateMasterSectionsHTML(options = {}) {
 
 // Generate sections for GLOBAL group only
 export function generateGlobalSectionsHTML() {
-  const globalSections = ['colors', 'colorDistribution', 'layers', 'noise', 'videoOverlay', 'uiSpacing', 'cursor', 'trail', 'links', 'scene'];
+  const globalSections = ['colors', 'colorDistribution', 'layers', 'noise', 'uiSpacing', 'cursor', 'trail', 'links', 'scene'];
   let html = '';
   for (const key of globalSections) {
     if (!CONTROL_SECTIONS[key]) continue;
@@ -7035,13 +6839,14 @@ export function generateModeSwitcherHTML() {
 }
 
 /**
- * Generate mode-specific sections HTML (all modes).
- * These are added to the Simulation group after the mode switcher.
+ * Generate mode-specific sections HTML (only modes in narrative sequence).
+ * Disabled simulations (e.g. parallax-linear) are excluded.
  */
 export function generateModeSpecificSectionsHTML() {
+  const allowedModes = new Set(NARRATIVE_MODE_SEQUENCE);
   let html = '';
   for (const [key, section] of Object.entries(CONTROL_SECTIONS)) {
-    if (section?.mode) {
+    if (section?.mode && allowedModes.has(section.mode)) {
       html += generateSectionHTML(key, section);
     }
   }

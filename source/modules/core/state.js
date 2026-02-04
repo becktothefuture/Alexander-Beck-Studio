@@ -189,24 +189,6 @@ const state = {
   mouseTrailFadeMs: 220,    // lifetime of a sample
   mouseTrailOpacity: 0.35,  // 0..1
   
-  // Cursor explosion (particle dispersion on button hover)
-  cursorExplosionEnabled: true,
-  cursorExplosionParticleCount: 6,       // Base count (scales with velocity)
-  cursorExplosionSpeed: 180,             // Base speed (scales with impact)
-  cursorExplosionSpreadDeg: 360,
-  cursorExplosionLifetime: 0.5,          // Base lifetime (scales with velocity)
-  cursorExplosionFadeStartRatio: 0.4,    // Fade threshold
-  cursorExplosionDrag: 0.88,             // Velocity decay
-  cursorExplosionShrinkEnabled: true,
-  
-  // Impact scaling (how mouse velocity affects explosion)
-  cursorExplosionImpactMinFactor: 0.5,   // Minimum impact multiplier (slow hover)
-  cursorExplosionImpactMaxFactor: 4.0,   // Maximum impact multiplier (fast impact)
-  cursorExplosionImpactSensitivity: 400, // Velocity sensitivity (higher = less sensitive)
-  cursorExplosionLifetimeImpactMin: 0.7, // Min lifetime multiplier for slow
-  cursorExplosionLifetimeImpactMax: 1.8, // Max lifetime multiplier for fast
-  cursorExplosionLifetimeImpactSensitivity: 600, // Lifetime velocity sensitivity
-  
   // Ball properties
   ballSoftness: 29,
   ballSpacing: 0.08,    // Extra collision padding as ratio of ball radius (0.1 = 10% of ball size)
@@ -367,6 +349,8 @@ const state = {
   bubblesRiseSpeed: 650,
   bubblesWobble: 65,
   bubblesMaxCount: 200,
+  bubblesVerticalExtent: 0.7,
+  bubblesDepthSpan: 0.8,
   // Derived (px): set in `applyLayoutFromVwToPx()` from `cursorInfluenceRadiusVw`.
   bubblesDeflectRadius: 0,
   
@@ -1395,14 +1379,6 @@ export function initState(config) {
   if (config.parallaxLinearFollowStrength !== undefined) state.parallaxLinearFollowStrength = clampNumber(config.parallaxLinearFollowStrength, 1, 80, state.parallaxLinearFollowStrength);
   if (config.parallaxLinearDamping !== undefined) state.parallaxLinearDamping = clampNumber(config.parallaxLinearDamping, 1, 80, state.parallaxLinearDamping);
 
-  // Cursor explosion impact parameters
-  if (config.cursorExplosionImpactMinFactor !== undefined) state.cursorExplosionImpactMinFactor = clampNumber(config.cursorExplosionImpactMinFactor, 0.1, 2.0, state.cursorExplosionImpactMinFactor);
-  if (config.cursorExplosionImpactMaxFactor !== undefined) state.cursorExplosionImpactMaxFactor = clampNumber(config.cursorExplosionImpactMaxFactor, 1.0, 8.0, state.cursorExplosionImpactMaxFactor);
-  if (config.cursorExplosionImpactSensitivity !== undefined) state.cursorExplosionImpactSensitivity = clampNumber(config.cursorExplosionImpactSensitivity, 100, 1000, state.cursorExplosionImpactSensitivity);
-  if (config.cursorExplosionLifetimeImpactMin !== undefined) state.cursorExplosionLifetimeImpactMin = clampNumber(config.cursorExplosionLifetimeImpactMin, 0.3, 1.5, state.cursorExplosionLifetimeImpactMin);
-  if (config.cursorExplosionLifetimeImpactMax !== undefined) state.cursorExplosionLifetimeImpactMax = clampNumber(config.cursorExplosionLifetimeImpactMax, 1.0, 3.0, state.cursorExplosionLifetimeImpactMax);
-  if (config.cursorExplosionLifetimeImpactSensitivity !== undefined) state.cursorExplosionLifetimeImpactSensitivity = clampNumber(config.cursorExplosionLifetimeImpactSensitivity, 200, 1500, state.cursorExplosionLifetimeImpactSensitivity);
-  
   // Generic "apply like-for-like" config keys to state
   // This ensures panel-exported config round-trips cleanly across modes.
   for (const [key, val] of Object.entries(config || {})) {
@@ -1416,6 +1392,13 @@ export function initState(config) {
     if (!isArray && !isPrimitive) continue;
     if (val === undefined) continue;
     state[key] = val;
+  }
+
+  if (config.bubblesVerticalExtent !== undefined) {
+    state.bubblesVerticalExtent = clampNumber(config.bubblesVerticalExtent, 0.15, 1, state.bubblesVerticalExtent);
+  }
+  if (config.bubblesDepthSpan !== undefined) {
+    state.bubblesDepthSpan = clampNumber(config.bubblesDepthSpan, 0.1, 1, state.bubblesDepthSpan);
   }
 
   // 3D Sphere (Mode 16)

@@ -6,8 +6,6 @@
 
 import { getGlobals } from '../core/state.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
-import { triggerCursorExplosion, updateMouseVelocity } from '../visual/cursor-explosion.js';
-import { getMouseVelocity, getMouseDirection } from '../input/pointer.js';
 
 let cursorElement = null;
 let isInitialized = false;
@@ -203,57 +201,13 @@ function getCanvasPosition(clientX, clientY) {
 export function updateCursorPosition(clientX, clientY) {
   if (!cursorElement) return;
   
-  // Store position for explosion trigger
   lastClientX = clientX;
   lastClientY = clientY;
   
-  // Hide cursor when hovering over links (trail is already suppressed)
   const isOverLink = isHoveringOverLink();
-  
-  // Detect transition: cursor about to hide (entering button area)
-  // Trigger explosion at the moment of transition
-  if (isOverLink && !wasOverLink) {
-    // Cursor is about to disappear - trigger explosion!
-    // Use the last known canvas position if cursor is outside bounds (buttons are often outside canvas)
-    const canvasPos = getCanvasPosition(clientX, clientY);
-    if (canvasPos) {
-      const globals = getGlobals();
-      const canvas = globals?.canvas;
-      
-      // If cursor is outside canvas, clamp to canvas bounds for explosion
-      let x = canvasPos.x;
-      let y = canvasPos.y;
-      
-      if (!canvasPos.inBounds && canvas) {
-        // Clamp to canvas edges (particles will still be visible)
-        x = Math.max(0, Math.min(canvas.width, x));
-        y = Math.max(0, Math.min(canvas.height, y));
-      }
-      
-      // Only trigger if we have valid canvas coordinates
-      if (canvas && x >= 0 && y >= 0 && x <= canvas.width && y <= canvas.height) {
-        const color = getCursorColor();
-        const velocity = getMouseVelocity();
-        const dir = getMouseDirection();
-        
-        // Trigger beautiful visceral explosion
-        triggerCursorExplosion(x, y, color, velocity);
-        
-        // Update velocity tracking in explosion module (for direction bias)
-        if (dir && (dir.x !== 0 || dir.y !== 0)) {
-          updateMouseVelocity(velocity, dir.x, dir.y);
-        }
-      }
-    }
-  }
-  
   wasOverLink = isOverLink;
-  
-  if (isOverLink) {
-    cursorElement.style.display = 'none';
-    return;
-  }
-  
+
+  // Update position first (always track mouse)
   const wasInSimulation = isInSimulation;
   isInSimulation = isMouseInSimulation(clientX, clientY);
   
@@ -299,6 +253,17 @@ export function updateCursorPosition(clientX, clientY) {
     document.body.classList.add('abs-in-simulation');
   } else {
     document.body.classList.remove('abs-in-simulation');
+  }
+
+  // LINK HOVER STATE (High Priority)
+  // If hovering a link, scale cursor to zero (Power Transfer effect)
+  // The CSS transition on #custom-cursor handles the smooth shrink
+  if (isOverLink) {
+    cursorElement.style.display = 'block'; // Ensure it's in DOM for transition
+    // Force zero scale (implosion)
+    cursorElement.style.transform = ZERO_SCALE; 
+    // Opacity is handled by CSS body.abs-link-hovering #custom-cursor
+    return;
   }
   
   // When gate overlay is active, show cursor at full size (round button)
