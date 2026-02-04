@@ -602,8 +602,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   gap: var(--legend-item-gap, var(--gap-xs));
   padding: var(--gap-sm);
   border-radius: var(--legend-item-radius);
-  /* Safari fix: create stacking context to prevent noise layer bleeding on hover */
-  isolation: isolate;
+  /* isolation: isolate; - Removed: breaks backdrop-filter on ::before pseudo-element */
 }
 
 .legend__item span {
@@ -646,10 +645,13 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   transform-origin: center;
   /* Faint inner light mostly from top */
   box-shadow: inset 0 1px 4px color-mix(in srgb, var(--abs-stroke-medium) 40%, transparent);
-  filter: blur(8px);
-  -webkit-filter: blur(8px);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  /* filter: blur(8px); - Removed */
+  /* -webkit-filter: blur(8px); - Removed */
+  /* backdrop-filter: blur(10px); - Disabled: not working with canvas simulation */
+  /* -webkit-backdrop-filter: blur(10px); */
+  /* Ensure backdrop-filter can work across stacking contexts */
+  /* will-change: backdrop-filter; */
+  /* background-clip: padding-box; */
   transition: background var(--hover-bg-duration, var(--duration-link-hover)) ease-out,
               opacity 0.35s ease-out,
               transform var(--hover-bg-duration, var(--duration-link-hover)) ease-out,
@@ -1068,8 +1070,7 @@ p {
   /* Unified button corner radius (native CSS, no JS/inline) */
   border-radius: var(--ui-icon-corner-radius);
   /* transition: filter var(--link-impact-duration) var(--ease-organic); - Removed to prevent conflict with hover blur */
-  /* Safari fix: create stacking context to prevent noise layer bleeding on hover */
-  isolation: isolate;
+  /* isolation: isolate; - Removed: breaks backdrop-filter on ::before pseudo-element */
   z-index: 15;
   
   /* Button reset for <button> elements */
@@ -1168,7 +1169,7 @@ button.abs-meta-btn,
   border: none;
   position: relative;
   /* overflow: hidden; - Removed to allow hover blur to spill out */
-  isolation: isolate;
+  /* isolation: isolate; - Removed: breaks backdrop-filter on ::before pseudo-element */
   padding: var(--abs-space-2xs) var(--abs-space-sm);
   color: inherit;
   font: inherit;
@@ -1213,7 +1214,7 @@ button.abs-meta-btn,
   position: relative;
   /* overflow: hidden; - Removed to allow hover blur to spill out */
   text-decoration: none;
-  isolation: isolate;
+  /* isolation: isolate; - Removed: breaks backdrop-filter on ::before pseudo-element */
 
   /* Button reset for <button> elements */
   background: transparent;
@@ -1804,20 +1805,20 @@ body.dark-mode #bravia-balls {
   /* Dual-layer gradients: Shadow ON TOP of Light
      This ensures the top edge (0deg) remains dark and isn't washed out by light interpolation. */
   background: 
-  /* Conic gradient: Brightest at bottom (180deg), Darkest at top (0deg/360deg) */
+  /* Conic gradient: Brightest at bottom (0deg after 180deg rotation) */
   background: conic-gradient(
     from 180deg at 50% 50%,
     /* 0deg (relative to from): Bottom Center - BRIGHTEST */
-    color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-bright-opacity, 0.5) * 100%)) 0deg,
+    color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-bright-opacity, 0.5) * 100%)) var(--outer-wall-grad-stop-bright, 0deg),
     
-    /* 90deg: Left Side - DIM */
-    color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-dim-opacity, 0.15) * 100%)) 90deg,
+    /* Dim band (spread controls half-width of the bright spot) */
+    color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-dim-opacity, 0.15) * 100%)) var(--outer-wall-grad-stop-dim-start, 90deg),
     
     /* 180deg: Top Center - SHADOW (Darkest) */
     rgba(0,0,0, var(--outer-wall-border-shadow-opacity, 0.4)) 180deg,
     
-    /* 270deg: Right Side - DIM */
-    color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-dim-opacity, 0.15) * 100%)) 270deg,
+    /* Dim band on the other side */
+    color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-dim-opacity, 0.15) * 100%)) var(--outer-wall-grad-stop-dim-end, 270deg),
     
     /* 360deg: Bottom Center - Loop back to BRIGHTEST */
     color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-bright-opacity, 0.5) * 100%)) 360deg
@@ -2584,9 +2585,9 @@ body.abs-link-hovering #custom-cursor {
 a:hover,
 button:hover {
   --abs-cursor-pulse-ms: 520ms;
-  will-change: transform;
+  /* will-change: transform; - Disabled: preventing content movement */
   transform-origin: center;
-  animation-name: absHoverSnap;
+  /* animation-name: absHoverSnap; - Disabled: preventing content movement */
   animation-duration: calc(var(--abs-hover-snap-enabled, 1) * var(--abs-hover-snap-duration, 450ms));
   animation-timing-function: var(--ease-bounce);
   animation-fill-mode: both;
@@ -2624,6 +2625,9 @@ button:hover {
 .legend__item--interactive:hover::before,
 .decorative-script:hover::before {
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+  /* backdrop-filter: blur(10px); - Disabled */
+  /* -webkit-backdrop-filter: blur(10px); */
+  /* will-change: backdrop-filter; */
   animation-name: absHoverBgBounce;
   animation-duration: calc(var(--abs-hover-bg-bounce-enabled, 1) * var(--abs-hover-bg-bounce-duration, 450ms));
   animation-timing-function: var(--ease-bounce);
@@ -2667,7 +2671,7 @@ body.dark-mode .decorative-script:hover::before {
 .abs-meta-btn:hover,
 .sound-toggle:hover,
 #main-links .footer_link:hover {
-  animation-name: absHoverSnapNudge;
+  /* animation-name: absHoverSnapNudge; - Disabled: content stays static, only background moves */
 }
 
 /* Focus-visible and active states get static nudge without bounce */
@@ -2714,9 +2718,9 @@ body.dark-mode .decorative-script:hover::before {
 a:hover,
 button:hover {
   --abs-cursor-pulse-ms: 520ms;
-  will-change: transform;
+  /* will-change: transform; - Disabled: preventing content movement */
   transform-origin: center;
-  animation-name: absHoverSnap;
+  /* animation-name: absHoverSnap; - Disabled: preventing content movement */
   animation-duration: calc(var(--abs-hover-snap-enabled, 1) * var(--abs-hover-snap-duration, 450ms));
   animation-timing-function: var(--ease-bounce);
   animation-fill-mode: both;
