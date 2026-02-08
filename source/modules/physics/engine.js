@@ -465,6 +465,11 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   const canvas = globals.canvas;
   const balls = globals.balls;
 
+  // Keep entrance/micro FX progressing even in modes that intentionally use 0 balls
+  // (e.g. starfield custom renderer). Otherwise logo entrance can get stuck at opacity 0.
+  updateLogoEntrance(dtSeconds);
+  updateCursorExplosion(dtSeconds);
+
   if (!canvas) return;
   if (!balls || balls.length === 0) return;
 
@@ -484,10 +489,6 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   }
 
   updatePhysicsInternal(dtSeconds, applyForcesFunc);
-
-  // Update logo entrance animation
-  updateLogoEntrance(dtSeconds);
-  updateCursorExplosion(dtSeconds);
 }
 
 export function render() {

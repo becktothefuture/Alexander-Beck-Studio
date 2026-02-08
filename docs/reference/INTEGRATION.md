@@ -368,7 +368,6 @@ Not recommended, but possible:
 **Next Steps:**
 - See [CONFIGURATION.md](./CONFIGURATION.md) for detailed settings
 - See [MODES.md](./MODES.md) for mode specifications
-- See [../operations/DEPLOYMENT.md](../operations/DEPLOYMENT.md) for deployment
+- See [../development/DEV-WORKFLOW.md](../development/DEV-WORKFLOW.md) for build/preview workflow
 
 **Need Help?** Contact [alexander@beck.fyi](mailto:alexander@beck.fyi)
-

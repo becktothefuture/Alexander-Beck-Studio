@@ -400,7 +400,7 @@ npm start
 npm run watch
 
 # Terminal 4: Tests
-npm run test:ui
+npm run test
 ```
 
 ### Browser Setup
@@ -415,10 +415,10 @@ For dual-mode development:
 
 ## Related Documentation
 
-- [Project Overview](../core/PROJECT-OVERVIEW.md) - Architecture and design principles
-- [Build System](../reference/BUILD-SYSTEM.md) - How Rollup bundling works
-- [Architecture](ARCHITECTURE.md) - Code organization and modules
-- [Deployment](../operations/DEPLOYMENT.md) - Publishing to production
+- [README](../../README.md) - Project overview and architecture snapshot
+- [Configuration Reference](../reference/CONFIGURATION.md) - Runtime configuration keys
+- [Mode Reference](../reference/MODES.md) - Active simulation modes and sequence
+- [Integration Guide](../reference/INTEGRATION.md) - Embedding and host integration
 
 ---
 

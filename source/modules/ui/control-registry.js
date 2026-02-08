@@ -6922,15 +6922,16 @@ export function generateModeSwitcherHTML() {
     'critters': '🐝',
     'flies': '🕊️',
     'water': '🌊',
-    'vortex': '⚛️',
     'magnetic': '🧲',
     'weightless': '🌌',
     'kaleidoscope-3': '🪞',
     'parallax-linear': '🎚️',
+    'parallax-float': '🌫️',
     '3d-sphere': '🌐',
     '3d-cube': '🧊',
     'starfield-3d': '✨',
-    'elastic-center': '⭕'
+    'elastic-center': '⭕',
+    'particle-fountain': '⛲'
   };
   const modeLabels = {
     'pit': 'Pit',
@@ -6942,10 +6943,12 @@ export function generateModeSwitcherHTML() {
     'weightless': 'Zero-G',
     'kaleidoscope-3': 'Kalei',
     'parallax-linear': 'Parallax Lin',
+    'parallax-float': 'Parallax Float',
     '3d-sphere': 'Sphere 3D',
     '3d-cube': 'Cube 3D',
     'starfield-3d': 'Starfield 3D',
-    'elastic-center': 'Elastic Center'
+    'elastic-center': 'Elastic Center',
+    'particle-fountain': 'Fountain'
   };
   
   // Calculate which mode is the daily mode (inline to avoid async)
@@ -7018,11 +7021,13 @@ function generateHomeModeSectionHTML() {
               'magnetic': '🧲',
               'weightless': '🌌',
               'kaleidoscope-3': '🪞',
-            'parallax-linear': '🎚️',
+              'parallax-linear': '🎚️',
+              'parallax-float': '🌫️',
               '3d-sphere': '🌐',
               '3d-cube': '🧊',
               'starfield-3d': '✨',
-              'elastic-center': '⭕'
+              'elastic-center': '⭕',
+              'particle-fountain': '⛲'
             };
             const modeLabels = {
               'pit': 'Pit',
@@ -7033,11 +7038,13 @@ function generateHomeModeSectionHTML() {
               'magnetic': 'Magnet',
               'weightless': 'Zero-G',
               'kaleidoscope-3': 'Kalei',
-            'parallax-linear': 'Parallax Lin',
+              'parallax-linear': 'Parallax Lin',
+              'parallax-float': 'Parallax Float',
               '3d-sphere': 'Sphere 3D',
               '3d-cube': 'Cube 3D',
               'starfield-3d': 'Starfield 3D',
-              'elastic-center': 'Elastic Center'
+              'elastic-center': 'Elastic Center',
+              'particle-fountain': 'Fountain'
             };
             let buttons = '';
             NARRATIVE_MODE_SEQUENCE.forEach((mode, idx) => {
@@ -7229,17 +7236,34 @@ export function bindRegisteredControls() {
         function getModeBallCountApprox() {
           // Best-effort: show an approximate per-mode ball count for “≈N balls” readouts.
           const mode = g.currentMode;
+          const parallaxLinearCount = Math.max(
+            0,
+            Math.round((g.parallaxLinearGridX ?? 0) * (g.parallaxLinearGridY ?? 0) * (g.parallaxLinearGridZ ?? 0))
+          );
+          const parallaxFloatCount = Math.max(
+            0,
+            Math.round(
+              (g.parallaxFloatGridX ?? g.parallaxLinearGridX ?? 0) *
+              (g.parallaxFloatGridY ?? g.parallaxLinearGridY ?? 0) *
+              (g.parallaxFloatGridZ ?? g.parallaxLinearGridZ ?? 0)
+            )
+          );
           const map = {
             pit: null,
             flies: g.fliesBallCount,
             weightless: g.weightlessCount,
             water: g.waterBallCount,
-            vortex: g.vortexBallCount,
             magnetic: g.magneticBallCount,
             bubbles: g.bubblesMaxCount,
             'kaleidoscope-3': g.kaleidoscope3BallCount,
             critters: g.critterCount,
-            neural: g.neuralBallCount
+            'parallax-linear': parallaxLinearCount,
+            'parallax-float': parallaxFloatCount,
+            '3d-sphere': g.sphere3dDensity,
+            '3d-cube': null,
+            'starfield-3d': g.starfieldCount,
+            'elastic-center': null,
+            'particle-fountain': g.particleFountainMaxParticles
           };
           const v = map[mode];
           return Number.isFinite(Number(v)) ? Number(v) : null;

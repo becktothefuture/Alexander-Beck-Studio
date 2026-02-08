@@ -314,12 +314,12 @@ These keys are all **0..1**:
 - `sizeVariationFlies`
 - `sizeVariationWeightless`
 - `sizeVariationWater`
-- `sizeVariationVortex`
-- `sizeVariationPingPong`
 - `sizeVariationMagnetic`
 - `sizeVariationBubbles`
 - `sizeVariationKaleidoscope`
 - `sizeVariationCritters`
+- `sizeVariationParallaxLinear`
+- `sizeVariationParallaxFloat`
 
 - **Meaning**: Per-simulation size variance. `0` => no variation (all balls use the medium radius); `1` => maximum variation (as defined by the internal cap), scaled by `sizeVariationGlobalMul`.
 
@@ -781,5 +781,5 @@ The following legacy keys are still accepted and will be converted to vw at star
 ## Related Docs
 
 - [`MODES.md`](./MODES.md) — Mode behavior & keyboard shortcuts
-- [`SOUND.md`](./SOUND.md) — Collision sound system
-- [`BUILD-SYSTEM.md`](./BUILD-SYSTEM.md) — How config gets copied into `dist/`
+- [`INTEGRATION.md`](./INTEGRATION.md) — Embed/runtime integration details
+- [`../development/DEV-WORKFLOW.md`](../development/DEV-WORKFLOW.md) — Build and preview workflow

@@ -21,13 +21,10 @@ export function getModeSizeVariation01(g, mode) {
     case MODES.FLIES: return g.sizeVariationFlies ?? 0;
     case MODES.WEIGHTLESS: return g.sizeVariationWeightless ?? 0;
     case MODES.WATER: return g.sizeVariationWater ?? 0;
-    case MODES.VORTEX: return g.sizeVariationVortex ?? 0;
-
     case MODES.MAGNETIC: return g.sizeVariationMagnetic ?? 0;
     case MODES.BUBBLES: return g.sizeVariationBubbles ?? 0;
     case MODES.KALEIDOSCOPE: return g.sizeVariationKaleidoscope ?? 0;
     case MODES.CRITTERS: return g.sizeVariationCritters ?? 0;
-    case MODES.NEURAL: return g.sizeVariationNeural ?? 0;
     case MODES.PARALLAX_LINEAR: return g.sizeVariationParallaxLinear ?? 0;
     case MODES.PARALLAX_FLOAT: return g.sizeVariationParallaxFloat ?? 0;
     default: return 0;

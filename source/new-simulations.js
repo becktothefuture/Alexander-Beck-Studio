@@ -16,13 +16,10 @@ const BASE_CONFIG_OVERRIDES = {
   sizeVariationFlies: 0,
   sizeVariationWeightless: 0,
   sizeVariationWater: 0,
-  sizeVariationVortex: 0,
-
   sizeVariationMagnetic: 0,
   sizeVariationBubbles: 0,
   sizeVariationKaleidoscope: 0,
   sizeVariationCritters: 0,
-  sizeVariationNeural: 0,
   sizeVariationParallaxLinear: 0,
   sphere3dDotSizeMul: 1.2
 };

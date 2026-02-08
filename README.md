@@ -1,163 +1,90 @@
-# Alexander Beck Studio Website
+<div align="center">
+  <h1>Alexander Beck Studio Website</h1>
+  <p><strong>A simulation-led studio experience built with Vanilla JS, Canvas 2D, and a performance-first runtime.</strong></p>
+  <p>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-a3e635" alt="MIT License"></a>
+    <img src="https://img.shields.io/badge/modes-20-2563eb" alt="20 Modes">
+    <img src="https://img.shields.io/badge/performance-60fps%20target-22c55e" alt="60fps Target">
+    <img src="https://img.shields.io/badge/privacy-local--first-0ea5e9" alt="Local-first Privacy">
+    <img src="https://img.shields.io/badge/runtime-Vanilla%20JS-f7df1e?logo=javascript&logoColor=111827" alt="Vanilla JS">
+    <img src="https://img.shields.io/badge/rendering-Canvas%202D-111827" alt="Canvas 2D">
+    <img src="https://img.shields.io/badge/bundler-Rollup-ec4a3f?logo=rollup.js&logoColor=white" alt="Rollup">
+  </p>
+</div>
 
-Minimal, high-speed kinetic canvas built with vanilla JS + Canvas 2D. A **curated, panel-free production experience** (narrative mode cycling) plus a **full dev control surface** on port 8001 — all tuned for 60fps and privacy-first defaults.
+<p align="center">
+  <img src="docs/assets/github/readme-showcase.png" alt="Desktop and mobile showcase of the Alexander Beck Studio Website">
+</p>
 
----
+## Overview
+This project powers an interactive homepage where motion, physics, and narrative mode transitions are part of the brand experience.
 
-## What this site does
-- **Kinetic homepage:** Particles, walls, and light fields living inside `#bravia-balls` container — rest of page stays untouched.
-- **16 simulation modes** across 7 categories (gravity, swarm/flow, elastic, fluid, optical, parallax, 3D point-cloud) — see `docs/reference/MODES.md` for complete specifications.
-- **Visual systems:** 
-  - Rubber wall wobble (10 material presets: rubber, pudding, trampoline, jelly, stiff, steel, latex, memory foam, hydraulic, gel sheet)
-  - Browser-colored wall/frame sync (meta tag harmony)
-  - Procedural film grain (no external assets)
-  - Adaptive dark/light palettes with auto/manual theme switching
-  - Entrance animation system (wall + element transitions)
-  - Brand logo micro-interactions (ball-space yield, cursor scaling)
-  - Mouse cursor trail with palette-driven colors
-- **Interaction model:** Cursor repel/attract/reshape forces; touch parity; keyboard narrative cycling (arrow keys) + reset (`R`).
-- **Dev control surface:** Master panel (port **8001** only) with collapsible sections, real-time tuning, wall/sound/color presets.
-- **Privacy + performance:** No external calls; localStorage for settings only (no user text); spatial hashing + fixed 120Hz timestep = O(1) per entity.
-- **Mobile fidelity:** Responsive scaling (60% balls), touch support, canvas-level rounded-corner clipping (prevents "corner bleed" on iOS).
+- 20 simulation modes across gravity, swarm/flow, elastic, fluid, optical, parallax, and 3D families
+- 120Hz fixed-timestep physics with spatial hashing and optimized hot paths
+- Curated production runtime plus a dev control surface on port `8001`
+- Accessibility-conscious interactions and `prefers-reduced-motion` support
+- Privacy-first defaults with local settings storage only
 
----
-
-## Quick start
+## Quick Start
 ```bash
 npm install
-npm run startup    # choose dev/preview/watch from menu
-# or
-npm run dev        # port 8001, instant reload
-npm run preview    # port 8000, production bundle
-npm run build      # produce dist/js/app.js + dist/js/portfolio.js
+npm run dev       # source server (port 8001)
+npm run preview   # production build + serve (port 8000)
 ```
 
-Open `http://localhost:8001` for dev or `http://localhost:8000` for the production bundle. Never edit `dist/` by hand.
+Open:
+- Development: `http://localhost:8001`
+- Production preview: `http://localhost:8000`
 
----
+Always edit `source/`. Never hand-edit `dist/`.
 
-## Controls
-| Key | Action |
+## Scripts
+| Command | Purpose |
 | --- | --- |
-| `→` | Next simulation (narrative sequence) |
-| `←` | Previous simulation (narrative sequence) |
-| `/` | Toggle panel dock (**dev / port 8001**) |
-| `R` | Reset simulation |
+| `npm run startup` | Interactive startup menu (recommended) |
+| `npm run dev` | Start source server on `8001` |
+| `npm run preview` | Build then serve production bundle on `8000` |
+| `npm run build` | Production build to `dist/` |
+| `npm run watch` | Watch + rebuild workflow |
+| `npm start` | Serve `dist/` directly on `8000` |
+| `npm run clean` | Remove build artifacts |
 
-Direct `1–9` mode hotkeys are intentionally disabled; switch via Arrow keys (narrative) or the dev panel.  
-See `docs/reference/MODES.md` for the authoritative mode list + narrative ordering.
+## Core Experience
+- **Narrative mode cycling**: Arrow-key progression through a curated sequence
+- **Physics realism**: collision behaviors, wall response, and scene impact tuning
+- **Visual polish**: wall wobble presets, grain, palette systems, and entrance choreography
+- **Audio feedback**: synthesized impact sounds with velocity-based mapping
+- **Touch parity**: mobile support with tuned depth and rounded-corner clipping
 
----
-
-## Mobile tuning notes
-- **Click depth**: on mobile viewports the scene “press” depth is boosted via `sceneImpactMobileMulFactor` (default `1.5x`) on top of `sceneImpactMul`. This is exposed in the dev panel under **Scene → Mobile Depth ×**.
-- **Rounded corners**: canvas rendering is clipped to the rounded frame radius (cached per-resize) so modes with non-rounded bounds (e.g. Kaleidoscope) never “peek” past corners on iOS.
-
----
-
-## Systems Overview
-
-### Physics Engine
-- **Fixed timestep:** 120Hz physics (DT = 1/120s)
-- **Spatial hashing:** O(n) collision detection with grid optimization
-- **Sleep system:** Ball Pit modes use Box2D-inspired sleep for jitter reduction
-- **Wall collision:** Rounded-rectangle bounds with rubber deformation feedback
-- **Performance:** Optimized allocations, reusable buffers, sleeping ball skip
-
-### Visual Systems
-- **Dark mode:** Auto (system + time heuristic), light, dark with localStorage persistence
-- **Color system:** 8-slot palette with weighted distribution (AI Integration 75%, Frontend Dev 10%, etc.)
-- **Wall wobble:** 10 material presets with per-sample physics (stiffness, damping, sigma blur)
-- **Noise/grain:** Procedural texture generation (no external GIF), CSS animation, theme-aware opacity
-- **Entrance animation:** Coordinated wall + element transitions with perspective + scale
-- **Chrome harmony:** Browser UI color sync via meta tags (frame color → address bar)
-- **Cursor system:** Palette-driven dot + canvas trail, auto-contrast selection
-
-### Audio System
-- **Collision SFX:** Synthesized pebble/crystal sounds (no external audio files)
-- **Sound presets:** Pebbles, crystals, glass, wood, soft, digital
-- **Velocity mapping:** Pitch, brightness, decay scaled by impact intensity
-- **Reverb + filtering:** Convolution reverb, bandpass filters, stereo panning
-
-### UI Chrome
-- **Gates:** CV, Portfolio, Contact overlays with password protection
-- **Legend:** Interactive color legend with discipline labels
-- **Panel dock:** Collapsible dev panel (port 8001 only) with preset management
-- **Social icons:** Apple, X (Twitter), LinkedIn with hover effects
-- **Time display:** Live clock with timezone
-- **Theme toggle:** Auto/Light/Dark switching
-- **Sound toggle:** Global audio enable/disable
-
-### 20 Simulation Modes
-- **Gravity:** Ball Pit
-- **Swarm/Flow:** Flies, Vortex, Magnetic, Critters
-- **Elastic:** Zero-G (Weightless), Ping Pong
-- **Fluid:** Water, Bubbles
-- **Optical:** Kaleidoscope, Kaleidoscope I, Kaleidoscope II, Kaleidoscope III
-- **Orbital:** Orbit 3D, Orbit 3D (Tight Swarm)
-- **Lattice:** Crystal Lattice, Neural Network
-- **Parallax:** Parallax Linear, Parallax Perspective
-
-See `docs/reference/MODES.md` for physics specifications and narrative sequence.
-
----
-
-## How it is built (why it works this way)
-- **Source-first**: all edits in `source/`; build emits `dist/js/app.js` + `dist/js/shared.js`. Exported HTML/CSS assets are composed at build-time and are never hand-edited post-build.
-- **Portfolio mirrors the same pattern**: `source/portfolio.html` loads the shared chrome plus `modules/portfolio/app.js`; build emits `dist/js/portfolio.js`, `dist/css/portfolio.css`, and copies `config/portfolio-*.json`.
-- **Constant-time hot paths**: spatial grid for collisions, minimal allocations per frame, dt capped for Safari/Chrome parity.
-- **Scoped styles**: everything contained in `#bravia-balls`; CSS variables drive palette, wall, and grain; panel styles are confined to the dock.
-- **Config-injected**: runtime config pulled from `config/default-config.json` (or inlined); localStorage optional and off for physics state by default.
-- **Accessibility + privacy**: canvas labeled, keyboardable; no network calls beyond initial config fetch; respects reduced motion.
-- **Workflow**: `npm run startup` menu for dev/watch/preview; `npm start` serves the built bundle on port 8000; `npm run start:source` serves `source/` on port 8001.
-
----
-
-## Architecture snapshot
-```
+## Developer Guide
+### Architecture
+```text
 source/
-  main.js            # bootstrap: config → layout vars → renderer → modes → UI
-  css/               # base styles, panel, gates, tokens, portfolio
-    main.css         # core site styles + gates
-    panel.css        # panel dock + sound controls
-    tokens.css       # design token definitions
-    portfolio.css    # portfolio carousel styling
-  images/portfolio/  # portfolio covers, slides, videos (dev + prod)
-  modules/
-    core/            # constants (MODES, narrative sequence), state management
-    physics/         # Ball.js, collision.js, engine.js, spawn.js, wall-state.js, text-colliders.js
-    rendering/       # renderer.js, loop.js, cursor.js, effects.js, theme.js
-  modes/           # 16 mode files:
-                    #   ball-pit, flies, weightless, water, vortex,
-                    #   ping-pong, magnetic, bubbles, kaleidoscope, critters,
-                    #   neural, parallax-linear, 3d-sphere, 3d-cube, starfield-3d
-                    #   + mode-controller.js
-    ui/              # 27 files:
-                     #   panel-dock, panel-html, control-registry, controls, keyboard,
-                     #   cv-gate, portfolio-gate, contact-gate, gate-overlay,
-                     #   legend-colors, legend-interactive,
-                     #   brand-logo-*, social-icons, time-display,
-                     #   sound-toggle, theme-toggle, scene-*, link-*, apply-text
-    portfolio/       # app.js, portfolio-config.js, cylinder-background.js, panel/
-    input/           # pointer.js (mouse/touch), overscroll-lock.js
-    audio/           # sound-engine.js, sound-control-registry.js
-    utils/           # accessibility, logger, performance, storage, runtime-config, 
-                     #   text-loader, font-loader, ball-sizing, config-sync, tokens
-    visual/          # colors.js, dark-mode-v2.js, mouse-trail.js,
-                     #   chrome-harmony.js, entrance-animation.js,
-                     #   noise-system.js, wall-frame.js
-  config/            # default-config.json (420 lines), text.json, 
-                     #   portfolio-config.json, portfolio-data.json
-  portfolio.html     # gated portfolio page
-dist/                # generated bundle + css/images (never edit directly)
-docs/
-  development/       # DEV-WORKFLOW.md, CONFIG-SYNC-*.md
-  reference/         # MODES.md, CONFIGURATION.md, INTEGRATION.md, PORTFOLIO.md
+  main.js
+  css/
+  modules/{core,physics,rendering,modes,ui,visual,audio,input,utils}
+  config/default-config.json
+dist/            # generated output only
+docs/            # development + reference docs
 ```
 
----
+### Engineering Constraints
+- O(1) behavior in hot paths and no allocations inside core physics loops
+- Preserve 60fps behavior across modes
+- ES modules with explicit `.js` import extensions
+- CSS token usage (`tokens.css`) over ad-hoc values
+- Two-layer modal blur architecture is locked and must not be altered
 
-## Integration (embed)
+### Manual QA Expectations
+Automated tests are currently disabled. Before shipping:
+- Verify all 20 modes run correctly
+- Check keyboard navigation and ARIA behavior
+- Validate mobile behavior and visual clipping
+- Confirm no external network calls outside local asset/config loading
+
+## Integration Guide (Consumers)
+Embed the runtime with:
+
 ```html
 <link rel="stylesheet" href="css/styles.css">
 <link rel="modulepreload" href="js/shared.js">
@@ -166,36 +93,37 @@ docs/
 </div>
 <script type="module" src="js/app.js"></script>
 ```
-See `docs/reference/INTEGRATION.md` for host-page notes and `docs/reference/CONFIGURATION.md` for tunables.
 
-## Docs to know
-- Dev workflow: `docs/development/DEV-WORKFLOW.md`
-- Config + tunables: `docs/reference/CONFIGURATION.md`
-- Integration snippet: `docs/reference/INTEGRATION.md`
-- Portfolio specifics: `docs/reference/PORTFOLIO.md`
-- Mode list: `docs/reference/MODES.md`
+For full setup and host-page constraints, see [`docs/reference/INTEGRATION.md`](docs/reference/INTEGRATION.md).
 
-### Portfolio experience (gated)
-- Entry: `source/portfolio.html` (same chrome as index, gated via `portfolio-gate.js`).
-- Runtime: `modules/portfolio/app.js` loads `config/portfolio-config.json` + `config/portfolio-data.json`, and assets under `images/portfolio/`.
-- To edit portfolio content: update `config/portfolio-data.json` and drop new media into `images/portfolio/` (keep paths matching the JSON).
-- Build output: `dist/js/portfolio.js`, `dist/css/portfolio.css`, `dist/config/portfolio-config.json`, `dist/config/portfolio-data.json`.
+## Documentation
+### Project Docs
+- [`docs/development/DEV-WORKFLOW.md`](docs/development/DEV-WORKFLOW.md)
+- [`docs/reference/MODES.md`](docs/reference/MODES.md)
+- [`docs/reference/CONFIGURATION.md`](docs/reference/CONFIGURATION.md)
+- [`docs/reference/INTEGRATION.md`](docs/reference/INTEGRATION.md)
+- [`docs/reference/PORTFOLIO.md`](docs/reference/PORTFOLIO.md)
 
----
+### Official References
+- [MDN: Canvas API](https://developer.mozilla.org/docs/Web/API/Canvas_API)
+- [MDN: Web Audio API](https://developer.mozilla.org/docs/Web/API/Web_Audio_API)
+- [MDN: JavaScript Modules](https://developer.mozilla.org/docs/Web/JavaScript/Guide/Modules)
+- [Rollup Documentation](https://rollupjs.org/)
+- [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
 
-## Performance + compatibility
-- 60fps target with 200–300 entities depending on mode.
-- Tested on Chrome/Edge 120+, Firefox 121+, Safari 17+, iOS 15+, Android 12+.
-- Prefers-reduced-motion respected; dynamic canvas height to cut pixel cost per mode.
-
----
+## Controls
+| Key | Action |
+| --- | --- |
+| `→` | Next simulation in narrative order |
+| `←` | Previous simulation in narrative order |
+| `/` | Toggle dev panel dock (dev server only) |
+| `R` | Reset simulation |
 
 ## Contributing
-1. `npm run dev` (8001) or `npm run preview` (8000).
-2. Edit `source/` only; never hand-edit `dist/`.
-3. Keep O(1) hot paths, preserve 60fps, and scope styles to `#bravia-balls`.
-4. Follow conventional commits (`feat:`, `fix:`, `perf:`, etc.).
+1. Run `npm run dev`.
+2. Make changes in `source/` only.
+3. Keep docs and behavior aligned (`docs/` is authoritative).
+4. Follow conventional commit style (`feat:`, `fix:`, `perf:`, `docs:`).
 
----
-
-MIT License — see `LICENSE`.
+## License
+MIT. See [`LICENSE`](LICENSE).

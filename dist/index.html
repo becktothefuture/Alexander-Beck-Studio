@@ -54,8 +54,8 @@
     })();
   </script>
   <!-- Critical first-paint wall background (no JS + no !important). -->
-  <!-- Uses unified wall color (#242529) - same for light and dark modes. -->
-  <!-- Fallback color: #242529 (unified wall frame) -->
+  <!-- Defaults to site wall color (#242529); JS may swap to browser-aligned fallback on locked-header browsers. -->
+  <!-- Fallback color: #242529 -->
   <!-- iOS 26 Safari: Both html AND body must be opaque for correct chrome tinting. -->
   <style id="abs-critical-wall-bg">
     html, body { background: var(--wall-color, #242529); background-color: var(--wall-color, #242529); }
@@ -114,25 +114,70 @@
         return '#242529';
       }
       
-      function getMetaThemeColor(selector) {
-        const node = document.querySelector(selector);
-        return node && node.content ? node.content.trim() : '';
+      function detectBrowserFamily() {
+        const ua = navigator.userAgent || '';
+        const vendor = navigator.vendor || '';
+        const isFirefox = /Firefox\//.test(ua) || /FxiOS\//.test(ua);
+        const isSafari = /Safari\//.test(ua)
+          && /Apple/.test(vendor)
+          && !/Chrome\//.test(ua)
+          && !/Chromium\//.test(ua)
+          && !/CriOS\//.test(ua)
+          && !/FxiOS\//.test(ua)
+          && !/Edg\//.test(ua)
+          && !/EdgiOS\//.test(ua)
+          && !/OPR\//.test(ua)
+          && !/OPiOS\//.test(ua);
+        const isSamsungInternet = /SamsungBrowser\//.test(ua);
+        const isChromium = /Chrome\//.test(ua)
+          || /Chromium\//.test(ua)
+          || /CriOS\//.test(ua)
+          || /Edg\//.test(ua)
+          || /EdgiOS\//.test(ua)
+          || /OPR\//.test(ua)
+          || /OPiOS\//.test(ua)
+          || /Brave\//.test(ua)
+          || isSamsungInternet;
+        return { isFirefox, isSafari, isChromium, isSamsungInternet };
       }
-      
-      // Unified wall color (consistent across all modes)
-      const unifiedWallColor = '#242529';
-      let THEME_COLOR = unifiedWallColor;
-      
-      // Try to read from CSS (may fail if stylesheets not loaded)
-      try {
-        THEME_COLOR = getWallColorFromCSS(false) || getWallColorFromCSS(true) || unifiedWallColor;
-      } catch (e) {
-        // CSS not ready, use unified fallback
-        THEME_COLOR = unifiedWallColor;
+
+      function detectThemeColorLikelyApplied(family) {
+        const ua = navigator.userAgent || '';
+        const isAndroid = /Android/.test(ua);
+        const isIOS = /iPhone|iPad|iPod/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
+        const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+          || (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches)
+          || (navigator.standalone === true);
+        if (family.isFirefox) return false;
+        if (isStandalone) return true;
+        if (family.isSafari) return true;
+        if (family.isChromium) return isAndroid || family.isSamsungInternet;
+        return isAndroid || isIOS;
       }
-      
-      const primaryMeta = getMetaThemeColor('meta[name="theme-color"]:not([media])');
-      THEME_COLOR = primaryMeta || THEME_COLOR;
+
+      function getLockedHeaderWallColor(isDark) {
+        const family = detectBrowserFamily();
+        if (family.isSafari) return '';
+        if (detectThemeColorLikelyApplied(family)) return '';
+        if (family.isFirefox) return isDark ? '#1c1b22' : '#f9f9fb';
+        if (family.isChromium) return isDark ? '#202124' : '#f1f3f4';
+        return '';
+      }
+
+      function applyInitialWallColorToCssVars(color) {
+        if (!color) return;
+        const root = document.documentElement;
+        root.style.setProperty('--frame-color', color);
+        root.style.setProperty('--frame-color-light', color);
+        root.style.setProperty('--frame-color-dark', color);
+        root.style.setProperty('--wall-color', color);
+        root.style.setProperty('--wall-color-light', color);
+        root.style.setProperty('--wall-color-dark', color);
+        root.style.setProperty('--chrome-bg', color);
+        root.style.setProperty('--chrome-bg-light', color);
+        root.style.setProperty('--chrome-bg-dark', color);
+      }
+
       // Detect dark mode preference synchronously before any rendering
       let shouldBeDark = false;
 
@@ -152,8 +197,16 @@
       }
 
       function setBrowserChromeColors(isDark) {
-        // Unified wall color (always #242529, no light/dark variants)
-        const unifiedColor = getWallColorFromCSS(false) || getWallColorFromCSS(true) || '#242529';
+        const siteLight = getWallColorFromCSS(false) || '#242529';
+        const siteDark = getWallColorFromCSS(true) || '#242529';
+        const lockedLight = getLockedHeaderWallColor(false);
+        const lockedDark = getLockedHeaderWallColor(true);
+        const lightColor = lockedLight || siteLight;
+        const darkColor = lockedDark || siteDark;
+        const activeColor = isDark ? darkColor : lightColor;
+
+        // First paint harmony: let locked-header browsers use browser-aligned wall color.
+        applyInitialWallColorToCssVars(activeColor);
         
         // Update primary theme-color meta tag (no media query - used as fallback)
         let meta = document.querySelector('meta[name="theme-color"]:not([media])');
@@ -162,9 +215,9 @@
           meta.name = 'theme-color';
           document.head.appendChild(meta);
         }
-        meta.content = unifiedColor;
+        meta.content = activeColor;
         
-        // Safari iOS: Update media-query-specific meta tags (both use unified color)
+        // Keep media tags explicit for browsers that consume scheme-specific values.
         let metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
         if (!metaLight) {
           metaLight = document.createElement('meta');
@@ -172,7 +225,7 @@
           metaLight.media = '(prefers-color-scheme: light)';
           document.head.appendChild(metaLight);
         }
-        metaLight.content = unifiedColor;
+        metaLight.content = lightColor;
         
         let metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
         if (!metaDark) {
@@ -181,7 +234,7 @@
           metaDark.media = '(prefers-color-scheme: dark)';
           document.head.appendChild(metaDark);
         }
-        metaDark.content = unifiedColor;
+        metaDark.content = darkColor;
         
         // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style
         // black-translucent: transparent status bar (allows unified wall color to show)
@@ -260,8 +313,8 @@
   <meta content="c366" name="description">
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
-  <link id="bravia-balls-css" rel="stylesheet" href="css/styles.css?v=1770563063333">
-<link rel="modulepreload" href="js/shared.js?v=1770563063333">
+  <link id="bravia-balls-css" rel="stylesheet" href="css/styles.css?v=1770587500061">
+<link rel="modulepreload" href="js/shared.js?v=1770587500061">
 
   
   
@@ -302,7 +355,7 @@
     "starfield-3d": { "desktop": 220, "mobile": 150 },
     "particle-fountain": { "desktop": 260, "mobile": 180 }
   },
-  "chromeHarmonyMode": "site",
+  "chromeHarmonyMode": "auto",
   "autoDarkModeEnabled": true,
   "autoDarkNightStartHour": 18,
   "autoDarkNightEndHour": 6,
@@ -917,7 +970,7 @@
   </div>
   
 
-  <script id="bravia-balls-js" type="module" src="js/app.js?v=1770563063333"></script>
+  <script id="bravia-balls-js" type="module" src="js/app.js?v=1770587500061"></script>
 
   <!-- DEV TOOLING: Local hot reload (no external calls). -->
   <!-- This is stripped from production builds. -->

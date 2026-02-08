@@ -113,12 +113,16 @@ export function updateModeButtonsUI(activeMode) {
       'flies': 'Flies to Light', 
       'weightless': 'Zero-G',
       'water': 'Water Swimming',
-      'vortex': 'Electrons',
-
       'magnetic': 'Magnetic',
       'bubbles': 'Carbonated Bubbles',
       'kaleidoscope-3': 'Kaleidoscope',
-      'neural': 'Neural Network'
+      'parallax-linear': 'Parallax (Linear)',
+      'parallax-float': 'Parallax (Float)',
+      '3d-sphere': '3D Sphere',
+      '3d-cube': '3D Cube',
+      'starfield-3d': '3D Starfield',
+      'elastic-center': 'Elastic Center',
+      'particle-fountain': 'Particle Fountain'
     };
     announcer.textContent = `Switched to ${modeNames[activeMode] || activeMode} mode`;
   }

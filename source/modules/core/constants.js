@@ -11,7 +11,7 @@ export const MODES = {
   MAGNETIC: 'magnetic',
   BUBBLES: 'bubbles',
   KALEIDOSCOPE: 'kaleidoscope-3', // Glorious: 40-50 balls, complex morph
-  // Simulation 11: ball-only "critters" (no keyboard shortcut yet)
+  // Ball-only "critters" mode.
   CRITTERS: 'critters',
   // Parallax (depth perception) simulations
   PARALLAX_LINEAR: 'parallax-linear',
@@ -30,12 +30,12 @@ export const MODES = {
 //
 // Two-tier system ensures visitors see the most impressive work first:
 // 
-// FEATURED TIER (8 modes):
+// FEATURED TIER (7 modes):
 // - Always cycles first in the sequence
 // - Guaranteed first impression for new visitors
 // - Best work, strongest visual impact
 //
-// EXTENDED TIER (11 modes):
+// EXTENDED TIER (7 modes):
 // - Only appears after all Featured modes have cycled
 // - Additional explorations and experiments
 // - Loop order: Featured → Extended → Featured → ...
@@ -50,7 +50,7 @@ export const FEATURED_MODES = [
   MODES.CUBE_3D,          // 3D FRAME
   MODES.WATER,            // USER FLOW
   MODES.SPHERE_3D,        // 3D SHELL
-  // PARALLAX_LINEAR disabled (simulation removed)
+  // PARALLAX_LINEAR intentionally excluded from narrative cycling.
   MODES.ELASTIC_CENTER,   // ELASTIC CENTER
   MODES.KALEIDOSCOPE      // VOCAB BLOOM
 ];

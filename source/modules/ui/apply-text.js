@@ -53,7 +53,7 @@ function applyLegend() {
     const labelSpan = itemEl.querySelector('span');
     if (label && labelSpan) labelSpan.textContent = label;
 
-    // Tooltips are driven by the data-tooltip attribute (used by legend-interactive.js).
+    // Tooltips are driven by the data-tooltip attribute consumed by legend UI styles/behavior.
     if (tooltip) itemEl.setAttribute('data-tooltip', tooltip);
 
     // Keep the legend dot color in sync with config (fallback HTML should still match).
