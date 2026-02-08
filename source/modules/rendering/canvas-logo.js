@@ -112,6 +112,21 @@ function contrastRatio(a, b) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+function resolveSceneBackgroundColor(rootStyles) {
+  const sceneEl = document.getElementById('bravia-balls');
+  if (sceneEl) {
+    const sceneBg = getComputedStyle(sceneEl).backgroundColor?.trim();
+    if (sceneBg) return sceneBg;
+  }
+
+  const isDark = document.documentElement.classList.contains('dark-mode')
+    || document.body?.classList.contains('dark-mode');
+  const tokenBg = rootStyles.getPropertyValue(isDark ? '--bg-dark' : '--bg-light').trim();
+  if (tokenBg) return tokenBg;
+
+  return rootStyles.getPropertyValue('--wall-color').trim() || '#242529';
+}
+
 function resolveAccessibleLogoColor() {
   // Prefer CSS-resolved logo color so canvas matches the design system source of truth.
   const styles = getComputedStyle(document.documentElement);
@@ -119,26 +134,26 @@ function resolveAccessibleLogoColor() {
     || (document.getElementById('brand-logo')
       ? getComputedStyle(document.getElementById('brand-logo')).color
       : '');
-  const rawWallColor = styles.getPropertyValue('--wall-color').trim() || '#242529';
+  const rawSceneColor = resolveSceneBackgroundColor(styles);
 
   const requestedLogoColor = normalizeCssColor(rawLogoColor, LOGO_COLOR_DARK);
-  const wallColor = normalizeCssColor(rawWallColor, '#242529');
+  const sceneColor = normalizeCssColor(rawSceneColor, '#242529');
   const logoRgb = parseRgbColor(requestedLogoColor);
-  const wallRgb = parseRgbColor(wallColor);
+  const sceneRgb = parseRgbColor(sceneColor);
 
-  if (!wallRgb) return requestedLogoColor;
+  if (!sceneRgb) return requestedLogoColor;
 
-  // Always choose the token color that has higher contrast with the actual wall color.
+  // Always choose the token color that has higher contrast with the active scene background.
   const lightRgb = parseRgbColor(LOGO_COLOR_LIGHT);
   const darkRgb = parseRgbColor(LOGO_COLOR_DARK);
   if (!lightRgb || !darkRgb) return requestedLogoColor;
 
-  const lightContrast = contrastRatio(lightRgb, wallRgb);
-  const darkContrast = contrastRatio(darkRgb, wallRgb);
+  const lightContrast = contrastRatio(lightRgb, sceneRgb);
+  const darkContrast = contrastRatio(darkRgb, sceneRgb);
   const bestToken = darkContrast >= lightContrast ? LOGO_COLOR_DARK : LOGO_COLOR_LIGHT;
 
   // If requested color is already good enough, keep it; otherwise force best-contrast token.
-  if (logoRgb && contrastRatio(logoRgb, wallRgb) >= MIN_LOGO_CONTRAST) {
+  if (logoRgb && contrastRatio(logoRgb, sceneRgb) >= MIN_LOGO_CONTRAST) {
     return requestedLogoColor;
   }
 
