@@ -61,6 +61,14 @@ const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : isDev();
 const CONTENT_FADE_DURATION_MS = 800;
 const CONTENT_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
+function setBootLifecycleState(state) {
+  try {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.absBootState = String(state || '');
+    }
+  } catch (e) {}
+}
+
 // Removed: pickStartupMode() - replaced with deterministic daily scheduler
 
 /**
@@ -239,6 +247,8 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 (async function init() {
+  setBootLifecycleState('booting');
+
   // Mark JS as enabled (for CSS fallback detection)
   document.documentElement.classList.add('js-enabled');
 
@@ -756,8 +766,11 @@ window.addEventListener('unhandledrejection', (event) => {
         if (blocker) blocker.remove();
       }
     }
+
+    setBootLifecycleState('ready');
     
   } catch (error) {
+    setBootLifecycleState('failed');
     console.error('❌ Initialization failed:', error);
     document.body.innerHTML = `<div style="padding: 20px; color: red; background: white;">
       <h2>Initialization Error</h2>

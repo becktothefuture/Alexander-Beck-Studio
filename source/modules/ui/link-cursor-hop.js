@@ -8,6 +8,9 @@ import { playHoverSound } from '../audio/sound-engine.js';
 let isInitialized = false;
 const HOVER_CLASS = 'abs-link-hovering';
 
+/** Currently hovered link/button (set on pointerover, cleared on pointerout). Used for power-transfer explosion origin. */
+let currentHoveredElement = null;
+
 function isEventOnPanelUI(target) {
   if (!target || !target.closest) return false;
   return Boolean(
@@ -38,7 +41,9 @@ function onPointerOver(e) {
   if (!link || isEventOnPanelUI(link)) return;
   
   try {
+    currentHoveredElement = link;
     document.body.classList.add(HOVER_CLASS);
+    document.body.dispatchEvent(new CustomEvent('abs-link-hover', { detail: { element: link } }));
     playHoverSound();
   } catch (e) {}
 }
@@ -51,6 +56,7 @@ function onPointerOut(e) {
   if (to && link.contains(to)) return; // Still within same link
 
   try {
+    currentHoveredElement = null;
     document.body.classList.remove(HOVER_CLASS);
   } catch (e) {}
 }
@@ -61,6 +67,7 @@ export function initLinkCursorHop() {
 
   // Clean baseline
   try {
+    currentHoveredElement = null;
     document.body.classList.remove(HOVER_CLASS);
   } catch (e) {}
 
@@ -77,6 +84,7 @@ export function initLinkCursorHop() {
   // Cleanup on blur
   window.addEventListener('blur', () => {
     try {
+      currentHoveredElement = null;
       document.body.classList.remove(HOVER_CLASS);
     } catch (e) {}
   }, { passive: true });
@@ -87,12 +95,22 @@ export function initLinkCursorHop() {
     (event) => {
       if (!event.relatedTarget && !event.toElement) {
         try {
+          currentHoveredElement = null;
           document.body.classList.remove(HOVER_CLASS);
         } catch (e) {}
       }
     },
     { passive: true }
   );
+}
+
+/**
+ * Return the element currently under hover (when body has abs-link-hovering).
+ * Used by cursor power-transfer to emit explosion from button edges.
+ * @returns {Element | null}
+ */
+export function getCurrentHoveredElement() {
+  return currentHoveredElement ?? null;
 }
 
 // Backwards-compat export (no-op)

@@ -6,21 +6,50 @@
   <script>
     (function() {
       'use strict';
-      // Failsafe timeout: remove fade-blocking after 3 seconds if still present
-      // This ensures content becomes visible even if main JS bundle fails
-      setTimeout(function() {
+      const INITIAL_FAILSAFE_MS = 3000;
+      const EXTENDED_FAILSAFE_MS = 12000;
+
+      function forceReveal(reason) {
         try {
           const blocker = document.getElementById('fade-blocking');
           const absScene = document.getElementById('abs-scene');
-          // If fade-blocking style tag still exists, remove it and make content visible
-          if (blocker && absScene) {
-            blocker.remove();
-            absScene.style.opacity = '1';
-            absScene.style.visibility = 'visible';
-            console.warn('⚠️ Fade-blocking failsafe triggered - main JS may have failed to load');
+          if (!blocker || !absScene) return;
+
+          blocker.remove();
+          absScene.style.opacity = '1';
+          absScene.style.visibility = 'visible';
+
+          const appFrame = document.getElementById('app-frame');
+          if (appFrame) {
+            appFrame.style.opacity = '1';
+            appFrame.style.visibility = 'visible';
           }
+
+          const html = document.documentElement;
+          html.classList.remove('entrance-pre-transition', 'entrance-transitioning');
+          html.classList.add('entrance-complete', 'ui-entered');
+
+          console.warn(`⚠️ Fade-blocking failsafe triggered (${reason})`);
         } catch (e) {}
-      }, 3000);
+      }
+
+      function isBootInProgress() {
+        try {
+          return document.documentElement.dataset.absBootState === 'booting';
+        } catch (e) {
+          return false;
+        }
+      }
+
+      setTimeout(function() {
+        if (isBootInProgress()) {
+          setTimeout(function() {
+            forceReveal('extended timeout while JS booting');
+          }, Math.max(0, EXTENDED_FAILSAFE_MS - INITIAL_FAILSAFE_MS));
+          return;
+        }
+        forceReveal('initial timeout');
+      }, INITIAL_FAILSAFE_MS);
     })();
   </script>
   <!-- Critical first-paint wall background (no JS + no !important). -->
@@ -269,24 +298,6 @@
     <div id="scene-effects" class="scene-effects" aria-hidden="true">
       <div class="noise"></div>
     </div>
-
-    <!-- GRUNGE VIDEO OVERLAYS: Inside #abs-scene for depth effect -->
-    <!-- Light mode video (overlay blend) -->
-    <video 
-      id="grunge-video-light" 
-      class="grunge-video-overlay grunge-video-overlay--light"
-      autoplay muted loop playsinline preload="auto" aria-hidden="true"
-    >
-      <source src="video/video-dark.mp4" type="video/mp4">
-    </video>
-    <!-- Dark mode video (screen blend) -->
-    <video 
-      id="grunge-video-dark" 
-      class="grunge-video-overlay grunge-video-overlay--dark"
-      autoplay muted loop playsinline preload="auto" aria-hidden="true"
-    >
-      <source src="video/video-dark.mp4" type="video/mp4">
-    </video>
 
     <!-- UI LAYER: Flexbox Layout - Inside #abs-scene for unified transform (depth effects) -->
     <div class="fade-content page-content">

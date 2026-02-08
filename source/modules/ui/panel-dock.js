@@ -12,9 +12,10 @@ import {
   generateMasterSectionsHTML,
   generateModeSwitcherHTML,
   generateModeSpecificSectionsHTML,
-  updateWallShadowCSS,
+  generateWallStackDiagramHTML,
   setupWallSectionTabs,
 } from './control-registry.js';
+import { updateWallShadowCSS } from '../visual/wall-shadow.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
 import { isDev } from '../utils/logger.js';
 import {
@@ -215,6 +216,7 @@ function getMasterPanelContent({
     prepend: {
       appearance: generateThemeSectionHTML({ open: false }),
       simulation: generateModeSwitcherHTML() + generateModeSpecificSectionsHTML(),
+      effects: generateWallStackDiagramHTML(),
     },
     append: {
       appearance: generateColorTemplateSectionHTML({ open: false }),
@@ -442,6 +444,7 @@ function createMasterPanel({
     setupSoundControls(panel);
     setupLayoutControls(panel);
     setupWallSectionTabs();
+    bindWallStackDiagram(panel);
     
     // Initialize wall shadow CSS from current state
     try {
@@ -454,6 +457,102 @@ function createMasterPanel({
   }, 0);
   
   return panel;
+}
+
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                  WALL STACK DIAGRAM — INTERACTION + SYNC                      ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+function bindWallStackDiagram(panel) {
+  const diagram = panel.querySelector('.wall-stack-iso');
+  if (!diagram) return;
+
+  let raf = 0;
+  const scheduleSync = () => {
+    if (raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => syncWallStackDiagram(diagram));
+  };
+
+  const clearActive = () => {
+    diagram.querySelectorAll('.wall-stack-iso__row.is-active, .wall-stack-iso__layer.is-active, .wall-stack-iso__label.is-active').forEach(el => {
+      el.classList.remove('is-active');
+    });
+    panel.querySelectorAll('.wall-chunk.is-highlighted').forEach(el => el.classList.remove('is-highlighted'));
+  };
+
+  const activateLayer = (target) => {
+    if (!target) return;
+    const row = target.closest('.wall-stack-iso__row');
+    const source = row || target;
+    const sectionKey = source.dataset.section;
+    const groupKey = source.dataset.group;
+    if (!sectionKey || !groupKey) return;
+
+    clearActive();
+
+    if (row) row.classList.add('is-active');
+    if (source.dataset.layer) {
+      diagram.querySelectorAll(`[data-layer="${source.dataset.layer}"]`).forEach(el => el.classList.add('is-active'));
+    }
+
+    const masterGroup = panel.querySelector('.panel-master-group[data-group-id="effects"]');
+    if (masterGroup) masterGroup.open = true;
+
+    const section = panel.querySelector(`.panel-section-accordion[data-section-key="${sectionKey}"]`);
+    if (section) section.open = true;
+
+    const chunk = section?.querySelector(`.wall-chunk[data-wall-group="${groupKey}"]`);
+    if (chunk) {
+      chunk.classList.add('is-highlighted');
+      chunk.scrollIntoView({ block: 'nearest' });
+    }
+  };
+
+  diagram.addEventListener('click', (event) => {
+    const target = event.target.closest('.wall-stack-iso__row, .wall-stack-iso__layer, .wall-stack-iso__label');
+    if (!target || !diagram.contains(target)) return;
+    activateLayer(target);
+  });
+
+  panel.addEventListener('input', scheduleSync);
+  panel.addEventListener('change', scheduleSync);
+  scheduleSync();
+}
+
+function readCssVar(style, name, fallback = 0) {
+  const raw = style.getPropertyValue(name).trim();
+  const value = Number.parseFloat(raw);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function syncWallStackDiagram(diagram) {
+  const outerWall = document.querySelector('.outer-wall');
+  const innerWall = document.querySelector('.inner-wall');
+  const container = document.getElementById('bravia-balls');
+  if (!outerWall || !innerWall) return;
+
+  const outerStyle = getComputedStyle(outerWall);
+  const innerStyle = getComputedStyle(innerWall);
+
+  const outerShine = readCssVar(outerStyle, '--outer-wall-border-bright-opacity', 0.5);
+  const outerShadow = Math.max(
+    readCssVar(outerStyle, '--outer-wall-cast-shadow-opacity', 0.15),
+    readCssVar(outerStyle, '--wall-ao-opacity', 0.15)
+  );
+  const outerMicro = readCssVar(outerStyle, '--wall-specular-opacity', 0.4);
+
+  const innerGlow = readCssVar(innerStyle, '--inner-wall-inner-glow-opacity', 0.1);
+  const innerShine = readCssVar(innerStyle, '--inner-wall-border-bright-opacity', 0.5);
+  const innerShadowOpacity = container
+    ? readCssVar(getComputedStyle(container), '--inner-wall-inner-shadow-opacity', 0.15)
+    : 0.15;
+
+  diagram.style.setProperty('--iso-outer-shadow', String(outerShadow));
+  diagram.style.setProperty('--iso-outer-shine', String(outerShine));
+  diagram.style.setProperty('--iso-outer-micro', String(outerMicro));
+  diagram.style.setProperty('--iso-inner-glow', String(innerGlow));
+  diagram.style.setProperty('--iso-inner-shine', String(innerShine));
+  diagram.style.setProperty('--iso-inner-shadow', String(innerShadowOpacity));
 }
 
 function setupResizePersistence() {

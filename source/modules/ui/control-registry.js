@@ -8,6 +8,7 @@ import { getGlobals } from '../core/state.js';
 import { PARALLAX_LINEAR_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallElements } from '../visual/wall-elements.js';
+import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
 
 // Lazy import for other callers that may load before wall-elements (e.g. sync)
 let _updateWallElements = null;
@@ -40,126 +41,6 @@ export function setUpdateTactileLayer(fn) {
 // WALL SHADOW CSS UPDATE
 // Dynamically updates box-shadow on #bravia-balls::after via CSS custom properties
 // ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Convert hex color to RGB object
- * @param {string} hex - Hex color string (e.g., '#ffffff' or '#fff')
- * @returns {{r: number, g: number, b: number}} RGB values (0-255)
- */
-function hexToRgb(hex) {
-  // Remove # if present
-  hex = hex.replace(/^#/, '');
-  
-  // Handle 3-character hex
-  if (hex.length === 3) {
-    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-  }
-  
-  const num = parseInt(hex, 16);
-  return {
-    r: (num >> 16) & 255,
-    g: (num >> 8) & 255,
-    b: num & 255
-  };
-}
-
-/**
- * Convert hex color to RGB CSS string for use in rgba()
- * @param {string} hex - Hex color string (e.g., '#ff0000')
- * @returns {string} RGB values as comma-separated string (e.g., '255, 0, 0')
- */
-function hexToRgbString(hex) {
-  const { r, g, b } = hexToRgb(hex);
-  return `${r}, ${g}, ${b}`;
-}
-
-function updateWallShadowCSS(g) {
-  const container = document.getElementById('bravia-balls');
-  if (!container) return;
-  
-  // Check if dark mode
-  const isDark = document.body.classList.contains('dark-mode');
-  
-  // ═══ EDGE BORDERS DISABLED ═══
-  // All edge shadows and strokes are now disabled by default.
-  // Previously created 1px bevel lines around the inner wall edge.
-  // To re-enable, set these values in config:
-  // wallShadowEdgeTopOpacityLight, wallShadowEdgeTopOpacityDark, etc.
-  
-  // Dark edges (top + left) - wall shadow falling onto content
-  const edgeTopOpacity = isDark 
-    ? (g.wallShadowEdgeTopOpacityDark ?? 0)
-    : (g.wallShadowEdgeTopOpacityLight ?? 0);
-  const edgeLeftOpacity = isDark
-    ? (g.wallShadowEdgeLeftOpacityDark ?? 0)
-    : (g.wallShadowEdgeLeftOpacityLight ?? 0);
-  
-  // Light edges (bottom + right) - catching light
-  const edgeBottomOpacity = isDark
-    ? (g.wallShadowEdgeBottomOpacityDark ?? 0)
-    : (g.wallShadowEdgeBottomOpacityLight ?? 0);
-  const edgeRightOpacity = isDark
-    ? (g.wallShadowEdgeRightOpacityDark ?? 0)
-    : (g.wallShadowEdgeRightOpacityLight ?? 0);
-  
-  // Ambient inset shadow (soft vignette from wall depth) - kept for subtle depth
-  const ambientBlur = g.wallShadowAmbientBlur ?? 20;
-  const ambientOpacity = isDark
-    ? (g.wallShadowAmbientOpacityDark ?? 0.12)
-    : (g.wallShadowAmbientOpacityLight ?? 0.04);
-  
-  // Stroke (solid edge definition) - disabled
-  const strokeOpacity = isDark
-    ? (g.wallShadowStrokeOpacityDark ?? 0)
-    : (g.wallShadowStrokeOpacityLight ?? 0);
-  
-  // ═══ BUILD SHADOW STRING ═══
-  const shadows = [];
-  
-  // Only add edge shadows if they have non-zero opacity
-  if (edgeTopOpacity > 0) {
-    shadows.push(`inset 0 1px 0 rgba(0,0,0, ${edgeTopOpacity.toFixed(3)})`);
-  }
-  if (edgeLeftOpacity > 0) {
-    shadows.push(`inset 1px 0 0 rgba(0,0,0, ${edgeLeftOpacity.toFixed(3)})`);
-  }
-  if (edgeBottomOpacity > 0) {
-    shadows.push(`inset 0 -1px 0 rgba(255,255,255, ${edgeBottomOpacity.toFixed(3)})`);
-  }
-  if (edgeRightOpacity > 0) {
-    shadows.push(`inset -1px 0 0 rgba(255,255,255, ${edgeRightOpacity.toFixed(3)})`);
-  }
-  
-  // Ambient vignette (always add if non-zero)
-  if (ambientOpacity > 0) {
-    shadows.push(`inset 2px 3px ${ambientBlur}px rgba(0,0,0, ${ambientOpacity.toFixed(3)})`);
-  }
-  
-  // ─────────────────────────────────────────────────────────────────────────────
-  // SINGLE INNER SHADOW — above balls, below text (one inset shadow only)
-  // Applied to .inner-shadow element
-  // ─────────────────────────────────────────────────────────────────────────────
-  const innerShadowEnabled = g.wallInnerShadowEnabled ?? true;
-  let innerShadowStr = 'none';
-  if (innerShadowEnabled) {
-    const innerOpacity = isDark
-      ? (g.wallInnerShadowOpacityDark ?? 0.25)
-      : (g.wallInnerShadowOpacityLight ?? 0.08);
-    if (innerOpacity > 0) {
-      const offsetY = g.wallInnerShadowOffsetY ?? 2;
-      const blur = g.wallInnerShadowBlur2 ?? 8; // single soft blur
-      innerShadowStr = `inset 0 ${offsetY}px ${blur}px rgba(0,0,0, ${innerOpacity.toFixed(3)})`;
-    }
-  }
-  container.style.setProperty('--inner-wall-inner-shadow', innerShadowStr);
-  
-  // Apply stroke opacity (disabled by default)
-  container.style.setProperty('--wall-stroke-opacity', strokeOpacity.toFixed(3));
-  
-  // Remove legacy style tag that targeted #bravia-balls::before (display:none)
-  const styleTag = document.getElementById('wall-shadow-override-style');
-  if (styleTag) styleTag.remove();
-}
 
 // Export for initialization
 export { updateWallShadowCSS };
@@ -3194,6 +3075,103 @@ export const CONTROL_SECTIONS = {
         wallGroup: 'shine',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
+      {
+        id: 'outerWallShineBlurLight',
+        label: 'Shine Blur',
+        stateKey: 'outerWallShineBlurLight',
+        wallGroup: 'shine',
+        theme: 'light',
+        type: 'range',
+        min: 0, max: 300, step: 1,
+        default: 20,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Blur radius (larger = softer edge blend)',
+        onChange: (g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
+      {
+        id: 'outerWallShineSpreadLight',
+        label: 'Shine Spread',
+        stateKey: 'outerWallShineSpreadLight',
+        wallGroup: 'shine',
+        theme: 'light',
+        type: 'range',
+        min: -50, max: 150, step: 1,
+        default: 4,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Inset box-shadow spread (larger = thicker shadow band)',
+        onChange: (g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
+      {
+        id: 'outerWallShineOvershootLight',
+        label: 'Shine Overshoot',
+        stateKey: 'outerWallShineOvershootLight',
+        wallGroup: 'shine',
+        theme: 'light',
+        type: 'range',
+        min: -100, max: 100, step: 1,
+        default: 10,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Negative = extends outside wall edge, positive = inset from edge',
+        onChange: (g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
+      {
+        id: 'outerWallShineOpacityLight',
+        label: 'Shine Opacity',
+        stateKey: 'outerWallShineOpacityLight',
+        wallGroup: 'shine',
+        theme: 'light',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.4,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Blur glow layer opacity',
+        onChange: (g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+             import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
+      {
+        id: 'outerWallShineColorLight',
+        label: 'Shine Color Override',
+        stateKey: 'outerWallShineColorLight',
+        wallGroup: 'shine',
+        theme: 'light',
+        type: 'text',
+        default: '',
+        hint: 'Leave empty to use frame/wall background color (hex)',
+        onChange: (g, val) => {
+          if (!document.body.classList.contains('dark-mode')) {
+            import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
       // Dark tab
       {
         id: 'outerWallTopShadowOpacityDark',
@@ -3297,6 +3275,103 @@ export const CONTROL_SECTIONS = {
         wallGroup: 'shine',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
       },
+      {
+        id: 'outerWallShineBlurDark',
+        label: 'Shine Blur',
+        stateKey: 'outerWallShineBlurDark',
+        wallGroup: 'shine',
+        theme: 'dark',
+        type: 'range',
+        min: 0, max: 300, step: 1,
+        default: 20,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Blur radius (larger = softer edge blend)',
+        onChange: (g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+            import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
+      {
+        id: 'outerWallShineSpreadDark',
+        label: 'Shine Spread',
+        stateKey: 'outerWallShineSpreadDark',
+        wallGroup: 'shine',
+        theme: 'dark',
+        type: 'range',
+        min: -50, max: 150, step: 1,
+        default: 4,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Inset box-shadow spread (larger = thicker shadow band)',
+        onChange: (g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+            import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
+      {
+        id: 'outerWallShineOvershootDark',
+        label: 'Shine Overshoot',
+        stateKey: 'outerWallShineOvershootDark',
+        wallGroup: 'shine',
+        theme: 'dark',
+        type: 'range',
+        min: -100, max: 100, step: 1,
+        default: 10,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        hint: 'Negative = extends outside wall edge, positive = inset from edge',
+        onChange: (g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+            import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
+      {
+        id: 'outerWallShineOpacityDark',
+        label: 'Shine Opacity',
+        stateKey: 'outerWallShineOpacityDark',
+        wallGroup: 'shine',
+        theme: 'dark',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.5,
+        format: v => v.toFixed(2),
+        parse: parseFloat,
+        hint: 'Blur glow layer opacity',
+        onChange: (g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+             import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
+      {
+        id: 'outerWallShineColorDark',
+        label: 'Shine Color Override',
+        stateKey: 'outerWallShineColorDark',
+        wallGroup: 'shine',
+        theme: 'dark',
+        type: 'text',
+        default: '',
+        hint: 'Leave empty to use frame/wall background color (hex)',
+        onChange: (g, val) => {
+          if (document.body.classList.contains('dark-mode')) {
+            import('../visual/wall-elements.js').then(({ updateWallElements }) => {
+              updateWallElements();
+            });
+          }
+        }
+      },
     ]
   },
 
@@ -3317,10 +3392,11 @@ export const CONTROL_SECTIONS = {
         stateKey: 'innerWallShineBlur',
         wallGroup: 'shine',
         type: 'range',
-        min: 0, max: 100, step: 1,
+        min: 0, max: 300, step: 1,
         default: 20,
         format: v => `${v}px`,
         parse: parseFloat,
+        hint: 'Blur radius (larger = softer edge blend)',
         onChange: (g, val) => {
           import('../visual/wall-elements.js').then(({ updateWallElements }) => {
             updateWallElements();
@@ -3333,11 +3409,11 @@ export const CONTROL_SECTIONS = {
         stateKey: 'innerWallShineOvershoot',
         wallGroup: 'shine',
         type: 'range',
-        min: -50, max: 50, step: 1,
+        min: -100, max: 100, step: 1,
         default: 10,
         format: v => `${v}px`,
         parse: parseFloat,
-        hint: 'How far outside the wall edge the shadow starts (negative = inset)',
+        hint: 'Negative = extends outside wall edge, positive = inset from edge',
         onChange: (g, val) => {
           import('../visual/wall-elements.js').then(({ updateWallElements }) => {
             updateWallElements();
@@ -3350,11 +3426,11 @@ export const CONTROL_SECTIONS = {
         stateKey: 'innerWallShineSpread',
         wallGroup: 'shine',
         type: 'range',
-        min: -20, max: 40, step: 1,
+        min: -50, max: 150, step: 1,
         default: 4,
         format: v => `${v}px`,
         parse: parseFloat,
-        hint: 'Inset box-shadow spread (negative = tighter shadow)',
+        hint: 'Inset box-shadow spread (larger = thicker shadow band)',
         onChange: (g, val) => {
           import('../visual/wall-elements.js').then(({ updateWallElements }) => {
             updateWallElements();
@@ -3524,6 +3600,76 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--inner-wall-inner-glow-rgb', rgb);
           getUpdateGradientEdge().then(fn => fn?.());
         }
+      },
+      // ─────────────────────────────────────────────────────────────────────
+      // INNER SHADOW (inset shadow in background colour, above canvas)
+      // ─────────────────────────────────────────────────────────────────────
+      {
+        id: 'wallInnerShadowEnabled',
+        label: 'Enabled',
+        stateKey: 'wallInnerShadowEnabled',
+        type: 'checkbox',
+        default: true,
+        hint: 'Inset shadow in background colour for depth',
+        theme: null,
+        wallGroup: 'innerShadow',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallInnerShadowBlurVh',
+        label: 'Blur (vh)',
+        stateKey: 'wallInnerShadowBlurVh',
+        type: 'range',
+        min: 0, max: 100, step: 1,
+        default: 15,
+        format: v => `${v}vh`,
+        parse: parseFloat,
+        hint: 'Blur softness (larger = wider gradient into center)',
+        theme: null,
+        wallGroup: 'innerShadow',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallInnerShadowSpreadVh',
+        label: 'Spread (vh)',
+        stateKey: 'wallInnerShadowSpreadVh',
+        type: 'range',
+        min: -20, max: 50, step: 1,
+        default: 15,
+        format: v => `${v}vh`,
+        parse: parseFloat,
+        hint: 'Solid edge band (larger = thicker opaque border before blur)',
+        theme: null,
+        wallGroup: 'innerShadow',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallInnerShadowOpacityLight',
+        label: 'Opacity (Light)',
+        stateKey: 'wallInnerShadowOpacityLightV2',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 1.0,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Inner shadow opacity in light mode',
+        theme: 'light',
+        wallGroup: 'innerShadow',
+        onChange: (g) => updateWallShadowCSS(g)
+      },
+      {
+        id: 'wallInnerShadowOpacityDark',
+        label: 'Opacity (Dark)',
+        stateKey: 'wallInnerShadowOpacityDarkV2',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 1.0,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Inner shadow opacity in dark mode',
+        theme: 'dark',
+        wallGroup: 'innerShadow',
+        onChange: (g) => updateWallShadowCSS(g)
       },
       {
         id: 'innerWallBorderWidth',
@@ -6505,10 +6651,10 @@ function generateWallSectionHTML(sectionKey, section) {
 
   const getGroupRank = (group, sectionKey) => {
     if (sectionKey === 'outerWall') {
-      return { shine: 1, micro: 2, shadow: 3, geometry: 4 }[group] ?? 99;
+      return { shadow: 1, micro: 2, shine: 3, geometry: 4 }[group] ?? 99;
     }
     if (sectionKey === 'innerWall') {
-      return { shine: 1, innerGlow: 2, innerShadow: 3, shadow: 4, micro: 5, geometry: 6 }[group] ?? 99;
+      return { innerShadow: 1, shine: 2, innerGlow: 3, shadow: 4, micro: 5, geometry: 6 }[group] ?? 99;
     }
     return 99;
   };
@@ -6566,23 +6712,23 @@ function generateWallSectionHTML(sectionKey, section) {
 export function generateWallStackDiagramHTML() {
   return `
     <div class="wall-stack-diagram-sticky">
-    <div class="wall-stack-iso" role="img" aria-label="Wall layer stack, bottom to top">
-      <div class="wall-stack-iso__caption">Wall stack (bottom → top)</div>
+    <div class="wall-stack-iso" role="img" aria-label="Wall layer stack, top to bottom">
+      <div class="wall-stack-iso__caption">Wall stack (top → bottom)</div>
       <div class="wall-stack-iso__groups">
         <div class="wall-stack-iso__group" data-wall="inner">
           <div class="wall-stack-iso__group-label">Inner Wall</div>
           <div class="wall-stack-iso__group-body">
             <div class="wall-stack-iso__row" data-layer="inner-shine" data-section="innerWall" data-group="shine">
               <div class="wall-stack-iso__layer" data-layer="inner-shine"></div>
-              <div class="wall-stack-iso__label">Inner Shine <span class="wall-stack-iso__z">z:30</span></div>
+              <div class="wall-stack-iso__label">Inner Shine <span class="wall-stack-iso__z">Z:35</span></div>
             </div>
             <div class="wall-stack-iso__row" data-layer="inner-glow" data-section="innerWall" data-group="innerGlow">
               <div class="wall-stack-iso__layer" data-layer="inner-glow"></div>
-              <div class="wall-stack-iso__label">Inner Glow <span class="wall-stack-iso__z">z:30</span></div>
+              <div class="wall-stack-iso__label">Inner Glow <span class="wall-stack-iso__z">Z:30</span></div>
             </div>
             <div class="wall-stack-iso__row" data-layer="inner-shadow" data-section="innerWall" data-group="innerShadow">
               <div class="wall-stack-iso__layer" data-layer="inner-shadow"></div>
-              <div class="wall-stack-iso__label">Inner Shadow <span class="wall-stack-iso__z">z:15</span></div>
+              <div class="wall-stack-iso__label">Inner Shadow <span class="wall-stack-iso__z">Z:25</span></div>
             </div>
           </div>
         </div>
@@ -6591,15 +6737,15 @@ export function generateWallStackDiagramHTML() {
           <div class="wall-stack-iso__group-body">
             <div class="wall-stack-iso__row" data-layer="outer-shine" data-section="outerWall" data-group="shine">
               <div class="wall-stack-iso__layer" data-layer="outer-shine"></div>
-              <div class="wall-stack-iso__label">Outer Shine <span class="wall-stack-iso__z">z:25</span></div>
-            </div>
-            <div class="wall-stack-iso__row" data-layer="outer-micro" data-section="outerWall" data-group="micro">
-              <div class="wall-stack-iso__layer" data-layer="outer-micro"></div>
-              <div class="wall-stack-iso__label">Outer Micro <span class="wall-stack-iso__z">z:25</span></div>
+              <div class="wall-stack-iso__label">Outer Shine <span class="wall-stack-iso__z">Z:25</span></div>
             </div>
             <div class="wall-stack-iso__row" data-layer="outer-shadow" data-section="outerWall" data-group="shadow">
               <div class="wall-stack-iso__layer" data-layer="outer-shadow"></div>
-              <div class="wall-stack-iso__label">Outer Shadow <span class="wall-stack-iso__z">z:25</span></div>
+              <div class="wall-stack-iso__label">Outer Shadow <span class="wall-stack-iso__z">Z:25</span></div>
+            </div>
+            <div class="wall-stack-iso__row" data-layer="outer-micro" data-section="outerWall" data-group="micro">
+              <div class="wall-stack-iso__layer" data-layer="outer-micro"></div>
+              <div class="wall-stack-iso__label">Outer Micro <span class="wall-stack-iso__z">Z:25</span></div>
             </div>
           </div>
         </div>
@@ -6608,7 +6754,7 @@ export function generateWallStackDiagramHTML() {
           <div class="wall-stack-iso__group-body">
             <div class="wall-stack-iso__row" data-layer="geometry" data-section="outerWall" data-group="geometry">
               <div class="wall-stack-iso__layer" data-layer="geometry"></div>
-              <div class="wall-stack-iso__label">Geometry <span class="wall-stack-iso__z">z:25/30</span></div>
+              <div class="wall-stack-iso__label">Geometry <span class="wall-stack-iso__z">Z:25</span></div>
             </div>
           </div>
         </div>

@@ -98,6 +98,10 @@ To enable it, set `LOCALSTORAGE_ENABLED = true` in `source/modules/utils/storage
 
 Panel position / dock visibility / collapsed state is persisted (best-effort) via `panel-dock.js` localStorage keys.
 
+### Wall layer visualization (Effects group)
+
+The **Effects** group in the config panel now includes an isometric “Wall stack” diagram that mirrors the real z-order of wall layers (bottom → top). The **Outer Wall** and **Inner Wall** control groups are ordered to match that visual stacking.
+
 ---
 
 ## Complete JSON Structure (Current)

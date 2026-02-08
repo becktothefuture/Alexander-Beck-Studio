@@ -53,6 +53,14 @@ function pickStartupMode() {
   return MODES.PIT;
 }
 
+function setBootLifecycleState(state) {
+  try {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.absBootState = String(state || '');
+    }
+  } catch (e) {}
+}
+
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                             PAGE FADE-IN (PROD)                              ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -305,6 +313,8 @@ function enhanceFooterLinksForMobile() {
 }
 
 (async function init() {
+  setBootLifecycleState('booting');
+
   // Production bundle: never ship config panel tooling.
   const ABS_DEV = false;
 
@@ -480,6 +490,8 @@ function enhanceFooterLinksForMobile() {
     // so the UI layer can't get stuck hidden.
     try { await revealFadeContentWithFailsafe(); } catch (e) {}
 
+    setBootLifecycleState('ready');
+
     // Console policy (production)
     initConsolePolicy();
     try { printConsoleBanner(readTokenVar('--panel-brand', '#f59e0b')); } catch (e) {}
@@ -490,6 +502,7 @@ function enhanceFooterLinksForMobile() {
     // Keep the existing structured table output minimal in production
     try { table([{ mode: startupMode, panel: 'removed' }]); } catch (e) {}
   } catch (e) {
+    setBootLifecycleState('failed');
     try { groupEnd(); } catch (err) {}
     // Keep errors visible in production.
     console.error(e);

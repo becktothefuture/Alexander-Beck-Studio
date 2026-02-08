@@ -10,7 +10,8 @@ import { log as devLog } from '../utils/logger.js';
 import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
 import { invalidateDepthWashCache } from './depth-wash.js';
-import { updateWallShadowCSS, syncWallPanelTabsToTheme } from '../ui/control-registry.js';
+import { syncWallPanelTabsToTheme } from '../ui/control-registry.js';
+import { updateWallShadowCSS } from './wall-shadow.js';
 import { updateWallElements } from './wall-elements.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';

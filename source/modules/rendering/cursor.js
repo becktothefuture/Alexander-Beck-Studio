@@ -6,6 +6,8 @@
 
 import { getGlobals } from '../core/state.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
+import { triggerCursorExplosion, updateMouseVelocity } from '../visual/cursor-explosion.js';
+import { getMouseVelocity, getMouseDirection } from '../input/pointer.js';
 
 let cursorElement = null;
 let isInitialized = false;
@@ -18,6 +20,15 @@ let fadeInAnimation = null;
 let wasOverLink = false; // Track previous hover state for transition detection
 let lastClientX = 0;
 let lastClientY = 0;
+let lastHoveredLink = null;
+
+function handleLinkHoverEvent(event) {
+  try {
+    lastHoveredLink = event?.detail?.element ?? null;
+  } catch (e) {
+    lastHoveredLink = null;
+  }
+}
 
 /**
  * Check if mouse is inside inner wall area (the actual simulation content area)
@@ -112,6 +123,7 @@ export function setupCustomCursor() {
   cursorElement.style.opacity = '0';
   
   isInitialized = true;
+  document.addEventListener('abs-link-hover', handleLinkHoverEvent);
   updateCursorSize();
   
   // Start fade-in animation after page fade-in completes
@@ -198,6 +210,49 @@ function getCanvasPosition(clientX, clientY) {
   };
 }
 
+function clampToCanvas(x, y, canvas) {
+  return {
+    x: Math.max(0, Math.min(canvas.width, x)),
+    y: Math.max(0, Math.min(canvas.height, y))
+  };
+}
+
+function getCanvasPointFromViewport(clientX, clientY) {
+  const globals = getGlobals();
+  const canvas = globals?.canvas;
+  if (!canvas) return null;
+  const canvasPos = getCanvasPosition(clientX, clientY);
+  if (!canvasPos) return null;
+  const clamped = canvasPos.inBounds ? canvasPos : clampToCanvas(canvasPos.x, canvasPos.y, canvas);
+  return { x: clamped.x, y: clamped.y };
+}
+
+function getButtonEmissionPoints(element) {
+  if (!element?.getBoundingClientRect) return null;
+  const rect = element.getBoundingClientRect();
+  if (!(rect.width > 0 && rect.height > 0)) return null;
+
+  const centerX = rect.left + rect.width * 0.5;
+  const centerY = rect.top + rect.height * 0.5;
+  const centerCanvas = getCanvasPointFromViewport(centerX, centerY);
+  if (!centerCanvas) return null;
+
+  const viewportPoints = [
+    { x: rect.left, y: centerY },
+    { x: rect.right, y: centerY },
+    { x: centerX, y: rect.top },
+    { x: centerX, y: rect.bottom }
+  ];
+
+  const points = viewportPoints
+    .map((point) => getCanvasPointFromViewport(point.x, point.y))
+    .filter(Boolean);
+
+  if (!points.length) return null;
+
+  return { center: centerCanvas, points };
+}
+
 export function updateCursorPosition(clientX, clientY) {
   if (!cursorElement) return;
   
@@ -205,6 +260,52 @@ export function updateCursorPosition(clientX, clientY) {
   lastClientY = clientY;
   
   const isOverLink = isHoveringOverLink();
+  const isLinkTransition = isOverLink && !wasOverLink;
+
+  if (isLinkTransition) {
+    const globals = getGlobals();
+    const canvas = globals?.canvas;
+    const color = getCursorColor();
+    const velocity = getMouseVelocity();
+    const dir = getMouseDirection();
+    
+    const triggerExplosion = () => {
+      if (!canvas) return;
+      
+      let emitted = false;
+      
+      if (lastHoveredLink) {
+        const emission = getButtonEmissionPoints(lastHoveredLink);
+        if (emission) {
+          const particleScale = 1 / emission.points.length;
+          emission.points.forEach((point) => {
+            triggerCursorExplosion(point.x, point.y, color, velocity, {
+              emissionCenter: emission.center,
+              particleScale
+            });
+          });
+          emitted = true;
+        }
+      }
+      
+      if (!emitted) {
+        const canvasPos = getCanvasPosition(clientX, clientY);
+        if (canvasPos) {
+          const clamped = canvasPos.inBounds ? canvasPos : clampToCanvas(canvasPos.x, canvasPos.y, canvas);
+          if (clamped.x >= 0 && clamped.y >= 0 && clamped.x <= canvas.width && clamped.y <= canvas.height) {
+            triggerCursorExplosion(clamped.x, clamped.y, color, velocity);
+          }
+        }
+      }
+      
+      if (dir && (dir.x !== 0 || dir.y !== 0)) {
+        updateMouseVelocity(velocity, dir.x, dir.y);
+      }
+    };
+    
+    requestAnimationFrame(triggerExplosion);
+  }
+
   wasOverLink = isOverLink;
 
   // Update position first (always track mouse)

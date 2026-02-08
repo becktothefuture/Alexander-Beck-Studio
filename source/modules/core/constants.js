@@ -50,7 +50,7 @@ export const FEATURED_MODES = [
   MODES.CUBE_3D,          // 3D FRAME
   MODES.WATER,            // USER FLOW
   MODES.SPHERE_3D,        // 3D SHELL
-  MODES.PARALLAX_LINEAR,  // PERSPECTIVE SHIFT
+  // PARALLAX_LINEAR disabled (simulation removed)
   MODES.ELASTIC_CENTER,   // ELASTIC CENTER
   MODES.KALEIDOSCOPE      // VOCAB BLOOM
 ];
@@ -81,7 +81,6 @@ export const NARRATIVE_CHAPTER_TITLES = {
   [MODES.MAGNETIC]: 'DESIGN FORCES',
   [MODES.WATER]: 'USER FLOW',
   [MODES.WEIGHTLESS]: 'OPEN SPACE',
-  [MODES.PARALLAX_LINEAR]: 'PERSPECTIVE SHIFT',
   [MODES.CRITTERS]: 'BEHAVIOR MODEL',
   [MODES.ELASTIC_CENTER]: 'ELASTIC CENTER',
   [MODES.SPHERE_3D]: '3D SHELL',
@@ -134,10 +133,6 @@ export const NARRATIVE_QUOTES = {
   [MODES.WEIGHTLESS]: {
     quote: 'An empty space is never empty.',
     author: 'John Cage'
-  },
-  [MODES.PARALLAX_LINEAR]: {
-    quote: "We don't see things as they are, we see them as we are.",
-    author: 'Anaïs Nin'
   },
   [MODES.CRITTERS]: {
     quote: 'The whole is other than the sum of the parts.',

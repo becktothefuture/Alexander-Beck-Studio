@@ -2059,6 +2059,9 @@ async function bootstrapPortfolio() {
     runtimeConfig = await loadRuntimeConfig();
     // Initialize state with runtime config so all global parameters are available
     applyWallFrameFromConfig(runtimeConfig);
+    requestAnimationFrame(() => {
+      applyWallFrameLayout();
+    });
     // Portfolio needs the same visible rubber wall as index, but without running the balls simulation.
     // Draw the wall ring onto a dedicated canvas layered above the carousel.
     try { initPortfolioWallCanvas(); } catch (e) {}
@@ -2071,86 +2074,11 @@ async function bootstrapPortfolio() {
       initNoiseSystem(getGlobals());
     } catch (e) {}
     
-    // Grunge video overlay initialization - coordinated fade-in to prevent flash
-    try {
-      const grungeVideo = document.getElementById('grunge-video-overlay');
-      const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
-      
-      if (grungeVideo) {
-        if (isDev) {
-          console.log('[Portfolio Video] Initializing grunge video overlay');
-          console.log('[Portfolio Video] Video src:', grungeVideo.currentSrc || grungeVideo.src);
-        }
-        
-        let videoReadyTriggered = false;
-        let videoCanPlay = false;
-        
-        // Coordinated fade-in: only add class when ALL prerequisites are met
-        const checkAndTriggerFadeIn = () => {
-          if (videoReadyTriggered) return;
-          
-          const entranceComplete = document.documentElement.classList.contains('entrance-complete');
-          const noiseReady = document.body.classList.contains('noise-ready');
-          
-          if (isDev) {
-            console.log('[Portfolio Video] Checking fade prerequisites:', {
-              videoCanPlay, entranceComplete, noiseReady
-            });
-          }
-          
-          if (videoCanPlay && entranceComplete && noiseReady) {
-            videoReadyTriggered = true;
-            if (isDev) console.log('[Portfolio Video] All prerequisites met - triggering fade-in');
-            document.body.classList.add('video-fade-ready');
-          }
-        };
-        
-        // Watch for entrance-complete and noise-ready classes
-        const entranceObserver = new MutationObserver(() => {
-          if (document.documentElement.classList.contains('entrance-complete')) checkAndTriggerFadeIn();
-        });
-        entranceObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-        
-        const noiseObserver = new MutationObserver(() => {
-          if (document.body.classList.contains('noise-ready')) checkAndTriggerFadeIn();
-        });
-        noiseObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-        
-        grungeVideo.addEventListener('loadstart', () => {
-          if (isDev) console.log('[Portfolio Video] Loading started');
-        }, { once: true });
-        
-        grungeVideo.addEventListener('loadedmetadata', () => {
-          if (isDev) console.log('[Portfolio Video] Metadata loaded -', grungeVideo.videoWidth, 'x', grungeVideo.videoHeight);
-        }, { once: true });
-        
-        grungeVideo.addEventListener('canplaythrough', () => {
-          videoCanPlay = true;
-          if (isDev) console.log('[Portfolio Video] Can play through - checking prerequisites');
-          checkAndTriggerFadeIn();
-          
-          const playPromise = grungeVideo.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              if (isDev) console.log('[Portfolio Video] Playback started');
-            }).catch((err) => {
-              if (isDev) console.warn('[Portfolio Video] Autoplay prevented:', err);
-            });
-          }
-        }, { once: true });
-        
-        grungeVideo.addEventListener('error', (e) => {
-          if (isDev) console.error('[Portfolio Video] Load error:', e);
-        }, { once: true });
-      } else {
-        if (isDev) console.warn('[Portfolio Video] Video element not found');
-      }
-    } catch (e) {
-      if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[Portfolio Video] Init error:', e);
-    }
-    
     // Keep the frame responsive to viewport changes (same behavior as index).
     window.addEventListener('resize', applyWallFrameLayout);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', applyWallFrameLayout, { passive: true });
+    }
   } catch (e) {
     // Safe fallback: run without the studio frame if config fails.
     // Still try to initialize noise with defaults

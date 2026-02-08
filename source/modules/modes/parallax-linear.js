@@ -165,9 +165,8 @@ export function updateParallaxLinearMouse(dt) {
     _smoothMouseY += (targetY - _smoothMouseY) * easeFactor;
   }
 
-  // Update slot machine scroll (colors rotate through Z-depth columns)
-  // 2.5 shifts/sec for a lively flowing effect
-  const speed = 2.5; 
+  // Linear parallax animation disabled: no slot machine scroll
+  const speed = 0;
   _scrollOffset += speed * dt;
 }
 
@@ -181,18 +180,14 @@ export function applyParallaxLinearForces(ball, dt) {
   const cx = canvas.width * 0.5;
   const cy = canvas.height * 0.5;
 
-  // Use smoothed mouse position
-  const mx = _smoothMouseX;
-  const my = _smoothMouseY;
+  // Linear parallax animation disabled: no mouse-driven offset
+  const mx = 0;
+  const my = 0;
 
-  // Camera parameters
   const focalLength = Math.max(100, g.parallaxLinearFocalLength ?? 400);
-  const parallaxStrength = Math.max(0, g.parallaxLinearParallaxStrength ?? 120);
+  const parallaxStrength = 0;
 
-  // Apply mouse-driven camera rotation/pan
   let { x, y, z } = ball._parallax3D;
-  
-  // Parallax offset (simulates camera pan)
   const offsetX = mx * parallaxStrength;
   const offsetY = my * parallaxStrength;
 

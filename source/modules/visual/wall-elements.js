@@ -7,17 +7,23 @@
 // ║  Structure:                                                                  ║
 // ║  #bravia-balls                                                               ║
 // ║    ├── .outer-wall (recessed effect, conic border via ::before)              ║
+// ║    │   └── .outer-wall__shine (inset blur glow layer)                         ║
 // ║    ├── .inner-wall (raised effect, conic border via ::before)                ║
-// ║    │   └── .inner-wall__glow (soft ambient top light)                        ║
-// ║    └── canvas                                                                ║
+// ║    │   ├── .inner-wall__glow (soft ambient top light)                         ║
+// ║    │   └── .inner-wall__shine (optional glow)                                  ║
+// ║    ├── canvas                                                                 ║
+// ║    └── .inner-shadow (z:25 - below inner wall, blends edges into bg)          ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
 
 // Element references
 let outerWall = null;
+let outerWallShine = null;
 let innerWall = null;
 let innerGlow = null;
+let innerShine = null;
+let innerShadowEl = null;
 let initialized = false;
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -87,6 +93,14 @@ export function initWallElements() {
   outerWall.setAttribute('aria-hidden', 'true');
   container.insertBefore(outerWall, container.firstChild);
   
+  // Create outer wall shine (inset blur glow layer)
+  outerWallShine = document.createElement('div');
+  outerWallShine.className = 'outer-wall__shine';
+  outerWallShine.setAttribute('aria-hidden', 'true');
+  outerWallShine.style.position = 'absolute';
+  outerWallShine.style.pointerEvents = 'none';
+  outerWall.appendChild(outerWallShine);
+  
   // Create inner wall (outset effect - appears raised)
   innerWall = document.createElement('div');
   innerWall.className = 'inner-wall';
@@ -104,6 +118,20 @@ export function initWallElements() {
   innerGlow.style.pointerEvents = 'none';
   innerWall.appendChild(innerGlow);
   
+  // Create inner shine (strong blur from all sides, using background color)
+  innerShine = document.createElement('div');
+  innerShine.className = 'inner-wall__shine';
+  innerShine.setAttribute('aria-hidden', 'true');
+  innerShine.style.position = 'absolute';
+  innerShine.style.pointerEvents = 'none';
+  innerWall.appendChild(innerShine);
+  
+  // Single inner shadow: above canvas (balls), below inner wall / text layers
+  innerShadowEl = document.createElement('div');
+  innerShadowEl.className = 'inner-shadow';
+  innerShadowEl.setAttribute('aria-hidden', 'true');
+  container.appendChild(innerShadowEl);
+  
   initialized = true;
   
   // Start light simulation
@@ -111,6 +139,15 @@ export function initWallElements() {
   
   // Apply initial styles
   updateWallElements();
+  
+  // Apply inner shadow CSS (must happen after element creation)
+  // Use dynamic import to avoid circular dependency with control-registry.js
+  const g = getGlobals();
+  if (g) {
+    import('../ui/control-registry.js').then(({ updateWallShadowCSS }) => {
+      updateWallShadowCSS(g);
+    }).catch(() => {});
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -123,30 +160,14 @@ export function updateWallElements() {
   
   const g = getGlobals();
   const isDark = document.body.classList.contains('dark-mode');
-  const root = document.documentElement;
   
-  // Get wall geometry from CSS custom properties
-  const wallThickness = getComputedStyle(root).getPropertyValue('--wall-thickness').trim() || '9px';
-  const wallRadius = getComputedStyle(root).getPropertyValue('--wall-radius').trim() || '24px';
+  // Wall geometry is now fully CSS-driven via custom properties:
+  // - --wall-radius: inner wall radius (set by state.js)
+  // - --wall-thickness: gap between walls (set by state.js)
+  // - --outer-wall-radius: derived in tokens.css from above
+  // No inline style overrides needed - CSS handles transitions smoothly.
   
-  // Parse values for calculations
-  const thicknessPx = parseFloat(wallThickness) || 9;
-  const radiusPx = parseFloat(wallRadius) || 24;
-  
-  // Outer wall radius = inner radius + half wall thickness + adjustment
-  const outerRadiusAdjust = g.outerWallRadiusAdjust ?? 2;
-  const outerRadius = radiusPx + (thicknessPx * 0.5) + outerRadiusAdjust;
-  
-  // Update outer wall
-  outerWall.style.borderRadius = `${outerRadius}px`;
-  // IMPORTANT: Set CSS variable so pseudo-element calc() can work
-  outerWall.style.setProperty('--current-outer-radius', `${outerRadius}px`);
-  
-  // Update inner wall
-  innerWall.style.inset = wallThickness;
-  innerWall.style.borderRadius = wallRadius;
-  
-  // Update border styles (CSS variables)
+  // Update border styles (CSS variables for gradients/shadows)
   updateWallBorders(g, isDark);
 }
 
@@ -180,6 +201,70 @@ function updateWallBorders(g, isDark) {
       innerGlow.style.inset = '0';
       // Use inset box-shadow for all-sides glow with offset
       innerGlow.style.boxShadow = `inset 0 ${glowOffsetY}px ${glowBlur}px ${glowSpread}px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${glowOpacity})`;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // INNER WALL SHINE (Inset blur from background colour to blend edges)
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (innerShine) {
+    const shineOpacity = isDark
+      ? (g.innerWallShineOpacityDark ?? 0.5)
+      : (g.innerWallShineOpacityLight ?? 0.4);
+      
+    if (shineOpacity <= 0.01) {
+      innerShine.style.display = 'none';
+    } else {
+      innerShine.style.display = 'block';
+      const shineBlur = g.innerWallShineBlur ?? 20;
+      const shineSpread = g.innerWallShineSpread ?? 4;
+      const shineOvershoot = g.innerWallShineOvershoot ?? 10;
+
+      innerShine.style.setProperty('--inner-wall-shine-opacity', shineOpacity);
+      innerShine.style.setProperty('--inner-wall-shine-blur', `${shineBlur}px`);
+      innerShine.style.setProperty('--inner-wall-shine-spread', `${shineSpread}px`);
+      innerShine.style.setProperty('--inner-wall-shine-overshoot', `-${shineOvershoot}px`);
+      
+      // Use explicit color or fall back to frame/wall background colour
+      const shineColor = g.innerWallShineColor || (isDark
+        ? (g.frameColorDark ?? g.frameColor ?? '#242529')
+        : (g.frameColorLight ?? g.frameColor ?? '#242529'));
+      innerShine.style.setProperty('--inner-wall-shine-color', shineColor);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // OUTER WALL SHINE (Inset blur from background colour to blend edges)
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (outerWallShine) {
+    const shineOpacity = isDark
+      ? (g.outerWallShineOpacityDark ?? 0.5)
+      : (g.outerWallShineOpacityLight ?? 0.4);
+      
+    if (shineOpacity <= 0.01) {
+      outerWallShine.style.display = 'none';
+    } else {
+      outerWallShine.style.display = 'block';
+      const shineBlur = isDark
+        ? (g.outerWallShineBlurDark ?? 20)
+        : (g.outerWallShineBlurLight ?? 20);
+      const shineSpread = isDark
+        ? (g.outerWallShineSpreadDark ?? 4)
+        : (g.outerWallShineSpreadLight ?? 4);
+      const shineOvershoot = isDark
+        ? (g.outerWallShineOvershootDark ?? 10)
+        : (g.outerWallShineOvershootLight ?? 10);
+
+      outerWallShine.style.setProperty('--outer-wall-shine-opacity', shineOpacity);
+      outerWallShine.style.setProperty('--outer-wall-shine-blur', `${shineBlur}px`);
+      outerWallShine.style.setProperty('--outer-wall-shine-spread', `${shineSpread}px`);
+      outerWallShine.style.setProperty('--outer-wall-shine-overshoot', `-${shineOvershoot}px`);
+      
+      // Use explicit color or fall back to frame/wall background colour
+      const shineColor = isDark
+        ? (g.outerWallShineColorDark || g.frameColorDark || g.frameColor || '#242529')
+        : (g.outerWallShineColorLight || g.frameColorLight || g.frameColor || '#242529');
+      outerWallShine.style.setProperty('--outer-wall-shine-color', shineColor);
     }
   }
 
@@ -300,7 +385,9 @@ export function destroyWallElements() {
     }
   });
   outerWall = null;
+  outerWallShine = null;
   innerWall = null;
   innerGlow = null;
+  innerShine = null;
   initialized = false;
 }

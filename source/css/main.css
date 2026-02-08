@@ -641,7 +641,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   background: transparent;
   opacity: 0;
   pointer-events: none;
-  transform: scale(0.92);
+  transform: scale(0.72);
   transform-origin: center;
   /* Faint inner light mostly from top */
   box-shadow: inset 0 1px 4px color-mix(in srgb, var(--abs-stroke-medium) 40%, transparent);
@@ -652,10 +652,11 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   /* Ensure backdrop-filter can work across stacking contexts */
   /* will-change: backdrop-filter; */
   /* background-clip: padding-box; */
-  transition: background var(--hover-bg-duration, var(--duration-link-hover)) ease-out,
-              opacity 0.35s ease-out,
-              transform var(--hover-bg-duration, var(--duration-link-hover)) ease-out,
-              box-shadow 0.35s ease-out;
+  /* Organic Release (Hover Out) */
+  transition: background 500ms var(--ease-settle),
+              opacity 500ms var(--ease-settle),
+              transform 500ms var(--ease-settle),
+              box-shadow 500ms var(--ease-settle);
 }
 
 /* Specific element overrides using CSS custom properties */
@@ -1717,13 +1718,12 @@ body.dark-mode #bravia-balls {
    Uses real DOM elements instead of pseudo-elements for better control and
    clip-path support on gradient overlays.
    
-   Structure:
+   Structure (stacking bottom→top: canvas z:10, .outer-wall z:25, .inner-wall z:30, .inner-shadow z:25):
    #bravia-balls
-     ├── .outer-wall (inset:0, larger radius, INSET effect - appears recessed)
-     ├── .inner-wall (inset:wall-thickness, smaller radius, OUTSET effect - raised)
-     │   ├── .inner-wall__edge--top (gradient light from above, clipped to corners)
-     │   └── .inner-wall__edge--bottom (gradient shadow from below, clipped)
-     └── canvas
+     ├── canvas (z:10)
+     ├── .outer-wall (z:25 — cast shadow + AO, __shine z:0, ::after z:1 micro/top shadow, ::before z:2 border)
+     ├── .inner-wall (z:30 — __glow z:30, __shine z:35, ::before z:36 border)
+     └── .inner-shadow (z:25 — below inner wall, blends edges into background colour)
    
    The outer wall appears to sit BEHIND the inner wall, with a visible gap between.
    Light comes from above: top edges are dark (shadow), bottom edges catch light.
@@ -1737,8 +1737,9 @@ body.dark-mode #bravia-balls {
 .outer-wall {
   position: absolute;
   inset: 0;
-  /* Outer wall radius = inner radius + half wall thickness + adjustment */
-  border-radius: calc(var(--wall-radius) + var(--wall-thickness, 9px) * 0.5 + var(--outer-wall-radius-adjust, 2px));
+  /* Outer wall radius: derived from --wall-radius (defined in tokens.css) */
+  /* Note: Reverted to full thickness calc as it is geometrically correct (R + T), parallel to inner wall. */
+  border-radius: var(--outer-wall-radius);
   pointer-events: none;
   z-index: 25; /* Below inner wall (z:30) */
   
@@ -1760,12 +1761,14 @@ body.dark-mode #bravia-balls {
 }
 
 /* Specular Micro-Bevel (Razor-sharp highlight on inner edge) AND Top Shadow */
+/* Stacking within .outer-wall (bottom→top): __shine z:0, base shadow/AO, ::after z:1 (micro + top shadow), ::before z:2 (border) */
 .outer-wall::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
+  z-index: 1;
   
   box-shadow: 
     /* 1. Crisp 1px bottom highlight (0 blur) - Specular */
@@ -1779,12 +1782,37 @@ body.dark-mode #bravia-balls {
     --ambient-light-mul 3s ease-in-out;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   OUTER WALL SHINE
+   Inset blur/glow from the background colour to blend edges into the scene.
+   ───────────────────────────────────────────────────────────────────────────── */
+.outer-wall__shine {
+  position: absolute;
+  inset: var(--outer-wall-shine-overshoot, -10px);
+  border-radius: calc(var(--outer-wall-radius) - var(--outer-wall-shine-overshoot, -10px));
+  pointer-events: none;
+  background-color: transparent;
+  /* Inset box-shadow using background colour (set via JS) */
+  box-shadow: inset 0 0 var(--outer-wall-shine-blur, 20px) var(--outer-wall-shine-spread, 4px) var(--outer-wall-shine-color, var(--wall-color, #242529));
+  opacity: var(--outer-wall-shine-opacity, 0.4);
+  z-index: 0; /* Below ::after (z:1) and ::before (z:2) */
+}
+
+body.dark-mode .outer-wall__shine {
+  background-color: transparent;
+  /* Same shadow, colour will be picked up from variables */
+}
+
 /* Disable outer wall effects when explicitly turned off */
 #bravia-balls.outer-wall-edge-disabled .outer-wall {
   box-shadow: none;
 }
 
 #bravia-balls.outer-wall-edge-disabled .outer-wall__edge {
+  display: none;
+}
+
+#bravia-balls.outer-wall-edge-disabled .outer-wall__shine {
   display: none;
 }
 
@@ -1798,14 +1826,13 @@ body.dark-mode #bravia-balls {
   position: absolute;
   /* Inset 0 makes it sit ON the wall edge (inside boundary) */
   inset: 0;
-  /* Match wall radius exactly */
-  border-radius: var(--current-outer-radius, var(--wall-radius));
+  /* Match outer wall radius exactly */
+  border-radius: var(--outer-wall-radius);
   pointer-events: none;
+  z-index: 2;
   
   /* Dual-layer gradients: Shadow ON TOP of Light
      This ensures the top edge (0deg) remains dark and isn't washed out by light interpolation. */
-  background: 
-  /* Conic gradient: Brightest at bottom (0deg after 180deg rotation) */
   background: conic-gradient(
     from 180deg at 50% 50%,
     /* 0deg (relative to from): Bottom Center - BRIGHTEST */
@@ -1880,6 +1907,7 @@ body.dark-mode .inner-wall {
    INNER WALL INNER GLOW
    Soft top-down gradient for interior lighting effect.
    ───────────────────────────────────────────────────────────────────────────── */
+/* Stacking within .inner-wall (bottom→top): __shadow z:25, __glow z:30, __shine z:35, ::before z:36 (border) */
 .inner-wall__glow {
   position: absolute;
   top: 0;
@@ -1889,6 +1917,28 @@ body.dark-mode .inner-wall {
   pointer-events: none;
   border-radius: inherit; /* Inherit radius from .inner-wall */
   /* Height and background set by JS */
+  z-index: 30;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   INNER WALL SHINE
+   Inset blur/glow from the background colour to blend edges into the scene.
+   ───────────────────────────────────────────────────────────────────────────── */
+.inner-wall__shine {
+  position: absolute;
+  inset: var(--inner-wall-shine-overshoot, -10px);
+  border-radius: calc(var(--wall-radius) - var(--inner-wall-shine-overshoot, -10px));
+  pointer-events: none;
+  background-color: transparent;
+  /* Inset box-shadow using background colour (set via JS) */
+  box-shadow: inset 0 0 var(--inner-wall-shine-blur, 20px) var(--inner-wall-shine-spread, 4px) var(--inner-wall-shine-color, var(--wall-color, #242529));
+  opacity: var(--inner-wall-shine-opacity, 0.4);
+  z-index: 35;
+}
+
+body.dark-mode .inner-wall__shine {
+  background-color: transparent;
+  /* Same shadow, colour will be picked up from variables */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1904,6 +1954,7 @@ body.dark-mode .inner-wall {
   /* Match wall radius exactly */
   border-radius: var(--wall-radius);
   pointer-events: none;
+  z-index: 2;
   
   /* Dual-layer gradients: Shadow ON TOP of Light */
   background: 
@@ -1921,7 +1972,8 @@ body.dark-mode .inner-wall {
       from 0deg at 50% 50%,
       rgba(255,255,255, var(--inner-wall-border-bright-opacity, 0.5)) 0deg,
       rgba(255,255,255, var(--inner-wall-border-dim-opacity, 0.15)) var(--inner-wall-grad-stop-dim-start, 90deg),
-      transparent 180deg,
+      transparent var(--inner-wall-grad-stop-dim-start, 90deg),
+      transparent var(--inner-wall-grad-stop-dim-end, 270deg),
       rgba(255,255,255, var(--inner-wall-border-dim-opacity, 0.15)) var(--inner-wall-grad-stop-dim-end, 270deg),
       rgba(255,255,255, var(--inner-wall-border-bright-opacity, 0.5)) 360deg
     );
@@ -1970,6 +2022,20 @@ body.dark-mode .inner-wall {
   pointer-events: auto; /* Interactions enabled */
   touch-action: none;
   border-radius: 0; /* Radius controlled entirely by rubber wall system */
+  will-change: transform; /* Hint to create stacking context */
+}
+
+/* Inner shadow: on top of simulation, blends borders into background colour */
+.inner-shadow {
+  position: absolute;
+  inset: var(--wall-thickness, 9px);
+  border-radius: var(--wall-radius);
+  pointer-events: none;
+  z-index: 25; /* Above canvas (z:10), below inner wall (z:30) */
+  background: transparent;
+  box-shadow: var(--inner-wall-inner-shadow, none);
+  mix-blend-mode: normal; /* Explicitly ensure no blend mode per user request */
+  will-change: box-shadow; /* Optimize re-rendering */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1985,9 +2051,8 @@ body.dark-mode .inner-wall {
   /* Uses --safari-tint-inset from tokens.css (inherited from :root) */
   top: var(--safari-tint-inset);
   left: var(--safari-tint-inset);
-  /* Use same dimension strategy as #bravia-balls */
-  width: calc(100% - var(--safari-tint-inset) * 2);
-  height: calc(100dvh - var(--safari-tint-inset) * 2);
+  right: var(--safari-tint-inset);
+  bottom: var(--safari-tint-inset);
   /* Above wall (z:100) but below UI (z:200) - noise is inset by wall-thickness so it stays within wall interior */
   z-index: 150;
   pointer-events: none;
@@ -2089,8 +2154,8 @@ body.dark-mode .noise::after {
 html.is-safari .noise::before {
   /* Remove transform-based animation, use background-position instead */
   animation-name: abs-noise-bgpos, abs-noise-flicker;
-  transform: none;
   -webkit-transform: none;
+  transform: none;
 }
 
 @keyframes abs-noise-bgpos {
@@ -2166,108 +2231,6 @@ html.is-safari .noise::before {
   75% { opacity: calc(1 - (var(--abs-noise-flicker) * 0.45)); }
   87.5% { opacity: calc(1 - (var(--abs-noise-flicker) * 0.1)); }
   100% { opacity: calc(1 - (var(--abs-noise-flicker) * 0.35)); }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   GRUNGE VIDEO OVERLAY (see docs/grunge-video-overlay.md)
-   ───────────────────────────────────────────────────────────────────────────── */
-.grunge-video-overlay {
-  /* Fixed positioning - works inside #abs-scene because transform creates containing block */
-  position: fixed;
-  /* 
-   * POSITIONING STRATEGY (must match #bravia-balls for transform alignment):
-   * - Wall outer edge: --safari-tint-inset (from tokens.css) from viewport
-   * - Wall inner edge: inset + wall-thickness from viewport
-   * - Video edge: inner edge - overlap for seamless coverage
-   * - Vertical offset: --grunge-video-offset-y (positive moves down)
-   */
-  --video-inset: calc(var(--safari-tint-inset) + var(--wall-thickness, 9px) - var(--grunge-video-edge-overlap, 3px));
-  top: calc(var(--video-inset) + var(--grunge-video-offset-y, 0px));
-  left: var(--video-inset);
-  /* Match #bravia-balls dimension strategy: 100% for width, 100dvh for height */
-  width: calc(100% - var(--video-inset) * 2);
-  height: calc(100dvh - var(--video-inset) * 2 - var(--grunge-video-offset-y, 0px) * 2);
-  /* Match wall interior rounded corners */
-  border-radius: var(--wall-radius);
-  object-fit: cover;
-  object-position: center;
-  pointer-events: none;
-  /* Above wall (z:100) but below UI (z:200) - blend mode handles visual integration */
-  z-index: 150;
-  /* Initial state: fully hidden via opacity only (visibility toggle causes flash) */
-  opacity: 0;
-  /* Transition: opacity fades smoothly - no visibility to avoid instant flash */
-  transition: 
-    opacity 5000ms cubic-bezier(0.16, 1, 0.3, 1),
-    filter 400ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Video fade-in when coordinated ready class is added */
-/* Uses single .video-fade-ready class that's only set when ALL prerequisites are met:
-   - entrance-complete: page entrance animation finished
-   - noise-ready: noise texture generated
-   - video canplaythrough: video buffered enough to play smoothly
-   This coordination happens in JavaScript to prevent race condition flashes */
-body.video-fade-ready .grunge-video-overlay {
-  /* Delay ensures video fades in AFTER noise is partially visible (noise takes 2.5s to fade in) */
-  transition-delay: 1500ms;
-}
-
-/* Light mode video: uses separate opacity and blend mode */
-.grunge-video-overlay--light {
-  mix-blend-mode: var(--grunge-video-blend-mode-light, overlay);
-}
-
-/* Light mode video opacity and filters (when visible) */
-body.video-fade-ready .grunge-video-overlay--light {
-  opacity: var(--grunge-video-opacity-light, 0.8);
-  /* Image adjustment filters */
-  filter: 
-    contrast(var(--grunge-video-contrast, 1))
-    brightness(var(--grunge-video-brightness, 1))
-    saturate(var(--grunge-video-saturate, 1))
-    hue-rotate(var(--grunge-video-hue-rotate, 0deg))
-    invert(var(--grunge-video-invert, 0))
-    sepia(var(--grunge-video-sepia, 0))
-    grayscale(var(--grunge-video-grayscale, 0))
-    blur(var(--grunge-video-blur, 0px));
-}
-
-/* Dark mode video: hidden by default (light mode is default) */
-.grunge-video-overlay--dark {
-  mix-blend-mode: var(--grunge-video-blend-mode-dark, screen);
-  display: none;
-}
-
-/* Dark mode: swap videos */
-:root.dark-mode .grunge-video-overlay--light {
-  display: none;
-}
-
-/* Dark mode video opacity and filters (when visible) */
-body.video-fade-ready .grunge-video-overlay--dark {
-  opacity: var(--grunge-video-opacity-dark, 0.8);
-  /* Image adjustment filters */
-  filter: 
-    contrast(var(--grunge-video-contrast, 1))
-    brightness(var(--grunge-video-brightness, 1))
-    saturate(var(--grunge-video-saturate, 1))
-    hue-rotate(var(--grunge-video-hue-rotate, 0deg))
-    invert(var(--grunge-video-invert, 0))
-    sepia(var(--grunge-video-sepia, 0))
-    grayscale(var(--grunge-video-grayscale, 0))
-    blur(var(--grunge-video-blur, 0px));
-}
-
-:root.dark-mode .grunge-video-overlay--dark {
-  display: block;
-}
-
-/* Respect reduced motion preference */
-@media (prefers-reduced-motion: reduce) {
-  .grunge-video-overlay {
-    display: none;
-  }
 }
 
 /* Dark-mode text colors are token-driven via `--text-*` variables in `css/tokens.css`. */
@@ -2524,8 +2487,9 @@ a:active {
   transform-origin: center center;
   transform: translate(-50%, -50%) scale(1);
   opacity: 0.85; /* Transparent but visible */
-  transition: transform 0.35s var(--ease-hesitant),
-              opacity 0.35s var(--ease-hesitant),
+  /* Power transfer: fast snap (200ms) so cursor hits first, then button reacts */
+  transition: transform var(--abs-cursor-shrink-duration, 200ms) ease-in,
+              opacity var(--abs-cursor-shrink-duration, 200ms) ease-in,
               width 0.35s var(--ease-hesitant),
               height 0.35s var(--ease-hesitant),
               background 0.35s var(--ease-hesitant);
@@ -2536,11 +2500,12 @@ a:active {
   /* Blend mode is applied via overlay element, not here */
 }
 
-/* Link hover: hide the cursor so the hover dot reads as the cursor "hopping" under the link. */
+/* Link hover: Power Transfer — cursor implodes (scale 0), energy flows into button */
 body.abs-link-hovering #custom-cursor {
-  display: none !important;
   opacity: 0;
-  transition: none;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform var(--abs-cursor-shrink-duration, 200ms) ease-in,
+              opacity var(--abs-cursor-shrink-duration, 200ms) ease-in;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -2558,6 +2523,7 @@ body.abs-link-hovering #custom-cursor {
    - dot under label is suppressed
    ═══════════════════════════════════════════════════════════════════════════════ */
 
+/* Legacy keyframe (replaced by sustained scale(1.1) for power transfer; kept for reference/fallback) */
 @keyframes absHoverSnap {
   0%  { transform: scale(var(--abs-hover-snap-overshoot, 1.08)); }
   70%  { transform: scale(var(--abs-hover-snap-undershoot, 0.98)); }
@@ -2568,29 +2534,35 @@ body.abs-link-hovering #custom-cursor {
 @keyframes absHoverBgBounce {
   0%   { 
     opacity: 0; 
-    transform: scale(0.92); 
+    transform: scale(0.72); 
   }
   40%  { 
     opacity: 1; 
-    transform: scale(var(--abs-hover-bg-bounce-overshoot, 1.12)); 
+    transform: scale(var(--abs-hover-bg-bounce-overshoot, 0.92)); 
   }
   100% { 
     opacity: 1; 
-    transform: scale(var(--abs-hover-bg-bounce-end-size, 1.0)); 
+    transform: scale(var(--abs-hover-bg-bounce-end-size, 0.8)); 
   }
 }
 
-/* INDEX MODE HOVER: Snap animation (native :hover) */
-/* Note: .legend__item--interactive excluded - hover must not affect size/position */
+/* Power Transfer: transition-only, prominent hover-out (no “disappear”) */
+:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .decorative-script) {
+  transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)), color 0.2s ease;
+}
+
+:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .decorative-script):hover {
+  transform: scale(var(--abs-button-swell-scale, 1.06));
+  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), color 0.2s ease;
+}
+
 a:hover,
 button:hover {
   --abs-cursor-pulse-ms: 520ms;
-  /* will-change: transform; - Disabled: preventing content movement */
   transform-origin: center;
-  /* animation-name: absHoverSnap; - Disabled: preventing content movement */
-  animation-duration: calc(var(--abs-hover-snap-enabled, 1) * var(--abs-hover-snap-duration, 450ms));
-  animation-timing-function: var(--ease-bounce);
-  animation-fill-mode: both;
+  transform: scale(var(--abs-button-swell-scale, 1.06));
+  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
+              filter var(--link-impact-duration) var(--ease-organic);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -2614,8 +2586,18 @@ button:hover {
   /* No border-radius - only ::before has rounded corners */
 }
 
-/* ─── Unified Hover Background Animation ─── */
-/* All interactive ::before elements get the same hover animation */
+/* ─── Unified Hover Background (::before) — transition only, no animation ─── */
+.abs-icon-btn::before,
+.footer_link::before,
+.portfolio-cv-link::before,
+#header-cv-link::before,
+.abs-meta-btn::before,
+#site-year::before,
+.legend__item--interactive::before,
+.decorative-script::before {
+  transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)), opacity 0.2s ease, background 0.2s ease;
+}
+
 .abs-icon-btn:hover::before,
 .footer_link:hover::before,
 .portfolio-cv-link:hover::before,
@@ -2625,13 +2607,9 @@ button:hover {
 .legend__item--interactive:hover::before,
 .decorative-script:hover::before {
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
-  /* backdrop-filter: blur(10px); - Disabled */
-  /* -webkit-backdrop-filter: blur(10px); */
-  /* will-change: backdrop-filter; */
-  animation-name: absHoverBgBounce;
-  animation-duration: calc(var(--abs-hover-bg-bounce-enabled, 1) * var(--abs-hover-bg-bounce-duration, 450ms));
-  animation-timing-function: var(--ease-bounce);
-  animation-fill-mode: forwards;
+  opacity: 1;
+  transform: scale(var(--abs-button-swell-scale, 1.06));
+  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), opacity 0.2s ease, background 0.2s ease;
 }
 
 /* Dark mode: adjust hover background intensity for all elements */
@@ -2714,16 +2692,11 @@ body.dark-mode .decorative-script:hover::before {
   }
 }
 
-/* Global hover snap animation */
-a:hover,
-button:hover {
-  --abs-cursor-pulse-ms: 520ms;
-  /* will-change: transform; - Disabled: preventing content movement */
-  transform-origin: center;
-  /* animation-name: absHoverSnap; - Disabled: preventing content movement */
-  animation-duration: calc(var(--abs-hover-snap-enabled, 1) * var(--abs-hover-snap-duration, 450ms));
-  animation-timing-function: var(--ease-bounce);
-  animation-fill-mode: both;
+/* Base state: longer, prominent hover-out (ease-release has slight undershoot) */
+a,
+button {
+  transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
+              filter var(--link-impact-duration) var(--ease-organic);
 }
 
 /* Suppress dot-under-label for decorative text links */
@@ -2777,14 +2750,18 @@ body.dark-mode .decorative-script p a:hover {
 
 /* Pulse animation removed - no longer needed with native CSS hover */
 
-/* Reduce motion: disable hover snap animation and pseudoelement bounce */
+/* Reduce motion: no power-transfer scale, no pseudoelement scale */
 @media (prefers-reduced-motion: reduce) {
   a:hover,
   button:hover {
     animation: none;
+    transform: none;
+  }
+
+  :is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .decorative-script):hover {
+    transform: none;
   }
   
-  /* Disable pseudoelement bounce animations */
   .abs-icon-btn:hover::before,
   .footer_link:hover::before,
   .portfolio-cv-link:hover::before,
@@ -2795,7 +2772,7 @@ body.dark-mode .decorative-script p a:hover {
   .decorative-script:hover::before {
     animation: none;
     opacity: 1;
-    transform: scale(1);
+    transform: none;
   }
 }
 
@@ -3843,9 +3820,10 @@ body.cv-page.abs-link-hovering {
 }
 
 body.cv-page.abs-link-hovering #custom-cursor {
-  display: none !important;
   opacity: 0;
-  transition: none;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform var(--abs-power-transfer-duration, 300ms) var(--ease-organic),
+              opacity var(--abs-power-transfer-duration, 300ms) var(--ease-organic);
 }
 
 /* CV Page Paragraphs - Use muted text color */
@@ -4677,6 +4655,36 @@ html {
 ::view-transition-new(content) {
   animation: vt-emerge 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: center center;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DEV PERFORMANCE HUD (non-interactive)
+   ───────────────────────────────────────────────────────────────────────────── */
+.dev-perf-hud {
+  position: fixed;
+  top: var(--gap-sm);
+  left: var(--gap-sm);
+  z-index: 9999;
+  padding: var(--gap-xs) var(--gap-sm);
+  border-radius: var(--abs-radius-9);
+  border: var(--abs-size-1px) solid rgba(var(--abs-rgb-white), 0.14);
+  background: color-mix(in srgb, var(--wall-color, #242529) 84%, transparent);
+  color: var(--text-color-light, #161616);
+  font-family: var(--abs-font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-normal);
+  white-space: nowrap;
+  backdrop-filter: blur(var(--gap-xs));
+  box-shadow: 0 0 var(--gap-sm) rgba(var(--abs-rgb-black), 0.16);
+  pointer-events: none;
+  user-select: none;
+}
+
+html.dark-mode .dev-perf-hud,
+body.dark-mode .dev-perf-hud {
+  color: var(--text-color-dark, #a0a1a2);
+  border-color: rgba(var(--abs-rgb-white), 0.2);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

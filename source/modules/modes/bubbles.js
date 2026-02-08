@@ -10,6 +10,27 @@ import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
 
+function getBubbleBand(g, canvas) {
+  const h = canvas.height;
+  const extent = Math.max(0.15, Math.min(1, g.bubblesVerticalExtent ?? 0.7));
+  const halfBand = (h * extent) / 2;
+  const centerY = h / 2;
+  const bandTop = Math.max(0, centerY - halfBand);
+  const bandBottom = Math.min(h, centerY + halfBand);
+  return { bandTop, bandBottom };
+}
+
+function getBubbleZ(g) {
+  const span = Math.max(0.1, Math.min(1, g.bubblesDepthSpan ?? 0.8));
+  const z = 0.5 + (Math.random() - 0.5) * span;
+  return Math.max(0, Math.min(1, z));
+}
+
+function getBubbleDepthScale(z) {
+  const clampedZ = Math.max(0, Math.min(1, z));
+  return 0.7 + clampedZ * 0.6;
+}
+
 export function initializeBubbles() {
   const g = getGlobals();
   // Clear existing balls
@@ -23,13 +44,14 @@ export function initializeBubbles() {
   const DPR = g.DPR || 1;
   const count = getMobileAdjustedCount(g.bubblesMaxCount || 200); // Increased for continuous coverage
   if (count <= 0) return;
+  const { bandTop, bandBottom } = getBubbleBand(g, canvas);
   
   // Initial distribution: spread across the entire height with staggered spawn progress
   // to avoid clumping at the bottom on first frame. Recycles still come from below.
   // First ensure one of each color
   for (let colorIndex = 0; colorIndex < 8 && colorIndex < count; colorIndex++) {
     const x = Math.random() * w;
-    const y = Math.random() * h;
+    const y = bandTop + Math.random() * (bandBottom - bandTop);
     const { color, distributionIndex } = pickRandomColorWithIndex();
     const seededProgress = Math.random(); // staggered scale-in phase
     createBubble(x, y, color, distributionIndex, false, seededProgress);
@@ -38,7 +60,7 @@ export function initializeBubbles() {
   // Fill rest with random colors across height, staggered progress
   for (let i = 8; i < count; i++) {
     const x = Math.random() * w;
-    const y = Math.random() * h;
+    const y = bandTop + Math.random() * (bandBottom - bandTop);
     const { color, distributionIndex } = pickRandomColorWithIndex();
     const seededProgress = Math.random();
     createBubble(x, y, color, distributionIndex, false, seededProgress);
@@ -57,14 +79,17 @@ function createBubble(x, y, color, distributionIndex, alreadyVisible = false, sp
   // Per-mode sizing system: bubbles vary only according to the Bubbles variation slider.
   const sizeBias = 0.9 + Math.random() * 0.2; // Tight spread: ~0.9–1.1 for similar sizes
   const targetRadius = randomRadiusForMode(g, MODES.BUBBLES) * sizeBias;
+  const z = getBubbleZ(g);
+  const depthScale = getBubbleDepthScale(z);
   
   const baseProgress = Number.isFinite(spawnProgressSeed) ? Math.max(0, Math.min(1, spawnProgressSeed)) : (alreadyVisible ? 1 : 0);
   const initialEase = 1 - Math.pow(1 - baseProgress, 3);
-  const initialRadius = targetRadius * initialEase;
+  const initialRadius = targetRadius * depthScale * initialEase;
   const b = new Ball(x, y, initialRadius, color);
   b.distributionIndex = distributionIndex;
   b.isBubble = true;
-  b.z = Math.random(); // Random z-depth for logo layering (some in front, some behind)
+  b.z = z; // Random z-depth centered on logo
+  b.depthScale = depthScale;
   b.baseRadius = targetRadius;
   b.targetRadius = targetRadius;
   b.wobblePhase = Math.random() * Math.PI * 2;
@@ -99,13 +124,13 @@ function recycleBubble(ball) {
   
   const DPR = g.DPR || 1;
   const w = canvas.width;
-  const h = canvas.height;
+  const { bandBottom } = getBubbleBand(g, canvas);
   
   // New random x position at bottom
   ball.x = Math.random() * w;
   // Spawn 60-90px below screen so scale-in completes as bubble enters view
   // (bubbles rise ~50px during 0.33s spawn animation)
-  ball.y = h + (60 + Math.random() * 30) * DPR;
+  ball.y = bandBottom + (60 + Math.random() * 30) * DPR;
   
   // Reset velocity (DPR-scaled)
   ball.vx = (Math.random() - 0.5) * 20 * DPR;
@@ -136,7 +161,8 @@ function recycleBubble(ball) {
   ball.microLife = 0;
   ball.microStartRadius = 0;
   ball.wobbleMul = 0.6 + Math.random() * 0.8;
-  ball.z = Math.random(); // New random z-depth for logo layering
+  ball.z = getBubbleZ(g); // New random z-depth centered on logo
+  ball.depthScale = getBubbleDepthScale(ball.z);
 }
 
 export function applyBubblesForces(ball, dt) {
@@ -146,6 +172,7 @@ export function applyBubblesForces(ball, dt) {
   
   const canvas = g.canvas;
   if (!canvas) return;
+  const { bandTop } = getBubbleBand(g, canvas);
 
   // Micro-burst phase: tiny burst that fades quickly, then recycle
   if (ball.microBurst) {
@@ -171,13 +198,14 @@ export function applyBubblesForces(ball, dt) {
     
     // Ease out for smooth appearance
     const ease = 1 - Math.pow(1 - Math.min(1, ball.spawnProgress), 3);
-    ball.r = ball.targetRadius * ease;
+    const depthScale = ball.depthScale ?? 1;
+    ball.r = ball.targetRadius * depthScale * ease;
     ball.rBase = ball.r;
     
     if (ball.spawnProgress >= 1) {
       ball.spawning = false;
-      ball.r = ball.targetRadius;
-      ball.rBase = ball.targetRadius;
+      ball.r = ball.targetRadius * (ball.depthScale ?? 1);
+      ball.rBase = ball.r;
     }
   }
   
@@ -234,15 +262,16 @@ export function applyBubblesForces(ball, dt) {
     }
   }
   
-  // Check if bubble reached very top - instantly pop and recycle
-  const topThreshold = ball.targetRadius * 2; // Very close to top edge
+  // Check if bubble reached top of band - instantly pop and recycle
+  const depthScale = ball.depthScale ?? 1;
+  const topThreshold = bandTop + Math.max(2, ball.targetRadius * depthScale * 0.5);
   
   if (ball.y < topThreshold && !ball.spawning && !ball.microBurst) {
     // Start micro-burst pop: quick fade/shrink, then recycle to bottom
     ball.microBurst = true;
     ball.microTime = 0;
     ball.microLife = 0.18;
-    ball.microStartRadius = Math.max(0.2, ball.targetRadius * 0.5);
+    ball.microStartRadius = Math.max(0.2, ball.targetRadius * depthScale * 0.5);
     ball.r = ball.microStartRadius;
     ball.rBase = ball.r;
     ball.alpha = 1;

@@ -123,8 +123,8 @@
   --abs-opacity-ghost: 0.12;
 
   /* Hover Target Effect Intensities (color-mix percentages) */
-  --abs-hover-intensity-light: 30%;      /* Light mode: more pronounced hover background */
-  --abs-hover-intensity-dark: 36%;     /* Dark mode: higher intensity for visibility */
+  --abs-hover-intensity-light: 42%;    /* Light mode: strong glow when receiving energy */
+  --abs-hover-intensity-dark: 48%;     /* Dark mode: pronounced for visibility */
   --abs-hover-intensity-active: 27%;   /* Active/pressed state: slightly less than hover */
   --abs-hover-opacity-ui-light: 0.27;   /* UI mode opacity (light mode) */
   --abs-hover-opacity-ui-dark: 0.33;   /* UI mode opacity (dark mode) */
@@ -147,17 +147,28 @@
   --hover-edge-top-opacity: 0.3;            /* Light intensity at center (dimmer than bottom) */
   --hover-edge-top-color-mix: 50%;          /* How much cursor color vs white */
 
+  /* Power Transfer (cursor implode + button swell) — transition-only, no keyframes */
+  --abs-power-transfer-duration: 300ms;
+  --abs-cursor-shrink-duration: 200ms;
+  --abs-button-swell-in-duration: 200ms;   /* Hover-in: snappy */
+  --abs-button-swell-out-duration: 420ms;  /* Hover-out: longer, visible release */
+  --abs-button-swell-scale: 1.06;          /* Hover scale (subtle) */
+  /* Slight undershoot on release so hover-out is visible */
+  --ease-release: cubic-bezier(0.33, 1.12, 0.68, 0.98);
+
   /* Hover Target "Snap" Bounce (scale-only; color remains instant) */
   --abs-hover-snap-enabled: 1;           /* 1 = on, 0 = off */
   --abs-hover-snap-duration: 450ms;      /* Total bounce duration */
-  --abs-hover-snap-overshoot: 1.08;      /* Peak scale */
-  --abs-hover-snap-undershoot: 0.98;     /* Small recoil before settling */
+  --abs-hover-grow-duration: 220ms;     /* Hover-in: fast grow with overshoot */
+  --abs-hover-snap-overshoot: 0.88;      /* Peak scale */
+  --abs-hover-snap-undershoot: 0.78;     /* Small recoil before settling */
+  --ease-soft-bounce: cubic-bezier(0.34, 1.38, 0.64, 1); /* Overshoot + soft settle */
 
   /* Hover Pseudoelement Background Bounce (fade + scale on ::before backgrounds) */
   --abs-hover-bg-bounce-enabled: 1;      /* 1 = on, 0 = off */
   --abs-hover-bg-bounce-duration: 450ms; /* Total bounce duration */
-  --abs-hover-bg-bounce-overshoot: 1.12; /* Peak scale (more pronounced than button scale) */
-  --abs-hover-bg-bounce-end-size: 1.0;   /* Final settled scale */
+  --abs-hover-bg-bounce-overshoot: 0.92; /* Peak scale (more pronounced than button scale) */
+  --abs-hover-bg-bounce-end-size: 0.8;   /* Final settled scale */
 
   /* Typography Aliases */
   --text-xs: var(--abs-text-xs);
@@ -233,6 +244,8 @@
   --layout-min-content-padding: var(--abs-layout-min-padding);
   --wall-thickness: calc(var(--wall-thickness-vw) * 1vw);
   --wall-radius: clamp(var(--layout-min-wall-radius), calc(var(--wall-radius-vw) * 1vw), 999px);
+  /* Outer wall radius: inner + thickness + adjustment (single source of truth) */
+  --outer-wall-radius: calc(var(--wall-radius) + var(--wall-thickness) + var(--outer-wall-radius-adjust, 1px));
   --container-radius: var(--wall-radius);
   --container-border: calc(var(--container-border-vw) * 1vw);
   --simulation-padding: 0px;
@@ -279,7 +292,7 @@
   --grunge-video-fade-easing: cubic-bezier(0.16, 1, 0.3, 1); /* Easing curve */
 
   /* Wall Frame Inset (space between viewport edge and wall outer edge) */
-  --safari-tint-inset: 20px;
+  --safari-tint-inset: 15px;
 
   --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
 
@@ -406,6 +419,13 @@
   --inner-wall-bottom-shadow-opacity: 0.18;   /* Inner wall bottom shadow opacity (light mode) */
   --inner-wall-bottom-shadow-opacity-dark: 0.25; /* Inner wall bottom shadow opacity (dark mode) */
   --inner-wall-bottom-shadow-rgb: 0, 0, 0;    /* Inner wall bottom shadow color RGB */
+
+  /* Inner wall shine - strong blur from all sides (background colored) */
+  --inner-wall-shine-blur: 20px;
+  --inner-wall-shine-spread: 4px;
+  --inner-wall-shine-opacity: 0.4;
+  --inner-wall-shine-overshoot: -10px;
+  --inner-wall-shine-color: var(--bg-light);
 
   /* Gate Defaults */
   --abs-gate-mobile-pad-x: 20px;
@@ -586,4 +606,6 @@
 
   /* Single stroke color override for dark mode */
   --abs-stroke-medium: rgba(var(--abs-rgb-white), 0.25);
+  
+  --inner-wall-shine-color: var(--bg-dark);
 }

@@ -6,8 +6,8 @@ Current mode system supports **multiple modes** (switchable via the Settings pan
 
 Simulations are organized into two tiers to ensure visitors always see the best work first:
 
-### **Featured Tier** (8 modes)
-The most visually impressive simulations that always cycle first. New visitors are guaranteed to see one of these on their first visit.
+### **Featured Tier** (7 modes)
+The most visually impressive simulations that always cycle first. (Parallax Linear is disabled.) New visitors are guaranteed to see one of these on their first visit.
 
 ### **Extended Tier** (11 modes)
 Additional explorations and experiments that appear only after all Featured modes have been shown.
@@ -32,7 +32,7 @@ Additional explorations and experiments that appear only after all Featured mode
 17. **3D Sphere** (`3d-sphere`)
 18. **3D Cube** (`3d-cube`)
 20. **Neural Network** (`neural`)
-21. **Parallax (Linear)** (`parallax-linear`)
+21. **Parallax (Linear)** (`parallax-linear`) — *disabled*
 22. **Parallax (Float)** (`parallax-float`)
 23. **3D Starfield** (`starfield-3d`)
 24. **Shooting Stars** (`shooting-stars`)
@@ -63,9 +63,8 @@ The arrow keys cycle through a tiered story order. Think of it as chapters — e
 3. **3D Cube** (`3d-cube`) — **3D FRAME**
 4. **Water Swimming** (`water`) — **USER FLOW**
 5. **3D Sphere** (`3d-sphere`) — **3D SHELL**
-6. **Parallax (Linear)** (`parallax-linear`) — **PERSPECTIVE SHIFT**
-7. **Elastic Center** (`elastic-center`) — **ELASTIC CENTER**
-8. **Kaleidoscope** (`kaleidoscope-3`) — **VOCAB BLOOM**
+6. **Elastic Center** (`elastic-center`) — **ELASTIC CENTER**
+7. **Kaleidoscope** (`kaleidoscope-3`) — **VOCAB BLOOM**
 
 ### Extended Tier (Shown After Featured)
 

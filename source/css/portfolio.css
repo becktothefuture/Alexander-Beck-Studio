@@ -1174,9 +1174,15 @@ body.portfolio-page #custom-cursor {
 
 /* Rapid cursor hiding on link hover for portfolio page */
 body.portfolio-page.abs-link-hovering #custom-cursor {
-  display: none !important;
   opacity: 0;
-  transition: none;
+  transform:
+    translate(-50%, -50%)
+    translate(var(--cursor-jitter-x, 0px), var(--cursor-jitter-y, 0px))
+    scale(0)
+    scaleX(var(--cursor-stretch-x, 1))
+    scaleY(var(--cursor-stretch-y, 1));
+  transition: transform var(--abs-power-transfer-duration, 300ms) var(--ease-organic),
+              opacity var(--abs-power-transfer-duration, 300ms) var(--ease-organic);
 }
 
 body.portfolio-page #custom-cursor.gate-active {

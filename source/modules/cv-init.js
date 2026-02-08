@@ -149,92 +149,20 @@ async function bootstrapCvPage() {
     runtimeConfig = await loadRuntimeConfig();
     // Initialize state with runtime config so all global parameters are available
     applyWallFrameFromConfig(runtimeConfig);
+    requestAnimationFrame(() => {
+      applyWallFrameLayout();
+    });
     // CV needs the same visible rubber wall as index, but without running the balls simulation.
     // Draw the wall ring onto a dedicated canvas layered above the content.
     try { initPortfolioWallCanvas({ canvasSelector: '.cv-wall-canvas' }); } catch (e) {}
     // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.
     try { initNoiseSystem(getGlobals()); } catch (e) {}
     
-    // Grunge video overlay initialization - coordinated fade-in to prevent flash
-    try {
-      const grungeVideo = document.getElementById('grunge-video-overlay');
-      const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
-      
-      if (grungeVideo) {
-        if (isDev) {
-          console.log('[CV Video] Initializing grunge video overlay');
-          console.log('[CV Video] Video src:', grungeVideo.currentSrc || grungeVideo.src);
-        }
-        
-        let videoReadyTriggered = false;
-        let videoCanPlay = false;
-        
-        // Coordinated fade-in: only add class when ALL prerequisites are met
-        const checkAndTriggerFadeIn = () => {
-          if (videoReadyTriggered) return;
-          
-          const entranceComplete = document.documentElement.classList.contains('entrance-complete');
-          const noiseReady = document.body.classList.contains('noise-ready');
-          
-          if (isDev) {
-            console.log('[CV Video] Checking fade prerequisites:', {
-              videoCanPlay, entranceComplete, noiseReady
-            });
-          }
-          
-          if (videoCanPlay && entranceComplete && noiseReady) {
-            videoReadyTriggered = true;
-            if (isDev) console.log('[CV Video] All prerequisites met - triggering fade-in');
-            document.body.classList.add('video-fade-ready');
-          }
-        };
-        
-        // Watch for entrance-complete and noise-ready classes
-        const entranceObserver = new MutationObserver(() => {
-          if (document.documentElement.classList.contains('entrance-complete')) checkAndTriggerFadeIn();
-        });
-        entranceObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-        
-        const noiseObserver = new MutationObserver(() => {
-          if (document.body.classList.contains('noise-ready')) checkAndTriggerFadeIn();
-        });
-        noiseObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-        
-        grungeVideo.addEventListener('loadstart', () => {
-          if (isDev) console.log('[CV Video] Loading started');
-        }, { once: true });
-        
-        grungeVideo.addEventListener('loadedmetadata', () => {
-          if (isDev) console.log('[CV Video] Metadata loaded -', grungeVideo.videoWidth, 'x', grungeVideo.videoHeight);
-        }, { once: true });
-        
-        grungeVideo.addEventListener('canplaythrough', () => {
-          videoCanPlay = true;
-          if (isDev) console.log('[CV Video] Can play through - checking prerequisites');
-          checkAndTriggerFadeIn();
-          
-          const playPromise = grungeVideo.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              if (isDev) console.log('[CV Video] Playback started');
-            }).catch((err) => {
-              if (isDev) console.warn('[CV Video] Autoplay prevented:', err);
-            });
-          }
-        }, { once: true });
-        
-        grungeVideo.addEventListener('error', (e) => {
-          if (isDev) console.error('[CV Video] Load error:', e);
-        }, { once: true });
-      } else {
-        if (isDev) console.warn('[CV Video] Video element not found');
-      }
-    } catch (e) {
-      if (typeof __DEV__ !== 'undefined' && __DEV__) console.error('[CV Video] Init error:', e);
-    }
-    
     // Keep the frame responsive to viewport changes (same behavior as index).
     window.addEventListener('resize', applyWallFrameLayout, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', applyWallFrameLayout, { passive: true });
+    }
   } catch (e) {
     // Safe fallback: keep the page readable if config loading fails.
     // Still try to initialize noise with defaults
