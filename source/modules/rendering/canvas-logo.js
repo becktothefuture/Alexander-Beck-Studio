@@ -35,7 +35,8 @@ let isInitialized = false;
 const entranceState = {
   progress: 0,        // 0.0 to 1.0
   isComplete: false,
-  isStarted: false
+  isStarted: false,
+  startTimeMs: 0
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -43,6 +44,26 @@ const entranceState = {
 // ═══════════════════════════════════════════════════════════════════════════════
 function easeOutExpo(t) {
   return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+}
+
+/**
+ * Keep entrance progress tied to wall-clock time so it can complete even when
+ * physics updates are sparse (or temporarily skipped by mode-level optimizations).
+ */
+function syncEntranceProgress(nowMs = performance.now()) {
+  if (!entranceState.isStarted || entranceState.isComplete) return;
+
+  if (!Number.isFinite(entranceState.startTimeMs) || entranceState.startTimeMs <= 0) {
+    entranceState.startTimeMs = nowMs;
+  }
+
+  const elapsed = Math.max(0, nowMs - entranceState.startTimeMs);
+  const progress = Math.min(1, elapsed / ENTRANCE_DURATION_MS);
+  entranceState.progress = progress;
+
+  if (progress >= 1) {
+    entranceState.isComplete = true;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -233,6 +254,17 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
   
   // Calculate centered position
   const pos = getLogoCenterPosition(canvasWidth, canvasHeight, currentSize.width, currentSize.height);
+
+  // Failsafe: if the explicit trigger was missed, start once the page entrance is complete.
+  if (!entranceState.isStarted && !entranceState.isComplete) {
+    const html = document.documentElement;
+    if (html?.classList.contains('entrance-complete') || html?.classList.contains('ui-entered')) {
+      startLogoEntrance();
+    }
+  }
+
+  // Keep progress time-based (independent from physics tick cadence).
+  syncEntranceProgress();
   
   // Handle entrance animation
   let opacity = 1;
@@ -310,13 +342,19 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
  */
 export function updateLogoEntrance(dt) {
   if (!entranceState.isStarted || entranceState.isComplete) return;
-  
-  entranceState.progress += (dt * 1000) / ENTRANCE_DURATION_MS;
-  
-  if (entranceState.progress >= 1) {
-    entranceState.progress = 1;
-    entranceState.isComplete = true;
+
+  if (Number.isFinite(dt) && dt > 0) {
+    entranceState.progress += (dt * 1000) / ENTRANCE_DURATION_MS;
+    if (entranceState.progress >= 1) {
+      entranceState.progress = 1;
+      entranceState.isComplete = true;
+    }
+    // Keep time baseline aligned so draw-time syncing never jumps backward.
+    entranceState.startTimeMs = performance.now() - (entranceState.progress * ENTRANCE_DURATION_MS);
+    return;
   }
+
+  syncEntranceProgress();
 }
 
 /**
@@ -326,6 +364,7 @@ export function startLogoEntrance() {
   entranceState.isStarted = true;
   entranceState.progress = 0;
   entranceState.isComplete = false;
+  entranceState.startTimeMs = performance.now();
 }
 
 /**
@@ -342,6 +381,7 @@ export function skipLogoEntrance() {
   entranceState.isStarted = true;
   entranceState.progress = 1;
   entranceState.isComplete = true;
+  entranceState.startTimeMs = performance.now() - ENTRANCE_DURATION_MS;
 }
 
 /**
