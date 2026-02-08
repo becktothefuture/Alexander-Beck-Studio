@@ -585,7 +585,7 @@ export const CONTROL_SECTIONS = {
           { value: 'site', label: 'Site (benchmark)' },
           { value: 'browser', label: 'Browser (force adapt)' }
         ],
-        default: 'site',
+        default: 'auto',
         format: v => String(v),
         parse: v => String(v),
         hint: 'If desktop browsers ignore theme-color, the wall adapts to match the browser UI palette.',

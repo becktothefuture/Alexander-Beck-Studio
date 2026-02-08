@@ -9,6 +9,11 @@ import { readTokenVar } from '../utils/tokens.js';
 let _siteFrameLight = null;
 let _siteFrameDark = null;
 
+const CHROMIUM_LOCKED_LIGHT_FALLBACK = '#f1f3f4';
+const CHROMIUM_LOCKED_DARK_FALLBACK = '#202124';
+const FIREFOX_LOCKED_LIGHT_FALLBACK = '#f9f9fb';
+const FIREFOX_LOCKED_DARK_FALLBACK = '#1c1b22';
+
 function captureSiteFrameColorsIfNeeded() {
   if (_siteFrameLight && _siteFrameDark) return;
   // Try to get from globals first (they have the config values), fallback to CSS tokens
@@ -21,68 +26,107 @@ function detectBrowserFamily() {
   const ua = navigator.userAgent || '';
   const vendor = navigator.vendor || '';
 
-  const isFirefox = /Firefox\//.test(ua);
-  const isSafari = /Safari\//.test(ua) && /Apple/.test(vendor) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua);
-  const isChromium = /Chrome\//.test(ua) || /Chromium\//.test(ua) || /Edg\//.test(ua);
+  const isFirefox = /Firefox\//.test(ua) || /FxiOS\//.test(ua);
+  const isSafari = /Safari\//.test(ua)
+    && /Apple/.test(vendor)
+    && !/Chrome\//.test(ua)
+    && !/Chromium\//.test(ua)
+    && !/CriOS\//.test(ua)
+    && !/FxiOS\//.test(ua)
+    && !/Edg\//.test(ua)
+    && !/EdgiOS\//.test(ua)
+    && !/OPR\//.test(ua)
+    && !/OPiOS\//.test(ua);
+  const isSamsungInternet = /SamsungBrowser\//.test(ua);
+  const isChromium = /Chrome\//.test(ua)
+    || /Chromium\//.test(ua)
+    || /CriOS\//.test(ua)
+    || /Edg\//.test(ua)
+    || /EdgiOS\//.test(ua)
+    || /OPR\//.test(ua)
+    || /OPiOS\//.test(ua)
+    || /Brave\//.test(ua)
+    || isSamsungInternet;
 
   return {
     isFirefox,
     isSafari,
+    isSamsungInternet,
     isChromium,
     ua
   };
 }
 
-function detectThemeColorLikelyApplied() {
+function detectThemeColorLikelyApplied(family) {
   // Heuristic: theme-color is reliably applied on mobile address bars, and on installed PWAs.
   // On desktop Chrome/Edge normal tabs, theme-color is often ignored.
   const ua = navigator.userAgent || '';
   const isAndroid = /Android/.test(ua);
   const isIOS = /iPhone|iPad|iPod/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
-  const isMobile = isAndroid || isIOS;
 
   const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
     || (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches)
     // iOS Safari standalone flag
     || (navigator.standalone === true);
 
-  return isMobile || isStandalone;
+  // Firefox still does not apply <meta name="theme-color"> in browser chrome.
+  if (family.isFirefox) return false;
+  if (isStandalone) return true;
+  if (family.isSafari) return true;
+  if (family.isChromium) return isAndroid || family.isSamsungInternet;
+  return isAndroid || isIOS;
 }
 
-function applyWallColor(hex) {
+function applyThemeAwareWallColor(lightHex, darkHex, isDark) {
   const root = document.documentElement;
-  // Set frameColor (master) - wall colors automatically point to this via CSS tokens
-  root.style.setProperty('--frame-color-light', hex);
-  root.style.setProperty('--frame-color-dark', hex);
-  // Wall colors are automatically updated via CSS: --wall-color-light: var(--frame-color-light)
+  const active = isDark ? darkHex : lightHex;
+
+  root.style.setProperty('--frame-color-light', lightHex);
+  root.style.setProperty('--frame-color-dark', darkHex);
+  root.style.setProperty('--wall-color-light', lightHex);
+  root.style.setProperty('--wall-color-dark', darkHex);
+  root.style.setProperty('--chrome-bg-light', lightHex);
+  root.style.setProperty('--chrome-bg-dark', darkHex);
+
+  // Active vars consumed by runtime CSS + wall renderers.
+  root.style.setProperty('--frame-color', active);
+  root.style.setProperty('--wall-color', active);
+  root.style.setProperty('--chrome-bg', active);
+}
+
+function applyWallColor(hex, isDark) {
+  applyThemeAwareWallColor(hex, hex, isDark);
 }
 
 function restoreSiteWallColor(isDark) {
   // If we've previously adapted the wall/frame, restore to the captured site values.
-  // Set frameColor (master) - wall colors automatically point to this via CSS tokens
   if (_siteFrameLight && _siteFrameDark) {
-    const root = document.documentElement;
-    root.style.setProperty('--frame-color-light', _siteFrameLight);
-    root.style.setProperty('--frame-color-dark', _siteFrameDark);
-    // Wall colors are automatically updated via CSS: --wall-color-light: var(--frame-color-light)
+    applyThemeAwareWallColor(_siteFrameLight, _siteFrameDark, isDark);
     return;
   }
   // Otherwise, try to get values from globals first (they have the config values)
   const g = getGlobals();
-  const root = document.documentElement;
   const light = g?.frameColorLight || g?.frameColor || readTokenVar('--frame-color-light', '#0a0a0a');
   const dark = g?.frameColorDark || g?.frameColor || readTokenVar('--frame-color-dark', '#0a0a0a');
-  root.style.setProperty('--frame-color-light', light);
-  root.style.setProperty('--frame-color-dark', dark);
-  // Wall colors are automatically updated via CSS: --wall-color-light: var(--frame-color-light)
+  applyThemeAwareWallColor(light, dark, isDark);
 }
 
 function applyBrowserWallColor(isDark, family) {
   captureSiteFrameColorsIfNeeded();
-  // Default uses a Chrome-like Material palette; can be extended per family later.
-  // CSS vars allow art-direction without touching JS.
-  const fallback = readTokenVar(isDark ? '--wall-color-browser-dark' : '--wall-color-browser-light', isDark ? '#202124' : '#f1f3f4');
-  applyWallColor(fallback);
+  if (family.isFirefox) {
+    const firefoxFallback = readTokenVar(
+      isDark ? '--wall-color-browser-firefox-dark' : '--wall-color-browser-firefox-light',
+      isDark ? FIREFOX_LOCKED_DARK_FALLBACK : FIREFOX_LOCKED_LIGHT_FALLBACK
+    );
+    applyWallColor(firefoxFallback, isDark);
+    return;
+  }
+
+  const chromiumFallback = readTokenVar(
+    isDark ? '--wall-color-browser-dark' : '--wall-color-browser-light',
+    isDark ? CHROMIUM_LOCKED_DARK_FALLBACK : CHROMIUM_LOCKED_LIGHT_FALLBACK
+  );
+  applyWallColor(chromiumFallback, isDark);
 }
 
 /**
@@ -93,28 +137,29 @@ export function applyChromeHarmony(isDark) {
   const g = getGlobals();
   const mode = String(g.chromeHarmonyMode || 'auto');
   const family = detectBrowserFamily();
+  const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
 
   if (mode === 'site') {
     restoreSiteWallColor(isDark);
-    return { mode, family, themeColorLikelyApplied: detectThemeColorLikelyApplied() };
+    return { mode, family, themeColorLikelyApplied };
   }
 
   if (mode === 'browser') {
     applyBrowserWallColor(isDark, family);
-    return { mode, family, themeColorLikelyApplied: detectThemeColorLikelyApplied() };
+    return { mode, family, themeColorLikelyApplied };
   }
 
   // auto
-  const themeColorLikelyApplied = detectThemeColorLikelyApplied();
-
   // Preserve the Safari benchmark: we don't force wall adaptation there.
   if (family.isSafari) {
     restoreSiteWallColor(isDark);
     return { mode, family, themeColorLikelyApplied };
   }
 
-  // Desktop Chromium tabs are the primary mismatch case: chrome can't be tinted -> adapt wall.
-  if (family.isChromium && !themeColorLikelyApplied) {
+  // Locked-header browsers: if the browser chrome likely won't respect theme-color,
+  // adapt the wall to the browser's native UI palette.
+  const isLockedHeaderFamily = family.isChromium || family.isFirefox;
+  if (isLockedHeaderFamily && !themeColorLikelyApplied) {
     applyBrowserWallColor(isDark, family);
     return { mode, family, themeColorLikelyApplied };
   }
@@ -123,4 +168,3 @@ export function applyChromeHarmony(isDark) {
   restoreSiteWallColor(isDark);
   return { mode, family, themeColorLikelyApplied };
 }
-

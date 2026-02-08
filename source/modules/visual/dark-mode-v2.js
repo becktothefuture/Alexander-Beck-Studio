@@ -126,8 +126,8 @@ function syncCssVarsFromConfig() {
   if (g?.bgDark) {
     root.style.setProperty('--bg-dark', g.bgDark);
   }
-  // Unified wall and browser chrome color (always #242529, no light/dark variants)
-  // Frame color is now unified - prefer frameColor, then frameColorLight/frameColorDark, then CSS default
+  // Site default wall/browser color from config.
+  // Chrome-harmony may override these values later for locked-header browsers.
   const unifiedWallColor = g?.frameColor || g?.frameColorLight || g?.frameColorDark || '#242529';
   root.style.setProperty('--frame-color', unifiedWallColor);
   root.style.setProperty('--wall-color', unifiedWallColor);
@@ -194,14 +194,19 @@ function isNightByLocalClock() {
 }
 
 /**
- * Update browser chrome/theme color for Safari and Chrome
- * Uses unified wall color (#242529) for browser chrome - consistent across all modes
+ * Update browser chrome/theme color tags from currently-active wall CSS vars.
  */
 function updateThemeColor(isDark) {
   const g = getGlobals();
-  // Unified wall color (always #242529, no light/dark variants)
-  // Prefer frameColor, then frameColorLight/frameColorDark, then CSS token, then default
-  const unifiedColor = g?.frameColor || g?.frameColorLight || g?.frameColorDark || readTokenVar('--wall-color', '#242529');
+  // Prefer currently-applied CSS vars (post-harmony), then config fallback.
+  const cssActive = readTokenVar('--wall-color', '');
+  const cssLight = readTokenVar('--wall-color-light', '');
+  const cssDark = readTokenVar('--wall-color-dark', '');
+  const fallback = g?.frameColor || g?.frameColorLight || g?.frameColorDark || '#242529';
+
+  const activeColor = cssActive || (isDark ? (cssDark || cssLight) : (cssLight || cssDark)) || fallback;
+  const lightColor = cssLight || activeColor || fallback;
+  const darkColor = cssDark || activeColor || fallback;
   
   // Update existing meta tag or create new one
   let metaTheme = document.querySelector('meta[name="theme-color"]:not([media])');
@@ -210,9 +215,9 @@ function updateThemeColor(isDark) {
     metaTheme.name = 'theme-color';
     document.head.appendChild(metaTheme);
   }
-  metaTheme.content = unifiedColor;
+  metaTheme.content = activeColor;
   
-  // Safari-specific: Update for both light and dark modes (both use unified color)
+  // Keep scheme-specific tags in sync with currently-resolved light/dark wall colors.
   let metaThemeLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
   if (!metaThemeLight) {
     metaThemeLight = document.createElement('meta');
@@ -220,7 +225,7 @@ function updateThemeColor(isDark) {
     metaThemeLight.media = '(prefers-color-scheme: light)';
     document.head.appendChild(metaThemeLight);
   }
-  metaThemeLight.content = unifiedColor;
+  metaThemeLight.content = lightColor;
   
   let metaThemeDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
   if (!metaThemeDark) {
@@ -229,7 +234,7 @@ function updateThemeColor(isDark) {
     metaThemeDark.media = '(prefers-color-scheme: dark)';
     document.head.appendChild(metaThemeDark);
   }
-  metaThemeDark.content = unifiedColor;
+  metaThemeDark.content = darkColor;
   
   // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style
   // black-translucent: transparent status bar (allows unified wall color to show)

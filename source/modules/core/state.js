@@ -531,8 +531,8 @@ const state = {
   // - 'auto': only adapt on browsers where theme-color is typically ignored
   // - 'site': always keep site wall (benchmark / Safari look)
   // - 'browser': always adapt wall to browser UI palette (artful extension)
-  // Default should preserve the benchmark look (no forced wall adaptation).
-  chromeHarmonyMode: 'site',
+  // Default uses Auto so locked-header browsers (desktop Chromium/Firefox) can blend wall + browser chrome.
+  chromeHarmonyMode: 'auto',
   // Night window heuristic (local clock): if enabled and theme is Auto, prefer Dark during this window.
   // Default: 18:00–06:00 (privacy-first; no geolocation).
   autoDarkNightStartHour: 18,

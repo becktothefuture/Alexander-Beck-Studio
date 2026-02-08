@@ -26,8 +26,8 @@ export function syncWallFrameColors(config) {
     root.style.setProperty('--chrome-bg-dark', config.bgDark);
   }
 
-  // Frame colors: separate light and dark mode wall colors
-  // --wall-color-light and --wall-color-dark point to frameColorLight/frameColorDark via CSS tokens
+  // Frame colors: store light/dark site defaults.
+  // Active wall/chrome vars may be overridden later by dark-mode + chrome-harmony.
   // Always set both light and dark colors (use frameColor as fallback if separate values not provided)
   const frameLight = config.frameColorLight || config.frameColor;
   const frameDark = config.frameColorDark || config.frameColor;
@@ -37,7 +37,7 @@ export function syncWallFrameColors(config) {
   if (frameDark) {
     root.style.setProperty('--frame-color-dark', frameDark);
   }
-  // Wall colors automatically point to frameColor via CSS (--wall-color-light: var(--frame-color-light))
+  // Keep light/dark defaults available for later theme/harmony decisions.
 }
 
 export function applyWallFrameFromConfig(config) {

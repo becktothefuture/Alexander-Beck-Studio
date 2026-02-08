@@ -22,7 +22,7 @@
     "starfield-3d": { "desktop": 220, "mobile": 150 },
     "particle-fountain": { "desktop": 260, "mobile": 180 }
   },
-  "chromeHarmonyMode": "site",
+  "chromeHarmonyMode": "auto",
   "autoDarkModeEnabled": true,
   "autoDarkNightStartHour": 18,
   "autoDarkNightEndHour": 6,

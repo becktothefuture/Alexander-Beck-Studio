@@ -1,7 +1,7 @@
 // Portfolio carousel entry (shares chrome with the index layout; consumes config/portfolio-config.json and config/contents-portfolio.json)
 
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
-import { applyWallFrameFromConfig, applyWallFrameLayout, syncWallFrameColors } from '../visual/wall-frame.js';
+import { applyWallFrameFromConfig, applyWallFrameLayout } from '../visual/wall-frame.js';
 import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioRuntime } from './portfolio-config.js';
 import { initPortfolioWallCanvas } from './wall-only-canvas.js';
 import { createSoundToggle } from '../ui/sound-toggle.js';
@@ -2098,39 +2098,13 @@ async function bootstrapPortfolio() {
   rotatePaletteChapterOnReload();
 
   initializeDarkMode();
-  
-  // Ensure wall colors are applied after dark mode initialization
-  // (dark mode syncCssVarsFromConfig might override them, so re-apply from config/globals)
-  const g = getGlobals();
+
+  // Keep chrome background in sync with whichever wall color is currently active
+  // (site color or browser-adapted harmony color).
   const root = document.documentElement;
-  
-  if (runtimeConfig) {
-    // Re-apply wall colors to ensure they match index page
-    syncWallFrameColors(runtimeConfig);
-  } else {
-    // Fallback: use globals if config not available
-    const frameLight = g?.frameColorLight || g?.frameColor;
-    const frameDark = g?.frameColorDark || g?.frameColor;
-    if (frameLight) root.style.setProperty('--frame-color-light', frameLight);
-    if (frameDark) root.style.setProperty('--frame-color-dark', frameDark);
-  }
-  
-  // Force update from globals to ensure values are correct (globals have processed values from initState)
-  const frameLight = g?.frameColorLight || g?.frameColor;
-  const frameDark = g?.frameColorDark || g?.frameColor;
-  if (frameLight) {
-    root.style.setProperty('--frame-color-light', frameLight);
-  }
-  if (frameDark) {
-    root.style.setProperty('--frame-color-dark', frameDark);
-  }
-  
-  // Also update theme-color meta tag with the correct wall color for browser chrome
-  const currentWallColor = g.isDarkMode ? frameDark : frameLight;
-  if (currentWallColor) {
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.content = currentWallColor;
-    root.style.setProperty('--chrome-bg', currentWallColor);
+  const activeWallColor = getComputedStyle(root).getPropertyValue('--wall-color').trim();
+  if (activeWallColor) {
+    root.style.setProperty('--chrome-bg', activeWallColor);
   }
   maybeAutoPickCursorColor?.('startup');
   initTimeDisplay();
