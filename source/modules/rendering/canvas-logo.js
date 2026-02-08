@@ -4,8 +4,6 @@
 // ║      with theme-aware colors, DPR scaling, and entrance animation           ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals } from '../core/state.js';
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -16,6 +14,7 @@ const LOGO_ASPECT = LOGO_VIEWBOX_W / LOGO_VIEWBOX_H; // 13.924242...
 // Theme colors (from tokens.css)
 const LOGO_COLOR_LIGHT = '#161616';
 const LOGO_COLOR_DARK = '#e3e9f0';
+const MIN_LOGO_CONTRAST = 2.2;
 
 // Entrance animation settings
 const ENTRANCE_DURATION_MS = 1000;
@@ -24,8 +23,7 @@ const ENTRANCE_BLUR_MAX = 8; // pixels
 // ═══════════════════════════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════════
-let offscreenLight = null;  // Pre-rendered light theme canvas
-let offscreenDark = null;   // Pre-rendered dark theme canvas
+let offscreenByColor = new Map(); // key: normalized color string -> offscreen canvas
 let svgPathData = null;     // Cached SVG path data (extracted from DOM)
 let currentSize = { width: 0, height: 0, cssWidth: 0, cssHeight: 0 };
 let lastDpr = 0;
@@ -44,6 +42,107 @@ const entranceState = {
 // ═══════════════════════════════════════════════════════════════════════════════
 function easeOutExpo(t) {
   return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+}
+
+function getColorParserCtx() {
+  const c = document.createElement('canvas');
+  c.width = 1;
+  c.height = 1;
+  return c.getContext('2d');
+}
+
+const COLOR_PARSER_CTX = typeof document !== 'undefined' ? getColorParserCtx() : null;
+
+function normalizeCssColor(input, fallback = '#000000') {
+  if (!COLOR_PARSER_CTX) return fallback;
+  try {
+    COLOR_PARSER_CTX.fillStyle = fallback;
+    COLOR_PARSER_CTX.fillStyle = String(input || '').trim() || fallback;
+    return COLOR_PARSER_CTX.fillStyle || fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function parseRgbColor(input) {
+  if (!input) return null;
+  const color = String(input).trim().toLowerCase();
+  if (color.startsWith('#')) {
+    let hex = color.slice(1);
+    if (hex.length === 3) {
+      hex = hex.split('').map(ch => ch + ch).join('');
+    }
+    if (hex.length !== 6) return null;
+    const num = Number.parseInt(hex, 16);
+    if (!Number.isFinite(num)) return null;
+    return {
+      r: (num >> 16) & 255,
+      g: (num >> 8) & 255,
+      b: num & 255
+    };
+  }
+
+  const rgbMatch = color.match(/^rgba?\(([^)]+)\)$/);
+  if (!rgbMatch) return null;
+  const parts = rgbMatch[1].split(',').map(part => Number.parseFloat(part.trim()));
+  if (parts.length < 3 || parts.slice(0, 3).some(v => !Number.isFinite(v))) return null;
+  return {
+    r: Math.max(0, Math.min(255, Math.round(parts[0]))),
+    g: Math.max(0, Math.min(255, Math.round(parts[1]))),
+    b: Math.max(0, Math.min(255, Math.round(parts[2])))
+  };
+}
+
+function relativeLuminance(rgb) {
+  const toLinear = (c) => {
+    const srgb = c / 255;
+    return srgb <= 0.03928 ? srgb / 12.92 : Math.pow((srgb + 0.055) / 1.055, 2.4);
+  };
+  const r = toLinear(rgb.r);
+  const g = toLinear(rgb.g);
+  const b = toLinear(rgb.b);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(a, b) {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  const lighter = Math.max(la, lb);
+  const darker = Math.min(la, lb);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function resolveAccessibleLogoColor() {
+  // Prefer CSS-resolved logo color so canvas matches the design system source of truth.
+  const styles = getComputedStyle(document.documentElement);
+  const rawLogoColor = styles.getPropertyValue('--text-logo').trim()
+    || (document.getElementById('brand-logo')
+      ? getComputedStyle(document.getElementById('brand-logo')).color
+      : '');
+  const rawWallColor = styles.getPropertyValue('--wall-color').trim() || '#242529';
+
+  const requestedLogoColor = normalizeCssColor(rawLogoColor, LOGO_COLOR_DARK);
+  const wallColor = normalizeCssColor(rawWallColor, '#242529');
+  const logoRgb = parseRgbColor(requestedLogoColor);
+  const wallRgb = parseRgbColor(wallColor);
+
+  if (!wallRgb) return requestedLogoColor;
+
+  // Always choose the token color that has higher contrast with the actual wall color.
+  const lightRgb = parseRgbColor(LOGO_COLOR_LIGHT);
+  const darkRgb = parseRgbColor(LOGO_COLOR_DARK);
+  if (!lightRgb || !darkRgb) return requestedLogoColor;
+
+  const lightContrast = contrastRatio(lightRgb, wallRgb);
+  const darkContrast = contrastRatio(darkRgb, wallRgb);
+  const bestToken = darkContrast >= lightContrast ? LOGO_COLOR_DARK : LOGO_COLOR_LIGHT;
+
+  // If requested color is already good enough, keep it; otherwise force best-contrast token.
+  if (logoRgb && contrastRatio(logoRgb, wallRgb) >= MIN_LOGO_CONTRAST) {
+    return requestedLogoColor;
+  }
+
+  return bestToken;
 }
 
 /**
@@ -223,7 +322,7 @@ export function updateLogoSize(canvasWidth, canvasHeight, dpr) {
   const sizeChanged = newSize.width !== currentSize.width || newSize.height !== currentSize.height;
   const dprChanged = dpr !== lastDpr;
   
-  if (!sizeChanged && !dprChanged && offscreenLight && offscreenDark) {
+  if (!sizeChanged && !dprChanged && offscreenByColor.size > 0) {
     return; // No changes needed
   }
   
@@ -231,9 +330,8 @@ export function updateLogoSize(canvasWidth, canvasHeight, dpr) {
   currentSize = newSize;
   lastDpr = dpr;
   
-  // Re-render both theme versions
-  offscreenLight = renderToOffscreen(svgPathData, newSize.width, newSize.height, LOGO_COLOR_LIGHT);
-  offscreenDark = renderToOffscreen(svgPathData, newSize.width, newSize.height, LOGO_COLOR_DARK);
+  // Size changed -> invalidate color cache (will re-render lazily in drawLogo)
+  offscreenByColor.clear();
 }
 
 /**
@@ -246,9 +344,14 @@ export function updateLogoSize(canvasWidth, canvasHeight, dpr) {
 export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
   if (!isInitialized) return;
   
-  const g = getGlobals();
-  const isDark = g.isDarkMode;
-  const offscreen = isDark ? offscreenDark : offscreenLight;
+  const logoColor = resolveAccessibleLogoColor();
+  let offscreen = offscreenByColor.get(logoColor);
+  if (!offscreen) {
+    offscreen = renderToOffscreen(svgPathData, currentSize.width, currentSize.height, logoColor);
+    if (offscreen) {
+      offscreenByColor.set(logoColor, offscreen);
+    }
+  }
   
   if (!offscreen) return;
   
@@ -395,7 +498,7 @@ export function getLogoSize() {
  * Check if logo system is initialized
  */
 export function isCanvasLogoReady() {
-  return isInitialized && offscreenLight && offscreenDark;
+  return isInitialized && currentSize.width > 0 && currentSize.height > 0;
 }
 
 /**
@@ -403,7 +506,6 @@ export function isCanvasLogoReady() {
  */
 export function refreshLogoRender() {
   if (!isInitialized || !svgPathData) return;
-  
-  offscreenLight = renderToOffscreen(svgPathData, currentSize.width, currentSize.height, LOGO_COLOR_LIGHT);
-  offscreenDark = renderToOffscreen(svgPathData, currentSize.width, currentSize.height, LOGO_COLOR_DARK);
+
+  offscreenByColor.clear();
 }
