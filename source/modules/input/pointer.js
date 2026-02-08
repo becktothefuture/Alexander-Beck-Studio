@@ -5,11 +5,34 @@
 
 import { getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
-import { createWaterRipple } from '../modes/water.js';
 import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
 import { notifyMouseTrailMove } from '../visual/mouse-trail.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
+
+let createWaterRippleFn = null;
+let waterRippleLoadPromise = null;
+
+function triggerWaterRipple(x, y, velocityFactor) {
+  if (typeof createWaterRippleFn === 'function') {
+    createWaterRippleFn(x, y, velocityFactor);
+    return;
+  }
+
+  if (!waterRippleLoadPromise) {
+    waterRippleLoadPromise = import('../modes/water.js')
+      .then((mod) => {
+        createWaterRippleFn = typeof mod.createWaterRipple === 'function' ? mod.createWaterRipple : null;
+      })
+      .catch(() => {});
+  }
+
+  waterRippleLoadPromise.then(() => {
+    if (typeof createWaterRippleFn === 'function') {
+      createWaterRippleFn(x, y, velocityFactor);
+    }
+  }).catch(() => {});
+}
 
 // Mouse velocity tracking for water ripples and cursor explosion
 let lastMouseX = 0;
@@ -161,7 +184,7 @@ export function setupPointer() {
     if (globals.currentMode === MODES.WATER && pos.inBounds) {
       if (mouseVelocity > 0.3 && (now - lastRippleTime) > RIPPLE_THROTTLE_MS) {
         const velocityFactor = Math.min(mouseVelocity * 2, 3);
-        createWaterRipple(pos.x, pos.y, velocityFactor);
+        triggerWaterRipple(pos.x, pos.y, velocityFactor);
         lastRippleTime = now;
       }
     }

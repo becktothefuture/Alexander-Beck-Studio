@@ -16,7 +16,7 @@ import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { setupOverscrollLock } from './modules/input/overscroll-lock.js';
 import { setupCustomCursor } from './modules/rendering/cursor.js';
-import { setMode, MODES, getForceApplicator } from './modules/modes/mode-controller.js';
+import { setMode, getForceApplicator, initModeSystem } from './modules/modes/mode-controller.js';
 import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVModal } from './modules/ui/cv-modal.js';
@@ -120,50 +120,6 @@ export function applyVisualCSSVars(config) {
     root.style.setProperty('--noise-color-dark', String(config.noiseColorDark));
   }
   
-  // Grunge video overlay
-  if (config.grungeVideoEnabled !== undefined) {
-    const videos = document.querySelectorAll('.grunge-video-overlay');
-    videos.forEach(v => {
-      v.style.display = config.grungeVideoEnabled ? '' : 'none';
-    });
-  }
-  if (config.grungeVideoOpacityLight !== undefined) {
-    root.style.setProperty('--grunge-video-opacity-light', String(config.grungeVideoOpacityLight));
-  }
-  if (config.grungeVideoOpacityDark !== undefined) {
-    root.style.setProperty('--grunge-video-opacity-dark', String(config.grungeVideoOpacityDark));
-  }
-  if (config.grungeVideoBlendModeLight !== undefined) {
-    root.style.setProperty('--grunge-video-blend-mode-light', String(config.grungeVideoBlendModeLight));
-  }
-  if (config.grungeVideoBlendModeDark !== undefined) {
-    root.style.setProperty('--grunge-video-blend-mode-dark', String(config.grungeVideoBlendModeDark));
-  }
-  // Grunge video filter controls
-  if (config.grungeVideoContrast !== undefined) {
-    root.style.setProperty('--grunge-video-contrast', String(config.grungeVideoContrast));
-  }
-  if (config.grungeVideoBrightness !== undefined) {
-    root.style.setProperty('--grunge-video-brightness', String(config.grungeVideoBrightness));
-  }
-  if (config.grungeVideoSaturate !== undefined) {
-    root.style.setProperty('--grunge-video-saturate', String(config.grungeVideoSaturate));
-  }
-  if (config.grungeVideoHueRotate !== undefined) {
-    root.style.setProperty('--grunge-video-hue-rotate', `${config.grungeVideoHueRotate}deg`);
-  }
-  if (config.grungeVideoInvert !== undefined) {
-    root.style.setProperty('--grunge-video-invert', String(config.grungeVideoInvert));
-  }
-  if (config.grungeVideoSepia !== undefined) {
-    root.style.setProperty('--grunge-video-sepia', String(config.grungeVideoSepia));
-  }
-  if (config.grungeVideoGrayscale !== undefined) {
-    root.style.setProperty('--grunge-video-grayscale', String(config.grungeVideoGrayscale));
-  }
-  if (config.grungeVideoBlur !== undefined) {
-    root.style.setProperty('--grunge-video-blur', `${config.grungeVideoBlur}px`);
-  }
 }
 
 /**
@@ -434,154 +390,6 @@ window.addEventListener('unhandledrejection', (event) => {
       initNoiseSystem(getGlobals());
     } catch (e) {}
     
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // GRUNGE VIDEO OVERLAY INITIALIZATION
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // Videos are direct children of body for proper blend mode compositing
-    try {
-      const videoLight = document.getElementById('grunge-video-light');
-      const videoDark = document.getElementById('grunge-video-dark');
-      const videos = [videoLight, videoDark].filter(Boolean);
-      
-      if (videos.length > 0) {
-        if (ABS_DEV) {
-          console.log('[Video] Initializing grunge video overlays');
-          console.log('[Video] Light video:', !!videoLight);
-          console.log('[Video] Dark video:', !!videoDark);
-        }
-        
-        let videoReadyTriggered = false;
-        let videoCanPlay = false;
-        
-        // Coordinated fade-in: only add class when ALL prerequisites are met
-        // This prevents the flash caused by visibility changing before opacity can transition
-        const checkAndTriggerFadeIn = () => {
-          if (videoReadyTriggered) return;
-          
-          const entranceComplete = document.documentElement.classList.contains('entrance-complete');
-          const noiseReady = document.body.classList.contains('noise-ready');
-          
-          if (ABS_DEV) {
-            console.log('[Video] Checking fade prerequisites:', {
-              videoCanPlay,
-              entranceComplete,
-              noiseReady
-            });
-          }
-          
-          // All three conditions must be met
-          if (videoCanPlay && entranceComplete && noiseReady) {
-            videoReadyTriggered = true;
-            if (ABS_DEV) {
-              console.log('[Video] All prerequisites met - triggering coordinated fade-in');
-            }
-            // Single class triggers the CSS fade - no race condition
-            document.body.classList.add('video-fade-ready');
-          }
-        };
-        
-        // Watch for entrance-complete class being added
-        const entranceObserver = new MutationObserver(() => {
-          if (document.documentElement.classList.contains('entrance-complete')) {
-            checkAndTriggerFadeIn();
-          }
-        });
-        entranceObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-        
-        // Watch for noise-ready class being added
-        const noiseObserver = new MutationObserver(() => {
-          if (document.body.classList.contains('noise-ready')) {
-            checkAndTriggerFadeIn();
-          }
-        });
-        noiseObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-        
-        const handleVideoReady = (video, label) => {
-          if (videoCanPlay) return;
-          videoCanPlay = true;
-          
-          if (ABS_DEV) {
-            console.log(`[Video ${label}] Can play through - checking prerequisites`);
-            const computedOpacity = getComputedStyle(video).opacity;
-            console.log(`[Video ${label}] Computed opacity:`, computedOpacity);
-            console.log(`[Video ${label}] Computed blend mode:`, getComputedStyle(video).mixBlendMode);
-          }
-          
-          // Check if we can trigger fade-in now
-          checkAndTriggerFadeIn();
-        };
-        
-        // Initialize each video
-        videos.forEach((video, idx) => {
-          const label = video === videoLight ? 'Light' : 'Dark';
-          
-          video.addEventListener('loadstart', () => {
-            if (ABS_DEV) console.log(`[Video ${label}] Loading started`);
-          }, { once: true });
-          
-          video.addEventListener('loadedmetadata', () => {
-            if (ABS_DEV) console.log(`[Video ${label}] Metadata loaded`);
-          }, { once: true });
-          
-          video.addEventListener('canplaythrough', () => {
-            handleVideoReady(video, label);
-            
-            // Ensure video plays
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-              playPromise.then(() => {
-                if (ABS_DEV) console.log(`[Video ${label}] Playback started`);
-              }).catch((err) => {
-                if (ABS_DEV) console.warn(`[Video ${label}] Autoplay prevented:`, err);
-              });
-            }
-          }, { once: true });
-          
-          video.addEventListener('error', (e) => {
-            if (ABS_DEV) {
-              console.error(`[Video ${label}] Failed to load`);
-              console.error(`[Video ${label}] Error:`, e);
-            }
-          }, { once: true });
-          
-          // Check if video is already ready (event may have fired before listener was added)
-          // HAVE_ENOUGH_DATA (4) means canplaythrough would have fired
-          if (video.readyState >= 4) {
-            if (ABS_DEV) console.log(`[Video ${label}] Already loaded (readyState=${video.readyState})`);
-            handleVideoReady(video, label);
-            // Also ensure playback
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(() => {}); // Ignore autoplay prevention
-            }
-          }
-        });
-        
-        // Debug status after 2s
-        if (ABS_DEV) {
-          setTimeout(() => {
-            console.log('[Video] Status after 2s:');
-            console.log('  - video-fade-ready class on body:', document.body.classList.contains('video-fade-ready'));
-            console.log('  - entrance-complete on html:', document.documentElement.classList.contains('entrance-complete'));
-            console.log('  - noise-ready on body:', document.body.classList.contains('noise-ready'));
-            videos.forEach(v => {
-              const label = v === videoLight ? 'Light' : 'Dark';
-              console.log(`  - ${label}: readyState=${v.readyState}, paused=${v.paused}`);
-            });
-          }, 2000);
-        }
-        
-      } else {
-        if (ABS_DEV) {
-          console.warn('[Video] No video elements found');
-        }
-      }
-    } catch (e) {
-      if (ABS_DEV) {
-        console.error('[Video] Initialization error:', e);
-      }
-    }
-    
     // Setup canvas (attaches resize listener, but doesn't resize yet)
     setupRenderer();
     const canvas = getCanvas();
@@ -748,12 +556,15 @@ window.addEventListener('unhandledrejection', (event) => {
     
     // Layout controls integrated into master panel
     
+    // Initialize mode runtime (handles eager/lazy mode rollout flags)
+    initModeSystem();
+
     // Initialize starting mode (deterministic daily simulation)
     const startMode = getDailyMode();
     // Cursor color: auto-pick a new contrasty ball color per simulation load.
     // Must run after theme/palette is initialized (initializeDarkMode → applyColorTemplate).
     maybeAutoPickCursorColor?.('startup');
-    setMode(startMode);
+    await setMode(startMode);
     try {
       const ui = await import('./modules/ui/controls.js');
       ui.updateModeButtonsUI?.(startMode);

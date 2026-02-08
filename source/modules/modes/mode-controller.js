@@ -1,28 +1,11 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
-// ║                      MODE CONTROLLER (COMPLETE)                              ║
-// ║         Extracted from balls-source.html lines 3999-4085                     ║
+// ║                           MODE CONTROLLER                                   ║
+// ║     Daily-mode-first runtime with lazy-loaded simulation modules             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { MODES, CONSTANTS } from '../core/constants.js';
+import { MODES, NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
 import { setMode as setModeState, getGlobals } from '../core/state.js';
-import { initializeFlies, applyFliesForces } from './flies.js';
-import { initializeBallPit, applyBallPitForces } from './ball-pit.js';
-import { initializeWeightless, applyWeightlessForces } from './weightless.js';
 import { resize } from '../rendering/renderer.js';
-import { initializeWater, applyWaterForces, updateWaterRipples } from './water.js';
-
-import { initializeMagnetic, applyMagneticForces, updateMagnetic } from './magnetic.js';
-import { initializeBubbles, applyBubblesForces, updateBubbles } from './bubbles.js';
-import { initializeKaleidoscope, applyKaleidoscopeForces } from './kaleidoscope.js';
-import { initializeCritters, applyCrittersForces, updateCrittersGrid, renderCrittersWaypoints } from './critters.js';
-import { initializeParallaxLinear, applyParallaxLinearForces, updateParallaxLinearMouse } from './parallax-linear.js';
-import { initializeParallaxFloat, applyParallaxFloatForces, updateParallaxFloatMouse } from './parallax-float.js';
-import { initialize3DSphere, apply3DSphereForces } from './3d-sphere.js';
-import { initialize3DCube, apply3DCubeForces } from './3d-cube.js';
-import { initializeStarfield3D, applyStarfield3DForces, updateStarfield3D, renderStarfield3D } from './starfield-3d.js';
-import { initializeElasticCenter, applyElasticCenterForces, updateElasticCenter } from './elastic-center.js';
-
-import { initializeParticleFountain, applyParticleFountainForces, updateParticleFountain } from './particle-fountain.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { maybeAutoPickCursorColor } from '../visual/colors.js';
 import { resetPhysicsAccumulator } from '../physics/engine.js';
@@ -30,8 +13,192 @@ import { resetAdaptiveThrottle } from '../rendering/loop.js';
 
 export { MODES };
 
-export function initModeSystem() {
-  // Initialize mode system
+const MODE_NAMES = {
+  pit: 'Ball Pit',
+  flies: 'Flies to Light',
+  weightless: 'Zero Gravity',
+  water: 'Water Swimming',
+  magnetic: 'Magnetic',
+  bubbles: 'Carbonated Bubbles',
+  'kaleidoscope-3': 'Kaleidoscope',
+  critters: 'Hive',
+  'parallax-linear': 'Parallax (Linear)',
+  'parallax-float': 'Parallax (Float)',
+  '3d-sphere': '3D Sphere',
+  '3d-cube': '3D Cube',
+  'starfield-3d': '3D Starfield',
+  'elastic-center': 'Elastic Center',
+  'particle-fountain': 'Particle Fountain'
+};
+
+const MODE_REGISTRY = {
+  [MODES.PIT]: {
+    load: () => import('./ball-pit.js'),
+    hooks: { initialize: 'initializeBallPit', force: 'applyBallPitForces' }
+  },
+  [MODES.FLIES]: {
+    load: () => import('./flies.js'),
+    hooks: { initialize: 'initializeFlies', force: 'applyFliesForces' }
+  },
+  [MODES.WEIGHTLESS]: {
+    load: () => import('./weightless.js'),
+    hooks: { initialize: 'initializeWeightless', force: 'applyWeightlessForces' }
+  },
+  [MODES.WATER]: {
+    load: () => import('./water.js'),
+    hooks: {
+      initialize: 'initializeWater',
+      force: 'applyWaterForces',
+      update: 'updateWaterRipples'
+    }
+  },
+  [MODES.MAGNETIC]: {
+    load: () => import('./magnetic.js'),
+    hooks: {
+      initialize: 'initializeMagnetic',
+      force: 'applyMagneticForces',
+      update: 'updateMagnetic'
+    }
+  },
+  [MODES.BUBBLES]: {
+    load: () => import('./bubbles.js'),
+    hooks: {
+      initialize: 'initializeBubbles',
+      force: 'applyBubblesForces',
+      update: 'updateBubbles'
+    }
+  },
+  [MODES.KALEIDOSCOPE]: {
+    load: () => import('./kaleidoscope.js'),
+    hooks: {
+      initialize: 'initializeKaleidoscope',
+      force: 'applyKaleidoscopeForces',
+      render: 'renderKaleidoscope',
+      bounds: 'applyKaleidoscopeBounds'
+    }
+  },
+  [MODES.CRITTERS]: {
+    load: () => import('./critters.js'),
+    hooks: {
+      initialize: 'initializeCritters',
+      force: 'applyCrittersForces',
+      update: 'updateCrittersGrid',
+      preRender: 'renderCrittersWaypoints'
+    }
+  },
+  [MODES.PARALLAX_LINEAR]: {
+    load: () => import('./parallax-linear.js'),
+    hooks: {
+      initialize: 'initializeParallaxLinear',
+      force: 'applyParallaxLinearForces',
+      update: 'updateParallaxLinearMouse'
+    }
+  },
+  [MODES.PARALLAX_FLOAT]: {
+    load: () => import('./parallax-float.js'),
+    hooks: {
+      initialize: 'initializeParallaxFloat',
+      force: 'applyParallaxFloatForces',
+      update: 'updateParallaxFloatMouse'
+    }
+  },
+  [MODES.SPHERE_3D]: {
+    load: () => import('./3d-sphere.js'),
+    hooks: { initialize: 'initialize3DSphere', force: 'apply3DSphereForces' }
+  },
+  [MODES.CUBE_3D]: {
+    load: () => import('./3d-cube.js'),
+    hooks: { initialize: 'initialize3DCube', force: 'apply3DCubeForces' }
+  },
+  [MODES.STARFIELD_3D]: {
+    load: () => import('./starfield-3d.js'),
+    hooks: {
+      initialize: 'initializeStarfield3D',
+      force: 'applyStarfield3DForces',
+      update: 'updateStarfield3D',
+      preRender: 'renderStarfield3D'
+    }
+  },
+  [MODES.ELASTIC_CENTER]: {
+    load: () => import('./elastic-center.js'),
+    hooks: {
+      initialize: 'initializeElasticCenter',
+      force: 'applyElasticCenterForces',
+      update: 'updateElasticCenter'
+    }
+  },
+  [MODES.PARTICLE_FOUNTAIN]: {
+    load: () => import('./particle-fountain.js'),
+    hooks: {
+      initialize: 'initializeParticleFountain',
+      force: 'applyParticleFountainForces',
+      update: 'updateParticleFountain'
+    }
+  }
+};
+
+const modeRuntimeCache = new Map();
+const modeLoadPromises = new Map();
+let preloadAllStarted = false;
+let modeChangeToken = 0;
+
+function toFn(module, key) {
+  if (!key) return null;
+  const candidate = module?.[key];
+  return typeof candidate === 'function' ? candidate : null;
+}
+
+function buildModeRuntime(module, hooks = {}) {
+  return {
+    initialize: toFn(module, hooks.initialize),
+    force: toFn(module, hooks.force),
+    update: toFn(module, hooks.update),
+    preRender: toFn(module, hooks.preRender),
+    postRender: toFn(module, hooks.postRender),
+    customRender: toFn(module, hooks.render),
+    bounds: toFn(module, hooks.bounds)
+  };
+}
+
+async function ensureModeRuntime(mode) {
+  const entry = MODE_REGISTRY[mode];
+  if (!entry) return null;
+
+  if (modeRuntimeCache.has(mode)) {
+    return modeRuntimeCache.get(mode);
+  }
+
+  if (modeLoadPromises.has(mode)) {
+    return modeLoadPromises.get(mode);
+  }
+
+  const loadPromise = entry.load()
+    .then((module) => {
+      const runtime = buildModeRuntime(module, entry.hooks);
+      modeRuntimeCache.set(mode, runtime);
+      modeLoadPromises.delete(mode);
+      return runtime;
+    })
+    .catch((error) => {
+      modeLoadPromises.delete(mode);
+      console.warn(`[ModeLoader] Failed to load "${mode}"`, error);
+      return null;
+    });
+
+  modeLoadPromises.set(mode, loadPromise);
+  return loadPromise;
+}
+
+function maybePreloadAllModes() {
+  const globals = getGlobals();
+  if (globals.featureLazyModeLoadingEnabled !== false || preloadAllStarted) return;
+  preloadAllStarted = true;
+
+  const modes = Object.keys(MODE_REGISTRY);
+  for (let i = 0; i < modes.length; i++) {
+    const mode = modes[i];
+    void ensureModeRuntime(mode);
+  }
 }
 
 function getWarmupFramesForMode(mode, globals) {
@@ -42,7 +209,6 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.FLIES: return globals.fliesWarmupFrames ?? 10;
     case MODES.WEIGHTLESS: return globals.weightlessWarmupFrames ?? 10;
     case MODES.WATER: return globals.waterWarmupFrames ?? 10;
-
     case MODES.MAGNETIC: return globals.magneticWarmupFrames ?? 10;
     case MODES.BUBBLES: return globals.bubblesWarmupFrames ?? 10;
     case MODES.KALEIDOSCOPE: return globals.kaleidoscope3WarmupFrames ?? globals.kaleidoscopeWarmupFrames ?? 10;
@@ -53,288 +219,212 @@ function getWarmupFramesForMode(mode, globals) {
     case MODES.PARALLAX_FLOAT: return globals.parallaxFloatWarmupFrames ?? 10;
     case MODES.STARFIELD_3D: return globals.starfield3dWarmupFrames ?? 10;
     case MODES.ELASTIC_CENTER: return globals.elasticCenterWarmupFrames ?? 10;
-
     case MODES.PARTICLE_FOUNTAIN: return globals.particleFountainWarmupFrames ?? 0;
     default: return 10;
   }
 }
 
-export function setMode(mode) {
-  const globals = getGlobals();
-  const prevMode = globals.currentMode;
-  
-  // ════════════════════════════════════════════════════════════════════════════════
-  // PERFORMANCE: Reset all stateful systems on mode switch to prevent accumulation
-  // This fixes the "slower and slower" bug when switching through modes
-  // ════════════════════════════════════════════════════════════════════════════════
-  resetPhysicsAccumulator();
-  resetAdaptiveThrottle();
-  
-  // Restore physics overrides when leaving Critters mode
-  if (globals.currentMode === MODES.CRITTERS && mode !== MODES.CRITTERS) {
-    if (globals._restBeforeCritters !== undefined) {
-      globals.REST = globals._restBeforeCritters;
-      delete globals._restBeforeCritters;
-    }
-    if (globals._frictionBeforeCritters !== undefined) {
-      globals.FRICTION = globals._frictionBeforeCritters;
-      delete globals._frictionBeforeCritters;
-    }
-    // Critters-only spacing override cleanup
-    if (globals._ballSpacingBeforeCritters !== undefined) {
-      globals.ballSpacing = globals._ballSpacingBeforeCritters;
-      delete globals._ballSpacingBeforeCritters;
-    }
-  }
-  
-  
-  // Kaleidoscope no longer overrides global spacing (keeps parameters config-driven).
-  
-  setModeState(mode);
-  
-  // Cursor color: only auto-cycle when switching to a different mode.
-  if (mode !== prevMode) {
-    try { maybeAutoPickCursorColor?.('mode'); } catch (e) {}
-  }
-  
-  console.log(`Switching to mode: ${mode}`);
-  const modeNames = { 
-    pit: 'Ball Pit', 
-    flies: 'Flies to Light', 
-    weightless: 'Zero Gravity', 
-    water: 'Water Swimming',
+function applyModePhysicsState(mode, globals) {
+  const zeroGravityModes = new Set([
+    MODES.FLIES,
+    MODES.WEIGHTLESS,
+    MODES.WATER,
+    MODES.MAGNETIC,
+    MODES.BUBBLES,
+    MODES.KALEIDOSCOPE,
+    MODES.SPHERE_3D,
+    MODES.CUBE_3D,
+    MODES.CRITTERS,
+    MODES.PARALLAX_LINEAR,
+    MODES.PARALLAX_FLOAT,
+    MODES.STARFIELD_3D,
+    MODES.ELASTIC_CENTER
+  ]);
 
-    magnetic: 'Magnetic',
-    bubbles: 'Carbonated Bubbles',
-    'kaleidoscope-3': 'Kaleidoscope',
-    critters: 'Hive',
-    'parallax-linear': 'Parallax (Linear)',
-    'parallax-float': 'Parallax (Float)',
-    '3d-sphere': '3D Sphere',
-    '3d-cube': '3D Cube',
-    'starfield-3d': '3D Starfield',
-    'elastic-center': 'Elastic Center',
-
-    'particle-fountain': 'Particle Fountain'
-  };
-  announceToScreenReader(`Switched to ${modeNames[mode] || mode} mode`);
-  
-  // NOTE: UI button updates are handled by the caller (controls.js, keyboard.js)
-  // to avoid circular dependencies
-  
-  // Update container class for mode-specific styling
-  // PRESERVE dark-mode class when switching modes!
-  if (globals.container) {
-    const wasDark = globals.container.classList.contains('dark-mode');
-    globals.container.className = '';
-    if (mode === MODES.PIT) {
-      globals.container.classList.add('mode-pit');
-    }
-    // Restore dark mode class if it was set
-    if (wasDark || globals.isDarkMode) {
-      globals.container.classList.add('dark-mode');
-    }
-  }
-  
-  // Resize canvas to match mode height
-  resize();
-  
-  // Set physics parameters and initialize scene
   if (mode === MODES.PIT) {
     globals.gravityMultiplier = globals.gravityMultiplierPit;
     globals.G = globals.GE * globals.gravityMultiplier;
     globals.repellerEnabled = true;
-    initializeBallPit();
-  } else if (mode === MODES.FLIES) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeFlies();
-  } else if (mode === MODES.WEIGHTLESS) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeWeightless();
-  } else if (mode === MODES.WATER) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeWater();
-  } else if (mode === MODES.MAGNETIC) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeMagnetic();
-  } else if (mode === MODES.BUBBLES) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeBubbles();
-  } else if (mode === MODES.KALEIDOSCOPE) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeKaleidoscope();
-  } else if (mode === MODES.SPHERE_3D) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initialize3DSphere();
-  } else if (mode === MODES.CUBE_3D) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initialize3DCube();
-  } else if (mode === MODES.CRITTERS) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
+    return;
+  }
 
-    // Critters are “crawl-y”: lower restitution + higher drag (mode-only overrides).
-    if (globals._restBeforeCritters === undefined) globals._restBeforeCritters = globals.REST;
-    if (globals._frictionBeforeCritters === undefined) globals._frictionBeforeCritters = globals.FRICTION;
-    globals.REST = globals.critterRestitution ?? globals.REST;
-    globals.FRICTION = globals.critterFriction ?? globals.FRICTION;
-
-    // Critters should feel more “clumpy” than the global default spacing.
-    // Keep this mode-local so other modes retain their tuned spacing.
-    if (globals._ballSpacingBeforeCritters === undefined) {
-      globals._ballSpacingBeforeCritters = globals.ballSpacing;
-    }
-    globals.ballSpacing = Math.min(globals.ballSpacing || 0, 1.0);
-
-    initializeCritters();
-  } else if (mode === MODES.PARALLAX_LINEAR) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeParallaxLinear();
-  } else if (mode === MODES.PARALLAX_FLOAT) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeParallaxFloat();
-  } else if (mode === MODES.STARFIELD_3D) {
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeStarfield3D();
-  } else if (mode === MODES.ELASTIC_CENTER) {
-    // Disable gravity for elastic center mode
-    globals.gravityMultiplier = 0.0;
-    globals.G = 0;
-    globals.repellerEnabled = false;
-    initializeElasticCenter();
-  } else if (mode === MODES.PARTICLE_FOUNTAIN) {
-    // Enable gravity for particle fountain (particles fall after rising)
+  if (mode === MODES.PARTICLE_FOUNTAIN) {
     globals.gravityMultiplier = globals.particleFountainGravityMultiplier || 1.0;
     globals.G = globals.GE * globals.gravityMultiplier;
-    globals.repellerEnabled = true; // Enable mouse repulsion for particles
-    initializeParticleFountain();
+    globals.repellerEnabled = true;
+    return;
   }
-  
-  console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
 
-  // Sync legend filter system with new balls
-  if (typeof window !== 'undefined' && window.legendFilter && window.legendFilter.syncAllBalls) {
-    try {
-      window.legendFilter.syncAllBalls();
-    } catch (e) {
-      console.warn('Legend filter sync failed:', e);
+  if (zeroGravityModes.has(mode)) {
+    globals.gravityMultiplier = 0.0;
+    globals.G = 0;
+    globals.repellerEnabled = false;
+  }
+}
+
+function restoreCrittersOverridesIfNeeded(globals, nextMode) {
+  if (globals.currentMode !== MODES.CRITTERS || nextMode === MODES.CRITTERS) return;
+
+  if (globals._restBeforeCritters !== undefined) {
+    globals.REST = globals._restBeforeCritters;
+    delete globals._restBeforeCritters;
+  }
+  if (globals._frictionBeforeCritters !== undefined) {
+    globals.FRICTION = globals._frictionBeforeCritters;
+    delete globals._frictionBeforeCritters;
+  }
+  if (globals._ballSpacingBeforeCritters !== undefined) {
+    globals.ballSpacing = globals._ballSpacingBeforeCritters;
+    delete globals._ballSpacingBeforeCritters;
+  }
+}
+
+function applyCrittersOverridesIfNeeded(globals, mode) {
+  if (mode !== MODES.CRITTERS) return;
+  if (globals._restBeforeCritters === undefined) globals._restBeforeCritters = globals.REST;
+  if (globals._frictionBeforeCritters === undefined) globals._frictionBeforeCritters = globals.FRICTION;
+  if (globals._ballSpacingBeforeCritters === undefined) globals._ballSpacingBeforeCritters = globals.ballSpacing;
+
+  globals.REST = globals.critterRestitution ?? globals.REST;
+  globals.FRICTION = globals.critterFriction ?? globals.FRICTION;
+  globals.ballSpacing = Math.min(globals.ballSpacing || 0, 1.0);
+}
+
+function getRuntimeForCurrentMode() {
+  const globals = getGlobals();
+  const mode = globals.currentMode;
+  const runtime = modeRuntimeCache.get(mode);
+  if (runtime) return runtime;
+
+  if (!modeLoadPromises.has(mode)) {
+    void ensureModeRuntime(mode);
+  }
+  return null;
+}
+
+export function initModeSystem() {
+  maybePreloadAllModes();
+}
+
+export async function setMode(inputMode) {
+  const globals = getGlobals();
+  let mode = inputMode;
+
+  // Parallax-linear simulation disabled: redirect to first narrative mode.
+  if (mode === MODES.PARALLAX_LINEAR) {
+    mode = NARRATIVE_MODE_SEQUENCE[0] ?? MODES.PIT;
+  }
+
+  maybePreloadAllModes();
+
+  const activeToken = ++modeChangeToken;
+  const runtime = await ensureModeRuntime(mode);
+  if (activeToken !== modeChangeToken) return false;
+
+  if (!runtime || typeof runtime.initialize !== 'function') {
+    console.warn(`[ModeLoader] Runtime for "${mode}" missing initialize hook.`);
+    if (mode !== MODES.PIT) return setMode(MODES.PIT);
+    return false;
+  }
+
+  const prevMode = globals.currentMode;
+  try {
+    // Reset stateful systems on mode switch to prevent accumulation artifacts.
+    resetPhysicsAccumulator();
+    resetAdaptiveThrottle();
+    restoreCrittersOverridesIfNeeded(globals, mode);
+
+    setModeState(mode);
+
+    // Cursor color: only auto-cycle when switching to a different mode.
+    if (mode !== prevMode) {
+      try { maybeAutoPickCursorColor?.('mode'); } catch (e) {}
     }
-  }
 
-  // Schedule warmup consumption (no rendering during warmup).
-  // The physics engine will consume this before the first render after mode init.
-  const warmupFrames = Math.max(0, Math.round(getWarmupFramesForMode(mode, globals) || 0));
-  globals.warmupFramesRemaining = warmupFrames;
+    console.log(`Switching to mode: ${mode}`);
+    announceToScreenReader(`Switched to ${MODE_NAMES[mode] || mode} mode`);
 
-  // Broadcast mode changes for lightweight UI micro-interactions (e.g., logo pulse).
-  // Keep this decoupled from UI modules to avoid circular dependencies.
-  if (typeof window !== 'undefined' && mode !== prevMode) {
-    try {
-      window.dispatchEvent(new CustomEvent('bb:modeChanged', { detail: { prevMode, mode } }));
-    } catch (e) {}
+    // Update container class for mode-specific styling.
+    // Preserve dark-mode class when switching modes.
+    if (globals.container) {
+      const wasDark = globals.container.classList.contains('dark-mode');
+      globals.container.className = '';
+      if (mode === MODES.PIT) {
+        globals.container.classList.add('mode-pit');
+      }
+      if (wasDark || globals.isDarkMode) {
+        globals.container.classList.add('dark-mode');
+      }
+    }
+
+    // Resize canvas to match mode geometry.
+    resize();
+
+    applyModePhysicsState(mode, globals);
+    applyCrittersOverridesIfNeeded(globals, mode);
+    runtime.initialize();
+
+    console.log(`Mode ${mode} initialized with ${globals.balls.length} balls`);
+
+    // Sync legend filter system with new balls.
+    if (typeof window !== 'undefined' && window.legendFilter && window.legendFilter.syncAllBalls) {
+      try {
+        window.legendFilter.syncAllBalls();
+      } catch (e) {
+        console.warn('Legend filter sync failed:', e);
+      }
+    }
+
+    // Schedule warmup consumption (no rendering during warmup).
+    const warmupFrames = Math.max(0, Math.round(getWarmupFramesForMode(mode, globals) || 0));
+    globals.warmupFramesRemaining = warmupFrames;
+
+    // Broadcast mode changes for lightweight UI micro-interactions.
+    if (typeof window !== 'undefined' && mode !== prevMode) {
+      try {
+        window.dispatchEvent(new CustomEvent('bb:modeChanged', { detail: { prevMode, mode } }));
+      } catch (e) {}
+    }
+
+    return true;
+  } catch (error) {
+    console.warn(`[ModeLoader] Failed while applying mode "${mode}"`, error);
+    if (mode !== MODES.PIT) return setMode(MODES.PIT);
+    return false;
   }
 }
 
 export function resetCurrentMode() {
   const globals = getGlobals();
-  // Cursor color: auto-cycle on explicit resets (even though mode stays the same).
   try { maybeAutoPickCursorColor?.('reset'); } catch (e) {}
-  setMode(globals.currentMode);
+  return setMode(globals.currentMode);
 }
 
 export function getForceApplicator() {
-  const globals = getGlobals();
-  if (globals.currentMode === MODES.FLIES) {
-    return applyFliesForces;
-  } else if (globals.currentMode === MODES.PIT) {
-    return applyBallPitForces;
-  } else if (globals.currentMode === MODES.WEIGHTLESS) {
-    return applyWeightlessForces;
-  } else if (globals.currentMode === MODES.WATER) {
-    return applyWaterForces;
-  } else if (globals.currentMode === MODES.MAGNETIC) {
-    return applyMagneticForces;
-  } else if (globals.currentMode === MODES.BUBBLES) {
-    return applyBubblesForces;
-  } else if (globals.currentMode === MODES.KALEIDOSCOPE) {
-    return applyKaleidoscopeForces;
-  } else if (globals.currentMode === MODES.SPHERE_3D) {
-    return apply3DSphereForces;
-  } else if (globals.currentMode === MODES.CUBE_3D) {
-    return apply3DCubeForces;
-  } else if (globals.currentMode === MODES.CRITTERS) {
-    return applyCrittersForces;
-  } else if (globals.currentMode === MODES.PARALLAX_LINEAR) {
-    return applyParallaxLinearForces;
-  } else if (globals.currentMode === MODES.PARALLAX_FLOAT) {
-    return applyParallaxFloatForces;
-  } else if (globals.currentMode === MODES.STARFIELD_3D) {
-    return applyStarfield3DForces;
-  } else if (globals.currentMode === MODES.ELASTIC_CENTER) {
-    return applyElasticCenterForces;
-  } else if (globals.currentMode === MODES.PARTICLE_FOUNTAIN) {
-    return applyParticleFountainForces;
-  }
-  return null;
+  const runtime = getRuntimeForCurrentMode();
+  return runtime?.force || null;
 }
 
 export function getModeUpdater() {
-  const globals = getGlobals();
-  if (globals.currentMode === MODES.WATER) {
-    return updateWaterRipples;
-  } else if (globals.currentMode === MODES.MAGNETIC) {
-    return updateMagnetic;
-  } else if (globals.currentMode === MODES.BUBBLES) {
-    return updateBubbles;
-  } else if (globals.currentMode === MODES.STARFIELD_3D) {
-    return updateStarfield3D;
-  } else if (globals.currentMode === MODES.ELASTIC_CENTER) {
-    return updateElasticCenter;
-  } else if (globals.currentMode === MODES.PARTICLE_FOUNTAIN) {
-    return updateParticleFountain;
-  } else if (globals.currentMode === MODES.PARALLAX_FLOAT) {
-    return updateParallaxFloatMouse;
-  } else if (globals.currentMode === MODES.PARALLAX_LINEAR) {
-    return updateParallaxLinearMouse;
-  } else if (globals.currentMode === MODES.CRITTERS) {
-    return updateCrittersGrid;
-  }
-  return null;
+  const runtime = getRuntimeForCurrentMode();
+  return runtime?.update || null;
 }
 
 export function getModeRenderer() {
-  const globals = getGlobals();
-  if (globals.currentMode === MODES.STARFIELD_3D) {
-    return {
-      preRender: renderStarfield3D
-    };
-  } else if (globals.currentMode === MODES.CRITTERS) {
-    return {
-      preRender: renderCrittersWaypoints
-    };
-  }
-  return null;
+  const runtime = getRuntimeForCurrentMode();
+  if (!runtime?.preRender && !runtime?.postRender) return null;
+  return {
+    preRender: runtime.preRender || null,
+    postRender: runtime.postRender || null
+  };
+}
+
+export function getModeCustomRenderer() {
+  const runtime = getRuntimeForCurrentMode();
+  return runtime?.customRender || null;
+}
+
+export function getModeBoundsHandler() {
+  const runtime = getRuntimeForCurrentMode();
+  return runtime?.bounds || null;
 }

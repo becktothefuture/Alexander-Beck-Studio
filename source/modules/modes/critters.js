@@ -26,6 +26,7 @@ const SPATIAL_CELLS = SPATIAL_GRID_SIZE * SPATIAL_GRID_SIZE;
 let spatialGrid = []; // Array of arrays (buckets)
 let spatialCellWidth = 0;
 let spatialCellHeight = 0;
+let neighborCacheFrameId = 0;
 
 function resetSpatialGrid() {
   spatialGrid = [];
@@ -53,11 +54,10 @@ function buildSpatialGrid(balls, canvasW, canvasH) {
   }
 }
 
-function getNearbyCritters(ball, canvasW, canvasH) {
+function collectNearbyCritters(ball, canvasW, canvasH, out) {
   const cellX = Math.min(SPATIAL_GRID_SIZE - 1, Math.max(0, (ball.x / canvasW * SPATIAL_GRID_SIZE) | 0));
   const cellY = Math.min(SPATIAL_GRID_SIZE - 1, Math.max(0, (ball.y / canvasH * SPATIAL_GRID_SIZE) | 0));
-  
-  const nearby = [];
+  out.length = 0;
   
   // Check 3×3 neighborhood (same cell + 8 adjacent)
   for (let dy = -1; dy <= 1; dy++) {
@@ -72,13 +72,28 @@ function getNearbyCritters(ball, canvasW, canvasH) {
       const bucket = spatialGrid[idx];
       for (let i = 0; i < bucket.length; i++) {
         if (bucket[i] !== ball) {
-          nearby.push(bucket[i]);
+          out.push(bucket[i]);
         }
       }
     }
   }
-  
-  return nearby;
+  return out;
+}
+
+function getNearbyCritters(ball, canvasW, canvasH) {
+  const globals = getGlobals();
+  if (globals.featureCrittersNeighborCacheEnabled === false) {
+    return collectNearbyCritters(ball, canvasW, canvasH, []);
+  }
+
+  if (ball._critterNeighborCacheFrame === neighborCacheFrameId && Array.isArray(ball._critterNeighborCache)) {
+    return ball._critterNeighborCache;
+  }
+
+  const cache = Array.isArray(ball._critterNeighborCache) ? ball._critterNeighborCache : [];
+  ball._critterNeighborCache = collectNearbyCritters(ball, canvasW, canvasH, cache);
+  ball._critterNeighborCacheFrame = neighborCacheFrameId;
+  return ball._critterNeighborCache;
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -383,6 +398,7 @@ export function updateCrittersGrid(dt) {
   
   // Build spatial hash grid for O(1) neighbor lookups
   buildSpatialGrid(balls, w, h);
+  neighborCacheFrameId++;
   
   // ════════════════════════════════════════════════════════════════════════════
   // HIVE MIND: Collective behavior coordination
@@ -489,6 +505,9 @@ export function applyCrittersForces(ball, dt) {
   let instantThreat = 0;
   let fleeFromX = 0;
   let fleeFromY = 0;
+  let avoidanceAx = 0;
+  let avoidanceAy = 0;
+  let avoidanceCount = 0;
 
   // ──────────────────────────────────────────────────────────────────────────────
   // GROUND FRICTION (makes critters feel grounded)
@@ -544,6 +563,7 @@ export function applyCrittersForces(ball, dt) {
   // ──────────────────────────────────────────────────────────────────────────────
   if (avoidR > 0) {
     const nearby = getNearbyCritters(ball, canvasW, canvasH);
+    const avoidR2 = avoidR * avoidR;
     const contagionRadius = avoidR * 1.5;
     const contagionR2 = contagionRadius * contagionRadius;
     let nearbyPanic = 0;
@@ -554,6 +574,16 @@ export function applyCrittersForces(ball, dt) {
       const dx = ball.x - o.x;
       const dy = ball.y - o.y;
       const d2 = dx * dx + dy * dy;
+
+      if (avoidF > 0 && d2 > 0 && d2 < avoidR2) {
+        const invD = 1 / Math.sqrt(d2);
+        const distance = 1 / invD;
+        const q = 1 - (distance / avoidR);
+        avoidanceAx += dx * invD * q * q;
+        avoidanceAy += dy * invD * q * q;
+        avoidanceCount++;
+      }
+
       if (d2 > 0 && d2 < contagionR2) {
         const theirPanic = o._critterPanic || 0;
         if (theirPanic > 0.2) {
@@ -838,33 +868,14 @@ export function applyCrittersForces(ball, dt) {
   // ──────────────────────────────────────────────────────────────────────────────
   // LOCAL AVOIDANCE: Use spatial grid for O(1) neighbor lookup
   // ──────────────────────────────────────────────────────────────────────────────
-  if (avoidR > 0 && avoidF > 0) {
-    const nearby = getNearbyCritters(ball, canvasW, canvasH);
-    const rr2 = avoidR * avoidR;
-    let ax = 0;
-    let ay = 0;
-    let n = 0;
-    for (let i = 0; i < nearby.length; i++) {
-      const o = nearby[i];
-      const dx = ball.x - o.x;
-      const dy = ball.y - o.y;
-      const d2 = dx * dx + dy * dy;
-      if (d2 > 0 && d2 < rr2) {
-        const invD = 1 / Math.sqrt(d2);
-        const d = 1 / invD;
-        const q = 1 - (d / avoidR);
-        ax += dx * invD * q * q;
-        ay += dy * invD * q * q;
-        n++;
-      }
-    }
-    if (n > 0) {
-      const invN = 1 / n;
-      steerX += (ax * invN) * 1.2;
-      steerY += (ay * invN) * 1.2;
-      ball.vx += (ax * invN) * (avoidF * 0.5) * dt;
-      ball.vy += (ay * invN) * (avoidF * 0.5) * dt;
-    }
+  if (avoidR > 0 && avoidF > 0 && avoidanceCount > 0) {
+    const invN = 1 / avoidanceCount;
+    const meanAx = avoidanceAx * invN;
+    const meanAy = avoidanceAy * invN;
+    steerX += meanAx * 1.2;
+    steerY += meanAy * 1.2;
+    ball.vx += meanAx * (avoidF * 0.5) * dt;
+    ball.vy += meanAy * (avoidF * 0.5) * dt;
   }
 
   // ──────────────────────────────────────────────────────────────────────────────

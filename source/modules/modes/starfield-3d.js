@@ -3,7 +3,7 @@
 // ║         Direct canvas rendering - bypasses ball system entirely               ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 import { pickRandomColor } from '../visual/colors.js';
 
 // Module-level star array (not balls, just data)
@@ -37,7 +37,8 @@ export function initializeStarfield3D() {
 
   const w = canvas.width;
   const h = canvas.height;
-  const count = Math.max(50, Math.min(500, Math.round(g.starfieldCount ?? 200)));
+  const baseCount = Math.max(50, Math.min(500, Math.round(g.starfieldCount ?? 200)));
+  const count = getMobileAdjustedCount(baseCount);
   const baseSpanX = Math.max(0.5, Math.min(4.0, g.starfieldSpanX ?? 1.5));
   const baseSpanY = Math.max(0.5, Math.min(4.0, g.starfieldSpanY ?? 1.2));
   const spanX = baseSpanX * SPAN_MULTIPLIER;

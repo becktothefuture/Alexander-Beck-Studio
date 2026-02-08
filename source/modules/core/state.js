@@ -160,6 +160,38 @@ const state = {
   // Toggleable at runtime for a low-cost simulation profile.
   liteModeEnabled: false,
   liteModeObjectReductionFactor: 0.6,
+
+  // Performance rollout flags (independent rollback toggles).
+  featureRenderSchedulerEnabled: true,
+  featureLazyModeLoadingEnabled: true,
+  featureQualityTieringEnabled: true,
+  featureCrittersNeighborCacheEnabled: true,
+  performanceModeEnabled: false,
+  performanceHudEnabled: true,
+
+  // Configurable render scheduler targets.
+  renderTargetFpsDesktop: 120,
+  renderTargetFpsMobile: 60,
+  renderTargetFpsReducedMotion: 60,
+
+  // Adaptive quality profile (auto | high | balanced | low).
+  renderQualityTier: 'auto',
+
+  // Per-mode object-count budgets by hardware class.
+  // Applied as upper bounds before mobile/lite multipliers.
+  modePerformanceBudgets: {
+    [MODES.PIT]: { desktop: 320, mobile: 220 },
+    [MODES.FLIES]: { desktop: 90, mobile: 64 },
+    [MODES.WEIGHTLESS]: { desktop: 220, mobile: 140 },
+    [MODES.WATER]: { desktop: 1800, mobile: 900 },
+    [MODES.MAGNETIC]: { desktop: 220, mobile: 140 },
+    [MODES.BUBBLES]: { desktop: 260, mobile: 180 },
+    [MODES.KALEIDOSCOPE]: { desktop: 180, mobile: 120 },
+    [MODES.CRITTERS]: { desktop: 140, mobile: 95 },
+    [MODES.STARFIELD_3D]: { desktop: 220, mobile: 150 },
+    [MODES.PARTICLE_FOUNTAIN]: { desktop: 260, mobile: 180 }
+  },
+
   // Ball sizes (set by updateBallSizes based on device)
   R_MED: 18,
   R_MIN: 18,
@@ -629,15 +661,16 @@ const state = {
   wallShadowStrokeOpacityLight: 0.06,     // Solid edge stroke in light mode
   wallShadowStrokeOpacityDark: 0.04,      // Solid edge stroke in dark mode
   
-  // Inner Shadow (soft, staggered 3-layer shadow for depth)
-  // Creates the illusion of the wall casting shadow onto the recessed content
+  // Inner Shadow (inset shadow in background colour for depth)
+  // V2 keys to bust cache of old low-opacity defaults
   wallInnerShadowEnabled: true,           // Master toggle
-  wallInnerShadowOpacityLight: 0.08,      // Shadow opacity in light mode
-  wallInnerShadowOpacityDark: 0.25,       // Shadow opacity in dark mode
-  wallInnerShadowOffsetY: 2,              // Vertical offset (px) - positive = shadow from top
-  wallInnerShadowBlur1: 3,                // Layer 1: tight, sharp shadow (px)
-  wallInnerShadowBlur2: 8,                // Layer 2: medium diffuse (px)
-  wallInnerShadowBlur3: 20,               // Layer 3: soft ambient (px)
+  wallInnerShadowOpacityLightV2: 1.0,     // Shadow opacity in light mode (full opacity for solid edge)
+  wallInnerShadowOpacityDarkV2: 1.0,      // Shadow opacity in dark mode (full opacity for solid edge)
+  wallInnerShadowBlurVh: 15,              // Blur size in vh
+  wallInnerShadowSpreadVh: 15,            // Spread size in vh - large solid band
+  wallInnerShadowBlur1: 3,                // Layer 1: tight, sharp shadow (px) - legacy
+  wallInnerShadowBlur2: 8,                // Layer 2: medium diffuse (px) - fallback if no vh
+  wallInnerShadowBlur3: 20,               // Layer 3: soft ambient (px) - legacy
   
   // Radial Gradient Stroke (inner wall edge lighting)
   // Two gradient strokes: bottom light (main) and top light (ambient)
@@ -679,6 +712,20 @@ const state = {
   outerWallTopShadowBlur: 8,                // Top shadow blur (px)
   outerWallTopShadowOpacityLight: 0.4,      // Top shadow opacity light mode
   outerWallTopShadowOpacityDark: 0.6,       // Top shadow opacity dark mode
+  
+  // Outer Wall Shine (inset blur glow layer, similar to inner wall shine)
+  // Light mode
+  outerWallShineBlurLight: 20,              // Blur radius light mode (px)
+  outerWallShineSpreadLight: 4,             // Spread light mode (px) - creates solid edge band
+  outerWallShineOvershootLight: 10,         // Overshoot light mode (px) - negative extends outside, positive insets
+  outerWallShineOpacityLight: 0.4,          // Shine opacity light mode
+  outerWallShineColorLight: '',             // Color override light mode (empty = use frame/wall background color)
+  // Dark mode
+  outerWallShineBlurDark: 20,               // Blur radius dark mode (px)
+  outerWallShineSpreadDark: 4,              // Spread dark mode (px) - creates solid edge band
+  outerWallShineOvershootDark: 10,          // Overshoot dark mode (px) - negative extends outside, positive insets
+  outerWallShineOpacityDark: 0.5,           // Shine opacity dark mode
+  outerWallShineColorDark: '',              // Color override dark mode (empty = use frame/wall background color)
   
   // Inner Wall Outward Shadow (cast onto wall surface)
   innerWallOutwardShadowOffset: 2,          // Shadow Y offset (px)
@@ -1273,6 +1320,58 @@ export function initState(config) {
       state.mobileObjectReductionThreshold
     );
   }
+
+  // Performance rollout flags + scheduler controls
+  const featureFlags = (config.featureFlags && typeof config.featureFlags === 'object')
+    ? config.featureFlags
+    : null;
+  const readFlag = (key, fallback) => {
+    if (config[key] !== undefined) return Boolean(config[key]);
+    if (featureFlags && featureFlags[key] !== undefined) return Boolean(featureFlags[key]);
+    return fallback;
+  };
+
+  state.featureRenderSchedulerEnabled = readFlag('featureRenderSchedulerEnabled', state.featureRenderSchedulerEnabled);
+  state.featureLazyModeLoadingEnabled = readFlag('featureLazyModeLoadingEnabled', state.featureLazyModeLoadingEnabled);
+  state.featureQualityTieringEnabled = readFlag('featureQualityTieringEnabled', state.featureQualityTieringEnabled);
+  state.featureCrittersNeighborCacheEnabled = readFlag('featureCrittersNeighborCacheEnabled', state.featureCrittersNeighborCacheEnabled);
+
+  if (config.performanceModeEnabled !== undefined) {
+    state.performanceModeEnabled = Boolean(config.performanceModeEnabled);
+  }
+  if (config.performanceHudEnabled !== undefined) {
+    state.performanceHudEnabled = Boolean(config.performanceHudEnabled);
+  }
+
+  if (config.renderTargetFpsDesktop !== undefined) {
+    state.renderTargetFpsDesktop = clampInt(config.renderTargetFpsDesktop, 30, 240, state.renderTargetFpsDesktop);
+  }
+  if (config.renderTargetFpsMobile !== undefined) {
+    state.renderTargetFpsMobile = clampInt(config.renderTargetFpsMobile, 30, 120, state.renderTargetFpsMobile);
+  }
+  if (config.renderTargetFpsReducedMotion !== undefined) {
+    state.renderTargetFpsReducedMotion = clampInt(config.renderTargetFpsReducedMotion, 30, 120, state.renderTargetFpsReducedMotion);
+  }
+  if (config.renderQualityTier !== undefined) {
+    const tier = String(config.renderQualityTier).toLowerCase();
+    if (tier === 'auto' || tier === 'high' || tier === 'balanced' || tier === 'medium' || tier === 'low') {
+      state.renderQualityTier = tier === 'medium' ? 'balanced' : tier;
+    }
+  }
+
+  if (config.modePerformanceBudgets && typeof config.modePerformanceBudgets === 'object') {
+    const nextBudgets = { ...(state.modePerformanceBudgets || {}) };
+    const entries = Object.entries(config.modePerformanceBudgets);
+    for (let i = 0; i < entries.length; i++) {
+      const [mode, rawBudget] = entries[i];
+      if (!rawBudget || typeof rawBudget !== 'object') continue;
+      const prev = nextBudgets[mode] || {};
+      const desktop = clampInt(rawBudget.desktop, 1, 10000, clampInt(prev.desktop, 1, 10000, 1000));
+      const mobile = clampInt(rawBudget.mobile, 1, 10000, clampInt(prev.mobile, 1, 10000, desktop));
+      nextBudgets[mode] = { desktop, mobile };
+    }
+    state.modePerformanceBudgets = nextBudgets;
+  }
   
   // Detect mobile/tablet devices and set ball sizes
   detectResponsiveScale();
@@ -1791,6 +1890,19 @@ export function initState(config) {
   if (config.outerWallTopShadowOpacityLight !== undefined) state.outerWallTopShadowOpacityLight = config.outerWallTopShadowOpacityLight;
   if (config.outerWallTopShadowOpacityDark !== undefined) state.outerWallTopShadowOpacityDark = config.outerWallTopShadowOpacityDark;
   
+  // Outer Wall Shine (Light mode)
+  if (config.outerWallShineBlurLight !== undefined) state.outerWallShineBlurLight = config.outerWallShineBlurLight;
+  if (config.outerWallShineSpreadLight !== undefined) state.outerWallShineSpreadLight = config.outerWallShineSpreadLight;
+  if (config.outerWallShineOvershootLight !== undefined) state.outerWallShineOvershootLight = config.outerWallShineOvershootLight;
+  if (config.outerWallShineOpacityLight !== undefined) state.outerWallShineOpacityLight = config.outerWallShineOpacityLight;
+  if (config.outerWallShineColorLight !== undefined) state.outerWallShineColorLight = config.outerWallShineColorLight;
+  // Outer Wall Shine (Dark mode)
+  if (config.outerWallShineBlurDark !== undefined) state.outerWallShineBlurDark = config.outerWallShineBlurDark;
+  if (config.outerWallShineSpreadDark !== undefined) state.outerWallShineSpreadDark = config.outerWallShineSpreadDark;
+  if (config.outerWallShineOvershootDark !== undefined) state.outerWallShineOvershootDark = config.outerWallShineOvershootDark;
+  if (config.outerWallShineOpacityDark !== undefined) state.outerWallShineOpacityDark = config.outerWallShineOpacityDark;
+  if (config.outerWallShineColorDark !== undefined) state.outerWallShineColorDark = config.outerWallShineColorDark;
+  
   // Inner wall settings (edge lighting, shadows, glow)
   // Inner Wall Continuous Border
   if (config.innerWallBorderWidth !== undefined) state.innerWallBorderWidth = config.innerWallBorderWidth;
@@ -1906,9 +2018,32 @@ export function getGlobals() {
  * mode count/size that represents “number of objects”. On non-mobile,
  * returns the base count unchanged.
  */
+function getModeBudgetLimit(globals) {
+  const budgets = globals?.modePerformanceBudgets;
+  if (!budgets || typeof budgets !== 'object') return Number.POSITIVE_INFINITY;
+
+  const mode = globals?.currentMode;
+  if (!mode) return Number.POSITIVE_INFINITY;
+  const entry = budgets[mode];
+  if (!entry || typeof entry !== 'object') return Number.POSITIVE_INFINITY;
+
+  const isMobileClass = globals.isMobile || globals.isMobileViewport;
+  const rawLimit = Number(isMobileClass ? entry.mobile : entry.desktop);
+  if (!Number.isFinite(rawLimit) || rawLimit <= 0) return Number.POSITIVE_INFINITY;
+  return rawLimit;
+}
+
 export function getMobileAdjustedCount(baseCount) {
   const globals = getGlobals();
-  const n = Math.round(Number(baseCount) || 0);
+  let n = Math.round(Number(baseCount) || 0);
+
+  if (globals.featureQualityTieringEnabled !== false) {
+    const budgetLimit = getModeBudgetLimit(globals);
+    if (Number.isFinite(budgetLimit)) {
+      n = Math.min(n, Math.round(budgetLimit));
+    }
+  }
+
   let factor = 1;
   if (globals.isMobile) {
     const mobileFactor = Math.max(0, Math.min(1, Number(globals.mobileObjectReductionFactor ?? 0.7)));

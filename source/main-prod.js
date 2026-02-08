@@ -14,7 +14,7 @@ import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { setupOverscrollLock } from './modules/input/overscroll-lock.js';
 import { setupCustomCursor } from './modules/rendering/cursor.js';
-import { setMode, MODES, getForceApplicator } from './modules/modes/mode-controller.js';
+import { setMode, MODES, getForceApplicator, initModeSystem } from './modules/modes/mode-controller.js';
 import { startMainLoop } from './modules/rendering/loop.js';
 import { loadSettings } from './modules/utils/storage.js';
 import { initCVModal } from './modules/ui/cv-modal.js';
@@ -465,8 +465,9 @@ function enhanceFooterLinksForMobile() {
     startIndexFadeIn();
 
     // Start simulation
+    initModeSystem();
     const startupMode = pickStartupMode();
-    setMode(startupMode);
+    await setMode(startupMode);
     
     // Apply mode-specific forces to each ball during physics step
     const getForces = () => getForceApplicator();

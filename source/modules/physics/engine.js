@@ -6,13 +6,17 @@
 import { CONSTANTS, MODES } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { resolveCollisions, resolveCollisionsCustom } from './collision.js';
-import { updateWaterRipples, getWaterRipples } from '../modes/water.js';
 import { drawWalls, updateChromeColor } from './wall-state.js';
 import { drawDepthWash } from '../visual/depth-wash.js';
-import { getModeUpdater, getModeRenderer } from '../modes/mode-controller.js';
-import { renderKaleidoscope } from '../modes/kaleidoscope.js';
-import { applyKaleidoscopeBounds } from '../modes/kaleidoscope.js';
+import {
+  getModeUpdater,
+  getModeRenderer,
+  getModeCustomRenderer,
+  getModeBoundsHandler
+} from '../modes/mode-controller.js';
 import { drawMouseTrail } from '../visual/mouse-trail.js';
+import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
+import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { 
   getAccumulator, 
   setAccumulator, 
@@ -225,6 +229,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   // - NO rubber wall deformation / impacts
   // - Simple bounds handling (no corner repellers, no wall wobble)
   if (globals.currentMode === MODES.KALEIDOSCOPE) {
+    const kaleidoBoundsHandler = getModeBoundsHandler();
     const dt = Math.min(0.033, Math.max(0, dtSeconds));
     const len = balls.length;
     for (let i = 0; i < len; i++) {
@@ -238,7 +243,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
 
     // Simple bounds (no impacts / no wobble)
     for (let i = 0; i < len; i++) {
-      applyKaleidoscopeBounds(balls[i], canvas.width, canvas.height, dt);
+      if (kaleidoBoundsHandler) {
+        kaleidoBoundsHandler(balls[i], canvas.width, canvas.height, dt);
+      }
     }
 
     setAccumulator(0);
@@ -480,6 +487,7 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
 
   // Update logo entrance animation
   updateLogoEntrance(dtSeconds);
+  updateCursorExplosion(dtSeconds);
 }
 
 export function render() {
@@ -494,6 +502,8 @@ export function render() {
   // LOGO: Update size (early-exits if no changes)
   // ═══════════════════════════════════════════════════════════════════════════════
   const dpr = globals.DPR || 1;
+  const qualityProfile = getRenderQualityProfile(globals);
+  globals.renderQualityTierResolved = qualityProfile.tier;
   updateLogoSize(canvas.width, canvas.height, dpr);
   
   // Clear frame (ghost trails removed per performance optimization plan)
@@ -532,11 +542,16 @@ export function render() {
   const logoReady = isCanvasLogoReady();
   
   if (globals.currentMode === MODES.KALEIDOSCOPE) {
+    const kaleidoRenderer = getModeCustomRenderer();
     // Kaleidoscope has special rendering - draw logo first, then kaleidoscope on top
     if (logoReady) {
       drawLogo(ctx, canvas.width, canvas.height);
     }
-    renderKaleidoscope(ctx);
+    if (kaleidoRenderer) {
+      kaleidoRenderer(ctx);
+    } else {
+      renderBallsColorBatched(ctx, balls);
+    }
   } else if (!needsZPartition) {
     // ═══════════════════════════════════════════════════════════════════════════
     // CATEGORY A: All balls render ON TOP of logo (no z-partitioning)
@@ -591,13 +606,18 @@ export function render() {
   }
   
   // Mouse trail: draw after clip restore so it's always visible
-  drawMouseTrail(ctx);
+  if (qualityProfile.drawMouseTrail) drawMouseTrail(ctx);
+  if (qualityProfile.drawCursorExplosion) drawCursorExplosion(ctx);
 
   // Depth wash: gradient overlay between balls/trail and wall
-  drawDepthWash(ctx, canvas.width, canvas.height);
+  drawDepthWash(ctx, canvas.width, canvas.height, {
+    opacityScale: qualityProfile.depthWashOpacityScale
+  });
   
   // Draw rubber walls LAST (in front of balls, outside clip path)
-  drawWalls(ctx, canvas.width, canvas.height);
+  drawWalls(ctx, canvas.width, canvas.height, {
+    wallGradientStrokeEnabled: qualityProfile.wallGradientStrokeEnabled
+  });
 }
 
 /**
@@ -692,5 +712,5 @@ export function getBalls() {
 
 function drawWaterRipples(ctx) {
   // Visual ripple rendering intentionally disabled (invisible ripples).
-  // Physics still uses ripples via getWaterRipples() in water.js forces.
+  // Physics ripples are still applied inside the Water mode force hook.
 }

@@ -12,7 +12,7 @@ let CACHED_WALL_COLOR = null;
 // ═══════════════════════════════════════════════════════════════════════════════
 // WALL RENDERING - Static rounded rectangle
 // ═══════════════════════════════════════════════════════════════════════════════
-export function drawWalls(ctx, w, h) {
+export function drawWalls(ctx, w, h, options = {}) {
   const g = getGlobals();
   if (!ctx) return;
 
@@ -72,7 +72,8 @@ export function drawWalls(ctx, w, h) {
   ctx.restore();
   
   // Draw radial gradient stroke on inner wall edge
-  if (g.wallGradientStrokeEnabled) {
+  const gradientStrokeEnabled = options.wallGradientStrokeEnabled ?? g.wallGradientStrokeEnabled;
+  if (gradientStrokeEnabled) {
     drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR);
   }
 }
