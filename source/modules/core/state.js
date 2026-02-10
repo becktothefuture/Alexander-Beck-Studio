@@ -170,7 +170,7 @@ const state = {
   performanceHudEnabled: true,
 
   // Configurable render scheduler targets.
-  renderTargetFpsDesktop: 120,
+  renderTargetFpsDesktop: 60,
   renderTargetFpsMobile: 60,
   renderTargetFpsReducedMotion: 60,
 
@@ -349,10 +349,10 @@ const state = {
   noiseHue: 0,
   // Single layer controls
   noiseSize: 85, // Grain size (px)
-  noiseOpacity: 0.20, // Overall opacity (0-1)
-  noiseOpacityLight: 0.20, // Opacity for light mode
-  noiseOpacityDark: 0.18, // Opacity for dark mode
-  noiseBlendMode: 'overlay', // CSS mix-blend-mode for grain visibility
+  noiseOpacity: 0.03, // Overall opacity (0-1)
+  noiseOpacityLight: 0.03, // Opacity for light mode
+  noiseOpacityDark: 0.03, // Opacity for dark mode
+  noiseBlendMode: 'normal', // Deprecated/no-op; blend mode is fixed to normal in CSS
   // Color controls (separate for light/dark)
   noiseColorLight: '#ffffff', // Grain color for light mode (hex)
   noiseColorDark: '#ffffff', // Grain color for dark mode (hex)
@@ -726,7 +726,8 @@ const state = {
   outerWallShineOvershootDark: 10,          // Overshoot dark mode (px) - negative extends outside, positive insets
   outerWallShineOpacityDark: 0.5,           // Shine opacity dark mode
   outerWallShineColorDark: '',              // Color override dark mode (empty = use frame/wall background color)
-  
+  outerWallShineEnabled: true,              // Master toggle for outer wall shine layer
+   
   // Inner Wall Outward Shadow (cast onto wall surface)
   innerWallOutwardShadowOffset: 2,          // Shadow Y offset (px)
   innerWallOutwardShadowBlur: 8,            // Shadow blur (px)
@@ -748,7 +749,8 @@ const state = {
   innerWallInnerGlowSpread: -5,             // Glow spread (px)
   innerWallInnerGlowOffsetY: 8,             // Glow Y offset (px)
   innerWallInnerGlowColor: '#ffffff',       // Glow color
-  
+  innerWallShineEnabled: true,              // Master toggle for inner wall shine layer
+   
   // Wall AO (Ambient Occlusion in gap)
   wallAOOpacityLight: 0.15,                 // AO opacity in light mode
   wallAOOpacityDark: 0.3,                   // AO opacity in dark mode
@@ -758,9 +760,11 @@ const state = {
   wallSpecularOpacityLight: 0.4,            // Specular opacity light mode
   wallSpecularOpacityDark: 0.5,             // Specular opacity dark mode
   wallSpecularWidth: 0.5,                   // Specular width (px)
-  
+  wallSpecularEnabled: false,               // Master toggle for specular highlight
+   
   // Wall Light Fluctuation (Naturalistic light simulation)
   wallLightFluctuationStrength: 0.15,       // Strength of the ambient light fluctuation (0-1)
+  wallLightFluctuationEnabled: false,       // Toggle ambient fluctuation animation
   modalOverlayEnabled: true,         // Enable/disable overlay
   modalOverlayOpacity: 0.01,          // White wash opacity (0-1)
   modalOverlayBlurPx: 8,             // Backdrop blur amount (px)
@@ -1353,13 +1357,13 @@ export function initState(config) {
   }
 
   if (config.renderTargetFpsDesktop !== undefined) {
-    state.renderTargetFpsDesktop = clampInt(config.renderTargetFpsDesktop, 30, 240, state.renderTargetFpsDesktop);
+    state.renderTargetFpsDesktop = clampInt(config.renderTargetFpsDesktop, 30, 60, state.renderTargetFpsDesktop);
   }
   if (config.renderTargetFpsMobile !== undefined) {
-    state.renderTargetFpsMobile = clampInt(config.renderTargetFpsMobile, 30, 120, state.renderTargetFpsMobile);
+    state.renderTargetFpsMobile = clampInt(config.renderTargetFpsMobile, 30, 60, state.renderTargetFpsMobile);
   }
   if (config.renderTargetFpsReducedMotion !== undefined) {
-    state.renderTargetFpsReducedMotion = clampInt(config.renderTargetFpsReducedMotion, 30, 120, state.renderTargetFpsReducedMotion);
+    state.renderTargetFpsReducedMotion = clampInt(config.renderTargetFpsReducedMotion, 30, 60, state.renderTargetFpsReducedMotion);
   }
   if (config.renderQualityTier !== undefined) {
     const tier = String(config.renderQualityTier).toLowerCase();
@@ -1818,9 +1822,9 @@ export function initState(config) {
   if (config.noiseOpacityLight !== undefined) state.noiseOpacityLight = clampNumber(config.noiseOpacityLight, 0, 1, state.noiseOpacityLight);
   if (config.noiseOpacityDark !== undefined) state.noiseOpacityDark = clampNumber(config.noiseOpacityDark, 0, 1, state.noiseOpacityDark);
   if (config.noiseBlendMode !== undefined) {
-    const validModes = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'];
-    const v = String(config.noiseBlendMode);
-    state.noiseBlendMode = validModes.includes(v) ? v : state.noiseBlendMode;
+    // Deprecated/no-op: keep parsing the key for backwards compatibility,
+    // but rendering now always uses normal compositing.
+    state.noiseBlendMode = 'normal';
   }
   if (config.noiseColorLight !== undefined) state.noiseColorLight = String(config.noiseColorLight);
   if (config.noiseColorDark !== undefined) state.noiseColorDark = String(config.noiseColorDark);
@@ -1911,6 +1915,7 @@ export function initState(config) {
   if (config.outerWallShineOvershootDark !== undefined) state.outerWallShineOvershootDark = config.outerWallShineOvershootDark;
   if (config.outerWallShineOpacityDark !== undefined) state.outerWallShineOpacityDark = config.outerWallShineOpacityDark;
   if (config.outerWallShineColorDark !== undefined) state.outerWallShineColorDark = config.outerWallShineColorDark;
+  if (config.outerWallShineEnabled !== undefined) state.outerWallShineEnabled = Boolean(config.outerWallShineEnabled);
   
   // Inner wall settings (edge lighting, shadows, glow)
   // Inner Wall Continuous Border
@@ -1934,6 +1939,7 @@ export function initState(config) {
   if (config.innerWallInnerGlowSpread !== undefined) state.innerWallInnerGlowSpread = config.innerWallInnerGlowSpread;
   if (config.innerWallInnerGlowOffsetY !== undefined) state.innerWallInnerGlowOffsetY = config.innerWallInnerGlowOffsetY;
   if (config.innerWallInnerGlowColor !== undefined) state.innerWallInnerGlowColor = config.innerWallInnerGlowColor;
+  if (config.innerWallShineEnabled !== undefined) state.innerWallShineEnabled = Boolean(config.innerWallShineEnabled);
   
   // Wall AO (Ambient Occlusion)
   if (config.wallAOOpacityLight !== undefined) state.wallAOOpacityLight = config.wallAOOpacityLight;
@@ -1944,9 +1950,11 @@ export function initState(config) {
   if (config.wallSpecularOpacityLight !== undefined) state.wallSpecularOpacityLight = config.wallSpecularOpacityLight;
   if (config.wallSpecularOpacityDark !== undefined) state.wallSpecularOpacityDark = config.wallSpecularOpacityDark;
   if (config.wallSpecularWidth !== undefined) state.wallSpecularWidth = config.wallSpecularWidth;
+  if (config.wallSpecularEnabled !== undefined) state.wallSpecularEnabled = Boolean(config.wallSpecularEnabled);
   
   // Natural Light Simulation
   if (config.wallLightFluctuationStrength !== undefined) state.wallLightFluctuationStrength = config.wallLightFluctuationStrength;
+  if (config.wallLightFluctuationEnabled !== undefined) state.wallLightFluctuationEnabled = Boolean(config.wallLightFluctuationEnabled);
   
   // Ball sizes are recalculated in detectResponsiveScale (called above)
   // which applies both sizeScale and responsiveScale

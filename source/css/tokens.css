@@ -254,9 +254,9 @@
   /* Noise + Grain */
   --noise-size: 85px;
   --noise-size-scale: 1;
-  --noise-opacity-light: 0.20;
-  --noise-opacity-dark: 0.18;
-  --noise-blend-mode: overlay;
+  --noise-opacity-light: 0.03;
+  --noise-opacity-dark: 0.03;
+  --noise-blend-mode: normal;
   --noise-color-light: #ffffff;
   --noise-color-dark: #ffffff;
   --detail-noise-opacity: 1; /* Overall opacity multiplier for detail page noise */

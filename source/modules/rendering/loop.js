@@ -64,9 +64,9 @@ function resolveTargetFPS(globals) {
   const schedulerEnabled = globals?.featureRenderSchedulerEnabled !== false;
   if (!schedulerEnabled) return 60;
 
-  const desktopTarget = clampNumber(globals?.renderTargetFpsDesktop, 30, 240, 120);
-  const mobileTarget = clampNumber(globals?.renderTargetFpsMobile, 30, 120, 60);
-  const reducedMotionTarget = clampNumber(globals?.renderTargetFpsReducedMotion, 30, 120, 60);
+  const desktopTarget = clampNumber(globals?.renderTargetFpsDesktop, 30, 60, 60);
+  const mobileTarget = clampNumber(globals?.renderTargetFpsMobile, 30, 60, 60);
+  const reducedMotionTarget = clampNumber(globals?.renderTargetFpsReducedMotion, 30, 60, 60);
   const targetFromDevice = (globals?.isMobile || globals?.isMobileViewport) ? mobileTarget : desktopTarget;
 
   // In production-safe mode, cap by hardware tier unless explicitly in performance mode.
@@ -78,7 +78,8 @@ function resolveTargetFPS(globals) {
     target = Math.min(target, reducedMotionTarget);
   }
 
-  return clampNumber(target, 30, 240, 60);
+  // Hard safety cap: stale saved settings must never push runtime above 60 FPS.
+  return clampNumber(target, 30, 60, 60);
 }
 
 /**

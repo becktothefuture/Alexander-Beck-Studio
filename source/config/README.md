@@ -11,3 +11,15 @@
 - `renderTargetFpsDesktop`, `renderTargetFpsMobile`, `renderTargetFpsReducedMotion`: scheduler FPS targets by device/motion context.
 - `performanceModeEnabled`, `renderQualityTier`, `performanceHudEnabled`: quality profile + diagnostics controls.
 - `modePerformanceBudgets`: per-mode object-count guardrails (`desktop`/`mobile`) applied before mobile/lite multipliers.
+
+## Wall layer toggles (`default-config.json`)
+
+- `outerWallShineEnabled`: enables/disables outer wall shine layer.
+- `innerWallShineEnabled`: enables/disables inner wall shine layer.
+- `wallSpecularEnabled`: enables/disables outer wall specular micro-highlight.
+- `wallLightFluctuationEnabled`: enables/disables ambient wall light fluctuation animation.
+
+## Noise blend deprecation
+
+- `noiseBlendMode` is deprecated and treated as a no-op.
+- Noise compositing now always uses normal blend mode.

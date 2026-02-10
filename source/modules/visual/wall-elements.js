@@ -25,6 +25,7 @@ let innerGlow = null;
 let innerShine = null;
 let innerShadowEl = null;
 let initialized = false;
+let wallUpdateRaf = null;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LIGHT SIMULATION
@@ -33,43 +34,52 @@ let initialized = false;
 
 let lightSimTimeout = null;
 
+function applyAmbientLightMul(multiplier) {
+  if (outerWall) {
+    outerWall.style.setProperty('--ambient-light-mul', String(multiplier));
+  }
+  if (innerWall) {
+    innerWall.style.setProperty('--ambient-light-mul', String(multiplier));
+  }
+}
+
 export function initLightSimulation() {
   if (lightSimTimeout) clearTimeout(lightSimTimeout);
+  lightSimTimeout = null;
   
-  // Set initial value
-  // OPTIMIZATION: Set on outerWall instead of root to scope style invalidation
-  // This prevents the whole document from recalculating styles on every light tick
-  if (outerWall) {
-    outerWall.style.setProperty('--ambient-light-mul', '1');
+  // Baseline is fixed by default to avoid repaint-heavy fluctuation writes.
+  const baseline = 1.0;
+  applyAmbientLightMul(baseline);
+
+  const g = getGlobals();
+  if (!g || g.wallLightFluctuationEnabled !== true) {
+    return;
   }
-  
+  if (!outerWall) {
+    return;
+  }
+
   const tick = () => {
-    const g = getGlobals();
-    if (!g || !outerWall) {
+    const globals = getGlobals();
+    if (!globals || !outerWall) {
       lightSimTimeout = setTimeout(tick, 1000);
       return;
     }
-    
-    // Configurable strength of fluctuation
-    const strength = g.wallLightFluctuationStrength ?? 0.15;
-    
-    // Random target between 1.0 - strength and 1.0 + strength
-    const randomFactor = (Math.random() - 0.5) * 2; // -1 to 1
-    const targetMul = 1.0 + (randomFactor * strength);
-    
-    // Apply to CSS variable on the LOCAL element
-    outerWall.style.setProperty('--ambient-light-mul', targetMul.toFixed(3));
-    
-    // Also apply to inner wall if it uses it (it does for borders)
-    if (innerWall) {
-        innerWall.style.setProperty('--ambient-light-mul', targetMul.toFixed(3));
+    if (globals.wallLightFluctuationEnabled !== true) {
+      lightSimTimeout = null;
+      applyAmbientLightMul(baseline);
+      return;
     }
-    
-    // Schedule next update
+
+    const strength = Math.max(0, Number(globals.wallLightFluctuationStrength ?? 0.15) || 0);
+    const randomFactor = (Math.random() - 0.5) * 2;
+    const targetMul = 1.0 + (randomFactor * strength);
+    applyAmbientLightMul(targetMul.toFixed(3));
+
     const nextInterval = 3000 + Math.random() * 3000;
     lightSimTimeout = setTimeout(tick, nextInterval);
   };
-  
+
   tick();
 }
 
@@ -155,7 +165,7 @@ export function initWallElements() {
 // Recalculates wall styles based on current settings and theme
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function updateWallElements() {
+function applyWallElementsNow() {
   if (!outerWall || !innerWall) return;
   
   const g = getGlobals();
@@ -169,6 +179,18 @@ export function updateWallElements() {
   
   // Update border styles (CSS variables for gradients/shadows)
   updateWallBorders(g, isDark);
+}
+
+export function requestWallElementUpdate() {
+  if (wallUpdateRaf !== null) return;
+  wallUpdateRaf = requestAnimationFrame(() => {
+    wallUpdateRaf = null;
+    applyWallElementsNow();
+  });
+}
+
+export function updateWallElements() {
+  requestWallElementUpdate();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -210,11 +232,12 @@ function updateWallBorders(g, isDark) {
   // INNER WALL SHINE (Inset blur from background colour to blend edges)
   // ─────────────────────────────────────────────────────────────────────────────
   if (innerShine) {
+    const innerShineEnabled = g.innerWallShineEnabled !== false;
     const shineOpacity = isDark
       ? (g.innerWallShineOpacityDark ?? 0.5)
       : (g.innerWallShineOpacityLight ?? 0.4);
       
-    if (shineOpacity <= 0.01) {
+    if (!innerShineEnabled || shineOpacity <= 0.01) {
       innerShine.style.display = 'none';
     } else {
       innerShine.style.display = 'block';
@@ -239,11 +262,12 @@ function updateWallBorders(g, isDark) {
   // OUTER WALL SHINE (Inset blur from background colour to blend edges)
   // ─────────────────────────────────────────────────────────────────────────────
   if (outerWallShine) {
+    const outerShineEnabled = g.outerWallShineEnabled !== false;
     const shineOpacity = isDark
       ? (g.outerWallShineOpacityDark ?? 0.5)
       : (g.outerWallShineOpacityLight ?? 0.4);
       
-    if (shineOpacity <= 0.01) {
+    if (!outerShineEnabled || shineOpacity <= 0.01) {
       outerWallShine.style.display = 'none';
     } else {
       outerWallShine.style.display = 'block';
@@ -333,7 +357,10 @@ function updateWallBorders(g, isDark) {
     outerWall.style.setProperty('--wall-ao-spread', `${aoSpread}px`);
 
     // Specular Micro-Bevel
-    const specOpacity = isDark ? (g.wallSpecularOpacityDark ?? 0.5) : (g.wallSpecularOpacityLight ?? 0.4);
+    const specEnabled = g.wallSpecularEnabled !== false;
+    const specOpacity = specEnabled
+      ? (isDark ? (g.wallSpecularOpacityDark ?? 0.5) : (g.wallSpecularOpacityLight ?? 0.4))
+      : 0;
     const specWidth = g.wallSpecularWidth ?? 0.5;
     // Specular highlight fluctuates significantly with light
     // We update the variable that the CSS uses in its calc()
@@ -381,6 +408,14 @@ export function getInnerWall() { return innerWall; }
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function destroyWallElements() {
+  if (lightSimTimeout) {
+    clearTimeout(lightSimTimeout);
+    lightSimTimeout = null;
+  }
+  if (wallUpdateRaf !== null) {
+    cancelAnimationFrame(wallUpdateRaf);
+    wallUpdateRaf = null;
+  }
   [outerWall, innerWall].forEach(el => {
     if (el && el.parentNode) {
       el.parentNode.removeChild(el);

@@ -7,7 +7,7 @@
 import { getGlobals } from '../core/state.js';
 import { PARALLAX_LINEAR_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
-import { updateWallElements } from '../visual/wall-elements.js';
+import { updateWallElements, initLightSimulation } from '../visual/wall-elements.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
 
 // Lazy import for other callers that may load before wall-elements (e.g. sync)
@@ -23,6 +23,54 @@ async function getUpdateWallElements() {
 // Legacy alias for backward compatibility
 async function getUpdateGradientEdge() {
   return getUpdateWallElements();
+}
+
+const OUTER_WALL_SHINE_CONTROL_IDS = [
+  'outerWallShineBlurLight',
+  'outerWallShineSpreadLight',
+  'outerWallShineOvershootLight',
+  'outerWallShineOpacityLight',
+  'outerWallShineColorLight',
+  'outerWallShineBlurDark',
+  'outerWallShineSpreadDark',
+  'outerWallShineOvershootDark',
+  'outerWallShineOpacityDark',
+  'outerWallShineColorDark',
+];
+
+const INNER_WALL_SHINE_CONTROL_IDS = [
+  'innerWallShineBlur',
+  'innerWallShineOvershoot',
+  'innerWallShineSpread',
+  'innerWallShineOpacityLight',
+  'innerWallShineOpacityDark',
+  'innerWallShineColor',
+];
+
+const WALL_SPECULAR_CONTROL_IDS = [
+  'wallSpecularWidth',
+  'wallSpecularOpacityLight',
+  'wallSpecularOpacityDark',
+];
+
+function setControlsDisabled(controlIds, disabled) {
+  for (let i = 0; i < controlIds.length; i++) {
+    const id = controlIds[i];
+    const slider = document.getElementById(`${id}Slider`);
+    if (slider) slider.disabled = disabled;
+    const picker = document.getElementById(`${id}Picker`);
+    if (picker) picker.disabled = disabled;
+
+    const row = document.querySelector(`[data-control-id="${id}"]`);
+    if (row) row.classList.toggle('is-disabled', disabled);
+  }
+}
+
+function syncWallLayerToggleUI(g = getGlobals()) {
+  if (!g) return;
+  setControlsDisabled(OUTER_WALL_SHINE_CONTROL_IDS, g.outerWallShineEnabled === false);
+  setControlsDisabled(INNER_WALL_SHINE_CONTROL_IDS, g.innerWallShineEnabled === false);
+  setControlsDisabled(WALL_SPECULAR_CONTROL_IDS, g.wallSpecularEnabled === false);
 }
 
 // Will be set by main.js to avoid circular dependency
@@ -2837,6 +2885,40 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
+        id: 'outerWallShineEnabled',
+        label: 'Shine Layer',
+        stateKey: 'outerWallShineEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'Enable outer wall shine layer (blur glow).',
+        theme: null,
+        wallGroup: 'shine',
+        onChange: (g, val) => {
+          g.outerWallShineEnabled = !!val;
+          syncWallLayerToggleUI(g);
+          updateWallElements();
+        }
+      },
+      {
+        id: 'wallLightFluctuationEnabled',
+        label: 'Ambient Fluctuation',
+        stateKey: 'wallLightFluctuationEnabled',
+        type: 'checkbox',
+        default: false,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'Enable subtle ambient light fluctuation (off keeps static baseline).',
+        theme: null,
+        wallGroup: 'micro',
+        onChange: (g, val) => {
+          g.wallLightFluctuationEnabled = !!val;
+          initLightSimulation();
+          updateWallElements();
+        }
+      },
+      {
         id: 'outerWallTopShadowOffset',
         label: 'Top Shadow Offset',
         stateKey: 'outerWallTopShadowOffset',
@@ -2909,6 +2991,23 @@ export const CONTROL_SECTIONS = {
         theme: null,
         wallGroup: 'micro',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
+      },
+      {
+        id: 'wallSpecularEnabled',
+        label: 'Specular Layer',
+        stateKey: 'wallSpecularEnabled',
+        type: 'checkbox',
+        default: false,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'Enable micro specular highlight on the outer wall.',
+        theme: null,
+        wallGroup: 'micro',
+        onChange: (g, val) => {
+          g.wallSpecularEnabled = !!val;
+          syncWallLayerToggleUI(g);
+          updateWallElements();
+        }
       },
       {
         id: 'wallSpecularWidth',
@@ -3383,6 +3482,23 @@ export const CONTROL_SECTIONS = {
     icon: '🔳',
     defaultOpen: false,
     controls: [
+      {
+        id: 'innerWallShineEnabled',
+        label: 'Shine Layer',
+        stateKey: 'innerWallShineEnabled',
+        type: 'checkbox',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'Enable inner wall shine layer (blur glow).',
+        theme: null,
+        wallGroup: 'shine',
+        onChange: (g, val) => {
+          g.innerWallShineEnabled = !!val;
+          syncWallLayerToggleUI(g);
+          updateWallElements();
+        }
+      },
       // ═══════════════════════════════════════════════════════════════════════════
       // INNER WALL SHINE (blur glow layer)
       // ═══════════════════════════════════════════════════════════════════════════
@@ -3961,7 +4077,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'noiseOpacityLight',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.08,
+        default: 0.03,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         group: 'Layer',
@@ -3973,36 +4089,11 @@ export const CONTROL_SECTIONS = {
         stateKey: 'noiseOpacityDark',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.12,
+        default: 0.03,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         group: 'Layer',
         onChange: (_g, val) => applyNoiseSystem({ noiseOpacityDark: val })
-      },
-      {
-        id: 'noiseBlendMode',
-        label: 'Blend Mode',
-        stateKey: 'noiseBlendMode',
-        type: 'select',
-        options: [
-          { value: 'normal', label: 'Normal (Off)' },
-          { value: 'multiply', label: 'Multiply' },
-          { value: 'screen', label: 'Screen' },
-          { value: 'overlay', label: 'Overlay' },
-          { value: 'darken', label: 'Darken' },
-          { value: 'lighten', label: 'Lighten' },
-          { value: 'color-dodge', label: 'Color Dodge' },
-          { value: 'color-burn', label: 'Color Burn' },
-          { value: 'hard-light', label: 'Hard Light' },
-          { value: 'soft-light', label: 'Soft Light' },
-          { value: 'difference', label: 'Difference' },
-          { value: 'exclusion', label: 'Exclusion' }
-        ],
-        default: 'overlay',
-        format: v => String(v),
-        parse: v => String(v),
-        group: 'Layer',
-        onChange: (_g, val) => applyNoiseSystem({ noiseBlendMode: val })
       },
       {
         id: 'noiseColorLight',
@@ -7468,6 +7559,7 @@ export function bindRegisteredControls() {
           if (control.onChange) {
             control.onChange(g, rawVal);
           }
+          syncWallLayerToggleUI(g);
 
           if (valEl) {
             valEl.textContent = rawVal ? 'On' : 'Off';
@@ -7530,6 +7622,7 @@ export function bindRegisteredControls() {
       });
     }
   }
+  syncWallLayerToggleUI(g);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -7578,6 +7671,7 @@ export function syncSlidersToState(options = {}) {
       }
     }
   }
+  syncWallLayerToggleUI(g);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -2127,7 +2127,7 @@ body.dark-mode .inner-wall__shine {
 html.entrance-complete .noise-ready .noise {
   visibility: visible;
   opacity: calc(var(--noise-opacity-light) * var(--abs-noise-enabled));
-  mix-blend-mode: var(--noise-blend-mode, normal);
+  mix-blend-mode: normal;
   /* Both transition together - visibility becomes visible as opacity starts transitioning */
   transition: visibility 0s linear 0s, opacity 2500ms cubic-bezier(0.16, 1, 0.3, 1) 0s;
 }
@@ -2162,7 +2162,7 @@ html.entrance-complete .noise-ready .noise {
   /* Negative inset (overscan) extends beyond parent for animation padding */
   inset: var(--abs-noise-overscan);
   background-color: var(--noise-color-light);
-  mix-blend-mode: multiply;
+  mix-blend-mode: normal;
   pointer-events: none;
   opacity: 0.6; /* Adjust tint intensity */
   /* Match animation from ::before */

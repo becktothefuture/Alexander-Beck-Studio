@@ -8,6 +8,57 @@ import { getGlobals } from '../core/state.js';
 
 // Cached wall fill color (avoid per-frame getComputedStyle)
 let CACHED_WALL_COLOR = null;
+let STROKE_CACHE_CTX = null;
+let STROKE_PATH_KEY = '';
+let STROKE_PATH = null;
+let BOTTOM_GRADIENT_KEY = '';
+let BOTTOM_GRADIENT = null;
+let TOP_GRADIENT_KEY = '';
+let TOP_GRADIENT = null;
+
+function resetStrokeCache() {
+  STROKE_PATH_KEY = '';
+  STROKE_PATH = null;
+  BOTTOM_GRADIENT_KEY = '';
+  BOTTOM_GRADIENT = null;
+  TOP_GRADIENT_KEY = '';
+  TOP_GRADIENT = null;
+}
+
+function ensureStrokeCacheContext(ctx) {
+  if (STROKE_CACHE_CTX === ctx) return;
+  STROKE_CACHE_CTX = ctx;
+  resetStrokeCache();
+}
+
+function traceRoundedRectStrokePath(ctx, x, y, innerW, innerH, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + innerW - r, y);
+  if (r > 0) ctx.arcTo(x + innerW, y, x + innerW, y + r, r);
+  ctx.lineTo(x + innerW, y + innerH - r);
+  if (r > 0) ctx.arcTo(x + innerW, y + innerH, x + innerW - r, y + innerH, r);
+  ctx.lineTo(x + r, y + innerH);
+  if (r > 0) ctx.arcTo(x, y + innerH, x, y + innerH - r, r);
+  ctx.lineTo(x, y + r);
+  if (r > 0) ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function createRoundedRectStrokePath(x, y, innerW, innerH, r) {
+  const path = new Path2D();
+  path.moveTo(x + r, y);
+  path.lineTo(x + innerW - r, y);
+  if (r > 0) path.arcTo(x + innerW, y, x + innerW, y + r, r);
+  path.lineTo(x + innerW, y + innerH - r);
+  if (r > 0) path.arcTo(x + innerW, y + innerH, x + innerW - r, y + innerH, r);
+  path.lineTo(x + r, y + innerH);
+  if (r > 0) path.arcTo(x, y + innerH, x, y + innerH - r, r);
+  path.lineTo(x, y + r);
+  if (r > 0) path.arcTo(x, y, x + r, y, r);
+  path.closePath();
+  return path;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WALL RENDERING - Static rounded rectangle
@@ -92,6 +143,8 @@ export function drawWalls(ctx, w, h, options = {}) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR) {
+  ensureStrokeCacheContext(ctx);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // STROKE WIDTH
   // Base width in CSS pixels, scaled by device pixel ratio
@@ -107,21 +160,13 @@ function drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR) 
   const x = insetPx;
   const y = insetPx;
   const r = innerR;
-  
-  // Helper to draw the rounded rectangle stroke path
-  const drawStrokePath = () => {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + innerW - r, y);
-    if (r > 0) ctx.arcTo(x + innerW, y, x + innerW, y + r, r);
-    ctx.lineTo(x + innerW, y + innerH - r);
-    if (r > 0) ctx.arcTo(x + innerW, y + innerH, x + innerW - r, y + innerH, r);
-    ctx.lineTo(x + r, y + innerH);
-    if (r > 0) ctx.arcTo(x, y + innerH, x, y + innerH - r, r);
-    ctx.lineTo(x, y + r);
-    if (r > 0) ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-  };
+
+  const pathKey = `${x}|${y}|${innerW}|${innerH}|${r}`;
+  const canUsePath2D = typeof Path2D === 'function';
+  if (canUsePath2D && pathKey !== STROKE_PATH_KEY) {
+    STROKE_PATH_KEY = pathKey;
+    STROKE_PATH = createRoundedRectStrokePath(x, y, innerW, innerH, r);
+  }
   
   // ─────────────────────────────────────────────────────────────────────────────
   // BOTTOM LIGHT GRADIENT (now rendered at TOP for flipped inner wall)
@@ -135,24 +180,31 @@ function drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR) 
     const bottomRadius = (g.wallGradientStrokeBottomRadius ?? 1.0) * h * 0.7;  // 70% size
     const bottomOpacity = g.wallGradientStrokeBottomOpacity ?? 1.0;
     const bottomColor = g.wallGradientStrokeBottomColor ?? '#ffffff';
-    
-    // Radial gradient: full opacity at 10%, half at 50%, transparent at 100%
-    const bottomGradient = ctx.createRadialGradient(
-      bottomCenterX, bottomCenterY, 0,
-      bottomCenterX, bottomCenterY, bottomRadius
-    );
-    bottomGradient.addColorStop(0, hexToRGBA(bottomColor, bottomOpacity));
-    bottomGradient.addColorStop(0.1, hexToRGBA(bottomColor, bottomOpacity));
-    bottomGradient.addColorStop(0.5, hexToRGBA(bottomColor, bottomOpacity * 0.5));
-    bottomGradient.addColorStop(1, hexToRGBA(bottomColor, 0));
+    const bottomKey = `${bottomCenterX}|${bottomCenterY}|${bottomRadius}|${bottomOpacity}|${bottomColor}`;
+    if (bottomKey !== BOTTOM_GRADIENT_KEY) {
+      BOTTOM_GRADIENT_KEY = bottomKey;
+      const bottomGradient = ctx.createRadialGradient(
+        bottomCenterX, bottomCenterY, 0,
+        bottomCenterX, bottomCenterY, bottomRadius
+      );
+      bottomGradient.addColorStop(0, hexToRGBA(bottomColor, bottomOpacity));
+      bottomGradient.addColorStop(0.1, hexToRGBA(bottomColor, bottomOpacity));
+      bottomGradient.addColorStop(0.5, hexToRGBA(bottomColor, bottomOpacity * 0.5));
+      bottomGradient.addColorStop(1, hexToRGBA(bottomColor, 0));
+      BOTTOM_GRADIENT = bottomGradient;
+    }
     
     ctx.save();
-    ctx.strokeStyle = bottomGradient;
+    ctx.strokeStyle = BOTTOM_GRADIENT;
     ctx.lineWidth = strokeWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    drawStrokePath();
-    ctx.stroke();
+    if (canUsePath2D && STROKE_PATH) {
+      ctx.stroke(STROKE_PATH);
+    } else {
+      traceRoundedRectStrokePath(ctx, x, y, innerW, innerH, r);
+      ctx.stroke();
+    }
     ctx.restore();
   }
   
@@ -168,24 +220,31 @@ function drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR) 
     const topRadius = (g.wallGradientStrokeTopRadius ?? 1.0) * h * 0.7;  // 70% size
     const topOpacity = g.wallGradientStrokeTopOpacity ?? 0.5;
     const topColor = g.wallGradientStrokeTopColor ?? '#ffffff';
-    
-    // Radial gradient: full opacity at 10%, half at 50%, transparent at 100%
-    const topGradient = ctx.createRadialGradient(
-      topCenterX, topCenterY, 0,
-      topCenterX, topCenterY, topRadius
-    );
-    topGradient.addColorStop(0, hexToRGBA(topColor, topOpacity));
-    topGradient.addColorStop(0.1, hexToRGBA(topColor, topOpacity));
-    topGradient.addColorStop(0.5, hexToRGBA(topColor, topOpacity * 0.5));
-    topGradient.addColorStop(1, hexToRGBA(topColor, 0));
+    const topKey = `${topCenterX}|${topCenterY}|${topRadius}|${topOpacity}|${topColor}`;
+    if (topKey !== TOP_GRADIENT_KEY) {
+      TOP_GRADIENT_KEY = topKey;
+      const topGradient = ctx.createRadialGradient(
+        topCenterX, topCenterY, 0,
+        topCenterX, topCenterY, topRadius
+      );
+      topGradient.addColorStop(0, hexToRGBA(topColor, topOpacity));
+      topGradient.addColorStop(0.1, hexToRGBA(topColor, topOpacity));
+      topGradient.addColorStop(0.5, hexToRGBA(topColor, topOpacity * 0.5));
+      topGradient.addColorStop(1, hexToRGBA(topColor, 0));
+      TOP_GRADIENT = topGradient;
+    }
     
     ctx.save();
-    ctx.strokeStyle = topGradient;
+    ctx.strokeStyle = TOP_GRADIENT;
     ctx.lineWidth = strokeWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    drawStrokePath();
-    ctx.stroke();
+    if (canUsePath2D && STROKE_PATH) {
+      ctx.stroke(STROKE_PATH);
+    } else {
+      traceRoundedRectStrokePath(ctx, x, y, innerW, innerH, r);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 }

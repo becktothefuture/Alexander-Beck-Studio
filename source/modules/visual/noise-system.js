@@ -37,7 +37,6 @@ const NOISE_KEYS = [
   'noiseOpacity',
   'noiseOpacityLight',
   'noiseOpacityDark',
-  'noiseBlendMode',
   'noiseColorLight',
   'noiseColorDark',
   'detailNoiseOpacity',
@@ -311,14 +310,10 @@ function applyCssVars(cfg) {
   root.style.setProperty('--noise-size', `${Math.round(noiseSize)}px`);
   
   // Opacity (theme-aware)
-  const opacityLight = clampNumber(cfg.noiseOpacityLight ?? cfg.noiseOpacity ?? 0.08, 0, 1, 0.08);
-  const opacityDark = clampNumber(cfg.noiseOpacityDark ?? cfg.noiseOpacity ?? 0.12, 0, 1, 0.12);
+  const opacityLight = clampNumber(cfg.noiseOpacityLight ?? cfg.noiseOpacity ?? 0.03, 0, 1, 0.03);
+  const opacityDark = clampNumber(cfg.noiseOpacityDark ?? cfg.noiseOpacity ?? 0.03, 0, 1, 0.03);
   root.style.setProperty('--noise-opacity-light', String(opacityLight));
   root.style.setProperty('--noise-opacity-dark', String(opacityDark));
-  
-  // Blend mode (normal = off by default)
-    const blendMode = cfg.noiseBlendMode ?? 'overlay';
-  root.style.setProperty('--noise-blend-mode', blendMode);
   
   // Color controls (separate for light/dark)
   const colorLight = cfg.noiseColorLight ?? '#ffffff';
@@ -331,8 +326,8 @@ function applyCssVars(cfg) {
 
 function sanitizeConfig(input = {}) {
   const cssNoiseSize = readRootVarNumber('--noise-size', 85);
-  const cssOpacityLight = readRootVarNumber('--noise-opacity-light', 0.08);
-  const cssOpacityDark = readRootVarNumber('--noise-opacity-dark', 0.12);
+  const cssOpacityLight = readRootVarNumber('--noise-opacity-light', 0.03);
+  const cssOpacityDark = readRootVarNumber('--noise-opacity-dark', 0.03);
 
   const out = {
     // Texture
@@ -360,17 +355,9 @@ function sanitizeConfig(input = {}) {
 
     // Single layer controls
     noiseSize: clampNumber(input.noiseSize, 20, 600, cssNoiseSize),
-    noiseOpacity: clampNumber(input.noiseOpacity, 0, 1, 0.08),
+    noiseOpacity: clampNumber(input.noiseOpacity, 0, 1, 0.03),
     noiseOpacityLight: clampNumber(input.noiseOpacityLight, 0, 1, cssOpacityLight),
     noiseOpacityDark: clampNumber(input.noiseOpacityDark, 0, 1, cssOpacityDark),
-    noiseBlendModeLight: pickEnum(input.noiseBlendModeLight, [
-      'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
-      'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'
-    ], 'overlay'),
-    noiseBlendModeDark: pickEnum(input.noiseBlendModeDark, [
-      'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
-      'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion'
-    ], 'soft-light'),
     noiseColorLight: typeof input.noiseColorLight === 'string' ? input.noiseColorLight : '#ffffff',
     noiseColorDark: typeof input.noiseColorDark === 'string' ? input.noiseColorDark : '#ffffff',
     detailNoiseOpacity: clampNumber(input.detailNoiseOpacity, 0, 1, 1),

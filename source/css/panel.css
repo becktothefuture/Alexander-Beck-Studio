@@ -1257,6 +1257,22 @@ body:not(.dark-mode) .panel-section--action {
   gap: var(--panel-control-gap);
 }
 
+.control-row.is-disabled {
+  opacity: 0.45;
+}
+
+.control-row.is-disabled .control-label,
+.control-row.is-disabled .control-value,
+.control-row.is-disabled .control-hint {
+  color: var(--panel-muted-foreground);
+}
+
+.control-row.is-disabled input,
+.control-row.is-disabled select,
+.control-row.is-disabled button {
+  cursor: not-allowed;
+}
+
 .control-row--hero {
   padding: var(--panel-pad-4);
   border: 1px solid var(--panel-border);

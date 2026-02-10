@@ -115,11 +115,6 @@ export function applyVisualCSSVars(config) {
     root.style.setProperty('--noise-opacity-dark', String(config.noiseOpacityDark));
   }
   
-  // Noise blend mode
-  if (config.noiseBlendMode !== undefined) {
-    root.style.setProperty('--noise-blend-mode', String(config.noiseBlendMode));
-  }
-  
   // Noise colors
   if (config.noiseColorLight !== undefined) {
     root.style.setProperty('--noise-color-light', String(config.noiseColorLight));
