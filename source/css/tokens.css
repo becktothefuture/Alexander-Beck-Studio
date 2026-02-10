@@ -500,6 +500,19 @@
   --caption-letter-spacing: var(--letter-spacing-normal);
   --caption-offset: var(--gap-sm);
 
+  /* Quote card glass surface */
+  --quote-glass-blur: clamp(6px, 0.9vmin, 10px);
+  --quote-glass-saturation: 1.12;
+  --quote-glass-fill-opacity: 0.02;
+  --quote-glass-sheen-top-opacity: 0.035;
+  --quote-glass-sheen-mid-opacity: 0.012;
+  --quote-glass-edge-opacity: 0.24;
+  --quote-glass-inner-shadow-opacity: 0.1;
+  --quote-glass-shadow-opacity: 0.27;
+  --quote-glass-shadow-offset-y: clamp(5px, 0.8vmin, 7px);
+  --quote-glass-shadow-blur: clamp(14px, 2.2vmin, 20px);
+  --quote-glass-bottom-edge-opacity: 0.1;
+
   /* UI hit areas (links/buttons) */
   --ui-hit-area-mul: 1;
   --hit-area-sm-base: var(--gap-sm);
@@ -606,6 +619,13 @@
 
   /* Single stroke color override for dark mode */
   --abs-stroke-medium: rgba(var(--abs-rgb-white), 0.25);
+
+  /* Quote card glass surface - dark mode tuning */
+  --quote-glass-fill-opacity: 0.03;
+  --quote-glass-edge-opacity: 0.36;
+  --quote-glass-inner-shadow-opacity: 0.15;
+  --quote-glass-shadow-opacity: 0.44;
+  --quote-glass-bottom-edge-opacity: 0.22;
   
   --inner-wall-shine-color: var(--bg-dark);
 }
