@@ -1153,9 +1153,18 @@ export function applyLayoutCSSVars() {
     : (state.outerWallCastShadowOpacityLight ?? 0.15)));
   
   // Inner Wall Outward Shadow CSS variables
-  root.style.setProperty('--inner-wall-outward-shadow-offset', `${state.innerWallOutwardShadowOffset ?? 2}px`);
-  root.style.setProperty('--inner-wall-outward-shadow-blur', `${state.innerWallOutwardShadowBlur ?? 8}px`);
-  root.style.setProperty('--inner-wall-outward-shadow-spread', `${state.innerWallOutwardShadowSpread ?? 2}px`);
+  // Clamp offset to available wall gap so the bottom edge shadow cannot be clipped.
+  const innerWallOutwardShadowBlur = state.innerWallOutwardShadowBlur ?? 8;
+  const innerWallOutwardShadowSpread = state.innerWallOutwardShadowSpread ?? 2;
+  const innerWallOutwardShadowOffsetRaw = state.innerWallOutwardShadowOffset ?? 2;
+  const innerWallOutwardShadowOffsetMax = Math.max(0, state.wallThickness - innerWallOutwardShadowSpread);
+  const innerWallOutwardShadowOffset = Math.max(
+    0,
+    Math.min(innerWallOutwardShadowOffsetRaw, innerWallOutwardShadowOffsetMax)
+  );
+  root.style.setProperty('--inner-wall-outward-shadow-offset', `${innerWallOutwardShadowOffset}px`);
+  root.style.setProperty('--inner-wall-outward-shadow-blur', `${innerWallOutwardShadowBlur}px`);
+  root.style.setProperty('--inner-wall-outward-shadow-spread', `${innerWallOutwardShadowSpread}px`);
   root.style.setProperty('--inner-wall-outward-shadow-opacity', String(isDarkMode
     ? (state.innerWallOutwardShadowOpacityDark ?? 0.35)
     : (state.innerWallOutwardShadowOpacityLight ?? 0.2)));

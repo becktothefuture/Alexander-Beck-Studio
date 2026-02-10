@@ -177,6 +177,8 @@ export function updateWallElements() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function updateWallBorders(g, isDark) {
+  const activeWallColor = (getComputedStyle(document.documentElement).getPropertyValue('--wall-color') || '').trim();
+
   // ─────────────────────────────────────────────────────────────────────────────
   // INNER WALL GLOW (Top light gradient)
   // ─────────────────────────────────────────────────────────────────────────────
@@ -225,8 +227,8 @@ function updateWallBorders(g, isDark) {
       innerShine.style.setProperty('--inner-wall-shine-spread', `${shineSpread}px`);
       innerShine.style.setProperty('--inner-wall-shine-overshoot', `-${shineOvershoot}px`);
       
-      // Use explicit color or fall back to frame/wall background colour
-      const shineColor = g.innerWallShineColor || (isDark
+      // Prefer active wall color so browser-harmony light mode doesn't produce a visible seam.
+      const shineColor = g.innerWallShineColor || activeWallColor || (isDark
         ? (g.frameColorDark ?? g.frameColor ?? '#242529')
         : (g.frameColorLight ?? g.frameColor ?? '#242529'));
       innerShine.style.setProperty('--inner-wall-shine-color', shineColor);
@@ -260,10 +262,10 @@ function updateWallBorders(g, isDark) {
       outerWallShine.style.setProperty('--outer-wall-shine-spread', `${shineSpread}px`);
       outerWallShine.style.setProperty('--outer-wall-shine-overshoot', `-${shineOvershoot}px`);
       
-      // Use explicit color or fall back to frame/wall background colour
+      // Prefer active wall color so browser-harmony light mode doesn't produce a visible seam.
       const shineColor = isDark
-        ? (g.outerWallShineColorDark || g.frameColorDark || g.frameColor || '#242529')
-        : (g.outerWallShineColorLight || g.frameColorLight || g.frameColor || '#242529');
+        ? (g.outerWallShineColorDark || activeWallColor || g.frameColorDark || g.frameColor || '#242529')
+        : (g.outerWallShineColorLight || activeWallColor || g.frameColorLight || g.frameColor || '#242529');
       outerWallShine.style.setProperty('--outer-wall-shine-color', shineColor);
     }
   }
