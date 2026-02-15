@@ -13,7 +13,7 @@
       "abs-neutral-100": { "value": "#f5f5f5", "type": "color" },
       "abs-neutral-50": { "value": "#ffffff", "type": "color" },
       "abs-chrome-light": { "value": "#f1f3f4", "type": "color" },
-      "abs-chrome-dark": { "value": "#202124", "type": "color" },
+      "abs-chrome-dark": { "value": "#3c3c3c", "type": "color" },
 
       "abs-accent-primary": { "value": "#ff4013", "type": "color" },
       "abs-accent-emerald": { "value": "#00695c", "type": "color" },
@@ -420,4 +420,3 @@
     "tokenSetOrder": ["global", "light", "dark"]
   }
 }
-

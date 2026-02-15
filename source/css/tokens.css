@@ -33,6 +33,10 @@
   --wall-color-dark: var(--wall-color);
   --chrome-bg-light: var(--chrome-bg);
   --chrome-bg-dark: var(--chrome-bg);
+  --wall-color-browser-light: #f1f3f4;
+  --wall-color-browser-dark: #3c3c3c;
+  --wall-color-browser-firefox-light: #f9f9fb;
+  --wall-color-browser-firefox-dark: #1c1b22;
 
   /* Single stroke color (keep this token; override in :root.dark-mode) */
   --abs-stroke-medium: rgba(var(--abs-rgb-black), 0.18);

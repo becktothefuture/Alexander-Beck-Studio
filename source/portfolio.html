@@ -98,10 +98,8 @@
       function getLockedHeaderWallColor(isDark) {
         const family = detectBrowserFamily();
         if (family.isSafari) return '';
-        if (detectThemeColorLikelyApplied(family)) return '';
         if (family.isFirefox) return isDark ? '#1c1b22' : '#f9f9fb';
-        if (family.isChromium) return isDark ? '#202124' : '#f1f3f4';
-        return '';
+        return isDark ? '#3c3c3c' : '#f1f3f4';
       }
 
       function applyInitialWallColorToCssVars(color) {

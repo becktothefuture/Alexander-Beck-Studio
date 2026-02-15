@@ -10,7 +10,7 @@ let _siteFrameLight = null;
 let _siteFrameDark = null;
 
 const CHROMIUM_LOCKED_LIGHT_FALLBACK = '#f1f3f4';
-const CHROMIUM_LOCKED_DARK_FALLBACK = '#202124';
+const CHROMIUM_LOCKED_DARK_FALLBACK = '#3c3c3c';
 const FIREFOX_LOCKED_LIGHT_FALLBACK = '#f9f9fb';
 const FIREFOX_LOCKED_DARK_FALLBACK = '#1c1b22';
 
@@ -135,36 +135,16 @@ function applyBrowserWallColor(isDark, family) {
  */
 export function applyChromeHarmony(isDark) {
   const g = getGlobals();
-  const mode = String(g.chromeHarmonyMode || 'auto');
+  // Product decision: always match browser chrome palette.
+  const mode = 'browser';
+  g.chromeHarmonyMode = 'browser';
   const family = detectBrowserFamily();
   const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
-
-  if (mode === 'site') {
-    restoreSiteWallColor(isDark);
-    return { mode, family, themeColorLikelyApplied };
-  }
-
-  if (mode === 'browser') {
-    applyBrowserWallColor(isDark, family);
-    return { mode, family, themeColorLikelyApplied };
-  }
-
-  // auto
-  // Preserve the Safari benchmark: we don't force wall adaptation there.
   if (family.isSafari) {
+    // Preserve Safari behavior exactly as before: keep site wall colors.
     restoreSiteWallColor(isDark);
-    return { mode, family, themeColorLikelyApplied };
+    return { mode: 'site', family, themeColorLikelyApplied };
   }
-
-  // Locked-header browsers: if the browser chrome likely won't respect theme-color,
-  // adapt the wall to the browser's native UI palette.
-  const isLockedHeaderFamily = family.isChromium || family.isFirefox;
-  if (isLockedHeaderFamily && !themeColorLikelyApplied) {
-    applyBrowserWallColor(isDark, family);
-    return { mode, family, themeColorLikelyApplied };
-  }
-
-  // Firefox + others: stay on site wall unless explicitly forced.
-  restoreSiteWallColor(isDark);
+  applyBrowserWallColor(isDark, family);
   return { mode, family, themeColorLikelyApplied };
 }
