@@ -1,0 +1,1013 @@
+{
+  "generatedAt": "2026-02-10T22:13:13.419714+00:00",
+  "sourceRoot": "/Users/alexanderbeck/Projects (Code) /Alexander Beck Studio Website/source",
+  "summary": {
+    "totalFiles": 187,
+    "htmlFiles": 6,
+    "cssFiles": 6,
+    "jsFiles": 93,
+    "assetFiles": 71,
+    "otherFiles": 11
+  },
+  "files": [
+    {
+      "path": ".abs-watch-test.txt",
+      "bytes": 40,
+      "kind": "other"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 253,
+      "kind": "other"
+    },
+    {
+      "path": "config/README.md",
+      "bytes": 1647,
+      "kind": "other"
+    },
+    {
+      "path": "config/contents-home.json",
+      "bytes": 4340,
+      "kind": "other"
+    },
+    {
+      "path": "config/contents-portfolio.json",
+      "bytes": 9767,
+      "kind": "other"
+    },
+    {
+      "path": "config/default-config.json",
+      "bytes": 14545,
+      "kind": "other"
+    },
+    {
+      "path": "config/figma-tokens.json",
+      "bytes": 25780,
+      "kind": "other"
+    },
+    {
+      "path": "config/portfolio-config.json",
+      "bytes": 3794,
+      "kind": "other"
+    },
+    {
+      "path": "config/portfolio-data.json",
+      "bytes": 9767,
+      "kind": "other"
+    },
+    {
+      "path": "css/.main.css.swp",
+      "bytes": 16384,
+      "kind": "other"
+    },
+    {
+      "path": "css/main.css",
+      "bytes": 167437,
+      "kind": "css"
+    },
+    {
+      "path": "css/normalize.css",
+      "bytes": 7748,
+      "kind": "css"
+    },
+    {
+      "path": "css/panel.css",
+      "bytes": 60475,
+      "kind": "css"
+    },
+    {
+      "path": "css/portfolio.css",
+      "bytes": 39631,
+      "kind": "css"
+    },
+    {
+      "path": "css/styleguide.css",
+      "bytes": 5771,
+      "kind": "css"
+    },
+    {
+      "path": "css/tokens.css",
+      "bytes": 29699,
+      "kind": "css"
+    },
+    {
+      "path": "cv.html",
+      "bytes": 27006,
+      "kind": "html"
+    },
+    {
+      "path": "fonts/tabler-icons-outline.woff",
+      "bytes": 1062324,
+      "kind": "asset"
+    },
+    {
+      "path": "fonts/tabler-icons-outline.woff2",
+      "bytes": 720032,
+      "kind": "asset"
+    },
+    {
+      "path": "images/android-chrome-192x192.png",
+      "bytes": 2589,
+      "kind": "asset"
+    },
+    {
+      "path": "images/android-chrome-512x512.png",
+      "bytes": 7451,
+      "kind": "asset"
+    },
+    {
+      "path": "images/apple-touch-icon.png",
+      "bytes": 2410,
+      "kind": "asset"
+    },
+    {
+      "path": "images/cv-images/profile-image-01.jpg",
+      "bytes": 679234,
+      "kind": "asset"
+    },
+    {
+      "path": "images/cv-images/profile-image-02.jpg",
+      "bytes": 1250858,
+      "kind": "asset"
+    },
+    {
+      "path": "images/cv-images/profile-image-03.jpg",
+      "bytes": 647893,
+      "kind": "asset"
+    },
+    {
+      "path": "images/cv-images/profile-image-04.jpg",
+      "bytes": 1175723,
+      "kind": "asset"
+    },
+    {
+      "path": "images/cv-images/profile-image-05.jpg",
+      "bytes": 1170077,
+      "kind": "asset"
+    },
+    {
+      "path": "images/cv-images/profile-image-06.jpg",
+      "bytes": 679229,
+      "kind": "asset"
+    },
+    {
+      "path": "images/cv-images/profile-image-07.jpg",
+      "bytes": 1138768,
+      "kind": "asset"
+    },
+    {
+      "path": "images/cv-images/profile-image-08.jpg",
+      "bytes": 1437174,
+      "kind": "asset"
+    },
+    {
+      "path": "images/cv-images/profile-image-09.jpg",
+      "bytes": 643610,
+      "kind": "asset"
+    },
+    {
+      "path": "images/cv-images/profile-image-10.jpg",
+      "bytes": 609566,
+      "kind": "asset"
+    },
+    {
+      "path": "images/favicon-16x16.png",
+      "bytes": 562,
+      "kind": "asset"
+    },
+    {
+      "path": "images/favicon-32x32.png",
+      "bytes": 755,
+      "kind": "asset"
+    },
+    {
+      "path": "images/favicon.ico",
+      "bytes": 105493,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/folio-cover/cover-default.webp",
+      "bytes": 130482,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-1-1.webp",
+      "bytes": 142200,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-1-10.webp",
+      "bytes": 201120,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-1-2.webp",
+      "bytes": 124428,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-1-3.webp",
+      "bytes": 109984,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-1-4.webp",
+      "bytes": 80274,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-1-6.webp",
+      "bytes": 38334,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-2-1.webp",
+      "bytes": 57092,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-2-11.webp",
+      "bytes": 46650,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-2-3.webp",
+      "bytes": 108074,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-2-5.webp",
+      "bytes": 22728,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-2-9.webp",
+      "bytes": 114336,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-3-1.webp",
+      "bytes": 44760,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-3-10.webp",
+      "bytes": 39184,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-3-14.webp",
+      "bytes": 39530,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-3-4.webp",
+      "bytes": 40830,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-3-7.webp",
+      "bytes": 24302,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-4-1.webp",
+      "bytes": 43398,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-4-10.webp",
+      "bytes": 63252,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-4-3.webp",
+      "bytes": 132934,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-4-5.webp",
+      "bytes": 91472,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-4-8.webp",
+      "bytes": 85964,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-5-1.webp",
+      "bytes": 24048,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-5-10.webp",
+      "bytes": 82852,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-5-2.webp",
+      "bytes": 144254,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-5-4.webp",
+      "bytes": 6004,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-5-7.webp",
+      "bytes": 67244,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-6-1.webp",
+      "bytes": 17018,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-6-2.webp",
+      "bytes": 81956,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/pages/chapter-6-3.webp",
+      "bytes": 6076,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.mp4",
+      "bytes": 8916975,
+      "kind": "asset"
+    },
+    {
+      "path": "images/portfolio/videos/shutterstock_1092679953---01---02-transcode.webm",
+      "bytes": 5237051,
+      "kind": "asset"
+    },
+    {
+      "path": "images/realistic_noise.gif",
+      "bytes": 747696,
+      "kind": "asset"
+    },
+    {
+      "path": "images/safari-pinned-tab.svg",
+      "bytes": 156,
+      "kind": "asset"
+    },
+    {
+      "path": "images/site.webmanifest",
+      "bytes": 390,
+      "kind": "other"
+    },
+    {
+      "path": "images/webclip.png",
+      "bytes": 7451,
+      "kind": "asset"
+    },
+    {
+      "path": "index.html",
+      "bytes": 41748,
+      "kind": "html"
+    },
+    {
+      "path": "main.js",
+      "bytes": 33250,
+      "kind": "js"
+    },
+    {
+      "path": "modules/audio/sound-control-registry.js",
+      "bytes": 13774,
+      "kind": "js"
+    },
+    {
+      "path": "modules/audio/sound-engine.js",
+      "bytes": 39662,
+      "kind": "js"
+    },
+    {
+      "path": "modules/core/constants.js",
+      "bytes": 11521,
+      "kind": "js"
+    },
+    {
+      "path": "modules/core/daily-scheduler.js",
+      "bytes": 1570,
+      "kind": "js"
+    },
+    {
+      "path": "modules/core/state.js",
+      "bytes": 131058,
+      "kind": "js"
+    },
+    {
+      "path": "modules/cv-init.js",
+      "bytes": 15741,
+      "kind": "js"
+    },
+    {
+      "path": "modules/cv/cv-panel.js",
+      "bytes": 11257,
+      "kind": "js"
+    },
+    {
+      "path": "modules/cv/cv-photo-slideshow.js",
+      "bytes": 4871,
+      "kind": "js"
+    },
+    {
+      "path": "modules/cv/cv-scroll-typography.js",
+      "bytes": 1008,
+      "kind": "js"
+    },
+    {
+      "path": "modules/input/overscroll-lock.js",
+      "bytes": 1988,
+      "kind": "js"
+    },
+    {
+      "path": "modules/input/pointer.js",
+      "bytes": 12025,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/3d-cube.js",
+      "bytes": 8630,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/3d-sphere.js",
+      "bytes": 15061,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/ball-pit.js",
+      "bytes": 3639,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/bubbles.js",
+      "bytes": 10596,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/critters.js",
+      "bytes": 53320,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/elastic-center.js",
+      "bytes": 8737,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/flies.js",
+      "bytes": 4167,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/kaleidoscope.js",
+      "bytes": 19960,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/magnetic.js",
+      "bytes": 5483,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/mode-controller.js",
+      "bytes": 13966,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/parallax-float.js",
+      "bytes": 9221,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/parallax-linear.js",
+      "bytes": 8854,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/particle-fountain.js",
+      "bytes": 14948,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/starfield-3d.js",
+      "bytes": 7059,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/water.js",
+      "bytes": 5170,
+      "kind": "js"
+    },
+    {
+      "path": "modules/modes/weightless.js",
+      "bytes": 4307,
+      "kind": "js"
+    },
+    {
+      "path": "modules/physics/Ball.js",
+      "bytes": 22303,
+      "kind": "js"
+    },
+    {
+      "path": "modules/physics/accumulator.js",
+      "bytes": 1750,
+      "kind": "js"
+    },
+    {
+      "path": "modules/physics/collision.js",
+      "bytes": 13809,
+      "kind": "js"
+    },
+    {
+      "path": "modules/physics/engine.js",
+      "bytes": 29757,
+      "kind": "js"
+    },
+    {
+      "path": "modules/physics/spawn.js",
+      "bytes": 2396,
+      "kind": "js"
+    },
+    {
+      "path": "modules/physics/wall-state.js",
+      "bytes": 15052,
+      "kind": "js"
+    },
+    {
+      "path": "modules/portfolio/app.js",
+      "bytes": 86552,
+      "kind": "js"
+    },
+    {
+      "path": "modules/portfolio/panel/build-controls.js",
+      "bytes": 662,
+      "kind": "js"
+    },
+    {
+      "path": "modules/portfolio/panel/control-registry.js",
+      "bytes": 40191,
+      "kind": "js"
+    },
+    {
+      "path": "modules/portfolio/panel/controls.js",
+      "bytes": 201,
+      "kind": "js"
+    },
+    {
+      "path": "modules/portfolio/portfolio-config.js",
+      "bytes": 8658,
+      "kind": "js"
+    },
+    {
+      "path": "modules/portfolio/wall-only-canvas.js",
+      "bytes": 4399,
+      "kind": "js"
+    },
+    {
+      "path": "modules/rendering/canvas-logo.js",
+      "bytes": 18496,
+      "kind": "js"
+    },
+    {
+      "path": "modules/rendering/cursor.js",
+      "bytes": 18014,
+      "kind": "js"
+    },
+    {
+      "path": "modules/rendering/effects.js",
+      "bytes": 990,
+      "kind": "js"
+    },
+    {
+      "path": "modules/rendering/loop.js",
+      "bytes": 9157,
+      "kind": "js"
+    },
+    {
+      "path": "modules/rendering/renderer.js",
+      "bytes": 18093,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/apply-text.js",
+      "bytes": 6700,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/build-controls.js",
+      "bytes": 3849,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/contact-modal.js",
+      "bytes": 12520,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/control-registry.js",
+      "bytes": 270960,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/controls.js",
+      "bytes": 6672,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/cv-modal.js",
+      "bytes": 13465,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/keyboard.js",
+      "bytes": 2596,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/legend-colors.js",
+      "bytes": 2433,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/legend-filter.js",
+      "bytes": 2775,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/link-cursor-hop.js",
+      "bytes": 3695,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/modal-overlay.js",
+      "bytes": 17557,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/panel-dock.js",
+      "bytes": 40329,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/portfolio-modal.js",
+      "bytes": 14597,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/quote-display.js",
+      "bytes": 5222,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/scene-change-sfx.js",
+      "bytes": 1504,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/scene-impact-react.js",
+      "bytes": 11034,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/shared-chrome.js",
+      "bytes": 2591,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/social-icons.js",
+      "bytes": 1867,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/sound-toggle.js",
+      "bytes": 8099,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/theme-toggle.js",
+      "bytes": 2090,
+      "kind": "js"
+    },
+    {
+      "path": "modules/ui/time-display.js",
+      "bytes": 1023,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/accessibility.js",
+      "bytes": 808,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/ball-sizing.js",
+      "bytes": 5057,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/config-sync.js",
+      "bytes": 5575,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/font-loader.js",
+      "bytes": 960,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/logger.js",
+      "bytes": 11063,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/page-nav.js",
+      "bytes": 13186,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/performance.js",
+      "bytes": 5022,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/render-quality.js",
+      "bytes": 1850,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/runtime-config.js",
+      "bytes": 1141,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/storage.js",
+      "bytes": 4372,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/text-loader.js",
+      "bytes": 2778,
+      "kind": "js"
+    },
+    {
+      "path": "modules/utils/tokens.js",
+      "bytes": 2527,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/chrome-harmony.js",
+      "bytes": 6662,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/colors.js",
+      "bytes": 33103,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/cursor-explosion.js",
+      "bytes": 11734,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/dark-mode-v2.js",
+      "bytes": 16135,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/depth-wash.js",
+      "bytes": 4329,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/entrance-animation.js",
+      "bytes": 32971,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/mouse-trail.js",
+      "bytes": 7406,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/noise-system.js",
+      "bytes": 20407,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/page-departure.js",
+      "bytes": 6845,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/tactile-layer.js",
+      "bytes": 4837,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/wall-elements.js",
+      "bytes": 22923,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/wall-frame.js",
+      "bytes": 2006,
+      "kind": "js"
+    },
+    {
+      "path": "modules/visual/wall-shadow.js",
+      "bytes": 6332,
+      "kind": "js"
+    },
+    {
+      "path": "new-simulations.html",
+      "bytes": 2322,
+      "kind": "html"
+    },
+    {
+      "path": "new-simulations.js",
+      "bytes": 34264,
+      "kind": "js"
+    },
+    {
+      "path": "portfolio.html",
+      "bytes": 21856,
+      "kind": "html"
+    },
+    {
+      "path": "splat-config-panel.js",
+      "bytes": 23305,
+      "kind": "js"
+    },
+    {
+      "path": "styleguide-frame.html",
+      "bytes": 6135,
+      "kind": "html"
+    },
+    {
+      "path": "styleguide.html",
+      "bytes": 2310,
+      "kind": "html"
+    },
+    {
+      "path": "video/archive/video-dark copy 2.mp4",
+      "bytes": 5799387,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/video-dark copy 3.mp4",
+      "bytes": 1989110,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/video-dark copy 4.mp4",
+      "bytes": 5509723,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/video-dark copy.mp4",
+      "bytes": 8581031,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/video-dark.mp4",
+      "bytes": 1278984,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/video-dark2.mp4",
+      "bytes": 2828469,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/videoA.mp4",
+      "bytes": 2416622,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/videoB.mp4",
+      "bytes": 1989110,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/videoC.mp4",
+      "bytes": 5629571,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/videoD.mp4",
+      "bytes": 1672977,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/videoE.mp4",
+      "bytes": 2994929,
+      "kind": "asset"
+    },
+    {
+      "path": "video/archive/videoF.mp4",
+      "bytes": 11030489,
+      "kind": "asset"
+    },
+    {
+      "path": "video/under consideration/overlayB.webm",
+      "bytes": 1557399,
+      "kind": "asset"
+    },
+    {
+      "path": "video/under consideration/vecteezy_white-and-black-color-smoke-moving-upwards-moving-dust-or_39073814.mp4",
+      "bytes": 52187057,
+      "kind": "asset"
+    },
+    {
+      "path": "video/under consideration/video-dark.mp4",
+      "bytes": 52187057,
+      "kind": "asset"
+    },
+    {
+      "path": "video/under consideration/video-dark.webm",
+      "bytes": 1557399,
+      "kind": "asset"
+    },
+    {
+      "path": "video/video-dark.mp4",
+      "bytes": 1880261,
+      "kind": "asset"
+    },
+    {
+      "path": "video/video-light.webm",
+      "bytes": 1411887,
+      "kind": "asset"
+    }
+  ],
+  "htmlContracts": [
+    {
+      "page": "cv.html",
+      "assetRefs": [],
+      "hasInlineScript": true,
+      "hasInlineStyle": false
+    },
+    {
+      "page": "index.html",
+      "assetRefs": [],
+      "hasInlineScript": true,
+      "hasInlineStyle": false
+    },
+    {
+      "page": "new-simulations.html",
+      "assetRefs": [],
+      "hasInlineScript": true,
+      "hasInlineStyle": false
+    },
+    {
+      "page": "portfolio.html",
+      "assetRefs": [],
+      "hasInlineScript": true,
+      "hasInlineStyle": false
+    },
+    {
+      "page": "styleguide-frame.html",
+      "assetRefs": [],
+      "hasInlineScript": true,
+      "hasInlineStyle": false
+    },
+    {
+      "page": "styleguide.html",
+      "assetRefs": [],
+      "hasInlineScript": false,
+      "hasInlineStyle": false
+    }
+  ],
+  "routeMap": [
+    {
+      "source": "cv.html",
+      "route": "/cv"
+    },
+    {
+      "source": "index.html",
+      "route": "/"
+    },
+    {
+      "source": "new-simulations.html",
+      "route": "/new-simulations"
+    },
+    {
+      "source": "portfolio.html",
+      "route": "/portfolio"
+    },
+    {
+      "source": "styleguide-frame.html",
+      "route": "/styleguide-frame"
+    },
+    {
+      "source": "styleguide.html",
+      "route": "/styleguide"
+    }
+  ]
+}

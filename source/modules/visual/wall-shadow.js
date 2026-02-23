@@ -108,7 +108,7 @@ export function updateWallShadowCSS(g) {
   // Applied to .inner-shadow element. Uses PAGE background colour (not frame colour)
   // so the shadow blends the simulation edges into the surrounding background.
   // ─────────────────────────────────────────────────────────────────────────────
-  const innerShadowEnabled = g.wallInnerShadowEnabled ?? true;
+  const innerShadowEnabled = g.wallInnerShadowEnabled ?? false;
   let innerShadowStr = 'none';
   let innerShadowOpacity = 0;
   if (innerShadowEnabled) {

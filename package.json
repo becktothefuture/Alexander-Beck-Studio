@@ -15,6 +15,7 @@
     "build": "NODE_ENV=production node build-production.js --modules",
     "build:dev": "NODE_ENV=development node build-production.js --modules",
     "watch": "node scripts/build-watch.js",
+    "precommit:check": "bash scripts/precommit-check.sh",
     "help": "echo '🚀 QUICK START:\n  npm run startup    → Interactive menu (RECOMMENDED)\n  npm run dev        → Dev mode (port 8001, instant reload)\n  npm run preview    → Production preview (port 8000)\n\n📦 BUILD:\n  npm run build      → Production build\n  npm run watch      → Auto-rebuild on changes\n\n🧪 TEST:\n  (disabled)         → Playwright removed for now\n\n💡 First time? Run: npm run startup'",
     "test": "echo 'Playwright tests are disabled for now.'",
     "clean": "rm -rf dist && rm -f source/current-config*.json",

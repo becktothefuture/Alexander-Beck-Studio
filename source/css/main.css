@@ -2518,17 +2518,17 @@ a:active {
   /* Use absolute positioning when inside #bravia-balls (transformed parent makes fixed relative to parent) */
   position: absolute;
   pointer-events: none;
-  z-index: 3; /* Within UI stacking context */
+  z-index: 40; /* Above canvas + wall layers inside #bravia-balls */
   border: none;
   background: var(--cursor-color);
   transform-origin: center center;
   transform: translate(-50%, -50%) scale(1);
   opacity: 0.85; /* Transparent but visible */
   /* Power transfer: fast snap (200ms) so cursor hits first, then button reacts */
-  transition: transform var(--abs-cursor-shrink-duration, 200ms) ease-in,
+  transition: transform var(--abs-cursor-shrink-duration, 0ms) ease-in,
               opacity var(--abs-cursor-shrink-duration, 200ms) ease-in,
-              width 0.35s var(--ease-hesitant),
-              height 0.35s var(--ease-hesitant),
+              width 0ms linear,
+              height 0ms linear,
               background 0.35s var(--ease-hesitant);
   will-change: transform, opacity, width, height, background;
   width: 20px;
@@ -2541,7 +2541,7 @@ a:active {
 body.abs-link-hovering #custom-cursor {
   opacity: 0;
   transform: translate(-50%, -50%) scale(0);
-  transition: transform var(--abs-cursor-shrink-duration, 200ms) ease-in,
+  transition: transform var(--abs-cursor-shrink-duration, 0ms) ease-in,
               opacity var(--abs-cursor-shrink-duration, 200ms) ease-in;
 }
 

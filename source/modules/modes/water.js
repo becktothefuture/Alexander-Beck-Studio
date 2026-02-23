@@ -3,7 +3,7 @@
 // ║           Balls swim through water with gorgeous ripple effects             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount, getCursorBodyRadiusCanvasPx } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
 import { randomRadiusForMode } from '../utils/ball-sizing.js';
@@ -102,6 +102,32 @@ export function applyWaterForces(ball, dt) {
   const driftStrength = globals.waterDriftStrength || 25;
   ball.vx += Math.sin(ball.t * 0.5 + ball.x * 0.01) * driftStrength * dt;
   ball.vy += Math.cos(ball.t * 0.7 + ball.y * 0.01) * driftStrength * dt;
+
+  // Cursor body collision: physical contact zone that matches the visible cursor body.
+  if (globals.mouseInCanvas) {
+    const dx = ball.x - globals.mouseX;
+    const dy = ball.y - globals.mouseY;
+    const d2 = dx * dx + dy * dy;
+    const d = Math.max(Math.sqrt(d2), 1e-4);
+    const cursorBodyRadius = getCursorBodyRadiusCanvasPx(globals);
+    const bodyCollisionRadius = cursorBodyRadius + Math.max(0, ball.r);
+
+    if (d < bodyCollisionRadius) {
+      const nx = dx / d;
+      const ny = dy / d;
+      const penetration = bodyCollisionRadius - d;
+      const contact01 = Math.max(0, Math.min(1, penetration / Math.max(bodyCollisionRadius, 1e-4)));
+      // Keep force moderate in water mode; drag will naturally smooth it out.
+      const contactStrength = 2400 * (0.35 + 0.65 * contact01);
+      ball.vx += nx * contactStrength * dt;
+      ball.vy += ny * contactStrength * dt;
+
+      const correction = Math.min(penetration, Math.max(0.5, ball.r * 0.45));
+      ball.x += nx * correction;
+      ball.y += ny * correction;
+      if (ball.isSleeping) ball.wake();
+    }
+  }
 }
 
 export function updateWaterRipples(dt) {

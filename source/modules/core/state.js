@@ -198,7 +198,7 @@ const state = {
   R_MAX: 18,
   
   // Custom cursor
-  cursorSize: 1.0,  // Multiplier for cursor size (1.0 = average ball size)
+  cursorSize: 1.0,  // Multiplier on top of 2x ball-diameter cursor rule
   
   // Cursor color (dot + trail)
   // - `cursorColorMode`: 'auto' picks a new contrasty palette color on startup/mode/reset.
@@ -215,11 +215,11 @@ const state = {
   cursorColorDenyIndices: [],
 
   // Mouse trail (canvas-rendered)
-  mouseTrailEnabled: true,
-  mouseTrailLength: 18,     // number of samples to keep
-  mouseTrailSize: 1.3,      // CSS px (scaled by DPR at draw time)
-  mouseTrailFadeMs: 220,    // lifetime of a sample
-  mouseTrailOpacity: 0.35,  // 0..1
+  mouseTrailEnabled: false,
+  mouseTrailLength: 6,      // number of samples to keep
+  mouseTrailSize: 1.2,      // CSS px (scaled by DPR at draw time)
+  mouseTrailFadeMs: 180,    // lifetime of a sample
+  mouseTrailOpacity: 0.22,  // 0..1
   
   // Ball properties
   ballSoftness: 29,
@@ -333,6 +333,10 @@ const state = {
   noiseEnabled: true,
   noiseSeed: 1337,
   noiseTextureSize: 256,
+  noiseSvgEnabled: false,
+  noiseSvgBaseFrequency: 0.8,
+  noiseSvgOctaves: 2,
+  noiseSvgSeed: 1337,
   noiseDistribution: 'gaussian', // 'uniform' | 'gaussian'
   noiseMonochrome: false, // Allow multicolored grain by default
   noiseChroma: 0.9, // 0..1 (color intensity when not monochrome)
@@ -527,12 +531,9 @@ const state = {
   autoDarkModeEnabled: true,
   isDarkMode: false,
 
-  // Browser ↔ Wall harmony (when browsers ignore theme-color on desktop)
-  // - 'auto': only adapt on browsers where theme-color is typically ignored
-  // - 'site': always keep site wall (benchmark / Safari look)
-  // - 'browser': always adapt wall to browser UI palette (artful extension)
-  // Default uses Auto so locked-header browsers (desktop Chromium/Firefox) can blend wall + browser chrome.
-  chromeHarmonyMode: 'auto',
+  // Browser ↔ Wall harmony
+  // Product requirement: always adapt wall to browser UI palette.
+  chromeHarmonyMode: 'browser',
   // Night window heuristic (local clock): if enabled and theme is Auto, prefer Dark during this window.
   // Default: 18:00–06:00 (privacy-first; no geolocation).
   autoDarkNightStartHour: 18,
@@ -663,7 +664,7 @@ const state = {
   
   // Inner Shadow (inset shadow in background colour for depth)
   // V2 keys to bust cache of old low-opacity defaults
-  wallInnerShadowEnabled: true,           // Master toggle
+  wallInnerShadowEnabled: false,          // Master toggle
   wallInnerShadowOpacityLightV2: 1.0,     // Shadow opacity in light mode (full opacity for solid edge)
   wallInnerShadowOpacityDarkV2: 1.0,      // Shadow opacity in dark mode (full opacity for solid edge)
   wallInnerShadowBlurVh: 15,              // Blur size in vh
@@ -918,6 +919,34 @@ export function vwToPx(vw, viewportWidthPx) {
   const v = Number(vw);
   if (!Number.isFinite(v)) return 0;
   return (v / 100) * w;
+}
+
+// Cursor body sizing policy:
+// visible cursor diameter = average ball diameter * 2 * cursorSize
+const CURSOR_TO_BALL_DIAMETER_RATIO = 2;
+// Global tuning: make cursor body 30% smaller than the current tuned size while preserving slider behavior.
+const CURSOR_GLOBAL_SCALE = 0.525;
+
+/**
+ * Cursor body radius in canvas pixels (same unit as physics bodies).
+ * This keeps visual cursor size and collision radius aligned.
+ */
+export function getCursorBodyRadiusCanvasPx(globals = state) {
+  const g = globals || state;
+  const rMin = Number(g.R_MIN) || 0;
+  const rMax = Number(g.R_MAX) || 0;
+  const avgBallRadiusCanvasPx = Math.max(0, (rMin + rMax) * 0.5);
+  const sizeMul = Math.max(0.1, Number(g.cursorSize) || 1);
+  return avgBallRadiusCanvasPx * CURSOR_TO_BALL_DIAMETER_RATIO * sizeMul * CURSOR_GLOBAL_SCALE;
+}
+
+/**
+ * Cursor body radius in CSS pixels (for DOM styling).
+ */
+export function getCursorBodyRadiusCssPx(globals = state) {
+  const g = globals || state;
+  const dpr = Math.max(1, Number(g.DPR) || 1);
+  return getCursorBodyRadiusCanvasPx(g) / dpr;
 }
 
 export function applyLayoutFromVwToPx() {
@@ -1797,6 +1826,10 @@ export function initState(config) {
   if (config.noiseEnabled !== undefined) state.noiseEnabled = Boolean(config.noiseEnabled);
   if (config.noiseSeed !== undefined) state.noiseSeed = clampInt(config.noiseSeed, 0, 999999, state.noiseSeed);
   if (config.noiseTextureSize !== undefined) state.noiseTextureSize = clampInt(config.noiseTextureSize, 64, 512, state.noiseTextureSize);
+  if (config.noiseSvgEnabled !== undefined) state.noiseSvgEnabled = Boolean(config.noiseSvgEnabled);
+  if (config.noiseSvgBaseFrequency !== undefined) state.noiseSvgBaseFrequency = clampNumber(config.noiseSvgBaseFrequency, 0.01, 2, state.noiseSvgBaseFrequency);
+  if (config.noiseSvgOctaves !== undefined) state.noiseSvgOctaves = clampInt(config.noiseSvgOctaves, 1, 6, state.noiseSvgOctaves);
+  if (config.noiseSvgSeed !== undefined) state.noiseSvgSeed = clampInt(config.noiseSvgSeed, 0, 999999, state.noiseSvgSeed);
   if (config.noiseDistribution !== undefined) {
     const v = String(config.noiseDistribution);
     state.noiseDistribution = (v === 'uniform' || v === 'gaussian') ? v : state.noiseDistribution;
@@ -2137,7 +2170,6 @@ export function detectResponsiveScale() {
     // Mobile performance optimizations
     if (state.isMobile || state.isMobileViewport) {
       state.physicsCollisionIterations = 4;
-      state.mouseTrailEnabled = false;
     }
   }
 

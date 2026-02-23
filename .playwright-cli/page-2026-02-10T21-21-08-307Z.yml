@@ -1,0 +1,199 @@
+- generic [active] [ref=e1]:
+  - region "Settings" [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]: Settings
+      - button "Collapse panel" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+    - generic [ref=e8]:
+      - group [ref=e9]:
+        - generic "🎨 Appearance" [ref=e10] [cursor=pointer]:
+          - generic [ref=e11]: 🎨
+          - generic [ref=e12]: Appearance
+        - option "Ball 1 — Product Systems" [selected]
+        - option "Ball 2"
+        - option "Ball 3 — Applied AI" [disabled]
+        - option "Ball 4 — Creative Technology" [disabled]
+        - option "Ball 5 — Interaction Design" [disabled]
+        - option "Ball 6 — Experience Strategy" [disabled]
+        - option "Ball 7 — Art Direction" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Applied AI" [disabled]
+        - option "Ball 4 — Creative Technology" [disabled]
+        - option "Ball 5 — Interaction Design" [selected]
+        - option "Ball 6 — Experience Strategy" [disabled]
+        - option "Ball 7 — Art Direction" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Applied AI" [disabled]
+        - option "Ball 4 — Creative Technology" [selected]
+        - option "Ball 5 — Interaction Design" [disabled]
+        - option "Ball 6 — Experience Strategy" [disabled]
+        - option "Ball 7 — Art Direction" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Applied AI" [selected]
+        - option "Ball 4 — Creative Technology" [disabled]
+        - option "Ball 5 — Interaction Design" [disabled]
+        - option "Ball 6 — Experience Strategy" [disabled]
+        - option "Ball 7 — Art Direction" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Applied AI" [disabled]
+        - option "Ball 4 — Creative Technology" [disabled]
+        - option "Ball 5 — Interaction Design" [disabled]
+        - option "Ball 6 — Experience Strategy" [selected]
+        - option "Ball 7 — Art Direction" [disabled]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Applied AI" [disabled]
+        - option "Ball 4 — Creative Technology" [disabled]
+        - option "Ball 5 — Interaction Design" [disabled]
+        - option "Ball 6 — Experience Strategy" [disabled]
+        - option "Ball 7 — Art Direction" [selected]
+        - option "Ball 8 — Prototyping" [disabled]
+        - option "Ball 1 — Product Systems" [disabled]
+        - option "Ball 2"
+        - option "Ball 3 — Applied AI" [disabled]
+        - option "Ball 4 — Creative Technology" [disabled]
+        - option "Ball 5 — Interaction Design" [disabled]
+        - option "Ball 6 — Experience Strategy" [disabled]
+        - option "Ball 7 — Art Direction" [disabled]
+        - option "Ball 8 — Prototyping" [selected]
+        - option "Gaussian (filmic)" [selected]
+        - option "Uniform (flat)"
+        - option "Jitter (film grain)" [selected]
+        - option "Drift (slow pan)"
+        - option "Static"
+        - option "undefined" [selected]
+        - option "undefined"
+        - option "undefined"
+        - option "undefined"
+        - option "undefined"
+        - option "undefined"
+        - option "undefined"
+        - option "undefined"
+        - option "undefined"
+        - option "undefined"
+        - option "Industrial Teal"
+        - option "Industrial Rust"
+        - option "Industrial Slate"
+        - option "Industrial Amber"
+        - option "Industrial Violet" [selected]
+        - option "Industrial Forest"
+        - option "Industrial Steel"
+      - group [ref=e13]:
+        - generic "🖼️ Frame" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]: 🖼️
+          - generic [ref=e16]: Frame
+      - group [ref=e17]:
+        - generic "✨ Effects" [ref=e18] [cursor=pointer]:
+          - generic [ref=e19]: ✨
+          - generic [ref=e20]: Effects
+        - option "Normal"
+        - option "Multiply"
+        - option "Screen"
+        - option "Overlay"
+        - option "Darken"
+        - option "Lighten"
+        - option "Color Dodge" [selected]
+        - option "Color Burn"
+        - option "Hard Light"
+        - option "Soft Light"
+        - option "Difference"
+        - option "Exclusion"
+        - option "Normal"
+        - option "Multiply" [selected]
+        - option "Screen"
+        - option "Overlay"
+        - option "Darken"
+        - option "Lighten"
+        - option "Color Dodge"
+        - option "Color Burn"
+        - option "Hard Light"
+        - option "Soft Light"
+        - option "Difference"
+        - option "Exclusion"
+      - group [ref=e21]:
+        - generic "👆 Interaction" [ref=e22] [cursor=pointer]:
+          - generic [ref=e23]: 👆
+          - generic [ref=e24]: Interaction
+        - text: 
+      - group [ref=e25]:
+        - generic "⚡ Simulation" [ref=e26] [cursor=pointer]:
+          - generic [ref=e27]: ⚡
+          - generic [ref=e28]: Simulation
+      - group [ref=e29]:
+        - generic "🎬 Motion" [ref=e30] [cursor=pointer]:
+          - generic [ref=e31]: 🎬
+          - generic [ref=e32]: Motion
+        - option "Organic (default)" [selected]
+        - option "Ease Out"
+        - option "Ease In Out"
+        - option "Bounce"
+        - option "Overshoot"
+        - option "Auto (adapt only when needed)" [selected]
+        - option "Site (benchmark)"
+        - option "Browser (force adapt)"
+      - button "💾 Save Home Config" [ref=e34] [cursor=pointer]
+      - generic [ref=e35]:
+        - generic [ref=e36]: R
+        - text: reset ·
+        - generic [ref=e37]: /
+        - text: panel ·
+        - generic [ref=e38]: "9"
+        - text: kalei
+  - generic [ref=e39]:
+    - application "Bouncy balls" [ref=e40]
+    - generic:
+      - generic:
+        - banner:
+          - generic:
+            - navigation "Areas of expertise" [ref=e41]:
+              - generic [ref=e44]: Product Systems
+              - generic [ref=e47]: Interaction Design
+              - generic [ref=e50]: Creative Technology
+              - generic [ref=e53]: Applied AI
+              - generic [ref=e56]: Experience Strategy
+              - generic [ref=e59]: Art Direction
+              - generic [ref=e62]: Prototyping
+            - generic:
+              - blockquote [ref=e63]:
+                - paragraph [ref=e64]:
+                  - text: The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world.
+                  - link "Let's chat." [ref=e65] [cursor=pointer]:
+                    - /url: "#"
+              - button "Sound off" [ref=e66] [cursor=pointer]:
+                - generic: 
+        - main:
+          - navigation "Main navigation links":
+            - button "Contact" [ref=e67] [cursor=pointer]
+            - button "Work" [ref=e68] [cursor=pointer]
+            - button "Bio/CV" [ref=e69] [cursor=pointer]
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=e71]:
+              - button "Apple Music" [ref=e72] [cursor=pointer]:
+                - generic: 
+                - generic [ref=e73]: Apple Music
+              - button "LinkedIn" [ref=e74] [cursor=pointer]:
+                - generic: 
+                - generic [ref=e75]: LinkedIn
+            - generic [ref=e76]:
+              - generic [ref=e78]:
+                - paragraph [ref=e79]: You can't use up creativity. The more you use, the more you have.
+                - paragraph [ref=e80]: Maya Angelou
+              - button "Toggle theme" [ref=e81] [cursor=pointer]:
+                - generic [ref=e82]:
+                  - strong [ref=e83]: London
+                  - generic [ref=e84]: 9:21:07 PM
+        - status:
+          - generic: Built with love for aesthetics, motion, and interaction that feels impossibly satisfying.
+          - generic: © 2026 Alexander Beck Studio
+  - button "Toggle config panel" [ref=e85] [cursor=pointer]: ⚙
+  - generic: FPS 0 / 60 | 414.10ms | throttle L0 (no) | >16.67ms 1 | >8.33ms 1

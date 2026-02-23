@@ -38,7 +38,7 @@ export function getRenderQualityProfile(globals = getGlobals()) {
       tier,
       depthWashOpacityScale: 0.55,
       wallGradientStrokeEnabled: false,
-      drawMouseTrail: false,
+      drawMouseTrail: true,
       drawCursorExplosion: false
     };
   }

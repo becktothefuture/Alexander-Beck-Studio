@@ -4,7 +4,7 @@
 // ║    Scale up from 0 on every spawn for a clean entrance                       ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals, getMobileAdjustedCount } from '../core/state.js';
+import { getGlobals, getMobileAdjustedCount, getCursorBodyRadiusCanvasPx } from '../core/state.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
 import { MODES } from '../core/constants.js';
@@ -232,13 +232,16 @@ export function applyBubblesForces(ball, dt) {
     const dx = ball.x - g.mouseX;
     const dy = ball.y - g.mouseY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    // Cursor deflect radius is derived from vw-based layout in `applyLayoutFromVwToPx()`.
-    // Keep this hot path allocation-free and avoid per-frame vw→px conversions.
-    const collisionRadius = Math.max(0, (g.bubblesDeflectRadius || 0)) * g.DPR;
+    // Influence radius from layout + hard cursor body collision radius.
+    const influenceRadius = Math.max(0, (g.bubblesDeflectRadius || 0)) * g.DPR;
+    const cursorBodyRadius = getCursorBodyRadiusCanvasPx(g);
+    const bodyCollisionRadius = cursorBodyRadius + Math.max(0, ball.r);
+    const collisionRadius = Math.max(influenceRadius, bodyCollisionRadius);
     
     if (dist < collisionRadius && dist > 1) {
+      const falloffRadius = Math.max(influenceRadius, 1e-4);
       // Cubic falloff for very strong close-range collision feel
-      const normalizedDist = dist / collisionRadius;
+      const normalizedDist = Math.min(1, dist / falloffRadius);
       const falloff = Math.pow(1 - normalizedDist, 3);
       
       // Much stronger base force for solid collision feel
@@ -254,10 +257,16 @@ export function applyBubblesForces(ball, dt) {
       ball.vy += ny * force * dt;
       
       // Add extra "impact" velocity when very close (collision feel)
-      if (dist < collisionRadius * 0.3) {
-        const impactBoost = (1 - dist / (collisionRadius * 0.3)) * 500;
+      if (dist < bodyCollisionRadius) {
+        const penetration = bodyCollisionRadius - dist;
+        const contact01 = Math.max(0, Math.min(1, penetration / Math.max(bodyCollisionRadius, 1e-4)));
+        const impactBoost = (0.2 + contact01 * 0.8) * 500;
         ball.vx += nx * impactBoost * dt;
         ball.vy += ny * impactBoost * dt;
+
+        const correction = Math.min(penetration, Math.max(0.5, ball.r * 0.45));
+        ball.x += nx * correction;
+        ball.y += ny * correction;
       }
     }
   }

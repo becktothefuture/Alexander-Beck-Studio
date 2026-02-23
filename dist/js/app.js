@@ -1,1 +1,1 @@
-import"./shared.js";export{b as applyFramePaddingCSSVars,c as applyVisualCSSVars}from"./main.js";import"./legend-colors.js";
+import"./shared.js";export{b as applyFramePaddingCSSVars,c as applyVisualCSSVars}from"./main.js";import"./pointer.js";import"./legend-colors.js";

@@ -1,0 +1,76 @@
+# Codex local environment template for Alexander Beck Studio
+# Save/copy this as: .codex/environments/environment.toml (outside git or in your local clone)
+
+name = "Alexander Beck Studio"
+
+[setup]
+# Runs in repository root when worktree is created.
+script = """
+npm install
+npm run build
+"""
+
+[[actions]]
+name = "Startup Menu"
+command = "npm run startup"
+description = "Interactive launcher for dev/build/watch flows"
+
+[[actions]]
+name = "Dev Server (8001)"
+command = "npm run dev"
+description = "Serve source/ directly with instant refresh workflow"
+
+[[actions]]
+name = "Preview (build + serve 8000)"
+command = "npm run preview"
+description = "Build production bundle and serve dist/"
+
+[[actions]]
+name = "Build"
+command = "npm run build"
+description = "Generate production dist output"
+
+[[actions]]
+name = "Watch Rebuild"
+command = "npm run watch"
+description = "Background rebuild loop while editing source/"
+
+[[actions]]
+name = "Clean"
+command = "npm run clean"
+description = "Remove build artifacts"
+
+[[actions]]
+name = "Help"
+command = "npm run help"
+description = "Print quick command reference"
+
+[[actions]]
+name = "Figma MCP Config"
+command = "npm run figma:config"
+description = "Write Cursor MCP config for TalkToFigma (optional)"
+
+[[actions]]
+name = "Figma Socket"
+command = "npm run figma:socket"
+description = "Start Figma socket bridge (optional)"
+
+[platform_overrides.macos]
+script = """
+npm install
+npm run build
+"""
+
+[platform_overrides.linux]
+script = """
+npm install
+npm run build
+"""
+
+# Windows note:
+# repo scripts invoke `python3` for local servers. Prefer WSL or ensure python3 is available.
+[platform_overrides.windows]
+script = """
+npm install
+npm run build
+"""

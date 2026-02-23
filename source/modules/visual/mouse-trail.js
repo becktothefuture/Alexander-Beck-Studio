@@ -5,7 +5,7 @@
 // ║      - Respects prefers-reduced-motion                                        ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals } from '../core/state.js';
+import { getGlobals, getCursorBodyRadiusCanvasPx } from '../core/state.js';
 import { getCursorColor } from '../rendering/cursor.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -47,6 +47,45 @@ function prefersReducedMotion() {
   }
 }
 
+function getTrailPerfProfile(g) {
+  const throttle = Math.max(0, Number(g?.adaptiveThrottleLevel) || 0);
+  const mobileLike = Boolean(g?.isMobile || g?.isMobileViewport);
+
+  if (throttle >= 2 || mobileLike) {
+    return {
+      maxSamples: 8,
+      ghostCount: 4,
+      sizeMul: 0.8,
+      alphaMul: 0.6,
+      fadeMul: 0.7,
+      sampleIntervalMs: 12,
+      lagMul: 0.055
+    };
+  }
+
+  if (throttle >= 1) {
+    return {
+      maxSamples: 10,
+      ghostCount: 5,
+      sizeMul: 0.9,
+      alphaMul: 0.8,
+      fadeMul: 0.85,
+      sampleIntervalMs: 8,
+      lagMul: 0.065
+    };
+  }
+
+  return {
+    maxSamples: 14,
+    ghostCount: 6,
+    sizeMul: 1,
+    alphaMul: 1,
+    fadeMul: 1,
+    sampleIntervalMs: 0,
+    lagMul: 0.075
+  };
+}
+
 function ensureCapacity(nextCap) {
   const c = Math.max(0, nextCap | 0);
   if (c <= 0) return;
@@ -60,7 +99,7 @@ function ensureCapacity(nextCap) {
   size = 0;
 }
 
-function getStrokeStyle() {
+function getTrailFillStyle() {
   // Use the same color as the cursor dot
   // This ensures perfect synchronization between cursor and trail
   return getCursorColor();
@@ -74,6 +113,38 @@ function distSq(ax, ay, bx, by) {
   const dx = ax - bx;
   const dy = ay - by;
   return dx * dx + dy * dy;
+}
+
+function pushSample(x, y, nowMs, minSampleIntervalMs = 0) {
+  if (!cap) return;
+
+  // Keep latest sample "alive" without over-enqueuing near-identical points.
+  if (size > 0) {
+    const lastIdx = (head - 1 + cap) % cap;
+    const dt = nowMs - ts[lastIdx];
+    const d2 = distSq(x, y, xs[lastIdx], ys[lastIdx]);
+    if (d2 < 0.35 || (dt < minSampleIntervalMs && d2 < 6)) {
+      xs[lastIdx] = x;
+      ys[lastIdx] = y;
+      ts[lastIdx] = nowMs;
+      return;
+    }
+  }
+
+  xs[head] = x;
+  ys[head] = y;
+  ts[head] = nowMs;
+  head = (head + 1) % cap;
+  if (size < cap) size++;
+}
+
+function stampFrameSample(g, nowMs) {
+  if (!g?.mouseInCanvas) return;
+  const x = Number(g.mouseX);
+  const y = Number(g.mouseY);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+  // Paint-like trail: stamp cursor sample every rendered frame.
+  pushSample(x, y, nowMs, 0);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -91,33 +162,16 @@ export function notifyMouseTrailMove(x, y, nowMs, inBounds) {
   if (!g?.mouseTrailEnabled) return;
   if (!inBounds) return;
   if (prefersReducedMotion()) return;
+  const perf = getTrailPerfProfile(g);
 
   // Cap can be tuned live; only reallocate if needed (rare).
-  const wanted = clamp((g.mouseTrailLength ?? 18) | 0, 4, 96);
-  ensureCapacity(wanted);
+  const wanted = clamp((g.mouseTrailLength ?? 12) | 0, 6, 32);
+  const effectiveWanted = clamp(Math.min(wanted, perf.maxSamples), 6, 32);
+  ensureCapacity(effectiveWanted);
   if (!cap) return;
 
-  // Implicit spacing: derived from size.
-  // Keep this tight so the stroke reads continuous at small sizes.
-  const dpr = g.DPR || 1;
-  const widthPx = clamp(Number(g.mouseTrailSize ?? 1.3), 0.5, 10) * dpr;
-  const minDist = Math.max(0.35, widthPx * 0.55);
-  const minDistSq = minDist * minDist;
-
-  if (size > 0) {
-    const lastIdx = (head - 1 + cap) % cap;
-    if (distSq(x, y, xs[lastIdx], ys[lastIdx]) < minDistSq) {
-      // Update the last timestamp so the head doesn't "die" while hovering.
-      ts[lastIdx] = nowMs;
-      return;
-    }
-  }
-
-  xs[head] = x;
-  ys[head] = y;
-  ts[head] = nowMs;
-  head = (head + 1) % cap;
-  if (size < cap) size++;
+  const minSampleIntervalMs = Math.max(0, Number(perf.sampleIntervalMs) || 0);
+  pushSample(x, y, nowMs, minSampleIntervalMs);
 }
 
 export function notifyMouseTrailLeave() {
@@ -134,15 +188,20 @@ export function drawMouseTrail(ctx) {
   const g = getGlobals();
   if (!g?.mouseTrailEnabled) return;
   if (prefersReducedMotion()) return;
-  if (!ctx || !size || !cap) return;
+  if (!ctx) return;
+  const perf = getTrailPerfProfile(g);
+  const wanted = clamp((g.mouseTrailLength ?? 12) | 0, 6, 32);
+  const effectiveWanted = clamp(Math.min(wanted, perf.maxSamples), 6, 32);
+  ensureCapacity(effectiveWanted);
+  if (!cap) return;
 
   const now = performance.now();
-  const lifetimeMs = clamp(Number(g.mouseTrailFadeMs ?? 220), 40, 2000);
-  const baseAlpha = clamp(Number(g.mouseTrailOpacity ?? 0.35), 0, 1);
-  if (baseAlpha <= 0) return;
+  stampFrameSample(g, now);
+  if (!size) return;
 
-  const dpr = g.DPR || 1;
-  const widthPx = clamp(Number(g.mouseTrailSize ?? 1.3), 0.5, 10) * dpr;
+  const lifetimeMs = clamp(Number(g.mouseTrailFadeMs ?? 220) * perf.fadeMul, 40, 2000);
+  const baseAlpha = clamp(Number(g.mouseTrailOpacity ?? 0.35) * perf.alphaMul, 0, 1);
+  if (baseAlpha <= 0) return;
 
   // Cull expired points from the tail side (oldest).
   // We do this lazily: walk from oldest forward while expired.
@@ -154,63 +213,59 @@ export function drawMouseTrail(ctx) {
     size--;
   }
   if (!size) return;
-
-  // If only one sample remains, skip drawing (avoids "dot" artifacts).
-  if (size < 2) return;
-
-  const stroke = getStrokeStyle();
+  const fill = getTrailFillStyle();
+  const latest = (head - 1 + cap) % cap;
+  const hx = xs[latest];
+  const hy = ys[latest];
+  const cursorBodyRadius = Math.max(0.5, getCursorBodyRadiusCanvasPx(g));
+  const ghostCount = Math.min(size, Math.max(1, perf.ghostCount || 6));
+  if (ghostCount <= 0) return;
+  // Keep blur circles close to cursor body size for a subtle motion-blur look.
+  const trailSizeMul = clamp(0.9 + Number(g.mouseTrailSize ?? 1.2) * 0.07, 0.96, 1.12) * perf.sizeMul;
 
   // Save minimal state; keep this effect isolated.
   const prevAlpha = ctx.globalAlpha;
   const prevComp = ctx.globalCompositeOperation;
-  const prevLineCap = ctx.lineCap;
-  const prevLineJoin = ctx.lineJoin;
-  const prevStrokeStyle = ctx.strokeStyle;
-  const prevLineWidth = ctx.lineWidth;
+  const prevFillStyle = ctx.fillStyle;
 
   ctx.globalCompositeOperation = 'source-over';
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = widthPx;
-  ctx.globalAlpha = baseAlpha;
+  ctx.fillStyle = fill;
 
-  // Smooth stroke through samples (no stamping, no visible connector dots).
-  const count = size;
-  const start = (head - count + cap) % cap;
+  // Motion blur as subtle ghost circles:
+  // - latest N samples
+  // - hard lag clamp so copies stay attached
+  // - fade by age + index
+  for (let i = ghostCount - 1; i >= 0; i--) {
+    const idx = (latest - i + cap) % cap;
+    const age = now - ts[idx];
+    const ageFade = clamp(1 - age / lifetimeMs, 0, 1);
+    if (ageFade <= 0) continue;
 
-  ctx.beginPath();
-  const x0 = xs[start];
-  const y0 = ys[start];
-  ctx.moveTo(x0, y0);
+    const norm = ghostCount <= 1 ? 0 : (i / (ghostCount - 1));
+    const indexFade = 0.08 + Math.pow(1 - norm, 1.15) * 0.92;
+    const alpha = baseAlpha * ageFade * indexFade;
+    if (alpha <= 0.003) continue;
 
-  if (count === 2) {
-    const x1 = xs[(start + 1) % cap];
-    const y1 = ys[(start + 1) % cap];
-    ctx.lineTo(x1, y1);
-  } else {
-    // Quadratic smoothing via midpoints
-    for (let i = 1; i < count - 1; i++) {
-      const iCurr = (start + i) % cap;
-      const iNext = (start + i + 1) % cap;
-      const cx = xs[iCurr];
-      const cy = ys[iCurr];
-      const mx = (cx + xs[iNext]) * 0.5;
-      const my = (cy + ys[iNext]) * 0.5;
-      ctx.quadraticCurveTo(cx, cy, mx, my);
-    }
-    // Finish to last point
-    const iLast = (start + count - 1) % cap;
-    ctx.lineTo(xs[iLast], ys[iLast]);
+    // Clamp lag distance extremely hard so copies never detach into a thin string.
+    const dx = xs[idx] - hx;
+    const dy = ys[idx] - hy;
+    const dist = Math.hypot(dx, dy);
+    const maxLag = cursorBodyRadius * (Number(perf.lagMul) || 0.07);
+    const lagScale = (dist > maxLag && dist > 0.001) ? (maxLag / dist) : 1;
+    const pull = 1 - norm * 0.04;
+    const gx = hx + dx * lagScale * pull;
+    const gy = hy + dy * lagScale * pull;
+
+    const radius = Math.max(0.35, cursorBodyRadius * trailSizeMul * (1 - norm * 0.03));
+
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(gx, gy, radius, 0, Math.PI * 2);
+    ctx.fill();
   }
-
-  ctx.stroke();
 
   // Restore
   ctx.globalAlpha = prevAlpha;
   ctx.globalCompositeOperation = prevComp;
-  ctx.lineCap = prevLineCap;
-  ctx.lineJoin = prevLineJoin;
-  ctx.strokeStyle = prevStrokeStyle;
-  ctx.lineWidth = prevLineWidth;
+  ctx.fillStyle = prevFillStyle;
 }

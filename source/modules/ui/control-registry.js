@@ -629,14 +629,12 @@ export const CONTROL_SECTIONS = {
         stateKey: 'chromeHarmonyMode',
         type: 'select',
         options: [
-          { value: 'auto', label: 'Auto (adapt only when needed)' },
-          { value: 'site', label: 'Site (benchmark)' },
           { value: 'browser', label: 'Browser (force adapt)' }
         ],
-        default: 'auto',
+        default: 'browser',
         format: v => String(v),
         parse: v => String(v),
-        hint: 'If desktop browsers ignore theme-color, the wall adapts to match the browser UI palette.',
+        hint: 'Wall/chrome harmony is locked to Browser so the site always matches browser UI color.',
         onChange: (g) => {
           import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
             setTheme(getCurrentTheme());
@@ -3725,7 +3723,7 @@ export const CONTROL_SECTIONS = {
         label: 'Enabled',
         stateKey: 'wallInnerShadowEnabled',
         type: 'checkbox',
-        default: true,
+        default: false,
         hint: 'Inset shadow in background colour for depth',
         theme: null,
         wallGroup: 'innerShadow',
@@ -5881,7 +5879,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sphere3dRadiusVw',
         type: 'range',
         min: 5, max: 40, step: 0.5,
-        default: 18,
+        default: 20.7,
         format: v => v.toFixed(1) + 'vw',
         parse: parseFloat,
         reinitMode: true
@@ -5892,7 +5890,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sphere3dDensity',
         type: 'range',
         min: 30, max: 600, step: 10,
-        default: 140,
+        default: 132,
         format: v => String(Math.round(v)),
         parse: v => parseInt(v, 10),
         reinitMode: true

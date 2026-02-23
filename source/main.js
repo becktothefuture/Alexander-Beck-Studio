@@ -442,7 +442,7 @@ window.addEventListener('unhandledrejection', (event) => {
     setupOverscrollLock();
     log('✓ Overscroll lock configured');
     
-    // Setup custom cursor (circular, matches ball size)
+    // Setup custom cursor (circular, 2x ball diameter)
     setupCustomCursor();
     mark('bb:input');
     log('✓ Custom cursor initialized');

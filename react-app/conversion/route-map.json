@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-02-10T22:13:13.419714+00:00",
+  "sourceRoot": "/Users/alexanderbeck/Projects (Code) /Alexander Beck Studio Website/source",
+  "routes": [
+    {
+      "source": "cv.html",
+      "route": "/cv"
+    },
+    {
+      "source": "index.html",
+      "route": "/"
+    },
+    {
+      "source": "new-simulations.html",
+      "route": "/new-simulations"
+    },
+    {
+      "source": "portfolio.html",
+      "route": "/portfolio"
+    },
+    {
+      "source": "styleguide-frame.html",
+      "route": "/styleguide-frame"
+    },
+    {
+      "source": "styleguide.html",
+      "route": "/styleguide"
+    }
+  ]
+}

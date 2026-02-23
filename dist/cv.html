@@ -97,10 +97,8 @@
       function getLockedHeaderWallColor(isDark) {
         const family = detectBrowserFamily();
         if (family.isSafari) return '';
-        if (detectThemeColorLikelyApplied(family)) return '';
         if (family.isFirefox) return isDark ? '#1c1b22' : '#f9f9fb';
-        if (family.isChromium) return isDark ? '#202124' : '#f1f3f4';
-        return '';
+        return isDark ? '#3c3c3c' : '#f1f3f4';
       }
 
       function applyInitialWallColorToCssVars(color) {
@@ -235,8 +233,8 @@
   <meta content="Alexander Beck - Product Designer, Creative Technologist, Experience Director" name="description">
   <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport">
 
-  <link rel="stylesheet" href="css/styles.css?v=1770746960855">
-<link rel="modulepreload" href="js/shared.js?v=1770746960855">
+  <link rel="stylesheet" href="css/styles.css?v=1771178262855">
+<link rel="modulepreload" href="js/shared.js?v=1771178262855">
 
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin="anonymous">
@@ -277,7 +275,7 @@
     "starfield-3d": { "desktop": 220, "mobile": 150 },
     "particle-fountain": { "desktop": 260, "mobile": 180 }
   },
-  "chromeHarmonyMode": "auto",
+  "chromeHarmonyMode": "browser",
   "autoDarkModeEnabled": true,
   "autoDarkNightStartHour": 18,
   "autoDarkNightEndHour": 6,
@@ -299,12 +297,12 @@
   "sizeVariationGlobalMul": 1,
   "sizeVariationCap": 0,
   "cursorInfluenceRadiusVw": 9.5,
-  "cursorSize": 1.15,
-  "mouseTrailEnabled": true,
-  "mouseTrailLength": 5,
-  "mouseTrailSize": 4.2,
-  "mouseTrailFadeMs": 260,
-  "mouseTrailOpacity": 1,
+  "cursorSize": 1.0,
+  "mouseTrailEnabled": false,
+  "mouseTrailLength": 6,
+  "mouseTrailSize": 1.2,
+  "mouseTrailFadeMs": 180,
+  "mouseTrailOpacity": 0.22,
   "contentPaddingRatio": 0.033,
   "contentPaddingHorizontalRatio": 1.05,
   "contentPaddingBottomRatio": 1.05,
@@ -323,6 +321,9 @@
   "edgeCaptionDistanceMaxPx": 16,
   "simulationOverlayIntensity": 1,
   "depthWashOpacity": 1,
+  "depthWashDitherEnabled": true,
+  "depthWashDitherOpacity": 0.02,
+  "depthWashDitherTileSize": 64,
   "depthWashCenterY": 0.25,
   "depthWashRadiusScale": 1.7,
   "depthWashBlendModeLight": "source-over",
@@ -478,7 +479,7 @@
   "innerWallInnerGlowSpread": -9,
   "innerWallInnerGlowOffsetY": 23,
   "innerWallInnerGlowColor": "#ffffff",
-  "wallInnerShadowEnabled": true,
+  "wallInnerShadowEnabled": false,
   "wallInnerShadowBlurVh": 48,
   "wallInnerShadowSpreadVh": 15,
   "wallInnerShadowOpacityLightV2": 0.1,
@@ -497,6 +498,10 @@
   "noiseEnabled": true,
   "noiseSeed": 194267,
   "noiseTextureSize": 224,
+  "noiseSvgEnabled": true,
+  "noiseSvgBaseFrequency": 0.8,
+  "noiseSvgOctaves": 2,
+  "noiseSvgSeed": 194267,
   "noiseDistribution": "gaussian",
   "noiseMonochrome": false,
   "noiseChroma": 1,
@@ -630,8 +635,8 @@
   "particleFountainLifetime": 17,
   "particleFountainMouseRepelStrength": 85000,
   "particleFountainMouseRepelRadiusVw": 6.5,
-  "sphere3dRadiusVw": 18,
-  "sphere3dDensity": 100,
+  "sphere3dRadiusVw": 20.7,
+  "sphere3dDensity": 132,
   "sphere3dFocalLength": 2000,
   "sphere3dDotSizeMul": 1.5,
   "sphere3dIdleSpeed": 0.15,
@@ -956,7 +961,7 @@
   </div>
 
 
-  <script type="module" src="js/cv.js?v=1770746960855"></script>
+  <script type="module" src="js/cv.js?v=1771178262855"></script>
   <script>
     // In production (served from dist/), load from bundled JS if available
     if (!document.querySelector('script[src*="modules/cv-init.js"]')) {

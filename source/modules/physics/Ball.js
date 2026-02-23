@@ -3,7 +3,7 @@
 // ║                   Extracted from balls-source.html lines 1823-2234           ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getConfig, getGlobals } from '../core/state.js';
+import { getConfig, getGlobals, getCursorBodyRadiusCanvasPx } from '../core/state.js';
 import { CONSTANTS, MODES } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-state.js';
@@ -55,7 +55,9 @@ export class Ball {
     if (this.isSleeping) {
       const mouseX = globals.mouseX;
       const mouseY = globals.mouseY;
-      const wakeRadius = (globals.repelRadius || 710) * globals.DPR * 1.2; // 20% larger than repel radius
+      const repelWakeRadius = (globals.repelRadius || 710) * globals.DPR * 1.2; // 20% larger than influence radius
+      const cursorBodyWakeRadius = (getCursorBodyRadiusCanvasPx(globals) + this.r) * 1.5;
+      const wakeRadius = Math.max(repelWakeRadius, cursorBodyWakeRadius);
       const dx = this.x - mouseX;
       const dy = this.y - mouseY;
       const dist2 = dx * dx + dy * dy;

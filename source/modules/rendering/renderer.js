@@ -9,6 +9,8 @@ import { getGlobals, setEffectiveDPR, applyLayoutFromVwToPx, applyLayoutCSSVars,
 import { applyCanvasShadow } from './effects.js';
 
 let canvas, ctx;
+let updateCursorSizeFn = null;
+let updateCursorSizeLoad = null;
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PERFORMANCE: Adaptive DPR based on device capability
@@ -181,6 +183,23 @@ export function setupRenderer() {
   console.log(`✓ Renderer optimized (DPR: ${effectiveDPR.toFixed(2)}, desync: ${ctx.getContextAttributes?.()?.desynchronized ?? 'unknown'})`);
 }
 
+function syncCursorSizeToBallScale() {
+  if (typeof updateCursorSizeFn === 'function') {
+    updateCursorSizeFn();
+    return;
+  }
+  if (!updateCursorSizeLoad) {
+    updateCursorSizeLoad = import('./cursor.js')
+      .then((mod) => {
+        updateCursorSizeFn = typeof mod.updateCursorSize === 'function' ? mod.updateCursorSize : null;
+      })
+      .catch(() => {});
+  }
+  updateCursorSizeLoad.then(() => {
+    if (typeof updateCursorSizeFn === 'function') updateCursorSizeFn();
+  }).catch(() => {});
+}
+
 /**
  * Resize canvas to match container dimensions minus wall thickness.
  * 
@@ -244,6 +263,7 @@ export function resize() {
 
   // Keep "mobile scaling" responsive to viewport width (safe: early-outs unless breakpoint changes).
   try { detectResponsiveScale(); } catch (e) {}
+  try { syncCursorSizeToBallScale(); } catch (e) {}
   
   // Use container dimensions if available, fallback to window for safety
   const container = globals.container || document.getElementById('bravia-balls');

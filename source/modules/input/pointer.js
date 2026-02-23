@@ -5,10 +5,8 @@
 
 import { getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
-import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
-import { notifyMouseTrailMove } from '../visual/mouse-trail.js';
+import { updateCursorPosition, hideCursor, showCursor, setCursorPressed } from '../rendering/cursor.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
-import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
 
 let createWaterRippleFn = null;
 let waterRippleLoadPromise = null;
@@ -41,10 +39,6 @@ let lastMoveTime = 0;
 let mouseVelocity = 0;
 let mouseDirX = 0; // Normalized direction X (-1 to 1)
 let mouseDirY = 0; // Normalized direction Y (-1 to 1)
-let lastTapTime = 0;
-// Simple click tracking - just debounce to prevent rapid clicks
-let lastClickTime = 0;
-const CLICK_DEBOUNCE_MS = 150; // Prevent duplicate clicks within 150ms
 
 function cycleMode() {
   const globals = getGlobals();
@@ -127,7 +121,7 @@ export function setupPointer() {
    * Mobile Playwright projects may not emit `mousemove` reliably; `pointermove`
    * is the canonical cross-input signal.
    */
-  function handleMove(clientX, clientY, target, { isMouseLike } = { isMouseLike: true }) {
+  function handleMove(clientX, clientY, target, { isMouseLike, buttons } = { isMouseLike: true, buttons: 0 }) {
     const pos = getCanvasPosition(clientX, clientY);
     
     // Calculate mouse velocity early (for cursor effects and water ripples)
@@ -149,6 +143,7 @@ export function setupPointer() {
     // Update custom cursor position only for mouse-like pointers
     if (isMouseLike) {
       updateCursorPosition(clientX, clientY);
+      if (Number(buttons) === 0) setCursorPressed(false);
     } else {
       // Ensure cursor is hidden for touch/pen inputs that aren't mouse-like
       hideCursor();
@@ -173,11 +168,6 @@ export function setupPointer() {
       globals.lastPointerMoveMs = now;
       globals.lastPointerMoveX = pos.x;
       globals.lastPointerMoveY = pos.y;
-    }
-
-    // Mouse trail (canvas-rendered): record only for mouse-like pointers and real movement.
-    if (isMouseLike && movedPx > 0.5) {
-      notifyMouseTrailMove(pos.x, pos.y, now, pos.inBounds);
     }
 
     // WATER MODE: Create ripples based on mouse movement velocity
@@ -205,18 +195,18 @@ export function setupPointer() {
     // This prevents synthetic mousemove events from touch interactions from showing the cursor
     if (window.PointerEvent) return;
     
-    handleMove(e.clientX, e.clientY, e.target, { isMouseLike: true });
+    handleMove(e.clientX, e.clientY, e.target, { isMouseLike: true, buttons: e.buttons });
   }, { passive: true });
 
   document.addEventListener('pointermove', (e) => {
     const isMouseLike = e.pointerType === 'mouse' || e.pointerType === 'pen';
-    handleMove(e.clientX, e.clientY, e.target, { isMouseLike });
+    handleMove(e.clientX, e.clientY, e.target, { isMouseLike, buttons: e.buttons });
   }, { passive: true });
   
   /**
    * Document-level press handler (pointerdown/up)
    * - Press in + switch sim on down
-   * - Bounce out on release
+   * - Immediate release on up
    */
   function isTargetInteractive(el) {
     if (!el || !el.closest) return false;
@@ -229,6 +219,41 @@ export function setupPointer() {
       el.closest('[role="button"]') ||  // ARIA buttons (e.g., legend items)
       el.closest('.legend__item--interactive')  // Interactive legend items
     );
+  }
+
+  function isMouseLikePointerEvent(e) {
+    if (!e) return false;
+    if (!('pointerType' in e)) return true;
+    return e.pointerType === 'mouse' || e.pointerType === 'pen';
+  }
+
+  document.addEventListener('pointerdown', (e) => {
+    if (!isMouseLikePointerEvent(e)) return;
+    if (typeof e.button === 'number' && e.button !== 0) return;
+    setCursorPressed(true);
+  }, { passive: true });
+
+  document.addEventListener('pointerup', (e) => {
+    if (!isMouseLikePointerEvent(e)) return;
+    if (typeof e.button === 'number' && e.button !== 0) return;
+    setCursorPressed(false);
+  }, { passive: true });
+
+  document.addEventListener('pointercancel', () => {
+    setCursorPressed(false);
+  }, { passive: true });
+
+  // Mouse fallback for browsers without Pointer Events.
+  if (!window.PointerEvent) {
+    document.addEventListener('mousedown', (e) => {
+      if (typeof e.button === 'number' && e.button !== 0) return;
+      setCursorPressed(true);
+    }, { passive: true });
+
+    document.addEventListener('mouseup', (e) => {
+      if (typeof e.button === 'number' && e.button !== 0) return;
+      setCursorPressed(false);
+    }, { passive: true });
   }
 
   // Click-to-cycle disabled in Daily Simulation mode
@@ -291,6 +316,7 @@ export function setupPointer() {
     mouseDirX = 0;
     mouseDirY = 0;
     if (typeof window !== 'undefined') window.mouseInCanvas = false;
+    setCursorPressed(false);
     hideCursor();
   }, { passive: true });
   

@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { spawnBall } from '../physics/spawn.js';
-import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
+import { getGlobals, clearBalls, getMobileAdjustedCount, getCursorBodyRadiusCanvasPx } from '../core/state.js';
 
 /**
  * Calculate number of rows needed for a triangle arrangement to fit target ball count
@@ -99,24 +99,42 @@ export function applyWeightlessForces(ball, dt) {
 
   // Treat as “CSS px” and scale into canvas units via DPR (matches Ball Pit repeller behavior).
   const rPx = radius * (globals.DPR || 1);
+  const cursorBodyRadius = getCursorBodyRadiusCanvasPx(globals);
+  const bodyCollisionRadius = cursorBodyRadius + Math.max(0, ball.r);
+  const interactionRadius = Math.max(rPx, bodyCollisionRadius);
   const dx = ball.x - globals.mouseX;
   const dy = ball.y - globals.mouseY;
   const d2 = dx * dx + dy * dy;
-  const r2 = rPx * rPx;
+  const r2 = interactionRadius * interactionRadius;
   if (d2 > r2) return;
 
   const d = Math.max(Math.sqrt(d2), 1e-4);
   const nx = dx / d;
   const ny = dy / d;
 
-  // Strong near-field impulse (“explosion” feel), smoothly falling off to 0 at the radius.
-  const q = Math.max(0, 1 - d / rPx);
-  const soft = globals.weightlessRepelSoft ?? 2.2;
-  const strength = (power * 20.0) * Math.pow(q, soft);
-
   const massScale = Math.max(0.25, ball.m / globals.MASS_BASELINE_KG);
-  ball.vx += (nx * strength * dt) / massScale;
-  ball.vy += (ny * strength * dt) / massScale;
-}
 
+  // Legacy soft influence zone.
+  if (rPx > 0 && d < rPx) {
+    const q = Math.max(0, 1 - d / rPx);
+    const soft = globals.weightlessRepelSoft ?? 2.2;
+    const strength = (power * 20.0) * Math.pow(q, soft);
+    ball.vx += (nx * strength * dt) / massScale;
+    ball.vy += (ny * strength * dt) / massScale;
+  }
+
+  // Cursor body collision zone.
+  if (d < bodyCollisionRadius) {
+    const penetration = bodyCollisionRadius - d;
+    const contact01 = Math.max(0, Math.min(1, penetration / Math.max(bodyCollisionRadius, 1e-4)));
+    const contactStrength = (power * 24.0) * (0.35 + 0.65 * contact01);
+    ball.vx += (nx * contactStrength * dt) / massScale;
+    ball.vy += (ny * contactStrength * dt) / massScale;
+
+    const correction = Math.min(penetration, Math.max(0.5, ball.r * 0.5));
+    ball.x += nx * correction;
+    ball.y += ny * correction;
+    if (ball.isSleeping) ball.wake();
+  }
+}
 

@@ -14,7 +14,6 @@ import {
   getModeCustomRenderer,
   getModeBoundsHandler
 } from '../modes/mode-controller.js';
-import { drawMouseTrail } from '../visual/mouse-trail.js';
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
 import { getRenderQualityProfile } from '../utils/render-quality.js';
 import { 
@@ -606,8 +605,7 @@ export function render() {
     ctx.restore();
   }
   
-  // Mouse trail: draw after clip restore so it's always visible
-  if (qualityProfile.drawMouseTrail) drawMouseTrail(ctx);
+  // Cursor trail removed per design direction.
   if (qualityProfile.drawCursorExplosion) drawCursorExplosion(ctx);
 
   // Depth wash: gradient overlay between balls/trail and wall
