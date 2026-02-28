@@ -739,6 +739,8 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 - `wallRadiusVw` (number, vw) → `--wall-radius` (derived px; also feeds rounded-corner collision bounds)
 - `wallInset` (number, px) → physics-only inset (shrinks effective collision bounds to prevent visual overlap)
 
+**Design rule (wall frame):** The inner wall corner radius is applied at **1.15×** the base radius (in `applyLayoutFromVwToPx`) to visually compensate for the extra outer offset of the second outer wall band (`.wall-outer-2`). If the number of outer bands or their offset changes, this multiplier may need adjustment. **iOS-like rounding:** Where the browser supports it (`@supports (corner-shape: squircle)`), walls and other rounded elements use `corner-shape: squircle` for smoother, more natural-looking corners.
+
 ### Legacy compatibility (px keys)
 The following legacy keys are still accepted and will be converted to vw at startup:
 - `wallThickness` (px)

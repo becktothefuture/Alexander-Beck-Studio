@@ -632,7 +632,7 @@ const state = {
   // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)
   topLogoWidthVw: 35,                 // Sets `--top-logo-width-vw` (clamped by CSS min/max tokens)
-  homeMainLinksBelowLogoPx: 40,       // Sets `--home-main-links-below-logo-px` (index only)
+  homeMainLinksBelowLogoPx: 96,      // Sets `--home-main-links-below-logo-px` (index only)
   footerNavBarTopVh: 50,              // Sets `--footer-nav-bar-top-*` (viewport units)
   footerNavBarGapVw: 2.5,             // Sets `--footer-nav-bar-gap` (viewport units)
   wallThickness: 12,        // Unified: wall tubes + body border (px)
@@ -1047,6 +1047,12 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--content-padding-y', `${state.contentPaddingY}px`);
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
+  // Proportional radii: R = outer wall edge, inner = R − T (concentric)
+  const R = state.wallRadius;
+  const T = state.wallThickness;
+  root.style.setProperty('--radius-outer', `${R}px`);
+  root.style.setProperty('--radius-inner', `${Math.max(0, R - T)}px`);
+  root.style.setProperty('--outer-wall-radius', `${R}px`);
 
   // Viewport metrics (used for debugging + CSS-only sizing when needed)
   try {

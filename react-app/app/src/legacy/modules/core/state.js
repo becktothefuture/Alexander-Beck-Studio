@@ -632,7 +632,7 @@ const state = {
   // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)
   topLogoWidthVw: 35,                 // Sets `--top-logo-width-vw` (clamped by CSS min/max tokens)
-  homeMainLinksBelowLogoPx: 40,       // Sets `--home-main-links-below-logo-px` (index only)
+  homeMainLinksBelowLogoPx: 96,      // Sets `--home-main-links-below-logo-px` (index only)
   footerNavBarTopVh: 50,              // Sets `--footer-nav-bar-top-*` (viewport units)
   footerNavBarGapVw: 2.5,             // Sets `--footer-nav-bar-gap` (viewport units)
   wallThickness: 12,        // Unified: wall tubes + body border (px)

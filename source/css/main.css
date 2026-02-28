@@ -81,9 +81,10 @@ html {
   height: 100%;
   /* Default cursor outside inner wall area; custom cursor only inside inner wall */
   cursor: default;
-  /* Wall background (theme-aware via tokens.css). */
-  background: var(--wall-color);
-  background-color: var(--wall-color);
+  /* Wall background: always the design wall colour (never adapts to browser chrome).
+     The frame/wall is a physical material — it stays dark in all modes. */
+  background: var(--wall-design-color, #242529);
+  background-color: var(--wall-design-color, #242529);
   /* 3D perspective for entrance animations */
   perspective: var(--entrance-perspective, 1000px);
   perspective-origin: center center;
@@ -106,17 +107,15 @@ html.aspect-portrait {
 }
 
 /* Initial browser-default state (before entrance animation) */
-/* Unified wall color fallback: #242529 (consistent across all modes) */
 html.entrance-pre-transition {
-  background: var(--wall-color, #242529);
-  background-color: var(--wall-color, #242529);
+  background: var(--wall-design-color, #242529);
+  background-color: var(--wall-design-color, #242529);
 }
 
 /* Dark mode override: prevent white flash on load */
-/* Unified wall color (same as light mode) */
 html.entrance-pre-transition.dark-mode {
-  background: var(--wall-color, #242529);
-  background-color: var(--wall-color, #242529);
+  background: var(--wall-design-color, #242529);
+  background-color: var(--wall-design-color, #242529);
 }
 
 /* Background elements are visible immediately (no fade-in) */
@@ -173,9 +172,9 @@ body.body {
   touch-action: manipulation;
   font-family: var(--abs-font-sans);
   /* iOS Safari can reveal the body background during rubber-band/viewport UI changes.
-     Keep body aligned to the wall color so no browser-white edges appear. */
-  background: var(--wall-color);
-  background-color: var(--wall-color);
+     Keep body aligned to the permanent design wall color (dark in all modes). */
+  background: var(--wall-design-color, #242529);
+  background-color: var(--wall-design-color, #242529);
   color: var(--text-primary);
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
@@ -244,10 +243,9 @@ body.abs-in-simulation .cv-config-panel .cv-panel-close {
 
 body.dark-mode,
 body.body.dark-mode { 
-  background: var(--wall-color);
-  background-color: var(--wall-color);
+  background: var(--wall-design-color, #242529);
+  background-color: var(--wall-design-color, #242529);
   color: var(--text-primary);
-  /* Inner shadow removed */
 }
 
 
@@ -350,12 +348,13 @@ html.fonts-loading .project-detail {
   /* Reset */
   box-sizing: border-box;
   margin: 0;
-  /* Apply organic padding here (allow mobile multiplier without touching runtime config). */
+  /* Content starts at --content-area-inset (after wall-3 padding).
+     Additional interior padding from --content-padding-* pushes text/UI further in. */
   padding:
-    calc(var(--content-padding-y) * var(--abs-content-pad-mul-y, 1))
-    calc(var(--content-padding-x) * var(--abs-content-pad-mul-x, 1))
-    calc(var(--content-padding-y) * var(--abs-content-pad-mul-y, 1) * var(--abs-content-pad-mul-bottom, 1.3))
-    calc(var(--content-padding-x) * var(--abs-content-pad-mul-x, 1));
+    calc(var(--content-area-inset) + (var(--content-padding-y) * var(--abs-content-pad-mul-y, 1)))
+    calc(var(--content-area-inset) + (var(--content-padding-x) * var(--abs-content-pad-mul-x, 1)))
+    calc(var(--content-area-inset) + (var(--content-padding-y) * var(--abs-content-pad-mul-y, 1) * var(--abs-content-pad-mul-bottom, 1.3)))
+    calc(var(--content-area-inset) + (var(--content-padding-x) * var(--abs-content-pad-mul-x, 1)));
   
   /* Visuals */
   background: transparent;
@@ -471,7 +470,7 @@ html.modal-active .fade-content {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(32px, 4vw, 56px);
+  gap: var(--home-main-links-below-logo-px, 96px);
   pointer-events: none;
   z-index: 10; /* Above background, below modals */
 }
@@ -484,10 +483,9 @@ html.modal-active .fade-content {
 .fade-content.viewport.viewport--content::before {
   content: '';
   position: absolute;
-  /* Align to inner wall edge: safari-tint-inset + wall-thickness */
-  inset: calc(var(--safari-tint-inset, 20px) + var(--wall-thickness, 9px));
-  /* No border-radius - only simulation (#bravia-balls) has rounded corners */
-  border-radius: 0;
+  /* Align to content area (after wall-3 padding) */
+  inset: var(--content-area-inset);
+  border-radius: var(--radius-inner);
   pointer-events: none;
   z-index: 1;
   mix-blend-mode: soft-light;
@@ -641,22 +639,18 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   background: transparent;
   opacity: 0;
   pointer-events: none;
-  transform: scale(0.72);
+  transform: scale(var(--abs-hover-bg-jump-start, 0.88));
   transform-origin: center;
   /* Faint inner light mostly from top */
   box-shadow: inset 0 1px 4px color-mix(in srgb, var(--abs-stroke-medium) 40%, transparent);
-  /* filter: blur(8px); - Removed */
-  /* -webkit-filter: blur(8px); - Removed */
-  /* backdrop-filter: blur(10px); - Disabled: not working with canvas simulation */
-  /* -webkit-backdrop-filter: blur(10px); */
-  /* Ensure backdrop-filter can work across stacking contexts */
-  /* will-change: backdrop-filter; */
-  /* background-clip: padding-box; */
-  /* Organic Release (Hover Out) */
-  transition: background 500ms var(--ease-settle),
-              opacity 500ms var(--ease-settle),
-              transform 500ms var(--ease-settle),
-              box-shadow 500ms var(--ease-settle);
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+  /* Hover-out: slower decay so exit feels natural (slower than high-velocity entrance) */
+  transition: transform var(--abs-button-swell-out-duration, 520ms) var(--ease-decay, var(--ease-organic)),
+              opacity 520ms var(--ease-decay),
+              background 280ms var(--ease-decay),
+              backdrop-filter 300ms var(--ease-decay),
+              box-shadow 200ms ease;
 }
 
 /* Specific element overrides using CSS custom properties */
@@ -976,18 +970,14 @@ p {
   justify-content: center;
 }
 
-/* Main Links Navigation - Fixed positioning below canvas logo */
-/* Since logo is now rendered inside canvas at viewport center, nav links use fixed 
-   positioning to maintain their visual position below the logo */
+/* Main Links Navigation - Absolute below logo within .ui-center */
+/* Positioned relative to .ui-center so --home-main-links-below-logo-px moves the row correctly */
 #main-links {
-  /* Fixed positioning relative to viewport, not flex container */
-  position: fixed;
-  /* Horizontally centered */
+  position: absolute;
+  /* Below logo: 100% = bottom of .ui-center content (logo) + gap (tunable via dev panel) */
+  top: calc(100% + var(--home-main-links-below-logo-px, 96px));
   left: 50%;
   transform: translateX(-50%) scale(1);
-  /* Vertical position: viewport center (50%) + 5vh downshift (matching .ui-center) 
-     + logo visual half-height (~2vh) + gap (clamp matches .ui-center gap) */
-  top: calc(50% + 5vh + clamp(32px, 4vw, 56px));
   transform-origin: center center;
   z-index: 10; /* Match .ui-center z-index */
   /* Horizontal flexbox layout - center aligned */
@@ -1697,33 +1687,40 @@ html.modal-active #main-links { pointer-events: none; }
    modal-overlay.js (fadeLogoNav function) for reliable cross-browser transitions
    ───────────────────────────────────────────────────────────────────────────── */
 
-#bravia-balls {
+/* ═══════════════════════════════════════════════════════════════════════════════
+   WALL-3 — outermost container (fixed, takes over #bravia-balls' old position)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.wall-3 {
   position: fixed;
-  /* Wall inset from viewport edges (--safari-tint-inset defined in tokens.css).
-     This gap exposes wall colour (html/body bg) so Safari samples correct chrome tint. */
   top: var(--safari-tint-inset);
   left: var(--safari-tint-inset);
   right: var(--safari-tint-inset);
   bottom: var(--safari-tint-inset);
-  width: calc(100% - var(--safari-tint-inset) * 2);
-  height: calc(100dvh - var(--safari-tint-inset) * 2);
+  width: calc(100% - 2 * var(--safari-tint-inset));
+  height: calc(100dvh - 2 * var(--safari-tint-inset));
   margin: 0;
-  padding: 0;
+  padding: var(--wall-thickness);
   box-sizing: border-box;
-  /* Border-radius removed on simulation page (index.html) - kept on portfolio page */
-  border-radius: 0;
-  
-  /* Scene interior uses page background (light in light mode, dark in dark mode) */
-  background: var(--bg-light);
-  background-color: var(--bg-light);
-  z-index: 100; /* Wall: top of visual stack (below modals at z:19998+) */
+  border-radius: var(--radius-outer);
+  background: var(--wall-design-color, var(--wall-color));
+  z-index: 100;
   pointer-events: none;
   overflow: hidden;
-  /* GPU layer hint for smooth compositing */
   transform: translateZ(0);
   transform-origin: center center;
-  /* Smooth resize-driven geometry changes (inset + radius). */
-  /* NOTE: border-radius transition disabled during entrance animation via JS */
+  box-shadow:
+    inset 0 var(--w3-shadow-soft-offset, 3px) var(--w3-shadow-soft-blur, 25px) 0 rgba(0, 0, 0, var(--w3-shadow-soft-opacity, 0.17)),
+    inset 0 var(--w3-shadow-strong-offset, 5px) var(--w3-shadow-strong-blur, 17px) 0 rgba(0, 0, 0, var(--w3-shadow-strong-opacity, 0.85));
+  transition:
+    top var(--duration-resize) var(--ease-organic),
+    left var(--duration-resize) var(--ease-organic),
+    right var(--duration-resize) var(--ease-organic),
+    height var(--duration-resize) var(--ease-organic),
+    border-radius var(--duration-settle, 400ms) var(--ease-settle),
+    box-shadow var(--duration-settle, 400ms) var(--ease-settle);
+}
+
+html.entrance-transitioning .wall-3 {
   transition:
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic),
@@ -1731,16 +1728,37 @@ html.modal-active #main-links { pointer-events: none; }
     height var(--duration-resize) var(--ease-organic);
 }
 
-/* Portfolio page intentionally inherits the index wall master:
-   keep #bravia-balls border-radius at 0 (no portfolio-only override). */
+/* When outer wall edge is disabled, hide only the shine ring, not the container */
+.wall-3.outer-wall-edge-disabled::before {
+  display: none;
+}
 
-/* During entrance animation, border-radius is controlled by JS (no CSS transition) */
-html.entrance-transitioning #bravia-balls {
+/* ═══════════════════════════════════════════════════════════════════════════════
+   #bravia-balls — content area (fills wall-3, dark bg, clips canvas)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+#bravia-balls {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: var(--radius-inner);
+  background: var(--bg-light);
+  background-color: var(--bg-light);
+  pointer-events: none;
+  overflow: hidden;
+  /* clip-path guarantees border-radius clipping even when Safari's GPU compositor
+     fails with nested compositing contexts (transform + will-change + preserve-3d) */
+  clip-path: inset(0 round var(--radius-inner));
+  isolation: isolate;
+  box-shadow:
+    inset 0 var(--w1-shadow-soft-offset, 2px) var(--w1-shadow-soft-blur, 15px) 0 rgba(0, 0, 0, var(--w1-shadow-soft-opacity, 0.04)),
+    inset 0 var(--w1-shadow-strong-offset, 4px) var(--w1-shadow-strong-blur, 10px) 0 rgba(0, 0, 0, var(--w1-shadow-strong-opacity, 0.21));
   transition:
-    top var(--duration-resize) var(--ease-organic),
-    left var(--duration-resize) var(--ease-organic),
-    right var(--duration-resize) var(--ease-organic),
-    height var(--duration-resize) var(--ease-organic);
+    border-radius var(--duration-settle, 400ms) var(--ease-settle),
+    clip-path var(--duration-settle, 400ms) var(--ease-settle),
+    box-shadow var(--duration-settle, 400ms) var(--ease-settle);
 }
 
 body.dark-mode #bravia-balls {
@@ -1749,253 +1767,92 @@ body.dark-mode #bravia-balls {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   DOUBLE WALL SYSTEM (Real DOM Elements)
+   WALL FRAME — Single outer frame + content area
    
-   Creates a layered wall effect with proper edge lighting on both walls.
-   Uses real DOM elements instead of pseudo-elements for better control and
-   clip-path support on gradient overlays.
+   .wall-3 sits at safari-tint-inset (outer fixed container).
+   #bravia-balls fills .wall-3 as the content area.
+   Body background (--wall-color) shows through as chrome in the padding gap.
+   Inset box-shadows create the 3D recessed-step depth.
    
-   Structure (stacking bottom→top: canvas z:10, .outer-wall z:25, .inner-wall z:30, .inner-shadow z:25):
-   #bravia-balls
-     ├── canvas (z:10)
-     ├── .outer-wall (z:25 — cast shadow + AO, __shine z:0, ::after z:1 micro/top shadow, ::before z:2 border)
-     ├── .inner-wall (z:30 — __glow z:30, __shine z:35, ::before z:36 border)
-     └── .inner-shadow (z:25 — below inner wall, blends edges into background colour)
+   From viewport edge inward:
+     safari-tint-inset  body padding
+     0 → T              wall-3 padding  (single channel, body-bg visible)
+     T →                 content area   (#bravia-balls, page bg)
    
-   The outer wall appears to sit BEHIND the inner wall, with a visible gap between.
-   Light comes from above: top edges are dark (shadow), bottom edges catch light.
+   Radii:  R+T (wall-3)  →  R (content)
+   
+   Structure: #abs-scene
+     └── .wall-3  (fixed, z:100, transparent, padding T, radius R+T, shadows)
+           └── #bravia-balls  (relative, bg: page-bg, radius R, shadows)
+                 ├── .wall-edges  (z:25, conic shine ring on content edge)
+                 └── canvas (z:10, ball simulation only)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   OUTER WALL (Real DOM Element)
-   The recessed outer boundary - sits behind inner wall with visible gap
-   Light direction: top=shadow, bottom=light
-   ───────────────────────────────────────────────────────────────────────────── */
-.outer-wall {
-  position: absolute;
-  inset: 0;
-  /* Outer wall radius: derived from --wall-radius (defined in tokens.css) */
-  /* Note: Reverted to full thickness calc as it is geometrically correct (R + T), parallel to inner wall. */
-  border-radius: var(--outer-wall-radius);
-  pointer-events: none;
-  z-index: 25; /* Below inner wall (z:30) */
-  
-  /* Allow continuous border to overflow */
-  overflow: visible;
-  
-  /* Outer wall shadow effects:
-     1. Inward depth shadow (recessed look)
-     2. AO (Ambient Occlusion) in gap (soft contact shadow) */
-  box-shadow:
-    /* Existing Inward Depth Shadow */
-    inset 0 var(--outer-wall-cast-shadow-offset, 3px) var(--outer-wall-cast-shadow-blur, 12px) var(--outer-wall-cast-shadow-spread, 0px) rgba(var(--outer-wall-cast-shadow-rgb, 0, 0, 0), var(--outer-wall-cast-shadow-opacity, 0.15)),
-    /* New Ambient Occlusion (AO) Pass */
-    inset 0 0 var(--wall-ao-spread, 2px) rgba(0, 0, 0, var(--wall-ao-opacity, 0.15));
-  
-  transition: 
-    box-shadow var(--duration-settle, 400ms) var(--ease-settle),
-    border-radius var(--duration-settle, 400ms) var(--ease-settle);
-}
-
-/* Specular Micro-Bevel (Razor-sharp highlight on inner edge) AND Top Shadow */
-/* Stacking within .outer-wall (bottom→top): __shine z:0, base shadow/AO, ::after z:1 (micro + top shadow), ::before z:2 (border) */
-.outer-wall::after {
+/* Conic shine ring on outermost edge of .wall-3 */
+.wall-3::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
   z-index: 1;
-  
-  box-shadow: 
-    /* 1. Crisp 1px bottom highlight (0 blur) - Specular */
-    inset 0 calc(-1 * var(--wall-specular-width, 0.5px)) 0 color-mix(in srgb, var(--hdr-white), transparent calc(100% - calc(var(--wall-specular-opacity, 0.4) * var(--ambient-light-mul, 1)) * 100%)),
-    
-    /* 2. Strong Top Shadow (Overhang) - Moves here to sit ON TOP of the border gradient */
-    inset 0 var(--outer-wall-top-shadow-offset, 3px) var(--outer-wall-top-shadow-blur, 8px) 0 rgba(0, 0, 0, var(--outer-wall-top-shadow-opacity, 0.4));
-    
-  transition: 
-    box-shadow var(--duration-settle) var(--ease-settle),
-    --ambient-light-mul 3s ease-in-out;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   OUTER WALL SHINE
-   Inset blur/glow from the background colour to blend edges into the scene.
-   ───────────────────────────────────────────────────────────────────────────── */
-.outer-wall__shine {
-  position: absolute;
-  inset: var(--outer-wall-shine-overshoot, -10px);
-  border-radius: calc(var(--outer-wall-radius) - var(--outer-wall-shine-overshoot, -10px));
-  pointer-events: none;
-  background-color: transparent;
-  /* Inset box-shadow using background colour (set via JS) */
-  box-shadow: inset 0 0 var(--outer-wall-shine-blur, 20px) var(--outer-wall-shine-spread, 4px) var(--outer-wall-shine-color, var(--wall-color, #242529));
-  opacity: var(--outer-wall-shine-opacity, 0.4);
-  z-index: 0; /* Below ::after (z:1) and ::before (z:2) */
-}
-
-body.dark-mode .outer-wall__shine {
-  background-color: transparent;
-  /* Same shadow, colour will be picked up from variables */
-}
-
-/* Disable outer wall effects when explicitly turned off */
-#bravia-balls.outer-wall-edge-disabled .outer-wall {
-  box-shadow: none;
-}
-
-#bravia-balls.outer-wall-edge-disabled .outer-wall__edge {
-  display: none;
-}
-
-#bravia-balls.outer-wall-edge-disabled .outer-wall__shine {
-  display: none;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   OUTER WALL CONTINUOUS BORDER (Pseudo-element)
-   Conic gradient light edge that wraps around all 4 sides.
-   Brightest at bottom (180deg) to simulate light hitting recessed back surface.
-   ───────────────────────────────────────────────────────────────────────────── */
-.outer-wall::before {
-  content: '';
-  position: absolute;
-  /* Inset 0 makes it sit ON the wall edge (inside boundary) */
-  inset: 0;
-  /* Match outer wall radius exactly */
-  border-radius: var(--outer-wall-radius);
-  pointer-events: none;
-  z-index: 2;
-  
-  /* Dual-layer gradients: Shadow ON TOP of Light
-     This ensures the top edge (0deg) remains dark and isn't washed out by light interpolation. */
   background: conic-gradient(
     from 180deg at 50% 50%,
-    /* 0deg (relative to from): Bottom Center - BRIGHTEST */
     color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-bright-opacity, 0.5) * 100%)) var(--outer-wall-grad-stop-bright, 0deg),
-    
-    /* Dim band (spread controls half-width of the bright spot) */
     color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-dim-opacity, 0.15) * 100%)) var(--outer-wall-grad-stop-dim-start, 90deg),
-    
-    /* 180deg: Top Center - SHADOW (Darkest) */
     rgba(0,0,0, var(--outer-wall-border-shadow-opacity, 0.4)) 180deg,
-    
-    /* Dim band on the other side */
     color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-dim-opacity, 0.15) * 100%)) var(--outer-wall-grad-stop-dim-end, 270deg),
-    
-    /* 360deg: Bottom Center - Loop back to BRIGHTEST */
     color-mix(in srgb, var(--hdr-white), transparent calc(100% - var(--outer-wall-border-bright-opacity, 0.5) * 100%)) 360deg
   );
-  
-  /* Mask out the center to create a ring */
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-  mask: 
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   padding: var(--outer-wall-border-width, 2px);
-  
-  transition: 
-    inset var(--duration-settle, 400ms) var(--ease-settle),
-    border-radius var(--duration-settle, 400ms) var(--ease-settle),
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transition:
     background var(--duration-settle, 400ms) var(--ease-settle),
     --ambient-light-mul 3s ease-in-out;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   INNER WALL (Real DOM Element)
-   The raised inner boundary - appears to protrude outward from content area
-   Casts shadow OUTWARD onto the wall surface (gap area)
-   ───────────────────────────────────────────────────────────────────────────── */
-.inner-wall {
+/* iOS-like natural rounding (squircle) where supported.
+   clip-path remains active as a safety net against inline style overrides that
+   could zero out border-radius. The minor curve mismatch between clip-path's
+   circular arcs and squircle border-radius is imperceptible at these radii. */
+@supports (corner-shape: squircle) {
+  .wall-3,
+  .wall-3::before,
+  #bravia-balls,
+  .wall-edges,
+  .wall-edges::before {
+    corner-shape: squircle;
+  }
+}
+
+/* .wall-edges — conic shine ring on content edge (weakest) */
+.wall-edges {
   position: absolute;
-  /* Inset by wall thickness - creates the gap between outer and inner walls */
-  inset: var(--wall-thickness, 9px);
-  border-radius: var(--wall-radius);
+  inset: 0;
+  border-radius: var(--radius-inner);
   pointer-events: none;
-  z-index: 30; /* Above outer wall (z:25), above canvas (z:10) */
-  
-  /* Allow continuous border to overflow */
-  overflow: visible;
-  
-  /* Inner wall shadow effects:
-     - Directional outward shadow (cast onto wall surface) */
-  box-shadow: 
-    /* Directional shadow - cast onto wall surface */
-    0 var(--inner-wall-outward-shadow-offset, 2px) var(--inner-wall-outward-shadow-blur, 8px) var(--inner-wall-outward-shadow-spread, 2px) rgba(var(--inner-wall-outward-shadow-rgb, 0, 0, 0), var(--inner-wall-outward-shadow-opacity, 0.2));
-  
-  transition: 
-    box-shadow var(--duration-settle, 400ms) var(--ease-settle),
-    border-radius var(--duration-settle, 400ms) var(--ease-settle),
-    inset var(--duration-settle, 400ms) var(--ease-settle);
+  z-index: 25;
+  overflow: hidden;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transition:
+    box-shadow var(--duration-settle, 400ms) var(--ease-settle);
 }
 
-/* Dark mode - stronger outward shadow */
-body.dark-mode .inner-wall {
-  box-shadow: 
-    0 var(--inner-wall-outward-shadow-offset, 2px) var(--inner-wall-outward-shadow-blur, 8px) var(--inner-wall-outward-shadow-spread, 2px) rgba(var(--inner-wall-outward-shadow-rgb, 0, 0, 0), var(--inner-wall-outward-shadow-opacity-dark, 0.35));
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   INNER WALL INNER GLOW
-   Soft top-down gradient for interior lighting effect.
-   ───────────────────────────────────────────────────────────────────────────── */
-/* Stacking within .inner-wall (bottom→top): __shadow z:25, __glow z:30, __shine z:35, ::before z:36 (border) */
-.inner-wall__glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0; /* Changed to fill full wall */
-  pointer-events: none;
-  border-radius: inherit; /* Inherit radius from .inner-wall */
-  /* Height and background set by JS */
-  z-index: 30;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   INNER WALL SHINE
-   Inset blur/glow from the background colour to blend edges into the scene.
-   ───────────────────────────────────────────────────────────────────────────── */
-.inner-wall__shine {
-  position: absolute;
-  inset: var(--inner-wall-shine-overshoot, -10px);
-  border-radius: calc(var(--wall-radius) - var(--inner-wall-shine-overshoot, -10px));
-  pointer-events: none;
-  background-color: transparent;
-  /* Inset box-shadow using background colour (set via JS) */
-  box-shadow: inset 0 0 var(--inner-wall-shine-blur, 20px) var(--inner-wall-shine-spread, 4px) var(--inner-wall-shine-color, var(--wall-color, #242529));
-  opacity: var(--inner-wall-shine-opacity, 0.4);
-  z-index: 35;
-}
-
-body.dark-mode .inner-wall__shine {
-  background-color: transparent;
-  /* Same shadow, colour will be picked up from variables */
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   INNER WALL CONTINUOUS BORDER (Pseudo-element)
-   Conic gradient light edge that wraps around all 4 sides.
-   Brightest at top (0deg) to simulate light hitting raised top edge.
-   ───────────────────────────────────────────────────────────────────────────── */
-.inner-wall::before {
+.wall-edges::before {
   content: '';
   position: absolute;
-  /* Inset 0 makes it sit ON the wall edge (inside boundary) */
   inset: 0;
-  /* Match wall radius exactly */
-  border-radius: var(--wall-radius);
+  border-radius: inherit;
   pointer-events: none;
   z-index: 2;
-  
-  /* Dual-layer gradients: Shadow ON TOP of Light */
-  background: 
-    /* 1. Shadow Layer (Bottom/180deg focus) */
+  background:
     conic-gradient(
       from 0deg at 50% 50%,
       transparent 0deg,
@@ -2004,7 +1861,6 @@ body.dark-mode .inner-wall__shine {
       transparent var(--inner-wall-grad-stop-dim-end, 270deg),
       transparent 360deg
     ),
-    /* 2. Light Layer (Top/0deg focus) */
     conic-gradient(
       from 0deg at 50% 50%,
       rgba(255,255,255, var(--inner-wall-border-bright-opacity, 0.5)) 0deg,
@@ -2014,40 +1870,33 @@ body.dark-mode .inner-wall__shine {
       rgba(255,255,255, var(--inner-wall-border-dim-opacity, 0.15)) var(--inner-wall-grad-stop-dim-end, 270deg),
       rgba(255,255,255, var(--inner-wall-border-bright-opacity, 0.5)) 360deg
     );
-  
-  /* Mask out the center to create a ring */
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-  mask: 
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   padding: var(--inner-wall-border-width, 2px);
-  
-  transition: 
-    inset var(--duration-settle, 400ms) var(--ease-settle),
-    border-radius var(--duration-settle, 400ms) var(--ease-settle),
-    background var(--duration-settle, 400ms) var(--ease-settle),
-    --ambient-light-mul 3s ease-in-out;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transition:
+    background var(--duration-settle, 400ms) var(--ease-settle);
+}
+
+.wall-edges::after {
+  content: '';
+  display: none;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    LEGACY PSEUDO-ELEMENT CLEANUP
-   Disable old pseudo-element wall system (replaced by real DOM elements)
    ───────────────────────────────────────────────────────────────────────────── */
 #bravia-balls::before,
 #bravia-balls::after {
   display: none;
 }
 
-/* Legacy class cleanup - old gradient edge elements */
 .inner-wall-gradient-edge {
   display: none;
 }
-
-
 
 #bravia-balls canvas {
   position: absolute;
@@ -2055,24 +1904,10 @@ body.dark-mode .inner-wall__shine {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 10; /* Canvas (balls): below video (z:20), below wall frame (z:30/40) */
-  pointer-events: auto; /* Interactions enabled */
+  z-index: 10;
+  pointer-events: auto;
   touch-action: none;
-  border-radius: 0; /* Radius controlled entirely by rubber wall system */
-  will-change: transform; /* Hint to create stacking context */
-}
-
-/* Inner shadow: on top of simulation, blends borders into background colour */
-.inner-shadow {
-  position: absolute;
-  inset: var(--wall-thickness, 9px);
-  border-radius: var(--wall-radius);
-  pointer-events: none;
-  z-index: 25; /* Above canvas (z:10), below inner wall (z:30) */
-  background: transparent;
-  box-shadow: var(--inner-wall-inner-shadow, none);
-  mix-blend-mode: normal; /* Explicitly ensure no blend mode per user request */
-  will-change: box-shadow; /* Optimize re-rendering */
+  border-radius: inherit;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -2084,12 +1919,14 @@ body.dark-mode .inner-wall__shine {
 .scene-effects {
   /* Fixed positioning - works inside #abs-scene because transform creates containing block */
   position: fixed;
-  /* MUST match #bravia-balls positioning exactly for perfect alignment during transforms */
-  /* Uses --safari-tint-inset from tokens.css (inherited from :root) */
+  /* MUST match .wall-3 positioning */
   top: var(--safari-tint-inset);
   left: var(--safari-tint-inset);
   right: var(--safari-tint-inset);
   bottom: var(--safari-tint-inset);
+  /* Clip to outer wall boundary - prevents child elements from leaking at corners */
+  border-radius: var(--radius-outer);
+  overflow: hidden;
   /* Above wall (z:100) but below UI (z:200) - noise is inset by wall-thickness so it stays within wall interior */
   z-index: 150;
   pointer-events: none;
@@ -2097,28 +1934,36 @@ body.dark-mode .inner-wall__shine {
 
 .noise {
   position: absolute;
-  /* Inset by wall thickness to position noise INSIDE the wall frame */
-  /* Overlap extends past inner wall edge to prevent gaps */
-  /* Configurable via --abs-noise-edge-overlap (default 5px) */
-  /* Vertical offset via --abs-noise-offset-y (default 0px) - positive moves down */
-  --noise-base-inset: calc(var(--wall-thickness, 9px) - var(--abs-noise-edge-overlap, 5px));
-  top: calc(var(--noise-base-inset) + var(--abs-noise-offset-y, 0px));
-  left: var(--noise-base-inset);
-  right: var(--noise-base-inset);
-  bottom: calc(var(--noise-base-inset) - var(--abs-noise-offset-y, 0px));
+  inset: 0;
+  z-index: 30;
   pointer-events: none;
   overflow: hidden;
-  /* Note: isolation removed - it creates stacking context that breaks blend modes for sibling elements */
-  /* Border radius to match simulation interior (same as wall inner edge) */
-  border-radius: var(--wall-radius);
+  border-radius: inherit;
+  box-shadow: inset 0 0 20vh 0 rgba(0, 0, 0, 0.20);
   /* Fade-in on load: starts hidden via visibility, revealed by .noise-ready class */
-  /* Delayed fade-in to appear after other layers have settled */
-  /* Visibility stays hidden until opacity transition is ready to prevent flash */
   visibility: hidden;
   opacity: 0;
-  /* Delay both visibility and opacity to prevent any flash during initial render */
-  /* Visibility delay matches opacity delay so both activate together */
   transition: visibility 0s linear 500ms, opacity 2500ms cubic-bezier(0.16, 1, 0.3, 1) 500ms;
+}
+
+@supports (corner-shape: squircle) {
+  .scene-effects,
+  .noise,
+  .cv-scroll-container,
+  .fade-content.viewport.viewport--content::before {
+    corner-shape: squircle;
+  }
+  /* UI elements using wall/icon radius */
+  .footer_link,
+  .abs-icon-btn,
+  .abs-meta-btn,
+  .gate-back,
+  .top-nav__link,
+  .top-nav__cv,
+  .sound-toggle,
+  .decorative-script::before {
+    corner-shape: squircle;
+  }
 }
 
 /* Noise layer fades in AFTER entrance animation completes */
@@ -2524,9 +2369,9 @@ a:active {
   transform-origin: center center;
   transform: translate(-50%, -50%) scale(1);
   opacity: 0.85; /* Transparent but visible */
-  /* Power transfer: fast snap (200ms) so cursor hits first, then button reacts */
-  transition: transform var(--abs-cursor-shrink-duration, 0ms) ease-in,
-              opacity var(--abs-cursor-shrink-duration, 200ms) ease-in,
+  /* Power transfer: cursor shrink matches button jump; return has no delay */
+  transition: transform var(--abs-cursor-shrink-duration, 260ms) var(--abs-cursor-shrink-ease, ease-in),
+              opacity 200ms var(--abs-cursor-shrink-ease, ease-in),
               width 0ms linear,
               height 0ms linear,
               background 0.35s var(--ease-hesitant);
@@ -2537,12 +2382,12 @@ a:active {
   /* Blend mode is applied via overlay element, not here */
 }
 
-/* Link hover: Power Transfer — cursor implodes (scale 0), energy flows into button */
+/* Link hover: Power Transfer — cursor shrinks over same window as button grows (energy transfer) */
 body.abs-link-hovering #custom-cursor {
   opacity: 0;
   transform: translate(-50%, -50%) scale(0);
-  transition: transform var(--abs-cursor-shrink-duration, 0ms) ease-in,
-              opacity var(--abs-cursor-shrink-duration, 200ms) ease-in;
+  transition: transform var(--abs-cursor-shrink-duration, 260ms) var(--abs-cursor-shrink-ease, ease-in),
+              opacity 200ms var(--abs-cursor-shrink-ease, ease-in) var(--abs-cursor-fade-delay, 140ms);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -2583,23 +2428,59 @@ body.abs-link-hovering #custom-cursor {
   }
 }
 
+/* Theme-aware settled intensity (keyframes use this so one animation works for light/dark) */
+:root { --abs-hover-intensity: var(--abs-hover-intensity-light); }
+body.dark-mode { --abs-hover-intensity: var(--abs-hover-intensity-dark); }
+
+/* Hover background jump — burst in with less opacity at first, then ease to full; overshoot + recoil */
+@keyframes absHoverBgJump {
+  0%   {
+    opacity: var(--abs-hover-bg-jump-opacity-start, 0.62);
+    transform: scale(var(--abs-hover-bg-jump-start, 0.88));
+    background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-bg-jump-intensity-start, 52%), transparent);
+  }
+  16%  {
+    opacity: var(--abs-hover-bg-jump-opacity-start, 0.62);
+    transform: scale(var(--abs-hover-bg-jump-overshoot, 1.05));
+    background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-bg-jump-intensity-start, 52%), transparent);
+  }
+  48%  {
+    opacity: 1;
+    transform: scale(var(--abs-hover-bg-jump-recoil, 0.99));
+    background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity), transparent);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(var(--abs-hover-bg-jump-settle, 1.02));
+    background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity), transparent);
+  }
+}
+
+/* Button/link hover jump — same motion so cursor “turns into” button */
+@keyframes absButtonHoverJump {
+  0%   { transform: scale(1); }
+  16%  { transform: scale(var(--abs-button-jump-overshoot, 1.12)); }
+  48%  { transform: scale(var(--abs-button-jump-recoil, 0.97)); }
+  100% { transform: scale(var(--abs-button-jump-settle, 1.06)); }
+}
+
 /* Power Transfer: transition-only, prominent hover-out (no “disappear”) */
 :is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .decorative-script) {
-  transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)), color 0.2s ease;
+  transition: transform var(--abs-button-swell-out-duration, 520ms) var(--ease-decay, var(--ease-organic)),
+              color var(--abs-hover-color-duration, 55ms) var(--ease-organic);
 }
 
 :is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .decorative-script):hover {
-  transform: scale(var(--abs-button-swell-scale, 1.06));
-  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), color 0.2s ease;
+  animation: absButtonHoverJump var(--abs-button-jump-duration, 260ms) linear forwards;
+  transition: color var(--abs-hover-color-duration, 55ms) var(--ease-organic);
 }
 
 a:hover,
 button:hover {
   --abs-cursor-pulse-ms: 520ms;
   transform-origin: center;
-  transform: scale(var(--abs-button-swell-scale, 1.06));
-  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
-              filter var(--link-impact-duration) var(--ease-organic);
+  animation: absButtonHoverJump var(--abs-button-jump-duration, 260ms) linear forwards;
+  transition: filter var(--link-impact-duration) var(--ease-organic);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -2623,7 +2504,7 @@ button:hover {
   /* No border-radius - only ::before has rounded corners */
 }
 
-/* ─── Unified Hover Background (::before) — transition only, no animation ─── */
+/* ─── Unified Hover Background (::before) — jump animation on hover-in, transition on hover-out ─── */
 .abs-icon-btn::before,
 .footer_link::before,
 .portfolio-cv-link::before,
@@ -2632,7 +2513,9 @@ button:hover {
 #site-year::before,
 .legend__item--interactive::before,
 .decorative-script::before {
-  transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)), opacity 0.2s ease, background 0.2s ease;
+  transition: transform var(--abs-button-swell-out-duration, 520ms) var(--ease-decay, var(--ease-organic)),
+              opacity 520ms var(--ease-decay),
+              background 280ms var(--ease-decay);
 }
 
 .abs-icon-btn:hover::before,
@@ -2643,10 +2526,12 @@ button:hover {
 #site-year:hover::before,
 .legend__item--interactive:hover::before,
 .decorative-script:hover::before {
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity), transparent);
   opacity: 1;
-  transform: scale(var(--abs-button-swell-scale, 1.06));
-  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), opacity 0.2s ease, background 0.2s ease;
+  animation: absHoverBgJump var(--abs-hover-bg-jump-duration, 260ms) linear forwards;
+  -webkit-backdrop-filter: blur(var(--abs-hover-bg-blur, 10px));
+  backdrop-filter: blur(var(--abs-hover-bg-blur, 10px));
+  transition: opacity 0s, backdrop-filter 220ms ease;
 }
 
 /* Dark mode: adjust hover background intensity for all elements */
@@ -2729,10 +2614,10 @@ body.dark-mode .decorative-script:hover::before {
   }
 }
 
-/* Base state: longer, prominent hover-out (ease-release has slight undershoot) */
+/* Base state: slow decay on hover-out (slower than entrance, natural release) */
 a,
 button {
-  transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
+  transition: transform var(--abs-button-swell-out-duration, 520ms) var(--ease-decay, var(--ease-organic)),
               filter var(--link-impact-duration) var(--ease-organic);
 }
 
@@ -2744,25 +2629,25 @@ button {
   transform: translate3d(-50%, 0, 0) scaleY(0);
 }
 
-/* Text link hover — light mode (background via ::before, not direct) */
+/* Text link hover — light mode: fast, radical illumination */
 .footer_link:hover,
 .portfolio-cv-link:hover,
 #header-cv-link:hover,
 #contact-email:hover,
 #portfolio-modal-trigger:hover,
 .decorative-script p a:hover {
-  color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-black), 1) 60%);
+  color: color-mix(in srgb, var(--cursor-color) var(--abs-hover-text-mix, 82%), rgba(var(--abs-rgb-black), 1) calc(100% - var(--abs-hover-text-mix, 82%)));
   opacity: 1;
 }
 
-/* Text link hover — dark mode (background via ::before, not direct) */
+/* Text link hover — dark mode: fast, radical illumination */
 body.dark-mode .footer_link:hover,
 body.dark-mode .portfolio-cv-link:hover,
 body.dark-mode #header-cv-link:hover,
 body.dark-mode #contact-email:hover,
 body.dark-mode #portfolio-modal-trigger:hover,
 body.dark-mode .decorative-script p a:hover {
-  color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-white), 1) 60%);
+  color: color-mix(in srgb, var(--cursor-color) var(--abs-hover-text-mix, 82%), rgba(var(--abs-rgb-white), 1) calc(100% - var(--abs-hover-text-mix, 82%)));
   opacity: 1;
 }
 
@@ -2796,9 +2681,10 @@ body.dark-mode .decorative-script p a:hover {
   }
 
   :is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .decorative-script):hover {
+    animation: none;
     transform: none;
   }
-  
+
   .abs-icon-btn:hover::before,
   .footer_link:hover::before,
   .portfolio-cv-link:hover::before,
@@ -2810,6 +2696,8 @@ body.dark-mode .decorative-script p a:hover {
     animation: none;
     opacity: 1;
     transform: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
 
@@ -4637,7 +4525,7 @@ html {
    ───────────────────────────────────────────────────────────────────────────── */
 
 /* Wall frame stays fixed (no animation, same position) */
-#bravia-balls {
+.wall-3 {
   view-transition-name: wall;
 }
 

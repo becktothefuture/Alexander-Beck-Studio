@@ -114,6 +114,11 @@ function startServer(name, command, port, description) {
       cmd = 'python3';
       args = ['-m', 'http.server', '8000', '--directory', 'dist'];
       cwd = process.cwd();
+    } else if (command === 'npm run react:dev') {
+      // React app (Vite) on port 8012 to avoid clashing with Config Sync (8002) and Live Reload (8003).
+      cmd = 'npm';
+      args = ['run', 'react:dev'];
+      cwd = process.cwd();
     } else {
       // Fallback for other commands
       [cmd, ...args] = command.split(' ');
@@ -220,7 +225,11 @@ async function showMenu() {
   log('   Run production build and exit', 'dim');
   log('   Best for: Preparing for deployment\n', 'dim');
   
-  log('6. ❌ Exit\n', 'bright');
+  log('6. ⚛️  React App (dev server)', 'bright');
+  log('   Port 8012 | Vite HMR | React app only', 'dim');
+  log('   Best for: Working on the React app; also: npm run react:dev\n', 'dim');
+  
+  log('7. ❌ Exit\n', 'bright');
   
   const rl = readline.createInterface({
     input: process.stdin,
@@ -228,7 +237,7 @@ async function showMenu() {
   });
   
   return new Promise((resolve) => {
-    rl.question(colors.bright + 'Select option (1-6): ' + colors.reset, (answer) => {
+    rl.question(colors.bright + 'Select option (1-7): ' + colors.reset, (answer) => {
       rl.close();
       resolve(answer.trim());
     });
@@ -283,12 +292,19 @@ async function quickDevMode() {
       'node scripts/config-sync-server.js',
       8002,
       'Syncs config slider changes to source files'
+    ),
+    startServer(
+      'React App',
+      'npm run react:dev',
+      8012,
+      'Vite HMR — React app'
     )
   ]);
   
   console.log();
   log('🎯 READY TO CODE!', 'bright');
-  log(`   Open: ${colors.bright}${colors.cyan}http://localhost:8001${colors.reset}`, 'green');
+  log(`   HTML: ${colors.bright}${colors.cyan}http://localhost:8001${colors.reset}`, 'green');
+  log(`   React: ${colors.bright}${colors.cyan}http://localhost:8012${colors.reset}`, 'green');
   log('   Look for the 🚀 GREEN badge in the control panel', 'dim');
   log('   Config changes will auto-sync to source files', 'dim');
   log('\n   Press Ctrl+C to stop\n', 'yellow');
@@ -363,6 +379,12 @@ async function dualMode() {
       'node scripts/config-sync-server.js',
       8002,
       'Syncs config slider changes to source files'
+    ),
+    startServer(
+      'React App',
+      'npm run react:dev',
+      8012,
+      'Vite HMR — React app'
     )
   ]);
   
@@ -370,6 +392,7 @@ async function dualMode() {
   log('🎯 DUAL MODE READY!', 'bright');
   log(`   Dev:   ${colors.bright}${colors.green}http://localhost:8001${colors.reset} (instant changes)`, 'green');
   log(`   Build: ${colors.bright}${colors.yellow}http://localhost:8000${colors.reset} (requires rebuild)`, 'yellow');
+  log(`   React: ${colors.bright}${colors.cyan}http://localhost:8012${colors.reset}`, 'cyan');
   log('\n   Pro tip: Open both URLs in separate browser tabs', 'dim');
   log('   Press Ctrl+C to stop both servers\n', 'yellow');
 }
@@ -386,6 +409,7 @@ async function watchMode() {
     startServer('Build Preview', 'npm run start', 8000, '📦 Production preview (refresh to see rebuilds)'),
     startServer('Live Reload Server', 'node scripts/live-reload-server.js', 8003, 'Auto-refreshes the browser on file changes (local-only)'),
     startServer('Config Sync Server', 'node scripts/config-sync-server.js', 8002, 'Syncs config slider changes to source files'),
+    startServer('React App', 'npm run react:dev', 8012, 'Vite HMR — React app'),
     (async () => {
       log('👁️  Starting file watcher...', 'cyan');
       const watcher = spawn('npm', ['run', 'watch'], { stdio: 'inherit', shell: true });
@@ -398,7 +422,25 @@ async function watchMode() {
   log('👁️  WATCH MODE ACTIVE!', 'bright');
   log(`   Dev:   ${colors.bright}${colors.green}http://localhost:8001${colors.reset} (instant changes)`, 'green');
   log(`   Build: ${colors.bright}${colors.yellow}http://localhost:8000${colors.reset} (refresh after rebuild)`, 'yellow');
+  log(`   React: ${colors.bright}${colors.cyan}http://localhost:8012${colors.reset}`, 'cyan');
   log('\n   Press Ctrl+C to stop (dev + build + watcher)\n', 'yellow');
+}
+
+async function reactOnlyMode() {
+  header('REACT APP - DEV SERVER');
+  log('Starting React app (Vite) on port 8012...\n', 'cyan');
+
+  await startServer(
+    'React App',
+    'npm run react:dev',
+    8012,
+    'Vite HMR — edit react-app/app and see changes'
+  );
+
+  console.log();
+  log('⚛️  REACT APP READY!', 'bright');
+  log(`   Open: ${colors.bright}${colors.cyan}http://localhost:8012${colors.reset}`, 'green');
+  log('\n   Press Ctrl+C to stop\n', 'yellow');
 }
 
 async function buildOnlyMode() {
@@ -448,11 +490,14 @@ async function main() {
       process.exit(0);
       break;
     case '6':
+      await reactOnlyMode();
+      break;
+    case '7':
       log('👋 Goodbye!\n', 'cyan');
       process.exit(0);
       break;
     default:
-      log('❌ Invalid option. Please choose 1-6.\n', 'red');
+      log('❌ Invalid option. Please choose 1-7.\n', 'red');
       process.exit(1);
   }
   

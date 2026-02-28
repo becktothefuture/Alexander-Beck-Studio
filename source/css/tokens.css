@@ -26,6 +26,8 @@
   --frame-color: #242529;
   --wall-color: #242529;
   --chrome-bg: #242529;
+  /* Design-only wall color: stays at site value even when chrome-harmony adapts --wall-color */
+  --wall-design-color: #242529;
   /* Legacy aliases for compatibility (all point to unified color) */
   --frame-color-light: var(--frame-color);
   --frame-color-dark: var(--frame-color);
@@ -153,12 +155,16 @@
 
   /* Power Transfer (cursor implode + button swell) — transition-only, no keyframes */
   --abs-power-transfer-duration: 300ms;
-  --abs-cursor-shrink-duration: 200ms;
+  --abs-cursor-shrink-duration: 260ms;     /* Match button jump so transfer feels 1:1 */
+  --abs-cursor-shrink-ease: cubic-bezier(0.32, 0, 0.6, 1); /* Slight hold then pull in */
+  --abs-cursor-fade-delay: 140ms;          /* Fade starts after shrink is underway (energy visibly leaving) */
   --abs-button-swell-in-duration: 200ms;   /* Hover-in: snappy */
-  --abs-button-swell-out-duration: 420ms;  /* Hover-out: longer, visible release */
+  --abs-button-swell-out-duration: 520ms;   /* Hover-out: slower decay than entrance */
   --abs-button-swell-scale: 1.06;          /* Hover scale (subtle) */
   /* Slight undershoot on release so hover-out is visible */
   --ease-release: cubic-bezier(0.33, 1.12, 0.68, 0.98);
+  /* Hover-out: slow decay, no overshoot — feels natural when mouse leaves */
+  --ease-decay: cubic-bezier(0.22, 0, 0.18, 1);
 
   /* Hover Target "Snap" Bounce (scale-only; color remains instant) */
   --abs-hover-snap-enabled: 1;           /* 1 = on, 0 = off */
@@ -173,6 +179,24 @@
   --abs-hover-bg-bounce-duration: 450ms; /* Total bounce duration */
   --abs-hover-bg-bounce-overshoot: 0.92; /* Peak scale (more pronounced than button scale) */
   --abs-hover-bg-bounce-end-size: 0.8;   /* Final settled scale */
+
+  /* Hover background "jump" — subtle burst, one small overshoot + recoil */
+  --abs-hover-bg-jump-duration: 260ms;   /* ~20% longer for finesse */
+  --abs-hover-bg-jump-start: 0.88;       /* Start slightly behind */
+  --abs-hover-bg-jump-overshoot: 1.05;   /* Small overshoot */
+  --abs-hover-bg-jump-recoil: 0.99;      /* Very slight recoil */
+  --abs-hover-bg-jump-settle: 1.02;      /* Subtle settled scale */
+  --abs-hover-bg-jump-opacity-start: 0.62; /* Less opacity at first, then ease to full */
+  /* Energy transfer: start slightly more opaque, settle to normal */
+  --abs-hover-bg-jump-intensity-start: 52%;
+  /* Settled intensity (theme set in main.css: --abs-hover-intensity) */
+  --abs-hover-bg-blur: 5px;              /* Light backdrop blur */
+
+  /* Button/link hover jump — subtle, in sync with background */
+  --abs-button-jump-duration: 260ms;    /* Match bg jump (~20% longer) */
+  --abs-button-jump-overshoot: 1.03;    /* Tiny overshoot */
+  --abs-button-jump-recoil: 0.99;        /* Very slight recoil */
+  --abs-button-jump-settle: 1.02;       /* Subtle settled */
 
   /* Typography Aliases */
   --text-xs: var(--abs-text-xs);
@@ -248,9 +272,18 @@
   --layout-min-content-padding: var(--abs-layout-min-padding);
   --wall-thickness: calc(var(--wall-thickness-vw) * 1vw);
   --wall-radius: clamp(var(--layout-min-wall-radius), calc(var(--wall-radius-vw) * 1vw), 999px);
-  /* Outer wall radius: inner + thickness + adjustment (single source of truth) */
-  --outer-wall-radius: calc(var(--wall-radius) + var(--wall-thickness) + var(--outer-wall-radius-adjust, 1px));
+  /* ── Proportional radii (2-level: outer frame + content) ──
+     R = --wall-radius (outer wall edge, the primary tuned value).
+     Inner subtracts one --wall-thickness so nested curves are concentric.
+     0: wall-3 edge        R              (.wall-3, outermost)
+     T: content edge       R − T          (#bravia-balls, inner)
+  */
+  --radius-outer: var(--wall-radius);
+  --radius-inner: calc(var(--wall-radius) - var(--wall-thickness));
+  --outer-wall-radius: var(--radius-outer);
   --container-radius: var(--wall-radius);
+  /* iOS-like natural rounding (use with @supports (corner-shape: squircle)) */
+  --corner-shape-natural: squircle;
   --container-border: calc(var(--container-border-vw) * 1vw);
   --simulation-padding: 0px;
   --canvas-radius: calc(var(--wall-radius) - var(--simulation-padding));
@@ -297,6 +330,21 @@
 
   /* Wall Frame Inset (space between viewport edge and wall outer edge) */
   --safari-tint-inset: 15px;
+  /* ── Tunnel depth tokens (single outer frame) ──
+     .wall-3 sits at safari-tint-inset with padding T.
+     #bravia-balls fills .wall-3 as the content area.
+     
+     From viewport edge inward:
+       safari-tint-inset       body padding
+       0 → T                   wall-3 padding  (single channel)
+       T →                     content area    (#bravia-balls)
+     
+     Radii: R+T (wall-3) → R (content)
+     From viewport edge: safari-tint-inset + T = content start.
+  */
+  --tunnel-step: var(--wall-thickness);
+  --scene-inset: var(--safari-tint-inset);
+  --content-area-inset: calc(var(--safari-tint-inset) + var(--tunnel-step));
 
   --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);
 
@@ -319,6 +367,8 @@
   --duration-settle: 400ms;
   --duration-quick: 200ms;
   --duration-link-hover: 30ms;
+  --abs-hover-color-duration: 55ms;     /* Text illumination on hover — fast and snappy */
+  --abs-hover-text-mix: 82%;            /* How much cursor color in hover text (radical illumination) */
   --dot-bounce-duration: 500ms;
   --hit-area-padding: clamp(20px, 3vmin, 30px);
   --hit-area-padding-neg: calc(var(--hit-area-padding) * -1);
@@ -593,8 +643,8 @@
   /* Index/portfolio logo SVG viewBox: 919×66. */
   --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 66 / 919);
 
-  /* Index: primary (main) links positioned under logo. */
-  --home-main-links-below-logo-px: 40;
+  /* Index: primary (main) links positioned under logo (gap between logo and nav buttons). */
+  --home-main-links-below-logo-px: 96px;
 
   /* Main Links Navigation Bar - Full-width nav bar positioning */
   --footer-nav-bar-top: 50vh;

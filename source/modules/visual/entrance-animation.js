@@ -103,10 +103,10 @@ export function transitionToWallState(options = {}) {
   const duration = g.entranceWallTransitionDuration || 800;
   const wallContent = options.wallContent || [];
   
-  // Get the wall container (#bravia-balls)
-  const wallContainer = document.getElementById('bravia-balls');
+  // Get the outermost wall container (.wall-3 wraps #bravia-balls)
+  const wallContainer = document.querySelector('.wall-3') || document.getElementById('bravia-balls');
   if (!wallContainer) {
-    console.warn('⚠️ #bravia-balls not found, falling back to simple transition');
+    console.warn('⚠️ .wall-3 / #bravia-balls not found, falling back to simple transition');
     setTimeout(() => {
       html.classList.remove('entrance-pre-transition');
       html.classList.add('entrance-transitioning');
@@ -123,14 +123,12 @@ export function transitionToWallState(options = {}) {
   // ═══════════════════════════════════════════════════════════════════════════════
   
   // Read final border-radius from state (source of truth, stable value)
-  // Simulation page: always use 0 (radius controlled entirely by rubber wall system)
-  // Portfolio page: use wallRadius if available
+  // wallRadius IS the outer wall radius (the primary tuned value).
   const isPortfolioPage = document.body.classList.contains('portfolio-page');
-  const finalRadius = isPortfolioPage 
-    ? ((g.wallRadius && typeof g.wallRadius === 'number' && g.wallRadius > 0) 
-        ? `${g.wallRadius}px` 
-        : '42px')
-    : '0px'; // Simulation page: no CSS border-radius, rubber wall controls visual radius
+  const outerR = (g.wallRadius && typeof g.wallRadius === 'number' && g.wallRadius > 0)
+    ? g.wallRadius
+    : 42;
+  const finalRadius = `${outerR}px`;
   
   // Initial scale (1.1 = subtle growth effect, not too dramatic)
   const initialScale = g.entranceWallInitialScale || 1.1;
@@ -249,8 +247,8 @@ export function transitionToWallState(options = {}) {
       
       const finishAnimation = () => {
         if (scaleComplete && radiusComplete && contentComplete) {
-          // Lock final values with inline styles
-          wallContainer.style.transform = 'scale(1)';
+          // Lock final radius + opacity; clear transform to avoid permanent
+          // GPU compositing layer that breaks Safari border-radius clipping
           wallContainer.style.borderRadius = finalRadius;
           wallContainer.style.opacity = '1';
           
@@ -262,7 +260,21 @@ export function transitionToWallState(options = {}) {
           
           // Brief delay before restoring transitions (allows animation to settle)
           setTimeout(() => {
+            wallContainer.style.removeProperty('transform');
+            wallContainer.style.removeProperty('transform-origin');
+            wallContainer.style.removeProperty('border-radius');
             wallContainer.style.transition = originalTransition || '';
+
+            // Defensive: remove any stale entrance-animation inline styles from
+            // #bravia-balls that could have been left if a previous animation run
+            // fell back to targeting it (before .wall-3 existed).
+            const bravia = document.getElementById('bravia-balls');
+            if (bravia && bravia !== wallContainer) {
+              bravia.style.removeProperty('border-radius');
+              bravia.style.removeProperty('transform');
+              bravia.style.removeProperty('transform-origin');
+            }
+
             html.classList.remove('entrance-transitioning');
             html.classList.add('entrance-complete');
           }, 50);
@@ -328,6 +340,9 @@ export function transitionToWallState(options = {}) {
       }, contentDelay);
       
       setTimeout(() => {
+        wallContainer.style.removeProperty('transform');
+        wallContainer.style.removeProperty('transform-origin');
+        wallContainer.style.removeProperty('border-radius');
         wallContainer.style.transition = originalTransition || '';
         // Lock wall content final state
         wallContentElements.forEach(el => {
@@ -335,6 +350,15 @@ export function transitionToWallState(options = {}) {
           el.style.willChange = 'auto';
           el.style.removeProperty('transition');
         });
+
+        // Defensive: clean stale entrance-animation inline styles from #bravia-balls
+        const bravia = document.getElementById('bravia-balls');
+        if (bravia && bravia !== wallContainer) {
+          bravia.style.removeProperty('border-radius');
+          bravia.style.removeProperty('transform');
+          bravia.style.removeProperty('transform-origin');
+        }
+
         html.classList.remove('entrance-transitioning');
         html.classList.add('entrance-complete');
       }, duration + 50);

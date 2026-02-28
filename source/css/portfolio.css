@@ -235,6 +235,16 @@ html.modal-active .portfolio-stage,
   pointer-events: auto;
 }
 
+@supports (corner-shape: squircle) {
+  .portfolio-viewport,
+  .project-detail__links a,
+  .project-detail__media-block,
+  .project-detail__video,
+  .project-detail__media-skeleton {
+    corner-shape: squircle;
+  }
+}
+
 .portfolio-viewport.is-dragging {
   cursor: grabbing;
   -webkit-user-select: none;

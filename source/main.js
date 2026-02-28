@@ -312,7 +312,7 @@ window.addEventListener('unhandledrejection', (event) => {
         root.style.setProperty('--top-logo-width-vw', String(g.topLogoWidthVw));
       }
       if (Number.isFinite(g?.homeMainLinksBelowLogoPx)) {
-        root.style.setProperty('--home-main-links-below-logo-px', String(g.homeMainLinksBelowLogoPx));
+        root.style.setProperty('--home-main-links-below-logo-px', g.homeMainLinksBelowLogoPx + 'px');
       }
       if (Number.isFinite(g?.footerNavBarTopVh)) {
         root.style.setProperty('--footer-nav-bar-top', `${g.footerNavBarTopVh}vh`);
@@ -447,9 +447,11 @@ window.addEventListener('unhandledrejection', (event) => {
     mark('bb:input');
     log('✓ Custom cursor initialized');
     
-    // Initialize wall elements (real DOM elements for outer/inner walls)
+    // Initialize wall elements (wraps #bravia-balls in .wall-3 container)
     initWallElements();
-    log('✓ Wall elements initialized (outer-wall, inner-wall)');
+    // Canvas must resize after DOM wrap changes #bravia-balls dimensions
+    resize();
+    log('✓ Wall elements initialized (wall-3 > bravia-balls)');
 
     // Initialize Tactile Layer (Unicorn Studio)
     try {

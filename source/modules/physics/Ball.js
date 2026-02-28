@@ -243,14 +243,13 @@ export class Ball {
       : (globals.cornerRadius ?? globals.wallRadius ?? 0);
     const cr = Math.max(0, Number(cornerRadiusPx) || 0) * (DPR || 1);
     
-    // Balls collide with the INNER EDGE of the wall, which is inset by wall thickness only.
-    // Content padding is layout-only and must not affect physics.
-    const wallThicknessPx = Math.max(0, (globals.wallThickness ?? 0) * (DPR || 1));
-    const insetPx = wallThicknessPx;
+    // Balls collide with the inner band's inner edge (3 × wall-thickness from canvas edge).
+    // Walls are now CSS containers outside canvas — balls bounce at canvas edge
+    const insetPx = 0;
     
     // Small additional inset to create a gap between balls and walls (prevents overlap)
     // This is physics-only padding on top of wall thickness
-    const borderInset = Math.max(0, (globals.wallInset ?? 3)) * (DPR || 1);
+    const borderInset = Math.max(0, (globals.wallInset ?? 2)) * (DPR || 1);
     
     // Corner arc radius must match wall rendering's INNER geometry:
     // innerR is clamped to inner dims, then borderInset applies as physics-only padding.

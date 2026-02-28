@@ -1337,12 +1337,12 @@ export const CONTROL_SECTIONS = {
         stateKey: 'homeMainLinksBelowLogoPx',
         type: 'range',
         min: -120, max: 240, step: 1,
-        default: 40,
+        default: 96,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
         hint: 'Index: move the main links up/down below the logo.',
         onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--home-main-links-below-logo-px', String(val));
+          document.documentElement.style.setProperty('--home-main-links-below-logo-px', val + 'px');
         }
       },
       {
@@ -2608,27 +2608,27 @@ export const CONTROL_SECTIONS = {
         hint: 'Wall color (unified across all modes, also used for browser chrome)',
         onChange: (g, val) => {
           const root = document.documentElement;
-          // Unified wall color: set all variants to the same value
           root.style.setProperty('--frame-color', val);
           root.style.setProperty('--frame-color-light', val);
           root.style.setProperty('--frame-color-dark', val);
           root.style.setProperty('--wall-color', val);
           root.style.setProperty('--wall-color-light', val);
           root.style.setProperty('--wall-color-dark', val);
+          root.style.setProperty('--wall-design-color', val);
           root.style.setProperty('--chrome-bg', val);
           root.style.setProperty('--chrome-bg-light', val);
           root.style.setProperty('--chrome-bg-dark', val);
           g.frameColor = val;
           g.frameColorLight = val;
           g.frameColorDark = val;
-          // Update browser chrome meta tags (all use unified color)
+          const wall3 = document.querySelector('.wall-3');
+          if (wall3) wall3.style.backgroundColor = val;
           const meta = document.querySelector('meta[name="theme-color"]:not([media])');
           if (meta) meta.content = val;
           const metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
           if (metaLight) metaLight.content = val;
           const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
           if (metaDark) metaDark.content = val;
-          // Invalidate wall color cache so it picks up the new color immediately
           import('../physics/engine.js').then(mod => {
             mod.syncChromeColor();
           });
@@ -2643,27 +2643,27 @@ export const CONTROL_SECTIONS = {
         hint: 'Wall color (unified across all modes, also used for browser chrome)',
         onChange: (g, val) => {
           const root = document.documentElement;
-          // Unified wall color: set all variants to the same value
           root.style.setProperty('--frame-color', val);
           root.style.setProperty('--frame-color-light', val);
           root.style.setProperty('--frame-color-dark', val);
           root.style.setProperty('--wall-color', val);
           root.style.setProperty('--wall-color-light', val);
           root.style.setProperty('--wall-color-dark', val);
+          root.style.setProperty('--wall-design-color', val);
           root.style.setProperty('--chrome-bg', val);
           root.style.setProperty('--chrome-bg-light', val);
           root.style.setProperty('--chrome-bg-dark', val);
           g.frameColor = val;
           g.frameColorLight = val;
           g.frameColorDark = val;
-          // Update browser chrome meta tags (all use unified color)
+          const wall3 = document.querySelector('.wall-3');
+          if (wall3) wall3.style.backgroundColor = val;
           const meta = document.querySelector('meta[name="theme-color"]:not([media])');
           if (meta) meta.content = val;
           const metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
           if (metaLight) metaLight.content = val;
           const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
           if (metaDark) metaDark.content = val;
-          // Invalidate wall color cache so it picks up the new color immediately
           import('../physics/engine.js').then(mod => {
             mod.syncChromeColor();
           });
@@ -2879,6 +2879,9 @@ export const CONTROL_SECTIONS = {
           const container = document.getElementById('bravia-balls');
           if (container) {
             container.classList.toggle('outer-wall-edge-disabled', !val);
+            import('../visual/wall-elements.js').then(({ syncOuterWall2DisabledState }) =>
+              syncOuterWall2DisabledState(container)
+            );
           }
         }
       },

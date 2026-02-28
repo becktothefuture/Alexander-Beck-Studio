@@ -62,7 +62,7 @@
   "linkIconPadding": 19,
   "footerNavBarTopVh": 50.5,
   "footerNavBarGapVw": 0,
-  "homeMainLinksBelowLogoPx": 40,
+  "homeMainLinksBelowLogoPx": 96,
   "edgeLabelInsetAdjustPx": -58,
   "edgeCaptionDistanceMinPx": 0,
   "edgeCaptionDistanceMaxPx": 16,

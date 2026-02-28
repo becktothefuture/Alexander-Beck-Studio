@@ -1,9 +1,13 @@
 # AGENTS.md
 
 ## Commands
+- `npm run startup` — Interactive menu: dev, build preview, dual, watch, React app, or build-only
 - `npm run dev` — Dev server (port 8001, instant reload)
 - `npm run build` — Production build to `dist/`
 - `npm start` — Serve production (port 8000)
+- `npm run react:dev` — React app dev server (port 8012, Vite HMR); from repo root
+- `npm run react:build` — React app production build; from repo root
+- `npm run react:preview` — React app preview (port 8013); from repo root
 - No automated tests; manual testing required (all 20 modes, 60 FPS, mobile)
 
 ## Architecture
@@ -12,6 +16,12 @@
 - Config: `source/config/default-config.json` (runtime settings)
 - CSS: `source/css/main.css` + `tokens.css` (design tokens)
 - Build: Rollup bundles to `dist/js/app.js` + `dist/js/shared.js`
+
+## HTML + React parity
+- **Two surfaces**: The HTML site (`source/`, `dist/`) and the React app (`react-app/`) must stay in sync for layout, chrome, and config-driven behaviour.
+- When changing layout, spacing, tokens, or shared UI (e.g. logo, nav, panels): apply the same change in **both** places:
+  - **HTML**: `source/` (and optionally refresh `dist/` via build).
+  - **React**: `react-app/source-snapshot/` (CSS, tokens, state, control-registry) and `react-app/app/src/legacy/` (JS that runs inside the React app). Update `react-app/source-snapshot/config/default-config.json` if the root `source/config/default-config.json` is changed.
 
 ## Code Style
 - **ES Modules**: Always include `.js` extension in imports

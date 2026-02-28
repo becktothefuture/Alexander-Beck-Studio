@@ -1339,12 +1339,12 @@ export const CONTROL_SECTIONS = {
         stateKey: 'homeMainLinksBelowLogoPx',
         type: 'range',
         min: -120, max: 240, step: 1,
-        default: 40,
+        default: 96,
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
         hint: 'Index: move the main links up/down below the logo.',
         onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--home-main-links-below-logo-px', String(val));
+          document.documentElement.style.setProperty('--home-main-links-below-logo-px', val + 'px');
         }
       },
       {

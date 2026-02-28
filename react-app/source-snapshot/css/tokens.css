@@ -26,6 +26,8 @@
   --frame-color: #242529;
   --wall-color: #242529;
   --chrome-bg: #242529;
+  /* Design-only wall color: stays at site value even when chrome-harmony adapts --wall-color */
+  --wall-design-color: #242529;
   /* Legacy aliases for compatibility (all point to unified color) */
   --frame-color-light: var(--frame-color);
   --frame-color-dark: var(--frame-color);
@@ -244,8 +246,15 @@
   --layout-min-content-padding: var(--abs-layout-min-padding);
   --wall-thickness: calc(var(--wall-thickness-vw) * 1vw);
   --wall-radius: clamp(var(--layout-min-wall-radius), calc(var(--wall-radius-vw) * 1vw), 999px);
-  /* Outer wall radius: inner + thickness + adjustment (single source of truth) */
-  --outer-wall-radius: calc(var(--wall-radius) + var(--wall-thickness) + var(--outer-wall-radius-adjust, 1px));
+  /* ── Proportional radii (2-level: outer frame + content) ──
+     R = --wall-radius (outer wall edge, the primary tuned value).
+     Inner subtracts one --wall-thickness so nested curves are concentric.
+     0: outer edge         R              (#bravia-balls, outermost)
+     T: content edge       R − T          (.inner-wall, inner)
+  */
+  --radius-outer: var(--wall-radius);
+  --radius-inner: calc(var(--wall-radius) - var(--wall-thickness));
+  --outer-wall-radius: var(--radius-outer);
   --container-radius: var(--wall-radius);
   --container-border: calc(var(--container-border-vw) * 1vw);
   --simulation-padding: 0px;
@@ -589,8 +598,8 @@
   /* Index/portfolio logo SVG viewBox: 919×66. */
   --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 66 / 919);
 
-  /* Index: primary (main) links positioned under logo. */
-  --home-main-links-below-logo-px: 40;
+  /* Index: primary (main) links positioned under logo (gap between logo and nav buttons). */
+  --home-main-links-below-logo-px: 96px;
 
   /* Main Links Navigation Bar - Full-width nav bar positioning */
   --footer-nav-bar-top: 50vh;

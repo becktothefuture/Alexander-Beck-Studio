@@ -366,9 +366,12 @@ export function resize() {
     }
   }
   
-  // Always update CSS display size (doesn't cause flicker)
-  canvas.style.width = canvasWidth + 'px';
-  canvas.style.height = simHeight + 'px';
+  // Display size MUST match container exactly so the canvas element does not extend
+  // past #bravia-balls. A 2px overflow would be clipped by body/viewport with a
+  // rectangular edge and produce a jagged "wave cut" at the bottom-right corner.
+  // The buffer stays (container + CSS_EDGE_OVERFLOW) for drawing edge coverage only.
+  canvas.style.width = containerWidth + 'px';
+  canvas.style.height = containerHeight + 'px';
   
   if (needsUpdate) {
     applyCanvasShadow(canvas);

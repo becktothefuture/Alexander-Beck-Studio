@@ -526,31 +526,25 @@ function readCssVar(style, name, fallback = 0) {
 }
 
 function syncWallStackDiagram(diagram) {
-  const outerWall = document.querySelector('.outer-wall');
-  const innerWall = document.querySelector('.inner-wall');
+  const wallEdges = document.querySelector('.wall-edges');
   const container = document.getElementById('bravia-balls');
-  if (!outerWall || !innerWall) return;
+  if (!wallEdges) return;
 
-  const outerStyle = getComputedStyle(outerWall);
-  const innerStyle = getComputedStyle(innerWall);
-
-  const outerShine = readCssVar(outerStyle, '--outer-wall-border-bright-opacity', 0.5);
+  const style = getComputedStyle(wallEdges);
+  const outerShine = readCssVar(style, '--outer-wall-border-bright-opacity', 0.5);
   const outerShadow = Math.max(
-    readCssVar(outerStyle, '--outer-wall-cast-shadow-opacity', 0.15),
-    readCssVar(outerStyle, '--wall-ao-opacity', 0.15)
+    readCssVar(style, '--outer-wall-cast-shadow-opacity', 0.15),
+    readCssVar(style, '--wall-ao-opacity', 0.15)
   );
-  const outerMicro = readCssVar(outerStyle, '--wall-specular-opacity', 0.4);
-
-  const innerGlow = readCssVar(innerStyle, '--inner-wall-inner-glow-opacity', 0.1);
-  const innerShine = readCssVar(innerStyle, '--inner-wall-border-bright-opacity', 0.5);
+  const innerShine = readCssVar(style, '--inner-wall-border-bright-opacity', 0.5);
   const innerShadowOpacity = container
     ? readCssVar(getComputedStyle(container), '--inner-wall-inner-shadow-opacity', 0.15)
     : 0.15;
 
   diagram.style.setProperty('--iso-outer-shadow', String(outerShadow));
   diagram.style.setProperty('--iso-outer-shine', String(outerShine));
-  diagram.style.setProperty('--iso-outer-micro', String(outerMicro));
-  diagram.style.setProperty('--iso-inner-glow', String(innerGlow));
+  diagram.style.setProperty('--iso-outer-micro', '0');
+  diagram.style.setProperty('--iso-inner-glow', '0');
   diagram.style.setProperty('--iso-inner-shine', String(innerShine));
   diagram.style.setProperty('--iso-inner-shadow', String(innerShadowOpacity));
 }

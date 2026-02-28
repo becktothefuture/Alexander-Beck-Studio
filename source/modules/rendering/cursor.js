@@ -41,40 +41,26 @@ function handleLinkHoverEvent(event) {
 /**
  * Check if mouse is inside inner wall area (the actual simulation content area)
  * Uses cached bounding rect for performance
- * The inner wall is the raised boundary inside the outer wall - this is where
- * the custom cursor should appear. Outside this area, the default cursor shows.
+ * The inner boundary is the content area (container inset by wall thickness).
+ * Custom cursor appears inside this area; default cursor outside.
  */
 function isMouseInSimulation(clientX, clientY) {
-  // Use .inner-wall element for boundary detection
-  // This is the actual content area where balls/simulation live
-  const innerWall = document.querySelector('.inner-wall');
-  if (!innerWall) {
-    // Fallback to container if inner wall doesn't exist yet
-    const container = document.getElementById('bravia-balls');
-    if (!container) return false;
-    
-    const now = performance.now();
-    if (!cachedContainerRect || (now - rectCacheTime) > RECT_CACHE_MS) {
-      cachedContainerRect = container.getBoundingClientRect();
-      rectCacheTime = now;
-    }
-    
-    const rect = cachedContainerRect;
-    return (
-      clientX >= rect.left &&
-      clientX <= rect.right &&
-      clientY >= rect.top &&
-      clientY <= rect.bottom
-    );
-  }
-  
-  // Cache rect to avoid expensive layout reads on every mouse move
+  const container = document.getElementById('bravia-balls');
+  if (!container) return false;
+
   const now = performance.now();
   if (!cachedContainerRect || (now - rectCacheTime) > RECT_CACHE_MS) {
-    cachedContainerRect = innerWall.getBoundingClientRect();
+    const rect = container.getBoundingClientRect();
+    const thickness = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--wall-thickness')) || 9;
+    cachedContainerRect = {
+      left: rect.left + thickness,
+      top: rect.top + thickness,
+      right: rect.right - thickness,
+      bottom: rect.bottom - thickness
+    };
     rectCacheTime = now;
   }
-  
+
   const rect = cachedContainerRect;
   return (
     clientX >= rect.left &&

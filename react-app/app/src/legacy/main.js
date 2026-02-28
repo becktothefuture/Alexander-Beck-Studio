@@ -312,7 +312,7 @@ window.addEventListener('unhandledrejection', (event) => {
         root.style.setProperty('--top-logo-width-vw', String(g.topLogoWidthVw));
       }
       if (Number.isFinite(g?.homeMainLinksBelowLogoPx)) {
-        root.style.setProperty('--home-main-links-below-logo-px', String(g.homeMainLinksBelowLogoPx));
+        root.style.setProperty('--home-main-links-below-logo-px', g.homeMainLinksBelowLogoPx + 'px');
       }
       if (Number.isFinite(g?.footerNavBarTopVh)) {
         root.style.setProperty('--footer-nav-bar-top', `${g.footerNavBarTopVh}vh`);

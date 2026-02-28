@@ -371,7 +371,7 @@ const state = {
   
   // Wall collision inset (px). Helps prevent visual overlap with the wall edge.
   // This is distinct from radius: it shrinks the effective collision bounds uniformly.
-  wallInset: 3,
+  wallInset: 2,
 
   // Magnetic mode params (updated defaults)
   magneticBallCount: 180,
@@ -629,12 +629,12 @@ const state = {
   // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)
   topLogoWidthVw: 35,                 // Sets `--top-logo-width-vw` (clamped by CSS min/max tokens)
-  homeMainLinksBelowLogoPx: 40,       // Sets `--home-main-links-below-logo-px` (index only)
+  homeMainLinksBelowLogoPx: 96,      // Sets `--home-main-links-below-logo-px` (index only)
   footerNavBarTopVh: 50,              // Sets `--footer-nav-bar-top-*` (viewport units)
   footerNavBarGapVw: 2.5,             // Sets `--footer-nav-bar-gap` (viewport units)
   wallThickness: 12,        // Unified: wall tubes + body border (px)
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
-  wallInset: 3,             // Physics-only inset from edges (px at DPR 1)
+  wallInset: 2,             // Physics-only inset from edges (px at DPR 1)
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // WALL SHADOW - Recessed panel depth effect
@@ -1029,6 +1029,9 @@ export function applyLayoutFromVwToPx() {
   
   state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
+  // Inner wall radius +15% to visually compensate for the extra outer offset (second outer wall)
+  state.wallRadius = Math.round(state.wallRadius * 1.15);
+  state.cornerRadius = state.wallRadius;
 
   // Cursor influence radius (vw → px), then apply mode multipliers.
   // This keeps a single “interaction zone” definition that naturally scales on mobile.
@@ -1072,6 +1075,29 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--content-padding-y', `${state.contentPaddingY}px`);
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
+  // Proportional radii: R = outer wall edge, inner = R − T (concentric)
+  const R = state.wallRadius;
+  const T = state.wallThickness;
+  root.style.setProperty('--radius-outer', `${R}px`);
+  root.style.setProperty('--radius-inner', `${Math.max(0, R - T)}px`);
+  root.style.setProperty('--outer-wall-radius', `${R}px`);
+
+  // Sync .wall-3 background (CSS var(--radius-outer) handles border-radius)
+  const wall3 = document.querySelector('.wall-3');
+  if (wall3) {
+    const wallBg = globals.frameColor || root.style.getPropertyValue('--wall-design-color') || '#242529';
+    wall3.style.backgroundColor = wallBg;
+  }
+
+  // #bravia-balls radius is CSS-driven (var(--radius-inner)); remove any stale
+  // inline overrides left by a previous entrance-animation run that fell back to
+  // targeting #bravia-balls instead of .wall-3.
+  const bravia = document.getElementById('bravia-balls');
+  if (bravia) {
+    bravia.style.removeProperty('border-radius');
+    bravia.style.removeProperty('transform');
+    bravia.style.removeProperty('transform-origin');
+  }
 
   // Viewport metrics (used for debugging + CSS-only sizing when needed)
   try {
@@ -1230,10 +1256,13 @@ export function applyLayoutCSSVars() {
     ? (state.innerWallTopBevelOpacityDark ?? 0.25)
     : (state.innerWallTopBevelOpacityLight ?? 0.18)));
   
-  // Apply outer wall edge enabled state to DOM
+  // Apply outer wall edge enabled state to DOM (and sync .wall-3)
   const container = document.getElementById('bravia-balls');
   if (container) {
     container.classList.toggle('outer-wall-edge-disabled', !state.outerWallEdgeEnabled);
+    import('../visual/wall-elements.js').then(({ syncOuterWallDisabledState }) =>
+      syncOuterWallDisabledState(container)
+    ).catch(() => {});
   }
 }
 

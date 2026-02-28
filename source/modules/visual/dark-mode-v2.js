@@ -12,7 +12,7 @@ import { readTokenVar } from '../utils/tokens.js';
 import { invalidateDepthWashCache } from './depth-wash.js';
 import { syncWallPanelTabsToTheme } from '../ui/control-registry.js';
 import { updateWallShadowCSS } from './wall-shadow.js';
-import { updateWallElements } from './wall-elements.js';
+import { updateWallElements, syncWall3Background } from './wall-elements.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
 const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
@@ -132,6 +132,8 @@ function syncCssVarsFromConfig() {
   root.style.setProperty('--frame-color', unifiedWallColor);
   root.style.setProperty('--wall-color', unifiedWallColor);
   root.style.setProperty('--chrome-bg', unifiedWallColor);
+  // Design-only wall color: never overridden by chrome-harmony, used by .wall-3
+  root.style.setProperty('--wall-design-color', unifiedWallColor);
   // Legacy aliases for compatibility
   root.style.setProperty('--frame-color-light', unifiedWallColor);
   root.style.setProperty('--frame-color-dark', unifiedWallColor);
@@ -295,6 +297,9 @@ function applyDarkModeToDOM(isDark) {
   
   // Update wall elements (outer wall + inner wall + edge gradients) for new theme
   updateWallElements();
+
+  // Force inline background-color on .wall-3 (CSS var can fail in some compositing paths)
+  syncWall3Background();
   
   // Update UI
   updateSegmentControl();

@@ -81,9 +81,9 @@ html {
   height: 100%;
   /* Default cursor outside inner wall area; custom cursor only inside inner wall */
   cursor: default;
-  /* Wall background (theme-aware via tokens.css). */
-  background: var(--wall-color);
-  background-color: var(--wall-color);
+  /* Wall background: always the design wall colour (never adapts to browser chrome). */
+  background: var(--wall-design-color, #242529);
+  background-color: var(--wall-design-color, #242529);
   /* 3D perspective for entrance animations */
   perspective: var(--entrance-perspective, 1000px);
   perspective-origin: center center;
@@ -106,17 +106,15 @@ html.aspect-portrait {
 }
 
 /* Initial browser-default state (before entrance animation) */
-/* Unified wall color fallback: #242529 (consistent across all modes) */
 html.entrance-pre-transition {
-  background: var(--wall-color, #242529);
-  background-color: var(--wall-color, #242529);
+  background: var(--wall-design-color, #242529);
+  background-color: var(--wall-design-color, #242529);
 }
 
 /* Dark mode override: prevent white flash on load */
-/* Unified wall color (same as light mode) */
 html.entrance-pre-transition.dark-mode {
-  background: var(--wall-color, #242529);
-  background-color: var(--wall-color, #242529);
+  background: var(--wall-design-color, #242529);
+  background-color: var(--wall-design-color, #242529);
 }
 
 /* Background elements are visible immediately (no fade-in) */
@@ -173,9 +171,9 @@ body.body {
   touch-action: manipulation;
   font-family: var(--abs-font-sans);
   /* iOS Safari can reveal the body background during rubber-band/viewport UI changes.
-     Keep body aligned to the wall color so no browser-white edges appear. */
-  background: var(--wall-color);
-  background-color: var(--wall-color);
+     Keep body aligned to the permanent design wall color (dark in all modes). */
+  background: var(--wall-design-color, #242529);
+  background-color: var(--wall-design-color, #242529);
   color: var(--text-primary);
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
@@ -244,10 +242,9 @@ body.abs-in-simulation .cv-config-panel .cv-panel-close {
 
 body.dark-mode,
 body.body.dark-mode { 
-  background: var(--wall-color);
-  background-color: var(--wall-color);
+  background: var(--wall-design-color, #242529);
+  background-color: var(--wall-design-color, #242529);
   color: var(--text-primary);
-  /* Inner shadow removed */
 }
 
 
@@ -471,7 +468,7 @@ html.modal-active .fade-content {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(32px, 4vw, 56px);
+  gap: var(--home-main-links-below-logo-px, 96px);
   pointer-events: none;
   z-index: 10; /* Above background, below modals */
 }
@@ -486,8 +483,7 @@ html.modal-active .fade-content {
   position: absolute;
   /* Align to inner wall edge: safari-tint-inset + wall-thickness */
   inset: calc(var(--safari-tint-inset, 20px) + var(--wall-thickness, 9px));
-  /* No border-radius - only simulation (#bravia-balls) has rounded corners */
-  border-radius: 0;
+  border-radius: var(--wall-radius);
   pointer-events: none;
   z-index: 1;
   mix-blend-mode: soft-light;
@@ -976,18 +972,14 @@ p {
   justify-content: center;
 }
 
-/* Main Links Navigation - Fixed positioning below canvas logo */
-/* Since logo is now rendered inside canvas at viewport center, nav links use fixed 
-   positioning to maintain their visual position below the logo */
+/* Main Links Navigation - Absolute below logo within .ui-center */
+/* Positioned relative to .ui-center so --home-main-links-below-logo-px moves the row correctly */
 #main-links {
-  /* Fixed positioning relative to viewport, not flex container */
-  position: fixed;
-  /* Horizontally centered */
+  position: absolute;
+  /* Below logo: 100% = bottom of .ui-center content (logo) + gap (tunable via dev panel) */
+  top: calc(100% + var(--home-main-links-below-logo-px, 96px));
   left: 50%;
   transform: translateX(-50%) scale(1);
-  /* Vertical position: viewport center (50%) + 5vh downshift (matching .ui-center) 
-     + logo visual half-height (~2vh) + gap (clamp matches .ui-center gap) */
-  top: calc(50% + 5vh + clamp(32px, 4vw, 56px));
   transform-origin: center center;
   z-index: 10; /* Match .ui-center z-index */
   /* Horizontal flexbox layout - center aligned */
@@ -1710,8 +1702,7 @@ html.modal-active #main-links { pointer-events: none; }
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  /* Border-radius removed on simulation page (index.html) - kept on portfolio page */
-  border-radius: 0;
+  border-radius: var(--outer-wall-radius);
   
   /* Scene interior uses page background (light in light mode, dark in dark mode) */
   background: var(--bg-light);
@@ -1719,8 +1710,10 @@ html.modal-active #main-links { pointer-events: none; }
   z-index: 100; /* Wall: top of visual stack (below modals at z:19998+) */
   pointer-events: none;
   overflow: hidden;
-  /* GPU layer hint for smooth compositing */
-  transform: translateZ(0);
+  /* clip-path guarantees border-radius clipping even when Safari's GPU compositor
+     fails with nested compositing contexts (transform + will-change + preserve-3d) */
+  clip-path: inset(0 round var(--outer-wall-radius));
+  isolation: isolate;
   transform-origin: center center;
   /* Smooth resize-driven geometry changes (inset + radius). */
   /* NOTE: border-radius transition disabled during entrance animation via JS */
@@ -1731,8 +1724,7 @@ html.modal-active #main-links { pointer-events: none; }
     height var(--duration-resize) var(--ease-organic);
 }
 
-/* Portfolio page intentionally inherits the index wall master:
-   keep #bravia-balls border-radius at 0 (no portfolio-only override). */
+/* Portfolio page inherits the index wall master radius. */
 
 /* During entrance animation, border-radius is controlled by JS (no CSS transition) */
 html.entrance-transitioning #bravia-balls {
@@ -2055,11 +2047,10 @@ body.dark-mode .inner-wall__shine {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 10; /* Canvas (balls): below video (z:20), below wall frame (z:30/40) */
-  pointer-events: auto; /* Interactions enabled */
+  z-index: 10;
+  pointer-events: auto;
   touch-action: none;
-  border-radius: 0; /* Radius controlled entirely by rubber wall system */
-  will-change: transform; /* Hint to create stacking context */
+  border-radius: inherit;
 }
 
 /* Inner shadow: on top of simulation, blends borders into background colour */
@@ -2090,6 +2081,9 @@ body.dark-mode .inner-wall__shine {
   left: var(--safari-tint-inset);
   right: var(--safari-tint-inset);
   bottom: var(--safari-tint-inset);
+  /* Clip to wall boundary - prevents child elements from leaking at corners */
+  border-radius: var(--outer-wall-radius);
+  overflow: hidden;
   /* Above wall (z:100) but below UI (z:200) - noise is inset by wall-thickness so it stays within wall interior */
   z-index: 150;
   pointer-events: none;
@@ -2109,8 +2103,8 @@ body.dark-mode .inner-wall__shine {
   pointer-events: none;
   overflow: hidden;
   /* Note: isolation removed - it creates stacking context that breaks blend modes for sibling elements */
-  /* Border radius to match simulation interior (same as wall inner edge) */
-  border-radius: var(--wall-radius);
+  /* Radius = content radius + overlap offset so the curves align with #bravia-balls */
+  border-radius: calc(var(--wall-radius) + var(--abs-noise-edge-overlap, 5px));
   /* Fade-in on load: starts hidden via visibility, revealed by .noise-ready class */
   /* Delayed fade-in to appear after other layers have settled */
   /* Visibility stays hidden until opacity transition is ready to prevent flash */
@@ -4636,10 +4630,10 @@ html {
    TWO-LAYER SYSTEM: Wall (fixed) + Content (transitions)
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* Wall frame stays fixed (no animation, same position) */
-#bravia-balls {
-  view-transition-name: wall;
-}
+/* Wall frame stays fixed (no animation, same position).
+   view-transition-name on #bravia-balls creates a compositing layer that
+   breaks Safari's overflow:hidden + border-radius clipping. */
+/* #bravia-balls view-transition-name moved to avoid compositing conflict */
 
 /* All page content transitions together as one unified layer */
 #app-frame {

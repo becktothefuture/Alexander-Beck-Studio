@@ -104,9 +104,9 @@ export function updateWallShadowCSS(g) {
   }
   
   // ─────────────────────────────────────────────────────────────────────────────
-  // SINGLE INNER SHADOW — above balls, below text (one inset shadow only)
-  // Applied to .inner-shadow element. Uses PAGE background colour (not frame colour)
-  // so the shadow blends the simulation edges into the surrounding background.
+  // SINGLE INNER SHADOW — one inset shadow for perceived depth
+  // Applied via --inner-wall-inner-shadow to .wall-edges::after. Uses PAGE background
+  // colour so the shadow blends the simulation edges into the surrounding background.
   // ─────────────────────────────────────────────────────────────────────────────
   const innerShadowEnabled = g.wallInnerShadowEnabled ?? false;
   let innerShadowStr = 'none';

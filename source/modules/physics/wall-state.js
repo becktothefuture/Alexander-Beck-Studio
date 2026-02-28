@@ -70,63 +70,47 @@ export function drawWalls(ctx, w, h, options = {}) {
   const chromeColor = CACHED_WALL_COLOR || getChromeColorFromCSS();
   const DPR = g.DPR || 1;
 
-  const rCssPx = (typeof g.getCanvasCornerRadius === 'function')
-    ? g.getCanvasCornerRadius()
-    : (g.cornerRadius ?? g.wallRadius ?? 0);
-  const rCanvasPx = Math.max(0, (Number(rCssPx) || 0) * DPR);
-  
-  // Wall inset rule:
-  // The wall inner edge (collision boundary) is defined ONLY by wall thickness.
-  const wallThicknessPx = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
-  const insetPx = wallThicknessPx;
-  
-  const innerW = Math.max(1, w - (insetPx * 2));
-  const innerH = Math.max(1, h - (insetPx * 2));
-  const innerR = Math.max(0, Math.min(rCanvasPx, innerW * 0.5, innerH * 0.5));
-  
-  // Small padding beyond canvas edges for sub-pixel path rounding safety
-  const pad = Math.max(2, 2 * DPR);
+  // R = innermost wall radius (matches CSS --wall-radius / --radius-inner)
+  const rCssPx = (Number.isFinite(g.wallRadius) && g.wallRadius >= 0)
+    ? g.wallRadius
+    : (typeof g.getCanvasCornerRadius === 'function'
+      ? g.getCanvasCornerRadius()
+      : (g.cornerRadius ?? 0));
+  const R = Math.max(0, (Number(rCssPx) || 0) * DPR);
+  const T = Math.max(0, (Number(g.wallThickness) || 0) * DPR);
 
-  ctx.save();
-  ctx.fillStyle = chromeColor;
-  ctx.beginPath();
-
-  // Outer path (CW): canvas edges
-  ctx.moveTo(-pad, -pad);
-  ctx.lineTo(w + pad, -pad);
-  ctx.lineTo(w + pad, h + pad);
-  ctx.lineTo(-pad, h + pad);
-  ctx.closePath();
-
-  // Inner path (CCW): static rounded rectangle
-  const x = insetPx;
-  const y = insetPx;
-  const r = innerR;
-  
-  ctx.moveTo(x + r, y + innerH);
-  ctx.lineTo(x + innerW - r, y + innerH);
-  ctx.arcTo(x + innerW, y + innerH, x + innerW, y + innerH - r, r);
-  ctx.lineTo(x + innerW, y + r);
-  ctx.arcTo(x + innerW, y, x + innerW - r, y, r);
-  ctx.lineTo(x + r, y);
-  ctx.arcTo(x, y, x, y + r, r);
-  ctx.lineTo(x, y + innerH - r);
-  ctx.arcTo(x, y + innerH, x + r, y + innerH, r);
-  ctx.closePath();
-  
-  try {
-    ctx.fill('evenodd');
-  } catch (e) {
-    ctx.fill();
-  }
-
-  ctx.restore();
-  
-  // Draw radial gradient stroke on inner wall edge
+  // Walls are now CSS containers — canvas only draws gradient stroke on content edge.
   const gradientStrokeEnabled = options.wallGradientStrokeEnabled ?? g.wallGradientStrokeEnabled;
   if (gradientStrokeEnabled) {
-    drawGradientStroke(ctx, w, h, g, DPR, insetPx, innerW, innerH, innerR);
+    const rClamped = Math.max(0, Math.min(R, (w * 0.5), (h * 0.5)));
+    drawGradientStroke(ctx, w, h, g, DPR, 0, w, h, rClamped);
   }
+}
+
+function traceCW(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  if (r > 0) ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  if (r > 0) ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  if (r > 0) ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  if (r > 0) ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function traceCCW(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y + h);
+  ctx.lineTo(x + w - r, y + h);
+  if (r > 0) ctx.arcTo(x + w, y + h, x + w, y + h - r, r);
+  ctx.lineTo(x + w, y + r);
+  if (r > 0) ctx.arcTo(x + w, y, x + w - r, y, r);
+  ctx.lineTo(x + r, y);
+  if (r > 0) ctx.arcTo(x, y, x, y + r, r);
+  ctx.lineTo(x, y + h - r);
+  if (r > 0) ctx.arcTo(x, y + h, x + r, y + h, r);
+  ctx.closePath();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

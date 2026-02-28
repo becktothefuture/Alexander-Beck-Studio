@@ -63,7 +63,7 @@
           <div id="top-elements-soundRow" class="ui-top-soundRow"></div>
         </header>
         
-        <!-- CENTER SECTION: Logo + Nav (vertical flex, 32px gap) -->
+        <!-- CENTER SECTION: Logo + Nav (nav is absolute below logo so --home-main-links-below-logo-px works) -->
         <main class="ui-center">
           <!-- Brand Logo - grid-positioned (flex item) for scale-only entrance animation -->
           <div id="brand-logo" class="brand-logo-layer brand-logo-in-grid">
@@ -74,8 +74,7 @@
               <path d="M888.038 24.9002L892.646 12.1202H895.508L900.116 24.9002H897.668L896.606 21.8762H891.548L890.486 24.9002H888.038ZM892.232 19.8782H895.922L894.086 14.4782L892.232 19.8782Z"/>
             </svg>
           </div>
-          
-          <!-- Main Links Navigation - grid-positioned (flex item) -->
+          <!-- Main Links Navigation - absolute below logo, gap from --home-main-links-below-logo-px -->
           <nav id="main-links" class="ui-nav-row" aria-label="Main navigation links">
             <button id="contact-email" type="button" class="footer_link">Contact</button>
             <button id="portfolio-modal-trigger" type="button" class="footer_link">Work</button>
