@@ -1,0 +1,214 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/app-Belx7067.js","assets/useLegacyBootstrap-g9FGz5mk.js","assets/useLegacyBootstrap-CiWxontQ.css","assets/font-loader-CozohjpE.js","assets/shared-chrome-Br1qTTck.js","assets/sound-toggle-BYOfH7-A.js"])))=>i.map(i=>d[i]);
+import{r as t,_ as o,u as s,j as n,B as l,S as r,c as d,R as c}from"./useLegacyBootstrap-g9FGz5mk.js";const p=`
+  <!-- SCENE WRAPPER: All scene layers move together (matches index structure) -->
+  <div id="abs-scene" class="abs-scene">
+    <!-- LAYER 2: Brand Logo - NOT VISIBLE on portfolio page (removed to optimize entrance animation) -->
+    <!-- Logo animation skipped - entrance goes directly from #app-frame to .portfolio-stage -->
+
+    <!-- LAYER 2: Portfolio Container - Carousel renders here (z:5) -->
+    <div id="bravia-balls" class="portfolio-simulation w-embed">
+      <!-- Wall-only canvas: renders the same rubber wall ring as index (no balls). -->
+      <canvas class="portfolio-wall-canvas" aria-hidden="true"></canvas>
+      <!-- Portfolio Stage -->
+      <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
+      <div class="portfolio-stage" style="opacity:0; visibility:hidden">
+        <div class="portfolio-viewport" id="viewport">
+          <div class="slider-track" id="track">
+            <!-- Slides will be injected here by app.js -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Meta text: positioned outside stage to avoid transform inheritance issues -->
+      <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
+      <div class="portfolio-meta" id="portfolioMeta" aria-live="polite" style="opacity:0; visibility:hidden">
+        <div class="portfolio-meta__inner">
+          <span class="meta-client" data-meta="client"></span>
+          <span class="meta-title" data-meta="title"></span>
+          <span class="meta-summary" data-meta="summary"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+  
+  <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, etc.) -->
+  <!-- SCENE EFFECTS: Positioned above wall (z:100), below modals (z:19998) -->
+  <div id="scene-effects" class="scene-effects" aria-hidden="true">
+    <div class="noise"></div>
+  </div>
+
+  <!-- UI LAYER: Flexbox Layout Implementation -->
+  <div class="fade-content page-content">
+    <div id="app-frame" class="ui-layer-wrapper">
+      <!-- Header (index-parity chrome) -->
+      <header class="ui-top" data-portfolio-ui>
+        <div class="ui-top-main">
+          <div class="ui-top-left">
+            <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition data-transition aria-label="Back to home">
+              <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            </a>
+            <a id="cv-modal-trigger" class="portfolio-cv-link" href="#" aria-label="Bio/CV">Bio/CV</a>
+            <a id="contact-email" class="portfolio-cv-link" href="#" aria-label="Contact">Contact</a>
+          </div>
+          <div class="ui-top-right">
+            <blockquote class="decorative-script portfolio-blurb-wrapper">
+              <p id="portfolio-blurb">Selected collaborations across finance, luxury, digital identity, and frontier tech—things I've directed, mentored, executed, or co-built with global leaders. Currently building my own app; check the final project in the slider. <a id="contact-email-inline" href="#">Let's chat.</a></p>
+            </blockquote>
+            <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>
+          </div>
+        </div>
+        <div id="top-elements-soundRow" class="ui-top-soundRow"></div>
+      </header>
+
+      <!-- CENTER SPACER (Flex Grow) -->
+      <main class="ui-center-spacer" aria-hidden="true"></main>
+
+      <footer class="ui-bottom portfolio-footer" data-portfolio-ui>
+          <div class="ui-meta-row">
+            <div class="ui-meta-left">
+              <div id="social-links" class="footer_icon-group" role="group" aria-label="Social media links">
+                <button type="button" onclick="window.open('https://music.apple.com/profile/beckandeggs', '_blank', 'noopener,noreferrer')" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="Apple Music">
+                  <i class="ti ti-brand-apple" aria-hidden="true"></i>
+                  <span class="screen-reader">Apple Music</span>
+                </button>
+
+                <button type="button" onclick="window.open('https://www.linkedin.com/in/thisisbeck/', '_blank', 'noopener,noreferrer')" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="LinkedIn">
+                  <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
+                  <span class="screen-reader">LinkedIn</span>
+                </button>
+              </div>
+            </div>
+          
+          <div class="ui-meta-right">
+             <button id="site-year" type="button" class="caption abs-meta-btn abs-hover-target abs-hover-target--index" aria-label="Toggle theme">
+              <span><strong class="location-name">London</strong> &middot; <span id="time-display"></span></span>
+            </button>
+          </div>
+        </div>
+      </footer>
+      <div id="edge-caption" class="edge-caption" role="status" aria-live="polite" aria-atomic="true">
+        <span id="edge-caption-tagline" class="edge-caption__line edge-caption__line--tagline">BUILT WITH LOVE TO BE SATISFYING.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal System: Two-layer architecture for clean compositing -->
+  <!-- Layer 1: Blur Only - No children, isolated backdrop-filter (z:19998) -->
+  <div id="modal-blur-layer" class="modal-blur-layer" aria-hidden="true"></div>
+  
+  <!-- Layer 2: Content Only - Holds modals, no blur (z:19999) -->
+  <div id="modal-content-layer" class="modal-content-layer" aria-hidden="true">
+    <div id="modal-modal-host" class="modal-modal-host"></div>
+  </div>
+
+  <!-- Contact Modal - Same transition as CV/Portfolio -->
+  <div id="contact-modal" class="contact-modal hidden" aria-hidden="true">
+    <div id="contact-modal-label" class="modal-label"></div>
+    <div id="contact-modal-inputs" class="contact-modal-inputs"></div>
+  </div>
+
+  <!-- CV Modal - Same transition as Contact -->
+  <div id="cv-modal" class="cv-modal hidden" aria-hidden="true">
+    <div id="cv-modal-label" class="modal-label"></div>
+    <div class="cv-modal-inputs">
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="Digit 1" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="Digit 2" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="Digit 3" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Digit 4" autocomplete="off" />
+    </div>
+  </div>
+
+
+  <!-- Panel dock is injected in dev only (mirrors index behavior). -->
+
+  <!-- ABS_BUILD_MARKER:JS_DEV_START -->
+  <script type="module" src="modules/portfolio/app.js"><\/script>
+  <!-- ABS_BUILD_MARKER:JS_DEV_END -->
+
+  <!-- ABS_BUILD_MARKER:JS_PROD -->
+
+  <!-- DEV TOOLING: Local hot reload (no external calls). -->
+  <!-- ABS_LIVE_RELOAD_START -->
+  <script>
+    (function() {
+      'use strict';
+
+      // LIVE RELOAD DISABLED BY DEFAULT
+      // To re-enable: set localStorage.setItem('abs_live_reload', '1') in console
+      return;
+
+      const p = String(window.location.port || '');
+      if (p !== '8001' && p !== '8000') return;
+      try {
+        const flag = localStorage.getItem('abs_live_reload');
+        if (flag === '0') return;
+      } catch (e) {}
+
+      const ENDPOINT = 'http://localhost:8003/events';
+      let retryMs = 500;
+      let retryCount = 0;
+      const MAX_RETRIES = 3;
+      let es = null;
+
+      function isUnsafeToReloadNow() {
+        const el = document.activeElement;
+        if (!el) return false;
+        const tag = (el.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+        return !!el.isContentEditable;
+      }
+
+      function requestReload() {
+        const start = Date.now();
+        const MAX_WAIT_MS = 8000;
+        (function tick() {
+          if (!isUnsafeToReloadNow()) {
+            window.location.reload();
+            return;
+          }
+          if (Date.now() - start > MAX_WAIT_MS) {
+            window.location.reload();
+            return;
+          }
+          window.setTimeout(tick, 250);
+        })();
+      }
+
+      function connect() {
+        try {
+          es = new EventSource(ENDPOINT);
+        } catch (e) {
+          scheduleReconnect();
+          return;
+        }
+        es.onmessage = function(ev) {
+          retryMs = 500;
+          let msg = null;
+          try {
+            msg = JSON.parse(String(ev.data || ''));
+          } catch (e) {
+            return;
+          }
+          if (msg && msg.type === 'reload') requestReload();
+        };
+        es.onerror = function() {
+          try { es.close(); } catch (e) {}
+          scheduleReconnect();
+        };
+      }
+
+      function scheduleReconnect() {
+        retryCount++;
+        if (retryCount > MAX_RETRIES) return;
+        const wait = Math.min(6000, retryMs);
+        retryMs = Math.min(6000, Math.round(retryMs * 1.5));
+        window.setTimeout(connect, wait);
+      }
+
+      connect();
+    })();
+  <\/script>
+  <!-- ABS_LIVE_RELOAD_END -->
+`;function u(){const e=t.useMemo(()=>{try{return!!window.sessionStorage.getItem("abs_portfolio_ok")}catch{return!0}},[]);t.useEffect(()=>{if(!e){try{window.sessionStorage.setItem("abs_open_portfolio_gate","1")}catch{}window.location.replace("index.html")}},[e]);const a=t.useCallback(()=>o(()=>import("./app-Belx7067.js"),__vite__mapDeps([0,1,2,3,4,5])),[]);return s(e?"portfolio":null,a),e?n.jsxs(n.Fragment,{children:[n.jsx(l,{className:"body portfolio-page"}),n.jsx(r,{html:p,bodyClass:"body portfolio-page"})]}):null}d.createRoot(document.getElementById("root")).render(n.jsx(c.StrictMode,{children:n.jsx(u,{})}));

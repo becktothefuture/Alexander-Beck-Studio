@@ -1,0 +1,231 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/cv-init-BD3CRARQ.js","assets/useLegacyBootstrap-g9FGz5mk.js","assets/useLegacyBootstrap-CiWxontQ.css","assets/font-loader-CozohjpE.js","assets/shared-chrome-Br1qTTck.js"])))=>i.map(i=>d[i]);
+import{r as i,_ as t,u as a,j as e,B as s,S as o,c as r,R as l}from"./useLegacyBootstrap-g9FGz5mk.js";const c=`
+  <!-- SCENE WRAPPER: All scene layers move together (matches index structure) -->
+  <div id="abs-scene" class="abs-scene">
+    <!-- LAYER 2: CV Container - Content renders here (z:5) -->
+    <div id="bravia-balls" class="cv-simulation w-embed">
+      <!-- CV Scrolling Content -->
+      <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
+      <div class="cv-scroll-container" style="opacity:0; visibility:hidden">
+        <!-- Gradient overlays removed - cleaner look without fade -->
+        <article class="cv-content">
+          <!-- Left Area: Fixed/Pinned (Photo + Intro) -->
+          <aside class="cv-left" aria-label="CV introduction">
+            <div class="cv-left__inner">
+              <div class="cv-photo">
+                <img src="images/cv-images/profile-image-01.jpg" alt="Alexander Beck" class="cv-photo__image" />
+              </div>
+              <div class="cv-intro">
+                <h1 class="cv-name">Alexander Beck</h1>
+                <p class="cv-title">Product Designer · Creative Technologist · Experience Director</p>
+                <p class="cv-intro-text">For over fifteen years, I've worked at the intersection of design, technology, and human experience. My practice spans product strategy, interaction design, and creative technology—always with a focus on building things that matter.</p>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Right Area: Scrollable (All Main Content) -->
+          <div class="cv-right">
+            <div class="cv-right__inner">
+              <section class="cv-section">
+                <h2 class="cv-section-title">About</h2>
+                <p>I structure systems at scale and guide outcome-driven decisions. I design interactions and motion that communicate through behaviour. I build products, websites, and emerging digital experiences using code and prototypes. I treat AI as a design material to explore and extrapolate ideas.</p>
+                <p>Recent work includes architecting a design system for a trading platform handling $2.4 trillion in annual volume, prototyping spatial computing interfaces for luxury retail, and developing AI-augmented workflows that reduce design iteration cycles by 60%. I shape cohesive product and web experiences through structure, craft, and vision—always with a focus on measurable impact.</p>
+              </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Experience</h2>
+            
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">Independent Practice</h3>
+              <p class="cv-entry-meta">Founder & Principal · 2019 – Present · London</p>
+              <p>Leading product design and creative technology projects for clients including major financial institutions, luxury brands, and technology companies. Recent work: architected a component system for a global bank's digital transformation (reducing design-to-development handoff time by 45%), designed an AI-powered creative tool that processes 10,000+ design variations daily, and built interactive installations viewed by over 200,000 visitors. Specializing in complex systems design, interactive experiences, and AI-augmented workflows.</p>
+            </div>
+
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">Senior Product Designer</h3>
+              <p class="cv-entry-meta">Global Financial Services · 2016 – 2019 · London & New York</p>
+              <p>Led design systems development for enterprise trading platforms serving over 50,000 users daily across 40+ countries. Established design operations practice from scratch, scaling the team from 3 to 12 designers. Reduced time-to-decision for traders by 40% through interface optimization and workflow automation. Designed real-time data visualization systems handling 2.4 million transactions per day with sub-100ms latency requirements.</p>
+            </div>
+
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">Design Lead</h3>
+              <p class="cv-entry-meta">Digital Agency · 2012 – 2016 · Berlin & Amsterdam</p>
+              <p>Directed creative teams of 8–15 designers on campaigns for automotive, fashion, and technology clients. Pioneered data-driven design approaches that increased client campaign engagement by an average of 35%. Established prototyping culture using real-time graphics and physics simulation, reducing client revision cycles from 8 to 3 rounds. Notable projects included interactive installations for automotive launches and brand transformation initiatives for luxury fashion houses.</p>
+            </div>
+
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">Interactive Designer</h3>
+              <p class="cv-entry-meta">Boutique Studio · 2008 – 2012 · San Francisco</p>
+              <p>Early career focused on motion design and interactive development. Built real-time graphics systems for gaming clients, creating physics-based animation engines that powered interactive experiences for 50+ projects. Worked across gaming, entertainment, and startup clients, developing expertise in WebGL, Canvas API, and performance optimization that continues to inform current practice.</p>
+            </div>
+          </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Expertise</h2>
+            <ul class="cv-skills">
+              <li>Product Strategy & Systems Thinking</li>
+              <li>Interaction Design & Motion</li>
+              <li>Design Systems & Component Architecture</li>
+              <li>Frontend Development (React, Vue, Canvas, WebGL)</li>
+              <li>AI/ML Product Integration</li>
+              <li>Design Operations & Team Leadership</li>
+              <li>Prototyping & Experimental Technology</li>
+              <li>Workshop Facilitation & Stakeholder Alignment</li>
+            </ul>
+          </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Selected Projects</h2>
+            <p>Detailed case studies available in portfolio. Highlights include:</p>
+            <ul class="cv-projects">
+              <li><strong>Enterprise Trading Platform Redesign</strong> — Comprehensive overhaul of mission-critical trading interface serving institutional clients. Reduced order execution time by 28% through interface optimization and introduced a design system supporting 200+ components across 12 product teams.</li>
+              <li><strong>Luxury Retail Experience</strong> — Immersive digital flagship combining spatial computing with traditional retail. Designed WebGL-powered virtual showroom that increased online engagement by 65% and reduced return rates by 22% through better product visualization.</li>
+              <li><strong>AI-Powered Design Tool</strong> — Novel interface for creative professionals leveraging generative AI capabilities. Prototyped and tested with 150+ designers, resulting in a tool that generates 10,000+ design variations daily and reduces concept exploration time by 60%.</li>
+              <li><strong>Financial Data Visualization</strong> — Real-time portfolio analytics dashboard for high-net-worth clients. Designed data visualization system handling 2.4 million transactions daily with sub-100ms latency, processing $180 billion in assets under management.</li>
+              <li><strong>Interactive Brand Installation</strong> — Physical/digital hybrid experience for automotive launch. Created real-time physics simulation viewed by 200,000+ visitors, with 85% engagement rate and average dwell time of 4.2 minutes.</li>
+            </ul>
+          </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Education</h2>
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">MA Interactive Design</h3>
+              <p class="cv-entry-meta">Royal College of Art · London · 2008</p>
+            </div>
+            <div class="cv-entry">
+              <h3 class="cv-entry-title">BA Graphic Design</h3>
+              <p class="cv-entry-meta">California College of the Arts · San Francisco · 2006</p>
+            </div>
+          </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Philosophy</h2>
+            <p>Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity.</p>
+            <p>I believe the best digital products are invisible—they fit so naturally into people's lives that the technology disappears. Every project is an opportunity to question assumptions, prototype rapidly, and push boundaries while staying grounded in user needs and business reality.</p>
+            <p>Currently based in London, available for select projects worldwide.</p>
+          </section>
+
+          <section class="cv-section">
+            <h2 class="cv-section-title">Recognition</h2>
+            <p class="cv-recognition">Work has been recognized by D&AD, Awwwards, FWA, and Red Dot. Selected projects featured in design publications and industry conferences.</p>
+          </section>
+
+              <footer class="cv-footer">
+                <p class="cv-contact">hello@alexanderbeck.studio</p>
+                <p class="cv-copyright">© 2025 Alexander Beck Studio. All rights reserved.</p>
+              </footer>
+            </div>
+          </div>
+        </article>
+      </div>
+      
+      
+      <!-- Wall-only canvas: renders the same rubber wall ring as index (no simulation). -->
+      <canvas class="cv-wall-canvas" aria-hidden="true"></canvas>
+    </div>
+  </div>
+
+  </div>
+  
+  <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, etc.) -->
+  <!-- SCENE EFFECTS: Positioned above wall (z:100), below modals (z:19998) -->
+  <div id="scene-effects" class="scene-effects" aria-hidden="true">
+    <div class="noise"></div>
+  </div>
+
+  <!-- UI LAYER: Flexbox Layout Implementation -->
+    <div class="fade-content page-content">
+      <div id="app-frame" class="ui-layer-wrapper">
+        
+        <!-- TOP SECTION -->
+        <header class="ui-top">
+          <div class="ui-top-main">
+          <div class="ui-top-left">
+            <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition data-transition aria-label="Back to home">
+              <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            </a>
+            <a id="portfolio-modal-trigger" class="portfolio-cv-link" href="#" aria-label="Portfolio">Portfolio</a>
+            <a id="contact-email" class="portfolio-cv-link" href="#" aria-label="Contact">Contact</a>
+          </div>
+            <div class="ui-top-right">
+              <div id="sound-toggle-slot"></div>
+            </div>
+          </div>
+          
+        <!-- Mobile Sound Row -->
+          <div id="top-elements-soundRow" class="ui-top-soundRow"></div>
+        </header>
+        
+      <!-- CENTER SPACER -->
+      <main class="ui-center-spacer" aria-hidden="true"></main>
+        
+        <!-- BOTTOM SECTION -->
+        <footer class="ui-bottom">
+        <div class="ui-meta-row">
+          <div class="ui-meta-left">
+            <div id="social-links" class="footer_icon-group" role="group" aria-label="Social media links">
+              <button type="button" onclick="window.open('https://music.apple.com/profile/beckandeggs', '_blank', 'noopener,noreferrer')" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="Apple Music">
+                <i class="ti ti-brand-apple" aria-hidden="true"></i>
+                <span class="screen-reader">Apple Music</span>
+              </button>
+
+              <button type="button" onclick="window.open('https://www.linkedin.com/in/thisisbeck/', '_blank', 'noopener,noreferrer')" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="LinkedIn">
+                <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
+                <span class="screen-reader">LinkedIn</span>
+              </button>
+            </div>
+          </div>
+            
+            <div class="ui-meta-right">
+             <button id="site-year" type="button" class="caption abs-meta-btn abs-hover-target abs-hover-target--index" aria-label="Toggle theme">
+                <span><strong class="location-name">London</strong> · <span id="time-display"></span></span>
+              </button>
+            </div>
+          </div>
+        </footer>
+      <div id="edge-caption" class="edge-caption" role="status" aria-live="polite" aria-atomic="true">
+        <span id="edge-caption-tagline" class="edge-caption__line edge-caption__line--tagline">BUILT WITH LOVE TO BE SATISFYING.</span>
+      </div>
+      </div>
+    </div>
+
+  <!-- Modal System: Two-layer architecture for clean compositing -->
+  <!-- Layer 1: Blur Only - No children, isolated backdrop-filter (z:19998) -->
+  <div id="modal-blur-layer" class="modal-blur-layer" aria-hidden="true"></div>
+  
+  <!-- Layer 2: Content Only - Holds modals, no blur (z:19999) -->
+  <div id="modal-content-layer" class="modal-content-layer" aria-hidden="true">
+    <div id="modal-modal-host" class="modal-modal-host"></div>
+  </div>
+
+  <!-- Contact Modal -->
+  <div id="contact-modal" class="contact-modal hidden" aria-hidden="true">
+    <div id="contact-modal-label" class="modal-label"></div>
+    <div id="contact-modal-inputs" class="contact-modal-inputs"></div>
+  </div>
+
+  <!-- Portfolio Modal -->
+  <div id="portfolio-modal" class="portfolio-modal hidden" aria-hidden="true">
+    <div id="portfolio-modal-label" class="modal-label"></div>
+    <div id="portfolio-modal-inputs" class="portfolio-modal-inputs">
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="Digit 1" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="Digit 2" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="Digit 3" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Digit 4" autocomplete="off" />
+    </div>
+  </div>
+
+
+  <!-- ABS_BUILD_MARKER:JS_DEV_START -->
+  <!-- CV Init Script (dev mode: ES module, prod mode: bundled) -->
+  <script type="module" src="modules/cv-init.js"><\/script>
+  <!-- ABS_BUILD_MARKER:JS_DEV_END -->
+
+  <!-- ABS_BUILD_MARKER:JS_PROD -->
+  <script>
+    // In production (served from dist/), load from bundled JS if available
+    if (!document.querySelector('script[src*="modules/cv-init.js"]')) {
+      // For now CV uses inline init - will be bundled in future
+    }
+  <\/script>
+`;function d(){const n=i.useCallback(()=>t(()=>import("./cv-init-BD3CRARQ.js"),__vite__mapDeps([0,1,2,3,4])),[]);return a("cv",n),e.jsxs(e.Fragment,{children:[e.jsx(s,{className:"body cv-page"}),e.jsx(o,{html:c,bodyClass:"body cv-page"})]})}r.createRoot(document.getElementById("root")).render(e.jsx(l.StrictMode,{children:e.jsx(d,{})}));
