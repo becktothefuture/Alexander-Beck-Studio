@@ -1,27 +1,27 @@
 # AGENTS.md
 
 ## Commands
-- `npm run startup` — Interactive menu: dev, build preview, dual, watch, React app, or build-only
-- `npm run dev` — Dev server (port 8001, instant reload)
-- `npm run build` — Production build to `dist/`
-- `npm start` — Serve production (port 8000)
-- `npm run react:dev` — React app dev server (port 8012, Vite HMR); from repo root
-- `npm run react:build` — React app production build; from repo root
-- `npm run react:preview` — React app preview (port 8013); from repo root
+- `npm run install:all` — One-time: install root + react-app/app + html-site
+- `npm run startup` — Interactive menu: Dev (both), React only, HTML only, Install all, Build, Exit
+- `npm run dev` — Both pipelines: React on 8012, HTML on 8001 (concurrently)
+- `npm run dev:react` — React app dev server only (port 8012, Vite HMR)
+- `npm run dev:html` — HTML site dev server only (port 8001)
+- `npm run build` — React production build (minified) → `react-app/app/dist/`
+- `npm run build:dev` — React unminified build + sourcemaps
+- `npm run preview` — Serve React build (port 8013)
+- `npm run start` — Alias for preview
+- `npm run html:build` / `npm run html:build:dev` — HTML site build (isolated in `html-site/`)
+- `npm run html:dev` / `npm run html:start` / `npm run html:watch` — HTML-only workflows
 - No automated tests; manual testing required (all 20 modes, 60 FPS, mobile)
 
 ## Architecture
-- **Edit `source/` only** — Never edit `dist/` (generated)
-- Entry: `source/main.js` → modules in `source/modules/{core,physics,rendering,modes,ui,visual,audio,input,utils}/`
-- Config: `source/config/default-config.json` (runtime settings)
-- CSS: `source/css/main.css` + `tokens.css` (design tokens)
-- Build: Rollup bundles to `dist/js/app.js` + `dist/js/shared.js`
-
-## HTML + React parity
-- **Two surfaces**: The HTML site (`source/`, `dist/`) and the React app (`react-app/`) must stay in sync for layout, chrome, and config-driven behaviour.
-- When changing layout, spacing, tokens, or shared UI (e.g. logo, nav, panels): apply the same change in **both** places:
-  - **HTML**: `source/` (and optionally refresh `dist/` via build).
-  - **React**: `react-app/source-snapshot/` (CSS, tokens, state, control-registry) and `react-app/app/src/legacy/` (JS that runs inside the React app). Update `react-app/source-snapshot/config/default-config.json` if the root `source/config/default-config.json` is changed.
+- **Primary surface:** React app at `react-app/app/` (Vite, multi-entry: index, portfolio, cv)
+- **Edit** `react-app/app/src/` and `react-app/app/public/` (CSS, config, images)
+- Entry: `react-app/app/src/entries/*.jsx` → pages + legacy bridge
+- Legacy runtime: `react-app/app/src/legacy/` (modules, main.js, cv-init, etc.) — no imports from repo root
+- Config: `react-app/app/public/config/default-config.json` (and portfolio/cv configs)
+- Build: Vite → `react-app/app/dist/`
+- **Isolated HTML:** `html-site/` — self-contained (source/, build-production.js, Rollup), built via `npm run html:build`
 
 ## Code Style
 - **ES Modules**: Always include `.js` extension in imports

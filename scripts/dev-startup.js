@@ -52,35 +52,34 @@ function checkNodeModules() {
 }
 
 function checkBuildOutput() {
-  // Phase 2: Changed from public/js/bouncy-balls-embed.js to dist/js/app.js
-  const buildFile = path.join(process.cwd(), 'dist', 'js', 'app.js');
-  return fs.existsSync(buildFile);
+  const reactDistIndex = path.join(process.cwd(), 'react-app', 'app', 'dist', 'index.html');
+  return fs.existsSync(reactDistIndex);
 }
 
-function checkSourceFiles() {
-  const mainJs = path.join(process.cwd(), 'source', 'main.js');
-  return fs.existsSync(mainJs);
+function checkReactAndHtmlPackages() {
+  const reactPkg = path.join(process.cwd(), 'react-app', 'app', 'package.json');
+  const htmlPkg = path.join(process.cwd(), 'html-site', 'package.json');
+  return fs.existsSync(reactPkg) && fs.existsSync(htmlPkg);
 }
 
 function runHealthCheck() {
   header('PROJECT HEALTH CHECK');
   
   const checks = [
-    { name: 'Dependencies installed', passed: checkNodeModules(), fix: 'npm install' },
-    { name: 'Source files present', passed: checkSourceFiles(), fix: 'Check source/ directory' },
-    { name: 'Build output exists', passed: checkBuildOutput(), fix: 'npm run build' },
+    { name: 'Root dependencies installed', passed: checkNodeModules(), fix: 'npm install' },
+    { name: 'React + HTML packages present', passed: checkReactAndHtmlPackages(), fix: 'Check react-app/app/ and html-site/ directories' },
+    { name: 'React build output (optional)', passed: checkBuildOutput(), fix: 'npm run build' },
   ];
   
   let allPassed = true;
   
-  checks.forEach(check => {
+  checks.forEach((check, i) => {
     const icon = check.passed ? '✅' : '❌';
     const status = check.passed ? 'PASS' : 'FAIL';
     log(`${icon} ${check.name}: ${status}`, check.passed ? 'green' : 'red');
-    
     if (!check.passed) {
       log(`   Fix: ${check.fix}`, 'yellow');
-      allPassed = false;
+      if (i < 2) allPassed = false;
     }
   });
   
@@ -102,22 +101,10 @@ function startServer(name, command, port, description) {
     // Parse the command - handle npm scripts by extracting the actual command
     let cmd, args, cwd;
     
-    if (command === 'npm run start:source') {
-      // Run Python HTTP server serving source/ from project root.
-      // Important: build/watch can delete/recreate folders; --directory avoids CWD inode issues.
-      cmd = 'python3';
-      args = ['-m', 'http.server', '8001', '--directory', 'source'];
-      cwd = process.cwd();
-    } else if (command === 'npm run start') {
-      // Run Python HTTP server serving dist/ from project root.
-      // Important: build/watch deletes/recreates dist/; --directory keeps serving the new output.
-      cmd = 'python3';
-      args = ['-m', 'http.server', '8000', '--directory', 'dist'];
-      cwd = process.cwd();
-    } else if (command === 'npm run react:dev') {
-      // React app (Vite) on port 8012 to avoid clashing with Config Sync (8002) and Live Reload (8003).
+    if (command === 'npm run dev' || command === 'npm run dev:react' || command === 'npm run dev:html' || command === 'npm run preview') {
+      const script = command.replace('npm run ', '');
       cmd = 'npm';
-      args = ['run', 'react:dev'];
+      args = ['run', script];
       cwd = process.cwd();
     } else {
       // Fallback for other commands
@@ -205,31 +192,27 @@ async function showMenu() {
   
   log('Choose your development mode:\n', 'bright');
   
-  log('1. 🚀 Quick Dev Mode (RECOMMENDED)', 'bright');
-  log('   Port 8001 | Source files | Instant reload', 'dim');
-  log('   Best for: Rapid iteration, UI tweaks, logic changes\n', 'dim');
+  log('1. 🚀 Dev (both) — RECOMMENDED', 'bright');
+  log('   React on 8012 + HTML on 8001 | Single npm run dev', 'dim');
+  log('   Best for: Daily development with both surfaces\n', 'dim');
   
-  log('2. 📦 Build Preview Mode', 'bright');
-  log('   Port 8000 | Bundled/minified | Production-like', 'dim');
-  log('   Best for: Final testing before deploy\n', 'dim');
+  log('2. ⚛️  React only', 'bright');
+  log('   Port 8012 | Vite HMR | React app', 'dim');
+  log('   Best for: Working on React app only\n', 'dim');
   
-  log('3. 🔄 Dual Mode (Dev + Build)', 'bright');
-  log('   Ports 8000 & 8001 | Both servers | Side-by-side comparison', 'dim');
-  log('   Best for: Comparing dev vs production behavior\n', 'dim');
+  log('3. 📄 HTML only', 'bright');
+  log('   Port 8001 | html-site/source | Legacy HTML app', 'dim');
+  log('   Best for: Working on isolated HTML site\n', 'dim');
   
-  log('4. 👁️  Watch Mode (Dev + Auto-rebuild)', 'bright');
-  log('   Port 8001 + background watcher | Auto-updates build on changes', 'dim');
-  log('   Best for: When you need both instant feedback and build preview\n', 'dim');
+  log('4. 📦 Install all', 'bright');
+  log('   Install root + react-app/app + html-site deps', 'dim');
+  log('   Run once after clone or when adding deps\n', 'dim');
   
-  log('5. 🏗️  Build Only', 'bright');
+  log('5. 🏗️  Build only (React)', 'bright');
   log('   Run production build and exit', 'dim');
   log('   Best for: Preparing for deployment\n', 'dim');
   
-  log('6. ⚛️  React App (dev server)', 'bright');
-  log('   Port 8012 | Vite HMR | React app only', 'dim');
-  log('   Best for: Working on the React app; also: npm run react:dev\n', 'dim');
-  
-  log('7. ❌ Exit\n', 'bright');
+  log('6. ❌ Exit\n', 'bright');
   
   const rl = readline.createInterface({
     input: process.stdin,
@@ -237,7 +220,7 @@ async function showMenu() {
   });
   
   return new Promise((resolve) => {
-    rl.question(colors.bright + 'Select option (1-7): ' + colors.reset, (answer) => {
+    rl.question(colors.bright + 'Select option (1-6): ' + colors.reset, (answer) => {
       rl.close();
       resolve(answer.trim());
     });
@@ -268,171 +251,31 @@ async function runBuild() {
 // MODE HANDLERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function quickDevMode() {
-  header('QUICK DEV MODE');
-  log('Starting development server with instant reload...\n', 'cyan');
+async function devBothMode() {
+  header('DEV (BOTH) — REACT + HTML');
+  log('Starting React (8012) and HTML (8001)...\n', 'cyan');
 
-  // No-op: legacy asset sync removed.
-  
-  await Promise.all([
-    startServer(
-      'Dev Server',
-      'npm run start:source',
-      8001,
-      'Edit source files and refresh browser to see changes'
-    ),
-    startServer(
-      'Live Reload Server',
-      'node scripts/live-reload-server.js',
-      8003,
-      'Auto-refreshes the browser on file changes (local-only)'
-    ),
-    startServer(
-      'Config Sync Server',
-      'node scripts/config-sync-server.js',
-      8002,
-      'Syncs config slider changes to source files'
-    ),
-    startServer(
-      'React App',
-      'npm run react:dev',
-      8012,
-      'Vite HMR — React app'
-    )
-  ]);
-  
+  await startServer(
+    'Dev (both)',
+    'npm run dev',
+    8012,
+    'React on 8012, HTML on 8001 — press Ctrl+C to stop'
+  );
+
   console.log();
-  log('🎯 READY TO CODE!', 'bright');
-  log(`   HTML: ${colors.bright}${colors.cyan}http://localhost:8001${colors.reset}`, 'green');
+  log('🎯 BOTH PIPELINES READY!', 'bright');
   log(`   React: ${colors.bright}${colors.cyan}http://localhost:8012${colors.reset}`, 'green');
-  log('   Look for the 🚀 GREEN badge in the control panel', 'dim');
-  log('   Config changes will auto-sync to source files', 'dim');
+  log(`   HTML:  ${colors.bright}${colors.cyan}http://localhost:8001${colors.reset}`, 'green');
   log('\n   Press Ctrl+C to stop\n', 'yellow');
 }
 
-async function buildPreviewMode() {
-  header('BUILD PREVIEW MODE');
-  
-  if (!checkBuildOutput()) {
-    log('⚠️  No build output found. Running build first...\n', 'yellow');
-    const success = await runBuild();
-    if (!success) {
-      log('\n❌ Cannot start preview without successful build', 'red');
-      return;
-    }
-  }
-  
-  log('\nStarting production build preview...\n', 'cyan');
-  
-  await startServer(
-    'Build Preview',
-    'npm run start',
-    8000,
-    'Serving bundled/minified production code'
-  );
-  
-  console.log();
-  log('📦 BUILD PREVIEW READY!', 'bright');
-  log(`   Open: ${colors.bright}${colors.cyan}http://localhost:8000${colors.reset}`, 'green');
-  log('   Look for the 📦 ORANGE badge in the control panel', 'dim');
-  log('\n   To see source changes, run: npm run build', 'yellow');
-  log('   Press Ctrl+C to stop\n', 'yellow');
-}
-
-async function dualMode() {
-  header('DUAL MODE - DEV + BUILD');
-  log('Starting both servers for side-by-side comparison...\n', 'cyan');
-
-  // No-op: legacy asset sync removed.
-  
-  if (!checkBuildOutput()) {
-    log('⚠️  No build output found. Running build first...\n', 'yellow');
-    const success = await runBuild();
-    if (!success) {
-      log('\n⚠️  Build failed, starting dev server only...\n', 'yellow');
-      await quickDevMode();
-      return;
-    }
-  }
-  
-  await Promise.all([
-    startServer(
-      'Dev Server',
-      'npm run start:source',
-      8001,
-      '🚀 GREEN badge - Instant reload'
-    ),
-    startServer(
-      'Build Preview',
-      'npm run start',
-      8000,
-      '📦 ORANGE badge - Production bundle'
-    ),
-    startServer(
-      'Live Reload Server',
-      'node scripts/live-reload-server.js',
-      8003,
-      'Auto-refreshes the browser on file changes (local-only)'
-    ),
-    startServer(
-      'Config Sync Server',
-      'node scripts/config-sync-server.js',
-      8002,
-      'Syncs config slider changes to source files'
-    ),
-    startServer(
-      'React App',
-      'npm run react:dev',
-      8012,
-      'Vite HMR — React app'
-    )
-  ]);
-  
-  console.log();
-  log('🎯 DUAL MODE READY!', 'bright');
-  log(`   Dev:   ${colors.bright}${colors.green}http://localhost:8001${colors.reset} (instant changes)`, 'green');
-  log(`   Build: ${colors.bright}${colors.yellow}http://localhost:8000${colors.reset} (requires rebuild)`, 'yellow');
-  log(`   React: ${colors.bright}${colors.cyan}http://localhost:8012${colors.reset}`, 'cyan');
-  log('\n   Pro tip: Open both URLs in separate browser tabs', 'dim');
-  log('   Press Ctrl+C to stop both servers\n', 'yellow');
-}
-
-async function watchMode() {
-  header('WATCH MODE - AUTO-REBUILD');
-  log('Starting dev server with background auto-rebuild...\n', 'cyan');
-
-  // No-op: legacy asset sync removed.
-  
-  // Watch Mode should be fully end-to-end: run dev server, build server, and watcher.
-  await Promise.all([
-    startServer('Dev Server', 'npm run start:source', 8001, '🚀 Instant reload for source changes'),
-    startServer('Build Preview', 'npm run start', 8000, '📦 Production preview (refresh to see rebuilds)'),
-    startServer('Live Reload Server', 'node scripts/live-reload-server.js', 8003, 'Auto-refreshes the browser on file changes (local-only)'),
-    startServer('Config Sync Server', 'node scripts/config-sync-server.js', 8002, 'Syncs config slider changes to source files'),
-    startServer('React App', 'npm run react:dev', 8012, 'Vite HMR — React app'),
-    (async () => {
-      log('👁️  Starting file watcher...', 'cyan');
-      const watcher = spawn('npm', ['run', 'watch'], { stdio: 'inherit', shell: true });
-      servers.push({ name: 'Watcher', process: watcher, port: null });
-      log('✅ File watcher active (rebuilding on save)', 'green');
-    })(),
-  ]);
-  
-  console.log();
-  log('👁️  WATCH MODE ACTIVE!', 'bright');
-  log(`   Dev:   ${colors.bright}${colors.green}http://localhost:8001${colors.reset} (instant changes)`, 'green');
-  log(`   Build: ${colors.bright}${colors.yellow}http://localhost:8000${colors.reset} (refresh after rebuild)`, 'yellow');
-  log(`   React: ${colors.bright}${colors.cyan}http://localhost:8012${colors.reset}`, 'cyan');
-  log('\n   Press Ctrl+C to stop (dev + build + watcher)\n', 'yellow');
-}
-
 async function reactOnlyMode() {
-  header('REACT APP - DEV SERVER');
+  header('REACT APP — DEV SERVER');
   log('Starting React app (Vite) on port 8012...\n', 'cyan');
 
   await startServer(
     'React App',
-    'npm run react:dev',
+    'npm run dev:react',
     8012,
     'Vite HMR — edit react-app/app and see changes'
   );
@@ -443,10 +286,38 @@ async function reactOnlyMode() {
   log('\n   Press Ctrl+C to stop\n', 'yellow');
 }
 
+async function htmlOnlyMode() {
+  header('HTML SITE — DEV SERVER');
+  log('Starting HTML site on port 8001...\n', 'cyan');
+
+  await startServer(
+    'HTML Site',
+    'npm run dev:html',
+    8001,
+    'Serving html-site/source — legacy HTML app'
+  );
+
+  console.log();
+  log('📄 HTML SITE READY!', 'bright');
+  log(`   Open: ${colors.bright}${colors.cyan}http://localhost:8001${colors.reset}`, 'green');
+  log('\n   Press Ctrl+C to stop\n', 'yellow');
+}
+
+async function installAllMode() {
+  header('INSTALL ALL');
+  log('Installing root + react-app/app + html-site...\n', 'cyan');
+  const child = spawn('npm', ['run', 'install:all'], { stdio: 'inherit', shell: true, cwd: process.cwd() });
+  child.on('close', (code) => {
+    if (code === 0) log('\n✅ Install complete. You can run npm run dev or npm run startup.\n', 'green');
+    else log('\n❌ Install failed.\n', 'red');
+    process.exit(code === 0 ? 0 : 1);
+  });
+}
+
 async function buildOnlyMode() {
   const success = await runBuild();
   if (success) {
-    log('\n💡 To preview build: npm run start (port 8000)', 'cyan');
+    log('\n💡 To preview: npm run preview (React app on port 8013)', 'cyan');
   }
 }
 
@@ -474,30 +345,27 @@ async function main() {
   // Handle choice
   switch (choice) {
     case '1':
-      await quickDevMode();
+      await devBothMode();
       break;
     case '2':
-      await buildPreviewMode();
+      await reactOnlyMode();
       break;
     case '3':
-      await dualMode();
+      await htmlOnlyMode();
       break;
     case '4':
-      await watchMode();
-      break;
+      await installAllMode();
+      return;
     case '5':
       await buildOnlyMode();
       process.exit(0);
       break;
     case '6':
-      await reactOnlyMode();
-      break;
-    case '7':
       log('👋 Goodbye!\n', 'cyan');
       process.exit(0);
       break;
     default:
-      log('❌ Invalid option. Please choose 1-7.\n', 'red');
+      log('❌ Invalid option. Please choose 1-6.\n', 'red');
       process.exit(1);
   }
   

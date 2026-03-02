@@ -8,7 +8,7 @@
     <img src="https://img.shields.io/badge/privacy-local--first-0ea5e9" alt="Local-first Privacy">
     <img src="https://img.shields.io/badge/runtime-Vanilla%20JS-f7df1e?logo=javascript&logoColor=111827" alt="Vanilla JS">
     <img src="https://img.shields.io/badge/rendering-Canvas%202D-111827" alt="Canvas 2D">
-    <img src="https://img.shields.io/badge/bundler-Rollup-ec4a3f?logo=rollup.js&logoColor=white" alt="Rollup">
+    <img src="https://img.shields.io/badge/bundler-Vite-646cff?logo=vite&logoColor=white" alt="Vite">
   </p>
 </div>
 
@@ -21,33 +21,37 @@ This project powers an interactive homepage where motion, physics, and narrative
 
 - 20 simulation modes across gravity, swarm/flow, elastic, fluid, optical, parallax, and 3D families
 - 120Hz fixed-timestep physics with spatial hashing and optimized hot paths
-- Curated production runtime plus a dev control surface on port `8001`
+- Curated production runtime; dev: React on 8012, HTML (legacy) on 8001
 - Accessibility-conscious interactions and `prefers-reduced-motion` support
 - Privacy-first defaults with local settings storage only
 
 ## Quick Start
 ```bash
-npm install
-npm run dev       # source server (port 8001)
-npm run preview   # production build + serve (port 8000)
+npm run install:all   # first-time: root + react-app/app + html-site
+npm run dev           # React (8012) + HTML (8001) together
+npm run preview       # Serve React build (port 8013)
 ```
 
 Open:
-- Development: `http://localhost:8001`
-- Production preview: `http://localhost:8000`
+- React: `http://localhost:8012`
+- HTML (legacy): `http://localhost:8001`
+- Production preview: `http://localhost:8013` (after `npm run build`)
 
-Always edit `source/`. Never hand-edit `dist/`.
+Primary surface is the **React app** (`react-app/app/`). The HTML site is isolated in `html-site/` for reference.
 
 ## Scripts
 | Command | Purpose |
 | --- | --- |
-| `npm run startup` | Interactive startup menu (recommended) |
-| `npm run dev` | Start source server on `8001` |
-| `npm run preview` | Build then serve production bundle on `8000` |
-| `npm run build` | Production build to `dist/` |
-| `npm run watch` | Watch + rebuild workflow |
-| `npm start` | Serve `dist/` directly on `8000` |
-| `npm run clean` | Remove build artifacts |
+| `npm run startup` | Interactive menu (recommended) |
+| `npm run install:all` | Install all deps (root, react-app, html-site) |
+| `npm run dev` | React + HTML dev servers (8012 + 8001) |
+| `npm run dev:react` | React only (port 8012) |
+| `npm run dev:html` | HTML only (port 8001) |
+| `npm run build` | React production build → `react-app/app/dist/` |
+| `npm run build:dev` | React unminified build + sourcemaps |
+| `npm run preview` | Serve React build (port 8013) |
+| `npm run html:build` | HTML site build → `html-site/dist/` |
+| `npm run clean` | Remove html-site/dist and react-app/app/dist |
 
 ## Core Experience
 - **Narrative mode cycling**: Arrow-key progression through a curated sequence
@@ -59,14 +63,11 @@ Always edit `source/`. Never hand-edit `dist/`.
 ## Developer Guide
 ### Architecture
 ```text
-source/
-  main.js
-  css/
-  modules/{core,physics,rendering,modes,ui,visual,audio,input,utils}
-  config/default-config.json
-dist/            # generated output only
-docs/            # development + reference docs
+react-app/app/     # Primary: Vite React app (src/, public/, dist/)
+html-site/         # Isolated HTML pipeline (source/, build, dist/)
+docs/              # Development + reference docs
 ```
+Edit `react-app/app/src/` and `react-app/app/public/` for the main site. Edit `html-site/source/` only for the legacy HTML build.
 
 ### Engineering Constraints
 - O(1) behavior in hot paths and no allocations inside core physics loops

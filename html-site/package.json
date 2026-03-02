@@ -1,0 +1,23 @@
+{
+  "name": "alexander-beck-studio-html",
+  "private": true,
+  "version": "1.3.0",
+  "description": "Alexander Beck Studio — HTML site (isolated legacy pipeline)",
+  "scripts": {
+    "dev": "python3 -m http.server 8001 --directory source",
+    "build": "NODE_ENV=production node build-production.js --modules",
+    "build:dev": "NODE_ENV=development node build-production.js --modules",
+    "start": "python3 -m http.server 8000 --directory dist",
+    "watch": "node scripts/build-watch.js",
+    "live-reload": "node scripts/live-reload-server.js"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-replace": "^6.0.2",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.52.3",
+    "terser": "^5.31.0"
+  }
+}

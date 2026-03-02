@@ -2,7 +2,9 @@
 
 ## Overview
 
-The config sync system automatically persists config slider changes back to source config files (`source/config/default-config.json` or `source/config/portfolio-config.json`) when running in dev mode.
+The config sync system persists config slider changes back to config files when running the **HTML site** in dev mode. The sync server and scripts live in `html-site/` (see `html-site/README.md`). For the React app, config is read from `react-app/app/public/config/` at build/serve time; the sync server is used when developing the isolated HTML site (`npm run dev:html` or from inside `html-site/`).
+
+**HTML site config paths:** `html-site/source/config/default-config.json`, `html-site/source/config/portfolio-config.json`.
 
 ## How It Works
 
@@ -14,16 +16,7 @@ The config sync system automatically persists config slider changes back to sour
 
 ## Starting the System
 
-The config sync server starts automatically when you run dev mode:
-
-```bash
-npm run startup
-# Select option 1 (Quick Dev Mode)
-```
-
-This starts:
-- **Dev Server** (port 8001) - serves source files
-- **Config Sync Server** (port 8002) - persists config changes
+When developing the **HTML site** (e.g. `npm run dev:html` or from inside `html-site/`), you can run the config sync server separately from `html-site/` so slider changes persist to `html-site/source/config/`. From repo root, the interactive menu no longer starts the config sync server by default; run it from `html-site/` if needed.
 
 ## Usage
 
@@ -33,7 +26,7 @@ This starts:
 2. Press `/` to open the config panel
 3. Adjust any slider (e.g., `gravityMultiplier`, `ballMassKg`)
 4. Wait 300ms (debounce period)
-5. Check `source/config/default-config.json` - the value should be updated
+5. Check `html-site/source/config/default-config.json` - the value should be updated (when sync server is running from html-site)
 
 ### Portfolio Config
 
@@ -41,7 +34,7 @@ This starts:
 2. Press `/` to open the portfolio config panel
 3. Adjust any slider (e.g., `topLogoWidthVw`, `contentOffset`)
 4. Wait 300ms (debounce period)
-5. Check `source/config/portfolio-config.json` - the value should be updated
+5. Check `html-site/source/config/portfolio-config.json` - the value should be updated
 
 ## Technical Details
 
@@ -90,7 +83,7 @@ If port 8002 is already in use:
 ### File Permissions
 
 If you see "Failed to write config file" errors:
-- Check file permissions on `source/config/` directory
+- Check file permissions on `html-site/source/config/` directory
 - Ensure the directory is writable
 
 ## API Reference

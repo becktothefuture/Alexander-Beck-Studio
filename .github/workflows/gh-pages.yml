@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages (dist/)
+name: Deploy to GitHub Pages (React app)
 
 on:
   push:
@@ -26,11 +26,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install deps
-        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install deps (React)
+        run: cd react-app/app && npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Build embed
-        run: npm run build
+      - name: Build React app
+        run: cd react-app/app && npm run build
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -38,7 +38,7 @@ jobs:
       - name: Upload dist artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: react-app/app/dist
 
       - name: Deploy to GitHub Pages
         id: deployment

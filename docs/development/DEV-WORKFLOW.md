@@ -2,183 +2,94 @@
 
 ## Quick Start
 
-The simplest way to start developing:
+**First-time setup:**
+```bash
+npm run install:all
+```
 
+**Daily development:**
+```bash
+npm run dev
+```
+This starts **both** the React app (port 8012) and the HTML site (port 8001) via a single command.
+
+Alternatively, use the interactive menu:
 ```bash
 npm run startup
 ```
+Choose option 1 for Dev (both), or option 2 (React only) / 3 (HTML only) for a single pipeline.
 
-This launches an interactive menu that guides you through all available development modes.
-
-Note: The project no longer syncs external exports into `source/`. Dev and production both use the canonical `source/` layout/assets.
-
-Portfolio + CV follow the same pattern:
-- **Dev** (`npm run dev`): HTML loads ES modules directly (e.g. `modules/portfolio/app.js`, `modules/cv-init.js`)
-- **Preview/Build** (`npm run preview` / `npm run build`): HTML loads bundled scripts (`dist/js/portfolio.js`, `dist/js/cv.js`) and the runtime config/text are **inlined into the HTML** (no config fetch, no `dist/modules/` module graph).
+**Primary surface:** React app at `react-app/app/` (Vite). The HTML site is isolated in `html-site/` for reference/fallback.
 
 ---
 
 ## Development Modes Overview
 
-| Mode | Command | Ports | Rebuild Required? | Best For |
-|------|---------|-------|------------------|----------|
-| **Quick Dev** | `npm run dev` | 8001 | ❌ No (instant) | Rapid iteration, UI tweaks |
-| **Build Preview** | `npm run preview` | 8000 | ✅ Yes (auto on start) | Testing production bundle |
-| **Watch Mode** | `npm run startup` → 4 | 8001 | ⚡ Auto-rebuild | Dev + background build updates |
-| **Manual Servers** | See below | 8000 + 8001 | Hybrid | Advanced workflows |
+| Mode | Command | Ports | Best For |
+|------|---------|-------|----------|
+| **Dev (both)** | `npm run dev` | 8012 (React), 8001 (HTML) | Daily dev with both surfaces |
+| **React only** | `npm run dev:react` | 8012 | React app work only |
+| **HTML only** | `npm run dev:html` | 8001 | Isolated HTML site (html-site/) |
+| **Build (React)** | `npm run build` | — | Production minified build |
+| **Build dev (React)** | `npm run build:dev` | — | Unminified + sourcemaps |
+| **Preview (React)** | `npm run preview` | 8013 | Serve React build |
+| **HTML build** | `npm run html:build` | — | Build html-site to html-site/dist/ |
 
 ---
 
 ## Detailed Mode Explanations
 
-### 1. Quick Dev Mode (Recommended for Daily Work)
+### 1. Dev (both) — Recommended for Daily Work
 
 **Command:**
 ```bash
 npm run dev
-# or via interactive menu:
-npm run startup → option 1
+# or: npm run startup → option 1
 ```
 
 **What it does:**
-- Starts HTTP server on port 8001
-- Serves `source/` directory directly
-- Uses native ES modules (no bundling)
-- **Visually identical to production** (uses same HTML structure)
-- Changes reflect instantly on browser refresh (and live reload can auto-refresh if enabled)
-
-**Visual indicator:**
-- 🚀 **Green badge** in control panel: "DEV MODE — Instant Reload"
-
-**Architecture:**
-- `source/index.html` is the canonical HTML layout
-- CSS lives in `source/css/**`
-- Loads dev CSS modules individually
-- Loads `main.js` as ES module
+- Starts **React** dev server on port 8012 (Vite HMR)
+- Starts **HTML** dev server on port 8001 (serves `html-site/source/`)
+- Single process via `concurrently`; Ctrl+C stops both
 
 **Workflow:**
-1. Edit any file in `source/`
-2. Save file
-3. Refresh browser (Cmd+R / Ctrl+R) — or let live reload refresh automatically
-4. See changes immediately
+1. Edit `react-app/app/src/` or `react-app/app/public/` for React
+2. Edit `html-site/source/` for the isolated HTML site
+3. React: hot reload; HTML: refresh browser
 
-**Best for:**
-- CSS/style tweaks
-- JavaScript logic changes
-- Module refactoring
-- Quick experimentation
-- Full site testing (includes gates, footer, etc.)
+**Best for:** Daily development with both surfaces available.
 
 ---
 
-### 2. Build Preview Mode
+### 2. React only
 
-**Command:**
-```bash
-npm run preview
-# or via interactive menu:
-npm run startup → option 2
-```
+**Command:** `npm run dev:react` or `npm run startup` → option 2
 
-**What it does:**
-- Runs production build (`npm run build`)
-- Starts HTTP server on port 8000
-- Serves `dist/` directory (bundled output)
-- Tests minified/optimized code
-
-**Visual indicator:**
-- 📦 **Orange badge** in control panel: "PRODUCTION BUILD — Bundled"
-
-**Workflow:**
-1. Make changes in `source/`
-2. Run `npm run build`
-3. Refresh browser on port 8000
-4. Verify production behavior
-
-**Best for:**
-- Final validation before deploy
-- Performance testing (bundle size, load time)
-- Catching bundler-specific issues
-- Testing with actual production code
+**What it does:** Vite dev server for `react-app/app/` on port 8012. No HTML pipeline.
 
 ---
 
-### 3. Watch Mode (Auto-rebuild)
+### 3. HTML only
 
-**Command:**
-```bash
-npm run startup
-# Choose option 4 (Watch Mode)
-```
+**Command:** `npm run dev:html` or `npm run startup` → option 3
 
-**What it does:**
-- Starts dev server on port 8001 (instant feedback)
-- Starts build preview server on port 8000 (production structure + bundle)
-- Runs file watcher in background
-- Auto-rebuilds `dist/` when `source/` changes
-- Keeps both environments in sync
-- Starts a local live reload server (port 8003) so the browser can auto-refresh
-
-**Visual indicator:**
-- 🚀 Green badge on port 8001 (dev)
-- Terminal shows rebuild notifications
-
-**Workflow:**
-1. Edit files in `source/`
-2. Save file
-3. Port 8001: refresh → instant changes
-4. Port 8000: refresh → see rebuilt version
-5. Watcher automatically rebuilds in background
-
-**Implementation note (reliability):**
-- The watcher uses a small polling-based scanner (`scripts/build-watch.js`) to avoid silent fs-event failures on some Node versions.
-- Tuning (optional): `ABS_WATCH_POLL_MS=350 ABS_WATCH_DEBOUNCE_MS=150 npm run watch`
-
-**Best for:**
-- When you need both instant dev feedback AND production build testing
-- Comparing behavior between environments
-- Catching build-specific issues early
-
-**Note:** To view the rebuilt output, start preview server in separate terminal:
-Watch Mode now starts both servers automatically (8001 + 8000).
+**What it does:** Serves `html-site/source/` on port 8001. Uses the isolated HTML pipeline (see `html-site/README.md`).
 
 ---
 
-### 4. Dual Server Mode (Manual)
+### 4. Install all
 
-**Command:**
-```bash
-# Terminal 1: Dev server
-npm run start:source
+**Command:** `npm run install:all` or `npm run startup` → option 4
 
-# Terminal 2: Build preview (after building)
-npm run build
-npm start
+**What it does:** Installs dependencies for root, `react-app/app`, and `html-site`. Run once after clone or when adding deps.
 
-# Or via interactive menu:
-npm run startup → option 3
-```
+---
 
-**What it does:**
-- Runs both servers simultaneously
-- Full control over each environment
-- No automatic rebuilding
+### 5. Build only (React)
 
-**Visual indicators:**
-- Port 8001: 🚀 Green badge (DEV)
-- Port 8000: 📦 Orange badge (PRODUCTION)
+**Command:** `npm run build` or `npm run startup` → option 5
 
-**Workflow:**
-1. Open both URLs in separate browser tabs
-2. Edit in `source/`
-3. Port 8001: refresh → instant changes
-4. Port 8000: rebuild → refresh → see production version
-5. Compare side-by-side
-
-**Best for:**
-- Debugging environment-specific issues
-- Visual comparison of dev vs production
-- Advanced debugging workflows
+**What it does:** Production minified build to `react-app/app/dist/`. Use `npm run build:dev` for unminified + sourcemaps. Use `npm run preview` to serve the build on port 8013.
 
 ---
 
@@ -221,37 +132,13 @@ The badge appears at the top of the control panel (press `/` to open).
 
 ## File Structure Reference
 
-### Source Files (Edit These)
-```
-source/
-├── main.js              → Entry point (ES module)
-├── index.html           → Dev HTML (uses modules)
-├── css/
-│   ├── main.css         → Core styles
-│   ├── panel.css        → Panel + dock + sound styles
-│   └── ...
-└── modules/
-    ├── core/            → State, lifecycle
-    ├── physics/         → Collision, forces
-    ├── rendering/       → Canvas drawing
-    ├── ui/              → Control panel, gates
-    └── ...
-```
+### React app (primary)
+- **Edit:** `react-app/app/src/`, `react-app/app/public/`
+- **Build output:** `react-app/app/dist/` (Vite)
 
-### Build Output (Generated - Don't Edit)
-```
-dist/
-├── index.html                    → Production HTML (from source/index.html)
-├── js/
-│   ├── app.js                   → Main bundled JS (Rollup output)
-│   ├── shared.js                → Shared code chunk
-│   ├── portfolio.js             → Portfolio JS bundle
-│   └── cv.js                    → CV JS bundle
-├── css/
-│   ├── styles.css               → Concatenated styles
-│   └── portfolio.css            → Portfolio styles
-└── ...
-```
+### HTML site (isolated)
+- **Edit:** `html-site/source/` (main.js, index.html, css/, modules/, config/)
+- **Build output:** `html-site/dist/` (Rollup)
 
 ---
 
@@ -260,7 +147,7 @@ dist/
 ### Daily Development
 ```bash
 npm run startup
-# Choose option 1 (Quick Dev)
+# Choose option 1 (Dev both) or 2 (React only) / 3 (HTML only)
 # Visit http://localhost:8001
 # Edit → Save → Refresh → Repeat
 ```

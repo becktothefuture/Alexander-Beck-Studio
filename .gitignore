@@ -1,8 +1,12 @@
 # Build output
 public/
+dist/
+html-site/dist/
+react-app/app/dist/
 
 # Dependencies
 node_modules/
+html-site/node_modules/
 package-lock.json
 
 # Test artifacts
@@ -11,8 +15,8 @@ playwright-report/
 .playwright-mcp/
 
 # Video archive (unused video assets)
-source/video/archive/
-dist/video/archive/
+html-site/source/video/archive/
+html-site/dist/video/archive/
 
 # OS files
 .DS_Store

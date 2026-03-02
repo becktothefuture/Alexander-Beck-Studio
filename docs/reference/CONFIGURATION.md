@@ -1,20 +1,20 @@
 # Configuration Reference
 
-**Source of truth:** `source/config/default-config.json`
+**Primary (React app) source of truth:** `react-app/app/public/config/default-config.json`
 
-This document describes the configuration keys that are copied into the production build and loaded at runtime by `source/main.js`.
+This document describes the configuration keys loaded at runtime. The React app serves config from `react-app/app/public/config/`. The isolated HTML site uses `html-site/source/config/` (see `html-site/README.md`).
 
 ---
 
 ## Portfolio Page Configuration (Separate Runtime)
 
-The **portfolio page** (see `source/portfolio.html`) uses a **separate config file** and loader:
+The **portfolio page** uses a **separate config file** and loader:
 
-- **Source of truth (portfolio)**: `source/config/portfolio-config.json`
-- **Portfolio data (slides/content)**: `source/config/contents-portfolio.json`
-- **Loader/normalizer**: `source/modules/portfolio/portfolio-config.js`
+- **Source of truth (portfolio)**: `react-app/app/public/config/portfolio-config.json`
+- **Portfolio data (slides/content)**: `react-app/app/public/config/contents-portfolio.json`
+- **Loader/normalizer**: `react-app/app/src/legacy/modules/portfolio/portfolio-config.js`
 
-The portfolio config is copied into the build as `dist/js/portfolio-config.json` and is applied only to the portfolio carousel + portfolio-only effects (it does **not** affect the main simulation).
+Portfolio config is applied only to the portfolio carousel + portfolio-only effects (it does **not** affect the main simulation).
 
 ### Portfolio `cssVars` (Card sizing)
 
@@ -41,7 +41,7 @@ Relevant keys (all strings, applied as CSS variables):
 
 These keys control the **portfolio carousel sound cues** (implemented in `source/modules/portfolio/app.js` using `source/modules/audio/sound-engine.js`).
 
-Portfolio content (cover + gallery + detail blocks) is pulled from `config/contents-portfolio.json` and resolved against `images/portfolio/` (mirrored to `dist/` at build time).
+Portfolio content (cover + gallery + detail blocks) is pulled from `react-app/app/public/config/contents-portfolio.json` and resolved against `react-app/app/public/images/portfolio/`.
 
 ```json
 {

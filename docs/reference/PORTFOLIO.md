@@ -2,8 +2,10 @@
 
 **Scope:** The gated portfolio experience that mirrors the site chrome but runs its own carousel + detail view.
 
+**Paths:** For the **HTML site**, paths below are under `html-site/source/`. For the **React app**, use `react-app/app/public/config/`, `react-app/app/public/images/portfolio/`, and `react-app/app/src/legacy/modules/portfolio/`.
+
 ## Entry points
-- `source/portfolio.html` – shares normalize/main/panel CSS plus `css/portfolio.css`, sets `window.PORTFOLIO_BASE`, and loads `modules/portfolio/app.js`.
+- `source/portfolio.html` (HTML: `html-site/source/portfolio.html`) – shares normalize/main/panel CSS plus `css/portfolio.css`, sets `window.PORTFOLIO_BASE`, and loads `modules/portfolio/app.js`.
 - `source/modules/ui/portfolio-gate.js` – gate overlay on the index page that prefetches the portfolio bundle + a lead slide.
 
 ## Runtime modules
