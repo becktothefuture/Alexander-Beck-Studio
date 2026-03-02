@@ -22,10 +22,19 @@ function hexToRgb(hex) {
 }
 
 /**
- * Build radial gradient for depth wash
+ * Smoothstep interpolation — perceptually uniform easing that concentrates
+ * precision in the mid-tones where 8-bit banding is most visible.
+ */
+function smoothstep(t) {
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * Build radial gradient for depth wash.
+ * Uses many intermediate color stops to eliminate 8-bit banding that occurs
+ * when only 2 stops span the full viewport through a multiply blend.
  */
 function createDepthGradient(ctx, w, h, g, isDark) {
-  // Get configurable center position (default: 50% x, 30% y)
   const centerYPct = typeof g.depthWashCenterY === 'number' ? g.depthWashCenterY : 0.3;
   const radiusScale = typeof g.depthWashRadiusScale === 'number' ? g.depthWashRadiusScale : 1.0;
   
@@ -35,7 +44,6 @@ function createDepthGradient(ctx, w, h, g, isDark) {
   
   const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
   
-  // Get colors from config
   const centerColor = isDark 
     ? (g.depthWashCenterColorDark || '#1a1e23')
     : (g.depthWashCenterColorLight || '#ffffff');
@@ -43,7 +51,6 @@ function createDepthGradient(ctx, w, h, g, isDark) {
     ? (g.depthWashEdgeColorDark || '#05020f')
     : (g.depthWashEdgeColorLight || '#142b48');
   
-  // Get alpha values (0-1)
   const centerAlpha = isDark
     ? (typeof g.depthWashCenterAlphaDark === 'number' ? g.depthWashCenterAlphaDark : 0)
     : (typeof g.depthWashCenterAlphaLight === 'number' ? g.depthWashCenterAlphaLight : 0.3);
@@ -51,11 +58,19 @@ function createDepthGradient(ctx, w, h, g, isDark) {
     ? (typeof g.depthWashEdgeAlphaDark === 'number' ? g.depthWashEdgeAlphaDark : 0.8)
     : (typeof g.depthWashEdgeAlphaLight === 'number' ? g.depthWashEdgeAlphaLight : 0.4);
   
-  const center = hexToRgb(centerColor);
-  const edge = hexToRgb(edgeColor);
+  const c0 = hexToRgb(centerColor);
+  const c1 = hexToRgb(edgeColor);
   
-  gradient.addColorStop(0, `rgba(${center.r}, ${center.g}, ${center.b}, ${centerAlpha})`);
-  gradient.addColorStop(1, `rgba(${edge.r}, ${edge.g}, ${edge.b}, ${edgeAlpha})`);
+  const STOPS = 12;
+  for (let i = 0; i <= STOPS; i++) {
+    const t = i / STOPS;
+    const s = smoothstep(t);
+    const r = Math.round(c0.r + (c1.r - c0.r) * s);
+    const gb = Math.round(c0.g + (c1.g - c0.g) * s);
+    const b = Math.round(c0.b + (c1.b - c0.b) * s);
+    const a = centerAlpha + (edgeAlpha - centerAlpha) * s;
+    gradient.addColorStop(t, `rgba(${r}, ${gb}, ${b}, ${a.toFixed(4)})`);
+  }
   
   return gradient;
 }
