@@ -119,12 +119,7 @@ export function initCvPhotoSlideshow() {
         clearInterval(jitterIntervalId);
         jitterIntervalId = null;
       }
-      if (scrollTimeout) {
-        clearTimeout(scrollTimeout);
-        scrollTimeout = null;
-      }
       photoContainer.style.cursor = '';
     },
   };
 }
-

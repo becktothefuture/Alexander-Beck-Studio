@@ -31,24 +31,7 @@ Why:
 
 ### Architecture Snapshot
 
-```mermaid
-flowchart TD
-    A[User opens page] --> B{Which pipeline?}
-
-    B --> C[HTML pipeline]
-    C --> C1[html-site/source/*.html]
-    C1 --> C2[Direct module script]
-    C2 --> C3[main.js or portfolio app]
-    C3 --> C4[modules/* physics + rendering + ui]
-
-    B --> D[React pipeline]
-    D --> D1[react-app/app/*.html]
-    D1 --> D2[React entry: src/entries/*.jsx]
-    D2 --> D3[Page component]
-    D3 --> D4[Inject template HTML body]
-    D3 --> D5[Dynamic import legacy runtime]
-    D5 --> D6[src/legacy/modules/*]
-```
+![React vs HTML architecture diagram](../assets/diagrams/react-vs-html-architecture.svg)
 
 ---
 
@@ -56,37 +39,28 @@ flowchart TD
 
 ### 1) HTML Version Boot Flow
 
-```mermaid
-sequenceDiagram
-    participant Browser
-    participant HTML as source/index.html
-    participant JS as source/main.js
-    participant Modules as source/modules/*
-
-    Browser->>HTML: Load full document (head + body + scripts)
-    HTML->>JS: <script type="module" src="main.js">
-    JS->>Modules: Import runtime modules
-    Modules-->>Browser: Initialize canvas, UI, input, effects
-```
+![HTML version boot flow diagram](../assets/diagrams/html-boot-flow.svg)
 
 ### 2) React Version Boot Flow
 
-```mermaid
-sequenceDiagram
-    participant Browser
-    participant Entry as src/entries/index.jsx
-    participant Page as HomePage.jsx
-    participant Frame as SharedFrame.jsx
-    participant Hook as useLegacyBootstrap.js
-    participant Legacy as src/legacy/main.js
+![React version boot flow diagram](../assets/diagrams/react-boot-flow.svg)
 
-    Browser->>Entry: Load React entry from index.html
-    Entry->>Page: Render React page
-    Page->>Frame: Inject body template (HTML fragment)
-    Page->>Hook: Request legacy bootstrap
-    Hook->>Legacy: dynamic import('../legacy/main.js')
-    Legacy-->>Browser: Initialize simulation runtime
-```
+---
+
+## File Map (What To Read)
+
+If you want to study the architecture quickly, these are the high-value files.
+
+| Concern | HTML Pipeline | React Pipeline |
+|---|---|---|
+| Page entries | `html-site/source/index.html`, `portfolio.html`, `cv.html` | `react-app/app/index.html`, `portfolio.html`, `cv.html` |
+| Page JS entrypoints | `html-site/source/main.js`, `source/modules/portfolio/app.js`, `source/modules/cv-init.js` | `react-app/app/src/entries/index.jsx`, `portfolio.jsx`, `cv.jsx` |
+| Page orchestration | Imperative scripts directly from HTML | `react-app/app/src/pages/HomePage.jsx`, `PortfolioPage.jsx`, `CvPage.jsx` |
+| React bridge | N/A | `react-app/app/src/hooks/useLegacyBootstrap.js`, `src/components/layout/SharedFrame.jsx`, `src/lib/template.js` |
+| Core runtime modules | `html-site/source/modules/*` | `react-app/app/src/legacy/modules/*` |
+| Runtime config | `html-site/source/config/*.json` | `react-app/app/public/config/*.json` |
+| Main styles | `html-site/source/css/*.css` | `react-app/app/public/css/*.css` |
+| Build config | `html-site/build-production.js`, `html-site/rollup.config.mjs` | `react-app/app/vite.config.js` |
 
 ---
 
@@ -133,6 +107,18 @@ Yes, there are real downsides today:
 1. **Bridge overhead.** `dangerouslySetInnerHTML` and legacy bootstrap logic add migration-specific complexity.
 1. **Drift risk between versions.** Current comparison shows meaningful divergence: `90` JS module files compared between HTML and React legacy trees, `67` identical and `23` different; config and CSS also differ.
 1. **Some HTML-only head boot logic is richer.** The HTML pages still contain substantial first-paint and browser-chrome scripts that are more minimal in React page HTML shells.
+
+---
+
+## Notable Behavior Differences Today
+
+These are concrete examples where the two pipelines currently differ.
+
+1. **Defaults drift in config.** `default-config.json` differs in values like `chromeHarmonyMode`, cursor sizing, trail defaults, wall inset, and some 3D mode parameters.
+1. **CSS wall architecture differs.** Tokens and wall/container structure differ between `html-site/source/css/*` and `react-app/app/public/css/*`, including wall-color token strategy and rounded-corner handling.
+1. **Legacy runtime files are not fully in sync.** Key modules in `core`, `physics`, `visual`, and `input` differ between HTML and React trees.
+1. **Bootstrap guards differ.** In React legacy copies, some modules (for example CV/portfolio init) include `document.readyState` guarding to avoid missing boot when scripts load after DOM ready.
+1. **Head-level paint/chrome scripts are richer in HTML pages.** The HTML pages currently include larger inline first-paint/browser-chrome scripts than the React page shells.
 
 ---
 

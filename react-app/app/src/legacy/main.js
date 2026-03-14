@@ -3,11 +3,11 @@
 // ║                       Modular Architecture Bootstrap                         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { CONSTANTS, NARRATIVE_MODE_SEQUENCE } from './modules/core/constants.js';
+import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from './modules/core/constants.js';
 import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/core/state.js';
 import { getDailyMode } from './modules/core/daily-scheduler.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
-import { applyColorTemplate, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
+import { maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
 import { initNoiseSystem } from './modules/visual/noise-system.js';
 import { setupRenderer, getCanvas, getContext, resize, setForceRenderCallback } from './modules/rendering/renderer.js';
 import { render } from './modules/physics/engine.js';
@@ -33,7 +33,6 @@ import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 // Note: Legend interactivity is now inlined in main.js for reliability
 import { initLegendFilterSystem } from './modules/ui/legend-filter.js';
 import { initLinkCursorHop } from './modules/ui/link-cursor-hop.js';
-import { initWallElements, updateWallElements } from './modules/visual/wall-elements.js';
 import { initTactileLayer, updateTactileLayer } from './modules/visual/tactile-layer.js';
 // Layout controls now integrated into master panel
 import { initSceneImpactReact } from './modules/ui/scene-impact-react.js';
@@ -42,7 +41,8 @@ import { loadRuntimeText, getText } from './modules/utils/text-loader.js';
 import { applyRuntimeTextToDOM } from './modules/ui/apply-text.js';
 import { loadRuntimeConfig } from './modules/utils/runtime-config.js';
 import { waitForFonts } from './modules/utils/font-loader.js';
-import { readTokenVar } from './modules/utils/tokens.js';
+import { getShellConfig, loadShellConfig, syncShellToDocument } from './modules/visual/site-shell.js';
+import { forcePageVisible, getPageWarmupMs, waitForPageReadyBarrier } from './modules/visual/page-orchestrator.js';
 import {
   initConsolePolicy,
   printConsoleBanner,
@@ -270,6 +270,11 @@ window.addEventListener('unhandledrejection', (event) => {
     group('BouncyBalls bootstrap');
     mark('bb:start');
     log('🚀 Initializing modular bouncy balls...');
+
+    await loadShellConfig();
+    syncShellToDocument({
+      isDark: document.documentElement.classList.contains('dark-mode')
+    });
     
     const config = await loadRuntimeConfig();
     initState(config);
@@ -447,10 +452,6 @@ window.addEventListener('unhandledrejection', (event) => {
     mark('bb:input');
     log('✓ Custom cursor initialized');
     
-    // Initialize wall elements (real DOM elements for outer/inner walls)
-    initWallElements();
-    log('✓ Wall elements initialized (outer-wall, inner-wall)');
-
     // Initialize Tactile Layer (Unicorn Studio)
     try {
       initTactileLayer(config);
@@ -565,7 +566,8 @@ window.addEventListener('unhandledrejection', (event) => {
     initModeSystem();
 
     // Initialize starting mode (deterministic daily simulation)
-    const startMode = getDailyMode();
+    const configuredHeroMode = String(getShellConfig()?.hero?.startupMode || '').trim();
+    const startMode = configuredHeroMode || getDailyMode() || MODES.PIT;
     // Cursor color: auto-pick a new contrasty ball color per simulation load.
     // Must run after theme/palette is initialized (initializeDarkMode → applyColorTemplate).
     maybeAutoPickCursorColor?.('startup');
@@ -648,9 +650,9 @@ window.addEventListener('unhandledrejection', (event) => {
       } = await import('./modules/utils/page-nav.js');
       
       const g = getGlobals();
+      const shellConfig = getShellConfig();
       const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-      const elementDuration = g.entranceElementDuration ?? CONTENT_FADE_DURATION_MS;
-      const elementEasing = g.entranceElementEasing ?? CONTENT_FADE_EASING;
+      const revealDuration = shellConfig?.motion?.contentRevealMs ?? CONTENT_FADE_DURATION_MS;
 
       // Check navigation state BEFORE consuming it (getModalToAutoOpen reads but doesn't clear)
       const autoOpenModal = getModalToAutoOpen();
@@ -661,13 +663,26 @@ window.addEventListener('unhandledrejection', (event) => {
       
       // Check if View Transition just ran (Chrome) - skip entrance animation entirely
       const skipEntrance = didViewTransitionRun();
+      const warmupMs = (skipWall || skipEntrance) ? 0 : getPageWarmupMs({ config: shellConfig });
+      const waitForVisualReady = async () => {
+        await waitForPageReadyBarrier({
+          waitForFonts: async () => {
+            try {
+              await waitForFonts();
+            } catch {
+              return false;
+            }
+            return true;
+          },
+          minimumMs: warmupMs
+        });
+      };
       
       // Handle bfcache restore (browser back/forward with cached page)
       window.addEventListener('pageshow', (event) => {
         if (event.persisted) {
           resetTransitionState();
-          const absScene = document.getElementById('abs-scene');
-          if (absScene) absScene.style.opacity = '1';
+          forcePageVisible(['#abs-scene', '#app-frame']);
         }
       });
       
@@ -679,33 +694,31 @@ window.addEventListener('unhandledrejection', (event) => {
 
       // Skip entrance animation if disabled or reduced motion preferred
       if (!g.entranceEnabled || reduceMotion) {
-        try { await waitForFonts(); } catch (e) {}
-        // Use config values for content fade-in (delay + duration)
-        await fadeInContentLayer();
+        await waitForVisualReady();
+        await fadeInContentLayer({ delay: 0, duration: revealDuration });
         // Also reveal late elements (logo + main links) that have inline hidden styles
         revealAllLateElements();
         // Skip canvas logo entrance animation (show immediately)
         skipLogoEntrance();
         console.log('✓ Entrance animation skipped (disabled or reduced motion)');
       } else {
+        await waitForVisualReady();
         // Start canvas logo entrance animation (blur + fade in)
         // Timing matches the DOM logo reveal in orchestrateEntrance
-        const contentFadeDelay = g.contentFadeInDelay ?? 500;
-        const contentFadeDuration = g.contentFadeInDuration ?? 1000;
-        const logoDelay = contentFadeDelay + contentFadeDuration * 0.6;
+        const logoDelay = Math.round(revealDuration * 0.55);
         setTimeout(() => {
           startLogoEntrance();
         }, logoDelay);
         
         // Orchestrate entrance (wall animation conditional on navigation state)
         await orchestrateEntrance({
-          waitForFonts: async () => {
-            try {
-              await waitForFonts();
-            } catch (e) {}
-          },
+          waitForFonts: null,
           skipWallAnimation: skipWall,
-          skipEntranceAnimation: skipEntrance
+          skipEntranceAnimation: skipEntrance,
+          contentFadeDelay: 0,
+          contentFadeDuration: revealDuration,
+          lateElementDuration: revealDuration,
+          allowScaleEntrance: shellConfig?.motion?.allowScaleEntrance
         });
         console.log(skipEntrance 
           ? '✓ Entrance skipped (View Transition handled it)'
@@ -734,9 +747,7 @@ window.addEventListener('unhandledrejection', (event) => {
       
     } catch (e) {
       console.warn('⚠️ Entrance animation failed, falling back to simple fade:', e);
-      try { await waitForFonts(); } catch (e) {}
-      // Use config values for content fade-in (delay + duration)
-      await fadeInContentLayer();
+      await fadeInContentLayer({ delay: 0, duration: getShellConfig()?.motion?.contentRevealMs ?? CONTENT_FADE_DURATION_MS });
       // Skip canvas logo entrance (show immediately)
       skipLogoEntrance();
       // Fallback: also reveal late elements so nothing stays hidden
@@ -760,6 +771,7 @@ window.addEventListener('unhandledrejection', (event) => {
         const blocker = document.getElementById('fade-blocking');
         if (blocker) blocker.remove();
       }
+      forcePageVisible(['#abs-scene', '#app-frame']);
     }
 
     setBootLifecycleState('ready');

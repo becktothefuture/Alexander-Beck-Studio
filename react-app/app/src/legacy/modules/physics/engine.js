@@ -107,6 +107,125 @@ const DT_MOBILE = CONSTANTS.PHYSICS_DT_MOBILE;
 const CORNER_RADIUS = 42; // matches rounded container corners
 const CORNER_FORCE = 1800;
 const WARMUP_FRAME_DT = 1 / 60;
+const PIT_PERF_WINDOW = 120;
+const EMPTY_COLLISION_STATS = Object.freeze({
+  pairCount: 0,
+  overlapDebt: 0,
+  sleepingPairSkips: 0
+});
+
+function clampNumber(value, min, max, fallback) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return fallback;
+  if (next < min) return min;
+  if (next > max) return max;
+  return next;
+}
+
+function pushWindowSample(target, value) {
+  if (!Array.isArray(target)) return;
+  target.push(Number.isFinite(value) ? value : 0);
+  if (target.length > PIT_PERF_WINDOW) target.shift();
+}
+
+function percentile(samples, ratio) {
+  if (!Array.isArray(samples) || samples.length === 0) return 0;
+  const sorted = [...samples].sort((a, b) => a - b);
+  const index = Math.max(0, Math.min(sorted.length - 1, Math.round((sorted.length - 1) * ratio)));
+  return sorted[index];
+}
+
+function mean(samples) {
+  if (!Array.isArray(samples) || samples.length === 0) return 0;
+  let sum = 0;
+  for (let i = 0; i < samples.length; i++) sum += samples[i];
+  return sum / samples.length;
+}
+
+function getPitPerfStore(globals) {
+  if (!globals) return null;
+  if (!globals.pitPerfStore) {
+    globals.pitPerfStore = {
+      frameMs: [],
+      physicsMs: [],
+      collisionMs: [],
+      renderMs: [],
+      postFxMs: [],
+      overlapDebt: [],
+      pairCount: [],
+      sleepingPairSkips: [],
+      frames: 0,
+      throttledFrames: 0,
+      pendingPhysics: {
+        physicsMs: 0,
+        collisionMs: 0,
+        overlapDebt: 0,
+        pairCount: 0,
+        sleepingPairSkips: 0
+      },
+      summary: null
+    };
+  }
+  return globals.pitPerfStore;
+}
+
+function finalizePitPerfSample(globals, renderMs, postFxMs) {
+  const store = getPitPerfStore(globals);
+  if (!store) return null;
+  const pending = store.pendingPhysics || EMPTY_COLLISION_STATS;
+  const frameMs = (Number.isFinite(pending.physicsMs) ? pending.physicsMs : 0) + (Number.isFinite(renderMs) ? renderMs : 0);
+
+  pushWindowSample(store.frameMs, frameMs);
+  pushWindowSample(store.physicsMs, pending.physicsMs);
+  pushWindowSample(store.collisionMs, pending.collisionMs);
+  pushWindowSample(store.renderMs, renderMs);
+  pushWindowSample(store.postFxMs, postFxMs);
+  pushWindowSample(store.overlapDebt, pending.overlapDebt);
+  pushWindowSample(store.pairCount, pending.pairCount);
+  pushWindowSample(store.sleepingPairSkips, pending.sleepingPairSkips);
+
+  store.frames += 1;
+  if (globals.__pitFrameThrottled) store.throttledFrames += 1;
+  const throttleShare = store.frames > 0 ? (store.throttledFrames / store.frames) : 0;
+
+  const summary = {
+    frameP50Ms: percentile(store.frameMs, 0.5),
+    frameP95Ms: percentile(store.frameMs, 0.95),
+    physicsP95Ms: percentile(store.physicsMs, 0.95),
+    collisionP95Ms: percentile(store.collisionMs, 0.95),
+    renderP95Ms: percentile(store.renderMs, 0.95),
+    postFxP95Ms: percentile(store.postFxMs, 0.95),
+    overlapDebtP95: percentile(store.overlapDebt, 0.95),
+    pairCountMean: mean(store.pairCount),
+    sleepingPairSkipsMean: mean(store.sleepingPairSkips),
+    throttleShare,
+    sampleCount: store.frameMs.length
+  };
+
+  store.summary = summary;
+  globals.pitPerfSummary = summary;
+  return summary;
+}
+
+function resolvePitCollisionIterations(globals, baseIterations) {
+  const mode = globals?.currentMode;
+  if (mode !== MODES.PIT) return baseIterations;
+
+  const minIterations = Math.max(1, Math.round(clampNumber(globals?.pitCollisionIterationsMin, 1, 20, 2)));
+  const maxIterations = Math.max(minIterations, Math.round(clampNumber(globals?.pitCollisionIterationsMax, minIterations, 20, baseIterations)));
+  let next = Math.max(minIterations, Math.min(maxIterations, Math.round(baseIterations)));
+
+  const throttleLevel = Math.max(0, Math.min(2, Math.round(Number(globals?.adaptiveThrottleLevel) || 0)));
+  if (throttleLevel === 1) next = Math.max(minIterations, next - 1);
+  if (throttleLevel >= 2) next = Math.max(minIterations, next - 2);
+
+  const avgFps = Number(globals?.adaptiveAverageFps);
+  if (Number.isFinite(avgFps) && avgFps > 0 && avgFps < 30) {
+    next = Math.max(minIterations, next - 1);
+  }
+
+  return Math.max(minIterations, Math.min(maxIterations, next));
+}
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PERF: Preallocated options objects to avoid per-loop/per-frame allocations
@@ -254,10 +373,17 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   
   addToAccumulator(dtSeconds);
   let physicsSteps = 0;
+  const isPitMode = globals.currentMode === MODES.PIT;
+  let pitPhysicsMs = 0;
+  let pitCollisionMs = 0;
+  let pitOverlapDebt = 0;
+  let pitPairCount = 0;
+  let pitSleepingPairSkips = 0;
 
   // Wall input accumulation:
   
   while (getAccumulator() >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
+    const physicsStepStart = isPitMode ? performance.now() : 0;
     // Integrate physics for all modes
       const len = balls.length;
       for (let i = 0; i < len; i++) {
@@ -265,17 +391,20 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
       }
     
     // Collision solver iterations (performance tuning)
-    const collisionIterations = Math.max(
+    const baseCollisionIterations = Math.max(
       1,
       Math.min(20, Math.round(Number(globals.physicsCollisionIterations ?? 10) || 10))
     );
+    const collisionIterations = resolvePitCollisionIterations(globals, baseCollisionIterations);
 
     // Ball-to-ball collisions:
     // - Disabled for Flies (swarm aesthetic)
     // - Reduced for Kaleidoscope mode (performance)
     // - Standard for remaining physics modes
+    let collisionStats = EMPTY_COLLISION_STATS;
+    const collisionStart = isPitMode ? performance.now() : 0;
     if (globals.currentMode === MODES.KALEIDOSCOPE) {
-      resolveCollisions(6); // handled by kaleidoscope early-return, kept for safety
+      collisionStats = resolveCollisions(6) || EMPTY_COLLISION_STATS; // handled by kaleidoscope early-return, kept for safety
     } else if (globals.currentMode !== MODES.FLIES &&
                globals.currentMode !== MODES.SPHERE_3D &&
                globals.currentMode !== MODES.CUBE_3D &&
@@ -283,7 +412,13 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
                globals.currentMode !== MODES.PARALLAX_FLOAT &&
                globals.currentMode !== MODES.STARFIELD_3D &&
                globals.currentMode !== MODES.DVD_LOGO) {
-      resolveCollisions(collisionIterations); // configurable solver iterations
+      collisionStats = resolveCollisions(collisionIterations) || EMPTY_COLLISION_STATS; // configurable solver iterations
+    }
+    if (isPitMode) {
+      pitCollisionMs += (performance.now() - collisionStart);
+      pitOverlapDebt += Number(collisionStats.overlapDebt) || 0;
+      pitPairCount += Number(collisionStats.pairCount) || 0;
+      pitSleepingPairSkips += Number(collisionStats.sleepingPairSkips) || 0;
     }
 
     
@@ -321,71 +456,63 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     // Wall/corner clamping can re-introduce overlaps in dense stacks (especially near the floor).
     // Run a small post-wall collision pass for Pit-like modes only.
     if (mode === MODES.PIT) {
-      resolveCollisions(3);
+      const overlapThreshold = Math.max(0, Number(globals.pitPostPassOverlapThreshold ?? 0));
+      const shouldRunPostPass = overlapThreshold <= 0 || (Number(collisionStats.overlapDebt) || 0) >= overlapThreshold;
+      if (shouldRunPostPass) {
+        const postPassStart = isPitMode ? performance.now() : 0;
+        resolveCollisions(3);
+        if (isPitMode) {
+          pitCollisionMs += (performance.now() - postPassStart);
+        }
 
-      // The post-wall collision pass can push bodies slightly outside the inset wall bounds.
-      // Clamp once more without registering wall effects (sound/pressure/wobble).
-      // PERF: Reuse preallocated options object
-      const wallRestitution = globals.REST;
-      const lenClamp = balls.length;
-      const canvasW = canvas.width;
-      const canvasH = canvas.height;
-      for (let i = 0; i < lenClamp; i++) {
-        balls[i].walls(canvasW, canvasH, DT, wallRestitution, PIT_CLAMP_OPTS);
-      }
+        // The post-wall collision pass can push bodies slightly outside the inset wall bounds.
+        // Clamp once more without registering wall effects (sound/pressure/wobble).
+        // PERF: Reuse preallocated options object
+        const wallRestitution = globals.REST;
+        const lenClamp = balls.length;
+        const canvasW = canvas.width;
+        const canvasH = canvas.height;
+        for (let i = 0; i < lenClamp; i++) {
+          balls[i].walls(canvasW, canvasH, DT, wallRestitution, PIT_CLAMP_OPTS);
+        }
 
-      // ══════════════════════════════════════════════════════════════════════════
-      // POST-PHYSICS STABILIZATION (Pit modes only)
-      // After all constraints, aggressively dampen near-stationary balls.
-      // This simulates static friction and prevents perpetual micro-wiggle on mobile.
-      // ══════════════════════════════════════════════════════════════════════════
-      const DPR = globals.DPR || 1;
-      // Thresholds must be DPR-scaled: physics runs in canvas pixels (displayPx * DPR)
-      // Same apparent motion = DPRx higher velocity in canvas space
-      const vThresh = (Number.isFinite(globals.sleepVelocityThreshold) ? globals.sleepVelocityThreshold : 12.0) * DPR;
-      // PERF: Precompute squared thresholds to avoid Math.sqrt in hot loop
-      const vThreshSq = vThresh * vThresh;
-      const tinySpeedSq = (2 * DPR) * (2 * DPR);
-      const wThresh = Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18;
-      const tSleep = globals.timeToSleep ?? 0.25;
-      
-      for (let i = 0; i < lenClamp; i++) {
-        const b = balls[i];
-        if (!b || b.isSleeping) continue;
+        // ════════════════════════════════════════════════════════════════════════
+        // POST-PHYSICS STABILIZATION (Pit modes only)
+        // ════════════════════════════════════════════════════════════════════════
+        const DPR = globals.DPR || 1;
+        const vThresh = (Number.isFinite(globals.sleepVelocityThreshold) ? globals.sleepVelocityThreshold : 12.0) * DPR;
+        const vThreshSq = vThresh * vThresh;
+        const tinySpeedSq = (2 * DPR) * (2 * DPR);
+        const wThresh = Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18;
+        const tSleep = globals.timeToSleep ?? 0.25;
         
-        // PERF: Use squared speed comparison to avoid Math.sqrt
-        const speedSq = b.vx * b.vx + b.vy * b.vy;
-        const angSpeed = Math.abs(b.omega);
-        
-        // Aggressive stabilization: if grounded OR supported with tiny velocity, zero it
-        // hasSupport = resting on another ball; isGrounded = touching floor
-        const isSettled = b.isGrounded || b.hasSupport;
-        if (isSettled && speedSq < vThreshSq && angSpeed < wThresh) {
-          // Aggressively dampen toward zero (static friction simulation)
-          b.vx *= 0.5;
-          b.vy *= 0.5;
-          b.omega *= 0.5;
-          
-          // If really tiny, snap to zero (DPR-scaled)
-          if (speedSq < tinySpeedSq) {
-            b.vx = 0;
-            b.vy = 0;
+        for (let i = 0; i < lenClamp; i++) {
+          const b = balls[i];
+          if (!b || b.isSleeping) continue;
+          const speedSq = b.vx * b.vx + b.vy * b.vy;
+          const angSpeed = Math.abs(b.omega);
+          const isSettled = b.isGrounded || b.hasSupport;
+          if (isSettled && speedSq < vThreshSq && angSpeed < wThresh) {
+            b.vx *= 0.5;
+            b.vy *= 0.5;
+            b.omega *= 0.5;
+            if (speedSq < tinySpeedSq) {
+              b.vx = 0;
+              b.vy = 0;
+            }
+            if (angSpeed < 0.02) {
+              b.omega = 0;
+            }
+            b.sleepTimer += DT;
+            if (b.sleepTimer >= tSleep) {
+              b.vx = 0;
+              b.vy = 0;
+              b.omega = 0;
+              b.isSleeping = true;
+            }
+          } else {
+            b.sleepTimer = 0;
           }
-          if (angSpeed < 0.02) {
-            b.omega = 0;
-          }
-          
-          // Accumulate sleep timer
-          b.sleepTimer += DT;
-          if (b.sleepTimer >= tSleep) {
-            b.vx = 0;
-            b.vy = 0;
-            b.omega = 0;
-            b.isSleeping = true;
-          }
-        } else {
-          // Moving too fast - reset sleep timer
-          b.sleepTimer = 0;
         }
       }
     }
@@ -445,6 +572,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     
     subtractFromAccumulator(DT);
     physicsSteps++;
+    if (isPitMode) {
+      pitPhysicsMs += (performance.now() - physicsStepStart);
+    }
   }
   
   // Mode-specific per-frame updates (water ripples, magnetic explosions, tilt transform, etc.)
@@ -458,6 +588,19 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   if (getAccumulator() > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) {
     setAccumulator(0);
   }
+
+  if (isPitMode) {
+    const store = getPitPerfStore(globals);
+    if (store) {
+      store.pendingPhysics = {
+        physicsMs: pitPhysicsMs,
+        collisionMs: pitCollisionMs,
+        overlapDebt: pitOverlapDebt,
+        pairCount: pitPairCount,
+        sleepingPairSkips: pitSleepingPairSkips
+      };
+    }
+  }
 }
 
 export async function updatePhysics(dtSeconds, applyForcesFunc) {
@@ -468,7 +611,12 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   // Keep entrance/micro FX progressing even in modes that intentionally use 0 balls
   // (e.g. starfield custom renderer). Otherwise logo entrance can get stuck at opacity 0.
   updateLogoEntrance(dtSeconds);
-  updateCursorExplosion(dtSeconds);
+  const pitFxThrottleAware = globals.currentMode === MODES.PIT
+    && String(globals.pitFxThrottlePolicy || 'throttle-aware') === 'throttle-aware';
+  const shouldUpdateCursorExplosion = !(pitFxThrottleAware && (Number(globals.adaptiveThrottleLevel) || 0) >= 1);
+  if (shouldUpdateCursorExplosion) {
+    updateCursorExplosion(dtSeconds);
+  }
 
   if (!canvas) return;
   if (!balls || balls.length === 0) return;
@@ -498,12 +646,30 @@ export function render() {
   const canvas = globals.canvas;
   
   if (!ctx || !canvas) return;
+  const isPitMode = globals.currentMode === MODES.PIT;
+  const renderStart = isPitMode ? performance.now() : 0;
+  let postFxMs = 0;
   
   // ═══════════════════════════════════════════════════════════════════════════════
   // LOGO: Update size (early-exits if no changes)
   // ═══════════════════════════════════════════════════════════════════════════════
   const dpr = globals.DPR || 1;
   const qualityProfile = getRenderQualityProfile(globals);
+  const pitFxThrottleAware = isPitMode
+    && String(globals.pitFxThrottlePolicy || 'throttle-aware') === 'throttle-aware'
+    && (Number(globals.adaptiveThrottleLevel) || 0) >= 1;
+  const drawMouseTrailEnabled = !pitFxThrottleAware && qualityProfile.drawMouseTrail;
+  const drawCursorExplosionEnabled = !pitFxThrottleAware && qualityProfile.drawCursorExplosion;
+  const pitRenderLodEnabled = isPitMode && globals.pitRenderLodEnabled !== false;
+  const pitRenderOptions = pitRenderLodEnabled
+    ? {
+        pitRenderLodEnabled,
+        pitTinyRadiusPx: Math.max(0.25, Number(globals.pitRenderLodTinyRadiusPx ?? 1.4) * dpr),
+        pitSquashThreshold: Math.max(0, Math.min(1, Number(globals.pitRenderLodSquashThreshold ?? 0.06))),
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height
+      }
+    : null;
   globals.renderQualityTierResolved = qualityProfile.tier;
   updateLogoSize(canvas.width, canvas.height, dpr);
   
@@ -551,7 +717,7 @@ export function render() {
     if (kaleidoRenderer) {
       kaleidoRenderer(ctx);
     } else {
-      renderBallsColorBatched(ctx, balls);
+      renderBallsColorBatched(ctx, balls, false, pitRenderOptions);
     }
   } else if (!needsZPartition) {
     // ═══════════════════════════════════════════════════════════════════════════
@@ -562,7 +728,7 @@ export function render() {
     }
     
     // Draw all balls (color-batched for performance)
-    renderBallsColorBatched(ctx, balls);
+    renderBallsColorBatched(ctx, balls, false, pitRenderOptions);
     
   } else {
     // ═══════════════════════════════════════════════════════════════════════════
@@ -583,7 +749,7 @@ export function render() {
     
     // Draw balls behind logo (with depth fog for atmospheric effect)
     if (zPartitionCache.behind.length > 0) {
-      renderBallsColorBatched(ctx, zPartitionCache.behind, true); // Apply depth fog
+      renderBallsColorBatched(ctx, zPartitionCache.behind, true, pitRenderOptions); // Apply depth fog
     }
     
     // Draw logo
@@ -593,7 +759,7 @@ export function render() {
     
     // Draw balls in front of logo (also apply depth fog for consistent effect)
     if (zPartitionCache.inFront.length > 0) {
-      renderBallsColorBatched(ctx, zPartitionCache.inFront, true); // Apply depth fog
+      renderBallsColorBatched(ctx, zPartitionCache.inFront, true, pitRenderOptions); // Apply depth fog
     }
   }
 
@@ -607,8 +773,9 @@ export function render() {
   }
   
   // Mouse trail: draw after clip restore so it's always visible
-  if (qualityProfile.drawMouseTrail) drawMouseTrail(ctx);
-  if (qualityProfile.drawCursorExplosion) drawCursorExplosion(ctx);
+  const postFxStart = isPitMode ? performance.now() : 0;
+  if (drawMouseTrailEnabled) drawMouseTrail(ctx);
+  if (drawCursorExplosionEnabled) drawCursorExplosion(ctx);
 
   // Depth wash: gradient overlay between balls/trail and wall
   drawDepthWash(ctx, canvas.width, canvas.height, {
@@ -619,6 +786,10 @@ export function render() {
   drawWalls(ctx, canvas.width, canvas.height, {
     wallGradientStrokeEnabled: qualityProfile.wallGradientStrokeEnabled
   });
+  if (isPitMode) {
+    postFxMs = performance.now() - postFxStart;
+    finalizePitPerfSample(globals, performance.now() - renderStart, postFxMs);
+  }
 }
 
 /**
@@ -628,8 +799,16 @@ export function render() {
  * @param {Array} ballsToRender - Array of Ball objects
  * @param {boolean} applyDepthFog - Whether to apply z-depth fog (for balls behind logo)
  */
-function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false) {
+function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, renderOptions = null) {
   if (!ballsToRender || ballsToRender.length === 0) return;
+  const pitLodEnabled = Boolean(renderOptions?.pitRenderLodEnabled);
+  const tinyRadiusPx = Number(renderOptions?.pitTinyRadiusPx) || 0;
+  const squashThreshold = pitLodEnabled
+    ? Math.max(0, Math.min(1, Number(renderOptions?.pitSquashThreshold ?? 0.06)))
+    : 0.01;
+  const canvasWidth = Number(renderOptions?.canvasWidth) || Number.POSITIVE_INFINITY;
+  const canvasHeight = Number(renderOptions?.canvasHeight) || Number.POSITIVE_INFINITY;
+  const cullPad = pitLodEnabled ? Math.max(1, tinyRadiusPx) : 0;
   
   // Group balls by color (O(n) pass, minimal overhead)
   // PERF: Reuse cached Map and arrays to eliminate per-frame allocations
@@ -651,9 +830,18 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false) {
     
     for (let i = 0; i < group.length; i++) {
       const ball = group[i];
+      const radius = ball.getDisplayRadius();
+      if (
+        ball.x + radius < -cullPad ||
+        ball.y + radius < -cullPad ||
+        ball.x - radius > canvasWidth + cullPad ||
+        ball.y - radius > canvasHeight + cullPad
+      ) {
+        continue;
+      }
       
       // Handle special rendering cases (squash, alpha, filtering)
-      const hasSquash = ball.squashAmount > 0.01;
+      const hasSquash = ball.squashAmount > squashThreshold;
       const filterOpacity = ball.filterOpacity ?? 1;
       let effectiveAlpha = ball.alpha * filterOpacity;
       
@@ -664,6 +852,10 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false) {
       }
       
       const hasAlpha = effectiveAlpha < 1.0;
+      if (pitLodEnabled && !hasSquash && !hasAlpha && radius <= tinyRadiusPx) {
+        ctx.fillRect(Math.round(ball.x), Math.round(ball.y), 1, 1);
+        continue;
+      }
       
       if (hasSquash || hasAlpha) {
         // Complex case: use save/restore for alpha and transforms
@@ -680,7 +872,7 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false) {
         } else {
           // Simple alpha case: just draw circle with alpha
           ctx.beginPath();
-          ctx.arc(ball.x, ball.y, ball.getDisplayRadius(), 0, Math.PI * 2);
+          ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
           ctx.fill();
         }
         
@@ -688,7 +880,7 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false) {
       } else {
         // Fast path: simple circle (no transforms, no save/restore)
         ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.getDisplayRadius(), 0, Math.PI * 2);
+        ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
         ctx.fill();
       }
     }

@@ -1,7 +1,4 @@
 const DEFAULT_FONT_FACES = [
-  '1em "Geist"',
-  '1em "Geist Mono"',
-  '1em "Sarina"',
   '1em "tabler-icons"',
 ];
 

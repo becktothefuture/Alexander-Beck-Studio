@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { readTokenVar } from '../utils/tokens.js';
+import { applyShellPalette, getShellConfig } from './site-shell.js';
 
 let _siteFrameLight = null;
 let _siteFrameDark = null;
@@ -16,10 +16,9 @@ const FIREFOX_LOCKED_DARK_FALLBACK = '#1c1b22';
 
 function captureSiteFrameColorsIfNeeded() {
   if (_siteFrameLight && _siteFrameDark) return;
-  // Try to get from globals first (they have the config values), fallback to CSS tokens
-  const g = getGlobals();
-  _siteFrameLight = g?.frameColorLight || g?.frameColor || readTokenVar('--frame-color-light', '#0a0a0a');
-  _siteFrameDark = g?.frameColorDark || g?.frameColor || readTokenVar('--frame-color-dark', '#0a0a0a');
+  const shell = getShellConfig();
+  _siteFrameLight = shell?.theme?.wallBaseLight || CHROMIUM_LOCKED_LIGHT_FALLBACK;
+  _siteFrameDark = shell?.theme?.wallBaseDark || CHROMIUM_LOCKED_DARK_FALLBACK;
 }
 
 function detectBrowserFamily() {
@@ -78,20 +77,8 @@ function detectThemeColorLikelyApplied(family) {
 }
 
 function applyThemeAwareWallColor(lightHex, darkHex, isDark) {
-  const root = document.documentElement;
   const active = isDark ? darkHex : lightHex;
-
-  root.style.setProperty('--frame-color-light', lightHex);
-  root.style.setProperty('--frame-color-dark', darkHex);
-  root.style.setProperty('--wall-color-light', lightHex);
-  root.style.setProperty('--wall-color-dark', darkHex);
-  root.style.setProperty('--chrome-bg-light', lightHex);
-  root.style.setProperty('--chrome-bg-dark', darkHex);
-
-  // Active vars consumed by runtime CSS + wall renderers.
-  root.style.setProperty('--frame-color', active);
-  root.style.setProperty('--wall-color', active);
-  root.style.setProperty('--chrome-bg', active);
+  applyShellPalette({ light: lightHex, dark: darkHex, active });
 }
 
 function applyWallColor(hex, isDark) {
@@ -104,28 +91,27 @@ function restoreSiteWallColor(isDark) {
     applyThemeAwareWallColor(_siteFrameLight, _siteFrameDark, isDark);
     return;
   }
-  // Otherwise, try to get values from globals first (they have the config values)
+  const shell = getShellConfig();
   const g = getGlobals();
-  const light = g?.frameColorLight || g?.frameColor || readTokenVar('--frame-color-light', '#0a0a0a');
-  const dark = g?.frameColorDark || g?.frameColor || readTokenVar('--frame-color-dark', '#0a0a0a');
+  const light = g?.frameColorLight || g?.frameColor || shell?.theme?.wallBaseLight || CHROMIUM_LOCKED_LIGHT_FALLBACK;
+  const dark = g?.frameColorDark || g?.frameColor || shell?.theme?.wallBaseDark || CHROMIUM_LOCKED_DARK_FALLBACK;
   applyThemeAwareWallColor(light, dark, isDark);
 }
 
 function applyBrowserWallColor(isDark, family) {
   captureSiteFrameColorsIfNeeded();
+  const shell = getShellConfig();
   if (family.isFirefox) {
-    const firefoxFallback = readTokenVar(
-      isDark ? '--wall-color-browser-firefox-dark' : '--wall-color-browser-firefox-light',
-      isDark ? FIREFOX_LOCKED_DARK_FALLBACK : FIREFOX_LOCKED_LIGHT_FALLBACK
-    );
+    const firefoxFallback = isDark
+      ? (shell?.theme?.lockedHeaderDark || FIREFOX_LOCKED_DARK_FALLBACK)
+      : (shell?.theme?.lockedHeaderLight || FIREFOX_LOCKED_LIGHT_FALLBACK);
     applyWallColor(firefoxFallback, isDark);
     return;
   }
 
-  const chromiumFallback = readTokenVar(
-    isDark ? '--wall-color-browser-dark' : '--wall-color-browser-light',
-    isDark ? CHROMIUM_LOCKED_DARK_FALLBACK : CHROMIUM_LOCKED_LIGHT_FALLBACK
-  );
+  const chromiumFallback = isDark
+    ? (shell?.theme?.lockedHeaderDark || CHROMIUM_LOCKED_DARK_FALLBACK)
+    : (shell?.theme?.lockedHeaderLight || CHROMIUM_LOCKED_LIGHT_FALLBACK);
   applyWallColor(chromiumFallback, isDark);
 }
 

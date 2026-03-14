@@ -78,7 +78,7 @@ export function drawDepthWash(ctx, w, h, options = {}) {
   const opacityScale = Number.isFinite(options.opacityScale) ? options.opacityScale : 1;
   
   // Get configurable opacity (master control)
-  const opacity = (typeof g.depthWashOpacity === 'number' ? g.depthWashOpacity : 0.65) * opacityScale;
+  const opacity = (typeof g.depthWashOpacity === 'number' ? g.depthWashOpacity : 0) * opacityScale;
   if (opacity <= 0) return;
   
   // Cache invalidation: rebuild gradient when any param changes

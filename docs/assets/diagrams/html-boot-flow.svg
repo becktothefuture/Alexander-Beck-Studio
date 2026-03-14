@@ -1,0 +1,43 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">HTML Pipeline Boot Flow</title>
+  <desc id="desc">A vertical flow diagram showing how the HTML version boots from index HTML to runtime modules.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f7f8fa; }
+      .title { font: 700 32px Arial, sans-serif; fill: #111827; }
+      .box { fill: #e6f4ea; stroke: #2f9e44; stroke-width: 2; rx: 14; }
+      .label { font: 600 20px Arial, sans-serif; fill: #111827; }
+      .small { font: 500 15px Arial, sans-serif; fill: #374151; }
+      .line { stroke: #2f9e44; stroke-width: 4; fill: none; }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#2f9e44"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="760"/>
+  <text class="title" x="600" y="56" text-anchor="middle">HTML Version Boot Flow</text>
+
+  <rect class="box" x="250" y="100" width="700" height="90"/>
+  <text class="label" x="600" y="144" text-anchor="middle">1) Browser loads source/index.html</text>
+  <text class="small" x="600" y="168" text-anchor="middle">Full head + body + inline setup scripts are parsed</text>
+
+  <line class="line" x1="600" y1="190" x2="600" y2="230" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="250" y="238" width="700" height="90"/>
+  <text class="label" x="600" y="282" text-anchor="middle">2) HTML runs module script</text>
+  <text class="small" x="600" y="306" text-anchor="middle">script type="module" src="main.js" (or page-specific entry)</text>
+
+  <line class="line" x1="600" y1="328" x2="600" y2="368" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="250" y="376" width="700" height="90"/>
+  <text class="label" x="600" y="420" text-anchor="middle">3) Entry imports runtime modules</text>
+  <text class="small" x="600" y="444" text-anchor="middle">core + rendering + input + physics + ui + modes</text>
+
+  <line class="line" x1="600" y1="466" x2="600" y2="506" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="250" y="514" width="700" height="120"/>
+  <text class="label" x="600" y="560" text-anchor="middle">4) Runtime boots imperatively</text>
+  <text class="small" x="600" y="586" text-anchor="middle">Canvas initialized, simulation loop starts, UI handlers attach</text>
+  <text class="small" x="600" y="612" text-anchor="middle">Everything now runs inside the vanilla JS runtime</text>
+</svg>

@@ -19,12 +19,15 @@ let frameTimeMs = 0;
 let longFramesOver16 = 0;
 let longFramesOver8 = 0;
 let totalFrames = 0;
+let throttledFramesWindow = 0;
+let throttleShare = 0;
 let hudEl = null;
 let hudEnabled = true;
 let lastSnapshot = {
   targetFPS: 60,
   throttleLevel: 0,
-  throttled: false
+  throttled: false,
+  rendered: true
 };
 
 function isDevBuild() {
@@ -83,12 +86,21 @@ function removeHud() {
 }
 
 function formatHudLine(snapshot) {
+  const g = getGlobals();
   const fps = Number.isFinite(currentFPS) ? currentFPS : 0;
   const target = Number.isFinite(snapshot.targetFPS) ? Math.round(snapshot.targetFPS) : 60;
   const ms = Number.isFinite(frameTimeMs) ? frameTimeMs.toFixed(2) : '0.00';
   const throttleLevel = Number.isFinite(snapshot.throttleLevel) ? snapshot.throttleLevel : 0;
   const throttled = snapshot.throttled ? 'yes' : 'no';
-  return `FPS ${fps} / ${target} | ${ms}ms | throttle L${throttleLevel} (${throttled}) | >16.67ms ${longFramesOver16} | >8.33ms ${longFramesOver8}`;
+  const throttlePct = `${Math.round(throttleShare * 100)}%`;
+  const base = `FPS ${fps} / ${target} | ${ms}ms | throttle L${throttleLevel} (${throttled}, ${throttlePct}) | >16.67ms ${longFramesOver16} | >8.33ms ${longFramesOver8}`;
+  const pitSummary = g?.pitPerfSummary;
+  if (!pitSummary || g?.currentMode !== 'pit') return base;
+  const frameP95 = Number(pitSummary.frameP95Ms || 0).toFixed(1);
+  const physicsP95 = Number(pitSummary.physicsP95Ms || 0).toFixed(1);
+  const collisionP95 = Number(pitSummary.collisionP95Ms || 0).toFixed(1);
+  const renderP95 = Number(pitSummary.renderP95Ms || 0).toFixed(1);
+  return `${base} | PIT p95 frame ${frameP95}ms (phy ${physicsP95} col ${collisionP95} rnd ${renderP95})`;
 }
 
 function updateHud(now, snapshot) {
@@ -118,16 +130,20 @@ export function trackFrame(now, snapshot = {}) {
 
   totalFrames++;
   frames++;
+  if (snapshot.throttled) throttledFramesWindow++;
   lastSnapshot = {
     targetFPS: Number(snapshot.targetFPS) || lastSnapshot.targetFPS,
     throttleLevel: Number(snapshot.throttleLevel) || 0,
-    throttled: Boolean(snapshot.throttled)
+    throttled: Boolean(snapshot.throttled),
+    rendered: snapshot.rendered !== false
   };
 
   if (safeNow - lastFpsUpdate >= FPS_INTERVAL_MS) {
     const interval = Math.max(1, safeNow - lastFpsUpdate);
     currentFPS = Math.round((frames * 1000) / interval);
+    throttleShare = frames > 0 ? (throttledFramesWindow / frames) : 0;
     frames = 0;
+    throttledFramesWindow = 0;
     lastFpsUpdate = safeNow;
 
     // Back-compat hook used by older debugging markup.
@@ -145,6 +161,7 @@ export function getPerformanceMetrics() {
     frameTimeMs,
     throttleLevel: lastSnapshot.throttleLevel,
     throttled: lastSnapshot.throttled,
+    throttleShare,
     longFramesOver16,
     longFramesOver8,
     totalFrames
@@ -161,10 +178,13 @@ export function resetPerformanceMetrics() {
   longFramesOver16 = 0;
   longFramesOver8 = 0;
   totalFrames = 0;
+  throttledFramesWindow = 0;
+  throttleShare = 0;
   lastSnapshot = {
     targetFPS: 60,
     throttleLevel: 0,
-    throttled: false
+    throttled: false,
+    rendered: true
   };
   removeHud();
 }
@@ -173,4 +193,3 @@ export function setPerformanceHudEnabled(enabled) {
   hudEnabled = !!enabled;
   if (!hudEnabled) removeHud();
 }
-

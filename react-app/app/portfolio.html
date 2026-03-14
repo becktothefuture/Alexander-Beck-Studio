@@ -1,20 +1,139 @@
 <!doctype html>
 <html lang="en" class="fonts-loading">
   <head>
+    <style id="fade-blocking">#abs-scene,#app-frame{opacity:0;visibility:hidden}</style>
+    <style id="abs-critical-shell">
+      html, body, #root {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        background: var(--abs-wall-base, #202124);
+        background-color: var(--abs-wall-base, #202124);
+      }
+    </style>
+    <script>
+      (function() {
+        var root = document.documentElement;
+        var DEFAULTS = {
+          wallBaseLight: '#f1f3f4',
+          wallBaseDark: '#202124',
+          lockedHeaderLight: '#f1f3f4',
+          lockedHeaderDark: '#3c3c3c'
+        };
+
+        function detectBrowserFamily() {
+          var ua = navigator.userAgent || '';
+          var vendor = navigator.vendor || '';
+          var isFirefox = /Firefox\//.test(ua) || /FxiOS\//.test(ua);
+          var isSafari = /Safari\//.test(ua)
+            && /Apple/.test(vendor)
+            && !/Chrome\//.test(ua)
+            && !/Chromium\//.test(ua)
+            && !/CriOS\//.test(ua)
+            && !/FxiOS\//.test(ua)
+            && !/Edg\//.test(ua)
+            && !/EdgiOS\//.test(ua)
+            && !/OPR\//.test(ua)
+            && !/OPiOS\//.test(ua);
+          var isSamsungInternet = /SamsungBrowser\//.test(ua);
+          var isChromium = /Chrome\//.test(ua)
+            || /Chromium\//.test(ua)
+            || /CriOS\//.test(ua)
+            || /Edg\//.test(ua)
+            || /EdgiOS\//.test(ua)
+            || /OPR\//.test(ua)
+            || /OPiOS\//.test(ua)
+            || /Brave\//.test(ua)
+            || isSamsungInternet;
+          return { isFirefox: isFirefox, isSafari: isSafari, isChromium: isChromium, isSamsungInternet: isSamsungInternet };
+        }
+
+        function themeColorLikelyApplied(family) {
+          var ua = navigator.userAgent || '';
+          var isAndroid = /Android/.test(ua);
+          var isIOS = /iPhone|iPad|iPod/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
+          var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+            || (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches)
+            || navigator.standalone === true;
+
+          if (family.isFirefox) return false;
+          if (isStandalone) return true;
+          if (family.isSafari) return true;
+          if (family.isChromium) return isAndroid || family.isSamsungInternet;
+          return isAndroid || isIOS;
+        }
+
+        function syncMeta(name, media, color) {
+          var selector = media ? 'meta[name="' + name + '"][media="' + media + '"]' : 'meta[name="' + name + '"]:not([media])';
+          var tag = document.querySelector(selector);
+          if (!tag) {
+            tag = document.createElement('meta');
+            tag.name = name;
+            if (media) tag.media = media;
+            document.head.appendChild(tag);
+          }
+          tag.content = color;
+        }
+
+        function applyPalette(isDark) {
+          var family = detectBrowserFamily();
+          var useLockedPalette = !family.isSafari && !themeColorLikelyApplied(family);
+          var light = useLockedPalette ? DEFAULTS.lockedHeaderLight : DEFAULTS.wallBaseLight;
+          var dark = useLockedPalette ? DEFAULTS.lockedHeaderDark : DEFAULTS.wallBaseDark;
+          var active = isDark ? dark : light;
+
+          root.style.colorScheme = isDark ? 'dark' : 'light';
+          root.style.setProperty('--abs-wall-base-light', light);
+          root.style.setProperty('--abs-wall-base-dark', dark);
+          root.style.setProperty('--abs-wall-base', active);
+          root.style.setProperty('--abs-browser-chrome', active);
+          root.style.setProperty('--frame-color-light', light);
+          root.style.setProperty('--frame-color-dark', dark);
+          root.style.setProperty('--frame-color', active);
+          root.style.setProperty('--wall-color-light', light);
+          root.style.setProperty('--wall-color-dark', dark);
+          root.style.setProperty('--wall-color', active);
+          root.style.setProperty('--chrome-bg-light', light);
+          root.style.setProperty('--chrome-bg-dark', dark);
+          root.style.setProperty('--chrome-bg', active);
+          root.style.setProperty('--abs-safe-top', 'env(safe-area-inset-top, 0px)');
+          root.style.setProperty('--abs-safe-right', 'env(safe-area-inset-right, 0px)');
+          root.style.setProperty('--abs-safe-bottom', 'env(safe-area-inset-bottom, 0px)');
+          root.style.setProperty('--abs-safe-left', 'env(safe-area-inset-left, 0px)');
+          root.dataset.absBootState = 'shell-visible';
+
+          syncMeta('theme-color', '(prefers-color-scheme: light)', light);
+          syncMeta('theme-color', '(prefers-color-scheme: dark)', dark);
+          syncMeta('theme-color', '', active);
+          syncMeta('apple-mobile-web-app-status-bar-style', '', 'black-translucent');
+        }
+
+        var savedTheme = 'auto';
+        try {
+          savedTheme = localStorage.getItem('theme-preference-v2') || 'auto';
+        } catch (_error) {}
+
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var hour = new Date().getHours();
+        var isNight = hour >= 18 || hour < 6;
+        var isDark = savedTheme === 'dark' || (savedTheme !== 'light' && (prefersDark || isNight));
+
+        if (isDark) root.classList.add('dark-mode');
+        applyPalette(isDark);
+
+        document.addEventListener('DOMContentLoaded', function() {
+          if (document.body && isDark) document.body.classList.add('dark-mode');
+        }, { once: true });
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#242529" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#242529" />
-    <meta name="theme-color" content="#242529" />
     <title>Portfolio - Alexander Beck</title>
     <link rel="stylesheet" href="/css/tokens.css" />
     <link rel="stylesheet" href="/css/normalize.css" />
     <link rel="stylesheet" href="/css/main.css" />
     <link rel="stylesheet" href="/css/portfolio.css" />
     <link rel="stylesheet" href="/src/styles/base.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400&family=Sarina&display=swap" rel="stylesheet" />
   </head>
   <body class="body portfolio-page">
     <div id="root"></div>

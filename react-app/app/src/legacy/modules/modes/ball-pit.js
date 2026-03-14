@@ -21,7 +21,10 @@ function spawnPourBallPit(globals, targetBalls) {
 
   // Spawn from the top, biased toward the right but ~1/3 in toward center.
   // Keep a narrow band so the drop-in reads as a deliberate "pour".
-  const padding = (globals.wallThickness || 20) * DPR;
+  const frameBorderWidth = Number.isFinite(globals.frameBorderWidth)
+    ? globals.frameBorderWidth
+    : (globals.wallThickness || 20);
+  const padding = frameBorderWidth * DPR;
   const spawnXLeft = padding;
   const spawnXRight = w - padding;
   const usableW = spawnXRight - spawnXLeft;
@@ -83,5 +86,4 @@ export function applyBallPitForces(ball, dt) {
   ball.vx += (nx * strength * dt) / massScale;
   ball.vy += (ny * strength * dt) / massScale;
 }
-
 

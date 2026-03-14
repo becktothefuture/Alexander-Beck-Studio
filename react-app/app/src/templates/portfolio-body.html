@@ -10,7 +10,7 @@
       <canvas class="portfolio-wall-canvas" aria-hidden="true"></canvas>
       <!-- Portfolio Stage -->
       <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
-      <div class="portfolio-stage" style="opacity:0; visibility:hidden">
+      <div class="portfolio-stage">
         <div class="portfolio-viewport" id="viewport">
           <div class="slider-track" id="track">
             <!-- Slides will be injected here by app.js -->
@@ -20,7 +20,7 @@
       
       <!-- Meta text: positioned outside stage to avoid transform inheritance issues -->
       <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
-      <div class="portfolio-meta" id="portfolioMeta" aria-live="polite" style="opacity:0; visibility:hidden">
+      <div class="portfolio-meta" id="portfolioMeta" aria-live="polite">
         <div class="portfolio-meta__inner">
           <span class="meta-client" data-meta="client"></span>
           <span class="meta-title" data-meta="title"></span>
@@ -37,6 +37,7 @@
   <div id="scene-effects" class="scene-effects" aria-hidden="true">
     <div class="noise"></div>
   </div>
+  <div class="frame-vignette" aria-hidden="true"></div>
 
   <!-- UI LAYER: Flexbox Layout Implementation -->
   <div class="fade-content page-content">

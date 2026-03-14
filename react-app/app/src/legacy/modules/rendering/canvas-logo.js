@@ -4,6 +4,8 @@
 // ║      with theme-aware colors, DPR scaling, and entrance animation           ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
+import { getShellConfig } from '../visual/site-shell.js';
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -19,6 +21,7 @@ const MIN_LOGO_CONTRAST = 2.2;
 // Entrance animation settings
 const ENTRANCE_DURATION_MS = 1000;
 const ENTRANCE_BLUR_MAX = 8; // pixels
+const LOGO_STYLE_CACHE_MS = 250;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // STATE
@@ -36,6 +39,12 @@ const entranceState = {
   isStarted: false,
   startTimeMs: 0
 };
+const runtimeStyleCache = {
+  expiresAt: 0,
+  logoColor: LOGO_COLOR_DARK,
+  sceneImpactScale: 1
+};
+let cacheInvalidationBound = false;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // EASING FUNCTION
@@ -59,7 +68,7 @@ function normalizeCssColor(input, fallback = '#000000') {
     COLOR_PARSER_CTX.fillStyle = fallback;
     COLOR_PARSER_CTX.fillStyle = String(input || '').trim() || fallback;
     return COLOR_PARSER_CTX.fillStyle || fallback;
-  } catch (e) {
+  } catch {
     return fallback;
   }
 }
@@ -127,37 +136,77 @@ function resolveSceneBackgroundColor(rootStyles) {
   return rootStyles.getPropertyValue('--wall-color').trim() || '#242529';
 }
 
-function resolveAccessibleLogoColor() {
-  // Prefer CSS-resolved logo color so canvas matches the design system source of truth.
+function invalidateRuntimeStyleCache() {
+  runtimeStyleCache.expiresAt = 0;
+}
+
+function refreshRuntimeStyleCache(nowMs = performance.now()) {
   const styles = getComputedStyle(document.documentElement);
   const rawLogoColor = styles.getPropertyValue('--text-logo').trim()
     || (document.getElementById('brand-logo')
       ? getComputedStyle(document.getElementById('brand-logo')).color
       : '');
   const rawSceneColor = resolveSceneBackgroundColor(styles);
-
   const requestedLogoColor = normalizeCssColor(rawLogoColor, LOGO_COLOR_DARK);
   const sceneColor = normalizeCssColor(rawSceneColor, '#242529');
   const logoRgb = parseRgbColor(requestedLogoColor);
   const sceneRgb = parseRgbColor(sceneColor);
-
-  if (!sceneRgb) return requestedLogoColor;
+  let resolvedLogoColor = requestedLogoColor;
 
   // Always choose the token color that has higher contrast with the active scene background.
   const lightRgb = parseRgbColor(LOGO_COLOR_LIGHT);
   const darkRgb = parseRgbColor(LOGO_COLOR_DARK);
-  if (!lightRgb || !darkRgb) return requestedLogoColor;
-
-  const lightContrast = contrastRatio(lightRgb, sceneRgb);
-  const darkContrast = contrastRatio(darkRgb, sceneRgb);
-  const bestToken = darkContrast >= lightContrast ? LOGO_COLOR_DARK : LOGO_COLOR_LIGHT;
-
-  // If requested color is already good enough, keep it; otherwise force best-contrast token.
-  if (logoRgb && contrastRatio(logoRgb, sceneRgb) >= MIN_LOGO_CONTRAST) {
-    return requestedLogoColor;
+  if (sceneRgb && lightRgb && darkRgb) {
+    const lightContrast = contrastRatio(lightRgb, sceneRgb);
+    const darkContrast = contrastRatio(darkRgb, sceneRgb);
+    const bestToken = darkContrast >= lightContrast ? LOGO_COLOR_DARK : LOGO_COLOR_LIGHT;
+    if (!logoRgb || contrastRatio(logoRgb, sceneRgb) < MIN_LOGO_CONTRAST) {
+      resolvedLogoColor = bestToken;
+    }
   }
 
-  return bestToken;
+  let sceneImpactScale = 1;
+  try {
+    const sceneEl = document.getElementById('abs-scene');
+    if (sceneEl) {
+      const scaleRaw = getComputedStyle(sceneEl).getPropertyValue('--abs-scene-impact-logo-scale');
+      const parsed = parseFloat(scaleRaw);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        sceneImpactScale = parsed;
+      }
+    }
+  } catch (error) {
+    void error;
+  }
+
+  runtimeStyleCache.logoColor = resolvedLogoColor;
+  runtimeStyleCache.sceneImpactScale = sceneImpactScale;
+  runtimeStyleCache.expiresAt = nowMs + LOGO_STYLE_CACHE_MS;
+}
+
+function resolveAccessibleLogoColor(nowMs = performance.now()) {
+  if (nowMs >= runtimeStyleCache.expiresAt) {
+    refreshRuntimeStyleCache(nowMs);
+  }
+  return runtimeStyleCache.logoColor;
+}
+
+function resolveSceneImpactScale(nowMs = performance.now()) {
+  if (nowMs >= runtimeStyleCache.expiresAt) {
+    refreshRuntimeStyleCache(nowMs);
+  }
+  return runtimeStyleCache.sceneImpactScale;
+}
+
+function bindRuntimeCacheInvalidation() {
+  if (cacheInvalidationBound) return;
+  cacheInvalidationBound = true;
+  window.addEventListener('resize', invalidateRuntimeStyleCache, { passive: true });
+  window.addEventListener('orientationchange', invalidateRuntimeStyleCache, { passive: true });
+  document.addEventListener('visibilitychange', invalidateRuntimeStyleCache, { passive: true });
+  document.addEventListener('abs:theme-updated', invalidateRuntimeStyleCache);
+  document.addEventListener('abs:wall-updated', invalidateRuntimeStyleCache);
+  document.addEventListener('abs:scene-impact-updated', invalidateRuntimeStyleCache);
 }
 
 /**
@@ -191,11 +240,20 @@ function syncEntranceProgress(nowMs = performance.now()) {
 function calculateLogoSize(canvasWidth, canvasHeight, dpr) {
   const vw = window.innerWidth;
   const isMobile = vw <= 600;
+  const heroConfig = getShellConfig()?.hero || {};
   
   // Step 1: Calculate base width from CSS clamp logic
   let logoWidth;
   if (isMobile) {
-    logoWidth = vw * 0.60; // 60vw on mobile
+    const mobileWidthVw = Number(heroConfig.mobileLogoWidthVw);
+    const mobileMinPx = Number(heroConfig.mobileLogoMinPx);
+    const mobileMaxPx = Number(heroConfig.mobileLogoMaxPx);
+    const mobileHeightRatio = Number(heroConfig.mobileLogoHeightRatio);
+    const widthFromViewport = vw * ((Number.isFinite(mobileWidthVw) ? mobileWidthVw : 50) / 100);
+    const widthFromHeight = window.innerHeight * (Number.isFinite(mobileHeightRatio) ? mobileHeightRatio : 0.24);
+    const minWidth = Number.isFinite(mobileMinPx) ? mobileMinPx : 170;
+    const maxWidth = Number.isFinite(mobileMaxPx) ? mobileMaxPx : 220;
+    logoWidth = Math.max(minWidth, Math.min(maxWidth, widthFromViewport, widthFromHeight));
   } else {
     // clamp(250px, 45vw, 500px) on desktop
     logoWidth = Math.max(250, Math.min(500, vw * 0.45));
@@ -225,9 +283,11 @@ function calculateLogoSize(canvasWidth, canvasHeight, dpr) {
  * Get centered position for logo in canvas
  */
 function getLogoCenterPosition(canvasWidth, canvasHeight, logoWidth, logoHeight) {
+  const isMobile = window.innerWidth <= 600;
+  const yBias = isMobile ? Math.min(window.innerHeight * 0.045, 28) : 0;
   return {
     x: (canvasWidth - logoWidth) / 2,
-    y: (canvasHeight - logoHeight) / 2
+    y: ((canvasHeight - logoHeight) / 2) - yBias
   };
 }
 
@@ -321,6 +381,8 @@ export function initCanvasLogo() {
   }
   
   isInitialized = true;
+  bindRuntimeCacheInvalidation();
+  invalidateRuntimeStyleCache();
   return true;
 }
 
@@ -347,6 +409,7 @@ export function updateLogoSize(canvasWidth, canvasHeight, dpr) {
   
   // Size changed -> invalidate color cache (will re-render lazily in drawLogo)
   offscreenByColor.clear();
+  invalidateRuntimeStyleCache();
 }
 
 /**
@@ -358,8 +421,9 @@ export function updateLogoSize(canvasWidth, canvasHeight, dpr) {
  */
 export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
   if (!isInitialized) return;
+  const nowMs = performance.now();
   
-  const logoColor = resolveAccessibleLogoColor();
+  const logoColor = resolveAccessibleLogoColor(nowMs);
   let offscreen = offscreenByColor.get(logoColor);
   if (!offscreen) {
     offscreen = renderToOffscreen(svgPathData, currentSize.width, currentSize.height, logoColor);
@@ -382,7 +446,7 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
   }
 
   // Keep progress time-based (independent from physics tick cadence).
-  syncEntranceProgress();
+  syncEntranceProgress(nowMs);
   
   // Handle entrance animation
   let opacity = 1;
@@ -403,19 +467,7 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
   if (opacity <= 0) return;
   
   // Apply scene impact scale from CSS var (if available)
-  let effectiveScale = scale;
-  try {
-    const sceneImpactScale = getComputedStyle(document.getElementById('abs-scene'))
-      .getPropertyValue('--abs-scene-impact-logo-scale');
-    if (sceneImpactScale) {
-      const parsed = parseFloat(sceneImpactScale);
-      if (Number.isFinite(parsed) && parsed > 0) {
-        effectiveScale *= parsed;
-      }
-    }
-  } catch (e) {
-    // Ignore errors reading CSS var
-  }
+  let effectiveScale = scale * resolveSceneImpactScale(nowMs);
   
   // Save context state
   ctx.save();
@@ -441,7 +493,6 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
   
   // Draw the logo with high-quality downsampling from supersampled offscreen
   // Source: full supersampled canvas, Dest: target size at calculated position
-  const ss = offscreen._supersample || 1;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(
@@ -523,4 +574,5 @@ export function refreshLogoRender() {
   if (!isInitialized || !svgPathData) return;
 
   offscreenByColor.clear();
+  invalidateRuntimeStyleCache();
 }

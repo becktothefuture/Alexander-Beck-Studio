@@ -78,7 +78,7 @@ const state = {
   // - Global multiplier (0..2): scales all per-mode variations (default 1 = neutral)
   // - Internal cap: max fractional deviation from medium radius when per-mode=1 and globalMul=1
   sizeVariationGlobalMul: 1.0,
-  sizeVariationCap: 0.12,
+  sizeVariationCap: 0,
   // Per-mode variation (0..1)
   sizeVariationPit: 0,
   sizeVariationFlies: 0,
@@ -100,7 +100,7 @@ const state = {
 
   magneticWarmupFrames: 10,
   bubblesWarmupFrames: 10,
-  kaleidoscope3WarmupFrames: 10,
+  kaleidoscope3WarmupFrames: 65,
   crittersWarmupFrames: 10,
   parallaxLinearWarmupFrames: 10,
   parallaxFloatWarmupFrames: 10,
@@ -224,8 +224,6 @@ const state = {
   // Ball properties
   ballSoftness: 29,
   ballSpacing: 0.08,    // Extra collision padding as ratio of ball radius (0.1 = 10% of ball size)
-  sizeVariationGlobalMul: 1.0,
-  sizeVariationCap: 0,
 
   // Sleep tuning (Ball Pit modes only)
   // Higher thresholds = balls settle/sleep sooner (less idle jiggle).
@@ -239,6 +237,20 @@ const state = {
   // Defaults are conservative and should preserve the current feel.
   // ─────────────────────────────────────────────────────────────────────────────
   physicsCollisionIterations: 10,        // solver iterations for ball-ball collisions
+  // Pit-specific adaptive collision budget.
+  pitCollisionIterationsMin: 2,
+  pitCollisionIterationsMax: 8,
+  // Run the Pit post-pass only when overlap debt exceeds this threshold.
+  pitPostPassOverlapThreshold: 400,
+  // Skip sleeping/sleeping pairs during broadphase collection in Pit mode.
+  pitSleepAwareBroadphaseEnabled: true,
+  // Pit render LOD switches.
+  pitRenderLodEnabled: true,
+  pitRenderLodTinyRadiusPx: 1.4,
+  pitRenderLodSquashThreshold: 0.06,
+  // FX/audio pressure policy in Pit mode: 'off' | 'throttle-aware'
+  pitFxThrottlePolicy: 'throttle-aware',
+  pitAudioThrottlePolicy: 'throttle-aware',
   physicsSkipSleepingCollisions: true,   // skip non-positional work for sleeping pairs
   physicsSleepThreshold: 12.0,           // px/s (global sleep threshold for non-pit modes)
   physicsSleepTime: 0.25,                // seconds (global sleep delay for non-pit modes)
@@ -471,7 +483,6 @@ const state = {
   kaleidoscope3DotAreaMul: 0.75,
   kaleidoscope3SpawnAreaMul: 1.05,
   kaleidoscope3SizeVariance: 0.5,
-  kaleidoscope3WarmupFrames: 65,
 
   // Parallax modes (mouse-driven depth parallax)
   // NOTE: Older parallax parameters are kept for compatibility with older presets/UI,
@@ -596,6 +607,19 @@ const state = {
   frameColor: '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
   frameColorLight: '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
   frameColorDark: '#242529',   // Frame/wall color in dark mode (browser chrome + walls + border)
+  useSimplifiedFrame: true, // CSS-only frame (disables legacy canvas inner-wall rendering)
+  // Simplified frame geometry + effects (single-wall model)
+  frameBorderWidth: 4,       // Border thickness in px
+  frameOuterRadius: 44,      // Outer corner radius in px
+  frameInnerRadius: 40,      // Inner/canvas corner radius in px
+  frameInnerSurface: '#111214', // Inner fill surface color
+  frameBorderGradientEdgeOpacity: 0.03, // Border gradient edge opacity
+  frameBorderGradientMidOpacity: 0.06,  // Border gradient midpoint opacity
+  frameVignetteEdgeOffsetY: 5,    // Inset vignette edge offset Y in px
+  frameVignetteEdgeBlur: 30,      // Inset vignette edge blur in px
+  frameVignetteEdgeOpacity: 0.66, // Inset vignette edge opacity
+  frameVignetteAmbientBlur: 250,  // Ambient vignette blur in px
+  frameVignetteAmbientOpacity: 0.4, // Ambient vignette opacity
   
   // Text Colors
   textColorLight: '#161616',          // Primary text (light mode)
@@ -610,7 +634,7 @@ const state = {
   // Simulation overlays: CSS ::before gradient (0–1) and canvas depth-wash.
   simulationOverlayIntensity: 1,
   // Depth wash: radial gradient overlay between balls and wall
-  depthWashOpacity: 0.65,
+  depthWashOpacity: 0,
   depthWashBlendModeLight: 'color-dodge',
   depthWashBlendModeDark: 'multiply',
   depthWashCenterY: 0.3, // Center position (0=top, 1=bottom)
@@ -637,7 +661,6 @@ const state = {
   footerNavBarGapVw: 2.5,             // Sets `--footer-nav-bar-gap` (viewport units)
   wallThickness: 12,        // Unified: wall tubes + body border (px)
   wallRadius: 42,           // Corner radius - shared by all rounded elements (px)
-  wallInset: 3,             // Physics-only inset from edges (px at DPR 1)
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // WALL SHADOW - Recessed panel depth effect
@@ -1047,6 +1070,43 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--content-padding-y', `${state.contentPaddingY}px`);
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
+  // Simplified frame geometry/effects CSS vars.
+  const frameBorderWidth = clampInt(state.frameBorderWidth, 0, 40, 4);
+  const frameOuterRadius = clampInt(state.frameOuterRadius, 0, 300, 44);
+  const frameInnerRadiusMax = Math.max(0, frameOuterRadius - frameBorderWidth);
+  const frameInnerRadius = clampInt(state.frameInnerRadius, 0, frameInnerRadiusMax, frameInnerRadiusMax);
+  const frameInnerSurface = (typeof state.frameInnerSurface === 'string' && state.frameInnerSurface.trim())
+    ? state.frameInnerSurface.trim()
+    : '#1d1e20';
+  const frameBorderGradientEdgeOpacity = clampNumber(state.frameBorderGradientEdgeOpacity, 0, 1, 0.03);
+  const frameBorderGradientMidOpacity = clampNumber(state.frameBorderGradientMidOpacity, 0, 1, 0.06);
+  const frameVignetteEdgeOffsetY = clampInt(state.frameVignetteEdgeOffsetY, -100, 100, 5);
+  const frameVignetteEdgeBlur = clampInt(state.frameVignetteEdgeBlur, 0, 400, 30);
+  const frameVignetteEdgeOpacity = clampNumber(state.frameVignetteEdgeOpacity, 0, 1, 0.66);
+  const frameVignetteAmbientBlur = clampInt(state.frameVignetteAmbientBlur, 0, 800, 250);
+  const frameVignetteAmbientOpacity = clampNumber(state.frameVignetteAmbientOpacity, 0, 1, 0.4);
+  state.frameBorderWidth = frameBorderWidth;
+  state.frameOuterRadius = frameOuterRadius;
+  state.frameInnerRadius = frameInnerRadius;
+  state.frameInnerSurface = frameInnerSurface;
+  state.frameBorderGradientEdgeOpacity = frameBorderGradientEdgeOpacity;
+  state.frameBorderGradientMidOpacity = frameBorderGradientMidOpacity;
+  state.frameVignetteEdgeOffsetY = frameVignetteEdgeOffsetY;
+  state.frameVignetteEdgeBlur = frameVignetteEdgeBlur;
+  state.frameVignetteEdgeOpacity = frameVignetteEdgeOpacity;
+  state.frameVignetteAmbientBlur = frameVignetteAmbientBlur;
+  state.frameVignetteAmbientOpacity = frameVignetteAmbientOpacity;
+  root.style.setProperty('--frame-border-width', `${frameBorderWidth}px`);
+  root.style.setProperty('--frame-outer-radius', `${frameOuterRadius}px`);
+  root.style.setProperty('--frame-inner-radius', `${frameInnerRadius}px`);
+  root.style.setProperty('--frame-inner-surface', frameInnerSurface);
+  root.style.setProperty('--frame-border-gradient-edge-opacity', String(frameBorderGradientEdgeOpacity));
+  root.style.setProperty('--frame-border-gradient-mid-opacity', String(frameBorderGradientMidOpacity));
+  root.style.setProperty('--frame-vignette-edge-offset-y', `${frameVignetteEdgeOffsetY}px`);
+  root.style.setProperty('--frame-vignette-edge-blur', `${frameVignetteEdgeBlur}px`);
+  root.style.setProperty('--frame-vignette-edge-opacity', String(frameVignetteEdgeOpacity));
+  root.style.setProperty('--frame-vignette-ambient-blur', `${frameVignetteAmbientBlur}px`);
+  root.style.setProperty('--frame-vignette-ambient-opacity', String(frameVignetteAmbientOpacity));
 
   // Viewport metrics (used for debugging + CSS-only sizing when needed)
   try {
@@ -1389,6 +1449,56 @@ export function initState(config) {
     }
     state.modePerformanceBudgets = nextBudgets;
   }
+
+  // Pit performance controls
+  state.pitCollisionIterationsMin = clampInt(
+    config.pitCollisionIterationsMin ?? state.pitCollisionIterationsMin,
+    1,
+    20,
+    state.pitCollisionIterationsMin
+  );
+  state.pitCollisionIterationsMax = clampInt(
+    config.pitCollisionIterationsMax ?? state.pitCollisionIterationsMax,
+    state.pitCollisionIterationsMin,
+    20,
+    state.pitCollisionIterationsMax
+  );
+  state.pitPostPassOverlapThreshold = clampNumber(
+    config.pitPostPassOverlapThreshold ?? state.pitPostPassOverlapThreshold,
+    0,
+    50000,
+    state.pitPostPassOverlapThreshold
+  );
+  if (config.pitSleepAwareBroadphaseEnabled !== undefined) {
+    state.pitSleepAwareBroadphaseEnabled = Boolean(config.pitSleepAwareBroadphaseEnabled);
+  }
+  if (config.pitRenderLodEnabled !== undefined) {
+    state.pitRenderLodEnabled = Boolean(config.pitRenderLodEnabled);
+  }
+  state.pitRenderLodTinyRadiusPx = clampNumber(
+    config.pitRenderLodTinyRadiusPx ?? state.pitRenderLodTinyRadiusPx,
+    0.25,
+    8,
+    state.pitRenderLodTinyRadiusPx
+  );
+  state.pitRenderLodSquashThreshold = clampNumber(
+    config.pitRenderLodSquashThreshold ?? state.pitRenderLodSquashThreshold,
+    0,
+    1,
+    state.pitRenderLodSquashThreshold
+  );
+  if (config.pitFxThrottlePolicy !== undefined) {
+    const policy = String(config.pitFxThrottlePolicy).toLowerCase();
+    if (policy === 'off' || policy === 'throttle-aware') {
+      state.pitFxThrottlePolicy = policy;
+    }
+  }
+  if (config.pitAudioThrottlePolicy !== undefined) {
+    const policy = String(config.pitAudioThrottlePolicy).toLowerCase();
+    if (policy === 'off' || policy === 'throttle-aware') {
+      state.pitAudioThrottlePolicy = policy;
+    }
+  }
   
   // Detect mobile/tablet devices and set ball sizes
   detectResponsiveScale();
@@ -1662,6 +1772,85 @@ export function initState(config) {
   // Enforce unified wall/chrome color across light and dark modes (always the same)
   state.frameColorLight = state.frameColor;
   state.frameColorDark = state.frameColor;
+  if (config.useSimplifiedFrame !== undefined) {
+    state.useSimplifiedFrame = Boolean(config.useSimplifiedFrame);
+  }
+  // Simplified frame geometry + effects defaults/config
+  if (config.frameBorderWidth !== undefined) {
+    state.frameBorderWidth = clampInt(config.frameBorderWidth, 0, 40, state.frameBorderWidth);
+  } else {
+    state.frameBorderWidth = clampInt(readTokenPx('--frame-border-width', state.frameBorderWidth), 0, 40, state.frameBorderWidth);
+  }
+  if (config.frameOuterRadius !== undefined) {
+    state.frameOuterRadius = clampInt(config.frameOuterRadius, 0, 300, state.frameOuterRadius);
+  } else {
+    state.frameOuterRadius = clampInt(readTokenPx('--frame-outer-radius', state.frameOuterRadius), 0, 300, state.frameOuterRadius);
+  }
+  if (config.frameInnerRadius !== undefined) {
+    state.frameInnerRadius = clampInt(config.frameInnerRadius, 0, 300, state.frameInnerRadius);
+  } else {
+    state.frameInnerRadius = clampInt(readTokenPx('--frame-inner-radius', state.frameInnerRadius), 0, 300, state.frameInnerRadius);
+  }
+  if (config.frameInnerSurface !== undefined) {
+    state.frameInnerSurface = String(config.frameInnerSurface);
+  } else {
+    state.frameInnerSurface = readTokenVar('--frame-inner-surface', state.frameInnerSurface);
+  }
+  if (config.frameBorderGradientEdgeOpacity !== undefined) {
+    state.frameBorderGradientEdgeOpacity = clampNumber(config.frameBorderGradientEdgeOpacity, 0, 1, state.frameBorderGradientEdgeOpacity);
+  } else {
+    state.frameBorderGradientEdgeOpacity = clampNumber(
+      readTokenNumber('--frame-border-gradient-edge-opacity', state.frameBorderGradientEdgeOpacity),
+      0,
+      1,
+      state.frameBorderGradientEdgeOpacity
+    );
+  }
+  if (config.frameBorderGradientMidOpacity !== undefined) {
+    state.frameBorderGradientMidOpacity = clampNumber(config.frameBorderGradientMidOpacity, 0, 1, state.frameBorderGradientMidOpacity);
+  } else {
+    state.frameBorderGradientMidOpacity = clampNumber(
+      readTokenNumber('--frame-border-gradient-mid-opacity', state.frameBorderGradientMidOpacity),
+      0,
+      1,
+      state.frameBorderGradientMidOpacity
+    );
+  }
+  if (config.frameVignetteEdgeOffsetY !== undefined) {
+    state.frameVignetteEdgeOffsetY = clampInt(config.frameVignetteEdgeOffsetY, -100, 100, state.frameVignetteEdgeOffsetY);
+  } else {
+    state.frameVignetteEdgeOffsetY = clampInt(readTokenPx('--frame-vignette-edge-offset-y', state.frameVignetteEdgeOffsetY), -100, 100, state.frameVignetteEdgeOffsetY);
+  }
+  if (config.frameVignetteEdgeBlur !== undefined) {
+    state.frameVignetteEdgeBlur = clampInt(config.frameVignetteEdgeBlur, 0, 400, state.frameVignetteEdgeBlur);
+  } else {
+    state.frameVignetteEdgeBlur = clampInt(readTokenPx('--frame-vignette-edge-blur', state.frameVignetteEdgeBlur), 0, 400, state.frameVignetteEdgeBlur);
+  }
+  if (config.frameVignetteEdgeOpacity !== undefined) {
+    state.frameVignetteEdgeOpacity = clampNumber(config.frameVignetteEdgeOpacity, 0, 1, state.frameVignetteEdgeOpacity);
+  } else {
+    state.frameVignetteEdgeOpacity = clampNumber(
+      readTokenNumber('--frame-vignette-edge-opacity', state.frameVignetteEdgeOpacity),
+      0,
+      1,
+      state.frameVignetteEdgeOpacity
+    );
+  }
+  if (config.frameVignetteAmbientBlur !== undefined) {
+    state.frameVignetteAmbientBlur = clampInt(config.frameVignetteAmbientBlur, 0, 800, state.frameVignetteAmbientBlur);
+  } else {
+    state.frameVignetteAmbientBlur = clampInt(readTokenPx('--frame-vignette-ambient-blur', state.frameVignetteAmbientBlur), 0, 800, state.frameVignetteAmbientBlur);
+  }
+  if (config.frameVignetteAmbientOpacity !== undefined) {
+    state.frameVignetteAmbientOpacity = clampNumber(config.frameVignetteAmbientOpacity, 0, 1, state.frameVignetteAmbientOpacity);
+  } else {
+    state.frameVignetteAmbientOpacity = clampNumber(
+      readTokenNumber('--frame-vignette-ambient-opacity', state.frameVignetteAmbientOpacity),
+      0,
+      1,
+      state.frameVignetteAmbientOpacity
+    );
+  }
   
   // Text colors
   if (config.textColorLight !== undefined) state.textColorLight = config.textColorLight;
@@ -1844,7 +2033,6 @@ export function initState(config) {
     // Keep physics corner collision aligned to the visual radius.
     state.cornerRadius = config.wallRadius;
   }
-  if (config.wallInset !== undefined) state.wallInset = config.wallInset;
   if (config.wallInset !== undefined) state.wallInset = config.wallInset;
 
   // Ball spacing (collision padding)

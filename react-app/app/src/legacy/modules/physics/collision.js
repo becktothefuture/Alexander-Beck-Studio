@@ -10,6 +10,9 @@ import { playCollisionSound } from '../audio/sound-engine.js';
 const spatialGrid = new Map();
 const reusablePairs = [];
 const pairPool = [];
+const lastBroadphaseStats = {
+  sleepingPairSkips: 0
+};
 
 function collectPairsSorted() {
   const globals = getGlobals();
@@ -21,9 +24,12 @@ function collectPairsSorted() {
   const n = balls.length;
   // Always reuse the same array to avoid per-frame allocations.
   reusablePairs.length = 0;
+  lastBroadphaseStats.sleepingPairSkips = 0;
   if (n < 2) return reusablePairs;
 
   const reuseGrid = globals.physicsSpatialGridOptimization !== false;
+  const pitSleepAwareBroadphase = globals.currentMode === 'pit'
+    && globals.pitSleepAwareBroadphaseEnabled !== false;
 
   // Fast path: if everything is sleeping, avoid grid build + pair sort entirely.
   // (Very common in Pit mode after settling.)
@@ -77,6 +83,10 @@ function collectPairsSorted() {
             if (j <= i) continue;
             
             const A = balls[i], B = balls[j];
+            if (pitSleepAwareBroadphase && A.isSleeping && B.isSleeping) {
+              lastBroadphaseStats.sleepingPairSkips++;
+              continue;
+            }
             const dx = B.x - A.x, dy = B.y - A.y;
             const avgRadius = (A.r + B.r) / 2;
             const rSum = A.r + B.r + (avgRadius * spacingRatio); // Spacing as ratio of average radius
@@ -108,12 +118,14 @@ export function resolveCollisions(iterations = 10) {
   const globals = getGlobals();
   const balls = globals.balls;
   const pairs = collectPairsSorted();
+  const sleepingPairSkips = lastBroadphaseStats.sleepingPairSkips;
   const REST = globals.REST;
   const POS_CORRECT_PERCENT = 0.8;
   const POS_CORRECT_SLOP = 0.5 * globals.DPR;
   const REST_VEL_THRESHOLD = 30;
   const spacingRatio = globals.ballSpacing || 0; // Ratio of average radius
   const skipSleepingCollisions = Boolean(globals.physicsSkipSleepingCollisions);
+  let overlapDebt = 0;
   
   for (let iter = 0; iter < iterations; iter++) {
     for (let k = 0; k < pairs.length; k++) {
@@ -131,6 +143,7 @@ export function resolveCollisions(iterations = 10) {
       const nx = dx / dist;
       const ny = dy / dist;
       const overlap = rSum - dist;
+      if (iter === 0 && overlap > 0) overlapDebt += overlap;
       const invA = 1 / Math.max(A.m, 0.001);
       const invB = 1 / Math.max(B.m, 0.001);
 
@@ -228,6 +241,12 @@ export function resolveCollisions(iterations = 10) {
       }
     }
   }
+
+  return {
+    pairCount: pairs.length,
+    overlapDebt,
+    sleepingPairSkips
+  };
 }
 
 /**
@@ -310,6 +329,11 @@ export function resolveCollisionsCustom({
       }
     }
   }
-}
 
+  return {
+    pairCount: pairs.length,
+    overlapDebt: 0,
+    sleepingPairSkips: lastBroadphaseStats.sleepingPairSkips
+  };
+}
 

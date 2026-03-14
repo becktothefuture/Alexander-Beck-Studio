@@ -11,8 +11,7 @@ import { applyChromeHarmony } from './chrome-harmony.js';
 import { readTokenVar } from '../utils/tokens.js';
 import { invalidateDepthWashCache } from './depth-wash.js';
 import { syncWallPanelTabsToTheme } from '../ui/control-registry.js';
-import { updateWallShadowCSS } from './wall-shadow.js';
-import { updateWallElements } from './wall-elements.js';
+import { applyShellLayoutVars, syncShellToDocument, syncThemeColorMeta } from './site-shell.js';
 
 const THEME_STORAGE_KEY = 'theme-preference-v2';
 const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
@@ -21,60 +20,6 @@ const LEGACY_THEME_STORAGE_KEY = 'theme-preference';
 let currentTheme = 'auto'; // Default to auto (system + night heuristic)
 let systemPreference = 'light';
 
-/**
- * Update outer wall CSS variables for dark/light mode
- * @param {boolean} isDark - Whether dark mode is active
- * @param {Object} globals - Global state object
- */
-function updateOuterWallForTheme(isDark, globals) {
-  const root = document.documentElement;
-  
-  // Top dark edge opacity
-  const topDarkOpacity = isDark 
-    ? (globals.outerWallTopDarkOpacityDark ?? 0.4)
-    : (globals.outerWallTopDarkOpacityLight ?? 0.6);
-  root.style.setProperty('--outer-wall-top-dark-opacity', String(topDarkOpacity));
-  
-  // Bottom light edge opacity
-  const bottomLightOpacity = isDark
-    ? (globals.outerWallBottomLightOpacityDark ?? 0.3)
-    : (globals.outerWallBottomLightOpacityLight ?? 0.5);
-  root.style.setProperty('--outer-wall-bottom-light-opacity', String(bottomLightOpacity));
-  
-  // Cast shadow opacity
-  const castShadowOpacity = isDark
-    ? (globals.outerWallCastShadowOpacityDark ?? 0.25)
-    : (globals.outerWallCastShadowOpacityLight ?? 0.15);
-  root.style.setProperty('--outer-wall-cast-shadow-opacity', String(castShadowOpacity));
-  
-  // Inner wall outward shadow opacity
-  const innerOutwardOpacity = isDark
-    ? (globals.innerWallOutwardShadowOpacityDark ?? 0.35)
-    : (globals.innerWallOutwardShadowOpacityLight ?? 0.2);
-  root.style.setProperty('--inner-wall-outward-shadow-opacity', String(innerOutwardOpacity));
-  
-  // Inner wall inner glow opacity
-  const innerGlowOpacity = isDark
-    ? (globals.innerWallInnerGlowOpacityDark ?? 0.08)
-    : (globals.innerWallInnerGlowOpacityLight ?? 0);
-  root.style.setProperty('--inner-wall-inner-glow-opacity', String(innerGlowOpacity));
-  
-  // Top bevel opacities
-  const outerBevelOpacity = isDark
-    ? (globals.outerWallTopBevelOpacityDark ?? 0.35)
-    : (globals.outerWallTopBevelOpacityLight ?? 0.25);
-  root.style.setProperty('--outer-wall-top-bevel-opacity', String(outerBevelOpacity));
-  
-  const innerBevelOpacity = isDark
-    ? (globals.innerWallTopBevelOpacityDark ?? 0.25)
-    : (globals.innerWallTopBevelOpacityLight ?? 0.18);
-  root.style.setProperty('--inner-wall-top-bevel-opacity', String(innerBevelOpacity));
-  
-  const innerLightOpacity = isDark
-    ? (globals.innerWallTopLightOpacityDark ?? 0.4)
-    : (globals.innerWallTopLightOpacityLight ?? 0.3);
-  root.style.setProperty('--inner-wall-top-light-opacity', String(innerLightOpacity));
-}
 let isDarkModeInitialized = false;
 
 function readStoredThemePreference() {
@@ -118,6 +63,7 @@ function getBackgroundColors() {
 function syncCssVarsFromConfig() {
   const g = getGlobals();
   const root = document.documentElement;
+  applyShellLayoutVars();
   
   // Scene interior backgrounds (used only for #bravia-balls container, not browser chrome)
   if (g?.bgLight) {
@@ -126,23 +72,9 @@ function syncCssVarsFromConfig() {
   if (g?.bgDark) {
     root.style.setProperty('--bg-dark', g.bgDark);
   }
-  // Site default wall/browser color from config.
-  // Chrome-harmony may override these values later for locked-header browsers.
-  const unifiedWallColor = g?.frameColor || g?.frameColorLight || g?.frameColorDark || '#242529';
-  root.style.setProperty('--frame-color', unifiedWallColor);
-  root.style.setProperty('--wall-color', unifiedWallColor);
-  root.style.setProperty('--chrome-bg', unifiedWallColor);
-  // Legacy aliases for compatibility
-  root.style.setProperty('--frame-color-light', unifiedWallColor);
-  root.style.setProperty('--frame-color-dark', unifiedWallColor);
-  root.style.setProperty('--wall-color-light', unifiedWallColor);
-  root.style.setProperty('--wall-color-dark', unifiedWallColor);
-  root.style.setProperty('--chrome-bg-light', unifiedWallColor);
-  root.style.setProperty('--chrome-bg-dark', unifiedWallColor);
-  
-  // Update browser chrome meta tag
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = unifiedWallColor;
+  syncShellToDocument({
+    isDark: document.documentElement.classList.contains('dark-mode')
+  });
   
   // Text colors
   if (g?.textColorLight) {
@@ -208,43 +140,11 @@ function updateThemeColor(isDark) {
   const lightColor = cssLight || activeColor || fallback;
   const darkColor = cssDark || activeColor || fallback;
   
-  // Update existing meta tag or create new one
-  let metaTheme = document.querySelector('meta[name="theme-color"]:not([media])');
-  if (!metaTheme) {
-    metaTheme = document.createElement('meta');
-    metaTheme.name = 'theme-color';
-    document.head.appendChild(metaTheme);
-  }
-  metaTheme.content = activeColor;
-  
-  // Keep scheme-specific tags in sync with currently-resolved light/dark wall colors.
-  let metaThemeLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
-  if (!metaThemeLight) {
-    metaThemeLight = document.createElement('meta');
-    metaThemeLight.name = 'theme-color';
-    metaThemeLight.media = '(prefers-color-scheme: light)';
-    document.head.appendChild(metaThemeLight);
-  }
-  metaThemeLight.content = lightColor;
-  
-  let metaThemeDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
-  if (!metaThemeDark) {
-    metaThemeDark = document.createElement('meta');
-    metaThemeDark.name = 'theme-color';
-    metaThemeDark.media = '(prefers-color-scheme: dark)';
-    document.head.appendChild(metaThemeDark);
-  }
-  metaThemeDark.content = darkColor;
-  
-  // Safari iOS PWA: Update apple-mobile-web-app-status-bar-style
-  // black-translucent: transparent status bar (allows unified wall color to show)
-  let appleStatusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-  if (!appleStatusBar) {
-    appleStatusBar = document.createElement('meta');
-    appleStatusBar.name = 'apple-mobile-web-app-status-bar-style';
-    document.head.appendChild(appleStatusBar);
-  }
-  appleStatusBar.content = 'black-translucent';
+  syncThemeColorMeta({
+    active: activeColor,
+    light: lightColor,
+    dark: darkColor
+  });
 }
 
 /**
@@ -286,15 +186,6 @@ function applyDarkModeToDOM(isDark) {
   
   // Switch color palette variant
   applyColorTemplate(globals.currentTemplate);
-  
-  // Refresh wall shadow for new theme (light/dark use different colors)
-  updateWallShadowCSS(globals);
-  
-  // Update outer wall edge effects for new theme
-  updateOuterWallForTheme(isDark, globals);
-  
-  // Update wall elements (outer wall + inner wall + edge gradients) for new theme
-  updateWallElements();
   
   // Update UI
   updateSegmentControl();

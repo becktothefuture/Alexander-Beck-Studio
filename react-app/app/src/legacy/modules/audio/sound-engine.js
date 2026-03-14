@@ -3,6 +3,8 @@
 // ║    Realistic, non-melodic collision sounds with intensity-driven dynamics    ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
+import { getState } from '../core/state.js';
+
 /**
  * Sound Design: Soft Organic Impacts
  * 
@@ -856,19 +858,22 @@ function createTransientNoise() {
  */
 export function playCollisionSound(ballRadius, intensity, xPosition = 0.5, ballId = null) {
   if (!isEnabled || !isUnlocked || !audioContext || prefersReducedMotion) return;
-  
+  const pitAudioProfile = getPitAudioThrottleProfile();
+
   // Energy threshold: soft touches are silent
-  if (intensity < CONFIG.collisionMinImpact) return;
-  
+  if (intensity < CONFIG.collisionMinImpact + pitAudioProfile.minImpactBoost) return;
+
   const now = audioContext.currentTime;
   
   // Global rate limiter
-  if (now - lastGlobalSoundTime < GLOBAL_MIN_INTERVAL) return;
+  if (now - lastGlobalSoundTime < GLOBAL_MIN_INTERVAL * pitAudioProfile.globalIntervalMultiplier) return;
+
+  if (pitAudioProfile.dropChance > 0 && Math.random() < pitAudioProfile.dropChance) return;
   
   // Per-ball debounce
   if (ballId !== null) {
     const lastTime = lastSoundTime.get(ballId) || 0;
-    if (now - lastTime < CONFIG.minTimeBetweenSounds) return;
+    if (now - lastTime < CONFIG.minTimeBetweenSounds * pitAudioProfile.perBallIntervalMultiplier) return;
     lastSoundTime.set(ballId, now);
   }
   
@@ -889,6 +894,57 @@ export function playCollisionSound(ballRadius, intensity, xPosition = 0.5, ballI
   const clampedIntensity = Math.max(0, Math.min(1, intensity));
   
   playVoice(voice, frequency, clampedIntensity, xPosition, now);
+}
+
+function getPitAudioThrottleProfile() {
+  const fallback = {
+    minImpactBoost: 0,
+    globalIntervalMultiplier: 1,
+    perBallIntervalMultiplier: 1,
+    dropChance: 0
+  };
+
+  try {
+    const state = getState();
+    if (!state || state.currentMode !== 'pit') return fallback;
+
+    const policy = String(state.pitAudioThrottlePolicy || 'throttle-aware').toLowerCase();
+    if (policy !== 'throttle-aware') return fallback;
+
+    const throttleLevel = Math.max(0, Math.min(2, Math.round(Number(state.adaptiveThrottleLevel) || 0)));
+    const isMobileClass = Boolean(state.isMobile || state.isMobileViewport);
+
+    if (throttleLevel >= 2) {
+      return {
+        minImpactBoost: isMobileClass ? 0.24 : 0.18,
+        globalIntervalMultiplier: isMobileClass ? 3.2 : 2.5,
+        perBallIntervalMultiplier: isMobileClass ? 2.8 : 2.2,
+        dropChance: isMobileClass ? 0.72 : 0.52
+      };
+    }
+
+    if (throttleLevel >= 1) {
+      return {
+        minImpactBoost: isMobileClass ? 0.14 : 0.1,
+        globalIntervalMultiplier: isMobileClass ? 2.1 : 1.7,
+        perBallIntervalMultiplier: isMobileClass ? 1.8 : 1.5,
+        dropChance: isMobileClass ? 0.4 : 0.2
+      };
+    }
+
+    if (isMobileClass) {
+      return {
+        minImpactBoost: 0.05,
+        globalIntervalMultiplier: 1.3,
+        perBallIntervalMultiplier: 1.2,
+        dropChance: 0.12
+      };
+    }
+  } catch (e) {
+    return fallback;
+  }
+
+  return fallback;
 }
 
 /**

@@ -5,4 +5,6 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
+  background: var(--abs-wall-base, var(--wall-color, #202124));
+  background-color: var(--abs-wall-base, var(--wall-color, #202124));
 }

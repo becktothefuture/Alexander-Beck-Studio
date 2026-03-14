@@ -5,7 +5,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { readTokenVar } from '../utils/tokens.js';
+import { getShellConfig } from './site-shell.js';
 
 /**
  * Detects aspect ratio category (landscape, square, portrait)
@@ -122,15 +122,16 @@ export function transitionToWallState(options = {}) {
   // PHASE 1: LOCK VALUES (prevent CSS variable interference)
   // ═══════════════════════════════════════════════════════════════════════════════
   
-  // Read final border-radius from state (source of truth, stable value)
-  // Simulation page: always use 0 (radius controlled entirely by rubber wall system)
-  // Portfolio page: use wallRadius if available
+  // Read final border-radius from state/style (source of truth, stable value)
+  // Portfolio page keeps wallRadius-driven behavior. Simulation/index now uses
+  // the authored CSS radius so frame fidelity stays consistent.
   const isPortfolioPage = document.body.classList.contains('portfolio-page');
+  const resolvedFrameRadius = getComputedStyle(wallContainer).borderTopLeftRadius || '44px';
   const finalRadius = isPortfolioPage 
     ? ((g.wallRadius && typeof g.wallRadius === 'number' && g.wallRadius > 0) 
         ? `${g.wallRadius}px` 
         : '42px')
-    : '0px'; // Simulation page: no CSS border-radius, rubber wall controls visual radius
+    : resolvedFrameRadius;
   
   // Initial scale (1.1 = subtle growth effect, not too dramatic)
   const initialScale = g.entranceWallInitialScale || 1.1;
@@ -349,6 +350,8 @@ export function transitionToWallState(options = {}) {
  */
 export function animateElementEntrance(element, options = {}) {
   const g = getGlobals();
+  const shellConfig = getShellConfig();
+  const allowScaleEntrance = options.allowScaleEntrance ?? shellConfig?.motion?.allowScaleEntrance ?? false;
   
   if (!element || typeof element.animate !== 'function') {
     // Fallback: just show element
@@ -358,7 +361,7 @@ export function animateElementEntrance(element, options = {}) {
   
   const delay = options.delay ?? 0;
   const duration = options.duration ?? g.entranceElementDuration ?? 800;
-  const scaleStart = options.scaleStart ?? g.entranceElementScaleStart ?? 0.95;
+  const scaleStart = options.scaleStart ?? (allowScaleEntrance ? (g.entranceElementScaleStart ?? 0.95) : 1);
   const scaleEnd = options.scaleEnd ?? 1;
   const translateZStart = options.translateZStart ?? g.entranceElementTranslateZStart ?? -20;
   const translateZEnd = options.translateZEnd ?? 0;
@@ -425,10 +428,12 @@ export function revealLateElement(element, options = {}) {
     }
     
     const g = getGlobals();
+    const shellConfig = getShellConfig();
+    const allowScaleEntrance = options.allowScaleEntrance ?? shellConfig?.motion?.allowScaleEntrance ?? false;
     const delay = options.delay ?? 0;
-    const duration = (options.duration ?? g.entranceLateElementDuration ?? 600) * 2;
+    const duration = options.duration ?? shellConfig?.motion?.contentRevealMs ?? g.entranceLateElementDuration ?? 600;
     const easing = options.easing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
-    const scaleFrom = options.scaleFrom ?? g.entranceLateElementScaleFrom ?? 0.92;
+    const scaleFrom = options.scaleFrom ?? (allowScaleEntrance ? (g.entranceLateElementScaleFrom ?? 0.92) : 1);
     const scaleTo = options.scaleTo ?? 1;
     
     setTimeout(() => {
@@ -496,8 +501,10 @@ function revealLogoStaggered(element, options = {}) {
     }
 
     const g = getGlobals();
+    const shellConfig = getShellConfig();
+    const allowScaleEntrance = options.allowScaleEntrance ?? shellConfig?.motion?.allowScaleEntrance ?? false;
     const delay = options.delay ?? 0;
-    const duration = options.duration ?? g.entranceLateElementDuration ?? 600;
+    const duration = options.duration ?? shellConfig?.motion?.contentRevealMs ?? g.entranceLateElementDuration ?? 600;
     const easing = options.easing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
     
     // Check if logo is grid-positioned (flex item) vs fixed-positioned
@@ -508,7 +515,7 @@ function revealLogoStaggered(element, options = {}) {
       element.style.visibility = 'visible';
 
       let anim;
-      if (isGridPositioned) {
+      if (isGridPositioned || !allowScaleEntrance) {
         // Grid logo: simple fade + blur only - NO transforms
         // The wrapper is absolutely positioned, logo is just a flex child
         anim = element.animate(
@@ -590,7 +597,7 @@ export function revealAllLateElements() {
  * Show logo and links with CSS state-based animation
  * Sets html.ui-entered - CSS handles the animation with staggered delays
  */
-export function showLogoAndLinks(options = {}) {
+export function showLogoAndLinks() {
   const html = document.documentElement;
   const logo = document.getElementById('brand-logo');
   const mainLinks = document.getElementById('main-links');
@@ -687,6 +694,7 @@ function performReducedMotionFade() {
  */
 export async function orchestrateEntrance(options = {}) {
   const g = getGlobals();
+  const shellConfig = getShellConfig();
   const skipWallAnimation = Boolean(options.skipWallAnimation);
   const skipEntranceAnimation = Boolean(options.skipEntranceAnimation);
   const wallContent = options.wallContent || [];
@@ -743,13 +751,11 @@ export async function orchestrateEntrance(options = {}) {
   const elementEasing = g.entranceElementEasing ?? 'cubic-bezier(0.16, 1, 0.3, 1)';
   
   // Content fade-in config
-  const contentFadeDelay = g.contentFadeInDelay ?? 500;
-  const contentFadeDuration = g.contentFadeInDuration ?? 1000;
+  const contentFadeDelay = options.contentFadeDelay ?? 0;
+  const contentFadeDuration = options.contentFadeDuration ?? shellConfig?.motion?.contentRevealMs ?? g.contentFadeInDuration ?? 1000;
   
   // Logo and links timing
-  const lateElementDuration = g.entranceLateElementDuration ?? 500;
-  const linkStagger = 80; // Stagger between each link button
-  
+  const lateElementDuration = options.lateElementDuration ?? shellConfig?.motion?.contentRevealMs ?? g.entranceLateElementDuration ?? 500;
   // 1. Fade in entire scene (#abs-scene)
   const fadeTarget = document.getElementById('abs-scene');
   if (fadeTarget) {
@@ -789,7 +795,8 @@ export async function orchestrateEntrance(options = {}) {
       revealLogoStaggered(brandLogo, {
         delay: 0,
         duration: lateElementDuration,
-        easing: elementEasing
+        easing: elementEasing,
+        allowScaleEntrance: options.allowScaleEntrance
       });
     }, logoLinksDelay);
   }
@@ -809,7 +816,8 @@ export async function orchestrateEntrance(options = {}) {
         delay: 0,
         duration: lateElementDuration,
         easing: elementEasing,
-        scaleFrom: g.entranceLateElementScaleFrom ?? 0.92
+        scaleFrom: g.entranceLateElementScaleFrom ?? 0.92,
+        allowScaleEntrance: options.allowScaleEntrance
       });
     }, centralContentDelay + i * 150);
   }

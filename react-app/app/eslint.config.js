@@ -15,7 +15,12 @@ export default defineConfig([
     ],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        __DEV__: 'readonly',
+        __PANEL_INITIALLY_VISIBLE__: 'readonly',
+        UnicornStudio: 'readonly',
+      },
       parserOptions: {
         ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },
@@ -24,6 +29,13 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+  {
+    files: ['src/legacy/**/*.{js,jsx}'],
+    rules: {
+      'no-unused-vars': 'off',
+      'no-empty': 'off',
     },
   },
 ])

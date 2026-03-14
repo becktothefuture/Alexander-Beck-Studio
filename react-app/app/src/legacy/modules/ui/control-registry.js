@@ -4,7 +4,7 @@
 // ║        Supports visibility toggling and dynamic HTML generation              ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals } from '../core/state.js';
+import { getGlobals, applyLayoutCSSVars } from '../core/state.js';
 import { PARALLAX_LINEAR_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallElements, initLightSimulation } from '../visual/wall-elements.js';
@@ -170,8 +170,6 @@ export const MASTER_GROUPS = [
     title: 'Effects',
     icon: '✨',
     sections: [
-      'innerWall',
-      'outerWall',
       'simulationOverlay',
       'overlay'
     ]
@@ -219,7 +217,7 @@ const SECTION_CATEGORIES = {
   'tactileLayer': 'TACTILE',
 
   // Frame
-  'wall': 'FRAME',
+  'wallGeometry': 'FRAME',
   'layers': 'LAYERS',
   'uiSpacing': 'SPACING',
 
@@ -951,7 +949,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'sizeVariationCap',
         type: 'range',
         min: 0, max: 0.2, step: 0.01,
-        default: 0,
+        default: 0.66,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat,
         hint: 'Max radius deviation from medium (20% = ±20%)',
@@ -1169,7 +1167,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'uiIconFramePx',
         type: 'range',
         min: 0, max: 120, step: 1,
-        default: 0,
+        default: 0.4,
         format: v => (Number(v) <= 0 ? 'Auto' : `${Math.round(v)}px`),
         parse: v => parseInt(v, 10),
         hint: 'Square icon button frame size (height/width). 0 = auto (derived from icon padding tokens).',
@@ -1423,7 +1421,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'depthWashOpacity',
         type: 'range',
         min: 0, max: 1, step: 0.05,
-        default: 0.65,
+        default: 0,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
         hint: 'Master opacity of the radial depth overlay'
@@ -2671,6 +2669,160 @@ export const CONTROL_SECTIONS = {
           });
         }
       },
+      { type: 'divider', label: 'Simplified Frame' },
+      {
+        id: 'frameBorderWidth',
+        label: 'Border Width',
+        stateKey: 'frameBorderWidth',
+        type: 'range',
+        min: 0, max: 40, step: 1,
+        default: 4,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Single frame border thickness for the new wall.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'frameOuterRadius',
+        label: 'Outer Radius',
+        stateKey: 'frameOuterRadius',
+        type: 'range',
+        min: 0, max: 300, step: 1,
+        default: 44,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Outer corner radius of the frame.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'frameInnerRadius',
+        label: 'Inner Radius',
+        stateKey: 'frameInnerRadius',
+        type: 'range',
+        min: 0, max: 300, step: 1,
+        default: 40,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Inner corner radius for canvas/effects clipping.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'frameInnerSurface',
+        label: 'Inner Surface',
+        stateKey: 'frameInnerSurface',
+        type: 'color',
+        default: '#1d1e20',
+        hint: 'Inner frame surface color.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'frameBorderGradientEdgeOpacity',
+        label: 'Border Edge Opacity',
+        stateKey: 'frameBorderGradientEdgeOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.03,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Border gradient opacity at top/bottom edges.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'frameBorderGradientMidOpacity',
+        label: 'Border Mid Opacity',
+        stateKey: 'frameBorderGradientMidOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.06,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Border gradient opacity at the center highlight.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      { type: 'divider', label: 'Vignette' },
+      {
+        id: 'frameVignetteEdgeOffsetY',
+        label: 'Edge Offset',
+        stateKey: 'frameVignetteEdgeOffsetY',
+        type: 'range',
+        min: -100, max: 100, step: 1,
+        default: 5,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Inset vignette edge vertical offset.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'frameVignetteEdgeBlur',
+        label: 'Edge Blur',
+        stateKey: 'frameVignetteEdgeBlur',
+        type: 'range',
+        min: 0, max: 400, step: 1,
+        default: 30,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Blur size of the edge vignette layer.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'frameVignetteEdgeOpacity',
+        label: 'Edge Opacity',
+        stateKey: 'frameVignetteEdgeOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.66,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Opacity of the edge vignette layer.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'frameVignetteAmbientBlur',
+        label: 'Ambient Blur',
+        stateKey: 'frameVignetteAmbientBlur',
+        type: 'range',
+        min: 0, max: 800, step: 1,
+        default: 250,
+        format: v => `${Math.round(v)}px`,
+        parse: v => parseInt(v, 10),
+        hint: 'Blur size of the ambient vignette layer.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'frameVignetteAmbientOpacity',
+        label: 'Ambient Opacity',
+        stateKey: 'frameVignetteAmbientOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.4,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Opacity of the ambient vignette layer.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      { type: 'divider', label: 'Wall Layout' },
       {
         id: 'wallThicknessVw',
         label: 'Wall Thickness',
@@ -5199,347 +5351,6 @@ export const CONTROL_SECTIONS = {
       warmupFramesControl('kaleidoscope3WarmupFrames')
     ]
   },
-
-
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // NOTE: “Warmup Frames” is appended per mode below to avoid visible settling
-  // on mode switches (no pop-in / no flash). It is consumed by the physics engine
-  // before the first render after init.
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  parallaxLinear: {
-    title: 'Parallax (Linear)',
-    icon: '🫧',
-    mode: 'parallax-linear',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'parallaxLinearPreset',
-        label: 'Preset',
-        stateKey: 'parallaxLinearPreset',
-        type: 'select',
-        options: Object.keys(PARALLAX_LINEAR_PRESETS).map(k => ({ value: k, label: PARALLAX_LINEAR_PRESETS[k].label })),
-        default: 'default',
-        format: v => PARALLAX_LINEAR_PRESETS[v]?.label || v,
-        onChange: (value) => {
-          applyParallaxLinearPreset(value, true);
-        }
-      },
-      {
-        id: 'parallaxLinearDotSizeMul',
-        label: 'Dot Size',
-        stateKey: 'parallaxLinearDotSizeMul',
-        type: 'range',
-        min: 0.2, max: 6.0, step: 0.1,
-        default: 1.8,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'sizeVariationParallaxLinear',
-        label: 'Size Variation',
-        stateKey: 'sizeVariationParallaxLinear',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'parallaxLinearGridX',
-        label: 'Grid X (Cols)',
-        stateKey: 'parallaxLinearGridX',
-        type: 'range',
-        min: 3, max: 40, step: 1,
-        default: 14,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxLinearGridY',
-        label: 'Grid Y (Rows)',
-        stateKey: 'parallaxLinearGridY',
-        type: 'range',
-        min: 3, max: 40, step: 1,
-        default: 10,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxLinearGridZ',
-        label: 'Grid Z (Layers)',
-        stateKey: 'parallaxLinearGridZ',
-        type: 'range',
-        min: 2, max: 20, step: 1,
-        default: 7,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxLinearSpanX',
-        label: 'Span X',
-        stateKey: 'parallaxLinearSpanX',
-        type: 'range',
-        min: 0.2, max: 8.0, step: 0.05,
-        default: 5,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'World-space width as a multiple of the viewport width. Use >1 to fill edge-to-edge.'
-      },
-      {
-        id: 'parallaxLinearSpanY',
-        label: 'Span Y',
-        stateKey: 'parallaxLinearSpanY',
-        type: 'range',
-        min: 0.2, max: 3.0, step: 0.05,
-        default: 2.6,
-        format: v => v.toFixed(2) + '×',
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'World-space height as a multiple of the viewport height.'
-      },
-      {
-        id: 'parallaxLinearZNear',
-        label: 'Z Near',
-        stateKey: 'parallaxLinearZNear',
-        type: 'range',
-        min: 10, max: 1200, step: 10,
-        default: 50,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxLinearZFar',
-        label: 'Z Far',
-        stateKey: 'parallaxLinearZFar',
-        type: 'range',
-        min: 50, max: 3000, step: 25,
-        default: 900,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxLinearFocalLength',
-        label: 'Focal Length',
-        stateKey: 'parallaxLinearFocalLength',
-        type: 'range',
-        min: 80, max: 2000, step: 10,
-        default: 420,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'parallaxLinearParallaxStrength',
-        label: 'Parallax Strength',
-        stateKey: 'parallaxLinearParallaxStrength',
-        type: 'range',
-        min: 0, max: 2000, step: 10,
-        default: 260,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'parallaxLinearMouseEasing',
-        label: 'Mouse Smoothing',
-        stateKey: 'parallaxLinearMouseEasing',
-        type: 'range',
-        min: 0.5, max: 50, step: 0.5,
-        default: 20,
-        format: v => v.toFixed(1),
-        parse: parseFloat,
-        hint: 'Higher = snappier, lower = smoother camera pan (20 = near-instant)'
-      },
-      warmupFramesControl('parallaxLinearWarmupFrames')
-    ]
-  },
-
-  parallaxFloat: {
-    title: 'Parallax (Float)',
-    icon: '🫧',
-    mode: 'parallax-float',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'parallaxFloatRandomize',
-        label: 'Randomness',
-        stateKey: 'parallaxFloatRandomize',
-        type: 'range',
-        min: 0, max: 100, step: 1,
-        default: 50,
-        format: v => `${Math.round(v)}%`,
-        parse: v => parseInt(v, 10),
-        reinitMode: true,
-        hint: '0% = perfect grid, 100% = fully random positions'
-      },
-      {
-        id: 'parallaxFloatLevitationAmp',
-        label: 'Levitation Amplitude',
-        stateKey: 'parallaxFloatLevitationAmp',
-        type: 'range',
-        min: 0, max: 100, step: 1,
-        default: 25,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        reinitMode: true,
-        hint: 'How far particles drift during levitation'
-      },
-      {
-        id: 'parallaxFloatLevitationSpeed',
-        label: 'Levitation Speed',
-        stateKey: 'parallaxFloatLevitationSpeed',
-        type: 'range',
-        min: 0.01, max: 1.0, step: 0.01,
-        default: 0.25,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'How fast particles oscillate'
-      },
-      {
-        id: 'parallaxFloatMouseEasing',
-        label: 'Mouse Smoothing',
-        stateKey: 'parallaxFloatMouseEasing',
-        type: 'range',
-        min: 0.5, max: 20, step: 0.5,
-        default: 5,
-        format: v => v.toFixed(1),
-        parse: parseFloat,
-        hint: 'Higher = snappier, lower = smoother camera pan'
-      },
-      {
-        id: 'parallaxFloatDotSizeMul',
-        label: 'Dot Size',
-        stateKey: 'parallaxFloatDotSizeMul',
-        type: 'range',
-        min: 0.2, max: 6.0, step: 0.1,
-        default: 1.4,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'sizeVariationParallaxFloat',
-        label: 'Size Variation',
-        stateKey: 'sizeVariationParallaxFloat',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        reinitMode: true
-      },
-      {
-        id: 'parallaxFloatGridX',
-        label: 'Grid X (Cols)',
-        stateKey: 'parallaxFloatGridX',
-        type: 'range',
-        min: 3, max: 40, step: 1,
-        default: 15,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxFloatGridY',
-        label: 'Grid Y (Rows)',
-        stateKey: 'parallaxFloatGridY',
-        type: 'range',
-        min: 3, max: 40, step: 1,
-        default: 10,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxFloatGridZ',
-        label: 'Grid Z (Layers)',
-        stateKey: 'parallaxFloatGridZ',
-        type: 'range',
-        min: 2, max: 20, step: 1,
-        default: 12,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxFloatSpanX',
-        label: 'Span X',
-        stateKey: 'parallaxFloatSpanX',
-        type: 'range',
-        min: 0.2, max: 10.0, step: 0.1,
-        default: 4,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'World-space width as a multiple of the viewport width'
-      },
-      {
-        id: 'parallaxFloatSpanY',
-        label: 'Span Y',
-        stateKey: 'parallaxFloatSpanY',
-        type: 'range',
-        min: 0.2, max: 10.0, step: 0.1,
-        default: 3,
-        format: v => v.toFixed(1) + '×',
-        parse: parseFloat,
-        reinitMode: true,
-        hint: 'World-space height as a multiple of the viewport height'
-      },
-      {
-        id: 'parallaxFloatZNear',
-        label: 'Z Near',
-        stateKey: 'parallaxFloatZNear',
-        type: 'range',
-        min: 10, max: 1200, step: 10,
-        default: 100,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxFloatZFar',
-        label: 'Z Far',
-        stateKey: 'parallaxFloatZFar',
-        type: 'range',
-        min: 200, max: 4000, step: 50,
-        default: 2500,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        reinitMode: true
-      },
-      {
-        id: 'parallaxFloatFocalLength',
-        label: 'Focal Length',
-        stateKey: 'parallaxFloatFocalLength',
-        type: 'range',
-        min: 80, max: 2000, step: 10,
-        default: 500,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'parallaxFloatParallaxStrength',
-        label: 'Parallax Strength',
-        stateKey: 'parallaxFloatParallaxStrength',
-        type: 'range',
-        min: 0, max: 2000, step: 10,
-        default: 350,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10)
-      },
-      warmupFramesControl('parallaxFloatWarmupFrames')
-    ]
-  },
-
   starfield3d: {
     title: '3D Starfield',
     icon: '✨',
@@ -7179,7 +6990,7 @@ export function generatePanelHTML() {
     for (const [, section] of Object.entries(CONTROL_SECTIONS)) {
       if (!section?.mode) continue;
       const n = Array.isArray(section.controls) ? section.controls.length : 0;
-      if (n < 4) console.warn(`[panel] Mode \"${section.mode}\" has only ${n} controls; add at least 4 parameters.`);
+      if (n < 4) console.warn(`[panel] Mode "${section.mode}" has only ${n} controls; add at least 4 parameters.`);
     }
   } catch (e) {}
 

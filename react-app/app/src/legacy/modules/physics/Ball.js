@@ -241,10 +241,10 @@ export class Ball {
       : (globals.cornerRadius ?? globals.wallRadius ?? 0);
     const cr = Math.max(0, Number(cornerRadiusPx) || 0) * (DPR || 1);
     
-    // Balls collide with the INNER EDGE of the wall, which is inset by wall thickness only.
-    // Content padding is layout-only and must not affect physics.
-    const wallThicknessPx = Math.max(0, (globals.wallThickness ?? 0) * (DPR || 1));
-    const insetPx = wallThicknessPx;
+    // Balls collide against the simplified frame interior.
+    // Use the explicit frame border width as the visual inset baseline.
+    const frameBorderWidthPx = Math.max(0, (globals.frameBorderWidth ?? 0) * (DPR || 1));
+    const insetPx = frameBorderWidthPx;
     
     // Small additional inset to create a gap between balls and walls (prevents overlap)
     // This is physics-only padding on top of wall thickness
@@ -265,7 +265,7 @@ export class Ball {
     // ════════════════════════════════════════════════════════════════════════
     const isPitMode = currentMode === MODES.PIT;
     
-    // SDF parameters: inner boundary is inset by wallThickness
+    // SDF parameters: inner boundary is inset by frame border width
     const hx = innerW * 0.5;  // half-width
     const hy = innerH * 0.5;  // half-height
     const rr = innerR;        // corner radius

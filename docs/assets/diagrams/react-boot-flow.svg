@@ -1,0 +1,54 @@
+<svg width="1200" height="860" viewBox="0 0 1200 860" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">React Pipeline Boot Flow</title>
+  <desc id="desc">A vertical flow diagram showing how the React shell renders and then boots the legacy runtime.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f7f8fa; }
+      .title { font: 700 32px Arial, sans-serif; fill: #111827; }
+      .box { fill: #e7f1ff; stroke: #1971c2; stroke-width: 2; rx: 14; }
+      .label { font: 600 20px Arial, sans-serif; fill: #111827; }
+      .small { font: 500 15px Arial, sans-serif; fill: #374151; }
+      .line { stroke: #1971c2; stroke-width: 4; fill: none; }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#1971c2"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="860"/>
+  <text class="title" x="600" y="56" text-anchor="middle">React Version Boot Flow</text>
+
+  <rect class="box" x="220" y="90" width="760" height="86"/>
+  <text class="label" x="600" y="132" text-anchor="middle">1) Browser loads React page HTML</text>
+  <text class="small" x="600" y="156" text-anchor="middle">index.html / portfolio.html / cv.html mounts a React entry</text>
+
+  <line class="line" x1="600" y1="176" x2="600" y2="214" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="220" y="222" width="760" height="86"/>
+  <text class="label" x="600" y="264" text-anchor="middle">2) src/entries/*.jsx calls createRoot()</text>
+  <text class="small" x="600" y="288" text-anchor="middle">React mounts HomePage / PortfolioPage / CvPage</text>
+
+  <line class="line" x1="600" y1="308" x2="600" y2="346" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="220" y="354" width="760" height="86"/>
+  <text class="label" x="600" y="396" text-anchor="middle">3) SharedFrame injects template body HTML</text>
+  <text class="small" x="600" y="420" text-anchor="middle">Template is sanitized and inserted into the page shell</text>
+
+  <line class="line" x1="600" y1="440" x2="600" y2="478" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="220" y="486" width="760" height="86"/>
+  <text class="label" x="600" y="528" text-anchor="middle">4) useLegacyBootstrap runs dynamic import()</text>
+  <text class="small" x="600" y="552" text-anchor="middle">Boot keyed per page to avoid duplicate legacy startup</text>
+
+  <line class="line" x1="600" y1="572" x2="600" y2="610" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="220" y="618" width="760" height="86"/>
+  <text class="label" x="600" y="660" text-anchor="middle">5) Legacy runtime initializes</text>
+  <text class="small" x="600" y="684" text-anchor="middle">src/legacy/main.js (or portfolio/cv init) boots the simulation stack</text>
+
+  <line class="line" x1="600" y1="704" x2="600" y2="742" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="220" y="750" width="760" height="86"/>
+  <text class="label" x="600" y="792" text-anchor="middle">6) Hybrid state: React shell + imperative runtime</text>
+  <text class="small" x="600" y="816" text-anchor="middle">React composes page structure while legacy modules run interactions</text>
+</svg>

@@ -8,7 +8,7 @@ export function PortfolioPage() {
   const hasAccess = useMemo(() => {
     try {
       return Boolean(window.sessionStorage.getItem('abs_portfolio_ok'));
-    } catch (error) {
+    } catch {
       // Match source behavior only when sessionStorage is available.
       return true;
     }
@@ -18,7 +18,9 @@ export function PortfolioPage() {
     if (hasAccess) return;
     try {
       window.sessionStorage.setItem('abs_open_portfolio_gate', '1');
-    } catch (error) {}
+    } catch (error) {
+      void error;
+    }
     window.location.replace('index.html');
   }, [hasAccess]);
 

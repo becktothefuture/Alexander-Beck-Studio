@@ -15,6 +15,7 @@ let isInSimulation = false;
 let cachedContainerRect = null;
 let rectCacheTime = 0;
 const RECT_CACHE_MS = 100; // Cache rect for 100ms to avoid excessive layout reads
+let cachedFrameInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 let fadeInStarted = false;
 let fadeInAnimation = null;
 let wasOverLink = false; // Track previous hover state for transition detection
@@ -31,48 +32,39 @@ function handleLinkHoverEvent(event) {
 }
 
 /**
- * Check if mouse is inside inner wall area (the actual simulation content area)
+ * Check if mouse is inside the frame interior (the actual simulation content area).
+ * Uses #bravia-balls bounds minus its border widths.
  * Uses cached bounding rect for performance
- * The inner wall is the raised boundary inside the outer wall - this is where
- * the custom cursor should appear. Outside this area, the default cursor shows.
+ * This keeps cursor behavior aligned with the simplified frame DOM.
  */
 function isMouseInSimulation(clientX, clientY) {
-  // Use .inner-wall element for boundary detection
-  // This is the actual content area where balls/simulation live
-  const innerWall = document.querySelector('.inner-wall');
-  if (!innerWall) {
-    // Fallback to container if inner wall doesn't exist yet
-    const container = document.getElementById('bravia-balls');
-    if (!container) return false;
-    
-    const now = performance.now();
-    if (!cachedContainerRect || (now - rectCacheTime) > RECT_CACHE_MS) {
-      cachedContainerRect = container.getBoundingClientRect();
-      rectCacheTime = now;
-    }
-    
-    const rect = cachedContainerRect;
-    return (
-      clientX >= rect.left &&
-      clientX <= rect.right &&
-      clientY >= rect.top &&
-      clientY <= rect.bottom
-    );
-  }
-  
+  const container = document.getElementById('bravia-balls');
+  if (!container) return false;
+
   // Cache rect to avoid expensive layout reads on every mouse move
   const now = performance.now();
   if (!cachedContainerRect || (now - rectCacheTime) > RECT_CACHE_MS) {
-    cachedContainerRect = innerWall.getBoundingClientRect();
+    cachedContainerRect = container.getBoundingClientRect();
+    const style = getComputedStyle(container);
+    cachedFrameInsets = {
+      top: Number.parseFloat(style.borderTopWidth) || 0,
+      right: Number.parseFloat(style.borderRightWidth) || 0,
+      bottom: Number.parseFloat(style.borderBottomWidth) || 0,
+      left: Number.parseFloat(style.borderLeftWidth) || 0
+    };
     rectCacheTime = now;
   }
   
   const rect = cachedContainerRect;
+  const left = rect.left + cachedFrameInsets.left;
+  const right = rect.right - cachedFrameInsets.right;
+  const top = rect.top + cachedFrameInsets.top;
+  const bottom = rect.bottom - cachedFrameInsets.bottom;
   return (
-    clientX >= rect.left &&
-    clientX <= rect.right &&
-    clientY >= rect.top &&
-    clientY <= rect.bottom
+    clientX >= left &&
+    clientX <= right &&
+    clientY >= top &&
+    clientY <= bottom
   );
 }
 

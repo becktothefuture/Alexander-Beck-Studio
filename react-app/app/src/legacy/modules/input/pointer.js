@@ -256,7 +256,7 @@ export function setupPointer() {
       // Water mode: create ripples on touch move
       if (globals.currentMode === MODES.WATER && pos.inBounds) {
         if ((now - lastRippleTime) > RIPPLE_THROTTLE_MS) {
-          createWaterRipple(pos.x, pos.y, 2);
+          triggerWaterRipple(pos.x, pos.y, 2);
           lastRippleTime = now;
         }
       }

@@ -12,7 +12,6 @@ import { initializeDarkMode } from './visual/dark-mode-v2.js';
 import { maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './visual/colors.js';
 import { initTimeDisplay } from './ui/time-display.js';
 import { upgradeSocialIcons } from './ui/social-icons.js';
-import { createSoundToggle } from './ui/sound-toggle.js';
 import { waitForFonts } from './utils/font-loader.js';
 import { applyWallFrameFromConfig, applyWallFrameLayout } from './visual/wall-frame.js';
 import { initNoiseSystem } from './visual/noise-system.js';
@@ -21,6 +20,8 @@ import { initCvScrollTypography } from './cv/cv-scroll-typography.js';
 import { initCvPhotoSlideshow } from './cv/cv-photo-slideshow.js';
 import { initCvPanel } from './cv/cv-panel.js';
 import { initSharedChrome } from './ui/shared-chrome.js';
+import { getShellConfig, loadShellConfig, syncShellToDocument } from './visual/site-shell.js';
+import { forcePageVisible, waitForPageReadyBarrier } from './visual/page-orchestrator.js';
 import { 
   navigateWithTransition, 
   resetTransitionState, 
@@ -39,12 +40,10 @@ async function bootstrapCvPage() {
     // Non-fatal: continue with defaults.
   }
 
-  // ╔══════════════════════════════════════════════════════════════════════════════╗
-  // ║                    STEP 2: WAIT FOR FONTS (Portfolio parity)                 ║
-  // ╚══════════════════════════════════════════════════════════════════════════════╝
-  try {
-    await waitForFonts();
-  } catch (e) {}
+  await loadShellConfig();
+  syncShellToDocument({
+    isDark: document.documentElement.classList.contains('dark-mode')
+  });
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                    STEP 3: DRAMATIC ENTRANCE (Portfolio parity)              ║
@@ -52,6 +51,8 @@ async function bootstrapCvPage() {
   // ╚══════════════════════════════════════════════════════════════════════════════╝
   try {
     const g = getGlobals();
+    const shellConfig = getShellConfig();
+    const revealDuration = shellConfig?.motion?.contentRevealMs ?? 420;
     const fadeContent = document.getElementById('app-frame');
     const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     const removeBlocker = () => {
@@ -62,16 +63,21 @@ async function bootstrapCvPage() {
     };
     const forceVisible = (reason) => {
       if (!fadeContent) return;
-      fadeContent.style.opacity = '1';
-      fadeContent.style.transform = 'translateZ(0)';
-      removeBlocker();
-      // Also reveal central content elements
-      const cvContainer = document.querySelector('.cv-scroll-container');
-      if (cvContainer) {
-        cvContainer.style.opacity = '1';
-        cvContainer.style.visibility = 'visible';
-      }
+      forcePageVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);
       console.warn(`⚠️ CV entrance fallback (${reason})`);
+    };
+    const waitForVisualReady = async () => {
+      await waitForPageReadyBarrier({
+        waitForFonts: async () => {
+          try {
+            await waitForFonts();
+          } catch {
+            return false;
+          }
+          return true;
+        },
+        minimumMs: shellConfig?.motion?.shellRevealMs ?? 180
+      });
     };
 
     // Check if View Transition just handled the animation (skip entrance entirely)
@@ -79,42 +85,29 @@ async function bootstrapCvPage() {
     const viewTransitionHandled = didViewTransitionRun();
     
     if (viewTransitionHandled) {
+      await waitForVisualReady();
       // View Transition handled animation - just reveal elements instantly
-      if (fadeContent) {
-        fadeContent.style.opacity = '1';
-        fadeContent.style.visibility = 'visible';
-        fadeContent.style.transform = 'translateZ(0)';
-      }
-      const cvContainer = document.querySelector('.cv-scroll-container');
-      if (cvContainer) {
-        cvContainer.style.opacity = '1';
-        cvContainer.style.visibility = 'visible';
-      }
+      forcePageVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);
       removeBlocker();
       console.log('✓ CV entrance skipped (View Transition handled it)');
     } else if (!g.entranceEnabled || reduceMotion) {
-      if (fadeContent) {
-        fadeContent.style.opacity = '1';
-        fadeContent.style.transform = 'translateZ(0)';
-      }
-      // Also reveal central content elements
-      const cvContainer = document.querySelector('.cv-scroll-container');
-      if (cvContainer) {
-        cvContainer.style.opacity = '1';
-        cvContainer.style.visibility = 'visible';
-      }
+      await waitForVisualReady();
+      forcePageVisible(['#abs-scene', '#app-frame', '.cv-scroll-container']);
       removeBlocker();
       console.log('✓ CV entrance animation skipped (disabled or reduced motion)');
     } else {
+      await waitForVisualReady();
       const { orchestrateEntrance } = await import('./visual/entrance-animation.js');
       await orchestrateEntrance({
-        waitForFonts: async () => {
-          try { await waitForFonts(); } catch (e) {}
-        },
+        waitForFonts: null,
         skipWallAnimation: true,
         centralContent: [
           '.cv-scroll-container'
-        ]
+        ],
+        contentFadeDelay: 0,
+        contentFadeDuration: revealDuration,
+        lateElementDuration: revealDuration,
+        allowScaleEntrance: shellConfig?.motion?.allowScaleEntrance
       });
       removeBlocker();
       console.log('✓ Dramatic entrance animation orchestrated (CV)');

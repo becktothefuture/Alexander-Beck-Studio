@@ -65,6 +65,9 @@ function createRoundedRectStrokePath(x, y, innerW, innerH, r) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export function drawWalls(ctx, w, h, options = {}) {
   const g = getGlobals();
+  // Simplified frame pass: frame + vignette are CSS-driven now.
+  // Keep legacy wall renderer available only if explicitly re-enabled.
+  if (g.useSimplifiedFrame !== false) return;
   if (!ctx) return;
 
   const chromeColor = CACHED_WALL_COLOR || getChromeColorFromCSS();

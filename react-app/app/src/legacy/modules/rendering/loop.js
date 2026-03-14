@@ -199,14 +199,24 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
       updatePhysics(dt, cachedForceFn ?? applyForcesFunc);
     }
     
-    // Render
-    render();
+    const isPitMode = globals?.currentMode === 'pit';
+    if (globals) {
+      globals.__pitFrameThrottled = isPitMode ? !runPhysics : false;
+    }
+
+    // Under heavy sustained pressure in Pit mode, skip rendering on frames
+    // where physics is already skipped. This reduces paint/composite load.
+    const skipRender = isPitMode && !runPhysics && adaptiveThrottleLevel >= 2;
+    if (!skipRender) {
+      render();
+    }
     
     // FPS tracking
     trackFrame(performance.now(), {
       targetFPS,
       throttleLevel: adaptiveThrottleLevel,
-      throttled: !runPhysics
+      throttled: !runPhysics,
+      rendered: !skipRender
     });
 
     if (globals) {
