@@ -102,6 +102,16 @@ function parseRgbColor(input) {
   };
 }
 
+function isTransparentColor(input) {
+  if (!input) return true;
+  const color = String(input).trim().toLowerCase();
+  if (!color || color === 'transparent') return true;
+  const rgbaMatch = color.match(/^rgba\(([^)]+)\)$/);
+  if (!rgbaMatch) return false;
+  const parts = rgbaMatch[1].split(',').map(part => Number.parseFloat(part.trim()));
+  return parts.length >= 4 && Number.isFinite(parts[3]) && parts[3] <= 0.01;
+}
+
 function relativeLuminance(rgb) {
   const toLinear = (c) => {
     const srgb = c / 255;
@@ -125,7 +135,7 @@ function resolveSceneBackgroundColor(rootStyles) {
   const sceneEl = document.getElementById('bravia-balls');
   if (sceneEl) {
     const sceneBg = getComputedStyle(sceneEl).backgroundColor?.trim();
-    if (sceneBg) return sceneBg;
+    if (sceneBg && !isTransparentColor(sceneBg)) return sceneBg;
   }
 
   const isDark = document.documentElement.classList.contains('dark-mode')
@@ -284,7 +294,9 @@ function calculateLogoSize(canvasWidth, canvasHeight, dpr) {
  */
 function getLogoCenterPosition(canvasWidth, canvasHeight, logoWidth, logoHeight) {
   const isMobile = window.innerWidth <= 600;
-  const yBias = isMobile ? Math.min(window.innerHeight * 0.045, 28) : 0;
+  const mobileBias = Math.min(window.innerHeight * 0.045, 28);
+  const shortViewportReduction = Math.max(0, 700 - window.innerHeight) * 0.18;
+  const yBias = isMobile ? Math.max(0, mobileBias - shortViewportReduction) : 0;
   return {
     x: (canvasWidth - logoWidth) / 2,
     y: ((canvasHeight - logoHeight) / 2) - yBias
