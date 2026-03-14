@@ -612,14 +612,14 @@ const state = {
   frameBorderWidth: 4,       // Border thickness in px
   frameOuterRadius: 44,      // Outer corner radius in px
   frameInnerRadius: 40,      // Inner/canvas corner radius in px
-  frameInnerSurface: '#111214', // Inner fill surface color
+  frameInnerSurface: 'var(--abs-wall-base)', // Inner fill surface color
   frameBorderGradientEdgeOpacity: 0.03, // Border gradient edge opacity
   frameBorderGradientMidOpacity: 0.06,  // Border gradient midpoint opacity
   frameVignetteEdgeOffsetY: 5,    // Inset vignette edge offset Y in px
   frameVignetteEdgeBlur: 30,      // Inset vignette edge blur in px
-  frameVignetteEdgeOpacity: 0.66, // Inset vignette edge opacity
+  frameVignetteEdgeOpacity: 0.18, // Inset vignette edge opacity
   frameVignetteAmbientBlur: 250,  // Ambient vignette blur in px
-  frameVignetteAmbientOpacity: 0.4, // Ambient vignette opacity
+  frameVignetteAmbientOpacity: 0.12, // Ambient vignette opacity
   
   // Text Colors
   textColorLight: '#161616',          // Primary text (light mode)

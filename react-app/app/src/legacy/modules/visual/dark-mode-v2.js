@@ -332,6 +332,8 @@ export function getCurrentTheme() {
  * Toggle between light and dark mode manually
  */
 export function toggleDarkMode() {
-  const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+  const isCurrentlyDark = document.documentElement.classList.contains('dark-mode')
+    || document.body.classList.contains('dark-mode');
+  const newTheme = isCurrentlyDark ? 'light' : 'dark';
   setTheme(newTheme);
 }
