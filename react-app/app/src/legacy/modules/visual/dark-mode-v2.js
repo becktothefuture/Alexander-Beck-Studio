@@ -258,10 +258,7 @@ export function setTheme(theme) {
  */
 function clearColorCache() {
   try {
-    // Clear theme preferences (will be re-initialized with unified color)
-    localStorage.removeItem(THEME_STORAGE_KEY);
-    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
-    // Clear palette rotation cache (from colors.js - actual key name)
+    // Keep the explicit theme choice; only clear derived palette caches.
     localStorage.removeItem('abs_palette_chapter');
     devLog('🗑️ Cleared color-related localStorage cache');
   } catch (e) {

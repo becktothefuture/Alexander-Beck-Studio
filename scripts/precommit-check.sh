@@ -21,7 +21,7 @@ git log --oneline -5
 echo
 
 echo "5) Staged generated/build artifacts"
-STAGED_GENERATED="$(git diff --name-only --staged -- 'react-app/app/dist/**' 'html-site/dist/**' 'output/**' 'tmp/**' '.playwright-cli/**' || true)"
+STAGED_GENERATED="$(git diff --name-only --staged -- 'react-app/app/dist/**' 'output/**' 'tmp/**' '.playwright-cli/**' || true)"
 if [ -n "$STAGED_GENERATED" ]; then
   echo "Warning: generated artifacts are staged:"
   echo "$STAGED_GENERATED"

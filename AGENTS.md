@@ -1,17 +1,14 @@
 # AGENTS.md
 
 ## Commands
-- `npm run install:all` — One-time: install root + react-app/app + html-site
-- `npm run startup` — Interactive menu: Dev (both), React only, HTML only, Install all, Build, Exit
-- `npm run dev` — Both pipelines: React on 8012, HTML on 8001 (concurrently)
+- `npm run install:all` — One-time: install root + react-app/app
+- `npm run startup` — Interactive menu: React dev, Install all, Build, Exit
+- `npm run dev` — React app dev server on 8012
 - `npm run dev:react` — React app dev server only (port 8012, Vite HMR)
-- `npm run dev:html` — HTML site dev server only (port 8001)
 - `npm run build` — React production build (minified) → `react-app/app/dist/`
 - `npm run build:dev` — React unminified build + sourcemaps
 - `npm run preview` — Serve React build (port 8013)
 - `npm run start` — Alias for preview
-- `npm run html:build` / `npm run html:build:dev` — HTML site build (isolated in `html-site/`)
-- `npm run html:dev` / `npm run html:start` / `npm run html:watch` — HTML-only workflows
 - No automated tests; manual testing required (all 20 modes, 60 FPS, mobile)
 
 ## Architecture
@@ -21,7 +18,6 @@
 - Legacy runtime: `react-app/app/src/legacy/` (modules, main.js, cv-init, etc.) — no imports from repo root
 - Config: `react-app/app/public/config/default-config.json` (and portfolio/cv configs)
 - Build: Vite → `react-app/app/dist/`
-- **Isolated HTML:** `html-site/` — self-contained (source/, build-production.js, Rollup), built via `npm run html:build`
 
 ## Code Style
 - **ES Modules**: Always include `.js` extension in imports

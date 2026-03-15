@@ -133,8 +133,9 @@ export function transitionToWallState(options = {}) {
         : '42px')
     : resolvedFrameRadius;
   
-  // Initial scale (1.1 = subtle growth effect, not too dramatic)
-  const initialScale = g.entranceWallInitialScale || 1.1;
+  // Keep the wall inside the viewport throughout the entrance animation.
+  const configuredInitialScale = Number(g.entranceWallInitialScale) || 1.1;
+  const initialScale = Math.min(configuredInitialScale, 1);
   
   // Animation easing
   const easing = g.entranceWallEasing || 'cubic-bezier(0.16, 1, 0.3, 1)';

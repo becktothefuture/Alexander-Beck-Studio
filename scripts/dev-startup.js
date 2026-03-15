@@ -56,10 +56,9 @@ function checkBuildOutput() {
   return fs.existsSync(reactDistIndex);
 }
 
-function checkReactAndHtmlPackages() {
+function checkReactPackage() {
   const reactPkg = path.join(process.cwd(), 'react-app', 'app', 'package.json');
-  const htmlPkg = path.join(process.cwd(), 'html-site', 'package.json');
-  return fs.existsSync(reactPkg) && fs.existsSync(htmlPkg);
+  return fs.existsSync(reactPkg);
 }
 
 function runHealthCheck() {
@@ -67,7 +66,7 @@ function runHealthCheck() {
   
   const checks = [
     { name: 'Root dependencies installed', passed: checkNodeModules(), fix: 'npm install' },
-    { name: 'React + HTML packages present', passed: checkReactAndHtmlPackages(), fix: 'Check react-app/app/ and html-site/ directories' },
+    { name: 'React app present', passed: checkReactPackage(), fix: 'Check react-app/app/ directory' },
     { name: 'React build output (optional)', passed: checkBuildOutput(), fix: 'npm run build' },
   ];
   
@@ -101,7 +100,7 @@ function startServer(name, command, port, description) {
     // Parse the command - handle npm scripts by extracting the actual command
     let cmd, args, cwd;
     
-    if (command === 'npm run dev' || command === 'npm run dev:react' || command === 'npm run dev:html' || command === 'npm run preview') {
+    if (command === 'npm run dev' || command === 'npm run dev:react' || command === 'npm run preview') {
       const script = command.replace('npm run ', '');
       cmd = 'npm';
       args = ['run', script];
@@ -192,27 +191,19 @@ async function showMenu() {
   
   log('Choose your development mode:\n', 'bright');
   
-  log('1. 🚀 Dev (both) — RECOMMENDED', 'bright');
-  log('   React on 8012 + HTML on 8001 | Single npm run dev', 'dim');
-  log('   Best for: Daily development with both surfaces\n', 'dim');
-  
-  log('2. ⚛️  React only', 'bright');
-  log('   Port 8012 | Vite HMR | React app', 'dim');
-  log('   Best for: Working on React app only\n', 'dim');
-  
-  log('3. 📄 HTML only', 'bright');
-  log('   Port 8001 | html-site/source | Legacy HTML app', 'dim');
-  log('   Best for: Working on isolated HTML site\n', 'dim');
-  
-  log('4. 📦 Install all', 'bright');
-  log('   Install root + react-app/app + html-site deps', 'dim');
+  log('1. ⚛️  React dev server', 'bright');
+  log('   Port 8012 | Vite HMR | Primary app', 'dim');
+  log('   Best for: Daily development\n', 'dim');
+
+  log('2. 📦 Install all', 'bright');
+  log('   Install root + react-app/app deps', 'dim');
   log('   Run once after clone or when adding deps\n', 'dim');
-  
-  log('5. 🏗️  Build only (React)', 'bright');
+
+  log('3. 🏗️  Build only (React)', 'bright');
   log('   Run production build and exit', 'dim');
   log('   Best for: Preparing for deployment\n', 'dim');
-  
-  log('6. ❌ Exit\n', 'bright');
+
+  log('4. ❌ Exit\n', 'bright');
   
   const rl = readline.createInterface({
     input: process.stdin,
@@ -220,7 +211,7 @@ async function showMenu() {
   });
   
   return new Promise((resolve) => {
-    rl.question(colors.bright + 'Select option (1-6): ' + colors.reset, (answer) => {
+    rl.question(colors.bright + 'Select option (1-4): ' + colors.reset, (answer) => {
       rl.close();
       resolve(answer.trim());
     });
@@ -251,25 +242,7 @@ async function runBuild() {
 // MODE HANDLERS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function devBothMode() {
-  header('DEV (BOTH) — REACT + HTML');
-  log('Starting React (8012) and HTML (8001)...\n', 'cyan');
-
-  await startServer(
-    'Dev (both)',
-    'npm run dev',
-    8012,
-    'React on 8012, HTML on 8001 — press Ctrl+C to stop'
-  );
-
-  console.log();
-  log('🎯 BOTH PIPELINES READY!', 'bright');
-  log(`   React: ${colors.bright}${colors.cyan}http://localhost:8012${colors.reset}`, 'green');
-  log(`   HTML:  ${colors.bright}${colors.cyan}http://localhost:8001${colors.reset}`, 'green');
-  log('\n   Press Ctrl+C to stop\n', 'yellow');
-}
-
-async function reactOnlyMode() {
+async function reactDevMode() {
   header('REACT APP — DEV SERVER');
   log('Starting React app (Vite) on port 8012...\n', 'cyan');
 
@@ -286,26 +259,9 @@ async function reactOnlyMode() {
   log('\n   Press Ctrl+C to stop\n', 'yellow');
 }
 
-async function htmlOnlyMode() {
-  header('HTML SITE — DEV SERVER');
-  log('Starting HTML site on port 8001...\n', 'cyan');
-
-  await startServer(
-    'HTML Site',
-    'npm run dev:html',
-    8001,
-    'Serving html-site/source — legacy HTML app'
-  );
-
-  console.log();
-  log('📄 HTML SITE READY!', 'bright');
-  log(`   Open: ${colors.bright}${colors.cyan}http://localhost:8001${colors.reset}`, 'green');
-  log('\n   Press Ctrl+C to stop\n', 'yellow');
-}
-
 async function installAllMode() {
   header('INSTALL ALL');
-  log('Installing root + react-app/app + html-site...\n', 'cyan');
+  log('Installing root + react-app/app...\n', 'cyan');
   const child = spawn('npm', ['run', 'install:all'], { stdio: 'inherit', shell: true, cwd: process.cwd() });
   child.on('close', (code) => {
     if (code === 0) log('\n✅ Install complete. You can run npm run dev or npm run startup.\n', 'green');
@@ -345,27 +301,21 @@ async function main() {
   // Handle choice
   switch (choice) {
     case '1':
-      await devBothMode();
+      await reactDevMode();
       break;
     case '2':
-      await reactOnlyMode();
-      break;
-    case '3':
-      await htmlOnlyMode();
-      break;
-    case '4':
       await installAllMode();
       return;
-    case '5':
+    case '3':
       await buildOnlyMode();
       process.exit(0);
       break;
-    case '6':
+    case '4':
       log('👋 Goodbye!\n', 'cyan');
       process.exit(0);
       break;
     default:
-      log('❌ Invalid option. Please choose 1-6.\n', 'red');
+      log('❌ Invalid option. Please choose 1-4.\n', 'red');
       process.exit(1);
   }
   
@@ -386,4 +336,3 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-

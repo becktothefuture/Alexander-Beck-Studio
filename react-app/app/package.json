@@ -6,8 +6,6 @@
   "scripts": {
     "dev": "vite --port 8002",
     "dev:react": "vite --port 8002",
-    "dev:source": "npm --prefix ../.. run dev:html",
-    "dev:side-by-side": "sh -c 'npm run dev:source & npm run dev:react & wait'",
     "build": "vite build",
     "build:dev": "vite build --minify false --sourcemap",
     "lint": "eslint .",

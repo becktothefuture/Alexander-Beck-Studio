@@ -2,7 +2,7 @@
 
 **Primary (React app) source of truth:** `react-app/app/public/config/default-config.json`
 
-This document describes the configuration keys loaded at runtime. The React app serves config from `react-app/app/public/config/`. The isolated HTML site uses `html-site/source/config/` (see `html-site/README.md`).
+This document describes the configuration keys loaded at runtime. The React app serves config from `react-app/app/public/config/`.
 
 ---
 
@@ -39,7 +39,7 @@ Relevant keys (all strings, applied as CSS variables):
 
 ### Portfolio `runtime.sound` (Carousel scroll + detail SFX)
 
-These keys control the **portfolio carousel sound cues** (implemented in `source/modules/portfolio/app.js` using `source/modules/audio/sound-engine.js`).
+These keys control the **portfolio carousel sound cues** (implemented in `react-app/app/src/legacy/modules/portfolio/app.js` using `react-app/app/src/legacy/modules/audio/sound-engine.js`).
 
 Portfolio content (cover + gallery + detail blocks) is pulled from `react-app/app/public/config/contents-portfolio.json` and resolved against `react-app/app/public/images/portfolio/`.
 
@@ -92,7 +92,7 @@ If nothing loads, it falls back to a small in-code default.
 
 Simulation settings persistence is **disabled by default**.
 
-To enable it, set `LOCALSTORAGE_ENABLED = true` in `source/modules/utils/storage.js` and rebuild.
+To enable it, set `LOCALSTORAGE_ENABLED = true` in `react-app/app/src/legacy/modules/utils/storage.js` and rebuild.
 
 ### Panel UI state persistence
 

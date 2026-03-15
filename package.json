@@ -6,29 +6,22 @@
   "author": "Alexander Beck",
   "license": "MIT",
   "scripts": {
-    "install:all": "npm install && npm install --prefix react-app/app && npm install --prefix html-site",
-    "dev": "concurrently -n react,html \"npm run dev:react\" \"npm run dev:html\"",
+    "install:all": "npm install && npm install --prefix react-app/app",
+    "dev": "npm run dev:react",
     "dev:react": "npm run dev --prefix react-app/app -- --port 8012",
-    "dev:html": "npm run dev --prefix html-site",
     "build": "npm run build --prefix react-app/app",
     "build:dev": "npm run build:dev --prefix react-app/app",
     "preview": "npm run preview --prefix react-app/app -- --port 8013",
     "start": "npm run preview",
     "startup": "node scripts/dev-startup.js",
-    "html:dev": "npm run dev --prefix html-site",
-    "html:build": "npm run build --prefix html-site",
-    "html:build:dev": "npm run build:dev --prefix html-site",
-    "html:start": "npm run start --prefix html-site",
-    "html:watch": "npm run watch --prefix html-site",
     "precommit:check": "bash scripts/precommit-check.sh",
-    "clean": "rm -rf html-site/dist react-app/app/dist",
+    "clean": "rm -rf react-app/app/dist",
     "figma:socket": "bunx cursor-talk-to-figma-socket",
     "figma:setup": "npm install && echo '✅ Dependencies installed. Next: Install bun (curl -fsSL https://bun.sh/install | bash)'",
     "figma:config": "node scripts/setup-figma-mcp-config.js"
   },
   "devDependencies": {
     "@tabler/icons-webfont": "^3.35.0",
-    "concurrently": "^9.1.2",
     "lighthouse": "^11.7.1"
   },
   "keywords": [

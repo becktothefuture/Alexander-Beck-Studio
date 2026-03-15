@@ -21,37 +21,32 @@ This project powers an interactive homepage where motion, physics, and narrative
 
 - 20 simulation modes across gravity, swarm/flow, elastic, fluid, optical, parallax, and 3D families
 - 120Hz fixed-timestep physics with spatial hashing and optimized hot paths
-- Curated production runtime; dev: React on 8012, HTML (legacy) on 8001
+- Curated production runtime; dev: React on 8012, preview on 8013
 - Accessibility-conscious interactions and `prefers-reduced-motion` support
 - Privacy-first defaults with local settings storage only
 
 ## Quick Start
 ```bash
-npm run install:all   # first-time: root + react-app/app + html-site
-npm run dev           # React (8012) + HTML (8001) together
+npm run install:all   # first-time: root + react-app/app
+npm run dev           # React dev server (8012)
 npm run preview       # Serve React build (port 8013)
 ```
 
 Open:
 - React: `http://localhost:8012`
-- HTML (legacy): `http://localhost:8001`
 - Production preview: `http://localhost:8013` (after `npm run build`)
-
-Primary surface is the **React app** (`react-app/app/`). The HTML site is isolated in `html-site/` for reference.
 
 ## Scripts
 | Command | Purpose |
 | --- | --- |
 | `npm run startup` | Interactive menu (recommended) |
-| `npm run install:all` | Install all deps (root, react-app, html-site) |
-| `npm run dev` | React + HTML dev servers (8012 + 8001) |
+| `npm run install:all` | Install all deps (root, react-app) |
+| `npm run dev` | React dev server (8012) |
 | `npm run dev:react` | React only (port 8012) |
-| `npm run dev:html` | HTML only (port 8001) |
 | `npm run build` | React production build → `react-app/app/dist/` |
 | `npm run build:dev` | React unminified build + sourcemaps |
 | `npm run preview` | Serve React build (port 8013) |
-| `npm run html:build` | HTML site build → `html-site/dist/` |
-| `npm run clean` | Remove html-site/dist and react-app/app/dist |
+| `npm run clean` | Remove `react-app/app/dist` |
 
 ## Core Experience
 - **Narrative mode cycling**: Arrow-key progression through a curated sequence
@@ -64,10 +59,9 @@ Primary surface is the **React app** (`react-app/app/`). The HTML site is isolat
 ### Architecture
 ```text
 react-app/app/     # Primary: Vite React app (src/, public/, dist/)
-html-site/         # Isolated HTML pipeline (source/, build, dist/)
 docs/              # Development + reference docs
 ```
-Edit `react-app/app/src/` and `react-app/app/public/` for the main site. Edit `html-site/source/` only for the legacy HTML build.
+Edit `react-app/app/src/` and `react-app/app/public/` for the main site.
 
 ### Engineering Constraints
 - O(1) behavior in hot paths and no allocations inside core physics loops
@@ -109,7 +103,6 @@ For full setup and host-page constraints, see [`docs/reference/INTEGRATION.md`](
 - [MDN: Canvas API](https://developer.mozilla.org/docs/Web/API/Canvas_API)
 - [MDN: Web Audio API](https://developer.mozilla.org/docs/Web/API/Web_Audio_API)
 - [MDN: JavaScript Modules](https://developer.mozilla.org/docs/Web/JavaScript/Guide/Modules)
-- [Rollup Documentation](https://rollupjs.org/)
 - [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
 
 ## Controls
@@ -122,7 +115,7 @@ For full setup and host-page constraints, see [`docs/reference/INTEGRATION.md`](
 
 ## Contributing
 1. Run `npm run dev`.
-2. Make changes in `source/` only.
+2. Make changes in `react-app/app/` only.
 3. Keep docs and behavior aligned (`docs/` is authoritative).
 4. Follow conventional commit style (`feat:`, `fix:`, `perf:`, `docs:`).
 
