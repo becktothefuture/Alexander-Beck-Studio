@@ -130,20 +130,14 @@ function isNightByLocalClock() {
  */
 function updateThemeColor(isDark) {
   const g = getGlobals();
-  // Prefer currently-applied CSS vars (post-harmony), then config fallback.
-  const cssActive = readTokenVar('--wall-color', '');
-  const cssLight = readTokenVar('--wall-color-light', '');
-  const cssDark = readTokenVar('--wall-color-dark', '');
+  const cssChrome = readTokenVar('--abs-browser-chrome', '');
   const fallback = g?.frameColor || g?.frameColorLight || g?.frameColorDark || '#242529';
-
-  const activeColor = cssActive || (isDark ? (cssDark || cssLight) : (cssLight || cssDark)) || fallback;
-  const lightColor = cssLight || activeColor || fallback;
-  const darkColor = cssDark || activeColor || fallback;
+  const activeColor = cssChrome || fallback;
   
   syncThemeColorMeta({
     active: activeColor,
-    light: lightColor,
-    dark: darkColor
+    light: activeColor,
+    dark: activeColor
   });
 }
 

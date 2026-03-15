@@ -136,25 +136,32 @@ export function resolveShellPalette(config = currentShellConfig, isDark = docume
   };
 }
 
+function getStableBrowserChromeColor(config = currentShellConfig) {
+  return config?.theme?.lockedHeaderLight
+    || config?.theme?.wallBaseLight
+    || DEFAULT_SHELL_CONFIG.theme.lockedHeaderLight;
+}
+
 export function applyShellPalette({ light, dark, active }) {
   const root = document.documentElement;
   const nextActive = active || dark || light || DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
   const nextLight = light || nextActive;
   const nextDark = dark || nextActive;
+  const nextChrome = getStableBrowserChromeColor();
 
   root.style.setProperty('--abs-wall-base-light', nextLight);
   root.style.setProperty('--abs-wall-base-dark', nextDark);
   root.style.setProperty('--abs-wall-base', nextActive);
-  root.style.setProperty('--abs-browser-chrome', nextActive);
+  root.style.setProperty('--abs-browser-chrome', nextChrome);
   root.style.setProperty('--frame-color-light', nextLight);
   root.style.setProperty('--frame-color-dark', nextDark);
   root.style.setProperty('--frame-color', nextActive);
   root.style.setProperty('--wall-color-light', nextLight);
   root.style.setProperty('--wall-color-dark', nextDark);
   root.style.setProperty('--wall-color', nextActive);
-  root.style.setProperty('--chrome-bg-light', nextLight);
-  root.style.setProperty('--chrome-bg-dark', nextDark);
-  root.style.setProperty('--chrome-bg', nextActive);
+  root.style.setProperty('--chrome-bg-light', nextChrome);
+  root.style.setProperty('--chrome-bg-dark', nextChrome);
+  root.style.setProperty('--chrome-bg', nextChrome);
 }
 
 export function applyShellLayoutVars(config = currentShellConfig) {
@@ -182,9 +189,10 @@ export function applyShellLayoutVars(config = currentShellConfig) {
 }
 
 export function syncThemeColorMeta({ light, dark, active }) {
+  const chromeColor = getStableBrowserChromeColor();
   const entries = [
-    { media: '(prefers-color-scheme: light)', color: light || active },
-    { media: '(prefers-color-scheme: dark)', color: dark || active }
+    { media: '(prefers-color-scheme: light)', color: chromeColor || light || active },
+    { media: '(prefers-color-scheme: dark)', color: chromeColor || dark || active }
   ];
 
   entries.forEach(({ media, color }) => {
@@ -204,7 +212,7 @@ export function syncThemeColorMeta({ light, dark, active }) {
     fallback.name = 'theme-color';
     document.head.appendChild(fallback);
   }
-  fallback.content = active || dark || light;
+  fallback.content = chromeColor || active || dark || light;
 }
 
 export function syncShellToDocument(options = {}) {
