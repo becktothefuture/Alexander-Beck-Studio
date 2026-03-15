@@ -19,11 +19,9 @@ export function syncWallFrameColors(config) {
   // Backgrounds (inner surface uses --bg-light / --bg-dark like the studio index).
   if (config.bgLight) {
     root.style.setProperty('--bg-light', config.bgLight);
-    root.style.setProperty('--chrome-bg-light', config.bgLight);
   }
   if (config.bgDark) {
     root.style.setProperty('--bg-dark', config.bgDark);
-    root.style.setProperty('--chrome-bg-dark', config.bgDark);
   }
 
   // Frame colors: store light/dark site defaults.
@@ -32,9 +30,11 @@ export function syncWallFrameColors(config) {
   const frameLight = config.frameColorLight || config.frameColor;
   const frameDark = config.frameColorDark || config.frameColor;
   if (frameLight) {
+    root.style.setProperty('--frame-color-site-light', frameLight);
     root.style.setProperty('--frame-color-light', frameLight);
   }
   if (frameDark) {
+    root.style.setProperty('--frame-color-site-dark', frameDark);
     root.style.setProperty('--frame-color-dark', frameDark);
   }
   // Keep light/dark defaults available for later theme/harmony decisions.

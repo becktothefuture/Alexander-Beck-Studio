@@ -2605,33 +2605,16 @@ export const CONTROL_SECTIONS = {
         stateKey: 'frameColorLight',
         type: 'color',
         default: '#242529',
-        hint: 'Wall color (unified across all modes, also used for browser chrome)',
+        hint: 'Canonical outer frame color for light-mode browser harmony and meta tinting',
         onChange: (g, val) => {
           const root = document.documentElement;
-          // Unified wall color: set all variants to the same value
-          root.style.setProperty('--frame-color', val);
+          root.style.setProperty('--frame-color-site-light', val);
           root.style.setProperty('--frame-color-light', val);
-          root.style.setProperty('--frame-color-dark', val);
-          root.style.setProperty('--wall-color', val);
           root.style.setProperty('--wall-color-light', val);
-          root.style.setProperty('--wall-color-dark', val);
-          root.style.setProperty('--abs-browser-chrome', val);
-          root.style.setProperty('--chrome-bg', val);
           root.style.setProperty('--chrome-bg-light', val);
-          root.style.setProperty('--chrome-bg-dark', val);
-          g.frameColor = val;
           g.frameColorLight = val;
-          g.frameColorDark = val;
-          // Update browser chrome meta tags (all use unified color)
-          const meta = document.querySelector('meta[name="theme-color"]:not([media])');
-          if (meta) meta.content = val;
-          const metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
-          if (metaLight) metaLight.content = val;
-          const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
-          if (metaDark) metaDark.content = val;
-          // Invalidate wall color cache so it picks up the new color immediately
-          import('../physics/engine.js').then(mod => {
-            mod.syncChromeColor();
+          import('../visual/dark-mode-v2.js').then(mod => {
+            mod.setTheme(mod.getCurrentTheme());
           });
         }
       },
@@ -2641,33 +2624,16 @@ export const CONTROL_SECTIONS = {
         stateKey: 'frameColorDark',
         type: 'color',
         default: '#242529',
-        hint: 'Wall color (unified across all modes, also used for browser chrome)',
+        hint: 'Canonical outer frame color for dark-mode browser harmony and meta tinting',
         onChange: (g, val) => {
           const root = document.documentElement;
-          // Unified wall color: set all variants to the same value
-          root.style.setProperty('--frame-color', val);
-          root.style.setProperty('--frame-color-light', val);
+          root.style.setProperty('--frame-color-site-dark', val);
           root.style.setProperty('--frame-color-dark', val);
-          root.style.setProperty('--wall-color', val);
-          root.style.setProperty('--wall-color-light', val);
           root.style.setProperty('--wall-color-dark', val);
-          root.style.setProperty('--abs-browser-chrome', val);
-          root.style.setProperty('--chrome-bg', val);
-          root.style.setProperty('--chrome-bg-light', val);
           root.style.setProperty('--chrome-bg-dark', val);
-          g.frameColor = val;
-          g.frameColorLight = val;
           g.frameColorDark = val;
-          // Update browser chrome meta tags (all use unified color)
-          const meta = document.querySelector('meta[name="theme-color"]:not([media])');
-          if (meta) meta.content = val;
-          const metaLight = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: light)"]');
-          if (metaLight) metaLight.content = val;
-          const metaDark = document.querySelector('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]');
-          if (metaDark) metaDark.content = val;
-          // Invalidate wall color cache so it picks up the new color immediately
-          import('../physics/engine.js').then(mod => {
-            mod.syncChromeColor();
+          import('../visual/dark-mode-v2.js').then(mod => {
+            mod.setTheme(mod.getCurrentTheme());
           });
         }
       },

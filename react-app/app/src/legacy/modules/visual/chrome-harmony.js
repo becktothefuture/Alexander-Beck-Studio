@@ -4,7 +4,12 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { applyFrameChromePalette, getShellConfig } from './site-shell.js';
+import {
+  applyFrameChromePalette,
+  getShellConfig,
+  resolveBrowserFramePalette,
+  resolveSiteFramePalette,
+} from './site-shell.js';
 
 let _siteFrameLight = null;
 let _siteFrameDark = null;
@@ -16,9 +21,9 @@ const FIREFOX_LOCKED_DARK_FALLBACK = '#1c1b22';
 
 function captureSiteFrameColorsIfNeeded() {
   if (_siteFrameLight && _siteFrameDark) return;
-  const g = getGlobals();
-  _siteFrameLight = g?.frameColorLight || g?.frameColor || CHROMIUM_LOCKED_DARK_FALLBACK;
-  _siteFrameDark = g?.frameColorDark || g?.frameColor || CHROMIUM_LOCKED_DARK_FALLBACK;
+  const palette = resolveSiteFramePalette(false);
+  _siteFrameLight = palette.light || CHROMIUM_LOCKED_DARK_FALLBACK;
+  _siteFrameDark = palette.dark || CHROMIUM_LOCKED_DARK_FALLBACK;
 }
 
 function detectBrowserFamily() {
@@ -91,28 +96,20 @@ function restoreSiteWallColor(isDark) {
     applyThemeAwareWallColor(_siteFrameLight, _siteFrameDark, isDark);
     return;
   }
-  const shell = getShellConfig();
-  const g = getGlobals();
-  const light = g?.frameColorLight || g?.frameColor || CHROMIUM_LOCKED_DARK_FALLBACK;
-  const dark = g?.frameColorDark || g?.frameColor || CHROMIUM_LOCKED_DARK_FALLBACK;
-  applyThemeAwareWallColor(light, dark, isDark);
+  const palette = resolveSiteFramePalette(isDark);
+  applyThemeAwareWallColor(palette.light, palette.dark, isDark);
 }
 
 function applyBrowserWallColor(isDark, family) {
   captureSiteFrameColorsIfNeeded();
-  const shell = getShellConfig();
   if (family.isFirefox) {
-    const firefoxFallback = isDark
-      ? (shell?.theme?.lockedHeaderDark || FIREFOX_LOCKED_DARK_FALLBACK)
-      : (shell?.theme?.lockedHeaderLight || FIREFOX_LOCKED_LIGHT_FALLBACK);
-    applyWallColor(firefoxFallback, isDark);
+    const palette = resolveBrowserFramePalette(getShellConfig(), isDark);
+    applyWallColor(isDark ? (palette.dark || FIREFOX_LOCKED_DARK_FALLBACK) : (palette.light || FIREFOX_LOCKED_LIGHT_FALLBACK), isDark);
     return;
   }
 
-  const chromiumFallback = isDark
-    ? (shell?.theme?.lockedHeaderDark || CHROMIUM_LOCKED_DARK_FALLBACK)
-    : (shell?.theme?.lockedHeaderLight || CHROMIUM_LOCKED_LIGHT_FALLBACK);
-  applyWallColor(chromiumFallback, isDark);
+  const palette = resolveBrowserFramePalette(getShellConfig(), isDark);
+  applyWallColor(isDark ? (palette.dark || CHROMIUM_LOCKED_DARK_FALLBACK) : (palette.light || CHROMIUM_LOCKED_LIGHT_FALLBACK), isDark);
 }
 
 /**

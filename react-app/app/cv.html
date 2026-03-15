@@ -7,8 +7,8 @@
         width: 100%;
         min-height: 100%;
         margin: 0;
-        background: var(--abs-wall-base, #202124);
-        background-color: var(--abs-wall-base, #202124);
+        background: var(--abs-browser-chrome, #202124);
+        background-color: var(--abs-browser-chrome, #202124);
       }
     </style>
     <script>
@@ -17,6 +17,8 @@
         var DEFAULTS = {
           wallBaseLight: '#f1f3f4',
           wallBaseDark: '#202124',
+          frameColorLight: '#202124',
+          frameColorDark: '#202124',
           lockedHeaderLight: '#f1f3f4',
           lockedHeaderDark: '#3c3c3c'
         };
@@ -78,33 +80,38 @@
         function applyPalette(isDark) {
           var family = detectBrowserFamily();
           var useLockedPalette = !family.isSafari && !themeColorLikelyApplied(family);
-          var light = useLockedPalette ? DEFAULTS.lockedHeaderLight : DEFAULTS.wallBaseLight;
-          var dark = useLockedPalette ? DEFAULTS.lockedHeaderDark : DEFAULTS.wallBaseDark;
-          var active = isDark ? dark : light;
+          var innerLight = DEFAULTS.wallBaseLight;
+          var innerDark = DEFAULTS.wallBaseDark;
+          var frameLight = useLockedPalette ? DEFAULTS.lockedHeaderLight : DEFAULTS.frameColorLight;
+          var frameDark = useLockedPalette ? DEFAULTS.lockedHeaderDark : DEFAULTS.frameColorDark;
+          var activeInner = isDark ? innerDark : innerLight;
+          var activeFrame = isDark ? frameDark : frameLight;
 
           root.style.colorScheme = isDark ? 'dark' : 'light';
-          root.style.setProperty('--abs-wall-base-light', light);
-          root.style.setProperty('--abs-wall-base-dark', dark);
-          root.style.setProperty('--abs-wall-base', active);
-          root.style.setProperty('--abs-browser-chrome', active);
-          root.style.setProperty('--frame-color-light', light);
-          root.style.setProperty('--frame-color-dark', dark);
-          root.style.setProperty('--frame-color', active);
-          root.style.setProperty('--wall-color-light', light);
-          root.style.setProperty('--wall-color-dark', dark);
-          root.style.setProperty('--wall-color', active);
-          root.style.setProperty('--chrome-bg-light', light);
-          root.style.setProperty('--chrome-bg-dark', dark);
-          root.style.setProperty('--chrome-bg', active);
+          root.style.setProperty('--abs-wall-base-light', innerLight);
+          root.style.setProperty('--abs-wall-base-dark', innerDark);
+          root.style.setProperty('--abs-wall-base', activeInner);
+          root.style.setProperty('--frame-color-site-light', DEFAULTS.frameColorLight);
+          root.style.setProperty('--frame-color-site-dark', DEFAULTS.frameColorDark);
+          root.style.setProperty('--abs-browser-chrome', activeFrame);
+          root.style.setProperty('--frame-color-light', frameLight);
+          root.style.setProperty('--frame-color-dark', frameDark);
+          root.style.setProperty('--frame-color', activeFrame);
+          root.style.setProperty('--wall-color-light', frameLight);
+          root.style.setProperty('--wall-color-dark', frameDark);
+          root.style.setProperty('--wall-color', activeFrame);
+          root.style.setProperty('--chrome-bg-light', frameLight);
+          root.style.setProperty('--chrome-bg-dark', frameDark);
+          root.style.setProperty('--chrome-bg', activeFrame);
           root.style.setProperty('--abs-safe-top', 'env(safe-area-inset-top, 0px)');
           root.style.setProperty('--abs-safe-right', 'env(safe-area-inset-right, 0px)');
           root.style.setProperty('--abs-safe-bottom', 'env(safe-area-inset-bottom, 0px)');
           root.style.setProperty('--abs-safe-left', 'env(safe-area-inset-left, 0px)');
           root.dataset.absBootState = 'shell-visible';
 
-          syncMeta('theme-color', '(prefers-color-scheme: light)', light);
-          syncMeta('theme-color', '(prefers-color-scheme: dark)', dark);
-          syncMeta('theme-color', '', active);
+          syncMeta('theme-color', '(prefers-color-scheme: light)', frameLight);
+          syncMeta('theme-color', '(prefers-color-scheme: dark)', frameDark);
+          syncMeta('theme-color', '', activeFrame);
           syncMeta('apple-mobile-web-app-status-bar-style', '', 'black-translucent');
         }
 

@@ -142,6 +142,9 @@ async function bootstrapCvPage() {
     runtimeConfig = await loadRuntimeConfig();
     // Initialize state with runtime config so all global parameters are available
     applyWallFrameFromConfig(runtimeConfig);
+    syncShellToDocument({
+      isDark: document.documentElement.classList.contains('dark-mode')
+    });
     requestAnimationFrame(() => {
       applyWallFrameLayout();
     });
@@ -181,14 +184,6 @@ async function bootstrapCvPage() {
   rotatePaletteChapterOnReload();
 
   initializeDarkMode();
-
-  // Keep chrome background in sync with whichever wall color is currently active
-  // (site color or browser-adapted harmony color).
-  const root = document.documentElement;
-  const activeWallColor = getComputedStyle(root).getPropertyValue('--wall-color').trim();
-  if (activeWallColor) {
-    root.style.setProperty('--chrome-bg', activeWallColor);
-  }
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                    STEP 7: SHARED UI CHROME                                  ║

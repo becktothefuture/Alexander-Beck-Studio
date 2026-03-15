@@ -3,8 +3,8 @@ const DEFAULT_SHELL_CONFIG = {
     wallBaseLight: '#f1f3f4',
     wallBaseDark: '#202124',
     chromeHarmonyMode: 'adaptive',
-    lockedHeaderLight: '#202124',
-    lockedHeaderDark: '#202124'
+    lockedHeaderLight: '#f1f3f4',
+    lockedHeaderDark: '#3c3c3c'
   },
   layout: {
     frameInsetDesktop: '16px',
@@ -133,14 +133,40 @@ function getDefaultFrameColor() {
   return '#202124';
 }
 
-export function resolveFrameChromePalette(isDark = document.documentElement.classList.contains('dark-mode')) {
+function readCssVar(name) {
   const root = document.documentElement;
   const styles = getComputedStyle(root);
-  const light = styles.getPropertyValue('--frame-color-light').trim() || getDefaultFrameColor();
-  const dark = styles.getPropertyValue('--frame-color-dark').trim() || light || getDefaultFrameColor();
+  return styles.getPropertyValue(name).trim();
+}
+
+export function resolveSiteFramePalette(isDark = document.documentElement.classList.contains('dark-mode')) {
+  const light = readCssVar('--frame-color-site-light')
+    || readCssVar('--frame-color-light')
+    || getDefaultFrameColor();
+  const dark = readCssVar('--frame-color-site-dark')
+    || readCssVar('--frame-color-dark')
+    || light
+    || getDefaultFrameColor();
   const active = isDark ? dark : light;
 
   return { light, dark, active };
+}
+
+export function resolveBrowserFramePalette(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
+  const light = config?.theme?.lockedHeaderLight || DEFAULT_SHELL_CONFIG.theme.lockedHeaderLight;
+  const dark = config?.theme?.lockedHeaderDark || DEFAULT_SHELL_CONFIG.theme.lockedHeaderDark;
+  const active = isDark ? dark : light;
+
+  return { light, dark, active };
+}
+
+export function applySiteFramePalette({ light, dark }) {
+  const root = document.documentElement;
+  const nextLight = light || getDefaultFrameColor();
+  const nextDark = dark || nextLight;
+
+  root.style.setProperty('--frame-color-site-light', nextLight);
+  root.style.setProperty('--frame-color-site-dark', nextDark);
 }
 
 export function applyFrameChromePalette({ light, dark, active }) {
@@ -197,7 +223,7 @@ export function applyShellLayoutVars(config = currentShellConfig) {
 }
 
 export function syncThemeColorMeta() {
-  const { light, dark, active } = resolveFrameChromePalette();
+  const { light, dark, active } = applyFramePaletteReadback();
   const entries = [
     { media: '(prefers-color-scheme: light)', color: light || active },
     { media: '(prefers-color-scheme: dark)', color: dark || active }
@@ -223,17 +249,27 @@ export function syncThemeColorMeta() {
   fallback.content = active || dark || light;
 }
 
+function applyFramePaletteReadback(isDark = document.documentElement.classList.contains('dark-mode')) {
+  const light = readCssVar('--frame-color-light') || getDefaultFrameColor();
+  const dark = readCssVar('--frame-color-dark') || light || getDefaultFrameColor();
+  const active = readCssVar('--frame-color') || (isDark ? dark : light);
+
+  return { light, dark, active };
+}
+
 export function syncShellToDocument(options = {}) {
   const config = options.config || currentShellConfig;
   const isDark = options.isDark ?? document.documentElement.classList.contains('dark-mode');
-  const palette = resolveShellPalette(config, isDark);
+  const innerPalette = resolveShellPalette(config, isDark);
+  const siteFramePalette = resolveSiteFramePalette(isDark);
 
   applyShellLayoutVars(config);
-  applyShellPalette(palette);
-  applyFrameChromePalette(resolveFrameChromePalette(isDark));
+  applyShellPalette(innerPalette);
+  applySiteFramePalette(siteFramePalette);
+  applyFrameChromePalette(siteFramePalette);
   syncThemeColorMeta();
 
-  return palette;
+  return innerPalette;
 }
 
 export function getSimulationWarmupMs(config = currentShellConfig) {

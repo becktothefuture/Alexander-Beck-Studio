@@ -278,6 +278,9 @@ window.addEventListener('unhandledrejection', (event) => {
     
     const config = await loadRuntimeConfig();
     initState(config);
+    syncShellToDocument({
+      isDark: document.documentElement.classList.contains('dark-mode')
+    });
     mark('bb:config');
     log('✓ Config loaded');
 

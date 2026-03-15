@@ -291,19 +291,20 @@ function getChromeColorFromCSS() {
       }
     };
 
-    // Try --wall-color first (theme-aware)
-    let color = read(root, '--wall-color');
+    // The browser-facing wall should follow the resolved chrome/frame color,
+    // not the inner wall surface token.
+    let color = read(root, '--chrome-bg') || read(root, '--abs-browser-chrome');
     if (!color) {
       const isDark = root.classList.contains('dark-mode') || body.classList.contains('dark-mode');
       if (isDark) {
-        color = read(root, '--wall-color-dark') || read(root, '--frame-color-dark');
+        color = read(root, '--chrome-bg-dark') || read(root, '--frame-color-dark');
       } else {
-        color = read(root, '--wall-color-light') || read(root, '--frame-color-light');
+        color = read(root, '--chrome-bg-light') || read(root, '--frame-color-light');
       }
     }
     
     if (!color) {
-      color = read(body, '--wall-color') || read(container, '--wall-color');
+      color = read(body, '--chrome-bg') || read(container, '--chrome-bg') || read(root, '--wall-color');
     }
     
     return color || '#0a0a0a';
