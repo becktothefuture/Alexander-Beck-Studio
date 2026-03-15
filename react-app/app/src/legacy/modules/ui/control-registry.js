@@ -2615,6 +2615,7 @@ export const CONTROL_SECTIONS = {
           root.style.setProperty('--wall-color', val);
           root.style.setProperty('--wall-color-light', val);
           root.style.setProperty('--wall-color-dark', val);
+          root.style.setProperty('--abs-browser-chrome', val);
           root.style.setProperty('--chrome-bg', val);
           root.style.setProperty('--chrome-bg-light', val);
           root.style.setProperty('--chrome-bg-dark', val);
@@ -2650,6 +2651,7 @@ export const CONTROL_SECTIONS = {
           root.style.setProperty('--wall-color', val);
           root.style.setProperty('--wall-color-light', val);
           root.style.setProperty('--wall-color-dark', val);
+          root.style.setProperty('--abs-browser-chrome', val);
           root.style.setProperty('--chrome-bg', val);
           root.style.setProperty('--chrome-bg-light', val);
           root.style.setProperty('--chrome-bg-dark', val);

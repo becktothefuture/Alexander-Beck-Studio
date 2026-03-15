@@ -3,8 +3,8 @@ const DEFAULT_SHELL_CONFIG = {
     wallBaseLight: '#f1f3f4',
     wallBaseDark: '#202124',
     chromeHarmonyMode: 'adaptive',
-    lockedHeaderLight: '#f1f3f4',
-    lockedHeaderDark: '#3c3c3c'
+    lockedHeaderLight: '#202124',
+    lockedHeaderDark: '#202124'
   },
   layout: {
     frameInsetDesktop: '16px',
@@ -112,18 +112,11 @@ export function detectThemeColorLikelyApplied(family = detectBrowserFamily()) {
 export function resolveShellPalette(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
   const family = detectBrowserFamily();
   const themeColorLikelyApplied = detectThemeColorLikelyApplied(family);
-  const mode = String(config?.theme?.chromeHarmonyMode || 'adaptive');
 
   const siteLight = config?.theme?.wallBaseLight || DEFAULT_SHELL_CONFIG.theme.wallBaseLight;
   const siteDark = config?.theme?.wallBaseDark || DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
-  const lockedLight = config?.theme?.lockedHeaderLight || DEFAULT_SHELL_CONFIG.theme.lockedHeaderLight;
-  const lockedDark = config?.theme?.lockedHeaderDark || DEFAULT_SHELL_CONFIG.theme.lockedHeaderDark;
-
-  const useLockedPalette = mode === 'browser'
-    || (mode === 'adaptive' && !family.isSafari && !themeColorLikelyApplied);
-
-  const light = useLockedPalette ? lockedLight : siteLight;
-  const dark = useLockedPalette ? lockedDark : siteDark;
+  const light = siteLight;
+  const dark = siteDark;
   const active = isDark ? dark : light;
 
   return {
@@ -132,14 +125,40 @@ export function resolveShellPalette(config = currentShellConfig, isDark = docume
     active,
     family,
     themeColorLikelyApplied,
-    usesLockedPalette: useLockedPalette
+    usesLockedPalette: false
   };
 }
 
-function getStableBrowserChromeColor(config = currentShellConfig) {
-  return config?.theme?.lockedHeaderLight
-    || config?.theme?.wallBaseLight
-    || DEFAULT_SHELL_CONFIG.theme.lockedHeaderLight;
+function getDefaultFrameColor() {
+  return '#202124';
+}
+
+export function resolveFrameChromePalette(isDark = document.documentElement.classList.contains('dark-mode')) {
+  const root = document.documentElement;
+  const styles = getComputedStyle(root);
+  const light = styles.getPropertyValue('--frame-color-light').trim() || getDefaultFrameColor();
+  const dark = styles.getPropertyValue('--frame-color-dark').trim() || light || getDefaultFrameColor();
+  const active = isDark ? dark : light;
+
+  return { light, dark, active };
+}
+
+export function applyFrameChromePalette({ light, dark, active }) {
+  const root = document.documentElement;
+  const nextLight = light || active || getDefaultFrameColor();
+  const nextDark = dark || active || nextLight;
+  const nextActive = active || nextDark || nextLight;
+
+  root.style.setProperty('--abs-browser-chrome', nextActive);
+  root.style.setProperty('--frame-color-light', nextLight);
+  root.style.setProperty('--frame-color-dark', nextDark);
+  root.style.setProperty('--frame-color', nextActive);
+  root.style.setProperty('--wall-color-light', nextLight);
+  root.style.setProperty('--wall-color-dark', nextDark);
+  root.style.setProperty('--wall-color', nextActive);
+  root.style.setProperty('--chrome-bg-light', nextLight);
+  root.style.setProperty('--chrome-bg-dark', nextDark);
+  root.style.setProperty('--chrome-bg', nextActive);
 }
 
 export function applyShellPalette({ light, dark, active }) {
@@ -147,21 +166,10 @@ export function applyShellPalette({ light, dark, active }) {
   const nextActive = active || dark || light || DEFAULT_SHELL_CONFIG.theme.wallBaseDark;
   const nextLight = light || nextActive;
   const nextDark = dark || nextActive;
-  const nextChrome = getStableBrowserChromeColor();
 
   root.style.setProperty('--abs-wall-base-light', nextLight);
   root.style.setProperty('--abs-wall-base-dark', nextDark);
   root.style.setProperty('--abs-wall-base', nextActive);
-  root.style.setProperty('--abs-browser-chrome', nextChrome);
-  root.style.setProperty('--frame-color-light', nextLight);
-  root.style.setProperty('--frame-color-dark', nextDark);
-  root.style.setProperty('--frame-color', nextActive);
-  root.style.setProperty('--wall-color-light', nextLight);
-  root.style.setProperty('--wall-color-dark', nextDark);
-  root.style.setProperty('--wall-color', nextActive);
-  root.style.setProperty('--chrome-bg-light', nextChrome);
-  root.style.setProperty('--chrome-bg-dark', nextChrome);
-  root.style.setProperty('--chrome-bg', nextChrome);
 }
 
 export function applyShellLayoutVars(config = currentShellConfig) {
@@ -188,11 +196,11 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-safe-left', 'env(safe-area-inset-left, 0px)');
 }
 
-export function syncThemeColorMeta({ light, dark, active }) {
-  const chromeColor = getStableBrowserChromeColor();
+export function syncThemeColorMeta() {
+  const { light, dark, active } = resolveFrameChromePalette();
   const entries = [
-    { media: '(prefers-color-scheme: light)', color: chromeColor || light || active },
-    { media: '(prefers-color-scheme: dark)', color: chromeColor || dark || active }
+    { media: '(prefers-color-scheme: light)', color: light || active },
+    { media: '(prefers-color-scheme: dark)', color: dark || active }
   ];
 
   entries.forEach(({ media, color }) => {
@@ -212,7 +220,7 @@ export function syncThemeColorMeta({ light, dark, active }) {
     fallback.name = 'theme-color';
     document.head.appendChild(fallback);
   }
-  fallback.content = chromeColor || active || dark || light;
+  fallback.content = active || dark || light;
 }
 
 export function syncShellToDocument(options = {}) {
@@ -222,7 +230,8 @@ export function syncShellToDocument(options = {}) {
 
   applyShellLayoutVars(config);
   applyShellPalette(palette);
-  syncThemeColorMeta(palette);
+  applyFrameChromePalette(resolveFrameChromePalette(isDark));
+  syncThemeColorMeta();
 
   return palette;
 }

@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
-import { applyShellPalette, getShellConfig } from './site-shell.js';
+import { applyFrameChromePalette, getShellConfig } from './site-shell.js';
 
 let _siteFrameLight = null;
 let _siteFrameDark = null;
@@ -16,9 +16,9 @@ const FIREFOX_LOCKED_DARK_FALLBACK = '#1c1b22';
 
 function captureSiteFrameColorsIfNeeded() {
   if (_siteFrameLight && _siteFrameDark) return;
-  const shell = getShellConfig();
-  _siteFrameLight = shell?.theme?.wallBaseLight || CHROMIUM_LOCKED_LIGHT_FALLBACK;
-  _siteFrameDark = shell?.theme?.wallBaseDark || CHROMIUM_LOCKED_DARK_FALLBACK;
+  const g = getGlobals();
+  _siteFrameLight = g?.frameColorLight || g?.frameColor || CHROMIUM_LOCKED_DARK_FALLBACK;
+  _siteFrameDark = g?.frameColorDark || g?.frameColor || CHROMIUM_LOCKED_DARK_FALLBACK;
 }
 
 function detectBrowserFamily() {
@@ -78,7 +78,7 @@ function detectThemeColorLikelyApplied(family) {
 
 function applyThemeAwareWallColor(lightHex, darkHex, isDark) {
   const active = isDark ? darkHex : lightHex;
-  applyShellPalette({ light: lightHex, dark: darkHex, active });
+  applyFrameChromePalette({ light: lightHex, dark: darkHex, active });
 }
 
 function applyWallColor(hex, isDark) {
@@ -93,8 +93,8 @@ function restoreSiteWallColor(isDark) {
   }
   const shell = getShellConfig();
   const g = getGlobals();
-  const light = g?.frameColorLight || g?.frameColor || shell?.theme?.wallBaseLight || CHROMIUM_LOCKED_LIGHT_FALLBACK;
-  const dark = g?.frameColorDark || g?.frameColor || shell?.theme?.wallBaseDark || CHROMIUM_LOCKED_DARK_FALLBACK;
+  const light = g?.frameColorLight || g?.frameColor || CHROMIUM_LOCKED_DARK_FALLBACK;
+  const dark = g?.frameColorDark || g?.frameColor || CHROMIUM_LOCKED_DARK_FALLBACK;
   applyThemeAwareWallColor(light, dark, isDark);
 }
 

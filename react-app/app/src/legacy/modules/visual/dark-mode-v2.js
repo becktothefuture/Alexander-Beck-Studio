@@ -130,14 +130,18 @@ function isNightByLocalClock() {
  */
 function updateThemeColor(isDark) {
   const g = getGlobals();
-  const cssChrome = readTokenVar('--abs-browser-chrome', '');
+  const cssActive = readTokenVar('--frame-color', '');
+  const cssLight = readTokenVar('--frame-color-light', '');
+  const cssDark = readTokenVar('--frame-color-dark', '');
   const fallback = g?.frameColor || g?.frameColorLight || g?.frameColorDark || '#242529';
-  const activeColor = cssChrome || fallback;
+  const activeColor = cssActive || (isDark ? (cssDark || cssLight) : (cssLight || cssDark)) || fallback;
+  const lightColor = cssLight || activeColor || fallback;
+  const darkColor = cssDark || activeColor || fallback;
   
   syncThemeColorMeta({
     active: activeColor,
-    light: activeColor,
-    dark: activeColor
+    light: lightColor,
+    dark: darkColor
   });
 }
 
@@ -161,6 +165,8 @@ function applyDarkModeToDOM(isDark) {
     document.body.classList.remove('dark-mode');
     document.documentElement.classList.remove('dark-mode');
   }
+
+  syncShellToDocument({ isDark });
   
   // 1) If the browser ignores theme-color (desktop Chrome tabs), adapt the wall to match the browser UI.
   // 2) Then update meta theme-color from the (possibly updated) CSS vars.
