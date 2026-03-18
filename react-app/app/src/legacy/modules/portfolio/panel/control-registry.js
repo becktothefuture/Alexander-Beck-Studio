@@ -308,7 +308,76 @@ const CONTROL_SECTIONS = {
   },
 };
 
+const DISPLAY_SECTIONS = [
+  {
+    key: 'layout',
+    title: 'Stage & Layout',
+    icon: '📐',
+    defaultOpen: true,
+    sourceKeys: ['layout'],
+  },
+  {
+    key: 'surface',
+    title: 'Cards & Surface',
+    icon: '🗂️',
+    defaultOpen: true,
+    sourceKeys: ['card', 'appearance'],
+  },
+  {
+    key: 'depth',
+    title: 'Background Depth',
+    icon: '🌀',
+    defaultOpen: false,
+    sourceKeys: ['cylinder'],
+  },
+  {
+    key: 'motion',
+    title: 'Motion & Bounce',
+    icon: '🪩',
+    defaultOpen: false,
+    sourceKeys: ['wheelMotion', 'physics'],
+  },
+  {
+    key: 'input',
+    title: 'Input & Tilt',
+    icon: '🖱️',
+    defaultOpen: false,
+    sourceKeys: ['navigation', 'mouseTilt'],
+  },
+  {
+    key: 'detail',
+    title: 'Project Detail',
+    icon: '🔎',
+    defaultOpen: false,
+    sourceKeys: ['detail', 'transition'],
+  },
+  {
+    key: 'sound',
+    title: 'Sound',
+    icon: '🔊',
+    defaultOpen: false,
+    sourceKeys: ['sound'],
+  },
+];
+
+const ACTIVE_CONTROL_SECTION_KEYS = [
+  'layout',
+  'card',
+  'appearance',
+  'cylinder',
+  'wheelMotion',
+  'physics',
+  'detail',
+  'transition',
+  'navigation',
+  'mouseTilt',
+  'sound',
+];
+
 const DEFAULT_HIDDEN_CONTROL_IDS = new Set([
+  // Shared shell controls now own caption position.
+  'edgeCaptionDistanceMin',
+  'edgeCaptionDistanceMax',
   // Keep the primary layout/motion levers, hide low-value micro positioning.
   'closeButtonTop',
   'closeButtonLeft',
@@ -323,6 +392,9 @@ const DEFAULT_HIDDEN_CONTROL_IDS = new Set([
   'detailContentPopDelayHero',
   'detailContentPopDelayBody',
   'detailContentPopEase',
+  'wheelLineHeight',
+  'slideSpeed',
+  'perspective',
 ]);
 
 function getControlInputId(control) {
@@ -339,12 +411,24 @@ function getControlPickerId(control) {
 
 export function getAllControls() {
   const all = [];
-  for (const section of Object.values(CONTROL_SECTIONS)) {
+  for (const key of ACTIVE_CONTROL_SECTION_KEYS) {
+    const section = CONTROL_SECTIONS[key];
+    if (!section) continue;
     for (const control of section.controls) {
       all.push({ ...control, section: section.title });
     }
   }
   return all;
+}
+
+function getDisplaySections() {
+  return DISPLAY_SECTIONS.map((section) => ({
+    key: section.key,
+    title: section.title,
+    icon: section.icon,
+    defaultOpen: section.defaultOpen,
+    controls: section.sourceKeys.flatMap((key) => CONTROL_SECTIONS[key]?.controls || []),
+  }));
 }
 
 export function getConfigValue(config, path) {
@@ -532,7 +616,7 @@ export function generatePanelSectionsHTML(config, computedRoot = null) {
     : null);
 
   let html = '';
-  for (const section of Object.values(CONTROL_SECTIONS)) {
+  for (const section of getDisplaySections()) {
     html += generateSectionHTML(section, config, rootStyle);
   }
   return html;

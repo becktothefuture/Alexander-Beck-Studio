@@ -1,14 +1,22 @@
 export const DEFAULT_STUDIO_SURFACE_CONFIG = {
-  edgeStrength: 0.09,
+  edgeStrength: 0.06,
   edgeWidth: 0.5,
   fillOpacity: 0.018,
-  glowOpacity: 0.22,
-  wallEdgeStrength: 0.16,
-  wallAmbientStrength: 0.1,
+  glowOpacity: 0.18,
+  wallEdgeStrength: 0.14,
+  wallAmbientStrength: 0.09,
   wallSoftness: 0.45,
+  scriptMaxWidth: 355,
+  scriptPaddingX: 16,
+  scriptPaddingY: 10,
+  quoteMaxWidth: 200,
+  quotePaddingX: 16,
+  quotePaddingY: 12,
+  edgeCaptionDistanceMin: 8,
+  edgeCaptionDistanceMax: 48,
 };
 
-const CONTROL_SECTIONS = [
+const SURFACE_CONTROL_SECTIONS = [
   {
     key: 'surfaceSystem',
     title: 'Universal Surface',
@@ -32,6 +40,30 @@ const CONTROL_SECTIONS = [
       { id: 'wallSoftness', label: 'Softness', min: 0, max: 1, step: 0.01, unit: '' },
     ],
   },
+];
+
+const SHELL_OBJECT_CONTROL_SECTIONS = [
+  {
+    key: 'quoteSystem',
+    title: 'Shell Elements',
+    icon: '💬',
+    defaultOpen: false,
+    controls: [
+      { id: 'scriptMaxWidth', label: 'Script Width', min: 240, max: 520, step: 4, unit: 'px' },
+      { id: 'scriptPaddingX', label: 'Script Pad X', min: 8, max: 32, step: 1, unit: 'px' },
+      { id: 'scriptPaddingY', label: 'Script Pad Y', min: 4, max: 24, step: 1, unit: 'px' },
+      { id: 'quoteMaxWidth', label: 'Quote Width', min: 140, max: 320, step: 4, unit: 'px' },
+      { id: 'quotePaddingX', label: 'Quote Pad X', min: 8, max: 28, step: 1, unit: 'px' },
+      { id: 'quotePaddingY', label: 'Quote Pad Y', min: 6, max: 24, step: 1, unit: 'px' },
+      { id: 'edgeCaptionDistanceMin', label: 'Caption Near', min: 0, max: 24, step: 1, unit: 'px' },
+      { id: 'edgeCaptionDistanceMax', label: 'Caption Far', min: 24, max: 80, step: 1, unit: 'px' },
+    ],
+  },
+];
+
+const ALL_CONTROL_SECTIONS = [
+  ...SURFACE_CONTROL_SECTIONS,
+  ...SHELL_OBJECT_CONTROL_SECTIONS,
 ];
 
 function clamp(value, min, max, fallback) {
@@ -64,6 +96,14 @@ function readCurrentConfig() {
     wallEdgeStrength,
     wallAmbientStrength,
     wallSoftness: clamp((edgeBlur - 10) / 70, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.wallSoftness),
+    scriptMaxWidth: readNumber(rootStyle, '--decorative-script-max-width', DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth),
+    scriptPaddingX: readNumber(rootStyle, '--decorative-script-padding-left', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX),
+    scriptPaddingY: readNumber(rootStyle, '--decorative-script-padding-vertical', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY),
+    quoteMaxWidth: readNumber(rootStyle, '--abs-quote-max-width', DEFAULT_STUDIO_SURFACE_CONFIG.quoteMaxWidth),
+    quotePaddingX: readNumber(rootStyle, '--abs-quote-pad-x', DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingX),
+    quotePaddingY: readNumber(rootStyle, '--abs-quote-pad-y', DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingY),
+    edgeCaptionDistanceMin: readNumber(rootStyle, '--edge-caption-distance-min', DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin),
+    edgeCaptionDistanceMax: readNumber(rootStyle, '--edge-caption-distance-max', DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax),
   };
 }
 
@@ -83,6 +123,14 @@ export function applyStudioSurfaceConfig(config) {
   const wallEdgeStrength = clamp(config.wallEdgeStrength, 0, 0.8, DEFAULT_STUDIO_SURFACE_CONFIG.wallEdgeStrength);
   const wallAmbientStrength = clamp(config.wallAmbientStrength, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.wallAmbientStrength);
   const wallSoftness = clamp(config.wallSoftness, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.wallSoftness);
+  const scriptMaxWidth = clamp(config.scriptMaxWidth, 240, 520, DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth);
+  const scriptPaddingX = clamp(config.scriptPaddingX, 8, 32, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX);
+  const scriptPaddingY = clamp(config.scriptPaddingY, 4, 24, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY);
+  const quoteMaxWidth = clamp(config.quoteMaxWidth, 140, 320, DEFAULT_STUDIO_SURFACE_CONFIG.quoteMaxWidth);
+  const quotePaddingX = clamp(config.quotePaddingX, 8, 28, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingX);
+  const quotePaddingY = clamp(config.quotePaddingY, 6, 24, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingY);
+  const edgeCaptionDistanceMin = clamp(config.edgeCaptionDistanceMin, 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin);
+  const edgeCaptionDistanceMax = clamp(config.edgeCaptionDistanceMax, 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax);
 
   root.style.setProperty('--abs-surface-edge-opacity', `${edgeStrength}`);
   root.style.setProperty('--abs-surface-edge-width', `${edgeWidth}px`);
@@ -107,6 +155,14 @@ export function applyStudioSurfaceConfig(config) {
   root.style.setProperty('--frame-vignette-ambient-opacity', `${wallAmbientStrength}`);
   root.style.setProperty('--frame-vignette-edge-blur', `${Math.round(10 + (wallSoftness * 70))}px`);
   root.style.setProperty('--frame-vignette-ambient-blur', `${Math.round(80 + (wallSoftness * 260))}px`);
+  root.style.setProperty('--decorative-script-max-width', `${scriptMaxWidth}px`);
+  root.style.setProperty('--decorative-script-padding-left', `${scriptPaddingX}px`);
+  root.style.setProperty('--decorative-script-padding-vertical', `${scriptPaddingY}px`);
+  root.style.setProperty('--abs-quote-max-width', `${quoteMaxWidth}px`);
+  root.style.setProperty('--abs-quote-pad-x', `${quotePaddingX}px`);
+  root.style.setProperty('--abs-quote-pad-y', `${quotePaddingY}px`);
+  root.style.setProperty('--edge-caption-distance-min', `${edgeCaptionDistanceMin}px`);
+  root.style.setProperty('--edge-caption-distance-max', `${edgeCaptionDistanceMax}px`);
 
   window.__ABS_STUDIO_SURFACE_CONFIG__ = {
     edgeStrength,
@@ -116,6 +172,14 @@ export function applyStudioSurfaceConfig(config) {
     wallEdgeStrength,
     wallAmbientStrength,
     wallSoftness,
+    scriptMaxWidth,
+    scriptPaddingX,
+    scriptPaddingY,
+    quoteMaxWidth,
+    quotePaddingX,
+    quotePaddingY,
+    edgeCaptionDistanceMin,
+    edgeCaptionDistanceMax,
   };
 }
 
@@ -139,10 +203,10 @@ function generateControlHTML(control, value) {
   `;
 }
 
-export function generateStudioSurfaceControlsHTML() {
+function generateSectionSetHTML(sections) {
   const config = readCurrentConfig();
 
-  return CONTROL_SECTIONS.map((section) => {
+  return sections.map((section) => {
     const controlsHTML = section.controls
       .map((control) => generateControlHTML(control, config[control.id] ?? DEFAULT_STUDIO_SURFACE_CONFIG[control.id]))
       .join('');
@@ -161,6 +225,14 @@ export function generateStudioSurfaceControlsHTML() {
   }).join('');
 }
 
+export function generateStudioSurfaceControlsHTML() {
+  return generateSectionSetHTML(SURFACE_CONTROL_SECTIONS);
+}
+
+export function generateStudioShellControlsHTML() {
+  return generateSectionSetHTML(SHELL_OBJECT_CONTROL_SECTIONS);
+}
+
 export function bindStudioSurfaceControls() {
   const config = {
     ...DEFAULT_STUDIO_SURFACE_CONFIG,
@@ -168,7 +240,7 @@ export function bindStudioSurfaceControls() {
     ...(window.__ABS_STUDIO_SURFACE_CONFIG__ || {}),
   };
 
-  for (const section of CONTROL_SECTIONS) {
+  for (const section of ALL_CONTROL_SECTIONS) {
     for (const control of section.controls) {
       const input = document.getElementById(`studioSurface_${control.id}Slider`);
       const output = document.getElementById(`studioSurface_${control.id}Val`);
@@ -203,6 +275,7 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   const nextShell = {
     ...(baseShell || {}),
     theme: { ...(baseShell?.theme || {}) },
+    layout: { ...(baseShell?.layout || {}) },
     surface: { ...(baseShell?.surface || {}) },
   };
 
@@ -228,6 +301,14 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   nextShell.theme.frameVignetteEdgeOpacity = config.wallEdgeStrength;
   nextShell.theme.frameVignetteAmbientOpacity = config.wallAmbientStrength;
   nextShell.theme.frameVignetteEdgeBlur = `${Math.round(10 + (config.wallSoftness * 70))}px`;
+  nextShell.layout.decorativeScriptMaxWidth = `${Math.round(config.scriptMaxWidth)}px`;
+  nextShell.layout.decorativeScriptPaddingX = `${Math.round(config.scriptPaddingX)}px`;
+  nextShell.layout.decorativeScriptPaddingY = `${Math.round(config.scriptPaddingY)}px`;
+  nextShell.layout.quoteMaxWidth = `${Math.round(config.quoteMaxWidth)}px`;
+  nextShell.layout.quotePaddingX = `${Math.round(config.quotePaddingX)}px`;
+  nextShell.layout.quotePaddingY = `${Math.round(config.quotePaddingY)}px`;
+  nextShell.layout.edgeCaptionDistanceMin = `${Math.round(config.edgeCaptionDistanceMin)}px`;
+  nextShell.layout.edgeCaptionDistanceMax = `${Math.round(config.edgeCaptionDistanceMax)}px`;
 
   return nextShell;
 }

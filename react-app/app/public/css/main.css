@@ -659,8 +659,10 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   pointer-events: none;
   transform: scale(0.72);
   transform-origin: center;
-  /* Faint inner light mostly from top */
-  box-shadow: inset 0 1px 4px color-mix(in srgb, var(--abs-stroke-medium) 40%, transparent);
+  box-shadow:
+    inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
+      rgba(var(--abs-rgb-white), var(--abs-surface-edge-opacity, 0.14)),
+    inset 0 1px 6px rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.45));
   /* filter: blur(8px); - Removed */
   /* -webkit-filter: blur(8px); - Removed */
   /* backdrop-filter: blur(10px); - Disabled: not working with canvas simulation */
@@ -1293,8 +1295,8 @@ button.abs-meta-btn,
   align-items: center;
   gap: var(--abs-gap-xs);
   position: relative;
-  max-width: 200px;
-  padding: var(--abs-gap-sm) var(--abs-gap-md);
+  max-width: var(--abs-quote-max-width, 200px);
+  padding: var(--abs-quote-pad-y, var(--abs-gap-sm)) var(--abs-quote-pad-x, var(--abs-gap-md));
   border: none;
   border-radius: var(--abs-radius-cta);
   background:
@@ -1307,15 +1309,18 @@ button.abs-meta-btn,
     linear-gradient(
       180deg,
       rgba(var(--abs-rgb-black), 0) 62%,
-      rgba(var(--abs-rgb-black), var(--quote-glass-bottom-edge-opacity, 0.1)) 100%
+      rgba(var(--abs-rgb-black), var(--quote-glass-bottom-edge-opacity, calc(var(--abs-surface-edge-opacity, 0.14) * 0.28))) 100%
     ),
-    rgba(var(--abs-rgb-white), var(--quote-glass-fill-opacity, 0.02));
+    rgba(var(--abs-rgb-white), var(--quote-glass-fill-opacity, var(--abs-surface-fill-opacity, 0.02)));
   -webkit-backdrop-filter: blur(var(--quote-glass-blur, 8px)) saturate(var(--quote-glass-saturation, 1.12));
   backdrop-filter: blur(var(--quote-glass-blur, 8px)) saturate(var(--quote-glass-saturation, 1.12));
   box-shadow:
-    inset 0 0 0 calc(var(--abs-size-1px) * 0.5) rgba(var(--abs-rgb-white), var(--quote-glass-edge-opacity, 0.24)),
-    inset 0 calc(var(--abs-size-1px) * 0.5) calc(var(--abs-size-1px) * 2) rgba(var(--abs-rgb-white), var(--quote-glass-inner-shadow-opacity, 0.1)),
-    0 var(--quote-glass-shadow-offset-y, 6px) var(--quote-glass-shadow-blur, 18px) rgba(var(--abs-rgb-black), var(--quote-glass-shadow-opacity, 0.27));
+    inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
+      rgba(var(--abs-rgb-white), var(--quote-glass-edge-opacity, var(--abs-surface-edge-opacity, 0.14))),
+    inset 0 calc(var(--abs-size-1px) * 0.5) calc(var(--abs-size-1px) * 2)
+      rgba(var(--abs-rgb-white), var(--quote-glass-inner-shadow-opacity, calc(var(--abs-surface-edge-opacity, 0.14) * 0.45))),
+    0 var(--quote-glass-shadow-offset-y, 6px) var(--quote-glass-shadow-blur, 18px)
+      rgba(var(--abs-rgb-black), var(--quote-glass-shadow-opacity, var(--abs-surface-glow-opacity, 0.24)));
   text-align: center;
   overflow: hidden;
 }
@@ -1332,9 +1337,9 @@ button.abs-meta-btn,
       linear-gradient(
         180deg,
         rgba(var(--abs-rgb-black), 0) 62%,
-        rgba(var(--abs-rgb-black), var(--quote-glass-bottom-edge-opacity, 0.1)) 100%
+        rgba(var(--abs-rgb-black), var(--quote-glass-bottom-edge-opacity, calc(var(--abs-surface-edge-opacity, 0.14) * 0.28))) 100%
       ),
-      rgba(var(--abs-rgb-white), 0.08);
+      rgba(var(--abs-rgb-white), max(0.08, var(--abs-surface-fill-opacity, 0.02)));
   }
 }
 
@@ -3675,9 +3680,9 @@ body.cv-page #bravia-balls .cv-wall-canvas {
 
 /* Left Area: 40% width (Photo + Intro) */
 .cv-left {
-  flex: 0 0 40%;
-  width: 40%;
-  max-width: 40%;
+  flex: 0 0 var(--cv-left-width, 32vw);
+  width: var(--cv-left-width, 32vw);
+  max-width: var(--cv-left-width, 32vw);
   position: sticky;
   top: 0;
   align-self: flex-start;
@@ -3698,14 +3703,14 @@ body.cv-page #bravia-balls .cv-wall-canvas {
 .cv-left__inner {
   display: flex;
   flex-direction: column;
-  gap: clamp(1.2rem, 2vw, 1.75rem);
+  gap: var(--cv-left-gap, clamp(1.2rem, 2vw, 1.75rem));
   align-items: flex-start;
   justify-content: center;
   width: 100%;
   height: 100%;
   /* Vertical padding only - horizontal handled by parent */
-  padding-top: clamp(2rem, 4vw, 3rem);
-  padding-bottom: clamp(2rem, 4vw, 3rem);
+  padding-top: var(--cv-left-padding-top, clamp(2rem, 4vw, 3rem));
+  padding-bottom: var(--cv-left-padding-bottom, clamp(2rem, 4vw, 3rem));
   box-sizing: border-box;
 }
 
@@ -3730,8 +3735,8 @@ body.dark-mode .cv-photo {
 }
 
 .cv-photo__image {
-  width: 115%;
-  height: 115%;
+  width: var(--cv-photo-size, 115%);
+  height: var(--cv-photo-size, 115%);
   object-fit: cover;
   object-position: center;
   display: block;
@@ -3791,9 +3796,9 @@ body.dark-mode .cv-photo {
 
 /* Right Area: Scrollable (All Main Content) */
 .cv-right {
-  flex: 0 0 60%;
-  width: 60%;
-  max-width: 60%;
+  flex: 1 1 auto;
+  width: calc(100% - var(--cv-left-width, 32vw));
+  max-width: calc(100% - var(--cv-left-width, 32vw));
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -3806,8 +3811,8 @@ body.dark-mode .cv-photo {
   scroll-behavior: smooth;
   border: none;
   /* Horizontal padding matches .cv-left for visual balance */
-  padding-left: max(8vw, 3.5rem);
-  padding-right: max(8vw, 3.5rem);
+  padding-left: var(--cv-right-padding-x, max(8vw, 3.5rem));
+  padding-right: var(--cv-right-padding-x, max(8vw, 3.5rem));
   outline: none;
   box-shadow: none;
   margin-top: 0;
@@ -3882,9 +3887,9 @@ body.dark-mode .cv-photo {
 
 .cv-right__inner {
   /* Vertical padding only - horizontal handled by parent */
-  padding-top: clamp(3rem, 8vh, 5rem);
-  padding-bottom: clamp(3rem, 8vh, 5rem);
-  max-width: 48rem;
+  padding-top: var(--cv-right-padding-top, clamp(3rem, 8vh, 5rem));
+  padding-bottom: var(--cv-right-padding-bottom, clamp(3rem, 8vh, 5rem));
+  max-width: var(--cv-right-max-width, 48rem);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

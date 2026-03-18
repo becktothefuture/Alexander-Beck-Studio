@@ -6743,10 +6743,13 @@ export function generateColorTemplateSectionHTML({ open = false } = {}) {
  * @returns {string} Complete master groups HTML
  */
 export function generateMasterSectionsHTML(options = {}) {
-  const { prepend = {}, append = {}, replace = {} } = options;
+  const { prepend = {}, append = {}, replace = {}, groupIds = null } = options;
+  const groups = Array.isArray(groupIds) && groupIds.length > 0
+    ? MASTER_GROUPS.filter((group) => groupIds.includes(group.id))
+    : MASTER_GROUPS;
   let html = '';
 
-  for (const group of MASTER_GROUPS) {
+  for (const group of groups) {
     const openAttr = group.defaultOpen ? 'open' : '';
 
     // Check if this group has replacement content

@@ -376,7 +376,12 @@ body.portfolio-page.dark-mode .slide::after {
   overflow: hidden;
   position: relative;
   background: var(--bg-light);
-  box-shadow: none;
+  box-shadow:
+    inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
+      rgba(var(--abs-rgb-white), var(--abs-surface-edge-opacity, 0.06)),
+    0 calc(var(--abs-surface-shadow-offset-y, 6px) * 0.35)
+      calc(var(--abs-surface-shadow-blur, 18px) * 0.5)
+      rgba(var(--abs-rgb-black), calc(var(--abs-surface-glow-opacity, 0.18) * 0.18));
   transition: 
     border-width var(--transition-speed) var(--transition-ease), 
     border-color 0.35s var(--ease-organic), 
@@ -396,14 +401,18 @@ body.portfolio-page.dark-mode .slide-image-container {
 .slide-image-container::before {
   content: '';
   position: absolute;
-  inset: calc(-1 * var(--border-width));
+  inset: 0;
   border-radius: var(--corner-radius);
-  background: var(--border-color-hover);
+  background: transparent;
   opacity: 0;
   z-index: 0;
   transition: opacity 0.35s var(--ease-organic);
   pointer-events: none;
-  box-shadow: 0 0 0 var(--border-width) var(--border-color-hover), 0 0 calc(var(--border-width) * 2) var(--border-color-hover);
+  box-shadow:
+    0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
+      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.06) * 1.35)),
+    0 0 calc(var(--abs-surface-shadow-blur, 18px) * 0.8)
+      rgba(var(--abs-rgb-white), calc(var(--abs-surface-glow-opacity, 0.18) * 0.32));
 }
 
 .slide-image-container .slide-image {
@@ -423,7 +432,12 @@ body.portfolio-page.dark-mode .slide-image-container {
 
 .slide:hover .slide-image-container {
   border-color: var(--border-color-hover);
-  box-shadow: none;
+  box-shadow:
+    inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
+      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.06) * 1.15)),
+    0 calc(var(--abs-surface-shadow-offset-y, 6px) * 0.45)
+      calc(var(--abs-surface-shadow-blur, 18px) * 0.72)
+      rgba(var(--abs-rgb-black), calc(var(--abs-surface-glow-opacity, 0.18) * 0.24));
 }
 
 .slide:hover .slide-image {
@@ -598,14 +612,19 @@ body.portfolio-page.dark-mode .project-detail {
   z-index: 15;
   display: none;
   /* Blurry background when idle (only difference from standard .gate-back) */
-  background: rgba(var(--abs-rgb-white), 0.1);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  background: rgba(var(--abs-rgb-white), max(0.08, calc(var(--abs-surface-fill-opacity, 0.018) * 4)));
+  -webkit-backdrop-filter: blur(var(--abs-surface-blur, 8px)) saturate(var(--abs-surface-saturation, 1.12));
+  backdrop-filter: blur(var(--abs-surface-blur, 8px)) saturate(var(--abs-surface-saturation, 1.12));
+  box-shadow:
+    inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
+      rgba(var(--abs-rgb-white), var(--abs-surface-edge-opacity, 0.06)),
+    0 var(--abs-surface-shadow-offset-y, 6px) calc(var(--abs-surface-shadow-blur, 18px) * 0.7)
+      rgba(var(--abs-rgb-black), calc(var(--abs-surface-glow-opacity, 0.18) * 0.24));
 }
 
 /* Dark mode blur background */
 body.portfolio-page.dark-mode .project-detail__close {
-  background: rgba(var(--abs-rgb-black), 0.15);
+  background: rgba(var(--abs-rgb-black), max(0.14, calc(var(--abs-surface-fill-opacity, 0.018) * 6.5)));
 }
 
 /* Show close button when detail is open */
@@ -639,9 +658,14 @@ body.portfolio-page .project-detail__close:active {
   align-items: center;
   gap: var(--gap-sm);
   color: var(--text-primary);
-  background: rgba(var(--abs-rgb-white), 0.1);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  background: rgba(var(--abs-rgb-white), max(0.08, calc(var(--abs-surface-fill-opacity, 0.018) * 4)));
+  -webkit-backdrop-filter: blur(var(--abs-surface-blur, 8px)) saturate(var(--abs-surface-saturation, 1.12));
+  backdrop-filter: blur(var(--abs-surface-blur, 8px)) saturate(var(--abs-surface-saturation, 1.12));
+  box-shadow:
+    inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
+      rgba(var(--abs-rgb-white), var(--abs-surface-edge-opacity, 0.06)),
+    0 var(--abs-surface-shadow-offset-y, 6px) calc(var(--abs-surface-shadow-blur, 18px) * 0.6)
+      rgba(var(--abs-rgb-black), calc(var(--abs-surface-glow-opacity, 0.18) * 0.2));
   transition: transform var(--duration-quick) var(--ease-settle),
               background var(--duration-quick) var(--ease-settle);
 }
@@ -662,7 +686,7 @@ body.portfolio-page .project-detail__close:active {
 }
 
 body.portfolio-page.dark-mode .project-detail__close-inline {
-  background: rgba(var(--abs-rgb-black), 0.15);
+  background: rgba(var(--abs-rgb-black), max(0.14, calc(var(--abs-surface-fill-opacity, 0.018) * 6.5)));
 }
 
 body.portfolio-page.dark-mode .project-detail__close-inline:hover {
@@ -887,7 +911,13 @@ body.portfolio-page.dark-mode .project-detail__scroller::-webkit-scrollbar-thumb
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: var(--letter-spacing-loose);
-  background: rgba(var(--abs-rgb-white), 0.8);
+  background: rgba(var(--abs-rgb-white), max(0.08, calc(var(--abs-surface-fill-opacity, 0.018) * 6)));
+  box-shadow:
+    inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
+      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.06) * 0.9)),
+    0 calc(var(--abs-surface-shadow-offset-y, 6px) * 0.5)
+      calc(var(--abs-surface-shadow-blur, 18px) * 0.5)
+      rgba(var(--abs-rgb-black), calc(var(--abs-surface-glow-opacity, 0.18) * 0.16));
   transition: color var(--duration-link-hover) var(--ease-settle),
               background var(--duration-link-hover) var(--ease-settle),
               border-color var(--duration-link-hover) var(--ease-settle);
@@ -900,7 +930,7 @@ body.portfolio-page.dark-mode .project-detail__scroller::-webkit-scrollbar-thumb
 
 body.portfolio-page.dark-mode .project-detail__links a {
   border-color: rgba(var(--abs-rgb-white), 0.15);
-  background: rgba(var(--abs-rgb-black), 0.3);
+  background: rgba(var(--abs-rgb-black), max(0.2, calc(var(--abs-surface-fill-opacity, 0.018) * 8)));
 }
 
 body.portfolio-page.dark-mode .project-detail__links a:hover {
