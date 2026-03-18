@@ -56,6 +56,18 @@ export const DEFAULT_CV_CONFIG = {
   mutedOpacity: 0.6,
 };
 
+const DEFAULT_STUDIO_SURFACE_CONFIG = {
+  edgeStrength: 0.06,
+  edgeWidth: 0.5,
+  fillOpacity: 0.018,
+  glowOpacity: 0.18,
+  wallEdgeStrength: 0.14,
+  wallAmbientStrength: 0.09,
+  wallSoftness: 0.45,
+  edgeCaptionDistanceMin: 8,
+  edgeCaptionDistanceMax: 48,
+};
+
 let designSystemPromise = null;
 
 const RETIRED_RUNTIME_KEYS = new Set([
@@ -207,6 +219,57 @@ function pruneShellConfig(shell = {}) {
   return nextShell;
 }
 
+function parseNumericToken(value, fallback) {
+  const numeric = Number.parseFloat(String(value ?? '').trim());
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function clamp(value, min, max, fallback) {
+  const numeric = Number.isFinite(Number(value)) ? Number(value) : fallback;
+  return Math.min(max, Math.max(min, numeric));
+}
+
+function deriveStudioSurfaceFromShell(shell = {}) {
+  const theme = isPlainObject(shell.theme) ? shell.theme : {};
+  const layout = isPlainObject(shell.layout) ? shell.layout : {};
+  const surface = isPlainObject(shell.surface) ? shell.surface : {};
+  const edgeBlur = parseNumericToken(theme.frameVignetteEdgeBlur, 30);
+
+  return {
+    edgeStrength: clamp(surface.edgeOpacityLight, 0, 0.45, DEFAULT_STUDIO_SURFACE_CONFIG.edgeStrength),
+    edgeWidth: clamp(parseNumericToken(surface.edgeWidth, surface.lightEdgeInset), 0, 2.5, DEFAULT_STUDIO_SURFACE_CONFIG.edgeWidth),
+    fillOpacity: clamp(surface.fillOpacityLight, 0, 0.12, DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity),
+    glowOpacity: clamp(surface.glowOpacityDark ?? surface.shadowOpacityDark, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity),
+    wallEdgeStrength: clamp(theme.frameVignetteEdgeOpacity, 0, 0.8, DEFAULT_STUDIO_SURFACE_CONFIG.wallEdgeStrength),
+    wallAmbientStrength: clamp(theme.frameVignetteAmbientOpacity, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.wallAmbientStrength),
+    wallSoftness: clamp((edgeBlur - 10) / 70, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.wallSoftness),
+    edgeCaptionDistanceMin: clamp(parseNumericToken(layout.edgeCaptionDistanceMin, 8), 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin),
+    edgeCaptionDistanceMax: clamp(parseNumericToken(layout.edgeCaptionDistanceMax, 48), 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax),
+  };
+}
+
+function applyDerivedStudioRuntime(runtime = {}, shell = {}) {
+  const studio = deriveStudioSurfaceFromShell(shell);
+  const nextRuntime = clone(runtime);
+
+  nextRuntime.hoverEdgeEnabled = studio.edgeStrength > 0;
+  nextRuntime.hoverEdgeWidth = studio.edgeWidth;
+  nextRuntime.hoverEdgeBottomEnabled = studio.edgeStrength > 0;
+  nextRuntime.hoverEdgeBottomOpacity = Number((studio.edgeStrength * 0.78).toFixed(3));
+  nextRuntime.hoverEdgeTopEnabled = studio.edgeStrength > 0;
+  nextRuntime.hoverEdgeTopOpacity = Number((studio.edgeStrength * 0.46).toFixed(3));
+  nextRuntime.frameBorderGradientEdgeOpacity = Number((studio.wallEdgeStrength * 0.14).toFixed(3));
+  nextRuntime.frameBorderGradientMidOpacity = Number((studio.wallEdgeStrength * 0.28).toFixed(3));
+  nextRuntime.frameVignetteEdgeOpacity = studio.wallEdgeStrength;
+  nextRuntime.frameVignetteAmbientOpacity = studio.wallAmbientStrength;
+  nextRuntime.frameVignetteEdgeBlur = Math.round(10 + (studio.wallSoftness * 70));
+  nextRuntime.frameVignetteAmbientBlur = Math.round(80 + (studio.wallSoftness * 260));
+  nextRuntime.edgeCaptionDistanceMinPx = Math.round(studio.edgeCaptionDistanceMin);
+  nextRuntime.edgeCaptionDistanceMaxPx = Math.round(studio.edgeCaptionDistanceMax);
+
+  return nextRuntime;
+}
+
 function readInlineObject(key) {
   try {
     const value = globalThis?.[key];
@@ -343,7 +406,8 @@ export async function loadDesignSystemConfig() {
 }
 
 export function deriveRuntimeConfig(designSystem = {}) {
-  return clone(normalizeDesignSystemConfig(designSystem).runtime);
+  const normalized = normalizeDesignSystemConfig(designSystem);
+  return applyDerivedStudioRuntime(normalized.runtime, normalized.shell);
 }
 
 export function deriveShellConfig(designSystem = {}) {
@@ -361,7 +425,7 @@ export function deriveCvConfig(designSystem = {}) {
 export function deriveLegacyConfigFiles(designSystem = {}) {
   const normalized = normalizeDesignSystemConfig(designSystem);
   return {
-    runtime: clone(normalized.runtime),
+    runtime: applyDerivedStudioRuntime(normalized.runtime, normalized.shell),
     shell: clone(normalized.shell),
     portfolio: clone(normalized.portfolio),
     cv: clone(normalized.cv),

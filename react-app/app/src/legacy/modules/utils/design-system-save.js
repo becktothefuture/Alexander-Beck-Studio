@@ -1,7 +1,7 @@
 import { getGlobals } from '../core/state.js';
 import { getAllControls } from '../ui/control-registry.js';
 import { getSoundConfig, getCurrentPreset } from '../audio/sound-engine.js';
-import { buildStudioRuntimePatch, buildStudioShellPatch, buildStudioSurfaceSnapshot } from '../ui/studio-surface-controls.js';
+import { buildStudioShellPatch, buildStudioSurfaceSnapshot } from '../ui/studio-surface-controls.js';
 import { getShellConfig } from '../visual/site-shell.js';
 import { loadDesignSystemConfig, normalizeDesignSystemConfig } from './design-config.js';
 
@@ -57,7 +57,7 @@ export function buildRuntimeConfigSnapshot() {
   config.autoDarkModeEnabled = g.autoDarkModeEnabled;
   config.enableLOD = false;
 
-  return buildStudioRuntimePatch(buildStudioSurfaceSnapshot(), config);
+  return config;
 }
 
 export function buildShellConfigSnapshot() {

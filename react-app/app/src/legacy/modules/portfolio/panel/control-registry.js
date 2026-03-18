@@ -7,11 +7,6 @@ const CONTROL_SECTIONS = {
     icon: '📐',
     defaultOpen: true,
     controls: [
-      { id: 'topLogoWidthVw', label: 'Top Logo Size', type: 'range', min: 15, max: 45, step: 0.25, unit: 'vw', default: 35,
-        onChange: (_config, val) => {
-          document.documentElement.style.setProperty('--top-logo-width-vw', String(val));
-        }
-      },
       { id: 'portfolioLogoBlur', label: 'Logo Blur', cssVar: '--portfolio-logo-blur', type: 'range', min: 0, max: 30, step: 0.5, unit: 'px', default: 0,
         hint: 'Blur amount for the background logo (0 = sharp)'
       },

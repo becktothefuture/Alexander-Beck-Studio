@@ -465,5 +465,19 @@
     "highShelfGain": -4
   },
   "enableLOD": false,
-  "brandLogoSecondaryOpacity": 0.66
+  "brandLogoSecondaryOpacity": 0.66,
+  "hoverEdgeEnabled": true,
+  "hoverEdgeWidth": 0.5,
+  "hoverEdgeBottomEnabled": true,
+  "hoverEdgeBottomOpacity": 0.047,
+  "hoverEdgeTopEnabled": true,
+  "hoverEdgeTopOpacity": 0.028,
+  "frameBorderGradientEdgeOpacity": 0.02,
+  "frameBorderGradientMidOpacity": 0.039,
+  "frameVignetteEdgeOpacity": 0.14,
+  "frameVignetteAmbientOpacity": 0.09,
+  "frameVignetteEdgeBlur": 30,
+  "frameVignetteAmbientBlur": 154,
+  "edgeCaptionDistanceMinPx": 0,
+  "edgeCaptionDistanceMaxPx": 24
 }
