@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { SiteFooter } from '../components/SiteFooter.jsx';
 import { BodyClassManager } from '../components/layout/BodyClassManager.jsx';
 import { SharedFrame } from '../components/layout/SharedFrame.jsx';
 import { useLegacyBootstrap } from '../hooks/useLegacyBootstrap.js';
@@ -11,7 +12,7 @@ export function HomePage() {
   return (
     <>
       <BodyClassManager className="body" />
-      <SharedFrame html={templateHtml} bodyClass="body" />
+      <SharedFrame html={templateHtml} bodyClass="body" footer={<SiteFooter />} />
     </>
   );
 }

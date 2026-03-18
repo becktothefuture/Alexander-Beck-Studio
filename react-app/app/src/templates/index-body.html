@@ -112,36 +112,8 @@
           </nav>
         </main>
         
-        <!-- BOTTOM SECTION -->
-        <footer class="ui-bottom">
-          <!-- Row 2: Socials (Left) & Meta (Right) -->
-          <div class="ui-meta-row">
-            <div class="ui-meta-left corner-dock corner-dock--bl">
-              <div id="social-links" class="footer_icon-group" role="group" aria-label="Social media links">
-                <button type="button" onclick="window.open('https://music.apple.com/profile/beckandeggs', '_blank', 'noopener,noreferrer')" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="Apple Music">
-                  <i class="ti ti-brand-apple" aria-hidden="true"></i>
-                  <span class="screen-reader">Apple Music</span>
-                </button>
-
-                <button type="button" onclick="window.open('https://www.linkedin.com/in/thisisbeck/', '_blank', 'noopener,noreferrer')" class="footer_icon-link w-inline-block abs-icon-btn" aria-label="LinkedIn">
-                  <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
-                  <span class="screen-reader">LinkedIn</span>
-                </button>
-              </div>
-            </div>
-            
-            <div class="ui-meta-right corner-dock corner-dock--br">
-               <!-- Sound Toggle will be injected here by JS -->
-               <button id="site-year" type="button" class="caption abs-meta-btn abs-hover-target abs-hover-target--index" aria-label="Toggle theme">
-                <span class="meta-stack"><strong class="location-name">London</strong><span id="time-display"></span></span>
-              </button>
-            </div>
-          </div>
-        </footer>
-        <div id="edge-caption" class="edge-caption" role="status" aria-live="polite" aria-atomic="true">
-          <span id="edge-caption-tagline" class="edge-caption__line edge-caption__line--tagline">BUILT WITH LOVE TO BE SATISFYING.</span>
-          <span id="edge-caption-copyright" class="edge-caption__line edge-caption__line--copyright">© 2026 Alexander Beck</span>
-        </div>
+        <!-- BOTTOM SECTION: shared footer mounted here via React (SharedFrame footer slot) -->
+        <div id="footer-mount"></div>
       </div>
     </div>
   </div>

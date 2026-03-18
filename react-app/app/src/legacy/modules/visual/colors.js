@@ -496,6 +496,29 @@ function hsvSaturation(hex) {
   return d / max;
 }
 
+const WCAG_AA_RATIO = 4.5;
+
+/**
+ * Compute a WCAG AA (4.5:1) text color for use on a solid cursor-color background.
+ * Used by the quote button hover state (full cursor fill). Returns white or black
+ * (as rgb() string) depending on cursor luminance so both light and dark cursors get readable text.
+ */
+function computeSafeTextOnCursorColor(cursorHex) {
+  const cursorRgb = hexToRgb255(cursorHex);
+  if (!cursorRgb) return null;
+  const white = { r: 255, g: 255, b: 255 };
+  const black = { r: 0, g: 0, b: 0 };
+  const whiteCr = computeContrastRatio(white, cursorRgb);
+  const blackCr = computeContrastRatio(black, cursorRgb);
+  const cursorLuma = relativeLuminance(cursorHex);
+  if (whiteCr >= WCAG_AA_RATIO && blackCr >= WCAG_AA_RATIO) {
+    return cursorLuma > 0.5 ? `rgb(${black.r} ${black.g} ${black.b})` : `rgb(${white.r} ${white.g} ${white.b})`;
+  }
+  if (whiteCr >= WCAG_AA_RATIO) return `rgb(${white.r} ${white.g} ${white.b})`;
+  if (blackCr >= WCAG_AA_RATIO) return `rgb(${black.r} ${black.g} ${black.b})`;
+  return cursorLuma > 0.5 ? `rgb(${black.r} ${black.g} ${black.b})` : `rgb(${white.r} ${white.g} ${white.b})`;
+}
+
 /**
  * Compute a WCAG-safe hover text color based on cursor color and background.
  * This is computed once when cursor color changes (not per-hover).
@@ -655,12 +678,19 @@ function desaturateGreysToBackground(palette, bgHex, isDarkMode = false) {
 
 function stampCursorCSSVar(hex) {
   try {
-    document.documentElement.style.setProperty('--cursor-color', String(hex || '').trim() || '#000000');
-    
-    // Compute and set a WCAG-safe hover text color (once per cursor color change)
-    const hoverFg = computeSafeHoverTextColor(hex);
+    const cursorHex = String(hex || '').trim() || '#000000';
+    document.documentElement.style.setProperty('--cursor-color', cursorHex);
+
+    // WCAG-safe text on light hover mix (links, meta buttons)
+    const hoverFg = computeSafeHoverTextColor(cursorHex);
     if (hoverFg) {
       document.documentElement.style.setProperty('--cursor-hover-fg', hoverFg);
+    }
+
+    // WCAG AA text on full cursor background (quote button hover)
+    const quoteHoverFg = computeSafeTextOnCursorColor(cursorHex);
+    if (quoteHoverFg) {
+      document.documentElement.style.setProperty('--quote-hover-fg', quoteHoverFg);
     }
   } catch (_) { /* no-op */ }
 }

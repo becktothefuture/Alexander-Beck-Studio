@@ -34,6 +34,11 @@ function applyEdge() {
   const taglineEl = document.getElementById('edge-caption-tagline');
   const tagline = getText('edge.tagline', getText('edge.copyright', ''));
   setText(taglineEl, tagline);
+
+  const copyrightEl = document.getElementById('edge-caption-copyright');
+  if (copyrightEl) {
+    setText(copyrightEl, getText('edge.copyright', ''));
+  }
 }
 
 function applyLegend() {

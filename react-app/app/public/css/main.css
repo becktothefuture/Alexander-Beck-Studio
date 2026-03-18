@@ -457,9 +457,11 @@ html.modal-active .fade-content {
   transition-duration: var(--modal-hide-duration, 500ms);
 }
 
-/* UI Wrapper Frame - CSS Grid 3-Row Layout */
+/* UI Wrapper Frame - CSS Grid 3-Row Layout.
+   z-index: 0 so quote button (z:500) and other overlays in .fade-content stack above. */
 .ui-layer-wrapper {
   position: relative;
+  z-index: 0;
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: auto 1fr auto;
@@ -487,13 +489,21 @@ html.modal-active .fade-content {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(32px, 4vw, 56px);
+  /* Logo-to-buttons gap reduced 35% then 17% (was clamp(32px, 4vw, 56px)) */
+  gap: clamp(17px, 2.16vw, 30px);
   pointer-events: none;
   z-index: 10; /* Above background, below modals */
 }
 
 .ui-bottom {
   grid-area: bottom;
+}
+
+/* Footer mount: React portal target; must occupy bottom grid cell (replacing .ui-bottom as grid child). */
+#footer-mount {
+  grid-area: bottom;
+  position: relative;
+  width: 100%;
 }
 
 /* Light gradient overlay from .viewport--content::before - preserved */
@@ -589,7 +599,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   max-width: 620px; 
   width: 100%;
   font-family: 'Geist', sans-serif;
-  color: var(--text-muted);
+  color: var(--text-primary);
   opacity: var(--legend-opacity);
   pointer-events: auto;
 }
@@ -647,7 +657,6 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
 #header-cv-link::before,
 .abs-meta-btn::before,
 #site-year::before,
-.legend__item--interactive::before,
 .decorative-script::before {
   content: '';
   position: absolute;
@@ -696,10 +705,6 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   --hover-bg-z: 0; /* Icon buttons need z-index: 0 instead of -1 */
 }
 
-.legend__item--interactive::before {
-  --hover-bg-radius: var(--legend-item-radius);
-}
-
 .decorative-script::before {
   --hover-bg-radius: var(--abs-radius-card);
   --hover-bg-duration: var(--duration-quick);
@@ -730,12 +735,13 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   transform: none;
 }
 
+/* Legend label text stays body color (no cursor-tint on hover) */
 .legend .legend__item--interactive:hover span {
-  color: var(--cursor-hover-fg, var(--cursor-color));
+  color: var(--text-primary);
 }
 
 body.dark-mode .legend .legend__item--interactive:hover span {
-  color: var(--cursor-hover-fg, var(--cursor-color));
+  color: var(--text-primary);
 }
 
 /* Active filter state */
@@ -765,15 +771,17 @@ body.dark-mode .legend .legend__item--interactive:hover span {
   color: inherit;
 }
 
-/* Legend tooltip output container */
+/* Legend tooltip — floating dialog below the clicked label (position set by JS) */
 .legend-tooltip-output {
-  display: block;
-  width: 100%;
-  /* Position: 50% lower than the previous spacing (var(--gap-md)) */
-  margin-top: calc(var(--gap-md) * 1.5);
-  padding-left: calc(var(--legend-circle-size) + var(--legend-item-gap, var(--gap-xs)));
-  background: none;
-  color: var(--text-muted);
+  position: fixed;
+  left: 0;
+  top: 0;
+  max-width: 260px;
+  padding: var(--gap-sm) var(--gap-md);
+  border-radius: var(--abs-radius-9);
+  /* Same background as button surface (scene/chrome) */
+  background: var(--bg-light);
+  color: var(--text-primary);
   font-family: 'Geist', sans-serif;
   font-size: var(--text-sm);
   font-weight: 400;
@@ -781,20 +789,49 @@ body.dark-mode .legend .legend__item--interactive:hover span {
   letter-spacing: var(--letter-spacing-normal);
   text-transform: none;
   white-space: normal;
+  /* Same light edge as quote button: ring + top highlight */
+  --legend-tooltip-edge-light-ring: 0.18;
+  --legend-tooltip-edge-light: 0.12;
+  box-shadow:
+    0 2px 8px rgba(var(--abs-rgb-black), 0.04),
+    inset 0 0 0 1px rgba(var(--abs-rgb-white), var(--legend-tooltip-edge-light-ring)),
+    inset 0 1px 0 rgba(var(--abs-rgb-white), var(--legend-tooltip-edge-light));
   opacity: 0;
-  pointer-events: none;
-  transition: opacity 45ms ease;
-  min-height: 1em;
+  transform: translateY(-8px);
   z-index: 9999;
-  position: relative;
+  visibility: hidden;
+  /* Exit: swift upward movement */
+  transition: opacity 0.12s ease-in, transform 0.12s ease-in, visibility 0s linear 0.12s;
+}
+
+.legend-tooltip-output.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  /* Enter: gentle downward movement into place */
+  transition: opacity 0.22s ease-out, transform 0.22s ease-out, visibility 0s;
 }
 
 .legend-tooltip-output::before {
-  content: '↳ ';
+  content: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legend-tooltip-output,
+  .legend-tooltip-output.is-visible {
+    transform: none;
+    transition: opacity 0.15s ease, visibility 0s;
+  }
 }
 
 body.dark-mode .legend-tooltip-output {
-  color: var(--text-muted);
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  --legend-tooltip-edge-light-ring: 0.1;
+  --legend-tooltip-edge-light: 0.06;
+  box-shadow: 0 2px 8px rgba(var(--abs-rgb-black), 0.2),
+    inset 0 0 0 1px rgba(var(--abs-rgb-white), var(--legend-tooltip-edge-light-ring)),
+    inset 0 1px 0 rgba(var(--abs-rgb-white), var(--legend-tooltip-edge-light));
 }
 
 /* Hide tooltip on mobile */
@@ -1005,9 +1042,9 @@ p {
   /* Horizontally centered */
   left: 50%;
   transform: translateX(-50%) scale(1);
-  /* Vertical position: viewport center (50%) + 5vh downshift (matching .ui-center) 
-     + logo visual half-height (~2vh) + gap (clamp matches .ui-center gap) */
-  top: calc(50% + 5vh + clamp(32px, 4vw, 56px));
+  /* Vertical position: viewport center (50%) + 5vh downshift (matching .ui-center)
+     + logo visual half-height (~2vh) + gap (reduced 35% then 17%, matches .ui-center gap) */
+  top: calc(50% + 5vh + clamp(17px, 2.16vw, 30px));
   transform-origin: center center;
   z-index: 10; /* Match .ui-center z-index */
   /* Horizontal flexbox layout - center aligned */
@@ -1270,6 +1307,8 @@ button.abs-meta-btn,
 
 .footer_icon-link {
   color: var(--text-quiet);
+  /* Explicit transform so focus/active translateY(nudge) transitions cleanly (no 1px snap on blur) */
+  transform: translateZ(0);
   /* Removed explicit opacity - now controlled by index page rule (0.7 default, 1 on hover) */
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic),
@@ -1303,65 +1342,81 @@ button.abs-meta-btn,
   gap: var(--gap-sm);
 }
 
-/* Quote Display Component - Positioned above meta button */
+/* Viewport layer: full viewport only. One child (quote). Fixed + inset:0 so it spans entire area. */
+.quote-viewport-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 500;
+}
+
+.quote-viewport-layer > .quote-display {
+  pointer-events: auto;
+}
+
+/* ── Quote Puck ─────────────────────────────────────────────────────────────
+   Positioned via JS-driven left/top (no transform for position).
+   Default: bottom-right corner. JS takes over once initQuotePuck runs. */
 .quote-display {
+  --_size: var(--abs-quote-button-size, 224px);
+  position: fixed;
+  right: 24px;
+  bottom: 10vh;
+  width: var(--_size);
+  height: var(--_size);
+  border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--abs-gap-xs);
-  position: relative;
-  max-width: var(--abs-quote-max-width, 200px);
-  padding: var(--abs-quote-pad-y, var(--abs-gap-sm)) var(--abs-quote-pad-x, var(--abs-gap-md));
-  border: none;
-  border-radius: var(--abs-radius-cta);
-  background:
-    radial-gradient(
-      130% 120% at 16% 4%,
-      rgba(var(--abs-rgb-white), calc(var(--quote-glass-edge-opacity, var(--abs-surface-edge-opacity, 0.14)) * 0.78)) 0%,
-      rgba(var(--abs-rgb-white), calc(var(--quote-glass-edge-opacity, var(--abs-surface-edge-opacity, 0.14)) * 0.16)) 24%,
-      transparent 56%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(var(--abs-rgb-white), var(--quote-glass-sheen-top-opacity, 0.035)) 0%,
-      rgba(var(--abs-rgb-white), var(--quote-glass-sheen-mid-opacity, 0.012)) 48%,
-      rgba(var(--abs-rgb-white), 0) 100%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(var(--abs-rgb-black), 0) 62%,
-      rgba(var(--abs-rgb-black), var(--quote-glass-bottom-edge-opacity, calc(var(--abs-surface-edge-opacity, 0.14) * 0.28))) 100%
-    ),
-    rgba(var(--abs-rgb-white), var(--quote-glass-fill-opacity, var(--abs-surface-fill-opacity, 0.02)));
-  -webkit-backdrop-filter: blur(var(--quote-glass-blur, 8px)) saturate(var(--quote-glass-saturation, 1.12));
-  backdrop-filter: blur(var(--quote-glass-blur, 8px)) saturate(var(--quote-glass-saturation, 1.12));
-  box-shadow:
-    inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
-      rgba(var(--abs-rgb-white), calc(var(--quote-glass-edge-opacity, var(--abs-surface-edge-opacity, 0.14)) * 0.72)),
-    inset 0 calc(var(--abs-size-1px) * 0.5) calc(var(--abs-size-1px) * 2)
-      rgba(var(--abs-rgb-white), calc(var(--quote-glass-inner-shadow-opacity, calc(var(--abs-surface-edge-opacity, 0.14) * 0.45)) * 0.72)),
-    0 var(--quote-glass-shadow-offset-y, 6px) var(--quote-glass-shadow-blur, 18px)
-      rgba(var(--abs-rgb-black), calc(var(--quote-glass-shadow-opacity, var(--abs-surface-glow-opacity, 0.24)) * 0.82));
+  justify-content: center;
+  gap: calc(var(--abs-gap-xs) * 2);
+  padding: var(--abs-quote-pad-y, 24px) var(--abs-quote-pad-x, 28px);
+  transform: rotate(-2deg);
+  box-sizing: border-box;
   text-align: center;
   overflow: hidden;
+  z-index: 500;
+  pointer-events: auto;
+  border: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: none;
+  /* Same color as inner wall; opacity from --quote-button-fill-opacity (Puck panel), backdrop blur */
+  --quote-button-edge-light: 0.12;
+  --quote-button-edge-light-ring: 0.18;
+  --quote-button-edge-shadow: 0.08;
+  --quote-button-outer-shadow: 0.08;
+  background: color-mix(in srgb, var(--quote-button-color, var(--frame-inner-surface)) calc(var(--quote-button-fill-opacity, 0.7) * 100%), transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, var(--quote-button-edge-light-ring)),
+    inset 0 1px 0 rgba(255, 255, 255, var(--quote-button-edge-light)),
+    inset 0 -1px 0 rgba(0, 0, 0, var(--quote-button-edge-shadow)),
+    0 2px 8px rgba(0, 0, 0, var(--quote-button-outer-shadow));
+  transition: box-shadow 0.25s ease;
 }
 
-@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .quote-display {
-    background:
-      linear-gradient(
-        180deg,
-        rgba(var(--abs-rgb-white), var(--quote-glass-sheen-top-opacity, 0.035)) 0%,
-        rgba(var(--abs-rgb-white), var(--quote-glass-sheen-mid-opacity, 0.012)) 48%,
-        rgba(var(--abs-rgb-white), 0) 100%
-      ),
-      linear-gradient(
-        180deg,
-        rgba(var(--abs-rgb-black), 0) 62%,
-        rgba(var(--abs-rgb-black), var(--quote-glass-bottom-edge-opacity, calc(var(--abs-surface-edge-opacity, 0.14) * 0.28))) 100%
-      ),
-      rgba(var(--abs-rgb-white), max(0.08, var(--abs-surface-fill-opacity, 0.02)));
-  }
+.dark-mode .quote-display {
+  --quote-button-edge-light: 0.06;
+  --quote-button-edge-light-ring: 0.1;
+  --quote-button-edge-shadow: 0.15;
+  --quote-button-outer-shadow: 0.25;
+}
+
+/* Hover color is handled by ::before pseudo-element (fast in, slow out) */
+
+/* JS-driven positioning: switches from right/bottom to left/top */
+.quote-display--positioned {
+  right: auto;
+  bottom: auto;
+  left: 0;
+  top: 0;
+  will-change: left, top;
+}
+
+.quote-display--dragging {
+  cursor: grabbing;
 }
 
 .quote-display--hidden {
@@ -1369,18 +1424,25 @@ button.abs-meta-btn,
   pointer-events: none;
 }
 
-/* Quote content wrapper for enter/exit animations */
+.quote-display,
+.quote-display * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Content wrapper for mode-change enter/exit animations */
 .quote-display__content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--abs-gap-xs);
+  justify-content: center;
+  gap: calc(var(--abs-gap-xs) * 2);
   position: relative;
   z-index: 1;
   opacity: 1;
   transform: scale(1);
   filter: blur(0);
-  transition: 
+  transition:
     opacity 220ms var(--ease-fade),
     transform 220ms var(--ease-settle),
     filter 220ms var(--ease-fade);
@@ -1398,27 +1460,35 @@ button.abs-meta-btn,
   filter: blur(1px);
 }
 
+/* Text scales with button size — solid colors for legibility */
 .quote-display__text {
   margin: 0;
   font-family: var(--abs-font-sans);
-  font-size: var(--abs-text-xs);
+  font-size: 14px;
   font-style: italic;
   font-weight: var(--abs-weight-regular);
   line-height: var(--abs-line-relaxed);
   letter-spacing: 0.02em;
-  color: var(--text-primary);
-  opacity: var(--abs-opacity-soft);
+  color: rgba(0, 0, 0, 0.58);
+}
+
+.dark-mode .quote-display__text {
+  color: rgba(255, 255, 255, 0.66);
 }
 
 .quote-display__author {
   margin: 0;
   font-family: var(--abs-font-sans);
-  font-size: 9px;
+  font-size: max(9px, min(calc(var(--abs-quote-button-size, 224px) * 0.042), 12px));
   font-weight: var(--abs-weight-medium);
   line-height: var(--abs-line-tight);
-  letter-spacing: 0.02em;
-  color: var(--text-primary);
-  opacity: var(--abs-opacity-faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.38);
+}
+
+.dark-mode .quote-display__author {
+  color: rgba(255, 255, 255, 0.44);
 }
 
 /* Sound Toggle in Top or Footer */
@@ -1474,11 +1544,12 @@ button.abs-meta-btn,
 }
 
 /* Meta (London · time) is a button using `.abs-meta-btn` while keeping `.caption` text styling. */
-/* Location name (London) - Sarina (script font) */
+/* Location name (London) - Sarina (script font), 150% larger */
 .location-name {
   font-family: var(--abs-font-display);
   font-style: normal;
   font-weight: var(--abs-weight-regular);
+  font-size: 1.5em;
 }
 
 /* Meta stack: location on top, time below */
@@ -1489,7 +1560,7 @@ button.abs-meta-btn,
   gap: 2px;
 }
 
-/* Time Display - Geist font, 80% size */
+/* Time Display - Geist font, 80% size; min-width keeps layout stable before/without JS */
 #time-display {
   font-family: 'Geist', sans-serif;
   font-style: normal;
@@ -1497,6 +1568,7 @@ button.abs-meta-btn,
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
+  min-width: 9ch; /* Reserve space so "London · [time]" layout is always shown */
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -2335,20 +2407,33 @@ body.abs-link-hovering #custom-cursor {
 }
 
 /* Power Transfer: transition-only, prominent hover-out (no “disappear”) */
-:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year) {
+:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .quote-display) {
+  transform: translateZ(0);
   transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)), color 0.2s ease;
 }
 
 :is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
-  transform: scale(var(--abs-button-swell-scale, 1.06));
+  transform: translateZ(0);
   transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), color 0.2s ease;
+}
+
+/* Quote button: hover scale; position fixed bottom-right (no drag vars) */
+.quote-display:hover {
+  transform:
+    translate(
+      var(--quote-drag-x, calc(100vw - var(--quote-effective-size) - 24px)),
+      var(--quote-drag-y, calc(90vh - var(--quote-effective-size)))
+    )
+    rotate(var(--quote-drag-rotate, 4deg))
+    scale(var(--abs-button-swell-scale, 1.06));
+  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
 }
 
 a:hover,
 button:hover {
   --abs-cursor-pulse-ms: 520ms;
   transform-origin: center;
-  transform: scale(var(--abs-button-swell-scale, 1.06));
+  transform: translateZ(0);
   transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic);
 }
@@ -2381,8 +2466,21 @@ button:hover {
 #header-cv-link::before,
 .abs-meta-btn::before,
 #site-year::before,
-.legend__item--interactive::before {
+.quote-display::before {
   transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)), opacity 0.2s ease, background 0.2s ease;
+}
+
+.quote-display::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  z-index: -1;
+  background: var(--cursor-color);
+  /* Slow fade-out: colour drains away like energy leaving the puck */
+  transition: opacity 1.2s ease-out, transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic));
 }
 
 .abs-icon-btn:hover::before,
@@ -2391,7 +2489,7 @@ button:hover {
 #header-cv-link:hover::before,
 .abs-meta-btn:hover::before,
 #site-year:hover::before,
-.legend__item--interactive:hover::before {
+.quote-display:hover::before {
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
   opacity: 1;
   transform: scale(var(--abs-button-swell-scale, 1.06));
@@ -2405,9 +2503,20 @@ body.dark-mode .portfolio-cv-link:hover::before,
 body.dark-mode #header-cv-link:hover::before,
 body.dark-mode .abs-meta-btn:hover::before,
 body.dark-mode #site-year:hover::before,
-body.dark-mode .legend__item--interactive:hover::before {
+.dark-mode .quote-display:hover::before {
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
 }
+
+/* Quote button: full cursor color on hover (not mix); fast in, slow out */
+.quote-display:hover::before {
+  background: var(--cursor-color);
+  transition: opacity 0.2s ease, transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
+}
+.dark-mode .quote-display:hover::before {
+  background: var(--cursor-color);
+  transition: opacity 0.2s ease, transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
+}
+/* Quote text: no color change on hover — stays legible against ::before overlay */
 
 #main-links .footer_link:hover .footer-link-nowrap {
   color: inherit;
@@ -2449,6 +2558,19 @@ body.dark-mode .legend__item--interactive:hover::before {
   transform: translateY(var(--link-nudge));
 }
 
+/* Footer only: no focus/active nudge (no 1px shift); ::before swell optional—disabled for minimal look */
+.ui-bottom .abs-icon-btn:hover::before,
+.ui-bottom .abs-meta-btn:hover::before,
+.ui-bottom #site-year:hover::before {
+  transform: none;
+}
+.ui-bottom .footer_icon-link.abs-icon-btn:focus-visible,
+.ui-bottom .footer_icon-link.abs-icon-btn:active,
+.ui-bottom .abs-meta-btn:focus-visible,
+.ui-bottom .abs-meta-btn:active {
+  transform: translateZ(0);
+}
+
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   .footer_icon-link.abs-icon-btn:hover,
@@ -2477,9 +2599,10 @@ body.dark-mode .legend__item--interactive:hover::before {
   }
 }
 
-/* Base state: longer, prominent hover-out (ease-release has slight undershoot) */
+/* Base state: explicit transform avoids subpixel snap on hover in/out */
 a,
 button {
+  transform: translateZ(0);
   transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
               filter var(--link-impact-duration) var(--ease-organic);
 }
@@ -2552,8 +2675,7 @@ body.dark-mode .decorative-script p a:hover {
   .portfolio-cv-link:hover::before,
   #header-cv-link:hover::before,
   .abs-meta-btn:hover::before,
-  #site-year:hover::before,
-  .legend__item--interactive:hover::before {
+  #site-year:hover::before {
     animation: none;
     opacity: 1;
     transform: none;

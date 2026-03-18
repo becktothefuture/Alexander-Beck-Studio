@@ -336,7 +336,7 @@ const state = {
   desktopWallThicknessFactor: 1.0,    // wall thickness multiplier for TOP/BOTTOM on desktop (1.0 = base)
   mobileEdgeLabelsVisible: true,     // whether to show edge labels on mobile (default: visible)
   wallRadiusVw: 0,          // corner radius (vw) (also drives physics corner collision)
-  wallThicknessVw: 0,       // wall tube thickness (vw)
+  wallThicknessVw: 4,       // wall inset / frame thickness (vw); default 4vw
   wallThicknessAreaMultiplier: 1.0,  // multiplier for area-based wall thickness scaling (1.0 = no area scaling)
   wallThicknessMinPx: 6,    // minimum wall thickness clamp (px) for small viewports
   wallThicknessMaxPx: 25,   // maximum wall thickness clamp (px) for large viewports
@@ -615,9 +615,9 @@ const state = {
   safariFrameDark: '#202124',   // Safari-specific outer wall fallback in dark mode
   useSimplifiedFrame: true, // CSS-only frame (disables legacy canvas inner-wall rendering)
   // Simplified frame geometry + effects (single-wall model)
-  frameBorderWidth: 4,       // Border thickness in px
-  frameOuterRadius: 44,      // Outer corner radius in px
-  frameInnerRadius: 40,      // Derived from outer radius minus border width
+  frameBorderWidth: 2,      // Gap between outer wall and inner content (px); gradient shows in gap
+  frameOuterRadius: 46,      // Derived outer corner radius in px
+  frameInnerRadius: 42,      // Canonical inner corner radius in px
   frameInnerSurface: 'var(--abs-wall-base)', // Inner fill surface color
   frameBorderGradientEdgeOpacity: 0.03, // Border gradient edge opacity
   frameBorderGradientMidOpacity: 0.06,  // Border gradient midpoint opacity
@@ -739,8 +739,6 @@ const state = {
   outerWallCastShadowSpread: 0,             // Cast shadow spread (px)
   outerWallCastShadowOpacityLight: 0.15,    // Cast shadow opacity light mode (0-1)
   outerWallCastShadowOpacityDark: 0.25,     // Cast shadow opacity dark mode (0-1)
-  outerWallRadiusAdjust: 2,                 // Outer wall radius fine-tune (px)
-  
   // Outer Wall Top Shadow (Overhang shadow)
   outerWallTopShadowOffset: 3,              // Top shadow Y offset (px)
   outerWallTopShadowBlur: 8,                // Top shadow blur (px)
@@ -962,25 +960,18 @@ export function applyLayoutFromVwToPx() {
   // Wall thickness defines the wall inset / frame thickness.
   // Content padding is layout-only (space between wall and content), and MUST NOT
   // change the wall geometry or collisions.
+  const outerInsetVw = Number.isFinite(state.containerBorderVw) ? state.containerBorderVw : 0;
   const wallThicknessVw = (Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)
     ? state.wallThicknessVw
     : 0;
-  // Legacy fallback: if wallThicknessVw is unset, keep using containerBorderVw.
-  const derivedBorderVw = (wallThicknessVw > 0)
-    ? wallThicknessVw
-    : (Number.isFinite(state.containerBorderVw) ? state.containerBorderVw : 0);
-  // Keep legacy value in sync so UI readbacks + exports remain consistent.
-  state.containerBorderVw = derivedBorderVw;
 
-  const borderPx = vwToPx(derivedBorderVw, w);
+  const borderPx = vwToPx(outerInsetVw, w);
   const simPadPx = vwToPx(state.simulationPaddingVw, w);
   const radiusPx = vwToPx(state.wallRadiusVw, w);
 
   const minWallRadiusPx = Math.max(0, Math.round(state.layoutMinWallRadiusPx || 0));
 
-  // Wall thickness (vw). Legacy fallback: if unset, treat the derived border as thickness.
-  const thicknessVw = (wallThicknessVw > 0) ? wallThicknessVw : derivedBorderVw;
-  const baseThicknessPx = vwToPx(thicknessVw, w);
+  const baseThicknessPx = vwToPx(wallThicknessVw, w);
 
   // Apply area-based scaling: normalize screen area and blend with user-controlled multiplier
   // Formula: base × (1.0 + (normalizedArea - 1.0) × multiplier)
@@ -1071,6 +1062,7 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--container-border', `${state.containerBorder}px`); // Y (top/bottom)
   root.style.setProperty('--container-border-x', `${state.containerBorderX}px`); // X (left/right)
   root.style.setProperty('--container-border-y', `${state.containerBorder}px`); // alias for clarity
+  root.style.setProperty('--safari-tint-inset', `${state.containerBorder}px`);
   root.style.setProperty('--simulation-padding', `${state.simulationPadding}px`);
   root.style.setProperty('--content-padding', `${state.contentPadding}px`);
   root.style.setProperty('--content-padding-x', `${state.contentPaddingX}px`);
@@ -1080,9 +1072,9 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--abs-wall-base-light', state.wallBaseLight || '#f1f3f4');
   root.style.setProperty('--abs-wall-base-dark', state.wallBaseDark || '#202124');
   // Simplified frame geometry/effects CSS vars.
-  const frameBorderWidth = clampInt(state.frameBorderWidth, 0, 40, 4);
-  const frameOuterRadius = clampInt(state.frameOuterRadius, 0, 300, 44);
-  const frameInnerRadius = Math.max(0, frameOuterRadius - frameBorderWidth);
+  const frameBorderWidth = clampInt(state.frameBorderWidth, 0, 40, 0);
+  const frameInnerRadius = clampInt(state.wallRadius, 0, 300, 42);
+  const frameOuterRadius = Math.max(frameInnerRadius, frameInnerRadius + frameBorderWidth);
   const frameInnerSurface = 'var(--abs-wall-base)';
   const frameBorderGradientEdgeOpacity = clampNumber(state.frameBorderGradientEdgeOpacity, 0, 1, 0.03);
   const frameBorderGradientMidOpacity = clampNumber(state.frameBorderGradientMidOpacity, 0, 1, 0.06);
@@ -1125,13 +1117,13 @@ export function applyLayoutCSSVars() {
   } catch (e) {}
   
   // Also update vw-based vars for CSS calc fallbacks
-  const baseContainerVw = state.containerBorderVw || 1.3;
+  const baseContainerVw = Number.isFinite(state.containerBorderVw) ? state.containerBorderVw : 0;
   root.style.setProperty('--container-border-vw', `${baseContainerVw * desktopWallFactor}`);
   root.style.setProperty('--container-border-x-vw', `${baseContainerVw * mobileWallXFactor}`);
   
   const baseThicknessVw = (Number.isFinite(state.wallThicknessVw) && state.wallThicknessVw > 0)
     ? state.wallThicknessVw
-    : state.containerBorderVw;
+    : 0;
   const wallThicknessVwMul = isMobileLayout ? mobileWallXFactor : desktopWallFactor;
   root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * wallThicknessVwMul}`);
   root.style.setProperty('--top-logo-width-vw', String(state.topLogoWidthVw ?? 35));
@@ -1209,7 +1201,6 @@ export function applyLayoutCSSVars() {
   
   // Outer Wall Edge Lighting CSS variables (double-wall effect)
   const isDarkMode = document.body.classList.contains('dark-mode');
-  root.style.setProperty('--outer-wall-radius-adjust', `${state.outerWallRadiusAdjust ?? 2}px`);
   root.style.setProperty('--outer-wall-top-dark-offset', `${state.outerWallTopDarkOffset ?? 1}px`);
   root.style.setProperty('--outer-wall-top-dark-blur', `${state.outerWallTopDarkBlur ?? 3}px`);
   root.style.setProperty('--outer-wall-top-dark-spread', `${state.outerWallTopDarkSpread ?? 0}px`);
@@ -1809,10 +1800,10 @@ export function initState(config) {
   }
   if (config.frameOuterRadius !== undefined) {
     state.frameOuterRadius = clampInt(config.frameOuterRadius, 0, 300, state.frameOuterRadius);
+    state.frameInnerRadius = Math.max(0, state.frameOuterRadius - state.frameBorderWidth);
   } else {
-    state.frameOuterRadius = clampInt(readTokenPx('--frame-outer-radius', state.frameOuterRadius), 0, 300, state.frameOuterRadius);
+    state.frameOuterRadius = Math.max(0, state.frameInnerRadius + state.frameBorderWidth);
   }
-  state.frameInnerRadius = Math.max(0, state.frameOuterRadius - state.frameBorderWidth);
   state.frameInnerSurface = 'var(--abs-wall-base)';
   if (config.frameBorderGradientEdgeOpacity !== undefined) {
     state.frameBorderGradientEdgeOpacity = clampNumber(config.frameBorderGradientEdgeOpacity, 0, 1, state.frameBorderGradientEdgeOpacity);
@@ -2112,8 +2103,6 @@ export function initState(config) {
   if (config.outerWallCastShadowOpacityDark !== undefined) state.outerWallCastShadowOpacityDark = config.outerWallCastShadowOpacityDark;
   if (config.outerWallCastShadowBlur !== undefined) state.outerWallCastShadowBlur = config.outerWallCastShadowBlur;
   if (config.outerWallCastShadowOffset !== undefined) state.outerWallCastShadowOffset = config.outerWallCastShadowOffset;
-  if (config.outerWallRadiusAdjust !== undefined) state.outerWallRadiusAdjust = config.outerWallRadiusAdjust;
-  
   // Outer Wall Top Shadow
   if (config.outerWallTopShadowOffset !== undefined) state.outerWallTopShadowOffset = config.outerWallTopShadowOffset;
   if (config.outerWallTopShadowBlur !== undefined) state.outerWallTopShadowBlur = config.outerWallTopShadowBlur;
@@ -2210,6 +2199,10 @@ export function initState(config) {
   if (!(Number.isFinite(state.containerBorderVw) && state.containerBorderVw > 0)) {
     const tokenBorderVw = readTokenNumber('--container-border-vw', null);
     if (Number.isFinite(tokenBorderVw) && tokenBorderVw > 0) state.containerBorderVw = tokenBorderVw;
+  }
+  if (!(Number.isFinite(state.containerBorderVw) && state.containerBorderVw > 0)) {
+    const legacyInsetPx = readTokenPx('--safari-tint-inset', null);
+    if (Number.isFinite(legacyInsetPx) && legacyInsetPx > 0) state.containerBorderVw = pxToVw(legacyInsetPx, basisW);
   }
   if (!(Number.isFinite(state.wallRadiusVw) && state.wallRadiusVw > 0)) {
     const tokenRadiusVw = readTokenNumber('--wall-radius-vw', null);

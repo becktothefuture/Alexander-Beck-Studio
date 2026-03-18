@@ -326,10 +326,10 @@ function extractSvgPaths() {
     console.warn('[canvas-logo] SVG element not found');
     return null;
   }
-  
+
   const paths = svg.querySelectorAll('path');
   const pathData = [];
-  
+
   paths.forEach(path => {
     const d = path.getAttribute('d');
     if (d) {
@@ -339,7 +339,7 @@ function extractSvgPaths() {
       });
     }
   });
-  
+
   return pathData;
 }
 
@@ -433,7 +433,7 @@ export function updateLogoSize(canvasWidth, canvasHeight, dpr) {
   // Update state
   currentSize = newSize;
   lastDpr = dpr;
-  
+
   // Size changed -> invalidate color cache (will re-render lazily in drawLogo)
   offscreenByRenderKey.clear();
   invalidateRuntimeStyleCache();
@@ -460,9 +460,9 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
       offscreenByRenderKey.set(renderKey, offscreen);
     }
   }
-  
+
   if (!offscreen) return;
-  
+
   // Calculate centered position
   const pos = getLogoCenterPosition(canvasWidth, canvasHeight, currentSize.width, currentSize.height);
 

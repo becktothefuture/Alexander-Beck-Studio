@@ -37,16 +37,14 @@ export function buildRuntimeConfigSnapshot() {
 
   config.layoutViewportWidthPx = g.layoutViewportWidthPx || 0;
   config.containerBorderVw = g.containerBorderVw;
+  config.wallThicknessVw = g.wallThicknessVw;
+  config.frameBorderWidth = g.frameBorderWidth;
   config.simulationPaddingVw = g.simulationPaddingVw;
   config.contentPaddingVw = g.contentPaddingVw;
   config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;
   config.wallRadiusVw = g.wallRadiusVw;
-  config.wallThicknessVw = g.wallThicknessVw;
-  config.wallThicknessMinPx = g.wallThicknessMinPx;
-  config.wallThicknessMaxPx = g.wallThicknessMaxPx;
   config.layoutMinContentPaddingPx = Math.max(0, Math.round(g.layoutMinContentPaddingPx ?? 0));
   config.layoutMinWallRadiusPx = Math.max(0, Math.round(g.layoutMinWallRadiusPx ?? 0));
-  config.wallInset = g.wallInset;
 
   try {
     config.soundPreset = getCurrentPreset();
@@ -70,6 +68,8 @@ export function buildShellConfigSnapshot() {
     ...(nextShell.theme || {}),
     wallBaseLight: g.wallBaseLight || nextShell.theme?.wallBaseLight,
     wallBaseDark: g.wallBaseDark || nextShell.theme?.wallBaseDark,
+    quoteButtonColorLight: g.quoteButtonColorLight || nextShell.theme?.quoteButtonColorLight,
+    quoteButtonColorDark: g.quoteButtonColorDark || nextShell.theme?.quoteButtonColorDark,
     siteFrameLight: g.frameColorLight || nextShell.theme?.siteFrameLight,
     siteFrameDark: g.frameColorDark || nextShell.theme?.siteFrameDark,
     safariFrameLight: g.safariFrameLight || nextShell.theme?.safariFrameLight,
