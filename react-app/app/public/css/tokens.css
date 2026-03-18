@@ -627,8 +627,9 @@
     calc(var(--top-logo-width-vw, 35) * 1vw),
     var(--brand-logo-width-max)
   );
-  /* Index/portfolio logo SVG viewBox: 919×66. */
-  --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 66 / 919);
+  --brand-logo-secondary-opacity: 0.66;
+  /* Index logo SVG viewBox: 511×101. */
+  --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 101 / 511);
 
   /* Index: primary (main) links positioned under logo. */
   --home-main-links-below-logo-px: 40;

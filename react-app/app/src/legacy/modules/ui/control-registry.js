@@ -155,6 +155,14 @@ const DEFAULT_HIDDEN_CONTROL_IDS = new Set([
   'modalOverlayTransitionOutMs',
   'modalOverlayContentDelayMs',
   'modalDepthTranslateY',
+
+  // Shared shell controls now own these values.
+  'edgeCaptionDistanceMinPx',
+  'edgeCaptionDistanceMaxPx',
+
+  // Secondary polish dials stay available in code, not in the default tuning surface.
+  'logoBlurInactive',
+  'logoBlurActive',
 ]);
 
 function loadVisibility() {
@@ -2597,6 +2605,22 @@ export const CONTROL_SECTIONS = {
         hint: 'Top-center logo width (clamped by min/max tokens).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--top-logo-width-vw', String(val));
+        }
+      },
+      {
+        id: 'brandLogoSecondaryOpacity',
+        label: 'Second Line',
+        stateKey: 'brandLogoSecondaryOpacity',
+        type: 'range',
+        min: 0,
+        max: 1,
+        step: 0.01,
+        default: 0.66,
+        format: (v) => Number(v).toFixed(2),
+        parse: parseFloat,
+        hint: 'Opacity for the lower line of the brand mark.',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--brand-logo-secondary-opacity', String(val));
         }
       },
     ]

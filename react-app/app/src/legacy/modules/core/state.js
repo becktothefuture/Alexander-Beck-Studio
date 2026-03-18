@@ -656,6 +656,7 @@ const state = {
   // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)
   topLogoWidthVw: 35,                 // Sets `--top-logo-width-vw` (clamped by CSS min/max tokens)
+  brandLogoSecondaryOpacity: 0.66,    // Opacity for the second line of the Alexander Beck Studio mark
   homeMainLinksBelowLogoPx: 96,      // Sets `--home-main-links-below-logo-px` (index only)
   footerNavBarTopVh: 50,              // Sets `--footer-nav-bar-top-*` (viewport units)
   footerNavBarGapVw: 2.5,             // Sets `--footer-nav-bar-gap` (viewport units)
@@ -1128,6 +1129,9 @@ export function applyLayoutCSSVars() {
     : state.containerBorderVw;
   const wallThicknessVwMul = isMobileLayout ? mobileWallXFactor : desktopWallFactor;
   root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * wallThicknessVwMul}`);
+  root.style.setProperty('--top-logo-width-vw', String(state.topLogoWidthVw ?? 35));
+  root.style.setProperty('--brand-logo-secondary-opacity', String(clampNumber(state.brandLogoSecondaryOpacity, 0, 1, 0.66)));
+  root.style.setProperty('--home-main-links-below-logo-px', `${Math.round(state.homeMainLinksBelowLogoPx ?? 40)}px`);
   
   // Edge label inset: CSS handles calculation via --wall-thickness + --edge-label-inset-gap + --edge-label-inset-adjust
   // Just set the adjust variable if needed (CSS will calculate the rest)
@@ -1900,6 +1904,9 @@ export function initState(config) {
   // UI layout knobs (CSS var driven)
   if (config.topLogoWidthVw !== undefined) {
     state.topLogoWidthVw = clampNumber(config.topLogoWidthVw, 0, 120, state.topLogoWidthVw);
+  }
+  if (config.brandLogoSecondaryOpacity !== undefined) {
+    state.brandLogoSecondaryOpacity = clampNumber(config.brandLogoSecondaryOpacity, 0, 1, state.brandLogoSecondaryOpacity);
   }
   if (config.homeMainLinksBelowLogoPx !== undefined) {
     state.homeMainLinksBelowLogoPx = clampNumber(config.homeMainLinksBelowLogoPx, -500, 500, state.homeMainLinksBelowLogoPx);

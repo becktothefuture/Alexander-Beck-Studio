@@ -1,9 +1,34 @@
 # Config files
 
-- `default-config.json` — runtime settings for the homepage simulation (copied to `dist/config/default-config.json` + `dist/js/config.json`).
+## Canonical source
+
+- `design-system.json` — the only authored design config source.
+
+## Generated design outputs
+
+- `default-config.json` — generated runtime settings for the homepage simulation.
+- `shell-config.json` — generated shared shell/surface/layout settings.
+- `portfolio-config.json` — generated portfolio-specific tuning.
+- `cv-config.json` — generated CV-specific tuning.
+
+These generated files exist for runtime compatibility and build output. Do not treat them as the primary source of truth.
+
+## Content files
+
 - `contents-home.json` — runtime copy for UI strings (copied to `dist/config/contents-home.json` + `dist/js/contents-home.json`).
-- `portfolio-config.json` — carousel tuning (copied to `dist/config/portfolio-config.json` + `dist/js/portfolio-config.json`).
 - `contents-portfolio.json` — portfolio projects (copied to `dist/config/contents-portfolio.json` + `dist/js/contents-portfolio.json`).
+
+## Workflow
+
+- Save design changes through the canonical `design-system.json` flow.
+- Run builds from the repo root, not only from `react-app/app`, so `flatten:design-config` always runs before `vite build`.
+- A design control is only complete when it supports:
+  - live apply in dev
+  - canonical save into `design-system.json`
+  - flattening into the generated config files used by build/preview
+- Shared finish such as light edge, wall atmosphere, quote treatment, and edge-caption spacing should land in `shell`, not be duplicated as separate page-local truths.
+- Page-local config should own layout, composition, and page-specific motion. It should not redefine the global shell/material system unless there is a deliberate exception.
+- If a control is removed from the visible panel, also remove or bypass its persistence path if it should no longer affect saved config.
 
 ## Performance rollout keys (`default-config.json`)
 

@@ -1700,6 +1700,10 @@ html.modal-active #main-links { pointer-events: none; }
   padding-left: clamp(8px, 0.8vw, 10px);
 }
 
+#brand-logo .brand-logo-path--secondary {
+  fill-opacity: var(--brand-logo-secondary-opacity, 0.66);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Note: Logo & Nav fade on modal open/close is handled by JavaScript in 
    modal-overlay.js (fadeLogoNav function) for reliable cross-browser transitions
