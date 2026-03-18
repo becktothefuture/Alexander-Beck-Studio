@@ -61,6 +61,9 @@ const matrix = [
   {
     page: 'cv',
     path: '/cv.html',
+    sessionStorage: {
+      abs_cv_ok: 'certified'
+    },
     readySelectors: ['#app-frame', '.cv-scroll-container', '.cv-photo__image', '.cv-right__inner'],
     minReadySelectors: 3,
     selectors: [

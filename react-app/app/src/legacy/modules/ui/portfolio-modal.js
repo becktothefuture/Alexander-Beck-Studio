@@ -7,6 +7,7 @@ import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverla
 import { getText } from '../utils/text-loader.js';
 import { isDev } from '../utils/logger.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
+import { consumeGateRequest, markGateAccess } from '../../../lib/access-gates.js';
 
 export function initPortfolioModal() {
     const trigger = document.getElementById('portfolio-modal-trigger');
@@ -18,8 +19,8 @@ export function initPortfolioModal() {
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
     const modalLabel = document.getElementById('portfolio-modal-label');
     
-    // Correct Code
-    const CODE = '1234';
+    // Invite codes add client-side friction only. They are not secure auth.
+    const INVITE_CODE = '1234';
     
     if (!trigger || !modal || inputs.length === 0) {
         console.warn('Portfolio Gate: Missing required elements');
@@ -34,7 +35,7 @@ export function initPortfolioModal() {
     const TITLE = getText('gates.portfolio.title', 'View Portfolio');
     const DESC = getText(
         'gates.portfolio.description',
-        "Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."
+        "This is a lightweight invite gate in the browser, not secure authentication. If I shared a code with you, enter it here. Otherwise get in touch and I'll send portfolio access."
     );
 
     // Set label text if element exists
@@ -229,7 +230,7 @@ export function initPortfolioModal() {
         const enteredCode = inputs.map(input => input.value).join('');
         
         if (enteredCode.length === 4) {
-            if (enteredCode === CODE) {
+            if (enteredCode === INVITE_CODE) {
                 // ═══════════════════════════════════════════════════════════════════
                 // GATE UNLOCK ANIMATION SEQUENCE (US-005)
                 // 1. Input pulse (200ms) - immediate tactile feedback
@@ -247,8 +248,7 @@ export function initPortfolioModal() {
                     inputsContainer.classList.add('pulse-energy');
                 }
                 
-                // Set session token (soft modal)
-                sessionStorage.setItem('abs_portfolio_ok', Date.now());
+                markGateAccess('portfolio');
                 
                 // Step 2: Modal dissolve animation (after pulse)
                 setTimeout(() => {
@@ -287,8 +287,7 @@ export function initPortfolioModal() {
     // --- Event Listeners ---
 
     // Auto-open check (if redirected back from portfolio.html)
-    if (sessionStorage.getItem('abs_open_portfolio_modal')) {
-        sessionStorage.removeItem('abs_open_portfolio_modal');
+    if (consumeGateRequest('portfolio')) {
         // Small delay to allow page init
         setTimeout(() => openGate(), 300);
     }

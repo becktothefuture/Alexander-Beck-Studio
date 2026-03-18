@@ -111,11 +111,11 @@
     },
     "cv": {
       "title": "Bio/CV",
-      "description": "Because spam bots don\u2019t deserve nice things. This keeps my inbox a little more civilised. Need access? Get in touch for the code."
+      "description": "This is a lightweight invite gate in the browser, not secure authentication. If I shared a code with you, enter it here. Otherwise get in touch and I\u2019ll send the CV directly."
     },
     "portfolio": {
       "title": "View Portfolio",
-      "description": "Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."
+      "description": "This is a lightweight invite gate in the browser, not secure authentication. If I shared a code with you, enter it here. Otherwise get in touch and I\u2019ll send portfolio access."
     },
     "contact": {
       "title": "Contact",

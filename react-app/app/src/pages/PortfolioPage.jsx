@@ -2,26 +2,15 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { BodyClassManager } from '../components/layout/BodyClassManager.jsx';
 import { SharedFrame } from '../components/layout/SharedFrame.jsx';
 import { useLegacyBootstrap } from '../hooks/useLegacyBootstrap.js';
+import { hasGateAccess, redirectToGateHome } from '../lib/access-gates.js';
 import templateHtml from '../templates/portfolio-body.html?raw';
 
 export function PortfolioPage() {
-  const hasAccess = useMemo(() => {
-    try {
-      return Boolean(window.sessionStorage.getItem('abs_portfolio_ok'));
-    } catch {
-      // Match source behavior only when sessionStorage is available.
-      return true;
-    }
-  }, []);
+  const hasAccess = useMemo(() => hasGateAccess('portfolio'), []);
 
   useEffect(() => {
     if (hasAccess) return;
-    try {
-      window.sessionStorage.setItem('abs_open_portfolio_gate', '1');
-    } catch (error) {
-      void error;
-    }
-    window.location.replace('index.html');
+    redirectToGateHome('portfolio');
   }, [hasAccess]);
 
   const boot = useCallback(() => import('../legacy/modules/portfolio/app.js'), []);
