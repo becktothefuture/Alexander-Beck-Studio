@@ -5,9 +5,9 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   edgeWidth: 0.5,
   fillOpacity: 0.018,
   glowOpacity: 0.18,
-  wallEdgeStrength: 0.14,
-  wallAmbientStrength: 0.09,
-  wallSoftness: 0.45,
+  sceneHighlight: 0.3,
+  sceneDepth: 0.14,
+  sceneSoftness: 0.45,
   scriptMaxWidth: 355,
   scriptPaddingX: 16,
   scriptPaddingY: 10,
@@ -32,14 +32,14 @@ const SURFACE_CONTROL_SECTIONS = [
     ],
   },
   {
-    key: 'wallAtmosphere',
-    title: 'Browser Wall',
+    key: 'sceneLight',
+    title: 'Scene Light',
     icon: '🫧',
     defaultOpen: false,
     controls: [
-      { id: 'wallEdgeStrength', label: 'Wall Edge', min: 0, max: 0.8, step: 0.01, unit: '' },
-      { id: 'wallAmbientStrength', label: 'Wall Wash', min: 0, max: 0.6, step: 0.01, unit: '' },
-      { id: 'wallSoftness', label: 'Softness', min: 0, max: 1, step: 0.01, unit: '' },
+      { id: 'sceneHighlight', label: 'Highlight', min: 0, max: 0.6, step: 0.01, unit: '' },
+      { id: 'sceneDepth', label: 'Depth', min: 0, max: 0.28, step: 0.01, unit: '' },
+      { id: 'sceneSoftness', label: 'Softness', min: 0, max: 1, step: 0.01, unit: '' },
     ],
   },
 ];
@@ -86,18 +86,15 @@ function readNumber(rootStyle, name, fallback) {
 
 function readCurrentConfig() {
   const rootStyle = getComputedStyle(document.documentElement);
-  const wallEdgeStrength = readNumber(rootStyle, '--frame-vignette-edge-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.wallEdgeStrength);
-  const wallAmbientStrength = readNumber(rootStyle, '--frame-vignette-ambient-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.wallAmbientStrength);
-  const edgeBlur = readNumber(rootStyle, '--frame-vignette-edge-blur', 30);
 
   return {
     edgeStrength: readNumber(rootStyle, '--abs-surface-edge-opacity', readNumber(rootStyle, '--quote-glass-edge-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.edgeStrength)),
     edgeWidth: readNumber(rootStyle, '--abs-surface-edge-width', readNumber(rootStyle, '--hover-edge-width', DEFAULT_STUDIO_SURFACE_CONFIG.edgeWidth)),
     fillOpacity: readNumber(rootStyle, '--abs-surface-fill-opacity', readNumber(rootStyle, '--quote-glass-fill-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity)),
     glowOpacity: readNumber(rootStyle, '--abs-surface-glow-opacity', readNumber(rootStyle, '--quote-glass-shadow-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity)),
-    wallEdgeStrength,
-    wallAmbientStrength,
-    wallSoftness: clamp((edgeBlur - 10) / 70, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.wallSoftness),
+    sceneHighlight: readNumber(rootStyle, '--abs-scene-highlight', readNumber(rootStyle, '--inner-wall-top-light-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight)),
+    sceneDepth: readNumber(rootStyle, '--abs-scene-depth', readNumber(rootStyle, '--frame-vignette-edge-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.sceneDepth)),
+    sceneSoftness: readNumber(rootStyle, '--abs-scene-softness', clamp((readNumber(rootStyle, '--frame-vignette-edge-blur', 30) - 10) / 70, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.sceneSoftness)),
     scriptMaxWidth: readNumber(rootStyle, '--decorative-script-max-width', DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth),
     scriptPaddingX: readNumber(rootStyle, '--decorative-script-padding-left', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX),
     scriptPaddingY: readNumber(rootStyle, '--decorative-script-padding-vertical', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY),
@@ -127,12 +124,26 @@ function syncStudioRuntimeState(config) {
     globals.hoverEdgeBottomOpacity = Number((config.edgeStrength * 0.78).toFixed(3));
     globals.hoverEdgeTopEnabled = config.edgeStrength > 0;
     globals.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
-    globals.frameBorderGradientEdgeOpacity = Number((config.wallEdgeStrength * 0.14).toFixed(3));
-    globals.frameBorderGradientMidOpacity = Number((config.wallEdgeStrength * 0.28).toFixed(3));
-    globals.frameVignetteEdgeOpacity = config.wallEdgeStrength;
-    globals.frameVignetteAmbientOpacity = config.wallAmbientStrength;
-    globals.frameVignetteEdgeBlur = Math.round(10 + (config.wallSoftness * 70));
-    globals.frameVignetteAmbientBlur = Math.round(80 + (config.wallSoftness * 260));
+    globals.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.09).toFixed(3));
+    globals.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.18).toFixed(3));
+    globals.frameVignetteEdgeOpacity = config.sceneDepth;
+    globals.frameVignetteAmbientOpacity = Number((config.sceneDepth * 0.64).toFixed(3));
+    globals.frameVignetteEdgeBlur = Math.round(10 + (config.sceneSoftness * 70));
+    globals.frameVignetteAmbientBlur = Math.round(80 + (config.sceneSoftness * 260));
+    globals.wallShadowAmbientBlur = Math.round(14 + (config.sceneSoftness * 22));
+    globals.wallShadowAmbientOpacityLight = Number(Math.min(0.16, config.sceneDepth * 0.28).toFixed(3));
+    globals.wallShadowAmbientOpacityDark = Number(Math.min(0.32, config.sceneDepth * 0.86).toFixed(3));
+    globals.wallInnerShadowEnabled = config.sceneDepth > 0;
+    globals.wallInnerShadowOpacityLightV2 = Number(Math.min(1, config.sceneDepth * 4.8).toFixed(3));
+    globals.wallInnerShadowOpacityDarkV2 = Number(Math.min(1, config.sceneDepth * 6.2).toFixed(3));
+    globals.wallInnerShadowBlurVh = Math.round(6 + (config.sceneSoftness * 20));
+    globals.wallInnerShadowSpreadVh = Math.round(4 + (config.sceneSoftness * 24));
+    globals.innerWallTopLightOpacityLight = Number(config.sceneHighlight.toFixed(3));
+    globals.innerWallTopLightOpacityDark = Number(Math.min(0.82, config.sceneHighlight * 1.33).toFixed(3));
+    globals.innerWallOutwardShadowBlur = Math.round(3 + (config.sceneSoftness * 20));
+    globals.innerWallOutwardShadowSpread = Math.round(config.sceneSoftness * 6);
+    globals.innerWallOutwardShadowOpacityLight = Number(Math.min(0.45, config.sceneDepth * 1.45).toFixed(3));
+    globals.innerWallOutwardShadowOpacityDark = Number(Math.min(0.65, config.sceneDepth * 2.3).toFixed(3));
     globals.edgeCaptionDistanceMinPx = Math.round(config.edgeCaptionDistanceMin);
     globals.edgeCaptionDistanceMaxPx = Math.round(config.edgeCaptionDistanceMax);
 
@@ -146,9 +157,9 @@ export function applyStudioSurfaceConfig(config) {
   const edgeWidth = clamp(config.edgeWidth, 0, 2.5, DEFAULT_STUDIO_SURFACE_CONFIG.edgeWidth);
   const fillOpacity = clamp(config.fillOpacity, 0, 0.12, DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity);
   const glowOpacity = clamp(config.glowOpacity, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity);
-  const wallEdgeStrength = clamp(config.wallEdgeStrength, 0, 0.8, DEFAULT_STUDIO_SURFACE_CONFIG.wallEdgeStrength);
-  const wallAmbientStrength = clamp(config.wallAmbientStrength, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.wallAmbientStrength);
-  const wallSoftness = clamp(config.wallSoftness, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.wallSoftness);
+  const sceneHighlight = clamp(config.sceneHighlight, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight);
+  const sceneDepth = clamp(config.sceneDepth, 0, 0.28, DEFAULT_STUDIO_SURFACE_CONFIG.sceneDepth);
+  const sceneSoftness = clamp(config.sceneSoftness, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.sceneSoftness);
   const scriptMaxWidth = clamp(config.scriptMaxWidth, 240, 520, DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth);
   const scriptPaddingX = clamp(config.scriptPaddingX, 8, 32, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX);
   const scriptPaddingY = clamp(config.scriptPaddingY, 4, 24, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY);
@@ -175,12 +186,21 @@ export function applyStudioSurfaceConfig(config) {
   root.style.setProperty('--hover-edge-bottom-opacity', `${Math.max(0, edgeStrength * 0.78)}`);
   root.style.setProperty('--hover-edge-top-opacity', `${Math.max(0, edgeStrength * 0.46)}`);
 
-  root.style.setProperty('--frame-border-gradient-edge-opacity', `${Math.max(0, wallEdgeStrength * 0.14)}`);
-  root.style.setProperty('--frame-border-gradient-mid-opacity', `${Math.max(0, wallEdgeStrength * 0.28)}`);
-  root.style.setProperty('--frame-vignette-edge-opacity', `${wallEdgeStrength}`);
-  root.style.setProperty('--frame-vignette-ambient-opacity', `${wallAmbientStrength}`);
-  root.style.setProperty('--frame-vignette-edge-blur', `${Math.round(10 + (wallSoftness * 70))}px`);
-  root.style.setProperty('--frame-vignette-ambient-blur', `${Math.round(80 + (wallSoftness * 260))}px`);
+  root.style.setProperty('--abs-scene-highlight', `${sceneHighlight}`);
+  root.style.setProperty('--abs-scene-depth', `${sceneDepth}`);
+  root.style.setProperty('--abs-scene-softness', `${sceneSoftness}`);
+  root.style.setProperty('--frame-border-gradient-edge-opacity', `${Math.max(0, sceneHighlight * 0.09)}`);
+  root.style.setProperty('--frame-border-gradient-mid-opacity', `${Math.max(0, sceneHighlight * 0.18)}`);
+  root.style.setProperty('--frame-vignette-edge-opacity', `${sceneDepth}`);
+  root.style.setProperty('--frame-vignette-ambient-opacity', `${Math.min(0.6, sceneDepth * 0.64)}`);
+  root.style.setProperty('--frame-vignette-edge-blur', `${Math.round(10 + (sceneSoftness * 70))}px`);
+  root.style.setProperty('--frame-vignette-ambient-blur', `${Math.round(80 + (sceneSoftness * 260))}px`);
+  root.style.setProperty('--inner-wall-top-light-opacity', `${sceneHighlight}`);
+  root.style.setProperty('--inner-wall-top-light-opacity-dark', `${Math.min(0.82, sceneHighlight * 1.33)}`);
+  root.style.setProperty('--inner-wall-outward-shadow-opacity', `${Math.min(0.45, sceneDepth * 1.45)}`);
+  root.style.setProperty('--inner-wall-outward-shadow-opacity-dark', `${Math.min(0.65, sceneDepth * 2.3)}`);
+  root.style.setProperty('--inner-wall-outward-shadow-blur', `${Math.round(3 + (sceneSoftness * 20))}px`);
+  root.style.setProperty('--inner-wall-outward-shadow-spread', `${Math.round(sceneSoftness * 6)}px`);
   root.style.setProperty('--decorative-script-max-width', `${scriptMaxWidth}px`);
   root.style.setProperty('--decorative-script-padding-left', `${scriptPaddingX}px`);
   root.style.setProperty('--decorative-script-padding-vertical', `${scriptPaddingY}px`);
@@ -193,9 +213,9 @@ export function applyStudioSurfaceConfig(config) {
   syncStudioRuntimeState({
     edgeStrength,
     edgeWidth,
-    wallEdgeStrength,
-    wallAmbientStrength,
-    wallSoftness,
+    sceneHighlight,
+    sceneDepth,
+    sceneSoftness,
     edgeCaptionDistanceMin,
     edgeCaptionDistanceMax,
   });
@@ -205,9 +225,9 @@ export function applyStudioSurfaceConfig(config) {
     edgeWidth,
     fillOpacity,
     glowOpacity,
-    wallEdgeStrength,
-    wallAmbientStrength,
-    wallSoftness,
+    sceneHighlight,
+    sceneDepth,
+    sceneSoftness,
     scriptMaxWidth,
     scriptPaddingX,
     scriptPaddingY,
@@ -332,11 +352,14 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   nextShell.surface.lightEdgeBottomOpacityLight = Number((config.edgeStrength * 0.12).toFixed(3));
   nextShell.surface.lightEdgeBottomOpacityDark = Number((config.edgeStrength * 0.2).toFixed(3));
 
-  nextShell.theme.frameBorderEdgeOpacity = Number((config.wallEdgeStrength * 0.14).toFixed(3));
-  nextShell.theme.frameBorderMidOpacity = Number((config.wallEdgeStrength * 0.28).toFixed(3));
-  nextShell.theme.frameVignetteEdgeOpacity = config.wallEdgeStrength;
-  nextShell.theme.frameVignetteAmbientOpacity = config.wallAmbientStrength;
-  nextShell.theme.frameVignetteEdgeBlur = `${Math.round(10 + (config.wallSoftness * 70))}px`;
+  nextShell.surface.sceneHighlight = config.sceneHighlight;
+  nextShell.surface.sceneDepth = config.sceneDepth;
+  nextShell.surface.sceneSoftness = config.sceneSoftness;
+  nextShell.theme.frameBorderEdgeOpacity = Number((config.sceneHighlight * 0.09).toFixed(3));
+  nextShell.theme.frameBorderMidOpacity = Number((config.sceneHighlight * 0.18).toFixed(3));
+  nextShell.theme.frameVignetteEdgeOpacity = config.sceneDepth;
+  nextShell.theme.frameVignetteAmbientOpacity = Number((config.sceneDepth * 0.64).toFixed(3));
+  nextShell.theme.frameVignetteEdgeBlur = `${Math.round(10 + (config.sceneSoftness * 70))}px`;
   nextShell.layout.decorativeScriptMaxWidth = `${Math.round(config.scriptMaxWidth)}px`;
   nextShell.layout.decorativeScriptPaddingX = `${Math.round(config.scriptPaddingX)}px`;
   nextShell.layout.decorativeScriptPaddingY = `${Math.round(config.scriptPaddingY)}px`;
@@ -365,12 +388,12 @@ export function buildStudioRuntimePatch(snapshot, baseRuntime = {}) {
   nextRuntime.hoverEdgeBottomOpacity = Number((config.edgeStrength * 0.78).toFixed(3));
   nextRuntime.hoverEdgeTopEnabled = config.edgeStrength > 0;
   nextRuntime.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
-  nextRuntime.frameBorderGradientEdgeOpacity = Number((config.wallEdgeStrength * 0.14).toFixed(3));
-  nextRuntime.frameBorderGradientMidOpacity = Number((config.wallEdgeStrength * 0.28).toFixed(3));
-  nextRuntime.frameVignetteEdgeOpacity = config.wallEdgeStrength;
-  nextRuntime.frameVignetteAmbientOpacity = config.wallAmbientStrength;
-  nextRuntime.frameVignetteEdgeBlur = Math.round(10 + (config.wallSoftness * 70));
-  nextRuntime.frameVignetteAmbientBlur = Math.round(80 + (config.wallSoftness * 260));
+  nextRuntime.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.09).toFixed(3));
+  nextRuntime.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.18).toFixed(3));
+  nextRuntime.frameVignetteEdgeOpacity = config.sceneDepth;
+  nextRuntime.frameVignetteAmbientOpacity = Number((config.sceneDepth * 0.64).toFixed(3));
+  nextRuntime.frameVignetteEdgeBlur = Math.round(10 + (config.sceneSoftness * 70));
+  nextRuntime.frameVignetteAmbientBlur = Math.round(80 + (config.sceneSoftness * 260));
   nextRuntime.edgeCaptionDistanceMinPx = Math.round(config.edgeCaptionDistanceMin);
   nextRuntime.edgeCaptionDistanceMaxPx = Math.round(config.edgeCaptionDistanceMax);
 

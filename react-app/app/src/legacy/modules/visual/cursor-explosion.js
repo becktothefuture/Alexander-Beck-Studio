@@ -148,7 +148,7 @@ export function triggerCursorExplosion(x, y, color, velocity = 0, options = {}) 
     const vel = particleSpeed * velVariation;
     
     // Position (start at cursor, tiny random offset for natural spread)
-    const offsetRadius = (g.cursorSize ?? 1.15) * (g.R_MIN ?? 5) * 0.3 * dpr;
+    const offsetRadius = (g.R_MIN ?? 5) * 0.3 * dpr;
     const offsetAngle = Math.random() * Math.PI * 2;
     xs[idx] = x + Math.cos(offsetAngle) * offsetRadius * Math.random();
     ys[idx] = y + Math.sin(offsetAngle) * offsetRadius * Math.random();
@@ -165,7 +165,7 @@ export function triggerCursorExplosion(x, y, color, velocity = 0, options = {}) 
     // Visual properties
     alphas[idx] = 1.0;
     // Particle size: original thickness (2-6px radius, scaled by DPR) - but fewer, slower particles
-    const baseRadius = clamp((g.cursorSize ?? 1.15) * 3 * dpr, 2 * dpr, 6 * dpr);
+    const baseRadius = clamp(3 * dpr, 2 * dpr, 6 * dpr);
     radii[idx] = baseRadius * (0.8 + Math.random() * 0.4); // 80-120% size variation
     
     // Color with slight variation for character

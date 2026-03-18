@@ -504,10 +504,13 @@
       "edgeCaptionDistanceMax": "24px"
     },
     "surface": {
-      "radius": "18px",
-      "blur": "8px",
-      "saturation": 1.12,
-      "edgeWidth": "0.5px",
+    "radius": "18px",
+    "blur": "8px",
+    "saturation": 1.12,
+    "sceneHighlight": 0.3,
+    "sceneDepth": 0.14,
+    "sceneSoftness": 0.45,
+    "edgeWidth": "0.5px",
       "fillOpacityLight": 0.018,
       "fillOpacityDark": 0.025,
       "sheenTopOpacityLight": 0.03,

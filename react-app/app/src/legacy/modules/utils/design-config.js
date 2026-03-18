@@ -61,9 +61,9 @@ const DEFAULT_STUDIO_SURFACE_CONFIG = {
   edgeWidth: 0.5,
   fillOpacity: 0.018,
   glowOpacity: 0.18,
-  wallEdgeStrength: 0.14,
-  wallAmbientStrength: 0.09,
-  wallSoftness: 0.45,
+  sceneHighlight: 0.3,
+  sceneDepth: 0.14,
+  sceneSoftness: 0.45,
   edgeCaptionDistanceMin: 8,
   edgeCaptionDistanceMax: 48,
 };
@@ -240,9 +240,9 @@ function deriveStudioSurfaceFromShell(shell = {}) {
     edgeWidth: clamp(parseNumericToken(surface.edgeWidth, surface.lightEdgeInset), 0, 2.5, DEFAULT_STUDIO_SURFACE_CONFIG.edgeWidth),
     fillOpacity: clamp(surface.fillOpacityLight, 0, 0.12, DEFAULT_STUDIO_SURFACE_CONFIG.fillOpacity),
     glowOpacity: clamp(surface.glowOpacityDark ?? surface.shadowOpacityDark, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.glowOpacity),
-    wallEdgeStrength: clamp(theme.frameVignetteEdgeOpacity, 0, 0.8, DEFAULT_STUDIO_SURFACE_CONFIG.wallEdgeStrength),
-    wallAmbientStrength: clamp(theme.frameVignetteAmbientOpacity, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.wallAmbientStrength),
-    wallSoftness: clamp((edgeBlur - 10) / 70, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.wallSoftness),
+    sceneHighlight: clamp(surface.sceneHighlight, 0, 0.6, clamp(parseNumericToken(theme.frameBorderMidOpacity, 0.054) / 0.18, 0, 0.6, DEFAULT_STUDIO_SURFACE_CONFIG.sceneHighlight)),
+    sceneDepth: clamp(surface.sceneDepth, 0, 0.28, clamp(parseNumericToken(theme.frameVignetteEdgeOpacity, 0.14), 0, 0.28, DEFAULT_STUDIO_SURFACE_CONFIG.sceneDepth)),
+    sceneSoftness: clamp(surface.sceneSoftness, 0, 1, clamp((edgeBlur - 10) / 70, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.sceneSoftness)),
     edgeCaptionDistanceMin: clamp(parseNumericToken(layout.edgeCaptionDistanceMin, 8), 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin),
     edgeCaptionDistanceMax: clamp(parseNumericToken(layout.edgeCaptionDistanceMax, 48), 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax),
   };
@@ -258,12 +258,12 @@ function applyDerivedStudioRuntime(runtime = {}, shell = {}) {
   nextRuntime.hoverEdgeBottomOpacity = Number((studio.edgeStrength * 0.78).toFixed(3));
   nextRuntime.hoverEdgeTopEnabled = studio.edgeStrength > 0;
   nextRuntime.hoverEdgeTopOpacity = Number((studio.edgeStrength * 0.46).toFixed(3));
-  nextRuntime.frameBorderGradientEdgeOpacity = Number((studio.wallEdgeStrength * 0.14).toFixed(3));
-  nextRuntime.frameBorderGradientMidOpacity = Number((studio.wallEdgeStrength * 0.28).toFixed(3));
-  nextRuntime.frameVignetteEdgeOpacity = studio.wallEdgeStrength;
-  nextRuntime.frameVignetteAmbientOpacity = studio.wallAmbientStrength;
-  nextRuntime.frameVignetteEdgeBlur = Math.round(10 + (studio.wallSoftness * 70));
-  nextRuntime.frameVignetteAmbientBlur = Math.round(80 + (studio.wallSoftness * 260));
+  nextRuntime.frameBorderGradientEdgeOpacity = Number((studio.sceneHighlight * 0.09).toFixed(3));
+  nextRuntime.frameBorderGradientMidOpacity = Number((studio.sceneHighlight * 0.18).toFixed(3));
+  nextRuntime.frameVignetteEdgeOpacity = studio.sceneDepth;
+  nextRuntime.frameVignetteAmbientOpacity = Number((studio.sceneDepth * 0.64).toFixed(3));
+  nextRuntime.frameVignetteEdgeBlur = Math.round(10 + (studio.sceneSoftness * 70));
+  nextRuntime.frameVignetteAmbientBlur = Math.round(80 + (studio.sceneSoftness * 260));
   nextRuntime.edgeCaptionDistanceMinPx = Math.round(studio.edgeCaptionDistanceMin);
   nextRuntime.edgeCaptionDistanceMaxPx = Math.round(studio.edgeCaptionDistanceMax);
 

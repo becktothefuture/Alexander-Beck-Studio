@@ -198,7 +198,7 @@ const state = {
   R_MAX: 18,
   
   // Custom cursor
-  cursorSize: 1.0,  // Multiplier for cursor size (1.0 = average ball size)
+  cursorSize: 1.0,  // Legacy field retained for backward compatibility; cursor size is now fixed in code.
   
   // Cursor color (dot + trail)
   // - `cursorColorMode`: 'auto' picks a new contrasty palette color on startup/mode/reset.
@@ -214,12 +214,12 @@ const state = {
   cursorColorAllowIndices: [],
   cursorColorDenyIndices: [],
 
-  // Mouse trail (canvas-rendered)
-  mouseTrailEnabled: true,
-  mouseTrailLength: 18,     // number of samples to keep
-  mouseTrailSize: 1.3,      // CSS px (scaled by DPR at draw time)
-  mouseTrailFadeMs: 220,    // lifetime of a sample
-  mouseTrailOpacity: 0.35,  // 0..1
+  // Mouse trail (deprecated, deactivated)
+  mouseTrailEnabled: false,
+  mouseTrailLength: 18,
+  mouseTrailSize: 1.3,
+  mouseTrailFadeMs: 220,
+  mouseTrailOpacity: 0.35,
   
   // Ball properties
   ballSoftness: 29,
@@ -611,7 +611,7 @@ const state = {
   frameColorDark: '#242529',   // Frame/wall color in dark mode (browser chrome + walls + border)
   lockedHeaderLight: '#f1f3f4', // Locked-header browser fallback in light mode
   lockedHeaderDark: '#3c3c3c',  // Locked-header browser fallback in dark mode
-  safariFrameLight: '#f1f3f4',  // Safari-specific outer wall fallback in light mode
+  safariFrameLight: '#202124',  // Safari-specific outer wall fallback in light mode
   safariFrameDark: '#202124',   // Safari-specific outer wall fallback in dark mode
   useSimplifiedFrame: true, // CSS-only frame (disables legacy canvas inner-wall rendering)
   // Simplified frame geometry + effects (single-wall model)

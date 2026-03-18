@@ -472,12 +472,12 @@
   "hoverEdgeBottomOpacity": 0.047,
   "hoverEdgeTopEnabled": true,
   "hoverEdgeTopOpacity": 0.028,
-  "frameBorderGradientEdgeOpacity": 0.02,
-  "frameBorderGradientMidOpacity": 0.039,
+  "frameBorderGradientEdgeOpacity": 0.027,
+  "frameBorderGradientMidOpacity": 0.054,
   "frameVignetteEdgeOpacity": 0.14,
   "frameVignetteAmbientOpacity": 0.09,
-  "frameVignetteEdgeBlur": 30,
-  "frameVignetteAmbientBlur": 154,
+  "frameVignetteEdgeBlur": 42,
+  "frameVignetteAmbientBlur": 197,
   "edgeCaptionDistanceMinPx": 0,
   "edgeCaptionDistanceMaxPx": 24
 }

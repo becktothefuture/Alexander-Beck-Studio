@@ -1130,80 +1130,6 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TRAIL - Mouse cursor and trail controls (consolidated)
-  // ═══════════════════════════════════════════════════════════════════════════
-  trail: {
-    title: 'Mouse & Trail',
-    icon: '🖐️',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'cursorSize',
-        label: 'Cursor Size',
-        stateKey: 'cursorSize',
-        type: 'range',
-        min: 0.1, max: 3.0, step: 0.05,
-        default: 1.0,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        onChange: (g, val) => {
-          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
-            updateCursorSize();
-          });
-        }
-      },
-      {
-        id: 'mouseTrailEnabled',
-        label: 'Trail Enabled',
-        stateKey: 'mouseTrailEnabled',
-        type: 'checkbox',
-        default: true
-      },
-      {
-        id: 'mouseTrailLength',
-        label: 'Trail Length',
-        stateKey: 'mouseTrailLength',
-        type: 'range',
-        min: 4, max: 96, step: 1,
-        default: 18,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Max samples kept (higher = smoother, slightly more work)'
-      },
-      {
-        id: 'mouseTrailSize',
-        label: 'Trail Size',
-        stateKey: 'mouseTrailSize',
-        type: 'range',
-        min: 0.5, max: 10, step: 0.1,
-        default: 1.3,
-        format: v => v.toFixed(1) + 'px',
-        parse: parseFloat
-      },
-      {
-        id: 'mouseTrailFadeMs',
-        label: 'Trail Fade',
-        stateKey: 'mouseTrailFadeMs',
-        type: 'range',
-        min: 40, max: 1200, step: 10,
-        default: 220,
-        format: v => `${Math.round(v)}ms`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'mouseTrailOpacity',
-        label: 'Trail Opacity',
-        stateKey: 'mouseTrailOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.35,
-        format: v => v.toFixed(2),
-        parse: parseFloat
-      }
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // UI SPACING - Consolidated spacing/padding for most text UI (no duplicates)
   // ═══════════════════════════════════════════════════════════════════════════
   uiSpacing: {
@@ -2708,7 +2634,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'safariFrameLight',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#f1f3f4',
+        default: '#202124',
         hint: 'Safari-specific outer wall color in light mode.',
         onChange: (g, val) => {
           g.safariFrameLight = val;

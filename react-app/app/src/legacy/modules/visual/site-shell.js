@@ -4,6 +4,8 @@ import {
   loadLegacyShellConfig,
   shouldUseCanonicalDesignConfig,
 } from '../utils/design-config.js';
+import { getGlobals } from '../core/state.js';
+import { updateWallShadowCSS } from './wall-shadow.js';
 
 const DEFAULT_SHELL_CONFIG = {
   theme: {
@@ -43,6 +45,9 @@ const DEFAULT_SHELL_CONFIG = {
     radius: '18px',
     blur: '8px',
     saturation: 1.12,
+    sceneHighlight: 0.3,
+    sceneDepth: 0.14,
+    sceneSoftness: 0.45,
     edgeWidth: '0.5px',
     fillOpacityLight: 0.018,
     fillOpacityDark: 0.028,
@@ -228,8 +233,18 @@ export function resolveSiteFramePalette(isDark = document.documentElement.classL
 }
 
 export function resolveBrowserFramePalette(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
-  const light = config?.theme?.siteFrameLight || DEFAULT_SHELL_CONFIG.theme.siteFrameLight;
-  const dark = config?.theme?.siteFrameDark || config?.theme?.siteFrameLight || DEFAULT_SHELL_CONFIG.theme.siteFrameDark;
+  const family = detectBrowserFamily();
+  let light = DEFAULT_SHELL_CONFIG.theme.siteFrameLight;
+  let dark = DEFAULT_SHELL_CONFIG.theme.siteFrameDark;
+
+  if (family.isFirefox) {
+    light = '#f9f9fb';
+    dark = '#1c1b22';
+  } else if (family.isChromium) {
+    light = '#f1f3f4';
+    dark = '#202124';
+  }
+
   const active = isDark ? dark : light;
 
   return { light, dark, active };
@@ -324,6 +339,15 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = document.do
   const root = document.documentElement;
   const theme = config?.theme || DEFAULT_SHELL_CONFIG.theme;
   const surface = config?.surface || DEFAULT_SHELL_CONFIG.surface;
+  const sceneHighlight = Number.isFinite(Number(surface.sceneHighlight))
+    ? Number(surface.sceneHighlight)
+    : DEFAULT_SHELL_CONFIG.surface.sceneHighlight;
+  const sceneDepth = Number.isFinite(Number(surface.sceneDepth))
+    ? Number(surface.sceneDepth)
+    : DEFAULT_SHELL_CONFIG.surface.sceneDepth;
+  const sceneSoftness = Number.isFinite(Number(surface.sceneSoftness))
+    ? Number(surface.sceneSoftness)
+    : DEFAULT_SHELL_CONFIG.surface.sceneSoftness;
 
   const fillOpacity = isDark ? surface.fillOpacityDark : surface.fillOpacityLight;
   const sheenTopOpacity = isDark ? surface.sheenTopOpacityDark : surface.sheenTopOpacityLight;
@@ -378,6 +402,33 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = document.do
   root.style.setProperty('--quote-glass-shadow-blur', surface.shadowBlur);
   root.style.setProperty('--quote-glass-shadow-offset-y', surface.shadowOffsetY);
   root.style.setProperty('--quote-glass-bottom-edge-opacity', String(Math.max(bottomEdgeOpacity, edgeOpacity * 0.28)));
+
+  root.style.setProperty('--abs-scene-highlight', String(sceneHighlight));
+  root.style.setProperty('--abs-scene-depth', String(sceneDepth));
+  root.style.setProperty('--abs-scene-softness', String(sceneSoftness));
+  root.style.setProperty('--inner-wall-top-light-opacity', String(isDark
+    ? Math.min(0.82, Number((sceneHighlight * 1.33).toFixed(3)))
+    : sceneHighlight));
+  root.style.setProperty('--inner-wall-top-light-opacity-dark', String(Math.min(0.82, Number((sceneHighlight * 1.33).toFixed(3)))));
+  root.style.setProperty('--inner-wall-outward-shadow-opacity', String(isDark
+    ? Math.min(0.65, Number((sceneDepth * 2.3).toFixed(3)))
+    : Math.min(0.45, Number((sceneDepth * 1.45).toFixed(3)))));
+  root.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(Math.min(0.65, Number((sceneDepth * 2.3).toFixed(3)))));
+  root.style.setProperty('--inner-wall-outward-shadow-blur', `${Math.round(3 + (sceneSoftness * 20))}px`);
+  root.style.setProperty('--inner-wall-outward-shadow-spread', `${Math.round(sceneSoftness * 6)}px`);
+
+  try {
+    const globals = getGlobals();
+    globals.wallShadowAmbientBlur = Math.round(14 + (sceneSoftness * 22));
+    globals.wallShadowAmbientOpacityLight = Number(Math.min(0.16, sceneDepth * 0.28).toFixed(3));
+    globals.wallShadowAmbientOpacityDark = Number(Math.min(0.32, sceneDepth * 0.86).toFixed(3));
+    globals.wallInnerShadowEnabled = sceneDepth > 0;
+    globals.wallInnerShadowOpacityLightV2 = Number(Math.min(1, sceneDepth * 4.8).toFixed(3));
+    globals.wallInnerShadowOpacityDarkV2 = Number(Math.min(1, sceneDepth * 6.2).toFixed(3));
+    globals.wallInnerShadowBlurVh = Math.round(6 + (sceneSoftness * 20));
+    globals.wallInnerShadowSpreadVh = Math.round(4 + (sceneSoftness * 24));
+    updateWallShadowCSS(globals);
+  } catch (e) {}
 }
 
 export function syncThemeColorMeta() {
