@@ -156,29 +156,29 @@
   </div>
 
   <!-- CV Modal - Fixed overlay, invite-gated access (z:100) -->
-  <div id="cv-modal" class="cv-modal hidden" aria-hidden="true">
+  <div id="cv-modal" class="cv-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="cv-modal-title" aria-describedby="cv-modal-description">
     <div id="cv-modal-label" class="modal-label"></div>
-    <div class="cv-modal-inputs">
-      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="Digit 1" autocomplete="off" />
-      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="Digit 2" autocomplete="off" />
-      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="Digit 3" autocomplete="off" />
-      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Digit 4" autocomplete="off" />
+    <div id="cv-modal-inputs" class="cv-modal-inputs" role="group" aria-labelledby="cv-modal-title" aria-describedby="cv-modal-description">
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="CV invite code digit 1 of 4" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="CV invite code digit 2 of 4" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="CV invite code digit 3 of 4" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="CV invite code digit 4 of 4" autocomplete="off" />
     </div>
   </div>
   
   <!-- Portfolio Modal - Fixed overlay, invite-gated access (z:100) -->
-  <div id="portfolio-modal" class="portfolio-modal hidden" aria-hidden="true">
+  <div id="portfolio-modal" class="portfolio-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="portfolio-modal-title" aria-describedby="portfolio-modal-description">
     <div id="portfolio-modal-label" class="modal-label"></div>
-    <div class="portfolio-modal-inputs">
-      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="Digit 1" autocomplete="off" />
-      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="Digit 2" autocomplete="off" />
-      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="Digit 3" autocomplete="off" />
-      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Digit 4" autocomplete="off" />
+    <div id="portfolio-modal-inputs" class="portfolio-modal-inputs" role="group" aria-labelledby="portfolio-modal-title" aria-describedby="portfolio-modal-description">
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="Portfolio invite code digit 1 of 4" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="Portfolio invite code digit 2 of 4" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="Portfolio invite code digit 3 of 4" autocomplete="off" />
+      <input type="text" maxlength="1" class="portfolio-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Portfolio invite code digit 4 of 4" autocomplete="off" />
     </div>
   </div>
 
   <!-- Contact Modal - Same transition as CV/Portfolio (no invite gating) -->
-  <div id="contact-modal" class="contact-modal hidden" aria-hidden="true">
+  <div id="contact-modal" class="contact-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title" aria-describedby="contact-modal-description">
     <div id="contact-modal-label" class="modal-label"></div>
     <div id="contact-modal-inputs" class="contact-modal-inputs"></div>
   </div>

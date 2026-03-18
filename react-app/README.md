@@ -37,7 +37,7 @@ npm run build:dev
 ## Architecture
 - Bridge-first: React mounts markup and boots legacy runtime from `src/legacy/`.
 - Shared frame: reusable React shell + page-specific templates.
-- Portfolio soft-gate: direct `portfolio.html` without `sessionStorage.abs_portfolio_ok` redirects to index; with token, portfolio loads normally.
+- Portfolio invite gate: direct `portfolio.html` without `sessionStorage.abs_portfolio_ok` redirects to index; with the session token, portfolio loads normally. This is client-side UX gating, not secure authentication.
 
 ## Config & assets
 - Config: `app/public/config/` (default-config.json, portfolio-config.json, etc.)

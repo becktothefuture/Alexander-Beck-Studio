@@ -4,6 +4,7 @@
  */
 
 import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';
+import { activateModalAccessibility } from './modal-accessibility.js';
 import { getText } from '../utils/text-loader.js';
 import { isDev } from '../utils/logger.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
@@ -17,6 +18,7 @@ export function initPortfolioModal() {
     const cvGate = document.getElementById('cv-modal'); // Get CV modal to check/close if open
     const contactGate = document.getElementById('contact-modal'); // Get contact modal to check/close if open
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
+    const inputsContainer = document.getElementById('portfolio-modal-inputs');
     const modalLabel = document.getElementById('portfolio-modal-label');
     
     // Invite codes add client-side friction only. They are not secure auth.
@@ -47,14 +49,28 @@ export function initPortfolioModal() {
                     <span>${BACK_TEXT}</span>
                 </button>
             </div>
-            <h2 class="modal-title">${TITLE}</h2>
-            <p class="modal-description">${DESC}</p>
+            <h2 id="portfolio-modal-title" class="modal-title">${TITLE}</h2>
+            <p id="portfolio-modal-description" class="modal-description">${DESC}</p>
         `;
     }
+
+    modal.setAttribute('aria-labelledby', 'portfolio-modal-title');
+    modal.setAttribute('aria-describedby', 'portfolio-modal-description');
+
+    if (inputsContainer) {
+        inputsContainer.setAttribute('role', 'group');
+        inputsContainer.setAttribute('aria-labelledby', 'portfolio-modal-title');
+        inputsContainer.setAttribute('aria-describedby', 'portfolio-modal-description');
+    }
+
+    inputs.forEach((input, index) => {
+        input.setAttribute('aria-label', `Portfolio invite code digit ${index + 1} of ${inputs.length}`);
+    });
 
     // State
     let isOpen = false;
     let lastOpenTime = 0;
+    let deactivateModalA11y = null;
 
     // Helper to check if any modal is currently active
     const isAnyGateActive = () => {
@@ -133,6 +149,10 @@ export function initPortfolioModal() {
             cvContainer.classList.add('fade-out-up');
         }
 
+        deactivateModalA11y = activateModalAccessibility(modal, {
+            initialFocus: () => inputs[0]
+        });
+
         // Defer modal DOM operations to next frame to avoid interrupting overlay's backdrop-filter transition
         requestAnimationFrame(() => {
             // Modal: mount modal inside overlay flex container
@@ -144,15 +164,14 @@ export function initPortfolioModal() {
             // Force reflow
             void modal.offsetWidth; 
             modal.classList.add('active');
-            
-            // Focus first input
-            inputs[0].focus();
         });
     };
 
-    const closeGate = (instant = false) => {
+    const closeGate = (instant = false, options = {}) => {
         // Close must be responsive immediately (Back/background/Escape).
         isOpen = false;
+        deactivateModalA11y?.({ restoreFocus: options.restoreFocus !== false });
+        deactivateModalA11y = null;
         
         // Clear inputs
         inputs.forEach(input => input.value = '');
