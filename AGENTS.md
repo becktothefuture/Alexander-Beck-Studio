@@ -76,3 +76,8 @@
 - If user reports an issue: Continue investigating until they confirm it's resolved
 - Never mark todos complete or close issues without explicit user confirmation
 - This ensures quality and prevents incomplete work from being considered finished
+
+## Learned Workspace Facts
+- When changing layout, chrome, tokens, or config that affect both the HTML and React surfaces, update both (html-site and react-app) so they stay in sync.
+- Inner wall corner radius is applied at 1.1× (or 1.15×) base radius to visually compensate for the second outer wall offset; document in CONFIGURATION.md if the multiplier changes.
+- **Quote button drag:** Custom physics (inertia, bounce, resistance, Coulomb friction) were removed; they were overengineered and didn’t work as intended. Current behavior is drag-to-move only, position saved on release. If adding motion again: (1) keep it minimal — e.g. one simple throw decay (single exponential or one time constant), no multi-parameter “realistic” model; (2) prefer CSS for follow-through (e.g. transition on release) or a tiny, well-tested library; (3) add one effect at a time and validate with the user before layering more.

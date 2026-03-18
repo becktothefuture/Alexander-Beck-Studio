@@ -1,3 +1,6 @@
+/** ID of the DOM node where the shared footer is mounted (SharedFrame footer slot). */
+export const FOOTER_MOUNT_ID = 'footer-mount';
+
 export function sanitizeTemplateHtml(rawHtml) {
   if (!rawHtml) return '';
 

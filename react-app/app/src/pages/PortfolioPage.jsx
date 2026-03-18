@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import { SiteFooter } from '../components/SiteFooter.jsx';
 import { BodyClassManager } from '../components/layout/BodyClassManager.jsx';
 import { SharedFrame } from '../components/layout/SharedFrame.jsx';
 import { useLegacyBootstrap } from '../hooks/useLegacyBootstrap.js';
@@ -21,7 +22,7 @@ export function PortfolioPage() {
   return (
     <>
       <BodyClassManager className="body portfolio-page" />
-      <SharedFrame html={templateHtml} bodyClass="body portfolio-page" />
+      <SharedFrame html={templateHtml} bodyClass="body portfolio-page" footer={<SiteFooter />} />
     </>
   );
 }

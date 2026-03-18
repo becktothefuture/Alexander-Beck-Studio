@@ -1,4 +1,8 @@
-import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
+import {
+  applyLayoutCSSVars,
+  applyLayoutFromVwToPx,
+  getGlobals,
+} from '../core/state.js';
 
 export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   edgeStrength: 0.06,
@@ -11,11 +15,23 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   scriptMaxWidth: 355,
   scriptPaddingX: 16,
   scriptPaddingY: 10,
-  quoteMaxWidth: 200,
-  quotePaddingX: 16,
-  quotePaddingY: 12,
+  quoteButtonSize: 224,
+  quoteMaxWidth: 224,
+  quotePaddingX: 28,
+  quotePaddingY: 24,
+  quoteButtonFillOpacity: 0.7,
+  puckRestitution: 0.65,
+  puckFriction: 0.5,
+  puckWallInset: 0,
+  puckMaxSpeed: 4000,
+  puckSpinGain: 0.12,
+  puckSpinFriction: 3.0,
+  puckWallSquash: 0.96,
+  puckSoundIntensity: 0.7,
   edgeCaptionDistanceMin: 8,
   edgeCaptionDistanceMax: 48,
+  wallThicknessVw: 4,
+  frameBorderWidth: 2,
 };
 
 const SURFACE_CONTROL_SECTIONS = [
@@ -46,6 +62,16 @@ const SURFACE_CONTROL_SECTIONS = [
 
 const SHELL_OBJECT_CONTROL_SECTIONS = [
   {
+    key: 'shellLayout',
+    title: 'Shell Layout',
+    icon: '📐',
+    defaultOpen: true,
+    controls: [
+      { id: 'wallThicknessVw', label: 'Wall inset', min: 0.5, max: 12, step: 0.1, unit: 'vw' },
+      { id: 'frameBorderWidth', label: 'Border width', min: 0, max: 20, step: 1, unit: 'px' },
+    ],
+  },
+  {
     key: 'quoteSystem',
     title: 'Shell Elements',
     icon: '💬',
@@ -54,11 +80,29 @@ const SHELL_OBJECT_CONTROL_SECTIONS = [
       { id: 'scriptMaxWidth', label: 'Script Width', min: 240, max: 520, step: 4, unit: 'px' },
       { id: 'scriptPaddingX', label: 'Script Pad X', min: 8, max: 32, step: 1, unit: 'px' },
       { id: 'scriptPaddingY', label: 'Script Pad Y', min: 4, max: 24, step: 1, unit: 'px' },
-      { id: 'quoteMaxWidth', label: 'Quote Width', min: 140, max: 320, step: 4, unit: 'px' },
-      { id: 'quotePaddingX', label: 'Quote Pad X', min: 8, max: 28, step: 1, unit: 'px' },
-      { id: 'quotePaddingY', label: 'Quote Pad Y', min: 6, max: 24, step: 1, unit: 'px' },
       { id: 'edgeCaptionDistanceMin', label: 'Caption Near', min: 0, max: 24, step: 1, unit: 'px' },
       { id: 'edgeCaptionDistanceMax', label: 'Caption Far', min: 24, max: 80, step: 1, unit: 'px' },
+    ],
+  },
+  {
+    key: 'puck',
+    title: 'Puck',
+    icon: '🔘',
+    defaultOpen: true,
+    prependHTML: '', // Injected by panel-dock (puck color controls)
+    controls: [
+      { id: 'quoteButtonSize', label: 'Size', min: 120, max: 400, step: 4, unit: 'px' },
+      { id: 'quoteButtonFillOpacity', label: 'Opacity', min: 0.3, max: 1, step: 0.02, unit: '' },
+      { id: 'quotePaddingX', label: 'Pad X', min: 8, max: 48, step: 1, unit: 'px' },
+      { id: 'quotePaddingY', label: 'Pad Y', min: 6, max: 40, step: 1, unit: 'px' },
+      { id: 'puckRestitution', label: 'Bounce', min: 0, max: 1, step: 0.05, unit: '' },
+      { id: 'puckFriction', label: 'Air friction', min: 0, max: 5, step: 0.1, unit: '' },
+      { id: 'puckWallInset', label: 'Wall inset', min: 0, max: 200, step: 2, unit: 'px' },
+      { id: 'puckMaxSpeed', label: 'Max speed', min: 500, max: 10000, step: 100, unit: 'px/s' },
+      { id: 'puckSpinGain', label: 'Spin gain', min: 0, max: 0.5, step: 0.01, unit: '' },
+      { id: 'puckSpinFriction', label: 'Spin friction', min: 0, max: 10, step: 0.1, unit: '' },
+      { id: 'puckWallSquash', label: 'Wall squash', min: 0.8, max: 1, step: 0.01, unit: '' },
+      { id: 'puckSoundIntensity', label: 'Hit volume', min: 0, max: 2, step: 0.05, unit: '' },
     ],
   },
 ];
@@ -98,11 +142,31 @@ function readCurrentConfig() {
     scriptMaxWidth: readNumber(rootStyle, '--decorative-script-max-width', DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth),
     scriptPaddingX: readNumber(rootStyle, '--decorative-script-padding-left', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX),
     scriptPaddingY: readNumber(rootStyle, '--decorative-script-padding-vertical', DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY),
+    quoteButtonSize: readNumber(rootStyle, '--abs-quote-button-size', DEFAULT_STUDIO_SURFACE_CONFIG.quoteButtonSize),
     quoteMaxWidth: readNumber(rootStyle, '--abs-quote-max-width', DEFAULT_STUDIO_SURFACE_CONFIG.quoteMaxWidth),
     quotePaddingX: readNumber(rootStyle, '--abs-quote-pad-x', DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingX),
     quotePaddingY: readNumber(rootStyle, '--abs-quote-pad-y', DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingY),
+    quoteButtonFillOpacity: readNumber(rootStyle, '--quote-button-fill-opacity', DEFAULT_STUDIO_SURFACE_CONFIG.quoteButtonFillOpacity),
+    puckRestitution: readNumber(rootStyle, '--puck-restitution', DEFAULT_STUDIO_SURFACE_CONFIG.puckRestitution),
+    puckFriction: readNumber(rootStyle, '--puck-friction', DEFAULT_STUDIO_SURFACE_CONFIG.puckFriction),
+    puckWallInset: readNumber(rootStyle, '--puck-wall-inset', DEFAULT_STUDIO_SURFACE_CONFIG.puckWallInset),
+    puckMaxSpeed: readNumber(rootStyle, '--puck-max-speed', DEFAULT_STUDIO_SURFACE_CONFIG.puckMaxSpeed),
+    puckSpinGain: readNumber(rootStyle, '--puck-spin-gain', DEFAULT_STUDIO_SURFACE_CONFIG.puckSpinGain),
+    puckSpinFriction: readNumber(rootStyle, '--puck-spin-friction', DEFAULT_STUDIO_SURFACE_CONFIG.puckSpinFriction),
+    puckWallSquash: readNumber(rootStyle, '--puck-wall-squash', DEFAULT_STUDIO_SURFACE_CONFIG.puckWallSquash),
+    puckSoundIntensity: readNumber(rootStyle, '--puck-sound-intensity', DEFAULT_STUDIO_SURFACE_CONFIG.puckSoundIntensity),
     edgeCaptionDistanceMin: readNumber(rootStyle, '--edge-caption-distance-min', DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin),
     edgeCaptionDistanceMax: readNumber(rootStyle, '--edge-caption-distance-max', DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax),
+    wallThicknessVw: (() => {
+      const g = getGlobals();
+      const v = g?.wallThicknessVw;
+      return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.wallThicknessVw;
+    })(),
+    frameBorderWidth: (() => {
+      const g = getGlobals();
+      const v = g?.frameBorderWidth;
+      return Number.isFinite(v) && v >= 0 ? v : DEFAULT_STUDIO_SURFACE_CONFIG.frameBorderWidth;
+    })(),
   };
 }
 
@@ -163,11 +227,42 @@ export function applyStudioSurfaceConfig(config) {
   const scriptMaxWidth = clamp(config.scriptMaxWidth, 240, 520, DEFAULT_STUDIO_SURFACE_CONFIG.scriptMaxWidth);
   const scriptPaddingX = clamp(config.scriptPaddingX, 8, 32, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingX);
   const scriptPaddingY = clamp(config.scriptPaddingY, 4, 24, DEFAULT_STUDIO_SURFACE_CONFIG.scriptPaddingY);
+  const quoteButtonSize = clamp(config.quoteButtonSize, 120, 400, DEFAULT_STUDIO_SURFACE_CONFIG.quoteButtonSize);
   const quoteMaxWidth = clamp(config.quoteMaxWidth, 140, 320, DEFAULT_STUDIO_SURFACE_CONFIG.quoteMaxWidth);
-  const quotePaddingX = clamp(config.quotePaddingX, 8, 28, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingX);
-  const quotePaddingY = clamp(config.quotePaddingY, 6, 24, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingY);
+  const quotePaddingX = clamp(config.quotePaddingX, 8, 48, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingX);
+  const quotePaddingY = clamp(config.quotePaddingY, 6, 40, DEFAULT_STUDIO_SURFACE_CONFIG.quotePaddingY);
+  const quoteButtonFillOpacity = clamp(config.quoteButtonFillOpacity, 0.3, 1, DEFAULT_STUDIO_SURFACE_CONFIG.quoteButtonFillOpacity);
+  const puckRestitution = clamp(config.puckRestitution, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.puckRestitution);
+  const puckFriction = clamp(config.puckFriction, 0, 5, DEFAULT_STUDIO_SURFACE_CONFIG.puckFriction);
+  const puckWallInset = clamp(config.puckWallInset, 0, 200, DEFAULT_STUDIO_SURFACE_CONFIG.puckWallInset);
+  const puckMaxSpeed = clamp(config.puckMaxSpeed, 500, 10000, DEFAULT_STUDIO_SURFACE_CONFIG.puckMaxSpeed);
+  const puckSpinGain = clamp(config.puckSpinGain, 0, 0.5, DEFAULT_STUDIO_SURFACE_CONFIG.puckSpinGain);
+  const puckSpinFriction = clamp(config.puckSpinFriction, 0, 10, DEFAULT_STUDIO_SURFACE_CONFIG.puckSpinFriction);
+  const puckWallSquash = clamp(config.puckWallSquash, 0.8, 1, DEFAULT_STUDIO_SURFACE_CONFIG.puckWallSquash);
+  const puckSoundIntensity = clamp(config.puckSoundIntensity, 0, 2, DEFAULT_STUDIO_SURFACE_CONFIG.puckSoundIntensity);
   const edgeCaptionDistanceMin = clamp(config.edgeCaptionDistanceMin, 0, 24, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMin);
   const edgeCaptionDistanceMax = clamp(config.edgeCaptionDistanceMax, 24, 80, DEFAULT_STUDIO_SURFACE_CONFIG.edgeCaptionDistanceMax);
+  const wallThicknessVw = clamp(config.wallThicknessVw, 0.5, 12, DEFAULT_STUDIO_SURFACE_CONFIG.wallThicknessVw);
+  const frameBorderWidth = Math.round(clamp(config.frameBorderWidth, 0, 20, DEFAULT_STUDIO_SURFACE_CONFIG.frameBorderWidth));
+
+  // Sync surface config into state first so applyLayoutCSSVars() (e.g. hover-edge vars) uses current values.
+  syncStudioRuntimeState({
+    edgeStrength,
+    edgeWidth,
+    sceneHighlight,
+    sceneDepth,
+    sceneSoftness,
+    edgeCaptionDistanceMin,
+    edgeCaptionDistanceMax,
+  });
+
+  const g = getGlobals();
+  if (g) {
+    if (Number.isFinite(wallThicknessVw)) g.wallThicknessVw = wallThicknessVw;
+    if (Number.isFinite(frameBorderWidth) && frameBorderWidth >= 0) g.frameBorderWidth = frameBorderWidth;
+    applyLayoutFromVwToPx();
+    applyLayoutCSSVars();
+  }
 
   root.style.setProperty('--abs-surface-edge-opacity', `${edgeStrength}`);
   root.style.setProperty('--abs-surface-edge-width', `${edgeWidth}px`);
@@ -204,9 +299,19 @@ export function applyStudioSurfaceConfig(config) {
   root.style.setProperty('--decorative-script-max-width', `${scriptMaxWidth}px`);
   root.style.setProperty('--decorative-script-padding-left', `${scriptPaddingX}px`);
   root.style.setProperty('--decorative-script-padding-vertical', `${scriptPaddingY}px`);
+  root.style.setProperty('--abs-quote-button-size', `${quoteButtonSize}px`);
   root.style.setProperty('--abs-quote-max-width', `${quoteMaxWidth}px`);
   root.style.setProperty('--abs-quote-pad-x', `${quotePaddingX}px`);
   root.style.setProperty('--abs-quote-pad-y', `${quotePaddingY}px`);
+  root.style.setProperty('--quote-button-fill-opacity', `${quoteButtonFillOpacity}`);
+  root.style.setProperty('--puck-restitution', `${puckRestitution}`);
+  root.style.setProperty('--puck-friction', `${puckFriction}`);
+  root.style.setProperty('--puck-wall-inset', `${puckWallInset}`);
+  root.style.setProperty('--puck-max-speed', `${puckMaxSpeed}`);
+  root.style.setProperty('--puck-spin-gain', `${puckSpinGain}`);
+  root.style.setProperty('--puck-spin-friction', `${puckSpinFriction}`);
+  root.style.setProperty('--puck-wall-squash', `${puckWallSquash}`);
+  root.style.setProperty('--puck-sound-intensity', `${puckSoundIntensity}`);
   root.style.setProperty('--edge-caption-distance-min', `${edgeCaptionDistanceMin}px`);
   root.style.setProperty('--edge-caption-distance-max', `${edgeCaptionDistanceMax}px`);
 
@@ -231,11 +336,23 @@ export function applyStudioSurfaceConfig(config) {
     scriptMaxWidth,
     scriptPaddingX,
     scriptPaddingY,
+    quoteButtonSize,
     quoteMaxWidth,
     quotePaddingX,
     quotePaddingY,
+    quoteButtonFillOpacity,
+    puckRestitution,
+    puckFriction,
+    puckWallInset,
+    puckMaxSpeed,
+    puckSpinGain,
+    puckSpinFriction,
+    puckWallSquash,
+    puckSoundIntensity,
     edgeCaptionDistanceMin,
     edgeCaptionDistanceMax,
+    wallThicknessVw,
+    frameBorderWidth,
   };
 }
 
@@ -259,13 +376,14 @@ function generateControlHTML(control, value) {
   `;
 }
 
-function generateSectionSetHTML(sections) {
+function generateSectionSetHTML(sections, options = {}) {
   const config = readCurrentConfig();
 
   return sections.map((section) => {
     const controlsHTML = section.controls
       .map((control) => generateControlHTML(control, config[control.id] ?? DEFAULT_STUDIO_SURFACE_CONFIG[control.id]))
       .join('');
+    const prependHTML = section.key === 'puck' ? (options.puckPrependHTML || section.prependHTML || '') : (section.prependHTML || '');
     const openAttr = section.defaultOpen ? 'open' : '';
     return `
       <details class="panel-section-accordion" data-studio-surface-section="${section.key}" ${openAttr}>
@@ -274,6 +392,7 @@ function generateSectionSetHTML(sections) {
           <span class="section-label">${section.title}</span>
         </summary>
         <div class="panel-section-content">
+          ${prependHTML}
           ${controlsHTML}
         </div>
       </details>
@@ -285,8 +404,8 @@ export function generateStudioSurfaceControlsHTML() {
   return generateSectionSetHTML(SURFACE_CONTROL_SECTIONS);
 }
 
-export function generateStudioShellControlsHTML() {
-  return generateSectionSetHTML(SHELL_OBJECT_CONTROL_SECTIONS);
+export function generateStudioShellControlsHTML(options = {}) {
+  return generateSectionSetHTML(SHELL_OBJECT_CONTROL_SECTIONS, options);
 }
 
 export function bindStudioSurfaceControls() {
@@ -363,11 +482,25 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   nextShell.layout.decorativeScriptMaxWidth = `${Math.round(config.scriptMaxWidth)}px`;
   nextShell.layout.decorativeScriptPaddingX = `${Math.round(config.scriptPaddingX)}px`;
   nextShell.layout.decorativeScriptPaddingY = `${Math.round(config.scriptPaddingY)}px`;
-  nextShell.layout.quoteMaxWidth = `${Math.round(config.quoteMaxWidth)}px`;
+  nextShell.layout.quoteButtonSize = `${Math.round(config.quoteButtonSize ?? config.quoteMaxWidth ?? 200)}px`;
+  nextShell.layout.quoteMaxWidth = `${Math.round(config.quoteMaxWidth ?? 200)}px`;
   nextShell.layout.quotePaddingX = `${Math.round(config.quotePaddingX)}px`;
   nextShell.layout.quotePaddingY = `${Math.round(config.quotePaddingY)}px`;
   nextShell.layout.edgeCaptionDistanceMin = `${Math.round(config.edgeCaptionDistanceMin)}px`;
   nextShell.layout.edgeCaptionDistanceMax = `${Math.round(config.edgeCaptionDistanceMax)}px`;
+  nextShell.surface.quoteButtonFillOpacity = Number(clamp(config.quoteButtonFillOpacity, 0.3, 1, DEFAULT_STUDIO_SURFACE_CONFIG.quoteButtonFillOpacity).toFixed(3));
+  const baseMotion = baseShell?.motion || {};
+  nextShell.motion = {
+    ...baseMotion,
+    puckRestitution: Number(clamp(config.puckRestitution, 0, 1, DEFAULT_STUDIO_SURFACE_CONFIG.puckRestitution).toFixed(3)),
+    puckFriction: Number(clamp(config.puckFriction, 0, 5, DEFAULT_STUDIO_SURFACE_CONFIG.puckFriction).toFixed(2)),
+    puckWallInset: Number(clamp(config.puckWallInset, 0, 200, DEFAULT_STUDIO_SURFACE_CONFIG.puckWallInset).toFixed(0)),
+    puckMaxSpeed: Number(clamp(config.puckMaxSpeed, 500, 10000, DEFAULT_STUDIO_SURFACE_CONFIG.puckMaxSpeed).toFixed(0)),
+    puckSpinGain: Number(clamp(config.puckSpinGain, 0, 0.5, DEFAULT_STUDIO_SURFACE_CONFIG.puckSpinGain).toFixed(3)),
+    puckSpinFriction: Number(clamp(config.puckSpinFriction, 0, 10, DEFAULT_STUDIO_SURFACE_CONFIG.puckSpinFriction).toFixed(2)),
+    puckWallSquash: Number(clamp(config.puckWallSquash, 0.8, 1, DEFAULT_STUDIO_SURFACE_CONFIG.puckWallSquash).toFixed(3)),
+    puckSoundIntensity: Number(clamp(config.puckSoundIntensity, 0, 2, DEFAULT_STUDIO_SURFACE_CONFIG.puckSoundIntensity).toFixed(3)),
+  };
 
   return nextShell;
 }

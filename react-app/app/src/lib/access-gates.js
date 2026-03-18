@@ -146,7 +146,9 @@ export function navigateToHome(options = {}) {
   if (options.openContact) {
     try {
       window.sessionStorage.setItem('abs_open_contact_modal', '1');
-    } catch {}
+    } catch {
+      // Storage can be unavailable in hardened/private browser modes.
+    }
   }
 
   window.location.assign(destination.toString());

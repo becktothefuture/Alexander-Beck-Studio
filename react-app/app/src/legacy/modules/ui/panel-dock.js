@@ -12,6 +12,7 @@ import {
   generateMasterSectionsHTML,
   generateModeSwitcherHTML,
   generateModeSpecificSectionsHTML,
+  getPuckColorControlsHTML,
 } from './control-registry.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
 import { isDev } from '../utils/logger.js';
@@ -263,7 +264,7 @@ function getMasterPanelContent({
     },
     append: {
       studio: generateStudioSurfaceControlsHTML() + generateColorTemplateSectionHTML({ open: false }),
-      shell: layoutControlsHTML + generateStudioShellControlsHTML(),
+      shell: layoutControlsHTML + generateStudioShellControlsHTML({ puckPrependHTML: getPuckColorControlsHTML() }),
       audio: soundControlsHTML,
     },
     groupIds: masterGroupIds,

@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                       QUOTE DISPLAY COMPONENT                                 ║
-// ║   Displays curated quotes from thinkers/creatives based on current mode       ║
+// ║   Viewport layer; fixed bottom-right (10% from bottom). No drag.               ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getState } from '../core/state.js';
@@ -12,12 +12,27 @@ let quoteTextEl = null;
 let quoteAuthorEl = null;
 let isAnimating = false;
 
-// Animation timing (matches CSS)
 const ANIM_DURATION = 320;
+const QUOTE_END_SYMBOL = ' ⁕';
 
 /**
- * Creates the quote display DOM structure and appends it to the page.
- * Positioned above the bottom-right meta area (London · time button).
+ * Returns or creates the viewport layer. Appended to documentElement so it spans
+ * the full viewport (no body/layout constraints). Single wrapper, one child (quote).
+ */
+function getViewportLayer() {
+  let layer = document.getElementById('quote-viewport-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'quote-viewport-layer';
+    layer.className = 'quote-viewport-layer';
+    document.documentElement.appendChild(layer);
+  }
+  return layer;
+}
+
+/**
+ * Creates the quote display DOM structure and appends it to the viewport layer (body).
+ * position:fixed so left/top are viewport coordinates; collides with browser edges.
  */
 function createQuoteElement() {
   // Check if already created
@@ -29,6 +44,7 @@ function createQuoteElement() {
   quoteContainer = document.createElement('div');
   quoteContainer.id = 'quote-display';
   quoteContainer.className = 'quote-display';
+  quoteContainer.setAttribute('role', 'button');
   quoteContainer.setAttribute('aria-live', 'polite');
   quoteContainer.setAttribute('aria-atomic', 'true');
 
@@ -49,15 +65,7 @@ function createQuoteElement() {
   contentWrapper.appendChild(quoteAuthorEl);
   quoteContainer.appendChild(contentWrapper);
 
-  // Find the target parent (ui-meta-right or corner-dock--br)
-  const metaRight = document.querySelector('.ui-meta-right');
-  if (metaRight) {
-    // Insert before the meta-right element's first child
-    metaRight.insertBefore(quoteContainer, metaRight.firstChild);
-  } else {
-    // Fallback: append to body with absolute positioning
-    document.body.appendChild(quoteContainer);
-  }
+  getViewportLayer().appendChild(quoteContainer);
 
   return quoteContainer;
 }
@@ -84,7 +92,7 @@ function updateQuote(mode, animate = true) {
 
   // Skip animation for initial load or if already animating
   if (!animate || isAnimating) {
-    quoteTextEl.textContent = quoteData.quote;
+    quoteTextEl.textContent = quoteData.quote + QUOTE_END_SYMBOL;
     quoteAuthorEl.textContent = quoteData.author;
     contentWrapper.classList.remove('quote-display__content--entering', 'quote-display__content--exiting');
     return;
@@ -96,7 +104,7 @@ function updateQuote(mode, animate = true) {
 
   setTimeout(() => {
     // Update content while hidden
-    quoteTextEl.textContent = quoteData.quote;
+    quoteTextEl.textContent = quoteData.quote + QUOTE_END_SYMBOL;
     quoteAuthorEl.textContent = quoteData.author;
 
     // Switch to entering state

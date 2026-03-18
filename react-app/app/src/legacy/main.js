@@ -29,6 +29,7 @@ import { initSoundEngine, applySoundConfigFromRuntimeConfig } from './modules/au
 import { upgradeSocialIcons } from './modules/ui/social-icons.js';
 import { initTimeDisplay } from './modules/ui/time-display.js';
 import { initQuoteDisplay } from './modules/ui/quote-display.js';
+import { initQuotePuck } from './modules/ui/quote-puck.js';
 import { applyExpertiseLegendColors } from './modules/ui/legend-colors.js';
 // Note: Legend interactivity is now inlined in main.js for reliability
 import { initLegendFilterSystem } from './modules/ui/legend-filter.js';
@@ -584,6 +585,7 @@ window.addEventListener('unhandledrejection', (event) => {
     
     // Initialize quote display (shows curated quotes based on current mode)
     initQuoteDisplay();
+    initQuotePuck();
     log('✓ Quote display initialized');
     
     // Register force render callback for resize (prevents blank frames during drag-resize)

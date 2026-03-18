@@ -2484,17 +2484,20 @@ export const CONTROL_SECTIONS = {
       },
       { type: 'divider', label: 'Wall Frame' },
       {
-        id: 'safariTintInset',
+        id: 'containerBorderVw',
         label: 'Outer Inset',
-        stateKey: 'safariTintInset',
+        stateKey: 'containerBorderVw',
         type: 'range',
-        min: 0, max: 40, step: 1,
-        default: 15,
-        format: v => `${v}px`,
+        min: 0, max: 8, step: 0.1,
+        default: 1.5,
+        format: v => `${v.toFixed(1)}vw`,
         parse: parseFloat,
-        hint: 'Distance from viewport edge to wall outer edge (px)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--safari-tint-inset', `${val}px`);
+        hint: 'Distance from viewport edge to wall outer edge (vw)',
+        onChange: () => {
+          import('../core/state.js').then(mod => {
+            mod.applyLayoutFromVwToPx();
+            mod.applyLayoutCSSVars();
+          });
         }
       }
     ]
@@ -2506,7 +2509,7 @@ export const CONTROL_SECTIONS = {
   colors: {
     title: 'Color & Surface',
     icon: '🎨',
-    defaultOpen: false,
+    defaultOpen: true,
     controls: [
       // ─── BACKGROUNDS ─────────────────────────────────────────────────────
       { type: 'divider', label: 'Backgrounds' },
@@ -2577,6 +2580,50 @@ export const CONTROL_SECTIONS = {
           if (document.body.classList.contains('dark-mode')) {
             root.style.setProperty('--abs-wall-base', val);
             root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
+          }
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'quoteButtonColorLight',
+        label: 'Light',
+        stateKey: 'quoteButtonColorLight',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#f1f3f4',
+        puckOnly: true,
+        hint: 'Puck background in light mode.',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--quote-button-color-light', val);
+          g.quoteButtonColorLight = val;
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ quoteButtonColorLight: val });
+          }).catch(() => {});
+          if (!document.body.classList.contains('dark-mode')) {
+            root.style.setProperty('--quote-button-color', val);
+          }
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'quoteButtonColorDark',
+        label: 'Dark',
+        stateKey: 'quoteButtonColorDark',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#202124',
+        puckOnly: true,
+        hint: 'Puck background in dark mode.',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--quote-button-color-dark', val);
+          g.quoteButtonColorDark = val;
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ quoteButtonColorDark: val });
+          }).catch(() => {});
+          if (document.body.classList.contains('dark-mode')) {
+            root.style.setProperty('--quote-button-color', val);
           }
           applyLayoutCSSVars();
         }
@@ -2817,117 +2864,7 @@ export const CONTROL_SECTIONS = {
     defaultOpen: false,
     controls: [
       { type: 'divider', label: 'Frame Geometry' },
-      {
-        id: 'frameBorderWidth',
-        label: 'Border Width',
-        stateKey: 'frameBorderWidth',
-        type: 'range',
-        min: 0, max: 40, step: 1,
-        default: 4,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Single frame border thickness for the new wall.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameOuterRadius',
-        label: 'Outer Radius',
-        stateKey: 'frameOuterRadius',
-        type: 'range',
-        min: 0, max: 300, step: 1,
-        default: 44,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Outer corner radius of the frame.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
       { type: 'divider', label: 'Wall Layout' },
-      {
-        id: 'wallThicknessVw',
-        label: 'Wall Thickness',
-        stateKey: 'wallThicknessVw',
-        type: 'range',
-        min: 0, max: 8, step: 0.1,
-        default: 1.3,
-        format: v => `${v.toFixed(1)}vw`,
-        parse: parseFloat,
-        hint: 'Wall tube thickness (content padding is layout-only)',
-        onChange: (g, val) => {
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutFromVwToPx();
-            mod.applyLayoutCSSVars();
-            // Update overlay blur which depends on wall thickness
-            import('./modal-overlay.js').then(({ updateBlurFromWallThickness }) => {
-              updateBlurFromWallThickness();
-            });
-          });
-        }
-      },
-      {
-        id: 'wallThicknessAreaMultiplier',
-        label: 'Area Scaling',
-        stateKey: 'wallThicknessAreaMultiplier',
-        type: 'range',
-        min: 0, max: 2, step: 0.01,
-        default: 0.0,
-        format: v => `${v.toFixed(2)}×`,
-        parse: parseFloat,
-        hint: 'Area-based scaling multiplier (0.0 = vw-only, 1.0 = full area scaling, >1.0 = exaggerated)',
-        onChange: (g, val) => {
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutFromVwToPx();
-            mod.applyLayoutCSSVars();
-            // Update overlay blur which depends on wall thickness
-            import('./modal-overlay.js').then(({ updateBlurFromWallThickness }) => {
-              updateBlurFromWallThickness();
-            });
-          });
-        }
-      },
-      {
-        id: 'wallThicknessMinPx',
-        label: 'Thickness Min',
-        stateKey: 'wallThicknessMinPx',
-        type: 'range',
-        min: 0, max: 100, step: 1,
-        default: 12,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Minimum wall thickness clamp (for small viewports)',
-        onChange: (g, val) => {
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutFromVwToPx();
-            mod.applyLayoutCSSVars();
-            import('./modal-overlay.js').then(({ updateBlurFromWallThickness }) => {
-              updateBlurFromWallThickness();
-            });
-          });
-        }
-      },
-      {
-        id: 'wallThicknessMaxPx',
-        label: 'Thickness Max',
-        stateKey: 'wallThicknessMaxPx',
-        type: 'range',
-        min: 0, max: 100, step: 1,
-        default: 50,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Maximum wall thickness clamp (for large viewports)',
-        onChange: (g, val) => {
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutFromVwToPx();
-            mod.applyLayoutCSSVars();
-            import('./modal-overlay.js').then(({ updateBlurFromWallThickness }) => {
-              updateBlurFromWallThickness();
-            });
-          });
-        }
-      },
       {
         id: 'wallRadiusVw',
         label: 'Corner Radius',
@@ -2940,79 +2877,6 @@ export const CONTROL_SECTIONS = {
         onChange: (g, val) => {
           import('../core/state.js').then(mod => {
             mod.applyLayoutFromVwToPx();
-            mod.applyLayoutCSSVars();
-          });
-        }
-      },
-      {
-        id: 'wallInset',
-        label: 'Collision Inset',
-        stateKey: 'wallInset',
-        type: 'range',
-        min: 0, max: 20, step: 1,
-        default: 2,
-        format: v => `${v}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Physics padding inside the visual wall'
-      },
-      {
-        id: 'mobileWallThicknessXFactor',
-        label: 'Mobile L/R Thickness',
-        stateKey: 'mobileWallThicknessXFactor',
-        type: 'range',
-        min: 0.5, max: 3.0, step: 0.05,
-        default: 1.4,
-        format: v => `${v.toFixed(2)}×`,
-        parse: parseFloat,
-        hint: 'Wall thickness multiplier for LEFT/RIGHT sides on mobile',
-        onChange: (g, val) => {
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutFromVwToPx();
-            mod.applyLayoutCSSVars();
-          });
-        }
-      },
-      {
-        id: 'mobileEdgeLabelsVisible',
-        label: 'Mobile Edge Labels',
-        stateKey: 'mobileEdgeLabelsVisible',
-        type: 'toggle',
-        default: true,
-        hint: 'Show side edge labels on mobile (chapter/copyright)',
-        onChange: (g, val) => {
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutCSSVars();
-          });
-        }
-      },
-      {
-        id: 'mobileEdgeLabelSizeFactor',
-        label: 'Mobile Label Size',
-        stateKey: 'mobileEdgeLabelSizeFactor',
-        type: 'range',
-        min: 0.3, max: 2.0, step: 0.05,
-        default: 0.85,
-        format: v => `${v.toFixed(2)}×`,
-        parse: parseFloat,
-        hint: 'Font size multiplier for edge labels on mobile',
-        onChange: (g, val) => {
-          import('../core/state.js').then(mod => {
-            mod.applyLayoutCSSVars();
-          });
-        }
-      },
-      {
-        id: 'mobileEdgeLabelOpacity',
-        label: 'Mobile Label Opacity',
-        stateKey: 'mobileEdgeLabelOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.5,
-        format: v => `${(v * 100).toFixed(0)}%`,
-        parse: parseFloat,
-        hint: 'Opacity for edge labels on mobile',
-        onChange: (g, val) => {
-          import('../core/state.js').then(mod => {
             mod.applyLayoutCSSVars();
           });
         }
@@ -3229,22 +3093,6 @@ export const CONTROL_SECTIONS = {
         theme: null,
         wallGroup: 'shine',
         onChange: (_g, val) => getUpdateWallElements().then(fn => fn?.())
-      },
-      {
-        id: 'outerWallRadiusAdjust',
-        label: 'Corner Adjust',
-        stateKey: 'outerWallRadiusAdjust',
-        type: 'range',
-        min: -5, max: 10, step: 1,
-        default: 2,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Fine-tune outer wall corner roundness',
-        theme: null,
-        wallGroup: 'geometry',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--outer-wall-radius-adjust', `${val}px`);
-        }
       },
       // Light tab
       {
@@ -6346,6 +6194,14 @@ export function getControlById(id) {
   return null;
 }
 
+/** Returns HTML for puck color controls (Light/Dark) for injection into the Puck section. */
+export function getPuckColorControlsHTML() {
+  const section = CONTROL_SECTIONS.colors;
+  if (!section?.controls) return '';
+  const puckColorControls = section.controls.filter(c => c.puckOnly && c.type === 'color');
+  return puckColorControls.map(c => generateControlHTML(c)).join('');
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // HTML GENERATION
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -6474,7 +6330,7 @@ function generateSectionHTML(key, section) {
     return generateWallSectionHTML(key, section);
   }
 
-  const visibleControls = section.controls.filter(c => isControlVisible(c.id));
+  const visibleControls = section.controls.filter(c => isControlVisible(c.id) && !c.puckOnly);
   if (visibleControls.length === 0) return '';
   
   // Group controls by 'group' property
