@@ -344,10 +344,10 @@ const state = {
   // Procedural noise (no GIF): texture + cinematic controls
   noiseEnabled: true,
   noiseSeed: 1337,
-  noiseTextureSize: 256,
-  noiseSvgEnabled: false,
-  noiseSvgBaseFrequency: 0.8,
-  noiseSvgOctaves: 2,
+  noiseTextureSize: 320,
+  noiseSvgEnabled: true,
+  noiseSvgBaseFrequency: 0.92,
+  noiseSvgOctaves: 3,
   noiseSvgSeed: 1337,
   noiseDistribution: 'gaussian', // 'uniform' | 'gaussian'
   noiseMonochrome: false, // Allow multicolored grain by default
@@ -604,14 +604,20 @@ const state = {
   // Unified Color System (backgrounds, frame, walls)
   bgLight: '#f5f5f5',       // Light mode background color
   bgDark: '#0a0a0a',        // Dark mode background color
+  wallBaseLight: '#f1f3f4', // Inner wall surface in light mode
+  wallBaseDark: '#202124',  // Inner wall surface in dark mode
   frameColor: '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
   frameColorLight: '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
   frameColorDark: '#242529',   // Frame/wall color in dark mode (browser chrome + walls + border)
+  lockedHeaderLight: '#f1f3f4', // Locked-header browser fallback in light mode
+  lockedHeaderDark: '#3c3c3c',  // Locked-header browser fallback in dark mode
+  safariFrameLight: '#f1f3f4',  // Safari-specific outer wall fallback in light mode
+  safariFrameDark: '#202124',   // Safari-specific outer wall fallback in dark mode
   useSimplifiedFrame: true, // CSS-only frame (disables legacy canvas inner-wall rendering)
   // Simplified frame geometry + effects (single-wall model)
   frameBorderWidth: 4,       // Border thickness in px
   frameOuterRadius: 44,      // Outer corner radius in px
-  frameInnerRadius: 40,      // Inner/canvas corner radius in px
+  frameInnerRadius: 40,      // Derived from outer radius minus border width
   frameInnerSurface: 'var(--abs-wall-base)', // Inner fill surface color
   frameBorderGradientEdgeOpacity: 0.03, // Border gradient edge opacity
   frameBorderGradientMidOpacity: 0.06,  // Border gradient midpoint opacity
@@ -1071,14 +1077,13 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--content-padding-y', `${state.contentPaddingY}px`);
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
+  root.style.setProperty('--abs-wall-base-light', state.wallBaseLight || '#f1f3f4');
+  root.style.setProperty('--abs-wall-base-dark', state.wallBaseDark || '#202124');
   // Simplified frame geometry/effects CSS vars.
   const frameBorderWidth = clampInt(state.frameBorderWidth, 0, 40, 4);
   const frameOuterRadius = clampInt(state.frameOuterRadius, 0, 300, 44);
-  const frameInnerRadiusMax = Math.max(0, frameOuterRadius - frameBorderWidth);
-  const frameInnerRadius = clampInt(state.frameInnerRadius, 0, frameInnerRadiusMax, frameInnerRadiusMax);
-  const frameInnerSurface = (typeof state.frameInnerSurface === 'string' && state.frameInnerSurface.trim())
-    ? state.frameInnerSurface.trim()
-    : '#1d1e20';
+  const frameInnerRadius = Math.max(0, frameOuterRadius - frameBorderWidth);
+  const frameInnerSurface = 'var(--abs-wall-base)';
   const frameBorderGradientEdgeOpacity = clampNumber(state.frameBorderGradientEdgeOpacity, 0, 1, 0.03);
   const frameBorderGradientMidOpacity = clampNumber(state.frameBorderGradientMidOpacity, 0, 1, 0.06);
   const frameVignetteEdgeOffsetY = clampInt(state.frameVignetteEdgeOffsetY, -100, 100, 5);
@@ -1749,6 +1754,16 @@ export function initState(config) {
   else state.bgLight = readTokenVar('--bg-light', state.bgLight);
   if (config.bgDark !== undefined) state.bgDark = config.bgDark;
   else state.bgDark = readTokenVar('--bg-dark', state.bgDark);
+  if (config.wallBaseLight !== undefined) {
+    state.wallBaseLight = config.wallBaseLight;
+  } else {
+    state.wallBaseLight = readTokenVar('--abs-wall-base-light', state.wallBaseLight);
+  }
+  if (config.wallBaseDark !== undefined) {
+    state.wallBaseDark = config.wallBaseDark;
+  } else {
+    state.wallBaseDark = readTokenVar('--abs-wall-base-dark', state.wallBaseDark);
+  }
   // Frame colors (wall + browser chrome)
   if (config.frameColorLight !== undefined) {
     state.frameColorLight = config.frameColorLight;
@@ -1766,16 +1781,23 @@ export function initState(config) {
     state.frameColorLight = config.frameColor;
     state.frameColorDark = config.frameColor;
   } else {
-    // Unified wall color: use the first available value (light, dark, or default)
-    // Then enforce it across all variants
-    const unifiedColor = state.frameColorLight || state.frameColorDark || '#242529';
-    state.frameColor = unifiedColor;
-    state.frameColorLight = unifiedColor;
-    state.frameColorDark = unifiedColor;
+    const fallbackColor = state.frameColorDark || state.frameColorLight || '#242529';
+    state.frameColorLight = state.frameColorLight || fallbackColor;
+    state.frameColorDark = state.frameColorDark || fallbackColor;
+    state.frameColor = fallbackColor;
   }
-  // Enforce unified wall/chrome color across light and dark modes (always the same)
-  state.frameColorLight = state.frameColor;
-  state.frameColorDark = state.frameColor;
+  if (config.lockedHeaderLight !== undefined) {
+    state.lockedHeaderLight = config.lockedHeaderLight;
+  }
+  if (config.lockedHeaderDark !== undefined) {
+    state.lockedHeaderDark = config.lockedHeaderDark;
+  }
+  if (config.safariFrameLight !== undefined) {
+    state.safariFrameLight = config.safariFrameLight;
+  }
+  if (config.safariFrameDark !== undefined) {
+    state.safariFrameDark = config.safariFrameDark;
+  }
   if (config.useSimplifiedFrame !== undefined) {
     state.useSimplifiedFrame = Boolean(config.useSimplifiedFrame);
   }
@@ -1790,16 +1812,8 @@ export function initState(config) {
   } else {
     state.frameOuterRadius = clampInt(readTokenPx('--frame-outer-radius', state.frameOuterRadius), 0, 300, state.frameOuterRadius);
   }
-  if (config.frameInnerRadius !== undefined) {
-    state.frameInnerRadius = clampInt(config.frameInnerRadius, 0, 300, state.frameInnerRadius);
-  } else {
-    state.frameInnerRadius = clampInt(readTokenPx('--frame-inner-radius', state.frameInnerRadius), 0, 300, state.frameInnerRadius);
-  }
-  if (config.frameInnerSurface !== undefined) {
-    state.frameInnerSurface = String(config.frameInnerSurface);
-  } else {
-    state.frameInnerSurface = readTokenVar('--frame-inner-surface', state.frameInnerSurface);
-  }
+  state.frameInnerRadius = Math.max(0, state.frameOuterRadius - state.frameBorderWidth);
+  state.frameInnerSurface = 'var(--abs-wall-base)';
   if (config.frameBorderGradientEdgeOpacity !== undefined) {
     state.frameBorderGradientEdgeOpacity = clampNumber(config.frameBorderGradientEdgeOpacity, 0, 1, state.frameBorderGradientEdgeOpacity);
   } else {

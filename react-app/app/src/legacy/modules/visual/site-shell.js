@@ -12,8 +12,8 @@ const DEFAULT_SHELL_CONFIG = {
     siteFrameLight: '#202124',
     siteFrameDark: '#202124',
     chromeHarmonyMode: 'adaptive',
-    lockedHeaderLight: '#f1f3f4',
-    lockedHeaderDark: '#3c3c3c',
+    safariFrameLight: '#202124',
+    safariFrameDark: '#202124',
     frameBorderEdgeOpacity: 0.03,
     frameBorderMidOpacity: 0.06,
     frameVignetteEdgeBlur: '30px',
@@ -104,6 +104,13 @@ function mergeShellConfig(base, override) {
 }
 
 export function getShellConfig() {
+  return currentShellConfig;
+}
+
+export function patchShellTheme(themePatch = {}) {
+  currentShellConfig = mergeShellConfig(currentShellConfig, {
+    theme: themePatch,
+  });
   return currentShellConfig;
 }
 
@@ -221,8 +228,16 @@ export function resolveSiteFramePalette(isDark = document.documentElement.classL
 }
 
 export function resolveBrowserFramePalette(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
-  const light = config?.theme?.lockedHeaderLight || DEFAULT_SHELL_CONFIG.theme.lockedHeaderLight;
-  const dark = config?.theme?.lockedHeaderDark || DEFAULT_SHELL_CONFIG.theme.lockedHeaderDark;
+  const light = config?.theme?.siteFrameLight || DEFAULT_SHELL_CONFIG.theme.siteFrameLight;
+  const dark = config?.theme?.siteFrameDark || config?.theme?.siteFrameLight || DEFAULT_SHELL_CONFIG.theme.siteFrameDark;
+  const active = isDark ? dark : light;
+
+  return { light, dark, active };
+}
+
+export function resolveSafariFramePalette(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
+  const light = config?.theme?.safariFrameLight || config?.theme?.siteFrameLight || DEFAULT_SHELL_CONFIG.theme.safariFrameLight;
+  const dark = config?.theme?.safariFrameDark || config?.theme?.siteFrameDark || DEFAULT_SHELL_CONFIG.theme.safariFrameDark;
   const active = isDark ? dark : light;
 
   return { light, dark, active };

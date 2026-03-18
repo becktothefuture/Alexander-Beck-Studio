@@ -338,25 +338,11 @@ const DISPLAY_SECTIONS = [
     sourceKeys: ['wheelMotion', 'physics'],
   },
   {
-    key: 'input',
-    title: 'Input & Tilt',
-    icon: '🖱️',
-    defaultOpen: false,
-    sourceKeys: ['navigation', 'mouseTilt'],
-  },
-  {
     key: 'detail',
     title: 'Project Detail',
     icon: '🔎',
     defaultOpen: false,
     sourceKeys: ['detail', 'transition'],
-  },
-  {
-    key: 'sound',
-    title: 'Sound',
-    icon: '🔊',
-    defaultOpen: false,
-    sourceKeys: ['sound'],
   },
 ];
 
@@ -369,15 +355,28 @@ const ACTIVE_CONTROL_SECTION_KEYS = [
   'physics',
   'detail',
   'transition',
-  'navigation',
-  'mouseTilt',
-  'sound',
 ];
 
 const DEFAULT_HIDDEN_CONTROL_IDS = new Set([
   // Shared shell controls now own caption position.
   'edgeCaptionDistanceMin',
   'edgeCaptionDistanceMax',
+
+  // Universal surface controls own these finish-level dials.
+  'borderWidth',
+  'borderColor',
+  'slideGradientIntensityLight',
+  'slideGradientIntensityDark',
+
+  // Keep the page panel focused on composition, not micro offsets.
+  'metaPadding',
+  'wheelPageScale',
+  'mouseTiltPivotZ',
+  'cylinderRadiusRings',
+  'cylinderRadiusMin',
+  'cylinderRadiusStep',
+  'cylinderVerticalSpacing',
+
   // Keep the primary layout/motion levers, hide low-value micro positioning.
   'closeButtonTop',
   'closeButtonLeft',
@@ -395,6 +394,49 @@ const DEFAULT_HIDDEN_CONTROL_IDS = new Set([
   'wheelLineHeight',
   'slideSpeed',
   'perspective',
+]);
+
+const RETIRED_CONTROL_IDS = new Set([
+  'topLogoWidthVw',
+  'edgeCaptionDistanceMin',
+  'edgeCaptionDistanceMax',
+  'borderWidth',
+  'borderColor',
+  'slideGradientIntensityLight',
+  'slideGradientIntensityDark',
+  'metaPadding',
+  'wheelPageScale',
+  'mouseTiltPivotZ',
+  'cylinderRadiusRings',
+  'cylinderRadiusMin',
+  'cylinderRadiusStep',
+  'cylinderVerticalSpacing',
+  'closeButtonTop',
+  'closeButtonLeft',
+  'closeButtonWidth',
+  'closeButtonHeight',
+  'closeButtonIconSize',
+  'detailFadeMs',
+  'detailFadeDelay',
+  'detailContentPopDuration',
+  'detailContentPopOvershoot',
+  'detailContentPopStartScale',
+  'detailContentPopDelayHero',
+  'detailContentPopDelayBody',
+  'detailContentPopEase',
+  'wheelLineHeight',
+  'slideSpeed',
+  'perspective',
+  'mouseTiltPreset',
+  'mouseTiltEnabled',
+  'mouseTiltInvertX',
+  'mouseTiltInvertY',
+  'mouseTiltSensitivity',
+  'mouseTiltEase',
+  'mouseTiltLeft',
+  'mouseTiltRight',
+  'mouseTiltUp',
+  'mouseTiltDown',
 ]);
 
 function getControlInputId(control) {
@@ -415,6 +457,7 @@ export function getAllControls() {
     const section = CONTROL_SECTIONS[key];
     if (!section) continue;
     for (const control of section.controls) {
+      if (RETIRED_CONTROL_IDS.has(control.id)) continue;
       all.push({ ...control, section: section.title });
     }
   }
@@ -575,7 +618,8 @@ function generateControlHTML(control, config, computedRoot) {
 
 function generateSectionHTML(section, config, computedRoot) {
   const visibleControls = section.controls
-    .filter((control) => !DEFAULT_HIDDEN_CONTROL_IDS.has(control.id));
+    .filter((control) => !DEFAULT_HIDDEN_CONTROL_IDS.has(control.id))
+    .filter((control) => !RETIRED_CONTROL_IDS.has(control.id));
 
   if (visibleControls.length === 0) return '';
 

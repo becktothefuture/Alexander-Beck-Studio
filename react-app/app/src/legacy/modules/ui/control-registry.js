@@ -165,6 +165,89 @@ const DEFAULT_HIDDEN_CONTROL_IDS = new Set([
   'logoBlurActive',
 ]);
 
+const RETIRED_CONTROL_IDS = new Set([
+  'hoverEdgeEnabled',
+  'hoverEdgeWidth',
+  'hoverEdgeInset',
+  'hoverEdgeBottomEnabled',
+  'hoverEdgeBottomRadius',
+  'hoverEdgeBottomOpacity',
+  'hoverEdgeBottomColorMix',
+  'hoverEdgeTopEnabled',
+  'hoverEdgeTopRadius',
+  'hoverEdgeTopOpacity',
+  'hoverEdgeTopColorMix',
+  'frameBorderGradientEdgeOpacity',
+  'frameBorderGradientMidOpacity',
+  'frameVignetteEdgeOffsetY',
+  'frameVignetteEdgeBlur',
+  'frameVignetteEdgeOpacity',
+  'frameVignetteAmbientBlur',
+  'frameVignetteAmbientOpacity',
+  'edgeCaptionDistanceMinPx',
+  'edgeCaptionDistanceMaxPx',
+  'outerWallShineEnabled',
+  'wallLightFluctuationEnabled',
+  'wallAOSpread',
+  'wallSpecularEnabled',
+  'wallSpecularWidth',
+  'wallAOOpacityLight',
+  'wallSpecularOpacityLight',
+  'outerWallShineBlurLight',
+  'outerWallShineSpreadLight',
+  'outerWallShineOvershootLight',
+  'outerWallShineOpacityLight',
+  'outerWallShineColorLight',
+  'wallAOOpacityDark',
+  'wallSpecularOpacityDark',
+  'outerWallShineBlurDark',
+  'outerWallShineSpreadDark',
+  'outerWallShineOvershootDark',
+  'outerWallShineOpacityDark',
+  'outerWallShineColorDark',
+  'innerWallShineEnabled',
+  'innerWallShineBlur',
+  'innerWallShineOvershoot',
+  'innerWallShineSpread',
+  'innerWallShineOpacityLight',
+  'innerWallShineOpacityDark',
+  'innerWallShineColor',
+  'uiIconFramePx',
+  'uiIconGlyphPx',
+  'frameInnerRadius',
+  'frameInnerSurface',
+  'logoBlurInactive',
+  'logoBlurActive',
+  'lockedHeaderLight',
+  'lockedHeaderDark',
+  'autoDarkNightStartHour',
+  'autoDarkNightEndHour',
+  'tactileEnabled',
+  'tactileProjectId',
+  'tactileScale',
+  'tactileDpi',
+  'tactileOpacity',
+  'tactileBlendMode',
+  'tactilePointerEvents',
+  'noiseSeed',
+  'noiseTextureSize',
+  'noiseDistribution',
+  'noiseMonochrome',
+  'noiseChroma',
+  'noiseColorLight',
+  'noiseColorDark',
+  'noiseMotionAmount',
+  'noiseSpeedMs',
+  'noiseSpeedVariance',
+  'noiseFlicker',
+  'noiseFlickerSpeedMs',
+  'noiseBlurPx',
+  'noiseContrast',
+  'noiseBrightness',
+  'noiseSaturation',
+  'noiseHue',
+]);
+
 function loadVisibility() {
   try {
     const stored = localStorage.getItem(VISIBILITY_STORAGE_KEY);
@@ -186,6 +269,9 @@ export function setControlVisible(id, visible) {
 }
 
 export function isControlVisible(id) {
+  if (RETIRED_CONTROL_IDS.has(id)) {
+    return false;
+  }
   if (Object.prototype.hasOwnProperty.call(controlVisibility, id)) {
     return controlVisibility[id] !== false;
   }
@@ -2522,6 +2608,136 @@ export const CONTROL_SECTIONS = {
           root.style.setProperty('--bg-dark', val);
         }
       },
+      { type: 'divider', label: 'Wall Interior' },
+      {
+        id: 'wallBaseLight',
+        label: 'Inner Wall · Light',
+        stateKey: 'wallBaseLight',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#f1f3f4',
+        hint: 'Inner wall color in light mode.',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--abs-wall-base-light', val);
+          g.wallBaseLight = val;
+          g.frameInnerSurface = 'var(--abs-wall-base)';
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ wallBaseLight: val });
+          }).catch(() => {});
+          if (!document.body.classList.contains('dark-mode')) {
+            root.style.setProperty('--abs-wall-base', val);
+            root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
+          }
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'wallBaseDark',
+        label: 'Inner Wall · Dark',
+        stateKey: 'wallBaseDark',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#202124',
+        hint: 'Inner wall color in dark mode.',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--abs-wall-base-dark', val);
+          g.wallBaseDark = val;
+          g.frameInnerSurface = 'var(--abs-wall-base)';
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ wallBaseDark: val });
+          }).catch(() => {});
+          if (document.body.classList.contains('dark-mode')) {
+            root.style.setProperty('--abs-wall-base', val);
+            root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
+          }
+          applyLayoutCSSVars();
+        }
+      },
+      { type: 'divider', label: 'Outer Wall & Chrome' },
+      {
+        id: 'frameColorLight',
+        label: 'Outer Wall · Light',
+        stateKey: 'frameColorLight',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#242529',
+        hint: 'Canonical outer wall and browser chrome in light mode.',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--frame-color-site-light', val);
+          root.style.setProperty('--frame-color-light', val);
+          root.style.setProperty('--wall-color-light', val);
+          root.style.setProperty('--chrome-bg-light', val);
+          g.frameColorLight = val;
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ siteFrameLight: val });
+          }).catch(() => {});
+          import('../visual/dark-mode-v2.js').then(mod => {
+            mod.setTheme(mod.getCurrentTheme());
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'frameColorDark',
+        label: 'Outer Wall · Dark',
+        stateKey: 'frameColorDark',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#242529',
+        hint: 'Canonical outer wall and browser chrome in dark mode.',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--frame-color-site-dark', val);
+          root.style.setProperty('--frame-color-dark', val);
+          root.style.setProperty('--wall-color-dark', val);
+          root.style.setProperty('--chrome-bg-dark', val);
+          g.frameColorDark = val;
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ siteFrameDark: val });
+          }).catch(() => {});
+          import('../visual/dark-mode-v2.js').then(mod => {
+            mod.setTheme(mod.getCurrentTheme());
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'safariFrameLight',
+        label: 'Safari Wall · Light',
+        stateKey: 'safariFrameLight',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#f1f3f4',
+        hint: 'Safari-specific outer wall color in light mode.',
+        onChange: (g, val) => {
+          g.safariFrameLight = val;
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ safariFrameLight: val });
+          }).catch(() => {});
+          import('../visual/dark-mode-v2.js').then(mod => {
+            mod.setTheme(mod.getCurrentTheme());
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'safariFrameDark',
+        label: 'Safari Wall · Dark',
+        stateKey: 'safariFrameDark',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#202124',
+        hint: 'Safari-specific outer wall color in dark mode.',
+        onChange: (g, val) => {
+          g.safariFrameDark = val;
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ safariFrameDark: val });
+          }).catch(() => {});
+          import('../visual/dark-mode-v2.js').then(mod => {
+            mod.setTheme(mod.getCurrentTheme());
+          }).catch(() => {});
+        }
+      },
       // ─── TEXT (LIGHT MODE) ───────────────────────────────────────────────
       { type: 'divider', label: 'Text · Light Mode' },
       {
@@ -2674,45 +2890,7 @@ export const CONTROL_SECTIONS = {
     icon: '🖼️',
     defaultOpen: false,
     controls: [
-      {
-        id: 'frameColorLight',
-        label: 'Color · Light Mode',
-        stateKey: 'frameColorLight',
-        type: 'color',
-        default: '#242529',
-        hint: 'Canonical outer frame color for light-mode browser harmony and meta tinting',
-        onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--frame-color-site-light', val);
-          root.style.setProperty('--frame-color-light', val);
-          root.style.setProperty('--wall-color-light', val);
-          root.style.setProperty('--chrome-bg-light', val);
-          g.frameColorLight = val;
-          import('../visual/dark-mode-v2.js').then(mod => {
-            mod.setTheme(mod.getCurrentTheme());
-          });
-        }
-      },
-      {
-        id: 'frameColorDark',
-        label: 'Color · Dark Mode',
-        stateKey: 'frameColorDark',
-        type: 'color',
-        default: '#242529',
-        hint: 'Canonical outer frame color for dark-mode browser harmony and meta tinting',
-        onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--frame-color-site-dark', val);
-          root.style.setProperty('--frame-color-dark', val);
-          root.style.setProperty('--wall-color-dark', val);
-          root.style.setProperty('--chrome-bg-dark', val);
-          g.frameColorDark = val;
-          import('../visual/dark-mode-v2.js').then(mod => {
-            mod.setTheme(mod.getCurrentTheme());
-          });
-        }
-      },
-      { type: 'divider', label: 'Simplified Frame' },
+      { type: 'divider', label: 'Frame Geometry' },
       {
         id: 'frameBorderWidth',
         label: 'Border Width',
@@ -2737,130 +2915,6 @@ export const CONTROL_SECTIONS = {
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
         hint: 'Outer corner radius of the frame.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameInnerRadius',
-        label: 'Inner Radius',
-        stateKey: 'frameInnerRadius',
-        type: 'range',
-        min: 0, max: 300, step: 1,
-        default: 40,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Inner corner radius for canvas/effects clipping.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameInnerSurface',
-        label: 'Inner Surface',
-        stateKey: 'frameInnerSurface',
-        type: 'color',
-        default: '#1d1e20',
-        hint: 'Inner frame surface color.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameBorderGradientEdgeOpacity',
-        label: 'Border Edge Opacity',
-        stateKey: 'frameBorderGradientEdgeOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.03,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Border gradient opacity at top/bottom edges.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameBorderGradientMidOpacity',
-        label: 'Border Mid Opacity',
-        stateKey: 'frameBorderGradientMidOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.06,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Border gradient opacity at the center highlight.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      { type: 'divider', label: 'Vignette' },
-      {
-        id: 'frameVignetteEdgeOffsetY',
-        label: 'Edge Offset',
-        stateKey: 'frameVignetteEdgeOffsetY',
-        type: 'range',
-        min: -100, max: 100, step: 1,
-        default: 5,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Inset vignette edge vertical offset.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameVignetteEdgeBlur',
-        label: 'Edge Blur',
-        stateKey: 'frameVignetteEdgeBlur',
-        type: 'range',
-        min: 0, max: 400, step: 1,
-        default: 30,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Blur size of the edge vignette layer.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameVignetteEdgeOpacity',
-        label: 'Edge Opacity',
-        stateKey: 'frameVignetteEdgeOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.66,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of the edge vignette layer.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameVignetteAmbientBlur',
-        label: 'Ambient Blur',
-        stateKey: 'frameVignetteAmbientBlur',
-        type: 'range',
-        min: 0, max: 800, step: 1,
-        default: 250,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Blur size of the ambient vignette layer.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameVignetteAmbientOpacity',
-        label: 'Ambient Opacity',
-        stateKey: 'frameVignetteAmbientOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.4,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of the ambient vignette layer.',
         onChange: () => {
           applyLayoutCSSVars();
         }
@@ -6350,6 +6404,7 @@ export function getAllControls() {
   const all = [];
   for (const section of Object.values(CONTROL_SECTIONS)) {
     for (const control of section.controls) {
+      if (RETIRED_CONTROL_IDS.has(control.id)) continue;
       all.push({ ...control, section: section.title });
     }
   }
@@ -6357,6 +6412,7 @@ export function getAllControls() {
 }
 
 export function getControlById(id) {
+  if (RETIRED_CONTROL_IDS.has(id)) return null;
   for (const section of Object.values(CONTROL_SECTIONS)) {
     const found = section.controls.find(c => c.id === id);
     if (found) return found;
@@ -6947,7 +7003,8 @@ export function generateModeSwitcherHTML() {
  * Disabled simulations (e.g. parallax-linear) are excluded.
  */
 export function generateModeSpecificSectionsHTML() {
-  const allowedModes = new Set(NARRATIVE_MODE_SEQUENCE);
+  const currentMode = getGlobals()?.currentMode;
+  const allowedModes = new Set(currentMode ? [currentMode] : NARRATIVE_MODE_SEQUENCE);
   let html = '';
   for (const [key, section] of Object.entries(CONTROL_SECTIONS)) {
     if (section?.mode && allowedModes.has(section.mode)) {

@@ -1,3 +1,5 @@
+import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
+
 export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   edgeStrength: 0.06,
   edgeWidth: 0.5,
@@ -114,6 +116,30 @@ function formatValue(control, value) {
   return `${numeric.toFixed(control.step < 1 ? 1 : 0).replace(/\.0$/, '')}${control.unit}`;
 }
 
+function syncStudioRuntimeState(config) {
+  try {
+    const globals = getGlobals();
+    if (!globals || typeof globals !== 'object') return;
+
+    globals.hoverEdgeEnabled = config.edgeStrength > 0;
+    globals.hoverEdgeWidth = config.edgeWidth;
+    globals.hoverEdgeBottomEnabled = config.edgeStrength > 0;
+    globals.hoverEdgeBottomOpacity = Number((config.edgeStrength * 0.78).toFixed(3));
+    globals.hoverEdgeTopEnabled = config.edgeStrength > 0;
+    globals.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
+    globals.frameBorderGradientEdgeOpacity = Number((config.wallEdgeStrength * 0.14).toFixed(3));
+    globals.frameBorderGradientMidOpacity = Number((config.wallEdgeStrength * 0.28).toFixed(3));
+    globals.frameVignetteEdgeOpacity = config.wallEdgeStrength;
+    globals.frameVignetteAmbientOpacity = config.wallAmbientStrength;
+    globals.frameVignetteEdgeBlur = Math.round(10 + (config.wallSoftness * 70));
+    globals.frameVignetteAmbientBlur = Math.round(80 + (config.wallSoftness * 260));
+    globals.edgeCaptionDistanceMinPx = Math.round(config.edgeCaptionDistanceMin);
+    globals.edgeCaptionDistanceMaxPx = Math.round(config.edgeCaptionDistanceMax);
+
+    applyLayoutCSSVars();
+  } catch (e) {}
+}
+
 export function applyStudioSurfaceConfig(config) {
   const root = document.documentElement;
   const edgeStrength = clamp(config.edgeStrength, 0, 0.45, DEFAULT_STUDIO_SURFACE_CONFIG.edgeStrength);
@@ -163,6 +189,16 @@ export function applyStudioSurfaceConfig(config) {
   root.style.setProperty('--abs-quote-pad-y', `${quotePaddingY}px`);
   root.style.setProperty('--edge-caption-distance-min', `${edgeCaptionDistanceMin}px`);
   root.style.setProperty('--edge-caption-distance-max', `${edgeCaptionDistanceMax}px`);
+
+  syncStudioRuntimeState({
+    edgeStrength,
+    edgeWidth,
+    wallEdgeStrength,
+    wallAmbientStrength,
+    wallSoftness,
+    edgeCaptionDistanceMin,
+    edgeCaptionDistanceMax,
+  });
 
   window.__ABS_STUDIO_SURFACE_CONFIG__ = {
     edgeStrength,
@@ -335,6 +371,8 @@ export function buildStudioRuntimePatch(snapshot, baseRuntime = {}) {
   nextRuntime.frameVignetteAmbientOpacity = config.wallAmbientStrength;
   nextRuntime.frameVignetteEdgeBlur = Math.round(10 + (config.wallSoftness * 70));
   nextRuntime.frameVignetteAmbientBlur = Math.round(80 + (config.wallSoftness * 260));
+  nextRuntime.edgeCaptionDistanceMinPx = Math.round(config.edgeCaptionDistanceMin);
+  nextRuntime.edgeCaptionDistanceMaxPx = Math.round(config.edgeCaptionDistanceMax);
 
   return nextRuntime;
 }

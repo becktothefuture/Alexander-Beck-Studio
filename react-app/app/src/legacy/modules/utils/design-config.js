@@ -58,12 +58,153 @@ export const DEFAULT_CV_CONFIG = {
 
 let designSystemPromise = null;
 
+const RETIRED_RUNTIME_KEYS = new Set([
+  'hoverEdgeEnabled',
+  'hoverEdgeWidth',
+  'hoverEdgeInset',
+  'hoverEdgeBottomEnabled',
+  'hoverEdgeBottomRadius',
+  'hoverEdgeBottomOpacity',
+  'hoverEdgeBottomColorMix',
+  'hoverEdgeTopEnabled',
+  'hoverEdgeTopRadius',
+  'hoverEdgeTopOpacity',
+  'hoverEdgeTopColorMix',
+  'frameBorderGradientEdgeOpacity',
+  'frameBorderGradientMidOpacity',
+  'frameVignetteEdgeOffsetY',
+  'frameVignetteEdgeBlur',
+  'frameVignetteEdgeOpacity',
+  'frameVignetteAmbientBlur',
+  'frameVignetteAmbientOpacity',
+  'edgeCaptionDistanceMinPx',
+  'edgeCaptionDistanceMaxPx',
+  'outerWallShineEnabled',
+  'wallLightFluctuationEnabled',
+  'wallAOSpread',
+  'wallSpecularEnabled',
+  'wallSpecularWidth',
+  'wallAOOpacityLight',
+  'wallSpecularOpacityLight',
+  'outerWallShineBlurLight',
+  'outerWallShineSpreadLight',
+  'outerWallShineOvershootLight',
+  'outerWallShineOpacityLight',
+  'outerWallShineColorLight',
+  'wallAOOpacityDark',
+  'wallSpecularOpacityDark',
+  'outerWallShineBlurDark',
+  'outerWallShineSpreadDark',
+  'outerWallShineOvershootDark',
+  'outerWallShineOpacityDark',
+  'outerWallShineColorDark',
+  'innerWallShineEnabled',
+  'innerWallShineBlur',
+  'innerWallShineOvershoot',
+  'innerWallShineSpread',
+  'innerWallShineOpacityLight',
+  'innerWallShineOpacityDark',
+  'innerWallShineColor',
+  'uiIconFramePx',
+  'uiIconGlyphPx',
+  'frameInnerRadius',
+  'frameInnerSurface',
+  'logoBlurInactive',
+  'logoBlurActive',
+  'autoDarkNightStartHour',
+  'autoDarkNightEndHour',
+  'tactileEnabled',
+  'tactileProjectId',
+  'tactileScale',
+  'tactileDpi',
+  'tactileOpacity',
+  'tactileBlendMode',
+  'tactilePointerEvents',
+  'noiseSeed',
+  'noiseTextureSize',
+  'noiseDistribution',
+  'noiseMonochrome',
+  'noiseChroma',
+  'noiseColorLight',
+  'noiseColorDark',
+  'noiseMotionAmount',
+  'noiseSpeedMs',
+  'noiseSpeedVariance',
+  'noiseFlicker',
+  'noiseFlickerSpeedMs',
+  'noiseBlurPx',
+  'noiseContrast',
+  'noiseBrightness',
+  'noiseSaturation',
+  'noiseHue',
+  'topLogoWidthVw',
+  'borderWidth',
+  'borderColor',
+  'slideGradientIntensityLight',
+  'slideGradientIntensityDark',
+  'metaPadding',
+  'wheelPageScale',
+  'mouseTiltPivotZ',
+  'cylinderRadiusRings',
+  'cylinderRadiusMin',
+  'cylinderRadiusStep',
+  'cylinderVerticalSpacing',
+  'closeButtonTop',
+  'closeButtonLeft',
+  'closeButtonWidth',
+  'closeButtonHeight',
+  'closeButtonIconSize',
+  'detailFadeMs',
+  'detailFadeDelay',
+  'detailContentPopDuration',
+  'detailContentPopOvershoot',
+  'detailContentPopStartScale',
+  'detailContentPopDelayHero',
+  'detailContentPopDelayBody',
+  'detailContentPopEase',
+  'wheelLineHeight',
+  'slideSpeed',
+  'perspective',
+  'mouseTiltPreset',
+  'mouseTiltEnabled',
+  'mouseTiltInvertX',
+  'mouseTiltInvertY',
+  'mouseTiltSensitivity',
+  'mouseTiltEase',
+  'mouseTiltLeft',
+  'mouseTiltRight',
+  'mouseTiltUp',
+  'mouseTiltDown',
+]);
+
+const RETIRED_SHELL_THEME_KEYS = new Set([
+  'lockedHeaderLight',
+  'lockedHeaderDark',
+]);
+
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function clone(value) {
   return isPlainObject(value) ? JSON.parse(JSON.stringify(value)) : {};
+}
+
+function pruneRuntimeConfig(runtime = {}) {
+  const nextRuntime = clone(runtime);
+  for (const key of RETIRED_RUNTIME_KEYS) {
+    delete nextRuntime[key];
+  }
+  return nextRuntime;
+}
+
+function pruneShellConfig(shell = {}) {
+  const nextShell = clone(shell);
+  if (!isPlainObject(nextShell.theme)) return nextShell;
+  for (const key of RETIRED_SHELL_THEME_KEYS) {
+    delete nextShell.theme[key];
+  }
+  return nextShell;
 }
 
 function readInlineObject(key) {
@@ -82,7 +223,9 @@ function detectDevConfigMode() {
 
   try {
     const port = String(globalThis?.location?.port ?? '');
-    if (port === '8012') return true;
+    if (port === '8012' || port === '8013') return true;
+    const host = String(globalThis?.location?.hostname ?? '');
+    if ((host === 'localhost' || host === '127.0.0.1') && port !== '') return true;
   } catch (e) {}
 
   return false;
@@ -144,12 +287,12 @@ export function normalizeDesignSystemConfig(raw = {}) {
   const source = isPlainObject(raw) ? raw : {};
 
   const runtime = isPlainObject(source.runtime)
-    ? clone(source.runtime)
-    : (looksLikeRuntimeConfig(source) ? clone(source) : {});
+    ? pruneRuntimeConfig(source.runtime)
+    : (looksLikeRuntimeConfig(source) ? pruneRuntimeConfig(source) : {});
 
   const shell = isPlainObject(source.shell)
-    ? clone(source.shell)
-    : (looksLikeShellConfig(source) ? clone(source) : {});
+    ? pruneShellConfig(source.shell)
+    : (looksLikeShellConfig(source) ? pruneShellConfig(source) : {});
 
   const portfolio = isPlainObject(source.portfolio)
     ? clone(source.portfolio)

@@ -18,6 +18,7 @@ export function buildRuntimeConfigSnapshot() {
     const controls = getAllControls();
     for (const control of controls) {
       if (!control?.stateKey) continue;
+      if (control.designScope === 'shellTheme') continue;
       const value = g[control.stateKey];
       if (value === undefined) continue;
       config[control.stateKey] = value;
@@ -54,8 +55,6 @@ export function buildRuntimeConfigSnapshot() {
 
   config.chromeHarmonyMode = g.chromeHarmonyMode;
   config.autoDarkModeEnabled = g.autoDarkModeEnabled;
-  config.autoDarkNightStartHour = g.autoDarkNightStartHour;
-  config.autoDarkNightEndHour = g.autoDarkNightEndHour;
   config.enableLOD = false;
 
   return buildStudioRuntimePatch(buildStudioSurfaceSnapshot(), config);
@@ -64,7 +63,20 @@ export function buildRuntimeConfigSnapshot() {
 export function buildShellConfigSnapshot() {
   const baseShell = clone(getShellConfig());
   const studioSurface = buildStudioSurfaceSnapshot();
-  return buildStudioShellPatch(studioSurface, baseShell);
+  const nextShell = buildStudioShellPatch(studioSurface, baseShell);
+  const g = getGlobals();
+
+  nextShell.theme = {
+    ...(nextShell.theme || {}),
+    wallBaseLight: g.wallBaseLight || nextShell.theme?.wallBaseLight,
+    wallBaseDark: g.wallBaseDark || nextShell.theme?.wallBaseDark,
+    siteFrameLight: g.frameColorLight || nextShell.theme?.siteFrameLight,
+    siteFrameDark: g.frameColorDark || nextShell.theme?.siteFrameDark,
+    safariFrameLight: g.safariFrameLight || nextShell.theme?.safariFrameLight,
+    safariFrameDark: g.safariFrameDark || nextShell.theme?.safariFrameDark,
+  };
+
+  return nextShell;
 }
 
 export async function buildDesignSystemSnapshot({
@@ -74,10 +86,7 @@ export async function buildDesignSystemSnapshot({
   cvSnapshot = null,
 } = {}) {
   const base = normalizeDesignSystemConfig(await loadDesignSystemConfig());
-  const nextRuntime = {
-    ...clone(base.runtime),
-    ...clone(runtimeSnapshot || buildRuntimeConfigSnapshot()),
-  };
+  const nextRuntime = clone(runtimeSnapshot || buildRuntimeConfigSnapshot());
 
   return {
     ...base,
