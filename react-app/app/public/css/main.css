@@ -555,7 +555,7 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
 /* Desktop/Tablet: main top row (legend + blurb + optional sound icon in top-right slot) */
 .ui-top-main {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: repeat(1, 1fr);
   align-items: flex-start;
   width: 100%;
@@ -654,15 +654,29 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   inset: 0;
   z-index: var(--hover-bg-z, -1);
   border-radius: var(--hover-bg-radius, var(--ui-icon-corner-radius));
-  background: transparent;
+  background:
+    radial-gradient(
+      120% 110% at 14% 8%,
+      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.8)) 0%,
+      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.22)) 26%,
+      transparent 58%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.24)) 0%,
+      transparent 42%
+    );
   opacity: 0;
   pointer-events: none;
   transform: scale(0.72);
   transform-origin: center;
   box-shadow:
     inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
-      rgba(var(--abs-rgb-white), var(--abs-surface-edge-opacity, 0.14)),
-    inset 0 1px 6px rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.45));
+      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.88)),
+    inset 0 1px 10px rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.35)),
+    0 calc(var(--abs-surface-shadow-offset-y, 6px) * 0.55)
+      calc(var(--abs-surface-shadow-blur, 18px) * 0.45)
+      rgba(var(--abs-rgb-black), calc(var(--abs-surface-glow-opacity, 0.18) * 0.16));
   /* filter: blur(8px); - Removed */
   /* -webkit-filter: blur(8px); - Removed */
   /* backdrop-filter: blur(10px); - Disabled: not working with canvas simulation */
@@ -828,17 +842,18 @@ body.dark-mode .legend-tooltip-output {
 
 /* Philosophy Text - Right */
 .ui-top-right {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: flex-start; /* Align top */
   justify-content: flex-end;
   width: 100%;
   pointer-events: none;
   gap: var(--gap-lg); /* Gap between sound button and text */
+  min-width: min(46vw, calc(var(--decorative-script-max-width) + 72px));
 }
 
-/* Sound toggle appears BEFORE text (left of text) via flex order */
 .ui-top-right #sound-toggle-slot {
-  order: -1; /* Move sound icon to the left of the text */
+  justify-self: end;
 }
 
 .decorative-script {
@@ -1300,6 +1315,12 @@ button.abs-meta-btn,
   border: none;
   border-radius: var(--abs-radius-cta);
   background:
+    radial-gradient(
+      130% 120% at 16% 4%,
+      rgba(var(--abs-rgb-white), calc(var(--quote-glass-edge-opacity, var(--abs-surface-edge-opacity, 0.14)) * 0.78)) 0%,
+      rgba(var(--abs-rgb-white), calc(var(--quote-glass-edge-opacity, var(--abs-surface-edge-opacity, 0.14)) * 0.16)) 24%,
+      transparent 56%
+    ),
     linear-gradient(
       180deg,
       rgba(var(--abs-rgb-white), var(--quote-glass-sheen-top-opacity, 0.035)) 0%,
@@ -1316,11 +1337,11 @@ button.abs-meta-btn,
   backdrop-filter: blur(var(--quote-glass-blur, 8px)) saturate(var(--quote-glass-saturation, 1.12));
   box-shadow:
     inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
-      rgba(var(--abs-rgb-white), var(--quote-glass-edge-opacity, var(--abs-surface-edge-opacity, 0.14))),
+      rgba(var(--abs-rgb-white), calc(var(--quote-glass-edge-opacity, var(--abs-surface-edge-opacity, 0.14)) * 0.72)),
     inset 0 calc(var(--abs-size-1px) * 0.5) calc(var(--abs-size-1px) * 2)
-      rgba(var(--abs-rgb-white), var(--quote-glass-inner-shadow-opacity, calc(var(--abs-surface-edge-opacity, 0.14) * 0.45))),
+      rgba(var(--abs-rgb-white), calc(var(--quote-glass-inner-shadow-opacity, calc(var(--abs-surface-edge-opacity, 0.14) * 0.45)) * 0.72)),
     0 var(--quote-glass-shadow-offset-y, 6px) var(--quote-glass-shadow-blur, 18px)
-      rgba(var(--abs-rgb-black), var(--quote-glass-shadow-opacity, var(--abs-surface-glow-opacity, 0.24)));
+      rgba(var(--abs-rgb-black), calc(var(--quote-glass-shadow-opacity, var(--abs-surface-glow-opacity, 0.24)) * 0.82));
   text-align: center;
   overflow: hidden;
 }
@@ -1903,7 +1924,7 @@ html.entrance-complete .noise-ready .noise {
   background-color: var(--noise-color-light);
   mix-blend-mode: normal;
   pointer-events: none;
-  opacity: 0.6; /* Adjust tint intensity */
+  opacity: 0.72; /* Slightly richer chroma variation without overpowering the texture */
   /* Match animation from ::before */
   animation-name: var(--abs-noise-keyframes), abs-noise-flicker;
   animation-duration: var(--abs-noise-speed), var(--abs-noise-flicker-speed);
