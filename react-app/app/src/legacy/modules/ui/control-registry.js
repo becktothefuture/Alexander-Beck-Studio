@@ -145,44 +145,23 @@ loadVisibility();
 
 export const MASTER_GROUPS = [
   {
-    id: 'appearance',
+    id: 'studio',
     title: 'Studio',
     icon: '✨',
     defaultOpen: true,
     sections: [
       'colors',
-      'colorDistribution',
-      'noise',
-      'tactileLayer'
+      'colorDistribution'
     ]
   },
   {
-    id: 'frame',
-    title: 'Shell & Space',
+    id: 'shell',
+    title: 'Shell',
     icon: '🧱',
     sections: [
       'wallGeometry',
       'layers',
       'uiSpacing'
-    ]
-  },
-  {
-    id: 'effects',
-    title: 'Depth & Modals',
-    icon: '🌫️',
-    sections: [
-      'simulationOverlay',
-      'overlay'
-    ]
-  },
-  {
-    id: 'interaction',
-    title: 'Links & Audio',
-    icon: '🔗',
-    sections: [
-      'cursor',
-      'trail',
-      'links'
     ]
   },
   {
@@ -192,15 +171,28 @@ export const MASTER_GROUPS = [
     sections: [
       'liteMode',
       'physics',
-      'balls'
+      'balls',
+      'scene'
     ]
   },
   {
-    id: 'motion',
-    title: 'Advanced Motion',
-    icon: '🎬',
+    id: 'audio',
+    title: 'Audio',
+    icon: '🔊',
+    sections: []
+  },
+  {
+    id: 'advanced',
+    title: 'Advanced',
+    icon: '🧪',
     sections: [
-      'scene',
+      'noise',
+      'tactileLayer',
+      'cursor',
+      'trail',
+      'links',
+      'simulationOverlay',
+      'overlay',
       'entrance',
       'environment'
     ]
@@ -6361,8 +6353,13 @@ function generateControlHTML(control) {
   if (control.type === 'select') {
     const opts = Array.isArray(control.options) ? control.options : [];
     const optionsHtml = opts.map((o) => {
-      const v = String(o.value);
-      const label = String(o.label ?? o.value);
+      if (typeof o === 'string' || typeof o === 'number' || typeof o === 'boolean') {
+        const value = String(o);
+        const selectedAttr = String(control.default) === value ? 'selected' : '';
+        return `<option value="${value}" ${selectedAttr}>${value}</option>`;
+      }
+      const v = String(o?.value ?? '');
+      const label = String(o?.label ?? o?.value ?? '');
       const selectedAttr = String(control.default) === v ? 'selected' : '';
       return `<option value="${v}" ${selectedAttr}>${label}</option>`;
     }).join('');

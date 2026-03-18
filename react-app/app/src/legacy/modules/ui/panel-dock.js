@@ -228,19 +228,19 @@ function getMasterPanelContent({
   `;
 
   // Build all master groups with proper content injection
-  // - Theme + Palette → Appearance (prepend/append)
-  // - Layout → Frame (append)
-  // - Sound → Interaction (append)
-  // - Mode switcher + mode-specific sections → Simulation (prepend)
+  // - Theme + Palette + shared surface controls → Studio
+  // - Layout → Shell
+  // - Sound → Audio
+  // - Mode switcher + mode-specific sections → Simulation
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      appearance: generateThemeSectionHTML({ open: false }),
+      studio: generateThemeSectionHTML({ open: false }),
       simulation: generateModeSwitcherHTML() + generateModeSpecificSectionsHTML(),
     },
     append: {
-      appearance: generateStudioSurfaceControlsHTML() + generateColorTemplateSectionHTML({ open: false }),
-      frame: layoutControlsHTML,
-      interaction: soundControlsHTML,
+      studio: generateStudioSurfaceControlsHTML() + generateColorTemplateSectionHTML({ open: false }),
+      shell: layoutControlsHTML,
+      audio: soundControlsHTML,
     }
   });
 
