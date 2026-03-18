@@ -19,7 +19,9 @@ import { initPortfolioWallCanvas } from './portfolio/wall-only-canvas.js';
 import { initCvScrollTypography } from './cv/cv-scroll-typography.js';
 import { initCvPhotoSlideshow } from './cv/cv-photo-slideshow.js';
 import { initCvPanel } from './cv/cv-panel.js';
+import { applyCvConfig, loadCvRuntimeConfig } from './cv/config.js';
 import { initSharedChrome } from './ui/shared-chrome.js';
+import { isDev } from './utils/logger.js';
 import { getShellConfig, loadShellConfig, syncShellToDocument } from './visual/site-shell.js';
 import { forcePageVisible, waitForPageReadyBarrier } from './visual/page-orchestrator.js';
 import { 
@@ -44,6 +46,13 @@ async function bootstrapCvPage() {
   syncShellToDocument({
     isDark: document.documentElement.classList.contains('dark-mode')
   });
+
+  try {
+    const cvConfig = await loadCvRuntimeConfig();
+    applyCvConfig(cvConfig);
+  } catch (e) {
+    applyCvConfig();
+  }
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                    STEP 3: DRAMATIC ENTRANCE (Portfolio parity)              ║
@@ -115,9 +124,14 @@ async function bootstrapCvPage() {
 
     // Failsafe watchdog: never allow a stuck hidden page (Portfolio parity)
     window.setTimeout(() => {
-      if (!fadeContent) return;
-      const opacity = window.getComputedStyle(fadeContent).opacity;
-      if (opacity === '0') forceVisible('watchdog');
+      const shellOpacity = fadeContent ? window.getComputedStyle(fadeContent).opacity : '1';
+      const cvContainer = document.querySelector('.cv-scroll-container');
+      const cvStyles = cvContainer ? window.getComputedStyle(cvContainer) : null;
+      const cvHidden = !!cvStyles && (cvStyles.opacity === '0' || cvStyles.visibility === 'hidden');
+
+      if (shellOpacity === '0' || cvHidden) {
+        forceVisible('watchdog');
+      }
     }, 2500);
   } catch (e) {
     const fadeContent = document.getElementById('app-frame');
@@ -220,8 +234,8 @@ async function bootstrapCvPage() {
   // ╚══════════════════════════════════════════════════════════════════════════════╝
   try {
     // Production builds intentionally ship with baked-in config (no tuning UI).
-    if (typeof __DEV__ !== 'undefined' && __DEV__) {
-      initCvPanel();
+    if (isDev()) {
+      await initCvPanel();
     }
   } catch (e) {
     console.warn('CV config panel failed to initialize', e);

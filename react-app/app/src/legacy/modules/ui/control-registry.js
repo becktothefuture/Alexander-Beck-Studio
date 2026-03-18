@@ -102,6 +102,152 @@ const VISIBILITY_STORAGE_KEY = 'panel_control_visibility';
 
 let controlVisibility = {};
 
+const DEFAULT_HIDDEN_CONTROL_IDS = new Set([
+  // Superseded by the shared Studio surface system.
+  'hoverEdgeEnabled',
+  'hoverEdgeWidth',
+  'hoverEdgeInset',
+  'hoverEdgeBottomEnabled',
+  'hoverEdgeBottomRadius',
+  'hoverEdgeBottomOpacity',
+  'hoverEdgeBottomColorMix',
+  'hoverEdgeTopEnabled',
+  'hoverEdgeTopRadius',
+  'hoverEdgeTopOpacity',
+  'hoverEdgeTopColorMix',
+  'frameBorderGradientEdgeOpacity',
+  'frameBorderGradientMidOpacity',
+  'frameVignetteEdgeOffsetY',
+  'frameVignetteEdgeBlur',
+  'frameVignetteEdgeOpacity',
+  'frameVignetteAmbientBlur',
+  'frameVignetteAmbientOpacity',
+
+  // Keep browser wall tuning focused on the higher-level atmosphere sliders.
+  'outerWallShineEnabled',
+  'wallLightFluctuationEnabled',
+  'wallAOSpread',
+  'wallSpecularEnabled',
+  'wallSpecularWidth',
+  'wallAOOpacityLight',
+  'wallSpecularOpacityLight',
+  'outerWallShineBlurLight',
+  'outerWallShineSpreadLight',
+  'outerWallShineOvershootLight',
+  'outerWallShineOpacityLight',
+  'outerWallShineColorLight',
+  'wallAOOpacityDark',
+  'wallSpecularOpacityDark',
+  'outerWallShineBlurDark',
+  'outerWallShineSpreadDark',
+  'outerWallShineOvershootDark',
+  'outerWallShineOpacityDark',
+  'outerWallShineColorDark',
+  'innerWallShineEnabled',
+  'innerWallShineBlur',
+  'innerWallShineOvershoot',
+  'innerWallShineSpread',
+  'innerWallShineOpacityLight',
+  'innerWallShineOpacityDark',
+  'innerWallShineColor',
+
+  // Low-signal modal micro-timing controls stay out of the primary tuning flow.
+  'modalOverlayTransitionOutMs',
+  'modalOverlayContentDelayMs',
+  'modalDepthTranslateY',
+
+  // Shared shell controls now own these values.
+  'edgeCaptionDistanceMinPx',
+  'edgeCaptionDistanceMaxPx',
+
+  // Secondary polish dials stay available in code, not in the default tuning surface.
+  'logoBlurInactive',
+  'logoBlurActive',
+]);
+
+const RETIRED_CONTROL_IDS = new Set([
+  'hoverEdgeEnabled',
+  'hoverEdgeWidth',
+  'hoverEdgeInset',
+  'hoverEdgeBottomEnabled',
+  'hoverEdgeBottomRadius',
+  'hoverEdgeBottomOpacity',
+  'hoverEdgeBottomColorMix',
+  'hoverEdgeTopEnabled',
+  'hoverEdgeTopRadius',
+  'hoverEdgeTopOpacity',
+  'hoverEdgeTopColorMix',
+  'frameBorderGradientEdgeOpacity',
+  'frameBorderGradientMidOpacity',
+  'frameVignetteEdgeOffsetY',
+  'frameVignetteEdgeBlur',
+  'frameVignetteEdgeOpacity',
+  'frameVignetteAmbientBlur',
+  'frameVignetteAmbientOpacity',
+  'edgeCaptionDistanceMinPx',
+  'edgeCaptionDistanceMaxPx',
+  'outerWallShineEnabled',
+  'wallLightFluctuationEnabled',
+  'wallAOSpread',
+  'wallSpecularEnabled',
+  'wallSpecularWidth',
+  'wallAOOpacityLight',
+  'wallSpecularOpacityLight',
+  'outerWallShineBlurLight',
+  'outerWallShineSpreadLight',
+  'outerWallShineOvershootLight',
+  'outerWallShineOpacityLight',
+  'outerWallShineColorLight',
+  'wallAOOpacityDark',
+  'wallSpecularOpacityDark',
+  'outerWallShineBlurDark',
+  'outerWallShineSpreadDark',
+  'outerWallShineOvershootDark',
+  'outerWallShineOpacityDark',
+  'outerWallShineColorDark',
+  'innerWallShineEnabled',
+  'innerWallShineBlur',
+  'innerWallShineOvershoot',
+  'innerWallShineSpread',
+  'innerWallShineOpacityLight',
+  'innerWallShineOpacityDark',
+  'innerWallShineColor',
+  'uiIconFramePx',
+  'uiIconGlyphPx',
+  'frameInnerRadius',
+  'frameInnerSurface',
+  'logoBlurInactive',
+  'logoBlurActive',
+  'lockedHeaderLight',
+  'lockedHeaderDark',
+  'autoDarkNightStartHour',
+  'autoDarkNightEndHour',
+  'tactileEnabled',
+  'tactileProjectId',
+  'tactileScale',
+  'tactileDpi',
+  'tactileOpacity',
+  'tactileBlendMode',
+  'tactilePointerEvents',
+  'noiseSeed',
+  'noiseTextureSize',
+  'noiseDistribution',
+  'noiseMonochrome',
+  'noiseChroma',
+  'noiseColorLight',
+  'noiseColorDark',
+  'noiseMotionAmount',
+  'noiseSpeedMs',
+  'noiseSpeedVariance',
+  'noiseFlicker',
+  'noiseFlickerSpeedMs',
+  'noiseBlurPx',
+  'noiseContrast',
+  'noiseBrightness',
+  'noiseSaturation',
+  'noiseHue',
+]);
+
 function loadVisibility() {
   try {
     const stored = localStorage.getItem(VISIBILITY_STORAGE_KEY);
@@ -123,8 +269,14 @@ export function setControlVisible(id, visible) {
 }
 
 export function isControlVisible(id) {
-  // Default to true if not specified
-  return controlVisibility[id] !== false;
+  if (RETIRED_CONTROL_IDS.has(id)) {
+    return false;
+  }
+  if (Object.prototype.hasOwnProperty.call(controlVisibility, id)) {
+    return controlVisibility[id] !== false;
+  }
+
+  return !DEFAULT_HIDDEN_CONTROL_IDS.has(id);
 }
 
 export function getVisibilityState() {
@@ -145,43 +297,23 @@ loadVisibility();
 
 export const MASTER_GROUPS = [
   {
-    id: 'appearance',
-    title: 'Appearance',
-    icon: '🎨',
+    id: 'studio',
+    title: 'Studio',
+    icon: '✨',
+    defaultOpen: true,
     sections: [
       'colors',
-      'colorDistribution',
-      'noise',
-      'tactileLayer'
+      'colorDistribution'
     ]
   },
   {
-    id: 'frame',
-    title: 'Frame',
-    icon: '🖼️',
+    id: 'shell',
+    title: 'Shell',
+    icon: '🧱',
     sections: [
       'wallGeometry',
       'layers',
       'uiSpacing'
-    ]
-  },
-  {
-    id: 'effects',
-    title: 'Effects',
-    icon: '✨',
-    sections: [
-      'simulationOverlay',
-      'overlay'
-    ]
-  },
-  {
-    id: 'interaction',
-    title: 'Interaction',
-    icon: '👆',
-    sections: [
-      'cursor',
-      'trail',
-      'links'
     ]
   },
   {
@@ -191,15 +323,28 @@ export const MASTER_GROUPS = [
     sections: [
       'liteMode',
       'physics',
-      'balls'
+      'balls',
+      'scene'
     ]
   },
   {
-    id: 'motion',
-    title: 'Motion',
-    icon: '🎬',
+    id: 'audio',
+    title: 'Audio',
+    icon: '🔊',
+    sections: []
+  },
+  {
+    id: 'advanced',
+    title: 'Advanced',
+    icon: '🧪',
     sections: [
-      'scene',
+      'noise',
+      'tactileLayer',
+      'cursor',
+      'trail',
+      'links',
+      'simulationOverlay',
+      'overlay',
       'entrance',
       'environment'
     ]
@@ -980,80 +1125,6 @@ export const CONTROL_SECTIONS = {
         format: v => `${v.toFixed(1)}vw`,
         parse: parseFloat,
         hint: 'Universal cursor interaction zone (scales with viewport width).'
-      }
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // TRAIL - Mouse cursor and trail controls (consolidated)
-  // ═══════════════════════════════════════════════════════════════════════════
-  trail: {
-    title: 'Mouse & Trail',
-    icon: '🖐️',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'cursorSize',
-        label: 'Cursor Size',
-        stateKey: 'cursorSize',
-        type: 'range',
-        min: 0.1, max: 3.0, step: 0.05,
-        default: 1.0,
-        format: v => v.toFixed(2),
-        parse: parseFloat,
-        onChange: (g, val) => {
-          import('../rendering/cursor.js').then(({ updateCursorSize }) => {
-            updateCursorSize();
-          });
-        }
-      },
-      {
-        id: 'mouseTrailEnabled',
-        label: 'Trail Enabled',
-        stateKey: 'mouseTrailEnabled',
-        type: 'checkbox',
-        default: true
-      },
-      {
-        id: 'mouseTrailLength',
-        label: 'Trail Length',
-        stateKey: 'mouseTrailLength',
-        type: 'range',
-        min: 4, max: 96, step: 1,
-        default: 18,
-        format: v => String(Math.round(v)),
-        parse: v => parseInt(v, 10),
-        hint: 'Max samples kept (higher = smoother, slightly more work)'
-      },
-      {
-        id: 'mouseTrailSize',
-        label: 'Trail Size',
-        stateKey: 'mouseTrailSize',
-        type: 'range',
-        min: 0.5, max: 10, step: 0.1,
-        default: 1.3,
-        format: v => v.toFixed(1) + 'px',
-        parse: parseFloat
-      },
-      {
-        id: 'mouseTrailFadeMs',
-        label: 'Trail Fade',
-        stateKey: 'mouseTrailFadeMs',
-        type: 'range',
-        min: 40, max: 1200, step: 10,
-        default: 220,
-        format: v => `${Math.round(v)}ms`,
-        parse: v => parseInt(v, 10)
-      },
-      {
-        id: 'mouseTrailOpacity',
-        label: 'Trail Opacity',
-        stateKey: 'mouseTrailOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.35,
-        format: v => v.toFixed(2),
-        parse: parseFloat
       }
     ]
   },
@@ -2463,6 +2534,136 @@ export const CONTROL_SECTIONS = {
           root.style.setProperty('--bg-dark', val);
         }
       },
+      { type: 'divider', label: 'Wall Interior' },
+      {
+        id: 'wallBaseLight',
+        label: 'Inner Wall · Light',
+        stateKey: 'wallBaseLight',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#f1f3f4',
+        hint: 'Inner wall color in light mode.',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--abs-wall-base-light', val);
+          g.wallBaseLight = val;
+          g.frameInnerSurface = 'var(--abs-wall-base)';
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ wallBaseLight: val });
+          }).catch(() => {});
+          if (!document.body.classList.contains('dark-mode')) {
+            root.style.setProperty('--abs-wall-base', val);
+            root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
+          }
+          applyLayoutCSSVars();
+        }
+      },
+      {
+        id: 'wallBaseDark',
+        label: 'Inner Wall · Dark',
+        stateKey: 'wallBaseDark',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#202124',
+        hint: 'Inner wall color in dark mode.',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--abs-wall-base-dark', val);
+          g.wallBaseDark = val;
+          g.frameInnerSurface = 'var(--abs-wall-base)';
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ wallBaseDark: val });
+          }).catch(() => {});
+          if (document.body.classList.contains('dark-mode')) {
+            root.style.setProperty('--abs-wall-base', val);
+            root.style.setProperty('--frame-inner-surface', 'var(--abs-wall-base)');
+          }
+          applyLayoutCSSVars();
+        }
+      },
+      { type: 'divider', label: 'Outer Wall & Chrome' },
+      {
+        id: 'frameColorLight',
+        label: 'Outer Wall · Light',
+        stateKey: 'frameColorLight',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#242529',
+        hint: 'Canonical outer wall and browser chrome in light mode.',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--frame-color-site-light', val);
+          root.style.setProperty('--frame-color-light', val);
+          root.style.setProperty('--wall-color-light', val);
+          root.style.setProperty('--chrome-bg-light', val);
+          g.frameColorLight = val;
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ siteFrameLight: val });
+          }).catch(() => {});
+          import('../visual/dark-mode-v2.js').then(mod => {
+            mod.setTheme(mod.getCurrentTheme());
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'frameColorDark',
+        label: 'Outer Wall · Dark',
+        stateKey: 'frameColorDark',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#242529',
+        hint: 'Canonical outer wall and browser chrome in dark mode.',
+        onChange: (g, val) => {
+          const root = document.documentElement;
+          root.style.setProperty('--frame-color-site-dark', val);
+          root.style.setProperty('--frame-color-dark', val);
+          root.style.setProperty('--wall-color-dark', val);
+          root.style.setProperty('--chrome-bg-dark', val);
+          g.frameColorDark = val;
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ siteFrameDark: val });
+          }).catch(() => {});
+          import('../visual/dark-mode-v2.js').then(mod => {
+            mod.setTheme(mod.getCurrentTheme());
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'safariFrameLight',
+        label: 'Safari Wall · Light',
+        stateKey: 'safariFrameLight',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#202124',
+        hint: 'Safari-specific outer wall color in light mode.',
+        onChange: (g, val) => {
+          g.safariFrameLight = val;
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ safariFrameLight: val });
+          }).catch(() => {});
+          import('../visual/dark-mode-v2.js').then(mod => {
+            mod.setTheme(mod.getCurrentTheme());
+          }).catch(() => {});
+        }
+      },
+      {
+        id: 'safariFrameDark',
+        label: 'Safari Wall · Dark',
+        stateKey: 'safariFrameDark',
+        designScope: 'shellTheme',
+        type: 'color',
+        default: '#202124',
+        hint: 'Safari-specific outer wall color in dark mode.',
+        onChange: (g, val) => {
+          g.safariFrameDark = val;
+          import('../visual/site-shell.js').then((mod) => {
+            mod.patchShellTheme?.({ safariFrameDark: val });
+          }).catch(() => {});
+          import('../visual/dark-mode-v2.js').then(mod => {
+            mod.setTheme(mod.getCurrentTheme());
+          }).catch(() => {});
+        }
+      },
       // ─── TEXT (LIGHT MODE) ───────────────────────────────────────────────
       { type: 'divider', label: 'Text · Light Mode' },
       {
@@ -2548,6 +2749,22 @@ export const CONTROL_SECTIONS = {
           document.documentElement.style.setProperty('--top-logo-width-vw', String(val));
         }
       },
+      {
+        id: 'brandLogoSecondaryOpacity',
+        label: 'Second Line',
+        stateKey: 'brandLogoSecondaryOpacity',
+        type: 'range',
+        min: 0,
+        max: 1,
+        step: 0.01,
+        default: 0.66,
+        format: (v) => Number(v).toFixed(2),
+        parse: parseFloat,
+        hint: 'Opacity for the lower line of the brand mark.',
+        onChange: (_g, val) => {
+          document.documentElement.style.setProperty('--brand-logo-secondary-opacity', String(val));
+        }
+      },
     ]
   },
 
@@ -2599,45 +2816,7 @@ export const CONTROL_SECTIONS = {
     icon: '🖼️',
     defaultOpen: false,
     controls: [
-      {
-        id: 'frameColorLight',
-        label: 'Color · Light Mode',
-        stateKey: 'frameColorLight',
-        type: 'color',
-        default: '#242529',
-        hint: 'Canonical outer frame color for light-mode browser harmony and meta tinting',
-        onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--frame-color-site-light', val);
-          root.style.setProperty('--frame-color-light', val);
-          root.style.setProperty('--wall-color-light', val);
-          root.style.setProperty('--chrome-bg-light', val);
-          g.frameColorLight = val;
-          import('../visual/dark-mode-v2.js').then(mod => {
-            mod.setTheme(mod.getCurrentTheme());
-          });
-        }
-      },
-      {
-        id: 'frameColorDark',
-        label: 'Color · Dark Mode',
-        stateKey: 'frameColorDark',
-        type: 'color',
-        default: '#242529',
-        hint: 'Canonical outer frame color for dark-mode browser harmony and meta tinting',
-        onChange: (g, val) => {
-          const root = document.documentElement;
-          root.style.setProperty('--frame-color-site-dark', val);
-          root.style.setProperty('--frame-color-dark', val);
-          root.style.setProperty('--wall-color-dark', val);
-          root.style.setProperty('--chrome-bg-dark', val);
-          g.frameColorDark = val;
-          import('../visual/dark-mode-v2.js').then(mod => {
-            mod.setTheme(mod.getCurrentTheme());
-          });
-        }
-      },
-      { type: 'divider', label: 'Simplified Frame' },
+      { type: 'divider', label: 'Frame Geometry' },
       {
         id: 'frameBorderWidth',
         label: 'Border Width',
@@ -2662,130 +2841,6 @@ export const CONTROL_SECTIONS = {
         format: v => `${Math.round(v)}px`,
         parse: v => parseInt(v, 10),
         hint: 'Outer corner radius of the frame.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameInnerRadius',
-        label: 'Inner Radius',
-        stateKey: 'frameInnerRadius',
-        type: 'range',
-        min: 0, max: 300, step: 1,
-        default: 40,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Inner corner radius for canvas/effects clipping.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameInnerSurface',
-        label: 'Inner Surface',
-        stateKey: 'frameInnerSurface',
-        type: 'color',
-        default: '#1d1e20',
-        hint: 'Inner frame surface color.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameBorderGradientEdgeOpacity',
-        label: 'Border Edge Opacity',
-        stateKey: 'frameBorderGradientEdgeOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.03,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Border gradient opacity at top/bottom edges.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameBorderGradientMidOpacity',
-        label: 'Border Mid Opacity',
-        stateKey: 'frameBorderGradientMidOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.06,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Border gradient opacity at the center highlight.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      { type: 'divider', label: 'Vignette' },
-      {
-        id: 'frameVignetteEdgeOffsetY',
-        label: 'Edge Offset',
-        stateKey: 'frameVignetteEdgeOffsetY',
-        type: 'range',
-        min: -100, max: 100, step: 1,
-        default: 5,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Inset vignette edge vertical offset.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameVignetteEdgeBlur',
-        label: 'Edge Blur',
-        stateKey: 'frameVignetteEdgeBlur',
-        type: 'range',
-        min: 0, max: 400, step: 1,
-        default: 30,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Blur size of the edge vignette layer.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameVignetteEdgeOpacity',
-        label: 'Edge Opacity',
-        stateKey: 'frameVignetteEdgeOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.66,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of the edge vignette layer.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameVignetteAmbientBlur',
-        label: 'Ambient Blur',
-        stateKey: 'frameVignetteAmbientBlur',
-        type: 'range',
-        min: 0, max: 800, step: 1,
-        default: 250,
-        format: v => `${Math.round(v)}px`,
-        parse: v => parseInt(v, 10),
-        hint: 'Blur size of the ambient vignette layer.',
-        onChange: () => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'frameVignetteAmbientOpacity',
-        label: 'Ambient Opacity',
-        stateKey: 'frameVignetteAmbientOpacity',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.4,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Opacity of the ambient vignette layer.',
         onChange: () => {
           applyLayoutCSSVars();
         }
@@ -6275,6 +6330,7 @@ export function getAllControls() {
   const all = [];
   for (const section of Object.values(CONTROL_SECTIONS)) {
     for (const control of section.controls) {
+      if (RETIRED_CONTROL_IDS.has(control.id)) continue;
       all.push({ ...control, section: section.title });
     }
   }
@@ -6282,6 +6338,7 @@ export function getAllControls() {
 }
 
 export function getControlById(id) {
+  if (RETIRED_CONTROL_IDS.has(id)) return null;
   for (const section of Object.values(CONTROL_SECTIONS)) {
     const found = section.controls.find(c => c.id === id);
     if (found) return found;
@@ -6360,8 +6417,13 @@ function generateControlHTML(control) {
   if (control.type === 'select') {
     const opts = Array.isArray(control.options) ? control.options : [];
     const optionsHtml = opts.map((o) => {
-      const v = String(o.value);
-      const label = String(o.label ?? o.value);
+      if (typeof o === 'string' || typeof o === 'number' || typeof o === 'boolean') {
+        const value = String(o);
+        const selectedAttr = String(control.default) === value ? 'selected' : '';
+        return `<option value="${value}" ${selectedAttr}>${value}</option>`;
+      }
+      const v = String(o?.value ?? '');
+      const label = String(o?.label ?? o?.value ?? '');
       const selectedAttr = String(control.default) === v ? 'selected' : '';
       return `<option value="${v}" ${selectedAttr}>${label}</option>`;
     }).join('');
@@ -6687,14 +6749,19 @@ export function generateColorTemplateSectionHTML({ open = false } = {}) {
  * @returns {string} Complete master groups HTML
  */
 export function generateMasterSectionsHTML(options = {}) {
-  const { prepend = {}, append = {}, replace = {} } = options;
+  const { prepend = {}, append = {}, replace = {}, groupIds = null } = options;
+  const groups = Array.isArray(groupIds) && groupIds.length > 0
+    ? MASTER_GROUPS.filter((group) => groupIds.includes(group.id))
+    : MASTER_GROUPS;
   let html = '';
 
-  for (const group of MASTER_GROUPS) {
+  for (const group of groups) {
+    const openAttr = group.defaultOpen ? 'open' : '';
+
     // Check if this group has replacement content
     if (replace[group.id]) {
       html += `
-      <details class="panel-master-group" data-group-id="${group.id}">
+      <details class="panel-master-group" data-group-id="${group.id}" ${openAttr}>
         <summary class="panel-master-group-header">
           ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
           <span class="panel-master-group-title">${group.title}</span>
@@ -6728,7 +6795,7 @@ export function generateMasterSectionsHTML(options = {}) {
     if (!groupContent) continue;
 
     html += `
-      <details class="panel-master-group" data-group-id="${group.id}">
+      <details class="panel-master-group" data-group-id="${group.id}" ${openAttr}>
         <summary class="panel-master-group-header">
           ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
           <span class="panel-master-group-title">${group.title}</span>
@@ -6862,7 +6929,8 @@ export function generateModeSwitcherHTML() {
  * Disabled simulations (e.g. parallax-linear) are excluded.
  */
 export function generateModeSpecificSectionsHTML() {
-  const allowedModes = new Set(NARRATIVE_MODE_SEQUENCE);
+  const currentMode = getGlobals()?.currentMode;
+  const allowedModes = new Set(currentMode ? [currentMode] : NARRATIVE_MODE_SEQUENCE);
   let html = '';
   for (const [key, section] of Object.entries(CONTROL_SECTIONS)) {
     if (section?.mode && allowedModes.has(section.mode)) {

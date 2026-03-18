@@ -54,20 +54,14 @@ export function createSoundToggle() {
   buttonElement.addEventListener('click', handleToggleClick);
   
   // Preferred mounts:
-  // - Mobile: a full-width row under legend + description (#top-elements-soundRow)
-  // - Desktop: top-right row next to the decorative text (#top-elements-rightRow)
+  // - All breakpoints: top-right row next to the decorative text (#sound-toggle-slot)
   // Fallback: append to #app-frame so it fades with other content.
   const fadeContent = document.getElementById('app-frame');
   const topSlot = document.getElementById('sound-toggle-slot');
-  const soundRow = document.getElementById('top-elements-soundRow');
   const socialLinks = document.getElementById('social-links');
   const footerMeta = document.querySelector('.ui-meta-right'); // New slot
   const canMountInTopSlot = !!topSlot;
   const canMountInSocialLinks = socialLinks && (!fadeContent || fadeContent.contains(socialLinks));
-  const prefersMobileFullWidth =
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(max-width: 600px)').matches;
   
   const mountInto = (parent) => {
     if (!parent) return false;
@@ -89,11 +83,7 @@ export function createSoundToggle() {
     return true;
   };
 
-  if (prefersMobileFullWidth && soundRow) {
-    buttonElement.classList.add('sound-toggle--top');
-    buttonElement.classList.add('sound-toggle--topwide');
-    mountInto(soundRow);
-  } else if (canMountInTopSlot) {
+  if (canMountInTopSlot) {
     // Priority: Top Right Slot (Desktop/Tablet)
     buttonElement.classList.add('sound-toggle--top');
     mountInto(topSlot);
@@ -112,27 +102,6 @@ export function createSoundToggle() {
     document.body.appendChild(buttonElement);
   }
 
-  // If the viewport crosses the mobile breakpoint, re-mount to keep layout correct.
-  try {
-    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-      const mq = window.matchMedia('(max-width: 600px)');
-      const handler = () => {
-        const sr = document.getElementById('top-elements-soundRow');
-        const ts = document.getElementById('sound-toggle-slot');
-        const shouldBeWide = mq.matches && !!sr;
-        buttonElement.classList.toggle('sound-toggle--topwide', shouldBeWide);
-        if (shouldBeWide) {
-          mountInto(sr);
-        } else if (ts) {
-          mountInto(ts);
-        }
-      };
-      // Prefer modern API, fall back gracefully.
-      if (typeof mq.addEventListener === 'function') mq.addEventListener('change', handler);
-      else if (typeof mq.addListener === 'function') mq.addListener(handler);
-    }
-  } catch (e) {}
-  
   console.log('✓ Sound toggle created');
 
   // Sync initial UI with current sound state (if enabled elsewhere)
@@ -225,4 +194,3 @@ export function getSoundToggleElement() {
 export function setSoundToggleState(enabled) {
   updateButtonState(enabled);
 }
-

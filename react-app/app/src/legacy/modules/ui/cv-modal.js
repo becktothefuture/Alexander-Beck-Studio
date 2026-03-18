@@ -1,11 +1,13 @@
 /**
  * CV Modal Controller
- * Handles the password-gating UI for the CV download.
+ * Handles the invite-gating UI for the CV download.
  */
 
 import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';
+import { activateModalAccessibility } from './modal-accessibility.js';
 import { getText } from '../utils/text-loader.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
+import { consumeGateRequest, markGateAccess } from '../../../lib/access-gates.js';
 
 export function initCVModal() {
     const trigger = document.getElementById('cv-modal-trigger');
@@ -14,10 +16,11 @@ export function initCVModal() {
     const portfolioGate = document.getElementById('portfolio-modal'); // Get portfolio modal to check/close if open
     const contactGate = document.getElementById('contact-modal'); // Get contact modal to check/close if open
     const inputs = Array.from(document.querySelectorAll('.cv-digit'));
+    const inputsContainer = document.getElementById('cv-modal-inputs');
     const modalLabel = document.getElementById('cv-modal-label');
     
-    // Correct Code
-    const CODE = '1111';
+    // Invite codes add client-side friction only. They are not secure auth.
+    const INVITE_CODE = '1111';
     
     if (!trigger || !modal || inputs.length === 0) {
         console.warn('CV Gate: Missing required elements');
@@ -34,7 +37,7 @@ export function initCVModal() {
     const TITLE = getText('gates.cv.title', 'Bio/CV');
     const DESC = getText(
         'gates.cv.description',
-        "Because spam bots don't deserve nice things. This keeps my inbox a little more civilised. Need access? Get in touch for the code."
+        "This is a lightweight invite gate in the browser, not secure authentication. If I shared a code with you, enter it here. Otherwise get in touch and I'll send the CV directly."
     );
 
     // Set label text if element exists
@@ -46,14 +49,28 @@ export function initCVModal() {
                     <span>${BACK_TEXT}</span>
                 </button>
             </div>
-            <h2 class="modal-title">${TITLE}</h2>
-            <p class="modal-description">${DESC}</p>
+            <h2 id="cv-modal-title" class="modal-title">${TITLE}</h2>
+            <p id="cv-modal-description" class="modal-description">${DESC}</p>
         `;
     }
+
+    modal.setAttribute('aria-labelledby', 'cv-modal-title');
+    modal.setAttribute('aria-describedby', 'cv-modal-description');
+
+    if (inputsContainer) {
+        inputsContainer.setAttribute('role', 'group');
+        inputsContainer.setAttribute('aria-labelledby', 'cv-modal-title');
+        inputsContainer.setAttribute('aria-describedby', 'cv-modal-description');
+    }
+
+    inputs.forEach((input, index) => {
+        input.setAttribute('aria-label', `CV invite code digit ${index + 1} of ${inputs.length}`);
+    });
 
     // State
     let isOpen = false;
     let lastOpenTime = 0;
+    let deactivateModalA11y = null;
 
     // Helper to check if any modal is currently active
     const isAnyGateActive = () => {
@@ -109,6 +126,10 @@ export function initCVModal() {
             cvContainer.classList.add('fade-out-up');
         }
 
+        deactivateModalA11y = activateModalAccessibility(modal, {
+            initialFocus: () => inputs[0]
+        });
+
         // Defer modal DOM operations to next frame to avoid interrupting overlay's backdrop-filter transition
         requestAnimationFrame(() => {
             // Modal: mount modal inside overlay flex container
@@ -120,15 +141,14 @@ export function initCVModal() {
             // Force reflow
             void modal.offsetWidth; 
             modal.classList.add('active');
-            
-            // Focus first input
-            inputs[0].focus();
         });
     };
 
-    const closeGate = (instant = false) => {
+    const closeGate = (instant = false, options = {}) => {
         // Close must be responsive immediately (Back/background/Escape).
         isOpen = false;
+        deactivateModalA11y?.({ restoreFocus: options.restoreFocus !== false });
+        deactivateModalA11y = null;
         
         // Clear inputs
         inputs.forEach(input => input.value = '');
@@ -214,7 +234,7 @@ export function initCVModal() {
         const enteredCode = inputs.map(input => input.value).join('');
         
         if (enteredCode.length === 4) {
-            if (enteredCode === CODE) {
+            if (enteredCode === INVITE_CODE) {
                 // ═══════════════════════════════════════════════════════════════════
                 // GATE UNLOCK ANIMATION SEQUENCE (US-005)
                 // 1. Input pulse (200ms) - immediate tactile feedback
@@ -232,6 +252,8 @@ export function initCVModal() {
                     inputsContainer.classList.add('pulse-energy');
                 }
                 
+                markGateAccess('cv');
+
                 // Step 2: Modal dissolve animation (after pulse)
                 setTimeout(() => {
                     // Use WAAPI for smooth modal dissolve
@@ -271,13 +293,10 @@ export function initCVModal() {
     trigger.addEventListener('click', openGate);
 
     // Auto-open check (e.g. navimodald from portfolio page)
-    try {
-        if (sessionStorage.getItem('abs_open_cv_modal')) {
-            sessionStorage.removeItem('abs_open_cv_modal');
-            // Small delay to allow page init
-            setTimeout(() => openGate(), 300);
-        }
-    } catch (e) {}
+    if (consumeGateRequest('cv')) {
+        // Small delay to allow page init
+        setTimeout(() => openGate(), 300);
+    }
 
     // Close on Escape
     document.addEventListener('keydown', (e) => {

@@ -28,3 +28,7 @@ if [ -n "$STAGED_GENERATED" ]; then
 else
   echo "None"
 fi
+echo
+
+echo "6) HTML fragment validation"
+npm run validate:html-fragments

@@ -7,6 +7,7 @@ import { getGlobals } from '../core/state.js';
 import {
   applyFrameChromePalette,
   getShellConfig,
+  resolveSafariFramePalette,
   resolveBrowserFramePalette,
   resolveSiteFramePalette,
 } from './site-shell.js';
@@ -112,6 +113,12 @@ function applyBrowserWallColor(isDark, family) {
   applyWallColor(isDark ? (palette.dark || CHROMIUM_LOCKED_DARK_FALLBACK) : (palette.light || CHROMIUM_LOCKED_LIGHT_FALLBACK), isDark);
 }
 
+function applySafariWallColor(isDark) {
+  captureSiteFrameColorsIfNeeded();
+  const palette = resolveSafariFramePalette(getShellConfig(), isDark);
+  applyThemeAwareWallColor(palette.light, palette.dark, isDark);
+}
+
 /**
  * Decide whether to adapt the wall color to browser UI defaults.
  * This is the "clever approach": when we can't tint chrome, we tint the wall.
@@ -128,14 +135,17 @@ export function applyChromeHarmony(isDark) {
   }
 
   if (mode === 'browser') {
+    if (family.isSafari) {
+      applySafariWallColor(isDark);
+      return { mode, family, themeColorLikelyApplied };
+    }
     applyBrowserWallColor(isDark, family);
     return { mode, family, themeColorLikelyApplied };
   }
 
   // auto
-  // Preserve the Safari benchmark: we don't force wall adaptation there.
   if (family.isSafari) {
-    restoreSiteWallColor(isDark);
+    applySafariWallColor(isDark);
     return { mode, family, themeColorLikelyApplied };
   }
 

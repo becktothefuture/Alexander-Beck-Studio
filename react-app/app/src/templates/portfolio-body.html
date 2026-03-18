@@ -29,8 +29,6 @@
       </div>
     </div>
   </div>
-
-  </div>
   
   <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, etc.) -->
   <!-- SCENE EFFECTS: Positioned above wall (z:100), below modals (z:19998) -->
@@ -49,8 +47,8 @@
             <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition data-transition aria-label="Back to home">
               <i class="ti ti-arrow-left" aria-hidden="true"></i>
             </a>
-            <a id="cv-modal-trigger" class="portfolio-cv-link" href="#" aria-label="Bio/CV">Bio/CV</a>
-            <a id="contact-email" class="portfolio-cv-link" href="#" aria-label="Contact">Contact</a>
+            <button id="cv-modal-trigger" type="button" class="portfolio-cv-link" aria-label="Bio/CV" aria-haspopup="dialog">Bio/CV</button>
+            <button id="contact-email" type="button" class="portfolio-cv-link" aria-label="Contact" aria-haspopup="dialog">Contact</button>
           </div>
           <div class="ui-top-right">
             <blockquote class="decorative-script portfolio-blurb-wrapper">
@@ -104,19 +102,19 @@
   </div>
 
   <!-- Contact Modal - Same transition as CV/Portfolio -->
-  <div id="contact-modal" class="contact-modal hidden" aria-hidden="true">
+  <div id="contact-modal" class="contact-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title" aria-describedby="contact-modal-description">
     <div id="contact-modal-label" class="modal-label"></div>
     <div id="contact-modal-inputs" class="contact-modal-inputs"></div>
   </div>
 
   <!-- CV Modal - Same transition as Contact -->
-  <div id="cv-modal" class="cv-modal hidden" aria-hidden="true">
+  <div id="cv-modal" class="cv-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="cv-modal-title" aria-describedby="cv-modal-description">
     <div id="cv-modal-label" class="modal-label"></div>
-    <div class="cv-modal-inputs">
-      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="Digit 1" autocomplete="off" />
-      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="Digit 2" autocomplete="off" />
-      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="Digit 3" autocomplete="off" />
-      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="Digit 4" autocomplete="off" />
+    <div id="cv-modal-inputs" class="cv-modal-inputs" role="group" aria-labelledby="cv-modal-title" aria-describedby="cv-modal-description">
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="0" aria-label="CV invite code digit 1 of 4" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="1" aria-label="CV invite code digit 2 of 4" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="2" aria-label="CV invite code digit 3 of 4" autocomplete="off" />
+      <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="CV invite code digit 4 of 4" autocomplete="off" />
     </div>
   </div>
 
@@ -140,13 +138,13 @@
       return;
 
       const p = String(window.location.port || '');
-      if (p !== '8001' && p !== '8000') return;
+      if (p !== '8012' && p !== '8013') return;
       try {
         const flag = localStorage.getItem('abs_live_reload');
         if (flag === '0') return;
       } catch (e) {}
 
-      const ENDPOINT = 'http://localhost:8003/events';
+      const ENDPOINT = 'http://localhost:8013/events';
       let retryMs = 500;
       let retryCount = 0;
       const MAX_RETRIES = 3;

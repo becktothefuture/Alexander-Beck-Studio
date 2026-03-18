@@ -123,15 +123,16 @@ export function setupCustomCursor() {
 }
 
 /**
- * Update cursor size based on state
- * Size matches average ball size multiplied by cursorSize
+ * Update cursor size based on ball size.
+ * The visible simulation dot is fixed at 62.5% of a ball diameter.
  */
 export function updateCursorSize() {
   if (!cursorElement) return;
   
   const globals = getGlobals();
   const averageBallSize = (globals.R_MIN + globals.R_MAX) * 0.5;
-  const baseSize = averageBallSize * globals.cursorSize * 2;
+  const averageBallDiameter = averageBallSize * 2;
+  const baseSize = averageBallDiameter;
   
   cursorElement.style.width = `${baseSize}px`;
   cursorElement.style.height = `${baseSize}px`;
@@ -147,7 +148,7 @@ export function updateCursorSize() {
 }
 
 const ZERO_SCALE = 'translate(-50%, -50%) scale(0)';
-const DOT_SCALE = 'translate(-50%, -50%) scale(0.25)';
+const DOT_SCALE = 'translate(-50%, -50%) scale(0.625)';
 const FULL_SCALE = 'translate(-50%, -50%) scale(1)';
 
 /**

@@ -1,0 +1,20 @@
+{
+  "leftWidth": 32,
+  "leftPaddingTop": 10,
+  "leftPaddingBottom": 10,
+  "leftGap": 2.5,
+  "photoAspectRatio": 0.75,
+  "photoSize": 115,
+  "photoBorderRadius": 1,
+  "rightPaddingTop": 20,
+  "rightPaddingBottom": 20,
+  "rightPaddingX": 2.5,
+  "rightMaxWidth": 42,
+  "nameSize": 2.2,
+  "titleSize": 0.9,
+  "sectionTitleSize": 0.75,
+  "bodySize": 0.9,
+  "sectionGap": 3.5,
+  "paragraphGap": 1.5,
+  "mutedOpacity": 0.6
+}

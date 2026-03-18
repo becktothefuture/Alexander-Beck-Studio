@@ -1,10 +1,26 @@
+import {
+  deriveShellConfig,
+  loadDesignSystemConfig,
+  loadLegacyShellConfig,
+  shouldUseCanonicalDesignConfig,
+} from '../utils/design-config.js';
+import { getGlobals } from '../core/state.js';
+import { updateWallShadowCSS } from './wall-shadow.js';
+
 const DEFAULT_SHELL_CONFIG = {
   theme: {
     wallBaseLight: '#f1f3f4',
     wallBaseDark: '#202124',
+    siteFrameLight: '#202124',
+    siteFrameDark: '#202124',
     chromeHarmonyMode: 'adaptive',
-    lockedHeaderLight: '#f1f3f4',
-    lockedHeaderDark: '#3c3c3c'
+    safariFrameLight: '#202124',
+    safariFrameDark: '#202124',
+    frameBorderEdgeOpacity: 0.03,
+    frameBorderMidOpacity: 0.06,
+    frameVignetteEdgeBlur: '30px',
+    frameVignetteEdgeOpacity: 0.18,
+    frameVignetteAmbientOpacity: 0.12
   },
   layout: {
     frameInsetDesktop: '16px',
@@ -15,13 +31,59 @@ const DEFAULT_SHELL_CONFIG = {
     contentInsetMobile: '16px',
     frameRadiusDesktop: '32px',
     frameRadiusTablet: '28px',
-    frameRadiusMobile: '24px'
+    frameRadiusMobile: '24px',
+    decorativeScriptMaxWidth: '355px',
+    decorativeScriptPaddingX: '16px',
+    decorativeScriptPaddingY: '10px',
+    quoteMaxWidth: '200px',
+    quotePaddingX: '16px',
+    quotePaddingY: '12px',
+    edgeCaptionDistanceMin: '8px',
+    edgeCaptionDistanceMax: '48px'
+  },
+  surface: {
+    radius: '18px',
+    blur: '8px',
+    saturation: 1.12,
+    sceneHighlight: 0.3,
+    sceneDepth: 0.14,
+    sceneSoftness: 0.45,
+    edgeWidth: '0.5px',
+    fillOpacityLight: 0.018,
+    fillOpacityDark: 0.028,
+    sheenTopOpacityLight: 0.03,
+    sheenTopOpacityDark: 0.045,
+    sheenMidOpacityLight: 0.01,
+    sheenMidOpacityDark: 0.018,
+    edgeOpacityLight: 0.06,
+    edgeOpacityDark: 0.084,
+    innerShadowOpacityLight: 0.015,
+    innerShadowOpacityDark: 0.023,
+    shadowOpacityLight: 0.104,
+    shadowOpacityDark: 0.18,
+    glowOpacityLight: 0.104,
+    glowOpacityDark: 0.18,
+    shadowBlur: '18px',
+    shadowOffsetY: '6px',
+    lightEdgeInset: '0.5px',
+    lightEdgeBlur: '4px',
+    lightEdgeTopOpacityLight: 0.028,
+    lightEdgeTopOpacityDark: 0.035,
+    lightEdgeBottomOpacityLight: 0.007,
+    lightEdgeBottomOpacityDark: 0.012
   },
   motion: {
     shellRevealMs: 180,
     contentRevealMs: 420,
     simulationWarmupFrames: 90,
-    allowScaleEntrance: false
+    allowScaleEntrance: false,
+    modalOverlayOpacity: 0,
+    modalOverlayBlurPx: 5.5,
+    modalOverlayTransitionMs: 700,
+    modalOverlayTransitionOutMs: 500,
+    modalOverlayContentDelayMs: 200,
+    modalDepthScale: 0.943,
+    modalDepthTranslateY: 1
   },
   hero: {
     startupMode: 'pit',
@@ -40,6 +102,7 @@ function mergeShellConfig(base, override) {
   return {
     theme: { ...base.theme, ...(override?.theme || {}) },
     layout: { ...base.layout, ...(override?.layout || {}) },
+    surface: { ...base.surface, ...(override?.surface || {}) },
     motion: { ...base.motion, ...(override?.motion || {}) },
     hero: { ...base.hero, ...(override?.hero || {}) }
   };
@@ -49,19 +112,36 @@ export function getShellConfig() {
   return currentShellConfig;
 }
 
+export function patchShellTheme(themePatch = {}) {
+  currentShellConfig = mergeShellConfig(currentShellConfig, {
+    theme: themePatch,
+  });
+  return currentShellConfig;
+}
+
 export async function loadShellConfig() {
   if (shellConfigPromise) return shellConfigPromise;
 
-  shellConfigPromise = fetch('/config/shell-config.json', { cache: 'no-cache' })
-    .then((response) => response.ok ? response.json() : null)
-    .then((payload) => {
-      currentShellConfig = mergeShellConfig(DEFAULT_SHELL_CONFIG, payload || {});
+  shellConfigPromise = (async () => {
+    if (shouldUseCanonicalDesignConfig()) {
+      const designSystem = await loadDesignSystemConfig();
+      currentShellConfig = mergeShellConfig(DEFAULT_SHELL_CONFIG, deriveShellConfig(designSystem));
       return currentShellConfig;
-    })
-    .catch(() => {
-      currentShellConfig = DEFAULT_SHELL_CONFIG;
+    }
+
+    const legacyShell = await loadLegacyShellConfig();
+    if (legacyShell && typeof legacyShell === 'object') {
+      currentShellConfig = mergeShellConfig(DEFAULT_SHELL_CONFIG, legacyShell);
       return currentShellConfig;
-    });
+    }
+
+    const designSystem = await loadDesignSystemConfig();
+    currentShellConfig = mergeShellConfig(DEFAULT_SHELL_CONFIG, deriveShellConfig(designSystem));
+    return currentShellConfig;
+  })().catch(() => {
+    currentShellConfig = DEFAULT_SHELL_CONFIG;
+    return currentShellConfig;
+  });
 
   return shellConfigPromise;
 }
@@ -153,8 +233,26 @@ export function resolveSiteFramePalette(isDark = document.documentElement.classL
 }
 
 export function resolveBrowserFramePalette(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
-  const light = config?.theme?.lockedHeaderLight || DEFAULT_SHELL_CONFIG.theme.lockedHeaderLight;
-  const dark = config?.theme?.lockedHeaderDark || DEFAULT_SHELL_CONFIG.theme.lockedHeaderDark;
+  const family = detectBrowserFamily();
+  let light = DEFAULT_SHELL_CONFIG.theme.siteFrameLight;
+  let dark = DEFAULT_SHELL_CONFIG.theme.siteFrameDark;
+
+  if (family.isFirefox) {
+    light = '#f9f9fb';
+    dark = '#1c1b22';
+  } else if (family.isChromium) {
+    light = '#f1f3f4';
+    dark = '#202124';
+  }
+
+  const active = isDark ? dark : light;
+
+  return { light, dark, active };
+}
+
+export function resolveSafariFramePalette(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
+  const light = config?.theme?.safariFrameLight || config?.theme?.siteFrameLight || DEFAULT_SHELL_CONFIG.theme.safariFrameLight;
+  const dark = config?.theme?.safariFrameDark || config?.theme?.siteFrameDark || DEFAULT_SHELL_CONFIG.theme.safariFrameDark;
   const active = isDark ? dark : light;
 
   return { light, dark, active };
@@ -213,13 +311,124 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-frame-radius-desktop', layout.frameRadiusDesktop);
   root.style.setProperty('--abs-frame-radius-tablet', layout.frameRadiusTablet);
   root.style.setProperty('--abs-frame-radius-mobile', layout.frameRadiusMobile);
+  root.style.setProperty('--decorative-script-max-width', layout.decorativeScriptMaxWidth);
+  root.style.setProperty('--decorative-script-padding-left', layout.decorativeScriptPaddingX);
+  root.style.setProperty('--decorative-script-padding-vertical', layout.decorativeScriptPaddingY);
+  root.style.setProperty('--abs-quote-max-width', layout.quoteMaxWidth);
+  root.style.setProperty('--abs-quote-pad-x', layout.quotePaddingX);
+  root.style.setProperty('--abs-quote-pad-y', layout.quotePaddingY);
+  root.style.setProperty('--edge-caption-distance-min', layout.edgeCaptionDistanceMin);
+  root.style.setProperty('--edge-caption-distance-max', layout.edgeCaptionDistanceMax);
   root.style.setProperty('--abs-shell-reveal-ms', `${motion.shellRevealMs}ms`);
   root.style.setProperty('--abs-content-reveal-ms', `${motion.contentRevealMs}ms`);
+  root.style.setProperty('--modal-overlay-opacity', String(motion.modalOverlayOpacity));
+  root.style.setProperty('--modal-overlay-blur', `${motion.modalOverlayBlurPx}px`);
+  root.style.setProperty('--modal-overlay-transition-duration', `${motion.modalOverlayTransitionMs}ms`);
+  root.style.setProperty('--modal-overlay-transition-out-duration', `${motion.modalOverlayTransitionOutMs}ms`);
+  root.style.setProperty('--modal-content-delay', `${motion.modalOverlayContentDelayMs}ms`);
+  root.style.setProperty('--modal-depth-scale', String(motion.modalDepthScale));
+  root.style.setProperty('--modal-depth-translate-y', `${motion.modalDepthTranslateY}px`);
   root.style.setProperty('--abs-home-mobile-nav-bottom-offset', hero.mobileNavBottomOffset);
   root.style.setProperty('--abs-safe-top', 'env(safe-area-inset-top, 0px)');
   root.style.setProperty('--abs-safe-right', 'env(safe-area-inset-right, 0px)');
   root.style.setProperty('--abs-safe-bottom', 'env(safe-area-inset-bottom, 0px)');
   root.style.setProperty('--abs-safe-left', 'env(safe-area-inset-left, 0px)');
+}
+
+function applyShellSurfaceVars(config = currentShellConfig, isDark = document.documentElement.classList.contains('dark-mode')) {
+  const root = document.documentElement;
+  const theme = config?.theme || DEFAULT_SHELL_CONFIG.theme;
+  const surface = config?.surface || DEFAULT_SHELL_CONFIG.surface;
+  const sceneHighlight = Number.isFinite(Number(surface.sceneHighlight))
+    ? Number(surface.sceneHighlight)
+    : DEFAULT_SHELL_CONFIG.surface.sceneHighlight;
+  const sceneDepth = Number.isFinite(Number(surface.sceneDepth))
+    ? Number(surface.sceneDepth)
+    : DEFAULT_SHELL_CONFIG.surface.sceneDepth;
+  const sceneSoftness = Number.isFinite(Number(surface.sceneSoftness))
+    ? Number(surface.sceneSoftness)
+    : DEFAULT_SHELL_CONFIG.surface.sceneSoftness;
+
+  const fillOpacity = isDark ? surface.fillOpacityDark : surface.fillOpacityLight;
+  const sheenTopOpacity = isDark ? surface.sheenTopOpacityDark : surface.sheenTopOpacityLight;
+  const sheenMidOpacity = isDark ? surface.sheenMidOpacityDark : surface.sheenMidOpacityLight;
+  const edgeOpacity = isDark ? surface.edgeOpacityDark : surface.edgeOpacityLight;
+  const innerShadowOpacity = isDark ? surface.innerShadowOpacityDark : surface.innerShadowOpacityLight;
+  const shadowOpacity = isDark ? surface.shadowOpacityDark : surface.shadowOpacityLight;
+  const glowOpacity = isDark
+    ? (surface.glowOpacityDark ?? surface.shadowOpacityDark)
+    : (surface.glowOpacityLight ?? surface.shadowOpacityLight);
+  const topEdgeOpacity = isDark ? surface.lightEdgeTopOpacityDark : surface.lightEdgeTopOpacityLight;
+  const bottomEdgeOpacity = isDark ? surface.lightEdgeBottomOpacityDark : surface.lightEdgeBottomOpacityLight;
+  const edgeWidth = surface.edgeWidth || surface.lightEdgeInset || DEFAULT_SHELL_CONFIG.surface.edgeWidth;
+
+  root.style.setProperty('--frame-color-site-light', theme.siteFrameLight || getDefaultFrameColor());
+  root.style.setProperty('--frame-color-site-dark', theme.siteFrameDark || theme.siteFrameLight || getDefaultFrameColor());
+  root.style.setProperty('--frame-border-gradient-edge-opacity', String(theme.frameBorderEdgeOpacity));
+  root.style.setProperty('--frame-border-gradient-mid-opacity', String(theme.frameBorderMidOpacity));
+  root.style.setProperty('--frame-vignette-edge-blur', theme.frameVignetteEdgeBlur);
+  root.style.setProperty('--frame-vignette-edge-opacity', String(theme.frameVignetteEdgeOpacity));
+  root.style.setProperty('--frame-vignette-ambient-opacity', String(theme.frameVignetteAmbientOpacity));
+
+  root.style.setProperty('--abs-surface-radius', surface.radius);
+  root.style.setProperty('--abs-surface-blur', surface.blur);
+  root.style.setProperty('--abs-surface-saturation', String(surface.saturation));
+  root.style.setProperty('--abs-surface-edge-width', edgeWidth);
+  root.style.setProperty('--abs-surface-fill-opacity', String(fillOpacity));
+  root.style.setProperty('--abs-surface-sheen-top-opacity', String(sheenTopOpacity));
+  root.style.setProperty('--abs-surface-sheen-mid-opacity', String(sheenMidOpacity));
+  root.style.setProperty('--abs-surface-edge-opacity', String(edgeOpacity));
+  root.style.setProperty('--abs-surface-inner-shadow-opacity', String(innerShadowOpacity));
+  root.style.setProperty('--abs-surface-shadow-opacity', String(shadowOpacity));
+  root.style.setProperty('--abs-surface-glow-opacity', String(glowOpacity));
+  root.style.setProperty('--abs-surface-shadow-blur', surface.shadowBlur);
+  root.style.setProperty('--abs-surface-shadow-offset-y', surface.shadowOffsetY);
+  root.style.setProperty('--abs-surface-light-edge-inset', surface.lightEdgeInset);
+  root.style.setProperty('--abs-surface-light-edge-blur', surface.lightEdgeBlur);
+  root.style.setProperty('--abs-surface-light-edge-top-opacity', String(topEdgeOpacity));
+  root.style.setProperty('--abs-surface-light-edge-bottom-opacity', String(bottomEdgeOpacity));
+  root.style.setProperty('--hover-edge-width', edgeWidth);
+  root.style.setProperty('--hover-edge-top-opacity', String(topEdgeOpacity));
+  root.style.setProperty('--hover-edge-bottom-opacity', String(Math.max(bottomEdgeOpacity, edgeOpacity * 0.28)));
+
+  root.style.setProperty('--quote-glass-blur', surface.blur);
+  root.style.setProperty('--quote-glass-saturation', String(surface.saturation));
+  root.style.setProperty('--quote-glass-fill-opacity', String(fillOpacity));
+  root.style.setProperty('--quote-glass-sheen-top-opacity', String(sheenTopOpacity));
+  root.style.setProperty('--quote-glass-sheen-mid-opacity', String(sheenMidOpacity));
+  root.style.setProperty('--quote-glass-edge-opacity', String(edgeOpacity));
+  root.style.setProperty('--quote-glass-inner-shadow-opacity', String(innerShadowOpacity));
+  root.style.setProperty('--quote-glass-shadow-opacity', String(glowOpacity));
+  root.style.setProperty('--quote-glass-shadow-blur', surface.shadowBlur);
+  root.style.setProperty('--quote-glass-shadow-offset-y', surface.shadowOffsetY);
+  root.style.setProperty('--quote-glass-bottom-edge-opacity', String(Math.max(bottomEdgeOpacity, edgeOpacity * 0.28)));
+
+  root.style.setProperty('--abs-scene-highlight', String(sceneHighlight));
+  root.style.setProperty('--abs-scene-depth', String(sceneDepth));
+  root.style.setProperty('--abs-scene-softness', String(sceneSoftness));
+  root.style.setProperty('--inner-wall-top-light-opacity', String(isDark
+    ? Math.min(0.82, Number((sceneHighlight * 1.33).toFixed(3)))
+    : sceneHighlight));
+  root.style.setProperty('--inner-wall-top-light-opacity-dark', String(Math.min(0.82, Number((sceneHighlight * 1.33).toFixed(3)))));
+  root.style.setProperty('--inner-wall-outward-shadow-opacity', String(isDark
+    ? Math.min(0.65, Number((sceneDepth * 2.3).toFixed(3)))
+    : Math.min(0.45, Number((sceneDepth * 1.45).toFixed(3)))));
+  root.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(Math.min(0.65, Number((sceneDepth * 2.3).toFixed(3)))));
+  root.style.setProperty('--inner-wall-outward-shadow-blur', `${Math.round(3 + (sceneSoftness * 20))}px`);
+  root.style.setProperty('--inner-wall-outward-shadow-spread', `${Math.round(sceneSoftness * 6)}px`);
+
+  try {
+    const globals = getGlobals();
+    globals.wallShadowAmbientBlur = Math.round(14 + (sceneSoftness * 22));
+    globals.wallShadowAmbientOpacityLight = Number(Math.min(0.16, sceneDepth * 0.28).toFixed(3));
+    globals.wallShadowAmbientOpacityDark = Number(Math.min(0.32, sceneDepth * 0.86).toFixed(3));
+    globals.wallInnerShadowEnabled = sceneDepth > 0;
+    globals.wallInnerShadowOpacityLightV2 = Number(Math.min(1, sceneDepth * 4.8).toFixed(3));
+    globals.wallInnerShadowOpacityDarkV2 = Number(Math.min(1, sceneDepth * 6.2).toFixed(3));
+    globals.wallInnerShadowBlurVh = Math.round(6 + (sceneSoftness * 20));
+    globals.wallInnerShadowSpreadVh = Math.round(4 + (sceneSoftness * 24));
+    updateWallShadowCSS(globals);
+  } catch (e) {}
 }
 
 export function syncThemeColorMeta() {
@@ -261,15 +470,29 @@ export function syncShellToDocument(options = {}) {
   const config = options.config || currentShellConfig;
   const isDark = options.isDark ?? document.documentElement.classList.contains('dark-mode');
   const innerPalette = resolveShellPalette(config, isDark);
-  const siteFramePalette = resolveSiteFramePalette(isDark);
 
   applyShellLayoutVars(config);
   applyShellPalette(innerPalette);
+  applyShellSurfaceVars(config, isDark);
+  const siteFramePalette = resolveSiteFramePalette(isDark);
   applySiteFramePalette(siteFramePalette);
   applyFrameChromePalette(siteFramePalette);
   syncThemeColorMeta();
 
   return innerPalette;
+}
+
+export function getModalChromeConfig(config = currentShellConfig) {
+  const motion = config?.motion || DEFAULT_SHELL_CONFIG.motion;
+  return {
+    modalOverlayOpacity: motion.modalOverlayOpacity,
+    modalOverlayBlurPx: motion.modalOverlayBlurPx,
+    modalOverlayTransitionMs: motion.modalOverlayTransitionMs,
+    modalOverlayTransitionOutMs: motion.modalOverlayTransitionOutMs,
+    modalOverlayContentDelayMs: motion.modalOverlayContentDelayMs,
+    modalDepthScale: motion.modalDepthScale,
+    modalDepthTranslateY: motion.modalDepthTranslateY,
+  };
 }
 
 export function getSimulationWarmupMs(config = currentShellConfig) {

@@ -9,9 +9,10 @@ import { getShellConfig } from '../visual/site-shell.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
-const LOGO_VIEWBOX_W = 919;
-const LOGO_VIEWBOX_H = 66;
-const LOGO_ASPECT = LOGO_VIEWBOX_W / LOGO_VIEWBOX_H; // 13.924242...
+const LOGO_VIEWBOX_W = 511;
+const LOGO_VIEWBOX_H = 101;
+const LOGO_ASPECT = LOGO_VIEWBOX_W / LOGO_VIEWBOX_H;
+const LOGO_SECONDARY_OPACITY_DEFAULT = 0.66;
 
 // Theme colors (from tokens.css)
 const LOGO_COLOR_LIGHT = '#161616';
@@ -26,7 +27,7 @@ const LOGO_STYLE_CACHE_MS = 250;
 // ═══════════════════════════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════════════════════════
-let offscreenByColor = new Map(); // key: normalized color string -> offscreen canvas
+let offscreenByRenderKey = new Map(); // key: normalized color + secondary opacity -> offscreen canvas
 let svgPathData = null;     // Cached SVG path data (extracted from DOM)
 let currentSize = { width: 0, height: 0, cssWidth: 0, cssHeight: 0 };
 let lastDpr = 0;
@@ -219,6 +220,15 @@ function bindRuntimeCacheInvalidation() {
   document.addEventListener('abs:scene-impact-updated', invalidateRuntimeStyleCache);
 }
 
+function resolveSecondaryLogoOpacity() {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue('--brand-logo-secondary-opacity')
+    .trim();
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed)) return LOGO_SECONDARY_OPACITY_DEFAULT;
+  return Math.max(0, Math.min(1, parsed));
+}
+
 /**
  * Keep entrance progress tied to wall-clock time so it can complete even when
  * physics updates are sparse (or temporarily skipped by mode-level optimizations).
@@ -323,7 +333,10 @@ function extractSvgPaths() {
   paths.forEach(path => {
     const d = path.getAttribute('d');
     if (d) {
-      pathData.push(d);
+      pathData.push({
+        d,
+        isSecondary: path.classList.contains('brand-logo-path--secondary')
+      });
     }
   });
   
@@ -334,7 +347,7 @@ function extractSvgPaths() {
  * Render SVG to an offscreen canvas with specified color
  * Uses 2x supersampling for crisp edges on all displays
  */
-function renderToOffscreen(pathData, width, height, color) {
+function renderToOffscreen(pathData, width, height, color, secondaryOpacity) {
   if (!pathData || pathData.length === 0 || width <= 0 || height <= 0) {
     return null;
   }
@@ -363,10 +376,12 @@ function renderToOffscreen(pathData, width, height, color) {
   ctx.scale(scaleX, scaleY);
   
   // Draw all paths with high-quality fill
-  pathData.forEach(d => {
-    const path = new Path2D(d);
+  pathData.forEach(entry => {
+    const path = new Path2D(entry.d);
+    ctx.globalAlpha = entry.isSecondary ? secondaryOpacity : 1;
     ctx.fill(path);
   });
+  ctx.globalAlpha = 1;
   
   // Store supersample factor for drawing
   offscreen._supersample = SUPERSAMPLE;
@@ -411,7 +426,7 @@ export function updateLogoSize(canvasWidth, canvasHeight, dpr) {
   const sizeChanged = newSize.width !== currentSize.width || newSize.height !== currentSize.height;
   const dprChanged = dpr !== lastDpr;
   
-  if (!sizeChanged && !dprChanged && offscreenByColor.size > 0) {
+  if (!sizeChanged && !dprChanged && offscreenByRenderKey.size > 0) {
     return; // No changes needed
   }
   
@@ -420,7 +435,7 @@ export function updateLogoSize(canvasWidth, canvasHeight, dpr) {
   lastDpr = dpr;
   
   // Size changed -> invalidate color cache (will re-render lazily in drawLogo)
-  offscreenByColor.clear();
+  offscreenByRenderKey.clear();
   invalidateRuntimeStyleCache();
 }
 
@@ -436,11 +451,13 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
   const nowMs = performance.now();
   
   const logoColor = resolveAccessibleLogoColor(nowMs);
-  let offscreen = offscreenByColor.get(logoColor);
+  const secondaryOpacity = resolveSecondaryLogoOpacity();
+  const renderKey = `${logoColor}|${secondaryOpacity.toFixed(3)}`;
+  let offscreen = offscreenByRenderKey.get(renderKey);
   if (!offscreen) {
-    offscreen = renderToOffscreen(svgPathData, currentSize.width, currentSize.height, logoColor);
+    offscreen = renderToOffscreen(svgPathData, currentSize.width, currentSize.height, logoColor, secondaryOpacity);
     if (offscreen) {
-      offscreenByColor.set(logoColor, offscreen);
+      offscreenByRenderKey.set(renderKey, offscreen);
     }
   }
   
@@ -585,6 +602,6 @@ export function isCanvasLogoReady() {
 export function refreshLogoRender() {
   if (!isInitialized || !svgPathData) return;
 
-  offscreenByColor.clear();
+  offscreenByRenderKey.clear();
   invalidateRuntimeStyleCache();
 }

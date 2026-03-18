@@ -33,6 +33,12 @@ import {
   bindSoundControls,
   syncSoundControlsToConfig
 } from '../audio/sound-control-registry.js';
+import {
+  generateStudioSurfaceControlsHTML,
+  generateStudioShellControlsHTML,
+  bindStudioSurfaceControls,
+} from './studio-surface-controls.js';
+import { navigateToGatePage, navigateToHome } from '../../../lib/access-gates.js';
 import { resize } from '../rendering/renderer.js';
 
 let dockElement = null;
@@ -131,9 +137,15 @@ let elementStartY = 0;
 // ════════════════════════════════════════════════════════════════════════════════
 
 function getMasterPanelContent({
+  page = 'home',
   pageLabel = 'Home',
+  pageHTML = '',
+  masterGroupIds = null,
+  pageSectionTitle = '',
+  pageSectionIcon = '',
   includePageSaveButton = true,
   pageSaveButtonId = 'saveRuntimeConfigBtn',
+  pageSaveButtonLabel = '💾 Save Design JSON',
   footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes',
 } = {}) {
   const g = getGlobals();
@@ -199,30 +211,67 @@ function getMasterPanelContent({
     </details>
   `;
 
+  const pageSectionsHTML = String(pageHTML || '').trim();
+  const pageGroupHTML = pageSectionsHTML
+    ? `
+      <details class="panel-master-group panel-master-group--page" data-group-id="page" open>
+        <summary class="panel-master-group-header">
+          ${pageSectionIcon ? `<span class="panel-master-group-icon">${pageSectionIcon}</span>` : ''}
+          <span class="panel-master-group-title">${pageSectionTitle || pageLabel}</span>
+        </summary>
+        <div class="panel-master-group-content">
+          ${pageSectionsHTML}
+        </div>
+      </details>
+    `
+    : '';
+
+  const devViewHTML = isDev()
+    ? `
+      <div class="panel-section">
+        <details class="panel-section-accordion" id="panelViewSection">
+          <summary class="panel-section-header">
+            <span class="section-icon">↗</span>
+            <span class="section-label">Views</span>
+          </summary>
+          <div class="panel-section-content panel-view-links">
+            <button type="button" class="panel-view-btn" data-panel-nav="home" ${page === 'home' ? 'disabled aria-current="page"' : ''}>Home</button>
+            <button type="button" class="panel-view-btn" data-panel-nav="portfolio" ${page === 'portfolio' ? 'disabled aria-current="page"' : ''}>Portfolio</button>
+            <button type="button" class="panel-view-btn" data-panel-nav="cv" ${page === 'cv' ? 'disabled aria-current="page"' : ''}>CV</button>
+            <button type="button" class="panel-view-btn" data-panel-nav="contact">Contact</button>
+          </div>
+        </details>
+      </div>
+    `
+    : '';
+
   const actionsHTML = `
-    ${includePageSaveButton ? `<div class="panel-section panel-section--action"><button id="${pageSaveButtonId}" class="primary">💾 Save ${pageLabel} Config</button></div>` : ''}
+    ${devViewHTML}
+    ${includePageSaveButton ? `<div class="panel-section panel-section--action"><button id="${pageSaveButtonId}" class="primary">${pageSaveButtonLabel}</button></div>` : ''}
     <div class="panel-footer">${footerHint}</div>
   `;
 
   // Build all master groups with proper content injection
-  // - Theme + Palette → Appearance (prepend/append)
-  // - Layout → Frame (append)
-  // - Sound → Interaction (append)
-  // - Mode switcher + mode-specific sections → Simulation (prepend)
+  // - Theme + Palette + shared surface controls → Studio
+  // - Layout → Shell
+  // - Sound → Audio
+  // - Mode switcher + mode-specific sections → Simulation
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      appearance: generateThemeSectionHTML({ open: false }),
+      studio: generateThemeSectionHTML({ open: false }),
       simulation: generateModeSwitcherHTML() + generateModeSpecificSectionsHTML(),
     },
     append: {
-      appearance: generateColorTemplateSectionHTML({ open: false }),
-      frame: layoutControlsHTML,
-      interaction: soundControlsHTML,
-    }
+      studio: generateStudioSurfaceControlsHTML() + generateColorTemplateSectionHTML({ open: false }),
+      shell: layoutControlsHTML + generateStudioShellControlsHTML(),
+      audio: soundControlsHTML,
+    },
+    groupIds: masterGroupIds,
   });
 
   return `
     ${masterGroupsHTML}
+    ${pageGroupHTML}
     ${actionsHTML}
   `;
 }
@@ -272,6 +321,7 @@ export function createPanelDock(options = {}) {
   // Default to true for home page (save config button), false must be explicit
   const includePageSaveButton = options.includePageSaveButton !== false;
   const pageSaveButtonId = options.pageSaveButtonId || 'saveRuntimeConfigBtn';
+  const pageSaveButtonLabel = options.pageSaveButtonLabel || '💾 Save Design JSON';
   const footerHint = options.footerHint || (page === 'portfolio'
     ? '<kbd>/</kbd> panel'
     : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei');
@@ -279,6 +329,12 @@ export function createPanelDock(options = {}) {
   const modeLabel = options.modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
   const bindShortcut = !!options.bindShortcut;
   const setupPageControls = typeof options.setupPageControls === 'function' ? options.setupPageControls : null;
+  const pageHTML = options.pageHTML || '';
+  const masterGroupIds = Array.isArray(options.masterGroupIds) && options.masterGroupIds.length > 0
+    ? options.masterGroupIds
+    : (page === 'home' ? null : ['studio', 'shell']);
+  const pageSectionTitle = options.pageSectionTitle || pageLabel;
+  const pageSectionIcon = options.pageSectionIcon || (page === 'portfolio' ? '🗂️' : '📄');
 
   // Remove any legacy placeholders
   try {
@@ -311,8 +367,13 @@ export function createPanelDock(options = {}) {
     panelTitle,
     modeLabel,
     pageLabel,
+    pageHTML,
+    masterGroupIds,
+    pageSectionTitle,
+    pageSectionIcon,
     includePageSaveButton,
     pageSaveButtonId,
+    pageSaveButtonLabel,
     footerHint,
     setupPageControls,
   });
@@ -360,8 +421,13 @@ function createMasterPanel({
   panelTitle,
   modeLabel,
   pageLabel,
+  pageHTML,
+  masterGroupIds,
+  pageSectionTitle,
+  pageSectionIcon,
   includePageSaveButton,
   pageSaveButtonId,
+  pageSaveButtonLabel,
   footerHint,
   setupPageControls,
 } = {}) {
@@ -385,9 +451,15 @@ function createMasterPanel({
   const content = document.createElement('div');
   content.className = 'panel-content';
   content.innerHTML = getMasterPanelContent({
+    page,
     pageLabel,
+    pageHTML,
+    masterGroupIds,
+    pageSectionTitle,
+    pageSectionIcon,
     includePageSaveButton,
     pageSaveButtonId,
+    pageSaveButtonLabel,
     footerHint,
   });
   
@@ -437,14 +509,40 @@ function createMasterPanel({
     }
 
     setupBuildControls();
+    bindStudioSurfaceControls();
     setupSoundControls(panel);
     setupLayoutControls(panel);
+    setupDevViewControls(panel);
 
     // Page-specific bindings (portfolio carousel, etc).
     try { setupPageControls?.(panel); } catch (e) {}
   }, 0);
   
   return panel;
+}
+
+function setupDevViewControls(panel) {
+  if (!isDev() || !panel) return;
+
+  panel.querySelectorAll('[data-panel-nav]').forEach((button) => {
+    if (button.dataset.panelNavBound === 'true') return;
+    button.dataset.panelNavBound = 'true';
+
+    button.addEventListener('click', () => {
+      const target = button.dataset.panelNav;
+      if (target === 'portfolio' || target === 'cv') {
+        navigateToGatePage(target, { allowDevAccess: true });
+        return;
+      }
+
+      if (target === 'contact') {
+        navigateToHome({ openContact: true });
+        return;
+      }
+
+      navigateToHome();
+    });
+  });
 }
 
 function setupResizePersistence() {

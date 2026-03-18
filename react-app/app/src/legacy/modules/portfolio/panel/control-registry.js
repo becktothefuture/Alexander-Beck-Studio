@@ -3,15 +3,10 @@
 
 const CONTROL_SECTIONS = {
   layout: {
-    title: 'Stage',
+    title: 'Stage & Layout',
     icon: '📐',
     defaultOpen: true,
     controls: [
-      { id: 'topLogoWidthVw', label: 'Top Logo Size', type: 'range', min: 15, max: 45, step: 0.25, unit: 'vw', default: 35,
-        onChange: (_config, val) => {
-          document.documentElement.style.setProperty('--top-logo-width-vw', String(val));
-        }
-      },
       { id: 'portfolioLogoBlur', label: 'Logo Blur', cssVar: '--portfolio-logo-blur', type: 'range', min: 0, max: 30, step: 0.5, unit: 'px', default: 0,
         hint: 'Blur amount for the background logo (0 = sharp)'
       },
@@ -29,7 +24,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   caption: {
-    title: 'Page Caption',
+    title: 'Caption',
     icon: '💬',
     defaultOpen: false,
     controls: [
@@ -54,9 +49,9 @@ const CONTROL_SECTIONS = {
     ],
   },
   appearance: {
-    title: 'Depth & Atmosphere',
+    title: 'Surface & Depth',
     icon: '🎨',
-    defaultOpen: false,
+    defaultOpen: true,
     controls: [
       // These are consumed by `PortfolioApp.updateWheelConfig()`, so they must trigger a metrics refresh.
       { id: 'wheelScaleMin', label: 'Scale Min', cssVar: '--wheel-scale-min', type: 'range', min: 0.1, max: 2, step: 0.01, unit: '', default: 0.82, refresh: true },
@@ -94,7 +89,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   wheelMotion: {
-    title: 'Wheel Motion',
+    title: 'Carousel Motion',
     icon: '🌀',
     defaultOpen: false,
     controls: [
@@ -106,7 +101,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   physics: {
-    title: 'Dynamics',
+    title: 'Bounce',
     icon: '🧲',
     defaultOpen: false,
     controls: [
@@ -116,7 +111,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   detail: {
-    title: 'Detail Layout',
+    title: 'Project Detail',
     icon: '🔎',
     defaultOpen: false,
     controls: [
@@ -127,7 +122,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   closeButton: {
-    title: 'Detail Close',
+    title: 'Advanced Close',
     icon: '✕',
     defaultOpen: false,
     controls: [
@@ -139,7 +134,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   transition: {
-    title: 'Motion',
+    title: 'Project Motion',
     icon: '✨',
     defaultOpen: false,
     controls: [
@@ -185,7 +180,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   navigation: {
-    title: 'Scroll',
+    title: 'Scroll & Input',
     icon: '🧭',
     defaultOpen: false,
     controls: [
@@ -196,7 +191,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   mouseTilt: {
-    title: 'Tilt',
+    title: 'Mouse Tilt',
     icon: '🖱️',
     defaultOpen: false,
     controls: [
@@ -249,7 +244,7 @@ const CONTROL_SECTIONS = {
       { id: 'mouseTiltRight', label: 'Tilt Right', cssVar: '--mouse-tilt-right', type: 'range', min: 0, max: 20, step: 0.5, unit: 'deg', default: 6, refresh: true },
       { id: 'mouseTiltUp', label: 'Tilt Up', cssVar: '--mouse-tilt-up', type: 'range', min: 0, max: 20, step: 0.5, unit: 'deg', default: 5, refresh: true },
       { id: 'mouseTiltDown', label: 'Tilt Down', cssVar: '--mouse-tilt-down', type: 'range', min: 0, max: 20, step: 0.5, unit: 'deg', default: 5, refresh: true },
-      { id: 'mouseTiltPivotZ', label: 'NEW — Tilt Pivot Z', cssVar: '--mouse-tilt-pivot-z', type: 'range', min: -30, max: 30, step: 0.5, unit: 'vmin', default: 0 },
+      { id: 'mouseTiltPivotZ', label: 'Tilt Pivot Z', cssVar: '--mouse-tilt-pivot-z', type: 'range', min: -30, max: 30, step: 0.5, unit: 'vmin', default: 0 },
     ],
   },
   sound: {
@@ -308,6 +303,137 @@ const CONTROL_SECTIONS = {
   },
 };
 
+const DISPLAY_SECTIONS = [
+  {
+    key: 'layout',
+    title: 'Stage & Layout',
+    icon: '📐',
+    defaultOpen: true,
+    sourceKeys: ['layout'],
+  },
+  {
+    key: 'surface',
+    title: 'Cards & Surface',
+    icon: '🗂️',
+    defaultOpen: true,
+    sourceKeys: ['card', 'appearance'],
+  },
+  {
+    key: 'depth',
+    title: 'Background Depth',
+    icon: '🌀',
+    defaultOpen: false,
+    sourceKeys: ['cylinder'],
+  },
+  {
+    key: 'motion',
+    title: 'Motion & Bounce',
+    icon: '🪩',
+    defaultOpen: false,
+    sourceKeys: ['wheelMotion', 'physics'],
+  },
+  {
+    key: 'detail',
+    title: 'Project Detail',
+    icon: '🔎',
+    defaultOpen: false,
+    sourceKeys: ['detail', 'transition'],
+  },
+];
+
+const ACTIVE_CONTROL_SECTION_KEYS = [
+  'layout',
+  'card',
+  'appearance',
+  'cylinder',
+  'wheelMotion',
+  'physics',
+  'detail',
+  'transition',
+];
+
+const DEFAULT_HIDDEN_CONTROL_IDS = new Set([
+  // Shared shell controls now own caption position.
+  'edgeCaptionDistanceMin',
+  'edgeCaptionDistanceMax',
+
+  // Universal surface controls own these finish-level dials.
+  'borderWidth',
+  'borderColor',
+  'slideGradientIntensityLight',
+  'slideGradientIntensityDark',
+
+  // Keep the page panel focused on composition, not micro offsets.
+  'metaPadding',
+  'wheelPageScale',
+  'mouseTiltPivotZ',
+  'cylinderRadiusRings',
+  'cylinderRadiusMin',
+  'cylinderRadiusStep',
+  'cylinderVerticalSpacing',
+
+  // Keep the primary layout/motion levers, hide low-value micro positioning.
+  'closeButtonTop',
+  'closeButtonLeft',
+  'closeButtonWidth',
+  'closeButtonHeight',
+  'closeButtonIconSize',
+  'detailFadeMs',
+  'detailFadeDelay',
+  'detailContentPopDuration',
+  'detailContentPopOvershoot',
+  'detailContentPopStartScale',
+  'detailContentPopDelayHero',
+  'detailContentPopDelayBody',
+  'detailContentPopEase',
+  'wheelLineHeight',
+  'slideSpeed',
+  'perspective',
+]);
+
+const RETIRED_CONTROL_IDS = new Set([
+  'topLogoWidthVw',
+  'edgeCaptionDistanceMin',
+  'edgeCaptionDistanceMax',
+  'borderWidth',
+  'borderColor',
+  'slideGradientIntensityLight',
+  'slideGradientIntensityDark',
+  'metaPadding',
+  'wheelPageScale',
+  'mouseTiltPivotZ',
+  'cylinderRadiusRings',
+  'cylinderRadiusMin',
+  'cylinderRadiusStep',
+  'cylinderVerticalSpacing',
+  'closeButtonTop',
+  'closeButtonLeft',
+  'closeButtonWidth',
+  'closeButtonHeight',
+  'closeButtonIconSize',
+  'detailFadeMs',
+  'detailFadeDelay',
+  'detailContentPopDuration',
+  'detailContentPopOvershoot',
+  'detailContentPopStartScale',
+  'detailContentPopDelayHero',
+  'detailContentPopDelayBody',
+  'detailContentPopEase',
+  'wheelLineHeight',
+  'slideSpeed',
+  'perspective',
+  'mouseTiltPreset',
+  'mouseTiltEnabled',
+  'mouseTiltInvertX',
+  'mouseTiltInvertY',
+  'mouseTiltSensitivity',
+  'mouseTiltEase',
+  'mouseTiltLeft',
+  'mouseTiltRight',
+  'mouseTiltUp',
+  'mouseTiltDown',
+]);
+
 function getControlInputId(control) {
   return `${control.id}Slider`;
 }
@@ -322,12 +448,25 @@ function getControlPickerId(control) {
 
 export function getAllControls() {
   const all = [];
-  for (const section of Object.values(CONTROL_SECTIONS)) {
+  for (const key of ACTIVE_CONTROL_SECTION_KEYS) {
+    const section = CONTROL_SECTIONS[key];
+    if (!section) continue;
     for (const control of section.controls) {
+      if (RETIRED_CONTROL_IDS.has(control.id)) continue;
       all.push({ ...control, section: section.title });
     }
   }
   return all;
+}
+
+function getDisplaySections() {
+  return DISPLAY_SECTIONS.map((section) => ({
+    key: section.key,
+    title: section.title,
+    icon: section.icon,
+    defaultOpen: section.defaultOpen,
+    controls: section.sourceKeys.flatMap((key) => CONTROL_SECTIONS[key]?.controls || []),
+  }));
 }
 
 export function getConfigValue(config, path) {
@@ -473,7 +612,13 @@ function generateControlHTML(control, config, computedRoot) {
 }
 
 function generateSectionHTML(section, config, computedRoot) {
-  const controlsHtml = section.controls
+  const visibleControls = section.controls
+    .filter((control) => !DEFAULT_HIDDEN_CONTROL_IDS.has(control.id))
+    .filter((control) => !RETIRED_CONTROL_IDS.has(control.id));
+
+  if (visibleControls.length === 0) return '';
+
+  const controlsHtml = visibleControls
     .map((control) => generateControlHTML(control, config, computedRoot))
     .join('');
 
@@ -510,7 +655,7 @@ export function generatePanelSectionsHTML(config, computedRoot = null) {
     : null);
 
   let html = '';
-  for (const section of Object.values(CONTROL_SECTIONS)) {
+  for (const section of getDisplaySections()) {
     html += generateSectionHTML(section, config, rootStyle);
   }
   return html;
@@ -672,26 +817,6 @@ export function bindRegisteredControls(config, options = {}) {
         onRuntimeChange(config.runtime);
       }
 
-      // Sync to source config file (dev mode only)
-      if (control.configKey) {
-        // Use the actual value that was set in config (not raw input)
-        let syncValue;
-        if (control.type === 'select') {
-          syncValue = nextValue;
-        } else if (control.type === 'checkbox') {
-          syncValue = Boolean(nextValue);
-        } else {
-          // For range inputs, use the numeric value that was set
-          syncValue = parseNumeric(nextValue, control.default);
-        }
-        
-        console.log('[portfolio-control-registry] Triggering sync:', { configKey: control.configKey, value: syncValue, type: control.type });
-        import('../../utils/config-sync.js').then(({ syncConfigToFile }) => {
-          syncConfigToFile('portfolio', control.configKey, syncValue);
-        }).catch((e) => {
-          console.error('[portfolio-control-registry] Failed to import config-sync:', e);
-        });
-      }
     });
   }
 }

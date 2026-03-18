@@ -1,12 +1,14 @@
 /**
  * Portfolio Modal Controller
- * Handles the password-gating UI for the portfolio section.
+ * Handles the invite-gating UI for the portfolio section.
  */
 
 import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';
+import { activateModalAccessibility } from './modal-accessibility.js';
 import { getText } from '../utils/text-loader.js';
 import { isDev } from '../utils/logger.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
+import { consumeGateRequest, markGateAccess } from '../../../lib/access-gates.js';
 
 export function initPortfolioModal() {
     const trigger = document.getElementById('portfolio-modal-trigger');
@@ -16,10 +18,11 @@ export function initPortfolioModal() {
     const cvGate = document.getElementById('cv-modal'); // Get CV modal to check/close if open
     const contactGate = document.getElementById('contact-modal'); // Get contact modal to check/close if open
     const inputs = Array.from(document.querySelectorAll('.portfolio-digit'));
+    const inputsContainer = document.getElementById('portfolio-modal-inputs');
     const modalLabel = document.getElementById('portfolio-modal-label');
     
-    // Correct Code
-    const CODE = '1234';
+    // Invite codes add client-side friction only. They are not secure auth.
+    const INVITE_CODE = '1234';
     
     if (!trigger || !modal || inputs.length === 0) {
         console.warn('Portfolio Gate: Missing required elements');
@@ -34,7 +37,7 @@ export function initPortfolioModal() {
     const TITLE = getText('gates.portfolio.title', 'View Portfolio');
     const DESC = getText(
         'gates.portfolio.description',
-        "Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."
+        "This is a lightweight invite gate in the browser, not secure authentication. If I shared a code with you, enter it here. Otherwise get in touch and I'll send portfolio access."
     );
 
     // Set label text if element exists
@@ -46,14 +49,28 @@ export function initPortfolioModal() {
                     <span>${BACK_TEXT}</span>
                 </button>
             </div>
-            <h2 class="modal-title">${TITLE}</h2>
-            <p class="modal-description">${DESC}</p>
+            <h2 id="portfolio-modal-title" class="modal-title">${TITLE}</h2>
+            <p id="portfolio-modal-description" class="modal-description">${DESC}</p>
         `;
     }
+
+    modal.setAttribute('aria-labelledby', 'portfolio-modal-title');
+    modal.setAttribute('aria-describedby', 'portfolio-modal-description');
+
+    if (inputsContainer) {
+        inputsContainer.setAttribute('role', 'group');
+        inputsContainer.setAttribute('aria-labelledby', 'portfolio-modal-title');
+        inputsContainer.setAttribute('aria-describedby', 'portfolio-modal-description');
+    }
+
+    inputs.forEach((input, index) => {
+        input.setAttribute('aria-label', `Portfolio invite code digit ${index + 1} of ${inputs.length}`);
+    });
 
     // State
     let isOpen = false;
     let lastOpenTime = 0;
+    let deactivateModalA11y = null;
 
     // Helper to check if any modal is currently active
     const isAnyGateActive = () => {
@@ -132,6 +149,10 @@ export function initPortfolioModal() {
             cvContainer.classList.add('fade-out-up');
         }
 
+        deactivateModalA11y = activateModalAccessibility(modal, {
+            initialFocus: () => inputs[0]
+        });
+
         // Defer modal DOM operations to next frame to avoid interrupting overlay's backdrop-filter transition
         requestAnimationFrame(() => {
             // Modal: mount modal inside overlay flex container
@@ -143,15 +164,14 @@ export function initPortfolioModal() {
             // Force reflow
             void modal.offsetWidth; 
             modal.classList.add('active');
-            
-            // Focus first input
-            inputs[0].focus();
         });
     };
 
-    const closeGate = (instant = false) => {
+    const closeGate = (instant = false, options = {}) => {
         // Close must be responsive immediately (Back/background/Escape).
         isOpen = false;
+        deactivateModalA11y?.({ restoreFocus: options.restoreFocus !== false });
+        deactivateModalA11y = null;
         
         // Clear inputs
         inputs.forEach(input => input.value = '');
@@ -229,7 +249,7 @@ export function initPortfolioModal() {
         const enteredCode = inputs.map(input => input.value).join('');
         
         if (enteredCode.length === 4) {
-            if (enteredCode === CODE) {
+            if (enteredCode === INVITE_CODE) {
                 // ═══════════════════════════════════════════════════════════════════
                 // GATE UNLOCK ANIMATION SEQUENCE (US-005)
                 // 1. Input pulse (200ms) - immediate tactile feedback
@@ -247,8 +267,7 @@ export function initPortfolioModal() {
                     inputsContainer.classList.add('pulse-energy');
                 }
                 
-                // Set session token (soft modal)
-                sessionStorage.setItem('abs_portfolio_ok', Date.now());
+                markGateAccess('portfolio');
                 
                 // Step 2: Modal dissolve animation (after pulse)
                 setTimeout(() => {
@@ -287,8 +306,7 @@ export function initPortfolioModal() {
     // --- Event Listeners ---
 
     // Auto-open check (if redirected back from portfolio.html)
-    if (sessionStorage.getItem('abs_open_portfolio_modal')) {
-        sessionStorage.removeItem('abs_open_portfolio_modal');
+    if (consumeGateRequest('portfolio')) {
         // Small delay to allow page init
         setTimeout(() => openGate(), 300);
     }

@@ -68,6 +68,9 @@
   --frame-vignette-ambient-rgb: 255, 255, 255;
   --frame-vignette-edge-offset-y: 5px;
   --frame-vignette-edge-blur: 30px;
+  --abs-scene-highlight: 0.3;
+  --abs-scene-depth: 0.14;
+  --abs-scene-softness: 0.45;
   --frame-vignette-edge-opacity: 0.18;
   --frame-vignette-ambient-blur: 250px;
   --frame-vignette-ambient-opacity: 0.12;
@@ -627,8 +630,9 @@
     calc(var(--top-logo-width-vw, 35) * 1vw),
     var(--brand-logo-width-max)
   );
-  /* Index/portfolio logo SVG viewBox: 919×66. */
-  --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 66 / 919);
+  --brand-logo-secondary-opacity: 0.66;
+  /* Index logo SVG viewBox: 511×101. */
+  --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 101 / 511);
 
   /* Index: primary (main) links positioned under logo. */
   --home-main-links-below-logo-px: 40;

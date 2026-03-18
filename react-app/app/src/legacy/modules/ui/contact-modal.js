@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 //
 // Goals:
-// - Clicking "Contact" (and inline "Let's chat.") opens a modal overlay
+// - Clicking explicit "Contact" controls (and inline "Let's chat.") opens a modal overlay
 // - Modal uses the same logo ↔ modal swap transition as CV/Portfolio
 // - Email row copies the email to clipboard (no mailto)
 // - Modal includes a small BACK button (arrow + BACK) to close
@@ -14,6 +14,7 @@
 // - No user text stored (clipboard copy is a single fixed string)
 
 import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';
+import { activateModalAccessibility } from './modal-accessibility.js';
 import { getText } from '../utils/text-loader.js';
 
 const TRANSITION_MS = 1700; // Must match modal transitions defined in main.css
@@ -63,8 +64,7 @@ export function initContactModal() {
 
   const triggers = [
     document.getElementById('contact-email'),
-    document.getElementById('contact-email-inline'),
-    document.querySelector('.decorative-script') // Entire blockquote triggers contact modal
+    document.getElementById('contact-email-inline')
   ].filter(Boolean);
 
   const logo = document.getElementById('brand-logo');
@@ -96,11 +96,14 @@ export function initContactModal() {
         <span>${BACK_TEXT}</span>
       </button>
     </div>
-    <h2 class="modal-title">${TITLE}</h2>
-    <p class="modal-description">
+    <h2 id="contact-modal-title" class="modal-title">${TITLE}</h2>
+    <p id="contact-modal-description" class="modal-description">
       ${DESC}
     </p>
   `;
+
+  modal.setAttribute('aria-labelledby', 'contact-modal-title');
+  modal.setAttribute('aria-describedby', 'contact-modal-description');
 
   modalInputs.innerHTML = `
     <button type="button" class="contact-email-row" data-copy-email aria-label="${COPY_ARIA}">
@@ -122,6 +125,7 @@ export function initContactModal() {
   let isOpen = false;
   let copyTimer = null;
   let lastOpenTime = 0;
+  let deactivateModalA11y = null;
 
   // Helper to check if any modal is currently active
   const isAnyGateActive = () => {
@@ -211,6 +215,10 @@ export function initContactModal() {
       cvContainer.classList.add('fade-out-up');
     }
 
+    deactivateModalA11y = activateModalAccessibility(modal, {
+      initialFocus: () => emailRowBtn
+    });
+
     // Defer modal DOM operations to next frame to avoid interrupting overlay's backdrop-filter transition
     requestAnimationFrame(() => {
       // Modal: mount modal inside overlay flex container
@@ -221,17 +229,16 @@ export function initContactModal() {
       modal.setAttribute('aria-hidden', 'false');
       void modal.offsetWidth;
       modal.classList.add('active');
-
-      // Focus email button for keyboard users
-      emailRowBtn?.focus?.();
     });
   };
 
-  const closeGate = (instant = false) => {
+  const closeGate = (instant = false, options = {}) => {
     // Close must be responsive immediately (Back/background/Escape).
     // Any “ghost click” prevention should be handled via pointer routing, not time blocks.
     isOpen = false;
     setCopyUI('idle');
+    deactivateModalA11y?.({ restoreFocus: options.restoreFocus !== false });
+    deactivateModalA11y = null;
 
     if (instant) {
       // Instant close: disable transition, remove active, then re-enable

@@ -8,7 +8,7 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 :root {
   /* Base colors - Dark mode (default for panel) */
-  --panel-background: hsl(240 10% 3.9% / 1.0); /* Fully opaque */
+  --panel-background: hsl(240 10% 3.9% / 0.7);
   --panel-foreground: hsl(0 0% 98%);
   --panel-card: hsl(240 10% 3.9%);
   --panel-card-foreground: hsl(0 0% 98%);
@@ -68,7 +68,7 @@
 
 /* Light mode tokens */
 body:not(.dark-mode) {
-  --panel-background: hsl(0 0% 100% / 1.0); /* Fully opaque */
+  --panel-background: hsl(0 0% 100% / 0.7);
   --panel-foreground: hsl(240 10% 10%);
   --panel-card: hsl(0 0% 100%);
   --panel-card-foreground: hsl(240 10% 3.9%);
@@ -98,6 +98,8 @@ body:not(.dark-mode) {
   cursor: default;
 
   background: var(--panel-background);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
+  backdrop-filter: blur(8px) saturate(1.05);
   color: var(--panel-foreground);
   border: 1px solid var(--panel-border);
   border-top: 4px solid var(--panel-brand);
@@ -507,6 +509,15 @@ body:not(.dark-mode) {
   display: flex;
   flex-direction: column;
   gap: var(--panel-section-gap);
+}
+
+.panel-view-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panel-view-btn {
+  width: 100%;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

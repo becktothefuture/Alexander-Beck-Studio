@@ -7,7 +7,8 @@
 ## Entry points
 - `react-app/app/portfolio.html` – shared page shell that sets the first-paint wall/browser tokens before the React entry mounts.
 - `react-app/app/src/entries/portfolio.jsx` – page entry that mounts the shared frame and boots the legacy portfolio runtime.
-- `react-app/app/src/legacy/modules/ui/portfolio-gate.js` – gate overlay on the index page that prefetches the portfolio bundle + a lead slide.
+- `react-app/app/src/legacy/modules/ui/portfolio-modal.js` – invite modal on the index page that prefetches the portfolio bundle + a lead slide.
+- `react-app/app/src/lib/access-gates.js` – shared client-side invite-token helper used by direct routes and gate reopen redirects.
 
 ## Runtime modules
 - `react-app/app/src/legacy/modules/portfolio/app.js` – bootstraps the carousel, resolves assets via `window.PORTFOLIO_BASE`, and mounts the detail overlay.

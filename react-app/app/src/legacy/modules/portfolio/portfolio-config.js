@@ -1,6 +1,13 @@
 // Portfolio config loader and applicator.
 // Keeps the carousel tunables in a dedicated file while preserving wall tuning on index only.
 
+import {
+  derivePortfolioConfig,
+  loadDesignSystemConfig,
+  loadLegacyPortfolioConfig,
+  shouldUseCanonicalDesignConfig,
+} from '../utils/design-config.js';
+
 const DEFAULT_WHEEL_CONFIG = {
   sensitivity: 1.8,
   ease: 0.22,
@@ -186,28 +193,18 @@ export function normalizePortfolioConfig(raw) {
 
 export async function loadPortfolioConfig() {
   try {
-    try {
-      if (typeof window !== 'undefined' && window.__PORTFOLIO_CONFIG__ && typeof window.__PORTFOLIO_CONFIG__ === 'object') {
-        return normalizePortfolioConfig(window.__PORTFOLIO_CONFIG__);
-      }
-    } catch (e) {}
-
-    const paths = [
-      'config/portfolio-config.json',
-      'js/portfolio-config.json',
-      '../dist/js/portfolio-config.json',
-    ];
-
-    for (const path of paths) {
-      try {
-        const res = await fetch(path, { cache: 'no-cache' });
-        if (res.ok) return normalizePortfolioConfig(await res.json());
-      } catch (e) {
-        // Try next path
-      }
+    if (shouldUseCanonicalDesignConfig()) {
+      const designSystem = await loadDesignSystemConfig();
+      return normalizePortfolioConfig(derivePortfolioConfig(designSystem));
     }
 
-    throw new Error('No portfolio config found');
+    const legacyConfig = await loadLegacyPortfolioConfig();
+    if (legacyConfig && typeof legacyConfig === 'object') {
+      return normalizePortfolioConfig(legacyConfig);
+    }
+
+    const designSystem = await loadDesignSystemConfig();
+    return normalizePortfolioConfig(derivePortfolioConfig(designSystem));
   } catch (e) {
     console.warn('Portfolio config load failed, using defaults');
     return normalizePortfolioConfig(null);

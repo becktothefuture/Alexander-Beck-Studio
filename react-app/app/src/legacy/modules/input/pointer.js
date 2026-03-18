@@ -6,7 +6,6 @@
 import { getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES, NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
 import { updateCursorPosition, hideCursor, showCursor } from '../rendering/cursor.js';
-import { notifyMouseTrailMove } from '../visual/mouse-trail.js';
 import { isOverlayActive } from '../ui/modal-overlay.js';
 import { sceneImpactPress, sceneImpactRelease } from '../ui/scene-impact-react.js';
 
@@ -173,11 +172,6 @@ export function setupPointer() {
       globals.lastPointerMoveMs = now;
       globals.lastPointerMoveX = pos.x;
       globals.lastPointerMoveY = pos.y;
-    }
-
-    // Mouse trail (canvas-rendered): record only for mouse-like pointers and real movement.
-    if (isMouseLike && movedPx > 0.5) {
-      notifyMouseTrailMove(pos.x, pos.y, now, pos.inBounds);
     }
 
     // WATER MODE: Create ripples based on mouse movement velocity

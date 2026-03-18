@@ -188,15 +188,33 @@ export function isBackForwardNavigation() {
 }
 
 /**
+ * Check if page was loaded via browser reload/refresh.
+ * Reload should preserve the settled rounded wall instead of replaying
+ * the sharp-corner wall growth animation.
+ * @returns {boolean}
+ */
+export function isReloadNavigation() {
+  try {
+    const navEntries = performance.getEntriesByType('navigation');
+    if (navEntries.length > 0) {
+      return navEntries[0].type === 'reload';
+    }
+  } catch (e) {
+    // API unavailable
+  }
+  return false;
+}
+
+/**
  * Determine if wall animation should be skipped.
- * Returns true for internal navigation or browser back/forward.
+ * Returns true for internal navigation, browser back/forward, or reload.
  * @returns {boolean}
  */
 export function shouldSkipWallAnimation() {
   // Check internal navigation state first (consumes it)
   const navState = getNavigationState();
-  // Also check browser back/forward
-  return navState !== null || isBackForwardNavigation();
+  // Also check browser back/forward and hard reload/refresh
+  return navState !== null || isBackForwardNavigation() || isReloadNavigation();
 }
 
 /**

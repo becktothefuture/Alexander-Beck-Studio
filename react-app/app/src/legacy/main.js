@@ -213,7 +213,7 @@ function ensureNoiseElements() {
 // We avoid editing exported HTML directly by enhancing at runtime.
 function enhanceFooterLinksForMobile() {
   try {
-    const cv = document.getElementById('cv-gate-trigger');
+    const cv = document.getElementById('cv-modal-trigger');
     if (cv && !cv.querySelector('.footer-link-nowrap')) {
       const expected = String(getText('footer.links.cv.text', '') || '').trim();
       const raw = (cv.textContent || '').trim().replace(/\s+/g, ' ');
@@ -520,17 +520,17 @@ window.addEventListener('unhandledrejection', (event) => {
       console.warn('Modal overlay initialization error:', e?.message);
     }
 
-    // Initialize password gates (CV and Portfolio protection)
+    // Initialize invite gates (CV and Portfolio access flow)
     try {
       initCVModal();
-      log('✓ CV password gate initialized');
+      log('✓ CV invite gate initialized');
     } catch (e) {
       console.warn('CV gate initialization error:', e?.message);
     }
 
     try {
       initPortfolioModal();
-      log('✓ Portfolio password gate initialized');
+      log('✓ Portfolio invite gate initialized');
     } catch (e) {
       console.warn('Portfolio gate initialization error:', e?.message);
     }
@@ -690,8 +690,8 @@ window.addEventListener('unhandledrejection', (event) => {
       });
       
       // Setup prefetch on hover for gate triggers
-      const cvTrigger = document.getElementById('cv-gate-trigger');
-      const portfolioTrigger = document.getElementById('portfolio-gate-trigger');
+      const cvTrigger = document.getElementById('cv-modal-trigger');
+      const portfolioTrigger = document.getElementById('portfolio-modal-trigger');
       if (cvTrigger) setupPrefetchOnHover(cvTrigger, 'cv.html');
       if (portfolioTrigger) setupPrefetchOnHover(portfolioTrigger, 'portfolio.html');
 
@@ -734,13 +734,13 @@ window.addEventListener('unhandledrejection', (event) => {
       if (autoOpenModal === 'cv') {
         // CV modal - trigger the gate open
         setTimeout(() => {
-          const cvTriggerEl = document.getElementById('cv-gate-trigger');
+          const cvTriggerEl = document.getElementById('cv-modal-trigger');
           if (cvTriggerEl) cvTriggerEl.click();
         }, 400);
       } else if (autoOpenModal === 'contact') {
         // Contact modal - trigger the gate open
         setTimeout(() => {
-          const contactTriggerEl = document.getElementById('contact-trigger');
+          const contactTriggerEl = document.getElementById('contact-email');
           if (contactTriggerEl) contactTriggerEl.click();
         }, 400);
       }
