@@ -940,29 +940,16 @@ p {
 }
 
 .decorative-script p a {
-  text-decoration: none; /* No underline — entire block is clickable */
+  text-decoration: none;
   color: inherit;
   pointer-events: auto;
-  /* No position: relative - let ::before position relative to .decorative-script */
+  position: relative;
   transition: color 0.15s var(--ease-organic);
   white-space: nowrap;
 }
 
-/* Extend link hit area to cover entire parent block */
-.decorative-script p a::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: var(--abs-radius-card);
-}
-
 .decorative-script p a::after {
   content: none; /* Dot removed */
-}
-
-/* Color entire block text when hovering */
-.decorative-script:hover p {
-  color: var(--cursor-hover-fg, var(--cursor-color));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -2327,11 +2314,11 @@ body.abs-link-hovering #custom-cursor {
 }
 
 /* Power Transfer: transition-only, prominent hover-out (no “disappear”) */
-:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .decorative-script) {
+:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year) {
   transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)), color 0.2s ease;
 }
 
-:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .decorative-script):hover {
+:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
   transform: scale(var(--abs-button-swell-scale, 1.06));
   transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), color 0.2s ease;
 }
@@ -2373,8 +2360,7 @@ button:hover {
 #header-cv-link::before,
 .abs-meta-btn::before,
 #site-year::before,
-.legend__item--interactive::before,
-.decorative-script::before {
+.legend__item--interactive::before {
   transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)), opacity 0.2s ease, background 0.2s ease;
 }
 
@@ -2384,8 +2370,7 @@ button:hover {
 #header-cv-link:hover::before,
 .abs-meta-btn:hover::before,
 #site-year:hover::before,
-.legend__item--interactive:hover::before,
-.decorative-script:hover::before {
+.legend__item--interactive:hover::before {
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
   opacity: 1;
   transform: scale(var(--abs-button-swell-scale, 1.06));
@@ -2399,8 +2384,7 @@ body.dark-mode .portfolio-cv-link:hover::before,
 body.dark-mode #header-cv-link:hover::before,
 body.dark-mode .abs-meta-btn:hover::before,
 body.dark-mode #site-year:hover::before,
-body.dark-mode .legend__item--interactive:hover::before,
-body.dark-mode .decorative-script:hover::before {
+body.dark-mode .legend__item--interactive:hover::before {
   background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
 }
 
@@ -2538,7 +2522,7 @@ body.dark-mode .decorative-script p a:hover {
     transform: none;
   }
 
-  :is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .decorative-script):hover {
+  :is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
     transform: none;
   }
   
@@ -2548,8 +2532,7 @@ body.dark-mode .decorative-script p a:hover {
   #header-cv-link:hover::before,
   .abs-meta-btn:hover::before,
   #site-year:hover::before,
-  .legend__item--interactive:hover::before,
-  .decorative-script:hover::before {
+  .legend__item--interactive:hover::before {
     animation: none;
     opacity: 1;
     transform: none;

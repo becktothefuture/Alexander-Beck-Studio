@@ -740,7 +740,7 @@ window.addEventListener('unhandledrejection', (event) => {
       } else if (autoOpenModal === 'contact') {
         // Contact modal - trigger the gate open
         setTimeout(() => {
-          const contactTriggerEl = document.getElementById('contact-trigger');
+          const contactTriggerEl = document.getElementById('contact-email');
           if (contactTriggerEl) contactTriggerEl.click();
         }, 400);
       }

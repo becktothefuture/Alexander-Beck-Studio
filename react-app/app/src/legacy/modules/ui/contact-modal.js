@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 //
 // Goals:
-// - Clicking "Contact" (and inline "Let's chat.") opens a modal overlay
+// - Clicking explicit "Contact" controls (and inline "Let's chat.") opens a modal overlay
 // - Modal uses the same logo ↔ modal swap transition as CV/Portfolio
 // - Email row copies the email to clipboard (no mailto)
 // - Modal includes a small BACK button (arrow + BACK) to close
@@ -63,8 +63,7 @@ export function initContactModal() {
 
   const triggers = [
     document.getElementById('contact-email'),
-    document.getElementById('contact-email-inline'),
-    document.querySelector('.decorative-script') // Entire blockquote triggers contact modal
+    document.getElementById('contact-email-inline')
   ].filter(Boolean);
 
   const logo = document.getElementById('brand-logo');
