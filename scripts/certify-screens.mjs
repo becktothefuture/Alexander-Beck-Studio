@@ -17,6 +17,7 @@ let previewPort = configuredPreviewPort || 8014;
 let baseUrl = `http://${previewHost}:${previewPort}`;
 const screenshotBrowser = 'chromium';
 const acceptableBootStates = ['ready', 'content-ready', 'entered'];
+const previewMarkers = ['Alexander Beck Studio', '/css/tokens.css'];
 
 const matrix = [
   {
@@ -162,6 +163,37 @@ async function waitForHttpReady(url, timeoutMs = 15000) {
   throw new Error(`Preview server did not become ready at ${url}: ${lastError?.message || 'unknown error'}`);
 }
 
+async function waitForExpectedPreviewServer(timeoutMs = 15000) {
+  const startedAt = Date.now();
+  let lastError = null;
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      const response = await fetch(`${baseUrl}/`, { method: 'GET' });
+      if (!response.ok) {
+        lastError = new Error(`unexpected status ${response.status}`);
+        await delay(250);
+        continue;
+      }
+
+      const html = await response.text();
+      const hasExpectedMarkers = previewMarkers.every((marker) => html.includes(marker));
+
+      if (hasExpectedMarkers) {
+        return;
+      }
+
+      lastError = new Error(`response from ${baseUrl}/ did not match expected app markers`);
+    } catch (error) {
+      lastError = error;
+    }
+
+    await delay(250);
+  }
+
+  throw new Error(`Expected preview server did not become ready at ${baseUrl}/: ${lastError?.message || 'unknown error'}`);
+}
+
 function startPreviewServer() {
   const child = run(
     'npm',
@@ -208,7 +240,7 @@ async function waitForPreviewServer(preview, timeoutMs = 15000) {
 
 async function ensurePreviewServer() {
   try {
-    await waitForHttpReady(`${baseUrl}/`, 1200);
+    await waitForExpectedPreviewServer(1200);
     return {
       child: null,
       reused: true,
@@ -222,7 +254,7 @@ async function ensurePreviewServer() {
 
   try {
     await waitForPreviewServer(preview);
-    await waitForHttpReady(`${baseUrl}/`);
+    await waitForExpectedPreviewServer();
     return {
       ...preview,
       reused: false
@@ -230,8 +262,8 @@ async function ensurePreviewServer() {
   } catch (error) {
     const logs = preview.getLogs();
 
-    if (logs.includes('Port 8014 is already in use')) {
-      await waitForHttpReady(`${baseUrl}/`, 5000);
+    if (logs.includes(`Port ${previewPort} is already in use`) || /Port \d+ is already in use/.test(logs)) {
+      await waitForExpectedPreviewServer(5000);
       return {
         child: null,
         reused: true,
