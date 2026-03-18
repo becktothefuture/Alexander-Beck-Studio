@@ -302,7 +302,7 @@ async function navigateAndWait(page, entry) {
   await page.waitForSelector('#app-frame', { state: 'attached', timeout: 8000 }).catch(() => {});
 
   const readiness = await waitForEntryReadiness(page, entry);
-  await delay(readiness.ready ? 800 : 250);
+  await delay(readiness.ready ? 1500 : 250);
   return readiness;
 }
 

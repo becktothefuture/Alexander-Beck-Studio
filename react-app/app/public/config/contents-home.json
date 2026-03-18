@@ -65,12 +65,12 @@
         "text": "Contact"
       },
       "portfolio": {
-        "id": "portfolio-gate-trigger",
+        "id": "portfolio-modal-trigger",
         "href": "#",
         "text": "Portfolio"
       },
       "cv": {
-        "id": "cv-gate-trigger",
+        "id": "cv-modal-trigger",
         "href": "#",
         "text": "Bio/CV"
       }

@@ -24,13 +24,13 @@ From `react-app/app`:
 
 ```bash
 npm install
-npm run dev           # Vite on port 8002 (or use --port 8012)
+npm run dev           # Vite on port 8012
 npm run build
 npm run build:dev
 ```
 
 ## Routes / Entries
-- `http://localhost:8012/` (or 8002 when run from app/)
+- `http://localhost:8012/`
 - `http://localhost:8012/portfolio.html`
 - `http://localhost:8012/cv.html`
 

@@ -78,7 +78,7 @@
           <!-- Main Links Navigation - absolute below logo, gap from --home-main-links-below-logo-px -->
           <nav id="main-links" class="ui-nav-row" aria-label="Main navigation links">
             <button id="contact-email" type="button" class="footer_link">Contact</button>
-            <button id="portfolio-modal-trigger" type="button" class="footer_link">Work</button>
+            <button id="portfolio-modal-trigger" type="button" class="footer_link">Portfolio</button>
             <button id="cv-modal-trigger" type="button" class="footer_link">Bio/CV</button>
           </nav>
         </main>
@@ -181,7 +181,7 @@
         if (flag === '0') return;
       } catch (e) {}
 
-      const ENDPOINT = 'http://localhost:8003/events';
+      const ENDPOINT = 'http://localhost:8013/events';
       let retryMs = 500;
       let retryCount = 0;
       const MAX_RETRIES = 3; // Stop after 3 failed attempts
