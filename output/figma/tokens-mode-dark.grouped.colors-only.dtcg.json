@@ -1,0 +1,178 @@
+{
+  "$description": "Grouped Figma-native token paths generated from react-app/app/public/css/tokens.css (Dark) [color-only assignment pack]",
+  "$extensions": {
+    "com.alexanderbeck.studio": {
+      "generatedAt": "2026-03-02T21:15:12.352Z",
+      "tokenCount": 424,
+      "grouping": "slash-paths"
+    }
+  },
+  "foundation/stroke/medium": {
+    "$type": "color",
+    "$value": "rgba(255, 255, 255, 0.25)"
+  },
+  "ball/1": {
+    "$type": "color",
+    "$value": "#b5b7b6"
+  },
+  "ball/2": {
+    "$type": "color",
+    "$value": "#bbbdbd"
+  },
+  "ball/3": {
+    "$type": "color",
+    "$value": "#ffffff"
+  },
+  "ball/4": {
+    "$type": "color",
+    "$value": "#00695c"
+  },
+  "ball/5": {
+    "$type": "color",
+    "$value": "#000000"
+  },
+  "ball/6": {
+    "$type": "color",
+    "$value": "{color/accent}"
+  },
+  "ball/7": {
+    "$type": "color",
+    "$value": "#0d5cb6"
+  },
+  "ball/8": {
+    "$type": "color",
+    "$value": "#ffa000"
+  },
+  "bg/dark": {
+    "$type": "color",
+    "$value": "{color/bg/dark}"
+  },
+  "bg/light": {
+    "$type": "color",
+    "$value": "{color/bg/light}"
+  },
+  "chrome/bg": {
+    "$type": "color",
+    "$value": "#242529"
+  },
+  "chrome/bg/dark": {
+    "$type": "color",
+    "$value": "{chrome/bg}"
+  },
+  "chrome/bg/light": {
+    "$type": "color",
+    "$value": "{chrome/bg}"
+  },
+  "color/accent": {
+    "$type": "color",
+    "$value": "#ff4013"
+  },
+  "color/bg/dark": {
+    "$type": "color",
+    "$value": "#0a0a0a"
+  },
+  "color/bg/light": {
+    "$type": "color",
+    "$value": "#f5f5f5"
+  },
+  "color/error": {
+    "$type": "color",
+    "$value": "#ef4444"
+  },
+  "color/success": {
+    "$type": "color",
+    "$value": "#22c55e"
+  },
+  "cursor/color": {
+    "$type": "color",
+    "$value": "{ball/6}"
+  },
+  "frame/color": {
+    "$type": "color",
+    "$value": "#242529"
+  },
+  "frame/color/dark": {
+    "$type": "color",
+    "$value": "{frame/color}"
+  },
+  "frame/color/light": {
+    "$type": "color",
+    "$value": "{frame/color}"
+  },
+  "inner/wall/shine/color": {
+    "$type": "color",
+    "$value": "{bg/dark}"
+  },
+  "link/hover/color": {
+    "$type": "color",
+    "$value": "{color/accent}"
+  },
+  "noise/color/dark": {
+    "$type": "color",
+    "$value": "#ffffff"
+  },
+  "noise/color/light": {
+    "$type": "color",
+    "$value": "#ffffff"
+  },
+  "text/action": {
+    "$type": "color",
+    "$value": "{text/primary}"
+  },
+  "text/color/dark": {
+    "$type": "color",
+    "$value": "#617282"
+  },
+  "text/color/dark/muted": {
+    "$type": "color",
+    "$value": "#617282"
+  },
+  "text/color/light": {
+    "$type": "color",
+    "$value": "#454545"
+  },
+  "text/color/light/muted": {
+    "$type": "color",
+    "$value": "#454545"
+  },
+  "text/input": {
+    "$type": "color",
+    "$value": "{text/primary}"
+  },
+  "text/logo": {
+    "$type": "color",
+    "$value": "#e3e9f0"
+  },
+  "text/muted": {
+    "$type": "color",
+    "$value": "{text/color/dark/muted}"
+  },
+  "text/placeholder": {
+    "$type": "color",
+    "$value": "{text/primary}"
+  },
+  "text/primary": {
+    "$type": "color",
+    "$value": "{text/color/dark}"
+  },
+  "text/quiet": {
+    "$type": "color",
+    "$value": "{text/primary}"
+  },
+  "text/strong": {
+    "$type": "color",
+    "$value": "{text/primary}"
+  },
+  "wall/color": {
+    "$type": "color",
+    "$value": "#242529"
+  },
+  "wall/color/dark": {
+    "$type": "color",
+    "$value": "{wall/color}"
+  },
+  "wall/color/light": {
+    "$type": "color",
+    "$value": "{wall/color}"
+  }
+}

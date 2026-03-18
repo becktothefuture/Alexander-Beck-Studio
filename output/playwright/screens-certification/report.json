@@ -1,0 +1,1916 @@
+{
+  "generatedAt": "2026-03-18T18:44:39.981Z",
+  "baseUrl": "http://127.0.0.1:55174",
+  "screenshotBrowser": "chromium",
+  "summary": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "screenshotMatrix": [
+    {
+      "page": "home",
+      "path": "/",
+      "theme": "light",
+      "viewport": {
+        "label": "mobile",
+        "width": 375,
+        "height": 812
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/home-375x812-light.png",
+      "bootState": "ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:ready",
+        "lastSample": {
+          "bootState": "ready",
+          "readyState": "complete",
+          "visibleSelectors": 0,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": "#main-links button",
+              "totalCount": 3,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": "#expertise-legend .legend__item",
+              "totalCount": 7,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": ".decorative-script p",
+              "totalCount": 1,
+              "visibleCount": 0,
+              "maxArea": 0
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 215226.375,
+              "visible": true,
+              "text": "Product Systems\n                \n                \n                  \n                  Interaction Design\n                \n                \n                  \n                  Creative Technology\n                \n                \n                  \n                  Applied AI\n                \n                \n                  \n                  Experience Strategy\n                \n                \n                  \n                  Art Direction\n                \n                \n                  \n                  Prototyping\n                \n              \n              \n            \n            \n            \n              \n                The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. Let's chat.\n              \n              \n            \n          \n\n          \n          \n        \n        \n        \n        \n          \n          \n            \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n            \n          \n          \n          \n            Contact\n            Portfolio\n            Bio/CV\n          \n        \n        \n        \n        \n          \n          \n            \n              \n                \n                  \n                  Apple Music\n                \n\n                \n                  \n                  LinkedIn\n                \n              \n            \n            \n            The details are not the details. They make the design.Charles Eames\n               \n               \n                London6:44:04 PM\n              \n            \n          \n        \n        \n          Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable.\n          © 2026 Alexander Beck"
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#main-links button",
+          "count": 3,
+          "stats": [
+            {
+              "area": 3276,
+              "visible": true,
+              "text": "Contact"
+            },
+            {
+              "area": 3276,
+              "visible": true,
+              "text": "Portfolio"
+            },
+            {
+              "area": 3276.696799132973,
+              "visible": true,
+              "text": "Bio/CV"
+            }
+          ],
+          "assessment": {
+            "selector": "#main-links button",
+            "failures": [],
+            "visibleCount": 3
+          }
+        },
+        {
+          "selector": "#expertise-legend .legend__item",
+          "count": 7,
+          "stats": [
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Product Systems"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Interaction Design"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Creative Technology"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Applied AI"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Experience Strategy"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Art Direction"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Prototyping"
+            }
+          ],
+          "assessment": {
+            "selector": "#expertise-legend .legend__item",
+            "failures": [],
+            "visibleCount": 7
+          }
+        },
+        {
+          "selector": ".decorative-script p",
+          "count": 1,
+          "stats": [
+            {
+              "area": 29089.34765625,
+              "visible": true,
+              "text": "The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. Let's chat."
+            }
+          ],
+          "assessment": {
+            "selector": ".decorative-script p",
+            "failures": [],
+            "visibleCount": 1
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 401,
+        "topColorShare": 0.8563945875163684,
+        "stddev": 36.17432103596757,
+        "mean": 234.35208164481176,
+        "samples": 128296,
+        "stride": 2,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "home",
+      "path": "/",
+      "theme": "dark",
+      "viewport": {
+        "label": "mobile",
+        "width": 375,
+        "height": 812
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/home-375x812-dark.png",
+      "bootState": "ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:ready",
+        "lastSample": {
+          "bootState": "ready",
+          "readyState": "complete",
+          "visibleSelectors": 0,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": "#main-links button",
+              "totalCount": 3,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": "#expertise-legend .legend__item",
+              "totalCount": 7,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": ".decorative-script p",
+              "totalCount": 1,
+              "visibleCount": 0,
+              "maxArea": 0
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 215226.375,
+              "visible": true,
+              "text": "Product Systems\n                \n                \n                  \n                  Interaction Design\n                \n                \n                  \n                  Creative Technology\n                \n                \n                  \n                  Applied AI\n                \n                \n                  \n                  Experience Strategy\n                \n                \n                  \n                  Art Direction\n                \n                \n                  \n                  Prototyping\n                \n              \n              \n            \n            \n            \n              \n                The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. Let's chat.\n              \n              \n            \n          \n\n          \n          \n        \n        \n        \n        \n          \n          \n            \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n            \n          \n          \n          \n            Contact\n            Portfolio\n            Bio/CV\n          \n        \n        \n        \n        \n          \n          \n            \n              \n                \n                  \n                  Apple Music\n                \n\n                \n                  \n                  LinkedIn\n                \n              \n            \n            \n            The details are not the details. They make the design.Charles Eames\n               \n               \n                London6:44:08 PM\n              \n            \n          \n        \n        \n          Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable.\n          © 2026 Alexander Beck"
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#main-links button",
+          "count": 3,
+          "stats": [
+            {
+              "area": 3276,
+              "visible": true,
+              "text": "Contact"
+            },
+            {
+              "area": 3276,
+              "visible": true,
+              "text": "Portfolio"
+            },
+            {
+              "area": 3277.0868668649346,
+              "visible": true,
+              "text": "Bio/CV"
+            }
+          ],
+          "assessment": {
+            "selector": "#main-links button",
+            "failures": [],
+            "visibleCount": 3
+          }
+        },
+        {
+          "selector": "#expertise-legend .legend__item",
+          "count": 7,
+          "stats": [
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Product Systems"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Interaction Design"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Creative Technology"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Applied AI"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Experience Strategy"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Art Direction"
+            },
+            {
+              "area": 3958.5,
+              "visible": true,
+              "text": "Prototyping"
+            }
+          ],
+          "assessment": {
+            "selector": "#expertise-legend .legend__item",
+            "failures": [],
+            "visibleCount": 7
+          }
+        },
+        {
+          "selector": ".decorative-script p",
+          "count": 1,
+          "stats": [
+            {
+              "area": 29089.34765625,
+              "visible": true,
+              "text": "The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. Let's chat."
+            }
+          ],
+          "assessment": {
+            "selector": ".decorative-script p",
+            "failures": [],
+            "visibleCount": 1
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 387,
+        "topColorShare": 0.5968697387291888,
+        "stddev": 36.72826622813704,
+        "mean": 41.64206990086126,
+        "samples": 128296,
+        "stride": 2,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "home",
+      "path": "/",
+      "theme": "light",
+      "viewport": {
+        "label": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/home-1440x900-light.png",
+      "bootState": "ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:ready",
+        "lastSample": {
+          "bootState": "ready",
+          "readyState": "complete",
+          "visibleSelectors": 0,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": "#main-links button",
+              "totalCount": 3,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": "#expertise-legend .legend__item",
+              "totalCount": 7,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": ".decorative-script p",
+              "totalCount": 1,
+              "visibleCount": 0,
+              "maxArea": 0
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1055230.3125,
+              "visible": true,
+              "text": "Product Systems\n                \n                \n                  \n                  Interaction Design\n                \n                \n                  \n                  Creative Technology\n                \n                \n                  \n                  Applied AI\n                \n                \n                  \n                  Experience Strategy\n                \n                \n                  \n                  Art Direction\n                \n                \n                  \n                  Prototyping\n                \n              \n              \n            \n            \n            \n              \n                The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. Let's chat.\n              \n              \n            \n          \n\n          \n          \n        \n        \n        \n        \n          \n          \n            \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n            \n          \n          \n          \n            Contact\n            Portfolio\n            Bio/CV\n          \n        \n        \n        \n        \n          \n          \n            \n              \n                \n                  \n                  Apple Music\n                \n\n                \n                  \n                  LinkedIn\n                \n              \n            \n            \n            The details are not the details. They make the design.Charles Eames\n               \n               \n                London6:44:12 PM\n              \n            \n          \n        \n        \n          Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable.\n          © 2026 Alexander Beck"
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#main-links button",
+          "count": 3,
+          "stats": [
+            {
+              "area": 7562.5830078125,
+              "visible": true,
+              "text": "Contact"
+            },
+            {
+              "area": 7727.7685546875,
+              "visible": true,
+              "text": "Portfolio"
+            },
+            {
+              "area": 7136.433473713696,
+              "visible": true,
+              "text": "Bio/CV"
+            }
+          ],
+          "assessment": {
+            "selector": "#main-links button",
+            "failures": [],
+            "visibleCount": 3
+          }
+        },
+        {
+          "selector": "#expertise-legend .legend__item",
+          "count": 7,
+          "stats": [
+            {
+              "area": 5055.36962890625,
+              "visible": true,
+              "text": "Product Systems"
+            },
+            {
+              "area": 5055.783935546875,
+              "visible": true,
+              "text": "Interaction Design"
+            },
+            {
+              "area": 5055.783935546875,
+              "visible": true,
+              "text": "Creative Technology"
+            },
+            {
+              "area": 5055.36962890625,
+              "visible": true,
+              "text": "Applied AI"
+            },
+            {
+              "area": 5055.783935546875,
+              "visible": true,
+              "text": "Experience Strategy"
+            },
+            {
+              "area": 5055.783935546875,
+              "visible": true,
+              "text": "Art Direction"
+            },
+            {
+              "area": 5055.36962890625,
+              "visible": true,
+              "text": "Prototyping"
+            }
+          ],
+          "assessment": {
+            "selector": "#expertise-legend .legend__item",
+            "failures": [],
+            "visibleCount": 7
+          }
+        },
+        {
+          "selector": ".decorative-script p",
+          "count": 1,
+          "stats": [
+            {
+              "area": 31145.703125,
+              "visible": true,
+              "text": "The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. Let's chat."
+            }
+          ],
+          "assessment": {
+            "selector": ".decorative-script p",
+            "failures": [],
+            "visibleCount": 1
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 179,
+        "topColorShare": 0.8795061728395062,
+        "stddev": 31.421018853619444,
+        "mean": 235.85100411517737,
+        "samples": 81000,
+        "stride": 4,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "home",
+      "path": "/",
+      "theme": "dark",
+      "viewport": {
+        "label": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/home-1440x900-dark.png",
+      "bootState": "ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:ready",
+        "lastSample": {
+          "bootState": "ready",
+          "readyState": "complete",
+          "visibleSelectors": 0,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": "#main-links button",
+              "totalCount": 3,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": "#expertise-legend .legend__item",
+              "totalCount": 7,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": ".decorative-script p",
+              "totalCount": 1,
+              "visibleCount": 0,
+              "maxArea": 0
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1055230.3125,
+              "visible": true,
+              "text": "Product Systems\n                \n                \n                  \n                  Interaction Design\n                \n                \n                  \n                  Creative Technology\n                \n                \n                  \n                  Applied AI\n                \n                \n                  \n                  Experience Strategy\n                \n                \n                  \n                  Art Direction\n                \n                \n                  \n                  Prototyping\n                \n              \n              \n            \n            \n            \n              \n                The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. Let's chat.\n              \n              \n            \n          \n\n          \n          \n        \n        \n        \n        \n          \n          \n            \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n              \n            \n          \n          \n          \n            Contact\n            Portfolio\n            Bio/CV\n          \n        \n        \n        \n        \n          \n          \n            \n              \n                \n                  \n                  Apple Music\n                \n\n                \n                  \n                  LinkedIn\n                \n              \n            \n            \n            The details are not the details. They make the design.Charles Eames\n               \n               \n                London6:44:15 PM\n              \n            \n          \n        \n        \n          Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable.\n          © 2026 Alexander Beck"
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#main-links button",
+          "count": 3,
+          "stats": [
+            {
+              "area": 7562.5830078125,
+              "visible": true,
+              "text": "Contact"
+            },
+            {
+              "area": 7727.7685546875,
+              "visible": true,
+              "text": "Portfolio"
+            },
+            {
+              "area": 7137.5264126211405,
+              "visible": true,
+              "text": "Bio/CV"
+            }
+          ],
+          "assessment": {
+            "selector": "#main-links button",
+            "failures": [],
+            "visibleCount": 3
+          }
+        },
+        {
+          "selector": "#expertise-legend .legend__item",
+          "count": 7,
+          "stats": [
+            {
+              "area": 5055.36962890625,
+              "visible": true,
+              "text": "Product Systems"
+            },
+            {
+              "area": 5055.783935546875,
+              "visible": true,
+              "text": "Interaction Design"
+            },
+            {
+              "area": 5055.783935546875,
+              "visible": true,
+              "text": "Creative Technology"
+            },
+            {
+              "area": 5055.36962890625,
+              "visible": true,
+              "text": "Applied AI"
+            },
+            {
+              "area": 5055.783935546875,
+              "visible": true,
+              "text": "Experience Strategy"
+            },
+            {
+              "area": 5055.783935546875,
+              "visible": true,
+              "text": "Art Direction"
+            },
+            {
+              "area": 5055.36962890625,
+              "visible": true,
+              "text": "Prototyping"
+            }
+          ],
+          "assessment": {
+            "selector": "#expertise-legend .legend__item",
+            "failures": [],
+            "visibleCount": 7
+          }
+        },
+        {
+          "selector": ".decorative-script p",
+          "count": 1,
+          "stats": [
+            {
+              "area": 31145.703125,
+              "visible": true,
+              "text": "The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world. Let's chat."
+            }
+          ],
+          "assessment": {
+            "selector": ".decorative-script p",
+            "failures": [],
+            "visibleCount": 1
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 206,
+        "topColorShare": 0.3660864197530864,
+        "stddev": 30.01371521487021,
+        "mean": 47.946798353897606,
+        "samples": 81000,
+        "stride": 4,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "portfolio",
+      "path": "/portfolio.html",
+      "theme": "light",
+      "viewport": {
+        "label": "mobile",
+        "width": 375,
+        "height": 812
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/portfolio-375x812-light.png",
+      "bootState": "content-ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:content-ready",
+        "lastSample": {
+          "bootState": "content-ready",
+          "readyState": "complete",
+          "visibleSelectors": 3,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 215226.375
+            },
+            {
+              "selector": ".portfolio-stage",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 270274.98922909796
+            },
+            {
+              "selector": "#portfolioMeta",
+              "totalCount": 1,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": "#track .slide",
+              "totalCount": 12,
+              "visibleCount": 5,
+              "maxArea": 77307.66385605186
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 215226.375,
+              "visible": true,
+              "text": "Bio/CV\n            Contact\n          \n          \n            \n              Selected collaborations across finance, luxury, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently designing for neurodivergent humans.\n            \n            \n          \n        \n        \n      \n\n      \n      \n\n      \n          \n            \n              \n                \n                  \n                  Apple Music\n                \n\n                \n                  \n                  LinkedIn\n                \n              \n            \n          \n          \n             \n              London · 6:44:18 PM\n            \n          \n        \n      \n      \n        Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable."
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".portfolio-stage",
+          "count": 1,
+          "stats": [
+            {
+              "area": 279989.078125,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": ".portfolio-stage",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#portfolioMeta",
+          "count": 1,
+          "stats": [
+            {
+              "area": 84397.0859375,
+              "visible": true,
+              "text": "Product\n          Digital Product Design for Complex Platforms\n          A decision-grade product suite that turns messy workflows into clear, fast-moving action."
+            }
+          ],
+          "assessment": {
+            "selector": "#portfolioMeta",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#track .slide",
+          "count": 12,
+          "stats": [
+            {
+              "area": 78780.73574849218,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 80086.24096512794,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 50922.920645367354,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 19301.330980584025,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 18575.892743080854,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 16525.222375921905,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 13622.202426970005,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 16525.21808252111,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 18575.88825161755,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 19301.330980584025,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 50906.77207620442,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 80086.23151350021,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": "#track .slide",
+            "failures": [],
+            "visibleCount": 12
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 295,
+        "topColorShare": 0.8502777486636621,
+        "stddev": 43.38355621369397,
+        "mean": 234.242187227024,
+        "samples": 76328,
+        "stride": 2,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "portfolio",
+      "path": "/portfolio.html",
+      "theme": "dark",
+      "viewport": {
+        "label": "mobile",
+        "width": 375,
+        "height": 812
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/portfolio-375x812-dark.png",
+      "bootState": "content-ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:content-ready",
+        "lastSample": {
+          "bootState": "content-ready",
+          "readyState": "complete",
+          "visibleSelectors": 3,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 215226.375
+            },
+            {
+              "selector": ".portfolio-stage",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 268963.34947925806
+            },
+            {
+              "selector": "#portfolioMeta",
+              "totalCount": 1,
+              "visibleCount": 0,
+              "maxArea": 0
+            },
+            {
+              "selector": "#track .slide",
+              "totalCount": 12,
+              "visibleCount": 5,
+              "maxArea": 76932.48391044419
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 215226.375,
+              "visible": true,
+              "text": "Bio/CV\n            Contact\n          \n          \n            \n              Selected collaborations across finance, luxury, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently designing for neurodivergent humans.\n            \n            \n          \n        \n        \n      \n\n      \n      \n\n      \n          \n            \n              \n                \n                  \n                  Apple Music\n                \n\n                \n                  \n                  LinkedIn\n                \n              \n            \n          \n          \n             \n              London · 6:44:21 PM\n            \n          \n        \n      \n      \n        Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable."
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".portfolio-stage",
+          "count": 1,
+          "stats": [
+            {
+              "area": 279989.078125,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": ".portfolio-stage",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#portfolioMeta",
+          "count": 1,
+          "stats": [
+            {
+              "area": 84397.0859375,
+              "visible": true,
+              "text": "Product\n          Digital Product Design for Complex Platforms\n          A decision-grade product suite that turns messy workflows into clear, fast-moving action."
+            }
+          ],
+          "assessment": {
+            "selector": "#portfolioMeta",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#track .slide",
+          "count": 12,
+          "stats": [
+            {
+              "area": 78780.73574849218,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 80086.24096512794,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 50922.920645367354,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 19301.330980584025,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 18575.892743080854,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 16525.222375921905,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 13622.202426970005,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 16525.21808252111,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 18575.88825161755,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 19301.330980584025,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 50906.77207620442,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 80086.23151350021,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": "#track .slide",
+            "failures": [],
+            "visibleCount": 12
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 301,
+        "topColorShare": 0.3849177235090661,
+        "stddev": 42.40464085227509,
+        "mean": 42.755349718738046,
+        "samples": 76328,
+        "stride": 2,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "portfolio",
+      "path": "/portfolio.html",
+      "theme": "light",
+      "viewport": {
+        "label": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/portfolio-1440x900-light.png",
+      "bootState": "content-ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:content-ready",
+        "lastSample": {
+          "bootState": "content-ready",
+          "readyState": "complete",
+          "visibleSelectors": 4,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 1055230.3125
+            },
+            {
+              "selector": ".portfolio-stage",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 1208098.1615424156
+            },
+            {
+              "selector": "#portfolioMeta",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 263869.96314033866
+            },
+            {
+              "selector": "#track .slide",
+              "totalCount": 12,
+              "visibleCount": 5,
+              "maxArea": 101800.90616829693
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1055230.3125,
+              "visible": true,
+              "text": "Bio/CV\n            Contact\n          \n          \n            \n              Selected collaborations across finance, luxury, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently designing for neurodivergent humans.\n            \n            \n          \n        \n        \n      \n\n      \n      \n\n      \n          \n            \n              \n                \n                  \n                  Apple Music\n                \n\n                \n                  \n                  LinkedIn\n                \n              \n            \n          \n          \n             \n              London · 6:44:24 PM\n            \n          \n        \n      \n      \n        Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable."
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".portfolio-stage",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1208524,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": ".portfolio-stage",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#portfolioMeta",
+          "count": 1,
+          "stats": [
+            {
+              "area": 265312.5,
+              "visible": true,
+              "text": "Product\n          Digital Product Design for Complex Platforms\n          A decision-grade product suite that turns messy workflows into clear, fast-moving action."
+            }
+          ],
+          "assessment": {
+            "selector": "#portfolioMeta",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#track .slide",
+          "count": 12,
+          "stats": [
+            {
+              "area": 101573.94185137749,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 101836.8176589422,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 62415.981951560825,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 22655.113057732582,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 21803.607664704323,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 19396.57524152845,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 15989.132831126451,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 19396.57756730821,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 21803.607664704323,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 22655.113057732582,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 62393.41792425932,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 101836.8176589422,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": "#track .slide",
+            "failures": [],
+            "visibleCount": 12
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 339,
+        "topColorShare": 0.8879382716049383,
+        "stddev": 37.427313180679384,
+        "mean": 235.32239094650663,
+        "samples": 81000,
+        "stride": 4,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "portfolio",
+      "path": "/portfolio.html",
+      "theme": "dark",
+      "viewport": {
+        "label": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/portfolio-1440x900-dark.png",
+      "bootState": "content-ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:content-ready",
+        "lastSample": {
+          "bootState": "content-ready",
+          "readyState": "complete",
+          "visibleSelectors": 4,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 1055230.3125
+            },
+            {
+              "selector": ".portfolio-stage",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 1206095.909051299
+            },
+            {
+              "selector": "#portfolioMeta",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 262703.13905514777
+            },
+            {
+              "selector": "#track .slide",
+              "totalCount": 12,
+              "visibleCount": 5,
+              "maxArea": 101632.23781402409
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1055230.3125,
+              "visible": true,
+              "text": "Bio/CV\n            Contact\n          \n          \n            \n              Selected collaborations across finance, luxury, and frontier tech—things I’ve directed, mentored, executed, or co-built with global leaders. Currently designing for neurodivergent humans.\n            \n            \n          \n        \n        \n      \n\n      \n      \n\n      \n          \n            \n              \n                \n                  \n                  Apple Music\n                \n\n                \n                  \n                  LinkedIn\n                \n              \n            \n          \n          \n             \n              London · 6:44:27 PM\n            \n          \n        \n      \n      \n        Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable."
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".portfolio-stage",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1208524,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": ".portfolio-stage",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#portfolioMeta",
+          "count": 1,
+          "stats": [
+            {
+              "area": 265312.5,
+              "visible": true,
+              "text": "Product\n          Digital Product Design for Complex Platforms\n          A decision-grade product suite that turns messy workflows into clear, fast-moving action."
+            }
+          ],
+          "assessment": {
+            "selector": "#portfolioMeta",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": "#track .slide",
+          "count": 12,
+          "stats": [
+            {
+              "area": 101573.94185137749,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 101836.8176589422,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 62415.981951560825,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 22655.113057732582,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 21803.607664704323,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 19396.57524152845,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 15989.132831126451,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 19396.57756730821,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 21803.607664704323,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 22655.113057732582,
+              "visible": false,
+              "text": ""
+            },
+            {
+              "area": 62393.41792425932,
+              "visible": true,
+              "text": ""
+            },
+            {
+              "area": 101836.8176589422,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": "#track .slide",
+            "failures": [],
+            "visibleCount": 12
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 365,
+        "topColorShare": 0.2722098765432099,
+        "stddev": 55.845463635950175,
+        "mean": 63.24214814818043,
+        "samples": 81000,
+        "stride": 4,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "cv",
+      "path": "/cv.html",
+      "theme": "light",
+      "viewport": {
+        "label": "mobile",
+        "width": 375,
+        "height": 812
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/cv-375x812-light.png",
+      "bootState": "content-ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:content-ready",
+        "lastSample": {
+          "bootState": "content-ready",
+          "readyState": "complete",
+          "visibleSelectors": 4,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 215226.375
+            },
+            {
+              "selector": ".cv-scroll-container",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 178076.83437556028
+            },
+            {
+              "selector": ".cv-photo__image",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 79657.78141141869
+            },
+            {
+              "selector": ".cv-right__inner",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 743646.6655233577
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 215226.375,
+              "visible": true,
+              "text": "Portfolio\n            Contact\n          \n            \n              \n            \n          \n          \n        \n          \n        \n        \n      \n      \n        \n        \n        \n        \n          \n            \n              \n                \n                Apple Music\n              \n\n              \n                \n                LinkedIn\n              \n            \n          \n            \n            \n             \n                London · 6:44:30 PM\n              \n            \n          \n        \n      \n        Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable."
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-scroll-container",
+          "count": 1,
+          "stats": [
+            {
+              "area": 184474.6875,
+              "visible": true,
+              "text": "Alexander Beck\n                Product Design · Creative Technology · Experience Direction\n                For more than fifteen years, I've worked where product design, technology, and human behaviour meet. I help teams make complex things clearer through systems, interfaces, and prototypes that are thoughtful to use and realistic to build.\n              \n            \n          \n\n          \n          \n            \n              \n                About\n                I work across product design, systems thinking, interaction, and prototyping. Most of my projects involve untangling complexity: aligning teams, clarifying priorities, and giving products a stronger behavioural point of view.\n                My background spans enterprise platforms, brand-led digital experiences, and experimental builds. I use code when fidelity matters, and AI when it helps a team think faster, test ideas earlier, or explore new directions without losing judgement.\n              \n\n          \n            Experience\n            \n            \n              Independent Practice\n              Founder & Principal · 2019 – Present · London\n              Independent consultant and creative partner for product teams, founders, and agencies. I help define product direction, shape interaction models, prototype difficult ideas, and turn ambitious concepts into systems that can actually ship.\n            \n\n            \n              Senior Product Designer\n              Global Financial Services · 2016 – 2019 · London & New York\n              Led design systems and workflow redesign for enterprise finance products used by global teams. Worked closely with product, engineering, and research to simplify dense interfaces, improve decision-making, and bring more consistency to complex operational tools.\n            \n\n            \n              Design Lead\n              Digital Agency · 2012 – 2016 · Berlin & Amsterdam\n              Led multidisciplinary teams across digital campaigns, brand experiences, and interactive launches. Built a stronger prototyping culture so ideas could be tested earlier, discussed with more precision, and presented with less hand-waving.\n            \n\n            \n              Interactive Designer\n              Boutique Studio · 2008 – 2012 · San Francisco\n              Started in motion design and interactive development, building browser-based experiences and real-time visuals. That technical foundation still shapes how I think about behaviour, pacing, and performance.\n            \n          \n\n          \n            Expertise\n            \n              Product Strategy & Systems Thinking\n              Interaction Design & Motion\n              Design Systems & Component Architecture\n              Frontend Development (React, Vue, Canvas, WebGL)\n              AI/ML Product Integration\n              Design Operations & Team Leadership\n              Prototyping & Experimental Technology\n              Workshop Facilitation & Stakeholder Alignment\n            \n          \n\n          \n            Selected Projects\n            A few representative projects:\n            \n              Enterprise Trading Platform Redesign — Reframed a dense institutional product around clearer workflows, a shared component system, and tighter collaboration between design and engineering.\n              Luxury Retail Experience — Developed spatial and interactive concepts for a premium retail environment, blending digital storytelling with tactile product discovery.\n              AI-Assisted Creative Tool — Shaped early product direction and interface behaviour for a generative tool designed to expand concept exploration without removing creative control.\n              Interactive Brand Installation — Designed a physical and digital experience powered by real-time motion systems, turning a brand story into something people could move through and manipulate.\n            \n          \n\n          \n            Education\n            \n              MA Interactive Design\n              Royal College of Art · London · 2008\n            \n            \n              BA Graphic Design\n              California College of the Arts · San Francisco · 2006\n            \n          \n\n          \n            Philosophy\n            I like work that is both rigorous and expressive. Clear structure creates room for stronger feeling, and better tools create room for better judgement.\n            The best digital products do not perform intelligence for the user. They remove friction, reveal intent, and make complex systems feel usable without becoming bland.\n            Based in London and available for select collaborations.\n          \n\n          \n            Recognition\n            Selected work has been recognised by D&AD, Awwwards, FWA, and Red Dot, and featured in design publications and talks.\n          \n\n              \n                hello@alexanderbeck.studio\n                © 2026 Alexander Beck Studio. All rights reserved."
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-scroll-container",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-photo__image",
+          "count": 1,
+          "stats": [
+            {
+              "area": 82519.6875,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-photo__image",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-right__inner",
+          "count": 1,
+          "stats": [
+            {
+              "area": 770364.03125,
+              "visible": true,
+              "text": "About\n                I work across product design, systems thinking, interaction, and prototyping. Most of my projects involve untangling complexity: aligning teams, clarifying priorities, and giving products a stronger behavioural point of view.\n                My background spans enterprise platforms, brand-led digital experiences, and experimental builds. I use code when fidelity matters, and AI when it helps a team think faster, test ideas earlier, or explore new directions without losing judgement.\n              \n\n          \n            Experience\n            \n            \n              Independent Practice\n              Founder & Principal · 2019 – Present · London\n              Independent consultant and creative partner for product teams, founders, and agencies. I help define product direction, shape interaction models, prototype difficult ideas, and turn ambitious concepts into systems that can actually ship.\n            \n\n            \n              Senior Product Designer\n              Global Financial Services · 2016 – 2019 · London & New York\n              Led design systems and workflow redesign for enterprise finance products used by global teams. Worked closely with product, engineering, and research to simplify dense interfaces, improve decision-making, and bring more consistency to complex operational tools.\n            \n\n            \n              Design Lead\n              Digital Agency · 2012 – 2016 · Berlin & Amsterdam\n              Led multidisciplinary teams across digital campaigns, brand experiences, and interactive launches. Built a stronger prototyping culture so ideas could be tested earlier, discussed with more precision, and presented with less hand-waving.\n            \n\n            \n              Interactive Designer\n              Boutique Studio · 2008 – 2012 · San Francisco\n              Started in motion design and interactive development, building browser-based experiences and real-time visuals. That technical foundation still shapes how I think about behaviour, pacing, and performance.\n            \n          \n\n          \n            Expertise\n            \n              Product Strategy & Systems Thinking\n              Interaction Design & Motion\n              Design Systems & Component Architecture\n              Frontend Development (React, Vue, Canvas, WebGL)\n              AI/ML Product Integration\n              Design Operations & Team Leadership\n              Prototyping & Experimental Technology\n              Workshop Facilitation & Stakeholder Alignment\n            \n          \n\n          \n            Selected Projects\n            A few representative projects:\n            \n              Enterprise Trading Platform Redesign — Reframed a dense institutional product around clearer workflows, a shared component system, and tighter collaboration between design and engineering.\n              Luxury Retail Experience — Developed spatial and interactive concepts for a premium retail environment, blending digital storytelling with tactile product discovery.\n              AI-Assisted Creative Tool — Shaped early product direction and interface behaviour for a generative tool designed to expand concept exploration without removing creative control.\n              Interactive Brand Installation — Designed a physical and digital experience powered by real-time motion systems, turning a brand story into something people could move through and manipulate.\n            \n          \n\n          \n            Education\n            \n              MA Interactive Design\n              Royal College of Art · London · 2008\n            \n            \n              BA Graphic Design\n              California College of the Arts · San Francisco · 2006\n            \n          \n\n          \n            Philosophy\n            I like work that is both rigorous and expressive. Clear structure creates room for stronger feeling, and better tools create room for better judgement.\n            The best digital products do not perform intelligence for the user. They remove friction, reveal intent, and make complex systems feel usable without becoming bland.\n            Based in London and available for select collaborations.\n          \n\n          \n            Recognition\n            Selected work has been recognised by D&AD, Awwwards, FWA, and Red Dot, and featured in design publications and talks.\n          \n\n              \n                hello@alexanderbeck.studio\n                © 2026 Alexander Beck Studio. All rights reserved."
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-right__inner",
+            "failures": [],
+            "visibleCount": 1
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 271,
+        "topColorShare": 0.8244809332922192,
+        "stddev": 42.527003117317406,
+        "mean": 234.4697339568756,
+        "samples": 77832,
+        "stride": 2,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "cv",
+      "path": "/cv.html",
+      "theme": "dark",
+      "viewport": {
+        "label": "mobile",
+        "width": 375,
+        "height": 812
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/cv-375x812-dark.png",
+      "bootState": "content-ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:content-ready",
+        "lastSample": {
+          "bootState": "content-ready",
+          "readyState": "complete",
+          "visibleSelectors": 4,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 215226.375
+            },
+            {
+              "selector": ".cv-scroll-container",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 177144.06343227625
+            },
+            {
+              "selector": ".cv-photo__image",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 79240.55416347831
+            },
+            {
+              "selector": ".cv-right__inner",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 739751.5291452259
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 215226.375,
+              "visible": true,
+              "text": "Portfolio\n            Contact\n          \n            \n              \n            \n          \n          \n        \n          \n        \n        \n      \n      \n        \n        \n        \n        \n          \n            \n              \n                \n                Apple Music\n              \n\n              \n                \n                LinkedIn\n              \n            \n          \n            \n            \n             \n                London · 6:44:33 PM\n              \n            \n          \n        \n      \n        Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable."
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-scroll-container",
+          "count": 1,
+          "stats": [
+            {
+              "area": 184474.6875,
+              "visible": true,
+              "text": "Alexander Beck\n                Product Design · Creative Technology · Experience Direction\n                For more than fifteen years, I've worked where product design, technology, and human behaviour meet. I help teams make complex things clearer through systems, interfaces, and prototypes that are thoughtful to use and realistic to build.\n              \n            \n          \n\n          \n          \n            \n              \n                About\n                I work across product design, systems thinking, interaction, and prototyping. Most of my projects involve untangling complexity: aligning teams, clarifying priorities, and giving products a stronger behavioural point of view.\n                My background spans enterprise platforms, brand-led digital experiences, and experimental builds. I use code when fidelity matters, and AI when it helps a team think faster, test ideas earlier, or explore new directions without losing judgement.\n              \n\n          \n            Experience\n            \n            \n              Independent Practice\n              Founder & Principal · 2019 – Present · London\n              Independent consultant and creative partner for product teams, founders, and agencies. I help define product direction, shape interaction models, prototype difficult ideas, and turn ambitious concepts into systems that can actually ship.\n            \n\n            \n              Senior Product Designer\n              Global Financial Services · 2016 – 2019 · London & New York\n              Led design systems and workflow redesign for enterprise finance products used by global teams. Worked closely with product, engineering, and research to simplify dense interfaces, improve decision-making, and bring more consistency to complex operational tools.\n            \n\n            \n              Design Lead\n              Digital Agency · 2012 – 2016 · Berlin & Amsterdam\n              Led multidisciplinary teams across digital campaigns, brand experiences, and interactive launches. Built a stronger prototyping culture so ideas could be tested earlier, discussed with more precision, and presented with less hand-waving.\n            \n\n            \n              Interactive Designer\n              Boutique Studio · 2008 – 2012 · San Francisco\n              Started in motion design and interactive development, building browser-based experiences and real-time visuals. That technical foundation still shapes how I think about behaviour, pacing, and performance.\n            \n          \n\n          \n            Expertise\n            \n              Product Strategy & Systems Thinking\n              Interaction Design & Motion\n              Design Systems & Component Architecture\n              Frontend Development (React, Vue, Canvas, WebGL)\n              AI/ML Product Integration\n              Design Operations & Team Leadership\n              Prototyping & Experimental Technology\n              Workshop Facilitation & Stakeholder Alignment\n            \n          \n\n          \n            Selected Projects\n            A few representative projects:\n            \n              Enterprise Trading Platform Redesign — Reframed a dense institutional product around clearer workflows, a shared component system, and tighter collaboration between design and engineering.\n              Luxury Retail Experience — Developed spatial and interactive concepts for a premium retail environment, blending digital storytelling with tactile product discovery.\n              AI-Assisted Creative Tool — Shaped early product direction and interface behaviour for a generative tool designed to expand concept exploration without removing creative control.\n              Interactive Brand Installation — Designed a physical and digital experience powered by real-time motion systems, turning a brand story into something people could move through and manipulate.\n            \n          \n\n          \n            Education\n            \n              MA Interactive Design\n              Royal College of Art · London · 2008\n            \n            \n              BA Graphic Design\n              California College of the Arts · San Francisco · 2006\n            \n          \n\n          \n            Philosophy\n            I like work that is both rigorous and expressive. Clear structure creates room for stronger feeling, and better tools create room for better judgement.\n            The best digital products do not perform intelligence for the user. They remove friction, reveal intent, and make complex systems feel usable without becoming bland.\n            Based in London and available for select collaborations.\n          \n\n          \n            Recognition\n            Selected work has been recognised by D&AD, Awwwards, FWA, and Red Dot, and featured in design publications and talks.\n          \n\n              \n                hello@alexanderbeck.studio\n                © 2026 Alexander Beck Studio. All rights reserved."
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-scroll-container",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-photo__image",
+          "count": 1,
+          "stats": [
+            {
+              "area": 82519.6875,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-photo__image",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-right__inner",
+          "count": 1,
+          "stats": [
+            {
+              "area": 770364.03125,
+              "visible": true,
+              "text": "About\n                I work across product design, systems thinking, interaction, and prototyping. Most of my projects involve untangling complexity: aligning teams, clarifying priorities, and giving products a stronger behavioural point of view.\n                My background spans enterprise platforms, brand-led digital experiences, and experimental builds. I use code when fidelity matters, and AI when it helps a team think faster, test ideas earlier, or explore new directions without losing judgement.\n              \n\n          \n            Experience\n            \n            \n              Independent Practice\n              Founder & Principal · 2019 – Present · London\n              Independent consultant and creative partner for product teams, founders, and agencies. I help define product direction, shape interaction models, prototype difficult ideas, and turn ambitious concepts into systems that can actually ship.\n            \n\n            \n              Senior Product Designer\n              Global Financial Services · 2016 – 2019 · London & New York\n              Led design systems and workflow redesign for enterprise finance products used by global teams. Worked closely with product, engineering, and research to simplify dense interfaces, improve decision-making, and bring more consistency to complex operational tools.\n            \n\n            \n              Design Lead\n              Digital Agency · 2012 – 2016 · Berlin & Amsterdam\n              Led multidisciplinary teams across digital campaigns, brand experiences, and interactive launches. Built a stronger prototyping culture so ideas could be tested earlier, discussed with more precision, and presented with less hand-waving.\n            \n\n            \n              Interactive Designer\n              Boutique Studio · 2008 – 2012 · San Francisco\n              Started in motion design and interactive development, building browser-based experiences and real-time visuals. That technical foundation still shapes how I think about behaviour, pacing, and performance.\n            \n          \n\n          \n            Expertise\n            \n              Product Strategy & Systems Thinking\n              Interaction Design & Motion\n              Design Systems & Component Architecture\n              Frontend Development (React, Vue, Canvas, WebGL)\n              AI/ML Product Integration\n              Design Operations & Team Leadership\n              Prototyping & Experimental Technology\n              Workshop Facilitation & Stakeholder Alignment\n            \n          \n\n          \n            Selected Projects\n            A few representative projects:\n            \n              Enterprise Trading Platform Redesign — Reframed a dense institutional product around clearer workflows, a shared component system, and tighter collaboration between design and engineering.\n              Luxury Retail Experience — Developed spatial and interactive concepts for a premium retail environment, blending digital storytelling with tactile product discovery.\n              AI-Assisted Creative Tool — Shaped early product direction and interface behaviour for a generative tool designed to expand concept exploration without removing creative control.\n              Interactive Brand Installation — Designed a physical and digital experience powered by real-time motion systems, turning a brand story into something people could move through and manipulate.\n            \n          \n\n          \n            Education\n            \n              MA Interactive Design\n              Royal College of Art · London · 2008\n            \n            \n              BA Graphic Design\n              California College of the Arts · San Francisco · 2006\n            \n          \n\n          \n            Philosophy\n            I like work that is both rigorous and expressive. Clear structure creates room for stronger feeling, and better tools create room for better judgement.\n            The best digital products do not perform intelligence for the user. They remove friction, reveal intent, and make complex systems feel usable without becoming bland.\n            Based in London and available for select collaborations.\n          \n\n          \n            Recognition\n            Selected work has been recognised by D&AD, Awwwards, FWA, and Red Dot, and featured in design publications and talks.\n          \n\n              \n                hello@alexanderbeck.studio\n                © 2026 Alexander Beck Studio. All rights reserved."
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-right__inner",
+            "failures": [],
+            "visibleCount": 1
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 271,
+        "topColorShare": 0.6108027546510433,
+        "stddev": 43.307924939382424,
+        "mean": 34.57690495767642,
+        "samples": 77832,
+        "stride": 2,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "cv",
+      "path": "/cv.html",
+      "theme": "light",
+      "viewport": {
+        "label": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/cv-1440x900-light.png",
+      "bootState": "content-ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:content-ready",
+        "lastSample": {
+          "bootState": "content-ready",
+          "readyState": "complete",
+          "visibleSelectors": 4,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 1055230.3125
+            },
+            {
+              "selector": ".cv-scroll-container",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 963403.9730353355
+            },
+            {
+              "selector": ".cv-photo__image",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 88352.31488031149
+            },
+            {
+              "selector": ".cv-right__inner",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 1712242.141137123
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1055230.3125,
+              "visible": true,
+              "text": "Portfolio\n            Contact\n          \n            \n              \n            \n          \n          \n        \n          \n        \n        \n      \n      \n        \n        \n        \n        \n          \n            \n              \n                \n                Apple Music\n              \n\n              \n                \n                LinkedIn\n              \n            \n          \n            \n            \n             \n                London · 6:44:36 PM\n              \n            \n          \n        \n      \n        Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable."
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-scroll-container",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1016760,
+              "visible": true,
+              "text": "Alexander Beck\n                Product Design · Creative Technology · Experience Direction\n                For more than fifteen years, I've worked where product design, technology, and human behaviour meet. I help teams make complex things clearer through systems, interfaces, and prototypes that are thoughtful to use and realistic to build.\n              \n            \n          \n\n          \n          \n            \n              \n                About\n                I work across product design, systems thinking, interaction, and prototyping. Most of my projects involve untangling complexity: aligning teams, clarifying priorities, and giving products a stronger behavioural point of view.\n                My background spans enterprise platforms, brand-led digital experiences, and experimental builds. I use code when fidelity matters, and AI when it helps a team think faster, test ideas earlier, or explore new directions without losing judgement.\n              \n\n          \n            Experience\n            \n            \n              Independent Practice\n              Founder & Principal · 2019 – Present · London\n              Independent consultant and creative partner for product teams, founders, and agencies. I help define product direction, shape interaction models, prototype difficult ideas, and turn ambitious concepts into systems that can actually ship.\n            \n\n            \n              Senior Product Designer\n              Global Financial Services · 2016 – 2019 · London & New York\n              Led design systems and workflow redesign for enterprise finance products used by global teams. Worked closely with product, engineering, and research to simplify dense interfaces, improve decision-making, and bring more consistency to complex operational tools.\n            \n\n            \n              Design Lead\n              Digital Agency · 2012 – 2016 · Berlin & Amsterdam\n              Led multidisciplinary teams across digital campaigns, brand experiences, and interactive launches. Built a stronger prototyping culture so ideas could be tested earlier, discussed with more precision, and presented with less hand-waving.\n            \n\n            \n              Interactive Designer\n              Boutique Studio · 2008 – 2012 · San Francisco\n              Started in motion design and interactive development, building browser-based experiences and real-time visuals. That technical foundation still shapes how I think about behaviour, pacing, and performance.\n            \n          \n\n          \n            Expertise\n            \n              Product Strategy & Systems Thinking\n              Interaction Design & Motion\n              Design Systems & Component Architecture\n              Frontend Development (React, Vue, Canvas, WebGL)\n              AI/ML Product Integration\n              Design Operations & Team Leadership\n              Prototyping & Experimental Technology\n              Workshop Facilitation & Stakeholder Alignment\n            \n          \n\n          \n            Selected Projects\n            A few representative projects:\n            \n              Enterprise Trading Platform Redesign — Reframed a dense institutional product around clearer workflows, a shared component system, and tighter collaboration between design and engineering.\n              Luxury Retail Experience — Developed spatial and interactive concepts for a premium retail environment, blending digital storytelling with tactile product discovery.\n              AI-Assisted Creative Tool — Shaped early product direction and interface behaviour for a generative tool designed to expand concept exploration without removing creative control.\n              Interactive Brand Installation — Designed a physical and digital experience powered by real-time motion systems, turning a brand story into something people could move through and manipulate.\n            \n          \n\n          \n            Education\n            \n              MA Interactive Design\n              Royal College of Art · London · 2008\n            \n            \n              BA Graphic Design\n              California College of the Arts · San Francisco · 2006\n            \n          \n\n          \n            Philosophy\n            I like work that is both rigorous and expressive. Clear structure creates room for stronger feeling, and better tools create room for better judgement.\n            The best digital products do not perform intelligence for the user. They remove friction, reveal intent, and make complex systems feel usable without becoming bland.\n            Based in London and available for select collaborations.\n          \n\n          \n            Recognition\n            Selected work has been recognised by D&AD, Awwwards, FWA, and Red Dot, and featured in design publications and talks.\n          \n\n              \n                hello@alexanderbeck.studio\n                © 2026 Alexander Beck Studio. All rights reserved."
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-scroll-container",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-photo__image",
+          "count": 1,
+          "stats": [
+            {
+              "area": 93245.51733398438,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-photo__image",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-right__inner",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1807071,
+              "visible": true,
+              "text": "About\n                I work across product design, systems thinking, interaction, and prototyping. Most of my projects involve untangling complexity: aligning teams, clarifying priorities, and giving products a stronger behavioural point of view.\n                My background spans enterprise platforms, brand-led digital experiences, and experimental builds. I use code when fidelity matters, and AI when it helps a team think faster, test ideas earlier, or explore new directions without losing judgement.\n              \n\n          \n            Experience\n            \n            \n              Independent Practice\n              Founder & Principal · 2019 – Present · London\n              Independent consultant and creative partner for product teams, founders, and agencies. I help define product direction, shape interaction models, prototype difficult ideas, and turn ambitious concepts into systems that can actually ship.\n            \n\n            \n              Senior Product Designer\n              Global Financial Services · 2016 – 2019 · London & New York\n              Led design systems and workflow redesign for enterprise finance products used by global teams. Worked closely with product, engineering, and research to simplify dense interfaces, improve decision-making, and bring more consistency to complex operational tools.\n            \n\n            \n              Design Lead\n              Digital Agency · 2012 – 2016 · Berlin & Amsterdam\n              Led multidisciplinary teams across digital campaigns, brand experiences, and interactive launches. Built a stronger prototyping culture so ideas could be tested earlier, discussed with more precision, and presented with less hand-waving.\n            \n\n            \n              Interactive Designer\n              Boutique Studio · 2008 – 2012 · San Francisco\n              Started in motion design and interactive development, building browser-based experiences and real-time visuals. That technical foundation still shapes how I think about behaviour, pacing, and performance.\n            \n          \n\n          \n            Expertise\n            \n              Product Strategy & Systems Thinking\n              Interaction Design & Motion\n              Design Systems & Component Architecture\n              Frontend Development (React, Vue, Canvas, WebGL)\n              AI/ML Product Integration\n              Design Operations & Team Leadership\n              Prototyping & Experimental Technology\n              Workshop Facilitation & Stakeholder Alignment\n            \n          \n\n          \n            Selected Projects\n            A few representative projects:\n            \n              Enterprise Trading Platform Redesign — Reframed a dense institutional product around clearer workflows, a shared component system, and tighter collaboration between design and engineering.\n              Luxury Retail Experience — Developed spatial and interactive concepts for a premium retail environment, blending digital storytelling with tactile product discovery.\n              AI-Assisted Creative Tool — Shaped early product direction and interface behaviour for a generative tool designed to expand concept exploration without removing creative control.\n              Interactive Brand Installation — Designed a physical and digital experience powered by real-time motion systems, turning a brand story into something people could move through and manipulate.\n            \n          \n\n          \n            Education\n            \n              MA Interactive Design\n              Royal College of Art · London · 2008\n            \n            \n              BA Graphic Design\n              California College of the Arts · San Francisco · 2006\n            \n          \n\n          \n            Philosophy\n            I like work that is both rigorous and expressive. Clear structure creates room for stronger feeling, and better tools create room for better judgement.\n            The best digital products do not perform intelligence for the user. They remove friction, reveal intent, and make complex systems feel usable without becoming bland.\n            Based in London and available for select collaborations.\n          \n\n          \n            Recognition\n            Selected work has been recognised by D&AD, Awwwards, FWA, and Red Dot, and featured in design publications and talks.\n          \n\n              \n                hello@alexanderbeck.studio\n                © 2026 Alexander Beck Studio. All rights reserved."
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-right__inner",
+            "failures": [],
+            "visibleCount": 1
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 112,
+        "topColorShare": 0.8902717127607958,
+        "stddev": 43.99357839517578,
+        "mean": 232.73569060324297,
+        "samples": 82440,
+        "stride": 4,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "page": "cv",
+      "path": "/cv.html",
+      "theme": "dark",
+      "viewport": {
+        "label": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "/Users/alexanderbeck/Projects-code/Alexander Beck Studio Website/output/playwright/screens-certification/cv-1440x900-dark.png",
+      "bootState": "content-ready",
+      "bootStateOk": true,
+      "readiness": {
+        "ready": true,
+        "source": "boot-state:content-ready",
+        "lastSample": {
+          "bootState": "content-ready",
+          "readyState": "complete",
+          "visibleSelectors": 4,
+          "selectorSummary": [
+            {
+              "selector": "#app-frame",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 1055230.3125
+            },
+            {
+              "selector": ".cv-scroll-container",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 963437.8353896141
+            },
+            {
+              "selector": ".cv-photo__image",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 88355.43103214353
+            },
+            {
+              "selector": ".cv-right__inner",
+              "totalCount": 1,
+              "visibleCount": 1,
+              "maxArea": 1712302.839936614
+            }
+          ]
+        }
+      },
+      "runtimeFailures": [],
+      "selectorResults": [
+        {
+          "selector": "#app-frame",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1055230.3125,
+              "visible": true,
+              "text": "Portfolio\n            Contact\n          \n            \n              \n            \n          \n          \n        \n          \n        \n        \n      \n      \n        \n        \n        \n        \n          \n            \n              \n                \n                Apple Music\n              \n\n              \n                \n                LinkedIn\n              \n            \n          \n            \n            \n             \n                London · 6:44:39 PM\n              \n            \n          \n        \n      \n        Product design, experience strategy, and creative technology from London—where aesthetics meet intent and every interaction is built to feel inevitable."
+            }
+          ],
+          "assessment": {
+            "selector": "#app-frame",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-scroll-container",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1016760,
+              "visible": true,
+              "text": "Alexander Beck\n                Product Design · Creative Technology · Experience Direction\n                For more than fifteen years, I've worked where product design, technology, and human behaviour meet. I help teams make complex things clearer through systems, interfaces, and prototypes that are thoughtful to use and realistic to build.\n              \n            \n          \n\n          \n          \n            \n              \n                About\n                I work across product design, systems thinking, interaction, and prototyping. Most of my projects involve untangling complexity: aligning teams, clarifying priorities, and giving products a stronger behavioural point of view.\n                My background spans enterprise platforms, brand-led digital experiences, and experimental builds. I use code when fidelity matters, and AI when it helps a team think faster, test ideas earlier, or explore new directions without losing judgement.\n              \n\n          \n            Experience\n            \n            \n              Independent Practice\n              Founder & Principal · 2019 – Present · London\n              Independent consultant and creative partner for product teams, founders, and agencies. I help define product direction, shape interaction models, prototype difficult ideas, and turn ambitious concepts into systems that can actually ship.\n            \n\n            \n              Senior Product Designer\n              Global Financial Services · 2016 – 2019 · London & New York\n              Led design systems and workflow redesign for enterprise finance products used by global teams. Worked closely with product, engineering, and research to simplify dense interfaces, improve decision-making, and bring more consistency to complex operational tools.\n            \n\n            \n              Design Lead\n              Digital Agency · 2012 – 2016 · Berlin & Amsterdam\n              Led multidisciplinary teams across digital campaigns, brand experiences, and interactive launches. Built a stronger prototyping culture so ideas could be tested earlier, discussed with more precision, and presented with less hand-waving.\n            \n\n            \n              Interactive Designer\n              Boutique Studio · 2008 – 2012 · San Francisco\n              Started in motion design and interactive development, building browser-based experiences and real-time visuals. That technical foundation still shapes how I think about behaviour, pacing, and performance.\n            \n          \n\n          \n            Expertise\n            \n              Product Strategy & Systems Thinking\n              Interaction Design & Motion\n              Design Systems & Component Architecture\n              Frontend Development (React, Vue, Canvas, WebGL)\n              AI/ML Product Integration\n              Design Operations & Team Leadership\n              Prototyping & Experimental Technology\n              Workshop Facilitation & Stakeholder Alignment\n            \n          \n\n          \n            Selected Projects\n            A few representative projects:\n            \n              Enterprise Trading Platform Redesign — Reframed a dense institutional product around clearer workflows, a shared component system, and tighter collaboration between design and engineering.\n              Luxury Retail Experience — Developed spatial and interactive concepts for a premium retail environment, blending digital storytelling with tactile product discovery.\n              AI-Assisted Creative Tool — Shaped early product direction and interface behaviour for a generative tool designed to expand concept exploration without removing creative control.\n              Interactive Brand Installation — Designed a physical and digital experience powered by real-time motion systems, turning a brand story into something people could move through and manipulate.\n            \n          \n\n          \n            Education\n            \n              MA Interactive Design\n              Royal College of Art · London · 2008\n            \n            \n              BA Graphic Design\n              California College of the Arts · San Francisco · 2006\n            \n          \n\n          \n            Philosophy\n            I like work that is both rigorous and expressive. Clear structure creates room for stronger feeling, and better tools create room for better judgement.\n            The best digital products do not perform intelligence for the user. They remove friction, reveal intent, and make complex systems feel usable without becoming bland.\n            Based in London and available for select collaborations.\n          \n\n          \n            Recognition\n            Selected work has been recognised by D&AD, Awwwards, FWA, and Red Dot, and featured in design publications and talks.\n          \n\n              \n                hello@alexanderbeck.studio\n                © 2026 Alexander Beck Studio. All rights reserved."
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-scroll-container",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-photo__image",
+          "count": 1,
+          "stats": [
+            {
+              "area": 93245.51733398438,
+              "visible": true,
+              "text": ""
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-photo__image",
+            "failures": [],
+            "visibleCount": 1
+          }
+        },
+        {
+          "selector": ".cv-right__inner",
+          "count": 1,
+          "stats": [
+            {
+              "area": 1807071,
+              "visible": true,
+              "text": "About\n                I work across product design, systems thinking, interaction, and prototyping. Most of my projects involve untangling complexity: aligning teams, clarifying priorities, and giving products a stronger behavioural point of view.\n                My background spans enterprise platforms, brand-led digital experiences, and experimental builds. I use code when fidelity matters, and AI when it helps a team think faster, test ideas earlier, or explore new directions without losing judgement.\n              \n\n          \n            Experience\n            \n            \n              Independent Practice\n              Founder & Principal · 2019 – Present · London\n              Independent consultant and creative partner for product teams, founders, and agencies. I help define product direction, shape interaction models, prototype difficult ideas, and turn ambitious concepts into systems that can actually ship.\n            \n\n            \n              Senior Product Designer\n              Global Financial Services · 2016 – 2019 · London & New York\n              Led design systems and workflow redesign for enterprise finance products used by global teams. Worked closely with product, engineering, and research to simplify dense interfaces, improve decision-making, and bring more consistency to complex operational tools.\n            \n\n            \n              Design Lead\n              Digital Agency · 2012 – 2016 · Berlin & Amsterdam\n              Led multidisciplinary teams across digital campaigns, brand experiences, and interactive launches. Built a stronger prototyping culture so ideas could be tested earlier, discussed with more precision, and presented with less hand-waving.\n            \n\n            \n              Interactive Designer\n              Boutique Studio · 2008 – 2012 · San Francisco\n              Started in motion design and interactive development, building browser-based experiences and real-time visuals. That technical foundation still shapes how I think about behaviour, pacing, and performance.\n            \n          \n\n          \n            Expertise\n            \n              Product Strategy & Systems Thinking\n              Interaction Design & Motion\n              Design Systems & Component Architecture\n              Frontend Development (React, Vue, Canvas, WebGL)\n              AI/ML Product Integration\n              Design Operations & Team Leadership\n              Prototyping & Experimental Technology\n              Workshop Facilitation & Stakeholder Alignment\n            \n          \n\n          \n            Selected Projects\n            A few representative projects:\n            \n              Enterprise Trading Platform Redesign — Reframed a dense institutional product around clearer workflows, a shared component system, and tighter collaboration between design and engineering.\n              Luxury Retail Experience — Developed spatial and interactive concepts for a premium retail environment, blending digital storytelling with tactile product discovery.\n              AI-Assisted Creative Tool — Shaped early product direction and interface behaviour for a generative tool designed to expand concept exploration without removing creative control.\n              Interactive Brand Installation — Designed a physical and digital experience powered by real-time motion systems, turning a brand story into something people could move through and manipulate.\n            \n          \n\n          \n            Education\n            \n              MA Interactive Design\n              Royal College of Art · London · 2008\n            \n            \n              BA Graphic Design\n              California College of the Arts · San Francisco · 2006\n            \n          \n\n          \n            Philosophy\n            I like work that is both rigorous and expressive. Clear structure creates room for stronger feeling, and better tools create room for better judgement.\n            The best digital products do not perform intelligence for the user. They remove friction, reveal intent, and make complex systems feel usable without becoming bland.\n            Based in London and available for select collaborations.\n          \n\n          \n            Recognition\n            Selected work has been recognised by D&AD, Awwwards, FWA, and Red Dot, and featured in design publications and talks.\n          \n\n              \n                hello@alexanderbeck.studio\n                © 2026 Alexander Beck Studio. All rights reserved."
+            }
+          ],
+          "assessment": {
+            "selector": ".cv-right__inner",
+            "failures": [],
+            "visibleCount": 1
+          }
+        }
+      ],
+      "selectorFailures": [],
+      "imageMetrics": {
+        "uniqueColors": 116,
+        "topColorShare": 0.7815987384764678,
+        "stddev": 38.26928029230955,
+        "mean": 32.08670952611587,
+        "samples": 82440,
+        "stride": 4,
+        "isNearBlank": false
+      },
+      "passed": true,
+      "failures": []
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+- generic [ref=e2]:
+  - generic:
+    - generic:
+      - generic:
+        - banner:
+          - generic:
+            - generic:
+              - navigation "Areas of expertise" [ref=e3]:
+                - generic [ref=e6]: Product Systems
+                - generic [ref=e9]: Interaction Design
+                - generic [ref=e12]: Creative Technology
+                - generic [ref=e15]: Applied AI
+                - generic [ref=e18]: Experience Strategy
+                - generic [ref=e21]: Art Direction
+                - generic [ref=e24]: Prototyping
+              - generic: ↳
+            - blockquote [ref=e25]:
+              - paragraph [ref=e26]:
+                - text: Innovation happens when different creative disciplines collide. By bringing together design, technology, and storytelling, I create experiences that feel both familiar and entirely new. Precise through constraint, expressive through humanity.
+                - link "Let's chat." [ref=e27] [cursor=pointer]:
+                  - /url: "#"
+        - main:
+          - navigation "Main navigation links":
+            - button "Contact" [ref=e28] [cursor=pointer]
+            - button "Portfolio" [ref=e29] [cursor=pointer]
+            - button "Bio/CV" [ref=e30] [cursor=pointer]
+        - contentinfo:
+          - generic:
+            - group "Social media links" [ref=e32]:
+              - button "Apple Music" [ref=e33] [cursor=pointer]:
+                - generic: 
+                - generic [ref=e34]: Apple Music
+              - button "LinkedIn" [ref=e35] [cursor=pointer]:
+                - generic: 
+                - generic [ref=e36]: LinkedIn
+            - button "Toggle theme" [ref=e38] [cursor=pointer]:
+              - strong [ref=e40]: London
+        - status:
+          - generic: BUILT WITH LOVE TO BE SATISFYING.
+          - generic: © 2026 Alexander Beck Studio

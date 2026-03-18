@@ -1,0 +1,64 @@
+- generic [ref=e2]:
+  - generic:
+    - generic [ref=e41]:
+      - application "Bouncy balls" [ref=e42]
+      - generic:
+        - generic:
+          - banner:
+            - generic:
+              - navigation "Areas of expertise" [ref=e3]:
+                - generic [ref=e6]: Product Systems
+                - generic [ref=e9]: Interaction Design
+                - generic [ref=e12]: Creative Technology
+                - generic [ref=e15]: Applied AI
+                - generic [ref=e18]: Experience Strategy
+                - generic [ref=e21]: Art Direction
+                - generic [ref=e24]: Prototyping
+              - generic:
+                - blockquote [ref=e25]:
+                  - paragraph [ref=e26]:
+                    - text: The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI as materials to shape clear, usable experiences ready for the real world.
+                    - link "Let's chat." [ref=e27]:
+                      - /url: "#"
+                - button "Sound off" [ref=e43]:
+                  - generic: 
+          - main:
+            - navigation "Main navigation links":
+              - button "Contact" [ref=e28]
+              - button "Portfolio" [ref=e29]
+              - button "Bio/CV" [ref=e30]:
+                - generic [ref=e44]: Bio/CV
+          - contentinfo:
+            - generic:
+              - group "Social media links" [ref=e32]:
+                - button "Apple Music" [ref=e33]:
+                  - generic: 
+                  - generic [ref=e34]: Apple Music
+                - button "LinkedIn" [ref=e35]:
+                  - generic: 
+                  - generic [ref=e36]: LinkedIn
+              - generic [ref=e37]:
+                - generic [ref=e46]:
+                  - paragraph [ref=e47]: The details are not the details. They make the design.
+                  - paragraph [ref=e48]: Charles Eames
+                - button "Toggle theme" [ref=e38]:
+                  - generic [ref=e39]:
+                    - strong [ref=e40]: London
+                    - generic [ref=e49]: 2:00:16 PM
+          - status:
+            - generic: Built with love for aesthetics, motion, and interaction that feels impossibly satisfying.
+            - generic: © 2026 Alexander Beck Studio
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - button [active]:
+                - generic: 
+            - heading [level=2]: View Portfolio
+            - paragraph: This is a lightweight invite gate in the browser, not secure authentication. If I shared a code with you, enter it here. Otherwise get in touch and I’ll send portfolio access.
+          - generic:
+            - textbox
+            - textbox
+            - textbox
+            - textbox
