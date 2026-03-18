@@ -1,0 +1,34 @@
+{
+  "theme": {
+    "wallBaseLight": "#f1f3f4",
+    "wallBaseDark": "#202124",
+    "chromeHarmonyMode": "adaptive",
+    "lockedHeaderLight": "#f1f3f4",
+    "lockedHeaderDark": "#3c3c3c"
+  },
+  "layout": {
+    "frameInsetDesktop": "16px",
+    "frameInsetTablet": "14px",
+    "frameInsetMobile": "10px",
+    "contentInsetDesktop": "28px",
+    "contentInsetTablet": "22px",
+    "contentInsetMobile": "16px",
+    "frameRadiusDesktop": "32px",
+    "frameRadiusTablet": "28px",
+    "frameRadiusMobile": "24px"
+  },
+  "motion": {
+    "shellRevealMs": 180,
+    "contentRevealMs": 420,
+    "simulationWarmupFrames": 90,
+    "allowScaleEntrance": false
+  },
+  "hero": {
+    "startupMode": "pit",
+    "mobileLogoWidthVw": 50,
+    "mobileLogoMinPx": 170,
+    "mobileLogoMaxPx": 220,
+    "mobileLogoHeightRatio": 0.24,
+    "mobileNavBottomOffset": "118px"
+  }
+}

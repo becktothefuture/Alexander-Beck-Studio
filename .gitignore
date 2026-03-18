@@ -1,8 +1,11 @@
 # Build output
-public/
 dist/
 html-site/dist/
 react-app/app/dist/
+
+# Video archives (large unused assets — keep out of git)
+react-app/app/public/video/archive/
+react-app/app/public/video/under consideration/
 
 # Dependencies
 node_modules/
@@ -15,7 +18,6 @@ playwright-report/
 .playwright-mcp/
 
 # Video archive (unused video assets)
-html-site/source/video/archive/
 html-site/dist/video/archive/
 
 # OS files

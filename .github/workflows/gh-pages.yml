@@ -39,6 +39,10 @@ jobs:
       - name: Verify build output
         run: |
           test -f react-app/app/dist/index.html || (echo "Missing react-app/app/dist/index.html" && exit 1)
+          test -f react-app/app/dist/css/tokens.css || (echo "Missing CSS — public/ not copied to dist" && exit 1)
+          test -f react-app/app/dist/config/default-config.json || (echo "Missing config — public/ not copied to dist" && exit 1)
+          test -f react-app/app/dist/.nojekyll || (echo "Missing .nojekyll" && exit 1)
+          echo "Build output verified:"
           ls -la react-app/app/dist/
 
       - name: Configure Pages
