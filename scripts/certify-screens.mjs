@@ -212,6 +212,17 @@ function startPreviewServer() {
   return { child, getLogs: () => logs };
 }
 
+function logsSuggestPortReuse(logs) {
+  if (!logs) return false;
+
+  return [
+    new RegExp(`Port\\s+${previewPort}\\s+is already in use`, 'i'),
+    /Port\s+\d+\s+is already in use/i,
+    /EADDRINUSE/i,
+    /strict port/i
+  ].some((pattern) => pattern.test(logs));
+}
+
 function stopPreviewServer(preview) {
   if (!preview?.child) return;
   if (preview.reused) return;
@@ -262,7 +273,7 @@ async function ensurePreviewServer() {
   } catch (error) {
     const logs = preview.getLogs();
 
-    if (logs.includes(`Port ${previewPort} is already in use`) || /Port \d+ is already in use/.test(logs)) {
+    if (logsSuggestPortReuse(logs)) {
       await waitForExpectedPreviewServer(5000);
       return {
         child: null,

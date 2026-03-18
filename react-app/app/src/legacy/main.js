@@ -520,17 +520,17 @@ window.addEventListener('unhandledrejection', (event) => {
       console.warn('Modal overlay initialization error:', e?.message);
     }
 
-    // Initialize password gates (CV and Portfolio protection)
+    // Initialize invite gates (CV and Portfolio access flow)
     try {
       initCVModal();
-      log('✓ CV password gate initialized');
+      log('✓ CV invite gate initialized');
     } catch (e) {
       console.warn('CV gate initialization error:', e?.message);
     }
 
     try {
       initPortfolioModal();
-      log('✓ Portfolio password gate initialized');
+      log('✓ Portfolio invite gate initialized');
     } catch (e) {
       console.warn('Portfolio gate initialization error:', e?.message);
     }

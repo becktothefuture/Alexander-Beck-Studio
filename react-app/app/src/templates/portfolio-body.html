@@ -138,7 +138,7 @@
       return;
 
       const p = String(window.location.port || '');
-      if (p !== '8001' && p !== '8000') return;
+      if (p !== '8012' && p !== '8013') return;
       try {
         const flag = localStorage.getItem('abs_live_reload');
         if (flag === '0') return;

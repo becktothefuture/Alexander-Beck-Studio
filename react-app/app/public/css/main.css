@@ -287,7 +287,7 @@ body.body.dark-mode {
   text-align: center;
   padding: 8px;
   font-size: min(calc(var(--text-xs) * 0.95), 8px);
-  opacity: 0.42;
+  opacity: 0.52;
 }
 
 .edge-caption__line {
@@ -299,7 +299,7 @@ body.body.dark-mode {
   text-transform: uppercase;
   white-space: normal; /* Allow wrapping */
   /* Same colour and opacity (on parent) in light and dark; no overrides */
-  color: #808080;
+  color: #6f6f6f;
   /* Subtle engraved treatment: tiny light lift + recessed dark edge */
   text-shadow:
     0 0.5px 0 rgba(var(--abs-rgb-white), 0.16),
@@ -2582,7 +2582,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   PASSWORD-GATED MODALS — CV & PORTFOLIO PROTECTION SYSTEM (merged from password-gate.css)
+   INVITE GATE MODALS — CV & PORTFOLIO ACCESS FLOW (merged from password-gate.css)
    4-digit input that swaps position with logo, validates code
    ═══════════════════════════════════════════════════════════════════════════════ */
 
@@ -4312,7 +4312,7 @@ body.cv-page.dark-mode .cv-scroll-container {
     gap: clamp(1rem, 2.8vw, 1.5rem);
     align-items: center;
     /* Mobile: vertical padding only */
-    padding-top: clamp(1rem, 2vw, 1.5rem);
+    padding-top: clamp(0.75rem, 1.8vw, 1.25rem);
     padding-bottom: clamp(1.75rem, 5vw, 2.5rem);
     max-width: 32rem;
     width: 100%;
@@ -4321,9 +4321,9 @@ body.cv-page.dark-mode .cv-scroll-container {
   
   .cv-photo {
     max-width: min(13rem, 60vw);
-    margin: clamp(3.5rem, 8vh, 4.5rem) 0 0 auto;
+    margin: clamp(2.2rem, 5.8vh, 3.35rem) 0 0 auto;
     align-self: flex-end;
-    transform: translateX(clamp(8px, 3vw, 14px));
+    transform: translateX(clamp(6px, 2.4vw, 12px));
   }
   
   .cv-intro {
@@ -4430,7 +4430,7 @@ body.cv-page.dark-mode .cv-scroll-container {
     left: 50%;
     top: auto;
     right: auto;
-    bottom: calc(max(var(--abs-safe-bottom), 18px) + var(--abs-home-mobile-nav-bottom-offset, 118px));
+    bottom: calc(max(var(--abs-safe-bottom), 20px) + var(--abs-home-mobile-nav-bottom-offset, 132px));
     width: min(86vw, 320px);
     transform: translateX(-50%);
     flex-wrap: wrap;
@@ -4477,7 +4477,7 @@ body.cv-page.dark-mode .cv-scroll-container {
   }
 
   body:not(.portfolio-page):not(.cv-page) .edge-caption {
-    bottom: max(var(--abs-safe-bottom), 6px);
+    bottom: max(var(--abs-safe-bottom), 10px);
   }
 }
 
@@ -4499,7 +4499,7 @@ body.cv-page.dark-mode .cv-scroll-container {
   }
 
   body:not(.portfolio-page):not(.cv-page) #main-links {
-    bottom: calc(max(var(--abs-safe-bottom), 14px) + 108px);
+    bottom: calc(max(var(--abs-safe-bottom), 16px) + 120px);
   }
 
   body:not(.portfolio-page):not(.cv-page) #main-links .footer_link {

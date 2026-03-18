@@ -1,6 +1,6 @@
 /**
  * CV Modal Controller
- * Handles the password-gating UI for the CV download.
+ * Handles the invite-gating UI for the CV download.
  */
 
 import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';

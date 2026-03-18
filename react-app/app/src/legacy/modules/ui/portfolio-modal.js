@@ -1,6 +1,6 @@
 /**
  * Portfolio Modal Controller
- * Handles the password-gating UI for the portfolio section.
+ * Handles the invite-gating UI for the portfolio section.
  */
 
 import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';

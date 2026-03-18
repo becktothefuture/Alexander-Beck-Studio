@@ -1308,18 +1308,18 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
   }
 
   .portfolio-viewport {
-    padding-bottom: clamp(48px, 8vh, 96px);
+    padding-bottom: clamp(42px, 7vh, 84px);
   }
 
   .portfolio-meta {
-    bottom: clamp(56px, 9vh, 78px);
+    bottom: clamp(44px, 7vh, 64px);
     max-width: clamp(280px, 92vw, 600px);
     padding-left: clamp(16px, 5vw, 20px);
     padding-right: clamp(16px, 5vw, 20px);
   }
 
   .portfolio-stage {
-    padding-top: clamp(40px, 9vh, 80px);
+    padding-top: clamp(30px, 7vh, 64px);
   }
 
   body.portfolio-page .ui-top-left {
