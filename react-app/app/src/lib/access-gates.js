@@ -13,6 +13,31 @@ const LEGACY_GATE_REQUEST_KEYS = {
   cv: ['abs_open_cv_modal']
 };
 
+const GATE_PAGE_PATHS = {
+  portfolio: '/portfolio.html',
+  cv: '/cv.html'
+};
+
+function isDevGatePreview(gateId) {
+  if (!import.meta.env.DEV) return false;
+
+  try {
+    const expectedPath = GATE_PAGE_PATHS[gateId];
+    const currentPath = String(window.location.pathname || '').toLowerCase();
+    return Boolean(expectedPath && currentPath.endsWith(expectedPath));
+  } catch {
+    return false;
+  }
+}
+
+function getHomeUrl() {
+  try {
+    return new URL('./', window.location.href);
+  } catch {
+    return new URL('/', window.location.origin);
+  }
+}
+
 function getAccessKey(gateId) {
   return GATE_ACCESS_KEYS[gateId] || '';
 }
@@ -28,10 +53,19 @@ export function hasGateAccess(gateId) {
   if (!accessKey) return false;
 
   try {
-    return Boolean(window.sessionStorage.getItem(accessKey));
+    if (window.sessionStorage.getItem(accessKey)) {
+      return true;
+    }
   } catch {
-    return false;
+    return isDevGatePreview(gateId);
   }
+
+  if (isDevGatePreview(gateId)) {
+    markGateAccess(gateId);
+    return true;
+  }
+
+  return false;
 }
 
 // Client-side invite tokens provide UX friction only. They are not secure auth.
@@ -89,7 +123,31 @@ export function consumeGateRequest(gateId) {
 export function redirectToGateHome(gateId) {
   requestGateOpen(gateId);
 
-  const destination = new URL('index.html', window.location.href);
+  const destination = getHomeUrl();
   destination.searchParams.set('gate', gateId);
   window.location.replace(destination.toString());
+}
+
+export function navigateToGatePage(gateId, { allowDevAccess = false } = {}) {
+  const destinationPath = GATE_PAGE_PATHS[gateId];
+  if (!destinationPath) return;
+
+  if (allowDevAccess && import.meta.env.DEV) {
+    markGateAccess(gateId);
+  }
+
+  const destination = new URL(destinationPath, window.location.href);
+  window.location.assign(destination.toString());
+}
+
+export function navigateToHome(options = {}) {
+  const destination = getHomeUrl();
+
+  if (options.openContact) {
+    try {
+      window.sessionStorage.setItem('abs_open_contact_modal', '1');
+    } catch {}
+  }
+
+  window.location.assign(destination.toString());
 }
