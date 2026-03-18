@@ -37,7 +37,8 @@ function isDevRuntime() {
     if (typeof __DEV__ === 'boolean') return __DEV__;
   } catch (e) {}
   try {
-    return String(globalThis?.location?.port ?? '') === '8001';
+    const port = String(globalThis?.location?.port ?? '');
+    return port === '8001' || port === '8012';
   } catch (e) {
     return false;
   }

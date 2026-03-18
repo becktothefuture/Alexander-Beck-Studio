@@ -55,7 +55,7 @@ function detectDevMode() {
 
   try {
     const port = String(globalThis?.location?.port ?? '');
-    if (port === '8001') return true;
+    if (port === '8001' || port === '8012') return true;
   } catch (e) {}
 
   try {
@@ -338,5 +338,4 @@ export function table(rows) {
     rawConsole.table(rows);
   } catch (e) {}
 }
-
 

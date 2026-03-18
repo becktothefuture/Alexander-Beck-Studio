@@ -20,6 +20,7 @@ import { initCvScrollTypography } from './cv/cv-scroll-typography.js';
 import { initCvPhotoSlideshow } from './cv/cv-photo-slideshow.js';
 import { initCvPanel } from './cv/cv-panel.js';
 import { initSharedChrome } from './ui/shared-chrome.js';
+import { isDev } from './utils/logger.js';
 import { getShellConfig, loadShellConfig, syncShellToDocument } from './visual/site-shell.js';
 import { forcePageVisible, waitForPageReadyBarrier } from './visual/page-orchestrator.js';
 import { 
@@ -225,7 +226,7 @@ async function bootstrapCvPage() {
   // ╚══════════════════════════════════════════════════════════════════════════════╝
   try {
     // Production builds intentionally ship with baked-in config (no tuning UI).
-    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    if (isDev()) {
       initCvPanel();
     }
   } catch (e) {

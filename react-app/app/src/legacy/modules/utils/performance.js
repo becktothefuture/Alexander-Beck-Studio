@@ -36,7 +36,8 @@ function isDevBuild() {
   } catch (e) {}
 
   try {
-    if (String(globalThis?.location?.port ?? '') === '8001') return true;
+    const port = String(globalThis?.location?.port ?? '');
+    if (port === '8001' || port === '8012') return true;
   } catch (e) {}
 
   try {
