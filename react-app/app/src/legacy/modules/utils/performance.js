@@ -37,7 +37,9 @@ function isDevBuild() {
 
   try {
     const port = String(globalThis?.location?.port ?? '');
-    if (port === '8001' || port === '8012') return true;
+    if (port === '8001' || port === '8012' || port === '8013') return true;
+    const host = String(globalThis?.location?.hostname ?? '');
+    if ((host === 'localhost' || host === '127.0.0.1') && port !== '') return true;
   } catch (e) {}
 
   try {
