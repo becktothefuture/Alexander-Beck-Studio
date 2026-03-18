@@ -115,9 +115,14 @@ async function bootstrapCvPage() {
 
     // Failsafe watchdog: never allow a stuck hidden page (Portfolio parity)
     window.setTimeout(() => {
-      if (!fadeContent) return;
-      const opacity = window.getComputedStyle(fadeContent).opacity;
-      if (opacity === '0') forceVisible('watchdog');
+      const shellOpacity = fadeContent ? window.getComputedStyle(fadeContent).opacity : '1';
+      const cvContainer = document.querySelector('.cv-scroll-container');
+      const cvStyles = cvContainer ? window.getComputedStyle(cvContainer) : null;
+      const cvHidden = !!cvStyles && (cvStyles.opacity === '0' || cvStyles.visibility === 'hidden');
+
+      if (shellOpacity === '0' || cvHidden) {
+        forceVisible('watchdog');
+      }
     }, 2500);
   } catch (e) {
     const fadeContent = document.getElementById('app-frame');

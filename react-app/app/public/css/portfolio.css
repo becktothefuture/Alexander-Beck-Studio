@@ -1312,7 +1312,7 @@ body.portfolio-page.portfolio-card-hovering #custom-cursor {
   }
 
   .portfolio-meta {
-    bottom: clamp(32px, 6vh, 48px);
+    bottom: clamp(56px, 9vh, 78px);
     max-width: clamp(280px, 92vw, 600px);
     padding-left: clamp(16px, 5vw, 20px);
     padding-right: clamp(16px, 5vw, 20px);

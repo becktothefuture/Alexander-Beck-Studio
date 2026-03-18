@@ -286,20 +286,20 @@ body.body.dark-mode {
   gap: 0;
   text-align: center;
   padding: 8px;
-  font-size: min(calc(var(--text-xs) * 0.85), 7px);
-  opacity: 0.3;
+  font-size: min(calc(var(--text-xs) * 0.95), 8px);
+  opacity: 0.42;
 }
 
 .edge-caption__line {
   font-family: 'Geist Mono', monospace;
-  font-size: min(calc(var(--text-xs) * 0.85), 7px);
+  font-size: min(calc(var(--text-xs) * 0.95), 8px);
   font-weight: 400;
   line-height: 1.3;
   letter-spacing: var(--letter-spacing-loose);
   text-transform: uppercase;
   white-space: normal; /* Allow wrapping */
   /* Same colour and opacity (on parent) in light and dark; no overrides */
-  color: #8a8a8a;
+  color: #808080;
   /* Subtle engraved treatment: tiny light lift + recessed dark edge */
   text-shadow:
     0 0.5px 0 rgba(var(--abs-rgb-white), 0.16),
@@ -312,7 +312,7 @@ body.body.dark-mode {
   }
 
   .edge-caption__line {
-    font-size: min(calc(var(--text-xs) * 0.7), 7px);
+    font-size: min(calc(var(--text-xs) * 0.82), 8px);
     letter-spacing: var(--letter-spacing-normal);
   }
 }
@@ -3698,7 +3698,7 @@ body.cv-page #bravia-balls .cv-wall-canvas {
 .cv-left__inner {
   display: flex;
   flex-direction: column;
-  gap: clamp(1.5rem, 2.5vw, 2rem);
+  gap: clamp(1.2rem, 2vw, 1.75rem);
   align-items: flex-start;
   justify-content: center;
   width: 100%;
@@ -3722,7 +3722,7 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   flex-shrink: 0;
   box-sizing: border-box;
   position: relative;
-  height: 360px;
+  height: clamp(300px, 34vh, 332px);
 }
 
 body.dark-mode .cv-photo {
@@ -3786,6 +3786,7 @@ body.dark-mode .cv-photo {
   margin: 0;
   text-align: left;
   width: 100%;
+  max-width: 30rem;
 }
 
 /* Right Area: Scrollable (All Main Content) */
@@ -4267,7 +4268,24 @@ body.cv-page.dark-mode .cv-scroll-container {
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    top: calc(var(--wall-thickness, 9px) + clamp(74px, 11vh, 94px));
     padding: clamp(1rem, 3vw, 1.5rem);
+    padding-top: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  body.cv-page .ui-top {
+    padding-top: clamp(12px, 3vh, 18px);
+  }
+
+  body.cv-page .ui-top-main {
+    align-items: flex-start;
+  }
+
+  body.cv-page .ui-top-left {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: clamp(10px, 4vw, 16px);
   }
   
   .cv-content {
@@ -4287,23 +4305,25 @@ body.cv-page.dark-mode .cv-scroll-container {
     /* Mobile: consistent horizontal padding */
     padding-left: max(5vw, 1.5rem);
     padding-right: max(5vw, 1.5rem);
+    padding-top: 0;
   }
   
   .cv-left__inner {
-    gap: clamp(1.25rem, 3vw, 1.75rem);
+    gap: clamp(1rem, 2.8vw, 1.5rem);
     align-items: center;
     /* Mobile: vertical padding only */
-    padding-top: clamp(2rem, 6vw, 3rem);
-    padding-bottom: clamp(2rem, 6vw, 3rem);
+    padding-top: clamp(1rem, 2vw, 1.5rem);
+    padding-bottom: clamp(1.75rem, 5vw, 2.5rem);
     max-width: 32rem;
     width: 100%;
     margin: 0 auto;
   }
   
   .cv-photo {
-    max-width: 18rem;
-    margin: 0 auto;
-    align-self: center;
+    max-width: min(13rem, 60vw);
+    margin: clamp(3.5rem, 8vh, 4.5rem) 0 0 auto;
+    align-self: flex-end;
+    transform: translateX(clamp(8px, 3vw, 14px));
   }
   
   .cv-intro {
@@ -4331,7 +4351,7 @@ body.cv-page.dark-mode .cv-scroll-container {
   
   .cv-right__inner {
     /* Mobile: vertical padding only */
-    padding-top: clamp(2rem, 5vw, 3rem);
+    padding-top: clamp(1.5rem, 4vw, 2.25rem);
     padding-bottom: clamp(2rem, 5vw, 3rem);
     max-width: 100%;
   }
