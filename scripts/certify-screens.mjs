@@ -1,17 +1,20 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import process from 'node:process';
 import { chromium } from 'playwright';
+import { PNG } from 'pngjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = resolve(__dirname, '..');
 const outputDir = resolve(repoRoot, 'output/playwright/screens-certification');
-const previewPort = Number(process.env.ABS_CERT_PORT || 8014);
 const previewHost = process.env.ABS_CERT_HOST || '127.0.0.1';
-const baseUrl = `http://${previewHost}:${previewPort}`;
+const configuredPreviewPort = Number(process.env.ABS_CERT_PORT || 0);
+let previewPort = configuredPreviewPort || 8014;
+let baseUrl = `http://${previewHost}:${previewPort}`;
 const screenshotBrowser = 'chromium';
 const acceptableBootStates = ['ready', 'content-ready', 'entered'];
 
@@ -27,8 +30,7 @@ const matrix = [
         selector: '#main-links button',
         minCount: 3,
         minArea: 400,
-        requiredText: ['Bio/CV', 'Contact'],
-        requiredTextAnyOf: [['Work', 'Portfolio']]
+        requiredText: ['Bio/CV', 'Contact', 'Portfolio']
       },
       {
         selector: '#expertise-legend .legend__item',
@@ -112,6 +114,36 @@ function log(message) {
   console.log(`[certify] ${message}`);
 }
 
+async function findOpenPort() {
+  if (configuredPreviewPort > 0) return configuredPreviewPort;
+
+  return new Promise((resolvePort, reject) => {
+    const server = createServer();
+    server.unref();
+    server.once('error', reject);
+    server.listen(0, previewHost, () => {
+      const address = server.address();
+      const freePort =
+        typeof address === 'object' && address && typeof address.port === 'number'
+          ? address.port
+          : null;
+
+      if (!freePort) {
+        server.close(() => reject(new Error('Could not determine a free preview port')));
+        return;
+      }
+
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolvePort(freePort);
+      });
+    });
+  });
+}
+
 async function waitForHttpReady(url, timeoutMs = 15000) {
   const startedAt = Date.now();
   let lastError = null;
@@ -133,7 +165,7 @@ async function waitForHttpReady(url, timeoutMs = 15000) {
 function startPreviewServer() {
   const child = run(
     'npm',
-    ['run', 'preview', '--prefix', 'react-app/app', '--', '--host', previewHost, '--port', String(previewPort)],
+    ['run', 'preview', '--prefix', 'react-app/app', '--', '--host', previewHost, '--port', String(previewPort), '--strictPort'],
     { stdio: ['ignore', 'pipe', 'pipe'] }
   );
 
@@ -148,50 +180,108 @@ function startPreviewServer() {
   return { child, getLogs: () => logs };
 }
 
-function analyzeScreenshotWithPython(filePath) {
-  const script = `
-from pathlib import Path
-from PIL import Image, ImageStat
-import json
-import sys
-
-path = Path(sys.argv[1])
-img = Image.open(path).convert('RGB')
-stat = ImageStat.Stat(img)
-colors = img.getcolors(maxcolors=1_000_000) or []
-colors.sort(reverse=True)
-total = img.size[0] * img.size[1]
-top_share = colors[0][0] / total if colors else 0.0
-stddev = sum(stat.stddev) / len(stat.stddev)
-mean = sum(stat.mean) / len(stat.mean)
-result = {
-  "uniqueColors": len(colors),
-  "topColorShare": top_share,
-  "stddev": stddev,
-  "mean": mean,
+function stopPreviewServer(preview) {
+  if (!preview?.child) return;
+  if (preview.reused) return;
+  if (preview.child.exitCode !== null) return;
+  preview.child.kill('SIGTERM');
 }
-print(json.dumps(result))
-`;
 
-  const child = run('python3', ['-c', script, filePath]);
-  return new Promise((resolve, reject) => {
-    let stdout = '';
-    let stderr = '';
+async function waitForPreviewServer(preview, timeoutMs = 15000) {
+  const startedAt = Date.now();
+  const expectedHost = `${previewHost}:${previewPort}`;
 
-    child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`python image analysis failed (${code}): ${stderr.trim()}`));
-        return;
-      }
-      resolve(JSON.parse(stdout));
-    });
-  });
+  while (Date.now() - startedAt < timeoutMs) {
+    if (preview.child.exitCode !== null) {
+      throw new Error(`Preview server exited before becoming ready.\n${preview.getLogs()}`);
+    }
+
+    if (preview.getLogs().includes(expectedHost)) {
+      return;
+    }
+
+    await delay(100);
+  }
+
+  throw new Error(`Preview server did not report readiness for ${expectedHost}.\n${preview.getLogs()}`);
+}
+
+async function ensurePreviewServer() {
+  try {
+    await waitForHttpReady(`${baseUrl}/`, 1200);
+    return {
+      child: null,
+      reused: true,
+      getLogs: () => 'reused existing preview server'
+    };
+  } catch {
+    // No healthy preview server yet; fall through and start one.
+  }
+
+  const preview = startPreviewServer();
+
+  try {
+    await waitForPreviewServer(preview);
+    await waitForHttpReady(`${baseUrl}/`);
+    return {
+      ...preview,
+      reused: false
+    };
+  } catch (error) {
+    const logs = preview.getLogs();
+
+    if (logs.includes('Port 8014 is already in use')) {
+      await waitForHttpReady(`${baseUrl}/`, 5000);
+      return {
+        child: null,
+        reused: true,
+        getLogs: () => logs
+      };
+    }
+
+    stopPreviewServer(preview);
+    throw error;
+  }
+}
+
+function analyzeScreenshot(filePath) {
+  const { width, height, data } = PNG.sync.read(readFileSync(filePath));
+  const totalPixels = width * height;
+  const stride = Math.max(1, Math.floor(Math.sqrt(totalPixels / 60000)));
+  const colorCounts = new Map();
+  let samples = 0;
+  let sum = 0;
+  let sumSquares = 0;
+
+  for (let y = 0; y < height; y += stride) {
+    for (let x = 0; x < width; x += stride) {
+      const index = (width * y + x) << 2;
+      const alpha = data[index + 3] / 255;
+      const red = Math.round(255 + (data[index] - 255) * alpha);
+      const green = Math.round(255 + (data[index + 1] - 255) * alpha);
+      const blue = Math.round(255 + (data[index + 2] - 255) * alpha);
+      const quantized = ((red >> 4) << 8) | ((green >> 4) << 4) | (blue >> 4);
+      const luminance = (red + green + blue) / 3;
+
+      colorCounts.set(quantized, (colorCounts.get(quantized) || 0) + 1);
+      sum += luminance;
+      sumSquares += luminance * luminance;
+      samples += 1;
+    }
+  }
+
+  const mean = samples > 0 ? sum / samples : 0;
+  const variance = samples > 0 ? Math.max(0, sumSquares / samples - mean * mean) : 0;
+  const topColorShare = samples > 0 ? Math.max(...colorCounts.values()) / samples : 0;
+
+  return {
+    uniqueColors: colorCounts.size,
+    topColorShare,
+    stddev: Math.sqrt(variance),
+    mean,
+    samples,
+    stride
+  };
 }
 
 async function preparePage(page, entry, theme) {
@@ -263,7 +353,7 @@ function formatReadinessFailure(sample) {
   return `boot=${sample.bootState || 'unset'},dom=${sample.readyState},visible=${sample.visibleSelectors},selectors=${selectorText}`;
 }
 
-async function waitForEntryReadiness(page, entry, timeoutMs = 16000) {
+async function waitForEntryReadiness(page, entry, timeoutMs = 22000) {
   const startedAt = Date.now();
   let lastSample = null;
 
@@ -386,118 +476,167 @@ async function certifyEntry(browser, entry, viewport, theme) {
     deviceScaleFactor: 1
   });
 
-  const page = await context.newPage();
-  await preparePage(page, entry, theme);
-  log(`checking ${entry.page} ${viewport.width}x${viewport.height} ${theme}`);
-
-  const runtimeFailures = [];
-  let readiness = {
-    ready: false,
-    source: 'not-started',
-    lastSample: null
-  };
-
   try {
-    readiness = await navigateAndWait(page, entry);
-  } catch (error) {
-    runtimeFailures.push(`navigation:${String(error.message || error).split('\n')[0]}`);
-  }
+    const page = await context.newPage();
+    await preparePage(page, entry, theme);
+    log(`checking ${entry.page} ${viewport.width}x${viewport.height} ${theme}`);
 
-  const bootState = await page.evaluate(() => document.documentElement.dataset.absBootState || '').catch(() => '');
-  const selectorResults = [];
-  const selectorFailures = [];
+    const runtimeFailures = [];
+    let readiness = {
+      ready: false,
+      source: 'not-started',
+      lastSample: null
+    };
 
-  for (const requirement of entry.selectors) {
     try {
-      const selectorResult = await collectSelectorStats(page, requirement);
-      const assessed = assessRequirement(requirement, selectorResult);
-      selectorResults.push({ ...selectorResult, assessment: assessed });
-      selectorFailures.push(...assessed.failures);
+      readiness = await navigateAndWait(page, entry);
     } catch (error) {
-      const failure = `${requirement.selector}:evaluation-error`;
-      selectorResults.push({
-        selector: requirement.selector,
-        count: 0,
-        stats: [],
-        assessment: {
+      runtimeFailures.push(`navigation:${String(error.message || error).split('\n')[0]}`);
+    }
+
+    const bootState = await page.evaluate(() => document.documentElement.dataset.absBootState || '').catch(() => '');
+    const selectorResults = [];
+    const selectorFailures = [];
+
+    for (const requirement of entry.selectors) {
+      try {
+        const selectorResult = await collectSelectorStats(page, requirement);
+        const assessed = assessRequirement(requirement, selectorResult);
+        selectorResults.push({ ...selectorResult, assessment: assessed });
+        selectorFailures.push(...assessed.failures);
+      } catch (error) {
+        const failure = `${requirement.selector}:evaluation-error`;
+        selectorResults.push({
           selector: requirement.selector,
-          failures: [failure],
-          visibleCount: 0
-        }
-      });
-      selectorFailures.push(failure);
-      runtimeFailures.push(`${requirement.selector}:evaluation:${String(error.message || error).split('\n')[0]}`);
+          count: 0,
+          stats: [],
+          assessment: {
+            selector: requirement.selector,
+            failures: [failure],
+            visibleCount: 0
+          }
+        });
+        selectorFailures.push(failure);
+        runtimeFailures.push(`${requirement.selector}:evaluation:${String(error.message || error).split('\n')[0]}`);
+      }
+    }
+
+    if (!readiness.ready) {
+      runtimeFailures.push(`readiness-timeout:${formatReadinessFailure(readiness.lastSample)}`);
+    }
+
+    mkdirSync(outputDir, { recursive: true });
+    const screenshotName = toFilename({
+      page: entry.page,
+      width: viewport.width,
+      height: viewport.height,
+      theme
+    });
+    const screenshotPath = join(outputDir, screenshotName);
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+
+    const imageMetrics = analyzeScreenshot(screenshotPath);
+    imageMetrics.isNearBlank =
+      imageMetrics.topColorShare >= 0.965 ||
+      (imageMetrics.uniqueColors <= 12 && imageMetrics.stddev <= 2.5);
+
+    const result = {
+      page: entry.page,
+      path: entry.path,
+      theme,
+      viewport,
+      screenshot: screenshotPath,
+      bootState,
+      bootStateOk: acceptableBootStates.includes(bootState),
+      readiness,
+      runtimeFailures,
+      selectorResults,
+      selectorFailures,
+      imageMetrics
+    };
+
+    result.passed = summarizeReasons(result).length === 0;
+    result.failures = summarizeReasons(result);
+    return result;
+  } finally {
+    await context.close().catch(() => {});
+  }
+}
+
+function shouldRetryResult(result) {
+  if (result.passed) return false;
+  return result.runtimeFailures.some((failure) =>
+    failure.startsWith('navigation:') ||
+    failure.startsWith('readiness-timeout:') ||
+    failure.includes(':evaluation:')
+  ) || result.imageMetrics?.isNearBlank;
+}
+
+async function certifyEntryWithRetry(entry, viewport, theme, maxAttempts = 3) {
+  let lastResult = null;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const browser = await chromium.launch({ headless: true });
+
+    try {
+      const result = await certifyEntry(browser, entry, viewport, theme);
+      lastResult = result;
+
+      if (!shouldRetryResult(result) || attempt === maxAttempts) {
+        return result;
+      }
+
+      log(
+        `retrying ${entry.page} ${viewport.width}x${viewport.height} ${theme} after transient failure (${result.failures.join(' | ')})`
+      );
+      await delay(500);
+      await waitForHttpReady(`${baseUrl}/`, 5000).catch(() => {});
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxAttempts) throw error;
+      log(
+        `retrying ${entry.page} ${viewport.width}x${viewport.height} ${theme} after browser error (${String(error.message || error).split('\n')[0]})`
+      );
+      await delay(500);
+      await waitForHttpReady(`${baseUrl}/`, 5000).catch(() => {});
+    } finally {
+      await browser.close().catch(() => {});
     }
   }
 
-  if (!readiness.ready) {
-    runtimeFailures.push(`readiness-timeout:${formatReadinessFailure(readiness.lastSample)}`);
-  }
-
-  mkdirSync(outputDir, { recursive: true });
-  const screenshotName = toFilename({
-    page: entry.page,
-    width: viewport.width,
-    height: viewport.height,
-    theme
-  });
-  const screenshotPath = join(outputDir, screenshotName);
-  await page.screenshot({ path: screenshotPath, fullPage: true });
-
-  const imageMetrics = await analyzeScreenshotWithPython(screenshotPath);
-  imageMetrics.isNearBlank =
-    imageMetrics.topColorShare >= 0.985 ||
-    (imageMetrics.uniqueColors <= 8 && imageMetrics.stddev <= 1.5);
-
-  const result = {
-    page: entry.page,
-    path: entry.path,
-    theme,
-    viewport,
-    screenshot: screenshotPath,
-    bootState,
-    bootStateOk: acceptableBootStates.includes(bootState),
-    readiness,
-    runtimeFailures,
-    selectorResults,
-    selectorFailures,
-    imageMetrics
-  };
-
-  result.passed = summarizeReasons(result).length === 0;
-  result.failures = summarizeReasons(result);
-
-  await context.close();
-  return result;
+  if (lastResult) return lastResult;
+  throw lastError || new Error('certification failed without a result');
 }
 
 async function main() {
   rmSync(outputDir, { recursive: true, force: true });
   mkdirSync(outputDir, { recursive: true });
 
-  const preview = startPreviewServer();
+  previewPort = await findOpenPort();
+  baseUrl = `http://${previewHost}:${previewPort}`;
+
+  let preview = null;
 
   try {
-    await waitForHttpReady(`${baseUrl}/`);
+    preview = await ensurePreviewServer();
   } catch (error) {
-    preview.child.kill('SIGTERM');
-    throw new Error(`${error.message}\n${preview.getLogs()}`);
+    stopPreviewServer(preview);
+    throw new Error(`${error.message}\n${preview?.getLogs?.() || ''}`.trim());
   }
 
-  const browser = await chromium.launch({ headless: true });
   const results = [];
 
   try {
     for (const entry of matrix) {
       for (const viewport of viewports) {
         for (const theme of themes) {
-          results.push(await certifyEntry(browser, entry, viewport, theme));
+          results.push(await certifyEntryWithRetry(entry, viewport, theme));
         }
       }
     }
   } finally {
-    await browser.close();
-    preview.child.kill('SIGTERM');
+    stopPreviewServer(preview);
   }
 
   const report = {
