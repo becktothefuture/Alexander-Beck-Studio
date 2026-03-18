@@ -74,10 +74,14 @@ export async function buildDesignSystemSnapshot({
   cvSnapshot = null,
 } = {}) {
   const base = normalizeDesignSystemConfig(await loadDesignSystemConfig());
+  const nextRuntime = {
+    ...clone(base.runtime),
+    ...clone(runtimeSnapshot || buildRuntimeConfigSnapshot()),
+  };
 
   return {
     ...base,
-    runtime: clone(runtimeSnapshot || buildRuntimeConfigSnapshot()),
+    runtime: nextRuntime,
     shell: clone(shellSnapshot || buildShellConfigSnapshot()),
     portfolio: portfolioSnapshot ? clone(portfolioSnapshot) : clone(base.portfolio),
     cv: cvSnapshot ? clone(cvSnapshot) : clone(base.cv),

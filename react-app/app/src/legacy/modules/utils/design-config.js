@@ -28,7 +28,14 @@ const LEGACY_PORTFOLIO_PATHS = [
   '../dist/js/portfolio-config.json',
 ];
 
-const DEFAULT_CV_CONFIG = {
+const LEGACY_CV_PATHS = [
+  'config/cv-config.json',
+  '../config/cv-config.json',
+  'js/cv-config.json',
+  '../js/cv-config.json',
+];
+
+export const DEFAULT_CV_CONFIG = {
   leftWidth: 32,
   leftPaddingTop: 10,
   leftPaddingBottom: 10,
@@ -158,10 +165,11 @@ export function normalizeDesignSystemConfig(raw = {}) {
 }
 
 async function loadFallbackDesignSystem() {
-  const [runtime, shell, portfolio] = await Promise.all([
+  const [runtime, shell, portfolio, cv] = await Promise.all([
     loadFirstJson(LEGACY_RUNTIME_PATHS),
     loadFirstJson(LEGACY_SHELL_PATHS),
     loadFirstJson(LEGACY_PORTFOLIO_PATHS),
+    loadFirstJson(LEGACY_CV_PATHS),
   ]);
 
   return normalizeDesignSystemConfig({
@@ -169,7 +177,7 @@ async function loadFallbackDesignSystem() {
     runtime: runtime || {},
     shell: shell || {},
     portfolio: portfolio || {},
-    cv: DEFAULT_CV_CONFIG,
+    cv: cv || DEFAULT_CV_CONFIG,
   });
 }
 
@@ -237,4 +245,10 @@ export async function loadLegacyPortfolioConfig() {
   const inline = readInlineObject('__PORTFOLIO_CONFIG__');
   if (inline) return inline;
   return loadFirstJson(LEGACY_PORTFOLIO_PATHS);
+}
+
+export async function loadLegacyCvConfig() {
+  const inline = readInlineObject('__CV_CONFIG__');
+  if (inline) return inline;
+  return loadFirstJson(LEGACY_CV_PATHS);
 }

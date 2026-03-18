@@ -1,27 +1,9 @@
 import { createPanelDock } from '../ui/panel-dock.js';
-import { deriveCvConfig, loadDesignSystemConfig } from '../utils/design-config.js';
+import { DEFAULT_CV_CONFIG } from '../utils/design-config.js';
 import { performDesignSystemSave } from '../utils/design-system-save.js';
+import { applyCvConfig, cloneCvConfig, loadCvRuntimeConfig } from './config.js';
 
-const DEFAULT_CONFIG = {
-  leftWidth: 32,
-  leftPaddingTop: 10,
-  leftPaddingBottom: 10,
-  leftGap: 2.5,
-  photoAspectRatio: 0.75,
-  photoSize: 115,
-  photoBorderRadius: 1,
-  rightPaddingTop: 20,
-  rightPaddingBottom: 20,
-  rightPaddingX: 2.5,
-  rightMaxWidth: 42,
-  nameSize: 2.2,
-  titleSize: 0.9,
-  sectionTitleSize: 0.75,
-  bodySize: 0.9,
-  sectionGap: 3.5,
-  paragraphGap: 1.5,
-  mutedOpacity: 0.6,
-};
+const DEFAULT_CONFIG = DEFAULT_CV_CONFIG;
 
 const SECTION_DEFS = [
   {
@@ -68,19 +50,6 @@ const SECTION_DEFS = [
   },
 ];
 
-function cloneConfig(config = DEFAULT_CONFIG) {
-  return { ...DEFAULT_CONFIG, ...(config || {}) };
-}
-
-async function loadCvConfig() {
-  try {
-    const designSystem = await loadDesignSystemConfig();
-    return cloneConfig(deriveCvConfig(designSystem));
-  } catch (e) {
-    return cloneConfig();
-  }
-}
-
 function formatValue(control, value) {
   const numeric = Number.parseFloat(value);
   if (!Number.isFinite(numeric)) return String(value ?? '');
@@ -91,29 +60,6 @@ function formatValue(control, value) {
 function setOutput(control, value) {
   const output = document.getElementById(`${control.id}Val`);
   if (output) output.textContent = formatValue(control, value);
-}
-
-function applyConfig(config) {
-  const root = document.documentElement;
-
-  root.style.setProperty('--cv-left-width', `${config.leftWidth}vw`);
-  root.style.setProperty('--cv-left-padding-top', `${config.leftPaddingTop}vh`);
-  root.style.setProperty('--cv-left-padding-bottom', `${config.leftPaddingBottom}vh`);
-  root.style.setProperty('--cv-left-gap', `${config.leftGap}rem`);
-  root.style.setProperty('--cv-photo-aspect-ratio', `${config.photoAspectRatio}`);
-  root.style.setProperty('--cv-photo-size', `${config.photoSize}%`);
-  root.style.setProperty('--cv-photo-border-radius', `${config.photoBorderRadius}rem`);
-  root.style.setProperty('--cv-right-padding-top', `${config.rightPaddingTop}vh`);
-  root.style.setProperty('--cv-right-padding-bottom', `${config.rightPaddingBottom}vh`);
-  root.style.setProperty('--cv-right-padding-x', `${config.rightPaddingX}rem`);
-  root.style.setProperty('--cv-right-max-width', `${config.rightMaxWidth}rem`);
-  root.style.setProperty('--cv-name-size', `${config.nameSize}rem`);
-  root.style.setProperty('--cv-title-size', `${config.titleSize}rem`);
-  root.style.setProperty('--cv-section-title-size', `${config.sectionTitleSize}rem`);
-  root.style.setProperty('--cv-body-size', `${config.bodySize}rem`);
-  root.style.setProperty('--cv-section-gap', `${config.sectionGap}rem`);
-  root.style.setProperty('--cv-paragraph-gap', `${config.paragraphGap}rem`);
-  root.style.setProperty('--cv-muted-opacity', `${config.mutedOpacity}`);
 }
 
 function generateControlHTML(control, config) {
@@ -168,10 +114,10 @@ function syncInputs(config) {
 }
 
 export function setupCvPanelControls(initialConfig = DEFAULT_CONFIG) {
-  const resetConfig = cloneConfig(initialConfig);
-  let currentConfig = cloneConfig(initialConfig);
+  const resetConfig = cloneCvConfig(initialConfig);
+  let currentConfig = cloneCvConfig(initialConfig);
 
-  applyConfig(currentConfig);
+  applyCvConfig(currentConfig);
   syncInputs(currentConfig);
 
   for (const section of SECTION_DEFS) {
@@ -183,7 +129,7 @@ export function setupCvPanelControls(initialConfig = DEFAULT_CONFIG) {
         const value = Number.parseFloat(input.value);
         currentConfig[control.id] = Number.isFinite(value) ? value : DEFAULT_CONFIG[control.id];
         setOutput(control, currentConfig[control.id]);
-        applyConfig(currentConfig);
+        applyCvConfig(currentConfig);
       });
     }
   }
@@ -214,15 +160,15 @@ export function setupCvPanelControls(initialConfig = DEFAULT_CONFIG) {
   if (resetBtn && resetBtn.dataset.cvBound !== 'true') {
     resetBtn.dataset.cvBound = 'true';
     resetBtn.addEventListener('click', () => {
-      currentConfig = cloneConfig(resetConfig);
-      applyConfig(currentConfig);
+      currentConfig = cloneCvConfig(resetConfig);
+      applyCvConfig(currentConfig);
       syncInputs(currentConfig);
     });
   }
 }
 
 export async function initCvPanel() {
-  const initialConfig = await loadCvConfig();
+  const initialConfig = await loadCvRuntimeConfig();
   const pageHTML = `
     ${generateCvPanelSectionsHTML(initialConfig)}
     <div class="panel-section panel-section--action">

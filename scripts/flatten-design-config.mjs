@@ -40,11 +40,13 @@ function main() {
   writeJsonIfChanged(resolve(publicConfigDir, 'default-config.json'), derived.runtime);
   writeJsonIfChanged(resolve(publicConfigDir, 'shell-config.json'), derived.shell);
   writeJsonIfChanged(resolve(publicConfigDir, 'portfolio-config.json'), derived.portfolio);
+  writeJsonIfChanged(resolve(publicConfigDir, 'cv-config.json'), derived.cv);
 
   console.log('Flattened design-system.json into legacy config files.');
   console.log(`- ${resolve(publicConfigDir, 'default-config.json')}`);
   console.log(`- ${resolve(publicConfigDir, 'shell-config.json')}`);
   console.log(`- ${resolve(publicConfigDir, 'portfolio-config.json')}`);
+  console.log(`- ${resolve(publicConfigDir, 'cv-config.json')}`);
 }
 
 try {

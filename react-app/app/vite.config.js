@@ -13,6 +13,7 @@ const legacyPaths = {
   runtime: resolve(publicConfigDir, 'default-config.json'),
   shell: resolve(publicConfigDir, 'shell-config.json'),
   portfolio: resolve(publicConfigDir, 'portfolio-config.json'),
+  cv: resolve(publicConfigDir, 'cv-config.json'),
 };
 
 async function writeJson(path, value) {
@@ -28,6 +29,7 @@ async function flattenAndPersistDesignSystem(config) {
     writeJson(legacyPaths.runtime, legacy.runtime),
     writeJson(legacyPaths.shell, legacy.shell),
     writeJson(legacyPaths.portfolio, legacy.portfolio),
+    writeJson(legacyPaths.cv, legacy.cv),
   ]);
 
   return normalized;

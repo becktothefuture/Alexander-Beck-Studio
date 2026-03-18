@@ -19,6 +19,7 @@ import { initPortfolioWallCanvas } from './portfolio/wall-only-canvas.js';
 import { initCvScrollTypography } from './cv/cv-scroll-typography.js';
 import { initCvPhotoSlideshow } from './cv/cv-photo-slideshow.js';
 import { initCvPanel } from './cv/cv-panel.js';
+import { applyCvConfig, loadCvRuntimeConfig } from './cv/config.js';
 import { initSharedChrome } from './ui/shared-chrome.js';
 import { isDev } from './utils/logger.js';
 import { getShellConfig, loadShellConfig, syncShellToDocument } from './visual/site-shell.js';
@@ -45,6 +46,13 @@ async function bootstrapCvPage() {
   syncShellToDocument({
     isDark: document.documentElement.classList.contains('dark-mode')
   });
+
+  try {
+    const cvConfig = await loadCvRuntimeConfig();
+    applyCvConfig(cvConfig);
+  } catch (e) {
+    applyCvConfig();
+  }
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                    STEP 3: DRAMATIC ENTRANCE (Portfolio parity)              ║
