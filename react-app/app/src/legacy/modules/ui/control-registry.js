@@ -102,6 +102,61 @@ const VISIBILITY_STORAGE_KEY = 'panel_control_visibility';
 
 let controlVisibility = {};
 
+const DEFAULT_HIDDEN_CONTROL_IDS = new Set([
+  // Superseded by the shared Studio surface system.
+  'hoverEdgeEnabled',
+  'hoverEdgeWidth',
+  'hoverEdgeInset',
+  'hoverEdgeBottomEnabled',
+  'hoverEdgeBottomRadius',
+  'hoverEdgeBottomOpacity',
+  'hoverEdgeBottomColorMix',
+  'hoverEdgeTopEnabled',
+  'hoverEdgeTopRadius',
+  'hoverEdgeTopOpacity',
+  'hoverEdgeTopColorMix',
+  'frameBorderGradientEdgeOpacity',
+  'frameBorderGradientMidOpacity',
+  'frameVignetteEdgeOffsetY',
+  'frameVignetteEdgeBlur',
+  'frameVignetteEdgeOpacity',
+  'frameVignetteAmbientBlur',
+  'frameVignetteAmbientOpacity',
+
+  // Keep browser wall tuning focused on the higher-level atmosphere sliders.
+  'outerWallShineEnabled',
+  'wallLightFluctuationEnabled',
+  'wallAOSpread',
+  'wallSpecularEnabled',
+  'wallSpecularWidth',
+  'wallAOOpacityLight',
+  'wallSpecularOpacityLight',
+  'outerWallShineBlurLight',
+  'outerWallShineSpreadLight',
+  'outerWallShineOvershootLight',
+  'outerWallShineOpacityLight',
+  'outerWallShineColorLight',
+  'wallAOOpacityDark',
+  'wallSpecularOpacityDark',
+  'outerWallShineBlurDark',
+  'outerWallShineSpreadDark',
+  'outerWallShineOvershootDark',
+  'outerWallShineOpacityDark',
+  'outerWallShineColorDark',
+  'innerWallShineEnabled',
+  'innerWallShineBlur',
+  'innerWallShineOvershoot',
+  'innerWallShineSpread',
+  'innerWallShineOpacityLight',
+  'innerWallShineOpacityDark',
+  'innerWallShineColor',
+
+  // Low-signal modal micro-timing controls stay out of the primary tuning flow.
+  'modalOverlayTransitionOutMs',
+  'modalOverlayContentDelayMs',
+  'modalDepthTranslateY',
+]);
+
 function loadVisibility() {
   try {
     const stored = localStorage.getItem(VISIBILITY_STORAGE_KEY);
@@ -123,8 +178,11 @@ export function setControlVisible(id, visible) {
 }
 
 export function isControlVisible(id) {
-  // Default to true if not specified
-  return controlVisibility[id] !== false;
+  if (Object.prototype.hasOwnProperty.call(controlVisibility, id)) {
+    return controlVisibility[id] !== false;
+  }
+
+  return !DEFAULT_HIDDEN_CONTROL_IDS.has(id);
 }
 
 export function getVisibilityState() {

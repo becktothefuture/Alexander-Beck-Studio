@@ -1,7 +1,7 @@
 import { getGlobals } from '../core/state.js';
 import { getAllControls } from '../ui/control-registry.js';
 import { getSoundConfig, getCurrentPreset } from '../audio/sound-engine.js';
-import { buildStudioShellPatch, buildStudioSurfaceSnapshot } from '../ui/studio-surface-controls.js';
+import { buildStudioRuntimePatch, buildStudioShellPatch, buildStudioSurfaceSnapshot } from '../ui/studio-surface-controls.js';
 import { getShellConfig } from '../visual/site-shell.js';
 import { loadDesignSystemConfig, normalizeDesignSystemConfig } from './design-config.js';
 
@@ -58,7 +58,7 @@ export function buildRuntimeConfigSnapshot() {
   config.autoDarkNightEndHour = g.autoDarkNightEndHour;
   config.enableLOD = false;
 
-  return config;
+  return buildStudioRuntimePatch(buildStudioSurfaceSnapshot(), config);
 }
 
 export function buildShellConfigSnapshot() {

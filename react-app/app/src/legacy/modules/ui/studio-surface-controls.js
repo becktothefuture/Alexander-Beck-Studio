@@ -1,17 +1,17 @@
 export const DEFAULT_STUDIO_SURFACE_CONFIG = {
-  edgeStrength: 0.16,
+  edgeStrength: 0.09,
   edgeWidth: 0.5,
-  fillOpacity: 0.02,
-  glowOpacity: 0.27,
-  wallEdgeStrength: 0.18,
-  wallAmbientStrength: 0.12,
+  fillOpacity: 0.018,
+  glowOpacity: 0.22,
+  wallEdgeStrength: 0.16,
+  wallAmbientStrength: 0.1,
   wallSoftness: 0.45,
 };
 
 const CONTROL_SECTIONS = [
   {
     key: 'surfaceSystem',
-    title: 'Surface System',
+    title: 'Universal Surface',
     icon: '✨',
     defaultOpen: true,
     controls: [
@@ -23,12 +23,12 @@ const CONTROL_SECTIONS = [
   },
   {
     key: 'wallAtmosphere',
-    title: 'Wall Atmosphere',
+    title: 'Browser Wall',
     icon: '🫧',
     defaultOpen: false,
     controls: [
-      { id: 'wallEdgeStrength', label: 'Edge Vignette', min: 0, max: 0.8, step: 0.01, unit: '' },
-      { id: 'wallAmbientStrength', label: 'Ambient Vignette', min: 0, max: 0.6, step: 0.01, unit: '' },
+      { id: 'wallEdgeStrength', label: 'Wall Edge', min: 0, max: 0.8, step: 0.01, unit: '' },
+      { id: 'wallAmbientStrength', label: 'Wall Wash', min: 0, max: 0.6, step: 0.01, unit: '' },
       { id: 'wallSoftness', label: 'Softness', min: 0, max: 1, step: 0.01, unit: '' },
     ],
   },
@@ -91,18 +91,18 @@ export function applyStudioSurfaceConfig(config) {
   root.style.setProperty('--abs-surface-shadow-opacity', `${glowOpacity}`);
 
   root.style.setProperty('--quote-glass-edge-opacity', `${edgeStrength}`);
-  root.style.setProperty('--quote-glass-inner-shadow-opacity', `${Math.max(0, edgeStrength * 0.45)}`);
+  root.style.setProperty('--quote-glass-inner-shadow-opacity', `${Math.max(0, edgeStrength * 0.25)}`);
   root.style.setProperty('--quote-glass-fill-opacity', `${fillOpacity}`);
   root.style.setProperty('--quote-glass-shadow-opacity', `${glowOpacity}`);
-  root.style.setProperty('--quote-glass-bottom-edge-opacity', `${Math.max(0, edgeStrength * 0.28)}`);
+  root.style.setProperty('--quote-glass-bottom-edge-opacity', `${Math.max(0, edgeStrength * 0.12)}`);
 
   root.style.setProperty('--hover-edge-enabled', edgeStrength > 0 ? '1' : '0');
   root.style.setProperty('--hover-edge-width', `${edgeWidth}px`);
-  root.style.setProperty('--hover-edge-bottom-opacity', `${Math.max(0, edgeStrength * 1.05)}`);
-  root.style.setProperty('--hover-edge-top-opacity', `${Math.max(0, edgeStrength * 0.55)}`);
+  root.style.setProperty('--hover-edge-bottom-opacity', `${Math.max(0, edgeStrength * 0.78)}`);
+  root.style.setProperty('--hover-edge-top-opacity', `${Math.max(0, edgeStrength * 0.46)}`);
 
-  root.style.setProperty('--frame-border-gradient-edge-opacity', `${Math.max(0, wallEdgeStrength * 0.18)}`);
-  root.style.setProperty('--frame-border-gradient-mid-opacity', `${Math.max(0, wallEdgeStrength * 0.34)}`);
+  root.style.setProperty('--frame-border-gradient-edge-opacity', `${Math.max(0, wallEdgeStrength * 0.14)}`);
+  root.style.setProperty('--frame-border-gradient-mid-opacity', `${Math.max(0, wallEdgeStrength * 0.28)}`);
   root.style.setProperty('--frame-vignette-edge-opacity', `${wallEdgeStrength}`);
   root.style.setProperty('--frame-vignette-ambient-opacity', `${wallAmbientStrength}`);
   root.style.setProperty('--frame-vignette-edge-blur', `${Math.round(10 + (wallSoftness * 70))}px`);
@@ -211,23 +211,49 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   nextShell.surface.fillOpacityDark = Math.max(config.fillOpacity, Number((config.fillOpacity * 1.4).toFixed(3)));
   nextShell.surface.edgeOpacityLight = config.edgeStrength;
   nextShell.surface.edgeOpacityDark = Math.max(config.edgeStrength, Number((config.edgeStrength * 1.4).toFixed(3)));
-  nextShell.surface.innerShadowOpacityLight = Number((config.edgeStrength * 0.45).toFixed(3));
-  nextShell.surface.innerShadowOpacityDark = Number((config.edgeStrength * 0.65).toFixed(3));
+  nextShell.surface.innerShadowOpacityLight = Number((config.edgeStrength * 0.25).toFixed(3));
+  nextShell.surface.innerShadowOpacityDark = Number((config.edgeStrength * 0.38).toFixed(3));
   nextShell.surface.shadowOpacityLight = Number((config.glowOpacity * 0.58).toFixed(3));
   nextShell.surface.shadowOpacityDark = config.glowOpacity;
   nextShell.surface.glowOpacityLight = Number((config.glowOpacity * 0.58).toFixed(3));
   nextShell.surface.glowOpacityDark = config.glowOpacity;
   nextShell.surface.lightEdgeInset = `${config.edgeWidth}px`;
-  nextShell.surface.lightEdgeTopOpacityLight = Number((config.edgeStrength * 0.55).toFixed(3));
-  nextShell.surface.lightEdgeTopOpacityDark = Number((config.edgeStrength * 0.72).toFixed(3));
-  nextShell.surface.lightEdgeBottomOpacityLight = Number((config.edgeStrength * 0.28).toFixed(3));
-  nextShell.surface.lightEdgeBottomOpacityDark = Number((config.edgeStrength * 0.42).toFixed(3));
+  nextShell.surface.lightEdgeTopOpacityLight = Number((config.edgeStrength * 0.46).toFixed(3));
+  nextShell.surface.lightEdgeTopOpacityDark = Number((config.edgeStrength * 0.58).toFixed(3));
+  nextShell.surface.lightEdgeBottomOpacityLight = Number((config.edgeStrength * 0.12).toFixed(3));
+  nextShell.surface.lightEdgeBottomOpacityDark = Number((config.edgeStrength * 0.2).toFixed(3));
 
-  nextShell.theme.frameBorderEdgeOpacity = Number((config.wallEdgeStrength * 0.18).toFixed(3));
-  nextShell.theme.frameBorderMidOpacity = Number((config.wallEdgeStrength * 0.34).toFixed(3));
+  nextShell.theme.frameBorderEdgeOpacity = Number((config.wallEdgeStrength * 0.14).toFixed(3));
+  nextShell.theme.frameBorderMidOpacity = Number((config.wallEdgeStrength * 0.28).toFixed(3));
   nextShell.theme.frameVignetteEdgeOpacity = config.wallEdgeStrength;
   nextShell.theme.frameVignetteAmbientOpacity = config.wallAmbientStrength;
   nextShell.theme.frameVignetteEdgeBlur = `${Math.round(10 + (config.wallSoftness * 70))}px`;
 
   return nextShell;
+}
+
+export function buildStudioRuntimePatch(snapshot, baseRuntime = {}) {
+  const config = {
+    ...DEFAULT_STUDIO_SURFACE_CONFIG,
+    ...(snapshot || {}),
+  };
+
+  const nextRuntime = {
+    ...(baseRuntime || {}),
+  };
+
+  nextRuntime.hoverEdgeEnabled = config.edgeStrength > 0;
+  nextRuntime.hoverEdgeWidth = config.edgeWidth;
+  nextRuntime.hoverEdgeBottomEnabled = config.edgeStrength > 0;
+  nextRuntime.hoverEdgeBottomOpacity = Number((config.edgeStrength * 0.78).toFixed(3));
+  nextRuntime.hoverEdgeTopEnabled = config.edgeStrength > 0;
+  nextRuntime.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
+  nextRuntime.frameBorderGradientEdgeOpacity = Number((config.wallEdgeStrength * 0.14).toFixed(3));
+  nextRuntime.frameBorderGradientMidOpacity = Number((config.wallEdgeStrength * 0.28).toFixed(3));
+  nextRuntime.frameVignetteEdgeOpacity = config.wallEdgeStrength;
+  nextRuntime.frameVignetteAmbientOpacity = config.wallAmbientStrength;
+  nextRuntime.frameVignetteEdgeBlur = Math.round(10 + (config.wallSoftness * 70));
+  nextRuntime.frameVignetteAmbientBlur = Math.round(80 + (config.wallSoftness * 260));
+
+  return nextRuntime;
 }

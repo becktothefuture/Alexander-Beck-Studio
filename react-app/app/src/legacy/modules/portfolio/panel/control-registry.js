@@ -308,6 +308,23 @@ const CONTROL_SECTIONS = {
   },
 };
 
+const DEFAULT_HIDDEN_CONTROL_IDS = new Set([
+  // Keep the primary layout/motion levers, hide low-value micro positioning.
+  'closeButtonTop',
+  'closeButtonLeft',
+  'closeButtonWidth',
+  'closeButtonHeight',
+  'closeButtonIconSize',
+  'detailFadeMs',
+  'detailFadeDelay',
+  'detailContentPopDuration',
+  'detailContentPopOvershoot',
+  'detailContentPopStartScale',
+  'detailContentPopDelayHero',
+  'detailContentPopDelayBody',
+  'detailContentPopEase',
+]);
+
 function getControlInputId(control) {
   return `${control.id}Slider`;
 }
@@ -473,7 +490,12 @@ function generateControlHTML(control, config, computedRoot) {
 }
 
 function generateSectionHTML(section, config, computedRoot) {
-  const controlsHtml = section.controls
+  const visibleControls = section.controls
+    .filter((control) => !DEFAULT_HIDDEN_CONTROL_IDS.has(control.id));
+
+  if (visibleControls.length === 0) return '';
+
+  const controlsHtml = visibleControls
     .map((control) => generateControlHTML(control, config, computedRoot))
     .join('');
 
