@@ -3,7 +3,7 @@
 
 const CONTROL_SECTIONS = {
   layout: {
-    title: 'Stage',
+    title: 'Stage & Layout',
     icon: '📐',
     defaultOpen: true,
     controls: [
@@ -29,7 +29,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   caption: {
-    title: 'Page Caption',
+    title: 'Caption',
     icon: '💬',
     defaultOpen: false,
     controls: [
@@ -54,9 +54,9 @@ const CONTROL_SECTIONS = {
     ],
   },
   appearance: {
-    title: 'Depth & Atmosphere',
+    title: 'Surface & Depth',
     icon: '🎨',
-    defaultOpen: false,
+    defaultOpen: true,
     controls: [
       // These are consumed by `PortfolioApp.updateWheelConfig()`, so they must trigger a metrics refresh.
       { id: 'wheelScaleMin', label: 'Scale Min', cssVar: '--wheel-scale-min', type: 'range', min: 0.1, max: 2, step: 0.01, unit: '', default: 0.82, refresh: true },
@@ -94,7 +94,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   wheelMotion: {
-    title: 'Wheel Motion',
+    title: 'Carousel Motion',
     icon: '🌀',
     defaultOpen: false,
     controls: [
@@ -106,7 +106,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   physics: {
-    title: 'Dynamics',
+    title: 'Bounce',
     icon: '🧲',
     defaultOpen: false,
     controls: [
@@ -116,7 +116,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   detail: {
-    title: 'Detail Layout',
+    title: 'Project Detail',
     icon: '🔎',
     defaultOpen: false,
     controls: [
@@ -127,7 +127,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   closeButton: {
-    title: 'Detail Close',
+    title: 'Advanced Close',
     icon: '✕',
     defaultOpen: false,
     controls: [
@@ -139,7 +139,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   transition: {
-    title: 'Motion',
+    title: 'Project Motion',
     icon: '✨',
     defaultOpen: false,
     controls: [
@@ -185,7 +185,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   navigation: {
-    title: 'Scroll',
+    title: 'Scroll & Input',
     icon: '🧭',
     defaultOpen: false,
     controls: [
@@ -196,7 +196,7 @@ const CONTROL_SECTIONS = {
     ],
   },
   mouseTilt: {
-    title: 'Tilt',
+    title: 'Mouse Tilt',
     icon: '🖱️',
     defaultOpen: false,
     controls: [
@@ -249,7 +249,7 @@ const CONTROL_SECTIONS = {
       { id: 'mouseTiltRight', label: 'Tilt Right', cssVar: '--mouse-tilt-right', type: 'range', min: 0, max: 20, step: 0.5, unit: 'deg', default: 6, refresh: true },
       { id: 'mouseTiltUp', label: 'Tilt Up', cssVar: '--mouse-tilt-up', type: 'range', min: 0, max: 20, step: 0.5, unit: 'deg', default: 5, refresh: true },
       { id: 'mouseTiltDown', label: 'Tilt Down', cssVar: '--mouse-tilt-down', type: 'range', min: 0, max: 20, step: 0.5, unit: 'deg', default: 5, refresh: true },
-      { id: 'mouseTiltPivotZ', label: 'NEW — Tilt Pivot Z', cssVar: '--mouse-tilt-pivot-z', type: 'range', min: -30, max: 30, step: 0.5, unit: 'vmin', default: 0 },
+      { id: 'mouseTiltPivotZ', label: 'Tilt Pivot Z', cssVar: '--mouse-tilt-pivot-z', type: 'range', min: -30, max: 30, step: 0.5, unit: 'vmin', default: 0 },
     ],
   },
   sound: {
@@ -672,26 +672,6 @@ export function bindRegisteredControls(config, options = {}) {
         onRuntimeChange(config.runtime);
       }
 
-      // Sync to source config file (dev mode only)
-      if (control.configKey) {
-        // Use the actual value that was set in config (not raw input)
-        let syncValue;
-        if (control.type === 'select') {
-          syncValue = nextValue;
-        } else if (control.type === 'checkbox') {
-          syncValue = Boolean(nextValue);
-        } else {
-          // For range inputs, use the numeric value that was set
-          syncValue = parseNumeric(nextValue, control.default);
-        }
-        
-        console.log('[portfolio-control-registry] Triggering sync:', { configKey: control.configKey, value: syncValue, type: control.type });
-        import('../../utils/config-sync.js').then(({ syncConfigToFile }) => {
-          syncConfigToFile('portfolio', control.configKey, syncValue);
-        }).catch((e) => {
-          console.error('[portfolio-control-registry] Failed to import config-sync:', e);
-        });
-      }
     });
   }
 }

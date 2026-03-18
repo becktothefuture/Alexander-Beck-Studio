@@ -146,8 +146,9 @@ loadVisibility();
 export const MASTER_GROUPS = [
   {
     id: 'appearance',
-    title: 'Appearance',
-    icon: '🎨',
+    title: 'Studio',
+    icon: '✨',
+    defaultOpen: true,
     sections: [
       'colors',
       'colorDistribution',
@@ -157,8 +158,8 @@ export const MASTER_GROUPS = [
   },
   {
     id: 'frame',
-    title: 'Frame',
-    icon: '🖼️',
+    title: 'Shell & Space',
+    icon: '🧱',
     sections: [
       'wallGeometry',
       'layers',
@@ -167,8 +168,8 @@ export const MASTER_GROUPS = [
   },
   {
     id: 'effects',
-    title: 'Effects',
-    icon: '✨',
+    title: 'Depth & Modals',
+    icon: '🌫️',
     sections: [
       'simulationOverlay',
       'overlay'
@@ -176,8 +177,8 @@ export const MASTER_GROUPS = [
   },
   {
     id: 'interaction',
-    title: 'Interaction',
-    icon: '👆',
+    title: 'Links & Audio',
+    icon: '🔗',
     sections: [
       'cursor',
       'trail',
@@ -196,7 +197,7 @@ export const MASTER_GROUPS = [
   },
   {
     id: 'motion',
-    title: 'Motion',
+    title: 'Advanced Motion',
     icon: '🎬',
     sections: [
       'scene',
@@ -6691,10 +6692,12 @@ export function generateMasterSectionsHTML(options = {}) {
   let html = '';
 
   for (const group of MASTER_GROUPS) {
+    const openAttr = group.defaultOpen ? 'open' : '';
+
     // Check if this group has replacement content
     if (replace[group.id]) {
       html += `
-      <details class="panel-master-group" data-group-id="${group.id}">
+      <details class="panel-master-group" data-group-id="${group.id}" ${openAttr}>
         <summary class="panel-master-group-header">
           ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
           <span class="panel-master-group-title">${group.title}</span>
@@ -6728,7 +6731,7 @@ export function generateMasterSectionsHTML(options = {}) {
     if (!groupContent) continue;
 
     html += `
-      <details class="panel-master-group" data-group-id="${group.id}">
+      <details class="panel-master-group" data-group-id="${group.id}" ${openAttr}>
         <summary class="panel-master-group-header">
           ${group.icon ? `<span class="panel-master-group-icon">${group.icon}</span>` : ''}
           <span class="panel-master-group-title">${group.title}</span>

@@ -227,7 +227,7 @@ async function bootstrapCvPage() {
   try {
     // Production builds intentionally ship with baked-in config (no tuning UI).
     if (isDev()) {
-      initCvPanel();
+      await initCvPanel();
     }
   } catch (e) {
     console.warn('CV config panel failed to initialize', e);

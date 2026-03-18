@@ -33,6 +33,10 @@ import {
   bindSoundControls,
   syncSoundControlsToConfig
 } from '../audio/sound-control-registry.js';
+import {
+  generateStudioSurfaceControlsHTML,
+  bindStudioSurfaceControls,
+} from './studio-surface-controls.js';
 import { resize } from '../rendering/renderer.js';
 
 let dockElement = null;
@@ -132,8 +136,12 @@ let elementStartY = 0;
 
 function getMasterPanelContent({
   pageLabel = 'Home',
+  pageHTML = '',
+  pageSectionTitle = '',
+  pageSectionIcon = '',
   includePageSaveButton = true,
   pageSaveButtonId = 'saveRuntimeConfigBtn',
+  pageSaveButtonLabel = '💾 Save Design JSON',
   footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes',
 } = {}) {
   const g = getGlobals();
@@ -199,8 +207,23 @@ function getMasterPanelContent({
     </details>
   `;
 
+  const pageSectionsHTML = String(pageHTML || '').trim();
+  const pageGroupHTML = pageSectionsHTML
+    ? `
+      <details class="panel-master-group panel-master-group--page" data-group-id="page" open>
+        <summary class="panel-master-group-header">
+          ${pageSectionIcon ? `<span class="panel-master-group-icon">${pageSectionIcon}</span>` : ''}
+          <span class="panel-master-group-title">${pageSectionTitle || pageLabel}</span>
+        </summary>
+        <div class="panel-master-group-content">
+          ${pageSectionsHTML}
+        </div>
+      </details>
+    `
+    : '';
+
   const actionsHTML = `
-    ${includePageSaveButton ? `<div class="panel-section panel-section--action"><button id="${pageSaveButtonId}" class="primary">💾 Save ${pageLabel} Config</button></div>` : ''}
+    ${includePageSaveButton ? `<div class="panel-section panel-section--action"><button id="${pageSaveButtonId}" class="primary">${pageSaveButtonLabel}</button></div>` : ''}
     <div class="panel-footer">${footerHint}</div>
   `;
 
@@ -215,7 +238,7 @@ function getMasterPanelContent({
       simulation: generateModeSwitcherHTML() + generateModeSpecificSectionsHTML(),
     },
     append: {
-      appearance: generateColorTemplateSectionHTML({ open: false }),
+      appearance: generateStudioSurfaceControlsHTML() + generateColorTemplateSectionHTML({ open: false }),
       frame: layoutControlsHTML,
       interaction: soundControlsHTML,
     }
@@ -223,6 +246,7 @@ function getMasterPanelContent({
 
   return `
     ${masterGroupsHTML}
+    ${pageGroupHTML}
     ${actionsHTML}
   `;
 }
@@ -272,6 +296,7 @@ export function createPanelDock(options = {}) {
   // Default to true for home page (save config button), false must be explicit
   const includePageSaveButton = options.includePageSaveButton !== false;
   const pageSaveButtonId = options.pageSaveButtonId || 'saveRuntimeConfigBtn';
+  const pageSaveButtonLabel = options.pageSaveButtonLabel || '💾 Save Design JSON';
   const footerHint = options.footerHint || (page === 'portfolio'
     ? '<kbd>/</kbd> panel'
     : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei');
@@ -279,6 +304,9 @@ export function createPanelDock(options = {}) {
   const modeLabel = options.modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
   const bindShortcut = !!options.bindShortcut;
   const setupPageControls = typeof options.setupPageControls === 'function' ? options.setupPageControls : null;
+  const pageHTML = options.pageHTML || '';
+  const pageSectionTitle = options.pageSectionTitle || pageLabel;
+  const pageSectionIcon = options.pageSectionIcon || (page === 'portfolio' ? '🗂️' : '📄');
 
   // Remove any legacy placeholders
   try {
@@ -311,8 +339,12 @@ export function createPanelDock(options = {}) {
     panelTitle,
     modeLabel,
     pageLabel,
+    pageHTML,
+    pageSectionTitle,
+    pageSectionIcon,
     includePageSaveButton,
     pageSaveButtonId,
+    pageSaveButtonLabel,
     footerHint,
     setupPageControls,
   });
@@ -360,8 +392,12 @@ function createMasterPanel({
   panelTitle,
   modeLabel,
   pageLabel,
+  pageHTML,
+  pageSectionTitle,
+  pageSectionIcon,
   includePageSaveButton,
   pageSaveButtonId,
+  pageSaveButtonLabel,
   footerHint,
   setupPageControls,
 } = {}) {
@@ -386,8 +422,12 @@ function createMasterPanel({
   content.className = 'panel-content';
   content.innerHTML = getMasterPanelContent({
     pageLabel,
+    pageHTML,
+    pageSectionTitle,
+    pageSectionIcon,
     includePageSaveButton,
     pageSaveButtonId,
+    pageSaveButtonLabel,
     footerHint,
   });
   
@@ -437,6 +477,7 @@ function createMasterPanel({
     }
 
     setupBuildControls();
+    bindStudioSurfaceControls();
     setupSoundControls(panel);
     setupLayoutControls(panel);
 
