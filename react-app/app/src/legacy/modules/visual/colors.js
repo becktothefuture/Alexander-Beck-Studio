@@ -801,6 +801,91 @@ function isProjectNeutralColor(hex) {
   return saturation < 0.16 || luminance < 0.045 || luminance > 0.94;
 }
 
+function normalizeHexKey(hex) {
+  const rgb = hexToRgb255(hex);
+  if (!rgb) return String(hex || '').trim().toLowerCase();
+  return rgb255ToHex(rgb).toLowerCase();
+}
+
+/** Distinct greys when the live palette runs out of unique neutrals (portfolio pit only). */
+const PORTFOLIO_GREY_FALLBACKS = [
+  '#6b7670',
+  '#8a9390',
+  '#4a5550',
+  '#a3aba7',
+  '#3d4743',
+  '#b8c0bc'
+];
+
+/**
+ * One unique fill per portfolio project: chromatic palette slots first, then neutrals/greys
+ * from the same palette (deduped), then stepped greys. Avoids repeating the same accent hue.
+ */
+export function getPortfolioProjectPaletteColor(index, projectCount) {
+  const n = Math.max(1, Math.floor(Number(projectCount)) || 1);
+  const seq = buildPortfolioProjectColorSequence(n);
+  const i = Math.abs(Math.floor(index));
+  return seq[i % seq.length] || seq[0];
+}
+
+function buildPortfolioProjectColorSequence(projectCount) {
+  const globals = getGlobals();
+  const colors = Array.isArray(globals.currentColors) ? globals.currentColors.filter(Boolean) : [];
+  const out = [];
+  const seen = new Set();
+  const pushUnique = (c) => {
+    const key = normalizeHexKey(c);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(c);
+  };
+
+  if (!colors.length) {
+    for (let k = 0; k < PORTFOLIO_GREY_FALLBACKS.length && out.length < projectCount; k += 1) {
+      out.push(PORTFOLIO_GREY_FALLBACKS[k]);
+    }
+    let step = 0;
+    while (out.length < projectCount && step < 128) {
+      step += 1;
+      const b = 42 + ((step * 19 + projectCount * 3) % 156);
+      out.push(rgb255ToHex({ r: b, g: clamp255(b + 4), b: clamp255(b + 2) }));
+    }
+    return out.slice(0, projectCount);
+  }
+
+  const chromatic = [];
+  const neutrals = [];
+  for (let i = 0; i < colors.length; i += 1) {
+    const color = colors[i];
+    if (isProjectNeutralColor(color)) neutrals.push(color);
+    else chromatic.push(color);
+  }
+
+  for (let i = 0; i < chromatic.length; i += 1) pushUnique(chromatic[i]);
+  for (let i = 0; i < neutrals.length; i += 1) pushUnique(neutrals[i]);
+  for (let i = 0; i < PORTFOLIO_GREY_FALLBACKS.length && out.length < projectCount; i += 1) {
+    pushUnique(PORTFOLIO_GREY_FALLBACKS[i]);
+  }
+
+  let guard = 0;
+  while (out.length < projectCount && guard < 96) {
+    guard += 1;
+    const before = out.length;
+    const t = out.length / (projectCount + 3);
+    pushUnique(rgb255ToHex({
+      r: lerp255(58, 140, t),
+      g: lerp255(62, 148, t),
+      b: lerp255(60, 144, t)
+    }));
+    if (out.length === before) {
+      const b = 48 + ((guard + out.length * 11 + projectCount) % 152);
+      out.push(rgb255ToHex({ r: b, g: clamp255(b + 3), b: clamp255(b + 1) }));
+    }
+  }
+
+  return out.slice(0, projectCount);
+}
+
 export function getProjectPaletteColor(index) {
   const globals = getGlobals();
   const colors = Array.isArray(globals.currentColors) ? globals.currentColors.filter(Boolean) : [];

@@ -4,6 +4,8 @@
 
 This document describes the configuration keys loaded at runtime. The React app serves config from `react-app/app/public/config/`.
 
+**Visual spec for shell buttons and on-page UI harmony:** [`SITE-STYLEGUIDE.md`](SITE-STYLEGUIDE.md).
+
 ---
 
 ## Portfolio Page Configuration (Separate Runtime)
@@ -17,14 +19,26 @@ The portfolio route now uses a dedicated **project pit** runtime instead of the 
 
 Portfolio config applies only to the portfolio pit and fullscreen project open state.
 
+- **`bodies.diameterScale`**: Multiplier applied to computed ball diameters after viewport fractions (default `1.2` = 20% larger than the base min/max viewport sizing).
+
+**Simulation notes (2025-03):** Portfolio bodies use the same circle colliders and pit solver as the home ball pit (no mixed block/circle mismatch). `detectResponsiveScale()` does not overwrite portfolio radii; `R_MAX` / spatial hashing are synced from spawned bodies. The canvas logo draw path is skipped on the portfolio route so home hero artwork cannot leak after SPA navigation. Titles render in a DOM overlay (`portfolioDomLabels`) for sharp type.
+
+**Project circle fills:** Each project gets a distinct color from the active palette: saturated (chromatic) swatches first, then neutral/grey slots from that palette (deduped), then additional cool greys if there are more projects than unique swatches (`getPortfolioProjectPaletteColor` in `visual/colors.js`). Home ball pit still uses weighted random palette picks; this rule applies only to the portfolio pit.
+
+**Quote puck:** The draggable quote roundel (`initQuoteDisplay` + `initQuotePuck` in `main.js`) is mounted only on the home route. Portfolio bootstrap calls `destroyQuoteDisplay()` so the same DOM host does not keep a home quote when using the SPA shell.
+
+**Collision notes:** On load, `applyPortfolioPhysicsProfile()` sets `ballSpacing` to **0** and `wallInset` to **0** so physics radii match the filled circles (no forced separation from the shared `default-config` `ballSpacing` / `wallInset` values). Home index can still use the panel-driven spacing; portfolio pit prioritizes flush ball–ball and ball–wall contact.
+
 ### Portfolio `cssVars`
 
 These control the page-level presentation around the pit and the opened hero:
 
+`--portfolio-nav-top` is **extra** padding below the base top inset (`var(--gap-xs)`), on top of safe-area already applied by `.fade-content`. Default `0px` aligns the route header with the home legend row.
+
 ```json
 {
   "cssVars": {
-    "--portfolio-nav-top": "24px",
+    "--portfolio-nav-top": "0px",
     "--portfolio-stage-pad": "24px",
     "--portfolio-hero-title-max": "14ch",
     "--portfolio-image-veil-opacity": "0.14",
@@ -41,30 +55,32 @@ The portfolio runtime is grouped by behavior rather than slider mechanics:
 {
   "runtime": {
     "layout": {
-      "spawnInsetViewport": 0.12,
+      "spawnInsetViewport": 0.1,
+      "spawnBandWidthRatio": 0.78,
+      "spawnHeightViewport": 0.62,
       "bodyCountPolicy": "one-per-project",
       "headerTopSpacing": 24
     },
     "bodies": {
-      "minDiameterViewport": 0.2,
-      "maxDiameterViewport": 0.28,
-      "blockWidthMultiplier": 1.24,
-      "blockCornerRadius": 48
+      "minDiameterViewport": 0.22,
+      "maxDiameterViewport": 0.32,
+      "diameterScale": 1.2,
+      "wallPaddingViewport": 0.05
     },
     "labeling": {
-      "fontMinPx": 16,
-      "fontMaxPx": 34,
+      "fontDesktopPx": 28,
+      "fontMobilePx": 20,
       "lineHeight": 0.94,
-      "innerPaddingRatio": 0.19,
-      "blockRotationRangeDeg": 6
+      "innerPaddingRatio": 0.18
     },
     "motion": {
-      "neighborImpulse": 540,
+      "gravityScale": 0.52,
+      "neighborImpulse": 0,
       "dragThrowMultiplier": 1.05,
-      "openDurationMs": 820,
-      "colorFloodHoldMs": 280,
+      "openDurationMs": 420,
+      "colorFloodHoldMs": 120,
       "imageFadeMs": 220,
-      "titleRevealDelayMs": 1240
+      "titleRevealDelayMs": 480
     },
     "behavior": {
       "passiveMouseReaction": false,

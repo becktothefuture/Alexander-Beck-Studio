@@ -41,7 +41,7 @@ export function initCVModal() {
     
     const BACK_TEXT = getText('gates.common.backText', 'BACK');
     const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
-    const TITLE = getText('gates.cv.title', 'Bio/CV');
+    const TITLE = getText('gates.cv.title', 'About me');
     const DESC = getText(
         'gates.cv.description',
         "This is a lightweight invite gate in the browser, not secure authentication. If I shared a code with you, enter it here. Otherwise get in touch and I'll send the CV directly."

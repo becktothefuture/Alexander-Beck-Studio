@@ -61,7 +61,7 @@ export function getHomeRouteView() {
           />
         </main>
 
-        <nav id="main-links" className="ui-nav-row" aria-label={homeContent.footer.navAriaLabel}>
+        <nav id="main-links" className="ui-nav-row ui-main-nav" aria-label={homeContent.footer.navAriaLabel}>
           <button id={footerLinks.contact.id} type="button" className="footer_link">
             {footerLinks.contact.text}
           </button>

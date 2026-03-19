@@ -40,6 +40,78 @@ const entranceState = {
   isStarted: false,
   startTimeMs: 0
 };
+
+function easeOutExpo(t) {
+  return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+}
+
+/** Mirrors html.modal-active / gate timing so canvas logo fades with the DOM chrome (DOM #brand-logo is display:none). */
+const modalLogoFade = {
+  lastModalActive: null,
+  startMs: 0,
+  durationMs: 455,
+  from: 1,
+  to: 1,
+  value: 1
+};
+
+function parseCssTimeMs(raw, fallbackMs) {
+  const s = String(raw || '').trim();
+  if (!s) return fallbackMs;
+  const ms = s.match(/^([\d.]+)ms$/i);
+  if (ms) return Math.max(0, parseFloat(ms[1]) || fallbackMs);
+  const sec = s.match(/^([\d.]+)s$/i);
+  if (sec) return Math.max(0, (parseFloat(sec[1]) || 0) * 1000);
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? Math.max(0, n) : fallbackMs;
+}
+
+/**
+ * Opacity multiplier when gate modals open/close (1 = visible, 0 = hidden).
+ * Durations align with main.css --ui-duration-out / --ui-logo-duration-in on #brand-logo.
+ */
+function resolveModalLogoOpacityMultiplier(nowMs) {
+  if (typeof document === 'undefined') return 1;
+
+  const modalActive = document.documentElement.classList.contains('modal-active');
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+  if (modalLogoFade.lastModalActive === null) {
+    modalLogoFade.lastModalActive = modalActive;
+    modalLogoFade.value = modalActive ? 0 : 1;
+    modalLogoFade.to = modalLogoFade.value;
+    modalLogoFade.from = modalLogoFade.value;
+    return modalLogoFade.value;
+  }
+
+  if (modalActive !== modalLogoFade.lastModalActive) {
+    const root = getComputedStyle(document.documentElement);
+    const outMs = parseCssTimeMs(root.getPropertyValue('--ui-duration-out'), 455);
+    const inMs = parseCssTimeMs(root.getPropertyValue('--ui-logo-duration-in'), 1040);
+    modalLogoFade.startMs = nowMs;
+    modalLogoFade.from = modalLogoFade.value;
+    modalLogoFade.to = modalActive ? 0 : 1;
+    modalLogoFade.durationMs = modalActive ? outMs : inMs;
+    modalLogoFade.lastModalActive = modalActive;
+    if (reduceMotion) {
+      modalLogoFade.value = modalLogoFade.to;
+      return modalLogoFade.value;
+    }
+  }
+
+  if (reduceMotion) {
+    modalLogoFade.value = modalLogoFade.to;
+    return modalLogoFade.value;
+  }
+
+  const elapsed = nowMs - modalLogoFade.startMs;
+  const t = modalLogoFade.durationMs <= 0 ? 1 : Math.min(1, elapsed / modalLogoFade.durationMs);
+  const eased = easeOutExpo(t);
+  modalLogoFade.value = modalLogoFade.from + (modalLogoFade.to - modalLogoFade.from) * eased;
+  if (t >= 1) modalLogoFade.value = modalLogoFade.to;
+  return modalLogoFade.value;
+}
+
 const runtimeStyleCache = {
   expiresAt: 0,
   logoColor: LOGO_COLOR_DARK,
@@ -48,12 +120,8 @@ const runtimeStyleCache = {
 let cacheInvalidationBound = false;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EASING FUNCTION
+// COLOR / STYLE HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
-function easeOutExpo(t) {
-  return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
-}
-
 function getColorParserCtx() {
   const c = document.createElement('canvas');
   c.width = 1;
@@ -275,8 +343,13 @@ function calculateLogoSize(canvasWidth, canvasHeight, dpr) {
     const maxWidth = Number.isFinite(mobileMaxPx) ? mobileMaxPx : 220;
     logoWidth = Math.max(minWidth, Math.min(maxWidth, widthFromViewport, widthFromHeight));
   } else {
-    // clamp(250px, 45vw, 500px) on desktop
-    logoWidth = Math.max(250, Math.min(500, vw * 0.45));
+    const desktopWidthVw = Number(heroConfig.desktopLogoWidthVw);
+    const desktopMinPx = Number(heroConfig.desktopLogoMinPx);
+    const desktopMaxPx = Number(heroConfig.desktopLogoMaxPx);
+    const widthFromViewport = vw * ((Number.isFinite(desktopWidthVw) ? desktopWidthVw : 52) / 100);
+    const minWidth = Number.isFinite(desktopMinPx) ? desktopMinPx : 340;
+    const maxWidth = Number.isFinite(desktopMaxPx) ? desktopMaxPx : 640;
+    logoWidth = Math.max(minWidth, Math.min(maxWidth, widthFromViewport));
   }
   
   // Step 2: Safety max - never exceed 90vw (prevents side clipping)
@@ -448,6 +521,9 @@ export function updateLogoSize(canvasWidth, canvasHeight, dpr) {
  */
 export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
   if (!isInitialized) return;
+  if (typeof document !== 'undefined' && document.body?.classList?.contains('portfolio-page')) {
+    return;
+  }
   const nowMs = performance.now();
   
   const logoColor = resolveAccessibleLogoColor(nowMs);
@@ -465,14 +541,6 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
 
   // Calculate centered position
   const pos = getLogoCenterPosition(canvasWidth, canvasHeight, currentSize.width, currentSize.height);
-
-  // Failsafe: if the explicit trigger was missed, start once the page entrance is complete.
-  if (!entranceState.isStarted && !entranceState.isComplete) {
-    const html = document.documentElement;
-    if (html?.classList.contains('entrance-complete') || html?.classList.contains('ui-entered')) {
-      startLogoEntrance();
-    }
-  }
 
   // Keep progress time-based (independent from physics tick cadence).
   syncEntranceProgress(nowMs);
@@ -494,6 +562,10 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
   
   // Optimization: Skip drawing if invisible
   if (opacity <= 0) return;
+
+  const modalOpacityMul = resolveModalLogoOpacityMultiplier(nowMs);
+  const combinedOpacity = opacity * modalOpacityMul;
+  if (combinedOpacity <= 0.001) return;
   
   // Apply scene impact scale from CSS var (if available)
   let effectiveScale = scale * resolveSceneImpactScale(nowMs);
@@ -511,10 +583,7 @@ export function drawLogo(ctx, canvasWidth, canvasHeight, scale = 1) {
     ctx.translate(-centerX, -centerY);
   }
   
-  // Apply entrance animation effects
-  if (opacity < 1) {
-    ctx.globalAlpha = opacity;
-  }
+  ctx.globalAlpha = combinedOpacity;
   
   if (blur > 0.5) {
     ctx.filter = `blur(${blur}px)`;
@@ -559,6 +628,10 @@ export function updateLogoEntrance(dt) {
  * Start the entrance animation
  */
 export function startLogoEntrance() {
+  // Avoid resetting mid-flight: quick-entrance sets html.entrance-complete before the
+  // delayed call from main.js; a draw-loop failsafe used to start early and this second
+  // call would snap progress back to 0.
+  if (entranceState.isStarted) return;
   entranceState.isStarted = true;
   entranceState.progress = 0;
   entranceState.isComplete = false;

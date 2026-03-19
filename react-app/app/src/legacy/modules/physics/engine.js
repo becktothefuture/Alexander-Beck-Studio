@@ -708,8 +708,9 @@ export function render() {
   const logoReady = isCanvasLogoReady();
   
   const customRenderer = getModeCustomRenderer();
+  const skipCanvasLogo = globals.currentMode === MODES.PORTFOLIO_PIT;
   if (customRenderer) {
-    if (logoReady && !needsZPartition) {
+    if (logoReady && !needsZPartition && !skipCanvasLogo) {
       drawLogo(ctx, canvas.width, canvas.height);
     }
     customRenderer(ctx);

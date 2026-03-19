@@ -55,7 +55,7 @@ All user-facing copy across the website in one place. Use this to edit, translat
 | footer.navAriaLabel | Main navigation links | contents-home.json |
 | footer.links.contact.text | Contact | contents-home.json |
 | footer.links.portfolio.text | Portfolio | contents-home.json |
-| footer.links.cv.text | Bio/CV | contents-home.json |
+| footer.links.cv.text | About me | contents-home.json |
 | footer.metaLocationPrefix | London, UK ·  | contents-home.json |
 
 ---
@@ -97,7 +97,7 @@ All user-facing copy across the website in one place. Use this to edit, translat
 |-----|--------------|--------|
 | gates.common.backText | BACK | contents-home.json |
 | gates.common.backAriaLabel | Back | contents-home.json |
-| gates.cv.title | Bio/CV | contents-home.json |
+| gates.cv.title | About me | contents-home.json |
 | gates.cv.description | A lightweight invite in the browser, not secure auth. If I gave you a code, enter it here. Otherwise get in touch and I'll send the CV. | contents-home.json |
 | gates.portfolio.title | View Portfolio | contents-home.json |
 | gates.portfolio.description | A lightweight invite in the browser, not secure auth. If I gave you a code, enter it here. Otherwise get in touch and I'll send portfolio access. | contents-home.json |

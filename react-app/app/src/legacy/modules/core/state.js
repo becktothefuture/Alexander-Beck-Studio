@@ -662,7 +662,7 @@ const state = {
   // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)
   topLogoWidthVw: 35,                 // Sets `--top-logo-width-vw` (clamped by CSS min/max tokens)
-  brandLogoSecondaryOpacity: 0.66,    // Opacity for the second line of the Alexander Beck Studio mark
+  brandLogoSecondaryOpacity: 1,       // 1 = same weight as primary line (canvas + DOM)
   homeMainLinksBelowLogoPx: 96,      // Sets `--home-main-links-below-logo-px` (index only)
   footerNavBarTopVh: 50,              // Sets `--footer-nav-bar-top-*` (viewport units)
   footerNavBarGapVw: 2.5,             // Sets `--footer-nav-bar-gap` (viewport units)
@@ -1127,7 +1127,7 @@ export function applyLayoutCSSVars() {
   const wallThicknessVwMul = isMobileLayout ? mobileWallXFactor : desktopWallFactor;
   root.style.setProperty('--wall-thickness-vw', `${baseThicknessVw * wallThicknessVwMul}`);
   root.style.setProperty('--top-logo-width-vw', String(state.topLogoWidthVw ?? 35));
-  root.style.setProperty('--brand-logo-secondary-opacity', String(clampNumber(state.brandLogoSecondaryOpacity, 0, 1, 0.66)));
+      root.style.setProperty('--brand-logo-secondary-opacity', String(clampNumber(state.brandLogoSecondaryOpacity, 0, 1, 1)));
   root.style.setProperty('--home-main-links-below-logo-px', `${Math.round(state.homeMainLinksBelowLogoPx ?? 40)}px`);
   
   // Edge label inset: CSS handles calculation via --wall-thickness + --edge-label-inset-gap + --edge-label-inset-adjust
@@ -2310,6 +2310,29 @@ export function clearBalls() {
 }
 
 /**
+ * Spatial hash + tuning uses R_MAX; portfolio balls can be huge vs home defaults.
+ * Call after spawning portfolio bodies and on resize (radii scaled in renderer).
+ */
+export function syncPitPortfolioRadiusStatsFromBalls() {
+  const balls = state.balls;
+  if (!Array.isArray(balls) || balls.length === 0) return;
+  let maxR = 0;
+  let minR = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < balls.length; i++) {
+    const b = balls[i];
+    if (!b || b.projectIndex === undefined) continue;
+    const r = Number(b.r);
+    if (!Number.isFinite(r) || r <= 0) continue;
+    maxR = Math.max(maxR, r);
+    minR = Math.min(minR, r);
+  }
+  if (maxR <= 0) return;
+  state.R_MAX = maxR;
+  state.R_MIN = minR === Number.POSITIVE_INFINITY ? maxR : minR;
+  state.R_MED = (state.R_MIN + state.R_MAX) * 0.5;
+}
+
+/**
  * Detect device type and apply responsive ball sizing
  * Ball size interpolates between ballSizeMin and ballSizeMax based on viewport width.
  */
@@ -2357,6 +2380,12 @@ export function detectResponsiveScale() {
   // Update ball sizes based on viewport width (always runs to handle continuous sizing)
   updateBallSizes();
   
+  // Portfolio pit uses large per-project radii; never stomp them with the home pit size curve.
+  if (state.currentMode === MODES.PORTFOLIO_PIT) {
+    syncPitPortfolioRadiusStatsFromBalls();
+    return;
+  }
+
   // Update existing balls only if size actually changed
   const newSize = state.R_MED;
   if (Math.abs(newSize - prevSize) > 0.1) {

@@ -15,6 +15,12 @@ function setCvContainerObscured(obscured) {
   }
 }
 
+function setCenterStageObscured(obscured) {
+  document.querySelectorAll('main.ui-center, main.ui-center-spacer').forEach((el) => {
+    el.classList.toggle('center-stage--modal-hidden', obscured);
+  });
+}
+
 function setModalHidden(modal) {
   modal.classList.remove('active', 'closing');
   modal.classList.add('hidden');
@@ -35,15 +41,12 @@ export function hideCompetingGateModals(modals = []) {
   });
 }
 
-export function showGateBackdrop({ logo, hadActiveGate = false }) {
+export function showGateBackdrop({ hadActiveGate = false } = {}) {
   if (!hadActiveGate) {
     showOverlay();
   }
 
-  if (logo) {
-    logo.classList.add('fade-out-up');
-  }
-
+  setCenterStageObscured(true);
   setCvContainerObscured(true);
 }
 
@@ -67,26 +70,17 @@ export function closeGateModal({
 }) {
   if (instant) {
     modal.style.transition = 'none';
-    if (logo) {
-      logo.style.transition = 'none';
-    }
 
     setModalHidden(modal);
 
-    if (logo) {
-      logo.classList.remove('fade-out-up');
-    }
-    setCvContainerObscured(false);
-
     if (!keepOverlayActive) {
+      setCenterStageObscured(false);
+      setCvContainerObscured(false);
       hideOverlay();
     }
 
     requestAnimationFrame(() => {
       modal.style.removeProperty('transition');
-      if (logo) {
-        logo.style.removeProperty('transition');
-      }
     });
     return;
   }
@@ -96,12 +90,9 @@ export function closeGateModal({
   modal.setAttribute('aria-hidden', 'true');
   modal.dataset.modalState = 'closing';
 
-  if (logo) {
-    logo.classList.remove('fade-out-up');
-  }
-  setCvContainerObscured(false);
-
   if (!keepOverlayActive) {
+    setCenterStageObscured(false);
+    setCvContainerObscured(false);
     hideOverlay();
   }
 

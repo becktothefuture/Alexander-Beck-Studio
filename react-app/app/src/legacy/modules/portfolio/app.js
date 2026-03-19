@@ -1,9 +1,10 @@
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
 import { applyWallFrameFromConfig, applyWallFrameLayout } from '../visual/wall-frame.js';
 import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioConfig } from './portfolio-config.js';
+import { relayoutPortfolioProjectLabels } from './pit-mode.js';
 import { createSoundToggle } from '../ui/sound-toggle.js';
 import { initializeDarkMode } from '../visual/dark-mode-v2.js';
-import { getColorByIndex, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
+import { getPortfolioProjectPaletteColor, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
 import { initNoiseSystem } from '../visual/noise-system.js';
 import { initTimeDisplay } from '../ui/time-display.js';
@@ -17,12 +18,21 @@ import { loadShellConfig, syncShellToDocument } from '../visual/site-shell.js';
 import { forcePageVisible, waitForPageReadyBarrier } from '../visual/page-orchestrator.js';
 import { navigateWithTransition, resetTransitionState, setupPrefetchOnHover, NAV_STATES } from '../utils/page-nav.js';
 import { MODES } from '../core/constants.js';
-import { setupRenderer, getCanvas, getContext, resize, setForceRenderCallback } from '../rendering/renderer.js';
+import {
+  setupRenderer,
+  getCanvas,
+  getContext,
+  resize,
+  setForceRenderCallback,
+  detectOptimalDPR,
+  disposeRendererListeners,
+} from '../rendering/renderer.js';
 import { render } from '../physics/engine.js';
 import { setCanvas } from '../core/state.js';
 import { initModeSystem, setMode, getForceApplicator } from '../modes/mode-controller.js';
 import { startMainLoop } from '../rendering/loop.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
+import { destroyQuoteDisplay } from '../ui/quote-display.js';
 
 const BASE_PATH = (() => {
   try {
@@ -162,6 +172,11 @@ class PortfolioPitApp {
     this.lastFocusedElement = null;
     this.projectNav = null;
     this.projectButtons = [];
+    this.projectLabelLayer = null;
+    this.projectLabels = [];
+    this.hoverProjectIndex = -1;
+    this.boundCanvasHoverMove = (event) => this.handleCanvasHoverMove(event);
+    this.boundCanvasHoverLeave = () => this.handleCanvasHoverLeave();
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
     this.boundProjectCloseClick = (event) => {
       if (event.detail === 0) SoundEngine.playHoverSound?.();
@@ -195,6 +210,14 @@ class PortfolioPitApp {
     await setMode(MODES.PORTFOLIO_PIT);
     this.applyPortfolioPhysicsProfile();
     this.applyProjectPalette();
+    this.ensureProjectLabelLayer();
+    this.syncProjectLabels();
+    globals.portfolioDomLabels = true;
+    globals.portfolioSyncLabelLayer = () => this.syncProjectLabels();
+    globals.portfolioRelayoutLabels = () => {
+      relayoutPortfolioProjectLabels();
+      this.syncProjectLabels();
+    };
     this.bindCanvasInteractions();
     this.bindProjectOverlay();
     window.addEventListener('resize', this.boundResize, { passive: true });
@@ -202,6 +225,11 @@ class PortfolioPitApp {
   }
 
   destroy() {
+    this.setHoverProjectIndex(-1);
+    if (this.canvas) {
+      this.canvas.removeEventListener('pointermove', this.boundCanvasHoverMove);
+      this.canvas.removeEventListener('pointerleave', this.boundCanvasHoverLeave);
+    }
     window.removeEventListener('resize', this.boundResize);
     window.removeEventListener('bb:paletteChanged', this.boundPaletteChange);
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
@@ -210,7 +238,12 @@ class PortfolioPitApp {
       this.projectClose.removeEventListener('click', this.boundProjectCloseClick);
     }
     if (this.projectNav) this.projectNav.remove();
+    if (this.projectLabelLayer) this.projectLabelLayer.remove();
     if (this.projectView) this.projectView.remove();
+    const globals = getGlobals();
+    globals.portfolioDomLabels = false;
+    globals.portfolioSyncLabelLayer = null;
+    globals.portfolioRelayoutLabels = null;
     this.restoreBackgroundInteractivity();
   }
 
@@ -226,6 +259,8 @@ class PortfolioPitApp {
     void setMode(MODES.PORTFOLIO_PIT).then(() => {
       this.applyPortfolioPhysicsProfile();
       this.applyProjectPalette();
+      this.ensureProjectLabelLayer();
+      this.syncProjectLabels();
       this.syncFocusedProject();
     });
   }
@@ -233,18 +268,39 @@ class PortfolioPitApp {
   applyPortfolioPhysicsProfile() {
     const globals = getGlobals();
     const baseGravity = toNumber(globals.gravityMultiplierPit, 1.1);
-    const gravityScale = clamp(toNumber(this.config.runtime.motion?.settleGravityScale, 0.42), 0.15, 0.85);
+    const gravityScale = clamp(
+      toNumber(this.config.runtime.motion?.gravityScale, this.config.runtime.motion?.settleGravityScale ?? 0.42),
+      0.15,
+      0.85
+    );
+    const massMultiplier = clamp(toNumber(this.config.runtime.motion?.massMultiplier, 1), 0.5, 2);
     globals.gravityMultiplier = baseGravity * gravityScale;
     globals.G = globals.GE * globals.gravityMultiplier;
     globals.physicsSkipSleepingSteps = false;
+    // True contact with drawn circles: collision uses r(1+ballSpacing) for walls and
+    // (r1+r2)+avg*spacing for ball–ball. A previous 0.22 floor forced a visible air gap.
+    globals.ballSpacing = 0;
+    globals.wallInset = 0;
+    globals.physicsCollisionIterations = Math.max(
+      12,
+      Math.round(Number(globals.physicsCollisionIterations ?? 10) || 10)
+    );
+
+    const balls = Array.isArray(globals.balls) ? globals.balls : [];
+    for (let index = 0; index < balls.length; index += 1) {
+      const ball = balls[index];
+      if (!ball) continue;
+      ball.m = globals.ballMassKg * massMultiplier;
+    }
   }
 
   applyProjectPalette() {
     const globals = getGlobals();
     const balls = Array.isArray(globals.balls) ? globals.balls : [];
-    for (let index = 0; index < balls.length; index += 1) {
+    const n = balls.length;
+    for (let index = 0; index < n; index += 1) {
       const ball = balls[index];
-      const color = getColorByIndex(index);
+      const color = getPortfolioProjectPaletteColor(index, n);
       ball.color = color;
       ball.labelColor = getContrastText(color);
     }
@@ -332,6 +388,7 @@ class PortfolioPitApp {
     nav.appendChild(intro);
 
     this.projectButtons = this.projects.map((project, index) => {
+      const projectLabel = String(project?.displayTitle || project?.title || `Project ${index + 1}`).trim();
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.projectIndex = String(index);
@@ -339,7 +396,8 @@ class PortfolioPitApp {
       button.setAttribute('aria-controls', 'portfolioProjectView');
       button.setAttribute('aria-haspopup', 'dialog');
       button.setAttribute('aria-expanded', 'false');
-      button.textContent = project?.title || `Project ${index + 1}`;
+      button.setAttribute('aria-label', project?.title || projectLabel);
+      button.textContent = projectLabel;
       button.addEventListener('focus', () => this.setFocusedProjectIndex(index));
       button.addEventListener('blur', () => {
         if (this.focusedProjectIndex === index && !this.isProjectOpen) this.setFocusedProjectIndex(-1);
@@ -356,12 +414,114 @@ class PortfolioPitApp {
     this.projectNav = nav;
   }
 
+  ensureProjectLabelLayer() {
+    if (!this.mount) return;
+    const existing = this.mount.querySelector('.portfolio-label-layer');
+    if (existing) existing.remove();
+
+    const layer = document.createElement('div');
+    layer.className = 'portfolio-label-layer';
+    layer.setAttribute('aria-hidden', 'true');
+    this.projectLabels = this.projects.map((project, index) => {
+      const label = document.createElement('div');
+      label.className = 'portfolio-project-label';
+      label.dataset.projectIndex = String(index);
+
+      const text = document.createElement('div');
+      text.className = 'portfolio-project-label__text';
+      label.appendChild(text);
+      layer.appendChild(label);
+      return label;
+    });
+
+    this.mount.appendChild(layer);
+    this.projectLabelLayer = layer;
+  }
+
+  syncProjectLabels() {
+    if (!this.projectLabelLayer) return;
+    const globals = getGlobals();
+    const dpr = globals.DPR || 1;
+    const balls = Array.isArray(globals.balls) ? globals.balls : [];
+
+    for (let index = 0; index < this.projectLabels.length; index += 1) {
+      const label = this.projectLabels[index];
+      if (!label) continue;
+      const text = label.firstElementChild;
+      const ball = balls.find((entry) => entry?.projectIndex === index);
+
+      if (!ball || ball.__portfolioHidden) {
+        label.style.opacity = '0';
+        continue;
+      }
+
+      const lines = Array.isArray(ball.label?.lines) ? ball.label.lines : [ball.projectTitle || 'Project'];
+      const textKey = lines.join('\n');
+      if (text && text.dataset.textKey !== textKey) {
+        text.innerHTML = lines.map((line) => `<span>${escapeHtml(line)}</span>`).join('');
+        text.dataset.textKey = textKey;
+      }
+
+      const diameter = ball.r * 2;
+      const width = diameter / dpr;
+      const height = diameter / dpr;
+      const rotation = ball.theta || 0;
+      const fontSize = (ball.label?.fontSize || 20) / dpr;
+      const lineHeight = (ball.label?.lineHeight || (fontSize * 0.96)) / Math.max(fontSize, 1);
+      const alpha = clamp(toNumber(ball.__portfolioDimAlpha, 1), 0, 1) * (ball.__portfolioSelected ? 0 : 1);
+
+      label.style.width = `${width}px`;
+      label.style.height = `${height}px`;
+      label.style.transform = `translate(${ball.x / dpr}px, ${ball.y / dpr}px) translate(-50%, -50%) rotate(${rotation}rad)`;
+      label.style.opacity = `${alpha}`;
+      label.style.color = ball.labelColor || '#ffffff';
+
+      if (text) {
+        text.style.fontSize = `${fontSize}px`;
+        text.style.lineHeight = `${lineHeight}`;
+      }
+    }
+  }
+
   bindCanvasInteractions() {
     if (!this.canvas) return;
     this.canvas.addEventListener('pointerdown', (event) => this.handlePointerDown(event));
     this.canvas.addEventListener('pointermove', (event) => this.handlePointerMove(event));
     this.canvas.addEventListener('pointerup', (event) => this.handlePointerUp(event));
     this.canvas.addEventListener('pointercancel', (event) => this.handlePointerUp(event));
+    this.canvas.addEventListener('pointermove', this.boundCanvasHoverMove, { passive: true });
+    this.canvas.addEventListener('pointerleave', this.boundCanvasHoverLeave);
+  }
+
+  setHoverProjectIndex(projectIndex) {
+    const next = Number.isInteger(projectIndex) ? projectIndex : -1;
+    if (next === this.hoverProjectIndex) return;
+    this.hoverProjectIndex = next;
+    for (let i = 0; i < this.projectLabels.length; i += 1) {
+      const label = this.projectLabels[i];
+      if (!label) continue;
+      label.classList.toggle('portfolio-project-label--hover', i === this.hoverProjectIndex);
+    }
+  }
+
+  handleCanvasHoverMove(event) {
+    if (this.isProjectOpen) {
+      this.setHoverProjectIndex(-1);
+      return;
+    }
+    let idx = -1;
+    if (this.dragBall !== null && this.dragPointerId === event.pointerId) {
+      idx = this.dragBall.projectIndex;
+    } else if (this.dragBall === null) {
+      const ball = this.hitTestBall(this.getCanvasPoint(event));
+      idx = Number.isInteger(ball?.projectIndex) ? ball.projectIndex : -1;
+    }
+    this.setHoverProjectIndex(idx);
+  }
+
+  handleCanvasHoverLeave() {
+    if (this.dragBall !== null) return;
+    this.setHoverProjectIndex(-1);
   }
 
   getCanvasPoint(event) {
@@ -381,13 +541,9 @@ class PortfolioPitApp {
     for (let index = balls.length - 1; index >= 0; index -= 1) {
       const ball = balls[index];
       if (!ball || ball.__portfolioHidden) continue;
-      const width = ball.shape === 'block' ? ball.visualWidth : ball.r * 2;
-      const height = ball.r * 2;
       const dx = point.x - ball.x;
       const dy = point.y - ball.y;
-      if (ball.shape === 'block') {
-        if (Math.abs(dx) <= width * 0.5 && Math.abs(dy) <= height * 0.5) return ball;
-      } else if ((dx * dx) + (dy * dy) <= (ball.r * ball.r)) {
+      if ((dx * dx) + (dy * dy) <= (ball.r * ball.r)) {
         return ball;
       }
     }
@@ -500,29 +656,6 @@ class PortfolioPitApp {
     this.dragMoved = false;
   }
 
-  getBallScreenMetrics(ball) {
-    const rect = this.mount.getBoundingClientRect();
-    const scaleX = rect.width > 0 ? rect.width / this.canvas.width : 1;
-    const scaleY = rect.height > 0 ? rect.height / this.canvas.height : 1;
-    const width = (ball.shape === 'block' ? ball.visualWidth : ball.r * 2) * scaleX;
-    const height = (ball.r * 2) * scaleY;
-    const centerX = ball.x * scaleX;
-    const centerY = ball.y * scaleY;
-    return {
-      width,
-      height,
-      centerX,
-      centerY,
-      scaleX: width / Math.max(1, rect.width),
-      scaleY: height / Math.max(1, rect.height),
-      dx: centerX - (rect.width * 0.5),
-      dy: centerY - (rect.height * 0.5),
-      radius: ball.shape === 'block'
-        ? ((ball.cornerRadius || 32) * scaleX)
-        : Math.min(width, height) * 0.5,
-    };
-  }
-
   clearProjectOpenTimeouts() {
     while (this.projectOpenTimeouts.length) {
       window.clearTimeout(this.projectOpenTimeouts.pop());
@@ -541,9 +674,10 @@ class PortfolioPitApp {
   }
 
   applyNeighborImpulse(selectedBall) {
+    const impulse = clamp(toNumber(this.config.runtime.motion?.neighborImpulse, 0), 0, 1400);
+    if (impulse <= 0) return;
     const globals = getGlobals();
     const balls = Array.isArray(globals.balls) ? globals.balls : [];
-    const impulse = clamp(toNumber(this.config.runtime.motion?.neighborImpulse, 540), 0, 1400);
     for (let index = 0; index < balls.length; index += 1) {
       const ball = balls[index];
       if (!ball || ball === selectedBall) continue;
@@ -630,20 +764,20 @@ class PortfolioPitApp {
   syncProjectHero(project, animate = true) {
     if (!this.selectedBall || !this.projectView || !project) return;
 
-    const fill = this.selectedBall.color || getColorByIndex(this.selectedProjectIndex);
-    const metrics = this.getBallScreenMetrics(this.selectedBall);
+    const fill = this.selectedBall.color
+      || getPortfolioProjectPaletteColor(this.selectedProjectIndex, this.projects.length);
     const openDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
-      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 820), 300, 1500);
+      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
     const imageFadeMs = clamp(toNumber(this.config.runtime.motion?.imageFadeMs, 220), 0, 600);
-    const titleDelay = clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 1240), 0, 1500);
-    const floodHold = clamp(toNumber(this.config.runtime.motion?.colorFloodHoldMs, 280), 0, 700);
+    const titleDelay = clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 480), 0, 1200);
+    const floodHold = clamp(toNumber(this.config.runtime.motion?.colorFloodHoldMs, 120), 0, 500);
 
-    this.projectView.style.setProperty('--portfolio-project-start-x', `${metrics.dx}px`);
-    this.projectView.style.setProperty('--portfolio-project-start-y', `${metrics.dy}px`);
-    this.projectView.style.setProperty('--portfolio-project-start-scale-x', `${metrics.scaleX}`);
-    this.projectView.style.setProperty('--portfolio-project-start-scale-y', `${metrics.scaleY}`);
-    this.projectView.style.setProperty('--portfolio-project-start-radius', `${metrics.radius}px`);
+    this.projectView.style.setProperty('--portfolio-project-start-x', `0px`);
+    this.projectView.style.setProperty('--portfolio-project-start-y', `0px`);
+    this.projectView.style.setProperty('--portfolio-project-start-scale-x', `1`);
+    this.projectView.style.setProperty('--portfolio-project-start-scale-y', `1`);
+    this.projectView.style.setProperty('--portfolio-project-start-radius', `0px`);
     this.projectView.style.setProperty('--portfolio-project-fill', fill);
     this.projectView.style.setProperty('--portfolio-project-ink', getContrastText(fill));
     this.projectView.style.setProperty('--portfolio-project-open-ms', `${openDuration}ms`);
@@ -705,11 +839,11 @@ class PortfolioPitApp {
 
     const openDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
-      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 820), 300, 1500);
-    const floodHold = clamp(toNumber(this.config.runtime.motion?.colorFloodHoldMs, 280), 0, 700);
+      : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
+    const floodHold = clamp(toNumber(this.config.runtime.motion?.colorFloodHoldMs, 120), 0, 500);
     this.projectOpenTimeouts.push(window.setTimeout(() => {
       this.projectClose?.focus();
-    }, Math.min(1100, openDuration + floodHold)));
+    }, Math.min(900, openDuration + floodHold)));
   }
 
   closeProject() {
@@ -721,7 +855,7 @@ class PortfolioPitApp {
 
     const globals = getGlobals();
     const balls = Array.isArray(globals.balls) ? globals.balls : [];
-    const openDuration = clamp(toNumber(this.config.runtime.motion?.openDurationMs, 820), 300, 1500);
+    const openDuration = clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
 
     window.setTimeout(() => {
       this.projectView.classList.remove('is-visible');
@@ -821,7 +955,59 @@ class PortfolioPitApp {
   }
 }
 
+/**
+ * Wait until `#bravia-balls` has a real layout box (gate transitions / SPA can report 0×0
+ * for several frames). Without this, `resize()` no-ops and the pit seeds against a default buffer.
+ */
+async function waitForPitSimulationHostReady(options = {}) {
+  const minPx = Math.max(24, Number(options.minEdgePx) || 48);
+  const timeoutMs = Math.max(250, Number(options.timeoutMs) || 8000);
+
+  const measure = () => {
+    const host = document.getElementById('bravia-balls');
+    const w = host?.clientWidth ?? 0;
+    const h = host?.clientHeight ?? 0;
+    return Boolean(host && w >= minPx && h >= minPx);
+  };
+
+  if (measure()) return true;
+
+  return new Promise((resolve) => {
+    let done = false;
+    let ro = null;
+    let iv = 0;
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      try {
+        ro?.disconnect();
+      } catch (_) {
+        /* ignore */
+      }
+      clearInterval(iv);
+      clearTimeout(tid);
+      resolve(ok);
+    };
+
+    const host = document.getElementById('bravia-balls');
+    if (host && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        if (measure()) finish(true);
+      });
+      ro.observe(host);
+    }
+
+    iv = window.setInterval(() => {
+      if (measure()) finish(true);
+    }, 24);
+
+    const tid = window.setTimeout(() => finish(measure()), timeoutMs);
+  });
+}
+
 export async function bootstrapPortfolio() {
+  destroyQuoteDisplay();
+
   try {
     await loadRuntimeText();
     applyRuntimeTextToDOM();
@@ -859,6 +1045,20 @@ export async function bootstrapPortfolio() {
     minimumMs: 120
   });
   forcePageVisible(['#abs-scene', '#app-frame', '#c', '#portfolioProjectMount']);
+  const hostLaidOut = await waitForPitSimulationHostReady();
+  try {
+    if (!hostLaidOut && import.meta.env?.DEV) {
+      console.warn(
+        '[portfolio] #bravia-balls did not reach stable size in time; relying on follow-up resize.'
+      );
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  // Gate / SPA transitions can leave #bravia-balls at 0×0 for the first resize(); sizing
+  // must be correct before seeding balls or labels stay wrong until a full reload.
+  detectOptimalDPR();
+  resize();
 
   SoundEngine.initSoundEngine();
   SoundEngine.applySoundConfigFromRuntimeConfig(runtimeConfig);
@@ -889,9 +1089,26 @@ export async function bootstrapPortfolio() {
   });
   await app.init();
 
+  const settlePortfolioPresentation = () => {
+    try {
+      detectOptimalDPR();
+      resize();
+      relayoutPortfolioProjectLabels();
+      app.syncProjectLabels();
+      render();
+    } catch (e) {
+      /* ignore */
+    }
+  };
+  settlePortfolioPresentation();
+  requestAnimationFrame(() => {
+    settlePortfolioPresentation();
+    requestAnimationFrame(settlePortfolioPresentation);
+  });
+
   startMainLoop(null, { getForcesFn: getForceApplicator });
 
-  const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : (String(window.location.hostname || '') === 'localhost');
+  const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : false;
   if (ABS_DEV) {
     try {
       const { createPanelDock } = await import('../ui/panel-dock.js');
@@ -942,6 +1159,11 @@ export async function bootstrapPortfolio() {
   }
 
   return () => {
+    try {
+      disposeRendererListeners();
+    } catch (e) {
+      /* ignore */
+    }
     app.destroy();
   };
 }

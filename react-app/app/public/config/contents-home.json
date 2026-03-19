@@ -72,7 +72,7 @@
       "cv": {
         "id": "cv-modal-trigger",
         "href": "#",
-        "text": "Bio/CV"
+        "text": "About me"
       }
     },
     "metaLocationPrefix": "London, UK \u00b7 "
@@ -110,7 +110,7 @@
       "backAriaLabel": "Back"
     },
     "cv": {
-      "title": "Bio/CV",
+      "title": "About me",
       "description": "A lightweight invite in the browser, not secure auth. If I gave you a code, enter it here. Otherwise get in touch and I'll send the CV."
     },
     "portfolio": {

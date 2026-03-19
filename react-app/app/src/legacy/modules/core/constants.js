@@ -111,6 +111,10 @@ export const NARRATIVE_QUOTES = {
     quote: 'The details are not the details. They make the design.',
     author: 'Charles Eames'
   },
+  [MODES.PORTFOLIO_PIT]: {
+    quote: 'The details are not the details. They make the design.',
+    author: 'Charles Eames'
+  },
   [MODES.FLIES]: {
     quote: 'No man ever steps in the same river twice.',
     author: 'Heraclitus'

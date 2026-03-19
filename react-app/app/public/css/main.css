@@ -575,12 +575,12 @@ body.page-transitioning .page-content {
 }
 
 html.modal-active .fade-content {
-  opacity: 0.2;
+  opacity: 1;
   transition-duration: var(--modal-hide-duration, 500ms);
 }
 
 /* UI Wrapper Frame - CSS Grid 3-Row Layout.
-   z-index: 0 so quote button (z:500) and other overlays in .fade-content stack above. */
+   z-index: 0; quote mounts in #quote-viewport-host (z:250) above this layer. */
 .ui-layer-wrapper {
   position: relative;
   z-index: 0;
@@ -615,6 +615,22 @@ html.modal-active .fade-content {
   gap: clamp(17px, 2.16vw, 30px);
   pointer-events: none;
   z-index: 10; /* Above background, below modals */
+}
+
+/* Gate modals: hide center column (logo / spacer) without fighting .ui-center transform */
+main.ui-center.center-stage--modal-hidden,
+main.ui-center-spacer.center-stage--modal-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.4s var(--ease-hesitant),
+    visibility 0s linear 0.4s;
+}
+
+main.ui-center:not(.center-stage--modal-hidden),
+main.ui-center-spacer:not(.center-stage--modal-hidden) {
+  transition: opacity 0.4s var(--ease-hesitant), visibility 0s linear 0s;
 }
 
 .ui-bottom {
@@ -695,22 +711,47 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   pointer-events: none;
 }
 
-body.portfolio-page .route-topbar {
-  --route-topbar-top: max(calc(var(--abs-safe-top, 0px) + 8px), var(--portfolio-nav-top, 24px));
+body.styleguide-page .route-topbar {
+  --route-topbar-top: var(--gap-xs);
   position: relative;
-  grid-template-columns: minmax(40px, auto) 1fr minmax(40px, auto);
-  align-items: flex-start;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
   gap: clamp(12px, 2vw, 24px);
   padding-top: var(--route-topbar-top);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body.styleguide-page .route-topbar__left {
+  display: flex;
+  align-items: center;
+  min-height: var(--ui-icon-frame-size);
+  min-width: var(--ui-icon-frame-size);
+  pointer-events: auto;
+  justify-self: start;
+}
+
+body.portfolio-page .route-topbar {
+  /* .fade-content already applies safe-area padding; match home legend row (gap-xs) + optional panel offset */
+  --route-topbar-top: calc(var(--gap-xs) + var(--portfolio-nav-top, 0px));
+  position: relative;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: clamp(12px, 2vw, 24px);
+  padding-top: var(--route-topbar-top);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 body.cv-page .route-topbar {
-  --route-topbar-top: max(calc(var(--abs-safe-top, 0px) + 8px), 18px);
+  --route-topbar-top: var(--gap-xs);
   position: relative;
-  grid-template-columns: minmax(40px, auto) 1fr minmax(40px, auto);
-  align-items: flex-start;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
   gap: clamp(12px, 2vw, 24px);
   padding-top: var(--route-topbar-top);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 body.portfolio-page .route-topbar__left,
@@ -718,9 +759,9 @@ body.cv-page .route-topbar__left,
 body.portfolio-page .route-topbar__right,
 body.cv-page .route-topbar__right {
   display: flex;
-  align-items: flex-start;
-  min-height: 40px;
-  min-width: 40px;
+  align-items: center;
+  min-height: var(--ui-icon-frame-size);
+  min-width: var(--ui-icon-frame-size);
   pointer-events: auto;
 }
 
@@ -744,38 +785,160 @@ body.cv-page .route-topbar__right.ui-top-right {
   display: flex;
   grid-template-columns: none;
   justify-content: flex-end;
-  align-items: flex-start;
-  min-width: 40px;
+  align-items: center;
+  min-width: var(--ui-icon-frame-size);
   width: auto;
 }
 
+/* In-flow center column so the grid keeps left | center | right across full width (absolute center broke column 3). */
 body.portfolio-page .route-topbar__center,
 body.cv-page .route-topbar__center {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex;
-  flex-wrap: nowrap;
+  position: relative;
+  inset: auto;
+  transform: none;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: clamp(12px, 1.8vw, 24px);
-  width: max-content;
-  max-width: calc(100% - clamp(132px, 26vw, 220px));
+  width: 100%;
   min-width: 0;
+  max-width: none;
   pointer-events: auto;
   z-index: 2;
 }
 
-body.portfolio-page .route-topbar__center .footer_link,
-body.cv-page .route-topbar__center .footer_link,
-body.cv-page .route-topbar__center .portfolio-cv-link {
-  white-space: nowrap;
-  flex: 0 0 auto;
-  margin: 0;
-  display: inline-flex;
+/* ─── Styleguide (component library page) ─── */
+body.styleguide-page .styleguide-backdrop {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  background: var(--bg-light);
+  border-radius: inherit;
+}
+
+body.dark-mode.styleguide-page .styleguide-backdrop {
+  background: var(--bg-dark, var(--wall-bg-dark, #1a1d21));
+}
+
+body.styleguide-page main.styleguide-main {
+  overflow-y: auto;
+  overflow-x: hidden;
+  pointer-events: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.styleguide-page .styleguide-doc {
+  max-width: min(56rem, 100%);
+  margin-inline: auto;
+  padding: var(--gap-lg) var(--gap-md) var(--gap-xl);
+  color: var(--text-primary);
+  pointer-events: auto;
+}
+
+body.styleguide-page .styleguide-doc__title {
+  margin: 0 0 var(--gap-sm);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+body.styleguide-page .styleguide-doc__lede {
+  margin: 0 0 var(--gap-xl);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 52ch;
+}
+
+body.styleguide-page .styleguide-doc__code {
+  font-size: 0.92em;
+  padding: 0.12em 0.35em;
+  border-radius: var(--gap-xs);
+  background: rgba(var(--abs-rgb-black), 0.06);
+}
+
+body.dark-mode.styleguide-page .styleguide-doc__code {
+  background: rgba(var(--abs-rgb-white), 0.08);
+}
+
+body.styleguide-page .styleguide-doc__footer {
+  margin: var(--gap-xl) 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+body.styleguide-page .styleguide-section {
+  margin-bottom: var(--gap-xl);
+  padding-bottom: var(--gap-lg);
+  border-bottom: 1px solid rgba(var(--abs-rgb-black), 0.08);
+}
+
+body.dark-mode.styleguide-page .styleguide-section {
+  border-bottom-color: rgba(var(--abs-rgb-white), 0.1);
+}
+
+body.styleguide-page .styleguide-section h2 {
+  margin: 0 0 var(--gap-sm);
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+body.styleguide-page .styleguide-section__hint {
+  margin: 0 0 var(--gap-md);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+body.styleguide-page .styleguide-sample-row {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  gap: var(--gap-md);
+  pointer-events: auto;
+}
+
+body.styleguide-page .styleguide-sample-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gap-sm);
+  pointer-events: auto;
+}
+
+body.styleguide-page .styleguide-legend-demo {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Framed demo: route top bar uses real shell classes; frame is visual only */
+body.styleguide-page .styleguide-topbar-frame {
+  border-radius: var(--wall-radius, 20px);
+  border: 1px solid rgba(var(--abs-rgb-black), 0.1);
+  overflow: hidden;
+  background: rgba(var(--abs-rgb-black), 0.03);
+  pointer-events: auto;
+}
+
+body.dark-mode.styleguide-page .styleguide-topbar-frame {
+  border-color: rgba(var(--abs-rgb-white), 0.12);
+  background: rgba(var(--abs-rgb-white), 0.04);
+}
+
+body.styleguide-page .styleguide-topbar-frame .ui-top {
+  width: 100%;
+}
+
+body.styleguide-page .styleguide-fake-icon {
+  pointer-events: none;
+  cursor: default;
+}
+
+body.styleguide-page .styleguide-script-demo {
+  max-width: min(40ch, 100%);
+  pointer-events: auto;
 }
 
 /* Mobile-only row: sound toggle sits under legend + blurb, centered */
@@ -1353,8 +1516,8 @@ body:not(.dark-mode) #header-cv-link {
   color: var(--text-primary);
 }
 
-/* Nav bar specific overrides for main link buttons */
-#main-links .footer_link {
+/* Master main nav text buttons: #main-links (home) + .route-topbar__center (portfolio/CV). Mark container with .ui-main-nav. */
+.ui-main-nav .footer_link {
   /* Nav bar buttons: substantial padding matching other page links */
   /* Minimum 14px top/bottom, 18px left/right as requested */
   padding-block: clamp(14px, 2.4vmin, 28px);
@@ -1363,13 +1526,15 @@ body:not(.dark-mode) #header-cv-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
+  flex: 0 0 auto;
   /* Button-specific resets */
   background: none;
   border: none;
   font-family: inherit;
   font-size: inherit;
   color: var(--text-primary);
-  /* opacity: controlled by entrance animation state variables */
+  /* opacity: on #main-links only, controlled by entrance animation state variables */
   text-align: center;
 }
 
@@ -1390,18 +1555,18 @@ body:not(.dark-mode) #header-cv-link {
 }
 
 /* Main link ID overrides - reset margins to 0 (only when NOT in nav bar) */
-#main-links #contact-email,
-#main-links #portfolio-modal-trigger,
-#main-links #cv-modal-trigger {
+.ui-main-nav #contact-email,
+.ui-main-nav #portfolio-modal-trigger,
+.ui-main-nav #cv-modal-trigger {
   margin: 0;
 }
 
-/* Dark mode: main links need light color for visibility */
-body.dark-mode #main-links .footer_link {
+/* Dark mode: main nav buttons (home + portfolio/CV top bar) */
+body.dark-mode .ui-main-nav .footer_link {
   color: var(--text-primary);
 }
 
-body.dark-mode #main-links .footer_link:hover {
+body.dark-mode .ui-main-nav .footer_link:hover {
   color: var(--cursor-hover-fg, var(--text-primary));
 }
 
@@ -1545,7 +1710,15 @@ button.abs-meta-btn,
   gap: var(--gap-sm);
 }
 
-/* Viewport layer: full viewport only. One child (quote). Fixed + inset:0 so it spans entire area. */
+/* Mount inside #abs-scene: above .fade-content (z:200), below modal layers (outside scene). */
+#quote-viewport-host.quote-viewport-host {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 250;
+}
+
+/* Viewport layer: full frame. One child (quote). Fixed + inset:0 so it spans entire area. */
 .quote-viewport-layer {
   position: fixed;
   inset: 0;
@@ -1597,7 +1770,6 @@ button.abs-meta-btn,
     inset 0 1px 0 rgba(255, 255, 255, var(--quote-button-edge-light)),
     inset 0 -1px 0 rgba(0, 0, 0, var(--quote-button-edge-shadow)),
     0 2px 8px rgba(0, 0, 0, var(--quote-button-outer-shadow));
-  transition: box-shadow 0.25s ease;
 }
 
 .dark-mode .quote-display {
@@ -2446,7 +2618,7 @@ html.is-safari .noise::before {
   }
 
   /* Nav bar links: compact padding on mobile */
-  #main-links .footer_link {
+  .ui-main-nav .footer_link {
     padding-block: 10px;
     padding-inline: 14px;
     margin: 0;
@@ -2619,7 +2791,10 @@ body.abs-link-hovering #custom-cursor {
 /* Power Transfer: transition-only, prominent hover-out (no “disappear”) */
 :is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .quote-display) {
   transform: translateZ(0);
-  transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)), color 0.2s ease;
+  transition:
+    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
+    color 0.2s ease,
+    box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
 :is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
@@ -2627,7 +2802,7 @@ body.abs-link-hovering #custom-cursor {
   transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), color 0.2s ease;
 }
 
-/* Quote button: hover scale; position fixed bottom-right (no drag vars) */
+/* Quote puck (floating): hover scale + same chrome rim as nav/icon buttons (on the glass surface) */
 .quote-display:hover {
   transform:
     translate(
@@ -2636,7 +2811,12 @@ body.abs-link-hovering #custom-cursor {
     )
     rotate(var(--quote-drag-rotate, 4deg))
     scale(var(--abs-button-swell-scale, 1.06));
-  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
+  transition:
+    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
+    box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+  box-shadow:
+    var(--ui-chrome-button-edge),
+    0 2px 14px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow, 0.08) * 1.4));
 }
 
 a:hover,
@@ -2728,7 +2908,7 @@ button:hover {
 }
 /* Quote text: no color change on hover — stays legible against ::before overlay */
 
-#main-links .footer_link:hover .footer-link-nowrap {
+.ui-main-nav .footer_link:hover .footer-link-nowrap {
   color: inherit;
   opacity: 1;
 }
@@ -2752,7 +2932,7 @@ button:hover {
 .footer_icon-link.abs-icon-btn:hover,
 .abs-meta-btn:hover,
 .sound-toggle:hover,
-#main-links .footer_link:hover {
+.ui-main-nav .footer_link:hover {
   /* animation-name: absHoverSnapNudge; - Disabled: content stays static, only background moves */
 }
 
@@ -2763,8 +2943,8 @@ button:hover {
 .abs-meta-btn:active,
 .sound-toggle:focus-visible,
 .sound-toggle:active,
-#main-links .footer_link:focus-visible,
-#main-links .footer_link:active {
+.ui-main-nav .footer_link:focus-visible,
+.ui-main-nav .footer_link:active {
   transform: translateY(var(--link-nudge));
 }
 
@@ -2786,7 +2966,7 @@ button:hover {
   .footer_icon-link.abs-icon-btn:hover,
   .abs-meta-btn:hover,
   .sound-toggle:hover,
-  #main-links .footer_link:hover {
+  .ui-main-nav .footer_link:hover {
     animation-name: none;
   }
   
@@ -2796,8 +2976,8 @@ button:hover {
   .abs-meta-btn:active,
   .sound-toggle:focus-visible,
   .sound-toggle:active,
-  #main-links .footer_link:focus-visible,
-  #main-links .footer_link:active {
+  .ui-main-nav .footer_link:focus-visible,
+  .ui-main-nav .footer_link:active {
     transform: none;
   }
 
@@ -2844,6 +3024,14 @@ body.dark-mode #contact-email:hover,
 body.dark-mode #portfolio-modal-trigger:hover,
 body.dark-mode .decorative-script p a:hover {
   color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-white), 1) 60%);
+  opacity: 1;
+}
+
+/* Main nav strip (home + portfolio/CV): same hover ink; beats legacy #contact-email / trigger id color-mix. */
+.ui-main-nav #contact-email:hover,
+.ui-main-nav #portfolio-modal-trigger:hover,
+.ui-main-nav #cv-modal-trigger:hover {
+  color: var(--cursor-hover-fg, var(--cursor-color));
   opacity: 1;
 }
 
@@ -2988,27 +3176,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .cv-modal,
 .portfolio-modal {
   padding-inline: calc(var(--abs-modal-mobile-pad-x, 20px) + var(--modal-pad-md-x));
-}
-
-/* Modal radial gradient vignette (background center → transparent edge) */
-.cv-modal,
-.portfolio-modal,
-.contact-modal {
-  background: radial-gradient(
-    circle closest-side,
-    var(--bg-light) 30%,
-    transparent 100%
-  );
-}
-
-body.dark-mode .cv-modal,
-body.dark-mode .portfolio-modal,
-body.dark-mode .contact-modal {
-  background: radial-gradient(
-    circle closest-side,
-    var(--bg-dark) 30%,
-    transparent 100%
-  );
 }
 
 @media (max-width: 768px) {
@@ -3856,6 +4023,8 @@ html.is-safari #abs-scene.gate-depth-out {
   #brand-logo,
   .modal-label,
   .fade-content,
+  main.ui-center,
+  main.ui-center-spacer,
   body.cv-page #abs-scene,
   .contact-email-row,
   .modal-overlay {
@@ -4737,34 +4906,20 @@ body.cv-page.dark-mode .cv-scroll-container {
   }
 
   body.portfolio-page .route-topbar {
-    --route-topbar-top: max(calc(var(--abs-safe-top, 0px) + 8px), var(--portfolio-nav-top, 18px));
-    gap: 0;
+    --route-topbar-top: calc(var(--gap-xs) + var(--portfolio-nav-top, 0px));
+    gap: clamp(8px, 2vw, 12px);
     min-height: 44px;
   }
 
   body.cv-page .route-topbar {
-    --route-topbar-top: max(calc(var(--abs-safe-top, 0px) + 8px), 14px);
-    gap: 0;
+    --route-topbar-top: var(--gap-xs);
+    gap: clamp(8px, 2vw, 12px);
     min-height: 44px;
   }
 
   body.portfolio-page .route-topbar__center,
   body.cv-page .route-topbar__center {
     gap: clamp(4px, 1.8vw, 10px);
-    max-width: calc(100% - 124px);
-  }
-
-  body.portfolio-page .route-topbar__center .footer_link,
-  body.cv-page .route-topbar__center .footer_link,
-  body.cv-page .route-topbar__center .portfolio-cv-link {
-    font-size: clamp(
-      calc(0.72rem + var(--abs-size-1px)),
-      2.5vw,
-      calc(0.84rem + var(--abs-size-1px))
-    );
-    padding-inline: clamp(2px, 0.8vw, 6px);
-    padding-block: clamp(8px, 1.6vw, 10px);
-    letter-spacing: -0.01em;
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-left,

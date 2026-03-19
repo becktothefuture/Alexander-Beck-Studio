@@ -3,10 +3,23 @@
 // ║                 Canvas setup, resize, and rendering                          ║
 // ║      Electron-grade performance optimizations for all browsers               ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
+//
+//  SPA: teardown (`disposeRendererListeners`) stops the rAF loop + resize observers;
+//  `setupRenderer` always disposes first; `resize` follows live `#c` and won’t early-out
+//  until backing-store pixels match the target buffer (remount-safe).
 
-import { CONSTANTS } from '../core/constants.js';
-import { getGlobals, setEffectiveDPR, applyLayoutFromVwToPx, applyLayoutCSSVars, detectResponsiveScale } from '../core/state.js';
+import { CONSTANTS, MODES } from '../core/constants.js';
+import {
+  getGlobals,
+  setEffectiveDPR,
+  applyLayoutFromVwToPx,
+  applyLayoutCSSVars,
+  detectResponsiveScale,
+  syncPitPortfolioRadiusStatsFromBalls
+} from '../core/state.js';
 import { applyCanvasShadow } from './effects.js';
+import { stopMainLoop } from './loop.js';
+import { isDev } from '../utils/logger.js';
 
 let canvas, ctx;
 
@@ -22,6 +35,9 @@ let prevCanvasHeight = 0;
 
 // Debounce resize to prevent excessive recalculation during drag-resize
 let resizeDebounceId = null;
+
+/** Removes window / visualViewport / ResizeObserver subscriptions from the last setupRenderer() */
+let disposeRendererListenersFn = null;
 
 // Callback to force immediate render after canvas dimensions change
 // This prevents blank frames during resize
@@ -42,8 +58,20 @@ let cachedClipW = 0;
 let cachedClipH = 0;
 let cachedClipR = 0;
 
-function clamp01(v) {
-  return Math.max(0, Math.min(1, v));
+function acquireSimulation2dContext(el) {
+  if (!el) return null;
+  let c = el.getContext('2d', {
+    alpha: true,
+    desynchronized: true,
+    willReadFrequently: false,
+  });
+  if (!c) {
+    c = el.getContext('2d');
+  }
+  if (c) {
+    c.imageSmoothingEnabled = false;
+  }
+  return c;
 }
 
 function buildRoundedRectPath(w, h, r) {
@@ -72,8 +100,33 @@ function buildRoundedRectPath(w, h, r) {
   return p;
 }
 
-function detectOptimalDPR() {
+/**
+ * Portfolio pit bootstrap can run before `body.portfolio-page` is applied (SPA gate
+ * navigation effect order). Detect the route by mount node / URL so DPR is not capped
+ * like a generic “low power” page — avoids a 1× buffer stretched to full CSS size
+ * (pixelation) and keeps DOM label coordinates aligned with canvas space.
+ */
+function isPortfolioSimulationPage() {
+  if (typeof document === 'undefined') return false;
+  if (document.body?.classList?.contains('portfolio-page')) return true;
+  if (document.getElementById('portfolioProjectMount')) return true;
+  try {
+    const path = window.location?.pathname || '';
+    return /portfolio/i.test(path);
+  } catch (e) {
+    return false;
+  }
+}
+
+export function detectOptimalDPR() {
   const baseDPR = window.devicePixelRatio || 1;
+  const isPortfolioPage = isPortfolioSimulationPage();
+
+  if (isPortfolioPage) {
+    effectiveDPR = Math.min(baseDPR, 2);
+    setEffectiveDPR(effectiveDPR);
+    return effectiveDPR;
+  }
   
   // Check for low-power hints
   const isLowPower = navigator.connection?.saveData || 
@@ -84,7 +137,9 @@ function detectOptimalDPR() {
   if (isLowPower) {
     const lowPowerCap = 1.25;
     effectiveDPR = Math.min(baseDPR, lowPowerCap);
-    console.log(`⚡ Adaptive DPR: Reduced to ${effectiveDPR}x for performance`);
+    if (isDev()) {
+      console.log(`⚡ Adaptive DPR: Reduced to ${effectiveDPR}x for performance`);
+    }
   } else {
     effectiveDPR = Math.min(baseDPR, 2);
   }
@@ -99,46 +154,76 @@ export function getEffectiveDPR() {
   return effectiveDPR;
 }
 
+/**
+ * Tear down resize/orientation/visualViewport/ResizeObserver from the last `setupRenderer()`.
+ * Safe to call multiple times; also cancels a pending debounced resize rAF.
+ */
+export function disposeRendererListeners() {
+  stopMainLoop();
+  if (typeof disposeRendererListenersFn === 'function') {
+    try {
+      disposeRendererListenersFn();
+    } catch (e) {
+      /* ignore */
+    }
+    disposeRendererListenersFn = null;
+  }
+  if (resizeDebounceId) {
+    cancelAnimationFrame(resizeDebounceId);
+    resizeDebounceId = null;
+  }
+}
+
+/**
+ * Point module `canvas`/`ctx` at the live `#c` (SPA remounts replace the element).
+ * Resets prev buffer dims when the node changes so `resize()` cannot early-out on stale sizes.
+ */
+function bindLiveSimulationCanvas() {
+  const live = document.getElementById('c');
+  if (!live) return false;
+  if (live !== canvas) {
+    canvas = live;
+    ctx = acquireSimulation2dContext(live);
+    prevCanvasWidth = 0;
+    prevCanvasHeight = 0;
+    try {
+      detectOptimalDPR();
+    } catch (e) {}
+  }
+  return Boolean(canvas && ctx);
+}
+
 export function setupRenderer() {
+  disposeRendererListeners();
+
   canvas = document.getElementById('c');
-  
+
   if (!canvas) {
+    canvas = null;
+    ctx = null;
     console.error('Canvas not found');
     return;
   }
-  
+
   // ══════════════════════════════════════════════════════════════════════════════
   // PERFORMANCE: Optimized canvas context flags (Electron-grade)
-  // 
+  //
   // alpha: true         → Canvas is transparent (required for page background)
   // desynchronized: true → Low-latency rendering, bypasses compositor (Chrome/Edge)
   // willReadFrequently: false → GPU can optimize for write-only operations
   // ══════════════════════════════════════════════════════════════════════════════
-  ctx = canvas.getContext('2d', {
-    alpha: true,               // Keep transparency for page background
-    desynchronized: true,      // Bypass compositor for lower latency
-    willReadFrequently: false  // We never read pixels back
-  });
-  
+  ctx = acquireSimulation2dContext(canvas);
   if (!ctx) {
-    // Fallback for browsers that don't support all options
-    ctx = canvas.getContext('2d');
-    console.warn('⚠️ Desynchronized mode unavailable, using standard context');
+    canvas = null;
+    console.warn('⚠️ Canvas 2D context unavailable');
+    return;
   }
-  
-  // Detect optimal DPR for this device
+
   detectOptimalDPR();
-  
-  // ══════════════════════════════════════════════════════════════════════════════
-  // PERFORMANCE: Disable image smoothing for crisp, fast circle rendering
-  // Circles are mathematically perfect, no interpolation needed
-  // ══════════════════════════════════════════════════════════════════════════════
-  ctx.imageSmoothingEnabled = false;
-  
+
   // NOTE: Don't call resize() here - globals.container may not be set yet
   // main.js will call resize() after setCanvas() to ensure container is available
-  
-  // Debounced resize handler for smooth continuous resize (e.g., drag resize)
+
   const debouncedResize = () => {
     if (resizeDebounceId) cancelAnimationFrame(resizeDebounceId);
     resizeDebounceId = requestAnimationFrame(() => {
@@ -146,39 +231,53 @@ export function setupRenderer() {
       resizeDebounceId = null;
     });
   };
-  
-  window.addEventListener('resize', debouncedResize, { passive: true });
-  
-  // Enhanced responsiveness: handle edge cases where 'resize' event doesn't fire
-  // - iOS Safari: virtual keyboard, safe area changes, rotation quirks
-  // - Android: virtual keyboard showing/hiding
-  // - Desktop: browser DevTools dock changes
-  window.addEventListener('orientationchange', () => {
-    // iOS needs a delay after orientation change for accurate dimensions
+
+  const onOrientationChange = () => {
     setTimeout(resize, 100);
-    setTimeout(resize, 300); // Fallback for slow devices
-  }, { passive: true });
-  
-  // Visual Viewport API: catches more edge cases (iOS notch, virtual keyboard)
+    setTimeout(resize, 300);
+  };
+
+  window.addEventListener('resize', debouncedResize, { passive: true });
+  window.addEventListener('orientationchange', onOrientationChange, { passive: true });
+
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', debouncedResize, { passive: true });
     window.visualViewport.addEventListener('scroll', debouncedResize, { passive: true });
   }
-  
-  // ResizeObserver: catches CSS-driven size changes that don't trigger window resize
-  // (e.g., DevTools open/close, dynamic padding changes, CSS transitions)
+
+  let resizeObserver = null;
   if (typeof ResizeObserver !== 'undefined') {
     const container = document.getElementById('bravia-balls');
     if (container) {
-      const resizeObserver = new ResizeObserver((entries) => {
-        // Debounce to avoid thrashing during CSS transitions
+      resizeObserver = new ResizeObserver(() => {
         debouncedResize();
       });
       resizeObserver.observe(container);
     }
   }
-  
-  console.log(`✓ Renderer optimized (DPR: ${effectiveDPR.toFixed(2)}, desync: ${ctx.getContextAttributes?.()?.desynchronized ?? 'unknown'})`);
+
+  disposeRendererListenersFn = () => {
+    window.removeEventListener('resize', debouncedResize);
+    window.removeEventListener('orientationchange', onOrientationChange);
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', debouncedResize);
+      window.visualViewport.removeEventListener('scroll', debouncedResize);
+    }
+    if (resizeObserver) {
+      try {
+        resizeObserver.disconnect();
+      } catch (e) {
+        /* ignore */
+      }
+      resizeObserver = null;
+    }
+  };
+
+  if (isDev()) {
+    console.log(
+      `✓ Renderer optimized (DPR: ${effectiveDPR.toFixed(2)}, desync: ${ctx.getContextAttributes?.()?.desynchronized ?? 'unknown'})`
+    );
+  }
 }
 
 /**
@@ -195,8 +294,11 @@ export function setupRenderer() {
  * - Clustering in one corner when expanding
  */
 export function resize() {
-  if (!canvas) return;
-  
+  if (!bindLiveSimulationCanvas()) return;
+
+  const legacyBackingW = canvas.width || 0;
+  const legacyBackingH = canvas.height || 0;
+
   const globals = getGlobals();
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -244,6 +346,11 @@ export function resize() {
 
   // Keep "mobile scaling" responsive to viewport width (safe: early-outs unless breakpoint changes).
   try { detectResponsiveScale(); } catch (e) {}
+
+  // Re-evaluate DPR when body class / route DOM appears (SPA transitions).
+  try {
+    detectOptimalDPR();
+  } catch (e) {}
   
   // Use container dimensions if available, fallback to window for safety
   const container = globals.container || document.getElementById('bravia-balls');
@@ -281,8 +388,14 @@ export function resize() {
     return;
   }
   
-  // Early-out if dimensions haven't changed (prevents unnecessary canvas clearing)
-  if (newWidth === prevCanvasWidth && newHeight === prevCanvasHeight) {
+  // Early-out only if logical size AND the backing store already match. After SPA remount,
+  // `newWidth` may equal `prev*` while `canvas` is a new default 300×150 — must not skip.
+  if (
+    newWidth === prevCanvasWidth &&
+    newHeight === prevCanvasHeight &&
+    canvas.width === newWidth &&
+    canvas.height === newHeight
+  ) {
     return;
   }
   
@@ -290,33 +403,63 @@ export function resize() {
   // DYNAMIC BALL REPOSITIONING
   // Scale ball positions proportionally when canvas dimensions change.
   // This keeps balls in valid positions relative to the new viewport bounds.
+  //
+  // Portfolio pit: if balls were seeded while `prevCanvasWidth` was still 0 (SPA remount
+  // or default 300×150 backing store), rescale from the *actual* legacy buffer size so
+  // physics + DOM labels match the final HiDPI surface.
   // ══════════════════════════════════════════════════════════════════════════════
-  if (prevCanvasWidth > 0 && prevCanvasHeight > 0 && globals.balls && globals.balls.length > 0) {
-    const scaleX = newWidth / prevCanvasWidth;
-    const scaleY = newHeight / prevCanvasHeight;
-    
+  const pitPortfolio = globals.currentMode === MODES.PORTFOLIO_PIT;
+  const hadPrevBuffer = prevCanvasWidth > 0 && prevCanvasHeight > 0;
+  const legacyPitBufferJump =
+    pitPortfolio &&
+    !hadPrevBuffer &&
+    legacyBackingW > 0 &&
+    legacyBackingH > 0 &&
+    legacyBackingW < newWidth * 0.82 &&
+    legacyBackingH < newHeight * 0.82;
+
+  const scaleFromW = hadPrevBuffer ? prevCanvasWidth : (legacyPitBufferJump ? legacyBackingW : 0);
+  const scaleFromH = hadPrevBuffer ? prevCanvasHeight : (legacyPitBufferJump ? legacyBackingH : 0);
+
+  if (scaleFromW > 0 && scaleFromH > 0 && globals.balls && globals.balls.length > 0) {
+    const scaleX = newWidth / scaleFromW;
+    const scaleY = newHeight / scaleFromH;
+
     // Safety: only reposition if scale factors are reasonable (not 0, not extreme)
     // Extreme scales (>10x or <0.1x) likely indicate invalid intermediate states
     if (scaleX > 0.1 && scaleX < 10 && scaleY > 0.1 && scaleY < 10) {
       const balls = globals.balls;
+      const uniformScale = (scaleX + scaleY) * 0.5;
+      const scalePortfolioRadii = pitPortfolio;
       for (let i = 0; i < balls.length; i++) {
         const ball = balls[i];
         if (!ball) continue;
-        
+
         // Scale position proportionally
         ball.x *= scaleX;
         ball.y *= scaleY;
-        
+
+        if (scalePortfolioRadii && ball.projectIndex !== undefined && ball.r > 0) {
+          ball.r *= uniformScale;
+          ball.rBase = ball.r;
+        }
+
         // Clamp to ensure ball stays within new bounds (with radius margin)
         const r = ball.r || 10;
         ball.x = Math.max(r, Math.min(newWidth - r, ball.x));
         ball.y = Math.max(r, Math.min(newHeight - r, ball.y));
-        
+
         // Wake sleeping balls so they can settle into new positions
         if (ball.isSleeping) {
           ball.isSleeping = false;
           ball.sleepTimer = 0;
         }
+      }
+      if (scalePortfolioRadii) {
+        syncPitPortfolioRadiusStatsFromBalls();
+        try {
+          globals.portfolioRelayoutLabels?.();
+        } catch (e) {}
       }
     }
   }

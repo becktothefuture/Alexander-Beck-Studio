@@ -4,6 +4,7 @@
       <canvas id="c" class="portfolio-pit-canvas" aria-label="Portfolio projects simulation" role="img" draggable="false"></canvas>
       <div id="portfolioProjectMount" class="portfolio-project-mount" aria-live="polite"></div>
     </div>
+    <div id="quote-viewport-host" class="quote-viewport-host" aria-hidden="true"></div>
   </div>
   
   <div id="scene-effects" class="scene-effects" aria-hidden="true">
@@ -14,15 +15,17 @@
   <div class="fade-content page-content">
     <div id="app-frame" class="ui-layer-wrapper">
       <header class="ui-top" data-portfolio-ui>
-        <div class="ui-top-main portfolio-topbar">
-          <nav class="portfolio-topnav" aria-label="Portfolio navigation">
+        <div class="ui-top-main route-topbar portfolio-topbar">
+          <div class="route-topbar__left">
             <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition data-transition aria-label="Back to home">
               <i class="ti ti-arrow-left" aria-hidden="true"></i>
             </a>
-            <button id="cv-modal-trigger" type="button" class="footer_link" aria-label="Bio/CV" aria-haspopup="dialog">Bio/CV</button>
+          </div>
+          <nav class="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
+            <button id="cv-modal-trigger" type="button" class="footer_link" aria-label="About me" aria-haspopup="dialog">About me</button>
             <button id="contact-email" type="button" class="footer_link" aria-label="Contact" aria-haspopup="dialog">Contact</button>
           </nav>
-          <div class="ui-top-right">
+          <div class="route-topbar__right ui-top-right">
             <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>
           </div>
         </div>

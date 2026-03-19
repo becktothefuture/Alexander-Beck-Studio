@@ -91,8 +91,8 @@ export function getCvRouteView() {
     ),
     headerContent: (
       <header className="ui-top">
-        <div className="ui-top-main">
-          <div className="ui-top-left">
+        <div className="ui-top-main route-topbar">
+          <div className="route-topbar__left">
             <a
               href="index.html"
               className="gate-back abs-icon-btn"
@@ -102,10 +102,12 @@ export function getCvRouteView() {
             >
               <i className="ti ti-arrow-left" aria-hidden="true" />
             </a>
+          </div>
+          <nav className="route-topbar__center ui-main-nav" aria-label="CV navigation">
             <button
               id={footerLinks.portfolio.id}
               type="button"
-              className="portfolio-cv-link"
+              className="footer_link"
               aria-label="Portfolio"
               aria-haspopup="dialog"
             >
@@ -114,14 +116,14 @@ export function getCvRouteView() {
             <button
               id={footerLinks.contact.id}
               type="button"
-              className="portfolio-cv-link"
+              className="footer_link"
               aria-label="Contact"
               aria-haspopup="dialog"
             >
               {footerLinks.contact.text}
             </button>
-          </div>
-          <div className="ui-top-right">
+          </nav>
+          <div className="route-topbar__right ui-top-right">
             <div id="sound-toggle-slot" />
           </div>
         </div>

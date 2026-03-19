@@ -5,6 +5,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from './core/state.js';
+import { disposeRendererListeners } from './rendering/renderer.js';
 import { loadRuntimeConfig } from './utils/runtime-config.js';
 import { loadRuntimeText } from './utils/text-loader.js';
 import { applyRuntimeTextToDOM } from './ui/apply-text.js';
@@ -21,7 +22,6 @@ import { initCvPhotoSlideshow } from './cv/cv-photo-slideshow.js';
 import { initCvPanel } from './cv/cv-panel.js';
 import { applyCvConfig, loadCvRuntimeConfig } from './cv/config.js';
 import { initSharedChrome } from './ui/shared-chrome.js';
-import { isDev } from './utils/logger.js';
 import { getShellConfig, loadShellConfig, syncShellToDocument } from './visual/site-shell.js';
 import { forcePageVisible, waitForPageReadyBarrier } from './visual/page-orchestrator.js';
 import { 
@@ -32,6 +32,15 @@ import {
 } from './utils/page-nav.js';
 
 export async function bootstrapCvPage() {
+  // CV has no `#c` sim canvas — drop home/portfolio resize observers if SPA navigated here.
+  try {
+    disposeRendererListeners();
+  } catch (e) {
+    /* ignore */
+  }
+
+  const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : false;
+
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                    STEP 1: LOAD RUNTIME TEXT                                 ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -234,7 +243,7 @@ export async function bootstrapCvPage() {
   // ╚══════════════════════════════════════════════════════════════════════════════╝
   try {
     // Production builds intentionally ship with baked-in config (no tuning UI).
-    if (isDev()) {
+    if (ABS_DEV) {
       await initCvPanel();
     }
   } catch (e) {

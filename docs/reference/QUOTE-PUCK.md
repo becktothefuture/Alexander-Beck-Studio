@@ -27,7 +27,11 @@ With `left`/`top` for position, `transform` is free for rotation — zero confli
 
 ### Viewport layer
 
-The quote element is appended to `document.documentElement` (not `<body>`), so it sits outside the page layout. This means **`body.dark-mode` selectors don't match** — all dark-mode styles use `.dark-mode` instead.
+`#quote-viewport-layer` is created in `quote-display.js` and mounted inside **`#quote-viewport-host`**, a fixed full-frame node at the end of **`#abs-scene`** (see `StudioShell.jsx`). That keeps the puck on the **same transform stack** as the wall and chrome (modal depth scale / translate) and **below** the two-layer modal stack (`#modal-blur-layer` / `#modal-content-layer`), which are siblings of `#abs-scene` under the React root.
+
+If the host is missing (unusual boot order), the layer falls back to `#abs-scene`, then `document.body`.
+
+Dark-mode styling for the puck continues to use **`.dark-mode`** selectors (aligned with theme on `document.documentElement`), not `body.dark-mode` alone.
 
 ---
 

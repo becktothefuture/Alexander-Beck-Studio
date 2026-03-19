@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                       QUOTE DISPLAY COMPONENT                                 ║
-// ║   Viewport layer; fixed bottom-right (10% from bottom). No drag.               ║
+// ║   Viewport layer under #abs-scene (modal depth + blur stack). Drag: quote-puck. ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getState } from '../core/state.js';
@@ -11,21 +11,35 @@ let contentWrapper = null;
 let quoteTextEl = null;
 let quoteAuthorEl = null;
 let isAnimating = false;
+let modeChangedHandler = null;
 
 const ANIM_DURATION = 320;
 const QUOTE_END_SYMBOL = ' ⁕';
 
+function getQuoteMountParent() {
+  return (
+    document.getElementById('quote-viewport-host') ||
+    document.getElementById('abs-scene') ||
+    document.body
+  );
+}
+
 /**
- * Returns or creates the viewport layer. Appended to documentElement so it spans
- * the full viewport (no body/layout constraints). Single wrapper, one child (quote).
+ * Returns or creates the viewport layer inside #quote-viewport-host (or #abs-scene)
+ * so the puck shares gate-depth transform and sits under the modal blur stack.
  */
 function getViewportLayer() {
+  const parent = getQuoteMountParent();
   let layer = document.getElementById('quote-viewport-layer');
   if (!layer) {
     layer = document.createElement('div');
     layer.id = 'quote-viewport-layer';
     layer.className = 'quote-viewport-layer';
-    document.documentElement.appendChild(layer);
+    parent.appendChild(layer);
+    return layer;
+  }
+  if (layer.parentElement !== parent) {
+    parent.appendChild(layer);
   }
   return layer;
 }
@@ -124,11 +138,29 @@ function updateQuote(mode, animate = true) {
 }
 
 /**
+ * Removes quote UI and listeners (e.g. when leaving the home route in the SPA).
+ */
+export function destroyQuoteDisplay() {
+  if (modeChangedHandler) {
+    window.removeEventListener('bb:modeChanged', modeChangedHandler);
+    modeChangedHandler = null;
+  }
+  document.getElementById('quote-display')?.remove();
+  document.getElementById('quote-viewport-layer')?.remove();
+  quoteContainer = null;
+  contentWrapper = null;
+  quoteTextEl = null;
+  quoteAuthorEl = null;
+  isAnimating = false;
+}
+
+/**
  * Initializes the quote display component.
  * Creates DOM elements and sets up mode change listener.
  */
 export function initQuoteDisplay() {
-  // Create the quote element
+  destroyQuoteDisplay();
+
   createQuoteElement();
 
   // Set initial quote based on current mode (no animation)
@@ -141,13 +173,13 @@ export function initQuoteDisplay() {
     });
   }
 
-  // Listen for mode changes (with animation)
-  window.addEventListener('bb:modeChanged', (e) => {
+  modeChangedHandler = (e) => {
     const newMode = e.detail?.mode;
     if (newMode) {
       updateQuote(newMode, true);
     }
-  });
+  };
+  window.addEventListener('bb:modeChanged', modeChangedHandler);
 }
 
 /**

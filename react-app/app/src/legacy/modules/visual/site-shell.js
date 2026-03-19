@@ -99,11 +99,22 @@ const DEFAULT_SHELL_CONFIG = {
   },
   hero: {
     startupMode: 'pit',
-    mobileLogoWidthVw: 50,
-    mobileLogoMinPx: 170,
-    mobileLogoMaxPx: 220,
-    mobileLogoHeightRatio: 0.24,
-    mobileNavBottomOffset: '118px'
+    desktopLogoWidthVw: 52,
+    desktopLogoMinPx: 340,
+    desktopLogoMaxPx: 640,
+    mobileLogoWidthVw: 64,
+    mobileLogoMinPx: 220,
+    mobileLogoMaxPx: 320,
+    mobileLogoHeightRatio: 0.3,
+    mobileNavBottomOffset: '118px',
+    centerKeepClearWidthRatio: 0.58,
+    centerKeepClearHeightRatio: 0.28,
+    navKeepClearWidthRatio: 0.44,
+    navKeepClearHeightRatio: 0.1,
+    navKeepClearOffsetRatio: 0.15,
+    centerKeepClearForce: 900,
+    pitSpawnBiasX: 0.74,
+    pitSpawnBandWidthRatio: 0.18
   }
 };
 
@@ -350,6 +361,12 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--modal-depth-scale', String(motion.modalDepthScale));
   root.style.setProperty('--modal-depth-translate-y', `${motion.modalDepthTranslateY}px`);
   root.style.setProperty('--abs-home-mobile-nav-bottom-offset', hero.mobileNavBottomOffset);
+  root.style.setProperty('--abs-home-logo-width-vw', String(Number.isFinite(Number(hero.desktopLogoWidthVw)) ? hero.desktopLogoWidthVw : 52));
+  root.style.setProperty('--abs-home-logo-min-px', `${Number.isFinite(Number(hero.desktopLogoMinPx)) ? hero.desktopLogoMinPx : 340}px`);
+  root.style.setProperty('--abs-home-logo-max-px', `${Number.isFinite(Number(hero.desktopLogoMaxPx)) ? hero.desktopLogoMaxPx : 640}px`);
+  root.style.setProperty('--abs-home-mobile-logo-width-vw', String(Number.isFinite(Number(hero.mobileLogoWidthVw)) ? hero.mobileLogoWidthVw : 64));
+  root.style.setProperty('--abs-home-mobile-logo-min-px', `${Number.isFinite(Number(hero.mobileLogoMinPx)) ? hero.mobileLogoMinPx : 220}px`);
+  root.style.setProperty('--abs-home-mobile-logo-max-px', `${Number.isFinite(Number(hero.mobileLogoMaxPx)) ? hero.mobileLogoMaxPx : 320}px`);
   root.style.setProperty('--abs-safe-top', 'env(safe-area-inset-top, 0px)');
   root.style.setProperty('--abs-safe-right', 'env(safe-area-inset-right, 0px)');
   root.style.setProperty('--abs-safe-bottom', 'env(safe-area-inset-bottom, 0px)');

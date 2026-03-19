@@ -90,10 +90,21 @@
   },
   "hero": {
     "startupMode": "pit",
-    "mobileLogoWidthVw": 50,
-    "mobileLogoMinPx": 170,
-    "mobileLogoMaxPx": 220,
-    "mobileLogoHeightRatio": 0.24,
-    "mobileNavBottomOffset": "118px"
+    "desktopLogoWidthVw": 52,
+    "desktopLogoMinPx": 340,
+    "desktopLogoMaxPx": 640,
+    "mobileLogoWidthVw": 64,
+    "mobileLogoMinPx": 220,
+    "mobileLogoMaxPx": 320,
+    "mobileLogoHeightRatio": 0.3,
+    "mobileNavBottomOffset": "118px",
+    "centerKeepClearWidthRatio": 0.58,
+    "centerKeepClearHeightRatio": 0.28,
+    "navKeepClearWidthRatio": 0.44,
+    "navKeepClearHeightRatio": 0.1,
+    "navKeepClearOffsetRatio": 0.15,
+    "centerKeepClearForce": 900,
+    "pitSpawnBiasX": 0.74,
+    "pitSpawnBandWidthRatio": 0.18
   }
 }

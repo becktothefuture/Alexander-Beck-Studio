@@ -158,7 +158,7 @@ function applySocials() {
 }
 
 function applyHeaderCvLink() {
-  // Reuse footer.links.cv as the single source of truth for the Bio/CV label + href.
+  // Reuse footer.links.cv as the single source of truth for the About me label + href.
   const link = document.getElementById('header-cv-link');
   if (!link) return;
 

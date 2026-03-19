@@ -17,6 +17,12 @@ const ROUTE_DEFS = {
     aliases: ['/cv.html', '/cv'],
     gated: true,
   },
+  styleguide: {
+    id: 'styleguide',
+    path: '/styleguide.html',
+    aliases: ['/styleguide.html', '/styleguide'],
+    gated: false,
+  },
 };
 
 function normalizePathname(pathname = '/') {

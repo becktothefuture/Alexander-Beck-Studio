@@ -7,12 +7,8 @@
 import { setupIndexControls, setupMasterControls } from './controls.js';
 import { setupBuildControls } from './build-controls.js';
 import {
-  generateThemeSectionHTML,
-  generateColorTemplateSectionHTML,
   generateMasterSectionsHTML,
   generateModeSwitcherHTML,
-  generateModeSpecificSectionsHTML,
-  getPuckColorControlsHTML,
 } from './control-registry.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
 import { isDev } from '../utils/logger.js';
@@ -30,15 +26,10 @@ import {
   playHoverSound
 } from '../audio/sound-engine.js';
 import {
-  generateSoundControlsHTML,
   bindSoundControls,
   syncSoundControlsToConfig
 } from '../audio/sound-control-registry.js';
-import {
-  generateStudioSurfaceControlsHTML,
-  generateStudioShellControlsHTML,
-  bindStudioSurfaceControls,
-} from './studio-surface-controls.js';
+import { bindStudioSurfaceControls } from './studio-surface-controls.js';
 import { navigateToGatePage, navigateToHome } from '../../../lib/access-gates.js';
 import { resize } from '../rendering/renderer.js';
 
@@ -149,41 +140,7 @@ function getMasterPanelContent({
   pageSaveButtonLabel = '💾 Save Design JSON',
   footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes',
 } = {}) {
-  const g = getGlobals();
-  const viewportWidthPx = getLayoutViewportWidthPx();
-  const viewportWidthLabel = g.layoutViewportWidthPx > 0
-    ? `${Math.round(g.layoutViewportWidthPx)}px`
-    : `Auto (${Math.round(viewportWidthPx)}px)`;
-  const wallInsetVal = Math.max(0, Math.round(g.wallInset ?? 3));
-
-  // Layout controls → embedded in Frame group
-  const layoutControlsHTML = `
-    <details class="panel-section-accordion" id="layoutSection">
-      <summary class="panel-section-header">
-        <span class="section-icon">📐</span>
-        <span class="section-label">Layout</span>
-      </summary>
-      <div class="panel-section-content">
-        <label class="control-row">
-          <div class="control-row-header">
-            <span class="control-label">Viewport Width</span>
-            <span class="control-value" id="viewportWidthValue">${viewportWidthLabel}</span>
-          </div>
-          <input type="range" id="layoutViewportWidth" min="0" max="2400" step="10" value="${Math.round(g.layoutViewportWidthPx || 0)}" />
-          <div class="control-hint">0 = Auto (uses current window width)</div>
-        </label>
-        <label class="control-row">
-          <div class="control-row-header">
-            <span class="control-label">Wall Inset</span>
-            <span class="control-value" id="wallInsetValue">${wallInsetVal}px</span>
-          </div>
-          <input type="range" id="layoutWallInset" min="0" max="20" value="${wallInsetVal}" />
-        </label>
-      </div>
-    </details>
-  `;
-
-  // Sound controls → embedded in Interaction group
+  // Sound controls → embedded in Audio group (preset + actions only; no parameter sliders)
   const soundControlsHTML = `
     <details class="panel-section-accordion" id="soundSection">
       <summary class="panel-section-header">
@@ -199,14 +156,13 @@ function getMasterPanelContent({
             <button type="button" id="soundTapBtn" class="sound-perf__btn" aria-label="Play test hit">▶︎</button>
             <button type="button" id="soundResetBtn" class="sound-perf__btn" aria-label="Reset to preset">↺</button>
             <button type="button" id="soundShuffleBtn" class="sound-perf__btn" aria-label="Shuffle (subtle) sound">🎲</button>
-            <span class="sound-perf__hint">wheel adjusts · shift/alt = fine</span>
+            <span class="sound-perf__hint">tap shuffle for variation</span>
           </div>
           <label class="control-row">
             <span class="control-label">Preset</span>
             <select id="soundPresetSelect" class="control-select"></select>
           </label>
           <p id="presetDescription" class="control-hint"></p>
-          ${generateSoundControlsHTML()}
         </div>
       </div>
     </details>
@@ -259,15 +215,13 @@ function getMasterPanelContent({
   // - Mode switcher + mode-specific sections → Simulation
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      studio: generateThemeSectionHTML({ open: false }),
-      simulation: generateModeSwitcherHTML() + generateModeSpecificSectionsHTML(),
+      simulation: page === 'home' ? generateModeSwitcherHTML() : '',
     },
     append: {
-      studio: generateStudioSurfaceControlsHTML() + generateColorTemplateSectionHTML({ open: false }),
-      shell: layoutControlsHTML + generateStudioShellControlsHTML({ puckPrependHTML: getPuckColorControlsHTML() }),
       audio: soundControlsHTML,
     },
     groupIds: masterGroupIds,
+    includeRegisteredSections: false,
   });
 
   return `

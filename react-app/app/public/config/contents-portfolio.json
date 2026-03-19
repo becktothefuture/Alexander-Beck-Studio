@@ -3,6 +3,7 @@
     {
       "id": "chapter-1",
       "client": "Product",
+      "displayTitle": "Product Design",
       "title": "Digital Product Design for Complex Platforms",
       "image": "chapter-1-1.webp",
       "tags": ["#product design", "#UX", "#UI", "#prototyping", "#mobile app"],
@@ -33,6 +34,7 @@
     {
       "id": "chapter-4",
       "client": "Design Systems",
+      "displayTitle": "Design Systems",
       "title": "Design Systems Architecture",
       "image": "chapter-4-1.webp",
       "tags": ["#design systems", "#components", "#documentation", "#scalability", "#tokens"],
@@ -63,6 +65,7 @@
     {
       "id": "chapter-3",
       "client": "Motion",
+      "displayTitle": "Motion Systems",
       "title": "Motion & Interaction Systems",
       "image": "chapter-3-1.webp",
       "tags": ["#motion design", "#interaction", "#webgl", "#animation", "#micro-interactions"],
@@ -93,6 +96,7 @@
     {
       "id": "chapter-2",
       "client": "Research",
+      "displayTitle": "UX Research",
       "title": "Strategic UX Research + Insight Mapping",
       "image": "chapter-2-1.webp",
       "tags": ["#user research", "#strategy", "#analytics", "#testing", "#insights"],
@@ -123,6 +127,7 @@
     {
       "id": "chapter-5",
       "client": "Meta",
+      "displayTitle": "Creative Direction",
       "title": "Creative Direction + Launch Narratives",
       "image": "chapter-5-1.webp",
       "tags": ["#creative direction", "#team leadership", "#mentorship", "#vision", "#execution"],
@@ -153,6 +158,7 @@
     {
       "id": "chapter-6",
       "client": "R&D",
+      "displayTitle": "Frontier Prototypes",
       "title": "Experimental Lab for Frontier Prototypes",
       "image": "chapter-6-1.webp",
       "tags": ["#experimental", "#generative art", "#code", "#future tech", "#concepts"],

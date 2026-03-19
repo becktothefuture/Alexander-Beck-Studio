@@ -4,9 +4,9 @@ const CONTROL_SECTIONS = {
     icon: 'LAY',
     defaultOpen: true,
     controls: [
-      { id: 'portfolioNavTop', label: 'Header Top', cssVar: '--portfolio-nav-top', type: 'range', min: 8, max: 64, step: 1, unit: 'px', default: 24 },
+      { id: 'portfolioNavTop', label: 'Header top (extra)', cssVar: '--portfolio-nav-top', type: 'range', min: 0, max: 48, step: 1, unit: 'px', default: 0 },
       { id: 'portfolioStagePad', label: 'Stage Padding', cssVar: '--portfolio-stage-pad', type: 'range', min: 8, max: 48, step: 1, unit: 'px', default: 24 },
-      { id: 'spawnInsetViewport', label: 'Spawn Inset', configKey: 'runtime.layout.spawnInsetViewport', type: 'range', min: 0.04, max: 0.24, step: 0.01, unit: '', default: 0.12, refresh: true },
+      { id: 'spawnInsetViewport', label: 'Spawn Inset', configKey: 'runtime.layout.spawnInsetViewport', type: 'range', min: 0.04, max: 0.24, step: 0.01, unit: '', default: 0.1, refresh: true },
       { id: 'headerTopSpacing', label: 'Header Spacing', configKey: 'runtime.layout.headerTopSpacing', type: 'range', min: 8, max: 64, step: 1, unit: 'px', default: 24 },
     ],
   },
@@ -15,10 +15,11 @@ const CONTROL_SECTIONS = {
     icon: 'BOD',
     defaultOpen: true,
     controls: [
-      { id: 'minDiameterViewport', label: 'Min Size', configKey: 'runtime.bodies.minDiameterViewport', type: 'range', min: 0.12, max: 0.32, step: 0.01, unit: '', default: 0.2, refresh: true },
-      { id: 'maxDiameterViewport', label: 'Max Size', configKey: 'runtime.bodies.maxDiameterViewport', type: 'range', min: 0.16, max: 0.42, step: 0.01, unit: '', default: 0.28, refresh: true },
-      { id: 'blockWidthMultiplier', label: 'Block Width', configKey: 'runtime.bodies.blockWidthMultiplier', type: 'range', min: 1, max: 1.6, step: 0.01, unit: '', default: 1.24, refresh: true },
-      { id: 'blockCornerRadius', label: 'Block Radius', configKey: 'runtime.bodies.blockCornerRadius', type: 'range', min: 12, max: 96, step: 1, unit: 'px', default: 48, refresh: true },
+      { id: 'minDiameterViewport', label: 'Min Size', configKey: 'runtime.bodies.minDiameterViewport', type: 'range', min: 0.12, max: 0.32, step: 0.01, unit: '', default: 0.22, refresh: true },
+      { id: 'maxDiameterViewport', label: 'Max Size', configKey: 'runtime.bodies.maxDiameterViewport', type: 'range', min: 0.16, max: 0.42, step: 0.01, unit: '', default: 0.32, refresh: true },
+      { id: 'blockWidthMultiplier', label: 'Block Width', configKey: 'runtime.bodies.blockWidthMultiplier', type: 'range', min: 0.7, max: 1, step: 0.01, unit: '', default: 0.92, refresh: true },
+      { id: 'blockHeightRatio', label: 'Block Height', configKey: 'runtime.bodies.blockHeightRatio', type: 'range', min: 0.45, max: 0.9, step: 0.01, unit: '', default: 0.68, refresh: true },
+      { id: 'blockCornerRadius', label: 'Block Radius', configKey: 'runtime.bodies.blockCornerRadius', type: 'range', min: 12, max: 96, step: 1, unit: 'px', default: 40, refresh: true },
     ],
   },
   labeling: {
@@ -26,11 +27,11 @@ const CONTROL_SECTIONS = {
     icon: 'TXT',
     defaultOpen: false,
     controls: [
-      { id: 'fontMinPx', label: 'Font Min', configKey: 'runtime.labeling.fontMinPx', type: 'range', min: 10, max: 28, step: 1, unit: 'px', default: 16, refresh: true },
-      { id: 'fontMaxPx', label: 'Font Max', configKey: 'runtime.labeling.fontMaxPx', type: 'range', min: 16, max: 52, step: 1, unit: 'px', default: 34, refresh: true },
+      { id: 'fontDesktopPx', label: 'Desktop Size', configKey: 'runtime.labeling.fontDesktopPx', type: 'range', min: 16, max: 40, step: 1, unit: 'px', default: 28, refresh: true },
+      { id: 'fontMobilePx', label: 'Mobile Size', configKey: 'runtime.labeling.fontMobilePx', type: 'range', min: 14, max: 30, step: 1, unit: 'px', default: 20, refresh: true },
       { id: 'lineHeight', label: 'Line Height', configKey: 'runtime.labeling.lineHeight', type: 'range', min: 0.85, max: 1.2, step: 0.01, unit: '', default: 0.94, refresh: true },
-      { id: 'innerPaddingRatio', label: 'Inner Padding', configKey: 'runtime.labeling.innerPaddingRatio', type: 'range', min: 0.08, max: 0.28, step: 0.01, unit: '', default: 0.19, refresh: true },
-      { id: 'blockRotationRangeDeg', label: 'Block Rotation', configKey: 'runtime.labeling.blockRotationRangeDeg', type: 'range', min: 0, max: 14, step: 0.5, unit: 'deg', default: 6, refresh: true },
+      { id: 'innerPaddingRatio', label: 'Inner Padding', configKey: 'runtime.labeling.innerPaddingRatio', type: 'range', min: 0.08, max: 0.28, step: 0.01, unit: '', default: 0.18, refresh: true },
+      { id: 'blockRotationRangeDeg', label: 'Block Rotation', configKey: 'runtime.labeling.blockRotationRangeDeg', type: 'range', min: 0, max: 10, step: 0.5, unit: 'deg', default: 3.5, refresh: true },
     ],
   },
   motion: {
@@ -38,12 +39,14 @@ const CONTROL_SECTIONS = {
     icon: 'MOV',
     defaultOpen: false,
     controls: [
-      { id: 'neighborImpulse', label: 'Neighbor Impulse', configKey: 'runtime.motion.neighborImpulse', type: 'range', min: 0, max: 1200, step: 10, unit: '', default: 540 },
+      { id: 'gravityScale', label: 'Gravity', configKey: 'runtime.motion.gravityScale', type: 'range', min: 0.15, max: 0.85, step: 0.01, unit: '', default: 0.52, refresh: true },
+      { id: 'massMultiplier', label: 'Mass', configKey: 'runtime.motion.massMultiplier', type: 'range', min: 0.5, max: 2, step: 0.05, unit: '', default: 1, refresh: true },
+      { id: 'neighborImpulse', label: 'Neighbor Impulse', configKey: 'runtime.motion.neighborImpulse', type: 'range', min: 0, max: 1200, step: 10, unit: '', default: 0 },
       { id: 'dragThrowMultiplier', label: 'Throw Multiplier', configKey: 'runtime.motion.dragThrowMultiplier', type: 'range', min: 0.2, max: 2, step: 0.05, unit: '', default: 1.05 },
-      { id: 'openDurationMs', label: 'Open Duration', configKey: 'runtime.motion.openDurationMs', type: 'range', min: 200, max: 1500, step: 10, unit: 'ms', default: 820 },
-      { id: 'colorFloodHoldMs', label: 'Color Hold', configKey: 'runtime.motion.colorFloodHoldMs', type: 'range', min: 0, max: 600, step: 10, unit: 'ms', default: 280 },
+      { id: 'openDurationMs', label: 'Open Duration', configKey: 'runtime.motion.openDurationMs', type: 'range', min: 200, max: 1500, step: 10, unit: 'ms', default: 420 },
+      { id: 'colorFloodHoldMs', label: 'Color Hold', configKey: 'runtime.motion.colorFloodHoldMs', type: 'range', min: 0, max: 600, step: 10, unit: 'ms', default: 120 },
       { id: 'imageFadeMs', label: 'Image Fade', configKey: 'runtime.motion.imageFadeMs', type: 'range', min: 0, max: 600, step: 10, unit: 'ms', default: 220 },
-      { id: 'titleRevealDelayMs', label: 'Title Delay', configKey: 'runtime.motion.titleRevealDelayMs', type: 'range', min: 200, max: 1500, step: 10, unit: 'ms', default: 1240 },
+      { id: 'titleRevealDelayMs', label: 'Title Delay', configKey: 'runtime.motion.titleRevealDelayMs', type: 'range', min: 200, max: 1500, step: 10, unit: 'ms', default: 480 },
     ],
   },
   hero: {
@@ -126,37 +129,10 @@ function resolveControlValue(control, config, computedRoot) {
   return control.default;
 }
 
-function generateControlHTML(control, config, computedRoot) {
-  const value = resolveControlValue(control, config, computedRoot);
-  const numericValue = parseNumeric(value, control.default);
-  return `
-    <label class="control-row" data-control-id="${control.id}">
-      <div class="control-row-header">
-        <span class="control-label">${control.label}</span>
-        <span class="control-value" id="${getControlValueId(control)}">${formatControlDisplay(control, numericValue)}</span>
-      </div>
-      <input type="range" id="${getControlInputId(control)}" min="${control.min}" max="${control.max}" step="${control.step}" value="${numericValue}" aria-label="${control.label}">
-    </label>`;
-}
-
-function generateSectionHTML(section, config, computedRoot) {
-  const controlsHtml = section.controls.map((control) => generateControlHTML(control, config, computedRoot)).join('');
-  const openAttr = section.defaultOpen ? 'open' : '';
-  return `
-    <details class="panel-section-accordion" ${openAttr}>
-      <summary class="panel-section-header">
-        <span class="section-icon">${section.icon}</span>
-        <span class="section-label">${section.title}</span>
-      </summary>
-      <div class="panel-section-content">${controlsHtml}</div>
-    </details>`;
-}
-
 export function generatePanelSectionsHTML(config, computedRoot = null) {
-  const rootStyle = computedRoot || getComputedStyle(document.documentElement);
-  return ACTIVE_SECTION_KEYS
-    .map((key) => generateSectionHTML(CONTROL_SECTIONS[key], config, rootStyle))
-    .join('');
+  void config;
+  void computedRoot;
+  return '';
 }
 
 export function generatePanelHTML(config) {

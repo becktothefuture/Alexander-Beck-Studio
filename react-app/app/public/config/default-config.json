@@ -84,7 +84,7 @@
   "textColorDark": "#a0a1a2",
   "textColorDarkMuted": "#737373",
   "linkHoverColor": "#ff4013",
-  "brandLogoSecondaryOpacity": 0.21,
+  "brandLogoSecondaryOpacity": 1,
   "colorDistribution": [
     {
       "label": "Product Systems",

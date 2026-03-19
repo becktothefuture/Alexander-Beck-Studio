@@ -2804,10 +2804,10 @@ export const CONTROL_SECTIONS = {
         min: 0,
         max: 1,
         step: 0.01,
-        default: 0.66,
+        default: 1,
         format: (v) => Number(v).toFixed(2),
         parse: parseFloat,
-        hint: 'Opacity for the lower line of the brand mark.',
+        hint: 'Opacity for the lower line of the brand mark (1 = match primary line).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--brand-logo-secondary-opacity', String(val));
         }
@@ -6605,7 +6605,13 @@ export function generateColorTemplateSectionHTML({ open = false } = {}) {
  * @returns {string} Complete master groups HTML
  */
 export function generateMasterSectionsHTML(options = {}) {
-  const { prepend = {}, append = {}, replace = {}, groupIds = null } = options;
+  const {
+    prepend = {},
+    append = {},
+    replace = {},
+    groupIds = null,
+    includeRegisteredSections = true,
+  } = options;
   const groups = Array.isArray(groupIds) && groupIds.length > 0
     ? MASTER_GROUPS.filter((group) => groupIds.includes(group.id))
     : MASTER_GROUPS;
@@ -6637,10 +6643,12 @@ export function generateMasterSectionsHTML(options = {}) {
       groupContent += prepend[group.id];
     }
 
-    // Add registered sections
-    for (const key of group.sections) {
-      if (!CONTROL_SECTIONS[key]) continue;
-      groupContent += generateSectionHTML(key, CONTROL_SECTIONS[key]);
+    // Add registered sections (optional — dev panel can omit all sliders)
+    if (includeRegisteredSections) {
+      for (const key of group.sections) {
+        if (!CONTROL_SECTIONS[key]) continue;
+        groupContent += generateSectionHTML(key, CONTROL_SECTIONS[key]);
+      }
     }
 
     // Append custom content

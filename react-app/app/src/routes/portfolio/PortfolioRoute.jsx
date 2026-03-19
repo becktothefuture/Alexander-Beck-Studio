@@ -5,7 +5,7 @@ export const PORTFOLIO_ROUTE_RUNTIME = {
 };
 
 export function getPortfolioRouteView() {
-  const portfolioLink = homeContent.footer.links.cv;
+  const aboutLink = homeContent.footer.links.cv;
   const contactLink = homeContent.footer.links.contact;
 
   return {
@@ -25,8 +25,8 @@ export function getPortfolioRouteView() {
     ),
     headerContent: (
       <header className="ui-top" data-portfolio-ui>
-        <div className="ui-top-main portfolio-topbar">
-          <nav className="portfolio-topnav" aria-label="Portfolio navigation">
+        <div className="ui-top-main route-topbar portfolio-topbar">
+          <div className="route-topbar__left">
             <a
               href="index.html"
               className="gate-back abs-icon-btn"
@@ -36,14 +36,16 @@ export function getPortfolioRouteView() {
             >
               <i className="ti ti-arrow-left" aria-hidden="true" />
             </a>
-            <button id={portfolioLink.id} type="button" className="footer_link" aria-haspopup="dialog">
-              {portfolioLink.text}
+          </div>
+          <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
+            <button id={aboutLink.id} type="button" className="footer_link" aria-haspopup="dialog">
+              {aboutLink.text}
             </button>
             <button id={contactLink.id} type="button" className="footer_link" aria-haspopup="dialog">
               {contactLink.text}
             </button>
           </nav>
-          <div className="ui-top-right">
+          <div className="route-topbar__right ui-top-right">
             <div id="sound-toggle-slot" className="portfolio-sound-slot" />
           </div>
         </div>

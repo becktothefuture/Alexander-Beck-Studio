@@ -1,20 +1,21 @@
 :root {
-  --portfolio-nav-top: clamp(18px, 2.4vw, 30px);
+  /* Extra inset below legend-matched base (--gap-xs in main.css); safe-area lives on .fade-content */
+  --portfolio-nav-top: 0px;
   --portfolio-stage-pad: clamp(18px, 2.1vw, 32px);
   --portfolio-hero-title-max: 14ch;
   --portfolio-image-veil-opacity: 0.14;
   --portfolio-scroll-hint-offset: clamp(34px, 6vh, 68px);
   --portfolio-project-fill: #1b7f6e;
   --portfolio-project-ink: #f5f1ea;
-  --portfolio-project-open-ms: 820ms;
+  --portfolio-project-open-ms: 420ms;
   --portfolio-project-image-fade-ms: 220ms;
-  --portfolio-project-title-delay-ms: 1240ms;
-  --portfolio-project-flood-hold-ms: 280ms;
+  --portfolio-project-title-delay-ms: 480ms;
+  --portfolio-project-flood-hold-ms: 120ms;
   --portfolio-project-start-x: 0px;
   --portfolio-project-start-y: 0px;
-  --portfolio-project-start-scale-x: 0.2;
-  --portfolio-project-start-scale-y: 0.2;
-  --portfolio-project-start-radius: 80px;
+  --portfolio-project-start-scale-x: 1;
+  --portfolio-project-start-scale-y: 1;
+  --portfolio-project-start-radius: 0px;
   --portfolio-project-ease: cubic-bezier(0.2, 0.76, 0.18, 1);
 }
 
@@ -99,6 +100,14 @@ body.portfolio-page .ui-center-spacer {
   display: block;
 }
 
+/* Title hover: underline only (canvas hit-test drives .portfolio-project-label--hover) */
+.portfolio-project-label--hover .portfolio-project-label__text span {
+  text-decoration: underline;
+  text-decoration-thickness: max(1px, 0.06em);
+  text-underline-offset: 0.2em;
+  text-decoration-color: currentColor;
+}
+
 .portfolio-project-view {
   position: fixed;
   inset: 0;
@@ -120,17 +129,17 @@ body.portfolio-page .ui-center-spacer {
 .portfolio-project-view__field {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  border-radius: 0;
+  transform: none;
   background:
     radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.12), transparent 28%),
     radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.08), transparent 22%),
     radial-gradient(circle at 74% 78%, rgba(0, 0, 0, 0.08), transparent 26%),
     var(--portfolio-project-fill);
-  border-radius: var(--portfolio-project-start-radius);
-  transform: translate(var(--portfolio-project-start-x), var(--portfolio-project-start-y))
-    scale(var(--portfolio-project-start-scale-x), var(--portfolio-project-start-scale-y));
-  transition:
-    transform var(--portfolio-project-open-ms) var(--portfolio-project-ease),
-    border-radius var(--portfolio-project-open-ms) var(--portfolio-project-ease);
+  transition: opacity var(--portfolio-project-open-ms) var(--portfolio-project-ease);
   transform-origin: center center;
 }
 
@@ -147,9 +156,12 @@ body.portfolio-page .ui-center-spacer {
   transition: transform 240ms ease;
 }
 
+.portfolio-project-view.is-visible .portfolio-project-view__field {
+  opacity: 1;
+}
+
 .portfolio-project-view.is-opening .portfolio-project-view__field {
-  border-radius: 0;
-  transform: translate(0px, 0px) scale(1, 1);
+  opacity: 1;
 }
 
 .portfolio-project-view.is-ready .portfolio-project-view__field::before {
@@ -200,13 +212,13 @@ body.portfolio-page .ui-center-spacer {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  transform: translateY(14%) scale(1.08);
-  transform-origin: center bottom;
-  transition: transform var(--portfolio-project-image-fade-ms) var(--portfolio-project-ease);
+  transform: none;
+  opacity: 0.001;
+  transition: opacity var(--portfolio-project-image-fade-ms) ease;
 }
 
 .portfolio-project-view.is-ready .portfolio-project-view__image-shell {
-  transform: translateY(0) scale(1);
+  opacity: 1;
 }
 
 .portfolio-project-view__image {
@@ -327,22 +339,72 @@ body.portfolio-project-open .ui-bottom {
 .portfolio-project-view__links {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--gap-sm);
 }
 
+/* External project links — same chrome language as shell (solid cursor fill + rim on hover; see SITE-STYLEGUIDE) */
 .portfolio-project-view__links a {
+  position: relative;
+  z-index: 0;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 999px;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm) var(--gap-md);
+  border-radius: var(--ui-icon-corner-radius);
   text-decoration: none;
-  background: rgba(0, 0, 0, 0.06);
-  color: inherit;
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  overflow: visible;
+  transform: translateZ(0);
+  transition:
+    color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic));
 }
 
-body.dark-mode .portfolio-project-view__links a {
-  background: rgba(255, 255, 255, 0.08);
+.portfolio-project-view__links a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--cursor-color);
+  box-shadow: var(--ui-chrome-button-edge);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.72);
+  transform-origin: center;
+  transition:
+    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
+    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+}
+
+.portfolio-project-view__links a:hover {
+  color: var(--cursor-hover-fg, var(--text-primary));
+  transform: translateZ(0);
+  transition:
+    color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
+}
+
+.portfolio-project-view__links a:hover::before {
+  opacity: 1;
+  transform: scale(var(--abs-button-swell-scale, 1.06));
+  transition:
+    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
+    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+}
+
+.portfolio-project-view__links a i {
+  position: relative;
+  z-index: 1;
+}
+
+.portfolio-project-view__links a:focus-visible {
+  outline: 2px solid var(--cursor-color);
+  outline-offset: 2px;
 }
 
 .portfolio-project-view__stack {
@@ -411,5 +473,10 @@ body.dark-mode .portfolio-project-view__links a {
   .portfolio-project-view__close {
     transition-duration: 1ms;
     transition-delay: 0ms;
+  }
+
+  .portfolio-project-view__links a:hover::before {
+    transform: none;
+    opacity: 1;
   }
 }

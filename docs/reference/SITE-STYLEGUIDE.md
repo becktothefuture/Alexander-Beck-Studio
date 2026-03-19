@@ -4,6 +4,12 @@ This document is the **authoritative visual spec** for **new interactive UI** th
 
 **Out of scope here:** The debug **panel** (`.panel`, `panel.css`) uses a separate, denser control aesthetic—do not copy panel chrome onto shell UI without an explicit design decision.
 
+**Intentionally different surfaces (not shell chrome pills):**
+
+- **Panel / dock** — `panel.css` buttons (shadcn-style muted surfaces).
+- **Gate / code modals** — Digit inputs (`.cv-digit`, `.portfolio-digit`) and the contact email row use **field** styling (borders, optional pulse), not the `::before` chrome pill.
+- **Archived portfolio slider** — `public/css/archive/portfolio-slider-v1.css` still documents old `.project-detail__links` glass pills; that bundle is **not** linked by current `portfolio.html` (pit runtime uses `portfolio.css` only).
+
 **Related:** [`CONFIGURATION.md`](CONFIGURATION.md) (runtime keys), [`TONE-OF-VOICE.md`](TONE-OF-VOICE.md) (copy), [`QUOTE-PUCK.md`](QUOTE-PUCK.md) (quote control), [`AGENTS.md`](../../AGENTS.md) (tokens & build).
 
 ---
@@ -41,6 +47,17 @@ Use these as references when adding siblings:
 - **Legend active:** `.legend__item--active::before` — solid fill + rim; label uses `cursor-hover-fg`
 
 **Sound toggle specifics:** When the control sits in `#sound-toggle-slot` or `.portfolio-sound-slot`, the **slot** must allow hits if a parent uses `pointer-events: none` (set **`pointer-events: auto`** on the slot). Hover/focus color should not lose to `[data-enabled="true"]` resting color—use explicit `.sound-toggle.abs-icon-btn:hover` / `:focus-visible` rules if needed.
+
+### 1.4 Route top bar (shell strip — same discipline as the footer)
+
+Any page that shows a **top chrome strip** (portfolio, CV, future gated routes) must reuse the **same DOM + CSS contract** as the current implementation—**not** a one-off flex row or alternate text-button class.
+
+- **Structure:** `header.ui-top` → `div.ui-top-main.route-topbar` → **`route-topbar__left` | `route-topbar__center` | `route-topbar__right`** (grid `auto 1fr auto`, full width). Center is **in-flow** (no `position: absolute` on the nav).
+- **Text actions:** `nav.route-topbar__center` carries **`ui-main-nav`**; controls are **`footer_link`** (same master component as home `#main-links`). Hover foreground is unified via `.ui-main-nav` + trigger id overrides in `main.css`.
+- **Icons:** Back uses **`gate-back abs-icon-btn`**; sound uses **`#sound-toggle-slot`** (see 1.3).
+- **When adding a new route with a top bar:** copy this strip verbatim from `PortfolioRoute.jsx` / `CvRoute.jsx`, swap copy and ids only; extend `COMPONENT-LIBRARY.md` and `/styleguide.html` if the pattern changes.
+
+Authoritative detail: [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md) (route top bar section).
 
 ---
 

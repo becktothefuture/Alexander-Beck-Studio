@@ -67,6 +67,12 @@ export function StudioShell({
             <SiteFooter />
           </div>
         </div>
+
+        <div
+          id="quote-viewport-host"
+          className="quote-viewport-host"
+          aria-hidden="true"
+        />
       </div>
 
       <div id="modal-blur-layer" className="modal-blur-layer" aria-hidden="true" />

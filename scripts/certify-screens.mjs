@@ -31,7 +31,7 @@ const matrix = [
         selector: '#main-links button',
         minCount: 3,
         minArea: 400,
-        requiredText: ['Bio/CV', 'Contact', 'Portfolio']
+        requiredText: ['About me', 'Contact', 'Portfolio']
       },
       {
         selector: '#expertise-legend .legend__item',
@@ -58,7 +58,7 @@ const matrix = [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
       { selector: '#c', minArea: 60000, requiredText: [] },
       { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
-      { selector: '.portfolio-topnav .footer_link', minCount: 2, minArea: 300, requiredText: ['Bio/CV', 'Contact'] }
+      { selector: '.portfolio-topnav .footer_link', minCount: 2, minArea: 300, requiredText: ['About me', 'Contact'] }
     ]
   },
   {

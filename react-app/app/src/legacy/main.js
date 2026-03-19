@@ -9,7 +9,14 @@ import { getDailyMode } from './modules/core/daily-scheduler.js';
 import { initializeDarkMode } from './modules/visual/dark-mode-v2.js';
 import { maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './modules/visual/colors.js';
 import { initNoiseSystem } from './modules/visual/noise-system.js';
-import { setupRenderer, getCanvas, getContext, resize, setForceRenderCallback } from './modules/rendering/renderer.js';
+import {
+  setupRenderer,
+  getCanvas,
+  getContext,
+  resize,
+  setForceRenderCallback,
+  disposeRendererListeners,
+} from './modules/rendering/renderer.js';
 import { render } from './modules/physics/engine.js';
 import { initCanvasLogo, startLogoEntrance, skipLogoEntrance } from './modules/rendering/canvas-logo.js';
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
@@ -57,8 +64,9 @@ import {
 } from './modules/utils/logger.js';
 
 // Compile-time dev flag (Rollup `replace()` sets __DEV__ in bundled builds).
-// In source/dev mode (unbundled), `__DEV__` is undefined and we fall back to runtime detection.
-const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : isDev();
+// Preview/production on localhost must still behave like production, so only the
+// compile-time flag enables authoring UI.
+const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : false;
 const CONTENT_FADE_DURATION_MS = 800;
 const CONTENT_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
@@ -219,11 +227,29 @@ function enhanceFooterLinksForMobile() {
       const expected = String(getText('footer.links.cv.text', '') || '').trim();
       const raw = (cv.textContent || '').trim().replace(/\s+/g, ' ');
       const txt = expected || raw;
-      // Keep short compound labels together on mobile (e.g. "Bio/CV").
+      // Keep short compound labels together on mobile (e.g. "About me").
       if (txt && txt.includes('/') && raw === txt) {
         cv.innerHTML = `<span class="footer-link-nowrap">${txt}</span>`;
       }
     }
+  } catch (e) {}
+}
+
+function applyHomeHeroRuntimeConfig() {
+  try {
+    const globals = getGlobals();
+    const hero = getShellConfig()?.hero || {};
+    globals.homeHeroKeepClear = {
+      enabled: true,
+      centerWidthRatio: Number(hero.centerKeepClearWidthRatio),
+      centerHeightRatio: Number(hero.centerKeepClearHeightRatio),
+      navWidthRatio: Number(hero.navKeepClearWidthRatio),
+      navHeightRatio: Number(hero.navKeepClearHeightRatio),
+      navOffsetRatio: Number(hero.navKeepClearOffsetRatio),
+      force: Number(hero.centerKeepClearForce),
+      spawnBiasX: Number(hero.pitSpawnBiasX),
+      spawnBandWidthRatio: Number(hero.pitSpawnBandWidthRatio),
+    };
   } catch (e) {}
 }
 
@@ -279,6 +305,7 @@ export async function bootstrapHomePage() {
     
     const config = await loadRuntimeConfig();
     initState(config);
+    applyHomeHeroRuntimeConfig();
     syncShellToDocument({
       isDark: document.documentElement.classList.contains('dark-mode')
     });
@@ -553,7 +580,7 @@ export async function bootstrapHomePage() {
     // Initialize time display (London time)
     initTimeDisplay();
 
-    // Footer: mobile-friendly wrapping tweaks (keeps "Bio/CV" together)
+    // Footer: mobile-friendly wrapping tweaks (keeps "About me" together)
     enhanceFooterLinksForMobile();
     
     // Create quick sound toggle button (bottom-right, next to time)
@@ -780,7 +807,14 @@ export async function bootstrapHomePage() {
     }
 
     setBootLifecycleState('ready');
-    
+
+    return () => {
+      try {
+        disposeRendererListeners();
+      } catch (e) {
+        /* ignore */
+      }
+    };
   } catch (error) {
     setBootLifecycleState('failed');
     console.error('❌ Initialization failed:', error);
@@ -789,4 +823,5 @@ export async function bootstrapHomePage() {
       <pre>${error.message}\n${error.stack}</pre>
     </div>`;
   }
+  return undefined;
 }

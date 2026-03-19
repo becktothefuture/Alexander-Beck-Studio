@@ -87,7 +87,8 @@ export default defineConfig({
       input: {
         index: resolve(__dirname, 'index.html'),
         portfolio: resolve(__dirname, 'portfolio.html'),
-        cv: resolve(__dirname, 'cv.html')
+        cv: resolve(__dirname, 'cv.html'),
+        styleguide: resolve(__dirname, 'styleguide.html')
       }
     }
   }

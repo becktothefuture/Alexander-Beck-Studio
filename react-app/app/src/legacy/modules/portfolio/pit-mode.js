@@ -1,5 +1,11 @@
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║                         PORTFOLIO PIT MODE                                   ║
+// ║   Same pit physics as home (circle colliders); one large ball per project   ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
 import { Ball } from '../physics/Ball.js';
-import { getGlobals, clearBalls } from '../core/state.js';
+import { getGlobals, clearBalls, syncPitPortfolioRadiusStatsFromBalls } from '../core/state.js';
+import { getPortfolioProjectPaletteColor } from '../visual/colors.js';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -35,19 +41,12 @@ function getContrastText(fill) {
   return luminance > 0.42 ? '#111111' : '#f5f1ea';
 }
 
-function getPaletteColor(index) {
-  const globals = getGlobals();
-  const colors = Array.isArray(globals.currentColors) ? globals.currentColors : [];
-  if (!colors.length) return '#1b7f6e';
-  return colors[index % colors.length] || colors[0];
-}
-
 function hashUnit(seed) {
   const value = Math.sin((seed + 1) * 12.9898) * 43758.5453;
   return value - Math.floor(value);
 }
 
-function buildWrappedTitle(ctx, title, bounds) {
+export function buildWrappedTitle(ctx, title, bounds) {
   const safeTitle = String(title || '').trim() || 'Untitled Project';
   const words = safeTitle
     .replace(/\s*([+&/])\s*/g, ' $1 ')
@@ -102,6 +101,59 @@ function buildWrappedTitle(ctx, title, bounds) {
   };
 }
 
+function computeLabelForBall(ctx, ball, config, projectLabel, fontFamily, isMobile) {
+  const insetRatio = clamp(toNumber(config.labeling?.innerPaddingRatio, 0.18), 0.08, 0.3);
+  const dpr = ball._portfolioDpr || 1;
+  const labelFontPx = clamp(
+    toNumber(
+      isMobile ? config.labeling?.fontMobilePx : config.labeling?.fontDesktopPx,
+      isMobile ? 20 : 28
+    ),
+    12,
+    48
+  ) * dpr;
+  const diameter = ball.r * 2;
+  const textBounds = {
+    width: diameter * (1 - (insetRatio * 2)),
+    height: diameter * (1 - (insetRatio * 2)),
+    fontMin: Math.max(10, labelFontPx * 0.55),
+    fontMax: labelFontPx,
+    lineHeight: clamp(toNumber(config.labeling?.lineHeight, 0.94), 0.85, 1.2),
+    fontFamily,
+    maxLines: isMobile ? 4 : 4,
+  };
+  ball.label = buildWrappedTitle(ctx, projectLabel, textBounds);
+}
+
+/**
+ * Recompute DOM label line breaks after canvas/DPR resize (radii changed).
+ */
+export function relayoutPortfolioProjectLabels() {
+  const globals = getGlobals();
+  const ctx = globals.ctx;
+  const canvas = globals.canvas;
+  const projects = Array.isArray(globals.portfolioProjects) ? globals.portfolioProjects : [];
+  if (!ctx || !canvas || !projects.length) return;
+
+  const config = globals.portfolioPitConfig || {};
+  const fontFamily = getComputedStyle(document.body).fontFamily || 'Helvetica Neue, Arial, sans-serif';
+  const isMobile = canvas.width < 700;
+  const balls = Array.isArray(globals.balls) ? globals.balls : [];
+
+  for (let i = 0; i < balls.length; i += 1) {
+    const ball = balls[i];
+    if (!ball || ball.projectIndex === undefined) continue;
+    const project = projects[ball.projectIndex];
+    const projectLabel = String(
+      project?.displayTitle || project?.title || ball.projectTitle || 'Untitled Project'
+    ).trim();
+    ball._portfolioDpr = globals.DPR || 1;
+    computeLabelForBall(ctx, ball, config, projectLabel, fontFamily, isMobile);
+    ball.labelColor = getContrastText(ball.color);
+    ball.projectTitle = projectLabel;
+  }
+}
+
 function seedProjectBodies(globals) {
   clearBalls();
 
@@ -113,157 +165,222 @@ function seedProjectBodies(globals) {
 
   const width = canvas.width;
   const height = canvas.height;
+  const dpr = globals.DPR || 1;
   const fontFamily = getComputedStyle(document.body).fontFamily || 'Helvetica Neue, Arial, sans-serif';
   const isMobile = width < 700;
   const mobileDiameterMul = isMobile ? 0.82 : 1;
-  const minDiameter = Math.min(width, height) * clamp(toNumber(config.bodies?.minDiameterViewport, 0.2), 0.12, 0.42) * mobileDiameterMul;
-  const maxDiameter = Math.min(width, height) * clamp(toNumber(config.bodies?.maxDiameterViewport, 0.26), minDiameter / Math.min(width, height), 0.5) * mobileDiameterMul;
-  const blockWidthMultiplier = clamp(
-    toNumber(config.bodies?.blockWidthMultiplier, 1.22) * (isMobile ? 0.92 : 1),
-    1,
-    1.55
-  );
-  const blockCornerRadius = clamp(toNumber(config.bodies?.blockCornerRadius, 48), 16, 96) * (globals.DPR || 1);
-  const spawnInset = Math.min(width, height) * clamp(toNumber(config.layout?.spawnInsetViewport, 0.12), 0.06, 0.24);
-  const columns = isMobile ? 2 : Math.min(3, Math.max(2, Math.ceil(Math.sqrt(projects.length))));
-  const rows = Math.ceil(projects.length / columns);
-  const usableWidth = width - (spawnInset * 2);
-  const usableHeight = height - (spawnInset * 2);
-  const cellWidth = usableWidth / columns;
-  const cellHeight = usableHeight / rows;
+
+  const minFrac = clamp(toNumber(config.bodies?.minDiameterViewport, 0.22), 0.14, 0.45);
+  const maxFrac = clamp(
+    toNumber(config.bodies?.maxDiameterViewport, 0.32),
+    minFrac,
+    0.52
+  ) * mobileDiameterMul;
+  const sizeMul = clamp(toNumber(config.bodies?.diameterScale, 1.2), 1, 1.6);
+  const minD = Math.min(width, height) * minFrac * mobileDiameterMul * sizeMul;
+  const maxD = Math.min(width, height) * maxFrac * sizeMul;
+
+  const frameBorderWidth = Number.isFinite(globals.frameBorderWidth)
+    ? globals.frameBorderWidth
+    : (globals.wallThickness || 20);
+  const frameInset = frameBorderWidth * dpr;
+  const wallPadding = Math.min(width, height) * clamp(toNumber(config.bodies?.wallPaddingViewport, 0.05), 0.02, 0.14);
+
+  const spawnInset = Math.min(width, height) * clamp(toNumber(config.layout?.spawnInsetViewport, 0.1), 0.05, 0.22);
+  const maxRSpawn = maxD * 0.5;
+  let spawnXLeft = frameInset + wallPadding + maxRSpawn;
+  let spawnXRight = width - frameInset - wallPadding - maxRSpawn;
+  if (spawnXRight <= spawnXLeft + 8) {
+    spawnXLeft = Math.max(frameInset + 4, maxRSpawn);
+    spawnXRight = Math.min(width - frameInset - 4, width - maxRSpawn);
+  }
+  const usableW = Math.max(maxD, spawnXRight - spawnXLeft);
+  const bandRatio = clamp(toNumber(config.layout?.spawnBandWidthRatio, isMobile ? 0.88 : 0.76), 0.4, 0.95);
+  const spawnBandWidth = Math.max(maxD, usableW * bandRatio);
+  const spawnCenterX = width * 0.5;
+  let spawnBandMin = clamp(spawnCenterX - spawnBandWidth * 0.5, spawnXLeft, spawnXRight - maxD);
+  let spawnBandMax = clamp(spawnCenterX + spawnBandWidth * 0.5, spawnBandMin + maxD, spawnXRight);
+
+  const spawnHeight = height * clamp(toNumber(config.layout?.spawnHeightViewport, 0.62), 0.45, 0.78);
+  const spawnYTop = -spawnHeight;
+  const spawnYBottom = Math.min(0, height * 0.02);
+  const vxBase = (isMobile ? 90 : 130) * dpr;
+  const vyBase = (isMobile ? 42 : 52) * dpr;
 
   for (let index = 0; index < projects.length; index += 1) {
     const project = projects[index];
-    const column = index % columns;
-    const row = Math.floor(index / columns);
-    const progress = projects.length <= 1 ? 0.5 : index / (projects.length - 1);
-    const diameter = minDiameter + ((maxDiameter - minDiameter) * (0.35 + (0.65 * (1 - Math.abs(0.5 - progress)))));
+    const t = projects.length <= 1 ? 0.5 : index / (projects.length - 1);
+    const diameter = minD + ((maxD - minD) * (0.25 + (0.75 * (1 - Math.abs(0.5 - t)))));
     const radius = diameter * 0.5;
-    const offsetX = ((hashUnit(index) - 0.5) * cellWidth * (isMobile ? 0.08 : 0.16))
-      + ((column % 2 === 0 ? -1 : 1) * cellWidth * (isMobile ? 0.03 : 0.05));
-    const offsetY = ((hashUnit(index + 17) - 0.5) * cellHeight * (isMobile ? 0.07 : 0.14))
-      - (cellHeight * (isMobile ? 0.06 : 0.08));
-    const anchorX = spawnInset + (cellWidth * (column + 0.5)) + offsetX;
-    const anchorY = spawnInset + (cellHeight * (row + 0.5)) + offsetY;
-    const fill = getPaletteColor(index);
-    const ball = new Ball(
-      anchorX + ((hashUnit(index + 31) - 0.5) * cellWidth * 0.12),
-      anchorY + ((hashUnit(index + 53) - 0.5) * cellHeight * 0.12),
-      radius,
-      fill
-    );
-    const shape = index % 2 === 0 ? 'circle' : 'block';
-    const insetRatio = clamp(toNumber(config.labeling?.innerPaddingRatio, 0.19), 0.08, 0.28);
-    const visualWidth = shape === 'block' ? diameter * blockWidthMultiplier : diameter;
-    const textBounds = {
-      width: visualWidth * (1 - (insetRatio * 2)),
-      height: diameter * (1 - (insetRatio * 2)),
-      fontMin: clamp(toNumber(config.labeling?.fontMinPx, 16), 10, 42) * (globals.DPR || 1) * (isMobile ? 0.92 : 1),
-      fontMax: clamp(toNumber(config.labeling?.fontMaxPx, 34), 14, 72) * (globals.DPR || 1) * (isMobile ? 0.84 : 1),
-      lineHeight: clamp(toNumber(config.labeling?.lineHeight, 0.95), 0.85, 1.2),
-      fontFamily,
-      maxLines: isMobile ? 5 : 4,
-    };
-    const label = buildWrappedTitle(ctx, project.title, textBounds);
+    const fill = getPortfolioProjectPaletteColor(index, projects.length);
 
+    const x = spawnBandMin + (hashUnit(index + 31) * (spawnBandMax - spawnBandMin));
+    const y = spawnYTop + (hashUnit(index + 53) * (spawnYBottom - spawnYTop)) - (index * (spawnHeight / Math.max(6, projects.length + 2)));
+
+    const ball = new Ball(x, y, radius, fill);
     ball.projectIndex = index;
-    ball.shape = shape;
-    ball.anchorX = clamp(anchorX, spawnInset + radius, width - spawnInset - radius);
-    ball.anchorY = clamp(anchorY, spawnInset + radius, height - spawnInset - radius);
-    ball.visualWidth = visualWidth;
-    ball.visualHeight = diameter;
-    ball.cornerRadius = blockCornerRadius;
-    ball.label = label;
-    ball.labelColor = getContrastText(fill);
-    ball.rotationOffset = shape === 'block'
-      ? ((Math.random() - 0.5) * clamp(toNumber(config.labeling?.blockRotationRangeDeg, 6), 0, 14) * (isMobile ? 0.25 : 0.5)) * (Math.PI / 180)
-      : 0;
     ball._noSquash = true;
-    ball.vx = (hashUnit(index + 71) - 0.5) * 34;
-    ball.vy = (hashUnit(index + 97) - 0.5) * 18;
     ball.omega = 0;
+    ball.theta = 0;
+    ball.rotationOffset = 0;
+    ball._portfolioDpr = dpr;
+
+    const projectLabel = String(project.displayTitle || project.title || 'Untitled Project').trim();
+    computeLabelForBall(ctx, ball, config, projectLabel, fontFamily, isMobile);
+
+    ball.labelColor = getContrastText(fill);
+    ball.projectTitle = projectLabel;
+    ball.projectTitleFull = String(project.title || projectLabel || '').trim();
+
+    ball.vx = (hashUnit(index + 71) - 0.5) * vxBase;
+    ball.vy = (hashUnit(index + 97) * vyBase) + vyBase;
     globals.balls.push(ball);
   }
+
+  syncPitPortfolioRadiusStatsFromBalls();
 }
 
-function drawRoundedRect(ctx, x, y, width, height, radius) {
-  const halfWidth = width * 0.5;
-  const halfHeight = height * 0.5;
-  const left = x - halfWidth;
-  const top = y - halfHeight;
-  const right = x + halfWidth;
-  const bottom = y + halfHeight;
-  const corner = Math.min(radius, halfWidth, halfHeight);
+/**
+ * Inner arc stroke with opacity feathered at both ends (sin envelope) so tips don’t
+ * “chop” like a hard line cap. Dense segments + round caps limit visible stepping;
+ * optional second pass at lower alpha softens anti-aliasing without a gradient fill.
+ */
+function strokeArcRimFeathered(ctx, ir, startAngle, endAngle, lineWidth, peakAlpha, rgb) {
+  const span = endAngle - startAngle;
+  const segs = Math.round(clamp(ir * 0.084, 32, 46));
+  const rr = rgb[0];
+  const gg = rgb[1];
+  const bb = rgb[2];
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const drawPass = (lw, peak) => {
+    ctx.lineWidth = lw;
+    for (let i = 0; i < segs; i += 1) {
+      const t0 = i / segs;
+      const t1 = (i + 1) / segs;
+      const w = (Math.sin(Math.PI * t0) + Math.sin(Math.PI * t1)) * 0.5;
+      const a = peak * w;
+      if (a < 0.01) continue;
+      const a0 = startAngle + t0 * span;
+      const a1 = startAngle + t1 * span;
+      ctx.strokeStyle = `rgba(${rr},${gg},${bb},${a})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, ir, a0, a1);
+      ctx.stroke();
+    }
+  };
+
+  drawPass(lineWidth * 1.45, peakAlpha * 0.22);
+  drawPass(lineWidth, peakAlpha);
+}
+
+/**
+ * Lower-right “shadow” without a stroked hairline: only wide, low-alpha passes plus a
+ * softer sin^2 envelope so it reads as diffuse inner shade (light from upper-left).
+ */
+function strokeArcRimShadowDiffuse(ctx, ir, startAngle, endAngle, lineWidth, peakAlpha) {
+  const span = endAngle - startAngle;
+  const segs = Math.round(clamp(ir * 0.09, 38, 54));
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const drawPass = (lw, peak) => {
+    ctx.lineWidth = lw;
+    for (let i = 0; i < segs; i += 1) {
+      const t0 = i / segs;
+      const t1 = (i + 1) / segs;
+      const s0 = Math.sin(Math.PI * t0);
+      const s1 = Math.sin(Math.PI * t1);
+      const w = (s0 * s0 + s1 * s1) * 0.5;
+      const a = peak * w;
+      if (a < 0.006) continue;
+      const a0 = startAngle + t0 * span;
+      const a1 = startAngle + t1 * span;
+      ctx.strokeStyle = `rgba(0, 0, 0, ${a})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, ir, a0, a1);
+      ctx.stroke();
+    }
+  };
+
+  drawPass(lineWidth * 2.85, peakAlpha * 0.2);
+  drawPass(lineWidth * 1.65, peakAlpha * 0.38);
+}
+
+/**
+ * Inset rim in **screen space** (never coupled to ball.theta): same idea as
+ * `--ui-chrome-button-edge` — highlight toward upper-left (studio light), shade toward
+ * lower-right. Caller must `translate(cx, cy)` first; must not apply ball rotation.
+ */
+function portfolioBallInsetChromeEdge(ctx, r) {
+  const isDark = typeof document !== 'undefined'
+    && document.documentElement?.classList?.contains('dark-mode');
+  const line = Math.max(1.1, r * 0.0032);
+  const ir = Math.max(r - line * 2.2, r * 0.985);
+  const span = 1.12;
+  const peakLight = isDark ? 0.41 : 0.53;
+  const peakShade = isDark ? 0.26 : 0.15;
+
+  ctx.save();
+  try {
+    ctx.imageSmoothingEnabled = true;
+  } catch (_) { /* no-op */ }
 
   ctx.beginPath();
-  ctx.moveTo(left + corner, top);
-  ctx.lineTo(right - corner, top);
-  ctx.quadraticCurveTo(right, top, right, top + corner);
-  ctx.lineTo(right, bottom - corner);
-  ctx.quadraticCurveTo(right, bottom, right - corner, bottom);
-  ctx.lineTo(left + corner, bottom);
-  ctx.quadraticCurveTo(left, bottom, left, bottom - corner);
-  ctx.lineTo(left, top + corner);
-  ctx.quadraticCurveTo(left, top, left + corner, top);
-  ctx.closePath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.clip();
+
+  const lightMid = (-Math.PI * 3) / 4;
+  strokeArcRimFeathered(ctx, ir, lightMid - span, lightMid + span, line, peakLight, [255, 255, 255]);
+
+  const shadeMid = Math.PI / 4;
+  const spanShade = span * 1.26;
+  strokeArcRimShadowDiffuse(
+    ctx,
+    ir,
+    shadeMid - spanShade,
+    shadeMid + spanShade,
+    line,
+    peakShade
+  );
+
+  ctx.restore();
 }
 
 function renderProjectBody(ctx, ball) {
   if (!ball || ball.__portfolioHidden) return;
 
   const focusDimmer = toNumber(ball.__portfolioDimAlpha, 1);
-  const diameter = ball.r * 2;
-  const width = ball.shape === 'block' ? ball.visualWidth : diameter;
-  const height = diameter;
+  const r = ball.r;
+  const x = ball.x;
+  const y = ball.y;
+  const alpha = clamp(focusDimmer, 0, 1);
 
   ctx.save();
-  ctx.globalAlpha = clamp(focusDimmer, 0, 1);
-  ctx.translate(ball.x, ball.y);
-  ctx.rotate((ball.theta || 0) + (ball.rotationOffset || 0));
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
-  if (ball.shape === 'block') {
-    drawRoundedRect(ctx, 0, height * 0.46, width * 0.78, height * 0.22, height * 0.11);
-    ctx.fill();
-  } else {
-    ctx.beginPath();
-    ctx.ellipse(0, height * 0.46, ball.r * 0.76, ball.r * 0.22, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
+  ctx.globalAlpha = alpha;
   ctx.fillStyle = ball.color;
-  if (ball.shape === 'block') {
-    drawRoundedRect(ctx, 0, 0, width, height, ball.cornerRadius || (height * 0.26));
-    ctx.fill();
-  } else {
-    ctx.beginPath();
-    ctx.arc(0, 0, ball.r, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  portfolioBallInsetChromeEdge(ctx, r);
+  ctx.restore();
 
   if (ball.__portfolioFocused) {
-    ctx.lineWidth = Math.max(3, ball.r * 0.045);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = Math.max(2, r * 0.04);
     ctx.strokeStyle = ball.labelColor || '#ffffff';
-    if (ball.shape === 'block') {
-      drawRoundedRect(ctx, 0, 0, width + (ctx.lineWidth * 1.6), height + (ctx.lineWidth * 1.6), (ball.cornerRadius || (height * 0.26)) + ctx.lineWidth);
-      ctx.stroke();
-    } else {
-      ctx.beginPath();
-      ctx.arc(0, 0, ball.r + ctx.lineWidth, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    ctx.beginPath();
+    ctx.arc(x, y, r - 1, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
-
-  ctx.fillStyle = ball.labelColor || '#ffffff';
-  ctx.font = `600 ${ball.label?.fontSize || 20}px ${getComputedStyle(document.body).fontFamily || 'Helvetica Neue, Arial, sans-serif'}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  const lines = Array.isArray(ball.label?.lines) ? ball.label.lines : [ball.projectTitle || 'Project'];
-  const lineHeight = ball.label?.lineHeight || 24;
-  const offsetY = -((lines.length - 1) * lineHeight * 0.5);
-  for (let index = 0; index < lines.length; index += 1) {
-    ctx.fillText(lines[index], 0, offsetY + (index * lineHeight));
-  }
-  ctx.restore();
 }
 
 export function initializePortfolioPit() {
@@ -273,30 +390,6 @@ export function initializePortfolioPit() {
 
 export function applyPortfolioPitForces(ball, dt) {
   if (!ball || ball.__portfolioHidden || ball.isPointerLocked || ball.__portfolioSelected) return;
-
-  const globals = getGlobals();
-  const canvas = globals.canvas;
-  if (!canvas) return;
-
-  const springStrength = clamp(toNumber(globals.portfolioPitConfig?.motion?.settleStrength, 2.4), 0.8, 6);
-  const dampingStrength = clamp(toNumber(globals.portfolioPitConfig?.motion?.settleDamping, 1.6), 0.4, 3.5);
-  const anchorLift = canvas.height * clamp(toNumber(globals.portfolioPitConfig?.layout?.anchorLiftViewport, 0.055), 0, 0.14);
-  const targetX = Number.isFinite(ball.anchorX) ? ball.anchorX : ball.x;
-  const targetY = Number.isFinite(ball.anchorY) ? ball.anchorY - anchorLift : ball.y;
-  const dx = targetX - ball.x;
-  const dy = targetY - ball.y;
-  const massScale = Math.max(0.5, ball.m / globals.MASS_BASELINE_KG);
-
-  ball.vx += ((dx * springStrength) / massScale) * dt;
-  ball.vy += ((dy * springStrength) / massScale) * dt;
-
-  const drag = Math.max(0, 1 - (dampingStrength * dt * 0.22));
-  ball.vx *= drag;
-  ball.vy *= Math.max(0.72, 1 - (dampingStrength * dt * 0.12));
-
-  if ((ball.isGrounded || ball.hasSupport) && dy < -6) {
-    ball.vy -= 18 * dt;
-  }
 }
 
 export function renderPortfolioPit(ctx) {
@@ -305,4 +398,5 @@ export function renderPortfolioPit(ctx) {
   for (let index = 0; index < balls.length; index += 1) {
     renderProjectBody(ctx, balls[index]);
   }
+  globals.portfolioSyncLabelLayer?.();
 }

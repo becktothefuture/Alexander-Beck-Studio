@@ -18,6 +18,10 @@ let frameId = null;
 let frameCounter = 0;
 let visibilityListenerBound = false;
 let cachedTargetFPS = 60;
+/** When true, visibility resume must not restart the loop (SPA left sim route). */
+let mainLoopStopped = false;
+/** Latest `frame` callback from `startMainLoop` (visibility handler registers only once). */
+let runFrameRef = null;
 
 // Adaptive throttling: if we detect sustained low FPS, reduce work
 let recentFrameTimes = [];
@@ -114,10 +118,14 @@ function updateAdaptiveThrottle(frameTime, targetFPS) {
     // Adjust throttle level based on sustained performance
     if (avgFPS < lowThreshold && adaptiveThrottleLevel < 2) {
       adaptiveThrottleLevel++;
-      console.log(`⚡ Adaptive throttle increased to level ${adaptiveThrottleLevel} (avg FPS: ${avgFPS.toFixed(1)})`);
+      if (isDevRuntime()) {
+        console.log(`⚡ Adaptive throttle increased to level ${adaptiveThrottleLevel} (avg FPS: ${avgFPS.toFixed(1)})`);
+      }
     } else if (avgFPS > highThreshold && adaptiveThrottleLevel > 0) {
       adaptiveThrottleLevel--;
-      console.log(`⚡ Adaptive throttle decreased to level ${adaptiveThrottleLevel} (avg FPS: ${avgFPS.toFixed(1)})`);
+      if (isDevRuntime()) {
+        console.log(`⚡ Adaptive throttle decreased to level ${adaptiveThrottleLevel} (avg FPS: ${avgFPS.toFixed(1)})`);
+      }
     }
   }
 }
@@ -132,7 +140,26 @@ function shouldRunPhysicsThisFrame() {
   return (frameCounter % 2) === 0;
 }
 
+/**
+ * Cancel the physics/render rAF chain. Call when leaving a sim route or before rebinding canvas.
+ * Idempotent. Next `startMainLoop` clears this gate.
+ */
+export function stopMainLoop() {
+  mainLoopStopped = true;
+  runFrameRef = null;
+  if (frameId) {
+    cancelAnimationFrame(frameId);
+    frameId = null;
+  }
+}
+
 export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
+  mainLoopStopped = false;
+  if (frameId) {
+    cancelAnimationFrame(frameId);
+    frameId = null;
+  }
+
   // Cached force applicator - resolved once per frame, not per particle
   let cachedForceFn = null;
   
@@ -147,13 +174,12 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
         // Reset timing to prevent huge dt spike when resuming
         last = performance.now() / 1000;
         lastFrameTime = performance.now();
-        console.log('▶️ Animation resumed');
-        // Restart the loop if it was stopped
-        if (!frameId) {
-          frameId = requestAnimationFrame(frame);
+        if (isDevRuntime()) console.log('▶️ Animation resumed');
+        if (!frameId && !mainLoopStopped && typeof runFrameRef === 'function') {
+          frameId = requestAnimationFrame(runFrameRef);
         }
       } else {
-        console.log('⏸️ Animation paused (tab hidden)');
+        if (isDevRuntime()) console.log('⏸️ Animation paused (tab hidden)');
         // Cancel the next frame to fully pause
         if (frameId) {
           cancelAnimationFrame(frameId);
@@ -165,6 +191,10 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
   }
   
   function frame(nowMs) {
+    if (mainLoopStopped) {
+      frameId = null;
+      return;
+    }
     // Skip if page not visible (belt and suspenders with visibility handler)
     if (!isPageVisible) {
       frameId = null;
@@ -231,9 +261,12 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
     
     frameId = requestAnimationFrame(frame);
   }
-  
+
+  runFrameRef = frame;
   frameId = requestAnimationFrame(frame);
-  console.log('✓ Render loop started (adaptive target FPS, visibility-aware)');
+  if (isDevRuntime()) {
+    console.log('✓ Render loop started (adaptive target FPS, visibility-aware)');
+  }
 }
 
 /**

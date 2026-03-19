@@ -10,11 +10,15 @@
 - `npm run preview` — Serve React build (port 8013)
 - `npm run start` — Alias for preview
 - `npm run certify:screens` — Screenshot certification for home, portfolio, and CV (writes to `output/playwright/screens-certification/`, gitignored)
+- `npm run audit:canvas-spa` — Playwright: **polls until** `#c` buffer matches layout×DPR after each hop (`ABS_SPA_ROUNDS`, `ABS_CANVAS_WAIT_MS`, `ABS_DEV_URL`, `ABS_AUDIT_QUIET=1` optional)
+- `npm run audit:canvas-spa:quick` — 2 round-trips, one-line PASS (POSIX env; Windows: set vars then `node scripts/audit-canvas-spa.mjs`)
+- `npm run audit:portfolio-gate` — Playwright: home → portfolio modal `1234` → pit; asserts `#c` buffer vs CSS×DPR and non-empty `.portfolio-project-label__text` (`ABS_DEV_URL` = origin e.g. `http://127.0.0.1:8013` or preview; run `npm run preview` in another shell first)
 - `npm run validate:html-fragments` — Validate partial HTML templates
 - No automated tests; manual testing required (all 20 modes, 60 FPS, mobile)
 
 ## Architecture
-- **Primary surface:** React app at `react-app/app/` (Vite, multi-entry: index, portfolio, cv)
+- **Primary surface:** React app at `react-app/app/` (Vite, multi-entry: index, portfolio, cv, styleguide)
+- **Component library (live):** `/styleguide.html` — see `docs/reference/COMPONENT-LIBRARY.md`
 - **Edit** `react-app/app/src/` and `react-app/app/public/` (CSS, config, images)
 - Entry: `react-app/app/src/entries/*.jsx` → pages + legacy bridge
 - Legacy runtime: `react-app/app/src/legacy/` (modules, main.js, cv-init, etc.) — no imports from repo root
@@ -23,6 +27,7 @@
 - Build flattening: root `npm run build` runs `flatten:design-config` before Vite build. A direct `react-app/app` build can bypass flattening, so prefer building from the repo root.
 - Build: Vite → `react-app/app/dist/`
 - **Site UI styleguide (chrome buttons, harmony):** `docs/reference/SITE-STYLEGUIDE.md`
+- **Route top bar:** Same standing as the **footer**—fixed pattern only: `header.ui-top` → `ui-top-main.route-topbar` → `route-topbar__left` / `route-topbar__center.ui-main-nav` (`.footer_link` buttons) / `route-topbar__right` + `#sound-toggle-slot`. Do not invent alternate top-bar text buttons or absolute-center layouts. See `docs/reference/COMPONENT-LIBRARY.md` (route top bar) + `SITE-STYLEGUIDE.md` §1.4 + live `/styleguide.html`.
 
 ## Config Workflow
 - Treat `react-app/app/public/config/design-system.json` as the only authored design source.
@@ -41,6 +46,7 @@
 
 ## Verification
 - `npm run certify:screens` writes to `output/playwright/screens-certification/`; the whole `output/playwright/` tree is gitignored—regenerate after visual changes. Scratch audit scripts under `tmp/*.cjs` / `output/cv_audit.js` are gitignored—do not commit.
+- After changes to SPA routing, `renderer.js`, `loop.js`, or keyed wall/canvas remounts: with **dev server on 8012**, run `npm run audit:canvas-spa`. It asserts **backing-store dimensions** (fails on 300×150-style remount bugs); it does not prove 60 FPS or every browser quirk—manual pass still matters.
 - For config or panel changes, verify the full parity loop:
   - change value in dev
   - save
@@ -80,6 +86,7 @@
 - This ensures quality and prevents incomplete work from being considered finished
 
 ## Learned Workspace Facts
+- **Route top bar** must match the shared strip (grid + `ui-main-nav` + `footer_link` + sound slot), same discipline as footer composition—documented in `COMPONENT-LIBRARY.md`, `SITE-STYLEGUIDE.md` §1.4, and the styleguide page.
 - Primary surface is `react-app/app/` only; there is no parallel static-site pipeline in this repo.
 - Inner wall corner radius is applied at 1.1× (or 1.15×) base radius to visually compensate for the second outer wall offset; document in CONFIGURATION.md if the multiplier changes.
 - **Quote button drag:** Custom physics (inertia, bounce, resistance, Coulomb friction) were removed; they were overengineered and didn’t work as intended. Current behavior is drag-to-move only, position saved on release. If adding motion again: (1) keep it minimal — e.g. one simple throw decay (single exponential or one time constant), no multi-parameter “realistic” model; (2) prefer CSS for follow-through (e.g. transition on release) or a tiny, well-tested library; (3) add one effect at a time and validate with the user before layering more.

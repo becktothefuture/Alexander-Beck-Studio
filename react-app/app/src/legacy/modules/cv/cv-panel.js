@@ -62,43 +62,9 @@ function setOutput(control, value) {
   if (output) output.textContent = formatValue(control, value);
 }
 
-function generateControlHTML(control, config) {
-  const value = config[control.id] ?? DEFAULT_CONFIG[control.id] ?? 0;
-  return `
-    <label class="control-row" data-control-id="${control.id}">
-      <div class="control-row-header">
-        <span class="control-label">${control.label}</span>
-        <span class="control-value" id="${control.id}Val">${formatValue(control, value)}</span>
-      </div>
-      <input
-        type="range"
-        id="${control.id}Slider"
-        min="${control.min}"
-        max="${control.max}"
-        step="${control.step}"
-        value="${value}"
-        aria-label="${control.label}"
-      />
-    </label>
-  `;
-}
-
 export function generateCvPanelSectionsHTML(config = DEFAULT_CONFIG) {
-  return SECTION_DEFS.map((section) => {
-    const controlsHTML = section.controls.map((control) => generateControlHTML(control, config)).join('');
-    const openAttr = section.defaultOpen ? 'open' : '';
-    return `
-      <details class="panel-section-accordion" data-cv-section="${section.key}" ${openAttr}>
-        <summary class="panel-section-header">
-          <span class="section-icon">${section.icon}</span>
-          <span class="section-label">${section.title}</span>
-        </summary>
-        <div class="panel-section-content">
-          ${controlsHTML}
-        </div>
-      </details>
-    `;
-  }).join('');
+  void config;
+  return '';
 }
 
 function syncInputs(config) {
