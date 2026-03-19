@@ -5,16 +5,20 @@
   --portfolio-hero-title-max: 14ch;
   --portfolio-image-veil-opacity: 0.14;
   --portfolio-scroll-hint-offset: clamp(34px, 6vh, 68px);
-  --portfolio-project-fill: #1b7f6e;
-  --portfolio-project-ink: #f5f1ea;
   --portfolio-project-open-ms: 420ms;
   --portfolio-project-image-fade-ms: 220ms;
   --portfolio-sheet-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --portfolio-sheet-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
-  /* Match #bravia-balls frame (same inset + outer radius as the wall container) */
-  --portfolio-drawer-radius: var(--frame-outer-radius);
+  /* Outer clip of drawer + sheet host: match inner wall corner radius (#bravia-balls canvas) */
+  --portfolio-drawer-radius: var(--frame-inner-radius);
   /* Hero image matches pit canvas: inner corner radius + border inset (see #bravia-balls canvas) */
   --portfolio-hero-image-radius: var(--frame-inner-radius);
+  /* Inner-wall aligned neutrals: light mode slightly darker than --bg-light; dark slightly lighter than --bg-dark */
+  --portfolio-drawer-ground: color-mix(in srgb, var(--bg-light) 86%, black 14%);
+}
+
+body.dark-mode {
+  --portfolio-drawer-ground: color-mix(in srgb, var(--bg-dark) 78%, white 22%);
 }
 
 body.portfolio-page #bravia-balls {
@@ -63,7 +67,7 @@ body.portfolio-page #portfolio-sheet-host.portfolio-sheet-host {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  border-radius: var(--frame-outer-radius);
+  border-radius: var(--frame-inner-radius);
   overflow: hidden;
   pointer-events: none;
   /* Above .fade-content (200) and #quote-viewport-host (250) while the sheet is a real overlay */
@@ -175,13 +179,8 @@ body.portfolio-page.portfolio-project-open #portfolio-sheet-host.portfolio-sheet
   margin: 0;
   padding: 0;
   border-radius: inherit;
-  background:
-    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.14), transparent 55%),
-    var(--portfolio-project-fill);
-  box-shadow:
-    0 -1px 0 rgba(255, 255, 255, 0.72),
-    0 -10px 36px rgba(255, 255, 255, 0.22),
-    0 -28px 80px rgba(0, 0, 0, 0.35);
+  background: transparent;
+  box-shadow: none;
   transform: translate3d(0, 100%, 0);
   transition: transform var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
   pointer-events: auto;
@@ -190,10 +189,8 @@ body.portfolio-page.portfolio-project-open #portfolio-sheet-host.portfolio-sheet
 
 .portfolio-project-view.is-open .portfolio-project-view__sheet {
   transform: translate3d(0, 0, 0);
-  background: var(--portfolio-project-fill);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 18px 48px rgba(0, 0, 0, 0.28);
+  background: transparent;
+  box-shadow: none;
 }
 
 .portfolio-project-view.is-closing .portfolio-project-view__sheet {
@@ -232,7 +229,10 @@ body.portfolio-page.portfolio-project-open #portfolio-sheet-host.portfolio-sheet
   top: max(var(--gap-md), env(safe-area-inset-top, 0px));
   right: max(var(--gap-md), env(safe-area-inset-right, 0px));
   z-index: 60;
-  color: var(--portfolio-project-ink, var(--text-quiet));
+  color: #fff;
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .portfolio-project-view__close-icon {
@@ -246,7 +246,7 @@ body.portfolio-page.portfolio-project-open #portfolio-sheet-host.portfolio-sheet
 
 .portfolio-project-view__close.abs-icon-btn:hover,
 .portfolio-project-view__close.abs-icon-btn:focus-visible {
-  color: var(--cursor-hover-fg, var(--portfolio-project-ink, var(--text-primary)));
+  color: var(--cursor-hover-fg, #fff);
 }
 
 .portfolio-project-view__scroller {
@@ -268,10 +268,25 @@ body.portfolio-page.portfolio-project-open #portfolio-sheet-host.portfolio-sheet
 
 /* Lenis `content` node: single scroll-height driver inside the wrapper */
 .portfolio-project-view__scroller-content {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
   min-height: min-content;
+  /* Full scroll column: same neutral ground under hero + body (not only below hero) */
+  background: var(--portfolio-drawer-ground);
+}
+
+/* Full-scroll-height noise: shares Lenis content transform so it moves with drawer scroll.
+   Reuses global `.noise` + `--abs-noise-texture` (see main.css); scoped geometry only. */
+.portfolio-project-view__scroller-content > .portfolio-project-view__content-noise.noise {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  --noise-base-inset: 0px;
+  border-radius: 0;
+  z-index: 6;
 }
 
 /* Lenis applies `lenis` classes to the wrapper; mirror package lenis.css for this node only */
@@ -314,8 +329,8 @@ body.portfolio-page.portfolio-project-open #portfolio-sheet-host.portfolio-sheet
 
 .portfolio-project-view__image-shell {
   position: absolute;
-  /* Align with #bravia-balls canvas: inset by frame border from wall box */
-  inset: var(--frame-border-width);
+  /* Inner wall box from frame border, then 4px gutter on every side */
+  inset: calc(var(--frame-border-width) + 4px);
   overflow: hidden;
   border-radius: var(--portfolio-hero-image-radius);
   transform: none;
@@ -381,7 +396,7 @@ body.portfolio-page.portfolio-project-open #portfolio-sheet-host.portfolio-sheet
   opacity: 0.72;
 }
 
-/* Hero headline: always white — not --text-primary, not --portfolio-project-ink (site/mode agnostic) */
+/* Hero headline: always white — not --text-primary (site/mode agnostic over photography) */
 .portfolio-project-view__title,
 #portfolioProjectTitle.portfolio-project-view__title {
   margin: 0;
@@ -406,23 +421,15 @@ body.portfolio-page.portfolio-project-open #portfolio-sheet-host.portfolio-sheet
 .portfolio-project-view__body {
   position: relative;
   z-index: 2;
-  padding: 0 clamp(20px, 4vw, 48px) clamp(48px, 9vh, 88px);
+  padding: 0 clamp(14px, 3.2vw, 40px) clamp(48px, 9vh, 88px);
 }
 
 .portfolio-project-view__body-inner {
-  max-width: min(1040px, calc(100% - var(--gap-lg, 24px)));
+  max-width: min(1200px, calc(100% - var(--gap-sm, 16px)));
   margin: 0 auto;
   display: grid;
   gap: clamp(22px, 3vw, 36px);
-  padding: clamp(28px, 3vw, 42px);
-  border-radius: clamp(22px, 2vw, 30px);
-  background: rgba(244, 239, 232, 0.82);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
-}
-
-body.dark-mode .portfolio-project-view__body-inner {
-  background: rgba(17, 20, 24, 0.82);
-  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.24);
+  padding: clamp(24px, 2.6vw, 36px) 0;
 }
 
 body.portfolio-project-open .ui-bottom {
@@ -535,6 +542,13 @@ body.portfolio-project-open .ui-bottom {
   gap: 10px;
 }
 
+/* Clip subtle scroll-linked translate on media (see portfolio app.js). */
+.portfolio-project-view__block:has(> img),
+.portfolio-project-view__block:has(> video) {
+  overflow: hidden;
+  border-radius: clamp(18px, 2vw, 24px);
+}
+
 .portfolio-project-view__block img,
 .portfolio-project-view__block video {
   width: 100%;
@@ -559,7 +573,7 @@ body.portfolio-project-open .ui-bottom {
 @media (max-width: 900px) {
   .portfolio-project-view__body-inner {
     max-width: none;
-    padding: 22px;
+    padding-block: 20px;
   }
 }
 
@@ -591,5 +605,11 @@ body.portfolio-project-open .ui-bottom {
   .portfolio-project-view__links a:hover::before {
     transform: none;
     opacity: 1;
+  }
+
+  html.is-safari .portfolio-project-view__content-noise.noise::before,
+  .portfolio-project-view__content-noise.noise::before,
+  .portfolio-project-view__content-noise.noise::after {
+    animation: none;
   }
 }

@@ -72,6 +72,17 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+/** Subtle translateY (px): positive = lower; eases toward 0 as media moves up through the drawer. */
+function computeDrawerMediaScrollShiftY(mediaRect, scrollerRect) {
+  const sh = scrollerRect.height;
+  if (!(sh > 1)) return 0;
+  const band = sh + mediaRect.height * 0.9;
+  const raw = (scrollerRect.bottom - mediaRect.top) / band;
+  const p = clamp(raw, 0, 1);
+  const neutral = 0.4;
+  return (neutral - p) * 20;
+}
+
 function toNumber(value, fallback) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
@@ -184,6 +195,8 @@ class PortfolioPitApp {
     this._projectCloseFallbackTimer = null;
     this.projectLenis = null;
     this.projectScrollerContent = null;
+    this._drawerMediaShiftRaf = null;
+    this.boundScheduleDrawerMediaScrollShift = () => this.scheduleDrawerMediaScrollShift();
     this.boundCanvasHoverMove = (event) => this.handleCanvasHoverMove(event);
     this.boundCanvasHoverLeave = () => this.handleCanvasHoverLeave();
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
@@ -383,6 +396,7 @@ class PortfolioPitApp {
                 <section class="portfolio-project-view__body">
                   <div class="portfolio-project-view__body-inner" id="portfolioProjectContent"></div>
                 </section>
+                <div class="portfolio-project-view__content-noise noise" aria-hidden="true"></div>
               </div>
             </div>
           </div>
@@ -425,12 +439,66 @@ class PortfolioPitApp {
       syncTouch: true,
       overscroll: true,
     });
+    this.setupDrawerMediaScrollShift();
   }
 
   destroyProjectScrollerLenis() {
+    this.teardownDrawerMediaScrollShift();
     if (!this.projectLenis) return;
     this.projectLenis.destroy();
     this.projectLenis = null;
+  }
+
+  setupDrawerMediaScrollShift() {
+    this.teardownDrawerMediaScrollShift();
+    if (!this.projectScroller || !this.projectScrollerContent) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (this.projectLenis) {
+      this.projectLenis.on('scroll', this.boundScheduleDrawerMediaScrollShift);
+    } else {
+      this.projectScroller.addEventListener('scroll', this.boundScheduleDrawerMediaScrollShift, { passive: true });
+    }
+  }
+
+  teardownDrawerMediaScrollShift() {
+    if (this._drawerMediaShiftRaf != null) {
+      cancelAnimationFrame(this._drawerMediaShiftRaf);
+      this._drawerMediaShiftRaf = null;
+    }
+    if (this.projectLenis) {
+      this.projectLenis.off('scroll', this.boundScheduleDrawerMediaScrollShift);
+    }
+    this.projectScroller?.removeEventListener('scroll', this.boundScheduleDrawerMediaScrollShift, { passive: true });
+  }
+
+  scheduleDrawerMediaScrollShift() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (this._drawerMediaShiftRaf != null) return;
+    this._drawerMediaShiftRaf = window.requestAnimationFrame(() => {
+      this._drawerMediaShiftRaf = null;
+      this.updateDrawerMediaScrollShift();
+    });
+  }
+
+  updateDrawerMediaScrollShift() {
+    if (!this.isProjectOpen || !this.projectScroller || !this.projectScrollerContent) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cr = this.projectScroller.getBoundingClientRect();
+    const nodes = this.projectScrollerContent.querySelectorAll('img, video');
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i];
+      const ir = el.getBoundingClientRect();
+      const ty = computeDrawerMediaScrollShiftY(ir, cr);
+      el.style.transform = `translate3d(0, ${ty.toFixed(2)}px, 0)`;
+    }
+  }
+
+  resetDrawerMediaTransforms() {
+    if (!this.projectScrollerContent) return;
+    const nodes = this.projectScrollerContent.querySelectorAll('img, video');
+    for (let i = 0; i < nodes.length; i++) {
+      nodes[i].style.transform = '';
+    }
   }
 
   resetProjectScrollTop() {
@@ -856,28 +924,28 @@ class PortfolioPitApp {
   syncProjectHero(project, animate = true) {
     if (!this.selectedBall || !this.projectView || !project) return;
 
-    const fill = this.selectedBall.color
-      || getPortfolioProjectPaletteColor(this.selectedProjectIndex, this.projects.length);
     const openDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
       : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
     const imageFadeMs = clamp(toNumber(this.config.runtime.motion?.imageFadeMs, 220), 0, 600);
     const titleDelay = clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 280), 0, 1200);
 
-    this.projectView.style.setProperty('--portfolio-project-fill', fill);
-    this.projectView.style.setProperty('--portfolio-project-ink', getContrastText(fill));
     this.projectView.style.setProperty('--portfolio-project-open-ms', `${openDuration}ms`);
     this.projectView.style.setProperty('--portfolio-project-image-fade-ms', `${imageFadeMs}ms`);
     this.projectView.style.setProperty('--portfolio-project-title-delay-ms', `${titleDelay}ms`);
 
     this.projectImage.src = resolveAsset(project.image || CONFIG.coverFallback);
-    this.projectImage.addEventListener('load', () => this.projectLenis?.resize(), { once: true });
+    this.projectImage.addEventListener('load', () => {
+      this.projectLenis?.resize();
+      this.scheduleDrawerMediaScrollShift();
+    }, { once: true });
     this.projectImage.alt = project.title || 'Project cover';
     this.projectEyebrow.textContent = project.client || '';
     this.projectTitle.textContent = project.title || '';
     this.projectContent.innerHTML = this.buildProjectContent(project);
     this.syncProjectButtonStates();
     this.scheduleProjectLenisResize();
+    this.scheduleDrawerMediaScrollShift();
 
     if (!animate) {
       this.projectView.classList.add('is-visible', 'is-open', 'is-title-visible');
@@ -945,6 +1013,7 @@ class PortfolioPitApp {
 
   finishProjectClose() {
     if (!this.projectView) return;
+    this.resetDrawerMediaTransforms();
     if (this._projectCloseFallbackTimer !== null) {
       window.clearTimeout(this._projectCloseFallbackTimer);
       this._projectCloseFallbackTimer = null;
