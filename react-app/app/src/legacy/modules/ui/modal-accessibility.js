@@ -151,7 +151,13 @@ export function activateModalAccessibility(modalElement, options = {}) {
       activeModalController = null;
     }
 
-    if (!restoreFocus) return;
+    if (!restoreFocus) {
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement && modalElement.contains(activeElement)) {
+        activeElement.blur();
+      }
+      return;
+    }
 
     const fallbackTarget = options.restoreFocusTarget;
     const target =

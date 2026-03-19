@@ -52,13 +52,13 @@ const matrix = [
     sessionStorage: {
       abs_portfolio_ok: 'certified'
     },
-    readySelectors: ['#app-frame', '.portfolio-stage', '#portfolioMeta', '#track .slide'],
+    readySelectors: ['#app-frame', '#c', '.portfolio-topnav .footer_link', '#portfolioProjectMount'],
     minReadySelectors: 3,
     selectors: [
       { selector: '#app-frame', minArea: 200000, requiredText: [] },
-      { selector: '.portfolio-stage', minArea: 60000, requiredText: [] },
-      { selector: '#portfolioMeta', minArea: 2000, requiredText: [] },
-      { selector: '#track .slide', minCount: 3, minArea: 15000, requiredText: [] }
+      { selector: '#c', minArea: 60000, requiredText: [] },
+      { selector: '#portfolioProjectMount', minArea: 60000, requiredText: [] },
+      { selector: '.portfolio-topnav .footer_link', minCount: 2, minArea: 300, requiredText: ['Bio/CV', 'Contact'] }
     ]
   },
   {

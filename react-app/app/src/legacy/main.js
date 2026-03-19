@@ -242,7 +242,7 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 });
 
-(async function init() {
+export async function bootstrapHomePage() {
   setBootLifecycleState('booting');
 
   // Mark JS as enabled (for CSS fallback detection)
@@ -789,4 +789,4 @@ window.addEventListener('unhandledrejection', (event) => {
       <pre>${error.message}\n${error.stack}</pre>
     </div>`;
   }
-})();
+}

@@ -4,7 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getConfig, getGlobals } from '../core/state.js';
-import { CONSTANTS, MODES } from '../core/constants.js';
+import { CONSTANTS, MODES, isPitLikeMode } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-state.js';
 
@@ -51,18 +51,30 @@ export class Ball {
     
     // Wake up if sleeping and mouse is nearby.
     // This is kept cheap (no sqrt) so sleeping can safely be used beyond Pit modes.
-    const isPitLike = currentMode === MODES.PIT;
     if (this.isSleeping) {
-      const mouseX = globals.mouseX;
-      const mouseY = globals.mouseY;
-      const wakeRadius = (globals.repelRadius || 710) * globals.DPR * 1.2; // 20% larger than repel radius
-      const dx = this.x - mouseX;
-      const dy = this.y - mouseY;
-      const dist2 = dx * dx + dy * dy;
-      
-      if (dist2 < wakeRadius * wakeRadius) {
-        this.wake();
+      if (currentMode === MODES.PIT) {
+        const mouseX = globals.mouseX;
+        const mouseY = globals.mouseY;
+        const wakeRadius = (globals.repelRadius || 710) * globals.DPR * 1.2; // 20% larger than repel radius
+        const dx = this.x - mouseX;
+        const dy = this.y - mouseY;
+        const dist2 = dx * dx + dy * dy;
+
+        if (dist2 < wakeRadius * wakeRadius) {
+          this.wake();
+        }
       }
+    }
+
+    if (this.isPointerLocked) {
+      this.isSleeping = false;
+      this.sleepTimer = 0;
+      this.vx = 0;
+      this.vy = 0;
+      this.omega = 0;
+      this.isGrounded = false;
+      this.hasSupport = false;
+      return;
     }
     
     // Skip all physics if sleeping (Box2D approach)
@@ -263,7 +275,7 @@ export class Ball {
     // ════════════════════════════════════════════════════════════════════════
     // SIMPLE ROUNDED-RECT SDF COLLISION
     // ════════════════════════════════════════════════════════════════════════
-    const isPitMode = currentMode === MODES.PIT;
+    const isPitMode = isPitLikeMode(currentMode);
     
     // SDF parameters: inner boundary is inset by frame border width
     const hx = innerW * 0.5;  // half-width

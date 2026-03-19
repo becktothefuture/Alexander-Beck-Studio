@@ -3,7 +3,7 @@
 // ║           Fixed-timestep with collision detection                            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { CONSTANTS, MODES } from '../core/constants.js';
+import { CONSTANTS, MODES, isPitLikeMode } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { resolveCollisions, resolveCollisionsCustom } from './collision.js';
 import { drawWalls, updateChromeColor } from './wall-state.js';
@@ -52,6 +52,7 @@ const DEPTH_FOG_START_Z = 0.75;      // Z value where fog starts fading (balls a
 // Category A: Simple particle simulations
 const MODES_ALWAYS_ON_TOP = new Set([
   MODES.PIT,
+  MODES.PORTFOLIO_PIT,
   MODES.FLIES,
   MODES.WEIGHTLESS,
   MODES.CRITTERS,
@@ -208,7 +209,7 @@ function finalizePitPerfSample(globals, renderMs, postFxMs) {
 
 function resolvePitCollisionIterations(globals, baseIterations) {
   const mode = globals?.currentMode;
-  if (mode !== MODES.PIT) return baseIterations;
+  if (!isPitLikeMode(mode)) return baseIterations;
 
   const minIterations = Math.max(1, Math.round(clampNumber(globals?.pitCollisionIterationsMin, 1, 20, 2)));
   const maxIterations = Math.max(minIterations, Math.round(clampNumber(globals?.pitCollisionIterationsMax, minIterations, 20, baseIterations)));
@@ -372,7 +373,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   
   addToAccumulator(dtSeconds);
   let physicsSteps = 0;
-  const isPitMode = globals.currentMode === MODES.PIT;
+  const isPitMode = isPitLikeMode(globals.currentMode);
   let pitPhysicsMs = 0;
   let pitCollisionMs = 0;
   let pitOverlapDebt = 0;
@@ -431,7 +432,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.PARALLAX_FLOAT &&
         mode !== MODES.STARFIELD_3D) {
       const wallRestitution = (mode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
-      const isPitLike = (mode === MODES.PIT);
+      const isPitLike = isPitLikeMode(mode);
       const lenWalls = balls.length;
       // PERF: Preallocated options object - always enable effects for rumble
       const wallEffectsOptions = WALL_EFFECTS_ON;
@@ -454,7 +455,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     // Ball Pit stabilization:
     // Wall/corner clamping can re-introduce overlaps in dense stacks (especially near the floor).
     // Run a small post-wall collision pass for Pit-like modes only.
-    if (mode === MODES.PIT) {
+    if (isPitLikeMode(mode)) {
       const overlapThreshold = Math.max(0, Number(globals.pitPostPassOverlapThreshold ?? 0));
       const shouldRunPostPass = overlapThreshold <= 0 || (Number(collisionStats.overlapDebt) || 0) >= overlapThreshold;
       if (shouldRunPostPass) {
@@ -528,7 +529,7 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.PARALLAX_LINEAR &&
         mode !== MODES.PARALLAX_FLOAT &&
         mode !== MODES.KALEIDOSCOPE &&
-        mode !== MODES.PIT;
+        !isPitLikeMode(mode);
 
       if (eligible) {
         const DPR = globals.DPR || 1;
@@ -610,7 +611,7 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   // Keep entrance/micro FX progressing even in modes that intentionally use 0 balls
   // (e.g. starfield custom renderer). Otherwise logo entrance can get stuck at opacity 0.
   updateLogoEntrance(dtSeconds);
-  const pitFxThrottleAware = globals.currentMode === MODES.PIT
+  const pitFxThrottleAware = isPitLikeMode(globals.currentMode)
     && String(globals.pitFxThrottlePolicy || 'throttle-aware') === 'throttle-aware';
   const shouldUpdateCursorExplosion = !(pitFxThrottleAware && (Number(globals.adaptiveThrottleLevel) || 0) >= 1);
   if (shouldUpdateCursorExplosion) {
@@ -645,7 +646,7 @@ export function render() {
   const canvas = globals.canvas;
   
   if (!ctx || !canvas) return;
-  const isPitMode = globals.currentMode === MODES.PIT;
+  const isPitMode = isPitLikeMode(globals.currentMode);
   const renderStart = isPitMode ? performance.now() : 0;
   let postFxMs = 0;
   
@@ -706,17 +707,12 @@ export function render() {
   const needsZPartition = modeNeedsZPartitioning(globals.currentMode);
   const logoReady = isCanvasLogoReady();
   
-  if (globals.currentMode === MODES.KALEIDOSCOPE) {
-    const kaleidoRenderer = getModeCustomRenderer();
-    // Kaleidoscope has special rendering - draw logo first, then kaleidoscope on top
-    if (logoReady) {
+  const customRenderer = getModeCustomRenderer();
+  if (customRenderer) {
+    if (logoReady && !needsZPartition) {
       drawLogo(ctx, canvas.width, canvas.height);
     }
-    if (kaleidoRenderer) {
-      kaleidoRenderer(ctx);
-    } else {
-      renderBallsColorBatched(ctx, balls, false, pitRenderOptions);
-    }
+    customRenderer(ctx);
   } else if (!needsZPartition) {
     // ═══════════════════════════════════════════════════════════════════════════
     // CATEGORY A: All balls render ON TOP of logo (no z-partitioning)

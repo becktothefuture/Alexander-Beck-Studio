@@ -6,6 +6,7 @@
 import { updatePhysics, render } from '../physics/engine.js';
 import { trackFrame } from '../utils/performance.js';
 import { getGlobals } from '../core/state.js';
+import { isPitLikeMode } from '../core/constants.js';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PERFORMANCE: Frame timing and throttling state
@@ -202,7 +203,7 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
       updatePhysics(dt, cachedForceFn ?? applyForcesFunc);
     }
     
-    const isPitMode = globals?.currentMode === 'pit';
+    const isPitMode = isPitLikeMode(globals?.currentMode);
     if (globals) {
       globals.__pitFrameThrottled = isPitMode ? !runPhysics : false;
     }

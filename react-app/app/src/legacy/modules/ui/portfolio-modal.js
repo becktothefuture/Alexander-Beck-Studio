@@ -3,12 +3,19 @@
  * Handles the invite-gating UI for the portfolio section.
  */
 
-import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';
 import { activateModalAccessibility } from './modal-accessibility.js';
 import { getText } from '../utils/text-loader.js';
 import { isDev } from '../utils/logger.js';
 import { navigateWithTransition, NAV_STATES } from '../utils/page-nav.js';
 import { consumeGateRequest, markGateAccess } from '../../../lib/access-gates.js';
+import { setStableTimeout } from '../../../lib/legacy-runtime-scope.js';
+import {
+    closeGateModal,
+    hideCompetingGateModals,
+    isGateModalParticipating,
+    openGateModal,
+    showGateBackdrop
+} from './gate-modal-shared.js';
 
 export function initPortfolioModal() {
     const trigger = document.getElementById('portfolio-modal-trigger');
@@ -113,58 +120,19 @@ export function initPortfolioModal() {
         document.head.appendChild(preloadImg);
         
         // Close CV modal if it's open
-        if (cvGate && cvGate.classList.contains('active')) {
-            cvGate.classList.remove('active');
-            cvGate.setAttribute('aria-hidden', 'true');
-            setTimeout(() => {
-                cvGate.classList.add('hidden');
-                unmountModalFromOverlay(cvGate);
-            }, 400);
-        }
-
-        // Close contact modal if it's open (keep modals mutually exclusive)
-        if (contactGate && contactGate.classList.contains('active')) {
-            contactGate.classList.remove('active');
-            contactGate.setAttribute('aria-hidden', 'true');
-            setTimeout(() => {
-                contactGate.classList.add('hidden');
-                unmountModalFromOverlay(contactGate);
-            }, 400);
-        }
+        hideCompetingGateModals([cvGate, contactGate]);
         
         isOpen = true;
         lastOpenTime = Date.now();
         
         // Show overlay only if no modal was previously active
-        if (!wasAnyGateActive) {
-            showOverlay();
-        }
-        
-        // Animate Logo Out (Up)
-        if (logo) logo.classList.add('fade-out-up');
-        
-        // Fade out CV content on CV page
-        const cvContainer = document.querySelector('.cv-scroll-container');
-        if (cvContainer) {
-            cvContainer.classList.add('fade-out-up');
-        }
+        showGateBackdrop({ logo, hadActiveGate: wasAnyGateActive });
 
         deactivateModalA11y = activateModalAccessibility(modal, {
             initialFocus: () => inputs[0]
         });
 
-        // Defer modal DOM operations to next frame to avoid interrupting overlay's backdrop-filter transition
-        requestAnimationFrame(() => {
-            // Modal: mount modal inside overlay flex container
-            mountModalIntoOverlay(modal);
-
-            // Animate Modal In (Up)
-            modal.classList.remove('hidden');
-            modal.setAttribute('aria-hidden', 'false');
-            // Force reflow
-            void modal.offsetWidth; 
-            modal.classList.add('active');
-        });
+        openGateModal(modal);
     };
 
     const closeGate = (instant = false, options = {}) => {
@@ -176,57 +144,13 @@ export function initPortfolioModal() {
         // Clear inputs
         inputs.forEach(input => input.value = '');
         
-        if (instant) {
-            // Instant close: disable transition, remove active, then re-enable
-            modal.style.transition = 'none';
-            if (logo) logo.style.transition = 'none';
-            
-        modal.classList.remove('active');
-        modal.setAttribute('aria-hidden', 'true');
-            modal.classList.add('hidden');
-            unmountModalFromOverlay(modal);
-            if (logo) logo.classList.remove('fade-out-up');
-            
-            // Fade CV content back in on CV page
-            const cvContainer = document.querySelector('.cv-scroll-container');
-            if (cvContainer) {
-                cvContainer.classList.remove('fade-out-up');
-            }
-            
-            // Hide overlay immediately if no other modal is active
-            if (!isAnyGateActive()) {
-                hideOverlay();
-            }
-            
-            // Re-enable transitions after a frame
-            requestAnimationFrame(() => {
-                modal.style.removeProperty('transition');
-                if (logo) logo.style.removeProperty('transition');
-            });
-        } else {
-            // Smooth close: use CSS transition
-            modal.classList.remove('active');
-            modal.setAttribute('aria-hidden', 'true');
-            if (logo) logo.classList.remove('fade-out-up');
-            
-            // Fade CV content back in on CV page
-            const cvContainer = document.querySelector('.cv-scroll-container');
-            if (cvContainer) {
-                cvContainer.classList.remove('fade-out-up');
-            }
-            
-            // Hide overlay immediately to animate blur in parallel with content
-            if (!isAnyGateActive()) {
-                hideOverlay();
-            }
-        
-            setTimeout(() => {
-                if (!isOpen) {
-                    modal.classList.add('hidden');
-                    unmountModalFromOverlay(modal);
-                }
-            }, 1700); // Match transition time
-        }
+        closeGateModal({
+            modal,
+            logo,
+            instant,
+            keepOverlayActive: isGateModalParticipating(cvGate) || isGateModalParticipating(contactGate),
+            shouldFinalize: () => !isOpen
+        });
     };
 
     // Back button closes modal (matches new UI pattern)
@@ -269,29 +193,17 @@ export function initPortfolioModal() {
                 
                 markGateAccess('portfolio');
                 
-                // Step 2: Modal dissolve animation (after pulse)
-                setTimeout(() => {
-                    // Use WAAPI for smooth modal dissolve
-                    if (typeof modal.animate === 'function') {
-                        modal.animate(
-                            [
-                                { transform: 'scale(1)', opacity: 1, filter: 'blur(0)' },
-                                { transform: 'scale(1.03)', opacity: 0, filter: 'blur(4px)' }
-                            ],
-                            { duration: 250, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }
-                        );
-                    } else {
-                        modal.style.transition = 'transform 250ms ease-out, opacity 250ms ease-out, filter 250ms ease-out';
-                        modal.style.transform = 'scale(1.03)';
-                        modal.style.opacity = '0';
-                        modal.style.filter = 'blur(4px)';
-                    }
-                }, 200);
-                
-                // Step 4: Navigate (after dissolve is mostly complete)
-                setTimeout(() => {
-                    navigateWithTransition('portfolio.html', NAV_STATES.INTERNAL);
-                }, 450);
+                // Let the modal close using its default dismissal animation, while the
+                // shell handles the page crossfade underneath it.
+                setStableTimeout(() => {
+                    closeGate(false, { restoreFocus: false });
+                    navigateWithTransition('portfolio.html', NAV_STATES.INTERNAL, {
+                        transitionStyle: 'gate-success',
+                        exitMs: 180,
+                        enterMs: 320,
+                        readyFallbackMs: 700
+                    });
+                }, 140);
                 
             } else {
                 // Failure - clear inputs

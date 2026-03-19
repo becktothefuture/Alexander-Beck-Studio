@@ -31,7 +31,7 @@ import {
   NAV_STATES 
 } from './utils/page-nav.js';
 
-async function bootstrapCvPage() {
+export async function bootstrapCvPage() {
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                    STEP 1: LOAD RUNTIME TEXT                                 ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -268,12 +268,4 @@ async function bootstrapCvPage() {
     setupPrefetchOnHover(backLink, 'index.html');
   }
   
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    bootstrapCvPage();
-  });
-} else {
-  bootstrapCvPage();
 }

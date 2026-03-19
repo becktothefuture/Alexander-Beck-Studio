@@ -1,6 +1,3 @@
-// Portfolio config loader and applicator.
-// Keeps the carousel tunables in a dedicated file while preserving wall tuning on index only.
-
 import {
   derivePortfolioConfig,
   loadDesignSystemConfig,
@@ -8,186 +5,78 @@ import {
   shouldUseCanonicalDesignConfig,
 } from '../utils/design-config.js';
 
-const DEFAULT_WHEEL_CONFIG = {
-  sensitivity: 1.8,
-  ease: 0.22,
-  lineHeightFallback: 16,
-  pageScale: 0.9,
+const DEFAULT_PORTFOLIO_CONFIG = {
+  cssVars: {
+    '--portfolio-nav-top': 'clamp(18px, 2.4vw, 30px)',
+    '--portfolio-stage-pad': 'clamp(18px, 2.1vw, 32px)',
+    '--portfolio-hero-title-max': '14ch',
+    '--portfolio-image-veil-opacity': '0.14',
+    '--portfolio-scroll-hint-offset': 'clamp(34px, 6vh, 68px)',
+  },
+  runtime: {
+    layout: {
+      heroTopOffset: 0,
+      spawnInsetViewport: 0.12,
+      bodyCountPolicy: 'one-per-project',
+      headerTopSpacing: 24,
+    },
+    bodies: {
+      minDiameterViewport: 0.2,
+      maxDiameterViewport: 0.28,
+      blockWidthMultiplier: 1.24,
+      blockCornerRadius: 48,
+      wallPaddingViewport: 0.06,
+    },
+    labeling: {
+      fontMinPx: 16,
+      fontMaxPx: 34,
+      lineHeight: 0.94,
+      innerPaddingRatio: 0.19,
+      blockRotationRangeDeg: 6,
+    },
+    motion: {
+      neighborImpulse: 540,
+      dragThrowMultiplier: 1.05,
+      openDurationMs: 820,
+      colorFloodHoldMs: 280,
+      imageFadeMs: 220,
+      titleRevealDelayMs: 1240,
+    },
+    openHero: {
+      imageVeilOpacity: 0.14,
+      titleMaxWidthCh: 14,
+      scrollHintOffsetVh: 7,
+    },
+    behavior: {
+      passiveMouseReaction: false,
+      reducedMotionDurationMs: 320,
+    },
+  },
 };
 
-const DEFAULT_SOUND_CONFIG = {
-  // Center-cross click (one per project when it passes center)
-  centerClickEnabled: true,
-  centerClickGain: 8, // Stored as percentage (0-100)
-  centerClickFilterHz: 1600,
-  centerClickMinSpeed: 120, // px/s (derived wheel speed proxy)
-  centerClickDebounceMs: 70,
-
-  // Continuous wheel ticks/swish (legacy; off by default)
-  continuousWheelEnabled: false,
-  continuousTickGainMul: 100, // percentage multiplier (0-200)
-  continuousSwishGainMul: 100, // percentage multiplier (0-200)
-
-  // Snap click (wheel settles). Off by default to avoid double-clicking with center clicks.
-  snapEnabled: false,
-  snapGain: 12, // Stored as percentage (0-100) for UI consistency
-  openGain: 12,
-  openFilterHz: 1800,
-  closeGain: 10,
-  closeFilterHz: 1600,
-  snapDebounceMs: 300,
-};
-
-const DEFAULT_MOUSE_TILT_CONFIG = {
-  enabled: true,
-  sensitivity: 0.8,
-  ease: 0.15,
-  invertX: false,
-  invertY: false,
-};
-
-const DEFAULT_CYLINDER_CONFIG = {
-  enabled: true,
-  ringCount: 12,
-  dotsPerRing: 24,
-  depthRange: 1000,
-  radiusMin: 100,
-  radiusMax: 500,
-  radiusStep: 80,
-  radiusRings: 5,
-  verticalSpacing: 60,
-  randomness: 0.2,
-  dotSize: 3,
-  opacityMin: 0.15,
-  opacityMax: 0.9,
-  rotationSync: 1.0,
-  gridPattern: 'even',
-};
-
-const WALL_CSS_VARS = new Set([
-  '--bg-light',
-  '--bg-dark',
-  '--chrome-bg-light',
-  '--chrome-bg-dark',
-  '--frame-color-light',
-  '--frame-color-dark',
-  '--wall-color',
-  '--container-border-vw',
-  '--container-border-x-vw',
-  '--wall-thickness-vw',
-  '--wall-radius-vw',
-  '--layout-min-wall-radius',
-  '--layout-min-content-padding',
-  '--container-border',
-  '--container-border-x',
-  '--container-border-y',
-  '--wall-radius',
-  '--wall-thickness',
-  '--container-radius',
-  '--bg-color',
-]);
-
-// Vars that are now token-controlled and should not be user-configurable.
-// (We ignore them even if they exist in older saved configs.)
-const LOCKED_CSS_VARS = new Set([
-  '--text-client-size',
-  '--text-title-size',
-  '--text-tags-size',
-  '--close-button-font-size',
-]);
-
-export function normalizePortfolioRuntime(runtime = {}) {
-  const wheel = (runtime && runtime.wheel && typeof runtime.wheel === 'object')
-    ? runtime.wheel
-    : {};
-  const sound = (runtime && runtime.sound && typeof runtime.sound === 'object')
-    ? runtime.sound
-    : {};
-  const mouseTilt = (runtime && runtime.mouseTilt && typeof runtime.mouseTilt === 'object')
-    ? runtime.mouseTilt
-    : {};
-  const cylinder = (runtime && runtime.cylinder && typeof runtime.cylinder === 'object')
-    ? runtime.cylinder
-    : {};
-
-  const toNumber = (value, fallback) => {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : fallback;
-  };
-
-  const toBoolean = (value, fallback) => {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'number' && Number.isFinite(value)) return value !== 0;
-    if (typeof value === 'string') {
-      const lower = value.toLowerCase();
-      if (lower === 'true' || lower === '1') return true;
-      if (lower === 'false' || lower === '0') return false;
-    }
-    return fallback;
-  };
-
-  return {
-    wheel: {
-      sensitivity: toNumber(wheel.sensitivity, DEFAULT_WHEEL_CONFIG.sensitivity),
-      ease: toNumber(wheel.ease, DEFAULT_WHEEL_CONFIG.ease),
-      lineHeightFallback: toNumber(wheel.lineHeightFallback, DEFAULT_WHEEL_CONFIG.lineHeightFallback),
-      pageScale: toNumber(wheel.pageScale, DEFAULT_WHEEL_CONFIG.pageScale),
-    },
-    sound: {
-      centerClickEnabled: toBoolean(sound.centerClickEnabled, DEFAULT_SOUND_CONFIG.centerClickEnabled),
-      centerClickGain: toNumber(sound.centerClickGain, DEFAULT_SOUND_CONFIG.centerClickGain),
-      centerClickFilterHz: toNumber(sound.centerClickFilterHz, DEFAULT_SOUND_CONFIG.centerClickFilterHz),
-      centerClickMinSpeed: toNumber(sound.centerClickMinSpeed, DEFAULT_SOUND_CONFIG.centerClickMinSpeed),
-      centerClickDebounceMs: toNumber(sound.centerClickDebounceMs, DEFAULT_SOUND_CONFIG.centerClickDebounceMs),
-
-      continuousWheelEnabled: toBoolean(sound.continuousWheelEnabled, DEFAULT_SOUND_CONFIG.continuousWheelEnabled),
-      continuousTickGainMul: toNumber(sound.continuousTickGainMul, DEFAULT_SOUND_CONFIG.continuousTickGainMul),
-      continuousSwishGainMul: toNumber(sound.continuousSwishGainMul, DEFAULT_SOUND_CONFIG.continuousSwishGainMul),
-
-      snapEnabled: toBoolean(sound.snapEnabled, DEFAULT_SOUND_CONFIG.snapEnabled),
-      snapGain: toNumber(sound.snapGain, DEFAULT_SOUND_CONFIG.snapGain),
-      openGain: toNumber(sound.openGain, DEFAULT_SOUND_CONFIG.openGain),
-      openFilterHz: toNumber(sound.openFilterHz, DEFAULT_SOUND_CONFIG.openFilterHz),
-      closeGain: toNumber(sound.closeGain, DEFAULT_SOUND_CONFIG.closeGain),
-      closeFilterHz: toNumber(sound.closeFilterHz, DEFAULT_SOUND_CONFIG.closeFilterHz),
-      snapDebounceMs: toNumber(sound.snapDebounceMs, DEFAULT_SOUND_CONFIG.snapDebounceMs),
-    },
-    mouseTilt: {
-      enabled: toBoolean(mouseTilt.enabled, DEFAULT_MOUSE_TILT_CONFIG.enabled),
-      sensitivity: toNumber(mouseTilt.sensitivity, DEFAULT_MOUSE_TILT_CONFIG.sensitivity),
-      ease: toNumber(mouseTilt.ease, DEFAULT_MOUSE_TILT_CONFIG.ease),
-      invertX: toBoolean(mouseTilt.invertX, DEFAULT_MOUSE_TILT_CONFIG.invertX),
-      invertY: toBoolean(mouseTilt.invertY, DEFAULT_MOUSE_TILT_CONFIG.invertY),
-    },
-    cylinder: {
-      enabled: toBoolean(cylinder.enabled, DEFAULT_CYLINDER_CONFIG.enabled),
-      ringCount: toNumber(cylinder.ringCount, DEFAULT_CYLINDER_CONFIG.ringCount),
-      dotsPerRing: toNumber(cylinder.dotsPerRing, DEFAULT_CYLINDER_CONFIG.dotsPerRing),
-      depthRange: toNumber(cylinder.depthRange, DEFAULT_CYLINDER_CONFIG.depthRange),
-      radiusMin: toNumber(cylinder.radiusMin, DEFAULT_CYLINDER_CONFIG.radiusMin),
-      radiusMax: toNumber(cylinder.radiusMax, DEFAULT_CYLINDER_CONFIG.radiusMax),
-      radiusStep: toNumber(cylinder.radiusStep, DEFAULT_CYLINDER_CONFIG.radiusStep),
-      radiusRings: toNumber(cylinder.radiusRings, DEFAULT_CYLINDER_CONFIG.radiusRings),
-      verticalSpacing: toNumber(cylinder.verticalSpacing, DEFAULT_CYLINDER_CONFIG.verticalSpacing),
-      randomness: toNumber(cylinder.randomness, DEFAULT_CYLINDER_CONFIG.randomness),
-      dotSize: toNumber(cylinder.dotSize, DEFAULT_CYLINDER_CONFIG.dotSize),
-      opacityMin: toNumber(cylinder.opacityMin, DEFAULT_CYLINDER_CONFIG.opacityMin),
-      opacityMax: toNumber(cylinder.opacityMax, DEFAULT_CYLINDER_CONFIG.opacityMax),
-      rotationSync: toNumber(cylinder.rotationSync, DEFAULT_CYLINDER_CONFIG.rotationSync),
-      gridPattern: String(cylinder.gridPattern || DEFAULT_CYLINDER_CONFIG.gridPattern),
-    },
-  };
+function isObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-export function normalizePortfolioConfig(raw) {
-  const base = raw && typeof raw === 'object' ? raw : {};
-  const cssVars = (base.cssVars && typeof base.cssVars === 'object')
-    ? { ...base.cssVars }
-    : {};
+function merge(target, source) {
+  const base = isObject(target) ? { ...target } : {};
+  if (!isObject(source)) return base;
 
+  for (const [key, value] of Object.entries(source)) {
+    if (isObject(value) && isObject(base[key])) {
+      base[key] = merge(base[key], value);
+      continue;
+    }
+    base[key] = value;
+  }
+  return base;
+}
+
+export function normalizePortfolioConfig(rawConfig) {
+  const merged = merge(DEFAULT_PORTFOLIO_CONFIG, rawConfig);
   return {
-    cssVars,
-    runtime: normalizePortfolioRuntime(base.runtime),
+    cssVars: isObject(merged.cssVars) ? { ...merged.cssVars } : { ...DEFAULT_PORTFOLIO_CONFIG.cssVars },
+    runtime: merge(DEFAULT_PORTFOLIO_CONFIG.runtime, merged.runtime),
   };
 }
 
@@ -205,8 +94,8 @@ export async function loadPortfolioConfig() {
 
     const designSystem = await loadDesignSystemConfig();
     return normalizePortfolioConfig(derivePortfolioConfig(designSystem));
-  } catch (e) {
-    console.warn('Portfolio config load failed, using defaults');
+  } catch (error) {
+    console.warn('Portfolio config load failed, using defaults', error);
     return normalizePortfolioConfig(null);
   }
 }
@@ -214,16 +103,13 @@ export async function loadPortfolioConfig() {
 export function applyPortfolioConfig(config) {
   const normalized = normalizePortfolioConfig(config);
   const root = document.documentElement;
-  const cssVars = normalized.cssVars || {};
 
-  // Only apply carousel-specific vars; wall tuning stays on the index config.
-  for (const [key, value] of Object.entries(cssVars)) {
-    if (!key || WALL_CSS_VARS.has(key) || LOCKED_CSS_VARS.has(key)) continue;
-    if (value === undefined || value === null || value === '') continue;
+  for (const [key, value] of Object.entries(normalized.cssVars)) {
+    if (!key || value === undefined || value === null || value === '') continue;
     root.style.setProperty(key, String(value));
   }
 
   return normalized;
 }
 
-export const DEFAULT_PORTFOLIO_RUNTIME = normalizePortfolioRuntime();
+export const DEFAULT_PORTFOLIO_RUNTIME = normalizePortfolioConfig(null).runtime;

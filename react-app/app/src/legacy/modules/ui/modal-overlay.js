@@ -37,6 +37,7 @@ export function mountModalIntoOverlay(modalEl) {
     if (!contentLayerElement || !modalEl) return;
     const host = ensureModalHost();
     if (!host) return;
+    if (modalEl.parentNode === host) return;
 
     if (!modalOriginalPlacement.has(modalEl)) {
         modalOriginalPlacement.set(modalEl, { parent: modalEl.parentNode, nextSibling: modalEl.nextSibling });
@@ -55,6 +56,29 @@ export function unmountModalFromOverlay(modalEl) {
             rec.parent.appendChild(modalEl);
         }
     } catch (e) {}
+}
+
+export function getModalCloseDurationMs(fallback = 700) {
+    try {
+        const raw = getComputedStyle(document.documentElement)
+            .getPropertyValue('--modal-overlay-transition-out-duration')
+            .trim();
+        const parsed = parseFloat(raw);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+            return parsed;
+        }
+    } catch (e) {}
+    return fallback;
+}
+
+export function forceHideOverlayModal(modalEl) {
+    if (!modalEl) return;
+
+    modalEl.classList.remove('active', 'closing');
+    modalEl.classList.add('hidden');
+    modalEl.setAttribute('aria-hidden', 'true');
+    modalEl.dataset.modalState = 'hidden';
+    unmountModalFromOverlay(modalEl);
 }
 
 /**

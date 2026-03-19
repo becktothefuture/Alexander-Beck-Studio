@@ -435,6 +435,128 @@ html.fonts-loading .project-detail {
   will-change: opacity, transform;
 }
 
+.shell-wall-slot,
+.shell-route-slot {
+  opacity: 1;
+  transition:
+    opacity var(--duration-settle) var(--ease-settle),
+    transform var(--duration-settle) var(--ease-settle),
+    filter var(--duration-settle) var(--ease-settle);
+  will-change: opacity, transform, filter;
+}
+
+.shell-wall-slot {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.shell-route-slot {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.shell-route-ghost {
+  position: absolute;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.shell-route-ghost-copy {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  width: 100%;
+  min-height: 0;
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+  transition:
+    opacity var(--duration-settle) var(--ease-settle),
+    transform var(--duration-settle) var(--ease-settle),
+    filter var(--duration-settle) var(--ease-settle);
+}
+
+.shell-route-content-root {
+  position: relative;
+  grid-row: 1 / span 2;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "top"
+    "center";
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.shell-wall-route-root {
+  width: 100%;
+  height: 100%;
+}
+
+.shell-wall-slot.abs-gate-transition-exit {
+  opacity: 0.16;
+  filter: blur(8px);
+}
+
+.shell-route-slot.abs-gate-transition-exit {
+  opacity: 0;
+  transform: translateY(var(--gap-sm));
+  filter: blur(8px);
+}
+
+.shell-route-ghost.abs-gate-transition-exit {
+  opacity: 0;
+}
+
+.shell-wall-slot.abs-gate-transition-pre-enter {
+  opacity: 0;
+  filter: blur(10px);
+}
+
+.shell-route-slot.abs-gate-transition-pre-enter {
+  opacity: 0;
+  transform: translateY(calc(var(--gap-sm) * -0.5));
+  filter: blur(10px);
+}
+
+.shell-route-ghost.abs-gate-transition-pre-enter {
+  opacity: 1;
+}
+
+.shell-route-ghost.abs-gate-transition-pre-enter .shell-route-ghost-copy {
+  opacity: 0.72;
+  filter: blur(4px);
+  transform: translateY(calc(var(--gap-sm) * 0.2));
+}
+
+.shell-wall-slot.abs-gate-transition-enter,
+.shell-route-slot.abs-gate-transition-enter {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+.shell-route-ghost.abs-gate-transition-enter {
+  opacity: 1;
+}
+
+.shell-route-ghost.abs-gate-transition-enter .shell-route-ghost-copy {
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(var(--gap-sm));
+}
+
 body.page-transitioning .page-content {
   opacity: 0;
   transform: translateY(var(--gap-sm));
@@ -1031,6 +1153,11 @@ p {
   /* Nav bar uses its own layout, not .ui-nav-row defaults */
   width: 100%;
   justify-content: center;
+}
+
+.ui-center-spacer {
+  grid-area: center;
+  min-height: 0;
 }
 
 /* Main Links Navigation - Fixed positioning below canvas logo */
@@ -2846,6 +2973,15 @@ body.dark-mode .contact-modal {
               transform var(--modal-overlay-transition-duration, 850ms) var(--ease-gate) var(--modal-content-delay, 150ms);
 }
 
+.cv-modal.closing,
+.portfolio-modal.closing,
+.contact-modal.closing {
+  opacity: 0;
+  transform: translate3d(-50%, -50%, 0) scale(1.05);
+  pointer-events: none;
+  visibility: visible;
+}
+
 .modal-label {
   text-align: center;
   width: 100%;
@@ -3670,14 +3806,7 @@ html.is-safari .modal-overlay.active {
  * ════════════════════════════════════════════════════════════════════════════════ */
 
 body.cv-page #bravia-balls {
-  /* Match index exactly: NO CSS border-radius on #bravia-balls.
-     Wall appearance is drawn by .cv-wall-canvas (same as index uses canvas for wall).
-     This prevents anti-aliasing artifacts at rounded edges. */
-  background: var(--bg-light);
-  background-color: var(--bg-light);
-  border-radius: 0; /* Match index: wall drawn by canvas, not CSS */
-  overflow: visible; /* Match index: no CSS clipping on container */
-  /* CV needs an interactive scroll surface; index keeps pointer-events off to route to canvas. */
+  /* CV keeps the shared shell frame and only opts into an interactive surface. */
   pointer-events: auto;
   height: 100%;
   min-height: 100vh;

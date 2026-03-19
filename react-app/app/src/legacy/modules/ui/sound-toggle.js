@@ -17,6 +17,56 @@ const ICON_SOUND_OFF = '<i class="ti ti-volume-off" aria-hidden="true"></i>';
 const ICON_SOUND_ON = '<i class="ti ti-volume-2" aria-hidden="true"></i>';
 
 let buttonElement = null;
+let soundStateListenerBound = false;
+
+function mountSoundToggle(button) {
+  const fadeContent = document.getElementById('app-frame');
+  const topSlot = document.getElementById('sound-toggle-slot');
+  const socialLinks = document.getElementById('social-links');
+  const footerMeta = document.querySelector('.ui-meta-right');
+  const canMountInTopSlot = !!topSlot;
+  const canMountInSocialLinks = socialLinks && (!fadeContent || fadeContent.contains(socialLinks));
+
+  button.classList.remove('sound-toggle--top', 'sound-toggle--social');
+
+  const mountInto = (parent) => {
+    if (!parent) return false;
+    try {
+      if (button.parentElement && button.parentElement !== parent) {
+        button.parentElement.removeChild(button);
+      }
+    } catch (e) {}
+    if (parent.classList.contains('ui-meta-right')) {
+      const timeEl = parent.querySelector('time');
+      if (timeEl) {
+        parent.insertBefore(button, timeEl);
+        return true;
+      }
+    }
+    parent.appendChild(button);
+    return true;
+  };
+
+  if (canMountInTopSlot) {
+    button.classList.add('sound-toggle--top');
+    mountInto(topSlot);
+  } else if (footerMeta) {
+    mountInto(footerMeta);
+  } else if (canMountInSocialLinks) {
+    let item = socialLinks.querySelector('.sound-toggle-item');
+    if (!item) {
+      item = document.createElement('li');
+      item.className = 'margin-bottom_none sound-toggle-item';
+      socialLinks.appendChild(item);
+    }
+    button.classList.add('sound-toggle--social');
+    mountInto(item);
+  } else if (fadeContent) {
+    mountInto(fadeContent);
+  } else {
+    mountInto(document.body);
+  }
+}
 
 /**
  * Create and inject the sound toggle button into the DOM
@@ -36,71 +86,21 @@ export function createSoundToggle() {
     }
   }
   
-  // Create button element
-  buttonElement = document.createElement('button');
-  buttonElement.className = 'sound-toggle abs-icon-btn';
-  buttonElement.id = 'sound-toggle';
-  buttonElement.type = 'button';
-  buttonElement.setAttribute('aria-label', 'Toggle collision sounds');
-  buttonElement.setAttribute('aria-pressed', 'false');
-  buttonElement.setAttribute('data-enabled', 'false');
-  
-  // No inline styles - CSS handles all styling via .sound-toggle class
+  buttonElement = buttonElement || document.getElementById('sound-toggle');
 
-  // Initial icon (sound starts off)
-  buttonElement.innerHTML = ICON_SOUND_OFF;
-  
-  // Click handler
-  buttonElement.addEventListener('click', handleToggleClick);
-  
-  // Preferred mounts:
-  // - All breakpoints: top-right row next to the decorative text (#sound-toggle-slot)
-  // Fallback: append to #app-frame so it fades with other content.
-  const fadeContent = document.getElementById('app-frame');
-  const topSlot = document.getElementById('sound-toggle-slot');
-  const socialLinks = document.getElementById('social-links');
-  const footerMeta = document.querySelector('.ui-meta-right'); // New slot
-  const canMountInTopSlot = !!topSlot;
-  const canMountInSocialLinks = socialLinks && (!fadeContent || fadeContent.contains(socialLinks));
-  
-  const mountInto = (parent) => {
-    if (!parent) return false;
-    // Move if already mounted somewhere else
-    try {
-      if (buttonElement.parentElement && buttonElement.parentElement !== parent) {
-        buttonElement.parentElement.removeChild(buttonElement);
-      }
-    } catch (e) {}
-    // If mounting into ui-meta-right, put it before the time element
-    if (parent.classList.contains('ui-meta-right')) {
-        const timeEl = parent.querySelector('time');
-        if (timeEl) {
-            parent.insertBefore(buttonElement, timeEl);
-            return true;
-        }
-    }
-    parent.appendChild(buttonElement);
-    return true;
-  };
-
-  if (canMountInTopSlot) {
-    // Priority: Top Right Slot (Desktop/Tablet)
-    buttonElement.classList.add('sound-toggle--top');
-    mountInto(topSlot);
-  } else if (footerMeta) {
-    // Fallback: Footer Meta
-    mountInto(footerMeta);
-  } else if (canMountInSocialLinks) {
-    const li = document.createElement('li');
-    li.className = 'margin-bottom_none sound-toggle-item';
-    buttonElement.classList.add('sound-toggle--social');
-    li.appendChild(buttonElement);
-    socialLinks.appendChild(li);
-  } else if (fadeContent) {
-    fadeContent.appendChild(buttonElement);
-  } else {
-    document.body.appendChild(buttonElement);
+  if (!buttonElement) {
+    buttonElement = document.createElement('button');
+    buttonElement.className = 'sound-toggle abs-icon-btn';
+    buttonElement.id = 'sound-toggle';
+    buttonElement.type = 'button';
+    buttonElement.setAttribute('aria-label', 'Toggle collision sounds');
+    buttonElement.setAttribute('aria-pressed', 'false');
+    buttonElement.setAttribute('data-enabled', 'false');
+    buttonElement.innerHTML = ICON_SOUND_OFF;
+    buttonElement.addEventListener('click', handleToggleClick);
   }
+
+  mountSoundToggle(buttonElement);
 
   console.log('✓ Sound toggle created');
 
@@ -111,13 +111,14 @@ export function createSoundToggle() {
   } catch (e) {}
 
   // Stay in sync with panel toggles
-  if (typeof window !== 'undefined' && window.addEventListener) {
+  if (!soundStateListenerBound && typeof window !== 'undefined' && window.addEventListener) {
     window.addEventListener(SOUND_STATE_EVENT, (e) => {
       const s = e && e.detail ? e.detail : null;
       if (s) {
         updateButtonState(!!(s.isUnlocked && s.isEnabled));
       }
     });
+    soundStateListenerBound = true;
   }
 
   return buttonElement;

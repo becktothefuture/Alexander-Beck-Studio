@@ -1,31 +1,37 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FOOTER_MOUNT_ID, sanitizeTemplateHtml } from '../../lib/template.js';
 
-export function SharedFrame({ html, bodyClass = 'body', footer = null }) {
+export function SharedFrame({ html, children = null, bodyClass = 'body', footer = null }) {
   const safeHtml = useMemo(() => sanitizeTemplateHtml(html), [html]);
-  const frameRef = useRef(null);
   const [footerMountNode, setFooterMountNode] = useState(null);
   const htmlSetRef = useRef(false);
 
-  useLayoutEffect(() => {
-    const container = frameRef.current;
+  const handleFrameRef = useCallback((container) => {
     if (!container) return;
 
-    // Set innerHTML only once; re-applying on re-render would destroy #footer-mount
-    // and detach the node we portal into, making the footer invisible.
-    if (!htmlSetRef.current) {
-      container.innerHTML = safeHtml;
-      htmlSetRef.current = true;
+    if (html != null) {
+      // Set innerHTML only once; re-applying on re-render would destroy #footer-mount
+      // and detach the node we portal into, making the footer invisible.
+      if (!htmlSetRef.current) {
+        container.innerHTML = safeHtml;
+        htmlSetRef.current = true;
+      }
+
+      const node = container.querySelector(`#${FOOTER_MOUNT_ID}`) ?? null;
+      setFooterMountNode(node);
+      return;
     }
 
-    const node = container.querySelector(`#${FOOTER_MOUNT_ID}`) ?? null;
-    setFooterMountNode(node);
-  }, [safeHtml]);
+    setFooterMountNode(container.querySelector(`#${FOOTER_MOUNT_ID}`) ?? null);
+  }, [html, safeHtml]);
 
   return (
     <>
-      <div ref={frameRef} className={bodyClass} />
+      <div ref={handleFrameRef} className={bodyClass}>
+        {html == null ? children : null}
+        {html == null ? <div id={FOOTER_MOUNT_ID} /> : null}
+      </div>
       {footerMountNode && footer != null && createPortal(footer, footerMountNode)}
     </>
   );

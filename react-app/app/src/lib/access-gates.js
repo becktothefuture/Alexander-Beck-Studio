@@ -125,6 +125,9 @@ export function redirectToGateHome(gateId) {
 
   const destination = getHomeUrl();
   destination.searchParams.set('gate', gateId);
+  if (trySpaNavigate(destination.toString(), { replace: true })) {
+    return;
+  }
   window.location.replace(destination.toString());
 }
 
@@ -137,6 +140,9 @@ export function navigateToGatePage(gateId, { allowDevAccess = false } = {}) {
   }
 
   const destination = new URL(destinationPath, window.location.href);
+  if (trySpaNavigate(destination.toString())) {
+    return;
+  }
   window.location.assign(destination.toString());
 }
 
@@ -151,5 +157,9 @@ export function navigateToHome(options = {}) {
     }
   }
 
+  if (trySpaNavigate(destination.toString())) {
+    return;
+  }
   window.location.assign(destination.toString());
 }
+import { trySpaNavigate } from './spa-navigation.js';

@@ -1,89 +1,51 @@
 
-  <!-- SCENE WRAPPER: All scene layers move together (matches index structure) -->
   <div id="abs-scene" class="abs-scene">
-    <!-- LAYER 2: Brand Logo - NOT VISIBLE on portfolio page (removed to optimize entrance animation) -->
-    <!-- Logo animation skipped - entrance goes directly from #app-frame to .portfolio-stage -->
-
-    <!-- LAYER 2: Portfolio Container - Carousel renders here (z:5) -->
     <div id="bravia-balls" class="portfolio-simulation w-embed">
-      <!-- Wall-only canvas: renders the same rubber wall ring as index (no balls). -->
-      <canvas class="portfolio-wall-canvas" aria-hidden="true"></canvas>
-      <!-- Portfolio Stage -->
-      <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
-      <div class="portfolio-stage">
-        <div class="portfolio-viewport" id="viewport">
-          <div class="slider-track" id="track">
-            <!-- Slides will be injected here by app.js -->
-          </div>
-        </div>
-      </div>
-      
-      <!-- Meta text: positioned outside stage to avoid transform inheritance issues -->
-      <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
-      <div class="portfolio-meta" id="portfolioMeta" aria-live="polite">
-        <div class="portfolio-meta__inner">
-          <span class="meta-client" data-meta="client"></span>
-          <span class="meta-title" data-meta="title"></span>
-          <span class="meta-summary" data-meta="summary"></span>
-        </div>
-      </div>
+      <canvas id="c" class="portfolio-pit-canvas" aria-label="Portfolio projects simulation" role="img" draggable="false"></canvas>
+      <div id="portfolioProjectMount" class="portfolio-project-mount" aria-live="polite"></div>
     </div>
   </div>
   
-  <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, etc.) -->
-  <!-- SCENE EFFECTS: Positioned above wall (z:100), below modals (z:19998) -->
   <div id="scene-effects" class="scene-effects" aria-hidden="true">
     <div class="noise"></div>
   </div>
   <div class="frame-vignette" aria-hidden="true"></div>
 
-  <!-- UI LAYER: Flexbox Layout Implementation -->
   <div class="fade-content page-content">
     <div id="app-frame" class="ui-layer-wrapper">
-      <!-- Header (index-parity chrome) -->
       <header class="ui-top" data-portfolio-ui>
-        <div class="ui-top-main">
-          <div class="ui-top-left">
+        <div class="ui-top-main portfolio-topbar">
+          <nav class="portfolio-topnav" aria-label="Portfolio navigation">
             <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition data-transition aria-label="Back to home">
               <i class="ti ti-arrow-left" aria-hidden="true"></i>
             </a>
-            <button id="cv-modal-trigger" type="button" class="portfolio-cv-link" aria-label="Bio/CV" aria-haspopup="dialog">Bio/CV</button>
-            <button id="contact-email" type="button" class="portfolio-cv-link" aria-label="Contact" aria-haspopup="dialog">Contact</button>
-          </div>
+            <button id="cv-modal-trigger" type="button" class="footer_link" aria-label="Bio/CV" aria-haspopup="dialog">Bio/CV</button>
+            <button id="contact-email" type="button" class="footer_link" aria-label="Contact" aria-haspopup="dialog">Contact</button>
+          </nav>
           <div class="ui-top-right">
-            <blockquote class="decorative-script portfolio-blurb-wrapper">
-              <p id="portfolio-blurb">Selected collaborations across finance, luxury, digital identity, and frontier tech—things I've directed, mentored, executed, or co-built with global leaders. Currently building my own app; check the final project in the slider. <a id="contact-email-inline" href="#">Let's chat.</a></p>
-            </blockquote>
             <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>
           </div>
         </div>
         <div id="top-elements-soundRow" class="ui-top-soundRow"></div>
       </header>
 
-      <!-- CENTER SPACER (Flex Grow) -->
       <main class="ui-center-spacer" aria-hidden="true"></main>
 
-      <!-- Footer: shared footer mounted here via React (SharedFrame footer slot) -->
       <div id="footer-mount"></div>
     </div>
   </div>
 
-  <!-- Modal System: Two-layer architecture for clean compositing -->
-  <!-- Layer 1: Blur Only - No children, isolated backdrop-filter (z:19998) -->
   <div id="modal-blur-layer" class="modal-blur-layer" aria-hidden="true"></div>
   
-  <!-- Layer 2: Content Only - Holds modals, no blur (z:19999) -->
   <div id="modal-content-layer" class="modal-content-layer" aria-hidden="true">
     <div id="modal-modal-host" class="modal-modal-host"></div>
   </div>
 
-  <!-- Contact Modal - Same transition as CV/Portfolio -->
   <div id="contact-modal" class="contact-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title" aria-describedby="contact-modal-description">
     <div id="contact-modal-label" class="modal-label"></div>
     <div id="contact-modal-inputs" class="contact-modal-inputs"></div>
   </div>
 
-  <!-- CV Modal - Same transition as Contact -->
   <div id="cv-modal" class="cv-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="cv-modal-title" aria-describedby="cv-modal-description">
     <div id="cv-modal-label" class="modal-label"></div>
     <div id="cv-modal-inputs" class="cv-modal-inputs" role="group" aria-labelledby="cv-modal-title" aria-describedby="cv-modal-description">
@@ -93,17 +55,12 @@
       <input type="text" maxlength="1" class="cv-digit" inputmode="numeric" pattern="[0-9]" data-index="3" aria-label="CV invite code digit 4 of 4" autocomplete="off" />
     </div>
   </div>
-
-
-  <!-- Panel dock is injected in dev only (mirrors index behavior). -->
-
   <!-- ABS_BUILD_MARKER:JS_DEV_START -->
   <script type="module" src="modules/portfolio/app.js"></script>
   <!-- ABS_BUILD_MARKER:JS_DEV_END -->
 
   <!-- ABS_BUILD_MARKER:JS_PROD -->
 
-  <!-- DEV TOOLING: Local hot reload (no external calls). -->
   <!-- ABS_LIVE_RELOAD_START -->
   <script>
     (function() {

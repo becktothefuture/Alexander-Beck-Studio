@@ -3,7 +3,7 @@ import { SiteFooter } from '../components/SiteFooter.jsx';
 import { BodyClassManager } from '../components/layout/BodyClassManager.jsx';
 import { SharedFrame } from '../components/layout/SharedFrame.jsx';
 import { useLegacyBootstrap } from '../hooks/useLegacyBootstrap.js';
-import templateHtml from '../templates/index-body.html?raw';
+import { HomeRoute } from '../routes/home/HomeRoute.jsx';
 
 export function HomePage() {
   const boot = useCallback(() => import('../legacy/main.js'), []);
@@ -12,7 +12,9 @@ export function HomePage() {
   return (
     <>
       <BodyClassManager className="body" />
-      <SharedFrame html={templateHtml} bodyClass="body" footer={<SiteFooter />} />
+      <SharedFrame bodyClass="body" footer={<SiteFooter />}>
+        <HomeRoute />
+      </SharedFrame>
     </>
   );
 }

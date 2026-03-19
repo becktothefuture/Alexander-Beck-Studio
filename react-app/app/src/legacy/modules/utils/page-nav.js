@@ -4,6 +4,8 @@
 // ║     Now with View Transitions API support + Safari departure fallback        ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
+import { trySpaNavigate } from '../../../lib/spa-navigation.js';
+
 const NAV_STATE_KEY = 'abs_nav_state';
 const NAV_TIMESTAMP_KEY = 'abs_nav_ts';
 const NAV_EXPIRY_MS = 5000; // 5 second window for page transitions
@@ -240,12 +242,19 @@ export function getModalToAutoOpen() {
  * Sets navigation state and debounces rapid clicks.
  * @param {string} href - Destination URL
  * @param {string} state - Navigation state from NAV_STATES
+ * @param {object} options - Optional SPA transition controls
  */
-export async function navigateWithTransition(href, state = NAV_STATES.INTERNAL) {
+export async function navigateWithTransition(href, state = NAV_STATES.INTERNAL, options = {}) {
   if (isTransitioning) return; // Debounce rapid clicks
   isTransitioning = true;
   
   setNavigationState(state);
+
+  const spaHandled = await Promise.resolve(trySpaNavigate(href, { state, ...options }));
+  if (spaHandled) {
+    resetTransitionState();
+    return;
+  }
   
   const reduceMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   

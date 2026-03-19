@@ -1,28 +1,42 @@
 # Portfolio Runtime
 
-**Scope:** The gated portfolio experience that mirrors the site chrome but runs its own carousel + detail view.
+The portfolio route is now a dedicated **project pit** rather than a slider. It reuses the shared wall frame, physics loop, and modal chrome, but swaps in a portfolio-only mode with oversized draggable project bodies and a fullscreen in-place project open transition.
 
-**Paths:** Use `react-app/app/public/config/`, `react-app/app/public/images/portfolio/`, and `react-app/app/src/legacy/modules/portfolio/`.
+## Entry Points
 
-## Entry points
-- `react-app/app/portfolio.html` – shared page shell that sets the first-paint wall/browser tokens before the React entry mounts.
-- `react-app/app/src/entries/portfolio.jsx` – page entry that mounts the shared frame and boots the legacy portfolio runtime.
-- `react-app/app/src/legacy/modules/ui/portfolio-modal.js` – invite modal on the index page that prefetches the portfolio bundle + a lead slide.
-- `react-app/app/src/lib/access-gates.js` – shared client-side invite-token helper used by direct routes and gate reopen redirects.
+- `react-app/app/src/routes/portfolio/PortfolioRoute.jsx`
+- `react-app/app/src/templates/portfolio-body.html`
+- `react-app/app/src/legacy/modules/portfolio/app.js`
 
-## Runtime modules
-- `react-app/app/src/legacy/modules/portfolio/app.js` – bootstraps the carousel, resolves assets via `window.PORTFOLIO_BASE`, and mounts the detail overlay.
-- `react-app/app/src/legacy/modules/portfolio/portfolio-config.js` – normalizes tunables and applies CSS vars (card sizing, physics, motion) distinct from the index wall config.
-- `react-app/app/src/legacy/modules/portfolio/panel/` – dev/build tuning panel (mirrors index dock behavior).
+## Runtime Modules
 
-## Data + assets
-- `react-app/app/public/config/portfolio-config.json` – carousel/runtime tuning.
-- `react-app/app/public/config/contents-portfolio.json` – project list (cover, gallery, content blocks, links, takeaways) consumed by `PortfolioApp`.
-- `react-app/app/public/images/portfolio/` – covers, pages, and detail media.
+- `react-app/app/src/legacy/modules/portfolio/app.js` bootstraps the route, loads project data, mounts the fullscreen project view, and handles drag/open behavior.
+- `react-app/app/src/legacy/modules/portfolio/pit-mode.js` creates one body per project and renders the alternating circle/block skins with fitted titles.
+- `react-app/app/src/legacy/modules/portfolio/portfolio-config.js` normalizes the authored portfolio config and applies portfolio CSS vars.
+- `react-app/app/src/legacy/modules/portfolio/panel/` exposes the dev panel for body sizing, labeling, and motion.
 
-### Editing the content
-- Update `react-app/app/public/config/contents-portfolio.json` for copy/links/takeaways.
-- Add or replace media in `react-app/app/public/images/portfolio/` and point paths in the JSON to the matching files.
+## Data And Assets
 
-## Build outputs
-- HTML + JS + assets: `react-app/app/dist/` via Vite multi-entry build.
+- `react-app/app/public/config/contents-portfolio.json` remains the source of truth for projects, detail copy, links, and media.
+- `react-app/app/public/images/portfolio/` holds the hero/detail assets resolved by the portfolio runtime.
+
+## Config Model
+
+Authored config lives in `react-app/app/public/config/design-system.json -> portfolio` and flattens to `react-app/app/public/config/portfolio-config.json`.
+
+The active portfolio runtime groups are:
+
+- `cssVars`: page/header/hero presentation values
+- `runtime.layout`: spawn spacing and header offsets
+- `runtime.bodies`: circle/block size and block width/radius
+- `runtime.labeling`: title fit bounds and block rotation range
+- `runtime.motion`: drag/open timing and neighbor impulse
+- `runtime.behavior`: passive mouse reaction toggle and reduced-motion timing
+
+## Archived Slider
+
+The previous slider implementation is archived and no longer used in the live route:
+
+- `react-app/app/src/legacy/modules/portfolio/archive/slider-v1/app.js`
+- `react-app/app/public/css/archive/portfolio-slider-v1.css`
+- `docs/archive/portfolio-slider-v1.md`

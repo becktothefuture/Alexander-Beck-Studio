@@ -45,7 +45,6 @@ export async function animateDeparture(options = {}) {
     '.portfolio-stage',
     '#portfolioMeta',
     '.cv-scroll-container',
-    '#bravia-balls canvas',
     '.ui-top',
     '.ui-bottom',
     '#main-links'

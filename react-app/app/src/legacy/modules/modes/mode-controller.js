@@ -3,7 +3,7 @@
 // ║     Daily-mode-first runtime with lazy-loaded simulation modules             ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { MODES, NARRATIVE_MODE_SEQUENCE } from '../core/constants.js';
+import { MODES, NARRATIVE_MODE_SEQUENCE, isPitLikeMode } from '../core/constants.js';
 import { setMode as setModeState, getGlobals } from '../core/state.js';
 import { resize } from '../rendering/renderer.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
@@ -15,6 +15,7 @@ export { MODES };
 
 const MODE_NAMES = {
   pit: 'Ball Pit',
+  'portfolio-pit': 'Portfolio Pit',
   flies: 'Flies to Light',
   weightless: 'Zero Gravity',
   water: 'Water Swimming',
@@ -35,6 +36,14 @@ const MODE_REGISTRY = {
   [MODES.PIT]: {
     load: () => import('./ball-pit.js'),
     hooks: { initialize: 'initializeBallPit', force: 'applyBallPitForces' }
+  },
+  [MODES.PORTFOLIO_PIT]: {
+    load: () => import('../portfolio/pit-mode.js'),
+    hooks: {
+      initialize: 'initializePortfolioPit',
+      force: 'applyPortfolioPitForces',
+      render: 'renderPortfolioPit'
+    }
   },
   [MODES.FLIES]: {
     load: () => import('./flies.js'),
@@ -206,6 +215,7 @@ function getWarmupFramesForMode(mode, globals) {
   // Default is 10 everywhere unless overridden via config/panel.
   switch (mode) {
     case MODES.PIT: return globals.pitWarmupFrames ?? 10;
+    case MODES.PORTFOLIO_PIT: return globals.portfolioPitWarmupFrames ?? 12;
     case MODES.FLIES: return globals.fliesWarmupFrames ?? 10;
     case MODES.WEIGHTLESS: return globals.weightlessWarmupFrames ?? 10;
     case MODES.WATER: return globals.waterWarmupFrames ?? 10;
@@ -241,10 +251,10 @@ function applyModePhysicsState(mode, globals) {
     MODES.ELASTIC_CENTER
   ]);
 
-  if (mode === MODES.PIT) {
+  if (isPitLikeMode(mode)) {
     globals.gravityMultiplier = globals.gravityMultiplierPit;
     globals.G = globals.GE * globals.gravityMultiplier;
-    globals.repellerEnabled = true;
+    globals.repellerEnabled = mode === MODES.PIT;
     return;
   }
 
@@ -349,7 +359,7 @@ export async function setMode(inputMode) {
     if (globals.container) {
       const wasDark = globals.container.classList.contains('dark-mode');
       globals.container.className = '';
-      if (mode === MODES.PIT) {
+      if (isPitLikeMode(mode)) {
         globals.container.classList.add('mode-pit');
       }
       if (wasDark || globals.isDarkMode) {

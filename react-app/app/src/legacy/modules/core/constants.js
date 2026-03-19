@@ -5,6 +5,7 @@
 
 export const MODES = {
   PIT: 'pit',
+  PORTFOLIO_PIT: 'portfolio-pit',
   FLIES: 'flies',
   WEIGHTLESS: 'weightless',
   WATER: 'water',
@@ -22,6 +23,10 @@ export const MODES = {
   ELASTIC_CENTER: 'elastic-center',
   PARTICLE_FOUNTAIN: 'particle-fountain'
 };
+
+export function isPitLikeMode(mode) {
+  return mode === MODES.PIT || mode === MODES.PORTFOLIO_PIT;
+}
 
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                       NARRATIVE MODE SEQUENCE (TIERED)                        ║

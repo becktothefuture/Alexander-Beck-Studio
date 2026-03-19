@@ -13,11 +13,17 @@
 // - No network calls
 // - No user text stored (clipboard copy is a single fixed string)
 
-import { showOverlay, hideOverlay, mountModalIntoOverlay, unmountModalFromOverlay } from './modal-overlay.js';
 import { activateModalAccessibility } from './modal-accessibility.js';
 import { getText } from '../utils/text-loader.js';
+import { setStableTimeout } from '../../../lib/legacy-runtime-scope.js';
+import {
+  closeGateModal,
+  hideCompetingGateModals,
+  isGateModalParticipating,
+  openGateModal,
+  showGateBackdrop
+} from './gate-modal-shared.js';
 
-const TRANSITION_MS = 1700; // Must match modal transitions defined in main.css
 const COPY_FEEDBACK_MS = 3000;
 
 async function copyToClipboard(text) {
@@ -179,57 +185,19 @@ export function initContactModal() {
     const wasAnyGateActive = isAnyGateActive();
 
     // Close other modals if open (match existing behavior)
-    if (cvGate && cvGate.classList.contains('active')) {
-      cvGate.classList.remove('active');
-      cvGate.setAttribute('aria-hidden', 'true');
-      setTimeout(() => {
-        cvGate.classList.add('hidden');
-        unmountModalFromOverlay(cvGate);
-      }, TRANSITION_MS);
-    }
-    if (portfolioGate && portfolioGate.classList.contains('active')) {
-      portfolioGate.classList.remove('active');
-      portfolioGate.setAttribute('aria-hidden', 'true');
-      setTimeout(() => {
-        portfolioGate.classList.add('hidden');
-        unmountModalFromOverlay(portfolioGate);
-      }, TRANSITION_MS);
-    }
+    hideCompetingGateModals([cvGate, portfolioGate]);
 
     isOpen = true;
     
     // Show overlay only if no modal was previously active
-    if (!wasAnyGateActive) {
-      showOverlay();
-    }
+    showGateBackdrop({ logo, hadActiveGate: wasAnyGateActive });
     setCopyUI('idle');
-
-    // Animate Logo Out (Up) - optional on pages without logo
-    if (logo) {
-      logo.classList.add('fade-out-up');
-    }
-    
-    // Fade out CV content on CV page
-    const cvContainer = document.querySelector('.cv-scroll-container');
-    if (cvContainer) {
-      cvContainer.classList.add('fade-out-up');
-    }
 
     deactivateModalA11y = activateModalAccessibility(modal, {
       initialFocus: () => emailRowBtn
     });
 
-    // Defer modal DOM operations to next frame to avoid interrupting overlay's backdrop-filter transition
-    requestAnimationFrame(() => {
-      // Modal: mount modal inside overlay flex container
-      mountModalIntoOverlay(modal);
-
-      // Animate Modal In (Up)
-      modal.classList.remove('hidden');
-      modal.setAttribute('aria-hidden', 'false');
-      void modal.offsetWidth;
-      modal.classList.add('active');
-    });
+    openGateModal(modal);
   };
 
   const closeGate = (instant = false, options = {}) => {
@@ -240,65 +208,13 @@ export function initContactModal() {
     deactivateModalA11y?.({ restoreFocus: options.restoreFocus !== false });
     deactivateModalA11y = null;
 
-    if (instant) {
-      // Instant close: disable transition, remove active, then re-enable
-      modal.style.transition = 'none';
-      if (logo) {
-        logo.style.transition = 'none';
-      }
-
-    modal.classList.remove('active');
-    modal.setAttribute('aria-hidden', 'true');
-      modal.classList.add('hidden');
-      unmountModalFromOverlay(modal);
-      if (logo) {
-        logo.classList.remove('fade-out-up');
-      }
-      
-      // Fade CV content back in on CV page
-      const cvContainer = document.querySelector('.cv-scroll-container');
-      if (cvContainer) {
-        cvContainer.classList.remove('fade-out-up');
-      }
-      
-      // Hide overlay immediately if no other modal is active
-      if (!isAnyGateActive()) {
-        hideOverlay();
-      }
-      
-      // Re-enable transitions after a frame
-      requestAnimationFrame(() => {
-        modal.style.removeProperty('transition');
-        if (logo) {
-          logo.style.removeProperty('transition');
-        }
-      });
-    } else {
-      // Smooth close: use CSS transition
-      modal.classList.remove('active');
-      modal.setAttribute('aria-hidden', 'true');
-      if (logo) {
-        logo.classList.remove('fade-out-up');
-      }
-      
-      // Fade CV content back in on CV page
-      const cvContainer = document.querySelector('.cv-scroll-container');
-      if (cvContainer) {
-        cvContainer.classList.remove('fade-out-up');
-      }
-
-      // Hide overlay immediately to animate blur in parallel with content
-      if (!isAnyGateActive()) {
-        hideOverlay();
-      }
-
-      setTimeout(() => {
-        if (!isOpen) {
-          modal.classList.add('hidden');
-          unmountModalFromOverlay(modal);
-        }
-      }, TRANSITION_MS);
-    }
+    closeGateModal({
+      modal,
+      logo,
+      instant,
+      keepOverlayActive: isGateModalParticipating(cvGate) || isGateModalParticipating(portfolioGate),
+      shouldFinalize: () => !isOpen
+    });
   };
 
   // Triggers

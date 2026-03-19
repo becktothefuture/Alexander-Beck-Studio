@@ -1,9 +1,4 @@
-import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { HomePage } from '../pages/HomePage.jsx';
+import { SiteApp } from '../components/app/SiteApp.jsx';
 
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <HomePage />
-  </React.StrictMode>
-);
+createRoot(document.getElementById('root')).render(<SiteApp />);

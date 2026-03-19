@@ -8,70 +8,73 @@ This document describes the configuration keys loaded at runtime. The React app 
 
 ## Portfolio Page Configuration (Separate Runtime)
 
-The **portfolio page** uses a **separate config file** and loader:
+The portfolio route now uses a dedicated **project pit** runtime instead of the archived slider/carousel.
 
-- **Source of truth (portfolio)**: `react-app/app/public/config/portfolio-config.json`
-- **Portfolio data (slides/content)**: `react-app/app/public/config/contents-portfolio.json`
+- **Authored source**: `react-app/app/public/config/design-system.json -> portfolio`
+- **Generated compatibility file**: `react-app/app/public/config/portfolio-config.json`
+- **Project content**: `react-app/app/public/config/contents-portfolio.json`
 - **Loader/normalizer**: `react-app/app/src/legacy/modules/portfolio/portfolio-config.js`
 
-Portfolio config is applied only to the portfolio carousel + portfolio-only effects (it does **not** affect the main simulation).
+Portfolio config applies only to the portfolio pit and fullscreen project open state.
 
-### Portfolio `cssVars` (Card sizing)
+### Portfolio `cssVars`
 
-Card sizing is **height-driven** (via `vh`) with a **locked aspect ratio**. Width is derived as:
-\[
-\text{cardWidth} = \text{cardHeight} \cdot \frac{\text{aspectW}}{\text{aspectH}}
-\]
-
-Relevant keys (all strings, applied as CSS variables):
+These control the page-level presentation around the pit and the opened hero:
 
 ```json
 {
   "cssVars": {
-    "--card-aspect-w": "5",
-    "--card-aspect-h": "4",
-    "--card-height-min": "29vh",
-    "--card-height-ideal": "49vh",
-    "--card-height-max": "62vh"
+    "--portfolio-nav-top": "24px",
+    "--portfolio-stage-pad": "24px",
+    "--portfolio-hero-title-max": "14ch",
+    "--portfolio-image-veil-opacity": "0.14",
+    "--portfolio-scroll-hint-offset": "52px"
   }
 }
 ```
 
-### Portfolio `runtime.sound` (Carousel scroll + detail SFX)
+### Portfolio `runtime`
 
-These keys control the **portfolio carousel sound cues** (implemented in `react-app/app/src/legacy/modules/portfolio/app.js` using `react-app/app/src/legacy/modules/audio/sound-engine.js`).
-
-Portfolio content (cover + gallery + detail blocks) is pulled from `react-app/app/public/config/contents-portfolio.json` and resolved against `react-app/app/public/images/portfolio/`.
+The portfolio runtime is grouped by behavior rather than slider mechanics:
 
 ```json
 {
   "runtime": {
-    "sound": {
-      "centerClickEnabled": true,
-      "centerClickGain": 8,
-      "centerClickFilterHz": 1600,
-      "centerClickMinSpeed": 120,
-      "centerClickDebounceMs": 70,
-
-      "continuousWheelEnabled": false,
-      "continuousTickGainMul": 100,
-      "continuousSwishGainMul": 100,
-
-      "snapEnabled": false,
-      "snapGain": 12,
-      "openGain": 12,
-      "openFilterHz": 1800,
-      "closeGain": 10,
-      "closeFilterHz": 1600,
-      "snapDebounceMs": 300
+    "layout": {
+      "spawnInsetViewport": 0.12,
+      "bodyCountPolicy": "one-per-project",
+      "headerTopSpacing": 24
+    },
+    "bodies": {
+      "minDiameterViewport": 0.2,
+      "maxDiameterViewport": 0.28,
+      "blockWidthMultiplier": 1.24,
+      "blockCornerRadius": 48
+    },
+    "labeling": {
+      "fontMinPx": 16,
+      "fontMaxPx": 34,
+      "lineHeight": 0.94,
+      "innerPaddingRatio": 0.19,
+      "blockRotationRangeDeg": 6
+    },
+    "motion": {
+      "neighborImpulse": 540,
+      "dragThrowMultiplier": 1.05,
+      "openDurationMs": 820,
+      "colorFloodHoldMs": 280,
+      "imageFadeMs": 220,
+      "titleRevealDelayMs": 1240
+    },
+    "behavior": {
+      "passiveMouseReaction": false,
+      "reducedMotionDurationMs": 320
     }
   }
 }
 ```
 
-- **`centerClick*`**: Plays **one click per project** when it passes the carousel center (debounced to prevent boundary chatter).
-- **`continuousWheelEnabled`**: Enables the legacy continuous tick/swish loop driven by scroll velocity (off by default).
-- **`snapEnabled`**: Enables an extra click when the carousel settles/snaps (off by default to avoid double-clicking when center clicks are enabled).
+Portfolio content still comes from `react-app/app/public/config/contents-portfolio.json` and resolves against `react-app/app/public/images/portfolio/`.
 
 ---
 
