@@ -551,6 +551,8 @@ All vw-native layout keys are converted to **derived px** at runtime and applied
 - **Meaning**: Padding for fixed content elements inside the frame (legend/statement blocks).
 - **Applied to**: CSS var `--content-padding` (derived px)
 
+**Home expertise legend (CSS, not JSON):** The legend uses **content-sized grid columns** (`repeat(3, auto)` / `repeat(2, auto)` at mid widths), not equal `1fr` columns. Equal-width columns left large empty space beside short labels, which looked like oversized gutters regardless of `column-gap`. The legend also uses a slightly larger **`padding-inline-start`** (`--gap-md`) than other sides so the block aligns visually with bottom chrome.
+
 ### Area clamp mode (recommended)
 Instead of using `contentPaddingVw` (width-driven), you can enable an **area-based clamp** that uses an effective viewport size:
 \[
@@ -691,16 +693,16 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 - **Applied to**: CSS var `--link-nudge`
 
 ### `linkHoverIntensityLight` (number, 0..1)
-- **Meaning**: Cursor color mix percentage used for hover backgrounds in light mode (`1` = 100% cursor color).
-- **Applied to**: CSS var `--abs-hover-intensity-light`
+- **Meaning**: Legacy tuning value; still written to CSS var `--abs-hover-intensity-light` at runtime for saved-config compatibility.
+- **Applied to**: `--abs-hover-intensity-light` (currently **not** consumed by site chrome — nav/icon/meta hovers use solid `var(--cursor-color)`).
 
 ### `linkHoverIntensityDark` (number, 0..1)
-- **Meaning**: Cursor color mix percentage used for hover backgrounds in dark mode.
-- **Applied to**: CSS var `--abs-hover-intensity-dark`
+- **Meaning**: Legacy tuning value; still written to `--abs-hover-intensity-dark`.
+- **Applied to**: Same as above (not used by current chrome hover CSS).
 
 ### `linkHoverIntensityActive` (number, 0..1)
-- **Meaning**: Cursor color mix percentage while an element is active/pressed (applies to the active hover tint + link nudge transition).
-- **Applied to**: CSS var `--abs-hover-intensity-active`
+- **Meaning**: Legacy tuning value; still written to `--abs-hover-intensity-active`.
+- **Applied to**: Same as above (legend active chip uses solid cursor color; no translucent mix).
 
 ### `homeMainLinksBelowLogoPx` (number, px)
 - **Meaning**: Index-only vertical offset for the main links cluster below the logo.

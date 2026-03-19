@@ -520,82 +520,6 @@ function computeSafeTextOnCursorColor(cursorHex) {
 }
 
 /**
- * Compute a WCAG-safe hover text color based on cursor color and background.
- * This is computed once when cursor color changes (not per-hover).
- * Returns a CSS rgb() string.
- */
-function computeSafeHoverTextColor(cursorHex) {
-  const globals = getGlobals();
-  const isDark = globals?.isDarkMode || false;
-  
-  // Parse cursor color
-  const cursorRgb = hexToRgb255(cursorHex);
-  if (!cursorRgb) return null;
-  
-  // Get background color
-  const bgHex = isDark ? (globals.bgDark || '#0a0a0a') : (globals.bgLight || '#f5f5f5');
-  const baseBgRgb = hexToRgb255(bgHex);
-  if (!baseBgRgb) return null;
-  
-  // Mix cursor color with background at 12% alpha (simulating the pill background)
-  const bgAlpha = 0.12;
-  const mixedBgRgb = {
-    r: Math.round(baseBgRgb.r + (cursorRgb.r - baseBgRgb.r) * bgAlpha),
-    g: Math.round(baseBgRgb.g + (cursorRgb.g - baseBgRgb.g) * bgAlpha),
-    b: Math.round(baseBgRgb.b + (cursorRgb.b - baseBgRgb.b) * bgAlpha)
-  };
-  
-  // Compute accessible text color
-  const mixedLuma = relativeLuminance(rgb255ToHex(mixedBgRgb));
-  const preferDirection = mixedLuma > 0.45 ? 'black' : 'white';
-  const safeRgb = computeAccessibleColor(cursorRgb, mixedBgRgb, preferDirection);
-  
-  return `rgb(${safeRgb.r} ${safeRgb.g} ${safeRgb.b})`;
-}
-
-/**
- * Compute a WCAG AA-compliant color (4.5:1 contrast ratio).
- * Mixes the cursor color toward white or black until contrast is safe.
- */
-function computeAccessibleColor(cursorRgb, bgRgb, preferDirection = null) {
-  const target = 4.5; // WCAG AA for normal text
-  const white = { r: 255, g: 255, b: 255 };
-  const black = { r: 0, g: 0, b: 0 };
-  
-  const tryDirection = (toward) => {
-    for (let i = 0; i <= 20; i++) {
-      const t = i / 20;
-      const candidate = {
-        r: Math.round(cursorRgb.r + (toward.r - cursorRgb.r) * t),
-        g: Math.round(cursorRgb.g + (toward.g - cursorRgb.g) * t),
-        b: Math.round(cursorRgb.b + (toward.b - cursorRgb.b) * t)
-      };
-      const cr = computeContrastRatio(candidate, bgRgb);
-      if (cr >= target) return { rgb: candidate, t, cr };
-    }
-    return null;
-  };
-  
-  const towardWhite = tryDirection(white);
-  const towardBlack = tryDirection(black);
-  
-  // Prefer direction based on background luminance
-  if (towardWhite && towardBlack) {
-    if (preferDirection === 'black') return towardBlack.rgb;
-    if (preferDirection === 'white') return towardWhite.rgb;
-    // Default: smallest adjustment
-    return towardWhite.t <= towardBlack.t ? towardWhite.rgb : towardBlack.rgb;
-  }
-  if (towardWhite) return towardWhite.rgb;
-  if (towardBlack) return towardBlack.rgb;
-  
-  // Final fallback
-  const whiteCr = computeContrastRatio(white, bgRgb);
-  const blackCr = computeContrastRatio(black, bgRgb);
-  return whiteCr >= blackCr ? white : black;
-}
-
-/**
  * WCAG contrast ratio between two RGB colors
  */
 function computeContrastRatio(rgb1, rgb2) {
@@ -681,16 +605,11 @@ function stampCursorCSSVar(hex) {
     const cursorHex = String(hex || '').trim() || '#000000';
     document.documentElement.style.setProperty('--cursor-color', cursorHex);
 
-    // WCAG-safe text on light hover mix (links, meta buttons)
-    const hoverFg = computeSafeHoverTextColor(cursorHex);
-    if (hoverFg) {
-      document.documentElement.style.setProperty('--cursor-hover-fg', hoverFg);
-    }
-
-    // WCAG AA text on full cursor background (quote button hover)
-    const quoteHoverFg = computeSafeTextOnCursorColor(cursorHex);
-    if (quoteHoverFg) {
-      document.documentElement.style.setProperty('--quote-hover-fg', quoteHoverFg);
+    // Solid chrome hovers use full cursor fill — same contrast model as quote (not 12% page mix).
+    const fgOnCursor = computeSafeTextOnCursorColor(cursorHex);
+    if (fgOnCursor) {
+      document.documentElement.style.setProperty('--cursor-hover-fg', fgOnCursor);
+      document.documentElement.style.setProperty('--quote-hover-fg', fgOnCursor);
     }
   } catch (_) { /* no-op */ }
 }
@@ -874,6 +793,37 @@ export function getColorByIndex(index) {
   
   const clampedIndex = Math.max(0, Math.min(7, Math.floor(index)));
   return colors[clampedIndex] || '#ffffff';
+}
+
+function isProjectNeutralColor(hex) {
+  const saturation = hsvSaturation(hex);
+  const luminance = relativeLuminance(hex);
+  return saturation < 0.16 || luminance < 0.045 || luminance > 0.94;
+}
+
+export function getProjectPaletteColor(index) {
+  const globals = getGlobals();
+  const colors = Array.isArray(globals.currentColors) ? globals.currentColors.filter(Boolean) : [];
+  if (!colors.length) return '#1b7f6e';
+
+  const chromatic = [];
+  const neutrals = [];
+  for (let i = 0; i < colors.length; i += 1) {
+    const color = colors[i];
+    if (isProjectNeutralColor(color)) neutrals.push(color);
+    else chromatic.push(color);
+  }
+
+  if (chromatic.length) {
+    return chromatic[Math.abs(Math.floor(index)) % chromatic.length] || chromatic[0];
+  }
+
+  const limitedNeutrals = neutrals.slice(0, 2);
+  if (limitedNeutrals.length) {
+    return limitedNeutrals[Math.abs(Math.floor(index)) % limitedNeutrals.length] || limitedNeutrals[0];
+  }
+
+  return colors[Math.abs(Math.floor(index)) % colors.length] || colors[0];
 }
 
 export function applyColorTemplate(templateName) {

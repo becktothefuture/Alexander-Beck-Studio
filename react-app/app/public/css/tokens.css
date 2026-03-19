@@ -165,10 +165,16 @@
   --abs-opacity-faint: 0.25;
   --abs-opacity-ghost: 0.12;
 
-  /* Hover Target Effect Intensities (color-mix percentages) */
-  --abs-hover-intensity-light: 42%;    /* Light mode: strong glow when receiving energy */
-  --abs-hover-intensity-dark: 48%;     /* Dark mode: pronounced for visibility */
-  --abs-hover-intensity-active: 27%;   /* Active/pressed state: slightly less than hover */
+  /* Hover Target Effect Intensities (color-mix percentages; reserved for future / saved config) */
+  --abs-hover-intensity-light: 42%;
+  --abs-hover-intensity-dark: 48%;
+  --abs-hover-intensity-active: 27%;
+
+  /* Chrome buttons: inset rim readable on any cursor luminance (light top + soft bottom depth) */
+  --ui-chrome-button-edge:
+    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.55),
+    inset 0 -1px 0 rgba(var(--abs-rgb-black), 0.2);
+  --ui-chrome-fill-transition-duration: 120ms;
   --abs-hover-opacity-ui-light: 0.27;   /* UI mode opacity (light mode) */
   --abs-hover-opacity-ui-dark: 0.33;   /* UI mode opacity (dark mode) */
 
@@ -500,16 +506,16 @@
   --legend-gap-row: var(--gap-xs);
   --legend-gap-col: var(--gap-lg);
   --legend-item-gap: var(--gap-sm);
-  --legend-circle-size: calc(var(--gap-sm) * 0.8);
+  --legend-circle-size: calc(var(--gap-sm) * 0.8 + 2 * var(--abs-size-1px));
   --legend-item-radius: var(--abs-radius-9);
-  --legend-font-size: clamp(11px, 2vw, 12px);
+  --legend-font-size: clamp(13px, 2vw, 14px);
   --legend-font-weight: 400;
   --legend-letter-spacing: 0.035ch;
   --legend-line-height: var(--line-height-loose);
   --legend-opacity: 1;
 
   --decorative-script-max-width: clamp(254px, 26.4vw, 355px);
-  --decorative-script-font-size: var(--text-sm);
+  --decorative-script-font-size: calc(var(--text-sm) + var(--abs-size-1px));
   --decorative-script-line-height: var(--line-height-base);
   --decorative-script-letter-spacing: var(--letter-spacing-normal);
   --decorative-script-padding-left: var(--gap-md);
@@ -632,7 +638,7 @@
     calc(var(--top-logo-width-vw, 35) * 1vw),
     var(--brand-logo-width-max)
   );
-  --brand-logo-secondary-opacity: 0.66;
+  --brand-logo-secondary-opacity: 1;
   /* Index logo SVG viewBox: 511×101. */
   --abs-brand-logo-height: calc(var(--abs-brand-logo-width) * 101 / 511);
 
@@ -671,6 +677,11 @@
 
   /* Single stroke color override for dark mode */
   --abs-stroke-medium: rgba(var(--abs-rgb-white), 0.25);
+
+  /* Chrome rim: slightly stronger highlight on dark UI */
+  --ui-chrome-button-edge:
+    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.42),
+    inset 0 -1px 0 rgba(var(--abs-rgb-black), 0.35);
 
   /* Quote card glass surface - dark mode tuning */
   --quote-glass-fill-opacity: 0.03;

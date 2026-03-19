@@ -695,6 +695,89 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   pointer-events: none;
 }
 
+body.portfolio-page .route-topbar {
+  --route-topbar-top: max(calc(var(--abs-safe-top, 0px) + 8px), var(--portfolio-nav-top, 24px));
+  position: relative;
+  grid-template-columns: minmax(40px, auto) 1fr minmax(40px, auto);
+  align-items: flex-start;
+  gap: clamp(12px, 2vw, 24px);
+  padding-top: var(--route-topbar-top);
+}
+
+body.cv-page .route-topbar {
+  --route-topbar-top: max(calc(var(--abs-safe-top, 0px) + 8px), 18px);
+  position: relative;
+  grid-template-columns: minmax(40px, auto) 1fr minmax(40px, auto);
+  align-items: flex-start;
+  gap: clamp(12px, 2vw, 24px);
+  padding-top: var(--route-topbar-top);
+}
+
+body.portfolio-page .route-topbar__left,
+body.cv-page .route-topbar__left,
+body.portfolio-page .route-topbar__right,
+body.cv-page .route-topbar__right {
+  display: flex;
+  align-items: flex-start;
+  min-height: 40px;
+  min-width: 40px;
+  pointer-events: auto;
+}
+
+body.portfolio-page .route-topbar__left,
+body.cv-page .route-topbar__left {
+  justify-self: start;
+  justify-content: flex-start;
+}
+
+body.portfolio-page .route-topbar__right,
+body.cv-page .route-topbar__right {
+  justify-self: end;
+  justify-content: flex-end;
+  width: auto;
+  min-width: 40px;
+  gap: 0;
+}
+
+body.portfolio-page .route-topbar__right.ui-top-right,
+body.cv-page .route-topbar__right.ui-top-right {
+  display: flex;
+  grid-template-columns: none;
+  justify-content: flex-end;
+  align-items: flex-start;
+  min-width: 40px;
+  width: auto;
+}
+
+body.portfolio-page .route-topbar__center,
+body.cv-page .route-topbar__center {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 1.8vw, 24px);
+  width: max-content;
+  max-width: calc(100% - clamp(132px, 26vw, 220px));
+  min-width: 0;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+body.portfolio-page .route-topbar__center .footer_link,
+body.cv-page .route-topbar__center .footer_link,
+body.cv-page .route-topbar__center .portfolio-cv-link {
+  white-space: nowrap;
+  flex: 0 0 auto;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Mobile-only row: sound toggle sits under legend + blurb, centered */
 .ui-top-soundRow {
   display: none;
@@ -706,20 +789,26 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   width: 100%;
 }
 
-/* Legend - Left */
+/* Legend - Left
+   Columns use auto width (not 1fr): equal 1fr columns left huge empty space beside short
+   labels, which reads as oversized gutters even with a small column-gap. */
 .legend {
   position: relative;
   top: auto;
   left: auto;
-  /* 3-column grid on desktop - equal width columns */
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  column-gap: var(--abs-gap-lg);
-  row-gap: 0; /* No gap - items fill their cells */
-  padding: var(--gap-xs);
-  /* Limit max width to keep legend compact */
-  max-width: 620px; 
-  width: 100%;
+  grid-template-columns: repeat(3, auto);
+  justify-content: start;
+  justify-items: start;
+  column-gap: var(--abs-gap-xs);
+  row-gap: 0;
+  /* Slightly stronger left inset so the block matches bottom chrome rhythm */
+  padding-block: var(--gap-xs);
+  padding-inline-end: var(--gap-xs);
+  padding-inline-start: var(--gap-md);
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(620px, 100%);
   font-family: 'Geist', sans-serif;
   color: var(--text-primary);
   opacity: var(--legend-opacity);
@@ -769,67 +858,46 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    UNIFIED HOVER BACKGROUND SYSTEM
-   All interactive elements use this base pattern for ::before pseudoelements
+   Chrome controls: opaque cursor-colored ::before + subtle inset light rim (no glass stack)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* Base hover background pattern - applies to all interactive ::before elements */
 .abs-icon-btn::before,
 .footer_link::before,
 .portfolio-cv-link::before,
 #header-cv-link::before,
 .abs-meta-btn::before,
-#site-year::before,
-.decorative-script::before {
+#site-year::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: var(--hover-bg-z, -1);
   border-radius: var(--hover-bg-radius, var(--ui-icon-corner-radius));
-  background:
-    radial-gradient(
-      120% 110% at 14% 8%,
-      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.8)) 0%,
-      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.22)) 26%,
-      transparent 58%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.24)) 0%,
-      transparent 42%
-    );
+  background: var(--cursor-color);
+  box-shadow: var(--ui-chrome-button-edge);
   opacity: 0;
   pointer-events: none;
   transform: scale(0.72);
   transform-origin: center;
-  box-shadow:
-    inset 0 0 0 var(--abs-surface-edge-width, calc(var(--abs-size-1px) * 0.5))
-      rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.88)),
-    inset 0 1px 10px rgba(var(--abs-rgb-white), calc(var(--abs-surface-edge-opacity, 0.14) * 0.35)),
-    0 calc(var(--abs-surface-shadow-offset-y, 6px) * 0.55)
-      calc(var(--abs-surface-shadow-blur, 18px) * 0.45)
-      rgba(var(--abs-rgb-black), calc(var(--abs-surface-glow-opacity, 0.18) * 0.16));
-  /* filter: blur(8px); - Removed */
-  /* -webkit-filter: blur(8px); - Removed */
-  /* backdrop-filter: blur(10px); - Disabled: not working with canvas simulation */
-  /* -webkit-backdrop-filter: blur(10px); */
-  /* Ensure backdrop-filter can work across stacking contexts */
-  /* will-change: backdrop-filter; */
-  /* background-clip: padding-box; */
-  /* Organic Release (Hover Out) */
-  transition: background 500ms var(--ease-settle),
-              opacity 500ms var(--ease-settle),
-              transform 500ms var(--ease-settle),
-              box-shadow 500ms var(--ease-settle);
+  transition:
+    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
+    box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
-/* Specific element overrides using CSS custom properties */
 .abs-icon-btn::before {
-  --hover-bg-z: 0; /* Icon buttons need z-index: 0 instead of -1 */
+  --hover-bg-z: 0;
 }
 
+/* Blurb block: no chrome hover fill (not in hover ::before group below) */
 .decorative-script::before {
-  --hover-bg-radius: var(--abs-radius-card);
-  --hover-bg-duration: var(--duration-quick);
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--abs-radius-card);
+  pointer-events: none;
+  opacity: 0;
 }
 
 /* Interactive legend items (hover effects for tooltip display) */
@@ -843,8 +911,10 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
   margin: 0;
   gap: var(--legend-item-gap);
   /* overflow: hidden; - Removed to allow hover blur to spill out */
-  /* Fill available width in grid cell */
-  width: 100%;
+  /* Shrink-wrap with content-sized grid columns; avoid stretching to phantom 1fr width */
+  width: auto;
+  max-width: 100%;
+  justify-self: start;
   box-sizing: border-box;
 }
 
@@ -872,25 +942,31 @@ body.dark-mode .legend .legend__item--interactive:hover span {
 }
 
 .legend__item--active span {
-  color: var(--cursor-color, var(--link-hover-color));
+  color: var(--cursor-hover-fg, var(--text-primary));
+  opacity: 1;
 }
 
 .legend__item--active::before {
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-active), transparent calc(100% - var(--abs-hover-intensity-active)));
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--legend-item-radius);
+  pointer-events: none;
+  background: var(--cursor-color, var(--link-hover-color));
+  box-shadow: var(--ui-chrome-button-edge);
 }
 
-/* Dimmed state (when another filter is active) */
-.legend__item--dimmed {
+/* Dimmed state (when another filter is active): fade label only; dots stay full strength.
+   `.legend__item.legend__item--dimmed` beats default index span opacity; dimmed:hover beats plain :hover span. */
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item.legend__item--dimmed span {
+  color: inherit;
   opacity: 0.35;
   transition: opacity 0.25s var(--ease-organic);
 }
 
-.legend__item--dimmed:hover {
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item.legend__item--dimmed:hover span {
   opacity: 0.6;
-}
-
-.legend__item--dimmed span {
-  color: inherit;
 }
 
 /* Legend tooltip — floating dialog below the clicked label (position set by JS) */
@@ -1013,6 +1089,8 @@ body.dark-mode .legend-tooltip-output {
 
 .ui-top-right #sound-toggle-slot {
   justify-self: end;
+  /* Parent .ui-top-right is pointer-events: none; slot must participate so the button receives hover */
+  pointer-events: auto;
 }
 
 .decorative-script {
@@ -1039,17 +1117,20 @@ body.dark-mode .legend-tooltip-output {
   isolation: isolate;
 }
 
-/* Hover background pseudo-element for decorative-script */
-.decorative-script::before {
-  /* Specific overrides for decorative script */
-  --hover-bg-radius: var(--abs-radius-card);
-  --hover-bg-duration: var(--duration-quick);
+/* Home: align blurb first line with legend first line (match legend top inset: container + first item padding) */
+body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+  padding-block-start: calc(var(--gap-xs) + var(--gap-sm));
 }
 
 /* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */
 
-/* Index page: reduce default text saturation/opacity (except logo) */
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item,
+/* Index page: reduce default text saturation/opacity (except logo).
+   Legend dots stay full opacity — only the label span is muted. */
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item span {
+  opacity: 0.7;
+  transition: opacity 0.15s var(--ease-organic);
+}
+
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script,
 /* #main-links .footer_link excluded - entrance animation controls opacity */
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link,
@@ -1062,12 +1143,13 @@ body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn {
 
 /* Restore full opacity on hover/focus */
 /* Note: #main-links .footer_link excluded - controlled by entrance animation state */
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:hover,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:hover span,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:focus-visible span,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:hover,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:hover,
-body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item:focus-visible,
+body:not(.portfolio-page):not(.cv-page):not(.detail-open) .decorative-script:focus-visible,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .footer_icon-link:focus-visible,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .sound-toggle:focus-visible,
 body:not(.portfolio-page):not(.cv-page):not(.detail-open) .abs-meta-btn:focus-visible {
@@ -1169,9 +1251,8 @@ p {
   /* Horizontally centered */
   left: 50%;
   transform: translateX(-50%) scale(1);
-  /* Vertical position: viewport center (50%) + 5vh downshift (matching .ui-center)
-     + logo visual half-height (~2vh) + gap (reduced 35% then 17%, matches .ui-center gap) */
-  top: calc(50% + 5vh + clamp(17px, 2.16vw, 30px));
+  /* Below canvas logo + subtitle; large clamp keeps row clear of the mark */
+  top: calc(50% + 5vh + clamp(72px, 9vw, 160px));
   transform-origin: center center;
   z-index: 10; /* Match .ui-center z-index */
   /* Horizontal flexbox layout - center aligned */
@@ -1303,7 +1384,7 @@ body:not(.dark-mode) #header-cv-link {
   opacity: 1; /* Remove opacity on hover - full strength color */
 }
 
-/* Middle nav bar buttons (Contact / Portfolio / Bio/CV): keep radius consistent on hover */
+/* Middle nav bar buttons (Contact / Portfolio / About me): keep radius consistent on hover */
 .footer_link:hover {
   border-radius: var(--ui-icon-corner-radius);
 }
@@ -1321,7 +1402,7 @@ body.dark-mode #main-links .footer_link {
 }
 
 body.dark-mode #main-links .footer_link:hover {
-  color: var(--cursor-color);
+  color: var(--cursor-hover-fg, var(--text-primary));
 }
 
 
@@ -1428,6 +1509,8 @@ button.abs-meta-btn,
 .abs-icon-btn > svg {
   width: var(--ui-icon-glyph-size);
   height: var(--ui-icon-glyph-size);
+  position: relative;
+  z-index: 1; /* Above ::before fill (same as .footer_icon-link icons) */
 }
 
 /* Social links use gap from parent .footer_icon-group (tokenized via --footer-icon-gap) */
@@ -1452,13 +1535,6 @@ button.abs-meta-btn,
 .footer_icon-link:hover {
   color: var(--cursor-color, var(--link-hover-color));
   opacity: 1;
-}
-
-/* Keep icon above gradient */
-.footer_icon-link i,
-.footer_icon-link svg {
-  position: relative;
-  z-index: 1;
 }
 
 /* Right: Meta (Time + Sound) */
@@ -1913,15 +1989,18 @@ html.modal-active #main-links { pointer-events: none; }
 
 #brand-logo .brand-logo-svg {
   display: block;
-  /* Logo width: 250px min (mobile) to 500px max */
-  width: clamp(250px, 45vw, 500px);
+  width: clamp(
+    var(--abs-home-logo-min-px, 340px),
+    calc(var(--abs-home-logo-width-vw, 52) * 1vw),
+    var(--abs-home-logo-max-px, 640px)
+  );
   max-width: 90vw; /* Prevent overflow on small screens */
   height: auto;
   padding-left: clamp(8px, 0.8vw, 10px);
 }
 
 #brand-logo .brand-logo-path--secondary {
-  fill-opacity: var(--brand-logo-secondary-opacity, 0.66);
+  fill-opacity: var(--brand-logo-secondary-opacity, 1);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -2236,8 +2315,8 @@ html.is-safari .noise::before {
    ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 991px) { /* Tablet */
   .legend {
-    grid-template-columns: repeat(3, 1fr); /* 3x3 layout, equal width columns */
-    column-gap: var(--abs-gap-md);
+    grid-template-columns: repeat(3, auto);
+    column-gap: var(--abs-gap-xs);
     row-gap: 0;
   }
 }
@@ -2246,8 +2325,8 @@ html.is-safari .noise::before {
    Switch to 2 columns so the right blurb can breathe. */
 @media (max-width: 820px) {
   .legend {
-    grid-template-columns: repeat(2, 1fr);
-    column-gap: var(--abs-gap-md);
+    grid-template-columns: repeat(2, auto);
+    column-gap: var(--abs-gap-xs);
     row-gap: 0;
   }
 }
@@ -2270,9 +2349,13 @@ html.is-safari .noise::before {
     --edge-label-inset-gap: 2px;
   }
   
-  /* Mobile logo sizing: 60vw */
+  /* Mobile logo sizing */
   #brand-logo .brand-logo-svg {
-    width: 78vw;
+    width: clamp(
+      var(--abs-home-mobile-logo-min-px, 220px),
+      calc(var(--abs-home-mobile-logo-width-vw, 64) * 1vw),
+      var(--abs-home-mobile-logo-max-px, 320px)
+    );
   }
 
   .ui-top {
@@ -2581,6 +2664,12 @@ button:hover {
   position: relative;
 }
 
+/* Sound button: [data-enabled] resting color must not win over solid hover fill + contrast fg */
+.sound-toggle.abs-icon-btn:hover,
+.sound-toggle.abs-icon-btn:focus-visible {
+  color: var(--cursor-hover-fg, var(--cursor-color));
+}
+
 .abs-icon-btn:hover {
   background: transparent;
   /* No border-radius - only ::before has rounded corners */
@@ -2592,9 +2681,11 @@ button:hover {
 .portfolio-cv-link::before,
 #header-cv-link::before,
 .abs-meta-btn::before,
-#site-year::before,
-.quote-display::before {
-  transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)), opacity 0.2s ease, background 0.2s ease;
+#site-year::before {
+  transition:
+    transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
+    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
 .quote-display::before {
@@ -2606,8 +2697,9 @@ button:hover {
   opacity: 0;
   z-index: -1;
   background: var(--cursor-color);
-  /* Slow fade-out: colour drains away like energy leaving the puck */
-  transition: opacity 1.2s ease-out, transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic));
+  box-shadow: var(--ui-chrome-button-edge);
+  /* Fade-out after hover (shortened; fill snap uses --ui-chrome-fill-transition-duration) */
+  transition: opacity 0.45s ease-out, transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic));
 }
 
 .abs-icon-btn:hover::before,
@@ -2615,33 +2707,24 @@ button:hover {
 .portfolio-cv-link:hover::before,
 #header-cv-link:hover::before,
 .abs-meta-btn:hover::before,
-#site-year:hover::before,
-.quote-display:hover::before {
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-light), transparent);
+#site-year:hover::before {
+  background: var(--cursor-color);
   opacity: 1;
   transform: scale(var(--abs-button-swell-scale, 1.06));
-  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), opacity 0.2s ease, background 0.2s ease;
+  transition:
+    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
+    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
-/* Dark mode: adjust hover background intensity for all elements */
-body.dark-mode .abs-icon-btn:hover::before,
-body.dark-mode .footer_link:hover::before,
-body.dark-mode .portfolio-cv-link:hover::before,
-body.dark-mode #header-cv-link:hover::before,
-body.dark-mode .abs-meta-btn:hover::before,
-body.dark-mode #site-year:hover::before,
-.dark-mode .quote-display:hover::before {
-  background: color-mix(in srgb, var(--cursor-color) var(--abs-hover-intensity-dark), transparent);
-}
-
-/* Quote button: full cursor color on hover (not mix); fast in, slow out */
+/* Quote: same solid fill; fast opacity in, slow fade out on leave */
 .quote-display:hover::before {
   background: var(--cursor-color);
-  transition: opacity 0.2s ease, transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
-}
-.dark-mode .quote-display:hover::before {
-  background: var(--cursor-color);
-  transition: opacity 0.2s ease, transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
+  opacity: 1;
+  transform: scale(var(--abs-button-swell-scale, 1.06));
+  transition:
+    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
+    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
 }
 /* Quote text: no color change on hover — stays legible against ::before overlay */
 
@@ -3106,10 +3189,10 @@ body.dark-mode .contact-modal {
   -moz-osx-font-smoothing: grayscale;
 
   transition:
-    border-color 0.25s var(--ease-gate),
-    background-color 0.25s var(--ease-gate),
-    box-shadow 0.35s var(--ease-gate),
-    color 0.35s var(--ease-gate),
+    border-color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
+    background-color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
+    box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
+    color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
     transform 0.15s var(--ease-organic);
 }
 
@@ -3154,13 +3237,11 @@ body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focu
 }
 
 .contact-email-row:not(.pulse-energy):hover {
-  /* Hover: high-contrast foreground + stronger outline + tinted background (theme-aware). */
-  color: var(--text-primary);
+  color: var(--cursor-hover-fg, var(--text-primary));
   border-color: var(--abs-stroke-medium);
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-light), transparent calc(100% - var(--abs-hover-intensity-light)));
-  background-color: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-light), transparent calc(100% - var(--abs-hover-intensity-light)));
-  /* Avoid hover-only shadow spreads that can trigger subpixel raster differences. */
-  box-shadow: none;
+  background: var(--cursor-color, var(--link-hover-color));
+  background-color: var(--cursor-color, var(--link-hover-color));
+  box-shadow: var(--ui-chrome-button-edge);
 }
 
 .contact-email-row:active {
@@ -3278,11 +3359,11 @@ body.dark-mode:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-e
 }
 
 body.dark-mode .contact-email-row:not(.pulse-energy):hover {
-  color: var(--text-primary);
+  color: var(--cursor-hover-fg, var(--text-primary));
   border-color: rgba(var(--abs-rgb-white), 0.34);
-  background: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-dark), transparent calc(100% - var(--abs-hover-intensity-dark)));
-  background-color: color-mix(in srgb, var(--cursor-color, var(--link-hover-color)) var(--abs-hover-intensity-dark), transparent calc(100% - var(--abs-hover-intensity-dark)));
-  box-shadow: none;
+  background: var(--cursor-color, var(--link-hover-color));
+  background-color: var(--cursor-color, var(--link-hover-color));
+  box-shadow: var(--ui-chrome-button-edge);
 }
 
 body.dark-mode .contact-email-copy {
@@ -4655,6 +4736,37 @@ body.cv-page.dark-mode .cv-scroll-container {
     gap: clamp(10px, 3vw, 16px);
   }
 
+  body.portfolio-page .route-topbar {
+    --route-topbar-top: max(calc(var(--abs-safe-top, 0px) + 8px), var(--portfolio-nav-top, 18px));
+    gap: 0;
+    min-height: 44px;
+  }
+
+  body.cv-page .route-topbar {
+    --route-topbar-top: max(calc(var(--abs-safe-top, 0px) + 8px), 14px);
+    gap: 0;
+    min-height: 44px;
+  }
+
+  body.portfolio-page .route-topbar__center,
+  body.cv-page .route-topbar__center {
+    gap: clamp(4px, 1.8vw, 10px);
+    max-width: calc(100% - 124px);
+  }
+
+  body.portfolio-page .route-topbar__center .footer_link,
+  body.cv-page .route-topbar__center .footer_link,
+  body.cv-page .route-topbar__center .portfolio-cv-link {
+    font-size: clamp(
+      calc(0.72rem + var(--abs-size-1px)),
+      2.5vw,
+      calc(0.84rem + var(--abs-size-1px))
+    );
+    padding-inline: clamp(2px, 0.8vw, 6px);
+    padding-block: clamp(8px, 1.6vw, 10px);
+    letter-spacing: -0.01em;
+  }
+
   body:not(.portfolio-page):not(.cv-page) .ui-top-left,
   body:not(.portfolio-page):not(.cv-page) .ui-top-right {
     width: 100%;
@@ -4676,13 +4788,21 @@ body.cv-page.dark-mode .cv-scroll-container {
   body:not(.portfolio-page):not(.cv-page) .legend__item {
     min-height: 28px;
     padding: 4px 0;
-    font-size: clamp(0.72rem, 2.6vw, 0.82rem);
+    font-size: clamp(
+      calc(0.72rem + 2 * var(--abs-size-1px)),
+      2.6vw,
+      calc(0.82rem + 2 * var(--abs-size-1px))
+    );
   }
 
   body:not(.portfolio-page):not(.cv-page) .decorative-script {
     max-width: min(100%, 30ch);
     text-align: left;
-    font-size: clamp(0.82rem, 3.4vw, 0.94rem);
+    font-size: clamp(
+      calc(0.82rem + var(--abs-size-1px)),
+      3.4vw,
+      calc(0.94rem + var(--abs-size-1px))
+    );
     line-height: 1.4;
     padding: 0;
   }
@@ -4828,12 +4948,20 @@ body.cv-page.dark-mode .cv-scroll-container {
   body:not(.portfolio-page):not(.cv-page) .legend__item {
     min-height: 24px;
     padding-block: 2px;
-    font-size: clamp(0.68rem, 2.3vw, 0.78rem);
+    font-size: clamp(
+      calc(0.68rem + 2 * var(--abs-size-1px)),
+      2.3vw,
+      calc(0.78rem + 2 * var(--abs-size-1px))
+    );
   }
 
   body:not(.portfolio-page):not(.cv-page) .decorative-script {
     max-width: min(100%, 24ch);
-    font-size: clamp(0.76rem, 3vw, 0.88rem);
+    font-size: clamp(
+      calc(0.76rem + var(--abs-size-1px)),
+      3vw,
+      calc(0.88rem + var(--abs-size-1px))
+    );
     line-height: 1.32;
   }
 
@@ -4896,7 +5024,11 @@ body.cv-page.dark-mode .cv-scroll-container {
 
   body:not(.portfolio-page):not(.cv-page) .decorative-script {
     max-width: 100%;
-    font-size: clamp(0.72rem, 3.3vw, 0.82rem);
+    font-size: clamp(
+      calc(0.72rem + var(--abs-size-1px)),
+      3.3vw,
+      calc(0.82rem + var(--abs-size-1px))
+    );
     line-height: 1.28;
   }
 

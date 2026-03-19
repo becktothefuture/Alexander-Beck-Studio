@@ -45,37 +45,14 @@ body.portfolio-page .ui-top {
   z-index: 30;
 }
 
-body.portfolio-page .portfolio-topbar {
-  position: relative;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: var(--portfolio-nav-top);
-}
-
-body.portfolio-page .portfolio-topnav {
-  position: absolute;
-  top: var(--portfolio-nav-top);
-  left: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(12px, 1.2vw, 24px);
-  transform: translateX(-50%);
-  z-index: 5;
-}
-
 body.portfolio-page .portfolio-topnav .footer_link {
   white-space: nowrap;
-}
-
-body.portfolio-page .ui-top-right {
-  margin-left: auto;
-  padding-top: var(--portfolio-nav-top);
 }
 
 body.portfolio-page .portfolio-sound-slot {
   min-width: 40px;
   min-height: 40px;
+  pointer-events: auto;
 }
 
 body.portfolio-page .ui-center-spacer {
@@ -85,6 +62,41 @@ body.portfolio-page .ui-center-spacer {
 .portfolio-project-mount {
   z-index: 22;
   pointer-events: none;
+}
+
+.portfolio-label-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.portfolio-project-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  will-change: transform, opacity;
+  transition: opacity 120ms linear;
+}
+
+.portfolio-project-label__text {
+  display: grid;
+  gap: 0.02em;
+  width: 100%;
+  padding: 0 16%;
+  text-align: center;
+  font-family: var(--abs-font-sans);
+  font-weight: 640;
+  letter-spacing: -0.045em;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.portfolio-project-label__text span {
+  display: block;
 }
 
 .portfolio-project-view {
@@ -366,25 +378,6 @@ body.dark-mode .portfolio-project-view__links a {
 }
 
 @media (max-width: 900px) {
-  body.portfolio-page .portfolio-topbar {
-    padding-top: max(14px, env(safe-area-inset-top));
-  }
-
-  body.portfolio-page .portfolio-topnav {
-    position: static;
-    transform: none;
-    width: 100%;
-    justify-content: center;
-    padding-top: 2px;
-  }
-
-  body.portfolio-page .ui-top-right {
-    position: absolute;
-    top: max(14px, env(safe-area-inset-top));
-    right: clamp(16px, 4vw, 22px);
-    padding-top: 0;
-  }
-
   .portfolio-project-view__hero {
     padding-top: clamp(96px, 14vh, 128px);
   }
@@ -396,14 +389,6 @@ body.dark-mode .portfolio-project-view__links a {
 }
 
 @media (max-width: 640px) {
-  body.portfolio-page .portfolio-topnav {
-    gap: 10px;
-  }
-
-  body.portfolio-page .portfolio-topnav .footer_link {
-    font-size: 0.84rem;
-  }
-
   .portfolio-project-view__title {
     max-width: 12ch;
     font-size: clamp(2rem, 10.6vw, 3.85rem);
