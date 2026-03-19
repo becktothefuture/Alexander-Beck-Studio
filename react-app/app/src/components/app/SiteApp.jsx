@@ -6,6 +6,7 @@ import { getCvRouteView, CV_ROUTE_RUNTIME } from '../../routes/cv/CvRoute.jsx';
 import { getStyleguideRouteView, STYLEGUIDE_ROUTE_RUNTIME } from '../../routes/styleguide/StyleguideRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
+import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
 
 const ROUTE_VIEW_BY_ID = {
   home: getHomeRouteView,
@@ -50,6 +51,7 @@ export function SiteApp() {
 
   return (
     <>
+      <DevConfigPanelBridge />
       <BodyClassManager className={routeView.bodyClass} />
       <StudioShell
         routeRenderKey={routeState.route.id}

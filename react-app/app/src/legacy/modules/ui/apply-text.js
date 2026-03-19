@@ -124,7 +124,11 @@ function applyFooter() {
     const el = document.getElementById(entry.id || '');
     if (!el) continue;
     if (entry.href) el.setAttribute('href', entry.href);
-    if (entry.text) el.textContent = entry.text;
+    if (entry.text) {
+      const nowrap = el.querySelector('.footer-link-nowrap');
+      if (nowrap) nowrap.textContent = entry.text;
+      else el.textContent = entry.text;
+    }
   }
 }
 
@@ -157,18 +161,6 @@ function applySocials() {
   }
 }
 
-function applyHeaderCvLink() {
-  // Reuse footer.links.cv as the single source of truth for the About me label + href.
-  const link = document.getElementById('header-cv-link');
-  if (!link) return;
-
-  const entry = getText('footer.links.cv', null);
-  if (!entry || typeof entry !== 'object') return;
-
-  if (entry.href) link.setAttribute('href', entry.href);
-  if (entry.text) link.textContent = entry.text;
-}
-
 function applyPortfolioBlurb() {
   // Only applies on portfolio UI pages.
   const p = document.querySelector('[data-portfolio-ui] .decorative-script p');
@@ -191,7 +183,6 @@ export function applyRuntimeTextToDOM() {
     applyPhilosophy();
     applyFooter();
     applySocials();
-    applyHeaderCvLink();
     applyPortfolioBlurb();
   } catch (e) {
     // Never allow copy application to crash boot.

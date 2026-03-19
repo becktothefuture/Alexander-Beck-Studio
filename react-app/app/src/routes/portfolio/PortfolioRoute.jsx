@@ -1,3 +1,4 @@
+import { MainNavLink } from '../../components/MainNavLink.jsx';
 import homeContent from '../../../public/config/contents-home.json';
 export const PORTFOLIO_ROUTE_RUNTIME = {
   exportName: 'bootstrapPortfolio',
@@ -38,12 +39,12 @@ export function getPortfolioRouteView() {
             </a>
           </div>
           <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
-            <button id={aboutLink.id} type="button" className="footer_link" aria-haspopup="dialog">
+            <MainNavLink id={aboutLink.id} aria-haspopup="dialog">
               {aboutLink.text}
-            </button>
-            <button id={contactLink.id} type="button" className="footer_link" aria-haspopup="dialog">
+            </MainNavLink>
+            <MainNavLink id={contactLink.id} aria-haspopup="dialog">
               {contactLink.text}
-            </button>
+            </MainNavLink>
           </nav>
           <div className="route-topbar__right ui-top-right">
             <div id="sound-toggle-slot" className="portfolio-sound-slot" />

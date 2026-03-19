@@ -86,6 +86,8 @@ function spawnPourBallPit(globals, targetBalls) {
 
 export function initializeBallPit() {
   const globals = getGlobals();
+  globals.ballBallSurfaceGapPx = 0;
+  globals.collisionPairSlopPx = null;
   clearBalls();
   
   const targetBalls = getMobileAdjustedCount(globals.maxBalls ?? 300);

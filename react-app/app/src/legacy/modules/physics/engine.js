@@ -443,7 +443,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         const ball = balls[i];
         // Skip wall collisions for DVD logo balls (they handle their own bouncing)
         if (ball.isDvdLogo) continue;
-        
+        // Pointer-dragged balls are positioned by the UI; walls() would fight the cursor.
+        if (ball.isPointerLocked) continue;
+
         // Ball Pit has explicit rounded-corner arc clamping in Ball.walls().
         // Avoid an additional velocity-based corner repeller there, which can
         // create local compressions in dense corner stacks.
@@ -473,7 +475,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         const canvasW = canvas.width;
         const canvasH = canvas.height;
         for (let i = 0; i < lenClamp; i++) {
-          balls[i].walls(canvasW, canvasH, DT, wallRestitution, PIT_CLAMP_OPTS);
+          const b = balls[i];
+          if (b?.isPointerLocked) continue;
+          b.walls(canvasW, canvasH, DT, wallRestitution, PIT_CLAMP_OPTS);
         }
 
         // ════════════════════════════════════════════════════════════════════════

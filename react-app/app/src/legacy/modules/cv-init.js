@@ -22,6 +22,9 @@ import { initCvPhotoSlideshow } from './cv/cv-photo-slideshow.js';
 import { initCvPanel } from './cv/cv-panel.js';
 import { applyCvConfig, loadCvRuntimeConfig } from './cv/config.js';
 import { initSharedChrome } from './ui/shared-chrome.js';
+import { setupPointer } from './input/pointer.js';
+import { setupOverscrollLock } from './input/overscroll-lock.js';
+import { setupCustomCursor, updateCursorSize } from './rendering/cursor.js';
 import { getShellConfig, loadShellConfig, syncShellToDocument } from './visual/site-shell.js';
 import { forcePageVisible, waitForPageReadyBarrier } from './visual/page-orchestrator.js';
 import { 
@@ -176,7 +179,17 @@ export async function bootstrapCvPage() {
     try { initPortfolioWallCanvas({ canvasSelector: '.cv-wall-canvas' }); } catch (e) {}
     // Procedural noise texture (no GIF): generates a small texture once and animates via CSS only.
     try { initNoiseSystem(getGlobals()); } catch (e) {}
-    
+
+    const gPointer = getGlobals();
+    gPointer.mouseInCanvas = false;
+    if (typeof window !== 'undefined') window.mouseInCanvas = false;
+    if (gPointer.canvas) {
+      setupPointer();
+      setupOverscrollLock();
+      setupCustomCursor();
+      updateCursorSize();
+    }
+
     // Keep the frame responsive to viewport changes (same behavior as index).
     window.addEventListener('resize', applyWallFrameLayout, { passive: true });
     if (window.visualViewport) {
@@ -201,10 +214,19 @@ export async function bootstrapCvPage() {
   });
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗
-  // ║                    STEP 6: PALETTE + DARK MODE                               ║
+  // ║                    STEP 6: PALETTE + DEV PANEL + DARK MODE                   ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
   // Palette chapters: rotate on each reload (applies only to cursor + palette-driven dots).
   rotatePaletteChapterOnReload();
+
+  // Panel before dark mode init so theme segment buttons in the dock receive listeners (init runs once).
+  try {
+    if (ABS_DEV) {
+      await initCvPanel();
+    }
+  } catch (e) {
+    console.warn('CV config panel failed to initialize', e);
+  }
 
   initializeDarkMode();
 
@@ -236,18 +258,6 @@ export async function bootstrapCvPage() {
     initCvPhotoSlideshow();
   } catch (e) {
     console.warn('CV photo slideshow failed to initialize', e);
-  }
-
-  // ╔══════════════════════════════════════════════════════════════════════════════╗
-  // ║                       CV-SPECIFIC: CONFIG PANEL (DEV ONLY)                   ║
-  // ╚══════════════════════════════════════════════════════════════════════════════╝
-  try {
-    // Production builds intentionally ship with baked-in config (no tuning UI).
-    if (ABS_DEV) {
-      await initCvPanel();
-    }
-  } catch (e) {
-    console.warn('CV config panel failed to initialize', e);
   }
 
   // ╔══════════════════════════════════════════════════════════════════════════════╗

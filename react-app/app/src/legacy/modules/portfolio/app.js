@@ -28,11 +28,16 @@ import {
   disposeRendererListeners,
 } from '../rendering/renderer.js';
 import { render } from '../physics/engine.js';
+import { clampBallPositionToWallInterior } from '../physics/Ball.js';
+import { relaxOverlapsWithKinematicBall } from '../physics/collision.js';
 import { setCanvas } from '../core/state.js';
 import { initModeSystem, setMode, getForceApplicator } from '../modes/mode-controller.js';
 import { startMainLoop } from '../rendering/loop.js';
 import { announceToScreenReader } from '../utils/accessibility.js';
 import { destroyQuoteDisplay } from '../ui/quote-display.js';
+import { setupPointer } from '../input/pointer.js';
+import { setupOverscrollLock } from '../input/overscroll-lock.js';
+import { setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
 
 const BASE_PATH = (() => {
   try {
@@ -175,10 +180,12 @@ class PortfolioPitApp {
     this.projectLabelLayer = null;
     this.projectLabels = [];
     this.hoverProjectIndex = -1;
+    this._projectCloseFallbackTimer = null;
     this.boundCanvasHoverMove = (event) => this.handleCanvasHoverMove(event);
     this.boundCanvasHoverLeave = () => this.handleCanvasHoverLeave();
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
     this.boundProjectCloseClick = (event) => {
+      event.stopPropagation();
       if (event.detail === 0) SoundEngine.playHoverSound?.();
       this.closeProject();
     };
@@ -196,11 +203,20 @@ class PortfolioPitApp {
         this.syncProjectHero(this.projects[this.selectedProjectIndex], false);
       }
     };
+    this.boundSheetTransitionEnd = (event) => {
+      if (event.target !== this.projectSheet) return;
+      if (event.propertyName !== 'transform') return;
+      if (!this.projectView?.classList.contains('is-closing')) return;
+      this.finishProjectClose();
+    };
+    this.boundBackdropPointerDown = (event) => {
+      if (event.target === this.projectBackdrop) this.closeProject();
+    };
   }
 
   async init() {
-    this.createProjectView();
     this.ensureAnnouncer();
+    this.createProjectView();
     this.createAccessibleProjectNav();
     const globals = getGlobals();
     globals.portfolioProjects = this.projects;
@@ -237,10 +253,18 @@ class PortfolioPitApp {
     if (this.projectClose) {
       this.projectClose.removeEventListener('click', this.boundProjectCloseClick);
     }
+    if (this.projectBackdrop) {
+      this.projectBackdrop.removeEventListener('pointerdown', this.boundBackdropPointerDown);
+    }
+    if (this.projectSheet) {
+      this.projectSheet.removeEventListener('transitionend', this.boundSheetTransitionEnd);
+    }
     if (this.projectNav) this.projectNav.remove();
     if (this.projectLabelLayer) this.projectLabelLayer.remove();
     if (this.projectView) this.projectView.remove();
     const globals = getGlobals();
+    globals.ballBallSurfaceGapPx = 0;
+    globals.collisionPairSlopPx = null;
     globals.portfolioDomLabels = false;
     globals.portfolioSyncLabelLayer = null;
     globals.portfolioRelayoutLabels = null;
@@ -277,12 +301,15 @@ class PortfolioPitApp {
     globals.gravityMultiplier = baseGravity * gravityScale;
     globals.G = globals.GE * globals.gravityMultiplier;
     globals.physicsSkipSleepingSteps = false;
-    // True contact with drawn circles: collision uses r(1+ballSpacing) for walls and
-    // (r1+r2)+avg*spacing for ball–ball. A previous 0.22 floor forced a visible air gap.
+    // Ball–ball: flat surface gap (~2.5 CSS px) like a visible pit clearance, plus tight
+    // solver slop so circles don’t visually intersect. ballSpacing stays 0 (ratio-only off).
+    const dpr = globals.DPR || 1;
     globals.ballSpacing = 0;
+    globals.ballBallSurfaceGapPx = 2.5 * dpr;
+    globals.collisionPairSlopPx = 0.04 * dpr;
     globals.wallInset = 0;
     globals.physicsCollisionIterations = Math.max(
-      12,
+      14,
       Math.round(Number(globals.physicsCollisionIterations ?? 10) || 10)
     );
 
@@ -307,7 +334,7 @@ class PortfolioPitApp {
   }
 
   createProjectView() {
-    const host = document.body;
+    const host = this.mount || this.canvas?.parentElement;
     if (!host) return;
     const existing = document.getElementById('portfolioProjectView');
     if (existing) existing.remove();
@@ -321,25 +348,28 @@ class PortfolioPitApp {
         aria-labelledby="portfolioProjectTitle"
       >
         <div class="portfolio-project-view__surface">
-          <div class="portfolio-project-view__field" aria-hidden="true"></div>
-          <button class="portfolio-project-view__close gate-back abs-icon-btn" type="button" aria-label="Close project">
-            <i class="ti ti-x" aria-hidden="true"></i>
-          </button>
-          <div class="portfolio-project-view__scroller">
-            <section class="portfolio-project-view__hero">
-              <div class="portfolio-project-view__image-shell">
-                <img class="portfolio-project-view__image" alt="" loading="eager" />
-                <div class="portfolio-project-view__image-veil" aria-hidden="true"></div>
-              </div>
-              <div class="portfolio-project-view__hero-copy">
-                <p class="portfolio-project-view__eyebrow"></p>
-                <h1 id="portfolioProjectTitle" class="portfolio-project-view__title"></h1>
-                <p class="portfolio-project-view__scroll-hint">Scroll to explore</p>
-              </div>
-            </section>
-            <section class="portfolio-project-view__body">
-              <div class="portfolio-project-view__body-inner" id="portfolioProjectContent"></div>
-            </section>
+          <div class="portfolio-project-view__backdrop" aria-hidden="true"></div>
+          <div class="portfolio-project-view__sheet">
+            <div class="portfolio-project-view__sheet-highlight" aria-hidden="true"></div>
+            <button class="portfolio-project-view__close" type="button" aria-label="Close project">
+              <i class="ti ti-x" aria-hidden="true"></i>
+            </button>
+            <div class="portfolio-project-view__scroller">
+              <section class="portfolio-project-view__hero">
+                <div class="portfolio-project-view__image-shell">
+                  <img class="portfolio-project-view__image" alt="" loading="eager" />
+                  <div class="portfolio-project-view__image-veil" aria-hidden="true"></div>
+                </div>
+                <div class="portfolio-project-view__hero-copy">
+                  <p class="portfolio-project-view__eyebrow"></p>
+                  <h1 id="portfolioProjectTitle" class="portfolio-project-view__title"></h1>
+                  <p class="portfolio-project-view__scroll-hint">Scroll to explore</p>
+                </div>
+              </section>
+              <section class="portfolio-project-view__body">
+                <div class="portfolio-project-view__body-inner" id="portfolioProjectContent"></div>
+              </section>
+            </div>
           </div>
         </div>
       </section>
@@ -347,7 +377,8 @@ class PortfolioPitApp {
 
     this.projectView = document.getElementById('portfolioProjectView');
     this.projectSurface = this.projectView?.querySelector('.portfolio-project-view__surface');
-    this.projectField = this.projectView?.querySelector('.portfolio-project-view__field');
+    this.projectBackdrop = this.projectView?.querySelector('.portfolio-project-view__backdrop');
+    this.projectSheet = this.projectView?.querySelector('.portfolio-project-view__sheet');
     this.projectScroller = this.projectView?.querySelector('.portfolio-project-view__scroller');
     this.projectImage = this.projectView?.querySelector('.portfolio-project-view__image');
     this.projectEyebrow = this.projectView?.querySelector('.portfolio-project-view__eyebrow');
@@ -359,6 +390,7 @@ class PortfolioPitApp {
   bindProjectOverlay() {
     if (!this.projectClose) return;
     this.projectClose.addEventListener('click', this.boundProjectCloseClick);
+    this.projectBackdrop?.addEventListener('pointerdown', this.boundBackdropPointerDown);
   }
 
   ensureAnnouncer() {
@@ -614,7 +646,8 @@ class PortfolioPitApp {
     if (distance > 8) this.dragMoved = true;
 
     const now = performance.now();
-    const deltaTime = Math.max(16, now - this.dragStart.lastStamp);
+    const rawDt = now - this.dragStart.lastStamp;
+    const deltaTime = Math.max(16, Math.min(rawDt, 45));
     const targetX = point.x - this.dragStart.offsetX;
     const targetY = point.y - this.dragStart.offsetY;
 
@@ -625,7 +658,10 @@ class PortfolioPitApp {
 
     this.dragBall.x = targetX;
     this.dragBall.y = targetY;
-    this.dragBall.theta = 0;
+    if (this.canvas) {
+      clampBallPositionToWallInterior(this.dragBall, this.canvas.width, this.canvas.height);
+    }
+    relaxOverlapsWithKinematicBall(this.dragBall);
     this.dragStart.lastX = targetX;
     this.dragStart.lastY = targetY;
     this.dragStart.lastStamp = now;
@@ -770,20 +806,13 @@ class PortfolioPitApp {
       ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
       : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
     const imageFadeMs = clamp(toNumber(this.config.runtime.motion?.imageFadeMs, 220), 0, 600);
-    const titleDelay = clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 480), 0, 1200);
-    const floodHold = clamp(toNumber(this.config.runtime.motion?.colorFloodHoldMs, 120), 0, 500);
+    const titleDelay = clamp(toNumber(this.config.runtime.motion?.titleRevealDelayMs, 280), 0, 1200);
 
-    this.projectView.style.setProperty('--portfolio-project-start-x', `0px`);
-    this.projectView.style.setProperty('--portfolio-project-start-y', `0px`);
-    this.projectView.style.setProperty('--portfolio-project-start-scale-x', `1`);
-    this.projectView.style.setProperty('--portfolio-project-start-scale-y', `1`);
-    this.projectView.style.setProperty('--portfolio-project-start-radius', `0px`);
     this.projectView.style.setProperty('--portfolio-project-fill', fill);
     this.projectView.style.setProperty('--portfolio-project-ink', getContrastText(fill));
     this.projectView.style.setProperty('--portfolio-project-open-ms', `${openDuration}ms`);
     this.projectView.style.setProperty('--portfolio-project-image-fade-ms', `${imageFadeMs}ms`);
     this.projectView.style.setProperty('--portfolio-project-title-delay-ms', `${titleDelay}ms`);
-    this.projectView.style.setProperty('--portfolio-project-flood-hold-ms', `${floodHold}ms`);
 
     this.projectImage.src = resolveAsset(project.image || CONFIG.coverFallback);
     this.projectImage.alt = project.title || 'Project cover';
@@ -792,22 +821,33 @@ class PortfolioPitApp {
     this.projectContent.innerHTML = this.buildProjectContent(project);
     this.syncProjectButtonStates();
 
-    if (!animate) return;
+    if (!animate) {
+      this.projectView.classList.add('is-visible', 'is-open', 'is-title-visible');
+      this.projectView.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('portfolio-project-open');
+      this.projectScroller.scrollTop = 0;
+      return;
+    }
 
-    this.projectView.classList.remove('is-ready', 'is-title-visible', 'is-opening');
+    this.projectView.classList.remove('is-open', 'is-title-visible', 'is-closing');
     this.projectView.classList.add('is-visible');
     this.projectView.setAttribute('aria-hidden', 'false');
     document.body.classList.add('portfolio-project-open');
     this.projectScroller.scrollTop = 0;
 
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      this.projectView.classList.add('is-open', 'is-title-visible');
+      return;
+    }
+
     requestAnimationFrame(() => {
-      this.projectView.classList.add('is-opening');
+      requestAnimationFrame(() => {
+        this.projectView.classList.add('is-open');
+      });
     });
 
     this.clearProjectOpenTimeouts();
-    this.projectOpenTimeouts.push(window.setTimeout(() => {
-      this.projectView.classList.add('is-ready');
-    }, openDuration + floodHold));
     this.projectOpenTimeouts.push(window.setTimeout(() => {
       this.projectView.classList.add('is-title-visible');
     }, titleDelay));
@@ -840,49 +880,72 @@ class PortfolioPitApp {
     const openDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ? clamp(toNumber(this.config.runtime.behavior?.reducedMotionDurationMs, 320), 120, 700)
       : clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
-    const floodHold = clamp(toNumber(this.config.runtime.motion?.colorFloodHoldMs, 120), 0, 500);
     this.projectOpenTimeouts.push(window.setTimeout(() => {
       this.projectClose?.focus();
-    }, Math.min(900, openDuration + floodHold)));
+    }, Math.min(900, openDuration + 80)));
+  }
+
+  finishProjectClose() {
+    if (!this.projectView) return;
+    if (this._projectCloseFallbackTimer !== null) {
+      window.clearTimeout(this._projectCloseFallbackTimer);
+      this._projectCloseFallbackTimer = null;
+    }
+    this.projectSheet?.removeEventListener('transitionend', this.boundSheetTransitionEnd);
+    this.projectView.classList.remove('is-visible', 'is-closing', 'is-open', 'is-title-visible');
+    this.projectView.setAttribute('aria-hidden', 'true');
+    this.restoreBackgroundInteractivity();
+
+    const globals = getGlobals();
+    const balls = Array.isArray(globals.balls) ? globals.balls : [];
+    for (let index = 0; index < balls.length; index += 1) {
+      const ball = balls[index];
+      if (!ball) continue;
+      ball.__portfolioDimAlpha = 1;
+    }
+    if (this.selectedBall) {
+      this.selectedBall.__portfolioHidden = false;
+      this.selectedBall.__portfolioSelected = false;
+      this.selectedBall.isPointerLocked = false;
+    }
+    this.isProjectOpen = false;
+    const restoredIndex = this.selectedProjectIndex;
+    this.selectedBall = null;
+    this.selectedProjectIndex = -1;
+    this.syncProjectButtonStates();
+    if (restoredIndex >= 0) this.setFocusedProjectIndex(restoredIndex);
+    announceToScreenReader('Closed project view');
+    if (this.lastFocusedElement?.focus) {
+      this.lastFocusedElement.focus();
+    } else if (restoredIndex >= 0 && this.projectButtons[restoredIndex]?.focus) {
+      this.projectButtons[restoredIndex].focus();
+    }
   }
 
   closeProject() {
     if (!this.isProjectOpen || !this.projectView) return;
+    if (this.projectView.classList.contains('is-closing')) return;
     this.clearProjectOpenTimeouts();
-    this.projectView.classList.remove('is-title-visible', 'is-ready', 'is-opening');
-    this.projectView.setAttribute('aria-hidden', 'true');
+    this.projectView.classList.remove('is-title-visible');
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
 
-    const globals = getGlobals();
-    const balls = Array.isArray(globals.balls) ? globals.balls : [];
     const openDuration = clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    window.setTimeout(() => {
-      this.projectView.classList.remove('is-visible');
-      this.restoreBackgroundInteractivity();
-      for (let index = 0; index < balls.length; index += 1) {
-        const ball = balls[index];
-        if (!ball) continue;
-        ball.__portfolioDimAlpha = 1;
-      }
-      if (this.selectedBall) {
-        this.selectedBall.__portfolioHidden = false;
-        this.selectedBall.__portfolioSelected = false;
-        this.selectedBall.isPointerLocked = false;
-      }
-      this.isProjectOpen = false;
-      const restoredIndex = this.selectedProjectIndex;
-      this.selectedBall = null;
-      this.selectedProjectIndex = -1;
-      this.syncProjectButtonStates();
-      if (restoredIndex >= 0) this.setFocusedProjectIndex(restoredIndex);
-      announceToScreenReader('Closed project view');
-      if (this.lastFocusedElement?.focus) {
-        this.lastFocusedElement.focus();
-      } else if (restoredIndex >= 0 && this.projectButtons[restoredIndex]?.focus) {
-        this.projectButtons[restoredIndex].focus();
-      }
-    }, openDuration * 0.7);
+    if (reducedMotion || !this.projectSheet) {
+      this.finishProjectClose();
+      return;
+    }
+
+    this.projectSheet.removeEventListener('transitionend', this.boundSheetTransitionEnd);
+    this.projectSheet.addEventListener('transitionend', this.boundSheetTransitionEnd);
+    this.projectView.classList.add('is-closing');
+    this.projectView.classList.remove('is-open');
+
+    this._projectCloseFallbackTimer = window.setTimeout(() => {
+      this._projectCloseFallbackTimer = null;
+      if (this.projectView?.classList.contains('is-closing')) this.finishProjectClose();
+    }, openDuration + 200);
   }
 
   syncProjectButtonStates() {
@@ -1065,6 +1128,13 @@ export async function bootstrapPortfolio() {
   createSoundToggle();
   initNoiseSystem(getGlobals());
 
+  const globalsForPointer = getGlobals();
+  globalsForPointer.mouseInCanvas = false;
+  if (typeof window !== 'undefined') window.mouseInCanvas = false;
+  setupPointer();
+  setupOverscrollLock();
+  setupCustomCursor();
+
   initSharedChrome({
     contactModal: true,
     cvModal: true,
@@ -1088,11 +1158,23 @@ export async function bootstrapPortfolio() {
     projects
   });
   await app.init();
+  updateCursorSize();
 
   const settlePortfolioPresentation = () => {
     try {
       detectOptimalDPR();
       resize();
+
+      // If the initial seed was skipped because the canvas buffer was still at
+      // default 300×150 during the gate transition, re-seed now that the buffer
+      // has been corrected by the resize above.
+      const g = getGlobals();
+      if (g.canvas && g.canvas.width > 2 && g.canvas.height > 2
+          && (!g.balls || g.balls.length === 0)
+          && Array.isArray(g.portfolioProjects) && g.portfolioProjects.length > 0) {
+        setMode(MODES.PORTFOLIO_PIT);
+      }
+
       relayoutPortfolioProjectLabels();
       app.syncProjectLabels();
       render();
@@ -1119,10 +1201,10 @@ export async function bootstrapPortfolio() {
       createPanelDock({
         page: 'portfolio',
         pageLabel: 'Portfolio',
+        portfolioPanelConfig: portfolioConfig,
         pageHTML: generatePanelSectionsHTML(portfolioConfig),
         includePageSaveButton: true,
         pageSaveButtonId: 'savePortfolioConfigBtn',
-        bindShortcut: true,
         panelTitle: 'Settings',
         modeLabel: 'DEV MODE',
         setupPageControls: () => {

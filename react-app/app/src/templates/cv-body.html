@@ -3,6 +3,9 @@
   <div id="abs-scene" class="abs-scene">
     <!-- LAYER 2: CV Container - Content renders here (z:5) -->
     <div id="bravia-balls" class="cv-simulation w-embed">
+      <div id="scene-effects" class="scene-effects" aria-hidden="true">
+        <div class="noise"></div>
+      </div>
       <!-- CV Scrolling Content -->
       <!-- Inline style hides at first paint; cleared by entrance-animation.js -->
       <div class="cv-scroll-container">
@@ -123,34 +126,29 @@
     </div>
     <div id="quote-viewport-host" class="quote-viewport-host" aria-hidden="true"></div>
   </div>
-  
-  <!-- OVERLAY EFFECTS: Visual effects on top of everything (noise, etc.) -->
-  <!-- SCENE EFFECTS: Positioned above wall (z:100), below modals (z:19998) -->
-  <div id="scene-effects" class="scene-effects" aria-hidden="true">
-    <div class="noise"></div>
-  </div>
+
   <div class="frame-vignette" aria-hidden="true"></div>
 
   <!-- UI LAYER: Flexbox Layout Implementation -->
     <div class="fade-content page-content">
       <div id="app-frame" class="ui-layer-wrapper">
         
-        <!-- TOP SECTION -->
+        <!-- TOP SECTION (same route top bar contract as React CvRoute / portfolio) -->
         <header class="ui-top">
-          <div class="ui-top-main">
-          <div class="ui-top-left">
-            <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition data-transition aria-label="Back to home">
-              <i class="ti ti-arrow-left" aria-hidden="true"></i>
-            </a>
-            <button id="portfolio-modal-trigger" type="button" class="portfolio-cv-link" aria-label="Portfolio" aria-haspopup="dialog">Portfolio</button>
-            <button id="contact-email" type="button" class="portfolio-cv-link" aria-label="Contact" aria-haspopup="dialog">Contact</button>
-          </div>
-            <div class="ui-top-right">
-              <div id="sound-toggle-slot"></div>
+          <div class="ui-top-main route-topbar portfolio-topbar">
+            <div class="route-topbar__left">
+              <a href="index.html" class="gate-back abs-icon-btn" data-nav-transition data-transition aria-label="Back to home">
+                <i class="ti ti-arrow-left" aria-hidden="true"></i>
+              </a>
+            </div>
+            <nav class="route-topbar__center portfolio-topnav ui-main-nav" aria-label="CV navigation">
+              <button id="portfolio-modal-trigger" type="button" class="footer_link" aria-label="Portfolio" aria-haspopup="dialog"><span class="footer-link-nowrap">Portfolio</span></button>
+              <button id="contact-email" type="button" class="footer_link" aria-label="Contact" aria-haspopup="dialog"><span class="footer-link-nowrap">Contact</span></button>
+            </nav>
+            <div class="route-topbar__right ui-top-right">
+              <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>
             </div>
           </div>
-          
-        <!-- Mobile Sound Row -->
           <div id="top-elements-soundRow" class="ui-top-soundRow"></div>
         </header>
         

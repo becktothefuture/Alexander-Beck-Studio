@@ -6,9 +6,37 @@
 import { Ball } from '../physics/Ball.js';
 import { getGlobals, clearBalls, syncPitPortfolioRadiusStatsFromBalls } from '../core/state.js';
 import { getPortfolioProjectPaletteColor } from '../visual/colors.js';
+import { resize, detectOptimalDPR } from '../rendering/renderer.js';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+/** Defaults ≈ previous hard-coded rim; rimScale > 1 reads slightly larger than small UI pills. */
+const PIT_CHROME_DEFAULTS = {
+  rimScale: 1.25,
+  lightPeakLight: 0.53,
+  lightPeakDark: 0.41,
+  shadePeakLight: 0.13,
+  shadePeakDark: 0.22,
+  arcSpan: 1.12,
+};
+
+function getPitChrome(globals) {
+  const raw = globals?.portfolioPitConfig?.pitChrome;
+  const out = { ...PIT_CHROME_DEFAULTS };
+  if (!raw || typeof raw !== 'object') return out;
+  for (const key of Object.keys(PIT_CHROME_DEFAULTS)) {
+    const n = Number(raw[key]);
+    if (Number.isFinite(n)) out[key] = n;
+  }
+  out.rimScale = clamp(out.rimScale, 0.65, 2.5);
+  out.lightPeakLight = clamp(out.lightPeakLight, 0.05, 0.95);
+  out.lightPeakDark = clamp(out.lightPeakDark, 0.05, 0.95);
+  out.shadePeakLight = clamp(out.shadePeakLight, 0, 0.55);
+  out.shadePeakDark = clamp(out.shadePeakDark, 0, 0.55);
+  out.arcSpan = clamp(out.arcSpan, 0.55, 2.2);
+  return out;
 }
 
 function toNumber(value, fallback) {
@@ -276,51 +304,22 @@ function strokeArcRimFeathered(ctx, ir, startAngle, endAngle, lineWidth, peakAlp
 }
 
 /**
- * Lower-right “shadow” without a stroked hairline: only wide, low-alpha passes plus a
- * softer sin^2 envelope so it reads as diffuse inner shade (light from upper-left).
- */
-function strokeArcRimShadowDiffuse(ctx, ir, startAngle, endAngle, lineWidth, peakAlpha) {
-  const span = endAngle - startAngle;
-  const segs = Math.round(clamp(ir * 0.09, 38, 54));
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  const drawPass = (lw, peak) => {
-    ctx.lineWidth = lw;
-    for (let i = 0; i < segs; i += 1) {
-      const t0 = i / segs;
-      const t1 = (i + 1) / segs;
-      const s0 = Math.sin(Math.PI * t0);
-      const s1 = Math.sin(Math.PI * t1);
-      const w = (s0 * s0 + s1 * s1) * 0.5;
-      const a = peak * w;
-      if (a < 0.006) continue;
-      const a0 = startAngle + t0 * span;
-      const a1 = startAngle + t1 * span;
-      ctx.strokeStyle = `rgba(0, 0, 0, ${a})`;
-      ctx.beginPath();
-      ctx.arc(0, 0, ir, a0, a1);
-      ctx.stroke();
-    }
-  };
-
-  drawPass(lineWidth * 2.85, peakAlpha * 0.2);
-  drawPass(lineWidth * 1.65, peakAlpha * 0.38);
-}
-
-/**
  * Inset rim in **screen space** (never coupled to ball.theta): same idea as
  * `--ui-chrome-button-edge` — highlight toward upper-left (studio light), shade toward
- * lower-right. Caller must `translate(cx, cy)` first; must not apply ball rotation.
+ * lower-right. Arcs sit with their **outer** stroke extent at the ball radius (not
+ * visibly inset). Caller must `translate(cx, cy)` first; must not apply ball rotation.
  */
 function portfolioBallInsetChromeEdge(ctx, r) {
+  const globals = getGlobals();
+  const chrome = getPitChrome(globals);
   const isDark = typeof document !== 'undefined'
     && document.documentElement?.classList?.contains('dark-mode');
-  const line = Math.max(1.1, r * 0.0032);
-  const ir = Math.max(r - line * 2.2, r * 0.985);
-  const span = 1.12;
-  const peakLight = isDark ? 0.41 : 0.53;
-  const peakShade = isDark ? 0.26 : 0.15;
+  const line = Math.max(1.1, r * 0.0032) * chrome.rimScale;
+  // Widest pass uses line * 1.45; center path so outer stroke edge meets r.
+  const rimR = r - (line * 1.45) * 0.5;
+  const span = chrome.arcSpan;
+  const peakLight = isDark ? chrome.lightPeakDark : chrome.lightPeakLight;
+  const peakShade = isDark ? chrome.shadePeakDark : chrome.shadePeakLight;
 
   ctx.save();
   try {
@@ -331,19 +330,11 @@ function portfolioBallInsetChromeEdge(ctx, r) {
   ctx.arc(0, 0, r, 0, Math.PI * 2);
   ctx.clip();
 
-  const lightMid = (-Math.PI * 3) / 4;
-  strokeArcRimFeathered(ctx, ir, lightMid - span, lightMid + span, line, peakLight, [255, 255, 255]);
-
   const shadeMid = Math.PI / 4;
-  const spanShade = span * 1.26;
-  strokeArcRimShadowDiffuse(
-    ctx,
-    ir,
-    shadeMid - spanShade,
-    shadeMid + spanShade,
-    line,
-    peakShade
-  );
+  strokeArcRimFeathered(ctx, rimR, shadeMid - span, shadeMid + span, line, peakShade, [0, 0, 0]);
+
+  const lightMid = (-Math.PI * 3) / 4;
+  strokeArcRimFeathered(ctx, rimR, lightMid - span, lightMid + span, line, peakLight, [255, 255, 255]);
 
   ctx.restore();
 }
@@ -385,9 +376,31 @@ function renderProjectBody(ctx, ball) {
 
 export function initializePortfolioPit() {
   const globals = getGlobals();
+
+  // SPA gate transitions can leave the canvas at default 300×150 or stale
+  // home-route dimensions if resize() no-oped (container zero-sized during
+  // the CSS opacity transition).  Force a resize and rebind to the live #c
+  // so seedProjectBodies reads correct buffer dimensions.
+  try {
+    detectOptimalDPR();
+    resize();
+  } catch (_) { /* ignore */ }
+
+  const canvas = globals.canvas;
+  if (canvas && (canvas.width <= 2 || canvas.height <= 2)) {
+    // Buffer was never properly sized — skip seeding so the follow-up
+    // settlePortfolioPresentation resize + re-seed can recover.
+    return;
+  }
+
   seedProjectBodies(globals);
 }
 
+/**
+ * Portfolio pit uses the shared pit integrator; extra forces stay empty so we do not
+ * fight global collision/wall tuning. Drag bounds + kinematic handling live in
+ * portfolio `app.js` + `clampBallPositionToWallInterior`.
+ */
 export function applyPortfolioPitForces(ball, dt) {
   if (!ball || ball.__portfolioHidden || ball.isPointerLocked || ball.__portfolioSelected) return;
 }

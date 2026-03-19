@@ -33,6 +33,9 @@ export function StudioShell({
     <>
       <div id="abs-scene" className="abs-scene">
         <div id="bravia-balls" className={wallClassName}>
+          <div id="scene-effects" className="scene-effects" aria-hidden="true">
+            <div className="noise" />
+          </div>
           <div
             id="shell-wall-slot"
             className={getSlotClassName('shell-wall-slot', wallSlotTransitionClassName)}
@@ -41,10 +44,6 @@ export function StudioShell({
               {wallContent}
             </div>
           </div>
-        </div>
-
-        <div id="scene-effects" className="scene-effects" aria-hidden="true">
-          <div className="noise" />
         </div>
         <div className="frame-vignette" aria-hidden="true" />
 

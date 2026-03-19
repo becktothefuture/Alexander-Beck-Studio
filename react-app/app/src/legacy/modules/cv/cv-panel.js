@@ -150,7 +150,6 @@ export async function initCvPanel() {
     pageSectionIcon: '📄',
     includePageSaveButton: true,
     pageSaveButtonId: 'saveCvConfigBtn',
-    bindShortcut: true,
     panelTitle: 'Settings',
     modeLabel: 'DEV MODE',
     setupPageControls: () => {

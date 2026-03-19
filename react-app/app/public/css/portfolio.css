@@ -10,13 +10,8 @@
   --portfolio-project-open-ms: 420ms;
   --portfolio-project-image-fade-ms: 220ms;
   --portfolio-project-title-delay-ms: 480ms;
-  --portfolio-project-flood-hold-ms: 120ms;
-  --portfolio-project-start-x: 0px;
-  --portfolio-project-start-y: 0px;
-  --portfolio-project-start-scale-x: 1;
-  --portfolio-project-start-scale-y: 1;
-  --portfolio-project-start-radius: 0px;
-  --portfolio-project-ease: cubic-bezier(0.2, 0.76, 0.18, 1);
+  --portfolio-sheet-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --portfolio-sheet-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
 }
 
 body.portfolio-page #bravia-balls {
@@ -34,27 +29,21 @@ body.portfolio-project-open {
   overscroll-behavior: none;
 }
 
+/* Custom cursor covers the pit; hide system cursor whenever body is in inner-wall mode */
 body.portfolio-page #c {
-  cursor: grab;
+  cursor: auto;
 }
 
 body.portfolio-page #c:active {
-  cursor: grabbing;
+  cursor: auto;
 }
 
-body.portfolio-page .ui-top {
-  z-index: 30;
+body.portfolio-page.abs-in-simulation #c,
+body.portfolio-page.abs-in-simulation #c:active {
+  cursor: none;
 }
 
-body.portfolio-page .portfolio-topnav .footer_link {
-  white-space: nowrap;
-}
-
-body.portfolio-page .portfolio-sound-slot {
-  min-width: 40px;
-  min-height: 40px;
-  pointer-events: auto;
-}
+/* Route top chrome z-index / nav nowrap / sound slot: shared with CV in main.css */
 
 body.portfolio-page .ui-center-spacer {
   min-height: 0;
@@ -63,6 +52,7 @@ body.portfolio-page .ui-center-spacer {
 .portfolio-project-mount {
   z-index: 22;
   pointer-events: none;
+  isolation: isolate;
 }
 
 .portfolio-label-layer {
@@ -100,19 +90,12 @@ body.portfolio-page .ui-center-spacer {
   display: block;
 }
 
-/* Title hover: underline only (canvas hit-test drives .portfolio-project-label--hover) */
-.portfolio-project-label--hover .portfolio-project-label__text span {
-  text-decoration: underline;
-  text-decoration-thickness: max(1px, 0.06em);
-  text-underline-offset: 0.2em;
-  text-decoration-color: currentColor;
-}
-
 .portfolio-project-view {
-  position: fixed;
+  position: absolute;
   inset: 0;
   visibility: hidden;
-  z-index: 26;
+  z-index: 40;
+  pointer-events: none;
 }
 
 .portfolio-project-view.is-visible {
@@ -123,72 +106,130 @@ body.portfolio-page .ui-center-spacer {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   pointer-events: none;
 }
 
-.portfolio-project-view__field {
+.portfolio-project-view__backdrop {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  pointer-events: none;
+  z-index: 0;
   opacity: 0;
-  border-radius: 0;
-  transform: none;
+  background: rgba(0, 0, 0, 0.38);
+  transition: opacity var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
+  pointer-events: none;
+}
+
+.portfolio-project-view.is-open .portfolio-project-view__backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.portfolio-project-view.is-closing .portfolio-project-view__backdrop {
+  opacity: 0;
+  transition-timing-function: var(--portfolio-sheet-ease-in);
+}
+
+.portfolio-project-view__sheet {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  max-height: min(94%, 100%);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--frame-inner-radius) var(--frame-inner-radius) 0 0;
   background:
-    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.12), transparent 28%),
-    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.08), transparent 22%),
-    radial-gradient(circle at 74% 78%, rgba(0, 0, 0, 0.08), transparent 26%),
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.14), transparent 55%),
     var(--portfolio-project-fill);
-  transition: opacity var(--portfolio-project-open-ms) var(--portfolio-project-ease);
-  transform-origin: center center;
+  box-shadow:
+    0 -1px 0 rgba(255, 255, 255, 0.72),
+    0 -10px 36px rgba(255, 255, 255, 0.22),
+    0 -28px 80px rgba(0, 0, 0, 0.35);
+  transform: translate3d(0, 100%, 0);
+  transition: transform var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
+  pointer-events: auto;
+  box-sizing: border-box;
 }
 
-.portfolio-project-view__field::before {
-  content: '';
+.portfolio-project-view.is-open .portfolio-project-view__sheet {
+  transform: translate3d(0, 0, 0);
+}
+
+.portfolio-project-view.is-closing .portfolio-project-view__sheet {
+  transform: translate3d(0, 100%, 0);
+  transition-timing-function: var(--portfolio-sheet-ease-in);
+}
+
+.portfolio-project-view__sheet-highlight {
   position: absolute;
-  inset: 0;
-  opacity: 0.08;
-  background:
-    radial-gradient(circle at 16% 24%, rgba(255, 255, 255, 0.08), transparent 18%),
-    radial-gradient(circle at 62% 34%, rgba(255, 255, 255, 0.06), transparent 20%),
-    radial-gradient(circle at 78% 72%, rgba(0, 0, 0, 0.08), transparent 22%);
-  transform: scale(0.96);
-  transition: transform 240ms ease;
-}
-
-.portfolio-project-view.is-visible .portfolio-project-view__field {
-  opacity: 1;
-}
-
-.portfolio-project-view.is-opening .portfolio-project-view__field {
-  opacity: 1;
-}
-
-.portfolio-project-view.is-ready .portfolio-project-view__field::before {
-  transform: scale(1);
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.95) 22%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0.95) 78%,
+    transparent
+  );
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .portfolio-project-view__close {
   position: absolute;
-  top: clamp(18px, 2.4vw, 28px);
-  left: clamp(18px, 2.4vw, 28px);
-  z-index: 4;
-  color: rgba(245, 241, 234, 0.98);
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.28);
-  clip-path: inset(0 0 100% 0);
-  transform: translateY(-10px);
-  transition: clip-path 180ms ease, transform 180ms ease;
+  top: var(--gap-md);
+  right: var(--gap-md);
+  z-index: 6;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: clamp(40px, 10vw, 48px);
+  height: clamp(40px, 10vw, 48px);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--ui-icon-corner-radius, 12px);
+  background: rgba(0, 0, 0, 0.42);
+  color: #f5f1ea;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.35),
+    0 6px 20px rgba(0, 0, 0, 0.35);
+  transition:
+    background 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
-.portfolio-project-view.is-ready .portfolio-project-view__close {
-  clip-path: inset(0 0 0 0);
-  transform: translateY(0);
-  pointer-events: auto;
+.portfolio-project-view__close i {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.portfolio-project-view__close:hover {
+  background: rgba(0, 0, 0, 0.58);
+  transform: scale(1.04);
+}
+
+.portfolio-project-view__close:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.95);
+  outline-offset: 2px;
 }
 
 .portfolio-project-view__scroller {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   pointer-events: none;
   scrollbar-width: thin;
@@ -196,7 +237,7 @@ body.portfolio-page .ui-center-spacer {
   -webkit-overflow-scrolling: touch;
 }
 
-.portfolio-project-view.is-ready .portfolio-project-view__scroller {
+.portfolio-project-view.is-open .portfolio-project-view__scroller {
   pointer-events: auto;
 }
 
@@ -217,7 +258,7 @@ body.portfolio-page .ui-center-spacer {
   transition: opacity var(--portfolio-project-image-fade-ms) ease;
 }
 
-.portfolio-project-view.is-ready .portfolio-project-view__image-shell {
+.portfolio-project-view.is-open .portfolio-project-view__image-shell {
   opacity: 1;
 }
 
@@ -293,7 +334,7 @@ body.portfolio-page .ui-center-spacer {
 }
 
 .portfolio-project-view__body-inner {
-  max-width: min(1040px, calc(100vw - 56px));
+  max-width: min(1040px, calc(100% - var(--gap-lg, 24px)));
   margin: 0 auto;
   display: grid;
   gap: clamp(22px, 3vw, 36px);
@@ -466,8 +507,8 @@ body.portfolio-project-open .ui-bottom {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .portfolio-project-view__field,
-  .portfolio-project-view__field::before,
+  .portfolio-project-view__backdrop,
+  .portfolio-project-view__sheet,
   .portfolio-project-view__image-shell,
   .portfolio-project-view__hero-copy,
   .portfolio-project-view__close {

@@ -11,6 +11,89 @@ import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-s
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;
 
+/**
+ * Rounded-rect interior wall violation (same geometry as Ball.walls).
+ * @returns {null | { nx: number, ny: number, penetration: number, effectiveRadius: number }}
+ */
+function getInteriorWallViolation(ball, w, h) {
+  const globals = getGlobals();
+  const { currentMode, DPR } = globals;
+
+  const spacingRatio = globals.ballSpacing || 0;
+  const effectiveRadius = ball.r * (1 + spacingRatio);
+
+  const cornerRadiusPx = (typeof globals.getCanvasCornerRadius === 'function')
+    ? globals.getCanvasCornerRadius()
+    : (globals.cornerRadius ?? globals.wallRadius ?? 0);
+  const cr = Math.max(0, Number(cornerRadiusPx) || 0) * (DPR || 1);
+
+  const frameBorderWidthPx = Math.max(0, (globals.frameBorderWidth ?? 0) * (DPR || 1));
+  const insetPx = frameBorderWidthPx;
+  const borderInset = Math.max(0, (globals.wallInset ?? 3)) * (DPR || 1);
+
+  const innerW = Math.max(1, w - insetPx * 2);
+  const innerH = Math.max(1, h - insetPx * 2);
+  const innerR = Math.max(0, Math.min(cr, innerW * 0.5, innerH * 0.5));
+
+  const isPitMode = isPitLikeMode(currentMode);
+  const hx = innerW * 0.5;
+  const hy = innerH * 0.5;
+  const rr = innerR;
+
+  const cx = insetPx + hx;
+  const cy = insetPx + hy;
+  const lx = ball.x - cx;
+  const ly = ball.y - cy;
+  const ax = Math.abs(lx);
+  const ay = Math.abs(ly);
+
+  const rdx = ax - (hx - rr);
+  const rdy = ay - (hy - rr);
+  const outsideCorner = Math.hypot(Math.max(rdx, 0), Math.max(rdy, 0));
+  const insideRect = Math.min(Math.max(rdx, rdy), 0);
+  const sdfDist = outsideCorner + insideRect - rr;
+
+  let nx = 0;
+  let ny = 0;
+  if (rdx > 0 && rdy > 0) {
+    const len = Math.hypot(rdx, rdy);
+    if (len > 1e-6) {
+      nx = rdx / len;
+      ny = rdy / len;
+    }
+  } else if (rdx > rdy) {
+    nx = 1;
+    ny = 0;
+  } else {
+    nx = 0;
+    ny = 1;
+  }
+  nx *= lx < 0 ? -1 : 1;
+  ny *= ly < 0 ? -1 : 1;
+
+  const skipForPit = isPitMode && ny < -0.5;
+  const skipForBubbles = currentMode === MODES.BUBBLES && ny < -0.5;
+  const margin = effectiveRadius + borderInset;
+  const penetration = sdfDist + margin;
+  if (penetration <= 0) return null;
+  if (skipForPit || skipForBubbles) return null;
+  return { nx, ny, penetration, effectiveRadius };
+}
+
+/**
+ * Snap ball center to the legal interior (frame inset + rounded corners). Used for
+ * pointer-drag clamping; matches Ball.walls position resolution.
+ * A few iterations cover tight corners without running the full physics step.
+ */
+export function clampBallPositionToWallInterior(ball, w, h) {
+  for (let iter = 0; iter < 8; iter += 1) {
+    const v = getInteriorWallViolation(ball, w, h);
+    if (!v) return;
+    ball.x -= v.nx * v.penetration;
+    ball.y -= v.ny * v.penetration;
+  }
+}
+
 export class Ball {
   constructor(x, y, r, color) {
     const globals = getGlobals();
@@ -238,107 +321,21 @@ export class Ball {
   walls(w, h, dt, customRest, options = {}) {
     const registerEffects = options.registerEffects !== false && !this._skipWallEffects;
     const globals = getGlobals();
-    const { REST, MASS_BASELINE_KG, MASS_REST_EXP, currentMode, DPR } = globals;
+    const { REST, MASS_BASELINE_KG, DPR } = globals;
     const rest = customRest !== undefined ? customRest : REST;
     const wobbleThreshold = globals.wallWobbleImpactThreshold ?? CONSTANTS.WALL_REST_VEL_THRESHOLD;
-    
-    // Spacing ratio: additional gap as a ratio of ball radius (matches ball-ball spacing)
-    const spacingRatio = globals.ballSpacing || 0;
-    const effectiveRadius = this.r * (1 + spacingRatio);
-    
-    // Corner radius for rounded corner collision
-    // Must match the wall rendering's inner radius calculation exactly (same fallback chain)
-    const cornerRadiusPx = (typeof globals.getCanvasCornerRadius === 'function')
-      ? globals.getCanvasCornerRadius()
-      : (globals.cornerRadius ?? globals.wallRadius ?? 0);
-    const cr = Math.max(0, Number(cornerRadiusPx) || 0) * (DPR || 1);
-    
-    // Balls collide against the simplified frame interior.
-    // Use the explicit frame border width as the visual inset baseline.
-    const frameBorderWidthPx = Math.max(0, (globals.frameBorderWidth ?? 0) * (DPR || 1));
-    const insetPx = frameBorderWidthPx;
-    
-    // Small additional inset to create a gap between balls and walls (prevents overlap)
-    // This is physics-only padding on top of wall thickness
-    const borderInset = Math.max(0, (globals.wallInset ?? 3)) * (DPR || 1);
-    
-    // Corner arc radius must match wall rendering's INNER geometry:
-    // innerR is clamped to inner dims, then borderInset applies as physics-only padding.
-    const innerW = Math.max(1, w - insetPx * 2);
-    const innerH = Math.max(1, h - insetPx * 2);
-    const innerR = Math.max(0, Math.min(cr, innerW * 0.5, innerH * 0.5));
-    const cornerArc = Math.max(0, innerR - borderInset);
-    
+
     let hasWallCollision = false;
     // Note: isGrounded is cleared at start of step() and re-set here if touching floor
-    
-    // ════════════════════════════════════════════════════════════════════════
-    // SIMPLE ROUNDED-RECT SDF COLLISION
-    // ════════════════════════════════════════════════════════════════════════
-    const isPitMode = isPitLikeMode(currentMode);
-    
-    // SDF parameters: inner boundary is inset by frame border width
-    const hx = innerW * 0.5;  // half-width
-    const hy = innerH * 0.5;  // half-height
-    const rr = innerR;        // corner radius
-    
-    // Transform ball position to inner coordinate space (centered)
-    const cx = insetPx + hx;  // center x in canvas coords
-    const cy = insetPx + hy;  // center y in canvas coords
-    
-    // Local coords relative to center
-    const lx = this.x - cx;
-    const ly = this.y - cy;
-    const ax = Math.abs(lx);
-    const ay = Math.abs(ly);
-    
-    // Distance to inner rect (shrunk by corner radius)
-    const dx = ax - (hx - rr);
-    const dy = ay - (hy - rr);
-    
-    // SDF formula for rounded rect
-    const outsideCorner = Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
-    const insideRect = Math.min(Math.max(dx, dy), 0);
-    const sdfDist = outsideCorner + insideRect - rr;
-    
-    // Compute outward normal (gradient direction)
-    let nx = 0, ny = 0;
-    if (dx > 0 && dy > 0) {
-      // In corner region: normal points away from corner center
-      const len = Math.hypot(dx, dy);
-      if (len > 1e-6) {
-        nx = dx / len;
-        ny = dy / len;
-      }
-    } else if (dx > dy) {
-      // Closer to vertical edge
-      nx = 1;
-      ny = 0;
-    } else {
-      // Closer to horizontal edge
-      nx = 0;
-      ny = 1;
-    }
-    
-    // Apply sign based on quadrant
-    nx *= lx < 0 ? -1 : 1;
-    ny *= ly < 0 ? -1 : 1;
-    
-    // Ball Pit mode: skip collision if normal points upward (allow entry from top)
-    const skipForPit = isPitMode && ny < -0.5;
-    // Bubbles mode: skip ceiling collision so bubbles can exit/pop without getting pinned
-    const skipForBubbles = currentMode === MODES.BUBBLES && ny < -0.5;
-    
-    // Margin: ball radius + physics padding
-    const margin = effectiveRadius + borderInset;
-    const penetration = sdfDist + margin;
-    
-    if (penetration > 0 && !skipForPit && !skipForBubbles) {
+
+    const violation = getInteriorWallViolation(this, w, h);
+    if (violation) {
+      const { nx, ny, penetration, effectiveRadius } = violation;
       hasWallCollision = true;
-      
+
       // Capture pre-collision velocity
       const preVn = this.vx * nx + this.vy * ny;
-      
+
       // Push ball inward (opposite to outward normal)
       this.x -= nx * penetration;
       this.y -= ny * penetration;

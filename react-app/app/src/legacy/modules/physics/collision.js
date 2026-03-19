@@ -7,6 +7,20 @@ import { CONSTANTS, isPitLikeMode } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 
+/** Min center distance for ball–ball (canvas buffer px): r1+r2 + ratio padding + flat gap */
+export function getBallBallRestDistance(A, B, globals) {
+  const spacingRatio = globals.ballSpacing || 0;
+  const avgRadius = (A.r + B.r) * 0.5;
+  const gapPx = Math.max(0, Number(globals.ballBallSurfaceGapPx) || 0);
+  return A.r + B.r + (avgRadius * spacingRatio) + gapPx;
+}
+
+function getCollisionPositionalSlop(globals) {
+  const s = globals.collisionPairSlopPx;
+  if (typeof s === 'number' && Number.isFinite(s)) return Math.max(0, s);
+  return 0.5 * (globals.DPR || 1);
+}
+
 const spatialGrid = new Map();
 const reusablePairs = [];
 const pairPool = [];
@@ -14,13 +28,17 @@ const lastBroadphaseStats = {
   sleepingPairSkips: 0
 };
 
+/** Centers closer than this use an arbitrary separation axis (avoids div-by-zero / skipped pairs). */
+const COINCIDENT_CENTERS_EPS2 = 1e-8;
+
 function collectPairsSorted() {
   const globals = getGlobals();
   const balls = globals.balls;
   const canvas = globals.canvas;
   const R_MAX = globals.R_MAX;
   const spacingRatio = globals.ballSpacing || 0; // Ratio of average radius (0.1 = 10% of ball size)
-  
+  const surfaceGapPx = Math.max(0, Number(globals.ballBallSurfaceGapPx) || 0);
+
   const n = balls.length;
   // Always reuse the same array to avoid per-frame allocations.
   reusablePairs.length = 0;
@@ -28,23 +46,27 @@ function collectPairsSorted() {
   if (n < 2) return reusablePairs;
 
   const reuseGrid = globals.physicsSpatialGridOptimization !== false;
-  const pitSleepAwareBroadphase = isPitLikeMode(globals.currentMode)
-    && globals.pitSleepAwareBroadphaseEnabled !== false;
+  const pitLike = isPitLikeMode(globals.currentMode);
+  // With a flat surface gap, sleeping stacks must still generate pairs or gaps won't hold.
+  const pitSleepAwareBroadphase = pitLike
+    && globals.pitSleepAwareBroadphaseEnabled !== false
+    && surfaceGapPx <= 0;
 
-  // Fast path: if everything is sleeping, avoid grid build + pair sort entirely.
-  // (Very common in Pit mode after settling.)
+  // Fast path: if everything is sleeping, skip broadphase (huge win for 300-ball home pit).
+  // MUST NOT run when a minimum ball–ball gap is active: overlaps would never be corrected.
+  // Small pit-like modes (e.g. portfolio) also keep collecting pairs so settled stacks stay valid.
   if (reuseGrid) {
     let anyAwake = false;
     for (let i = 0; i < n; i++) {
       const b = balls[i];
       if (b && !b.isSleeping) { anyAwake = true; break; }
     }
-    if (!anyAwake) return reusablePairs;
+    const smallPitLike = pitLike && n <= 64;
+    if (!anyAwake && surfaceGapPx <= 0 && !smallPitLike) return reusablePairs;
   }
   
-  // Cell size must account for spacing: max collision distance is R_MAX*2*(1+spacingRatio/2)
-  // since spacing is applied to the average radius. Using (1 + spacingRatio) to be safe.
-  const cellSize = Math.max(1, R_MAX * 2 * (1 + spacingRatio));
+  // Cell size must account for spacing + optional flat surface gap between balls.
+  const cellSize = Math.max(1, R_MAX * 2 * (1 + spacingRatio) + surfaceGapPx * 2);
   const gridWidth = Math.ceil(canvas.width / cellSize) + 1;
   if (reuseGrid) {
     for (const arr of spatialGrid.values()) arr.length = 0;
@@ -88,8 +110,7 @@ function collectPairsSorted() {
               continue;
             }
             const dx = B.x - A.x, dy = B.y - A.y;
-            const avgRadius = (A.r + B.r) / 2;
-            const rSum = A.r + B.r + (avgRadius * spacingRatio); // Spacing as ratio of average radius
+            const rSum = getBallBallRestDistance(A, B, globals);
             const dist2 = dx*dx + dy*dy;
             
             if (dist2 < rSum*rSum) {
@@ -121,9 +142,8 @@ export function resolveCollisions(iterations = 10) {
   const sleepingPairSkips = lastBroadphaseStats.sleepingPairSkips;
   const REST = globals.REST;
   const POS_CORRECT_PERCENT = 0.8;
-  const POS_CORRECT_SLOP = 0.5 * globals.DPR;
+  const POS_CORRECT_SLOP = getCollisionPositionalSlop(globals);
   const REST_VEL_THRESHOLD = 30;
-  const spacingRatio = globals.ballSpacing || 0; // Ratio of average radius
   const skipSleepingCollisions = Boolean(globals.physicsSkipSleepingCollisions);
   let overlapDebt = 0;
   
@@ -132,25 +152,37 @@ export function resolveCollisions(iterations = 10) {
       const { i, j } = pairs[k];
       const A = balls[i];
       const B = balls[j];
-      
+      if (A.isPointerLocked && B.isPointerLocked) continue;
+
       const dx = B.x - A.x;
       const dy = B.y - A.y;
-      const avgRadius = (A.r + B.r) / 2;
-      const rSum = A.r + B.r + (avgRadius * spacingRatio); // Spacing as ratio of average radius
+      const rSum = getBallBallRestDistance(A, B, globals);
       const dist2 = dx * dx + dy * dy;
-      if (dist2 === 0 || dist2 > rSum * rSum) continue;
-      const dist = Math.sqrt(dist2);
-      const nx = dx / dist;
-      const ny = dy / dist;
+      if (dist2 > rSum * rSum) continue;
+
+      let dist;
+      let nx;
+      let ny;
+      if (dist2 < COINCIDENT_CENTERS_EPS2) {
+        nx = 1;
+        ny = 0;
+        dist = Math.max(CONSTANTS.MIN_DISTANCE_EPSILON, 1e-4);
+      } else {
+        dist = Math.sqrt(dist2);
+        nx = dx / dist;
+        ny = dy / dist;
+      }
       const overlap = rSum - dist;
       if (iter === 0 && overlap > 0) overlapDebt += overlap;
-      const invA = 1 / Math.max(A.m, 0.001);
-      const invB = 1 / Math.max(B.m, 0.001);
+      const invA = A.isPointerLocked ? 0 : (1 / Math.max(A.m, 0.001));
+      const invB = B.isPointerLocked ? 0 : (1 / Math.max(B.m, 0.001));
+      const invSum = invA + invB;
+      if (invSum <= 0) continue;
 
       const bothSleeping = A.isSleeping && B.isSleeping;
 
       // Positional correction (always applied to prevent overlap, even for sleeping bodies)
-      const correctionMag = POS_CORRECT_PERCENT * Math.max(overlap - POS_CORRECT_SLOP, 0) / (invA + invB);
+      const correctionMag = POS_CORRECT_PERCENT * Math.max(overlap - POS_CORRECT_SLOP, 0) / invSum;
       const cx = correctionMag * nx;
       const cy = correctionMag * ny;
       A.x -= cx * invA; A.y -= cy * invA;
@@ -200,7 +232,7 @@ export function resolveCollisions(iterations = 10) {
 
       if (velAlongNormal < 0) {
         const e = Math.abs(velAlongNormal) < REST_VEL_THRESHOLD ? 0 : REST;
-        const j = -(1 + e) * velAlongNormal / (invA + invB);
+        const j = -(1 + e) * velAlongNormal / invSum;
         const ix = j * nx;
         const iy = j * ny;
         A.vx -= ix * invA; A.vy -= iy * invA;
@@ -213,17 +245,25 @@ export function resolveCollisions(iterations = 10) {
         if (slipMag > 1e-3) {
           const tangentSign = (tvx * -ny + tvy * nx) >= 0 ? 1 : -1;
           const gain = CONSTANTS.SPIN_GAIN_TANGENT;
-          A.omega -= tangentSign * gain * slipMag / Math.max(A.r, 1);
-          B.omega += tangentSign * gain * slipMag / Math.max(B.r, 1);
+          if (!A.isPointerLocked) {
+            A.omega -= tangentSign * gain * slipMag / Math.max(A.r, 1);
+          }
+          if (!B.isPointerLocked) {
+            B.omega += tangentSign * gain * slipMag / Math.max(B.r, 1);
+          }
         }
-        
+
         // Squash
         const impact = Math.min(1, Math.abs(velAlongNormal) / ((A.r + B.r) * 50));
         const sAmt = Math.min(globals.getSquashMax(), impact * 0.8);
-        A.squashAmount = Math.max(A.squashAmount, sAmt * 0.8);
-        A.squashNormalAngle = Math.atan2(-ny, -nx);
-        B.squashAmount = Math.max(B.squashAmount, sAmt * 0.8);
-        B.squashNormalAngle = Math.atan2(ny, nx);
+        if (!A.isPointerLocked) {
+          A.squashAmount = Math.max(A.squashAmount, sAmt * 0.8);
+          A.squashNormalAngle = Math.atan2(-ny, -nx);
+        }
+        if (!B.isPointerLocked) {
+          B.squashAmount = Math.max(B.squashAmount, sAmt * 0.8);
+          B.squashNormalAngle = Math.atan2(ny, nx);
+        }
         
         // ════════════════════════════════════════════════════════════════════════
         // SOUND: Play collision sound (threshold handled by sound engine)
@@ -249,6 +289,65 @@ export function resolveCollisions(iterations = 10) {
   };
 }
 
+// Pointer-driven ball: separate overlaps without relying on broadphase (sleeping stacks
+// often omit ball–ball pairs for perf). Then reuse the global solver to propagate forces.
+const KINEMATIC_OVERLAP_ITERS = 22;
+const KINEMATIC_POS_PERCENT = 1;
+const KINEMATIC_POST_SOLVER_ITERS = 10;
+
+/**
+ * Push all non-kinematic balls out of overlap with `kinematicBall`, then run a short
+ * collision solve so stacks and neighbors redistribute. O(n * iters); safe for portfolio
+ * ball counts. Call from pointermove after the kinematic position is set.
+ */
+export function relaxOverlapsWithKinematicBall(kinematicBall) {
+  if (!kinematicBall?.isPointerLocked) return;
+  const globals = getGlobals();
+  const balls = globals.balls;
+  if (!Array.isArray(balls) || balls.length < 2) return;
+
+  const slop = getCollisionPositionalSlop(globals);
+  const n = balls.length;
+
+  for (let iter = 0; iter < KINEMATIC_OVERLAP_ITERS; iter += 1) {
+    for (let i = 0; i < n; i += 1) {
+      const B = balls[i];
+      if (!B || B === kinematicBall) continue;
+      if (B.isPointerLocked) continue;
+      if (B.__portfolioHidden) continue;
+
+      const dx = B.x - kinematicBall.x;
+      const dy = B.y - kinematicBall.y;
+      const dist2 = dx * dx + dy * dy;
+
+      const rSum = getBallBallRestDistance(kinematicBall, B, globals);
+      if (dist2 >= rSum * rSum) continue;
+
+      let dist;
+      let nx;
+      let ny;
+      if (dist2 < COINCIDENT_CENTERS_EPS2) {
+        nx = 1;
+        ny = 0;
+        dist = Math.max(CONSTANTS.MIN_DISTANCE_EPSILON, 1e-4);
+      } else {
+        dist = Math.sqrt(dist2);
+        nx = dx / dist;
+        ny = dy / dist;
+      }
+      const overlap = rSum - dist;
+      const sep = KINEMATIC_POS_PERCENT * Math.max(overlap - slop, 0);
+      if (sep <= 0) continue;
+
+      B.x += nx * sep;
+      B.y += ny * sep;
+      B.wake?.();
+    }
+  }
+
+  resolveCollisions(KINEMATIC_POST_SOLVER_ITERS);
+}
+
 /**
  * Kaleidoscope-friendly collision resolution:
  * - Avoids large, sudden positional corrections ("popping")
@@ -267,9 +366,8 @@ export function resolveCollisionsCustom({
   const pairs = collectPairsSorted();
   const REST = globals.REST;
   const POS_CORRECT_PERCENT = positionalCorrectionPercent;
-  const POS_CORRECT_SLOP = (positionalCorrectionSlopPx ?? (0.5 * globals.DPR));
+  const POS_CORRECT_SLOP = (positionalCorrectionSlopPx ?? getCollisionPositionalSlop(globals));
   const REST_VEL_THRESHOLD = 30;
-  const spacingRatio = globals.ballSpacing || 0; // Ratio of average radius
   const correctionCap = (maxCorrectionPx ?? (2.0 * (globals.DPR || 1)));
 
   for (let iter = 0; iter < iterations; iter++) {
@@ -277,6 +375,7 @@ export function resolveCollisionsCustom({
       const { i, j } = pairs[k];
       const A = balls[i];
       const B = balls[j];
+      if (A.isPointerLocked && B.isPointerLocked) continue;
 
       if (A.isSleeping && B.isSleeping) continue;
       if (A.isSleeping) A.wake();
@@ -284,20 +383,30 @@ export function resolveCollisionsCustom({
 
       const dx = B.x - A.x;
       const dy = B.y - A.y;
-      const avgRadius = (A.r + B.r) / 2;
-      const rSum = A.r + B.r + (avgRadius * spacingRatio); // Spacing as ratio of average radius
+      const rSum = getBallBallRestDistance(A, B, globals);
       const dist2 = dx * dx + dy * dy;
-      if (dist2 === 0 || dist2 > rSum * rSum) continue;
+      if (dist2 > rSum * rSum) continue;
 
-      const dist = Math.sqrt(dist2);
-      const nx = dx / dist;
-      const ny = dy / dist;
+      let dist;
+      let nx;
+      let ny;
+      if (dist2 < COINCIDENT_CENTERS_EPS2) {
+        nx = 1;
+        ny = 0;
+        dist = Math.max(CONSTANTS.MIN_DISTANCE_EPSILON, 1e-4);
+      } else {
+        dist = Math.sqrt(dist2);
+        nx = dx / dist;
+        ny = dy / dist;
+      }
       const overlap = rSum - dist;
-      const invA = 1 / Math.max(A.m, 0.001);
-      const invB = 1 / Math.max(B.m, 0.001);
+      const invA = A.isPointerLocked ? 0 : (1 / Math.max(A.m, 0.001));
+      const invB = B.isPointerLocked ? 0 : (1 / Math.max(B.m, 0.001));
+      const invSum = invA + invB;
+      if (invSum <= 0) continue;
 
       // Positional correction (capped to prevent visible pops)
-      let correctionMag = POS_CORRECT_PERCENT * Math.max(overlap - POS_CORRECT_SLOP, 0) / (invA + invB);
+      let correctionMag = POS_CORRECT_PERCENT * Math.max(overlap - POS_CORRECT_SLOP, 0) / invSum;
       if (correctionMag > correctionCap) correctionMag = correctionCap;
       const cx = correctionMag * nx;
       const cy = correctionMag * ny;
@@ -310,7 +419,7 @@ export function resolveCollisionsCustom({
       const velAlongNormal = rvx * nx + rvy * ny;
       if (velAlongNormal < 0) {
         const e = Math.abs(velAlongNormal) < REST_VEL_THRESHOLD ? 0 : REST;
-        const jImpulse = -(1 + e) * velAlongNormal / (invA + invB);
+        const jImpulse = -(1 + e) * velAlongNormal / invSum;
         const ix = jImpulse * nx;
         const iy = jImpulse * ny;
         A.vx -= ix * invA; A.vy -= iy * invA;

@@ -447,6 +447,7 @@ html.fonts-loading .project-detail {
 
 .shell-wall-slot {
   position: relative;
+  z-index: 2; /* Above in-wall .scene-effects (noise) so canvas/simulation paints on top */
   width: 100%;
   height: 100%;
 }
@@ -744,7 +745,7 @@ body.portfolio-page .route-topbar {
 }
 
 body.cv-page .route-topbar {
-  --route-topbar-top: var(--gap-xs);
+  --route-topbar-top: calc(var(--gap-xs) + var(--portfolio-nav-top, 0px));
   position: relative;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -788,6 +789,24 @@ body.cv-page .route-topbar__right.ui-top-right {
   align-items: center;
   min-width: var(--ui-icon-frame-size);
   width: auto;
+}
+
+/* Portfolio + CV route top chrome (main.css so CV works without portfolio.css — SPA + cv.html). */
+body.portfolio-page .ui-top,
+body.cv-page .ui-top {
+  z-index: 30;
+}
+
+body.portfolio-page .portfolio-topnav .footer_link,
+body.cv-page .portfolio-topnav .footer_link {
+  white-space: nowrap;
+}
+
+body.portfolio-page .portfolio-sound-slot,
+body.cv-page .portfolio-sound-slot {
+  min-width: 40px;
+  min-height: 40px;
+  pointer-events: auto;
 }
 
 /* In-flow center column so the grid keeps left | center | right across full width (absolute center broke column 3). */
@@ -908,6 +927,14 @@ body.styleguide-page .styleguide-sample-col {
   pointer-events: auto;
 }
 
+/* Same MainNavLink / .footer_link contract as horizontal strip; column layout for demos only */
+body.styleguide-page .ui-main-nav.styleguide-main-nav--stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gap-sm);
+}
+
 body.styleguide-page .styleguide-legend-demo {
   opacity: 1;
   pointer-events: auto;
@@ -1026,8 +1053,6 @@ body.styleguide-page .styleguide-script-demo {
 
 .abs-icon-btn::before,
 .footer_link::before,
-.portfolio-cv-link::before,
-#header-cv-link::before,
 .abs-meta-btn::before,
 #site-year::before {
   content: '';
@@ -1344,8 +1369,7 @@ h3 {
 body:not(.dark-mode) h1,
 body:not(.dark-mode) h2,
 body:not(.dark-mode) h3,
-body:not(.dark-mode) .gate-title,
-body:not(.dark-mode) #header-cv-link {
+body:not(.dark-mode) .gate-title {
   color: var(--text-primary);
 }
 
@@ -1479,9 +1503,7 @@ p {
   }
 }
 
-.footer_link,
-.portfolio-cv-link,
-#header-cv-link {
+.footer_link {
   position: relative;
   /* transform: controlled by entrance animation for #main-links .footer_link */
   padding-block: var(--link-text-padding);
@@ -1511,11 +1533,6 @@ p {
 
 /* Hover background pseudo-element for text links (uses unified base below) */
 
-/* Ensure header CV link is dark on light backgrounds */
-body:not(.dark-mode) #header-cv-link {
-  color: var(--text-primary);
-}
-
 /* Master main nav text buttons: #main-links (home) + .route-topbar__center (portfolio/CV). Mark container with .ui-main-nav. */
 .ui-main-nav .footer_link {
   /* Nav bar buttons: substantial padding matching other page links */
@@ -1538,13 +1555,7 @@ body:not(.dark-mode) #header-cv-link {
   text-align: center;
 }
 
-.portfolio-cv-link {
-  color: var(--text-primary);
-}
-
-.footer_link:hover,
-.portfolio-cv-link:hover,
-#header-cv-link:hover {
+.footer_link:hover {
   /* No color change - keep colors as-is */
   opacity: 1; /* Remove opacity on hover - full strength color */
 }
@@ -1565,11 +1576,6 @@ body:not(.dark-mode) #header-cv-link {
 body.dark-mode .ui-main-nav .footer_link {
   color: var(--text-primary);
 }
-
-body.dark-mode .ui-main-nav .footer_link:hover {
-  color: var(--cursor-hover-fg, var(--text-primary));
-}
-
 
 /* Row 2: Socials + Meta (Space Between) */
 .ui-meta-row {
@@ -2259,9 +2265,9 @@ html.entrance-transitioning #bravia-balls {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SCENE EFFECTS CONTAINER
-   Visual effects layer (noise, video) above everything except modals.
-   Position: above wall (z:100), below modals (z:19998).
-   MUST match #bravia-balls positioning exactly.
+   Film grain: child of #bravia-balls (see #bravia-balls > .scene-effects) so it
+   sits under the pit canvas. Legacy absolute offsets apply only if this node is
+   not placed inside the wall (avoid).
    ───────────────────────────────────────────────────────────────────────────── */
 .scene-effects {
   position: absolute;
@@ -2269,11 +2275,21 @@ html.entrance-transitioning #bravia-balls {
   left: calc(var(--safari-tint-inset) + var(--frame-border-width));
   right: calc(var(--safari-tint-inset) + var(--frame-border-width));
   bottom: calc(var(--safari-tint-inset) + var(--frame-border-width));
-  /* Above wall (z:100) but below UI (z:200) - noise is inset by wall-thickness so it stays within wall interior */
+  /* Default when misplaced; in-wall placement uses #bravia-balls > .scene-effects below */
   z-index: 150;
   pointer-events: none;
   border-radius: var(--frame-inner-radius);
   overflow: hidden;
+}
+
+/* Noise lives inside #bravia-balls so it sits under the simulation canvas (not over it). */
+#bravia-balls > .scene-effects {
+  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
 }
 
 .frame-vignette {
@@ -2789,7 +2805,7 @@ body.abs-link-hovering #custom-cursor {
 }
 
 /* Power Transfer: transition-only, prominent hover-out (no “disappear”) */
-:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year, .quote-display) {
+:is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year, .quote-display) {
   transform: translateZ(0);
   transition:
     transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
@@ -2797,7 +2813,7 @@ body.abs-link-hovering #custom-cursor {
     box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
-:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
+:is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
   transform: translateZ(0);
   transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), color 0.2s ease;
 }
@@ -2831,14 +2847,14 @@ button:hover {
 /* ═══════════════════════════════════════════════════════════════════════════════
    INTERACTIVE HOVER EFFECTS
    Unified hover styling for all clickable UI elements:
-   - Text links: .footer_link, .portfolio-cv-link, #header-cv-link
+   - Text buttons: .footer_link (via MainNavLink + .ui-main-nav)
    - Icon buttons: .abs-icon-btn (social links, sound toggle)
    - Legend items: .legend__item--interactive
    - Meta elements: .abs-meta-btn, #site-year
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ─── Hover State: Color & Background ─── */
-:is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn):hover {
+:is(.footer_link, .abs-icon-btn):hover {
   color: var(--cursor-hover-fg, var(--cursor-color));
   opacity: 1;
   position: relative;
@@ -2858,8 +2874,6 @@ button:hover {
 /* ─── Unified Hover Background (::before) — transition only, no animation ─── */
 .abs-icon-btn::before,
 .footer_link::before,
-.portfolio-cv-link::before,
-#header-cv-link::before,
 .abs-meta-btn::before,
 #site-year::before {
   transition:
@@ -2884,8 +2898,6 @@ button:hover {
 
 .abs-icon-btn:hover::before,
 .footer_link:hover::before,
-.portfolio-cv-link:hover::before,
-#header-cv-link:hover::before,
 .abs-meta-btn:hover::before,
 #site-year:hover::before {
   background: var(--cursor-color);
@@ -2908,7 +2920,15 @@ button:hover {
 }
 /* Quote text: no color change on hover — stays legible against ::before overlay */
 
-.ui-main-nav .footer_link:hover .footer-link-nowrap {
+.ui-main-nav .footer_link .footer-link-nowrap {
+  position: relative;
+  z-index: 1;
+  color: inherit;
+}
+
+.ui-main-nav .footer_link:hover .footer-link-nowrap,
+.ui-main-nav .footer_link:focus-visible .footer-link-nowrap,
+.ui-main-nav .footer_link:active .footer-link-nowrap {
   color: inherit;
   opacity: 1;
 }
@@ -3005,41 +3025,51 @@ button {
   transform: translate3d(-50%, 0, 0) scaleY(0);
 }
 
-/* Text link hover — light mode (background via ::before, not direct) */
+/* Text link hover — light mode (background via ::before, not direct).
+   Do not target #contact-email / #portfolio-modal-trigger here: those ids only exist on `.ui-main-nav`
+   triggers, and an ID + :hover rule beats `.ui-main-nav .footer_link:hover` in dark mode — which
+   made Contact/Portfolio hover ink differ from About me (`#cv-modal-trigger` was never listed). */
 .footer_link:hover,
-.portfolio-cv-link:hover,
-#header-cv-link:hover,
-#contact-email:hover,
-#portfolio-modal-trigger:hover,
 .decorative-script p a:hover {
   color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-black), 1) 60%);
   opacity: 1;
 }
 
-/* Text link hover — dark mode (background via ::before, not direct) */
+/* Text link hover — dark mode (background via ::before, not direct). Same note as light mode. */
 body.dark-mode .footer_link:hover,
-body.dark-mode .portfolio-cv-link:hover,
-body.dark-mode #header-cv-link:hover,
-body.dark-mode #contact-email:hover,
-body.dark-mode #portfolio-modal-trigger:hover,
 body.dark-mode .decorative-script p a:hover {
   color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-white), 1) 60%);
   opacity: 1;
 }
 
-/* Main nav strip (home + portfolio/CV): same hover ink; beats legacy #contact-email / trigger id color-mix. */
+/* Master nav strip (#main-links, portfolio/CV top bar, styleguide): label must stay readable on solid
+   cursor ::before. Generic .footer_link:hover color-mix can land too close to the fill; prefer
+   stamped --cursor-hover-fg, else body text — never raw --cursor-color (same as fill). */
+.ui-main-nav .footer_link:hover,
+.ui-main-nav .footer_link:focus-visible,
+.ui-main-nav .footer_link:active {
+  color: var(--cursor-hover-fg, var(--text-primary));
+  opacity: 1;
+}
+
+body.dark-mode .ui-main-nav .footer_link:hover,
+body.dark-mode .ui-main-nav .footer_link:focus-visible,
+body.dark-mode .ui-main-nav .footer_link:active {
+  color: var(--cursor-hover-fg, var(--text-primary));
+  opacity: 1;
+}
+
+/* Main nav strip: ID selectors beat .footer_link specificity — keep same readable fallback as above. */
 .ui-main-nav #contact-email:hover,
 .ui-main-nav #portfolio-modal-trigger:hover,
 .ui-main-nav #cv-modal-trigger:hover {
-  color: var(--cursor-hover-fg, var(--cursor-color));
+  color: var(--cursor-hover-fg, var(--text-primary));
   opacity: 1;
 }
 
 /* Focus visibility (WCAG priority): restore a clear focus ring for primary interactive targets.
    These override the global focus suppression block above. */
 .footer_link:focus-visible,
-.portfolio-cv-link:focus-visible,
-#header-cv-link:focus-visible,
 .footer_icon-link:focus-visible,
 .decorative-script p a:focus-visible,
 .gate-back:focus-visible,
@@ -3064,14 +3094,12 @@ body.dark-mode .decorative-script p a:hover {
     transform: none;
   }
 
-  :is(.footer_link, .portfolio-cv-link, #header-cv-link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
+  :is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
     transform: none;
   }
   
   .abs-icon-btn:hover::before,
   .footer_link:hover::before,
-  .portfolio-cv-link:hover::before,
-  #header-cv-link:hover::before,
   .abs-meta-btn:hover::before,
   #site-year:hover::before {
     animation: none;
@@ -3080,18 +3108,22 @@ body.dark-mode .decorative-script p a:hover {
   }
 }
 
-/* Cursor transforms to larger transparent circle when modals are open */
+/* Tap / UI ring (64px): portfolio, CV, chrome, gates — see docs/reference/CUSTOM-CURSOR.md */
+#custom-cursor.abs-cursor-tap,
 #custom-cursor.modal-active {
   display: block;
   width: 64px;
   height: 64px;
-  background: rgba(var(--abs-rgb-white), 0.5); /* Transparent but visible */
-  border: 2px solid rgba(var(--abs-rgb-white), 0.34); /* Visible border (increased thickness for larger size) */
+  max-width: 64px;
+  max-height: 64px;
+  box-sizing: border-box;
+  background: rgba(var(--abs-rgb-white), 0.5);
+  border: 2px solid rgba(var(--abs-rgb-white), 0.34);
+  border-radius: 50%;
   transform: translate(-50%, -50%) scale(1);
   opacity: 1;
-  position: fixed; /* Fixed positioning when on body for modals */
-  z-index: 20000; /* Above gates (19998-19999) when active */
 }
+/* position + z-index set in cursor.js: body-fixed tap vs modal stack */
 
 /* Cursor color is palette-driven via --cursor-color (no dark-mode override). */
 
@@ -4116,7 +4148,7 @@ body.cv-page .cv-right p {
   color: var(--text-muted);
 }
 
-/* Top-left nav items — consistent across all pages */
+/* Top-left column (home legend + blurb column) */
 .ui-top-left {
   display: flex;
   flex-direction: column;
@@ -4125,19 +4157,6 @@ body.cv-page .cv-right p {
   gap: 0;
   width: auto;
   flex-shrink: 0;
-}
-
-/* Top-left nav links — consistent padding/alignment */
-.ui-top-left .portfolio-cv-link,
-.ui-top-left #contact-email,
-.ui-top-left #portfolio-modal-trigger {
-  margin: 0;
-  padding: var(--abs-space-2xs) var(--abs-space-sm);
-  block-size: auto;
-  height: auto;
-  min-height: var(--ui-icon-frame-size);
-  display: inline-flex;
-  align-items: center;
 }
 
 /* Wall-only canvas: must NOT capture wheel/touch, or it will block scrolling. */
@@ -4193,6 +4212,32 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   min-height: 0;
   box-sizing: border-box;
   position: relative;
+}
+
+/* Single-column CV: photo + intro stack above sections inside the scroll column (no sidebar). */
+body.cv-page .cv-content.cv-content--single {
+  flex-direction: column;
+}
+
+body.cv-page .cv-content--single .cv-right--single {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 100%;
+}
+
+body.cv-page .cv-hero {
+  display: grid;
+  grid-template-columns: minmax(0, clamp(11rem, 26vw, 15rem)) minmax(0, 1fr);
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  align-items: start;
+  margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+body.cv-page .cv-hero .cv-photo {
+  margin: 0;
+  align-self: stretch;
+  transform: none;
+  max-width: none;
 }
 
 /* Left Area: 40% width (Photo + Intro) */
@@ -4813,6 +4858,30 @@ body.cv-page.dark-mode .cv-scroll-container {
   .cv-content {
     flex-direction: column;
     gap: 0;
+  }
+
+  body.cv-page .cv-hero {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  body.cv-page .cv-hero .cv-intro {
+    align-items: center;
+    text-align: center;
+  }
+
+  body.cv-page .cv-hero .cv-name,
+  body.cv-page .cv-hero .cv-title,
+  body.cv-page .cv-hero .cv-intro-text {
+    text-align: center;
+  }
+
+  body.cv-page .cv-hero .cv-photo {
+    max-width: min(13rem, 60vw);
+    margin: clamp(2.2rem, 5.8vh, 3.35rem) 0 0 auto;
+    align-self: flex-end;
+    transform: translateX(clamp(6px, 2.4vw, 12px));
   }
   
   .cv-left {

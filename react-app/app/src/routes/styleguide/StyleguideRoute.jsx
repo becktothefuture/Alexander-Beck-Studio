@@ -1,3 +1,4 @@
+import { MainNavLink } from '../../components/MainNavLink.jsx';
 import { buildRouteHref } from '../../lib/routes.js';
 
 export const STYLEGUIDE_ROUTE_RUNTIME = {
@@ -30,24 +31,21 @@ export function getStyleguideRouteView() {
         <div className="styleguide-doc">
           <h1 className="styleguide-doc__title">Component library</h1>
           <p className="styleguide-doc__lede">
-            Canonical patterns used across the site. Prefer these over one-off duplicates. Master main actions use{' '}
-            <code className="styleguide-doc__code">.ui-main-nav .footer_link</code> (same as home{' '}
-            <code className="styleguide-doc__code">#main-links</code>).
+            Primary chrome: text actions via <code className="styleguide-doc__code">MainNavLink</code> (renders{' '}
+            <code className="styleguide-doc__code">.footer_link</code> inside <code className="styleguide-doc__code">.ui-main-nav</code>),
+            and icon actions via <code className="styleguide-doc__code">.abs-icon-btn</code>. Do not add alternate text-button classes.
           </p>
 
           <section className="styleguide-section" aria-labelledby="sg-main-nav">
             <h2 id="sg-main-nav">Main navigation text buttons</h2>
-            <p className="styleguide-section__hint">Class <code className="styleguide-doc__code">ui-main-nav</code> on the nav + <code className="styleguide-doc__code">footer_link</code> on each control.</p>
+            <p className="styleguide-section__hint">
+              <code className="styleguide-doc__code">ui-main-nav</code> on the nav +{' '}
+              <code className="styleguide-doc__code">MainNavLink</code> (renders <code className="styleguide-doc__code">footer_link</code> + label span).
+            </p>
             <nav className="ui-main-nav styleguide-sample-row" aria-label="Sample main nav">
-              <button type="button" className="footer_link">
-                Contact
-              </button>
-              <button type="button" className="footer_link">
-                Portfolio
-              </button>
-              <button type="button" className="footer_link">
-                About me
-              </button>
+              <MainNavLink>Contact</MainNavLink>
+              <MainNavLink>Portfolio</MainNavLink>
+              <MainNavLink>About me</MainNavLink>
             </nav>
           </section>
 
@@ -59,19 +57,15 @@ export function getStyleguideRouteView() {
             </p>
             <div className="styleguide-topbar-frame">
               <header className="ui-top">
-                <div className="ui-top-main route-topbar">
+                <div className="ui-top-main route-topbar portfolio-topbar">
                   <div className="route-topbar__left">
                     <span className="gate-back abs-icon-btn styleguide-fake-icon" aria-hidden="true">
                       <i className="ti ti-arrow-left" aria-hidden="true" />
                     </span>
                   </div>
-                  <nav className="route-topbar__center ui-main-nav" aria-label="Sample route top nav">
-                    <button type="button" className="footer_link">
-                      About me
-                    </button>
-                    <button type="button" className="footer_link">
-                      Contact
-                    </button>
+                  <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Sample route top nav">
+                    <MainNavLink>About me</MainNavLink>
+                    <MainNavLink>Contact</MainNavLink>
                   </nav>
                   <div className="route-topbar__right ui-top-right">
                     <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample mute" disabled>
@@ -126,19 +120,19 @@ export function getStyleguideRouteView() {
             </blockquote>
           </section>
 
-          <section className="styleguide-section" aria-labelledby="sg-cv-link">
-            <h2 id="sg-cv-link">CV sidebar / stacked text links</h2>
+          <section className="styleguide-section" aria-labelledby="sg-text-stack">
+            <h2 id="sg-text-stack">Text buttons (stacked layout)</h2>
             <p className="styleguide-section__hint">
-              <code className="styleguide-doc__code">.portfolio-cv-link</code> where a slimmer text control is needed (e.g. CV column). Top route bars use <code className="styleguide-doc__code">footer_link</code> instead.
+              Same component as the horizontal strip — <code className="styleguide-doc__code">MainNavLink</code> +{' '}
+              <code className="styleguide-doc__code">nav.ui-main-nav</code>. Use a column wrapper class for demos or tight columns; do not use a different button class.
             </p>
-            <div className="styleguide-sample-col">
-              <button type="button" className="portfolio-cv-link">
-                Portfolio
-              </button>
-              <button type="button" className="portfolio-cv-link">
-                Contact
-              </button>
-            </div>
+            <nav
+              className="ui-main-nav styleguide-main-nav--stack"
+              aria-label="Sample stacked text buttons"
+            >
+              <MainNavLink>Portfolio</MainNavLink>
+              <MainNavLink>Contact</MainNavLink>
+            </nav>
           </section>
 
           <section className="styleguide-section" aria-labelledby="sg-meta">

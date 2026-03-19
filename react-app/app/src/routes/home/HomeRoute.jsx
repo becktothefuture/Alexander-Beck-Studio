@@ -1,4 +1,5 @@
 import homeContent from '../../../public/config/contents-home.json';
+import { MainNavLink } from '../../components/MainNavLink.jsx';
 import { BRAND_LOGO_SVG } from '../shared/brandLogo.js';
 
 export const HOME_ROUTE_RUNTIME = {
@@ -62,15 +63,9 @@ export function getHomeRouteView() {
         </main>
 
         <nav id="main-links" className="ui-nav-row ui-main-nav" aria-label={homeContent.footer.navAriaLabel}>
-          <button id={footerLinks.contact.id} type="button" className="footer_link">
-            {footerLinks.contact.text}
-          </button>
-          <button id={footerLinks.portfolio.id} type="button" className="footer_link">
-            {footerLinks.portfolio.text}
-          </button>
-          <button id={footerLinks.cv.id} type="button" className="footer_link">
-            {footerLinks.cv.text}
-          </button>
+          <MainNavLink id={footerLinks.contact.id}>{footerLinks.contact.text}</MainNavLink>
+          <MainNavLink id={footerLinks.portfolio.id}>{footerLinks.portfolio.text}</MainNavLink>
+          <MainNavLink id={footerLinks.cv.id}>{footerLinks.cv.text}</MainNavLink>
         </nav>
       </>
     )

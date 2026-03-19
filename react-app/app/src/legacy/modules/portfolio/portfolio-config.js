@@ -57,6 +57,15 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       passiveMouseReaction: false,
       reducedMotionDurationMs: 320,
     },
+    /** Canvas project-disc rim (separate from Studio “Light Edge” on DOM chrome). */
+    pitChrome: {
+      rimScale: 1.25,
+      lightPeakLight: 0.53,
+      lightPeakDark: 0.41,
+      shadePeakLight: 0.13,
+      shadePeakDark: 0.22,
+      arcSpan: 1.12,
+    },
   },
 };
 

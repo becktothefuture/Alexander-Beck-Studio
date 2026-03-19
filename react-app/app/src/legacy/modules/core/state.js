@@ -224,6 +224,10 @@ const state = {
   // Ball properties
   ballSoftness: 29,
   ballSpacing: 0.08,    // Extra collision padding as ratio of ball radius (0.1 = 10% of ball size)
+  /** Additive min surface gap for ball–ball (canvas buffer px). 0 = ratio-only via ballSpacing */
+  ballBallSurfaceGapPx: 0,
+  /** null → positional slop 0.5*DPR in collision solver; number = explicit buffer px */
+  collisionPairSlopPx: null,
 
   // Sleep tuning (Ball Pit modes only)
   // Higher thresholds = balls settle/sleep sooner (less idle jiggle).
@@ -2049,6 +2053,7 @@ export function initState(config) {
 
   // Ball spacing (collision padding)
   if (config.ballSpacing !== undefined) state.ballSpacing = config.ballSpacing;
+  if (config.ballBallSurfaceGapPx !== undefined) state.ballBallSurfaceGapPx = config.ballBallSurfaceGapPx;
 
   // Rubber wall wobble tuning
   if (config.wallPreset !== undefined) state.wallPreset = config.wallPreset;

@@ -1,4 +1,83 @@
 const CONTROL_SECTIONS = {
+  pitChrome: {
+    title: 'Project pit rim',
+    icon: '◐',
+    defaultOpen: true,
+    controls: [
+      {
+        id: 'pitChromeRimScale',
+        label: 'Rim size',
+        configKey: 'runtime.pitChrome.rimScale',
+        type: 'range',
+        min: 1,
+        max: 2,
+        step: 0.05,
+        unit: '×',
+        default: 1.25,
+        hint: 'Scales highlight + shadow stroke vs ball radius. ~1.0 ≈ UI-button proportion; higher = wider rim on large project discs (separate from Studio Light Edge).',
+      },
+      {
+        id: 'pitChromeLightPeakLight',
+        label: 'Highlight · light UI',
+        configKey: 'runtime.pitChrome.lightPeakLight',
+        type: 'range',
+        min: 0.15,
+        max: 0.75,
+        step: 0.01,
+        unit: '',
+        default: 0.53,
+        hint: 'Upper-left white rim strength when the site is in light mode.',
+      },
+      {
+        id: 'pitChromeLightPeakDark',
+        label: 'Highlight · dark UI',
+        configKey: 'runtime.pitChrome.lightPeakDark',
+        type: 'range',
+        min: 0.15,
+        max: 0.65,
+        step: 0.01,
+        unit: '',
+        default: 0.41,
+        hint: 'Upper-left white rim strength in dark mode.',
+      },
+      {
+        id: 'pitChromeShadePeakLight',
+        label: 'Shadow · light UI',
+        configKey: 'runtime.pitChrome.shadePeakLight',
+        type: 'range',
+        min: 0,
+        max: 0.4,
+        step: 0.01,
+        unit: '',
+        default: 0.13,
+        hint: 'Lower-right dark rim in light mode.',
+      },
+      {
+        id: 'pitChromeShadePeakDark',
+        label: 'Shadow · dark UI',
+        configKey: 'runtime.pitChrome.shadePeakDark',
+        type: 'range',
+        min: 0,
+        max: 0.45,
+        step: 0.01,
+        unit: '',
+        default: 0.22,
+        hint: 'Lower-right dark rim in dark mode.',
+      },
+      {
+        id: 'pitChromeArcSpan',
+        label: 'Arc span',
+        configKey: 'runtime.pitChrome.arcSpan',
+        type: 'range',
+        min: 0.7,
+        max: 1.65,
+        step: 0.02,
+        unit: ' rad',
+        default: 1.12,
+        hint: 'Angular length of each rim segment (radians).',
+      },
+    ],
+  },
   layout: {
     title: 'Layout',
     icon: 'LAY',
@@ -62,7 +141,11 @@ const CONTROL_SECTIONS = {
   },
 };
 
-const ACTIVE_SECTION_KEYS = ['layout', 'bodies', 'labeling', 'motion', 'hero'];
+/** All sections whose controls participate in bind + save snapshot. */
+const ACTIVE_SECTION_KEYS = ['pitChrome', 'layout', 'bodies', 'labeling', 'motion', 'hero'];
+
+/** Page master-group only: pit rim is injected under Simulation (see panel-dock). */
+const PORTFOLIO_PAGE_SECTION_KEYS = ['layout', 'bodies', 'labeling', 'motion', 'hero'];
 
 function getControlInputId(control) {
   return `${control.id}Slider`;
@@ -129,10 +212,58 @@ function resolveControlValue(control, config, computedRoot) {
   return control.default;
 }
 
+function escapeAttr(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+function generatePortfolioControlRow(control, config, computedRoot) {
+  const rawValue = resolveControlValue(control, config, computedRoot);
+  const numericValue = parseNumeric(rawValue, control.default);
+  const sliderId = getControlInputId(control);
+  const valId = getControlValueId(control);
+  const hintTitleAttr = control.hint ? ` title="${escapeAttr(control.hint)}"` : '';
+  const hintHtml = control.hint ? `<p class="control-hint">${escapeAttr(control.hint)}</p>` : '';
+  const display = formatControlDisplay(control, numericValue);
+  return `
+      <label class="control-row" data-control-id="${escapeAttr(control.id)}">
+        <div class="control-row-header">
+          <span class="control-label"${hintTitleAttr}>${escapeAttr(control.label)}</span>
+          <span class="control-value" id="${valId}">${escapeAttr(display)}</span>
+        </div>
+        <input type="range" id="${sliderId}" min="${control.min}" max="${control.max}" step="${control.step}" value="${numericValue}" aria-label="${escapeAttr(control.label)}">
+      </label>
+      ${hintHtml}`;
+}
+
+function generatePortfolioSectionHTML(sectionKey, config, computedRoot) {
+  const section = CONTROL_SECTIONS[sectionKey];
+  if (!section?.controls?.length) return '';
+  const body = section.controls.map((c) => generatePortfolioControlRow(c, config, computedRoot)).join('');
+  const openAttr = section.defaultOpen ? ' open' : '';
+  const iconHtml = section.icon ? `<span class="section-icon">${section.icon}</span>` : '';
+  return `
+    <details class="panel-section-accordion"${openAttr}>
+      <summary class="panel-section-header">
+        ${iconHtml}
+        <span class="section-label">${escapeAttr(section.title)}</span>
+      </summary>
+      <div class="panel-section-content">${body}</div>
+    </details>`;
+}
+
+export function generatePortfolioPitChromePanelHTML(config, computedRoot = null) {
+  const root = computedRoot
+    || (typeof document !== 'undefined' ? getComputedStyle(document.documentElement) : null);
+  return generatePortfolioSectionHTML('pitChrome', config, root);
+}
+
 export function generatePanelSectionsHTML(config, computedRoot = null) {
-  void config;
-  void computedRoot;
-  return '';
+  const root = computedRoot
+    || (typeof document !== 'undefined' ? getComputedStyle(document.documentElement) : null);
+  return PORTFOLIO_PAGE_SECTION_KEYS.map((key) => generatePortfolioSectionHTML(key, config, root)).join('');
 }
 
 export function generatePanelHTML(config) {

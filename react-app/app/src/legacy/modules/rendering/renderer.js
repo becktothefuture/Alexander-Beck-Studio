@@ -172,6 +172,15 @@ export function disposeRendererListeners() {
     cancelAnimationFrame(resizeDebounceId);
     resizeDebounceId = null;
   }
+  // SPA route teardown removes pointer listeners via legacy scope; allow the next
+  // `setupPointer()` to register fresh handlers (otherwise __pointerReady blocks re-init).
+  try {
+    const g = getGlobals();
+    g.__pointerReady = false;
+  } catch (e) {
+    /* ignore */
+  }
+  if (typeof window !== 'undefined') window.__pointerReady = false;
 }
 
 /**
@@ -196,7 +205,18 @@ function bindLiveSimulationCanvas() {
 export function setupRenderer() {
   disposeRendererListeners();
 
-  canvas = document.getElementById('c');
+  // SPA route changes mount a new `#c`. Module-level `canvas` is reassigned here, so
+  // `bindLiveSimulationCanvas()` would see live === canvas and skip resetting
+  // `prevCanvasWidth`/`prevCanvasHeight` — leaving dimensions from the previous route.
+  // That can make `resize()` early-out while the backing store is still 300×150, or
+  // scale the wrong buffer into portfolio space after the modal gate transition.
+  const previousCanvas = canvas;
+  const next = document.getElementById('c');
+  if (next !== previousCanvas) {
+    prevCanvasWidth = 0;
+    prevCanvasHeight = 0;
+  }
+  canvas = next;
 
   if (!canvas) {
     canvas = null;

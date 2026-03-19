@@ -80,8 +80,12 @@ function designSystemDevPlugin() {
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react(), designSystemDevPlugin()],
+  // Legacy bundles gate the dock + authoring UI on `__DEV__` (see main.js / portfolio app).
+  define: {
+    __DEV__: mode === 'development',
+  },
   build: {
     rollupOptions: {
       input: {
@@ -92,4 +96,4 @@ export default defineConfig({
       }
     }
   }
-});
+}));

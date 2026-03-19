@@ -49,6 +49,14 @@
     "behavior": {
       "passiveMouseReaction": false,
       "reducedMotionDurationMs": 320
+    },
+    "pitChrome": {
+      "rimScale": 1.25,
+      "lightPeakLight": 0.53,
+      "lightPeakDark": 0.41,
+      "shadePeakLight": 0.13,
+      "shadePeakDark": 0.22,
+      "arcSpan": 1.12
     }
   }
 }

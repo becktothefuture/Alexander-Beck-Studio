@@ -600,17 +600,16 @@
      
      INSIDE #abs-scene (scene stacking context):
      ─────────────────────────────────────────────────────────────────────────────
-     Scene Effects            90         .scene-effects
      Wall (container)         100        #bravia-balls
      Video Overlays           150        .grunge-video-overlay (above wall, below UI)
      UI Layer                 200        .fade-content (contains logo + nav + header + footer)
      
      INSIDE #bravia-balls (wall interior stacking context):
      ─────────────────────────────────────────────────────────────────────────────
-     Canvas (balls)           10         #bravia-balls canvas
-     Noise                    25         .noise (inside .scene-effects)
-     Wall Edge Shading        30         #bravia-balls::after
-     Wall Stroke              40         #bravia-balls::before
+     Scene / noise            1          #bravia-balls > .scene-effects (under simulation)
+     Wall route + canvas      2+        .shell-wall-slot (z:2), then #c (z:10)
+     CV scroll surface        10        .cv-scroll-container (above in-wall noise)
+     CV wall ring canvas      15        .cv-wall-canvas
      
      OUTSIDE #abs-scene (modal layer):
      ─────────────────────────────────────────────────────────────────────────────

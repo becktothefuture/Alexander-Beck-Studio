@@ -39,6 +39,7 @@ export function setupKeyboardShortcuts() {
       e.preventDefault();
       // DEV-ONLY: The config panel is a dev tool and must never ship/appear in production.
       // Avoid a static import so Rollup can drop panel-dock from production bundles.
+      // Wired from home bootstrap and from `DevConfigPanelBridge` so SPA routes still get `/`.
       if (!isDev()) return;
       import('./panel-dock.js')
         .then((mod) => {

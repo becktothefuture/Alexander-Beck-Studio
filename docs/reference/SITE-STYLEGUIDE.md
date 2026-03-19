@@ -39,7 +39,7 @@ These are the **solid cursor-colored** hovers: same hue family as the **custom c
 Use these as references when adding siblings:
 
 - **Icon buttons:** `.abs-icon-btn` (e.g. social links, sound toggle with `.sound-toggle.abs-icon-btn`)
-- **Text chrome:** `.footer_link`, `.portfolio-cv-link`, `#header-cv-link`
+- **Text buttons:** `.footer_link` inside `.ui-main-nav` (author with `MainNavLink` in React)
 - **Meta:** `.abs-meta-btn`, `#site-year`
 - **Quote puck (floating):** Solid fill still comes from `.quote-display::before`. On **hover**, the **visible glass surface** uses the same rim as other chrome: `box-shadow: var(--ui-chrome-button-edge)` plus a slightly lifted outer drop shadow (see `.quote-display:hover` in `main.css`).
 - **Contact row (modal):** `.contact-email-row` hover uses the same fill + rim + `cursor-hover-fg`
@@ -66,6 +66,7 @@ Authoritative detail: [`COMPONENT-LIBRARY.md`](COMPONENT-LIBRARY.md) (route top 
 | Concern | Where |
 |--------|--------|
 | Chrome rim, fill transition duration | [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css) — `--ui-chrome-button-edge`, `--ui-chrome-fill-transition-duration` |
+| Portfolio pit **canvas** disc rim | **Not** `--ui-chrome-button-edge` — tuned via `design-system.json → portfolio.runtime.pitChrome` (defaults slightly larger than UI-pill proportion); see [`PORTFOLIO.md`](PORTFOLIO.md) |
 | Cursor + hover foreground CSS vars | Set from palette in [`react-app/app/src/legacy/modules/visual/colors.js`](../../react-app/app/src/legacy/modules/visual/colors.js) (`stampCursorCSSVar`, `computeSafeTextOnCursorColor`) |
 | Unified rules | [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) — section **“UNIFIED HOVER BACKGROUND SYSTEM”** and **“INTERACTIVE HOVER EFFECTS”** |
 | Portfolio slot tweak | [`react-app/app/public/css/portfolio.css`](../../react-app/app/public/css/portfolio.css) — `.portfolio-sound-slot` |

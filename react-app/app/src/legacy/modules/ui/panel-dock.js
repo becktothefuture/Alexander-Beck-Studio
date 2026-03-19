@@ -9,7 +9,9 @@ import { setupBuildControls } from './build-controls.js';
 import {
   generateMasterSectionsHTML,
   generateModeSwitcherHTML,
+  generateModeSpecificSectionsHTML,
 } from './control-registry.js';
+import { generatePortfolioPitChromePanelHTML } from '../portfolio/panel/control-registry.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
 import { isDev } from '../utils/logger.js';
 import {
@@ -139,6 +141,8 @@ function getMasterPanelContent({
   pageSaveButtonId = 'saveRuntimeConfigBtn',
   pageSaveButtonLabel = '💾 Save Design JSON',
   footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes',
+  /** Portfolio-only: full panel config object for “Project pit rim” under Simulation. */
+  portfolioPanelConfig = null,
 } = {}) {
   // Sound controls → embedded in Audio group (preset + actions only; no parameter sliders)
   const soundControlsHTML = `
@@ -213,15 +217,32 @@ function getMasterPanelContent({
   // - Layout → Shell
   // - Sound → Audio
   // - Mode switcher + mode-specific sections → Simulation
+  //
+  // includeRegisteredSections MUST stay true — otherwise every `MASTER_GROUPS.*.sections`
+  // slider block is omitted and the panel shows empty groups (only injected prepend/append).
+  const portfolioSimulationPrepend =
+    page === 'portfolio' && portfolioPanelConfig
+      ? `${generatePortfolioPitChromePanelHTML(portfolioPanelConfig)}${generateModeSpecificSectionsHTML()}`
+      : '';
+
+  // One master panel everywhere: full `MASTER_GROUPS` + registered sections. Home adds the mode
+  // switcher; portfolio adds pit chrome; CV/other routes still get the active mode’s accordion.
+  const simulationPrepend =
+    page === 'home'
+      ? `${generateModeSwitcherHTML()}${generateModeSpecificSectionsHTML()}`
+      : page === 'portfolio'
+        ? (portfolioSimulationPrepend || generateModeSpecificSectionsHTML())
+        : generateModeSpecificSectionsHTML();
+
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      simulation: page === 'home' ? generateModeSwitcherHTML() : '',
+      simulation: simulationPrepend,
     },
     append: {
       audio: soundControlsHTML,
     },
     groupIds: masterGroupIds,
-    includeRegisteredSections: false,
+    includeRegisteredSections: true,
   });
 
   return `
@@ -282,12 +303,13 @@ export function createPanelDock(options = {}) {
     : '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>9</kbd> kalei');
   const panelTitle = options.panelTitle || 'Settings';
   const modeLabel = options.modeLabel || (isDev() ? 'DEV MODE' : 'BUILD MODE');
-  const bindShortcut = !!options.bindShortcut;
   const setupPageControls = typeof options.setupPageControls === 'function' ? options.setupPageControls : null;
   const pageHTML = options.pageHTML || '';
+  const portfolioPanelConfig = options.portfolioPanelConfig ?? null;
+  // Default: full panel (all groups + all registry sections). Pass `masterGroupIds` only to trim.
   const masterGroupIds = Array.isArray(options.masterGroupIds) && options.masterGroupIds.length > 0
     ? options.masterGroupIds
-    : (page === 'home' ? null : ['studio', 'shell']);
+    : null;
   const pageSectionTitle = options.pageSectionTitle || pageLabel;
   const pageSectionIcon = options.pageSectionIcon || (page === 'portfolio' ? '🗂️' : '📄');
 
@@ -297,6 +319,15 @@ export function createPanelDock(options = {}) {
     if (existingControl) existingControl.remove();
     const existingSound = document.getElementById('soundPanel');
     if (existingSound) existingSound.remove();
+  } catch (e) {}
+
+  // SPA route changes: replace any previous dock/toggle so IDs stay unique and listeners attach cleanly.
+  try {
+    const prevDock = document.getElementById('panelDock');
+    if (prevDock) prevDock.remove();
+    document.querySelectorAll('.panel-toggle-btn').forEach((el) => el.remove());
+    dockElement = null;
+    masterPanelElement = null;
   } catch (e) {}
   
   // Create dock container
@@ -331,6 +362,7 @@ export function createPanelDock(options = {}) {
     pageSaveButtonLabel,
     footerHint,
     setupPageControls,
+    portfolioPanelConfig,
   });
   dockElement.appendChild(masterPanelElement);
 
@@ -347,28 +379,9 @@ export function createPanelDock(options = {}) {
   setupResizePersistence();
   setupPanelHoverSounds();
 
-  // Setup keyboard toggle for non-index pages (index has its own keyboard system).
-  if (bindShortcut) bindDockToggleShortcut();
+  // `/` panel toggle is centralized in `keyboard.js` (wired from React in dev for all routes).
 
   return dockElement;
-}
-
-let shortcutBound = false;
-function bindDockToggleShortcut() {
-  if (shortcutBound) return;
-  shortcutBound = true;
-  window.addEventListener('keydown', (event) => {
-    try {
-      const tag = event.target?.tagName;
-      const isFormField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
-      const inDock = !!event.target?.closest?.('.panel-dock');
-      if (isFormField && !inDock) return;
-    } catch (e) {}
-    const key = event.key?.toLowerCase?.() || '';
-    if (key !== '/' && event.code !== 'Slash') return;
-    event.preventDefault();
-    toggleDock();
-  });
 }
 
 function createMasterPanel({
@@ -385,6 +398,7 @@ function createMasterPanel({
   pageSaveButtonLabel,
   footerHint,
   setupPageControls,
+  portfolioPanelConfig = null,
 } = {}) {
   const panel = document.createElement('div');
   panel.id = 'masterPanel';
@@ -416,6 +430,7 @@ function createMasterPanel({
     pageSaveButtonId,
     pageSaveButtonLabel,
     footerHint,
+    portfolioPanelConfig,
   });
   
   panel.appendChild(header);
@@ -471,6 +486,18 @@ function createMasterPanel({
 
     // Page-specific bindings (portfolio carousel, etc).
     try { setupPageControls?.(panel); } catch (e) {}
+
+    // `.mode-controls` blocks stay hidden until `.active`; home toggles via mode buttons.
+    // Other routes: show the accordion for the current simulation mode (incl. portfolio-pit → pit).
+    if (page !== 'home') {
+      try {
+        const m = getGlobals()?.currentMode;
+        if (m) {
+          const modeKey = m === 'portfolio-pit' ? 'pit' : m;
+          document.getElementById(`${modeKey}Controls`)?.classList.add('active');
+        }
+      } catch (e) {}
+    }
   }, 0);
   
   return panel;
@@ -918,14 +945,6 @@ function setupLayoutControls(panel) {
       g.wallInset = val;
     });
   }
-}
-
-// ════════════════════════════════════════════════════════════════════════════════
-// KEYBOARD SHORTCUTS
-// ════════════════════════════════════════════════════════════════════════════════
-
-function setupKeyboardShortcuts() {
-  // Note: / for dock toggle is handled in keyboard.js
 }
 
 // ════════════════════════════════════════════════════════════════════════════════

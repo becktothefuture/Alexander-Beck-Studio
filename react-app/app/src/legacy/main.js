@@ -513,23 +513,6 @@ export async function bootstrapHomePage() {
 
     // Scene change SFX (soothing “pebble-like” tick on mode change)
     initSceneChangeSFX();
-    
-    // DEV-only: setup configuration panel UI.
-    // Production builds must ship without the panel (config is hardcoded during build).
-    if (ABS_DEV) {
-      try {
-        const panelDock = await import('./modules/ui/panel-dock.js');
-        panelDock.createPanelDock?.();
-        const colors = await import('./modules/visual/colors.js');
-        colors.populateColorSelect?.();
-      } catch (e) {}
-    }
-    mark('bb:ui');
-    log(ABS_DEV ? '✓ Panel dock created (Sound + Controls)' : '✓ UI initialized (panel disabled in production)');
-
-    // Initialize dark mode AFTER panel creation (theme buttons exist now)
-    initializeDarkMode();
-    mark('bb:theme');
 
     // Legend dots: assign discipline colors (palette-driven + story overrides)
     applyExpertiseLegendColors();
@@ -599,14 +582,31 @@ export async function bootstrapHomePage() {
     // Initialize starting mode (deterministic daily simulation)
     const configuredHeroMode = String(getShellConfig()?.hero?.startupMode || '').trim();
     const startMode = configuredHeroMode || getDailyMode() || MODES.PIT;
-    // Cursor color: auto-pick a new contrasty ball color per simulation load.
-    // Must run after theme/palette is initialized (initializeDarkMode → applyColorTemplate).
-    maybeAutoPickCursorColor?.('startup');
+
     await setMode(startMode);
-    try {
-      const ui = await import('./modules/ui/controls.js');
-      ui.updateModeButtonsUI?.(startMode);
-    } catch (e) {}
+
+    // DEV-only: panel after setMode so Simulation HTML includes the active mode’s controls.
+    // Production builds ship without the panel (config is hardcoded during build).
+    if (ABS_DEV) {
+      try {
+        const panelDock = await import('./modules/ui/panel-dock.js');
+        panelDock.createPanelDock?.();
+        const colors = await import('./modules/visual/colors.js');
+        colors.populateColorSelect?.();
+        const ui = await import('./modules/ui/controls.js');
+        ui.updateModeButtonsUI?.(startMode);
+      } catch (e) {}
+    }
+    mark('bb:ui');
+    log(ABS_DEV ? '✓ Panel dock created (Sound + Controls)' : '✓ UI initialized (panel disabled in production)');
+
+    // Theme segment buttons live in the panel; init runs once after the dock exists.
+    initializeDarkMode();
+    mark('bb:theme');
+
+    // Cursor color: auto-pick after dark mode + palette (initializeDarkMode → applyColorTemplate).
+    maybeAutoPickCursorColor?.('startup');
+
     mark('bb:mode');
     log('✓ Mode initialized');
     

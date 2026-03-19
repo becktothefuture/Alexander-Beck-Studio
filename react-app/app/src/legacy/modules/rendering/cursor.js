@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                          CUSTOM CURSOR RENDERER                              ║
-// ║     Border area: default cursor | Simulation: cursor scales down to dot      ║
-// ║     Gate overlays: cursor shows at full size (round button)                  ║
+// ║  Home inner wall: small solid dot (66% on-screen ball). Else: 64px tap ring   ║
+// ║  (portfolio/CV/chrome/modal) on body fixed — see docs/reference/CUSTOM-CURSOR  ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
@@ -11,10 +11,16 @@ import { getMouseVelocity, getMouseDirection } from '../input/pointer.js';
 
 let cursorElement = null;
 let isInitialized = false;
+/** Prevents duplicate `abs-link-hover` listeners across SPA re-bootstrap */
+let linkHoverListening = false;
 let isInSimulation = false;
 let cachedContainerRect = null;
 let rectCacheTime = 0;
 const RECT_CACHE_MS = 100; // Cache rect for 100ms to avoid excessive layout reads
+const TAP_RING_CSS_PX = 64;
+const HOME_DOT_TO_BALL_DIAMETER = 0.66;
+const TAP_CURSOR_Z_INDEX = 19990;
+const MODAL_CURSOR_Z_INDEX = 20000;
 let cachedFrameInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 let fadeInStarted = false;
 let fadeInAnimation = null;
@@ -29,6 +35,40 @@ function handleLinkHoverEvent(event) {
   } catch (e) {
     lastHoveredLink = null;
   }
+}
+
+function wireLinkHoverListener() {
+  if (linkHoverListening) return;
+  document.addEventListener('abs-link-hover', handleLinkHoverEvent);
+  linkHoverListening = true;
+}
+
+function unwireLinkHoverListener() {
+  if (!linkHoverListening) return;
+  document.removeEventListener('abs-link-hover', handleLinkHoverEvent);
+  linkHoverListening = false;
+}
+
+/**
+ * SPA remounts can drop `#custom-cursor` from the tree while module flags stay true;
+ * `setupCustomCursor()` would then no-op and pointer updates hit a detached node.
+ */
+function detachCustomCursorModuleState() {
+  unwireLinkHoverListener();
+  isInitialized = false;
+  fadeInStarted = false;
+  fadeInAnimation = null;
+  cursorElement = null;
+  cachedContainerRect = null;
+  rectCacheTime = 0;
+}
+
+function ensureLiveCustomCursorElement() {
+  if (cursorElement?.isConnected) return;
+  if (cursorElement && !cursorElement.isConnected) {
+    detachCustomCursorModuleState();
+  }
+  setupCustomCursor();
 }
 
 /**
@@ -68,6 +108,37 @@ function isMouseInSimulation(clientX, clientY) {
   );
 }
 
+function isHomeIndexRoute() {
+  try {
+    const b = document.body;
+    return (
+      !b.classList.contains('portfolio-page') &&
+      !b.classList.contains('cv-page') &&
+      !b.classList.contains('styleguide-page')
+    );
+  } catch (e) {
+    return false;
+  }
+}
+
+function getHomeCursorDotDiameterCssPx() {
+  const globals = getGlobals();
+  const canvas = globals.canvas;
+  if (!canvas || !(canvas.width > 0)) return 18;
+  let rect;
+  try {
+    rect = canvas.getBoundingClientRect();
+  } catch (e) {
+    return 18;
+  }
+  const rw = rect.width || 1;
+  const avgR = (globals.R_MIN + globals.R_MAX) * 0.5;
+  const ballDiameterCanvas = avgR * 2;
+  const cssBallDiameter = ballDiameterCanvas * (rw / canvas.width);
+  const dot = cssBallDiameter * HOME_DOT_TO_BALL_DIAMETER;
+  return Math.max(8, Math.min(dot, 40));
+}
+
 /**
  * Get the current cursor color
  * Used for trail rendering
@@ -88,68 +159,114 @@ export const getCursorBrightenedColor = getCursorColor;
  * Creates a circular cursor that follows the mouse
  */
 export function setupCustomCursor() {
-  if (isInitialized) return;
-  
-  // Create cursor element
+  const container = document.getElementById('bravia-balls') || document.body;
+
+  if (isInitialized && cursorElement && !cursorElement.isConnected) {
+    detachCustomCursorModuleState();
+  }
+
+  if (isInitialized && cursorElement?.isConnected) {
+    updateCursorSize();
+    return;
+  }
+
+  const stray = document.getElementById('custom-cursor');
+  if (stray?.isConnected) {
+    cursorElement = stray;
+    isInitialized = true;
+    wireLinkHoverListener();
+    updateCursorSize();
+    stray.style.opacity = '1';
+    fadeInStarted = false;
+    fadeInAnimation = null;
+    startCursorFadeIn();
+    return;
+  }
+
   cursorElement = document.createElement('div');
   cursorElement.id = 'custom-cursor';
   cursorElement.setAttribute('aria-hidden', 'true');
-  
+
   // Insert cursor inside #bravia-balls to be in same stacking context as canvas/wall
-  // This is necessary because #bravia-balls has transform: translateZ(0) which creates
-  // a stacking context - elements outside cannot be layered behind elements inside
-  const container = document.getElementById('bravia-balls');
-  if (container) {
-    container.appendChild(cursorElement);
-  } else {
-    // Fallback to body if container doesn't exist yet
-    document.body.appendChild(cursorElement);
-  }
-  
-  // Show default cursor in border area, hide in simulation
-  // We'll control this dynamically based on mouse position
-  
-  // Initially hide cursor (will show when mouse moves)
+  container.appendChild(cursorElement);
+
   cursorElement.style.display = 'none';
-  // Start with opacity 0 for fade-in animation
-  cursorElement.style.opacity = '0';
-  
+  cursorElement.style.opacity = '1';
+
   isInitialized = true;
-  document.addEventListener('abs-link-hover', handleLinkHoverEvent);
+  wireLinkHoverListener();
   updateCursorSize();
-  
-  // Start fade-in animation after page fade-in completes
   startCursorFadeIn();
 }
 
 /**
- * Update cursor size based on ball size.
- * The visible simulation dot is fixed at 62.5% of a ball diameter.
+ * Stamp width/height for current route (home dot vs tap ring). Pointer move applies mount + classes.
  */
 export function updateCursorSize() {
   if (!cursorElement) return;
-  
-  const globals = getGlobals();
-  const averageBallSize = (globals.R_MIN + globals.R_MAX) * 0.5;
-  const averageBallDiameter = averageBallSize * 2;
-  const baseSize = averageBallDiameter;
-  
-  cursorElement.style.width = `${baseSize}px`;
-  cursorElement.style.height = `${baseSize}px`;
-  cursorElement.style.borderRadius = '50%';
+
   cursorElement.style.marginLeft = '0';
   cursorElement.style.marginTop = '0';
-  
-  // Reset transform if not in simulation - start at zero scale
+  cursorElement.style.borderRadius = '50%';
+
+  if (isHomeIndexRoute()) {
+    const d = getHomeCursorDotDiameterCssPx();
+    cursorElement.style.width = `${d}px`;
+    cursorElement.style.height = `${d}px`;
+  } else {
+    cursorElement.style.width = `${TAP_RING_CSS_PX}px`;
+    cursorElement.style.height = `${TAP_RING_CSS_PX}px`;
+  }
+
   if (!isInSimulation) {
     cursorElement.style.transform = ZERO_SCALE;
-    // Don't set opacity - let fade-in animation control it
   }
 }
 
 const ZERO_SCALE = 'translate(-50%, -50%) scale(0)';
-const DOT_SCALE = 'translate(-50%, -50%) scale(0.625)';
 const FULL_SCALE = 'translate(-50%, -50%) scale(1)';
+
+function applyTapRingMount(clientX, clientY, overlayIsActive) {
+  if (cursorElement.parentElement !== document.body) {
+    document.body.appendChild(cursorElement);
+  }
+  cursorElement.style.position = 'fixed';
+  cursorElement.style.left = `${clientX}px`;
+  cursorElement.style.top = `${clientY}px`;
+  cursorElement.style.zIndex = String(overlayIsActive ? MODAL_CURSOR_Z_INDEX : TAP_CURSOR_Z_INDEX);
+  cursorElement.classList.add('abs-cursor-tap');
+  cursorElement.style.width = `${TAP_RING_CSS_PX}px`;
+  cursorElement.style.height = `${TAP_RING_CSS_PX}px`;
+  cursorElement.style.boxSizing = 'border-box';
+  cursorElement.style.transform = FULL_SCALE;
+  cursorElement.style.opacity = '1';
+  cursorElement.style.backgroundColor = '';
+  cursorElement.style.border = '';
+}
+
+function applyHomeDotMount(clientX, clientY) {
+  const container = document.getElementById('bravia-balls');
+  if (container && cursorElement.parentElement !== container) {
+    container.appendChild(cursorElement);
+  }
+  cursorElement.style.position = 'absolute';
+  cursorElement.style.zIndex = '3';
+  if (container) {
+    const rect = container.getBoundingClientRect();
+    cursorElement.style.left = `${clientX - rect.left}px`;
+    cursorElement.style.top = `${clientY - rect.top}px`;
+  }
+  cursorElement.classList.remove('abs-cursor-tap');
+  cursorElement.classList.remove('modal-active');
+  const d = getHomeCursorDotDiameterCssPx();
+  cursorElement.style.width = `${d}px`;
+  cursorElement.style.height = `${d}px`;
+  cursorElement.style.boxSizing = 'border-box';
+  cursorElement.style.transform = FULL_SCALE;
+  cursorElement.style.opacity = '1';
+  cursorElement.style.backgroundColor = '';
+  cursorElement.style.border = 'none';
+}
 
 /**
  * Check if hovering over a link
@@ -247,8 +364,9 @@ function getButtonEmissionPoints(element) {
 }
 
 export function updateCursorPosition(clientX, clientY) {
+  ensureLiveCustomCursorElement();
   if (!cursorElement) return;
-  
+
   lastClientX = clientX;
   lastClientY = clientY;
   
@@ -301,101 +419,67 @@ export function updateCursorPosition(clientX, clientY) {
 
   wasOverLink = isOverLink;
 
-  // Update position first (always track mouse)
   const wasInSimulation = isInSimulation;
   isInSimulation = isMouseInSimulation(clientX, clientY);
-  
-  // Check if gate overlay is active - cursor should show at full size
   const overlayIsActive = isOverlayActive();
-  
-  // When modals are active, move cursor to body and use fixed positioning (above modals)
-  // Otherwise, keep it inside #bravia-balls for proper z-index stacking behind wall
-  const container = document.getElementById('bravia-balls');
-  if (overlayIsActive) {
-    // Move cursor to body when modals are active so it can be above modals (z-index: 20000)
-    if (container && container.contains(cursorElement)) {
-      document.body.appendChild(cursorElement);
-      cursorElement.style.position = 'fixed';
-      cursorElement.style.zIndex = '20000';
-    }
-    // Position relative to viewport when on body
-    cursorElement.style.left = `${clientX}px`;
-    cursorElement.style.top = `${clientY}px`;
-  } else {
-    // Move cursor back to #bravia-balls when modals close (for behind-wall behavior)
-    if (container && !container.contains(cursorElement)) {
-      container.appendChild(cursorElement);
-      cursorElement.style.position = 'absolute';
-      cursorElement.style.zIndex = '3';
-    }
-    // Position relative to container when inside #bravia-balls
-    if (container) {
-      const rect = container.getBoundingClientRect();
-      cursorElement.style.left = `${clientX - rect.left}px`;
-      cursorElement.style.top = `${clientY - rect.top}px`;
-    } else {
-      // Fallback: position relative to viewport if container doesn't exist
-      cursorElement.style.left = `${clientX}px`;
-      cursorElement.style.top = `${clientY}px`;
-    }
+
+  const homeDot =
+    isHomeIndexRoute() && isInSimulation && !overlayIsActive;
+  const tapRing =
+    overlayIsActive || (!homeDot && isInSimulation);
+
+  if (!overlayIsActive) {
+    cursorElement.classList.remove('modal-active');
   }
-  
-  // Toggle body class to control cursor visibility across all elements
-  // Inside inner wall OR modal active: hide default cursor (custom cursor shows)
-  // Outside inner wall (and no modal): show default cursor
-  if (isInSimulation || overlayIsActive) {
+
+  const showCustomCursor = overlayIsActive || homeDot || tapRing;
+  if (showCustomCursor) {
     document.body.classList.add('abs-in-simulation');
   } else {
     document.body.classList.remove('abs-in-simulation');
   }
 
-  // LINK HOVER STATE (High Priority)
-  // If hovering a link, scale cursor to zero (Power Transfer effect)
-  // The CSS transition on #custom-cursor handles the smooth shrink
+  // LINK HOVER: mount first so the implosion reads against the right surface
   if (isOverLink) {
-    cursorElement.style.display = 'block'; // Ensure it's in DOM for transition
-    // Force zero scale (implosion)
-    cursorElement.style.transform = ZERO_SCALE; 
-    // Opacity is handled by CSS body.abs-link-hovering #custom-cursor
-    return;
-  }
-  
-  // When gate overlay is active, show cursor at full size (round button)
-  if (overlayIsActive) {
-    cursorElement.style.display = 'block';
-    cursorElement.style.transform = FULL_SCALE;
-    return;
-  }
-  
-  if (isInSimulation) {
-    cursorElement.style.display = 'block';
-    
-    if (!wasInSimulation) {
-      // Entering simulation: animate from zero to dot size
-      cursorElement.style.transform = ZERO_SCALE;
-      // Don't set opacity - let fade-in animation control it
-      cursorElement.offsetHeight; // Force reflow
-      requestAnimationFrame(() => {
-        cursorElement.style.transform = DOT_SCALE;
-        // Don't set opacity - let fade-in animation control it
-      });
+    if (overlayIsActive || tapRing) {
+      applyTapRingMount(clientX, clientY, overlayIsActive);
+    } else if (homeDot) {
+      applyHomeDotMount(clientX, clientY);
     } else {
-      // Already in simulation: maintain dot state
-      // Don't set opacity - let fade-in animation control it
-      if (cursorElement.style.transform !== DOT_SCALE) {
-        cursorElement.style.transform = DOT_SCALE;
-      }
+      cursorElement.style.display = 'none';
+      return;
     }
-  } else {
-    // Outside inner wall: hide custom cursor (default cursor shows)
+    cursorElement.style.display = 'block';
+    cursorElement.style.transform = ZERO_SCALE;
+    return;
+  }
+
+  if (!showCustomCursor) {
     cursorElement.style.display = 'none';
     if (wasInSimulation) {
-      // Scale down to zero when leaving inner wall area
       cursorElement.style.transform = ZERO_SCALE;
-      // Don't set opacity - let fade-in animation control it
       cursorElement.style.backgroundColor = '';
       cursorElement.style.filter = '';
     }
+    return;
+  }
+
+  if (overlayIsActive || tapRing) {
+    applyTapRingMount(clientX, clientY, overlayIsActive);
+  } else {
+    applyHomeDotMount(clientX, clientY);
+  }
+
+  cursorElement.style.display = 'block';
+
+  if (homeDot && !wasInSimulation) {
+    cursorElement.style.transform = ZERO_SCALE;
+    cursorElement.offsetHeight;
+    requestAnimationFrame(() => {
+      if (cursorElement) {
+        cursorElement.style.transform = FULL_SCALE;
+      }
+    });
   }
 }
 
@@ -427,83 +511,5 @@ export function showCursor() {
 function startCursorFadeIn() {
   if (fadeInStarted || !cursorElement) return;
   fadeInStarted = true;
-  
-  // Calculate timing based on entrance animation
-  // Page fade-in completes around: wallDelay (300ms) + wallDuration*0.3 (240ms) + elementDuration (500ms) = ~1040ms
-  // Start cursor fade-in after page fade-in completes, with additional delay for alignment
-  const globals = getGlobals();
-  const wallDelay = globals.entranceWallTransitionDelay ?? 300;
-  const wallDuration = globals.entranceWallTransitionDuration ?? 800;
-  const elementDuration = globals.entranceElementDuration ?? 500;
-  const pageFadeComplete = wallDelay + (wallDuration * 0.3) + elementDuration;
-  
-  // Cursor fade-in starts after page fade-in completes + extra delay for alignment
-  // Increased delay to ensure canvas rect is fully synchronized with trail
-  const CURSOR_FADE_DELAY = pageFadeComplete + 600; // 600ms extra for alignment and rect sync
-  const CURSOR_FADE_DURATION = 800; // Slow fade-in (800ms)
-  const CURSOR_FADE_EASING = 'cubic-bezier(0.16, 1, 0.3, 1)'; // Same as page fade-in
-  
-  // Respect reduced motion preference
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-    // Skip animation, show immediately after delay
-    setTimeout(() => {
-      if (cursorElement) {
-        cursorElement.style.opacity = '1';
-      }
-    }, CURSOR_FADE_DELAY);
-    return;
-  }
-  
-  setTimeout(() => {
-    if (!cursorElement) return;
-    
-    // Wait for canvas rect to be properly initialized and layout to settle
-    // This ensures cursor and trail are aligned before fade-in starts
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!cursorElement) return;
-        
-        // Check if WAAPI is available
-        if (typeof cursorElement.animate !== 'function') {
-          // Fallback: simple opacity transition
-          cursorElement.style.opacity = '1';
-          cursorElement.style.transition = `opacity ${CURSOR_FADE_DURATION}ms ${CURSOR_FADE_EASING}`;
-          return;
-        }
-        
-        // Make cursor visible (but transparent) so fade-in animation can be seen
-        // Only if mouse is in simulation area (otherwise it will show when mouse moves)
-        if (isInSimulation) {
-          cursorElement.style.display = 'block';
-        }
-        
-        // Animate fade-in using WAAPI
-        fadeInAnimation = cursorElement.animate(
-          [
-            { opacity: 0 },
-            { opacity: 1 }
-          ],
-          {
-            duration: CURSOR_FADE_DURATION,
-            easing: CURSOR_FADE_EASING,
-            fill: 'forwards'
-          }
-        );
-        
-        // Stamp final opacity on finish to prevent getting stuck
-        fadeInAnimation?.addEventListener?.('finish', () => {
-          if (cursorElement) {
-            cursorElement.style.opacity = '1';
-          }
-        });
-        
-        fadeInAnimation?.addEventListener?.('cancel', () => {
-          // Failsafe: ensure cursor is visible if animation is canceled
-          if (cursorElement) {
-            cursorElement.style.opacity = '1';
-          }
-        });
-      });
-    });
-  }, CURSOR_FADE_DELAY);
+  cursorElement.style.opacity = '1';
 }

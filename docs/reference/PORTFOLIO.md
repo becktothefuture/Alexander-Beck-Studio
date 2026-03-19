@@ -32,6 +32,7 @@ The active portfolio runtime groups are:
 - `runtime.labeling`: title fit bounds and block rotation range
 - `runtime.motion`: drag/open timing and neighbor impulse
 - `runtime.behavior`: passive mouse reaction toggle and reduced-motion timing
+- `runtime.pitChrome`: canvas disc rim (highlight/shadow peaks, rim scale vs ball radius, arc span) — independent of Studio “Light Edge” on DOM chrome; dev panel section **Project pit rim**
 
 ## Archived Slider
 

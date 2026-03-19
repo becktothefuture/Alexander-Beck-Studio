@@ -73,12 +73,16 @@ const RIPPLE_THROTTLE_MS = 80; // Create ripple every 80ms max
 export function setupPointer() {
   const globals = getGlobals();
   const canvas = globals.canvas;
-  
+
   // Click-cycle permanently disabled in Daily Simulation mode
   globals.clickCycleEnabled = false;
-  
+
   if (!canvas) {
     console.error('Canvas not available for pointer setup');
+    return;
+  }
+
+  if (globals.__pointerReady === true) {
     return;
   }
 

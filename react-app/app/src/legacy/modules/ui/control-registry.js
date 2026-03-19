@@ -5,7 +5,13 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals, applyLayoutCSSVars } from '../core/state.js';
-import { PARALLAX_LINEAR_PRESETS, NARRATIVE_MODE_SEQUENCE, NARRATIVE_CHAPTER_TITLES, MODES } from '../core/constants.js';
+import {
+  PARALLAX_LINEAR_PRESETS,
+  NARRATIVE_MODE_SEQUENCE,
+  NARRATIVE_CHAPTER_TITLES,
+  MODES,
+  isPitLikeMode,
+} from '../core/constants.js';
 import { applyNoiseSystem } from '../visual/noise-system.js';
 import { updateWallElements, initLightSimulation } from '../visual/wall-elements.js';
 import { updateWallShadowCSS, hexToRgb, hexToRgbString } from '../visual/wall-shadow.js';
@@ -4697,7 +4703,7 @@ export const CONTROL_SECTIONS = {
         format: v => v.toFixed(2),
         parse: parseFloat,
         onChange: (g, val) => {
-          if (g.currentMode === 'pit') g.G = g.GE * val;
+          if (isPitLikeMode(g.currentMode)) g.G = g.GE * val;
         }
       },
       // NOTE: Ball mass / restitution / friction are global now (see Physics section).
@@ -6794,7 +6800,15 @@ export function generateModeSwitcherHTML() {
  */
 export function generateModeSpecificSectionsHTML() {
   const currentMode = getGlobals()?.currentMode;
-  const allowedModes = new Set(currentMode ? [currentMode] : NARRATIVE_MODE_SEQUENCE);
+  let allowedModes;
+  if (!currentMode) {
+    allowedModes = new Set(NARRATIVE_MODE_SEQUENCE);
+  } else if (currentMode === MODES.PORTFOLIO_PIT) {
+    // Portfolio uses pit physics tuning (gravity sleep, etc.) but `currentMode` is not `pit`.
+    allowedModes = new Set([MODES.PIT]);
+  } else {
+    allowedModes = new Set([currentMode]);
+  }
   let html = '';
   for (const [key, section] of Object.entries(CONTROL_SECTIONS)) {
     if (section?.mode && allowedModes.has(section.mode)) {

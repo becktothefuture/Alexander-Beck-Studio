@@ -1,3 +1,4 @@
+import { MainNavLink } from '../../components/MainNavLink.jsx';
 import homeContent from '../../../public/config/contents-home.json';
 import cvContent from '../../../public/config/contents-cv.json';
 
@@ -35,7 +36,8 @@ function renderProjects(projects = []) {
 }
 
 export function getCvRouteView() {
-  const footerLinks = homeContent.footer.links;
+  const portfolioLink = homeContent.footer.links.portfolio;
+  const contactLink = homeContent.footer.links.contact;
 
   return {
     bodyClass: 'body cv-page',
@@ -43,26 +45,24 @@ export function getCvRouteView() {
     wallContent: (
       <>
         <div className="cv-scroll-container">
-          <article className="cv-content">
-            <aside className="cv-left" aria-label="CV introduction">
-              <div className="cv-left__inner">
-                <div className="cv-photo">
-                  <img
-                    src={cvContent.intro.photo.src}
-                    alt={cvContent.intro.photo.alt}
-                    className="cv-photo__image"
-                  />
-                </div>
-                <div className="cv-intro">
-                  <h1 className="cv-name">{cvContent.intro.name}</h1>
-                  <p className="cv-title">{cvContent.intro.title}</p>
-                  <p className="cv-intro-text">{cvContent.intro.text}</p>
-                </div>
-              </div>
-            </aside>
-
-            <div className="cv-right">
+          <article className="cv-content cv-content--single">
+            <div className="cv-right cv-right--single">
               <div className="cv-right__inner">
+                <header className="cv-hero" aria-label="Profile">
+                  <div className="cv-photo">
+                    <img
+                      src={cvContent.intro.photo.src}
+                      alt={cvContent.intro.photo.alt}
+                      className="cv-photo__image"
+                    />
+                  </div>
+                  <div className="cv-intro">
+                    <h1 className="cv-name">{cvContent.intro.name}</h1>
+                    <p className="cv-title">{cvContent.intro.title}</p>
+                    <p className="cv-intro-text">{cvContent.intro.text}</p>
+                  </div>
+                </header>
+
                 {cvContent.sections.map((section) => (
                   <section key={section.title} className="cv-section">
                     <h2 className="cv-section-title">{section.title}</h2>
@@ -91,7 +91,7 @@ export function getCvRouteView() {
     ),
     headerContent: (
       <header className="ui-top">
-        <div className="ui-top-main route-topbar">
+        <div className="ui-top-main route-topbar portfolio-topbar">
           <div className="route-topbar__left">
             <a
               href="index.html"
@@ -103,28 +103,24 @@ export function getCvRouteView() {
               <i className="ti ti-arrow-left" aria-hidden="true" />
             </a>
           </div>
-          <nav className="route-topbar__center ui-main-nav" aria-label="CV navigation">
-            <button
-              id={footerLinks.portfolio.id}
-              type="button"
-              className="footer_link"
-              aria-label="Portfolio"
+          <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="CV navigation">
+            <MainNavLink
+              id={portfolioLink.id}
+              aria-label={portfolioLink.text}
               aria-haspopup="dialog"
             >
-              {footerLinks.portfolio.text}
-            </button>
-            <button
-              id={footerLinks.contact.id}
-              type="button"
-              className="footer_link"
-              aria-label="Contact"
+              {portfolioLink.text}
+            </MainNavLink>
+            <MainNavLink
+              id={contactLink.id}
+              aria-label={contactLink.text}
               aria-haspopup="dialog"
             >
-              {footerLinks.contact.text}
-            </button>
+              {contactLink.text}
+            </MainNavLink>
           </nav>
           <div className="route-topbar__right ui-top-right">
-            <div id="sound-toggle-slot" />
+            <div id="sound-toggle-slot" className="portfolio-sound-slot" />
           </div>
         </div>
 

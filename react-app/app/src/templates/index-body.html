@@ -2,12 +2,10 @@
   <!-- SCENE WRAPPER: All scene layers move together (depth + micro-reactions). -->
   <div id="abs-scene" class="abs-scene">
     <div id="bravia-balls" class="ball-simulation w-embed">
+      <div id="scene-effects" class="scene-effects" aria-hidden="true">
+        <div class="noise"></div>
+      </div>
       <canvas id="c" aria-label="Bouncy balls" role="img" draggable="false"></canvas>
-    </div>
-
-    <!-- SCENE EFFECTS: Noise layer (inside #abs-scene for depth effect) -->
-    <div id="scene-effects" class="scene-effects" aria-hidden="true">
-      <div class="noise"></div>
     </div>
     <div class="frame-vignette" aria-hidden="true"></div>
 
@@ -75,9 +73,9 @@
         </main>
           <!-- Main Links Navigation - absolute below logo, gap from --home-main-links-below-logo-px -->
           <nav id="main-links" class="ui-nav-row ui-main-nav" aria-label="Main navigation links">
-            <button id="contact-email" type="button" class="footer_link">Contact</button>
-            <button id="portfolio-modal-trigger" type="button" class="footer_link">Portfolio</button>
-            <button id="cv-modal-trigger" type="button" class="footer_link">About me</button>
+            <button id="contact-email" type="button" class="footer_link"><span class="footer-link-nowrap">Contact</span></button>
+            <button id="portfolio-modal-trigger" type="button" class="footer_link"><span class="footer-link-nowrap">Portfolio</span></button>
+            <button id="cv-modal-trigger" type="button" class="footer_link"><span class="footer-link-nowrap">About me</span></button>
           </nav>
         
         <!-- BOTTOM SECTION: shared footer mounted here via React (SharedFrame footer slot) -->

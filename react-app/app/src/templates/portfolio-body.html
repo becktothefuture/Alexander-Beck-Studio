@@ -1,14 +1,13 @@
 
   <div id="abs-scene" class="abs-scene">
     <div id="bravia-balls" class="portfolio-simulation w-embed">
+      <div id="scene-effects" class="scene-effects" aria-hidden="true">
+        <div class="noise"></div>
+      </div>
       <canvas id="c" class="portfolio-pit-canvas" aria-label="Portfolio projects simulation" role="img" draggable="false"></canvas>
       <div id="portfolioProjectMount" class="portfolio-project-mount" aria-live="polite"></div>
     </div>
     <div id="quote-viewport-host" class="quote-viewport-host" aria-hidden="true"></div>
-  </div>
-  
-  <div id="scene-effects" class="scene-effects" aria-hidden="true">
-    <div class="noise"></div>
   </div>
   <div class="frame-vignette" aria-hidden="true"></div>
 
@@ -22,8 +21,8 @@
             </a>
           </div>
           <nav class="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
-            <button id="cv-modal-trigger" type="button" class="footer_link" aria-label="About me" aria-haspopup="dialog">About me</button>
-            <button id="contact-email" type="button" class="footer_link" aria-label="Contact" aria-haspopup="dialog">Contact</button>
+            <button id="cv-modal-trigger" type="button" class="footer_link" aria-label="About me" aria-haspopup="dialog"><span class="footer-link-nowrap">About me</span></button>
+            <button id="contact-email" type="button" class="footer_link" aria-label="Contact" aria-haspopup="dialog"><span class="footer-link-nowrap">Contact</span></button>
           </nav>
           <div class="route-topbar__right ui-top-right">
             <div id="sound-toggle-slot" class="portfolio-sound-slot"></div>

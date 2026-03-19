@@ -600,17 +600,65 @@ function desaturateGreysToBackground(palette, bgHex, isDarkMode = false) {
   return out;
 }
 
+function applyCursorHoverFgVars(cursorHex) {
+  const fgOnCursor = computeSafeTextOnCursorColor(cursorHex);
+  if (!fgOnCursor) return;
+  try {
+    document.documentElement.style.setProperty('--cursor-hover-fg', fgOnCursor);
+    document.documentElement.style.setProperty('--quote-hover-fg', fgOnCursor);
+  } catch (_) { /* no-op */ }
+}
+
+function parseComputedCssColorToHex(cssColor) {
+  const s = String(cssColor || '').trim();
+  if (!s || s === 'transparent') return null;
+  const rgba0 = s.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i);
+  if (rgba0) {
+    return rgb255ToHex({
+      r: clamp255(parseFloat(rgba0[1])),
+      g: clamp255(parseFloat(rgba0[2])),
+      b: clamp255(parseFloat(rgba0[3])),
+    });
+  }
+  const rgba1 = s.match(/^rgba?\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/|\s*,|\s*$)/i);
+  if (rgba1) {
+    return rgb255ToHex({
+      r: clamp255(parseFloat(rgba1[1])),
+      g: clamp255(parseFloat(rgba1[2])),
+      b: clamp255(parseFloat(rgba1[3])),
+    });
+  }
+  if (s[0] === '#') {
+    const rgb = hexToRgb255(s);
+    return rgb ? rgb255ToHex(rgb) : null;
+  }
+  return null;
+}
+
+/**
+ * Resolve the theme's `--cursor-color` (including `var(--ball-*)` chains) to a hex sample and
+ * stamp `--cursor-hover-fg` / `--quote-hover-fg`. Use on routes that skip `maybeAutoPickCursorColor`
+ * (e.g. styleguide) so solid `::before` hovers stay WCAG-readable.
+ */
+export function stampCursorContrastFromTheme() {
+  if (typeof document === 'undefined') return;
+  try {
+    const probe = document.createElement('div');
+    probe.style.cssText =
+      'position:fixed;left:-9999px;top:0;visibility:hidden;pointer-events:none;color:var(--cursor-color);';
+    document.documentElement.appendChild(probe);
+    const cssColor = getComputedStyle(probe).color;
+    probe.remove();
+    const hex = parseComputedCssColorToHex(cssColor);
+    if (hex) applyCursorHoverFgVars(hex);
+  } catch (_) { /* no-op */ }
+}
+
 function stampCursorCSSVar(hex) {
   try {
     const cursorHex = String(hex || '').trim() || '#000000';
     document.documentElement.style.setProperty('--cursor-color', cursorHex);
-
-    // Solid chrome hovers use full cursor fill — same contrast model as quote (not 12% page mix).
-    const fgOnCursor = computeSafeTextOnCursorColor(cursorHex);
-    if (fgOnCursor) {
-      document.documentElement.style.setProperty('--cursor-hover-fg', fgOnCursor);
-      document.documentElement.style.setProperty('--quote-hover-fg', fgOnCursor);
-    }
+    applyCursorHoverFgVars(cursorHex);
   } catch (_) { /* no-op */ }
 }
 

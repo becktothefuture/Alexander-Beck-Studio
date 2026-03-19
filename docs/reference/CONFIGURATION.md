@@ -17,17 +17,17 @@ The portfolio route now uses a dedicated **project pit** runtime instead of the 
 - **Project content**: `react-app/app/public/config/contents-portfolio.json`
 - **Loader/normalizer**: `react-app/app/src/legacy/modules/portfolio/portfolio-config.js`
 
-Portfolio config applies only to the portfolio pit and fullscreen project open state.
+Portfolio config applies to the portfolio pit and the **wall-contained project bottom sheet** (not a fullscreen takeover). `runtime.motion.openDurationMs` drives sheet slide in/out; `colorFloodHoldMs` is unused in this layout but remains in generated JSON for compatibility.
 
 - **`bodies.diameterScale`**: Multiplier applied to computed ball diameters after viewport fractions (default `1.2` = 20% larger than the base min/max viewport sizing).
 
-**Simulation notes (2025-03):** Portfolio bodies use the same circle colliders and pit solver as the home ball pit (no mixed block/circle mismatch). `detectResponsiveScale()` does not overwrite portfolio radii; `R_MAX` / spatial hashing are synced from spawned bodies. The canvas logo draw path is skipped on the portfolio route so home hero artwork cannot leak after SPA navigation. Titles render in a DOM overlay (`portfolioDomLabels`) for sharp type.
+**Simulation notes (2025-03):** Portfolio bodies use the same circle colliders and pit solver as the home ball pit (no mixed block/circle mismatch). `detectResponsiveScale()` does not overwrite portfolio radii; `R_MAX` / spatial hashing are synced from spawned bodies. The canvas logo draw path is skipped on the portfolio route so home hero artwork cannot leak after SPA navigation. Titles render in a DOM overlay (`portfolioDomLabels`) for sharp type. On SPA route changes, React remounts `#c`; `setupRenderer()` clears the renderer’s cached previous backing-store dimensions when the canvas **node** changes so `resize()` cannot treat a fresh default 300×150 buffer as already matching the last route’s layout (fixes broken pit after the portfolio gate modal).
 
 **Project circle fills:** Each project gets a distinct color from the active palette: saturated (chromatic) swatches first, then neutral/grey slots from that palette (deduped), then additional cool greys if there are more projects than unique swatches (`getPortfolioProjectPaletteColor` in `visual/colors.js`). Home ball pit still uses weighted random palette picks; this rule applies only to the portfolio pit.
 
 **Quote puck:** The draggable quote roundel (`initQuoteDisplay` + `initQuotePuck` in `main.js`) is mounted only on the home route. Portfolio bootstrap calls `destroyQuoteDisplay()` so the same DOM host does not keep a home quote when using the SPA shell.
 
-**Collision notes:** On load, `applyPortfolioPhysicsProfile()` sets `ballSpacing` to **0** and `wallInset` to **0** so physics radii match the filled circles (no forced separation from the shared `default-config` `ballSpacing` / `wallInset` values). Home index can still use the panel-driven spacing; portfolio pit prioritizes flush ball–ball and ball–wall contact.
+**Collision notes:** On load, `applyPortfolioPhysicsProfile()` sets `ballSpacing` to **0** and `wallInset` to **0** (drawn radii match fills). Ball–ball separation uses **`ballBallSurfaceGapPx`** (≈ **2.5×DPR** canvas-buffer px ≈ 2.5 CSS px air gap) plus **`collisionPairSlopPx`** for a tight positional solver so project circles do not visually clip. When `ballBallSurfaceGapPx > 0`, pit broadphase still collects sleeping–sleeping pairs so settled stacks keep the gap. Additionally, **pit-like modes with ≤64 bodies** never use the “all sleeping → skip broadphase” fast path, so the solver still runs after everything has gone to sleep (the home 300-ball pit keeps the fast path). Leaving portfolio (destroy) or initializing the home pit resets `ballBallSurfaceGapPx` / `collisionPairSlopPx` so the index pit keeps ratio-only `ballSpacing` from config.
 
 ### Portfolio `cssVars`
 
@@ -85,10 +85,20 @@ The portfolio runtime is grouped by behavior rather than slider mechanics:
     "behavior": {
       "passiveMouseReaction": false,
       "reducedMotionDurationMs": 320
+    },
+    "pitChrome": {
+      "rimScale": 1.25,
+      "lightPeakLight": 0.53,
+      "lightPeakDark": 0.41,
+      "shadePeakLight": 0.13,
+      "shadePeakDark": 0.22,
+      "arcSpan": 1.12
     }
   }
 }
 ```
+
+**`runtime.pitChrome` (canvas project discs):** Separate from Studio **Light Edge** (`edgeStrength` / `--abs-surface-edge-opacity`), which drives DOM hover glass and frame cues. These keys tune the **screen-fixed** upper-left highlight and lower-right shade drawn on each portfolio pit circle in `pit-mode.js`. Defaults use **`rimScale` 1.25** so the rim reads slightly wider than a proportional match to small UI pills. Dev: **Portfolio → Project pit rim** in the dock.
 
 Portfolio content still comes from `react-app/app/public/config/contents-portfolio.json` and resolves against `react-app/app/public/images/portfolio/`.
 
@@ -116,6 +126,8 @@ To enable it, set `LOCALSTORAGE_ENABLED = true` in `react-app/app/src/legacy/mod
 ### Panel UI state persistence
 
 Panel position / dock visibility / collapsed state is persisted (best-effort) via `panel-dock.js` localStorage keys.
+
+**Dev config panel (single dock):** One implementation in `panel-dock.js` + `control-registry.js` on every route that mounts it (home, portfolio, CV). Default is the **full** master panel (all groups + **`includeRegisteredSections: true`**). Home prepends the mode switcher; portfolio prepends pit chrome; all routes prepend the **active mode** accordion so Ball Pit / etc. sliders are visible. `DevConfigPanelBridge` only registers **`/`** in the React shell — it is not a second panel. Home: **`createPanelDock` after `setMode`**. CV: **`initCvPanel` before `initializeDarkMode`** (theme segment binds). **Styleguide** has no dock.
 
 ### Wall layer visualization (Effects group)
 
@@ -399,6 +411,8 @@ These keys are all **0..1**:
 ---
 
 ## Cursor (Visual)
+
+**Behaviour spec (simulation dot vs modal ring, SPA rules):** [`CUSTOM-CURSOR.md`](CUSTOM-CURSOR.md).
 
 These keys control the cursor’s **visual system** (dot + canvas trail) and its palette-driven cursor color.
 
@@ -735,6 +749,8 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 ---
 
 ## Noise / Film Grain (Visual)
+
+**Stacking:** `#scene-effects` / `.noise` is a child of `#bravia-balls` with `z-index: 1`, under `.shell-wall-slot` (`z-index: 2`) and the pit canvas (`#c`, `z-index: 10`), so grain sits on the wall interior surface **behind** the simulation, not on top of the balls.
 
 ### Noise sizing
 - `noiseSizeBase` (number, px) → `--noise-size-base`
