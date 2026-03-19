@@ -1,12 +1,12 @@
 <div align="center">
   <h1>Alexander Beck Studio Website</h1>
-  <p><strong>A simulation-led studio experience built with Vanilla JS, Canvas 2D, and a performance-first runtime.</strong></p>
+  <p><strong>A simulation-led studio experience: React + Vite shell, Canvas 2D legacy runtime, performance-first physics.</strong></p>
   <p>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-a3e635" alt="MIT License"></a>
     <img src="https://img.shields.io/badge/modes-20-2563eb" alt="20 Modes">
     <img src="https://img.shields.io/badge/performance-60fps%20target-22c55e" alt="60fps Target">
     <img src="https://img.shields.io/badge/privacy-local--first-0ea5e9" alt="Local-first Privacy">
-    <img src="https://img.shields.io/badge/runtime-Vanilla%20JS-f7df1e?logo=javascript&logoColor=111827" alt="Vanilla JS">
+    <img src="https://img.shields.io/badge/runtime-React%20%2B%20legacy%20JS-61dafb?logo=react&logoColor=111827" alt="React plus legacy JS">
     <img src="https://img.shields.io/badge/rendering-Canvas%202D-111827" alt="Canvas 2D">
     <img src="https://img.shields.io/badge/bundler-Vite-646cff?logo=vite&logoColor=white" alt="Vite">
   </p>

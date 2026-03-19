@@ -33,6 +33,10 @@ jobs:
           cd react-app/app
           if [ -f package-lock.json ]; then npm ci --ignore-scripts --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 
+      # Parity with root `npm run build`: regenerate legacy JSON shards from design-system.json
+      - name: Flatten design config
+        run: node scripts/flatten-design-config.mjs
+
       - name: Build React app
         run: cd react-app/app && npm run build
 

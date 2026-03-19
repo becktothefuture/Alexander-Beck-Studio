@@ -1,6 +1,5 @@
 # Build output
 dist/
-html-site/dist/
 react-app/app/dist/
 
 # Video archives (large unused assets — keep out of git)
@@ -9,7 +8,6 @@ react-app/app/public/video/under consideration/
 
 # Dependencies
 node_modules/
-html-site/node_modules/
 package-lock.json
 
 # Test artifacts
@@ -17,8 +15,10 @@ test-results/
 playwright-report/
 .playwright-mcp/
 
-# Video archive (unused video assets)
-html-site/dist/video/archive/
+# Playwright screenshots & certify:screens output (regenerate locally)
+output/playwright/
+# Figma token / mapping exports (regenerate locally if needed)
+output/figma/
 
 # OS files
 .DS_Store
@@ -45,6 +45,12 @@ yarn-error.log*
 # Temporary files
 *.tmp
 .cache/
+
+# One-off local audit scripts (Playwright/Node scratch)
+tmp/*.cjs
+tmp/*.mjs
+output/cv_audit.js
+output/*.cjs
 
 # Dev browser profiles (browser cache)
 .agents/skills/dev-browser/profiles/

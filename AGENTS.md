@@ -9,7 +9,7 @@
 - `npm run build:dev` — React unminified build + sourcemaps
 - `npm run preview` — Serve React build (port 8013)
 - `npm run start` — Alias for preview
-- `npm run certify:screens` — Screenshot certification for home, portfolio, and CV across critical breakpoints/themes
+- `npm run certify:screens` — Screenshot certification for home, portfolio, and CV (writes to `output/playwright/screens-certification/`, gitignored)
 - `npm run validate:html-fragments` — Validate partial HTML templates
 - No automated tests; manual testing required (all 20 modes, 60 FPS, mobile)
 
@@ -22,6 +22,7 @@
 - **Generated config outputs:** `react-app/app/public/config/default-config.json`, `shell-config.json`, `portfolio-config.json`, `cv-config.json`
 - Build flattening: root `npm run build` runs `flatten:design-config` before Vite build. A direct `react-app/app` build can bypass flattening, so prefer building from the repo root.
 - Build: Vite → `react-app/app/dist/`
+- **Site UI styleguide (chrome buttons, harmony):** `docs/reference/SITE-STYLEGUIDE.md`
 
 ## Config Workflow
 - Treat `react-app/app/public/config/design-system.json` as the only authored design source.
@@ -39,6 +40,7 @@
   - UI-only, by being explicitly non-persistent
 
 ## Verification
+- `npm run certify:screens` writes to `output/playwright/screens-certification/`; the whole `output/playwright/` tree is gitignored—regenerate after visual changes. Scratch audit scripts under `tmp/*.cjs` / `output/cv_audit.js` are gitignored—do not commit.
 - For config or panel changes, verify the full parity loop:
   - change value in dev
   - save
@@ -78,6 +80,6 @@
 - This ensures quality and prevents incomplete work from being considered finished
 
 ## Learned Workspace Facts
-- When changing layout, chrome, tokens, or config that affect both the HTML and React surfaces, update both (html-site and react-app) so they stay in sync.
+- Primary surface is `react-app/app/` only; there is no parallel static-site pipeline in this repo.
 - Inner wall corner radius is applied at 1.1× (or 1.15×) base radius to visually compensate for the second outer wall offset; document in CONFIGURATION.md if the multiplier changes.
 - **Quote button drag:** Custom physics (inertia, bounce, resistance, Coulomb friction) were removed; they were overengineered and didn’t work as intended. Current behavior is drag-to-move only, position saved on release. If adding motion again: (1) keep it minimal — e.g. one simple throw decay (single exponential or one time constant), no multi-parameter “realistic” model; (2) prefer CSS for follow-through (e.g. transition on release) or a tiny, well-tested library; (3) add one effect at a time and validate with the user before layering more.
