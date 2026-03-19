@@ -8,6 +8,14 @@ The portfolio route is now a dedicated **project pit** rather than a slider. It 
 - `react-app/app/src/templates/portfolio-body.html`
 - `react-app/app/src/legacy/modules/portfolio/app.js`
 
+## Layer stacking (drawer above chrome)
+
+The project drawer **must** stack **above** the route header row and footer. **Do not** rely on z-index hacks inside the pit alone: mount `#portfolioProjectView` into **`#portfolio-sheet-host`** (see `StudioShell.jsx` + `createProjectView()` in `app.js`). Full table, z-index values, and verification steps: **`docs/reference/LAYER-STACKING.md`** (agents: read this before changing mounts or stacking).
+
+## Project drawer scroll
+
+Hero hint copy is **`(scroll please)`** (see `createProjectView()` in `app.js`). Weighted wheel/touch scrolling is handled by **`lenis`** on the drawer scroller when `prefers-reduced-motion` is not reduced; content lives in `.portfolio-project-view__scroller-content` for Lenis’s `wrapper` / `content` contract.
+
 ## Runtime Modules
 
 - `react-app/app/src/legacy/modules/portfolio/app.js` bootstraps the route, loads project data, mounts the fullscreen project view, and handles drag/open behavior.

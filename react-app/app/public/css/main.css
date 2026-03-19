@@ -792,6 +792,11 @@ body.cv-page .route-topbar__right.ui-top-right {
 }
 
 /* Portfolio + CV route top chrome (main.css so CV works without portfolio.css — SPA + cv.html). */
+/* Project drawer hero h1: always white (not global h1 --text-primary / theme). Duplicated intent in portfolio.css. */
+body.portfolio-page #portfolioProjectTitle.portfolio-project-view__title {
+  color: #fff;
+}
+
 body.portfolio-page .ui-top,
 body.cv-page .ui-top {
   z-index: 30;

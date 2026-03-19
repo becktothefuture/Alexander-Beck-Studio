@@ -230,6 +230,7 @@ PROJECT CONSTRAINTS:
 ✓ Configuration: JSON-driven settings with live debugging panel
 ✓ Accessibility: prefers-reduced-motion support, semantic markup
 ✓ Privacy: No unnecessary data collection, local-first approach
+✓ Layer stacking: Portfolio project sheet MUST sit above route header row + footer — authoritative doc: docs/reference/LAYER-STACKING.md (do not mount #portfolioProjectView only inside #bravia-balls)
 ```
 
 ### Technical Stack Deep Understanding with Tool Enhancement
@@ -634,6 +635,7 @@ PROJECT CONSTRAINTS:
 ✓ Configuration: JSON-driven settings with live debugging panel
 ✓ Accessibility: prefers-reduced-motion support, semantic markup
 ✓ Privacy: No unnecessary data collection, local-first approach
+✓ Layer stacking: Portfolio project sheet MUST sit above route header row + footer — authoritative doc: docs/reference/LAYER-STACKING.md (do not mount #portfolioProjectView only inside #bravia-balls)
 ```
 
 ### Technical Stack Deep Understanding with Tool Enhancement

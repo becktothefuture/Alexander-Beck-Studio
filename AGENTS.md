@@ -28,6 +28,7 @@
 - Build: Vite → `react-app/app/dist/`
 - **Site UI styleguide (chrome buttons, harmony):** `docs/reference/SITE-STYLEGUIDE.md`
 - **Route top bar:** Same standing as the **footer**—fixed pattern only: `header.ui-top` → `ui-top-main.route-topbar` → `route-topbar__left` / `route-topbar__center.ui-main-nav` (`.footer_link` buttons) / `route-topbar__right` + `#sound-toggle-slot`. Do not invent alternate top-bar text buttons or absolute-center layouts. See `docs/reference/COMPONENT-LIBRARY.md` (route top bar) + `SITE-STYLEGUIDE.md` §1.4 + live `/styleguide.html`.
+- **Layer stacking (z-order):** Before changing `#portfolio-sheet-host`, `.fade-content`, or where `#portfolioProjectView` is mounted, read **`docs/reference/LAYER-STACKING.md`**. The portfolio project drawer must **always** stack **above** the route header row and footer.
 
 ## Config Workflow
 - Treat `react-app/app/public/config/design-system.json` as the only authored design source.
@@ -91,3 +92,4 @@
 - Primary surface is `react-app/app/` only; there is no parallel static-site pipeline in this repo.
 - Inner wall corner radius is applied at 1.1× (or 1.15×) base radius to visually compensate for the second outer wall offset; document in CONFIGURATION.md if the multiplier changes.
 - **Quote button drag:** Custom physics (inertia, bounce, resistance, Coulomb friction) were removed; they were overengineered and didn’t work as intended. Current behavior is drag-to-move only, position saved on release. If adding motion again: (1) keep it minimal — e.g. one simple throw decay (single exponential or one time constant), no multi-parameter “realistic” model; (2) prefer CSS for follow-through (e.g. transition on release) or a tiny, well-tested library; (3) add one effect at a time and validate with the user before layering more.
+- **Portfolio project drawer vs route chrome:** The open project sheet must sit **on top of** the header row (`.ui-top` / `.route-topbar`) **and** the footer — **always**. Mount `#portfolioProjectView` in `#portfolio-sheet-host` (see `portfolio/app.js` `createProjectView()`), never only inside `#portfolioProjectMount`. Canonical order and z-index: **`docs/reference/LAYER-STACKING.md`**.

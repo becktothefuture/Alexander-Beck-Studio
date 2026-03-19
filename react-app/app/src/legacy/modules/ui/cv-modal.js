@@ -36,7 +36,10 @@ export function initCVModal() {
     
     // Logo is optional (not present on CV page)
 
-    if (modal.dataset.modalInitialized === 'true') return;
+    // SPA: `createLegacyRuntimeScope` removes ALL listeners added during the
+    // previous route's bootstrap — including handlers on persistent modal DOM.
+    // Always re-initialize so that trigger bindings, input handlers, and
+    // document-level keyboard/overlay listeners are restored.
     modal.dataset.modalInitialized = 'true';
     
     const BACK_TEXT = getText('gates.common.backText', 'BACK');

@@ -88,8 +88,10 @@ export function initContactModal() {
   
   // Logo is optional (not present on CV page)
 
-  // Idempotency check: prevent duplicate listeners if initialized multiple times
-  if (modal.dataset.modalInitialized === 'true') return;
+  // SPA: `createLegacyRuntimeScope` removes ALL listeners added during the
+  // previous route's bootstrap — including handlers on persistent modal DOM.
+  // Always re-initialize so that trigger bindings, input handlers, and
+  // document-level keyboard/overlay listeners are restored.
   modal.dataset.modalInitialized = 'true';
 
   // Match CV/Portfolio structure:

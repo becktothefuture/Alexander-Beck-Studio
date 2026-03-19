@@ -603,6 +603,8 @@
      Wall (container)         100        #bravia-balls
      Video Overlays           150        .grunge-video-overlay (above wall, below UI)
      UI Layer                 200        .fade-content (contains logo + nav + header + footer)
+     Quote host               250        #quote-viewport-host
+     Portfolio sheet (open)   260        #portfolio-sheet-host (project dialog; above route chrome)
      
      INSIDE #bravia-balls (wall interior stacking context):
      ─────────────────────────────────────────────────────────────────────────────
@@ -616,7 +618,8 @@
      Dev Panel                9999       .abs-control-panel
      Modal Blur               19998      #modal-blur-layer
      Modal Content            19999      #modal-content-layer
-     ═══════════════════════════════════════════════════════════════════════════════ */
+     ═══════════════════════════════════════════════════════════════════════════════
+     Canonical prose + rules: docs/reference/LAYER-STACKING.md */
   --z-text-content: 200;
   --z-wall: 100;
   --z-canvas: 10;

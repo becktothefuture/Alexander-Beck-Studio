@@ -1,7 +1,7 @@
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
 import { applyWallFrameFromConfig, applyWallFrameLayout } from '../visual/wall-frame.js';
 import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioConfig } from './portfolio-config.js';
-import { relayoutPortfolioProjectLabels } from './pit-mode.js';
+import { relayoutPortfolioProjectLabels, initializePortfolioPit } from './pit-mode.js';
 import { createSoundToggle } from '../ui/sound-toggle.js';
 import { initializeDarkMode } from '../visual/dark-mode-v2.js';
 import { getPortfolioProjectPaletteColor, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
@@ -37,6 +37,7 @@ import { announceToScreenReader } from '../utils/accessibility.js';
 import { destroyQuoteDisplay } from '../ui/quote-display.js';
 import { setupPointer } from '../input/pointer.js';
 import { setupOverscrollLock } from '../input/overscroll-lock.js';
+import Lenis from 'lenis';
 import { setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
 
 const BASE_PATH = (() => {
@@ -181,6 +182,8 @@ class PortfolioPitApp {
     this.projectLabels = [];
     this.hoverProjectIndex = -1;
     this._projectCloseFallbackTimer = null;
+    this.projectLenis = null;
+    this.projectScrollerContent = null;
     this.boundCanvasHoverMove = (event) => this.handleCanvasHoverMove(event);
     this.boundCanvasHoverLeave = () => this.handleCanvasHoverLeave();
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
@@ -192,6 +195,7 @@ class PortfolioPitApp {
     this.boundResize = () => {
       window.requestAnimationFrame(() => {
         resize();
+        if (this.isProjectOpen) this.projectLenis?.resize();
         if (!this.isProjectOpen) return;
         const project = this.projects[this.selectedProjectIndex];
         if (project) this.syncProjectHero(project, false);
@@ -236,6 +240,7 @@ class PortfolioPitApp {
     };
     this.bindCanvasInteractions();
     this.bindProjectOverlay();
+    this.setupProjectScrollerLenis();
     window.addEventListener('resize', this.boundResize, { passive: true });
     window.addEventListener('bb:paletteChanged', this.boundPaletteChange);
   }
@@ -248,6 +253,7 @@ class PortfolioPitApp {
     }
     window.removeEventListener('resize', this.boundResize);
     window.removeEventListener('bb:paletteChanged', this.boundPaletteChange);
+    this.destroyProjectScrollerLenis();
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
     this.clearProjectOpenTimeouts();
     if (this.projectClose) {
@@ -333,8 +339,10 @@ class PortfolioPitApp {
     }
   }
 
+  /** Mount in `#portfolio-sheet-host` when present so the sheet stacks above route chrome; see `docs/reference/LAYER-STACKING.md`. */
   createProjectView() {
-    const host = this.mount || this.canvas?.parentElement;
+    const sheetHost = document.getElementById('portfolio-sheet-host');
+    const host = sheetHost || this.mount || this.canvas?.parentElement;
     if (!host) return;
     const existing = document.getElementById('portfolioProjectView');
     if (existing) existing.remove();
@@ -351,24 +359,31 @@ class PortfolioPitApp {
           <div class="portfolio-project-view__backdrop" aria-hidden="true"></div>
           <div class="portfolio-project-view__sheet">
             <div class="portfolio-project-view__sheet-highlight" aria-hidden="true"></div>
-            <button class="portfolio-project-view__close" type="button" aria-label="Close project">
-              <i class="ti ti-x" aria-hidden="true"></i>
+            <button class="portfolio-project-view__close abs-icon-btn" type="button" aria-label="Close project">
+              <svg class="portfolio-project-view__close-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                <path
+                  fill="currentColor"
+                  d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
+                />
+              </svg>
             </button>
             <div class="portfolio-project-view__scroller">
-              <section class="portfolio-project-view__hero">
-                <div class="portfolio-project-view__image-shell">
-                  <img class="portfolio-project-view__image" alt="" loading="eager" />
-                  <div class="portfolio-project-view__image-veil" aria-hidden="true"></div>
-                </div>
-                <div class="portfolio-project-view__hero-copy">
-                  <p class="portfolio-project-view__eyebrow"></p>
-                  <h1 id="portfolioProjectTitle" class="portfolio-project-view__title"></h1>
-                  <p class="portfolio-project-view__scroll-hint">Scroll to explore</p>
-                </div>
-              </section>
-              <section class="portfolio-project-view__body">
-                <div class="portfolio-project-view__body-inner" id="portfolioProjectContent"></div>
-              </section>
+              <div class="portfolio-project-view__scroller-content">
+                <section class="portfolio-project-view__hero">
+                  <div class="portfolio-project-view__image-shell">
+                    <img class="portfolio-project-view__image" alt="" loading="eager" />
+                    <div class="portfolio-project-view__image-veil" aria-hidden="true"></div>
+                  </div>
+                  <div class="portfolio-project-view__hero-copy">
+                    <p class="portfolio-project-view__eyebrow"></p>
+                    <h1 id="portfolioProjectTitle" class="portfolio-project-view__title"></h1>
+                    <p class="portfolio-project-view__scroll-hint">(scroll please)</p>
+                  </div>
+                </section>
+                <section class="portfolio-project-view__body">
+                  <div class="portfolio-project-view__body-inner" id="portfolioProjectContent"></div>
+                </section>
+              </div>
             </div>
           </div>
         </div>
@@ -380,6 +395,7 @@ class PortfolioPitApp {
     this.projectBackdrop = this.projectView?.querySelector('.portfolio-project-view__backdrop');
     this.projectSheet = this.projectView?.querySelector('.portfolio-project-view__sheet');
     this.projectScroller = this.projectView?.querySelector('.portfolio-project-view__scroller');
+    this.projectScrollerContent = this.projectView?.querySelector('.portfolio-project-view__scroller-content');
     this.projectImage = this.projectView?.querySelector('.portfolio-project-view__image');
     this.projectEyebrow = this.projectView?.querySelector('.portfolio-project-view__eyebrow');
     this.projectTitle = this.projectView?.querySelector('.portfolio-project-view__title');
@@ -391,6 +407,46 @@ class PortfolioPitApp {
     if (!this.projectClose) return;
     this.projectClose.addEventListener('click', this.boundProjectCloseClick);
     this.projectBackdrop?.addEventListener('pointerdown', this.boundBackdropPointerDown);
+  }
+
+  setupProjectScrollerLenis() {
+    if (this.projectLenis) return;
+    if (!this.projectScroller || !this.projectScrollerContent) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    this.projectLenis = new Lenis({
+      wrapper: this.projectScroller,
+      content: this.projectScrollerContent,
+      autoRaf: true,
+      smoothWheel: true,
+      lerp: 0.065,
+      wheelMultiplier: 0.88,
+      touchMultiplier: 1.05,
+      syncTouch: true,
+      overscroll: true,
+    });
+  }
+
+  destroyProjectScrollerLenis() {
+    if (!this.projectLenis) return;
+    this.projectLenis.destroy();
+    this.projectLenis = null;
+  }
+
+  resetProjectScrollTop() {
+    if (!this.projectScroller) return;
+    if (this.projectLenis) {
+      this.projectLenis.scrollTo(0, { immediate: true });
+    } else {
+      this.projectScroller.scrollTop = 0;
+    }
+  }
+
+  scheduleProjectLenisResize() {
+    if (!this.projectLenis) return;
+    window.requestAnimationFrame(() => {
+      this.projectLenis?.resize();
+    });
   }
 
   ensureAnnouncer() {
@@ -815,17 +871,19 @@ class PortfolioPitApp {
     this.projectView.style.setProperty('--portfolio-project-title-delay-ms', `${titleDelay}ms`);
 
     this.projectImage.src = resolveAsset(project.image || CONFIG.coverFallback);
+    this.projectImage.addEventListener('load', () => this.projectLenis?.resize(), { once: true });
     this.projectImage.alt = project.title || 'Project cover';
     this.projectEyebrow.textContent = project.client || '';
     this.projectTitle.textContent = project.title || '';
     this.projectContent.innerHTML = this.buildProjectContent(project);
     this.syncProjectButtonStates();
+    this.scheduleProjectLenisResize();
 
     if (!animate) {
       this.projectView.classList.add('is-visible', 'is-open', 'is-title-visible');
       this.projectView.setAttribute('aria-hidden', 'false');
       document.body.classList.add('portfolio-project-open');
-      this.projectScroller.scrollTop = 0;
+      this.resetProjectScrollTop();
       return;
     }
 
@@ -833,7 +891,7 @@ class PortfolioPitApp {
     this.projectView.classList.add('is-visible');
     this.projectView.setAttribute('aria-hidden', 'false');
     document.body.classList.add('portfolio-project-open');
-    this.projectScroller.scrollTop = 0;
+    this.resetProjectScrollTop();
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reducedMotion) {

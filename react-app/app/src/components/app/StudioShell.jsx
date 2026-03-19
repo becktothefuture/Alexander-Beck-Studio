@@ -67,6 +67,13 @@ export function StudioShell({
           </div>
         </div>
 
+        {/* Project sheet mounts here so it stacks above .fade-content (header/footer); see docs/reference/LAYER-STACKING.md */}
+        <div
+          id="portfolio-sheet-host"
+          className="portfolio-sheet-host"
+          aria-hidden="true"
+        />
+
         <div
           id="quote-viewport-host"
           className="quote-viewport-host"

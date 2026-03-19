@@ -1760,8 +1760,10 @@ body:not(.dark-mode) .panel-section--action {
 }
 
 body.dark-mode .panel-dock .panel {
-  background: rgba(18, 18, 22, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Opaque surface — no page/wall colors bleeding through as “bands” */
+  background: hsl(240 8% 10%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -1769,28 +1771,60 @@ body.dark-mode .panel-dock .panel {
 }
 
 body:not(.dark-mode) .panel-dock .panel {
-  background: rgba(250, 250, 252, 0.92);
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  background: hsl(240 6% 98%);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
   box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   filter: none;
 }
 
-body:not(.dark-mode) #portfolioPanel {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 60%, rgba(46, 49, 56, 0.01) 100%);
-  background-color: rgba(255, 255, 255, 0.01);
-  border-width: 0px;
-  border-color: rgba(0, 0, 0, 0);
-  border-style: none;
-  border-image: none;
-  box-shadow: none;
-}
-
 .panel-dock .panel-header {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--panel-pad-6);
   padding: var(--panel-pad-7) var(--panel-pad-10);
   cursor: grab !important;
+}
+
+.panel-dock .panel-header .panel-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.panel-dock .panel-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.panel-dock .panel-close-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--panel-radius-sm);
+  color: var(--panel-muted-foreground);
+  cursor: pointer;
+  transition: background 0.15s var(--ease-organic), color 0.15s var(--ease-organic);
+}
+
+.panel-dock .panel-close-btn:hover,
+.panel-dock .panel-close-btn:focus-visible {
+  background: var(--panel-accent);
+  color: var(--panel-foreground);
+}
+
+.panel-dock .panel-close-btn:focus-visible {
+  outline: 2px solid var(--panel-brand, hsl(32 95% 44%));
+  outline-offset: 1px;
 }
 
 .panel-dock .panel-header:hover {

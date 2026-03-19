@@ -197,8 +197,9 @@ export function initModalOverlay(config) {
         updateBlurFromWallThickness('init');
     }
 
-    // Idempotency check: if already initialized, just update config/blur and return
-    if (isInitialized) return;
+    // SPA: `createLegacyRuntimeScope` removes ALL listeners added during the
+    // previous route's bootstrap — including handlers on persistent overlay DOM.
+    // Always re-initialize so overlay click, resize, and layout listeners are restored.
     isInitialized = true;
 
     // Set CSS variables on root for global access (modals, blur layer, etc.)

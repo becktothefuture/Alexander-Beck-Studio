@@ -466,6 +466,14 @@ function createMasterPanel({
       togglePanelCollapse(panel);
     });
   }
+  const closeBtn = header.querySelector('.panel-close-btn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      hideDock();
+    });
+  }
   // Header click should NOT toggle collapse.
   // For a Mac-window feel, the titlebar is for dragging; collapse is explicit via the button.
   
@@ -720,6 +728,12 @@ export function toggleDock() {
       ensureDockOnscreen();
     } catch (e) {}
   }
+}
+
+export function hideDock() {
+  if (!dockElement) return;
+  dockElement.classList.add('hidden');
+  saveDockHiddenState(true);
 }
 
 function ensureDockOnscreen() {

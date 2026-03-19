@@ -14,6 +14,7 @@
     "parity:capture": "echo \"Use Playwright capture flow from migration README\""
   },
   "dependencies": {
+    "lenis": "^1.3.19",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
