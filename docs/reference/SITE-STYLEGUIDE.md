@@ -24,7 +24,7 @@ These are the **solid cursor-colored** hovers: same hue family as the **custom c
 |--------|------|
 | **Fill** | **Opaque** `var(--cursor-color)` on hover (and for “on” states that use the same language, e.g. active legend chip). No `color-mix(…, transparent)` for the primary fill. |
 | **Rim** | **Subtle inset highlight**, not a frosted stack: `var(--ui-chrome-button-edge)` — light top edge + soft dark bottom edge so the pill reads on any cursor luminance. Dark mode overrides live under `:root.dark-mode` in tokens. |
-| **Glyph / label** | On hover, use **`var(--cursor-hover-fg)`** for text and icons so contrast is safe on the solid fill. This is computed in JS from the cursor color (WCAG-oriented), not guessed in CSS. |
+| **Glyph / label** | On hover, use **`var(--cursor-hover-fg)`** for text and icons so contrast is safe on the solid fill. This is computed in JS from the cursor color (WCAG-oriented), not guessed in CSS. **Do not** put `color` in `transition` on these chrome controls—foreground should snap instantly; motion stays on the `::before` fill and transforms. |
 | **Shape** | Corner radius tracks the wall via **`var(--ui-icon-corner-radius)`** (and link hovers use the same). Icon hits are square frames sized with **`--ui-icon-frame-size`** / **`--ui-icon-glyph-size`**. |
 
 ### 1.2 Implementation pattern
@@ -41,7 +41,7 @@ Use these as references when adding siblings:
 - **Icon buttons:** `.abs-icon-btn` (e.g. social links, sound toggle with `.sound-toggle.abs-icon-btn`)
 - **Text buttons:** `.footer_link` inside `.ui-main-nav` (author with `MainNavLink` in React)
 - **Meta:** `.abs-meta-btn`, `#site-year`
-- **Quote puck (floating):** Solid fill still comes from `.quote-display::before`. On **hover**, the **visible glass surface** uses the same rim as other chrome: `box-shadow: var(--ui-chrome-button-edge)` plus a slightly lifted outer drop shadow (see `.quote-display:hover` in `main.css`).
+- **Quote puck (floating):** **`.quote-display__disk`** = round solid **`var(--cursor-color)`** + shadow (hover scale); **`.quote-display__content`** = text (**`--quote-hover-fg`** / **`--cursor-hover-fg`**); **`#quote-display`** sets **`--_size: calc(var(--abs-quote-button-size) * 0.75)`**; spin is **`--quote-tilt`** on content only (see `main.css` Quote Puck block).
 - **Contact row (modal):** `.contact-email-row` hover uses the same fill + rim + `cursor-hover-fg`
 - **Portfolio project sheet (pit):** `.portfolio-project-view__links a` — external links in the open project use the same `::before` + `--ui-chrome-button-edge` hover treatment ([`portfolio.css`](../../react-app/app/public/css/portfolio.css))
 - **Legend active:** `.legend__item--active::before` — solid fill + rim; label uses `cursor-hover-fg`

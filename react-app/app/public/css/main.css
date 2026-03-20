@@ -1619,7 +1619,6 @@ button.abs-meta-btn,
   /* Removed explicit opacity - now controlled by index page rule (0.7 default, 1 on hover) */
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic),
-              color 0.2s var(--ease-organic),
               opacity 0.15s var(--ease-organic);
   text-decoration: none;
   /* Ensure proper positioning for ::before */
@@ -1666,21 +1665,17 @@ button.abs-meta-btn,
 /* Quote puck: stay true circles when global squircle is on (`html... *` beats a lone class — scope with #id). */
 @supports (corner-shape: round) {
   #quote-display,
-  #quote-display::before,
-  #quote-display::after,
-  #quote-display .quote-display__surface,
-  #quote-display .quote-display__surface::before,
-  #quote-display .quote-display__surface::after {
+  #quote-display .quote-display__disk {
     corner-shape: round;
   }
 }
 
 /* ── Quote Puck ─────────────────────────────────────────────────────────────
-   Outer: fixed rim + shadow (left/top only). Inner: glass + text; JS rotates
-   .quote-display__surface for spin. Float physics in quote-puck.js. Hover text
-   uses cursor palette; no typewriter scale on the puck. */
+   `#quote-display` = shell + hit target. `.quote-display__disk` = round fill + shadow;
+   hover scale applies only to disk. `.quote-display__content` = text (no hover scale). */
 .quote-display {
-  --_size: var(--abs-quote-button-size, 224px);
+  --_size: calc(var(--abs-quote-button-size, 224px) * 0.75);
+  --quote-puck-hover-scale: 1.05;
   position: fixed;
   right: 24px;
   bottom: 10vh;
@@ -1692,7 +1687,7 @@ button.abs-meta-btn,
   display: block;
   box-sizing: border-box;
   text-align: center;
-  overflow: hidden;
+  overflow: visible;
   z-index: 500;
   pointer-events: auto;
   border: none;
@@ -1700,56 +1695,42 @@ button.abs-meta-btn,
   -webkit-user-select: none;
   cursor: none;
   -webkit-tap-highlight-color: transparent;
-  transform: none;
-  /* Inset rim: strong light edge, subtle shadow */
-  --quote-button-edge-light: 0.52;
-  --quote-button-edge-light-ring: 0.58;
-  --quote-button-edge-shadow: 0.2;
   --quote-button-outer-shadow: 0.045;
-  --quote-button-backdrop-blur: 2px;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, var(--quote-button-edge-light-ring)),
-    inset 0 1px 0 rgba(255, 255, 255, var(--quote-button-edge-light)),
-    inset 0 -1px 0 rgba(0, 0, 0, var(--quote-button-edge-shadow)),
-    0 2px 8px rgba(0, 0, 0, var(--quote-button-outer-shadow));
+  --quote-tilt: -3deg;
 }
 
-.quote-display__surface {
-  width: 100%;
-  height: 100%;
+.quote-display__disk {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
   corner-shape: round;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: calc(var(--abs-gap-xs) * 2);
-  padding: var(--abs-quote-pad-y, 24px) var(--abs-quote-pad-x, 28px);
-  box-sizing: border-box;
-  overflow: hidden;
-  transform: none;
+  z-index: 0;
+  background: var(--cursor-color);
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow) * 2.2)),
+    0 10px 24px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow) * 2.2));
+  transform: scale(1);
   transform-origin: center center;
-  /* White fill at 20% opacity (default glass) */
-  background: rgba(255, 255, 255, 0.2);
-  /* Tier-1 “liquid glass”: SVG feDisplacementMap (#abs-quoteLensFilter) + light blur */
-  backdrop-filter:
-    url(#abs-quoteLensFilter) blur(var(--quote-button-backdrop-blur, 2px)) saturate(1.04);
-  -webkit-backdrop-filter:
-    url(#abs-quoteLensFilter) blur(var(--quote-button-backdrop-blur, 2px)) saturate(1.04);
-  transition: background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+  /* Same energy as chrome hover fills: fast in, smooth release out */
+  transition: transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic));
+}
+
+#quote-display:hover .quote-display__disk {
+  transform: scale(var(--quote-puck-hover-scale));
+  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .quote-display__surface {
-    backdrop-filter: blur(var(--quote-button-backdrop-blur, 2px));
-    -webkit-backdrop-filter: blur(var(--quote-button-backdrop-blur, 2px));
+  .quote-display__disk {
+    transition: none;
+  }
+
+  #quote-display:hover .quote-display__disk {
+    transform: scale(1);
   }
 }
 
 .dark-mode .quote-display {
-  --quote-button-edge-light: 0.38;
-  --quote-button-edge-light-ring: 0.45;
-  --quote-button-edge-shadow: 0.3;
   --quote-button-outer-shadow: 0.12;
 }
 
@@ -1773,17 +1754,22 @@ button.abs-meta-btn,
   -webkit-user-select: none;
 }
 
-/* Content wrapper for mode-change enter/exit animations */
+/* Text layer: above disk, no pointer capture (events reach disk / bubble to #quote-display). */
 .quote-display__content {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: calc(var(--abs-gap-xs) * 2);
-  position: relative;
+  padding: var(--abs-quote-pad-y, 24px) var(--abs-quote-pad-x, 28px);
+  box-sizing: border-box;
   z-index: 1;
+  pointer-events: none;
   opacity: 1;
-  transform: scale(1);
+  transform: rotate(var(--quote-tilt, -3deg)) scale(1);
+  transform-origin: center center;
   filter: blur(0);
   transition:
     opacity 220ms var(--ease-fade),
@@ -1793,17 +1779,17 @@ button.abs-meta-btn,
 
 .quote-display__content--entering {
   opacity: 0;
-  transform: scale(0.97);
+  transform: rotate(var(--quote-tilt, -3deg)) scale(0.97);
   filter: blur(2px);
 }
 
 .quote-display__content--exiting {
   opacity: 0;
-  transform: scale(1.01);
+  transform: rotate(var(--quote-tilt, -3deg)) scale(1.01);
   filter: blur(1px);
 }
 
-/* Text scales with button size — solid colors for legibility */
+/* Text: contrast fg from colors.js (same idea as link hover on cursor fill) */
 .quote-display__text {
   margin: 0;
   font-family: var(--abs-font-sans);
@@ -1812,38 +1798,21 @@ button.abs-meta-btn,
   font-weight: var(--abs-weight-regular);
   line-height: var(--abs-line-relaxed);
   letter-spacing: 0.02em;
-  color: rgba(0, 0, 0, 0.58);
+  color: var(--quote-hover-fg, var(--cursor-hover-fg, rgba(0, 0, 0, 0.85)));
   transition: color 0.2s var(--ease-organic);
-}
-
-.dark-mode .quote-display__text {
-  color: rgba(255, 255, 255, 0.66);
 }
 
 .quote-display__author {
   margin: 0;
   font-family: var(--abs-font-sans);
-  font-size: max(9px, min(calc(var(--abs-quote-button-size, 224px) * 0.042), 12px));
+  font-size: max(9px, min(calc(var(--_size, 168px) * 0.042), 12px));
   font-weight: var(--abs-weight-medium);
   line-height: var(--abs-line-tight);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.38);
+  color: var(--quote-hover-fg, var(--cursor-hover-fg, rgba(0, 0, 0, 0.85)));
+  opacity: 0.88;
   transition: color 0.2s var(--ease-organic);
-}
-
-.dark-mode .quote-display__author {
-  color: rgba(255, 255, 255, 0.44);
-}
-
-/* Hover: full cursor colour, 100% opaque (driven by body.quote-puck-hovered from link-cursor-hop). */
-body.quote-puck-hovered .quote-display .quote-display__surface {
-  background: var(--cursor-color);
-}
-
-body.quote-puck-hovered .quote-display .quote-display__text,
-body.quote-puck-hovered .quote-display .quote-display__author {
-  color: var(--quote-hover-fg, var(--cursor-hover-fg, var(--cursor-color)));
 }
 
 /* Sound Toggle in Top or Footer */
@@ -1860,8 +1829,7 @@ body.quote-puck-hovered .quote-display .quote-display__author {
   border: none;
   transition:
     transform 0.15s var(--ease-organic),
-    filter 0.15s var(--ease-organic),
-    color var(--duration-link-hover) var(--ease-organic);
+    filter 0.15s var(--ease-organic);
 }
 
 .sound-toggle:active {
@@ -2794,13 +2762,12 @@ body.abs-link-hovering #custom-cursor {
   transform: translateZ(0);
   transition:
     transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
-    color 0.2s ease,
     box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
 :is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
   transform: translateZ(0);
-  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), color 0.2s ease;
+  transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
 }
 
 a:hover,
@@ -2819,7 +2786,7 @@ button:hover {
    - Icon buttons: .abs-icon-btn (social links, sound toggle)
    - Legend items: .legend__item--interactive
    - Meta elements: .abs-meta-btn, #site-year
-   - Quote puck: .quote-display (text uses --quote-hover-fg / --cursor-hover-fg)
+   - Quote puck: excluded — no hover fill (glass stays constant)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ─── Hover State: Color & Background ─── */
@@ -3283,8 +3250,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   user-select: none;
   color: var(--text-quiet);
   transition: transform 0.15s var(--ease-organic),
-              filter 0.15s var(--ease-organic),
-              color var(--duration-link-hover) var(--ease-organic);
+              filter 0.15s var(--ease-organic);
 }
 
 .gate-back:active {
@@ -3382,7 +3348,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
     border-color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
     background-color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
     box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
-    color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-gate),
     transform 0.15s var(--ease-organic);
 }
 

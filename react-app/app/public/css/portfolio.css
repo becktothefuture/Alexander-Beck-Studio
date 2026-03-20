@@ -428,7 +428,6 @@ body.portfolio-project-open .ui-bottom {
   overflow: visible;
   transform: translateZ(0);
   transition:
-    color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
     transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic));
 }
 
@@ -454,7 +453,6 @@ body.portfolio-project-open .ui-bottom {
   color: var(--cursor-hover-fg, var(--text-primary));
   transform: translateZ(0);
   transition:
-    color var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
     transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
 }
 
