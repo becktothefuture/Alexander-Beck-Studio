@@ -27,6 +27,7 @@
 - Build flattening: root `npm run build` runs `flatten:design-config` before Vite build. A direct `react-app/app` build can bypass flattening, so prefer building from the repo root.
 - Build: Vite → `react-app/app/dist/`
 - **Site UI styleguide (chrome buttons, harmony):** `docs/reference/SITE-STYLEGUIDE.md`
+- **Material presence (site-wide motion and continuity rule):** `docs/reference/MATERIAL-PRESENCE.md` is canonical. Preserve perceptual continuity, restore primary UI quickly as whole objects/groups, and avoid decorative delay that makes controls feel absent or rebuilt.
 - **Route top bar:** Same standing as the **footer**—fixed pattern only: `header.ui-top` → `ui-top-main.route-topbar` → `route-topbar__left` / `route-topbar__center.ui-main-nav` (`.footer_link` buttons) / `route-topbar__right` + `#sound-toggle-slot`. Do not invent alternate top-bar text buttons or absolute-center layouts. See `docs/reference/COMPONENT-LIBRARY.md` (route top bar) + `SITE-STYLEGUIDE.md` §1.4 + live `/styleguide.html`.
 - **Layer stacking (z-order):** **`docs/reference/LAYER-STACKING.md` is canonical.** Read it before changing `#portfolio-sheet-host`, `.fade-content`, `#abs-scene`, or `#portfolioProjectView` mount. **Portfolio drawer MUST stack above header + footer** (`.fade-content`, z-index 200): host is **`#abs-scene` sibling after `.fade-content`**, z-index **220** / **260** when open — **never** only inside `#simulations`.
 - **Portfolio pit physics (collisions, walls, spatial grid):** `docs/reference/PORTFOLIO-PIT-PHYSICS.md`
