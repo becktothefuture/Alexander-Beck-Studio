@@ -102,7 +102,11 @@
     }
   },
   "portfolio": {
-    "blurb": "Selected work across finance, luxury, and frontier tech—projects I've directed, led, or built with teams. Currently designing for neurodivergent users."
+    "heroLines": [
+      "I understand the levers that shape behaviour: design strategy, human psychology, and aesthetic principles.",
+      "Then I turn that into digital direction teams can align around and experiences people can feel their way through."
+    ],
+    "blurb": "A few projects that show how I work in practice: define the system, test the interaction, and stay close to the build."
   },
   "gates": {
     "common": {

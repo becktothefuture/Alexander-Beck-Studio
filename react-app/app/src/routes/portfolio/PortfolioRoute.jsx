@@ -8,6 +8,15 @@ export const PORTFOLIO_ROUTE_RUNTIME = {
 export function getPortfolioRouteView() {
   const aboutLink = homeContent.footer.links.cv;
   const contactLink = homeContent.footer.links.contact;
+  const aboutMeLabel = 'About Me';
+  const portfolioBlurb = homeContent.portfolio?.blurb
+    || 'A few projects that show how I work in practice: define the system, test the interaction, and stay close to the build.';
+  const portfolioHeroLines = Array.isArray(homeContent.portfolio?.heroLines)
+    ? homeContent.portfolio.heroLines
+    : [
+        'I understand the levers that shape behaviour: design strategy, human psychology, and aesthetic principles.',
+        'Then I turn that into digital direction teams can align around and experiences people can feel their way through.'
+      ];
 
   return {
     bodyClass: 'body portfolio-page',
@@ -24,6 +33,16 @@ export function getPortfolioRouteView() {
         <div id="portfolioProjectMount" className="portfolio-project-mount" aria-live="polite" />
       </>
     ),
+    heroTitle: (
+      <h2
+        id="hero-title"
+        className="hero-title hero-title--portfolio"
+        aria-label={portfolioHeroLines.join(' ')}
+      >
+        <span className="hero-title__line">{portfolioHeroLines[0]}</span>
+        <span className="hero-title__line hero-title__line--secondary">{portfolioHeroLines[1]}</span>
+      </h2>
+    ),
     headerContent: (
       <header className="ui-top" data-portfolio-ui>
         <div className="ui-top-main route-topbar portfolio-topbar">
@@ -37,16 +56,20 @@ export function getPortfolioRouteView() {
             >
               <i className="ti ti-arrow-left" aria-hidden="true" />
             </a>
+            <nav className="portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
+              <MainNavLink id={aboutLink.id} aria-haspopup="dialog">
+                {aboutMeLabel}
+              </MainNavLink>
+              <MainNavLink id={contactLink.id} aria-haspopup="dialog">
+                {contactLink.text}
+              </MainNavLink>
+            </nav>
           </div>
-          <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Portfolio navigation">
-            <MainNavLink id={aboutLink.id} aria-haspopup="dialog">
-              {aboutLink.text}
-            </MainNavLink>
-            <MainNavLink id={contactLink.id} aria-haspopup="dialog">
-              {contactLink.text}
-            </MainNavLink>
-          </nav>
+          <div className="route-topbar__center" aria-hidden="true" />
           <div className="route-topbar__right ui-top-right">
+            <blockquote className="decorative-script portfolio-topline">
+              <p>{portfolioBlurb}</p>
+            </blockquote>
             <div id="sound-toggle-slot" className="portfolio-sound-slot" />
           </div>
         </div>

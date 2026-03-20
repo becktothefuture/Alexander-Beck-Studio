@@ -3,7 +3,11 @@
   --portfolio-nav-top: 0px;
   --portfolio-stage-pad: clamp(18px, 2.1vw, 32px);
   --portfolio-hero-title-max: 14ch;
-  --portfolio-image-veil-opacity: 0.14;
+  --portfolio-intro-title-max-width: 38ch;
+  --portfolio-intro-title-size: clamp(1.42rem, 2.34vw, 2.28rem);
+  --portfolio-intro-title-line-height: 1.04;
+  --portfolio-intro-title-letter-spacing: -0.034em;
+  --portfolio-image-veil-opacity: 0.2;
   /* Sheet insets: px + vw only (no vh) so low viewport height doesn’t collapse padding */
   --portfolio-sheet-pad-x: clamp(8px, 12px + 1.2vw, 32px);
   --portfolio-sheet-pad-y-body: clamp(24px, 18px + 1.2vw, 40px);
