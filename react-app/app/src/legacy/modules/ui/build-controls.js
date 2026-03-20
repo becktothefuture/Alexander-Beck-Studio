@@ -11,13 +11,13 @@ export function setupBuildControls() {
   btn.addEventListener('click', async () => {
     const originalLabel = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Saving Design JSON…';
+    btn.textContent = 'Updating…';
 
     try {
       const result = await performDesignSystemSave();
-      btn.textContent = result.saved ? 'Saved Design JSON' : 'Downloaded Design JSON';
+      btn.textContent = result.saved ? '✓ Updated' : 'Downloaded JSON';
     } catch (e) {
-      btn.textContent = 'Design Save Failed';
+      btn.textContent = 'Update Failed';
     } finally {
       window.setTimeout(() => {
         btn.disabled = false;

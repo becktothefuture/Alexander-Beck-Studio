@@ -102,16 +102,30 @@ function loadPanelSize() {
   }
 }
 
+/** Dev: treat persisted heights below this as invalid (resize-handle accidents). */
+function getDevPanelMinHeightPx() {
+  try {
+    return Math.max(440, Math.round(window.innerHeight * 0.52));
+  } catch (e) {
+    return 520;
+  }
+}
+
 function savePanelSizeFromElement(el) {
   try {
     if (!el) return;
     if (el.classList.contains('collapsed')) return;
     const rect = el.getBoundingClientRect();
-    const next = {
-      width: Math.round(rect.width),
-      height: Math.round(rect.height),
-    };
-    localStorage.setItem(STORAGE_KEYS.panelSize, JSON.stringify(next));
+    let width = Math.round(rect.width);
+    let height = Math.round(rect.height);
+    if (isDev()) {
+      const minH = getDevPanelMinHeightPx();
+      if (height < minH) {
+        el.style.height = `${minH}px`;
+        height = minH;
+      }
+    }
+    localStorage.setItem(STORAGE_KEYS.panelSize, JSON.stringify({ width, height }));
   } catch (e) {}
 }
 
@@ -139,7 +153,7 @@ function getMasterPanelContent({
   pageSectionIcon = '',
   includePageSaveButton = true,
   pageSaveButtonId = 'saveRuntimeConfigBtn',
-  pageSaveButtonLabel = '💾 Save Design JSON',
+  pageSaveButtonLabel = '💾 Update JSON',
   footerHint = '<kbd>R</kbd> reset · <kbd>/</kbd> panel · <kbd>←</kbd><kbd>→</kbd> modes',
   /** Portfolio-only: full panel config object for “Project pit rim” under Simulation. */
   portfolioPanelConfig = null,
@@ -213,8 +227,9 @@ function getMasterPanelContent({
   `;
 
   // Build all master groups with proper content injection
-  // - Theme + Palette + shared surface controls → Studio
-  // - Layout → Shell
+  // - Theme + Palette → Studio
+  // - Outer / inner wall lighting → Light Group
+  // - Frame geometry, layers, spacing → Shell
   // - Sound → Audio
   // - Mode switcher + mode-specific sections → Simulation
   //
@@ -333,6 +348,9 @@ export function createPanelDock(options = {}) {
   // Create dock container
   dockElement = document.createElement('div');
   dockElement.className = 'panel-dock';
+  if (isDev()) {
+    dockElement.classList.add('panel-dock--dev');
+  }
   dockElement.id = 'panelDock';
 
   // Default visibility:
@@ -402,17 +420,18 @@ function createMasterPanel({
 } = {}) {
   const panel = document.createElement('div');
   panel.id = 'masterPanel';
-  panel.className = loadPanelCollapsed() ? 'panel collapsed' : 'panel';
+  panel.className = 'panel';
   panel.setAttribute('role', 'region');
   panel.setAttribute('aria-label', 'Settings');
   
   // Header
   const header = document.createElement('div');
   header.className = 'panel-header';
+  const isDark = document.body.classList.contains('dark-mode');
   header.innerHTML = `
     <span class="panel-title">${panelTitle}</span>
-    <button class="collapse-btn" aria-label="Collapse panel" title="Collapse">
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 4l4 4 4-4"/></svg>
+    <button class="panel-theme-toggle" aria-label="Toggle light/dark mode" title="Toggle theme">
+      ${isDark ? '☀️' : '🌙'}
     </button>
   `;
   
@@ -439,43 +458,44 @@ function createMasterPanel({
   // Restore size (only if user has manually resized - i.e., significantly different from CSS defaults)
   const savedSize = loadPanelSize();
   if (savedSize) {
-    // CSS defaults: width = 23rem (368px), height = 90vh
-    // Only apply saved size if it's meaningfully different (user actually resized)
+    // CSS defaults: width = 23rem (368px), height matches --dock-panel-height (92vh in dev)
     const cssDefaultWidth = 368; // 23rem
-    const cssDefaultHeight = window.innerHeight * 0.9; // 90vh
-    const widthDiff = Math.abs(savedSize.width - cssDefaultWidth);
-    const heightDiff = Math.abs(savedSize.height - cssDefaultHeight);
-    
+    const cssDefaultHeight = window.innerHeight * (isDev() ? 0.92 : 0.8);
+    let restoreW = savedSize.width;
+    let restoreH = savedSize.height;
+    if (isDev() && restoreH < getDevPanelMinHeightPx()) {
+      try {
+        localStorage.removeItem(STORAGE_KEYS.panelSize);
+      } catch (e) {}
+      restoreH = Math.max(restoreH, getDevPanelMinHeightPx());
+    }
+    const widthDiff = Math.abs(restoreW - cssDefaultWidth);
+    const heightDiff = Math.abs(restoreH - cssDefaultHeight);
+
     // Only restore if difference is significant (> 5px) - means user manually resized
     if (widthDiff > 5 || heightDiff > 5) {
-      panel.style.width = `${savedSize.width}px`;
-      // Clamp restored height to 90vh max
-      const maxHeight = window.innerHeight * 0.9;
-      panel.style.height = `${Math.min(savedSize.height, maxHeight)}px`;
-      panel.style.maxHeight = '90vh';
+      panel.style.width = `${restoreW}px`;
+      const maxHeight = window.innerHeight * (isDev() ? 0.92 : 0.9);
+      panel.style.height = `${Math.min(Math.max(restoreH, isDev() ? getDevPanelMinHeightPx() : 0), maxHeight)}px`;
+      panel.style.maxHeight = isDev() ? '92vh' : '90vh';
     }
     // Otherwise, let CSS defaults apply
   }
   
-  // Collapse button
-  const collapseBtn = header.querySelector('.collapse-btn');
-  if (collapseBtn) {
-    collapseBtn.addEventListener('click', (e) => {
+  // Theme toggle button
+  const themeToggleBtn = header.querySelector('.panel-theme-toggle');
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      togglePanelCollapse(panel);
+      import('../visual/dark-mode-v2.js').then(({ getCurrentTheme, setTheme }) => {
+        const current = getCurrentTheme();
+        const next = (current === 'dark' || (current === 'auto' && document.body.classList.contains('dark-mode'))) ? 'light' : 'dark';
+        setTheme(next);
+        themeToggleBtn.textContent = next === 'dark' ? '☀️' : '🌙';
+      }).catch(() => {});
     });
   }
-  const closeBtn = header.querySelector('.panel-close-btn');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      hideDock();
-    });
-  }
-  // Header click should NOT toggle collapse.
-  // For a Mac-window feel, the titlebar is for dragging; collapse is explicit via the button.
   
   // Initialize controls
   setTimeout(() => {

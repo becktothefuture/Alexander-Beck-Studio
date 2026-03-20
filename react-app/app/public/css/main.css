@@ -82,7 +82,7 @@
 .ti-volume-2:before { content: "\eb4f"; }
 .ti-volume-off:before { content: "\f1c3"; }
 
-@keyframes braviaDotBounceIn {
+@keyframes dotBounceIn {
   0%   { transform: translate3d(-50%, 0, 0) scaleY(0); }
   60%  { transform: translate3d(-50%, 0, 0) scaleY(1.2); }
   100% { transform: translate3d(-50%, 0, 0) scaleY(1); }
@@ -144,17 +144,17 @@ html.entrance-pre-transition #app-frame {
   visibility: hidden;
 }
 
-/* Background elements (#bravia-balls, #abs-scene) are visible immediately (no fade-in).
+/* Background elements (#simulations, #abs-scene) are visible immediately (no fade-in).
    #edge-caption uses .edge-caption only – no overrides – so it keeps 0.3 from the start.
    #brand-logo and #main-links use inline styles + JS for late reveal. */
-html.entrance-pre-transition #bravia-balls,
+html.entrance-pre-transition #simulations,
 html.entrance-pre-transition #abs-scene {
   opacity: 1;
   visibility: visible;
 }
 
 /* During transition - wall container becomes visible and grows */
-html.entrance-transitioning #bravia-balls {
+html.entrance-transitioning #simulations {
   visibility: visible;
   opacity: 1;
   /* Will be animated via JS: scale(0) → scale(1), border-radius 0 → full */
@@ -189,6 +189,7 @@ body.body {
   /* Prevent double-tap zoom on mobile while preserving pinch-zoom */
   touch-action: manipulation;
   font-family: var(--abs-font-sans);
+  letter-spacing: var(--abs-letter-spacing-global);
   /* iOS Safari can reveal the body background during rubber-band/viewport UI changes.
      Keep body aligned to the wall color so no browser-white edges appear. */
   background: var(--abs-browser-chrome, var(--abs-wall-base, var(--wall-color)));
@@ -292,7 +293,7 @@ body.body.dark-mode {
 }
 
 .edge-caption__line {
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--abs-font-mono);
   font-size: min(calc(var(--text-xs) * 0.95), 8px);
   font-weight: 400;
   line-height: 1.3;
@@ -376,7 +377,7 @@ html.fonts-loading .project-detail {
   
   /* Visuals */
   background: transparent;
-  /* No border-radius - only simulation (#bravia-balls) has rounded corners */
+  /* No border-radius - only simulation (#simulations) has rounded corners */
   z-index: 200; /* UI layer: above wall (z:100), below modals (z:19998+) */
   pointer-events: none; /* Let clicks pass through to canvas in empty areas */
   /* Smooth layout updates (resize + config). Avoid overriding other timings by only setting this where none exists. */
@@ -438,7 +439,7 @@ html.fonts-loading .project-detail {
 
 .shell-wall-slot {
   position: relative;
-  z-index: 2; /* Above in-wall .scene-effects (noise) so canvas/simulation paints on top */
+  z-index: 10; /* Above hero-title (z:5) and scene-effects (z:1) so canvas/balls paint on top */
   width: 100%;
   height: 100%;
 }
@@ -564,7 +565,7 @@ main.ui-center-spacer:not(.center-stage--modal-hidden) {
   position: absolute;
   /* Align to inner wall edge: safari-tint-inset + wall-thickness */
   inset: calc(var(--safari-tint-inset, 20px) + var(--wall-thickness, 9px));
-  /* No border-radius - only simulation (#bravia-balls) has rounded corners */
+  /* No border-radius - only simulation (#simulations) has rounded corners */
   border-radius: 0;
   pointer-events: none;
   z-index: 1;
@@ -617,7 +618,8 @@ body.dark-mode .fade-content.viewport.viewport--content::before {
 /* Desktop/Tablet: main top row (legend + blurb + optional sound icon in top-right slot) */
 .ui-top-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* Second column: reserve room for .decorative-script + sound slot (not shrink-wrapped below token width) */
+  grid-template-columns: minmax(0, 1fr) minmax(var(--ui-top-right-col-min), auto);
   grid-template-rows: repeat(1, 1fr);
   align-items: flex-start;
   width: 100%;
@@ -777,7 +779,7 @@ body.styleguide-page .styleguide-doc__title {
   margin: 0 0 var(--gap-sm);
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.042em;
 }
 
 body.styleguide-page .styleguide-doc__lede {
@@ -819,7 +821,7 @@ body.styleguide-page .styleguide-section h2 {
   margin: 0 0 var(--gap-sm);
   font-size: var(--text-base);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.028em;
 }
 
 body.styleguide-page .styleguide-section__hint {
@@ -886,6 +888,493 @@ body.styleguide-page .styleguide-script-demo {
   pointer-events: auto;
 }
 
+/* ─── Styleguide: typography reference (tokens + semantic mirrors) ─── */
+body.styleguide-page .styleguide-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+body.styleguide-page .styleguide-type-subhd {
+  margin: var(--gap-xl) 0 var(--gap-sm);
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  color: var(--text-primary);
+}
+
+body.styleguide-page .styleguide-section[aria-labelledby="sg-type"] .styleguide-type-subhd:first-of-type {
+  margin-top: var(--gap-md);
+}
+
+body.styleguide-page .styleguide-type-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--gap-md);
+}
+
+body.styleguide-page .styleguide-type-card {
+  padding: var(--gap-md);
+  border-radius: var(--abs-radius-9);
+  border: 1px solid rgba(var(--abs-rgb-black), 0.08);
+  background: rgba(var(--abs-rgb-black), 0.025);
+}
+
+body.dark-mode.styleguide-page .styleguide-type-card {
+  border-color: rgba(var(--abs-rgb-white), 0.12);
+  background: rgba(var(--abs-rgb-white), 0.04);
+}
+
+body.styleguide-page .styleguide-type-card__meta {
+  font-family: var(--abs-font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--gap-sm);
+  letter-spacing: 0.018em;
+}
+
+body.styleguide-page .styleguide-type-card__sample {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--line-height-title);
+}
+
+body.styleguide-page .styleguide-type-card--sans .styleguide-type-card__sample {
+  font-family: var(--abs-font-sans);
+}
+
+body.styleguide-page .styleguide-type-card--mono .styleguide-type-card__sample {
+  font-family: var(--abs-font-mono);
+  letter-spacing: normal;
+}
+
+body.styleguide-page .styleguide-type-card--display .styleguide-type-card__sample {
+  font-family: var(--abs-font-display);
+  font-size: calc(var(--text-xl) * var(--abs-font-display-scale, 1));
+  letter-spacing: normal;
+}
+
+body.styleguide-page .styleguide-type-weights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--gap-sm);
+}
+
+body.styleguide-page .styleguide-type-weights li {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) 1fr;
+  gap: var(--gap-md);
+  align-items: baseline;
+  padding: var(--gap-sm) 0;
+  border-bottom: 1px solid rgba(var(--abs-rgb-black), 0.06);
+}
+
+@media (max-width: 520px) {
+  body.styleguide-page .styleguide-type-weights li {
+    grid-template-columns: 1fr;
+  }
+}
+
+body.dark-mode.styleguide-page .styleguide-type-weights li {
+  border-bottom-color: rgba(var(--abs-rgb-white), 0.08);
+}
+
+body.styleguide-page .styleguide-type-weights__token {
+  font-family: var(--abs-font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+body.styleguide-page .styleguide-type-weights__sample {
+  font-family: var(--abs-font-sans);
+  font-size: var(--text-md);
+}
+
+body.styleguide-page .styleguide-type-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--abs-radius-9);
+  border: 1px solid rgba(var(--abs-rgb-black), 0.08);
+}
+
+body.dark-mode.styleguide-page .styleguide-type-table-wrap {
+  border-color: rgba(var(--abs-rgb-white), 0.12);
+}
+
+body.styleguide-page .styleguide-type-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+body.styleguide-page .styleguide-type-table th,
+body.styleguide-page .styleguide-type-table td {
+  padding: var(--gap-sm) var(--gap-md);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(var(--abs-rgb-black), 0.06);
+}
+
+body.dark-mode.styleguide-page .styleguide-type-table th,
+body.dark-mode.styleguide-page .styleguide-type-table td {
+  border-bottom-color: rgba(var(--abs-rgb-white), 0.08);
+}
+
+body.styleguide-page .styleguide-type-table th {
+  font-weight: 600;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.036em;
+  color: var(--text-muted);
+}
+
+body.styleguide-page .styleguide-type-table__sample {
+  font-family: var(--abs-font-sans);
+  color: var(--text-primary);
+}
+
+body.styleguide-page .styleguide-type-scale--xs {
+  font-size: var(--text-xs);
+  line-height: var(--line-height-tight);
+}
+
+body.styleguide-page .styleguide-type-scale--sm {
+  font-size: var(--text-sm);
+  line-height: var(--line-height-base);
+}
+
+body.styleguide-page .styleguide-type-scale--md {
+  font-size: var(--text-md);
+  line-height: var(--line-height-tight);
+}
+
+body.styleguide-page .styleguide-type-scale--lg {
+  font-size: var(--text-lg);
+  line-height: var(--line-height-tight);
+}
+
+body.styleguide-page .styleguide-type-scale--xl {
+  font-size: var(--text-xl);
+  line-height: var(--line-height-title);
+}
+
+body.styleguide-page .styleguide-type-roles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+}
+
+body.styleguide-page .styleguide-type-role {
+  display: grid;
+  gap: var(--gap-sm);
+  padding-bottom: var(--gap-md);
+  border-bottom: 1px solid rgba(var(--abs-rgb-black), 0.06);
+}
+
+body.dark-mode.styleguide-page .styleguide-type-role {
+  border-bottom-color: rgba(var(--abs-rgb-white), 0.08);
+}
+
+body.styleguide-page .styleguide-type-role:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+body.styleguide-page .styleguide-type-role__label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: var(--line-height-base);
+}
+
+body.styleguide-page .styleguide-type-role__sample {
+  min-width: 0;
+}
+
+body.styleguide-page .styleguide-type-hero-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+body.styleguide-page .styleguide-type-sample--hero-name,
+body.styleguide-page .styleguide-type-sample--hero-role {
+  font-family: var(--abs-font-sans);
+  font-weight: 400;
+  letter-spacing: var(--hero-title-letter-spacing, -0.027ch);
+  line-height: var(--hero-title-line-height, 1.1);
+  color: var(--text-logo);
+  font-size: clamp(22px, calc(var(--abs-home-logo-width-vw, 52) * 0.12 * 1vw), 40px);
+}
+
+body.styleguide-page .styleguide-type-sample--hero-role {
+  margin-top: 0;
+}
+
+body.styleguide-page .styleguide-type-sample--legend {
+  font-family: var(--abs-font-sans);
+  font-weight: var(--legend-font-weight);
+  letter-spacing: var(--legend-letter-spacing);
+  font-size: var(--legend-font-size);
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+body.styleguide-page .styleguide-type-sample--main-nav {
+  display: inline-flex;
+  font-family: var(--abs-font-sans);
+  font-size: calc(var(--legend-font-size) * 1.5);
+  letter-spacing: var(--legend-letter-spacing);
+  font-weight: var(--legend-font-weight);
+  color: var(--text-primary);
+}
+
+body.styleguide-page .styleguide-type-sample--decorative {
+  margin: 0;
+  max-width: min(48ch, 100%);
+  font-family: var(--abs-font-sans);
+  font-size: var(--decorative-script-font-size);
+  font-weight: 400;
+  line-height: var(--decorative-script-line-height);
+  letter-spacing: var(--decorative-script-letter-spacing);
+  color: var(--text-muted);
+}
+
+body.styleguide-page .styleguide-type-sample--caption-wrap.caption {
+  position: static;
+  margin: 0;
+  letter-spacing: normal;
+}
+
+body.styleguide-page .styleguide-type-sample--meta-time {
+  font-family: var(--abs-font-sans);
+  font-style: normal;
+  font-size: 0.8em;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: var(--abs-letter-spacing-global);
+  color: var(--text-primary);
+}
+
+body.styleguide-page .styleguide-type-sample--edge-caption {
+  font-family: var(--abs-font-mono);
+  font-size: min(calc(var(--text-xs) * 0.95), 8px);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: var(--letter-spacing-loose);
+  text-transform: uppercase;
+  color: #6f6f6f;
+}
+
+body.dark-mode.styleguide-page .styleguide-type-sample--edge-caption {
+  color: #8b9099;
+}
+
+body.styleguide-page .styleguide-type-quote-block {
+  max-width: 22rem;
+  padding: var(--gap-md);
+  border-radius: var(--abs-radius-9);
+  border: 1px solid rgba(var(--abs-rgb-black), 0.08);
+  background: rgba(var(--abs-rgb-black), 0.03);
+}
+
+body.dark-mode.styleguide-page .styleguide-type-quote-block {
+  border-color: rgba(var(--abs-rgb-white), 0.1);
+  background: rgba(var(--abs-rgb-white), 0.04);
+}
+
+body.styleguide-page .styleguide-type-sample--quote-text {
+  margin: 0 0 var(--gap-sm);
+  font-family: var(--abs-font-sans);
+  font-size: 14px;
+  font-style: italic;
+  font-weight: var(--abs-weight-regular);
+  line-height: var(--abs-line-relaxed);
+  letter-spacing: 0.012em;
+  color: var(--text-primary);
+}
+
+body.styleguide-page .styleguide-type-sample--quote-author {
+  margin: 0;
+  font-family: var(--abs-font-sans);
+  font-size: max(9px, 12px);
+  font-weight: var(--abs-weight-medium);
+  line-height: var(--abs-line-tight);
+  letter-spacing: 0.048em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+body.styleguide-page .legend-tooltip-output.styleguide-type-sample--tooltip-visible {
+  position: relative;
+  left: auto;
+  top: auto;
+  max-width: 20rem;
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: none;
+  z-index: 1;
+}
+
+body.styleguide-page .styleguide-type-gate-block {
+  text-align: center;
+  max-width: 24rem;
+  padding: var(--gap-md);
+  border-radius: var(--abs-radius-9);
+  border: 1px solid rgba(var(--abs-rgb-black), 0.08);
+  background: rgba(var(--abs-rgb-black), 0.02);
+}
+
+body.dark-mode.styleguide-page .styleguide-type-gate-block {
+  border-color: rgba(var(--abs-rgb-white), 0.1);
+  background: rgba(var(--abs-rgb-white), 0.04);
+}
+
+body.styleguide-page .styleguide-type-sample--gate-title {
+  font-family: var(--abs-font-sans);
+  font-size: 48px;
+  line-height: var(--line-height-title);
+  margin: 0 0 var(--gap-sm);
+  font-weight: 400;
+  letter-spacing: -0.028em;
+  color: var(--text-primary);
+}
+
+body.styleguide-page .styleguide-type-sample--gate-desc {
+  font-family: var(--abs-font-sans);
+  font-size: 20px;
+  margin: 0;
+  letter-spacing: 0.018ch;
+  line-height: var(--line-height-base);
+  color: var(--text-muted);
+}
+
+body.styleguide-page .styleguide-type-portfolio-slab {
+  padding: var(--gap-lg);
+  border-radius: var(--abs-radius-9);
+  background: #141414;
+  color: #fff;
+  max-width: min(36rem, 100%);
+}
+
+body.styleguide-page .styleguide-type-portfolio-slab__rule {
+  border: 0;
+  height: 1px;
+  margin: var(--gap-md) 0;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.styleguide-page .styleguide-type-sample--portfolio-eyebrow {
+  margin: 0 0 var(--gap-xs);
+  font-size: clamp(0.82rem, 1vw, 0.96rem);
+  letter-spacing: 0.084em;
+  text-transform: uppercase;
+  font-family: var(--abs-font-sans);
+  opacity: 0.72;
+  color: inherit;
+}
+
+body.styleguide-page .styleguide-type-sample--portfolio-title {
+  margin: 0 0 var(--gap-sm);
+  font-family: var(--abs-font-sans);
+  font-size: clamp(1.75rem, 5vw, 3.25rem);
+  font-weight: 630;
+  line-height: 0.92;
+  letter-spacing: -0.056em;
+  color: #fff;
+}
+
+body.styleguide-page .styleguide-type-sample--portfolio-hint {
+  margin: 0;
+  font-family: var(--abs-font-sans);
+  font-size: clamp(0.82rem, 1vw, 0.94rem);
+  letter-spacing: 0.072em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  color: inherit;
+}
+
+body.styleguide-page .styleguide-type-sample--portfolio-body {
+  margin: 0;
+  font-family: var(--abs-font-sans);
+  font-size: clamp(1rem, 1.3vw, 1.16rem);
+  line-height: 1.62;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+body.styleguide-page .styleguide-type-sample--portfolio-h2 {
+  margin: var(--gap-md) 0 0;
+  font-family: var(--abs-font-sans);
+  font-size: clamp(0.9rem, 1vw, 1rem);
+  letter-spacing: 0.072em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  color: inherit;
+}
+
+body.styleguide-page .styleguide-type-cv-block {
+  max-width: 32rem;
+  padding: var(--gap-md);
+  border-radius: var(--abs-radius-9);
+  border: 1px solid rgba(var(--abs-rgb-black), 0.08);
+  background: rgba(var(--abs-rgb-black), 0.02);
+}
+
+body.dark-mode.styleguide-page .styleguide-type-cv-block {
+  border-color: rgba(var(--abs-rgb-white), 0.1);
+  background: rgba(var(--abs-rgb-white), 0.04);
+}
+
+body.styleguide-page .styleguide-type-sample--cv-section {
+  font-family: var(--abs-font-sans);
+  font-size: var(--cv-section-title-size, clamp(0.65rem, 0.9vw, 0.75rem));
+  font-weight: 600;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.072em;
+  color: var(--abs-fg-muted, var(--text-muted));
+  margin: 0 0 var(--gap-sm);
+  padding-bottom: var(--gap-xs);
+  border-bottom: 1px solid var(--abs-fg-muted, var(--text-muted));
+}
+
+body.styleguide-page .styleguide-type-sample--cv-entry {
+  font-family: var(--abs-font-sans);
+  font-size: clamp(0.85rem, 1.2vw, 1rem);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0 0 var(--gap-xs);
+  color: var(--text-primary);
+  letter-spacing: -0.014em;
+}
+
+body.styleguide-page .styleguide-type-sample--cv-meta {
+  font-size: clamp(0.7rem, 0.95vw, 0.8rem);
+  line-height: 1.4;
+  color: var(--text-muted);
+  margin: 0 0 var(--gap-sm);
+  letter-spacing: 0.012em;
+}
+
+body.styleguide-page .styleguide-type-sample--cv-body {
+  margin: 0;
+  font-size: var(--cv-body-size, clamp(0.75rem, 1vw, 0.9rem));
+  line-height: 1.55;
+  color: var(--text-primary);
+}
+
 /* Mobile-only row: sound toggle sits under legend + blurb, centered */
 .ui-top-soundRow {
   display: none;
@@ -917,7 +1406,7 @@ body.styleguide-page .styleguide-script-demo {
   box-sizing: border-box;
   width: fit-content;
   max-width: min(620px, 100%);
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   color: var(--text-primary);
   opacity: var(--legend-opacity);
   pointer-events: auto;
@@ -935,7 +1424,7 @@ body.styleguide-page .styleguide-script-demo {
 }
 
 .legend__item {
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   font-weight: var(--legend-font-weight);
   letter-spacing: var(--legend-letter-spacing);
   font-size: var(--legend-font-size);
@@ -1086,7 +1575,7 @@ body:not(.portfolio-page):not(.cv-page):not(.detail-open) .legend__item.legend__
   /* Same background as button surface (scene/chrome) */
   background: var(--bg-light);
   color: var(--text-primary);
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   font-size: var(--text-sm);
   font-weight: 400;
   line-height: var(--line-height-base);
@@ -1190,7 +1679,7 @@ body.dark-mode .legend-tooltip-output {
   width: 100%;
   pointer-events: none;
   gap: var(--gap-lg); /* Gap between sound button and text */
-  min-width: min(46vw, calc(var(--decorative-script-max-width) + 72px));
+  min-width: var(--ui-top-right-col-min);
 }
 
 .ui-top-right #sound-toggle-slot {
@@ -1203,9 +1692,9 @@ body.dark-mode .legend-tooltip-output {
   position: relative; /* Remove fixed */
   top: auto;
   right: auto;
-  /* Constrain text width for readability, but don't constrain parent container */
-  max-width: min(48vw, var(--decorative-script-max-width));
-  font-family: 'Geist', sans-serif;
+  /* Constrain text width; vw cap looser than 48vw so --decorative-script-max-width can win on more viewports */
+  max-width: min(65vw, var(--decorative-script-max-width));
+  font-family: var(--abs-font-sans);
   font-size: var(--decorative-script-font-size);
   font-weight: 400;
   line-height: var(--decorative-script-line-height);
@@ -1315,6 +1804,48 @@ p {
   content: none; /* Dot removed */
 }
 
+/* Prose: widows/orphans in fragmentation (columns, print); pretty line breaks in supporting UAs */
+.decorative-script p,
+.quote-display__text,
+.cv-section p,
+.cv-entry p,
+.cv-modal .modal-description,
+.portfolio-modal .modal-description,
+.contact-modal .modal-description,
+.portfolio-project-view__summary p,
+.portfolio-project-view__overview p,
+.portfolio-project-view__block--text p,
+.portfolio-project-view__takeaways li {
+  widows: 2;
+  orphans: 2;
+}
+
+@supports (text-wrap: pretty) {
+  .decorative-script p,
+  .quote-display__text,
+  .cv-section p,
+  .cv-entry p,
+  .cv-modal .modal-description,
+  .portfolio-modal .modal-description,
+  .contact-modal .modal-description,
+  .portfolio-project-view__summary p,
+  .portfolio-project-view__overview p,
+  .portfolio-project-view__block--text p,
+  .portfolio-project-view__takeaways li {
+    text-wrap: pretty;
+  }
+}
+
+@supports (text-wrap: balance) {
+  .portfolio-project-view__title,
+  #portfolioProjectTitle.portfolio-project-view__title,
+  .cv-modal .modal-title,
+  .portfolio-modal .modal-title,
+  .contact-modal .modal-title {
+    text-wrap: balance;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    BOTTOM SECTION
    ───────────────────────────────────────────────────────────────────────────── */
@@ -1386,41 +1917,8 @@ p {
     transform var(--ui-duration-in, 780ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
-#main-links.main-links--staggered .footer_link {
-  opacity: 0;
-  transform: translateY(calc(var(--gap-xs) * -1)) scale(0.96);
-  filter: blur(calc(var(--link-impact-blur) * 0.6));
-}
-
-#main-links.main-links--staggered.main-links--staggered-in .footer_link {
-  /* 50% slower than default settle (400ms → 600ms) */
-  animation: main-links-stagger 600ms var(--ease-organic) forwards;
-}
-
-#main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(1) {
-  animation-delay: 0ms;
-}
-
-#main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(2) {
-  animation-delay: 300ms;
-}
-
-#main-links.main-links--staggered.main-links--staggered-in .footer_link:nth-child(3) {
-  animation-delay: 600ms;
-}
-
-@keyframes main-links-stagger {
-  from {
-    opacity: 0;
-    transform: translateY(calc(var(--gap-xs) * -1)) scale(0.96);
-    filter: blur(calc(var(--link-impact-blur) * 0.6));
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
-  }
-}
+/* Legacy JS-driven stagger classes removed — nav links use the CSS
+   state system (--ui-entered + --ui-nav-delay) exclusively. */
 
 .footer_link {
   position: relative;
@@ -1708,7 +2206,9 @@ button.abs-meta-btn,
   background: var(--cursor-color);
   box-shadow:
     0 3px 10px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow) * 2.2)),
-    0 10px 24px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow) * 2.2));
+    0 10px 24px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow) * 2.2)),
+    inset 0 var(--puck-edge-width, 1px) 0 rgba(var(--abs-rgb-white), var(--puck-edge-light-opacity, 0.3)),
+    inset 0 calc(-1 * var(--puck-edge-width, 1px)) 0 rgba(var(--abs-rgb-black), var(--puck-edge-shadow-opacity, 0.15));
   transform: scale(1);
   transform-origin: center center;
   /* Same energy as chrome hover fills: fast in, smooth release out */
@@ -1797,7 +2297,7 @@ button.abs-meta-btn,
   font-style: italic;
   font-weight: var(--abs-weight-regular);
   line-height: var(--abs-line-relaxed);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.012em;
   color: var(--quote-hover-fg, var(--cursor-hover-fg, rgba(0, 0, 0, 0.85)));
   transition: color 0.2s var(--ease-organic);
 }
@@ -1808,7 +2308,7 @@ button.abs-meta-btn,
   font-size: max(9px, min(calc(var(--_size, 168px) * 0.042), 12px));
   font-weight: var(--abs-weight-medium);
   line-height: var(--abs-line-tight);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.048em;
   text-transform: uppercase;
   color: var(--quote-hover-fg, var(--cursor-hover-fg, rgba(0, 0, 0, 0.85)));
   opacity: 0.88;
@@ -1823,7 +2323,7 @@ button.abs-meta-btn,
   transform: none;
   margin: 0;
   color: var(--text-quiet);
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   pointer-events: auto;
   background: none;
   border: none;
@@ -1873,6 +2373,7 @@ button.abs-meta-btn,
   font-style: normal;
   font-weight: var(--abs-weight-regular);
   font-size: 1.5em;
+  letter-spacing: normal;
 }
 
 /* Meta stack: location on top, time below */
@@ -1883,14 +2384,15 @@ button.abs-meta-btn,
   gap: 2px;
 }
 
-/* Time Display - Geist font, 80% size; min-width keeps layout stable before/without JS */
+/* Time Display - DM Sans, 80% size; min-width keeps layout stable before/without JS */
 #time-display {
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   font-style: normal;
   font-size: 0.8em;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
+  letter-spacing: var(--abs-letter-spacing-global);
   min-width: 9ch; /* Reserve space so "London · [time]" layout is always shown */
 }
 
@@ -1917,7 +2419,7 @@ button.abs-meta-btn,
     scale(calc(1 - (var(--abs-scene-impact, 0) * var(--abs-scene-impact-mul, 0.008))))
     translateZ(0);
   transition:
-    transform var(--modal-depth-out-duration, 1700ms) var(--ease-gate);
+    transform var(--modal-depth-out-duration, 1700ms) var(--ease-gate-motion);
   /* Keep the transform layer stable across the whole session to prevent
      1-frame corner "snaps" when the scene settles and the browser demotes layers. */
   will-change: transform;
@@ -1941,37 +2443,119 @@ button.abs-meta-btn,
 
 #abs-scene.gate-depth-active {
   transition:
-    transform var(--modal-depth-duration, 850ms) var(--ease-gate);
+    transform var(--modal-depth-duration, 850ms) var(--ease-gate-motion);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   CENTER SECTION (LOGO) - Now rendered inside canvas, DOM element hidden
+   HERO TITLE — semantic <h1> inside #simulations, behind canvas (z:5).
+   Canvas is transparent; the heading shows through clear pixels.
+   Replaces the former canvas-rendered SVG logo.
    ───────────────────────────────────────────────────────────────────────────── */
-#brand-logo {
-  /* Logo is now rendered inside the canvas element for z-depth layering with simulations */
-  /* DOM element hidden - canvas-logo.js handles rendering */
-  display: none !important;
-  color: var(--text-logo);
-  position: static; /* Static positioning in flex container - participates in flex flow */
-  transform-origin: center center;
-  pointer-events: none;
-  /* Let SVG define the size - no constraints on container */
-  width: auto;
-  height: auto;
-  margin: 0;
-  padding-inline: 0;
-  padding-block: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Subpixel/compositing hints: keeps tiny transform animations smooth */
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
-  perspective: inherit;
+
+/* Depth-emergence keyframes: blur + scale + opacity rising from behind the surface */
+@keyframes heroEmerge {
+  0% {
+    opacity: 0;
+    filter: blur(12px);
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1);
+  }
 }
 
-body.dark-mode #brand-logo {
+.hero-title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Slightly above geometric center: −4vh + existing downward bias clamp */
+  transform:
+    translate(-50%, -50%)
+    translateY(calc(clamp(20px, 5vh, 52px) - 4vh))
+    scale(calc(
+      var(--abs-scene-impact-logo-scale, 1) *
+      var(--brand-logo-user-scale, 1)
+    ));
+  z-index: 5;
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  white-space: nowrap;
+
+  font-family: var(--abs-font-sans);
+  font-weight: 400;
+  letter-spacing: var(--hero-title-letter-spacing, -0.027ch);
+  line-height: var(--hero-title-line-height, 1.1);
   color: var(--text-logo);
+
+  /* Visible by default — fades in naturally with #abs-scene.
+     Modal toggle drives opacity via --ui-obscured. */
+  opacity: calc(1 - var(--ui-obscured, 0));
+
+  transition:
+    opacity var(--ui-logo-duration-in, 1040ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1));
+
+  transform-origin: center center;
+  backface-visibility: hidden;
+}
+
+/* Faster exit when modal opens */
+html.modal-active .hero-title {
+  transition-duration: var(--ui-duration-out);
+  transition-timing-function: var(--ui-ease-out);
+}
+
+/* Hide on portfolio pit route */
+body.portfolio-page .hero-title {
+  display: none;
+}
+
+/* ── Lines: depth-emergence, paused until scene starts ── */
+
+.hero-title__name,
+.hero-title__role {
+  display: block;
+  opacity: 0;
+  filter: blur(12px);
+  transform: scale(0.92);
+  font-size: clamp(28px, calc(var(--abs-home-logo-width-vw, 52) * 0.155 * 1vw), 52px);
+  font-weight: 400;
+  letter-spacing: var(--hero-title-letter-spacing, -0.027ch);
+  text-transform: none;
+  /* Animation defined but paused — plays when the scene starts appearing */
+  animation: heroEmerge 1100ms cubic-bezier(0.16, 1, 0.3, 1) both paused;
+  animation-delay: 0ms;
+}
+
+.hero-title__role {
+  margin-top: 0;
+  animation-name: heroEmergeSubtle;
+  animation-delay: 280ms;
+}
+
+@keyframes heroEmergeSubtle {
+  0% { opacity: 0; filter: blur(12px); transform: scale(0.92); }
+  100% { opacity: var(--brand-logo-secondary-opacity, 0.66); filter: blur(0px); transform: scale(1); }
+}
+
+/* Unpause hero lines when scene starts appearing (entrance-transitioning
+   is set BEFORE ui-entered, so the title emerges first, then ui-entered
+   triggers the nav links afterward). */
+html.entrance-transitioning .hero-title__name,
+html.entrance-transitioning .hero-title__role,
+html.entrance-complete .hero-title__name,
+html.entrance-complete .hero-title__role,
+html.ui-entered .hero-title__name,
+html.ui-entered .hero-title__role {
+  animation-play-state: running;
+}
+
+/* Legacy #brand-logo — no longer rendered */
+#brand-logo {
+  display: none;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -2010,9 +2594,9 @@ body.dark-mode #brand-logo {
   --ui-duration-out: 455ms;
   --ui-logo-duration-in: 1040ms;
   
-  /* Nav staggering (30% slower) */
+  /* Nav staggering — links appear after hero title has emerged */
   --ui-stagger: 104ms;
-  --ui-nav-delay: 0ms;
+  --ui-nav-delay: 1000ms;
 }
 
 /* State flag toggles */
@@ -2029,42 +2613,25 @@ html.modal-active { --ui-obscured: 1; }
     --ui-duration-out: 150ms;
     --ui-logo-duration-in: 200ms;
     --ui-stagger: 0ms;
+    --ui-nav-delay: 0ms;
     --ui-entrance-blur: 0px;
     --ui-entrance-ty: 0px;
     --ui-entrance-scale: 1;
   }
+  /* Skip keyframe animation; show immediately */
+  .hero-title__name,
+  .hero-title__role {
+    animation: none;
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+  .hero-title__role {
+    opacity: var(--brand-logo-secondary-opacity, 0.66);
+  }
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   LOGO - State-driven animation (grid-positioned, no translateY offset)
-   ───────────────────────────────────────────────────────────────────────────── */
-#brand-logo {
-  /* Static positioning in flex container - participates in flex flow */
-  position: static;
-  visibility: visible;
-  /* Opacity: 0 when not entered, page-opacity (0.7) when entered */
-  opacity: calc(var(--ui-visible, 0) * var(--ui-page-opacity, 0.7));
-  filter: blur(calc(var(--ui-entrance-blur, 4px) * (1 - var(--ui-entered, 0))));
-  /* Grid-positioned: scale-only animation (no translateY offset needed) */
-  /* Combine entrance scale with impact scale */
-  transform: scale(calc(
-    (var(--ui-entrance-scale, 0.96) + ((1 - var(--ui-entrance-scale, 0.96)) * var(--ui-entered, 0))) *
-    var(--abs-scene-impact-logo-scale, 1) *
-    var(--brand-logo-user-scale, 1)
-  ));
-  
-  /* Single transition definition - always active */
-  transition:
-    opacity var(--ui-logo-duration-in, 1040ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1)),
-    filter var(--ui-logo-duration-in, 1040ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1)),
-    transform var(--ui-logo-duration-in, 1040ms) var(--ui-ease-in, cubic-bezier(0.16, 1, 0.3, 1));
-}
-
-/* Faster exit when modal opens */
-html.modal-active #brand-logo {
-  transition-duration: var(--ui-duration-out);
-  transition-timing-function: var(--ui-ease-out);
-}
+/* Legacy #brand-logo state-driven rules removed — replaced by .hero-title above */
 
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -2107,28 +2674,14 @@ html.modal-active #main-links .footer_link {
 /* Disable pointer events when hidden */
 html.modal-active #main-links { pointer-events: none; }
 
-#brand-logo .brand-logo-svg {
-  display: block;
-  width: clamp(
-    var(--abs-home-logo-min-px, 340px),
-    calc(var(--abs-home-logo-width-vw, 52) * 1vw),
-    var(--abs-home-logo-max-px, 640px)
-  );
-  max-width: 90vw; /* Prevent overflow on small screens */
-  height: auto;
-  padding-left: clamp(8px, 0.8vw, 10px);
-}
-
-#brand-logo .brand-logo-path--secondary {
-  fill-opacity: var(--brand-logo-secondary-opacity, 1);
-}
+/* Legacy .brand-logo-svg sizing removed — replaced by shared .hero-title__* font-size */
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Note: Logo & Nav fade on modal open/close is handled by JavaScript in 
    modal-overlay.js (fadeLogoNav function) for reliable cross-browser transitions
    ───────────────────────────────────────────────────────────────────────────── */
 
-#bravia-balls {
+#simulations {
   position: fixed;
   /* Wall inset from viewport edges (--safari-tint-inset defined in tokens.css).
      This gap exposes wall colour (html/body bg) so Safari samples correct chrome tint. */
@@ -2141,6 +2694,8 @@ html.modal-active #main-links { pointer-events: none; }
   box-sizing: border-box;
   border: var(--frame-border-width) solid transparent;
   border-radius: var(--frame-outer-radius);
+  /* 180° border gradient: top/bottom pick up edge stops; left/right vertical rails pick up the mid stop
+     at mid-height (subtle side highlights). Edge/mid opacities stay ~1:2 via applyLayoutCSSVars. */
   background:
     linear-gradient(var(--frame-inner-surface), var(--frame-inner-surface)) padding-box,
     linear-gradient(
@@ -2152,6 +2707,18 @@ html.modal-active #main-links { pointer-events: none; }
   z-index: 100; /* Wall: top of visual stack (below modals at z:19998+) */
   pointer-events: none;
   overflow: hidden;
+  /* Light Group: wall depth via box-shadow layers. */
+  box-shadow:
+    0 var(--outer-wall-cast-shadow-offset) var(--outer-wall-cast-shadow-blur) var(--outer-wall-cast-shadow-spread)
+      rgba(var(--outer-wall-cast-shadow-rgb), var(--outer-wall-cast-shadow-opacity)),
+    inset 0 var(--outer-wall-top-dark-offset) var(--outer-wall-top-dark-blur) var(--outer-wall-top-dark-spread)
+      rgba(var(--outer-wall-top-dark-rgb), var(--outer-wall-top-dark-opacity)),
+    inset 0 calc(-1 * var(--outer-wall-bottom-light-offset)) var(--outer-wall-bottom-light-blur) var(--outer-wall-bottom-light-spread)
+      rgba(var(--outer-wall-bottom-light-rgb), var(--outer-wall-bottom-light-opacity)),
+    inset 0 var(--inner-wall-outward-shadow-offset) var(--inner-wall-outward-shadow-blur) var(--inner-wall-outward-shadow-spread)
+      rgba(var(--inner-wall-outward-shadow-rgb), var(--inner-wall-outward-shadow-opacity)),
+    inset 0 var(--inner-wall-inner-glow-offset-y) var(--inner-wall-inner-glow-blur) var(--inner-wall-inner-glow-spread)
+      rgba(var(--inner-wall-inner-glow-rgb), var(--inner-wall-inner-glow-opacity));
   /* GPU layer hint for smooth compositing */
   transform: translateZ(0);
   transform-origin: center center;
@@ -2165,10 +2732,10 @@ html.modal-active #main-links { pointer-events: none; }
 }
 
 /* Portfolio page intentionally inherits the index wall master:
-   keep #bravia-balls border-radius at 0 (no portfolio-only override). */
+   keep #simulations border-radius at 0 (no portfolio-only override). */
 
 /* During entrance animation, border-radius is controlled by JS (no CSS transition) */
-html.entrance-transitioning #bravia-balls {
+html.entrance-transitioning #simulations {
   transition:
     top var(--duration-resize) var(--ease-organic),
     left var(--duration-resize) var(--ease-organic),
@@ -2177,8 +2744,8 @@ html.entrance-transitioning #bravia-balls {
 }
 
 /* Simplified frame: legacy inner/outer wall layers are removed. */
-#bravia-balls::before,
-#bravia-balls::after {
+#simulations::before,
+#simulations::after {
   display: none;
 }
 
@@ -2187,12 +2754,55 @@ html.entrance-transitioning #bravia-balls {
 .inner-wall,
 .inner-wall__glow,
 .inner-wall__shine,
-.inner-shadow,
-.inner-wall-gradient-edge {
+.inner-shadow {
   display: none !important;
 }
 
-#bravia-balls canvas {
+/* ─────────────────────────────────────────────────────────────────────────────
+   GRADIENT LIGHT EDGE — ambient light catching on the recessed inner wall rim.
+   All 4 edges use white light with a smooth bell-curve falloff: peak brightness
+   at the center of each side, tapering naturally to zero at the corners.
+   Bottom edge is brightest (screen light rises from below).
+   Per-side opacities are driven from state via applyLayoutCSSVars.
+   ───────────────────────────────────────────────────────────────────────────── */
+.inner-wall-gradient-edge {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 170;
+  background:
+    /* Bottom edge — brightest (light rises from below the screen) */
+    radial-gradient(
+      80% var(--inner-wall-gradient-edge-width) at 50% 100%,
+      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-bottom-opacity)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-bottom-opacity) * 0.4)) 50%,
+      transparent 100%
+    ) bottom center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
+    /* Top edge — subtle ambient fill from above */
+    radial-gradient(
+      80% var(--inner-wall-gradient-edge-width) at 50% 0%,
+      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-top-opacity)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-top-opacity) * 0.4)) 50%,
+      transparent 100%
+    ) top center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
+    /* Left edge — side light */
+    radial-gradient(
+      var(--inner-wall-gradient-edge-width) 70% at 0% 50%,
+      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-side-opacity)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-opacity) * 0.35)) 50%,
+      transparent 100%
+    ) left center / var(--inner-wall-gradient-edge-width) 100% no-repeat,
+    /* Right edge — side light */
+    radial-gradient(
+      var(--inner-wall-gradient-edge-width) 70% at 100% 50%,
+      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-side-shadow-opacity)) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-shadow-opacity) * 0.35)) 50%,
+      transparent 100%
+    ) right center / var(--inner-wall-gradient-edge-width) 100% no-repeat;
+}
+
+#simulations canvas {
   position: absolute;
   top: 0;
   left: 0;
@@ -2207,7 +2817,7 @@ html.entrance-transitioning #bravia-balls {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SCENE EFFECTS CONTAINER
-   Film grain: child of #bravia-balls (see #bravia-balls > .scene-effects) so it
+   Film grain: child of #simulations (see #simulations > .scene-effects) so it
    sits under the pit canvas. Legacy absolute offsets apply only if this node is
    not placed inside the wall (avoid).
    ───────────────────────────────────────────────────────────────────────────── */
@@ -2217,15 +2827,15 @@ html.entrance-transitioning #bravia-balls {
   left: calc(var(--safari-tint-inset) + var(--frame-border-width));
   right: calc(var(--safari-tint-inset) + var(--frame-border-width));
   bottom: calc(var(--safari-tint-inset) + var(--frame-border-width));
-  /* Default when misplaced; in-wall placement uses #bravia-balls > .scene-effects below */
+  /* Default when misplaced; in-wall placement uses #simulations > .scene-effects below */
   z-index: 150;
   pointer-events: none;
   border-radius: var(--frame-inner-radius);
   overflow: hidden;
 }
 
-/* Noise lives inside #bravia-balls so it sits under the simulation canvas (not over it). */
-#bravia-balls > .scene-effects {
+/* Noise lives inside #simulations so it sits under the simulation canvas (not over it). */
+#simulations > .scene-effects {
   inset: 0;
   top: 0;
   left: 0;
@@ -2477,13 +3087,10 @@ html.is-safari .noise::before {
     --edge-label-inset-gap: 2px;
   }
   
-  /* Mobile logo sizing */
-  #brand-logo .brand-logo-svg {
-    width: clamp(
-      var(--abs-home-mobile-logo-min-px, 220px),
-      calc(var(--abs-home-mobile-logo-width-vw, 64) * 1vw),
-      var(--abs-home-mobile-logo-max-px, 320px)
-    );
+  /* Mobile hero title — both lines same scale */
+  .hero-title__name,
+  .hero-title__role {
+    font-size: clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px);
   }
 
   .ui-top {
@@ -2689,7 +3296,7 @@ a:active {
 
 /* Custom Cursor */
 #custom-cursor {
-  /* Use absolute positioning when inside #bravia-balls (transformed parent makes fixed relative to parent) */
+  /* Use absolute positioning when inside #simulations (transformed parent makes fixed relative to parent) */
   position: absolute;
   pointer-events: none;
   z-index: 3; /* Within UI stacking context */
@@ -2912,12 +3519,6 @@ button:hover {
     transform: none;
   }
 
-  #main-links.main-links--staggered .footer_link {
-    opacity: 1;
-    transform: none;
-    filter: none;
-    animation: none;
-  }
 }
 
 /* Base state: explicit transform avoids subpixel snap on hover in/out */
@@ -3089,17 +3690,26 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   /* Gate overlay positioning and animation
      IMPORTANT: gates must NOT affect each other's layout during gate-to-gate switching.
      We center each gate absolutely inside #modal-modal-host so a fading-out gate cannot
-     push the incoming gate off-viewport (prevents visible "snap into place"). */
+     push the incoming gate off-viewport (prevents visible "snap into place").
+     Center with inset + margin (not translate -50%).
+     Do NOT animate transform:scale() on this box: scaled text is rasterized as a GPU
+     texture and re-snaps when motion ends (common WebKit/Blink issue). Depth comes from
+     backdrop blur + opacity; see CONFIGURATION.md § Gate modals. */
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate3d(-50%, -50%, 0) scale(1.05);
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: min(88vw, 528px);
+  max-width: min(88vw, 528px);
+  height: fit-content;
+  max-height: 100%;
+  margin: auto;
   z-index: 1;
   pointer-events: none;
   
   opacity: 0;
-  transition: opacity var(--modal-overlay-transition-out-duration, 1700ms) var(--ease-gate),
-              transform var(--modal-overlay-transition-out-duration, 1700ms) var(--ease-gate);
+  transition: opacity var(--modal-overlay-transition-out-duration, 1700ms) var(--ease-gate-motion);
   
   display: flex;
   flex-direction: column;
@@ -3108,11 +3718,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   font-size: clamp(0.9em, 0.95em + 0.2vw, 1em);
 
   /* Slightly wider modals - text blocks are 10% wider */
-  width: min(88vw, 528px);
-  max-width: min(88vw, 528px);
   padding-inline: var(--abs-modal-mobile-pad-x, 20px);
   padding-block: clamp(20px, 10vw, 64px);
-  max-height: none;
   overflow: visible;
   box-sizing: border-box;
 
@@ -3160,20 +3767,16 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .portfolio-modal.active,
 .contact-modal.active {
   opacity: 1;
-  transform: translate3d(-50%, -50%, 0) scale(1);
   pointer-events: auto;
   visibility: visible;
   
-  /* Magnetic snap with slight delay after blur - gate content pops in after blur snaps */
-  transition: opacity var(--modal-overlay-transition-duration, 850ms) var(--ease-gate) var(--modal-content-delay, 150ms),
-              transform var(--modal-overlay-transition-duration, 850ms) var(--ease-gate) var(--modal-content-delay, 150ms);
+  transition: opacity var(--modal-overlay-transition-duration, 850ms) var(--ease-gate-motion) var(--modal-content-delay, 150ms);
 }
 
 .cv-modal.closing,
 .portfolio-modal.closing,
 .contact-modal.closing {
   opacity: 0;
-  transform: translate3d(-50%, -50%, 0) scale(1.05);
   pointer-events: none;
   visibility: visible;
 }
@@ -3187,8 +3790,8 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   align-items: center;
   gap: var(--modal-label-stack-gap);
   opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 0.3s var(--ease-gate) 0.2s, transform 0.3s var(--ease-gate) 0.2s;
+  /* Opacity only (no translate) — see gate modals note in CONFIGURATION.md */
+  transition: opacity 0.42s var(--ease-gate-motion) 0.2s;
 }
 
 .cv-modal .modal-nav,
@@ -3205,7 +3808,6 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .portfolio-modal.active .modal-label,
 .contact-modal.active .modal-label {
   opacity: 1;
-  transform: translateY(0);
 }
 
 .cv-modal .modal-title,
@@ -3223,7 +3825,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .portfolio-modal .modal-description {
-  letter-spacing: 0.03ch;
+  letter-spacing: 0.018ch;
 }
 
 .gate-nav {
@@ -3282,7 +3884,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .gate-title {
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   /* 2× the previous gate headline scale (was clamp(2.75rem, 7vw, 3.75rem)) */
   font-size: clamp(5.5rem, 14vw, 7.5rem);
   font-weight: 500;
@@ -3294,7 +3896,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 }
 
 .gate-description {
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   font-size: var(--footer-links-font-size);
   font-weight: 400;
   letter-spacing: var(--footer-links-letter-spacing);
@@ -3436,7 +4038,7 @@ body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focu
   padding: var(--modal-pad-md-y) var(--modal-pad-md-x);
   text-align: left;
   
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--abs-font-mono);
   font-size: clamp(1.15rem, 3vw, 1.9rem);
   font-weight: 400;
   letter-spacing: var(--footer-links-letter-spacing);
@@ -3542,7 +4144,7 @@ body.dark-mode .contact-email-copy {
   width: 100%;
   text-align: center;
   pointer-events: none;
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   font-size: 0.9rem;
   color: var(--text-quiet);
 }
@@ -3601,7 +4203,8 @@ body.dark-mode .contact-email-copy {
   height: clamp(3.2rem, 7vw, 4.2rem);
   padding: var(--modal-pad-md-y) var(--modal-pad-md-x);
   font-size: clamp(1.4rem, 3.5vw, 2rem);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--abs-font-mono);
+  letter-spacing: normal;
   font-weight: 600;
   text-align: center;
   border: 1px solid var(--abs-stroke-medium);
@@ -3652,7 +4255,7 @@ body.dark-mode .portfolio-digit:focus {
 
 /* Dark-mode placeholders are token-driven via `--text-placeholder`. */
 
-#brand-logo.fade-out-up {
+.hero-title.fade-out-up {
   transition: opacity 0.4s var(--ease-hesitant),
               transform 0.4s var(--ease-hesitant);
 }
@@ -3822,10 +4425,10 @@ body.page-transitioning {
   backdrop-filter: blur(0px);
   background-color: transparent;
   
-  /* Animate blur OUT - magnetic snap backwards */
-  transition: -webkit-backdrop-filter var(--modal-overlay-transition-out-duration, 850ms) var(--ease-gate),
-              backdrop-filter var(--modal-overlay-transition-out-duration, 850ms) var(--ease-gate),
-              background-color var(--modal-overlay-transition-out-duration, 850ms) var(--ease-gate);
+  /* Animate blur OUT */
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-out-duration, 850ms) var(--ease-gate-motion),
+              backdrop-filter var(--modal-overlay-transition-out-duration, 850ms) var(--ease-gate-motion),
+              background-color var(--modal-overlay-transition-out-duration, 850ms) var(--ease-gate-motion);
 }
 
 #modal-blur-layer.active,
@@ -3835,10 +4438,10 @@ body.page-transitioning {
   background-color: rgba(var(--abs-rgb-white), var(--modal-overlay-opacity, 0.01));
   pointer-events: auto;
   
-  /* Animate blur IN - magnetic snap forward with overshoot */
-  transition: -webkit-backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-gate),
-              backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-gate),
-              background-color var(--modal-overlay-transition-duration, 850ms) var(--ease-gate);
+  /* Animate blur IN (no overshoot — matches modal transform easing) */
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-gate-motion),
+              backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-gate-motion),
+              background-color var(--modal-overlay-transition-duration, 850ms) var(--ease-gate-motion);
 }
 
 /* Layer 2: Content only - holds gates, centers them vertically */
@@ -3914,46 +4517,6 @@ body.dark-mode .modal-blur-layer.active {
   }
 }
 
-/* Safari/iOS: Use smoother easing without overshoot for backdrop-filter transitions
-   Safari handles backdrop-filter poorly with cubic-bezier overshoot values (>1.0) */
-html.is-safari #modal-blur-layer,
-html.is-safari .modal-blur-layer {
-  transition: -webkit-backdrop-filter var(--modal-overlay-transition-out-duration, 850ms) var(--ease-safari-safe),
-              backdrop-filter var(--modal-overlay-transition-out-duration, 850ms) var(--ease-safari-safe),
-              background-color var(--modal-overlay-transition-out-duration, 850ms) var(--ease-safari-safe);
-}
-
-html.is-safari #modal-blur-layer.active,
-html.is-safari .modal-blur-layer.active {
-  transition: -webkit-backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-safari-safe),
-              backdrop-filter var(--modal-overlay-transition-duration, 850ms) var(--ease-safari-safe),
-              background-color var(--modal-overlay-transition-duration, 850ms) var(--ease-safari-safe);
-}
-
-/* Safari modal content: smoother scale/opacity transitions */
-html.is-safari .cv-modal,
-html.is-safari .portfolio-modal,
-html.is-safari .contact-modal {
-  transition: opacity var(--modal-overlay-transition-out-duration, 1700ms) var(--ease-safari-safe),
-              transform var(--modal-overlay-transition-out-duration, 1700ms) var(--ease-safari-safe);
-}
-
-html.is-safari .cv-modal.active,
-html.is-safari .portfolio-modal.active,
-html.is-safari .contact-modal.active {
-  transition: opacity var(--modal-overlay-transition-duration, 850ms) var(--ease-safari-safe) var(--modal-content-delay, 150ms),
-              transform var(--modal-overlay-transition-duration, 850ms) var(--ease-safari-safe) var(--modal-content-delay, 150ms);
-}
-
-/* Safari scene depth: smoother transform transitions */
-html.is-safari #abs-scene.gate-depth-active {
-  transition: transform var(--modal-depth-duration, 850ms) var(--ease-safari-safe);
-}
-
-html.is-safari #abs-scene.gate-depth-out {
-  transition: transform var(--modal-depth-out-duration, 600ms) var(--ease-safari-safe);
-}
-
 /* Legacy .modal-overlay fallback (kept for compatibility) */
 .modal-overlay {
   position: fixed;
@@ -3982,9 +4545,9 @@ html.is-safari #abs-scene.gate-depth-out {
   backdrop-filter: blur(0px);
   background-color: transparent;
   
-  transition: -webkit-backdrop-filter var(--modal-overlay-transition-out-duration, 250ms) var(--ease-gate),
-              backdrop-filter var(--modal-overlay-transition-out-duration, 250ms) var(--ease-gate),
-              background-color var(--modal-overlay-transition-out-duration, 250ms) var(--ease-gate);
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-out-duration, 250ms) var(--ease-gate-motion),
+              backdrop-filter var(--modal-overlay-transition-out-duration, 250ms) var(--ease-gate-motion),
+              background-color var(--modal-overlay-transition-out-duration, 250ms) var(--ease-gate-motion);
 }
 
 .modal-overlay.active {
@@ -3993,9 +4556,9 @@ html.is-safari #abs-scene.gate-depth-out {
   background-color: rgba(var(--abs-rgb-white), var(--modal-overlay-opacity, 0.01));
   pointer-events: auto;
   
-  transition: -webkit-backdrop-filter var(--modal-overlay-transition-duration, 400ms) var(--ease-gate),
-              backdrop-filter var(--modal-overlay-transition-duration, 400ms) var(--ease-gate),
-              background-color var(--modal-overlay-transition-duration, 400ms) var(--ease-gate);
+  transition: -webkit-backdrop-filter var(--modal-overlay-transition-duration, 400ms) var(--ease-gate-motion),
+              backdrop-filter var(--modal-overlay-transition-duration, 400ms) var(--ease-gate-motion),
+              background-color var(--modal-overlay-transition-duration, 400ms) var(--ease-gate-motion);
 }
 
 @supports not (backdrop-filter: blur(10px)) {
@@ -4008,7 +4571,7 @@ html.is-safari #abs-scene.gate-depth-out {
   .cv-modal,
   .portfolio-modal,
   .contact-modal,
-  #brand-logo,
+  .hero-title,
   .modal-label,
   .fade-content,
   main.ui-center,
@@ -4043,7 +4606,7 @@ html.is-safari .modal-overlay.active {
  * Scrolling content container for CV/Bio page
  * ════════════════════════════════════════════════════════════════════════════════ */
 
-body.cv-page #bravia-balls {
+body.cv-page #simulations {
   /* CV keeps the shared shell frame and only opts into an interactive surface. */
   pointer-events: auto;
   height: 100%;
@@ -4116,7 +4679,7 @@ body.cv-page .cv-right p {
 }
 
 /* Wall-only canvas: must NOT capture wheel/touch, or it will block scrolling. */
-body.cv-page #bravia-balls .cv-wall-canvas {
+body.cv-page #simulations .cv-wall-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -4136,7 +4699,7 @@ body.cv-page #bravia-balls .cv-wall-canvas {
   bottom: calc(var(--wall-thickness, 9px) + var(--cv-footer-clearance, clamp(108px, 16vh, 124px)));
   /* Desktop: clip at rounded edges, .cv-right handles its own scroll */
   overflow: hidden;
-  /* Border-radius on inner scroll container (not #bravia-balls) to clip CV content 
+  /* Border-radius on inner scroll container (not #simulations) to clip CV content 
      inside the rounded wall area. This avoids anti-aliasing artifacts. */
   border-radius: var(--wall-radius);
   /* Minimal padding - content handles its own spacing */
@@ -4285,7 +4848,7 @@ body.dark-mode .cv-photo {
   line-height: 1;
   margin: 0;
   color: var(--abs-fg-primary);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.021em;
   text-align: left;
   width: 100%;
 }
@@ -4296,7 +4859,7 @@ body.dark-mode .cv-photo {
   color: var(--abs-fg-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.048em;
   font-weight: 400;
   text-align: left;
   width: 100%;
@@ -4463,7 +5026,7 @@ body.dark-mode .cv-photo {
   max-height: var(--panel-height, 90vh);
 
   /* Match main panel styling */
-  font-family: var(--panel-font, 'Geist', sans-serif);
+  font-family: var(--panel-font, var(--abs-font-sans));
   font-size: 12.5px;
   line-height: 1.35;
   background: var(--panel-background);
@@ -4543,7 +5106,7 @@ body.dark-mode .cv-photo {
   user-select: none;
   background: var(--panel-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.018em;
 }
 
 .cv-panel-section summary:hover {
@@ -4642,7 +5205,7 @@ body.dark-mode .cv-photo {
   font-weight: 600;
   line-height: 1.2;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.072em;
   color: var(--abs-fg-muted);
   margin: 0 0 clamp(1rem, 2vw, 1.5rem) 0;
   padding-bottom: clamp(0.5rem, 1vw, 0.75rem);
@@ -4682,7 +5245,7 @@ body.dark-mode .cv-photo {
   line-height: 1.15;
   margin: 0 0 var(--gap-xs) 0;
   color: var(--abs-fg-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.014em;
 }
 
 .cv-entry-meta {
@@ -4690,7 +5253,7 @@ body.dark-mode .cv-photo {
   line-height: 1.4;
   color: var(--abs-fg-secondary);
   margin: 0 0 var(--gap-md) 0;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.012em;
 }
 
 .cv-entry p {
@@ -4764,7 +5327,7 @@ body.dark-mode .cv-photo {
   line-height: 1.2;
   color: var(--abs-fg-primary);
   margin: 0 0 var(--gap-md) 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.014em;
 }
 
 .cv-copyright {
@@ -4775,7 +5338,7 @@ body.dark-mode .cv-photo {
 }
 
 /* CV Page Dark Mode */
-body.cv-page.dark-mode #bravia-balls {
+body.cv-page.dark-mode #simulations {
   background: var(--bg-dark);
   background-color: var(--bg-dark);
 }
@@ -5228,7 +5791,7 @@ body.cv-page.dark-mode .cv-scroll-container {
    VIEW TRANSITIONS API - Cross-Document Page Transitions
    
    SIMPLIFIED APPROACH: Only TWO named layers to avoid ghost artifacts:
-   1. `wall` - The fixed frame (#bravia-balls) that stays in place
+   1. `wall` - The fixed frame (#simulations) that stays in place
    2. `content` - Everything inside #app-frame that transitions with depth
    
    Chrome 126+ supports this natively; Safari/Firefox use JS fallback.
@@ -5251,7 +5814,7 @@ html {
    ───────────────────────────────────────────────────────────────────────────── */
 
 /* Wall frame stays fixed (no animation, same position) */
-#bravia-balls {
+#simulations {
   view-transition-name: wall;
 }
 

@@ -13,7 +13,7 @@
   /* Essentials */
   --color-bg-light: #f5f5f5;
   --color-bg-dark: #0a0a0a;
-  --color-accent: #ff4013;
+  --color-accent: #f03030;
   --color-success: #22c55e;
   --color-error: #ef4444;
   --color-success-rgb: 34, 197, 94;
@@ -62,8 +62,8 @@
   --frame-inner-surface: var(--abs-wall-base-light);
   --frame-border-gradient-rgb-dark: 153, 153, 153;
   --frame-border-gradient-rgb-light: 255, 255, 255;
-  --frame-border-gradient-edge-opacity: 0.03;
-  --frame-border-gradient-mid-opacity: 0.06;
+  --frame-border-gradient-edge-opacity: 0.012;
+  --frame-border-gradient-mid-opacity: 0.025;
   --frame-vignette-edge-rgb: 205, 210, 216;
   --frame-vignette-ambient-rgb: 255, 255, 255;
   --frame-vignette-edge-offset-y: 5px;
@@ -91,8 +91,8 @@
   --ball-8: #ffa000;
 
   /* Typography Tokens */
-  --abs-font-sans: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --abs-font-mono: "SFMono-Regular", "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  --abs-font-sans: "DM Sans", system-ui, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --abs-font-mono: "DM Mono", ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
   --abs-font-display: "Snell Roundhand", "Apple Chancery", "Segoe Script", "Bradley Hand", cursive;
   --abs-font-display-scale: 1.22;
   --abs-weight-regular: 400;
@@ -115,10 +115,12 @@
   --abs-line-loose: 1.75;
   --abs-line-summary: 1.2;
 
-  /* Letter spacing relative to font height (em-based) */
-  --abs-letter-spacing-tight: -0.01ch;
-  --abs-letter-spacing-normal: 0.05ch;
-  --abs-letter-spacing-loose: 0.4ch;
+  /* Letter spacing (ch): site-wide ~40% tighter vs legacy — positive ×0.6, negative ×1.4 */
+  /* Default tracking for UI sans; set on body — mono/script reset locally */
+  --abs-letter-spacing-global: -0.07ch;
+  --abs-letter-spacing-tight: -0.014ch;
+  --abs-letter-spacing-normal: 0.03ch;
+  --abs-letter-spacing-loose: 0.24ch;
 
   /* Spacing & Sizing */
   --abs-space-unit: 1vmin;
@@ -171,10 +173,12 @@
   --abs-hover-intensity-dark: 48%;
   --abs-hover-intensity-active: 27%;
 
-  /* Chrome buttons: inset rim readable on any cursor luminance (light top + soft bottom depth) */
+  /* Chrome buttons: inset rim — strengths follow Light Group via --ui-chrome-rim-* (applyLayoutCSSVars) */
+  --ui-chrome-rim-light-opacity: 0.55;
+  --ui-chrome-rim-dark-opacity: 0.2;
   --ui-chrome-button-edge:
-    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.55),
-    inset 0 -1px 0 rgba(var(--abs-rgb-black), 0.2);
+    inset 0 1px 0 rgba(var(--abs-rgb-white), var(--ui-chrome-rim-light-opacity)),
+    inset 0 -1px 0 rgba(var(--abs-rgb-black), var(--ui-chrome-rim-dark-opacity));
   --ui-chrome-fill-transition-duration: 120ms;
   --abs-hover-opacity-ui-light: 0.27;   /* UI mode opacity (light mode) */
   --abs-hover-opacity-ui-dark: 0.33;   /* UI mode opacity (dark mode) */
@@ -226,6 +230,8 @@
   --text-md: var(--abs-text-md);
   --text-lg: var(--abs-text-lg);
   --text-xl: var(--abs-text-xl);
+  /* Body UI (section titles, forms): alias of md */
+  --text-base: var(--abs-text-md);
   --line-height-display: var(--abs-line-display);
   --line-height-title: var(--abs-line-title);
   --line-height-tight: var(--abs-line-tight);
@@ -235,6 +241,7 @@
   --line-height-body-relaxed: var(--abs-line-body-relaxed);
   --line-height-loose: var(--abs-line-loose);
   --line-height-summary: var(--abs-line-summary);
+  --letter-spacing-global: var(--abs-letter-spacing-global);
   --letter-spacing-tight: var(--abs-letter-spacing-tight);
   --letter-spacing-normal: var(--abs-letter-spacing-normal);
   --letter-spacing-loose: var(--abs-letter-spacing-loose);
@@ -362,6 +369,8 @@
   /* Safari-safe: smooth ease-out without overshoot (Safari/iOS backdrop-filter transitions poorly with overshoot) */
   --ease-safari-safe: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-gate: var(--ease-magnetic);
+  /* Modals + scene depth: same settle as --ease-safari-safe — magnetic overshoot reads as end-of-transition snap */
+  --ease-gate-motion: var(--ease-settle);
   --ease-fade: var(--ease-settle);
   --duration-resize: 600ms;
   --duration-settle: 400ms;
@@ -423,29 +432,32 @@
   
   --wall-edge-end-fade: 15%;                  /* How much edges fade at left/right (0-50%) */
   --outer-wall-top-dark-offset: 1px;          /* Top shadow Y offset */
-  --outer-wall-top-dark-blur: 4px;            /* Top shadow blur */
+  --outer-wall-top-dark-blur: 3px;            /* Top shadow blur */
   --outer-wall-top-dark-spread: 0px;          /* Top shadow spread */
-  --outer-wall-top-dark-opacity: 0.5;         /* Top shadow opacity */
+  --outer-wall-top-dark-opacity: 0.08;        /* Top shadow opacity */
   --outer-wall-top-dark-rgb: 0, 0, 0;         /* Top shadow RGB (editable via color picker) */
   --outer-wall-bottom-light-offset: 0.5px;    /* Bottom light Y offset */
   --outer-wall-bottom-light-blur: 0px;        /* Bottom light blur (0 = crisp 1px line) */
   --outer-wall-bottom-light-spread: 0px;      /* Bottom light spread */
-  --outer-wall-bottom-light-opacity: 0.8;     /* Bottom light opacity */
+  --outer-wall-bottom-light-opacity: 0.55;    /* Bottom light opacity */
   --outer-wall-bottom-light-rgb: 255, 255, 255; /* Bottom light RGB (editable via color picker) */
   --outer-wall-edge-width: 2px;               /* Height of outer wall gradient edges */
   --outer-wall-cast-shadow-offset: 3px;       /* Cast shadow Y offset */
-  --outer-wall-cast-shadow-blur: 12px;        /* Cast shadow blur */
+  --outer-wall-cast-shadow-blur: 14px;        /* Cast shadow blur */
   --outer-wall-cast-shadow-spread: 0px;       /* Cast shadow spread */
-  --outer-wall-cast-shadow-opacity: 0.15;     /* Cast shadow opacity */
+  --outer-wall-cast-shadow-opacity: 0.1;      /* Cast shadow opacity */
   --outer-wall-cast-shadow-rgb: 0, 0, 0;      /* Cast shadow RGB (editable via color picker) */
   --outer-wall-top-bevel-rgb: 0, 0, 0;        /* Top bevel RGB (editable via color picker) */
   
+  /* Inner wall inner glow (inset) — RGB used by main.css box-shadow on #simulations */
+  --inner-wall-inner-glow-rgb: 255, 255, 255;
+
   /* Inner wall outward shadow - cast onto wall surface and background */
   --inner-wall-outward-shadow-offset: 2px;    /* Shadow Y offset */
-  --inner-wall-outward-shadow-blur: 8px;      /* Shadow blur */
+  --inner-wall-outward-shadow-blur: 10px;     /* Shadow blur */
   --inner-wall-outward-shadow-spread: 2px;    /* Shadow spread */
-  --inner-wall-outward-shadow-opacity: 0.2;   /* Light mode opacity */
-  --inner-wall-outward-shadow-opacity-dark: 0.35; /* Dark mode opacity */
+  --inner-wall-outward-shadow-opacity: 0.14;  /* Light mode opacity */
+  --inner-wall-outward-shadow-opacity-dark: 0.24; /* Dark mode opacity */
   --inner-wall-outward-shadow-rgb: 0, 0, 0;   /* Shadow RGB (editable via color picker) */
   
   /* Inner wall outer glow (all-around shadow) */
@@ -463,18 +475,25 @@
   --inner-wall-gradient-edge-width: 2px;      /* Thickness of gradient edge border */
   --inner-wall-gradient-radius: 70;           /* Percentage of width for gradient spread */
   --inner-wall-top-bevel-width: 2px;          /* Inner wall top light edge thickness */
-  --inner-wall-top-light-opacity: 0.3;        /* Inner wall top light edge opacity (light mode) */
-  --inner-wall-top-light-opacity-dark: 0.4;   /* Inner wall top light edge opacity (dark mode) */
+  --inner-wall-top-light-opacity: 0.22;       /* Inner wall top light edge opacity (light mode) */
+  --inner-wall-top-light-opacity-dark: 0.28;  /* Inner wall top light edge opacity (dark mode) */
   --inner-wall-top-light-rgb: 255, 255, 255;  /* Inner wall top light color RGB */
   --inner-wall-bottom-bevel-width: 2px;       /* Inner wall bottom shadow thickness */
-  --inner-wall-bottom-shadow-opacity: 0.18;   /* Inner wall bottom shadow opacity (light mode) */
-  --inner-wall-bottom-shadow-opacity-dark: 0.25; /* Inner wall bottom shadow opacity (dark mode) */
+  --inner-wall-bottom-shadow-opacity: 0.13;   /* Inner wall bottom shadow opacity (light mode) */
+  --inner-wall-bottom-shadow-opacity-dark: 0.17; /* Inner wall bottom shadow opacity (dark mode) */
   --inner-wall-bottom-shadow-rgb: 0, 0, 0;    /* Inner wall bottom shadow color RGB */
+
+  /* Gradient edge per-side opacities (ambient light catching on rim) */
+  /* Bottom is brightest (screen light rises from below); top is ambient fill */
+  --inner-wall-gradient-edge-top-opacity: 0.18;
+  --inner-wall-gradient-edge-bottom-opacity: 0.27;
+  --inner-wall-gradient-edge-side-opacity: 0.12;
+  --inner-wall-gradient-edge-side-shadow-opacity: 0.08;
 
   /* Inner wall shine - strong blur from all sides (background colored) */
   --inner-wall-shine-blur: 20px;
   --inner-wall-shine-spread: 4px;
-  --inner-wall-shine-opacity: 0.4;
+  --inner-wall-shine-opacity: 0.14;
   --inner-wall-shine-overshoot: -10px;
   --inner-wall-shine-color: var(--bg-light);
 
@@ -512,11 +531,11 @@
   --legend-item-radius: var(--abs-radius-9);
   --legend-font-size: clamp(13px, 2vw, 14px);
   --legend-font-weight: 400;
-  --legend-letter-spacing: 0.035ch;
+  --legend-letter-spacing: 0.021ch;
   --legend-line-height: var(--line-height-loose);
   --legend-opacity: 1;
 
-  --decorative-script-max-width: clamp(254px, 26.4vw, 355px);
+  --decorative-script-max-width: clamp(356px, 37vw, 497px);
   --decorative-script-font-size: calc(var(--text-sm) + var(--abs-size-1px));
   --decorative-script-line-height: var(--line-height-base);
   --decorative-script-letter-spacing: var(--letter-spacing-normal);
@@ -554,6 +573,11 @@
   /* Quote round button (overhang) */
   --abs-quote-button-size: 224px;
 
+  /* Quote puck disk edge */
+  --puck-edge-width: 1px;
+  --puck-edge-light-opacity: 0.3;
+  --puck-edge-shadow-opacity: 0.15;
+
   /* Quote card glass surface */
   --quote-glass-blur: clamp(6px, 0.9vmin, 10px);
   --quote-glass-saturation: 1.12;
@@ -589,6 +613,12 @@
     999px
   );
 
+  /* Home header: right column (intro blurb + sound) — at least token script width + gap + icon frame */
+  --ui-top-right-col-min: min(
+    100%,
+    calc(var(--decorative-script-max-width) + var(--gap-lg) + var(--ui-icon-frame-size))
+  );
+
   /* Legacy aliases (kept): these now just mirror the derived hit areas above. */
   --ui-link-hit-pad: var(--hit-area-lg);
   --ui-icon-hit-pad: var(--hit-area-md);
@@ -602,15 +632,15 @@
      
      INSIDE #abs-scene (scene stacking context):
      ─────────────────────────────────────────────────────────────────────────────
-     Wall (container)         100        #bravia-balls
+     Wall (container)         100        #simulations
      Video Overlays           150        .grunge-video-overlay (above wall, below UI)
      UI Layer                 200        .fade-content (contains logo + nav + header + footer)
      Portfolio sheet          220 / 260  #portfolio-sheet-host (260 when body.portfolio-project-open; above chrome)
      Quote host               250        #quote-viewport-host
      
-     INSIDE #bravia-balls (wall interior stacking context):
+     INSIDE #simulations (wall interior stacking context):
      ─────────────────────────────────────────────────────────────────────────────
-     Scene / noise            1          #bravia-balls > .scene-effects (under simulation)
+     Scene / noise            1          #simulations > .scene-effects (under simulation)
      Wall route + canvas      2+        .shell-wall-slot (z:2), then #c (z:10)
      CV scroll surface        10        .cv-scroll-container (above in-wall noise)
      CV wall ring canvas      15        .cv-wall-canvas
@@ -657,7 +687,10 @@
   /* Gap between nav bar links (configurable, defaults to --gap-xl) */
   --footer-nav-bar-gap: var(--gap-xl);
 
-  --brand-logo-user-scale: 1;
+  /* Global hero logo size (canvas + DOM); 0.936 = 20% larger than 0.78. */
+  --brand-logo-user-scale: 0.936;
+  /* Home hero wordmark / styleguide hero specimens (Geist). */
+  --hero-title-letter-spacing: -0.027ch; /* ~35% tighter than -0.02ch */
 
   --breakpoint-tablet: 991px;
   --breakpoint-mobile-l: 767px;
@@ -689,10 +722,12 @@
   /* Single stroke color override for dark mode */
   --abs-stroke-medium: rgba(var(--abs-rgb-white), 0.25);
 
-  /* Chrome rim: slightly stronger highlight on dark UI */
+  /* Chrome rim: defaults when JS has not stamped --ui-chrome-rim-* yet */
+  --ui-chrome-rim-light-opacity: 0.42;
+  --ui-chrome-rim-dark-opacity: 0.35;
   --ui-chrome-button-edge:
-    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.42),
-    inset 0 -1px 0 rgba(var(--abs-rgb-black), 0.35);
+    inset 0 1px 0 rgba(var(--abs-rgb-white), var(--ui-chrome-rim-light-opacity)),
+    inset 0 -1px 0 rgba(var(--abs-rgb-black), var(--ui-chrome-rim-dark-opacity));
 
   /* Quote card glass surface - dark mode tuning */
   --quote-glass-fill-opacity: 0.03;
@@ -702,6 +737,11 @@
   --quote-glass-bottom-edge-opacity: 0.22;
   
   --inner-wall-shine-color: var(--bg-dark);
+
+  --inner-wall-gradient-edge-top-opacity: 0.12;
+  --inner-wall-gradient-edge-bottom-opacity: 0.18;
+  --inner-wall-gradient-edge-side-opacity: 0.08;
+  --inner-wall-gradient-edge-side-shadow-opacity: 0.06;
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -726,11 +766,7 @@
   html.abs-corner-shape-squircle .legend .circle::before,
   html.abs-corner-shape-squircle .legend .circle::after,
   html.abs-corner-shape-squircle #quote-display,
-  html.abs-corner-shape-squircle #quote-display::before,
-  html.abs-corner-shape-squircle #quote-display::after,
-  html.abs-corner-shape-squircle #quote-display .quote-display__surface,
-  html.abs-corner-shape-squircle #quote-display .quote-display__surface::before,
-  html.abs-corner-shape-squircle #quote-display .quote-display__surface::after {
+  html.abs-corner-shape-squircle #quote-display .quote-display__disk {
     corner-shape: round;
   }
 }

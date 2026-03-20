@@ -42,7 +42,7 @@ export function hexToRgbString(hex) {
  * @param {Object} g - Global state object
  */
 export function updateWallShadowCSS(g) {
-  const container = document.getElementById('bravia-balls');
+  const container = document.getElementById('simulations');
   if (!container) return;
   
   // Check if dark mode
@@ -136,7 +136,7 @@ export function updateWallShadowCSS(g) {
   // Apply stroke opacity (disabled by default)
   container.style.setProperty('--wall-stroke-opacity', strokeOpacity.toFixed(3));
   
-  // Remove legacy style tag that targeted #bravia-balls::before (display:none)
+  // Remove legacy style tag that targeted #simulations::before (display:none)
   const styleTag = document.getElementById('wall-shadow-override-style');
   if (styleTag) styleTag.remove();
 }

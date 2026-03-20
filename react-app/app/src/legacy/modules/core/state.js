@@ -206,7 +206,7 @@ const state = {
   // - `cursorColorHex`: resolved hex string stamped into CSS (--cursor-color) and used by the trail.
   cursorColorMode: 'auto',
   cursorColorIndex: 5,
-  cursorColorHex: '#ff4013',
+  cursorColorHex: '#f03030',
   // Relative luminance threshold (0..1). Higher = more permissive, lower = more contrasty.
   // Cursor must never be white / light greys; we filter aggressively by default.
   cursorColorLumaMax: 0.62,
@@ -412,7 +412,7 @@ const state = {
   // Keep these aligned with the Industrial Teal base palette so:
   // - CSS fallback matches JS-driven palette chapters
   // - early paints (before JS applies templates) look correct
-  currentColors: ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
+  currentColors: ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#f03030', '#0d5cb6', '#ffa000'],
   currentTemplate: 'industrialTeal',
   // If true, rotate to the next palette chapter on each reload.
   // If false, respect `currentTemplate` from runtime config.
@@ -625,13 +625,13 @@ const state = {
   frameOuterRadius: 46,      // Derived outer corner radius in px
   frameInnerRadius: 42,      // Canonical inner corner radius in px
   frameInnerSurface: 'var(--abs-wall-base)', // Inner fill surface color
-  frameBorderGradientEdgeOpacity: 0.03, // Border gradient edge opacity
-  frameBorderGradientMidOpacity: 0.06,  // Border gradient midpoint opacity
+  frameBorderGradientEdgeOpacity: 0.012, // Border gradient edge (180°; L/R rails pick up mid stop)
+  frameBorderGradientMidOpacity: 0.025,  // Mid stop — ~2:1 vs edge
   frameVignetteEdgeOffsetY: 5,    // Inset vignette edge offset Y in px
   frameVignetteEdgeBlur: 30,      // Inset vignette edge blur in px
-  frameVignetteEdgeOpacity: 0.18, // Inset vignette edge opacity
+  frameVignetteEdgeOpacity: 0.12, // Inset vignette edge opacity
   frameVignetteAmbientBlur: 250,  // Ambient vignette blur in px
-  frameVignetteAmbientOpacity: 0.12, // Ambient vignette opacity
+  frameVignetteAmbientOpacity: 0.08, // Ambient vignette opacity
   
   // Text Colors
   textColorLight: '#161616',          // Primary text (light mode)
@@ -663,7 +663,7 @@ const state = {
   depthWashEdgeAlphaDark: 0.8,
   
   // Link Colors
-  linkHoverColor: '#ff4013',          // Link hover accent (shared)
+  linkHoverColor: '#f03030',          // Link hover accent (shared)
 
   // Logo colors now derive from `--text-primary` in CSS (same for index + portfolio).
   // Logo sizing + index main link placement (CSS vars)
@@ -741,15 +741,15 @@ const state = {
   
   // Outer Wall Cast Shadow (inward depth shadow)
   outerWallCastShadowOffset: 3,             // Cast shadow Y offset (px)
-  outerWallCastShadowBlur: 12,              // Cast shadow blur (px)
+  outerWallCastShadowBlur: 14,              // Cast shadow blur (px) — slightly softer
   outerWallCastShadowSpread: 0,             // Cast shadow spread (px)
-  outerWallCastShadowOpacityLight: 0.15,    // Cast shadow opacity light mode (0-1)
-  outerWallCastShadowOpacityDark: 0.25,     // Cast shadow opacity dark mode (0-1)
+  outerWallCastShadowOpacityLight: 0.1,     // Cast shadow opacity light mode (0-1)
+  outerWallCastShadowOpacityDark: 0.17,     // Cast shadow opacity dark mode (0-1)
   // Outer Wall Top Shadow (Overhang shadow)
-  outerWallTopShadowOffset: 3,              // Top shadow Y offset (px)
-  outerWallTopShadowBlur: 8,                // Top shadow blur (px)
-  outerWallTopShadowOpacityLight: 0.4,      // Top shadow opacity light mode
-  outerWallTopShadowOpacityDark: 0.6,       // Top shadow opacity dark mode
+  outerWallTopShadowOffset: 2,              // Top shadow Y offset (px)
+  outerWallTopShadowBlur: 12,               // Top shadow blur (px)
+  outerWallTopShadowOpacityLight: 0.08,     // Top shadow opacity light mode
+  outerWallTopShadowOpacityDark: 0.12,      // Top shadow opacity dark mode
   
   // Outer Wall Shine (inset blur glow layer, similar to inner wall shine)
   // Light mode
@@ -768,10 +768,10 @@ const state = {
    
   // Inner Wall Outward Shadow (cast onto wall surface)
   innerWallOutwardShadowOffset: 2,          // Shadow Y offset (px)
-  innerWallOutwardShadowBlur: 8,            // Shadow blur (px)
+  innerWallOutwardShadowBlur: 10,           // Shadow blur (px)
   innerWallOutwardShadowSpread: 2,          // Shadow spread (px)
-  innerWallOutwardShadowOpacityLight: 0.2,  // Light mode opacity (0-1)
-  innerWallOutwardShadowOpacityDark: 0.35,  // Dark mode opacity (0-1)
+  innerWallOutwardShadowOpacityLight: 0.14, // Light mode opacity (0-1)
+  innerWallOutwardShadowOpacityDark: 0.24,  // Dark mode opacity (0-1)
   innerWallBorderWidth: 2,                  // Border width (px)
   innerWallBorderBrightOpacityLight: 0.5,   // Brightest point opacity light mode
   innerWallBorderBrightOpacityDark: 0.6,    // Brightest point opacity dark mode
@@ -781,14 +781,31 @@ const state = {
   innerWallBorderShadowOpacityDark: 0.35,   // Shadow point opacity dark mode
   
   // Inner Wall Inner Glow (soft inset top light)
-  innerWallInnerGlowOpacityLight: 0.1,      // Light mode glow opacity (0-1)
-  innerWallInnerGlowOpacityDark: 0.12,      // Dark mode glow opacity (0-1)
-  innerWallInnerGlowBlur: 30,               // Glow blur (px)
+  innerWallInnerGlowOpacityLight: 0.07,     // Light mode glow opacity (0-1)
+  innerWallInnerGlowOpacityDark: 0.085,   // Dark mode glow opacity (0-1)
+  innerWallInnerGlowBlur: 34,               // Glow blur (px)
   innerWallInnerGlowSpread: -5,             // Glow spread (px)
   innerWallInnerGlowOffsetY: 8,             // Glow Y offset (px)
   innerWallInnerGlowColor: '#ffffff',       // Glow color
-  innerWallShineEnabled: true,              // Master toggle for inner wall shine layer
-   
+  innerWallTopLightOpacityLight: 0.22,
+  innerWallTopLightOpacityDark: 0.28,
+  innerWallBottomShadowOpacityLight: 0.13,
+  innerWallBottomShadowOpacityDark: 0.17,
+  innerWallBorderGradientSpread: 70,
+  innerWallShineEnabled: false,              // Disabled — replaced by gradient edge system
+  innerWallShineBlur: 20,
+  innerWallShineOvershoot: 10,
+  innerWallShineSpread: 4,
+  innerWallShineOpacityLight: 0,
+  innerWallShineOpacityDark: 0,
+  innerWallShineColor: '',
+  innerWallGradientEdgeWidth: 2,            // Gradient edge rim thickness (px)
+  innerWallGradientEdgeTopOpacity: 0.18,    // Master opacity — other edges derive from this
+  puckShadowOpacity: 0.045,                 // Puck disk drop shadow strength
+  puckEdgeWidth: 1,                         // Puck rim thickness (px)
+  puckEdgeLightOpacity: 0.3,               // Puck top rim light
+  puckEdgeShadowOpacity: 0.15,             // Puck bottom rim shadow
+
   // Wall AO (Ambient Occlusion in gap)
   wallAOOpacityLight: 0.15,                 // AO opacity in light mode
   wallAOOpacityDark: 0.3,                   // AO opacity in dark mode
@@ -1102,13 +1119,13 @@ export function applyLayoutCSSVars() {
   const frameInnerRadius = clampInt(state.wallRadius, 0, 300, 42);
   const frameOuterRadius = Math.max(frameInnerRadius, frameInnerRadius + frameBorderWidth);
   const frameInnerSurface = 'var(--abs-wall-base)';
-  const frameBorderGradientEdgeOpacity = clampNumber(state.frameBorderGradientEdgeOpacity, 0, 1, 0.03);
-  const frameBorderGradientMidOpacity = clampNumber(state.frameBorderGradientMidOpacity, 0, 1, 0.06);
+  const frameBorderGradientEdgeOpacity = clampNumber(state.frameBorderGradientEdgeOpacity, 0, 1, 0.012);
+  const frameBorderGradientMidOpacity = clampNumber(state.frameBorderGradientMidOpacity, 0, 1, 0.025);
   const frameVignetteEdgeOffsetY = clampInt(state.frameVignetteEdgeOffsetY, -100, 100, 5);
   const frameVignetteEdgeBlur = clampInt(state.frameVignetteEdgeBlur, 0, 400, 30);
-  const frameVignetteEdgeOpacity = clampNumber(state.frameVignetteEdgeOpacity, 0, 1, 0.66);
+  const frameVignetteEdgeOpacity = clampNumber(state.frameVignetteEdgeOpacity, 0, 1, 0.12);
   const frameVignetteAmbientBlur = clampInt(state.frameVignetteAmbientBlur, 0, 800, 250);
-  const frameVignetteAmbientOpacity = clampNumber(state.frameVignetteAmbientOpacity, 0, 1, 0.4);
+  const frameVignetteAmbientOpacity = clampNumber(state.frameVignetteAmbientOpacity, 0, 1, 0.08);
   state.frameBorderWidth = frameBorderWidth;
   state.frameOuterRadius = frameOuterRadius;
   state.frameInnerRadius = frameInnerRadius;
@@ -1225,30 +1242,34 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--hover-edge-top-opacity', String(state.hoverEdgeTopOpacity ?? 0.3));
   root.style.setProperty('--hover-edge-top-color-mix', `${state.hoverEdgeTopColorMix ?? 50}%`);
   
-  // Outer Wall Edge Lighting CSS variables (double-wall effect)
+  // Outer Wall Edge Lighting CSS variables (double-wall effect; consumed by #simulations box-shadow)
   const isDarkMode = document.body.classList.contains('dark-mode');
-  root.style.setProperty('--outer-wall-top-dark-offset', `${state.outerWallTopDarkOffset ?? 1}px`);
-  root.style.setProperty('--outer-wall-top-dark-blur', `${state.outerWallTopDarkBlur ?? 3}px`);
-  root.style.setProperty('--outer-wall-top-dark-spread', `${state.outerWallTopDarkSpread ?? 0}px`);
-  root.style.setProperty('--outer-wall-top-dark-opacity', String(isDarkMode 
-    ? (state.outerWallTopDarkOpacityDark ?? 0.4) 
-    : (state.outerWallTopDarkOpacityLight ?? 0.6)));
+  const outerEdgeOn = state.outerWallEdgeEnabled !== false;
+  const topDarkOff = state.outerWallTopDarkOffset ?? state.outerWallTopShadowOffset ?? 1;
+  const topDarkBlur = state.outerWallTopDarkBlur ?? state.outerWallTopShadowBlur ?? 3;
+  const topDarkSpread = state.outerWallTopDarkSpread ?? 0;
+  const topDarkOpL = state.outerWallTopDarkOpacityLight ?? state.outerWallTopShadowOpacityLight ?? 0.08;
+  const topDarkOpD = state.outerWallTopDarkOpacityDark ?? state.outerWallTopShadowOpacityDark ?? 0.12;
+  root.style.setProperty('--outer-wall-top-dark-offset', `${topDarkOff}px`);
+  root.style.setProperty('--outer-wall-top-dark-blur', `${topDarkBlur}px`);
+  root.style.setProperty('--outer-wall-top-dark-spread', `${topDarkSpread}px`);
+  root.style.setProperty('--outer-wall-top-dark-opacity', String(outerEdgeOn ? (isDarkMode ? topDarkOpD : topDarkOpL) : 0));
   root.style.setProperty('--outer-wall-bottom-light-offset', `${state.outerWallBottomLightOffset ?? 0.5}px`);
   root.style.setProperty('--outer-wall-bottom-light-blur', `${state.outerWallBottomLightBlur ?? 0}px`);
   root.style.setProperty('--outer-wall-bottom-light-spread', `${state.outerWallBottomLightSpread ?? 0}px`);
-  root.style.setProperty('--outer-wall-bottom-light-opacity', String(isDarkMode
-    ? (state.outerWallBottomLightOpacityDark ?? 0.3)
-    : (state.outerWallBottomLightOpacityLight ?? 0.5)));
+  root.style.setProperty('--outer-wall-bottom-light-opacity', String(outerEdgeOn ? (isDarkMode
+    ? (state.outerWallBottomLightOpacityDark ?? 0.2)
+    : (state.outerWallBottomLightOpacityLight ?? 0.34)) : 0));
   root.style.setProperty('--outer-wall-cast-shadow-offset', `${state.outerWallCastShadowOffset ?? 3}px`);
-  root.style.setProperty('--outer-wall-cast-shadow-blur', `${state.outerWallCastShadowBlur ?? 12}px`);
+  root.style.setProperty('--outer-wall-cast-shadow-blur', `${state.outerWallCastShadowBlur ?? 14}px`);
   root.style.setProperty('--outer-wall-cast-shadow-spread', `${state.outerWallCastShadowSpread ?? 0}px`);
-  root.style.setProperty('--outer-wall-cast-shadow-opacity', String(isDarkMode
-    ? (state.outerWallCastShadowOpacityDark ?? 0.25)
-    : (state.outerWallCastShadowOpacityLight ?? 0.15)));
+  root.style.setProperty('--outer-wall-cast-shadow-opacity', String(outerEdgeOn ? (isDarkMode
+    ? (state.outerWallCastShadowOpacityDark ?? 0.17)
+    : (state.outerWallCastShadowOpacityLight ?? 0.1)) : 0));
   
   // Inner Wall Outward Shadow CSS variables
   // Clamp offset to available wall gap so the bottom edge shadow cannot be clipped.
-  const innerWallOutwardShadowBlur = state.innerWallOutwardShadowBlur ?? 8;
+  const innerWallOutwardShadowBlur = state.innerWallOutwardShadowBlur ?? 10;
   const innerWallOutwardShadowSpread = state.innerWallOutwardShadowSpread ?? 2;
   const innerWallOutwardShadowOffsetRaw = state.innerWallOutwardShadowOffset ?? 2;
   const innerWallOutwardShadowOffsetMax = Math.max(0, state.wallThickness - innerWallOutwardShadowSpread);
@@ -1260,21 +1281,23 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--inner-wall-outward-shadow-blur', `${innerWallOutwardShadowBlur}px`);
   root.style.setProperty('--inner-wall-outward-shadow-spread', `${innerWallOutwardShadowSpread}px`);
   root.style.setProperty('--inner-wall-outward-shadow-opacity', String(isDarkMode
-    ? (state.innerWallOutwardShadowOpacityDark ?? 0.35)
-    : (state.innerWallOutwardShadowOpacityLight ?? 0.2)));
-  root.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(state.innerWallOutwardShadowOpacityDark ?? 0.35));
+    ? (state.innerWallOutwardShadowOpacityDark ?? 0.24)
+    : (state.innerWallOutwardShadowOpacityLight ?? 0.14)));
+  root.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(state.innerWallOutwardShadowOpacityDark ?? 0.24));
   
   // Inner Wall Inner Glow CSS variables
-  root.style.setProperty('--inner-wall-inner-glow-blur', `${state.innerWallInnerGlowBlur ?? 25}px`);
+  root.style.setProperty('--inner-wall-inner-glow-blur', `${state.innerWallInnerGlowBlur ?? 34}px`);
   root.style.setProperty('--inner-wall-inner-glow-spread', `${state.innerWallInnerGlowSpread ?? 3}px`);
   root.style.setProperty('--inner-wall-inner-glow-offset-y', `${state.innerWallInnerGlowOffsetY ?? 12}px`);
   root.style.setProperty('--inner-wall-inner-glow-opacity', String(isDarkMode
-    ? (state.innerWallInnerGlowOpacityDark ?? 0.08)
-    : (state.innerWallInnerGlowOpacityLight ?? 0)));
-  root.style.setProperty('--inner-wall-inner-glow-opacity-dark', String(state.innerWallInnerGlowOpacityDark ?? 0.08));
+    ? (state.innerWallInnerGlowOpacityDark ?? 0.085)
+    : (state.innerWallInnerGlowOpacityLight ?? 0.07)));
+  root.style.setProperty('--inner-wall-inner-glow-opacity-dark', String(state.innerWallInnerGlowOpacityDark ?? 0.085));
   if (state.innerWallInnerGlowColor) {
     const rgb = hexToRgbString(state.innerWallInnerGlowColor);
     root.style.setProperty('--inner-wall-inner-glow-rgb', rgb);
+  } else {
+    root.style.setProperty('--inner-wall-inner-glow-rgb', '255, 255, 255');
   }
   
   // Top Bevel CSS variables (thick lip at top edge)
@@ -1284,19 +1307,49 @@ export function applyLayoutCSSVars() {
     : (state.outerWallTopBevelOpacityLight ?? 0.25)));
   root.style.setProperty('--inner-wall-top-bevel-width', `${state.innerWallTopBevelWidth ?? 2}px`);
   root.style.setProperty('--inner-wall-top-light-opacity', String(isDarkMode
-    ? (state.innerWallTopLightOpacityDark ?? 0.4)
-    : (state.innerWallTopLightOpacityLight ?? 0.3)));
+    ? (state.innerWallTopLightOpacityDark ?? 0.28)
+    : (state.innerWallTopLightOpacityLight ?? 0.22)));
   root.style.setProperty('--inner-wall-bottom-bevel-width', `${state.innerWallBottomBevelWidth ?? 2}px`);
-  root.style.setProperty('--inner-wall-top-bevel-opacity', String(isDarkMode
-    ? (state.innerWallTopBevelOpacityDark ?? 0.25)
-    : (state.innerWallTopBevelOpacityLight ?? 0.18)));
-  
-  // Apply outer wall edge enabled state to DOM
-  const container = document.getElementById('bravia-balls');
-  if (container) {
-    container.classList.toggle('outer-wall-edge-disabled', !state.outerWallEdgeEnabled);
-  }
+  root.style.setProperty('--inner-wall-bottom-shadow-opacity', String(isDarkMode
+    ? (state.innerWallBottomShadowOpacityDark ?? 0.17)
+    : (state.innerWallBottomShadowOpacityLight ?? 0.13)));
+  root.style.setProperty('--inner-wall-border-width', `${state.innerWallBorderWidth ?? 2}px`);
+  root.style.setProperty('--inner-wall-gradient-radius', String(state.innerWallBorderGradientSpread ?? 70));
 
+  // Inner wall shine — disabled (replaced by gradient edge system)
+  root.style.setProperty('--inner-wall-shine-opacity', '0');
+
+  // Gradient edge per-side opacities
+  const geTop = state.innerWallGradientEdgeTopOpacity ?? 0.18;
+  const geRatio = geTop > 0 ? 1 : 0;
+  root.style.setProperty('--inner-wall-gradient-edge-width', `${state.innerWallGradientEdgeWidth ?? 2}px`);
+  root.style.setProperty('--inner-wall-gradient-edge-top-opacity', String(isDarkMode ? Math.max(0, geTop * 0.67) : geTop));
+  root.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(isDarkMode ? Math.max(0, geTop * 1.0) : Math.max(0, geTop * 1.5)));
+  root.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(isDarkMode ? Math.max(0, geTop * 0.44) : Math.max(0, geTop * 0.67)));
+  root.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(isDarkMode ? Math.max(0, geTop * 0.33) : Math.max(0, geTop * 0.44)));
+
+  // Puck disk edge
+  root.style.setProperty('--quote-button-outer-shadow', String(state.puckShadowOpacity ?? 0.045));
+  root.style.setProperty('--puck-edge-width', `${state.puckEdgeWidth ?? 1}px`);
+  root.style.setProperty('--puck-edge-light-opacity', String(state.puckEdgeLightOpacity ?? 0.3));
+  root.style.setProperty('--puck-edge-shadow-opacity', String(state.puckEdgeShadowOpacity ?? 0.15));
+
+  // Chrome / footer / icon buttons: rim strengths track Light Group inner-wall bevel opacities
+  const topLightOpacity = isDarkMode
+    ? (state.innerWallTopLightOpacityDark ?? 0.28)
+    : (state.innerWallTopLightOpacityLight ?? 0.22);
+  const bottomShadowOpacity = isDarkMode
+    ? (state.innerWallBottomShadowOpacityDark ?? 0.17)
+    : (state.innerWallBottomShadowOpacityLight ?? 0.13);
+  const RIM_TOP_REF = 0.55;
+  const RIM_TOP_WALL = 0.3;
+  const RIM_BOT_REF = 0.2;
+  const RIM_BOT_WALL = 0.18;
+  root.style.setProperty('--ui-chrome-rim-light-opacity', String(clampNumber(
+    topLightOpacity * (RIM_TOP_REF / RIM_TOP_WALL), 0.08, 0.9, RIM_TOP_REF)));
+  root.style.setProperty('--ui-chrome-rim-dark-opacity', String(clampNumber(
+    bottomShadowOpacity * (RIM_BOT_REF / RIM_BOT_WALL), 0.05, 0.9, RIM_BOT_REF)));
+  
   syncCornerShapeSquircleClass(state.cornerShapeSquircleEnabled !== false);
 }
 
@@ -2177,7 +2230,23 @@ export function initState(config) {
   if (config.innerWallInnerGlowSpread !== undefined) state.innerWallInnerGlowSpread = config.innerWallInnerGlowSpread;
   if (config.innerWallInnerGlowOffsetY !== undefined) state.innerWallInnerGlowOffsetY = config.innerWallInnerGlowOffsetY;
   if (config.innerWallInnerGlowColor !== undefined) state.innerWallInnerGlowColor = config.innerWallInnerGlowColor;
+  if (config.innerWallTopLightOpacityLight !== undefined) state.innerWallTopLightOpacityLight = config.innerWallTopLightOpacityLight;
+  if (config.innerWallTopLightOpacityDark !== undefined) state.innerWallTopLightOpacityDark = config.innerWallTopLightOpacityDark;
+  if (config.innerWallBottomShadowOpacityLight !== undefined) state.innerWallBottomShadowOpacityLight = config.innerWallBottomShadowOpacityLight;
+  if (config.innerWallBottomShadowOpacityDark !== undefined) state.innerWallBottomShadowOpacityDark = config.innerWallBottomShadowOpacityDark;
   if (config.innerWallShineEnabled !== undefined) state.innerWallShineEnabled = Boolean(config.innerWallShineEnabled);
+  if (config.innerWallShineBlur !== undefined) state.innerWallShineBlur = config.innerWallShineBlur;
+  if (config.innerWallShineOvershoot !== undefined) state.innerWallShineOvershoot = config.innerWallShineOvershoot;
+  if (config.innerWallShineSpread !== undefined) state.innerWallShineSpread = config.innerWallShineSpread;
+  if (config.innerWallShineOpacityLight !== undefined) state.innerWallShineOpacityLight = config.innerWallShineOpacityLight;
+  if (config.innerWallShineOpacityDark !== undefined) state.innerWallShineOpacityDark = config.innerWallShineOpacityDark;
+  if (config.innerWallShineColor !== undefined) state.innerWallShineColor = String(config.innerWallShineColor ?? '');
+  if (config.innerWallGradientEdgeWidth !== undefined) state.innerWallGradientEdgeWidth = clampNumber(config.innerWallGradientEdgeWidth, 0, 6, 2);
+  if (config.innerWallGradientEdgeTopOpacity !== undefined) state.innerWallGradientEdgeTopOpacity = clampNumber(config.innerWallGradientEdgeTopOpacity, 0, 0.5, 0.18);
+  if (config.puckShadowOpacity !== undefined) state.puckShadowOpacity = clampNumber(config.puckShadowOpacity, 0, 0.4, 0.045);
+  if (config.puckEdgeWidth !== undefined) state.puckEdgeWidth = clampNumber(config.puckEdgeWidth, 0, 4, 1);
+  if (config.puckEdgeLightOpacity !== undefined) state.puckEdgeLightOpacity = clampNumber(config.puckEdgeLightOpacity, 0, 1, 0.3);
+  if (config.puckEdgeShadowOpacity !== undefined) state.puckEdgeShadowOpacity = clampNumber(config.puckEdgeShadowOpacity, 0, 1, 0.15);
   
   // Wall AO (Ambient Occlusion)
   if (config.wallAOOpacityLight !== undefined) state.wallAOOpacityLight = config.wallAOOpacityLight;

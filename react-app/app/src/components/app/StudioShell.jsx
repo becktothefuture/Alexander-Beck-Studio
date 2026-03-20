@@ -21,20 +21,23 @@ export function StudioShell({
   wallClassName,
   wallContent,
   headerContent,
-  mainContent
+  mainContent,
+  heroTitle
 }) {
   return (
     <>
       <div id="abs-scene" className="abs-scene">
-        <div id="bravia-balls" className={wallClassName}>
+        <div id="simulations" className={wallClassName}>
           <div id="scene-effects" className="scene-effects" aria-hidden="true">
             <div className="noise" />
           </div>
+          <div className="inner-wall-gradient-edge" aria-hidden="true" />
           <div id="shell-wall-slot" className="shell-wall-slot">
             <div key={`wall-${routeRenderKey}`} className="shell-wall-route-root">
               {wallContent}
             </div>
           </div>
+          {heroTitle}
         </div>
         <div className="frame-vignette" aria-hidden="true" />
 
@@ -53,7 +56,7 @@ export function StudioShell({
           </div>
         </div>
 
-        {/* Portfolio drawer: MUST stack above header/footer — see docs/reference/LAYER-STACKING.md (never mount only inside #bravia-balls). */}
+        {/* Portfolio drawer: MUST stack above header/footer — see docs/reference/LAYER-STACKING.md (never mount only inside #simulations). */}
         <div
           id="portfolio-sheet-host"
           className="portfolio-sheet-host"
