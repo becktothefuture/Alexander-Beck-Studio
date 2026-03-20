@@ -74,6 +74,9 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       colorFloodHoldMs: 120,
       imageFadeMs: 220,
       titleRevealDelayMs: 480,
+      heroKenBurnsDurationMs: 28000,
+      heroKenBurnsPanPx: 18,
+      heroKenBurnsZoomPct: 18,
     },
     openHero: {
       imageVeilOpacity: 0.14,

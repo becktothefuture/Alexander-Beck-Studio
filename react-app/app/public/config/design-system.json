@@ -468,6 +468,11 @@
       "--portfolio-drawer-inner-shadow-spread": "10px"
     },
     "runtime": {
+      "motion": {
+        "heroKenBurnsDurationMs": 28000,
+        "heroKenBurnsPanPx": 18,
+        "heroKenBurnsZoomPct": 18
+      },
       "labeling": {
         "titleLineHeight": 0.76
       }
