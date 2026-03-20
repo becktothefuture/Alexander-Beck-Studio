@@ -58,11 +58,11 @@ async function copyToClipboard(text) {
 export function initContactModal() {
   const CONTACT_EMAIL = getText('contact.email', 'alexander@beck.fyi');
   const BACK_TEXT = getText('gates.common.backText', 'BACK');
-  const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
+  const CLOSE_ARIA = getText('gates.common.closeAriaLabel', 'Close');
   const TITLE = getText('gates.contact.title', 'Contact');
   const DESC = getText(
     'gates.contact.description',
-    'For collaborations, product design work, AI prototyping, or anything that needs a crisp creative + technical brain. For job opportunities, drop me a note.'
+    "Hit me up for collaborations and job opportunities. If you need innovative thinking and a creative mind to tackle complex aesthetic, visual, and system problems, get in touch."
   );
   const COPY_ARIA = getText('contact.copy.buttonAriaLabel', 'Copy email address');
   const COPIED_TEXT = getText('contact.copy.statusCopied', 'Copied');
@@ -99,8 +99,10 @@ export function initContactModal() {
   // - modalInputs: “field” row (arrives with the modal transition like the digit inputs)
   modalLabel.innerHTML = `
     <div class="modal-nav">
-      <button type="button" class="gate-back abs-icon-btn" data-modal-back aria-label="${BACK_ARIA}">
-        <i class="ti ti-arrow-left" aria-hidden="true"></i>
+      <button type="button" class="gate-back abs-icon-btn" data-modal-back aria-label="${CLOSE_ARIA}">
+        <svg class="portfolio-project-view__close-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z" />
+        </svg>
         <span>${BACK_TEXT}</span>
       </button>
     </div>

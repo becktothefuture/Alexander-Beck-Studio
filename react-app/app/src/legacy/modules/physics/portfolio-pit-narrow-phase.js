@@ -9,10 +9,13 @@ const _localXA = [];
 const _localYA = [];
 const _localXB = [];
 const _localYB = [];
-const _wxA = new Float64Array(48);
-const _wyA = new Float64Array(48);
-const _wxB = new Float64Array(48);
-const _wyB = new Float64Array(48);
+// Rounded-rect hull can exceed 48 verts (e.g. 12 segs/corner → 52+). Undersized buffers
+// silently drop vertices and corrupt SAT — the main “physics does nothing” failure mode.
+const _MAX_PORTFOLIO_VERTS = 128;
+const _wxA = new Float64Array(_MAX_PORTFOLIO_VERTS);
+const _wyA = new Float64Array(_MAX_PORTFOLIO_VERTS);
+const _wxB = new Float64Array(_MAX_PORTFOLIO_VERTS);
+const _wyB = new Float64Array(_MAX_PORTFOLIO_VERTS);
 
 function fillWorldVertsInto(ball, config, localX, localY, outWx, outWy) {
   const shape = ball.portfolioBodyShape || 'circle';
@@ -21,20 +24,20 @@ function fillWorldVertsInto(ball, config, localX, localY, outWx, outWy) {
     ball.r,
     config,
     localX,
-    localY,
-    ball.portfolioRectAspect || null
+    localY
   );
   if (n === 0) return 0;
   const th = (ball.theta || 0) + (ball.rotationOffset || 0);
   const c = Math.cos(th);
   const s = Math.sin(th);
-  for (let i = 0; i < n; i += 1) {
+  const cap = Math.min(n, outWx.length);
+  for (let i = 0; i < cap; i += 1) {
     const lx = localX[i];
     const ly = localY[i];
     outWx[i] = ball.x + lx * c - ly * s;
     outWy[i] = ball.y + lx * s + ly * c;
   }
-  return n;
+  return cap;
 }
 
 function intervalPoly(px, py, n, nx, ny) {
@@ -280,8 +283,7 @@ export function portfolioCanvasPointHitsBody(ball, px, py, globals) {
     ball.r,
     config,
     _hitLX,
-    _hitLY,
-    ball.portfolioRectAspect || null
+    _hitLY
   );
   if (n === 0) return (lx * lx + ly * ly) <= ball.r * ball.r;
   return pointInPoly(_hitLX, _hitLY, n, lx, ly);

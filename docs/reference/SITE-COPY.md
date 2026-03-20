@@ -97,12 +97,13 @@ All user-facing copy across the website in one place. Use this to edit, translat
 |-----|--------------|--------|
 | gates.common.backText | BACK | contents-home.json |
 | gates.common.backAriaLabel | Back | contents-home.json |
+| gates.common.closeAriaLabel | Close | contents-home.json |
 | gates.cv.title | About me | contents-home.json |
-| gates.cv.description | A lightweight invite in the browser, not secure auth. If I gave you a code, enter it here. Otherwise get in touch and I'll send the CV. | contents-home.json |
+| gates.cv.description | Bots don't deserve nice things; that's why I put this gate up. If I gave you a code, enter it here—otherwise get in touch and I'll send access. | contents-home.json |
 | gates.portfolio.title | View Portfolio | contents-home.json |
-| gates.portfolio.description | A lightweight invite in the browser, not secure auth. If I gave you a code, enter it here. Otherwise get in touch and I'll send portfolio access. | contents-home.json |
+| gates.portfolio.description | Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated. | contents-home.json |
 | gates.contact.title | Contact | contents-home.json |
-| gates.contact.description | Product design, AI prototyping, and creative technology. Get in touch for collaborations or job opportunities. | contents-home.json |
+| gates.contact.description | Hit me up for collaborations and job opportunities. If you need innovative thinking and a creative mind to tackle complex aesthetic, visual, and system problems, get in touch. | contents-home.json |
 
 ---
 

@@ -2399,9 +2399,11 @@ export function detectResponsiveScale() {
     state.isMobile = nextMobileDevice;
     state.isMobileViewport = nextMobileViewport;
     
-    // Mobile performance optimizations
+    // Mobile performance optimizations (portfolio pit needs higher iteration budget; never stomp)
     if (state.isMobile || state.isMobileViewport) {
-      state.physicsCollisionIterations = 4;
+      if (state.currentMode !== MODES.PORTFOLIO_PIT) {
+        state.physicsCollisionIterations = 4;
+      }
       state.mouseTrailEnabled = false;
     }
   }

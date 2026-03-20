@@ -44,19 +44,21 @@ export function initPortfolioModal() {
     modal.dataset.modalInitialized = 'true';
     
     const BACK_TEXT = getText('gates.common.backText', 'BACK');
-    const BACK_ARIA = getText('gates.common.backAriaLabel', 'Back');
+    const CLOSE_ARIA = getText('gates.common.closeAriaLabel', 'Close');
     const TITLE = getText('gates.portfolio.title', 'View Portfolio');
     const DESC = getText(
         'gates.portfolio.description',
-        "This is a lightweight invite gate in the browser, not secure authentication. If I shared a code with you, enter it here. Otherwise get in touch and I'll send portfolio access."
+        "Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."
     );
 
     // Set label text if element exists
     if (modalLabel) {
         modalLabel.innerHTML = `
             <div class="modal-nav">
-                <button type="button" class="gate-back abs-icon-btn" data-modal-back aria-label="${BACK_ARIA}">
-                    <i class="ti ti-arrow-left" aria-hidden="true"></i>
+                <button type="button" class="gate-back abs-icon-btn" data-modal-back aria-label="${CLOSE_ARIA}">
+                    <svg class="portfolio-project-view__close-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                      <path fill="currentColor" d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z" />
+                    </svg>
                     <span>${BACK_TEXT}</span>
                 </button>
             </div>

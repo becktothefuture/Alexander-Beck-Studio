@@ -75,6 +75,7 @@
 .ti-brand-linkedin:before { content: "\ec8c"; }
 .ti-brand-x:before { content: "\fc0f"; }
 .ti-arrow-left:before { content: "\ea19"; }
+.ti-x:before { content: "\eb55"; }
 .ti-copy:before { content: "\ea7a"; }
 .ti-check:before { content: "\ea5e"; }
 .ti-alert-triangle:before { content: "\ea06"; }
@@ -1355,8 +1356,9 @@ p {
   /* Horizontally centered */
   left: 50%;
   transform: translateX(-50%) scale(1);
-  /* Below canvas logo + subtitle; large clamp keeps row clear of the mark */
-  top: calc(50% + 5vh + clamp(72px, 9vw, 160px));
+  /* Below canvas logo + subtitle; large clamp keeps row clear of the mark.
+     Offset scaled to 0.6: ~40% less drop from center vs. unscaled baseline. */
+  top: calc(50% + (5vh + clamp(72px, 9vw, 160px)) * 0.6);
   transform-origin: center center;
   z-index: 10; /* Match .ui-center z-index */
   /* Horizontal flexbox layout - center aligned */
@@ -1430,9 +1432,10 @@ p {
   display: inline-block;
   pointer-events: auto;
   color: var(--text-primary);
-  font-size: var(--footer-links-font-size);
-  font-weight: 400;
-  letter-spacing: var(--footer-links-letter-spacing);
+  /* Match top-left legend labels typographically */
+  font-size: var(--legend-font-size);
+  font-weight: var(--legend-font-weight);
+  letter-spacing: var(--legend-letter-spacing);
   text-decoration: none; /* No underline */
   opacity: var(--text-opacity-base);
   /* Unified button corner radius (native CSS, no JS/inline) */
@@ -1451,6 +1454,11 @@ p {
 /* Hover background pseudo-element for text links (uses unified base below) */
 
 /* Master main nav text buttons: #main-links (home) + .route-topbar__center (portfolio/CV). Mark container with .ui-main-nav. */
+.ui-main-nav {
+  /* 1.5× legend label size — scoped to this strip only (other .footer_link stays legend scale). */
+  --ui-main-nav-link-font-size: calc(var(--legend-font-size) * 1.5);
+}
+
 .ui-main-nav .footer_link {
   /* Nav bar buttons: substantial padding matching other page links */
   /* Minimum 14px top/bottom, 18px left/right as requested */
@@ -1466,8 +1474,9 @@ p {
   background: none;
   border: none;
   font-family: inherit;
-  font-size: inherit;
+  font-size: var(--ui-main-nav-link-font-size);
   color: var(--text-primary);
+  letter-spacing: var(--legend-letter-spacing);
   /* opacity: on #main-links only, controlled by entrance animation state variables */
   text-align: center;
 }
@@ -1654,9 +1663,22 @@ button.abs-meta-btn,
   pointer-events: auto;
 }
 
+/* Quote puck: stay true circles when global squircle is on (`html... *` beats a lone class — scope with #id). */
+@supports (corner-shape: round) {
+  #quote-display,
+  #quote-display::before,
+  #quote-display::after,
+  #quote-display .quote-display__surface,
+  #quote-display .quote-display__surface::before,
+  #quote-display .quote-display__surface::after {
+    corner-shape: round;
+  }
+}
+
 /* ── Quote Puck ─────────────────────────────────────────────────────────────
-   Positioned via JS-driven left/top (no transform for position).
-   Default: bottom-right corner. JS takes over once initQuotePuck runs. */
+   Outer: fixed rim + shadow (left/top only). Inner: glass + text; JS rotates
+   .quote-display__surface for spin. Float physics in quote-puck.js. Hover text
+   uses cursor palette; no typewriter scale on the puck. */
 .quote-display {
   --_size: var(--abs-quote-button-size, 224px);
   position: fixed;
@@ -1664,14 +1686,10 @@ button.abs-meta-btn,
   bottom: 10vh;
   width: var(--_size);
   height: var(--_size);
+  aspect-ratio: 1;
   border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: calc(var(--abs-gap-xs) * 2);
-  padding: var(--abs-quote-pad-y, 24px) var(--abs-quote-pad-x, 28px);
-  transform: rotate(-2deg);
+  corner-shape: round;
+  display: block;
   box-sizing: border-box;
   text-align: center;
   overflow: hidden;
@@ -1681,14 +1699,14 @@ button.abs-meta-btn,
   user-select: none;
   -webkit-user-select: none;
   cursor: none;
-  /* Same color as inner wall; opacity from --quote-button-fill-opacity (Puck panel), backdrop blur */
-  --quote-button-edge-light: 0.12;
-  --quote-button-edge-light-ring: 0.18;
-  --quote-button-edge-shadow: 0.08;
-  --quote-button-outer-shadow: 0.08;
-  background: color-mix(in srgb, var(--quote-button-color, var(--frame-inner-surface)) calc(var(--quote-button-fill-opacity, 0.7) * 100%), transparent);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  -webkit-tap-highlight-color: transparent;
+  transform: none;
+  /* Inset rim: strong light edge, subtle shadow */
+  --quote-button-edge-light: 0.52;
+  --quote-button-edge-light-ring: 0.58;
+  --quote-button-edge-shadow: 0.2;
+  --quote-button-outer-shadow: 0.045;
+  --quote-button-backdrop-blur: 2px;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, var(--quote-button-edge-light-ring)),
     inset 0 1px 0 rgba(255, 255, 255, var(--quote-button-edge-light)),
@@ -1696,14 +1714,34 @@ button.abs-meta-btn,
     0 2px 8px rgba(0, 0, 0, var(--quote-button-outer-shadow));
 }
 
-.dark-mode .quote-display {
-  --quote-button-edge-light: 0.06;
-  --quote-button-edge-light-ring: 0.1;
-  --quote-button-edge-shadow: 0.15;
-  --quote-button-outer-shadow: 0.25;
+.quote-display__surface {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  corner-shape: round;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--abs-gap-xs) * 2);
+  padding: var(--abs-quote-pad-y, 24px) var(--abs-quote-pad-x, 28px);
+  box-sizing: border-box;
+  overflow: hidden;
+  transform: none;
+  transform-origin: center center;
+  /* White fill at 20% opacity (default glass) */
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(var(--quote-button-backdrop-blur, 2px));
+  -webkit-backdrop-filter: blur(var(--quote-button-backdrop-blur, 2px));
+  transition: background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
-/* Hover color is handled by ::before pseudo-element (fast in, slow out) */
+.dark-mode .quote-display {
+  --quote-button-edge-light: 0.38;
+  --quote-button-edge-light-ring: 0.45;
+  --quote-button-edge-shadow: 0.3;
+  --quote-button-outer-shadow: 0.12;
+}
 
 /* JS-driven positioning: switches from right/bottom to left/top */
 .quote-display--positioned {
@@ -1712,10 +1750,6 @@ button.abs-meta-btn,
   left: 0;
   top: 0;
   will-change: left, top;
-}
-
-.quote-display--dragging {
-  cursor: grabbing;
 }
 
 .quote-display--hidden {
@@ -1769,6 +1803,7 @@ button.abs-meta-btn,
   line-height: var(--abs-line-relaxed);
   letter-spacing: 0.02em;
   color: rgba(0, 0, 0, 0.58);
+  transition: color 0.2s var(--ease-organic);
 }
 
 .dark-mode .quote-display__text {
@@ -1784,10 +1819,21 @@ button.abs-meta-btn,
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(0, 0, 0, 0.38);
+  transition: color 0.2s var(--ease-organic);
 }
 
 .dark-mode .quote-display__author {
   color: rgba(255, 255, 255, 0.44);
+}
+
+/* Hover: full cursor colour, 100% opaque (driven by body.quote-puck-hovered from link-cursor-hop). */
+body.quote-puck-hovered .quote-display .quote-display__surface {
+  background: var(--cursor-color);
+}
+
+body.quote-puck-hovered .quote-display .quote-display__text,
+body.quote-puck-hovered .quote-display .quote-display__author {
+  color: var(--quote-hover-fg, var(--cursor-hover-fg, var(--cursor-color)));
 }
 
 /* Sound Toggle in Top or Footer */
@@ -2545,8 +2591,9 @@ html.is-safari .noise::before {
   }
   
   .footer_link {
-    /* Mobile sizing: 15% smaller than base */
-    font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 0.85);
+    /* Same legend scale on mobile so nav labels match top-left */
+    font-size: var(--legend-font-size);
+    letter-spacing: var(--legend-letter-spacing);
   }
 
   /* Nav bar links: compact padding on mobile */
@@ -2561,9 +2608,21 @@ html.is-safari .noise::before {
     background: none;
     border: none;
     font-family: inherit;
-    font-size: inherit;
+    font-size: var(--ui-main-nav-link-font-size);
     color: inherit;
     text-align: center;
+    letter-spacing: var(--legend-letter-spacing);
+  }
+
+  /* Gate body: same label size + tracking as main nav footer links on narrow viewports */
+  .gate-description {
+    font-size: calc((clamp(0.7rem, 1.2vw, 0.78rem) + 3px) * 0.85);
+    letter-spacing: var(--footer-links-letter-spacing);
+  }
+
+  .gate-title {
+    font-size: clamp(3.25rem, 12vw, 5.5rem);
+    line-height: 1.06;
   }
   
   .ui-meta-row {
@@ -2624,15 +2683,15 @@ html.is-safari .noise::before {
    ═══════════════════════════════════════════════════════════════════════════════ */
 /* Base transition for all buttons and links */
 button:not(:active),
-[role="button"]:not(:active),
+[role="button"]:not(#quote-display):not(:active),
 a:not(:active) {
   transition: transform var(--link-impact-duration) var(--ease-organic),
               filter var(--link-impact-duration) var(--ease-organic);
 }
 
-/* Press effect: scale down and blur - applies to ALL buttons and links */
+/* Press effect: scale down and blur — quote puck excluded (drag-only, no key press) */
 button:active,
-[role="button"]:active,
+[role="button"]:not(#quote-display):active,
 a:active {
   transform: scale(var(--link-impact-scale));
   filter: blur(var(--link-impact-blur));
@@ -2721,7 +2780,7 @@ body.abs-link-hovering #custom-cursor {
 }
 
 /* Power Transfer: transition-only, prominent hover-out (no “disappear”) */
-:is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year, .quote-display) {
+:is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year) {
   transform: translateZ(0);
   transition:
     transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic)),
@@ -2732,23 +2791,6 @@ body.abs-link-hovering #custom-cursor {
 :is(.footer_link, .abs-icon-btn, .abs-meta-btn, #site-year):hover {
   transform: translateZ(0);
   transition: transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic), color 0.2s ease;
-}
-
-/* Quote puck (floating): hover scale + same chrome rim as nav/icon buttons (on the glass surface) */
-.quote-display:hover {
-  transform:
-    translate(
-      var(--quote-drag-x, calc(100vw - var(--quote-effective-size) - 24px)),
-      var(--quote-drag-y, calc(90vh - var(--quote-effective-size)))
-    )
-    rotate(var(--quote-drag-rotate, 4deg))
-    scale(var(--abs-button-swell-scale, 1.06));
-  transition:
-    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic),
-    box-shadow var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
-  box-shadow:
-    var(--ui-chrome-button-edge),
-    0 2px 14px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow, 0.08) * 1.4));
 }
 
 a:hover,
@@ -2767,6 +2809,7 @@ button:hover {
    - Icon buttons: .abs-icon-btn (social links, sound toggle)
    - Legend items: .legend__item--interactive
    - Meta elements: .abs-meta-btn, #site-year
+   - Quote puck: .quote-display (text uses --quote-hover-fg / --cursor-hover-fg)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ─── Hover State: Color & Background ─── */
@@ -2798,20 +2841,6 @@ button:hover {
     background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
 
-.quote-display::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  pointer-events: none;
-  opacity: 0;
-  z-index: -1;
-  background: var(--cursor-color);
-  box-shadow: var(--ui-chrome-button-edge);
-  /* Fade-out after hover (shortened; fill snap uses --ui-chrome-fill-transition-duration) */
-  transition: opacity 0.45s ease-out, transform var(--abs-button-swell-out-duration, 420ms) var(--ease-release, var(--ease-organic));
-}
-
 .abs-icon-btn:hover::before,
 .footer_link:hover::before,
 .abs-meta-btn:hover::before,
@@ -2824,17 +2853,6 @@ button:hover {
     opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
     background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
 }
-
-/* Quote: same solid fill; fast opacity in, slow fade out on leave */
-.quote-display:hover::before {
-  background: var(--cursor-color);
-  opacity: 1;
-  transform: scale(var(--abs-button-swell-scale, 1.06));
-  transition:
-    opacity var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic),
-    transform var(--abs-button-swell-in-duration, 200ms) var(--ease-organic);
-}
-/* Quote text: no color change on hover — stays legible against ::before overlay */
 
 .ui-main-nav .footer_link .footer-link-nowrap {
   position: relative;
@@ -3183,7 +3201,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .modal-label {
   text-align: center;
   width: 100%;
-  max-width: clamp(300px, 80vw, 480px);
+  max-width: min(42rem, 92vw);
   opacity: 0;
   transform: translateY(-10px);
   transition: opacity 0.3s var(--ease-gate) 0.2s, transform 0.3s var(--ease-gate) 0.2s;
@@ -3194,6 +3212,18 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .contact-modal.active .modal-label {
   opacity: 1;
   transform: translateY(0);
+}
+
+.cv-modal .modal-title,
+.portfolio-modal .modal-title,
+.contact-modal .modal-title {
+  font-size: 48px;
+}
+
+.cv-modal .modal-description,
+.portfolio-modal .modal-description,
+.contact-modal .modal-description {
+  font-size: 20px;
 }
 
 .gate-nav {
@@ -3237,6 +3267,15 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   font-weight: 500;
 }
 
+/* Same SVG glyph as portfolio drawer; sizing here so CV shell works without portfolio.css. No drop-shadow — gate chrome is not over the project hero image. */
+.gate-back .portfolio-project-view__close-icon {
+  display: block;
+  width: var(--ui-icon-glyph-size, 24px);
+  height: var(--ui-icon-glyph-size, 24px);
+  flex-shrink: 0;
+  pointer-events: none;
+  filter: none;
+}
 
 .gate-back:focus-visible {
   outline: none;
@@ -3245,23 +3284,26 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 
 .gate-title {
   font-family: 'Geist', sans-serif;
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  font-weight: 400;
+  /* 2× the previous gate headline scale (was clamp(2.75rem, 7vw, 3.75rem)) */
+  font-size: clamp(5.5rem, 14vw, 7.5rem);
+  font-weight: 500;
   color: var(--text-primary);
-  margin: 0 0 0.75rem 0;
-  letter-spacing: var(--letter-spacing-normal);
+  margin: 0 0 var(--gap-md, 1rem) 0;
+  line-height: 1.05;
+  letter-spacing: var(--footer-links-letter-spacing);
+  text-wrap: balance;
 }
 
 .gate-description {
   font-family: 'Geist', sans-serif;
-  font-size: clamp(0.875rem, 2vw, 1rem);
+  font-size: var(--footer-links-font-size);
   font-weight: 400;
-  /* Fainter color for middle text in modals - use muted color with additional opacity */
+  letter-spacing: var(--footer-links-letter-spacing);
   color: var(--text-muted);
-  opacity: 0.6;
-  margin: 0;
-  line-height: 1.5;
-  max-width: 100%;
+  margin: 0 auto;
+  line-height: var(--line-height-body);
+  max-width: 38ch;
+  text-wrap: pretty;
   overflow-wrap: anywhere;
 }
 
@@ -3399,7 +3441,7 @@ body:not(.portfolio-page):not(.detail-open) .contact-email-row.pulse-energy:focu
   font-family: 'Geist Mono', monospace;
   font-size: clamp(1.15rem, 3vw, 1.9rem);
   font-weight: 400;
-  letter-spacing: var(--letter-spacing-normal);
+  letter-spacing: var(--footer-links-letter-spacing);
   color: inherit;
   transition: inherit;
 }

@@ -6,7 +6,7 @@
 import { updatePhysics, render } from '../physics/engine.js';
 import { trackFrame } from '../utils/performance.js';
 import { getGlobals } from '../core/state.js';
-import { isPitLikeMode } from '../core/constants.js';
+import { isPitLikeMode, MODES } from '../core/constants.js';
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PERFORMANCE: Frame timing and throttling state
@@ -131,6 +131,9 @@ function updateAdaptiveThrottle(frameTime, targetFPS) {
 }
 
 function shouldRunPhysicsThisFrame() {
+  // Large SAT hulls + low body count: skipping physics or cutting solver iterations
+  // under adaptive throttle caused visible tunneling / interpenetration.
+  if (getGlobals()?.currentMode === MODES.PORTFOLIO_PIT) return true;
   if (adaptiveThrottleLevel <= 0) return true;
   if (adaptiveThrottleLevel === 1) {
     // Light throttle: skip one in four physics steps.

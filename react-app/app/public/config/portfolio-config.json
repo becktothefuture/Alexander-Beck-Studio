@@ -8,21 +8,13 @@
   },
   "runtime": {
     "layout": {
-      "heroTopOffset": 0,
       "spawnInsetViewport": 0.1,
-      "spawnBandWidthRatio": 0.78,
-      "spawnHeightViewport": 0.62,
-      "bodyCountPolicy": "one-per-project",
       "headerTopSpacing": 24
     },
     "bodies": {
-      "minDiameterViewport": 0.14,
-      "maxDiameterViewport": 0.22,
-      "diameterScale": 1,
-      "blockWidthMultiplier": 0.92,
-      "blockHeightRatio": 0.68,
-      "blockCornerRadius": 40,
-      "wallPaddingViewport": 0.06
+      "minDiameterViewport": 0.1,
+      "maxDiameterViewport": 0.2,
+      "squircleLameExponent": 6.2
     },
     "labeling": {
       "fontDesktopPx": 28,
@@ -32,11 +24,11 @@
       "blockRotationRangeDeg": 3.5
     },
     "motion": {
-      "gravityScale": 0.52,
-      "massMultiplier": 1,
-      "neighborImpulse": 0,
-      "dragThrowMultiplier": 1.05,
-      "openDurationMs": 420,
+      "gravityScale": 0.85,
+      "massMultiplier": 2,
+      "neighborImpulse": 1200,
+      "dragThrowMultiplier": 1.35,
+      "openDurationMs": 650,
       "colorFloodHoldMs": 120,
       "imageFadeMs": 220,
       "titleRevealDelayMs": 480
@@ -44,10 +36,9 @@
     "openHero": {
       "imageVeilOpacity": 0.14,
       "titleMaxWidthCh": 14,
-      "scrollHintOffsetVh": 7
+      "scrollHintOffsetVh": 52
     },
     "behavior": {
-      "passiveMouseReaction": false,
       "reducedMotionDurationMs": 320
     }
   }

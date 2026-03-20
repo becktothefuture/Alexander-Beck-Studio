@@ -65,7 +65,7 @@ Guide for all user-facing copy on the site. Single source of truth for how the s
 
 **Gates (About me, Portfolio, Contact)**  
 - **Title:** What the gate is. “About me”, “View Portfolio”, “Contact”.
-- **Description:** What this is (e.g. “A lightweight invite in the browser, not secure auth”), what to do (“If I gave you a code, enter it here”), and the alternative (“Otherwise get in touch and I’ll send it”). Contact: what you work on + one line for hiring. Plain, helpful.
+- **Description:** Human, direct—why the gate exists (bots, NDAs), what to do with a code if you have one, or how to reach out. Contact modal: open invite for collaborations and hiring; no generic “product design / AI prototyping” filler. Plain, helpful.
 - **Buttons:** “Back”, “Submit”, etc. Functional only.
 
 **Contact (email, copy feedback)**  

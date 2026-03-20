@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                         PORTFOLIO PIT MODE                                   ║
-// ║   Pit solver + portfolio narrow-phase SAT for non-circle silhouettes.         ║
+// ║   Pit solver + portfolio narrow-phase SAT (circles + Lamé squircles).         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { Ball } from '../physics/Ball.js';
@@ -10,7 +10,6 @@ import { resize, detectOptimalDPR } from '../rendering/renderer.js';
 import {
   appendPortfolioBodyPath,
   pickPortfolioBodyShape,
-  pickPortfolioRectAspect,
 } from '../physics/portfolio-body-geometry.js';
 
 function clamp(value, min, max) {
@@ -279,7 +278,6 @@ function seedProjectBodies(globals) {
     const ball = new Ball(x, y, radius, fill);
     ball.projectIndex = index;
     ball.portfolioBodyShape = shape;
-    ball.portfolioRectAspect = shape === 'roundedRect' ? pickPortfolioRectAspect(index) : null;
     ball.__portfolioAccentCircle = isAccentCircle;
     ball._noSquash = true;
     ball.theta = hashUnit(index + 11) * Math.PI * 2;
@@ -321,7 +319,7 @@ function renderProjectBody(ctx, ball) {
   ctx.rotate(rot);
   ctx.fillStyle = ball.color;
   ctx.beginPath();
-  appendPortfolioBodyPath(ctx, shape, r, pitConfig, ball.portfolioRectAspect || null);
+  appendPortfolioBodyPath(ctx, shape, r, pitConfig);
   ctx.fill();
   ctx.restore();
 }

@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                    PORTFOLIO BODY GEOMETRY (RENDER + COLLISION)              ║
-// ║   Single source for canvas paths and convex hull vertices (local space).    ║
+// ║   Circles + Lamé squircles (square superellipse); one parametric source.    ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 function clamp(value, min, max) {
@@ -12,115 +12,73 @@ function toNumber(value, fallback) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-/** Only circles and rounded rectangles on the portfolio pit. */
+/** Alternating shapes: even index = circle, odd = squircle (square Lamé superellipse). */
 export function pickPortfolioBodyShape(index) {
-  return (index % 2 === 0) ? 'circle' : 'roundedRect';
+  return (index % 2 === 0) ? 'circle' : 'squircle';
 }
 
-/** Distinct width/height proportions for each rounded-rect project (inscribed in `r`). */
-export const PORTFOLIO_RECT_ASPECT_PRESETS = [
-  { ar: 0.96, br: 0.4 },
-  { ar: 0.68, br: 0.88 },
-  { ar: 0.9, br: 0.5 },
-  { ar: 0.52, br: 0.92 },
-  { ar: 0.85, br: 0.62 },
-  { ar: 0.76, br: 0.74 },
-];
+/** Default Lamé exponent (|x/a|^n + |y/b|^n = 1). n = 4 is the classic “squircle” icon curve. */
+const SQUIRCLE_DEFAULT_EXPONENT = 4;
 
-export function pickPortfolioRectAspect(index) {
-  const rectOrdinal = index >> 1;
-  return PORTFOLIO_RECT_ASPECT_PRESETS[rectOrdinal % PORTFOLIO_RECT_ASPECT_PRESETS.length];
-}
+/** Same segment count for canvas fill and SAT — hull matches pixels. */
+const SQUIRCLE_HULL_SEGMENTS = 64;
 
-function resolveRoundedRectDims(r, config, rectOverride) {
+const _pathScratchX = [];
+const _pathScratchY = [];
+
+function getSquircleLameExponent(config) {
   const bodies = config?.bodies || {};
-  const ar = clamp(
-    rectOverride && Number.isFinite(rectOverride.ar)
-      ? rectOverride.ar
-      : toNumber(bodies.blockWidthMultiplier, 0.92),
-    0.45,
-    1
+  return clamp(
+    toNumber(bodies.squircleLameExponent, SQUIRCLE_DEFAULT_EXPONENT),
+    2.5,
+    8
   );
-  const br = clamp(
-    rectOverride && Number.isFinite(rectOverride.br)
-      ? rectOverride.br
-      : toNumber(bodies.blockHeightRatio, 0.68),
-    0.28,
-    0.95
-  );
-  const k = 1 / Math.hypot(ar, br);
-  const hw = r * k * ar;
-  const hh = r * k * br;
-  const cr = Math.min(hw, hh) * 0.42;
-  return { hw, hh, cr };
 }
 
-function writeRoundedRectLocalVerts(hw, hh, rc, outX, outY) {
-  const rCorner = Math.min(rc, hw, hh);
-  // More arc samples → SAT hull closer to true roundRect (3 was visibly loose vs fill).
-  const segs = 12;
-  const push = (x, y) => {
+/**
+ * Equal half-axes a = b such that the farthest point on the superellipse from the origin
+ * is exactly `r` (ball circumradius used for broadphase and spawn sizing).
+ */
+function getSquircleHalfAxesFromCircumradius(r, n) {
+  const inv = Math.sqrt(2) / Math.pow(2, 1 / n);
+  const a = r / inv;
+  return { a, b: a };
+}
+
+function sampleSuperellipseBoundary(a, b, n, segments, outX, outY) {
+  outX.length = 0;
+  outY.length = 0;
+  const twoOverN = 2 / n;
+  for (let i = 0; i < segments; i += 1) {
+    const t = (i / segments) * Math.PI * 2;
+    const ct = Math.cos(t);
+    const st = Math.sin(t);
+    const ax = Math.abs(ct);
+    const ay = Math.abs(st);
+    const x = a * Math.sign(ct) * Math.pow(ax, twoOverN);
+    const y = b * Math.sign(st) * Math.pow(ay, twoOverN);
     outX.push(x);
     outY.push(y);
-  };
-
-  push(-hw + rCorner, -hh);
-  push(hw - rCorner, -hh);
-
-  let ctrX = hw - rCorner;
-  let ctrY = -hh + rCorner;
-  for (let i = 1; i < segs; i += 1) {
-    const t = (i / segs) * (Math.PI / 2);
-    const ang = -Math.PI / 2 + t;
-    push(ctrX + rCorner * Math.cos(ang), ctrY + rCorner * Math.sin(ang));
   }
+}
 
-  push(hw, -hh + rCorner);
-  push(hw, hh - rCorner);
-
-  ctrX = hw - rCorner;
-  ctrY = hh - rCorner;
-  for (let i = 1; i < segs; i += 1) {
-    const t = (i / segs) * (Math.PI / 2);
-    const ang = t;
-    push(ctrX + rCorner * Math.cos(ang), ctrY + rCorner * Math.sin(ang));
-  }
-
-  push(hw - rCorner, hh);
-  push(-hw + rCorner, hh);
-
-  ctrX = -hw + rCorner;
-  ctrY = hh - rCorner;
-  for (let i = 1; i < segs; i += 1) {
-    const t = (i / segs) * (Math.PI / 2);
-    const ang = Math.PI / 2 + t;
-    push(ctrX + rCorner * Math.cos(ang), ctrY + rCorner * Math.sin(ang));
-  }
-
-  push(-hw, hh - rCorner);
-  push(-hw, -hh + rCorner);
-
-  ctrX = -hw + rCorner;
-  ctrY = -hh + rCorner;
-  for (let i = 1; i < segs; i += 1) {
-    const t = (i / segs) * (Math.PI / 2);
-    const ang = Math.PI + t;
-    push(ctrX + rCorner * Math.cos(ang), ctrY + rCorner * Math.sin(ang));
-  }
+function fillSquircleLocalVerts(r, config, outX, outY) {
+  const n = getSquircleLameExponent(config);
+  const { a, b } = getSquircleHalfAxesFromCircumradius(r, n);
+  sampleSuperellipseBoundary(a, b, n, SQUIRCLE_HULL_SEGMENTS, outX, outY);
 }
 
 /**
  * Writes vertices in **local** space (center 0,0), convex, winding consistent with render.
  * @returns vertex count; `0` means use circular collider of radius `r` only.
  */
-export function writePortfolioBodyLocalVertices(shape, r, config, outX, outY, rectOverride = null) {
+export function writePortfolioBodyLocalVertices(shape, r, config, outX, outY) {
   outX.length = 0;
   outY.length = 0;
   if (!shape || shape === 'circle') return 0;
 
-  if (shape === 'roundedRect') {
-    const { hw, hh, cr } = resolveRoundedRectDims(r, config, rectOverride);
-    writeRoundedRectLocalVerts(hw, hh, cr, outX, outY);
+  if (shape === 'squircle') {
+    fillSquircleLocalVerts(r, config, outX, outY);
     return outX.length;
   }
   return 0;
@@ -128,7 +86,7 @@ export function writePortfolioBodyLocalVertices(shape, r, config, outX, outY, re
 
 /**
  * Max distance from body center to hull along a **world-space** direction (unit vector).
- * Used for wall constraints so flat/rotated rounded rects use the same silhouette as render/SAT.
+ * Used for wall constraints so squircles use the same silhouette as render/SAT.
  */
 export function getPortfolioBodyMaxExtentAlongWorldNormal(ball, dirx, diry, globals) {
   const spacingRatio = globals.ballSpacing || 0;
@@ -151,8 +109,7 @@ export function getPortfolioBodyMaxExtentAlongWorldNormal(ball, dirx, diry, glob
     ball.r,
     config,
     outX,
-    outY,
-    ball.portfolioRectAspect || null
+    outY
   );
   if (nv === 0) {
     return ball.r * pad;
@@ -173,14 +130,19 @@ export function getPortfolioBodyMaxExtentAlongWorldNormal(ball, dirx, diry, glob
   return maxS * pad;
 }
 
-export function appendPortfolioBodyPath(ctx, shape, r, config, rectOverride = null) {
-  if (shape === 'roundedRect') {
-    const { hw, hh, cr } = resolveRoundedRectDims(r, config, rectOverride);
-    if (typeof ctx.roundRect === 'function') {
-      ctx.roundRect(-hw, -hh, hw * 2, hh * 2, cr);
-    } else {
-      ctx.rect(-hw, -hh, hw * 2, hh * 2);
+export function appendPortfolioBodyPath(ctx, shape, r, config) {
+  if (shape === 'squircle') {
+    fillSquircleLocalVerts(r, config, _pathScratchX, _pathScratchY);
+    const n = _pathScratchX.length;
+    if (n < 3) {
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      return;
     }
+    ctx.moveTo(_pathScratchX[0], _pathScratchY[0]);
+    for (let i = 1; i < n; i += 1) {
+      ctx.lineTo(_pathScratchX[i], _pathScratchY[i]);
+    }
+    ctx.closePath();
     return;
   }
   ctx.arc(0, 0, r, 0, Math.PI * 2);

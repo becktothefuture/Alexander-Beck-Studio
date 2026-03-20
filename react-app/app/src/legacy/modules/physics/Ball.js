@@ -79,7 +79,7 @@ function getInteriorWallViolation(ball, w, h) {
   // the same SDF normal n as for circles (max dot(vertex - center, n)).
   const usePortfolioWallExtent =
     currentMode === MODES.PORTFOLIO_PIT
-    && ball.portfolioBodyShape === 'roundedRect';
+    && ball.portfolioBodyShape === 'squircle';
   const shapeExtentAlongN = usePortfolioWallExtent
     ? getPortfolioBodyMaxExtentAlongWorldNormal(ball, nx, ny, globals)
     : effectiveRadius;

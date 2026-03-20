@@ -7,6 +7,7 @@ import { playHoverSound } from '../audio/sound-engine.js';
 
 let isInitialized = false;
 const HOVER_CLASS = 'abs-link-hovering';
+const QUOTE_PUCK_HOVER_CLASS = 'quote-puck-hovered';
 
 /** Currently hovered link/button (set on pointerover, cleared on pointerout). Used for power-transfer explosion origin. */
 let currentHoveredElement = null;
@@ -43,6 +44,8 @@ function onPointerOver(e) {
   try {
     currentHoveredElement = link;
     document.body.classList.add(HOVER_CLASS);
+    if (link?.id === 'quote-display') document.body.classList.add(QUOTE_PUCK_HOVER_CLASS);
+    else document.body.classList.remove(QUOTE_PUCK_HOVER_CLASS);
     document.body.dispatchEvent(new CustomEvent('abs-link-hover', { detail: { element: link } }));
     playHoverSound();
   } catch (e) {}
@@ -57,7 +60,7 @@ function onPointerOut(e) {
 
   try {
     currentHoveredElement = null;
-    document.body.classList.remove(HOVER_CLASS);
+    document.body.classList.remove(HOVER_CLASS, QUOTE_PUCK_HOVER_CLASS);
   } catch (e) {}
 }
 
@@ -68,7 +71,7 @@ export function initLinkCursorHop() {
   // Clean baseline
   try {
     currentHoveredElement = null;
-    document.body.classList.remove(HOVER_CLASS);
+    document.body.classList.remove(HOVER_CLASS, QUOTE_PUCK_HOVER_CLASS);
   } catch (e) {}
 
   // Pointer events
@@ -85,7 +88,7 @@ export function initLinkCursorHop() {
   window.addEventListener('blur', () => {
     try {
       currentHoveredElement = null;
-      document.body.classList.remove(HOVER_CLASS);
+      document.body.classList.remove(HOVER_CLASS, QUOTE_PUCK_HOVER_CLASS);
     } catch (e) {}
   }, { passive: true });
 
@@ -96,7 +99,7 @@ export function initLinkCursorHop() {
       if (!event.relatedTarget && !event.toElement) {
         try {
           currentHoveredElement = null;
-          document.body.classList.remove(HOVER_CLASS);
+          document.body.classList.remove(HOVER_CLASS, QUOTE_PUCK_HOVER_CLASS);
         } catch (e) {}
       }
     },

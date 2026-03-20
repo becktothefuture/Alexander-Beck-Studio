@@ -26,9 +26,7 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       minDiameterViewport: 0.14,
       maxDiameterViewport: 0.22,
       diameterScale: 1,
-      blockWidthMultiplier: 0.92,
-      blockHeightRatio: 0.68,
-      blockCornerRadius: 40,
+      squircleLameExponent: 4,
       wallPaddingViewport: 0.06,
     },
     labeling: {

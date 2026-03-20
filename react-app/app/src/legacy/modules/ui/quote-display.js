@@ -62,6 +62,9 @@ function createQuoteElement() {
   quoteContainer.setAttribute('aria-live', 'polite');
   quoteContainer.setAttribute('aria-atomic', 'true');
 
+  const surface = document.createElement('div');
+  surface.className = 'quote-display__surface';
+
   // Create content wrapper for animations
   contentWrapper = document.createElement('div');
   contentWrapper.className = 'quote-display__content quote-display__content--entering';
@@ -77,7 +80,8 @@ function createQuoteElement() {
   // Assemble
   contentWrapper.appendChild(quoteTextEl);
   contentWrapper.appendChild(quoteAuthorEl);
-  quoteContainer.appendChild(contentWrapper);
+  surface.appendChild(contentWrapper);
+  quoteContainer.appendChild(surface);
 
   getViewportLayer().appendChild(quoteContainer);
 

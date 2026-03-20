@@ -215,6 +215,11 @@ function resolvePitCollisionIterations(globals, baseIterations) {
   const maxIterations = Math.max(minIterations, Math.round(clampNumber(globals?.pitCollisionIterationsMax, minIterations, 20, baseIterations)));
   let next = Math.max(minIterations, Math.min(maxIterations, Math.round(baseIterations)));
 
+  // Portfolio pit: never reduce iterations when FPS drops — under-solving reads as “no collisions”.
+  if (mode === MODES.PORTFOLIO_PIT) {
+    return Math.max(minIterations, Math.min(maxIterations, next));
+  }
+
   const throttleLevel = Math.max(0, Math.min(2, Math.round(Number(globals?.adaptiveThrottleLevel) || 0)));
   if (throttleLevel === 1) next = Math.max(minIterations, next - 1);
   if (throttleLevel >= 2) next = Math.max(minIterations, next - 2);

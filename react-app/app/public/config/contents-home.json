@@ -107,19 +107,20 @@
   "gates": {
     "common": {
       "backText": "BACK",
-      "backAriaLabel": "Back"
+      "backAriaLabel": "Back",
+      "closeAriaLabel": "Close"
     },
     "cv": {
       "title": "About me",
-      "description": "A lightweight invite in the browser, not secure auth. If I gave you a code, enter it here. Otherwise get in touch and I'll send the CV."
+      "description": "Bots don't deserve nice things; that's why I put this gate up. If I gave you a code, enter it here—otherwise get in touch and I'll send access."
     },
     "portfolio": {
       "title": "View Portfolio",
-      "description": "A lightweight invite in the browser, not secure auth. If I gave you a code, enter it here. Otherwise get in touch and I'll send portfolio access."
+      "description": "Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated."
     },
     "contact": {
       "title": "Contact",
-      "description": "Product design, AI prototyping, and creative technology. Get in touch for collaborations or job opportunities."
+      "description": "Hit me up for collaborations and job opportunities. If you need innovative thinking and a creative mind to tackle complex aesthetic, visual, and system problems, get in touch."
     }
   }
 }

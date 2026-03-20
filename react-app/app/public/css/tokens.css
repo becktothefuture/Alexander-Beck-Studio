@@ -724,7 +724,13 @@
   html.abs-corner-shape-squircle #custom-cursor::after,
   html.abs-corner-shape-squircle .legend .circle,
   html.abs-corner-shape-squircle .legend .circle::before,
-  html.abs-corner-shape-squircle .legend .circle::after {
+  html.abs-corner-shape-squircle .legend .circle::after,
+  html.abs-corner-shape-squircle #quote-display,
+  html.abs-corner-shape-squircle #quote-display::before,
+  html.abs-corner-shape-squircle #quote-display::after,
+  html.abs-corner-shape-squircle #quote-display .quote-display__surface,
+  html.abs-corner-shape-squircle #quote-display .quote-display__surface::before,
+  html.abs-corner-shape-squircle #quote-display .quote-display__surface::after {
     corner-shape: round;
   }
 }
