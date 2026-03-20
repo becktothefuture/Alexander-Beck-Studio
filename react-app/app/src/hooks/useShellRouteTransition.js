@@ -46,9 +46,9 @@ function computeRouteState(href) {
    - All navigation is blocked while a transition is active.
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-const FADE_OUT_MS = 400;
-const STAGGER_OFFSET_MS = 140;
-const ELEMENT_REVEAL_MS = 500;
+const FADE_OUT_MS = 250;
+const STAGGER_OFFSET_MS = 90;
+const ELEMENT_REVEAL_MS = 350;
 const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
 const READY_FALLBACK_MS = 2500;
 
@@ -192,10 +192,12 @@ function collectStaggerTargets() {
 function staggeredEntrance() {
   return new Promise((resolve) => {
     const targets = collectStaggerTargets();
-    const { ui } = getContentLayers();
+    const { wall, ui } = getContentLayers();
 
     // Safety: if DOM is unexpectedly empty, just restore layers.
     if (targets.length === 0) {
+      cancelActiveAnimations();
+      if (wall) wall.style.opacity = '1';
       if (ui) ui.style.opacity = '1';
       resolve();
       return;
@@ -207,10 +209,14 @@ function staggeredEntrance() {
       el.style.willChange = 'opacity, transform';
     });
 
-    // Cancel fade-out animations so fill:forwards stops overriding inline styles.
+    // Pin content layers to opacity 0 via inline style BEFORE cancelling WAAPI.
+    // This prevents a single-frame flash where the WAAPI fill:forwards is removed
+    // and the element reverts to CSS opacity 1 before the new inline value applies.
+    if (wall) wall.style.opacity = '0';
+    if (ui) ui.style.opacity = '0';
     cancelActiveAnimations();
 
-    // Restore the .fade-content container (transparent — children are hidden individually).
+    // Now restore the .fade-content container (transparent — children are hidden individually).
     if (ui) {
       ui.style.opacity = '1';
       ui.style.willChange = 'auto';
