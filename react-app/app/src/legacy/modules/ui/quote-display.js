@@ -16,6 +16,96 @@ let modeChangedHandler = null;
 const ANIM_DURATION = 320;
 const QUOTE_END_SYMBOL = ' ⁕';
 
+const QUOTE_LENS_FILTER_ID = 'abs-quoteLensFilter';
+const QUOTE_LENS_SVG_ID = 'abs-quoteLensSvg';
+
+/**
+ * Builds an RGBA displacement map (neutral = 128,128) with radial falloff so the
+ * backdrop is bent like a mild lens. Used by SVG feDisplacementMap + backdrop-filter.
+ */
+function buildQuoteLensDisplacementMap(size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+  const imgData = ctx.createImageData(size, size);
+  const data = imgData.data;
+  const inv = 1 / size;
+  for (let j = 0; j < size; j++) {
+    for (let i = 0; i < size; i++) {
+      const nx = (i + 0.5) * inv - 0.5;
+      const ny = (j + 0.5) * inv - 0.5;
+      const dist = Math.hypot(nx, ny);
+      const maxR = 0.5;
+      const t = Math.min(dist / maxR, 1);
+      const falloff = (1 - t * t) * (1 - t * t);
+      const k = 0.38 * falloff;
+      const rdx = -nx * k * 2;
+      const rdy = -ny * k * 2;
+      const r = Math.round(128 + rdx * 127);
+      const g = Math.round(128 + rdy * 127);
+      const idx = (j * size + i) * 4;
+      data[idx] = Math.max(0, Math.min(255, r));
+      data[idx + 1] = Math.max(0, Math.min(255, g));
+      data[idx + 2] = 128;
+      data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * Injects a hidden SVG filter (feImage + feDisplacementMap) for Tier-1 “liquid glass”
+ * refraction via CSS backdrop-filter: url(#id). One per viewport layer.
+ */
+function ensureQuoteLensFilter(mountEl) {
+  if (document.getElementById(QUOTE_LENS_SVG_ID)) return;
+
+  const dataUrl = buildQuoteLensDisplacementMap(128);
+  if (!dataUrl) return;
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('id', QUOTE_LENS_SVG_ID);
+  svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('width', '0');
+  svg.setAttribute('height', '0');
+  svg.style.cssText = 'position:absolute;overflow:hidden;pointer-events:none;width:0;height:0;';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+  filter.setAttribute('id', QUOTE_LENS_FILTER_ID);
+  filter.setAttribute('x', '-28%');
+  filter.setAttribute('y', '-28%');
+  filter.setAttribute('width', '156%');
+  filter.setAttribute('height', '156%');
+  filter.setAttribute('color-interpolation-filters', 'sRGB');
+
+  const feImage = document.createElementNS('http://www.w3.org/2000/svg', 'feImage');
+  feImage.setAttribute('result', 'map');
+  feImage.setAttribute('preserveAspectRatio', 'none');
+  feImage.setAttribute('width', '100%');
+  feImage.setAttribute('height', '100%');
+  feImage.setAttribute('href', dataUrl);
+  feImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', dataUrl);
+
+  const feDisp = document.createElementNS('http://www.w3.org/2000/svg', 'feDisplacementMap');
+  feDisp.setAttribute('in', 'SourceGraphic');
+  feDisp.setAttribute('in2', 'map');
+  feDisp.setAttribute('scale', '11');
+  feDisp.setAttribute('xChannelSelector', 'R');
+  feDisp.setAttribute('yChannelSelector', 'G');
+
+  filter.appendChild(feImage);
+  filter.appendChild(feDisp);
+  defs.appendChild(filter);
+  svg.appendChild(defs);
+  mountEl.insertBefore(svg, mountEl.firstChild);
+}
+
 function getQuoteMountParent() {
   return (
     document.getElementById('quote-viewport-host') ||
@@ -49,6 +139,9 @@ function getViewportLayer() {
  * position:fixed so left/top are viewport coordinates; collides with browser edges.
  */
 function createQuoteElement() {
+  const layer = getViewportLayer();
+  ensureQuoteLensFilter(layer);
+
   // Check if already created
   if (document.getElementById('quote-display')) {
     return document.getElementById('quote-display');
@@ -83,7 +176,7 @@ function createQuoteElement() {
   surface.appendChild(contentWrapper);
   quoteContainer.appendChild(surface);
 
-  getViewportLayer().appendChild(quoteContainer);
+  layer.appendChild(quoteContainer);
 
   return quoteContainer;
 }

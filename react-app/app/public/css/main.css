@@ -1731,9 +1731,19 @@ button.abs-meta-btn,
   transform-origin: center center;
   /* White fill at 20% opacity (default glass) */
   background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(var(--quote-button-backdrop-blur, 2px));
-  -webkit-backdrop-filter: blur(var(--quote-button-backdrop-blur, 2px));
+  /* Tier-1 “liquid glass”: SVG feDisplacementMap (#abs-quoteLensFilter) + light blur */
+  backdrop-filter:
+    url(#abs-quoteLensFilter) blur(var(--quote-button-backdrop-blur, 2px)) saturate(1.04);
+  -webkit-backdrop-filter:
+    url(#abs-quoteLensFilter) blur(var(--quote-button-backdrop-blur, 2px)) saturate(1.04);
   transition: background var(--ui-chrome-fill-transition-duration, 120ms) var(--ease-organic);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quote-display__surface {
+    backdrop-filter: blur(var(--quote-button-backdrop-blur, 2px));
+    -webkit-backdrop-filter: blur(var(--quote-button-backdrop-blur, 2px));
+  }
 }
 
 .dark-mode .quote-display {
