@@ -46,6 +46,45 @@ function collectPairsSorted() {
   lastBroadphaseStats.sleepingPairSkips = 0;
   if (n < 2) return reusablePairs;
 
+  // Portfolio: always use brute-force pairs (n ≪ 100). Eliminates spatial-hash / R_MAX edge cases
+  // and guarantees every overlapping circumcircle pair is considered.
+  if (globals.currentMode === MODES.PORTFOLIO_PIT && n <= 96) {
+    let cellRMax = Number.isFinite(R_MAX) && R_MAX > 0 ? R_MAX : 1;
+    for (let bi = 0; bi < n; bi += 1) {
+      const br = balls[bi]?.r;
+      if (Number.isFinite(br) && br > cellRMax) cellRMax = br;
+    }
+    if (cellRMax > (Number(globals.R_MAX) || 0)) {
+      globals.R_MAX = cellRMax;
+    }
+    for (let i = 0; i < n; i += 1) {
+      const A = balls[i];
+      if (!A || A.__portfolioHidden) continue;
+      for (let j = i + 1; j < n; j += 1) {
+        const B = balls[j];
+        if (!B || B.__portfolioHidden) continue;
+        const dx = B.x - A.x;
+        const dy = B.y - A.y;
+        const rSum = getBallBallRestDistance(A, B, globals);
+        const dist2 = dx * dx + dy * dy;
+        if (dist2 >= rSum * rSum) continue;
+        const dist = Math.sqrt(Math.max(dist2, CONSTANTS.MIN_DISTANCE_EPSILON));
+        const overlap = rSum - dist;
+        const idx = reusablePairs.length;
+        let p = pairPool[idx];
+        if (!p) {
+          p = { i: 0, j: 0, overlap: 0 };
+          pairPool[idx] = p;
+        }
+        p.i = i;
+        p.j = j;
+        p.overlap = overlap;
+        reusablePairs.push(p);
+      }
+    }
+    return reusablePairs;
+  }
+
   // Portfolio project radii are huge vs home pit defaults; R_MAX can lag or stay stale (e.g. 18px).
   // cellSize must cover max rSum or the 3×3 stencil misses overlapping pairs → clipping / no stacks.
   let cellRMax = Number.isFinite(R_MAX) && R_MAX > 0 ? R_MAX : 1;
@@ -190,6 +229,11 @@ export function resolveCollisions(iterations = 10) {
         ny = narrow.ny;
         overlap = narrow.overlap;
         dist = Math.max(CONSTANTS.MIN_DISTANCE_EPSILON, 1e-4);
+      } else if (narrow && !narrow.useCircle && !narrow.hasContact) {
+        // SAT says polygon hulls do not overlap — skip this pair.
+        // Falling back to circle collision here would force squircles apart
+        // along their flat edges as if they were full circumcircles.
+        continue;
       } else {
         if (dist2 < COINCIDENT_CENTERS_EPS2) {
           nx = 1;
