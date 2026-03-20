@@ -42,7 +42,6 @@ import { announceToScreenReader } from '../utils/accessibility.js';
 import { destroyQuoteDisplay } from '../ui/quote-display.js';
 import { setupPointer } from '../input/pointer.js';
 import { setupOverscrollLock } from '../input/overscroll-lock.js';
-import Lenis from 'lenis';
 import { setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
 
 const BASE_PATH = (() => {
@@ -197,8 +196,6 @@ class PortfolioPitApp {
     this.projectLabelLayer = null;
     this.projectLabels = [];
     this._projectCloseFallbackTimer = null;
-    this.projectLenis = null;
-    this.projectScrollerContent = null;
     this._drawerMediaShiftRaf = null;
     this.boundScheduleDrawerMediaScrollShift = () => this.scheduleDrawerMediaScrollShift();
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
@@ -210,7 +207,6 @@ class PortfolioPitApp {
     this.boundResize = () => {
       window.requestAnimationFrame(() => {
         resize();
-        if (this.isProjectOpen) this.projectLenis?.resize();
         if (!this.isProjectOpen) return;
         const project = this.projects[this.selectedProjectIndex];
         if (project) this.syncProjectHero(project, false);
@@ -223,7 +219,7 @@ class PortfolioPitApp {
       }
     };
     this.boundSheetTransitionEnd = (event) => {
-      if (event.target !== this.projectSheet) return;
+      if (event.target !== this.projectDrawer) return;
       if (event.propertyName !== 'transform') return;
       if (!this.projectView?.classList.contains('is-closing')) return;
       this.finishProjectClose();
@@ -255,7 +251,7 @@ class PortfolioPitApp {
     };
     this.bindCanvasInteractions();
     this.bindProjectOverlay();
-    this.setupProjectScrollerLenis();
+    this.setupDrawerMediaScrollShift();
     window.addEventListener('resize', this.boundResize, { passive: true });
     window.addEventListener('bb:paletteChanged', this.boundPaletteChange);
   }
@@ -263,7 +259,7 @@ class PortfolioPitApp {
   destroy() {
     window.removeEventListener('resize', this.boundResize);
     window.removeEventListener('bb:paletteChanged', this.boundPaletteChange);
-    this.destroyProjectScrollerLenis();
+    this.teardownDrawerMediaScrollShift();
     document.removeEventListener('keydown', this.boundProjectKeydown, true);
     this.clearProjectOpenTimeouts();
     if (this.projectClose) {
@@ -272,8 +268,8 @@ class PortfolioPitApp {
     if (this.projectBackdrop) {
       this.projectBackdrop.removeEventListener('pointerdown', this.boundBackdropPointerDown);
     }
-    if (this.projectSheet) {
-      this.projectSheet.removeEventListener('transitionend', this.boundSheetTransitionEnd);
+    if (this.projectDrawer) {
+      this.projectDrawer.removeEventListener('transitionend', this.boundSheetTransitionEnd);
     }
     if (this.projectNav) this.projectNav.remove();
     if (this.projectLabelLayer) this.projectLabelLayer.remove();
@@ -352,11 +348,10 @@ class PortfolioPitApp {
     }
   }
 
-  /** Mount in `#portfolio-sheet-host` when present so the sheet stacks above route chrome; see `docs/reference/LAYER-STACKING.md`. */
+  /** Mount in `#portfolio-sheet-host` when present — sibling after `.fade-content` in `#abs-scene`; see `docs/reference/LAYER-STACKING.md`. */
   createProjectView() {
     const sheetHost = document.getElementById('portfolio-sheet-host');
-    const clipMount = sheetHost?.querySelector?.(':scope > .portfolio-sheet-host__clip') ?? null;
-    const host = clipMount || sheetHost || this.mount || this.canvas?.parentElement;
+    const host = sheetHost || this.mount || this.canvas?.parentElement;
     if (!host) return;
     const existing = document.getElementById('portfolioProjectView');
     if (existing) existing.remove();
@@ -369,48 +364,40 @@ class PortfolioPitApp {
         aria-modal="true"
         aria-labelledby="portfolioProjectTitle"
       >
-        <div class="portfolio-project-view__surface">
-          <div class="portfolio-project-view__backdrop" aria-hidden="true"></div>
-          <div class="portfolio-project-view__sheet">
-            <div class="portfolio-project-view__sheet-highlight" aria-hidden="true"></div>
-            <button class="portfolio-project-view__close abs-icon-btn" type="button" aria-label="Close project">
-              <svg class="portfolio-project-view__close-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-                <path
-                  fill="currentColor"
-                  d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
-                />
-              </svg>
-            </button>
-            <div class="portfolio-project-view__scroller">
-              <div class="portfolio-project-view__scroller-content">
-                <section class="portfolio-project-view__hero">
-                  <div class="portfolio-project-view__image-shell">
-                    <img class="portfolio-project-view__image" alt="" loading="eager" />
-                    <div class="portfolio-project-view__image-veil" aria-hidden="true"></div>
-                  </div>
-                  <div class="portfolio-project-view__hero-copy">
-                    <p class="portfolio-project-view__eyebrow"></p>
-                    <h1 id="portfolioProjectTitle" class="portfolio-project-view__title"></h1>
-                    <p class="portfolio-project-view__scroll-hint">(scroll please)</p>
-                  </div>
-                </section>
-                <section class="portfolio-project-view__body">
-                  <div class="portfolio-project-view__body-inner" id="portfolioProjectContent"></div>
-                </section>
-                <div class="portfolio-project-view__content-noise noise" aria-hidden="true"></div>
+        <div class="portfolio-project-view__backdrop" aria-hidden="true"></div>
+        <div class="portfolio-project-view__drawer">
+          <button class="portfolio-project-view__close abs-icon-btn" type="button" aria-label="Close project">
+            <svg class="portfolio-project-view__close-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
+              />
+            </svg>
+          </button>
+          <div class="portfolio-project-view__scroll">
+            <section class="portfolio-project-view__hero">
+              <div class="portfolio-project-view__image-shell">
+                <img class="portfolio-project-view__image" alt="" loading="eager" />
+                <div class="portfolio-project-view__image-veil" aria-hidden="true"></div>
               </div>
-            </div>
+              <div class="portfolio-project-view__hero-copy">
+                <p class="portfolio-project-view__eyebrow"></p>
+                <h1 id="portfolioProjectTitle" class="portfolio-project-view__title"></h1>
+                <p class="portfolio-project-view__scroll-hint">(scroll please)</p>
+              </div>
+            </section>
+            <section class="portfolio-project-view__body">
+              <div class="portfolio-project-view__body-inner" id="portfolioProjectContent"></div>
+            </section>
           </div>
         </div>
       </section>
     `);
 
     this.projectView = document.getElementById('portfolioProjectView');
-    this.projectSurface = this.projectView?.querySelector('.portfolio-project-view__surface');
     this.projectBackdrop = this.projectView?.querySelector('.portfolio-project-view__backdrop');
-    this.projectSheet = this.projectView?.querySelector('.portfolio-project-view__sheet');
-    this.projectScroller = this.projectView?.querySelector('.portfolio-project-view__scroller');
-    this.projectScrollerContent = this.projectView?.querySelector('.portfolio-project-view__scroller-content');
+    this.projectDrawer = this.projectView?.querySelector('.portfolio-project-view__drawer');
+    this.projectScroll = this.projectView?.querySelector('.portfolio-project-view__scroll');
     this.projectImage = this.projectView?.querySelector('.portfolio-project-view__image');
     this.projectEyebrow = this.projectView?.querySelector('.portfolio-project-view__eyebrow');
     this.projectTitle = this.projectView?.querySelector('.portfolio-project-view__title');
@@ -424,41 +411,11 @@ class PortfolioPitApp {
     this.projectBackdrop?.addEventListener('pointerdown', this.boundBackdropPointerDown);
   }
 
-  setupProjectScrollerLenis() {
-    if (this.projectLenis) return;
-    if (!this.projectScroller || !this.projectScrollerContent) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    this.projectLenis = new Lenis({
-      wrapper: this.projectScroller,
-      content: this.projectScrollerContent,
-      autoRaf: true,
-      smoothWheel: true,
-      lerp: 0.065,
-      wheelMultiplier: 0.88,
-      touchMultiplier: 1.05,
-      syncTouch: true,
-      overscroll: true,
-    });
-    this.setupDrawerMediaScrollShift();
-  }
-
-  destroyProjectScrollerLenis() {
-    this.teardownDrawerMediaScrollShift();
-    if (!this.projectLenis) return;
-    this.projectLenis.destroy();
-    this.projectLenis = null;
-  }
-
   setupDrawerMediaScrollShift() {
     this.teardownDrawerMediaScrollShift();
-    if (!this.projectScroller || !this.projectScrollerContent) return;
+    if (!this.projectScroll) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (this.projectLenis) {
-      this.projectLenis.on('scroll', this.boundScheduleDrawerMediaScrollShift);
-    } else {
-      this.projectScroller.addEventListener('scroll', this.boundScheduleDrawerMediaScrollShift, { passive: true });
-    }
+    this.projectScroll.addEventListener('scroll', this.boundScheduleDrawerMediaScrollShift, { passive: true });
   }
 
   teardownDrawerMediaScrollShift() {
@@ -466,10 +423,7 @@ class PortfolioPitApp {
       cancelAnimationFrame(this._drawerMediaShiftRaf);
       this._drawerMediaShiftRaf = null;
     }
-    if (this.projectLenis) {
-      this.projectLenis.off('scroll', this.boundScheduleDrawerMediaScrollShift);
-    }
-    this.projectScroller?.removeEventListener('scroll', this.boundScheduleDrawerMediaScrollShift, { passive: true });
+    this.projectScroll?.removeEventListener('scroll', this.boundScheduleDrawerMediaScrollShift, { passive: true });
   }
 
   scheduleDrawerMediaScrollShift() {
@@ -482,10 +436,10 @@ class PortfolioPitApp {
   }
 
   updateDrawerMediaScrollShift() {
-    if (!this.isProjectOpen || !this.projectScroller || !this.projectScrollerContent) return;
+    if (!this.isProjectOpen || !this.projectScroll) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const cr = this.projectScroller.getBoundingClientRect();
-    const nodes = this.projectScrollerContent.querySelectorAll('img, video');
+    const cr = this.projectScroll.getBoundingClientRect();
+    const nodes = this.projectScroll.querySelectorAll('img, video');
     for (let i = 0; i < nodes.length; i++) {
       const el = nodes[i];
       const ir = el.getBoundingClientRect();
@@ -495,27 +449,16 @@ class PortfolioPitApp {
   }
 
   resetDrawerMediaTransforms() {
-    if (!this.projectScrollerContent) return;
-    const nodes = this.projectScrollerContent.querySelectorAll('img, video');
+    if (!this.projectScroll) return;
+    const nodes = this.projectScroll.querySelectorAll('img, video');
     for (let i = 0; i < nodes.length; i++) {
       nodes[i].style.transform = '';
     }
   }
 
   resetProjectScrollTop() {
-    if (!this.projectScroller) return;
-    if (this.projectLenis) {
-      this.projectLenis.scrollTo(0, { immediate: true });
-    } else {
-      this.projectScroller.scrollTop = 0;
-    }
-  }
-
-  scheduleProjectLenisResize() {
-    if (!this.projectLenis) return;
-    window.requestAnimationFrame(() => {
-      this.projectLenis?.resize();
-    });
+    if (!this.projectScroll) return;
+    this.projectScroll.scrollTop = 0;
   }
 
   ensureAnnouncer() {
@@ -896,7 +839,6 @@ class PortfolioPitApp {
 
     this.projectImage.src = resolveAsset(project.image || CONFIG.coverFallback);
     this.projectImage.addEventListener('load', () => {
-      this.projectLenis?.resize();
       this.scheduleDrawerMediaScrollShift();
     }, { once: true });
     this.projectImage.alt = project.title || 'Project cover';
@@ -904,7 +846,6 @@ class PortfolioPitApp {
     this.projectTitle.textContent = project.title || '';
     this.projectContent.innerHTML = this.buildProjectContent(project);
     this.syncProjectButtonStates();
-    this.scheduleProjectLenisResize();
     this.scheduleDrawerMediaScrollShift();
 
     if (!animate) {
@@ -978,7 +919,7 @@ class PortfolioPitApp {
       window.clearTimeout(this._projectCloseFallbackTimer);
       this._projectCloseFallbackTimer = null;
     }
-    this.projectSheet?.removeEventListener('transitionend', this.boundSheetTransitionEnd);
+    this.projectDrawer?.removeEventListener('transitionend', this.boundSheetTransitionEnd);
     this.projectView.classList.remove('is-visible', 'is-closing', 'is-open', 'is-title-visible');
     this.projectView.setAttribute('aria-hidden', 'true');
     this.restoreBackgroundInteractivity();
@@ -1019,13 +960,13 @@ class PortfolioPitApp {
     const openDuration = clamp(toNumber(this.config.runtime.motion?.openDurationMs, 420), 200, 1200);
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (reducedMotion || !this.projectSheet) {
+    if (reducedMotion || !this.projectDrawer) {
       this.finishProjectClose();
       return;
     }
 
-    this.projectSheet.removeEventListener('transitionend', this.boundSheetTransitionEnd);
-    this.projectSheet.addEventListener('transitionend', this.boundSheetTransitionEnd);
+    this.projectDrawer.removeEventListener('transitionend', this.boundSheetTransitionEnd);
+    this.projectDrawer.addEventListener('transitionend', this.boundSheetTransitionEnd);
     this.projectView.classList.add('is-closing');
     this.projectView.classList.remove('is-open');
 

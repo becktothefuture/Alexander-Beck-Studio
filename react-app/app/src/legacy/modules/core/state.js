@@ -329,10 +329,9 @@ const state = {
   // Canonical layout knobs (vw units)
   containerBorderVw: 0,     // outer inset from viewport (vw)
   simulationPaddingVw: 0,   // inner inset around canvas (vw)
-  // Additive content padding as a fraction of the viewport-size metric:
-  //   viewportSizePx = sqrt(viewportWidthPx * viewportHeightPx)
-  //   contentPaddingAddPx = viewportSizePx * contentPaddingRatio
-  // (Back-compat: if config provides a large value (|v| > 1), we treat it as legacy px.)
+  // Additive chrome “breath” beyond wall thickness: fraction of layout **width** only (not height / not sqrt area).
+  //   addPx = layoutWidthPx * contentPaddingRatio
+  // (Back-compat: if config provides a large value (|v| > 1), we treat it as legacy px and divide by width.)
   contentPaddingRatio: 0.03,
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
   contentPaddingBottomRatio: 1.3,     // bottom padding multiplier (applied to vertical padding)
@@ -1017,13 +1016,16 @@ export function applyLayoutFromVwToPx() {
     ? state.wallThicknessMaxPx : Infinity;
   state.wallThickness = Math.round(Math.max(minThickness, Math.min(maxThickness, unclampedWallThickness)));
   
-  // Content padding: additive to wall thickness (viewport-size fraction)
-  const viewportSizePx = Math.max(1, Math.sqrt(w * h));
+  // Content padding: additive to wall thickness (width × ratio — short viewport height does not shrink it).
+  const layoutWidthPx = Math.max(1, w);
   const raw = Number.isFinite(state.contentPaddingRatio) ? state.contentPaddingRatio : 0;
-  // Back-compat: if the value looks like legacy px, convert to fraction on the fly.
-  const frac = (Math.abs(raw) > 1) ? (raw / viewportSizePx) : raw;
-  const contentPaddingAdditivePx = viewportSizePx * frac;
-  state.contentPadding = Math.round(state.wallThickness + contentPaddingAdditivePx);
+  const frac = (Math.abs(raw) > 1) ? (raw / layoutWidthPx) : raw;
+  const contentPaddingAdditivePx = layoutWidthPx * frac;
+  // Breath = gap beyond wall to header/footer. Tunable via `contentPaddingRatio` on :root; floors keep chrome off the inner wall.
+  const breathMin = isMobileLayout ? 8 : 24;
+  const breathMax = 64;
+  const additiveClamped = Math.max(breathMin, Math.min(breathMax, contentPaddingAdditivePx));
+  state.contentPadding = Math.round(state.wallThickness + additiveClamped);
   
   // Derive directional padding: horizontal = base × ratio, vertical = base
   const horizRatio = Math.max(0.1, state.contentPaddingHorizontalRatio || 1.0);
@@ -1081,8 +1083,16 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--safari-tint-inset', `${state.containerBorder}px`);
   root.style.setProperty('--simulation-padding', `${state.simulationPadding}px`);
   root.style.setProperty('--content-padding', `${state.contentPadding}px`);
-  root.style.setProperty('--content-padding-x', `${state.contentPaddingX}px`);
-  root.style.setProperty('--content-padding-y', `${state.contentPaddingY}px`);
+  // .fade-content reads plain px (no calc×clamp). Narrow screens: same 1.5× as legacy CSS; bottom uses contentPaddingBottomRatio.
+  const layoutW = getLayoutViewportWidthPx();
+  const narrowMul = layoutW <= 600 ? 1.5 : 1;
+  const bottomMul = Number.isFinite(state.contentPaddingBottomRatio) ? state.contentPaddingBottomRatio : 1.3;
+  root.style.setProperty('--content-padding-x', `${Math.max(0, Math.round(state.contentPaddingX * narrowMul))}px`);
+  root.style.setProperty('--content-padding-y', `${Math.max(0, Math.round(state.contentPaddingY * narrowMul))}px`);
+  root.style.setProperty(
+    '--content-padding-y-bottom',
+    `${Math.max(0, Math.round(state.contentPaddingY * narrowMul * bottomMul))}px`
+  );
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
   root.style.setProperty('--abs-wall-base-light', state.wallBaseLight || '#f1f3f4');

@@ -11,6 +11,7 @@ import { consumeGateRequest, markGateAccess } from '../../../lib/access-gates.js
 import { setStableTimeout } from '../../../lib/legacy-runtime-scope.js';
 import {
     closeGateModal,
+    dismissGateBackdrop,
     hideCompetingGateModals,
     isGateModalParticipating,
     openGateModal,
@@ -152,6 +153,7 @@ export function initPortfolioModal() {
             logo,
             instant,
             keepOverlayActive: isGateModalParticipating(cvGate) || isGateModalParticipating(contactGate),
+            keepBackdrop: options.keepBackdrop || false,
             shouldFinalize: () => !isOpen
         });
     };
@@ -196,15 +198,16 @@ export function initPortfolioModal() {
                 
                 markGateAccess('portfolio');
                 
-                // Let the modal close using its default dismissal animation, while the
-                // shell handles the page crossfade underneath it.
+                // Hide the modal card but keep the backdrop/overlay frozen so the
+                // shell transition can animate over a stable visual state.
+                // The shell will call dismissGateBackdrop() after the new route enters.
                 setStableTimeout(() => {
-                    closeGate(false, { restoreFocus: false });
+                    closeGate(false, { restoreFocus: false, keepBackdrop: true });
                     navigateWithTransition('portfolio.html', NAV_STATES.INTERNAL, {
                         transitionStyle: 'gate-success',
-                        exitMs: 180,
-                        enterMs: 320,
-                        readyFallbackMs: 700
+                        exitMs: 400,
+                        enterMs: 400,
+                        readyFallbackMs: 2000
                     });
                 }, 140);
                 

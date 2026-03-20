@@ -57,7 +57,7 @@
       "abs-space-lg": { "value": "calc({spacingSizing.abs-space-unit} * 6)", "type": "dimension" },
       "abs-space-xl": { "value": "calc({spacingSizing.abs-space-unit} * 8)", "type": "dimension" },
 
-      "abs-content-padding": { "value": "clamp(16px, 4vmin, 40px)", "type": "dimension" },
+      "abs-content-padding": { "value": "clamp(8px, 10px + 2vw, 28px)", "type": "dimension" },
       "abs-gap-xs": { "value": "clamp(4px, 0.5vmin, 8px)", "type": "dimension" },
       "abs-gap-sm": { "value": "clamp(8px, 1vmin, 12px)", "type": "dimension" },
       "abs-gap-md": { "value": "clamp(12px, 1.5vmin, 20px)", "type": "dimension" },

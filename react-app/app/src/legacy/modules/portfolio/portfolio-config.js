@@ -11,7 +11,7 @@ const DEFAULT_PORTFOLIO_CONFIG = {
     '--portfolio-stage-pad': 'clamp(18px, 2.1vw, 32px)',
     '--portfolio-hero-title-max': '14ch',
     '--portfolio-image-veil-opacity': '0.14',
-    '--portfolio-scroll-hint-offset': 'clamp(34px, 6vh, 68px)',
+    '--portfolio-scroll-hint-offset': 'clamp(26px, 18px + 1.2vw, 52px)',
   },
   runtime: {
     layout: {

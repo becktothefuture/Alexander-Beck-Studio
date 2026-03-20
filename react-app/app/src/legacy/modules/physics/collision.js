@@ -46,6 +46,19 @@ function collectPairsSorted() {
   lastBroadphaseStats.sleepingPairSkips = 0;
   if (n < 2) return reusablePairs;
 
+  // Portfolio project radii are huge vs home pit defaults; R_MAX can lag or stay stale (e.g. 18px).
+  // cellSize must cover max rSum or the 3×3 stencil misses overlapping pairs → clipping / no stacks.
+  let cellRMax = Number.isFinite(R_MAX) && R_MAX > 0 ? R_MAX : 1;
+  if (globals.currentMode === MODES.PORTFOLIO_PIT) {
+    for (let bi = 0; bi < n; bi += 1) {
+      const br = balls[bi]?.r;
+      if (Number.isFinite(br) && br > cellRMax) cellRMax = br;
+    }
+    if (cellRMax > (Number(globals.R_MAX) || 0)) {
+      globals.R_MAX = cellRMax;
+    }
+  }
+
   const reuseGrid = globals.physicsSpatialGridOptimization !== false;
   const pitLike = isPitLikeMode(globals.currentMode);
   // With a flat surface gap, sleeping stacks must still generate pairs or gaps won't hold.
@@ -67,7 +80,7 @@ function collectPairsSorted() {
   }
   
   // Cell size must account for spacing + optional flat surface gap between balls.
-  const cellSize = Math.max(1, R_MAX * 2 * (1 + spacingRatio) + surfaceGapPx * 2);
+  const cellSize = Math.max(1, cellRMax * 2 * (1 + spacingRatio) + surfaceGapPx * 2);
   const gridWidth = Math.ceil(canvas.width / cellSize) + 1;
   if (reuseGrid) {
     for (const arr of spatialGrid.values()) arr.length = 0;
@@ -172,8 +185,7 @@ export function resolveCollisions(iterations = 10) {
         && B.projectIndex !== undefined;
       const narrow = usePortfolioSat ? portfolioPitNarrowPhase(A, B, globals) : null;
 
-      if (narrow && !narrow.useCircle) {
-        if (!narrow.hasContact) continue;
+      if (narrow && !narrow.useCircle && narrow.hasContact) {
         nx = narrow.nx;
         ny = narrow.ny;
         overlap = narrow.overlap;

@@ -16,18 +16,12 @@ function renderDigitInputs(prefix, className, ariaPrefix) {
   ));
 }
 
-function getSlotClassName(baseClassName, transitionClassName) {
-  return transitionClassName ? `${baseClassName} ${transitionClassName}` : baseClassName;
-}
-
 export function StudioShell({
   routeRenderKey,
   wallClassName,
   wallContent,
   headerContent,
-  mainContent,
-  wallSlotTransitionClassName,
-  contentSlotTransitionClassName
+  mainContent
 }) {
   return (
     <>
@@ -36,10 +30,7 @@ export function StudioShell({
           <div id="scene-effects" className="scene-effects" aria-hidden="true">
             <div className="noise" />
           </div>
-          <div
-            id="shell-wall-slot"
-            className={getSlotClassName('shell-wall-slot', wallSlotTransitionClassName)}
-          >
+          <div id="shell-wall-slot" className="shell-wall-slot">
             <div key={`wall-${routeRenderKey}`} className="shell-wall-route-root">
               {wallContent}
             </div>
@@ -50,13 +41,8 @@ export function StudioShell({
         <div className="fade-content page-content">
           <div id="app-frame" className="ui-layer-wrapper">
             <div
-              id="shell-route-ghost"
-              className={getSlotClassName('shell-route-ghost', contentSlotTransitionClassName)}
-              aria-hidden="true"
-            />
-            <div
               id="shell-route-slot"
-              className={getSlotClassName('shell-route-slot', contentSlotTransitionClassName)}
+              className="shell-route-slot"
             >
               <div key={`content-${routeRenderKey}`} className="shell-route-content-root">
                 {headerContent}
@@ -67,15 +53,12 @@ export function StudioShell({
           </div>
         </div>
 
-        {/* Project sheet mounts here so it stacks above .fade-content (header/footer); see docs/reference/LAYER-STACKING.md */}
+        {/* Portfolio drawer: MUST stack above header/footer — see docs/reference/LAYER-STACKING.md (never mount only inside #bravia-balls). */}
         <div
           id="portfolio-sheet-host"
           className="portfolio-sheet-host"
           aria-hidden="true"
-        >
-          {/* Dedicated clip layer: border-radius alone misses transformed children (sheet slide); see portfolio.css */}
-          <div className="portfolio-sheet-host__clip" />
-        </div>
+        />
 
         <div
           id="quote-viewport-host"

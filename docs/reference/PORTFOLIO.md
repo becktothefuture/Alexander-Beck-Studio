@@ -10,11 +10,11 @@ The portfolio route is now a dedicated **project pit** rather than a slider. It 
 
 ## Layer stacking (drawer above chrome)
 
-The project drawer **must** stack **above** the route header row and footer. **Do not** rely on z-index hacks inside the pit alone: mount `#portfolioProjectView` into **`#portfolio-sheet-host`** (see `StudioShell.jsx` + `createProjectView()` in `app.js`). Full table, z-index values, and verification steps: **`docs/reference/LAYER-STACKING.md`** (agents: read this before changing mounts or stacking).
+**Authoritative doc:** **`docs/reference/LAYER-STACKING.md`**. Mount `#portfolioProjectView` into **`#portfolio-sheet-host`**. In `StudioShell.jsx`, **`#portfolio-sheet-host` is inside `#abs-scene` and comes after `.fade-content`**, with **`z-index` 220 / 260** when open, so the drawer and backdrop sit **above** the route header row and footer. **Do not** mount the host only inside `#bravia-balls` (cannot exceed `.fade-content`’s stacking).
 
 ## Project drawer scroll
 
-Hero hint copy is **`(scroll please)`** (see `createProjectView()` in `app.js`). Weighted wheel/touch scrolling is handled by **`lenis`** on the drawer scroller when `prefers-reduced-motion` is not reduced; content lives in `.portfolio-project-view__scroller-content` for Lenis’s `wrapper` / `content` contract.
+Hero hint copy is **`(scroll please)`** (see `createProjectView()` in `app.js`). The drawer body scrolls with **native overflow** on **`.portfolio-project-view__scroll`** (no Lenis).
 
 ## Runtime Modules
 

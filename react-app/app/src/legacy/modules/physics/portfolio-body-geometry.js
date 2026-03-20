@@ -57,7 +57,8 @@ function resolveRoundedRectDims(r, config, rectOverride) {
 
 function writeRoundedRectLocalVerts(hw, hh, rc, outX, outY) {
   const rCorner = Math.min(rc, hw, hh);
-  const segs = 3;
+  // More arc samples → SAT hull closer to true roundRect (3 was visibly loose vs fill).
+  const segs = 12;
   const push = (x, y) => {
     outX.push(x);
     outY.push(y);
@@ -123,6 +124,53 @@ export function writePortfolioBodyLocalVertices(shape, r, config, outX, outY, re
     return outX.length;
   }
   return 0;
+}
+
+/**
+ * Max distance from body center to hull along a **world-space** direction (unit vector).
+ * Used for wall constraints so flat/rotated rounded rects use the same silhouette as render/SAT.
+ */
+export function getPortfolioBodyMaxExtentAlongWorldNormal(ball, dirx, diry, globals) {
+  const spacingRatio = globals.ballSpacing || 0;
+  const pad = 1 + spacingRatio;
+  const len = Math.hypot(dirx, diry);
+  if (len < 1e-12) return ball.r * pad;
+  const ux = dirx / len;
+  const uy = diry / len;
+
+  const shape = ball.portfolioBodyShape || 'circle';
+  if (!shape || shape === 'circle') {
+    return ball.r * pad;
+  }
+
+  const config = globals.portfolioPitConfig || {};
+  const outX = [];
+  const outY = [];
+  const nv = writePortfolioBodyLocalVertices(
+    shape,
+    ball.r,
+    config,
+    outX,
+    outY,
+    ball.portfolioRectAspect || null
+  );
+  if (nv === 0) {
+    return ball.r * pad;
+  }
+
+  const th = (ball.theta || 0) + (ball.rotationOffset || 0);
+  const c = Math.cos(th);
+  const s = Math.sin(th);
+  const ldx = c * ux + s * uy;
+  const ldy = -s * ux + c * uy;
+
+  let maxS = -Infinity;
+  for (let i = 0; i < nv; i += 1) {
+    const d = outX[i] * ldx + outY[i] * ldy;
+    if (d > maxS) maxS = d;
+  }
+  if (!(maxS > -Infinity)) return ball.r * pad;
+  return maxS * pad;
 }
 
 export function appendPortfolioBodyPath(ctx, shape, r, config, rectOverride = null) {

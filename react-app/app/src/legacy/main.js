@@ -143,6 +143,11 @@ export function applyVisualCSSVars(config) {
 function fadeInContentLayer(options = {}) {
   const fadeTarget = document.getElementById('abs-scene');
   if (!fadeTarget) return Promise.resolve();
+
+  // During a gate-success transition the shell owns scene opacity.
+  if (document.documentElement.dataset.absGateTransition === 'active') {
+    return Promise.resolve();
+  }
   
   // Get config values from globals (with fallbacks)
   const g = getGlobals();

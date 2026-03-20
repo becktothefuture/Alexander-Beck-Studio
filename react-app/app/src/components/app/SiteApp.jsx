@@ -31,13 +31,7 @@ function getRouteRuntimeForId(routeId) {
 }
 
 export function SiteApp() {
-  const {
-    routeState,
-    routeRuntime,
-    routeView,
-    wallSlotTransitionClassName,
-    contentSlotTransitionClassName
-  } = useShellRouteTransition({
+  const { routeState, routeRuntime, routeView } = useShellRouteTransition({
     getRouteView: getRouteViewForId,
     getRouteRuntime: getRouteRuntimeForId
   });
@@ -59,8 +53,6 @@ export function SiteApp() {
         wallContent={routeView.wallContent}
         headerContent={routeView.headerContent}
         mainContent={routeView.mainContent}
-        wallSlotTransitionClassName={wallSlotTransitionClassName}
-        contentSlotTransitionClassName={contentSlotTransitionClassName}
       />
     </>
   );

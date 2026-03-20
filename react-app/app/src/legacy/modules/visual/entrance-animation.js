@@ -715,12 +715,14 @@ export async function orchestrateEntrance(options = {}) {
   }
   
   // Skip entrance entirely if View Transition just ran (Chrome handles animation)
-  if (skipEntranceAnimation) {
+  // Also skip if a gate-success transition is in progress — the shell handles the
+  // staggered reveal so the bootstrap should just mark elements ready without animating.
+  if (skipEntranceAnimation || document.documentElement.dataset.absGateTransition === 'active') {
     document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
     document.documentElement.classList.add('entrance-complete');
     // Just reveal elements that may be hidden
     revealAllLateElements();
-    console.log('✓ Entrance skipped (View Transition handled animation)');
+    console.log('✓ Entrance skipped (shell transition handles animation)');
     return;
   }
   

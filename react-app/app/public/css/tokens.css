@@ -129,7 +129,8 @@
   --abs-space-lg: calc(var(--abs-space-unit) * 6);
   --abs-space-xl: calc(var(--abs-space-unit) * 8);
 
-  --abs-content-padding: clamp(16px, 4vmin, 40px);
+  /* Pre-JS chrome inset; runtime overwrites --content-padding-*. Width-based vw only; min 24px on wide screens via breakpoint below. */
+  --abs-content-padding: clamp(8px, 10px + 2vw, 28px);
   --abs-gap-xs: clamp(4px, 0.5vmin, 8px);
   --abs-gap-sm: clamp(8px, 1vmin, 12px);
   --abs-gap-md: clamp(12px, 1.5vmin, 20px);
@@ -248,6 +249,7 @@
   --content-padding: var(--abs-content-padding);
   --content-padding-x: var(--abs-content-padding);
   --content-padding-y: var(--abs-content-padding);
+  --content-padding-y-bottom: clamp(12px, 16px + 1.6vw, 44px);
   /* Edge inset: wall thickness + content padding (set via JS in applyLayoutCSSVars) */
   --edge-inset: 0px;
   --edge-inset-lg: 0px;
@@ -603,8 +605,8 @@
      Wall (container)         100        #bravia-balls
      Video Overlays           150        .grunge-video-overlay (above wall, below UI)
      UI Layer                 200        .fade-content (contains logo + nav + header + footer)
+     Portfolio sheet          220 / 260  #portfolio-sheet-host (260 when body.portfolio-project-open; above chrome)
      Quote host               250        #quote-viewport-host
-     Portfolio sheet (open)   260        #portfolio-sheet-host (project dialog; above route chrome)
      
      INSIDE #bravia-balls (wall interior stacking context):
      ─────────────────────────────────────────────────────────────────────────────
@@ -660,6 +662,13 @@
   --breakpoint-tablet: 991px;
   --breakpoint-mobile-l: 767px;
   --breakpoint-mobile-p: 480px;
+}
+
+@media (min-width: 641px) {
+  :root {
+    --abs-content-padding: clamp(24px, 22px + 1vw, 48px);
+    --content-padding-y-bottom: clamp(30px, 26px + 1.2vw, 56px);
+  }
 }
 
 :root.dark-mode {

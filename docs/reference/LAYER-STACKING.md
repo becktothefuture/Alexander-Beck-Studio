@@ -1,53 +1,62 @@
 # Layer stacking — scene and portfolio sheet
 
-**Agents:** Treat this file as the **canonical reference** for `#abs-scene` z-order and the portfolio project drawer. **Read it before** changing mounts, `z-index`, or where `#portfolioProjectView` is inserted.
+**This file is the canonical source of truth** for z-order and portfolio drawer placement. **Read it before** changing `#portfolio-sheet-host`, `.fade-content`, `#abs-scene`, or where `#portfolioProjectView` is mounted. **When in doubt, align code and comments here first.**
 
-## Non-negotiable (portfolio)
+---
 
-When the project bottom sheet / drawer is open, it MUST appear **above** the entire route chrome:
+## Portfolio drawer — non-negotiable
 
-- The **header row** (`.ui-top`, `.route-topbar`, nav, back, sound slot).
-- The **footer row** (shared `SiteFooter` / `.ui-bottom`).
+| Rule | Detail |
+|------|--------|
+| **Above route chrome** | When a project is open, the drawer and its **backdrop** MUST paint **above** the **header row** (`.ui-top` / `.route-topbar`) **and** the **footer** (`SiteFooter` / `.ui-bottom`). Those live in **`.fade-content`** (`z-index: 200` in `main.css`). |
+| **Do not mount only in `#bravia-balls`** | `#bravia-balls` is `z-index: 100`. Anything that stays **only** inside that subtree cannot stack above `.fade-content` (200). The drawer host must be a **sibling** of `.fade-content` **inside `#abs-scene`**, with a **higher `z-index`**. |
+| **DOM + CSS** | **`#portfolio-sheet-host`** comes **after** **`.fade-content`** in `#abs-scene` (`StudioShell.jsx`). `portfolio.css`: host `z-index: 220` (idle), **`body.portfolio-project-open`** raises host to **`z-index: 260`** so the sheet is also above **`#quote-viewport-host`** (250). |
+| **Geometry** | Host uses the **same inner-wall rectangle** as `#bravia-balls canvas`: `position: fixed` inset `calc(var(--safari-tint-inset) + var(--frame-border-width))` on all sides, **`border-radius: var(--frame-inner-radius)`**, **`overflow: hidden`**. Same **corner-shape** inheritance as canvas (e.g. squircle when `html.abs-corner-shape-squircle`). |
 
-That is achieved by **DOM placement + z-index**, not by hiding the header/footer alone.
-
-| Requirement | Detail |
-|-------------|--------|
-| **Mount target** | Insert `#portfolioProjectView` into **`#portfolio-sheet-host`** when that element exists (`StudioShell.jsx`). |
-| **Do not** | Mount the project dialog inside **`#portfolioProjectMount`** or **`#bravia-balls`** for stacking purposes — that subtree sits **below** `.fade-content` (z-index 200) and the drawer will paint **under** the header and footer. |
-| **Implementation** | `react-app/app/src/legacy/modules/portfolio/app.js` — `createProjectView()` mounts into **`#portfolio-sheet-host > .portfolio-sheet-host__clip`** when that node exists (`StudioShell.jsx`), else the host directly. The host is inset like **`#bravia-balls` canvas** (`safari-tint-inset` + `frame-border-width`); the inner clip uses **`--frame-inner-radius`** (`clip-path` + `overflow: hidden`) so the drawer matches the pit opening (“lid on the pot”). **`portfolio.css`** sets **`corner-shape: round`** on the host subtree so nested **`border-radius`** matches **`clip-path` … `round`** (circular); site-wide squircle is not used inside the drawer. |
+---
 
 ## `#abs-scene` children (bottom → top)
 
-All of these participate in the same transformed scene (`#abs-scene` uses `transform`, so `position: fixed` children are positioned against the scene, not the raw viewport).
+`#abs-scene` uses `transform` (`main.css`), so `position: fixed` descendants are positioned against the scene. **Sibling order + `z-index`** inside `#abs-scene`:
 
-| Order | z-index (typical) | Layer | Notes |
-|------:|------------------:|-------|--------|
-| 1 | 100 | `#bravia-balls` | Wall container; pit, canvas, labels in `#portfolioProjectMount`. |
-| 2 | 175 | `.frame-vignette` | Inset vignette; pointer-events none. |
-| 3 | **200** | **`.fade-content`** | **Route chrome:** header row, main slot, footer. |
-| 4 | 250 | `#quote-viewport-host` | Quote / puck host. |
-| 5 | **220** (idle) / **260** (open) | **`#portfolio-sheet-host`** | **Project dialog host.** With `body.portfolio-project-open`, CSS raises the host to **260** so the sheet is above the quote host as well as `.fade-content` (works from **home** or **portfolio** SPA). |
+| Order (typical DOM) | z-index | Layer |
+|--------------------|--------:|-------|
+| 1 | 100 | `#bravia-balls` |
+| 2 | 175 | `.frame-vignette` |
+| 3 | **200** | **`.fade-content`** (header, main, footer) |
+| 4 | **220** / **260** when open | **`#portfolio-sheet-host`** |
+| 5 | 250 | `#quote-viewport-host` |
 
-Source of truth in CSS:
+**Implementation:** `react-app/app/src/components/app/StudioShell.jsx` — `#portfolio-sheet-host` **after** `.fade-content`, **before** `#quote-viewport-host`.  
+**Mount:** `react-app/app/src/legacy/modules/portfolio/app.js` — `createProjectView()` inserts `#portfolioProjectView` into `#portfolio-sheet-host`.
 
-- `react-app/app/public/css/main.css` — `.fade-content` z-index.
-- `react-app/app/public/css/main.css` — `#quote-viewport-host`.
-- `react-app/app/public/css/portfolio.css` — `#portfolio-sheet-host` (fixed inset + inner clip, **not** gated on `body.portfolio-page`) and `body.portfolio-project-open` z-index override.
+---
 
-The comment block in `react-app/app/public/css/tokens.css` (`:root`, “Z-INDEX STACKING ORDER”) should stay **aligned** with this document when values change.
+## Inside `#bravia-balls` only (no drawer host here)
+
+| Layer | z-index (typical) | Notes |
+|------:|------------------:|-------|
+| `.scene-effects` | 1 | Noise under simulation |
+| `.shell-wall-slot` / `#c` | 2 / 10 | Pit canvas |
+| `#portfolioProjectMount` | — | Labels overlay |
+
+---
 
 ## Outside `#abs-scene`
 
-Gate/contact/CV modals, dev panel, and modal blur layers sit **outside** `#abs-scene` and use much higher z-index values (see `tokens.css` — e.g. `--z-modal-content`). Do not “fix” the portfolio drawer by pushing it into modal layers unless the product intent is a full app-modal, not a wall-contained sheet.
+Gate/contact/CV modals, dev panel, modal blur — higher z-index (`tokens.css`, e.g. `--z-modal-content`). Do not move the portfolio drawer into modal layers unless the product intent is a full app-modal.
+
+---
+
+## Other references (keep in sync)
+
+- `react-app/app/public/css/main.css` — `.fade-content`, `#quote-viewport-host`, `#abs-scene`
+- `react-app/app/public/css/portfolio.css` — `#portfolio-sheet-host` (includes comment pointing here)
+- `react-app/app/public/css/tokens.css` — “Z-INDEX STACKING ORDER” comment block
+
+---
 
 ## Verification (manual)
 
-1. Portfolio route → open any project.
-2. Confirm the sheet and dimmed backdrop **cover** the top bar and footer (no nav buttons visually on top of the sheet).
-3. Confirm pit labels still mount only in `#portfolioProjectMount` (sheet is separate).
-
-## Related docs
-
-- `docs/reference/CONFIGURATION.md` — portfolio sheet host and config touchpoints.
-- `docs/reference/PORTFOLIO.md` — runtime modules and entry points.
+- Open a project from **home** and **portfolio**: dimmer + sheet cover **header and footer**; backdrop click still closes where implemented.
+- With quote host on home: open project → sheet above quote puck (`260` > `250`).

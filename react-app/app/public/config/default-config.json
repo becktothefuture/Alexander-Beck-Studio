@@ -20,7 +20,7 @@
   "sizeVariationGlobalMul": 1,
   "sizeVariationCap": 0,
   "cursorInfluenceRadiusVw": 9.5,
-  "contentPaddingRatio": 0.033,
+  "contentPaddingRatio": 0.024,
   "contentPaddingHorizontalRatio": 1.05,
   "contentPaddingBottomRatio": 1.05,
   "uiHitAreaMul": 2.3,

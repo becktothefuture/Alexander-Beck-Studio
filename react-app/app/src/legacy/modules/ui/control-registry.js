@@ -1231,6 +1231,11 @@ export const CONTROL_SECTIONS = {
          onChange: (_g, val) => {
            const ratio = Number(val) || 1.3;
            document.documentElement.style.setProperty('--abs-content-pad-mul-bottom', String(ratio));
+           import('../core/state.js').then(({ applyLayoutFromVwToPx, applyLayoutCSSVars, getGlobals }) => {
+             getGlobals().contentPaddingBottomRatio = ratio;
+             applyLayoutFromVwToPx();
+             applyLayoutCSSVars();
+           }).catch(() => {});
          }
        },
 

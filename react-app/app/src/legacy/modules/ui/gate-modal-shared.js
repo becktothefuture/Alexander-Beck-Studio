@@ -66,6 +66,7 @@ export function closeGateModal({
   logo,
   instant = false,
   keepOverlayActive = false,
+  keepBackdrop = false,
   shouldFinalize = () => true
 }) {
   if (instant) {
@@ -73,7 +74,7 @@ export function closeGateModal({
 
     setModalHidden(modal);
 
-    if (!keepOverlayActive) {
+    if (!keepOverlayActive && !keepBackdrop) {
       setCenterStageObscured(false);
       setCvContainerObscured(false);
       hideOverlay();
@@ -90,7 +91,7 @@ export function closeGateModal({
   modal.setAttribute('aria-hidden', 'true');
   modal.dataset.modalState = 'closing';
 
-  if (!keepOverlayActive) {
+  if (!keepOverlayActive && !keepBackdrop) {
     setCenterStageObscured(false);
     setCvContainerObscured(false);
     hideOverlay();
@@ -101,4 +102,10 @@ export function closeGateModal({
       setModalHidden(modal);
     }
   }, getModalCloseDurationMs());
+}
+
+export function dismissGateBackdrop() {
+  setCenterStageObscured(false);
+  setCvContainerObscured(false);
+  hideOverlay();
 }

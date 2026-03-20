@@ -7,6 +7,7 @@ import { getConfig, getGlobals } from '../core/state.js';
 import { CONSTANTS, MODES, isPitLikeMode } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-state.js';
+import { getPortfolioBodyMaxExtentAlongWorldNormal } from './portfolio-body-geometry.js';
 
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;
@@ -73,11 +74,20 @@ function getInteriorWallViolation(ball, w, h) {
 
   const skipForPit = isPitMode && ny < -0.5;
   const skipForBubbles = currentMode === MODES.BUBBLES && ny < -0.5;
-  const margin = effectiveRadius + borderInset;
+  // Rounded portfolio bodies fit inside a circle of radius r but extend less in many directions
+  // than r; using r for walls makes them “float” above the floor. Use convex hull support along
+  // the same SDF normal n as for circles (max dot(vertex - center, n)).
+  const usePortfolioWallExtent =
+    currentMode === MODES.PORTFOLIO_PIT
+    && ball.portfolioBodyShape === 'roundedRect';
+  const shapeExtentAlongN = usePortfolioWallExtent
+    ? getPortfolioBodyMaxExtentAlongWorldNormal(ball, nx, ny, globals)
+    : effectiveRadius;
+  const margin = shapeExtentAlongN + borderInset;
   const penetration = sdfDist + margin;
   if (penetration <= 0) return null;
   if (skipForPit || skipForBubbles) return null;
-  return { nx, ny, penetration, effectiveRadius };
+  return { nx, ny, penetration, effectiveRadius: shapeExtentAlongN };
 }
 
 /**

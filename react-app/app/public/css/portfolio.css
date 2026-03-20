@@ -4,15 +4,18 @@
   --portfolio-stage-pad: clamp(18px, 2.1vw, 32px);
   --portfolio-hero-title-max: 14ch;
   --portfolio-image-veil-opacity: 0.14;
-  --portfolio-scroll-hint-offset: clamp(34px, 6vh, 68px);
+  /* Sheet insets: px + vw only (no vh) so low viewport height doesn’t collapse padding */
+  --portfolio-sheet-pad-x: clamp(8px, 12px + 1.2vw, 32px);
+  --portfolio-sheet-pad-y-body: clamp(24px, 18px + 1.2vw, 40px);
+  --portfolio-scroll-hint-offset: clamp(26px, 18px + 1.2vw, 52px);
   --portfolio-project-open-ms: 420ms;
   --portfolio-project-image-fade-ms: 220ms;
   --portfolio-sheet-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --portfolio-sheet-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   /* Drawer stack: same corner radius token as `#bravia-balls canvas` (inner wall). */
   --portfolio-drawer-radius: var(--frame-inner-radius);
-  /* Gutter inside drawer before hero image; radius stays concentric with inner wall. */
-  --portfolio-hero-image-gutter: 4px;
+  /* Inset between drawer chrome and hero image; inner radius = outer − gutter. */
+  --portfolio-hero-image-gutter: clamp(6px, 1.4vw, 14px);
   --portfolio-hero-image-radius: max(
     0px,
     calc(var(--frame-inner-radius) - var(--portfolio-hero-image-gutter))
@@ -24,6 +27,12 @@
 /* Dark drawer ground on any route; use `html` so early paint matches index.html boot (body class may lag). */
 html.dark-mode {
   --portfolio-drawer-ground: color-mix(in srgb, var(--bg-dark) 78%, white 22%);
+}
+
+@media (min-width: 641px) {
+  :root {
+    --portfolio-sheet-pad-x: clamp(20px, 14px + 1vw, 32px);
+  }
 }
 
 body.portfolio-page #bravia-balls {
@@ -61,12 +70,11 @@ body.portfolio-page .ui-center-spacer {
   min-height: 0;
 }
 
-/* Wall portal: same **inner** box as `#bravia-balls` pit (canvas padding edge = lid on the pot).
-   Inset = safari tint + frame border so the host matches the canvas rect; clip uses `--frame-inner-radius`
-   like `#bravia-balls canvas` (same token + same geometry as inner wall).
-   Stacking: sheet must paint above route header + footer — see docs/reference/LAYER-STACKING.md
-   `border-radius` + `overflow:hidden` on an ancestor often fails to clip descendants with `transform`;
-   inner clip + `clip-path` keeps inner-wall rounding. Host + clip apply on all SPA routes. */
+/*
+  Stacking order is mandatory: see docs/reference/LAYER-STACKING.md.
+  Host is a sibling AFTER `.fade-content` in `#abs-scene` (StudioShell.jsx) so z-index can exceed route chrome (200).
+  Do not mount `#portfolio-sheet-host` only inside `#bravia-balls` — that keeps the drawer under header/footer.
+*/
 #portfolio-sheet-host.portfolio-sheet-host {
   position: fixed;
   top: calc(var(--safari-tint-inset) + var(--frame-border-width));
@@ -76,45 +84,15 @@ body.portfolio-page .ui-center-spacer {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  border-radius: 0;
-  overflow: visible;
+  border-radius: var(--frame-inner-radius);
+  overflow: hidden;
   pointer-events: none;
-  /* Above .fade-content (200) and #quote-viewport-host (250) while the sheet is a real overlay */
+  /* Above .fade-content (200); below open override when project open */
   z-index: 220;
 }
 
-/*
-  Clip-path `inset(0 round R)` always uses circular rounding. Global `corner-shape: squircle`
-  on `border-radius` would draw a different curve → uneven corner padding vs clip. Inside the
-  host, force circular corners so nested radii stay concentric (R_inner = R_outer − gutter).
-*/
-#portfolio-sheet-host.portfolio-sheet-host,
-#portfolio-sheet-host.portfolio-sheet-host *,
-#portfolio-sheet-host.portfolio-sheet-host *::before,
-#portfolio-sheet-host.portfolio-sheet-host *::after {
-  corner-shape: round;
-}
-
-#portfolio-sheet-host .portfolio-sheet-host__clip {
-  position: absolute;
-  inset: 0;
-  /* Match `#bravia-balls canvas` — inner wall corner geometry */
-  border-radius: var(--frame-inner-radius);
-  overflow: hidden;
-  clip-path: inset(0 round var(--frame-inner-radius));
-  -webkit-clip-path: inset(0 round var(--frame-inner-radius));
-  pointer-events: none;
-}
-
-/* Legacy / static HTML: no inner clip node — clip on the host itself */
-#portfolio-sheet-host.portfolio-sheet-host:not(:has(> .portfolio-sheet-host__clip)) {
-  border-radius: var(--frame-inner-radius);
-  overflow: hidden;
-  clip-path: inset(0 round var(--frame-inner-radius));
-  -webkit-clip-path: inset(0 round var(--frame-inner-radius));
-}
-
 body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
+  /* Above #quote-viewport-host (250) while the sheet is interactive */
   z-index: 260;
 }
 
@@ -165,27 +143,11 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   visibility: hidden;
   z-index: 40;
   pointer-events: none;
-  border-radius: var(--portfolio-drawer-radius);
-  overflow: hidden;
-  clip-path: inset(0 round var(--portfolio-drawer-radius));
-  -webkit-clip-path: inset(0 round var(--portfolio-drawer-radius));
+  overflow: visible;
 }
 
 .portfolio-project-view.is-visible {
   visibility: visible;
-}
-
-.portfolio-project-view__surface {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  display: flex;
-  flex-direction: column;
-  justify-content: stretch;
-  align-items: stretch;
-  min-height: 0;
-  pointer-events: none;
 }
 
 .portfolio-project-view__backdrop {
@@ -193,7 +155,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   inset: 0;
   z-index: 0;
   opacity: 0;
-  border-radius: inherit;
+  border-radius: 0;
   background: rgba(0, 0, 0, 0.38);
   transition: opacity var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
   pointer-events: none;
@@ -210,62 +172,31 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   transition-timing-function: var(--portfolio-sheet-ease-in);
 }
 
-.portfolio-project-view__sheet {
-  position: relative;
+/* Slides up from bottom; outer rounding comes from `#portfolio-sheet-host` clip (same token as canvas). */
+.portfolio-project-view__drawer {
+  position: absolute;
+  inset: 0;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
   min-height: 0;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  border-radius: var(--portfolio-drawer-radius);
+  box-sizing: border-box;
+  border: none;
+  border-radius: 0;
+  background: var(--portfolio-drawer-ground);
   overflow: hidden;
-  clip-path: inset(0 round var(--portfolio-drawer-radius));
-  -webkit-clip-path: inset(0 round var(--portfolio-drawer-radius));
-  background: transparent;
-  box-shadow: none;
   transform: translate3d(0, 100%, 0);
   transition: transform var(--portfolio-project-open-ms) var(--portfolio-sheet-ease-out);
   pointer-events: auto;
-  box-sizing: border-box;
 }
 
-.portfolio-project-view.is-open .portfolio-project-view__sheet {
+.portfolio-project-view.is-open .portfolio-project-view__drawer {
   transform: translate3d(0, 0, 0);
-  background: transparent;
-  box-shadow: none;
 }
 
-.portfolio-project-view.is-closing .portfolio-project-view__sheet {
+.portfolio-project-view.is-closing .portfolio-project-view__drawer {
   transform: translate3d(0, 100%, 0);
   transition-timing-function: var(--portfolio-sheet-ease-in);
-}
-
-.portfolio-project-view__sheet-highlight {
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.95) 22%,
-    rgba(255, 255, 255, 0.55) 50%,
-    rgba(255, 255, 255, 0.95) 78%,
-    transparent
-  );
-  opacity: 0.95;
-  pointer-events: none;
-  z-index: 3;
-}
-
-.portfolio-project-view.is-open .portfolio-project-view__sheet-highlight {
-  opacity: 0;
-  visibility: hidden;
 }
 
 /* SVG close: does not rely on subset Tabler woff2 (ti-x can render empty if glyph missing) */
@@ -294,76 +225,36 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   color: var(--cursor-hover-fg, #fff);
 }
 
-.portfolio-project-view__scroller {
+.portfolio-project-view__scroll {
   position: relative;
   z-index: 0;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: var(--line-height-body);
   overflow-x: hidden;
   overflow-y: auto;
-  /* Neutral ground lives on the Lenis *wrapper* (not __scroller-content): Lenis applies transform
-     to the content node, so a full-bleed background there paints a square layer that ignores
-     ancestor border-radius in WebKit. Wrapper + clip-path defines the visible rounded scrollport. */
-  background: var(--portfolio-drawer-ground);
-  isolation: isolate;
-  /* Scrollport matches inner-wall radius so transformed content + noise cannot show square corners. */
-  border-radius: var(--portfolio-drawer-radius);
-  clip-path: inset(0 round var(--portfolio-drawer-radius));
-  -webkit-clip-path: inset(0 round var(--portfolio-drawer-radius));
-  pointer-events: none;
   scrollbar-width: none;
   -ms-overflow-style: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   container-type: size;
   container-name: portfolio-drawer;
-}
-
-/* Lenis `content` node: single scroll-height driver inside the wrapper (transform target — no full-bleed bg). */
-.portfolio-project-view__scroller-content {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-height: min-content;
-  background: transparent;
-}
-
-/* Full-scroll-height noise: shares Lenis content transform so it moves with drawer scroll.
-   Reuses global `.noise` + `--abs-noise-texture` (see main.css).
-   Do NOT use border-radius: 0 — that paints a square full-bleed layer above the hero (z-index: 6)
-   and reads as “outer” square corners over rounded chrome + image. */
-.portfolio-project-view__scroller-content > .portfolio-project-view__content-noise.noise {
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  --noise-base-inset: 0px;
-  border-radius: var(--portfolio-drawer-radius);
-  z-index: 6;
-}
-
-/* Lenis applies `lenis` classes to the wrapper; mirror package lenis.css for this node only */
-.portfolio-project-view__scroller.lenis:not(.lenis-autoToggle).lenis-stopped {
-  overflow: clip;
-}
-
-.portfolio-project-view__scroller.lenis.lenis-smooth iframe {
   pointer-events: none;
 }
 
-.portfolio-project-view__scroller::-webkit-scrollbar {
+.portfolio-project-view__scroll::-webkit-scrollbar {
   width: 0;
   height: 0;
 }
 
-.portfolio-project-view.is-open .portfolio-project-view__scroller {
+.portfolio-project-view.is-open .portfolio-project-view__scroll {
   pointer-events: auto;
 }
 
-/* Hero = one full scrollport (matches visible “inner wall” window); CQ refines to exact scroller height.
-   Ground + outer rounding: __scroller (wrapper). Hero stays transparent so inset gutter reads wall color. */
+/* Hero fills first viewport of scrollport; CQ ties height to visible drawer when possible. */
 .portfolio-project-view__hero {
   position: relative;
   flex-shrink: 0;
@@ -386,11 +277,9 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 
 .portfolio-project-view__image-shell {
   position: absolute;
-  /* Host already matches inner wall; gutter only (radius − gutter = concentric arc). */
   inset: var(--portfolio-hero-image-gutter);
   overflow: hidden;
   border-radius: var(--portfolio-hero-image-radius);
-  contain: paint;
   transform: none;
   opacity: 0.001;
   transition: opacity var(--portfolio-project-image-fade-ms) ease;
@@ -426,7 +315,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
-  padding: max(env(safe-area-inset-top, 0px), var(--gap-md)) clamp(20px, 4vw, 48px) var(--gap-lg);
+  padding: max(env(safe-area-inset-top, 0px), var(--gap-md)) var(--portfolio-sheet-pad-x) var(--gap-lg);
   display: grid;
   gap: 12px;
   justify-items: center;
@@ -479,7 +368,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 .portfolio-project-view__body {
   position: relative;
   z-index: 2;
-  padding: 0 clamp(14px, 3.2vw, 40px) clamp(48px, 9vh, 88px);
+  padding: 0 var(--portfolio-sheet-pad-x) var(--portfolio-sheet-pad-y-body);
 }
 
 .portfolio-project-view__body-inner {
@@ -642,17 +531,13 @@ body.portfolio-project-open .ui-bottom {
   }
 
   .portfolio-project-view__scroll-hint {
-    margin-top: 26px;
-  }
-
-  .portfolio-project-view__body {
-    padding-inline: 14px;
+    margin-top: min(26px, var(--portfolio-scroll-hint-offset));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .portfolio-project-view__backdrop,
-  .portfolio-project-view__sheet,
+  .portfolio-project-view__drawer,
   .portfolio-project-view__image-shell,
   .portfolio-project-view__hero-copy,
   .portfolio-project-view__close {
@@ -663,11 +548,5 @@ body.portfolio-project-open .ui-bottom {
   .portfolio-project-view__links a:hover::before {
     transform: none;
     opacity: 1;
-  }
-
-  html.is-safari .portfolio-project-view__content-noise.noise::before,
-  .portfolio-project-view__content-noise.noise::before,
-  .portfolio-project-view__content-noise.noise::after {
-    animation: none;
   }
 }

@@ -10,6 +10,7 @@ import { consumeGateRequest, markGateAccess } from '../../../lib/access-gates.js
 import { setStableTimeout } from '../../../lib/legacy-runtime-scope.js';
 import {
     closeGateModal,
+    dismissGateBackdrop,
     hideCompetingGateModals,
     isGateModalParticipating,
     openGateModal,
@@ -127,6 +128,7 @@ export function initCVModal() {
             logo,
             instant,
             keepOverlayActive: isGateModalParticipating(portfolioGate) || isGateModalParticipating(contactGate),
+            keepBackdrop: options.keepBackdrop || false,
             shouldFinalize: () => !isOpen
         });
     };
@@ -172,12 +174,12 @@ export function initCVModal() {
                 markGateAccess('cv');
 
                 setStableTimeout(() => {
-                    closeGate(false, { restoreFocus: false });
+                    closeGate(false, { restoreFocus: false, keepBackdrop: true });
                     navigateWithTransition('cv.html', NAV_STATES.INTERNAL, {
                         transitionStyle: 'gate-success',
-                        exitMs: 180,
-                        enterMs: 320,
-                        readyFallbackMs: 700
+                        exitMs: 400,
+                        enterMs: 400,
+                        readyFallbackMs: 2000
                     });
                 }, 140);
                 
