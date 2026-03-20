@@ -3,9 +3,10 @@
 // ║              Spatial hashing + resolution from lines 2350-2466               ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { CONSTANTS, isPitLikeMode } from '../core/constants.js';
+import { CONSTANTS, isPitLikeMode, MODES } from '../core/constants.js';
 import { getGlobals } from '../core/state.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
+import { portfolioPitNarrowPhase, portfolioPitKinematicOverlap } from './portfolio-pit-narrow-phase.js';
 
 /** Min center distance for ball–ball (canvas buffer px): r1+r2 + ratio padding + flat gap */
 export function getBallBallRestDistance(A, B, globals) {
@@ -163,16 +164,32 @@ export function resolveCollisions(iterations = 10) {
       let dist;
       let nx;
       let ny;
-      if (dist2 < COINCIDENT_CENTERS_EPS2) {
-        nx = 1;
-        ny = 0;
+      let overlap;
+
+      const usePortfolioSat =
+        globals.currentMode === MODES.PORTFOLIO_PIT
+        && A.projectIndex !== undefined
+        && B.projectIndex !== undefined;
+      const narrow = usePortfolioSat ? portfolioPitNarrowPhase(A, B, globals) : null;
+
+      if (narrow && !narrow.useCircle) {
+        if (!narrow.hasContact) continue;
+        nx = narrow.nx;
+        ny = narrow.ny;
+        overlap = narrow.overlap;
         dist = Math.max(CONSTANTS.MIN_DISTANCE_EPSILON, 1e-4);
       } else {
-        dist = Math.sqrt(dist2);
-        nx = dx / dist;
-        ny = dy / dist;
+        if (dist2 < COINCIDENT_CENTERS_EPS2) {
+          nx = 1;
+          ny = 0;
+          dist = Math.max(CONSTANTS.MIN_DISTANCE_EPSILON, 1e-4);
+        } else {
+          dist = Math.sqrt(dist2);
+          nx = dx / dist;
+          ny = dy / dist;
+        }
+        overlap = rSum - dist;
       }
-      const overlap = rSum - dist;
       if (iter === 0 && overlap > 0) overlapDebt += overlap;
       const invA = A.isPointerLocked ? 0 : (1 / Math.max(A.m, 0.001));
       const invB = B.isPointerLocked ? 0 : (1 / Math.max(B.m, 0.001));
@@ -319,8 +336,24 @@ export function relaxOverlapsWithKinematicBall(kinematicBall) {
       const dx = B.x - kinematicBall.x;
       const dy = B.y - kinematicBall.y;
       const dist2 = dx * dx + dy * dy;
-
       const rSum = getBallBallRestDistance(kinematicBall, B, globals);
+
+      const usePortfolioK =
+        globals.currentMode === MODES.PORTFOLIO_PIT
+        && kinematicBall.projectIndex !== undefined
+        && B.projectIndex !== undefined;
+
+      if (usePortfolioK) {
+        const pk = portfolioPitKinematicOverlap(kinematicBall, B, globals);
+        if (!pk) continue;
+        const sep = KINEMATIC_POS_PERCENT * Math.max(pk.overlap - slop, 0);
+        if (sep <= 0) continue;
+        B.x += pk.nx * sep;
+        B.y += pk.ny * sep;
+        B.wake?.();
+        continue;
+      }
+
       if (dist2 >= rSum * rSum) continue;
 
       let dist;

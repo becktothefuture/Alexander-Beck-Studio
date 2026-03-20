@@ -808,6 +808,19 @@ export const CONTROL_SECTIONS = {
         }
       },
       {
+        id: 'cornerShapeSquircleEnabled',
+        label: 'Squircle corners',
+        stateKey: 'cornerShapeSquircleEnabled',
+        type: 'toggle',
+        default: true,
+        format: v => (v ? 'On' : 'Off'),
+        parse: v => !!v,
+        hint: 'iOS-style continuous corner curves via CSS corner-shape (supported browsers only). Applied site-wide from <html> class; matches design-system runtime.cornerShapeSquircleEnabled.',
+        onChange: () => {
+          applyLayoutCSSVars();
+        }
+      },
+      {
         id: 'autoDarkNightStartHour',
         label: 'Night Starts',
         stateKey: 'autoDarkNightStartHour',

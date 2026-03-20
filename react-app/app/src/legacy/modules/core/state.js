@@ -556,6 +556,9 @@ const state = {
   // Default: 18:00–06:00 (privacy-first; no geolocation).
   autoDarkNightStartHour: 18,
   autoDarkNightEndHour: 6,
+
+  // CSS `corner-shape: squircle` (iOS-like) where the browser supports it; class on <html>.
+  cornerShapeSquircleEnabled: true,
   
   // Click-to-cycle mode switching
   clickCycleEnabled: true,
@@ -1046,6 +1049,15 @@ export function applyLayoutFromVwToPx() {
   state.particleFountainMouseRepelRadius = Math.round(particleFountainMouseRepelRadiusPx);
 }
 
+/**
+ * Apply CSS `corner-shape: squircle` globally via `tokens.css` when class is set (see @supports).
+ */
+export function syncCornerShapeSquircleClass(enabled) {
+  try {
+    document.documentElement.classList.toggle('abs-corner-shape-squircle', Boolean(enabled));
+  } catch (e) {}
+}
+
 export function applyLayoutCSSVars() {
   // Single place that stamps layout CSS vars from the derived px fields.
   // Keeps CSS + physics aligned, and allows vw-based tuning without touching
@@ -1274,6 +1286,8 @@ export function applyLayoutCSSVars() {
   if (container) {
     container.classList.toggle('outer-wall-edge-disabled', !state.outerWallEdgeEnabled);
   }
+
+  syncCornerShapeSquircleClass(state.cornerShapeSquircleEnabled !== false);
 }
 
 export function initState(config) {
@@ -1377,6 +1391,9 @@ export function initState(config) {
   if (config.ballSizeDesktop !== undefined && config.ballSizeMin === undefined) state.ballSizeMax = config.ballSizeDesktop;
   if (config.ballSizeMobile !== undefined && config.ballSizeMin === undefined) state.ballSizeMin = config.ballSizeMobile;
   if (config.liteModeEnabled !== undefined) state.liteModeEnabled = Boolean(config.liteModeEnabled);
+  if (config.cornerShapeSquircleEnabled !== undefined) {
+    state.cornerShapeSquircleEnabled = Boolean(config.cornerShapeSquircleEnabled);
+  }
   if (config.liteModeObjectReductionFactor !== undefined) {
     state.liteModeObjectReductionFactor = clampNumber(
       config.liteModeObjectReductionFactor,

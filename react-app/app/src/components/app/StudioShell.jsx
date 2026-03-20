@@ -72,7 +72,10 @@ export function StudioShell({
           id="portfolio-sheet-host"
           className="portfolio-sheet-host"
           aria-hidden="true"
-        />
+        >
+          {/* Dedicated clip layer: border-radius alone misses transformed children (sheet slide); see portfolio.css */}
+          <div className="portfolio-sheet-host__clip" />
+        </div>
 
         <div
           id="quote-viewport-host"

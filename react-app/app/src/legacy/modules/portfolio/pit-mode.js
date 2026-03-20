@@ -1,43 +1,24 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                         PORTFOLIO PIT MODE                                   ║
-// ║   Same pit physics as home (circle colliders); one large ball per project   ║
+// ║   Pit solver + portfolio narrow-phase SAT for non-circle silhouettes.         ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { Ball } from '../physics/Ball.js';
 import { getGlobals, clearBalls, syncPitPortfolioRadiusStatsFromBalls } from '../core/state.js';
 import { getPortfolioProjectPaletteColor } from '../visual/colors.js';
 import { resize, detectOptimalDPR } from '../rendering/renderer.js';
+import {
+  appendPortfolioBodyPath,
+  pickPortfolioBodyShape,
+  pickPortfolioRectAspect,
+} from '../physics/portfolio-body-geometry.js';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-/** Defaults ≈ previous hard-coded rim; rimScale > 1 reads slightly larger than small UI pills. */
-const PIT_CHROME_DEFAULTS = {
-  rimScale: 1.25,
-  lightPeakLight: 0.53,
-  lightPeakDark: 0.41,
-  shadePeakLight: 0.13,
-  shadePeakDark: 0.22,
-  arcSpan: 1.12,
-};
-
-function getPitChrome(globals) {
-  const raw = globals?.portfolioPitConfig?.pitChrome;
-  const out = { ...PIT_CHROME_DEFAULTS };
-  if (!raw || typeof raw !== 'object') return out;
-  for (const key of Object.keys(PIT_CHROME_DEFAULTS)) {
-    const n = Number(raw[key]);
-    if (Number.isFinite(n)) out[key] = n;
-  }
-  out.rimScale = clamp(out.rimScale, 0.65, 2.5);
-  out.lightPeakLight = clamp(out.lightPeakLight, 0.05, 0.95);
-  out.lightPeakDark = clamp(out.lightPeakDark, 0.05, 0.95);
-  out.shadePeakLight = clamp(out.shadePeakLight, 0, 0.55);
-  out.shadePeakDark = clamp(out.shadePeakDark, 0, 0.55);
-  out.arcSpan = clamp(out.arcSpan, 0.55, 2.2);
-  return out;
-}
+/** Extra scale vs authored fractions (tuned after user feedback). */
+const PORTFOLIO_BODY_DIAMETER_BOOST = 1.6;
 
 function toNumber(value, fallback) {
   const numeric = Number(value);
@@ -72,6 +53,43 @@ function getContrastText(fill) {
 function hashUnit(seed) {
   const value = Math.sin((seed + 1) * 12.9898) * 43758.5453;
   return value - Math.floor(value);
+}
+
+function getPortfolioBodyRotationRad(ball) {
+  return (ball.theta || 0) + (ball.rotationOffset || 0);
+}
+
+function isDocumentDarkMode() {
+  if (typeof document === 'undefined') return false;
+  return document.documentElement?.classList?.contains('dark-mode')
+    || document.body?.classList?.contains('dark-mode');
+}
+
+/** First project circle: light fill on dark UI, dark fill on light UI. */
+export function getPortfolioAccentCircleFill() {
+  return isDocumentDarkMode() ? '#f5f1ea' : '#111111';
+}
+
+export function applyPortfolioAccentBallColor(ball) {
+  if (!ball?.__portfolioAccentCircle) return;
+  const fill = getPortfolioAccentCircleFill();
+  ball.color = fill;
+  ball.labelColor = getContrastText(fill);
+}
+
+export function syncPortfolioAccentCircleColors() {
+  const globals = getGlobals();
+  const balls = globals.balls;
+  if (!Array.isArray(balls)) return;
+  let any = false;
+  for (let i = 0; i < balls.length; i += 1) {
+    const b = balls[i];
+    if (b?.__portfolioAccentCircle) {
+      applyPortfolioAccentBallColor(b);
+      any = true;
+    }
+  }
+  if (any) globals.portfolioSyncLabelLayer?.();
 }
 
 export function buildWrappedTitle(ctx, title, bounds) {
@@ -176,6 +194,7 @@ export function relayoutPortfolioProjectLabels() {
       project?.displayTitle || project?.title || ball.projectTitle || 'Untitled Project'
     ).trim();
     ball._portfolioDpr = globals.DPR || 1;
+    if (ball.__portfolioAccentCircle) applyPortfolioAccentBallColor(ball);
     computeLabelForBall(ctx, ball, config, projectLabel, fontFamily, isMobile);
     ball.labelColor = getContrastText(ball.color);
     ball.projectTitle = projectLabel;
@@ -196,23 +215,31 @@ function seedProjectBodies(globals) {
   const dpr = globals.DPR || 1;
   const fontFamily = getComputedStyle(document.body).fontFamily || 'Helvetica Neue, Arial, sans-serif';
   const isMobile = width < 700;
-  const mobileDiameterMul = isMobile ? 0.82 : 1;
-
-  const minFrac = clamp(toNumber(config.bodies?.minDiameterViewport, 0.22), 0.14, 0.45);
-  const maxFrac = clamp(
-    toNumber(config.bodies?.maxDiameterViewport, 0.32),
-    minFrac,
-    0.52
-  ) * mobileDiameterMul;
-  const sizeMul = clamp(toNumber(config.bodies?.diameterScale, 1.2), 1, 1.6);
-  const minD = Math.min(width, height) * minFrac * mobileDiameterMul * sizeMul;
-  const maxD = Math.min(width, height) * maxFrac * sizeMul;
 
   const frameBorderWidth = Number.isFinite(globals.frameBorderWidth)
     ? globals.frameBorderWidth
     : (globals.wallThickness || 20);
   const frameInset = frameBorderWidth * dpr;
-  const wallPadding = Math.min(width, height) * clamp(toNumber(config.bodies?.wallPaddingViewport, 0.05), 0.02, 0.14);
+  const innerW = Math.max(1, width - 2 * frameInset);
+  const innerH = Math.max(1, height - 2 * frameInset);
+  const innerArea = innerW * innerH;
+  const areaNorm = Math.sqrt(innerArea);
+
+  const minFrac = clamp(toNumber(config.bodies?.minDiameterViewport, 0.14), 0.08, 0.5);
+  const maxFrac = clamp(
+    toNumber(config.bodies?.maxDiameterViewport, 0.22),
+    minFrac,
+    0.58
+  );
+  const sizeMul = clamp(toNumber(config.bodies?.diameterScale, 1.2), 1, 1.8);
+
+  let minD = areaNorm * minFrac * sizeMul * PORTFOLIO_BODY_DIAMETER_BOOST;
+  let maxD = areaNorm * maxFrac * sizeMul * PORTFOLIO_BODY_DIAMETER_BOOST;
+
+  const wallPadding = Math.min(innerW, innerH) * clamp(toNumber(config.bodies?.wallPaddingViewport, 0.05), 0.02, 0.14);
+  const maxDiameterFit = Math.max(24 * dpr, Math.min(innerW, innerH) - 2 * wallPadding);
+  maxD = Math.min(maxD, maxDiameterFit);
+  minD = Math.min(minD, maxD);
 
   const spawnInset = Math.min(width, height) * clamp(toNumber(config.layout?.spawnInsetViewport, 0.1), 0.05, 0.22);
   const maxRSpawn = maxD * 0.5;
@@ -240,17 +267,24 @@ function seedProjectBodies(globals) {
     const t = projects.length <= 1 ? 0.5 : index / (projects.length - 1);
     const diameter = minD + ((maxD - minD) * (0.25 + (0.75 * (1 - Math.abs(0.5 - t)))));
     const radius = diameter * 0.5;
-    const fill = getPortfolioProjectPaletteColor(index, projects.length);
+    const shape = pickPortfolioBodyShape(index);
+    const isAccentCircle = shape === 'circle' && index === 0;
+    const fill = isAccentCircle
+      ? getPortfolioAccentCircleFill()
+      : getPortfolioProjectPaletteColor(index, projects.length);
 
     const x = spawnBandMin + (hashUnit(index + 31) * (spawnBandMax - spawnBandMin));
     const y = spawnYTop + (hashUnit(index + 53) * (spawnYBottom - spawnYTop)) - (index * (spawnHeight / Math.max(6, projects.length + 2)));
 
     const ball = new Ball(x, y, radius, fill);
     ball.projectIndex = index;
+    ball.portfolioBodyShape = shape;
+    ball.portfolioRectAspect = shape === 'roundedRect' ? pickPortfolioRectAspect(index) : null;
+    ball.__portfolioAccentCircle = isAccentCircle;
     ball._noSquash = true;
-    ball.omega = 0;
-    ball.theta = 0;
+    ball.theta = hashUnit(index + 11) * Math.PI * 2;
     ball.rotationOffset = 0;
+    ball.omega = (hashUnit(index + 13) - 0.5) * 6;
     ball._portfolioDpr = dpr;
 
     const projectLabel = String(project.displayTitle || project.title || 'Untitled Project').trim();
@@ -268,110 +302,28 @@ function seedProjectBodies(globals) {
   syncPitPortfolioRadiusStatsFromBalls();
 }
 
-/**
- * Inner arc stroke with opacity feathered at both ends (sin envelope) so tips don’t
- * “chop” like a hard line cap. Dense segments + round caps limit visible stepping;
- * optional second pass at lower alpha softens anti-aliasing without a gradient fill.
- */
-function strokeArcRimFeathered(ctx, ir, startAngle, endAngle, lineWidth, peakAlpha, rgb) {
-  const span = endAngle - startAngle;
-  const segs = Math.round(clamp(ir * 0.084, 32, 46));
-  const rr = rgb[0];
-  const gg = rgb[1];
-  const bb = rgb[2];
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  const drawPass = (lw, peak) => {
-    ctx.lineWidth = lw;
-    for (let i = 0; i < segs; i += 1) {
-      const t0 = i / segs;
-      const t1 = (i + 1) / segs;
-      const w = (Math.sin(Math.PI * t0) + Math.sin(Math.PI * t1)) * 0.5;
-      const a = peak * w;
-      if (a < 0.01) continue;
-      const a0 = startAngle + t0 * span;
-      const a1 = startAngle + t1 * span;
-      ctx.strokeStyle = `rgba(${rr},${gg},${bb},${a})`;
-      ctx.beginPath();
-      ctx.arc(0, 0, ir, a0, a1);
-      ctx.stroke();
-    }
-  };
-
-  drawPass(lineWidth * 1.45, peakAlpha * 0.22);
-  drawPass(lineWidth, peakAlpha);
-}
-
-/**
- * Inset rim in **screen space** (never coupled to ball.theta): same idea as
- * `--ui-chrome-button-edge` — highlight toward upper-left (studio light), shade toward
- * lower-right. Arcs sit with their **outer** stroke extent at the ball radius (not
- * visibly inset). Caller must `translate(cx, cy)` first; must not apply ball rotation.
- */
-function portfolioBallInsetChromeEdge(ctx, r) {
-  const globals = getGlobals();
-  const chrome = getPitChrome(globals);
-  const isDark = typeof document !== 'undefined'
-    && document.documentElement?.classList?.contains('dark-mode');
-  const line = Math.max(1.1, r * 0.0032) * chrome.rimScale;
-  // Widest pass uses line * 1.45; center path so outer stroke edge meets r.
-  const rimR = r - (line * 1.45) * 0.5;
-  const span = chrome.arcSpan;
-  const peakLight = isDark ? chrome.lightPeakDark : chrome.lightPeakLight;
-  const peakShade = isDark ? chrome.shadePeakDark : chrome.shadePeakLight;
-
-  ctx.save();
-  try {
-    ctx.imageSmoothingEnabled = true;
-  } catch (_) { /* no-op */ }
-
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.clip();
-
-  const shadeMid = Math.PI / 4;
-  strokeArcRimFeathered(ctx, rimR, shadeMid - span, shadeMid + span, line, peakShade, [0, 0, 0]);
-
-  const lightMid = (-Math.PI * 3) / 4;
-  strokeArcRimFeathered(ctx, rimR, lightMid - span, lightMid + span, line, peakLight, [255, 255, 255]);
-
-  ctx.restore();
-}
-
 function renderProjectBody(ctx, ball) {
   if (!ball || ball.__portfolioHidden) return;
 
+  const globals = getGlobals();
+  const pitConfig = globals.portfolioPitConfig || {};
+  const shape = ball.portfolioBodyShape || 'circle';
   const focusDimmer = toNumber(ball.__portfolioDimAlpha, 1);
   const r = ball.r;
   const x = ball.x;
   const y = ball.y;
   const alpha = clamp(focusDimmer, 0, 1);
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = ball.color;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
+  const rot = getPortfolioBodyRotationRad(ball);
 
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(x, y);
-  portfolioBallInsetChromeEdge(ctx, r);
+  ctx.rotate(rot);
+  ctx.fillStyle = ball.color;
+  ctx.beginPath();
+  appendPortfolioBodyPath(ctx, shape, r, pitConfig, ball.portfolioRectAspect || null);
+  ctx.fill();
   ctx.restore();
-
-  if (ball.__portfolioFocused) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.lineWidth = Math.max(2, r * 0.04);
-    ctx.strokeStyle = ball.labelColor || '#ffffff';
-    ctx.beginPath();
-    ctx.arc(x, y, r - 1, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-  }
 }
 
 export function initializePortfolioPit() {

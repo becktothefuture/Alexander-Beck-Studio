@@ -19,7 +19,7 @@ Hero hint copy is **`(scroll please)`** (see `createProjectView()` in `app.js`).
 ## Runtime Modules
 
 - `react-app/app/src/legacy/modules/portfolio/app.js` bootstraps the route, loads project data, mounts the fullscreen project view, and handles drag/open behavior.
-- `react-app/app/src/legacy/modules/portfolio/pit-mode.js` creates one body per project and renders the alternating circle/block skins with fitted titles.
+- `react-app/app/src/legacy/modules/portfolio/pit-mode.js` creates one body per project: alternating **circle** / **rounded rectangle**, distinct rect aspect presets, first project = **theme accent circle** (light fill in dark mode, dark fill in light). Convex hulls match `portfolio-body-geometry.js`; ball–ball contact uses SAT in `portfolio-pit-narrow-phase.js` (see `CONFIGURATION.md`). **Body diameter** scales with **√(inner pit width×height)** (same wall inset as physics), not `min(canvas)`, so silhouettes keep similar **relative** size on phone and desktop. Pit bodies are **solid fill** on canvas (hero imagery is for the open drawer only).
 - `react-app/app/src/legacy/modules/portfolio/portfolio-config.js` normalizes the authored portfolio config and applies portfolio CSS vars.
 - `react-app/app/src/legacy/modules/portfolio/panel/` exposes the dev panel for body sizing, labeling, and motion.
 
@@ -36,12 +36,10 @@ The active portfolio runtime groups are:
 
 - `cssVars`: page/header/hero presentation values
 - `runtime.layout`: spawn spacing and header offsets
-- `runtime.bodies`: circle/block size and block width/radius
+- `runtime.bodies`: min/max diameter fractions vs √(inner pit area), block geometry
 - `runtime.labeling`: title fit bounds and block rotation range
 - `runtime.motion`: drag/open timing and neighbor impulse
 - `runtime.behavior`: passive mouse reaction toggle and reduced-motion timing
-- `runtime.pitChrome`: canvas disc rim (highlight/shadow peaks, rim scale vs ball radius, arc span) — independent of Studio “Light Edge” on DOM chrome; dev panel section **Project pit rim**
-
 ## Archived Slider
 
 The previous slider implementation is archived and no longer used in the live route:

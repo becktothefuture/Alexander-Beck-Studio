@@ -16,12 +16,13 @@ The portfolio route now uses a dedicated **project pit** runtime instead of the 
 - **Generated compatibility file**: `react-app/app/public/config/portfolio-config.json`
 - **Project content**: `react-app/app/public/config/contents-portfolio.json`
 - **Loader/normalizer**: `react-app/app/src/legacy/modules/portfolio/portfolio-config.js`
+- **Stylesheet**: `react-app/app/public/css/portfolio.css` is linked from **`index.html`** and **`portfolio.html`**. Pit/chrome rules that need the dedicated portfolio layout still use **`body.portfolio-page`**; **`#portfolio-sheet-host`** fixed inset (**`safari-tint-inset` + `frame-border-width`**, same box as pit canvas), inner **clip** (`--frame-inner-radius`), and open **z-index** apply on **all** routes so opening a project from the **home** pit matches the portfolio route.
 
-Portfolio config applies to the portfolio pit and the **wall-contained project bottom sheet** (not a fullscreen takeover). `runtime.motion.openDurationMs` drives sheet slide in/out; `colorFloodHoldMs` is unused in this layout but remains in generated JSON for compatibility. The project dialog (`#portfolioProjectView`) is inserted by `portfolio/app.js` **`createProjectView()`** into **`#portfolio-sheet-host`** when that node exists (`StudioShell.jsx`); same fixed inset as `#bravia-balls` (`--safari-tint-inset`); **outer** clip of the host and drawer uses **`--frame-inner-radius`** so corner roundness matches the **inner wall** / canvas, not the frame’s outer radius. With `body.portfolio-project-open`, the host uses **z-index 260** so the sheet stacks above `.fade-content` (header/footer) and the quote viewport host. **Stacking order is mandatory product behavior** — see **`docs/reference/LAYER-STACKING.md`**. Close uses an **inline SVG** (subset icon fonts can omit `ti-x`). Pit labels stay in `#portfolioProjectMount`. Without the host, the dialog falls back to the mount using **`--portfolio-drawer-radius`**. The scroller hides scrollbars (CSS). Inertial / weighted scroll uses **`lenis`** on `.portfolio-project-view__scroller` unless `prefers-reduced-motion: reduce` (native scroll then). The hero image is clipped with **`--frame-inner-radius`**, **`--frame-border-width`**, and a fixed **4px** gutter (`portfolio.css`, `.portfolio-project-view__image-shell`) to align with **`#bravia-balls canvas`**; hero block height follows the scrollport (**`100cqh`** with **`container-type: size`** on the scroller, `min(100dvh, 100svh)` fallback).
+Portfolio config applies to the portfolio pit and the **wall-contained project bottom sheet** (not a fullscreen takeover). `runtime.motion.openDurationMs` drives sheet slide in/out; `colorFloodHoldMs` is unused in this layout but remains in generated JSON for compatibility. The project dialog (`#portfolioProjectView`) is inserted by `portfolio/app.js` **`createProjectView()`** into **`#portfolio-sheet-host`** when that node exists (`StudioShell.jsx`). **`#portfolio-sheet-host`** uses the same **inner-wall rectangle** as the pit: fixed inset `calc(var(--safari-tint-inset) + var(--frame-border-width))` on all sides (matches `#bravia-balls canvas` / padding edge — “lid on the pot”), with **`--frame-inner-radius`** on the inner clip (`clip-path` + `border-radius`) exactly like the canvas. Drawer internals use **`--portfolio-drawer-radius`** (= `--frame-inner-radius`). **`corner-shape: round`** is forced on **`#portfolio-sheet-host`** and descendants so `clip-path: inset(… round …)` (circular) and nested **`border-radius`** stay concentric; site-wide squircle elsewhere does not apply inside the drawer. With `body.portfolio-project-open`, the host uses **z-index 260** so the sheet stacks above `.fade-content` (header/footer) and the quote viewport host. **Stacking order is mandatory product behavior** — see **`docs/reference/LAYER-STACKING.md`**. Close uses an **inline SVG** (subset icon fonts can omit `ti-x`). Pit labels stay in `#portfolioProjectMount`. Without the host, the dialog falls back to the mount using **`--portfolio-drawer-radius`**. The scroller hides scrollbars (CSS). Inertial / weighted scroll uses **`lenis`** on `.portfolio-project-view__scroller` unless `prefers-reduced-motion: reduce` (native scroll then). The hero image uses **`--portfolio-hero-image-gutter`** (default **4px**) inset and **`--portfolio-hero-image-radius`** (`max(0, frame-inner-radius − gutter)`) so the gutter stays concentric with the inner wall; hero block height follows the scrollport (**`100cqh`** with **`container-type: size`** on the scroller, `min(100dvh, 100svh)` fallback).
 
-- **`bodies.diameterScale`**: Multiplier applied to computed ball diameters after viewport fractions (default `1.2` = 20% larger than the base min/max viewport sizing).
+- **`bodies.diameterScale`**: Multiplier applied to computed ball diameters after viewport fractions (default `1` = no extra scale on top of min/max viewport fractions).
 
-**Simulation notes (2025-03):** Portfolio bodies use the same circle colliders and pit solver as the home ball pit (no mixed block/circle mismatch). `detectResponsiveScale()` does not overwrite portfolio radii; `R_MAX` / spatial hashing are synced from spawned bodies. The canvas logo draw path is skipped on the portfolio route so home hero artwork cannot leak after SPA navigation. Titles render in a DOM overlay (`portfolioDomLabels`) for sharp type. On SPA route changes, React remounts `#c`; `setupRenderer()` clears the renderer’s cached previous backing-store dimensions when the canvas **node** changes so `resize()` cannot treat a fresh default 300×150 buffer as already matching the last route’s layout (fixes broken pit after the portfolio gate modal).
+**Simulation notes (2025-03):** Portfolio bodies share the home pit integrator (walls still use each body’s circular `ball.r` envelope—conservative, shapes stay inscribed). Project silhouettes are **circles and rounded rectangles only** (alternating by index); each rectangle uses a preset aspect from `PORTFOLIO_RECT_ASPECT_PRESETS` in `portfolio-body-geometry.js` (overriding panel `blockWidthMultiplier` / `blockHeightRatio` for that body). The **first project** (index 0) is a **theme accent circle**: cream `#f5f1ea` in dark mode, near-black `#111111` in light mode (`getPortfolioAccentCircleFill` in `pit-mode.js`, refreshed on theme toggle). **Ball–ball** contact uses **SAT** on the same hulls as rendering (`portfolio-pit-narrow-phase.js`, `collision.js`). Pointer hit-testing matches those hulls (`portfolioCanvasPointHitsBody` in `app.js`). `detectResponsiveScale()` does not overwrite portfolio radii; `R_MAX` / spatial hashing are synced from spawned bodies. The canvas logo draw path is skipped on the portfolio route so home hero artwork cannot leak after SPA navigation. Titles render in a DOM overlay (`portfolioDomLabels`) for sharp type. On SPA route changes, React remounts `#c`; `setupRenderer()` clears the renderer’s cached previous backing-store dimensions when the canvas **node** changes so `resize()` cannot treat a fresh default 300×150 buffer as already matching the last route’s layout (fixes broken pit after the portfolio gate modal).
 
 **Project circle fills:** Each project gets a distinct color from the active palette: saturated (chromatic) swatches first, then neutral/grey slots from that palette (deduped), then additional cool greys if there are more projects than unique swatches (`getPortfolioProjectPaletteColor` in `visual/colors.js`). Home ball pit still uses weighted random palette picks; this rule applies only to the portfolio pit.
 
@@ -62,9 +63,9 @@ The portfolio runtime is grouped by behavior rather than slider mechanics:
       "headerTopSpacing": 24
     },
     "bodies": {
-      "minDiameterViewport": 0.22,
-      "maxDiameterViewport": 0.32,
-      "diameterScale": 1.2,
+      "minDiameterViewport": 0.14,
+      "maxDiameterViewport": 0.22,
+      "diameterScale": 1,
       "wallPaddingViewport": 0.05
     },
     "labeling": {
@@ -85,20 +86,12 @@ The portfolio runtime is grouped by behavior rather than slider mechanics:
     "behavior": {
       "passiveMouseReaction": false,
       "reducedMotionDurationMs": 320
-    },
-    "pitChrome": {
-      "rimScale": 1.25,
-      "lightPeakLight": 0.53,
-      "lightPeakDark": 0.41,
-      "shadePeakLight": 0.13,
-      "shadePeakDark": 0.22,
-      "arcSpan": 1.12
     }
   }
 }
 ```
 
-**`runtime.pitChrome` (canvas project discs):** Separate from Studio **Light Edge** (`edgeStrength` / `--abs-surface-edge-opacity`), which drives DOM hover glass and frame cues. These keys tune the **screen-fixed** upper-left highlight and lower-right shade drawn on each portfolio pit circle in `pit-mode.js`. Defaults use **`rimScale` 1.25** so the rim reads slightly wider than a proportional match to small UI pills. Dev: **Portfolio → Project pit rim** in the dock.
+**`runtime.bodies.minDiameterViewport` / `maxDiameterViewport`:** Diameter fractions multiply **`Math.sqrt(innerWidth × innerHeight)`** of the **inner wall** (canvas buffer minus `frameBorderWidth`/`wallThickness` inset), then `diameterScale`, then a fixed **diameter boost** (`PORTFOLIO_BODY_DIAMETER_BOOST` in `pit-mode.js`, currently **~1.6×**), and are **clamped** so bodies stay inside the pit. This tracks the same “playable area” as wall collision (`Ball.js` interior SDF), so relative size stays consistent across mobile and desktop aspect ratios (the old `min(canvas)` × mobile-only shrink is removed).
 
 Portfolio content still comes from `react-app/app/public/config/contents-portfolio.json` and resolves against `react-app/app/public/images/portfolio/`.
 
@@ -776,7 +769,9 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 - `wallRadiusVw` (number, vw) → `--wall-radius` (derived px; also feeds rounded-corner collision bounds)
 - `wallInset` (number, px) → physics-only inset (shrinks effective collision bounds to prevent visual overlap)
 
-**Design rule (wall frame):** The inner wall corner radius is applied at **1.15×** the base radius (in `applyLayoutFromVwToPx`) to visually compensate for the extra outer offset of the second outer wall band (`.wall-outer-2`). If the number of outer bands or their offset changes, this multiplier may need adjustment. **iOS-like rounding:** Where the browser supports it (`@supports (corner-shape: squircle)`), walls and other rounded elements use `corner-shape: squircle` for smoother, more natural-looking corners.
+**Design rule (wall frame):** The inner wall corner radius is applied at **1.15×** the base radius (in `applyLayoutFromVwToPx`) to visually compensate for the extra outer offset of the second outer wall band (`.wall-outer-2`). If the number of outer bands or their offset changes, this multiplier may need adjustment.
+
+**iOS-like squircle corners (global):** Runtime flag `cornerShapeSquircleEnabled` (boolean, default `true`) in `design-system.json` → `runtime`. When enabled, `applyLayoutCSSVars()` adds class `abs-corner-shape-squircle` on `<html>`; `tokens.css` applies `corner-shape: squircle` to `html` and all descendants (plus `::before` / `::after`) inside `@supports (corner-shape: squircle)` — the property is not inherited, so the stylesheet lists descendants explicitly. **Exceptions (stay circular):** `#custom-cursor` and `.legend .circle` reset to `corner-shape: round` so the home cursor dot / tap ring and expertise palette dots stay perfect circles. Browsers without support keep standard circular `border-radius` arcs. Dev panel (**dev only**): **Browser → Squircle corners** (same state key). Canvas-drawn geometry is unchanged (CSS-only enhancement).
 
 ### Legacy compatibility (px keys)
 The following legacy keys are still accepted and will be converted to vw at startup:

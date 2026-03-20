@@ -1,83 +1,4 @@
 const CONTROL_SECTIONS = {
-  pitChrome: {
-    title: 'Project pit rim',
-    icon: '◐',
-    defaultOpen: true,
-    controls: [
-      {
-        id: 'pitChromeRimScale',
-        label: 'Rim size',
-        configKey: 'runtime.pitChrome.rimScale',
-        type: 'range',
-        min: 1,
-        max: 2,
-        step: 0.05,
-        unit: '×',
-        default: 1.25,
-        hint: 'Scales highlight + shadow stroke vs ball radius. ~1.0 ≈ UI-button proportion; higher = wider rim on large project discs (separate from Studio Light Edge).',
-      },
-      {
-        id: 'pitChromeLightPeakLight',
-        label: 'Highlight · light UI',
-        configKey: 'runtime.pitChrome.lightPeakLight',
-        type: 'range',
-        min: 0.15,
-        max: 0.75,
-        step: 0.01,
-        unit: '',
-        default: 0.53,
-        hint: 'Upper-left white rim strength when the site is in light mode.',
-      },
-      {
-        id: 'pitChromeLightPeakDark',
-        label: 'Highlight · dark UI',
-        configKey: 'runtime.pitChrome.lightPeakDark',
-        type: 'range',
-        min: 0.15,
-        max: 0.65,
-        step: 0.01,
-        unit: '',
-        default: 0.41,
-        hint: 'Upper-left white rim strength in dark mode.',
-      },
-      {
-        id: 'pitChromeShadePeakLight',
-        label: 'Shadow · light UI',
-        configKey: 'runtime.pitChrome.shadePeakLight',
-        type: 'range',
-        min: 0,
-        max: 0.4,
-        step: 0.01,
-        unit: '',
-        default: 0.13,
-        hint: 'Lower-right dark rim in light mode.',
-      },
-      {
-        id: 'pitChromeShadePeakDark',
-        label: 'Shadow · dark UI',
-        configKey: 'runtime.pitChrome.shadePeakDark',
-        type: 'range',
-        min: 0,
-        max: 0.45,
-        step: 0.01,
-        unit: '',
-        default: 0.22,
-        hint: 'Lower-right dark rim in dark mode.',
-      },
-      {
-        id: 'pitChromeArcSpan',
-        label: 'Arc span',
-        configKey: 'runtime.pitChrome.arcSpan',
-        type: 'range',
-        min: 0.7,
-        max: 1.65,
-        step: 0.02,
-        unit: ' rad',
-        default: 1.12,
-        hint: 'Angular length of each rim segment (radians).',
-      },
-    ],
-  },
   layout: {
     title: 'Layout',
     icon: 'LAY',
@@ -94,8 +15,32 @@ const CONTROL_SECTIONS = {
     icon: 'BOD',
     defaultOpen: true,
     controls: [
-      { id: 'minDiameterViewport', label: 'Min Size', configKey: 'runtime.bodies.minDiameterViewport', type: 'range', min: 0.12, max: 0.32, step: 0.01, unit: '', default: 0.22, refresh: true },
-      { id: 'maxDiameterViewport', label: 'Max Size', configKey: 'runtime.bodies.maxDiameterViewport', type: 'range', min: 0.16, max: 0.42, step: 0.01, unit: '', default: 0.32, refresh: true },
+      {
+        id: 'minDiameterViewport',
+        label: 'Min Size',
+        configKey: 'runtime.bodies.minDiameterViewport',
+        type: 'range',
+        min: 0.08,
+        max: 0.45,
+        step: 0.01,
+        unit: '',
+        default: 0.14,
+        refresh: true,
+        hint: 'Min diameter as a fraction of √(inner pit width×height). Same relative scale on mobile and desktop; clamped so bodies stay inside the wall.',
+      },
+      {
+        id: 'maxDiameterViewport',
+        label: 'Max Size',
+        configKey: 'runtime.bodies.maxDiameterViewport',
+        type: 'range',
+        min: 0.1,
+        max: 0.55,
+        step: 0.01,
+        unit: '',
+        default: 0.22,
+        refresh: true,
+        hint: 'Max diameter as a fraction of √(inner pit area). Paired with Min Size and Diameter scale in pit-mode.',
+      },
       { id: 'blockWidthMultiplier', label: 'Block Width', configKey: 'runtime.bodies.blockWidthMultiplier', type: 'range', min: 0.7, max: 1, step: 0.01, unit: '', default: 0.92, refresh: true },
       { id: 'blockHeightRatio', label: 'Block Height', configKey: 'runtime.bodies.blockHeightRatio', type: 'range', min: 0.45, max: 0.9, step: 0.01, unit: '', default: 0.68, refresh: true },
       { id: 'blockCornerRadius', label: 'Block Radius', configKey: 'runtime.bodies.blockCornerRadius', type: 'range', min: 12, max: 96, step: 1, unit: 'px', default: 40, refresh: true },
@@ -142,7 +87,7 @@ const CONTROL_SECTIONS = {
 };
 
 /** All sections whose controls participate in bind + save snapshot. */
-const ACTIVE_SECTION_KEYS = ['pitChrome', 'layout', 'bodies', 'labeling', 'motion', 'hero'];
+const ACTIVE_SECTION_KEYS = ['layout', 'bodies', 'labeling', 'motion', 'hero'];
 
 /** Page master-group only: pit rim is injected under Simulation (see panel-dock). */
 const PORTFOLIO_PAGE_SECTION_KEYS = ['layout', 'bodies', 'labeling', 'motion', 'hero'];
@@ -254,10 +199,8 @@ function generatePortfolioSectionHTML(sectionKey, config, computedRoot) {
     </details>`;
 }
 
-export function generatePortfolioPitChromePanelHTML(config, computedRoot = null) {
-  const root = computedRoot
-    || (typeof document !== 'undefined' ? getComputedStyle(document.documentElement) : null);
-  return generatePortfolioSectionHTML('pitChrome', config, root);
+export function generatePortfolioPitChromePanelHTML() {
+  return '';
 }
 
 export function generatePanelSectionsHTML(config, computedRoot = null) {

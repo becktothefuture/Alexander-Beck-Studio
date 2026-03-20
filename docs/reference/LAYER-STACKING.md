@@ -15,7 +15,7 @@ That is achieved by **DOM placement + z-index**, not by hiding the header/footer
 |-------------|--------|
 | **Mount target** | Insert `#portfolioProjectView` into **`#portfolio-sheet-host`** when that element exists (`StudioShell.jsx`). |
 | **Do not** | Mount the project dialog inside **`#portfolioProjectMount`** or **`#bravia-balls`** for stacking purposes — that subtree sits **below** `.fade-content` (z-index 200) and the drawer will paint **under** the header and footer. |
-| **Implementation** | `react-app/app/src/legacy/modules/portfolio/app.js` — `createProjectView()` must prefer `document.getElementById('portfolio-sheet-host')` over `this.mount`. |
+| **Implementation** | `react-app/app/src/legacy/modules/portfolio/app.js` — `createProjectView()` mounts into **`#portfolio-sheet-host > .portfolio-sheet-host__clip`** when that node exists (`StudioShell.jsx`), else the host directly. The host is inset like **`#bravia-balls` canvas** (`safari-tint-inset` + `frame-border-width`); the inner clip uses **`--frame-inner-radius`** (`clip-path` + `overflow: hidden`) so the drawer matches the pit opening (“lid on the pot”). **`portfolio.css`** sets **`corner-shape: round`** on the host subtree so nested **`border-radius`** matches **`clip-path` … `round`** (circular); site-wide squircle is not used inside the drawer. |
 
 ## `#abs-scene` children (bottom → top)
 
@@ -27,13 +27,13 @@ All of these participate in the same transformed scene (`#abs-scene` uses `trans
 | 2 | 175 | `.frame-vignette` | Inset vignette; pointer-events none. |
 | 3 | **200** | **`.fade-content`** | **Route chrome:** header row, main slot, footer. |
 | 4 | 250 | `#quote-viewport-host` | Quote / puck host. |
-| 5 | **220** (idle) / **260** (open) | **`#portfolio-sheet-host`** | **Project dialog host.** With `body.portfolio-page.portfolio-project-open`, CSS raises the host to **260** so the sheet is above the quote host as well as `.fade-content`. |
+| 5 | **220** (idle) / **260** (open) | **`#portfolio-sheet-host`** | **Project dialog host.** With `body.portfolio-project-open`, CSS raises the host to **260** so the sheet is above the quote host as well as `.fade-content` (works from **home** or **portfolio** SPA). |
 
 Source of truth in CSS:
 
 - `react-app/app/public/css/main.css` — `.fade-content` z-index.
 - `react-app/app/public/css/main.css` — `#quote-viewport-host`.
-- `react-app/app/public/css/portfolio.css` — `#portfolio-sheet-host` and `body.portfolio-page.portfolio-project-open` override.
+- `react-app/app/public/css/portfolio.css` — `#portfolio-sheet-host` (fixed inset + inner clip, **not** gated on `body.portfolio-page`) and `body.portfolio-project-open` z-index override.
 
 The comment block in `react-app/app/public/css/tokens.css` (`:root`, “Z-INDEX STACKING ORDER”) should stay **aligned** with this document when values change.
 

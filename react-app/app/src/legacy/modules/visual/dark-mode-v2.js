@@ -186,6 +186,14 @@ function applyDarkModeToDOM(isDark) {
   
   // Switch color palette variant
   applyColorTemplate(globals.currentTemplate);
+
+  try {
+    import('../portfolio/pit-mode.js').then((m) => {
+      if (typeof m.syncPortfolioAccentCircleColors === 'function') {
+        m.syncPortfolioAccentCircleColors();
+      }
+    });
+  } catch (e) { /* ignore */ }
   
   // Update UI
   updateSegmentControl();

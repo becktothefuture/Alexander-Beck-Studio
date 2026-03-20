@@ -694,3 +694,28 @@
   
   --inner-wall-shine-color: var(--bg-dark);
 }
+
+/* ╔══════════════════════════════════════════════════════════════════════════════╗
+   ║  Squircle corners (CSS Borders 4): iOS-like continuous curvature where        ║
+   ║  supported. Enabled when <html> has .abs-corner-shape-squircle (runtime       ║
+   ║  config: cornerShapeSquircleEnabled). `corner-shape` is not inherited        ║
+   ║  (MDN), so descendants + common pseudos are included explicitly.              ║
+   ╚══════════════════════════════════════════════════════════════════════════════╝ */
+@supports (corner-shape: squircle) {
+  html.abs-corner-shape-squircle,
+  html.abs-corner-shape-squircle *,
+  html.abs-corner-shape-squircle *::before,
+  html.abs-corner-shape-squircle *::after {
+    corner-shape: squircle;
+  }
+
+  /* Keep perfect circles: palette dots + custom cursor (home dot + tap ring). */
+  html.abs-corner-shape-squircle #custom-cursor,
+  html.abs-corner-shape-squircle #custom-cursor::before,
+  html.abs-corner-shape-squircle #custom-cursor::after,
+  html.abs-corner-shape-squircle .legend .circle,
+  html.abs-corner-shape-squircle .legend .circle::before,
+  html.abs-corner-shape-squircle .legend .circle::after {
+    corner-shape: round;
+  }
+}

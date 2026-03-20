@@ -23,9 +23,9 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       headerTopSpacing: 24,
     },
     bodies: {
-      minDiameterViewport: 0.22,
-      maxDiameterViewport: 0.32,
-      diameterScale: 1.2,
+      minDiameterViewport: 0.14,
+      maxDiameterViewport: 0.22,
+      diameterScale: 1,
       blockWidthMultiplier: 0.92,
       blockHeightRatio: 0.68,
       blockCornerRadius: 40,
@@ -56,15 +56,6 @@ const DEFAULT_PORTFOLIO_CONFIG = {
     behavior: {
       passiveMouseReaction: false,
       reducedMotionDurationMs: 320,
-    },
-    /** Canvas project-disc rim (separate from Studio “Light Edge” on DOM chrome). */
-    pitChrome: {
-      rimScale: 1.25,
-      lightPeakLight: 0.53,
-      lightPeakDark: 0.41,
-      shadePeakLight: 0.13,
-      shadePeakDark: 0.22,
-      arcSpan: 1.12,
     },
   },
 };

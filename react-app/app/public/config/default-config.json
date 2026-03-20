@@ -76,6 +76,7 @@
   "modalOverlayContentDelayMs": 200,
   "modalDepthScale": 0.943,
   "modalDepthTranslateY": 1,
+  "cornerShapeSquircleEnabled": true,
   "containerBorderVw": 3.2,
   "bgLight": "#f5f5f5",
   "bgDark": "#050505",

@@ -53,6 +53,7 @@ export function buildRuntimeConfigSnapshot() {
 
   config.chromeHarmonyMode = g.chromeHarmonyMode;
   config.autoDarkModeEnabled = g.autoDarkModeEnabled;
+  config.cornerShapeSquircleEnabled = g.cornerShapeSquircleEnabled !== false;
   config.enableLOD = false;
 
   return config;

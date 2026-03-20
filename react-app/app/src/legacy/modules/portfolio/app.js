@@ -1,7 +1,11 @@
 import { loadRuntimeConfig } from '../utils/runtime-config.js';
 import { applyWallFrameFromConfig, applyWallFrameLayout } from '../visual/wall-frame.js';
 import { applyPortfolioConfig, loadPortfolioConfig, normalizePortfolioConfig } from './portfolio-config.js';
-import { relayoutPortfolioProjectLabels, initializePortfolioPit } from './pit-mode.js';
+import {
+  relayoutPortfolioProjectLabels,
+  initializePortfolioPit,
+  applyPortfolioAccentBallColor,
+} from './pit-mode.js';
 import { createSoundToggle } from '../ui/sound-toggle.js';
 import { initializeDarkMode } from '../visual/dark-mode-v2.js';
 import { getPortfolioProjectPaletteColor, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
@@ -30,6 +34,7 @@ import {
 import { render } from '../physics/engine.js';
 import { clampBallPositionToWallInterior } from '../physics/Ball.js';
 import { relaxOverlapsWithKinematicBall } from '../physics/collision.js';
+import { portfolioCanvasPointHitsBody } from '../physics/portfolio-pit-narrow-phase.js';
 import { setCanvas } from '../core/state.js';
 import { initModeSystem, setMode, getForceApplicator } from '../modes/mode-controller.js';
 import { startMainLoop } from '../rendering/loop.js';
@@ -191,14 +196,11 @@ class PortfolioPitApp {
     this.projectButtons = [];
     this.projectLabelLayer = null;
     this.projectLabels = [];
-    this.hoverProjectIndex = -1;
     this._projectCloseFallbackTimer = null;
     this.projectLenis = null;
     this.projectScrollerContent = null;
     this._drawerMediaShiftRaf = null;
     this.boundScheduleDrawerMediaScrollShift = () => this.scheduleDrawerMediaScrollShift();
-    this.boundCanvasHoverMove = (event) => this.handleCanvasHoverMove(event);
-    this.boundCanvasHoverLeave = () => this.handleCanvasHoverLeave();
     this.boundProjectKeydown = (event) => this.handleProjectKeydown(event);
     this.boundProjectCloseClick = (event) => {
       event.stopPropagation();
@@ -259,11 +261,6 @@ class PortfolioPitApp {
   }
 
   destroy() {
-    this.setHoverProjectIndex(-1);
-    if (this.canvas) {
-      this.canvas.removeEventListener('pointermove', this.boundCanvasHoverMove);
-      this.canvas.removeEventListener('pointerleave', this.boundCanvasHoverLeave);
-    }
     window.removeEventListener('resize', this.boundResize);
     window.removeEventListener('bb:paletteChanged', this.boundPaletteChange);
     this.destroyProjectScrollerLenis();
@@ -304,7 +301,6 @@ class PortfolioPitApp {
       this.applyProjectPalette();
       this.ensureProjectLabelLayer();
       this.syncProjectLabels();
-      this.syncFocusedProject();
     });
   }
 
@@ -346,6 +342,10 @@ class PortfolioPitApp {
     const n = balls.length;
     for (let index = 0; index < n; index += 1) {
       const ball = balls[index];
+      if (ball.__portfolioAccentCircle) {
+        applyPortfolioAccentBallColor(ball);
+        continue;
+      }
       const color = getPortfolioProjectPaletteColor(index, n);
       ball.color = color;
       ball.labelColor = getContrastText(color);
@@ -355,7 +355,8 @@ class PortfolioPitApp {
   /** Mount in `#portfolio-sheet-host` when present so the sheet stacks above route chrome; see `docs/reference/LAYER-STACKING.md`. */
   createProjectView() {
     const sheetHost = document.getElementById('portfolio-sheet-host');
-    const host = sheetHost || this.mount || this.canvas?.parentElement;
+    const clipMount = sheetHost?.querySelector?.(':scope > .portfolio-sheet-host__clip') ?? null;
+    const host = clipMount || sheetHost || this.mount || this.canvas?.parentElement;
     if (!host) return;
     const existing = document.getElementById('portfolioProjectView');
     if (existing) existing.remove();
@@ -645,39 +646,6 @@ class PortfolioPitApp {
     this.canvas.addEventListener('pointermove', (event) => this.handlePointerMove(event));
     this.canvas.addEventListener('pointerup', (event) => this.handlePointerUp(event));
     this.canvas.addEventListener('pointercancel', (event) => this.handlePointerUp(event));
-    this.canvas.addEventListener('pointermove', this.boundCanvasHoverMove, { passive: true });
-    this.canvas.addEventListener('pointerleave', this.boundCanvasHoverLeave);
-  }
-
-  setHoverProjectIndex(projectIndex) {
-    const next = Number.isInteger(projectIndex) ? projectIndex : -1;
-    if (next === this.hoverProjectIndex) return;
-    this.hoverProjectIndex = next;
-    for (let i = 0; i < this.projectLabels.length; i += 1) {
-      const label = this.projectLabels[i];
-      if (!label) continue;
-      label.classList.toggle('portfolio-project-label--hover', i === this.hoverProjectIndex);
-    }
-  }
-
-  handleCanvasHoverMove(event) {
-    if (this.isProjectOpen) {
-      this.setHoverProjectIndex(-1);
-      return;
-    }
-    let idx = -1;
-    if (this.dragBall !== null && this.dragPointerId === event.pointerId) {
-      idx = this.dragBall.projectIndex;
-    } else if (this.dragBall === null) {
-      const ball = this.hitTestBall(this.getCanvasPoint(event));
-      idx = Number.isInteger(ball?.projectIndex) ? ball.projectIndex : -1;
-    }
-    this.setHoverProjectIndex(idx);
-  }
-
-  handleCanvasHoverLeave() {
-    if (this.dragBall !== null) return;
-    this.setHoverProjectIndex(-1);
   }
 
   getCanvasPoint(event) {
@@ -697,6 +665,10 @@ class PortfolioPitApp {
     for (let index = balls.length - 1; index >= 0; index -= 1) {
       const ball = balls[index];
       if (!ball || ball.__portfolioHidden) continue;
+      if (Number.isInteger(ball.projectIndex)) {
+        if (portfolioCanvasPointHitsBody(ball, point.x, point.y, globals)) return ball;
+        continue;
+      }
       const dx = point.x - ball.x;
       const dy = point.y - ball.y;
       if ((dx * dx) + (dy * dy) <= (ball.r * ball.r)) {
@@ -718,18 +690,6 @@ class PortfolioPitApp {
 
   setFocusedProjectIndex(projectIndex) {
     this.focusedProjectIndex = Number.isInteger(projectIndex) ? projectIndex : -1;
-    this.syncFocusedProject();
-  }
-
-  syncFocusedProject() {
-    const globals = getGlobals();
-    const balls = Array.isArray(globals.balls) ? globals.balls : [];
-    for (let index = 0; index < balls.length; index += 1) {
-      const ball = balls[index];
-      if (!ball) continue;
-      ball.__portfolioFocused = ball.projectIndex === this.focusedProjectIndex && !this.isProjectOpen;
-    }
-    render();
   }
 
   handlePointerDown(event) {
@@ -1234,7 +1194,14 @@ export async function bootstrapPortfolio() {
     },
     minimumMs: 120
   });
-  forcePageVisible(['#abs-scene', '#app-frame', '#c', '#portfolioProjectMount']);
+  // Reveal the page shell but keep the canvas and label mount hidden until the
+  // pit simulation is fully seeded — prevents a flash of un-positioned balls.
+  const pitCanvas = document.getElementById('c');
+  const pitMount = document.getElementById('portfolioProjectMount');
+  if (pitCanvas) { pitCanvas.style.opacity = '0'; }
+  if (pitMount) { pitMount.style.opacity = '0'; }
+  forcePageVisible(['#abs-scene', '#app-frame']);
+  // Canvas + label mount stay invisible; revealed after startMainLoop.
   const hostLaidOut = await waitForPitSimulationHostReady();
   try {
     if (!hostLaidOut && import.meta.env?.DEV) {
@@ -1310,12 +1277,26 @@ export async function bootstrapPortfolio() {
     }
   };
   settlePortfolioPresentation();
-  requestAnimationFrame(() => {
-    settlePortfolioPresentation();
-    requestAnimationFrame(settlePortfolioPresentation);
-  });
 
   startMainLoop(null, { getForcesFn: getForceApplicator });
+
+  // Run several physics + render frames offscreen so balls drop from their
+  // spawn positions above the viewport and settle into the pit before the
+  // gate-success CSS transition fades the wall-slot in.
+  // `bootstrapPortfolio` must not return until this is done, because
+  // `dispatchRouteReady` fires immediately after return and triggers the
+  // enter transition.
+  const SETTLE_FRAMES = 6;
+  for (let i = 0; i < SETTLE_FRAMES; i++) {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    settlePortfolioPresentation();
+  }
+
+  // Reveal canvas + label mount; the parent wall-slot is still at opacity 0
+  // (pre-enter phase) so this won't cause a flash. The enter transition
+  // fades in already-settled content.
+  if (pitCanvas) { pitCanvas.style.opacity = '1'; }
+  if (pitMount) { pitMount.style.opacity = '1'; }
 
   const ABS_DEV = (typeof __DEV__ !== 'undefined') ? __DEV__ : false;
   if (ABS_DEV) {
