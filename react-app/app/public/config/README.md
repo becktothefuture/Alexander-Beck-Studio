@@ -17,6 +17,7 @@ These generated files exist for runtime compatibility and build output. Do not t
 
 - `contents-home.json` — runtime copy for UI strings (copied to `dist/config/contents-home.json` + `dist/js/contents-home.json`).
 - `contents-portfolio.json` — portfolio projects (copied to `dist/config/contents-portfolio.json` + `dist/js/contents-portfolio.json`).
+- Do not add a parallel `portfolio-data.json` content source. `contents-portfolio.json` is the only live portfolio content file.
 
 ## Workflow
 

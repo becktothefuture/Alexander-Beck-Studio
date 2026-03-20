@@ -17,6 +17,17 @@ const _wyA = new Float64Array(_MAX_PORTFOLIO_VERTS);
 const _wxB = new Float64Array(_MAX_PORTFOLIO_VERTS);
 const _wyB = new Float64Array(_MAX_PORTFOLIO_VERTS);
 
+function getPortfolioBodyRestGapPx(A, B, globals) {
+  const spacingRatio = globals.ballSpacing || 0;
+  const avgRadius = (A.r + B.r) * 0.5;
+  const gapPx = Math.max(0, Number(globals.ballBallSurfaceGapPx) || 0);
+  return (avgRadius * spacingRatio) + gapPx;
+}
+
+function isPortfolioResizeRecoveryActive(globals) {
+  return Number(globals?.portfolioResizeRecoveryFrames) > 0;
+}
+
 function fillWorldVertsInto(ball, config, localX, localY, outWx, outWy) {
   const shape = ball.portfolioBodyShape || 'circle';
   const n = writePortfolioBodyLocalVertices(
@@ -172,7 +183,6 @@ export function portfolioPitNarrowPhase(A, B, globals) {
 
   const dx = B.x - A.x;
   const dy = B.y - A.y;
-  const gapPx = Math.max(0, Number(globals.ballBallSurfaceGapPx) || 0);
 
   let ok = false;
   if (nA === 0) {
@@ -188,10 +198,24 @@ export function portfolioPitNarrowPhase(A, B, globals) {
   }
 
   if (!ok) {
+    if (isPortfolioResizeRecoveryActive(globals)) {
+      const overlap = A.r + B.r + getPortfolioBodyRestGapPx(A, B, globals);
+      const dist2 = dx * dx + dy * dy;
+      if (dist2 < overlap * overlap) {
+        const dist = Math.sqrt(Math.max(dist2, 1e-12));
+        return {
+          useCircle: false,
+          hasContact: true,
+          nx: dx / dist,
+          ny: dy / dist,
+          overlap: overlap - dist,
+        };
+      }
+    }
     return { useCircle: false, hasContact: false };
   }
 
-  const overlap = _satOut.geomDeep + gapPx;
+  const overlap = _satOut.geomDeep + getPortfolioBodyRestGapPx(A, B, globals);
   return {
     useCircle: false,
     hasContact: true,
@@ -239,12 +263,25 @@ export function portfolioPitKinematicOverlap(kinematicBall, B, globals) {
     ok = satPolyPoly(_wxA, _wyA, nK, _wxB, _wyB, nB, dx, dy, _satOut);
   }
 
-  if (!ok) return null;
-  const gapPx = Math.max(0, Number(globals.ballBallSurfaceGapPx) || 0);
+  if (!ok) {
+    if (isPortfolioResizeRecoveryActive(globals)) {
+      const overlap = kinematicBall.r + B.r + getPortfolioBodyRestGapPx(kinematicBall, B, globals);
+      const dist2 = dx * dx + dy * dy;
+      if (dist2 < overlap * overlap) {
+        const dist = Math.sqrt(Math.max(dist2, 1e-12));
+        return {
+          nx: dx / dist,
+          ny: dy / dist,
+          overlap: overlap - dist,
+        };
+      }
+    }
+    return null;
+  }
   return {
     nx: _satOut.nx,
     ny: _satOut.ny,
-    overlap: _satOut.geomDeep + gapPx,
+    overlap: _satOut.geomDeep + getPortfolioBodyRestGapPx(kinematicBall, B, globals),
   };
 }
 

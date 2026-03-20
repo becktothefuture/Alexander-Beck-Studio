@@ -14,8 +14,8 @@ export function getPortfolioRouteView() {
   const portfolioHeroLines = Array.isArray(homeContent.portfolio?.heroLines)
     ? homeContent.portfolio.heroLines
     : [
-        'I understand the levers that shape behaviour: design strategy, human psychology, and aesthetic principles.',
-        'Then I turn that into digital direction teams can align around and experiences people can feel their way through.'
+        'I work from system to surface: defining the structure, testing the interaction, and building what the team needs to ship.',
+        'This selection shows that range across product design, creative technology, and applied AI.'
       ];
 
   return {

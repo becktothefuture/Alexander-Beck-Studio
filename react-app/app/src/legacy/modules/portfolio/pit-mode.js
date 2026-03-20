@@ -58,6 +58,59 @@ function getPortfolioBodyRotationRad(ball) {
   return (ball.theta || 0) + (ball.rotationOffset || 0);
 }
 
+const PORTFOLIO_RIM_LIGHT_X = 0;
+const PORTFOLIO_RIM_LIGHT_Y = -0.82;
+const PORTFOLIO_RIM_WIDTH_MIN_PX = 3;
+const PORTFOLIO_RIM_WIDTH_MAX_PX = 6.5;
+const PORTFOLIO_RIM_LIGHT_STR = 0.46;
+const PORTFOLIO_RIM_SHADOW_STR = 0.42;
+const PORTFOLIO_RIM_LIGHT_ALPHA = 0.52;
+const PORTFOLIO_RIM_SHADOW_ALPHA = 0.34;
+const PORTFOLIO_RIM_FADE_START = 0.2;
+const PORTFOLIO_RIM_FADE_END = 0.76;
+const PORTFOLIO_RIM_INSET = 0.64;
+
+function drawPortfolioBodyRim(ctx, x, y, r, color, drawPath, rotationRad) {
+  if (typeof drawPath !== 'function') return;
+
+  const rgb = hexToRgb(color);
+  const light = `${Math.min(255, Math.round(rgb.r + (255 - rgb.r) * PORTFOLIO_RIM_LIGHT_STR))},${Math.min(255, Math.round(rgb.g + (255 - rgb.g) * PORTFOLIO_RIM_LIGHT_STR))},${Math.min(255, Math.round(rgb.b + (255 - rgb.b) * PORTFOLIO_RIM_LIGHT_STR))}`;
+  const shadow = `${Math.max(0, Math.round(rgb.r * (1 - PORTFOLIO_RIM_SHADOW_STR)))},${Math.max(0, Math.round(rgb.g * (1 - PORTFOLIO_RIM_SHADOW_STR)))},${Math.max(0, Math.round(rgb.b * (1 - PORTFOLIO_RIM_SHADOW_STR)))}`;
+  const mid = `${rgb.r},${rgb.g},${rgb.b}`;
+  const lineWidth = clamp(r * 0.022, PORTFOLIO_RIM_WIDTH_MIN_PX, PORTFOLIO_RIM_WIDTH_MAX_PX);
+  const strokeRadius = Math.max(1, r - (lineWidth * PORTFOLIO_RIM_INSET));
+  const grad = ctx.createLinearGradient(
+    x + PORTFOLIO_RIM_LIGHT_X * r, y + PORTFOLIO_RIM_LIGHT_Y * r,
+    x - PORTFOLIO_RIM_LIGHT_X * r, y - PORTFOLIO_RIM_LIGHT_Y * r
+  );
+
+  grad.addColorStop(0, `rgba(${light},${PORTFOLIO_RIM_LIGHT_ALPHA})`);
+  grad.addColorStop(PORTFOLIO_RIM_FADE_START, `rgba(${mid},0)`);
+  grad.addColorStop(PORTFOLIO_RIM_FADE_END, `rgba(${mid},0)`);
+  grad.addColorStop(1, `rgba(${shadow},${PORTFOLIO_RIM_SHADOW_ALPHA})`);
+
+  ctx.save();
+  ctx.translate(x, y);
+  if (Number.isFinite(rotationRad) && rotationRad !== 0) ctx.rotate(rotationRad);
+  ctx.beginPath();
+  drawPath(ctx, strokeRadius);
+  ctx.clip();
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = lineWidth;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  drawPath(ctx, strokeRadius);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function storePortfolioSeedMetrics(ball, width, height, radius) {
+  ball._portfolioSeedCanvasWidth = width;
+  ball._portfolioSeedCanvasHeight = height;
+  ball._portfolioSeedRadius = radius;
+}
+
 function isDocumentDarkMode() {
   if (typeof document === 'undefined') return false;
   return document.documentElement?.classList?.contains('dark-mode')
@@ -91,6 +144,28 @@ export function syncPortfolioAccentCircleColors() {
   if (any) globals.portfolioSyncLabelLayer?.();
 }
 
+export function resolvePortfolioLabelContent(project, fallbackTitle = 'Untitled Project') {
+  const eyebrow = String(
+    project?.eyebrow
+      || project?.labelEyebrow
+      || project?.client
+      || ''
+  ).trim();
+  const title = String(
+    project?.shapeTitle
+      || project?.shapeTitleLong
+      || project?.bodyTitle
+      || project?.displayTitle
+      || project?.title
+      || fallbackTitle
+  ).trim() || String(fallbackTitle || 'Untitled Project').trim();
+
+  return {
+    eyebrow,
+    title,
+  };
+}
+
 export function buildWrappedTitle(ctx, title, bounds) {
   const safeTitle = String(title || '').trim() || 'Untitled Project';
   const words = safeTitle
@@ -99,12 +174,13 @@ export function buildWrappedTitle(ctx, title, bounds) {
     .filter(Boolean);
   const maxWidth = Math.max(80, bounds.width);
   const maxHeight = Math.max(80, bounds.height);
-  const maxLines = Math.max(2, Math.min(bounds.maxLines || 5, Math.ceil(words.length / 2)));
+  const maxLines = Math.max(1, Math.min(bounds.maxLines || 5, Math.ceil(words.length / 2)));
   const fontMax = Math.round(bounds.fontMax);
   const fontMin = Math.round(bounds.fontMin);
+  const fontWeight = Math.max(100, Math.min(900, Math.round(bounds.fontWeight || 600)));
 
   for (let fontSize = fontMax; fontSize >= fontMin; fontSize -= 1) {
-    ctx.font = `600 ${fontSize}px ${bounds.fontFamily}`;
+    ctx.font = `${fontWeight} ${fontSize}px ${bounds.fontFamily}`;
     const lines = [];
     let currentLine = words[0] || '';
 
@@ -128,25 +204,52 @@ export function buildWrappedTitle(ctx, title, bounds) {
   }
 
   const fallbackFontSize = fontMin;
-  ctx.font = `600 ${fallbackFontSize}px ${bounds.fontFamily}`;
+  ctx.font = `${fontWeight} ${fallbackFontSize}px ${bounds.fontFamily}`;
+  const trimLineToFit = (line) => {
+    const ellipsis = '...';
+    let candidate = String(line || '').trim();
+    if (!candidate) return ellipsis;
+
+    while (candidate.length > 0 && ctx.measureText(`${candidate}${ellipsis}`).width > maxWidth) {
+      const cut = candidate.lastIndexOf(' ');
+      candidate = cut > 0
+        ? candidate.slice(0, cut).trimEnd()
+        : candidate.slice(0, -1).trimEnd();
+    }
+
+    return candidate ? `${candidate}${ellipsis}` : ellipsis;
+  };
+  const fallbackLines = [];
+  let index = 0;
+  while (index < words.length && fallbackLines.length < maxLines) {
+    let currentLine = words[index] || '';
+    index += 1;
+
+    while (index < words.length) {
+      const nextLine = `${currentLine} ${words[index]}`;
+      if (ctx.measureText(nextLine).width <= maxWidth) {
+        currentLine = nextLine;
+        index += 1;
+      } else {
+        break;
+      }
+    }
+
+    fallbackLines.push(currentLine);
+  }
+
+  if (index < words.length && fallbackLines.length) {
+    fallbackLines[fallbackLines.length - 1] = trimLineToFit(fallbackLines[fallbackLines.length - 1]);
+  }
+
   return {
     fontSize: fallbackFontSize,
     lineHeight: fallbackFontSize * bounds.lineHeight,
-    lines: words.slice(0, maxLines).reduce((acc, word) => {
-      if (!acc.length) return [word];
-      const current = acc[acc.length - 1];
-      const next = `${current} ${word}`;
-      if (ctx.measureText(next).width <= maxWidth || acc.length >= maxLines) {
-        acc[acc.length - 1] = next;
-      } else {
-        acc.push(word);
-      }
-      return acc;
-    }, []),
+    lines: fallbackLines.length ? fallbackLines : [trimLineToFit(safeTitle)],
   };
 }
 
-function computeLabelForBall(ctx, ball, config, projectLabel, fontFamily, isMobile) {
+function computeLabelForBall(ctx, ball, config, project, fontFamily, isMobile) {
   const insetRatio = clamp(toNumber(config.labeling?.innerPaddingRatio, 0.18), 0.08, 0.3);
   const dpr = ball._portfolioDpr || 1;
   const labelFontPx = clamp(
@@ -158,16 +261,47 @@ function computeLabelForBall(ctx, ball, config, projectLabel, fontFamily, isMobi
     48
   ) * dpr;
   const diameter = ball.r * 2;
-  const textBounds = {
-    width: diameter * (1 - (insetRatio * 2)),
-    height: diameter * (1 - (insetRatio * 2)),
-    fontMin: Math.max(10, labelFontPx * 0.55),
+  const labelWidth = diameter * (1 - (insetRatio * 2));
+  const labelHeight = diameter * (1 - (insetRatio * 2));
+  const labelContent = resolvePortfolioLabelContent(
+    project,
+    ball.projectTitleFull || ball.projectTitle || 'Untitled Project'
+  );
+  const titleBounds = {
+    width: labelWidth,
+    height: Math.max(24 * dpr, labelHeight * (labelContent.eyebrow ? 0.73 : 0.88)),
+    fontMin: Math.max(10 * dpr, Math.round(labelFontPx * 0.54)),
     fontMax: labelFontPx,
-    lineHeight: clamp(toNumber(config.labeling?.lineHeight, 0.94), 0.85, 1.2),
+    lineHeight: clamp(toNumber(config.labeling?.titleLineHeight, 0.76), 0.68, 0.9),
     fontFamily,
     maxLines: isMobile ? 4 : 4,
+    fontWeight: 640,
   };
-  ball.label = buildWrappedTitle(ctx, projectLabel, textBounds);
+  const eyebrowBounds = {
+    width: labelWidth,
+    height: Math.max(18 * dpr, labelHeight * 0.18),
+    fontMin: Math.max(9 * dpr, Math.round(labelFontPx * 0.22)),
+    fontMax: Math.round(labelFontPx * (isMobile ? 0.38 : 0.42)),
+    lineHeight: 0.92,
+    fontFamily,
+    maxLines: isMobile ? 2 : 1,
+    fontWeight: 560,
+  };
+  const title = buildWrappedTitle(ctx, labelContent.title, titleBounds);
+  const eyebrow = labelContent.eyebrow ? buildWrappedTitle(ctx, labelContent.eyebrow, eyebrowBounds) : null;
+
+  ball.label = {
+    eyebrow,
+    title,
+    gap: labelContent.eyebrow ? Math.max(4 * dpr, Math.round(labelFontPx * 0.14)) : 0,
+    fontSize: title.fontSize,
+    lineHeight: title.lineHeight,
+    titleFontSize: title.fontSize,
+    titleLineHeight: title.lineHeight,
+    eyebrowFontSize: eyebrow?.fontSize || 0,
+    eyebrowLineHeight: eyebrow?.lineHeight || 0,
+    lines: title.lines,
+  };
 }
 
 /**
@@ -189,14 +323,17 @@ export function relayoutPortfolioProjectLabels() {
     const ball = balls[i];
     if (!ball || ball.projectIndex === undefined) continue;
     const project = projects[ball.projectIndex];
-    const projectLabel = String(
-      project?.displayTitle || project?.title || ball.projectTitle || 'Untitled Project'
-    ).trim();
+    const labelContent = resolvePortfolioLabelContent(
+      project,
+      ball.projectTitleFull || ball.projectTitle || 'Untitled Project'
+    );
     ball._portfolioDpr = globals.DPR || 1;
     if (ball.__portfolioAccentCircle) applyPortfolioAccentBallColor(ball);
-    computeLabelForBall(ctx, ball, config, projectLabel, fontFamily, isMobile);
+    computeLabelForBall(ctx, ball, config, project, fontFamily, isMobile);
     ball.labelColor = getContrastText(ball.color);
-    ball.projectTitle = projectLabel;
+    ball.projectEyebrow = labelContent.eyebrow;
+    ball.projectTitle = labelContent.title;
+    ball.projectTitleFull = String(project?.title || labelContent.title || '').trim();
   }
 }
 
@@ -284,13 +421,15 @@ function seedProjectBodies(globals) {
     ball.rotationOffset = 0;
     ball.omega = (hashUnit(index + 13) - 0.5) * 6;
     ball._portfolioDpr = dpr;
+    storePortfolioSeedMetrics(ball, width, height, radius);
 
-    const projectLabel = String(project.displayTitle || project.title || 'Untitled Project').trim();
-    computeLabelForBall(ctx, ball, config, projectLabel, fontFamily, isMobile);
+    const labelContent = resolvePortfolioLabelContent(project, 'Untitled Project');
+    computeLabelForBall(ctx, ball, config, project, fontFamily, isMobile);
 
     ball.labelColor = getContrastText(fill);
-    ball.projectTitle = projectLabel;
-    ball.projectTitleFull = String(project.title || projectLabel || '').trim();
+    ball.projectEyebrow = labelContent.eyebrow;
+    ball.projectTitle = labelContent.title;
+    ball.projectTitleFull = String(project.title || labelContent.title || '').trim();
 
     ball.vx = (hashUnit(index + 71) - 0.5) * vxBase;
     ball.vy = (hashUnit(index + 97) * vyBase) + vyBase;
@@ -321,6 +460,22 @@ function renderProjectBody(ctx, ball) {
   ctx.beginPath();
   appendPortfolioBodyPath(ctx, shape, r, pitConfig);
   ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  drawPortfolioBodyRim(
+    ctx,
+    x,
+    y,
+    r,
+    ball.color,
+    (pathCtx, strokeR) => {
+      pathCtx.beginPath();
+      appendPortfolioBodyPath(pathCtx, shape, strokeR, pitConfig);
+    },
+    rot
+  );
   ctx.restore();
 }
 

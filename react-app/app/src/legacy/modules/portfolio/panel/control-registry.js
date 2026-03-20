@@ -63,7 +63,7 @@ const CONTROL_SECTIONS = {
     controls: [
       { id: 'fontDesktopPx', label: 'Desktop Size', configKey: 'runtime.labeling.fontDesktopPx', type: 'range', min: 16, max: 40, step: 1, unit: 'px', default: 28, refresh: true },
       { id: 'fontMobilePx', label: 'Mobile Size', configKey: 'runtime.labeling.fontMobilePx', type: 'range', min: 14, max: 30, step: 1, unit: 'px', default: 20, refresh: true },
-      { id: 'lineHeight', label: 'Line Height', configKey: 'runtime.labeling.lineHeight', type: 'range', min: 0.85, max: 1.2, step: 0.01, unit: '', default: 0.94, refresh: true },
+      { id: 'lineHeight', label: 'Title Line Height', configKey: 'runtime.labeling.titleLineHeight', type: 'range', min: 0.6, max: 1, step: 0.01, unit: '', default: 0.76, refresh: true },
       { id: 'innerPaddingRatio', label: 'Inner Padding', configKey: 'runtime.labeling.innerPaddingRatio', type: 'range', min: 0.08, max: 0.28, step: 0.01, unit: '', default: 0.18, refresh: true },
       { id: 'blockRotationRangeDeg', label: 'Block Rotation', configKey: 'runtime.labeling.blockRotationRangeDeg', type: 'range', min: 0, max: 10, step: 0.5, unit: 'deg', default: 3.5, refresh: true },
     ],

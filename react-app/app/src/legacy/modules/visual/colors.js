@@ -902,17 +902,38 @@ function buildPortfolioProjectColorSequence(projectCount) {
   }
 
   const chromatic = [];
-  const neutrals = [];
+  const neutralGreys = [];
+  const neutralWhites = [];
+  const neutralBlacks = [];
   for (let i = 0; i < colors.length; i += 1) {
     const color = colors[i];
-    if (isProjectNeutralColor(color)) neutrals.push(color);
-    else chromatic.push(color);
+    if (!isProjectNeutralColor(color)) {
+      chromatic.push(color);
+      continue;
+    }
+    const key = normalizeHexKey(color);
+    if (key === '#ffffff') {
+      neutralWhites.push(color);
+    } else if (key === '#000000') {
+      neutralBlacks.push(color);
+    } else {
+      neutralGreys.push(color);
+    }
   }
 
-  for (let i = 0; i < chromatic.length; i += 1) pushUnique(chromatic[i]);
-  for (let i = 0; i < neutrals.length; i += 1) pushUnique(neutrals[i]);
+  for (let i = 0; i < chromatic.length && out.length < Math.min(projectCount, 3); i += 1) {
+    pushUnique(chromatic[i]);
+  }
+  for (let i = 0; i < neutralGreys.length; i += 1) pushUnique(neutralGreys[i]);
+  for (let i = 0; i < neutralWhites.length; i += 1) pushUnique(neutralWhites[i]);
+  for (let i = 3; i < chromatic.length; i += 1) pushUnique(chromatic[i]);
+  for (let i = 0; i < neutralBlacks.length; i += 1) pushUnique(neutralBlacks[i]);
   for (let i = 0; i < PORTFOLIO_GREY_FALLBACKS.length && out.length < projectCount; i += 1) {
     pushUnique(PORTFOLIO_GREY_FALLBACKS[i]);
+  }
+
+  if (out.length < projectCount) {
+    pushUnique('#ffffff');
   }
 
   let guard = 0;
@@ -1006,6 +1027,7 @@ function updateExistingBallColors() {
   const critterColorIndices = [0, 1];
 
   for (let i = 0; i < balls.length; i++) {
+    if (balls[i]?._preserveColor) continue;
     if (isCrittersMode) {
       // Critters get greys only
       const colorIndex = critterColorIndices[Math.floor(Math.random() * critterColorIndices.length)];

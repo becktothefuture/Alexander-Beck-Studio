@@ -100,6 +100,66 @@ function buildRoundedRectPath(w, h, r) {
   return p;
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function toNumber(value, fallback) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function getPortfolioBodyRadiusForResize(ball, balls, globals, newWidth, newHeight) {
+  const config = globals.portfolioPitConfig || {};
+  const seedRadius = Number(ball?._portfolioSeedRadius);
+  const seedWidth = Number(ball?._portfolioSeedCanvasWidth);
+  const seedHeight = Number(ball?._portfolioSeedCanvasHeight);
+  if (seedRadius > 0 && seedWidth > 0 && seedHeight > 0) {
+    const seedArea = seedWidth * seedHeight;
+    const nextArea = newWidth * newHeight;
+    if (seedArea > 0 && nextArea > 0) {
+      const scale = Math.sqrt(nextArea / seedArea);
+      if (scale > 0 && Number.isFinite(scale)) return seedRadius * scale;
+    }
+  }
+
+  const count = Array.isArray(balls) ? balls.length : 0;
+  const index = Number.isInteger(ball?.projectIndex) ? ball.projectIndex : -1;
+
+  if (index >= 0 && count > 0) {
+    const frameBorderWidth = Number.isFinite(globals.frameBorderWidth)
+      ? globals.frameBorderWidth
+      : (globals.wallThickness || 20);
+    const dpr = globals.DPR || 1;
+    const frameInset = frameBorderWidth * dpr;
+    const innerW = Math.max(1, newWidth - 2 * frameInset);
+    const innerH = Math.max(1, newHeight - 2 * frameInset);
+    const areaNorm = Math.sqrt(innerW * innerH);
+
+    const minFrac = clamp(toNumber(config.bodies?.minDiameterViewport, 0.14), 0.08, 1);
+    const maxFrac = clamp(toNumber(config.bodies?.maxDiameterViewport, 0.22), minFrac, 1);
+    const sizeMul = clamp(toNumber(config.bodies?.diameterScale, 1.2), 1, 1.8);
+    let minD = areaNorm * minFrac * sizeMul * 1.6;
+    let maxD = areaNorm * maxFrac * sizeMul * 1.6;
+
+    const wallPadding = Math.min(innerW, innerH) * clamp(
+      toNumber(config.bodies?.wallPaddingViewport, 0.05),
+      0.02,
+      0.14
+    );
+    const maxDiameterFit = Math.max(24 * dpr, Math.min(innerW, innerH) - 2 * wallPadding);
+    maxD = Math.min(maxD, maxDiameterFit);
+    minD = Math.min(minD, maxD);
+
+    const t = count <= 1 ? 0.5 : index / (count - 1);
+    const diameter = minD + ((maxD - minD) * (0.25 + (0.75 * (1 - Math.abs(0.5 - t)))));
+    const radius = diameter * 0.5;
+    if (Number.isFinite(radius) && radius > 0) return radius;
+  }
+
+  return null;
+}
+
 /**
  * Portfolio pit bootstrap can run before `body.portfolio-page` is applied (SPA gate
  * navigation effect order). Detect the route by mount node / URL so DPR is not capped
@@ -425,11 +485,12 @@ export function resize() {
   // This keeps balls in valid positions relative to the new viewport bounds.
   //
   // Portfolio pit: if balls were seeded while `prevCanvasWidth` was still 0 (SPA remount
-  // or default 300×150 backing store), rescale from the *actual* legacy buffer size so
-  // physics + DOM labels match the final HiDPI surface.
+  // or default 300×150 backing store), recalculate portfolio radii from the immutable
+  // seed dimensions stored on each body so repeated resize passes cannot compound size.
   // ══════════════════════════════════════════════════════════════════════════════
   const pitPortfolio = globals.currentMode === MODES.PORTFOLIO_PIT;
   const hadPrevBuffer = prevCanvasWidth > 0 && prevCanvasHeight > 0;
+  let shouldRelayoutPortfolioLabels = false;
   const legacyPitBufferJump =
     pitPortfolio &&
     !hadPrevBuffer &&
@@ -449,8 +510,6 @@ export function resize() {
     // Extreme scales (>10x or <0.1x) likely indicate invalid intermediate states
     if (scaleX > 0.1 && scaleX < 10 && scaleY > 0.1 && scaleY < 10) {
       const balls = globals.balls;
-      const uniformScale = (scaleX + scaleY) * 0.5;
-      const scalePortfolioRadii = pitPortfolio;
       for (let i = 0; i < balls.length; i++) {
         const ball = balls[i];
         if (!ball) continue;
@@ -459,9 +518,12 @@ export function resize() {
         ball.x *= scaleX;
         ball.y *= scaleY;
 
-        if (scalePortfolioRadii && ball.projectIndex !== undefined && ball.r > 0) {
-          ball.r *= uniformScale;
-          ball.rBase = ball.r;
+        if (pitPortfolio && ball.projectIndex !== undefined) {
+          const nextRadius = getPortfolioBodyRadiusForResize(ball, balls, globals, newWidth, newHeight);
+          if (nextRadius !== null) {
+            ball.r = nextRadius;
+            ball.rBase = nextRadius;
+          }
         }
 
         // Clamp to ensure ball stays within new bounds (with radius margin)
@@ -475,11 +537,14 @@ export function resize() {
           ball.sleepTimer = 0;
         }
       }
-      if (scalePortfolioRadii) {
+      if (pitPortfolio) {
         syncPitPortfolioRadiusStatsFromBalls();
-        try {
-          globals.portfolioRelayoutLabels?.();
-        } catch (e) {}
+        // Keep portfolio SAT conservative for a short recovery window after resize.
+        globals.portfolioResizeRecoveryFrames = Math.max(
+          Number(globals.portfolioResizeRecoveryFrames) || 0,
+          6
+        );
+        shouldRelayoutPortfolioLabels = true;
       }
     }
   }
@@ -512,6 +577,12 @@ export function resize() {
   // Always update CSS display size (doesn't cause flicker)
   canvas.style.width = canvasWidth + 'px';
   canvas.style.height = simHeight + 'px';
+
+  if (shouldRelayoutPortfolioLabels) {
+    try {
+      globals.portfolioRelayoutLabels?.();
+    } catch (e) {}
+  }
   
   if (needsUpdate) {
     applyCanvasShadow(canvas);

@@ -1,1 +1,7 @@
-{}
+{
+  "runtime": {
+    "labeling": {
+      "titleLineHeight": 0.76
+    }
+  }
+}

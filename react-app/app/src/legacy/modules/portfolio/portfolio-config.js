@@ -21,24 +21,41 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       spawnHeightViewport: 0.62,
       bodyCountPolicy: 'one-per-project',
       headerTopSpacing: 24,
+      wallInset: 3,
     },
     bodies: {
       minDiameterViewport: 0.14,
       maxDiameterViewport: 0.22,
       diameterScale: 1,
       squircleLameExponent: 4,
+      ballSpacing: 0.08,
+      ballBallSurfaceGapPx: 0,
+      collisionPairSlopPx: null,
       wallPaddingViewport: 0.06,
     },
     labeling: {
       fontDesktopPx: 28,
       fontMobilePx: 20,
-      lineHeight: 0.94,
+      titleLineHeight: 0.76,
       innerPaddingRatio: 0.18,
       blockRotationRangeDeg: 3.5,
     },
     motion: {
       gravityScale: 0.52,
       massMultiplier: 1,
+      wallRestitution: 0.08,
+      collisionRestitution: 0.04,
+      contactFriction: 0.34,
+      contactStaticFriction: 0.72,
+      contactStaticSlipPx: 18,
+      dragMaxSpeedPx: 2200,
+      maxAngularSpeed: 6.5,
+      maxFrameDt: 0.05,
+      maxPhysicsSteps: 6,
+      accumulatorResetThreshold: 8,
+      sleepVelocityThreshold: 18,
+      sleepAngularThreshold: 0.24,
+      timeToSleep: 0.16,
       neighborImpulse: 0,
       dragThrowMultiplier: 1.05,
       openDurationMs: 420,
@@ -86,6 +103,10 @@ export function normalizePortfolioConfig(rawConfig) {
     if (runtime.labeling.fontMobilePx === undefined && Number.isFinite(Number(runtime.labeling.fontMinPx))) {
       runtime.labeling.fontMobilePx = Number(runtime.labeling.fontMinPx);
     }
+    if (runtime.labeling.titleLineHeight === undefined && Number.isFinite(Number(runtime.labeling.lineHeight))) {
+      runtime.labeling.titleLineHeight = Number(runtime.labeling.lineHeight);
+    }
+    delete runtime.labeling.lineHeight;
   }
   if (runtime?.motion && runtime.motion.gravityScale === undefined && Number.isFinite(Number(runtime.motion.settleGravityScale))) {
     runtime.motion.gravityScale = Number(runtime.motion.settleGravityScale);

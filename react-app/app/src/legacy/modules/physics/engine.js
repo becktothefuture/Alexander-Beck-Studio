@@ -51,6 +51,18 @@ function clampNumber(value, min, max, fallback) {
   return next;
 }
 
+function getPortfolioPitMotionProfile(globals) {
+  const motion = globals?.portfolioPitConfig?.motion || {};
+  return {
+    wallRestitution: clampNumber(motion.wallRestitution, 0, 1, 0.08),
+    maxPhysicsSteps: Math.round(clampNumber(motion.maxPhysicsSteps, 4, 10, 6)),
+    accumulatorResetThreshold: clampNumber(motion.accumulatorResetThreshold, 3, 24, 8),
+    sleepVelocityThreshold: clampNumber(motion.sleepVelocityThreshold, 4, 48, 18),
+    sleepAngularThreshold: clampNumber(motion.sleepAngularThreshold, 0.04, 1.2, 0.24),
+    timeToSleep: clampNumber(motion.timeToSleep, 0.04, 1, 0.16),
+  };
+}
+
 function pushWindowSample(target, value) {
   if (!Array.isArray(target)) return;
   target.push(Number.isFinite(value) ? value : 0);
@@ -167,6 +179,7 @@ function resolvePitCollisionIterations(globals, baseIterations) {
 const WALL_EFFECTS_ON = {};
 const WALL_EFFECTS_OFF = Object.freeze({ registerEffects: false });
 const PIT_CLAMP_OPTS = WALL_EFFECTS_OFF;
+const PORTFOLIO_PIT_CLAMP_OPTS = Object.freeze({ registerEffects: false, wakeOnCollision: false });
 // Kaleidoscope collision options - mutable maxCorrectionPx updated per-frame
 const KALEIDO_COLLISION_OPTS = {
   iterations: 3,
@@ -313,10 +326,14 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   let pitOverlapDebt = 0;
   let pitPairCount = 0;
   let pitSleepingPairSkips = 0;
+  const portfolioMotion = globals.currentMode === MODES.PORTFOLIO_PIT
+    ? getPortfolioPitMotionProfile(globals)
+    : null;
+  const maxPhysicsSteps = portfolioMotion?.maxPhysicsSteps ?? CONSTANTS.MAX_PHYSICS_STEPS;
 
   // Wall input accumulation:
   
-  while (getAccumulator() >= DT && physicsSteps < CONSTANTS.MAX_PHYSICS_STEPS) {
+  while (getAccumulator() >= DT && physicsSteps < maxPhysicsSteps) {
     const physicsStepStart = isPitMode ? performance.now() : 0;
     // Integrate physics for all modes
       const len = balls.length;
@@ -365,7 +382,12 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         mode !== MODES.PARALLAX_LINEAR &&
         mode !== MODES.PARALLAX_FLOAT &&
         mode !== MODES.STARFIELD_3D) {
-      const wallRestitution = (mode === MODES.WEIGHTLESS) ? globals.weightlessBounce : globals.REST;
+      const portfolioMotion = mode === MODES.PORTFOLIO_PIT
+        ? getPortfolioPitMotionProfile(globals)
+        : null;
+      const wallRestitution = mode === MODES.WEIGHTLESS
+        ? globals.weightlessBounce
+        : (portfolioMotion?.wallRestitution ?? globals.REST);
       const isPitLike = isPitLikeMode(mode);
       const lenWalls = balls.length;
       // PERF: Preallocated options object - always enable effects for rumble
@@ -404,25 +426,40 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         // The post-wall collision pass can push bodies slightly outside the inset wall bounds.
         // Clamp once more without registering wall effects (sound/pressure/wobble).
         // PERF: Reuse preallocated options object
-        const wallRestitution = globals.REST;
+        const postPassPortfolioMotion = mode === MODES.PORTFOLIO_PIT
+          ? getPortfolioPitMotionProfile(globals)
+          : null;
+        const wallRestitution = postPassPortfolioMotion?.wallRestitution ?? globals.REST;
         const lenClamp = balls.length;
         const canvasW = canvas.width;
         const canvasH = canvas.height;
         for (let i = 0; i < lenClamp; i++) {
           const b = balls[i];
           if (b?.isPointerLocked) continue;
-          b.walls(canvasW, canvasH, DT, wallRestitution, PIT_CLAMP_OPTS);
+          b.walls(
+            canvasW,
+            canvasH,
+            DT,
+            wallRestitution,
+            mode === MODES.PORTFOLIO_PIT ? PORTFOLIO_PIT_CLAMP_OPTS : PIT_CLAMP_OPTS
+          );
         }
 
         // ════════════════════════════════════════════════════════════════════════
         // POST-PHYSICS STABILIZATION (Pit modes only)
         // ════════════════════════════════════════════════════════════════════════
         const DPR = globals.DPR || 1;
-        const vThresh = (Number.isFinite(globals.sleepVelocityThreshold) ? globals.sleepVelocityThreshold : 12.0) * DPR;
+        const pitMotion = mode === MODES.PORTFOLIO_PIT
+          ? getPortfolioPitMotionProfile(globals)
+          : null;
+        const vThreshBase = pitMotion?.sleepVelocityThreshold
+          ?? (Number.isFinite(globals.sleepVelocityThreshold) ? globals.sleepVelocityThreshold : 12.0);
+        const vThresh = vThreshBase * DPR;
         const vThreshSq = vThresh * vThresh;
         const tinySpeedSq = (2 * DPR) * (2 * DPR);
-        const wThresh = Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18;
-        const tSleep = globals.timeToSleep ?? 0.25;
+        const wThresh = pitMotion?.sleepAngularThreshold
+          ?? (Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18);
+        const tSleep = pitMotion?.timeToSleep ?? globals.timeToSleep ?? 0.25;
         
         for (let i = 0; i < lenClamp; i++) {
           const b = balls[i];
@@ -510,6 +547,12 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     
     subtractFromAccumulator(DT);
     physicsSteps++;
+    if (globals.currentMode === MODES.PORTFOLIO_PIT) {
+      const recoveryFrames = Number(globals.portfolioResizeRecoveryFrames) || 0;
+      if (recoveryFrames > 0) {
+        globals.portfolioResizeRecoveryFrames = Math.max(0, recoveryFrames - 1);
+      }
+    }
     if (isPitMode) {
       pitPhysicsMs += (performance.now() - physicsStepStart);
     }
@@ -523,7 +566,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
   
 
   // Reset accumulator if falling behind
-  if (getAccumulator() > DT * CONSTANTS.ACCUMULATOR_RESET_THRESHOLD) {
+  const accumulatorResetThreshold = portfolioMotion?.accumulatorResetThreshold
+    ?? CONSTANTS.ACCUMULATOR_RESET_THRESHOLD;
+  if (getAccumulator() > DT * accumulatorResetThreshold) {
     setAccumulator(0);
   }
 

@@ -465,7 +465,13 @@
       "pitSpawnBandWidthRatio": 0.18
     }
   },
-  "portfolio": {},
+  "portfolio": {
+    "runtime": {
+      "labeling": {
+        "titleLineHeight": 0.76
+      }
+    }
+  },
   "cv": {
     "leftWidth": 32,
     "leftPaddingTop": 10,

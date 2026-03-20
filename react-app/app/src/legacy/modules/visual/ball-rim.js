@@ -71,6 +71,54 @@ export function drawBallRim(ctx, x, y, r, color) {
 }
 
 /**
+ * Draw a directional rim along a closed path rendered around a body.
+ * The gradient stays screen-space aligned so light and shadow land consistently.
+ */
+export function drawDirectionalPathRim(ctx, x, y, r, color, drawPath, opts = {}) {
+  if (typeof drawPath !== 'function') return;
+
+  const rgb = getRgb(color);
+  const lightX = Number.isFinite(opts.lightX) ? opts.lightX : LIGHT_X;
+  const lightY = Number.isFinite(opts.lightY) ? opts.lightY : LIGHT_Y;
+  const rimWidth = Number.isFinite(opts.rimWidth) ? opts.rimWidth : RIM_WIDTH;
+  const rimInset = Number.isFinite(opts.rimInset) ? opts.rimInset : RIM_INSET;
+  const lightStr = Number.isFinite(opts.lightStr) ? opts.lightStr : LIGHT_STR;
+  const shadowStr = Number.isFinite(opts.shadowStr) ? opts.shadowStr : SHADOW_STR;
+  const lightAlpha = Number.isFinite(opts.lightAlpha) ? opts.lightAlpha : LIGHT_ALPHA;
+  const shadowAlpha = Number.isFinite(opts.shadowAlpha) ? opts.shadowAlpha : SHADOW_ALPHA;
+  const fadeStart = Number.isFinite(opts.fadeStart) ? opts.fadeStart : FADE_START;
+  const fadeEnd = Number.isFinite(opts.fadeEnd) ? opts.fadeEnd : FADE_END;
+  const strokeR = r - (r * rimWidth * rimInset);
+  const lit = lighten(rgb, lightStr);
+  const shd = darken(rgb, shadowStr);
+  const mid = `${rgb[0]},${rgb[1]},${rgb[2]}`;
+
+  const grad = ctx.createLinearGradient(
+    x + lightX * r, y + lightY * r,
+    x - lightX * r, y - lightY * r
+  );
+
+  grad.addColorStop(0, `rgba(${lit},${lightAlpha})`);
+  grad.addColorStop(fadeStart, `rgba(${mid},0)`);
+  grad.addColorStop(fadeEnd, `rgba(${mid},0)`);
+  grad.addColorStop(1, `rgba(${shd},${shadowAlpha})`);
+
+  ctx.save();
+  ctx.translate(x, y);
+  if (Number.isFinite(opts.rotationRad) && opts.rotationRad !== 0) {
+    ctx.rotate(opts.rotationRad);
+  }
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = r * rimWidth;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  drawPath(ctx, strokeR);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
  * Batch-draw rims for an array of balls.
  * Call AFTER all flat fills have been drawn.
  * Skips tiny/culled balls for performance.
