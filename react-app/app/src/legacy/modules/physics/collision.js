@@ -127,10 +127,14 @@ function collectPairsSorted() {
 
   const reuseGrid = globals.physicsSpatialGridOptimization !== false;
   const pitLike = isPitLikeMode(globals.currentMode);
+  const largeHomePitGapFastPath =
+    globals.currentMode === MODES.PIT
+    && n >= 96
+    && surfaceGapPx > 0;
   // With a flat surface gap, sleeping stacks must still generate pairs or gaps won't hold.
   const pitSleepAwareBroadphase = pitLike
     && globals.pitSleepAwareBroadphaseEnabled !== false
-    && surfaceGapPx <= 0;
+    && (surfaceGapPx <= 0 || largeHomePitGapFastPath);
 
   // Fast path: if everything is sleeping, skip broadphase (huge win for 300-ball home pit).
   // MUST NOT run when a minimum ball–ball gap is active: overlaps would never be corrected.
@@ -142,7 +146,9 @@ function collectPairsSorted() {
       if (b && !b.isSleeping) { anyAwake = true; break; }
     }
     const smallPitLike = pitLike && n <= 64;
-    if (!anyAwake && surfaceGapPx <= 0 && !smallPitLike) return reusablePairs;
+    if (!anyAwake && !smallPitLike && (surfaceGapPx <= 0 || largeHomePitGapFastPath)) {
+      return reusablePairs;
+    }
   }
   
   // Cell size must account for spacing + optional flat surface gap between balls.

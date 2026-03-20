@@ -11,6 +11,8 @@ const DEFAULT_PORTFOLIO_CONFIG = {
     '--portfolio-stage-pad': 'clamp(18px, 2.1vw, 32px)',
     '--portfolio-hero-title-max': '14ch',
     '--portfolio-image-veil-opacity': '0.14',
+    '--portfolio-hero-image-gutter': 'clamp(12px, 8px + 0.9vw, 24px)',
+    '--portfolio-hero-image-radius': 'max(0px, calc(var(--portfolio-drawer-radius) - var(--portfolio-hero-image-gutter)))',
     '--portfolio-scroll-hint-offset': 'clamp(26px, 18px + 1.2vw, 52px)',
     '--portfolio-drawer-inner-shadow-opacity': '0.18',
     '--portfolio-drawer-inner-shadow-blur': '56px',
@@ -24,7 +26,7 @@ const DEFAULT_PORTFOLIO_CONFIG = {
       spawnHeightViewport: 0.62,
       bodyCountPolicy: 'one-per-project',
       headerTopSpacing: 24,
-      wallInset: 3,
+      wallInset: 2,
     },
     bodies: {
       minDiameterViewport: 0.14,

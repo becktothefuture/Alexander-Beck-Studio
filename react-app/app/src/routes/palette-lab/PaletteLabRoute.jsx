@@ -24,14 +24,8 @@ export function getPaletteLabRouteView() {
               <i className="ti ti-arrow-left" aria-hidden="true" />
             </a>
           </div>
-          <div className="route-topbar__center palette-lab-topbar__center">
-            <span className="palette-lab-topbar__label">Palette review</span>
-          </div>
-          <div className="route-topbar__right ui-top-right">
-            <blockquote className="decorative-script palette-lab-topline">
-              <p>Four London weather chapters, reviewed against the existing simulation surface.</p>
-            </blockquote>
-          </div>
+          <div className="route-topbar__center palette-lab-topbar__center" />
+          <div className="route-topbar__right ui-top-right" />
         </div>
       </header>
     ),

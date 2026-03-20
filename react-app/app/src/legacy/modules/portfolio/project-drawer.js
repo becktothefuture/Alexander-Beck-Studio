@@ -4,6 +4,131 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function toNumber(value, fallback) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function parseColorToRgb(value) {
+  const input = String(value || '').trim();
+  if (!input) return null;
+  if (input.startsWith('#')) {
+    const hex = input.slice(1);
+    const normalized = hex.length === 3
+      ? hex.split('').map((part) => `${part}${part}`).join('')
+      : hex.padEnd(6, '0').slice(0, 6);
+    const int = Number.parseInt(normalized, 16);
+    if (!Number.isFinite(int)) return null;
+    return {
+      r: (int >> 16) & 255,
+      g: (int >> 8) & 255,
+      b: int & 255,
+    };
+  }
+  const match = input.match(/^rgba?\(([^)]+)\)$/i);
+  if (!match) return null;
+  const parts = match[1].split(',').map((part) => Number.parseFloat(part.trim()));
+  if (parts.length < 3 || parts.slice(0, 3).some((part) => !Number.isFinite(part))) return null;
+  return {
+    r: clamp(parts[0], 0, 255),
+    g: clamp(parts[1], 0, 255),
+    b: clamp(parts[2], 0, 255),
+  };
+}
+
+function rgbToHsl({ r, g, b }) {
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const lightness = (max + min) / 2;
+  const delta = max - min;
+  if (delta === 0) return { h: 0, s: 0, l: lightness };
+
+  const saturation = lightness > 0.5
+    ? delta / (2 - max - min)
+    : delta / (max + min);
+
+  let hue;
+  switch (max) {
+    case red:
+      hue = ((green - blue) / delta) + (green < blue ? 6 : 0);
+      break;
+    case green:
+      hue = ((blue - red) / delta) + 2;
+      break;
+    default:
+      hue = ((red - green) / delta) + 4;
+      break;
+  }
+
+  return { h: hue * 60, s: saturation, l: lightness };
+}
+
+function buildCueColor(sampleRgb, fallbackColor) {
+  const fallbackRgb = parseColorToRgb(fallbackColor);
+  const sampleHsl = sampleRgb ? rgbToHsl(sampleRgb) : null;
+  const fallbackHsl = fallbackRgb ? rgbToHsl(fallbackRgb) : null;
+  const hue = sampleHsl && sampleHsl.s >= 0.12
+    ? sampleHsl.h
+    : (fallbackHsl ? fallbackHsl.h : 32);
+  const saturation = clamp(
+    Math.max(sampleHsl?.s || 0, fallbackHsl?.s || 0, 0.56),
+    0.56,
+    0.84
+  );
+  let lightness = sampleHsl?.l ?? fallbackHsl?.l ?? 0.66;
+  if (lightness < 0.36) {
+    lightness = 0.7;
+  } else if (lightness > 0.76) {
+    lightness = 0.42;
+  } else {
+    lightness = clamp(lightness + 0.08, 0.44, 0.72);
+  }
+  return `hsl(${Math.round(hue)}deg ${Math.round(saturation * 100)}% ${Math.round(lightness * 100)}%)`;
+}
+
+function sampleImageCueColor(image) {
+  if (!(image instanceof HTMLImageElement)) return null;
+  if (!(image.naturalWidth > 0) || !(image.naturalHeight > 0)) return null;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 24;
+    canvas.height = 24;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return null;
+
+    const sourceWidth = Math.max(1, Math.round(image.naturalWidth * 0.42));
+    const sourceHeight = Math.max(1, Math.round(image.naturalHeight * 0.32));
+    const sourceX = Math.max(0, Math.round((image.naturalWidth - sourceWidth) * 0.5));
+    const sourceY = Math.max(0, Math.round(image.naturalHeight * 0.12));
+    context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+
+    const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+    let red = 0;
+    let green = 0;
+    let blue = 0;
+    let weight = 0;
+    for (let index = 0; index < data.length; index += 4) {
+      const alpha = data[index + 3] / 255;
+      if (alpha <= 0) continue;
+      red += data[index] * alpha;
+      green += data[index + 1] * alpha;
+      blue += data[index + 2] * alpha;
+      weight += alpha;
+    }
+    if (weight <= 0) return null;
+    return {
+      r: red / weight,
+      g: green / weight,
+      b: blue / weight,
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -49,20 +174,46 @@ function hashString(value) {
   return hash >>> 0;
 }
 
-function createKenBurnsSequence(project) {
+function createKenBurnsSequence(project, motionConfig = {}) {
   const seed = hashString(`${project?.title || ''}|${project?.image || ''}|${project?.client || ''}`);
-  const xOffsets = [-18, -14, -10, -6, 6, 10, 14, 18];
-  const yOffsets = [-18, -13, -8, -4, 4, 8, 13, 18];
-  const scales = [1, 1.08, 1.14, 1.22, 1.3];
-  const pick = (list, shift) => list[(seed >>> shift) % list.length];
-  const durationMs = 10000 + ((seed >> 9) % 5001);
+  const directionX = (seed & 1) === 0 ? -1 : 1;
+  const directionY = (seed & 2) === 0 ? -1 : 1;
+  const swayX = (seed & 4) === 0 ? -1 : 1;
+  const swayY = (seed & 8) === 0 ? -1 : 1;
+  const baseDurationMs = clamp(toNumber(motionConfig.heroKenBurnsDurationMs, 28000), 12000, 60000);
+  const basePanPx = clamp(toNumber(motionConfig.heroKenBurnsPanPx, 18), 6, 36);
+  const zoomPct = clamp(toNumber(motionConfig.heroKenBurnsZoomPct, 18), 6, 30);
+  const spanVariance = 2 + ((seed >>> 4) % 5);
+  const spanX = clamp(basePanPx - 2 + spanVariance, 6, 40);
+  const spanY = clamp(Math.round(basePanPx * (0.55 + (((seed >>> 7) % 4) * 0.06))), 4, 32);
+  const startScale = 1.06 + (((seed >>> 10) % 4) * 0.02);
+  const endScale = startScale + (zoomPct / 100);
+  const midScale = startScale + ((endScale - startScale) * 0.42);
+  const settleScale = startScale + ((endScale - startScale) * 0.74);
+  const durationMs = baseDurationMs + ((seed >>> 21) % 2501);
   return {
     durationMs,
     points: [
-      { x: pick(xOffsets, 0), y: pick(yOffsets, 3), scale: scales[0] },
-      { x: pick(xOffsets, 6), y: pick(yOffsets, 9), scale: pick(scales.slice(1, 4), 12) },
-      { x: pick(xOffsets, 15), y: pick(yOffsets, 18), scale: pick(scales.slice(2), 21) },
-      { x: pick(xOffsets, 24), y: pick(yOffsets, 27), scale: pick(scales.slice(1, 4), 4) },
+      {
+        x: directionX * -spanX,
+        y: directionY * -spanY,
+        scale: Number(startScale.toFixed(3)),
+      },
+      {
+        x: directionX * -Math.round(spanX * 0.36) + (swayX * 2),
+        y: directionY * -Math.round(spanY * 0.42) + swayY,
+        scale: Number(midScale.toFixed(3)),
+      },
+      {
+        x: directionX * Math.round(spanX * 0.32) + (swayX * 3),
+        y: directionY * Math.round(spanY * 0.26) + (swayY * 2),
+        scale: Number(settleScale.toFixed(3)),
+      },
+      {
+        x: directionX * Math.round(spanX * 0.82),
+        y: directionY * Math.round(spanY * 0.74),
+        scale: Number(endScale.toFixed(3)),
+      },
     ],
   };
 }
@@ -96,9 +247,11 @@ function createProjectDrawerMarkup() {
               <div class="portfolio-project-view__image-veil" aria-hidden="true"></div>
             </div>
             <div class="portfolio-project-view__hero-copy">
+              <div class="portfolio-project-view__scroll-cue" aria-hidden="true">
+                <i class="ti ti-arrow-left portfolio-project-view__scroll-cue-icon"></i>
+              </div>
               <p id="portfolioProjectEyebrow" class="portfolio-project-view__eyebrow"></p>
               <h1 id="portfolioProjectTitle" class="portfolio-project-view__title"></h1>
-              <p class="portfolio-project-view__scroll-hint">(scroll please)</p>
             </div>
           </section>
           <section class="portfolio-project-view__body">
@@ -220,15 +373,22 @@ export class PortfolioProjectDrawer {
     this.scroll.scrollTop = 0;
   }
 
-  applyKenBurnsMotion(project) {
+  applyKenBurnsMotion(project, motionConfig = {}) {
     if (!this.imageMotion) return;
-    const sequence = createKenBurnsSequence(project);
+    const sequence = createKenBurnsSequence(project, motionConfig);
     this.imageMotion.style.setProperty('--portfolio-kb-duration', `${sequence.durationMs}ms`);
     sequence.points.forEach((point, index) => {
       this.imageMotion.style.setProperty(`--portfolio-kb-x-${index}`, `${point.x}px`);
       this.imageMotion.style.setProperty(`--portfolio-kb-y-${index}`, `${point.y}px`);
       this.imageMotion.style.setProperty(`--portfolio-kb-scale-${index}`, point.scale.toFixed(3));
     });
+  }
+
+  updateScrollCueColor(fallbackColor) {
+    if (!this.root) return;
+    const sampledRgb = sampleImageCueColor(this.image);
+    const cueColor = buildCueColor(sampledRgb, fallbackColor);
+    this.root.style.setProperty('--portfolio-scroll-cue-color', cueColor);
   }
 
   buildProjectContent(project) {
@@ -307,6 +467,8 @@ export class PortfolioProjectDrawer {
       openDurationMs = 420,
       imageFadeMs = 220,
       titleDelayMs = 280,
+      accentColor = '',
+      motionConfig = {},
     } = options;
     const labelContent = resolvePortfolioLabelContent(project, project?.title || 'Project');
     const spokenLabel = labelContent.eyebrow
@@ -321,10 +483,12 @@ export class PortfolioProjectDrawer {
       this.image.src = this.resolveAsset(project.image || this.coverFallback);
       this.image.alt = spokenLabel ? `${spokenLabel} cover` : 'Project cover';
       this.image.addEventListener('load', () => {
+        this.updateScrollCueColor(accentColor);
         this.scheduleDrawerMediaScrollShift();
       }, { once: true });
     }
-    this.applyKenBurnsMotion(project);
+    this.updateScrollCueColor(accentColor);
+    this.applyKenBurnsMotion(project, motionConfig);
     if (this.eyebrow) {
       this.eyebrow.textContent = labelContent.eyebrow || '';
       this.eyebrow.hidden = !labelContent.eyebrow;

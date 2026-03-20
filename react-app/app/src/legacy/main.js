@@ -588,12 +588,19 @@ export async function bootstrapHomePage() {
     // Initialize mode runtime (handles eager/lazy mode rollout flags)
     initModeSystem();
 
-    // Initialize starting mode (deterministic daily simulation)
-    // startupMode is dev-only override; production always uses daily rotation
-    const configuredHeroMode = ABS_DEV ? String(getShellConfig()?.hero?.startupMode || '').trim() : '';
+    // Initialize starting mode. A non-empty startupMode overrides the daily rotation
+    // until it is cleared again in the authored shell config.
+    const configuredHeroMode = String(getShellConfig()?.hero?.startupMode || '').trim();
     const startMode = configuredHeroMode || getDailyMode() || MODES.PIT;
 
     await setMode(startMode);
+
+    if (ABS_DEV && typeof window !== 'undefined') {
+      window.__ABS_HOME_AUDIT__ = {
+        getGlobals,
+        getShellConfig,
+      };
+    }
 
     // DEV-only: panel after setMode so Simulation HTML includes the active mode’s controls.
     // Production builds ship without the panel (config is hardcoded during build).

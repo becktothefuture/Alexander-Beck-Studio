@@ -138,12 +138,16 @@ export function drawBallRims(ctx, balls, opts) {
   const cw = opts?.canvasWidth ?? Number.POSITIVE_INFINITY;
   const ch = opts?.canvasHeight ?? Number.POSITIVE_INFINITY;
   const minR = opts?.minRadius ?? 0;
+  const homePitTinyRimCutoff =
+    globals?.currentMode === 'pit' && balls.length >= 120
+      ? Math.max(minR, 3.2 * (globals?.DPR || 1))
+      : minR;
 
   for (let i = 0; i < balls.length; i++) {
     const b = balls[i];
     const r = (typeof b.getDisplayRadius === 'function') ? b.getDisplayRadius() : b.r;
     if ((b?.squashAmount || 0) > 0.01) continue;
-    if (r <= minR) continue;
+    if (r <= homePitTinyRimCutoff) continue;
     if (b.x + r < 0 || b.y + r < 0 || b.x - r > cw || b.y - r > ch) continue;
     drawPebbleBodyRim(ctx, b, b.x, b.y, r, b.color, globals, {
       rotationRad: getPebbleBodyRotation(b),

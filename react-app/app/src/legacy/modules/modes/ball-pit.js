@@ -6,6 +6,9 @@
 import { spawnBall } from '../physics/spawn.js';
 import { getGlobals, clearBalls, getMobileAdjustedCount } from '../core/state.js';
 
+const HOME_PIT_PEBBLE_SURFACE_GAP_PX = 2;
+const HOME_PIT_PEBBLE_WALL_INSET_PX = 2;
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -88,8 +91,13 @@ function spawnPourBallPit(globals, targetBalls) {
 
 export function initializeBallPit() {
   const globals = getGlobals();
-  globals.ballBallSurfaceGapPx = 0;
+  const dpr = globals.DPR || 1;
+  // Home pit should use the same tiny, even air gap to neighbors and to the wall.
+  // Ratio padding reads uneven once the visible body becomes a softer pebble silhouette.
+  globals.ballSpacing = 0;
+  globals.ballBallSurfaceGapPx = HOME_PIT_PEBBLE_SURFACE_GAP_PX * dpr;
   globals.collisionPairSlopPx = null;
+  globals.wallInset = HOME_PIT_PEBBLE_WALL_INSET_PX;
   clearBalls();
   
   const targetBalls = getMobileAdjustedCount(globals.maxBalls ?? 300);

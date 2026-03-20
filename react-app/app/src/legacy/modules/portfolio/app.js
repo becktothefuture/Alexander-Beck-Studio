@@ -272,6 +272,10 @@ class PortfolioPitApp {
     this.config.runtime = normalizePortfolioConfig({ runtime }).runtime;
     const globals = getGlobals();
     globals.portfolioPitConfig = this.config.runtime;
+    if (this.isProjectOpen && this.selectedProjectIndex >= 0) {
+      const project = this.projects[this.selectedProjectIndex];
+      if (project) this.syncProjectHero(project, false);
+    }
   }
 
   refreshPitBodies() {
@@ -536,18 +540,39 @@ class PortfolioPitApp {
       const gap = (ball.label?.gap || 0) / dpr;
       const alpha = clamp(toNumber(ball.__portfolioDimAlpha, 1), 0, 1) * (ball.__portfolioSelected ? 0 : 1);
 
-      label.style.width = `${width}px`;
-      label.style.height = `${height}px`;
-      label.style.transform = `translate(${ball.x / dpr}px, ${ball.y / dpr}px) translate(-50%, -50%) rotate(${rotation}rad)`;
-      label.style.opacity = `${alpha}`;
-      label.style.color = ball.labelColor || '#ffffff';
-      label.style.setProperty('--portfolio-label-stack-gap', `${gap}px`);
+      const widthCss = `${width}px`;
+      const heightCss = `${height}px`;
+      const transformCss = `translate(${ball.x / dpr}px, ${ball.y / dpr}px) translate(-50%, -50%) rotate(${rotation}rad)`;
+      const opacityCss = `${alpha}`;
+      const colorCss = ball.labelColor || '#ffffff';
+      const gapCss = `${gap}px`;
+
+      if (label.style.width !== widthCss) label.style.width = widthCss;
+      if (label.style.height !== heightCss) label.style.height = heightCss;
+      if (label.style.transform !== transformCss) label.style.transform = transformCss;
+      if (label.style.opacity !== opacityCss) label.style.opacity = opacityCss;
+      if (label.style.color !== colorCss) label.style.color = colorCss;
+      if (label.style.getPropertyValue('--portfolio-label-stack-gap') !== gapCss) {
+        label.style.setProperty('--portfolio-label-stack-gap', gapCss);
+      }
 
       if (text) {
-        text.style.setProperty('--portfolio-label-title-size', `${titleFontSize}px`);
-        text.style.setProperty('--portfolio-label-title-line-height', `${titleLineHeight}`);
-        text.style.setProperty('--portfolio-label-eyebrow-size', `${eyebrowFontSize}px`);
-        text.style.setProperty('--portfolio-label-eyebrow-line-height', `${eyebrowLineHeight}`);
+        const titleSizeCss = `${titleFontSize}px`;
+        const titleLineHeightCss = `${titleLineHeight}`;
+        const eyebrowSizeCss = `${eyebrowFontSize}px`;
+        const eyebrowLineHeightCss = `${eyebrowLineHeight}`;
+        if (text.style.getPropertyValue('--portfolio-label-title-size') !== titleSizeCss) {
+          text.style.setProperty('--portfolio-label-title-size', titleSizeCss);
+        }
+        if (text.style.getPropertyValue('--portfolio-label-title-line-height') !== titleLineHeightCss) {
+          text.style.setProperty('--portfolio-label-title-line-height', titleLineHeightCss);
+        }
+        if (text.style.getPropertyValue('--portfolio-label-eyebrow-size') !== eyebrowSizeCss) {
+          text.style.setProperty('--portfolio-label-eyebrow-size', eyebrowSizeCss);
+        }
+        if (text.style.getPropertyValue('--portfolio-label-eyebrow-line-height') !== eyebrowLineHeightCss) {
+          text.style.setProperty('--portfolio-label-eyebrow-line-height', eyebrowLineHeightCss);
+        }
       }
     }
   }
@@ -829,6 +854,8 @@ class PortfolioPitApp {
       openDurationMs: openDuration,
       imageFadeMs,
       titleDelayMs: titleDelay,
+      accentColor: this.selectedBall?.color || getPortfolioProjectPaletteColor(this.selectedProjectIndex, this.projects.length),
+      motionConfig: this.config.runtime.motion || {},
     });
     this.syncProjectButtonStates();
   }

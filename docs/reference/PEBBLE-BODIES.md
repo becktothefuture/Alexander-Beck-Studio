@@ -80,6 +80,7 @@ For portfolio, the final safe solution is:
 - conservative circular simulation body
 - custom pebble render silhouette
 - tiny explicit flat gap between bodies
+- matching tiny wall inset so body-to-wall spacing reads the same as body-to-body spacing
 
 This avoids visible clipping while keeping the visual language soft and organic.
 
@@ -148,6 +149,7 @@ So the correct strategy is:
 - reuse the shared pebble silhouette
 - allow visual rotation only
 - keep lighting world-fixed
+- use the same small explicit gap model for neighbors and walls
 - rely on existing LOD and throttle systems
 
 This gives the home pit the same material family without paying portfolio-style narrow-phase costs on hundreds of bodies.
