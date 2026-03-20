@@ -669,6 +669,7 @@ function performReducedMotionFade() {
     
     // Cleanup after animation
     setTimeout(() => {
+      html.classList.add('ui-entered');
       elements.forEach(el => {
         el.style.removeProperty('transition');
         el.style.removeProperty('opacity');
@@ -843,12 +844,16 @@ export async function orchestrateEntrance(options = {}) {
       // Duration: 600ms animation + 600ms last child delay + buffer
       const staggerDuration = 600 + 600 + 100;
       setTimeout(() => {
-        // Lock final state on each link before removing animation classes
+        /* Orchestrate path never calls showLogoAndLinks() — without html.ui-entered,
+           --ui-visible stays 0 and nav would vanish once inline opacity is cleared.
+           showLogoAndLinks adds ui-entered and clears #brand-logo / #main-links inlines
+           so modal-active can drive opacity via CSS. */
+        showLogoAndLinks();
         const links = mainLinks.querySelectorAll('.footer_link');
-        links.forEach(link => {
-          link.style.opacity = '1';
-          link.style.transform = 'translateY(0) scale(1)';
-          link.style.filter = 'blur(0)';
+        links.forEach((link) => {
+          link.style.removeProperty('opacity');
+          link.style.removeProperty('transform');
+          link.style.removeProperty('filter');
         });
         mainLinks.classList.remove('main-links--staggered', 'main-links--staggered-in');
       }, staggerDuration);
