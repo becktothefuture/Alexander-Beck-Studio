@@ -8,7 +8,7 @@ import { MODES } from '../core/constants.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
 import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
-import { drawBallRim } from '../visual/ball-rim.js';
+import { drawPebbleBody } from '../visual/pebble-body.js';
 
 const TAU = Math.PI * 2;
 const EPS = 1e-6;
@@ -327,17 +327,6 @@ export function applyKaleidoscopeForces(ball, dt) {
   ball.vy *= damp;
 }
 
-function drawBallCircleOnly(ctx, ball) {
-  // Preserve “same circle style”: filled circles with palette colors.
-  // We intentionally skip squash transforms here to keep the kaleidoscope fast.
-  if (ball.alpha < 1) ctx.globalAlpha = ball.alpha;
-  ctx.fillStyle = ball.color;
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, ball.r, 0, TAU);
-  ctx.fill();
-  if (ball.alpha < 1) ctx.globalAlpha = 1;
-}
-
 export function renderKaleidoscope(ctx) {
   const g = getGlobals();
   if (!isKaleidoscopeMode(g.currentMode)) return;
@@ -492,16 +481,12 @@ export function renderKaleidoscope(ctx) {
       const x = cx + outCos * r;
       const y = cy + outSin * r;
 
-      // Draw circle (same style)
-      if (ball.alpha < 1) ctx.globalAlpha = ball.alpha;
-      ctx.fillStyle = ball.color;
-      ctx.beginPath();
-      ctx.arc(x, y, ball.r, 0, TAU);
-      ctx.fill();
-      drawBallRim(ctx, x, y, ball.r, ball.color);
-      if (ball.alpha < 1) ctx.globalAlpha = 1;
+      // Draw the shared pebble silhouette in the mirrored wedge.
+      drawPebbleBody(ctx, ball, x, y, ball.r, ball.color, g, {
+        alpha: ball.alpha < 1 ? ball.alpha : 1,
+        rotationRad: ball.theta || 0,
+      });
     }
   }
 }
-
 

@@ -29,7 +29,7 @@ export async function initTactileLayer(config) {
     // Position inside #simulations
     // Match the geometry of the inner wall exactly
     container.style.position = 'absolute';
-    container.style.inset = 'var(--wall-thickness, 9px)';
+    container.style.inset = 'var(--wall-thickness)';
     container.style.borderRadius = 'var(--wall-radius, 24px)';
     container.style.overflow = 'hidden'; // Clip content to rounded corners
     

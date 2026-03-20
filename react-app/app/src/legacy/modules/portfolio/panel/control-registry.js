@@ -94,13 +94,56 @@ const CONTROL_SECTIONS = {
       { id: 'reducedMotionDurationMs', label: 'Reduced Motion', configKey: 'runtime.behavior.reducedMotionDurationMs', type: 'range', min: 120, max: 600, step: 10, unit: 'ms', default: 320 },
     ],
   },
+  drawer: {
+    title: 'Drawer',
+    icon: 'DRV',
+    defaultOpen: false,
+    controls: [
+      {
+        id: 'portfolioDrawerInnerShadowOpacity',
+        label: 'Inner Shadow',
+        cssVar: '--portfolio-drawer-inner-shadow-opacity',
+        type: 'range',
+        min: 0,
+        max: 0.4,
+        step: 0.01,
+        unit: '',
+        default: 0.18,
+        hint: 'Main seated shadow inside the flush drawer. Use this before changing color or edge lines.',
+      },
+      {
+        id: 'portfolioDrawerInnerShadowBlur',
+        label: 'Shadow Blur',
+        cssVar: '--portfolio-drawer-inner-shadow-blur',
+        type: 'range',
+        min: 0,
+        max: 120,
+        step: 1,
+        unit: 'px',
+        default: 56,
+        hint: 'Softness of the inner wall shadow. Higher values make the drawer feel more carved into the wall.',
+      },
+      {
+        id: 'portfolioDrawerInnerShadowSpread',
+        label: 'Shadow Spread',
+        cssVar: '--portfolio-drawer-inner-shadow-spread',
+        type: 'range',
+        min: 0,
+        max: 32,
+        step: 1,
+        unit: 'px',
+        default: 10,
+        hint: 'How far the shadow extends inward from the drawer edge before fading.',
+      },
+    ],
+  },
 };
 
 /** All sections whose controls participate in bind + save snapshot. */
-const ACTIVE_SECTION_KEYS = ['layout', 'bodies', 'labeling', 'motion', 'hero'];
+const ACTIVE_SECTION_KEYS = ['layout', 'bodies', 'labeling', 'motion', 'hero', 'drawer'];
 
 /** Page master-group only: pit rim is injected under Simulation (see panel-dock). */
-const PORTFOLIO_PAGE_SECTION_KEYS = ['layout', 'bodies', 'labeling', 'motion', 'hero'];
+const PORTFOLIO_PAGE_SECTION_KEYS = ['layout', 'bodies', 'labeling', 'motion', 'hero', 'drawer'];
 
 function getControlInputId(control) {
   return `${control.id}Slider`;

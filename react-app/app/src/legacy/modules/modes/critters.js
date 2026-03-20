@@ -1044,7 +1044,7 @@ let lastPaletteTemplate = null;
 function ensureWaypointColors() {
   const globals = getGlobals();
   const pointCount = globals.hiveJourneyPointCount || 4;
-  const currentTemplate = globals.currentTemplate || 'industrialTeal';
+  const currentTemplate = globals.currentTemplate || 'riverMist';
   
   // Regenerate colors if point count or palette changed
   const needsRegeneration = 

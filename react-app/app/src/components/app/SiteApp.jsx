@@ -4,6 +4,7 @@ import { getHomeRouteView, HOME_ROUTE_RUNTIME } from '../../routes/home/HomeRout
 import { getPortfolioRouteView, PORTFOLIO_ROUTE_RUNTIME } from '../../routes/portfolio/PortfolioRoute.jsx';
 import { getCvRouteView, CV_ROUTE_RUNTIME } from '../../routes/cv/CvRoute.jsx';
 import { getStyleguideRouteView, STYLEGUIDE_ROUTE_RUNTIME } from '../../routes/styleguide/StyleguideRoute.jsx';
+import { getPaletteLabRouteView, PALETTE_LAB_ROUTE_RUNTIME } from '../../routes/palette-lab/PaletteLabRoute.jsx';
 import { useLegacyRouteRuntime } from '../../hooks/useLegacyRouteRuntime.js';
 import { useShellRouteTransition } from '../../hooks/useShellRouteTransition.js';
 import { DevConfigPanelBridge } from './DevConfigPanelBridge.jsx';
@@ -12,14 +13,16 @@ const ROUTE_VIEW_BY_ID = {
   home: getHomeRouteView,
   portfolio: getPortfolioRouteView,
   cv: getCvRouteView,
-  styleguide: getStyleguideRouteView
+  styleguide: getStyleguideRouteView,
+  'palette-lab': getPaletteLabRouteView
 };
 
 const ROUTE_RUNTIME_BY_ID = {
   home: HOME_ROUTE_RUNTIME,
   portfolio: PORTFOLIO_ROUTE_RUNTIME,
   cv: CV_ROUTE_RUNTIME,
-  styleguide: STYLEGUIDE_ROUTE_RUNTIME
+  styleguide: STYLEGUIDE_ROUTE_RUNTIME,
+  'palette-lab': PALETTE_LAB_ROUTE_RUNTIME
 };
 
 function getRouteViewForId(routeId) {

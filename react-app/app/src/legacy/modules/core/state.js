@@ -223,6 +223,11 @@ const state = {
   
   // Ball properties
   ballSoftness: 29,
+  // Pebble silhouette tuning (render-only in phase 1)
+  pebbleBlend: 0.86,
+  pebbleStretch: 0.3,
+  pebbleOrganic: 0.34,
+  pebbleBulge: 0.42,
   ballSpacing: 0.08,    // Extra collision padding as ratio of ball radius (0.1 = 10% of ball size)
   /** Additive min surface gap for ball–ball (canvas buffer px). 0 = ratio-only via ballSpacing */
   ballBallSurfaceGapPx: 0,
@@ -409,11 +414,11 @@ const state = {
   
   // Colors
   // Palette chapters ("colour schemes") — see `source/modules/visual/colors.js`
-  // Keep these aligned with the Industrial Teal base palette so:
+  // Keep these aligned with the default London weather palette so:
   // - CSS fallback matches JS-driven palette chapters
   // - early paints (before JS applies templates) look correct
-  currentColors: ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#f03030', '#0d5cb6', '#ffa000'],
-  currentTemplate: 'industrialTeal',
+  currentColors: ['#a4aba8', '#c9cfcb', '#f7f5ef', '#5e857f', '#121416', '#d36e4b', '#5c7c96', '#d2ad62'],
+  currentTemplate: 'riverMist',
   // If true, rotate to the next palette chapter on each reload.
   // If false, respect `currentTemplate` from runtime config.
   paletteRotateOnReload: false,
@@ -621,7 +626,9 @@ const state = {
   safariFrameDark: '#181818',   // Safari-specific outer wall fallback in dark mode
   useSimplifiedFrame: true, // CSS-only frame (disables legacy canvas inner-wall rendering)
   // Simplified frame geometry + effects (single-wall model)
-  frameBorderWidth: 2,      // Gap between outer wall and inner content (px); gradient shows in gap
+  frameBorderWidth: 20,     // Desktop visual wall thickness / frame band (px)
+  frameBorderWidthMobile: 4, // Mobile visual wall thickness / frame band (px)
+  frameBorderWidthEffective: 20,
   frameOuterRadius: 46,      // Derived outer corner radius in px
   frameInnerRadius: 42,      // Canonical inner corner radius in px
   frameInnerSurface: 'var(--abs-wall-base)', // Inner fill surface color
@@ -1037,7 +1044,9 @@ export function applyLayoutFromVwToPx() {
   const raw = Number.isFinite(state.contentPaddingRatio) ? state.contentPaddingRatio : 0;
   const frac = (Math.abs(raw) > 1) ? (raw / layoutWidthPx) : raw;
   const breathPx = Math.max(0, layoutWidthPx * frac);
-  const fbw = clampInt(state.frameBorderWidth, 0, 40, 2);
+  const frameBorderWidthDesktop = clampInt(state.frameBorderWidth, 0, 40, 2);
+  const frameBorderWidthMobile = clampInt(state.frameBorderWidthMobile, 0, 40, frameBorderWidthDesktop);
+  const fbw = isMobileLayout ? frameBorderWidthMobile : frameBorderWidthDesktop;
   const structuralMinY = state.containerBorder + fbw;
   const structuralMinX = state.containerBorderX + fbw;
   state.contentPadding = Math.round(structuralMinY + Math.min(breathPx, 64));
@@ -1097,17 +1106,21 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--container-border-y', `${state.containerBorder}px`); // alias for clarity
   root.style.setProperty('--safari-tint-inset', `${state.containerBorder}px`);
   root.style.setProperty('--simulation-padding', `${state.simulationPadding}px`);
+  const contentPaddingBottomRatio = Math.max(0.5, Number(state.contentPaddingBottomRatio) || 1.3);
+  const contentPaddingBottom = Math.round(Math.max(0, state.contentPaddingY) * contentPaddingBottomRatio);
   root.style.setProperty('--content-padding', `${state.contentPadding}px`);
-  // .fade-content reads plain px values. Same padding all sides (no bottom multiplier).
   root.style.setProperty('--content-padding-x', `${Math.max(0, state.contentPaddingX)}px`);
   root.style.setProperty('--content-padding-y', `${Math.max(0, state.contentPaddingY)}px`);
-  root.style.setProperty('--content-padding-y-bottom', `${Math.max(0, state.contentPaddingY)}px`);
+  root.style.setProperty('--content-padding-y-bottom', `${contentPaddingBottom}px`);
+  root.style.setProperty('--abs-content-pad-mul-bottom', `${contentPaddingBottomRatio}`);
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
   root.style.setProperty('--abs-wall-base-light', state.wallBaseLight || '#efefef');
   root.style.setProperty('--abs-wall-base-dark', state.wallBaseDark || '#181818');
   // Simplified frame geometry/effects CSS vars.
-  const frameBorderWidth = clampInt(state.frameBorderWidth, 0, 40, 0);
+  const frameBorderWidthDesktop = clampInt(state.frameBorderWidth, 0, 40, 0);
+  const frameBorderWidthMobile = clampInt(state.frameBorderWidthMobile, 0, 40, frameBorderWidthDesktop);
+  const frameBorderWidth = isMobileLayout ? frameBorderWidthMobile : frameBorderWidthDesktop;
   const frameInnerRadius = clampInt(state.wallRadius, 0, 300, 42);
   const frameOuterRadius = Math.max(frameInnerRadius, frameInnerRadius + frameBorderWidth);
   const frameInnerSurface = 'var(--abs-wall-base)';
@@ -1118,7 +1131,7 @@ export function applyLayoutCSSVars() {
   const frameVignetteEdgeOpacity = clampNumber(state.frameVignetteEdgeOpacity, 0, 1, 0.12);
   const frameVignetteAmbientBlur = clampInt(state.frameVignetteAmbientBlur, 0, 800, 250);
   const frameVignetteAmbientOpacity = clampNumber(state.frameVignetteAmbientOpacity, 0, 1, 0.08);
-  state.frameBorderWidth = frameBorderWidth;
+  state.frameBorderWidthEffective = frameBorderWidth;
   state.frameOuterRadius = frameOuterRadius;
   state.frameInnerRadius = frameInnerRadius;
   state.frameInnerSurface = frameInnerSurface;
@@ -1130,6 +1143,8 @@ export function applyLayoutCSSVars() {
   state.frameVignetteAmbientBlur = frameVignetteAmbientBlur;
   state.frameVignetteAmbientOpacity = frameVignetteAmbientOpacity;
   root.style.setProperty('--frame-border-width', `${frameBorderWidth}px`);
+  root.style.setProperty('--frame-border-width-desktop', `${frameBorderWidthDesktop}px`);
+  root.style.setProperty('--frame-border-width-mobile', `${frameBorderWidthMobile}px`);
   root.style.setProperty('--frame-outer-radius', `${frameOuterRadius}px`);
   root.style.setProperty('--frame-inner-radius', `${frameInnerRadius}px`);
   root.style.setProperty('--frame-inner-surface', frameInnerSurface);
@@ -1149,6 +1164,7 @@ export function applyLayoutCSSVars() {
     const size = Math.sqrt(area);
     root.style.setProperty('--layout-viewport-area-px', String(Math.round(area)));
     root.style.setProperty('--layout-viewport-size-px', `${Math.round(size)}px`);
+    root.style.setProperty('--layout-viewport-width-px', `${Math.round(w)}px`);
   } catch (e) {}
   
   // Also update vw-based vars for CSS calc fallbacks
@@ -1429,6 +1445,11 @@ export function initState(config) {
   } else if (config.repelRadius !== undefined) {
     state.cursorInfluenceRadiusVw = clampNumber(config.repelRadius / 10, 0, 80, state.cursorInfluenceRadiusVw);
   }
+  // Pebble silhouette tuning (render-only in phase 1; physics remains circular).
+  if (config.pebbleBlend !== undefined) state.pebbleBlend = clampNumber(config.pebbleBlend, 0, 1, state.pebbleBlend);
+  if (config.pebbleStretch !== undefined) state.pebbleStretch = clampNumber(config.pebbleStretch, 0, 1, state.pebbleStretch);
+  if (config.pebbleOrganic !== undefined) state.pebbleOrganic = clampNumber(config.pebbleOrganic, 0, 1, state.pebbleOrganic);
+  if (config.pebbleBulge !== undefined) state.pebbleBulge = clampNumber(config.pebbleBulge, 0, 1, state.pebbleBulge);
   // Responsive ball sizing
   if (config.ballSizeMin !== undefined) state.ballSizeMin = clampNumber(config.ballSizeMin, 1, 100, state.ballSizeMin);
   if (config.ballSizeMax !== undefined) state.ballSizeMax = clampNumber(config.ballSizeMax, 1, 100, state.ballSizeMax);
@@ -1865,7 +1886,22 @@ export function initState(config) {
   if (config.frameBorderWidth !== undefined) {
     state.frameBorderWidth = clampInt(config.frameBorderWidth, 0, 40, state.frameBorderWidth);
   } else {
-    state.frameBorderWidth = clampInt(readTokenPx('--frame-border-width', state.frameBorderWidth), 0, 40, state.frameBorderWidth);
+    state.frameBorderWidth = clampInt(
+      readTokenPx('--frame-border-width-desktop', readTokenPx('--frame-border-width', state.frameBorderWidth)),
+      0,
+      40,
+      state.frameBorderWidth
+    );
+  }
+  if (config.frameBorderWidthMobile !== undefined) {
+    state.frameBorderWidthMobile = clampInt(config.frameBorderWidthMobile, 0, 40, state.frameBorderWidthMobile);
+  } else {
+    state.frameBorderWidthMobile = clampInt(
+      readTokenPx('--frame-border-width-mobile', state.frameBorderWidthMobile),
+      0,
+      40,
+      state.frameBorderWidthMobile
+    );
   }
   if (config.frameOuterRadius !== undefined) {
     state.frameOuterRadius = clampInt(config.frameOuterRadius, 0, 300, state.frameOuterRadius);

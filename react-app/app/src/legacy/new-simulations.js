@@ -2,7 +2,7 @@ import { initState, setCanvas, getGlobals, applyLayoutCSSVars } from './modules/
 import { setupRenderer, getCanvas, getContext, resize } from './modules/rendering/renderer.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { loadRuntimeConfig } from './modules/utils/runtime-config.js';
-import { applyColorTemplate } from './modules/visual/colors.js';
+import { applyColorTemplate, getPaletteTemplateOverrideFromUrl } from './modules/visual/colors.js';
 import { MODES } from './modules/core/constants.js';
 import { clearBalls } from './modules/core/state.js';
 import { spawnBall } from './modules/physics/spawn.js';
@@ -908,7 +908,7 @@ async function initSplatTest() {
   globals.mouseInCanvas = false;
 
   setupPointer();
-  applyColorTemplate('industrialTeal');
+  applyColorTemplate(getPaletteTemplateOverrideFromUrl() || 'riverMist');
 
   setupVariantCycle(VARIANTS);
   startSplatLoop();

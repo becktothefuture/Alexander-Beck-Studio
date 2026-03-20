@@ -4,6 +4,9 @@
 // ║  Designed for O(1)-ish per ball: one linearGradient + one stroke call.     ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
+import { getGlobals } from '../core/state.js';
+import { drawPebbleBodyRim, getPebbleBodyRotation } from './pebble-body.js';
+
 // ── Tuned defaults (from depth-test-a config panel) ──
 const LIGHT_X       = -0.10;
 const LIGHT_Y       = -0.15;
@@ -131,6 +134,7 @@ export function drawDirectionalPathRim(ctx, x, y, r, color, drawPath, opts = {})
  */
 export function drawBallRims(ctx, balls, opts) {
   if (!balls || balls.length === 0) return;
+  const globals = getGlobals();
   const cw = opts?.canvasWidth ?? Number.POSITIVE_INFINITY;
   const ch = opts?.canvasHeight ?? Number.POSITIVE_INFINITY;
   const minR = opts?.minRadius ?? 0;
@@ -138,8 +142,11 @@ export function drawBallRims(ctx, balls, opts) {
   for (let i = 0; i < balls.length; i++) {
     const b = balls[i];
     const r = (typeof b.getDisplayRadius === 'function') ? b.getDisplayRadius() : b.r;
+    if ((b?.squashAmount || 0) > 0.01) continue;
     if (r <= minR) continue;
     if (b.x + r < 0 || b.y + r < 0 || b.x - r > cw || b.y - r > ch) continue;
-    drawBallRim(ctx, b.x, b.y, r, b.color);
+    drawPebbleBodyRim(ctx, b, b.x, b.y, r, b.color, globals, {
+      rotationRad: getPebbleBodyRotation(b),
+    });
   }
 }

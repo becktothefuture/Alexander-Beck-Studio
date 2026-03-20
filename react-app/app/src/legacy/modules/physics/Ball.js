@@ -8,10 +8,30 @@ import { CONSTANTS, MODES, isPitLikeMode } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-state.js';
 import { getPortfolioBodyMaxExtentAlongWorldNormal } from './portfolio-body-geometry.js';
-import { drawBallRim } from '../visual/ball-rim.js';
+import { drawPebbleBody, drawPebbleBodyRim, appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;
+
+function clamp(value, min, max, fallback = min) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return fallback;
+  return Math.min(max, Math.max(min, next));
+}
+
+function getPortfolioMotionLimits(globals) {
+  const motion = globals?.portfolioPitConfig?.motion || {};
+  const dpr = globals?.DPR || 1;
+  return {
+    maxLinearSpeed: clamp(motion.dragMaxSpeedPx, 400, 12000, 2200) * dpr,
+    maxAngularSpeed: clamp(motion.maxAngularSpeed, 0.5, 30, 6.5),
+    restingContactHold: clamp(motion.restingContactHoldMs, 0, 1200, 180) / 1000,
+    groundedVerticalSnap: clamp(motion.groundedVerticalSnapPx, 0, 40, 9) * dpr,
+    supportVerticalSnap: clamp(motion.supportVerticalSnapPx, 0, 40, 12) * dpr,
+    restingLateralSnap: clamp(motion.restingLateralSnapPx, 0, 40, 8) * dpr,
+    restingAngularSnap: clamp(motion.restingAngularSnap, 0.01, 1.5, 0.08),
+  };
+}
 
 /**
  * Rounded-rect interior wall violation (same geometry as Ball.walls).
@@ -29,7 +49,7 @@ function getInteriorWallViolation(ball, w, h) {
     : (globals.cornerRadius ?? globals.wallRadius ?? 0);
   const cr = Math.max(0, Number(cornerRadiusPx) || 0) * (DPR || 1);
 
-  const frameBorderWidthPx = Math.max(0, (globals.frameBorderWidth ?? 0) * (DPR || 1));
+  const frameBorderWidthPx = Math.max(0, (globals.frameBorderWidthEffective ?? globals.frameBorderWidth ?? 0) * (DPR || 1));
   const insetPx = frameBorderWidthPx;
   const borderInset = Math.max(0, (globals.wallInset ?? 3)) * (DPR || 1);
 
@@ -75,12 +95,12 @@ function getInteriorWallViolation(ball, w, h) {
 
   const skipForPit = isPitMode && ny < -0.5;
   const skipForBubbles = currentMode === MODES.BUBBLES && ny < -0.5;
-  // Rounded portfolio bodies fit inside a circle of radius r but extend less in many directions
-  // than r; using r for walls makes them “float” above the floor. Use convex hull support along
-  // the same SDF normal n as for circles (max dot(vertex - center, n)).
+  // Portfolio bodies can be chunkier than circles; using r for walls makes them float above the
+  // floor and feel disconnected from the wall mask. Use support along the same SDF normal n.
   const usePortfolioWallExtent =
     currentMode === MODES.PORTFOLIO_PIT
-    && ball.portfolioBodyShape === 'squircle';
+    && ball.portfolioBodyShape
+    && ball.portfolioBodyShape !== 'circle';
   const shapeExtentAlongN = usePortfolioWallExtent
     ? getPortfolioBodyMaxExtentAlongWorldNormal(ball, nx, ny, globals)
     : effectiveRadius;
@@ -133,6 +153,8 @@ export class Ball {
     this.sleepTimer = 0;  // Time spent below sleep threshold
     this.isGrounded = false; // Set during wall collisions (bottom contact)
     this.hasSupport = false; // Set during ball-ball collisions (ball below supports this one)
+    this.restingContactTimer = 0;
+    this.pebbleSeed = ballIdCounter;
     this._soundId = `ball-${ballIdCounter++}`; // Unique ID for sound debouncing
   }
 
@@ -146,15 +168,18 @@ export class Ball {
     // Wake up if sleeping and mouse is nearby.
     // This is kept cheap (no sqrt) so sleeping can safely be used beyond Pit modes.
     if (this.isSleeping) {
-      if (currentMode === MODES.PIT) {
+      if (currentMode === MODES.PIT || currentMode === MODES.WEIGHTLESS) {
         const mouseX = globals.mouseX;
         const mouseY = globals.mouseY;
-        const wakeRadius = (globals.repelRadius || 710) * globals.DPR * 1.2; // 20% larger than repel radius
+        const wakeSourceRadius = currentMode === MODES.WEIGHTLESS
+          ? (globals.weightlessRepelRadius || globals.repelRadius || 710)
+          : (globals.repelRadius || 710);
+        const wakeRadius = wakeSourceRadius * globals.DPR * 1.2; // 20% larger than repel radius
         const dx = this.x - mouseX;
         const dy = this.y - mouseY;
         const dist2 = dx * dx + dy * dy;
 
-        if (dist2 < wakeRadius * wakeRadius) {
+        if (globals.mouseInCanvas && dist2 < wakeRadius * wakeRadius) {
           this.wake();
         }
       }
@@ -168,12 +193,16 @@ export class Ball {
       this.omega = 0;
       this.isGrounded = false;
       this.hasSupport = false;
+      this.restingContactTimer = 0;
       return;
     }
     
     // Skip all physics if sleeping (Box2D approach)
     // Can be disabled for debugging / extreme tuning.
     if (this.isSleeping && globals.physicsSkipSleepingSteps !== false) {
+      this.vx = 0;
+      this.vy = 0;
+      this.omega = 0;
       return;
     }
 
@@ -184,8 +213,12 @@ export class Ball {
     // hasSupport = resting on another ball; isGrounded = touching floor
     // ════════════════════════════════════════════════════════════════════════════
     const DPR = globals.DPR || 1;
+    if (currentMode === MODES.PORTFOLIO_PIT && this.restingContactTimer > 0) {
+      this.restingContactTimer = Math.max(0, this.restingContactTimer - dt);
+    }
     const wasGrounded = this.isGrounded;
     const wasSupported = this.hasSupport;
+    const hadRestingContact = currentMode === MODES.PORTFOLIO_PIT && this.restingContactTimer > 0;
     this.isGrounded = false; // Clear; will be re-set in walls() if still touching floor
     this.hasSupport = false; // Clear; will be re-set in collision resolution if supported
     
@@ -196,7 +229,7 @@ export class Ball {
       // 2. Ball has significant upward velocity (jumping)
       // Threshold DPR-scaled: 8 display-px/s upward motion still gets gravity
       const JUMP_VEL_THRESHOLD = -8 * DPR;
-      if ((!wasGrounded && !wasSupported) || this.vy < JUMP_VEL_THRESHOLD) {
+      if ((!wasGrounded && !wasSupported && !hadRestingContact) || this.vy < JUMP_VEL_THRESHOLD) {
         this.vy += (G * gravityScale) * dt;
       }
     }
@@ -242,6 +275,16 @@ export class Ball {
     
     // External forces
     if (applyForcesFunc) applyForcesFunc(this, dt);
+
+    if (currentMode === MODES.PORTFOLIO_PIT) {
+      const { maxLinearSpeed } = getPortfolioMotionLimits(globals);
+      const linearSpeed = Math.hypot(this.vx, this.vy);
+      if (linearSpeed > maxLinearSpeed && linearSpeed > 1e-6) {
+        const scale = maxLinearSpeed / linearSpeed;
+        this.vx *= scale;
+        this.vy *= scale;
+      }
+    }
     
     this.x += this.vx * dt;
     this.y += this.vy * dt;
@@ -255,6 +298,10 @@ export class Ball {
     const progressiveSpinDamp = CONSTANTS.SPIN_DAMP_PER_S * (1 + angularMultiplier * 0.5); // Up to 1.5x
     const spinDamp = Math.max(0, 1 - progressiveSpinDamp * dt);
     this.omega *= spinDamp;
+    if (currentMode === MODES.PORTFOLIO_PIT) {
+      const { maxAngularSpeed } = getPortfolioMotionLimits(globals);
+      this.omega = clamp(this.omega, -maxAngularSpeed, maxAngularSpeed, 0);
+    }
     this.theta += this.omega * dt;
     
     // Snap tiny angular velocity to zero
@@ -327,16 +374,19 @@ export class Ball {
   wake() {
     this.isSleeping = false;
     this.sleepTimer = 0;
+    this.restingContactTimer = 0;
   }
 
   walls(w, h, dt, customRest, options = {}) {
     const registerEffects = options.registerEffects !== false && !this._skipWallEffects;
+    const wakeOnCollision = options.wakeOnCollision !== false;
     const globals = getGlobals();
     const { REST, MASS_BASELINE_KG, DPR } = globals;
     const rest = customRest !== undefined ? customRest : REST;
     const wobbleThreshold = globals.wallWobbleImpactThreshold ?? CONSTANTS.WALL_REST_VEL_THRESHOLD;
 
     let hasWallCollision = false;
+    let maxWallImpactSpeed = 0;
     // Note: isGrounded is cleared at start of step() and re-set here if touching floor
 
     const violation = getInteriorWallViolation(this, w, h);
@@ -365,11 +415,16 @@ export class Ball {
       
       // Calculate impact strength
       const impactSpeed = Math.abs(preVn);
+      if (impactSpeed > maxWallImpactSpeed) maxWallImpactSpeed = impactSpeed;
       const impact = Math.min(1, impactSpeed / (this.r * 80));
       
       // Floor-specific: grounding and rolling friction
       if (isFloor) {
         this.isGrounded = true;
+        if (globals.currentMode === MODES.PORTFOLIO_PIT) {
+          const { restingContactHold } = getPortfolioMotionLimits(globals);
+          this.restingContactTimer = Math.max(this.restingContactTimer, restingContactHold);
+        }
         
         // Rolling friction
         const massScale = Math.max(0.25, this.m / MASS_BASELINE_KG);
@@ -387,6 +442,17 @@ export class Ball {
         const rollTarget = this.vx / this.r;
         this.omega += (rollTarget - this.omega) * Math.min(1, CONSTANTS.GROUND_COUPLING_PER_S * dt);
         if (Math.abs(this.omega) < 0.05) this.omega = 0;
+
+        if (globals.currentMode === MODES.PORTFOLIO_PIT) {
+          const {
+            groundedVerticalSnap,
+            restingLateralSnap,
+            restingAngularSnap
+          } = getPortfolioMotionLimits(globals);
+          if (Math.abs(this.vy) < groundedVerticalSnap) this.vy = 0;
+          if (Math.abs(this.vx) < restingLateralSnap) this.vx = 0;
+          if (Math.abs(this.omega) < restingAngularSnap) this.omega = 0;
+        }
       }
       
       // Visual squash (skip for DVD logo and other no-squash balls)
@@ -431,9 +497,11 @@ export class Ball {
     
     // Wake on wall collision (prevents sleeping balls from getting stuck in walls)
     // Always wake meteors on wall collision to ensure they register impacts
-    if (hasWallCollision) {
+    if (hasWallCollision && wakeOnCollision) {
       if (this.isSleeping || this.isMeteor === true) {
-        this.wake();
+        if (this.isMeteor === true || maxWallImpactSpeed > (2 * DPR)) {
+          this.wake();
+        }
       }
     }
   }
@@ -454,7 +522,7 @@ export class Ball {
     // - Batch similar operations
     // - Only use transforms when necessary
     // ══════════════════════════════════════════════════════════════════════════════
-    
+    const globals = getGlobals();
     const hasSquash = this.squashAmount > 0.01;
     // Combine alpha with filter opacity (for legend filtering)
     const filterOpacity = this.filterOpacity ?? 1;
@@ -463,45 +531,30 @@ export class Ball {
     
     // Get display radius (may be scaled by legend filter)
     const displayRadius = this.getDisplayRadius();
-    
-    // Only use save/restore when we have transforms that need cleanup
-    const needsSaveRestore = hasSquash || hasAlpha;
-    
-    if (needsSaveRestore) {
+
+    if (hasSquash) {
       ctx.save();
-      
-      if (hasSquash || hasAlpha) {
-        ctx.translate(this.x, this.y);
-        
-        if (hasSquash) {
-          ctx.rotate(this.theta + this.squashNormalAngle);
-          const squashX = 1 - this.squashAmount * 0.3;
-          const squashY = 1 + this.squashAmount * 0.3;
-          ctx.scale(squashX, squashY);
-          ctx.rotate(-this.squashNormalAngle);
-        } else {
-          ctx.rotate(this.theta);
-        }
-        
-        if (hasAlpha) {
-          ctx.globalAlpha = effectiveAlpha;
-        }
-        
-        ctx.beginPath();
-        ctx.arc(0, 0, displayRadius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        drawBallRim(ctx, 0, 0, displayRadius, this.color);
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.theta + this.squashNormalAngle);
+      const squashX = 1 - this.squashAmount * 0.3;
+      const squashY = 1 + this.squashAmount * 0.3;
+      ctx.scale(squashX, squashY);
+      ctx.rotate(-this.squashNormalAngle);
+      if (hasAlpha) {
+        ctx.globalAlpha = effectiveAlpha;
       }
-      
-      ctx.restore();
-    } else {
-      // Fast path: no squash, no alpha - draw directly without save/restore
       ctx.fillStyle = this.color;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, displayRadius, 0, Math.PI * 2);
+      appendPebbleBodyPath(ctx, this, displayRadius, globals);
       ctx.fill();
-      drawBallRim(ctx, this.x, this.y, displayRadius, this.color);
+      drawPebbleBodyRim(ctx, this, 0, 0, displayRadius, this.color, globals, { rotationRad: 0 });
+      ctx.restore();
+      return;
     }
+
+    drawPebbleBody(ctx, this, this.x, this.y, displayRadius, this.color, globals, {
+      alpha: effectiveAlpha,
+      rotationRad: getPebbleBodyRotation(this),
+    });
   }
 }

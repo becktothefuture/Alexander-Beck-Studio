@@ -173,10 +173,10 @@ export function StyleguideTypographySection() {
 
         <li className="styleguide-type-role">
           <div className="styleguide-type-role__label">
-            <code className="styleguide-doc__code">.ui-main-nav .footer_link</code> · main nav (×1.5 legend size)
+            <code className="styleguide-doc__code">.ui-main-nav .footer_link</code> · primary buttons (slightly smaller than the old ×1.5 legend size)
           </div>
           <div className="styleguide-type-role__sample">
-            <span className="styleguide-type-sample styleguide-type-sample--main-nav">Contact</span>
+            <span className="styleguide-type-sample styleguide-type-sample--main-nav">About Me</span>
           </div>
         </li>
 

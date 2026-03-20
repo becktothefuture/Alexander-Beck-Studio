@@ -15,10 +15,15 @@
     "physicsSleepTime": 0.25,
     "physicsSkipSleepingSteps": true,
     "ballSizeMin": 12,
-    "ballSizeMax": 12,
+    "ballSizeMax": 20,
+    "ballSizeBreakpointMax": 1280,
     "ballSizeCurve": 1.6,
     "mobileObjectReductionFactor": 1,
     "ballSoftness": 29,
+    "pebbleBlend": 0.86,
+    "pebbleStretch": 0.3,
+    "pebbleOrganic": 0.34,
+    "pebbleBulge": 0.42,
     "ballSpacing": 0.08,
     "sizeVariationGlobalMul": 1,
     "sizeVariationCap": 0,
@@ -180,7 +185,7 @@
     "swarmSpeed": 0.4,
     "fliesSeparation": 15000,
     "fliesWarmupFrames": 10,
-    "weightlessCount": 66,
+    "weightlessCount": 75,
     "weightlessInitialSpeed": 250,
     "weightlessBounce": 0.7,
     "weightlessRepelPower": 50000,
@@ -298,7 +303,8 @@
     "repelSoftness": 3.4,
     "layoutViewportWidthPx": 0,
     "wallThicknessVw": 4,
-    "frameBorderWidth": 0,
+    "frameBorderWidth": 20,
+    "frameBorderWidthMobile": 4,
     "simulationPaddingVw": 0,
     "layoutMinContentPaddingPx": 0,
     "layoutMinWallRadiusPx": 32,
@@ -386,7 +392,6 @@
       "decorativeScriptPaddingX": "16px",
       "decorativeScriptPaddingY": "10px",
       "quoteButtonSize": "200px",
-      "quoteMaxWidth": "200px",
       "quotePaddingX": "28px",
       "quotePaddingY": "24px",
       "edgeCaptionDistanceMin": "8px",
@@ -421,22 +426,13 @@
       "lightEdgeTopOpacityLight": 0.076,
       "lightEdgeTopOpacityDark": 0.096,
       "lightEdgeBottomOpacityLight": 0.02,
-      "lightEdgeBottomOpacityDark": 0.033,
-      "quoteButtonFillOpacity": 0.7
+      "lightEdgeBottomOpacityDark": 0.033
     },
     "motion": {
       "shellRevealMs": 180,
       "contentRevealMs": 420,
       "simulationWarmupFrames": 90,
       "allowScaleEntrance": false,
-      "puckRestitution": 0.65,
-      "puckFriction": 0.5,
-      "puckWallInset": 0,
-      "puckMaxSpeed": 4000,
-      "puckSpinGain": 0.12,
-      "puckSpinFriction": 3,
-      "puckWallSquash": 0.96,
-      "puckSoundIntensity": 0.7,
       "modalOverlayOpacity": 0,
       "modalOverlayBlurPx": 5.5,
       "modalOverlayTransitionMs": 700,
@@ -446,7 +442,7 @@
       "modalDepthTranslateY": 1
     },
     "hero": {
-      "startupMode": "",
+      "startupMode": "pit",
       "desktopLogoWidthVw": 52,
       "desktopLogoMinPx": 340,
       "desktopLogoMaxPx": 640,
@@ -466,6 +462,11 @@
     }
   },
   "portfolio": {
+    "cssVars": {
+      "--portfolio-drawer-inner-shadow-opacity": "0.18",
+      "--portfolio-drawer-inner-shadow-blur": "56px",
+      "--portfolio-drawer-inner-shadow-spread": "10px"
+    },
     "runtime": {
       "labeling": {
         "titleLineHeight": 0.76

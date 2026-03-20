@@ -577,7 +577,7 @@ main.ui-center-spacer:not(.center-stage--modal-hidden) {
   content: '';
   position: absolute;
   /* Align to inner wall edge: safari-tint-inset + wall-thickness */
-  inset: calc(var(--safari-tint-inset, 20px) + var(--wall-thickness, 9px));
+  inset: calc(var(--safari-tint-inset) + var(--wall-thickness));
   /* No border-radius - only simulation (#simulations) has rounded corners */
   border-radius: 0;
   pointer-events: none;
@@ -1778,6 +1778,40 @@ body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
   padding-block-start: calc(var(--gap-xs) + var(--gap-sm));
 }
 
+/* Home desktop/tablet: keep the legend in the 2-column arrangement and let the intro text
+   elastically yield to the available space instead of reserving a fixed right-column minimum. */
+body:not(.portfolio-page):not(.cv-page) .ui-top-main {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: clamp(calc(var(--gap-lg) - var(--abs-size-1px)), 3.6vw, calc(var(--gap-24) + var(--gap-sm)));
+}
+
+body:not(.portfolio-page):not(.cv-page) .ui-top-left {
+  width: auto;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+body:not(.portfolio-page):not(.cv-page) .legend {
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  width: fit-content;
+  max-width: min(100%, 34rem);
+  padding-block-start: calc(var(--gap-xs) - (2 * var(--abs-size-1px)));
+}
+
+body:not(.portfolio-page):not(.cv-page) .ui-top-right {
+  min-width: 0;
+  gap: calc(var(--gap-lg) * 0.5);
+}
+
+body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+  width: 100%;
+  max-width: min(100%, var(--decorative-script-max-width));
+  justify-self: end;
+  font-size: calc(var(--legend-font-size) + var(--abs-size-1px));
+  margin-block-start: calc(var(--decorative-script-font-size) * -0.5);
+  padding-inline-start: calc(var(--decorative-script-padding-left) + var(--gap-md));
+}
+
 /* Unified hover state - handled in INTERACTIVE HOVER EFFECTS section below */
 
 /* Index page: reduce default text saturation/opacity (except logo).
@@ -2687,6 +2721,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
   --ui-duration-in: 780ms;
   --ui-duration-out: 455ms;
   --ui-logo-duration-in: 1040ms;
+  --ui-nav-return-duration: 240ms;
   
   /* Nav staggering — links appear after hero title has emerged */
   --ui-stagger: 104ms;
@@ -2765,6 +2800,13 @@ html.modal-active #main-links .footer_link {
   transition-duration: var(--ui-duration-out);
   transition-timing-function: var(--ui-ease-out);
   transition-delay: calc(var(--ui-stagger) * var(--ri, 0));
+}
+
+/* On modal close, restore the row as one unit instead of replaying the full entrance stagger. */
+html.modal-returning #main-links .footer_link {
+  transition-duration: var(--ui-nav-return-duration);
+  transition-timing-function: var(--ui-ease-in);
+  transition-delay: 0ms;
 }
 
 /* Disable pointer events when hidden */
@@ -4788,10 +4830,10 @@ body.cv-page #simulations .cv-wall-canvas {
 .cv-scroll-container {
   position: absolute;
   /* Inset by wall thickness so the wall frame is visible around the content */
-  top: var(--wall-thickness, 9px);
-  right: var(--wall-thickness, 9px);
-  left: var(--wall-thickness, 9px);
-  bottom: calc(var(--wall-thickness, 9px) + var(--cv-footer-clearance, clamp(108px, 16vh, 124px)));
+  top: var(--wall-thickness);
+  right: var(--wall-thickness);
+  left: var(--wall-thickness);
+  bottom: calc(var(--wall-thickness) + var(--cv-footer-clearance, clamp(108px, 16vh, 124px)));
   /* Desktop: clip at rounded edges, .cv-right handles its own scroll */
   overflow: hidden;
   /* Border-radius on inner scroll container (not #simulations) to clip CV content 
@@ -5449,7 +5491,7 @@ body.cv-page.dark-mode .cv-scroll-container {
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    top: calc(var(--wall-thickness, 9px) + clamp(74px, 11vh, 94px));
+    top: calc(var(--wall-thickness) + clamp(74px, 11vh, 94px));
     padding: clamp(1rem, 3vw, 1.5rem);
     padding-top: clamp(1rem, 3vw, 1.5rem);
   }

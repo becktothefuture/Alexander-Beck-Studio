@@ -23,6 +23,12 @@ const ROUTE_DEFS = {
     aliases: ['/styleguide.html', '/styleguide'],
     gated: false,
   },
+  'palette-lab': {
+    id: 'palette-lab',
+    path: '/palette-lab.html',
+    aliases: ['/palette-lab.html', '/palette-lab'],
+    gated: false,
+  },
 };
 
 function normalizePathname(pathname = '/') {
@@ -74,4 +80,3 @@ export function buildRouteHref(routeId, options = {}) {
 
   return `${url.pathname}${url.search}${url.hash}`;
 }
-

@@ -23,8 +23,9 @@ The portfolio route now uses a dedicated **project pit** runtime instead of the 
 Portfolio config applies to the portfolio pit and the **wall-aligned project bottom sheet** (not a fullscreen takeover). `runtime.motion.openDurationMs` drives drawer slide in/out; `colorFloodHoldMs` is unused in this layout but remains in generated JSON for compatibility. The project dialog (`#portfolioProjectView`) is inserted by `portfolio/app.js` **`createProjectView()`** into **`#portfolio-sheet-host`**. **Stacking (non-negotiable):** the host is a **sibling of `.fade-content` inside `#abs-scene`**, **after** `.fade-content` in the DOM (`StudioShell.jsx`), with **`z-index: 220`** and **`z-index: 260`** when `body.portfolio-project-open` — **above** route header/footer (**200**) and above **`#quote-viewport-host` (250)** when open. **Do not** mount the host only inside **`#simulations`** (that cannot stack above chrome). Authoritative table: **`docs/reference/LAYER-STACKING.md`**. The host uses the **same fixed inset** as the inner canvas and **`border-radius: var(--frame-inner-radius)`** + **`overflow: hidden`**; inherits **`corner-shape`** like **`#c`**. **`.portfolio-project-view__drawer`** has no duplicate frame border. **`--portfolio-drawer-radius`** is **`--frame-inner-radius`** for hero inset math. Close uses an **inline SVG**. Pit labels stay in `#portfolioProjectMount`. Without the host, the dialog falls back to the mount. **`.portfolio-project-view__scroll`**: **`overflow-y: auto`**, **`line-height: var(--line-height-body)`**, hidden scrollbars. Hero uses **`--portfolio-hero-image-gutter`** and **`--portfolio-hero-image-radius`**. Hero height: **`100cqh`** / `min(100dvh, 100svh)` fallback.
 
 - **`bodies.diameterScale`**: Multiplier applied to computed ball diameters after viewport fractions (default `1` = no extra scale on top of min/max viewport fractions).
+- **Pebble render language:** [`PEBBLE-BODIES.md`](PEBBLE-BODIES.md) describes the shared visual direction. The implemented system uses conservative simulation bodies with shared render-only pebble silhouettes and screen-locked rim lighting.
 
-**Simulation notes (2025-03):** Portfolio bodies share the home pit integrator. Project silhouettes are **circles and square Lamé squircles** (alternating by index); squircles use one **parametric** boundary (`portfolio-body-geometry.js`) with circumradius `ball.r`, tunable via **`runtime.bodies.squircleLameExponent`** (default **4**, classic squircle). The **first project** (index 0) is a **theme accent circle**: cream `#f5f1ea` in dark mode, near-black `#111111` in light mode (`getPortfolioAccentCircleFill` in `pit-mode.js`, refreshed on theme toggle). **Ball–ball** contact uses **SAT** on the **same** polygon as the canvas fill (`portfolio-pit-narrow-phase.js`, `collision.js`). Pointer hit-testing matches those hulls (`portfolioCanvasPointHitsBody`). `detectResponsiveScale()` does not overwrite portfolio radii; `R_MAX` / spatial hashing are synced from spawned bodies. The canvas logo draw path is skipped on the portfolio route so home hero artwork cannot leak after SPA navigation. Titles render in a DOM overlay (`portfolioDomLabels`) for sharp type. On SPA route changes, React remounts `#c`; `setupRenderer()` clears the renderer’s cached previous backing-store dimensions when the canvas **node** changes so `resize()` cannot treat a fresh default 300×150 buffer as already matching the last route’s layout (fixes broken pit after the portfolio gate modal).
+**Simulation notes (2025-03, pebble pass):** Portfolio bodies share the home pit integrator. The rendered silhouettes now read as a smooth pebble family from `react-app/app/src/legacy/modules/portfolio/pit-mode.js`; the shape spec is documented in [`PEBBLE-BODIES.md`](PEBBLE-BODIES.md). The final portfolio setup uses a conservative circular simulation body with a custom pebble render silhouette on top, plus a tiny explicit surface gap, so the visible pebble does not clip into neighbours or the wall. The **first project** (index 0) is a **theme accent circle**: cream `#f5f1ea` in dark mode, near-black `#111111` in light mode (`getPortfolioAccentCircleFill` in `pit-mode.js`, refreshed on theme toggle). `detectResponsiveScale()` does not overwrite portfolio radii; `R_MAX` / spatial hashing are synced from spawned bodies. The canvas logo draw path is skipped on the portfolio route so home hero artwork cannot leak after SPA navigation. Titles render in a DOM overlay (`portfolioDomLabels`) for sharp type. On SPA route changes, React remounts `#c`; `setupRenderer()` clears the renderer’s cached previous backing-store dimensions when the canvas **node** changes so `resize()` cannot treat a fresh default 300×150 buffer as already matching the last route’s layout (fixes broken pit after the portfolio gate modal).
 
 **Project circle fills:** Each project gets a distinct color from the active palette: saturated (chromatic) swatches first, then neutral/grey slots from that palette (deduped), then additional cool greys if there are more projects than unique swatches (`getPortfolioProjectPaletteColor` in `visual/colors.js`). Home ball pit still uses weighted random palette picks; this rule applies only to the portfolio pit.
 
@@ -329,6 +330,22 @@ These keys control the **ghost trail** effect implemented in `source/modules/phy
 - **Notes**:
   - Each simulation has its own slider (`sizeVariation*`) in the range `0..1`.
   - There is an internal cap (`state.sizeVariationCap`, currently `0.2`) that defines what “1.0 variation” means in absolute size terms.
+
+### Pebble Silhouette (render-only, phase 1)
+
+These keys shape the shared pebble visual language used by the ball system. They are persisted in `design-system.json` and surfaced in the `Balls` panel, but phase 1 keeps collisions circular.
+
+- **`pebbleBlend`** (number, 0..1)
+  - **Meaning**: Circle-to-pebble amount.
+
+- **`pebbleStretch`** (number, 0..1)
+  - **Meaning**: Long-axis pressure for slightly oval or squeezed forms.
+
+- **`pebbleOrganic`** (number, 0..1)
+  - **Meaning**: Asymmetry and contour drift.
+
+- **`pebbleBulge`** (number, 0..1)
+  - **Meaning**: Fullness versus pinch, which controls how thick or soft the body feels.
 
 ---
 

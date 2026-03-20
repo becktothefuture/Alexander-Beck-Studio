@@ -32,6 +32,9 @@ export function spawnBall(x, y, color, distributionIndex) {
   const r = randomRadiusForMode(globals, globals.currentMode || MODES.PIT);
   
   const ball = new Ball(x, y, r, color);
+  if ((globals.currentMode || MODES.PIT) === MODES.PIT) {
+    ball.theta = Math.random() * Math.PI * 2;
+  }
   
   // Store the distribution index for legend filtering
   // This maps to the colorDistribution array (0-6 for 7 labels)
@@ -51,4 +54,3 @@ export function spawnBall(x, y, color, distributionIndex) {
   globals.balls.push(ball);
   return ball;
 }
-

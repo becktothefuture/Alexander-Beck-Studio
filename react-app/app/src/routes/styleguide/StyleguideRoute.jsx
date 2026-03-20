@@ -32,9 +32,9 @@ export function getStyleguideRouteView() {
         <div className="styleguide-doc">
           <h1 className="styleguide-doc__title">Component library</h1>
           <p className="styleguide-doc__lede">
-            Primary chrome: text actions via <code className="styleguide-doc__code">MainNavLink</code> (renders{' '}
+            Primary buttons: text actions via <code className="styleguide-doc__code">MainNavLink</code> (renders{' '}
             <code className="styleguide-doc__code">.footer_link</code> inside <code className="styleguide-doc__code">.ui-main-nav</code>),
-            and icon actions via <code className="styleguide-doc__code">.abs-icon-btn</code>. Do not add alternate text-button classes.
+            and icon actions via <code className="styleguide-doc__code">.abs-icon-btn</code>. Keep About Me title-cased; do not add alternate text-button classes.
           </p>
 
           <StyleguideTypographySection />
@@ -48,7 +48,7 @@ export function getStyleguideRouteView() {
             <nav className="ui-main-nav styleguide-sample-row" aria-label="Sample main nav">
               <MainNavLink>Contact</MainNavLink>
               <MainNavLink>Portfolio</MainNavLink>
-              <MainNavLink>About me</MainNavLink>
+              <MainNavLink>About Me</MainNavLink>
             </nav>
           </section>
 
@@ -65,12 +65,16 @@ export function getStyleguideRouteView() {
                     <span className="gate-back abs-icon-btn styleguide-fake-icon" aria-hidden="true">
                       <i className="ti ti-arrow-left" aria-hidden="true" />
                     </span>
+                    <nav className="portfolio-topnav ui-main-nav" aria-label="Sample route top nav">
+                      <MainNavLink>About Me</MainNavLink>
+                      <MainNavLink>Contact</MainNavLink>
+                    </nav>
                   </div>
-                  <nav className="route-topbar__center portfolio-topnav ui-main-nav" aria-label="Sample route top nav">
-                    <MainNavLink>About me</MainNavLink>
-                    <MainNavLink>Contact</MainNavLink>
-                  </nav>
+                  <div className="route-topbar__center" aria-hidden="true" />
                   <div className="route-topbar__right ui-top-right">
+                    <blockquote className="decorative-script portfolio-topline">
+                      <p>Selected work, tuned for motion.</p>
+                    </blockquote>
                     <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample mute" disabled>
                       <i className="ti ti-volume-off" aria-hidden="true" />
                     </button>

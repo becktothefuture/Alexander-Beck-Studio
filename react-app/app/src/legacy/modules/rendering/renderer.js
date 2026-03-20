@@ -127,9 +127,11 @@ function getPortfolioBodyRadiusForResize(ball, balls, globals, newWidth, newHeig
   const index = Number.isInteger(ball?.projectIndex) ? ball.projectIndex : -1;
 
   if (index >= 0 && count > 0) {
-    const frameBorderWidth = Number.isFinite(globals.frameBorderWidth)
-      ? globals.frameBorderWidth
-      : (globals.wallThickness || 20);
+    const frameBorderWidth = Number.isFinite(globals.frameBorderWidthEffective)
+      ? globals.frameBorderWidthEffective
+      : (Number.isFinite(globals.frameBorderWidth)
+        ? globals.frameBorderWidth
+        : (globals.wallThickness || 20));
     const dpr = globals.DPR || 1;
     const frameInset = frameBorderWidth * dpr;
     const innerW = Math.max(1, newWidth - 2 * frameInset);

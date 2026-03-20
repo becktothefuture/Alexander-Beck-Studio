@@ -17,6 +17,7 @@ let isEnabled = true;
 let isInitialized = false;
 const modalOriginalPlacement = new WeakMap();
 let blurExplicitlySet = false; // Track if blur was set from config
+let modalReturnClassTimeout = null;
 
 function ensureModalHost() {
     if (!contentLayerElement) return null;
@@ -69,6 +70,27 @@ export function getModalCloseDurationMs(fallback = 700) {
         }
     } catch (e) {}
     return fallback;
+}
+
+function getNavReturnDurationMs(fallback = 240) {
+    try {
+        const raw = getComputedStyle(document.documentElement)
+            .getPropertyValue('--ui-nav-return-duration')
+            .trim();
+        const parsed = parseFloat(raw);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+            return parsed;
+        }
+    } catch (e) {}
+    return fallback;
+}
+
+function clearModalReturnState() {
+    if (modalReturnClassTimeout !== null) {
+        clearTimeout(modalReturnClassTimeout);
+        modalReturnClassTimeout = null;
+    }
+    document.documentElement.classList.remove('modal-returning');
 }
 
 export function forceHideOverlayModal(modalEl) {
@@ -305,6 +327,8 @@ export function showOverlay() {
     // Ensure blur CSS variable is current
     updateBlurFromWallThickness('showOverlay');
 
+    clearModalReturnState();
+
     // Global flag for modal-active styling (CSS derives logo/nav visibility from this)
     document.documentElement.classList.add('modal-active');
     
@@ -344,13 +368,20 @@ export function showOverlay() {
  */
 export function hideOverlay() {
     if (!blurLayerElement || !contentLayerElement || !isEnabled) return;
+
+    clearModalReturnState();
     
     // Remove active class from BOTH layers
     blurLayerElement.classList.remove('active');
     contentLayerElement.classList.remove('active');
-    
+
+    document.documentElement.classList.add('modal-returning');
     // Remove modal-active (CSS will animate logo/nav back in)
     document.documentElement.classList.remove('modal-active');
+    modalReturnClassTimeout = window.setTimeout(() => {
+        document.documentElement.classList.remove('modal-returning');
+        modalReturnClassTimeout = null;
+    }, getNavReturnDurationMs() + 50);
     
     blurLayerElement.setAttribute('aria-hidden', 'true');
     contentLayerElement.setAttribute('aria-hidden', 'true');

@@ -197,6 +197,25 @@ const RETIRED_SHELL_THEME_KEYS = new Set([
   'lockedHeaderDark',
 ]);
 
+const RETIRED_SHELL_LAYOUT_KEYS = new Set([
+  'quoteMaxWidth',
+]);
+
+const RETIRED_SHELL_SURFACE_KEYS = new Set([
+  'quoteButtonFillOpacity',
+]);
+
+const RETIRED_SHELL_MOTION_KEYS = new Set([
+  'puckRestitution',
+  'puckFriction',
+  'puckWallInset',
+  'puckMaxSpeed',
+  'puckSpinGain',
+  'puckSpinFriction',
+  'puckWallSquash',
+  'puckSoundIntensity',
+]);
+
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -215,9 +234,25 @@ function pruneRuntimeConfig(runtime = {}) {
 
 function pruneShellConfig(shell = {}) {
   const nextShell = clone(shell);
-  if (!isPlainObject(nextShell.theme)) return nextShell;
-  for (const key of RETIRED_SHELL_THEME_KEYS) {
-    delete nextShell.theme[key];
+  if (isPlainObject(nextShell.theme)) {
+    for (const key of RETIRED_SHELL_THEME_KEYS) {
+      delete nextShell.theme[key];
+    }
+  }
+  if (isPlainObject(nextShell.layout)) {
+    for (const key of RETIRED_SHELL_LAYOUT_KEYS) {
+      delete nextShell.layout[key];
+    }
+  }
+  if (isPlainObject(nextShell.surface)) {
+    for (const key of RETIRED_SHELL_SURFACE_KEYS) {
+      delete nextShell.surface[key];
+    }
+  }
+  if (isPlainObject(nextShell.motion)) {
+    for (const key of RETIRED_SHELL_MOTION_KEYS) {
+      delete nextShell.motion[key];
+    }
   }
   return nextShell;
 }

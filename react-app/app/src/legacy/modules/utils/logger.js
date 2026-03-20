@@ -80,17 +80,17 @@ export function isDev() {
   return devMode;
 }
 
-// Fallback color palette (Industrial Teal light mode) - used if currentColors not available
+// Fallback color palette (River Mist light mode) - used if currentColors not available
 // Weights: 50%, 25%, 12%, 6%, 3%, 2%, 1%, 1%
 const FALLBACK_CONSOLE_COLORS = [
-  '#b7bcb7', // gray (dominant)
-  '#d0d0d0', // light gray
-  '#ffffff', // white
-  '#00695c', // teal (accent)
-  '#1a1a1a', // near-black (readable)
-  '#f03030', // accent red
-  '#0d5cb6', // blue
-  '#ffa000', // amber
+  '#a4aba8', // river grey (dominant)
+  '#c9cfcb', // light stone
+  '#f7f5ef', // gallery white
+  '#5e857f', // misted green
+  '#121416', // ink
+  '#d36e4b', // terracotta accent
+  '#5c7c96', // Thames blue
+  '#d2ad62', // brass
 ];
 const COLOR_WEIGHTS = [0.50, 0.25, 0.12, 0.06, 0.03, 0.02, 0.01, 0.01];
 

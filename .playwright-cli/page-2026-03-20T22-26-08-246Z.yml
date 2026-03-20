@@ -1,0 +1,46 @@
+- generic [ref=e2]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - banner:
+            - generic:
+              - navigation "Areas of expertise" [ref=e3]:
+                - generic [ref=e6]: Product Systems
+                - generic [ref=e9]: Interaction Design
+                - generic [ref=e12]: Creative Technology
+                - generic [ref=e15]: Applied AI
+                - generic [ref=e18]: Experience Strategy
+                - generic [ref=e21]: Art Direction
+                - generic [ref=e24]: Prototyping
+              - blockquote [ref=e25]:
+                - paragraph [ref=e26]:
+                  - text: The most interesting work happens where disciplines overlap. I design at the intersection of systems, interaction, and technology, using craft and AI to shape clear, usable experiences that are ready to ship.
+                  - link "Let's chat." [ref=e27] [cursor=pointer]:
+                    - /url: "#"
+          - main
+          - navigation "Main navigation links" [ref=e28]:
+            - button "Contact" [ref=e29] [cursor=pointer]:
+              - generic [ref=e30]: Contact
+            - button "Portfolio" [ref=e31] [cursor=pointer]:
+              - generic [ref=e32]: Portfolio
+            - button "About Me" [ref=e33] [cursor=pointer]:
+              - generic [ref=e34]: About Me
+      - contentinfo:
+        - generic:
+          - group "Social media links" [ref=e36]:
+            - link "Apple Music" [ref=e37] [cursor=pointer]:
+              - /url: https://music.apple.com/profile/beckandeggs
+              - generic: 
+              - generic [ref=e38]: Apple Music
+            - link "LinkedIn" [ref=e39] [cursor=pointer]:
+              - /url: https://www.linkedin.com/in/thisisbeck/
+              - generic: 
+              - generic [ref=e40]: LinkedIn
+          - button "Toggle theme" [ref=e42] [cursor=pointer]:
+            - generic [ref=e43]:
+              - strong [ref=e44]: London
+              - text: · 0:00:00 AM
+      - status:
+        - generic: BUILT WITH LOVE TO BE SATISFYING.
+        - generic: © 2026 Alexander Beck

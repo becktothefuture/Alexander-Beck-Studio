@@ -1032,6 +1032,50 @@ export const CONTROL_SECTIONS = {
         parse: v => parseInt(v, 10)
       },
       {
+        id: 'pebbleBlend',
+        label: 'Pebble Blend',
+        stateKey: 'pebbleBlend',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.86,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Circle-to-pebble amount. Phase 1 is render-only; collisions stay circular.'
+      },
+      {
+        id: 'pebbleStretch',
+        label: 'Pebble Stretch',
+        stateKey: 'pebbleStretch',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.30,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Long-axis pressure for ovals and slight squeezes. Phase 1 is render-only.'
+      },
+      {
+        id: 'pebbleOrganic',
+        label: 'Pebble Organic',
+        stateKey: 'pebbleOrganic',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.34,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Asymmetry and contour drift. Higher values feel less geometric.'
+      },
+      {
+        id: 'pebbleBulge',
+        label: 'Pebble Bulge',
+        stateKey: 'pebbleBulge',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.42,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Fullness versus pinch. Higher values feel thicker and softer.'
+      },
+      {
         id: 'ballSpacing',
         label: 'Spacing',
         stateKey: 'ballSpacing',
@@ -1114,28 +1158,28 @@ export const CONTROL_SECTIONS = {
          stateKey: 'contentPaddingRatio',
          type: 'range',
          min: -0.05, max: 1, step: 0.001,
-         default: 0,
+         default: 0.015,
          format: v => `${(Number(v) * 100).toFixed(1)}%`,
          parse: parseFloat,
-         hint: 'Additive padding as a fraction of viewport size (sqrt(w*h)). Back-compat: old px values are auto-converted.',
+         hint: 'Additive padding on top of the frame-clear inset, as a fraction of layout width. Back-compat: old px values are auto-converted.',
          onChange: (g, val) => {
            const valueToSync = val !== undefined ? val : (g.contentPaddingRatio !== undefined ? g.contentPaddingRatio : 0);
            
-           import('../core/state.js').then(({ applyLayoutFromVwToPx, applyLayoutCSSVars }) => {
+           import('../core/state.js').then(({ applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx }) => {
              applyLayoutFromVwToPx();
              applyLayoutCSSVars();
              try {
                const el = document.getElementById('contentPaddingRatioVal');
                if (el) {
                  const frac = Number(valueToSync) || 0;
-                 const viewportSize = (() => {
+                 const layoutWidth = (() => {
                    try {
-                     const v = getComputedStyle(document.documentElement).getPropertyValue('--layout-viewport-size-px').trim();
+                     const v = getComputedStyle(document.documentElement).getPropertyValue('--layout-viewport-width-px').trim();
                      const n = parseFloat(v);
-                     return Number.isFinite(n) ? n : 0;
-                   } catch (e) { return 0; }
+                     return Number.isFinite(n) ? n : Math.max(1, getLayoutViewportWidthPx());
+                   } catch (e) { return Math.max(1, getLayoutViewportWidthPx()); }
                  })();
-                 const addPx = Math.round(viewportSize * frac);
+                 const addPx = Math.round(layoutWidth * frac);
                  const total = Math.round(g.contentPadding || 0);
                  el.textContent = `${(frac >= 0 ? '+' : '')}${(frac * 100).toFixed(1)}% (${addPx >= 0 ? '+' : ''}${addPx}px) → ${total}px`;
                }

@@ -16,6 +16,7 @@ import {
 } from '../modes/mode-controller.js';
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
 import { getRenderQualityProfile } from '../utils/render-quality.js';
+import { appendPebbleBodyPath, getPebbleBodyRotation } from '../visual/pebble-body.js';
 import { drawBallRims } from '../visual/ball-rim.js';
 import { 
   getAccumulator, 
@@ -60,6 +61,11 @@ function getPortfolioPitMotionProfile(globals) {
     sleepVelocityThreshold: clampNumber(motion.sleepVelocityThreshold, 4, 48, 18),
     sleepAngularThreshold: clampNumber(motion.sleepAngularThreshold, 0.04, 1.2, 0.24),
     timeToSleep: clampNumber(motion.timeToSleep, 0.04, 1, 0.16),
+    restingContactHold: clampNumber(motion.restingContactHoldMs, 0, 1200, 180) / 1000,
+    groundedVerticalSnap: clampNumber(motion.groundedVerticalSnapPx, 0, 40, 9),
+    supportVerticalSnap: clampNumber(motion.supportVerticalSnapPx, 0, 40, 12),
+    restingLateralSnap: clampNumber(motion.restingLateralSnapPx, 0, 40, 8),
+    restingAngularSnap: clampNumber(motion.restingAngularSnap, 0.01, 1.5, 0.08),
   };
 }
 
@@ -414,7 +420,9 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
     // Wall/corner clamping can re-introduce overlaps in dense stacks (especially near the floor).
     // Run a small post-wall collision pass for Pit-like modes only.
     if (isPitLikeMode(mode)) {
-      const overlapThreshold = Math.max(0, Number(globals.pitPostPassOverlapThreshold ?? 0));
+      const overlapThreshold = mode === MODES.PORTFOLIO_PIT
+        ? 0
+        : Math.max(0, Number(globals.pitPostPassOverlapThreshold ?? 0));
       const shouldRunPostPass = overlapThreshold <= 0 || (Number(collisionStats.overlapDebt) || 0) >= overlapThreshold;
       if (shouldRunPostPass) {
         const postPassStart = isPitMode ? performance.now() : 0;
@@ -460,25 +468,58 @@ function updatePhysicsInternal(dtSeconds, applyForcesFunc) {
         const wThresh = pitMotion?.sleepAngularThreshold
           ?? (Number.isFinite(globals.sleepAngularThreshold) ? globals.sleepAngularThreshold : 0.18);
         const tSleep = pitMotion?.timeToSleep ?? globals.timeToSleep ?? 0.25;
+        const groundedVerticalSnap = (pitMotion?.groundedVerticalSnap ?? 6) * DPR;
+        const supportVerticalSnap = (pitMotion?.supportVerticalSnap ?? groundedVerticalSnap) * DPR;
+        const restingLateralSnap = (pitMotion?.restingLateralSnap ?? 6) * DPR;
+        const restingAngularSnap = pitMotion?.restingAngularSnap ?? 0.06;
         
         for (let i = 0; i < lenClamp; i++) {
           const b = balls[i];
           if (!b || b.isSleeping) continue;
           const speedSq = b.vx * b.vx + b.vy * b.vy;
           const angSpeed = Math.abs(b.omega);
-          const isSettled = b.isGrounded || b.hasSupport;
+          const hasRestingContact = Number(b.restingContactTimer) > 0;
+          const isSettled = b.isGrounded || b.hasSupport || hasRestingContact;
           if (isSettled && speedSq < vThreshSq && angSpeed < wThresh) {
-            b.vx *= 0.5;
-            b.vy *= 0.5;
-            b.omega *= 0.5;
+            b.vx *= 0.32;
+            b.vy *= 0.2;
+            b.omega *= 0.28;
+            if (b.isGrounded && Math.abs(b.vy) < groundedVerticalSnap) {
+              b.vy = 0;
+            }
+            if (b.hasSupport && Math.abs(b.vy) < supportVerticalSnap) {
+              b.vy = 0;
+            }
+            if (Math.abs(b.vx) < restingLateralSnap) {
+              b.vx = 0;
+            }
             if (speedSq < tinySpeedSq) {
               b.vx = 0;
               b.vy = 0;
             }
-            if (angSpeed < 0.02) {
+            if (angSpeed < restingAngularSnap) {
               b.omega = 0;
             }
-            b.sleepTimer += DT;
+            const nearRest = Math.abs(b.vx) < restingLateralSnap
+              && Math.abs(b.vy) < Math.max(groundedVerticalSnap, supportVerticalSnap)
+              && angSpeed < Math.max(restingAngularSnap * 1.5, 0.03);
+            if (nearRest && pitMotion?.restingContactHold > 0) {
+              b.restingContactTimer = Math.max(Number(b.restingContactTimer) || 0, pitMotion.restingContactHold);
+            }
+            const directSleepEligible = nearRest
+              && hasRestingContact
+              && Math.abs(b.vy) < (Math.min(groundedVerticalSnap, supportVerticalSnap) * 0.35)
+              && speedSq < (tinySpeedSq * 4)
+              && (Number(b.restingContactTimer) || 0) >= Math.min(pitMotion?.restingContactHold ?? 0, 0.12);
+            if (directSleepEligible) {
+              b.vx = 0;
+              b.vy = 0;
+              b.omega = 0;
+              b.sleepTimer = tSleep;
+              b.isSleeping = true;
+              continue;
+            }
+            b.sleepTimer += nearRest ? (DT * 2) : DT;
             if (b.sleepTimer >= tSleep) {
               b.vx = 0;
               b.vy = 0;
@@ -724,6 +765,7 @@ export function render() {
  */
 function renderBallsColorBatched(ctx, ballsToRender, _unused = false, renderOptions = null) {
   if (!ballsToRender || ballsToRender.length === 0) return;
+  const globals = getGlobals();
   const pitLodEnabled = Boolean(renderOptions?.pitRenderLodEnabled);
   const tinyRadiusPx = Number(renderOptions?.pitTinyRadiusPx) || 0;
   const squashThreshold = pitLodEnabled
@@ -783,22 +825,33 @@ function renderBallsColorBatched(ctx, ballsToRender, _unused = false, renderOpti
           // Use existing Ball.draw() for squash (it handles transforms)
           // But we've already set globalAlpha, so temporarily override
           const originalAlpha = ball.alpha;
+          const originalFilterOpacity = ball.filterOpacity;
           ball.alpha = 1.0; // Prevent double-applying alpha
+          ball.filterOpacity = 1.0;
           ball.draw(ctx);
           ball.alpha = originalAlpha;
+          ball.filterOpacity = originalFilterOpacity;
         } else {
-          // Simple alpha case: just draw circle with alpha
+          // Simple alpha case: draw the pebble silhouette with alpha.
+          ctx.translate(ball.x, ball.y);
+          const rotationRad = getPebbleBodyRotation(ball);
+          if (rotationRad !== 0) ctx.rotate(rotationRad);
           ctx.beginPath();
-          ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+          appendPebbleBodyPath(ctx, ball, radius, globals);
           ctx.fill();
         }
         
         ctx.restore();
       } else {
-        // Fast path: simple circle (no transforms, no save/restore)
+        // Fast path: pebble fill with shared batch color.
+        ctx.save();
+        ctx.translate(ball.x, ball.y);
+        const rotationRad = getPebbleBodyRotation(ball);
+        if (rotationRad !== 0) ctx.rotate(rotationRad);
         ctx.beginPath();
-        ctx.arc(ball.x, ball.y, radius, 0, Math.PI * 2);
+        appendPebbleBodyPath(ctx, ball, radius, globals);
         ctx.fill();
+        ctx.restore();
       }
     }
   }

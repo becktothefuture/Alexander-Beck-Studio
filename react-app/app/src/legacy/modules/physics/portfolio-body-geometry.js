@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                    PORTFOLIO BODY GEOMETRY (RENDER + COLLISION)              ║
-// ║   Circles + Lamé squircles (square superellipse); one parametric source.    ║
+// ║   Chunky grid-led silhouettes for the portfolio pit.                        ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 function clamp(value, min, max) {
@@ -12,60 +12,91 @@ function toNumber(value, fallback) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-/** Alternating shapes: even index = circle, odd = squircle (square Lamé superellipse). */
+const PORTFOLIO_BLOCK_SHAPE_SEQUENCE = [
+  'block-square',
+  'block-chamfer',
+  'block-plus',
+  'block-bevel-wide',
+  'block-square',
+  'block-bevel-tall',
+];
+
 export function pickPortfolioBodyShape(index) {
-  return (index % 2 === 0) ? 'circle' : 'squircle';
+  return PORTFOLIO_BLOCK_SHAPE_SEQUENCE[index % PORTFOLIO_BLOCK_SHAPE_SEQUENCE.length];
 }
-
-/** Default Lamé exponent (|x/a|^n + |y/b|^n = 1). n = 4 is the classic “squircle” icon curve. */
-const SQUIRCLE_DEFAULT_EXPONENT = 4;
-
-/** Same segment count for canvas fill and SAT — hull matches pixels. */
-const SQUIRCLE_HULL_SEGMENTS = 64;
 
 const _pathScratchX = [];
 const _pathScratchY = [];
 
-function getSquircleLameExponent(config) {
-  const bodies = config?.bodies || {};
-  return clamp(
-    toNumber(bodies.squircleLameExponent, SQUIRCLE_DEFAULT_EXPONENT),
-    2.5,
-    8
-  );
-}
+const SHAPE_POINTS = {
+  'block-square': [
+    [-1, -1],
+    [1, -1],
+    [1, 1],
+    [-1, 1],
+  ],
+  'block-chamfer': [
+    [-0.72, -1],
+    [0.72, -1],
+    [1, -0.72],
+    [1, 0.72],
+    [0.72, 1],
+    [-0.72, 1],
+    [-1, 0.72],
+    [-1, -0.72],
+  ],
+  'block-bevel-wide': [
+    [-1, -0.84],
+    [-0.78, -1],
+    [0.78, -1],
+    [1, -0.84],
+    [1, 0.84],
+    [0.78, 1],
+    [-0.78, 1],
+    [-1, 0.84],
+  ],
+  'block-bevel-tall': [
+    [-0.84, -1],
+    [0.84, -1],
+    [1, -0.78],
+    [1, 0.78],
+    [0.84, 1],
+    [-0.84, 1],
+    [-1, 0.78],
+    [-1, -0.78],
+  ],
+  'block-plus': [
+    [-0.52, -1],
+    [0.52, -1],
+    [0.52, -0.52],
+    [1, -0.52],
+    [1, 0.52],
+    [0.52, 0.52],
+    [0.52, 1],
+    [-0.52, 1],
+    [-0.52, 0.52],
+    [-1, 0.52],
+    [-1, -0.52],
+    [-0.52, -0.52],
+  ],
+};
 
-/**
- * Equal half-axes a = b such that the farthest point on the superellipse from the origin
- * is exactly `r` (ball circumradius used for broadphase and spawn sizing).
- */
-function getSquircleHalfAxesFromCircumradius(r, n) {
-  const inv = Math.sqrt(2) / Math.pow(2, 1 / n);
-  const a = r / inv;
-  return { a, b: a };
-}
-
-function sampleSuperellipseBoundary(a, b, n, segments, outX, outY) {
+function writePolygonLocalVerts(points, r, outX, outY) {
   outX.length = 0;
   outY.length = 0;
-  const twoOverN = 2 / n;
-  for (let i = 0; i < segments; i += 1) {
-    const t = (i / segments) * Math.PI * 2;
-    const ct = Math.cos(t);
-    const st = Math.sin(t);
-    const ax = Math.abs(ct);
-    const ay = Math.abs(st);
-    const x = a * Math.sign(ct) * Math.pow(ax, twoOverN);
-    const y = b * Math.sign(st) * Math.pow(ay, twoOverN);
-    outX.push(x);
-    outY.push(y);
+  if (!Array.isArray(points) || !points.length) return 0;
+  let maxLen = 1;
+  for (let i = 0; i < points.length; i += 1) {
+    const [px, py] = points[i];
+    maxLen = Math.max(maxLen, Math.hypot(px, py));
   }
-}
-
-function fillSquircleLocalVerts(r, config, outX, outY) {
-  const n = getSquircleLameExponent(config);
-  const { a, b } = getSquircleHalfAxesFromCircumradius(r, n);
-  sampleSuperellipseBoundary(a, b, n, SQUIRCLE_HULL_SEGMENTS, outX, outY);
+  const scale = r / maxLen;
+  for (let i = 0; i < points.length; i += 1) {
+    const [px, py] = points[i];
+    outX.push(px * scale);
+    outY.push(py * scale);
+  }
+  return outX.length;
 }
 
 /**
@@ -76,12 +107,8 @@ export function writePortfolioBodyLocalVertices(shape, r, config, outX, outY) {
   outX.length = 0;
   outY.length = 0;
   if (!shape || shape === 'circle') return 0;
-
-  if (shape === 'squircle') {
-    fillSquircleLocalVerts(r, config, outX, outY);
-    return outX.length;
-  }
-  return 0;
+  if (shape === 'block-plus') return 0;
+  return writePolygonLocalVerts(SHAPE_POINTS[shape], r, outX, outY);
 }
 
 /**
@@ -131,19 +158,20 @@ export function getPortfolioBodyMaxExtentAlongWorldNormal(ball, dirx, diry, glob
 }
 
 export function appendPortfolioBodyPath(ctx, shape, r, config) {
-  if (shape === 'squircle') {
-    fillSquircleLocalVerts(r, config, _pathScratchX, _pathScratchY);
-    const n = _pathScratchX.length;
-    if (n < 3) {
-      ctx.arc(0, 0, r, 0, Math.PI * 2);
-      return;
-    }
-    ctx.moveTo(_pathScratchX[0], _pathScratchY[0]);
-    for (let i = 1; i < n; i += 1) {
-      ctx.lineTo(_pathScratchX[i], _pathScratchY[i]);
-    }
-    ctx.closePath();
+  if (!shape || shape === 'circle') {
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
     return;
   }
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
+
+  const pointCount = writePolygonLocalVerts(SHAPE_POINTS[shape], r, _pathScratchX, _pathScratchY);
+  if (pointCount < 3) {
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    return;
+  }
+
+  ctx.moveTo(_pathScratchX[0], _pathScratchY[0]);
+  for (let i = 1; i < pointCount; i += 1) {
+    ctx.lineTo(_pathScratchX[i], _pathScratchY[i]);
+  }
+  ctx.closePath();
 }

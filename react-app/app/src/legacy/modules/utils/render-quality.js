@@ -33,6 +33,9 @@ export function getRenderQualityProfile(globals = getGlobals()) {
     tier = configuredTier === QUALITY_AUTO ? getAutoQualityTier(globals) : configuredTier;
   }
 
+  const portfolioPriority = globals?.currentMode === 'portfolio-pit'
+    && globals?.portfolioPerformancePriority === true;
+
   if (tier === QUALITY_LOW) {
     return {
       tier,
@@ -48,8 +51,8 @@ export function getRenderQualityProfile(globals = getGlobals()) {
       tier,
       depthWashOpacityScale: 0.85,
       wallGradientStrokeEnabled: true,
-      drawMouseTrail: true,
-      drawCursorExplosion: true
+      drawMouseTrail: !portfolioPriority,
+      drawCursorExplosion: !portfolioPriority
     };
   }
 
@@ -57,7 +60,7 @@ export function getRenderQualityProfile(globals = getGlobals()) {
     tier: QUALITY_HIGH,
     depthWashOpacityScale: 1,
     wallGradientStrokeEnabled: true,
-    drawMouseTrail: true,
-    drawCursorExplosion: true
+    drawMouseTrail: !portfolioPriority,
+    drawCursorExplosion: !portfolioPriority
   };
 }

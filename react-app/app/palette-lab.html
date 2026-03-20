@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en" class="fonts-loading">
+  <head>
+    <style id="fade-blocking">#abs-scene,#app-frame{opacity:0;visibility:hidden}</style>
+    <style id="abs-critical-shell">
+      html, body, #root {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        background: var(--abs-browser-chrome, #181818);
+        background-color: var(--abs-browser-chrome, #181818);
+      }
+    </style>
+    <script>
+      (function() {
+        var root = document.documentElement;
+        root.classList.add('palette-lab-shell');
+        var DEFAULTS = {
+          bgLight: '#efefef',
+          bgDark: '#181818',
+          wallBaseLight: '#efefef',
+          wallBaseDark: '#181818',
+          frameColorLight: '#202124',
+          frameColorDark: '#202124',
+          safariFrameLight: '#181818',
+          safariFrameDark: '#181818',
+          lockedHeaderLight: '#f1f3f4',
+          lockedHeaderDark: '#3c3c3c'
+        };
+
+        function detectBrowserFamily() {
+          var ua = navigator.userAgent || '';
+          var vendor = navigator.vendor || '';
+          var isFirefox = /Firefox\//.test(ua) || /FxiOS\//.test(ua);
+          var isSafari = /Safari\//.test(ua)
+            && /Apple/.test(vendor)
+            && !/Chrome\//.test(ua)
+            && !/Chromium\//.test(ua)
+            && !/CriOS\//.test(ua)
+            && !/FxiOS\//.test(ua)
+            && !/Edg\//.test(ua)
+            && !/EdgiOS\//.test(ua)
+            && !/OPR\//.test(ua)
+            && !/OPiOS\//.test(ua);
+          var isSamsungInternet = /SamsungBrowser\//.test(ua);
+          var isChromium = /Chrome\//.test(ua)
+            || /Chromium\//.test(ua)
+            || /CriOS\//.test(ua)
+            || /Edg\//.test(ua)
+            || /EdgiOS\//.test(ua)
+            || /OPR\//.test(ua)
+            || /OPiOS\//.test(ua)
+            || /Brave\//.test(ua)
+            || isSamsungInternet;
+          return { isFirefox: isFirefox, isSafari: isSafari, isChromium: isChromium, isSamsungInternet: isSamsungInternet };
+        }
+
+        function themeColorLikelyApplied(family) {
+          var ua = navigator.userAgent || '';
+          var isAndroid = /Android/.test(ua);
+          var isIOS = /iPhone|iPad|iPod/.test(ua) || (/Mac/.test(ua) && navigator.maxTouchPoints > 1);
+          var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+            || (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches)
+            || navigator.standalone === true;
+
+          if (family.isFirefox) return false;
+          if (isStandalone) return true;
+          if (family.isSafari) return true;
+          if (family.isChromium) return isAndroid || family.isSamsungInternet;
+          return isAndroid || isIOS;
+        }
+
+        function syncMeta(name, media, color) {
+          var selector = media ? 'meta[name="' + name + '"][media="' + media + '"]' : 'meta[name="' + name + '"]:not([media])';
+          var tag = document.querySelector(selector);
+          if (!tag) {
+            tag = document.createElement('meta');
+            tag.name = name;
+            if (media) tag.media = media;
+            document.head.appendChild(tag);
+          }
+          tag.content = color;
+        }
+
+        function applyPalette(isDark) {
+          var family = detectBrowserFamily();
+          var useLockedPalette = !family.isSafari && !themeColorLikelyApplied(family);
+          var innerLight = DEFAULTS.wallBaseLight;
+          var innerDark = DEFAULTS.wallBaseDark;
+          var frameLight;
+          var frameDark;
+          if (family.isSafari) {
+            frameLight = DEFAULTS.safariFrameLight;
+            frameDark = DEFAULTS.safariFrameDark;
+          } else if (useLockedPalette) {
+            frameLight = DEFAULTS.lockedHeaderLight;
+            frameDark = DEFAULTS.lockedHeaderDark;
+          } else {
+            frameLight = DEFAULTS.frameColorLight;
+            frameDark = DEFAULTS.frameColorDark;
+          }
+          var activeInner = isDark ? innerDark : innerLight;
+          var activeFrame = isDark ? frameDark : frameLight;
+
+          root.style.colorScheme = isDark ? 'dark' : 'light';
+          root.style.setProperty('--color-bg-light', DEFAULTS.bgLight);
+          root.style.setProperty('--color-bg-dark', DEFAULTS.bgDark);
+          root.style.setProperty('--bg-light', DEFAULTS.bgLight);
+          root.style.setProperty('--bg-dark', DEFAULTS.bgDark);
+          root.style.setProperty('--abs-wall-base-light', innerLight);
+          root.style.setProperty('--abs-wall-base-dark', innerDark);
+          root.style.setProperty('--abs-wall-base', activeInner);
+          root.style.setProperty('--frame-color-site-light', DEFAULTS.frameColorLight);
+          root.style.setProperty('--frame-color-site-dark', DEFAULTS.frameColorDark);
+          root.style.setProperty('--abs-browser-chrome', activeFrame);
+          root.style.setProperty('--frame-color-light', frameLight);
+          root.style.setProperty('--frame-color-dark', frameDark);
+          root.style.setProperty('--frame-color', activeFrame);
+          root.style.setProperty('--wall-color-light', frameLight);
+          root.style.setProperty('--wall-color-dark', frameDark);
+          root.style.setProperty('--wall-color', activeFrame);
+          root.style.setProperty('--chrome-bg-light', frameLight);
+          root.style.setProperty('--chrome-bg-dark', frameDark);
+          root.style.setProperty('--chrome-bg', activeFrame);
+          root.style.setProperty('--abs-safe-top', 'env(safe-area-inset-top, 0px)');
+          root.style.setProperty('--abs-safe-right', 'env(safe-area-inset-right, 0px)');
+          root.style.setProperty('--abs-safe-bottom', 'env(safe-area-inset-bottom, 0px)');
+          root.style.setProperty('--abs-safe-left', 'env(safe-area-inset-left, 0px)');
+          root.dataset.absBootState = 'shell-visible';
+
+          syncMeta('theme-color', '(prefers-color-scheme: light)', frameLight);
+          syncMeta('theme-color', '(prefers-color-scheme: dark)', frameDark);
+          syncMeta('theme-color', '', activeFrame);
+          syncMeta('apple-mobile-web-app-status-bar-style', '', 'black-translucent');
+        }
+
+        var savedTheme = 'auto';
+        try {
+          savedTheme = localStorage.getItem('theme-preference-v2') || 'auto';
+        } catch (_error) {}
+
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var hour = new Date().getHours();
+        var isNight = hour >= 18 || hour < 6;
+        var isDark = savedTheme === 'dark' || (savedTheme !== 'light' && (prefersDark || isNight));
+
+        if (isDark) root.classList.add('dark-mode');
+        applyPalette(isDark);
+
+        document.addEventListener('DOMContentLoaded', function() {
+          if (document.body && isDark) document.body.classList.add('dark-mode');
+          window.requestAnimationFrame(function() {
+            var blocker = document.getElementById('fade-blocking');
+            if (blocker) blocker.remove();
+            var scene = document.getElementById('abs-scene');
+            var frame = document.getElementById('app-frame');
+            if (scene) {
+              scene.style.opacity = '1';
+              scene.style.visibility = 'visible';
+            }
+            if (frame) {
+              frame.style.opacity = '1';
+              frame.style.visibility = 'visible';
+            }
+          });
+        }, { once: true });
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Palette Lab — Alexander Beck Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/tokens.css" />
+    <link rel="stylesheet" href="/css/normalize.css" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/css/palette-lab.css" />
+    <link rel="stylesheet" href="/src/styles/base.css" />
+  </head>
+  <body class="body">
+    <div id="root"></div>
+    <script type="module" src="/src/entries/palette-lab.jsx"></script>
+  </body>
+</html>

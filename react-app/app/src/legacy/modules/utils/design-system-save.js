@@ -39,6 +39,7 @@ export function buildRuntimeConfigSnapshot() {
   config.containerBorderVw = g.containerBorderVw;
   config.wallThicknessVw = g.wallThicknessVw;
   config.frameBorderWidth = g.frameBorderWidth;
+  config.frameBorderWidthMobile = g.frameBorderWidthMobile;
   config.simulationPaddingVw = g.simulationPaddingVw;
   config.contentPaddingVw = g.contentPaddingVw;
   config.contentPaddingHorizontalRatio = g.contentPaddingHorizontalRatio;

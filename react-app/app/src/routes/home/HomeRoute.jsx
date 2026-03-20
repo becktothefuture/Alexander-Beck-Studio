@@ -18,6 +18,7 @@ function renderLegendItem(item) {
 export function getHomeRouteView() {
   const footerLinks = homeContent.footer.links;
   const philosophyLink = homeContent.philosophy.link;
+  const aboutMeLabel = 'About Me';
 
   return {
     bodyClass: 'body',
@@ -65,7 +66,7 @@ export function getHomeRouteView() {
         <nav id="main-links" className="ui-nav-row ui-main-nav" aria-label={homeContent.footer.navAriaLabel}>
           <MainNavLink id={footerLinks.contact.id}>{footerLinks.contact.text}</MainNavLink>
           <MainNavLink id={footerLinks.portfolio.id}>{footerLinks.portfolio.text}</MainNavLink>
-          <MainNavLink id={footerLinks.cv.id}>{footerLinks.cv.text}</MainNavLink>
+          <MainNavLink id={footerLinks.cv.id}>{aboutMeLabel}</MainNavLink>
         </nav>
       </>
     )

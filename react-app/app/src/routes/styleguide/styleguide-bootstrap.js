@@ -14,7 +14,7 @@ export async function bootstrapStyleguide() {
   try {
     const runtime = await loadRuntimeConfig();
     syncCornerShapeSquircleClass(runtime?.cornerShapeSquircleEnabled !== false);
-  } catch (e) {
+  } catch {
     syncCornerShapeSquircleClass(true);
   }
   // No palette bootstrap here — still need readable labels on solid cursor hover fills.

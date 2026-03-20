@@ -38,7 +38,6 @@ const DEFAULT_SHELL_CONFIG = {
     decorativeScriptPaddingX: '16px',
     decorativeScriptPaddingY: '10px',
     quoteButtonSize: '200px',
-    quoteMaxWidth: '200px',
     quotePaddingX: '28px',
     quotePaddingY: '24px',
     edgeCaptionDistanceMin: '8px',
@@ -73,22 +72,13 @@ const DEFAULT_SHELL_CONFIG = {
     lightEdgeTopOpacityLight: 0.028,
     lightEdgeTopOpacityDark: 0.035,
     lightEdgeBottomOpacityLight: 0.007,
-    lightEdgeBottomOpacityDark: 0.012,
-    quoteButtonFillOpacity: 0.7
+    lightEdgeBottomOpacityDark: 0.012
   },
   motion: {
     shellRevealMs: 180,
     contentRevealMs: 420,
     simulationWarmupFrames: 90,
     allowScaleEntrance: false,
-    puckRestitution: 0.65,
-    puckFriction: 0.5,
-    puckWallInset: 0,
-    puckMaxSpeed: 4000,
-    puckSpinGain: 0.12,
-    puckSpinFriction: 3.0,
-    puckWallSquash: 0.96,
-    puckSoundIntensity: 0.7,
     modalOverlayOpacity: 0,
     modalOverlayBlurPx: 5.5,
     modalOverlayTransitionMs: 700,
@@ -337,22 +327,13 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--decorative-script-max-width', layout.decorativeScriptMaxWidth);
   root.style.setProperty('--decorative-script-padding-left', layout.decorativeScriptPaddingX);
   root.style.setProperty('--decorative-script-padding-vertical', layout.decorativeScriptPaddingY);
-  root.style.setProperty('--abs-quote-button-size', layout.quoteButtonSize || layout.quoteMaxWidth || '200px');
-  root.style.setProperty('--abs-quote-max-width', layout.quoteMaxWidth);
+  root.style.setProperty('--abs-quote-button-size', layout.quoteButtonSize || DEFAULT_SHELL_CONFIG.layout.quoteButtonSize);
   root.style.setProperty('--abs-quote-pad-x', layout.quotePaddingX);
   root.style.setProperty('--abs-quote-pad-y', layout.quotePaddingY);
   root.style.setProperty('--edge-caption-distance-min', layout.edgeCaptionDistanceMin);
   root.style.setProperty('--edge-caption-distance-max', layout.edgeCaptionDistanceMax);
   root.style.setProperty('--abs-shell-reveal-ms', `${motion.shellRevealMs}ms`);
   root.style.setProperty('--abs-content-reveal-ms', `${motion.contentRevealMs}ms`);
-  root.style.setProperty('--puck-restitution', String(Number.isFinite(Number(motion.puckRestitution)) ? motion.puckRestitution : 0.65));
-  root.style.setProperty('--puck-friction', String(Number.isFinite(Number(motion.puckFriction)) ? motion.puckFriction : 0.5));
-  root.style.setProperty('--puck-wall-inset', String(Number.isFinite(Number(motion.puckWallInset)) ? motion.puckWallInset : 0));
-  root.style.setProperty('--puck-max-speed', String(Number.isFinite(Number(motion.puckMaxSpeed)) ? motion.puckMaxSpeed : 4000));
-  root.style.setProperty('--puck-spin-gain', String(Number.isFinite(Number(motion.puckSpinGain)) ? motion.puckSpinGain : 0.12));
-  root.style.setProperty('--puck-spin-friction', String(Number.isFinite(Number(motion.puckSpinFriction)) ? motion.puckSpinFriction : 3.0));
-  root.style.setProperty('--puck-wall-squash', String(Number.isFinite(Number(motion.puckWallSquash)) ? motion.puckWallSquash : 0.96));
-  root.style.setProperty('--puck-sound-intensity', String(Number.isFinite(Number(motion.puckSoundIntensity)) ? motion.puckSoundIntensity : 0.7));
   root.style.setProperty('--modal-overlay-opacity', String(motion.modalOverlayOpacity));
   root.style.setProperty('--modal-overlay-blur', `${motion.modalOverlayBlurPx}px`);
   root.style.setProperty('--modal-overlay-transition-duration', `${motion.modalOverlayTransitionMs}ms`);
@@ -427,8 +408,6 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = document.do
   root.style.setProperty('--abs-surface-saturation', String(surface.saturation));
   root.style.setProperty('--abs-surface-edge-width', edgeWidth);
   root.style.setProperty('--abs-surface-fill-opacity', String(fillOpacity));
-  const quoteFillOpacity = Number.isFinite(Number(surface.quoteButtonFillOpacity)) ? surface.quoteButtonFillOpacity : 0.7;
-  root.style.setProperty('--quote-button-fill-opacity', String(quoteFillOpacity));
   root.style.setProperty('--abs-surface-sheen-top-opacity', String(sheenTopOpacity));
   root.style.setProperty('--abs-surface-sheen-mid-opacity', String(sheenMidOpacity));
   root.style.setProperty('--abs-surface-edge-opacity', String(edgeOpacity));

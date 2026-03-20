@@ -565,6 +565,7 @@ export function destroyNoiseSystem() {
   }
 
   activeObjectUrl = null;
+  document.body?.classList.remove('noise-ready');
   current = null;
   initialized = false;
   lastTextureKey = '';

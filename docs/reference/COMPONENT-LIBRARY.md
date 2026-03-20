@@ -10,19 +10,19 @@ Treat the **route top bar** with the same rigidity as the **footer**: one shared
 |--------|-----------------|------|
 | Wrapper | `header.ui-top` | Same as other routes. |
 | Row | `div.ui-top-main.route-topbar` (+ `portfolio-topbar` on portfolio **and** CV for shared spacing) | **CSS grid** `auto 1fr auto`, full width; top inset uses `calc(var(--gap-xs) + var(--portfolio-nav-top, 0px))` on those routes. |
-| Left | `div.route-topbar__left` | Gate / back: `a.gate-back.abs-icon-btn`. |
-| Center | `nav.route-topbar__center.ui-main-nav` (+ `portfolio-topnav` on portfolio **and** CV) | **All** primary text actions here: `MainNavLink` (→ `button.footer_link` + `span.footer-link-nowrap`) with real `id`s from content config. Portfolio: About me + Contact. CV: Portfolio + Contact. |
-| Right | `div.route-topbar__right.ui-top-right` | `div#sound-toggle-slot.portfolio-sound-slot` on portfolio and CV. Sound mounts via `sound-toggle.js`. |
+| Left | `div.route-topbar__left` | Gate / back: `a.gate-back.abs-icon-btn`. Portfolio also keeps the primary buttons here as a horizontal flex cluster. |
+| Center | `nav.route-topbar__center.ui-main-nav` | Portfolio leaves this as a spacer. CV still uses it for primary text actions. |
+| Right | `div.route-topbar__right.ui-top-right` | Portfolio: `blockquote.decorative-script` copy + `div#sound-toggle-slot.portfolio-sound-slot`. CV: `div#sound-toggle-slot.portfolio-sound-slot` only. Sound mounts via `sound-toggle.js`. |
 
 **Do not:** absolutely position the center column (breaks column 3 / mute alignment). **Do not** invent alternate text-button classes—only `MainNavLink` / `.footer_link` inside `.ui-main-nav` (plus `.abs-icon-btn` for glyphs).
 
-**References:** `main.css` (`body.*-page .route-topbar`, `.ui-main-nav .footer_link`), `MainNavLink.jsx`, `PortfolioRoute.jsx`, `CvRoute.jsx`, `HomeRoute.jsx` (center strip uses `ui-main-nav` on `#main-links`).
+**References:** `main.css` (`body.*-page .route-topbar`, `.ui-main-nav .footer_link`), `MainNavLink.jsx`, `PortfolioRoute.jsx`, `CvRoute.jsx`, `HomeRoute.jsx` (home still uses `ui-main-nav` on `#main-links`; portfolio now uses the left cluster for the primary buttons).
 
-## Primary actions (two families)
+## Primary buttons (two families)
 
 | Family | Markup | Notes |
 |--------|--------|-------|
-| **Text** | `<nav class="ui-main-nav">` + `<MainNavLink id="…">` (`react-app/app/src/components/MainNavLink.jsx`) | Renders `button.footer_link` + `span.footer-link-nowrap`. Home `#main-links`, portfolio/CV top bar, static templates. For a vertical stack, same nav + links; add a layout class (styleguide: `styleguide-main-nav--stack`). |
+| **Text** | `<nav class="ui-main-nav">` + `<MainNavLink id="…">` (`react-app/app/src/components/MainNavLink.jsx`) | Renders `button.footer_link` + `span.footer-link-nowrap`. Home `#main-links` and the portfolio/CV route top bars use this family. Labels should be title case in the UI, including `About Me`. For a vertical stack, same nav + links; add a layout class (styleguide: `styleguide-main-nav--stack`). |
 | **Icon** | `.abs-icon-btn` (+ `gate-back`, `sound-toggle`, `footer_icon-link` as needed) | Square glyph frame; sound from `sound-toggle.js`. |
 
 CSS: `.ui-main-nav .footer_link` in `main.css`. **Do not** add `#contact-email:hover` / `#portfolio-modal-trigger:hover` to the generic `footer_link:hover` `color-mix` block: those IDs only exist on `.ui-main-nav` triggers, and an extra ID in that block can override the nav-specific hover ink in dark mode. Nav labels use `var(--cursor-hover-fg, …)` on hover/focus/active. **`--cursor-hover-fg` is stamped by the palette runtime** (`stampCursorCSSVar` / `maybeAutoPickCursorColor`). The styleguide bootstraps **`stampCursorContrastFromTheme()`** so the resolved theme `var(--cursor-color)` gets a WCAG-safe hover ink without running the full simulation.

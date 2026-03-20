@@ -1,4 +1,9 @@
 {
+  "cssVars": {
+    "--portfolio-drawer-inner-shadow-opacity": "0.18",
+    "--portfolio-drawer-inner-shadow-blur": "56px",
+    "--portfolio-drawer-inner-shadow-spread": "10px"
+  },
   "runtime": {
     "labeling": {
       "titleLineHeight": 0.76

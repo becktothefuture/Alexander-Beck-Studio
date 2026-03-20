@@ -22,6 +22,33 @@ function getCollisionPositionalSlop(globals) {
   return 0.5 * (globals.DPR || 1);
 }
 
+function clamp(value, min, max, fallback) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return fallback;
+  return Math.min(max, Math.max(min, next));
+}
+
+function getPortfolioPitContactProfile(globals) {
+  const motion = globals?.portfolioPitConfig?.motion || {};
+  const dpr = globals?.DPR || 1;
+  const dynamicFriction = clamp(motion.contactFriction, 0, 2, 0.34);
+  const staticFriction = clamp(
+    motion.contactStaticFriction,
+    dynamicFriction,
+    3,
+    Math.max(dynamicFriction, 0.72)
+  );
+  return {
+    restitution: clamp(motion.collisionRestitution, 0, 1, 0.04),
+    dynamicFriction,
+    staticFriction,
+    staticSlipPx: clamp(motion.contactStaticSlipPx, 0, 80, 18) * dpr,
+    wakeVelocityThreshold: clamp(motion.wakeVelocityThreshold, 4, 80, 26) * dpr,
+    supportNormalThreshold: clamp(motion.supportNormalThreshold, 0.05, 0.7, 0.18),
+    restingContactHold: clamp(motion.restingContactHoldMs, 0, 1200, 180) / 1000,
+  };
+}
+
 const spatialGrid = new Map();
 const reusablePairs = [];
 const pairPool = [];
@@ -193,7 +220,9 @@ export function resolveCollisions(iterations = 10) {
   const balls = globals.balls;
   const pairs = collectPairsSorted();
   const sleepingPairSkips = lastBroadphaseStats.sleepingPairSkips;
-  const REST = globals.REST;
+  const isPortfolioPit = globals.currentMode === MODES.PORTFOLIO_PIT;
+  const portfolioContact = isPortfolioPit ? getPortfolioPitContactProfile(globals) : null;
+  const REST = portfolioContact?.restitution ?? globals.REST;
   const POS_CORRECT_PERCENT = 0.8;
   const POS_CORRECT_SLOP = getCollisionPositionalSlop(globals);
   const REST_VEL_THRESHOLD = 30;
@@ -268,12 +297,20 @@ export function resolveCollisions(iterations = 10) {
       // This prevents gravity→collision→bounce jitter in stacked balls.
       // ════════════════════════════════════════════════════════════════════════════
       const isPitLike = isPitLikeMode(globals.currentMode);
-      if (isPitLike && ny < -0.3) { // Normal pointing up = B is on top of A
+      const supportNormalThreshold = portfolioContact?.supportNormalThreshold ?? 0.3;
+      const restingContactHold = portfolioContact?.restingContactHold ?? 0;
+      if (isPitLike && ny < -supportNormalThreshold) { // Normal pointing up = B is on top of A
         // B is supported from below by A
         B.hasSupport = true;
-      } else if (isPitLike && ny > 0.3) { // Normal pointing down = A is on top of B
+        if (restingContactHold > 0) {
+          B.restingContactTimer = Math.max(B.restingContactTimer || 0, restingContactHold);
+        }
+      } else if (isPitLike && ny > supportNormalThreshold) { // Normal pointing down = A is on top of B
         // A is supported from below by B
         A.hasSupport = true;
+        if (restingContactHold > 0) {
+          A.restingContactTimer = Math.max(A.restingContactTimer || 0, restingContactHold);
+        }
       }
 
       // PERFORMANCE: When both bodies are sleeping, we still need positional correction
@@ -295,8 +332,8 @@ export function resolveCollisions(iterations = 10) {
       // Threshold DPR-scaled: physics runs in canvas pixels (displayPx * DPR)
       // ════════════════════════════════════════════════════════════════════════════
       const DPR = globals.DPR || 1;
-      const WAKE_VEL_THRESHOLD = 15 * DPR; // px/s - only wake if approaching at meaningful speed
-      const shouldWake = velAlongNormal < -WAKE_VEL_THRESHOLD;
+      const wakeVelocityThreshold = portfolioContact?.wakeVelocityThreshold ?? (15 * DPR);
+      const shouldWake = velAlongNormal < -wakeVelocityThreshold;
       
       if (A.isSleeping && !shouldWake) continue; // Don't wake from tiny impulse
       if (B.isSleeping && !shouldWake) continue;
@@ -311,13 +348,34 @@ export function resolveCollisions(iterations = 10) {
         A.vx -= ix * invA; A.vy -= iy * invA;
         B.vx += ix * invB; B.vy += iy * invB;
 
-        // Spin transfer
+        // Tangential contact friction for portfolio bodies:
+        // reduce post-impact slip so stacks settle like stones instead of chattering.
         const tvx = rvx - velAlongNormal * nx;
         const tvy = rvy - velAlongNormal * ny;
         const slipMag = Math.hypot(tvx, tvy);
         if (slipMag > 1e-3) {
+          if (portfolioContact) {
+            const tx = tvx / slipMag;
+            const ty = tvy / slipMag;
+            const rawJt = -(rvx * tx + rvy * ty) / invSum;
+            const useStatic = slipMag <= portfolioContact.staticSlipPx;
+            const frictionLimit = Math.abs(j) * (
+              useStatic ? portfolioContact.staticFriction : portfolioContact.dynamicFriction
+            );
+            const jt = Math.max(-frictionLimit, Math.min(frictionLimit, rawJt));
+            const fix = jt * tx;
+            const fiy = jt * ty;
+            A.vx -= fix * invA;
+            A.vy -= fiy * invA;
+            B.vx += fix * invB;
+            B.vy += fiy * invB;
+          }
+
+          // Keep some spin handoff, but reduce it in portfolio so bodies feel heavy.
           const tangentSign = (tvx * -ny + tvy * nx) >= 0 ? 1 : -1;
-          const gain = CONSTANTS.SPIN_GAIN_TANGENT;
+          const gain = portfolioContact
+            ? (CONSTANTS.SPIN_GAIN_TANGENT * 0.3)
+            : CONSTANTS.SPIN_GAIN_TANGENT;
           if (!A.isPointerLocked) {
             A.omega -= tangentSign * gain * slipMag / Math.max(A.r, 1);
           }
@@ -368,6 +426,22 @@ const KINEMATIC_OVERLAP_ITERS = 22;
 const KINEMATIC_POS_PERCENT = 1;
 const KINEMATIC_POST_SOLVER_ITERS = 10;
 
+function getKinematicDragProfile(globals) {
+  const dpr = globals?.DPR || 1;
+  if (globals?.currentMode === MODES.PORTFOLIO_PIT) {
+    return {
+      overlapIterations: 9,
+      postSolverIterations: 4,
+      wakeSeparationThreshold: 2 * dpr,
+    };
+  }
+  return {
+    overlapIterations: KINEMATIC_OVERLAP_ITERS,
+    postSolverIterations: KINEMATIC_POST_SOLVER_ITERS,
+    wakeSeparationThreshold: 0,
+  };
+}
+
 /**
  * Push all non-kinematic balls out of overlap with `kinematicBall`, then run a short
  * collision solve so stacks and neighbors redistribute. O(n * iters); safe for portfolio
@@ -380,9 +454,12 @@ export function relaxOverlapsWithKinematicBall(kinematicBall) {
   if (!Array.isArray(balls) || balls.length < 2) return;
 
   const slop = getCollisionPositionalSlop(globals);
+  const profile = getKinematicDragProfile(globals);
   const n = balls.length;
+  let hadOverlap = false;
 
-  for (let iter = 0; iter < KINEMATIC_OVERLAP_ITERS; iter += 1) {
+  for (let iter = 0; iter < profile.overlapIterations; iter += 1) {
+    let iterationMoved = false;
     for (let i = 0; i < n; i += 1) {
       const B = balls[i];
       if (!B || B === kinematicBall) continue;
@@ -406,7 +483,9 @@ export function relaxOverlapsWithKinematicBall(kinematicBall) {
         if (sep <= 0) continue;
         B.x += pk.nx * sep;
         B.y += pk.ny * sep;
-        B.wake?.();
+        hadOverlap = true;
+        iterationMoved = true;
+        if (sep > profile.wakeSeparationThreshold) B.wake?.();
         continue;
       }
 
@@ -430,11 +509,16 @@ export function relaxOverlapsWithKinematicBall(kinematicBall) {
 
       B.x += nx * sep;
       B.y += ny * sep;
-      B.wake?.();
+      hadOverlap = true;
+      iterationMoved = true;
+      if (sep > profile.wakeSeparationThreshold) B.wake?.();
     }
+    if (!iterationMoved) break;
   }
 
-  resolveCollisions(KINEMATIC_POST_SOLVER_ITERS);
+  if (hadOverlap && profile.postSolverIterations > 0) {
+    resolveCollisions(profile.postSolverIterations);
+  }
 }
 
 /**

@@ -21,12 +21,14 @@ const WALL_SPIN_GAIN = 0.06;
 const MIN_SPIN = 0.3;
 const SOUND_ID = 'quote-puck';
 const DEG = 180 / Math.PI;
+let destroyQuotePuckFn = null;
 
 function clamp(v, lo, hi) {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
 export function initQuotePuck() {
+  destroyQuotePuck();
   const el = document.getElementById('quote-display');
   if (!el || !el.querySelector('.quote-display__disk')) return;
 
@@ -411,4 +413,26 @@ export function initQuotePuck() {
   document.addEventListener('visibilitychange', onVisChange);
 
   writePos();
+  destroyQuotePuckFn = () => {
+    stopLoop();
+    try { el.removeEventListener('pointerdown', onDown); } catch (e) {}
+    try { el.removeEventListener('pointermove', onMove); } catch (e) {}
+    try { el.removeEventListener('pointerup', onUp); } catch (e) {}
+    try { el.removeEventListener('pointercancel', onCancel); } catch (e) {}
+    try { el.removeEventListener('lostpointercapture', onLostCapture); } catch (e) {}
+    try { window.removeEventListener('resize', onResize); } catch (e) {}
+    try { window.removeEventListener('blur', onBlur); } catch (e) {}
+    try { document.removeEventListener('visibilitychange', onVisChange); } catch (e) {}
+  };
+}
+
+export function destroyQuotePuck() {
+  if (typeof destroyQuotePuckFn === 'function') {
+    try {
+      destroyQuotePuckFn();
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  destroyQuotePuckFn = null;
 }

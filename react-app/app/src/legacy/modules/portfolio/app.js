@@ -9,7 +9,7 @@ import {
 } from './pit-mode.js';
 import { createSoundToggle } from '../ui/sound-toggle.js';
 import { initializeDarkMode } from '../visual/dark-mode-v2.js';
-import { getPortfolioProjectPaletteColor, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
+import { getPaletteTemplateOverrideFromUrl, getPortfolioProjectPaletteColor, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from '../visual/colors.js';
 import { getGlobals } from '../core/state.js';
 import { initNoiseSystem } from '../visual/noise-system.js';
 import { initTimeDisplay } from '../ui/time-display.js';
@@ -95,6 +95,14 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function installPortfolioAuditBridge(app) {
+  if (typeof window === 'undefined') return;
+  window.__ABS_PORTFOLIO_AUDIT__ = {
+    getApp: () => app,
+    getGlobals,
+  };
 }
 
 function hexToRgb(hex) {
@@ -1138,7 +1146,12 @@ export async function bootstrapPortfolio() {
     modalOverlayConfig: runtimeConfig || {}
   });
 
-  rotatePaletteChapterOnReload();
+  const paletteOverride = getPaletteTemplateOverrideFromUrl();
+  if (paletteOverride) {
+    getGlobals().currentTemplate = paletteOverride;
+  } else {
+    rotatePaletteChapterOnReload();
+  }
   initializeDarkMode();
   maybeAutoPickCursorColor('startup');
   initTimeDisplay();
@@ -1153,6 +1166,8 @@ export async function bootstrapPortfolio() {
     projects
   });
   await app.init();
+  installPortfolioAuditBridge(app);
+  getGlobals().warmupFramesRemaining = 180;
   updateCursorSize();
 
   const settlePortfolioPresentation = () => {

@@ -80,7 +80,9 @@ function forceBackdropDismiss() {
     });
     const cv = document.querySelector('.cv-scroll-container');
     if (cv) cv.classList.remove('fade-out-up');
-  } catch {}
+  } catch {
+    /* no-op */
+  }
 }
 
 function dismissGateBackdrop() {
@@ -92,7 +94,13 @@ function dismissGateBackdrop() {
 /* ── animation tracking ──────────────────────────────────────────────────── */
 
 function cancelActiveAnimations() {
-  activeAnimations.forEach((a) => { try { a.cancel(); } catch {} });
+  activeAnimations.forEach((a) => {
+    try {
+      a.cancel();
+    } catch {
+      /* no-op */
+    }
+  });
   activeAnimations = [];
 }
 
@@ -222,7 +230,7 @@ function staggeredEntrance() {
       ui.style.willChange = 'auto';
     }
     // Force reflow so children start at opacity 0 before WAAPI begins.
-    ui?.offsetHeight; // eslint-disable-line no-unused-expressions
+    void ui?.offsetHeight;
 
     const hasWaapi = typeof document.documentElement.animate === 'function';
 

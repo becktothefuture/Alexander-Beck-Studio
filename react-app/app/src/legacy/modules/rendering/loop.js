@@ -37,6 +37,15 @@ function clampNumber(value, min, max, fallback) {
   return next;
 }
 
+function getFrameDtCap(globals) {
+  if (globals?.currentMode === MODES.PORTFOLIO_PIT) {
+    const raw = Number(globals?.portfolioPitConfig?.motion?.maxFrameDt);
+    if (Number.isFinite(raw)) return Math.min(0.066, Math.max(0.033, raw));
+    return 0.05;
+  }
+  return 0.033;
+}
+
 function isDevRuntime() {
   try {
     if (typeof __DEV__ === 'boolean') return __DEV__;
@@ -130,12 +139,27 @@ function updateAdaptiveThrottle(frameTime, targetFPS) {
   }
 }
 
-function shouldRunPhysicsThisFrame() {
+function getEffectiveAdaptiveThrottleLevel(globals) {
+  const raw = Math.max(0, Math.min(2, adaptiveThrottleLevel));
+  if (globals?.currentMode !== MODES.PORTFOLIO_PIT || globals?.portfolioPerformancePriority !== true) {
+    return raw;
+  }
+
+  const summary = globals?.pitPerfSummary;
+  const frameP95 = Number(summary?.frameP95Ms);
+  const throttleShare = Number(summary?.throttleShare);
+  if (!Number.isFinite(frameP95)) return Math.min(raw, 1);
+  if (frameP95 <= 12 && (!Number.isFinite(throttleShare) || throttleShare <= 0.12)) return 0;
+  if (frameP95 <= 18 && (!Number.isFinite(throttleShare) || throttleShare <= 0.25)) return Math.min(raw, 1);
+  return raw;
+}
+
+function shouldRunPhysicsThisFrame(globals, throttleLevel) {
   // Large SAT hulls + low body count: skipping physics or cutting solver iterations
   // under adaptive throttle caused visible tunneling / interpenetration.
-  if (getGlobals()?.currentMode === MODES.PORTFOLIO_PIT) return true;
-  if (adaptiveThrottleLevel <= 0) return true;
-  if (adaptiveThrottleLevel === 1) {
+  if (globals?.currentMode === MODES.PORTFOLIO_PIT) return true;
+  if (throttleLevel <= 0) return true;
+  if (throttleLevel === 1) {
     // Light throttle: skip one in four physics steps.
     return (frameCounter % 4) !== 0;
   }
@@ -220,9 +244,13 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
     
     // Track frame time for adaptive throttling
     updateAdaptiveThrottle(elapsed, targetFPS);
+    const effectiveThrottleLevel = getEffectiveAdaptiveThrottleLevel(globals);
+    globals.adaptiveThrottleLevel = effectiveThrottleLevel;
+    globals.adaptiveAverageFps = adaptiveAverageFps;
+    globals.currentTargetFps = targetFPS;
     
     const now = nowMs / 1000;
-    let dt = Math.min(0.033, now - last);
+    let dt = Math.min(getFrameDtCap(globals), now - last);
     last = now;
     
     // PERF: Cache force applicator once per frame (not per particle)
@@ -231,7 +259,7 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
     }
     
     // Physics update (deterministic throttling when under sustained pressure)
-    const runPhysics = shouldRunPhysicsThisFrame();
+    const runPhysics = shouldRunPhysicsThisFrame(globals, effectiveThrottleLevel);
     if (runPhysics) {
       updatePhysics(dt, cachedForceFn ?? applyForcesFunc);
     }
@@ -243,7 +271,7 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
 
     // Under heavy sustained pressure in Pit mode, skip rendering on frames
     // where physics is already skipped. This reduces paint/composite load.
-    const skipRender = isPitMode && !runPhysics && adaptiveThrottleLevel >= 2;
+    const skipRender = isPitMode && !runPhysics && effectiveThrottleLevel >= 2;
     if (!skipRender) {
       render();
     }
@@ -251,16 +279,10 @@ export function startMainLoop(applyForcesFunc, { getForcesFn } = {}) {
     // FPS tracking
     trackFrame(performance.now(), {
       targetFPS,
-      throttleLevel: adaptiveThrottleLevel,
+      throttleLevel: effectiveThrottleLevel,
       throttled: !runPhysics,
       rendered: !skipRender
     });
-
-    if (globals) {
-      globals.adaptiveThrottleLevel = adaptiveThrottleLevel;
-      globals.adaptiveAverageFps = adaptiveAverageFps;
-      globals.currentTargetFps = targetFPS;
-    }
     
     frameId = requestAnimationFrame(frame);
   }

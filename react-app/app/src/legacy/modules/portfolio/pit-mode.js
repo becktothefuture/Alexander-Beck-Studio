@@ -1,16 +1,12 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                         PORTFOLIO PIT MODE                                   ║
-// ║   Pit solver + portfolio narrow-phase SAT (circles + Lamé squircles).         ║
+// ║   Pit solver + smooth pebble render path on top of portfolio hull physics.   ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { Ball } from '../physics/Ball.js';
 import { getGlobals, clearBalls, syncPitPortfolioRadiusStatsFromBalls } from '../core/state.js';
 import { getPortfolioProjectPaletteColor } from '../visual/colors.js';
 import { resize, detectOptimalDPR } from '../rendering/renderer.js';
-import {
-  appendPortfolioBodyPath,
-  pickPortfolioBodyShape,
-} from '../physics/portfolio-body-geometry.js';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -18,6 +14,19 @@ function clamp(value, min, max) {
 
 /** Extra scale vs authored fractions (tuned after user feedback). */
 const PORTFOLIO_BODY_DIAMETER_BOOST = 1.6;
+const PORTFOLIO_SPAWN_COLS = 3;
+const PORTFOLIO_SPAWN_ROWS = 2;
+const PORTFOLIO_SPAWN_ORDER = [
+  [1, 0],
+  [0, 0],
+  [2, 0],
+  [1, 1],
+  [0, 1],
+  [2, 1],
+];
+const PORTFOLIO_PEBBLE_VARIANTS = 16;
+const PORTFOLIO_PEBBLE_SEGMENTS = 28;
+const PORTFOLIO_PEBBLE_RENDER_SCALE = 1.04;
 
 function toNumber(value, fallback) {
   const numeric = Number(value);
@@ -54,8 +63,103 @@ function hashUnit(seed) {
   return value - Math.floor(value);
 }
 
+function lerp(a, b, t) {
+  return a + ((b - a) * t);
+}
+
+function getPortfolioSpawnPoint(index, width, height, frameInset, wallPadding, radius, headerClearance, isMobile) {
+  const safeLeft = frameInset + wallPadding + radius;
+  const safeRight = width - frameInset - wallPadding - radius;
+  const centerX = width * 0.5;
+  const slot = PORTFOLIO_SPAWN_ORDER[index % PORTFOLIO_SPAWN_ORDER.length];
+  const bandRatio = isMobile ? 0.58 : 0.42;
+  const bandWidth = (safeRight - safeLeft) * bandRatio;
+  const bandLeft = clamp(centerX - (bandWidth * 0.5), safeLeft, safeRight);
+  const bandRight = clamp(centerX + (bandWidth * 0.5), bandLeft, safeRight);
+  const xT = slot[0] / Math.max(1, PORTFOLIO_SPAWN_COLS - 1);
+  const columnGap = (bandRight - bandLeft) / Math.max(1, PORTFOLIO_SPAWN_COLS - 1);
+  const jitterX = (hashUnit(index + 31) - 0.5) * columnGap * 0.08;
+  const stackStep = radius * 1.22;
+  const batchOffset = Math.floor(index / PORTFOLIO_SPAWN_ORDER.length) * stackStep * PORTFOLIO_SPAWN_ROWS;
+  const dropHeadroom = Math.max(height * 0.18, headerClearance + (radius * 3.1));
+  const y = frameInset - dropHeadroom - (slot[1] * stackStep) - batchOffset;
+  return {
+    x: clamp(lerp(bandLeft, bandRight, xT) + jitterX, safeLeft, safeRight),
+    y,
+  };
+}
+
 function getPortfolioBodyRotationRad(ball) {
   return (ball.theta || 0) + (ball.rotationOffset || 0);
+}
+
+function makePebbleVariant(index) {
+  const phase = (index / PORTFOLIO_PEBBLE_VARIANTS) * Math.PI * 2;
+  const phaseB = phase * 1.7;
+  const phaseC = phase * 2.3;
+  const stretchX = 0.90 + (hashUnit(index + 211) * 0.16);
+  const stretchY = 0.86 + (hashUnit(index + 223) * 0.14);
+  const swellA = 0.025 + (hashUnit(index + 227) * 0.030);
+  const swellB = 0.015 + (hashUnit(index + 229) * 0.020);
+  const swellC = 0.008 + (hashUnit(index + 233) * 0.014);
+  const taper = 0.020 + (hashUnit(index + 239) * 0.022);
+  const skewX = (hashUnit(index + 241) - 0.5) * 0.085;
+  const skewY = (hashUnit(index + 251) - 0.5) * 0.065;
+  const xPoints = new Float32Array(PORTFOLIO_PEBBLE_SEGMENTS);
+  const yPoints = new Float32Array(PORTFOLIO_PEBBLE_SEGMENTS);
+  let maxRadius = 1;
+
+  for (let i = 0; i < PORTFOLIO_PEBBLE_SEGMENTS; i += 1) {
+    const theta = (i / PORTFOLIO_PEBBLE_SEGMENTS) * Math.PI * 2;
+    const ct = Math.cos(theta);
+    const st = Math.sin(theta);
+    const radial = 1
+      + (swellA * Math.cos(theta - phase))
+      + (swellB * Math.cos((2 * theta) + phaseB))
+      + (swellC * Math.sin((3 * theta) - phaseC))
+      - (taper * Math.cos((4 * theta) + phase * 0.6));
+    const x = (ct * stretchX * radial) + (skewX * st);
+    const y = (st * stretchY * radial) + (skewY * ct);
+    const len = Math.hypot(x, y);
+    if (len > maxRadius) maxRadius = len;
+    xPoints[i] = x;
+    yPoints[i] = y;
+  }
+
+  const inv = 1 / Math.max(1e-6, maxRadius);
+  for (let i = 0; i < PORTFOLIO_PEBBLE_SEGMENTS; i += 1) {
+    xPoints[i] *= inv;
+    yPoints[i] *= inv;
+  }
+
+  return { xPoints, yPoints };
+}
+
+const PORTFOLIO_PEBBLE_VARIANT_DATA = Array.from(
+  { length: PORTFOLIO_PEBBLE_VARIANTS },
+  (_, index) => makePebbleVariant(index)
+);
+
+function getPebbleVariantForBall(ball) {
+  const index = Number.isInteger(ball?.projectIndex) ? ball.projectIndex : 0;
+  const variantIndex = Math.abs(index) % PORTFOLIO_PEBBLE_VARIANT_DATA.length;
+  return PORTFOLIO_PEBBLE_VARIANT_DATA[variantIndex];
+}
+
+function appendPebbleBodyPath(ctx, ball, radius) {
+  const variant = getPebbleVariantForBall(ball);
+  const xs = variant.xPoints;
+  const ys = variant.yPoints;
+  if (!xs || !ys || xs.length < 3) {
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    return;
+  }
+
+  ctx.moveTo(xs[0] * radius, ys[0] * radius);
+  for (let i = 1; i < xs.length; i += 1) {
+    ctx.lineTo(xs[i] * radius, ys[i] * radius);
+  }
+  ctx.closePath();
 }
 
 const PORTFOLIO_RIM_LIGHT_X = 0;
@@ -352,9 +456,11 @@ function seedProjectBodies(globals) {
   const fontFamily = getComputedStyle(document.body).fontFamily || 'Helvetica Neue, Arial, sans-serif';
   const isMobile = width < 700;
 
-  const frameBorderWidth = Number.isFinite(globals.frameBorderWidth)
-    ? globals.frameBorderWidth
-    : (globals.wallThickness || 20);
+  const frameBorderWidth = Number.isFinite(globals.frameBorderWidthEffective)
+    ? globals.frameBorderWidthEffective
+    : (Number.isFinite(globals.frameBorderWidth)
+      ? globals.frameBorderWidth
+      : (globals.wallThickness || 20));
   const frameInset = frameBorderWidth * dpr;
   const innerW = Math.max(1, width - 2 * frameInset);
   const innerH = Math.max(1, height - 2 * frameInset);
@@ -377,49 +483,45 @@ function seedProjectBodies(globals) {
   maxD = Math.min(maxD, maxDiameterFit);
   minD = Math.min(minD, maxD);
 
-  const spawnInset = Math.min(width, height) * clamp(toNumber(config.layout?.spawnInsetViewport, 0.1), 0.05, 0.22);
-  const maxRSpawn = maxD * 0.5;
-  let spawnXLeft = frameInset + wallPadding + maxRSpawn;
-  let spawnXRight = width - frameInset - wallPadding - maxRSpawn;
-  if (spawnXRight <= spawnXLeft + 8) {
-    spawnXLeft = Math.max(frameInset + 4, maxRSpawn);
-    spawnXRight = Math.min(width - frameInset - 4, width - maxRSpawn);
-  }
-  const usableW = Math.max(maxD, spawnXRight - spawnXLeft);
-  const bandRatio = clamp(toNumber(config.layout?.spawnBandWidthRatio, isMobile ? 0.88 : 0.76), 0.4, 0.95);
-  const spawnBandWidth = Math.max(maxD, usableW * bandRatio);
-  const spawnCenterX = width * 0.5;
-  let spawnBandMin = clamp(spawnCenterX - spawnBandWidth * 0.5, spawnXLeft, spawnXRight - maxD);
-  let spawnBandMax = clamp(spawnCenterX + spawnBandWidth * 0.5, spawnBandMin + maxD, spawnXRight);
-
-  const spawnHeight = height * clamp(toNumber(config.layout?.spawnHeightViewport, 0.62), 0.45, 0.78);
-  const spawnYTop = -spawnHeight;
-  const spawnYBottom = Math.min(0, height * 0.02);
-  const vxBase = (isMobile ? 90 : 130) * dpr;
-  const vyBase = (isMobile ? 42 : 52) * dpr;
+  const headerClearance = Math.max(
+    18 * dpr,
+    toNumber(config.layout?.headerTopSpacing, 24) * dpr * 1.6
+  );
+  const vxBase = (isMobile ? 22 : 34) * dpr;
+  const vyBase = (isMobile ? 74 : 108) * dpr;
 
   for (let index = 0; index < projects.length; index += 1) {
     const project = projects[index];
     const t = projects.length <= 1 ? 0.5 : index / (projects.length - 1);
     const diameter = minD + ((maxD - minD) * (0.25 + (0.75 * (1 - Math.abs(0.5 - t)))));
     const radius = diameter * 0.5;
-    const shape = pickPortfolioBodyShape(index);
-    const isAccentCircle = shape === 'circle' && index === 0;
+    const isAccentCircle = index === 0;
     const fill = isAccentCircle
       ? getPortfolioAccentCircleFill()
       : getPortfolioProjectPaletteColor(index, projects.length);
-
-    const x = spawnBandMin + (hashUnit(index + 31) * (spawnBandMax - spawnBandMin));
-    const y = spawnYTop + (hashUnit(index + 53) * (spawnYBottom - spawnYTop)) - (index * (spawnHeight / Math.max(6, projects.length + 2)));
+    const spawnPoint = getPortfolioSpawnPoint(
+      index,
+      width,
+      height,
+      frameInset,
+      wallPadding,
+      radius,
+      headerClearance,
+      isMobile
+    );
+    const x = spawnPoint.x;
+    const y = spawnPoint.y;
 
     const ball = new Ball(x, y, radius, fill);
     ball.projectIndex = index;
-    ball.portfolioBodyShape = shape;
+    // Portfolio visuals render custom pebble silhouettes, but the simulation body should remain
+    // conservative so the visible contour never clips through neighbors or the wall.
+    ball.portfolioBodyShape = 'circle';
     ball.__portfolioAccentCircle = isAccentCircle;
     ball._noSquash = true;
-    ball.theta = hashUnit(index + 11) * Math.PI * 2;
+    ball.theta = (hashUnit(index + 11) - 0.5) * 0.14;
     ball.rotationOffset = 0;
-    ball.omega = (hashUnit(index + 13) - 0.5) * 6;
+    ball.omega = (hashUnit(index + 13) - 0.5) * 0.22;
     ball._portfolioDpr = dpr;
     storePortfolioSeedMetrics(ball, width, height, radius);
 
@@ -431,8 +533,9 @@ function seedProjectBodies(globals) {
     ball.projectTitle = labelContent.title;
     ball.projectTitleFull = String(project.title || labelContent.title || '').trim();
 
-    ball.vx = (hashUnit(index + 71) - 0.5) * vxBase;
-    ball.vy = (hashUnit(index + 97) * vyBase) + vyBase;
+    const inwardBias = (width * 0.5 - x) * 0.04;
+    ball.vx = inwardBias + ((hashUnit(index + 71) - 0.5) * vxBase);
+    ball.vy = vyBase + (hashUnit(index + 97) * vyBase * 0.3);
     globals.balls.push(ball);
   }
 
@@ -442,11 +545,9 @@ function seedProjectBodies(globals) {
 function renderProjectBody(ctx, ball) {
   if (!ball || ball.__portfolioHidden) return;
 
-  const globals = getGlobals();
-  const pitConfig = globals.portfolioPitConfig || {};
-  const shape = ball.portfolioBodyShape || 'circle';
   const focusDimmer = toNumber(ball.__portfolioDimAlpha, 1);
   const r = ball.r;
+  const drawR = r * PORTFOLIO_PEBBLE_RENDER_SCALE;
   const x = ball.x;
   const y = ball.y;
   const alpha = clamp(focusDimmer, 0, 1);
@@ -458,7 +559,7 @@ function renderProjectBody(ctx, ball) {
   ctx.rotate(rot);
   ctx.fillStyle = ball.color;
   ctx.beginPath();
-  appendPortfolioBodyPath(ctx, shape, r, pitConfig);
+  appendPebbleBodyPath(ctx, ball, drawR);
   ctx.fill();
   ctx.restore();
 
@@ -468,11 +569,11 @@ function renderProjectBody(ctx, ball) {
     ctx,
     x,
     y,
-    r,
+    drawR,
     ball.color,
     (pathCtx, strokeR) => {
       pathCtx.beginPath();
-      appendPortfolioBodyPath(pathCtx, shape, strokeR, pitConfig);
+      appendPebbleBodyPath(pathCtx, ball, strokeR);
     },
     rot
   );

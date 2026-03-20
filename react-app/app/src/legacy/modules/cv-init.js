@@ -10,7 +10,7 @@ import { loadRuntimeConfig } from './utils/runtime-config.js';
 import { loadRuntimeText } from './utils/text-loader.js';
 import { applyRuntimeTextToDOM } from './ui/apply-text.js';
 import { initializeDarkMode } from './visual/dark-mode-v2.js';
-import { maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './visual/colors.js';
+import { getPaletteTemplateOverrideFromUrl, maybeAutoPickCursorColor, rotatePaletteChapterOnReload } from './visual/colors.js';
 import { initTimeDisplay } from './ui/time-display.js';
 import { upgradeSocialIcons } from './ui/social-icons.js';
 import { waitForFonts } from './utils/font-loader.js';
@@ -216,8 +216,13 @@ export async function bootstrapCvPage() {
   // ╔══════════════════════════════════════════════════════════════════════════════╗
   // ║                    STEP 6: PALETTE + DEV PANEL + DARK MODE                   ║
   // ╚══════════════════════════════════════════════════════════════════════════════╝
-  // Palette chapters: rotate on each reload (applies only to cursor + palette-driven dots).
-  rotatePaletteChapterOnReload();
+  // Palette chapters: URL override wins for review/screenshot flows.
+  const paletteOverride = getPaletteTemplateOverrideFromUrl();
+  if (paletteOverride) {
+    getGlobals().currentTemplate = paletteOverride;
+  } else {
+    rotatePaletteChapterOnReload();
+  }
 
   // Panel before dark mode init so theme segment buttons in the dock receive listeners (init runs once).
   try {

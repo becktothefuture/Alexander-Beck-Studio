@@ -11,6 +11,10 @@ import {
   generateModeSwitcherHTML,
   generateModeSpecificSectionsHTML,
 } from './control-registry.js';
+import {
+  generateStudioShellControlsHTML,
+  generateStudioSurfaceControlsHTML,
+} from './studio-surface-controls.js';
 import { generatePortfolioPitChromePanelHTML } from '../portfolio/panel/control-registry.js';
 import { getGlobals, applyLayoutFromVwToPx, applyLayoutCSSVars, getLayoutViewportWidthPx } from '../core/state.js';
 import { isDev } from '../utils/logger.js';
@@ -254,6 +258,8 @@ function getMasterPanelContent({
       simulation: simulationPrepend,
     },
     append: {
+      studio: generateStudioSurfaceControlsHTML(),
+      shell: generateStudioShellControlsHTML(),
       audio: soundControlsHTML,
     },
     groupIds: masterGroupIds,

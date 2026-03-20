@@ -5,6 +5,7 @@
 
 import { getState } from '../core/state.js';
 import { NARRATIVE_QUOTES } from '../core/constants.js';
+import { destroyQuotePuck } from './quote-puck.js';
 
 let quoteContainer = null;
 let contentWrapper = null;
@@ -148,6 +149,7 @@ function updateQuote(mode, animate = true) {
  * Removes quote UI and listeners (e.g. when leaving the home route in the SPA).
  */
 export function destroyQuoteDisplay() {
+  destroyQuotePuck();
   if (modeChangedHandler) {
     window.removeEventListener('bb:modeChanged', modeChangedHandler);
     modeChangedHandler = null;
