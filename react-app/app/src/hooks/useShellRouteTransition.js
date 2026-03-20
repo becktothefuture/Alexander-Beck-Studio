@@ -33,15 +33,17 @@ function computeRouteState(href) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   GATE-SUCCESS TRANSITION
-   Fade the entire scene out as one unit, swap the route while invisible,
-   wait for the new route to be ready, then stagger-reveal its elements.
+   SMOOTH TRANSITION ENGINE
+   Fades the inner content (simulation + UI) while the wall frame stays visible,
+   swaps the route while invisible, then staggers the new content in.
+
+   The wall (#bravia-balls border/background) never changes opacity.
+   Only #shell-wall-slot (canvas) and .fade-content (UI layer) fade.
 
    Invariants:
    - Every async step checks `stale()` before mutating DOM or state.
-   - `finalizeGateTransition()` is the single cleanup path used by success,
-     catch, popstate, and unmount — it is always safe to call repeatedly.
-   - All navigation is blocked while a gate transition is active.
+   - `finalizeTransition()` is the single cleanup path (idempotent).
+   - All navigation is blocked while a transition is active.
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 const FADE_OUT_MS = 400;
@@ -50,8 +52,17 @@ const ELEMENT_REVEAL_MS = 500;
 const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
 const READY_FALLBACK_MS = 2500;
 
-let gateToken = 0;
+let transitionToken = 0;
 let activeAnimations = [];
+
+/* ── content layer references ────────────────────────────────────────────── */
+
+function getContentLayers() {
+  return {
+    wall: document.getElementById('shell-wall-slot'),
+    ui: document.querySelector('.fade-content'),
+  };
+}
 
 /* ── backdrop cleanup (with direct-DOM fallback) ─────────────────────────── */
 
@@ -96,35 +107,43 @@ function commitStaggerStyles() {
 
 /* ── single cleanup path (idempotent, always safe to call) ───────────────── */
 
-function finalizeGateTransition(scene) {
+function finalizeTransition(isGate) {
   cancelActiveAnimations();
   commitStaggerStyles();
-  dismissGateBackdrop();
+  if (isGate) dismissGateBackdrop();
   delete document.documentElement.dataset.absGateTransition;
-  if (scene) {
-    scene.style.opacity = '1';
-    scene.style.visibility = 'visible';
-    scene.style.willChange = 'auto';
-  }
+
+  // Restore content layers.
+  const { wall, ui } = getContentLayers();
+  if (wall) { wall.style.opacity = '1'; wall.style.willChange = 'auto'; }
+  if (ui) { ui.style.opacity = '1'; ui.style.willChange = 'auto'; }
 }
 
-/* ── fade out ─────────────────────────────────────────────────────────────── */
+/* ── fade out content layers (wall stays visible) ─────────────────────────── */
 
-function fadeOutScene(scene) {
-  if (!scene) return Promise.resolve(null);
-  if (typeof scene.animate !== 'function') {
-    scene.style.opacity = '0';
-    return Promise.resolve(null);
-  }
-  const anim = scene.animate(
-    [{ opacity: 1 }, { opacity: 0 }],
-    { duration: FADE_OUT_MS, easing: 'ease-out', fill: 'forwards' }
-  );
-  activeAnimations.push(anim);
-  return new Promise((resolve) => {
-    anim.onfinish = () => resolve(anim);
-    anim.oncancel = () => resolve(anim);
+function fadeOutContent(durationMs) {
+  const { wall, ui } = getContentLayers();
+  const anims = [];
+
+  [wall, ui].forEach((el) => {
+    if (!el) return;
+    if (typeof el.animate !== 'function') {
+      el.style.opacity = '0';
+      return;
+    }
+    const anim = el.animate(
+      [{ opacity: 1 }, { opacity: 0 }],
+      { duration: durationMs, easing: 'ease-out', fill: 'forwards' }
+    );
+    activeAnimations.push(anim);
+    anims.push(anim);
   });
+
+  if (anims.length === 0) return Promise.resolve();
+
+  return Promise.all(
+    anims.map((a) => new Promise((r) => { a.onfinish = r; a.oncancel = r; }))
+  );
 }
 
 /* ── route ready ──────────────────────────────────────────────────────────── */
@@ -152,11 +171,9 @@ function collectStaggerTargets() {
   const targets = [];
   const add = (el, opts) => { if (el) targets.push({ el, ...opts }); };
 
-  // Wall: #bravia-balls covers the simulation canvas AND the noise overlay
-  add(document.getElementById('bravia-balls'), { slide: false });
-  // Vignette overlay (sibling of wall, inside #abs-scene)
-  add(document.querySelector('.frame-vignette'), { slide: false });
-  // Header bar (inside route slot)
+  // Simulation canvas (inside the wall — the wall frame itself stays visible)
+  add(document.getElementById('shell-wall-slot'), { slide: false });
+  // Header bar
   add(document.querySelector('#shell-route-slot .ui-top'), { slide: true });
   // Home: central logo
   add(document.getElementById('brand-logo'), { slide: true });
@@ -172,33 +189,36 @@ function collectStaggerTargets() {
 
 /* ── staggered entrance ───────────────────────────────────────────────────── */
 
-function staggeredEntrance(scene, fadeOutAnim) {
+function staggeredEntrance() {
   return new Promise((resolve) => {
     const targets = collectStaggerTargets();
+    const { ui } = getContentLayers();
 
-    // Safety: if DOM is unexpectedly empty, just reveal the scene.
+    // Safety: if DOM is unexpectedly empty, just restore layers.
     if (targets.length === 0) {
-      if (fadeOutAnim) { try { fadeOutAnim.cancel(); } catch {} }
-      scene.style.opacity = '1';
-      scene.style.visibility = 'visible';
+      if (ui) ui.style.opacity = '1';
       resolve();
       return;
     }
 
-    // Hide every target before making the scene visible.
+    // Hide every target before making the UI layer visible.
     targets.forEach(({ el }) => {
       el.style.opacity = '0';
       el.style.willChange = 'opacity, transform';
     });
 
-    // Cancel fade-out WAAPI so its fill:forwards stops overriding inline styles.
-    if (fadeOutAnim) { try { fadeOutAnim.cancel(); } catch {} }
-    scene.style.opacity = '1';
-    scene.style.visibility = 'visible';
-    scene.style.willChange = 'auto';
-    scene.offsetHeight; // force reflow
+    // Cancel fade-out animations so fill:forwards stops overriding inline styles.
+    cancelActiveAnimations();
 
-    const hasWaapi = typeof scene.animate === 'function';
+    // Restore the .fade-content container (transparent — children are hidden individually).
+    if (ui) {
+      ui.style.opacity = '1';
+      ui.style.willChange = 'auto';
+    }
+    // Force reflow so children start at opacity 0 before WAAPI begins.
+    ui?.offsetHeight; // eslint-disable-line no-unused-expressions
+
+    const hasWaapi = typeof document.documentElement.animate === 'function';
 
     targets.forEach(({ el, slide }, i) => {
       const delay = i * STAGGER_OFFSET_MS;
@@ -229,7 +249,6 @@ function staggeredEntrance(scene, fadeOutAnim) {
         };
         anim.oncancel = anim.onfinish;
       } else {
-        // CSS-transition fallback for browsers without WAAPI.
         setStableTimeout(() => {
           el.style.transition = `opacity ${ELEMENT_REVEAL_MS}ms ${EASE_OUT}, transform ${ELEMENT_REVEAL_MS}ms ${EASE_OUT}, filter ${ELEMENT_REVEAL_MS}ms ${EASE_OUT}`;
           el.style.opacity = '1';
@@ -254,17 +273,17 @@ function staggeredEntrance(scene, fadeOutAnim) {
 
 export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
   const [routeState, setRouteState] = useState(() => computeRouteState(window.location.href));
-  const gateActiveRef = useRef(false);
+  const transitionActiveRef = useRef(false);
 
   const navigate = useCallback((href, options = {}) => {
-    // Block ALL navigation while a gate transition is in progress.
-    if (gateActiveRef.current) return false;
+    if (transitionActiveRef.current) return false;
 
     const route = resolveRouteFromHref(href, window.location.href);
     if (!route) return false;
 
     const targetUrl = new URL(href, window.location.href);
     const nextState = computeRouteState(targetUrl.toString());
+    const isSameRoute = nextState.route.id === routeState.route.id;
     const method = options.replace ? 'replaceState' : 'pushState';
     const commit = () => {
       window.history[method](options.state || {}, '', nextState.canonicalHref);
@@ -273,104 +292,92 @@ export function useShellRouteTransition({ getRouteView, getRouteRuntime }) {
 
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
     const nextRouteRuntime = getRouteRuntime(nextState.route.id);
+    const isGate = options.transitionStyle === 'gate-success';
+    const readyMs = options.readyFallbackMs ?? READY_FALLBACK_MS;
 
-    /* ── gate-success ────────────────────────────────────────────────────── */
-    if (options.transitionStyle === 'gate-success') {
-      gateActiveRef.current = true;
-      document.documentElement.dataset.absGateTransition = 'active';
+    /* ── smooth transition (gate-success OR any SPA route change) ────────── */
+    if (!isSameRoute && !reduceMotion) {
+      transitionActiveRef.current = true;
+      if (isGate) document.documentElement.dataset.absGateTransition = 'active';
 
-      const scene = document.getElementById('abs-scene');
-      const readyMs = options.readyFallbackMs ?? READY_FALLBACK_MS;
-      const token = ++gateToken;
-      const stale = () => token !== gateToken;
-
-      /* Reduced motion: skip animations, keep orchestration semantics. */
-      if (reduceMotion) {
-        Promise.resolve()
-          .then(() => nextRouteRuntime?.loadModule?.()).catch(() => undefined)
-          .then(() => {
-            if (stale()) return;
-            if (scene) scene.style.opacity = '0';
-            commit();
-            return waitForRouteReady(nextState.route.id, readyMs);
-          })
-          .then(() => {
-            if (stale()) return;
-            finalizeGateTransition(scene);
-            gateActiveRef.current = false;
-          })
-          .catch(() => {
-            finalizeGateTransition(scene);
-            gateActiveRef.current = false;
-          });
-        return true;
-      }
-
-      /* Full animated path. */
-      let fadeOutAnim = null;
+      const token = ++transitionToken;
+      const stale = () => token !== transitionToken;
 
       Promise.resolve()
         .then(() => nextRouteRuntime?.loadModule?.()).catch(() => undefined)
-        .then(() => { if (!stale()) return fadeOutScene(scene); })
-        .then((anim) => {
-          fadeOutAnim = anim;
+        .then(() => { if (!stale()) return fadeOutContent(FADE_OUT_MS); })
+        .then(() => {
           if (stale()) return;
           commit();
           return waitForRouteReady(nextState.route.id, readyMs);
         })
         .then(() => {
           if (stale()) return;
-          dismissGateBackdrop();
-          return staggeredEntrance(scene, fadeOutAnim);
+          if (isGate) dismissGateBackdrop();
+          return staggeredEntrance();
         })
         .then(() => {
           if (stale()) return;
           delete document.documentElement.dataset.absGateTransition;
           activeAnimations = [];
-          gateActiveRef.current = false;
+          transitionActiveRef.current = false;
         })
         .catch(() => {
-          finalizeGateTransition(scene);
-          gateActiveRef.current = false;
+          finalizeTransition(isGate);
+          transitionActiveRef.current = false;
         });
 
       return true;
     }
 
-    /* ── normal navigation (View Transitions / instant) ──────────────────── */
-    if (typeof document.startViewTransition === 'function' && !reduceMotion) {
-      document.startViewTransition(commit);
-    } else {
-      commit();
-    }
-    return true;
-  }, [getRouteRuntime]);
+    /* ── reduced motion or same-route: instant with cleanup ──────────────── */
+    if (isGate) {
+      transitionActiveRef.current = true;
+      document.documentElement.dataset.absGateTransition = 'active';
 
-  /* Bridge legacy JS navigate calls into the React router. */
+      Promise.resolve()
+        .then(() => nextRouteRuntime?.loadModule?.()).catch(() => undefined)
+        .then(() => {
+          if (!isSameRoute) commit();
+          return waitForRouteReady(nextState.route.id, readyMs);
+        })
+        .then(() => {
+          finalizeTransition(true);
+          transitionActiveRef.current = false;
+        })
+        .catch(() => {
+          finalizeTransition(true);
+          transitionActiveRef.current = false;
+        });
+
+      return true;
+    }
+
+    /* ── same-route or reduced-motion non-gate: instant commit ────────────── */
+    commit();
+    return true;
+  }, [getRouteRuntime, routeState.route.id]);
+
   useEffect(() => installSpaNavigationBridge(navigate), [navigate]);
 
-  /* Handle browser back/forward — invalidate token, finalize, restore. */
   useEffect(() => {
     const handlePopState = () => {
-      const scene = document.getElementById('abs-scene');
-      ++gateToken;
-      finalizeGateTransition(scene);
-      gateActiveRef.current = false;
+      ++transitionToken;
+      finalizeTransition(true);
+      transitionActiveRef.current = false;
       setRouteState(computeRouteState(window.location.href));
     };
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      // Unmount cleanup: finalize any in-flight gate transition.
-      if (gateActiveRef.current) {
-        ++gateToken;
-        finalizeGateTransition(document.getElementById('abs-scene'));
-        gateActiveRef.current = false;
+      if (transitionActiveRef.current) {
+        ++transitionToken;
+        finalizeTransition(true);
+        transitionActiveRef.current = false;
       }
     };
   }, []);
 
-  /* Auto-open gate modal when redirected to home with ?gate=… */
   useLayoutEffect(() => {
     const gateId = routeState.redirectGateId || '';
     if (!gateId) return;
