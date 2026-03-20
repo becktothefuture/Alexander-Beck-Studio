@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Depth Test B — Two-Pass Inner Shadow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f1f3f4; overflow: hidden; font-family: system-ui, sans-serif; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  .label {
+    position: fixed; top: 12px; left: 14px;
+    color: rgba(0,0,0,0.40); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.04em; pointer-events: none; z-index: 1;
+    text-transform: uppercase;
+  }
+  .perf {
+    position: fixed; top: 12px; right: 14px;
+    color: rgba(0,0,0,0.55); font-size: 11px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em; pointer-events: none; z-index: 1;
+    text-align: right; line-height: 1.6;
+    font-family: 'SF Mono', 'Menlo', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="label">B — Two-Pass Inner Shadow Ring</div>
+<div class="perf" id="perf"></div>
+<canvas id="c"></canvas>
+
+<script>
+(() => {
+  'use strict';
+
+  const COLORS = ['#b5b7b6','#bbbdbd','#ffffff','#00695c','#000000','#ff4013','#0d5cb6','#ffa000'];
+  const BG = '#202124';
+  const BALL_COUNT = 180;
+  const BASE_RADIUS = 7;
+  const RADIUS_VARIANCE = 0.35;
+  const GRAVITY = 420;
+  const DAMPING = 0.72;
+  const FRICTION = 0.994;
+  const LIGHT_X = -0.55;
+  const LIGHT_Y = -0.70;
+
+  function parseHex(hex) {
+    const v = parseInt(hex.slice(1), 16);
+    return [(v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff];
+  }
+  function rgba(r, g, b, a) { return `rgba(${r},${g},${b},${a})`; }
+  function lighten([r, g, b], t) {
+    return [r + (255 - r) * t | 0, g + (255 - g) * t | 0, b + (255 - b) * t | 0];
+  }
+  function darken([r, g, b], t) {
+    return [r * (1 - t) | 0, g * (1 - t) | 0, b * (1 - t) | 0];
+  }
+
+  function makeBalls(w, h, dpr) {
+    const balls = [];
+    for (let i = 0; i < BALL_COUNT; i++) {
+      const color = COLORS[Math.random() * COLORS.length | 0];
+      const r = (BASE_RADIUS * dpr) * (1 + (Math.random() * 2 - 1) * RADIUS_VARIANCE);
+      balls.push({
+        x: Math.random() * w,
+        y: Math.random() * h * 0.6,
+        vx: (Math.random() - 0.5) * 160,
+        vy: (Math.random() - 0.5) * 80,
+        r, color, rgb: parseHex(color),
+      });
+    }
+    return balls;
+  }
+
+  function step(balls, w, h, dt) {
+    for (let i = 0; i < balls.length; i++) {
+      const b = balls[i];
+      b.vy += GRAVITY * dt;
+      b.vx *= FRICTION; b.vy *= FRICTION;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * DAMPING; }
+      if (b.x + b.r > w) { b.x = w - b.r; b.vx = -Math.abs(b.vx) * DAMPING; }
+      if (b.y + b.r > h) { b.y = h - b.r; b.vy = -Math.abs(b.vy) * DAMPING; }
+      if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy) * DAMPING; }
+    }
+    for (let i = 0; i < balls.length; i++) {
+      const a = balls[i];
+      for (let j = i + 1; j < balls.length; j++) {
+        const b = balls[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = a.r + b.r;
+        if (dist < minDist && dist > 0.001) {
+          const nx = dx / dist, ny = dy / dist;
+          const overlap = (minDist - dist) * 0.5;
+          a.x -= nx * overlap; a.y -= ny * overlap;
+          b.x += nx * overlap; b.y += ny * overlap;
+          const dvx = a.vx - b.vx, dvy = a.vy - b.vy;
+          const dot = dvx * nx + dvy * ny;
+          if (dot > 0) {
+            a.vx -= dot * nx * DAMPING; a.vy -= dot * ny * DAMPING;
+            b.vx += dot * nx * DAMPING; b.vy += dot * ny * DAMPING;
+          }
+        }
+      }
+    }
+  }
+
+  /* ── Technique B: Two-Pass Inner Shadow Ring ── */
+  function draw(ctx, balls) {
+    /* Pass 1: batch flat fills by colour */
+    const byColor = new Map();
+    for (let i = 0; i < balls.length; i++) {
+      const b = balls[i];
+      if (!byColor.has(b.color)) byColor.set(b.color, []);
+      byColor.get(b.color).push(b);
+    }
+    for (const [color, group] of byColor) {
+      ctx.fillStyle = color;
+      for (let i = 0; i < group.length; i++) {
+        const b = group[i];
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    /* Pass 2: inner shadow + highlight per ball */
+    for (let i = 0; i < balls.length; i++) {
+      const b = balls[i];
+      const r = b.r;
+
+      /* dark inner shadow */
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+      ctx.clip();
+
+      ctx.shadowOffsetX = LIGHT_X * r * 0.6;
+      ctx.shadowOffsetY = LIGHT_Y * r * 0.6;
+      ctx.shadowBlur = r * 0.8;
+      const shd = darken(b.rgb, 0.55);
+      ctx.shadowColor = rgba(shd[0], shd[1], shd[2], 0.50);
+
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, r + r * 2, 0, Math.PI * 2);
+      ctx.arc(b.x, b.y, r + 0.5, 0, Math.PI * 2, true);
+      ctx.fillStyle = 'rgba(0,0,0,0)';
+      ctx.fill();
+      ctx.restore();
+
+      /* bright highlight crescent */
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+      ctx.clip();
+
+      ctx.shadowOffsetX = -LIGHT_X * r * 0.4;
+      ctx.shadowOffsetY = -LIGHT_Y * r * 0.4;
+      ctx.shadowBlur = r * 0.5;
+      const lit = lighten(b.rgb, 0.55);
+      ctx.shadowColor = rgba(lit[0], lit[1], lit[2], 0.30);
+
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, r + r * 2, 0, Math.PI * 2);
+      ctx.arc(b.x, b.y, r + 0.5, 0, Math.PI * 2, true);
+      ctx.fillStyle = 'rgba(0,0,0,0)';
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  /* ── perf tracking ── */
+  const perfEl = document.getElementById('perf');
+  const frameTimes = new Float64Array(120);
+  const drawTimes = new Float64Array(120);
+  let frameIdx = 0;
+  let frameCount = 0;
+
+  function updatePerf(frameDt, drawDt) {
+    const idx = frameIdx % 120;
+    frameTimes[idx] = frameDt;
+    drawTimes[idx] = drawDt;
+    frameIdx++;
+    frameCount++;
+    if (frameCount % 15 === 0) {
+      const n = Math.min(frameIdx, 120);
+      let sumF = 0, sumD = 0, maxF = 0, maxD = 0;
+      for (let i = 0; i < n; i++) {
+        sumF += frameTimes[i]; sumD += drawTimes[i];
+        if (frameTimes[i] > maxF) maxF = frameTimes[i];
+        if (drawTimes[i] > maxD) maxD = drawTimes[i];
+      }
+      const avgF = sumF / n;
+      const avgD = sumD / n;
+      const fps = 1000 / avgF;
+      perfEl.innerHTML =
+        `FPS: ${fps.toFixed(1)}<br>` +
+        `Frame avg: ${avgF.toFixed(2)} ms<br>` +
+        `Frame max: ${maxF.toFixed(2)} ms<br>` +
+        `Draw avg: ${avgD.toFixed(2)} ms<br>` +
+        `Draw max: ${maxD.toFixed(2)} ms<br>` +
+        `Balls: ${BALL_COUNT}`;
+    }
+  }
+
+  /* ── bootstrap ── */
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  let w, h, balls;
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    w = rect.width * dpr; h = rect.height * dpr;
+    canvas.width = w; canvas.height = h;
+    if (!balls) balls = makeBalls(w, h, dpr);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let last = 0;
+  function frame(ts) {
+    const frameDt = ts - (last || ts);
+    const dt = Math.min(frameDt / 1000, 0.033);
+    last = ts;
+    step(balls, w, h, dt);
+    ctx.clearRect(0, 0, w, h);
+    const t0 = performance.now();
+    draw(ctx, balls);
+    const t1 = performance.now();
+    if (frameDt > 0) updatePerf(frameDt, t1 - t0);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

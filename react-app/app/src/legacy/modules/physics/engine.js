@@ -16,6 +16,7 @@ import {
 } from '../modes/mode-controller.js';
 import { updateCursorExplosion, drawCursorExplosion } from '../visual/cursor-explosion.js';
 import { getRenderQualityProfile } from '../utils/render-quality.js';
+import { drawBallRims } from '../visual/ball-rim.js';
 import { 
   getAccumulator, 
   setAccumulator, 
@@ -887,6 +888,13 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
       }
     }
   }
+
+  // ── Rim pass: directional depth edge on all rendered balls ──
+  drawBallRims(ctx, ballsToRender, {
+    canvasWidth: canvasWidth,
+    canvasHeight: canvasHeight,
+    minRadius: pitLodEnabled ? tinyRadiusPx : 0
+  });
 }
 
 /**

@@ -8,6 +8,7 @@ import { CONSTANTS, MODES, isPitLikeMode } from '../core/constants.js';
 import { playCollisionSound } from '../audio/sound-engine.js';
 import { registerWallImpactAtPoint, registerWallPressureAtPoint } from './wall-state.js';
 import { getPortfolioBodyMaxExtentAlongWorldNormal } from './portfolio-body-geometry.js';
+import { drawBallRim } from '../visual/ball-rim.js';
 
 // Unique ID counter for ball sound debouncing
 let ballIdCounter = 0;
@@ -490,6 +491,7 @@ export class Ball {
         ctx.arc(0, 0, displayRadius, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
         ctx.fill();
+        drawBallRim(ctx, 0, 0, displayRadius, this.color);
       }
       
       ctx.restore();
@@ -499,6 +501,7 @@ export class Ball {
       ctx.beginPath();
       ctx.arc(this.x, this.y, displayRadius, 0, Math.PI * 2);
       ctx.fill();
+      drawBallRim(ctx, this.x, this.y, displayRadius, this.color);
     }
   }
 }

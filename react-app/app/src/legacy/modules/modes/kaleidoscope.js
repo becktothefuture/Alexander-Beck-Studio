@@ -8,6 +8,7 @@ import { MODES } from '../core/constants.js';
 import { Ball } from '../physics/Ball.js';
 import { pickRandomColor, pickRandomColorWithIndex } from '../visual/colors.js';
 import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
+import { drawBallRim } from '../visual/ball-rim.js';
 
 const TAU = Math.PI * 2;
 const EPS = 1e-6;
@@ -497,6 +498,7 @@ export function renderKaleidoscope(ctx) {
       ctx.beginPath();
       ctx.arc(x, y, ball.r, 0, TAU);
       ctx.fill();
+      drawBallRim(ctx, x, y, ball.r, ball.color);
       if (ball.alpha < 1) ctx.globalAlpha = 1;
     }
   }

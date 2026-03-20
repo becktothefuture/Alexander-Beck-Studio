@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Depth Test A — Directional Rim</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f1f3f4; overflow: hidden; font-family: system-ui, sans-serif; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  .label {
+    position: fixed; top: 12px; left: 14px;
+    color: rgba(0,0,0,0.40); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.04em; pointer-events: none; z-index: 1;
+    text-transform: uppercase;
+  }
+  .perf {
+    position: fixed; top: 12px; right: 14px;
+    color: rgba(0,0,0,0.55); font-size: 11px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em; pointer-events: none; z-index: 1;
+    text-align: right; line-height: 1.6;
+    font-family: 'SF Mono', 'Menlo', monospace;
+  }
+  #config {
+    position: fixed; bottom: 14px; left: 14px;
+    background: rgba(0,0,0,0.75); color: #ccc; padding: 14px 16px;
+    border-radius: 10px; font-size: 11px; z-index: 2;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    display: grid; grid-template-columns: 140px 100px 36px; gap: 5px 8px;
+    align-items: center; backdrop-filter: blur(12px);
+  }
+  #config label { color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.03em; }
+  #config input[type=range] { width: 100%; accent-color: #5b9aff; }
+  #config .val { text-align: right; color: rgba(255,255,255,0.45); }
+</style>
+</head>
+<body>
+
+<div class="label">A — Flat fill + directional rim stroke</div>
+<div class="perf" id="perf"></div>
+<canvas id="c"></canvas>
+
+<div id="config"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ── Light-mode Industrial Teal palette ── */
+  const PALETTE = ['#b5b7b6','#bbbdbd','#ffffff','#00695c','#000000','#ff4013','#0d5cb6','#ffa000'];
+  /* Weighted distribution matching design-system.json */
+  const DISTRIBUTION = [
+    { colorIndex: 0, weight: 75 },
+    { colorIndex: 4, weight: 2 },
+    { colorIndex: 3, weight: 4 },
+    { colorIndex: 2, weight: 10 },
+    { colorIndex: 5, weight: 3 },
+    { colorIndex: 6, weight: 5 },
+    { colorIndex: 7, weight: 1 },
+  ];
+  const TOTAL_WEIGHT = DISTRIBUTION.reduce((s, d) => s + d.weight, 0);
+
+  function pickColor() {
+    let r = Math.random() * TOTAL_WEIGHT;
+    for (const d of DISTRIBUTION) {
+      r -= d.weight;
+      if (r <= 0) return PALETTE[d.colorIndex];
+    }
+    return PALETTE[0];
+  }
+
+  const BALL_COUNT = 180;
+  const BASE_RADIUS_CSS = 12;
+  const SIZE_SCALE = 1.05;
+  const GRAVITY = 420;
+  const DAMPING = 0.72;
+  const FRICTION = 0.994;
+
+  /* ── Configurable rim parameters ── */
+  const CFG = {
+    lightX:       -0.10,   // light direction X
+    lightY:       -0.15,   // light direction Y
+    rimWidth:      0.12,   // fraction of radius
+    lightStrength: 0.35,   // lighten amount
+    shadowStrength:0.35,   // darken amount
+    lightAlpha:    0.60,   // highlight opacity
+    shadowAlpha:   0.40,   // shadow opacity
+    fadeStart:     0.33,   // gradient fade-to-transparent start
+    fadeEnd:       0.83,   // gradient fade-to-transparent end
+    rimInset:      0.55,   // stroke inset factor (0.5 = flush inside)
+  };
+
+  const PARAMS = [
+    { key: 'lightX',        label: 'Light dir X',      min: -1, max: 1, step: 0.05 },
+    { key: 'lightY',        label: 'Light dir Y',      min: -1, max: 1, step: 0.05 },
+    { key: 'rimWidth',      label: 'Rim width',        min: 0.03, max: 0.5, step: 0.01 },
+    { key: 'lightStrength', label: 'Light strength',   min: 0, max: 1, step: 0.05 },
+    { key: 'shadowStrength',label: 'Shadow strength',  min: 0, max: 1, step: 0.05 },
+    { key: 'lightAlpha',    label: 'Light alpha',      min: 0, max: 1, step: 0.05 },
+    { key: 'shadowAlpha',   label: 'Shadow alpha',     min: 0, max: 1, step: 0.05 },
+    { key: 'fadeStart',     label: 'Fade start',       min: 0, max: 0.5, step: 0.01 },
+    { key: 'fadeEnd',       label: 'Fade end',         min: 0.5, max: 1, step: 0.01 },
+    { key: 'rimInset',      label: 'Rim inset',        min: 0, max: 1, step: 0.05 },
+  ];
+
+  /* ── build config panel ── */
+  const configEl = document.getElementById('config');
+  PARAMS.forEach(p => {
+    const label = document.createElement('label');
+    label.textContent = p.label;
+    const input = document.createElement('input');
+    input.type = 'range'; input.min = p.min; input.max = p.max; input.step = p.step;
+    input.value = CFG[p.key];
+    const val = document.createElement('span');
+    val.className = 'val';
+    val.textContent = Number(CFG[p.key]).toFixed(2);
+    input.addEventListener('input', () => {
+      CFG[p.key] = parseFloat(input.value);
+      val.textContent = CFG[p.key].toFixed(2);
+    });
+    configEl.appendChild(label);
+    configEl.appendChild(input);
+    configEl.appendChild(val);
+  });
+
+  /* ── colour helpers ── */
+  function parseHex(hex) {
+    const v = parseInt(hex.slice(1), 16);
+    return [(v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff];
+  }
+  function rgba(r, g, b, a) { return `rgba(${r},${g},${b},${a})`; }
+  function lighten([r, g, b], t) {
+    return [r + (255 - r) * t | 0, g + (255 - g) * t | 0, b + (255 - b) * t | 0];
+  }
+  function darken([r, g, b], t) {
+    return [r * (1 - t) | 0, g * (1 - t) | 0, b * (1 - t) | 0];
+  }
+
+  /* ── ball factory (site-accurate sizing + distribution) ── */
+  function makeBalls(w, h, dpr) {
+    const balls = [];
+    const r = BASE_RADIUS_CSS * SIZE_SCALE * dpr;
+    for (let i = 0; i < BALL_COUNT; i++) {
+      const color = pickColor();
+      balls.push({
+        x: Math.random() * w,
+        y: Math.random() * h * 0.6,
+        vx: (Math.random() - 0.5) * 160,
+        vy: (Math.random() - 0.5) * 80,
+        r, color, rgb: parseHex(color),
+      });
+    }
+    return balls;
+  }
+
+  /* ── physics ── */
+  function step(balls, w, h, dt) {
+    for (let i = 0; i < balls.length; i++) {
+      const b = balls[i];
+      b.vy += GRAVITY * dt;
+      b.vx *= FRICTION; b.vy *= FRICTION;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx) * DAMPING; }
+      if (b.x + b.r > w) { b.x = w - b.r; b.vx = -Math.abs(b.vx) * DAMPING; }
+      if (b.y + b.r > h) { b.y = h - b.r; b.vy = -Math.abs(b.vy) * DAMPING; }
+      if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy) * DAMPING; }
+    }
+    for (let i = 0; i < balls.length; i++) {
+      const a = balls[i];
+      for (let j = i + 1; j < balls.length; j++) {
+        const b = balls[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = a.r + b.r;
+        if (dist < minDist && dist > 0.001) {
+          const nx = dx / dist, ny = dy / dist;
+          const overlap = (minDist - dist) * 0.5;
+          a.x -= nx * overlap; a.y -= ny * overlap;
+          b.x += nx * overlap; b.y += ny * overlap;
+          const dvx = a.vx - b.vx, dvy = a.vy - b.vy;
+          const dot = dvx * nx + dvy * ny;
+          if (dot > 0) {
+            a.vx -= dot * nx * DAMPING; a.vy -= dot * ny * DAMPING;
+            b.vx += dot * nx * DAMPING; b.vy += dot * ny * DAMPING;
+          }
+        }
+      }
+    }
+  }
+
+  /* ── draw: flat fill + directional rim stroke ── */
+  function draw(ctx, balls) {
+    /* Pass 1: batch flat fills by colour */
+    const byColor = new Map();
+    for (let i = 0; i < balls.length; i++) {
+      const b = balls[i];
+      if (!byColor.has(b.color)) byColor.set(b.color, []);
+      byColor.get(b.color).push(b);
+    }
+    for (const [color, group] of byColor) {
+      ctx.fillStyle = color;
+      for (let i = 0; i < group.length; i++) {
+        const b = group[i];
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    /* Pass 2: directional rim */
+    const lx = CFG.lightX;
+    const ly = CFG.lightY;
+    for (let i = 0; i < balls.length; i++) {
+      const b = balls[i];
+      const r = b.r;
+      const lw = r * CFG.rimWidth;
+      const strokeR = r - lw * CFG.rimInset;
+
+      const grad = ctx.createLinearGradient(
+        b.x + lx * r, b.y + ly * r,
+        b.x - lx * r, b.y - ly * r
+      );
+      const lit = lighten(b.rgb, CFG.lightStrength);
+      const shd = darken(b.rgb, CFG.shadowStrength);
+      grad.addColorStop(0, rgba(lit[0], lit[1], lit[2], CFG.lightAlpha));
+      grad.addColorStop(CFG.fadeStart, rgba(b.rgb[0], b.rgb[1], b.rgb[2], 0));
+      grad.addColorStop(CFG.fadeEnd, rgba(b.rgb[0], b.rgb[1], b.rgb[2], 0));
+      grad.addColorStop(1, rgba(shd[0], shd[1], shd[2], CFG.shadowAlpha));
+
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, strokeR, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  /* ── perf tracking ── */
+  const perfEl = document.getElementById('perf');
+  const frameTimes = new Float64Array(120);
+  const drawTimes = new Float64Array(120);
+  let frameIdx = 0;
+  let frameCount = 0;
+
+  function updatePerf(frameDt, drawDt) {
+    const idx = frameIdx % 120;
+    frameTimes[idx] = frameDt;
+    drawTimes[idx] = drawDt;
+    frameIdx++;
+    frameCount++;
+    if (frameCount % 15 === 0) {
+      const n = Math.min(frameIdx, 120);
+      let sumF = 0, sumD = 0, maxF = 0, maxD = 0;
+      for (let i = 0; i < n; i++) {
+        sumF += frameTimes[i]; sumD += drawTimes[i];
+        if (frameTimes[i] > maxF) maxF = frameTimes[i];
+        if (drawTimes[i] > maxD) maxD = drawTimes[i];
+      }
+      const avgF = sumF / n;
+      const avgD = sumD / n;
+      const fps = 1000 / avgF;
+      perfEl.innerHTML =
+        `FPS: ${fps.toFixed(1)}<br>` +
+        `Frame avg: ${avgF.toFixed(2)} ms<br>` +
+        `Frame max: ${maxF.toFixed(2)} ms<br>` +
+        `Draw avg: ${avgD.toFixed(2)} ms<br>` +
+        `Draw max: ${maxD.toFixed(2)} ms<br>` +
+        `Balls: ${BALL_COUNT}`;
+    }
+  }
+
+  /* ── bootstrap ── */
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  let w, h, balls;
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    w = rect.width * dpr; h = rect.height * dpr;
+    canvas.width = w; canvas.height = h;
+    if (!balls) balls = makeBalls(w, h, dpr);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let last = 0;
+  function frame(ts) {
+    const frameDt = ts - (last || ts);
+    const dt = Math.min(frameDt / 1000, 0.033);
+    last = ts;
+    step(balls, w, h, dt);
+    ctx.clearRect(0, 0, w, h);
+    const t0 = performance.now();
+    draw(ctx, balls);
+    const t1 = performance.now();
+    if (frameDt > 0) updatePerf(frameDt, t1 - t0);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
