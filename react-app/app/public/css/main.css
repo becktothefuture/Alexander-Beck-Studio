@@ -3105,6 +3105,9 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   --modal-pad-md-x: 1.05rem;
   --modal-pad-nav-right: 6px;
   --modal-shift-y: 0%;
+  /* −33% vs prior clamp(1.5rem, 3vw, 2rem): label ↔ inputs + label internal stack */
+  --modal-column-gap: calc(clamp(1.5rem, 3vw, 2rem) * 0.67);
+  --modal-label-stack-gap: var(--modal-column-gap);
   
   /* Gate overlay positioning and animation
      IMPORTANT: gates must NOT affect each other's layout during gate-to-gate switching.
@@ -3124,7 +3127,7 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(1.5rem, 3vw, 2rem);
+  gap: var(--modal-column-gap);
   font-size: clamp(0.9em, 0.95em + 0.2vw, 1em);
 
   /* Slightly wider modals - text blocks are 10% wider */
@@ -3202,9 +3205,23 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
   text-align: center;
   width: 100%;
   max-width: min(42rem, 92vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--modal-label-stack-gap);
   opacity: 0;
   transform: translateY(-10px);
   transition: opacity 0.3s var(--ease-gate) 0.2s, transform 0.3s var(--ease-gate) 0.2s;
+}
+
+.cv-modal .modal-nav,
+.portfolio-modal .modal-nav,
+.contact-modal .modal-nav {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
 }
 
 .cv-modal.active .modal-label,
@@ -3218,12 +3235,18 @@ body.dark-mode .circle.bg-story-grey { background-color: rgba(var(--abs-rgb-whit
 .portfolio-modal .modal-title,
 .contact-modal .modal-title {
   font-size: 48px;
+  margin: 0;
 }
 
 .cv-modal .modal-description,
 .portfolio-modal .modal-description,
 .contact-modal .modal-description {
   font-size: 20px;
+  margin: 0;
+}
+
+.portfolio-modal .modal-description {
+  letter-spacing: 0.03ch;
 }
 
 .gate-nav {

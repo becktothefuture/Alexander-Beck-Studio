@@ -98,7 +98,7 @@ const DEFAULT_SHELL_CONFIG = {
     modalDepthTranslateY: 1
   },
   hero: {
-    startupMode: 'pit',
+    startupMode: '',
     desktopLogoWidthVw: 52,
     desktopLogoMinPx: 340,
     desktopLogoMaxPx: 640,

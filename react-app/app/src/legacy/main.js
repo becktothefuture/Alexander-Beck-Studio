@@ -585,7 +585,8 @@ export async function bootstrapHomePage() {
     initModeSystem();
 
     // Initialize starting mode (deterministic daily simulation)
-    const configuredHeroMode = String(getShellConfig()?.hero?.startupMode || '').trim();
+    // startupMode is dev-only override; production always uses daily rotation
+    const configuredHeroMode = ABS_DEV ? String(getShellConfig()?.hero?.startupMode || '').trim() : '';
     const startMode = configuredHeroMode || getDailyMode() || MODES.PIT;
 
     await setMode(startMode);
