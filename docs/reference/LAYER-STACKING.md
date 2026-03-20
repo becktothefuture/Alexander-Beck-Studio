@@ -9,9 +9,9 @@
 | Rule | Detail |
 |------|--------|
 | **Above route chrome** | When a project is open, the drawer and its **backdrop** MUST paint **above** the **header row** (`.ui-top` / `.route-topbar`) **and** the **footer** (`SiteFooter` / `.ui-bottom`). Those live in **`.fade-content`** (`z-index: 200` in `main.css`). |
-| **Do not mount only in `#bravia-balls`** | `#bravia-balls` is `z-index: 100`. Anything that stays **only** inside that subtree cannot stack above `.fade-content` (200). The drawer host must be a **sibling** of `.fade-content` **inside `#abs-scene`**, with a **higher `z-index`**. |
+| **Do not mount only in `#simulations`** | `#simulations` is `z-index: 100`. Anything that stays **only** inside that subtree cannot stack above `.fade-content` (200). The drawer host must be a **sibling** of `.fade-content` **inside `#abs-scene`**, with a **higher `z-index`**. |
 | **DOM + CSS** | **`#portfolio-sheet-host`** comes **after** **`.fade-content`** in `#abs-scene` (`StudioShell.jsx`). `portfolio.css`: host `z-index: 220` (idle), **`body.portfolio-project-open`** raises host to **`z-index: 260`** so the sheet is also above **`#quote-viewport-host`** (250). |
-| **Geometry** | Host uses the **same inner-wall rectangle** as `#bravia-balls canvas`: `position: fixed` inset `calc(var(--safari-tint-inset) + var(--frame-border-width))` on all sides, **`border-radius: var(--frame-inner-radius)`**, **`overflow: hidden`**. Same **corner-shape** inheritance as canvas (e.g. squircle when `html.abs-corner-shape-squircle`). |
+| **Geometry** | Host uses the **same inner-wall rectangle** as `#simulations canvas`: `position: fixed` inset `calc(var(--safari-tint-inset) + var(--frame-border-width))` on all sides, **`border-radius: var(--frame-inner-radius)`**, **`overflow: hidden`**. Same **corner-shape** inheritance as canvas (e.g. squircle when `html.abs-corner-shape-squircle`). |
 
 ---
 
@@ -21,7 +21,7 @@
 
 | Order (typical DOM) | z-index | Layer |
 |--------------------|--------:|-------|
-| 1 | 100 | `#bravia-balls` |
+| 1 | 100 | `#simulations` |
 | 2 | 175 | `.frame-vignette` |
 | 3 | **200** | **`.fade-content`** (header, main, footer) |
 | 4 | **220** / **260** when open | **`#portfolio-sheet-host`** |
@@ -32,7 +32,7 @@
 
 ---
 
-## Inside `#bravia-balls` only (no drawer host here)
+## Inside `#simulations` only (no drawer host here)
 
 | Layer | z-index (typical) | Notes |
 |------:|------------------:|-------|

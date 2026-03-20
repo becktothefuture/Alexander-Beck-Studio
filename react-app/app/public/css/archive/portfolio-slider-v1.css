@@ -150,17 +150,17 @@ body.portfolio-page #brand-logo {
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    PORTFOLIO SIMULATION CONTAINER
-   Uses same #bravia-balls ID with .portfolio-simulation class
+   Uses same #simulations ID with .portfolio-simulation class
    ═══════════════════════════════════════════════════════════════════════════════ */
-#bravia-balls.portfolio-simulation {
-  /* Inherits position, inset, background from main.css #bravia-balls */
+#simulations.portfolio-simulation {
+  /* Inherits position, inset, background from main.css #simulations */
   /* Shared shell owns the wall frame geometry across all routes. */
   touch-action: none;
 }
 
 /* Wall-only canvas overlays the carousel so the wall is visible (matches index wall ring).
    Critical: pointer-events must stay NONE so dragging the carousel still works. */
-#bravia-balls.portfolio-simulation .portfolio-wall-canvas {
+#simulations.portfolio-simulation .portfolio-wall-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -462,7 +462,7 @@ html.entrance-complete .portfolio-meta {
 
 .meta-client {
   display: block;
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   font-weight: 500;
   font-size: 13px;
   text-transform: uppercase;
@@ -473,7 +473,7 @@ html.entrance-complete .portfolio-meta {
 .meta-title {
   display: block;
   width: 100%;
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   font-weight: 400;
   font-size: clamp(var(--text-title-min), var(--text-title-size), var(--text-title-max));
   line-height: var(--line-height-title);
@@ -486,7 +486,7 @@ html.entrance-complete .portfolio-meta {
 .meta-summary {
   display: block;
   width: 100%;
-  font-family: 'Geist', sans-serif;
+  font-family: var(--abs-font-sans);
   font-size: clamp(var(--text-tags-min), var(--text-tags-size), var(--text-tags-max));
   line-height: var(--line-height-summary);
   letter-spacing: var(--letter-spacing-normal);
@@ -1126,7 +1126,7 @@ body.portfolio-page .ui-top-right {
 
 /* Gate back button - inherits from main.css (same as CV page) */
 
-@keyframes braviaDotBounceIn {
+@keyframes dotBounceIn {
   0% { transform: translate3d(-50%, 0, 0) scaleY(0); }
   60% { transform: translate3d(-50%, 0, 0) scaleY(1.2); }
   100% { transform: translate3d(-50%, 0, 0) scaleY(1); }

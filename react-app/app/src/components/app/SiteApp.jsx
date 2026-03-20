@@ -53,6 +53,7 @@ export function SiteApp() {
         wallContent={routeView.wallContent}
         headerContent={routeView.headerContent}
         mainContent={routeView.mainContent}
+        heroTitle={routeView.heroTitle}
       />
     </>
   );

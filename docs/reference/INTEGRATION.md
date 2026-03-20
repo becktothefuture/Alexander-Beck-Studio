@@ -14,7 +14,7 @@
   <link rel="modulepreload" href="js/shared.js">
 </head>
 <body>
-  <div id="bravia-balls">
+  <div id="simulations">
     <canvas id="c" aria-label="Bouncy balls simulation" role="img"></canvas>
   </div>
   
@@ -38,7 +38,7 @@ Upload to your host/CMS:
 In your host/CMS, add an embed/HTML block:
 
 ```html
-<div id="bravia-balls" class="w-100">
+<div id="simulations" class="w-100">
   <canvas id="c" aria-label="Interactive bouncy balls" role="img"></canvas>
 </div>
 ```
@@ -65,7 +65,7 @@ In Page Settings → Custom Code → Before </body>:
 The simulation needs this CSS for dynamic height:
 
 ```css
-#bravia-balls {
+#simulations {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -74,11 +74,11 @@ The simulation needs this CSS for dynamic height:
   z-index: 0;
 }
 
-#bravia-balls.mode-pit {
+#simulations.mode-pit {
   height: 150vh; /* Ball Pit override */
 }
 
-#bravia-balls canvas {
+#simulations canvas {
   width: 100%;
   height: 100%;
   display: block;
@@ -107,16 +107,16 @@ Access global interface:
 
 ```javascript
 // Check if loaded
-if (window.BRAVIA_BALLS) {
+if (window.SIMULATIONS) {
   // Change mode
-  window.BRAVIA_BALLS.setMode('flies'); // 'pit', 'flies', 'weightless'
+  window.SIMULATIONS.setMode('flies'); // 'pit', 'flies', 'weightless'
   
   // Clear balls
-  window.BRAVIA_BALLS.reset();
+  window.SIMULATIONS.reset();
   
   // Get current state
-  console.log(window.BRAVIA_BALLS.getCurrentMode());
-  console.log(window.BRAVIA_BALLS.getBallCount());
+  console.log(window.SIMULATIONS.getCurrentMode());
+  console.log(window.SIMULATIONS.getBallCount());
 }
 ```
 
@@ -143,7 +143,7 @@ if (window.BRAVIA_BALLS) {
 Hide panel completely:
 
 ```css
-#bravia-balls .panel {
+#simulations .panel {
   display: none !important;
 }
 ```
@@ -169,7 +169,7 @@ Uses `svh` (small viewport height) for mobile:
 ```css
 /* Adjust for small screens */
 @media (max-width: 768px) {
-  #bravia-balls {
+  #simulations {
     /* Custom mobile styles */
   }
 }
@@ -196,7 +196,7 @@ const observer = new IntersectionObserver((entries) => {
     observer.disconnect();
   }
 });
-observer.observe(document.getElementById('bravia-balls'));
+observer.observe(document.getElementById('simulations'));
 ```
 
 **Preload (Faster):**
@@ -248,7 +248,7 @@ Respects `prefers-reduced-motion`:
 
 1. **Check Console:** Open browser DevTools
 2. **Verify Files:** Ensure JS/CSS loaded (Network tab)
-3. **Check Container:** `#bravia-balls` must exist
+3. **Check Container:** `#simulations` must exist
 4. **Canvas Support:** Verify browser supports Canvas 2D
 
 ### Performance Issues
@@ -260,7 +260,7 @@ Respects `prefers-reduced-motion`:
 
 ### Styling Conflicts
 
-The simulation is scoped to `#bravia-balls`:
+The simulation is scoped to `#simulations`:
 - Styles won't leak to page
 - Dark mode only affects container
 - Safe for common hosts/CMS platforms.
@@ -268,7 +268,7 @@ The simulation is scoped to `#bravia-balls`:
 If conflicts occur:
 ```css
 /* Increase specificity */
-#bravia-balls.mode-pit {
+#simulations.mode-pit {
   height: 150vh !important;
 }
 ```
@@ -307,7 +307,7 @@ document.addEventListener('bouncyBallsModeChange', (e) => {
 
 Override CSS variables:
 ```css
-#bravia-balls {
+#simulations {
   --shadow-opacity: 0.2;
   --background-color: #cecece;
 }
@@ -317,13 +317,13 @@ Override CSS variables:
 
 Not recommended, but possible:
 ```html
-<div id="bravia-balls-1"></div>
-<div id="bravia-balls-2"></div>
+<div id="simulations-1"></div>
+<div id="simulations-2"></div>
 
 <script>
   // Initialize manually
-  initBouncyBalls('bravia-balls-1', config1);
-  initBouncyBalls('bravia-balls-2', config2);
+  initBouncyBalls('simulations-1', config1);
+  initBouncyBalls('simulations-2', config2);
 </script>
 ```
 
@@ -332,7 +332,7 @@ Not recommended, but possible:
 ### Full Page Background
 
 ```css
-#bravia-balls {
+#simulations {
   position: fixed;
   top: 0;
   left: 0;
@@ -345,7 +345,7 @@ Not recommended, but possible:
 ### Hero Section
 
 ```css
-#bravia-balls {
+#simulations {
   position: relative;
   height: 80vh;
   margin-bottom: 2rem;
@@ -355,7 +355,7 @@ Not recommended, but possible:
 ### Sidebar Widget
 
 ```css
-#bravia-balls {
+#simulations {
   width: 300px;
   height: 400px;
   border-radius: 8px;

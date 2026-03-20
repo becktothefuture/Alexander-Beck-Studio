@@ -12,7 +12,7 @@ The system is split across three files with clearly separated concerns:
 |------|---------------|
 | `react-app/app/src/legacy/modules/ui/quote-display.js` | DOM creation, quote content, mode-change animations |
 | `react-app/app/src/legacy/modules/ui/quote-puck.js` | Physics engine: drag, inertia, bounce, spin, sound |
-| `react-app/app/public/css/main.css` (Quote Puck section) | Visual styling, hover color, dark mode |
+| `react-app/app/public/css/main.css` (Quote Puck section) | Solid `--cursor-color` fill, contrast text, `--quote-tilt` on content, 75% of configured diameter |
 
 ### Key design decision: left/top positioning, not transform
 
@@ -23,7 +23,7 @@ This was chosen after discovering that using `transform` for position caused thr
 2. Wall-hit `scale()` on the same transform shrank the element off the wall by ~5px.
 3. Rotation, scale, and position sharing one `transform` property meant CSS transitions animated all three together.
 
-With `left`/`top` for position, `transform` is free for rotation — zero conflicts, zero lag.
+With `left`/`top` for position, the puck shell stays free of transform-based translation. **Spin** applies only to **`.quote-display__content`** (quote text). **`.quote-display__disk`** is the round **`var(--cursor-color)`** fill + shadow; **hover** scales the disk only (`--quote-puck-hover-scale`), not the text. **Size** is **`calc(var(--abs-quote-button-size) * 0.75)`** (25% smaller than the configured quote button diameter).
 
 ### Viewport layer
 
@@ -58,6 +58,8 @@ if (x <= 0 and vx < 0):
 Both axes are resolved in the same frame, so corner hits reflect both components and play one sound.
 
 ### Rotation
+
+`angle` is written to `#quote-display` as **`--quote-tilt`** (degrees) and used in CSS on **`.quote-display__content`** (`rotate(var(--quote-tilt))` combined with enter/exit `scale`). The glass layer does not rotate (see architecture note above).
 
 Spin comes from two physically realistic sources:
 
@@ -143,13 +145,9 @@ Pointer events handle touch identically to mouse. `touchAction: none` prevents b
 
 ---
 
-## Hover Color
+## Appearance (no hover colour swap)
 
-The puck fills with the cursor color (`--cursor-color`) on hover. Text keeps readable contrast via `--quote-hover-fg`, a WCAG AA-safe color computed by `colors.js` against the cursor color.
-
-The default (non-hover) background:
-- **Light mode**: `rgba(240, 240, 240, 0.98)`
-- **Dark mode**: `rgba(18, 18, 20, 0.98)` — matches the inner wall/content area
+The puck does **not** change fill or text colour on hover. The disk is **solid `var(--cursor-color)`**; text uses contrast colours from **`colors.js`** (`--quote-hover-fg` / `--cursor-hover-fg`). **Hover** only scales **`.quote-display__disk`** via **`--quote-puck-hover-scale`** (default **1.05**, +5%). Timing matches chrome button hovers: **`--abs-button-swell-in-duration` (200ms) `ease-organic`** on hover-in, **`--abs-button-swell-out-duration` (420ms) `ease-release`** on hover-out. **`prefers-reduced-motion: reduce`** disables the scale. **Drop shadow** on the disk is slightly stronger in **`.dark-mode`**.
 
 ---
 

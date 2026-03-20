@@ -12,7 +12,7 @@
   --portfolio-project-image-fade-ms: 220ms;
   --portfolio-sheet-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --portfolio-sheet-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
-  /* Drawer stack: same corner radius token as `#bravia-balls canvas` (inner wall). */
+  /* Drawer stack: same corner radius token as `#simulations canvas` (inner wall). */
   --portfolio-drawer-radius: var(--frame-inner-radius);
   /* Inset between drawer chrome and hero image; inner radius = outer − gutter. */
   --portfolio-hero-image-gutter: clamp(6px, 1.4vw, 14px);
@@ -35,7 +35,7 @@ html.dark-mode {
   }
 }
 
-body.portfolio-page #bravia-balls {
+body.portfolio-page #simulations {
   overflow: hidden;
 }
 
@@ -73,7 +73,7 @@ body.portfolio-page .ui-center-spacer {
 /*
   Stacking order is mandatory: see docs/reference/LAYER-STACKING.md.
   Host is a sibling AFTER `.fade-content` in `#abs-scene` (StudioShell.jsx) so z-index can exceed route chrome (200).
-  Do not mount `#portfolio-sheet-host` only inside `#bravia-balls` — that keeps the drawer under header/footer.
+  Do not mount `#portfolio-sheet-host` only inside `#simulations` — that keeps the drawer under header/footer.
 */
 #portfolio-sheet-host.portfolio-sheet-host {
   position: fixed;
@@ -127,7 +127,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   text-align: center;
   font-family: var(--abs-font-sans);
   font-weight: 640;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.063em;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -336,7 +336,7 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
 .portfolio-project-view__eyebrow {
   margin: 0;
   font-size: clamp(0.82rem, 1vw, 0.96rem);
-  letter-spacing: 0.14em;
+  letter-spacing: 0.084em;
   text-transform: uppercase;
   color: inherit;
   opacity: 0.72;
@@ -351,14 +351,14 @@ body.portfolio-project-open #portfolio-sheet-host.portfolio-sheet-host {
   font-size: clamp(2.35rem, 7vw, 5.75rem);
   font-weight: 630;
   line-height: 0.92;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.056em;
   color: #fff;
 }
 
 .portfolio-project-view__scroll-hint {
   margin: var(--portfolio-scroll-hint-offset) 0 0;
   font-size: clamp(0.82rem, 1vw, 0.94rem);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.072em;
   text-transform: uppercase;
   color: inherit;
   opacity: 0.72;
@@ -401,7 +401,7 @@ body.portfolio-project-open .ui-bottom {
 .portfolio-project-view__takeaways h2 {
   margin: 0;
   font-size: clamp(0.9rem, 1vw, 1rem);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.072em;
   text-transform: uppercase;
   opacity: 0.72;
 }

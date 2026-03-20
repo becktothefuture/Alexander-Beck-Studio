@@ -7,18 +7,22 @@
         width: 100%;
         min-height: 100%;
         margin: 0;
-        background: var(--abs-browser-chrome, #202124);
-        background-color: var(--abs-browser-chrome, #202124);
+        background: var(--abs-browser-chrome, #181818);
+        background-color: var(--abs-browser-chrome, #181818);
       }
     </style>
     <script>
       (function() {
         var root = document.documentElement;
         var DEFAULTS = {
-          wallBaseLight: '#f1f3f4',
-          wallBaseDark: '#202124',
+          bgLight: '#efefef',
+          bgDark: '#181818',
+          wallBaseLight: '#efefef',
+          wallBaseDark: '#181818',
           frameColorLight: '#202124',
           frameColorDark: '#202124',
+          safariFrameLight: '#181818',
+          safariFrameDark: '#181818',
           lockedHeaderLight: '#f1f3f4',
           lockedHeaderDark: '#3c3c3c'
         };
@@ -82,12 +86,26 @@
           var useLockedPalette = !family.isSafari && !themeColorLikelyApplied(family);
           var innerLight = DEFAULTS.wallBaseLight;
           var innerDark = DEFAULTS.wallBaseDark;
-          var frameLight = useLockedPalette ? DEFAULTS.lockedHeaderLight : DEFAULTS.frameColorLight;
-          var frameDark = useLockedPalette ? DEFAULTS.lockedHeaderDark : DEFAULTS.frameColorDark;
+          var frameLight;
+          var frameDark;
+          if (family.isSafari) {
+            frameLight = DEFAULTS.safariFrameLight;
+            frameDark = DEFAULTS.safariFrameDark;
+          } else if (useLockedPalette) {
+            frameLight = DEFAULTS.lockedHeaderLight;
+            frameDark = DEFAULTS.lockedHeaderDark;
+          } else {
+            frameLight = DEFAULTS.frameColorLight;
+            frameDark = DEFAULTS.frameColorDark;
+          }
           var activeInner = isDark ? innerDark : innerLight;
           var activeFrame = isDark ? frameDark : frameLight;
 
           root.style.colorScheme = isDark ? 'dark' : 'light';
+          root.style.setProperty('--color-bg-light', DEFAULTS.bgLight);
+          root.style.setProperty('--color-bg-dark', DEFAULTS.bgDark);
+          root.style.setProperty('--bg-light', DEFAULTS.bgLight);
+          root.style.setProperty('--bg-dark', DEFAULTS.bgDark);
           root.style.setProperty('--abs-wall-base-light', innerLight);
           root.style.setProperty('--abs-wall-base-dark', innerDark);
           root.style.setProperty('--abs-wall-base', activeInner);
@@ -136,6 +154,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>About me - Alexander Beck Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/css/tokens.css" />
     <link rel="stylesheet" href="/css/normalize.css" />
     <link rel="stylesheet" href="/css/main.css" />

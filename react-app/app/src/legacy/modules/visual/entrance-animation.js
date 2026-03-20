@@ -103,10 +103,10 @@ export function transitionToWallState(options = {}) {
   const duration = g.entranceWallTransitionDuration || 800;
   const wallContent = options.wallContent || [];
   
-  // Get the wall container (#bravia-balls)
-  const wallContainer = document.getElementById('bravia-balls');
+  // Get the wall container (#simulations)
+  const wallContainer = document.getElementById('simulations');
   if (!wallContainer) {
-    console.warn('⚠️ #bravia-balls not found, falling back to simple transition');
+    console.warn('⚠️ #simulations not found, falling back to simple transition');
     setTimeout(() => {
       html.classList.remove('entrance-pre-transition');
       html.classList.add('entrance-transitioning');
@@ -573,14 +573,10 @@ function revealLogoStaggered(element, options = {}) {
  */
 export function revealAllLateElements() {
   const html = document.documentElement;
-  const logo = document.getElementById('brand-logo');
   const mainLinks = document.getElementById('main-links');
   
   // Clear inline styles that hide elements (from HTML initial state)
-  if (logo) {
-    logo.style.removeProperty('opacity');
-    logo.style.visibility = 'visible';
-  }
+  // Hero title (#hero-title) is CSS-driven via --ui-entered; no inline overrides needed.
   if (mainLinks) {
     mainLinks.style.removeProperty('opacity');
     mainLinks.style.visibility = 'visible';
@@ -826,39 +822,15 @@ export async function orchestrateEntrance(options = {}) {
     }, centralContentDelay + i * 150);
   }
   
-  // 4. Reveal main links LAST (if present)
-  const mainLinksDelay = logoLinksDelay + lateElementDuration * 0.35;
+  // 4. Reveal nav links via CSS state system (--ui-entered + --ui-nav-delay).
+  //    Hero title is already animating (triggered by entrance-transitioning above).
+  //    Setting ui-entered starts the nav link transition after --ui-nav-delay.
   const mainLinks = document.getElementById('main-links');
   if (mainLinks) {
-    mainLinks.classList.add('main-links--staggered');
-    setTimeout(() => {
-      mainLinks.style.transition = 'none';
-      mainLinks.style.visibility = 'visible';
-      mainLinks.style.opacity = '1';
-      mainLinks.classList.add('main-links--staggered-in');
-      requestAnimationFrame(() => {
-        mainLinks.style.removeProperty('transition');
-      });
-      
-      // Remove stagger classes after animation completes so hover animations can work
-      // Duration: 600ms animation + 600ms last child delay + buffer
-      const staggerDuration = 600 + 600 + 100;
-      setTimeout(() => {
-        /* Orchestrate path never calls showLogoAndLinks() — without html.ui-entered,
-           --ui-visible stays 0 and nav would vanish once inline opacity is cleared.
-           showLogoAndLinks adds ui-entered and clears #brand-logo / #main-links inlines
-           so modal-active can drive opacity via CSS. */
-        showLogoAndLinks();
-        const links = mainLinks.querySelectorAll('.footer_link');
-        links.forEach((link) => {
-          link.style.removeProperty('opacity');
-          link.style.removeProperty('transform');
-          link.style.removeProperty('filter');
-        });
-        mainLinks.classList.remove('main-links--staggered', 'main-links--staggered-in');
-      }, staggerDuration);
-    }, mainLinksDelay);
+    mainLinks.style.removeProperty('opacity');
+    mainLinks.style.visibility = 'visible';
   }
+  showLogoAndLinks();
   
   // Note: fade-blocking style tag is removed before app-frame animation starts above
 }

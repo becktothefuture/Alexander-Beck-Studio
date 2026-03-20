@@ -38,4 +38,8 @@ CSS: `.ui-main-nav .footer_link` in `main.css`. **Do not** add `#contact-email:h
 - `.decorative-script` (intro blurb + inline link)
 - `.abs-meta-btn` (time / location chip)
 
+## Typography (styleguide)
+
+The styleguide opens with a **Typography** section (see `StyleguideTypography.jsx`): font stacks (sans / mono / display), weight ramp, responsive **type scale** table (`--text-xs` … `--text-xl`, `--text-base`), and **semantic specimens** that mirror production selectors (hero title, legend, main nav, decorative blurb, caption, edge caption, quote puck, legend tooltip, gate modal, portfolio drawer slab, CV résumé block). CSS for specimens lives under `body.styleguide-page` in `main.css`. Extend this section when you add a new repeated text style.
+
 Extend the styleguide route (`StyleguideRoute.jsx`) when adding a new repeated pattern so duplicates stay visible in one place.

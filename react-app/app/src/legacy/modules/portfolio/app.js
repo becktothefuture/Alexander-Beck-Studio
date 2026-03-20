@@ -1047,7 +1047,7 @@ class PortfolioPitApp {
 }
 
 /**
- * Wait until `#bravia-balls` has a real layout box (gate transitions / SPA can report 0×0
+ * Wait until `#simulations` has a real layout box (gate transitions / SPA can report 0×0
  * for several frames). Without this, `resize()` no-ops and the pit seeds against a default buffer.
  */
 async function waitForPitSimulationHostReady(options = {}) {
@@ -1055,7 +1055,7 @@ async function waitForPitSimulationHostReady(options = {}) {
   const timeoutMs = Math.max(250, Number(options.timeoutMs) || 8000);
 
   const measure = () => {
-    const host = document.getElementById('bravia-balls');
+    const host = document.getElementById('simulations');
     const w = host?.clientWidth ?? 0;
     const h = host?.clientHeight ?? 0;
     return Boolean(host && w >= minPx && h >= minPx);
@@ -1080,7 +1080,7 @@ async function waitForPitSimulationHostReady(options = {}) {
       resolve(ok);
     };
 
-    const host = document.getElementById('bravia-balls');
+    const host = document.getElementById('simulations');
     if (host && typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(() => {
         if (measure()) finish(true);
@@ -1120,7 +1120,7 @@ export async function bootstrapPortfolio() {
   applyWallFrameLayout();
 
   setupRenderer();
-  setCanvas(getCanvas(), getContext(), document.getElementById('bravia-balls'));
+  setCanvas(getCanvas(), getContext(), document.getElementById('simulations'));
   resize();
   setForceRenderCallback(render);
 
@@ -1147,13 +1147,13 @@ export async function bootstrapPortfolio() {
   try {
     if (!hostLaidOut && import.meta.env?.DEV) {
       console.warn(
-        '[portfolio] #bravia-balls did not reach stable size in time; relying on follow-up resize.'
+        '[portfolio] #simulations did not reach stable size in time; relying on follow-up resize.'
       );
     }
   } catch (_) {
     /* ignore */
   }
-  // Gate / SPA transitions can leave #bravia-balls at 0×0 for the first resize(); sizing
+  // Gate / SPA transitions can leave #simulations at 0×0 for the first resize(); sizing
   // must be correct before seeding balls or labels stay wrong until a full reload.
   detectOptimalDPR();
   resize();

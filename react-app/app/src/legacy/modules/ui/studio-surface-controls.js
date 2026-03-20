@@ -12,7 +12,7 @@ export const DEFAULT_STUDIO_SURFACE_CONFIG = {
   sceneHighlight: 0.3,
   sceneDepth: 0.14,
   sceneSoftness: 0.45,
-  scriptMaxWidth: 355,
+  scriptMaxWidth: 431,
   scriptPaddingX: 16,
   scriptPaddingY: 10,
   quoteButtonSize: 224,
@@ -188,8 +188,8 @@ function syncStudioRuntimeState(config) {
     globals.hoverEdgeBottomOpacity = Number((config.edgeStrength * 0.78).toFixed(3));
     globals.hoverEdgeTopEnabled = config.edgeStrength > 0;
     globals.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
-    globals.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.09).toFixed(3));
-    globals.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.18).toFixed(3));
+    globals.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
+    globals.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
     globals.frameVignetteEdgeOpacity = config.sceneDepth;
     globals.frameVignetteAmbientOpacity = Number((config.sceneDepth * 0.64).toFixed(3));
     globals.frameVignetteEdgeBlur = Math.round(10 + (config.sceneSoftness * 70));
@@ -284,8 +284,8 @@ export function applyStudioSurfaceConfig(config) {
   root.style.setProperty('--abs-scene-highlight', `${sceneHighlight}`);
   root.style.setProperty('--abs-scene-depth', `${sceneDepth}`);
   root.style.setProperty('--abs-scene-softness', `${sceneSoftness}`);
-  root.style.setProperty('--frame-border-gradient-edge-opacity', `${Math.max(0, sceneHighlight * 0.09)}`);
-  root.style.setProperty('--frame-border-gradient-mid-opacity', `${Math.max(0, sceneHighlight * 0.18)}`);
+  root.style.setProperty('--frame-border-gradient-edge-opacity', `${Math.max(0, sceneHighlight * 0.029)}`);
+  root.style.setProperty('--frame-border-gradient-mid-opacity', `${Math.max(0, sceneHighlight * 0.058)}`);
   root.style.setProperty('--frame-vignette-edge-opacity', `${sceneDepth}`);
   root.style.setProperty('--frame-vignette-ambient-opacity', `${Math.min(0.6, sceneDepth * 0.64)}`);
   root.style.setProperty('--frame-vignette-edge-blur', `${Math.round(10 + (sceneSoftness * 70))}px`);
@@ -474,8 +474,8 @@ export function buildStudioShellPatch(snapshot, baseShell = {}) {
   nextShell.surface.sceneHighlight = config.sceneHighlight;
   nextShell.surface.sceneDepth = config.sceneDepth;
   nextShell.surface.sceneSoftness = config.sceneSoftness;
-  nextShell.theme.frameBorderEdgeOpacity = Number((config.sceneHighlight * 0.09).toFixed(3));
-  nextShell.theme.frameBorderMidOpacity = Number((config.sceneHighlight * 0.18).toFixed(3));
+  nextShell.theme.frameBorderEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
+  nextShell.theme.frameBorderMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
   nextShell.theme.frameVignetteEdgeOpacity = config.sceneDepth;
   nextShell.theme.frameVignetteAmbientOpacity = Number((config.sceneDepth * 0.64).toFixed(3));
   nextShell.theme.frameVignetteEdgeBlur = `${Math.round(10 + (config.sceneSoftness * 70))}px`;
@@ -521,8 +521,8 @@ export function buildStudioRuntimePatch(snapshot, baseRuntime = {}) {
   nextRuntime.hoverEdgeBottomOpacity = Number((config.edgeStrength * 0.78).toFixed(3));
   nextRuntime.hoverEdgeTopEnabled = config.edgeStrength > 0;
   nextRuntime.hoverEdgeTopOpacity = Number((config.edgeStrength * 0.46).toFixed(3));
-  nextRuntime.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.09).toFixed(3));
-  nextRuntime.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.18).toFixed(3));
+  nextRuntime.frameBorderGradientEdgeOpacity = Number((config.sceneHighlight * 0.029).toFixed(3));
+  nextRuntime.frameBorderGradientMidOpacity = Number((config.sceneHighlight * 0.058).toFixed(3));
   nextRuntime.frameVignetteEdgeOpacity = config.sceneDepth;
   nextRuntime.frameVignetteAmbientOpacity = Number((config.sceneDepth * 0.64).toFixed(3));
   nextRuntime.frameVignetteEdgeBlur = Math.round(10 + (config.sceneSoftness * 70));

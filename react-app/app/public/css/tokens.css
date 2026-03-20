@@ -11,8 +11,8 @@
   --abs-rgb-black: 0, 0, 0;
 
   /* Essentials */
-  --color-bg-light: #f5f5f5;
-  --color-bg-dark: #0a0a0a;
+  --color-bg-light: #efefef;
+  --color-bg-dark: #181818;
   --color-accent: #f03030;
   --color-success: #22c55e;
   --color-error: #ef4444;
@@ -22,8 +22,8 @@
   /* Theme bridge (JS writes these; keep names stable) */
   --bg-light: var(--color-bg-light);
   --bg-dark: var(--color-bg-dark);
-  --abs-wall-base-light: #f1f3f4;
-  --abs-wall-base-dark: #202124;
+  --abs-wall-base-light: #efefef;
+  --abs-wall-base-dark: #181818;
   --abs-wall-base: var(--abs-wall-base-dark);
   --frame-color-site-light: #202124;
   --frame-color-site-dark: #202124;
@@ -278,8 +278,8 @@
   /* Text Colors — Light mode defaults */
   --text-color-light: #454545;
   --text-color-light-muted: #454545;
-  --text-color-dark: #617282;
-  --text-color-dark-muted: #617282;
+  --text-color-dark: #f0f0f0;
+  --text-color-dark-muted: #c8c8c8;
   
   --text-primary: var(--text-color-light);
   --text-muted: var(--text-color-light-muted);
@@ -312,11 +312,11 @@
   /* Noise + Grain */
   --noise-size: 85px;
   --noise-size-scale: 1;
-  --noise-opacity-light: 0.03;
-  --noise-opacity-dark: 0.03;
+  --noise-opacity-light: 0.04;
+  --noise-opacity-dark: 0.04;
   --noise-blend-mode: normal;
-  --noise-color-light: #ffffff;
-  --noise-color-dark: #ffffff;
+  --noise-color-light: #2a2a2e;
+  --noise-color-dark: #d4d4d8;
   --detail-noise-opacity: 1; /* Overall opacity multiplier for detail page noise */
   /* Procedural noise (generated at runtime; motion is CSS-only). */
   --abs-noise-enabled: 1;
@@ -431,11 +431,7 @@
      ═══════════════════════════════════════════════════════════════════════════════ */
   
   --wall-edge-end-fade: 15%;                  /* How much edges fade at left/right (0-50%) */
-  --outer-wall-top-dark-offset: 1px;          /* Top shadow Y offset */
-  --outer-wall-top-dark-blur: 3px;            /* Top shadow blur */
-  --outer-wall-top-dark-spread: 0px;          /* Top shadow spread */
-  --outer-wall-top-dark-opacity: 0.08;        /* Top shadow opacity */
-  --outer-wall-top-dark-rgb: 0, 0, 0;         /* Top shadow RGB (editable via color picker) */
+
   --outer-wall-bottom-light-offset: 0.5px;    /* Bottom light Y offset */
   --outer-wall-bottom-light-blur: 0px;        /* Bottom light blur (0 = crisp 1px line) */
   --outer-wall-bottom-light-spread: 0px;      /* Bottom light spread */
@@ -483,12 +479,11 @@
   --inner-wall-bottom-shadow-opacity-dark: 0.17; /* Inner wall bottom shadow opacity (dark mode) */
   --inner-wall-bottom-shadow-rgb: 0, 0, 0;    /* Inner wall bottom shadow color RGB */
 
-  /* Gradient edge per-side opacities (ambient light catching on rim) */
-  /* Bottom is brightest (screen light rises from below); top is ambient fill */
-  --inner-wall-gradient-edge-top-opacity: 0.18;
-  --inner-wall-gradient-edge-bottom-opacity: 0.27;
-  --inner-wall-gradient-edge-side-opacity: 0.12;
-  --inner-wall-gradient-edge-side-shadow-opacity: 0.08;
+  /* Gradient edge per-side opacities (bottom/sides: light rim; top: shadow rim — overridden by JS) */
+  --inner-wall-gradient-edge-top-shadow-opacity: 0.3;
+  --inner-wall-gradient-edge-bottom-opacity: 0.32;
+  --inner-wall-gradient-edge-side-opacity: 0.18;
+  --inner-wall-gradient-edge-side-shadow-opacity: 0.18;
 
   /* Inner wall shine - strong blur from all sides (background colored) */
   --inner-wall-shine-blur: 20px;
@@ -557,7 +552,7 @@
   --link-icon-margin: calc(var(--link-icon-padding) * -1);
   --link-color-influence: 1;
   --link-impact-scale: 0.95;
-  --link-impact-blur: 10px;
+  --link-impact-blur: 0px;
   --link-impact-duration: 0.15s;
 
   /* Icon buttons (square): frame size + glyph size are separate, with a computed default */
@@ -717,7 +712,7 @@
   /* Text — Dark mode overrides (JS may override --text-color-dark* from config) */
   --text-primary: var(--text-color-dark);
   --text-muted: var(--text-color-dark-muted);
-  --text-logo: #e3e9f0;
+  --text-logo: #f0f0f0;
 
   /* Single stroke color override for dark mode */
   --abs-stroke-medium: rgba(var(--abs-rgb-white), 0.25);
@@ -738,10 +733,10 @@
   
   --inner-wall-shine-color: var(--bg-dark);
 
-  --inner-wall-gradient-edge-top-opacity: 0.12;
-  --inner-wall-gradient-edge-bottom-opacity: 0.18;
-  --inner-wall-gradient-edge-side-opacity: 0.08;
-  --inner-wall-gradient-edge-side-shadow-opacity: 0.06;
+  --inner-wall-gradient-edge-top-shadow-opacity: 0.34;
+  --inner-wall-gradient-edge-bottom-opacity: 0.24;
+  --inner-wall-gradient-edge-side-opacity: 0.14;
+  --inner-wall-gradient-edge-side-shadow-opacity: 0.14;
 }
 
 /* ╔══════════════════════════════════════════════════════════════════════════════╗

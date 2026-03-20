@@ -224,11 +224,11 @@ function seedProjectBodies(globals) {
   const innerArea = innerW * innerH;
   const areaNorm = Math.sqrt(innerArea);
 
-  const minFrac = clamp(toNumber(config.bodies?.minDiameterViewport, 0.14), 0.08, 0.5);
+  const minFrac = clamp(toNumber(config.bodies?.minDiameterViewport, 0.14), 0.08, 1);
   const maxFrac = clamp(
     toNumber(config.bodies?.maxDiameterViewport, 0.22),
     minFrac,
-    0.58
+    1
   );
   const sizeMul = clamp(toNumber(config.bodies?.diameterScale, 1.2), 1, 1.8);
 

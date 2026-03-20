@@ -1,6 +1,5 @@
 import homeContent from '../../../public/config/contents-home.json';
 import { MainNavLink } from '../../components/MainNavLink.jsx';
-import { BRAND_LOGO_SVG } from '../shared/brandLogo.js';
 
 export const HOME_ROUTE_RUNTIME = {
   exportName: 'bootstrapHomePage',
@@ -52,14 +51,15 @@ export function getHomeRouteView() {
         <div id="top-elements-soundRow" className="ui-top-soundRow" />
       </header>
     ),
+    heroTitle: (
+      <h1 id="hero-title" className="hero-title" aria-label="Alexander Beck — Creative Technologist">
+        <span className="hero-title__name">Alexander Beck</span>
+        <span className="hero-title__role">Creative Technologist</span>
+      </h1>
+    ),
     mainContent: (
       <>
         <main className="ui-center">
-          <div
-            id="brand-logo"
-            className="brand-logo-layer brand-logo-in-grid"
-            dangerouslySetInnerHTML={{ __html: BRAND_LOGO_SVG }}
-          />
         </main>
 
         <nav id="main-links" className="ui-nav-row ui-main-nav" aria-label={homeContent.footer.navAriaLabel}>

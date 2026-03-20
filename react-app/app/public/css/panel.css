@@ -58,8 +58,8 @@
   --panel-pad-32: 32px;
   
   /* Typography */
-  --panel-font: 'Geist', sans-serif;
-  --panel-font-mono: 'Geist Mono', monospace;
+  --panel-font: var(--abs-font-sans);
+  --panel-font-mono: var(--abs-font-mono);
   
   /* Shadows */
   --panel-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
@@ -118,6 +118,11 @@ body:not(.dark-mode) {
   pointer-events: auto !important;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Body uses global sans letter-spacing; keep neutral tracking on mono numerics inside panel */
+.panel :where(span.val, kbd, .control-value, .color-dist-weight, .sound-dock__val, .sound-perf__hint) {
+  letter-spacing: normal;
 }
 
 .panel.hidden { 
@@ -248,7 +253,7 @@ body:not(.dark-mode) {
 .wall-stack-iso__group-label {
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.024em;
   color: var(--panel-muted-foreground);
   text-align: left;
 }
@@ -364,7 +369,7 @@ body:not(.dark-mode) {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.024em;
   color: var(--panel-foreground);
   line-height: 1.3;
   margin-top: var(--panel-pad-4);
@@ -541,7 +546,7 @@ body:not(.dark-mode) {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.024em;
   color: var(--panel-foreground);
   background: var(--panel-muted);
   border-radius: var(--panel-radius-sm);
@@ -869,7 +874,7 @@ body:not(.dark-mode) {
   font-weight: 700;
   color: var(--panel-muted-foreground);
   font-size: 11px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.024em;
 }
 
 .mode-button-label {
@@ -1016,7 +1021,7 @@ body:not(.dark-mode) {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.024em;
   color: var(--panel-foreground);
   line-height: 1.3;
 }
@@ -1441,7 +1446,7 @@ body:not(.dark-mode) .panel-section--action {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.024em;
   color: var(--panel-foreground);
   white-space: nowrap;
 }
@@ -1673,6 +1678,11 @@ body:not(.dark-mode) .panel-section--action {
   
   pointer-events: none;
   /* Simplify: no dock-level blur layers (they can blur the panel itself). */
+}
+
+/* Dev: taller default so the config panel is usable without manual resize */
+.panel-dock.panel-dock--dev {
+  --dock-panel-height: min(92vh, var(--dock-panel-max-height));
 }
 
 

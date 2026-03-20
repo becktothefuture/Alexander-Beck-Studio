@@ -1,5 +1,6 @@
 import { MainNavLink } from '../../components/MainNavLink.jsx';
 import { buildRouteHref } from '../../lib/routes.js';
+import { StyleguideTypographySection } from './StyleguideTypography.jsx';
 
 export const STYLEGUIDE_ROUTE_RUNTIME = {
   exportName: 'bootstrapStyleguide',
@@ -35,6 +36,8 @@ export function getStyleguideRouteView() {
             <code className="styleguide-doc__code">.footer_link</code> inside <code className="styleguide-doc__code">.ui-main-nav</code>),
             and icon actions via <code className="styleguide-doc__code">.abs-icon-btn</code>. Do not add alternate text-button classes.
           </p>
+
+          <StyleguideTypographySection />
 
           <section className="styleguide-section" aria-labelledby="sg-main-nav">
             <h2 id="sg-main-nav">Main navigation text buttons</h2>

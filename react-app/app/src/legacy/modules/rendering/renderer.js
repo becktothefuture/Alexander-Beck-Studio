@@ -267,7 +267,7 @@ export function setupRenderer() {
 
   let resizeObserver = null;
   if (typeof ResizeObserver !== 'undefined') {
-    const container = document.getElementById('bravia-balls');
+    const container = document.getElementById('simulations');
     if (container) {
       resizeObserver = new ResizeObserver(() => {
         debouncedResize();
@@ -373,7 +373,7 @@ export function resize() {
   } catch (e) {}
   
   // Use container dimensions if available, fallback to window for safety
-  const container = globals.container || document.getElementById('bravia-balls');
+  const container = globals.container || document.getElementById('simulations');
   const containerWidth = container ? container.clientWidth : window.innerWidth;
   const containerHeight = container ? container.clientHeight : window.innerHeight;
   

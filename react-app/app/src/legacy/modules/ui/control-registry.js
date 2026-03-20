@@ -256,8 +256,7 @@ export const MASTER_GROUPS = [
     sections: [
       'wallLight',
       'buttonLight',
-      'puckLight',
-      'circleLight'
+      'puckLight'
     ]
   },
   {
@@ -267,6 +266,7 @@ export const MASTER_GROUPS = [
     sections: [
       'wallGeometry',
       'layers',
+      'noise',
       'uiSpacing'
     ]
   },
@@ -292,10 +292,7 @@ export const MASTER_GROUPS = [
     title: 'Advanced',
     icon: '🧪',
     sections: [
-      'noise',
-      'tactileLayer',
       'cursor',
-      'trail',
       'links',
       'simulationOverlay',
       'overlay',
@@ -312,8 +309,8 @@ const SECTION_CATEGORIES = {
   // Appearance
   'colors': 'SURFACE',
   'colorDistribution': 'PALETTE',
-  'noise': 'GRAIN',
-  'tactileLayer': 'TACTILE',
+  'noise': 'BACKGROUND',
+
 
   // Frame
   'wallGeometry': 'FRAME',
@@ -324,7 +321,7 @@ const SECTION_CATEGORIES = {
   'wallLight': 'WALL',
   'buttonLight': 'BUTTONS',
   'puckLight': 'PUCK',
-  'circleLight': 'CIRCLES',
+
 
   // Effects
   'simulationOverlay': 'OVERLAYS',
@@ -332,7 +329,7 @@ const SECTION_CATEGORIES = {
 
   // Interaction
   'cursor': 'CURSOR',
-  'trail': 'TRAIL',
+
   'links': 'LINKS',
 
   // Simulation
@@ -842,7 +839,7 @@ export const CONTROL_SECTIONS = {
         label: 'Restitution',
         stateKey: 'REST',
         type: 'range',
-        min: 0, max: 0.95, step: 0.01,
+        min: 0, max: 1, step: 0.01,
         default: 0.42,
         format: v => v.toFixed(2),
         parse: parseFloat,
@@ -853,7 +850,7 @@ export const CONTROL_SECTIONS = {
         label: 'Friction',
         stateKey: 'FRICTION',
         type: 'range',
-        min: 0, max: 0.06, step: 0.001,
+        min: 0, max: 1, step: 0.001,
         default: 0.018,
         format: v => v.toFixed(3),
         parse: parseFloat,
@@ -1039,7 +1036,7 @@ export const CONTROL_SECTIONS = {
         label: 'Spacing',
         stateKey: 'ballSpacing',
         type: 'range',
-        min: 0, max: 0.5, step: 0.01,
+        min: 0, max: 1, step: 0.01,
         default: 0.08,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat,
@@ -1066,11 +1063,11 @@ export const CONTROL_SECTIONS = {
         label: 'Variation Cap',
         stateKey: 'sizeVariationCap',
         type: 'range',
-        min: 0, max: 0.2, step: 0.01,
+        min: 0, max: 1, step: 0.01,
         default: 0.66,
         format: v => Math.round(v * 100) + '%',
         parse: parseFloat,
-        hint: 'Max radius deviation from medium (20% = ±20%)',
+        hint: 'Max radius deviation from medium (100% = ±100% of cap scale)',
         onChange: (g, _val) => {
           import('../core/state.js').then(({ updateBallSizes }) => {
             updateBallSizes();
@@ -1116,7 +1113,7 @@ export const CONTROL_SECTIONS = {
          label: 'Padding Additive',
          stateKey: 'contentPaddingRatio',
          type: 'range',
-         min: -0.05, max: 0.10, step: 0.001,
+         min: -0.05, max: 1, step: 0.001,
          default: 0,
          format: v => `${(Number(v) * 100).toFixed(1)}%`,
          parse: parseFloat,
@@ -1270,45 +1267,6 @@ export const CONTROL_SECTIONS = {
         hint: 'Icon button corner radius as a fraction of wall radius (drives --ui-icon-corner-radius-mul).',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--ui-icon-corner-radius-mul', String(val));
-        }
-      },
-
-      {
-        id: 'uiIconFramePx',
-        label: 'Frame Size',
-        stateKey: 'uiIconFramePx',
-        type: 'range',
-        min: 0, max: 140, step: 1,
-        default: 0,
-        format: v => (Math.round(Number(v)) <= 0 ? 'Auto' : `${Math.round(Number(v))}px`),
-        parse: v => parseInt(v, 10),
-        hint: 'Square icon button frame size (px). 0 = use token-derived default (--ui-icon-frame-size).',
-        onChange: (_g, val) => {
-          try {
-            const root = document.documentElement;
-            const n = Math.round(Number(val || 0));
-            if (n > 0) root.style.setProperty('--ui-icon-frame-size', `${n}px`);
-            else root.style.removeProperty('--ui-icon-frame-size');
-          } catch (e) {}
-        }
-      },
-      {
-        id: 'uiIconGlyphPx',
-        label: 'Glyph Size',
-        stateKey: 'uiIconGlyphPx',
-        type: 'range',
-        min: 0, max: 80, step: 1,
-        default: 0,
-        format: v => (Math.round(Number(v)) <= 0 ? 'Auto' : `${Math.round(Number(v))}px`),
-        parse: v => parseInt(v, 10),
-        hint: 'Icon glyph size (px). 0 = use token-derived default (--ui-icon-glyph-size).',
-        onChange: (_g, val) => {
-          try {
-            const root = document.documentElement;
-            const n = Math.round(Number(val || 0));
-            if (n > 0) root.style.setProperty('--ui-icon-glyph-size', `${n}px`);
-            else root.style.removeProperty('--ui-icon-glyph-size');
-          } catch (e) {}
         }
       },
 
@@ -1816,7 +1774,7 @@ export const CONTROL_SECTIONS = {
         label: 'Tint (Light)',
         stateKey: 'linkHoverIntensityLight',
         type: 'range',
-        min: 0, max: 0.6, step: 0.01,
+        min: 0, max: 1, step: 0.01,
         default: 0.2,
         format: v => `${(v * 100).toFixed(1)}%`,
         parse: parseFloat,
@@ -1830,7 +1788,7 @@ export const CONTROL_SECTIONS = {
         label: 'Tint (Dark)',
         stateKey: 'linkHoverIntensityDark',
         type: 'range',
-        min: 0, max: 0.6, step: 0.01,
+        min: 0, max: 1, step: 0.01,
         default: 0.24,
         format: v => `${(v * 100).toFixed(1)}%`,
         parse: parseFloat,
@@ -1844,7 +1802,7 @@ export const CONTROL_SECTIONS = {
         label: 'Tint (Active)',
         stateKey: 'linkHoverIntensityActive',
         type: 'range',
-        min: 0, max: 0.4, step: 0.01,
+        min: 0, max: 1, step: 0.01,
         default: 0.18,
         format: v => `${(v * 100).toFixed(1)}%`,
         parse: parseFloat,
@@ -2049,7 +2007,7 @@ export const CONTROL_SECTIONS = {
         label: 'Click Depth',
         stateKey: 'sceneImpactMul',
         type: 'range',
-        min: 0.0, max: 0.05, step: 0.001,
+        min: 0.0, max: 1, step: 0.001,
         default: 0.010,
         format: (v) => v.toFixed(3),
         parse: parseFloat,
@@ -2133,7 +2091,7 @@ export const CONTROL_SECTIONS = {
         label: 'Anticipation',
         stateKey: 'sceneImpactAnticipation',
         type: 'range',
-        min: 0.0, max: 0.6, step: 0.01,
+        min: 0.0, max: 1, step: 0.01,
         default: 0.0,
         format: (v) => v.toFixed(2),
         parse: parseFloat,
@@ -2191,7 +2149,7 @@ export const CONTROL_SECTIONS = {
         label: 'White Wash',
         stateKey: 'modalOverlayOpacity',
         type: 'range',
-        min: 0, max: 0.1, step: 0.001,
+        min: 0, max: 1, step: 0.001,
         default: 0.01,
         format: v => v.toFixed(3),
         parse: parseFloat,
@@ -2431,35 +2389,6 @@ export const CONTROL_SECTIONS = {
     icon: '📐',
     defaultOpen: false,
     controls: [
-      { type: 'divider', label: 'Vertical Offset' },
-      {
-        id: 'noiseOffsetY',
-        label: 'Noise Y Offset',
-        stateKey: 'noiseOffsetY',
-        type: 'range',
-        min: -50, max: 50, step: 1,
-        default: 0,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Move noise layer up (negative) or down (positive)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--abs-noise-offset-y', `${val}px`);
-        }
-      },
-      {
-        id: 'videoOffsetY',
-        label: 'Video Y Offset',
-        stateKey: 'videoOffsetY',
-        type: 'range',
-        min: -50, max: 50, step: 1,
-        default: 0,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Move video layer up (negative) or down (positive)',
-        onChange: (g, val) => {
-          document.documentElement.style.setProperty('--grunge-video-offset-y', `${val}px`);
-        }
-      },
       { type: 'divider', label: 'Wall Frame' },
       {
         id: 'containerBorderVw',
@@ -2496,7 +2425,7 @@ export const CONTROL_SECTIONS = {
         label: 'Light Mode',
         stateKey: 'bgLight',
         type: 'color',
-        default: '#f5f5f5',
+        default: '#efefef',
         hint: 'Background color for light mode',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2508,7 +2437,7 @@ export const CONTROL_SECTIONS = {
         label: 'Dark Mode',
         stateKey: 'bgDark',
         type: 'color',
-        default: '#0a0a0a',
+        default: '#181818',
         hint: 'Background color for dark mode',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2522,7 +2451,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'wallBaseLight',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#f1f3f4',
+        default: '#efefef',
         hint: 'Inner wall color in light mode.',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2545,7 +2474,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'wallBaseDark',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#202124',
+        default: '#181818',
         hint: 'Inner wall color in dark mode.',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2568,7 +2497,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'quoteButtonColorLight',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#f1f3f4',
+        default: '#efefef',
         puckOnly: true,
         hint: 'Puck background in light mode.',
         onChange: (g, val) => {
@@ -2590,7 +2519,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'quoteButtonColorDark',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#202124',
+        default: '#181818',
         puckOnly: true,
         hint: 'Puck background in dark mode.',
         onChange: (g, val) => {
@@ -2659,7 +2588,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'safariFrameLight',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#202124',
+        default: '#181818',
         hint: 'Safari-specific outer wall color in light mode.',
         onChange: (g, val) => {
           g.safariFrameLight = val;
@@ -2677,7 +2606,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'safariFrameDark',
         designScope: 'shellTheme',
         type: 'color',
-        default: '#202124',
+        default: '#181818',
         hint: 'Safari-specific outer wall color in dark mode.',
         onChange: (g, val) => {
           g.safariFrameDark = val;
@@ -2723,7 +2652,7 @@ export const CONTROL_SECTIONS = {
         label: 'Primary',
         stateKey: 'textColorDark',
         type: 'color',
-        default: '#b3b3b3',
+        default: '#f0f0f0',
         hint: 'Main text color in dark mode',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2735,7 +2664,7 @@ export const CONTROL_SECTIONS = {
         label: 'Muted',
         stateKey: 'textColorDarkMuted',
         type: 'color',
-        default: '#808080',
+        default: '#c8c8c8',
         hint: 'Secondary/muted text in dark mode',
         onChange: (g, val) => {
           const root = document.documentElement;
@@ -2864,7 +2793,7 @@ export const CONTROL_SECTIONS = {
         label: 'Bounce',
         stateKey: 'restitution',
         type: 'range',
-        min: 0.3, max: 0.95, step: 0.05,
+        min: 0, max: 1, step: 0.01,
         default: 0.70,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
@@ -2875,300 +2804,78 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // WALL LIGHT — consolidated wall shadow & light controls
-  // Natural ambient light: shadow depth, highlight, inset, gradient edge
+  // WALL LIGHT — Wall rim: bottom + sides light. Top shadow rim: separate slider.
+  // Ratios: bottom 145%, sides 85% of rim master. Dark mode softens light edges only.
   // ═══════════════════════════════════════════════════════════════════════════
   wallLight: {
     title: 'Wall',
     icon: '🏠',
-    defaultOpen: true,
     controls: [
       {
-        id: 'outerWallTopShadowOffset',
-        label: 'Top Shadow Offset',
-        stateKey: 'outerWallTopShadowOffset',
-        type: 'range',
-        min: 0, max: 20, step: 1,
-        default: 5,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Vertical offset of the overhang shadow from above',
-        onChange: (_g, val) => applyLayoutCSSVars()
-      },
-      {
-        id: 'outerWallTopShadowBlur',
-        label: 'Top Shadow Blur',
-        stateKey: 'outerWallTopShadowBlur',
-        type: 'range',
-        min: 0, max: 30, step: 1,
-        default: 17,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Blur radius of the overhang shadow',
-        onChange: (_g, val) => applyLayoutCSSVars()
-      },
-      {
-        id: 'outerWallTopShadowOpacityLight',
-        label: 'Top Shadow',
-        stateKey: 'outerWallTopShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.02,
-        default: 0.58,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Top overhang shadow strength (auto-derives dark mode)',
-        onChange: (g, val) => {
-          // Auto-derive dark mode value (slightly stronger)
-          g.outerWallTopShadowOpacityDark = Math.min(1, Number((val * 1.05).toFixed(3)));
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'outerWallCastShadowBlur',
-        label: 'Depth Shadow Blur',
-        stateKey: 'outerWallCastShadowBlur',
-        type: 'range',
-        min: 0, max: 40, step: 1,
-        default: 25,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Softness of the cast/depth shadow',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--outer-wall-cast-shadow-blur', `${val}px`);
-        }
-      },
-      {
-        id: 'outerWallCastShadowOpacityLight',
-        label: 'Depth Shadow',
-        stateKey: 'outerWallCastShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.01,
-        default: 0.13,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Cast shadow strength (auto-derives dark mode)',
-        onChange: (g, val) => {
-          g.outerWallCastShadowOpacityDark = Math.min(0.5, Number((val * 0.92).toFixed(3)));
-          const isDark = document.body.classList.contains('dark-mode');
-          const opacity = isDark ? g.outerWallCastShadowOpacityDark : val;
-          document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(opacity));
-        }
-      },
-      { type: 'divider', label: 'Inner Wall' },
-      {
-        id: 'innerWallOutwardShadowBlur',
-        label: 'Outward Shadow Blur',
-        stateKey: 'innerWallOutwardShadowBlur',
-        type: 'range',
-        min: 0, max: 30, step: 1,
-        default: 5,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Softness of the inward-facing wall shadow',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-outward-shadow-blur', `${val}px`);
-        }
-      },
-      {
-        id: 'innerWallOutwardShadowOffset',
-        label: 'Outward Shadow Offset',
-        stateKey: 'innerWallOutwardShadowOffset',
-        type: 'range',
-        min: -5, max: 10, step: 1,
-        default: 6,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Vertical offset of inward shadow',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-outward-shadow-offset', `${val}px`);
-        }
-      },
-      {
-        id: 'innerWallOutwardShadowOpacityLight',
-        label: 'Outward Shadow',
-        stateKey: 'innerWallOutwardShadowOpacityLight',
-        type: 'range',
-        min: 0, max: 0.8, step: 0.01,
-        default: 0.115,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Inward shadow strength (auto-derives dark mode)',
-        onChange: (g, val) => {
-          g.innerWallOutwardShadowOpacityDark = Math.min(0.8, Number((val * 1.58).toFixed(3)));
-          const isDark = document.body.classList.contains('dark-mode');
-          const opacity = isDark ? g.innerWallOutwardShadowOpacityDark : val;
-          document.documentElement.style.setProperty('--inner-wall-outward-shadow-opacity', String(opacity));
-        }
-      },
-      { type: 'divider', label: 'Inner Glow' },
-      {
-        id: 'innerWallInnerGlowBlur',
-        label: 'Glow Blur',
-        stateKey: 'innerWallInnerGlowBlur',
-        type: 'range',
-        min: 0, max: 100, step: 1,
-        default: 62,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Blur/softness of the inner glow',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--inner-wall-inner-glow-blur', `${val}px`);
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'innerWallInnerGlowOffsetY',
-        label: 'Glow Offset Y',
-        stateKey: 'innerWallInnerGlowOffsetY',
-        type: 'range',
-        min: -50, max: 50, step: 1,
-        default: 23,
-        format: v => `${v}px`,
-        parse: parseFloat,
-        hint: 'Vertical bias (+ = top brighter)',
-        onChange: (_g, val) => {
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'innerWallInnerGlowOpacityLight',
-        label: 'Glow',
-        stateKey: 'innerWallInnerGlowOpacityLight',
-        type: 'range',
-        min: 0, max: 0.5, step: 0.005,
-        default: 0.07,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Inner glow strength (auto-derives dark mode)',
-        onChange: (g, val) => {
-          g.innerWallInnerGlowOpacityDark = Math.min(0.5, Number((val * 1.21).toFixed(3)));
-          const isDark = document.body.classList.contains('dark-mode');
-          const opacity = isDark ? g.innerWallInnerGlowOpacityDark : val;
-          document.documentElement.style.setProperty('--inner-wall-inner-glow-opacity', String(opacity));
-          applyLayoutCSSVars();
-        }
-      },
-      { type: 'divider', label: 'Inset Shadow' },
-      {
-        id: 'wallInnerShadowEnabled',
-        label: 'Enabled',
-        stateKey: 'wallInnerShadowEnabled',
-        type: 'checkbox',
-        default: true,
-        hint: 'Background-colored inset shadow for depth',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallInnerShadowBlurVh',
-        label: 'Blur',
-        stateKey: 'wallInnerShadowBlurVh',
-        type: 'range',
-        min: 0, max: 50, step: 1,
-        default: 8,
-        format: v => `${v}vh`,
-        parse: parseFloat,
-        hint: 'Blur softness of the inset shadow',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallInnerShadowSpreadVh',
-        label: 'Spread',
-        stateKey: 'wallInnerShadowSpreadVh',
-        type: 'range',
-        min: -20, max: 50, step: 1,
-        default: 7,
-        format: v => `${v}vh`,
-        parse: parseFloat,
-        hint: 'Solid edge band before blur',
-        onChange: (g) => updateWallShadowCSS(g)
-      },
-      {
-        id: 'wallInnerShadowOpacityLight',
-        label: 'Inset Shadow',
-        stateKey: 'wallInnerShadowOpacityLightV2',
+        id: 'innerWallGradientEdgeTopOpacity',
+        label: 'Wall rim',
+        stateKey: 'innerWallGradientEdgeTopOpacity',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.528,
+        default: 0.22,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Inset shadow opacity (auto-derives dark mode)',
-        onChange: (g, val) => {
-          g.wallInnerShadowOpacityDarkV2 = Math.min(1, Number((val * 1.29).toFixed(3)));
-          updateWallShadowCSS(g);
+        hint: 'Light rim on bottom and sides only (center peak, corners fade). Top edge uses Top shadow rim.',
+        onChange: (_g, val) => {
+          const isDark = document.body.classList.contains('dark-mode');
+          const dm = isDark ? 0.75 : 1;
+          document.documentElement.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((val * 1.45 * dm).toFixed(3))));
+          document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((val * 0.85 * dm).toFixed(3))));
+          document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(Number((val * 0.85 * dm).toFixed(3))));
         }
       },
-      { type: 'divider', label: 'Gradient Edge' },
+      {
+        id: 'innerWallGradientEdgeTopShadowOpacity',
+        label: 'Top shadow rim',
+        stateKey: 'innerWallGradientEdgeTopShadowOpacity',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.3,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        hint: 'Dark inset lip along the top inner edge only. Slightly stronger in dark mode automatically (capped at 100% in CSS).',
+        onChange: (_g, val) => {
+          const isDark = document.body.classList.contains('dark-mode');
+          const dm = isDark ? 1.15 : 1;
+          document.documentElement.style.setProperty(
+            '--inner-wall-gradient-edge-top-shadow-opacity',
+            String(Number(Math.min(1, val * dm).toFixed(3)))
+          );
+        }
+      },
       {
         id: 'innerWallGradientEdgeWidth',
         label: 'Edge Width',
         stateKey: 'innerWallGradientEdgeWidth',
         type: 'range',
-        min: 0, max: 6, step: 0.5,
+        min: 0.5, max: 6, step: 0.5,
         default: 2,
         format: v => `${v}px`,
         parse: parseFloat,
-        hint: 'Thickness of the gradient light/shadow rim',
+        hint: 'Thickness of the light rim',
         onChange: (_g, val) => {
           document.documentElement.style.setProperty('--inner-wall-gradient-edge-width', `${val}px`);
         }
       },
       {
-        id: 'innerWallGradientEdgeTopOpacity',
-        label: 'Light Edge',
-        stateKey: 'innerWallGradientEdgeTopOpacity',
+        id: 'outerWallCastShadowOpacityLight',
+        label: 'Cast Shadow',
+        stateKey: 'outerWallCastShadowOpacityLight',
         type: 'range',
-        min: 0, max: 0.5, step: 0.01,
-        default: 0.18,
+        min: 0, max: 1, step: 0.005,
+        default: 0.06,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
-        hint: 'Ambient light rim — brightest at center of each side, fading at corners. Bottom is brightest.',
-        onChange: (_g, val) => {
-          const isDark = document.body.classList.contains('dark-mode');
-          // Bottom is brightest (screen light from below), top is ambient, sides are fill
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-top-opacity', String(isDark ? Math.max(0, val * 0.67) : val));
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(isDark ? val : Number((val * 1.5).toFixed(3))));
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(isDark ? Number((val * 0.44).toFixed(3)) : Number((val * 0.67).toFixed(3))));
-          document.documentElement.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(isDark ? Number((val * 0.33).toFixed(3)) : Number((val * 0.44).toFixed(3))));
-        }
-      },
-      {
-        id: 'outerWallBorderWidth',
-        label: 'Border Width',
-        stateKey: 'outerWallBorderWidth',
-        type: 'range',
-        min: 0, max: 4, step: 0.1,
-        default: 0.6,
-        format: v => `${v.toFixed(1)}px`,
-        parse: parseFloat,
-        hint: 'Border edge thickness',
-        onChange: (_g, val) => {
-          document.documentElement.style.setProperty('--outer-wall-border-width', `${Number(val)}px`);
-          applyLayoutCSSVars();
-        }
-      },
-      {
-        id: 'outerWallBorderBrightOpacityLight',
-        label: 'Border Light',
-        stateKey: 'outerWallBorderBrightOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 0.3,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Border bright edge (auto-derives dark + dim + shadow)',
+        hint: 'Subtle depth shadow behind the frame',
         onChange: (g, val) => {
-          g.outerWallBorderDimOpacityLight = Number((val * 0.33).toFixed(3));
-          g.outerWallBorderShadowOpacityLight = Number((val * 0.83).toFixed(3));
-          g.outerWallBorderBrightOpacityDark = Math.min(1, Number((val * 1.5).toFixed(3)));
-          g.outerWallBorderDimOpacityDark = Number((val * 1.17).toFixed(3));
-          g.outerWallBorderShadowOpacityDark = Number((val * 1.0).toFixed(3));
-          g.innerWallBorderBrightOpacityLight = Number((val * 1.17).toFixed(3));
-          g.innerWallBorderDimOpacityLight = Number((val * 0.5).toFixed(3));
-          g.innerWallBorderShadowOpacityLight = Number((val * 0.5).toFixed(3));
-          g.innerWallBorderBrightOpacityDark = Math.min(1, Number((val * 1.67).toFixed(3)));
-          g.innerWallBorderDimOpacityDark = 0;
-          g.innerWallBorderShadowOpacityDark = Number((val * 1.0).toFixed(3));
-          applyLayoutCSSVars();
+          g.outerWallCastShadowOpacityDark = Math.min(1, Number((val * 1.2).toFixed(3)));
+          const isDark = document.body.classList.contains('dark-mode');
+          document.documentElement.style.setProperty('--outer-wall-cast-shadow-opacity', String(isDark ? g.outerWallCastShadowOpacityDark : val));
         }
       },
     ]
@@ -3226,7 +2933,7 @@ export const CONTROL_SECTIONS = {
         label: 'Drop Shadow',
         stateKey: 'puckShadowOpacity',
         type: 'range',
-        min: 0, max: 0.4, step: 0.005,
+        min: 0, max: 1, step: 0.005,
         default: 0.045,
         format: v => v.toFixed(3),
         parse: parseFloat,
@@ -3281,35 +2988,10 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CIRCLE LIGHT — simulation ball rendering
-  // ═══════════════════════════════════════════════════════════════════════════
-  circleLight: {
-    title: 'Circles',
-    icon: '🔵',
-    defaultOpen: false,
-    controls: [
-      {
-        id: 'simulationOverlayIntensity',
-        label: 'Overlay Gradient',
-        stateKey: 'simulationOverlayIntensity',
-        type: 'range',
-        min: 0, max: 1, step: 0.05,
-        default: 1,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        hint: 'Intensity of the soft gradient overlay on the simulation viewport',
-        onChange: () => {
-          import('../core/state.js').then(mod => { mod.applyLayoutCSSVars(); }).catch(() => {});
-        }
-      },
-    ]
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // NOISE - Texture overlay
+  // NOISE — Background grain (under simulation canvas; see #simulations > .scene-effects)
   // ═══════════════════════════════════════════════════════════════════════════
   noise: {
-    title: 'Grain',
+    title: 'Background grain',
     icon: '🧂',
     defaultOpen: false,
     controls: [
@@ -3321,10 +3003,91 @@ export const CONTROL_SECTIONS = {
         default: true,
         format: v => (v ? 'On' : 'Off'),
         parse: v => !!v,
-        group: 'Render',
-        hint: 'Procedural noise texture (no GIF).',
+        group: 'Overview',
+        hint: 'Film grain in the wall, behind the balls (CSS + procedural tile).',
         onChange: (_g, val) => applyNoiseSystem({ noiseEnabled: val })
       },
+      { type: 'divider', label: 'Light mode' },
+      {
+        id: 'noiseOpacityLight',
+        label: 'Opacity',
+        stateKey: 'noiseOpacityLight',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.04,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Light mode',
+        hint: 'Grain strength when the site is in light theme.',
+        onChange: (_g, val) => applyNoiseSystem({ noiseOpacityLight: val })
+      },
+      {
+        id: 'noiseColorLight',
+        label: 'Tint',
+        stateKey: 'noiseColorLight',
+        type: 'color',
+        default: '#2a2a2e',
+        format: v => String(v),
+        parse: v => String(v),
+        group: 'Light mode',
+        hint: 'Use a dark tint so grain reads on light walls.',
+        onChange: (_g, val) => applyNoiseSystem({ noiseColorLight: val })
+      },
+      { type: 'divider', label: 'Dark mode' },
+      {
+        id: 'noiseOpacityDark',
+        label: 'Opacity',
+        stateKey: 'noiseOpacityDark',
+        type: 'range',
+        min: 0, max: 1, step: 0.01,
+        default: 0.04,
+        format: v => `${Math.round(v * 100)}%`,
+        parse: parseFloat,
+        group: 'Dark mode',
+        hint: 'Grain strength when the site is in dark theme.',
+        onChange: (_g, val) => applyNoiseSystem({ noiseOpacityDark: val })
+      },
+      {
+        id: 'noiseColorDark',
+        label: 'Tint',
+        stateKey: 'noiseColorDark',
+        type: 'color',
+        default: '#d4d4d8',
+        format: v => String(v),
+        parse: v => String(v),
+        group: 'Dark mode',
+        hint: 'Use a slightly lighter tint so grain reads on dark walls.',
+        onChange: (_g, val) => applyNoiseSystem({ noiseColorDark: val })
+      },
+      { type: 'divider', label: 'Placement' },
+      {
+        id: 'noiseOffsetY',
+        label: 'Vertical offset',
+        stateKey: 'noiseOffsetY',
+        type: 'range',
+        min: -50, max: 50, step: 1,
+        default: 0,
+        format: v => `${v}px`,
+        parse: parseFloat,
+        group: 'Placement',
+        hint: 'Move grain up (negative) or down (positive).',
+        onChange: (g, val) => {
+          document.documentElement.style.setProperty('--abs-noise-offset-y', `${val}px`);
+        }
+      },
+      {
+        id: 'noiseSize',
+        label: 'Grain size',
+        stateKey: 'noiseSize',
+        type: 'range',
+        min: 20, max: 600, step: 5,
+        default: 85,
+        format: v => `${Math.round(v)} px`,
+        parse: v => parseInt(v, 10),
+        group: 'Placement',
+        onChange: (_g, val) => applyNoiseSystem({ noiseSize: val })
+      },
+      { type: 'divider', label: 'Texture' },
       {
         id: 'noiseSeed',
         label: 'Seed',
@@ -3340,7 +3103,7 @@ export const CONTROL_SECTIONS = {
       },
       {
         id: 'noiseTextureSize',
-        label: 'Tile Size',
+        label: 'Tile size',
         stateKey: 'noiseTextureSize',
         type: 'range',
         min: 64, max: 512, step: 32,
@@ -3391,64 +3154,7 @@ export const CONTROL_SECTIONS = {
         hint: 'How different R/G/B channels are (ignored when Monochrome is on).',
         onChange: (_g, val) => applyNoiseSystem({ noiseChroma: val })
       },
-      {
-        id: 'noiseSize',
-        label: 'Grain Size',
-        stateKey: 'noiseSize',
-        type: 'range',
-        min: 20, max: 600, step: 5,
-        default: 85,
-        format: v => `${Math.round(v)} px`,
-        parse: v => parseInt(v, 10),
-        group: 'Layer',
-        onChange: (_g, val) => applyNoiseSystem({ noiseSize: val })
-      },
-      {
-        id: 'noiseOpacityLight',
-        label: 'Opacity (Light)',
-        stateKey: 'noiseOpacityLight',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.03,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        group: 'Layer',
-        onChange: (_g, val) => applyNoiseSystem({ noiseOpacityLight: val })
-      },
-      {
-        id: 'noiseOpacityDark',
-        label: 'Opacity (Dark)',
-        stateKey: 'noiseOpacityDark',
-        type: 'range',
-        min: 0, max: 1, step: 0.01,
-        default: 0.03,
-        format: v => `${Math.round(v * 100)}%`,
-        parse: parseFloat,
-        group: 'Layer',
-        onChange: (_g, val) => applyNoiseSystem({ noiseOpacityDark: val })
-      },
-      {
-        id: 'noiseColorLight',
-        label: 'Color (Light)',
-        stateKey: 'noiseColorLight',
-        type: 'color',
-        default: '#ffffff',
-        format: v => String(v),
-        parse: v => String(v),
-        group: 'Layer',
-        onChange: (_g, val) => applyNoiseSystem({ noiseColorLight: val })
-      },
-      {
-        id: 'noiseColorDark',
-        label: 'Color (Dark)',
-        stateKey: 'noiseColorDark',
-        type: 'color',
-        default: '#ffffff',
-        format: v => String(v),
-        parse: v => String(v),
-        group: 'Layer',
-        onChange: (_g, val) => applyNoiseSystem({ noiseColorDark: val })
-      },
+      { type: 'divider', label: 'Motion' },
       {
         id: 'noiseMotion',
         label: 'Motion',
@@ -3471,7 +3177,7 @@ export const CONTROL_SECTIONS = {
         stateKey: 'noiseMotionAmount',
         type: 'range',
         min: 0, max: 2.5, step: 0.01,
-        default: 1.0,
+        default: 1.2,
         format: v => `${v.toFixed(2)}x`,
         parse: parseFloat,
         group: 'Motion',
@@ -3526,6 +3232,7 @@ export const CONTROL_SECTIONS = {
         group: 'Motion',
         onChange: (_g, val) => applyNoiseSystem({ noiseFlickerSpeedMs: val })
       },
+      { type: 'divider', label: 'Fine-tune' },
       {
         id: 'noiseBlurPx',
         label: 'Blur',
@@ -3757,7 +3464,7 @@ export const CONTROL_SECTIONS = {
         label: 'Bounciness',
         stateKey: 'critterRestitution',
         type: 'range',
-        min: 0, max: 0.6, step: 0.01,
+        min: 0, max: 1, step: 0.01,
         default: 0.18,
         format: v => v.toFixed(2),
         parse: parseFloat,
@@ -3771,7 +3478,7 @@ export const CONTROL_SECTIONS = {
         label: 'Friction',
         stateKey: 'critterFriction',
         type: 'range',
-        min: 0, max: 0.06, step: 0.001,
+        min: 0, max: 1, step: 0.001,
         default: 0.018,
         format: v => v.toFixed(3),
         parse: parseFloat,
@@ -3878,7 +3585,7 @@ export const CONTROL_SECTIONS = {
         label: 'Point Margin',
         stateKey: 'hiveJourneyPointMargin',
         type: 'range',
-        min: 0, max: 0.2, step: 0.01,
+        min: 0, max: 1, step: 0.01,
         default: 0.05,
         format: v => `${Math.round(v * 100)}%`,
         parse: parseFloat,
@@ -4147,7 +3854,7 @@ export const CONTROL_SECTIONS = {
         label: 'Bounce',
         stateKey: 'weightlessBounce',
         type: 'range',
-        min: 0.5, max: 1, step: 0.05,
+        min: 0, max: 1, step: 0.05,
         default: 0.70,
         format: v => v.toFixed(2),
         parse: parseFloat
@@ -4198,7 +3905,7 @@ export const CONTROL_SECTIONS = {
         label: 'Water Resistance',
         stateKey: 'waterDrag',
         type: 'range',
-        min: 0.001, max: 0.15, step: 0.001,
+        min: 0.001, max: 1, step: 0.001,
         default: 0.12,
         format: v => v.toFixed(3),
         parse: parseFloat
@@ -4285,7 +3992,7 @@ export const CONTROL_SECTIONS = {
         label: 'Damping',
         stateKey: 'magneticDamping',
         type: 'range',
-        min: 0.8, max: 0.999, step: 0.001,
+        min: 0, max: 1, step: 0.001,
         default: 0.998,
         format: v => v.toFixed(3),
         parse: parseFloat
@@ -4398,7 +4105,7 @@ export const CONTROL_SECTIONS = {
         label: 'Smoothness',
         stateKey: 'tiltLerpSpeed',
         type: 'range',
-        min: 0.01, max: 0.5, step: 0.01,
+        min: 0.01, max: 1, step: 0.01,
         default: 0.08,
         format: v => v.toFixed(2),
         parse: parseFloat
@@ -4408,7 +4115,7 @@ export const CONTROL_SECTIONS = {
         label: 'Particle Mass',
         stateKey: 'tiltGlassBallMass',
         type: 'range',
-        min: 0.02, max: 0.3, step: 0.01,
+        min: 0.02, max: 1, step: 0.01,
         default: 0.08,
         format: v => v.toFixed(2) + 'x',
         parse: parseFloat,
@@ -4419,7 +4126,7 @@ export const CONTROL_SECTIONS = {
         label: 'Friction',
         stateKey: 'tiltFriction',
         type: 'range',
-        min: 0.002, max: 0.02, step: 0.001,
+        min: 0.002, max: 1, step: 0.001,
         default: 0.008,
         format: v => v.toFixed(3),
         parse: parseFloat
@@ -4478,9 +4185,9 @@ export const CONTROL_SECTIONS = {
         label: 'Idle Drift',
         stateKey: 'kaleidoscopeIdleDrift',
         type: 'range',
-        min: 0, max: 0.05, step: 0.002,
+        min: 0, max: 1, step: 0.002,
         default: 0.012,
-        format: v => (v * 1000).toFixed(0) + '‰',
+        format: v => `${(v * 100).toFixed(1)}%`,
         parse: parseFloat,
         hint: 'Subtle movement when idle; respects prefers-reduced-motion.'
       },
@@ -4725,7 +4432,7 @@ export const CONTROL_SECTIONS = {
         label: 'Damping',
         stateKey: 'elasticCenterDamping',
         type: 'range',
-        min: 0.85, max: 0.99, step: 0.01,
+        min: 0, max: 1, step: 0.01,
         default: 0.94,
         format: v => v.toFixed(2),
         parse: parseFloat,
@@ -4779,7 +4486,7 @@ export const CONTROL_SECTIONS = {
         label: 'Water Drag',
         stateKey: 'particleFountainWaterDrag',
         type: 'range',
-        min: 0.01, max: 0.2, step: 0.01,
+        min: 0.01, max: 1, step: 0.01,
         default: 0.02,
         format: v => v.toFixed(2),
         parse: parseFloat,
@@ -4934,7 +4641,7 @@ export const CONTROL_SECTIONS = {
         label: 'Tumble Damping',
         stateKey: 'sphere3dTumbleDamping',
         type: 'range',
-        min: 0.8, max: 0.99, step: 0.005,
+        min: 0, max: 1, step: 0.005,
         default: 0.94,
         format: v => v.toFixed(3),
         parse: parseFloat
@@ -5018,7 +4725,7 @@ export const CONTROL_SECTIONS = {
         label: 'Tumble Damping',
         stateKey: 'cube3dTumbleDamping',
         type: 'range',
-        min: 0.8, max: 0.99, step: 0.005,
+        min: 0, max: 1, step: 0.005,
         default: 0.95,
         format: v => v.toFixed(3),
         parse: parseFloat
@@ -5242,7 +4949,7 @@ export const CONTROL_SECTIONS = {
         label: 'Speed',
         stateKey: 'parallaxFloatLevitationSpeed',
         type: 'range',
-        min: 0.05, max: 0.5, step: 0.02,
+        min: 0.05, max: 1, step: 0.02,
         default: 0.2,
         format: v => v.toFixed(2) + ' Hz',
         parse: parseFloat,
@@ -5984,7 +5691,7 @@ export function generateMasterSectionsHTML(options = {}) {
 
 // Generate sections for GLOBAL group only
 export function generateGlobalSectionsHTML() {
-  const globalSections = ['colors', 'colorDistribution', 'layers', 'noise', 'uiSpacing', 'cursor', 'trail', 'links', 'scene'];
+  const globalSections = ['colors', 'colorDistribution', 'layers', 'uiSpacing', 'cursor', 'links', 'scene'];
   let html = '';
   for (const key of globalSections) {
     if (!CONTROL_SECTIONS[key]) continue;

@@ -122,7 +122,7 @@ export function updateWallShadowCSS(g) {
       const spreadVh = g.wallInnerShadowSpreadVh ?? 15;
       const spread = spreadVh !== 0 ? `${spreadVh}vh` : '0';
       // Use explicit HEX codes because hexToRgb cannot parse 'var(--...)' strings
-      const bgHex = isDark ? '#0a0a0a' : '#f5f5f5';
+      const bgHex = isDark ? '#181818' : '#efefef';
       const { r, g: gb, b } = hexToRgb(bgHex);
       
       // Full inset on all sides (no offset) — blends edges into background colour

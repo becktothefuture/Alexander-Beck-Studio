@@ -893,7 +893,7 @@ async function initSplatTest() {
   setupRenderer();
   const canvas = getCanvas();
   const ctx = getContext();
-  const container = document.getElementById('bravia-balls');
+  const container = document.getElementById('simulations');
 
   if (!canvas || !ctx || !container) {
     console.error('Splat test: missing canvas/container');

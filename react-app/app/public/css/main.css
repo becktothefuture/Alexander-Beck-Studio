@@ -105,8 +105,21 @@ html {
   perspective: var(--entrance-perspective, 1000px);
   perspective-origin: center center;
   transform-style: preserve-3d;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
   transition: background var(--entrance-wall-duration, 800ms) cubic-bezier(0.16, 1, 0.3, 1),
               background-color var(--entrance-wall-duration, 800ms) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  text-rendering: inherit;
+  -webkit-font-smoothing: inherit;
+  -moz-osx-font-smoothing: inherit;
 }
 
 /* Aspect ratio based perspective adjustments */
@@ -687,6 +700,23 @@ body.cv-page .route-topbar__left {
   justify-content: flex-start;
 }
 
+body.portfolio-page .route-topbar__left {
+  gap: clamp(12px, 1.8vw, 24px);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+body.portfolio-page .route-topbar__left .portfolio-topnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: clamp(4px, 1.8vw, 12px);
+  width: auto;
+  min-width: 0;
+  pointer-events: auto;
+}
+
 body.portfolio-page .route-topbar__right,
 body.cv-page .route-topbar__right {
   justify-self: end;
@@ -704,6 +734,11 @@ body.cv-page .route-topbar__right.ui-top-right {
   align-items: center;
   min-width: var(--ui-icon-frame-size);
   width: auto;
+}
+
+body.portfolio-page .route-topbar__right .portfolio-topline {
+  max-width: min(34vw, var(--decorative-script-max-width));
+  padding-block-start: calc(var(--gap-xs) + var(--gap-sm));
 }
 
 /* Portfolio + CV route top chrome (main.css so CV works without portfolio.css — SPA + cv.html). */
@@ -876,6 +911,32 @@ body.dark-mode.styleguide-page .styleguide-topbar-frame {
 
 body.styleguide-page .styleguide-topbar-frame .ui-top {
   width: 100%;
+}
+
+body.styleguide-page .styleguide-topbar-frame .route-topbar__left {
+  gap: clamp(12px, 1.8vw, 24px);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+body.styleguide-page .styleguide-topbar-frame .portfolio-topnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: clamp(4px, 1.8vw, 12px);
+  width: auto;
+  min-width: 0;
+  pointer-events: auto;
+}
+
+body.styleguide-page .styleguide-topbar-frame .portfolio-topnav .footer_link {
+  white-space: nowrap;
+}
+
+body.styleguide-page .styleguide-topbar-frame .portfolio-topline {
+  max-width: min(34vw, var(--decorative-script-max-width));
+  padding-block-start: calc(var(--gap-xs) + var(--gap-sm));
 }
 
 body.styleguide-page .styleguide-fake-icon {
@@ -1887,22 +1948,25 @@ p {
   /* Horizontally centered */
   left: 50%;
   transform: translateX(-50%) scale(1);
-  /* Below canvas logo + subtitle; large clamp keeps row clear of the mark.
-     Offset scaled to 0.6: ~40% less drop from center vs. unscaled baseline. */
-  top: calc(50% + (5vh + clamp(72px, 9vw, 160px)) * 0.6);
+  /* Anchor to the same visual center as the hero title and use the persisted
+     home nav offset so the row stays stable across breakpoints. */
+  top: calc(
+    50% +
+    (clamp(20px, 5vh, 52px) - 4vh) +
+    var(--home-main-links-below-logo-px, 96px)
+  );
   transform-origin: center center;
   z-index: 10; /* Match .ui-center z-index */
   /* Horizontal flexbox layout - center aligned */
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  justify-content: center; /* Center align buttons horizontally */
+  justify-content: center;
   align-items: center; /* Center align buttons vertically */
-  /* Gap between buttons (configurable via token) */
-  gap: var(--footer-nav-bar-gap, var(--gap-xl));
-  /* Full-width container; content centered */
-  width: 100%;
-  max-width: 100%;
+  gap: clamp(6px, 1.4vw, 18px);
+  /* Stable intrinsic row: center the group without stretching the buttons. */
+  width: fit-content;
+  max-width: calc(100% - (var(--gap-lg) * 2));
   padding-inline: 0;
   padding-block: 0;
   margin: 0;
@@ -1951,17 +2015,17 @@ p {
 
 /* Hover background pseudo-element for text links (uses unified base below) */
 
-/* Master main nav text buttons: #main-links (home) + .route-topbar__center (portfolio/CV). Mark container with .ui-main-nav. */
+/* Master main nav text buttons: #main-links (home) + route top bars. Mark container with .ui-main-nav. */
 .ui-main-nav {
-  /* 1.5× legend label size — scoped to this strip only (other .footer_link stays legend scale). */
-  --ui-main-nav-link-font-size: calc(var(--legend-font-size) * 1.5);
+  /* Primary button scale: slightly tighter than the old 1.5× legend size. */
+  --ui-main-nav-link-font-size: calc(var(--legend-font-size) * 1.35);
 }
 
 .ui-main-nav .footer_link {
   /* Nav bar buttons: substantial padding matching other page links */
-  /* Minimum 14px top/bottom, 18px left/right as requested */
-  padding-block: clamp(14px, 2.4vmin, 28px);
-  padding-inline: clamp(18px, 3.6vmin, 36px);
+  /* Minimum 12px top/bottom, 16px left/right for the primary button family */
+  padding-block: clamp(12px, 2.2vmin, 24px);
+  padding-inline: clamp(16px, 3.2vmin, 32px);
   margin: 0; /* No negative margin in nav bar */
   display: inline-flex;
   align-items: center;
@@ -1979,12 +2043,17 @@ p {
   text-align: center;
 }
 
+#main-links .footer_link {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
 .footer_link:hover {
   /* No color change - keep colors as-is */
   opacity: 1; /* Remove opacity on hover - full strength color */
 }
 
-/* Middle nav bar buttons (Contact / Portfolio / About me): keep radius consistent on hover */
+/* Primary buttons (Contact / Portfolio / About Me): keep radius consistent on hover */
 .footer_link:hover {
   border-radius: var(--ui-icon-corner-radius);
 }
@@ -2508,15 +2577,16 @@ html.modal-active .hero-title {
   transition-timing-function: var(--ui-ease-out);
 }
 
-/* Hide on portfolio pit route */
-body.portfolio-page .hero-title {
+/* Hide the default home hero on portfolio; a dedicated portfolio variant opts back in. */
+body.portfolio-page .hero-title:not(.hero-title--portfolio) {
   display: none;
 }
 
 /* ── Lines: depth-emergence, paused until scene starts ── */
 
 .hero-title__name,
-.hero-title__role {
+.hero-title__role,
+.hero-title__line {
   display: block;
   opacity: 0;
   filter: blur(12px);
@@ -2530,8 +2600,11 @@ body.portfolio-page .hero-title {
   animation-delay: 0ms;
 }
 
-.hero-title__role {
+.hero-title__role,
+.hero-title__line--secondary {
   margin-top: 0;
+  color: inherit;
+  text-shadow: none;
   animation-name: heroEmergeSubtle;
   animation-delay: 280ms;
 }
@@ -2546,11 +2619,32 @@ body.portfolio-page .hero-title {
    triggers the nav links afterward). */
 html.entrance-transitioning .hero-title__name,
 html.entrance-transitioning .hero-title__role,
+html.entrance-transitioning .hero-title__line,
 html.entrance-complete .hero-title__name,
 html.entrance-complete .hero-title__role,
+html.entrance-complete .hero-title__line,
 html.ui-entered .hero-title__name,
-html.ui-entered .hero-title__role {
+html.ui-entered .hero-title__role,
+html.ui-entered .hero-title__line {
   animation-play-state: running;
+}
+
+body.portfolio-page .hero-title.hero-title--portfolio {
+  display: grid;
+  gap: clamp(0.32rem, 0.85vw, 0.72rem);
+  width: min(72vw, var(--portfolio-intro-title-max-width, 38ch));
+  max-width: 38ch;
+  white-space: normal;
+  text-wrap: balance;
+}
+
+body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
+  font-size: var(--portfolio-intro-title-size, clamp(1.18rem, 1.95vw, 1.9rem));
+  line-height: var(--portfolio-intro-title-line-height, 1.04);
+  letter-spacing: var(--portfolio-intro-title-letter-spacing, -0.034em);
+  color: var(--text-logo);
+  text-shadow: none;
+  text-wrap: balance;
 }
 
 /* Legacy #brand-logo — no longer rendered */
@@ -2620,13 +2714,15 @@ html.modal-active { --ui-obscured: 1; }
   }
   /* Skip keyframe animation; show immediately */
   .hero-title__name,
-  .hero-title__role {
+  .hero-title__role,
+  .hero-title__line {
     animation: none;
     opacity: 1;
     filter: none;
     transform: none;
   }
-  .hero-title__role {
+  .hero-title__role,
+  .hero-title__line--secondary {
     opacity: var(--brand-logo-secondary-opacity, 0.66);
   }
 }
@@ -2707,18 +2803,7 @@ html.modal-active #main-links { pointer-events: none; }
   z-index: 100; /* Wall: top of visual stack (below modals at z:19998+) */
   pointer-events: none;
   overflow: hidden;
-  /* Light Group: wall depth via box-shadow layers. */
-  box-shadow:
-    0 var(--outer-wall-cast-shadow-offset) var(--outer-wall-cast-shadow-blur) var(--outer-wall-cast-shadow-spread)
-      rgba(var(--outer-wall-cast-shadow-rgb), var(--outer-wall-cast-shadow-opacity)),
-    inset 0 var(--outer-wall-top-dark-offset) var(--outer-wall-top-dark-blur) var(--outer-wall-top-dark-spread)
-      rgba(var(--outer-wall-top-dark-rgb), var(--outer-wall-top-dark-opacity)),
-    inset 0 calc(-1 * var(--outer-wall-bottom-light-offset)) var(--outer-wall-bottom-light-blur) var(--outer-wall-bottom-light-spread)
-      rgba(var(--outer-wall-bottom-light-rgb), var(--outer-wall-bottom-light-opacity)),
-    inset 0 var(--inner-wall-outward-shadow-offset) var(--inner-wall-outward-shadow-blur) var(--inner-wall-outward-shadow-spread)
-      rgba(var(--inner-wall-outward-shadow-rgb), var(--inner-wall-outward-shadow-opacity)),
-    inset 0 var(--inner-wall-inner-glow-offset-y) var(--inner-wall-inner-glow-blur) var(--inner-wall-inner-glow-spread)
-      rgba(var(--inner-wall-inner-glow-rgb), var(--inner-wall-inner-glow-opacity));
+  /* No outward box-shadow: depth is inset-only (.frame-vignette, .inner-wall-gradient-edge). */
   /* GPU layer hint for smooth compositing */
   transform: translateZ(0);
   transform-origin: center center;
@@ -2759,11 +2844,8 @@ html.entrance-transitioning #simulations {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   GRADIENT LIGHT EDGE — ambient light catching on the recessed inner wall rim.
-   All 4 edges use white light with a smooth bell-curve falloff: peak brightness
-   at the center of each side, tapering naturally to zero at the corners.
-   Bottom edge is brightest (screen light rises from below).
-   Per-side opacities are driven from state via applyLayoutCSSVars.
+   GRADIENT RIM — bottom + sides: white light (center peak, corners fade).
+   Top: shadow edge (same geometry, dark RGB) so light reads from lower rim only.
    ───────────────────────────────────────────────────────────────────────────── */
 .inner-wall-gradient-edge {
   position: absolute;
@@ -2772,32 +2854,32 @@ html.entrance-transitioning #simulations {
   pointer-events: none;
   z-index: 170;
   background:
-    /* Bottom edge — brightest (light rises from below the screen) */
+    /* Bottom edge — brightest at center, transparent at corners */
     radial-gradient(
-      80% var(--inner-wall-gradient-edge-width) at 50% 100%,
+      50% 100% at 50% 100%,
       rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-bottom-opacity)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-bottom-opacity) * 0.4)) 50%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-bottom-opacity) * 0.3)) 60%,
       transparent 100%
     ) bottom center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
-    /* Top edge — subtle ambient fill from above */
+    /* Top edge — darkest at center, transparent at corners (inset shadow lip) */
     radial-gradient(
-      80% var(--inner-wall-gradient-edge-width) at 50% 0%,
-      rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-top-opacity)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-top-opacity) * 0.4)) 50%,
+      50% 100% at 50% 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), var(--inner-wall-gradient-edge-top-shadow-opacity)) 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--inner-wall-gradient-edge-top-shadow-opacity) * 0.3)) 60%,
       transparent 100%
     ) top center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
-    /* Left edge — side light */
+    /* Left edge — brightest at center, transparent at corners */
     radial-gradient(
-      var(--inner-wall-gradient-edge-width) 70% at 0% 50%,
+      100% 50% at 0% 50%,
       rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-side-opacity)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-opacity) * 0.35)) 50%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-opacity) * 0.3)) 60%,
       transparent 100%
     ) left center / var(--inner-wall-gradient-edge-width) 100% no-repeat,
-    /* Right edge — side light */
+    /* Right edge — brightest at center, transparent at corners */
     radial-gradient(
-      var(--inner-wall-gradient-edge-width) 70% at 100% 50%,
+      100% 50% at 100% 50%,
       rgba(var(--inner-wall-top-light-rgb), var(--inner-wall-gradient-edge-side-shadow-opacity)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-shadow-opacity) * 0.35)) 50%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--inner-wall-gradient-edge-side-shadow-opacity) * 0.3)) 60%,
       transparent 100%
     ) right center / var(--inner-wall-gradient-edge-width) 100% no-repeat;
 }
@@ -3089,8 +3171,13 @@ html.is-safari .noise::before {
   
   /* Mobile hero title — both lines same scale */
   .hero-title__name,
-  .hero-title__role {
+  .hero-title__role,
+  .hero-title__line {
     font-size: clamp(18px, calc(var(--abs-home-mobile-logo-width-vw, 64) * 0.12 * 1vw), 34px);
+  }
+
+  body.portfolio-page .hero-title.hero-title--portfolio .hero-title__line {
+    font-size: clamp(1.2rem, 4.08vw, 1.61rem);
   }
 
   .ui-top {
@@ -3102,7 +3189,7 @@ html.is-safari .noise::before {
     grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
     grid-template-rows: auto;
     align-items: flex-start;
-    gap: var(--gap-md);
+    gap: clamp(12px, 3.5vw, 16px);
   }
 
   .ui-top-left {
@@ -3117,7 +3204,7 @@ html.is-safari .noise::before {
     align-items: flex-start;
     justify-content: flex-end;
     width: 100%;
-    gap: clamp(8px, 2.4vw, 12px);
+    gap: clamp(12px, 3.2vw, 18px);
   }
 
   /* Index: keep legend + intro split side-by-side */
@@ -3125,7 +3212,7 @@ html.is-safari .noise::before {
     grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
     grid-template-rows: auto;
     align-items: flex-start;
-    gap: var(--gap-md);
+    gap: clamp(12px, 3.5vw, 16px);
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-top-left,
@@ -3137,7 +3224,12 @@ html.is-safari .noise::before {
   /* Let the right column use the available width cleanly on mobile */
   .decorative-script {
     max-width: 100%;
+    font-size: calc(var(--decorative-script-font-size) - 0.5px);
     text-align: right;
+  }
+
+  body:not(.portfolio-page):not(.cv-page) .ui-top-right .decorative-script {
+    padding-block-start: calc(var(--gap-sm) + ((var(--gap-md) - var(--gap-xs)) / 2));
   }
   
   .legend {
@@ -3149,6 +3241,7 @@ html.is-safari .noise::before {
   
   /* Reduce vertical padding on legend items for tighter mobile spacing */
   .legend__item {
+    font-size: calc(var(--legend-font-size) - 1px);
     padding: var(--gap-xs) var(--gap-sm);
   }
   
@@ -3166,13 +3259,15 @@ html.is-safari .noise::before {
   }
   
   #main-links {
-    /* Mobile: horizontal row, smaller gap, center aligned */
+    /* Mobile: keep a single centered row inside a fixed-width container. */
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
     justify-content: center;
+    width: fit-content;
+    max-width: calc(100% - (var(--gap-md) * 2));
     padding-inline: 0;
-    gap: var(--gap-sm);
+    gap: clamp(4px, 1.8vw, 10px);
   }
   
   .footer_link {
@@ -3184,7 +3279,7 @@ html.is-safari .noise::before {
   /* Nav bar links: compact padding on mobile */
   .ui-main-nav .footer_link {
     padding-block: 10px;
-    padding-inline: 14px;
+    padding-inline: 10px;
     margin: 0;
     display: inline-flex;
     align-items: center;
@@ -3540,7 +3635,7 @@ button {
 /* Text link hover — light mode (background via ::before, not direct).
    Do not target #contact-email / #portfolio-modal-trigger here: those ids only exist on `.ui-main-nav`
    triggers, and an ID + :hover rule beats `.ui-main-nav .footer_link:hover` in dark mode — which
-   made Contact/Portfolio hover ink differ from About me (`#cv-modal-trigger` was never listed). */
+   made Contact/Portfolio hover ink differ from About Me (`#cv-modal-trigger` was never listed). */
 .footer_link:hover,
 .decorative-script p a:hover {
   color: color-mix(in srgb, var(--cursor-color) 40%, rgba(var(--abs-rgb-black), 1) 60%);
@@ -4803,7 +4898,7 @@ body.cv-page .cv-hero .cv-photo {
   overflow: hidden;
   /* Use theme-aware background to prevent white outline artifacts at rounded corners.
      The overflow:hidden + border-radius clip causes anti-aliasing that reveals background. */
-  background: var(--bg-light, #f5f5f5);
+  background: var(--bg-light, #efefef);
   align-self: stretch;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -4812,7 +4907,7 @@ body.cv-page .cv-hero .cv-photo {
 }
 
 body.dark-mode .cv-photo {
-  background: var(--bg-dark, #0a0a0a);
+  background: var(--bg-dark, #181818);
 }
 
 .cv-photo__image {
@@ -4936,7 +5031,7 @@ body.dark-mode .cv-photo {
 .dark-mode .cv-gradient-overlay--top {
   background: linear-gradient(
     to bottom,
-    var(--bg-dark, #0a0a0a) 0%,
+    var(--bg-dark, #181818) 0%,
     transparent 100%
   );
 }
@@ -4944,7 +5039,7 @@ body.dark-mode .cv-photo {
 .dark-mode .cv-gradient-overlay--bottom {
   background: linear-gradient(
     to top,
-    var(--bg-dark, #0a0a0a) 0%,
+    var(--bg-dark, #181818) 0%,
     transparent 100%
   );
 }
@@ -5532,9 +5627,9 @@ body.cv-page.dark-mode .cv-scroll-container {
     min-height: 28px;
     padding: 4px 0;
     font-size: clamp(
-      calc(0.72rem + 2 * var(--abs-size-1px)),
+      calc(0.72rem + 1 * var(--abs-size-1px)),
       2.6vw,
-      calc(0.82rem + 2 * var(--abs-size-1px))
+      calc(0.82rem + 1 * var(--abs-size-1px))
     );
   }
 
@@ -5570,9 +5665,11 @@ body.cv-page.dark-mode .cv-scroll-container {
     top: auto;
     right: auto;
     bottom: calc(max(var(--abs-safe-bottom), 20px) + var(--abs-home-mobile-nav-bottom-offset, 132px));
-    width: min(86vw, 320px);
+    width: fit-content;
+    max-width: calc(100% - (var(--gap-md) * 2));
     transform: translateX(-50%);
-    flex-wrap: wrap;
+    justify-content: center;
+    flex-wrap: nowrap;
     gap: 10px 12px;
   }
 
@@ -5581,7 +5678,7 @@ body.cv-page.dark-mode .cv-scroll-container {
   }
 
   body:not(.portfolio-page):not(.cv-page) #main-links .footer_link {
-    min-width: 94px;
+    min-width: 0;
   }
 
   body:not(.portfolio-page):not(.cv-page) .ui-meta-row {
@@ -5646,7 +5743,7 @@ body.cv-page.dark-mode .cv-scroll-container {
   }
 
   body:not(.portfolio-page):not(.cv-page) #main-links .footer_link {
-    min-width: 84px;
+    min-width: 0;
     padding-inline: 12px;
   }
 
@@ -5692,9 +5789,9 @@ body.cv-page.dark-mode .cv-scroll-container {
     min-height: 24px;
     padding-block: 2px;
     font-size: clamp(
-      calc(0.68rem + 2 * var(--abs-size-1px)),
+      calc(0.68rem + 1 * var(--abs-size-1px)),
       2.3vw,
-      calc(0.78rem + 2 * var(--abs-size-1px))
+      calc(0.78rem + 1 * var(--abs-size-1px))
     );
   }
 
@@ -5710,12 +5807,13 @@ body.cv-page.dark-mode .cv-scroll-container {
 
   body:not(.portfolio-page):not(.cv-page) #main-links {
     bottom: calc(max(var(--abs-safe-bottom), 8px) + 88px);
-    width: min(88vw, 312px);
+    width: fit-content;
+    max-width: calc(100% - (var(--gap-md) * 2));
     gap: 8px 10px;
   }
 
   body:not(.portfolio-page):not(.cv-page) #main-links .footer_link {
-    min-width: 78px;
+    min-width: 0;
     padding-block: 9px;
     padding-inline: 10px;
   }
@@ -5777,11 +5875,12 @@ body.cv-page.dark-mode .cv-scroll-container {
 
   body:not(.portfolio-page):not(.cv-page) #main-links {
     bottom: calc(max(var(--abs-safe-bottom), 8px) + 72px);
-    width: min(90vw, 300px);
+    width: fit-content;
+    max-width: calc(100% - (var(--gap-sm) * 2));
   }
 
   body:not(.portfolio-page):not(.cv-page) #main-links .footer_link {
-    min-width: 74px;
+    min-width: 0;
     padding-block: 8px;
     padding-inline: 10px;
   }
@@ -5897,7 +5996,7 @@ html {
 
 html.dark-mode .dev-perf-hud,
 body.dark-mode .dev-perf-hud {
-  color: var(--text-color-dark, #a0a1a2);
+  color: var(--text-color-dark, #f0f0f0);
   border-color: rgba(var(--abs-rgb-white), 0.2);
 }
 

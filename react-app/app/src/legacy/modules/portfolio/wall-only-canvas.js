@@ -29,7 +29,7 @@ function create2dContext(canvas) {
 }
 
 export function initPortfolioWallCanvas({
-  containerId = 'bravia-balls',
+  containerId = 'simulations',
   canvasSelector = '.portfolio-wall-canvas',
 } = {}) {
   const container = document.getElementById(containerId);

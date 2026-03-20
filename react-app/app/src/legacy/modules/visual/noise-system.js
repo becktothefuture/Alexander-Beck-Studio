@@ -314,14 +314,14 @@ function applyCssVars(cfg) {
   root.style.setProperty('--noise-size', `${Math.round(noiseSize)}px`);
   
   // Opacity (theme-aware)
-  const opacityLight = clampNumber(cfg.noiseOpacityLight ?? cfg.noiseOpacity ?? 0.03, 0, 1, 0.03);
-  const opacityDark = clampNumber(cfg.noiseOpacityDark ?? cfg.noiseOpacity ?? 0.03, 0, 1, 0.03);
+  const opacityLight = clampNumber(cfg.noiseOpacityLight ?? cfg.noiseOpacity ?? 0.04, 0, 1, 0.04);
+  const opacityDark = clampNumber(cfg.noiseOpacityDark ?? cfg.noiseOpacity ?? 0.04, 0, 1, 0.04);
   root.style.setProperty('--noise-opacity-light', String(opacityLight));
   root.style.setProperty('--noise-opacity-dark', String(opacityDark));
   
   // Color controls (separate for light/dark)
-  const colorLight = cfg.noiseColorLight ?? '#ffffff';
-  const colorDark = cfg.noiseColorDark ?? '#ffffff';
+  const colorLight = cfg.noiseColorLight ?? '#2a2a2e';
+  const colorDark = cfg.noiseColorDark ?? '#d4d4d8';
   root.style.setProperty('--noise-color-light', colorLight);
   root.style.setProperty('--noise-color-dark', colorDark);
   
@@ -330,8 +330,8 @@ function applyCssVars(cfg) {
 
 function sanitizeConfig(input = {}) {
   const cssNoiseSize = readRootVarNumber('--noise-size', 85);
-  const cssOpacityLight = readRootVarNumber('--noise-opacity-light', 0.03);
-  const cssOpacityDark = readRootVarNumber('--noise-opacity-dark', 0.03);
+  const cssOpacityLight = readRootVarNumber('--noise-opacity-light', 0.04);
+  const cssOpacityDark = readRootVarNumber('--noise-opacity-dark', 0.04);
 
   const out = {
     // Texture
@@ -363,11 +363,11 @@ function sanitizeConfig(input = {}) {
 
     // Single layer controls
     noiseSize: clampNumber(input.noiseSize, 20, 600, cssNoiseSize),
-    noiseOpacity: clampNumber(input.noiseOpacity, 0, 1, 0.03),
+    noiseOpacity: clampNumber(input.noiseOpacity, 0, 1, 0.04),
     noiseOpacityLight: clampNumber(input.noiseOpacityLight, 0, 1, cssOpacityLight),
     noiseOpacityDark: clampNumber(input.noiseOpacityDark, 0, 1, cssOpacityDark),
-    noiseColorLight: typeof input.noiseColorLight === 'string' ? input.noiseColorLight : '#ffffff',
-    noiseColorDark: typeof input.noiseColorDark === 'string' ? input.noiseColorDark : '#ffffff',
+    noiseColorLight: typeof input.noiseColorLight === 'string' ? input.noiseColorLight : '#2a2a2e',
+    noiseColorDark: typeof input.noiseColorDark === 'string' ? input.noiseColorDark : '#d4d4d8',
     detailNoiseOpacity: clampNumber(input.detailNoiseOpacity, 0, 1, 1),
   };
 
@@ -407,7 +407,7 @@ function buildSvgNoiseDataUri({ size, baseFrequency, octaves, seed, color }) {
 
 function scheduleTextureRegeneration(cfg, { force = false } = {}) {
   const isDark = document.body?.classList?.contains('dark-mode');
-  const svgColor = isDark ? (cfg.noiseColorDark ?? '#ffffff') : (cfg.noiseColorLight ?? '#ffffff');
+  const svgColor = isDark ? (cfg.noiseColorDark ?? '#d4d4d8') : (cfg.noiseColorLight ?? '#2a2a2e');
 
   const textureKey = JSON.stringify({
     seed: cfg.noiseSeed,

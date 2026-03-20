@@ -332,7 +332,7 @@ const state = {
   // Additive chrome “breath” beyond wall thickness: fraction of layout **width** only (not height / not sqrt area).
   //   addPx = layoutWidthPx * contentPaddingRatio
   // (Back-compat: if config provides a large value (|v| > 1), we treat it as legacy px and divide by width.)
-  contentPaddingRatio: 0.03,
+  contentPaddingRatio: 0.015,
   contentPaddingHorizontalRatio: 1.0, // horizontal padding = base × ratio (>1 = wider sides)
   contentPaddingBottomRatio: 1.3,     // bottom padding multiplier (applied to vertical padding)
   mobileWallThicknessXFactor: 1.4,    // wall thickness multiplier for LEFT/RIGHT on mobile (1.0 = same as desktop)
@@ -353,7 +353,7 @@ const state = {
   noiseSvgOctaves: 3,
   noiseSvgSeed: 1337,
   noiseDistribution: 'gaussian', // 'uniform' | 'gaussian'
-  noiseMonochrome: false, // Allow multicolored grain by default
+  noiseMonochrome: true,
   noiseChroma: 0.9, // 0..1 (color intensity when not monochrome)
   noiseMotion: 'jitter', // 'jitter' | 'drift' | 'static'
   noiseMotionAmount: 1.2, // Increased for more alive movement
@@ -368,13 +368,13 @@ const state = {
   noiseHue: 0,
   // Single layer controls
   noiseSize: 85, // Grain size (px)
-  noiseOpacity: 0.03, // Overall opacity (0-1)
-  noiseOpacityLight: 0.03, // Opacity for light mode
-  noiseOpacityDark: 0.03, // Opacity for dark mode
+  noiseOpacity: 0.04, // Overall opacity (0-1)
+  noiseOpacityLight: 0.04, // Opacity for light mode
+  noiseOpacityDark: 0.04, // Opacity for dark mode
   noiseBlendMode: 'normal', // Deprecated/no-op; blend mode is fixed to normal in CSS
   // Color controls (separate for light/dark)
-  noiseColorLight: '#ffffff', // Grain color for light mode (hex)
-  noiseColorDark: '#ffffff', // Grain color for dark mode (hex)
+  noiseColorLight: '#2a2a2e', // Dark tint — readable on light walls
+  noiseColorDark: '#d4d4d8', // Lighter tint — readable on dark walls
   detailNoiseOpacity: 1, // Overall opacity multiplier for detail page noise (0-1)
 
   // Minimum clamp targets (px)
@@ -608,17 +608,17 @@ const state = {
   // Container inner shadow removed
   
   // Unified Color System (backgrounds, frame, walls)
-  bgLight: '#f5f5f5',       // Light mode background color
-  bgDark: '#0a0a0a',        // Dark mode background color
-  wallBaseLight: '#f1f3f4', // Inner wall surface in light mode
-  wallBaseDark: '#202124',  // Inner wall surface in dark mode
+  bgLight: '#efefef',       // Light mode background color
+  bgDark: '#181818',        // Dark mode background color
+  wallBaseLight: '#efefef', // Inner wall surface in light mode
+  wallBaseDark: '#181818',  // Inner wall surface in dark mode
   frameColor: '#242529',    // Frame color (legacy - use frameColorLight/frameColorDark)
   frameColorLight: '#242529',  // Frame/wall color in light mode (browser chrome + walls + border)
   frameColorDark: '#242529',   // Frame/wall color in dark mode (browser chrome + walls + border)
   lockedHeaderLight: '#f1f3f4', // Locked-header browser fallback in light mode
   lockedHeaderDark: '#3c3c3c',  // Locked-header browser fallback in dark mode
-  safariFrameLight: '#202124',  // Safari-specific outer wall fallback in light mode
-  safariFrameDark: '#202124',   // Safari-specific outer wall fallback in dark mode
+  safariFrameLight: '#181818',  // Safari-specific outer wall fallback in light mode (dark strip)
+  safariFrameDark: '#181818',   // Safari-specific outer wall fallback in dark mode
   useSimplifiedFrame: true, // CSS-only frame (disables legacy canvas inner-wall rendering)
   // Simplified frame geometry + effects (single-wall model)
   frameBorderWidth: 2,      // Gap between outer wall and inner content (px); gradient shows in gap
@@ -636,8 +636,8 @@ const state = {
   // Text Colors
   textColorLight: '#161616',          // Primary text (light mode)
   textColorLightMuted: '#2f2f2f',     // Secondary/muted text (light mode)
-  textColorDark: '#7a8fa3',  // Primary text (dark mode) — harmonized blue-gray to match dark blue/green background
-  textColorDarkMuted: '#9db0c4', // Secondary/muted text (dark mode) — harmonized light blue-gray
+  textColorDark: '#f0f0f0', // Primary text (dark mode)
+  textColorDarkMuted: '#c8c8c8', // Secondary/muted (dark mode)
   // Edge labels now derive from `--text-muted` in CSS (not independently tunable).
   edgeLabelInsetAdjustPx: 0,
   // Page caption: clamp(min, 2vh, max) for bottom distance (universal: index, portfolio, cv).
@@ -745,11 +745,6 @@ const state = {
   outerWallCastShadowSpread: 0,             // Cast shadow spread (px)
   outerWallCastShadowOpacityLight: 0.1,     // Cast shadow opacity light mode (0-1)
   outerWallCastShadowOpacityDark: 0.17,     // Cast shadow opacity dark mode (0-1)
-  // Outer Wall Top Shadow (Overhang shadow)
-  outerWallTopShadowOffset: 2,              // Top shadow Y offset (px)
-  outerWallTopShadowBlur: 12,               // Top shadow blur (px)
-  outerWallTopShadowOpacityLight: 0.08,     // Top shadow opacity light mode
-  outerWallTopShadowOpacityDark: 0.12,      // Top shadow opacity dark mode
   
   // Outer Wall Shine (inset blur glow layer, similar to inner wall shine)
   // Light mode
@@ -800,7 +795,8 @@ const state = {
   innerWallShineOpacityDark: 0,
   innerWallShineColor: '',
   innerWallGradientEdgeWidth: 2,            // Gradient edge rim thickness (px)
-  innerWallGradientEdgeTopOpacity: 0.18,    // Master opacity — other edges derive from this
+  innerWallGradientEdgeTopOpacity: 0.18,    // Master — bottom + sides light rim only
+  innerWallGradientEdgeTopShadowOpacity: 0.3, // Top inner edge shadow rim (0–1, CSS-clamped in apply)
   puckShadowOpacity: 0.045,                 // Puck disk drop shadow strength
   puckEdgeWidth: 1,                         // Puck rim thickness (px)
   puckEdgeLightOpacity: 0.3,               // Puck top rim light
@@ -866,7 +862,7 @@ const state = {
   linkIconPadding: 24,               // Padding for icon links (px)
   linkColorInfluence: 1,            // How much cursor color affects link colors (0-1)
   linkImpactScale: 0.95,             // Scale when link is pressed (0.7-1.0)
-  linkImpactBlur: 10,                // Blur amount when link is pressed (px)
+  linkImpactBlur: 0,                 // Blur amount when link is pressed (px)
   linkImpactDuration: 150,           // Duration of press animation (ms)
   linkHoverNudge: 1,                 // Vertical translation applied during hover/focus/active (px)
   linkHoverIntensityLight: 0.2,      // Cursor tint strength for light-mode hover backgrounds (0-1)
@@ -1033,21 +1029,23 @@ export function applyLayoutFromVwToPx() {
     ? state.wallThicknessMaxPx : Infinity;
   state.wallThickness = Math.round(Math.max(minThickness, Math.min(maxThickness, unclampedWallThickness)));
   
-  // Content padding: additive to wall thickness (width × ratio — short viewport height does not shrink it).
+  // Content padding: clear the visual frame, then add optional breath.
+  // .fade-content is fixed at inset:0, so padding must clear:
+  //   containerBorder (outer gap) + frameBorderWidth (visible border)
+  // wallThickness is the physics boundary, NOT the visual frame — don't use it here.
   const layoutWidthPx = Math.max(1, w);
   const raw = Number.isFinite(state.contentPaddingRatio) ? state.contentPaddingRatio : 0;
   const frac = (Math.abs(raw) > 1) ? (raw / layoutWidthPx) : raw;
-  const contentPaddingAdditivePx = layoutWidthPx * frac;
-  // Breath = gap beyond wall to header/footer. Tunable via `contentPaddingRatio` on :root; floors keep chrome off the inner wall.
-  const breathMin = isMobileLayout ? 8 : 24;
-  const breathMax = 64;
-  const additiveClamped = Math.max(breathMin, Math.min(breathMax, contentPaddingAdditivePx));
-  state.contentPadding = Math.round(state.wallThickness + additiveClamped);
+  const breathPx = Math.max(0, layoutWidthPx * frac);
+  const fbw = clampInt(state.frameBorderWidth, 0, 40, 2);
+  const structuralMinY = state.containerBorder + fbw;
+  const structuralMinX = state.containerBorderX + fbw;
+  state.contentPadding = Math.round(structuralMinY + Math.min(breathPx, 64));
   
-  // Derive directional padding: horizontal = base × ratio, vertical = base
+  // Derive directional padding from structural minimums per axis
   const horizRatio = Math.max(0.1, state.contentPaddingHorizontalRatio || 1.0);
   state.contentPaddingY = state.contentPadding;
-  state.contentPaddingX = Math.round(state.contentPadding * horizRatio);
+  state.contentPaddingX = Math.round(structuralMinX + Math.min(breathPx * horizRatio, 64));
   
   state.wallRadius = Math.max(minWallRadiusPx, Math.round(radiusPx));
   state.cornerRadius = state.wallRadius;
@@ -1100,20 +1098,14 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--safari-tint-inset', `${state.containerBorder}px`);
   root.style.setProperty('--simulation-padding', `${state.simulationPadding}px`);
   root.style.setProperty('--content-padding', `${state.contentPadding}px`);
-  // .fade-content reads plain px (no calc×clamp). Narrow screens: same 1.5× as legacy CSS; bottom uses contentPaddingBottomRatio.
-  const layoutW = getLayoutViewportWidthPx();
-  const narrowMul = layoutW <= 600 ? 1.5 : 1;
-  const bottomMul = Number.isFinite(state.contentPaddingBottomRatio) ? state.contentPaddingBottomRatio : 1.3;
-  root.style.setProperty('--content-padding-x', `${Math.max(0, Math.round(state.contentPaddingX * narrowMul))}px`);
-  root.style.setProperty('--content-padding-y', `${Math.max(0, Math.round(state.contentPaddingY * narrowMul))}px`);
-  root.style.setProperty(
-    '--content-padding-y-bottom',
-    `${Math.max(0, Math.round(state.contentPaddingY * narrowMul * bottomMul))}px`
-  );
+  // .fade-content reads plain px values. Same padding all sides (no bottom multiplier).
+  root.style.setProperty('--content-padding-x', `${Math.max(0, state.contentPaddingX)}px`);
+  root.style.setProperty('--content-padding-y', `${Math.max(0, state.contentPaddingY)}px`);
+  root.style.setProperty('--content-padding-y-bottom', `${Math.max(0, state.contentPaddingY)}px`);
   root.style.setProperty('--wall-radius', `${state.wallRadius}px`);
   root.style.setProperty('--wall-thickness', `${state.wallThickness}px`);
-  root.style.setProperty('--abs-wall-base-light', state.wallBaseLight || '#f1f3f4');
-  root.style.setProperty('--abs-wall-base-dark', state.wallBaseDark || '#202124');
+  root.style.setProperty('--abs-wall-base-light', state.wallBaseLight || '#efefef');
+  root.style.setProperty('--abs-wall-base-dark', state.wallBaseDark || '#181818');
   // Simplified frame geometry/effects CSS vars.
   const frameBorderWidth = clampInt(state.frameBorderWidth, 0, 40, 0);
   const frameInnerRadius = clampInt(state.wallRadius, 0, 300, 42);
@@ -1245,11 +1237,11 @@ export function applyLayoutCSSVars() {
   // Outer Wall Edge Lighting CSS variables (double-wall effect; consumed by #simulations box-shadow)
   const isDarkMode = document.body.classList.contains('dark-mode');
   const outerEdgeOn = state.outerWallEdgeEnabled !== false;
-  const topDarkOff = state.outerWallTopDarkOffset ?? state.outerWallTopShadowOffset ?? 1;
-  const topDarkBlur = state.outerWallTopDarkBlur ?? state.outerWallTopShadowBlur ?? 3;
+  const topDarkOff = state.outerWallTopDarkOffset ?? 1;
+  const topDarkBlur = state.outerWallTopDarkBlur ?? 3;
   const topDarkSpread = state.outerWallTopDarkSpread ?? 0;
-  const topDarkOpL = state.outerWallTopDarkOpacityLight ?? state.outerWallTopShadowOpacityLight ?? 0.08;
-  const topDarkOpD = state.outerWallTopDarkOpacityDark ?? state.outerWallTopShadowOpacityDark ?? 0.12;
+  const topDarkOpL = state.outerWallTopDarkOpacityLight ?? 0.08;
+  const topDarkOpD = state.outerWallTopDarkOpacityDark ?? 0.12;
   root.style.setProperty('--outer-wall-top-dark-offset', `${topDarkOff}px`);
   root.style.setProperty('--outer-wall-top-dark-blur', `${topDarkBlur}px`);
   root.style.setProperty('--outer-wall-top-dark-spread', `${topDarkSpread}px`);
@@ -1285,20 +1277,8 @@ export function applyLayoutCSSVars() {
     : (state.innerWallOutwardShadowOpacityLight ?? 0.14)));
   root.style.setProperty('--inner-wall-outward-shadow-opacity-dark', String(state.innerWallOutwardShadowOpacityDark ?? 0.24));
   
-  // Inner Wall Inner Glow CSS variables
-  root.style.setProperty('--inner-wall-inner-glow-blur', `${state.innerWallInnerGlowBlur ?? 34}px`);
-  root.style.setProperty('--inner-wall-inner-glow-spread', `${state.innerWallInnerGlowSpread ?? 3}px`);
-  root.style.setProperty('--inner-wall-inner-glow-offset-y', `${state.innerWallInnerGlowOffsetY ?? 12}px`);
-  root.style.setProperty('--inner-wall-inner-glow-opacity', String(isDarkMode
-    ? (state.innerWallInnerGlowOpacityDark ?? 0.085)
-    : (state.innerWallInnerGlowOpacityLight ?? 0.07)));
-  root.style.setProperty('--inner-wall-inner-glow-opacity-dark', String(state.innerWallInnerGlowOpacityDark ?? 0.085));
-  if (state.innerWallInnerGlowColor) {
-    const rgb = hexToRgbString(state.innerWallInnerGlowColor);
-    root.style.setProperty('--inner-wall-inner-glow-rgb', rgb);
-  } else {
-    root.style.setProperty('--inner-wall-inner-glow-rgb', '255, 255, 255');
-  }
+  // Inner Wall Inner Glow — disabled (removed from box-shadow)
+  root.style.setProperty('--inner-wall-inner-glow-opacity', '0');
   
   // Top Bevel CSS variables (thick lip at top edge)
   root.style.setProperty('--outer-wall-top-bevel-width', `${state.outerWallTopBevelWidth ?? 3}px`);
@@ -1319,14 +1299,19 @@ export function applyLayoutCSSVars() {
   // Inner wall shine — disabled (replaced by gradient edge system)
   root.style.setProperty('--inner-wall-shine-opacity', '0');
 
-  // Gradient edge per-side opacities
-  const geTop = state.innerWallGradientEdgeTopOpacity ?? 0.18;
-  const geRatio = geTop > 0 ? 1 : 0;
+  // Gradient edge — master drives bottom/sides light; top shadow has its own control
+  const ge = state.innerWallGradientEdgeTopOpacity ?? 0.22;
+  const dm = isDarkMode ? 0.75 : 1;
+  const topShadow = state.innerWallGradientEdgeTopShadowOpacity ?? 0.3;
+  const topShadowDm = isDarkMode ? 1.15 : 1;
   root.style.setProperty('--inner-wall-gradient-edge-width', `${state.innerWallGradientEdgeWidth ?? 2}px`);
-  root.style.setProperty('--inner-wall-gradient-edge-top-opacity', String(isDarkMode ? Math.max(0, geTop * 0.67) : geTop));
-  root.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(isDarkMode ? Math.max(0, geTop * 1.0) : Math.max(0, geTop * 1.5)));
-  root.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(isDarkMode ? Math.max(0, geTop * 0.44) : Math.max(0, geTop * 0.67)));
-  root.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(isDarkMode ? Math.max(0, geTop * 0.33) : Math.max(0, geTop * 0.44)));
+  root.style.setProperty('--inner-wall-gradient-edge-bottom-opacity', String(Number((ge * 1.45 * dm).toFixed(3))));
+  root.style.setProperty('--inner-wall-gradient-edge-side-opacity', String(Number((ge * 0.85 * dm).toFixed(3))));
+  root.style.setProperty('--inner-wall-gradient-edge-side-shadow-opacity', String(Number((ge * 0.85 * dm).toFixed(3))));
+  root.style.setProperty(
+    '--inner-wall-gradient-edge-top-shadow-opacity',
+    String(Number(Math.min(1, topShadow * topShadowDm).toFixed(3)))
+  );
 
   // Puck disk edge
   root.style.setProperty('--quote-button-outer-shadow', String(state.puckShadowOpacity ?? 0.045));
@@ -1375,7 +1360,7 @@ export function initState(config) {
     state.sizeVariationGlobalMul = clampNumber(config.sizeVariationGlobalMul, 0, 2, state.sizeVariationGlobalMul);
   }
   if (config.sizeVariationCap !== undefined) {
-    state.sizeVariationCap = clampNumber(config.sizeVariationCap, 0, 0.2, state.sizeVariationCap);
+    state.sizeVariationCap = clampNumber(config.sizeVariationCap, 0, 1, state.sizeVariationCap);
   }
   // Per-mode variation sliders (0..1)
   if (config.sizeVariationPit !== undefined) state.sizeVariationPit = clampNumber(config.sizeVariationPit, 0, 1, state.sizeVariationPit);
@@ -1719,7 +1704,7 @@ export function initState(config) {
   if (config.sphere3dIdleSpeed !== undefined) state.sphere3dIdleSpeed = clampNumber(config.sphere3dIdleSpeed, 0, 1, state.sphere3dIdleSpeed);
   if (config.sphere3dCursorInfluence !== undefined) state.sphere3dCursorInfluence = clampNumber(config.sphere3dCursorInfluence, 0, 4, state.sphere3dCursorInfluence);
   if (config.sphere3dTumbleSpeed !== undefined) state.sphere3dTumbleSpeed = clampNumber(config.sphere3dTumbleSpeed, 0, 10, state.sphere3dTumbleSpeed);
-  if (config.sphere3dTumbleDamping !== undefined) state.sphere3dTumbleDamping = clampNumber(config.sphere3dTumbleDamping, 0.8, 0.99, state.sphere3dTumbleDamping);
+  if (config.sphere3dTumbleDamping !== undefined) state.sphere3dTumbleDamping = clampNumber(config.sphere3dTumbleDamping, 0, 1, state.sphere3dTumbleDamping);
   if (config.sphere3dWarmupFrames !== undefined) state.sphere3dWarmupFrames = clampInt(config.sphere3dWarmupFrames, 0, 240, state.sphere3dWarmupFrames);
 
   // 3D Cube (Mode 17)
@@ -1729,7 +1714,7 @@ export function initState(config) {
   if (config.cube3dIdleSpeed !== undefined) state.cube3dIdleSpeed = clampNumber(config.cube3dIdleSpeed, 0, 1, state.cube3dIdleSpeed);
   if (config.cube3dCursorInfluence !== undefined) state.cube3dCursorInfluence = clampNumber(config.cube3dCursorInfluence, 0, 4, state.cube3dCursorInfluence);
   if (config.cube3dTumbleSpeed !== undefined) state.cube3dTumbleSpeed = clampNumber(config.cube3dTumbleSpeed, 0, 10, state.cube3dTumbleSpeed);
-  if (config.cube3dTumbleDamping !== undefined) state.cube3dTumbleDamping = clampNumber(config.cube3dTumbleDamping, 0.8, 0.99, state.cube3dTumbleDamping);
+  if (config.cube3dTumbleDamping !== undefined) state.cube3dTumbleDamping = clampNumber(config.cube3dTumbleDamping, 0, 1, state.cube3dTumbleDamping);
   if (config.cube3dFocalLength !== undefined) state.cube3dFocalLength = clampInt(config.cube3dFocalLength, 80, 2000, state.cube3dFocalLength);
   if (config.cube3dDotSizeMul !== undefined) state.cube3dDotSizeMul = clampNumber(config.cube3dDotSizeMul, 0.2, 4.0, state.cube3dDotSizeMul);
   if (config.cube3dFogStart !== undefined) state.cube3dFogStart = clampNumber(config.cube3dFogStart, 0, 1, state.cube3dFogStart);
@@ -1758,7 +1743,7 @@ export function initState(config) {
   if (config.elasticCenterElasticStrength !== undefined) state.elasticCenterElasticStrength = clampInt(config.elasticCenterElasticStrength, 0, 15000, state.elasticCenterElasticStrength);
   if (config.elasticCenterMouseRepelStrength !== undefined) state.elasticCenterMouseRepelStrength = clampInt(config.elasticCenterMouseRepelStrength, 3000, 25000, state.elasticCenterMouseRepelStrength);
   if (config.elasticCenterMouseRadius !== undefined) state.elasticCenterMouseRadius = clampInt(config.elasticCenterMouseRadius, 50, 400, state.elasticCenterMouseRadius);
-  if (config.elasticCenterDamping !== undefined) state.elasticCenterDamping = clampNumber(config.elasticCenterDamping, 0.85, 0.99, state.elasticCenterDamping);
+  if (config.elasticCenterDamping !== undefined) state.elasticCenterDamping = clampNumber(config.elasticCenterDamping, 0, 1, state.elasticCenterDamping);
   if (config.elasticCenterWarmupFrames !== undefined) state.elasticCenterWarmupFrames = clampInt(config.elasticCenterWarmupFrames, 0, 240, state.elasticCenterWarmupFrames);
 
 
@@ -1767,7 +1752,7 @@ export function initState(config) {
   if (config.particleFountainEmissionRate !== undefined) state.particleFountainEmissionRate = clampInt(config.particleFountainEmissionRate, 5, 100, state.particleFountainEmissionRate);
   if (config.particleFountainInitialVelocity !== undefined) state.particleFountainInitialVelocity = clampInt(config.particleFountainInitialVelocity, 200, 10000, state.particleFountainInitialVelocity);
   if (config.particleFountainSpreadAngle !== undefined) state.particleFountainSpreadAngle = clampInt(config.particleFountainSpreadAngle, 10, 120, state.particleFountainSpreadAngle);
-  if (config.particleFountainWaterDrag !== undefined) state.particleFountainWaterDrag = clampNumber(config.particleFountainWaterDrag, 0.01, 0.2, state.particleFountainWaterDrag);
+  if (config.particleFountainWaterDrag !== undefined) state.particleFountainWaterDrag = clampNumber(config.particleFountainWaterDrag, 0.01, 1, state.particleFountainWaterDrag);
   if (config.particleFountainGravityMultiplier !== undefined) state.particleFountainGravityMultiplier = clampNumber(config.particleFountainGravityMultiplier, 0, 2.0, state.particleFountainGravityMultiplier);
   if (config.particleFountainUpwardForce !== undefined) state.particleFountainUpwardForce = clampInt(config.particleFountainUpwardForce, 0, 800, state.particleFountainUpwardForce);
   if (config.particleFountainMaxParticles !== undefined) state.particleFountainMaxParticles = clampInt(config.particleFountainMaxParticles, 20, 300, state.particleFountainMaxParticles);
@@ -1781,10 +1766,10 @@ export function initState(config) {
     state.sceneImpactEnabled = Boolean(config.sceneImpactEnabled);
   }
   if (config.sceneImpactMul !== undefined) {
-    state.sceneImpactMul = clampNumber(config.sceneImpactMul, 0, 0.05, state.sceneImpactMul);
+    state.sceneImpactMul = clampNumber(config.sceneImpactMul, 0, 1, state.sceneImpactMul);
   } else if (config.brandLogoImpactMul !== undefined) {
     // Back-compat: reuse old logo tuning if scene tuning is absent.
-    state.sceneImpactMul = clampNumber(config.brandLogoImpactMul, 0, 0.05, state.sceneImpactMul);
+    state.sceneImpactMul = clampNumber(config.brandLogoImpactMul, 0, 1, state.sceneImpactMul);
   }
   if (config.sceneImpactMobileMulFactor !== undefined) {
     state.sceneImpactMobileMulFactor = clampNumber(config.sceneImpactMobileMulFactor, 0.25, 3.0, state.sceneImpactMobileMulFactor);
@@ -1793,14 +1778,14 @@ export function initState(config) {
     state.sceneImpactLogoCompMul = clampNumber(config.sceneImpactLogoCompMul, 0.25, 6.0, state.sceneImpactLogoCompMul);
   }
   if (config.sceneImpactOvershoot !== undefined) {
-    state.sceneImpactOvershoot = clampNumber(config.sceneImpactOvershoot, 0, 0.8, state.sceneImpactOvershoot);
+    state.sceneImpactOvershoot = clampNumber(config.sceneImpactOvershoot, 0, 1, state.sceneImpactOvershoot);
   } else if (config.brandLogoOvershoot !== undefined) {
-    state.sceneImpactOvershoot = clampNumber(config.brandLogoOvershoot, 0, 0.8, state.sceneImpactOvershoot);
+    state.sceneImpactOvershoot = clampNumber(config.brandLogoOvershoot, 0, 1, state.sceneImpactOvershoot);
   }
   if (config.sceneImpactAnticipation !== undefined) {
-    state.sceneImpactAnticipation = clampNumber(config.sceneImpactAnticipation, 0, 0.6, state.sceneImpactAnticipation);
+    state.sceneImpactAnticipation = clampNumber(config.sceneImpactAnticipation, 0, 1, state.sceneImpactAnticipation);
   } else if (config.brandLogoAnticipation !== undefined) {
-    state.sceneImpactAnticipation = clampNumber(config.brandLogoAnticipation, 0, 0.6, state.sceneImpactAnticipation);
+    state.sceneImpactAnticipation = clampNumber(config.brandLogoAnticipation, 0, 1, state.sceneImpactAnticipation);
   }
   if (config.sceneImpactPressMs !== undefined) {
     state.sceneImpactPressMs = clampNumber(config.sceneImpactPressMs, 20, 300, state.sceneImpactPressMs);
@@ -2162,7 +2147,9 @@ export function initState(config) {
   
   // Gate overlay settings
   if (config.modalOverlayEnabled !== undefined) state.modalOverlayEnabled = config.modalOverlayEnabled;
-  if (config.modalOverlayOpacity !== undefined) state.modalOverlayOpacity = config.modalOverlayOpacity;
+  if (config.modalOverlayOpacity !== undefined) {
+    state.modalOverlayOpacity = clampNumber(config.modalOverlayOpacity, 0, 1, state.modalOverlayOpacity);
+  }
   if (config.modalOverlayBlurPx !== undefined) state.modalOverlayBlurPx = config.modalOverlayBlurPx;
   if (config.modalOverlayTransitionMs !== undefined) state.modalOverlayTransitionMs = config.modalOverlayTransitionMs;
   if (config.modalOverlayTransitionOutMs !== undefined) state.modalOverlayTransitionOutMs = config.modalOverlayTransitionOutMs;
@@ -2184,15 +2171,14 @@ export function initState(config) {
   if (config.outerWallBorderShadowOpacityDark !== undefined) state.outerWallBorderShadowOpacityDark = config.outerWallBorderShadowOpacityDark;
   
   // Outer Wall Shadow
-  if (config.outerWallCastShadowOpacityLight !== undefined) state.outerWallCastShadowOpacityLight = config.outerWallCastShadowOpacityLight;
-  if (config.outerWallCastShadowOpacityDark !== undefined) state.outerWallCastShadowOpacityDark = config.outerWallCastShadowOpacityDark;
+  if (config.outerWallCastShadowOpacityLight !== undefined) {
+    state.outerWallCastShadowOpacityLight = clampNumber(config.outerWallCastShadowOpacityLight, 0, 1, state.outerWallCastShadowOpacityLight);
+  }
+  if (config.outerWallCastShadowOpacityDark !== undefined) {
+    state.outerWallCastShadowOpacityDark = clampNumber(config.outerWallCastShadowOpacityDark, 0, 1, state.outerWallCastShadowOpacityDark);
+  }
   if (config.outerWallCastShadowBlur !== undefined) state.outerWallCastShadowBlur = config.outerWallCastShadowBlur;
   if (config.outerWallCastShadowOffset !== undefined) state.outerWallCastShadowOffset = config.outerWallCastShadowOffset;
-  // Outer Wall Top Shadow
-  if (config.outerWallTopShadowOffset !== undefined) state.outerWallTopShadowOffset = config.outerWallTopShadowOffset;
-  if (config.outerWallTopShadowBlur !== undefined) state.outerWallTopShadowBlur = config.outerWallTopShadowBlur;
-  if (config.outerWallTopShadowOpacityLight !== undefined) state.outerWallTopShadowOpacityLight = config.outerWallTopShadowOpacityLight;
-  if (config.outerWallTopShadowOpacityDark !== undefined) state.outerWallTopShadowOpacityDark = config.outerWallTopShadowOpacityDark;
   
   // Outer Wall Shine (Light mode)
   if (config.outerWallShineBlurLight !== undefined) state.outerWallShineBlurLight = config.outerWallShineBlurLight;
@@ -2242,8 +2228,13 @@ export function initState(config) {
   if (config.innerWallShineOpacityDark !== undefined) state.innerWallShineOpacityDark = config.innerWallShineOpacityDark;
   if (config.innerWallShineColor !== undefined) state.innerWallShineColor = String(config.innerWallShineColor ?? '');
   if (config.innerWallGradientEdgeWidth !== undefined) state.innerWallGradientEdgeWidth = clampNumber(config.innerWallGradientEdgeWidth, 0, 6, 2);
-  if (config.innerWallGradientEdgeTopOpacity !== undefined) state.innerWallGradientEdgeTopOpacity = clampNumber(config.innerWallGradientEdgeTopOpacity, 0, 0.5, 0.18);
-  if (config.puckShadowOpacity !== undefined) state.puckShadowOpacity = clampNumber(config.puckShadowOpacity, 0, 0.4, 0.045);
+  if (config.innerWallGradientEdgeTopOpacity !== undefined) {
+    state.innerWallGradientEdgeTopOpacity = clampNumber(config.innerWallGradientEdgeTopOpacity, 0, 1, 0.18);
+  }
+  if (config.innerWallGradientEdgeTopShadowOpacity !== undefined) {
+    state.innerWallGradientEdgeTopShadowOpacity = clampNumber(config.innerWallGradientEdgeTopShadowOpacity, 0, 1, 0.3);
+  }
+  if (config.puckShadowOpacity !== undefined) state.puckShadowOpacity = clampNumber(config.puckShadowOpacity, 0, 1, 0.045);
   if (config.puckEdgeWidth !== undefined) state.puckEdgeWidth = clampNumber(config.puckEdgeWidth, 0, 4, 1);
   if (config.puckEdgeLightOpacity !== undefined) state.puckEdgeLightOpacity = clampNumber(config.puckEdgeLightOpacity, 0, 1, 0.3);
   if (config.puckEdgeShadowOpacity !== undefined) state.puckEdgeShadowOpacity = clampNumber(config.puckEdgeShadowOpacity, 0, 1, 0.15);
@@ -2280,7 +2271,7 @@ export function initState(config) {
       // Back-compat: treat large values as legacy px (allow negatives), otherwise clamp as fraction.
       state.contentPaddingRatio = (Math.abs(v) > 1)
         ? clampNumber(v, -500, 500, state.contentPaddingRatio)
-        : clampNumber(v, -0.2, 0.2, state.contentPaddingRatio);
+        : clampNumber(v, -0.05, 1, state.contentPaddingRatio);
     }
   }
   if (config.contentPaddingHorizontalRatio !== undefined) state.contentPaddingHorizontalRatio = clampNumber(config.contentPaddingHorizontalRatio, 0.1, 3.0, state.contentPaddingHorizontalRatio);

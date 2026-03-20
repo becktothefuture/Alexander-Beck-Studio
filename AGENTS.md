@@ -2,7 +2,7 @@
 
 ## Commands
 - `npm run install:all` — One-time: install root + react-app/app
-- `npm run startup` — Interactive menu: React dev, Install all, Build, Exit
+- `npm run startup` — Interactive menu: React dev, Install all, Build, Exit (after choosing dev, prints **styleguide** URL: `/styleguide.html` for typography + components)
 - `npm run dev` — React app dev server on 8012
 - `npm run dev:react` — React app dev server only (port 8012, Vite HMR)
 - `npm run build` — Canonical production build: flattens design config, then builds → `react-app/app/dist/`
@@ -28,7 +28,7 @@
 - Build: Vite → `react-app/app/dist/`
 - **Site UI styleguide (chrome buttons, harmony):** `docs/reference/SITE-STYLEGUIDE.md`
 - **Route top bar:** Same standing as the **footer**—fixed pattern only: `header.ui-top` → `ui-top-main.route-topbar` → `route-topbar__left` / `route-topbar__center.ui-main-nav` (`.footer_link` buttons) / `route-topbar__right` + `#sound-toggle-slot`. Do not invent alternate top-bar text buttons or absolute-center layouts. See `docs/reference/COMPONENT-LIBRARY.md` (route top bar) + `SITE-STYLEGUIDE.md` §1.4 + live `/styleguide.html`.
-- **Layer stacking (z-order):** **`docs/reference/LAYER-STACKING.md` is canonical.** Read it before changing `#portfolio-sheet-host`, `.fade-content`, `#abs-scene`, or `#portfolioProjectView` mount. **Portfolio drawer MUST stack above header + footer** (`.fade-content`, z-index 200): host is **`#abs-scene` sibling after `.fade-content`**, z-index **220** / **260** when open — **never** only inside `#bravia-balls`.
+- **Layer stacking (z-order):** **`docs/reference/LAYER-STACKING.md` is canonical.** Read it before changing `#portfolio-sheet-host`, `.fade-content`, `#abs-scene`, or `#portfolioProjectView` mount. **Portfolio drawer MUST stack above header + footer** (`.fade-content`, z-index 200): host is **`#abs-scene` sibling after `.fade-content`**, z-index **220** / **260** when open — **never** only inside `#simulations`.
 - **Portfolio pit physics (collisions, walls, spatial grid):** `docs/reference/PORTFOLIO-PIT-PHYSICS.md`
 - **Portfolio CSS on SPA:** `index.html` must include **`/css/portfolio.css`**. **`#portfolio-sheet-host`**: fixed inset like inner canvas, **`border-radius: var(--frame-inner-radius)`**, **`overflow: hidden`**, **`z-index: 220` / `260`**. **`#portfolioProjectView`** inherits **`corner-shape`** like `#c`. **`.portfolio-project-view__drawer`**: **`--portfolio-drawer-ground`**, no second frame border.
 

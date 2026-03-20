@@ -15,9 +15,9 @@ let currentProjectId = null;
  */
 export async function initTactileLayer(config) {
   // Find the simulation container
-  const parent = document.getElementById('bravia-balls');
+  const parent = document.getElementById('simulations');
   if (!parent) {
-    console.warn('Tactile Layer: #bravia-balls container not found.');
+    console.warn('Tactile Layer: #simulations container not found.');
     return;
   }
 
@@ -26,7 +26,7 @@ export async function initTactileLayer(config) {
     container = document.createElement('div');
     container.id = 'tactile-layer';
     
-    // Position inside #bravia-balls
+    // Position inside #simulations
     // Match the geometry of the inner wall exactly
     container.style.position = 'absolute';
     container.style.inset = 'var(--wall-thickness, 9px)';

@@ -1,6 +1,8 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                    QUOTE PUCK — AIR-HOCKEY PHYSICS                             ║
-// ║   Drag-to-flick · wall bounce · friction · spin (inner surface only).        ║
+// ║   Drag-to-flick · wall bounce · friction · spin on text via --quote-tilt.     ║
+// ║   Round fill (.quote-display__disk) scales on hover; text does not.            ║
+// ║   stays aligned with the scene (rotating the surface warps high-contrast edges). ║
 // ║   Shell: left/top only — rim/shadow stay fixed. No drag/hover CSS class.     ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -26,7 +28,7 @@ function clamp(v, lo, hi) {
 
 export function initQuotePuck() {
   const el = document.getElementById('quote-display');
-  if (!el || !el.querySelector('.quote-display__surface')) return;
+  if (!el || !el.querySelector('.quote-display__disk')) return;
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -41,12 +43,6 @@ export function initQuotePuck() {
   el.style.top = `${y}px`;
   el.style.touchAction = 'none';
   el.style.removeProperty('transform');
-
-  let surface = null;
-  function getSurface() {
-    if (!surface) surface = el.querySelector('.quote-display__surface');
-    return surface;
-  }
 
   let vx = 0;
   let vy = 0;
@@ -70,8 +66,7 @@ export function initQuotePuck() {
   function writePos() {
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
-    const s = getSurface();
-    if (s) s.style.transform = `rotate(${angle.toFixed(1)}deg)`;
+    el.style.setProperty('--quote-tilt', `${angle.toFixed(1)}deg`);
   }
 
   function pushSample(e) {

@@ -110,13 +110,6 @@ const RETIRED_RUNTIME_KEYS = new Set([
   'outerWallShineOvershootDark',
   'outerWallShineOpacityDark',
   'outerWallShineColorDark',
-  'innerWallShineEnabled',
-  'innerWallShineBlur',
-  'innerWallShineOvershoot',
-  'innerWallShineSpread',
-  'innerWallShineOpacityLight',
-  'innerWallShineOpacityDark',
-  'innerWallShineColor',
   'uiIconFramePx',
   'uiIconGlyphPx',
   'frameInnerRadius',
@@ -268,8 +261,8 @@ function applyDerivedStudioRuntime(runtime = {}, shell = {}) {
   nextRuntime.hoverEdgeBottomOpacity = Number((studio.edgeStrength * 0.78).toFixed(3));
   nextRuntime.hoverEdgeTopEnabled = studio.edgeStrength > 0;
   nextRuntime.hoverEdgeTopOpacity = Number((studio.edgeStrength * 0.46).toFixed(3));
-  nextRuntime.frameBorderGradientEdgeOpacity = Number((studio.sceneHighlight * 0.09).toFixed(3));
-  nextRuntime.frameBorderGradientMidOpacity = Number((studio.sceneHighlight * 0.18).toFixed(3));
+  nextRuntime.frameBorderGradientEdgeOpacity = Number((studio.sceneHighlight * 0.029).toFixed(3));
+  nextRuntime.frameBorderGradientMidOpacity = Number((studio.sceneHighlight * 0.058).toFixed(3));
   nextRuntime.frameVignetteEdgeOpacity = studio.sceneDepth;
   nextRuntime.frameVignetteAmbientOpacity = Number((studio.sceneDepth * 0.64).toFixed(3));
   nextRuntime.frameVignetteEdgeBlur = Math.round(10 + (studio.sceneSoftness * 70));

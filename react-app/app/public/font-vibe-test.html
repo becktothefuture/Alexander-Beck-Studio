@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<!--
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  FONT VIBE TEST — Google Fonts nav specimen (Contact / Portfolio / About)   ║
+║  Dev: /font-vibe-test.html  ·  Site: DM Sans + DM Mono                      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Font vibe test — nav links</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;500;600&family=DM+Sans:wght@400;500;600&family=Epilogue:wght@400;500;600&family=Geologica:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&family=Urbanist:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: clamp(1.5rem, 4vw, 2.5rem);
+      background: #f4f4f5;
+      color: #18181b;
+      font-family: system-ui, sans-serif;
+      line-height: 1.5;
+    }
+    .page {
+      max-width: 42rem;
+      margin: 0 auto;
+    }
+    .intro {
+      font-size: 0.875rem;
+      color: #52525b;
+      margin-bottom: 2rem;
+      max-width: 38rem;
+    }
+    .intro code {
+      font-size: 0.8125em;
+      padding: 0.1em 0.35em;
+      background: rgba(0, 0, 0, 0.06);
+      border-radius: 0.25rem;
+    }
+    .specimen {
+      padding: 1.25rem 0 1.75rem;
+      border-bottom: 1px solid rgba(24, 24, 27, 0.08);
+    }
+    .specimen:first-of-type {
+      padding-top: 0;
+    }
+    .specimen:last-of-type {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .specimen__label {
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #71717a;
+      margin-bottom: 0.75rem;
+    }
+    .specimen__nav {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.5rem 0.75rem;
+      font-size: clamp(1rem, 2.5vw, 1.125rem);
+      font-weight: 500;
+    }
+    .specimen__nav a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(24, 24, 27, 0.2);
+      padding-bottom: 0.05em;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .specimen__nav a:hover {
+      color: #0a0a0a;
+      border-bottom-color: rgba(24, 24, 27, 0.55);
+    }
+    .specimen__nav a:focus-visible {
+      outline: 2px solid #18181b;
+      outline-offset: 3px;
+      border-bottom-color: transparent;
+    }
+    .specimen__sep {
+      color: #a1a1aa;
+      font-weight: 400;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <p class="intro">
+      Ten Google Fonts in the sharp neo-grotesque / geometric sans band (warmer than pure tech).
+      Production UI uses <strong>DM Sans</strong> / <strong>DM Mono</strong> (loaded on the main app pages). The row labeled Work Sans was a stand-in because JetBrains Sans is not on Google Fonts.
+    </p>
+
+    <section class="specimen" style="font-family: 'Space Grotesk', system-ui, sans-serif;">
+      <div class="specimen__label">Space Grotesk</div>
+      <nav class="specimen__nav" aria-label="Space Grotesk sample">
+        <a href="#">Contact</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">Portfolio</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">About me</a>
+      </nav>
+    </section>
+
+    <section class="specimen" style="font-family: 'Geologica', system-ui, sans-serif;">
+      <div class="specimen__label">Geologica</div>
+      <nav class="specimen__nav" aria-label="Geologica sample">
+        <a href="#">Contact</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">Portfolio</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">About me</a>
+      </nav>
+    </section>
+
+    <section class="specimen" style="font-family: 'Chivo', system-ui, sans-serif;">
+      <div class="specimen__label">Chivo</div>
+      <nav class="specimen__nav" aria-label="Chivo sample">
+        <a href="#">Contact</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">Portfolio</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">About me</a>
+      </nav>
+    </section>
+
+    <section class="specimen" style="font-family: 'IBM Plex Sans', system-ui, sans-serif;">
+      <div class="specimen__label">IBM Plex Sans</div>
+      <nav class="specimen__nav" aria-label="IBM Plex Sans sample">
+        <a href="#">Contact</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">Portfolio</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">About me</a>
+      </nav>
+    </section>
+
+    <section class="specimen" style="font-family: 'Work Sans', system-ui, sans-serif;">
+      <div class="specimen__label">Work Sans (JetBrains Sans not on Google Fonts)</div>
+      <nav class="specimen__nav" aria-label="Work Sans sample">
+        <a href="#">Contact</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">Portfolio</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">About me</a>
+      </nav>
+    </section>
+
+    <section class="specimen" style="font-family: 'Source Sans 3', system-ui, sans-serif;">
+      <div class="specimen__label">Source Sans 3</div>
+      <nav class="specimen__nav" aria-label="Source Sans 3 sample">
+        <a href="#">Contact</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">Portfolio</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">About me</a>
+      </nav>
+    </section>
+
+    <section class="specimen" style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif;">
+      <div class="specimen__label">Plus Jakarta Sans</div>
+      <nav class="specimen__nav" aria-label="Plus Jakarta Sans sample">
+        <a href="#">Contact</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">Portfolio</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">About me</a>
+      </nav>
+    </section>
+
+    <section class="specimen" style="font-family: 'DM Sans', system-ui, sans-serif;">
+      <div class="specimen__label">DM Sans</div>
+      <nav class="specimen__nav" aria-label="DM Sans sample">
+        <a href="#">Contact</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">Portfolio</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">About me</a>
+      </nav>
+    </section>
+
+    <section class="specimen" style="font-family: 'Epilogue', system-ui, sans-serif;">
+      <div class="specimen__label">Epilogue</div>
+      <nav class="specimen__nav" aria-label="Epilogue sample">
+        <a href="#">Contact</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">Portfolio</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">About me</a>
+      </nav>
+    </section>
+
+    <section class="specimen" style="font-family: 'Urbanist', system-ui, sans-serif;">
+      <div class="specimen__label">Urbanist</div>
+      <nav class="specimen__nav" aria-label="Urbanist sample">
+        <a href="#">Contact</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">Portfolio</a><span class="specimen__sep" aria-hidden="true">·</span>
+        <a href="#">About me</a>
+      </nav>
+    </section>
+  </div>
+</body>
+</html>

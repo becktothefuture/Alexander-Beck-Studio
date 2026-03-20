@@ -103,7 +103,7 @@ The portfolio project detail view requires comprehensive improvements to achieve
 **Starting Point:**
 - File: `source/css/portfolio.css` lines 766-777 (`.project-detail__links a`)
 - Reference: `source/css/main.css` link hover styles (search for `--link-hover-color`)
-- Token: `--link-hover-color: var(--color-accent)` (#ff4013)
+- Token: `--link-hover-color: var(--color-accent)` (#f03030)
 
 **Expected Behavior:**
 - Links use `--text-primary` as default color
@@ -500,8 +500,8 @@ The portfolio project detail view requires comprehensive improvements to achieve
 ### Color Palette
 - Background light: `#f5f5f5` (`--bg-light`)
 - Background dark: `#0a0a0a` (`--bg-dark`)
-- Accent: `#ff4013` (`--color-accent`)
-- Text primary: `#454545` light / `#617282` dark
+- Accent: `#f03030` (`--color-accent`)
+- Text primary: `#454545` light / `#7e7e7e` dark (muted `#a3a3a3`)
 
 ## Technical Considerations
 

@@ -2,7 +2,7 @@
   "global": {
     "palettePrimitives": {
       "abs-neutral-1000": { "value": "#000000", "type": "color" },
-      "abs-neutral-950": { "value": "#0a0a0a", "type": "color" },
+      "abs-neutral-950": { "value": "#181818", "type": "color" },
       "abs-neutral-900": { "value": "#161616", "type": "color" },
       "abs-neutral-800": { "value": "#2f2f2f", "type": "color" },
       "abs-neutral-650": { "value": "#808080", "type": "color" },
@@ -10,12 +10,12 @@
       "abs-neutral-450": { "value": "#c8c8c8", "type": "color" },
       "abs-neutral-400": { "value": "#d0d0d0", "type": "color" },
       "abs-neutral-350": { "value": "#d5d5d5", "type": "color" },
-      "abs-neutral-100": { "value": "#f5f5f5", "type": "color" },
+      "abs-neutral-100": { "value": "#efefef", "type": "color" },
       "abs-neutral-50": { "value": "#ffffff", "type": "color" },
       "abs-chrome-light": { "value": "#f1f3f4", "type": "color" },
       "abs-chrome-dark": { "value": "#202124", "type": "color" },
 
-      "abs-accent-primary": { "value": "#ff4013", "type": "color" },
+      "abs-accent-primary": { "value": "#f03030", "type": "color" },
       "abs-accent-emerald": { "value": "#00695c", "type": "color" },
       "abs-accent-blue": { "value": "#0d5cb6", "type": "color" },
       "abs-accent-gold": { "value": "#ffa000", "type": "color" },
@@ -30,8 +30,8 @@
     },
 
     "typographyTokens": {
-      "abs-font-sans": { "value": "'Geist', sans-serif", "type": "fontFamilies" },
-      "abs-font-mono": { "value": "'Geist Mono', monospace", "type": "fontFamilies" },
+      "abs-font-sans": { "value": "'DM Sans', sans-serif", "type": "fontFamilies" },
+      "abs-font-mono": { "value": "'DM Mono', monospace", "type": "fontFamilies" },
       "abs-font-display": { "value": "'Sarina', cursive", "type": "fontFamilies" },
       "abs-weight-regular": { "value": "400", "type": "fontWeights" },
       "abs-weight-medium": { "value": "600", "type": "fontWeights" },
@@ -182,9 +182,9 @@
     "textColorsOpacity": {
       "text-color-light": { "value": "{palettePrimitives.abs-neutral-900}", "type": "color" },
       "text-color-light-muted": { "value": "{palettePrimitives.abs-neutral-800}", "type": "color" },
-      "text-color-dark": { "value": "{palettePrimitives.abs-neutral-500}", "type": "color" },
+      "text-color-dark": { "value": "#f0f0f0", "type": "color" },
       "text-color-dark-soft": { "value": "{palettePrimitives.abs-neutral-450}", "type": "color" },
-      "text-color-dark-muted": { "value": "{palettePrimitives.abs-neutral-650}", "type": "color" },
+      "text-color-dark-muted": { "value": "#c8c8c8", "type": "color" },
       "text-color-light-base": { "value": "{textColorsOpacity.text-color-light}", "type": "color" },
       "text-color-dark-base": { "value": "{textColorsOpacity.text-color-dark}", "type": "color" },
       "text-opacity-base": { "value": "{opacityScale.abs-opacity-strong}", "type": "opacity" },
@@ -300,7 +300,7 @@
 	      "top-logo-width-vw": { "value": "35", "type": "number" },
 	      "brand-logo-width-min": { "value": "300px", "type": "dimension" },
 	      "brand-logo-width-max": { "value": "600px", "type": "dimension" },
-	      "brand-logo-user-scale": { "value": "1", "type": "number" }
+	      "brand-logo-user-scale": { "value": "0.936", "type": "number" }
 	    },
 
 	    "sceneImpact": {
@@ -344,7 +344,7 @@
       "legend-line-height": { "value": "{typographyAliases.line-height-loose}", "type": "lineHeights" },
       "legend-opacity": { "value": "0.9", "type": "opacity" },
 
-      "decorative-script-max-width": { "value": "clamp(288px, 30vw, 403px)", "type": "dimension" },
+      "decorative-script-max-width": { "value": "clamp(403px, 42vw, 564px)", "type": "dimension" },
       "decorative-script-font-size": { "value": "{typographyAliases.text-sm}", "type": "fontSizes" },
       "decorative-script-line-height": { "value": "{typographyAliases.line-height-base}", "type": "lineHeights" },
       "decorative-script-letter-spacing": { "value": "calc(0.01em * 1.02)", "type": "dimension" },

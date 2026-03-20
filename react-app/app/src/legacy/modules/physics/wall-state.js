@@ -275,7 +275,7 @@ function getChromeColorFromCSS() {
   try {
     const root = document.documentElement;
     const body = document.body;
-    const container = document.getElementById('bravia-balls');
+    const container = document.getElementById('simulations');
 
     const read = (el, name) => {
       if (!el) return '';
@@ -307,9 +307,9 @@ function getChromeColorFromCSS() {
       color = read(body, '--chrome-bg') || read(container, '--chrome-bg') || read(root, '--wall-color');
     }
     
-    return color || '#0a0a0a';
+    return color || '#181818';
   } catch {
-    return '#0a0a0a';
+    return '#181818';
   }
 }
 

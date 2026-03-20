@@ -3,7 +3,7 @@
 // ║          Native feel with prefers-color-scheme + manual override            ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
-import { getGlobals } from '../core/state.js';
+import { applyLayoutCSSVars, getGlobals } from '../core/state.js';
 import { applyColorTemplate } from './colors.js';
 import { syncChromeColor } from '../physics/engine.js';
 import { log as devLog } from '../utils/logger.js';
@@ -51,8 +51,8 @@ function writeStoredThemePreference(theme) {
 function getBackgroundColors() {
   const g = getGlobals();
   return {
-    light: g?.bgLight || readTokenVar('--bg-light', '#f5f5f5'),
-    dark: g?.bgDark || readTokenVar('--bg-dark', '#0a0a0a')
+    light: g?.bgLight || readTokenVar('--bg-light', '#efefef'),
+    dark: g?.bgDark || readTokenVar('--bg-dark', '#181818')
   };
 }
 
@@ -65,7 +65,7 @@ function syncCssVarsFromConfig() {
   const root = document.documentElement;
   applyShellLayoutVars();
   
-  // Scene interior backgrounds (used only for #bravia-balls container, not browser chrome)
+  // Scene interior backgrounds (used only for #simulations container, not browser chrome)
   if (g?.bgLight) {
     root.style.setProperty('--bg-light', g.bgLight);
   }
@@ -167,6 +167,7 @@ function applyDarkModeToDOM(isDark) {
   }
 
   syncShellToDocument({ isDark });
+  applyLayoutCSSVars();
   
   // 1) If the browser ignores theme-color (desktop Chrome tabs), adapt the wall to match the browser UI.
   // 2) Then update meta theme-color from the (possibly updated) CSS vars.

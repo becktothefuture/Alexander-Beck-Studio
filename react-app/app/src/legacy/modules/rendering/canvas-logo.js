@@ -16,7 +16,7 @@ const LOGO_SECONDARY_OPACITY_DEFAULT = 0.66;
 
 // Theme colors (from tokens.css)
 const LOGO_COLOR_LIGHT = '#161616';
-const LOGO_COLOR_DARK = '#e3e9f0';
+const LOGO_COLOR_DARK = '#eaeaea';
 const MIN_LOGO_CONTRAST = 2.2;
 
 // Entrance animation settings
@@ -201,7 +201,7 @@ function contrastRatio(a, b) {
 }
 
 function resolveSceneBackgroundColor(rootStyles) {
-  const sceneEl = document.getElementById('bravia-balls');
+  const sceneEl = document.getElementById('simulations');
   if (sceneEl) {
     const sceneBg = getComputedStyle(sceneEl).backgroundColor?.trim();
     if (sceneBg && !isTransparentColor(sceneBg)) return sceneBg;
@@ -297,6 +297,20 @@ function resolveSecondaryLogoOpacity() {
   return Math.max(0, Math.min(1, parsed));
 }
 
+/** Matches `--brand-logo-user-scale` in tokens.css (canvas size = DOM transform). */
+function resolveBrandLogoUserScale() {
+  try {
+    const raw = getComputedStyle(document.documentElement)
+      .getPropertyValue('--brand-logo-user-scale')
+      .trim();
+    const parsed = parseFloat(raw);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  } catch (e) {
+    void e;
+  }
+  return 1;
+}
+
 /**
  * Keep entrance progress tied to wall-clock time so it can complete even when
  * physics updates are sparse (or temporarily skipped by mode-level optimizations).
@@ -359,6 +373,9 @@ function calculateLogoSize(canvasWidth, canvasHeight, dpr) {
   const canvasCssPx = canvasWidth / dpr;
   const maxCanvasWidth = canvasCssPx * 0.95; // 5% padding on each side
   logoWidth = Math.min(logoWidth, maxCanvasWidth);
+
+  // Step 3b: User scale from tokens (matches #brand-logo transform / entrance animation)
+  logoWidth *= resolveBrandLogoUserScale();
   
   // Step 4: Calculate height from aspect ratio (NEVER distort)
   const logoHeight = logoWidth / LOGO_ASPECT;

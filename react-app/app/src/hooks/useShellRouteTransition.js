@@ -37,7 +37,7 @@ function computeRouteState(href) {
    Fades the inner content (simulation + UI) while the wall frame stays visible,
    swaps the route while invisible, then staggers the new content in.
 
-   The wall (#bravia-balls border/background) never changes opacity.
+   The wall (#simulations border/background) never changes opacity.
    Only #shell-wall-slot (canvas) and .fade-content (UI layer) fade.
 
    Invariants:

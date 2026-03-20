@@ -24,86 +24,14 @@ import {
   subtractFromAccumulator,
   resetPhysicsAccumulator 
 } from './accumulator.js';
-import {
-  initCanvasLogo,
-  updateLogoSize,
-  drawLogo,
-  updateLogoEntrance,
-  isCanvasLogoReady
-} from '../rendering/canvas-logo.js';
+
 
 // Re-export for backwards compatibility
 export { resetPhysicsAccumulator };
 
 const DT_DESKTOP = CONSTANTS.PHYSICS_DT;
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// LOGO Z-DEPTH CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════════
-const LOGO_Z = 0.5; // Logo renders at z=0.5 (middle of depth range)
 
-// Depth fog settings for z-partitioned modes
-// Balls further back (z closer to 0) fade out more
-// Note: This is additive to any mode-specific fog (e.g., 3D cube's own fog)
-// Keep subtle to avoid over-darkening
-const DEPTH_FOG_MIN_OPACITY = 0.3;   // Minimum opacity for balls at z=0 (furthest back)
-const DEPTH_FOG_START_Z = 0.75;      // Z value where fog starts fading (balls above this are fully opaque)
-
-// Modes that render ALL balls on top of logo (no z-partitioning needed)
-// Category A: Simple particle simulations
-const MODES_ALWAYS_ON_TOP = new Set([
-  MODES.PIT,
-  MODES.PORTFOLIO_PIT,
-  MODES.FLIES,
-  MODES.WEIGHTLESS,
-  MODES.CRITTERS,
-  MODES.MAGNETIC,
-  MODES.ELASTIC_CENTER,
-  MODES.WATER,
-  MODES.KALEIDOSCOPE,
-  MODES.DVD_LOGO,
-  MODES.SHOOTING_STARS
-]);
-
-/**
- * Calculate depth fog opacity multiplier based on z-depth
- * Efficient linear interpolation - no expensive calculations
- * z=0 (back) → DEPTH_FOG_MIN_OPACITY (30% opacity)
- * z>=DEPTH_FOG_START_Z (front) → 1.0 (100% opacity)
- * Linear interpolation between
- * @param {number} z - Z-depth value (0-1)
- * @returns {number} Opacity multiplier (0-1)
- */
-function getDepthFogOpacity(z) {
-  if (z >= DEPTH_FOG_START_Z) return 1.0;
-  // Linear fade from MIN_OPACITY at z=0 to 1.0 at z=DEPTH_FOG_START_Z
-  // This is just: minOpacity + (z / startZ) * (1 - minOpacity)
-  // Very cheap calculation - no conditionals, no expensive math
-  const t = z / DEPTH_FOG_START_Z;
-  return DEPTH_FOG_MIN_OPACITY + t * (1.0 - DEPTH_FOG_MIN_OPACITY);
-}
-
-/**
- * Check if current mode needs z-partitioning for logo rendering
- * Returns false for Category A modes (balls always on top)
- * Returns true for Category B/C/D modes (spatial/3D)
- */
-function modeNeedsZPartitioning(mode) {
-  return !MODES_ALWAYS_ON_TOP.has(mode);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// LOGO Z-PARTITION CACHE (avoid per-frame allocations)
-// ═══════════════════════════════════════════════════════════════════════════════
-const zPartitionCache = {
-  behind: [],
-  inFront: []
-};
-
-function resetZPartitionCache() {
-  zPartitionCache.behind.length = 0;
-  zPartitionCache.inFront.length = 0;
-}
 const DT_MOBILE = CONSTANTS.PHYSICS_DT_MOBILE;
 const CORNER_RADIUS = 42; // matches rounded container corners
 const CORNER_FORCE = 1800;
@@ -618,9 +546,6 @@ export async function updatePhysics(dtSeconds, applyForcesFunc) {
   const canvas = globals.canvas;
   const balls = globals.balls;
 
-  // Keep entrance/micro FX progressing even in modes that intentionally use 0 balls
-  // (e.g. starfield custom renderer). Otherwise logo entrance can get stuck at opacity 0.
-  updateLogoEntrance(dtSeconds);
   const pitFxThrottleAware = isPitLikeMode(globals.currentMode)
     && String(globals.pitFxThrottlePolicy || 'throttle-aware') === 'throttle-aware';
   const shouldUpdateCursorExplosion = !(pitFxThrottleAware && (Number(globals.adaptiveThrottleLevel) || 0) >= 1);
@@ -680,7 +605,6 @@ export function render() {
       }
     : null;
   globals.renderQualityTierResolved = qualityProfile.tier;
-  updateLogoSize(canvas.width, canvas.height, dpr);
   
   // Clear frame (ghost trails removed per performance optimization plan)
   // Clear BEFORE applying clip so the corners never accumulate stale pixels.
@@ -709,63 +633,15 @@ export function render() {
   }
   
   // ═══════════════════════════════════════════════════════════════════════════════
-  // LOGO + BALLS RENDERING WITH Z-DEPTH
-  // 
-  // Category A modes (particle sims): Logo first, then all balls on top
-  // Category B/C/D modes (spatial/3D): Partition balls by z, draw behind → logo → front
+  // BALLS RENDERING — logo is now a DOM <h1> behind the canvas (z:5 in #simulations).
+  // Canvas is alpha-transparent; heading shows through clear pixels.
+  // Z-partition removed: all balls paint on top of the heading.
   // ═══════════════════════════════════════════════════════════════════════════════
-  const needsZPartition = modeNeedsZPartitioning(globals.currentMode);
-  const logoReady = isCanvasLogoReady();
-  
   const customRenderer = getModeCustomRenderer();
-  const skipCanvasLogo = globals.currentMode === MODES.PORTFOLIO_PIT;
   if (customRenderer) {
-    if (logoReady && !needsZPartition && !skipCanvasLogo) {
-      drawLogo(ctx, canvas.width, canvas.height);
-    }
     customRenderer(ctx);
-  } else if (!needsZPartition) {
-    // ═══════════════════════════════════════════════════════════════════════════
-    // CATEGORY A: All balls render ON TOP of logo (no z-partitioning)
-    // ═══════════════════════════════════════════════════════════════════════════
-    if (logoReady) {
-      drawLogo(ctx, canvas.width, canvas.height);
-    }
-    
-    // Draw all balls (color-batched for performance)
-    renderBallsColorBatched(ctx, balls, false, pitRenderOptions);
-    
   } else {
-    // ═══════════════════════════════════════════════════════════════════════════
-    // CATEGORY B/C/D: Partition balls by z-depth
-    // Balls with z < 0.5 render behind logo, z >= 0.5 render in front
-    // ═══════════════════════════════════════════════════════════════════════════
-    resetZPartitionCache();
-    
-    for (let i = 0; i < balls.length; i++) {
-      const ball = balls[i];
-      const z = ball.z ?? 1.0; // Default to front if z not set
-      if (z < LOGO_Z) {
-        zPartitionCache.behind.push(ball);
-      } else {
-        zPartitionCache.inFront.push(ball);
-      }
-    }
-    
-    // Draw balls behind logo (with depth fog for atmospheric effect)
-    if (zPartitionCache.behind.length > 0) {
-      renderBallsColorBatched(ctx, zPartitionCache.behind, true, pitRenderOptions); // Apply depth fog
-    }
-    
-    // Draw logo
-    if (logoReady) {
-      drawLogo(ctx, canvas.width, canvas.height);
-    }
-    
-    // Draw balls in front of logo (also apply depth fog for consistent effect)
-    if (zPartitionCache.inFront.length > 0) {
-      renderBallsColorBatched(ctx, zPartitionCache.inFront, true, pitRenderOptions); // Apply depth fog
-    }
+    renderBallsColorBatched(ctx, balls, false, pitRenderOptions);
   }
 
   if (modeRenderer && modeRenderer.postRender) {
@@ -800,9 +676,8 @@ export function render() {
  * Groups balls by color to reduce ctx.fillStyle changes
  * @param {CanvasRenderingContext2D} ctx
  * @param {Array} ballsToRender - Array of Ball objects
- * @param {boolean} applyDepthFog - Whether to apply z-depth fog (for balls behind logo)
  */
-function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, renderOptions = null) {
+function renderBallsColorBatched(ctx, ballsToRender, _unused = false, renderOptions = null) {
   if (!ballsToRender || ballsToRender.length === 0) return;
   const pitLodEnabled = Boolean(renderOptions?.pitRenderLodEnabled);
   const tinyRadiusPx = Number(renderOptions?.pitTinyRadiusPx) || 0;
@@ -847,12 +722,6 @@ function renderBallsColorBatched(ctx, ballsToRender, applyDepthFog = false, rend
       const hasSquash = ball.squashAmount > squashThreshold;
       const filterOpacity = ball.filterOpacity ?? 1;
       let effectiveAlpha = ball.alpha * filterOpacity;
-      
-      // Apply depth fog for balls behind logo (more transparent when further back)
-      if (applyDepthFog) {
-        const fogOpacity = getDepthFogOpacity(ball.z ?? 1.0);
-        effectiveAlpha *= fogOpacity;
-      }
       
       const hasAlpha = effectiveAlpha < 1.0;
       if (pitLodEnabled && !hasSquash && !hasAlpha && radius <= tinyRadiusPx) {

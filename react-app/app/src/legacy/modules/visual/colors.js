@@ -197,7 +197,7 @@ function boostMostSaturatedInPalette(palette, satMul = 0.2) {
 const BASE_PALETTES = {
   industrialTeal: {
     label: 'Industrial Teal',
-    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#ff4013', '#0d5cb6', '#ffa000'],
+    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#00695c', '#000000', '#f03030', '#0d5cb6', '#ffa000'],
     dark: ['#5b8378', '#345d51', '#8a928a', '#00e6c3', '#d5d5d5', '#ff6b47', '#5b9aff', '#ffb84d']
   },
   industrialRust: {
@@ -215,7 +215,7 @@ const BASE_PALETTES = {
   industrialAmber: {
     label: 'Industrial Amber',
     // Amber + violet + red: keeps industrial warmth but avoids “all teal-adjacent”.
-    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#d97706', '#000000', '#00695c', '#6b46c1', '#ff4013'],
+    light: ['#b5b7b6', '#bbbdbd', '#ffffff', '#d97706', '#000000', '#00695c', '#6b46c1', '#f03030'],
     dark: ['#82745d', '#5a4b35', '#a9a193', '#fbbf24', '#d5d5d5', '#00e6c3', '#c4b5fd', '#ff6b47']
   },
   industrialViolet: {
@@ -766,7 +766,7 @@ export function getCurrentPalette(templateName) {
   
   // Desaturate greys to align with background hue (all palettes)
   // In dark mode, also darken the greys for better contrast
-  const bgColor = isDarkMode ? (globals.bgDark || '#0a0a0a') : (globals.bgLight || '#f5f5f5');
+  const bgColor = isDarkMode ? (globals.bgDark || '#181818') : (globals.bgLight || '#efefef');
   return desaturateGreysToBackground(rawPalette, bgColor, isDarkMode);
 }
 

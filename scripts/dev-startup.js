@@ -256,6 +256,10 @@ async function reactDevMode() {
   console.log();
   log('⚛️  REACT APP READY!', 'bright');
   log(`   Open: ${colors.bright}${colors.cyan}http://localhost:8012${colors.reset}`, 'green');
+  log(
+    `   Styleguide (typography + components): ${colors.bright}${colors.cyan}http://localhost:8012/styleguide.html${colors.reset}`,
+    'green'
+  );
   log('\n   Press Ctrl+C to stop\n', 'yellow');
 }
 

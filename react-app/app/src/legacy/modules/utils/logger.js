@@ -88,7 +88,7 @@ const FALLBACK_CONSOLE_COLORS = [
   '#ffffff', // white
   '#00695c', // teal (accent)
   '#1a1a1a', // near-black (readable)
-  '#ff4013', // orange
+  '#f03030', // accent red
   '#0d5cb6', // blue
   '#ffa000', // amber
 ];

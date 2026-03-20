@@ -6,6 +6,8 @@ This document describes the configuration keys loaded at runtime. The React app 
 
 **Visual spec for shell buttons and on-page UI harmony:** [`SITE-STYLEGUIDE.md`](SITE-STYLEGUIDE.md).
 
+**Typography:** UI sans is **DM Sans** and UI monospace is **DM Mono** (Google Fonts), linked from the HTML shells (`index.html`, `portfolio.html`, `cv.html`, `styleguide.html`). Tokens: `--abs-font-sans` and `--abs-font-mono` in [`react-app/app/public/css/tokens.css`](../../react-app/app/public/css/tokens.css); default UI tracking is **`--abs-letter-spacing-global`** (`-0.07ch` on `body` — site-wide scale ~40% tighter than the previous `-0.05ch`; mono / some controls reset to `normal` where needed). The home hero wordmark uses **`--hero-title-letter-spacing`** (`-0.027ch`) and is **not** tied to that global bump. Figma export mirrors font families in `react-app/app/public/config/figma-tokens.json` (`abs-font-sans`, `abs-font-mono`). **Long-form UI copy** (decorative script, quote card, CV sections, gate modals, portfolio sheet body) uses **`widows` / `orphans`** and, where supported, **`text-wrap: pretty`**; portfolio hero and gate **`modal-title`** use **`text-wrap: balance`** — see grouped rules in [`react-app/app/public/css/main.css`](../../react-app/app/public/css/main.css) after `.decorative-script p a::after`.
+
 ---
 
 ## Portfolio Page Configuration (Separate Runtime)
@@ -18,7 +20,7 @@ The portfolio route now uses a dedicated **project pit** runtime instead of the 
 - **Loader/normalizer**: `react-app/app/src/legacy/modules/portfolio/portfolio-config.js`
 - **Stylesheet**: `react-app/app/public/css/portfolio.css` is linked from **`index.html`** and **`portfolio.html`**. Pit/chrome rules that need the dedicated portfolio layout still use **`body.portfolio-page`**.
 
-Portfolio config applies to the portfolio pit and the **wall-aligned project bottom sheet** (not a fullscreen takeover). `runtime.motion.openDurationMs` drives drawer slide in/out; `colorFloodHoldMs` is unused in this layout but remains in generated JSON for compatibility. The project dialog (`#portfolioProjectView`) is inserted by `portfolio/app.js` **`createProjectView()`** into **`#portfolio-sheet-host`**. **Stacking (non-negotiable):** the host is a **sibling of `.fade-content` inside `#abs-scene`**, **after** `.fade-content` in the DOM (`StudioShell.jsx`), with **`z-index: 220`** and **`z-index: 260`** when `body.portfolio-project-open` — **above** route header/footer (**200**) and above **`#quote-viewport-host` (250)** when open. **Do not** mount the host only inside **`#bravia-balls`** (that cannot stack above chrome). Authoritative table: **`docs/reference/LAYER-STACKING.md`**. The host uses the **same fixed inset** as the inner canvas and **`border-radius: var(--frame-inner-radius)`** + **`overflow: hidden`**; inherits **`corner-shape`** like **`#c`**. **`.portfolio-project-view__drawer`** has no duplicate frame border. **`--portfolio-drawer-radius`** is **`--frame-inner-radius`** for hero inset math. Close uses an **inline SVG**. Pit labels stay in `#portfolioProjectMount`. Without the host, the dialog falls back to the mount. **`.portfolio-project-view__scroll`**: **`overflow-y: auto`**, **`line-height: var(--line-height-body)`**, hidden scrollbars. Hero uses **`--portfolio-hero-image-gutter`** and **`--portfolio-hero-image-radius`**. Hero height: **`100cqh`** / `min(100dvh, 100svh)` fallback.
+Portfolio config applies to the portfolio pit and the **wall-aligned project bottom sheet** (not a fullscreen takeover). `runtime.motion.openDurationMs` drives drawer slide in/out; `colorFloodHoldMs` is unused in this layout but remains in generated JSON for compatibility. The project dialog (`#portfolioProjectView`) is inserted by `portfolio/app.js` **`createProjectView()`** into **`#portfolio-sheet-host`**. **Stacking (non-negotiable):** the host is a **sibling of `.fade-content` inside `#abs-scene`**, **after** `.fade-content` in the DOM (`StudioShell.jsx`), with **`z-index: 220`** and **`z-index: 260`** when `body.portfolio-project-open` — **above** route header/footer (**200**) and above **`#quote-viewport-host` (250)** when open. **Do not** mount the host only inside **`#simulations`** (that cannot stack above chrome). Authoritative table: **`docs/reference/LAYER-STACKING.md`**. The host uses the **same fixed inset** as the inner canvas and **`border-radius: var(--frame-inner-radius)`** + **`overflow: hidden`**; inherits **`corner-shape`** like **`#c`**. **`.portfolio-project-view__drawer`** has no duplicate frame border. **`--portfolio-drawer-radius`** is **`--frame-inner-radius`** for hero inset math. Close uses an **inline SVG**. Pit labels stay in `#portfolioProjectMount`. Without the host, the dialog falls back to the mount. **`.portfolio-project-view__scroll`**: **`overflow-y: auto`**, **`line-height: var(--line-height-body)`**, hidden scrollbars. Hero uses **`--portfolio-hero-image-gutter`** and **`--portfolio-hero-image-radius`**. Hero height: **`100cqh`** / `min(100dvh, 100svh)` fallback.
 
 - **`bodies.diameterScale`**: Multiplier applied to computed ball diameters after viewport fractions (default `1` = no extra scale on top of min/max viewport fractions).
 
@@ -26,7 +28,7 @@ Portfolio config applies to the portfolio pit and the **wall-aligned project bot
 
 **Project circle fills:** Each project gets a distinct color from the active palette: saturated (chromatic) swatches first, then neutral/grey slots from that palette (deduped), then additional cool greys if there are more projects than unique swatches (`getPortfolioProjectPaletteColor` in `visual/colors.js`). Home ball pit still uses weighted random palette picks; this rule applies only to the portfolio pit.
 
-**Quote puck:** The draggable quote roundel (`initQuoteDisplay` + `initQuotePuck` in `main.js`) is mounted only on the home route. Portfolio bootstrap calls `destroyQuoteDisplay()` so the same DOM host does not keep a home quote when using the SPA shell. **`#quote-display`** carries fixed `box-shadow` + inset rim; **`initQuotePuck`** drives **`left`/`top`** plus air-hockey motion (flick, wall bounce, friction) and rotates **`.quote-display__surface`** only so the rim/shadow stay fixed. Quote **text/author** on **`:hover`** use **`--quote-hover-fg`** / **`--cursor-hover-fg`** (stamped with the cursor palette in `colors.js`), same idea as footer links — **no** typewriter press scaling on the puck. With global squircle, **`#quote-display`** / **`.quote-display__surface`** are listed in **`tokens.css`** as **`corner-shape: round`** so layers stay concentric.
+**Quote puck:** The draggable quote roundel (`initQuoteDisplay` + `initQuotePuck` in `main.js`) is mounted only on the home route. Portfolio bootstrap calls `destroyQuoteDisplay()` so the same DOM host does not keep a home quote when using the SPA shell. **`#quote-display`** wraps **`.quote-display__disk`** (round fill + shadow, hover scale) and **`.quote-display__content`** (text); diameter is **`0.75 × --abs-quote-button-size`**. **`initQuotePuck`** drives **`left`/`top`** plus air-hockey motion (flick, wall bounce, friction). Spin is **`--quote-tilt`** on **`.quote-display__content`** only. **No** hover recolour on the puck (glass stays constant). **No** typewriter press scaling on the puck. With global squircle, **`#quote-display`** / **`.quote-display__disk`** are listed in **`tokens.css`** as **`corner-shape: round`** so the puck stays circular.
 
 **Collision notes:** On load, `applyPortfolioPhysicsProfile()` sets `ballSpacing` to **0** and `wallInset` to **0** (drawn radii match fills). Ball–ball separation uses **`ballBallSurfaceGapPx`** (≈ **2.5×DPR** canvas-buffer px ≈ 2.5 CSS px air gap) plus **`collisionPairSlopPx`** for a tight positional solver so project circles do not visually clip. When `ballBallSurfaceGapPx > 0`, pit broadphase still collects sleeping–sleeping pairs so settled stacks keep the gap. Additionally, **pit-like modes with ≤64 bodies** never use the “all sleeping → skip broadphase” fast path, so the solver still runs after everything has gone to sleep (the home 300-ball pit keeps the fast path). Leaving portfolio (destroy) or initializing the home pit resets `ballBallSurfaceGapPx` / `collisionPairSlopPx` so the index pit keeps ratio-only `ballSpacing` from config.
 
@@ -122,9 +124,9 @@ Panel position / dock visibility / collapsed state is persisted (best-effort) vi
 
 **Dev config panel (single dock):** One implementation in `panel-dock.js` + `control-registry.js` on every route that mounts it (home, portfolio, CV). Default is the **full** master panel (all groups + **`includeRegisteredSections: true`**). Home prepends the mode switcher; portfolio prepends pit chrome; all routes prepend the **active mode** accordion so Ball Pit / etc. sliders are visible. `DevConfigPanelBridge` only registers **`/`** in the React shell — it is not a second panel. Home: **`createPanelDock` after `setMode`**. CV: **`initCvPanel` before `initializeDarkMode`** (theme segment binds). **Styleguide** has no dock.
 
-### Wall layer visualization (Effects group)
+### Wall layer visualization (Light Group)
 
-The **Effects** group in the config panel now includes an isometric “Wall stack” diagram that mirrors the real z-order of wall layers (bottom → top). The **Outer Wall** and **Inner Wall** control groups are ordered to match that visual stacking.
+The dev panel has a top-level **Light Group** master section (peer to Studio / Shell) with **Outer Wall** and **Inner Wall** accordions (border, shine, shadows, glow). Runtime values are stamped into CSS variables by `applyLayoutCSSVars()` in `state.js`: `#simulations` has **no outward cast shadow**; inward depth uses `.frame-vignette` inset shadows, and **`.inner-wall-gradient-edge`** paints a **light rim** on the bottom and sides plus a **shadow rim** on the top (`innerWallGradientEdgeTopShadowOpacity` → `--inner-wall-gradient-edge-top-shadow-opacity`, independent of the light-rim master). **`--ui-chrome-rim-*`** links footer / nav / icon button hover rims (`--ui-chrome-button-edge`) to the inner-wall top light / bottom shadow strengths. The frame border uses a **180°** linear gradient on the border ring: **edge** and **mid** opacities stay ~**1:2** so the **mid** stop still “peeks” on the **left/right** vertical rails (and top/bottom). Defaults are tuned **subtle**; Studio surface maps `sceneHighlight` to frame opacities with factors **0.029** / **0.058** (same ~1:2 ratio). The optional isometric “Wall stack” helper in `control-registry.js` mirrors z-order when present.
 
 ---
 
@@ -400,6 +402,13 @@ These keys are all **0..1**:
 - **Meaning**: Softness falloff for repeller field.
 - **Applied to**: `state.repelSoft`
 - **Notes**: Both keys are accepted for compatibility. `repelSoft` is the canonical name.
+
+---
+
+## Gate modals (CSS motion)
+
+- **`--ease-gate-motion`** in `tokens.css` aliases **`--ease-settle`**. Invite gate panels use it for **opacity**; `#modal-blur-layer` for **backdrop-filter** / **background**; `#abs-scene` depth for **transform** — so motion does not inherit **`--ease-magnetic`** overshoot. **`--ease-gate`** remains **`--ease-magnetic`** for other UI that should keep the magnetic feel.
+- **Invite gates (`.cv-modal` / `.portfolio-modal` / `.contact-modal`)** are centered with **`inset: 0` + `margin: auto`**. The panel does **not** animate **`transform: scale()`**: when browsers composite **scaled text**, it is often drawn as a **texture**; when the scale settles to **1**, glyphs are re-rasterized and can **snap** (widely reported for WebKit/Blink with `scale` + text). Gate **motion** is **opacity** (plus the shared **backdrop blur** on `#modal-blur-layer`). **`.modal-label`** also uses **opacity only** (no **`translateY`**) on the title/description stack.
 
 ---
 
@@ -725,6 +734,17 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 - **Meaning**: Legacy tuning value; still written to `--abs-hover-intensity-active`.
 - **Applied to**: Same as above (legend active chip uses solid cursor color; no translucent mix).
 
+### Brand logo scale (`--brand-logo-user-scale`)
+- **Meaning**: Multiplier on the hero Alexander Beck logo’s rendered size (default **`0.936`**, i.e. 20% larger than the previous **`0.78`** tune).
+- **Where**: `tokens.css` on `:root`; read in `canvas-logo.js` `calculateLogoSize()` so the **canvas** logo matches the CSS transform on `#brand-logo`.
+
+### Hero title letter-spacing (`--hero-title-letter-spacing`)
+- **Meaning**: Tracking for the home center wordmark (`.hero-title` lines) and styleguide hero specimens. Default **`-0.027ch`** — **excluded** from the site-wide ~40% tracking tighten applied to `--abs-letter-spacing-*` and most other UI.
+- **Where**: `tokens.css` on `:root`; consumed in `main.css` for `.hero-title` / `.hero-title__*` and `body.styleguide-page .styleguide-type-sample--hero-*`.
+
+### Site-wide letter spacing (tokens)
+- **Meaning**: Core scale in `tokens.css`: `--abs-letter-spacing-global` (**`-0.07ch`**), `--abs-letter-spacing-tight` / `normal` / `loose`, plus `--legend-letter-spacing`, are tuned ~**40% tighter** than the prior scale (positive tracks ×**0.6**, negative ×**1.4**). Hardcoded `letter-spacing` in `main.css`, `portfolio.css`, and `panel.css` was adjusted the same way, except the hero title token above.
+
 ### `homeMainLinksBelowLogoPx` (number, px)
 - **Meaning**: Index-only vertical offset for the main links cluster below the logo.
 - **Applied to**: CSS var `--home-main-links-below-logo-px`
@@ -741,7 +761,12 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 
 ## Noise / Film Grain (Visual)
 
-**Stacking:** `#scene-effects` / `.noise` is a child of `#bravia-balls` with `z-index: 1`, under `.shell-wall-slot` (`z-index: 2`) and the pit canvas (`#c`, `z-index: 10`), so grain sits on the wall interior surface **behind** the simulation, not on top of the balls.
+**Stacking:** `#scene-effects` / `.noise` is a child of `#simulations` with `z-index: 1`, under `.shell-wall-slot` (`z-index: 2`) and the pit canvas (`#c`, `z-index: 10`), so grain sits on the wall interior surface **behind** the simulation, not on top of the balls.
+
+### Procedural grain (runtime / panel: Shell → Background grain)
+
+- **`noiseOpacityLight` / `noiseOpacityDark`** (0–1) → `--noise-opacity-light` / `--noise-opacity-dark`
+- **`noiseColorLight` / `noiseColorDark`** (hex) → `--noise-color-light` / `--noise-color-dark` — tints the `::after` wash; defaults skew **dark grain on light theme** and **lighter grain on dark theme** for contrast against the wall.
 
 ### Noise sizing
 - `noiseSizeBase` (number, px) → `--noise-size-base`
@@ -769,7 +794,7 @@ These keys control **spacing/padding/positioning** for most UI text elements and
 
 **Design rule (wall frame):** The inner wall corner radius is applied at **1.15×** the base radius (in `applyLayoutFromVwToPx`) to visually compensate for the extra outer offset of the second outer wall band (`.wall-outer-2`). If the number of outer bands or their offset changes, this multiplier may need adjustment.
 
-**iOS-like squircle corners (global):** Runtime flag `cornerShapeSquircleEnabled` (boolean, default `true`) in `design-system.json` → `runtime`. When enabled, `applyLayoutCSSVars()` adds class `abs-corner-shape-squircle` on `<html>`; `tokens.css` applies `corner-shape: squircle` to `html` and all descendants (plus `::before` / `::after`) inside `@supports (corner-shape: squircle)` — the property is not inherited, so the stylesheet lists descendants explicitly. **Exceptions (stay circular):** `#custom-cursor`, `.legend .circle`, and **`#quote-display`** (plus nested **`.quote-display__surface`**) so the quote puck stays a true circle. Browsers without support keep standard circular `border-radius` arcs. Dev panel (**dev only**): **Browser → Squircle corners** (same state key). Canvas-drawn geometry is unchanged (CSS-only enhancement).
+**iOS-like squircle corners (global):** Runtime flag `cornerShapeSquircleEnabled` (boolean, default `true`) in `design-system.json` → `runtime`. When enabled, `applyLayoutCSSVars()` adds class `abs-corner-shape-squircle` on `<html>`; `tokens.css` applies `corner-shape: squircle` to `html` and all descendants (plus `::before` / `::after`) inside `@supports (corner-shape: squircle)` — the property is not inherited, so the stylesheet lists descendants explicitly. **Exceptions (stay circular):** `#custom-cursor`, `.legend .circle`, and **`#quote-display`** (plus nested **`.quote-display__disk`**) so the quote puck stays a true circle. Browsers without support keep standard circular `border-radius` arcs. Dev panel (**dev only**): **Browser → Squircle corners** (same state key). Canvas-drawn geometry is unchanged (CSS-only enhancement).
 
 ### Legacy compatibility (px keys)
 The following legacy keys are still accepted and will be converted to vw at startup:

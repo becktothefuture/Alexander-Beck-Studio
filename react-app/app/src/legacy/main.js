@@ -18,7 +18,7 @@ import {
   disposeRendererListeners,
 } from './modules/rendering/renderer.js';
 import { render } from './modules/physics/engine.js';
-import { initCanvasLogo, startLogoEntrance, skipLogoEntrance } from './modules/rendering/canvas-logo.js';
+
 import { setupKeyboardShortcuts } from './modules/ui/keyboard.js';
 import { setupPointer } from './modules/input/pointer.js';
 import { setupOverscrollLock } from './modules/input/overscroll-lock.js';
@@ -84,7 +84,7 @@ function setBootLifecycleState(state) {
  * Apply two-level padding CSS variables from global state to :root
  * 
  * Two-level system:
- * 1. --container-border: insets #bravia-balls from viewport (reveals body bg as outer frame)
+ * 1. --container-border: insets #simulations from viewport (reveals body bg as outer frame)
  * 2. --simulation-padding: padding inside container around canvas (inner breathing room)
  * 
  * The canvas radius auto-calculates via CSS: calc(var(--container-radius) - var(--simulation-padding))
@@ -138,7 +138,7 @@ export function applyVisualCSSVars(config) {
  * Fade in all content (abs-scene) with a gentle ease-out.
  * Uses WAAPI when available, falling back to a CSS transition.
  * Excludes background/wall color (which remains visible throughout).
- * abs-scene contains: canvas (#bravia-balls), UI (#app-frame), logo, edges, etc.
+ * abs-scene contains: canvas (#simulations), UI (#app-frame), logo, edges, etc.
  */
 function fadeInContentLayer(options = {}) {
   const fadeTarget = document.getElementById('abs-scene');
@@ -440,14 +440,14 @@ export async function bootstrapHomePage() {
     setupRenderer();
     const canvas = getCanvas();
     const ctx = getContext();
-    const container = document.getElementById('bravia-balls');
+    const container = document.getElementById('simulations');
     
     if (!canvas || !ctx || !container) {
       throw new Error('Missing DOM elements');
     }
 
     // Logo is now positioned in .ui-center flex container (inside .fade-content)
-    // No longer moved to #bravia-balls - it stays in the UI layer for proper flex layout
+    // No longer moved to #simulations - it stays in the UI layer for proper flex layout
 
     // Accessibility: the canvas is an interactive surface (keyboard + pointer).
     // Ensure we expose it as an application-like region for AT.
@@ -466,9 +466,8 @@ export async function bootstrapHomePage() {
     mark('bb:renderer');
     log('✓ Canvas initialized (container-relative sizing)');
     
-    // Initialize canvas logo (extracts SVG paths, prepares offscreen rendering)
-    initCanvasLogo();
-    log('✓ Canvas logo initialized');
+    // Canvas logo removed — hero title is now a DOM <h1> inside #simulations
+    log('✓ Hero title rendered via DOM (canvas logo removed)');
     
     // Ensure initial mouseInCanvas state is false for tests
     const globals = getGlobals();
@@ -734,20 +733,17 @@ export async function bootstrapHomePage() {
       if (!g.entranceEnabled || reduceMotion) {
         await waitForVisualReady();
         await fadeInContentLayer({ delay: 0, duration: revealDuration });
-        // Also reveal late elements (logo + main links) that have inline hidden styles
+        // Also reveal late elements (main links) that have inline hidden styles
         revealAllLateElements();
-        // Skip canvas logo entrance animation (show immediately)
-        skipLogoEntrance();
+        // Film grain (.noise) only becomes visible when html.entrance-complete matches
+        // (see main.css). CV/portfolio use forcePageVisible here; index used to omit it,
+        // leaving grain invisible no matter how high opacity sliders were set.
+        document.documentElement.classList.remove('entrance-pre-transition', 'entrance-transitioning');
+        document.documentElement.classList.add('entrance-complete');
         console.log('✓ Entrance animation skipped (disabled or reduced motion)');
       } else {
         await waitForVisualReady();
-        // Start canvas logo entrance animation (blur + fade in)
-        // Timing matches the DOM logo reveal in orchestrateEntrance
-        const logoDelay = Math.round(revealDuration * 0.55);
-        setTimeout(() => {
-          startLogoEntrance();
-        }, logoDelay);
-        
+        // Hero title entrance is CSS-driven via --ui-entered (set by orchestrateEntrance)
         // Orchestrate entrance (wall animation conditional on navigation state)
         await orchestrateEntrance({
           waitForFonts: null,
@@ -786,8 +782,6 @@ export async function bootstrapHomePage() {
     } catch (e) {
       console.warn('⚠️ Entrance animation failed, falling back to simple fade:', e);
       await fadeInContentLayer({ delay: 0, duration: getShellConfig()?.motion?.contentRevealMs ?? CONTENT_FADE_DURATION_MS });
-      // Skip canvas logo entrance (show immediately)
-      skipLogoEntrance();
       // Fallback: also reveal late elements so nothing stays hidden
       try {
         const { revealAllLateElements } = await import('./modules/visual/entrance-animation.js');
@@ -796,11 +790,11 @@ export async function bootstrapHomePage() {
         // Manual fallback if module import fails
         // NOTE: Do NOT clear transform - CSS may rely on it for positioning
         // REMOVE inline opacity so CSS controls it (enables modal fade transitions)
-        ['main-links', 'brand-logo'].forEach((id) => {
+        ['main-links', 'hero-title'].forEach((id) => {
           const el = document.getElementById(id);
           if (el) {
             el.style.removeProperty('opacity');
-            if (id === 'brand-logo') {
+            if (id === 'hero-title') {
               el.style.removeProperty('filter');
             }
             el.style.visibility = 'visible';

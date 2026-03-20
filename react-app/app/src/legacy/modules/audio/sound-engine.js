@@ -305,7 +305,7 @@ let isEnabled = false;
 let isUnlocked = false;
 
 // Broadcast state changes so UI stays in sync
-export const SOUND_STATE_EVENT = 'bravia-balls:sound-state';
+export const SOUND_STATE_EVENT = 'simulations:sound-state';
 function emitSoundStateChange() {
   try {
     if (typeof window !== 'undefined' && window.dispatchEvent) {

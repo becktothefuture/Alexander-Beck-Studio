@@ -73,12 +73,12 @@ function ensureLiveCustomCursorElement() {
 
 /**
  * Check if mouse is inside the frame interior (the actual simulation content area).
- * Uses #bravia-balls bounds minus its border widths.
+ * Uses #simulations bounds minus its border widths.
  * Uses cached bounding rect for performance
  * This keeps cursor behavior aligned with the simplified frame DOM.
  */
 function isMouseInSimulation(clientX, clientY) {
-  const container = document.getElementById('bravia-balls');
+  const container = document.getElementById('simulations');
   if (!container) return false;
 
   // Cache rect to avoid expensive layout reads on every mouse move
@@ -159,7 +159,7 @@ export const getCursorBrightenedColor = getCursorColor;
  * Creates a circular cursor that follows the mouse
  */
 export function setupCustomCursor() {
-  const container = document.getElementById('bravia-balls') || document.body;
+  const container = document.getElementById('simulations') || document.body;
 
   if (isInitialized && cursorElement && !cursorElement.isConnected) {
     detachCustomCursorModuleState();
@@ -187,7 +187,7 @@ export function setupCustomCursor() {
   cursorElement.id = 'custom-cursor';
   cursorElement.setAttribute('aria-hidden', 'true');
 
-  // Insert cursor inside #bravia-balls to be in same stacking context as canvas/wall
+  // Insert cursor inside #simulations to be in same stacking context as canvas/wall
   container.appendChild(cursorElement);
 
   cursorElement.style.display = 'none';
@@ -245,7 +245,7 @@ function applyTapRingMount(clientX, clientY, overlayIsActive) {
 }
 
 function applyHomeDotMount(clientX, clientY) {
-  const container = document.getElementById('bravia-balls');
+  const container = document.getElementById('simulations');
   if (container && cursorElement.parentElement !== container) {
     container.appendChild(cursorElement);
   }
