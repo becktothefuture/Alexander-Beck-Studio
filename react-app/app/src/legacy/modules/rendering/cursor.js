@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                          CUSTOM CURSOR RENDERER                              ║
-// ║  Home inner wall: small solid dot (66% on-screen ball). Else: 64px tap ring   ║
-// ║  (portfolio/CV/chrome/modal) on body fixed — see docs/reference/CUSTOM-CURSOR  ║
+// ║  Home inner wall: small solid dot (66% on-screen ball). Tap ring only for     ║
+// ║  drawer/modal states that need the larger affordance — see CUSTOM-CURSOR.      ║
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { getGlobals } from '../core/state.js';
@@ -29,6 +29,7 @@ let wasOverLink = false; // Track previous hover state for transition detection
 let lastClientX = 0;
 let lastClientY = 0;
 let lastHoveredLink = null;
+let hasLastPointerPosition = false;
 
 function handleLinkHoverEvent(event) {
   try {
@@ -122,6 +123,26 @@ function isHomeIndexRoute() {
   }
 }
 
+function isPortfolioDetailViewOpen() {
+  try {
+    return Boolean(document?.body?.classList?.contains?.('portfolio-project-open'));
+  } catch (e) {
+    return false;
+  }
+}
+
+function shouldUseHomeDotCursor() {
+  if (isHomeIndexRoute()) return true;
+  try {
+    if (document?.body?.classList?.contains?.('portfolio-page')) {
+      return !isPortfolioDetailViewOpen();
+    }
+  } catch (e) {
+    // Fall through to non-home routes using the tap ring.
+  }
+  return false;
+}
+
 function getHomeCursorDotDiameterCssPx() {
   const globals = getGlobals();
   const canvas = globals.canvas;
@@ -210,7 +231,7 @@ export function updateCursorSize() {
   cursorElement.style.marginTop = '0';
   cursorElement.style.borderRadius = '50%';
 
-  if (isHomeIndexRoute()) {
+  if (shouldUseHomeDotCursor()) {
     const d = getHomeCursorDotDiameterCssPx();
     cursorElement.style.width = `${d}px`;
     cursorElement.style.height = `${d}px`;
@@ -370,6 +391,7 @@ export function updateCursorPosition(clientX, clientY) {
 
   lastClientX = clientX;
   lastClientY = clientY;
+  hasLastPointerPosition = true;
   
   const isOverLink = isHoveringOverLink();
   const isLinkTransition = isOverLink && !wasOverLink;
@@ -424,10 +446,9 @@ export function updateCursorPosition(clientX, clientY) {
   isInSimulation = isMouseInSimulation(clientX, clientY);
   const overlayIsActive = isOverlayActive();
 
-  const homeDot =
-    isHomeIndexRoute() && isInSimulation && !overlayIsActive;
-  const tapRing =
-    overlayIsActive || (!homeDot && isInSimulation);
+  const shouldUseHomeDot = shouldUseHomeDotCursor();
+  const homeDot = shouldUseHomeDot && isInSimulation && !overlayIsActive;
+  const tapRing = overlayIsActive || (!shouldUseHomeDot && isInSimulation);
 
   if (!overlayIsActive) {
     cursorElement.classList.remove('modal-active');
@@ -482,6 +503,11 @@ export function updateCursorPosition(clientX, clientY) {
       }
     });
   }
+}
+
+export function refreshCursor() {
+  if (!cursorElement || !hasLastPointerPosition) return;
+  updateCursorPosition(lastClientX, lastClientY);
 }
 
 /**

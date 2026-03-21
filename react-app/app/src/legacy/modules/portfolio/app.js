@@ -43,7 +43,7 @@ import { announceToScreenReader } from '../utils/accessibility.js';
 import { destroyQuoteDisplay } from '../ui/quote-display.js';
 import { setupPointer } from '../input/pointer.js';
 import { setupOverscrollLock } from '../input/overscroll-lock.js';
-import { setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
+import { refreshCursor, setupCustomCursor, updateCursorSize } from '../rendering/cursor.js';
 import { PortfolioProjectDrawer, getProjectContentBlocks } from './project-drawer.js';
 
 const BASE_PATH = (() => {
@@ -1029,6 +1029,7 @@ class PortfolioPitApp {
 
   disableBackgroundInteractivity() {
     document.body.classList.add('portfolio-project-open');
+    refreshCursor();
     if (this.appFrame) {
       this.appFrame.setAttribute('aria-hidden', 'true');
       this.appFrame.inert = true;
@@ -1041,6 +1042,7 @@ class PortfolioPitApp {
 
   restoreBackgroundInteractivity() {
     document.body.classList.remove('portfolio-project-open');
+    refreshCursor();
     if (this.appFrame) {
       this.appFrame.removeAttribute('aria-hidden');
       this.appFrame.inert = false;
